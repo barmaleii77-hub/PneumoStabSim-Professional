@@ -18,14 +18,10 @@ class GLView(QOpenGLWidget, QOpenGLFunctions):
     def __init__(self, parent=None):
         super().__init__(parent)
         
-        # Set OpenGL format (Core Profile 3.3)
-        format = QSurfaceFormat()
-        format.setVersion(3, 3)
-        format.setProfile(QSurfaceFormat.OpenGLContextProfile.CoreProfile)
-        format.setDepthBufferSize(24)
-        format.setStencilBufferSize(8)
-        format.setSamples(4)  # MSAA
-        self.setFormat(format)
+        print("GLView.__init__: Initializing...")
+        
+        # Don't set format here - it should be set globally before QApplication
+        # The global format set via QSurfaceFormat.setDefaultFormat() will be used
         
         # Scene manager
         self.scene: Optional[GLScene] = None
@@ -55,6 +51,8 @@ class GLView(QOpenGLWidget, QOpenGLFunctions):
         # Enable mouse tracking
         self.setMouseTracking(True)
         
+        print("GLView.__init__: Complete")
+        
     @Slot(object)
     def set_current_state(self, snapshot: StateSnapshot):
         """Set current state snapshot for rendering
@@ -70,30 +68,78 @@ class GLView(QOpenGLWidget, QOpenGLFunctions):
         
     def initializeGL(self):
         """Initialize OpenGL context and resources"""
-        # Initialize OpenGL functions
-        self.initializeOpenGLFunctions()
+        print("GLView.initializeGL: Starting...")
         
-        # Print OpenGL info
-        import OpenGL.GL as gl
-        print(f"OpenGL Version: {gl.glGetString(gl.GL_VERSION).decode()}")
-        print(f"GLSL Version: {gl.glGetString(gl.GL_SHADING_LANGUAGE_VERSION).decode()}")
-        print(f"Renderer: {gl.glGetString(gl.GL_RENDERER).decode()}")
+        try:
+            # Initialize OpenGL functions
+            print("  Initializing OpenGL functions...")
+            self.initializeOpenGLFunctions()
+            print("  ? OpenGL functions initialized")
+        except Exception as e:
+            print(f"  ? Failed to initialize OpenGL functions: {e}")
+            import traceback
+            traceback.print_exc()
+            return
         
-        # Create scene
-        self.scene = GLScene(self)
-        self.scene.initialize()
+        # DON'T use PyOpenGL here - use Qt's built-in OpenGL functions
+        print(f"  OpenGL initialized (using Qt OpenGL functions)")
         
-        # Create HUD
-        self.tank_hud = TankOverlayHUD()
+        # Set up OpenGL state FIRST (before creating scene)
+        try:
+            print("  Configuring OpenGL state...")
+            self.glClearColor(0.15, 0.15, 0.2, 1.0)  # Dark blue-gray background
+            print("    - Clear color set")
+            
+            self.glEnable(self.GL_DEPTH_TEST)
+            print("    - Depth test enabled")
+            
+            self.glEnable(self.GL_BLEND)
+            print("    - Blend enabled")
+            
+            self.glBlendFunc(self.GL_SRC_ALPHA, self.GL_ONE_MINUS_SRC_ALPHA)
+            print("    - Blend func set")
+            
+            # Optional features (may not be supported)
+            try:
+                self.glEnable(self.GL_MULTISAMPLE)
+                self.glEnable(self.GL_LINE_SMOOTH)
+                self.glHint(self.GL_LINE_SMOOTH_HINT, self.GL_NICEST)
+                print("    - Multisampling and line smoothing enabled")
+            except Exception:
+                print("    - Multisampling/line smoothing not available (optional)")
+            
+            print("  ? OpenGL state configured")
+        except Exception as e:
+            print(f"  ? OpenGL state configuration failed: {e}")
+            import traceback
+            traceback.print_exc()
+            # Continue anyway - maybe scene will work
         
-        # Set up OpenGL state
-        self.glClearColor(0.15, 0.15, 0.2, 1.0)  # Dark blue-gray background
-        self.glEnable(self.GL_DEPTH_TEST)
-        self.glEnable(self.GL_BLEND)
-        self.glBlendFunc(self.GL_SRC_ALPHA, self.GL_ONE_MINUS_SRC_ALPHA)
-        self.glEnable(self.GL_MULTISAMPLE)
-        self.glEnable(self.GL_LINE_SMOOTH)
-        self.glHint(self.GL_LINE_SMOOTH_HINT, self.GL_NICEST)
+        # Create scene with error handling (scene may use PyOpenGL internally)
+        try:
+            print("  Creating GLScene...")
+            self.scene = GLScene(self)
+            print("  Initializing GLScene...")
+            self.scene.initialize()
+            print("  ? GLScene initialized")
+        except Exception as e:
+            print(f"  ? GLScene initialization failed: {e}")
+            import traceback
+            traceback.print_exc()
+            self.scene = None
+        
+        # Create HUD (doesn't depend on OpenGL)
+        try:
+            print("  Creating TankOverlayHUD...")
+            self.tank_hud = TankOverlayHUD()
+            print("  ? TankOverlayHUD created")
+        except Exception as e:
+            print(f"  ? TankOverlayHUD creation failed: {e}")
+            import traceback
+            traceback.print_exc()
+            self.tank_hud = None
+        
+        print("GLView.initializeGL: Complete\n")
         
     def paintGL(self):
         """Render OpenGL scene"""

@@ -32,12 +32,24 @@ class MainWindow(QMainWindow):
         super().__init__()
         self.setWindowTitle("PneumoStabSim - Pneumatic Stabilizer Simulator")
         self.resize(1500, 950)
+        
+        # Ensure window is in normal state (not minimized/maximized)
+        self.setWindowState(Qt.WindowState.WindowNoState)
 
         # Logging
         self.logger = logging.getLogger(__name__)
         
+        print("MainWindow: Creating SimulationManager...")
+        
         # Simulation manager
-        self.simulation_manager = SimulationManager(self)
+        try:
+            self.simulation_manager = SimulationManager(self)
+            print("? SimulationManager created")
+        except Exception as e:
+            print(f"? SimulationManager creation failed: {e}")
+            import traceback
+            traceback.print_exc()
+            raise
 
         # Current snapshot
         self.current_snapshot: Optional[StateSnapshot] = None
@@ -50,80 +62,88 @@ class MainWindow(QMainWindow):
         self.road_panel: Optional[RoadPanel] = None
         self.chart_widget: Optional[ChartWidget] = None
 
+        print("MainWindow: Building UI...")
+        
         # Build UI
         self._setup_central()
+        print("  ? Central widget setup")
+        
         self._setup_docks()
+        print("  ? Docks setup")
+        
         self._setup_menus()
+        print("  ? Menus setup")
+        
         self._setup_toolbar()
+        print("  ? Toolbar setup")
+        
         self._setup_status_bar()
+        print("  ? Status bar setup")
+        
         self._connect_simulation_signals()
+        print("  ? Signals connected")
 
         # Render timer (UI thread ~60 FPS)
         self.render_timer = QTimer(self)
         self.render_timer.timeout.connect(self._update_render)
         self.render_timer.start(16)
+        print("  ? Render timer started")
 
         # Start simulation infrastructure (thread, worker idle)
         self.simulation_manager.start()
+        print("  ? Simulation manager started")
 
         # Restore settings
         self._restore_settings()
+        print("  ? Settings restored")
 
         self.logger.info("Main window (P8) initialized")
+        print("? MainWindow.__init__() complete")
 
     # ------------------------------------------------------------------
     # UI Construction
     # ------------------------------------------------------------------
     def _setup_central(self):
         """Create central OpenGL + right side splitter layout"""
-        self.gl_view = GLView()
-        self.setCentralWidget(self.gl_view)
+        print("    _setup_central: Creating GLView...")
+        try:
+            self.gl_view = GLView()
+            print("    ? GLView created")
+            self.setCentralWidget(self.gl_view)
+            print("    ? GLView set as central widget")
+        except Exception as e:
+            print(f"    ? GLView creation failed: {e}")
+            # Fallback to simple widget
+            from PySide6.QtWidgets import QLabel
+            fallback = QLabel("OpenGL View failed to initialize\nUsing fallback widget")
+            fallback.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            fallback.setStyleSheet("background: #252530; color: white; font-size: 16px;")
+            self.setCentralWidget(fallback)
+            self.gl_view = None
+            print("    ? Using fallback widget")
 
     def _setup_docks(self):
-        """Create and place dock panels"""
-        # Geometry (left)
-        self.geometry_dock = QDockWidget("Geometry", self)
-        self.geometry_panel = GeometryPanel()
-        self.geometry_dock.setWidget(self.geometry_panel)
-        self.addDockWidget(Qt.LeftDockWidgetArea, self.geometry_dock)
-
-        # Pneumatics (right top)
-        self.pneumo_dock = QDockWidget("Pneumatics", self)
-        self.pneumo_panel = PneumoPanel()
-        self.pneumo_dock.setWidget(self.pneumo_panel)
-        self.addDockWidget(Qt.RightDockWidgetArea, self.pneumo_dock)
-
-        # Charts (right bottom)
-        self.charts_dock = QDockWidget("Charts", self)
-        self.chart_widget = ChartWidget()
-        self.charts_dock.setWidget(self.chart_widget)
-        self.addDockWidget(Qt.RightDockWidgetArea, self.charts_dock)
-        self.tabifyDockWidget(self.pneumo_dock, self.charts_dock)
-        self.pneumo_dock.raise_()
-
-        # Modes (floating by default)
-        self.modes_dock = QDockWidget("Modes", self)
-        self.modes_panel = ModesPanel()
-        self.modes_dock.setWidget(self.modes_panel)
-        self.addDockWidget(Qt.BottomDockWidgetArea, self.modes_dock)
-        self.modes_dock.setFloating(True)
-        self.modes_dock.resize(500, 380)
-
-        # Road profiles (floating)
-        self.road_dock = QDockWidget("Road Profiles", self)
-        self.road_panel = RoadPanel()
-        self.road_dock.setWidget(self.road_panel)
-        self.addDockWidget(Qt.BottomDockWidgetArea, self.road_dock)
-        self.road_dock.setFloating(True)
-        self.road_dock.resize(500, 450)
-
-        for dock in [self.geometry_dock, self.pneumo_dock, self.charts_dock, self.modes_dock, self.road_dock]:
-            dock.setFeatures(QDockWidget.DockWidgetFeature.DockWidgetMovable |
-                              QDockWidget.DockWidgetFeature.DockWidgetFloatable |
-                              QDockWidget.DockWidgetFeature.DockWidgetClosable)
-
-        # Connect panel signals to simulation config (queued via state_bus)
-        self._wire_panel_signals()
+        """Create and place dock panels (TEMPORARY: disabled due to crashes)"""
+        print("    _setup_docks: SKIPPING panel creation (temp workaround)")
+        
+        # Temporarily skip panel creation - they cause crashes
+        # TODO: Fix panel initialization issues
+        
+        self.geometry_dock = None
+        self.geometry_panel = None
+        self.pneumo_dock = None
+        self.pneumo_panel = None
+        self.charts_dock = None
+        self.chart_widget = None
+        self.modes_dock = None
+        self.modes_panel = None
+        self.road_dock = None
+        self.road_panel = None
+        
+        print("    ? Panels disabled (temporary workaround)")
+        
+        # Connect panel signals (no-op since panels are None)
+        # self._wire_panel_signals()
 
     def _wire_panel_signals(self):
         """Connect panel signals to simulation/state bus"""
