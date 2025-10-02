@@ -147,7 +147,7 @@ def run_small_scenario():
         y0 = create_initial_conditions(heave=0.01, roll=0.005, pitch=0.002)
         
         print(f"Running {duration}s simulation with dt={dt_phys}s...")
-        print(f"Initial: heave={y0[0]:.3f}m, roll={y0[1]*180/np.pi:.2f}°, pitch={y0[2]*180/np.pi:.2f}°")
+        print(f"Initial: heave={y0[0]:.3f}m, roll={y0[1]*180/np.pi:.2f}ï¿½, pitch={y0[2]*180/np.pi:.2f}ï¿½")
         
         # Run simulation
         t = 0.0
@@ -180,8 +180,8 @@ def run_small_scenario():
                 break
         
         print(f"? Completed {step_count} steps successfully")
-        print(f"Final: heave={y[0]:.3f}m, roll={y[1]*180/np.pi:.2f}°, pitch={y[2]*180/np.pi:.2f}°")
-        print(f"Maxima: |roll|={max_angles[0]*180/np.pi:.2f}°, |pitch|={max_angles[1]*180/np.pi:.2f}°, |heave|={max_heave:.3f}m")
+        print(f"Final: heave={y[0]:.3f}m, roll={y[1]*180/np.pi:.2f}ï¿½, pitch={y[2]*180/np.pi:.2f}ï¿½")
+        print(f"Maxima: |roll|={max_angles[0]*180/np.pi:.2f}ï¿½, |pitch|={max_angles[1]*180/np.pi:.2f}ï¿½, |heave|={max_heave:.3f}m")
         
         # Validate final state
         is_valid, msg = validate_state(y, params)
