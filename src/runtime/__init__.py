@@ -13,10 +13,9 @@ from .sync import (
     ThreadSafeCounter, create_state_queue
 )
 
-# Temporarily disabled due to physics import issues
-# from .sim_loop import (
-#     PhysicsWorker, SimulationManager
-# )
+from .sim_loop import (
+    PhysicsWorker, SimulationManager
+)
 
 __all__ = [
     # State management
@@ -27,6 +26,6 @@ __all__ = [
     'LatestOnlyQueue', 'PerformanceMetrics', 'TimingAccumulator',
     'ThreadSafeCounter', 'create_state_queue',
     
-    # Simulation loop - temporarily disabled
-    # 'PhysicsWorker', 'SimulationManager'
-]
+    # Simulation loop
+    'PhysicsWorker', 'SimulationManager'
+]]

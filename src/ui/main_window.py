@@ -1,286 +1,375 @@
 """
-Main window for PneumoStabSim application
+Main window for PneumoStabSim application (P8 UI integration)
+Adds dock panels, menus, QSettings persistence, and simulation wiring
 """
-from PySide6.QtWidgets import (QMainWindow, QStatusBar, QDockWidget, QWidget, 
-                              QMenuBar, QToolBar, QPushButton, QLabel, QVBoxLayout)
-from PySide6.QtCore import Qt, QTimer, Slot
+from PySide6.QtWidgets import (
+    QMainWindow, QStatusBar, QDockWidget, QWidget, QMenuBar, QToolBar, QLabel,
+    QVBoxLayout, QFileDialog, QMessageBox, QApplication, QSplitter, QActionGroup
+)
+from PySide6.QtCore import Qt, QTimer, Slot, QSettings
 from PySide6.QtGui import QAction, QKeySequence
 import logging
+import json
+from pathlib import Path
+from typing import Optional
 
 from .gl_view import GLView
 from .charts import ChartWidget
+from .panels import GeometryPanel, PneumoPanel, ModesPanel, RoadPanel
 from ..runtime import SimulationManager, StateSnapshot
 
 
 class MainWindow(QMainWindow):
-    """Main application window with integrated simulation"""
-    
+    """Main application window with integrated simulation and P8 UI panels"""
+    SETTINGS_ORG = "PneumoStabSim"
+    SETTINGS_APP = "PneumoStabSimApp"
+    SETTINGS_GEOMETRY = "MainWindow/Geometry"
+    SETTINGS_STATE = "MainWindow/State"
+    SETTINGS_DOCK = "MainWindow/Docks"
+    SETTINGS_LAST_PRESET = "Presets/LastPath"
+
     def __init__(self):
         super().__init__()
         self.setWindowTitle("PneumoStabSim - Pneumatic Stabilizer Simulator")
-        self.setGeometry(100, 100, 1400, 900)
-        
+        self.resize(1500, 950)
+
         # Logging
         self.logger = logging.getLogger(__name__)
         
-        # Current state
+        # Simulation manager
+        self.simulation_manager = SimulationManager(self)
+
+        # Current snapshot
         self.current_snapshot: Optional[StateSnapshot] = None
         self.is_simulation_running = False
-        
-        # Setup simulation manager
-        self.simulation_manager = SimulationManager(self)
-        
-        # Setup UI components
-        self._setup_ui()
+
+        # Panels references
+        self.geometry_panel: Optional[GeometryPanel] = None
+        self.pneumo_panel: Optional[PneumoPanel] = None
+        self.modes_panel: Optional[ModesPanel] = None
+        self.road_panel: Optional[RoadPanel] = None
+        self.chart_widget: Optional[ChartWidget] = None
+
+        # Build UI
+        self._setup_central()
+        self._setup_docks()
         self._setup_menus()
         self._setup_toolbar()
         self._setup_status_bar()
-        
-        # Setup render timer (60 FPS for UI)
+        self._connect_simulation_signals()
+
+        # Render timer (UI thread ~60 FPS)
         self.render_timer = QTimer(self)
         self.render_timer.timeout.connect(self._update_render)
-        self.render_timer.start(16)  # ~60 FPS
-        
-        # Connect simulation signals
-        self._connect_simulation_signals()
-        
-        # Start simulation manager
+        self.render_timer.start(16)
+
+        # Start simulation infrastructure (thread, worker idle)
         self.simulation_manager.start()
-        
-        self.logger.info("Main window initialized")
-    
-    def _setup_ui(self):
-        """Setup main UI components"""
-        # Setup central OpenGL widget
+
+        # Restore settings
+        self._restore_settings()
+
+        self.logger.info("Main window (P8) initialized")
+
+    # ------------------------------------------------------------------
+    # UI Construction
+    # ------------------------------------------------------------------
+    def _setup_central(self):
+        """Create central OpenGL + right side splitter layout"""
         self.gl_view = GLView()
         self.setCentralWidget(self.gl_view)
-        
-        # Setup dock widget with charts
-        self.chart_dock = QDockWidget("Charts", self)
+
+    def _setup_docks(self):
+        """Create and place dock panels"""
+        # Geometry (left)
+        self.geometry_dock = QDockWidget("Geometry", self)
+        self.geometry_panel = GeometryPanel()
+        self.geometry_dock.setWidget(self.geometry_panel)
+        self.addDockWidget(Qt.LeftDockWidgetArea, self.geometry_dock)
+
+        # Pneumatics (right top)
+        self.pneumo_dock = QDockWidget("Pneumatics", self)
+        self.pneumo_panel = PneumoPanel()
+        self.pneumo_dock.setWidget(self.pneumo_panel)
+        self.addDockWidget(Qt.RightDockWidgetArea, self.pneumo_dock)
+
+        # Charts (right bottom)
+        self.charts_dock = QDockWidget("Charts", self)
         self.chart_widget = ChartWidget()
-        self.chart_dock.setWidget(self.chart_widget)
-        self.addDockWidget(Qt.DockWidgetArea.RightDockWidgetArea, self.chart_dock)
-        
-        # Set dock widget properties
-        self.chart_dock.setFeatures(
-            QDockWidget.DockWidgetFeature.DockWidgetMovable | 
-            QDockWidget.DockWidgetFeature.DockWidgetFloatable
-        )
-        
-        # Setup control dock
-        self.control_dock = QDockWidget("Controls", self)
-        self.control_widget = self._create_control_widget()
-        self.control_dock.setWidget(self.control_widget)
-        self.addDockWidget(Qt.DockWidgetArea.LeftDockWidgetArea, self.control_dock)
-    
-    def _create_control_widget(self) -> QWidget:
-        """Create control panel widget"""
-        widget = QWidget()
-        layout = QVBoxLayout(widget)
-        
-        # Simulation control buttons
-        self.start_button = QPushButton("Start")
-        self.stop_button = QPushButton("Stop")
-        self.reset_button = QPushButton("Reset")
-        self.pause_button = QPushButton("Pause")
-        
-        # Connect button signals
-        self.start_button.clicked.connect(self._start_simulation)
-        self.stop_button.clicked.connect(self._stop_simulation)
-        self.reset_button.clicked.connect(self._reset_simulation)
-        self.pause_button.clicked.connect(self._pause_simulation)
-        
-        # Add buttons to layout
-        layout.addWidget(QLabel("Simulation Control:"))
-        layout.addWidget(self.start_button)
-        layout.addWidget(self.stop_button)
-        layout.addWidget(self.pause_button)
-        layout.addWidget(self.reset_button)
-        
-        # Status labels
+        self.charts_dock.setWidget(self.chart_widget)
+        self.addDockWidget(Qt.RightDockWidgetArea, self.charts_dock)
+        self.tabifyDockWidget(self.pneumo_dock, self.charts_dock)
+        self.pneumo_dock.raise_()
+
+        # Modes (floating by default)
+        self.modes_dock = QDockWidget("Modes", self)
+        self.modes_panel = ModesPanel()
+        self.modes_dock.setWidget(self.modes_panel)
+        self.addDockWidget(Qt.BottomDockWidgetArea, self.modes_dock)
+        self.modes_dock.setFloating(True)
+        self.modes_dock.resize(500, 380)
+
+        # Road profiles (floating)
+        self.road_dock = QDockWidget("Road Profiles", self)
+        self.road_panel = RoadPanel()
+        self.road_dock.setWidget(self.road_panel)
+        self.addDockWidget(Qt.BottomDockWidgetArea, self.road_dock)
+        self.road_dock.setFloating(True)
+        self.road_dock.resize(500, 450)
+
+        for dock in [self.geometry_dock, self.pneumo_dock, self.charts_dock, self.modes_dock, self.road_dock]:
+            dock.setFeatures(QDockWidget.DockWidgetFeature.DockWidgetMovable |
+                              QDockWidget.DockWidgetFeature.DockWidgetFloatable |
+                              QDockWidget.DockWidgetFeature.DockWidgetClosable)
+
+        # Connect panel signals to simulation config (queued via state_bus)
+        self._wire_panel_signals()
+
+    def _wire_panel_signals(self):
+        """Connect panel signals to simulation/state bus"""
+        bus = self.simulation_manager.state_bus
+
+        # Geometry updates -> (placeholder: just log / future: emit structured config)
+        if self.geometry_panel:
+            self.geometry_panel.parameter_changed.connect(
+                lambda name, val: self.logger.info(f"Geometry param {name}={val}"))
+
+        # Pneumatic panel -> send thermo mode and master isolation
+        if self.pneumo_panel:
+            self.pneumo_panel.mode_changed.connect(self._on_mode_changed)
+            self.pneumo_panel.parameter_changed.connect(self._on_pneumo_param)
+
+        # Modes panel -> simulation control + modes
+        if self.modes_panel:
+            self.modes_panel.simulation_control.connect(self._on_sim_control)
+            self.modes_panel.mode_changed.connect(self._on_mode_changed)
+            self.modes_panel.parameter_changed.connect(
+                lambda n, v: self.logger.debug(f"Road/global param {n}={v}"))
+
+        # Road panel -> load/apply road profiles (placeholder logging)
+        if self.road_panel:
+            self.road_panel.load_csv_profile.connect(
+                lambda path: self.logger.info(f"Load CSV road profile: {path}"))
+            self.road_panel.apply_preset.connect(
+                lambda p: self.logger.info(f"Apply road preset: {p}"))
+            self.road_panel.apply_to_wheels.connect(
+                lambda pname, wheels: self.logger.info(f"Apply {pname} to wheels {wheels}"))
+            self.road_panel.clear_profiles.connect(
+                lambda: self.logger.info("Clear road profiles"))
+
+    # ------------------------------------------------------------------
+    # Menus & Toolbars
+    # ------------------------------------------------------------------
+    def _setup_menus(self):
+        menubar = self.menuBar()
+
+        # File menu
+        file_menu = menubar.addMenu("File")
+        save_preset_act = QAction("Save Preset...", self)
+        load_preset_act = QAction("Load Preset...", self)
+        exit_act = QAction("Exit", self)
+        exit_act.setShortcut(QKeySequence.StandardKey.Quit)
+        exit_act.triggered.connect(self.close)
+        save_preset_act.triggered.connect(self._save_preset)
+        load_preset_act.triggered.connect(self._load_preset)
+        file_menu.addAction(save_preset_act)
+        file_menu.addAction(load_preset_act)
+        file_menu.addSeparator()
+        file_menu.addAction(exit_act)
+
+        # Road menu
+        road_menu = menubar.addMenu("Road")
+        load_csv_act = QAction("Load CSV...", self)
+        clear_profiles_act = QAction("Clear Profiles", self)
+        load_csv_act.triggered.connect(lambda: self.road_panel and self.road_panel._browse_csv_file())
+        clear_profiles_act.triggered.connect(lambda: self.road_panel and self.road_panel._clear_all_profiles())
+        road_menu.addAction(load_csv_act)
+        road_menu.addAction(clear_profiles_act)
+
+        # Settings / Parameters menu
+        params_menu = menubar.addMenu("Parameters")
+        reset_ui_act = QAction("Reset UI Layout", self)
+        reset_ui_act.triggered.connect(self._reset_ui_layout)
+        params_menu.addAction(reset_ui_act)
+
+        # View menu (show/hide docks)
+        view_menu = menubar.addMenu("View")
+        self._dock_actions = []
+        for dock, title in [
+            (self.geometry_dock, "Geometry"),
+            (self.pneumo_dock, "Pneumatics"),
+            (self.charts_dock, "Charts"),
+            (self.modes_dock, "Modes"),
+            (self.road_dock, "Road Profiles")
+        ]:
+            act = QAction(title, self, checkable=True, checked=True)
+            act.toggled.connect(lambda checked, d=dock: d.setVisible(checked))
+            view_menu.addAction(act)
+            self._dock_actions.append(act)
+
+    def _setup_toolbar(self):
+        toolbar = self.addToolBar("Main")
+        toolbar.setMovable(True)
+        start_act = QAction("Start", self)
+        stop_act = QAction("Stop", self)
+        pause_act = QAction("Pause", self)
+        reset_act = QAction("Reset", self)
+        start_act.triggered.connect(lambda: self._on_sim_control("start"))
+        stop_act.triggered.connect(lambda: self._on_sim_control("stop"))
+        pause_act.triggered.connect(lambda: self._on_sim_control("pause"))
+        reset_act.triggered.connect(lambda: self._on_sim_control("reset"))
+        toolbar.addActions([start_act, stop_act, pause_act, reset_act])
+
+    def _setup_status_bar(self):
+        self.status_bar = QStatusBar()
+        self.setStatusBar(self.status_bar)
         self.sim_time_label = QLabel("Sim Time: 0.000s")
         self.step_count_label = QLabel("Steps: 0")
         self.fps_label = QLabel("Physics FPS: 0")
-        
-        layout.addWidget(QLabel("Status:"))
-        layout.addWidget(self.sim_time_label)
-        layout.addWidget(self.step_count_label)
-        layout.addWidget(self.fps_label)
-        
-        layout.addStretch()  # Push content to top
-        
-        return widget
-    
-    def _setup_menus(self):
-        """Setup menu bar"""
-        menubar = self.menuBar()
-        
-        # File menu
-        file_menu = menubar.addMenu("File")
-        
-        exit_action = QAction("Exit", self)
-        exit_action.setShortcut(QKeySequence.StandardKey.Quit)
-        exit_action.triggered.connect(self.close)
-        file_menu.addAction(exit_action)
-        
-        # Simulation menu
-        sim_menu = menubar.addMenu("Simulation")
-        
-        start_action = QAction("Start", self)
-        start_action.setShortcut(QKeySequence("Ctrl+R"))
-        start_action.triggered.connect(self._start_simulation)
-        sim_menu.addAction(start_action)
-        
-        stop_action = QAction("Stop", self)
-        stop_action.setShortcut(QKeySequence("Ctrl+T"))
-        stop_action.triggered.connect(self._stop_simulation)
-        sim_menu.addAction(stop_action)
-        
-        reset_action = QAction("Reset", self)
-        reset_action.setShortcut(QKeySequence("Ctrl+Shift+R"))
-        reset_action.triggered.connect(self._reset_simulation)
-        sim_menu.addAction(reset_action)
-    
-    def _setup_toolbar(self):
-        """Setup toolbar"""
-        toolbar = self.addToolBar("Main")
-        
-        # Add simulation control actions
-        toolbar.addAction("Start", self._start_simulation)
-        toolbar.addAction("Stop", self._stop_simulation)
-        toolbar.addAction("Pause", self._pause_simulation)
-        toolbar.addAction("Reset", self._reset_simulation)
-    
-    def _setup_status_bar(self):
-        """Setup status bar with simulation info"""
-        self.status_bar = QStatusBar()
-        self.setStatusBar(self.status_bar)
-        
-        # Status labels
-        self.status_label = QLabel("Ready")
         self.realtime_label = QLabel("RT: 1.00x")
         self.queue_label = QLabel("Queue: 0/0")
-        
-        self.status_bar.addWidget(self.status_label)
-        self.status_bar.addPermanentWidget(self.queue_label)
-        self.status_bar.addPermanentWidget(self.realtime_label)
-        
-        self.status_bar.showMessage("Application started")
-    
+        for w in [self.sim_time_label, self.step_count_label, self.fps_label, self.queue_label, self.realtime_label]:
+            self.status_bar.addPermanentWidget(w)
+        self.status_bar.showMessage("Ready")
+
+    # ------------------------------------------------------------------
+    # Simulation Control & Panels Interaction
+    # ------------------------------------------------------------------
     def _connect_simulation_signals(self):
-        """Connect simulation manager signals"""
-        # State updates
-        self.simulation_manager.state_bus.state_ready.connect(
-            self._on_state_update, Qt.QueuedConnection)
-        
-        # Error handling
-        self.simulation_manager.state_bus.physics_error.connect(
-            self._on_physics_error, Qt.QueuedConnection)
-    
-    @Slot()
-    def _start_simulation(self):
-        """Start simulation"""
-        if not self.is_simulation_running:
-            self.simulation_manager.state_bus.start_simulation.emit()
-            self.is_simulation_running = True
-            self.status_bar.showMessage("Simulation started")
-            self.logger.info("Simulation started by user")
-            
-            # Update button states
-            self.start_button.setEnabled(False)
-            self.stop_button.setEnabled(True)
-            self.pause_button.setEnabled(True)
-    
-    @Slot()
-    def _stop_simulation(self):
-        """Stop simulation"""
-        if self.is_simulation_running:
-            self.simulation_manager.state_bus.stop_simulation.emit()
-            self.is_simulation_running = False
-            self.status_bar.showMessage("Simulation stopped")
-            self.logger.info("Simulation stopped by user")
-            
-            # Update button states
-            self.start_button.setEnabled(True)
-            self.stop_button.setEnabled(False)
-            self.pause_button.setEnabled(False)
-    
-    @Slot()
-    def _pause_simulation(self):
-        """Pause/unpause simulation"""
-        self.simulation_manager.state_bus.pause_simulation.emit()
-        self.logger.info("Simulation pause toggled")
-    
-    @Slot()
-    def _reset_simulation(self):
-        """Reset simulation"""
-        self.simulation_manager.state_bus.reset_simulation.emit()
-        self.status_bar.showMessage("Simulation reset")
-        self.logger.info("Simulation reset by user")
-    
+        bus = self.simulation_manager.state_bus
+        bus.state_ready.connect(self._on_state_update, Qt.QueuedConnection)
+        bus.physics_error.connect(self._on_physics_error, Qt.QueuedConnection)
+
     @Slot(object)
     def _on_state_update(self, snapshot: StateSnapshot):
-        """Handle state update from physics"""
         self.current_snapshot = snapshot
-        
-        # Update control panel labels
         if snapshot:
             self.sim_time_label.setText(f"Sim Time: {snapshot.simulation_time:.3f}s")
             self.step_count_label.setText(f"Steps: {snapshot.step_number}")
-            
-            # Calculate effective physics FPS
             if snapshot.aggregates.physics_step_time > 0:
                 fps = 1.0 / snapshot.aggregates.physics_step_time
                 self.fps_label.setText(f"Physics FPS: {fps:.1f}")
-        
-        # Update charts
-        if hasattr(self.chart_widget, 'update_from_snapshot'):
+        if self.chart_widget:
             self.chart_widget.update_from_snapshot(snapshot)
-    
+
     @Slot(str)
-    def _on_physics_error(self, error_msg: str):
-        """Handle physics error"""
-        self.status_bar.showMessage(f"Physics Error: {error_msg}")
-        self.logger.error(f"Physics error: {error_msg}")
-        
-        # Stop simulation on error
-        self._stop_simulation()
-    
+    def _on_physics_error(self, msg: str):
+        self.status_bar.showMessage(f"Physics Error: {msg}")
+        self.logger.error(msg)
+
+    # Panel signal handlers
+    def _on_sim_control(self, command: str):
+        bus = self.simulation_manager.state_bus
+        if command == "start":
+            bus.start_simulation.emit()
+            self.is_simulation_running = True
+        elif command == "stop":
+            bus.stop_simulation.emit()
+            self.is_simulation_running = False
+        elif command == "reset":
+            bus.reset_simulation.emit()
+        elif command == "pause":
+            bus.pause_simulation.emit()
+        self.status_bar.showMessage(f"Simulation: {command}")
+        if self.modes_panel:
+            self.modes_panel.set_simulation_running(self.is_simulation_running)
+
+    def _on_mode_changed(self, mode_type: str, new_mode: str):
+        bus = self.simulation_manager.state_bus
+        if mode_type == 'thermo_mode':
+            bus.set_thermo_mode.emit(new_mode)
+        elif mode_type == 'sim_type':
+            self.logger.info(f"Simulation type: {new_mode}")
+        else:
+            self.logger.info(f"Mode changed {mode_type} -> {new_mode}")
+
+    def _on_pneumo_param(self, name: str, value: float):
+        if name == 'master_isolation_open':
+            self.simulation_manager.state_bus.set_master_isolation.emit(bool(value))
+        elif name == 'cv_atmo_dp':
+            pass  # TODO integrate into gas network
+        # Additional pneumatic parameters could be forwarded here
+
+    # ------------------------------------------------------------------
+    # Rendering Update
+    # ------------------------------------------------------------------
     @Slot()
     def _update_render(self):
-        """Update render (called by render timer)"""
-        # Update GL view with current state
-        if self.current_snapshot and hasattr(self.gl_view, 'set_current_state'):
+        if self.current_snapshot:
             self.gl_view.set_current_state(self.current_snapshot)
-        
-        # Update queue statistics
         stats = self.simulation_manager.get_queue_stats()
         self.queue_label.setText(f"Queue: {stats['get_count']}/{stats['put_count']}")
-        
-        # Update realtime factor if available
-        if self.current_snapshot and self.current_snapshot.aggregates:
-            # Calculate realtime factor from physics timing
-            rt_factor = 1.0  # Placeholder
-            self.realtime_label.setText(f"RT: {rt_factor:.2f}x")
-        
-        # Trigger GL view update
         self.gl_view.update()
-    
+
+    # ------------------------------------------------------------------
+    # Preset Save/Load & Settings
+    # ------------------------------------------------------------------
+    def _save_preset(self):
+        settings = QSettings(self.SETTINGS_ORG, self.SETTINGS_APP)
+        last_dir = settings.value(self.SETTINGS_LAST_PRESET, str(Path.cwd()))
+        file_path, _ = QFileDialog.getSaveFileName(self, "Save UI Preset", last_dir, "JSON Files (*.json)")
+        if not file_path:
+            return
+        settings.setValue(self.SETTINGS_LAST_PRESET, str(Path(file_path).parent))
+        preset = {
+            'geometry': self.geometry_panel.get_parameters() if self.geometry_panel else {},
+            'pneumo': self.pneumo_panel.get_parameters() if self.pneumo_panel else {},
+            'modes': self.modes_panel.get_parameters() if self.modes_panel else {},
+            'physics': self.modes_panel.get_physics_options() if self.modes_panel else {}
+        }
+        try:
+            with open(file_path, 'w', encoding='utf-8') as f:
+                json.dump(preset, f, indent=2)
+            self.status_bar.showMessage(f"Preset saved: {file_path}")
+        except Exception as e:
+            QMessageBox.critical(self, "Save Preset Failed", str(e))
+
+    def _load_preset(self):
+        settings = QSettings(self.SETTINGS_ORG, self.SETTINGS_APP)
+        last_dir = settings.value(self.SETTINGS_LAST_PRESET, str(Path.cwd()))
+        file_path, _ = QFileDialog.getOpenFileName(self, "Load UI Preset", last_dir, "JSON Files (*.json)")
+        if not file_path:
+            return
+        settings.setValue(self.SETTINGS_LAST_PRESET, str(Path(file_path).parent))
+        try:
+            with open(file_path, 'r', encoding='utf-8') as f:
+                preset = json.load(f)
+            if self.geometry_panel and 'geometry' in preset:
+                self.geometry_panel.set_parameters(preset['geometry'])
+            if self.pneumo_panel and 'pneumo' in preset:
+                self.pneumo_panel.set_parameters(preset['pneumo'])
+            if self.modes_panel and 'modes' in preset:
+                for k, v in preset['modes'].items():
+                    # direct set not implemented for all; simplest: log
+                    self.logger.info(f"Load mode param {k}={v}")
+            self.status_bar.showMessage(f"Preset loaded: {file_path}")
+        except Exception as e:
+            QMessageBox.critical(self, "Load Preset Failed", str(e))
+
+    def _reset_ui_layout(self):
+        for dock in [self.geometry_dock, self.pneumo_dock, self.charts_dock, self.modes_dock, self.road_dock]:
+            dock.show()
+        self.status_bar.showMessage("UI layout reset")
+
+    def _restore_settings(self):
+        settings = QSettings(self.SETTINGS_ORG, self.SETTINGS_APP)
+        if geo := settings.value(self.SETTINGS_GEOMETRY):
+            self.restoreGeometry(geo)
+        if state := settings.value(self.SETTINGS_STATE):
+            self.restoreState(state)
+
+    def _save_settings(self):
+        settings = QSettings(self.SETTINGS_ORG, self.SETTINGS_APP)
+        settings.setValue(self.SETTINGS_GEOMETRY, self.saveGeometry())
+        settings.setValue(self.SETTINGS_STATE, self.saveState())
+
+    # ------------------------------------------------------------------
+    # Close Event
+    # ------------------------------------------------------------------
     def closeEvent(self, event):
-        """Handle window close event"""
         self.logger.info("Main window closing")
-        
-        # Stop render timer
         self.render_timer.stop()
-        
-        # Stop simulation manager
+        self._save_settings()
         self.simulation_manager.stop()
-        
-        # Accept close event
         event.accept()
-        
         self.logger.info("Main window closed")
-
-
-# Import Optional type
-from typing import Optional
