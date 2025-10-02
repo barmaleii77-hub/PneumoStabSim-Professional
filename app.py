@@ -6,32 +6,10 @@ import sys
 import logging
 from pathlib import Path
 from PySide6.QtWidgets import QApplication
-from PySide6.QtCore import qInstallMessageHandler, QtMsgType, QLoggingCategory
+from PySide6.QtCore import qInstallMessageHandler, QtMsgType
 
+from src.common import init_logging, log_ui_event
 from src.ui.main_window import MainWindow
-
-
-def setup_logging():
-    """Setup application logging"""
-    # Create logs directory if it doesn't exist
-    log_dir = Path("logs")
-    log_dir.mkdir(exist_ok=True)
-    
-    # Configure logging
-    logging.basicConfig(
-        level=logging.INFO,
-        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-        handlers=[
-            logging.FileHandler(log_dir / "pneumostabsim.log"),
-            logging.StreamHandler(sys.stdout)
-        ]
-    )
-    
-    # Get application logger
-    logger = logging.getLogger(__name__)
-    logger.info("Logging system initialized")
-    
-    return logger
 
 
 def qt_message_handler(mode, context, message):
@@ -52,9 +30,9 @@ def qt_message_handler(mode, context, message):
 
 def main():
     """Main application function"""
-    # Setup logging first
-    logger = setup_logging()
-    logger.info("PneumoStabSim starting...")
+    # Initialize logging BEFORE QApplication (P11 requirement)
+    logger = init_logging("PneumoStabSim", Path("logs"))
+    logger.info("Application starting...")
     
     # Create Qt application
     app = QApplication(sys.argv)
@@ -71,14 +49,14 @@ def main():
     # Enable high DPI support
     app.setAttribute(app.AA_UseHighDpiPixmaps, True)
     
-    logger.info("Qt application created")
+    log_ui_event("APP_CREATED", "Qt application initialized")
     
     try:
         # Create and show main window
         window = MainWindow()
         window.show()
         
-        logger.info("Main window created and shown")
+        log_ui_event("WINDOW_SHOWN", "Main window displayed")
         
         # Start event loop
         result = app.exec()
@@ -93,7 +71,8 @@ def main():
         return 1
     
     finally:
-        logger.info("PneumoStabSim shutting down")
+        # Cleanup logging happens automatically via atexit
+        pass
 
 
 if __name__ == "__main__":

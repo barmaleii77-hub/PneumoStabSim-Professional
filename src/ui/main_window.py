@@ -165,16 +165,30 @@ class MainWindow(QMainWindow):
 
         # File menu
         file_menu = menubar.addMenu("File")
+        
+        # Preset actions
         save_preset_act = QAction("Save Preset...", self)
         load_preset_act = QAction("Load Preset...", self)
-        exit_act = QAction("Exit", self)
-        exit_act.setShortcut(QKeySequence.StandardKey.Quit)
-        exit_act.triggered.connect(self.close)
         save_preset_act.triggered.connect(self._save_preset)
         load_preset_act.triggered.connect(self._load_preset)
         file_menu.addAction(save_preset_act)
         file_menu.addAction(load_preset_act)
         file_menu.addSeparator()
+        
+        # Export submenu (P11)
+        export_menu = file_menu.addMenu("Export")
+        export_timeseries_act = QAction("Export Timeseries...", self)
+        export_snapshots_act = QAction("Export Snapshots...", self)
+        export_timeseries_act.triggered.connect(self._export_timeseries)
+        export_snapshots_act.triggered.connect(self._export_snapshots)
+        export_menu.addAction(export_timeseries_act)
+        export_menu.addAction(export_snapshots_act)
+        file_menu.addSeparator()
+        
+        # Exit
+        exit_act = QAction("Exit", self)
+        exit_act.setShortcut(QKeySequence.StandardKey.Quit)
+        exit_act.triggered.connect(self.close)
         file_menu.addAction(exit_act)
 
         # Road menu
@@ -362,6 +376,112 @@ class MainWindow(QMainWindow):
         settings = QSettings(self.SETTINGS_ORG, self.SETTINGS_APP)
         settings.setValue(self.SETTINGS_GEOMETRY, self.saveGeometry())
         settings.setValue(self.SETTINGS_STATE, self.saveState())
+
+    # ------------------------------------------------------------------
+    # CSV Export (P11)
+    # ------------------------------------------------------------------
+    def _export_timeseries(self):
+        """Export chart timeseries data to CSV"""
+        from PySide6.QtCore import QStandardPaths
+        from ..common import export_timeseries_csv, get_default_export_dir, ensure_csv_extension, log_export
+        
+        if not self.chart_widget:
+            QMessageBox.warning(self, "Export", "No chart data available")
+            return
+        
+        # Get series data from chart widget
+        try:
+            time, series = self.chart_widget.get_series_buffers()
+            if len(time) == 0:
+                QMessageBox.warning(self, "Export", "No data to export")
+                return
+        except AttributeError:
+            QMessageBox.warning(self, "Export", "Chart widget does not support export yet")
+            return
+        
+        # Get default directory
+        default_dir = str(get_default_export_dir())
+        
+        # File dialog
+        file_path, selected_filter = QFileDialog.getSaveFileName(
+            self,
+            "Export Timeseries CSV",
+            f"{default_dir}/PneumoStabSim_timeseries.csv",
+            "CSV files (*.csv);;GZip CSV (*.csv.gz)"
+        )
+        
+        if not file_path:
+            return
+        
+        # Ensure proper extension
+        file_path = ensure_csv_extension(Path(file_path), allow_gz=True)
+        
+        # Prepare header
+        header = ['time'] + list(series.keys())
+        
+        try:
+            # Export
+            export_timeseries_csv(time, series, file_path, header)
+            
+            # Log and notify
+            log_export("TIMESERIES", file_path, len(time))
+            self.status_bar.showMessage(f"Exported {len(time)} points to {file_path.name}")
+            QMessageBox.information(
+                self,
+                "Export Successful",
+                f"Exported {len(time)} data points to:\n{file_path}"
+            )
+        except Exception as e:
+            QMessageBox.critical(self, "Export Failed", str(e))
+            self.logger.error(f"Timeseries export failed: {e}")
+    
+    def _export_snapshots(self):
+        """Export state snapshots to CSV"""
+        from PySide6.QtCore import QStandardPaths
+        from ..common import export_state_snapshot_csv, get_default_export_dir, ensure_csv_extension, log_export
+        
+        # Get snapshot buffer from simulation manager
+        try:
+            snapshots = self.simulation_manager.get_snapshot_buffer()
+            if not snapshots or len(snapshots) == 0:
+                QMessageBox.warning(self, "Export", "No snapshots available")
+                return
+        except AttributeError:
+            QMessageBox.warning(self, "Export", "Snapshot buffer not implemented yet")
+            return
+        
+        # Get default directory
+        default_dir = str(get_default_export_dir())
+        
+        # File dialog
+        file_path, selected_filter = QFileDialog.getSaveFileName(
+            self,
+            "Export Snapshots CSV",
+            f"{default_dir}/PneumoStabSim_snapshots.csv",
+            "CSV files (*.csv);;GZip CSV (*.csv.gz)"
+        )
+        
+        if not file_path:
+            return
+        
+        # Ensure proper extension
+        file_path = ensure_csv_extension(Path(file_path), allow_gz=True)
+        
+        try:
+            # Export
+            export_state_snapshot_csv(snapshots, file_path)
+            
+            # Log and notify
+            log_export("SNAPSHOTS", file_path, len(snapshots))
+            self.status_bar.showMessage(f"Exported {len(snapshots)} snapshots to {file_path.name}")
+            QMessageBox.information(
+                self,
+                "Export Successful",
+                f"Exported {len(snapshots)} snapshots to:\n{file_path}"
+            )
+        except Exception as e:
+            QMessageBox.critical(self, "Export Failed", str(e))
+            self.logger.error(f"Snapshot export failed: {e}")
 
     # ------------------------------------------------------------------
     # Close Event
