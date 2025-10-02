@@ -9,6 +9,7 @@ import numpy as np
 
 from ..runtime.state import StateSnapshot
 from .gl_scene import GLScene
+from .hud import TankOverlayHUD
 
 
 class GLView(QOpenGLWidget, QOpenGLFunctions):
@@ -29,6 +30,9 @@ class GLView(QOpenGLWidget, QOpenGLFunctions):
         # Scene manager
         self.scene: Optional[GLScene] = None
         
+        # HUD overlay
+        self.tank_hud: Optional[TankOverlayHUD] = None
+        
         # Current state for rendering
         self.current_state: Optional[StateSnapshot] = None
         
@@ -46,6 +50,7 @@ class GLView(QOpenGLWidget, QOpenGLFunctions):
         # Rendering statistics
         self.frame_count = 0
         self.show_overlay = True
+        self.show_tank_hud = True
         
         # Enable mouse tracking
         self.setMouseTracking(True)
@@ -60,6 +65,8 @@ class GLView(QOpenGLWidget, QOpenGLFunctions):
         self.current_state = snapshot
         if self.scene:
             self.scene.update_from_snapshot(snapshot)
+        if self.tank_hud:
+            self.tank_hud.update_from_snapshot(snapshot)
         
     def initializeGL(self):
         """Initialize OpenGL context and resources"""
@@ -75,6 +82,9 @@ class GLView(QOpenGLWidget, QOpenGLFunctions):
         # Create scene
         self.scene = GLScene(self)
         self.scene.initialize()
+        
+        # Create HUD
+        self.tank_hud = TankOverlayHUD()
         
         # Set up OpenGL state
         self.glClearColor(0.15, 0.15, 0.2, 1.0)  # Dark blue-gray background
@@ -96,14 +106,69 @@ class GLView(QOpenGLWidget, QOpenGLFunctions):
         proj = self._create_projection_matrix()
         view = self._create_view_matrix()
         
-        # Render scene
+        # Render 3D scene
         self.scene.render(proj, view)
         
-        # Render 2D overlay
-        if self.show_overlay:
-            self._render_overlay()
+        # Render HUD overlays using QPainter
+        if self.show_overlay or self.show_tank_hud:
+            self._render_hud_overlays()
         
         self.frame_count += 1
+        
+    def _render_hud_overlays(self):
+        """Render HUD overlays using QPainter (called from paintGL)"""
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+        
+        # Render status overlay
+        if self.show_overlay:
+            self._render_status_overlay(painter)
+        
+        # Render tank HUD
+        if self.show_tank_hud and self.tank_hud:
+            self.tank_hud.render(painter, self.width(), self.height())
+        
+        painter.end()
+        
+    def _render_status_overlay(self, painter: QPainter):
+        """Render status information overlay
+        
+        Args:
+            painter: QPainter instance
+        """
+        # Set font
+        font = QFont("Consolas", 10)
+        painter.setFont(font)
+        painter.setPen(Qt.GlobalColor.white)
+        
+        # Draw status info
+        y_offset = 20
+        line_height = 16
+        
+        if self.current_state:
+            info_lines = [
+                f"Time: {self.current_state.simulation_time:.3f}s",
+                f"Step: {self.current_state.step_number}",
+                f"FPS: {1.0/max(self.current_state.dt_physics, 0.001):.0f}",
+                f"Heave: {self.current_state.frame.heave:.3f}m",
+                f"Roll: {np.degrees(self.current_state.frame.roll):.2f}deg",
+                f"Pitch: {np.degrees(self.current_state.frame.pitch):.2f}deg",
+            ]
+        else:
+            info_lines = ["No simulation data"]
+        
+        for i, line in enumerate(info_lines):
+            painter.drawText(10, y_offset + i * line_height, line)
+        
+        # Camera info
+        painter.setPen(Qt.GlobalColor.lightGray)
+        cam_info = [
+            f"Zoom: {self.camera_distance:.1f}",
+            f"Pan: ({self.camera_pan.x():.1f}, {self.camera_pan.y():.1f})"
+        ]
+        
+        for i, line in enumerate(cam_info):
+            painter.drawText(10, self.height() - 40 + i * line_height, line)
         
     def resizeGL(self, width, height):
         """Handle OpenGL viewport resize"""
@@ -151,49 +216,7 @@ class GLView(QOpenGLWidget, QOpenGLFunctions):
         )
         
         return view
-        
-    def _render_overlay(self):
-        """Render 2D overlay with status information"""
-        # Use QPainter for 2D overlay (allowed in paintGL)
-        painter = QPainter(self)
-        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
-        
-        # Set font
-        font = QFont("Consolas", 10)
-        painter.setFont(font)
-        painter.setPen(Qt.GlobalColor.white)
-        
-        # Draw status info
-        y_offset = 20
-        line_height = 16
-        
-        if self.current_state:
-            info_lines = [
-                f"Time: {self.current_state.simulation_time:.3f}s",
-                f"Step: {self.current_state.step_number}",
-                f"FPS: {1.0/max(self.current_state.dt_physics, 0.001):.0f}",
-                f"Heave: {self.current_state.frame.heave:.3f}m",
-                f"Roll: {np.degrees(self.current_state.frame.roll):.2f}deg",
-                f"Pitch: {np.degrees(self.current_state.frame.pitch):.2f}deg",
-            ]
-        else:
-            info_lines = ["No simulation data"]
-        
-        for i, line in enumerate(info_lines):
-            painter.drawText(10, y_offset + i * line_height, line)
-        
-        # Camera info
-        painter.setPen(Qt.GlobalColor.lightGray)
-        cam_info = [
-            f"Zoom: {self.camera_distance:.1f}",
-            f"Pan: ({self.camera_pan.x():.1f}, {self.camera_pan.y():.1f})"
-        ]
-        
-        for i, line in enumerate(cam_info):
-            painter.drawText(10, self.height() - 40 + i * line_height, line)
-        
-        painter.end()
-        
+    
     # Mouse interaction
     def wheelEvent(self, event):
         """Handle mouse wheel for zoom"""
