@@ -11,7 +11,7 @@ def adiabatic_p(V: float, C: float) -> float:
 
     Args:
         V: Volume (m?)
-        C: Adiabatic constant p*V^? (Pa·m^(3?))
+        C: Adiabatic constant p*V^? (Pa*m^(3?))
 
     Returns:
         Pressure (Pa)
@@ -29,7 +29,7 @@ def adiabatic_T(V: float, C_T: float) -> float:
 
     Args:
         V: Volume (m?)
-        C_T: Temperature constant T*V^(?-1) (K·m^(3(?-1)))
+        C_T: Temperature constant T*V^(?-1) (K*m^(3(?-1)))
 
     Returns:
         Temperature (K)
@@ -48,7 +48,7 @@ def isothermal_p(V: float, m: float, R: float, T_atm: float) -> float:
     Args:
         V: Volume (m?)
         m: Mass of gas (kg)
-        R: Specific gas constant (J/(kg·K))
+        R: Specific gas constant (J/(kg*K))
         T_atm: Atmospheric temperature (K)
 
     Returns:
@@ -74,7 +74,7 @@ def adiabatic_constant_pV(p: float, V: float) -> float:
         V: Volume (m?)
 
     Returns:
-        Adiabatic constant (Pa·m^(3?))
+        Adiabatic constant (Pa*m^(3?))
     """
     if p <= 0:
         raise ValueError(f"Pressure must be positive, got {p}")
@@ -92,7 +92,7 @@ def adiabatic_constant_TV(T: float, V: float) -> float:
         V: Volume (m?)
 
     Returns:
-        Temperature constant (K·m^(3(?-1)))
+        Temperature constant (K*m^(3(?-1)))
     """
     if T <= 0:
         raise ValueError(f"Temperature must be positive, got {T}")
@@ -109,7 +109,7 @@ def gas_mass_from_pVT(p: float, V: float, T: float, R: float = R_AIR) -> float:
         p: Pressure (Pa)
         V: Volume (m?)
         T: Temperature (K)
-        R: Specific gas constant (J/(kg·K)), default for air
+        R: Specific gas constant (J/(kg*K)), default for air
 
     Returns:
         Mass of gas (kg)

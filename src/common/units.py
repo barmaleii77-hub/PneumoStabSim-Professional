@@ -15,7 +15,7 @@ RAD2DEG = 180.0 / math.pi  # Radians to degrees conversion
 
 # Gas properties (for air)
 GAMMA_AIR = 1.4  # Adiabatic index for air
-R_AIR = 287.058  # Specific gas constant for air, J/(kg·K)
+R_AIR = 287.058  # Specific gas constant for air, J/(kg*K)
 
 # Default environmental conditions
 T_AMBIENT = 293.15  # K (20°C)
