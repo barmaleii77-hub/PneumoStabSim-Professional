@@ -1,6 +1,6 @@
 """
 3-DOF rigid body dynamics for vehicle frame
-Handles heave (Y), roll (?z), and pitch (?x) motion with suspension forces
+Handles heave (Y), roll (phi_z), and pitch (theta_x) motion with suspension forces
 """
 
 import numpy as np
@@ -15,9 +15,9 @@ import logging
 class RigidBody3DOF:
     """3-DOF rigid body parameters and geometry"""
     M: float                    # Total mass (kg)
-    Ix: float                   # Moment of inertia around X-axis (pitch) (kg?m?)
-    Iz: float                   # Moment of inertia around Z-axis (roll) (kg?m?)
-    g: float = 9.81            # Gravitational acceleration (m/s?)
+    Ix: float                   # Moment of inertia around X-axis (pitch) (kg*m^2)
+    Iz: float                   # Moment of inertia around Z-axis (roll) (kg*m^2)
+    g: float = 9.81            # Gravitational acceleration (m/s^2)
     
     # Suspension attachment points in body frame (x_i, z_i)
     # y-coordinate taken as current heave
@@ -34,7 +34,7 @@ class RigidBody3DOF:
     def __post_init__(self):
         """Initialize default attachment points if not provided"""
         if self.attachment_points is None:
-            # Standard 4-wheel layout: front/rear ± half track, ± half wheelbase
+            # Standard 4-wheel layout: front/rear x half track, +/- half wheelbase
             half_track = self.track / 2.0
             half_wheelbase = self.wheelbase / 2.0
             
@@ -88,14 +88,14 @@ def assemble_forces(system: Any, gas: Any, y: np.ndarray,
     Args:
         system: Pneumatic system (provides geometry, cylinder states)
         gas: Gas network (provides pressures)
-        y: State vector [Y, ?z, ?x, dY, d?z, d?x]
+        y: State vector [Y, phi_z, theta_x, dY, dphi_z, dtheta_x]
         params: Rigid body parameters
         
     Returns:
         Tuple of (vertical_forces[4], tau_x, tau_z)
         vertical_forces: Force at each wheel (N, positive down)
-        tau_x: Moment around X-axis (pitch) (N?m)
-        tau_z: Moment around Z-axis (roll) (N?m)
+        tau_x: Moment around X-axis (pitch) (N*m)
+        tau_z: Moment around Z-axis (roll) (N*m)
     """
     Y, phi_z, theta_x, dY, dphi_z, dtheta_x = y
     
@@ -146,8 +146,8 @@ def assemble_forces(system: Any, gas: Any, y: np.ndarray,
             x_i, z_i = params.attachment_points[wheel_name]
             
             # Moment arms for pitch (about X-axis) and roll (about Z-axis)
-            tau_x += vertical_forces[i] * z_i  # Pitch: force ? longitudinal arm
-            tau_z += vertical_forces[i] * x_i  # Roll: force ? lateral arm
+            tau_x += vertical_forces[i] * z_i  # Pitch: force x longitudinal arm
+            tau_z += vertical_forces[i] * x_i  # Roll: force x lateral arm
     
     return vertical_forces, tau_x, tau_z
 
@@ -156,7 +156,7 @@ def f_rhs(t: float, y: np.ndarray, params: RigidBody3DOF,
           system: Any, gas: Any) -> np.ndarray:
     """Right-hand side of 3-DOF ODE system
     
-    State vector: y = [Y, ?z, ?x, dY, d?z, d?x]
+    State vector: y = [Y, phi_z, theta_x, dY, dphi_z, dtheta_x]
     
     Args:
         t: Time (s)
@@ -238,10 +238,10 @@ def validate_state(y: np.ndarray, params: RigidBody3DOF) -> Tuple[bool, str]:
     
     # Check angle limits
     if abs(phi_z) > params.angle_limit:
-        return False, f"Roll angle {phi_z:.3f} exceeds limit ±{params.angle_limit:.3f}"
+        return False, f"Roll angle {phi_z:.3f} exceeds limit +/-{params.angle_limit:.3f}"
     
     if abs(theta_x) > params.angle_limit:
-        return False, f"Pitch angle {theta_x:.3f} exceeds limit ±{params.angle_limit:.3f}"
+        return False, f"Pitch angle {theta_x:.3f} exceeds limit +/-{params.angle_limit:.3f}"
     
     # Check reasonable velocity limits (100 m/s, 50 rad/s)
     if abs(dY) > 100.0:

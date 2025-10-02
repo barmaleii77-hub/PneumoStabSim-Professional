@@ -37,7 +37,7 @@ class Knob(QWidget):
             value: Initial value
             step: Step size for adjustments
             decimals: Number of decimal places to display
-            units: Units string (e.g., "bar", "mm", "°")
+            units: Units string (e.g., "bar", "mm", "deg")
             title: Title label above knob
             parent: Parent widget
         """

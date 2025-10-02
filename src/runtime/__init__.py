@@ -28,4 +28,4 @@ __all__ = [
     
     # Simulation loop
     'PhysicsWorker', 'SimulationManager'
-]]
+]

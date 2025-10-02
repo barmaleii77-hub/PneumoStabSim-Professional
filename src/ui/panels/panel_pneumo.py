@@ -131,7 +131,6 @@ class PneumoPanel(QWidget):
         layout.addLayout(diameters_layout)
         
         return group
-    
     def _create_relief_valves_group(self) -> QGroupBox:
         """Create relief valves configuration group"""
         group = QGroupBox("Relief Valves")
@@ -203,7 +202,7 @@ class PneumoPanel(QWidget):
         # Atmospheric temperature
         self.atmo_temp_knob = Knob(
             minimum=-20.0, maximum=50.0, value=20.0, step=1.0,
-            decimals=0, units="°C", title="Atmosphere Temp"
+            decimals=0, units="degC", title="Atmosphere Temp"
         )
         env_layout.addWidget(self.atmo_temp_knob)
         
@@ -296,7 +295,7 @@ class PneumoPanel(QWidget):
             'throttle_stiff_dia': 1.5,     # mm
             
             # Environment
-            'atmo_temp': 20.0,       # °C
+            'atmo_temp': 20.0,       # degC
             'thermo_mode': 'ISOTHERMAL',
             
             # Options
@@ -441,9 +440,9 @@ class PneumoPanel(QWidget):
         # Check temperature range
         temp = self.parameters['atmo_temp']
         if temp < -10.0:
-            warnings.append(f"Low temperature ({temp}°C) may affect gas properties")
+            warnings.append(f"Low temperature ({temp} degC) may affect gas properties")
         elif temp > 40.0:
-            warnings.append(f"High temperature ({temp}°C) may affect system performance")
+            warnings.append(f"High temperature ({temp} degC) may affect system performance")
         
         # Check throttle sizes
         min_throttle = self.parameters['throttle_min_dia']

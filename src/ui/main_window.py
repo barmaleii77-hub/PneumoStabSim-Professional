@@ -4,7 +4,7 @@ Adds dock panels, menus, QSettings persistence, and simulation wiring
 """
 from PySide6.QtWidgets import (
     QMainWindow, QStatusBar, QDockWidget, QWidget, QMenuBar, QToolBar, QLabel,
-    QVBoxLayout, QFileDialog, QMessageBox, QApplication, QSplitter, QActionGroup
+    QVBoxLayout, QFileDialog, QMessageBox, QApplication, QSplitter
 )
 from PySide6.QtCore import Qt, QTimer, Slot, QSettings
 from PySide6.QtGui import QAction, QKeySequence

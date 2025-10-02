@@ -215,7 +215,7 @@ class ModesPanel(QWidget):
         
         self.phase_slider = RangeSlider(
             minimum=0.0, maximum=360.0, value=0.0, step=15.0,
-            decimals=0, units="°", title="Global Phase"
+            decimals=0, units="ï¿½", title="Global Phase"
         )
         layout.addWidget(self.phase_slider)
         
@@ -242,7 +242,7 @@ class ModesPanel(QWidget):
         
         self.lf_phase_slider = RangeSlider(
             minimum=0.0, maximum=360.0, value=0.0, step=15.0,
-            decimals=0, units="°", title=""
+            decimals=0, units="ï¿½", title=""
         )
         lf_layout.addWidget(self.lf_phase_slider)
         wheel_layout.addWidget(lf_widget)
@@ -258,7 +258,7 @@ class ModesPanel(QWidget):
         
         self.rf_phase_slider = RangeSlider(
             minimum=0.0, maximum=360.0, value=0.0, step=15.0,
-            decimals=0, units="°", title=""
+            decimals=0, units="ï¿½", title=""
         )
         rf_layout.addWidget(self.rf_phase_slider)
         wheel_layout.addWidget(rf_widget)
@@ -274,7 +274,7 @@ class ModesPanel(QWidget):
         
         self.lr_phase_slider = RangeSlider(
             minimum=0.0, maximum=360.0, value=0.0, step=15.0,
-            decimals=0, units="°", title=""
+            decimals=0, units="ï¿½", title=""
         )
         lr_layout.addWidget(self.lr_phase_slider)
         wheel_layout.addWidget(lr_widget)
@@ -290,7 +290,7 @@ class ModesPanel(QWidget):
         
         self.rr_phase_slider = RangeSlider(
             minimum=0.0, maximum=360.0, value=0.0, step=15.0,
-            decimals=0, units="°", title=""
+            decimals=0, units="ï¿½", title=""
         )
         rr_layout.addWidget(self.rr_phase_slider)
         wheel_layout.addWidget(rr_widget)
