@@ -1,36 +1,56 @@
 """
-OpenGL widget for 3D visualization
+OpenGL widget for 3D visualization (P9: Modern OpenGL with shaders)
 """
 from PySide6.QtOpenGLWidgets import QOpenGLWidget
-from PySide6.QtCore import QTimer
-from PySide6.QtGui import QSurfaceFormat
+from PySide6.QtCore import Qt, QPoint, Slot
+from PySide6.QtGui import QSurfaceFormat, QMatrix4x4, QVector3D, QPainter, QFont, QOpenGLFunctions
 from typing import Optional
-import OpenGL.GL as gl
 import numpy as np
 
 from ..runtime.state import StateSnapshot
+from .gl_scene import GLScene
 
 
-class GLView(QOpenGLWidget):
-    """OpenGL widget for 3D rendering"""
+class GLView(QOpenGLWidget, QOpenGLFunctions):
+    """Modern OpenGL widget for 3D rendering with isometric camera"""
     
     def __init__(self, parent=None):
         super().__init__(parent)
         
-        # Set OpenGL format
+        # Set OpenGL format (Core Profile 3.3)
         format = QSurfaceFormat()
         format.setVersion(3, 3)
         format.setProfile(QSurfaceFormat.OpenGLContextProfile.CoreProfile)
         format.setDepthBufferSize(24)
         format.setStencilBufferSize(8)
+        format.setSamples(4)  # MSAA
         self.setFormat(format)
+        
+        # Scene manager
+        self.scene: Optional[GLScene] = None
         
         # Current state for rendering
         self.current_state: Optional[StateSnapshot] = None
         
-        # Rendering parameters
-        self.frame_count = 0
+        # Camera parameters (isometric view)
+        self.camera_distance = 10.0
+        self.camera_pan = QVector3D(0.0, 0.0, 0.0)
+        self.camera_pitch = 35.264  # Isometric angle
+        self.camera_yaw = 45.0      # Isometric angle
         
+        # Mouse interaction
+        self.last_mouse_pos: Optional[QPoint] = None
+        self.is_panning = False
+        self.is_rotating = False
+        
+        # Rendering statistics
+        self.frame_count = 0
+        self.show_overlay = True
+        
+        # Enable mouse tracking
+        self.setMouseTracking(True)
+        
+    @Slot(object)
     def set_current_state(self, snapshot: StateSnapshot):
         """Set current state snapshot for rendering
         
@@ -38,231 +58,192 @@ class GLView(QOpenGLWidget):
             snapshot: Current system state snapshot
         """
         self.current_state = snapshot
+        if self.scene:
+            self.scene.update_from_snapshot(snapshot)
         
     def initializeGL(self):
-        """Initialize OpenGL context"""
-        gl.glClearColor(0.2, 0.2, 0.3, 1.0)  # Dark blue background
-        gl.glEnable(gl.GL_DEPTH_TEST)
-        gl.glEnable(gl.GL_BLEND)
-        gl.glBlendFunc(gl.GL_SRC_ALPHA, gl.GL_ONE_MINUS_SRC_ALPHA)
+        """Initialize OpenGL context and resources"""
+        # Initialize OpenGL functions
+        self.initializeOpenGLFunctions()
         
-        # Print OpenGL info for debugging
+        # Print OpenGL info
+        import OpenGL.GL as gl
         print(f"OpenGL Version: {gl.glGetString(gl.GL_VERSION).decode()}")
-        print(f"OpenGL Renderer: {gl.glGetString(gl.GL_RENDERER).decode()}")
+        print(f"GLSL Version: {gl.glGetString(gl.GL_SHADING_LANGUAGE_VERSION).decode()}")
+        print(f"Renderer: {gl.glGetString(gl.GL_RENDERER).decode()}")
+        
+        # Create scene
+        self.scene = GLScene(self)
+        self.scene.initialize()
+        
+        # Set up OpenGL state
+        self.glClearColor(0.15, 0.15, 0.2, 1.0)  # Dark blue-gray background
+        self.glEnable(self.GL_DEPTH_TEST)
+        self.glEnable(self.GL_BLEND)
+        self.glBlendFunc(self.GL_SRC_ALPHA, self.GL_ONE_MINUS_SRC_ALPHA)
+        self.glEnable(self.GL_MULTISAMPLE)
+        self.glEnable(self.GL_LINE_SMOOTH)
+        self.glHint(self.GL_LINE_SMOOTH_HINT, self.GL_NICEST)
         
     def paintGL(self):
         """Render OpenGL scene"""
-        gl.glClear(gl.GL_COLOR_BUFFER_BIT | gl.GL_DEPTH_BUFFER_BIT)
+        self.glClear(self.GL_COLOR_BUFFER_BIT | self.GL_DEPTH_BUFFER_BIT)
         
-        # Set up basic 3D projection and view
-        self._setup_projection()
-        self._setup_view()
+        if not self.scene:
+            return
         
-        # Render coordinate axes
-        self._render_axes()
+        # Setup projection and view matrices
+        proj = self._create_projection_matrix()
+        view = self._create_view_matrix()
         
-        # Render vehicle frame if state is available
-        if self.current_state:
-            self._render_vehicle_frame()
-            self._render_suspension_points()
-            self._render_status_overlay()
+        # Render scene
+        self.scene.render(proj, view)
+        
+        # Render 2D overlay
+        if self.show_overlay:
+            self._render_overlay()
         
         self.frame_count += 1
         
     def resizeGL(self, width, height):
         """Handle OpenGL viewport resize"""
-        gl.glViewport(0, 0, width, height)
+        self.glViewport(0, 0, width, height)
         
-    def _setup_projection(self):
-        """Setup 3D projection matrix"""
-        width = self.width()
-        height = max(self.height(), 1)
-        aspect = width / height
+    def _create_projection_matrix(self) -> QMatrix4x4:
+        """Create orthographic projection matrix for isometric view
         
-        gl.glMatrixMode(gl.GL_PROJECTION)
-        gl.glLoadIdentity()
+        Returns:
+            Projection matrix
+        """
+        proj = QMatrix4x4()
         
-        # Simple perspective projection
-        fov = 45.0
-        near = 0.1
-        far = 100.0
+        aspect = self.width() / max(self.height(), 1)
+        ortho_height = self.camera_distance
+        ortho_width = ortho_height * aspect
         
-        # Manual perspective calculation (simplified)
-        f = 1.0 / np.tan(np.radians(fov) / 2.0)
+        # Orthographic projection for isometric view
+        proj.ortho(-ortho_width, ortho_width,
+                   -ortho_height, ortho_height,
+                   0.1, 100.0)
         
-        # Apply perspective transformation
-        gl.glMultMatrixf([
-            f/aspect, 0, 0, 0,
-            0, f, 0, 0,
-            0, 0, (far+near)/(near-far), (2*far*near)/(near-far),
-            0, 0, -1, 0
-        ])
-    
-    def _setup_view(self):
-        """Setup view matrix"""
-        gl.glMatrixMode(gl.GL_MODELVIEW)
-        gl.glLoadIdentity()
+        return proj
         
-        # Camera position and orientation
-        # Look at vehicle from behind and above
-        eye = np.array([0.0, -3.0, 8.0])    # Camera position
-        target = np.array([0.0, 0.0, 0.0])  # Look at origin
-        up = np.array([0.0, 1.0, 0.0])      # Up vector
+    def _create_view_matrix(self) -> QMatrix4x4:
+        """Create view matrix for isometric camera
         
-        # Simple lookAt implementation
-        self._apply_lookat(eye, target, up)
-    
-    def _apply_lookat(self, eye, target, up):
-        """Apply lookAt transformation"""
-        forward = target - eye
-        forward = forward / np.linalg.norm(forward)
+        Returns:
+            View matrix
+        """
+        view = QMatrix4x4()
         
-        side = np.cross(forward, up)
-        side = side / np.linalg.norm(side)
+        # Camera position (looking from above and side)
+        view.translate(0, 0, -self.camera_distance * 2)
         
-        up = np.cross(side, forward)
+        # Apply isometric rotations
+        view.rotate(self.camera_pitch, 1, 0, 0)  # Pitch (up/down tilt)
+        view.rotate(self.camera_yaw, 0, 1, 0)    # Yaw (left/right rotation)
         
-        # Apply rotation and translation
-        m = np.array([
-            [side[0], up[0], -forward[0], 0.0],
-            [side[1], up[1], -forward[1], 0.0],
-            [side[2], up[2], -forward[2], 0.0],
-            [0.0, 0.0, 0.0, 1.0]
-        ], dtype=np.float32)
+        # Apply pan
+        view.translate(
+            -self.camera_pan.x(),
+            -self.camera_pan.y(),
+            -self.camera_pan.z()
+        )
         
-        gl.glMultMatrixf(m.flatten())
-        gl.glTranslatef(-eye[0], -eye[1], -eye[2])
-    
-    def _render_axes(self):
-        """Render coordinate axes"""
-        gl.glLineWidth(2.0)
-        gl.glBegin(gl.GL_LINES)
+        return view
         
-        # X axis (red)
-        gl.glColor3f(1.0, 0.0, 0.0)
-        gl.glVertex3f(0.0, 0.0, 0.0)
-        gl.glVertex3f(2.0, 0.0, 0.0)
+    def _render_overlay(self):
+        """Render 2D overlay with status information"""
+        # Use QPainter for 2D overlay (allowed in paintGL)
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
         
-        # Y axis (green) - vertical, down positive
-        gl.glColor3f(0.0, 1.0, 0.0)
-        gl.glVertex3f(0.0, 0.0, 0.0)
-        gl.glVertex3f(0.0, 2.0, 0.0)
+        # Set font
+        font = QFont("Consolas", 10)
+        painter.setFont(font)
+        painter.setPen(Qt.GlobalColor.white)
         
-        # Z axis (blue)
-        gl.glColor3f(0.0, 0.0, 1.0)
-        gl.glVertex3f(0.0, 0.0, 0.0)
-        gl.glVertex3f(0.0, 0.0, 2.0)
+        # Draw status info
+        y_offset = 20
+        line_height = 16
         
-        gl.glEnd()
-    
-    def _render_vehicle_frame(self):
-        """Render vehicle frame outline"""
-        if not self.current_state:
-            return
-        
-        # Get frame state
-        frame = self.current_state.frame
-        
-        # Apply frame transformations
-        gl.glPushMatrix()
-        
-        # Apply heave (Y translation)
-        gl.glTranslatef(0.0, frame.heave, 0.0)
-        
-        # Apply roll (rotation around Z)
-        gl.glRotatef(np.degrees(frame.roll), 0.0, 0.0, 1.0)
-        
-        # Apply pitch (rotation around X)
-        gl.glRotatef(np.degrees(frame.pitch), 1.0, 0.0, 0.0)
-        
-        # Render frame outline (simplified rectangle)
-        wheelbase = 3.2  # From config
-        track = 1.6
-        
-        gl.glColor3f(0.8, 0.8, 0.8)  # Light gray
-        gl.glLineWidth(3.0)
-        gl.glBegin(gl.GL_LINE_LOOP)
-        
-        # Frame corners
-        gl.glVertex3f(-track/2, -0.1, -wheelbase/2)  # Left front
-        gl.glVertex3f(+track/2, -0.1, -wheelbase/2)  # Right front
-        gl.glVertex3f(+track/2, -0.1, +wheelbase/2)  # Right rear
-        gl.glVertex3f(-track/2, -0.1, +wheelbase/2)  # Left rear
-        
-        gl.glEnd()
-        
-        # Center of mass indicator
-        gl.glPointSize(8.0)
-        gl.glColor3f(1.0, 1.0, 0.0)  # Yellow
-        gl.glBegin(gl.GL_POINTS)
-        gl.glVertex3f(0.0, 0.0, 0.0)
-        gl.glEnd()
-        
-        gl.glPopMatrix()
-    
-    def _render_suspension_points(self):
-        """Render suspension points and wheel positions"""
-        if not self.current_state:
-            return
-        
-        # Standard wheel layout
-        wheel_positions = {
-            'LP': (-0.8, 0.0, -1.6),  # Left front
-            'PP': (+0.8, 0.0, -1.6),  # Right front
-            'LZ': (-0.8, 0.0, +1.6),  # Left rear
-            'PZ': (+0.8, 0.0, +1.6)   # Right rear
-        }
-        
-        gl.glPointSize(6.0)
-        
-        for wheel_name, (x, y, z) in wheel_positions.items():
-            # Get wheel state if available
-            wheel_key = getattr(self.current_state.wheels, wheel_name, None)
-            if wheel_key:
-                # Add road excitation
-                y += wheel_key.road_excitation
-            
-            # Color code by wheel position
-            if 'L' in wheel_name:  # Left side
-                gl.glColor3f(1.0, 0.5, 0.5)  # Red-ish
-            else:  # Right side
-                gl.glColor3f(0.5, 0.5, 1.0)  # Blue-ish
-            
-            gl.glBegin(gl.GL_POINTS)
-            gl.glVertex3f(x, y, z)
-            gl.glEnd()
-    
-    def _render_status_overlay(self):
-        """Render status information overlay"""
-        if not self.current_state:
-            return
-        
-        # This would require text rendering setup
-        # For now, just indicate status with colors
-        
-        # Show simulation running status
-        if self.current_state.step_number > 0:
-            gl.glPointSize(10.0)
-            gl.glColor3f(0.0, 1.0, 0.0)  # Green = running
+        if self.current_state:
+            info_lines = [
+                f"Time: {self.current_state.simulation_time:.3f}s",
+                f"Step: {self.current_state.step_number}",
+                f"FPS: {1.0/max(self.current_state.dt_physics, 0.001):.0f}",
+                f"Heave: {self.current_state.frame.heave:.3f}m",
+                f"Roll: {np.degrees(self.current_state.frame.roll):.2f}deg",
+                f"Pitch: {np.degrees(self.current_state.frame.pitch):.2f}deg",
+            ]
         else:
-            gl.glPointSize(10.0)
-            gl.glColor3f(1.0, 0.0, 0.0)  # Red = stopped
+            info_lines = ["No simulation data"]
         
-        # Status indicator in corner
-        gl.glMatrixMode(gl.GL_PROJECTION)
-        gl.glPushMatrix()
-        gl.glLoadIdentity()
-        gl.glOrtho(0, self.width(), self.height(), 0, -1, 1)
+        for i, line in enumerate(info_lines):
+            painter.drawText(10, y_offset + i * line_height, line)
         
-        gl.glMatrixMode(gl.GL_MODELVIEW)
-        gl.glPushMatrix()
-        gl.glLoadIdentity()
+        # Camera info
+        painter.setPen(Qt.GlobalColor.lightGray)
+        cam_info = [
+            f"Zoom: {self.camera_distance:.1f}",
+            f"Pan: ({self.camera_pan.x():.1f}, {self.camera_pan.y():.1f})"
+        ]
         
-        gl.glBegin(gl.GL_POINTS)
-        gl.glVertex2f(20, 20)  # Top-left corner
-        gl.glEnd()
+        for i, line in enumerate(cam_info):
+            painter.drawText(10, self.height() - 40 + i * line_height, line)
         
-        gl.glPopMatrix()
-        gl.glMatrixMode(gl.GL_PROJECTION)
-        gl.glPopMatrix()
-        gl.glMatrixMode(gl.GL_MODELVIEW)
+        painter.end()
+        
+    # Mouse interaction
+    def wheelEvent(self, event):
+        """Handle mouse wheel for zoom"""
+        delta = event.angleDelta().y()
+        zoom_factor = 1.1 if delta > 0 else 0.9
+        
+        self.camera_distance *= zoom_factor
+        self.camera_distance = np.clip(self.camera_distance, 2.0, 50.0)
+        
+        self.update()
+        
+    def mousePressEvent(self, event):
+        """Handle mouse button press"""
+        self.last_mouse_pos = event.pos()
+        
+        if event.button() == Qt.MouseButton.LeftButton:
+            self.is_rotating = True
+        elif event.button() == Qt.MouseButton.MiddleButton:
+            self.is_panning = True
+        
+    def mouseReleaseEvent(self, event):
+        """Handle mouse button release"""
+        if event.button() == Qt.MouseButton.LeftButton:
+            self.is_rotating = False
+        elif event.button() == Qt.MouseButton.MiddleButton:
+            self.is_panning = False
+        
+        self.last_mouse_pos = None
+        
+    def mouseMoveEvent(self, event):
+        """Handle mouse move for pan/rotate"""
+        if not self.last_mouse_pos:
+            return
+        
+        delta = event.pos() - self.last_mouse_pos
+        self.last_mouse_pos = event.pos()
+        
+        if self.is_rotating:
+            # Rotate camera (adjust yaw/pitch)
+            self.camera_yaw += delta.x() * 0.5
+            self.camera_pitch += delta.y() * 0.5
+            self.camera_pitch = np.clip(self.camera_pitch, -89.0, 89.0)
+            self.update()
+            
+        elif self.is_panning:
+            # Pan camera
+            pan_speed = self.camera_distance * 0.003
+            self.camera_pan += QVector3D(
+                delta.x() * pan_speed,
+                -delta.y() * pan_speed,
+                0.0
+            )
+            self.update()
