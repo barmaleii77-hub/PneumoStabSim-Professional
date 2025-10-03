@@ -2,96 +2,28 @@ import QtQuick
 import QtQuick3D
 
 /*
- * ПРОСТАЯ 3D СЦЕНА - ВРАЩАЮЩАЯСЯ ОКРУЖНОСТЬ (СФЕРА)
+ * MAIN PNEUMATIC SUSPENSION VISUALIZATION
+ * Interactive 3D frame with unlimited mouse controls
  */
-View3D {
+Item {
     id: root
     anchors.fill: parent
     
-    // Темный фон для контраста
-    environment: SceneEnvironment {
-        backgroundMode: SceneEnvironment.Color
-        clearColor: "#1a1a2e"  // Темно-синий
-        antialiasingMode: SceneEnvironment.MSAA
-        antialiasingQuality: SceneEnvironment.High
-    }
-    
-    // Камера - смотрит на сферу
-    PerspectiveCamera {
-        id: camera
-        position: Qt.vector3d(0, 0, 5)  // 5 метров от центра
-        eulerRotation: Qt.vector3d(0, 0, 0)  // Прямо вперед
-    }
-    
-    // Свет - чтобы сферу было видно
-    DirectionalLight {
-        eulerRotation.x: -30
-        eulerRotation.y: 30
-        brightness: 1.0
-    }
-    
-    // ОКРУЖНОСТЬ (3D СФЕРА)
-    Model {
-        id: sphere
-        source: "#Sphere"  // Встроенная примитивная сфера
+    // Load the interactive frame
+    Loader {
+        id: frameLoader
+        anchors.fill: parent
+        source: "main_interactive_frame.qml"
         
-        // Позиция в центре (0, 0, 0)
-        position: Qt.vector3d(0, 0, 0)
-        
-        // Размер - радиус 1 метр
-        scale: Qt.vector3d(1, 1, 1)
-        
-        // Красный цвет для видимости
-        materials: PrincipledMaterial {
-            baseColor: "#ff4444"  // Ярко-красный
-            metalness: 0.0
-            roughness: 0.5
+        onLoaded: {
+            console.log("?? Interactive 3D frame loaded successfully")
         }
         
-        // АНИМАЦИЯ: Вращение вокруг оси Y (вертикально)
-        NumberAnimation on eulerRotation.y {
-            from: 0      // Начало: 0 градусов
-            to: 360      // Конец: 360 градусов (полный оборот)
-            duration: 3000  // 3 секунды на оборот
-            loops: Animation.Infinite  // Бесконечное повторение
-            running: true  // Запустить сразу
-        }
-    }
-    
-    // Текст сверху для подтверждения работы
-    Rectangle {
-        anchors.top: parent.top
-        anchors.left: parent.left
-        anchors.margins: 20
-        width: 300
-        height: 80
-        color: "#20000000"
-        border.color: "#40ffffff"
-        border.width: 1
-        radius: 5
-        
-        Column {
-            anchors.fill: parent
-            anchors.margins: 10
-            spacing: 5
-            
-            Text {
-                text: "Простая вращающаяся окружность"
-                color: "#ffffff"
-                font.pixelSize: 16
-                font.bold: true
-            }
-            
-            Text {
-                text: "3D сфера с анимацией"
-                color: "#aaaaaa"
-                font.pixelSize: 12
-            }
-            
-            Text {
-                text: "Qt Quick 3D (RHI/D3D11)"
-                color: "#888888"
-                font.pixelSize: 10
+        onStatusChanged: {
+            if (status === Loader.Error) {
+                console.log("? Error loading interactive frame:", sourceComponent.errorString())
+                // Fallback to simple 3D scene
+                frameLoader.source = "main_working_builtin.qml"
             }
         }
     }

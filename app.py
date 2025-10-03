@@ -12,24 +12,42 @@ from pathlib import Path
 os.environ.setdefault("QSG_RHI_BACKEND", "d3d11")
 os.environ.setdefault("QSG_INFO", "1")  # Print RHI backend info on startup
 
+# DIAGNOSTIC: Enable QML console.log and debug output
+os.environ.setdefault("QT_LOGGING_RULES", "js.debug=true;qt.qml.debug=true")
+os.environ.setdefault("QT_ASSUME_STDERR_HAS_CONSOLE", "1")
+
 from PySide6.QtWidgets import QApplication
 from PySide6.QtCore import qInstallMessageHandler, QtMsgType, Qt
 
 from src.common import init_logging, log_ui_event
 from src.ui.main_window import MainWindow
 
+# Import custom 3D geometry types (will auto-register via @QmlElement)
+from src.ui.custom_geometry import SphereGeometry, CubeGeometry
+
 
 def qt_message_handler(mode, context, message):
     """Handle Qt log messages"""
     logger = logging.getLogger("Qt")
     
-    if mode == QtMsgType.QtDebugMsg:
-        logger.debug(message)
+    # DIAGNOSTIC: Show QML console.log messages directly
+    if "qml:" in message.lower() or "custom sphere" in message.lower() or "geometry:" in message.lower():
+        print(f"?? QML DEBUG: {message}")
+    elif "spheregeometry" in message.lower():
+        print(f"?? GEOMETRY: {message}")
+    elif mode == QtMsgType.QtDebugMsg:
+        if "js" in message.lower():
+            print(f"?? JS: {message}")
+        else:
+            logger.debug(message)
     elif mode == QtMsgType.QtWarningMsg:
+        print(f"?? WARNING: {message}")
         logger.warning(message)
     elif mode == QtMsgType.QtCriticalMsg:
+        print(f"? CRITICAL: {message}")
         logger.error(message)
     elif mode == QtMsgType.QtFatalMsg:
+        print(f"?? FATAL: {message}")
         logger.critical(message)
     elif mode == QtMsgType.QtInfoMsg:
         logger.info(message)
@@ -43,6 +61,7 @@ def main():
     
     print("=== PNEUMOSTABSIM STARTING ===")
     print("Qt Quick 3D with RHI/Direct3D backend")
+    print("Custom 3D Geometry enabled")
     print()
     print("??  IMPORTANT: Look for 'rhi: backend:' line in console output")
     print("    Should show 'D3D11' (not OpenGL)")
@@ -73,18 +92,22 @@ def main():
     
     log_ui_event("APP_CREATED", "Qt application initialized")
     
-    print("Step 4: Creating MainWindow...")
+    print("Step 4: Registering custom QML types...")
+    print("  - CustomGeometry.SphereGeometry (auto-registered)")
+    print("  - CustomGeometry.CubeGeometry (auto-registered)")  
+    
+    print("Step 5: Creating MainWindow...")
     
     try:
         # Create and show main window
         window = MainWindow()
         
-        print(f"Step 5: MainWindow created - Size: {window.size().width()}x{window.size().height()}")
+        print(f"Step 6: MainWindow created - Size: {window.size().width()}x{window.size().height()}")
         print(f"         Window title: {window.windowTitle()}")
         
         window.show()
         
-        print(f"Step 6: Window shown - Visible: {window.isVisible()}")
+        print(f"Step 7: Window shown - Visible: {window.isVisible()}")
         print(f"         Position: {window.pos().x()}, {window.pos().y()}")
         
         # Force window to front
@@ -95,6 +118,9 @@ def main():
         
         print("\n" + "="*60)
         print("APPLICATION READY - Qt Quick 3D rendering active")
+        print("?? DIAGNOSTIC: Looking for QML console.log messages...")
+        print("Expected: 'Custom sphere created' and 'Geometry: ...'")
+        print("If missing, custom geometry not instantiated!")
         print("Check console for 'rhi: backend: D3D11' confirmation")
         print("Close window to exit")
         print("="*60 + "\n")

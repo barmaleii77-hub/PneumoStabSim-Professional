@@ -8,7 +8,7 @@ from PySide6.QtWidgets import (
 )
 from PySide6.QtCore import Qt, QTimer, Slot, QSettings, QUrl, QFileInfo
 from PySide6.QtGui import QAction, QKeySequence
-from PySide6.QtQuickWidgets import QQuickWidget  # ? хглемемн: БЛЕЯРН QQuickView
+from PySide6.QtQuickWidgets import QQuickWidget  # ? О©╫О©╫О©╫О©╫О©╫О©╫О©╫О©╫: О©╫О©╫О©╫О©╫О©╫О©╫ QQuickView
 import logging
 import json
 from pathlib import Path
@@ -70,7 +70,7 @@ class MainWindow(QMainWindow):
         self.chart_widget: Optional[ChartWidget] = None
 
         # Qt Quick 3D view reference
-        self._qquick_widget: Optional[QQuickWidget] = None  # ? хглемемн
+        self._qquick_widget: Optional[QQuickWidget] = None  # ? О©╫О©╫О©╫О©╫О©╫О©╫О©╫О©╫
         self._qml_root_object = None
 
         print("MainWindow: Building UI...")
