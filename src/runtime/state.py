@@ -67,8 +67,8 @@ class LineState:
     """State of a pneumatic line"""
     line: Line
     
-    # Gas state
-    pressure: float = 101325.0         # Pressure (Pa)
+    # Gas state (TEMPORARY: different initial pressures for visibility)
+    pressure: float = 150000.0         # Pressure (Pa) - 1.5 bar for lines
     temperature: float = 293.15        # Temperature (K)
     mass: float = 0.0                  # Gas mass (kg)
     volume: float = 0.0                # Total volume (m?)
@@ -83,7 +83,7 @@ class LineState:
 @dataclass
 class TankState:
     """State of receiver tank"""
-    pressure: float = 101325.0         # Pressure (Pa)
+    pressure: float = 200000.0         # Pressure (Pa) - 2.0 bar for tank
     temperature: float = 293.15        # Temperature (K)
     mass: float = 0.0                  # Gas mass (kg)
     volume: float = 0.0005             # Volume (m?)

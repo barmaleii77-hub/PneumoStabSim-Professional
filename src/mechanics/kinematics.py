@@ -1,4 +1,4 @@
-"""
+п»ї"""
 Precise kinematics for P13 geometric engine
 
 Implements:
@@ -58,8 +58,8 @@ class CylinderState:
     stroke_velocity: float = 0.0  # ds/dt (m/s)
     
     # Volumes
-    volume_head: float = 0.0   # Bесштоковая полость (m?)
-    volume_rod: float = 0.0    # Штоковая полость (m?)
+    volume_head: float = 0.0   # BпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ (m?)
+    volume_rod: float = 0.0    # пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ (m?)
     
     # Geometry
     distance: float = 0.0      # Distance between hinges D (m)
@@ -429,3 +429,4 @@ __all__ = [
     'InterferenceChecker',
     'solve_axle_plane',
 ]
+

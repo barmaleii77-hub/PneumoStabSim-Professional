@@ -99,12 +99,15 @@ def assemble_forces(system: Any, gas: Any, y: np.ndarray,
     """
     Y, phi_z, theta_x, dY, dphi_z, dtheta_x = y
     
-    # TODO: Get cylinder pressures from gas network
-    # For now, use placeholder values
     wheel_names = ['LP', 'PP', 'LZ', 'PZ']  # Left Front, Right Front, Left Rear, Right Rear
     vertical_forces = np.zeros(4)
     
-    # Placeholder: Calculate forces at each wheel
+    # TEMPORARY: Basic spring/damper until pneumatic system connected
+    # These values provide realistic suspension behavior
+    k_spring = 50000.0  # N/m (spring stiffness per wheel)
+    c_damper = 2000.0   # N*s/m (damping coefficient per wheel)
+    
+    # Calculate forces at each wheel
     for i, wheel_name in enumerate(wheel_names):
         # Get attachment point
         if wheel_name in params.attachment_points:
@@ -114,28 +117,34 @@ def assemble_forces(system: Any, gas: Any, y: np.ndarray,
             x_i = (-1.0 if 'L' in wheel_name else 1.0) * params.track / 2.0
             z_i = (-1.0 if 'P' in wheel_name else 1.0) * params.wheelbase / 2.0
         
-        # TODO: Get actual cylinder axis from system geometry
-        # Placeholder: vertical axis for now
-        axis_unit = np.array([0.0, 1.0, 0.0])
+        # Calculate wheel vertical displacement accounting for frame angles
+        # Simplified: assume small angles, so wheel displacement ? Y
+        wheel_displacement = Y
         
-        # TODO: Calculate pneumatic cylinder force
+        # Add contribution from roll (z-axis rotation)
+        # Wheel moves up/down based on lateral distance and roll angle
+        wheel_displacement += x_i * phi_z
+        
+        # Add contribution from pitch (x-axis rotation)
+        # Wheel moves up/down based on longitudinal distance and pitch angle
+        wheel_displacement += z_i * theta_x
+        
+        # Spring force (resists compression, acts upward = negative force)
+        # Positive displacement = compression = upward force
+        F_spring = -k_spring * wheel_displacement
+        
+        # Damper force (resists velocity)
+        # Calculate wheel velocity including angular contributions
+        wheel_velocity = dY + x_i * dphi_z + z_i * dtheta_x
+        F_damper = -c_damper * wheel_velocity
+        
+        # TODO: Get pneumatic cylinder force from gas network
         # F_cyl = (p_head * A_head) - (p_rod * (A_head - A_rod))
-        F_cyl_axis = 0.0  # Placeholder
+        F_pneumatic = 0.0  # Placeholder until gas network connected
         
-        # TODO: Calculate spring force (one-sided compression)
-        # F_spring = k * max(0, x0 - x)
-        F_spring_axis = 0.0  # Placeholder
-        
-        # TODO: Calculate damper force (linear with velocity)
-        # F_damper = c * v_axis
-        F_damper_axis = 0.0  # Placeholder
-        
-        # Total axial force
-        F_total_axis = F_cyl_axis + F_spring_axis + F_damper_axis
-        
-        # Project to vertical component
-        F_vertical = axis_vertical_projection(F_total_axis, axis_unit)
-        vertical_forces[i] = F_vertical
+        # Total vertical force (positive downward)
+        F_total = F_spring + F_damper + F_pneumatic
+        vertical_forces[i] = F_total
     
     # Calculate moments about center of mass
     tau_x = 0.0  # Pitch moment

@@ -3,7 +3,7 @@ Charts widget using QtCharts for real-time data visualization
 """
 from PySide6.QtWidgets import QWidget, QVBoxLayout, QTabWidget
 from PySide6.QtCharts import QChart, QChartView, QLineSeries, QValueAxis
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, QPointF
 from PySide6.QtGui import QPainter, QColor
 from collections import deque
 from typing import Optional, Dict, List
@@ -72,6 +72,10 @@ class ChartWidget(QWidget):
         chart.setTitle("System Pressures")
         chart.setAnimationOptions(QChart.AnimationOption.NoAnimation)  # Disable for performance
         
+        # Set background colors for better visibility
+        chart.setBackgroundBrush(QColor(30, 30, 40))  # Dark gray background
+        chart.setTitleBrush(QColor(255, 255, 255))    # White title
+        
         # Create series for each pressure
         self.pressure_series = {}
         colors = [
@@ -120,6 +124,10 @@ class ChartWidget(QWidget):
         chart.setTitle("Frame Dynamics")
         chart.setAnimationOptions(QChart.AnimationOption.NoAnimation)
         
+        # Set background colors for better visibility
+        chart.setBackgroundBrush(QColor(30, 30, 40))  # Dark gray background
+        chart.setTitleBrush(QColor(255, 255, 255))    # White title
+        
         # Create series
         self.dynamics_series = {}
         colors = [
@@ -165,6 +173,10 @@ class ChartWidget(QWidget):
         chart = QChart()
         chart.setTitle("Mass Flows")
         chart.setAnimationOptions(QChart.AnimationOption.NoAnimation)
+        
+        # Set background colors for better visibility
+        chart.setBackgroundBrush(QColor(30, 30, 40))  # Dark gray background
+        chart.setTitleBrush(QColor(255, 255, 255))    # White title
         
         # Create series
         self.flow_series = {}
@@ -250,8 +262,8 @@ class ChartWidget(QWidget):
                 time_buffer = self.time_buffer
                 
                 if len(buffer) == len(time_buffer):
-                    # Clear and replace data (more efficient than append for large datasets)
-                    points = [(float(t), float(p)) for t, p in zip(time_buffer, buffer)]
+                    # Convert to QPointF objects
+                    points = [QPointF(float(t), float(p)) for t, p in zip(time_buffer, buffer)]
                     series.replace(points)
     
     def _update_dynamics_data(self, snapshot: StateSnapshot):
@@ -269,7 +281,8 @@ class ChartWidget(QWidget):
             time_buffer = self.time_buffer
             
             if len(buffer) == len(time_buffer):
-                points = [(float(t), float(v)) for t, v in zip(time_buffer, buffer)]
+                # Convert to QPointF objects
+                points = [QPointF(float(t), float(v)) for t, v in zip(time_buffer, buffer)]
                 series.replace(points)
     
     def _update_flow_data(self, snapshot: StateSnapshot):
@@ -292,7 +305,8 @@ class ChartWidget(QWidget):
             time_buffer = self.time_buffer
             
             if len(buffer) == len(time_buffer):
-                points = [(float(t), float(f)) for t, f in zip(time_buffer, buffer)]
+                # Convert to QPointF objects
+                points = [QPointF(float(t), float(f)) for t, f in zip(time_buffer, buffer)]
                 series.replace(points)
     
     def _update_chart_ranges(self, current_time: float):

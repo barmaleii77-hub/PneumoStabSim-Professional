@@ -32,7 +32,12 @@ class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("PneumoStabSim - Qt Quick 3D (RHI/D3D)")
-        self.resize(1500, 950)
+        
+        # Set reasonable initial size (not too large)
+        self.resize(1200, 800)
+        
+        # Set minimum window size to prevent over-compression
+        self.setMinimumSize(1000, 700)
         
         # Ensure window is in normal state
         self.setWindowState(Qt.WindowState.WindowNoState)
@@ -150,8 +155,9 @@ class MainWindow(QMainWindow):
             
             print("    ? QML loaded successfully")
             
-            # Set minimum size for visibility
-            self._qquick_widget.setMinimumSize(800, 600)
+            # Do NOT set minimum size - let SizeRootObjectToView handle resizing
+            # This prevents conflicts with dock panels and white strips
+            # REMOVED: self._qquick_widget.setMinimumSize(800, 600)
             
             # Set as central widget (QQuickWidget IS a QWidget, no container needed!)
             self.setCentralWidget(self._qquick_widget)
@@ -178,43 +184,93 @@ class MainWindow(QMainWindow):
             print("    ??  Using fallback widget")
 
     def _setup_docks(self):
-        """Create and place dock panels"""
+        """Create and place dock panels with proper layout"""
         print("    _setup_docks: Creating panels...")
         
-        # Create geometry panel (left)
+        # IMPORTANT: Do NOT use splitDockWidget - it causes overlaps
+        # Instead, rely on Qt's automatic dock widget placement
+        
+        # Create geometry panel (left side)
         self.geometry_dock = QDockWidget("Geometry", self)
+        self.geometry_dock.setObjectName("GeometryDock")
         self.geometry_panel = GeometryPanel(self)
         self.geometry_dock.setWidget(self.geometry_panel)
+        
+        # Set reasonable size constraints for left panels
+        self.geometry_dock.setMinimumWidth(200)
+        self.geometry_dock.setMaximumWidth(350)
+        
+        # Allow vertical resize but with limits
+        self.geometry_panel.setMinimumHeight(200)
+        
         self.addDockWidget(Qt.DockWidgetArea.LeftDockWidgetArea, self.geometry_dock)
         print("      ? Geometry panel created")
         
-        # Create pneumatics panel (left, below geometry)
+        # Create pneumatics panel (left side, TABIFIED with geometry)
         self.pneumo_dock = QDockWidget("Pneumatics", self)
+        self.pneumo_dock.setObjectName("PneumaticsDock")
         self.pneumo_panel = PneumoPanel(self)
         self.pneumo_dock.setWidget(self.pneumo_panel)
-        self.addDockWidget(Qt.DockWidgetArea.LeftDockWidgetArea, self.pneumo_dock)
-        print("      ? Pneumatics panel created")
         
-        # Create charts panel (right)
+        self.pneumo_dock.setMinimumWidth(200)
+        self.pneumo_dock.setMaximumWidth(350)
+        self.pneumo_panel.setMinimumHeight(200)
+        
+        # TABIFY instead of stacking to save space
+        self.tabifyDockWidget(self.geometry_dock, self.pneumo_dock)
+        print("      ? Pneumatics panel created (tabified)")
+        
+        # Create charts panel (right side)
         self.charts_dock = QDockWidget("Charts", self)
+        self.charts_dock.setObjectName("ChartsDock")
         self.chart_widget = ChartWidget(self)
         self.charts_dock.setWidget(self.chart_widget)
+        
+        self.charts_dock.setMinimumWidth(300)
+        self.charts_dock.setMaximumWidth(500)
+        self.chart_widget.setMinimumHeight(250)
+        
         self.addDockWidget(Qt.DockWidgetArea.RightDockWidgetArea, self.charts_dock)
         print("      ? Charts panel created")
         
-        # Create modes/simulation control panel (right, below charts)
+        # Create modes panel (right side, TABIFIED with charts)
         self.modes_dock = QDockWidget("Simulation & Modes", self)
+        self.modes_dock.setObjectName("ModesDock")
         self.modes_panel = ModesPanel(self)
         self.modes_dock.setWidget(self.modes_panel)
-        self.addDockWidget(Qt.DockWidgetArea.RightDockWidgetArea, self.modes_dock)
-        print("      ? Modes panel created")
         
-        # Create road profiles panel (bottom)
+        self.modes_dock.setMinimumWidth(300)
+        self.modes_dock.setMaximumWidth(500)
+        self.modes_panel.setMinimumHeight(200)
+        
+        # TABIFY to save space
+        self.tabifyDockWidget(self.charts_dock, self.modes_dock)
+        print("      ? Modes panel created (tabified)")
+        
+        # Create road profiles panel (bottom, FLOATING or HIDDEN by default)
         self.road_dock = QDockWidget("Road Profiles", self)
+        self.road_dock.setObjectName("RoadDock")
         self.road_panel = RoadPanel(self)
         self.road_dock.setWidget(self.road_panel)
+        
+        self.road_dock.setMinimumHeight(150)
+        self.road_dock.setMaximumHeight(250)
+        
+        # Start as floating or hidden to avoid overlap
         self.addDockWidget(Qt.DockWidgetArea.BottomDockWidgetArea, self.road_dock)
-        print("      ? Road panel created")
+        self.road_dock.setFloating(False)
+        self.road_dock.hide()  # Hidden by default - user can show via View menu
+        print("      ? Road panel created (hidden by default)")
+        
+        # Raise first tab in each group to make them visible
+        self.geometry_dock.raise_()
+        self.charts_dock.raise_()
+        
+        # Set corner policies to give more space to central widget
+        self.setCorner(Qt.Corner.TopLeftCorner, Qt.DockWidgetArea.LeftDockWidgetArea)
+        self.setCorner(Qt.Corner.TopRightCorner, Qt.DockWidgetArea.RightDockWidgetArea)
+        self.setCorner(Qt.Corner.BottomLeftCorner, Qt.DockWidgetArea.LeftDockWidgetArea)
+        self.setCorner(Qt.Corner.BottomRightCorner, Qt.DockWidgetArea.RightDockWidgetArea)
         
         # Connect panel signals
         self._wire_panel_signals()
@@ -329,34 +385,75 @@ class MainWindow(QMainWindow):
 
     def _setup_toolbar(self):
         toolbar = self.addToolBar("Main")
+        toolbar.setObjectName("MainToolbar")  # For saveState/restoreState
         toolbar.setMovable(True)
+        
         start_act = QAction("Start", self)
         stop_act = QAction("Stop", self)
         pause_act = QAction("Pause", self)
         reset_act = QAction("Reset", self)
+        
+        # Add toggle panels action
+        toggle_panels_act = QAction("Toggle Panels", self)
+        toggle_panels_act.setCheckable(True)
+        toggle_panels_act.setChecked(True)
+        toggle_panels_act.toggled.connect(self._toggle_all_panels)
+        
         start_act.triggered.connect(lambda: self._on_sim_control("start"))
         stop_act.triggered.connect(lambda: self._on_sim_control("stop"))
         pause_act.triggered.connect(lambda: self._on_sim_control("pause"))
         reset_act.triggered.connect(lambda: self._on_sim_control("reset"))
+        
         toolbar.addActions([start_act, stop_act, pause_act, reset_act])
+        toolbar.addSeparator()
+        toolbar.addAction(toggle_panels_act)
+        
+        # Prevent toolbar from taking too much space
+        toolbar.setMaximumHeight(50)
+
+    def _toggle_all_panels(self, visible: bool):
+        """Toggle visibility of all dock panels to show/hide 3D view"""
+        for dock in [self.geometry_dock, self.pneumo_dock, self.charts_dock, 
+                     self.modes_dock, self.road_dock]:
+            if dock:
+                dock.setVisible(visible)
+        
+        status_msg = "Panels shown" if visible else "Panels hidden (3D view visible)"
+        self.status_bar.showMessage(status_msg)
 
     def _setup_status_bar(self):
         self.status_bar = QStatusBar()
         self.setStatusBar(self.status_bar)
+        
+        # Create status bar widgets with reasonable sizes
         self.sim_time_label = QLabel("Sim Time: 0.000s")
+        self.sim_time_label.setMinimumWidth(120)
+        
         self.step_count_label = QLabel("Steps: 0")
+        self.step_count_label.setMinimumWidth(80)
+        
         self.fps_label = QLabel("Physics FPS: 0")
+        self.fps_label.setMinimumWidth(100)
+        
         self.realtime_label = QLabel("RT: 1.00x")
+        self.realtime_label.setMinimumWidth(80)
+        
         self.queue_label = QLabel("Queue: 0/0")
+        self.queue_label.setMinimumWidth(100)
         
         # P13 Kinematics display
         self.kinematics_label = QLabel("alpha: 0.0deg | s: 0.0mm | V_h: 0cm3 | V_r: 0cm3")
         self.kinematics_label.setToolTip("Lever angle (alpha), Cylinder stroke (s), Head/Rod volumes")
+        self.kinematics_label.setMinimumWidth(300)
         
         for w in [self.sim_time_label, self.step_count_label, self.fps_label, 
                   self.queue_label, self.realtime_label, self.kinematics_label]:
             self.status_bar.addPermanentWidget(w)
+        
         self.status_bar.showMessage("Ready")
+        
+        # Prevent status bar from being too tall
+        self.status_bar.setMaximumHeight(30)
 
     # ------------------------------------------------------------------
     # Simulation Control & Panels Interaction
@@ -464,6 +561,31 @@ class MainWindow(QMainWindow):
                 print(f"? Failed to start SimulationManager: {e}")
                 import traceback
                 traceback.print_exc()
+    
+    def resizeEvent(self, event):
+        """Override resizeEvent to handle window resizing gracefully"""
+        super().resizeEvent(event)
+        
+        # Throttle resize updates to prevent performance issues
+        if not hasattr(self, '_resize_timer'):
+            self._resize_timer = QTimer(self)
+            self._resize_timer.setSingleShot(True)
+            self._resize_timer.timeout.connect(self._handle_resize_complete)
+        
+        # Restart timer on each resize event
+        self._resize_timer.stop()
+        self._resize_timer.start(100)  # Wait 100ms after last resize
+    
+    def _handle_resize_complete(self):
+        """Called after resize operation completes"""
+        # Force update of QML widget
+        if self._qquick_widget:
+            self._qquick_widget.update()
+        
+        # Log new size for debugging
+        new_size = self.size()
+        self.logger.debug(f"Window resized to: {new_size.width()}x{new_size.height()}")
+
     # ------------------------------------------------------------------
     # Preset Save/Load & Settings
     # ------------------------------------------------------------------

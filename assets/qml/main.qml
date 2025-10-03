@@ -2,118 +2,69 @@ import QtQuick
 import QtQuick3D
 
 /*
- * Qt Quick 3D scene with PBR materials
- * Uses RHI backend (Direct3D on Windows, no OpenGL)
+ * ПРОСТАЯ 3D СЦЕНА - ВРАЩАЮЩАЯСЯ ОКРУЖНОСТЬ (СФЕРА)
  */
 View3D {
     id: root
-    width: 800
-    height: 600
+    anchors.fill: parent
     
-    // Dark background
+    // Темный фон для контраста
     environment: SceneEnvironment {
         backgroundMode: SceneEnvironment.Color
-        clearColor: "#101418"
+        clearColor: "#1a1a2e"  // Темно-синий
         antialiasingMode: SceneEnvironment.MSAA
         antialiasingQuality: SceneEnvironment.High
     }
     
-    // Camera setup (isometric-like view)
+    // Камера - смотрит на сферу
     PerspectiveCamera {
         id: camera
-        position: Qt.vector3d(0, 1.5, 5)
-        eulerRotation.x: -15
-        eulerRotation.y: 0
-        
-        // Allow runtime camera adjustment via properties
-        property real distance: 5.0
-        property real pitch: -15.0
-        property real yaw: 0.0
+        position: Qt.vector3d(0, 0, 5)  // 5 метров от центра
+        eulerRotation: Qt.vector3d(0, 0, 0)  // Прямо вперед
     }
     
-    // Main directional light
+    // Свет - чтобы сферу было видно
     DirectionalLight {
-        eulerRotation.x: -45
+        eulerRotation.x: -30
         eulerRotation.y: 30
-        brightness: 1000
-        castsShadow: true
+        brightness: 1.0
     }
     
-    // Ambient/fill light
-    DirectionalLight {
-        eulerRotation.x: 20
-        eulerRotation.y: -110
-        brightness: 300
-        color: "#6080a0"
-    }
-    
-    // Ground plane (simple reference)
-    Model {
-        id: ground
-        source: "#Rectangle"
-        y: -0.5
-        scale: Qt.vector3d(10, 10, 1)
-        eulerRotation.x: -90
-        materials: PrincipledMaterial {
-            baseColor: "#2a2a3e"
-            metalness: 0.1
-            roughness: 0.9
-        }
-    }
-    
-    // Main demonstration sphere (PBR metal)
+    // ОКРУЖНОСТЬ (3D СФЕРА)
     Model {
         id: sphere
-        source: "#Sphere"
-        position: Qt.vector3d(0, 0.5, 0)
-        scale: Qt.vector3d(1.2, 1.2, 1.2)
+        source: "#Sphere"  // Встроенная примитивная сфера
         
+        // Позиция в центре (0, 0, 0)
+        position: Qt.vector3d(0, 0, 0)
+        
+        // Размер - радиус 1 метр
+        scale: Qt.vector3d(1, 1, 1)
+        
+        // Красный цвет для видимости
         materials: PrincipledMaterial {
-            baseColor: "#b0b6c2"
-            metalness: 0.85
-            roughness: 0.2
-            normalMap: Texture {}
-        }
-        
-        // Smooth rotation animation
-        NumberAnimation on eulerRotation.y {
-            from: 0
-            to: 360
-            duration: 6000
-            loops: Animation.Infinite
-        }
-    }
-    
-    // Additional cube (for visual interest)
-    Model {
-        id: cube
-        source: "#Cube"
-        position: Qt.vector3d(2, 0.3, 0)
-        scale: Qt.vector3d(0.6, 0.6, 0.6)
-        
-        materials: PrincipledMaterial {
-            baseColor: "#ff6b35"
-            metalness: 0.3
+            baseColor: "#ff4444"  // Ярко-красный
+            metalness: 0.0
             roughness: 0.5
         }
         
-        // Counter-rotation
+        // АНИМАЦИЯ: Вращение вокруг оси Y (вертикально)
         NumberAnimation on eulerRotation.y {
-            from: 0
-            to: -360
-            duration: 8000
-            loops: Animation.Infinite
+            from: 0      // Начало: 0 градусов
+            to: 360      // Конец: 360 градусов (полный оборот)
+            duration: 3000  // 3 секунды на оборот
+            loops: Animation.Infinite  // Бесконечное повторение
+            running: true  // Запустить сразу
         }
     }
     
-    // Text overlay (simulation info will be added here)
+    // Текст сверху для подтверждения работы
     Rectangle {
-        id: overlay
         anchors.top: parent.top
         anchors.left: parent.left
-        anchors.margins: 10
-        width: 250
-        height: 120
+        anchors.margins: 20
+        width: 300
+        height: 80
         color: "#20000000"
         border.color: "#40ffffff"
         border.width: 1
@@ -125,39 +76,23 @@ View3D {
             spacing: 5
             
             Text {
-                text: "Qt Quick 3D (RHI/Direct3D)"
+                text: "Простая вращающаяся окружность"
                 color: "#ffffff"
-                font.pixelSize: 14
+                font.pixelSize: 16
                 font.bold: true
             }
             
             Text {
-                id: backendInfo
-                text: "Backend: D3D11"
-                color: "#a0a0a0"
-                font.pixelSize: 11
+                text: "3D сфера с анимацией"
+                color: "#aaaaaa"
+                font.pixelSize: 12
             }
             
             Text {
-                id: simInfo
-                text: "Simulation: Idle"
-                color: "#a0a0a0"
-                font.pixelSize: 11
-            }
-            
-            Text {
-                id: fpsInfo
-                text: "FPS: 60"
-                color: "#a0a0a0"
-                font.pixelSize: 11
+                text: "Qt Quick 3D (RHI/D3D11)"
+                color: "#888888"
+                font.pixelSize: 10
             }
         }
     }
-    
-    // Expose properties for C++ integration
-    property alias cameraDistance: camera.distance
-    property alias cameraPitch: camera.pitch
-    property alias cameraYaw: camera.yaw
-    property alias simulationText: simInfo.text
-    property alias fpsText: fpsInfo.text
 }
