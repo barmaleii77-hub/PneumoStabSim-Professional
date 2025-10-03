@@ -1,6 +1,6 @@
 """
 Main window for PneumoStabSim application
-Qt Quick 3D rendering with RHI/Direct3D backend (no OpenGL)
+Qt Quick 3D rendering with QQuickWidget (no createWindowContainer)
 """
 from PySide6.QtWidgets import (
     QMainWindow, QStatusBar, QDockWidget, QWidget, QMenuBar, QToolBar, QLabel,
@@ -8,15 +8,13 @@ from PySide6.QtWidgets import (
 )
 from PySide6.QtCore import Qt, QTimer, Slot, QSettings, QUrl, QFileInfo
 from PySide6.QtGui import QAction, QKeySequence
-from PySide6.QtQuick import QQuickView
+from PySide6.QtQuickWidgets import QQuickWidget  # ? »«Ã≈Õ≈ÕŒ: ‚ÏÂÒÚÓ QQuickView
 import logging
 import json
 from pathlib import Path
 from typing import Optional
 
 # NO OpenGL imports - using Qt Quick 3D instead
-# from .gl_view import GLView  # REMOVED
-
 from .charts import ChartWidget
 from .panels import GeometryPanel, PneumoPanel, ModesPanel, RoadPanel
 from ..runtime import SimulationManager, StateSnapshot
@@ -67,7 +65,7 @@ class MainWindow(QMainWindow):
         self.chart_widget: Optional[ChartWidget] = None
 
         # Qt Quick 3D view reference
-        self._qquick_view: Optional[QQuickView] = None
+        self._qquick_widget: Optional[QQuickWidget] = None  # ? »«Ã≈Õ≈ÕŒ
         self._qml_root_object = None
 
         print("MainWindow: Building UI...")
@@ -111,21 +109,23 @@ class MainWindow(QMainWindow):
     # UI Construction
     # ------------------------------------------------------------------
     def _setup_central(self):
-        """Create central Qt Quick 3D view using QQuickView + createWindowContainer
+        """Create central Qt Quick 3D view using QQuickWidget
         
-        Preferred approach: QQuickView + createWindowContainer
-        - Better performance than QQuickWidget
-        - Proper integration with QMainWindow
-        - Native window container for Qt Quick content
+        QQuickWidget approach (instead of QQuickView + createWindowContainer):
+        - Better integration with QWidget-based layouts
+        - More reliable rendering in complex UI
+        - Direct QWidget subclass (easier to use)
+        
+        Trade-off: Slightly higher overhead than QQuickView, but MORE RELIABLE
         """
         print("    _setup_central: Creating Qt Quick 3D view...")
         
         try:
-            # Create QQuickView for Qt Quick 3D content
-            self._qquick_view = QQuickView()
+            # Create QQuickWidget for Qt Quick 3D content
+            self._qquick_widget = QQuickWidget(self)
             
-            # Set resize mode to synchronize QML root object size with view
-            self._qquick_view.setResizeMode(QQuickView.SizeRootObjectToView)
+            # CRITICAL: Set resize mode BEFORE loading source
+            self._qquick_widget.setResizeMode(QQuickWidget.ResizeMode.SizeRootObjectToView)
             
             # Load QML file with Qt Quick 3D scene
             qml_path = Path("assets/qml/main.qml")
@@ -135,31 +135,28 @@ class MainWindow(QMainWindow):
             qml_url = QUrl.fromLocalFile(str(qml_path.absolute()))
             print(f"    Loading QML: {qml_url.toString()}")
             
-            self._qquick_view.setSource(qml_url)
+            self._qquick_widget.setSource(qml_url)
             
             # Check for QML errors
-            if self._qquick_view.status() == QQuickView.Status.Error:
-                errors = self._qquick_view.errors()
+            if self._qquick_widget.status() == QQuickWidget.Status.Error:
+                errors = self._qquick_widget.errors()
                 error_msg = "\n".join(str(e) for e in errors)
                 raise RuntimeError(f"QML errors:\n{error_msg}")
             
             # Get root object for property access
-            self._qml_root_object = self._qquick_view.rootObject()
+            self._qml_root_object = self._qquick_widget.rootObject()
             if not self._qml_root_object:
                 raise RuntimeError("Failed to get QML root object")
             
             print("    ? QML loaded successfully")
             
-            # Wrap QQuickView in QWidget container
-            # This is the recommended way to embed Qt Quick in QWidget-based UI
-            container = QWidget.createWindowContainer(self._qquick_view, self)
-            container.setMinimumSize(800, 600)
-            container.setFocusPolicy(Qt.FocusPolicy.TabFocus)
+            # Set minimum size for visibility
+            self._qquick_widget.setMinimumSize(800, 600)
             
-            # Set as central widget
-            self.setCentralWidget(container)
+            # Set as central widget (QQuickWidget IS a QWidget, no container needed!)
+            self.setCentralWidget(self._qquick_widget)
             
-            print("    ? Qt Quick 3D view embedded via createWindowContainer")
+            print("    ? Qt Quick 3D view set as central widget (QQuickWidget)")
             
         except Exception as e:
             print(f"    ? Qt Quick 3D view creation failed: {e}")
@@ -177,7 +174,7 @@ class MainWindow(QMainWindow):
             fallback.setAlignment(Qt.AlignmentFlag.AlignCenter)
             fallback.setStyleSheet("background: #1a1a2e; color: #ff6b6b; font-size: 14px; padding: 20px;")
             self.setCentralWidget(fallback)
-            self._qquick_view = None
+            self._qquick_widget = None
             print("    ??  Using fallback widget")
 
     def _setup_docks(self):
