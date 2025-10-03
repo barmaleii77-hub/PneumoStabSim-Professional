@@ -254,3 +254,35 @@ def validate_state(y: np.ndarray, params: RigidBody3DOF) -> Tuple[bool, str]:
         return False, f"Pitch rate {dtheta_x:.3f} rad/s is unreasonable"
     
     return True, ""
+
+
+# Legacy API compatibility
+def rigid_body_3dof_ode(t: float, y: np.ndarray, params: RigidBody3DOF,
+                       system: Any = None, gas: Any = None) -> np.ndarray:
+    """Legacy wrapper for f_rhs
+    
+    This function provides backward compatibility with tests that use the old API.
+    
+    Args:
+        t: Time (s)
+        y: State vector [Y, phi_z, theta_x, dY, dphi_z, dtheta_x]
+        params: Rigid body parameters
+        system: Pneumatic system (optional)
+        gas: Gas network (optional)
+        
+    Returns:
+        Derivative vector dy/dt
+    """
+    return f_rhs(t, y, params, system, gas)
+
+
+__all__ = [
+    'RigidBody3DOF',
+    'SuspensionPointState',
+    'axis_vertical_projection',
+    'assemble_forces',
+    'f_rhs',
+    'rigid_body_3dof_ode',  # Legacy API
+    'create_initial_conditions',
+    'validate_state',
+]

@@ -348,7 +348,13 @@ class MainWindow(QMainWindow):
         self.fps_label = QLabel("Physics FPS: 0")
         self.realtime_label = QLabel("RT: 1.00x")
         self.queue_label = QLabel("Queue: 0/0")
-        for w in [self.sim_time_label, self.step_count_label, self.fps_label, self.queue_label, self.realtime_label]:
+        
+        # P13 Kinematics display
+        self.kinematics_label = QLabel("alpha: 0.0deg | s: 0.0mm | V_h: 0cm3 | V_r: 0cm3")
+        self.kinematics_label.setToolTip("Lever angle (alpha), Cylinder stroke (s), Head/Rod volumes")
+        
+        for w in [self.sim_time_label, self.step_count_label, self.fps_label, 
+                  self.queue_label, self.realtime_label, self.kinematics_label]:
             self.status_bar.addPermanentWidget(w)
         self.status_bar.showMessage("Ready")
 
@@ -626,7 +632,7 @@ class MainWindow(QMainWindow):
             )
         except Exception as e:
             QMessageBox.critical(self, "Export Failed", str(e))
-            self.logger.error(f"Snapshot export failed: {e}")
+            self.logger.error(f"Snapshot export.failed: {e}")
 
     # ------------------------------------------------------------------
     # Close Event
