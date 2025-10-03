@@ -1,13 +1,19 @@
 """
 PneumoStabSim - Pneumatic Stabilizer Simulator
-Main application entry point with integrated simulation
+Main application entry point with Qt Quick 3D rendering (RHI/Direct3D)
 """
 import sys
+import os
 import logging
 from pathlib import Path
+
+# CRITICAL: Set Qt Quick RHI backend to Direct3D BEFORE importing PySide6
+# This forces Qt to use D3D11 instead of OpenGL on Windows
+os.environ.setdefault("QSG_RHI_BACKEND", "d3d11")
+os.environ.setdefault("QSG_INFO", "1")  # Print RHI backend info on startup
+
 from PySide6.QtWidgets import QApplication
 from PySide6.QtCore import qInstallMessageHandler, QtMsgType, Qt
-from PySide6.QtGui import QSurfaceFormat
 
 from src.common import init_logging, log_ui_event
 from src.ui.main_window import MainWindow
@@ -29,29 +35,6 @@ def qt_message_handler(mode, context, message):
         logger.info(message)
 
 
-def setup_opengl_format():
-    """Setup default OpenGL surface format for maximum compatibility"""
-    format = QSurfaceFormat()
-    
-    # Use OpenGL 3.3 with Compatibility Profile for better driver support
-    format.setVersion(3, 3)
-    format.setProfile(QSurfaceFormat.OpenGLContextProfile.CompatibilityProfile)
-    
-    # Buffers
-    format.setDepthBufferSize(24)
-    format.setStencilBufferSize(8)
-    format.setSamples(4)  # MSAA 4x
-    
-    # Additional settings for stability
-    format.setSwapBehavior(QSurfaceFormat.SwapBehavior.DoubleBuffer)
-    format.setSwapInterval(1)  # V-sync
-    
-    # Set as default BEFORE creating QApplication
-    QSurfaceFormat.setDefaultFormat(format)
-    
-    print(f"OpenGL format set: {format.majorVersion()}.{format.minorVersion()} {format.profile()}")
-
-
 def main():
     """Main application function"""
     # Initialize logging BEFORE QApplication (P11 requirement)
@@ -59,50 +42,49 @@ def main():
     logger.info("Application starting...")
     
     print("=== PNEUMOSTABSIM STARTING ===")
-    
-    # CRITICAL: Setup OpenGL format BEFORE QApplication
-    print("Step 1: Setting up OpenGL surface format...")
-    setup_opengl_format()
-    
-    print("Step 2: Setting High DPI policy...")
+    print("Qt Quick 3D with RHI/Direct3D backend")
+    print()
+    print("??  IMPORTANT: Look for 'rhi: backend:' line in console output")
+    print("    Should show 'D3D11' (not OpenGL)")
+    print()
     
     # Enable high DPI support (must be before QApplication)
     QApplication.setHighDpiScaleFactorRoundingPolicy(
         Qt.HighDpiScaleFactorRoundingPolicy.PassThrough
     )
     
-    print("Step 3: Creating QApplication...")
+    print("Step 1: Creating QApplication...")
     
     # Create Qt application
     app = QApplication(sys.argv)
     
-    print("Step 4: Installing Qt message handler...")
+    print("Step 2: Installing Qt message handler...")
     
     # Install Qt message handler
     qInstallMessageHandler(qt_message_handler)
     
-    print("Step 5: Setting application properties...")
+    print("Step 3: Setting application properties...")
     
     # Set application properties
     app.setApplicationName("PneumoStabSim")
-    app.setApplicationVersion("1.0.0")
+    app.setApplicationVersion("2.0.0")  # Qt Quick 3D version
     app.setOrganizationName("PneumoStabSim")
     app.setApplicationDisplayName("Pneumatic Stabilizer Simulator")
     
     log_ui_event("APP_CREATED", "Qt application initialized")
     
-    print("Step 6: Creating MainWindow...")
+    print("Step 4: Creating MainWindow...")
     
     try:
         # Create and show main window
         window = MainWindow()
         
-        print(f"Step 7: MainWindow created - Size: {window.size().width()}x{window.size().height()}")
+        print(f"Step 5: MainWindow created - Size: {window.size().width()}x{window.size().height()}")
         print(f"         Window title: {window.windowTitle()}")
         
         window.show()
         
-        print(f"Step 8: Window shown - Visible: {window.isVisible()}")
+        print(f"Step 6: Window shown - Visible: {window.isVisible()}")
         print(f"         Position: {window.pos().x()}, {window.pos().y()}")
         
         # Force window to front
@@ -112,8 +94,9 @@ def main():
         log_ui_event("WINDOW_SHOWN", "Main window displayed")
         
         print("\n" + "="*60)
-        print("APPLICATION READY - Close window to exit")
-        print("Check taskbar or press Alt+Tab if window is not visible")
+        print("APPLICATION READY - Qt Quick 3D rendering active")
+        print("Check console for 'rhi: backend: D3D11' confirmation")
+        print("Close window to exit")
         print("="*60 + "\n")
         
         # Start event loop

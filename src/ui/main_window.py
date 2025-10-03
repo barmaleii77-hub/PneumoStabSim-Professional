@@ -1,26 +1,29 @@
 """
-Main window for PneumoStabSim application (P8 UI integration)
-Adds dock panels, menus, QSettings persistence, and simulation wiring
+Main window for PneumoStabSim application
+Qt Quick 3D rendering with RHI/Direct3D backend (no OpenGL)
 """
 from PySide6.QtWidgets import (
     QMainWindow, QStatusBar, QDockWidget, QWidget, QMenuBar, QToolBar, QLabel,
     QVBoxLayout, QFileDialog, QMessageBox, QApplication, QSplitter
 )
-from PySide6.QtCore import Qt, QTimer, Slot, QSettings
+from PySide6.QtCore import Qt, QTimer, Slot, QSettings, QUrl, QFileInfo
 from PySide6.QtGui import QAction, QKeySequence
+from PySide6.QtQuick import QQuickView
 import logging
 import json
 from pathlib import Path
 from typing import Optional
 
-from .gl_view import GLView
+# NO OpenGL imports - using Qt Quick 3D instead
+# from .gl_view import GLView  # REMOVED
+
 from .charts import ChartWidget
 from .panels import GeometryPanel, PneumoPanel, ModesPanel, RoadPanel
 from ..runtime import SimulationManager, StateSnapshot
 
 
 class MainWindow(QMainWindow):
-    """Main application window with integrated simulation and P8 UI panels"""
+    """Main application window with Qt Quick 3D rendering (RHI/Direct3D)"""
     SETTINGS_ORG = "PneumoStabSim"
     SETTINGS_APP = "PneumoStabSimApp"
     SETTINGS_GEOMETRY = "MainWindow/Geometry"
@@ -30,10 +33,10 @@ class MainWindow(QMainWindow):
 
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("PneumoStabSim - Pneumatic Stabilizer Simulator")
+        self.setWindowTitle("PneumoStabSim - Qt Quick 3D (RHI/D3D)")
         self.resize(1500, 950)
         
-        # Ensure window is in normal state (not minimized/maximized)
+        # Ensure window is in normal state
         self.setWindowState(Qt.WindowState.WindowNoState)
 
         # Logging
@@ -41,10 +44,11 @@ class MainWindow(QMainWindow):
         
         print("MainWindow: Creating SimulationManager...")
         
-        # Simulation manager
+        # Simulation manager (will start AFTER window.show())
         try:
             self.simulation_manager = SimulationManager(self)
-            print("? SimulationManager created")
+            self._sim_started = False  # Flag to ensure single start
+            print("? SimulationManager created (not started yet)")
         except Exception as e:
             print(f"? SimulationManager creation failed: {e}")
             import traceback
@@ -55,21 +59,25 @@ class MainWindow(QMainWindow):
         self.current_snapshot: Optional[StateSnapshot] = None
         self.is_simulation_running = False
 
-        # Panels references
+        # Panels references (temporarily disabled)
         self.geometry_panel: Optional[GeometryPanel] = None
         self.pneumo_panel: Optional[PneumoPanel] = None
         self.modes_panel: Optional[ModesPanel] = None
         self.road_panel: Optional[RoadPanel] = None
         self.chart_widget: Optional[ChartWidget] = None
 
+        # Qt Quick 3D view reference
+        self._qquick_view: Optional[QQuickView] = None
+        self._qml_root_object = None
+
         print("MainWindow: Building UI...")
         
         # Build UI
         self._setup_central()
-        print("  ? Central widget setup")
+        print("  ? Central Qt Quick 3D view setup")
         
         self._setup_docks()
-        print("  ? Docks setup")
+        print("  ? Docks setup (panels disabled)")
         
         self._setup_menus()
         print("  ? Menus setup")
@@ -83,52 +91,100 @@ class MainWindow(QMainWindow):
         self._connect_simulation_signals()
         print("  ? Signals connected")
 
-        # Render timer (UI thread ~60 FPS)
+        # Render timer (UI thread ~60 FPS) - for QML property updates
         self.render_timer = QTimer(self)
         self.render_timer.timeout.connect(self._update_render)
         self.render_timer.start(16)
         print("  ? Render timer started")
 
-        # Start simulation infrastructure (thread, worker idle)
-        self.simulation_manager.start()
-        print("  ? Simulation manager started")
+        # DON'T start simulation manager here - will do in showEvent()
+        print("  ? Simulation manager will start after window.show()")
 
-        # Restore settings
-        self._restore_settings()
-        print("  ? Settings restored")
+        # Restore settings (SKIP restoreGeometry to avoid crashes)
+        # self._restore_settings()
+        print("  ??  Settings restore skipped (avoiding potential crashes)")
 
-        self.logger.info("Main window (P8) initialized")
+        self.logger.info("Main window (Qt Quick 3D) initialized")
         print("? MainWindow.__init__() complete")
 
     # ------------------------------------------------------------------
     # UI Construction
     # ------------------------------------------------------------------
     def _setup_central(self):
-        """Create central OpenGL + right side splitter layout"""
-        print("    _setup_central: Creating GLView...")
+        """Create central Qt Quick 3D view using QQuickView + createWindowContainer
+        
+        Preferred approach: QQuickView + createWindowContainer
+        - Better performance than QQuickWidget
+        - Proper integration with QMainWindow
+        - Native window container for Qt Quick content
+        """
+        print("    _setup_central: Creating Qt Quick 3D view...")
+        
         try:
-            self.gl_view = GLView()
-            print("    ? GLView created")
-            self.setCentralWidget(self.gl_view)
-            print("    ? GLView set as central widget")
+            # Create QQuickView for Qt Quick 3D content
+            self._qquick_view = QQuickView()
+            
+            # Set resize mode to synchronize QML root object size with view
+            self._qquick_view.setResizeMode(QQuickView.SizeRootObjectToView)
+            
+            # Load QML file with Qt Quick 3D scene
+            qml_path = Path("assets/qml/main.qml")
+            if not qml_path.exists():
+                raise FileNotFoundError(f"QML file not found: {qml_path.absolute()}")
+            
+            qml_url = QUrl.fromLocalFile(str(qml_path.absolute()))
+            print(f"    Loading QML: {qml_url.toString()}")
+            
+            self._qquick_view.setSource(qml_url)
+            
+            # Check for QML errors
+            if self._qquick_view.status() == QQuickView.Status.Error:
+                errors = self._qquick_view.errors()
+                error_msg = "\n".join(str(e) for e in errors)
+                raise RuntimeError(f"QML errors:\n{error_msg}")
+            
+            # Get root object for property access
+            self._qml_root_object = self._qquick_view.rootObject()
+            if not self._qml_root_object:
+                raise RuntimeError("Failed to get QML root object")
+            
+            print("    ? QML loaded successfully")
+            
+            # Wrap QQuickView in QWidget container
+            # This is the recommended way to embed Qt Quick in QWidget-based UI
+            container = QWidget.createWindowContainer(self._qquick_view, self)
+            container.setMinimumSize(800, 600)
+            container.setFocusPolicy(Qt.FocusPolicy.TabFocus)
+            
+            # Set as central widget
+            self.setCentralWidget(container)
+            
+            print("    ? Qt Quick 3D view embedded via createWindowContainer")
+            
         except Exception as e:
-            print(f"    ? GLView creation failed: {e}")
-            # Fallback to simple widget
-            from PySide6.QtWidgets import QLabel
-            fallback = QLabel("OpenGL View failed to initialize\nUsing fallback widget")
+            print(f"    ? Qt Quick 3D view creation failed: {e}")
+            import traceback
+            traceback.print_exc()
+            
+            # Fallback to simple label
+            fallback = QLabel(
+                "Qt Quick 3D initialization failed\n\n"
+                "Check:\n"
+                "1. PySide6-Addons installed (pip install PySide6-Addons)\n"
+                "2. QML file exists: assets/qml/main.qml\n"
+                "3. Console for detailed errors"
+            )
             fallback.setAlignment(Qt.AlignmentFlag.AlignCenter)
-            fallback.setStyleSheet("background: #252530; color: white; font-size: 16px;")
+            fallback.setStyleSheet("background: #1a1a2e; color: #ff6b6b; font-size: 14px; padding: 20px;")
             self.setCentralWidget(fallback)
-            self.gl_view = None
-            print("    ? Using fallback widget")
+            self._qquick_view = None
+            print("    ??  Using fallback widget")
 
     def _setup_docks(self):
-        """Create and place dock panels (TEMPORARY: disabled due to crashes)"""
-        print("    _setup_docks: SKIPPING panel creation (temp workaround)")
+        """Create and place dock panels (TEMPORARY: disabled to isolate Qt Quick issues)"""
+        print("    _setup_docks: Panels temporarily disabled")
         
-        # Temporarily skip panel creation - they cause crashes
-        # TODO: Fix panel initialization issues
-        
+        # TODO: Re-enable panels after confirming Qt Quick 3D works
         self.geometry_dock = None
         self.geometry_panel = None
         self.pneumo_dock = None
@@ -140,7 +196,7 @@ class MainWindow(QMainWindow):
         self.road_dock = None
         self.road_panel = None
         
-        print("    ? Panels disabled (temporary workaround)")
+        print("    ?? Panels disabled (temporary workaround)")
         
         # Connect panel signals (no-op since panels are None)
         # self._wire_panel_signals()
@@ -329,12 +385,49 @@ class MainWindow(QMainWindow):
     # ------------------------------------------------------------------
     @Slot()
     def _update_render(self):
+        """Update QML scene properties from simulation state
+        
+        NO direct rendering calls - only update QML properties via Qt meta-object system
+        """
+        if not self._qml_root_object:
+            return
+        
+        # Update simulation info in QML overlay
         if self.current_snapshot:
-            self.gl_view.set_current_state(self.current_snapshot)
+            sim_text = f"Sim: {self.current_snapshot.simulation_time:.2f}s | Step: {self.current_snapshot.step_number}"
+            self._qml_root_object.setProperty("simulationText", sim_text)
+            
+            # Update FPS display
+            if self.current_snapshot.aggregates.physics_step_time > 0:
+                fps = 1.0 / self.current_snapshot.aggregates.physics_step_time
+                fps_text = f"FPS: {fps:.0f}"
+                self._qml_root_object.setProperty("fpsText", fps_text)
+        
+        # Update queue stats in status bar
         stats = self.simulation_manager.get_queue_stats()
         self.queue_label.setText(f"Queue: {stats['get_count']}/{stats['put_count']}")
-        self.gl_view.update()
-
+    
+    # ------------------------------------------------------------------
+    # Window Events
+    # ------------------------------------------------------------------
+    def showEvent(self, event):
+        """Override showEvent to start SimulationManager AFTER window is visible
+        
+        This prevents crashes from threading issues during window creation.
+        """
+        super().showEvent(event)
+        
+        # Start simulation manager only once, after window is shown
+        if not self._sim_started:
+            print("\n?? Window shown - starting SimulationManager...")
+            try:
+                self.simulation_manager.start()
+                self._sim_started = True
+                print("? SimulationManager started successfully\n")
+            except Exception as e:
+                print(f"? Failed to start SimulationManager: {e}")
+                import traceback
+                traceback.print_exc()
     # ------------------------------------------------------------------
     # Preset Save/Load & Settings
     # ------------------------------------------------------------------
