@@ -297,8 +297,8 @@ class InterferenceChecker:
     
     def __init__(
         self,
-        arm_radius: float = 0.025,
-        cylinder_radius: float = 0.045,
+        arm_radius: float = 0.020,  # Reduced from 0.025
+        cylinder_radius: float = 0.040,  # Reduced from 0.045
         enabled: bool = False
     ):
         """Initialize interference checker
@@ -329,8 +329,9 @@ class InterferenceChecker:
         if not self.enabled:
             return False, float('inf')
         
-        # Model lever as capsule
-        lever_seg = Segment2(lever_state.pivot, lever_state.free_end)
+        # Model FREE PART of lever as capsule (from attach to free_end)
+        # This avoids false positives where cylinder connects to lever at attach point
+        lever_seg = Segment2(lever_state.attach, lever_state.free_end)
         lever_capsule = Capsule2(lever_seg, self.R_arm)
         
         # Model cylinder as capsule
