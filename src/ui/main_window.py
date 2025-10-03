@@ -181,25 +181,47 @@ class MainWindow(QMainWindow):
             print("    ??  Using fallback widget")
 
     def _setup_docks(self):
-        """Create and place dock panels (TEMPORARY: disabled to isolate Qt Quick issues)"""
-        print("    _setup_docks: Panels temporarily disabled")
+        """Create and place dock panels"""
+        print("    _setup_docks: Creating panels...")
         
-        # TODO: Re-enable panels after confirming Qt Quick 3D works
-        self.geometry_dock = None
-        self.geometry_panel = None
-        self.pneumo_dock = None
-        self.pneumo_panel = None
-        self.charts_dock = None
-        self.chart_widget = None
-        self.modes_dock = None
-        self.modes_panel = None
-        self.road_dock = None
-        self.road_panel = None
+        # Create geometry panel (left)
+        self.geometry_dock = QDockWidget("Geometry", self)
+        self.geometry_panel = GeometryPanel(self)
+        self.geometry_dock.setWidget(self.geometry_panel)
+        self.addDockWidget(Qt.DockWidgetArea.LeftDockWidgetArea, self.geometry_dock)
+        print("      ? Geometry panel created")
         
-        print("    ?? Panels disabled (temporary workaround)")
+        # Create pneumatics panel (left, below geometry)
+        self.pneumo_dock = QDockWidget("Pneumatics", self)
+        self.pneumo_panel = PneumoPanel(self)
+        self.pneumo_dock.setWidget(self.pneumo_panel)
+        self.addDockWidget(Qt.DockWidgetArea.LeftDockWidgetArea, self.pneumo_dock)
+        print("      ? Pneumatics panel created")
         
-        # Connect panel signals (no-op since panels are None)
-        # self._wire_panel_signals()
+        # Create charts panel (right)
+        self.charts_dock = QDockWidget("Charts", self)
+        self.chart_widget = ChartWidget(self)
+        self.charts_dock.setWidget(self.chart_widget)
+        self.addDockWidget(Qt.DockWidgetArea.RightDockWidgetArea, self.charts_dock)
+        print("      ? Charts panel created")
+        
+        # Create modes/simulation control panel (right, below charts)
+        self.modes_dock = QDockWidget("Simulation & Modes", self)
+        self.modes_panel = ModesPanel(self)
+        self.modes_dock.setWidget(self.modes_panel)
+        self.addDockWidget(Qt.DockWidgetArea.RightDockWidgetArea, self.modes_dock)
+        print("      ? Modes panel created")
+        
+        # Create road profiles panel (bottom)
+        self.road_dock = QDockWidget("Road Profiles", self)
+        self.road_panel = RoadPanel(self)
+        self.road_dock.setWidget(self.road_panel)
+        self.addDockWidget(Qt.DockWidgetArea.BottomDockWidgetArea, self.road_dock)
+        print("      ? Road panel created")
+        
+        # Connect panel signals
+        self._wire_panel_signals()
+        print("    ? Panels created and wired")
 
     def _wire_panel_signals(self):
         """Connect panel signals to simulation/state bus"""
@@ -282,20 +304,31 @@ class MainWindow(QMainWindow):
         reset_ui_act.triggered.connect(self._reset_ui_layout)
         params_menu.addAction(reset_ui_act)
 
-        # View menu (show/hide docks)
+        # View menu (show/hide docks) - only for non-None docks
         view_menu = menubar.addMenu("View")
         self._dock_actions = []
-        for dock, title in [
+        
+        # Only create menu items for docks that actually exist
+        available_docks = [
             (self.geometry_dock, "Geometry"),
             (self.pneumo_dock, "Pneumatics"),
             (self.charts_dock, "Charts"),
             (self.modes_dock, "Modes"),
             (self.road_dock, "Road Profiles")
-        ]:
-            act = QAction(title, self, checkable=True, checked=True)
-            act.toggled.connect(lambda checked, d=dock: d.setVisible(checked))
-            view_menu.addAction(act)
-            self._dock_actions.append(act)
+        ]
+        
+        for dock, title in available_docks:
+            if dock:  # Only add if dock exists
+                act = QAction(title, self, checkable=True, checked=True)
+                act.toggled.connect(lambda checked, d=dock: d.setVisible(checked))
+                view_menu.addAction(act)
+                self._dock_actions.append(act)
+        
+        # If no docks available, add placeholder
+        if not self._dock_actions:
+            placeholder = QAction("(Panels disabled)", self)
+            placeholder.setEnabled(False)
+            view_menu.addAction(placeholder)
 
     def _setup_toolbar(self):
         toolbar = self.addToolBar("Main")
@@ -474,8 +507,10 @@ class MainWindow(QMainWindow):
             QMessageBox.critical(self, "Load Preset Failed", str(e))
 
     def _reset_ui_layout(self):
+        """Reset UI layout (safe version - checks for None docks)"""
         for dock in [self.geometry_dock, self.pneumo_dock, self.charts_dock, self.modes_dock, self.road_dock]:
-            dock.show()
+            if dock:  # Check for None before calling methods
+                dock.show()
         self.status_bar.showMessage("UI layout reset")
 
     def _restore_settings(self):
