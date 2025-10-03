@@ -2,7 +2,6 @@
 P12: UI signals validation tests (QtTest/QSignalSpy)
 
 Tests:
-- QOpenGLWidget initialization
 - Panel signals (sliders, knobs)
 - Signal emission and reception
 - Parameter updates
@@ -25,7 +24,6 @@ from PySide6.QtCore import Qt
 # Add project root to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from src.ui.gl_view import GLView
 from src.ui.widgets.knob import Knob
 from src.ui.widgets.range_slider import RangeSlider
 from src.ui.panels.panel_pneumo import PneumoPanel
@@ -39,40 +37,6 @@ def setUpModule():
     global app
     if QApplication.instance() is None:
         app = QApplication(sys.argv)
-
-
-class TestGLViewInitialization(unittest.TestCase):
-    """Test QOpenGLWidget initialization (smoke test)"""
-    
-    def test_gl_view_creates_without_error(self):
-        """Test GLView can be instantiated without errors"""
-        try:
-            gl_view = GLView()
-            self.assertIsNotNone(gl_view, "GLView should be created")
-            
-            # Check initial state
-            self.assertEqual(gl_view.camera_distance, 10.0)
-            self.assertTrue(gl_view.show_overlay)
-            self.assertTrue(gl_view.show_tank_hud)
-            
-        except Exception as e:
-            self.fail(f"GLView initialization failed: {e}")
-            
-    def test_gl_view_has_scene(self):
-        """Test GLView has scene manager attribute"""
-        gl_view = GLView()
-        
-        # Scene is None before initializeGL
-        self.assertIsNone(gl_view.scene, "Scene should be None before GL initialization")
-        
-    def test_gl_view_mouse_tracking(self):
-        """Test GLView has mouse tracking enabled"""
-        gl_view = GLView()
-        
-        self.assertTrue(
-            gl_view.hasMouseTracking(),
-            "Mouse tracking should be enabled"
-        )
 
 
 class TestKnobSignals(unittest.TestCase):

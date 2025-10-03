@@ -22,7 +22,8 @@ from pathlib import Path
 # Add project root to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from src.physics.odes import rigid_body_3dof_ode
+# CORRECTED: Use actual function names from odes.py
+from src.physics.odes import f_rhs, RigidBody3DOF, create_initial_conditions
 from src.physics.integrator import create_default_rigid_body
 
 
