@@ -8,6 +8,9 @@ import os
 import logging
 from pathlib import Path
 
+# ========== VISUALIZATION BACKEND SWITCH ==========
+USE_QML_3D_SCHEMA = True  # True: Qt Quick 3D U-Frame, False: legacy OpenGL widget
+
 # CRITICAL: Set Qt Quick RHI backend to Direct3D BEFORE importing PySide6
 # This forces Qt to use D3D11 instead of OpenGL on Windows
 os.environ.setdefault("QSG_RHI_BACKEND", "d3d11")
@@ -60,11 +63,14 @@ def main():
     logger = init_logging("PneumoStabSim", Path("logs"))
     logger.info("Application starting...")
     
+    backend_name = "Qt Quick 3D (U-Frame PBR)" if USE_QML_3D_SCHEMA else "Legacy OpenGL"
+    
     print("=== PNEUMOSTABSIM STARTING (Russian UI) ===")
-    print("Qt Quick 3D with RHI/Direct3D backend")
+    print(f"Visualization backend: {backend_name}")
+    print("Qt Quick RHI: Direct3D 11")
     print("Custom 3D Geometry enabled")
     print()
-    print("??  IMPORTANT: Look for 'rhi: backend:' line in console output")
+    print("?? IMPORTANT: Look for 'rhi: backend:' line in console output")
     print("    Should show 'D3D11' (not OpenGL)")
     print()
     
@@ -97,11 +103,11 @@ def main():
     print("  - CustomGeometry.SphereGeometry (auto-registered)")
     print("  - CustomGeometry.CubeGeometry (auto-registered)")  
     
-    print("Step 5: Creating MainWindow...")
+    print(f"Step 5: Creating MainWindow (backend: {backend_name})...")
     
     try:
-        # Create and show main window
-        window = MainWindow()
+        # Create and show main window with 3D visualization
+        window = MainWindow(use_qml_3d=USE_QML_3D_SCHEMA)
         
         print(f"Step 6: MainWindow created - Size: {window.size().width()}x{window.size().height()}")
         print(f"         Window title: {window.windowTitle()}")
@@ -115,10 +121,16 @@ def main():
         window.raise_()
         window.activateWindow()
         
-        log_ui_event("WINDOW_SHOWN", "Main window displayed")
+        log_ui_event("WINDOW_SHOWN", f"Main window displayed ({backend_name})")
         
         print("\n" + "="*60)
-        print("APPLICATION READY - Qt Quick 3D rendering active (Russian UI)")
+        print(f"APPLICATION READY - {backend_name} active (Russian UI)")
+        if USE_QML_3D_SCHEMA:
+            print("?? U-Frame: PBR metallic red, orbit camera, auto-fit")
+            print("?? Controls: LMB-rotate, Wheel-zoom, F-autofit, R-reset, DoubleClick-fit")
+            print("?? Features: 4 corners with cylinders, levers, masses")
+        else:
+            print("??? Legacy OpenGL rendering")
         print("?? DIAGNOSTIC: Looking for QML console.log messages...")
         print("Expected: Russian labels in UI panels and 3D scene")
         print("Check console for 'rhi: backend: D3D11' confirmation")
