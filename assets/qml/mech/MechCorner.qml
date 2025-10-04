@@ -1,3 +1,4 @@
+# МОДИФИЦИРОВАННЫЙ MECHCORNER.QML - ВЕРСИЯ С ИСПРАВЛЕННОЙ ФУНКЦИЕЙ РАСПЛОЖЕНИЯ ЦИЛИНДРА ПО ОСИ
 // MechCorner.qml - Один угол подвески (рычаг + цилиндр + шарниры + масса)
 import QtQuick
 import QtQuick3D
@@ -52,49 +53,35 @@ Node {
     )
 
     // ========== ЦИЛИНДР ГЕОМЕТРИЯ ==========
-    readonly property vector3d v_CE: Qt.vector3d(
-        j_rod.x - j_tail.x,
-        j_rod.y - j_tail.y,
-        j_rod.z - j_tail.z
-    )
-    readonly property real L_pin: Math.hypot(v_CE.x, v_CE.y, v_CE.z)
-    readonly property vector3d u: Qt.vector3d(
-        v_CE.x / (L_pin || 1e-9),
-        v_CE.y / (L_pin || 1e-9),
-        v_CE.z / (L_pin || 1e-9)
-    )
+    
+            // Вспомогательные вычисления
+            readonly property vector3d v_CE: Qt.vector3d(j_rod.x - j_tail.x, j_rod.y - j_tail.y, j_rod.z - j_tail.z)
+            readonly property real lPin: Math.hypot(v_CE.x, v_CE.y, v_CE.z)
+            readonly property vector3d u: Qt.vector3d(v_CE.x / (lPin || 1e-9), v_CE.y / (lPin || 1e-9), v_CE.z / (lPin || 1e-9))
 
-    // Хвостовик: короткий патрубок C -> R
-    readonly property real L_tail: Math.min(0.15 * L_body, 0.2 * bore_d)
-    readonly property vector3d R: Qt.vector3d(
-        j_tail.x + u.x * L_tail,
-        j_tail.y + u.y * L_tail,
-        j_tail.z + u.z * L_tail
-    )
-    readonly property vector3d F: Qt.vector3d(
-        R.x + u.x * L_body,
-        R.y + u.y * L_body,
-        R.z + u.z * L_body
-    )
+            // Хвостовик: короткий патрубок C -> R
+            readonly property real lTail: Math.min(0.15 * lBody, 0.2 * bore_d)
+            readonly property vector3d rPoint: Qt.vector3d(j_tail.x + u.x * lTail, j_tail.y + u.y * lTail, j_tail.z + u.z * lTail)
+            readonly property vector3d fPoint: Qt.vector3d(rPoint.x + u.x * lBody, rPoint.y + u.y * lBody, rPoint.z + u.z * lBody)
 
-    // Текущий ход поршня (упрощённо: из геометрии pin-to-pin)
-    readonly property real x_req: Math.max(x_min, Math.min(x_max, L_pin - L_tail - s_min))
-    readonly property real x: x_req
+            // ИСПРАВЛЕННАЯ логика поршня - поршень ВНУТРИ корпуса
+            readonly property real x: lBody * 0.5  // 50% хода от задней крышки (середина)
+            readonly property vector3d pBack: Qt.vector3d(rPoint.x + u.x * x, rPoint.y + u.y * x, rPoint.z + u.z * x)
+            readonly property vector3d pFront: Qt.vector3d(pBack.x + u.x * piston_thickness, pBack.y + u.y * piston_thickness, pBack.z + u.z * piston_thickness)
 
-    // Наружный вылет штока
-    readonly property real s: s_min + (x - x_min)
-
-    // Позиции поршня
-    readonly property vector3d P_front: Qt.vector3d(
-        F.x - u.x * x,
-        F.y - u.y * x,
-        F.z - u.z * x
-    )
-    readonly property vector3d P_back: Qt.vector3d(
-        P_front.x - u.x * piston_thickness,
-        P_front.y - u.y * piston_thickness,
-        P_front.z - u.z * piston_thickness
-    )
+            // ПРОВЕРКА: центр поршня должен совпадать с центром штока
+            readonly property vector3d piston_center: Qt.vector3d((pBack.x + pFront.x) / 2, (pBack.y + pFront.y) / 2, (pBack.z + pFront.z) / 2)
+            readonly property vector3d rod_start: fPoint  // Шток начинается от передней крышки
+            
+            Component.onCompleted: {
+                console.log(`=== ${corner || "?"} CYLINDER GEOMETRY ===`)
+                console.log(`j_tail: (${j_tail.x.toFixed(0)}, ${j_tail.y.toFixed(0)}, ${j_tail.z.toFixed(0)})`)
+                console.log(`rPoint: (${rPoint.x.toFixed(0)}, ${rPoint.y.toFixed(0)}, ${rPoint.z.toFixed(0)})`)
+                console.log(`fPoint: (${fPoint.x.toFixed(0)}, ${fPoint.y.toFixed(0)}, ${fPoint.z.toFixed(0)})`)
+                console.log(`piston_center: (${piston_center.x.toFixed(0)}, ${piston_center.y.toFixed(0)}, ${piston_center.z.toFixed(0)})`)
+                console.log(`j_rod: (${j_rod.x.toFixed(0)}, ${j_rod.y.toFixed(0)}, ${j_rod.z.toFixed(0)})`)
+                console.log(`rod_length: ${Math.hypot(j_rod.x - fPoint.x, j_rod.y - fPoint.y, j_rod.z - fPoint.z).toFixed(1)}`)
+            }
 
     // ========== УТИЛИТЫ ВЫРАВНИВАНИЯ ==========
     function alignYToVector(node, v) {
@@ -150,104 +137,167 @@ Node {
         )
     }
 
-    // ========== ВИЗУАЛИЗАЦИЯ ==========
+            // Функция размещения цилиндра по оси - ИСПРАВЛЕННАЯ ВЕРСИЯ
+            function placeAlongAxis(node, A, B, radius) {
+                const v = Qt.vector3d(B.x - A.x, B.y - A.y, B.z - A.z)
+                const L = Math.hypot(v.x, v.y, v.z)
+                
+                if (L < 1e-6) {
+                    node.scale = Qt.vector3d(0.01, 0.01, 0.01)
+                    return
+                }
+                
+                // Центр цилиндра - СЕРЕДИНА между A и B
+                node.position = Qt.vector3d((A.x + B.x) / 2, (A.y + B.y) / 2, (A.z + B.z) / 2)
+                
+                // Направление от A к B (нормализованный)
+                const vn = Qt.vector3d(v.x / L, v.y / L, v.z / L)
+                
+                // Выравнивание: поворот стандартного цилиндра (ось Y) к направлению vn
+                const yaw = Math.atan2(vn.x, vn.z) * 180 / Math.PI
+                const pitch = -Math.asin(vn.y) * 180 / Math.PI
+                
+                node.eulerRotation = Qt.vector3d(pitch, yaw, 0)
+                
+                // Масштаб: диаметр в XZ, длина в Y
+                const scale_factor = 100.0
+                node.scale = Qt.vector3d(
+                    (radius * 2) / scale_factor,  // диаметр X
+                    L / scale_factor,             // длина Y
+                    (radius * 2) / scale_factor   // диаметр Z
+                )
+                
+                console.log(`placeAlongAxis: A=(${A.x.toFixed(0)},${A.y.toFixed(0)},${A.z.toFixed(0)}), B=(${B.x.toFixed(0)},${B.y.toFixed(0)},${B.z.toFixed(0)}), L=${L.toFixed(1)}`)
+            }
 
-    // Рычаг
-    Model {
-        id: lever
-        source: "#Cube"
-        materials: Materials.steel
-        Component.onCompleted: placeYBetween(lever, j_arm, lever_end, 0.5 * bore_d, 100)
-    }
+            // ===== ОТЛАДОЧНЫЕ МАРКЕРЫ =====
+            // Маркер j_arm (зелёный) - крепление рычага к раме
+            Model {
+                source: "#Sphere"
+                position: j_arm
+                scale: Qt.vector3d(0.3, 0.3, 0.3)
+                materials: PrincipledMaterial {
+                    baseColor: "#00ff00"
+                    lighting: PrincipledMaterial.NoLighting
+                }
+            }
+            
+            // Маркер j_tail (синий) - крепление цилиндра к раме
+            Model {
+                source: "#Sphere"
+                position: j_tail
+                scale: Qt.vector3d(0.3, 0.3, 0.3)
+                materials: PrincipledMaterial {
+                    baseColor: "#0000ff"
+                    lighting: PrincipledMaterial.NoLighting
+                }
+            }
+            
+            // Маркер j_rod (красный) - крепление штока к рычагу
+            Model {
+                source: "#Sphere"
+                position: j_rod
+                scale: Qt.vector3d(0.3, 0.3, 0.3)
+                materials: PrincipledMaterial {
+                    baseColor: "#ff0000"
+                    lighting: PrincipledMaterial.NoLighting
+                }
+            }
+            
+            // Маркер lever_end (жёлтый) - конец рычага (масса)
+            Model {
+                source: "#Sphere"
+                position: lever_end
+                scale: Qt.vector3d(0.3, 0.3, 0.3)
+                materials: PrincipledMaterial {
+                    baseColor: "#ffff00"
+                    lighting: PrincipledMaterial.NoLighting
+                }
+            }
 
-    // Шарнир рычага (цилиндр по Z)
-    Model {
-        source: "#Cylinder"
-        materials: Materials.steel
-        eulerRotation.x: 90
-        position: j_arm
-        scale: Qt.vector3d((bore_d * 0.6) / 100, 0.2, (bore_d * 0.6) / 100)
-    }
+            // ===== РЫЧАГ =====
+            Model {
+                id: lever
+                source: "#Cube"
+                materials: steel
+                Component.onCompleted: placeAlongAxis(lever, j_arm, lever_end, 0.3 * bore_d)
+            }
 
-    // Хвостовик цилиндра
-    Model {
-        id: tail
-        source: "#Cylinder"
-        materials: Materials.steel
-        Component.onCompleted: placeYBetween(tail, j_tail, R, 0.35 * bore_d, 100)
-    }
+            // Шарнир рычага (цилиндр по Z) - ИСПРАВЛЕН
+            Model {
+                source: "#Cylinder"
+                materials: steel
+                position: j_arm
+                scale: Qt.vector3d((bore_d * 0.6) / 100, 0.15, (bore_d * 0.6) / 100)
+                // НЕТ поворота - ось Z по умолчанию
+            }
 
-    // Корпус цилиндра (стекло, R -> F)
-    Model {
-        id: barrel
-        source: "#Cylinder"
-        materials: Materials.glass
-        Component.onCompleted: placeYBetween(barrel, R, F, 0.55 * bore_d, 100)
-    }
+            // ===== ЦИЛИНДР - ПРАВИЛЬНАЯ ГЕОМЕТРИЯ =====
+            
+            // Хвостовик (патрубок C -> R)
+            Model {
+                id: tail
+                source: "#Cylinder"
+                materials: steel
+                Component.onCompleted: placeAlongAxis(tail, j_tail, rPoint, 0.35 * bore_d)
+            }
 
-    // Крышка задняя (R)
-    Model {
-        id: capRear
-        source: "#Cylinder"
-        materials: Materials.steelThin
-        Component.onCompleted: {
-            const R1 = Qt.vector3d(R.x + u.x * 0.001, R.y + u.y * 0.001, R.z + u.z * 0.001)
-            placeYBetween(capRear, R, R1, 0.56 * bore_d, 100)
-        }
-    }
+            // Корпус цилиндра (стекло, R -> F) - ИСПРАВЛЕН
+            Model {
+                id: barrel
+                source: "#Cylinder" 
+                materials: glass
+                Component.onCompleted: placeAlongAxis(barrel, rPoint, fPoint, 0.55 * bore_d)
+            }
 
-    // Крышка передняя (F)
-    Model {
-        id: capFront
-        source: "#Cylinder"
-        materials: Materials.steelThin
-        Component.onCompleted: {
-            const F1 = Qt.vector3d(F.x + u.x * 0.001, F.y + u.y * 0.001, F.z + u.z * 0.001)
-            placeYBetween(capFront, F, F1, 0.56 * bore_d, 100)
-        }
-    }
+            // Крышка задняя (R) - цилиндр по Z
+            Model {
+                source: "#Cylinder"
+                materials: steelThin
+                position: rPoint
+                scale: Qt.vector3d((bore_d * 0.56) / 100, 0.05, (bore_d * 0.56) / 100)
+                // НЕТ поворота - плоская крышка
+            }
 
-    // Поршень (диск с толщиной)
-    Model {
-        id: piston
-        source: "#Cylinder"
-        materials: Materials.steel
-        Component.onCompleted: placeYBetween(piston, P_back, P_front, 0.54 * bore_d, 100)
-    }
+            // Крышка передняя (F) - цилиндр по Z  
+            Model {
+                source: "#Cylinder"
+                materials: steelThin
+                position: fPoint
+                scale: Qt.vector3d((bore_d * 0.56) / 100, 0.05, (bore_d * 0.56) / 100)
+                // НЕТ поворота - плоская крышка
+            }
 
-    // Шток (видимая часть F -> E)
-    Model {
-        id: rod
-        source: "#Cylinder"
-        materials: Materials.chrome
-        Component.onCompleted: placeYBetween(rod, F, j_rod, 0.5 * rod_d, 100)
-    }
+            // Поршень (диск с толщиной) - ИСПРАВЛЕН
+            Model {
+                id: piston
+                source: "#Cylinder"
+                materials: steel
+                Component.onCompleted: placeAlongAxis(piston, pBack, pFront, 0.54 * bore_d)
+            }
 
-    // Шарнир хвостовика (C)
-    Model {
-        source: "#Cylinder"
-        materials: Materials.steel
-        eulerRotation.x: 90
-        position: j_tail
-        scale: Qt.vector3d((bore_d * 0.6) / 100, 0.2, (bore_d * 0.6) / 100)
-    }
+            // Шток (видимая часть F -> E) - ИСПРАВЛЕН
+            Model {
+                id: rod
+                source: "#Cylinder"
+                materials: chrome
+                Component.onCompleted: placeAlongAxis(rod, fPoint, j_rod, 0.5 * rod_d)
+            }
 
-    // Шарнир штока (E)
-    Model {
-        source: "#Cylinder"
-        materials: Materials.steel
-        eulerRotation.x: 90
-        position: j_rod
-        scale: Qt.vector3d((bore_d * 0.5) / 100, 0.2, (bore_d * 0.5) / 100)
-    }
+            // Шарнир хвостовика (C) - цилиндр по Z
+            Model {
+                source: "#Cylinder"
+                materials: steel
+                position: j_tail
+                scale: Qt.vector3d((bore_d * 0.6) / 100, 0.15, (bore_d * 0.6) / 100)
+                // НЕТ поворота - ось Z
+            }
 
-    // Масса (сфера ? ?m)
-    Model {
-        source: "#Sphere"
-        position: lever_end
-        scale: Qt.vector3d(1, 1, 1).times(
-            Math.max(0.05, 0.12 * Math.sqrt(Math.max(mass_unsprung, 0)))
-        )
-        materials: Materials.massSphere
-    }
-}
+            // Шарнир штока (E) - цилиндр по Z
+            Model {
+                source: "#Cylinder"
+                materials: steel
+                position: j_rod
+                scale: Qt.vector3d((bore_d * 0.5) / 100, 0.15, (bore_d * 0.5) / 100)
+                // НЕТ поворота - ось Z
+            }
