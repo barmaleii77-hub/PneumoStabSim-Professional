@@ -660,5 +660,3 @@ class PneumoPanel(QWidget):
         self.pneumatic_updated.emit(self.parameters.copy())
         
         print(f"🔧 PneumoPanel: Geometry parameter '{param_name}' changed to {value}")
-    
-    @Slot()

@@ -359,13 +359,17 @@ class MainWindow(QMainWindow):
         # Geometry updates -> (placeholder: just log / future: emit structured config)
         if self.geometry_panel:
             self.geometry_panel.parameter_changed.connect(
-                lambda name, val: self.logger.info(f"Geometry param {name}={val}"))
+                lambda name, val: [
+                    self.logger.info(f"Geometry param {name}={val}"),
+                    print(f"🔧 GeometryPanel signal: {name}={val}")
+                ])
 
         # Pneumatic panel -> send thermo mode and master isolation + GEOMETRY CHANGES
         if self.pneumo_panel:
             self.pneumo_panel.mode_changed.connect(self._on_mode_changed)
             self.pneumo_panel.parameter_changed.connect(self._on_pneumo_param)
             self.pneumo_panel.geometry_changed.connect(self._on_geometry_changed)  # NEW
+            print("✅ PneumoPanel geometry_changed signal connected")
 
         # Modes panel -> simulation control + modes
         if self.modes_panel:
@@ -633,21 +637,73 @@ class MainWindow(QMainWindow):
         # Update QML scene directly if available
         elif self._qml_root_object:
             try:
-                # Call QML updateGeometry function
-                self._qml_root_object.call("updateGeometry", [geometry_params])
-                self.status_bar.showMessage("Geometry updated in QML scene")
+                # 🔧 ИСПРАВЛЕНО: Используем QMetaObject.invokeMethod вместо call()
+                from PySide6.QtCore import QMetaObject, Qt
+                success = QMetaObject.invokeMethod(
+                    self._qml_root_object, 
+                    "updateGeometry",
+                    Qt.ConnectionType.DirectConnection,
+                    geometry_params
+                )
+                
+                if success:
+                    self.status_bar.showMessage("Geometry updated in QML scene")
+                    print(f"✅ QML updateGeometry called successfully: {geometry_params}")
+                else:
+                    print(f"❌ QML updateGeometry call failed")
+                    
             except Exception as e:
                 self.logger.warning(f"QML geometry update failed: {e}")
+                print(f"❌ QML updateGeometry exception: {e}")
                 
                 # Fallback: set individual properties
                 try:
+                    print(f"🔧 Fallback: Setting individual QML properties...")
                     for param, value in geometry_params.items():
-                        qml_property = f"user{param[0].upper()}{param[1:]}"  # frameLength -> userFrameLength
+                        # Map parameter names to QML property names
+                        if param == 'frameLength':
+                            qml_property = 'frameLength'
+                        elif param == 'frameHeight':
+                            qml_property = 'frameHeight'
+                        elif param == 'frameBeamSize':
+                            qml_property = 'beamSize'
+                        elif param == 'leverLength':
+                            qml_property = 'leverLength'
+                        elif param == 'cylinderBodyLength':
+                            qml_property = 'fl_cylinderBodyLength'  # Will also need fr_, rl_, rr_
+                        elif param == 'tailRodLength':
+                            qml_property = 'fl_tailRodLength'  # Will also need fr_, rl_, rr_
+                        else:
+                            qml_property = param
+                        
                         self._qml_root_object.setProperty(qml_property, value)
+                        print(f"   ✅ Set {qml_property} = {value}")
+                        
+                        # For cylinder parameters, set all corners
+                        if param == 'cylinderBodyLength':
+                            for corner in ['fr', 'rl', 'rr']:
+                                corner_prop = f'{corner}_cylinderBodyLength'
+                                self._qml_root_object.setProperty(corner_prop, value)
+                                print(f"   ✅ Set {corner_prop} = {value}")
+                                
+                        elif param == 'tailRodLength':
+                            for corner in ['fr', 'rl', 'rr']:
+                                corner_prop = f'{corner}_tailRodLength'
+                                self._qml_root_object.setProperty(corner_prop, value)
+                                print(f"   ✅ Set {corner_prop} = {value}")
+                                
+                        elif param == 'leverLength':
+                            for corner in ['fl', 'fr', 'rl', 'rr']:
+                                corner_prop = f'{corner}_leverLength'
+                                self._qml_root_object.setProperty(corner_prop, value)
+                                print(f"   ✅ Set {corner_prop} = {value}")
                     
                     self.status_bar.showMessage("Geometry properties updated")
+                    print(f"✅ QML properties set successfully")
+                    
                 except Exception as e2:
                     self.logger.error(f"Property update also failed: {e2}")
+                    print(f"❌ QML property update failed: {e2}")
 
     # ------------------------------------------------------------------
     # Rendering Update
