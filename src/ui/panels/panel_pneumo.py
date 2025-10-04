@@ -29,6 +29,7 @@ class PneumoPanel(QWidget):
     parameter_changed = Signal(str, float)  # parameter_name, new_value
     mode_changed = Signal(str, str)         # mode_type, new_mode
     pneumatic_updated = Signal(dict)        # Complete pneumatic config
+    geometry_changed = Signal(dict)         # Geometry parameters changed
     
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -74,6 +75,10 @@ class PneumoPanel(QWidget):
         # Environment group
         environment_group = self._create_environment_group()
         layout.addWidget(environment_group)
+        
+        # Geometry parameters group (NEW - for suspension dimensions)
+        geometry_group = self._create_geometry_group()
+        layout.addWidget(geometry_group)
         
         # System options group
         options_group = self._create_options_group()
@@ -243,6 +248,68 @@ class PneumoPanel(QWidget):
         
         return group
     
+    def _create_geometry_group(self) -> QGroupBox:
+        """Create geometry parameters configuration group"""
+        group = QGroupBox("Suspension Geometry")
+        layout = QVBoxLayout(group)
+        layout.setSpacing(8)
+        
+        # Frame dimensions row
+        frame_layout = QHBoxLayout()
+        frame_layout.setSpacing(12)
+        
+        # Frame length
+        self.frame_length_knob = Knob(
+            minimum=1000.0, maximum=3000.0, value=2000.0, step=50.0,
+            decimals=0, units="mm", title="Frame Length"
+        )
+        frame_layout.addWidget(self.frame_length_knob)
+        
+        # Frame height
+        self.frame_height_knob = Knob(
+            minimum=400.0, maximum=800.0, value=650.0, step=10.0,
+            decimals=0, units="mm", title="Frame Height"
+        )
+        frame_layout.addWidget(self.frame_height_knob)
+        
+        # Frame beam size
+        self.frame_beam_size_knob = Knob(
+            minimum=80.0, maximum=200.0, value=120.0, step=5.0,
+            decimals=0, units="mm", title="Beam Size"
+        )
+        frame_layout.addWidget(self.frame_beam_size_knob)
+        
+        layout.addLayout(frame_layout)
+        
+        # Suspension components row
+        suspension_layout = QHBoxLayout()
+        suspension_layout.setSpacing(12)
+        
+        # Lever length
+        self.lever_length_knob = Knob(
+            minimum=200.0, maximum=500.0, value=315.0, step=5.0,
+            decimals=0, units="mm", title="Lever Length"
+        )
+        suspension_layout.addWidget(self.lever_length_knob)
+        
+        # Cylinder body length
+        self.cylinder_length_knob = Knob(
+            minimum=150.0, maximum=400.0, value=250.0, step=10.0,
+            decimals=0, units="mm", title="Cylinder Length"
+        )
+        suspension_layout.addWidget(self.cylinder_length_knob)
+        
+        # Tail rod length
+        self.tail_rod_length_knob = Knob(
+            minimum=50.0, maximum=200.0, value=100.0, step=5.0,
+            decimals=0, units="mm", title="Tail Rod Length"
+        )
+        suspension_layout.addWidget(self.tail_rod_length_knob)
+        
+        layout.addLayout(suspension_layout)
+        
+        return group
+    
     def _create_options_group(self) -> QGroupBox:
         """Create system options group"""
         group = QGroupBox("System Options")
@@ -302,7 +369,15 @@ class PneumoPanel(QWidget):
             
             # Options
             'master_isolation_open': False,
-            'link_rod_dia': False
+            'link_rod_dia': False,
+            
+            # Geometry parameters (NEW)
+            'frame_length': 2000.0,        # mm
+            'frame_height': 650.0,         # mm
+            'frame_beam_size': 120.0,      # mm
+            'lever_length': 315.0,         # mm
+            'cylinder_length': 250.0,      # mm
+            'tail_rod_length': 100.0       # mm
         }
         
         self.parameters.update(defaults)
@@ -343,6 +418,20 @@ class PneumoPanel(QWidget):
             lambda checked: self._on_parameter_changed('master_isolation_open', checked))
         self.link_rod_dia_check.toggled.connect(
             lambda checked: self._on_parameter_changed('link_rod_dia', checked))
+        
+        # Geometry knobs (NEW)
+        self.frame_length_knob.valueChanged.connect(
+            lambda v: self._on_geometry_changed('frame_length', v))
+        self.frame_height_knob.valueChanged.connect(
+            lambda v: self._on_geometry_changed('frame_height', v))
+        self.frame_beam_size_knob.valueChanged.connect(
+            lambda v: self._on_geometry_changed('frame_beam_size', v))
+        self.lever_length_knob.valueChanged.connect(
+            lambda v: self._on_geometry_changed('lever_length', v))
+        self.cylinder_length_knob.valueChanged.connect(
+            lambda v: self._on_geometry_changed('cylinder_length', v))
+        self.tail_rod_length_knob.valueChanged.connect(
+            lambda v: self._on_geometry_changed('tail_rod_length', v))
     
     @Slot(str, float)
     def _on_parameter_changed(self, param_name: str, value):
@@ -421,6 +510,14 @@ class PneumoPanel(QWidget):
         self.isothermal_radio.setChecked(True)
         self.master_isolation_check.setChecked(False)
         self.link_rod_dia_check.setChecked(False)
+        
+        # Reset geometry knobs (NEW)
+        self.frame_length_knob.setValue(self.parameters['frame_length'])
+        self.frame_height_knob.setValue(self.parameters['frame_height'])
+        self.frame_beam_size_knob.setValue(self.parameters['frame_beam_size'])
+        self.lever_length_knob.setValue(self.parameters['lever_length'])
+        self.cylinder_length_knob.setValue(self.parameters['cylinder_length'])
+        self.tail_rod_length_knob.setValue(self.parameters['tail_rod_length'])
         
         # Emit update
         self.pneumatic_updated.emit(self.parameters.copy())
@@ -519,3 +616,49 @@ class PneumoPanel(QWidget):
         
         if 'link_rod_dia' in params:
             self.link_rod_dia_check.setChecked(params['link_rod_dia'])
+        
+        # Update geometry knobs (NEW)
+        if 'frame_length' in params:
+            self.frame_length_knob.setValue(params['frame_length'])
+        if 'frame_height' in params:
+            self.frame_height_knob.setValue(params['frame_height'])
+        if 'frame_beam_size' in params:
+            self.frame_beam_size_knob.setValue(params['frame_beam_size'])
+        if 'lever_length' in params:
+            self.lever_length_knob.setValue(params['lever_length'])
+        if 'cylinder_length' in params:
+            self.cylinder_length_knob.setValue(params['cylinder_length'])
+        if 'tail_rod_length' in params:
+            self.tail_rod_length_knob.setValue(params['tail_rod_length'])
+    
+    @Slot(str, float)
+    def _on_geometry_changed(self, param_name: str, value: float):
+        """Handle geometry parameter change
+        
+        Args:
+            param_name: Name of changed geometry parameter
+            value: New value
+        """
+        # Store new value
+        self.parameters[param_name] = value
+        
+        # Extract geometry parameters
+        geometry_params = {
+            'frameLength': self.parameters.get('frame_length', 2000.0),
+            'frameHeight': self.parameters.get('frame_height', 650.0),
+            'frameBeamSize': self.parameters.get('frame_beam_size', 120.0),
+            'leverLength': self.parameters.get('lever_length', 315.0),
+            'cylinderBodyLength': self.parameters.get('cylinder_length', 250.0),
+            'tailRodLength': self.parameters.get('tail_rod_length', 100.0)
+        }
+        
+        # Emit geometry change signal
+        self.geometry_changed.emit(geometry_params)
+        
+        # Also emit general parameter change
+        self.parameter_changed.emit(param_name, value)
+        self.pneumatic_updated.emit(self.parameters.copy())
+        
+        print(f"🔧 PneumoPanel: Geometry parameter '{param_name}' changed to {value}")
+    
+    @Slot()
