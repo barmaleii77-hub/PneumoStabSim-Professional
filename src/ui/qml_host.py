@@ -49,26 +49,22 @@ class SuspensionSceneHost(QQuickWidget):
         for corner_key in ['fl', 'fr', 'rl', 'rr']:
             corner_data = all_corners[corner_key]
             
-            # Convert to QML property names
+            # Convert to QML property names (use correct keys from geometry_bridge)
             self._params.update({
                 f'{corner_key}_j_arm': corner_data['j_arm'],
-                f'{corner_key}_armLength': corner_data['armLength'],
-                f'{corner_key}_armAngleDeg': corner_data['armAngleDeg'],
-                f'{corner_key}_attachFrac': corner_data['attachFrac'],
+                f'{corner_key}_leverLength': corner_data['leverLength'],  # ? Correct key
+                f'{corner_key}_leverAngle': corner_data['leverAngle'],   # ? New key
+                f'{corner_key}_totalAngle': corner_data['totalAngle'],   # ? New key
+                f'{corner_key}_baseAngle': corner_data['baseAngle'],     # ? New key
                 f'{corner_key}_j_tail': corner_data['j_tail'],
                 f'{corner_key}_j_rod': corner_data['j_rod'],
-                f'{corner_key}_j_cylinder_end': corner_data.get('j_cylinder_end', corner_data['j_rod']),
-                f'{corner_key}_j_piston': corner_data.get('j_piston', corner_data['j_rod']),
-                f'{corner_key}_cylinder_length': corner_data.get('cylinder_length', corner_data['L_body']),
-                f'{corner_key}_rod_extension': corner_data.get('rod_extension', 0.0),
-                f'{corner_key}_bore_d': corner_data['bore_d'],
-                f'{corner_key}_rod_d': corner_data['rod_d'],
-                f'{corner_key}_L_body': corner_data['L_body'],
-                f'{corner_key}_piston_thickness': corner_data['piston_thickness'],
-                f'{corner_key}_dead_bo_vol': corner_data['dead_bo_vol'],
-                f'{corner_key}_dead_sh_vol': corner_data['dead_sh_vol'],
-                f'{corner_key}_s_min': corner_data['s_min'],
-                f'{corner_key}_mass_unsprung': corner_data['mass_unsprung'],
+                f'{corner_key}_cylinderBodyLength': corner_data['cylinderBodyLength'],  # ? Correct key
+                f'{corner_key}_tailRodLength': corner_data['tailRodLength'],           # ? Correct key
+                
+                # Additional properties for compatibility
+                f'{corner_key}_corner': corner_data['corner'],
+                f'{corner_key}_side': corner_data['side'],
+                f'{corner_key}_position': corner_data['position'],
             })
         
         print(f"? Loaded coordinates from geometry_bridge:")
@@ -113,20 +109,44 @@ class SuspensionSceneHost(QQuickWidget):
         """Apply all parameters to QML root object"""
         root = self.rootObject()
         if not root:
-            print("? WARNING: QML root object is None!")
+            print("?? WARNING: QML root object is None!")
             return
         
         applied_count = 0
+        failed_count = 0
+        
+        print(f"?? Applying {len(self._params)} parameters to QML:")
+        
         for key, value in self._params.items():
             try:
                 root.setProperty(key, value)
                 applied_count += 1
-                if key in ['fl_j_arm', 'fr_j_arm']:  # Debug key coordinates
-                    print(f"   Set {key} = {value}")
+                
+                # Debug key coordinates and lever lengths
+                if key in ['fl_j_arm', 'fr_j_arm', 'fl_leverLength', 'fr_leverLength']:
+                    print(f"   ? Set {key} = {value}")
+                elif 'cylinderBodyLength' in key or 'tailRodLength' in key:
+                    print(f"   ?? Set {key} = {value}")
+                    
             except Exception as e:
-                print(f"? Failed to set {key}: {e}")
+                print(f"   ? Failed to set {key} = {value}: {e}")
+                failed_count += 1
                 
         print(f"? Applied {applied_count}/{len(self._params)} parameters to QML")
+        if failed_count > 0:
+            print(f"? Failed to apply {failed_count} parameters")
+        
+        # Debug: Try to read some values back
+        print(f"?? Reading back some key values:")
+        try:
+            beamSize = root.property("beamSize") 
+            frameLength = root.property("frameLength")
+            fl_leverLength = root.property("fl_leverLength")
+            print(f"   beamSize: {beamSize}")
+            print(f"   frameLength: {frameLength}")
+            print(f"   fl_leverLength: {fl_leverLength}")
+        except Exception as e:
+            print(f"   ? Failed to read back values: {e}")
     
     def update_corner(self, corner: str, **kwargs):
         """Update parameters for specific corner (FL/FR/RL/RR)
