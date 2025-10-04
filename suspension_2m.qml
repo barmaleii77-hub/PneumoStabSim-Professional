@@ -1,3 +1,4 @@
+
 import QtQuick
 import QtQuick3D
 
@@ -205,6 +206,10 @@ View3D {
             scale: Qt.vector3d(1.08, 0.2, 1.08)  // Diameter 90% of cylinder, thickness 20mm
             eulerRotation: Qt.vector3d(0, 0, Math.atan2(cylDirection.y, cylDirection.x) * 180 / Math.PI + 90)
             materials: PrincipledMaterial { baseColor: "#ff0066"; metalness: 0.9; roughness: 0.1 }  // BRIGHT MAGENTA
+            
+            Component.onCompleted: {
+                console.log("PISTON DEBUG - Angle:", leverAngle, "Ratio:", pistonRatio)
+            }
         }
         
         // METAL ROD (from piston to j_rod) - NORMAL THICKNESS
@@ -320,13 +325,20 @@ View3D {
     }
 
     Component.onCompleted: {
-        console.log("=== FULLY CORRECTED 2-METER SUSPENSION IN MAIN SCENE ===")
+        console.log("=== FULLY CORRECTED 2-METER SUSPENSION ===")
         console.log("FIXES APPLIED:")
         console.log("Round joints: scale(X=Y, Z=length)")
         console.log("Moving pistons: animated with rod extension")
         console.log("Steel rods: metalness=0.95 (not rubber)")
         console.log("Correct lever angles: from animation (not static 180deg)")
         console.log("Complete functional code")
+        console.log("=== DEBUG VALUES ===")
+        console.log("FL angle:", fl_angle)
+        console.log("FR angle:", fr_angle)
+        console.log("FL j_rod pos:", fl_j_rod.x, fl_j_rod.y, fl_j_rod.z)
+        console.log("FR j_rod pos:", fr_j_rod.x, fl_j_rod.y, fl_j_rod.z)
+        console.log("Animation time:", animationTime)
+        console.log("Lever length:", leverLength)
         view3d.forceActiveFocus()
     }
 }

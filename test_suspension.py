@@ -29,6 +29,9 @@ class TestWindow(QMainWindow):
         print("Creating SuspensionSceneHost...")
         self.scene = SuspensionSceneHost(self)
         
+        # Coordinates will be set automatically from geometry_bridge.py
+        print("? Using coordinates from geometry_bridge.py")
+        
         # Set as central widget
         self.setCentralWidget(self.scene)
         

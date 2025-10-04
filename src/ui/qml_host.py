@@ -2,11 +2,16 @@
 """
 QML Host for full suspension 3D visualization
 Embeds UFrameScene.qml with all 4 corners (FL/FR/RL/RR) into PySide6 application
+Uses geometry_bridge.py for correct coordinate calculation
 """
 from pathlib import Path
 from PySide6.QtCore import QUrl, QObject, Signal, Slot
-from PySide6.QtGui import QVector3D  # »—œ–¿¬À≈ÕŒ: QVector3D ‚ QtGui, ÌÂ QtCore!
+from PySide6.QtGui import QVector3D
 from PySide6.QtQuickWidgets import QQuickWidget
+
+# Import geometry bridge for correct coordinate calculation
+from ..core.geometry import GeometryParams
+from .geometry_bridge import GeometryTo3DConverter
 
 
 class SuspensionSceneHost(QQuickWidget):
@@ -18,77 +23,58 @@ class SuspensionSceneHost(QQuickWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
         
-        # Scene parameters (defaults)
+        # Create geometry converter with 2-meter dimensions
+        geometry_params = GeometryParams()
+        geometry_params.lever_length = 0.45  # 450mm
+        geometry_params.cylinder_inner_diameter = 0.085  # 85mm  
+        geometry_params.rod_diameter = 0.032  # 32mm
+        geometry_params.cylinder_body_length = 0.25  # 250mm
+        geometry_params.piston_thickness = 0.02  # 20mm
+        
+        self.geometry_converter = GeometryTo3DConverter(geometry_params)
+        
+        # Get calculated coordinates for all corners
+        all_corners = self.geometry_converter.get_all_corners_3d()
+        frame_params = self.geometry_converter.get_frame_params()
+        
+        # Build parameters dictionary from geometry_bridge calculations
         self._params = {
-            # Frame
-            'beamSize': 100.0,
-            'frameHeight': 600.0,
-            'frameLength': 2000.0,
-            
-            # FL - Front Left
-            'fl_j_arm': QVector3D(-800, 100, -1600),
-            'fl_armLength': 500.0,
-            'fl_armAngleDeg': 0.0,
-            'fl_attachFrac': 0.7,
-            'fl_j_tail': QVector3D(-500, 200, -1400),
-            'fl_j_rod': QVector3D(-750, 150, -1500),
-            'fl_bore_d': 80.0,
-            'fl_rod_d': 40.0,
-            'fl_L_body': 300.0,
-            'fl_piston_thickness': 20.0,
-            'fl_dead_bo_vol': 0.0001,
-            'fl_dead_sh_vol': 0.0001,
-            'fl_s_min': 50.0,
-            'fl_mass_unsprung': 50.0,
-            
-            # FR - Front Right (mirror FL ÔÓ X)
-            'fr_j_arm': QVector3D(800, 100, -1600),
-            'fr_armLength': 500.0,
-            'fr_armAngleDeg': 0.0,
-            'fr_attachFrac': 0.7,
-            'fr_j_tail': QVector3D(500, 200, -1400),
-            'fr_j_rod': QVector3D(750, 150, -1500),
-            'fr_bore_d': 80.0,
-            'fr_rod_d': 40.0,
-            'fr_L_body': 300.0,
-            'fr_piston_thickness': 20.0,
-            'fr_dead_bo_vol': 0.0001,
-            'fr_dead_sh_vol': 0.0001,
-            'fr_s_min': 50.0,
-            'fr_mass_unsprung': 50.0,
-            
-            # RL - Rear Left
-            'rl_j_arm': QVector3D(-800, 100, 1600),
-            'rl_armLength': 500.0,
-            'rl_armAngleDeg': 0.0,
-            'rl_attachFrac': 0.7,
-            'rl_j_tail': QVector3D(-500, 200, 1400),
-            'rl_j_rod': QVector3D(-750, 150, 1500),
-            'rl_bore_d': 80.0,
-            'rl_rod_d': 40.0,
-            'rl_L_body': 300.0,
-            'rl_piston_thickness': 20.0,
-            'rl_dead_bo_vol': 0.0001,
-            'rl_dead_sh_vol': 0.0001,
-            'rl_s_min': 50.0,
-            'rl_mass_unsprung': 50.0,
-            
-            # RR - Rear Right (mirror RL ÔÓ X)
-            'rr_j_arm': QVector3D(800, 100, 1600),
-            'rr_armLength': 500.0,
-            'rr_armAngleDeg': 0.0,
-            'rr_attachFrac': 0.7,
-            'rr_j_tail': QVector3D(500, 200, 1400),
-            'rr_j_rod': QVector3D(750, 150, 1500),
-            'rr_bore_d': 80.0,
-            'rr_rod_d': 40.0,
-            'rr_L_body': 300.0,
-            'rr_piston_thickness': 20.0,
-            'rr_dead_bo_vol': 0.0001,
-            'rr_dead_sh_vol': 0.0001,
-            'rr_s_min': 50.0,
-            'rr_mass_unsprung': 50.0,
+            # Frame (from geometry_bridge)
+            'beamSize': frame_params['beamSize'],
+            'frameHeight': frame_params['frameHeight'], 
+            'frameLength': frame_params['frameLength'],
         }
+        
+        # Add all corner parameters from geometry_bridge
+        for corner_key in ['fl', 'fr', 'rl', 'rr']:
+            corner_data = all_corners[corner_key]
+            
+            # Convert to QML property names
+            self._params.update({
+                f'{corner_key}_j_arm': corner_data['j_arm'],
+                f'{corner_key}_armLength': corner_data['armLength'],
+                f'{corner_key}_armAngleDeg': corner_data['armAngleDeg'],
+                f'{corner_key}_attachFrac': corner_data['attachFrac'],
+                f'{corner_key}_j_tail': corner_data['j_tail'],
+                f'{corner_key}_j_rod': corner_data['j_rod'],
+                f'{corner_key}_j_cylinder_end': corner_data.get('j_cylinder_end', corner_data['j_rod']),
+                f'{corner_key}_j_piston': corner_data.get('j_piston', corner_data['j_rod']),
+                f'{corner_key}_cylinder_length': corner_data.get('cylinder_length', corner_data['L_body']),
+                f'{corner_key}_rod_extension': corner_data.get('rod_extension', 0.0),
+                f'{corner_key}_bore_d': corner_data['bore_d'],
+                f'{corner_key}_rod_d': corner_data['rod_d'],
+                f'{corner_key}_L_body': corner_data['L_body'],
+                f'{corner_key}_piston_thickness': corner_data['piston_thickness'],
+                f'{corner_key}_dead_bo_vol': corner_data['dead_bo_vol'],
+                f'{corner_key}_dead_sh_vol': corner_data['dead_sh_vol'],
+                f'{corner_key}_s_min': corner_data['s_min'],
+                f'{corner_key}_mass_unsprung': corner_data['mass_unsprung'],
+            })
+        
+        print(f"? Loaded coordinates from geometry_bridge:")
+        print(f"   Frame: {frame_params}")
+        print(f"   FL j_arm: {all_corners['fl']['j_arm']}")
+        print(f"   FR j_arm: {all_corners['fr']['j_arm']}")
         
         # Setup QML
         self.setResizeMode(QQuickWidget.SizeRootObjectToView)
@@ -109,20 +95,38 @@ class SuspensionSceneHost(QQuickWidget):
         
         print(f"? UFrameScene.qml loaded, status: {self.status()}")
         
-        # Expose properties to QML
-        self._apply_all_parameters()
+        # Wait for QML to be fully ready, then apply parameters
+        if self.status() == QQuickWidget.Status.Ready:
+            self._apply_all_parameters()
+        else:
+            # Use a timer to apply parameters when ready
+            from PySide6.QtCore import QTimer
+            def delayed_apply():
+                if self.status() == QQuickWidget.Status.Ready:
+                    self._apply_all_parameters()
+                else:
+                    print("?? QML still not ready, retrying...")
+                    QTimer.singleShot(100, delayed_apply)
+            QTimer.singleShot(50, delayed_apply)
     
     def _apply_all_parameters(self):
         """Apply all parameters to QML root object"""
         root = self.rootObject()
         if not root:
-            print("?? WARNING: QML root object is None!")
+            print("? WARNING: QML root object is None!")
             return
         
+        applied_count = 0
         for key, value in self._params.items():
-            root.setProperty(key, value)
-        
-        print(f"? All {len(self._params)} parameters set in QML")
+            try:
+                root.setProperty(key, value)
+                applied_count += 1
+                if key in ['fl_j_arm', 'fr_j_arm']:  # Debug key coordinates
+                    print(f"   Set {key} = {value}")
+            except Exception as e:
+                print(f"? Failed to set {key}: {e}")
+                
+        print(f"? Applied {applied_count}/{len(self._params)} parameters to QML")
     
     def update_corner(self, corner: str, **kwargs):
         """Update parameters for specific corner (FL/FR/RL/RR)

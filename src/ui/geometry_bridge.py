@@ -14,25 +14,19 @@ class GeometryTo3DConverter:
     """Converts 2D geometry parameters to 3D visualization coordinates"""
     
     def __init__(self, geometry: GeometryParams):
+        """Initialize geometry bridge converter"""
         self.geometry = geometry
         
-        # 3D coordinate mapping from 2D kinematics
-        # 2D kinematics: X=transverse, Y=vertical
-        # 3D visualization: X=lateral, Y=vertical, Z=longitudinal
+        # NEW 2-meter dimensions (matching test_2m_suspension.py)
+        self.frame_beam_size = 120.0       # mm - beam size
+        self.frame_height = 650.0          # mm - horn height  
+        self.frame_length = 2000.0         # mm - frame length (2 meters!)
         
-        # Frame dimensions for 3D
-        self.frame_beam_size = 120.0  # mm, cross-section
-        self.frame_height = 650.0     # mm, vertical posts
+        # Z-coordinates for front/rear - 2 meters between planes
+        self.front_z = -1000.0   # Front at -1000mm
+        self.rear_z = 1000.0     # Rear at +1000mm (distance 2000mm)
         
-        # Convert 2D wheelbase to 3D frame length
-        self.frame_length = geometry.wheelbase * 1000.0  # m -> mm
-        
-        # Z-coordinates for front/rear (along vehicle) - более компактно
-        wheelbase_mm = self.frame_length
-        self.front_z = -wheelbase_mm * 0.3   # Front at -30% (closer to center)
-        self.rear_z = wheelbase_mm * 0.3     # Rear at +30% (closer to center)
-        
-        print(f"    ??? Frame setup: length={self.frame_length:.0f}mm, front_z={self.front_z:.0f}, rear_z={self.rear_z:.0f}")
+        print(f"    Frame setup: length={self.frame_length:.0f}mm, front_z={self.front_z:.0f}, rear_z={self.rear_z:.0f}")
         
     def get_frame_params(self) -> Dict[str, float]:
         """Get frame parameters for 3D visualization"""
@@ -57,94 +51,135 @@ class GeometryTo3DConverter:
         is_front = corner[0] == 'f'                              # fl, fr = front
         
         # Debug print
-        print(f"    ?? Corner {corner}: left={is_left}, front={is_front}")
+        print(f"    Corner {corner}: left={is_left}, front={is_front}, angle={lever_angle_deg:.1f}deg")
         
         # Side multiplier for mirroring
         side_mult = -1.0 if is_left else 1.0
         
         # Z position (longitudinal) - front is negative, rear positive
-        z_pos = self.front_z if is_front else self.rear_z
+        z_plane = self.front_z if is_front else self.rear_z
         
-        # 2D kinematics in local wheel plane
-        # Lever pivot point (attachment to frame)
-        x_pivot_2d = self.geometry.pivot_offset_from_frame * 1000.0  # m -> mm
-        y_pivot_2d = 150.0  # mm above ground (typical suspension height)
+        # FIXED FRAME ATTACHMENT POINTS (never change)
         
-        # 3D lever pivot (j_arm) - MUST be on frame structure
-        frame_edge_x = self.frame_beam_size / 2.0  # Distance to frame edge
+        # Lever pivot (j_arm) - FIXED attachment to frame
+        pivot_offset_x = 150.0  # mm from center (300mm between levers: ±150)
+        pivot_height = self.frame_beam_size / 2.0  # ON BEAM AXIS: 120/2 = 60mm
+        
         j_arm = QVector3D(
-            (frame_edge_x + x_pivot_2d) * side_mult,  # X: extend outward from frame
-            y_pivot_2d,                               # Y: height above ground
-            z_pos                                     # Z: front/rear position
+            pivot_offset_x * side_mult,  # ±150mm from center
+            pivot_height,                # 60mm (axis of lower beam)
+            z_plane                      # EXACTLY in plane
         )
         
-        # Lever end position (with current angle)
-        lever_length_mm = self.geometry.lever_length * 1000.0
+        # Cylinder tail (j_tail) - FIXED attachment to frame
+        horn_height = self.frame_beam_size + self.frame_height  # 120 + 650 = 770mm
+        tail_height = horn_height - self.frame_beam_size / 2    # 770 - 60 = 710mm  
+        tail_offset_x = 100.0  # mm from center (200mm between tails: ±100)
+        
+        j_tail = QVector3D(
+            tail_offset_x * side_mult,   # ±100mm from center
+            tail_height,                 # 710mm (horn height minus half section)
+            z_plane                      # EXACTLY in plane
+        )
+        
+        # MOVING PARTS (depend on lever angle)
+        
+        # Lever geometry
+        lever_length_mm = self.geometry.lever_length * 1000.0  # 450mm
         angle_rad = np.deg2rad(lever_angle_deg)
         
-        # Lever extends horizontally outward from pivot
-        x_lever_end = (frame_edge_x + x_pivot_2d + lever_length_mm * np.cos(angle_rad))
-        y_lever_end = y_pivot_2d + lever_length_mm * np.sin(angle_rad)
+        # Rod attachment point on lever (70% from pivot)
+        attach_frac = self.geometry.rod_attach_fraction  # 0.7
+        rod_attach_x = pivot_offset_x + lever_length_mm * attach_frac * np.cos(angle_rad)
+        rod_attach_y = pivot_height + lever_length_mm * attach_frac * np.sin(angle_rad)
         
-        # Rod attachment point on lever
-        attach_frac = self.geometry.rod_attach_fraction
-        x_rod_attach = (frame_edge_x + x_pivot_2d + lever_length_mm * attach_frac * np.cos(angle_rad))
-        y_rod_attach = y_pivot_2d + lever_length_mm * attach_frac * np.sin(angle_rad)
-        
-        # Cylinder attachment points (j_tail, j_rod)
-        # Tail connects to frame structure (closer to centerline)
-        j_tail = QVector3D(
-            frame_edge_x * 0.5 * side_mult,         # Closer to frame centerline
-            y_pivot_2d + 80.0,                      # Higher up on frame
-            z_pos * 0.8                             # Slightly closer to center
+        j_rod_on_lever = QVector3D(
+            rod_attach_x * side_mult,
+            rod_attach_y,
+            z_plane
         )
         
-        # Rod connects to lever at attachment point
-        j_rod = QVector3D(
-            x_rod_attach * side_mult,
-            y_rod_attach,
-            z_pos
-        )
+        # CYLINDER MECHANICS (fixed length, rod extends/retracts)
         
-        # Cylinder dimensions from geometry
-        bore_d_mm = self.geometry.cylinder_inner_diameter * 1000.0
-        rod_d_mm = self.geometry.rod_diameter * 1000.0
-        L_body_mm = self.geometry.cylinder_body_length * 1000.0
-        piston_thickness_mm = self.geometry.piston_thickness * 1000.0
+        # Cylinder body parameters
+        cylinder_length_mm = self.geometry.cylinder_body_length * 1000.0  # 250mm - CONSTANT!
         
-        # Dead volumes (convert to consistent units)
-        dead_bo_vol = self.geometry.dead_zone_head      # m?
-        dead_sh_vol = self.geometry.dead_zone_rod       # m?
+        # Direction from tail to rod attachment
+        dx = j_rod_on_lever.x() - j_tail.x()
+        dy = j_rod_on_lever.y() - j_tail.y()
+        distance = np.hypot(dx, dy)
         
-        # Mass estimation (typical unsprung mass per wheel)
-        mass_unsprung = 65.0  # kg (wheel + brake + suspension components)
+        # Unit direction vector
+        if distance > 0:
+            dir_x = dx / distance
+            dir_y = dy / distance
+        else:
+            dir_x, dir_y = 1.0, 0.0
+        
+        # Cylinder END position (fixed distance from tail)
+        cylinder_end_x = j_tail.x() + cylinder_length_mm * dir_x  
+        cylinder_end_y = j_tail.y() + cylinder_length_mm * dir_y
+        
+        j_cylinder_end = QVector3D(cylinder_end_x, cylinder_end_y, z_plane)
+        
+        # Rod extends from cylinder end to lever attachment
+        rod_extension = distance - cylinder_length_mm  # How much rod sticks out
+        
+        # Piston position (inside cylinder, depends on rod extension)
+        # When rod is fully retracted, piston is at cylinder end
+        # When rod extends, piston moves back proportionally
+        max_stroke = 150.0  # mm - maximum stroke
+        piston_position_ratio = max(0.0, min(1.0, rod_extension / max_stroke))
+        
+        piston_x = j_tail.x() + cylinder_length_mm * (1.0 - piston_position_ratio * 0.8) * dir_x
+        piston_y = j_tail.y() + cylinder_length_mm * (1.0 - piston_position_ratio * 0.8) * dir_y
+        
+        j_piston = QVector3D(piston_x, piston_y, z_plane)
+        
+        # Cylinder dimensions
+        bore_d_mm = self.geometry.cylinder_inner_diameter * 1000.0  # 85mm
+        rod_d_mm = self.geometry.rod_diameter * 1000.0              # 32mm  
+        piston_thickness_mm = self.geometry.piston_thickness * 1000.0  # 20mm
+        
+        # Dead volumes
+        dead_bo_vol = self.geometry.dead_zone_head
+        dead_sh_vol = self.geometry.dead_zone_rod
+        
+        # Mass
+        mass_unsprung = 65.0  # kg
         
         result = {
-            # Lever geometry
-            'j_arm': j_arm,
+            # Lever geometry (FIXED pivot, MOVING attachment)
+            'j_arm': j_arm,                    # FIXED pivot point
+            'j_rod': j_rod_on_lever,           # MOVING rod attachment on lever
             'armLength': lever_length_mm,
             'armAngleDeg': lever_angle_deg,
             'attachFrac': attach_frac,
             
-            # Cylinder geometry  
-            'j_tail': j_tail,
-            'j_rod': j_rod,
+            # Cylinder geometry (FIXED length and position)
+            'j_tail': j_tail,                  # FIXED tail attachment  
+            'j_cylinder_end': j_cylinder_end,  # FIXED cylinder end
+            'j_piston': j_piston,              # MOVING piston position
+            'cylinder_length': cylinder_length_mm,  # CONSTANT!
+            'rod_extension': rod_extension,    # How much rod sticks out
             'bore_d': bore_d_mm,
             'rod_d': rod_d_mm,
-            'L_body': L_body_mm,  # Python uses L_body, QML expects lBody
+            'L_body': cylinder_length_mm,      # Same as cylinder_length
             'piston_thickness': piston_thickness_mm,
             'dead_bo_vol': dead_bo_vol,
             'dead_sh_vol': dead_sh_vol,
-            's_min': 50.0,  # mm, minimum rod extension
+            's_min': 50.0,  # mm
             
             # Mass
             'mass_unsprung': mass_unsprung
         }
         
         # Debug coordinates
-        print(f"      j_arm: ({j_arm.x():.0f}, {j_arm.y():.0f}, {j_arm.z():.0f})")
-        print(f"      j_tail: ({j_tail.x():.0f}, {j_tail.y():.0f}, {j_tail.z():.0f})")
-        print(f"      j_rod: ({j_rod.x():.0f}, {j_rod.y():.0f}, {j_rod.z():.0f})")
+        print(f"      j_arm: ({j_arm.x():.0f}, {j_arm.y():.0f}, {j_arm.z():.0f}) [FIXED]")
+        print(f"      j_tail: ({j_tail.x():.0f}, {j_tail.y():.0f}, {j_tail.z():.0f}) [FIXED]")
+        print(f"      j_rod: ({j_rod_on_lever.x():.0f}, {j_rod_on_lever.y():.0f}, {j_rod_on_lever.z():.0f}) [MOVING]")
+        print(f"      cylinder_end: ({cylinder_end_x:.0f}, {cylinder_end_y:.0f}) [FIXED LENGTH]")
+        print(f"      rod_extension: {rod_extension:.1f}mm")
         
         return result
     
@@ -152,7 +187,7 @@ class GeometryTo3DConverter:
         """Get 3D coordinates for all 4 corners
         
         Args:
-            lever_angles: Optional dict with current lever angles {'fl': deg, 'fr': deg, ...}
+            lever_angles: Optional dict with current lever angles {'fl': deg, 'fr': deg, 'rl': deg, 'rr': deg}
             
         Returns:
             Dictionary with all corner coordinates

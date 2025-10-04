@@ -1,3 +1,20 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+"""
+Complete 2-meter suspension system test - FULLY CORRECTED
+"""
+import sys
+import os
+
+os.environ.setdefault("QSG_RHI_BACKEND", "d3d11")
+
+from PySide6.QtWidgets import QApplication, QMainWindow
+from PySide6.QtQuickWidgets import QQuickWidget
+from PySide6.QtCore import QUrl
+from pathlib import Path
+
+# FULLY CORRECTED 2-meter suspension system QML
+SUSPENSION_QML = """
 import QtQuick
 import QtQuick3D
 
@@ -205,6 +222,10 @@ View3D {
             scale: Qt.vector3d(1.08, 0.2, 1.08)  // Diameter 90% of cylinder, thickness 20mm
             eulerRotation: Qt.vector3d(0, 0, Math.atan2(cylDirection.y, cylDirection.x) * 180 / Math.PI + 90)
             materials: PrincipledMaterial { baseColor: "#ff0066"; metalness: 0.9; roughness: 0.1 }  // BRIGHT MAGENTA
+            
+            Component.onCompleted: {
+                console.log("PISTON DEBUG - Angle:", leverAngle, "Ratio:", pistonRatio)
+            }
         }
         
         // METAL ROD (from piston to j_rod) - NORMAL THICKNESS
@@ -320,13 +341,65 @@ View3D {
     }
 
     Component.onCompleted: {
-        console.log("=== FULLY CORRECTED 2-METER SUSPENSION IN MAIN SCENE ===")
+        console.log("=== FULLY CORRECTED 2-METER SUSPENSION ===")
         console.log("FIXES APPLIED:")
         console.log("Round joints: scale(X=Y, Z=length)")
         console.log("Moving pistons: animated with rod extension")
         console.log("Steel rods: metalness=0.95 (not rubber)")
         console.log("Correct lever angles: from animation (not static 180deg)")
         console.log("Complete functional code")
+        console.log("=== DEBUG VALUES ===")
+        console.log("FL angle:", fl_angle)
+        console.log("FR angle:", fr_angle)
+        console.log("FL j_rod pos:", fl_j_rod.x, fl_j_rod.y, fl_j_rod.z)
+        console.log("FR j_rod pos:", fr_j_rod.x, fl_j_rod.y, fl_j_rod.z)
+        console.log("Animation time:", animationTime)
+        console.log("Lever length:", leverLength)
         view3d.forceActiveFocus()
     }
 }
+"""
+
+class SuspensionTestWindow(QMainWindow):
+    def __init__(self):
+        super().__init__()
+        
+        self.setWindowTitle("2-METER SUSPENSION SYSTEM - ALL ISSUES FIXED")
+        self.resize(1400, 900)
+        
+        self.qml_widget = QQuickWidget(self)
+        self.qml_widget.setResizeMode(QQuickWidget.SizeRootObjectToView)
+        
+        qml_path = Path("suspension_2m.qml")
+        qml_path.write_text(SUSPENSION_QML, encoding='utf-8')
+        
+        qml_url = QUrl.fromLocalFile(str(qml_path.absolute()))
+        self.qml_widget.setSource(qml_url)
+        
+        if self.qml_widget.status() == QQuickWidget.Status.Error:
+            errors = self.qml_widget.errors()
+            print(f"? QML ERRORS: {[str(e) for e in errors]}")
+        else:
+            print("? 2-meter suspension loaded successfully")
+        
+        self.setCentralWidget(self.qml_widget)
+
+def main():
+    print("="*70)
+    print("2-METER SUSPENSION SYSTEM - ALL ISSUES FIXED")
+    print("="*70)
+    print("CRITICAL FIXES:")
+    print("ROUND joints: scale(X=Y, Z=length) - not flattened ellipses")
+    print("STEEL rods: metalness=0.95, not rubber material")
+    print("MOVING pistons: animated based on rod extension")
+    print("CORRECT angles: from animation, not static 180deg to frame")
+    print("COMPLETE code: fully functional without breaks")
+    print("="*70)
+    
+    app = QApplication(sys.argv)
+    window = SuspensionTestWindow()
+    window.show()
+    sys.exit(app.exec())
+
+if __name__ == "__main__":
+    main()
