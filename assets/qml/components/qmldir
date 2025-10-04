@@ -1,0 +1,2 @@
+// qmldir для компонентов
+singleton Materials 1.0 Materials.qml

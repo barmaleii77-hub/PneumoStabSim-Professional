@@ -12,7 +12,7 @@ from PySide6.QtQuickWidgets import QQuickWidget  # ? ��������: �
 import logging
 import json
 from pathlib import Path
-from typing import Optional
+from typing import Optional, Dict
 
 # NO OpenGL imports - using Qt Quick 3D instead
 from .charts import ChartWidget
@@ -29,9 +29,14 @@ class MainWindow(QMainWindow):
     SETTINGS_DOCK = "MainWindow/Docks"
     SETTINGS_LAST_PRESET = "Presets/LastPath"
 
-    def __init__(self):
+    def __init__(self, use_qml_3d: bool = True):
         super().__init__()
-        self.setWindowTitle("PneumoStabSim - Qt Quick 3D (RHI/D3D)")
+        
+        # Store visualization backend choice
+        self.use_qml_3d = use_qml_3d
+        
+        backend_name = "Qt Quick 3D (U-Frame PBR)" if use_qml_3d else "Legacy OpenGL"
+        self.setWindowTitle(f"PneumoStabSim - {backend_name}")
         
         # Set reasonable initial size (not too large)
         self.resize(1200, 800)
@@ -114,31 +119,106 @@ class MainWindow(QMainWindow):
     # UI Construction
     # ------------------------------------------------------------------
     def _setup_central(self):
-        """Create central Qt Quick 3D view using QQuickWidget
+        """Create central visualization view (QML 3D or legacy OpenGL)"""
+        print(f"    _setup_central: Creating visualization ({self.use_qml_3d and 'QML 3D' or 'legacy'})...")
         
-        QQuickWidget approach (instead of QQuickView + createWindowContainer):
-        - Better integration with QWidget-based layouts
-        - More reliable rendering in complex UI
-        - Direct QWidget subclass (easier to use)
-        
-        Trade-off: Slightly higher overhead than QQuickView, but MORE RELIABLE
-        """
-        print("    _setup_central: Creating Qt Quick 3D view...")
+        if self.use_qml_3d:
+            self._setup_qml_3d_view()
+        else:
+            self._setup_legacy_opengl_view()
+
+    def _setup_qml_3d_view(self):
+        """Setup Qt Quick 3D full suspension scene"""
+        try:
+            from .qml_host import SuspensionSceneHost
+            print("    ✅ SuspensionSceneHost imported")
+        except Exception as e:
+            print(f"    ❌ Failed to import SuspensionSceneHost: {e}")
+            raise
         
         try:
-            # Create QQuickWidget for Qt Quick 3D content
+            from .geometry_bridge import create_geometry_converter
+            print("    ✅ geometry_bridge imported")
+        except Exception as e:
+            print(f"    ❌ Failed to import geometry_bridge: {e}")
+            print("    ⚠️  Using fallback without real geometry")
+            # Fallback: create scene without geometry bridge
+            self._qquick_widget = SuspensionSceneHost(self)
+            self.setCentralWidget(self._qquick_widget)
+            self._qml_root_object = self._qquick_widget.rootObject()
+            print("    ✅ Qt Quick 3D scene loaded with DEFAULT geometry")
+            return
+
+        # Create QML host widget with full suspension scene
+        self._qquick_widget = SuspensionSceneHost(self)
+        
+        print("    🎯 Setting up geometry from core geometry system...")
+        
+        # Create geometry converter from core parameters
+        self._geometry_converter = create_geometry_converter(
+            wheelbase=2.6,          # m (realistic track width)
+            lever_length=0.45,     # m (realistic suspension arm)
+            cylinder_diameter=0.085 # m (85mm bore)
+        )
+        
+        print(f"    📏 Geometry: wheelbase={2.6}m, lever={0.45}m, bore={85}mm")
+        
+        # Get real geometry coordinates
+        geometry_data = self._geometry_converter.update_from_simulation({
+            'fl_angle': 0.0,   # Level position
+            'fr_angle': 0.0,   
+            'rl_angle': 0.0,
+            'rr_angle': 0.0
+        })
+        
+        # Update frame with real dimensions
+        frame_params = geometry_data['frame']
+        self._qquick_widget.update_frame(**frame_params)
+        print(f"    🔧 Frame: {frame_params['frameLength']:.0f}mm length, {frame_params['frameHeight']:.0f}mm height")
+        
+        # Update all corners with real coordinates
+        for corner in ['fl', 'fr', 'rl', 'rr']:
+            if corner in geometry_data:
+                corner_params = geometry_data[corner]
+                self._qquick_widget.update_corner(corner, **corner_params)
+                
+                # Log key coordinates for verification
+                j_arm = corner_params['j_arm']
+                j_tail = corner_params['j_tail'] 
+                j_rod = corner_params['j_rod']
+                print(f"    📍 {corner.upper()}: arm=({j_arm.x():.0f},{j_arm.y():.0f},{j_arm.z():.0f})")
+                print(f"           tail=({j_tail.x():.0f},{j_tail.y():.0f},{j_tail.z():.0f})")
+                print(f"           rod=({j_rod.x():.0f},{j_rod.y():.0f},{j_rod.z():.0f})")
+        
+        # Set as central widget
+        self.setCentralWidget(self._qquick_widget)
+        
+        # Store reference for updates
+        self._qml_root_object = self._qquick_widget.rootObject()
+        
+        print("    ✅ Qt Quick 3D suspension scene loaded with REAL GEOMETRY")
+        print("    🎨 Features: U-frame + 4 corners based on GeometryParams")
+        print("    🔧 Materials: PBR steel, chrome, glass, with shadows")
+        print("    📹 Camera: Orbit around frame center, F=auto-fit, R=reset")
+        
+    def _setup_legacy_opengl_view(self):
+        """Setup legacy OpenGL widget (existing main.qml scene)"""
+        print("    _setup_legacy_opengl_view: Loading legacy QML...")
+        
+        try:
+            # Create QQuickWidget for legacy Qt Quick 3D content
             self._qquick_widget = QQuickWidget(self)
             
             # CRITICAL: Set resize mode BEFORE loading source
             self._qquick_widget.setResizeMode(QQuickWidget.ResizeMode.SizeRootObjectToView)
             
-            # Load QML file with Qt Quick 3D scene
+            # Load legacy QML file
             qml_path = Path("assets/qml/main.qml")
             if not qml_path.exists():
                 raise FileNotFoundError(f"QML file not found: {qml_path.absolute()}")
             
             qml_url = QUrl.fromLocalFile(str(qml_path.absolute()))
-            print(f"    Loading QML: {qml_url.toString()}")
+            print(f"    Loading legacy QML: {qml_url.toString()}")
             
             self._qquick_widget.setSource(qml_url)
             
@@ -153,19 +233,15 @@ class MainWindow(QMainWindow):
             if not self._qml_root_object:
                 raise RuntimeError("Failed to get QML root object")
             
-            print("    ? QML loaded successfully")
+            print("    ✅ Legacy QML loaded successfully")
             
-            # Do NOT set minimum size - let SizeRootObjectToView handle resizing
-            # This prevents conflicts with dock panels and white strips
-            # REMOVED: self._qquick_widget.setMinimumSize(800, 600)
-            
-            # Set as central widget (QQuickWidget IS a QWidget, no container needed!)
+            # Set as central widget
             self.setCentralWidget(self._qquick_widget)
             
-            print("    ? Qt Quick 3D view set as central widget (QQuickWidget)")
+            print("    ✅ Legacy Qt Quick 3D view set as central widget")
             
         except Exception as e:
-            print(f"    ? Qt Quick 3D view creation failed: {e}")
+            print(f"    ❌ Legacy Qt Quick 3D view creation failed: {e}")
             import traceback
             traceback.print_exc()
             
@@ -181,7 +257,7 @@ class MainWindow(QMainWindow):
             fallback.setStyleSheet("background: #1a1a2e; color: #ff6b6b; font-size: 14px; padding: 20px;")
             self.setCentralWidget(fallback)
             self._qquick_widget = None
-            print("    ??  Using fallback widget")
+            print("    ⚠️  Using fallback widget")
 
     def _setup_docks(self):
         """Create and place dock panels with proper layout"""
@@ -766,3 +842,57 @@ class MainWindow(QMainWindow):
         self.simulation_manager.stop()
         event.accept()
         self.logger.info("Main window closed")
+    
+    def update_3d_scene(self, geometry_data=None, simulation_data=None):
+        """Update 3D scene with real geometry and simulation data
+        
+        Args:
+            geometry_data: Dictionary with frame and corner geometry (optional)
+            simulation_data: Dictionary with current simulation state (angles, positions)
+        """
+        if not hasattr(self, '_qquick_widget') or self._qquick_widget is None:
+            return  # 3D scene not available
+        
+        if not hasattr(self, '_geometry_converter') or self._geometry_converter is None:
+            return  # Geometry converter not available
+        
+        try:
+            # Update from simulation data if provided
+            if simulation_data:
+                # Convert simulation state to 3D coordinates
+                geometry_3d = self._geometry_converter.update_from_simulation(simulation_data)
+                
+                # Update frame if changed
+                if 'frame' in geometry_3d:
+                    frame_params = geometry_3d['frame']
+                    self._qquick_widget.update_frame(**frame_params)
+                
+                # Update all corners with new positions/angles
+                for corner in ['fl', 'fr', 'rl', 'rr']:
+                    if corner in geometry_3d:
+                        corner_params = geometry_3d[corner]
+                        self._qquick_widget.update_corner(corner, **corner_params)
+            
+            # Update with direct geometry data (overrides simulation)
+            if geometry_data:
+                if 'frame' in geometry_data:
+                    self._qquick_widget.update_frame(**geometry_data['frame'])
+                
+                for corner in ['fl', 'fr', 'rl', 'rr']:
+                    if corner in geometry_data:
+                        self._qquick_widget.update_corner(corner, **geometry_data[corner])
+                
+                # Auto-fit camera after major geometry change
+                self._qquick_widget.auto_fit()
+                
+        except Exception as e:
+            print(f"⚠️ Error updating 3D scene: {e}")
+    
+    def update_lever_angles(self, angles: Dict[str, float]):
+        """Update suspension lever angles from simulation
+        
+        Args:
+            angles: Dictionary with lever angles in degrees {'fl': deg, 'fr': deg, ...}
+        """
+        simulation_data = {'lever_angles': angles}
+        self.update_3d_scene(simulation_data=simulation_data)

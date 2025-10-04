@@ -104,16 +104,31 @@ Item {
             }
         }
 
-        // === РЫЧАГ ПОДВЕСКИ (ТЕСТ) ===
+        // === РЫЧАГ ПОДВЕСКИ С ПРАВИЛЬНЫМИ ШАРНИРАМИ ===
         Node {
             id: suspensionArm
             // Точка крепления на раме (передний левый угол)
             position: Qt.vector3d(-400, view3d.beamSize, view3d.beamSize/2)
             
-            // Поворот рычага вокруг точки крепления
+            // Поворот рычага вокруг точки крепления (вокруг оси Z)
             eulerRotation: Qt.vector3d(0, 0, root.suspensionAngle)
             
-            // Рычаг (балка)
+            // === ШАРНИР РЫЧАГА (ось совпадает с осью вращения Z) ===
+            Model {
+                source: "#Cylinder"
+                position: Qt.vector3d(0, 0, 0)
+                scale: Qt.vector3d(0.8, 0.8, 1.2)  
+                // ВАЖНО: Цилиндр уже направлен по оси Z (по умолчанию), 
+                // что совпадает с осью вращения рычага
+                eulerRotation: Qt.vector3d(0, 0, 0)  // По оси Z
+                materials: PrincipledMaterial { 
+                    baseColor: "#ffff00"  // Жёлтый шарнир рычага
+                    metalness: 0.9
+                    roughness: 0.1 
+                }
+            }
+            
+            // === РЫЧАГ (основная балка) ===
             Model {
                 source: "#Cube"
                 position: Qt.vector3d(-200, -100, 0)  // Рычаг направлен вниз и в сторону
@@ -125,28 +140,17 @@ Item {
                 }
             }
             
-            // Шарнир (точка крепления)
-            Model {
-                source: "#Sphere"
-                position: Qt.vector3d(0, 0, 0)
-                scale: Qt.vector3d(0.5, 0.5, 0.5)
-                materials: PrincipledMaterial { 
-                    baseColor: "#ffff00"  // Жёлтый шарнир
-                    metalness: 0.9
-                    roughness: 0.1 
-                }
-            }
-            
-            // Колесо на конце рычага
+            // === ШАРНИР ШТОКА (также по оси Z) ===
             Model {
                 source: "#Cylinder"
                 position: Qt.vector3d(-400, -200, 0)  // На конце рычага
-                scale: Qt.vector3d(1.2, 0.4, 1.2)     // Плоский цилиндр = колесо
-                eulerRotation: Qt.vector3d(90, 0, 0)  // Поворот для колеса
+                scale: Qt.vector3d(0.6, 0.6, 1.0)     // Меньше шарнира рычага
+                // ВАЖНО: Шарнир штока тоже по оси Z для согласованности
+                eulerRotation: Qt.vector3d(0, 0, 0)   // По оси Z
                 materials: PrincipledMaterial { 
-                    baseColor: "#333333"  // Чёрное колесо
-                    metalness: 0.1
-                    roughness: 0.8 
+                    baseColor: "#00ff00"  // Зелёный шарнир штока
+                    metalness: 0.9
+                    roughness: 0.1 
                 }
             }
         }
@@ -319,21 +323,22 @@ Item {
         anchors.top: parent.top
         anchors.left: parent.left
         anchors.margins: 15
-        width: 380; height: 112
+        width: 420; height: 132
         color: "#aa000000"; border.color: "#60ffffff"; radius: 6
 
         Column {
             anchors.centerIn: parent; spacing: 4
-            Text { text: "ПневмоСтабСим | U-рама + Подвеска"; color: "#ffffff"; font.pixelSize: 14; font.bold: true }
-            Text { text: "?? Анимированный рычаг подвески добавлен"; color: "#ffaa00"; font.pixelSize: 12 }
-            Text { text: "ЛКМ — вращение, ПКМ — панорамирование, колесо — зум"; color: "#cccccc"; font.pixelSize: 11 }
-            Text { text: "R — сброс | Пробел — пауза анимации | Ctrl — быстрее"; color: "#cccccc"; font.pixelSize: 10 }
+            Text { text: "ПневмоСтабСим | Правильные Оси Шарниров"; color: "#ffffff"; font.pixelSize: 14; font.bold: true }
+            Text { text: "?? Оси цилиндров совпадают с осью вращения Z"; color: "#ffaa00"; font.pixelSize: 12 }
+            Text { text: "?? Жёлтый шарнир рычага | ?? Зелёный шарнир штока"; color: "#cccccc"; font.pixelSize: 11 }
+            Text { text: "ЛКМ — вращение, ПКМ — панорамирование, колесо — зум"; color: "#cccccc"; font.pixelSize: 10 }
+            Text { text: "R — сброс | Пробел — пауза анимации | Ctrl — быстрее"; color: "#cccccc"; font.pixelSize: 9 }
         }
     }
 
     Component.onCompleted: {
         // стартовая позиция по геометрии
         resetView()
-        console.log("ПневмоСтабСим 3D сцена загружена с рычагом подвески")
+        console.log("ПневмоСтабСим 3D: Шарниры с правильной ориентацией по оси Z")
     }
 }
