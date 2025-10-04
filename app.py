@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """
 PneumoStabSim - Pneumatic Stabilizer Simulator
 Main application entry point with Qt Quick 3D rendering (RHI/Direct3D)
@@ -59,7 +60,7 @@ def main():
     logger = init_logging("PneumoStabSim", Path("logs"))
     logger.info("Application starting...")
     
-    print("=== PNEUMOSTABSIM STARTING ===")
+    print("=== PNEUMOSTABSIM STARTING (Russian UI) ===")
     print("Qt Quick 3D with RHI/Direct3D backend")
     print("Custom 3D Geometry enabled")
     print()
@@ -84,11 +85,11 @@ def main():
     
     print("Step 3: Setting application properties...")
     
-    # Set application properties
+    # Set application properties - using ASCII-safe names
     app.setApplicationName("PneumoStabSim")
     app.setApplicationVersion("2.0.0")  # Qt Quick 3D version
     app.setOrganizationName("PneumoStabSim")
-    app.setApplicationDisplayName("Pneumatic Stabilizer Simulator")
+    app.setApplicationDisplayName("Pneumatic Stabilizer Simulator (Russian UI)")
     
     log_ui_event("APP_CREATED", "Qt application initialized")
     
@@ -117,10 +118,9 @@ def main():
         log_ui_event("WINDOW_SHOWN", "Main window displayed")
         
         print("\n" + "="*60)
-        print("APPLICATION READY - Qt Quick 3D rendering active")
+        print("APPLICATION READY - Qt Quick 3D rendering active (Russian UI)")
         print("?? DIAGNOSTIC: Looking for QML console.log messages...")
-        print("Expected: 'Custom sphere created' and 'Geometry: ...'")
-        print("If missing, custom geometry not instantiated!")
+        print("Expected: Russian labels in UI panels and 3D scene")
         print("Check console for 'rhi: backend: D3D11' confirmation")
         print("Close window to exit")
         print("="*60 + "\n")
