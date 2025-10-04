@@ -361,10 +361,11 @@ class MainWindow(QMainWindow):
             self.geometry_panel.parameter_changed.connect(
                 lambda name, val: self.logger.info(f"Geometry param {name}={val}"))
 
-        # Pneumatic panel -> send thermo mode and master isolation
+        # Pneumatic panel -> send thermo mode and master isolation + GEOMETRY CHANGES
         if self.pneumo_panel:
             self.pneumo_panel.mode_changed.connect(self._on_mode_changed)
             self.pneumo_panel.parameter_changed.connect(self._on_pneumo_param)
+            self.pneumo_panel.geometry_changed.connect(self._on_geometry_changed)  # NEW
 
         # Modes panel -> simulation control + modes
         if self.modes_panel:
@@ -588,6 +589,65 @@ class MainWindow(QMainWindow):
         elif name == 'cv_atmo_dp':
             pass  # TODO integrate into gas network
         # Additional pneumatic parameters could be forwarded here
+    
+    def _on_geometry_changed(self, geometry_params: dict):
+        """Handle geometry parameter changes from UI panels
+        
+        Args:
+            geometry_params: Dictionary with geometry parameters from UI
+        """
+        self.logger.info(f"Geometry changed: {geometry_params}")
+        
+        # Update geometry converter if available
+        if hasattr(self, '_geometry_converter') and self._geometry_converter:
+            try:
+                # Update user parameters in geometry converter
+                self._geometry_converter.update_user_parameters({
+                    'frameLength': geometry_params.get('frameLength', 2000.0),
+                    'frameHeight': geometry_params.get('frameHeight', 650.0),
+                    'frameBeamSize': geometry_params.get('frameBeamSize', 120.0),
+                    'leverLength': geometry_params.get('leverLength', 315.0),
+                    'cylinderBodyLength': geometry_params.get('cylinderBodyLength', 250.0),
+                    'tailRodLength': geometry_params.get('tailRodLength', 100.0)
+                })
+                
+                # Update 3D scene with new geometry
+                current_angles = {
+                    'fl': 0.0, 'fr': 0.0, 'rl': 0.0, 'rr': 0.0
+                }
+                
+                # Use current simulation angles if available
+                if self.current_snapshot:
+                    # TODO: Extract actual lever angles from snapshot
+                    pass
+                
+                # Update 3D scene
+                self.update_3d_scene(simulation_data={'lever_angles': current_angles})
+                
+                self.status_bar.showMessage(f"Geometry updated: {geometry_params}")
+                
+            except Exception as e:
+                self.logger.error(f"Failed to update geometry: {e}")
+                self.status_bar.showMessage(f"Geometry update failed: {e}")
+        
+        # Update QML scene directly if available
+        elif self._qml_root_object:
+            try:
+                # Call QML updateGeometry function
+                self._qml_root_object.call("updateGeometry", [geometry_params])
+                self.status_bar.showMessage("Geometry updated in QML scene")
+            except Exception as e:
+                self.logger.warning(f"QML geometry update failed: {e}")
+                
+                # Fallback: set individual properties
+                try:
+                    for param, value in geometry_params.items():
+                        qml_property = f"user{param[0].upper()}{param[1:]}"  # frameLength -> userFrameLength
+                        self._qml_root_object.setProperty(qml_property, value)
+                    
+                    self.status_bar.showMessage("Geometry properties updated")
+                except Exception as e2:
+                    self.logger.error(f"Property update also failed: {e2}")
 
     # ------------------------------------------------------------------
     # Rendering Update
