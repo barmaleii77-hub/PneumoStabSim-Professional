@@ -1,4 +1,5 @@
-﻿"""
+﻿# -*- coding: utf-8 -*-
+"""
 Geometry configuration panel - РУССКИЙ ИНТЕРФЕЙС
 Controls for vehicle geometry parameters with dependency management
 Панель конфигурации геометрии с управлением зависимостями
@@ -435,8 +436,7 @@ class GeometryPanel(QWidget):
                     'options': [
                         ('Уменьшить диаметр штока', 'rod_diameter', min_bore * 0.7),
                         ('Увеличить диаметры цилиндров', 'bore_head', rod_diameter / 0.7),
-                    ],
-                    'changed_param': param_name
+                    ]
                 }
         
         return None
