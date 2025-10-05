@@ -1,0 +1,19 @@
+======================================================================
+COMPREHENSIVE PROJECT TEST REPORT
+Generated: 2025-10-05 17:00:13
+======================================================================
+
+Total Tests: 42
+Passed: 39
+Failed: 3
+Warnings: 0
+
+FAILED TESTS:
+  [Module Import] src.common.logging
+    Details: No module named 'src.common.logging'
+  [GeometryBridge] Functionality
+    Details: cannot import name 'GeometryBridge' from 'src.ui.geometry_bridge' (C:\Users\Алексей\source\repos\NewRepo2\src\ui\geometry_bridge.py)
+  [Kinematics] Calculations
+    Details: CylinderKinematics.__init__() got an unexpected keyword argument 'lever_length'
+
+======================================================================
