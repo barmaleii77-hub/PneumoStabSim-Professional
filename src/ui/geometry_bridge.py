@@ -117,13 +117,15 @@ class GeometryTo3DConverter(QObject):
             'frameLength': self._frame_length
         }
     
-    def get_corner_3d_coords(self, corner: str, lever_angle_deg: float = 0.0) -> Dict[str, Any]:
+    def get_corner_3d_coords(self, corner: str, lever_angle_deg: float = 0.0, 
+                            cylinder_state: Optional[Any] = None) -> Dict[str, Any]:
         """Convert 2D kinematics to 3D coordinates for one corner
         USING CORRECTED SUSPENSION MECHANICS FROM test_2m_suspension.py
         
         Args:
             corner: 'fl', 'fr', 'rl', 'rr'
             lever_angle_deg: Current lever angle in degrees
+            cylinder_state: Optional CylinderState from physics simulation
             
         Returns:
             Dictionary with 3D coordinates for QML (compatible with CorrectedSuspensionCorner)
@@ -178,6 +180,33 @@ class GeometryTo3DConverter(QObject):
             z_plane
         )
         
+        # PISTON POSITION CALCULATION (NEW!)
+        # If cylinder_state provided, use physics data
+        # Otherwise, estimate from lever angle
+        piston_position_mm = None
+        piston_ratio = None
+        
+        if cylinder_state is not None:
+            # Use actual physics data from CylinderKinematics
+            # stroke is in meters, need to convert to ratio inside cylinder
+            stroke_mm = cylinder_state.stroke * 1000.0  # m to mm
+            
+            # Calculate piston position as ratio (0..1) inside cylinder body
+            # Assuming stroke 0 = center of cylinder
+            # Positive stroke = piston moves toward rod end (extends)
+            # Negative stroke = piston moves toward tail (retracts)
+            max_stroke_mm = self._cylinder_body_length * 0.8  # Allow 80% of cylinder as stroke range
+            piston_ratio = 0.5 + (stroke_mm / (2 * max_stroke_mm))  # 0..1
+            piston_ratio = np.clip(piston_ratio, 0.1, 0.9)  # Safety limits
+            piston_position_mm = piston_ratio * self._cylinder_body_length
+        else:
+            # Fallback: estimate from lever angle (for visualization without physics)
+            # Map lever angle to piston position
+            # -10° .. +10° -> 0.1 .. 0.9 of cylinder length
+            piston_ratio = 0.5 + lever_angle_deg / 20.0  # Simple linear mapping
+            piston_ratio = np.clip(piston_ratio, 0.1, 0.9)
+            piston_position_mm = piston_ratio * self._cylinder_body_length
+        
         # Return data compatible with CorrectedSuspensionCorner.qml
         result = {
             # FIXED joints
@@ -193,6 +222,10 @@ class GeometryTo3DConverter(QObject):
             'cylinderBodyLength': self._cylinder_body_length,
             'tailRodLength': self._tail_rod_length,
             
+            # NEW: Piston position from physics or estimation
+            'pistonPositionMm': piston_position_mm,  # Absolute position in cylinder (mm)
+            'pistonRatio': piston_ratio,              # Ratio 0..1 inside cylinder
+            
             # Additional data for UI
             'corner': corner,
             'totalAngle': total_angle_deg,
@@ -201,13 +234,26 @@ class GeometryTo3DConverter(QObject):
             'position': 'front' if is_front else 'rear'
         }
         
+        # If cylinder_state provided, add full physics data
+        if cylinder_state is not None:
+            result['cylinderPhysics'] = {
+                'stroke': cylinder_state.stroke,
+                'strokeVelocity': cylinder_state.stroke_velocity,
+                'volumeHead': cylinder_state.volume_head,
+                'volumeRod': cylinder_state.volume_rod,
+                'distance': cylinder_state.distance,
+                'axisAngle': cylinder_state.cylinder_axis_angle
+            }
+        
         return result
     
-    def get_all_corners_3d(self, lever_angles: Optional[Dict[str, float]] = None) -> Dict[str, Dict[str, Any]]:
+    def get_all_corners_3d(self, lever_angles: Optional[Dict[str, float]] = None,
+                          cylinder_states: Optional[Dict[str, Any]] = None) -> Dict[str, Dict[str, Any]]:
         """Get 3D coordinates for all 4 corners
         
         Args:
             lever_angles: Optional dict with current lever angles {'fl': deg, 'fr': deg, 'rl': deg, 'rr': deg}
+            cylinder_states: Optional dict with CylinderState objects for each corner
             
         Returns:
             Dictionary with all corner coordinates
@@ -215,10 +261,14 @@ class GeometryTo3DConverter(QObject):
         if lever_angles is None:
             lever_angles = {'fl': 0.0, 'fr': 0.0, 'rl': 0.0, 'rr': 0.0}
         
+        if cylinder_states is None:
+            cylinder_states = {}
+        
         corners = {}
         for corner in ['fl', 'fr', 'rl', 'rr']:
             angle = lever_angles.get(corner, 0.0)
-            corners[corner] = self.get_corner_3d_coords(corner, angle)
+            cyl_state = cylinder_states.get(corner, None)
+            corners[corner] = self.get_corner_3d_coords(corner, angle, cyl_state)
         
         return corners
     
@@ -226,7 +276,7 @@ class GeometryTo3DConverter(QObject):
         """Update 3D coordinates from simulation state
         
         Args:
-            sim_state: Current simulation state with lever angles, etc.
+            sim_state: Current simulation state with lever angles, cylinder states, etc.
             
         Returns:
             Complete geometry data for 3D scene update
@@ -245,9 +295,19 @@ class GeometryTo3DConverter(QObject):
                 'rr': sim_state.get('rr_angle', 0.0)
             }
         
+        # Extract cylinder states (if available)
+        cylinder_states = {}
+        if 'cylinder_states' in sim_state:
+            cylinder_states = sim_state['cylinder_states']
+        elif 'corners' in sim_state:
+            # Try to extract from corners structure
+            for corner, data in sim_state.get('corners', {}).items():
+                if 'cylinder_state' in data:
+                    cylinder_states[corner] = data['cylinder_state']
+        
         return {
             'frame': self.get_frame_params(),
-            'corners': self.get_all_corners_3d(lever_angles),
+            'corners': self.get_all_corners_3d(lever_angles, cylinder_states),
             # Add user-controllable parameters
             'userParams': {
                 'frameLength': self._frame_length,

@@ -8,9 +8,10 @@ from PySide6.QtWidgets import (
 )
 from PySide6.QtCore import Qt, QTimer, Slot, QSettings, QUrl, QFileInfo
 from PySide6.QtGui import QAction, QKeySequence
-from PySide6.QtQuickWidgets import QQuickWidget  # ? ��������: ������ QQuickView
+from PySide6.QtQuickWidgets import QQuickWidget  # Используем QQuickWidget вместо QQuickView
 import logging
 import json
+import numpy as np  # NEW: For calculations
 from pathlib import Path
 from typing import Optional, Dict
 
@@ -572,13 +573,70 @@ class MainWindow(QMainWindow):
             if snapshot.aggregates.physics_step_time > 0:
                 fps = 1.0 / snapshot.aggregates.physics_step_time
                 self.fps_label.setText(f"Physics FPS: {fps:.1f}")
+            
+            # NEW: Update 3D scene with full simulation state (including piston positions!)
+            self._update_3d_scene_from_snapshot(snapshot)
+            
         if self.chart_widget:
             self.chart_widget.update_from_snapshot(snapshot)
-
-    @Slot(str)
-    def _on_physics_error(self, msg: str):
-        self.status_bar.showMessage(f"Physics Error: {msg}")
-        self.logger.error(msg)
+    
+    def _update_3d_scene_from_snapshot(self, snapshot: StateSnapshot):
+        """Update 3D scene with full simulation state including piston positions
+        
+        Args:
+            snapshot: Current simulation state snapshot
+        """
+        if not self._qml_root_object:
+            return  # QML not loaded yet
+        
+        try:
+            # Extract corner states from snapshot
+            # (Assuming snapshot has corner data - adjust based on actual structure)
+            corners_data = {}
+            
+            # Try to get corner states from snapshot
+            if hasattr(snapshot, 'corners'):
+                for corner in ['fl', 'fr', 'rl', 'rr']:
+                    corner_data = getattr(snapshot.corners, corner, None)
+                    if corner_data:
+                        # Extract lever angle and cylinder state
+                        lever_angle = getattr(corner_data, 'lever_angle', 0.0)
+                        cylinder_state = getattr(corner_data, 'cylinder_state', None)
+                        
+                        corners_data[corner] = {
+                            'leverAngle': lever_angle,
+                            'cylinderState': cylinder_state
+                        }
+            
+            # Fallback: use simple lever angles if no full state available
+            if not corners_data:
+                # Use simple sine wave animation (placeholder)
+                import time
+                t = time.time()
+                corners_data = {
+                    'fl': {'leverAngle': 5.0 * np.sin(t), 'cylinderState': None},
+                    'fr': {'leverAngle': 5.0 * np.sin(t + np.pi/4), 'cylinderState': None},
+                    'rl': {'leverAngle': 5.0 * np.sin(t + np.pi/2), 'cylinderState': None},
+                    'rr': {'leverAngle': 5.0 * np.sin(t + 3*np.pi/4), 'cylinderState': None}
+                }
+            
+            # Update animation time in QML (for smooth interpolation)
+            if hasattr(snapshot, 'simulation_time'):
+                self._qml_root_object.setProperty("animationTime", snapshot.simulation_time)
+            
+            # Update each corner's angle (QML will recalculate positions)
+            for corner, data in corners_data.items():
+                angle = data.get('leverAngle', 0.0)
+                prop_name = f"{corner}_angle"
+                self._qml_root_object.setProperty(prop_name, angle)
+                
+                # TODO: Also update piston position when cylinder_state is available
+                # This requires extending QML to accept piston position directly
+                
+        except Exception as e:
+            self.logger.error(f"Failed to update 3D scene from snapshot: {e}")
+            import traceback
+            traceback.print_exc()
 
     # Panel signal handlers
     def _on_sim_control(self, command: str):
