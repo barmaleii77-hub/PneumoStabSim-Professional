@@ -658,15 +658,19 @@ class MainWindow(QMainWindow):
             # CRITICAL: Update lever angles FIRST (so j_rod positions are correct)
             from PySide6.QtCore import QMetaObject, Q_ARG, Qt
             
-            success_angles = QMetaObject.invokeMethod(
-                self._qml_root_object,
-                "updateAnimation",
-                Qt.ConnectionType.DirectConnection,
-                Q_ARG("QVariant", lever_angles)
-            )
+            # DEBUG: Log what we're sending
+            if int(t * 10) % 10 == 0:  # Every ~1 second
+                print(f"📤 Sending to QML:")
+                print(f"   Angles: {lever_angles}")
+                print(f"   Pistons: {piston_positions}")
             
-            if not success_angles:
-                self.logger.warning("Failed to invoke updateAnimation() in QML")
+            # WORKAROUND: Set angles directly via properties instead of method call
+            # This is more reliable than invokeMethod for simple value updates
+            for corner, angle in lever_angles.items():
+                prop_name = f"{corner}_angle"
+                self._qml_root_object.setProperty(prop_name, float(angle))
+                if int(t * 10) % 10 == 0:
+                    print(f"   ✅ Set {prop_name} = {angle}")
             
             # CRITICAL: Update piston positions SECOND (after angles are set)
             if piston_positions:
@@ -679,6 +683,7 @@ class MainWindow(QMainWindow):
                 
                 if not success_pistons:
                     self.logger.warning("Failed to invoke updatePistonPositions() in QML")
+                    print("❌ updatePistonPositions() FAILED!")
                 
         except Exception as e:
             self.logger.error(f"Failed to update 3D scene from snapshot: {e}")

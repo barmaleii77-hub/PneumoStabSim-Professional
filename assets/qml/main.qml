@@ -187,10 +187,12 @@ Item {
     }
     
     function updateAnimation(angles) {
+        console.log("?? updateAnimation() called:", JSON.stringify(angles))
         if (angles.fl !== undefined) fl_angle = Number(angles.fl)
         if (angles.fr !== undefined) fr_angle = Number(angles.fr)
         if (angles.rl !== undefined) rl_angle = Number(angles.rl)
         if (angles.rr !== undefined) rr_angle = Number(angles.rr)
+        console.log("   ? Angles set: FL=" + fl_angle + ", FR=" + fr_angle + ", RL=" + rl_angle + ", RR=" + rr_angle)
     }
 
     // Utilities
