@@ -11,6 +11,10 @@ Node {
     property real leverAngle
     property real leverLength: 315
     
+    // NEW: Piston position from Python (GeometryBridge)
+    property real pistonPositionMm: 125.0  // Default to center
+    property real pistonRatio: 0.5         // Default to center (0..1)
+    
     // CORRECTED LEVER (proper positioning and rotation around pivot with correct base angles)
     Model {
         source: "#Cube"
@@ -53,14 +57,13 @@ Node {
         materials: PrincipledMaterial { baseColor: "#ffffff"; metalness: 0.0; roughness: 0.05; opacity: 0.12; alphaMode: PrincipledMaterial.Blend }
     }
     
-    // MOVING PISTON (animated inside cylinder that starts from tail rod end) - CORRECT DIMENSIONS
+    // MOVING PISTON - USES POSITION FROM PYTHON (GeometryBridge)
     Model {
         source: "#Cylinder"
         property vector3d cylDirection: Qt.vector3d(j_rod.x - j_tail.x, j_rod.y - j_tail.y, 0)
         property real cylDirectionLength: Math.hypot(cylDirection.x, cylDirection.y, 0)
         property real lBody: 250
         property real lTailRod: 100
-        property real pistonRatio: Math.max(0.0, Math.min(1.0, (leverAngle + 8) / 16))  // Scale -8deg..+8deg to 0..1
         
         // Cylinder starts FROM END OF TAIL ROD
         property vector3d tailRodEnd: Qt.vector3d(
@@ -70,10 +73,10 @@ Node {
         )
         property vector3d cylStart: tailRodEnd
         
-        // PISTON MOVES inside cylinder based on LEVER ANGLE
+        // PISTON POSITION from Python GeometryBridge (pistonPositionMm property)
         property vector3d pistonPos: Qt.vector3d(
-            cylStart.x + cylDirection.x * ((lBody * (0.15 + pistonRatio * 0.7)) / cylDirectionLength),
-            cylStart.y + cylDirection.y * ((lBody * (0.15 + pistonRatio * 0.7)) / cylDirectionLength),
+            cylStart.x + cylDirection.x * (pistonPositionMm / cylDirectionLength),
+            cylStart.y + cylDirection.y * (pistonPositionMm / cylDirectionLength),
             cylStart.z
         )
         
@@ -84,14 +87,13 @@ Node {
         materials: PrincipledMaterial { baseColor: "#ff0066"; metalness: 0.9; roughness: 0.1 }  // BRIGHT MAGENTA
     }
     
-    // METAL ROD (from piston to j_rod) - NORMAL THICKNESS
+    // METAL ROD (from piston to j_rod) - USES SAME PISTON POSITION
     Model {
         source: "#Cylinder"
         property vector3d cylDirection: Qt.vector3d(j_rod.x - j_tail.x, j_rod.y - j_tail.y, 0)
         property real cylDirectionLength: Math.hypot(cylDirection.x, cylDirection.y, 0)
         property real lBody: 250
         property real lTailRod: 100
-        property real pistonRatio: Math.max(0.0, Math.min(1.0, (leverAngle + 8) / 16))  // SAME as piston
         
         // Cylinder starts FROM END OF TAIL ROD (same as piston calculation)
         property vector3d tailRodEnd: Qt.vector3d(
@@ -101,10 +103,10 @@ Node {
         )
         property vector3d cylStart: tailRodEnd
         
-        // Rod starts from PISTON position (same calculation as piston)
+        // Rod starts from PISTON position (from Python GeometryBridge)
         property vector3d rodStart: Qt.vector3d(
-            cylStart.x + cylDirection.x * ((lBody * (0.15 + pistonRatio * 0.7)) / cylDirectionLength),
-            cylStart.y + cylDirection.y * ((lBody * (0.15 + pistonRatio * 0.7)) / cylDirectionLength),
+            cylStart.x + cylDirection.x * (pistonPositionMm / cylDirectionLength),
+            cylStart.y + cylDirection.y * (pistonPositionMm / cylDirectionLength),
             cylStart.z
         )
         
