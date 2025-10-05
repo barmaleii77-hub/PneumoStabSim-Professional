@@ -75,21 +75,22 @@ Item {
         }
     }
 
-    // UI parameters (controlled externally)
+    // USER-CONTROLLED GEOMETRY PARAMETERS
     property real userBeamSize: 120
     property real userFrameHeight: 650
     property real userFrameLength: 2000
     property real userLeverLength: 315
     property real userCylinderLength: 250
-
-    // NEW: Additional geometry parameters from GeometryPanel
-    property real userTrackWidth: 300        // Distance between left/right corners (mm)
-    property real userFrameToPivot: 150      // Distance from frame centerline to lever pivot (mm)
-    property real userRodPosition: 0.6       // Rod attachment position (fraction 0-1)
-    property real userBoreHead: 80           // Head bore diameter (mm)
-    property real userBoreRod: 80            // Rod bore diameter (mm)
-    property real userRodDiameter: 35        // Piston rod diameter (mm)
-    property real userPistonThickness: 25    // Piston thickness (mm)
+    property real userTrackWidth: 300
+    property real userFrameToPivot: 150
+    property real userRodPosition: 0.6
+    property real userBoreHead: 80
+    property real userBoreRod: 80
+    property real userRodDiameter: 35
+    property real userPistonThickness: 25
+    
+    // NEW: Piston rod length (set by user, NOT calculated!)
+    property real userPistonRodLength: 200  // mm - CONSTANT length of piston rod
 
     // Update geometry from UI
     function updateGeometry(params) {
@@ -119,7 +120,7 @@ Item {
             userCylinderLength = params.cylinderBodyLength
         }
         
-        // NEW: Additional parameters
+        // Additional parameters
         if (params.trackWidth !== undefined) {
             console.log("  ? Setting userTrackWidth:", params.trackWidth)
             userTrackWidth = params.trackWidth
@@ -149,6 +150,12 @@ Item {
             userPistonThickness = params.pistonThickness
         }
         
+        // NEW: Piston rod length
+        if (params.pistonRodLength !== undefined) {
+            console.log("  ? Setting userPistonRodLength:", params.pistonRodLength)
+            userPistonRodLength = params.pistonRodLength
+        }
+        
         console.log("???????????????????????????????????????????????")
         console.log("?? Current values after update:")
         console.log("   userFrameLength:", userFrameLength)
@@ -163,6 +170,7 @@ Item {
         console.log("   userBoreRod:", userBoreRod)
         console.log("   userRodDiameter:", userRodDiameter)
         console.log("   userPistonThickness:", userPistonThickness)
+        console.log("   userPistonRodLength:", userPistonRodLength)
         console.log("???????????????????????????????????????????????")
         
         resetView()
@@ -394,20 +402,36 @@ Item {
                 materials: PrincipledMaterial { baseColor: "#ff0066"; metalness: 0.9; roughness: 0.1 }
             }
             
-            // FULL PISTON ROD (CONSTANT LENGTH!)
-            // Goes from piston to j_rod with FIXED length
-            // Entire rod visible (part inside cylinder through transparent wall, part outside)
+            // FULL PISTON ROD (CONSTANT LENGTH FROM UI!)
+            // Length is SET BY USER in userPistonRodLength, NOT calculated!
+            // Goes from piston in direction toward j_rod
             Model {
                 source: "#Cylinder"
                 
-                // Center of full rod (midpoint from piston to j_rod)
-                position: Qt.vector3d((pistonCenter.x + j_rod.x)/2, (pistonCenter.y + j_rod.y)/2, j_rod.z)
+                // Direction from piston toward j_rod
+                property real rodDirX: j_rod.x - pistonCenter.x
+                property real rodDirY: j_rod.y - pistonCenter.y
+                property real rodDirLen: Math.hypot(rodDirX, rodDirY)
                 
-                // Scale: CONSTANT length (fullRodLength)
-                scale: Qt.vector3d(userRodDiameter/100, fullRodLength/100, userRodDiameter/100)
+                // Normalized direction
+                property real rodDirNormX: rodDirX / rodDirLen
+                property real rodDirNormY: rodDirY / rodDirLen
                 
-                // Rotation to align piston ? j_rod
-                eulerRotation: Qt.vector3d(0, 0, Math.atan2(j_rod.y - pistonCenter.y, j_rod.x - pistonCenter.x) * 180 / Math.PI + 90)
+                // Rod end position (piston + userPistonRodLength in direction of j_rod)
+                property vector3d rodEnd: Qt.vector3d(
+                    pistonCenter.x + rodDirNormX * userPistonRodLength,
+                    pistonCenter.y + rodDirNormY * userPistonRodLength,
+                    pistonCenter.z
+                )
+                
+                // Center of rod (midpoint from piston to rodEnd)
+                position: Qt.vector3d((pistonCenter.x + rodEnd.x)/2, (pistonCenter.y + rodEnd.y)/2, pistonCenter.z)
+                
+                // Scale: CONSTANT length from UI (userPistonRodLength)
+                scale: Qt.vector3d(userRodDiameter/100, userPistonRodLength/100, userRodDiameter/100)
+                
+                // Rotation to align piston ? rod end
+                eulerRotation: Qt.vector3d(0, 0, Math.atan2(rodEnd.y - pistonCenter.y, rodEnd.x - pistonCenter.x) * 180 / Math.PI + 90)
                 
                 materials: PrincipledMaterial { baseColor: "#cccccc"; metalness: 0.95; roughness: 0.05 }
             }

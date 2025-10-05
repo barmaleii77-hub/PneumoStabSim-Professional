@@ -15,6 +15,9 @@ Node {
     property real pistonPositionMm: 125.0  // Default to center
     property real pistonRatio: 0.5         // Default to center (0..1)
     
+    // NEW: Rod length from UI (NOT calculated!)
+    property real pistonRodLength: 200.0  // mm - SET BY USER IN UI!
+    
     // CALCULATE CYLINDER GEOMETRY
     property vector3d cylDirection: Qt.vector3d(j_rod.x - j_tail.x, j_rod.y - j_tail.y, 0)
     property real cylDirectionLength: Math.hypot(cylDirection.x, cylDirection.y, 0)
@@ -48,16 +51,6 @@ Node {
         cylStart.y + cylDirectionNorm.y * pistonPositionMm,
         cylStart.z
     )
-    
-    // FULL PISTON ROD LENGTH (CONSTANT!)
-    // Calculate from CENTER position to j_rod as baseline
-    property real centerPistonPos: lBody / 2
-    property vector3d centerPistonCenter: Qt.vector3d(
-        cylStart.x + cylDirectionNorm.x * centerPistonPos,
-        cylStart.y + cylDirectionNorm.y * centerPistonPos,
-        cylStart.z
-    )
-    property real fullRodLength: Math.hypot(j_rod.x - centerPistonCenter.x, j_rod.y - centerPistonCenter.y)
     
     // CORRECTED LEVER
     Model {
@@ -93,20 +86,36 @@ Node {
         materials: PrincipledMaterial { baseColor: "#ff0066"; metalness: 0.9; roughness: 0.1 }
     }
     
-    // FULL PISTON ROD (CONSTANT LENGTH!)
-    // Goes from piston TO j_rod with FIXED length
-    // Entire rod is visible (part inside cylinder, part outside)
+    // PISTON ROD (CONSTANT LENGTH FROM UI!)
+    // Length is SET BY USER, NOT calculated from geometry!
+    // Goes from piston in direction toward j_rod
     Model {
         source: "#Cylinder"
         
-        // Center of full rod (midpoint from piston to j_rod)
-        position: Qt.vector3d((pistonCenter.x + j_rod.x)/2, (pistonCenter.y + j_rod.y)/2, pistonCenter.z)
+        // Direction from piston toward j_rod
+        property real rodDirX: j_rod.x - pistonCenter.x
+        property real rodDirY: j_rod.y - pistonCenter.y
+        property real rodDirLen: Math.hypot(rodDirX, rodDirY)
         
-        // Scale: CONSTANT length (fullRodLength)
-        scale: Qt.vector3d(0.5, fullRodLength/100, 0.5)
+        // Normalized direction
+        property real rodDirNormX: rodDirX / rodDirLen
+        property real rodDirNormY: rodDirY / rodDirLen
         
-        // Rotation to align piston ? j_rod
-        eulerRotation: Qt.vector3d(0, 0, Math.atan2(j_rod.y - pistonCenter.y, j_rod.x - pistonCenter.x) * 180 / Math.PI + 90)
+        // Rod end position (piston + pistonRodLength in direction of j_rod)
+        property vector3d rodEnd: Qt.vector3d(
+            pistonCenter.x + rodDirNormX * pistonRodLength,
+            pistonCenter.y + rodDirNormY * pistonRodLength,
+            pistonCenter.z
+        )
+        
+        // Center of rod (midpoint from piston to rodEnd)
+        position: Qt.vector3d((pistonCenter.x + rodEnd.x)/2, (pistonCenter.y + rodEnd.y)/2, pistonCenter.z)
+        
+        // Scale: CONSTANT length from UI (pistonRodLength)
+        scale: Qt.vector3d(0.5, pistonRodLength/100, 0.5)
+        
+        // Rotation to align piston ? rod end
+        eulerRotation: Qt.vector3d(0, 0, Math.atan2(rodEnd.y - pistonCenter.y, rodEnd.x - pistonCenter.x) * 180 / Math.PI + 90)
         
         materials: PrincipledMaterial { baseColor: "#cccccc"; metalness: 0.95; roughness: 0.05 }
     }

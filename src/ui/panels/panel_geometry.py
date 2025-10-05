@@ -172,6 +172,13 @@ class GeometryPanel(QWidget):
         )
         layout.addWidget(self.rod_diameter_slider)
         
+        # Piston rod length (NEW!)
+        self.piston_rod_length_slider = RangeSlider(
+            minimum=100.0, maximum=500.0, value=200.0, step=10.0,
+            decimals=0, units="mm", title="Piston Rod Length"
+        )
+        layout.addWidget(self.piston_rod_length_slider)
+        
         # Piston thickness
         self.piston_thickness_slider = RangeSlider(
             minimum=10.0, maximum=50.0, value=25.0, step=2.5,
@@ -230,6 +237,7 @@ class GeometryPanel(QWidget):
             'bore_head': 80.0,
             'bore_rod': 80.0,
             'rod_diameter': 35.0,
+            'piston_rod_length': 200.0,  # NEW: Default 200mm rod length
             'piston_thickness': 25.0
         }
         
@@ -260,6 +268,8 @@ class GeometryPanel(QWidget):
             lambda v: self._on_parameter_changed('bore_rod', v))
         self.rod_diameter_slider.valueEdited.connect(
             lambda v: self._on_parameter_changed('rod_diameter', v))
+        self.piston_rod_length_slider.valueEdited.connect(
+            lambda v: self._on_parameter_changed('piston_rod_length', v))
         self.piston_thickness_slider.valueEdited.connect(
             lambda v: self._on_parameter_changed('piston_thickness', v))
         
@@ -302,7 +312,7 @@ class GeometryPanel(QWidget):
             
             # NEW: Emit 3D scene geometry update for frame dimensions
             if param_name in ['wheelbase', 'track', 'lever_length', 'cylinder_length', 'frame_to_pivot', 'rod_position', 
-                             'bore_head', 'bore_rod', 'rod_diameter', 'piston_thickness']:
+                             'bore_head', 'bore_rod', 'rod_diameter', 'piston_rod_length', 'piston_thickness']:
                 # Convert parameters to 3D scene format
                 geometry_3d = {
                     'frameLength': self.parameters.get('wheelbase', 3.2) * 1000,  # m -> mm
@@ -318,6 +328,7 @@ class GeometryPanel(QWidget):
                     'boreHead': self.parameters.get('bore_head', 80.0),  # mm
                     'boreRod': self.parameters.get('bore_rod', 80.0),  # mm
                     'rodDiameter': self.parameters.get('rod_diameter', 35.0),  # mm
+                    'pistonRodLength': self.parameters.get('piston_rod_length', 200.0),  # mm - NEW!
                     'pistonThickness': self.parameters.get('piston_thickness', 25.0)  # mm
                 }
                 
@@ -445,6 +456,7 @@ class GeometryPanel(QWidget):
             'bore_head': self.bore_head_slider,
             'bore_rod': self.bore_rod_slider,
             'rod_diameter': self.rod_diameter_slider,
+            'piston_rod_length': self.piston_rod_length_slider,
             'piston_thickness': self.piston_thickness_slider
         }
         return widget_map.get(param_name)
@@ -480,6 +492,7 @@ class GeometryPanel(QWidget):
         self.bore_head_slider.setValue(self.parameters['bore_head'])
         self.bore_rod_slider.setValue(self.parameters['bore_rod'])
         self.rod_diameter_slider.setValue(self.parameters['rod_diameter'])
+        self.piston_rod_length_slider.setValue(self.parameters['piston_rod_length'])
         self.piston_thickness_slider.setValue(self.parameters['piston_thickness'])
         
         # Reset checkboxes
