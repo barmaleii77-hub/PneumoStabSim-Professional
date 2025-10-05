@@ -99,7 +99,18 @@ class CorrectKinematicsWindow(QMainWindow):
             cylinder_state=None  # No physics, pure geometry
         )
         
+        # DEBUG: Print what we got
+        print(f"\n?? DEBUG: angle={angle_deg:.1f}°")
+        print(f"  corner_data keys: {list(corner_data.keys())}")
+        print(f"  pistonPositionMm: {corner_data.get('pistonPositionMm')} (type: {type(corner_data.get('pistonPositionMm'))})")
+        print(f"  pistonRatio: {corner_data.get('pistonRatio')}")
+        
         piston_pos_mm = corner_data.get('pistonPositionMm', 125.0)
+        
+        # Ensure it's a float
+        if piston_pos_mm is None or not isinstance(piston_pos_mm, (int, float)):
+            print(f"  ? ERROR: piston_pos_mm is {piston_pos_mm}, using default 125.0")
+            piston_pos_mm = 125.0
         
         # Update label
         self.fl_angle_label.setText(
@@ -108,7 +119,9 @@ class CorrectKinematicsWindow(QMainWindow):
         
         # Send BOTH to QML
         angles = {'fl': angle_deg, 'fr': 0.0, 'rl': 0.0, 'rr': 0.0}
-        positions = {'fl': piston_pos_mm, 'fr': 125.0, 'rl': 125.0, 'rr': 125.0}
+        positions = {'fl': float(piston_pos_mm), 'fr': 125.0, 'rl': 125.0, 'rr': 125.0}
+        
+        print(f"  ? Sending to QML: angles={angles['fl']}, positions={positions['fl']}")
         
         QMetaObject.invokeMethod(
             self.qml_root, "updateAnimation",

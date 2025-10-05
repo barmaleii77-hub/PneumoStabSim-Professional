@@ -1,0 +1,135 @@
+2025-10-05T14:02:22 | PID:8020 TID:27676 | INFO     | PneumoStabSim | ======================================================================
+2025-10-05T14:02:22 | PID:8020 TID:27676 | INFO     | PneumoStabSim | === START RUN: PneumoStabSim ===
+2025-10-05T14:02:22 | PID:8020 TID:27676 | INFO     | PneumoStabSim | ======================================================================
+2025-10-05T14:02:22 | PID:8020 TID:27676 | INFO     | PneumoStabSim | Python version: 3.13.7 (tags/v3.13.7:bcee1c3, Aug 14 2025, 14:15:11) [MSC v.1944 64 bit (AMD64)]
+2025-10-05T14:02:22 | PID:8020 TID:27676 | INFO     | PneumoStabSim | Platform: Windows-11-10.0.26100-SP0
+=== PNEUMOSTABSIM STARTING (Russian UI) ===
+Visualization backend: Qt Quick 3D (U-Frame PBR)
+Qt Quick RHI: Direct3D 11
+Custom 3D Geometry enabled
+
+?? IMPORTANT: Look for 'rhi: backend:' line in console output
+    Should show 'D3D11' (not OpenGL)
+
+Step 1: Creating QApplication...
+Step 2: Installing Qt message handler...
+Step 3: Setting application properties...
+Step 4: Registering custom QML types...
+  - CustomGeometry.SphereGeometry (auto-registered)
+  - CustomGeometry.CubeGeometry (auto-registered)
+Step 5: Creating MainWindow (backend: Qt Quick 3D (U-Frame PBR))...
+MainWindow: Creating SimulationManager...
+2025-10-05T14:02:22 | PID:8020 TID:27676 | INFO     | PneumoStabSim | Process ID: 8020
+✅ SimulationManager created (not started yet)
+2025-10-05T14:02:22 | PID:8020 TID:27676 | INFO     | PneumoStabSim | Log file: C:\Users\Алексей\source\repos\NewRepo2\logs\run.log
+2025-10-05T14:02:22 | PID:8020 TID:27676 | INFO     | PneumoStabSim | Timestamp: 2025-10-05T09:02:22.179987Z
+2025-10-05T14:02:22 | PID:8020 TID:27676 | INFO     | PneumoStabSim | PySide6 version: 6.9.1
+2025-10-05T14:02:22 | PID:8020 TID:27676 | INFO     | PneumoStabSim | NumPy version: 2.3.1
+2025-10-05T14:02:22 | PID:8020 TID:27676 | INFO     | PneumoStabSim | SciPy version: 1.16.0
+2025-10-05T14:02:22 | PID:8020 TID:27676 | INFO     | PneumoStabSim | ======================================================================
+    GeometryBridge initialized:
+      Frame: 2000x650x120mm
+      Lever: 315mm
+      Cylinder: 250mm + 100mm tail
+✅ GeometryBridge created for Python↔QML integration
+MainWindow: Building UI...
+    _setup_central: Creating visualization (QML 3D)...
+    [QML] Loading main.qml directly for better UI integration...
+2025-10-05T14:02:22 | PID:8020 TID:27676 | INFO     | PneumoStabSim | Application starting...
+2025-10-05T14:02:22 | PID:8020 TID:27676 | INFO     | PneumoStabSim.UI | event=APP_CREATED | Qt application initialized
+    Loading main.qml: file:///C:/Users/Алексей/source/repos/NewRepo2/assets/qml/main.qml
+?? QML DEBUG: file:///C:/Users/�������/source/repos/NewRepo2/assets/qml/main.qml:141:9: Expected token `)' 
+             console.log("   userRodDiameter:", userRodDiameter) 
+             ^
+    [ERROR] main.qml loading failed: QML errors:
+file:///C:/Users/Алексей/source/repos/NewRepo2/assets/qml/main.qml:141:9: Expected token `)'
+    [FALLBACK] Falling back to SuspensionSceneHost...
+    GeometryBridge initialized:
+      Frame: 2000x650x120mm
+      Lever: 315mm
+      Cylinder: 250mm + 100mm tail
+? Loaded coordinates from geometry_bridge:
+   Frame: {'beamSize': 120.0, 'frameHeight': 650.0, 'frameLength': 2000.0}
+   FL j_arm: PySide6.QtGui.QVector3D(-150.000000, 60.000000, -1000.000000)
+   FR j_arm: PySide6.QtGui.QVector3D(150.000000, 60.000000, -1000.000000)
+?? SuspensionSceneHost: Loading QML from: C:\Users\Алексей\source\repos\NewRepo2\assets\qml\UFrameScene.qml
+?? Path exists: True
+?? QML DEBUG: file:///C:/Users/Алексей/source/repos/NewRepo2/assets/qml/UFrameScene.qml:191:9: Unable to assign [undefined] to double
+?? QML DEBUG: file:///C:/Users/Алексей/source/repos/NewRepo2/assets/qml/UFrameScene.qml:196:9: Unable to assign [undefined] to double
+?? QML DEBUG: file:///C:/Users/Алексей/source/repos/NewRepo2/assets/qml/UFrameScene.qml:201:9: Unable to assign [undefined] to double
+?? QML DEBUG: file:///C:/Users/Алексей/source/repos/NewRepo2/assets/qml/UFrameScene.qml:191:9: Unable to assign [undefined] to double
+?? QML DEBUG: file:///C:/Users/Алексей/source/repos/NewRepo2/assets/qml/UFrameScene.qml:196:9: Unable to assign [undefined] to double
+?? QML DEBUG: file:///C:/Users/Алексей/source/repos/NewRepo2/assets/qml/UFrameScene.qml:201:9: Unable to assign [undefined] to double
+?? QML DEBUG: file:///C:/Users/Алексей/source/repos/NewRepo2/assets/qml/UFrameScene.qml:191:9: Unable to assign [undefined] to double
+?? QML DEBUG: file:///C:/Users/Алексей/source/repos/NewRepo2/assets/qml/UFrameScene.qml:196:9: Unable to assign [undefined] to double
+?? QML DEBUG: file:///C:/Users/Алексей/source/repos/NewRepo2/assets/qml/UFrameScene.qml:201:9: Unable to assign [undefined] to double
+?? QML DEBUG: file:///C:/Users/Алексей/source/repos/NewRepo2/assets/qml/UFrameScene.qml:191:9: Unable to assign [undefined] to double
+?? QML DEBUG: file:///C:/Users/Алексей/source/repos/NewRepo2/assets/qml/UFrameScene.qml:196:9: Unable to assign [undefined] to double
+?? QML DEBUG: file:///C:/Users/Алексей/source/repos/NewRepo2/assets/qml/UFrameScene.qml:201:9: Unable to assign [undefined] to double
+? UFrameScene.qml loaded, status: Status.Ready
+?? Applying 51 parameters to QML:
+   ? Set fl_j_arm = PySide6.QtGui.QVector3D(-150.000000, 60.000000, -1000.000000)
+   ? Set fl_leverLength = 315.0
+   ?? Set fl_cylinderBodyLength = 250.0
+   ?? Set fl_tailRodLength = 100.0
+   ? Set fr_j_arm = PySide6.QtGui.QVector3D(150.000000, 60.000000, -1000.000000)
+   ? Set fr_leverLength = 315.0
+   ?? Set fr_cylinderBodyLength = 250.0
+   ?? Set fr_tailRodLength = 100.0
+   ?? Set rl_cylinderBodyLength = 250.0
+   ?? Set rl_tailRodLength = 100.0
+   ?? Set rr_cylinderBodyLength = 250.0
+   ?? Set rr_tailRodLength = 100.0
+? Applied 51/51 parameters to QML
+?? Reading back some key values:
+   beamSize: 120.0
+   frameLength: 2000.0
+   fl_leverLength: 315.0
+    [OK] Fallback to SuspensionSceneHost successful
+  ? Central Qt Quick 3D view setup
+    _setup_docks: Creating panels...
+      ? Geometry panel created
+      ? Pneumatics panel created (tabified)
+      ? Charts panel created
+      ? Modes panel created (tabified)
+      ? Road panel created (hidden by default)
+✅ GeometryPanel geometry_changed signal connected
+✅ PneumoPanel signals connected (NO geometry)
+✅ ModesPanel animation_changed signal connected
+    ? Panels created and wired
+  ? Docks setup (panels disabled)
+  ? Menus setup
+  ? Toolbar setup
+  ? Status bar setup
+  ? Signals connected
+  ? Render timer started
+  ? Simulation manager will start after window.show()
+  ??  Settings restore skipped (avoiding potential crashes)
+? MainWindow.__init__() complete
+Step 6: MainWindow created - Size: 1200x800
+         Window title: PneumoStabSim - Qt Quick 3D (U-Frame PBR)
+
+🚀 Window shown - starting SimulationManager...
+✅ SimulationManager started successfully
+
+Step 7: Window shown - Visible: True
+         Position: 680, 266
+
+============================================================
+APPLICATION READY - Qt Quick 3D (U-Frame PBR) active (Russian UI)
+?? U-Frame: PBR metallic red, orbit camera, auto-fit
+?? Controls: LMB-rotate, Wheel-zoom, F-autofit, R-reset, DoubleClick-fit
+?? Features: 4 corners with cylinders, levers, masses
+?? DIAGNOSTIC: Looking for QML console.log messages...
+Expected: Russian labels in UI panels and 3D scene
+Check console for 'rhi: backend: D3D11' confirmation
+Close window to exit
+============================================================
+
+2025-10-05T14:02:22 | PID:8020 TID:27676 | INFO     | PneumoStabSim.UI | event=WINDOW_SHOWN | Main window displayed (Qt Quick 3D (U-Frame PBR))
+
+=== APPLICATION CLOSED (code: 0) ===
+2025-10-05T14:02:24 | PID:8020 TID:27676 | INFO     | PneumoStabSim | Application event loop finished with code: 0
+2025-10-05T14:02:24 | PID:8020 TID:27676 | INFO     | PneumoStabSim | ======================================================================
+2025-10-05T14:02:24 | PID:8020 TID:27676 | INFO     | PneumoStabSim | === END RUN ===
+2025-10-05T14:02:24 | PID:8020 TID:27676 | INFO     | PneumoStabSim | ======================================================================
