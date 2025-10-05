@@ -47,11 +47,33 @@ Item {
     property real userPistonPositionRR: 125.0  // mm - piston position in RR cylinder (from physics)
 
     // Angles for each corner - CONTROLLED FROM PYTHON ONLY!
-    // Do NOT use formula - Python will set these directly via updateAnimation()
-    property real fl_angle: 0.0  // Set by Python via updateAnimation()
-    property real fr_angle: 0.0  // Set by Python via updateAnimation()
-    property real rl_angle: 0.0  // Set by Python via updateAnimation()
-    property real rr_angle: 0.0  // Set by Python via updateAnimation()
+    // Do NOT use formula - Python will set these directly via setProperty()
+    property real fl_angle: 0.0  // Set by Python via setProperty()
+    property real fr_angle: 0.0  // Set by Python via setProperty()
+    property real rl_angle: 0.0  // Set by Python via setProperty()
+    property real rr_angle: 0.0  // Set by Python via setProperty()
+    
+    // DEBUG: Watch for angle changes
+    onFl_angleChanged: {
+        if (Math.abs(fl_angle) > 0.1) {  // Only log significant changes
+            console.log("?? QML: fl_angle changed to", fl_angle.toFixed(2), "°")
+        }
+    }
+    onFr_angleChanged: {
+        if (Math.abs(fr_angle) > 0.1) {
+            console.log("?? QML: fr_angle changed to", fr_angle.toFixed(2), "°")
+        }
+    }
+    onRl_angleChanged: {
+        if (Math.abs(rl_angle) > 0.1) {
+            console.log("?? QML: rl_angle changed to", rl_angle.toFixed(2), "°")
+        }
+    }
+    onRr_angleChanged: {
+        if (Math.abs(rr_angle) > 0.1) {
+            console.log("?? QML: rr_angle changed to", rr_angle.toFixed(2), "°")
+        }
+    }
 
     // UI parameters (controlled externally)
     property real userBeamSize: 120
@@ -271,15 +293,23 @@ Item {
         component SuspensionCorner: Node {
             property vector3d j_arm
             property vector3d j_tail  
-            property vector3d j_rod
             property real leverAngle
             property real pistonPositionFromPython: 125.0  // NEW: Piston position from Python (mm)
+            
+            // CALCULATE j_rod INTERNALLY from leverAngle!
+            property real baseAngle: (j_arm.x < 0) ? 180 : 0  // Left=180°, Right=0°
+            property real totalAngle: baseAngle + leverAngle
+            
+            // j_rod position calculated from lever rotation
+            property vector3d j_rod: Qt.vector3d(
+                j_arm.x + userLeverLength * Math.cos(totalAngle * Math.PI / 180),
+                j_arm.y + userLeverLength * Math.sin(totalAngle * Math.PI / 180),
+                j_arm.z
+            )
             
             // LEVER (animated)
             Model {
                 source: "#Cube"
-                property real baseAngle: (j_arm.x < 0) ? 180 : 0
-                property real totalAngle: baseAngle + leverAngle
                 
                 position: Qt.vector3d(j_arm.x + (userLeverLength/2) * Math.cos(totalAngle * Math.PI / 180), 
                                      j_arm.y + (userLeverLength/2) * Math.sin(totalAngle * Math.PI / 180), 
@@ -418,50 +448,38 @@ Item {
         // FOUR SUSPENSION CORNERS (parametric coordinates with user parameters)
         SuspensionCorner { 
             id: flCorner
-            // Front left - using userTrackWidth and userFrameToPivot
+            // Front left - j_rod calculated internally!
             j_arm: Qt.vector3d(-userFrameToPivot, userBeamSize, userBeamSize/2)
             j_tail: Qt.vector3d(-userTrackWidth/2, userBeamSize + userFrameHeight, userBeamSize/2)
-            j_rod: Qt.vector3d(-userFrameToPivot + userLeverLength * Math.cos((180 + fl_angle) * Math.PI / 180),
-                               userBeamSize + userLeverLength * Math.sin((180 + fl_angle) * Math.PI / 180), 
-                               userBeamSize/2)
-            leverAngle: fl_angle
-            pistonPositionFromPython: root.userPistonPositionFL  // BIND to root property!
+            leverAngle: fl_angle  // Python controls this!
+            pistonPositionFromPython: root.userPistonPositionFL
         }
         
         SuspensionCorner { 
             id: frCorner
-            // Front right - using userTrackWidth and userFrameToPivot
+            // Front right
             j_arm: Qt.vector3d(userFrameToPivot, userBeamSize, userBeamSize/2)
             j_tail: Qt.vector3d(userTrackWidth/2, userBeamSize + userFrameHeight, userBeamSize/2)
-            j_rod: Qt.vector3d(userFrameToPivot + userLeverLength * Math.cos((0 + fr_angle) * Math.PI / 180),
-                               userBeamSize + userLeverLength * Math.sin((0 + fr_angle) * Math.PI / 180), 
-                               userBeamSize/2)
-            leverAngle: fr_angle
-            pistonPositionFromPython: root.userPistonPositionFR  // BIND to root property!
+            leverAngle: fr_angle  // Python controls this!
+            pistonPositionFromPython: root.userPistonPositionFR
         }
         
         SuspensionCorner { 
             id: rlCorner
-            // Rear left - using userTrackWidth and userFrameToPivot
+            // Rear left
             j_arm: Qt.vector3d(-userFrameToPivot, userBeamSize, userFrameLength - userBeamSize/2)
             j_tail: Qt.vector3d(-userTrackWidth/2, userBeamSize + userFrameHeight, userFrameLength - userBeamSize/2)
-            j_rod: Qt.vector3d(-userFrameToPivot + userLeverLength * Math.cos((180 + rl_angle) * Math.PI / 180),
-                               userBeamSize + userLeverLength * Math.sin((180 + rl_angle) * Math.PI / 180), 
-                               userFrameLength - userBeamSize/2)
-            leverAngle: rl_angle
-            pistonPositionFromPython: root.userPistonPositionRL  // BIND to root property!
+            leverAngle: rl_angle  // Python controls this!
+            pistonPositionFromPython: root.userPistonPositionRL
         }
         
         SuspensionCorner { 
             id: rrCorner
-            // Rear right - using userTrackWidth and userFrameToPivot
+            // Rear right
             j_arm: Qt.vector3d(userFrameToPivot, userBeamSize, userFrameLength - userBeamSize/2)
             j_tail: Qt.vector3d(userTrackWidth/2, userBeamSize + userFrameHeight, userFrameLength - userBeamSize/2)
-            j_rod: Qt.vector3d(userFrameToPivot + userLeverLength * Math.cos((0 + rr_angle) * Math.PI / 180),
-                               userBeamSize + userLeverLength * Math.sin((0 + rr_angle) * Math.PI / 180), 
-                               userFrameLength - userBeamSize/2)
-            leverAngle: rr_angle
-            pistonPositionFromPython: root.userPistonPositionRR  // BIND to root property!
+            leverAngle: rr_angle  // Python controls this!
+            pistonPositionFromPython: root.userPistonPositionRR
         }
 
         // Coordinate axes
