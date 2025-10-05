@@ -46,11 +46,12 @@ Item {
     property real userPistonPositionRL: 125.0  // mm - piston position in RL cylinder (from physics)
     property real userPistonPositionRR: 125.0  // mm - piston position in RR cylinder (from physics)
 
-    // Angles for each corner (PARAMETRIC - controlled by user properties)
-    property real fl_angle: userAmplitude * Math.sin(animationTime * userFrequency + (userPhaseGlobal + userPhaseFL) * Math.PI / 180)
-    property real fr_angle: userAmplitude * Math.sin(animationTime * userFrequency + (userPhaseGlobal + userPhaseFR) * Math.PI / 180)
-    property real rl_angle: userAmplitude * Math.sin(animationTime * userFrequency + (userPhaseGlobal + userPhaseRL) * Math.PI / 180)
-    property real rr_angle: userAmplitude * Math.sin(animationTime * userFrequency + (userPhaseGlobal + userPhaseRR) * Math.PI / 180)
+    // Angles for each corner - CONTROLLED FROM PYTHON ONLY!
+    // Do NOT use formula - Python will set these directly via updateAnimation()
+    property real fl_angle: 0.0  // Set by Python via updateAnimation()
+    property real fr_angle: 0.0  // Set by Python via updateAnimation()
+    property real rl_angle: 0.0  // Set by Python via updateAnimation()
+    property real rr_angle: 0.0  // Set by Python via updateAnimation()
 
     // UI parameters (controlled externally)
     property real userBeamSize: 120

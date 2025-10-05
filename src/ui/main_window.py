@@ -629,8 +629,11 @@ class MainWindow(QMainWindow):
             
             # CRITICAL: Calculate piston positions using GeometryBridge!
             piston_positions = {}
+            lever_angles = {}
+            
             for corner, data in corners_data.items():
                 angle = data['leverAngle']
+                lever_angles[corner] = angle  # Store for QML update
                 
                 # Use GeometryBridge to calculate CORRECT piston position from angle
                 if hasattr(self, 'geometry_converter'):
@@ -641,35 +644,40 @@ class MainWindow(QMainWindow):
                     
                     # DEBUG: Log piston position calculation
                     if corner == 'fl' and int(t * 10) % 10 == 0:  # Every ~1 second for FL
-                        print(f"🔧 Piston calc: angle={angle:.1f}° → position={piston_positions[corner]:.1f}mm")
+                        print(f"🔧 Angle={angle:.1f}° → Piston={piston_positions[corner]:.1f}mm")
                 else:
                     # Fallback without GeometryBridge
                     piston_ratio = 0.5 + angle / 20.0
                     piston_ratio = np.clip(piston_ratio, 0.1, 0.9)
                     piston_positions[corner] = piston_ratio * 250.0
             
-            # Update animation time in QML (for smooth interpolation)
+            # Update animation time in QML (for smooth interpolation if needed)
             if hasattr(snapshot, 'simulation_time'):
                 self._qml_root_object.setProperty("animationTime", snapshot.simulation_time)
             
-            # Update each corner's angle (QML will recalculate rod positions)
-            for corner, data in corners_data.items():
-                angle = data.get('leverAngle', 0.0)
-                prop_name = f"{corner}_angle"
-                self._qml_root_object.setProperty(prop_name, angle)
+            # CRITICAL: Update lever angles FIRST (so j_rod positions are correct)
+            from PySide6.QtCore import QMetaObject, Q_ARG, Qt
             
-            # CRITICAL: Update piston positions using QMetaObject.invokeMethod()
+            success_angles = QMetaObject.invokeMethod(
+                self._qml_root_object,
+                "updateAnimation",
+                Qt.ConnectionType.DirectConnection,
+                Q_ARG("QVariant", lever_angles)
+            )
+            
+            if not success_angles:
+                self.logger.warning("Failed to invoke updateAnimation() in QML")
+            
+            # CRITICAL: Update piston positions SECOND (after angles are set)
             if piston_positions:
-                from PySide6.QtCore import QMetaObject, Q_ARG, Qt
-                
-                success = QMetaObject.invokeMethod(
+                success_pistons = QMetaObject.invokeMethod(
                     self._qml_root_object,
                     "updatePistonPositions",
                     Qt.ConnectionType.DirectConnection,
                     Q_ARG("QVariant", piston_positions)
                 )
                 
-                if not success:
+                if not success_pistons:
                     self.logger.warning("Failed to invoke updatePistonPositions() in QML")
                 
         except Exception as e:
