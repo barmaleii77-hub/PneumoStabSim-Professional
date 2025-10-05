@@ -155,19 +155,19 @@ Item {
         
         if (positions.fl !== undefined) {
             console.log("  ? Setting userPistonPositionFL:", positions.fl, "mm")
-            userPistonPositionFL = positions.fl
+            userPistonPositionFL = Number(positions.fl)  // FIX: Explicit conversion to number
         }
         if (positions.fr !== undefined) {
             console.log("  ? Setting userPistonPositionFR:", positions.fr, "mm")
-            userPistonPositionFR = positions.fr
+            userPistonPositionFR = Number(positions.fr)  // FIX: Explicit conversion
         }
         if (positions.rl !== undefined) {
             console.log("  ? Setting userPistonPositionRL:", positions.rl, "mm")
-            userPistonPositionRL = positions.rl
+            userPistonPositionRL = Number(positions.rl)  // FIX: Explicit conversion
         }
         if (positions.rr !== undefined) {
             console.log("  ? Setting userPistonPositionRR:", positions.rr, "mm")
-            userPistonPositionRR = positions.rr
+            userPistonPositionRR = Number(positions.rr)  // FIX: Explicit conversion
         }
         
         console.log("???????????????????????????????????????????????")
