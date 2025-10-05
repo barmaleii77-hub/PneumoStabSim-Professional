@@ -57,9 +57,9 @@ class MainWindow(QMainWindow):
         try:
             self.simulation_manager = SimulationManager(self)
             self._sim_started = False  # Flag to ensure single start
-            print("? SimulationManager created (not started yet)")
+            print("✅ SimulationManager created (not started yet)")
         except Exception as e:
-            print(f"? SimulationManager creation failed: {e}")
+            print(f"❌ SimulationManager creation failed: {e}")
             import traceback
             traceback.print_exc()
             raise
@@ -67,6 +67,11 @@ class MainWindow(QMainWindow):
         # Current snapshot
         self.current_snapshot: Optional[StateSnapshot] = None
         self.is_simulation_running = False
+
+        # NEW: Geometry converter for Python↔QML integration
+        from .geometry_bridge import create_geometry_converter
+        self.geometry_converter = create_geometry_converter()
+        print("✅ GeometryBridge created for Python↔QML integration")
 
         # Panels references (temporarily disabled)
         self.geometry_panel: Optional[GeometryPanel] = None
@@ -593,6 +598,7 @@ class MainWindow(QMainWindow):
             # Extract corner states from snapshot
             # (Assuming snapshot has corner data - adjust based on actual structure)
             corners_data = {}
+            piston_positions = {}
             
             # Try to get corner states from snapshot
             if hasattr(snapshot, 'corners'):
@@ -607,6 +613,22 @@ class MainWindow(QMainWindow):
                             'leverAngle': lever_angle,
                             'cylinderState': cylinder_state
                         }
+                        
+                        # Extract piston position from cylinder state
+                        if cylinder_state is not None:
+                            # Use GeometryBridge to calculate piston position
+                            if hasattr(self, 'geometry_converter'):
+                                corner_3d = self.geometry_converter.get_corner_3d_coords(
+                                    corner, lever_angle, cylinder_state
+                                )
+                                piston_positions[corner] = corner_3d.get('pistonPositionMm', 125.0)
+                            else:
+                                # Fallback: estimate from stroke
+                                stroke_mm = cylinder_state.stroke * 1000.0
+                                max_stroke = 200.0  # mm
+                                piston_ratio = 0.5 + (stroke_mm / (2 * max_stroke))
+                                piston_ratio = np.clip(piston_ratio, 0.1, 0.9)
+                                piston_positions[corner] = piston_ratio * 250.0  # Assuming 250mm cylinder
             
             # Fallback: use simple lever angles if no full state available
             if not corners_data:
@@ -619,6 +641,13 @@ class MainWindow(QMainWindow):
                     'rl': {'leverAngle': 5.0 * np.sin(t + np.pi/2), 'cylinderState': None},
                     'rr': {'leverAngle': 5.0 * np.sin(t + 3*np.pi/4), 'cylinderState': None}
                 }
+                
+                # Fallback piston positions (from lever angles)
+                for corner, data in corners_data.items():
+                    angle = data['leverAngle']
+                    piston_ratio = 0.5 + angle / 20.0  # -10..+10 deg -> 0..1
+                    piston_ratio = np.clip(piston_ratio, 0.1, 0.9)
+                    piston_positions[corner] = piston_ratio * 250.0
             
             # Update animation time in QML (for smooth interpolation)
             if hasattr(snapshot, 'simulation_time'):
@@ -629,9 +658,22 @@ class MainWindow(QMainWindow):
                 angle = data.get('leverAngle', 0.0)
                 prop_name = f"{corner}_angle"
                 self._qml_root_object.setProperty(prop_name, angle)
+            
+            # NEW: Update piston positions using QMetaObject.invokeMethod()
+            if piston_positions:
+                from PySide6.QtCore import QMetaObject, Q_ARG, Qt
                 
-                # TODO: Also update piston position when cylinder_state is available
-                # This requires extending QML to accept piston position directly
+                success = QMetaObject.invokeMethod(
+                    self._qml_root_object,
+                    "updatePistonPositions",
+                    Qt.ConnectionType.DirectConnection,
+                    Q_ARG("QVariant", piston_positions)
+                )
+                
+                if success:
+                    self.logger.debug(f"Updated piston positions: {piston_positions}")
+                else:
+                    self.logger.warning("Failed to invoke updatePistonPositions() in QML")
                 
         except Exception as e:
             self.logger.error(f"Failed to update 3D scene from snapshot: {e}")
