@@ -624,6 +624,21 @@ class MainWindow(QMainWindow):
             phase_rl = self._qml_root_object.property("userPhaseRL") or 0.0
             phase_rr = self._qml_root_object.property("userPhaseRR") or 0.0
             
+            # Cache last parameters to detect changes
+            if not hasattr(self, '_last_animation_params'):
+                self._last_animation_params = {}
+            
+            current_params = {
+                'amplitude': amplitude,
+                'frequency': frequency,
+                'phase_global': phase_global
+            }
+            
+            # Log only when parameters actually change
+            if current_params != self._last_animation_params:
+                print(f"📊 Animation params: Amp={amplitude:.1f}° Freq={frequency:.2f}Hz Phase={phase_global:.0f}°")
+                self._last_animation_params = current_params
+            
             # Use simulation time for smooth animation
             import time
             t = time.time()
@@ -665,10 +680,6 @@ class MainWindow(QMainWindow):
                         corner, angle, None  # No physics state, pure geometry
                     )
                     piston_positions[corner] = corner_3d.get('pistonPositionMm', 125.0)
-                    
-                    # DEBUG: Log piston position calculation
-                    if corner == 'fl' and int(t * 10) % 10 == 0:  # Every ~1 second for FL
-                        print(f"🔧 Amp={amplitude:.1f}° Freq={frequency:.2f}Hz → Angle={angle:.1f}° → Piston={piston_positions[corner]:.1f}mm")
                 else:
                     # Fallback without GeometryBridge
                     piston_ratio = 0.5 + angle / 20.0
@@ -682,19 +693,11 @@ class MainWindow(QMainWindow):
             # CRITICAL: Update lever angles FIRST (so j_rod positions are correct)
             from PySide6.QtCore import QMetaObject, Q_ARG, Qt
             
-            # DEBUG: Log what we're sending
-            if int(t * 10) % 10 == 0:  # Every ~1 second
-                print(f"📤 Sending to QML:")
-                print(f"   Angles: {lever_angles}")
-                print(f"   Pistons: {piston_positions}")
-            
             # WORKAROUND: Set angles directly via properties instead of method call
             # This is more reliable than invokeMethod for simple value updates
             for corner, angle in lever_angles.items():
                 prop_name = f"{corner}_angle"
                 self._qml_root_object.setProperty(prop_name, float(angle))
-                if int(t * 10) % 10 == 0:
-                    print(f"   ✅ Set {prop_name} = {angle}")
             
             # CRITICAL: Update piston positions SECOND (after angles are set)
             if piston_positions:
@@ -707,7 +710,6 @@ class MainWindow(QMainWindow):
                 
                 if not success_pistons:
                     self.logger.warning("Failed to invoke updatePistonPositions() in QML")
-                    print("❌ updatePistonPositions() FAILED!")
                 
         except Exception as e:
             self.logger.error(f"Failed to update 3D scene from snapshot: {e}")
