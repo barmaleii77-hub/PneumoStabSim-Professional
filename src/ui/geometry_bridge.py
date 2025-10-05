@@ -208,9 +208,10 @@ class GeometryTo3DConverter(QObject):
         # Piston position inside cylinder:
         # When lever is horizontal (baseline), piston is centered
         # When lever rotates, distance changes ? piston moves
-        # Piston moves OPPOSITE to rod extension
-        # (if rod extends/distance increases, piston moves toward tail/decreases)
-        piston_position_mm = (self._cylinder_body_length / 2.0) - delta_dist
+        # Piston moves IN SAME DIRECTION as rod extension
+        # (if rod extends/distance increases, piston moves toward rod end/increases)
+        # CORRECTED: Use PLUS (not minus) because piston follows rod extension
+        piston_position_mm = (self._cylinder_body_length / 2.0) + delta_dist
         
         # Clip to safe range (10% to 90% of cylinder length)
         piston_position_mm = float(np.clip(
@@ -218,7 +219,7 @@ class GeometryTo3DConverter(QObject):
             self._cylinder_body_length * 0.1,  # 10% minimum (25mm for 250mm cylinder)
             self._cylinder_body_length * 0.9   # 90% maximum (225mm for 250mm cylinder)
         ))
-        
+
         # Calculate ratio for QML
         piston_ratio = float(piston_position_mm / self._cylinder_body_length)
         
