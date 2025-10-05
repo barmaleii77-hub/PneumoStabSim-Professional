@@ -312,7 +312,7 @@ Item {
             // PISTON POSITION - NOW FROM PYTHON (not calculated here!)
             // Convert from absolute position (mm) to ratio (0..1)
             property real pistonRatio: pistonPositionFromPython / lCylinder
-            
+             
             property vector3d pistonCenter: Qt.vector3d(
                 tailRodEnd.x + cylDirectionNorm.x * pistonPositionFromPython,
                 tailRodEnd.y + cylDirectionNorm.y * pistonPositionFromPython,
@@ -408,6 +408,7 @@ Item {
 
         // FOUR SUSPENSION CORNERS (parametric coordinates with user parameters)
         SuspensionCorner { 
+            id: flCorner
             // Front left - using userTrackWidth and userFrameToPivot
             j_arm: Qt.vector3d(-userFrameToPivot, userBeamSize, userBeamSize/2)
             j_tail: Qt.vector3d(-userTrackWidth/2, userBeamSize + userFrameHeight, userBeamSize/2)
@@ -415,10 +416,11 @@ Item {
                                userBeamSize + userLeverLength * Math.sin((180 + fl_angle) * Math.PI / 180), 
                                userBeamSize/2)
             leverAngle: fl_angle
-            pistonPositionFromPython: userPistonPositionFL  // FROM PYTHON!
+            pistonPositionFromPython: root.userPistonPositionFL  // BIND to root property!
         }
         
         SuspensionCorner { 
+            id: frCorner
             // Front right - using userTrackWidth and userFrameToPivot
             j_arm: Qt.vector3d(userFrameToPivot, userBeamSize, userBeamSize/2)
             j_tail: Qt.vector3d(userTrackWidth/2, userBeamSize + userFrameHeight, userBeamSize/2)
@@ -426,10 +428,11 @@ Item {
                                userBeamSize + userLeverLength * Math.sin((0 + fr_angle) * Math.PI / 180), 
                                userBeamSize/2)
             leverAngle: fr_angle
-            pistonPositionFromPython: userPistonPositionFR  // FROM PYTHON!
+            pistonPositionFromPython: root.userPistonPositionFR  // BIND to root property!
         }
         
         SuspensionCorner { 
+            id: rlCorner
             // Rear left - using userTrackWidth and userFrameToPivot
             j_arm: Qt.vector3d(-userFrameToPivot, userBeamSize, userFrameLength - userBeamSize/2)
             j_tail: Qt.vector3d(-userTrackWidth/2, userBeamSize + userFrameHeight, userFrameLength - userBeamSize/2)
@@ -437,10 +440,11 @@ Item {
                                userBeamSize + userLeverLength * Math.sin((180 + rl_angle) * Math.PI / 180), 
                                userFrameLength - userBeamSize/2)
             leverAngle: rl_angle
-            pistonPositionFromPython: userPistonPositionRL  // FROM PYTHON!
+            pistonPositionFromPython: root.userPistonPositionRL  // BIND to root property!
         }
         
         SuspensionCorner { 
+            id: rrCorner
             // Rear right - using userTrackWidth and userFrameToPivot
             j_arm: Qt.vector3d(userFrameToPivot, userBeamSize, userFrameLength - userBeamSize/2)
             j_tail: Qt.vector3d(userTrackWidth/2, userBeamSize + userFrameHeight, userFrameLength - userBeamSize/2)
@@ -448,7 +452,7 @@ Item {
                                userBeamSize + userLeverLength * Math.sin((0 + rr_angle) * Math.PI / 180), 
                                userFrameLength - userBeamSize/2)
             leverAngle: rr_angle
-            pistonPositionFromPython: userPistonPositionRR  // FROM PYTHON!
+            pistonPositionFromPython: root.userPistonPositionRR  // BIND to root property!
         }
 
         // Coordinate axes
@@ -526,7 +530,7 @@ Item {
                 const moveX = (-dx * panScale) * rnx + (dy * panScale) * unx
                 const moveY = (dy * panScale) * uny
                 const moveZ = (-dx * panScale) * rnz + (dy * panScale) * unz
-                
+                                
                 root.target = Qt.vector3d(root.target.x + moveX, root.target.y + moveY, root.target.z + moveZ)
             }
 
