@@ -64,11 +64,11 @@ class PistonTestWindow(QMainWindow):
         self.fl_slider.setValue(125)    # Center
         self.fl_slider.valueChanged.connect(lambda v: self._on_fl_piston_changed(v, fl_piston_label))
         
-        fl_angle_label = QLabel("FL Lever Angle: 0.0°")
+        fl_angle_label = QLabel("FL Lever Angle: 0.0 deg")
         self.fl_angle_slider = QSlider(Qt.Horizontal)
-        self.fl_angle_slider.setMinimum(-100)  # -10.0°
-        self.fl_angle_slider.setMaximum(100)   # +10.0°
-        self.fl_angle_slider.setValue(0)       # 0°
+        self.fl_angle_slider.setMinimum(-100)  # -10.0 deg
+        self.fl_angle_slider.setMaximum(100)   # +10.0 deg
+        self.fl_angle_slider.setValue(0)       # 0 deg
         self.fl_angle_slider.valueChanged.connect(lambda v: self._on_fl_angle_changed(v, fl_angle_label))
         
         controls_layout.addWidget(fl_piston_label)
@@ -85,7 +85,7 @@ class PistonTestWindow(QMainWindow):
         self.fr_slider.setValue(125)
         self.fr_slider.valueChanged.connect(lambda v: self._on_fr_piston_changed(v, fr_piston_label))
         
-        fr_angle_label = QLabel("FR Lever Angle: 0.0°")
+        fr_angle_label = QLabel("FR Lever Angle: 0.0 deg")
         self.fr_angle_slider = QSlider(Qt.Horizontal)
         self.fr_angle_slider.setMinimum(-100)
         self.fr_angle_slider.setMaximum(100)
@@ -111,7 +111,7 @@ class PistonTestWindow(QMainWindow):
     
     def _on_fl_angle_changed(self, value, label):
         angle_deg = value / 10.0  # Convert to degrees (-10.0 to +10.0)
-        label.setText(f"FL Lever Angle: {angle_deg:.1f}°")
+        label.setText(f"FL Lever Angle: {angle_deg:.1f} deg")
         self._update_angles()
     
     def _on_fr_piston_changed(self, value, label):
@@ -120,7 +120,7 @@ class PistonTestWindow(QMainWindow):
     
     def _on_fr_angle_changed(self, value, label):
         angle_deg = value / 10.0
-        label.setText(f"FR Lever Angle: {angle_deg:.1f}°")
+        label.setText(f"FR Lever Angle: {angle_deg:.1f} deg")
         self._update_angles()
     
     def _update_positions(self):
