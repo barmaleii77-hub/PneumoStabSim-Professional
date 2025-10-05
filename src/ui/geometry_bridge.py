@@ -180,74 +180,63 @@ class GeometryTo3DConverter(QObject):
             z_plane
         )
         
-        # PISTON POSITION CALCULATION (NEW!)
-        # If cylinder_state provided, use physics data
-        # Otherwise, calculate from geometry (lever angle + rod length)
+        # PISTON POSITION CALCULATION
+        # Calculate from GEOMETRY (correct kinematics!)
+        # Distance from tail to rod attachment point
+        tail_to_rod_dist = np.sqrt(
+            (j_rod.x() - j_tail.x())**2 + 
+            (j_rod.y() - j_tail.y())**2
+        )
         
+        # Total assembly: tail_rod + cylinder_body + piston_rod
+        # tail_rod = FIXED 100mm
+        # cylinder_body = FIXED 250mm
+        # piston_rod = VARIABLE (depends on lever angle!)
+        
+        # Calculate baseline distance (lever horizontal)
+        base_angle_rad = np.deg2rad(base_angle_deg)
+        base_rod_x = j_arm.x() + self._lever_length * np.cos(base_angle_rad)
+        base_rod_y = j_arm.y() + self._lever_length * np.sin(base_angle_rad)
+        base_dist = np.sqrt(
+            (base_rod_x - j_tail.x())**2 + 
+            (base_rod_y - j_tail.y())**2
+        )
+        
+        # Change in distance from baseline
+        delta_dist = tail_to_rod_dist - base_dist
+        
+        # Piston position inside cylinder:
+        # When lever is horizontal (baseline), piston is centered
+        # When lever rotates, distance changes ? piston moves
+        # Piston moves OPPOSITE to rod extension
+        # (if rod extends/distance increases, piston moves toward tail/decreases)
+        piston_position_mm = (self._cylinder_body_length / 2.0) - delta_dist
+        
+        # Clip to safe range (10% to 90% of cylinder length)
+        piston_position_mm = float(np.clip(
+            piston_position_mm,
+            self._cylinder_body_length * 0.1,  # 10% minimum (25mm for 250mm cylinder)
+            self._cylinder_body_length * 0.9   # 90% maximum (225mm for 250mm cylinder)
+        ))
+        
+        # Calculate ratio for QML
+        piston_ratio = float(piston_position_mm / self._cylinder_body_length)
+        
+        # If cylinder_state provided, OVERRIDE with physics data
         if cylinder_state is not None:
             # Use actual physics data from CylinderKinematics
-            # stroke is in meters, need to convert to ratio inside cylinder
             stroke_mm = cylinder_state.stroke * 1000.0  # m to mm
             
-            # Calculate piston position as ratio (0..1) inside cylinder body
+            # Calculate piston position from stroke
             # Assuming stroke 0 = center of cylinder
-            # Positive stroke = piston moves toward rod end (extends)
-            # Negative stroke = piston moves toward tail (retracts)
-            max_stroke_mm = self._cylinder_body_length * 0.8  # Allow 80% of cylinder as stroke range
-            piston_ratio = 0.5 + (stroke_mm / (2 * max_stroke_mm))  # 0..1
-            piston_ratio = np.clip(piston_ratio, 0.1, 0.9)  # Safety limits
-            piston_position_mm = piston_ratio * self._cylinder_body_length
-        else:
-            # Calculate from GEOMETRY (correct kinematics!)
-            # Distance from tail to rod attachment point
-            tail_to_rod_dist = np.sqrt(
-                (j_rod.x() - j_tail.x())**2 + 
-                (j_rod.y() - j_tail.y())**2
-            )
+            max_stroke_mm = self._cylinder_body_length * 0.4  # ±40% stroke range
+            piston_ratio_physics = 0.5 + (stroke_mm / (2 * max_stroke_mm))
+            piston_ratio_physics = float(np.clip(piston_ratio_physics, 0.1, 0.9))
+            piston_position_mm_physics = piston_ratio_physics * self._cylinder_body_length
             
-            # Total assembly: tail_rod + cylinder_body + piston_rod
-            # tail_rod = FIXED 100mm
-            # cylinder_body = FIXED 250mm
-            # piston_rod = VARIABLE (depends on lever angle!)
-            
-            # Piston rod length = total distance - tail_rod - cylinder_body
-            piston_rod_length_mm = tail_to_rod_dist - self._tail_rod_length - self._cylinder_body_length
-            
-            # Piston position inside cylinder:
-            # If piston is at START of cylinder (retracted) ? position = 0
-            # If piston is at END of cylinder (extended) ? position = cylinder_length
-            # Position = cylinder_length - piston_rod_length (approximately)
-            # But we need to account for the fact that rod pushes from opposite end
-            
-            # Correct calculation:
-            # When lever horizontal (0°), piston is centered
-            # When lever rotates up, rod pulls ? piston moves toward rod end
-            # When lever rotates down, rod pushes ? piston moves toward tail
-            
-            # For horizontal position (baseline), calculate distance
-            base_angle_rad = np.deg2rad(base_angle_deg)
-            base_rod_x = j_arm.x() + self._lever_length * np.cos(base_angle_rad)
-            base_rod_y = j_arm.y() + self._lever_length * np.sin(base_angle_rad)
-            base_dist = np.sqrt(
-                (base_rod_x - j_tail.x())**2 + 
-                (base_rod_y - j_tail.y())**2
-            )
-            
-            # Change in distance from baseline
-            delta_dist = tail_to_rod_dist - base_dist
-            
-            # Piston moves OPPOSITE to rod extension
-            # (if rod extends, piston moves toward tail)
-            piston_position_mm = (self._cylinder_body_length / 2.0) - delta_dist
-            
-            # Clip to safe range
-            piston_position_mm = np.clip(
-                piston_position_mm,
-                self._cylinder_body_length * 0.1,  # 10% minimum
-                self._cylinder_body_length * 0.9   # 90% maximum
-            )
-            
-            piston_ratio = piston_position_mm / self._cylinder_body_length
+            # Use physics values
+            piston_position_mm = float(piston_position_mm_physics)
+            piston_ratio = float(piston_ratio_physics)
         
         # Return data compatible with CorrectedSuspensionCorner.qml
         result = {
@@ -257,21 +246,21 @@ class GeometryTo3DConverter(QObject):
             'j_rod': j_rod,          # Rod attachment (green joint)
             
             # Animation
-            'leverAngle': lever_angle_deg,
+            'leverAngle': float(lever_angle_deg),
             
             # Dimensions (for QML calculations)
-            'leverLength': self._lever_length,
-            'cylinderBodyLength': self._cylinder_body_length,
-            'tailRodLength': self._tail_rod_length,
+            'leverLength': float(self._lever_length),
+            'cylinderBodyLength': float(self._cylinder_body_length),
+            'tailRodLength': float(self._tail_rod_length),
             
-            # NEW: Piston position from physics or estimation
-            'pistonPositionMm': piston_position_mm,  # Absolute position in cylinder (mm)
-            'pistonRatio': piston_ratio,              # Ratio 0..1 inside cylinder
+            # PISTON POSITION (ALWAYS float, never None or empty!)
+            'pistonPositionMm': float(piston_position_mm),  # Absolute position in cylinder (mm)
+            'pistonRatio': float(piston_ratio),             # Ratio 0..1 inside cylinder
             
             # Additional data for UI
             'corner': corner,
-            'totalAngle': total_angle_deg,
-            'baseAngle': base_angle_deg,
+            'totalAngle': float(total_angle_deg),
+            'baseAngle': float(base_angle_deg),
             'side': 'left' if is_left else 'right',
             'position': 'front' if is_front else 'rear'
         }
@@ -312,8 +301,7 @@ class GeometryTo3DConverter(QObject):
             cyl_state = cylinder_states.get(corner, None)
             corners[corner] = self.get_corner_3d_coords(corner, angle, cyl_state)
         
-        return corners
-    
+        return corners    
     def update_from_simulation(self, sim_state: Dict[str, Any]) -> Dict[str, Any]:
         """Update 3D coordinates from simulation state
         
@@ -417,4 +405,4 @@ def create_geometry_converter(wheelbase: float = 2.0,
     geometry.cylinder_inner_diameter = cylinder_diameter
     geometry.enforce_track_from_geometry()  # Ensure consistency
     
-    return GeometryTo3DConverter(geometry)
+    return GeometryTo3DConverter(geometry)    return GeometryTo3DConverter(geometry)
