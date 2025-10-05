@@ -129,78 +129,91 @@ class MainWindow(QMainWindow):
 
     def _setup_qml_3d_view(self):
         """Setup Qt Quick 3D full suspension scene"""
-        try:
-            from .qml_host import SuspensionSceneHost
-            print("    ✅ SuspensionSceneHost imported")
-        except Exception as e:
-            print(f"    ❌ Failed to import SuspensionSceneHost: {e}")
-            raise
+        print("    [QML] Loading main.qml directly for better UI integration...")
         
         try:
-            from .geometry_bridge import create_geometry_converter
-            print("    ✅ geometry_bridge imported")
-        except Exception as e:
-            print(f"    ❌ Failed to import geometry_bridge: {e}")
-            print("    ⚠️  Using fallback without real geometry")
-            # Fallback: create scene without geometry bridge
-            self._qquick_widget = SuspensionSceneHost(self)
-            self.setCentralWidget(self._qquick_widget)
+            # Create QQuickWidget for main.qml with UI integration
+            self._qquick_widget = QQuickWidget(self)
+            
+            # CRITICAL: Set resize mode BEFORE loading source
+            self._qquick_widget.setResizeMode(QQuickWidget.ResizeMode.SizeRootObjectToView)
+            
+            # Load main.qml directly (with UI integration)
+            qml_path = Path("assets/qml/main.qml")
+            if not qml_path.exists():
+                raise FileNotFoundError(f"QML file not found: {qml_path.absolute()}")
+            
+            qml_url = QUrl.fromLocalFile(str(qml_path.absolute()))
+            print(f"    Loading main.qml: {qml_url.toString()}")
+            
+            self._qquick_widget.setSource(qml_url)
+            
+            # Check for QML errors
+            if self._qquick_widget.status() == QQuickWidget.Status.Error:
+                errors = self._qquick_widget.errors()
+                error_msg = "\n".join(str(e) for e in errors)
+                raise RuntimeError(f"QML errors:\n{error_msg}")
+            
+            # Get root object for property access
             self._qml_root_object = self._qquick_widget.rootObject()
-            print("    ✅ Qt Quick 3D scene loaded with DEFAULT geometry")
-            return
-
-        # Create QML host widget with full suspension scene
-        self._qquick_widget = SuspensionSceneHost(self)
-        
-        print("    🎯 Setting up geometry from core geometry system...")
-        
-        # Create geometry converter from core parameters
-        self._geometry_converter = create_geometry_converter(
-            wheelbase=2.6,          # m (realistic track width)
-            lever_length=0.45,     # m (realistic suspension arm)
-            cylinder_diameter=0.085 # m (85mm bore)
-        )
-        
-        print(f"    📏 Geometry: wheelbase={2.6}m, lever={0.45}m, bore={85}mm")
-        
-        # Get real geometry coordinates
-        geometry_data = self._geometry_converter.update_from_simulation({
-            'fl_angle': 0.0,   # Level position
-            'fr_angle': 0.0,   
-            'rl_angle': 0.0,
-            'rr_angle': 0.0
-        })
-        
-        # Update frame with real dimensions
-        frame_params = geometry_data['frame']
-        self._qquick_widget.update_frame(**frame_params)
-        print(f"    🔧 Frame: {frame_params['frameLength']:.0f}mm length, {frame_params['frameHeight']:.0f}mm height")
-        
-        # Update all corners with real coordinates
-        for corner in ['fl', 'fr', 'rl', 'rr']:
-            if corner in geometry_data:
-                corner_params = geometry_data[corner]
-                self._qquick_widget.update_corner(corner, **corner_params)
+            if not self._qml_root_object:
+                raise RuntimeError("Failed to get QML root object")
+            
+            print("    [OK] main.qml loaded successfully")
+            
+            # DEBUG: Check what object we got
+            print(f"    [DEBUG] QML root object type: {type(self._qml_root_object)}")
+            print(f"    [DEBUG] QML root object class: {self._qml_root_object.__class__.__name__ if self._qml_root_object else 'None'}")
+            
+            # DEBUG: Try to list all properties
+            try:
+                from PySide6.QtCore import QMetaObject
+                meta = self._qml_root_object.metaObject()
+                print(f"    [DEBUG] QML object has {meta.propertyCount()} properties:")
+                for i in range(meta.propertyCount()):
+                    prop = meta.property(i)
+                    print(f"       - {prop.name()}")
                 
-                # Log key coordinates for verification
-                j_arm = corner_params['j_arm']
-                j_tail = corner_params['j_tail'] 
-                j_rod = corner_params['j_rod']
-                print(f"    📍 {corner.upper()}: arm=({j_arm.x():.0f},{j_arm.y():.0f},{j_arm.z():.0f})")
-                print(f"           tail=({j_tail.x():.0f},{j_tail.y():.0f},{j_tail.z():.0f})")
-                print(f"           rod=({j_rod.x():.0f},{j_rod.y():.0f},{j_rod.z():.0f})")
-        
-        # Set as central widget
-        self.setCentralWidget(self._qquick_widget)
-        
-        # Store reference for updates
-        self._qml_root_object = self._qquick_widget.rootObject()
-        
-        print("    ✅ Qt Quick 3D suspension scene loaded with REAL GEOMETRY")
-        print("    🎨 Features: U-frame + 4 corners based on GeometryParams")
-        print("    🔧 Materials: PBR steel, chrome, glass, with shadows")
-        print("    📹 Camera: Orbit around frame center, F=auto-fit, R=reset")
-        
+                print(f"    [DEBUG] QML object has {meta.methodCount()} methods:")
+                for i in range(meta.methodCount()):
+                    method = meta.method(i)
+                    print(f"       - {method.name().data().decode('utf-8')}")
+            except Exception as e:
+                print(f"    [WARNING] Could not introspect QML object: {e}")
+            
+            # Set as central widget
+            self.setCentralWidget(self._qquick_widget)
+            
+            print("    [OK] main.qml set as central widget with UI integration")
+            
+        except Exception as e:
+            print(f"    [ERROR] main.qml loading failed: {e}")
+            import traceback
+            traceback.print_exc()
+            
+            # Fallback to SuspensionSceneHost
+            print("    [FALLBACK] Falling back to SuspensionSceneHost...")
+            try:
+                from .qml_host import SuspensionSceneHost
+                self._qquick_widget = SuspensionSceneHost(self)
+                self.setCentralWidget(self._qquick_widget)
+                self._qml_root_object = self._qquick_widget.rootObject()
+                print("    [OK] Fallback to SuspensionSceneHost successful")
+            except Exception as e2:
+                print(f"    [ERROR] Fallback also failed: {e2}")
+                # Final fallback to simple label
+                fallback = QLabel(
+                    "3D Scene Loading Failed\n\n"
+                    "Both main.qml and SuspensionSceneHost failed to load.\n"
+                    "Check console for detailed errors."
+                )
+                fallback.setAlignment(Qt.AlignmentFlag.AlignCenter)
+                fallback.setStyleSheet("background: #1a1a2e; color: #ff6b6b; font-size: 14px; padding: 20px;")
+                self.setCentralWidget(fallback)
+                self._qquick_widget = None
+                print("    [WARNING] Using fallback widget")
+
+
     def _setup_legacy_opengl_view(self):
         """Setup legacy OpenGL widget (existing main.qml scene)"""
         print("    _setup_legacy_opengl_view: Loading legacy QML...")
@@ -356,27 +369,33 @@ class MainWindow(QMainWindow):
         """Connect panel signals to simulation/state bus"""
         bus = self.simulation_manager.state_bus
 
-        # Geometry updates -> (placeholder: just log / future: emit structured config)
+        # Geometry updates -> 3D SCENE GEOMETRY CHANGES (MAIN!)
         if self.geometry_panel:
             self.geometry_panel.parameter_changed.connect(
                 lambda name, val: [
                     self.logger.info(f"Geometry param {name}={val}"),
                     print(f"🔧 GeometryPanel signal: {name}={val}")
                 ])
+            # NEW: Connect geometry_changed signal for 3D scene updates
+            self.geometry_panel.geometry_changed.connect(self._on_geometry_changed)
+            print("✅ GeometryPanel geometry_changed signal connected")
 
-        # Pneumatic panel -> send thermo mode and master isolation + GEOMETRY CHANGES
+        # Pneumatic panel -> send thermo mode and master isolation ONLY (NO GEOMETRY!)
         if self.pneumo_panel:
             self.pneumo_panel.mode_changed.connect(self._on_mode_changed)
             self.pneumo_panel.parameter_changed.connect(self._on_pneumo_param)
-            self.pneumo_panel.geometry_changed.connect(self._on_geometry_changed)  # NEW
-            print("✅ PneumoPanel geometry_changed signal connected")
+            # REMOVED: self.pneumo_panel.geometry_changed.connect(self._on_geometry_changed)
+            print("✅ PneumoPanel signals connected (NO geometry)")
 
-        # Modes panel -> simulation control + modes
+        # Modes panel -> simulation control + modes + ANIMATION
         if self.modes_panel:
             self.modes_panel.simulation_control.connect(self._on_sim_control)
             self.modes_panel.mode_changed.connect(self._on_mode_changed)
             self.modes_panel.parameter_changed.connect(
                 lambda n, v: self.logger.debug(f"Road/global param {n}={v}"))
+            # NEW: Connect animation_changed signal for animation parameters
+            self.modes_panel.animation_changed.connect(self._on_animation_changed)
+            print("✅ ModesPanel animation_changed signal connected")
 
         # Road panel -> load/apply road profiles (placeholder logging)
         if self.road_panel:
@@ -404,7 +423,7 @@ class MainWindow(QMainWindow):
         save_preset_act.triggered.connect(self._save_preset)
         load_preset_act.triggered.connect(self._load_preset)
         file_menu.addAction(save_preset_act)
-        file_menu.addAction(load_preset_act)
+        file_menu.addAction(load_preset_act)  # FIXED: was load_ppreset_act
         file_menu.addSeparator()
         
         # Export submenu (P11)
@@ -567,13 +586,29 @@ class MainWindow(QMainWindow):
         if command == "start":
             bus.start_simulation.emit()
             self.is_simulation_running = True
+            # NEW: Start animation in QML
+            if self._qml_root_object:
+                self._qml_root_object.setProperty("isRunning", True)
+                print("✅ QML animation STARTED")
         elif command == "stop":
             bus.stop_simulation.emit()
             self.is_simulation_running = False
+            # NEW: Stop animation in QML
+            if self._qml_root_object:
+                self._qml_root_object.setProperty("isRunning", False)
+                print("✅ QML animation STOPPED")
         elif command == "reset":
             bus.reset_simulation.emit()
+            # NEW: Reset animation time
+            if self._qml_root_object:
+                self._qml_root_object.setProperty("animationTime", 0.0)
+                print("✅ QML animation RESET")
         elif command == "pause":
             bus.pause_simulation.emit()
+            # NEW: Pause animation
+            if self._qml_root_object:
+                self._qml_root_object.setProperty("isRunning", False)
+                print("✅ QML animation PAUSED")
         self.status_bar.showMessage(f"Simulation: {command}")
         if self.modes_panel:
             self.modes_panel.set_simulation_running(self.is_simulation_running)
@@ -600,110 +635,185 @@ class MainWindow(QMainWindow):
         Args:
             geometry_params: Dictionary with geometry parameters from UI
         """
+        print(f"═══════════════════════════════════════════════")
+        print(f"📥 MainWindow: Received geometry_changed signal")
+        print(f"   Parameters received:")
+        for key, val in geometry_params.items():
+            print(f"      {key}: {val}")
+        print(f"═══════════════════════════════════════════════")
+        
         self.logger.info(f"Geometry changed: {geometry_params}")
         
-        # Update geometry converter if available
-        if hasattr(self, '_geometry_converter') and self._geometry_converter:
-            try:
-                # Update user parameters in geometry converter
-                self._geometry_converter.update_user_parameters({
-                    'frameLength': geometry_params.get('frameLength', 2000.0),
-                    'frameHeight': geometry_params.get('frameHeight', 650.0),
-                    'frameBeamSize': geometry_params.get('frameBeamSize', 120.0),
-                    'leverLength': geometry_params.get('leverLength', 315.0),
-                    'cylinderBodyLength': geometry_params.get('cylinderBodyLength', 250.0),
-                    'tailRodLength': geometry_params.get('tailRodLength', 100.0)
-                })
-                
-                # Update 3D scene with new geometry
-                current_angles = {
-                    'fl': 0.0, 'fr': 0.0, 'rl': 0.0, 'rr': 0.0
-                }
-                
-                # Use current simulation angles if available
-                if self.current_snapshot:
-                    # TODO: Extract actual lever angles from snapshot
-                    pass
-                
-                # Update 3D scene
-                self.update_3d_scene(simulation_data={'lever_angles': current_angles})
-                
-                self.status_bar.showMessage(f"Geometry updated: {geometry_params}")
-                
-            except Exception as e:
-                self.logger.error(f"Failed to update geometry: {e}")
-                self.status_bar.showMessage(f"Geometry update failed: {e}")
-        
         # Update QML scene directly if available
-        elif self._qml_root_object:
+        if self._qml_root_object:
             try:
-                # 🔧 ИСПРАВЛЕНО: Используем QMetaObject.invokeMethod вместо call()
-                from PySide6.QtCore import QMetaObject, Qt
+                print(f"🔧 Attempting to update QML using QMetaObject.invokeMethod()...")
+                
+                # Use QMetaObject.invokeMethod() to call QML function
+                from PySide6.QtCore import QMetaObject, Q_ARG, Qt
+                
+                # In PySide6, dict is automatically converted to JS object
+                # No need for QVariant wrapper
                 success = QMetaObject.invokeMethod(
-                    self._qml_root_object, 
+                    self._qml_root_object,
                     "updateGeometry",
                     Qt.ConnectionType.DirectConnection,
-                    geometry_params
+                    Q_ARG("QVariant", geometry_params)  # Pass dict directly
                 )
                 
                 if success:
+                    print(f"✅ QML updateGeometry() called successfully via invokeMethod")
                     self.status_bar.showMessage("Geometry updated in QML scene")
-                    print(f"✅ QML updateGeometry called successfully: {geometry_params}")
                 else:
-                    print(f"❌ QML updateGeometry call failed")
+                    print(f"❌ QML updateGeometry() call failed")
+                    # Fallback to individual properties
+                    self._set_geometry_properties_fallback(geometry_params)
                     
             except Exception as e:
-                self.logger.warning(f"QML geometry update failed: {e}")
-                print(f"❌ QML updateGeometry exception: {e}")
+                print(f"═══════════════════════════════════════════════")
+                print(f"❌ QML geometry update FAILED!")
+                print(f"   Error: {e}")
+                print(f"═══════════════════════════════════════════════")
+                self.logger.error(f"QML geometry update failed: {e}")
+                self.status_bar.showMessage(f"Geometry update failed: {e}")
+                import traceback
+                traceback.print_exc()
                 
-                # Fallback: set individual properties
-                try:
-                    print(f"🔧 Fallback: Setting individual QML properties...")
-                    for param, value in geometry_params.items():
-                        # Map parameter names to QML property names
-                        if param == 'frameLength':
-                            qml_property = 'frameLength'
-                        elif param == 'frameHeight':
-                            qml_property = 'frameHeight'
-                        elif param == 'frameBeamSize':
-                            qml_property = 'beamSize'
-                        elif param == 'leverLength':
-                            qml_property = 'leverLength'
-                        elif param == 'cylinderBodyLength':
-                            qml_property = 'fl_cylinderBodyLength'  # Will also need fr_, rl_, rr_
-                        elif param == 'tailRodLength':
-                            qml_property = 'fl_tailRodLength'  # Will also need fr_, rl_, rr_
-                        else:
-                            qml_property = param
-                        
-                        self._qml_root_object.setProperty(qml_property, value)
-                        print(f"   ✅ Set {qml_property} = {value}")
-                        
-                        # For cylinder parameters, set all corners
-                        if param == 'cylinderBodyLength':
-                            for corner in ['fr', 'rl', 'rr']:
-                                corner_prop = f'{corner}_cylinderBodyLength'
-                                self._qml_root_object.setProperty(corner_prop, value)
-                                print(f"   ✅ Set {corner_prop} = {value}")
-                                
-                        elif param == 'tailRodLength':
-                            for corner in ['fr', 'rl', 'rr']:
-                                corner_prop = f'{corner}_tailRodLength'
-                                self._qml_root_object.setProperty(corner_prop, value)
-                                print(f"   ✅ Set {corner_prop} = {value}")
-                                
-                        elif param == 'leverLength':
-                            for corner in ['fl', 'fr', 'rl', 'rr']:
-                                corner_prop = f'{corner}_leverLength'
-                                self._qml_root_object.setProperty(corner_prop, value)
-                                print(f"   ✅ Set {corner_prop} = {value}")
+                # Fallback to individual properties
+                self._set_geometry_properties_fallback(geometry_params)
+        else:
+            print(f"═══════════════════════════════════════════════")
+            print(f"❌ MainWindow: QML root object is None!")
+            print(f"   Cannot update geometry")
+            print(f"═══════════════════════════════════════════════")
+    
+    def _set_geometry_properties_fallback(self, geometry_params: dict):
+        """Fallback: Set individual QML properties directly
+        
+        Args:
+            geometry_params: Dictionary with geometry parameters
+        """
+        print(f"🔧 Fallback: Setting individual QML properties...")
+        
+        prop_count = 0
+        
+        if 'frameLength' in geometry_params:
+            self._qml_root_object.setProperty("userFrameLength", geometry_params['frameLength'])
+            print(f"   ✅ Set userFrameLength = {geometry_params['frameLength']}")
+            prop_count += 1
+        
+        if 'frameHeight' in geometry_params:
+            self._qml_root_object.setProperty("userFrameHeight", geometry_params['frameHeight'])
+            print(f"   ✅ Set userFrameHeight = {geometry_params['frameHeight']}")
+            prop_count += 1
+        
+        if 'frameBeamSize' in geometry_params:
+            self._qml_root_object.setProperty("userBeamSize", geometry_params['frameBeamSize'])
+            print(f"   ✅ Set userBeamSize = {geometry_params['frameBeamSize']}")
+            prop_count += 1
+        
+        if 'leverLength' in geometry_params:
+            self._qml_root_object.setProperty("userLeverLength", geometry_params['leverLength'])
+            print(f"   ✅ Set userLeverLength = {geometry_params['leverLength']}")
+            prop_count += 1
+        
+        if 'cylinderBodyLength' in geometry_params:
+            self._qml_root_object.setProperty("userCylinderLength", geometry_params['cylinderBodyLength'])
+            print(f"   ✅ Set userCylinderLength = {geometry_params['cylinderBodyLength']}")
+            prop_count += 1
+        
+        # NEW: Additional parameters
+        if 'trackWidth' in geometry_params:
+            self._qml_root_object.setProperty("userTrackWidth", geometry_params['trackWidth'])
+            print(f"   ✅ Set userTrackWidth = {geometry_params['trackWidth']}")
+            prop_count += 1
+        
+        if 'frameToPivot' in geometry_params:
+            self._qml_root_object.setProperty("userFrameToPivot", geometry_params['frameToPivot'])
+            print(f"   ✅ Set userFrameToPivot = {geometry_params['frameToPivot']}")
+            prop_count += 1
+        
+        if 'rodPosition' in geometry_params:
+            self._qml_root_object.setProperty("userRodPosition", geometry_params['rodPosition'])
+            print(f"   ✅ Set userRodPosition = {geometry_params['rodPosition']}")
+            prop_count += 1
+        
+        if 'boreHead' in geometry_params:
+            self._qml_root_object.setProperty("userBoreHead", geometry_params['boreHead'])
+            print(f"   ✅ Set userBoreHead = {geometry_params['boreHead']}")
+            prop_count += 1
+        
+        if 'boreRod' in geometry_params:
+            self._qml_root_object.setProperty("userBoreRod", geometry_params['boreRod'])
+            print(f"   ✅ Set userBoreRod = {geometry_params['boreRod']}")
+            prop_count += 1
+        
+        if 'rodDiameter' in geometry_params:
+            self._qml_root_object.setProperty("userRodDiameter", geometry_params['rodDiameter'])
+            print(f"   ✅ Set userRodDiameter = {geometry_params['rodDiameter']}")
+            prop_count += 1
+        
+        if 'pistonThickness' in geometry_params:
+            self._qml_root_object.setProperty("userPistonThickness", geometry_params['pistonThickness'])
+            print(f"   ✅ Set userPistonThickness = {geometry_params['pistonThickness']}")
+            prop_count += 1
+        
+        self.status_bar.showMessage(f"Geometry properties updated ({prop_count} properties)")
+        print(f"✅ Set {prop_count} QML properties successfully")
+        print(f"═══════════════════════════════════════════════")
+    
+    def _on_animation_changed(self, animation_params: dict):
+        """Handle animation parameter changes from ModesPanel
+        
+        Args:
+            animation_params: Dictionary with animation parameters (amplitude, frequency, phases)
+        """
+        self.logger.info(f"Animation changed: {animation_params}")
+        
+        # Update QML scene animation parameters if available
+        if self._qml_root_object:
+            try:
+                print(f"🔧 Setting QML animation properties: {animation_params}")
+                
+                # Set animation properties directly (no function call needed - QML will react via property bindings)
+                if 'amplitude' in animation_params:
+                    # Convert amplitude from meters to degrees for lever rotation
+                    amplitude_deg = animation_params['amplitude'] * 1000 / 10  # Scale factor for visual effect
+                    self._qml_root_object.setProperty("userAmplitude", amplitude_deg)
+                    print(f"   ✅ Set userAmplitude = {amplitude_deg} deg")
+                
+                if 'frequency' in animation_params:
+                    self._qml_root_object.setProperty("userFrequency", animation_params['frequency'])
+                    print(f"   ✅ Set userFrequency = {animation_params['frequency']} Hz")
+                
+                if 'phase' in animation_params:
+                    self._qml_root_object.setProperty("userPhaseGlobal", animation_params['phase'])
+                    print(f"   ✅ Set userPhaseGlobal = {animation_params['phase']} deg")
+                
+                if 'lf_phase' in animation_params:
+                    self._qml_root_object.setProperty("userPhaseFL", animation_params['lf_phase'])
+                    print(f"   ✅ Set userPhaseFL = {animation_params['lf_phase']} deg")
+                
+                if 'rf_phase' in animation_params:
+                    self._qml_root_object.setProperty("userPhaseFR", animation_params['rf_phase'])
+                    print(f"   ✅ Set userPhaseFR = {animation_params['rf_phase']} deg")
+                
+                if 'lr_phase' in animation_params:
+                    self._qml_root_object.setProperty("userPhaseRL", animation_params['lr_phase'])
+                    print(f"   ✅ Set userPhaseRL = {animation_params['lr_phase']} deg")
+                
+                if 'rr_phase' in animation_params:
+                    self._qml_root_object.setProperty("userPhaseRR", animation_params['rr_phase'])
+                    print(f"   ✅ Set userPhaseRR = {animation_params['rr_phase']} deg")
+                
+                self.status_bar.showMessage("Animation properties updated")
+                print(f"✅ QML animation properties set successfully")
                     
-                    self.status_bar.showMessage("Geometry properties updated")
-                    print(f"✅ QML properties set successfully")
-                    
-                except Exception as e2:
-                    self.logger.error(f"Property update also failed: {e2}")
-                    print(f"❌ QML property update failed: {e2}")
+            except Exception as e:
+                self.logger.error(f"QML animation update failed: {e}")
+                self.status_bar.showMessage(f"Animation update failed: {e}")
+                import traceback
+                traceback.print_exc()
 
     # ------------------------------------------------------------------
     # Rendering Update
@@ -744,13 +854,13 @@ class MainWindow(QMainWindow):
         
         # Start simulation manager only once, after window is shown
         if not self._sim_started:
-            print("\n?? Window shown - starting SimulationManager...")
+            print("\n🚀 Window shown - starting SimulationManager...")
             try:
                 self.simulation_manager.start()
                 self._sim_started = True
-                print("? SimulationManager started successfully\n")
+                print("✅ SimulationManager started successfully\n")
             except Exception as e:
-                print(f"? Failed to start SimulationManager: {e}")
+                print(f"❌ Failed to start SimulationManager: {e}")
                 import traceback
                 traceback.print_exc()
     
@@ -946,7 +1056,7 @@ class MainWindow(QMainWindow):
             )
         except Exception as e:
             QMessageBox.critical(self, "Export Failed", str(e))
-            self.logger.error(f"Snapshot export.failed: {e}")
+            self.logger.error(f"Snapshot export failed: {e}")
 
     # ------------------------------------------------------------------
     # Close Event
@@ -958,57 +1068,3 @@ class MainWindow(QMainWindow):
         self.simulation_manager.stop()
         event.accept()
         self.logger.info("Main window closed")
-    
-    def update_3d_scene(self, geometry_data=None, simulation_data=None):
-        """Update 3D scene with real geometry and simulation data
-        
-        Args:
-            geometry_data: Dictionary with frame and corner geometry (optional)
-            simulation_data: Dictionary with current simulation state (angles, positions)
-        """
-        if not hasattr(self, '_qquick_widget') or self._qquick_widget is None:
-            return  # 3D scene not available
-        
-        if not hasattr(self, '_geometry_converter') or self._geometry_converter is None:
-            return  # Geometry converter not available
-        
-        try:
-            # Update from simulation data if provided
-            if simulation_data:
-                # Convert simulation state to 3D coordinates
-                geometry_3d = self._geometry_converter.update_from_simulation(simulation_data)
-                
-                # Update frame if changed
-                if 'frame' in geometry_3d:
-                    frame_params = geometry_3d['frame']
-                    self._qquick_widget.update_frame(**frame_params)
-                
-                # Update all corners with new positions/angles
-                for corner in ['fl', 'fr', 'rl', 'rr']:
-                    if corner in geometry_3d:
-                        corner_params = geometry_3d[corner]
-                        self._qquick_widget.update_corner(corner, **corner_params)
-            
-            # Update with direct geometry data (overrides simulation)
-            if geometry_data:
-                if 'frame' in geometry_data:
-                    self._qquick_widget.update_frame(**geometry_data['frame'])
-                
-                for corner in ['fl', 'fr', 'rl', 'rr']:
-                    if corner in geometry_data:
-                        self._qquick_widget.update_corner(corner, **geometry_data[corner])
-                
-                # Auto-fit camera after major geometry change
-                self._qquick_widget.auto_fit()
-                
-        except Exception as e:
-            print(f"⚠️ Error updating 3D scene: {e}")
-    
-    def update_lever_angles(self, angles: Dict[str, float]):
-        """Update suspension lever angles from simulation
-        
-        Args:
-            angles: Dictionary with lever angles in degrees {'fl': deg, 'fr': deg, ...}
-        """
-        simulation_data = {'lever_angles': angles}
-        self.update_3d_scene(simulation_data=simulation_data)

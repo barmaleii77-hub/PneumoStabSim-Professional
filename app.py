@@ -8,6 +8,12 @@ import os
 import logging
 from pathlib import Path
 
+# CRITICAL: Force UTF-8 encoding for stdout to handle emoji in Windows console
+if sys.platform == 'win32':
+    import codecs
+    sys.stdout = codecs.getwriter('utf-8')(sys.stdout.buffer, errors='replace')
+    sys.stderr = codecs.getwriter('utf-8')(sys.stderr.buffer, errors='replace')
+
 # ========== VISUALIZATION BACKEND SWITCH ==========
 USE_QML_3D_SCHEMA = True  # True: Qt Quick 3D U-Frame, False: legacy OpenGL widget
 
