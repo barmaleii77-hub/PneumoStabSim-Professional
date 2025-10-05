@@ -405,4 +405,4 @@ def create_geometry_converter(wheelbase: float = 2.0,
     geometry.cylinder_inner_diameter = cylinder_diameter
     geometry.enforce_track_from_geometry()  # Ensure consistency
     
-    return GeometryTo3DConverter(geometry)    return GeometryTo3DConverter(geometry)
+    return GeometryTo3DConverter(geometry)
