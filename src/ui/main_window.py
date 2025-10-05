@@ -615,16 +615,40 @@ class MainWindow(QMainWindow):
             return  # QML not loaded yet
         
         try:
-            # Use simple animation for now (placeholder until full physics integrated)
+            # Get animation parameters from QML properties (set by ModesPanel)
+            amplitude = self._qml_root_object.property("userAmplitude") or 8.0
+            frequency = self._qml_root_object.property("userFrequency") or 1.0
+            phase_global = self._qml_root_object.property("userPhaseGlobal") or 0.0
+            phase_fl = self._qml_root_object.property("userPhaseFL") or 0.0
+            phase_fr = self._qml_root_object.property("userPhaseFR") or 0.0
+            phase_rl = self._qml_root_object.property("userPhaseRL") or 0.0
+            phase_rr = self._qml_root_object.property("userPhaseRR") or 0.0
+            
+            # Use simulation time for smooth animation
             import time
             t = time.time()
             
-            # Simple sine wave animation for visualization
+            # Calculate angles with user-controlled parameters
+            # Formula: amplitude * sin(2π * frequency * time + phase)
+            omega = 2.0 * np.pi * frequency
+            
             corners_data = {
-                'fl': {'leverAngle': 5.0 * np.sin(t), 'cylinderState': None},
-                'fr': {'leverAngle': 5.0 * np.sin(t + np.pi/4), 'cylinderState': None},
-                'rl': {'leverAngle': 5.0 * np.sin(t + np.pi/2), 'cylinderState': None},
-                'rr': {'leverAngle': 5.0 * np.sin(t + 3*np.pi/4), 'cylinderState': None}
+                'fl': {
+                    'leverAngle': amplitude * np.sin(omega * t + np.deg2rad(phase_global + phase_fl)),
+                    'cylinderState': None
+                },
+                'fr': {
+                    'leverAngle': amplitude * np.sin(omega * t + np.deg2rad(phase_global + phase_fr)),
+                    'cylinderState': None
+                },
+                'rl': {
+                    'leverAngle': amplitude * np.sin(omega * t + np.deg2rad(phase_global + phase_rl)),
+                    'cylinderState': None
+                },
+                'rr': {
+                    'leverAngle': amplitude * np.sin(omega * t + np.deg2rad(phase_global + phase_rr)),
+                    'cylinderState': None
+                }
             }
             
             # CRITICAL: Calculate piston positions using GeometryBridge!
@@ -644,7 +668,7 @@ class MainWindow(QMainWindow):
                     
                     # DEBUG: Log piston position calculation
                     if corner == 'fl' and int(t * 10) % 10 == 0:  # Every ~1 second for FL
-                        print(f"🔧 Angle={angle:.1f}° → Piston={piston_positions[corner]:.1f}mm")
+                        print(f"🔧 Amp={amplitude:.1f}° Freq={frequency:.2f}Hz → Angle={angle:.1f}° → Piston={piston_positions[corner]:.1f}mm")
                 else:
                     # Fallback without GeometryBridge
                     piston_ratio = 0.5 + angle / 20.0
