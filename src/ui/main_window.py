@@ -615,57 +615,36 @@ class MainWindow(QMainWindow):
             return  # QML not loaded yet
         
         try:
-            # Extract corner states from snapshot
-            # (Assuming snapshot has corner data - adjust based on actual structure)
-            corners_data = {}
+            # Use simple animation for now (placeholder until full physics integrated)
+            import time
+            t = time.time()
+            
+            # Simple sine wave animation for visualization
+            corners_data = {
+                'fl': {'leverAngle': 5.0 * np.sin(t), 'cylinderState': None},
+                'fr': {'leverAngle': 5.0 * np.sin(t + np.pi/4), 'cylinderState': None},
+                'rl': {'leverAngle': 5.0 * np.sin(t + np.pi/2), 'cylinderState': None},
+                'rr': {'leverAngle': 5.0 * np.sin(t + 3*np.pi/4), 'cylinderState': None}
+            }
+            
+            # CRITICAL: Calculate piston positions using GeometryBridge!
             piston_positions = {}
-            
-            # Try to get corner states from snapshot
-            if hasattr(snapshot, 'corners'):
-                for corner in ['fl', 'fr', 'rl', 'rr']:
-                    corner_data = getattr(snapshot.corners, corner, None)
-                    if corner_data:
-                        # Extract lever angle and cylinder state
-                        lever_angle = getattr(corner_data, 'lever_angle', 0.0)
-                        cylinder_state = getattr(corner_data, 'cylinder_state', None)
-                        
-                        corners_data[corner] = {
-                            'leverAngle': lever_angle,
-                            'cylinderState': cylinder_state
-                        }
-                        
-                        # Extract piston position from cylinder state
-                        if cylinder_state is not None:
-                            # Use GeometryBridge to calculate piston position
-                            if hasattr(self, 'geometry_converter'):
-                                corner_3d = self.geometry_converter.get_corner_3d_coords(
-                                    corner, lever_angle, cylinder_state
-                                )
-                                piston_positions[corner] = corner_3d.get('pistonPositionMm', 125.0)
-                            else:
-                                # Fallback: estimate from stroke
-                                stroke_mm = cylinder_state.stroke * 1000.0
-                                max_stroke = 200.0  # mm
-                                piston_ratio = 0.5 + (stroke_mm / (2 * max_stroke))
-                                piston_ratio = np.clip(piston_ratio, 0.1, 0.9)
-                                piston_positions[corner] = piston_ratio * 250.0  # Assuming 250mm cylinder
-            
-            # Fallback: use simple lever angles if no full state available
-            if not corners_data:
-                # Use simple sine wave animation (placeholder)
-                import time
-                t = time.time()
-                corners_data = {
-                    'fl': {'leverAngle': 5.0 * np.sin(t), 'cylinderState': None},
-                    'fr': {'leverAngle': 5.0 * np.sin(t + np.pi/4), 'cylinderState': None},
-                    'rl': {'leverAngle': 5.0 * np.sin(t + np.pi/2), 'cylinderState': None},
-                    'rr': {'leverAngle': 5.0 * np.sin(t + 3*np.pi/4), 'cylinderState': None}
-                }
+            for corner, data in corners_data.items():
+                angle = data['leverAngle']
                 
-                # Fallback piston positions (from lever angles)
-                for corner, data in corners_data.items():
-                    angle = data['leverAngle']
-                    piston_ratio = 0.5 + angle / 20.0  # -10..+10 deg -> 0..1
+                # Use GeometryBridge to calculate CORRECT piston position from angle
+                if hasattr(self, 'geometry_converter'):
+                    corner_3d = self.geometry_converter.get_corner_3d_coords(
+                        corner, angle, None  # No physics state, pure geometry
+                    )
+                    piston_positions[corner] = corner_3d.get('pistonPositionMm', 125.0)
+                    
+                    # DEBUG: Log piston position calculation
+                    if corner == 'fl' and int(t * 10) % 10 == 0:  # Every ~1 second for FL
+                        print(f"🔧 Piston calc: angle={angle:.1f}° → position={piston_positions[corner]:.1f}mm")
+                else:
+                    # Fallback without GeometryBridge
+                    piston_ratio = 0.5 + angle / 20.0
                     piston_ratio = np.clip(piston_ratio, 0.1, 0.9)
                     piston_positions[corner] = piston_ratio * 250.0
             
@@ -673,13 +652,13 @@ class MainWindow(QMainWindow):
             if hasattr(snapshot, 'simulation_time'):
                 self._qml_root_object.setProperty("animationTime", snapshot.simulation_time)
             
-            # Update each corner's angle (QML will recalculate positions)
+            # Update each corner's angle (QML will recalculate rod positions)
             for corner, data in corners_data.items():
                 angle = data.get('leverAngle', 0.0)
                 prop_name = f"{corner}_angle"
                 self._qml_root_object.setProperty(prop_name, angle)
             
-            # NEW: Update piston positions using QMetaObject.invokeMethod()
+            # CRITICAL: Update piston positions using QMetaObject.invokeMethod()
             if piston_positions:
                 from PySide6.QtCore import QMetaObject, Q_ARG, Qt
                 
@@ -690,9 +669,7 @@ class MainWindow(QMainWindow):
                     Q_ARG("QVariant", piston_positions)
                 )
                 
-                if success:
-                    self.logger.debug(f"Updated piston positions: {piston_positions}")
-                else:
+                if not success:
                     self.logger.warning("Failed to invoke updatePistonPositions() in QML")
                 
         except Exception as e:
