@@ -40,6 +40,12 @@ Item {
     property real userPhaseRL: 0.0
     property real userPhaseRR: 0.0
 
+    // NEW: USER-CONTROLLED PISTON POSITIONS (from Python Physics Engine!)
+    property real userPistonPositionFL: 125.0  // mm - piston position in FL cylinder (from physics)
+    property real userPistonPositionFR: 125.0  // mm - piston position in FR cylinder (from physics)
+    property real userPistonPositionRL: 125.0  // mm - piston position in RL cylinder (from physics)
+    property real userPistonPositionRR: 125.0  // mm - piston position in RR cylinder (from physics)
+
     // Angles for each corner (PARAMETRIC - controlled by user properties)
     property real fl_angle: userAmplitude * Math.sin(animationTime * userFrequency + (userPhaseGlobal + userPhaseFL) * Math.PI / 180)
     property real fr_angle: userAmplitude * Math.sin(animationTime * userFrequency + (userPhaseGlobal + userPhaseFR) * Math.PI / 180)
@@ -140,6 +146,39 @@ Item {
         console.log("   Updated:", userFrameLength + "x" + userFrameHeight + "x" + userBeamSize + "mm")
     }
     
+    // NEW: Update piston positions from Python physics engine
+    function updatePistonPositions(positions) {
+        console.log("???????????????????????????????????????????????")
+        console.log("?? main.qml: updatePistonPositions() called")
+        console.log("?? Received positions:", JSON.stringify(positions))
+        console.log("???????????????????????????????????????????????")
+        
+        if (positions.fl !== undefined) {
+            console.log("  ? Setting userPistonPositionFL:", positions.fl, "mm")
+            userPistonPositionFL = positions.fl
+        }
+        if (positions.fr !== undefined) {
+            console.log("  ? Setting userPistonPositionFR:", positions.fr, "mm")
+            userPistonPositionFR = positions.fr
+        }
+        if (positions.rl !== undefined) {
+            console.log("  ? Setting userPistonPositionRL:", positions.rl, "mm")
+            userPistonPositionRL = positions.rl
+        }
+        if (positions.rr !== undefined) {
+            console.log("  ? Setting userPistonPositionRR:", positions.rr, "mm")
+            userPistonPositionRR = positions.rr
+        }
+        
+        console.log("???????????????????????????????????????????????")
+        console.log("?? Current piston positions:")
+        console.log("   FL:", userPistonPositionFL, "mm")
+        console.log("   FR:", userPistonPositionFR, "mm")
+        console.log("   RL:", userPistonPositionRL, "mm")
+        console.log("   RR:", userPistonPositionRR, "mm")
+        console.log("???????????????????????????????????????????????")
+    }
+    
     function updateAnimation(angles) {
         if (angles.fl !== undefined) fl_angle = angles.fl
         if (angles.fr !== undefined) fr_angle = angles.fr
@@ -225,6 +264,7 @@ Item {
             property vector3d j_tail  
             property vector3d j_rod
             property real leverAngle
+            property real pistonPositionFromPython: 125.0  // NEW: Piston position from Python (mm)
             
             // LEVER (animated)
             Model {
@@ -269,16 +309,13 @@ Item {
                 tailRodEnd.z
             )
             
-            // PISTON POSITION inside cylinder (moves from 0 to lCylinder)
-            // When lever angle = 0: piston at center
-            // When lever angle > 0: piston moves toward rod end (extends)
-            // When lever angle < 0: piston moves toward tail (retracts)
-            property real pistonRatio: 0.5 + leverAngle / 20.0  // -10..+10 deg -> 0..1
-            property real pistonPos: Math.max(0.1, Math.min(0.9, pistonRatio)) * lCylinder
+            // PISTON POSITION - NOW FROM PYTHON (not calculated here!)
+            // Convert from absolute position (mm) to ratio (0..1)
+            property real pistonRatio: pistonPositionFromPython / lCylinder
             
             property vector3d pistonCenter: Qt.vector3d(
-                tailRodEnd.x + cylDirectionNorm.x * pistonPos,
-                tailRodEnd.y + cylDirectionNorm.y * pistonPos,
+                tailRodEnd.x + cylDirectionNorm.x * pistonPositionFromPython,
+                tailRodEnd.y + cylDirectionNorm.y * pistonPositionFromPython,
                 tailRodEnd.z
             )
             
@@ -307,6 +344,7 @@ Item {
             }
             
             // PISTON (moves INSIDE cylinder, visible through transparent cylinder)
+            // Position from PYTHON PHYSICS ENGINE!
             Model {
                 source: "#Cylinder"
                 position: pistonCenter
@@ -318,12 +356,12 @@ Item {
             // PISTON ROD - FULL LENGTH (from piston to j_rod)
             // Part inside cylinder is visible through transparent cylinder
             // Part outside cylinder is fully visible
-            // Total length = lTotalRod (CONSTANT!)
+            // Piston position from PYTHON!
             Model {
                 source: "#Cylinder"
                 
                 // Rod goes from piston center to j_rod attachment point
-                // Length is CONSTANT (does not change!)
+                // Length CHANGES as piston moves (from Python physics!)
                 property real rodLength: Math.hypot(j_rod.x - pistonCenter.x, j_rod.y - pistonCenter.y)
                 
                 // Center position between piston and j_rod
@@ -377,6 +415,7 @@ Item {
                                userBeamSize + userLeverLength * Math.sin((180 + fl_angle) * Math.PI / 180), 
                                userBeamSize/2)
             leverAngle: fl_angle
+            pistonPositionFromPython: userPistonPositionFL  // FROM PYTHON!
         }
         
         SuspensionCorner { 
@@ -387,6 +426,7 @@ Item {
                                userBeamSize + userLeverLength * Math.sin((0 + fr_angle) * Math.PI / 180), 
                                userBeamSize/2)
             leverAngle: fr_angle
+            pistonPositionFromPython: userPistonPositionFR  // FROM PYTHON!
         }
         
         SuspensionCorner { 
@@ -397,6 +437,7 @@ Item {
                                userBeamSize + userLeverLength * Math.sin((180 + rl_angle) * Math.PI / 180), 
                                userFrameLength - userBeamSize/2)
             leverAngle: rl_angle
+            pistonPositionFromPython: userPistonPositionRL  // FROM PYTHON!
         }
         
         SuspensionCorner { 
@@ -407,6 +448,7 @@ Item {
                                userBeamSize + userLeverLength * Math.sin((0 + rr_angle) * Math.PI / 180), 
                                userFrameLength - userBeamSize/2)
             leverAngle: rr_angle
+            pistonPositionFromPython: userPistonPositionRR  // FROM PYTHON!
         }
 
         // Coordinate axes
@@ -547,6 +589,7 @@ Item {
         console.log("???????????????????????????????????????????????")
         console.log("? All 4 corners: FL, FR, RL, RR")
         console.log("? All components: levers, cylinders, pistons, rods, tail rods, joints")
+        console.log("? PYTHON PHYSICS INTEGRATION: Piston positions from physics engine!")
         console.log("???????????????????????????????????????????????")
         console.log("?? Initial geometry:")
         console.log("   Frame:", userFrameLength + "x" + userFrameHeight + "x" + userBeamSize + "mm")
@@ -567,7 +610,14 @@ Item {
         console.log("   Phase FL/FR/RL/RR:", userPhaseFL + "/" + userPhaseFR + "/" + userPhaseRL + "/" + userPhaseRR + "deg")
         console.log("   isRunning:", isRunning)
         console.log("???????????????????????????????????????????????")
+        console.log("?? PISTON POSITIONS (from Python Physics):")
+        console.log("   FL:", userPistonPositionFL + "mm")
+        console.log("   FR:", userPistonPositionFR + "mm")
+        console.log("   RL:", userPistonPositionRL + "mm")
+        console.log("   RR:", userPistonPositionRR + "mm")
+        console.log("???????????????????????????????????????????????")
         console.log("? updateGeometry() function ready for UI integration")
+        console.log("? updatePistonPositions() function ready for physics integration")
         console.log("???????????????????????????????????????????????")
         view3d.forceActiveFocus()
     }
