@@ -1,0 +1,17 @@
+======================================================================
+COMPREHENSIVE PROJECT TEST REPORT
+Generated: 2025-10-05 17:05:11
+======================================================================
+
+Total Tests: 42
+Passed: 40
+Failed: 2
+Warnings: 0
+
+FAILED TESTS:
+  [GeometryBridge] Functionality
+    Details: cannot import name 'MinimalGeometryBridge' from 'src.ui.geometry_bridge' (C:\Users\Алексей\source\repos\NewRepo2\src\ui\geometry_bridge.py)
+  [Kinematics] Calculations
+    Details: cannot import name 'FrameConfig' from 'src.core.geometry' (C:\Users\Алексей\source\repos\NewRepo2\src\core\geometry.py)
+
+======================================================================
