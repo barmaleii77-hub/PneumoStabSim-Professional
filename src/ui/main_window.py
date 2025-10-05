@@ -317,7 +317,7 @@ class MainWindow(QMainWindow):
         
         # Create charts panel (right side)
         self.charts_dock = QDockWidget("Charts", self)
-        self.charts_dock.setObjectName("ChartsDock")
+        self.charts_dock.setObjectName("ChartsDocker")
         self.chart_widget = ChartWidget(self)
         self.charts_dock.setWidget(self.chart_widget)
         
@@ -584,7 +584,27 @@ class MainWindow(QMainWindow):
             
         if self.chart_widget:
             self.chart_widget.update_from_snapshot(snapshot)
-    
+
+    @Slot(str)
+    def _on_physics_error(self, msg: str):
+        """Handle physics error messages from simulation engine
+        
+        Args:
+            msg: Error message from physics engine
+        """
+        self.status_bar.showMessage(f"Physics Error: {msg}")
+        self.logger.error(f"Physics engine error: {msg}")
+        
+        # Optionally show error dialog for critical errors
+        if "CRITICAL" in msg.upper() or "FATAL" in msg.upper():
+            from PySide6.QtWidgets import QMessageBox
+            QMessageBox.critical(
+                self,
+                "Physics Engine Error",
+                f"Critical error in physics simulation:\n\n{msg}\n\n"
+                "Simulation may be unstable. Consider resetting."
+            )
+
     def _update_3d_scene_from_snapshot(self, snapshot: StateSnapshot):
         """Update 3D scene with full simulation state including piston positions
         
