@@ -1,12 +1,13 @@
 # -*- coding: utf-8 -*-
 """
-Pneumatic system configuration panel
+Pneumatic system configuration panel - РУССКИЙ ИНТЕРФЕЙС
 Controls for pneumatic parameters using knobs and radio buttons
+Панель конфигурации пневмосистемы с крутилками и переключателями
 """
 
 from PySide6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QGroupBox, 
                               QRadioButton, QCheckBox, QPushButton, QLabel,
-                              QButtonGroup, QSizePolicy)
+                              QButtonGroup, QSizePolicy, QComboBox)  # NEW: QComboBox
 from PySide6.QtCore import Signal, Slot, Qt
 from PySide6.QtGui import QFont
 
@@ -14,22 +15,23 @@ from ..widgets import Knob
 
 
 class PneumoPanel(QWidget):
-    """Panel for pneumatic system configuration
+    """Панель конфигурации пневматической системы
     
-    Provides rotary knob controls for:
-    - Check valve pressure differences
-    - Relief valve trigger pressures  
-    - Throttle diameters
-    - Atmospheric temperature
-    - Thermodynamic mode selection
-    - Master isolation valve
+    Panel for pneumatic system configuration (Russian UI)
+    
+    Provides rotary knob controls for / Управление крутилками:
+    - Check valve pressure differences / Обратные клапаны (перепады давления)
+    - Relief valve trigger pressures / Предохранительные клапаны
+    - Throttle diameters / Диаметры дросселей
+    - Atmospheric temperature / Температура окружающей среды
+    - Thermodynamic mode selection / Выбор термодинамического режима
+    - Master isolation valve / Главный изолирующий клапан
     """
     
     # Signals for parameter changes
     parameter_changed = Signal(str, float)  # parameter_name, new_value
     mode_changed = Signal(str, str)         # mode_type, new_mode
     pneumatic_updated = Signal(dict)        # Complete pneumatic config
-    geometry_changed = Signal(dict)         # Geometry parameters changed
     
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -50,19 +52,30 @@ class PneumoPanel(QWidget):
         self.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Expanding)
     
     def _setup_ui(self):
-        """Setup user interface"""
+        """Настроить интерфейс / Setup user interface"""
         layout = QVBoxLayout(self)
         layout.setSpacing(8)
         layout.setContentsMargins(8, 8, 8, 8)
         
-        # Title
-        title_label = QLabel("Pneumatic System")
+        # Title (Russian)
+        title_label = QLabel("Пневматическая система")
         title_font = QFont()
         title_font.setPointSize(12)
         title_font.setBold(True)
         title_label.setFont(title_font)
         title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         layout.addWidget(title_label)
+        
+        # Units selector (NEW!)
+        units_layout = QHBoxLayout()
+        units_label = QLabel("Единицы давления:")
+        self.pressure_units_combo = QComboBox()
+        self.pressure_units_combo.addItems(["бар (bar)", "Па (Pa)", "кПа (kPa)", "МПа (MPa)"])
+        self.pressure_units_combo.setCurrentIndex(0)  # Default: bar
+        self.pressure_units_combo.currentIndexChanged.connect(self._on_pressure_units_changed)
+        units_layout.addWidget(units_label)
+        units_layout.addWidget(self.pressure_units_combo, stretch=1)
+        layout.addLayout(units_layout)
         
         # Check valves group
         check_valves_group = self._create_check_valves_group()
@@ -76,10 +89,6 @@ class PneumoPanel(QWidget):
         environment_group = self._create_environment_group()
         layout.addWidget(environment_group)
         
-        # Geometry parameters group (NEW - for suspension dimensions)
-        geometry_group = self._create_geometry_group()
-        layout.addWidget(geometry_group)
-        
         # System options group
         options_group = self._create_options_group()
         layout.addWidget(options_group)
@@ -91,8 +100,8 @@ class PneumoPanel(QWidget):
         layout.addStretch()
     
     def _create_check_valves_group(self) -> QGroupBox:
-        """Create check valves configuration group"""
-        group = QGroupBox("Check Valves")
+        """Создать группу обратных клапанов / Create check valves configuration group"""
+        group = QGroupBox("Обратные клапаны")
         layout = QVBoxLayout(group)
         layout.setSpacing(8)
         
@@ -100,37 +109,37 @@ class PneumoPanel(QWidget):
         knobs_layout = QHBoxLayout()
         knobs_layout.setSpacing(12)
         
-        # Atmosphere to line check valve ΔP
+        # Atmosphere to line check valve ΔP (Атмосфера → Линия)
         self.cv_atmo_dp_knob = Knob(
             minimum=0.001, maximum=0.1, value=0.01, step=0.001,
-            decimals=3, units="bar", title="Atmo→Line ΔP"
+            decimals=3, units="бар", title="ΔP Атм→Линия"
         )
         knobs_layout.addWidget(self.cv_atmo_dp_knob)
         
-        # Line to tank check valve ΔP
+        # Line to tank check valve ΔP (Линия → Ресивер)
         self.cv_tank_dp_knob = Knob(
             minimum=0.001, maximum=0.1, value=0.01, step=0.001,
-            decimals=3, units="bar", title="Line→Tank ΔP"
+            decimals=3, units="бар", title="ΔP Линия→Ресивер"
         )
         knobs_layout.addWidget(self.cv_tank_dp_knob)
         
         layout.addLayout(knobs_layout)
         
-        # Equivalent diameters row
+        # Equivalent diameters row (Эквивалентные диаметры)
         diameters_layout = QHBoxLayout()
         diameters_layout.setSpacing(12)
         
         # Atmosphere check valve equivalent diameter
         self.cv_atmo_dia_knob = Knob(
             minimum=1.0, maximum=10.0, value=3.0, step=0.1,
-            decimals=1, units="mm", title="Atmo CV Dia"
+            decimals=1, units="мм", title="Диаметр (Атм)"
         )
         diameters_layout.addWidget(self.cv_atmo_dia_knob)
         
         # Tank check valve equivalent diameter
         self.cv_tank_dia_knob = Knob(
             minimum=1.0, maximum=10.0, value=3.0, step=0.1,
-            decimals=1, units="mm", title="Tank CV Dia"
+            decimals=1, units="мм", title="Диаметр (Ресивер)"
         )
         diameters_layout.addWidget(self.cv_tank_dia_knob)
         
@@ -139,53 +148,53 @@ class PneumoPanel(QWidget):
         return group
     
     def _create_relief_valves_group(self) -> QGroupBox:
-        """Create relief valves configuration group"""
-        group = QGroupBox("Relief Valves")
+        """Создать группу предохранительных клапанов / Create relief valves configuration group"""
+        group = QGroupBox("Предохранительные клапаны")
         layout = QVBoxLayout(group)
         layout.setSpacing(8)
         
-        # Pressure settings row
+        # Pressure settings row (Настройки давления)
         pressures_layout = QHBoxLayout()
         pressures_layout.setSpacing(12)
         
-        # Minimum pressure relief
+        # Minimum pressure relief (Минимальное сброса)
         self.relief_min_pressure_knob = Knob(
             minimum=1.0, maximum=10.0, value=2.5, step=0.1,
-            decimals=1, units="bar", title="Min Relief"
+            decimals=1, units="бар", title="Мин. сброс"
         )
         pressures_layout.addWidget(self.relief_min_pressure_knob)
         
-        # Stiffness relief pressure
+        # Stiffness relief pressure (Сброс жёсткости)
         self.relief_stiff_pressure_knob = Knob(
             minimum=5.0, maximum=50.0, value=15.0, step=0.5,
-            decimals=1, units="bar", title="Stiffness Relief"
+            decimals=1, units="бар", title="Сброс жёсткости"
         )
         pressures_layout.addWidget(self.relief_stiff_pressure_knob)
         
-        # Safety relief pressure
+        # Safety relief pressure (Аварийный сброс)
         self.relief_safety_pressure_knob = Knob(
             minimum=20.0, maximum=100.0, value=50.0, step=1.0,
-            decimals=0, units="bar", title="Safety Relief"
+            decimals=0, units="бар", title="Аварийный сброс"
         )
         pressures_layout.addWidget(self.relief_safety_pressure_knob)
         
         layout.addLayout(pressures_layout)
         
-        # Throttle diameters row
+        # Throttle diameters row (Диаметры дросселей)
         throttles_layout = QHBoxLayout()
         throttles_layout.setSpacing(12)
         
         # Minimum relief throttle diameter
         self.throttle_min_dia_knob = Knob(
             minimum=0.5, maximum=3.0, value=1.0, step=0.1,
-            decimals=1, units="mm", title="Min Throttle"
+            decimals=1, units="мм", title="Дроссель мин."
         )
         throttles_layout.addWidget(self.throttle_min_dia_knob)
         
         # Stiffness relief throttle diameter
         self.throttle_stiff_dia_knob = Knob(
             minimum=0.5, maximum=3.0, value=1.5, step=0.1,
-            decimals=1, units="mm", title="Stiff Throttle"
+            decimals=1, units="мм", title="Дроссель жёстк."
         )
         throttles_layout.addWidget(self.throttle_stiff_dia_knob)
         
@@ -197,8 +206,8 @@ class PneumoPanel(QWidget):
         return group
     
     def _create_environment_group(self) -> QGroupBox:
-        """Create environment configuration group"""
-        group = QGroupBox("Environment")
+        """Создать группу параметров окружающей среды / Create environment configuration group"""
+        group = QGroupBox("Окружающая среда")
         layout = QVBoxLayout(group)
         layout.setSpacing(8)
         
@@ -206,20 +215,20 @@ class PneumoPanel(QWidget):
         env_layout = QHBoxLayout()
         env_layout.setSpacing(12)
         
-        # Atmospheric temperature
+        # Atmospheric temperature (Температура атмосферы)
         self.atmo_temp_knob = Knob(
             minimum=-20.0, maximum=50.0, value=20.0, step=1.0,
-            decimals=0, units="°C", title="Atmosphere Temp"
+            decimals=0, units="°C", title="Температура атм."
         )
         env_layout.addWidget(self.atmo_temp_knob)
         
-        # Thermodynamic mode selection
+        # Thermodynamic mode selection (Термодинамический режим)
         thermo_group_widget = QWidget()
         thermo_layout = QVBoxLayout(thermo_group_widget)
         thermo_layout.setSpacing(4)
         thermo_layout.setContentsMargins(4, 4, 4, 4)
         
-        thermo_title = QLabel("Thermo Mode")
+        thermo_title = QLabel("Термо-режим")
         thermo_title.setAlignment(Qt.AlignmentFlag.AlignCenter)
         font = QFont()
         font.setPointSize(9)
@@ -230,8 +239,8 @@ class PneumoPanel(QWidget):
         # Radio button group
         self.thermo_button_group = QButtonGroup()
         
-        self.isothermal_radio = QRadioButton("Isothermal")
-        self.adiabatic_radio = QRadioButton("Adiabatic")
+        self.isothermal_radio = QRadioButton("Изотермический")
+        self.adiabatic_radio = QRadioButton("Адиабатический")
         
         self.isothermal_radio.setChecked(True)  # Default
         
@@ -248,98 +257,38 @@ class PneumoPanel(QWidget):
         
         return group
     
-    def _create_geometry_group(self) -> QGroupBox:
-        """Create geometry parameters configuration group"""
-        group = QGroupBox("Suspension Geometry")
-        layout = QVBoxLayout(group)
-        layout.setSpacing(8)
-        
-        # Frame dimensions row
-        frame_layout = QHBoxLayout()
-        frame_layout.setSpacing(12)
-        
-        # Frame length
-        self.frame_length_knob = Knob(
-            minimum=1000.0, maximum=3000.0, value=2000.0, step=50.0,
-            decimals=0, units="mm", title="Frame Length"
-        )
-        frame_layout.addWidget(self.frame_length_knob)
-        
-        # Frame height
-        self.frame_height_knob = Knob(
-            minimum=400.0, maximum=800.0, value=650.0, step=10.0,
-            decimals=0, units="mm", title="Frame Height"
-        )
-        frame_layout.addWidget(self.frame_height_knob)
-        
-        # Frame beam size
-        self.frame_beam_size_knob = Knob(
-            minimum=80.0, maximum=200.0, value=120.0, step=5.0,
-            decimals=0, units="mm", title="Beam Size"
-        )
-        frame_layout.addWidget(self.frame_beam_size_knob)
-        
-        layout.addLayout(frame_layout)
-        
-        # Suspension components row
-        suspension_layout = QHBoxLayout()
-        suspension_layout.setSpacing(12)
-        
-        # Lever length
-        self.lever_length_knob = Knob(
-            minimum=200.0, maximum=500.0, value=315.0, step=5.0,
-            decimals=0, units="mm", title="Lever Length"
-        )
-        suspension_layout.addWidget(self.lever_length_knob)
-        
-        # Cylinder body length
-        self.cylinder_length_knob = Knob(
-            minimum=150.0, maximum=400.0, value=250.0, step=10.0,
-            decimals=0, units="mm", title="Cylinder Length"
-        )
-        suspension_layout.addWidget(self.cylinder_length_knob)
-        
-        # Tail rod length
-        self.tail_rod_length_knob = Knob(
-            minimum=50.0, maximum=200.0, value=100.0, step=5.0,
-            decimals=0, units="mm", title="Tail Rod Length"
-        )
-        suspension_layout.addWidget(self.tail_rod_length_knob)
-        
-        layout.addLayout(suspension_layout)
-        
-        return group
-    
     def _create_options_group(self) -> QGroupBox:
-        """Create system options group"""
-        group = QGroupBox("System Options")
+        """Создать группу системных опций / Create system options group"""
+        group = QGroupBox("Системные опции")
         layout = QVBoxLayout(group)
         layout.setSpacing(4)
         
-        # Master isolation valve
-        self.master_isolation_check = QCheckBox("Master Isolation Open")
+        # Master isolation valve (Главная изоляция)
+        self.master_isolation_check = QCheckBox("Главная изоляция открыта")
         self.master_isolation_check.setChecked(False)  # Closed by default
         layout.addWidget(self.master_isolation_check)
         
         # Link rod diameters front/rear
-        self.link_rod_dia_check = QCheckBox("Link Front/Rear Rod Diameters")
+        self.link_rod_dia_check = QCheckBox("Связать диаметры штоков передних/задних колёс")
         self.link_rod_dia_check.setChecked(False)
         layout.addWidget(self.link_rod_dia_check)
         
         return group
     
     def _create_buttons(self) -> QHBoxLayout:
-        """Create control buttons"""
+        """Создать кнопки управления / Create control buttons"""
         layout = QHBoxLayout()
         layout.setSpacing(4)
         
-        # Reset to defaults
-        self.reset_button = QPushButton("Reset to Defaults")
+        # Reset to defaults (Сбросить)
+        self.reset_button = QPushButton("Сбросить")
+        self.reset_button.setToolTip("Сбросить к значениям по умолчанию")
         self.reset_button.clicked.connect(self._reset_to_defaults)
         layout.addWidget(self.reset_button)
         
-        # Validate pneumatic system
-        self.validate_button = QPushButton("Validate System")
+        # Validate pneumatic system (Проверить)
+        self.validate_button = QPushButton("Проверить")
+        self.validate_button.setToolTip("Проверить корректность настроек пневмосистемы")
         self.validate_button.clicked.connect(self._validate_system)
         layout.addWidget(self.validate_button)
         
@@ -370,14 +319,6 @@ class PneumoPanel(QWidget):
             # Options
             'master_isolation_open': False,
             'link_rod_dia': False,
-            
-            # Geometry parameters (NEW)
-            'frame_length': 2000.0,        # mm
-            'frame_height': 650.0,         # mm
-            'frame_beam_size': 120.0,      # mm
-            'lever_length': 315.0,         # mm
-            'cylinder_length': 250.0,      # mm
-            'tail_rod_length': 100.0       # mm
         }
         
         self.parameters.update(defaults)
@@ -418,20 +359,6 @@ class PneumoPanel(QWidget):
             lambda checked: self._on_parameter_changed('master_isolation_open', checked))
         self.link_rod_dia_check.toggled.connect(
             lambda checked: self._on_parameter_changed('link_rod_dia', checked))
-        
-        # Geometry knobs (NEW)
-        self.frame_length_knob.valueChanged.connect(
-            lambda v: self._on_geometry_changed('frame_length', v))
-        self.frame_height_knob.valueChanged.connect(
-            lambda v: self._on_geometry_changed('frame_height', v))
-        self.frame_beam_size_knob.valueChanged.connect(
-            lambda v: self._on_geometry_changed('frame_beam_size', v))
-        self.lever_length_knob.valueChanged.connect(
-            lambda v: self._on_geometry_changed('lever_length', v))
-        self.cylinder_length_knob.valueChanged.connect(
-            lambda v: self._on_geometry_changed('cylinder_length', v))
-        self.tail_rod_length_knob.valueChanged.connect(
-            lambda v: self._on_geometry_changed('tail_rod_length', v))
     
     @Slot(str, float)
     def _on_parameter_changed(self, param_name: str, value):
@@ -468,8 +395,26 @@ class PneumoPanel(QWidget):
         self.mode_changed.emit('thermo_mode', mode)
         self.pneumatic_updated.emit(self.parameters.copy())
     
+    @Slot(int)
+    def _on_pressure_units_changed(self, index: int):
+        """Обработать изменение единиц давления / Handle pressure units change"""
+        units_map = {
+            0: ("бар", 1.0),           # bar (base unit)
+            1: ("Па", 100000.0),       # Pa (1 bar = 100000 Pa)
+            2: ("кПа", 100.0),         # kPa (1 bar = 100 kPa)
+            3: ("МПа", 0.1)            # MPa (1 bar = 0.1 MPa)
+        }
+        
+        unit_name, conversion = units_map.get(index, ("бар", 1.0))
+        
+        # Update knob units (for display only - internal storage remains in bar)
+        # Note: This would require updating Knob widget to support dynamic units
+        # For now, just log the change
+        print(f"📊 PneumoPanel: Единицы давления изменены на {unit_name}")
+        self.parameters['pressure_units'] = unit_name
+    
     def _validate_relief_pressures(self):
-        """Validate that relief pressures are in correct order"""
+        """Проверить порядок давлений предохранительных клапанов / Validate relief pressures ordering"""
         min_p = self.parameters['relief_min_pressure']
         stiff_p = self.parameters['relief_stiff_pressure']
         safety_p = self.parameters['relief_safety_pressure']
@@ -489,7 +434,7 @@ class PneumoPanel(QWidget):
     
     @Slot()
     def _reset_to_defaults(self):
-        """Reset all parameters to default values"""
+        """Сбросить все параметры к значениям по умолчанию / Reset all parameters to defaults"""
         self._set_default_values()
         
         # Update all knobs
@@ -511,57 +456,52 @@ class PneumoPanel(QWidget):
         self.master_isolation_check.setChecked(False)
         self.link_rod_dia_check.setChecked(False)
         
-        # Reset geometry knobs (NEW)
-        self.frame_length_knob.setValue(self.parameters['frame_length'])
-        self.frame_height_knob.setValue(self.parameters['frame_height'])
-        self.frame_beam_size_knob.setValue(self.parameters['frame_beam_size'])
-        self.lever_length_knob.setValue(self.parameters['lever_length'])
-        self.cylinder_length_knob.setValue(self.parameters['cylinder_length'])
-        self.tail_rod_length_knob.setValue(self.parameters['tail_rod_length'])
+        # Reset units selector
+        self.pressure_units_combo.setCurrentIndex(0)
         
         # Emit update
         self.pneumatic_updated.emit(self.parameters.copy())
     
     @Slot()
     def _validate_system(self):
-        """Validate pneumatic system configuration"""
+        """Проверить конфигурацию пневмосистемы / Validate pneumatic system configuration"""
         warnings = []
         errors = []
         
-        # Check relief valve pressure ordering
+        # Check relief valve pressure ordering (Проверка порядка давлений)
         min_p = self.parameters['relief_min_pressure']
         stiff_p = self.parameters['relief_stiff_pressure']
         safety_p = self.parameters['relief_safety_pressure']
         
         if not (min_p < stiff_p < safety_p):
-            errors.append("Relief pressures must be ordered: Min < Stiffness < Safety")
+            errors.append("Давления сброса должны быть упорядочены: Мин < Жёсткость < Аварийный")
         
-        # Check temperature range
+        # Check temperature range (Проверка диапазона температуры)
         temp = self.parameters['atmo_temp']
         if temp < -10.0:
-            warnings.append(f"Low temperature ({temp} °C) may affect gas properties")
+            warnings.append(f"Низкая температура ({temp}°C) может повлиять на свойства газа")
         elif temp > 40.0:
-            warnings.append(f"High temperature ({temp} °C) may affect system performance")
+            warnings.append(f"Высокая температура ({temp}°C) может повлиять на работу системы")
         
-        # Check throttle sizes
+        # Check throttle sizes (Проверка размеров дросселей)
         min_throttle = self.parameters['throttle_min_dia']
         stiff_throttle = self.parameters['throttle_stiff_dia']
         
         if min_throttle >= stiff_throttle:
-            warnings.append("Min throttle diameter should be smaller than stiffness throttle")
+            warnings.append("Диаметр минимального дросселя должен быть меньше дросселя жёсткости")
         
-        # Show results
+        # Show results (Показать результаты)
         from PySide6.QtWidgets import QMessageBox
         
         if errors:
-            QMessageBox.critical(self, 'Pneumatic System Validation Failed',
-                               'Errors found:\n' + '\n'.join(errors))
+            QMessageBox.critical(self, 'Ошибки пневмосистемы',
+                               'Обнаружены ошибки:\n' + '\n'.join(errors))
         elif warnings:
-            QMessageBox.warning(self, 'Pneumatic System Validation Warnings',
-                              'Warnings:\n' + '\n'.join(warnings))
+            QMessageBox.warning(self, 'Предупреждения пневмосистемы',
+                              'Предупреждения:\n' + '\n'.join(warnings))
         else:
-            QMessageBox.information(self, 'Pneumatic System Validation',
-                                  'All pneumatic parameters are valid.')
+            QMessageBox.information(self, 'Проверка пневмосистемы',
+                                  'Все параметры пневмосистемы корректны.')
     
     def get_parameters(self) -> dict:
         """Get current parameter values
@@ -616,47 +556,3 @@ class PneumoPanel(QWidget):
         
         if 'link_rod_dia' in params:
             self.link_rod_dia_check.setChecked(params['link_rod_dia'])
-        
-        # Update geometry knobs (NEW)
-        if 'frame_length' in params:
-            self.frame_length_knob.setValue(params['frame_length'])
-        if 'frame_height' in params:
-            self.frame_height_knob.setValue(params['frame_height'])
-        if 'frame_beam_size' in params:
-            self.frame_beam_size_knob.setValue(params['frame_beam_size'])
-        if 'lever_length' in params:
-            self.lever_length_knob.setValue(params['lever_length'])
-        if 'cylinder_length' in params:
-            self.cylinder_length_knob.setValue(params['cylinder_length'])
-        if 'tail_rod_length' in params:
-            self.tail_rod_length_knob.setValue(params['tail_rod_length'])
-    
-    @Slot(str, float)
-    def _on_geometry_changed(self, param_name: str, value: float):
-        """Handle geometry parameter change
-        
-        Args:
-            param_name: Name of changed geometry parameter
-            value: New value
-        """
-        # Store new value
-        self.parameters[param_name] = value
-        
-        # Extract geometry parameters
-        geometry_params = {
-            'frameLength': self.parameters.get('frame_length', 2000.0),
-            'frameHeight': self.parameters.get('frame_height', 650.0),
-            'frameBeamSize': self.parameters.get('frame_beam_size', 120.0),
-            'leverLength': self.parameters.get('lever_length', 315.0),
-            'cylinderBodyLength': self.parameters.get('cylinder_length', 250.0),
-            'tailRodLength': self.parameters.get('tail_rod_length', 100.0)
-        }
-        
-        # Emit geometry change signal
-        self.geometry_changed.emit(geometry_params)
-        
-        # Also emit general parameter change
-        self.parameter_changed.emit(param_name, value)
-        self.pneumatic_updated.emit(self.parameters.copy())
-        
-        print(f"🔧 PneumoPanel: Geometry parameter '{param_name}' changed to {value}")
