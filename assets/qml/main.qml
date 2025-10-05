@@ -187,10 +187,10 @@ Item {
     }
     
     function updateAnimation(angles) {
-        if (angles.fl !== undefined) fl_angle = angles.fl
-        if (angles.fr !== undefined) fr_angle = angles.fr
-        if (angles.rl !== undefined) rl_angle = angles.rl
-        if (angles.rr !== undefined) rr_angle = angles.rr
+        if (angles.fl !== undefined) fl_angle = Number(angles.fl)
+        if (angles.fr !== undefined) fr_angle = Number(angles.fr)
+        if (angles.rl !== undefined) rl_angle = Number(angles.rl)
+        if (angles.rr !== undefined) rr_angle = Number(angles.rr)
     }
 
     // Utilities
