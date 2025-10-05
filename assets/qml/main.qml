@@ -307,20 +307,7 @@ Item {
                 j_arm.z
             )
             
-            // LEVER (animated)
-            Model {
-                source: "#Cube"
-                
-                position: Qt.vector3d(j_arm.x + (userLeverLength/2) * Math.cos(totalAngle * Math.PI / 180), 
-                                     j_arm.y + (userLeverLength/2) * Math.sin(totalAngle * Math.PI / 180), 
-                                     j_arm.z)
-                scale: Qt.vector3d(userLeverLength/100, 0.8, 0.8)
-                eulerRotation: Qt.vector3d(0, 0, totalAngle)
-                materials: PrincipledMaterial { baseColor: "#888888"; metalness: 0.9; roughness: 0.3 }
-            }
-            
-            // === PNEUMATIC CYLINDER ASSEMBLY ===
-            // Direction from tail to rod attachment
+            // === CYLINDER GEOMETRY CALCULATIONS ===
             property vector3d cylDirection: Qt.vector3d(j_rod.x - j_tail.x, j_rod.y - j_tail.y, 0)
             property real cylDirectionLength: Math.hypot(cylDirection.x, cylDirection.y)
             property vector3d cylDirectionNorm: Qt.vector3d(
@@ -329,7 +316,6 @@ Item {
                 0
             )
             
-            // FIXED dimensions
             property real lTailRod: 100           // Tail rod: 100mm (CONSTANT)
             property real lCylinder: userCylinderLength  // Cylinder body (CONSTANT)
             
@@ -347,12 +333,33 @@ Item {
                 tailRodEnd.z
             )
             
-            // PISTON POSITION - FROM PYTHON (absolute position inside cylinder, mm from tailRodEnd)
+            // PISTON POSITION - FROM PYTHON
             property vector3d pistonCenter: Qt.vector3d(
                 tailRodEnd.x + cylDirectionNorm.x * pistonPositionFromPython,
                 tailRodEnd.y + cylDirectionNorm.y * pistonPositionFromPython,
                 tailRodEnd.z
             )
+            
+            // FULL ROD LENGTH (CONSTANT!) - calculated from center position
+            property real centerPistonPos: lCylinder / 2
+            property vector3d centerPistonCenter: Qt.vector3d(
+                tailRodEnd.x + cylDirectionNorm.x * centerPistonPos,
+                tailRodEnd.y + cylDirectionNorm.y * centerPistonPos,
+                tailRodEnd.z
+            )
+            property real fullRodLength: Math.hypot(j_rod.x - centerPistonCenter.x, j_rod.y - centerPistonCenter.y)
+            
+            // LEVER (animated)
+            Model {
+                source: "#Cube"
+                
+                position: Qt.vector3d(j_arm.x + (userLeverLength/2) * Math.cos(totalAngle * Math.PI / 180), 
+                                     j_arm.y + (userLeverLength/2) * Math.sin(totalAngle * Math.PI / 180), 
+                                     j_arm.z)
+                scale: Qt.vector3d(userLeverLength/100, 0.8, 0.8)
+                eulerRotation: Qt.vector3d(0, 0, totalAngle)
+                materials: PrincipledMaterial { baseColor: "#888888"; metalness: 0.9; roughness: 0.3 }
+            }
             
             // TAIL ROD (FIXED: from j_tail to cylinder start)
             Model {
@@ -363,7 +370,7 @@ Item {
                 materials: PrincipledMaterial { baseColor: "#cccccc"; metalness: 0.95; roughness: 0.05 }
             }
             
-            // CYLINDER BODY (FIXED LENGTH, transparent to see piston and rod inside)
+            // CYLINDER BODY (FIXED LENGTH, transparent)
             Model {
                 source: "#Cylinder"
                 position: Qt.vector3d((tailRodEnd.x + cylinderEnd.x)/2, (tailRodEnd.y + cylinderEnd.y)/2, tailRodEnd.z)
@@ -378,8 +385,7 @@ Item {
                 }
             }
             
-            // PISTON (moves INSIDE cylinder, visible through transparent cylinder)
-            // Position from PYTHON PHYSICS ENGINE!
+            // PISTON (moves INSIDE cylinder)
             Model {
                 source: "#Cylinder"
                 position: pistonCenter
@@ -388,23 +394,19 @@ Item {
                 materials: PrincipledMaterial { baseColor: "#ff0066"; metalness: 0.9; roughness: 0.1 }
             }
             
-            // PISTON ROD - VARIABLE LENGTH (connects piston to j_rod)
-            // Piston moves INSIDE cylinder (from Python physics)
-            // Rod extends/retracts to connect piston to j_rod
+            // FULL PISTON ROD (CONSTANT LENGTH!)
+            // Goes from piston to j_rod with FIXED length
+            // Entire rod visible (part inside cylinder through transparent wall, part outside)
             Model {
                 source: "#Cylinder"
                 
-                // Current rod length = distance from piston to j_rod
-                // This CHANGES as piston moves inside cylinder!
-                property real rodLength: Math.hypot(j_rod.x - pistonCenter.x, j_rod.y - pistonCenter.y)
-                
-                // Rod center position (halfway from piston to j_rod)
+                // Center of full rod (midpoint from piston to j_rod)
                 position: Qt.vector3d((pistonCenter.x + j_rod.x)/2, (pistonCenter.y + j_rod.y)/2, j_rod.z)
                 
-                // Scale: diameter is constant, length CHANGES
-                scale: Qt.vector3d(userRodDiameter/100, rodLength/100, userRodDiameter/100)
+                // Scale: CONSTANT length (fullRodLength)
+                scale: Qt.vector3d(userRodDiameter/100, fullRodLength/100, userRodDiameter/100)
                 
-                // Rotation to align with direction from piston to j_rod
+                // Rotation to align piston ? j_rod
                 eulerRotation: Qt.vector3d(0, 0, Math.atan2(j_rod.y - pistonCenter.y, j_rod.x - pistonCenter.x) * 180 / Math.PI + 90)
                 
                 materials: PrincipledMaterial { baseColor: "#cccccc"; metalness: 0.95; roughness: 0.05 }

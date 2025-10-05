@@ -15,153 +15,135 @@ Node {
     property real pistonPositionMm: 125.0  // Default to center
     property real pistonRatio: 0.5         // Default to center (0..1)
     
-    // CORRECTED LEVER (proper positioning and rotation around pivot with correct base angles)
+    // CALCULATE CYLINDER GEOMETRY
+    property vector3d cylDirection: Qt.vector3d(j_rod.x - j_tail.x, j_rod.y - j_tail.y, 0)
+    property real cylDirectionLength: Math.hypot(cylDirection.x, cylDirection.y, 0)
+    property vector3d cylDirectionNorm: Qt.vector3d(
+        cylDirection.x / cylDirectionLength,
+        cylDirection.y / cylDirectionLength,
+        0
+    )
+    
+    property real lBody: 250  // CONSTANT cylinder working length
+    property real lTailRod: 100  // Tail rod length
+    
+    // Cylinder starts FROM END OF TAIL ROD
+    property vector3d tailRodEnd: Qt.vector3d(
+        j_tail.x + cylDirectionNorm.x * lTailRod,
+        j_tail.y + cylDirectionNorm.y * lTailRod,
+        j_tail.z
+    )
+    property vector3d cylStart: tailRodEnd
+    
+    // Cylinder end (where rod exits)
+    property vector3d cylEnd: Qt.vector3d(
+        cylStart.x + cylDirectionNorm.x * lBody,
+        cylStart.y + cylDirectionNorm.y * lBody,
+        cylStart.z
+    )
+    
+    // Current piston position (from Python)
+    property vector3d pistonCenter: Qt.vector3d(
+        cylStart.x + cylDirectionNorm.x * pistonPositionMm,
+        cylStart.y + cylDirectionNorm.y * pistonPositionMm,
+        cylStart.z
+    )
+    
+    // FULL PISTON ROD LENGTH (CONSTANT!)
+    // Calculate from CENTER position to j_rod as baseline
+    property real centerPistonPos: lBody / 2
+    property vector3d centerPistonCenter: Qt.vector3d(
+        cylStart.x + cylDirectionNorm.x * centerPistonPos,
+        cylStart.y + cylDirectionNorm.y * centerPistonPos,
+        cylStart.z
+    )
+    property real fullRodLength: Math.hypot(j_rod.x - centerPistonCenter.x, j_rod.y - centerPistonCenter.y)
+    
+    // CORRECTED LEVER
     Model {
         source: "#Cube"
-        // Position lever CENTERED on pivot point j_arm with correct base direction
-        property real baseAngle: (j_arm.x < 0) ? 180 : 0  // Left side: 180deg, Right side: 0deg
+        property real baseAngle: (j_arm.x < 0) ? 180 : 0
         property real totalAngle: baseAngle + leverAngle
         
         position: Qt.vector3d(j_arm.x + (leverLength/2) * Math.cos(totalAngle * Math.PI / 180), 
                              j_arm.y + (leverLength/2) * Math.sin(totalAngle * Math.PI / 180), 
                              j_arm.z)
         scale: Qt.vector3d(leverLength/100, 0.8, 0.8)
-        eulerRotation: Qt.vector3d(0, 0, totalAngle)  // Rotate with base + oscillation
+        eulerRotation: Qt.vector3d(0, 0, totalAngle)
         materials: PrincipledMaterial { baseColor: "#888888"; metalness: 0.9; roughness: 0.3 }
     }
     
-    // FIXED CYLINDER - STARTS FROM END OF TAIL ROD (not from j_tail joint)
+    // FIXED CYLINDER BODY (transparent)
     Model {
         source: "#Cylinder"
-        property vector3d cylDirection: Qt.vector3d(j_rod.x - j_tail.x, j_rod.y - j_tail.y, 0)
-        property real cylDirectionLength: Math.hypot(cylDirection.x, cylDirection.y, 0)
-        property real lBody: 250  // CONSTANT cylinder working length
-        property real lTailRod: 100  // Tail rod length
-        
-        // Cylinder starts FROM END OF TAIL ROD (not from j_tail)
-        property vector3d tailRodEnd: Qt.vector3d(
-            j_tail.x + cylDirection.x * (lTailRod / cylDirectionLength),  // End of tail rod
-            j_tail.y + cylDirection.y * (lTailRod / cylDirectionLength),
-            j_tail.z
-        )
-        property vector3d cylStart: tailRodEnd  // Cylinder starts where tail rod ends
-        property vector3d cylEnd: Qt.vector3d(
-            cylStart.x + cylDirection.x * (lBody / cylDirectionLength),
-            cylStart.y + cylDirection.y * (lBody / cylDirectionLength),
-            cylStart.z
-        )
         
         position: Qt.vector3d((cylStart.x + cylEnd.x)/2, (cylStart.y + cylEnd.y)/2, cylStart.z)
-        scale: Qt.vector3d(1.2, lBody/100, 1.2)  // Working cylinder length only
+        scale: Qt.vector3d(1.2, lBody/100, 1.2)
         eulerRotation: Qt.vector3d(0, 0, Math.atan2(cylEnd.y - cylStart.y, cylEnd.x - cylStart.x) * 180 / Math.PI + 90)
         materials: PrincipledMaterial { baseColor: "#ffffff"; metalness: 0.0; roughness: 0.05; opacity: 0.12; alphaMode: PrincipledMaterial.Blend }
     }
     
-    // MOVING PISTON - USES POSITION FROM PYTHON (GeometryBridge)
+    // MOVING PISTON
     Model {
         source: "#Cylinder"
-        property vector3d cylDirection: Qt.vector3d(j_rod.x - j_tail.x, j_rod.y - j_tail.y, 0)
-        property real cylDirectionLength: Math.hypot(cylDirection.x, cylDirection.y, 0)
-        property real lBody: 250
-        property real lTailRod: 100
         
-        // Cylinder starts FROM END OF TAIL ROD
-        property vector3d tailRodEnd: Qt.vector3d(
-            j_tail.x + cylDirection.x * (lTailRod / cylDirectionLength),
-            j_tail.y + cylDirection.y * (lTailRod / cylDirectionLength),
-            j_tail.z
-        )
-        property vector3d cylStart: tailRodEnd
-        
-        // PISTON POSITION from Python GeometryBridge (pistonPositionMm property)
-        property vector3d pistonPos: Qt.vector3d(
-            cylStart.x + cylDirection.x * (pistonPositionMm / cylDirectionLength),
-            cylStart.y + cylDirection.y * (pistonPositionMm / cylDirectionLength),
-            cylStart.z
-        )
-        
-        position: pistonPos
-        // CORRECT DIMENSIONS: 20mm thick, 90% of cylinder diameter (1.2 * 0.9 = 1.08)
-        scale: Qt.vector3d(1.08, 0.2, 1.08)  // Diameter 90% of cylinder, thickness 20mm
+        position: pistonCenter
+        scale: Qt.vector3d(1.08, 0.2, 1.08)
         eulerRotation: Qt.vector3d(0, 0, Math.atan2(cylDirection.y, cylDirection.x) * 180 / Math.PI + 90)
-        materials: PrincipledMaterial { baseColor: "#ff0066"; metalness: 0.9; roughness: 0.1 }  // BRIGHT MAGENTA
+        materials: PrincipledMaterial { baseColor: "#ff0066"; metalness: 0.9; roughness: 0.1 }
     }
     
-    // METAL ROD (from piston to j_rod) - USES SAME PISTON POSITION
+    // FULL PISTON ROD (CONSTANT LENGTH!)
+    // Goes from piston TO j_rod with FIXED length
+    // Entire rod is visible (part inside cylinder, part outside)
     Model {
         source: "#Cylinder"
-        property vector3d cylDirection: Qt.vector3d(j_rod.x - j_tail.x, j_rod.y - j_tail.y, 0)
-        property real cylDirectionLength: Math.hypot(cylDirection.x, cylDirection.y, 0)
-        property real lBody: 250
-        property real lTailRod: 100
         
-        // Cylinder starts FROM END OF TAIL ROD (same as piston calculation)
-        property vector3d tailRodEnd: Qt.vector3d(
-            j_tail.x + cylDirection.x * (lTailRod / cylDirectionLength),
-            j_tail.y + cylDirection.y * (lTailRod / cylDirectionLength),
-            j_tail.z
-        )
-        property vector3d cylStart: tailRodEnd
+        // Center of full rod (midpoint from piston to j_rod)
+        position: Qt.vector3d((pistonCenter.x + j_rod.x)/2, (pistonCenter.y + j_rod.y)/2, pistonCenter.z)
         
-        // Rod starts from PISTON position (from Python GeometryBridge)
-        property vector3d rodStart: Qt.vector3d(
-            cylStart.x + cylDirection.x * (pistonPositionMm / cylDirectionLength),
-            cylStart.y + cylDirection.y * (pistonPositionMm / cylDirectionLength),
-            cylStart.z
-        )
+        // Scale: CONSTANT length (fullRodLength)
+        scale: Qt.vector3d(0.5, fullRodLength/100, 0.5)
         
-        position: Qt.vector3d((rodStart.x + j_rod.x)/2, (rodStart.y + j_rod.y)/2, j_rod.z)
-        scale: Qt.vector3d(0.5, Math.hypot(j_rod.x - rodStart.x, j_rod.y - rodStart.y, 0)/100, 0.5)  // Normal rod thickness
-        eulerRotation: Qt.vector3d(0, 0, Math.atan2(j_rod.y - rodStart.y, j_rod.x - rodStart.x) * 180 / Math.PI + 90)
-        materials: PrincipledMaterial { baseColor: "#cccccc"; metalness: 0.95; roughness: 0.05 }  // STEEL
+        // Rotation to align piston ? j_rod
+        eulerRotation: Qt.vector3d(0, 0, Math.atan2(j_rod.y - pistonCenter.y, j_rod.x - pistonCenter.x) * 180 / Math.PI + 90)
+        
+        materials: PrincipledMaterial { baseColor: "#cccccc"; metalness: 0.95; roughness: 0.05 }
     }
     
-    // TAIL ROD (100mm extension from j_tail toward j_rod)
+    // TAIL ROD
     Model {
         source: "#Cylinder"
-        property vector3d cylDirection: Qt.vector3d(j_rod.x - j_tail.x, j_rod.y - j_tail.y, 0)
-        property real cylDirectionLength: Math.hypot(cylDirection.x, cylDirection.y, 0)
-        property real lTailRod: 100  // Fixed 100mm tail rod length
-        
-        // Tail rod goes 100mm from j_tail toward j_rod direction
-        property vector3d tailRodEnd: Qt.vector3d(
-            j_tail.x + cylDirection.x * (lTailRod / cylDirectionLength),
-            j_tail.y + cylDirection.y * (lTailRod / cylDirectionLength),
-            j_tail.z
-        )
         
         position: Qt.vector3d((j_tail.x + tailRodEnd.x)/2, (j_tail.y + tailRodEnd.y)/2, j_tail.z)
-        scale: Qt.vector3d(0.5, lTailRod/100, 0.5)  // SAME diameter as main rod, 100mm length
+        scale: Qt.vector3d(0.5, lTailRod/100, 0.5)
         eulerRotation: Qt.vector3d(0, 0, Math.atan2(tailRodEnd.y - j_tail.y, tailRodEnd.x - j_tail.x) * 180 / Math.PI + 90)
-        materials: PrincipledMaterial { baseColor: "#cccccc"; metalness: 0.95; roughness: 0.05 }  // STEEL
+        materials: PrincipledMaterial { baseColor: "#cccccc"; metalness: 0.95; roughness: 0.05 }
     }
     
-    // CORRECTED CYLINDRICAL JOINTS (PROPERLY ROUND AND Z-ORIENTED)
+    // CYLINDRICAL JOINTS
     
-    // Tail joint - TRULY ROUND along Z-axis (correct scale after rotation)
     Model {
         source: "#Cylinder"
         position: j_tail
-        scale: Qt.vector3d(1.2, 2.4, 1.2)  // After 90deg rotation: X=diameter, Y=length, Z=diameter
-        eulerRotation: Qt.vector3d(90, 0, 0)  // Rotate 90deg around X to orient along Z-axis
+        scale: Qt.vector3d(1.2, 2.4, 1.2)
+        eulerRotation: Qt.vector3d(90, 0, 0)
         materials: PrincipledMaterial { baseColor: "#0088ff"; metalness: 0.8; roughness: 0.2 }
     }
     
-    // Arm joint - TRULY ROUND along Z-axis (correct scale after rotation)
     Model {
         source: "#Cylinder"
         position: j_arm
-        scale: Qt.vector3d(1.0, 2.0, 1.0)  // After 90deg rotation: X=diameter, Y=length, Z=diameter
-        eulerRotation: Qt.vector3d(90, 0, 0)  // Rotate 90deg around X to orient along Z-axis
+        scale: Qt.vector3d(1.0, 2.0, 1.0)
+        eulerRotation: Qt.vector3d(90, 0, 0)
         materials: PrincipledMaterial { baseColor: "#ff8800"; metalness: 0.8; roughness: 0.2 }
     }
     
-    // Rod joint - TRULY ROUND along Z-axis (correct scale after rotation)
     Model {
         source: "#Cylinder" 
         position: j_rod
-        scale: Qt.vector3d(0.8, 1.6, 0.8)  // After 90deg rotation: X=diameter, Y=length, Z=diameter
-        eulerRotation: Qt.vector3d(90, 0, 0)  // Rotate 90deg around X to orient along Z-axis
+        scale: Qt.vector3d(0.8, 1.6, 0.8)
+        eulerRotation: Qt.vector3d(90, 0, 0)
         materials: PrincipledMaterial { baseColor: "#00ff44"; metalness: 0.7; roughness: 0.3 }
     }
 }
