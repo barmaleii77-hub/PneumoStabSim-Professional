@@ -332,7 +332,6 @@ Item {
             // FIXED dimensions
             property real lTailRod: 100           // Tail rod: 100mm (CONSTANT)
             property real lCylinder: userCylinderLength  // Cylinder body (CONSTANT)
-            property real lTotalRod: cylDirectionLength - lTailRod - lCylinder  // Total rod length (CONSTANT for given geometry)
             
             // Tail rod end (where cylinder starts)
             property vector3d tailRodEnd: Qt.vector3d(
@@ -348,10 +347,7 @@ Item {
                 tailRodEnd.z
             )
             
-            // PISTON POSITION - NOW FROM PYTHON (not calculated here!)
-            // Convert from absolute position (mm) to ratio (0..1)
-            property real pistonRatio: pistonPositionFromPython / lCylinder
-             
+            // PISTON POSITION - FROM PYTHON (absolute position inside cylinder, mm from tailRodEnd)
             property vector3d pistonCenter: Qt.vector3d(
                 tailRodEnd.x + cylDirectionNorm.x * pistonPositionFromPython,
                 tailRodEnd.y + cylDirectionNorm.y * pistonPositionFromPython,
@@ -392,21 +388,20 @@ Item {
                 materials: PrincipledMaterial { baseColor: "#ff0066"; metalness: 0.9; roughness: 0.1 }
             }
             
-            // PISTON ROD - FULL LENGTH (from piston to j_rod)
-            // Part inside cylinder is visible through transparent cylinder
-            // Part outside cylinder is fully visible
-            // Piston position from PYTHON!
+            // PISTON ROD - VARIABLE LENGTH (connects piston to j_rod)
+            // Piston moves INSIDE cylinder (from Python physics)
+            // Rod extends/retracts to connect piston to j_rod
             Model {
                 source: "#Cylinder"
                 
-                // Rod goes from piston center to j_rod attachment point
-                // Length CHANGES as piston moves (from Python physics!)
+                // Current rod length = distance from piston to j_rod
+                // This CHANGES as piston moves inside cylinder!
                 property real rodLength: Math.hypot(j_rod.x - pistonCenter.x, j_rod.y - pistonCenter.y)
                 
-                // Center position between piston and j_rod
+                // Rod center position (halfway from piston to j_rod)
                 position: Qt.vector3d((pistonCenter.x + j_rod.x)/2, (pistonCenter.y + j_rod.y)/2, j_rod.z)
                 
-                // Scale: diameter is constant, length is rodLength
+                // Scale: diameter is constant, length CHANGES
                 scale: Qt.vector3d(userRodDiameter/100, rodLength/100, userRodDiameter/100)
                 
                 // Rotation to align with direction from piston to j_rod
