@@ -27,6 +27,7 @@ class ModesPanel(QWidget):
     mode_changed = Signal(str, str)         # mode_type, new_mode
     parameter_changed = Signal(str, float)  # parameter_name, new_value
     physics_options_changed = Signal(dict)  # Physics option toggles
+    animation_changed = Signal(dict)        # Animation parameters changed (NEW!)
     
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -406,6 +407,20 @@ class ModesPanel(QWidget):
         """
         self.parameters[param_name] = value
         self.parameter_changed.emit(param_name, value)
+        
+        # NEW: Emit animation_changed for road excitation parameters
+        if param_name in ['amplitude', 'frequency', 'phase', 'lf_phase', 'rf_phase', 'lr_phase', 'rr_phase']:
+            animation_params = {
+                'amplitude': self.parameters.get('amplitude', 0.05),
+                'frequency': self.parameters.get('frequency', 1.0),
+                'phase': self.parameters.get('phase', 0.0),
+                'lf_phase': self.parameters.get('lf_phase', 0.0),
+                'rf_phase': self.parameters.get('rf_phase', 0.0),
+                'lr_phase': self.parameters.get('lr_phase', 0.0),
+                'rr_phase': self.parameters.get('rr_phase', 0.0)
+            }
+            self.animation_changed.emit(animation_params)
+            print(f"🔧 ModesPanel: Animation parameter '{param_name}' changed to {value}")
     
     def get_parameters(self) -> dict:
         """Get current parameter values

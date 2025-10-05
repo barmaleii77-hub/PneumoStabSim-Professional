@@ -27,6 +27,7 @@ class GeometryPanel(QWidget):
     # Signals for parameter changes
     parameter_changed = Signal(str, float)  # parameter_name, new_value
     geometry_updated = Signal(dict)         # Complete geometry dictionary
+    geometry_changed = Signal(dict)         # 3D scene geometry update (NEW!)
     
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -280,6 +281,14 @@ class GeometryPanel(QWidget):
         old_value = self.parameters.get(param_name, 0.0)
         self.parameters[param_name] = value
         
+        print(f"???????????????????????????????????????????????")
+        print(f"?? GeometryPanel: Parameter changed")
+        print(f"   Name: {param_name}")
+        print(f"   Old value: {old_value}")
+        print(f"   New value: {value}")
+        print(f"   All parameters: {self.parameters}")
+        print(f"???????????????????????????????????????????????")
+        
         # Check for dependencies and conflicts
         conflict_resolution = self._check_dependencies(param_name, value, old_value)
         
@@ -290,6 +299,36 @@ class GeometryPanel(QWidget):
             # No conflicts, emit signals
             self.parameter_changed.emit(param_name, value)
             self.geometry_updated.emit(self.parameters.copy())
+            
+            # NEW: Emit 3D scene geometry update for frame dimensions
+            if param_name in ['wheelbase', 'track', 'lever_length', 'cylinder_length', 'frame_to_pivot', 'rod_position', 
+                             'bore_head', 'bore_rod', 'rod_diameter', 'piston_thickness']:
+                # Convert parameters to 3D scene format
+                geometry_3d = {
+                    'frameLength': self.parameters.get('wheelbase', 3.2) * 1000,  # m -> mm
+                    'frameHeight': 650.0,  # Fixed for now
+                    'frameBeamSize': 120.0,  # Fixed for now
+                    'leverLength': self.parameters.get('lever_length', 0.8) * 1000,  # m -> mm
+                    'cylinderBodyLength': self.parameters.get('cylinder_length', 0.5) * 1000,  # m -> mm
+                    'tailRodLength': 100.0,  # Fixed for now
+                    # NEW: Additional parameters
+                    'trackWidth': self.parameters.get('track', 1.6) * 1000,  # m -> mm
+                    'frameToPivot': self.parameters.get('frame_to_pivot', 0.6) * 1000,  # m -> mm
+                    'rodPosition': self.parameters.get('rod_position', 0.6),  # fraction 0-1
+                    'boreHead': self.parameters.get('bore_head', 80.0),  # mm
+                    'boreRod': self.parameters.get('bore_rod', 80.0),  # mm
+                    'rodDiameter': self.parameters.get('rod_diameter', 35.0),  # mm
+                    'pistonThickness': self.parameters.get('piston_thickness', 25.0)  # mm
+                }
+                
+                print(f"???????????????????????????????????????????????")
+                print(f"?? GeometryPanel: Emitting geometry_changed signal")
+                print(f"   Converted to 3D format:")
+                for key, val in geometry_3d.items():
+                    print(f"      {key}: {val}")
+                print(f"???????????????????????????????????????????????")
+                
+                self.geometry_changed.emit(geometry_3d)
     
     def _check_dependencies(self, param_name: str, new_value: float, old_value: float) -> dict:
         """Check for parameter dependencies and conflicts
