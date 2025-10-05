@@ -111,6 +111,7 @@ class RangeSlider(QWidget):
         
         self.min_spinbox = QDoubleSpinBox()
         self.min_spinbox.setDecimals(self._decimals)
+        self.min_spinbox.setRange(-1e6, 1e6)  # Set wide range immediately
         self.min_spinbox.setMinimumWidth(80)
         self.min_spinbox.setMaximumWidth(100)
         self.min_spinbox.setAlignment(Qt.AlignmentFlag.AlignCenter)
@@ -149,6 +150,7 @@ class RangeSlider(QWidget):
         
         self.max_spinbox = QDoubleSpinBox()
         self.max_spinbox.setDecimals(self._decimals)
+        self.max_spinbox.setRange(-1e6, 1e6)  # Set wide range immediately
         self.max_spinbox.setMinimumWidth(80)
         self.max_spinbox.setMaximumWidth(100)
         self.max_spinbox.setAlignment(Qt.AlignmentFlag.AlignCenter)
@@ -311,14 +313,20 @@ class RangeSlider(QWidget):
         min_val = self.min_spinbox.value()
         max_val = self.max_spinbox.value()
         
-        # Set wide limits for min/max spinboxes themselves
+        # Set wide limits for min/max spinboxes themselves (they can edit their own ranges)
+        self.min_spinbox.blockSignals(True)
+        self.max_spinbox.blockSignals(True)
+        
         self.min_spinbox.setRange(-1e6, 1e6)
         self.max_spinbox.setRange(-1e6, 1e6)
         
-        # Set constrained range for value spinbox
+        # Set constrained range for value spinbox (can only be within min/max)
         self.value_spinbox.setMinimum(min_val)
         self.value_spinbox.setMaximum(max_val)
         self.value_spinbox.setSingleStep(self._step)
+        
+        self.min_spinbox.blockSignals(False)
+        self.max_spinbox.blockSignals(False)
     
     def _update_slider_position(self):
         """Update slider position based on current value"""
@@ -373,10 +381,16 @@ class RangeSlider(QWidget):
         
         self._updating_internally = True
         
-        # Set min/max spinboxes
+        # Set min/max spinboxes (block signals to prevent race conditions)
         if hasattr(self, 'min_spinbox'):
+            self.min_spinbox.blockSignals(True)
+            self.max_spinbox.blockSignals(True)
+            
             self.min_spinbox.setValue(minimum)
             self.max_spinbox.setValue(maximum)
+            
+            self.min_spinbox.blockSignals(False)
+            self.max_spinbox.blockSignals(False)
         
         # Update ranges
         self._update_spinbox_ranges()
