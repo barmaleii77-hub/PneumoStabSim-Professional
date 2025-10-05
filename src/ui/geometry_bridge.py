@@ -182,9 +182,7 @@ class GeometryTo3DConverter(QObject):
         
         # PISTON POSITION CALCULATION (NEW!)
         # If cylinder_state provided, use physics data
-        # Otherwise, estimate from lever angle
-        piston_position_mm = None
-        piston_ratio = None
+        # Otherwise, calculate from geometry (lever angle + rod length)
         
         if cylinder_state is not None:
             # Use actual physics data from CylinderKinematics
@@ -200,12 +198,56 @@ class GeometryTo3DConverter(QObject):
             piston_ratio = np.clip(piston_ratio, 0.1, 0.9)  # Safety limits
             piston_position_mm = piston_ratio * self._cylinder_body_length
         else:
-            # Fallback: estimate from lever angle (for visualization without physics)
-            # Map lever angle to piston position
-            # -10° .. +10° -> 0.1 .. 0.9 of cylinder length
-            piston_ratio = 0.5 + lever_angle_deg / 20.0  # Simple linear mapping
-            piston_ratio = np.clip(piston_ratio, 0.1, 0.9)
-            piston_position_mm = piston_ratio * self._cylinder_body_length
+            # Calculate from GEOMETRY (correct kinematics!)
+            # Distance from tail to rod attachment point
+            tail_to_rod_dist = np.sqrt(
+                (j_rod.x() - j_tail.x())**2 + 
+                (j_rod.y() - j_tail.y())**2
+            )
+            
+            # Total assembly: tail_rod + cylinder_body + piston_rod
+            # tail_rod = FIXED 100mm
+            # cylinder_body = FIXED 250mm
+            # piston_rod = VARIABLE (depends on lever angle!)
+            
+            # Piston rod length = total distance - tail_rod - cylinder_body
+            piston_rod_length_mm = tail_to_rod_dist - self._tail_rod_length - self._cylinder_body_length
+            
+            # Piston position inside cylinder:
+            # If piston is at START of cylinder (retracted) ? position = 0
+            # If piston is at END of cylinder (extended) ? position = cylinder_length
+            # Position = cylinder_length - piston_rod_length (approximately)
+            # But we need to account for the fact that rod pushes from opposite end
+            
+            # Correct calculation:
+            # When lever horizontal (0°), piston is centered
+            # When lever rotates up, rod pulls ? piston moves toward rod end
+            # When lever rotates down, rod pushes ? piston moves toward tail
+            
+            # For horizontal position (baseline), calculate distance
+            base_angle_rad = np.deg2rad(base_angle_deg)
+            base_rod_x = j_arm.x() + self._lever_length * np.cos(base_angle_rad)
+            base_rod_y = j_arm.y() + self._lever_length * np.sin(base_angle_rad)
+            base_dist = np.sqrt(
+                (base_rod_x - j_tail.x())**2 + 
+                (base_rod_y - j_tail.y())**2
+            )
+            
+            # Change in distance from baseline
+            delta_dist = tail_to_rod_dist - base_dist
+            
+            # Piston moves OPPOSITE to rod extension
+            # (if rod extends, piston moves toward tail)
+            piston_position_mm = (self._cylinder_body_length / 2.0) - delta_dist
+            
+            # Clip to safe range
+            piston_position_mm = np.clip(
+                piston_position_mm,
+                self._cylinder_body_length * 0.1,  # 10% minimum
+                self._cylinder_body_length * 0.9   # 90% maximum
+            )
+            
+            piston_ratio = piston_position_mm / self._cylinder_body_length
         
         # Return data compatible with CorrectedSuspensionCorner.qml
         result = {
