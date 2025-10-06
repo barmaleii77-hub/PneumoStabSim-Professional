@@ -1,0 +1,33 @@
+# Настройка среды разработки
+
+include requirements.txt
+include README.md
+include LICENSE
+include .editorconfig
+
+# Конфигурационные файлы
+recursive-include config *.yaml *.yml *.json *.ini
+
+# Ресурсы приложения  
+recursive-include assets *.qml *.css *.svg *.png *.ico *.jpg *.jpeg *.ttf *.otf
+
+# Документация
+recursive-include docs *.md *.rst *.txt
+
+# Исходный код
+recursive-include src *.py
+
+# Тесты
+recursive-include tests *.py
+
+# Скрипты
+recursive-include scripts *.py
+
+# Исключаем временные файлы
+global-exclude *.pyc
+global-exclude *.pyo  
+global-exclude *.pyd
+global-exclude __pycache__
+global-exclude .git*
+global-exclude *.so
+global-exclude *.egg-info
