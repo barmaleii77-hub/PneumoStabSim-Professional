@@ -1,18 +1,19 @@
 @echo off
-echo.
-echo 🚀 ========== ЗАПУСК PNEUMOSTABSIM ==========
-echo 📁 Активация виртуального окружения...
+echo 🚀 Запуск PneumoStabSim...
 
+if not exist ".venv\Scripts\activate.bat" (
+    echo ❌ Виртуальное окружение не найдено!
+    echo Сначала запустите: python create_venv.py
+    pause
+    exit /b 1
+)
+
+echo 🐍 Активация окружения...
 call .venv\Scripts\activate.bat
 
-echo.
-echo ✅ Окружение активировано
-echo 🎬 Запуск приложения PneumoStabSim...
-echo.
-
+echo 🎮 Запуск приложения...
 python app.py
 
 echo.
-echo 📊 Приложение завершено (код: %ERRORLEVEL%)
-echo 🔄 Нажмите любую клавишу для выхода...
-pause > nul
+echo 📝 Приложение завершено
+pause

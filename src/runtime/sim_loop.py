@@ -145,11 +145,73 @@ class PhysicsWorker(QObject):
     @Slot()
     def stop_simulation(self):
         """Stop physics simulation"""
-        if self.physics_timer:
-            self.physics_timer.stop()
+        self.logger.info("Остановка physics simulation...")
         
+        try:
+            # Сначала отмечаем, что симуляция должна остановиться
+            self.is_running = False
+            
+            # Останавливаем таймер АГРЕССИВНО
+            if self.physics_timer:
+                try:
+                    # Отключаем все сигналы
+                    self.physics_timer.timeout.disconnect()
+                except:
+                    pass  # Может быть уже отключен
+                
+                # Останавливаем таймер
+                self.physics_timer.stop()
+                
+                # Удаляем таймер для полной очистки
+                self.physics_timer.deleteLater()
+                self.physics_timer = None
+                self.logger.info("Physics timer остановлен и очищен")
+            
+            # Очищаем ссылки на объекты
+            # (НЕ удаляем их полностью, так как могут быть нужны для повторного запуска)
+            
+            self.logger.info("Physics simulation остановлена")
+            
+        except Exception as e:
+            self.logger.error(f"Ошибка остановки physics simulation: {e}")
+            import traceback  
+            traceback.print_exc()
+            
+        # В любом случае помечаем как остановленную
         self.is_running = False
-        self.logger.info("Physics simulation stopped")
+    
+    def force_cleanup(self):
+        """Принудительная очистка всех ресурсов"""
+        try:
+            self.is_running = False
+            self.is_configured = False
+            
+            if self.physics_timer:
+                try:
+                    self.physics_timer.timeout.disconnect()
+                except:
+                    pass
+                self.physics_timer.stop()
+                self.physics_timer.deleteLater()
+                self.physics_timer = None
+            
+            # Очистка объектов физики
+            self.rigid_body = None
+            self.road_input = None
+            self.pneumatic_system = None
+            self.gas_network = None
+            
+            self.logger.info("Принудительная очистка PhysicsWorker завершена")
+            
+        except Exception as e:
+            self.logger.error(f"Ошибка принудительной очистки: {e}")
+    
+    def __del__(self):
+        """Деструктор - финальная очистка"""
+        try:
+            self.force_cleanup()
+        except:
+            pass
     
     @Slot()
     def reset_simulation(self):
@@ -468,20 +530,81 @@ class SimulationManager(QObject):
     
     def stop(self):
         """Stop simulation manager"""
-        if self.physics_thread.isRunning():
-            # Stop simulation first
-            self.state_bus.stop_simulation.emit()
-            
-            # Quit thread gracefully
-            self.physics_thread.quit()
-            self.physics_thread.wait(5000)  # Wait up to 5 seconds
-            
+        self.logger.info("Остановка simulation manager...")
+        
+        try:
             if self.physics_thread.isRunning():
-                self.logger.warning("Physics thread did not stop gracefully")
+                # 1. Сначала остановить симуляцию через worker
+                if hasattr(self.physics_worker, 'force_cleanup'):
+                    try:
+                        self.physics_worker.force_cleanup()
+                    except Exception as e:
+                        self.logger.warning(f"Ошибка принудительной очистки worker: {e}")
+                
+                # 2. Отправить сигнал остановки
+                try:
+                    self.state_bus.stop_simulation.emit()
+                except Exception as e:
+                    self.logger.warning(f"Ошибка отправки сигнала остановки: {e}")
+                
+                # 3. Дать короткое время на корректную остановку (50мс)
+                import time
+                time.sleep(0.05)
+                
+                # 4. Попытаться корректно завершить поток
+                self.logger.info("Корректное завершение physics thread...")
+                self.physics_thread.quit()
+                
+                # 5. Ждать завершения максимум 2 секунды
+                if not self.physics_thread.wait(2000):
+                    self.logger.warning("Physics thread не завершился за 2 секунды, принудительное завершение...")
+                    self.physics_thread.terminate()
+                    
+                    # Дать полсекунды на принудительное завершение
+                    if not self.physics_thread.wait(500):
+                        self.logger.error("Physics thread не удалось завершить даже принудительно!")
+                    else:
+                        self.logger.info("Physics thread завершен принудительно")
+                else:
+                    self.logger.info("Physics thread завершен корректно")
+            
+            else:
+                self.logger.info("Physics thread уже остановлен")
+        
+        except Exception as e:
+            self.logger.error(f"Ошибка при остановке simulation manager: {e}")
+            import traceback
+            traceback.print_exc()
+            
+            # В случае ошибки все равно пытаемся принудительно завершить
+            try:
+                if hasattr(self, 'physics_thread') and self.physics_thread.isRunning():
+                    self.physics_thread.terminate()
+                    self.physics_thread.wait(500)
+            except:
+                pass
+        
+        # Финальная очистка ссылок
+        try:
+            self.physics_worker = None
+        except:
+            pass
+            
+        self.logger.info("Simulation manager остановлен")
+    
+    def force_shutdown(self):
+        """Принудительное завершение для критических случаев"""
+        try:
+            if hasattr(self, 'physics_worker') and self.physics_worker:
+                self.physics_worker.force_cleanup()
+            
+            if hasattr(self, 'physics_thread') and self.physics_thread.isRunning():
                 self.physics_thread.terminate()
                 self.physics_thread.wait(1000)
             
-            self.logger.info("Simulation manager stopped")
+            self.logger.info("Принудительное завершение SimulationManager выполнено")
+        except Exception as e:
+            self.logger.error(f"Ошибка принудительного завершения: {e}")
     
     def get_latest_state(self) -> Optional[StateSnapshot]:
         """Get latest state snapshot without blocking"""
@@ -491,14 +614,22 @@ class SimulationManager(QObject):
         """Get state queue statistics"""
         return self.state_queue.get_stats()
     
+    def get_snapshot_buffer(self):
+        """Получить буфер снимков для экспорта (заглушка)"""
+        # TODO: Реализовать буфер снимков
+        return []
+    
     @Slot(object)
     def _on_state_ready(self, snapshot):
         """Handle state ready from physics worker"""
-        # Put in latest-only queue
-        self.state_queue.put_nowait(snapshot)
-        
-        # Re-emit through state bus
-        self.state_bus.state_ready.emit(snapshot)
+        try:
+            # Put in latest-only queue
+            self.state_queue.put_nowait(snapshot)
+            
+            # Re-emit through state bus
+            self.state_bus.state_ready.emit(snapshot)
+        except Exception as e:
+            self.logger.error(f"Error handling state ready: {e}")
     
     @Slot(str)
     def _on_physics_error(self, error_msg):
@@ -515,7 +646,3 @@ class SimulationManager(QObject):
     def _on_thread_finished(self):
         """Handle physics thread finished"""
         self.logger.info("Physics thread finished")
-
-
-# Export main classes
-__all__ = ['PhysicsWorker', 'SimulationManager']

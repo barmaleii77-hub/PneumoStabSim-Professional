@@ -1,24 +1,27 @@
-# Активация виртуального окружения PneumoStabSim (PowerShell)
-Write-Host ""
-Write-Host "🐍 ========== АКТИВАЦИЯ ВИРТУАЛЬНОГО ОКРУЖЕНИЯ ==========" -ForegroundColor Green
-Write-Host "📁 Проект: PneumoStabSim - Симулятор пневмостабилизатора" -ForegroundColor Cyan
-Write-Host "🔧 Python: 3.13.7 | PySide6: 6.9.3 | Qt Quick 3D" -ForegroundColor Cyan
-Write-Host ""
-Write-Host "⚡ Активация окружения..." -ForegroundColor Yellow
+# Активация виртуального окружения PneumoStabSim
+Write-Host "🐍 Активация виртуального окружения PneumoStabSim..." -ForegroundColor Green
+
+if (!(Test-Path ".venv\Scripts\Activate.ps1")) {
+    Write-Host "❌ Виртуальное окружение не найдено!" -ForegroundColor Red
+    Write-Host "Запустите: python create_venv.py" -ForegroundColor Yellow
+    Read-Host "Нажмите Enter для выхода"
+    exit 1
+}
 
 & .venv\Scripts\Activate.ps1
 
 Write-Host ""
-Write-Host "✅ ОКРУЖЕНИЕ АКТИВИРОВАНО!" -ForegroundColor Green
+Write-Host "✅ Виртуальное окружение активировано" -ForegroundColor Green
+Write-Host "🏗️  Python версия:" -ForegroundColor Cyan
+python --version
 Write-Host ""
-Write-Host "📋 ДОСТУПНЫЕ КОМАНДЫ:" -ForegroundColor Yellow
-Write-Host "   🚀 python app.py                    - Запуск основного приложения" -ForegroundColor Cyan
-Write-Host "   🧪 python test_geometry_connection.py - Тест подключения параметров" -ForegroundColor Cyan
-Write-Host "   📊 python test_slider_precision.py   - Тест точности слайдеров" -ForegroundColor Cyan
-Write-Host "   📦 pip list                         - Список установленных пакетов" -ForegroundColor Cyan
-Write-Host "   🔍 python setup_venv.py            - Проверка окружения" -ForegroundColor Cyan
-Write-Host "   ❌ deactivate                       - Выход из окружения" -ForegroundColor Cyan
+Write-Host "📋 Доступные команды:" -ForegroundColor Yellow
+Write-Host "   python app.py              - Запуск приложения" -ForegroundColor Cyan
+Write-Host "   python setup_venv.py       - Проверка окружения" -ForegroundColor Cyan
+Write-Host "   python -m pytest tests/    - Запуск тестов" -ForegroundColor Cyan
+Write-Host "   pip list                   - Список пакетов" -ForegroundColor Cyan
+Write-Host "   pip install package_name   - Установка пакета" -ForegroundColor Cyan
+Write-Host "   deactivate                 - Деактивация окружения" -ForegroundColor Cyan
 Write-Host ""
-Write-Host "🎯 ДЛЯ БЫСТРОГО ЗАПУСКА: python app.py" -ForegroundColor Green
-Write-Host "========================================================"
+Write-Host "🚀 Для запуска приложения введите: python app.py" -ForegroundColor Green
 Write-Host ""

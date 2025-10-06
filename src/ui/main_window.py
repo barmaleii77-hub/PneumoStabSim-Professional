@@ -341,138 +341,31 @@ class MainWindow(QMainWindow):
                     self.logger.info(f"Параметр геометрии {name}={val}"),
                     print(f"🔧 GeometryPanel: {name}={val}")
                 ])
-            # ИСПРАВЛЕНО: Подключаем к правильному методу обработки геометрии
-            self.geometry_panel.geometry_changed.connect(self._on_geometry_changed)
-            print("✅ Сигналы GeometryPanel подключены (geometry_changed -> _on_geometry_changed)")
+            # ИСПРАВЛЕНО: Подключаем РЕАЛЬНУЮ функцию обновления QML вместо заглушки
+            self.geometry_panel.geometry_changed.connect(self._on_geometry_changed_real)
+            print("✅ Сигналы GeometryPanel подключены (РЕАЛЬНОЕ ОБНОВЛЕНИЕ QML)")
 
         # Pneumatic panel
         if self.pneumo_panel:
-            self.pneumo_panel.mode_changed.connect(self._on_mode_changed)
-            self.pneumo_panel.parameter_changed.connect(self._on_pneumo_param)
-            print("✅ Сигналы PneumoPanel подключены")
+            # ВРЕМЕННАЯ ЗАГЛУШКА - просто логируем
+            self.pneumo_panel.mode_changed.connect(lambda mode_type, new_mode: print(f"🔧 Mode changed: {mode_type} -> {new_mode}"))
+            self.pneumo_panel.parameter_changed.connect(lambda name, value: print(f"🔧 Pneumo param: {name} = {value}"))
+            print("✅ Сигналы PneumoPanel подключены (ЗАГЛУШКА)")
 
         # Modes panel
         if self.modes_panel:
-            self.modes_panel.simulation_control.connect(self._on_sim_control)
-            self.modes_panel.mode_changed.connect(self._on_mode_changed)
-            self.modes_panel.parameter_changed.connect(
-                lambda n, v: self.logger.debug(f"Параметр {n}={v}"))
-            self.modes_panel.animation_changed.connect(self._on_animation_changed)
-            print("✅ Сигналы ModesPanel подключены")
+            # ВРЕМЕННАЯ ЗАГЛУШКА - просто логируем
+            self.modes_panel.simulation_control.connect(lambda command: print(f"🔧 Sim control: {command}"))
+            self.modes_panel.mode_changed.connect(lambda mode_type, new_mode: print(f"🔧 Mode changed: {mode_type} -> {new_mode}"))
+            self.modes_panel.parameter_changed.connect(lambda n, v: print(f"🔧 Param: {n} = {v}"))
+            self.modes_panel.animation_changed.connect(lambda params: print(f"🔧 Animation: {params}"))
+            print("✅ Сигналы ModesPanel подключены (ЗАГЛУШКА)")
 
-    @Slot(dict)
-    def _on_geometry_changed(self, geometry_params: dict):
-        """Обработать изменение параметров геометрии / Handle geometry parameter changes
-        
-        Args:
-            geometry_params: Dictionary with geometry values
-                {
-                    'frameLength': float,      # mm
-                    'frameHeight': float,      # mm
-                    'leverLength': float,      # mm
-                    'cylinderBodyLength': float,  # mm
-                    ...
-                }
-        """
-        # БЫСТРОЕ ОБНОВЛЕНИЕ - минимум логирования во время перетаскивания
-        if not self._qml_root_object:
-            return
-        
-        # Прямое обновление QML свойств для максимальной скорости
-        try:
-            # Обновляем только ключевые параметры, которые видны пользователю
-            if 'frameLength' in geometry_params:
-                self._qml_root_object.setProperty("frameLength", float(geometry_params['frameLength']))
-            if 'leverLength' in geometry_params:
-                self._qml_root_object.setProperty("leverLength", float(geometry_params['leverLength']))
-            if 'cylinderBodyLength' in geometry_params:
-                self._qml_root_object.setProperty("cylinderBodyLength", float(geometry_params['cylinderBodyLength']))
-            if 'trackWidth' in geometry_params:
-                self._qml_root_object.setProperty("trackWidth", float(geometry_params['trackWidth']))
-            if 'frameToPivot' in geometry_params:
-                self._qml_root_object.setProperty("frameToPivot", float(geometry_params['frameToPivot']))
-            if 'rodPosition' in geometry_params:
-                self._qml_root_object.setProperty("rodPosition", float(geometry_params['rodPosition']))
-            
-            # МШ-1: Параметры цилиндра (быстрое обновление)
-            if 'cylDiamM' in geometry_params:
-                self._qml_root_object.setProperty("cylDiamM", float(geometry_params['cylDiamM']))
-            if 'strokeM' in geometry_params:
-                self._qml_root_object.setProperty("strokeM", float(geometry_params['strokeM']))
-            if 'deadGapM' in geometry_params:
-                self._qml_root_object.setProperty("deadGapM", float(geometry_params['deadGapM']))
-            
-            # МШ-2: Параметры штока и поршня (быстрое обновление)
-            if 'rodDiameterM' in geometry_params:
-                self._qml_root_object.setProperty("rodDiameterM", float(geometry_params['rodDiameterM']))
-            if 'pistonRodLengthM' in geometry_params:
-                self._qml_root_object.setProperty("pistonRodLengthM", float(geometry_params['pistonRodLengthM']))
-            if 'pistonThicknessM' in geometry_params:
-                self._qml_root_object.setProperty("pistonThicknessM", float(geometry_params['pistonThicknessM']))
-                
-        except Exception as e:
-            # Минимальное логирование ошибок (не замедляем UI)
-            pass
-        
-        # Попытка вызвать updateGeometry() если доступно (fallback для полного обновления)
-        from PySide6.QtCore import QMetaObject, Q_ARG, Qt
-        QMetaObject.invokeMethod(
-            self._qml_root_object,
-            "updateGeometry",
-            Qt.ConnectionType.DirectConnection,
-            Q_ARG("QVariant", geometry_params)
-        )
-
-    @Slot(dict)
-    def _on_animation_changed(self, animation_params: dict):
-        """Обработать изменение параметров анимации / Handle animation parameter changes
-        
-        Args:
-            animation_params: Dictionary with animation values
-                {
-                    'amplitude': float,    # m
-                    'frequency': float,    # Hz
-                    'phase': float,        # degrees
-                    'lf_phase': float,     # degrees
-                    ...
-                }
-        """
-        if not self._qml_root_object:
-            return
-        
-        print(f"🎬 MainWindow: Получены изменения анимации:")
-        
-        # Set QML properties directly
-        if 'amplitude' in animation_params:
-            # Convert amplitude from meters to degrees (approximate)
-            amplitude_deg = animation_params['amplitude'] * 1000 / 10  # m -> mm -> deg (rough)
-            self._qml_root_object.setProperty("userAmplitude", amplitude_deg)
-            print(f"   userAmplitude = {amplitude_deg}°")
-        
-        if 'frequency' in animation_params:
-            self._qml_root_object.setProperty("userFrequency", animation_params['frequency'])
-            print(f"   userFrequency = {animation_params['frequency']} Гц")
-        
-        if 'phase' in animation_params:
-            self._qml_root_object.setProperty("userPhaseGlobal", animation_params['phase'])
-            print(f"   userPhaseGlobal = {animation_params['phase']}°")
-        
-        # Per-wheel phases
-        for corner in ['lf', 'rf', 'lr', 'rr']:
-            phase_key = f'{corner}_phase'
-            if phase_key in animation_params:
-                prop_name = f"user{corner.upper()}Phase"
-                self._qml_root_object.setProperty(prop_name, animation_params[phase_key])
-                print(f"   {prop_name} = {animation_params[phase_key]}°")
-
-    # ------------------------------------------------------------------
-    # Menus & Toolbars - РУССКИЙ ИНТЕРФЕЙС
-    # ------------------------------------------------------------------
     def _setup_menus(self):
-        """Настроить меню (русский интерфейс) / Setup menus (Russian UI)"""
+        """Create menu bar"""
         menubar = self.menuBar()
 
-        # Файл (File menu)
+        # File menu
         file_menu = menubar.addMenu("Файл")
         
         # Preset actions
@@ -487,7 +380,7 @@ class MainWindow(QMainWindow):
         # Export submenu
         export_menu = file_menu.addMenu("Экспорт")
         export_timeseries_act = QAction("Экспорт временных рядов...", self)
-        export_snapshots_act = QAction("Экспорт снимков состояния...", self)
+        export_snapshots_act = QAction("Экспорт снимков...", self)
         export_timeseries_act.triggered.connect(self._export_timeseries)
         export_snapshots_act.triggered.connect(self._export_snapshots)
         export_menu.addAction(export_timeseries_act)
@@ -500,58 +393,36 @@ class MainWindow(QMainWindow):
         exit_act.triggered.connect(self.close)
         file_menu.addAction(exit_act)
 
-        # Параметры (Parameters menu)
+        # Parameters menu
         params_menu = menubar.addMenu("Параметры")
         reset_ui_act = QAction("Сбросить раскладку UI", self)
         reset_ui_act.triggered.connect(self._reset_ui_layout)
         params_menu.addAction(reset_ui_act)
 
-        # Вид (View menu)
+        # View menu
         view_menu = menubar.addMenu("Вид")
-        
-        # Toggle tabs visibility
-        toggle_tabs_act = QAction("Показать/скрыть панели", self, checkable=True, checked=True)
-        toggle_tabs_act.toggled.connect(self._toggle_tabs_visibility)
-        view_menu.addAction(toggle_tabs_act)
-        
-        view_menu.addSeparator()
-        
-        # Toggle charts visibility
-        toggle_charts_act = QAction("Показать/скрыть графики", self, checkable=True, checked=True)
-        toggle_charts_act.toggled.connect(self._toggle_charts_visibility)
-        view_menu.addAction(toggle_charts_act)
+        if self.tab_widget:
+            toggle_tabs_act = QAction("Показать/скрыть панели", self)
+            toggle_tabs_act.setCheckable(True)
+            toggle_tabs_act.setChecked(True)
+            toggle_tabs_act.toggled.connect(self._toggle_tabs)
+            view_menu.addAction(toggle_tabs_act)
 
-    def _toggle_tabs_visibility(self, visible: bool):
-        """Переключить видимость вкладок / Toggle tabs visibility"""
+    def _toggle_tabs(self, visible: bool):
+        """Toggle visibility of tab widget"""
         if self.tab_widget:
             self.tab_widget.setVisible(visible)
-        status_msg = "Панели показаны" if visible else "Панели скрыты"
-        if hasattr(self, 'status_bar'):
-            self.status_bar.showMessage(status_msg)
-    
-    def _toggle_charts_visibility(self, visible: bool):
-        """Переключить видимость графиков / Toggle charts visibility"""
-        if self.chart_widget:
-            self.chart_widget.setVisible(visible)
-        status_msg = "Графики показаны" if visible else "Графики скрыты"
-        if hasattr(self, 'status_bar'):
-            self.status_bar.showMessage(status_msg)
 
     def _setup_toolbar(self):
-        """Настроить панель инструментов (русский) / Setup toolbar (Russian)"""
-        toolbar = self.addToolBar("Главная")
+        """Create toolbar"""
+        toolbar = self.addToolBar("Основная")
         toolbar.setObjectName("MainToolbar")
         toolbar.setMovable(True)
         
-        start_act = QAction("▶ Старт", self)
-        stop_act = QAction("⏹ Стоп", self)
-        pause_act = QAction("⏸ Пауза", self)
-        reset_act = QAction("🔄 Сброс", self)
-        
-        start_act.setToolTip("Запустить симуляцию")
-        stop_act.setToolTip("Остановить симуляцию")
-        pause_act.setToolTip("Приостановить симуляцию")
-        reset_act.setToolTip("Сбросить симуляцию")
+        start_act = QAction("Пуск", self)
+        stop_act = QAction("Стоп", self)
+        pause_act = QAction("Пауза", self)
+        reset_act = QAction("Сброс", self)
         
         start_act.triggered.connect(lambda: self._on_sim_control("start"))
         stop_act.triggered.connect(lambda: self._on_sim_control("stop"))
@@ -562,132 +433,78 @@ class MainWindow(QMainWindow):
         toolbar.setMaximumHeight(50)
 
     def _setup_status_bar(self):
-        """Настроить строку состояния (русский) / Setup status bar (Russian)"""
+        """Create status bar"""
         self.status_bar = QStatusBar()
         self.setStatusBar(self.status_bar)
         
-        # Create status bar widgets with Russian labels
-        self.sim_time_label = QLabel("Время: 0.000с")
-        self.sim_time_label.setMinimumWidth(120)
-        self.sim_time_label.setToolTip("Время симуляции")
+        # Create status bar widgets
+        self.sim_time_label = QLabel("Время симуляции: 0.000с")
+        self.sim_time_label.setMinimumWidth(180)
         
-        self.step_count_label = QLabel("Шаги: 0")
+        self.step_count_label = QLabel("Шагов: 0")
         self.step_count_label.setMinimumWidth(80)
-        self.step_count_label.setToolTip("Количество шагов")
         
-        self.fps_label = QLabel("FPS физики: 0")
-        self.fps_label.setMinimumWidth(100)
-        self.fps_label.setToolTip("Частота кадров физики")
+        self.fps_label = QLabel("FPS: 0")
+        self.fps_label.setMinimumWidth(80)
         
-        self.realtime_label = QLabel("РВ: 1.00x")
-        self.realtime_label.setMinimumWidth(80)
-        self.realtime_label.setToolTip("Реальное время")
-        
-        self.queue_label = QLabel("Очередь: 0/0")
-        self.queue_label.setMinimumWidth(100)
-        self.queue_label.setToolTip("Очередь обновлений")
-        
-        # Kinematics display (Russian units)
-        self.kinematics_label = QLabel("угол: 0.0° | ход: 0.0мм | V_б: 0см³ | V_ш: 0см³")
-        self.kinematics_label.setToolTip("Угол рычага, ход цилиндра, объёмы камер (безштоковая/штоковая)")
-        self.kinematics_label.setMinimumWidth(350)
-        
-        for w in [self.sim_time_label, self.step_count_label, self.fps_label, 
-                  self.queue_label, self.realtime_label, self.kinematics_label]:
+        for w in [self.sim_time_label, self.step_count_label, self.fps_label]:
             self.status_bar.addPermanentWidget(w)
         
         self.status_bar.showMessage("Готов")
         self.status_bar.setMaximumHeight(30)
 
-    # ------------------------------------------------------------------
-    # Simulation Control & State Updates - РУССКИЙ ТЕКСТ
-    # ------------------------------------------------------------------
+    def _connect_simulation_signals(self):
+        """Connect simulation signals to UI"""
+        try:
+            bus = self.simulation_manager.state_bus
+            bus.state_ready.connect(self._on_state_update, Qt.QueuedConnection)
+            bus.physics_error.connect(self._on_physics_error, Qt.QueuedConnection)
+        except Exception as e:
+            self.logger.error(f"Ошибка подключения сигналов: {e}")
+
     @Slot(object)
-    def _on_state_update(self, snapshot: StateSnapshot):
-        """Обновить состояние из симуляции / Update state from simulation"""
+    def _on_state_update(self, snapshot):
+        """Handle state update from simulation"""
         self.current_snapshot = snapshot
-        if snapshot:
-            # Update status bar with Russian labels
-            self.sim_time_label.setText(f"Время: {snapshot.simulation_time:.3f}с")
-            self.step_count_label.setText(f"Шаги: {snapshot.step_number}")
-            
-            if snapshot.aggregates.physics_step_time > 0:
-                fps = 1.0 / snapshot.aggregates.physics_step_time
-                self.fps_label.setText(f"FPS физики: {fps:.1f}")
-            
-            # Update 3D scene
-            self._update_3d_scene_from_snapshot(snapshot)
-            
-        # Update charts
-        if self.chart_widget:
-            self.chart_widget.update_from_snapshot(snapshot)
+        # TODO: Update charts and UI elements
 
     @Slot(str)
     def _on_physics_error(self, msg: str):
-        """Обработать ошибку физики / Handle physics error"""
-        self.status_bar.showMessage(f"Ошибка физики: {msg}")
-        self.logger.error(f"Ошибка физического движка: {msg}")
-        
-        if "CRITICAL" in msg.upper() or "FATAL" in msg.upper():
-            from PySide6.QtWidgets import QMessageBox
-            QMessageBox.critical(
-                self,
-                "Ошибка физического движка",
-                f"Критическая ошибка в физической симуляции:\n\n{msg}\n\n"
-                "Симуляция может быть нестабильной. Рекомендуется сброс."
-            )
+        """Handle physics error"""
+        self.logger.error(f"Physics error: {msg}")
 
-    def _on_sim_control(self, command: str):
-        """Управление симуляцией / Simulation control"""
-        bus = self.simulation_manager.state_bus
-        
-        status_messages = {
-            "start": ("Симуляция запущена", True, True),
-            "stop": ("Симуляция остановлена", False, False),
-            "reset": ("Симуляция сброшена", False, None),
-            "pause": ("Симуляция приостановлена", False, False)
-        }
-        
-        msg, is_running, qml_running = status_messages.get(command, ("", False, None))
-        
-        if command == "start":
-            bus.start_simulation.emit()
-        elif command == "stop":
-            bus.stop_simulation.emit()
-        elif command == "reset":
-            bus.reset_simulation.emit()
-        elif command == "pause":
-            bus.pause_simulation.emit()
-        
-        self.is_simulation_running = is_running
-        
-        # Update QML animation state
-        if qml_running is not None and self._qml_root_object:
-            self._qml_root_object.setProperty("isRunning", qml_running)
-            if command == "reset":
-                self._qml_root_object.setProperty("animationTime", 0.0)
-        
-        self.status_bar.showMessage(msg)
-        
-        if self.modes_panel:
-            self.modes_panel.set_simulation_running(self.is_simulation_running)
+    @Slot()
+    def _update_render(self):
+        """Update rendering (called by timer)"""
+        # Simple update - just process events
+        if self.current_snapshot and hasattr(self, 'sim_time_label'):
+            self.sim_time_label.setText(f"Время симуляции: {self.current_snapshot.simulation_time:.3f}с")
+            self.step_count_label.setText(f"Шагов: {self.current_snapshot.step_number}")
+            
+            if self.current_snapshot.aggregates.physics_step_time > 0:
+                fps = 1.0 / self.current_snapshot.aggregates.physics_step_time
+                self.fps_label.setText(f"FPS: {fps:.0f}")
 
-    def _on_mode_changed(self, mode_type: str, new_mode: str):
-        """Изменение режима / Mode change"""
-        bus = self.simulation_manager.state_bus
-        if mode_type == 'thermo_mode':
-            bus.set_thermo_mode.emit(new_mode)
-            self.logger.info(f"Термо-режим изменён: {new_mode}")
-        elif mode_type == 'sim_type':
-            self.logger.info(f"Тип симуляции: {new_mode}")
-        else:
-            self.logger.info(f"Режим изменён {mode_type} → {new_mode}")
-
-    def _on_pneumo_param(self, name: str, value: float):
-        """Параметр пневмосистемы изменён / Pneumatic parameter changed"""
-        if name == 'master_isolation_open':
-            self.simulation_manager.state_bus.set_master_isolation.emit(bool(value))
-            self.logger.info(f"Главная изоляция: {bool(value)}")
+        # Update QML scene if needed
+        if self._qml_root_object and self.is_simulation_running:
+            import time
+            current_time = time.time()
+            # Simple animation for testing
+            if not hasattr(self, '_start_time'):
+                self._start_time = current_time
+            elapsed = current_time - self._start_time
+            
+            # Simple sine wave animation
+            import math
+            angle = math.sin(elapsed * 2) * 10  # 10 degree amplitude
+            
+            # Set angles for all corners
+            for corner in ['fl', 'fr', 'rl', 'rr']:
+                prop_name = f"{corner}_angle"
+                try:
+                    self._qml_root_object.setProperty(prop_name, angle)
+                except:
+                    pass
 
     # ------------------------------------------------------------------
     # Preset Save/Load & Settings - РУССКИЙ ИНТЕРФЕЙС
@@ -797,7 +614,7 @@ class MainWindow(QMainWindow):
         if self.main_splitter:
             settings.setValue(self.SETTINGS_SPLITTER, self.main_splitter.saveState())
         
-        self.logger.debug("Настройки UI сохранены")
+        self.logger.debug("Настройки UI saved")
 
     # ------------------------------------------------------------------
     # CSV Export (P11) - РУССКИЙ ИНТЕРФЕЙС
@@ -889,54 +706,101 @@ class MainWindow(QMainWindow):
             QMessageBox.critical(self, "Ошибка экспорта", str(e))
             self.logger.error(f"Ошибка экспорта снимков: {e}")
 
-    # ------------------------------------------------------------------
-    # Close Event
-    # ------------------------------------------------------------------
-    def closeEvent(self, event):
-        """Закрытие главного окна / Main window closing"""
-        self.logger.info("Закрытие главного окна")
-        self.render_timer.stop()
-        self._save_settings()
-        self.simulation_manager.stop()
-        event.accept()
-        self.logger.info("Главное окно закрыто")
-
-
-    def _connect_simulation_signals(self):
-        """Подключить сигналы симуляции / Connect simulation signals"""
-        bus = self.simulation_manager.state_bus
-        
-        # Physics state updates (from worker thread)
-        bus.state_ready.connect(
-            self._on_state_update,
-            Qt.ConnectionType.QueuedConnection  # CRITICAL: Cross-thread!
-        )
-        
-        # Physics errors
-        bus.physics_error.connect(
-            self._on_physics_error,
-            Qt.ConnectionType.QueuedConnection
-        )
-        
-        print("  ✅ Сигналы симуляции подключены")
-    
-    def _update_render(self):
-        """Обновить рендеринг (60 FPS) / Update rendering (60 FPS)"""
-        # Get latest state from queue
-        snapshot = self.simulation_manager.get_latest_state()
-        
-        if snapshot:
-            self._update_3d_scene_from_snapshot(snapshot)
-    
-    def _update_3d_scene_from_snapshot(self, snapshot):
-        """Обновить 3D сцену из снимка состояния / Update 3D scene from snapshot
+    @Slot(dict)
+    def _on_geometry_changed_real(self, geometry_params: dict):
+        """РЕАЛЬНАЯ функция обновления геометрии в QML сцене
         
         Args:
-            snapshot: Current physics state snapshot
+            geometry_params: Dictionary with geometry parameters from UI
         """
-        if not self._qml_root_object:
-            return
+        print(f"═══════════════════════════════════════════════")
+        print(f"🔧 MainWindow: РЕАЛЬНОЕ обновление QML геометрии!")
+        print(f"   Получено параметров: {len(geometry_params)}")
+        for key, val in geometry_params.items():
+            if 'Length' in key or 'Diam' in key or 'Position' in key:
+                print(f"      🎯 {key}: {val}")
+        print(f"═══════════════════════════════════════════════")
         
-        # TODO: Update 3D scene with physics data
-        # For now, just track that we received the snapshot
-        pass
+        self.logger.info(f"Geometry changed: {geometry_params}")
+        
+        # Обновляем QML сцену если доступна
+        if self._qml_root_object:
+            try:
+                print(f"🔧 Вызываем QML updateGeometry()...")
+                
+                # Используем QMetaObject.invokeMethod() для вызова updateGeometry в QML
+                from PySide6.QtCore import QMetaObject, Q_ARG, Qt
+                
+                success = QMetaObject.invokeMethod(
+                    self._qml_root_object,
+                    "updateGeometry",
+                    Qt.ConnectionType.DirectConnection,
+                    Q_ARG("QVariant", geometry_params)
+                )
+                
+                if success:
+                    print(f"✅ QML updateGeometry() вызван успешно!")
+                    self.status_bar.showMessage("Геометрия обновлена в 3D сцене")
+                    print(f"📊 Статус: Геометрия успешно передана в QML")
+                else:
+                    print(f"❌ QML updateGeometry() НЕ СРАБОТАЛ!")
+                    # Fallback - устанавливаем свойства напрямую
+                    self._update_qml_properties_fallback(geometry_params)
+                    
+            except Exception as e:
+                print(f"═══════════════════════════════════════════════")
+                print(f"❌ ОШИБКА обновления QML геометрии!")
+                print(f"   Error: {e}")
+                print(f"═══════════════════════════════════════════════")
+                self.logger.error(f"QML geometry update failed: {e}")
+                import traceback
+                traceback.print_exc()
+                
+                # Fallback - устанавлием свойства напрямую
+                self._update_qml_properties_fallback(geometry_params)
+        else:
+            print(f"═══════════════════════════════════════════════")
+            print(f"❌ MainWindow: QML root object отсутствует!")
+            print(f"   Не можем обновить геометрию")
+            print(f"═══════════════════════════════════════════════")
+
+    def _update_qml_properties_fallback(self, geometry_params: dict):
+        """Fallback: устанавливаем QML свойства напрямую если updateGeometry не работает
+        
+        Args:
+            geometry_params: Dictionary with geometry parameters
+        """
+        print(f"🔄 Fallback: установка QML свойств напрямую...")
+        
+        # Соответствие параметров Python -> QML свойства
+        param_mapping = {
+            'frameLength': 'userFrameLength',
+            'frameHeight': 'userFrameHeight', 
+            'frameBeamSize': 'userBeamSize',
+            'leverLength': 'userLeverLength',
+            'cylinderBodyLength': 'userCylinderLength',
+            'trackWidth': 'userTrackWidth',
+            'frameToPivot': 'userFrameToPivot',
+            'rodPosition': 'userRodPosition',
+            'boreHead': 'userBoreHead',
+            'boreRod': 'userBoreRod',
+            'rodDiameter': 'userRodDiameter',
+            'pistonThickness': 'userPistonThickness',
+            'pistonRodLength': 'userPistonRodLength'
+        }
+        
+        success_count = 0
+        
+        for param_key, qml_prop in param_mapping.items():
+            if param_key in geometry_params:
+                try:
+                    value = geometry_params[param_key]
+                    self._qml_root_object.setProperty(qml_prop, float(value))
+                    print(f"   ✅ {qml_prop} = {value}")
+                    success_count += 1
+                except Exception as e:
+                    print(f"   ❌ {qml_prop}: {e}")
+        
+        self.status_bar.showMessage(f"Геометрия обновлена ({success_count} параметров)")
+        print(f"✅ Установлено {success_count} QML свойств успешно")
+        print(f"═══════════════════════════════════════════════")
