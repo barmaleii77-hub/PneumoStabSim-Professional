@@ -284,6 +284,7 @@ class StateBus(QObject):
     set_physics_dt = Signal(float)       # Change physics timestep
     set_thermo_mode = Signal(str)        # "ISOTHERMAL" or "ADIABATIC"
     set_master_isolation = Signal(bool)  # Master isolation valve
+    set_receiver_volume = Signal(float, str)  # NEW: Set receiver volume (m?) and mode ('MANUAL'/'GEOMETRIC')
     
     # Road input signals
     load_road_profile = Signal(str)      # Load CSV road profile

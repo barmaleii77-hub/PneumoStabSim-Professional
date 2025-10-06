@@ -348,6 +348,7 @@ class MainWindow(QMainWindow):
         if self.pneumo_panel:
             self.pneumo_panel.mode_changed.connect(self._on_mode_changed)
             self.pneumo_panel.parameter_changed.connect(self._on_pneumo_param)
+            self.pneumo_panel.receiver_volume_changed.connect(self._on_receiver_volume_changed)  # NEW!
             print("✅ Сигналы PneumoPanel подключены")
 
         # Modes panel
@@ -583,6 +584,30 @@ class MainWindow(QMainWindow):
             self.simulation_manager.state_bus.set_master_isolation.emit(bool(value))
             self.logger.info(f"Главная изоляция: {bool(value)}")
 
+    @Slot(float, str)
+    def _on_receiver_volume_changed(self, volume: float, mode: str):
+        """Обработать изменение объёма ресивера / Handle receiver volume change
+        
+        Args:
+            volume: New receiver volume in m³
+            mode: Volume mode ('MANUAL' or 'GEOMETRIC')
+        """
+        self.logger.info(f"Объём ресивера изменён: {volume:.3f}м³ (режим: {mode})")
+        
+        # Map UI modes to ReceiverVolumeMode enum
+        # MANUAL → NO_RECALC (объём не влияет на p/T)
+        # GEOMETRIC → ADIABATIC_RECALC (пересчёт по термодинамике)
+        receiver_mode = 'NO_RECALC' if mode == 'MANUAL' else 'ADIABATIC_RECALC'
+        
+        # Emit signal to physics thread
+        self.simulation_manager.state_bus.set_receiver_volume.emit(volume, receiver_mode)
+        
+        # Update status bar
+        mode_ru = "Ручной" if mode == 'MANUAL' else "Геометрический"
+        self.status_bar.showMessage(f"Ресивер: {volume*1000:.1f}л ({mode_ru})")
+        
+        print(f"🔄 MainWindow: Объём ресивера {volume*1000:.1f}л → {receiver_mode}")
+    
     @Slot(dict)
     def _on_geometry_changed(self, geometry_params: dict):
         """Handle geometry changes from GeometryPanel
@@ -592,18 +617,33 @@ class MainWindow(QMainWindow):
         """
         self.logger.info(f"Geometry changed: {list(geometry_params.keys())}")
         
+        # Get receiver parameters from pneumo panel if available
+        receiver_params = {}
+        if self.pneumo_panel:
+            pneumo_params = self.pneumo_panel.get_parameters()
+            if pneumo_params.get('volume_mode') == 'GEOMETRIC':
+                # Add receiver geometry for 3D visualization
+                receiver_params = {
+                    'receiverDiameter': pneumo_params.get('receiver_diameter', 0.200) * 1000,  # m → mm
+                    'receiverLength': pneumo_params.get('receiver_length', 0.500) * 1000,     # m → mm
+                    'receiverVolume': pneumo_params.get('receiver_volume', 0.020) * 1000000,  # m³ → cm³
+                }
+        
+        # Combine geometry and receiver parameters
+        combined_params = {**geometry_params, **receiver_params}
+        
         # Update the 3D scene through QML
         if self._qml_root_object:
             try:
                 # Call updateGeometry method in QML if it exists
                 if hasattr(self._qml_root_object, 'updateGeometry'):
-                    self._qml_root_object.updateGeometry(geometry_params)
+                    self._qml_root_object.updateGeometry(combined_params)
                 else:
                     # Set individual properties
-                    for key, value in geometry_params.items():
+                    for key, value in combined_params.items():
                         self._qml_root_object.setProperty(key, value)
                 
-                print(f"📤 MainWindow: Updated QML with geometry: {geometry_params}")
+                print(f"📤 MainWindow: Updated QML with geometry: {combined_params}")
             except Exception as e:
                 self.logger.warning(f"Failed to update QML geometry: {e}")
         
@@ -631,13 +671,3 @@ class MainWindow(QMainWindow):
                 print(f"🎬 MainWindow: Updated QML animation: {animation_params}")
             except Exception as e:
                 self.logger.warning(f"Failed to update QML animation: {e}")
-        
-        # Update status bar if needed
-        if 'amplitude' in animation_params and 'frequency' in animation_params:
-            amp_mm = animation_params['amplitude'] * 1000  # Convert to mm
-            freq = animation_params['frequency']
-            self.status_bar.showMessage(f"Анимация: A={amp_mm:.1f}мм F={freq:.1f}Hz")
-    
-    # ------------------------------------------------------------------
-    # 3D Scene Updates
-    # ------------------------------------------------------------------
