@@ -4,6 +4,7 @@ Range slider widget with editable min/max bounds
 Combines QSlider with QDoubleSpinBox controls for precise range control
 """
 
+import math
 from PySide6.QtWidgets import (QWidget, QHBoxLayout, QVBoxLayout, QLabel, 
                               QSlider, QDoubleSpinBox, QSizePolicy)
 from PySide6.QtCore import Signal, Slot, QTimer, Qt
@@ -13,8 +14,11 @@ from PySide6.QtGui import QFont
 class RangeSlider(QWidget):
     """Slider with editable min/max range and precise value control"""
     
-    valueEdited = Signal(float)
-    valueChanged = Signal(float)
+    # СИГНАЛЫ:
+    # valueChanged - МГНОВЕННОЕ обновление во время движения ползунка (для геометрии)
+    # valueEdited - ФИНАЛЬНОЕ обновление после завершения редактирования (с задержкой debounce)
+    valueEdited = Signal(float)    # Финальное значение после debounce
+    valueChanged = Signal(float)   # Мгновенное значение во время движения
     rangeChanged = Signal(float, float)
     
     def __init__(self, minimum=0.0, maximum=100.0, value=50.0, step=1.0, decimals=2, units="", title="", parent=None):
@@ -22,7 +26,11 @@ class RangeSlider(QWidget):
         self._step = step
         self._decimals = decimals
         self._units = units
-        self._slider_resolution = 10000
+        
+        # УВЕЛИЧЕННОЕ разрешение слайдера для точности 0.001м
+        # Для диапазона 4м с шагом 0.001м нужно 4000 позиций
+        # Используем 100000 для запаса и плавности
+        self._slider_resolution = 100000  # Было 10000, теперь 100000
         self._updating_internally = False
         
         self._debounce_timer = QTimer()
@@ -185,9 +193,26 @@ class RangeSlider(QWidget):
         max_val = self.maximum()
         ratio = slider_pos / self._slider_resolution
         value = min_val + ratio * (max_val - min_val)
+        
+        # УЛУЧШЕННОЕ округление для дискретности 0.001м
         if self._step > 0:
+            # Вычисляем количество шагов от минимума
             steps = round((value - min_val) / self._step)
             value = min_val + steps * self._step
+            
+            # Дополнительное округление для устранения погрешностей float
+            # Для шага 0.001 округляем до 3 знаков после запятой
+            if self._step == 0.001:
+                value = round(value, 3)
+            elif self._step == 0.01:
+                value = round(value, 2)
+            elif self._step == 0.1:
+                value = round(value, 1)
+            else:
+                # Автоматическое определение точности на основе шага
+                decimal_places = max(0, -int(round(math.log10(abs(self._step)))))
+                value = round(value, decimal_places)
+        
         return max(min_val, min(max_val, value))
     
     @Slot(int)
@@ -198,7 +223,11 @@ class RangeSlider(QWidget):
         self._updating_internally = True
         self.value_spinbox.setValue(real_value)
         self._updating_internally = False
+        
+        # МГНОВЕННОЕ обновление через valueChanged (без задержки)
         self.valueChanged.emit(real_value)
+        
+        # Задерженное обновление через valueEdited (для финальных изменений)
         self._debounce_timer.start(self._debounce_delay)
     
     @Slot(float)
@@ -210,7 +239,11 @@ class RangeSlider(QWidget):
         self._updating_internally = True
         self.slider.setValue(slider_pos)
         self._updating_internally = False
+        
+        # МГНОВЕННОЕ обновление через valueChanged (без задержки)
         self.valueChanged.emit(spinbox_value)
+        
+        # Задерженное обновление через valueEdited (для финальных изменений)
         self._debounce_timer.start(self._debounce_delay)
     
     @Slot(float)

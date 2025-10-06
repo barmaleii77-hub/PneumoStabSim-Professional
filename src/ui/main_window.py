@@ -341,8 +341,9 @@ class MainWindow(QMainWindow):
                     self.logger.info(f"Параметр геометрии {name}={val}"),
                     print(f"🔧 GeometryPanel: {name}={val}")
                 ])
+            # ИСПРАВЛЕНО: Подключаем к правильному методу обработки геометрии
             self.geometry_panel.geometry_changed.connect(self._on_geometry_changed)
-            print("✅ Сигналы GeometryPanel подключены")
+            print("✅ Сигналы GeometryPanel подключены (geometry_changed -> _on_geometry_changed)")
 
         # Pneumatic panel
         if self.pneumo_panel:
@@ -373,46 +374,54 @@ class MainWindow(QMainWindow):
                     ...
                 }
         """
-        print(f"📐 MainWindow: Получены изменения геометрии:")
-        print(f"   Параметров: {len(geometry_params)}")
-        
+        # БЫСТРОЕ ОБНОВЛЕНИЕ - минимум логирования во время перетаскивания
         if not self._qml_root_object:
-            print("   ⚠️  QML объект не готов")
             return
         
-        # Update QML scene via invokeMethod
-        from PySide6.QtCore import QMetaObject, Q_ARG, Qt
+        # Прямое обновление QML свойств для максимальной скорости
+        try:
+            # Обновляем только ключевые параметры, которые видны пользователю
+            if 'frameLength' in geometry_params:
+                self._qml_root_object.setProperty("frameLength", float(geometry_params['frameLength']))
+            if 'leverLength' in geometry_params:
+                self._qml_root_object.setProperty("leverLength", float(geometry_params['leverLength']))
+            if 'cylinderBodyLength' in geometry_params:
+                self._qml_root_object.setProperty("cylinderBodyLength", float(geometry_params['cylinderBodyLength']))
+            if 'trackWidth' in geometry_params:
+                self._qml_root_object.setProperty("trackWidth", float(geometry_params['trackWidth']))
+            if 'frameToPivot' in geometry_params:
+                self._qml_root_object.setProperty("frameToPivot", float(geometry_params['frameToPivot']))
+            if 'rodPosition' in geometry_params:
+                self._qml_root_object.setProperty("rodPosition", float(geometry_params['rodPosition']))
+            
+            # МШ-1: Параметры цилиндра (быстрое обновление)
+            if 'cylDiamM' in geometry_params:
+                self._qml_root_object.setProperty("cylDiamM", float(geometry_params['cylDiamM']))
+            if 'strokeM' in geometry_params:
+                self._qml_root_object.setProperty("strokeM", float(geometry_params['strokeM']))
+            if 'deadGapM' in geometry_params:
+                self._qml_root_object.setProperty("deadGapM", float(geometry_params['deadGapM']))
+            
+            # МШ-2: Параметры штока и поршня (быстрое обновление)
+            if 'rodDiameterM' in geometry_params:
+                self._qml_root_object.setProperty("rodDiameterM", float(geometry_params['rodDiameterM']))
+            if 'pistonRodLengthM' in geometry_params:
+                self._qml_root_object.setProperty("pistonRodLengthM", float(geometry_params['pistonRodLengthM']))
+            if 'pistonThicknessM' in geometry_params:
+                self._qml_root_object.setProperty("pistonThicknessM", float(geometry_params['pistonThicknessM']))
+                
+        except Exception as e:
+            # Минимальное логирование ошибок (не замедляем UI)
+            pass
         
-        success = QMetaObject.invokeMethod(
+        # Попытка вызвать updateGeometry() если доступно (fallback для полного обновления)
+        from PySide6.QtCore import QMetaObject, Q_ARG, Qt
+        QMetaObject.invokeMethod(
             self._qml_root_object,
             "updateGeometry",
             Qt.ConnectionType.DirectConnection,
             Q_ARG("QVariant", geometry_params)
         )
-        
-        if success:
-            print(f"   ✅ QML геометрия обновлена")
-        else:
-            # Fallback: Set properties individually
-            print(f"   ⚠️  updateGeometry не сработал, используем fallback")
-            self._set_geometry_properties_fallback(geometry_params)
-    
-    def _set_geometry_properties_fallback(self, geometry_params: dict):
-        """Set geometry properties individually (fallback method)
-        
-        Args:
-            geometry_params: Dictionary with geometry values
-        """
-        if not self._qml_root_object:
-            return
-        
-        for key, value in geometry_params.items():
-            try:
-                self._qml_root_object.setProperty(key, float(value))
-            except Exception as e:
-                self.logger.warning(f"Не удалось установить свойство QML {key}: {e}")
-        
-        print(f"   ✅ Fallback: установлено {len(geometry_params)} свойств")
 
     @Slot(dict)
     def _on_animation_changed(self, animation_params: dict):

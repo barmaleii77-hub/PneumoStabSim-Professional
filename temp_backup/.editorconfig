@@ -1,0 +1,33 @@
+root = true
+
+[*]
+charset = utf-8
+end_of_line = crlf
+insert_final_newline = true
+trim_trailing_whitespace = true
+
+# Python файлы
+[*.py]
+indent_style = space
+indent_size = 4
+max_line_length = 88
+
+# JSON, YAML, TOML файлы
+[*.{json,yaml,yml,toml}]
+indent_style = space
+indent_size = 2
+
+# Markdown файлы
+[*.md]
+trim_trailing_whitespace = false
+
+# Конфигурационные файлы
+[*.{cfg,ini}]
+indent_style = space
+indent_size = 4
+
+# (опционально для .NET-кода, если будут добавлены)
+[*.{cs,csx,vb,vbx}]
+charset = utf-8-bom
+indent_style = space
+indent_size = 4

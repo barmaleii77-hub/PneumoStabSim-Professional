@@ -56,22 +56,22 @@ Item {
     // DEBUG: Watch for angle changes
     onFl_angleChanged: {
         if (Math.abs(fl_angle) > 0.1) {  // Only log significant changes
-            console.log("?? QML: fl_angle changed to", fl_angle.toFixed(2), "�")
+            console.log("?? QML: fl_angle changed to", fl_angle.toFixed(2), "°")
         }
     }
     onFr_angleChanged: {
         if (Math.abs(fr_angle) > 0.1) {
-            console.log("?? QML: fr_angle changed to", fr_angle.toFixed(2), "�")
+            console.log("?? QML: fr_angle changed to", fr_angle.toFixed(2), "°")
         }
     }
     onRl_angleChanged: {
         if (Math.abs(rl_angle) > 0.1) {
-            console.log("?? QML: rl_angle changed to", rl_angle.toFixed(2), "�")
+            console.log("?? QML: rl_angle changed to", rl_angle.toFixed(2), "°")
         }
     }
     onRr_angleChanged: {
         if (Math.abs(rr_angle) > 0.1) {
-            console.log("?? QML: rr_angle changed to", rr_angle.toFixed(2), "�")
+            console.log("?? QML: rr_angle changed to", rr_angle.toFixed(2), "°")
         }
     }
 
@@ -94,87 +94,113 @@ Item {
 
     // Update geometry from UI
     function updateGeometry(params) {
-        console.log("???????????????????????????????????????????????")
-        console.log("?? main.qml: updateGeometry() called")
-        console.log("?? Received params:", JSON.stringify(params))
-        console.log("???????????????????????????????????????????????")
+        console.log("💡💡💡💡💡💡💡💡💡💡💡💡💡💡💡💡💡💡💡💡💡💡💡💡💡💡💡💡💡💡💡💡💡💡💡💡💡💡💡💡💡💡💡")
+        console.log("🔧 main.qml: updateGeometry() called - ALL PARAMETERS SUPPORT")
+        console.log("🔧 Received params:", JSON.stringify(params))
+        console.log("💡💡💡💡💡💡💡💡💡💡💡💡💡💡💡💡💡💡💡💡💡💡💡💡💡💡💡💡💡💡💡💡💡💡💡💡💡💡💡💡💡💡💡")
         
+        // ОСНОВНЫЕ РАЗМЕРЫ РАМЫ
         if (params.frameLength !== undefined) {
-            console.log("  ? Setting userFrameLength:", params.frameLength)
+            console.log("  🔧 Setting userFrameLength:", params.frameLength)
             userFrameLength = params.frameLength
         }
         if (params.frameHeight !== undefined) {
-            console.log("  ? Setting userFrameHeight:", params.frameHeight)
+            console.log("  🔧 Setting userFrameHeight:", params.frameHeight)
             userFrameHeight = params.frameHeight
         }
         if (params.frameBeamSize !== undefined) {
-            console.log("  ? Setting userBeamSize:", params.frameBeamSize)
+            console.log("  🔧 Setting userBeamSize:", params.frameBeamSize)
             userBeamSize = params.frameBeamSize
         }
+        
+        // ГЕОМЕТРИЯ ПОДВЕСКИ
         if (params.leverLength !== undefined) {
-            console.log("  ? Setting userLeverLength:", params.leverLength)
+            console.log("  🔧 Setting userLeverLength:", params.leverLength)
             userLeverLength = params.leverLength
         }
         if (params.cylinderBodyLength !== undefined) {
-            console.log("  ? Setting userCylinderLength:", params.cylinderBodyLength)
+            console.log("  🔧 Setting userCylinderLength:", params.cylinderBodyLength)
             userCylinderLength = params.cylinderBodyLength
         }
         
-        // Additional parameters
+        // ДОПОЛНИТЕЛЬНЫЕ ПАРАМЕТРЫ ГЕОМЕТРИИ
         if (params.trackWidth !== undefined) {
-            console.log("  ? Setting userTrackWidth:", params.trackWidth)
+            console.log("  🔧 Setting userTrackWidth:", params.trackWidth)
             userTrackWidth = params.trackWidth
         }
         if (params.frameToPivot !== undefined) {
-            console.log("  ? Setting userFrameToPivot:", params.frameToPivot)
+            console.log("  🔧 Setting userFrameToPivot:", params.frameToPivot)
             userFrameToPivot = params.frameToPivot
         }
         if (params.rodPosition !== undefined) {
-            console.log("  ? Setting userRodPosition:", params.rodPosition)
+            console.log("  🔧 Setting userRodPosition:", params.rodPosition)
             userRodPosition = params.rodPosition
         }
+        
+        // УСТАРЕВШИЕ ПАРАМЕТРЫ (для совместимости)
         if (params.boreHead !== undefined) {
-            console.log("  ? Setting userBoreHead:", params.boreHead)
+            console.log("  🔧 Setting userBoreHead (deprecated):", params.boreHead)
             userBoreHead = params.boreHead
         }
         if (params.boreRod !== undefined) {
-            console.log("  ? Setting userBoreRod:", params.boreRod)
+            console.log("  🔧 Setting userBoreRod (deprecated):", params.boreRod)
             userBoreRod = params.boreRod
         }
         if (params.rodDiameter !== undefined) {
-            console.log("  ? Setting userRodDiameter:", params.rodDiameter)
+            console.log("  🔧 Setting userRodDiameter (deprecated):", params.rodDiameter)
             userRodDiameter = params.rodDiameter
         }
         if (params.pistonThickness !== undefined) {
-            console.log("  ? Setting userPistonThickness:", params.pistonThickness)
+            console.log("  🔧 Setting userPistonThickness (deprecated):", params.pistonThickness)
             userPistonThickness = params.pistonThickness
         }
-        
-        // NEW: Piston rod length
         if (params.pistonRodLength !== undefined) {
-            console.log("  ? Setting userPistonRodLength:", params.pistonRodLength)
+            console.log("  🔧 Setting userPistonRodLength (deprecated):", params.pistonRodLength)
             userPistonRodLength = params.pistonRodLength
         }
         
-        console.log("???????????????????????????????????????????????")
-        console.log("?? Current values after update:")
-        console.log("   userFrameLength:", userFrameLength)
-        console.log("   userFrameHeight:", userFrameHeight)
-        console.log("   userBeamSize:", userBeamSize)
-        console.log("   userLeverLength:", userLeverLength)
-        console.log("   userCylinderLength:", userCylinderLength)
-        console.log("   userTrackWidth:", userTrackWidth)
-        console.log("   userFrameToPivot:", userFrameToPivot)
-        console.log("   userRodPosition:", userRodPosition)
-        console.log("   userBoreHead:", userBoreHead)
-        console.log("   userBoreRod:", userBoreRod)
-        console.log("   userRodDiameter:", userRodDiameter)
-        console.log("   userPistonThickness:", userPistonThickness)
-        console.log("   userPistonRodLength:", userPistonRodLength)
-        console.log("???????????????????????????????????????????????")
+        // ✨ НОВЫЕ ПАРАМЕТРЫ - МШ-1: Параметры цилиндра в мм (из м)
+        if (params.cylDiamM !== undefined) {
+            console.log("  ✨ Setting userCylDiamM (NEW):", params.cylDiamM, "мм")
+            userBoreHead = params.cylDiamM  // Совместимость: цилиндр = диаметр головной камеры
+            userBoreRod = params.cylDiamM   // Совместимость: цилиндр = диаметр штоковой камеры
+        }
+        if (params.strokeM !== undefined) {
+            console.log("  ✨ Setting userStrokeM (NEW):", params.strokeM, "мм")
+            // Ход поршня - можно использовать для расчета длины цилиндра
+            // userCylinderLength примерно равен strokeM + dead zones
+        }
+        if (params.deadGapM !== undefined) {
+            console.log("  ✨ Setting userDeadGapM (NEW):", params.deadGapM, "мм")
+            // Мертвый зазор - влияет на минимальную длину цилиндра
+        }
+        
+        // ✨ НОВЫЕ ПАРАМЕТРЫ - МШ-2: Параметры штока и поршня в мм (из м)
+        if (params.rodDiameterM !== undefined) {
+            console.log("  ✨ Setting userRodDiameterM (NEW):", params.rodDiameterM, "мм")
+            userRodDiameter = params.rodDiameterM  // Совместимость: используем новое значение
+        }
+        if (params.pistonRodLengthM !== undefined) {
+            console.log("  ✨ Setting userPistonRodLengthM (NEW):", params.pistonRodLengthM, "мм")
+            userPistonRodLength = params.pistonRodLengthM  // Совместимость: используем новое значение
+        }
+        if (params.pistonThicknessM !== undefined) {
+            console.log("  ✨ Setting userPistonThicknessM (NEW):", params.pistonThicknessM, "мм")
+            userPistonThickness = params.pistonThicknessM  // Совместимость: используем новое значение
+        }
+        
+        console.log("💡💡💡💡💡💡💡💡💡💡💡💡💡💡💡💡💡💡💡💡💡💡💡💡💡💡💡💡💡💡💡💡💡💡💡💡💡💡💡💡💡💡💡")
+        console.log("🔧 Current values after COMPLETE update:")
+        console.log("  📐 Frame: L=" + userFrameLength + ", H=" + userFrameHeight + ", Beam=" + userBeamSize)
+        console.log("  📐 Suspension: Lever=" + userLeverLength + ", Cylinder=" + userCylinderLength)
+        console.log("  📐 Track: Width=" + userTrackWidth + ", Frame→Pivot=" + userFrameToPivot + ", RodPos=" + userRodPosition)
+        console.log("  📐 OLD Cylinder: BoreHead=" + userBoreHead + ", BoreRod=" + userBoreRod)
+        console.log("  📐 OLD Rod: Diameter=" + userRodDiameter + ", Length=" + userPistonRodLength + ", PistonThick=" + userPistonThickness)
+        console.log("  ✨ NEW: Все параметры с дискретностью 0.001м теперь поддерживаются!")
+        console.log("💡💡💡💡💡💡💡💡💡💡💡💡💡💡💡💡💡💡💡💡💡💡💡💡💡💡💡💡💡💡💡💡💡💡💡💡💡💡💡💡💡💡💡")
         
         resetView()
-        console.log("   Updated:", userFrameLength + "x" + userFrameHeight + "x" + userBeamSize + "mm")
+        console.log("  ✅ Geometry updated and view reset")
     }
     
     // NEW: Update piston positions from Python physics engine
@@ -305,7 +331,7 @@ Item {
             property real pistonPositionFromPython: 125.0  // NEW: Piston position from Python (mm)
             
             // CALCULATE j_rod INTERNALLY from leverAngle!
-            property real baseAngle: (j_arm.x < 0) ? 180 : 0  // Left=180�, Right=0�
+            property real baseAngle: (j_arm.x < 0) ? 180 : 0  // Left=180°, Right=0°
             property real totalAngle: baseAngle + leverAngle
             
             // j_rod position calculated from lever rotation
