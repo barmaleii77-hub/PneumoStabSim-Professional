@@ -1,0 +1,68 @@
+﻿root = true
+
+# All files
+[*]
+charset = utf-8
+end_of_line = crlf
+insert_final_newline = true
+trim_trailing_whitespace = true
+
+# Python files
+[*.{py,pyx,pyi}]
+indent_style = space
+indent_size = 4
+max_line_length = 88
+
+# JSON files
+[*.json]
+indent_style = space
+indent_size = 2
+
+# YAML files
+[*.{yml,yaml}]
+indent_style = space
+indent_size = 2
+
+# Markdown files
+[*.md]
+trim_trailing_whitespace = false
+insert_final_newline = true
+
+# Configuration files
+[*.{toml,cfg,ini}]
+indent_style = space
+indent_size = 4
+
+# QML files (Qt/QML)
+[*.qml]
+indent_style = space
+indent_size = 4
+
+# .NET files (if applicable)
+[*.{cs,csx,vb,vbx}]
+charset = utf-8-bom
+indent_style = space
+indent_size = 4
+
+# XML files
+[*.{xml,xaml,csproj,vbproj,vcxproj,vcxproj.filters,proj,projitems,shproj}]
+indent_style = space
+indent_size = 2
+
+# JavaScript/TypeScript files
+[*.{js,ts,jsx,tsx}]
+indent_style = space
+indent_size = 2
+
+# CSS/SCSS files
+[*.{css,scss,sass}]
+indent_style = space
+indent_size = 2
+
+# Shell scripts
+[*.{sh,bash}]
+end_of_line = lf
+
+# Batch files
+[*.{cmd,bat}]
+end_of_line = crlf

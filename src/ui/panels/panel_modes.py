@@ -235,7 +235,7 @@ class ModesPanel(QWidget):
         
         # Global excitation parameters (Глобальные параметры)
         self.amplitude_slider = RangeSlider(
-            minimum=0.0, maximum=0.2, value=0.05, step=0.005,
+            minimum=0.0, maximum=0.2, value=0.05, step=0.001,
             decimals=3, units="м", title="Глобальная амплитуда"
         )
         layout.addWidget(self.amplitude_slider)
