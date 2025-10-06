@@ -77,6 +77,10 @@ class PneumoPanel(QWidget):
         units_layout.addWidget(self.pressure_units_combo, stretch=1)
         layout.addLayout(units_layout)
         
+        # NEW: Receiver group
+        receiver_group = self._create_receiver_group()
+        layout.addWidget(receiver_group)
+        
         # Check valves group
         check_valves_group = self._create_check_valves_group()
         layout.addWidget(check_valves_group)
@@ -98,6 +102,75 @@ class PneumoPanel(QWidget):
         layout.addLayout(buttons_layout)
         
         layout.addStretch()
+    
+    def _create_receiver_group(self) -> QGroupBox:
+        """Создать группу ресивера / Create receiver tank configuration group"""
+        group = QGroupBox("Ресивер")
+        layout = QVBoxLayout(group)
+        layout.setSpacing(8)
+        
+        # Volume mode selector (Режим задания объёма)
+        mode_layout = QHBoxLayout()
+        mode_label = QLabel("Режим объёма:")
+        self.volume_mode_combo = QComboBox()
+        self.volume_mode_combo.addItems([
+            "Ручной объём",
+            "Геометрический расчёт"
+        ])
+        self.volume_mode_combo.setCurrentIndex(0)  # Default: manual volume
+        self.volume_mode_combo.currentIndexChanged.connect(self._on_volume_mode_changed)
+        mode_layout.addWidget(mode_label)
+        mode_layout.addWidget(self.volume_mode_combo, stretch=1)
+        layout.addLayout(mode_layout)
+        
+        # Manual volume controls (Режим 1: Ручной объём)
+        self.manual_volume_widget = QWidget()
+        manual_layout = QHBoxLayout(self.manual_volume_widget)
+        manual_layout.setContentsMargins(0, 0, 0, 0)
+        manual_layout.setSpacing(12)
+        
+        self.manual_volume_knob = Knob(
+            minimum=0.001, maximum=0.100, value=0.020, step=0.001,
+            decimals=3, units="м³", title="Объём ресивера"
+        )
+        manual_layout.addWidget(self.manual_volume_knob)
+        manual_layout.addStretch()
+        
+        layout.addWidget(self.manual_volume_widget)
+        
+        # Geometric calculation controls (Режим 2: Геометрический расчёт)
+        self.geometric_volume_widget = QWidget()
+        geometric_layout = QHBoxLayout(self.geometric_volume_widget)
+        geometric_layout.setContentsMargins(0, 0, 0, 0)
+        geometric_layout.setSpacing(12)
+        
+        self.receiver_diameter_knob = Knob(
+            minimum=0.050, maximum=0.500, value=0.200, step=0.001,
+            decimals=3, units="м", title="Диаметр ресивера"
+        )
+        geometric_layout.addWidget(self.receiver_diameter_knob)
+        
+        self.receiver_length_knob = Knob(
+            minimum=0.100, maximum=2.000, value=0.500, step=0.001,
+            decimals=3, units="м", title="Длина ресивера"
+        )
+        geometric_layout.addWidget(self.receiver_length_knob)
+        
+        layout.addWidget(self.geometric_volume_widget)
+        
+        # Volume display label (Отображение расчётного объёма)
+        self.calculated_volume_label = QLabel("Расчётный объём: 0.016 м³")
+        self.calculated_volume_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        font = QFont()
+        font.setPointSize(9)
+        font.setBold(True)
+        self.calculated_volume_label.setFont(font)
+        layout.addWidget(self.calculated_volume_label)
+        
+        # Initially show manual volume mode
+        self.geometric_volume_widget.setVisible(False)
+        
+        return group
     
     def _create_check_valves_group(self) -> QGroupBox:
         """Создать группу обратных клапанов / Create check valves configuration group"""
@@ -299,6 +372,12 @@ class PneumoPanel(QWidget):
     def _set_default_values(self):
         """Set default parameter values"""
         defaults = {
+            # Receiver parameters (NEW!)
+            'volume_mode': 'MANUAL',           # MANUAL or GEOMETRIC
+            'receiver_volume': 0.020,          # m³ (20 liters)
+            'receiver_diameter': 0.200,        # m (200mm diameter)
+            'receiver_length': 0.500,          # m (500mm length)
+            
             # Check valves
             'cv_atmo_dp': 0.01,      # bar
             'cv_tank_dp': 0.01,      # bar
@@ -325,6 +404,14 @@ class PneumoPanel(QWidget):
     
     def _connect_signals(self):
         """Connect widget signals"""
+        # Receiver controls (NEW!)
+        self.manual_volume_knob.valueChanged.connect(
+            lambda v: self._on_parameter_changed('receiver_volume', v))
+        self.receiver_diameter_knob.valueChanged.connect(
+            lambda v: self._on_receiver_geometry_changed())
+        self.receiver_length_knob.valueChanged.connect(
+            lambda v: self._on_receiver_geometry_changed())
+        
         # Check valve knobs
         self.cv_atmo_dp_knob.valueChanged.connect(
             lambda v: self._on_parameter_changed('cv_atmo_dp', v))
@@ -345,7 +432,7 @@ class PneumoPanel(QWidget):
         self.throttle_min_dia_knob.valueChanged.connect(
             lambda v: self._on_parameter_changed('throttle_min_dia', v))
         self.throttle_stiff_dia_knob.valueChanged.connect(
-            lambda v: self._on_parameter_changed('throttle_stiff_dia', v))
+            lambda v: this._on_parameter_changed('throttle_stiff_dia', v))
         
         # Environment knobs
         self.atmo_temp_knob.valueChanged.connect(
@@ -359,6 +446,16 @@ class PneumoPanel(QWidget):
             lambda checked: self._on_parameter_changed('master_isolation_open', checked))
         self.link_rod_dia_check.toggled.connect(
             lambda checked: self._on_parameter_changed('link_rod_dia', checked))
+    
+    @Slot()
+    def _on_receiver_geometry_changed(self):
+        """Обработать изменение геометрии ресивера / Handle receiver geometry change"""
+        if self.parameters.get('volume_mode') == 'GEOMETRIC':
+            self._update_calculated_volume()
+            
+            # Emit update signals
+            self.parameter_changed.emit('receiver_volume', self.parameters['receiver_volume'])
+            self.pneumatic_updated.emit(self.parameters.copy())
     
     @Slot(str, float)
     def _on_parameter_changed(self, param_name: str, value):
@@ -437,6 +534,12 @@ class PneumoPanel(QWidget):
         """Сбросить все параметры к значениям по умолчанию / Reset all parameters to defaults"""
         self._set_default_values()
         
+        # Update receiver controls (NEW!)
+        self.volume_mode_combo.setCurrentIndex(0)  # Manual mode
+        self.manual_volume_knob.setValue(self.parameters['receiver_volume'])
+        self.receiver_diameter_knob.setValue(self.parameters['receiver_diameter'])
+        self.receiver_length_knob.setValue(self.parameters['receiver_length'])
+        
         # Update all knobs
         self.cv_atmo_dp_knob.setValue(self.parameters['cv_atmo_dp'])
         self.cv_tank_dp_knob.setValue(self.parameters['cv_tank_dp'])
@@ -468,6 +571,30 @@ class PneumoPanel(QWidget):
         warnings = []
         errors = []
         
+        # Check receiver parameters (NEW!)
+        volume = self.parameters.get('receiver_volume', 0)
+        if volume <= 0:
+            errors.append("Объём ресивера должен быть положительным")
+        elif volume < 0.005:  # < 5 liters
+            warnings.append(f"Малый объём ресивера ({volume*1000:.1f} л) может снизить эффективность")
+        elif volume > 0.200:  # > 200 liters
+            warnings.append(f"Большой объём ресивера ({volume*1000:.1f} л) может замедлить реакцию")
+        
+        # Check geometric parameters if in geometric mode
+        if self.parameters.get('volume_mode') == 'GEOMETRIC':
+            diameter = self.parameters.get('receiver_diameter', 0)
+            length = self.parameters.get('receiver_length', 0)
+            
+            if diameter <= 0 or length <= 0:
+                errors.append("Геометрические размеры ресивера должны быть положительными")
+            else:
+                # Check realistic proportions
+                aspect_ratio = length / diameter
+                if aspect_ratio < 1.0:
+                    warnings.append(f"Ресивер короче диаметра (L/D = {aspect_ratio:.2f})")
+                elif aspect_ratio > 20.0:
+                    warnings.append(f"Ресивер очень длинный (L/D = {aspect_ratio:.2f})")
+        
         # Check relief valve pressure ordering (Проверка порядка давлений)
         min_p = self.parameters['relief_min_pressure']
         stiff_p = self.parameters['relief_stiff_pressure']
@@ -488,7 +615,7 @@ class PneumoPanel(QWidget):
         stiff_throttle = self.parameters['throttle_stiff_dia']
         
         if min_throttle >= stiff_throttle:
-            warnings.append("Диаметр минимального дросселя должен быть меньше дросселя жёсткости")
+            warnings.append("Диаметр минимального drosselя должен быть меньше дросселя жёсткости")
         
         # Show results (Показать результаты)
         from PySide6.QtWidgets import QMessageBox
@@ -519,6 +646,22 @@ class PneumoPanel(QWidget):
         """
         # Update internal storage
         self.parameters.update(params)
+        
+        # Update receiver controls (NEW!)
+        if 'volume_mode' in params:
+            if params['volume_mode'] == 'MANUAL':
+                self.volume_mode_combo.setCurrentIndex(0)
+            else:
+                self.volume_mode_combo.setCurrentIndex(1)
+        
+        if 'receiver_volume' in params and self.parameters.get('volume_mode') == 'MANUAL':
+            self.manual_volume_knob.setValue(params['receiver_volume'])
+        
+        if 'receiver_diameter' in params:
+            self.receiver_diameter_knob.setValue(params['receiver_diameter'])
+        
+        if 'receiver_length' in params:
+            self.receiver_length_knob.setValue(params['receiver_length'])
         
         # Update knobs
         if 'cv_atmo_dp' in params:
@@ -556,3 +699,52 @@ class PneumoPanel(QWidget):
         
         if 'link_rod_dia' in params:
             self.link_rod_dia_check.setChecked(params['link_rod_dia'])
+    
+    @Slot(int)
+    def _on_volume_mode_changed(self, index: int):
+        """Обработать переключение режима объёма / Handle volume mode change"""
+        if index == 0:  # Manual volume mode
+            self.manual_volume_widget.setVisible(True)
+            self.geometric_volume_widget.setVisible(False)
+            self.calculated_volume_label.setVisible(False)
+            
+            # Update parameters
+            self.parameters['volume_mode'] = 'MANUAL'
+            self.parameters['receiver_volume'] = self.manual_volume_knob.value()
+            
+            print(f"📊 Режим объёма: Ручной ({self.parameters['receiver_volume']:.3f} м³)")
+            
+        else:  # Geometric calculation mode
+            self.manual_volume_widget.setVisible(False)
+            self.geometric_volume_widget.setVisible(True)
+            self.calculated_volume_label.setVisible(True)
+            
+            # Update parameters and calculate volume
+            self.parameters['volume_mode'] = 'GEOMETRIC'
+            self._update_calculated_volume()
+            
+            print(f"📊 Режим объёма: Геометрический ({self.parameters['receiver_volume']:.3f} м³)")
+        
+        # Emit mode change signal
+        self.mode_changed.emit('volume_mode', self.parameters['volume_mode'])
+        self.pneumatic_updated.emit(self.parameters.copy())
+    
+    def _update_calculated_volume(self):
+        """Обновить расчётный объём / Update calculated volume from geometry"""
+        diameter = self.receiver_diameter_knob.value()
+        length = self.receiver_length_knob.value()
+        
+        # Calculate volume: V = π × (D/2)² × L
+        import math
+        radius = diameter / 2.0
+        volume = math.pi * radius * radius * length
+        
+        # Update parameters
+        self.parameters['receiver_diameter'] = diameter
+        self.parameters['receiver_length'] = length
+        self.parameters['receiver_volume'] = volume
+        
+        # Update display label
+        self.calculated_volume_label.setText(f"Расчётный объём: {volume:.3f} м³")
+        
+        print(f"🧮 Геометрический расчёт: D={diameter:.3f}м, L={length:.3f}м → V={volume:.3f}м³")
