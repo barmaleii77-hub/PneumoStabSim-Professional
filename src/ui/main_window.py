@@ -33,6 +33,7 @@ class MainWindow(QMainWindow):
     SETTINGS_GEOMETRY = "MainWindow/Geometry"
     SETTINGS_STATE = "MainWindow/State"
     SETTINGS_SPLITTER = "MainWindow/Splitter"  # NEW: Save splitter position
+    SETTINGS_HORIZONTAL_SPLITTER = "MainWindow/HorizontalSplitter"  # NEW: Save horizontal splitter position
     SETTINGS_LAST_TAB = "MainWindow/LastTab"    # NEW: Save selected tab
     SETTINGS_LAST_PRESET = "Presets/LastPath"
 
@@ -86,9 +87,10 @@ class MainWindow(QMainWindow):
         self.road_panel: Optional[RoadPanel] = None
         self.chart_widget: Optional[ChartWidget] = None
         
-        # NEW: Tab widget and splitter
+        # NEW: Tab widget and splitters
         self.tab_widget: Optional[QTabWidget] = None
-        self.main_splitter: Optional[QSplitter] = None
+        self.main_splitter: Optional[QSplitter] = None  # Vertical splitter (scene + charts)
+        self.main_horizontal_splitter: Optional[QSplitter] = None  # Horizontal splitter (main layout)
 
         # Qt Quick 3D view reference
         self._qquick_widget: Optional[QQuickWidget] = None
@@ -134,19 +136,22 @@ class MainWindow(QMainWindow):
     # UI Construction - НОВАЯ СТРУКТУРА!
     # ------------------------------------------------------------------
     def _setup_central(self):
-        """Создать центральный вид с вертикальным сплиттером
+        """Создать центральный вид с горизонтальным и вертикальным сплиттерами
         
-        Create central view with vertical splitter:
-          - Top: 3D scene (QQuickWidget)
-          - Bottom: Charts (full width)
+        Create central view with horizontal and vertical splitters:
+        Layout: [3D Scene (top) + Charts (bottom)] | [Control Panels (right)]
         """
-        print("    _setup_central: Создание вертикального сплиттера...")
+        print("    _setup_central: Создание системы сплиттеров...")
         
-        # Create vertical splitter
+        # Create main horizontal splitter (left: scene+charts, right: panels)
+        self.main_horizontal_splitter = QSplitter(Qt.Orientation.Horizontal)
+        self.main_horizontal_splitter.setObjectName("MainHorizontalSplitter")
+        
+        # Create vertical splitter for left side (scene + charts)
         self.main_splitter = QSplitter(Qt.Orientation.Vertical)
-        self.main_splitter.setObjectName("MainSplitter")
+        self.main_splitter.setObjectName("SceneChartsSplitter")
         
-        # Top section: 3D scene
+        # Top section of vertical splitter: 3D scene
         if self.use_qml_3d:
             self._setup_qml_3d_view()
         else:
@@ -155,27 +160,24 @@ class MainWindow(QMainWindow):
         if self._qquick_widget:
             self.main_splitter.addWidget(self._qquick_widget)
         
-        # Bottom section: Charts (full width!)
+        # Bottom section of vertical splitter: Charts
         self.chart_widget = ChartWidget(self)
         self.chart_widget.setMinimumHeight(200)  # Minimum chart height
         self.main_splitter.addWidget(self.chart_widget)
         
-        # Set stretch factors (3D scene gets more space)
+        # Set stretch factors for vertical splitter (3D scene gets more space)
         self.main_splitter.setStretchFactor(0, 3)  # 60% for 3D
         self.main_splitter.setStretchFactor(1, 2)  # 40% for charts
         
-        # Create container with horizontal layout: splitter + tabs
-        central_container = QWidget()
-        central_layout = QHBoxLayout(central_container)
-        central_layout.setContentsMargins(0, 0, 0, 0)
-        central_layout.setSpacing(0)
+        # Add vertical splitter to left side of horizontal splitter
+        self.main_horizontal_splitter.addWidget(self.main_splitter)
         
-        # Add splitter to container (will add tabs later)
-        central_layout.addWidget(self.main_splitter, stretch=3)  # 75% width
+        # Right side will be added in _setup_tabs() method
         
-        self.setCentralWidget(central_container)
+        # Set as central widget
+        self.setCentralWidget(self.main_horizontal_splitter)
         
-        print("    ✅ Вертикальный сплиттер создан (сцена сверху, графики снизу)")
+        print("    ✅ Система сплиттеров создана (горизонтальный + вертикальный)")
 
     def _setup_qml_3d_view(self):
         """Setup Qt Quick 3D full suspension scene"""
@@ -226,22 +228,22 @@ class MainWindow(QMainWindow):
         self._setup_qml_3d_view()  # Same implementation for now
 
     def _setup_tabs(self):
-        """Создать вкладки с панелями параметров (справа от сцены)
+        """Создать вкладки с панелями параметров (справа от сцены через сплиттер)
         
-        Create tabbed panels on the right side:
+        Create tabbed panels on the right side with resizable splitter:
           - Геометрия (Geometry)
           - Пневмосистема (Pneumatics)
           - Режимы стабилизатора (Modes)
           - Визуализация (Visualization - stub)
           - Динамика движения (Road/Dynamics - stub)
         """
-        print("    _setup_tabs: Создание вкладок...")
+        print("    _setup_tabs: Создание вкладок с ресайзбаром...")
         
         # Create tab widget
         self.tab_widget = QTabWidget(self)
         self.tab_widget.setObjectName("ParameterTabs")
-        self.tab_widget.setMinimumWidth(350)
-        self.tab_widget.setMaximumWidth(500)
+        self.tab_widget.setMinimumWidth(300)  # Reduced minimum width
+        self.tab_widget.setMaximumWidth(600)  # Increased maximum width for resizing
         
         # Tab 1: Геометрия (Geometry)
         self.geometry_panel = GeometryPanel(self)
@@ -296,12 +298,12 @@ class MainWindow(QMainWindow):
         self.tab_widget.addTab(dynamics_stub, "Динамика движения")
         print("      ✅ Вкладка 'Динамика движения' создана (заглушка)")
         
-        # Add tab widget to central container layout
-        central_widget = self.centralWidget()
-        if central_widget:
-            layout = central_widget.layout()
-            if layout:
-                layout.addWidget(self.tab_widget, stretch=1)  # 25% width
+        # Add tab widget to right side of horizontal splitter
+        self.main_horizontal_splitter.addWidget(self.tab_widget)
+        
+        # Set stretch factors for horizontal splitter
+        self.main_horizontal_splitter.setStretchFactor(0, 3)  # 75% for scene+charts
+        self.main_horizontal_splitter.setStretchFactor(1, 1)  # 25% for panels
         
         # Connect panel signals
         self._wire_panel_signals()
@@ -315,7 +317,7 @@ class MainWindow(QMainWindow):
         # Save selected tab on change
         self.tab_widget.currentChanged.connect(self._on_tab_changed)
         
-        print("    ✅ Вкладки созданы и подключены")
+        print("    ✅ Вкладки созданы и подключены к горизональному сплиттеру")
 
     @Slot(int)
     def _on_tab_changed(self, index: int):
@@ -575,10 +577,15 @@ class MainWindow(QMainWindow):
         if self.chart_widget:
             self.chart_widget.setVisible(True)
         
-        # Reset splitter to default (60/40)
+        # Reset vertical splitter to default (60/40)
         if self.main_splitter:
             total_height = self.main_splitter.height()
             self.main_splitter.setSizes([int(total_height * 0.6), int(total_height * 0.4)])
+        
+        # Reset horizontal splitter to default (75/25)
+        if self.main_horizontal_splitter:
+            total_width = self.main_horizontal_splitter.width()
+            self.main_horizontal_splitter.setSizes([int(total_width * 0.75), int(total_width * 0.25)])
         
         # Reset to first tab
         if self.tab_widget:
@@ -595,13 +602,21 @@ class MainWindow(QMainWindow):
         # if geo := settings.value(self.SETTINGS_GEOMETRY):
         #     self.restoreGeometry(geo)
         
-        # Restore splitter position
+        # Restore vertical splitter position
         if self.main_splitter and (splitter_state := settings.value(self.SETTINGS_SPLITTER)):
             try:
                 self.main_splitter.restoreState(splitter_state)
-                self.logger.debug("Позиция сплиттера восстановлена")
+                self.logger.debug("Позиция вертикального сплиттера восстановлена")
             except Exception as e:
-                self.logger.warning(f"Не удалось восстановить позицию сплиттера: {e}")
+                self.logger.warning(f"Не удалось восстановить позицию вертикального сплиттера: {e}")
+        
+        # Restore horizontal splitter position
+        if self.main_horizontal_splitter and (h_splitter_state := settings.value(self.SETTINGS_HORIZONTAL_SPLITTER)):
+            try:
+                self.main_horizontal_splitter.restoreState(h_splitter_state)
+                self.logger.debug("Позиция горизонтального сплиттера восстановлена")
+            except Exception as e:
+                self.logger.warning(f"Не удалось восстановить позицию горизонтального сплиттера: {e}")
 
     def _save_settings(self):
         """Сохранить настройки в QSettings / Save settings to QSettings"""
@@ -610,9 +625,13 @@ class MainWindow(QMainWindow):
         # Save geometry
         settings.setValue(self.SETTINGS_GEOMETRY, self.saveGeometry())
         
-        # Save splitter position
+        # Save vertical splitter position
         if self.main_splitter:
             settings.setValue(self.SETTINGS_SPLITTER, self.main_splitter.saveState())
+        
+        # Save horizontal splitter position
+        if self.main_horizontal_splitter:
+            settings.setValue(self.SETTINGS_HORIZONTAL_SPLITTER, self.main_horizontal_splitter.saveState())
         
         self.logger.debug("Настройки UI saved")
 
@@ -804,3 +823,88 @@ class MainWindow(QMainWindow):
         self.status_bar.showMessage(f"Геометрия обновлена ({success_count} параметров)")
         print(f"✅ Установлено {success_count} QML свойств успешно")
         print(f"═══════════════════════════════════════════════")
+
+    def closeEvent(self, event):
+        """Обработка закрытия окна / Handle window closing"""
+        try:
+            # Save settings before closing
+            self._save_settings()
+            
+            # Stop simulation if running
+            if hasattr(self, 'simulation_manager') and self.simulation_manager:
+                if self.is_simulation_running:
+                    print("🛑 Останавливаем симуляцию перед закрытием...")
+                    self._on_sim_control("stop")
+                
+                # Cleanup simulation manager
+                self.simulation_manager.cleanup()
+            
+            # Stop render timer
+            if hasattr(self, 'render_timer'):
+                self.render_timer.stop()
+            
+            self.logger.info("Приложение закрывается...")
+            print("✅ MainWindow: Очистка завершена, приложение закрывается")
+            
+        except Exception as e:
+            self.logger.error(f"Ошибка при закрытии приложения: {e}")
+            print(f"❌ Ошибка при закрытии: {e}")
+        
+        # Accept the close event
+        event.accept()
+
+    @Slot(str)
+    def _on_sim_control(self, command: str):
+        """Обработка команд управления симуляцией / Handle simulation control commands
+        
+        Args:
+            command: "start", "stop", "pause", or "reset"
+        """
+        print(f"🎮 SimControl: {command}")
+        self.logger.info(f"Simulation control: {command}")
+        
+        try:
+            if command == "start":
+                if not self.is_simulation_running:
+                    print("▶️ Запуск симуляции...")
+                    self.simulation_manager.start_simulation()
+                    self.is_simulation_running = True
+                    self.status_bar.showMessage("Симуляция запущена")
+                    self._start_time = None  # Reset animation timer
+                else:
+                    print("⚠️ Симуляция уже запущена")
+                    
+            elif command == "stop":
+                if self.is_simulation_running:
+                    print("⏹️ Остановка симуляции...")
+                    self.simulation_manager.stop_simulation()
+                    self.is_simulation_running = False
+                    self.status_bar.showMessage("Симуляция остановлена")
+                else:
+                    print("⚠️ Симуляция не запущена")
+                    
+            elif command == "pause":
+                if self.is_simulation_running:
+                    print("⏸️ Пауза симуляции...")
+                    self.simulation_manager.pause_simulation()
+                    self.status_bar.showMessage("Симуляция приостановлена")
+                else:
+                    print("⚠️ Нечего приостанавливать")
+                    
+            elif command == "reset":
+                print("🔄 Сброс симуляции...")
+                self.simulation_manager.reset_simulation()
+                self.is_simulation_running = False
+                self.status_bar.showMessage("Симуляция сброшена")
+                self._start_time = None  # Reset animation timer
+                
+            else:
+                print(f"❌ Неизвестная команда: {command}")
+                
+        except Exception as e:
+            error_msg = f"Ошибка управления симуляцией ({command}): {e}"
+            print(f"❌ {error_msg}")
+            self.logger.error(error_msg)
+            self.status_bar.showMessage(f"Ошибка: {command}")
+            import traceback
+            traceback.print_exc()
