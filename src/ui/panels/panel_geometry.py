@@ -1,29 +1,26 @@
-﻿# -*- coding: utf-8 -*-
+# -*- coding: utf-8 -*-
 """
-Geometry configuration panel - РУССКИЙ ИНТЕРФЕЙС
+Geometry configuration panel - Russian Interface
 Controls for vehicle geometry parameters with dependency management
-Панель конфигурации геометрии с управлением зависимостями
 """
 
 from PySide6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QGroupBox, 
                               QCheckBox, QPushButton, QLabel, QMessageBox,
-                              QSizePolicy, QComboBox)  # NEW: QComboBox for presets
-from PySide6.QtCore import Signal, Slot, Qt
+                              QSizePolicy, QComboBox)
+from PySide6.QtCore import Signal, Slot, Qt, QSignalBlocker
 from PySide6.QtGui import QFont
 
 from ..widgets import RangeSlider
 
 
 class GeometryPanel(QWidget):
-    """Панель конфигурации параметров геометрии
+    """Panel for geometry parameter configuration (Russian UI)
     
-    Panel for geometry parameter configuration (Russian UI)
-    
-    Provides controls for / Управление:
-    - Wheelbase and track dimensions / База и колея
-    - Lever geometry / Геометрия рычагов
-    - Cylinder dimensions / Размеры цилиндров
-    - Dead zones and clearances / Мёртвые зоны и зазоры
+    Provides controls for:
+    - Wheelbase and track dimensions
+    - Lever geometry 
+    - Cylinder dimensions
+    - Dead zones and clearances
     """
     
     # Signals for parameter changes
@@ -39,6 +36,7 @@ class GeometryPanel(QWidget):
         
         # Dependency resolution state
         self._resolving_conflict = False
+        self._updating_from_state = False  # Prevent recursion during updates
         
         # Setup UI
         self._setup_ui()
@@ -53,13 +51,13 @@ class GeometryPanel(QWidget):
         self.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Expanding)
     
     def _setup_ui(self):
-        """Настроить интерфейс / Setup user interface"""
+        """Setup user interface"""
         layout = QVBoxLayout(self)
         layout.setSpacing(8)
         layout.setContentsMargins(8, 8, 8, 8)
         
         # Title (Russian)
-        title_label = QLabel("Геометрия автомобиля")
+        title_label = QLabel("Geometry Panel")
         title_font = QFont()
         title_font.setPointSize(12)
         title_font.setBold(True)
@@ -67,15 +65,15 @@ class GeometryPanel(QWidget):
         title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         layout.addWidget(title_label)
         
-        # Preset selector (NEW!)
+        # Preset selector
         preset_layout = QHBoxLayout()
-        preset_label = QLabel("Пресет:")
+        preset_label = QLabel("Preset:")
         self.preset_combo = QComboBox()
         self.preset_combo.addItems([
-            "Стандартный грузовик",
-            "Лёгкий коммерческий",
-            "Тяжёлый грузовик",
-            "Пользовательский"
+            "Standard Truck",
+            "Light Commercial", 
+            "Heavy Truck",
+            "Custom"
         ])
         self.preset_combo.setCurrentIndex(0)
         self.preset_combo.currentIndexChanged.connect(self._on_preset_changed)
@@ -106,138 +104,140 @@ class GeometryPanel(QWidget):
         layout.addStretch()
     
     def _create_frame_group(self) -> QGroupBox:
-        """Создать группу размеров рамы / Create frame dimensions group"""
-        group = QGroupBox("Размеры рамы")
+        """Create frame dimensions group"""
+        group = QGroupBox("Frame Dimensions")
         layout = QVBoxLayout(group)
         layout.setSpacing(4)
         
-        # Wheelbase (База)
+        # Wheelbase - SI units: step 0.001m, decimals=3
         self.wheelbase_slider = RangeSlider(
-            minimum=2.0, maximum=4.0, value=3.2, step=0.1,
-            decimals=1, units="м", title="База (колёсная)"
+            minimum=2.000, maximum=4.000, value=3.200, step=0.001,
+            decimals=3, units="m", title="Wheelbase"
         )
         layout.addWidget(self.wheelbase_slider)
         
-        # Track width (Колея)
+        # Track width - SI units: step 0.001m, decimals=3
         self.track_slider = RangeSlider(
-            minimum=1.0, maximum=2.5, value=1.6, step=0.1,
-            decimals=1, units="м", title="Колея"
+            minimum=1.000, maximum=2.500, value=1.600, step=0.001,
+            decimals=3, units="m", title="Track Width"
         )
         layout.addWidget(self.track_slider)
         
         return group
     
     def _create_suspension_group(self) -> QGroupBox:
-        """Создать группу геометрии подвески / Create suspension geometry group"""
-        group = QGroupBox("Геометрия подвески")
+        """Create suspension geometry group"""
+        group = QGroupBox("Suspension Geometry")
         layout = QVBoxLayout(group)
         layout.setSpacing(4)
         
-        # Distance from frame to lever pivot (Расстояние от рамы до оси рычага)
+        # Distance from frame to lever pivot - SI units: step 0.001m, decimals=3
         self.frame_to_pivot_slider = RangeSlider(
-            minimum=0.3, maximum=1.0, value=0.6, step=0.05,
-            decimals=2, units="м", title="Расстояние рама → ось рычага"
+            minimum=0.300, maximum=1.000, value=0.600, step=0.001,
+            decimals=3, units="m", title="Frame to Pivot Distance"
         )
         layout.addWidget(self.frame_to_pivot_slider)
         
-        # Lever length (Длина рычага)
+        # Lever length - SI units: step 0.001m, decimals=3
         self.lever_length_slider = RangeSlider(
-            minimum=0.5, maximum=1.5, value=0.8, step=0.05,
-            decimals=2, units="м", title="Длина рычага"
+            minimum=0.500, maximum=1.500, value=0.800, step=0.001,
+            decimals=3, units="m", title="Lever Length"
         )
         layout.addWidget(self.lever_length_slider)
         
-        # Rod attachment position (Положение крепления штока)
+        # Rod attachment position - fraction: step 0.001, decimals=3
         self.rod_position_slider = RangeSlider(
-            minimum=0.3, maximum=0.9, value=0.6, step=0.05,
-            decimals=2, units="", title="Положение крепления штока (доля)"
+            minimum=0.300, maximum=0.900, value=0.600, step=0.001,
+            decimals=3, units="", title="Rod Position (fraction)"
         )
         layout.addWidget(self.rod_position_slider)
         
         return group
     
     def _create_cylinder_group(self) -> QGroupBox:
-        """Создать группу размеров цилиндра / Create cylinder geometry group"""
-        group = QGroupBox("Размеры цилиндра")
+        """Create cylinder geometry group"""
+        group = QGroupBox("Cylinder Dimensions")
         layout = QVBoxLayout(group)
         layout.setSpacing(4)
         
-        # Cylinder length (Длина цилиндра)
+        # Cylinder length - SI units: step 0.001m, decimals=3
         self.cylinder_length_slider = RangeSlider(
-            minimum=0.3, maximum=0.8, value=0.5, step=0.01,
-            decimals=2, units="м", title="Длина цилиндра"
+            minimum=0.300, maximum=0.800, value=0.500, step=0.001,
+            decimals=3, units="m", title="Cylinder Length"
         )
         layout.addWidget(self.cylinder_length_slider)
         
-        # Bore diameter head side (Диаметр безштоковой полости)
-        self.bore_head_slider = RangeSlider(
-            minimum=50.0, maximum=150.0, value=80.0, step=5.0,
-            decimals=0, units="мм", title="Диаметр (безштоковая камера)"
+        # Unified cylinder diameter - SI units: step 0.001m, decimals=3
+        self.cyl_diam_slider = RangeSlider(
+            minimum=0.030, maximum=0.150, value=0.080, step=0.001,
+            decimals=3, units="m", title="Cylinder Diameter"
         )
-        layout.addWidget(self.bore_head_slider)
+        layout.addWidget(self.cyl_diam_slider)
         
-        # Bore diameter rod side (Диаметр штоковой полости)
-        self.bore_rod_slider = RangeSlider(
-            minimum=50.0, maximum=150.0, value=80.0, step=5.0,
-            decimals=0, units="мм", title="Диаметр (штоковая камера)"
-        )
-        layout.addWidget(self.bore_rod_slider)
-        
-        # Rod diameter (Диаметр штока)
+        # Rod diameter - SI units: step 0.001m, decimals=3
         self.rod_diameter_slider = RangeSlider(
-            minimum=20.0, maximum=60.0, value=35.0, step=2.5,
-            decimals=1, units="мм", title="Диаметр штока"
+            minimum=0.010, maximum=0.060, value=0.035, step=0.001,
+            decimals=3, units="m", title="Rod Diameter"
         )
         layout.addWidget(self.rod_diameter_slider)
         
-        # Piston rod length (Длина штока поршня)
-        self.piston_rod_length_slider = RangeSlider(
-            minimum=100.0, maximum=500.0, value=200.0, step=10.0,
-            decimals=0, units="мм", title="Длина штока поршня"
+        # Stroke - SI units: step 0.001m, decimals=3
+        self.stroke_slider = RangeSlider(
+            minimum=0.100, maximum=0.500, value=0.300, step=0.001,
+            decimals=3, units="m", title="Stroke"
         )
-        layout.addWidget(self.piston_rod_length_slider)
+        layout.addWidget(self.stroke_slider)
         
-        # Piston thickness (Толщина поршня)
+        # Piston thickness - SI units: step 0.001m, decimals=3
         self.piston_thickness_slider = RangeSlider(
-            minimum=10.0, maximum=50.0, value=25.0, step=2.5,
-            decimals=1, units="мм", title="Толщина поршня"
+            minimum=0.005, maximum=0.030, value=0.020, step=0.001,
+            decimals=3, units="m", title="Piston Thickness"
         )
         layout.addWidget(self.piston_thickness_slider)
+        
+        # Dead gap - SI units: step 0.001m, decimals=3
+        self.dead_gap_slider = RangeSlider(
+            minimum=0.000, maximum=0.020, value=0.005, step=0.001,
+            decimals=3, units="m", title="Dead Gap"
+        )
+        layout.addWidget(self.dead_gap_slider)
         
         return group
     
     def _create_options_group(self) -> QGroupBox:
-        """Создать группу опций / Create options group"""
-        group = QGroupBox("Опции")
+        """Create options group"""
+        group = QGroupBox("Options")
         layout = QVBoxLayout(group)
         layout.setSpacing(4)
         
-        # Interference checking (Проверка пересечений)
-        self.interference_check = QCheckBox("Проверять пересечения геометрии")
+        # Interference checking
+        self.interference_check = QCheckBox("Check geometry interference")
         self.interference_check.setChecked(True)
         layout.addWidget(self.interference_check)
         
-        # Link rod diameters (Связать диаметры штоков)
-        self.link_rod_diameters = QCheckBox("Связать диаметры штоков передних/задних колёс")
-        self.link_rod_diameters.setChecked(False)
+        # Link rod diameters - deprecated but kept for compatibility
+        self.link_rod_diameters = QCheckBox("Diameters unified automatically")
+        self.link_rod_diameters.setChecked(True)
+        self.link_rod_diameters.setEnabled(False)  # Disabled - always unified now
+        self.link_rod_diameters.setToolTip("Cylinder diameter is now unified for both chambers")
         layout.addWidget(self.link_rod_diameters)
         
         return group
     
     def _create_buttons(self) -> QHBoxLayout:
-        """Создать кнопки управления / Create control buttons"""
+        """Create control buttons"""
         layout = QHBoxLayout()
         layout.setSpacing(4)
         
-        # Reset to defaults (Сбросить к значениям по умолчанию)
-        self.reset_button = QPushButton("Сбросить")
-        self.reset_button.setToolTip("Сбросить к значениям по умолчанию")
+        # Reset to defaults
+        self.reset_button = QPushButton("Reset")
+        self.reset_button.setToolTip("Reset to default values")
         self.reset_button.clicked.connect(self._reset_to_defaults)
         layout.addWidget(self.reset_button)
         
-        # Validate geometry (Проверить геометрию)
-        self.validate_button = QPushButton("Проверить")
-        self.validate_button.setToolTip("Проверить корректность геометрии")
+        # Validate geometry
+        self.validate_button = QPushButton("Validate")
+        self.validate_button.setToolTip("Check geometry correctness")
         self.validate_button.clicked.connect(self._validate_geometry)
         layout.addWidget(self.validate_button)
         
@@ -247,24 +247,30 @@ class GeometryPanel(QWidget):
     
     @Slot(int)
     def _on_preset_changed(self, index: int):
-        """Обработать выбор пресета / Handle preset selection"""
+        """Handle preset selection"""
         presets = {
-            0: {  # Стандартный грузовик
-                'wheelbase': 3.2, 'track': 1.6, 'lever_length': 0.8,
-                'bore_head': 80.0, 'rod_diameter': 35.0
+            0: {  # Standard truck  
+                'wheelbase': 3.200, 'track': 1.600, 'lever_length': 0.800,
+                'frame_to_pivot': 0.600, 'rod_position': 0.600,
+                'cyl_diam_m': 0.080, 'rod_diam_m': 0.035, 'stroke_m': 0.300,
+                'cylinder_length': 0.500, 'piston_thickness_m': 0.020, 'dead_gap_m': 0.005
             },
-            1: {  # Лёгкий коммерческий
-                'wheelbase': 2.8, 'track': 1.4, 'lever_length': 0.7,
-                'bore_head': 65.0, 'rod_diameter': 28.0
+            1: {  # Light commercial
+                'wheelbase': 2.800, 'track': 1.400, 'lever_length': 0.700,
+                'frame_to_pivot': 0.550, 'rod_position': 0.600,
+                'cyl_diam_m': 0.065, 'rod_diam_m': 0.028, 'stroke_m': 0.250,
+                'cylinder_length': 0.400, 'piston_thickness_m': 0.015, 'dead_gap_m': 0.003
             },
-            2: {  # Тяжёлый грузовик
-                'wheelbase': 3.8, 'track': 1.9, 'lever_length': 0.95,
-                'bore_head': 100.0, 'rod_diameter': 45.0
+            2: {  # Heavy truck
+                'wheelbase': 3.800, 'track': 1.900, 'lever_length': 0.950,
+                'frame_to_pivot': 0.700, 'rod_position': 0.650,  
+                'cyl_diam_m': 0.100, 'rod_diam_m': 0.045, 'stroke_m': 0.400,
+                'cylinder_length': 0.650, 'piston_thickness_m': 0.025, 'dead_gap_m': 0.007
             },
-            3: {}  # Пользовательский (no changes)
+            3: {}  # Custom (no changes)
         }
         
-        if index < 3:  # Don't change for "Пользовательский"
+        if index < 3:  # Don't change for "Custom"
             preset = presets.get(index, {})
             if preset:
                 self.set_parameters(preset)
@@ -273,17 +279,19 @@ class GeometryPanel(QWidget):
     def _set_default_values(self):
         """Set default parameter values"""
         defaults = {
-            'wheelbase': 3.2,
-            'track': 1.6,
-            'frame_to_pivot': 0.6,
-            'lever_length': 0.8,
-            'rod_position': 0.6,
-            'cylinder_length': 0.5,
-            'bore_head': 80.0,
-            'bore_rod': 80.0,
-            'rod_diameter': 35.0,
-            'piston_rod_length': 200.0,  # NEW: Default 200mm rod length
-            'piston_thickness': 25.0
+            # Frame dimensions - updated to match new precision
+            'wheelbase': 3.200,           # Precise to 0.001
+            'track': 1.600,               # Precise to 0.001
+            'frame_to_pivot': 0.600,      # Precise to 0.001
+            'lever_length': 0.800,        # Precise to 0.001
+            'rod_position': 0.600,        # Precise to 0.001 (fraction)
+            'cylinder_length': 0.500,     # Already precise
+            # Unified cylinder parameters (all in meters, SI units)
+            'cyl_diam_m': 0.080,          # 80mm -> 0.080m
+            'rod_diam_m': 0.035,          # 35mm -> 0.035m  
+            'stroke_m': 0.300,            # 300mm -> 0.300m
+            'piston_thickness_m': 0.020,  # 20mm -> 0.020m
+            'dead_gap_m': 0.005,          # 5mm -> 0.005m
         }
         
         self.parameters.update(defaults)
@@ -304,45 +312,42 @@ class GeometryPanel(QWidget):
         self.rod_position_slider.valueEdited.connect(
             lambda v: self._on_parameter_changed('rod_position', v))
         
-        # Cylinder dimensions
+        # Cylinder dimensions - unified parameters only
         self.cylinder_length_slider.valueEdited.connect(
             lambda v: self._on_parameter_changed('cylinder_length', v))
-        self.bore_head_slider.valueEdited.connect(
-            lambda v: self._on_parameter_changed('bore_head', v))
-        self.bore_rod_slider.valueEdited.connect(
-            lambda v: self._on_parameter_changed('bore_rod', v))
+        self.cyl_diam_slider.valueEdited.connect(
+            lambda v: self._on_parameter_changed('cyl_diam_m', v))
         self.rod_diameter_slider.valueEdited.connect(
-            lambda v: self._on_parameter_changed('rod_diameter', v))
-        self.piston_rod_length_slider.valueEdited.connect(
-            lambda v: self._on_parameter_changed('piston_rod_length', v))
+            lambda v: self._on_parameter_changed('rod_diam_m', v))
+        self.stroke_slider.valueEdited.connect(
+            lambda v: self._on_parameter_changed('stroke_m', v))
         self.piston_thickness_slider.valueEdited.connect(
-            lambda v: self._on_parameter_changed('piston_thickness', v))
+            lambda v: self._on_parameter_changed('piston_thickness_m', v))
+        self.dead_gap_slider.valueEdited.connect(
+            lambda v: self._on_parameter_changed('dead_gap_m', v))
         
         # Options
         self.link_rod_diameters.toggled.connect(self._on_link_rod_diameters_toggled)
     
     @Slot(str, float)
     def _on_parameter_changed(self, param_name: str, value: float):
-        """Handle parameter change with dependency resolution
-        
-        Args:
-            param_name: Name of changed parameter
-            value: New value
-        """
-        if self._resolving_conflict:
+        """Handle parameter change with normalization and dependency resolution"""
+        if self._resolving_conflict or self._updating_from_state:
             return
         
+        # Store old values for logging
+        old_value = self.parameters.get(param_name, 0.0)
+        
+        print(f"Parameter changing: {param_name} from {old_value} to {value}")
+        
+        # Apply change 
+        self._apply_ui_change_legacy(param_name, value)
+    
+    def _apply_ui_change_legacy(self, param_name: str, value: float):
+        """Legacy path for UI changes (when GeometryState not available)"""
         # Store new value
         old_value = self.parameters.get(param_name, 0.0)
         self.parameters[param_name] = value
-        
-        print(f"═══════════════════════════════════════════════")
-        print(f"🔧 GeometryPanel: Parameter changed")
-        print(f"   Name: {param_name}")
-        print(f"   Old value: {old_value}")
-        print(f"   New value: {value}")
-        print(f"   All parameters: {self.parameters}")
-        print(f"═══════════════════════════════════════════════")
         
         # Check for dependencies and conflicts
         conflict_resolution = self._check_dependencies(param_name, value, old_value)
@@ -355,106 +360,87 @@ class GeometryPanel(QWidget):
             self.parameter_changed.emit(param_name, value)
             self.geometry_updated.emit(self.parameters.copy())
             
-            # NEW: Emit 3D scene geometry update for frame dimensions
-            if param_name in ['wheelbase', 'track', 'lever_length', 'cylinder_length', 'frame_to_pivot', 'rod_position', 
-                             'bore_head', 'bore_rod', 'rod_diameter', 'piston_rod_length', 'piston_thickness']:
-                # Convert parameters to 3D scene format
-                geometry_3d = {
-                    'frameLength': self.parameters.get('wheelbase', 3.2) * 1000,  # m -> mm
-                    'frameHeight': 650.0,  # Fixed for now
-                    'frameBeamSize': 120.0,  # Fixed for now
-                    'leverLength': self.parameters.get('lever_length', 0.8) * 1000,  # m -> mm
-                    'cylinderBodyLength': self.parameters.get('cylinder_length', 0.5) * 1000,  # m -> mm
-                    'tailRodLength': 100.0,  # Fixed for now
-                    # NEW: Additional parameters
-                    'trackWidth': self.parameters.get('track', 1.6) * 1000,  # m -> mm
-                    'frameToPivot': self.parameters.get('frame_to_pivot', 0.6) * 1000,  # m -> mm
-                    'rodPosition': self.parameters.get('rod_position', 0.6),  # fraction 0-1
-                    'boreHead': self.parameters.get('bore_head', 80.0),  # mm
-                    'boreRod': self.parameters.get('bore_rod', 80.0),  # mm
-                    'rodDiameter': self.parameters.get('rod_diameter', 35.0),  # mm
-                    'pistonRodLength': self.parameters.get('piston_rod_length', 200.0),  # mm - NEW!
-                    'pistonThickness': self.parameters.get('piston_thickness', 25.0)  # mm
-                }
-                
-                print(f"───────────────────────────────────────────────")
-                print(f"📤 GeometryPanel: Emitting geometry_changed signal")
-                print(f"   Converted to 3D format:")
-                for key, val in geometry_3d.items():
-                    print(f"      {key}: {val}")
-                print(f"═══════════════════════════════════════════════")
-                
-                self.geometry_changed.emit(geometry_3d)
+            # Emit 3D scene geometry update
+            self._emit_3d_geometry_update()
+    
+    def _emit_3d_geometry_update(self):
+        """Emit geometry update for 3D scene"""
+        # Convert parameters to 3D scene format (all from SI meters to mm)
+        geometry_3d = {
+            'frameLength': self.parameters.get('wheelbase', 3.200) * 1000,  # m -> mm
+            'frameHeight': 650.0,  # Fixed for now (mm)
+            'frameBeamSize': 120.0,  # Fixed for now (mm)
+            'leverLength': self.parameters.get('lever_length', 0.800) * 1000,  # m -> mm
+            'cylinderBodyLength': self.parameters.get('cylinder_length', 0.500) * 1000,  # m -> mm
+            'tailRodLength': 100.0,  # Fixed for now (mm)
+            # Updated parameters (converted from SI meters to mm)
+            'trackWidth': self.parameters.get('track', 1.600) * 1000,  # m -> mm
+            'frameToPivot': self.parameters.get('frame_to_pivot', 0.600) * 1000,  # m -> mm
+            'rodPosition': self.parameters.get('rod_position', 0.600),  # fraction 0-1 (no conversion)
+            # Unified cylinder parameters (convert from SI meters to mm for QML)
+            'boreHead': self.parameters.get('cyl_diam_m', 0.080) * 1000,  # m -> mm
+            'boreRod': self.parameters.get('cyl_diam_m', 0.080) * 1000,   # Same as boreHead now! 
+            'rodDiameter': self.parameters.get('rod_diam_m', 0.035) * 1000,  # m -> mm
+            'pistonThickness': self.parameters.get('piston_thickness_m', 0.020) * 1000,  # m -> mm
+            # Additional parameters for 3D scene
+            'strokeLength': self.parameters.get('stroke_m', 0.300) * 1000,  # m -> mm
+            'deadGap': self.parameters.get('dead_gap_m', 0.005) * 1000,  # m -> mm
+        }
+        
+        print(f"Emitting geometry_changed signal with {len(geometry_3d)} parameters")
+        self.geometry_changed.emit(geometry_3d)
     
     def _check_dependencies(self, param_name: str, new_value: float, old_value: float) -> dict:
-        """Проверить зависимости параметров / Check for parameter dependencies
-        
-        Args:
-            param_name: Имя изменённого параметра / Name of changed parameter
-            new_value: Новое значение / New value
-            old_value: Предыдущее значение / Previous value
-            
-        Returns:
-            Словарь с информацией о конфликте или None / Conflict info dict or None
-        """
-        # Geometric constraints that may cause conflicts
-        
-        # Example: wheelbase vs lever geometry
+        """Check parameter dependencies"""
+        # Example: wheelbase vs lever geometry (all now in SI units - meters)
         if param_name in ['wheelbase', 'lever_length', 'frame_to_pivot']:
             wheelbase = self.parameters['wheelbase']
             lever_length = self.parameters['lever_length']
             frame_to_pivot = self.parameters['frame_to_pivot']
             
-            # Check if lever can physically fit
-            max_lever_reach = wheelbase / 2.0 - 0.1  # Leave some clearance
+            # Check if lever can physically fit (all calculations in meters)
+            max_lever_reach = wheelbase / 2.0 - 0.100  # Leave 100mm clearance
             
             if frame_to_pivot + lever_length > max_lever_reach:
                 return {
                     'type': 'geometric_constraint',
-                    'message': f'Геометрия рычага превышает доступное пространство.\n'
-                              f'Текущее: {frame_to_pivot + lever_length:.2f}м\n'
-                              f'Максимум: {max_lever_reach:.2f}м',
+                    'message': f'Lever geometry exceeds available space.\nCurrent: {frame_to_pivot + lever_length:.3f}m\nMaximum: {max_lever_reach:.3f}m',
                     'options': [
-                        ('Уменьшить длину рычага', 'lever_length', max_lever_reach - frame_to_pivot),
-                        ('Уменьшить расстояние до оси', 'frame_to_pivot', max_lever_reach - lever_length),
-                        ('Увеличить базу', 'wheelbase', 2.0 * (frame_to_pivot + lever_length + 0.1))
+                        ('Reduce lever length', 'lever_length', max_lever_reach - frame_to_pivot - 0.001),
+                        ('Reduce distance to axis', 'frame_to_pivot', max_lever_reach - lever_length - 0.001),
+                        ('Increase wheelbase', 'wheelbase', 2.0 * (frame_to_pivot + lever_length + 0.150))
                     ],
                     'changed_param': param_name
                 }
         
-        # Rod diameter vs bore diameter constraint
-        if param_name in ['rod_diameter', 'bore_head', 'bore_rod']:
-            rod_diameter = self.parameters['rod_diameter']
-            min_bore = min(self.parameters['bore_head'], self.parameters['bore_rod'])
+        # Rod diameter vs cylinder diameter constraint (unified parameters)
+        if param_name in ['rod_diam_m', 'cyl_diam_m']:
+            rod_diameter = self.parameters['rod_diam_m']
+            cyl_diameter = self.parameters['cyl_diam_m']
             
-            if rod_diameter >= min_bore * 0.8:  # Rod should be < 80% of bore
+            if rod_diameter >= cyl_diameter * 0.8:  # Rod should be < 80% of cylinder
                 return {
                     'type': 'hydraulic_constraint',
-                    'message': f'Диаметр штока слишком велик относительно цилиндра.\n'
-                              f'Шток: {rod_diameter:.1f}мм\n'
-                              f'Мин. цилиндр: {min_bore:.1f}мм',
+                    'message': f'Rod diameter too large relative to cylinder.\nRod: {rod_diameter*1000:.1f}mm\nCylinder: {cyl_diameter*1000:.1f}mm\nMax rod: {cyl_diameter*0.8*1000:.1f}mm',
                     'options': [
-                        ('Уменьшить диаметр штока', 'rod_diameter', min_bore * 0.7),
-                        ('Увеличить диаметры цилиндров', 'bore_head', rod_diameter / 0.7),
-                    ]
+                        ('Reduce rod diameter', 'rod_diam_m', cyl_diameter * 0.700),
+                        ('Increase cylinder diameter', 'cyl_diam_m', rod_diameter / 0.700),
+                    ],
+                    'changed_param': param_name
                 }
         
         return None
     
     def _resolve_conflict(self, conflict_info: dict):
-        """Показать диалог разрешения конфликта / Show conflict resolution dialog
-        
-        Args:
-            conflict_info: Информация о конфликте / Conflict information dictionary
-        """
+        """Show conflict resolution dialog"""
         self._resolving_conflict = True
         
         try:
             # Create message box with options
             msg_box = QMessageBox(self)
-            msg_box.setWindowTitle('Конфликт параметров')
+            msg_box.setWindowTitle('Parameter Conflict')
             msg_box.setText(conflict_info['message'])
-            msg_box.setInformativeText('Как вы хотите разрешить этот конфликт?')
+            msg_box.setInformativeText('How would you like to resolve this conflict?')
             
             # Add buttons for each resolution option
             buttons = []
@@ -463,7 +449,7 @@ class GeometryPanel(QWidget):
                 buttons.append((button, param_name, suggested_value))
             
             # Add cancel button
-            cancel_button = msg_box.addButton('Отмена', QMessageBox.ButtonRole.RejectRole)
+            cancel_button = msg_box.addButton('Cancel', QMessageBox.ButtonRole.RejectRole)
             
             # Show dialog
             msg_box.exec()
@@ -488,29 +474,79 @@ class GeometryPanel(QWidget):
         finally:
             self._resolving_conflict = False
     
+    def _set_parameter_value(self, param_name: str, value: float):
+        """Set parameter value on the appropriate widget"""
+        widget_map = {
+            'wheelbase': self.wheelbase_slider,
+            'track': self.track_slider,
+            'frame_to_pivot': self.frame_to_pivot_slider,
+            'lever_length': self.lever_length_slider,
+            'rod_position': self.rod_position_slider,
+            'cylinder_length': self.cylinder_length_slider,
+            # Updated widget mappings for unified parameters
+            'cyl_diam_m': self.cyl_diam_slider,
+            'rod_diam_m': self.rod_diameter_slider,
+            'stroke_m': self.stroke_slider,
+            'piston_thickness_m': self.piston_thickness_slider,
+            'dead_gap_m': self.dead_gap_slider,
+        }
+        
+        widget = widget_map.get(param_name)
+        if widget:
+            widget.setValue(value)
+            self.parameters[param_name] = value
+        else:
+            print(f"Warning: No widget found for parameter '{param_name}'")
+    
+    def _get_widget_for_parameter(self, param_name: str):
+        """Get the current value from the widget for a parameter"""
+        widget_map = {
+            'wheelbase': self.wheelbase_slider,
+            'track': self.track_slider,
+            'frame_to_pivot': self.frame_to_pivot_slider,
+            'lever_length': self.lever_length_slider,
+            'rod_position': self.rod_position_slider,
+            'cylinder_length': self.cylinder_length_slider,
+            # Updated widget mappings for unified parameters
+            'cyl_diam_m': self.cyl_diam_slider,
+            'rod_diam_m': self.rod_diameter_slider,
+            'stroke_m': self.stroke_slider,
+            'piston_thickness_m': self.piston_thickness_slider,
+            'dead_gap_m': self.dead_gap_slider,
+        }
+        
+        widget = widget_map.get(param_name)
+        if widget:
+            return widget.value()
+        else:
+            # Return stored value as fallback
+            return self.parameters.get(param_name, 0.0)
+
     @Slot()
     def _reset_to_defaults(self):
-        """Сбросить все параметры к значениям по умолчанию / Reset all parameters to defaults"""
+        """Reset all parameters to defaults"""
         self._set_default_values()
         
-        # Update all widgets
+        # Update all widgets - only new unified parameters
         self.wheelbase_slider.setValue(self.parameters['wheelbase'])
         self.track_slider.setValue(self.parameters['track'])
         self.frame_to_pivot_slider.setValue(self.parameters['frame_to_pivot'])
         self.lever_length_slider.setValue(self.parameters['lever_length'])
         self.rod_position_slider.setValue(self.parameters['rod_position'])
         self.cylinder_length_slider.setValue(self.parameters['cylinder_length'])
-        self.bore_head_slider.setValue(self.parameters['bore_head'])
-        self.bore_rod_slider.setValue(self.parameters['bore_rod'])
-        self.rod_diameter_slider.setValue(self.parameters['rod_diameter'])
-        self.piston_rod_length_slider.setValue(self.parameters['piston_rod_length'])
-        self.piston_thickness_slider.setValue(self.parameters['piston_thickness'])
+        
+        # Set values for unified parameters
+        self.cyl_diam_slider.setValue(self.parameters['cyl_diam_m'])
+        self.rod_diameter_slider.setValue(self.parameters['rod_diam_m'])
+        self.stroke_slider.setValue(self.parameters['stroke_m'])
+        self.piston_thickness_slider.setValue(self.parameters['piston_thickness_m'])
+        self.dead_gap_slider.setValue(self.parameters['dead_gap_m'])
         
         # Reset checkboxes
         self.interference_check.setChecked(True)
-        self.link_rod_diameters.setChecked(False)
+        self.link_rod_diameters.setChecked(True)  # Always unified now
         
-        # Reset preset combo to "Стандартный грузовик"
+        # Reset preset combo to "Standard Truck"
         self.preset_combo.setCurrentIndex(0)
         
         # Emit update
@@ -518,7 +554,7 @@ class GeometryPanel(QWidget):
     
     @Slot()
     def _validate_geometry(self):
-        """Проверить текущие настройки геометрии / Validate current geometry settings"""
+        """Validate current geometry settings"""
         errors = []
         warnings = []
         
@@ -527,44 +563,48 @@ class GeometryPanel(QWidget):
         lever_length = self.parameters['lever_length']
         frame_to_pivot = self.parameters['frame_to_pivot']
         
-        max_lever_reach = wheelbase / 2.0 - 0.1
+        max_lever_reach = wheelbase / 2.0 - 0.100
         if frame_to_pivot + lever_length > max_lever_reach:
-            errors.append(f"Геометрия рычага превышает доступное пространство: {frame_to_pivot + lever_length:.2f} > {max_lever_reach:.2f}м")
+            errors.append(f"Lever geometry exceeds space: {frame_to_pivot + lever_length:.3f} > {max_lever_reach:.3f}m")
         
         # Check hydraulic constraints
-        rod_diameter = self.parameters['rod_diameter']
-        min_bore = min(self.parameters['bore_head'], self.parameters['bore_rod'])
+        rod_diameter = self.parameters['rod_diam_m']
+        cyl_diameter = self.parameters['cyl_diam_m']
         
-        if rod_diameter >= min_bore * 0.8:
-            errors.append(f"Диаметр штока слишком велик: {rod_diameter:.1f}мм >= 80% от {min_bore:.1f}мм цилиндра")
-        elif rod_diameter >= min_bore * 0.7:
-            warnings.append(f"Диаметр штока близок к пределу: {rod_diameter:.1f}мм vs {min_bore:.1f}мм цилиндра")
+        if rod_diameter >= cyl_diameter * 0.8:
+            errors.append(f"Rod too large: {rod_diameter*1000:.1f}mm >= 80% of {cyl_diameter*1000:.1f}mm cylinder")
+        elif rod_diameter >= cyl_diameter * 0.7:
+            warnings.append(f"Rod close to limit: {rod_diameter*1000:.1f}mm vs {cyl_diameter*1000:.1f}mm cylinder")
+        
+        # Check stroke constraints
+        stroke = self.parameters['stroke_m']
+        cylinder_length = self.parameters['cylinder_length']
+        piston_thickness = self.parameters['piston_thickness_m']
+        dead_gap = self.parameters['dead_gap_m']
+        
+        min_cylinder_length = stroke + piston_thickness + 2 * dead_gap
+        if cylinder_length < min_cylinder_length:
+            errors.append(f"Cylinder too short: {cylinder_length*1000:.1f}mm < {min_cylinder_length*1000:.1f}mm (required)")
+        elif cylinder_length < min_cylinder_length + 0.010:  # Less than 10mm clearance
+            warnings.append(f"Small clearance: {cylinder_length*1000:.1f}mm vs {min_cylinder_length*1000:.1f}mm (required)")
         
         # Show results
         if errors:
-            QMessageBox.critical(self, 'Ошибки геометрии', 
-                               'Обнаружены ошибки:\n' + '\n'.join(errors))
+            QMessageBox.critical(self, 'Geometry Errors', 
+                               'Errors found:\n' + '\n'.join(errors))
         elif warnings:
-            QMessageBox.warning(self, 'Предупреждения геометрии',
-                              'Предупреждения:\n' + '\n'.join(warnings))
+            QMessageBox.warning(self, 'Geometry Warnings',
+                              'Warnings:\n' + '\n'.join(warnings))
         else:
-            QMessageBox.information(self, 'Проверка геометрии', 
-                                  'Все параметры геометрии корректны.')
+            QMessageBox.information(self, 'Geometry Check', 
+                                  'All geometry parameters are correct.')
     
     def get_parameters(self) -> dict:
-        """Get current parameter values
-        
-        Returns:
-            Dictionary of current parameters
-        """
+        """Get current parameter values"""
         return self.parameters.copy()
     
     def set_parameters(self, params: dict):
-        """Set parameter values from dictionary
-        
-        Args:
-            params: Dictionary of parameter values
-        """
+        """Set parameter values from dictionary"""
         self._resolving_conflict = True
         
         try:
@@ -577,3 +617,16 @@ class GeometryPanel(QWidget):
         
         finally:
             self._resolving_conflict = False
+    
+    @Slot(bool)
+    def _on_link_rod_diameters_toggled(self, checked: bool):
+        """Handle linking/unlinking of rod diameters"""
+        # NOTE: With unified cylinder diameter (cyl_diam_m), this option is no longer relevant
+        # Both head and rod sides now use the same diameter automatically
+        
+        if checked:
+            print("Rod diameters already unified (single cyl_diam_m parameter)")
+        else:
+            print("Rod diameters are always unified now (single cyl_diam_m parameter)")
+        
+        # No need to emit update signal as nothing actually changes

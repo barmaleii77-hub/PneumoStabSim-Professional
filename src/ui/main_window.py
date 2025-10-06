@@ -583,214 +583,61 @@ class MainWindow(QMainWindow):
             self.simulation_manager.state_bus.set_master_isolation.emit(bool(value))
             self.logger.info(f"Главная изоляция: {bool(value)}")
 
-    # ------------------------------------------------------------------
-    # Preset Save/Load & Settings - РУССКИЙ ИНТЕРФЕЙС
-    # ------------------------------------------------------------------
-    def _save_preset(self):
-        """Сохранить пресет UI / Save UI preset"""
-        settings = QSettings(self.SETTINGS_ORG, self.SETTINGS_APP)
-        last_dir = settings.value(self.SETTINGS_LAST_PRESET, str(Path.cwd()))
-        file_path, _ = QFileDialog.getSaveFileName(
-            self, "Сохранить пресет UI", last_dir, "JSON файлы (*.json)"
-        )
-        if not file_path:
-            return
+    @Slot(dict)
+    def _on_geometry_changed(self, geometry_params: dict):
+        """Handle geometry changes from GeometryPanel
         
-        settings.setValue(self.SETTINGS_LAST_PRESET, str(Path(file_path).parent))
+        Args:
+            geometry_params: Dictionary with updated geometry parameters
+        """
+        self.logger.info(f"Geometry changed: {list(geometry_params.keys())}")
         
-        preset = {
-            'geometry': self.geometry_panel.get_parameters() if self.geometry_panel else {},
-            'pneumo': self.pneumo_panel.get_parameters() if self.pneumo_panel else {},
-            'modes': self.modes_panel.get_parameters() if self.modes_panel else {},
-            'physics': self.modes_panel.get_physics_options() if self.modes_panel else {}
-        }
-        
-        try:
-            with open(file_path, 'w', encoding='utf-8') as f:
-                json.dump(preset, f, indent=2, ensure_ascii=False)
-            self.status_bar.showMessage(f"Пресет сохранён: {Path(file_path).name}")
-            self.logger.info(f"Пресет сохранён: {file_path}")
-        except Exception as e:
-            QMessageBox.critical(self, "Ошибка сохранения пресета", str(e))
-
-    def _load_preset(self):
-        """Загрузить пресет UI / Load UI preset"""
-        settings = QSettings(self.SETTINGS_ORG, self.SETTINGS_APP)
-        last_dir = settings.value(self.SETTINGS_LAST_PRESET, str(Path.cwd()))
-        file_path, _ = QFileDialog.getOpenFileName(
-            self, "Загрузить пресет UI", last_dir, "JSON файлы (*.json)"
-        )
-        if not file_path:
-            return
-        
-        settings.setValue(self.SETTINGS_LAST_PRESET, str(Path(file_path).parent))
-        
-        try:
-            with open(file_path, 'r', encoding='utf-8') as f:
-                preset = json.load(f)
-            
-            if self.geometry_panel and 'geometry' in preset:
-                self.geometry_panel.set_parameters(preset['geometry'])
-            if self.pneumo_panel and 'pneumo' in preset:
-                self.pneumo_panel.set_parameters(preset['pneumo'])
-            if self.modes_panel and 'modes' in preset:
-                for k, v in preset['modes'].items():
-                    self.logger.info(f"Загружен параметр режима {k}={v}")
-            
-            self.status_bar.showMessage(f"Пресет загружен: {Path(file_path).name}")
-            self.logger.info(f"Пресет загружен: {file_path}")
-        except Exception as e:
-            QMessageBox.critical(self, "Ошибка загрузки пресета", str(e))
-
-    def _reset_ui_layout(self):
-        """Сбросить раскладку UI / Reset UI layout"""
-        # Show all tabs
-        if self.tab_widget:
-            self.tab_widget.setVisible(True)
-        
-        # Show charts
-        if self.chart_widget:
-            self.chart_widget.setVisible(True)
-        
-        # Reset splitter to default (60/40)
-        if self.main_splitter:
-            total_height = self.main_splitter.height()
-            self.main_splitter.setSizes([int(total_height * 0.6), int(total_height * 0.4)])
-        
-        # Reset to first tab
-        if self.tab_widget:
-            self.tab_widget.setCurrentIndex(0)
-        
-        self.status_bar.showMessage("Раскладка UI сброшена")
-        self.logger.info("Раскладка UI сброшена к значениям по умолчанию")
-
-    def _restore_settings(self):
-        """Восстановить настройки из QSettings / Restore settings from QSettings"""
-        settings = QSettings(self.SETTINGS_ORG, self.SETTINGS_APP)
-        
-        # Restore geometry (commented out to avoid crashes)
-        # if geo := settings.value(self.SETTINGS_GEOMETRY):
-        #     self.restoreGeometry(geo)
-        
-        # Restore splitter position
-        if self.main_splitter and (splitter_state := settings.value(self.SETTINGS_SPLITTER)):
+        # Update the 3D scene through QML
+        if self._qml_root_object:
             try:
-                self.main_splitter.restoreState(splitter_state)
-                self.logger.debug("Позиция сплиттера восстановлена")
+                # Call updateGeometry method in QML if it exists
+                if hasattr(self._qml_root_object, 'updateGeometry'):
+                    self._qml_root_object.updateGeometry(geometry_params)
+                else:
+                    # Set individual properties
+                    for key, value in geometry_params.items():
+                        self._qml_root_object.setProperty(key, value)
+                
+                print(f"📤 MainWindow: Updated QML with geometry: {geometry_params}")
             except Exception as e:
-                self.logger.warning(f"Не удалось восстановить позицию сплиттера: {e}")
-
-    def _save_settings(self):
-        """Сохранить настройки в QSettings / Save settings to QSettings"""
-        settings = QSettings(self.SETTINGS_ORG, self.SETTINGS_APP)
+                self.logger.warning(f"Failed to update QML geometry: {e}")
         
-        # Save geometry
-        settings.setValue(self.SETTINGS_GEOMETRY, self.saveGeometry())
-        
-        # Save splitter position
-        if self.main_splitter:
-            settings.setValue(self.SETTINGS_SPLITTER, self.main_splitter.saveState())
-        
-        self.logger.debug("Настройки UI сохранены")
-
-    # ------------------------------------------------------------------
-    # CSV Export (P11) - РУССКИЙ ИНТЕРФЕЙС
-    # ------------------------------------------------------------------
-    def _export_timeseries(self):
-        """Экспорт временных рядов в CSV / Export timeseries to CSV"""
-        from PySide6.QtCore import QStandardPaths
-        from ..common import export_timeseries_csv, get_default_export_dir, ensure_csv_extension, log_export
-        
-        if not self.chart_widget:
-            QMessageBox.warning(self, "Экспорт", "Нет данных графиков для экспорта")
-            return
-        
-        try:
-            time, series = self.chart_widget.get_series_buffers()
-            if len(time) == 0:
-                QMessageBox.warning(self, "Экспорт", "Нет данных для экспорта")
-                return
-        except AttributeError:
-            QMessageBox.warning(self, "Экспорт", "Виджет графиков не поддерживает экспорт")
-            return
-        
-        default_dir = str(get_default_export_dir())
-        
-        file_path, selected_filter = QFileDialog.getSaveFileName(
-            self,
-            "Экспорт временных рядов в CSV",
-            f"{default_dir}/PneumoStabSim_timeseries.csv",
-            "CSV файлы (*.csv);;Сжатые CSV (*.csv.gz)"
-        )
-        
-        if not file_path:
-            return
-        
-        file_path = ensure_csv_extension(Path(file_path), allow_gz=True)
-        header = ['time'] + list(series.keys())
-        
-        try:
-            export_timeseries_csv(time, series, file_path, header)
-            log_export("TIMESERIES", file_path, len(time))
-            self.status_bar.showMessage(f"Экспортировано {len(time)} точек в {file_path.name}")
-            QMessageBox.information(
-                self,
-                "Экспорт завершён",
-                f"Экспортировано {len(time)} точек данных в:\n{file_path}"
-            )
-        except Exception as e:
-            QMessageBox.critical(self, "Ошибка экспорта", str(e))
-            self.logger.error(f"Ошибка экспорта временных рядов: {e}")
+        # Update the simulation manager if needed
+        bus = self.simulation_manager.state_bus
+        if 'wheelbase' in geometry_params:
+            bus.set_geometry.emit(geometry_params)
     
-    def _export_snapshots(self):
-        """Экспорт снимков состояния в CSV / Export state snapshots to CSV"""
-        from PySide6.QtCore import QStandardPaths
-        from ..common import export_state_snapshot_csv, get_default_export_dir, ensure_csv_extension, log_export
+    @Slot(dict) 
+    def _on_animation_changed(self, animation_params: dict):
+        """Handle animation parameter changes from ModesPanel
         
-        try:
-            snapshots = self.simulation_manager.get_snapshot_buffer()
-            if not snapshots or len(snapshots) == 0:
-                QMessageBox.warning(self, "Экспорт", "Нет снимков для экспорта")
-                return
-        except AttributeError:
-            QMessageBox.warning(self, "Экспорт", "Буфер снимков не реализован")
-            return
+        Args:
+            animation_params: Dictionary with animation parameters (amplitude, frequency, phase, etc.)
+        """
+        self.logger.info(f"Animation changed: {animation_params}")
         
-        default_dir = str(get_default_export_dir())
+        # Update QML animation properties
+        if self._qml_root_object:
+            try:
+                for key, value in animation_params.items():
+                    qml_property = f"user{key.capitalize()}"  # e.g., userAmplitude, userFrequency
+                    self._qml_root_object.setProperty(qml_property, value)
+                
+                print(f"🎬 MainWindow: Updated QML animation: {animation_params}")
+            except Exception as e:
+                self.logger.warning(f"Failed to update QML animation: {e}")
         
-        file_path, selected_filter = QFileDialog.getSaveFileName(
-            self,
-            "Экспорт снимков состояния в CSV",
-            f"{default_dir}/PneumoStabSim_snapshots.csv",
-            "CSV файлы (*.csv);;Сжатые CSV (*.csv.gz)"
-        )
-        
-        if not file_path:
-            return
-        
-        file_path = ensure_csv_extension(Path(file_path), allow_gz=True)
-        
-        try:
-            export_state_snapshot_csv(snapshots, file_path)
-            log_export("SNAPSHOTS", file_path, len(snapshots))
-            self.status_bar.showMessage(f"Экспортировано {len(snapshots)} снимков в {file_path.name}")
-            QMessageBox.information(
-                self,
-                "Экспорт завершён",
-                f"Экспортировано {len(snapshots)} снимков в:\n{file_path}"
-            )
-        except Exception as e:
-            QMessageBox.critical(self, "Ошибка экспорта", str(e))
-            self.logger.error(f"Ошибка экспорта снимков: {e}")
-
+        # Update status bar if needed
+        if 'amplitude' in animation_params and 'frequency' in animation_params:
+            amp_mm = animation_params['amplitude'] * 1000  # Convert to mm
+            freq = animation_params['frequency']
+            self.status_bar.showMessage(f"Анимация: A={amp_mm:.1f}мм F={freq:.1f}Hz")
+    
     # ------------------------------------------------------------------
-    # Close Event
+    # 3D Scene Updates
     # ------------------------------------------------------------------
-    def closeEvent(self, event):
-        """Закрытие главного окна / Main window closing"""
-        self.logger.info("Закрытие главного окна")
-        self.render_timer.stop()
-        self._save_settings()
-        self.simulation_manager.stop()
-        event.accept()
-        self.logger.info("Главное окно закрыто")
