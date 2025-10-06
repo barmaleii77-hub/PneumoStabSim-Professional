@@ -59,6 +59,10 @@ class PhysicsWorker(QObject):
         self.thermo_mode = ThermoMode.ISOTHERMAL
         self.master_isolation_open = False
         
+        # NEW: Receiver parameters
+        self.receiver_volume = 0.020  # 20L default
+        self.receiver_volume_mode = 'NO_RECALC'  # Default mode
+        
         # Threading objects (created in target thread)
         self.physics_timer: Optional[QTimer] = None
         
@@ -188,6 +192,28 @@ class PhysicsWorker(QObject):
         """Set master isolation valve state"""
         self.master_isolation_open = open
         self.logger.info(f"Master isolation: {'OPEN' if open else 'CLOSED'}")
+    
+    @Slot(float, str)
+    def set_receiver_volume(self, volume: float, mode: str):
+        """Set receiver volume and recalculation mode
+        
+        Args:
+            volume: New receiver volume in m?
+            mode: Recalculation mode ('NO_RECALC' or 'ADIABATIC_RECALC')
+        """
+        if volume <= 0 or volume > 1.0:  # Reasonable limits (0-1000L)
+            self.error_occurred.emit(f"Invalid receiver volume: {volume} m?")
+            return
+        
+        # Store volume and mode for gas network updates
+        self.receiver_volume = volume
+        self.receiver_volume_mode = mode
+        
+        # TODO: Update actual ReceiverState when gas network is integrated
+        # For now, just log the change
+        self.logger.info(f"Receiver volume set: {volume:.3f}m? (mode: {mode})")
+        
+        print(f"?? PhysicsWorker: Receiver volume={volume*1000:.1f}L, mode={mode}")
     
     @Slot(float)
     def set_physics_dt(self, dt: float):
@@ -347,6 +373,9 @@ class PhysicsWorker(QObject):
             # Tank state (placeholder)
             snapshot.tank = TankState()
             
+            # NEW: Update tank volume from receiver settings
+            snapshot.tank.volume = self.receiver_volume
+            
             # System aggregates
             snapshot.aggregates = SystemAggregates(
                 physics_step_time=self.performance.avg_step_time,
@@ -419,6 +448,8 @@ class SimulationManager(QObject):
             self.physics_worker.set_thermo_mode, Qt.QueuedConnection)
         self.state_bus.set_master_isolation.connect(
             self.physics_worker.set_master_isolation, Qt.QueuedConnection)
+        self.state_bus.set_receiver_volume.connect(
+            self.physics_worker.set_receiver_volume, Qt.QueuedConnection)  # NEW!
         
         # Thread lifecycle
         self.physics_thread.started.connect(self._on_thread_started)

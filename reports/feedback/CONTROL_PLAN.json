@@ -1,13 +1,45 @@
 {
   "prompt_id": "POST_PROMPT_1_UI_FIXES",
   "start_time": "2025-10-06T10:56:00",
-  "current_time": "2025-10-06T11:05:00",
+  "current_time": "2025-10-06T13:25:00",
   "microsteps": [
+    {
+      "id": "MS-PRE-AUDIT",
+      "area": "ui", 
+      "step": "pre_audit",
+      "status": "completed",
+      "duration_sec": 420,
+      "timestamp": "2025-10-06T13:25:00",
+      "files_changed": [
+        "tools/pre_audit.py",
+        "tests/smoke/test_env_build_qml.py"
+      ],
+      "artifacts": {
+        "reports": "reports/ui/audit_pre.md",
+        "summary": "reports/ui/PRE_AUDIT_SUMMARY.md",
+        "data": "artifacts/ui/audit_data.json",
+        "logs": "logs/ui/"
+      },
+      "summary": "Полный пред-аудит выполнен, выявлены проблемы с кодировкой, структура проекта проанализирована",
+      "findings": {
+        "environment": "? Python 3.13.7 + PySide6 6.9.3",
+        "structure": "? 6/6 директорий, 7/8 ключевых файлов",
+        "geometry_part_a": "? Проблемы с кодировкой, требует MS-A-ACCEPT",
+        "receiver_part_b": "? Проблемы с кодировкой, требует MS-B-ACCEPT", 
+        "ui_structure": "? Готова (вкладки, сплиттеры, области прокрутки)",
+        "tests": "? Структура готова, UI/геометрия/smoke тесты"
+      },
+      "encoding_issues": [
+        "src/ui/panels/panel_geometry.py", 
+        "src/pneumo/receiver.py",
+        "tools/feedback/feedback.py"
+      ]
+    },
     {
       "id": "MS-0",
       "area": "ui",
       "step": "pre_audit",
-      "status": "completed",
+      "status": "completed", 
       "duration_sec": 300,
       "timestamp": "2025-10-06T10:56:00",
       "artifacts": {
@@ -18,8 +50,8 @@
       "summary": "Структура UI проанализирована, выявлено 5 категорий проблем"
     },
     {
-      "id": "MS-1", 
-      "area": "ui",
+      "id": "MS-1",
+      "area": "ui", 
       "step": "cylinder_unification",
       "status": "completed",
       "duration_sec": 540,
@@ -44,6 +76,12 @@
       }
     }
   ],
-  "status": "in_progress",
-  "next_step": "MS-2: Приведение всех линейных параметров к СИ и шагу 0.001м"
+  "status": "ready_for_acceptance",
+  "next_steps": [
+    "MS-A-ACCEPT: Приемка геометрии (исправить кодировку + чек-листы)",
+    "MS-B-ACCEPT: Приемка ресивера (исправить кодировку + числовые эталоны)",
+    "MS-C: Горизонтальный сплиттер (левая область ? вкладки)",
+    "MS-D: Пневмо-панель тумблеры (стабилизатор, ресивер)"
+  ],
+  "ready_for_checklist_validation": true
 }

@@ -32,6 +32,7 @@ class PneumoPanel(QWidget):
     parameter_changed = Signal(str, float)  # parameter_name, new_value
     mode_changed = Signal(str, str)         # mode_type, new_mode
     pneumatic_updated = Signal(dict)        # Complete pneumatic config
+    receiver_volume_changed = Signal(float, str)  # NEW: volume (m³), mode ('MANUAL'/'GEOMETRIC')
     
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -406,7 +407,7 @@ class PneumoPanel(QWidget):
         """Connect widget signals"""
         # Receiver controls (NEW!)
         self.manual_volume_knob.valueChanged.connect(
-            lambda v: self._on_parameter_changed('receiver_volume', v))
+            lambda v: self._on_manual_volume_changed(v))
         self.receiver_diameter_knob.valueChanged.connect(
             lambda v: self._on_receiver_geometry_changed())
         self.receiver_length_knob.valueChanged.connect(
@@ -447,6 +448,19 @@ class PneumoPanel(QWidget):
         self.link_rod_dia_check.toggled.connect(
             lambda checked: self._on_parameter_changed('link_rod_dia', checked))
     
+    @Slot(float)
+    def _on_manual_volume_changed(self, volume: float):
+        """Обработать изменение ручного объёма / Handle manual volume change"""
+        if self.parameters.get('volume_mode') == 'MANUAL':
+            self.parameters['receiver_volume'] = volume
+            
+            # Emit signals
+            self.parameter_changed.emit('receiver_volume', volume)
+            self.receiver_volume_changed.emit(volume, 'MANUAL')  # NEW!
+            self.pneumatic_updated.emit(self.parameters.copy())
+            
+            print(f"🔧 Ручной объём изменён: {volume:.3f} м³")
+    
     @Slot()
     def _on_receiver_geometry_changed(self):
         """Обработать изменение геометрии ресивера / Handle receiver geometry change"""
@@ -455,6 +469,7 @@ class PneumoPanel(QWidget):
             
             # Emit update signals
             self.parameter_changed.emit('receiver_volume', self.parameters['receiver_volume'])
+            self.receiver_volume_changed.emit(self.parameters['receiver_volume'], 'GEOMETRIC')  # NEW!
             self.pneumatic_updated.emit(self.parameters.copy())
     
     @Slot(str, float)
@@ -714,6 +729,9 @@ class PneumoPanel(QWidget):
             
             print(f"📊 Режим объёма: Ручной ({self.parameters['receiver_volume']:.3f} м³)")
             
+            # Emit volume change signal with current volume and mode
+            self.receiver_volume_changed.emit(self.parameters['receiver_volume'], 'MANUAL')
+            
         else:  # Geometric calculation mode
             self.manual_volume_widget.setVisible(False)
             self.geometric_volume_widget.setVisible(True)
@@ -724,6 +742,9 @@ class PneumoPanel(QWidget):
             self._update_calculated_volume()
             
             print(f"📊 Режим объёма: Геометрический ({self.parameters['receiver_volume']:.3f} м³)")
+            
+            # Emit volume change signal with calculated volume and mode
+            self.receiver_volume_changed.emit(self.parameters['receiver_volume'], 'GEOMETRIC')
         
         # Emit mode change signal
         self.mode_changed.emit('volume_mode', self.parameters['volume_mode'])
