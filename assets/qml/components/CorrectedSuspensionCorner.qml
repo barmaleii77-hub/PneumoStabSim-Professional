@@ -2,6 +2,7 @@ import QtQuick
 import QtQuick3D
 
 // FULLY CORRECTED 2-METER SUSPENSION COMPONENT
+// INITIAL STATE: V_head = V_rod, lever HORIZONTAL
 Node {
     id: suspensionCorner
     
@@ -11,12 +12,13 @@ Node {
     property real leverAngle
     property real leverLength: 315
     
-    // NEW: Piston position from Python (GeometryBridge)
-    property real pistonPositionMm: 125.0  // Default to center
-    property real pistonRatio: 0.5         // Default to center (0..1)
+    // CORRECTED: Piston at EQUAL VOLUMES position
+    // V_head = V_rod when piston at 105mm (42% of 250mm body)
+    property real pistonPositionMm: 105.0  // mm from cylinder start (CALCULATED!)
+    property real pistonRatio: 0.42        // 0.42 = 105/250 (FIXED VALUE!)
     
-    // NEW: Rod length from UI (NOT calculated!)
-    property real pistonRodLength: 200.0  // mm - SET BY USER IN UI!
+    // Rod length CALCULATED from initial geometry
+    property real pistonRodLength: 200.0  // mm - will be updated from geometry
     
     // CALCULATE CYLINDER GEOMETRY
     property vector3d cylDirection: Qt.vector3d(j_rod.x - j_tail.x, j_rod.y - j_tail.y, 0)

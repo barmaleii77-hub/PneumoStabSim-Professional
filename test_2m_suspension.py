@@ -48,7 +48,20 @@ View3D {
     property vector3d rl_j_tail: Qt.vector3d(-100, 710, 1000)
     property vector3d rr_j_tail: Qt.vector3d(100, 710, 1000)
 
-    // ANIMATED rod positions (move with lever rotation) - CORRECTED DIRECTIONS
+    // CORRECTED: INITIAL POSITIONS at neutral (lever HORIZONTAL, V_head = V_rod)
+    // Lever length: 315mm
+    // At neutral (angle=0): lever points LEFT for FL/RL, RIGHT for FR/RR
+    
+    // INITIAL j_rod positions (FIXED, not calculated from angle!):
+    // Left side: j_arm + (-315mm, 0, 0)
+    property vector3d fl_j_rod_initial: Qt.vector3d(-465, 60, -1000)  // -150 - 315 = -465
+    property vector3d rl_j_rod_initial: Qt.vector3d(-465, 60, 1000)
+    
+    // Right side: j_arm + (+315mm, 0, 0)
+    property vector3d fr_j_rod_initial: Qt.vector3d(465, 60, -1000)   // 150 + 315 = 465
+    property vector3d rr_j_rod_initial: Qt.vector3d(465, 60, 1000)
+    
+    // ANIMATED rod positions (oscillate around initial position)
     property real leverLength: 315  // Distance from pivot to rod attachment
     
     // FL/RL: Base angle 180deg (pointing LEFT) + oscillation
