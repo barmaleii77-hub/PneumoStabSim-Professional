@@ -8,7 +8,7 @@ from PySide6.QtWidgets import (
     QVBoxLayout, QHBoxLayout, QFileDialog, QMessageBox, QApplication, QSplitter,
     QTabWidget, QScrollArea  # NEW: For tabs and scrolling
 )
-from PySide6.QtCore import Qt, QTimer, Slot, QSettings, QUrl, QFileInfo
+from PySide6.QtCore import Qt, QTimer, Slot, QSettings, QUrl, QFileInfo, QDateTime
 from PySide6.QtGui import QAction, QKeySequence
 from PySide6.QtQuickWidgets import QQuickWidget
 import logging
@@ -584,31 +584,6 @@ class MainWindow(QMainWindow):
             self.simulation_manager.state_bus.set_master_isolation.emit(bool(value))
             self.logger.info(f"Главная изоляция: {bool(value)}")
 
-    @Slot(float, str)
-    def _on_receiver_volume_changed(self, volume: float, mode: str):
-        """Обработать изменение объёма ресивера / Handle receiver volume change
-        
-        Args:
-            volume: New receiver volume in m³
-            mode: Volume mode ('MANUAL' or 'GEOMETRIC')
-        """
-        self.logger.info(f"Объём ресивера изменён: {volume:.3f}м³ (режим: {mode})")
-        
-        # Map UI modes to ReceiverVolumeMode enum
-        # MANUAL → NO_RECALC (объём не влияет на p/T)
-        # GEOMETRIC → ADIABATIC_RECALC (пересчёт по термодинамике)
-        receiver_mode = 'NO_RECALC' if mode == 'MANUAL' else 'ADIABATIC_RECALC'
-        
-        # Emit signal to physics thread
-        self.simulation_manager.state_bus.set_receiver_volume.emit(volume, receiver_mode)
-        
-        # Update status bar
-        mode_ru = "Ручной" if mode == 'MANUAL' else "Геометрический"
-        self.status_bar.showMessage(f"Ресивер: {volume*1000:.1f}л ({mode_ru})")
-        
-        print(f"🔄 MainWindow: Объём ресивера {volume*1000:.1f}л → {receiver_mode}")
-    
-    @Slot(dict)
     def _on_geometry_changed(self, geometry_params: dict):
         """Handle geometry changes from GeometryPanel
         
@@ -649,10 +624,9 @@ class MainWindow(QMainWindow):
         
         # Update the simulation manager if needed
         bus = self.simulation_manager.state_bus
-        if 'wheelbase' in geometry_params:
+        if hasattr(bus, 'set_geometry') and 'wheelbase' in geometry_params:
             bus.set_geometry.emit(geometry_params)
-    
-    @Slot(dict) 
+
     def _on_animation_changed(self, animation_params: dict):
         """Handle animation parameter changes from ModesPanel
         
@@ -671,3 +645,320 @@ class MainWindow(QMainWindow):
                 print(f"🎬 MainWindow: Updated QML animation: {animation_params}")
             except Exception as e:
                 self.logger.warning(f"Failed to update QML animation: {e}")
+
+    def _on_receiver_volume_changed(self, volume: float, mode: str):
+        """Обработать изменение объёма ресивера / Handle receiver volume change
+        
+        Args:
+            volume: New receiver volume in m³
+            mode: Volume mode ('MANUAL' or 'GEOMETRIC')
+        """
+        self.logger.info(f"Объём ресивера изменён: {volume:.3f}м³ (режим: {mode})")
+        
+        # Map UI modes to ReceiverVolumeMode enum
+        # MANUAL → NO_RECALC (объём не влияет на p/T)
+        # GEOMETRIC → ADIABATIC_RECALC (пересчёт по термодинамике)
+        receiver_mode = 'NO_RECALC' if mode == 'MANUAL' else 'ADIABATIC_RECALC'
+        
+        # Emit signal to physics thread
+        bus = self.simulation_manager.state_bus
+        if hasattr(bus, 'set_receiver_volume'):
+            bus.set_receiver_volume.emit(volume, receiver_mode)
+        
+        # Update status bar
+        mode_ru = "Ручной" if mode == 'MANUAL' else "Геометрический"
+        self.status_bar.showMessage(f"Ресивер: {volume*1000:.1f}л ({mode_ru})")
+        
+        print(f"🔄 MainWindow: Объём ресивера {volume*1000:.1f}л → {receiver_mode}")
+
+    @Slot()
+    def _save_preset(self):
+        """Сохранить текущие параметры в пресет / Save current parameters to preset"""
+        if not self.geometry_panel or not self.pneumo_panel or not self.modes_panel:
+            QMessageBox.warning(self, "Ошибка сохранения", "Панели параметров не готовы")
+            return
+        
+        # Get current parameters from all panels
+        geometry_params = self.geometry_panel.get_parameters() if hasattr(self.geometry_panel, 'get_parameters') else {}
+        pneumo_params = self.pneumo_panel.get_parameters() if hasattr(self.pneumo_panel, 'get_parameters') else {}
+        modes_params = self.modes_panel.get_parameters() if hasattr(self.modes_panel, 'get_parameters') else {}
+        
+        preset_data = {
+            'version': '1.0',
+            'timestamp': str(QDateTime.currentDateTime().toString()),
+            'geometry': geometry_params,
+            'pneumatics': pneumo_params,
+            'modes': modes_params
+        }
+        
+        # Ask user for file path
+        settings = QSettings(self.SETTINGS_ORG, self.SETTINGS_APP)
+        default_path = settings.value(self.SETTINGS_LAST_PRESET, "")
+        
+        file_path, _ = QFileDialog.getSaveFileName(
+            self, 
+            "Сохранить пресет",
+            default_path,
+            "JSON Files (*.json);;All Files (*)"
+        )
+        
+        if not file_path:
+            return
+        
+        try:
+            # Ensure .json extension
+            if not file_path.endswith('.json'):
+                file_path += '.json'
+            
+            # Save to file
+            with open(file_path, 'w', encoding='utf-8') as f:
+                json.dump(preset_data, f, indent=2, ensure_ascii=False)
+            
+            # Remember this path
+            settings.setValue(self.SETTINGS_LAST_PRESET, file_path)
+            
+            # Show confirmation
+            filename = Path(file_path).name
+            self.status_bar.showMessage(f"Пресет сохранён: {filename}")
+            self.logger.info(f"Пресет сохранён в {file_path}")
+            
+        except Exception as e:
+            QMessageBox.critical(
+                self, 
+                "Ошибка сохранения пресета",
+                f"Не удалось сохранить пресет:\n{e}"
+            )
+            self.logger.error(f"Ошибка сохранения пресета: {e}")
+
+    @Slot()
+    def _load_preset(self):
+        """Загрузить параметры из пресета / Load parameters from preset"""
+        if not self.geometry_panel or not self.pneumo_panel or not self.modes_panel:
+            QMessageBox.warning(self, "Ошибка загрузки", "Панели параметров не готовы")
+            return
+        
+        # Ask user for file path
+        settings = QSettings(self.SETTINGS_ORG, self.SETTINGS_APP)
+        default_path = settings.value(self.SETTINGS_LAST_PRESET, "")
+        
+        file_path, _ = QFileDialog.getOpenFileName(
+            self,
+            "Загрузить пресет",
+            default_path,
+            "JSON Files (*.json);;All Files (*)"
+        )
+        
+        if not file_path:
+            return
+        
+        try:
+            # Load from file
+            with open(file_path, 'r', encoding='utf-8') as f:
+                preset_data = json.load(f)
+            
+            # Validate preset format
+            if not isinstance(preset_data, dict) or 'version' not in preset_data:
+                raise ValueError("Неверный формат пресета")
+            
+            # Apply parameters to panels if methods exist
+            if 'geometry' in preset_data and hasattr(self.geometry_panel, 'set_parameters'):
+                self.geometry_panel.set_parameters(preset_data['geometry'])
+            
+            if 'pneumatics' in preset_data and hasattr(self.pneumo_panel, 'set_parameters'):
+                self.pneumo_panel.set_parameters(preset_data['pneumatics'])
+            
+            if 'modes' in preset_data and hasattr(self.modes_panel, 'set_parameters'):
+                self.modes_panel.set_parameters(preset_data['modes'])
+            
+            # Remember this path
+            settings.setValue(self.SETTINGS_LAST_PRESET, file_path)
+            
+            # Show confirmation
+            filename = Path(file_path).name
+            timestamp = preset_data.get('timestamp', 'неизвестно')
+            self.status_bar.showMessage(f"Пресет загружен: {filename}")
+            
+            QMessageBox.information(
+                self,
+                "Пресет загружен",
+                f"Пресет загружен успешно:\n\n"
+                f"Файл: {filename}\n"
+                f"Время: {timestamp}\n"
+                f"Версия: {preset_data.get('version', 'неизвестно')}"
+            )
+            
+            self.logger.info(f"Пресет загружен из {file_path}")
+            
+        except Exception as e:
+            QMessageBox.critical(
+                self,
+                "Ошибка загрузки пресета", 
+                f"Не удалось загрузить пресет:\n{e}"
+            )
+            self.logger.error(f"Ошибка загрузки пресета: {e}")
+
+    @Slot()
+    def _export_timeseries(self):
+        """Экспорт временных рядов / Export time series data"""
+        if not self.current_snapshot:
+            QMessageBox.warning(self, "Нет данных", "Нет данных для экспорта. Запустите симуляцию.")
+            return
+        
+        file_path, _ = QFileDialog.getSaveFileName(
+            self,
+            "Экспорт временных рядов",
+            "",
+            "CSV Files (*.csv);;All Files (*)"
+        )
+        
+        if not file_path:
+            return
+        
+        try:
+            # Get time series from chart widget if available
+            if self.chart_widget and hasattr(self.chart_widget, 'export_to_csv'):
+                self.chart_widget.export_to_csv(file_path)
+                self.status_bar.showMessage(f"Данные экспортированы в {Path(file_path).name}")
+            else:
+                QMessageBox.warning(self, "Нет данных", "Графики не готовы для экспорта")
+                
+        except Exception as e:
+            QMessageBox.critical(self, "Ошибка экспорта", f"Не удалось экспортировать данные:\n{e}")
+    
+    @Slot()
+    def _export_snapshots(self):
+        """Экспорт снимков состояния / Export state snapshots"""
+        QMessageBox.information(
+            self,
+            "В разработке",
+            "Экспорт снимков состояния будет реализован в следующих версиях"
+        )
+    
+    @Slot()
+    def _reset_ui_layout(self):
+        """Сбросить раскладку UI / Reset UI layout"""
+        # Reset splitter to default proportions
+        if self.main_splitter:
+            total_height = self.main_splitter.height()
+            self.main_splitter.setSizes([int(total_height * 0.6), int(total_height * 0.4)])
+        
+        # Reset tab selection to geometry
+        if self.tab_widget:
+            self.tab_widget.setCurrentIndex(0)
+        
+        self.status_bar.showMessage("Раскладка UI сброшена")
+
+    def _update_render(self):
+        """Update rendering - called by timer at ~60 FPS"""
+        # This is just a placeholder for now - the actual 3D rendering
+        # is handled by QML/Qt Quick 3D
+        pass
+
+    def _update_3d_scene_from_snapshot(self, snapshot: StateSnapshot):
+        """Update 3D scene with data from physics snapshot"""
+        if not self._qml_root_object:
+            return
+        
+        try:
+            # Update simulation time for animations
+            self._qml_root_object.setProperty("animationTime", snapshot.simulation_time)
+            
+            # Update frame position if available
+            if hasattr(snapshot, 'frame'):
+                self._qml_root_object.setProperty("frameHeave", snapshot.frame.heave)
+                self._qml_root_object.setProperty("frameRoll", snapshot.frame.roll)
+                self._qml_root_object.setProperty("framePitch", snapshot.frame.pitch)
+            
+            # Update wheel positions and states
+            for wheel_name, wheel_state in snapshot.wheels.items():
+                wheel_prefix = f"wheel{wheel_name.value}"  # e.g., wheelLP
+                self._qml_root_object.setProperty(f"{wheel_prefix}Angle", wheel_state.lever_angle)
+                self._qml_root_object.setProperty(f"{wheel_prefix}Extension", wheel_state.piston_position)
+            
+            # Update pressure information for visualization
+            line_pressures = [line.pressure for line in snapshot.lines.values()]
+            if line_pressures:
+                avg_pressure = sum(line_pressures) / len(line_pressures)
+                self._qml_root_object.setProperty("averagePressure", avg_pressure)
+            
+        except Exception as e:
+            # Don't spam the log with render errors
+            pass
+
+    def _connect_simulation_signals(self):
+        """Connect simulation manager signals to UI handlers"""
+        print("  _connect_simulation_signals: Подключение сигналов симуляции...")
+        
+        # Connect state updates
+        self.simulation_manager.state_bus.state_ready.connect(self._on_state_update)
+        self.simulation_manager.state_bus.physics_error.connect(self._on_physics_error)
+        
+        # Connect simulation status changes (if these signals exist)
+        bus = self.simulation_manager.state_bus
+        if hasattr(bus, 'simulation_started'):
+            bus.simulation_started.connect(
+                lambda: self.status_bar.showMessage("Симуляция запущена")
+            )
+        if hasattr(bus, 'simulation_stopped'):
+            bus.simulation_stopped.connect(
+                lambda: self.status_bar.showMessage("Симуляция остановлена")
+            )
+        if hasattr(bus, 'simulation_paused'):
+            bus.simulation_paused.connect(
+                lambda: self.status_bar.showMessage("Симуляция приостановлена")
+            )
+        if hasattr(bus, 'simulation_reset'):
+            bus.simulation_reset.connect(
+                lambda: self.status_bar.showMessage("Симуляция сброшена")
+            )
+        
+        print("    ✅ Сигналы симуляции подключены")
+
+    def _restore_settings(self):
+        """Restore window settings"""
+        settings = QSettings(self.SETTINGS_ORG, self.SETTINGS_APP)
+        
+        # Restore window geometry
+        geometry = settings.value(self.SETTINGS_GEOMETRY)
+        if geometry:
+            self.restoreGeometry(geometry)
+        
+        # Restore window state (toolbars, docks, etc.)
+        state = settings.value(self.SETTINGS_STATE)
+        if state:
+            self.restoreState(state)
+        
+        # Restore splitter state
+        if self.main_splitter:
+            splitter_state = settings.value(self.SETTINGS_SPLITTER)
+            if splitter_state:
+                self.main_splitter.restoreState(splitter_state)
+
+    def _save_settings(self):
+        """Save window settings"""
+        settings = QSettings(self.SETTINGS_ORG, self.SETTINGS_APP)
+        
+        # Save window geometry and state
+        settings.setValue(self.SETTINGS_GEOMETRY, self.saveGeometry())
+        settings.setValue(self.SETTINGS_STATE, self.saveState())
+        
+        # Save splitter state
+        if self.main_splitter:
+            settings.setValue(self.SETTINGS_SPLITTER, self.main_splitter.saveState())
+
+    def closeEvent(self, event):
+        """Handle window close event"""
+        try:
+            # Stop simulation if running
+            if self.simulation_manager and hasattr(self.simulation_manager, 'stop'):
+                self.simulation_manager.stop()
+            
+            # Save settings
+            self._save_settings()
+            
+            # Accept the close event
+            event.accept()
+            
+        except Exception as e:
+            self.logger.error(f"Error during window close: {e}")
+            event.accept()  # Close anyway

@@ -433,7 +433,7 @@ class PneumoPanel(QWidget):
         self.throttle_min_dia_knob.valueChanged.connect(
             lambda v: self._on_parameter_changed('throttle_min_dia', v))
         self.throttle_stiff_dia_knob.valueChanged.connect(
-            lambda v: this._on_parameter_changed('throttle_stiff_dia', v))
+            lambda v: self._on_parameter_changed('throttle_stiff_dia', v))
         
         # Environment knobs
         self.atmo_temp_knob.valueChanged.connect(
