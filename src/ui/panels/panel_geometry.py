@@ -1,4 +1,4 @@
-﻿# -*- coding: utf-8 -*-
+# -*- coding: utf-8 -*-
 """
 Geometry configuration panel - РУССКИЙ ИНТЕРФЕЙС
 Controls for vehicle geometry parameters with dependency management
@@ -111,17 +111,17 @@ class GeometryPanel(QWidget):
         layout = QVBoxLayout(group)
         layout.setSpacing(4)
         
-        # Wheelbase (База)
+        # Wheelbase (База) - ДИСКРЕТНОСТЬ 0.001м (1мм)
         self.wheelbase_slider = RangeSlider(
-            minimum=2.0, maximum=4.0, value=3.2, step=0.1,
-            decimals=1, units="м", title="База (колёсная)"
+            minimum=2.0, maximum=4.0, value=3.2, step=0.001,
+            decimals=3, units="м", title="База (колёсная)"
         )
         layout.addWidget(self.wheelbase_slider)
         
-        # Track width (Колея)
+        # Track width (Колея) - ДИСКРЕТНОСТЬ 0.001м (1мм)
         self.track_slider = RangeSlider(
-            minimum=1.0, maximum=2.5, value=1.6, step=0.1,
-            decimals=1, units="м", title="Колея"
+            minimum=1.0, maximum=2.5, value=1.6, step=0.001,
+            decimals=3, units="м", title="Колея"
         )
         layout.addWidget(self.track_slider)
         
@@ -133,24 +133,24 @@ class GeometryPanel(QWidget):
         layout = QVBoxLayout(group)
         layout.setSpacing(4)
         
-        # Distance from frame to lever pivot (Расстояние от рамы до оси рычага)
+        # Distance from frame to lever pivot - ДИСКРЕТНОСТЬ 0.001м (1мм)
         self.frame_to_pivot_slider = RangeSlider(
-            minimum=0.3, maximum=1.0, value=0.6, step=0.05,
-            decimals=2, units="м", title="Расстояние рама → ось рычага"
+            minimum=0.3, maximum=1.0, value=0.6, step=0.001,
+            decimals=3, units="м", title="Расстояние рама → ось рычага"
         )
         layout.addWidget(self.frame_to_pivot_slider)
         
-        # Lever length (Длина рычага)
+        # Lever length - ДИСКРЕТНОСТЬ 0.001м (1мм)
         self.lever_length_slider = RangeSlider(
-            minimum=0.5, maximum=1.5, value=0.8, step=0.05,
-            decimals=2, units="м", title="Длина рычага"
+            minimum=0.5, maximum=1.5, value=0.8, step=0.001,
+            decimals=3, units="м", title="Длина рычага"
         )
         layout.addWidget(self.lever_length_slider)
         
-        # Rod attachment position (Положение крепления штока)
+        # Rod attachment position (доли остаются с меньшим шагом)
         self.rod_position_slider = RangeSlider(
-            minimum=0.3, maximum=0.9, value=0.6, step=0.05,
-            decimals=2, units="", title="Положение крепления штока (доля)"
+            minimum=0.3, maximum=0.9, value=0.6, step=0.001,
+            decimals=3, units="", title="Положение крепления штока (доля)"
         )
         layout.addWidget(self.rod_position_slider)
         
@@ -162,49 +162,49 @@ class GeometryPanel(QWidget):
         layout = QVBoxLayout(group)
         layout.setSpacing(4)
         
-        # Cylinder length (Длина цилиндра)
+        # Cylinder length - ДИСКРЕТНОСТЬ 0.001м (1мм)
         self.cylinder_length_slider = RangeSlider(
-            minimum=0.3, maximum=0.8, value=0.5, step=0.01,
-            decimals=2, units="м", title="Длина цилиндра"
+            minimum=0.3, maximum=0.8, value=0.5, step=0.001,
+            decimals=3, units="м", title="Длина цилиндра"
         )
         layout.addWidget(self.cylinder_length_slider)
         
-        # МШ-1: Единый диаметр цилиндра (заменяет bore_head и bore_rod)
+        # МШ-1: Единый диаметр цилиндра - УЖЕ 0.001м
         self.cyl_diam_m_slider = RangeSlider(
             minimum=0.030, maximum=0.150, value=0.080, step=0.001,
             decimals=3, units="м", title="Диаметр цилиндра"
         )
         layout.addWidget(self.cyl_diam_m_slider)
         
-        # МШ-1: Ход поршня
+        # МШ-1: Ход поршня - УЖЕ 0.001м
         self.stroke_m_slider = RangeSlider(
             minimum=0.100, maximum=0.500, value=0.300, step=0.001,
             decimals=3, units="м", title="Ход поршня"
         )
         layout.addWidget(self.stroke_m_slider)
         
-        # МШ-1: Мёртвый зазор
+        # МШ-1: Мёртвый зазор - УЖЕ 0.001м
         self.dead_gap_m_slider = RangeSlider(
             minimum=0.000, maximum=0.020, value=0.005, step=0.001,
             decimals=3, units="м", title="Мёртвый зазор"
         )
         layout.addWidget(self.dead_gap_m_slider)
         
-        # МШ-2: Rod diameter (Диаметр штока) - переведён в метры
+        # МШ-2: Rod diameter - УЖЕ 0.001м
         self.rod_diameter_m_slider = RangeSlider(
             minimum=0.020, maximum=0.060, value=0.035, step=0.001,
             decimals=3, units="м", title="Диаметр штока"
         )
         layout.addWidget(self.rod_diameter_m_slider)
         
-        # МШ-2: Piston rod length (Длина штока поршня) - переведён в метры
+        # МШ-2: Piston rod length - УЖЕ 0.001м
         self.piston_rod_length_m_slider = RangeSlider(
             minimum=0.100, maximum=0.500, value=0.200, step=0.001,
             decimals=3, units="м", title="Длина штока поршня"
         )
         layout.addWidget(self.piston_rod_length_m_slider)
         
-        # МШ-2: Piston thickness (Толщина поршня) - переведён в метры
+        # МШ-2: Piston thickness - УЖЕ 0.001м
         self.piston_thickness_m_slider = RangeSlider(
             minimum=0.010, maximum=0.050, value=0.025, step=0.001,
             decimals=3, units="м", title="Толщина поршня"
@@ -298,40 +298,42 @@ class GeometryPanel(QWidget):
     
     def _connect_signals(self):
         """Connect widget signals"""
-        # Frame dimensions
-        self.wheelbase_slider.valueEdited.connect(
+        # Frame dimensions - МГНОВЕННОЕ ОБНОВЛЕНИЕ во время движения
+        self.wheelbase_slider.valueChanged.connect(
             lambda v: self._on_parameter_changed('wheelbase', v))
-        self.track_slider.valueEdited.connect(
+        self.track_slider.valueChanged.connect(
             lambda v: self._on_parameter_changed('track', v))
         
-        # Suspension geometry
-        self.frame_to_pivot_slider.valueEdited.connect(
+        # Suspension geometry - МГНОВЕННОЕ ОБНОВЛЕНИЕ во время движения
+        self.frame_to_pivot_slider.valueChanged.connect(
             lambda v: self._on_parameter_changed('frame_to_pivot', v))
-        self.lever_length_slider.valueEdited.connect(
+        self.lever_length_slider.valueChanged.connect(
             lambda v: self._on_parameter_changed('lever_length', v))
-        self.rod_position_slider.valueEdited.connect(
+        self.rod_position_slider.valueChanged.connect(
             lambda v: self._on_parameter_changed('rod_position', v))
         
-        # Cylinder dimensions
-        self.cylinder_length_slider.valueEdited.connect(
+        # Cylinder dimensions - МГНОВЕННОЕ ОБНОВЛЕНИЕ во время движения
+        self.cylinder_length_slider.valueChanged.connect(
             lambda v: self._on_parameter_changed('cylinder_length', v))
-        # МШ-1: Подключение новых слайдеров
-        self.cyl_diam_m_slider.valueEdited.connect(
+        # МШ-1: Подключение новых слайдеров - МГНОВЕННОЕ ОБНОВЛЕНИЕ
+        self.cyl_diam_m_slider.valueChanged.connect(
             lambda v: self._on_parameter_changed('cyl_diam_m', v))
-        self.stroke_m_slider.valueEdited.connect(
+        self.stroke_m_slider.valueChanged.connect(
             lambda v: self._on_parameter_changed('stroke_m', v))
-        self.dead_gap_m_slider.valueEdited.connect(
+        self.dead_gap_m_slider.valueChanged.connect(
             lambda v: self._on_parameter_changed('dead_gap_m', v))
-        # МШ-2: Подключение слайдеров в метрах
-        self.rod_diameter_m_slider.valueEdited.connect(
+        # МШ-2: Подключение слайдеров в метрах - МГНОВЕННОЕ ОБНОВЛЕНИЕ
+        self.rod_diameter_m_slider.valueChanged.connect(
             lambda v: self._on_parameter_changed('rod_diameter_m', v))
-        self.piston_rod_length_m_slider.valueEdited.connect(
+        self.piston_rod_length_m_slider.valueChanged.connect(
             lambda v: self._on_parameter_changed('piston_rod_length_m', v))
-        self.piston_thickness_m_slider.valueEdited.connect(
+        self.piston_thickness_m_slider.valueChanged.connect(
             lambda v: self._on_parameter_changed('piston_thickness_m', v))
         
         # Options
         self.link_rod_diameters.toggled.connect(self._on_link_rod_diameters_toggled)
+        
+        print("🔧 GeometryPanel: Сигналы подключены для МГНОВЕННОГО обновления (valueChanged)")
     
     @Slot(bool)
     def _on_link_rod_diameters_toggled(self, checked: bool):
@@ -394,101 +396,91 @@ class GeometryPanel(QWidget):
         old_value = self.parameters.get(param_name, 0.0)
         self.parameters[param_name] = value
         
-        print(f"═══════════════════════════════════════════════")
-        print(f"🔧 GeometryPanel: Parameter changed")
-        print(f"   Name: {param_name}")
-        print(f"   Old value: {old_value}")
-        print(f"   New value: {value}")
-        print(f"   All parameters: {self.parameters}")
-        print(f"═══════════════════════════════════════════════")
+        # БЫСТРАЯ ПРОВЕРКА конфликтов только для критических параметров
+        critical_conflicts = self._check_critical_dependencies(param_name, value, old_value)
         
-        # Check for dependencies and conflicts
-        conflict_resolution = self._check_dependencies(param_name, value, old_value)
-        
-        if conflict_resolution:
-            # Show conflict resolution dialog
-            self._resolve_conflict(conflict_resolution)
+        if critical_conflicts:
+            # Показываем конфликты только для критических проблем
+            self._resolve_conflict(critical_conflicts)
         else:
-            # No conflicts, emit signals
+            # МГНОВЕННОЕ обновление без задержек
             self.parameter_changed.emit(param_name, value)
             self.geometry_updated.emit(self.parameters.copy())
             
-            # NEW: Emit 3D scene geometry update for frame dimensions
+            # БЫСТРОЕ обновление 3D сцены для видимых параметров
             if param_name in ['wheelbase', 'track', 'lever_length', 'cylinder_length', 'frame_to_pivot', 'rod_position', 
-                             'cyl_diam_m', 'stroke_m', 'dead_gap_m', 'rod_diameter_m', 'piston_rod_length_m', 'piston_thickness_m']:  # МШ-2: обновлено
-                # Convert parameters to 3D scene format
-                geometry_3d = {
-                    'frameLength': self.parameters.get('wheelbase', 3.2) * 1000,  # m -> mm
-                    'frameHeight': 650.0,  # Fixed for now
-                    'frameBeamSize': 120.0,  # Fixed for now
-                    'leverLength': self.parameters.get('lever_length', 0.8) * 1000,  # m -> mm
-                    'cylinderBodyLength': self.parameters.get('cylinder_length', 0.5) * 1000,  # m -> mm
-                    'tailRodLength': 100.0,  # Fixed for now
-                    # Additional parameters
-                    'trackWidth': self.parameters.get('track', 1.6) * 1000,  # m -> mm
-                    'frameToPivot': self.parameters.get('frame_to_pivot', 0.6) * 1000,  # m -> mm
-                    'rodPosition': self.parameters.get('rod_position', 0.6),  # fraction 0-1
-                    # МШ-1: Параметры цилиндра
-                    'cylDiamM': self.parameters.get('cyl_diam_m', 0.080) * 1000,  # м -> мм
-                    'strokeM': self.parameters.get('stroke_m', 0.300) * 1000,      # м -> мм
-                    'deadGapM': self.parameters.get('dead_gap_m', 0.005) * 1000,   # м -> мм
-                    # МШ-2: Параметры штока и поршня
-                    'rodDiameterM': self.parameters.get('rod_diameter_m', 0.035) * 1000,        # м -> мм
-                    'pistonRodLengthM': self.parameters.get('piston_rod_length_m', 0.200) * 1000,  # м -> мм
-                    'pistonThicknessM': self.parameters.get('piston_thickness_m', 0.025) * 1000   # м -> мм
-                }
-                
-                print(f"───────────────────────────────────────────────")
-                print(f"📤 GeometryPanel: Emitting geometry_changed signal")
-                print(f"   Converted to 3D format:")
-                for key, val in geometry_3d.items():
-                    print(f"      {key}: {val}")
-                print(f"═══════════════════════════════════════════════")
-                
+                             'cyl_diam_m', 'stroke_m', 'dead_gap_m', 'rod_diameter_m', 'piston_rod_length_m', 'piston_thickness_m']:
+                # Конвертируем только измененный параметр для быстроты
+                geometry_3d = self._get_fast_geometry_update(param_name, value)
                 self.geometry_changed.emit(geometry_3d)
     
-    def _check_dependencies(self, param_name: str, new_value: float, old_value: float) -> dict:
-        """Проверить зависимости параметров / Check for parameter dependencies
+    def _get_fast_geometry_update(self, param_name: str, value: float) -> dict:
+        """Получить быстрое обновление геометрии только для изменённого параметра
         
         Args:
-            param_name: Имя изменённого параметра / Name of changed parameter
-            new_value: Новое значение / New value
-            old_value: Предыдущее значение / Previous value
+            param_name: Имя параметра
+            value: Новое значение
             
         Returns:
-            Словарь с информацией о конфликте или None / Conflict info dict or None
+            Словарь с обновленной геометрией
         """
-        # Geometric constraints that may cause conflicts
-        
-        # Example: wheelbase vs lever geometry
-        if param_name in ['wheelbase', 'lever_length', 'frame_to_pivot']:
-            wheelbase = self.parameters['wheelbase']
-            lever_length = self.parameters['lever_length']
-            frame_to_pivot = self.parameters['frame_to_pivot']
+        # ПОЛНАЯ геометрия с ВСЕМИ параметрами для 3D сцены
+        geometry_3d = {
+            # ОСНОВНЫЕ РАЗМЕРЫ РАМЫ (из метров в мм)
+            'frameLength': self.parameters.get('wheelbase', 3.2) * 1000,  # м -> мм
+            'frameHeight': 650.0,  # Фиксированное значение пока (TODO: добавить параметр)
+            'frameBeamSize': 120.0,  # Фиксированное значение пока (TODO: добавить параметр)
+            'leverLength': self.parameters.get('lever_length', 0.8) * 1000,  # м -> мм
+            'cylinderBodyLength': self.parameters.get('cylinder_length', 0.5) * 1000,  # м -> мм
+            'tailRodLength': 100.0,  # Фиксированное значение пока (TODO: добавить параметр)
             
-            # Check if lever can physically fit
-            max_lever_reach = wheelbase / 2.0 - 0.1  # Leave some clearance
+            # ДОПОЛНИТЕЛЬНЫЕ ПАРАМЕТРЫ ГЕОМЕТРИИ (из метров в мм)
+            'trackWidth': self.parameters.get('track', 1.6) * 1000,  # м -> мм
+            'frameToPivot': self.parameters.get('frame_to_pivot', 0.6) * 1000,  # м -> мм
+            'rodPosition': self.parameters.get('rod_position', 0.6),  # доля 0-1 (без изменений)
             
-            if frame_to_pivot + lever_length > max_lever_reach:
-                return {
-                    'type': 'geometric_constraint',
-                    'message': f'Геометрия рычага превышает доступное пространство.\n'
-                              f'Текущее: {frame_to_pivot + lever_length:.2f}м\n'
-                              f'Максимум: {max_lever_reach:.2f}м',
-                    'options': [
-                        ('Уменьшить длину рычага', 'lever_length', max_lever_reach - frame_to_pivot),
-                        ('Уменьшить расстояние до оси', 'frame_to_pivot', max_lever_reach - lever_length),
-                        ('Увеличить базу', 'wheelbase', 2.0 * (frame_to_pivot + lever_length + 0.1))
-                    ],
-                    'changed_param': param_name
-                }
+            # СОВМЕСТИМОСТЬ: Старые параметры цилиндра (устаревшие, но поддерживаем)
+            'boreHead': self.parameters.get('cyl_diam_m', 0.080) * 1000,  # NEW: используем новый параметр
+            'boreRod': self.parameters.get('cyl_diam_m', 0.080) * 1000,   # NEW: используем новый параметр
+            'rodDiameter': self.parameters.get('rod_diameter_m', 0.035) * 1000,  # NEW: используем новый параметр
+            'pistonThickness': self.parameters.get('piston_thickness_m', 0.025) * 1000,  # NEW: используем новый параметр
+            'pistonRodLength': self.parameters.get('piston_rod_length_m', 0.200) * 1000,  # NEW: используем новый параметр
+            
+            # ✨ НОВЫЕ ПАРАМЕТРЫ (МШ-1 и МШ-2): Все в мм для QML
+            'cylDiamM': self.parameters.get('cyl_diam_m', 0.080) * 1000,        # м -> мм: диаметр цилиндра
+            'strokeM': self.parameters.get('stroke_m', 0.300) * 1000,            # м -> мм: ход поршня
+            'deadGapM': self.parameters.get('dead_gap_m', 0.005) * 1000,         # м -> мм: мертвый зазор
+            'rodDiameterM': self.parameters.get('rod_diameter_m', 0.035) * 1000, # м -> мм: диаметр штока
+            'pistonRodLengthM': self.parameters.get('piston_rod_length_m', 0.200) * 1000,  # м -> мм: длина штока
+            'pistonThicknessM': self.parameters.get('piston_thickness_m', 0.025) * 1000,   # м -> мм: толщина поршня
+        }
         
-        # МШ-2: Rod diameter vs cylinder diameter constraint (обновлено для метров)
+        print(f"🔄 GeometryPanel: Отправка ПОЛНОЙ геометрии в QML (изменён параметр: {param_name} = {value})")
+        print(f"   📐 Основные: frameLength={geometry_3d['frameLength']:.1f}мм, leverLength={geometry_3d['leverLength']:.1f}мм")
+        print(f"   📐 Цилиндр: cylDiam={geometry_3d['cylDiamM']:.1f}мм, stroke={geometry_3d['strokeM']:.1f}мм")
+        print(f"   📐 Шток: diameter={geometry_3d['rodDiameterM']:.1f}мм, length={geometry_3d['pistonRodLengthM']:.1f}мм")
+        
+        return geometry_3d
+    
+    def _check_critical_dependencies(self, param_name: str, new_value: float, old_value: float) -> dict:
+        """Быстрая проверка только критических зависимостей
+        
+        Args:
+            param_name: Имя изменённого параметра
+            new_value: Новое значение
+            old_value: Предыдущее значение
+            
+        Returns:
+            Словарь с информацией о конфликте или None
+        """
+        # Проверяем только самые критические конфликты для быстроты
+        
+        # МШ-2: Критический конфликт - диаметр штока vs цилиндра
         if param_name in ['rod_diameter_m', 'cyl_diam_m']:
             rod_diameter_m = self.parameters.get('rod_diameter_m', 0.035)  # м
             cyl_diam_m = self.parameters.get('cyl_diam_m', 0.080)          # м
             
-            if rod_diameter_m >= cyl_diam_m * 0.8:  # Rod should be < 80% of cylinder
+            if rod_diameter_m >= cyl_diam_m * 0.8:  # Критический предел
                 return {
                     'type': 'hydraulic_constraint',
                     'message': f'Диаметр штока слишком велик относительно цилиндра.\n'
@@ -500,6 +492,7 @@ class GeometryPanel(QWidget):
                     ]
                 }
         
+        # Остальные конфликты пропускаем для скорости
         return None
     
     def _resolve_conflict(self, conflict_info: dict):
