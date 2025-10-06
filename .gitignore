@@ -140,7 +140,6 @@ _TeamCity*
 
 # AxoCover is a Code Coverage Tool
 .axoCover/*
-!.axoCover/settings.json
 
 # Coverlet is a free, cross platform Code Coverage Tool
 coverage*.json
@@ -410,3 +409,99 @@ Thumbs.db
 .mypy_cache/
 .dmypy.json
 dmypy.json
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+
+# pytest
+.pytest_cache/
+.coverage
+htmlcov/
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+*.tmp
+
+# Logs
+*.log
+logs/
+
+# Temporary files
+*.tmp
+*.temp
+*.bak
+*.backup
+*~
+
+# Test output
+test_output.txt
+test_output.log
+test_report_*.txt
+
+# Archives and zips
+*.zip
+*.tar.gz
+*.rar
+
+# Temporary Python files
+temp_*
+*_temp.py
+test_*.py
+check_*.py
+diagnose_*.py
+full_project_check.py
+save_all_project.py
+simple_check.py
+
+# Temporary batch files
+*.bat
+!run_app.bat
+!start_venv.bat
+
+# Temporary markdown files
+*_ГОТОВО.md
+*_SUCCESS.md
+*_COMPLETE.md
+ИСПРАВЛЕНИЕ_*.md
+СИНХРОНИЗАЦИЯ_*.md
+ИТОГ_*.md
+ВИРТУАЛЬНОЕ_*.md
+
+# QML test files
+test_*.qml
+
+# Empty test files
+test_qml_test_*

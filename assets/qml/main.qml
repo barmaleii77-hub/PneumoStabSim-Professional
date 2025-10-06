@@ -133,8 +133,9 @@ Item {
             userFrameToPivot = params.frameToPivot
         }
         if (params.rodPosition !== undefined) {
-            console.log("  🔧 Setting userRodPosition:", params.rodPosition)
+            console.log("  🔧 ✨ Setting userRodPosition:", params.rodPosition, "- КРИТИЧЕСКИЙ ПАРАМЕТР!")
             userRodPosition = params.rodPosition
+            console.log("      Новое положение шарнира штока на рычаге:", (userRodPosition * 100).toFixed(1) + "%")
         }
         
         // УСТАРЕВШИЕ ПАРАМЕТРЫ (для совместимости)
@@ -193,10 +194,11 @@ Item {
         console.log("🔧 Current values after COMPLETE update:")
         console.log("  📐 Frame: L=" + userFrameLength + ", H=" + userFrameHeight + ", Beam=" + userBeamSize)
         console.log("  📐 Suspension: Lever=" + userLeverLength + ", Cylinder=" + userCylinderLength)
-        console.log("  📐 Track: Width=" + userTrackWidth + ", Frame→Pivot=" + userFrameToPivot + ", RodPos=" + userRodPosition)
+        console.log("  📐 Track: Width=" + userTrackWidth + ", Frame→Pivot=" + userFrameToPivot + ", RodPos=" + userRodPosition + " (" + (userRodPosition * 100).toFixed(1) + "%)")
         console.log("  📐 OLD Cylinder: BoreHead=" + userBoreHead + ", BoreRod=" + userBoreRod)
         console.log("  📐 OLD Rod: Diameter=" + userRodDiameter + ", Length=" + userPistonRodLength + ", PistonThick=" + userPistonThickness)
         console.log("  ✨ NEW: Все параметры с дискретностью 0.001м теперь поддерживаются!")
+        console.log("  ✨ ✨ ИСПРАВЛЕНО: userRodPosition теперь влияет на положение j_rod!")
         console.log("💡💡💡💡💡💡💡💡💡💡💡💡💡💡💡💡💡💡💡💡💡💡💡💡💡💡💡💡💡💡💡💡💡💡💡💡💡💡💡💡💡💡💡")
         
         resetView()
@@ -330,14 +332,15 @@ Item {
             property real leverAngle
             property real pistonPositionFromPython: 125.0  // NEW: Piston position from Python (mm)
             
-            // CALCULATE j_rod INTERNALLY from leverAngle!
+            // CALCULATE j_rod INTERNALLY from leverAngle AND userRodPosition!
             property real baseAngle: (j_arm.x < 0) ? 180 : 0  // Left=180°, Right=0°
             property real totalAngle: baseAngle + leverAngle
             
-            // j_rod position calculated from lever rotation
+            // ✨ ИСПРАВЛЕНО: j_rod position calculated from lever rotation AND rod position!
+            // userRodPosition определяет где на рычаге находится шарнир штока (0.3-0.9)
             property vector3d j_rod: Qt.vector3d(
-                j_arm.x + userLeverLength * Math.cos(totalAngle * Math.PI / 180),
-                j_arm.y + userLeverLength * Math.sin(totalAngle * Math.PI / 180),
+                j_arm.x + (userLeverLength * userRodPosition) * Math.cos(totalAngle * Math.PI / 180),
+                j_arm.y + (userLeverLength * userRodPosition) * Math.sin(totalAngle * Math.PI / 180),
                 j_arm.z
             )
             
@@ -383,13 +386,17 @@ Item {
             )
             property real fullRodLength: Math.hypot(j_rod.x - centerPistonCenter.x, j_rod.y - centerPistonCenter.y)
             
-            // LEVER (animated)
+            // ✨ ИСПРАВЛЕНО: LEVER с правильным расчетом центра
+            // Центр рычага должен быть между j_arm и точкой на расстоянии userRodPosition
             Model {
                 source: "#Cube"
                 
-                position: Qt.vector3d(j_arm.x + (userLeverLength/2) * Math.cos(totalAngle * Math.PI / 180), 
-                                     j_arm.y + (userLeverLength/2) * Math.sin(totalAngle * Math.PI / 180), 
-                                     j_arm.z)
+                // Центр рычага - midpoint между j_arm и концом рычага (не j_rod!)
+                position: Qt.vector3d(
+                    j_arm.x + (userLeverLength/2) * Math.cos(totalAngle * Math.PI / 180), 
+                    j_arm.y + (userLeverLength/2) * Math.sin(totalAngle * Math.PI / 180), 
+                    j_arm.z
+                )
                 scale: Qt.vector3d(userLeverLength/100, 0.8, 0.8)
                 eulerRotation: Qt.vector3d(0, 0, totalAngle)
                 materials: PrincipledMaterial { baseColor: "#888888"; metalness: 0.9; roughness: 0.3 }
@@ -456,7 +463,7 @@ Item {
                 // Scale: CONSTANT length from UI (userPistonRodLength)
                 scale: Qt.vector3d(userRodDiameter/100, userPistonRodLength/100, userRodDiameter/100)
                 
-                // Rotation to align piston ? rod end
+                // Rotation to align piston → rod end
                 eulerRotation: Qt.vector3d(0, 0, Math.atan2(rodEnd.y - pistonCenter.y, rodEnd.x - pistonCenter.x) * 180 / Math.PI + 90)
                 
                 materials: PrincipledMaterial { baseColor: "#cccccc"; metalness: 0.95; roughness: 0.05 }
@@ -482,10 +489,10 @@ Item {
                 materials: PrincipledMaterial { baseColor: "#ff8800"; metalness: 0.8; roughness: 0.2 }
             }
             
-            // Rod joint (green)
+            // ✨ ИСПРАВЛЕНО: Rod joint (green) - теперь точно в j_rod!
             Model {
                 source: "#Cylinder" 
-                position: j_rod
+                position: j_rod  // Используется вычисленное j_rod с userRodPosition!
                 scale: Qt.vector3d(0.8, 1.6, 0.8)
                 eulerRotation: Qt.vector3d(90, 0, 0)
                 materials: PrincipledMaterial { baseColor: "#00ff44"; metalness: 0.7; roughness: 0.3 }

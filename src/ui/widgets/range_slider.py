@@ -219,7 +219,9 @@ class RangeSlider(QWidget):
     def _on_slider_changed(self, slider_value):
         if self._updating_internally:
             return
+            
         real_value = self._slider_to_value(slider_value)
+        
         self._updating_internally = True
         self.value_spinbox.setValue(real_value)
         self._updating_internally = False
@@ -329,3 +331,26 @@ class RangeSlider(QWidget):
             self.min_spinbox.setEnabled(enabled)
             self.value_spinbox.setEnabled(enabled)
             self.max_spinbox.setEnabled(enabled)
+    
+    def __del__(self):
+        """Очистка ресурсов при уничтожении виджета"""
+        try:
+            if hasattr(self, '_debounce_timer') and self._debounce_timer is not None:
+                # Проверяем, что объект еще существует в C++
+                if hasattr(self._debounce_timer, 'stop'):
+                    self._debounce_timer.stop()
+                self._debounce_timer = None
+        except (RuntimeError, AttributeError):
+            # Объект уже удален в C++ или атрибут отсутствует
+            pass
+    
+    def cleanup(self):
+        """Явная очистка ресурсов"""
+        try:
+            if hasattr(self, '_debounce_timer') and self._debounce_timer is not None:
+                self._debounce_timer.stop()
+                self._debounce_timer.deleteLater()
+                self._debounce_timer = None
+        except (RuntimeError, AttributeError):
+            # Объект уже удален или недоступен
+            pass

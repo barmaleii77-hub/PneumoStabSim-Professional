@@ -51,6 +51,17 @@ class GeometryPanel(QWidget):
         
         # Size policy
         self.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Expanding)
+        
+        # ✨ ИСПРАВЛЕНО: Отправляем начальные параметры геометрии в QML!
+        print("🔧 GeometryPanel: Отправка начальных параметров геометрии...")
+        
+        # Формируем полную геометрию для QML (как в _get_fast_geometry_update)
+        initial_geometry = self._get_fast_geometry_update("init", 0.0)
+        self.geometry_changed.emit(initial_geometry)
+        self.geometry_updated.emit(self.parameters.copy())
+        
+        print("  ✅ Начальная геометрия отправлена в QML")
+        print(f"  📐 rodPosition = {self.parameters.get('rod_position', 0.6)} (критический параметр!)")
     
     def _setup_ui(self):
         """Настроить интерфейс / Setup user interface"""
@@ -389,162 +400,48 @@ class GeometryPanel(QWidget):
             param_name: Name of changed parameter
             value: New value
         """
+        print(f"🔧 GeometryPanel._on_parameter_changed: {param_name} = {value}")
+        
         if self._resolving_conflict:
+            print(f"   ⏸️ Пропуск - идет разрешение конфликта")
             return
         
         # Store new value
         old_value = self.parameters.get(param_name, 0.0)
         self.parameters[param_name] = value
+        print(f"   💾 Параметр сохранен: {param_name} {old_value} → {value}")
         
         # БЫСТРАЯ ПРОВЕРКА конфликтов только для критических параметров
         critical_conflicts = self._check_critical_dependencies(param_name, value, old_value)
         
         if critical_conflicts:
+            print(f"   ⚠️ Обнаружен критический конфликт: {critical_conflicts.get('type', 'неизвестный')}")
             # Показываем конфликты только для критических проблем
             self._resolve_conflict(critical_conflicts)
         else:
+            print(f"   ✅ Конфликтов нет, отправляем сигналы...")
             # МГНОВЕННОЕ обновление без задержек
             self.parameter_changed.emit(param_name, value)
+            print(f"   📡 parameter_changed отправлен")
+            
             self.geometry_updated.emit(self.parameters.copy())
+            print(f"   📡 geometry_updated отправлен")
             
             # БЫСТРОЕ обновление 3D сцены для видимых параметров
             if param_name in ['wheelbase', 'track', 'lever_length', 'cylinder_length', 'frame_to_pivot', 'rod_position', 
                              'cyl_diam_m', 'stroke_m', 'dead_gap_m', 'rod_diameter_m', 'piston_rod_length_m', 'piston_thickness_m']:
+                print(f"   🎬 Параметр {param_name} требует обновления 3D сцены")
                 # Конвертируем только измененный параметр для быстроты
                 geometry_3d = self._get_fast_geometry_update(param_name, value)
                 self.geometry_changed.emit(geometry_3d)
-    
-    def _get_fast_geometry_update(self, param_name: str, value: float) -> dict:
-        """Получить быстрое обновление геометрии только для изменённого параметра
-        
-        Args:
-            param_name: Имя параметра
-            value: Новое значение
-            
-        Returns:
-            Словарь с обновленной геометрией
-        """
-        # ПОЛНАЯ геометрия с ВСЕМИ параметрами для 3D сцены
-        geometry_3d = {
-            # ОСНОВНЫЕ РАЗМЕРЫ РАМЫ (из метров в мм)
-            'frameLength': self.parameters.get('wheelbase', 3.2) * 1000,  # м -> мм
-            'frameHeight': 650.0,  # Фиксированное значение пока (TODO: добавить параметр)
-            'frameBeamSize': 120.0,  # Фиксированное значение пока (TODO: добавить параметр)
-            'leverLength': self.parameters.get('lever_length', 0.8) * 1000,  # м -> мм
-            'cylinderBodyLength': self.parameters.get('cylinder_length', 0.5) * 1000,  # м -> мм
-            'tailRodLength': 100.0,  # Фиксированное значение пока (TODO: добавить параметр)
-            
-            # ДОПОЛНИТЕЛЬНЫЕ ПАРАМЕТРЫ ГЕОМЕТРИИ (из метров в мм)
-            'trackWidth': self.parameters.get('track', 1.6) * 1000,  # м -> мм
-            'frameToPivot': self.parameters.get('frame_to_pivot', 0.6) * 1000,  # м -> мм
-            'rodPosition': self.parameters.get('rod_position', 0.6),  # доля 0-1 (без изменений)
-            
-            # СОВМЕСТИМОСТЬ: Старые параметры цилиндра (устаревшие, но поддерживаем)
-            'boreHead': self.parameters.get('cyl_diam_m', 0.080) * 1000,  # NEW: используем новый параметр
-            'boreRod': self.parameters.get('cyl_diam_m', 0.080) * 1000,   # NEW: используем новый параметр
-            'rodDiameter': self.parameters.get('rod_diameter_m', 0.035) * 1000,  # NEW: используем новый параметр
-            'pistonThickness': self.parameters.get('piston_thickness_m', 0.025) * 1000,  # NEW: используем новый параметр
-            'pistonRodLength': self.parameters.get('piston_rod_length_m', 0.200) * 1000,  # NEW: используем новый параметр
-            
-            # ✨ НОВЫЕ ПАРАМЕТРЫ (МШ-1 и МШ-2): Все в мм для QML
-            'cylDiamM': self.parameters.get('cyl_diam_m', 0.080) * 1000,        # м -> мм: диаметр цилиндра
-            'strokeM': self.parameters.get('stroke_m', 0.300) * 1000,            # м -> мм: ход поршня
-            'deadGapM': self.parameters.get('dead_gap_m', 0.005) * 1000,         # м -> мм: мертвый зазор
-            'rodDiameterM': self.parameters.get('rod_diameter_m', 0.035) * 1000, # м -> мм: диаметр штока
-            'pistonRodLengthM': self.parameters.get('piston_rod_length_m', 0.200) * 1000,  # м -> мм: длина штока
-            'pistonThicknessM': self.parameters.get('piston_thickness_m', 0.025) * 1000,   # м -> мм: толщина поршня
-        }
-        
-        print(f"🔄 GeometryPanel: Отправка ПОЛНОЙ геометрии в QML (изменён параметр: {param_name} = {value})")
-        print(f"   📐 Основные: frameLength={geometry_3d['frameLength']:.1f}мм, leverLength={geometry_3d['leverLength']:.1f}мм")
-        print(f"   📐 Цилиндр: cylDiam={geometry_3d['cylDiamM']:.1f}мм, stroke={geometry_3d['strokeM']:.1f}мм")
-        print(f"   📐 Шток: diameter={geometry_3d['rodDiameterM']:.1f}мм, length={geometry_3d['pistonRodLengthM']:.1f}мм")
-        
-        return geometry_3d
-    
-    def _check_critical_dependencies(self, param_name: str, new_value: float, old_value: float) -> dict:
-        """Быстрая проверка только критических зависимостей
-        
-        Args:
-            param_name: Имя изменённого параметра
-            new_value: Новое значение
-            old_value: Предыдущее значение
-            
-        Returns:
-            Словарь с информацией о конфликте или None
-        """
-        # Проверяем только самые критические конфликты для быстроты
-        
-        # МШ-2: Критический конфликт - диаметр штока vs цилиндра
-        if param_name in ['rod_diameter_m', 'cyl_diam_m']:
-            rod_diameter_m = self.parameters.get('rod_diameter_m', 0.035)  # м
-            cyl_diam_m = self.parameters.get('cyl_diam_m', 0.080)          # м
-            
-            if rod_diameter_m >= cyl_diam_m * 0.8:  # Критический предел
-                return {
-                    'type': 'hydraulic_constraint',
-                    'message': f'Диаметр штока слишком велик относительно цилиндра.\n'
-                              f'Шток: {rod_diameter_m*1000:.1f}мм\n'
-                              f'Цилиндр: {cyl_diam_m*1000:.1f}мм',
-                    'options': [
-                        ('Уменьшить диаметр штока', 'rod_diameter_m', cyl_diam_m * 0.7),
-                        ('Увеличить диаметр цилиндра', 'cyl_diam_m', rod_diameter_m / 0.7),
-                    ]
-                }
-        
-        # Остальные конфликты пропускаем для скорости
-        return None
-    
-    def _resolve_conflict(self, conflict_info: dict):
-        """Показать диалог разрешения конфликта / Show conflict resolution dialog
-        
-        Args:
-            conflict_info: Информация о конфликте / Conflict information dictionary
-        """
-        self._resolving_conflict = True
-        
-        try:
-            # Create message box with options
-            msg_box = QMessageBox(self)
-            msg_box.setWindowTitle('Конфликт параметров')
-            msg_box.setText(conflict_info['message'])
-            msg_box.setInformativeText('Как вы хотите разрешить этот конфликт?')
-            
-            # Add buttons for each resolution option
-            buttons = []
-            for option_text, param_name, suggested_value in conflict_info['options']:
-                button = msg_box.addButton(option_text, QMessageBox.ButtonRole.ActionRole)
-                buttons.append((button, param_name, suggested_value))
-            
-            # Add cancel button
-            cancel_button = msg_box.addButton('Отмена', QMessageBox.ButtonRole.RejectRole)
-            
-            # Show dialog
-            msg_box.exec()
-            clicked_button = msg_box.clickedButton()
-            
-            if clicked_button == cancel_button:
-                # Revert to old value
-                changed_param = conflict_info['changed_param']
-                old_value = self._get_widget_for_parameter(changed_param)
-                self._set_parameter_value(changed_param, old_value)
+                print(f"   📡 geometry_changed отправлен с rodPosition = {geometry_3d.get('rodPosition', 'НЕ НАЙДЕН')}")
             else:
-                # Apply selected resolution
-                for button, param_name, suggested_value in buttons:
-                    if clicked_button == button:
-                        self._set_parameter_value(param_name, suggested_value)
-                        self.parameters[param_name] = suggested_value
-                        break
-                
-                # Emit update signals
-                self.geometry_updated.emit(self.parameters.copy())
-        
-        finally:
-            self._resolving_conflict = False
+                print(f"   ⏭️ Параметр {param_name} не требует обновления 3D сцены")
     
     @Slot()
     def _reset_to_defaults(self):
         """Сбросить все параметры к значениям по умолчанию / Reset all parameters to defaults"""
+        print("🔄 GeometryPanel: Сброс к значениям по умолчанию")
         self._set_default_values()
         
         # Update all widgets
@@ -572,6 +469,7 @@ class GeometryPanel(QWidget):
         
         # Emit update
         self.geometry_updated.emit(self.parameters.copy())
+        print("✅ Параметры сброшены")
     
     @Slot()
     def _validate_geometry(self):
@@ -631,6 +529,136 @@ class GeometryPanel(QWidget):
             # Update widgets
             for param_name, value in params.items():
                 self._set_parameter_value(param_name, value)
+        
+        finally:
+            self._resolving_conflict = False
+    
+    def _get_fast_geometry_update(self, param_name: str, value: float) -> dict:
+        """Получить быстрое обновление геометрии только для изменённого параметра
+        
+        Args:
+            param_name: Имя параметра
+            value: Новое значение
+            
+        Returns:
+            Словарь с обновленной геометрией
+        """
+        # ПОЛНАЯ геометрия с ВСЕМИ параметрами для 3D сцены
+        geometry_3d = {
+            # ОСНОВНЫЕ РАЗМЕРЫ РАМЫ (из метров в мм)
+            'frameLength': self.parameters.get('wheelbase', 3.2) * 1000,  # м -> мм
+            'frameHeight': 650.0,  # Фиксированное значение пока (TODO: добавить параметр)
+            'frameBeamSize': 120.0,  # Фиксированное значение пока (TODO: добавить параметр)
+            'leverLength': self.parameters.get('lever_length', 0.8) * 1000,  # м -> мм
+            'cylinderBodyLength': self.parameters.get('cylinder_length', 0.5) * 1000,  # м -> мм
+            'tailRodLength': 100.0,  # Фиксированное значение пока (TODO: добавить параметр)
+            
+            # ДОПОЛНИТЕЛЬНЫЕ ПАРАМЕТРЫ ГЕОМЕТРИИ (из метров в мм)
+            'trackWidth': self.parameters.get('track', 1.6) * 1000,  # м -> мм
+            'frameToPivot': self.parameters.get('frame_to_pivot', 0.6) * 1000,  # м -> мм
+            'rodPosition': self.parameters.get('rod_position', 0.6),  # доля 0-1 (без изменений)
+            
+            # СОВМЕСТИМОСТЬ: Старые параметры цилиндра (устаревшие, но поддерживаем)
+            'boreHead': self.parameters.get('cyl_diam_m', 0.080) * 1000,  # NEW: используем новый параметр
+            'boreRod': self.parameters.get('cyl_diam_m', 0.080) * 1000,   # NEW: используем новый параметр
+            'rodDiameter': self.parameters.get('rod_diameter_m', 0.035) * 1000,  # NEW: используем новый параметр
+            'pistonThickness': self.parameters.get('piston_thickness_m', 0.025) * 1000,  # NEW: используем новый параметр
+            'pistonRodLength': self.parameters.get('piston_rod_length_m', 0.200) * 1000,  # NEW: используем новый параметр
+            
+            # ✨ НОВЫЕ ПАРАМЕТРЫ (МШ-1 и МШ-2): Все в мм для QML
+            'cylDiamM': self.parameters.get('cyl_diam_m', 0.080) * 1000,        # м -> мм: диаметр цилиндра
+            'strokeM': self.parameters.get('stroke_m', 0.300) * 1000,            # м -> мм: ход поршня
+            'deadGapM': self.parameters.get('dead_gap_m', 0.005) * 1000,         # м -> мм: мертвый зазор
+            'rodDiameterM': self.parameters.get('rod_diameter_m', 0.035) * 1000, # м -> мм: диаметр штока
+            'pistonRodLengthM': self.parameters.get('piston_rod_length_m', 0.200) * 1000,  # м -> мм: длина штока
+            'pistonThicknessM': self.parameters.get('piston_thickness_m', 0.025) * 1000,   # м -> мм: толщина поршня
+        }
+        
+        print(f"🔄 GeometryPanel: Отправка ПОЛНОЙ геометрии в QML (изменён параметр: {param_name} = {value})")
+        print(f"   📐 Основные: frameLength={geometry_3d['frameLength']:.1f}мм, leverLength={geometry_3d['leverLength']:.1f}мм")
+        print(f"   📐 Цилиндр: cylDiam={geometry_3d['cylDiamM']:.1f}мм, stroke={geometry_3d['strokeM']:.1f}мм")
+        print(f"   📐 Шток: diameter={geometry_3d['rodDiameterM']:.1f}мм, length={geometry_3d['pistonRodLengthM']:.1f}мм")
+        print(f"   🎯 rodPosition = {geometry_3d['rodPosition']} (КРИТИЧЕСКИЙ параметр)")
+        
+        return geometry_3d
+
+    def _check_critical_dependencies(self, param_name: str, new_value: float, old_value: float) -> dict:
+        """Быстрая проверка только критических зависимостей
+        
+        Args:
+            param_name: Имя изменённого параметра
+            new_value: Новое значение
+            old_value: Предыдущее значение
+            
+        Returns:
+            Словарь с информацией о конфликте или None
+        """
+        # Проверяем только самые критические конфликты для быстроты
+        
+        # МШ-2: Критический конфликт - диаметр штока vs цилиндра
+        if param_name in ['rod_diameter_m', 'cyl_diam_m']:
+            rod_diameter_m = self.parameters.get('rod_diameter_m', 0.035)  # м
+            cyl_diam_m = self.parameters.get('cyl_diam_m', 0.080)          # м
+            
+            if rod_diameter_m >= cyl_diam_m * 0.8:  # Критический предел
+                return {
+                    'type': 'hydraulic_constraint',
+                    'message': f'Диаметр штока слишком велик относительно цилиндра.\n'
+                              f'Шток: {rod_diameter_m*1000:.1f}мм\n'
+                              f'Цилиндр: {cyl_diam_m*1000:.1f}мм',
+                    'options': [
+                        ('Уменьшить диаметр штока', 'rod_diameter_m', cyl_diam_m * 0.7),
+                        ('Увеличить диаметр цилиндра', 'cyl_diam_m', rod_diameter_m / 0.7),
+                    ],
+                    'changed_param': param_name
+                }
+        
+        # Остальные конфликты пропускаем для скорости
+        return None
+
+    def _resolve_conflict(self, conflict_info: dict):
+        """Показать диалог разрешения конфликта / Show conflict resolution dialog
+        
+        Args:
+            conflict_info: Информация о конфликте / Conflict information dictionary
+        """
+        self._resolving_conflict = True
+        
+        try:
+            # Create message box with options
+            msg_box = QMessageBox(self)
+            msg_box.setWindowTitle('Конфликт параметров')
+            msg_box.setText(conflict_info['message'])
+            msg_box.setInformativeText('Как вы хотите разрешить этот конфликт?')
+            
+            # Add buttons for each resolution option
+            buttons = []
+            for option_text, param_name, suggested_value in conflict_info['options']:
+                button = msg_box.addButton(option_text, QMessageBox.ButtonRole.ActionRole)
+                buttons.append((button, param_name, suggested_value))
+            
+            # Add cancel button
+            cancel_button = msg_box.addButton('Отмена', QMessageBox.ButtonRole.RejectRole)
+            
+            # Show dialog
+            msg_box.exec()
+            clicked_button = msg_box.clickedButton()
+            
+            if clicked_button == cancel_button:
+                # Revert to old value
+                changed_param = conflict_info['changed_param']
+                old_value = self._get_widget_for_parameter(changed_param)
+                self._set_parameter_value(changed_param, old_value)
+            else:
+                # Apply selected resolution
+                for button, param_name, suggested_value in buttons:
+                    if clicked_button == button:
+                        self._set_parameter_value(param_name, suggested_value)
+                        self.parameters[param_name] = suggested_value
+                        break
+                
+                # Emit update signals
+                self.geometry_updated.emit(self.parameters.copy())
         
         finally:
             self._resolving_conflict = False
