@@ -606,6 +606,31 @@ class SimulationManager(QObject):
         except Exception as e:
             self.logger.error(f"Ошибка принудительного завершения: {e}")
     
+    def cleanup(self):
+        """Очистка ресурсов симуляции (вызывается при закрытии приложения)
+        
+        Корректно останавливает физический поток и освобождает ресурсы.
+        """
+        self.logger.info("Начинаем очистку SimulationManager...")
+        
+        try:
+            # Используем существующий метод stop() для корректной остановки
+            self.stop()
+            
+            # Дополнительная очистка ссылок
+            self.state_bus = None
+            self.state_queue = None
+            
+            self.logger.info("Очистка SimulationManager завершена успешно")
+            
+        except Exception as e:
+            self.logger.error(f"Ошибка при очистке SimulationManager: {e}")
+            # Принудительная очистка в случае ошибки
+            try:
+                self.force_shutdown()
+            except Exception as cleanup_error:
+                self.logger.error(f"Критическая ошибка при принудительной очистке: {cleanup_error}")
+    
     def get_latest_state(self) -> Optional[StateSnapshot]:
         """Get latest state snapshot without blocking"""
         return self.state_queue.get_nowait()

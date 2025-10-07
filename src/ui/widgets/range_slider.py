@@ -2,17 +2,27 @@
 """
 Range slider widget with editable min/max bounds
 Combines QSlider with QDoubleSpinBox controls for precise range control
+ОБНОВЛЕНО: Более мелкие деления шкалы, ширина диапазона без скобок
 """
 
 import math
 from PySide6.QtWidgets import (QWidget, QHBoxLayout, QVBoxLayout, QLabel, 
                               QSlider, QDoubleSpinBox, QSizePolicy)
 from PySide6.QtCore import Signal, Slot, QTimer, Qt
-from PySide6.QtGui import QFont
+from PySide6.QtGui import QFont, QPalette, QColor
 
 
 class RangeSlider(QWidget):
-    """Slider with editable min/max range and precise value control"""
+    """Slider with editable min/max range and precise value control
+    
+    ОБНОВЛЕНО:
+    - Более мелкие деления шкалы для лучшей точности
+    - Отображение "ширина диапазона" полным текстом без скобок
+    - Поля МИН, ЗНАЧЕНИЕ, МАКС на одном горизонтальном уровне
+    - Шкала слайдера на всю ширину окна (отдельная строка)
+    - Индикаторы диапазона и позиции
+    - Цветовое кодирование и tooltip'ы
+    """
     
     # СИГНАЛЫ:
     # valueChanged - МГНОВЕННОЕ обновление во время движения ползунка (для геометрии)
@@ -58,15 +68,41 @@ class RangeSlider(QWidget):
             self.title_label.setFont(font)
             layout.addWidget(self.title_label)
         
+        # ✨ ОБНОВЛЕНО: Индикатор диапазона с шириной диапазона без скобок
+        self.range_indicator_label = QLabel("Диапазон: 0.0 — 100.0 ширина диапазона 100.0")
+        self.range_indicator_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        font = QFont()
+        font.setPointSize(7)
+        font.setItalic(True)
+        self.range_indicator_label.setFont(font)
+        # Серый цвет для индикатора
+        palette = self.range_indicator_label.palette()
+        palette.setColor(QPalette.ColorRole.WindowText, QColor(128, 128, 128))
+        self.range_indicator_label.setPalette(palette)
+        layout.addWidget(self.range_indicator_label)
+        
+        # 🎯 ОБНОВЛЕНО: ШКАЛА СЛАЙДЕРА с более мелкими делениями
         self.slider = QSlider(Qt.Orientation.Horizontal)
         self.slider.setMinimum(0)
         self.slider.setMaximum(self._slider_resolution)
         self.slider.setTickPosition(QSlider.TickPosition.TicksBelow)
-        self.slider.setTickInterval(self._slider_resolution // 10)
+        # УМЕНЬШЕНО: Более мелкие деления - было //10, стало //20 (в 2 раза больше делений)
+        self.slider.setTickInterval(self._slider_resolution // 20)
+        # Задаем минимальную ширину для полного использования пространства
+        self.slider.setMinimumWidth(300)
         layout.addWidget(self.slider)
         
+        # ✨ Индикатор позиции
+        self.position_indicator_label = QLabel("Позиция: 50.0% от диапазона")
+        self.position_indicator_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        font = QFont()
+        font.setPointSize(7)
+        self.position_indicator_label.setFont(font)
+        layout.addWidget(self.position_indicator_label)
+        
+        # 🎯 ПОЛЯ ВВОДА - все на одном горизонтальном уровне
         controls_layout = QHBoxLayout()
-        controls_layout.setSpacing(4)
+        controls_layout.setSpacing(8)
         
         # Min controls
         min_layout = QVBoxLayout()
@@ -84,26 +120,47 @@ class RangeSlider(QWidget):
         self.min_spinbox.setMinimumWidth(80)
         self.min_spinbox.setMaximumWidth(100)
         self.min_spinbox.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        # ✨ Tooltip для min
+        self.min_spinbox.setToolTip("Минимальное значение диапазона")
         min_layout.addWidget(self.min_spinbox)
         controls_layout.addLayout(min_layout)
         
-        # Value controls
+        # Растягивающееся пространство между мин и значением
+        controls_layout.addStretch()
+        
+        # Value controls (ПО ЦЕНТРУ между мин и макс)
         value_layout = QVBoxLayout()
         value_layout.setSpacing(1)
         value_label = QLabel("Значение")
         value_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         font = QFont()
         font.setPointSize(7)
+        font.setBold(True)  # ✨ Выделяем текущее значение жирным
         value_label.setFont(font)
         value_layout.addWidget(value_label)
         
         self.value_spinbox = QDoubleSpinBox()
         self.value_spinbox.setDecimals(self._decimals)
-        self.value_spinbox.setMinimumWidth(80)
-        self.value_spinbox.setMaximumWidth(100)
+        self.value_spinbox.setMinimumWidth(100)
+        self.value_spinbox.setMaximumWidth(120)
         self.value_spinbox.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        # ✨ Выделяем поле значения
+        self.value_spinbox.setStyleSheet("QDoubleSpinBox { font-weight: bold; }")
         value_layout.addWidget(self.value_spinbox)
         controls_layout.addLayout(value_layout)
+        
+        # Units label рядом с полем значения
+        if self._units:
+            self.units_label = QLabel(self._units)
+            font = QFont()
+            font.setPointSize(9)
+            font.setBold(True)
+            self.units_label.setFont(font)
+            self.units_label.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
+            controls_layout.addWidget(self.units_label)
+        
+        # Растягивающееся пространство между значением и макс
+        controls_layout.addStretch()
         
         # Max controls
         max_layout = QVBoxLayout()
@@ -121,18 +178,11 @@ class RangeSlider(QWidget):
         self.max_spinbox.setMinimumWidth(80)
         self.max_spinbox.setMaximumWidth(100)
         self.max_spinbox.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        # ✨ Tooltip для max
+        self.max_spinbox.setToolTip("Максимальное значение диапазона")
         max_layout.addWidget(self.max_spinbox)
         controls_layout.addLayout(max_layout)
         
-        if self._units:
-            self.units_label = QLabel(self._units)
-            font = QFont()
-            font.setPointSize(8)
-            self.units_label.setFont(font)
-            self.units_label.setAlignment(Qt.AlignmentFlag.AlignCenter | Qt.AlignmentFlag.AlignVCenter)
-            controls_layout.addWidget(self.units_label)
-        
-        controls_layout.addStretch()
         layout.addLayout(controls_layout)
     
     def _connect_signals(self):
@@ -148,6 +198,8 @@ class RangeSlider(QWidget):
         self.slider.setValue(slider_pos)
         self.value_spinbox.setValue(value)
         self._updating_internally = False
+        # ✨ Обновить индикаторы
+        self._update_indicators()
     
     def value(self):
         return self.value_spinbox.value()
@@ -172,6 +224,9 @@ class RangeSlider(QWidget):
         
         if hasattr(self, 'value_spinbox'):
             self.setValue(current_value)
+        
+        # ✨ Обновить индикаторы диапазона
+        self._update_indicators()
     
     def minimum(self):
         return self.min_spinbox.value() if hasattr(self, 'min_spinbox') else 0.0
@@ -215,6 +270,59 @@ class RangeSlider(QWidget):
         
         return max(min_val, min(max_val, value))
     
+    # ✨ ОБНОВЛЕННЫЙ МЕТОД для индикаторов с шириной диапазона БЕЗ СКОБОК
+    def _update_indicators(self):
+        """Обновить индикаторы диапазона, ширины диапазона и позиции"""
+        if not hasattr(self, 'range_indicator_label'):
+            return
+            
+        min_val = self.minimum()
+        max_val = self.maximum()
+        current_val = self.value()
+        
+        # ✨ ОБНОВЛЕНО: Вычисляем ширину диапазона (абсолютное значение)
+        range_width = abs(max_val - min_val)
+        
+        # ОБНОВЛЕНО: Индикатор диапазона с шириной диапазона БЕЗ СКОБОК
+        range_text = f"Диапазон: {min_val:.{self._decimals}f} — {max_val:.{self._decimals}f} ширина диапазона {range_width:.{self._decimals}f}"
+        if self._units:
+            range_text += f" {self._units}"
+        self.range_indicator_label.setText(range_text)
+        
+        # Обновить индикатор позиции и цвет
+        if max_val > min_val:
+            position_ratio = (current_val - min_val) / (max_val - min_val)
+            position_percent = position_ratio * 100;
+            
+            position_text = f"Позиция: {position_percent:.1f}% от диапазона"
+            self.position_indicator_label.setText(position_text)
+            
+            # ✨ Цветовое кодирование позиции
+            color = self._get_position_color(position_ratio)
+            palette = self.position_indicator_label.palette()
+            palette.setColor(QPalette.ColorRole.WindowText, color)
+            self.position_indicator_label.setPalette(palette)
+            
+            # ✨ Обновить tooltip с подробной информацией включая ширину диапазона
+            tooltip = (f"Текущее значение: {current_val:.{self._decimals}f} {self._units}\n"
+                      f"Диапазон: {min_val:.{self._decimals}f} до {max_val:.{self._decimals}f}\n"
+                      f"Ширина диапазона: {range_width:.{self._decimals}f} {self._units}\n"
+                      f"Позиция: {position_percent:.1f}% от диапазона\n"
+                      f"Шаг: {self._step:.{self._decimals}f}")
+            self.value_spinbox.setToolTip(tooltip)
+    
+    def _get_position_color(self, ratio):
+        """Получить цвет в зависимости от позиции в диапазоне"""
+        if ratio < 0.1 or ratio > 0.9:
+            # Красный - близко к краям диапазона
+            return QColor(200, 50, 50)
+        elif ratio < 0.2 or ratio > 0.8:
+            # Оранжевый - довольно близко к краям
+            return QColor(200, 120, 50)
+        else:
+            # Зеленый - в нормальной части диапазона
+            return QColor(50, 150, 50)
+    
     @Slot(int)
     def _on_slider_changed(self, slider_value):
         if self._updating_internally:
@@ -225,6 +333,9 @@ class RangeSlider(QWidget):
         self._updating_internally = True
         self.value_spinbox.setValue(real_value)
         self._updating_internally = False
+        
+        # ✨ Обновить индикаторы
+        self._update_indicators()
         
         # МГНОВЕННОЕ обновление через valueChanged (без задержки)
         self.valueChanged.emit(real_value)
@@ -241,6 +352,9 @@ class RangeSlider(QWidget):
         self._updating_internally = True
         self.slider.setValue(slider_pos)
         self._updating_internally = False
+        
+        # ✨ Обновить индикаторы
+        self._update_indicators()
         
         # МГНОВЕННОЕ обновление через valueChanged (без задержки)
         self.valueChanged.emit(spinbox_value)
@@ -265,6 +379,9 @@ class RangeSlider(QWidget):
             self.setValue(new_min)
         else:
             self._update_slider_position()
+        
+        # ✨ Обновить индикаторы при изменении диапазона
+        self._update_indicators()
         self.rangeChanged.emit(new_min, current_max)
     
     @Slot(float)
@@ -284,6 +401,9 @@ class RangeSlider(QWidget):
             self.setValue(new_max)
         else:
             self._update_slider_position()
+        
+        # ✨ Обновить индикаторы при изменении диапазона
+        self._update_indicators()
         self.rangeChanged.emit(current_min, new_max)
     
     def _update_spinbox_ranges(self):
@@ -307,6 +427,8 @@ class RangeSlider(QWidget):
         self._updating_internally = True
         self.slider.setValue(slider_pos)
         self._updating_internally = False
+        # ✨ Обновить индикаторы
+        self._update_indicators()
     
     @Slot()
     def _emit_value_edited(self):
@@ -318,11 +440,15 @@ class RangeSlider(QWidget):
             self.min_spinbox.setDecimals(decimals)
             self.value_spinbox.setDecimals(decimals)
             self.max_spinbox.setDecimals(decimals)
+            # ✨ Обновить индикаторы с новой точностью
+            self._update_indicators()
     
     def setStep(self, step):
         self._step = step
         if hasattr(self, 'value_spinbox'):
             self.value_spinbox.setSingleStep(step)
+            # ✨ Обновить tooltip
+            self._update_indicators()
     
     def setEnabled(self, enabled):
         super().setEnabled(enabled)
