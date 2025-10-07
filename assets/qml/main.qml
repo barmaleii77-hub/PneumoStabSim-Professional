@@ -148,7 +148,7 @@ Item {
             userBoreRod = params.boreRod
         }
         if (params.rodDiameter !== undefined) {
-            console.log("  🔧 Setting userRodDiameter (deprecated):", params.rodDiameter)
+            console.log("Setting userRodDiameter (deprecated):", params.rodDiameter)
             userRodDiameter = params.rodDiameter
         }
         if (params.pistonThickness !== undefined) {

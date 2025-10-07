@@ -1,0 +1,192 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003" ToolsVersion="4.0">
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <SchemaVersion>2.0</SchemaVersion>
+    <ProjectGuid>{12345678-1234-1234-1234-123456789012}</ProjectGuid>
+    <ProjectHome>.</ProjectHome>
+    <StartupFile>app.py</StartupFile>
+    <SearchPath>src</SearchPath>
+    <WorkingDirectory>.</WorkingDirectory>
+    <OutputPath>.</OutputPath>
+    <Name>PneumoStabSim</Name>
+    <RootNamespace>PneumoStabSim</RootNamespace>
+    <InterpreterId>Global|PythonCore|3.11</InterpreterId>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
+    <DebugSymbols>true</DebugSymbols>
+    <EnableUnmanagedDebugging>false</EnableUnmanagedDebugging>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)' == 'Release' ">
+    <DebugSymbols>true</DebugSymbols>
+    <EnableUnmanagedDebugging>false</EnableUnmanagedDebugging>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="app.py" />
+    <!-- Script files -->
+    <Compile Include="scripts\export_copilot_chat.py" />
+    <Compile Include="scripts\health_check.py" />
+    <Compile Include="scripts\setup_dev.py" />
+    <!-- Source files -->
+    <Compile Include="src\__init__.py" />
+    <Compile Include="src\app\__init__.py" />
+    <Compile Include="src\app\config_defaults.py" />
+    <Compile Include="src\app\smoke_gas_complete.py" />
+    <Compile Include="src\app\smoke_gas_final.py" />
+    <Compile Include="src\app\smoke_gas_simple.py" />
+    <Compile Include="src\app\smoke_gas.py" />
+    <Compile Include="src\app\smoke_test.py" />
+    <Compile Include="src\common\__init__.py" />
+    <Compile Include="src\common\csv_export.py" />
+    <Compile Include="src\common\errors.py" />
+    <Compile Include="src\common\logging_setup.py" />
+    <Compile Include="src\common\units.py" />
+    <Compile Include="src\core\__init__.py" />
+    <Compile Include="src\core\geometry.py" />
+    <Compile Include="src\core\initial_geometry.py" />
+    <Compile Include="src\mechanics\__init__.py" />
+    <Compile Include="src\mechanics\components.py" />
+    <Compile Include="src\mechanics\constraints.py" />
+    <Compile Include="src\mechanics\kinematics.py" />
+    <Compile Include="src\mechanics\suspension.py" />
+    <Compile Include="src\physics\__init__.py" />
+    <Compile Include="src\physics\__init_new.py" />
+    <Compile Include="src\physics\forces.py" />
+    <Compile Include="src\physics\integrator.py" />
+    <Compile Include="src\physics\odes.py" />
+    <Compile Include="src\pneumo\__init__.py" />
+    <Compile Include="src\pneumo\cylinder.py" />
+    <Compile Include="src\pneumo\enums.py" />
+    <Compile Include="src\pneumo\flow.py" />
+    <Compile Include="src\pneumo\gas_state.py" />
+    <Compile Include="src\pneumo\geometry.py" />
+    <Compile Include="src\pneumo\line.py" />
+    <Compile Include="src\pneumo\network.py" />
+    <Compile Include="src\pneumo\receiver.py" />
+    <Compile Include="src\pneumo\sim_time.py" />
+    <Compile Include="src\pneumo\system.py" />
+    <Compile Include="src\pneumo\thermo_stub.py" />
+    <Compile Include="src\pneumo\thermo.py" />
+    <Compile Include="src\pneumo\types.py" />
+    <Compile Include="src\pneumo\valves.py" />
+    <Compile Include="src\road\__init__.py" />
+    <Compile Include="src\road\csv_io.py" />
+    <Compile Include="src\road\engine.py" />
+    <Compile Include="src\road\generators.py" />
+    <Compile Include="src\road\scenarios.py" />
+    <Compile Include="src\road\types.py" />
+    <Compile Include="src\runtime\__init__.py" />
+    <Compile Include="src\runtime\__init_simple.py" />
+    <Compile Include="src\runtime\sim_loop.py" />
+    <Compile Include="src\runtime\state.py" />
+    <Compile Include="src\runtime\sync.py" />
+    <Compile Include="src\ui\__init__.py" />
+    <Compile Include="src\ui\accordion.py" />
+    <Compile Include="src\ui\charts.py" />
+    <Compile Include="src\ui\correct_geometry.py" />
+    <Compile Include="src\ui\custom_geometry.py" />
+    <Compile Include="src\ui\direct_geometry.py" />
+    <Compile Include="src\ui\example_geometry.py" />
+    <Compile Include="src\ui\geo_state.py" />
+    <Compile Include="src\ui\geometry_bridge.py" />
+    <Compile Include="src\ui\hud.py" />
+    <Compile Include="src\ui\main_window_backup.py" />
+    <Compile Include="src\ui\main_window.py" />
+    <Compile Include="src\ui\panels_accordion.py" />
+    <Compile Include="src\ui\parameter_slider.py" />
+    <Compile Include="src\ui\qml_host.py" />
+    <Compile Include="src\ui\simple_geometry.py" />
+    <Compile Include="src\ui\stable_geometry.py" />
+    <Compile Include="src\ui\triangle_geometry.py" />
+    <Compile Include="src\ui\panels\__init__.py" />
+    <Compile Include="src\ui\panels\panel_geometry.py" />
+    <Compile Include="src\ui\panels\panel_modes.py" />
+    <Compile Include="src\ui\panels\panel_pneumo_broken.py" />
+    <Compile Include="src\ui\panels\panel_pneumo.py" />
+    <Compile Include="src\ui\panels\panel_road.py" />
+    <Compile Include="src\ui\widgets\__init__.py" />
+    <Compile Include="src\ui\widgets\knob.py" />
+    <Compile Include="src\ui\widgets\range_slider.py" />
+    <!-- Test files -->
+    <Compile Include="tests\__init__.py" />
+    <Compile Include="tests\conftest.py" />
+    <Compile Include="tests\demo_road.py" />
+    <Compile Include="tests\demo_runtime_p7.py" />
+    <Compile Include="tests\p7_final_report.py" />
+    <Compile Include="tests\p7_verification_final.py" />
+    <Compile Include="tests\p7_verify.py" />
+    <Compile Include="tests\test_gas_adiabatic_isothermal.py" />
+    <Compile Include="tests\test_gas_simple.py" />
+    <Compile Include="tests\test_gas_valves.py" />
+    <Compile Include="tests\test_integration_simple.py" />
+    <Compile Include="tests\test_invariants_geometry.py" />
+    <Compile Include="tests\test_invariants.py" />
+    <Compile Include="tests\test_kinematics.py" />
+    <Compile Include="tests\test_logging_and_export.py" />
+    <Compile Include="tests\test_mapping.py" />
+    <Compile Include="tests\test_ode_dynamics.py" />
+    <Compile Include="tests\test_odes_basic.py" />
+    <Compile Include="tests\test_performance_smoke.py" />
+    <Compile Include="tests\test_physics_integration.py" />
+    <Compile Include="tests\test_physics_simple.py" />
+    <Compile Include="tests\test_receiver_relief.py" />
+    <Compile Include="tests\test_road_basic.py" />
+    <Compile Include="tests\test_road_simple.py" />
+    <Compile Include="tests\test_runtime_basic.py" />
+    <Compile Include="tests\test_runtime_complete.py" />
+    <Compile Include="tests\test_scipy_direct.py" />
+    <Compile Include="tests\test_thermo_iso_adiabatic.py" />
+    <Compile Include="tests\test_ui_signals.py" />
+    <Compile Include="tests\test_valves_and_flows.py" />
+    <Compile Include="tests\verify_p7.py" />
+    <Compile Include="tests\integration\test_panels.py" />
+    <Compile Include="tests\system\test_full_app.py" />
+    <Compile Include="tests\ui\__init__.py" />
+    <Compile Include="tests\ui\test_a1_cylinder_unification.py" />
+    <Compile Include="tests\ui\test_comprehensive_integration.py" />
+    <Compile Include="tests\ui\test_geometry_ui.py" />
+    <Compile Include="tests\ui\test_ms1_quick_check.py" />
+    <Compile Include="tests\ui\test_ms2_quick_check.py" />
+    <Compile Include="tests\ui\test_ms2_si_units.py" />
+    <Compile Include="tests\ui\test_ms3_dependency.py" />
+    <Compile Include="tests\ui\test_panel_functionality.py" />
+    <Compile Include="tests\ui\test_si_units.py" />
+    <Compile Include="tests\ui\test_ui_layout.py" />
+    <Compile Include="tests\unit\test_geometry.py" />
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="src\" />
+    <Folder Include="src\app\" />
+    <Folder Include="src\ui\" />
+    <Folder Include="src\ui\panels\" />
+    <Folder Include="src\ui\widgets\" />
+    <Folder Include="src\common\" />
+    <Folder Include="src\core\" />
+    <Folder Include="src\mechanics\" />
+    <Folder Include="src\physics\" />
+    <Folder Include="src\pneumo\" />
+    <Folder Include="src\road\" />
+    <Folder Include="src\runtime\" />
+    <Folder Include="config\" />
+    <Folder Include="docs\" />
+    <Folder Include="tests\" />
+    <Folder Include="tests\integration\" />
+    <Folder Include="tests\system\" />
+    <Folder Include="tests\ui\" />
+    <Folder Include="tests\unit\" />
+    <Folder Include="scripts\" />
+    <Folder Include="assets\" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="requirements.txt" />
+    <Content Include="requirements-dev.txt" />
+    <Content Include="pyproject.toml" />
+    <Content Include="README.md" />
+    <Content Include="LICENSE" />
+    <Content Include=".gitignore" />
+    <Content Include="pytest.ini" />
+    <Content Include="MANIFEST.in" />
+    <Content Include="setup.py" />
+  </ItemGroup>
+  <Import Project="$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\Python Tools\Microsoft.PythonTools.targets" />
+</Project>
