@@ -1,29 +1,161 @@
 # -*- coding: utf-8 -*-
 """
 Simulation modes configuration panel - РУССКИЙ ИНТЕРФЕЙС
-Controls for simulation type, physics options, and road excitation
-Панель конфигурации режимов симуляции с управлением физикой и дорожным воздействием
+Controls for simulation type, physics options, and road excitation with standard sliders
+Панель конфигурации режимов симуляции со стандартными слайдерами
 """
 
 from PySide6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QGroupBox, 
                               QRadioButton, QCheckBox, QPushButton, QLabel,
-                              QButtonGroup, QSizePolicy, QComboBox)  # NEW: QComboBox
+                              QButtonGroup, QSizePolicy, QComboBox, QSlider,
+                              QDoubleSpinBox, QSpinBox)
 from PySide6.QtCore import Signal, Slot, Qt
 from PySide6.QtGui import QFont
 
-from ..widgets import RangeSlider
+
+class StandardSlider(QWidget):
+    """Стандартный слайдер Qt с полем ввода - компактная версия для ModesPanel"""
+    
+    valueEdited = Signal(float)
+    
+    def __init__(self, minimum=0.0, maximum=100.0, value=50.0, step=1.0, 
+                 decimals=2, units="", title="", parent=None):
+        super().__init__(parent)
+        
+        self._minimum = minimum
+        self._maximum = maximum
+        self._step = step
+        self._decimals = decimals
+        self._units = units
+        self._updating = False
+        
+        self._setup_ui(title)
+        self.setValue(value)
+    
+    def _setup_ui(self, title):
+        """Создать компактный UI со стандартными виджетами"""
+        layout = QVBoxLayout(self)
+        layout.setSpacing(2)
+        layout.setContentsMargins(2, 2, 2, 2)
+        
+        # Заголовок
+        if title:
+            title_label = QLabel(title)
+            font = QFont()
+            font.setPointSize(8)
+            font.setBold(True)
+            title_label.setFont(font)
+            layout.addWidget(title_label)
+        
+        # Горизонтальная строка: слайдер + поле ввода
+        controls_layout = QHBoxLayout()
+        controls_layout.setSpacing(4)
+        
+        # Стандартный Qt слайдер
+        self.slider = QSlider(Qt.Orientation.Horizontal)
+        self.slider.setMinimum(0)
+        self.slider.setMaximum(1000)
+        self.slider.setMinimumWidth(80)
+        controls_layout.addWidget(self.slider, stretch=2)
+        
+        # Поле ввода значения
+        if self._decimals == 0:
+            self.spinbox = QSpinBox()
+            self.spinbox.setMinimum(int(self._minimum))
+            self.spinbox.setMaximum(int(self._maximum))
+            self.spinbox.setSingleStep(int(self._step))
+        else:
+            self.spinbox = QDoubleSpinBox()
+            self.spinbox.setDecimals(self._decimals)
+            self.spinbox.setMinimum(self._minimum)
+            self.spinbox.setMaximum(self._maximum)
+            self.spinbox.setSingleStep(self._step)
+        
+        self.spinbox.setMinimumWidth(50)
+        self.spinbox.setMaximumWidth(70)
+        controls_layout.addWidget(self.spinbox)
+        
+        # Единицы измерения
+        if self._units:
+            units_label = QLabel(self._units)
+            font = QFont()
+            font.setPointSize(8)
+            units_label.setFont(font)
+            controls_layout.addWidget(units_label)
+        
+        layout.addLayout(controls_layout)
+        
+        # Подключить сигналы
+        self.slider.valueChanged.connect(self._on_slider_changed)
+        self.spinbox.valueChanged.connect(self._on_spinbox_changed)
+    
+    def setValue(self, value):
+        """Установить значение"""
+        value = max(self._minimum, min(self._maximum, value))
+        
+        self._updating = True
+        
+        # Обновить spinbox
+        self.spinbox.setValue(value)
+        
+        # Обновить слайдер
+        if self._maximum > self._minimum:
+            ratio = (value - self._minimum) / (self._maximum - self._minimum)
+            slider_pos = int(ratio * 1000)
+            self.slider.setValue(slider_pos)
+        
+        self._updating = False
+    
+    def value(self):
+        """Получить текущее значение"""
+        return self.spinbox.value()
+    
+    @Slot(int)
+    def _on_slider_changed(self, slider_value):
+        """Обработать изменение слайдера"""
+        if self._updating:
+            return
+        
+        # Конвертировать позицию слайдера в реальное значение
+        ratio = slider_value / 1000.0
+        value = self._minimum + ratio * (self._maximum - self._minimum)
+        
+        # Применить шаг
+        if self._step > 0:
+            steps = round((value - self._minimum) / self._step)
+            value = self._minimum + steps * self._step
+        
+        # Ограничить диапазоном
+        value = max(self._minimum, min(self._maximum, value))
+        
+        self._updating = True
+        self.spinbox.setValue(value)
+        self._updating = False
+        
+        self.valueEdited.emit(value)
+    
+    @Slot()
+    def _on_spinbox_changed(self, value):
+        """Обработать изменение поля ввода"""
+        if self._updating:
+            return
+        
+        # Обновить слайдер
+        if self._maximum > self._minimum:
+            ratio = (value - self._minimum) / (self._maximum - self._minimum)
+            slider_pos = int(ratio * 1000)
+            
+            self._updating = True
+            self.slider.setValue(slider_pos)
+            self._updating = False
+        
+        self.valueEdited.emit(value)
 
 
 class ModesPanel(QWidget):
-    """Панель конфигурации режимов симуляции
+    """Панель конфигурации режимов симуляции со стандартными слайдерами
     
-    Panel for simulation mode configuration (Russian UI)
-    
-    Provides controls for / Управление:
-    - Kinematic vs Dynamic simulation / Кинематическая vs Динамическая симуляция
-    - Physics component toggles / Переключатели физических компонентов
-    - Road excitation parameters / Параметры дорожного воздействия
-    - Simulation control buttons / Кнопки управления симуляцией
+    Panel for simulation mode configuration with standard Qt sliders (Russian UI)
     """
     
     # Signals
@@ -53,12 +185,12 @@ class ModesPanel(QWidget):
         self.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Expanding)
     
     def _setup_ui(self):
-        """Настроить интерфейс / Setup user interface"""
+        """Настроить интерфейс со стандартными слайдерами"""
         layout = QVBoxLayout(self)
         layout.setSpacing(8)
         layout.setContentsMargins(8, 8, 8, 8)
         
-        # Title (Russian)
+        # Title
         title_label = QLabel("Режимы симуляции")
         title_font = QFont()
         title_font.setPointSize(12)
@@ -67,7 +199,7 @@ class ModesPanel(QWidget):
         title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         layout.addWidget(title_label)
         
-        # Mode preset selector (NEW!)
+        # Mode preset selector
         preset_layout = QHBoxLayout()
         preset_label = QLabel("Пресет режима:")
         self.mode_preset_combo = QComboBox()
@@ -78,7 +210,7 @@ class ModesPanel(QWidget):
             "Тест пневматики",
             "Пользовательский"
         ])
-        self.mode_preset_combo.setCurrentIndex(0)  # Default: Standard
+        self.mode_preset_combo.setCurrentIndex(0)
         self.mode_preset_combo.currentIndexChanged.connect(self._on_mode_preset_changed)
         preset_layout.addWidget(preset_label)
         preset_layout.addWidget(self.mode_preset_combo, stretch=1)
@@ -103,7 +235,7 @@ class ModesPanel(QWidget):
         layout.addStretch()
     
     def _create_control_group(self) -> QGroupBox:
-        """Создать группу управления симуляцией / Create simulation control buttons group"""
+        """Создать группу управления симуляцией"""
         group = QGroupBox("Управление симуляцией")
         layout = QVBoxLayout(group)
         layout.setSpacing(4)
@@ -139,12 +271,12 @@ class ModesPanel(QWidget):
         return group
     
     def _create_mode_group(self) -> QGroupBox:
-        """Создать группу выбора режима симуляции / Create simulation mode selection group"""
+        """Создать группу выбора режима симуляции"""
         group = QGroupBox("Тип симуляции")
         layout = QHBoxLayout(group)
         layout.setSpacing(16)
         
-        # Kinematics vs Dynamics (Кинематика vs Динамика)
+        # Kinematics vs Dynamics
         sim_type_widget = QWidget()
         sim_type_layout = QVBoxLayout(sim_type_widget)
         sim_type_layout.setSpacing(4)
@@ -161,7 +293,7 @@ class ModesPanel(QWidget):
         self.kinematics_radio = QRadioButton("Кинематика")
         self.dynamics_radio = QRadioButton("Динамика")
         
-        self.kinematics_radio.setChecked(True)  # Default
+        self.kinematics_radio.setChecked(True)
         
         self.sim_type_group.addButton(self.kinematics_radio, 0)
         self.sim_type_group.addButton(self.dynamics_radio, 1)
@@ -171,7 +303,7 @@ class ModesPanel(QWidget):
         
         layout.addWidget(sim_type_widget)
         
-        # Thermodynamic mode (Термодинамический режим)
+        # Thermodynamic mode
         thermo_widget = QWidget()
         thermo_layout = QVBoxLayout(thermo_widget)
         thermo_layout.setSpacing(4)
@@ -188,7 +320,7 @@ class ModesPanel(QWidget):
         self.isothermal_radio = QRadioButton("Изотермический")
         self.adiabatic_radio = QRadioButton("Адиабатический")
         
-        self.isothermal_radio.setChecked(True)  # Default
+        self.isothermal_radio.setChecked(True)
         
         self.thermo_group.addButton(self.isothermal_radio, 0)
         self.thermo_group.addButton(self.adiabatic_radio, 1)
@@ -201,12 +333,12 @@ class ModesPanel(QWidget):
         return group
     
     def _create_physics_group(self) -> QGroupBox:
-        """Создать группу опций физики / Create physics options group"""
+        """Создать группу опций физики"""
         group = QGroupBox("Опции физики")
         layout = QVBoxLayout(group)
         layout.setSpacing(4)
         
-        # Component toggles (Переключатели компонентов)
+        # Component toggles
         self.include_springs_check = QCheckBox("Включить пружины")
         self.include_dampers_check = QCheckBox("Включить демпферы")
         self.include_pneumatics_check = QCheckBox("Включить пневматику")
@@ -228,31 +360,31 @@ class ModesPanel(QWidget):
         return group
     
     def _create_road_group(self) -> QGroupBox:
-        """Создать группу дорожного воздействия / Create road excitation parameters group"""
+        """Создать группу дорожного воздействия со стандартными слайдерами"""
         group = QGroupBox("Дорожное воздействие")
         layout = QVBoxLayout(group)
         layout.setSpacing(4)
         
-        # Global excitation parameters (Глобальные параметры)
-        self.amplitude_slider = RangeSlider(
+        # Global excitation parameters
+        self.amplitude_slider = StandardSlider(
             minimum=0.0, maximum=0.2, value=0.05, step=0.001,
             decimals=3, units="м", title="Глобальная амплитуда"
         )
         layout.addWidget(self.amplitude_slider)
         
-        self.frequency_slider = RangeSlider(
+        self.frequency_slider = StandardSlider(
             minimum=0.1, maximum=10.0, value=1.0, step=0.1,
             decimals=1, units="Гц", title="Глобальная частота"
         )
         layout.addWidget(self.frequency_slider)
         
-        self.phase_slider = RangeSlider(
+        self.phase_slider = StandardSlider(
             minimum=0.0, maximum=360.0, value=0.0, step=15.0,
             decimals=0, units="°", title="Глобальная фаза"
         )
         layout.addWidget(self.phase_slider)
         
-        # Per-wheel phase offsets (Фазовые сдвиги по колёсам)
+        # Per-wheel phase offsets
         per_wheel_label = QLabel("Фазовые сдвиги по колёсам")
         font = QFont()
         font.setPointSize(9)
@@ -264,7 +396,7 @@ class ModesPanel(QWidget):
         wheel_layout = QHBoxLayout()
         wheel_layout.setSpacing(8)
         
-        # Left Front (Левое переднее)
+        # Left Front
         lf_widget = QWidget()
         lf_layout = QVBoxLayout(lf_widget)
         lf_layout.setContentsMargins(2, 2, 2, 2)
@@ -273,14 +405,14 @@ class ModesPanel(QWidget):
         lf_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         lf_layout.addWidget(lf_label)
         
-        self.lf_phase_slider = RangeSlider(
+        self.lf_phase_slider = StandardSlider(
             minimum=0.0, maximum=360.0, value=0.0, step=15.0,
             decimals=0, units="°", title=""
         )
         lf_layout.addWidget(self.lf_phase_slider)
         wheel_layout.addWidget(lf_widget)
         
-        # Right Front (Правое переднее)
+        # Right Front
         rf_widget = QWidget()
         rf_layout = QVBoxLayout(rf_widget)
         rf_layout.setContentsMargins(2, 2, 2, 2)
@@ -289,14 +421,14 @@ class ModesPanel(QWidget):
         rf_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         rf_layout.addWidget(rf_label)
         
-        self.rf_phase_slider = RangeSlider(
+        self.rf_phase_slider = StandardSlider(
             minimum=0.0, maximum=360.0, value=0.0, step=15.0,
             decimals=0, units="°", title=""
         )
         rf_layout.addWidget(self.rf_phase_slider)
         wheel_layout.addWidget(rf_widget)
         
-        # Left Rear (Левое заднее)
+        # Left Rear
         lr_widget = QWidget()
         lr_layout = QVBoxLayout(lr_widget)
         lr_layout.setContentsMargins(2, 2, 2, 2)
@@ -305,14 +437,14 @@ class ModesPanel(QWidget):
         lr_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         lr_layout.addWidget(lr_label)
         
-        self.lr_phase_slider = RangeSlider(
+        self.lr_phase_slider = StandardSlider(
             minimum=0.0, maximum=360.0, value=0.0, step=15.0,
             decimals=0, units="°", title=""
         )
         lr_layout.addWidget(self.lr_phase_slider)
         wheel_layout.addWidget(lr_widget)
         
-        # Right Rear (Правое заднее)
+        # Right Rear
         rr_widget = QWidget()
         rr_layout = QVBoxLayout(rr_widget)
         rr_layout.setContentsMargins(2, 2, 2, 2)
@@ -321,7 +453,7 @@ class ModesPanel(QWidget):
         rr_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         rr_layout.addWidget(rr_label)
         
-        self.rr_phase_slider = RangeSlider(
+        self.rr_phase_slider = StandardSlider(
             minimum=0.0, maximum=360.0, value=0.0, step=15.0,
             decimals=0, units="°", title=""
         )
@@ -333,7 +465,7 @@ class ModesPanel(QWidget):
         return group
     
     def _set_default_values(self):
-        """Set default parameter values"""
+        """Установить значения по умолчанию"""
         defaults = {
             # Simulation modes
             'sim_type': 'KINEMATICS',
@@ -360,7 +492,7 @@ class ModesPanel(QWidget):
         self.physics_options.update(physics_defaults)
     
     def _connect_signals(self):
-        """Connect widget signals"""
+        """Подключить сигналы виджетов"""
         # Control buttons
         self.start_button.clicked.connect(lambda: self.simulation_control.emit("start"))
         self.stop_button.clicked.connect(lambda: self.simulation_control.emit("stop"))
@@ -399,7 +531,7 @@ class ModesPanel(QWidget):
     
     @Slot(int)
     def _on_mode_preset_changed(self, index: int):
-        """Обработать изменение пресета режима / Handle mode preset change"""
+        """Обработать изменение пресета режима"""
         presets = {
             0: {  # Стандартный
                 'sim_type': 'KINEMATICS',
@@ -458,7 +590,7 @@ class ModesPanel(QWidget):
     
     @Slot()
     def _on_sim_type_changed(self):
-        """Handle simulation type change"""
+        """Обработать изменение типа симуляции"""
         if self.kinematics_radio.isChecked():
             mode = 'KINEMATICS'
         else:
@@ -473,7 +605,7 @@ class ModesPanel(QWidget):
     
     @Slot()
     def _on_thermo_mode_changed(self):
-        """Handle thermodynamic mode change"""
+        """Обработать изменение термодинамического режима"""
         if self.isothermal_radio.isChecked():
             mode = 'ISOTHERMAL'
         else:
@@ -488,12 +620,7 @@ class ModesPanel(QWidget):
     
     @Slot(str, bool)
     def _on_physics_option_changed(self, option_name: str, checked: bool):
-        """Handle physics option toggle
-        
-        Args:
-            option_name: Name of physics option
-            checked: New state
-        """
+        """Обработать переключение опции физики"""
         self.physics_options[option_name] = checked
         self.physics_options_changed.emit(self.physics_options.copy())
         
@@ -503,12 +630,7 @@ class ModesPanel(QWidget):
     
     @Slot(str, float)
     def _on_parameter_changed(self, param_name: str, value: float):
-        """Handle parameter change
-        
-        Args:
-            param_name: Name of changed parameter
-            value: New value
-        """
+        """Обработать изменение параметра"""
         self.parameters[param_name] = value
         self.parameter_changed.emit(param_name, value)
         
@@ -527,27 +649,15 @@ class ModesPanel(QWidget):
             print(f"🔧 ModesPanel: Параметр анимации '{param_name}' изменён на {value}")
     
     def get_parameters(self) -> dict:
-        """Get current parameter values
-        
-        Returns:
-            Dictionary of current parameters
-        """
+        """Получить текущие значения параметров"""
         return self.parameters.copy()
     
     def get_physics_options(self) -> dict:
-        """Get current physics options
-        
-        Returns:
-            Dictionary of physics option states
-        """
+        """Получить текущие опции физики"""
         return self.physics_options.copy()
     
     def set_simulation_running(self, running: bool):
-        """Update UI state based on simulation status
-        
-        Args:
-            running: True if simulation is running
-        """
+        """Обновить состояние UI в зависимости от статуса симуляции"""
         self.start_button.setEnabled(not running)
         self.stop_button.setEnabled(running)
         self.pause_button.setEnabled(running)

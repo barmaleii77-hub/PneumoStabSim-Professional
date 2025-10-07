@@ -356,12 +356,21 @@ class MainWindow(QMainWindow):
 
         # Modes panel
         if self.modes_panel:
-            # ВРЕМЕННАЯ ЗАГЛУШКА - просто логируем
-            self.modes_panel.simulation_control.connect(lambda command: print(f"🔧 Sim control: {command}"))
+            # Simulation control
+            self.modes_panel.simulation_control.connect(self._on_sim_control)
+            print("✅ Сигнал simulation_control подключен")
+            
+            # Mode changes (заглушка)
             self.modes_panel.mode_changed.connect(lambda mode_type, new_mode: print(f"🔧 Mode changed: {mode_type} -> {new_mode}"))
+            
+            # Parameter changes (заглушка)
             self.modes_panel.parameter_changed.connect(lambda n, v: print(f"🔧 Param: {n} = {v}"))
-            self.modes_panel.animation_changed.connect(lambda params: print(f"🔧 Animation: {params}"))
-            print("✅ Сигналы ModesPanel подключены (ЗАГЛУШКА)")
+            
+            # ✨ НОВОЕ: Подключаем обработчик изменения параметров анимации
+            self.modes_panel.animation_changed.connect(self._on_animation_changed)
+            print("✅ Сигнал animation_changed подключен к _on_animation_changed")
+            
+            print("✅ Сигналы ModesPanel подключены")
 
     def _setup_menus(self):
         """Create menu bar"""
@@ -867,36 +876,67 @@ class MainWindow(QMainWindow):
             if command == "start":
                 if not self.is_simulation_running:
                     print("▶️ Запуск симуляции...")
-                    self.simulation_manager.start_simulation()
+                    # ИСПРАВЛЕНО: Используем state_bus сигналы вместо прямых вызовов
+                    self.simulation_manager.state_bus.start_simulation.emit()
                     self.is_simulation_running = True
                     self.status_bar.showMessage("Симуляция запущена")
                     self._start_time = None  # Reset animation timer
+                    
+                    # ✨ НОВОЕ: Запускаем анимацию в QML
+                    if self._qml_root_object:
+                        self._qml_root_object.setProperty("isRunning", True)
+                        print("✅ QML анимация запущена (isRunning=True)")
                 else:
                     print("⚠️ Симуляция уже запущена")
                     
             elif command == "stop":
                 if self.is_simulation_running:
                     print("⏹️ Остановка симуляции...")
-                    self.simulation_manager.stop_simulation()
+                    # ИСПРАВЛЕНО: Используем state_bus сигналы
+                    self.simulation_manager.state_bus.stop_simulation.emit()
                     self.is_simulation_running = False
                     self.status_bar.showMessage("Симуляция остановлена")
+                    
+                    # ✨ НОВОЕ: Останавливаем анимацию в QML
+                    if self._qml_root_object:
+                        self._qml_root_object.setProperty("isRunning", False)
+                        print("✅ QML анимация остановлена (isRunning=False)")
                 else:
                     print("⚠️ Симуляция не запущена")
                     
             elif command == "pause":
                 if self.is_simulation_running:
                     print("⏸️ Пауза симуляции...")
-                    self.simulation_manager.pause_simulation()
+                    # ИСПРАВЛЕНО: Используем state_bus сигналы
+                    self.simulation_manager.state_bus.pause_simulation.emit()
                     self.status_bar.showMessage("Симуляция приостановлена")
+                    
+                    # ✨ НОВОЕ: Приостанавливаем анимацию в QML
+                    if self._qml_root_object:
+                        current_running = self._qml_root_object.property("isRunning")
+                        self._qml_root_object.setProperty("isRunning", not current_running)
+                        state_text = "возобновлена" if not current_running else "приостановлена"
+                        print(f"✅ QML анимация {state_text} (isRunning={not current_running})")
                 else:
                     print("⚠️ Нечего приостанавливать")
                     
             elif command == "reset":
                 print("🔄 Сброс симуляции...")
-                self.simulation_manager.reset_simulation()
+                # ИСПРАВЛЕНО: Используем state_bus сигналы
+                self.simulation_manager.state_bus.reset_simulation.emit()
                 self.is_simulation_running = False
                 self.status_bar.showMessage("Симуляция сброшена")
                 self._start_time = None  # Reset animation timer
+                
+                # ✨ НОВОЕ: Останавливаем анимацию и сбрасываем углы в QML
+                if self._qml_root_object:
+                    self._qml_root_object.setProperty("isRunning", False)
+                    self._qml_root_object.setProperty("fl_angle", 0.0)
+                    self._qml_root_object.setProperty("fr_angle", 0.0)
+                    self._qml_root_object.setProperty("rl_angle", 0.0)
+                    self._qml_root_object.setProperty("rr_angle", 0.0)
+                    self._qml_root_object.setProperty("animationTime", 0.0)
+                    print("✅ QML анимация сброшена (isRunning=False, все углы=0)")
                 
             else:
                 print(f"❌ Неизвестная команда: {command}")
@@ -908,3 +948,79 @@ class MainWindow(QMainWindow):
             self.status_bar.showMessage(f"Ошибка: {command}")
             import traceback
             traceback.print_exc()
+
+    @Slot(dict)
+    def _on_animation_changed(self, animation_params: dict):
+        """Обработка изменения параметров анимации от ModesPanel
+        
+        Args:
+            animation_params: Dictionary with animation parameters:
+                - amplitude: амплитуда колебаний (м)
+                - frequency: частота (Гц)
+                - phase: глобальная фаза (градусы)
+                - lf_phase, rf_phase, lr_phase, rr_phase: фазы для каждого колеса (градусы)
+        """
+        print(f"═══════════════════════════════════════════════")
+        print(f"🎬 MainWindow: Параметры анимации изменены!")
+        print(f"   Получено параметров: {animation_params}")
+        print(f"═══════════════════════════════════════════════")
+        
+        self.logger.info(f"Animation changed: {animation_params}")
+        
+        # Обновляем параметры анимации в QML сцене
+        if self._qml_root_object:
+            try:
+                # Амплитуда: конвертируем метры в градусы (примерное преобразование)
+                # Для подвески обычно 0.05м = ~5° угла рычага
+                if 'amplitude' in animation_params:
+                    amplitude_m = animation_params['amplitude']
+                    amplitude_deg = amplitude_m * 100  # 0.05м = 5°
+                    self._qml_root_object.setProperty("userAmplitude", amplitude_deg)
+                    print(f"   ✅ Амплитуда: {amplitude_m}м → {amplitude_deg}°")
+                
+                # Частота (Hz)
+                if 'frequency' in animation_params:
+                    frequency = animation_params['frequency']
+                    self._qml_root_object.setProperty("userFrequency", frequency)
+                    print(f"   ✅ Частота: {frequency} Гц")
+                
+                # Глобальная фаза (градусы)
+                if 'phase' in animation_params:
+                    phase = animation_params['phase']
+                    self._qml_root_object.setProperty("userPhaseGlobal", phase)
+                    print(f"   ✅ Глобальная фаза: {phase}°")
+                
+                # Фазы для каждого колеса (градусы)
+                if 'lf_phase' in animation_params:
+                    self._qml_root_object.setProperty("userPhaseFL", animation_params['lf_phase'])
+                    print(f"   ✅ Фаза ЛП: {animation_params['lf_phase']}°")
+                
+                if 'rf_phase' in animation_params:
+                    self._qml_root_object.setProperty("userPhaseFR", animation_params['rf_phase'])
+                    print(f"   ✅ Фаза ПП: {animation_params['rf_phase']}°")
+                
+                if 'lr_phase' in animation_params:
+                    self._qml_root_object.setProperty("userPhaseRL", animation_params['lr_phase'])
+                    print(f"   ✅ Фаза ЛЗ: {animation_params['lr_phase']}°")
+                
+                if 'rr_phase' in animation_params:
+                    self._qml_root_object.setProperty("userPhaseRR", animation_params['rr_phase'])
+                    print(f"   ✅ Фаза ПЗ: {animation_params['rr_phase']}°")
+                
+                self.status_bar.showMessage("Параметры анимации обновлены")
+                print(f"📊 Статус: Параметры анимации успешно переданы в QML")
+                print(f"═══════════════════════════════════════════════")
+                
+            except Exception as e:
+                print(f"═══════════════════════════════════════════════")
+                print(f"❌ ОШИБКА обновления параметров анимации в QML!")
+                print(f"   Error: {e}")
+                print(f"═══════════════════════════════════════════════")
+                self.logger.error(f"QML animation update failed: {e}")
+                import traceback
+                traceback.print_exc()
+        else:
+            print(f"═══════════════════════════════════════════════")
+            print(f"❌ MainWindow: QML root object отсутствует!")
+            print(f"   Не можем обновить параметры анимации")
+            print(f"═══════════════════════════════════════════════")
