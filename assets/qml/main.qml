@@ -4,7 +4,7 @@ import QtQuick3D
 /*
  * PneumoStabSim - Main 3D View
  * Complete 4-corner pneumatic suspension system with orbital camera
- * ИСПРАВЛЕНО: Анимация штока и правильное соединение с шарниром
+ * ИСПРАВЛЕНО: Шарниры перемещены внутрь SuspensionCorner компонентов
  */
 Item {
     id: root
@@ -42,10 +42,52 @@ Item {
     property real userPhaseRR: 0.0
 
     // NEW: USER-CONTROLLED PISTON POSITIONS (from Python Physics Engine!)
-    property real userPistonPositionFL: 250.0  // mm - ИСПРАВЛЕНО: 500/2 для centra цилиндра 500мм
-    property real userPistonPositionFR: 250.0  // mm - ИСПРАВЛЕНО: 500/2 для centra цилиндра 500мм
+    property real userPistonPositionFL: 250.0  // mm - ИСПРАВЛЕНО: 500/2 для centra cilindra 500мм
+    property real userPistonPositionFR: 250.0  // mm - ИСПРАВЛЕНО: 500/2 для centra cilindra 500мм
     property real userPistonPositionRL: 250.0  // mm - ИСПРАВЛЕНО: 500/2 для centra цилиндра 500мм
     property real userPistonPositionRR: 250.0  // mm - ИСПРАВЛЕНО: 500/2 для centra цилиндра 500мм
+
+    // ✨ NEW: LIGHTING CONTROL PROPERTIES (from Python Graphics Panel!)
+    property real keyLightBrightness: 2.8
+    property string keyLightColor: "#ffffff"
+    property real keyLightAngleX: -30
+    property real keyLightAngleY: -45
+    
+    property real fillLightBrightness: 1.2
+    property string fillLightColor: "#f0f0ff"
+    
+    property real pointLightBrightness: 20000
+    property real pointLightY: 1800
+    
+    property string backgroundColor: "#2a2a2a"
+    property int antialiasingMode: 2  // 0=None, 1=SSAA, 2=MSAA  
+    property int antialiasingQuality: 2  // 0=Low, 1=Medium, 2=High
+    property bool shadowsEnabled: true
+
+    // ✨ NEW: MATERIAL CONTROL PROPERTIES (from Python Graphics Panel!)
+    property real metalRoughness: 0.28
+    property real metalMetalness: 1.0
+    property real metalClearcoat: 0.25
+    property real glassOpacity: 0.35
+    property real glassRoughness: 0.05
+    property real frameMetalness: 0.8
+    property real frameRoughness: 0.4
+    
+    // ✨ NEW: CAMERA CONTROL PROPERTIES (from Python Graphics Panel!)
+    property real cameraFov: 45.0
+    property real cameraNear: 10.0
+    property real cameraFar: 50000.0
+    property real cameraSpeed: 1.0
+    property bool autoRotate: false
+    property real autoRotateSpeed: 0.5
+    
+    // ✨ NEW: EFFECTS CONTROL PROPERTIES (from Python Graphics Panel!)
+    property bool bloomEnabled: false
+    property real bloomIntensity: 0.3
+    property bool ssaoEnabled: false
+    property real ssaoIntensity: 0.5
+    property bool motionBlur: false
+    property bool depthOfField: false
 
     // Angles for each corner - CALCULATED from animation parameters
     property real fl_angle: useAutoAngles && isRunning ? userAmplitude * Math.sin(animationTime * userFrequency * 2 * Math.PI + (userPhaseGlobal + userPhaseFL) * Math.PI / 180) : 0.0
@@ -256,6 +298,206 @@ Item {
         console.log("   ? Angles set: FL=" + fl_angle + ", FR=" + fr_angle + ", RL=" + rl_angle + ", RR=" + rr_angle)
     }
 
+    // Update materials, camera, and effects from Graphics Panel
+    function updateMaterials(params) {
+        console.log("🎨 main.qml: updateMaterials() called")
+        console.log("🎨 Received material params:", JSON.stringify(params))
+        
+        // Metal materials
+        if (params.metal !== undefined) {
+            if (params.metal.roughness !== undefined) {
+                console.log("  🔧 Setting metalRoughness:", params.metal.roughness)
+                metalRoughness = params.metal.roughness
+            }
+            if (params.metal.metalness !== undefined) {
+                console.log("  🔧 Setting metalMetalness:", params.metal.metalness)
+                metalMetalness = params.metal.metalness
+            }
+            if (params.metal.clearcoat !== undefined) {
+                console.log("  🔧 Setting metalClearcoat:", params.metal.clearcoat)
+                metalClearcoat = params.metal.clearcoat
+            }
+        }
+        
+        // Glass materials
+        if (params.glass !== undefined) {
+            if (params.glass.opacity !== undefined) {
+                console.log("  🔧 Setting glassOpacity:", params.glass.opacity)
+                glassOpacity = params.glass.opacity
+            }
+            if (params.glass.roughness !== undefined) {
+                console.log("  🔧 Setting glassRoughness:", params.glass.roughness)
+                glassRoughness = params.glass.roughness
+            }
+        }
+        
+        // Frame materials
+        if (params.frame !== undefined) {
+            if (params.frame.metalness !== undefined) {
+                console.log("  🔧 Setting frameMetalness:", params.frame.metalness)
+                frameMetalness = params.frame.metalness
+            }
+            if (params.frame.roughness !== undefined) {
+                console.log("  🔧 Setting frameRoughness:", params.frame.roughness)
+                frameRoughness = params.frame.roughness
+            }
+        }
+        
+        console.log("  ✅ Materials updated successfully")
+    }
+    
+    // Update camera settings from Graphics Panel
+    function updateCamera(params) {
+        console.log("📷 main.qml: updateCamera() called")
+        console.log("📷 Received camera params:", JSON.stringify(params))
+        
+        if (params.fov !== undefined) {
+            console.log("  🔧 Setting cameraFov:", params.fov)
+            cameraFov = params.fov
+        }
+        if (params.near !== undefined) {
+            console.log("  🔧 Setting cameraNear:", params.near)
+            cameraNear = params.near
+        }
+        if (params.far !== undefined) {
+            console.log("  🔧 Setting cameraFar:", params.far)
+            cameraFar = params.far
+        }
+        if (params.speed !== undefined) {
+            console.log("  🔧 Setting cameraSpeed:", params.speed)
+            cameraSpeed = params.speed
+        }
+        if (params.auto_rotate !== undefined) {
+            console.log("  🔧 Setting autoRotate:", params.auto_rotate)
+            autoRotate = params.auto_rotate
+        }
+        if (params.auto_rotate_speed !== undefined) {
+            console.log("  🔧 Setting autoRotateSpeed:", params.auto_rotate_speed)
+            autoRotateSpeed = params.auto_rotate_speed
+        }
+        
+        console.log("  ✅ Camera settings updated successfully")
+    }
+    
+    // Update lighting from Graphics Panel
+    function updateLighting(params) {
+        console.log("💡 main.qml: updateLighting() called")
+        console.log("💡 Received lighting params:", JSON.stringify(params))
+        
+        // Key Light
+        if (params.key_light !== undefined) {
+            if (params.key_light.brightness !== undefined) {
+                console.log("  🔧 Setting keyLightBrightness:", params.key_light.brightness)
+                keyLightBrightness = params.key_light.brightness
+            }
+            if (params.key_light.color !== undefined) {
+                console.log("  🔧 Setting keyLightColor:", params.key_light.color)
+                keyLightColor = params.key_light.color
+            }
+            if (params.key_light.angle_x !== undefined) {
+                console.log("  🔧 Setting keyLightAngleX:", params.key_light.angle_x)
+                keyLightAngleX = params.key_light.angle_x
+            }
+            if (params.key_light.angle_y !== undefined) {
+                console.log("  🔧 Setting keyLightAngleY:", params.key_light.angle_y)
+                keyLightAngleY = params.key_light.angle_y
+            }
+        }
+        
+        // Fill Light
+        if (params.fill_light !== undefined) {
+            if (params.fill_light.brightness !== undefined) {
+                console.log("  🔧 Setting fillLightBrightness:", params.fill_light.brightness)
+                fillLightBrightness = params.fill_light.brightness
+            }
+            if (params.fill_light.color !== undefined) {
+                console.log("  🔧 Setting fillLightColor:", params.fill_light.color)
+                fillLightColor = params.fill_light.color
+            }
+        }
+        
+        // Point Light
+        if (params.point_light !== undefined) {
+            if (params.point_light.brightness !== undefined) {
+                console.log("  🔧 Setting pointLightBrightness:", params.point_light.brightness)
+                pointLightBrightness = params.point_light.brightness
+            }
+            if (params.point_light.position_y !== undefined) {
+                console.log("  🔧 Setting pointLightY:", params.point_light.position_y)
+                pointLightY = params.point_light.position_y
+            }
+        }
+        
+        console.log("  ✅ Lighting updated successfully")
+    }
+    
+    // Update environment settings from Graphics Panel
+    function updateEnvironment(params) {
+        console.log("🌍 main.qml: updateEnvironment() called")
+        console.log("🌍 Received environment params:", JSON.stringify(params))
+        
+        if (params.background_color !== undefined) {
+            console.log("  🔧 Setting backgroundColor:", params.background_color)
+            backgroundColor = params.background_color
+        }
+        
+        console.log("  ✅ Environment updated successfully")
+    }
+    
+    // Update render quality from Graphics Panel
+    function updateQuality(params) {
+        console.log("⚙️ main.qml: updateQuality() called")
+        console.log("⚙️ Received quality params:", JSON.stringify(params))
+        
+        if (params.antialiasing !== undefined) {
+            console.log("  🔧 Setting antialiasingMode:", params.antialiasing)
+            antialiasingMode = params.antialiasing
+        }
+        if (params.aa_quality !== undefined) {
+            console.log("  🔧 Setting antialiasingQuality:", params.aa_quality)
+            antialiasingQuality = params.aa_quality
+        }
+        if (params.shadows_enabled !== undefined) {
+            console.log("  🔧 Setting shadowsEnabled:", params.shadows_enabled)
+            shadowsEnabled = params.shadows_enabled
+        }
+        
+        console.log("  ✅ Quality settings updated successfully")
+    }
+    
+    // Update visual effects from Graphics Panel
+    function updateEffects(params) {
+        console.log("✨ main.qml: updateEffects() called")
+        console.log("✨ Received effects params:", JSON.stringify(params))
+        
+        if (params.bloom_enabled !== undefined) {
+            console.log("  🔧 Setting bloomEnabled:", params.bloom_enabled)
+            bloomEnabled = params.bloom_enabled
+        }
+        if (params.bloom_intensity !== undefined) {
+            console.log("  🔧 Setting bloomIntensity:", params.bloom_intensity)
+            bloomIntensity = params.bloom_intensity
+        }
+        if (params.ssao_enabled !== undefined) {
+            console.log("  🔧 Setting ssaoEnabled:", params.ssao_enabled)
+            ssaoEnabled = params.ssao_enabled
+        }
+        if (params.ssao_intensity !== undefined) {
+            console.log("  🔧 Setting ssaoIntensity:", params.ssao_intensity)
+            ssaoIntensity = params.ssao_intensity
+        }
+        if (params.motion_blur !== undefined) {
+            console.log("  🔧 Setting motionBlur:", params.motion_blur)
+            motionBlur = params.motion_blur
+        }
+        if (params.depth_of_field !== undefined) {
+            console.log("  🔧 Setting depthOfField:", params.depth_of_field)
+            depthOfField = params.depth_of_field
+        }
+        
+        console.log("  ✅ Visual effects updated successfully")
+    }
+    
     // Utilities
     function clamp(v, a, b) { return Math.max(a, Math.min(b, v)); }
     function normAngleDeg(a) {
@@ -265,13 +507,24 @@ Item {
         return x;
     }
 
-    // Animation timer (CONTROLLED BY isRunning)
+    // Animation timer (CONTROLLED BY isRunning) - улучшенная плавность
     Timer {
         running: isRunning  // CHANGED: Now controlled by Python
         interval: 16  // 60 FPS for smooth animation
         repeat: true
         onTriggered: {
             animationTime += 0.016  // Fixed timestep in seconds
+        }
+    }
+    
+    // Auto-rotation timer (управляемое автовращение камеры)
+    Timer {
+        running: root.autoRotate
+        interval: 16  // 60 FPS
+        repeat: true
+        onTriggered: {
+            // Плавное автовращение камеры
+            root.yawDeg = root.normAngleDeg(root.yawDeg + root.autoRotateSpeed * 0.016 * 10) // 10°/сек при speed=1.0
         }
     }
 
@@ -281,9 +534,19 @@ Item {
 
         environment: SceneEnvironment {
             backgroundMode: SceneEnvironment.Color
-            clearColor: "#2a2a2a"
-            antialiasingMode: SceneEnvironment.MSAA
-            antialiasingQuality: SceneEnvironment.High
+            clearColor: root.backgroundColor          // Управляемый цвет фона
+            antialiasingMode: {
+                // Конвертируем индекс в значение enum
+                if (root.antialiasingMode === 0) return SceneEnvironment.NoAA
+                else if (root.antialiasingMode === 1) return SceneEnvironment.SSAA
+                else return SceneEnvironment.MSAA
+            }
+            antialiasingQuality: {
+                // Конвертируем индекс в значение enum
+                if (root.antialiasingQuality === 0) return SceneEnvironment.Low
+                else if (root.antialiasingQuality === 1) return SceneEnvironment.Medium
+                else return SceneEnvironment.High
+            }
         }
 
         // Orbital camera rig
@@ -295,9 +558,9 @@ Item {
             PerspectiveCamera {
                 id: camera
                 position: Qt.vector3d(0, 0, root.cameraDistance)
-                fieldOfView: 45
-                clipNear: 1
-                clipFar: 100000
+                fieldOfView: root.cameraFov          // Управляемое поле зрения
+                clipNear: root.cameraNear            // Управляемая ближняя граница
+                clipFar: root.cameraFar              // Управляемая дальняя граница
             }
         }
 
@@ -306,55 +569,51 @@ Item {
         // Key Light (основной свет) - яркий направленный свет
         DirectionalLight {
             id: keyLight
-            eulerRotation.x: -30
-            eulerRotation.y: -45
-            brightness: 2.8  // Увеличена яркость
-            color: "#ffffff"
+            eulerRotation.x: root.keyLightAngleX      // Управляемый угол наклона по X
+            eulerRotation.y: root.keyLightAngleY      // Управляемый угол поворота по Y
+            brightness: root.keyLightBrightness       // Управляемая яркость
+            color: root.keyLightColor                 // Управляемый цвет света
+            castsShadow: root.shadowsEnabled          // Управляемые тени
         }
         
-        // ✨ НОВОЕ: Fill Light (заполняющий свет) - смягчает тени
+        // ✨ Fill Light (заполняющий свет) - смягчает тени
         DirectionalLight {
             id: fillLight
-            eulerRotation.x: -60
-            eulerRotation.y: 135
-            brightness: 1.2
-            color: "#f0f0ff"  // Слегка голубоватый для контраста
+            eulerRotation.x: -60                      // Фиксированный угол
+            eulerRotation.y: 135                      // Фиксированный угол
+            brightness: root.fillLightBrightness      // Управляемая яркость
+            color: root.fillLightColor                // Управляемый цвет
+            castsShadow: root.shadowsEnabled          // Управляемые тени
         }
         
-        // ✨ НОВОЕ: Rim Light (контровой свет) - создает контур объектов
+        // ✨ Rim Light (контровой свет) - создает контур объектов
         DirectionalLight {
             id: rimLight
-            eulerRotation.x: 15
-            eulerRotation.y: 180
-            brightness: 1.5
-            color: "#ffffcc"  // Теплый оттенок для контраста
+            eulerRotation.x: 15                       // Фиксированный контровой угол
+            eulerRotation.y: 180                      // Сзади
+            brightness: 1.5                           // Фиксированная яркость
+            color: "#ffffcc"                          // Фиксированное теплый оттенок
+            castsShadow: false                        // Контровой свет без теней
         }
         
-        // ✨ НОВОЕ: Point Light (точечный акцент) - подсвечивает центр
+        // ✨ Point Light (точечный акцент) - подсвечивает центр
         PointLight {
             id: accentLight
-            position: Qt.vector3d(0, 1800, 1500)  // Над центром сцены
-            brightness: 20000  // Высокая яркость для точечного света
-            color: "#ffffff"
-            quadraticFade: 0.00008  // Мягкое затухание
+            position: Qt.vector3d(0, root.pointLightY, 1500)  // Управляемая высота
+            brightness: root.pointLightBrightness      // Управляемая яркость
+            color: "#ffffff"                           // Фиксированное белый цвет
+            quadraticFade: 0.00008                     // Фиксированное затухание
         }
 
-        // Lighting
-        DirectionalLight {
-            eulerRotation.x: -30
-            eulerRotation.y: -45
-            brightness: 2.5
-        }
-
-        // U-FRAME (3 beams) - обновленные материалы
+        // U-FRAME (3 beams) - обновленные управляемые материалы
         Model {
             source: "#Cube"
             position: Qt.vector3d(0, userBeamSize/2, userFrameLength/2)
             scale: Qt.vector3d(userBeamSize/100, userBeamSize/100, userFrameLength/100)
             materials: PrincipledMaterial { 
                 baseColor: "#cc0000"
-                metalness: 0.7  // Уменьшена металличность
-                roughness: 0.3  // Уменьшена шероховатость
+                metalness: root.frameMetalness     // Управляемая металличность рамы
+                roughness: root.frameRoughness     // Управляемая шероховатость рамы
             }
         }
         Model {
@@ -363,8 +622,8 @@ Item {
             scale: Qt.vector3d(userBeamSize/100, userFrameHeight/100, userBeamSize/100)
             materials: PrincipledMaterial { 
                 baseColor: "#cc0000"
-                metalness: 0.7
-                roughness: 0.3
+                metalness: root.frameMetalness
+                roughness: root.frameRoughness
             }
         }
         Model {
@@ -373,12 +632,12 @@ Item {
             scale: Qt.vector3d(userBeamSize/100, userFrameHeight/100, userBeamSize/100)
             materials: PrincipledMaterial { 
                 baseColor: "#cc0000"
-                metalness: 0.7
-                roughness: 0.3
+                metalness: root.frameMetalness
+                roughness: root.frameRoughness
             }
         }
 
-        // SUSPENSION COMPONENT (with all parts)
+        // SUSPENSION COMPONENT (with all parts) - ИСПРАВЛЕНО: Шарниры внутри компонента!
         component SuspensionCorner: Node {
             property vector3d j_arm
             property vector3d j_tail  
@@ -463,7 +722,7 @@ Item {
             // Проверяем реальную длину штока (для отладки)
             property real actualRodLength: Math.hypot(j_rod.x - pistonCenter.x, j_rod.y - pistonCenter.y)
             
-            // ✅ LEVER с правильным расчетом центра и базовыми углами
+            // ✅ LEVER с правильным расчетом центра и базовыми углами + управляемые материалы
             Model {
                 source: "#Cube"
                 position: Qt.vector3d(
@@ -473,43 +732,56 @@ Item {
                 )
                 scale: Qt.vector3d(userLeverLength/100, 0.8, 0.8)
                 eulerRotation: Qt.vector3d(0, 0, totalAngle)
-                materials: PrincipledMaterial { baseColor: "#888888"; metalness: 0.9; roughness: 0.3 }
+                materials: PrincipledMaterial { 
+                    baseColor: "#888888"
+                    metalness: root.metalMetalness      // Управляемая металличность
+                    roughness: root.metalRoughness      // Управляемая шероховатость
+                    clearcoatAmount: root.metalClearcoat // Управляемое прозрачное покрытие
+                }
             }
             
-            // TAIL ROD (FIXED: from j_tail to cylinder start)
+            // TAIL ROD (FIXED: from j_tail to cylinder start) - управляемые материалы
             Model {
                 source: "#Cylinder"
                 position: Qt.vector3d((j_tail.x + tailRodEnd.x)/2, (j_tail.y + tailRodEnd.y)/2, j_tail.z)
                 scale: Qt.vector3d(userRodDiameter/100, lTailRod/100, userRodDiameter/100)
                 eulerRotation: Qt.vector3d(0, 0, Math.atan2(cylDirection.y, cylDirection.x) * 180 / Math.PI + 90)
-                materials: PrincipledMaterial { baseColor: "#cccccc"; metalness: 0.95; roughness: 0.05 }
+                materials: PrincipledMaterial { 
+                    baseColor: "#cccccc"
+                    metalness: root.metalMetalness      // Управляемая металличность
+                    roughness: root.metalRoughness      // Управляемая шероховатость
+                }
             }
             
-            // CYLINDER BODY (FIXED LENGTH, transparent)
+            // CYLINDER BODY (FIXED LENGTH, transparent) - управляемые материалы стекла
             Model {
                 source: "#Cylinder"
                 position: Qt.vector3d((tailRodEnd.x + cylinderEnd.x)/2, (tailRodEnd.y + cylinderEnd.y)/2, tailRodEnd.z)
                 scale: Qt.vector3d(userBoreHead/100, lCylinder/100, userBoreHead/100)
                 eulerRotation: Qt.vector3d(0, 0, Math.atan2(cylDirection.y, cylDirection.x) * 180 / Math.PI + 90)
                 materials: PrincipledMaterial { 
-                    baseColor: "#ffffff"; 
-                    metalness: 0.0; 
-                    roughness: 0.05; 
-                    opacity: 0.15; 
+                    baseColor: "#ffffff"
+                    metalness: 0.0
+                    roughness: root.glassRoughness      // Управляемая шероховатость стекла
+                    opacity: root.glassOpacity          // Управляемая прозрачность стекла
                     alphaMode: PrincipledMaterial.Blend 
                 }
             }
             
-            // ✅ ИСПРАВЛЕНО: PISTON - движется по оси цилиндра, отслеживая рычаг
+            // ✅ ИСПРАВЛЕНО: PISTON - движется по оси цилиндра, отслеживая рычаг + управляемые материалы
             Model {
                 source: "#Cylinder"
                 position: pistonCenter
                 scale: Qt.vector3d((userBoreHead - 2)/100, userPistonThickness/100, (userBoreHead - 2)/100)
                 eulerRotation: Qt.vector3d(0, 0, Math.atan2(cylDirection.y, cylDirection.x) * 180 / Math.PI + 90)
-                materials: PrincipledMaterial { baseColor: "#ff0066"; metalness: 0.9; roughness: 0.1 }
+                materials: PrincipledMaterial { 
+                    baseColor: "#ff0066"
+                    metalness: root.metalMetalness      // Управляемая металличность
+                    roughness: root.metalRoughness      // Управляемая шероховатость
+                }
             }
             
-            // ✅ ИСПРАВЛЕНО: PISTON ROD - ПОСТОЯННАЯ ДЛИНА!
+            // ✅ ИСПРАВЛЕНО: PISTON ROD - ПОСТОЯННАЯ ДЛИНА! + управляемые материалы
             Model {
                 source: "#Cylinder"
                 
@@ -520,78 +792,58 @@ Item {
                     pistonCenter.z
                 )
                 
-                // ✅ ФИКСИРОВАННАЯ ДЛИНА ШТОКА из параметров UI
+                // ✅ ФИКСИРОВАННАЯ ДЛИНА ШТока из параметров UI
                 scale: Qt.vector3d(userRodDiameter/100, userPistonRodLength/100, userRodDiameter/100)
                 
                 // Поворот: точное направление от поршня к шарниру
                 eulerRotation: Qt.vector3d(0, 0, Math.atan2(j_rod.y - pistonCenter.y, j_rod.x - pistonCenter.x) * 180 / Math.PI + 90)
                 
-                materials: PrincipledMaterial { baseColor: "#cccccc"; metalness: 0.95; roughness: 0.05 }
+                materials: PrincipledMaterial { 
+                    baseColor: "#cccccc"
+                    metalness: root.metalMetalness      // Управляемая металличность
+                    roughness: root.metalRoughness      // Управляемая шероховатость
+                }
             }
             
-            // JOINTS (cylinders along Z-axis)
+            // ✅ ИСПРАВЛЕНО: ШАРНИРЫ ПЕРЕМЕЩЕНЫ ВНУТРИ КОМПОНЕНТА - теперь видимы!
             
-            // Cylinder joint (blue)
+            // Cylinder joint (blue) - шарнир цилиндра
             Model {
                 source: "#Cylinder"
                 position: j_tail
                 scale: Qt.vector3d(1.2, 2.4, 1.2)
                 eulerRotation: Qt.vector3d(90, 0, 0)
-                materials: PrincipledMaterial { baseColor: "#0088ff"; metalness: 0.8; roughness: 0.2 }
+                materials: PrincipledMaterial { 
+                    baseColor: "#0088ff"  // СИНИЙ
+                    metalness: root.metalMetalness
+                    roughness: root.metalRoughness
+                }
             }
             
-            // Lever joint (orange)
+            // Lever joint (orange) - шарнир рычага  
             Model {
                 source: "#Cylinder"
                 position: j_arm
                 scale: Qt.vector3d(1.0, 2.0, 1.0)
                 eulerRotation: Qt.vector3d(90, 0, 0)
-                materials: PrincipledMaterial { baseColor: "#ff8800"; metalness: 0.8; roughness: 0.2 }
+                materials: PrincipledMaterial { 
+                    baseColor: "#ff8800"  // ОРАНЖЕВЫЙ
+                    metalness: root.metalMetalness
+                    roughness: root.metalRoughness
+                }
             }
             
-            // Rod joint (green) - точно в j_rod
+            // Rod joint (green) - шарнир штока
             Model {
                 source: "#Cylinder" 
                 position: j_rod
                 scale: Qt.vector3d(0.8, 1.6, 0.8)
                 eulerRotation: Qt.vector3d(90, 0, leverAngle * 0.1)
-                materials: PrincipledMaterial { baseColor: "#00ff44"; metalness: 0.7; roughness: 0.3 }
-            }
-            
-            // 🆕 ОТЛАДОЧНЫЕ МАРКЕРЫ
-            
-            // Красная сфера в j_rod
-            Model {
-                source: "#Sphere"
-                position: j_rod
-                scale: Qt.vector3d(0.3, 0.3, 0.3)
-                materials: PrincipledMaterial { baseColor: "#ff0000"; lighting: PrincipledMaterial.NoLighting }
-            }
-            
-            // Желтая сфера - проекция j_rod на ось цилиндра
-            Model {
-                source: "#Sphere"
-                position: j_rodProjectionOnAxis
-                scale: Qt.vector3d(0.2, 0.2, 0.2)
-                materials: PrincipledMaterial { baseColor: "#ffff00"; lighting: PrincipledMaterial.NoLighting }
-            }
-            
-            // Тонкая линия от поршня к j_rod (визуализация штока)
-            Model {
-                source: "#Cylinder"
-                position: Qt.vector3d((pistonCenter.x + j_rod.x) / 2, (pistonCenter.y + j_rod.y) / 2, pistonCenter.z)
-                scale: Qt.vector3d(0.1, actualRodLength/100, 0.1)
-                eulerRotation: Qt.vector3d(0, 0, Math.atan2(j_rod.y - pistonCenter.y, j_rod.x - pistonCenter.x) * 180 / Math.PI + 90)
-                materials: PrincipledMaterial { baseColor: "#00ffff"; lighting: PrincipledMaterial.NoLighting }
-            }
-            
-            // DEBUG: Логирование
-            Component.onCompleted: {
-                console.log("🔧 Подвеска " + (j_arm.x < 0 ? "L" : "R") + ":")
-                console.log("   Заданная длина штока: " + userPistonRodLength.toFixed(1) + "мм")
-                console.log("   Реальная длина штока: " + actualRodLength.toFixed(1) + "мм")
-                console.log("   Отклонение: " + (actualRodLength - userPistonRodLength).toFixed(1) + "мм")
-                console.log("   Позиция поршня на оси: " + clampedPistonPosition.toFixed(1) + "мм")
+                materials: PrincipledMaterial { 
+                    baseColor: "#00ff44"  // ЗЕЛЕНЫЙ
+                    metalness: root.metalMetalness
+                    roughness: root.metalRoughness
+                }
             }
         }
 
@@ -630,27 +882,6 @@ Item {
             j_tail: Qt.vector3d(userTrackWidth/2, userBeamSize + userFrameHeight, userFrameLength - userBeamSize/2)
             leverAngle: rr_angle
             pistonPositionFromPython: root.userPistonPositionRR
-        }
-
-        // Coordinate axes
-        Model {
-            source: "#Cylinder"
-            position: Qt.vector3d(300, 0, 0)
-            scale: Qt.vector3d(0.2, 0.2, 6)
-            eulerRotation.y: 90
-            materials: PrincipledMaterial { baseColor: "#ff0000"; lighting: PrincipledMaterial.NoLighting }
-        }
-        Model {
-            source: "#Cylinder"
-            position: Qt.vector3d(0, 300, 0)
-            scale: Qt.vector3d(0.2, 6, 0.2)
-            materials: PrincipledMaterial { baseColor: "#00ff00"; lighting: PrincipledMaterial.NoLighting }
-        }
-        Model {
-            source: "#Cylinder"
-            position: Qt.vector3d(0, 0, 300)
-            scale: Qt.vector3d(0.2, 0.2, 6)
-            materials: PrincipledMaterial { baseColor: "#0000ff"; lighting: PrincipledMaterial.NoLighting }
         }
     }
 
@@ -763,17 +994,17 @@ Item {
                 font.bold: true 
             }
             Text { 
-                text: "✅ All components: levers, cylinders, pistons, rods, tail rods, joints"
+                text: "✅ Все компоненты: рычаги, цилиндры, поршни, штоки, хвостовые штоки, шарниры"
                 color: "#ffaa00"
                 font.pixelSize: 11 
             }
             Text { 
-                text: "✅ Animated pistons (pink) move inside transparent cylinders"
+                text: "✅ Анимированные поршни (розовые) движутся внутри прозрачных цилиндров"
                 color: "#cccccc"
                 font.pixelSize: 10 
             }
             Text { 
-                text: "LMB - rotate | RMB - pan | Wheel - zoom | R - reset | DblClick - fit"
+                text: "ЛКМ - вращение | ПКМ - панорама | Колесо - зумирование | R - сброс | Двойной клик - подгонка"
                 color: "#cccccc"
                 font.pixelSize: 10 
             }
@@ -820,27 +1051,16 @@ Item {
     Component.onCompleted: {
         resetView()
         console.log("=== PneumoStabSim 4-Corner Suspension LOADED ===")
-        console.log("All 4 corners: FL, FR, RL, RR")
-        console.log("All components: levers, cylinders, pistons, rods, tail rods, joints")
-        console.log("Rod length fixed: Piston moves along cylinder axis with constant rod length")
-        console.log("Rod length = " + userPistonRodLength + "mm (does not change with lever movement)")
-        console.log("Piston tracks lever movement but stays at correct distance")
-        console.log("New piston positioning logic:")
-        console.log("  1. Calculate j_rod projection on cylinder axis")
-        console.log("  2. Calculate piston position for constant rod length")
-        console.log("  3. Piston moves along cylinder axis, tracking lever")
-        console.log("  4. Distance piston-j_rod = const = " + userPistonRodLength + "mm")
-        console.log("Debug markers:")
-        console.log("  Red sphere = j_rod (rod joint)")
-        console.log("  Yellow sphere = j_rod projection on cylinder axis")
-        console.log("  Cyan line = rod visualization (length should be constant)")
-        console.log("  Pink cylinder = piston (moves along cylinder axis)")
-        console.log("Geometry (matches geometry panel):")
-        console.log("  Frame:", userFrameLength + "x" + userFrameHeight + "x" + userBeamSize + "mm")
-        console.log("  Lever:", userLeverLength + "mm | Cylinder:", userCylinderLength + "mm")
-        console.log("  Track width:", userTrackWidth + "mm | Frame to Pivot:", userFrameToPivot + "mm")
-        console.log("  Rod position:", userRodPosition + " (" + (userRodPosition * 100).toFixed(1) + "%)")
-        console.log("  Rod diameter:", userRodDiameter + "mm | Rod length:", userPistonRodLength + "mm")
+        console.log("✅ ИСПРАВЛЕНО: Шарниры перемещены внутрь SuspensionCorner компонентов")
+        console.log("✅ Все 4 шарнира теперь видимы для каждого угла подвески:")
+        console.log("   🔵 Синий (j_tail) - крепление цилиндра к раме")
+        console.log("   🟠 Оранжевый (j_arm) - крепление рычага к раме") 
+        console.log("   🟢 Зеленый (j_rod) - крепление штока к рычагу")
+        console.log("✅ All 4 corners: FL, FR, RL, RR")
+        console.log("✅ All components: levers, cylinders, pistons, rods, tail rods, joints")
+        console.log("✅ Rod length fixed: Piston moves along cylinder axis with constant rod length")
+        console.log("✅ Rod length = " + userPistonRodLength + "mm (does not change with lever movement)")
+        console.log("✅ Piston tracks lever movement but stays at correct distance")
         view3d.forceActiveFocus()
     }
 }

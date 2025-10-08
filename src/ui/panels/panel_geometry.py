@@ -57,11 +57,16 @@ class GeometryPanel(QWidget):
         
         # Формируем полную геометрию для QML (как в _get_fast_geometry_update)
         initial_geometry = self._get_fast_geometry_update("init", 0.0)
-        self.geometry_changed.emit(initial_geometry)
-        self.geometry_updated.emit(self.parameters.copy())
         
-        print("  ✅ Начальная геометрия отправлена в QML")
-        print(f"  📐 rodPosition = {self.parameters.get('rod_position', 0.6)} (критический параметр!)")
+        # Используем QTimer для отложенной отправки после полной инициализации UI
+        from PySide6.QtCore import QTimer
+        def send_initial_geometry():
+            print("⏰ QTimer: Отправка начальной геометрии...")
+            self.geometry_changed.emit(initial_geometry)
+            self.geometry_updated.emit(self.parameters.copy())
+            print(f"  ✅ Начальная геометрия отправлена: rodPosition = {initial_geometry.get('rodPosition', 'НЕ НАЙДЕН')}")
+        
+        QTimer.singleShot(100, send_initial_geometry)  # Отправить через 100мс
     
     def _setup_ui(self):
         """Настроить интерфейс / Setup user interface"""
