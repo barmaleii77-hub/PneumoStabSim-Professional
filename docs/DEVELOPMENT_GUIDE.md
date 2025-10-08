@@ -18,8 +18,8 @@
 ### **1. Clone Repository**
 
 ```bash
-git clone https://github.com/barmaleii77-hub/NewRepo2.git
-cd NewRepo2
+git clone https://github.com/barmaleii77-hub/PneumoStabSim-Professional.git
+cd PneumoStabSim-Professional
 ```
 
 ### **2. Create Virtual Environment**
@@ -241,7 +241,7 @@ def test_piston_position_calculation():
     """Test piston position from lever angle"""
     bridge = GeometryBridge()
     
-    # Test center position (0° angle)
+    # Test center position (0ï¿½ angle)
     coords = bridge.get_corner_3d_coords('fl', lever_angle=0.0)
     assert abs(coords['pistonPositionMm'] - 125.0) < 1.0
     
