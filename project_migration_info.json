@@ -1,0 +1,33 @@
+{
+  "name": "PneumoStabSim",
+  "version": "2.0.0",
+  "total_files": 313,
+  "structure": {
+    "src": 139,
+    "assets": 23,
+    "tests": 74,
+    "docs": 22,
+    "config": 2,
+    "tools": 3,
+    "reports": 45,
+    "app.py": "✅",
+    "requirements.txt": "✅",
+    "pyproject.toml": "✅",
+    "README.md": "✅",
+    "launch.py": "✅"
+  },
+  "main_features": [
+    "Qt Quick 3D визуализация",
+    "Русский интерфейс",
+    "Пневматическая физическая модель",
+    "Режимы запуска: обычный, неблокирующий, тестовый",
+    "Direct3D 11 backend",
+    "Панели управления с вкладками"
+  ],
+  "requirements": [
+    "Python 3.8+",
+    "PySide6 6.5+",
+    "NumPy, SciPy",
+    "Windows 10/11"
+  ]
+}
