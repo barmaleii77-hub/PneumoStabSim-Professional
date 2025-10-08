@@ -1,0 +1,35 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <UseWindowsForms>true</UseWindowsForms>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <AssemblyTitle>PneumoStabSim User Interface</AssemblyTitle>
+    <Product>Pneumatic Stabilizer Simulator - UI</Product>
+    <Description>User interface components for pneumatic stabilizer simulation</Description>
+    <AssemblyVersion>2.0.0.0</AssemblyVersion>
+    <FileVersion>2.0.0.0</FileVersion>
+    <LangVersion>latest</LangVersion>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- WPF and graphics -->
+    <PackageReference Include="System.Drawing.Common" Version="8.0.0" />
+    
+    <!-- Charts and plotting -->
+    <PackageReference Include="OxyPlot.Wpf" Version="2.1.2" />
+    <PackageReference Include="ScottPlot.WPF" Version="5.0.37" />
+    
+    <!-- Logging -->
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="8.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\PneumoStabSim.Core\PneumoStabSim.Core.csproj" />
+    <ProjectReference Include="..\PneumoStabSim.Physics\PneumoStabSim.Physics.csproj" />
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,100 @@
+{
+  "timestamp": "2025-10-08 08:22:04",
+  "tests": {
+    "file_structure": {
+      "passed": true,
+      "details": {
+        "required_files": [
+          "PneumoStabSim-Professional.sln",
+          "PneumoStabSim-Professional.csproj",
+          "Program.cs",
+          "App.xaml",
+          "app.py",
+          "requirements.txt",
+          "config/appsettings.json",
+          "src/PneumoStabSim.Core/PneumoStabSim.Core.csproj",
+          "src/PneumoStabSim.Physics/PneumoStabSim.Physics.csproj",
+          "src/PneumoStabSim.UI/PneumoStabSim.UI.csproj",
+          "tests/PneumoStabSim.Tests/PneumoStabSim.Tests.csproj"
+        ],
+        "missing_files": [],
+        "total_required": 11,
+        "found": 11
+      }
+    },
+    "python_syntax": {
+      "passed": false,
+      "details": {
+        "files_checked": 202,
+        "syntax_errors": [
+          "C:\\Users\\User.GPC-01\\source\\repos\\barmaleii77-hub\\PneumoStabSim-Professional\\src\\mechanics\\kinematics.py: invalid non-printable character U+FEFF (kinematics.py, line 1)"
+        ]
+      }
+    },
+    "configuration_files": {
+      "passed": true,
+      "details": {
+        "files_checked": [
+          "config/appsettings.json",
+          "config/appsettings.Development.json"
+        ],
+        "errors": []
+      }
+    },
+    "python_environment": {
+      "passed": false,
+      "details": {
+        "success": false,
+        "returncode": 1,
+        "stdout": "=== PneumoStabSim Professional Environment Check ===\n\nChecking Python Version...\n\nChecking Required Modules...\n\nChecking System Requirements...\n\nChecking OpenGL Support...\n\nChecking Qt Backend...\n\nChecking File Permissions...\n\nChecking Environment Variables...\n\n=== SUMMARY ===\n\nINFO:\n",
+        "stderr": "Traceback (most recent call last):\n  File \"C:\\Users\\User.GPC-01\\source\\repos\\barmaleii77-hub\\PneumoStabSim-Professional\\scripts\\check_environment.py\", line 319, in <module>\n    main()\n    ~~~~^^\n  File \"C:\\Users\\User.GPC-01\\source\\repos\\barmaleii77-hub\\PneumoStabSim-Professional\\scripts\\check_environment.py\", line 315, in main\n    success = checker.run_comprehensive_check()\n  File \"C:\\Users\\User.GPC-01\\source\\repos\\barmaleii77-hub\\PneumoStabSim-Professional\\scripts\\check_environment.py\", line 283, in run_comprehensive_check\n    print(f\"  {msg}\")\n    ~~~~~^^^^^^^^^^^^\n  File \"C:\\Users\\User.GPC-01\\AppData\\Local\\Programs\\Python\\Python313\\Lib\\encodings\\cp1251.py\", line 19, in encode\n    return codecs.charmap_encode(input,self.errors,encoding_table)[0]\n           ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nUnicodeEncodeError: 'charmap' codec can't encode character '\\u2713' in position 2: character maps to <undefined>\n",
+        "command": "C:\\Users\\User.GPC-01\\AppData\\Local\\Programs\\Python\\Python313\\python.exe C:\\Users\\User.GPC-01\\source\\repos\\barmaleii77-hub\\PneumoStabSim-Professional\\scripts\\check_environment.py"
+      }
+    },
+    "python_imports": {
+      "passed": false,
+      "details": {
+        "success": false,
+        "returncode": 1,
+        "stdout": "Import error: cannot import name 'Vector3D' from 'src.core.geometry' (C:\\Users\\User.GPC-01\\source\\repos\\barmaleii77-hub\\PneumoStabSim-Professional\\src\\core\\geometry.py)\n",
+        "stderr": "",
+        "command": "C:\\Users\\User.GPC-01\\AppData\\Local\\Programs\\Python\\Python313\\python.exe -c \nimport sys\nimport os\nsys.path.insert(0, \".\")\nsys.path.insert(0, \"src\")\n\ntry:\n    # Test core imports\n    import numpy as np\n    import scipy\n    from PySide6.QtWidgets import QApplication\n    from PySide6.QtCore import QTimer\n    \n    # Test project imports\n    from src.common import init_logging\n    from src.core.geometry import Vector3D\n    from src.mechanics.components import Mass, Spring\n    \n    print(\"All critical imports successful\")\n    exit(0)\n    \nexcept ImportError as e:\n    print(f\"Import error: {e}\")\n    exit(1)\nexcept Exception as e:\n    print(f\"Unexpected error: {e}\")\n    exit(2)\n"
+      }
+    },
+    "dotnet_restore": {
+      "passed": false,
+      "details": {
+        "success": false,
+        "returncode": 1,
+        "stdout": "MSBUILD : error MSB1011: укажите, какой файл проекта или решения необходимо использовать, так как в папке содержится несколько файлов проектов или решений.\n",
+        "stderr": "",
+        "command": "dotnet restore"
+      }
+    },
+    "dotnet_build": {
+      "passed": false,
+      "details": {
+        "success": false,
+        "returncode": 1,
+        "stdout": "MSBUILD : error MSB1011: укажите, какой файл проекта или решения необходимо использовать, так как в папке содержится несколько файлов проектов или решений.\n",
+        "stderr": "",
+        "command": "dotnet build --no-restore"
+      }
+    },
+    "python_app_startup": {
+      "passed": true,
+      "details": {
+        "success": true,
+        "returncode": 0,
+        "stdout": "2025-10-08T08:22:09 | PID:12628 TID:10188 | INFO     | PneumoStabSim | ======================================================================\n2025-10-08T08:22:09 | PID:12628 TID:10188 | INFO     | PneumoStabSim | === START RUN: PneumoStabSim ===\n2025-10-08T08:22:09 | PID:12628 TID:10188 | INFO     | PneumoStabSim | ======================================================================\n2025-10-08T08:22:09 | PID:12628 TID:10188 | INFO     | PneumoStabSim | Python version: 3.13.7 (tags/v3.13.7:bcee1c3, Aug 14 2025, 14:15:11) [MSC v.1944 64 bit (AMD64)]\n2025-10-08T08:22:09 | PID:12628 TID:10188 | INFO     | PneumoStabSim | Platform: Windows-10-10.0.19045-SP0\n2025-10-08T08:22:09 | PID:12628 TID:10188 | INFO     | PneumoStabSim | Process ID: 12628\n2025-10-08T08:22:09 | PID:12628 TID:10188 | INFO     | PneumoStabSim | Log file: C:\\Users\\User.GPC-01\\source\\repos\\barmaleii77-hub\\PneumoStabSim-Professional\\logs\\run.log\n2025-10-08T08:22:09 | PID:12628 TID:10188 | INFO     | PneumoStabSim | Timestamp: 2025-10-08T05:22:09.961892Z\n2025-10-08T08:22:09 | PID:12628 TID:10188 | INFO     | PneumoStabSim | PySide6 version: 6.9.3\n2025-10-08T08:22:09 | PID:12628 TID:10188 | INFO     | PneumoStabSim | NumPy version: 2.3.3\n=== PNEUMOSTABSIM STARTING (Russian UI) ===\nVisualization backend: Qt Quick 3D (U-Frame PBR)\nQt Quick RHI: Direct3D 11\nCustom 3D Geometry enabled\n🧪 ТЕСТОВЫЙ РЕЖИМ: Автозакрытие через 5 секунд\n\n💡 IMPORTANT: Look for 'rhi: backend:' line in console output\n    Should show 'D3D11' (not OpenGL)\n\nStep 1: Creating QApplication...\nStep 2: Installing Qt message handler...\nStep 3: Setting application properties...\nStep 4: Registering custom QML types...\n  - CustomGeometry.SphereGeometry (auto-registered)\n  - CustomGeometry.CubeGeometry (auto-registered)\nStep 5: Creating MainWindow (backend: Qt Quick 3D (U-Frame PBR))...\nMainWindow: Создание SimulationManager...\n2025-10-08T08:22:09 | PID:12628 TID:10188 | INFO     | PneumoStabSim | SciPy version: 1.16.2\n2025-10-08T08:22:09 | PID:12628 TID:10188 | INFO     | PneumoStabSim | ======================================================================\n2025-10-08T08:22:09 | PID:12628 TID:10188 | INFO     | PneumoStabSim | Application starting...\n2025-10-08T08:22:10 | PID:12628 TID:10188 | INFO     | PneumoStabSim.UI | event=APP_CREATED | Qt application initialized\n✅ SimulationManager создан (не запущен)\n    GeometryBridge initialized:\n      Frame: 2000x650x120mm\n      Lever: 315mm\n      Cylinder: 250mm + 100mm tail\n✅ GeometryBridge создан для интеграции Python↔QML\nMainWindow: Построение UI...\n    _setup_central: Создание системы сплиттеров...\n    [QML] Загрузка main.qml...\n    Загрузка main.qml: file:///C:/Users/User.GPC-01/source/repos/barmaleii77-hub/PneumoStabSim-Professional/assets/qml/main.qml\n    [OK] main.qml загружен успешно\n    ✅ Система сплиттеров создана (горизонтальный + вертикальный)\n  ✅ Центральный вид Qt Quick 3D настроен\n    _setup_tabs: Создание вкладок с ресайзбаром...\n🔧 GeometryPanel: Сигналы подключены для МГНОВЕННОГО обновления (valueChanged)\n🔧 GeometryPanel: Отправка начальных параметров геометрии...\n🔄 GeometryPanel: Отправка ПОЛНОЙ геометрии в QML (изменён параметр: init = 0.0)\n   📐 Основные: frameLength=3200.0мм, leverLength=800.0мм\n   📐 Цилиндр: cylDiam=80.0мм, stroke=300.0мм\n   📐 Шток: diameter=35.0мм, length=200.0мм\n   🎯 rodPosition = 0.6 (КРИТИЧЕСКИЙ параметр)\n  ✅ Начальная геометрия отправлена в QML\n  📐 rodPosition = 0.6 (критический параметр!)\n      ✅ Вкладка 'Геометрия' создана\n      ✅ Вкладка 'Пневмосистема' создана\n      ✅ Вкладка 'Режимы стабилизатора' создана\n      ✅ Вкладка 'Визуализация' создана (заглушка)\n      ✅ Вкладка 'Динамика движения' создана (заглушка)\n✅ Сигналы GeometryPanel подключены (РЕАЛЬНОЕ ОБНОВЛЕНИЕ QML)\n✅ Сигналы PneumoPanel подключены (ЗАГЛУШКА)\n✅ Сигнал simulation_control подключен\n✅ Сигнал animation_changed подключен к _on_animation_changed\n✅ Сигналы ModesPanel подключены\n    ✅ Вкладки созданы и подключены к горизональному сплиттеру\n  ✅ Вкладки настроены\n  ✅ Меню настроено\n  ✅ Панель инструментов настроена\n  ✅ Строка состояния настроена\n  ✅ Сигналы подключены\n  ✅ Таймер рендеринга запущен\n  ⏸️  SimulationManager запустится после window.show()\n  ✅ Настройки восстановлены\n✅ MainWindow.__init__() завершён\nStep 6: MainWindow created - Size: 1400x900\n         Window title: PneumoStabSim - Qt Quick 3D (U-Рама PBR)\nStep 7: Window shown - Visible: True\n         Position: 580, 220\n\n============================================================\nAPPLICATION READY - Qt Quick 3D (U-Frame PBR) active (Russian UI)\n🎮 U-Frame: PBR metallic red, orbit camera, auto-fit\n🎮 Controls: LMB-rotate, Wheel-zoom, F-autofit, R-reset, DoubleClick-fit\n🎮 Features: 4 corners with cylinders, levers, masses\n🔍 DIAGNOSTIC: Looking for QML console.log messages...\nExpected: Russian labels in UI panels and 3D scene\nCheck console for 'rhi: backend: D3D11' confirmation\n🧪 ТЕСТОВЫЙ РЕЖИМ: Автозакрытие через 5 секунд...\n============================================================\n\n2025-10-08T08:22:10 | PID:12628 TID:10188 | INFO     | PneumoStabSim.UI | event=WINDOW_SHOWN | Main window displayed (Qt Quick 3D (U-Frame PBR))\n🔒 Запуск в стандартном режиме (блокирует терминал)...\n🧪 Тестовый режим: Автозакрытие...\n✅ MainWindow: Очистка завершена, приложение закрывается\n\n=== APPLICATION CLOSED (code: 0) ===\n2025-10-08T08:22:15 | PID:12628 TID:10188 | INFO     | PneumoStabSim | Application event loop finished with code: 0\n2025-10-08T08:22:15 | PID:12628 TID:10188 | INFO     | PneumoStabSim | ======================================================================\n2025-10-08T08:22:15 | PID:12628 TID:10188 | INFO     | PneumoStabSim | === END RUN ===\n2025-10-08T08:22:15 | PID:12628 TID:10188 | INFO     | PneumoStabSim | ======================================================================\n",
+        "stderr": "",
+        "command": "C:\\Users\\User.GPC-01\\AppData\\Local\\Programs\\Python\\Python313\\python.exe app.py --test-mode"
+      }
+    }
+  },
+  "summary": {
+    "passed": 3,
+    "failed": 5,
+    "warnings": 0
+  }
+}
