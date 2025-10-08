@@ -1,0 +1,30 @@
+# PneumoStabSim Professional - Compatible Requirements
+# Support for Python 3.8 - 3.13+ with fallback versions
+
+# Core scientific libraries with version constraints
+numpy>=1.21.0,<2.0.0; python_version<"3.12"
+numpy>=1.24.0,<2.1.0; python_version>="3.12"
+
+scipy>=1.7.0,<2.0.0; python_version<"3.11"
+scipy>=1.9.0,<2.0.0; python_version>="3.11"
+
+# Qt framework (most stable versions)
+PySide6>=6.4.0,<6.8.0; python_version<"3.11"
+PySide6>=6.6.0,<7.0.0; python_version>="3.11"
+
+# OpenGL support
+PyOpenGL>=3.1.0,<3.2.0
+PyOpenGL-accelerate>=3.1.0,<3.2.0; platform_system!="Darwin"
+
+# Plotting and visualization
+matplotlib>=3.5.0,<4.0.0; python_version<"3.11"
+matplotlib>=3.7.0; python_version>="3.11"
+
+# Optional: Additional scientific packages (commented out by default)
+# pandas>=1.3.0; python_version<"3.11"
+# pandas>=1.5.0; python_version>="3.11"
+# pillow>=8.0.0
+
+# Development tools (optional)
+# loguru>=0.6.0  # Better logging
+# pydantic>=1.8.0  # Data validation

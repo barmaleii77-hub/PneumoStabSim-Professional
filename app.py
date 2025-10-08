@@ -1,91 +1,213 @@
 # -*- coding: utf-8 -*-
 """
 PneumoStabSim - Pneumatic Stabilizer Simulator
-Main application entry point with Qt Quick 3D rendering (RHI/Direct3D)
+Main application entry point with enhanced encoding and terminal support
 """
 import sys
 import os
+import locale
 import logging
 import signal
 import argparse
 import time
 from pathlib import Path
 
-# CRITICAL: Force UTF-8 encoding for stdout to handle emoji in Windows console
-if sys.platform == 'win32':
-    import codecs
-    sys.stdout = codecs.getwriter('utf-8')(sys.stdout.buffer, errors='replace')
-    sys.stderr = codecs.getwriter('utf-8')(sys.stderr.buffer, errors='replace')
+# =============================================================================
+# CRITICAL: Terminal and Encoding Configuration
+# =============================================================================
 
-# ========== VISUALIZATION BACKEND SWITCH ==========
-USE_QML_3D_SCHEMA = True  # True: Qt Quick 3D U-Frame, False: legacy OpenGL widget
+def configure_terminal_encoding():
+    """Configure terminal encoding for cross-platform Unicode support"""
+    
+    # Set UTF-8 encoding for Python I/O
+    if sys.platform == 'win32':
+        try:
+            # Try to set console to UTF-8 on Windows
+            import subprocess
+            subprocess.run(['chcp', '65001'], capture_output=True, check=False)
+        except:
+            pass
+        
+        # Force UTF-8 encoding for stdout/stderr
+        try:
+            import codecs
+            
+            # Wrap stdout/stderr with UTF-8 codec
+            if hasattr(sys.stdout, 'buffer'):
+                sys.stdout = codecs.getwriter('utf-8')(sys.stdout.buffer, errors='replace')
+            if hasattr(sys.stderr, 'buffer'):    
+                sys.stderr = codecs.getwriter('utf-8')(sys.stderr.buffer, errors='replace')
+            
+            print("✅ Windows UTF-8 encoding configured")
+        except Exception as e:
+            print(f"⚠️ UTF-8 setup warning: {e}")
+    
+    # Set environment variables for Python encoding
+    os.environ.setdefault('PYTHONIOENCODING', 'utf-8')
+    
+    # Try to set locale to UTF-8
+    try:
+        if sys.platform == 'win32':
+            locale.setlocale(locale.LC_ALL, 'C.UTF-8')
+        else:
+            locale.setlocale(locale.LC_ALL, 'en_US.UTF-8')
+    except locale.Error:
+        try:
+            locale.setlocale(locale.LC_ALL, 'C')
+        except locale.Error:
+            pass  # Use system default
 
-# CRITICAL: Set Qt Quick RHI backend to Direct3D BEFORE importing PySide6
-# This forces Qt to use D3D11 instead of OpenGL on Windows
-os.environ.setdefault("QSG_RHI_BACKEND", "d3d11")
-os.environ.setdefault("QSG_INFO", "1")  # Print RHI backend info on startup
+# Configure encoding before any other imports
+configure_terminal_encoding()
 
-# DIAGNOSTIC: Enable QML console.log and debug output
+# =============================================================================
+# Python Version Compatibility Check
+# =============================================================================
+
+def check_python_compatibility():
+    """Check Python version and warn about potential issues"""
+    version = sys.version_info
+    
+    print(f"Python version: {version.major}.{version.minor}.{version.micro}")
+    
+    if version < (3, 8):
+        print("❌ ERROR: Python 3.8+ required. Please upgrade Python.")
+        sys.exit(1)
+    elif version >= (3, 12):
+        print("⚠️ WARNING: Python 3.12+ detected. Some packages may have compatibility issues.")
+        print("   Recommended: Python 3.8 - 3.11 for optimal stability")
+    elif version >= (3, 11):
+        print("ℹ️ Python 3.11+ detected. Most packages should work correctly.")
+    else:
+        print("✅ Python version is optimal for this project.")
+
+check_python_compatibility()
+
+# =============================================================================
+# Qt and Graphics Backend Configuration  
+# =============================================================================
+
+# Set Qt Quick RHI backend before importing PySide6
+os.environ.setdefault("QSG_RHI_BACKEND", "d3d11" if sys.platform == 'win32' else "opengl")
+os.environ.setdefault("QSG_INFO", "1")
+
+# Enhanced Qt debug output with encoding safety
 os.environ.setdefault("QT_LOGGING_RULES", "js.debug=true;qt.qml.debug=true")
 os.environ.setdefault("QT_ASSUME_STDERR_HAS_CONSOLE", "1")
 
-from PySide6.QtWidgets import QApplication
-from PySide6.QtCore import qInstallMessageHandler, QtMsgType, Qt, QTimer
+# Qt High DPI and scaling settings
+os.environ.setdefault("QT_AUTO_SCREEN_SCALE_FACTOR", "1")
+os.environ.setdefault("QT_SCALE_FACTOR_ROUNDING_POLICY", "PassThrough")
+os.environ.setdefault("QT_ENABLE_HIGHDPI_SCALING", "1")
 
-from src.common import init_logging, log_ui_event
-from src.ui.main_window import MainWindow
+# =============================================================================
+# Safe Import with Error Handling
+# =============================================================================
 
-# Import custom 3D geometry types (will auto-register via @QmlElement)
-from src.ui.custom_geometry import SphereGeometry, CubeGeometry
+def safe_import_qt():
+    """Safely import Qt components with fallback options"""
+    try:
+        from PySide6.QtWidgets import QApplication
+        from PySide6.QtCore import qInstallMessageHandler, QtMsgType, Qt, QTimer
+        print("✅ PySide6 imported successfully")
+        return QApplication, qInstallMessageHandler, QtMsgType, Qt, QTimer
+    except ImportError as e:
+        print(f"❌ PySide6 import failed: {e}")
+        print("💡 Try: pip install --upgrade PySide6")
+        
+        # Try alternative Qt bindings
+        try:
+            print("🔄 Trying PyQt6 as fallback...")
+            from PyQt6.QtWidgets import QApplication
+            from PyQt6.QtCore import qInstallMessageHandler, QtMsgType, Qt, QTimer
+            print("✅ PyQt6 imported as fallback")
+            return QApplication, qInstallMessageHandler, QtMsgType, Qt, QTimer
+        except ImportError:
+            print("❌ No Qt framework available")
+            sys.exit(1)
 
-# Global reference for signal handling
+# Import Qt components
+QApplication, qInstallMessageHandler, QtMsgType, Qt, QTimer = safe_import_qt()
+
+# =============================================================================
+# Project Imports with Error Handling
+# =============================================================================
+
+try:
+    from src.common import init_logging, log_ui_event
+    from src.ui.main_window import MainWindow
+    print("✅ Project modules imported successfully")
+except ImportError as e:
+    print(f"❌ Project import error: {e}")
+    print("💡 Make sure you're running from the project root directory")
+    print("💡 Check that PYTHONPATH includes the current directory and src/")
+    sys.exit(1)
+
+# Try to import custom 3D geometry types (optional)
+try:
+    from src.ui.custom_geometry import SphereGeometry, CubeGeometry
+    print("✅ Custom 3D geometry types imported")
+except ImportError:
+    print("ℹ️ Custom 3D geometry types not available (optional feature)")
+
+# =============================================================================
+# Application Logic
+# =============================================================================
+
+USE_QML_3D_SCHEMA = True
 app_instance = None
 window_instance = None
-
 
 def signal_handler(signum, frame):
     """Handle Ctrl+C and other signals gracefully"""
     global app_instance, window_instance
     
-    print(f"\n🛑 Получен сигнал {signum}, закрываем приложение...")
-    
-    if window_instance:
-        print("   Закрываем главное окно...")
-        window_instance.close()
-    
-    if app_instance:
-        print("   Завершаем Qt event loop...")
-        app_instance.quit()
-    
-    print("✅ Приложение завершено gracefully")
-
+    try:
+        print(f"\n🛑 Signal {signum} received, shutting down gracefully...")
+        
+        if window_instance:
+            print("   Closing main window...")
+            window_instance.close()
+        
+        if app_instance:
+            print("   Terminating Qt event loop...")
+            app_instance.quit()
+        
+        print("✅ Application terminated gracefully")
+    except Exception as e:
+        print(f"⚠️ Error during shutdown: {e}")
 
 def qt_message_handler(mode, context, message):
-    """Handle Qt log messages"""
-    logger = logging.getLogger("Qt")
-    
-    # DIAGNOSTIC: Show QML console.log messages directly
-    if "qml:" in message.lower() or "custom sphere" in message.lower() or "geometry:" in message.lower():
-        print(f"🔍 QML DEBUG: {message}")
-    elif "spheregeometry" in message.lower():
-        print(f"🔍 GEOMETRY: {message}")
-    elif mode == QtMsgType.QtDebugMsg:
-        if "js" in message.lower():
-            print(f"🔍 JS: {message}")
-        else:
-            logger.debug(message)
-    elif mode == QtMsgType.QtWarningMsg:
-        print(f"⚠️ WARNING: {message}")
-        logger.warning(message)
-    elif mode == QtMsgType.QtCriticalMsg:
-        print(f"❌ CRITICAL: {message}")
-        logger.error(message)
-    elif mode == QtMsgType.QtFatalMsg:
-        print(f"💀 FATAL: {message}")
-        logger.critical(message)
-    elif mode == QtMsgType.QtInfoMsg:
-        logger.info(message)
-
+    """Handle Qt log messages with encoding safety"""
+    try:
+        logger = logging.getLogger("Qt")
+        
+        # Safe string conversion
+        msg_str = str(message) if message else ""
+        
+        # Enhanced QML debug output detection
+        qml_indicators = ["qml:", "custom sphere", "geometry:", "spheregeometry"]
+        if any(indicator in msg_str.lower() for indicator in qml_indicators):
+            print(f"🔍 QML DEBUG: {msg_str}")
+        elif "js" in msg_str.lower():
+            print(f"🔍 JS: {msg_str}")
+        elif mode == QtMsgType.QtDebugMsg:
+            logger.debug(msg_str)
+        elif mode == QtMsgType.QtWarningMsg:
+            print(f"⚠️ WARNING: {msg_str}")
+            logger.warning(msg_str)
+        elif mode == QtMsgType.QtCriticalMsg:
+            print(f"❌ CRITICAL: {msg_str}")
+            logger.error(msg_str)
+        elif mode == QtMsgType.QtFatalMsg:
+            print(f"💀 FATAL: {msg_str}")
+            logger.critical(msg_str)
+        elif mode == QtMsgType.QtInfoMsg:
+            logger.info(msg_str)
+            
+    except Exception as e:
+        # Fallback for encoding issues
+        print(f"Qt message handler error: {e}")
 
 def parse_arguments():
     """Parse command line arguments"""
@@ -93,200 +215,139 @@ def parse_arguments():
         description="PneumoStabSim - Pneumatic Stabilizer Simulator",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
-Примеры использования:
-  python app.py                    # Обычный запуск (блокирует терминал)
-  python app.py --no-block         # Неблокирующий запуск (не блокирует терминал)
-  python app.py --test-mode        # Тестовый режим (автозакрытие через 5 сек)
-  python app.py --legacy           # Использовать legacy OpenGL вместо Qt Quick 3D
-  python app.py --debug            # Включить отладочные сообщения
+Examples:
+  python app.py                    # Normal mode (blocks terminal)
+  python app.py --no-block         # Non-blocking mode
+  python app.py --test-mode        # Test mode (auto-close 5s)
+  python app.py --legacy           # Use legacy OpenGL
+  python app.py --debug            # Debug mode
+  python app.py --safe-mode        # Safe mode (minimal features)
         """
     )
     
-    parser.add_argument(
-        '--no-block', 
-        action='store_true',
-        help='Запустить в неблокирующем режиме (не блокирует терминал)'
-    )
-    
-    parser.add_argument(
-        '--test-mode',
-        action='store_true', 
-        help='Тестовый режим (автозакрытие через 5 секунд)'
-    )
-    
-    parser.add_argument(
-        '--legacy',
-        action='store_true',
-        help='Использовать legacy OpenGL вместо Qt Quick 3D'
-    )
-    
-    parser.add_argument(
-        '--debug',
-        action='store_true',
-        help='Включить отладочные сообщения'
-    )
+    parser.add_argument('--no-block', action='store_true', help='Non-blocking mode')
+    parser.add_argument('--test-mode', action='store_true', help='Test mode (auto-close 5s)')
+    parser.add_argument('--legacy', action='store_true', help='Use legacy OpenGL')
+    parser.add_argument('--debug', action='store_true', help='Enable debug messages')
+    parser.add_argument('--safe-mode', action='store_true', help='Safe mode (basic features only)')
     
     return parser.parse_args()
 
-
 def main():
-    """Main application function"""
+    """Main application function with enhanced error handling"""
     global app_instance, window_instance
     
-    # Parse command line arguments
-    args = parse_arguments()
-    
-    # Initialize logging BEFORE QApplication (P11 requirement)
-    logger = init_logging("PneumoStabSim", Path("logs"))
-    logger.info("Application starting...")
-    
-    # Override backend if legacy requested
-    use_qml_3d = USE_QML_3D_SCHEMA and not args.legacy
-    backend_name = "Qt Quick 3D (U-Frame PBR)" if use_qml_3d else "Legacy OpenGL"
-    
-    print("=== PNEUMOSTABSIM STARTING (Russian UI) ===")
-    print(f"Visualization backend: {backend_name}")
-    print("Qt Quick RHI: Direct3D 11")
-    print("Custom 3D Geometry enabled")
-    
-    if args.no_block:
-        print("🔓 НЕБЛОКИРУЮЩИЙ РЕЖИМ: Терминал не заблокируется")
-    elif args.test_mode:
-        print("🧪 ТЕСТОВЫЙ РЕЖИМ: Автозакрытие через 5 секунд")
-    else:
-        print("🔒 БЛОКИРУЮЩИЙ РЕЖИМ: Терминал заблокируется до закрытия окна")
-        print("    Используйте Ctrl+C для принудительного завершения")
-        print("    Или добавьте флаг --no-block для неблокирующего режима")
-    
-    print()
-    print("💡 IMPORTANT: Look for 'rhi: backend:' line in console output")
-    print("    Should show 'D3D11' (not OpenGL)")
-    print()
-    
-    # Enable high DPI support (must be before QApplication)
-    QApplication.setHighDpiScaleFactorRoundingPolicy(
-        Qt.HighDpiScaleFactorRoundingPolicy.PassThrough
-    )
-    
-    print("Step 1: Creating QApplication...")
-    
-    # Create Qt application
-    app = QApplication(sys.argv)
-    app_instance = app  # Store global reference
-    
-    print("Step 2: Installing Qt message handler...")
-    
-    # Install Qt message handler
-    qInstallMessageHandler(qt_message_handler)
-    
-    print("Step 3: Setting application properties...")
-    
-    # Set application properties - using ASCII-safe names
-    app.setApplicationName("PneumoStabSim")
-    app.setApplicationVersion("2.0.0")  # Qt Quick 3D version
-    app.setOrganizationName("PneumoStabSim")
-    app.setApplicationDisplayName("Pneumatic Stabilizer Simulator (Russian UI)")
-    
-    log_ui_event("APP_CREATED", "Qt application initialized")
-    
-    print("Step 4: Registering custom QML types...")
-    print("  - CustomGeometry.SphereGeometry (auto-registered)")
-    print("  - CustomGeometry.CubeGeometry (auto-registered)")  
-    
-    print(f"Step 5: Creating MainWindow (backend: {backend_name})...")
-    
     try:
-        # Create and show main window with 3D visualization
-        window = MainWindow(use_qml_3d=use_qml_3d)
-        window_instance = window  # Store global reference
+        # Parse command line arguments
+        args = parse_arguments()
         
-        print(f"Step 6: MainWindow created - Size: {window.size().width()}x{window.size().height()}")
-        print(f"         Window title: {window.windowTitle()}")
+        # Initialize logging BEFORE QApplication
+        logger = init_logging("PneumoStabSim", Path("logs"))
+        logger.info("Application starting with enhanced encoding support...")
+        
+        # Override backend if legacy requested
+        use_qml_3d = USE_QML_3D_SCHEMA and not args.legacy and not args.safe_mode
+        backend_name = "Qt Quick 3D (U-Frame PBR)" if use_qml_3d else "Legacy OpenGL"
+        
+        print("=" * 60)
+        print("PNEUMOSTABSIM STARTING (Enhanced Terminal Support)")
+        print("=" * 60)
+        print(f"Visualization backend: {backend_name}")
+        print(f"Qt RHI Backend: {os.environ.get('QSG_RHI_BACKEND', 'auto')}")
+        print(f"Python encoding: {sys.getdefaultencoding()}")
+        print(f"Terminal encoding: {locale.getpreferredencoding()}")
+        
+        if args.safe_mode:
+            print("🛡️ SAFE MODE: Using minimal features for compatibility")
+        elif args.no_block:
+            print("🔓 NON-BLOCKING MODE: Terminal won't be blocked")
+        elif args.test_mode:
+            print("🧪 TEST MODE: Auto-close after 5 seconds")
+        else:
+            print("🔒 BLOCKING MODE: Terminal will be blocked until app closes")
+        
+        print()
+        
+        # Enable high DPI support (must be called BEFORE QApplication)
+        try:
+            QApplication.setHighDpiScaleFactorRoundingPolicy(
+                Qt.HighDpiScaleFactorRoundingPolicy.PassThrough
+            )
+        except Exception as e:
+            print(f"⚠️ High DPI setup warning: {e}")
+        
+        print("Step 1: Creating QApplication...")
+        
+        # Create Qt application
+        app = QApplication(sys.argv)
+        app_instance = app
+        
+        print("Step 2: Installing Qt message handler...")
+        qInstallMessageHandler(qt_message_handler)
+        
+        print("Step 3: Setting application properties...")
+        
+        # Set application properties (ASCII-safe)
+        app.setApplicationName("PneumoStabSim")
+        app.setApplicationVersion("2.0.1")  # Enhanced version
+        app.setOrganizationName("PneumoStabSim")
+        app.setApplicationDisplayName("Pneumatic Stabilizer Simulator (Enhanced)")
+        
+        log_ui_event("APP_CREATED", "Qt application initialized with enhanced encoding")
+        
+        print(f"Step 4: Creating MainWindow (backend: {backend_name})...")
+        
+        # Create and show main window (removed safe_mode parameter)
+        window = MainWindow(use_qml_3d=use_qml_3d)
+        window_instance = window
+        
+        print(f"Step 5: MainWindow created - Size: {window.size().width()}x{window.size().height()}")
         
         window.show()
-        
-        print(f"Step 7: Window shown - Visible: {window.isVisible()}")
-        print(f"         Position: {window.pos().x()}, {window.pos().y()}")
-        
-        # Force window to front
         window.raise_()
         window.activateWindow()
         
         log_ui_event("WINDOW_SHOWN", f"Main window displayed ({backend_name})")
         
-        print("\n" + "="*60)
-        print(f"APPLICATION READY - {backend_name} active (Russian UI)")
-        if use_qml_3d:
-            print("🎮 U-Frame: PBR metallic red, orbit camera, auto-fit")
-            print("🎮 Controls: LMB-rotate, Wheel-zoom, F-autofit, R-reset, DoubleClick-fit")
-            print("🎮 Features: 4 corners with cylinders, levers, masses")
+        print("\n" + "=" * 60)
+        print(f"APPLICATION READY - {backend_name} (Enhanced)")
+        if use_qml_3d and not args.safe_mode:
+            print("🎮 Features: 3D visualization, physics simulation, real-time controls")
         else:
-            print("⚙️ Legacy OpenGL rendering")
-        print("🔍 DIAGNOSTIC: Looking for QML console.log messages...")
-        print("Expected: Russian labels in UI panels and 3D scene")
-        print("Check console for 'rhi: backend: D3D11' confirmation")
+            print("🛡️ Safe mode: Basic functionality only")
+        print("🔧 Enhanced: Better encoding, terminal, and compatibility support")
+        print("=" * 60 + "\n")
         
-        if args.no_block:
-            print("🔓 НЕБЛОКИРУЮЩИЙ РЕЖИМ: Терминал свободен для других команд")
-            print("    Окно приложения работает независимо")
-        elif args.test_mode:
-            print("🧪 ТЕСТОВЫЙ РЕЖИМ: Автозакрытие через 5 секунд...")
-        else:
-            print("🔒 Окно приложения блокирует терминал - закройте окно для продолжения")
-            print("    Или нажмите Ctrl+C для принудительного завершения")
-        
-        print("="*60 + "\n")
-        
-        # Setup signal handlers for graceful shutdown
+        # Setup signal handlers
         signal.signal(signal.SIGINT, signal_handler)
         if hasattr(signal, 'SIGTERM'):
             signal.signal(signal.SIGTERM, signal_handler)
         
-        # Setup test mode auto-close timer
+        # Setup auto-close for test mode
         if args.test_mode:
             close_timer = QTimer()
             close_timer.setSingleShot(True)
             close_timer.timeout.connect(lambda: [
-                print("🧪 Тестовый режим: Автозакрытие..."),
+                print("🧪 Test mode: Auto-closing..."),
                 window.close()
             ])
-            close_timer.start(5000)  # 5 seconds
+            close_timer.start(5000)
         
-        # Setup non-blocking mode
+        # Handle non-blocking mode
         if args.no_block:
-            print("🔓 ВНИМАНИЕ: Неблокирующий режим лучше запускать через launch.py")
-            print("    Текущий режим может работать нестабильно")
-            print("    Рекомендуется: python launch.py --no-block")
-            print()
+            print("🔓 Non-blocking mode: Application starting in background...")
+            # Brief initialization period
+            start_time = time.time()
+            while time.time() - start_time < 2.0:
+                app.processEvents()
+                time.sleep(0.016)
             
-            # In non-blocking mode, we still need to run the event loop
-            # but we'll set up a way to detect if user wants to continue
-            print("🔓 Запуск в условно-неблокирующем режиме...")
-            print("    Приложение запустится, но Python скрипт продолжит работу")
-            print("    Нажмите Ctrl+C когда приложение будет готово к работе")
-            
-            # Start the event loop but with a timeout mechanism
-            try:
-                # Run for a short time to let the window show
-                start_time = time.time()
-                while time.time() - start_time < 2.0:  # 2 seconds
-                    app.processEvents()
-                    time.sleep(0.016)  # ~60 FPS
-                
-                print("✅ Приложение запущено и готово к работе")
-                print("    Окно должно быть видимо")
-                print("    Скрипт завершается, но окно остается открытым")
-                print("    ВНИМАНИЕ: Для корректной работы используйте:")
-                print("              python launch.py --no-block")
-                
-                return 0
-                
-            except KeyboardInterrupt:
-                print("\n🛑 Получен Ctrl+C, переключаемся в стандартный режим...")
-                # Fall through to standard blocking mode
+            print("✅ Application running in background")
+            print("    Window should be visible and responsive")
+            return 0
         
-        # Standard blocking mode
-        print("🔒 Запуск в стандартном режиме (блокирует терминал)...")
+        # Standard event loop
+        print("🔒 Starting application event loop...")
         result = app.exec()
         
         logger.info(f"Application event loop finished with code: {result}")
@@ -294,17 +355,17 @@ def main():
         return result
         
     except Exception as e:
-        logger.critical(f"Fatal error during application execution: {e}")
-        import traceback
-        logger.critical(traceback.format_exc())
+        error_msg = f"Fatal error during application execution: {e}"
+        if 'logger' in locals():
+            logger.critical(error_msg)
+        
         print(f"\n💀 FATAL ERROR: {e}")
+        import traceback
         traceback.print_exc()
         return 1
     
     finally:
-        # Cleanup logging happens automatically via atexit
-        pass
-
+        print("🧹 Cleanup completed")
 
 if __name__ == "__main__":
     sys.exit(main())

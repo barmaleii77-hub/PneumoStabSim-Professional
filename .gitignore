@@ -505,3 +505,331 @@ test_*.qml
 
 # Empty test files
 test_qml_test_*
+
+# ================================================================================================
+# PneumoStabSim Professional - Enhanced .gitignore
+# Prevents project pollution with temporary, build, and debug files
+# ================================================================================================
+
+# ================================================================================================
+# Build Outputs & Binaries
+# ================================================================================================
+[Bb]in/
+[Oo]bj/
+[Ll]og/
+[Ll]ogs/
+out/
+dist/
+build/
+publish/
+
+# MSBuild Binary and Structured Log
+*.binlog
+*.log
+
+# ================================================================================================
+# Python Environment & Cache
+# ================================================================================================
+
+# Virtual environments
+venv/
+env/
+ENV/
+.env/
+.venv/
+
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Distribution / packaging
+.Python
+develop-eggs/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+pip-wheel-metadata/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# PyInstaller
+*.manifest
+*.spec
+
+# Installer logs
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Pytest
+.pytest_cache/
+.coverage
+htmlcov/
+
+# mypy
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# ================================================================================================
+# .NET & Visual Studio
+# ================================================================================================
+
+# User-specific files
+*.rsuser
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+# User-specific files (MonoDevelop/Xamarin Studio)
+*.userprefs
+
+# Mono auto generated files
+mono_crash.*
+
+# Build results
+[Dd]ebug/
+[Dd]ebugPublic/
+[Rr]elease/
+[Rr]eleases/
+x64/
+x86/
+[Ww][Ii][Nn]32/
+[Aa][Rr][Mm]/
+[Aa][Rr][Mm]64/
+bld/
+[Oo]bj/
+[Ll]og/
+[Ll]ogs/
+
+# Visual Studio 2015/2017 cache/options directory
+.vs/
+
+# Visual Studio Code
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+!.vscode/*.code-snippets
+
+# ================================================================================================
+# Qt & QML
+# ================================================================================================
+
+# Qt Creator
+CMakeLists.txt.user*
+*.pro.user*
+*.pri.user*
+*.qbs.user*
+
+# QML cache
+.qmlcache/
+*.qmlc
+*.jsc
+
+# Qt MOC files
+moc_*.cpp
+moc_*.h
+qrc_*.cpp
+ui_*.h
+
+# ================================================================================================
+# Temporary & Debug Files
+# ================================================================================================
+
+# Temporary files
+*.tmp
+*.temp
+*~
+.DS_Store
+Thumbs.db
+
+# Debug files
+*.pdb
+*.idb
+*.ilk
+*.map
+*.exp
+
+# Crash reports
+crash_*.txt
+crash_*.log
+*.crashlog
+*.stackdump
+
+# Error/output files
+*_error.txt
+*_output.txt
+app_error.txt
+app_output.txt
+error.log
+output.log
+
+# ================================================================================================
+# Documentation & Reports (Temporary)
+# ================================================================================================
+
+# Temporary documentation files
+*_temp.md
+*_tmp.md
+temp_*.md
+draft_*.md
+
+# Multiple status/report files (keep only final versions)
+*STATUS_*.md
+*REPORT_[0-9]*.md
+*FINAL_[0-9]*.md
+*FIX_[0-9]*.md
+*SUMMARY_[0-9]*.md
+
+# Chat exports and history
+chat_*.txt
+chat_*.md
+copilot_*.md
+export_*.txt
+
+# ================================================================================================
+# Test & Development Files
+# ================================================================================================
+
+# Test files (temporary)
+test_*.py.deprecated
+*_test_temp.py
+temp_test*.py
+debug_*.py
+*_debug.py
+
+# Temporary QML files
+*_temp.qml
+*_test.qml
+*_debug.qml
+temp_*.qml
+test_*.qml
+debug_*.qml
+
+# Validation and analysis scripts
+validate_*.py
+analysis_*.py
+study_*.py
+check_*.py.temp
+
+# ================================================================================================
+# Configuration & Secrets
+# ================================================================================================
+
+# Environment variables with secrets
+.env.local
+.env.production
+.env.secret
+
+# Configuration with sensitive data
+*config*.json.secret
+appsettings.Production.json
+secrets.json
+
+# ================================================================================================
+# IDE & Editor Files
+# ================================================================================================
+
+# JetBrains
+.idea/
+
+# Sublime Text
+*.sublime-workspace
+*.sublime-project
+
+# Vim/Neovim
+*.swp
+*.swo
+*~
+
+# Emacs
+*~
+\#*\#
+/.emacs.desktop
+/.emacs.desktop.lock
+*.elc
+
+# ================================================================================================
+# System & OS Files
+# ================================================================================================
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Linux
+*~
+.fuse_hidden*
+.directory
+.Trash-*
+
+# ================================================================================================
+# Project Specific Exclusions
+# ================================================================================================
+
+# Multiple setup files
+setup_*.py.old
+setup_env_*.bat
+start_venv_*.bat
+run_*.bat.backup
+
+# Backup and old files
+*.backup
+*.old
+*.orig
+*.bak
+
+# Node modules (if using any JS tools)
+node_modules/
+
+# Archive directories for temporary files
+archive/temp/
+archive/old/
+
+# ================================================================================================
+# Allow Important Files (Exceptions)
+# ================================================================================================
+
+# Keep essential documentation
+!README.md
+!LAUNCH_GUIDE.md
+!TROUBLESHOOTING.md
+!ROADMAP.md
+!LICENSE
+
+# Keep essential scripts
+!run.bat
+!activate_venv.*
+!fix_*.bat
+!status.bat
+!install_dev.bat
+
+# Keep project configurations
+!pyproject.toml
+!pytest.ini
+!requirements*.txt
+!.editorconfig
+
+# ================================================================================================
+# END OF .GITIGNORE
+# ================================================================================================

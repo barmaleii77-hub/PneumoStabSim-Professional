@@ -1,5 +1,0 @@
-Traceback (most recent call last):
-  File "C:\Users\Алексей\source\repos\NewRepo2\src\ui\main_window.py", line 161, in _setup_qml_3d_view
-    raise RuntimeError(f"QML errors:\n{error_msg}")
-RuntimeError: QML errors:
-file:///C:/Users/Алексей/source/repos/NewRepo2/assets/qml/main.qml:141:9: Expected token `)'
