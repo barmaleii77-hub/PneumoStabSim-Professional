@@ -1,0 +1,27 @@
+{
+  "timestamp": "2025-10-09 15:15:27",
+  "qml_file_size": 43644,
+  "qml_lines": 1038,
+  "optimizations": {
+    "animationCache": true,
+    "geometryCache": true,
+    "_geometryDirty": true,
+    "cachedWorldPerPixel": true,
+    "glassIOR": true,
+    "iblEnabled": true,
+    "bloomThreshold": true,
+    "ssaoRadius": true,
+    "shadowSoftness": true,
+    "tonemapEnabled": true,
+    "vignetteEnabled": true,
+    "dofFocusDistance": true,
+    "applyBatchedUpdates": true
+  },
+  "optimization_percentage": 100.0,
+  "performance_gain": 60.28703781286411,
+  "memory_efficiency": 100.0,
+  "final_score": 86.76234593762138,
+  "grade": "🥇 ОТЛИЧНО",
+  "fps_uncached": 1830596.5893115266,
+  "fps_cached": 4609569.491908883
+}

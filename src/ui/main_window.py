@@ -124,6 +124,13 @@ class MainWindow(QMainWindow):
         self.render_timer.start(16)
         print("  ✅ Таймер рендеринга запущен")
 
+        # Batch updates: queue updates to minimize cross-language calls to QML
+        self._qml_update_queue: Dict[str, dict] = {}
+        self._qml_flush_timer = QTimer(self)
+        self._qml_flush_timer.setSingleShot(True)
+        self._qml_flush_timer.timeout.connect(self._flush_qml_updates)
+        print("  ✅ Batch update queue initialized")
+
         print("  ⏸️  SimulationManager запустится после window.show()")
 
         # Restore settings
@@ -188,12 +195,16 @@ class MainWindow(QMainWindow):
             self._qquick_widget = QQuickWidget(self)
             self._qquick_widget.setResizeMode(QQuickWidget.ResizeMode.SizeRootObjectToView)
             
-            qml_path = Path("assets/qml/main.qml")
+            # Use optimized QML by default
+            qml_path = Path("assets/qml/main_optimized.qml")
+            if not qml_path.exists():
+                # Fallback to original main.qml if optimized not present
+                qml_path = Path("assets/qml/main.qml")
             if not qml_path.exists():
                 raise FileNotFoundException(f"QML файл не найден: {qml_path.absolute()}")
             
             qml_url = QUrl.fromLocalFile(str(qml_path.absolute()))
-            print(f"    Загрузка main.qml: {qml_url.toString()}")
+            print(f"    Загрузка QML: {qml_url.toString()}")
             
             self._qquick_widget.setSource(qml_url)
             
@@ -206,7 +217,7 @@ class MainWindow(QMainWindow):
             if not self._qml_root_object:
                 raise RuntimeError("Не удалось получить корневой объект QML")
             
-            print("    [OK] main.qml загружен успешно")
+            print("    [OK] QML загружен успешно")
             
         except Exception as e:
             print(f"    [ERROR] Ошибка загрузки main.qml: {e}")
@@ -226,7 +237,8 @@ class MainWindow(QMainWindow):
     def _setup_legacy_opengl_view(self):
         """Setup legacy OpenGL widget"""
         print("    _setup_legacy_opengl_view: Загрузка legacy QML...")
-        self._setup_qml_3d_view()  # Same implementation for now
+        # Use same loader but prefer optimized QML
+        self._setup_qml_3d_view()
 
     def _setup_tabs(self):
         """Создать вкладки с панелями параметров (справа от сцены через сплиттер)
@@ -560,6 +572,9 @@ class MainWindow(QMainWindow):
         self.logger.info(f"Lighting preset applied: {preset_name}")
         
         self.status_bar.showMessage(f"Применен пресет: {display_name}")
+        # Preset application may affect lighting/materials — flush quickly
+        if self._qml_root_object:
+            self._queue_qml_update('preset', {'name': preset_name})
 
     @Slot(str)
     def _on_sim_control(self, command: str):
@@ -583,8 +598,13 @@ class MainWindow(QMainWindow):
                     
                     # ✨ НОВОЕ: Запускаем анимацию в QML
                     if self._qml_root_object:
-                        self._qml_root_object.setProperty("isRunning", True)
-                        print("✅ QML анимация запущена (isRunning=True)")
+                        # Start immediately (do not batch start/stop commands)
+                        try:
+                            self._qml_root_object.setProperty("isRunning", True)
+                            print("✅ QML анимация запущена (isRunning=True)")
+                        except Exception:
+                            print("⚠️ Не удалось немедленно установить isRunning=True, поставлено в очередь")
+                            self._queue_qml_update('control', {'isRunning': True})
                 else:
                     print("⚠️ Симуляция уже запущена")
                     
@@ -598,11 +618,14 @@ class MainWindow(QMainWindow):
                     
                     # ✨ НОВОЕ: Останавливаем анимацию в QML
                     if self._qml_root_object:
-                        self._qml_root_object.setProperty("isRunning", False)
-                        print("✅ QML анимация остановлена (isRunning=False)")
+                        try:
+                            self._qml_root_object.setProperty("isRunning", False)
+                            print("✅ QML анимация остановлена (isRunning=False)")
+                        except Exception:
+                            self._queue_qml_update('control', {'isRunning': False})
                 else:
                     print("⚠️ Симуляция не запущена")
-                    
+                
             elif command == "pause":
                 if self.is_simulation_running:
                     print("⏸️ Пауза симуляции...")
@@ -629,13 +652,17 @@ class MainWindow(QMainWindow):
                 
                 # ✨ НОВОЕ: Останавливаем анимацию и сбрасываем углы в QML
                 if self._qml_root_object:
-                    self._qml_root_object.setProperty("isRunning", False)
-                    self._qml_root_object.setProperty("fl_angle", 0.0)
-                    self._qml_root_object.setProperty("fr_angle", 0.0)
-                    self._qml_root_object.setProperty("rl_angle", 0.0)
-                    self._qml_root_object.setProperty("rr_angle", 0.0)
-                    self._qml_root_object.setProperty("animationTime", 0.0)
-                    print("✅ QML анимация сброшена (isRunning=False, все углы=0)")
+                    # Batch reset properties for fewer QML calls
+                    reset_params = {
+                        'isRunning': False,
+                        'fl_angle': 0.0,
+                        'fr_angle': 0.0,
+                        'rl_angle': 0.0,
+                        'rr_angle': 0.0,
+                        'animationTime': 0.0
+                    }
+                    self._queue_qml_update('reset', reset_params)
+                    print("✅ QML анимация поставлена в очередь на сброс")
                 
             else:
                 print(f"❌ Неизвестная команда: {command}")
@@ -668,61 +695,86 @@ class MainWindow(QMainWindow):
         
         # Обновляем параметры анимации в QML сцене
         if self._qml_root_object:
-            try:
-                # Амплитуда: конвертируем метры в градусы (примерное преобразование)
-                # Для подвески обычно 0.05м = ~5° угла рычага
+            # Batch animation parameters to send in a single flush
+            if self._qml_root_object:
+                # Convert amplitude meters -> degrees if present
                 if 'amplitude' in animation_params:
+                    animation_params = dict(animation_params)  # copy
                     amplitude_m = animation_params['amplitude']
-                    amplitude_deg = amplitude_m * 100  # 0.05м = 5°
-                    self._qml_root_object.setProperty("userAmplitude", amplitude_deg)
-                    print(f"   ✅ Амплитуда: {amplitude_m}м → {amplitude_deg}°")
-                
-                # Частота (Hz)
-                if 'frequency' in animation_params:
-                    frequency = animation_params['frequency']
-                    self._qml_root_object.setProperty("userFrequency", frequency)
-                    print(f"   ✅ Частота: {frequency} Гц")
-                
-                # Глобальная фаза (градусы)
-                if 'phase' in animation_params:
-                    phase = animation_params['phase']
-                    self._qml_root_object.setProperty("userPhaseGlobal", phase)
-                    print(f"   ✅ Глобальная фаза: {phase}°")
-                
-                # Фазы для каждого колеса (градусы)
-                if 'lf_phase' in animation_params:
-                    self._qml_root_object.setProperty("userPhaseFL", animation_params['lf_phase'])
-                    print(f"   ✅ Фаза ЛП: {animation_params['lf_phase']}°")
-                
-                if 'rf_phase' in animation_params:
-                    self._qml_root_object.setProperty("userPhaseFR", animation_params['rf_phase'])
-                    print(f"   ✅ Фаза ПП: {animation_params['rf_phase']}°")
-                
-                if 'lr_phase' in animation_params:
-                    self._qml_root_object.setProperty("userPhaseRL", animation_params['lr_phase'])
-                    print(f"   ✅ Фаза ЛЗ: {animation_params['lr_phase']}°")
-                
-                if 'rr_phase' in animation_params:
-                    self._qml_root_object.setProperty("userPhaseRR", animation_params['rr_phase'])
-                    print(f"   ✅ Фаза ПЗ: {animation_params['rr_phase']}°")
-                
-                self.status_bar.showMessage("Параметры анимации обновлены")
-                print(f"📊 Статус: Параметры анимации успешно переданы в QML")
+                    animation_params['amplitude_deg'] = amplitude_m * 100
+                self._queue_qml_update('animation', animation_params)
+                self.status_bar.showMessage("Параметры анимации запланированы")
+                print(f"   ✅ Анимация поставлена в очередь (batch)")
+            else:
                 print(f"═══════════════════════════════════════════════")
-                
-            except Exception as e:
+                print(f"❌ MainWindow: QML root object отсутствует!")
+                print(f"   Не можем обновить параметры анимации")
                 print(f"═══════════════════════════════════════════════")
-                print(f"❌ ОШИБКА обновления параметров анимации в QML!")
-                print(f"   Error: {e}")
-                print(f"═══════════════════════════════════════════════")
-                self.logger.error(f"QML animation update failed: {e}")
-                import traceback
-                traceback.print_exc()
+    
+    # ------------------------------------------------------------------
+    def _queue_qml_update(self, key: str, params: dict):
+        """Add or merge an update into the batch queue and schedule a flush."""
+        if not isinstance(params, dict):
+            return
+        existing = self._qml_update_queue.get(key)
+        if existing:
+            # Shallow merge - newer keys overwrite older
+            existing.update(params)
         else:
-            print(f"═══════════════════════════════════════════════")
-            print(f"❌ MainWindow: QML root object отсутствует!")
-            print(f"   Не можем обновить параметры анимации")
-            print(f"═══════════════════════════════════════════════")
+            self._qml_update_queue[key] = dict(params)
+        # Schedule flush on next event loop iteration
+        if not self._qml_flush_timer.isActive():
+            self._qml_flush_timer.start(0)
+
+    def _flush_qml_updates(self):
+        """Flush queued updates to QML in a single batch where possible."""
+        if not self._qml_root_object or not self._qml_update_queue:
+            self._qml_update_queue.clear()
+            return
+
+        batched = dict(self._qml_update_queue)
+        self._qml_update_queue.clear()
+
+        try:
+            # Prefer single batched method if provided by QML
+            if hasattr(self._qml_root_object, 'applyBatchedUpdates'):
+                self._qml_root_object.applyBatchedUpdates(batched)
+                print("   ✅ Batched updates applied via applyBatchedUpdates()")
+                return
+
+            # Otherwise, call existing updateX methods once per category
+            if 'lighting' in batched and hasattr(self._qml_root_object, 'updateLighting'):
+                self._qml_root_object.updateLighting(batched['lighting'])
+            if 'environment' in batched and hasattr(self._qml_root_object, 'updateEnvironment'):
+                self._qml_root_object.updateEnvironment(batched['environment'])
+            if 'quality' in batched and hasattr(self._qml_root_object, 'updateQuality'):
+                self._qml_root_object.updateQuality(batched['quality'])
+            if 'preset' in batched and hasattr(self._qml_root_object, 'applyPreset'):
+                self._qml_root_object.applyPreset(batched['preset'].get('name'))
+            if 'material' in batched and hasattr(self._qml_root_object, 'updateMaterials'):
+                self._qml_root_object.updateMaterials(batched['material'])
+            if 'camera' in batched and hasattr(self._qml_root_object, 'updateCamera'):
+                self._qml_root_object.updateCamera(batched['camera'])
+            if 'effects' in batched and hasattr(self._qml_root_object, 'updateEffects'):
+                self._qml_root_object.updateEffects(batched['effects'])
+            if 'geometry' in batched and hasattr(self._qml_root_object, 'updateGeometry'):
+                self._qml_root_object.updateGeometry(batched['geometry'])
+            if 'animation' in batched and hasattr(self._qml_root_object, 'updateAnimation'):
+                self._qml_root_object.updateAnimation(batched['animation'])
+
+            # Fallback: set properties directly if specific updates not available
+            for k, v in batched.items():
+                if k in ('control', 'reset') and isinstance(v, dict):
+                    for prop, val in v.items():
+                        try:
+                            self._qml_root_object.setProperty(prop, val)
+                        except Exception:
+                            pass
+
+            print("   ✅ Batched updates flushed to QML")
+        except Exception as e:
+            print(f"⚠️ Ошибка при применении batched updates: {e}")
+            self.logger.error(f"Batched QML update failed: {e}")
 
     # =================================================================
     # UI Setup Methods (Menu, Toolbar, Status Bar)
@@ -997,3 +1049,50 @@ class MainWindow(QMainWindow):
     # =================================================================
     # Graphics Panel Signal Handlers
     # =================================================================
+
+    def resizeEvent(self, event):
+        """Override resizeEvent to handle window resizing gracefully"""
+        super().resizeEvent(event)
+        
+        # Throttle resize updates to prevent performance issues
+        if not hasattr(self, '_resize_timer'):
+            self._resize_timer = QTimer(self)
+            self._resize_timer.setSingleShot(True)
+            self._resize_timer.timeout.connect(self._handle_resize_complete)
+        
+        # On first resize event, pause heavy render timer to avoid high CPU/GPU load
+        try:
+            if hasattr(self, 'render_timer') and self.render_timer.isActive():
+                self._resize_paused_render = True
+                self.render_timer.stop()
+                # Minor log for diagnostics
+                self.logger.debug("resizeEvent: paused render_timer during resize")
+        except Exception:
+            self._resize_paused_render = False
+
+        # Restart throttle timer on each resize event
+        self._resize_timer.stop()
+        self._resize_timer.start(100)  # Wait 100ms after last resize
+
+    def _handle_resize_complete(self):
+        """Called after resize operation completes"""
+        # Force update of QML widget
+        try:
+            if self._qquick_widget and hasattr(self._qquick_widget, 'update'):
+                self._qquick_widget.update()
+        except Exception:
+            pass
+        
+        # Log new size for debugging
+        new_size = self.size()
+        self.logger.debug(f"Window resized to: {new_size.width()}x{new_size.height()}")
+        
+        # Resume render timer if we paused it during resize
+        try:
+            if getattr(self, '_resize_paused_render', False):
+                if hasattr(self, 'render_timer') and not self.render_timer.isActive():
+                    self.render_timer.start(16)
+                    self.logger.debug("_handle_resize_complete: resumed render_timer after resize")
+                self._resize_paused_render = False
+        except Exception:
+            pass
