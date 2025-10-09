@@ -71,7 +71,7 @@ python app.py --no-block
 
 ### Контакты для поддержки
 
-- GitHub: https://github.com/barmaleii77-hub/NewRepo2
+- GitHub: https://github.com/barmaleii77-hub/PneumoStabSim-Professional
 - Issues: Создайте issue с описанием проблемы
 - Logs: Проверьте файлы в папке logs/
 
