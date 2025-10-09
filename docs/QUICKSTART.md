@@ -12,8 +12,8 @@
 
 ### 1. Клонирование
 ```bash
-git clone https://github.com/barmaleii77-hub/NewRepo2.git
-cd NewRepo2
+git clone https://github.com/barmaleii77-hub/PneumoStabSim-Professional.git
+cd PneumoStabSim-Professional
 ```
 
 ### 2. Виртуальное окружение
