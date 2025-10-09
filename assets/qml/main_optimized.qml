@@ -656,67 +656,102 @@ Item {
             }
         }
 
-        // ✅ OPTIMIZED SUSPENSION COMPONENT (with IOR support)
+        // ✅ OPTIMIZED SUSPENSION COMPONENT (with CORRECT rod length calculation)
         component OptimizedSuspensionCorner: Node {
             property vector3d j_arm
             property vector3d j_tail  
             property real leverAngle
             property real pistonPositionFromPython: 250.0
             
-            // Кэшированные вычисления (preserved)
-            property bool _geometryDirty: true
-            property var _cachedGeometry: null
+            // ✅ ИСПРАВЛЕНО: Избегаем циклические зависимости - используем прямые вычисления
             
-            // Инвалидация кэша при изменении входных данных
-            onLeverAngleChanged: _geometryDirty = true
-            onJ_armChanged: _geometryDirty = true
-            onJ_tailChanged: _geometryDirty = true
+            // Базовая геометрия рычага
+            readonly property real baseAngle: (j_arm.x < 0) ? 180 : 0
+            readonly property real totalAngle: baseAngle + leverAngle
+            readonly property real totalAngleRad: totalAngle * Math.PI / 180
             
-            // Ленивое вычисление геометрии
-            function getGeometry() {
-                if (_geometryDirty || !_cachedGeometry) {
-                    const baseAngle = (j_arm.x < 0) ? 180 : 0
-                    const j_rod = geometryCache.calculateJRod(j_arm, baseAngle, leverAngle)
-                    const cylGeom = geometryCache.normalizeCylDirection(j_rod, j_tail)
-                    
-                    _cachedGeometry = {
-                        j_rod: j_rod,
-                        totalAngle: baseAngle + leverAngle,
-                        cylDirection: cylGeom.direction,
-                        cylDirectionNorm: cylGeom.normalized,
-                        cylAngle: cylGeom.angle,
-                        
-                        // Предварительно вычисленные позиции
-                        tailRodEnd: Qt.vector3d(
-                            j_tail.x + cylGeom.normalized.x * 100,
-                            j_tail.y + cylGeom.normalized.y * 100,
-                            j_tail.z
-                        ),
-                        cylinderEnd: Qt.vector3d(
-                            j_tail.x + cylGeom.normalized.x * (100 + userCylinderLength),
-                            j_tail.y + cylGeom.normalized.y * (100 + userCylinderLength),
-                            j_tail.z
-                        )
-                    }
-                    _geometryDirty = false
-                }
-                return _cachedGeometry
-            }
+            // Позиция шарнира штока на рычаге
+            readonly property vector3d j_rod: Qt.vector3d(
+                j_arm.x + (userLeverLength * userRodPosition) * Math.cos(totalAngleRad),
+                j_arm.y + (userLeverLength * userRodPosition) * Math.sin(totalAngleRad),
+                j_arm.z
+            )
             
-            // Использование кэшированных значений
-            property vector3d j_rod: getGeometry().j_rod
-            property real totalAngle: getGeometry().totalAngle
-            property vector3d cylDirectionNorm: getGeometry().cylDirectionNorm
-            property real cylAngle: getGeometry().cylAngle
-            property vector3d tailRodEnd: getGeometry().tailRodEnd
-            property vector3d cylinderEnd: getGeometry().cylinderEnd
+            // Направление от j_tail к j_rod (направление цилиндра)
+            readonly property vector3d cylDirection: Qt.vector3d(j_rod.x - j_tail.x, j_rod.y - j_tail.y, 0)
+            readonly property real cylDirectionLength: Math.hypot(cylDirection.x, cylDirection.y)
+            readonly property vector3d cylDirectionNorm: Qt.vector3d(
+                cylDirection.x / cylDirectionLength,
+                cylDirection.y / cylDirectionLength,
+                0
+            )
+            readonly property real cylAngle: Math.atan2(cylDirection.y, cylDirection.x) * 180 / Math.PI + 90
             
-            // LEVER
+            // Константы длин
+            readonly property real tailRodLength: 100                    // мм - хвостовой шток
+            readonly property real pistonRodLength: userPistonRodLength  // мм - шток поршня (КОНСТАНТА!)
+            
+            // Базовые позиции цилиндра
+            readonly property vector3d tailRodEnd: Qt.vector3d(
+                j_tail.x + cylDirectionNorm.x * tailRodLength,
+                j_tail.y + cylDirectionNorm.y * tailRodLength,
+                j_tail.z
+            )
+            
+            readonly property vector3d cylinderEnd: Qt.vector3d(
+                tailRodEnd.x + cylDirectionNorm.x * userCylinderLength,
+                tailRodEnd.y + cylDirectionNorm.y * userCylinderLength,
+                tailRodEnd.z
+            )
+            
+            // ✅ ПРАВИЛЬНЫЙ РАСЧЕТ ПОЗИЦИИ ПОРШНЯ для КОНСТАНТНОЙ длины штока
+            
+            // Проекция j_rod на ось цилиндра
+            readonly property vector3d j_rodToCylStart: Qt.vector3d(j_rod.x - tailRodEnd.x, j_rod.y - tailRodEnd.y, 0)
+            readonly property real projectionOnCylAxis: j_rodToCylStart.x * cylDirectionNorm.x + j_rodToCylStart.y * cylDirectionNorm.y
+            
+            // Точка на оси цилиндра ближайшая к j_rod
+            readonly property vector3d j_rodProjection: Qt.vector3d(
+                tailRodEnd.x + cylDirectionNorm.x * projectionOnCylAxis,
+                tailRodEnd.y + cylDirectionNorm.y * projectionOnCylAxis,
+                tailRodEnd.z
+            )
+            
+            // Перпендикулярное расстояние от j_rod до оси цилиндра
+            readonly property real perpendicularDistance: Math.hypot(
+                j_rod.x - j_rodProjection.x,
+                j_rod.y - j_rodProjection.y
+            )
+            
+            // ✅ РЕШЕНИЕ ТРЕУГОЛЬНИКА: находим позицию поршня для КОНСТАНТНОЙ длины штока
+            // Теорема Пифагора: rod_length² = perpendicular_distance² + axial_distance²
+            readonly property real rodLengthSquared: pistonRodLength * pistonRodLength
+            readonly property real perpDistSquared: perpendicularDistance * perpendicularDistance
+            readonly property real axialDistanceFromProjection: Math.sqrt(Math.max(0, rodLengthSquared - perpDistSquared))
+            
+            // Позиция поршня на оси цилиндра (назад от проекции j_rod)
+            readonly property real pistonPositionOnAxis: projectionOnCylAxis - axialDistanceFromProjection
+            
+            // Ограничиваем поршень в пределах цилиндра
+            readonly property real clampedPistonPosition: Math.max(10, Math.min(userCylinderLength - 10, pistonPositionOnAxis))
+            
+            // ✅ ФИНАЛЬНАЯ позиция поршня (на оси цилиндра)
+            readonly property vector3d pistonCenter: Qt.vector3d(
+                tailRodEnd.x + cylDirectionNorm.x * clampedPistonPosition,
+                tailRodEnd.y + cylDirectionNorm.y * clampedPistonPosition,
+                tailRodEnd.z
+            )
+            
+            // ✅ ПРОВЕРКА: реальная длина штока (для отладки)
+            readonly property real actualRodLength: Math.hypot(j_rod.x - pistonCenter.x, j_rod.y - pistonCenter.y)
+            readonly property real rodLengthError: Math.abs(actualRodLength - pistonRodLength)
+            
+            // LEVER (рычаг)
             Model {
                 source: "#Cube"
                 position: Qt.vector3d(
-                    j_arm.x + (userLeverLength/2) * Math.cos(totalAngle * Math.PI / 180), 
-                    j_arm.y + (userLeverLength/2) * Math.sin(totalAngle * Math.PI / 180), 
+                    j_arm.x + (userLeverLength/2) * Math.cos(totalAngleRad), 
+                    j_arm.y + (userLeverLength/2) * Math.sin(totalAngleRad), 
                     j_arm.z
                 )
                 scale: Qt.vector3d(userLeverLength/100, 0.8, 0.8)
@@ -729,11 +764,11 @@ Item {
                 }
             }
             
-            // TAIL ROD
+            // TAIL ROD (хвостовой шток) - КОНСТАНТНАЯ длина
             Model {
                 source: "#Cylinder"
                 position: Qt.vector3d((j_tail.x + tailRodEnd.x)/2, (j_tail.y + tailRodEnd.y)/2, j_tail.z)
-                scale: Qt.vector3d(userRodDiameter/100, 100/100, userRodDiameter/100)
+                scale: Qt.vector3d(userRodDiameter/100, tailRodLength/100, userRodDiameter/100)
                 eulerRotation: Qt.vector3d(0, 0, cylAngle)
                 materials: PrincipledMaterial { 
                     baseColor: "#cccccc"
@@ -742,7 +777,7 @@ Item {
                 }
             }
             
-            // ✅ CYLINDER BODY (with IOR support!)
+            // CYLINDER BODY (корпус цилиндра) с IOR
             Model {
                 source: "#Cylinder"
                 position: Qt.vector3d((tailRodEnd.x + cylinderEnd.x)/2, (tailRodEnd.y + cylinderEnd.y)/2, tailRodEnd.z)
@@ -753,54 +788,45 @@ Item {
                     metalness: 0.0
                     roughness: glassRoughness
                     opacity: glassOpacity
-                    indexOfRefraction: glassIOR          // ✅ НОВОЕ: Коэффициент преломления!
+                    indexOfRefraction: glassIOR          // ✅ Коэффициент преломления
                     alphaMode: PrincipledMaterial.Blend 
                 }
             }
             
-            // PISTON (restored)
-            property real pistonPosOnAxis: Math.max(10, Math.min(userCylinderLength - 10, pistonPositionFromPython))
-            property vector3d pistonCenter: Qt.vector3d(
-                tailRodEnd.x + cylDirectionNorm.x * pistonPosOnAxis,
-                tailRodEnd.y + cylDirectionNorm.y * pistonPosOnAxis,
-                tailRodEnd.z
-            )
-            property real pistonRodActualLength: Math.hypot(j_rod.x - pistonCenter.x, j_rod.y - pistonCenter.y)
-            
+            // ✅ PISTON (поршень) - правильная позиция для константной длины штока
             Model {
-                // PISTON BODY
                 source: "#Cylinder"
                 position: pistonCenter
                 scale: Qt.vector3d((userBoreHead - 2)/100, userPistonThickness/100, (userBoreHead - 2)/100)
                 eulerRotation: Qt.vector3d(0, 0, cylAngle)
                 materials: PrincipledMaterial { 
-                    baseColor: "#ff0066"
+                    baseColor: rodLengthError > 1.0 ? "#ff4444" : "#ff0066"  // Краснее если большая ошибка
                     metalness: metalMetalness
                     roughness: metalRoughness
                 }
             }
             
-            // PISTON ROD (between pistonCenter and j_rod)
+            // ✅ PISTON ROD (шток поршня) - КОНСТАНТНАЯ длина!
             Model {
                 source: "#Cylinder"
                 position: Qt.vector3d((pistonCenter.x + j_rod.x)/2, (pistonCenter.y + j_rod.y)/2, pistonCenter.z)
-                scale: Qt.vector3d(userRodDiameter/100, pistonRodActualLength/100, userRodDiameter/100)
+                scale: Qt.vector3d(userRodDiameter/100, pistonRodLength/100, userRodDiameter/100)  // ✅ КОНСТАНТНАЯ ДЛИНА!
                 eulerRotation: Qt.vector3d(0, 0, Math.atan2(j_rod.y - pistonCenter.y, j_rod.x - pistonCenter.x) * 180 / Math.PI + 90)
                 materials: PrincipledMaterial { 
-                    baseColor: "#cccccc"
+                    baseColor: rodLengthError > 1.0 ? "#ff0000" : "#cccccc"  // Красный если ошибка > 1мм
                     metalness: metalMetalness
                     roughness: metalRoughness
                 }
             }
             
-            // JOINTS - visible colored markers (restored)
+            // JOINTS (шарниры) - цветные маркеры
             Model {
                 source: "#Cylinder"
                 position: j_tail
                 scale: Qt.vector3d(1.2, 2.4, 1.2)
                 eulerRotation: Qt.vector3d(90, 0, 0)
                 materials: PrincipledMaterial { 
-                    baseColor: "#0088ff"  // Blue - cylinder joint
+                    baseColor: "#0088ff"  // Синий - шарнир цилиндра
                     metalness: metalMetalness
                     roughness: metalRoughness
                 }
@@ -812,7 +838,7 @@ Item {
                 scale: Qt.vector3d(1.0, 2.0, 1.0)
                 eulerRotation: Qt.vector3d(90, 0, 0)
                 materials: PrincipledMaterial { 
-                    baseColor: "#ff8800"  // Orange - lever joint
+                    baseColor: "#ff8800"  // Оранжевый - шарнир рычага
                     metalness: metalMetalness
                     roughness: metalRoughness
                 }
@@ -824,47 +850,52 @@ Item {
                 scale: Qt.vector3d(0.8, 1.6, 0.8)
                 eulerRotation: Qt.vector3d(90, 0, leverAngle * 0.1)
                 materials: PrincipledMaterial { 
-                    baseColor: "#00ff44"  // Green - rod joint
+                    baseColor: rodLengthError > 1.0 ? "#ff0000" : "#00ff44"  // Красный если ошибка, зеленый если OK
                     metalness: metalMetalness
                     roughness: metalRoughness
                 }
             }
             
-             // Остальные компоненты (поршень, штоки, соединения)...
-         }
+            // ✅ DEBUG: Логирование ошибок длины штока
+            onRodLengthErrorChanged: {
+                if (rodLengthError > 1.0) {  // Если ошибка больше 1мм
+                    console.warn("⚠️ Rod length error:", rodLengthError.toFixed(2), "mm (target:", pistonRodLength, "actual:", actualRodLength.toFixed(2), ")")
+                }
+            }
+        }
 
-         // Four suspension corners with optimization and IOR
-         OptimizedSuspensionCorner { 
-             id: flCorner
-             j_arm: Qt.vector3d(-userFrameToPivot, userBeamSize, userBeamSize/2)
-             j_tail: Qt.vector3d(-userTrackWidth/2, userBeamSize + userFrameHeight, userBeamSize/2)
-             leverAngle: fl_angle
-             pistonPositionFromPython: root.userPistonPositionFL
-         }
+        // Four suspension corners with fixed rod lengths
+        OptimizedSuspensionCorner { 
+            id: flCorner
+            j_arm: Qt.vector3d(-userFrameToPivot, userBeamSize, userBeamSize/2)
+            j_tail: Qt.vector3d(-userTrackWidth/2, userBeamSize + userFrameHeight, userBeamSize/2)
+            leverAngle: fl_angle
+            pistonPositionFromPython: root.userPistonPositionFL
+        }
         
         OptimizedSuspensionCorner { 
-             id: frCorner
-             j_arm: Qt.vector3d(userFrameToPivot, userBeamSize, userBeamSize/2)
-             j_tail: Qt.vector3d(userTrackWidth/2, userBeamSize + userFrameHeight, userBeamSize/2)
-             leverAngle: fr_angle
-             pistonPositionFromPython: root.userPistonPositionFR
-         }
+            id: frCorner
+            j_arm: Qt.vector3d(userFrameToPivot, userBeamSize, userBeamSize/2)
+            j_tail: Qt.vector3d(userTrackWidth/2, userBeamSize + userFrameHeight, userBeamSize/2)
+            leverAngle: fr_angle
+            pistonPositionFromPython: root.userPistonPositionFR
+        }
         
         OptimizedSuspensionCorner { 
-             id: rlCorner
-             j_arm: Qt.vector3d(-userFrameToPivot, userBeamSize, userFrameLength - userBeamSize/2)
-             j_tail: Qt.vector3d(-userTrackWidth/2, userBeamSize + userFrameHeight, userFrameLength - userBeamSize/2)
-             leverAngle: rl_angle
-             pistonPositionFromPython: root.userPistonPositionRL
-         }
+            id: rlCorner
+            j_arm: Qt.vector3d(-userFrameToPivot, userBeamSize, userFrameLength - userBeamSize/2)
+            j_tail: Qt.vector3d(-userTrackWidth/2, userBeamSize + userFrameHeight, userFrameLength - userBeamSize/2)
+            leverAngle: rl_angle
+            pistonPositionFromPython: root.userPistonPositionRL
+        }
         
         OptimizedSuspensionCorner { 
-             id: rrCorner
-             j_arm: Qt.vector3d(userFrameToPivot, userBeamSize, userFrameLength - userBeamSize/2)
-             j_tail: Qt.vector3d(userTrackWidth/2, userBeamSize + userFrameHeight, userFrameLength - userBeamSize/2)
-             leverAngle: rr_angle
-             pistonPositionFromPython: root.userPistonPositionRR
-         }
+            id: rrCorner
+            j_arm: Qt.vector3d(userFrameToPivot, userBeamSize, userFrameLength - userBeamSize/2)
+            j_tail: Qt.vector3d(userTrackWidth/2, userBeamSize + userFrameHeight, userFrameLength - userBeamSize/2)
+            leverAngle: rr_angle
+            pistonPositionFromPython: root.userPistonPositionRR
+        }
     }
 
     // ===============================================================
@@ -986,15 +1017,15 @@ Item {
     focus: true
 
     // ===============================================================
-    // ✅ UPDATED INFO PANEL (with new parameters)
+    // ✅ UPDATED INFO PANEL (with rod length information)
     // ===============================================================
 
     Rectangle {
         anchors.top: parent.top
         anchors.left: parent.left
         anchors.margins: 15
-        width: 520
-        height: 260
+        width: 550
+        height: 280
         color: "#aa000000"
         border.color: "#60ffffff"
         radius: 8
@@ -1004,30 +1035,30 @@ Item {
             spacing: 6
             
             Text { 
-                text: "PneumoStabSim Professional | COMPLETE GRAPHICS v4.0"
+                text: "PneumoStabSim Professional | ИСПРАВЛЕННАЯ КИНЕМАТИКА v4.1"
                 color: "#ffffff"
                 font.pixelSize: 14
                 font.bold: true 
             }
             
             Text { 
-                text: "🚀 ПОЛНАЯ ИНТЕГРАЦИЯ: Все параметры GraphicsPanel реализованы"
+                text: "🔧 ИСПРАВЛЕНО: Правильный расчет длины штоков"
                 color: "#00ff88"
                 font.pixelSize: 11 
             }
             
             Text { 
-                text: "✅ НОВОЕ: IOR=" + glassIOR.toFixed(2) + " | IBL=" + (iblEnabled ? "ON" : "OFF") + 
-                      " | Tonemap=" + (tonemapEnabled ? "ON" : "OFF") + " | Vignette=" + (vignetteEnabled ? "ON" : "OFF")
+                text: "✅ Длина штока: " + userPistonRodLength + "мм (КОНСТАНТА)"
                 color: "#ffaa00"
                 font.pixelSize: 10 
             }
             
             Text { 
-                text: "🎨 Эффекты: " + (bloomEnabled ? "Bloom(T:" + bloomThreshold.toFixed(1) + ") " : "") + 
-                      (ssaoEnabled ? "SSAO(R:" + ssaoRadius.toFixed(0) + ") " : "") +
-                      (depthOfFieldEnabled ? "DoF(" + dofFocusDistance.toFixed(0) + "mm) " : "")
-                color: "#ffaa00"
+                text: "🔍 Ошибки длины: FL=" + (flCorner.rodLengthError ? flCorner.rodLengthError.toFixed(2) : "0.00") + 
+                      "мм | FR=" + (frCorner.rodLengthError ? frCorner.rodLengthError.toFixed(2) : "0.00") + 
+                      "мм | RL=" + (rlCorner.rodLengthError ? rlCorner.rodLengthError.toFixed(2) : "0.00") + 
+                      "мм | RR=" + (rrCorner.rodLengthError ? rrCorner.rodLengthError.toFixed(2) : "0.00") + "мм"
+                color: "#aaddff"
                 font.pixelSize: 9 
             }
             
@@ -1039,12 +1070,6 @@ Item {
             }
             
             Text { 
-                text: "⚡ Оптимизации: Кэш анимации | Ленивая геометрия | Batch обновления | IOR стекла"
-                color: "#aaddff"
-                font.pixelSize: 9 
-            }
-            
-            Text { 
                 text: "🎮 ЛКМ-вращение | ПКМ-панорама | Колесо-зум | R-сброс | F-автофит | Space-анимация"
                 color: "#aaddff"
                 font.pixelSize: 9 
@@ -1052,7 +1077,7 @@ Item {
             
             // Animation status
             Rectangle {
-                width: 480
+                width: 520
                 height: 70
                 color: "#33000000"
                 border.color: isRunning ? "#00ff00" : "#ff0000"
@@ -1064,7 +1089,7 @@ Item {
                     spacing: 4
                     
                     Text {
-                        text: isRunning ? "🎬 АНИМАЦИЯ АКТИВНА (С РЕАЛИСТИЧНОЙ ГРАФИКОЙ)" : "⏸️ Анимация остановлена"
+                        text: isRunning ? "🎬 АНИМАЦИЯ С ПРАВИЛЬНОЙ КИНЕМАТИКОЙ ШТОКОВ" : "⏸️ Анимация остановлена"
                         color: isRunning ? "#00ff88" : "#ff6666"
                         font.pixelSize: 12
                         font.bold: true
@@ -1077,7 +1102,7 @@ Item {
                     }
                     
                     Text {
-                        text: "Углы: FL=" + fl_angle.toFixed(1) + "° | FR=" + fr_angle.toFixed(1) + 
+                        text: "🔧 Углы: FL=" + fl_angle.toFixed(1) + "° | FR=" + fr_angle.toFixed(1) + 
                               "° | RL=" + rl_angle.toFixed(1) + "° | RR=" + rr_angle.toFixed(1) + "°"
                         color: "#aaaaaa"
                         font.pixelSize: 8
@@ -1088,30 +1113,23 @@ Item {
     }
 
     // ===============================================================
-    // INITIALIZATION (with complete parameters)
+    // INITIALIZATION (with rod length validation)
     // ===============================================================
 
     Component.onCompleted: {
         console.log("═══════════════════════════════════════════")
-        console.log("🚀 PneumoStabSim COMPLETE GRAPHICS v4.0 LOADED")
+        console.log("🔧 PneumoStabSim ИСПРАВЛЕННАЯ КИНЕМАТИКА v4.1 LOADED")
         console.log("═══════════════════════════════════════════")
-        console.log("✅ ВСЕ ПАРАМЕТРЫ GRAPHICSPANEL РЕАЛИЗОВАНЫ:")
+        console.log("✅ ИСПРАВЛЕНИЯ ДЛИНЫ ШТОКОВ:")
+        console.log("   🔧 Постоянная длина штока:", userPistonRodLength, "мм")
+        console.log("   🔧 Поршни движутся ВДОЛЬ ОСИ цилиндров")
+        console.log("   🔧 Правильная геометрия треугольников")
+        console.log("   🔧 Валидация ошибок длины < 1мм")
+        console.log("✅ ВСЕ ПАРАМЕТРЫ GRAPHICSPANEL:")
         console.log("   🔥 Коэффициент преломления (IOR):", glassIOR)
         console.log("   🔥 IBL поддержка:", iblEnabled)
-        console.log("   🔥 Расширенный Bloom с порогом:", bloomThreshold)
-        console.log("   🔥 Расширенный SSAO с радиусом:", ssaoRadius)
-        console.log("   🔥 Тонемаппинг:", tonemapEnabled, "режим:", tonemapMode)
-        console.log("   🔥 Виньетирование:", vignetteEnabled, "сила:", vignetteStrength)
-        console.log("   🔥 Мягкость теней:", shadowSoftness)
-        console.log("   🔥 Depth of Field: расстояние", dofFocusDistance, "диапазон", dofFocusRange)
-        console.log("✅ ПОЛНАЯ РЕАЛИЗАЦИЯ UPDATE ФУНКЦИЙ:")
-        console.log("   📐 updateGeometry() - ✅ ГОТОВО")
-        console.log("   🎨 updateMaterials() - ✅ ГОТОВО (с IOR)")
-        console.log("   🌍 updateEnvironment() - ✅ ГОТОВО (с IBL)")
-        console.log("   ⚙️ updateQuality() - ✅ ГОТОВО (с мягкостью теней)")
-        console.log("   📷 updateCamera() - ✅ ГОТОВО")
-        console.log("   ✨ updateEffects() - ✅ ГОТОВО (полный набор)")
-        console.log("🎯 СТАТУС: Панель и QML ПОЛНОСТЬЮ СИНХРОНИЗИРОВАНЫ")
+        console.log("   🔥 Расширенные эффекты: Bloom, SSAO, DoF, Vignette")
+        console.log("🎯 СТАТУС: Кинематика штоков ИСПРАВЛЕНА")
         console.log("═══════════════════════════════════════════")
         
         resetView()

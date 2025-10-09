@@ -53,20 +53,49 @@ class GeometryPanel(QWidget):
         self.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Expanding)
         
         # ✨ ИСПРАВЛЕНО: Отправляем начальные параметры геометрии в QML!
-        print("🔧 GeometryPanel: Отправка начальных параметров геометрии...")
-        
-        # Формируем полную геометрию для QML (как в _get_fast_geometry_update)
-        initial_geometry = self._get_fast_geometry_update("init", 0.0)
+        print("🔧 GeometryPanel: Планируем отправку начальных параметров геометрии...")
         
         # Используем QTimer для отложенной отправки после полной инициализации UI
         from PySide6.QtCore import QTimer
+        
         def send_initial_geometry():
             print("⏰ QTimer: Отправка начальной геометрии...")
-            self.geometry_changed.emit(initial_geometry)
-            self.geometry_updated.emit(self.parameters.copy())
-            print(f"  ✅ Начальная геометрия отправлена: rodPosition = {initial_geometry.get('rodPosition', 'НЕ НАЙДЕН')}")
+            
+            # Формируем полную геометрию для QML (как в _get_fast_geometry_update)
+            initial_geometry = self._get_fast_geometry_update("init", 0.0)
+            
+            # ДИАГНОСТИКА: Проверяем подписчиков перед отправкой
+            try:
+                geom_changed_receivers = self.geometry_changed.receivers()
+                geom_updated_receivers = self.geometry_updated.receivers()
+                
+                print(f"  📊 Подписчиков на geometry_changed: {geom_changed_receivers}")
+                print(f"  📊 Подписчиков на geometry_updated: {geom_updated_receivers}")
+                
+                if geom_changed_receivers > 0:
+                    print(f"  ✅ Есть подписчики, отправляем geometry_changed...")
+                    self.geometry_changed.emit(initial_geometry)
+                    print(f"  📡 geometry_changed отправлен с rodPosition = {initial_geometry.get('rodPosition', 'НЕ НАЙДЕН')}")
+                else:
+                    print(f"  ⚠️ Нет подписчиков на geometry_changed, возможно главное окно еще не готово")
+                
+                if geom_updated_receivers > 0:
+                    print(f"  ✅ Отправляем geometry_updated...")
+                    self.geometry_updated.emit(self.parameters.copy())
+                    print(f"  📡 geometry_updated отправлен")
+                else:
+                    print(f"  ⚠️ Нет подписчиков на geometry_updated")
+                    
+            except Exception as e:
+                print(f"  ❌ Ошибка проверки подписчиков: {e}")
+                # Отправляем в любом случае
+                self.geometry_changed.emit(initial_geometry)
+                self.geometry_updated.emit(self.parameters.copy())
+                print(f"  📡 Сигналы отправлены без проверки подписчиков")
         
-        QTimer.singleShot(100, send_initial_geometry)  # Отправить через 100мс
+        # УВЕЛИЧИВАЕМ задержку для гарантии готовности главного окна
+        QTimer.singleShot(500, send_initial_geometry)  # Было 100мс, стало 500мс
+        print("  ⏰ Таймер установлен на 500мс для отправки начальной геометрии")
     
     def _setup_ui(self):
         """Настроить интерфейс / Setup user interface"""
@@ -314,43 +343,89 @@ class GeometryPanel(QWidget):
     
     def _connect_signals(self):
         """Connect widget signals"""
-        # Frame dimensions - МГНОВЕННОЕ ОБНОВЛЕНИЕ во время движения
+        # Frame dimensions - ИСПОЛЬЗУЕМ ОБА СИГНАЛА для максимальной отзывчивости
         self.wheelbase_slider.valueChanged.connect(
             lambda v: self._on_parameter_changed('wheelbase', v))
+        self.wheelbase_slider.valueEdited.connect(
+            lambda v: self._on_parameter_changed_final('wheelbase', v))
+        
         self.track_slider.valueChanged.connect(
             lambda v: self._on_parameter_changed('track', v))
+        self.track_slider.valueEdited.connect(
+            lambda v: self._on_parameter_changed_final('track', v))
         
-        # Suspension geometry - МГНОВЕННОЕ ОБНОВЛЕНИЕ во время движения
+        # Suspension geometry - ИСПОЛЬЗУЕМ ОБА СИГНАЛА
         self.frame_to_pivot_slider.valueChanged.connect(
             lambda v: self._on_parameter_changed('frame_to_pivot', v))
+        self.frame_to_pivot_slider.valueEdited.connect(
+            lambda v: self._on_parameter_changed_final('frame_to_pivot', v))
+            
         self.lever_length_slider.valueChanged.connect(
             lambda v: self._on_parameter_changed('lever_length', v))
+        self.lever_length_slider.valueEdited.connect(
+            lambda v: self._on_parameter_changed_final('lever_length', v))
+            
         self.rod_position_slider.valueChanged.connect(
             lambda v: self._on_parameter_changed('rod_position', v))
+        self.rod_position_slider.valueEdited.connect(
+            lambda v: self._on_parameter_changed_final('rod_position', v))
         
-        # Cylinder dimensions - МГНОВЕННОЕ ОБНОВЛЕНИЕ во время движения
+        # Cylinder dimensions - ИСПОЛЬЗУЕМ ОБА СИГНАЛА
         self.cylinder_length_slider.valueChanged.connect(
             lambda v: self._on_parameter_changed('cylinder_length', v))
-        # МШ-1: Подключение новых слайдеров - МГНОВЕННОЕ ОБНОВЛЕНИЕ
+        self.cylinder_length_slider.valueEdited.connect(
+            lambda v: self._on_parameter_changed_final('cylinder_length', v))
+            
+        # МШ-1: Подключение новых слайдеров - ИСПОЛЬЗУЕМ ОБА СИГНАЛА
         self.cyl_diam_m_slider.valueChanged.connect(
             lambda v: self._on_parameter_changed('cyl_diam_m', v))
+        self.cyl_diam_m_slider.valueEdited.connect(
+            lambda v: self._on_parameter_changed_final('cyl_diam_m', v))
+            
         self.stroke_m_slider.valueChanged.connect(
             lambda v: self._on_parameter_changed('stroke_m', v))
+        self.stroke_m_slider.valueEdited.connect(
+            lambda v: self._on_parameter_changed_final('stroke_m', v))
+            
         self.dead_gap_m_slider.valueChanged.connect(
             lambda v: self._on_parameter_changed('dead_gap_m', v))
-        # МШ-2: Подключение слайдеров в метрах - МГНОВЕННОЕ ОБНОВЛЕНИЕ
+        self.dead_gap_m_slider.valueEdited.connect(
+            lambda v: self._on_parameter_changed_final('dead_gap_m', v))
+            
+        # МШ-2: Подключение слайдеров в метрах - ИСПОЛЬЗУЕМ ОБА СИГНАЛА
         self.rod_diameter_m_slider.valueChanged.connect(
             lambda v: self._on_parameter_changed('rod_diameter_m', v))
+        self.rod_diameter_m_slider.valueEdited.connect(
+            lambda v: self._on_parameter_changed_final('rod_diameter_m', v))
+            
         self.piston_rod_length_m_slider.valueChanged.connect(
             lambda v: self._on_parameter_changed('piston_rod_length_m', v))
+        self.piston_rod_length_m_slider.valueEdited.connect(
+            lambda v: self._on_parameter_changed_final('piston_rod_length_m', v))
+            
         self.piston_thickness_m_slider.valueChanged.connect(
             lambda v: self._on_parameter_changed('piston_thickness_m', v))
+        self.piston_thickness_m_slider.valueEdited.connect(
+            lambda v: self._on_parameter_changed_final('piston_thickness_m', v))
         
         # Options
         self.link_rod_diameters.toggled.connect(self._on_link_rod_diameters_toggled)
         
-        print("🔧 GeometryPanel: Сигналы подключены для МГНОВЕННОГО обновления (valueChanged)")
+        print("🔧 GeometryPanel: Сигналы подключены с ДВОЙНОЙ связью (valueChanged + valueEdited)")
     
+    @Slot(str, float)
+    def _on_parameter_changed_final(self, param_name: str, value: float):
+        """Handle final parameter change (from valueEdited signal)
+        
+        Args:
+            param_name: Name of changed parameter
+            value: Final value after user finished editing
+        """
+        print(f"🎯 GeometryPanel._on_parameter_changed_final: {param_name} = {value} (ФИНАЛЬНОЕ значение)")
+        
+        # Используем тот же обработчик, но с пометкой что это финальное значение
+        self._on_parameter_changed(param_name, value)
+
     @Slot(bool)
     def _on_link_rod_diameters_toggled(self, checked: bool):
         """Handle link rod diameters checkbox toggle
@@ -425,6 +500,24 @@ class GeometryPanel(QWidget):
             self._resolve_conflict(critical_conflicts)
         else:
             print(f"   ✅ Конфликтов нет, отправляем сигналы...")
+            
+            # ДИАГНОСТИКА: Проверяем есть ли подписчики на сигналы
+            try:
+                param_receivers = self.parameter_changed.receivers()
+                geom_updated_receivers = self.geometry_updated.receivers() 
+                geom_changed_receivers = self.geometry_changed.receivers()
+                
+                print(f"   📡 Подписчиков на parameter_changed: {param_receivers}")
+                print(f"   📡 Подписчиков на geometry_updated: {geom_updated_receivers}")  
+                print(f"   📡 Подписчиков на geometry_changed: {geom_changed_receivers}")
+                
+                if geom_changed_receivers == 0:
+                    print(f"   ❌ ПРОБЛЕМА: Нет подписчиков на geometry_changed!")
+                    print(f"      Возможно сигнал не подключен в main_window.py")
+                
+            except Exception as e:
+                print(f"   ⚠️ Ошибка проверки подписчиков: {e}")
+            
             # МГНОВЕННОЕ обновление без задержек
             self.parameter_changed.emit(param_name, value)
             print(f"   📡 parameter_changed отправлен")
@@ -438,8 +531,14 @@ class GeometryPanel(QWidget):
                 print(f"   🎬 Параметр {param_name} требует обновления 3D сцены")
                 # Конвертируем только измененный параметр для быстроты
                 geometry_3d = self._get_fast_geometry_update(param_name, value)
+                
+                print(f"   📊 Отправляем geometry_changed с {len(geometry_3d)} параметрами")
+                print(f"   🔍 Ключевые параметры: frameLength={geometry_3d.get('frameLength', 'НЕТ')}, rodPosition={geometry_3d.get('rodPosition', 'НЕТ')}")
+                
+                # КРИТИЧНЫЙ МОМЕНТ: Отправляем сигнал geometry_changed
                 self.geometry_changed.emit(geometry_3d)
-                print(f"   📡 geometry_changed отправлен с rodPosition = {geometry_3d.get('rodPosition', 'НЕ НАЙДЕН')}")
+                print(f"   📡 geometry_changed отправлен успешно!")
+                
             else:
                 print(f"   ⏭️ Параметр {param_name} не требует обновления 3D сцены")
     
