@@ -1,11 +1,11 @@
 @echo off
 rem =============================================================================
-rem  PneumoStabSim Professional - Enhanced Quick Launcher
+rem  PneumoStabSim Professional - Enhanced Quick Launcher (py command)
 rem  Automatic environment setup with encoding and compatibility fixes
 rem =============================================================================
 
 echo ================================================================
-echo  PneumoStabSim Professional - Enhanced Quick Launcher
+echo  PneumoStabSim Professional - Enhanced Quick Launcher (py)
 echo ================================================================
 
 rem Configure terminal encoding first
@@ -46,7 +46,7 @@ if not exist "venv\Scripts\python.exe" (
     
     if "%VIRTUAL_ENV%"=="" (
         echo WARNING: Virtual environment activation may have failed
-        echo Trying to continue with system Python...
+        echo Trying to continue with py launcher...
     ) else (
         echo [✓] Virtual environment activated: %VIRTUAL_ENV%
     )
@@ -63,32 +63,37 @@ if not exist "venv\Scripts\python.exe" (
 
 echo.
 echo ================================================================
-echo Starting PneumoStabSim Professional...
+echo Starting PneumoStabSim Professional with py launcher...
 echo ================================================================
 
-rem Enhanced error checking
-echo Checking Python availability...
-python --version >nul 2>&1
+rem Enhanced error checking using py command
+echo Checking Python availability with py launcher...
+py --version >nul 2>&1
 if errorlevel 1 (
-    echo ERROR: Python not available
+    echo ERROR: Python py launcher not available
     echo.
     echo Troubleshooting steps:
-    echo 1. Check if virtual environment is properly activated
-    echo 2. Run: quick_diagnostic.bat for detailed analysis
-    echo 3. Reinstall virtual environment: activate_venv.bat
+    echo 1. Install Python from python.org (includes py launcher)
+    echo 2. Check if virtual environment is properly activated
+    echo 3. Run: quick_diagnostic.bat for detailed analysis
+    echo 4. Reinstall virtual environment: activate_venv.bat
     echo.
     pause
     exit /b 1
 )
 
+rem Show which Python version py launcher will use
+echo Python version detected:
+py --version
+
 rem Check critical imports
 echo Testing critical imports...
-python -c "import sys, os; sys.path.insert(0, '.'); sys.path.insert(0, 'src')" >nul 2>&1
+py -c "import sys, os; sys.path.insert(0, '.'); sys.path.insert(0, 'src')" >nul 2>&1
 if errorlevel 1 (
     echo WARNING: Python path configuration may have issues
 )
 
-python -c "import numpy, scipy, PySide6" >nul 2>&1
+py -c "import numpy, scipy, PySide6" >nul 2>&1
 if errorlevel 1 (
     echo WARNING: Some required packages may be missing
     echo This might cause application startup issues
@@ -107,11 +112,11 @@ if not exist "app.py" (
 
 echo.
 echo [✓] Environment checks passed
-echo [✓] Starting application with parameters: %*
+echo [✓] Starting application with py launcher and parameters: %*
 echo.
 
-rem Run the application with enhanced error handling
-python app.py %*
+rem Run the application with enhanced error handling using py command
+py app.py %*
 
 rem Capture exit code
 set APP_EXIT_CODE=%ERRORLEVEL%
@@ -141,7 +146,7 @@ if %APP_EXIT_CODE% equ -1073741510 (
     echo [!] Application crashed (Access Violation)
     echo This might be related to graphics drivers or Qt installation
     echo.
-    echo Try running with: python app.py --safe-mode
+    echo Try running with: py app.py --safe-mode
     goto :error_exit
 )
 
@@ -149,7 +154,7 @@ if %APP_EXIT_CODE% equ 3221225477 (
     echo [!] Application crashed (segmentation fault equivalent)  
     echo This might be related to OpenGL or graphics drivers
     echo.
-    echo Try running with: python app.py --legacy
+    echo Try running with: py app.py --legacy
     goto :error_exit
 )
 

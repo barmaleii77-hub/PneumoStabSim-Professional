@@ -1021,78 +1021,74 @@ class MainWindow(QMainWindow):
         """
         print(f"═══════════════════════════════════════════════")
         print(f"🔺 MainWindow: Получен сигнал geometry_changed от панели")
-        print(f"   Параметры: {list(geometry_params.keys())}")
+        print(f"   Параметры ({len(geometry_params)}): {list(geometry_params.keys())}")
+        print(f"   Ключевые значения:")
+        for key in ['frameLength', 'leverLength', 'trackWidth', 'rodPosition']:
+            if key in geometry_params:
+                print(f"      {key} = {geometry_params[key]}")
         print(f"═══════════════════════════════════════════════")
         
-        if self._qml_root_object:
-            try:
-                # Обновляем геометрию в QML через функцию updateGeometry
-                if hasattr(self._qml_root_object, 'updateGeometry'):
-                    self._qml_root_object.updateGeometry(geometry_params)
-                    print(f"   ✅ Геометрия передана в QML через updateGeometry()")
-                    print(f"   📐 rodPosition = {geometry_params.get('rodPosition', 'НЕ НАЙДЕН')}")
-                else:
-                    print(f"   ❌ QML объект не имеет метода updateGeometry")
-                
-                self.status_bar.showMessage("Геометрия обновлена")
-                
-            except Exception as e:
-                print(f"❌ ОШИБКА обновления геометрии в QML: {e}")
-                import traceback
-                traceback.print_exc()
-                self.logger.error(f"QML geometry update failed: {e}")
-        else:
-            print(f"❌ QML root object отсутствует!")
+        if not self._qml_root_object:
+            print(f"❌ QML root object отсутствует! Схема не может обновиться")
+            print(f"═══════════════════════════════════════════════")
+            return
         
-        print(f"═══════════════════════════════════════════════")
-    
-    # =================================================================
-    # Graphics Panel Signal Handlers
-    # =================================================================
-
-    def resizeEvent(self, event):
-        """Override resizeEvent to handle window resizing gracefully"""
-        super().resizeEvent(event)
-        
-        # Throttle resize updates to prevent performance issues
-        if not hasattr(self, '_resize_timer'):
-            self._resize_timer = QTimer(self)
-            self._resize_timer.setSingleShot(True)
-            self._resize_timer.timeout.connect(self._handle_resize_complete)
-        
-        # On first resize event, pause heavy render timer to avoid high CPU/GPU load
         try:
-            if hasattr(self, 'render_timer') and self.render_timer.isActive():
-                self._resize_paused_render = True
-                self.render_timer.stop()
-                # Minor log for diagnostics
-                self.logger.debug("resizeEvent: paused render_timer during resize")
-        except Exception:
-            self._resize_paused_render = False
-
-        # Restart throttle timer on each resize event
-        self._resize_timer.stop()
-        self._resize_timer.start(100)  # Wait 100ms after last resize
-
-    def _handle_resize_complete(self):
-        """Called after resize operation completes"""
-        # Force update of QML widget
-        try:
-            if self._qquick_widget and hasattr(self._qquick_widget, 'update'):
+            # ИСПРАВЛЕНО: Сначала пробуем updateGeometry функцию
+            if hasattr(self._qml_root_object, 'updateGeometry'):
+                print(f"   🔧 Вызываем updateGeometry() в QML...")
+                self._qml_root_object.updateGeometry(geometry_params)
+                print(f"   ✅ Геометрия передана в QML через updateGeometry()")
+            else:
+                print(f"   ⚠️ QML объект не имеет метода updateGeometry, используем fallback")
+                # Fallback: устанавливаем свойства напрямую
+                property_map = {
+                    'frameLength': 'userFrameLength',
+                    'frameHeight': 'userFrameHeight', 
+                    'frameBeamSize': 'userBeamSize',
+                    'leverLength': 'userLeverLength',
+                    'cylinderBodyLength': 'userCylinderLength',
+                    'trackWidth': 'userTrackWidth',
+                    'frameToPivot': 'userFrameToPivot',
+                    'rodPosition': 'userRodPosition',
+                    'boreHead': 'userBoreHead',
+                    'boreRod': 'userBoreRod',
+                    'rodDiameter': 'userRodDiameter',
+                    'pistonThickness': 'userPistonThickness',
+                    'pistonRodLength': 'userPistonRodLength'
+                }
+                
+                updated_props = []
+                for geom_key, qml_prop in property_map.items():
+                    if geom_key in geometry_params:
+                        try:
+                            self._qml_root_object.setProperty(qml_prop, geometry_params[geom_key])
+                            updated_props.append(f"{qml_prop}={geometry_params[geom_key]}")
+                        except Exception as e:
+                            print(f"      ❌ Ошибка установки {qml_prop}: {e}")
+                
+                if updated_props:
+                    print(f"   ✅ Обновлено свойств: {len(updated_props)}")
+                    for prop in updated_props[:3]:  # Показываем только первые 3
+                        print(f"      {prop}")
+                    if len(updated_props) > 3:
+                        print(f"      ... и ещё {len(updated_props) - 3}")
+            
+            # Принудительное обновление QML сцены
+            if hasattr(self._qquick_widget, 'update'):
                 self._qquick_widget.update()
-        except Exception:
-            pass
+                print(f"   🔄 QML widget принудительно обновлен")
+            
+            self.status_bar.showMessage("Геометрия обновлена в 3D сцене")
+            print(f"📊 Статус: Геометрия успешно обновлена")
+            
+        except Exception as e:
+            print(f"❌ КРИТИЧЕСКАЯ ОШИБКА обновления геометрии в QML!")
+            print(f"   Error: {e}")
+            print(f"   Type: {type(e)}")
+            import traceback
+            traceback.print_exc()
+            self.logger.error(f"QML geometry update failed: {e}")
+            self.status_bar.showMessage(f"Ошибка обновления геометрии: {e}")
         
-        # Log new size for debugging
-        new_size = self.size()
-        self.logger.debug(f"Window resized to: {new_size.width()}x{new_size.height()}")
-        
-        # Resume render timer if we paused it during resize
-        try:
-            if getattr(self, '_resize_paused_render', False):
-                if hasattr(self, 'render_timer') and not self.render_timer.isActive():
-                    self.render_timer.start(16)
-                    self.logger.debug("_handle_resize_complete: resumed render_timer after resize")
-                self._resize_paused_render = False
-        except Exception:
-            pass
+        print(f"═══════════════════════════════════════════════")
