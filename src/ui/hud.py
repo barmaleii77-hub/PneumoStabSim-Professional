@@ -10,7 +10,28 @@ from PySide6.QtCore import Qt, QRectF, QPointF, Signal, Slot
 from PySide6.QtGui import (QPainter, QLinearGradient, QColor, QPen, QBrush, 
                            QFont, QPainterPath)
 
-from ..runtime.state import StateSnapshot
+# ИСПРАВЛЕНО: Изменен относительный импорт на абсолютный
+try:
+    from src.runtime.state import StateSnapshot
+except ImportError:
+    # Fallback for different import contexts
+    try:
+        from runtime.state import StateSnapshot
+    except ImportError:
+        # Create a mock StateSnapshot for standalone testing
+        class StateSnapshot:
+            def __init__(self):
+                self.tank = type('Tank', (), {
+                    'pressure': 101325.0,
+                    'relief_min_open': False,
+                    'relief_stiff_open': False,
+                    'relief_safety_open': False
+                })()
+            
+            def get_pressure_array(self):
+                return np.array([101325.0, 101325.0, 101325.0, 101325.0])
+
+from src.runtime.state import StateSnapshot
 
 
 class PressureScaleWidget(QWidget):

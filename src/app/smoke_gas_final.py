@@ -6,14 +6,14 @@ import os
 import logging
 import math
 from datetime import datetime
-from ..pneumo.system import create_standard_diagonal_system
-from ..pneumo.sim_time import advance_gas
-from ..pneumo.enums import ThermoMode, Wheel
+from src.pneumo.system import create_standard_diagonal_system
+from src.pneumo.sim_time import advance_gas
+from src.pneumo.enums import ThermoMode, Wheel
 from .config_defaults import (
     create_default_system_configuration, create_default_gas_network,
     get_default_lever_angles
 )
-from ..common.units import DEG2RAD, PA_ATM, T_AMBIENT
+from src.common.units import DEG2RAD, PA_ATM, T_AMBIENT
 
 
 def run_full_smoke_test():

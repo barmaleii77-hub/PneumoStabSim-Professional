@@ -7,14 +7,14 @@ import os
 import logging
 import math
 from datetime import datetime
-from ..pneumo.system import create_standard_diagonal_system
-from ..pneumo.sim_time import advance_gas, run_gas_simulation
-from ..pneumo.enums import ThermoMode, Wheel
+from src.pneumo.system import create_standard_diagonal_system
+from src.pneumo.sim_time import advance_gas, run_gas_simulation
+from src.pneumo.enums import ThermoMode, Wheel
 from .config_defaults import (
     create_default_system_configuration, create_default_gas_network,
     get_default_lever_angles, get_default_gas_parameters
 )
-from ..common.units import DEG2RAD
+from src.common.units import DEG2RAD
 
 
 def setup_gas_logging():

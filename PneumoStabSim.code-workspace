@@ -1,0 +1,22 @@
+{
+    "folders": [
+        {
+            "name": "PneumoStabSim-Professional",
+            "path": "."
+        }
+    ],
+    "settings": {
+        "python.defaultInterpreterPath": "py",
+        "python.terminal.activateEnvironment": true,
+        "files.autoSave": "afterDelay",
+        "editor.formatOnSave": true
+    },
+    "extensions": {
+        "recommendations": [
+            "ms-python.python",
+            "ms-python.debugpy",
+            "ms-python.black-formatter",
+            "formulahendry.code-runner"
+        ]
+    }
+}

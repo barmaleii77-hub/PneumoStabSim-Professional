@@ -7,9 +7,9 @@ import os
 import math
 import logging
 from datetime import datetime
-from ..pneumo.system import create_standard_diagonal_system
+from src.pneumo.system import create_standard_diagonal_system
 from .config_defaults import create_default_system_configuration, get_default_lever_angles
-from ..common.units import DEG2RAD
+from src.common.units import DEG2RAD
 
 
 def setup_logging():
@@ -95,7 +95,7 @@ def test_lever_angle_simulation(system, logger):
             logger.info(f"  {line.value}: {vol_info['total_volume']:.6f} m3")
         
         # Test angles
-        from ..pneumo.enums import Wheel
+        from src.pneumo.enums import Wheel
         test_angles = {
             Wheel.LP: 5.0 * DEG2RAD,   # 5 degrees
             Wheel.PP: 0.0,

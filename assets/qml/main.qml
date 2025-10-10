@@ -97,6 +97,7 @@ Item {
     property real metalClearcoat: 0.25
     property real glassOpacity: 0.35
     property real glassRoughness: 0.05
+    property real glassIOR: 1.52            // ✅ ДОБАВЛЕНО: Коэффициент преломления!
     property real frameMetalness: 0.8
     property real frameRoughness: 0.4
 
@@ -314,6 +315,11 @@ Item {
             if (params.glass.roughness !== undefined) {
                 glassRoughness = params.glass.roughness
             }
+            // ✅ ДОБАВЛЕНО: Поддержка коэффициента преломления
+            if (params.glass.ior !== undefined) {
+                glassIOR = params.glass.ior
+                console.log("  🔍 Glass IOR updated to:", glassIOR)
+            }
         }
         
         if (params.frame !== undefined) {
@@ -325,7 +331,7 @@ Item {
             }
         }
         
-        console.log("  ✅ Materials updated successfully")
+        console.log("  ✅ Materials updated successfully (including IOR)")
     }
     
     function updateEnvironment(params) {
@@ -714,6 +720,7 @@ Item {
                     metalness: 0.0
                     roughness: glassRoughness
                     opacity: glassOpacity
+                    indexOfRefraction: glassIOR          // ✅ ДОБАВЛЕНО: Коэффициент преломления
                     alphaMode: PrincipledMaterial.Blend 
                 }
             }
@@ -848,9 +855,17 @@ Item {
             const dx = mouse.x - root.lastX
             const dy = mouse.y - root.lastY
 
+            // ✅ ИСПРАВЛЕНО: Проверяем на разумные значения delta для избежания рывков
+            if (Math.abs(dx) > 100 || Math.abs(dy) > 100) {
+                console.log("⚠️ Ignoring large mouse delta:", dx, dy)
+                root.lastX = mouse.x
+                root.lastY = mouse.y
+                return
+            }
+
             if (root.mouseButton === Qt.LeftButton) {
-                // Orbital rotation around fixed pivot
-                root.yawDeg = root.normAngleDeg(root.yawDeg + dx * root.rotateSpeed)
+                // ✅ ИСПРАВЛЕНО: Убираем инверсию горизонтального вращения
+                root.yawDeg = root.normAngleDeg(root.yawDeg - dx * root.rotateSpeed)  // Был +, стал -
                 root.pitchDeg = root.clamp(root.pitchDeg - dy * root.rotateSpeed, -85, 85)
             } else if (root.mouseButton === Qt.RightButton) {
                 // Panning in camera rig local space (NOT moving pivot)

@@ -8,7 +8,7 @@ from dataclasses import dataclass
 from typing import Optional
 from .enums import Line, ReceiverVolumeMode
 from .thermo import ThermoMode
-from ..common.units import R_AIR, GAMMA_AIR, PA_ATM, T_AMBIENT
+from src.common.units import R_AIR, GAMMA_AIR, PA_ATM, T_AMBIENT
 
 
 @dataclass

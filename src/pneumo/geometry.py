@@ -6,8 +6,8 @@ All calculations in SI units (meters)
 import math
 from dataclasses import dataclass
 from typing import Tuple
-from ..common.units import EPSILON, MIN_VOLUME_FRACTION
-from ..common.errors import GeometryError, InvariantViolation
+from src.common.units import EPSILON, MIN_VOLUME_FRACTION
+from src.common.errors import GeometryError, InvariantViolation
 from .types import ValidationResult
 
 
