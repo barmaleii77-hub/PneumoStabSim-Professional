@@ -23,13 +23,13 @@ View3D {
     property real frameLength: 2000    // mm - frame length (from qml_host)
     property real leverLength: 315     // mm - lever length (from qml_host)
 
-    // ?? ВНЕШНИЕ ПАРАМЕТРЫ УГЛОВ РЫЧАГОВ (от qml_host.py или анимации)
+    // ?? Р’РќР•РЁРќРР• РџРђР РђРњР•РўР Р« РЈР“Р›РћР’ Р Р«Р§РђР“РћР’ (РѕС‚ qml_host.py РёР»Рё Р°РЅРёРјР°С†РёРё)
     property real fl_angle: 8 * Math.sin(animationTime)
     property real fr_angle: 8 * Math.sin(animationTime + Math.PI/4)
     property real rl_angle: 8 * Math.sin(animationTime + Math.PI/2)
     property real rr_angle: 8 * Math.sin(animationTime + 3*Math.PI/4)
 
-    // ?? ВНЕШНИЕ ПАРАМЕТРЫ ПОЗИЦИЙ ШАРНИРОВ (от qml_host.py)
+    // ?? Р’РќР•РЁРќРР• РџРђР РђРњР•РўР Р« РџРћР—РР¦РР™ РЁРђР РќРР РћР’ (РѕС‚ qml_host.py)
     property vector3d fl_j_arm: Qt.vector3d(-150, 60, -frameLength/2)
     property vector3d fr_j_arm: Qt.vector3d(150, 60, -frameLength/2)
     property vector3d rl_j_arm: Qt.vector3d(-150, 60, frameLength/2)
@@ -40,7 +40,7 @@ View3D {
     property vector3d rl_j_tail: Qt.vector3d(-100, 710, frameLength/2)
     property vector3d rr_j_tail: Qt.vector3d(100, 710, frameLength/2)
 
-    // ?? ВНЕШНИЕ ПАРАМЕТРЫ РАЗМЕРОВ (от qml_host.py)
+    // ?? Р’РќР•РЁРќРР• РџРђР РђРњР•РўР Р« Р РђР—РњР•Р РћР’ (РѕС‚ qml_host.py)
     property real fl_leverLength: leverLength    // will be overridden by qml_host
     property real fr_leverLength: leverLength    // will be overridden by qml_host
     property real rl_leverLength: leverLength    // will be overridden by qml_host
@@ -56,7 +56,7 @@ View3D {
     property real rl_tailRodLength: 100          // will be overridden by qml_host
     property real rr_tailRodLength: 100          // will be overridden by qml_host
 
-    // ?? ИСПРАВЛЕНЫ АНИМИРОВАННЫЕ ПОЗИЦИИ ШТОКА (используют ВНЕШНИЕ leverLength)
+    // ?? РРЎРџР РђР’Р›Р•РќР« РђРќРРњРР РћР’РђРќРќР«Р• РџРћР—РР¦РР РЁРўРћРљРђ (РёСЃРїРѕР»СЊР·СѓСЋС‚ Р’РќР•РЁРќРР• leverLength)
     // ANIMATED rod positions (move with lever rotation) - CORRECTED DIRECTIONS
     // FL/RL: Base angle 180deg (pointing LEFT) + oscillation
     property vector3d fl_j_rod: Qt.vector3d(
@@ -157,7 +157,7 @@ View3D {
         materials: PrincipledMaterial { baseColor: "#ffff00"; lighting: PrincipledMaterial.NoLighting }
     }
 
-    // ?? ИСПРАВЛЕННАЯ U-РАМА (из успешного теста)
+    // ?? РРЎРџР РђР’Р›Р•РќРќРђРЇ U-Р РђРњРђ (РёР· СѓСЃРїРµС€РЅРѕРіРѕ С‚РµСЃС‚Р°)
     Model {
         source: "#Cube"
         position: Qt.vector3d(0, beamSize/2, 0)
@@ -179,7 +179,7 @@ View3D {
         materials: PrincipledMaterial { baseColor: "#cc0000"; metalness: 0.8; roughness: 0.4 }
     }
 
-    // ?? ПОЛНОСТЬЮ ИСПРАВЛЕННЫЙ КОМПОНЕНТ ПОДВЕСКИ (из успешного теста)
+    // ?? РџРћР›РќРћРЎРўР¬Р® РРЎРџР РђР’Р›Р•РќРќР«Р™ РљРћРњРџРћРќР•РќРў РџРћР”Р’Р•РЎРљР (РёР· СѓСЃРїРµС€РЅРѕРіРѕ С‚РµСЃС‚Р°)
     component CorrectedSuspensionCorner: Node {
         property vector3d j_arm
         property vector3d j_tail  
@@ -187,7 +187,7 @@ View3D {
         property real leverAngle
         property string cornerId: ""  // fl, fr, rl, rr
         
-        // ?? ИСПОЛЬЗУЕМ ВНЕШНИЕ ПАРАМЕТРЫ (переданные от qml_host.py)
+        // ?? РРЎРџРћР›Р¬Р—РЈР•Рњ Р’РќР•РЁРќРР• РџРђР РђРњР•РўР Р« (РїРµСЂРµРґР°РЅРЅС‹Рµ РѕС‚ qml_host.py)
         property real cornerLeverLength: cornerId === "fl" ? parent.fl_leverLength :
                                         cornerId === "fr" ? parent.fr_leverLength :
                                         cornerId === "rl" ? parent.rl_leverLength :
@@ -389,60 +389,60 @@ View3D {
     }
 
     Component.onCompleted: {
-        console.log("=== ?? ИСПРАВЛЕННАЯ АНИМИРОВАННАЯ СХЕМА С ВНЕШНИМИ ПАРАМЕТРАМИ ===")
-        console.log("ИСПРАВЛЕНИЯ:")
-        console.log("? Использует ВНЕШНИЕ параметры от qml_host.py")
-        console.log("? Круглые шарниры: scale(X=Y, Z=length)")
-        console.log("? Движущиеся поршни: анимированы с выходом штока")
-        console.log("? Стальные штоки: metalness=0.95 (не резина)")
-        console.log("? Правильные углы рычагов: из анимации (не статичные 180deg)")
-        console.log("=== ВНЕШНИЕ ПАРАМЕТРЫ (от qml_host.py) ===")
+        console.log("=== ?? РРЎРџР РђР’Р›Р•РќРќРђРЇ РђРќРРњРР РћР’РђРќРќРђРЇ РЎРҐР•РњРђ РЎ Р’РќР•РЁРќРРњР РџРђР РђРњР•РўР РђРњР ===")
+        console.log("РРЎРџР РђР’Р›Р•РќРРЇ:")
+        console.log("? РСЃРїРѕР»СЊР·СѓРµС‚ Р’РќР•РЁРќРР• РїР°СЂР°РјРµС‚СЂС‹ РѕС‚ qml_host.py")
+        console.log("? РљСЂСѓРіР»С‹Рµ С€Р°СЂРЅРёСЂС‹: scale(X=Y, Z=length)")
+        console.log("? Р”РІРёР¶СѓС‰РёРµСЃСЏ РїРѕСЂС€РЅРё: Р°РЅРёРјРёСЂРѕРІР°РЅС‹ СЃ РІС‹С…РѕРґРѕРј С€С‚РѕРєР°")
+        console.log("? РЎС‚Р°Р»СЊРЅС‹Рµ С€С‚РѕРєРё: metalness=0.95 (РЅРµ СЂРµР·РёРЅР°)")
+        console.log("? РџСЂР°РІРёР»СЊРЅС‹Рµ СѓРіР»С‹ СЂС‹С‡Р°РіРѕРІ: РёР· Р°РЅРёРјР°С†РёРё (РЅРµ СЃС‚Р°С‚РёС‡РЅС‹Рµ 180deg)")
+        console.log("=== Р’РќР•РЁРќРР• РџРђР РђРњР•РўР Р« (РѕС‚ qml_host.py) ===")
         console.log("beamSize:", beamSize, "mm")
         console.log("frameHeight:", frameHeight, "mm")
         console.log("frameLength:", frameLength, "mm")
         console.log("leverLength:", leverLength, "mm")
-        console.log("=== ПАРАМЕТРЫ УГЛОВ ===")
+        console.log("=== РџРђР РђРњР•РўР Р« РЈР“Р›РћР’ ===")
         console.log("FL lever length:", fl_leverLength, "mm")
         console.log("FR lever length:", fr_leverLength, "mm")
         console.log("RL lever length:", rl_leverLength, "mm") 
         console.log("RR lever length:", rr_leverLength, "mm")
-        console.log("=== ПАРАМЕТРЫ ЦИЛИНДРОВ ===")
+        console.log("=== РџРђР РђРњР•РўР Р« Р¦РР›РРќР”Р РћР’ ===")
         console.log("FL cylinder:", fl_cylinderBodyLength, "mm + tail", fl_tailRodLength, "mm")
         console.log("FR cylinder:", fr_cylinderBodyLength, "mm + tail", fr_tailRodLength, "mm")
         console.log("RL cylinder:", rl_cylinderBodyLength, "mm + tail", rl_tailRodLength, "mm")
         console.log("RR cylinder:", rr_cylinderBodyLength, "mm + tail", rr_tailRodLength, "mm")
-        console.log("=== ОТЛАДОЧНЫЕ ЗНАЧЕНИЯ ===")
-        console.log("FL угол:", fl_angle)
-        console.log("FR угол:", fr_angle)
-        console.log("FL j_arm позиция:", fl_j_arm.x, fl_j_arm.y, fl_j_arm.z)
-        console.log("FR j_arm позиция:", fr_j_arm.x, fr_j_arm.y, fr_j_arm.z)
-        console.log("FL j_rod позиция:", fl_j_rod.x, fl_j_rod.y, fl_j_rod.z)
-        console.log("FR j_rod позиция:", fr_j_rod.x, fr_j_rod.y, fr_j_rod.z)
-        console.log("Время анимации:", animationTime)
-        console.log("?? Расстояние камеры:", cameraDistance, "mm")
-        console.log("? Готов к интеграции с UI и пневматикой!")
+        console.log("=== РћРўР›РђР”РћР§РќР«Р• Р—РќРђР§Р•РќРРЇ ===")
+        console.log("FL СѓРіРѕР»:", fl_angle)
+        console.log("FR СѓРіРѕР»:", fr_angle)
+        console.log("FL j_arm РїРѕР·РёС†РёСЏ:", fl_j_arm.x, fl_j_arm.y, fl_j_arm.z)
+        console.log("FR j_arm РїРѕР·РёС†РёСЏ:", fr_j_arm.x, fr_j_arm.y, fr_j_arm.z)
+        console.log("FL j_rod РїРѕР·РёС†РёСЏ:", fl_j_rod.x, fl_j_rod.y, fl_j_rod.z)
+        console.log("FR j_rod РїРѕР·РёС†РёСЏ:", fr_j_rod.x, fr_j_rod.y, fr_j_rod.z)
+        console.log("Р’СЂРµРјСЏ Р°РЅРёРјР°С†РёРё:", animationTime)
+        console.log("?? Р Р°СЃСЃС‚РѕСЏРЅРёРµ РєР°РјРµСЂС‹:", cameraDistance, "mm")
+        console.log("? Р“РѕС‚РѕРІ Рє РёРЅС‚РµРіСЂР°С†РёРё СЃ UI Рё РїРЅРµРІРјР°С‚РёРєРѕР№!")
         view3d.forceActiveFocus()
     }
     
     // WATCHERS for parameter changes
     onUserFrameLengthChanged: {
-        console.log("?? Длина рамы изменена на:", userFrameLength, "mm")
+        console.log("?? Р”Р»РёРЅР° СЂР°РјС‹ РёР·РјРµРЅРµРЅР° РЅР°:", userFrameLength, "mm")
         cameraDistance = Math.max(frameLength * 1.5, 3500)
     }
     
     onUserFrameHeightChanged: {
-        console.log("?? Высота рамы изменена на:", userFrameHeight, "mm") 
+        console.log("?? Р’С‹СЃРѕС‚Р° СЂР°РјС‹ РёР·РјРµРЅРµРЅР° РЅР°:", userFrameHeight, "mm") 
     }
     
     onUserLeverLengthChanged: {
-        console.log("?? Длина рычага изменена на:", userLeverLength, "mm")
+        console.log("?? Р”Р»РёРЅР° СЂС‹С‡Р°РіР° РёР·РјРµРЅРµРЅР° РЅР°:", userLeverLength, "mm")
     }
     
     onUserCylinderLengthChanged: {
-        console.log("?? Длина цилиндра изменена на:", userCylinderLength, "mm")
+        console.log("?? Р”Р»РёРЅР° С†РёР»РёРЅРґСЂР° РёР·РјРµРЅРµРЅР° РЅР°:", userCylinderLength, "mm")
     }
     
     onUserTailRodLengthChanged: {
-        console.log("?? Длина хвостовика изменена на:", userTailRodLength, "mm")
+        console.log("?? Р”Р»РёРЅР° С…РІРѕСЃС‚РѕРІРёРєР° РёР·РјРµРЅРµРЅР° РЅР°:", userTailRodLength, "mm")
     }
 }
