@@ -216,13 +216,13 @@ def parse_arguments():
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-  python app.py                    # Normal mode (blocks terminal)
+  python app.py                    # Extended mode with IBL (main.qml)
   python app.py --no-block         # Non-blocking mode
   python app.py --test-mode        # Test mode (auto-close 5s)
   python app.py --legacy           # Use legacy OpenGL
   python app.py --debug            # Debug mode
   python app.py --safe-mode        # Safe mode (minimal features)
-  python app.py --force-optimized  # Force main_optimized.qml loading
+  python app.py --force-optimized  # Force optimized version (main_optimized.qml)
         """
     )
     
@@ -231,7 +231,7 @@ Examples:
     parser.add_argument('--legacy', action='store_true', help='Use legacy OpenGL')
     parser.add_argument('--debug', action='store_true', help='Enable debug messages')
     parser.add_argument('--safe-mode', action='store_true', help='Safe mode (basic features only)')
-    parser.add_argument('--force-optimized', action='store_true', help='Force load main_optimized.qml')
+    parser.add_argument('--force-optimized', action='store_true', help='Force optimized version (main_optimized.qml)')
     
     return parser.parse_args()
 
@@ -249,17 +249,18 @@ def main():
         
         # Override backend if legacy requested
         use_qml_3d = USE_QML_3D_SCHEMA and not args.legacy and not args.safe_mode
-        backend_name = "Qt Quick 3D (U-Frame PBR)" if use_qml_3d else "Legacy OpenGL"
         
-        # Determine QML version preference
-        force_optimized = args.force_optimized
-        if force_optimized:
-            backend_name += " (OPTIMIZED FORCED)"
+        # Определяем версию QML для отображения
+        if args.force_optimized:
+            backend_name = "Qt Quick 3D (Optimized v4.1 FORCED)" if use_qml_3d else "Legacy OpenGL"
+        else:
+            backend_name = "Qt Quick 3D (Extended with IBL v2.1)" if use_qml_3d else "Legacy OpenGL"
         
         print("=" * 60)
         print("PNEUMOSTABSIM STARTING (Enhanced Terminal Support)")
         print("=" * 60)
         print(f"Visualization backend: {backend_name}")
+        print(f"QML file: {'main_optimized.qml (forced)' if args.force_optimized else 'main.qml (Extended with IBL)'}")
         print(f"Qt RHI Backend: {os.environ.get('QSG_RHI_BACKEND', 'auto')}")
         print(f"Python encoding: {sys.getdefaultencoding()}")
         print(f"Terminal encoding: {locale.getpreferredencoding()}")
@@ -273,7 +274,7 @@ def main():
         elif args.force_optimized:
             print("🚀 FORCE OPTIMIZED: Using main_optimized.qml mandatorily")
         else:
-            print("🔒 BLOCKING MODE: Terminal will be blocked until app closes")
+            print("🌟 EXTENDED MODE: Using main.qml with IBL system by default")
         
         print()
         
@@ -298,16 +299,16 @@ def main():
         
         # Set application properties (ASCII-safe)
         app.setApplicationName("PneumoStabSim")
-        app.setApplicationVersion("2.0.1")  # Enhanced version
+        app.setApplicationVersion("2.1.0")  # Обновлена версия для IBL
         app.setOrganizationName("PneumoStabSim")
-        app.setApplicationDisplayName("Pneumatic Stabilizer Simulator (Enhanced)")
+        app.setApplicationDisplayName("Pneumatic Stabilizer Simulator (Enhanced with IBL)")
         
         log_ui_event("APP_CREATED", "Qt application initialized with enhanced encoding")
         
         print(f"Step 4: Creating MainWindow (backend: {backend_name})...")
         
         # Create and show main window with force_optimized flag
-        window = MainWindow(use_qml_3d=use_qml_3d, force_optimized=force_optimized)
+        window = MainWindow(use_qml_3d=use_qml_3d, force_optimized=args.force_optimized)
         window_instance = window
         
         print(f"Step 5: MainWindow created - Size: {window.size().width()}x{window.size().height()}")
@@ -321,10 +322,15 @@ def main():
         print("\n" + "=" * 60)
         print(f"APPLICATION READY - {backend_name} (Enhanced)")
         if use_qml_3d and not args.safe_mode:
-            print("🎮 Features: 3D visualization, physics simulation, real-time controls")
+            if args.force_optimized:
+                print("🎮 Features: 3D visualization, optimized performance, physics simulation")
+            else:
+                print("🎮 Features: 3D visualization, IBL system, modern interactions, physics simulation")
         else:
             print("🛡️ Safe mode: Basic functionality only")
         print("🔧 Enhanced: Better encoding, terminal, and compatibility support")
+        if not args.force_optimized:
+            print("🌟 IBL Ready: Modern lighting with HDR support")
         print("=" * 60 + "\n")
         
         # Setup signal handlers
