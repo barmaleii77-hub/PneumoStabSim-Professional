@@ -4,7 +4,7 @@ import QtQuick3D.Helpers
 
 /*
  * PneumoStabSim - COMPLETE Graphics Parameters Main 3D View (v4.0)
- * 🚀 ПОЛНАЯ ИНТЕГРАЦИЯ: Все параметры GraphicsPanel реализованы
+ * 🚀 ПОЛНАЯ ИНТЕРАЦИЯ: Все параметры GraphicsPanel реализованы
  * ✅ Коэффициент преломления, IBL, расширенные эффекты, тонемаппинг
  */
 Item {
@@ -318,7 +318,7 @@ Item {
     }
     
     function applyGeometryUpdates(params) {
-        console.log("📐 main.qml: applyGeometryUpdates() with conflict resolution")
+        console.log("📐 main_optimized.qml: applyGeometryUpdates() with conflict resolution")
         
         // ✅ ИСПРАВЛЕНО: Проверяем на undefined перед применением
         if (params.frameLength !== undefined && params.frameLength !== userFrameLength) {
@@ -370,7 +370,7 @@ Item {
     }
     
     function applyAnimationUpdates(params) {
-        console.log("🎬 main.qml: applyAnimationUpdates() called")
+        console.log("🎬 main_optimized.qml: applyAnimationUpdates() called")
         if (params.amplitude !== undefined) userAmplitude = params.amplitude
         if (params.frequency !== undefined) userFrequency = params.frequency
         if (params.phase !== undefined) userPhaseGlobal = params.phase
@@ -382,7 +382,7 @@ Item {
     }
     
     function applyLightingUpdates(params) {
-        console.log("💡 main.qml: applyLightingUpdates() called")
+        console.log("💡 main_optimized.qml: applyLightingUpdates() called")
         if (params.key_light) {
             if (params.key_light.brightness !== undefined) keyLightBrightness = params.key_light.brightness
             if (params.key_light.color !== undefined) keyLightColor = params.key_light.color
@@ -402,7 +402,7 @@ Item {
 
     // ✅ ПОЛНАЯ реализация updateMaterials()
     function applyMaterialUpdates(params) {
-        console.log("🎨 main.qml: applyMaterialUpdates() called")
+        console.log("🎨 main_optimized.qml: applyMaterialUpdates() called")
         
         if (params.metal !== undefined) {
             if (params.metal.roughness !== undefined) metalRoughness = params.metal.roughness
@@ -430,7 +430,7 @@ Item {
 
     // ✅ ПОЛНАЯ реализация updateEnvironment()
     function applyEnvironmentUpdates(params) {
-        console.log("🌍 main.qml: applyEnvironmentUpdates() called")
+        console.log("🌍 main_optimized.qml: applyEnvironmentUpdates() called")
         
         if (params.background_color !== undefined) backgroundColor = params.background_color
         if (params.skybox_enabled !== undefined) skyboxEnabled = params.skybox_enabled
@@ -455,7 +455,7 @@ Item {
 
     // ✅ ПОЛНАЯ реализация updateQuality()
     function applyQualityUpdates(params) {
-        console.log("⚙️ main.qml: applyQualityUpdates() called")
+        console.log("⚙️ main_optimized.qml: applyQualityUpdates() called")
         
         if (params.antialiasing !== undefined) antialiasingMode = params.antialiasing
         if (params.aa_quality !== undefined) antialiasingQuality = params.aa_quality
@@ -473,7 +473,7 @@ Item {
 
     // ✅ ПОЛНАЯ реализация updateCamera()
     function applyCameraUpdates(params) {
-        console.log("📷 main.qml: applyCameraUpdates() called")
+        console.log("📷 main_optimized.qml: applyCameraUpdates() called")
         
         if (params.fov !== undefined) cameraFov = params.fov
         if (params.near !== undefined) cameraNear = params.near
@@ -487,7 +487,7 @@ Item {
 
     // ✅ ПОЛНАЯ реализация updateEffects()
     function applyEffectsUpdates(params) {
-        console.log("✨ main.qml: applyEffectsUpdates() called")
+        console.log("✨ main_optimized.qml: applyEffectsUpdates() called")
         
         // Bloom - РАСШИРЕННЫЙ
         if (params.bloom_enabled !== undefined) bloomEnabled = params.bloom_enabled
@@ -590,9 +590,9 @@ Item {
                              antialiasingMode === 2 ? SceneEnvironment.MSAA :
                              antialiasingMode === 1 ? SceneEnvironment.SSAA :
                              SceneEnvironment.NoAA
-            antialiasingQuality: antialiasingQuality === 2 ? SceneEnvironment.High :
-                                antialiasingQuality === 1 ? SceneEnvironment.Medium :
-                                SceneEnvironment.Low
+            antialiasingQuality: (antialiasingQuality !== undefined && antialiasingQuality === 2) ? SceneEnvironment.High :
+                               (antialiasingQuality !== undefined && antialiasingQuality === 1) ? SceneEnvironment.Medium :
+                               SceneEnvironment.Low
             
             specularAAEnabled: true
             ditheringEnabled: true
@@ -1186,7 +1186,7 @@ Item {
 
     Component.onCompleted: {
         console.log("═══════════════════════════════════════════")
-        console.log("🔧 PneumoStabSim ИСПРАВЛЕННАЯ КИНЕМАТИКА v4.1 LOADED")
+        console.log("🚀 PneumoStabSim ОПТИМИЗИРОВАННАЯ ВЕРСИЯ v4.1 LOADED")
         console.log("═══════════════════════════════════════════")
         console.log("✅ ИСПРАВЛЕНИЯ ДЛИНЫ ШТОКОВ:")
         console.log("   🔧 Постоянная длина штока:", userPistonRodLength, "мм")
@@ -1195,9 +1195,10 @@ Item {
         console.log("   🔧 Валидация ошибок длины < 1мм")
         console.log("✅ ВСЕ ПАРАМЕТРЫ GRAPHICSPANEL:")
         console.log("   🔥 Коэффициент преломления (IOR):", glassIOR)
-        console.log("   🔥 IBL поддержка:", iblEnabled)
+        console.log("   🔥 IBL поддержka:", iblEnabled)
+        console.log("   🔥 Туман поддержка:", fogEnabled)
         console.log("   🔥 Расширенные эффекты: Bloom, SSAO, DoF, Vignette")
-        console.log("🎯 СТАТУС: Кинематика штоков ИСПРАВЛЕНА")
+        console.log("🎯 СТАТУС: main_optimized.qml v4.1 ЗАГРУЖЕН УСПЕШНО")
         console.log("═══════════════════════════════════════════")
         
         resetView()
