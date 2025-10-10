@@ -1,0 +1,262 @@
+{
+  "timestamp": "2025-10-10 17:19:42",
+  "total_tests": 42,
+  "passed": 34,
+  "failed": 8,
+  "success_rate": 80.95238095238095,
+  "total_duration": 0.5743741989135742,
+  "results": [
+    {
+      "name": "Python Version",
+      "success": true,
+      "message": "Python 3.13.7 ✓",
+      "duration": 0.0
+    },
+    {
+      "name": "Dependency PySide6",
+      "success": true,
+      "message": "Available",
+      "duration": 0.0
+    },
+    {
+      "name": "Dependency NumPy",
+      "success": true,
+      "message": "Available",
+      "duration": 0.0
+    },
+    {
+      "name": "Dependency Pathlib",
+      "success": true,
+      "message": "Available",
+      "duration": 0.0
+    },
+    {
+      "name": "Dependency JSON",
+      "success": true,
+      "message": "Available",
+      "duration": 0.0
+    },
+    {
+      "name": "Dependency Logging",
+      "success": true,
+      "message": "Available",
+      "duration": 0.0
+    },
+    {
+      "name": "Python Environment",
+      "success": true,
+      "message": "All dependencies OK",
+      "duration": 0.10334467887878418
+    },
+    {
+      "name": "File app.py",
+      "success": true,
+      "message": "Size: 15249",
+      "duration": 0.0
+    },
+    {
+      "name": "File src/common/__init__.py",
+      "success": true,
+      "message": "Size: 758",
+      "duration": 0.0
+    },
+    {
+      "name": "File src/ui/main_window.py",
+      "success": true,
+      "message": "Size: 77986",
+      "duration": 0.0
+    },
+    {
+      "name": "File src/ui/panels/panel_geometry.py",
+      "success": true,
+      "message": "Size: 40396",
+      "duration": 0.0
+    },
+    {
+      "name": "File src/ui/panels/panel_graphics.py",
+      "success": true,
+      "message": "Size: 77898",
+      "duration": 0.0
+    },
+    {
+      "name": "File assets/qml/main_optimized.qml",
+      "success": true,
+      "message": "Size: 57218",
+      "duration": 0.0
+    },
+    {
+      "name": "File assets/qml/components/IblProbeLoader.qml",
+      "success": false,
+      "message": "Missing",
+      "duration": 0.0
+    },
+    {
+      "name": "Optional assets/hdr/studio.hdr",
+      "success": true,
+      "message": "Available, size: 6312947",
+      "duration": 0.0
+    },
+    {
+      "name": "Optional assets/hdr/README.md",
+      "success": true,
+      "message": "Available, size: 3635",
+      "duration": 0.0
+    },
+    {
+      "name": "Optional logs/",
+      "success": true,
+      "message": "Available, size: DIR",
+      "duration": 0.0
+    },
+    {
+      "name": "Optional src/ui/custom_geometry.py",
+      "success": true,
+      "message": "Available, size: 8736",
+      "duration": 0.0
+    },
+    {
+      "name": "File Structure",
+      "success": false,
+      "message": "Missing critical files: ['assets/qml/components/IblProbeLoader.qml']",
+      "duration": 0.0014300346374511719
+    },
+    {
+      "name": "QML assets/qml/main_optimized.qml",
+      "success": true,
+      "message": "Syntax OK",
+      "duration": 0.0
+    },
+    {
+      "name": "QML assets/qml/components/IblProbeLoader.qml",
+      "success": false,
+      "message": "File not found",
+      "duration": 0.0
+    },
+    {
+      "name": "QML Syntax",
+      "success": true,
+      "message": "All QML files valid",
+      "duration": 0.0004286766052246094
+    },
+    {
+      "name": "Import src.common",
+      "success": true,
+      "message": "Success",
+      "duration": 0.0
+    },
+    {
+      "name": "Import src.ui.main_window",
+      "success": true,
+      "message": "Success",
+      "duration": 0.0
+    },
+    {
+      "name": "Import src.ui.panels.panel_geometry",
+      "success": true,
+      "message": "Success",
+      "duration": 0.0
+    },
+    {
+      "name": "Import src.ui.panels.panel_graphics",
+      "success": true,
+      "message": "Success",
+      "duration": 0.0
+    },
+    {
+      "name": "Python Imports",
+      "success": true,
+      "message": "All modules imported successfully",
+      "duration": 0.45064401626586914
+    },
+    {
+      "name": "Qt Imports",
+      "success": true,
+      "message": "PySide6 components imported",
+      "duration": 0.0
+    },
+    {
+      "name": "QApplication",
+      "success": true,
+      "message": "Created successfully",
+      "duration": 0.0
+    },
+    {
+      "name": "QQuickWidget",
+      "success": true,
+      "message": "Created successfully",
+      "duration": 0.0
+    },
+    {
+      "name": "Qt Integration",
+      "success": true,
+      "message": "Qt components working",
+      "duration": 0.014170646667480469
+    },
+    {
+      "name": "Graphics Config",
+      "success": true,
+      "message": "Test config: 5 parameters",
+      "duration": 0.0
+    },
+    {
+      "name": "Graphics Param key_brightness",
+      "success": true,
+      "message": "Value: 2.8",
+      "duration": 0.0
+    },
+    {
+      "name": "Graphics Param glass_ior",
+      "success": true,
+      "message": "Value: 1.52",
+      "duration": 0.0
+    },
+    {
+      "name": "Graphics Param ibl_enabled",
+      "success": true,
+      "message": "Value: True",
+      "duration": 0.0
+    },
+    {
+      "name": "Graphics Panel Config",
+      "success": true,
+      "message": "Configuration valid",
+      "duration": 0.0002288818359375
+    },
+    {
+      "name": "IBL Loader File",
+      "success": false,
+      "message": "IblProbeLoader.qml not found",
+      "duration": 0.0
+    },
+    {
+      "name": "App Module Import",
+      "success": true,
+      "message": "app.py imported successfully",
+      "duration": 0.0
+    },
+    {
+      "name": "App Global USE_QML_3D_SCHEMA",
+      "success": false,
+      "message": "Missing",
+      "duration": 0.0
+    },
+    {
+      "name": "App Global app_instance",
+      "success": false,
+      "message": "Missing",
+      "duration": 0.0
+    },
+    {
+      "name": "App Global window_instance",
+      "success": false,
+      "message": "Missing",
+      "duration": 0.0
+    },
+    {
+      "name": "App Function main",
+      "success": false,
+      "message": "Missing",
+      "duration": 0.0
+    }
+  ]
+}
