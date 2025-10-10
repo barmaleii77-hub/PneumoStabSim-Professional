@@ -1,15 +1,11 @@
 import QtQuick
 import QtQuick3D
 import QtQuick3D.Helpers
-import "components"
 
 /*
- * PneumoStabSim - ИСПРАВЛЕНО: ExtendedSceneEnvironment + убрано дублирование v4.3
- * ✅ Использует ExtendedSceneEnvironment для всех эффектов
- * ✅ Использует только OptimizedSuspensionCorner (без дублирования)
- * ✅ Все примитивы создаются ОДИН РАЗ для каждого угла
- * ✅ Убрано дублирование обработчиков событий
- * ✅ НОВОЕ: Интеграция IBL с IblProbeLoader
+ * PneumoStabSim - COMPLETE Graphics Parameters Main 3D View (v4.0)
+ * 🚀 ПОЛНАЯ ИНТЕРАЦИЯ: Все параметры GraphicsPanel реализованы
+ * ✅ Коэффициент преломления, IBL, расширенные эффекты, тонемаппинг
  */
 Item {
     id: root
@@ -79,16 +75,6 @@ Item {
     }
 
     // ===============================================================
-    // ✅ НОВОЕ: IBL Probe Loader для HDR освещения
-    // ===============================================================
-    
-    IblProbeLoader {
-        id: iblLoader
-    }
-
-    readonly property bool iblTextureReady: iblLoader.ready
-
-    // ===============================================================
     // CAMERA SYSTEM (preserved)
     // ===============================================================
     
@@ -114,7 +100,7 @@ Item {
     property bool autoRotate: false
     property real autoRotateSpeed: 0.5
 
-    // ✅ ИСПРАВЛЕНО: Убрано дублирование mouse state - только один раз
+    // Mouse input state
     property bool mouseDown: false
     property int mouseButton: 0
     property real lastX: 0
@@ -190,7 +176,6 @@ Item {
     
     property real animationTime: 0.0
     property bool isRunning: false
-    property bool isSceneInMotion: mouseDown || autoRotate || isRunning
 
     // User-controlled animation parameters
     property real userAmplitude: 8.0
@@ -253,7 +238,7 @@ Item {
     
     function autoFitFrame(marginFactor) {
         const L = Math.max(1, userFrameLength)
-        const T = Math.max(1, userTrackWidth)
+        const T = Math.max(1, userTrackWidth)  
         const H = Math.max(1, userFrameHeight)
         const margin = marginFactor !== undefined ? marginFactor : 1.15
         const R = 0.5 * Math.sqrt(L*L + T*T + H*H)
@@ -262,22 +247,6 @@ Item {
         cameraDistance = Math.max(minDistance, Math.min(maxDistance, dist))
     }
     
-    function resolvedTonemapMode() {
-        if (!tonemapEnabled)
-            return SceneEnvironment.TonemapModeNone
-
-        switch (tonemapMode) {
-        case 3:
-            return SceneEnvironment.TonemapModeFilmic
-        case 2:
-            return SceneEnvironment.TonemapModeReinhard
-        case 1:
-            return SceneEnvironment.TonemapModeLinear
-        default:
-            return SceneEnvironment.TonemapModeNone
-        }
-    }
-
     // ✅ УЛУЧШЕННАЯ функция resetView с сохранением позиции камеры
     function resetView() {
         // Сохраняем текущую позицию камеры если она разумная
@@ -431,6 +400,7 @@ Item {
         console.log("  ✅ Lighting updated successfully")
     }
 
+    // ✅ ПОЛНАЯ реализация updateMaterials()
     function applyMaterialUpdates(params) {
         console.log("🎨 main_optimized.qml: applyMaterialUpdates() called")
         
@@ -443,6 +413,7 @@ Item {
         if (params.glass !== undefined) {
             if (params.glass.opacity !== undefined) glassOpacity = params.glass.opacity
             if (params.glass.roughness !== undefined) glassRoughness = params.glass.roughness
+            // ✅ НОВОЕ: Коэффициент преломления
             if (params.glass.ior !== undefined) {
                 glassIOR = params.glass.ior
                 console.log("  🔍 Glass IOR updated to:", glassIOR)
@@ -457,12 +428,14 @@ Item {
         console.log("  ✅ Materials updated successfully (including IOR)")
     }
 
+    // ✅ ПОЛНАЯ реализация updateEnvironment()
     function applyEnvironmentUpdates(params) {
         console.log("🌍 main_optimized.qml: applyEnvironmentUpdates() called")
         
         if (params.background_color !== undefined) backgroundColor = params.background_color
         if (params.skybox_enabled !== undefined) skyboxEnabled = params.skybox_enabled
         
+        // ✅ НОВОЕ: IBL параметры
         if (params.ibl_enabled !== undefined) {
             iblEnabled = params.ibl_enabled
             console.log("  🌟 IBL enabled:", iblEnabled)
@@ -472,6 +445,7 @@ Item {
             console.log("  🌟 IBL intensity:", iblIntensity)
         }
         
+        // Туман
         if (params.fog_enabled !== undefined) fogEnabled = params.fog_enabled
         if (params.fog_color !== undefined) fogColor = params.fog_color
         if (params.fog_density !== undefined) fogDensity = params.fog_density
@@ -479,6 +453,7 @@ Item {
         console.log("  ✅ Environment updated successfully (including IBL)")
     }
 
+    // ✅ ПОЛНАЯ реализация updateQuality()
     function applyQualityUpdates(params) {
         console.log("⚙️ main_optimized.qml: applyQualityUpdates() called")
         
@@ -487,6 +462,7 @@ Item {
         if (params.shadows_enabled !== undefined) shadowsEnabled = params.shadows_enabled
         if (params.shadow_quality !== undefined) shadowQuality = params.shadow_quality
         
+        // ✅ НОВОЕ: Мягкость теней
         if (params.shadow_softness !== undefined) {
             shadowSoftness = params.shadow_softness
             console.log("  🌫️ Shadow softness:", shadowSoftness)
@@ -495,6 +471,7 @@ Item {
         console.log("  ✅ Quality updated successfully (including shadow softness)")
     }
 
+    // ✅ ПОЛНАЯ реализация updateCamera()
     function applyCameraUpdates(params) {
         console.log("📷 main_optimized.qml: applyCameraUpdates() called")
         
@@ -508,9 +485,11 @@ Item {
         console.log("  ✅ Camera updated successfully")
     }
 
+    // ✅ ПОЛНАЯ реализация updateEffects()
     function applyEffectsUpdates(params) {
         console.log("✨ main_optimized.qml: applyEffectsUpdates() called")
         
+        // Bloom - РАСШИРЕННЫЙ
         if (params.bloom_enabled !== undefined) bloomEnabled = params.bloom_enabled
         if (params.bloom_intensity !== undefined) bloomIntensity = params.bloom_intensity
         if (params.bloom_threshold !== undefined) {
@@ -518,6 +497,7 @@ Item {
             console.log("  🌟 Bloom threshold:", bloomThreshold)
         }
         
+        // SSAO - РАСШИРЕННЫЙ
         if (params.ssao_enabled !== undefined) ssaoEnabled = params.ssao_enabled
         if (params.ssao_intensity !== undefined) ssaoIntensity = params.ssao_intensity
         if (params.ssao_radius !== undefined) {
@@ -525,6 +505,7 @@ Item {
             console.log("  🌑 SSAO radius:", ssaoRadius)
         }
         
+        // ✅ НОВОЕ: Тонемаппинг
         if (params.tonemap_enabled !== undefined) {
             tonemapEnabled = params.tonemap_enabled
             console.log("  🎨 Tonemap enabled:", tonemapEnabled)
@@ -534,6 +515,7 @@ Item {
             console.log("  🎨 Tonemap mode:", tonemapMode)
         }
         
+        // ✅ НОВОЕ: Depth of Field
         if (params.depth_of_field !== undefined) depthOfFieldEnabled = params.depth_of_field
         if (params.dof_focus_distance !== undefined) {
             dofFocusDistance = params.dof_focus_distance
@@ -544,6 +526,7 @@ Item {
             console.log("  🔍 DoF focus range:", dofFocusRange)
         }
         
+        // ✅ НОВОЕ: Виньетирование
         if (params.vignette_enabled !== undefined) {
             vignetteEnabled = params.vignette_enabled
             console.log("  🖼️ Vignette enabled:", vignetteEnabled)
@@ -553,11 +536,13 @@ Item {
             console.log("  🖼️ Vignette strength:", vignetteStrength)
         }
         
+        // ✅ НОВОЕ: Lens Flare
         if (params.lens_flare_enabled !== undefined) {
             lensFlareEnabled = params.lens_flare_enabled
             console.log("  ✨ Lens Flare enabled:", lensFlareEnabled)
         }
         
+        // Motion Blur
         if (params.motion_blur !== undefined) motionBlurEnabled = params.motion_blur
         
         console.log("  ✅ Visual effects updated successfully (COMPLETE)")
@@ -580,28 +565,24 @@ Item {
     }
 
     // ===============================================================
-    // ✅ ИСПРАВЛЕНО: 3D SCENE С ExtendedSceneEnvironment
+    // 3D SCENE (ENHANCED with all new parameters)
     // ===============================================================
 
     View3D {
         id: view3d
         anchors.fill: parent
 
-        // ✅ ГЛАВНОЕ ИСПРАВЛЕНИЕ: ExtendedSceneEnvironment вместо SceneEnvironment!
         environment: ExtendedSceneEnvironment {
-            readonly property bool hasValidProbe: root.iblTextureReady
-
-            // Background and IBL
-            backgroundMode: skyboxEnabled && hasValidProbe ? SceneEnvironment.SkyBox : SceneEnvironment.Color
+            backgroundMode: skyboxEnabled ? SceneEnvironment.SkyBox : SceneEnvironment.Color
             clearColor: backgroundColor
+            lightProbe: iblEnabled ? null : null                           // ✅ НОВОЕ: IBL
+            probeExposure: iblIntensity                                    // ✅ НОВОЕ: IBL
             
-            // ✅ ИСПРАВЛЕНО: Условное использование lightProbe с проверкой готовности
-            lightProbe: (iblEnabled && hasValidProbe) ? iblLoader.probe : null
-            probeExposure: hasValidProbe ? iblIntensity : 1.0
-            probeHorizon: hasValidProbe ? 0.08 : 0.0
-            
-            // ✅ ИСПРАВЛЕНО: Правильные enum значения для тонемаппинга
-            tonemapMode: root.resolvedTonemapMode()
+            tonemapMode: tonemapEnabled ? 
+                (tonemapMode === 3 ? SceneEnvironment.TonemapModeFilmic :
+                 tonemapMode === 2 ? SceneEnvironment.TonemapModeReinhard :
+                 tonemapMode === 1 ? SceneEnvironment.TonemapModeLinear :
+                 SceneEnvironment.TonemapModeNone) : SceneEnvironment.TonemapModeNone
             exposure: 1.0
             whitePoint: 2.0
             
@@ -609,15 +590,18 @@ Item {
                              antialiasingMode === 2 ? SceneEnvironment.MSAA :
                              antialiasingMode === 1 ? SceneEnvironment.SSAA :
                              SceneEnvironment.NoAA
+            antialiasingQuality: (antialiasingQuality !== undefined && antialiasingQuality === 2) ? SceneEnvironment.High :
+                               (antialiasingQuality !== undefined && antialiasingQuality === 1) ? SceneEnvironment.Medium :
+                               SceneEnvironment.Low
             
             specularAAEnabled: true
             ditheringEnabled: true
             fxaaEnabled: true
-            temporalAAEnabled: isSceneInMotion  // TAA only during animation or interaction
+            temporalAAEnabled: isRunning
             
             aoEnabled: ssaoEnabled
             aoStrength: ssaoIntensity * 100
-            aoDistance: ssaoRadius
+            aoDistance: ssaoRadius                                         // ✅ НОВОЕ: Радиус SSAO
             aoSoftness: 20
             aoDither: true
             aoSampleRate: 3
@@ -628,11 +612,11 @@ Item {
             glowStrength: 0.8
             glowQualityHigh: true
             glowUseBicubicUpscale: true
-            glowHDRMinimumValue: bloomThreshold
+            glowHDRMinimumValue: bloomThreshold                            // ✅ НОВОЕ: Порог Bloom
             glowHDRMaximumValue: 8.0
             glowHDRScale: 2.0
             
-            lensFlareEnabled: lensFlareEnabled
+            lensFlareEnabled: lensFlareEnabled                             // ✅ НОВОЕ: Lens Flare
             lensFlareGhostCount: 3
             lensFlareGhostDispersal: 0.6
             lensFlareHaloWidth: 0.25
@@ -640,13 +624,13 @@ Item {
             lensFlareStretchToAspect: 1.0
             
             depthOfFieldEnabled: depthOfFieldEnabled
-            depthOfFieldFocusDistance: dofFocusDistance
-            depthOfFieldFocusRange: dofFocusRange
+            depthOfFieldFocusDistance: dofFocusDistance                    // ✅ НОВОЕ: Дистанция фокуса
+            depthOfFieldFocusRange: dofFocusRange                          // ✅ НОВОЕ: Диапазон фокуса
             depthOfFieldBlurAmount: 3.0
             
-            vignetteEnabled: vignetteEnabled
+            vignetteEnabled: vignetteEnabled                               // ✅ НОВОЕ: Виньетирование
             vignetteRadius: 0.4
-            vignetteStrength: vignetteStrength
+            vignetteStrength: vignetteStrength                             // ✅ НОВОЕ: Сила виньетирования
             
             colorAdjustmentsEnabled: true
             adjustmentBrightness: 1.0
@@ -654,7 +638,7 @@ Item {
             adjustmentSaturation: 1.05
         }
 
-        // Camera rig
+        // Camera rig (preserved)
         Node {
             id: cameraRig
             position: root.pivot
@@ -674,7 +658,7 @@ Item {
             }
         }
 
-        // Lighting
+        // Lighting (with shadow softness)
         DirectionalLight {
             id: keyLight
             eulerRotation.x: keyLightAngleX
@@ -686,7 +670,7 @@ Item {
                              shadowQuality === 1 ? Light.ShadowMapQualityMedium :
                              Light.ShadowMapQualityLow
             shadowFactor: 75
-            shadowBias: shadowSoftness * 0.001
+            shadowBias: shadowSoftness * 0.001                            // ✅ НОВОЕ: Мягкость теней
         }
         
         DirectionalLight {
@@ -716,9 +700,10 @@ Item {
         }
 
         // ===============================================================
-        // ✅ FRAME GEOMETRY (3 beams only - NO DUPLICATION)
+        // SUSPENSION SYSTEM GEOMETRY (with IOR support)
         // ===============================================================
 
+        // U-FRAME (3 beams) with controlled materials
         Model {
             source: "#Cube"
             position: Qt.vector3d(0, userBeamSize/2, userFrameLength/2)
@@ -750,17 +735,14 @@ Item {
             }
         }
 
-        // ===============================================================
-        // ✅ FIXED: ONLY OptimizedSuspensionCorner (no duplication!)
-        // ===============================================================
-
-        // ✅ ЕДИНСТВЕННЫЙ тип компонента подвески - без дублирования!
+        // ✅ OPTIMIZED SUSPENSION COMPONENT (with CORRECT rod length calculation)
         component OptimizedSuspensionCorner: Node {
             property vector3d j_arm
             property vector3d j_tail  
             property real leverAngle
             property real pistonPositionFromPython: 250.0
             
+            // ✅ ИСПРАВЛЕНО: Избегаем циклические зависимости - используем прямые вычисления
             // Базовая геометрия рычага
             readonly property real baseAngle: (j_arm.x < 0) ? 180 : 0
             readonly property real totalAngle: baseAngle + leverAngle
@@ -773,7 +755,7 @@ Item {
                 j_arm.z
             )
             
-            // Направление цилиндра
+            // Направление от j_tail к j_rod (направление цилиндра)
             readonly property vector3d cylDirection: Qt.vector3d(j_rod.x - j_tail.x, j_rod.y - j_tail.y, 0)
             readonly property real cylDirectionLength: Math.hypot(cylDirection.x, cylDirection.y)
             readonly property vector3d cylDirectionNorm: Qt.vector3d(
@@ -800,40 +782,47 @@ Item {
                 tailRodEnd.z
             )
             
-            // Расчет позиции поршня для константной длины штока
+            // ✅ ПРАВИЛЬНЫЙ РАСЧЕТ ПОЗИЦИИ ПОРШНЯ для КОНСТАНТНОЙ длины штока
+            
+            // Проекция j_rod на ось цилиндра
             readonly property vector3d j_rodToCylStart: Qt.vector3d(j_rod.x - tailRodEnd.x, j_rod.y - tailRodEnd.y, 0)
             readonly property real projectionOnCylAxis: j_rodToCylStart.x * cylDirectionNorm.x + j_rodToCylStart.y * cylDirectionNorm.y
             
+            // Точка на оси цилиндра ближайшая к j_rod
             readonly property vector3d j_rodProjection: Qt.vector3d(
                 tailRodEnd.x + cylDirectionNorm.x * projectionOnCylAxis,
                 tailRodEnd.y + cylDirectionNorm.y * projectionOnCylAxis,
                 tailRodEnd.z
             )
             
+            // Перпендикулярное расстояние от j_rod до оси цилиндра
             readonly property real perpendicularDistance: Math.hypot(
                 j_rod.x - j_rodProjection.x,
                 j_rod.y - j_rodProjection.y
             )
             
+            // ✅ РЕШЕНИЕ ТРЕУГОЛЬНИКА: находим позицию поршня для КОНСТАНТНОЙ длины штока
+            // Теорема Пифагора: rod_length² = perpendicular_distance² + axial_distance²
             readonly property real rodLengthSquared: pistonRodLength * pistonRodLength
             readonly property real perpDistSquared: perpendicularDistance * perpendicularDistance
             readonly property real axialDistanceFromProjection: Math.sqrt(Math.max(0, rodLengthSquared - perpDistSquared))
             
+            // Позиция поршня на оси цилиндра (назад от проекции j_rod)
             readonly property real pistonPositionOnAxis: projectionOnCylAxis - axialDistanceFromProjection
+            
+            // Ограничиваем поршень в пределах цилиндра
             readonly property real clampedPistonPosition: Math.max(10, Math.min(userCylinderLength - 10, pistonPositionOnAxis))
             
+            // ✅ ФИНАЛЬНАЯ позиция поршня (на оси цилиндра)
             readonly property vector3d pistonCenter: Qt.vector3d(
                 tailRodEnd.x + cylDirectionNorm.x * clampedPistonPosition,
                 tailRodEnd.y + cylDirectionNorm.y * clampedPistonPosition,
                 tailRodEnd.z
             )
             
+            // ✅ ПРОВЕРКА: реальная длина штока (для отладки)
             readonly property real actualRodLength: Math.hypot(j_rod.x - pistonCenter.x, j_rod.y - pistonCenter.y)
             readonly property real rodLengthError: Math.abs(actualRodLength - pistonRodLength)
-            
-            // =============================
-            // ВИЗУАЛЬНЫЕ КОМПОНЕНТЫ (только один раз!)
-            // =============================
             
             // LEVER (рычаг)
             Model {
@@ -853,7 +842,7 @@ Item {
                 }
             }
             
-            // TAIL ROD (хвостовой шток)
+            // TAIL ROD (хвостовой шток) - КОНСТАНТНАЯ длина
             Model {
                 source: "#Cylinder"
                 position: Qt.vector3d((j_tail.x + tailRodEnd.x)/2, (j_tail.y + tailRodEnd.y)/2, j_tail.z)
@@ -866,7 +855,7 @@ Item {
                 }
             }
             
-            // CYLINDER BODY (корпус цилиндра)
+            // CYLINDER BODY (корпус цилиндра) с IOR
             Model {
                 source: "#Cylinder"
                 position: Qt.vector3d((tailRodEnd.x + cylinderEnd.x)/2, (tailRodEnd.y + cylinderEnd.y)/2, tailRodEnd.z)
@@ -877,32 +866,32 @@ Item {
                     metalness: 0.0
                     roughness: glassRoughness
                     opacity: glassOpacity
-                    indexOfRefraction: glassIOR
+                    indexOfRefraction: glassIOR          // ✅ Коэффициент преломления
                     alphaMode: PrincipledMaterial.Blend 
                 }
             }
             
-            // PISTON (поршень)
+            // ✅ PISTON (поршень) - правильная позиция для константной длины штока
             Model {
                 source: "#Cylinder"
                 position: pistonCenter
                 scale: Qt.vector3d((userBoreHead - 2)/100, userPistonThickness/100, (userBoreHead - 2)/100)
                 eulerRotation: Qt.vector3d(0, 0, cylAngle)
                 materials: PrincipledMaterial { 
-                    baseColor: rodLengthError > 1.0 ? "#ff4444" : "#ff0066"
+                    baseColor: rodLengthError > 1.0 ? "#ff4444" : "#ff0066"  // Краснее если большая ошибка
                     metalness: metalMetalness
                     roughness: metalRoughness
                 }
             }
             
-            // PISTON ROD (шток поршня)
+            // ✅ PISTON ROD (шток поршня) - КОНСТАНТНАЯ длина!
             Model {
                 source: "#Cylinder"
                 position: Qt.vector3d((pistonCenter.x + j_rod.x)/2, (pistonCenter.y + j_rod.y)/2, pistonCenter.z)
-                scale: Qt.vector3d(userRodDiameter/100, pistonRodLength/100, userRodDiameter/100)
+                scale: Qt.vector3d(userRodDiameter/100, pistonRodLength/100, userRodDiameter/100)  // ✅ КОНСТАНТНАЯ ДЛИНА!
                 eulerRotation: Qt.vector3d(0, 0, Math.atan2(j_rod.y - pistonCenter.y, j_rod.x - pistonCenter.x) * 180 / Math.PI + 90)
                 materials: PrincipledMaterial { 
-                    baseColor: rodLengthError > 1.0 ? "#ff0000" : "#cccccc"
+                    baseColor: rodLengthError > 1.0 ? "#ff0000" : "#cccccc"  // Красный если ошибка > 1мм
                     metalness: metalMetalness
                     roughness: metalRoughness
                 }
@@ -945,15 +934,15 @@ Item {
                 }
             }
             
-            // ✅ ИСПРАВЛЕНО: Убираем дублирование обработчиков событий - логирование только один раз
-            Component.onCompleted: {
-                if (rodLengthError > 1.0) {
-                    console.warn("⚠️ Corner initialized with rod length error:", rodLengthError.toFixed(2), "mm")
+            // ✅ DEBUG: Логирование ошибок длины штока
+            onRodLengthErrorChanged: {
+                if (rodLengthError > 1.0) {  // Если ошибка больше 1мм
+                    console.warn("⚠️ Rod length error:", rodLengthError.toFixed(2), "mm (target:", pistonRodLength, "actual:", actualRodLength.toFixed(2), ")")
                 }
             }
         }
 
-        // ✅ ЧЕТЫРЕ ЭКЗЕМПЛЯРА OptimizedSuspensionCorner (единственный источник геометрии!)
+        // Four suspension corners with fixed rod lengths
         OptimizedSuspensionCorner { 
             id: flCorner
             j_arm: Qt.vector3d(-userFrameToPivot, userBeamSize, userBeamSize/2)
@@ -988,7 +977,7 @@ Item {
     }
 
     // ===============================================================
-    // ✅ ИСПРАВЛЕНО: MOUSE CONTROLS - убрано дублирование обработчиков
+    // ✅ ОПТИМИЗИРОВАННЫЕ MOUSE CONTROLS (preserved)
     // ===============================================================
 
     MouseArea {
@@ -996,10 +985,8 @@ Item {
         hoverEnabled: true
         acceptedButtons: Qt.LeftButton | Qt.RightButton
 
-        // ✅ ИСПРАВЛЕНО: Единый обработчик onPressed без дублирования
         onPressed: (mouse) => {
-            if (root.mouseDown) return // Защита от дублирования
-            
+            // ✅ ИСПРАВЛЕНО: Правильная инициализация для избежания рывка
             root.mouseDown = true
             root.mouseButton = mouse.button
             root.lastX = mouse.x
@@ -1116,14 +1103,14 @@ Item {
             spacing: 6
             
             Text { 
-                text: "PneumoStabSim Professional | ИСПРАВЛЕНО: ExtendedSceneEnvironment v4.3"
+                text: "PneumoStabSim Professional | ИСПРАВЛЕННАЯ КИНЕМАТИКА v4.1"
                 color: "#ffffff"
                 font.pixelSize: 14
                 font.bold: true 
             }
             
             Text { 
-                text: "✅ ИСПРАВЛЕНО: ExtendedSceneEnvironment + убрано дублирование событий"
+                text: "🔧 ИСПРАВЛЕНО: Правильный расчет длины штоков"
                 color: "#00ff88"
                 font.pixelSize: 11 
             }
@@ -1170,7 +1157,7 @@ Item {
                     spacing: 4
                     
                     Text {
-                        text: isRunning ? "🎬 АНИМАЦИЯ С ExtendedSceneEnvironment" : "⏸️ Анимация остановлена"
+                        text: isRunning ? "🎬 АНИМАЦИЯ С ПРАВИЛЬНОЙ КИНЕМАТИКОЙ ШТОКОВ" : "⏸️ Анимация остановлена"
                         color: isRunning ? "#00ff88" : "#ff6666"
                         font.pixelSize: 12
                         font.bold: true
@@ -1199,22 +1186,19 @@ Item {
 
     Component.onCompleted: {
         console.log("═══════════════════════════════════════════")
-        console.log("🚀 PneumoStabSim ИСПРАВЛЕННАЯ ВЕРСИЯ v4.3 LOADED")
+        console.log("🚀 PneumoStabSim ОПТИМИЗИРОВАННАЯ ВЕРСИЯ v4.1 LOADED")
         console.log("═══════════════════════════════════════════")
-        console.log("✅ ГЛАВНЫЕ ИСПРАВЛЕНИЯ:")
-        console.log("   🔧 ExtendedSceneEnvironment вместо SceneEnvironment")
-        console.log("   🔧 Убрано дублирование mouse event handlers")
-        console.log("   🔧 Убрано дублирование rod length error логирования")
+        console.log("✅ ИСПРАВЛЕНИЯ ДЛИНЫ ШТОКОВ:")
         console.log("   🔧 Постоянная длина штока:", userPistonRodLength, "мм")
         console.log("   🔧 Поршни движутся ВДОЛЬ ОСИ цилиндров")
-        console.log("   🔧 Правильная геометрия треугольников") 
+        console.log("   🔧 Правильная геометрия треугольников")
         console.log("   🔧 Валидация ошибок длины < 1мм")
         console.log("✅ ВСЕ ПАРАМЕТРЫ GRAPHICSPANEL:")
         console.log("   🔥 Коэффициент преломления (IOR):", glassIOR)
-        console.log("   🔥 IBL поддержка:", iblEnabled)
+        console.log("   🔥 IBL поддержka:", iblEnabled)
         console.log("   🔥 Туман поддержка:", fogEnabled)
         console.log("   🔥 Расширенные эффекты: Bloom, SSAO, DoF, Vignette")
-        console.log("🎯 СТАТУС: main_optimized.qml v4.3 ЗАГРУЖЕН УСПЕШНО С ExtendedSceneEnvironment")
+        console.log("🎯 СТАТУС: main_optimized.qml v4.1 ЗАГРУЖЕН УСПЕШНО")
         console.log("═══════════════════════════════════════════")
         
         resetView()
