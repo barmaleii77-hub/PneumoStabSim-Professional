@@ -66,18 +66,13 @@ class MainWindow(QMainWindow):
         "PZ": "rr",
     }
 
-    def __init__(self, use_qml_3d: bool = True, force_optimized: bool = False):
+    def __init__(self, use_qml_3d: bool = True):
         super().__init__()
         
         # Store visualization backend choice
         self.use_qml_3d = use_qml_3d
-        self.force_optimized = force_optimized
         
-        backend_name = "Qt Quick 3D (Оптимизированная v4.1+)" if use_qml_3d else "Legacy OpenGL"
-        if force_optimized:
-            backend_name += " ПРИНУДИТЕЛЬНЫЙ"
-        else:
-            backend_name += " ОСНОВНАЯ"
+        backend_name = "Qt Quick 3D (Enhanced v5.0)" if use_qml_3d else "Legacy OpenGL"
         self.setWindowTitle(f"PneumoStabSim - {backend_name}")
         
         self.resize(1400, 900)
@@ -216,71 +211,31 @@ class MainWindow(QMainWindow):
         print("    ✅ Система сплиттеров создана (горизонтальный + вертикальный)")
 
     def _setup_qml_3d_view(self):
-        """Setup Qt Quick 3D full suspension scene"""
-        print("    [QML] Загрузка QML файла...")
+        """Setup Qt Quick 3D full suspension scene - загружает main.qml"""
+        print("    [QML] Загрузка QML файла main.qml...")
         
         try:
             self._qquick_widget = QQuickWidget(self)
             self._qquick_widget.setResizeMode(QQuickWidget.ResizeMode.SizeRootObjectToView)
             
-            # ✅ ИЗМЕНЕНО: main_optimized.qml теперь ОСНОВНОЙ файл по умолчанию
-            if self.force_optimized:
-                print(f"    🚀 ПРИНУДИТЕЛЬНЫЙ РЕЖИМ: Обязательная загрузка main_optimized.qml")
-                qml_path = Path("assets/qml/main_optimized.qml")
-                allow_fallback = False  # В принудительном режиме fallback запрещен
-            else:
-                print(f"    🌟 ОСНОВНОЙ РЕЖИМ: Загрузка main_optimized.qml по умолчанию (последняя версия)")
-                qml_path = Path("assets/qml/main_optimized.qml")  # ТЕПЕРЬ ОСНОВННОЙ ФАЙЛ!
-                allow_fallback = True   # Разрешен fallback к main.qml только как запасной вариант
+            # Используем единый файл main.qml
+            qml_path = Path("assets/qml/main.qml")
             
             print(f"    🔍 ДИАГНОСТИКА ЗАГРУЗКИ QML:")
             print(f"       Целевой файл: {qml_path}")
             print(f"       Файл существует: {qml_path.exists()}")
-            print(f"       Fallback разрешен: {allow_fallback}")
             
-            if qml_path.exists():
-                try:
-                    # Проверяем размер файла для дополнительной валидации
-                    file_size = qml_path.stat().st_size
-                    print(f"       Размер файла: {file_size:,} байт")
-                    
-                    if qml_path.name == "main_optimized.qml":
-                        if file_size > 50000:  # main_optimized.qml должен быть ~57KB+
-                            print(f"    ✅ Загружаем ОПТИМИЗИРОВАННУЮ версию (основная версия)!")
-                            qml_url = QUrl.fromLocalFile(str(qml_path.absolute()))
-                        else:
-                            raise ValueError(f"Оптимизированный файл слишком мал ({file_size} байт), возможно поврежден")
-                    else:  # main.qml (теперь fallback)
-                        if file_size > 30000:  # main.qml должен быть достаточно большим с IBL
-                            print(f"    ✅ Загружаем РАСШИРЕННУЮ версию (fallback)!")
-                            qml_url = QUrl.fromLocalFile(str(qml_path.absolute()))
-                        else:
-                            raise ValueError(f"Расширенный файл слишком мал ({file_size} байт), возможно поврежден")
-                    
-                    print(f"    📂 Полный путь: {qml_url.toString()}")
-                    print(f"    🚀 Файл: {qml_path.name}")
-                        
-                except Exception as file_error:
-                    print(f"    ⚠️ Ошибка проверки файла {qml_path.name}: {file_error}")
-                    if not allow_fallback:
-                        print(f"    ❌ ПРИНУДИТЕЛЬНЫЙ РЕЖИМ: Fallback запрещен!")
-                        raise file_error
-                    else:
-                        raise file_error  # Пробрасываем для fallback
-                        
-            else:
-                error_msg = f"Файл {qml_path.name} не найден"
-                if not allow_fallback:
-                    print(f"    ❌ ПРИНУДИТЕЛЬНЫЙ РЕЖИМ: {error_msg}")
-                    raise FileNotFoundError(error_msg)
-                else:
-                    raise FileNotFoundError(error_msg)  # Пробрасываем для fallback
+            if not qml_path.exists():
+                raise FileNotFoundError(f"QML файл не найден: {qml_path}")
             
-            # Пытаемся загрузить выбранный файл
-            print(f"    🔄 Устанавливаем source: {qml_url.toString()}")
+            file_size = qml_path.stat().st_size
+            print(f"       Размер файла: {file_size:,} байт")
+            
+            qml_url = QUrl.fromLocalFile(str(qml_path.absolute()))
+            print(f"    📂 Полный путь: {qml_url.toString()}")
+            
             self._qquick_widget.setSource(qml_url)
             
-            # Проверяем статус загрузки
             status = self._qquick_widget.status()
             print(f"    📊 QML статус загрузки: {status}")
             
@@ -291,149 +246,37 @@ class MainWindow(QMainWindow):
                 print(f"    ❌ ОШИБКИ QML ЗАГРУЗКИ:")
                 for i, error in enumerate(error_messages, 1):
                     print(f"       {i}. {error}")
-                
-                if not allow_fallback:
-                    print(f"    ❌ ПРИНУДИТЕЛЬНЫЙ РЕЖИМ: Прерывание из-за ошибок QML")
-                    raise RuntimeError(f"Ошибки загрузки QML (принудительный режим):\n{error_msg}")
-                else:
-                    raise RuntimeError(f"Ошибки загрузки QML:\n{error_msg}")
+                raise RuntimeError(f"Ошибки загрузки QML:\n{error_msg}")
                     
             elif status == QQuickWidget.Status.Loading:
                 print(f"    ⏳ QML файл загружается...")
             elif status == QQuickWidget.Status.Ready:
                 print(f"    ✅ QML файл загружен успешно!")
             
-            # Получаем корневой объект
             self._qml_root_object = self._qquick_widget.rootObject()
             if not self._qml_root_object:
-                error_msg = "Не удалось получить корневой объект QML"
-                if not allow_fallback:
-                    print(f"    ❌ ПРИНУДИТЕЛЬНЫЙ РЕЖИМ: {error_msg}")
-                    raise RuntimeError(error_msg)
-                else:
-                    raise RuntimeError(error_msg)
+                raise RuntimeError("Не удалось получить корневой объект QML")
             
-            print(f"    [OK] ✅ QML файл '{qml_path.name}' загружен успешно")
-
-            if self._qml_update_queue:
-                self._flush_qml_updates
-            
-            # Проверяем доступные свойства для диагностики
-            critical_properties = ['glassIOR', 'userFrameLength', 'bloomEnabled', 'metalRoughness', 'iblEnabled', 'fogEnabled', 'iblTextureReady']
-            print(f"    🔍 ДИАГНОСТИКА критических свойств:")
-            optimized_props = 0
-            extended_props = 0
-            for prop in critical_properties:
-                try:
-                    if hasattr(self._qml_root_object, 'property'):
-                        value = self._qml_root_object.property(prop)
-                        print(f"    ✅ {prop}: {value}")
-                        if prop in ['iblEnabled', 'fogEnabled']:
-                            optimized_props += 1  # Эти свойства есть в обеих версиях
-                        if prop in ['iblTextureReady'] and value is not None:
-                            extended_props += 1  # Это свойство только в расширенной версии
-                    else:
-                        print(f"    ❌ {prop}: property() метод недоступен")
-                except Exception as e:
-                    print(f"    ❌ {prop}: ошибка - {e}")
-            
-            # Проверяем функции обновления (расширенный список для версий)
-            update_functions = [
-                'updateGeometry', 'updateMaterials', 'updateLighting', 'updateEffects', 
-                'updateEnvironment', 'updateQuality', 'updateCamera',
-                'applyBatchedUpdates', 'applyGeometryUpdates', 'applyMaterialUpdates',
-                'resolvedTonemapMode'  # Функция только в расширенной версии
-            ]
-            print(f"    🔍 ДИАГНОСТИКА функций обновления:")
-            available_functions = []
-            extended_functions = []
-            for func_name in update_functions:
-                try:
-                    if hasattr(self._qml_root_object, func_name):
-                        print(f"    ✅ Функция {func_name}() доступна")
-                        available_functions.append(func_name)
-                        if func_name in ['resolvedTonemapMode']:
-                            extended_functions.append(func_name)
-                    else:
-                        print(f"    ❌ Функция {func_name}() не найдена!")
-                except Exception as e:
-                    print(f"    ❌ Функция {func_name}(): ошибка - {e}")
-            
-            print(f"    📊 ИТОГО доступно функций: {len(available_functions)}/{len(update_functions)}")
-            
-            # Определяем версию по количеству доступных функций и свойств
-            if len(available_functions) >= 10 and optimized_props >= 1:
-                print(f"    🚀 ПОДТВЕРДЖДЕНО: загружена ОПТИМИЗИРОВАННАЯ версия (v4.1+) - ОСНОВНАЯ ВЕРСИЯ!")
-                print(f"    ✨ Доступны возможности: IBL, туман, продвинутые эффекты, полная совместимость")
-                print(f"    🎨 Поддержка: Все современные функции GraphicsPanel, коэффициент преломления")
-            elif extended_props >= 1 or len(extended_functions) >= 1:
-                print(f"    🌟 ПОДТВЕРДЖДЕНО: загружена РАСШИРЕННАЯ версия с IBL системой (fallback)!")
-                print(f"    ✨ Доступны возможности: IBL система, улучшенные pointer handlers, оптимизированные материалы")
-                print(f"    🎨 Поддержка: ExtendedSceneEnvironment, HDR загрузка, современные эффекты")
-            elif len(available_functions) >= 5:
-                print(f"    ⚠️ ВНИМАНИЕ: загружена БАЗОВАЯ версия (v2.1)")
-                print(f"    📝 Некоторые расширенные функции недоступны")
-            else:
-                print(f"    ❌ КРИТИЧНО: версия неопределена или повреждена")
+            print(f"    [OK] ✅ QML файл 'main.qml' загружен успешно")
             
         except Exception as e:
-            if not allow_fallback:
-                print(f"    [CRITICAL] ПРИНУДИТЕЛЬНЫЙ РЕЖИМ: Ошибка загрузки обязательна")
-                print(f"    ❌ Ошибка: {e}")
-                import traceback
-                traceback.print_exc()
-                raise e  # Прерываем выполнение
+            print(f"    [CRITICAL] Ошибка загрузки main.qml: {e}")
+            import traceback
+            traceback.print_exc()
             
-            print(f"    [ERROR] Ошибка загрузки основного файла main_optimized.qml: {e}")
-            print(f"    🔄 Переключаемся на fallback: main.qml")
-            
-            # Fallback к расширенной версии (только если разрешен)
-            try:
-                fallback_path = Path("assets/qml/main.qml")
-                
-                if not fallback_path.exists():
-                    raise FileNotFoundError(f"Fallback файл не найден: {fallback_path}")
-                
-                qml_url = QUrl.fromLocalFile(str(fallback_path.absolute()))
-                print(f"    📂 Fallback путь: {qml_url.toString()}")
-                
-                self._qquick_widget.setSource(qml_url)
-                
-                if self._qquick_widget.status() == QQuickWidget.Status.Error:
-                    errors = self._qquick_widget.errors()
-                    error_msg = "\n".join(str(e) for e in errors)
-                    raise RuntimeError(f"Ошибки fallback QML:\n{error_msg}")
-                
-                self._qml_root_object = self._qquick_widget.rootObject()
-                if not self._qml_root_object:
-                    raise RuntimeError("Не удалось получить корневой объект fallback QML")
-                
-                print(f"    [FALLBACK] ✅ Загружен main.qml как запасной вариант")
-                print(f"    📝 Используется расширенная версия с IBL")
-                
-            except Exception as fallback_error:
-                print(f"    [CRITICAL] Ошибка fallback загрузки: {fallback_error}")
-                import traceback
-                traceback.print_exc()
-                
-                # Создаем заглушку вместо падения приложения
-                fallback = QLabel(
-                    "КРИТИЧЕСКАЯ ОШИБКА ЗАГРУЗКИ 3D СЦЕНЫ\n\n"
-                    f"Основная: {e}\n"
-                    f"Fallback: {fallback_error}\n\n"
-                    "Проверьте файлы assets/qml/main*.qml\n"
-                    f"Режим: {'ПРИНУДИТЕЛЬНЫЙ' if not allow_fallback else 'АВТОМАТИЧЕСКИЙ'}"
-                )
-                fallback.setAlignment(Qt.AlignmentFlag.AlignCenter)
-                fallback.setStyleSheet("background: #1a1a2e; color: #ff6b6b; font-size: 12px; padding: 20px;")
-                self._qquick_widget = fallback
-                print(f"    [WARNING] Использован заглушка-виджет")
-                return
+            fallback = QLabel(
+                "КРИТИЧЕСКАЯ ОШИБКА ЗАГРУЗКИ 3D СЦЕНЫ\n\n"
+                f"Ошибка: {e}\n\n"
+                "Проверьте файл assets/qml/main.qml"
+            )
+            fallback.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            fallback.setStyleSheet("background: #1a1a2e; color: #ff6b6b; font-size: 12px; padding: 20px;")
+            self._qquick_widget = fallback
+            print(f"    [WARNING] Использован заглушка-виджет")
 
     def _setup_legacy_opengl_view(self):
         """Setup legacy OpenGL widget"""
         print("    _setup_legacy_opengl_view: Загрузка legacy QML...")
-        # Use same loader but prefer optimized QML
         self._setup_qml_3d_view()
 
     def _setup_tabs(self):
@@ -1227,8 +1070,9 @@ class MainWindow(QMainWindow):
             else:
                 target[key] = value
 
-    def _set_geometry_properties_fallback(self, geometry_params: Dict[str, Any]):
-        if not self._qml_root_object:
+    @staticmethod
+    def _set_geometry_properties_fallback(geometry_params: Dict[str, Any]):
+        if not geometry_params:
             return
 
         mapping = {
@@ -1249,7 +1093,25 @@ class MainWindow(QMainWindow):
 
         for key, prop in mapping.items():
             if key in geometry_params:
-                self._qml_root_object.setProperty(prop, float(geometry_params[key]))
+                try:
+                    value = float(geometry_params[key])
+                    MainWindow._set_qml_property(prop, value)
+                except Exception as e:
+                    print(f"  ❌ Failed to set {prop}: {e}")
+
+    @staticmethod
+    def _set_qml_property(name: str, value: Any):
+        """Установить QML свойство через rootObject (если доступно)"""
+        if not name or value is None:
+            return
+
+        target = getattr(MainWindow, "_qml_root_object", None)
+        if target is not None:
+            try:
+                target.setProperty(name, value)
+                print(f"   ✅ Set {name} = {value}")
+            except Exception as e:
+                print(f"   ❌ Ошибка установки {name}: {e}")
 
     # ------------------------------------------------------------------
     # Обработчики сигналов панелей

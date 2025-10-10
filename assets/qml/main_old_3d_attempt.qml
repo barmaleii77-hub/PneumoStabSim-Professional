@@ -13,53 +13,53 @@ Item {
         id: view3d
         anchors.fill: parent
         
-        // Темный фон для контраста
+        // РўРµРјРЅС‹Р№ С„РѕРЅ РґР»СЏ РєРѕРЅС‚СЂР°СЃС‚Р°
         environment: SceneEnvironment {
             backgroundMode: SceneEnvironment.Color
-            clearColor: "#1a1a2e"  // Темно-синий
+            clearColor: "#1a1a2e"  // РўРµРјРЅРѕ-СЃРёРЅРёР№
             antialiasingMode: SceneEnvironment.MSAA
             antialiasingQuality: SceneEnvironment.High
         }
         
-        // Камера - смотрит на сферу
+        // РљР°РјРµСЂР° - СЃРјРѕС‚СЂРёС‚ РЅР° СЃС„РµСЂСѓ
         PerspectiveCamera {
             id: camera
-            position: Qt.vector3d(0, 0, 5)  // 5 метров от центра
-            eulerRotation: Qt.vector3d(0, 0, 0)  // Прямо вперед
+            position: Qt.vector3d(0, 0, 5)  // 5 РјРµС‚СЂРѕРІ РѕС‚ С†РµРЅС‚СЂР°
+            eulerRotation: Qt.vector3d(0, 0, 0)  // РџСЂСЏРјРѕ РІРїРµСЂРµРґ
         }
         
-        // Свет - чтобы сферу было видно
+        // РЎРІРµС‚ - С‡С‚РѕР±С‹ СЃС„РµСЂСѓ Р±С‹Р»Рѕ РІРёРґРЅРѕ
         DirectionalLight {
             eulerRotation.x: -30
             eulerRotation.y: 30
             brightness: 1.0
         }
         
-        // ОКРУЖНОСТЬ (3D СФЕРА)
+        // РћРљР РЈР–РќРћРЎРўР¬ (3D РЎР¤Р•Р Рђ)
         Model {
             id: sphere
-            source: "#Sphere"  // Встроенная примитивная сфера
+            source: "#Sphere"  // Р’СЃС‚СЂРѕРµРЅРЅР°СЏ РїСЂРёРјРёС‚РёРІРЅР°СЏ СЃС„РµСЂР°
             
-            // Позиция в центре (0, 0, 0)
+            // РџРѕР·РёС†РёСЏ РІ С†РµРЅС‚СЂРµ (0, 0, 0)
             position: Qt.vector3d(0, 0, 0)
             
-            // Размер - радиус 1 метр
+            // Р Р°Р·РјРµСЂ - СЂР°РґРёСѓСЃ 1 РјРµС‚СЂ
             scale: Qt.vector3d(1, 1, 1)
             
-            // Красный цвет для видимости
+            // РљСЂР°СЃРЅС‹Р№ С†РІРµС‚ РґР»СЏ РІРёРґРёРјРѕСЃС‚Рё
             materials: PrincipledMaterial {
-                baseColor: "#ff4444"  // Ярко-красный
+                baseColor: "#ff4444"  // РЇСЂРєРѕ-РєСЂР°СЃРЅС‹Р№
                 metalness: 0.0
                 roughness: 0.5
             }
             
-            // АНИМАЦИЯ: Вращение вокруг оси Y (вертикально)
+            // РђРќРРњРђР¦РРЇ: Р’СЂР°С‰РµРЅРёРµ РІРѕРєСЂСѓРі РѕСЃРё Y (РІРµСЂС‚РёРєР°Р»СЊРЅРѕ)
             NumberAnimation on eulerRotation.y {
-                from: 0      // Начало: 0 градусов
-                to: 360      // Конец: 360 градусов (полный оборот)
-                duration: 3000  // 3 секунды на оборот
-                loops: Animation.Infinite  // Бесконечное повторение
-                running: true  // Запустить сразу
+                from: 0      // РќР°С‡Р°Р»Рѕ: 0 РіСЂР°РґСѓСЃРѕРІ
+                to: 360      // РљРѕРЅРµС†: 360 РіСЂР°РґСѓСЃРѕРІ (РїРѕР»РЅС‹Р№ РѕР±РѕСЂРѕС‚)
+                duration: 3000  // 3 СЃРµРєСѓРЅРґС‹ РЅР° РѕР±РѕСЂРѕС‚
+                loops: Animation.Infinite  // Р‘РµСЃРєРѕРЅРµС‡РЅРѕРµ РїРѕРІС‚РѕСЂРµРЅРёРµ
+                running: true  // Р—Р°РїСѓСЃС‚РёС‚СЊ СЃСЂР°Р·Сѓ
             }
         }
     }
@@ -82,14 +82,14 @@ Item {
             spacing: 5
             
             Text {
-                text: "Простая вращающаяся окружность"
+                text: "РџСЂРѕСЃС‚Р°СЏ РІСЂР°С‰Р°СЋС‰Р°СЏСЃСЏ РѕРєСЂСѓР¶РЅРѕСЃС‚СЊ"
                 color: "#ffffff"
                 font.pixelSize: 16
                 font.bold: true
             }
             
             Text {
-                text: "3D сфера с анимацией"
+                text: "3D СЃС„РµСЂР° СЃ Р°РЅРёРјР°С†РёРµР№"
                 color: "#aaaaaa"
                 font.pixelSize: 12
             }
