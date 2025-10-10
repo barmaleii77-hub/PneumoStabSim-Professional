@@ -1,10 +1,10 @@
 {
-  "timestamp": "2025-10-10 17:19:42",
-  "total_tests": 42,
-  "passed": 34,
-  "failed": 8,
-  "success_rate": 80.95238095238095,
-  "total_duration": 0.5743741989135742,
+  "timestamp": "2025-10-10 14:25:10",
+  "total_tests": 52,
+  "passed": 48,
+  "failed": 4,
+  "success_rate": 92.3076923076923,
+  "total_duration": 0.649893045425415,
   "results": [
     {
       "name": "Python Version",
@@ -46,12 +46,12 @@
       "name": "Python Environment",
       "success": true,
       "message": "All dependencies OK",
-      "duration": 0.10334467887878418
+      "duration": 0.1242210865020752
     },
     {
       "name": "File app.py",
       "success": true,
-      "message": "Size: 15249",
+      "message": "Size: 14964",
       "duration": 0.0
     },
     {
@@ -63,13 +63,13 @@
     {
       "name": "File src/ui/main_window.py",
       "success": true,
-      "message": "Size: 77986",
+      "message": "Size: 72758",
       "duration": 0.0
     },
     {
       "name": "File src/ui/panels/panel_geometry.py",
       "success": true,
-      "message": "Size: 40396",
+      "message": "Size: 38127",
       "duration": 0.0
     },
     {
@@ -81,13 +81,13 @@
     {
       "name": "File assets/qml/main_optimized.qml",
       "success": true,
-      "message": "Size: 57218",
+      "message": "Size: 56314",
       "duration": 0.0
     },
     {
       "name": "File assets/qml/components/IblProbeLoader.qml",
-      "success": false,
-      "message": "Missing",
+      "success": true,
+      "message": "Size: 1735",
       "duration": 0.0
     },
     {
@@ -116,9 +116,9 @@
     },
     {
       "name": "File Structure",
-      "success": false,
-      "message": "Missing critical files: ['assets/qml/components/IblProbeLoader.qml']",
-      "duration": 0.0014300346374511719
+      "success": true,
+      "message": "All critical files present",
+      "duration": 0.0034492015838623047
     },
     {
       "name": "QML assets/qml/main_optimized.qml",
@@ -128,15 +128,15 @@
     },
     {
       "name": "QML assets/qml/components/IblProbeLoader.qml",
-      "success": false,
-      "message": "File not found",
+      "success": true,
+      "message": "Syntax OK",
       "duration": 0.0
     },
     {
       "name": "QML Syntax",
       "success": true,
       "message": "All QML files valid",
-      "duration": 0.0004286766052246094
+      "duration": 0.0008184909820556641
     },
     {
       "name": "Import src.common",
@@ -166,7 +166,7 @@
       "name": "Python Imports",
       "success": true,
       "message": "All modules imported successfully",
-      "duration": 0.45064401626586914
+      "duration": 0.49629855155944824
     },
     {
       "name": "Qt Imports",
@@ -190,7 +190,7 @@
       "name": "Qt Integration",
       "success": true,
       "message": "Qt components working",
-      "duration": 0.014170646667480469
+      "duration": 0.01816868782043457
     },
     {
       "name": "Graphics Config",
@@ -220,13 +220,73 @@
       "name": "Graphics Panel Config",
       "success": true,
       "message": "Configuration valid",
-      "duration": 0.0002288818359375
+      "duration": 0.0004210472106933594
     },
     {
-      "name": "IBL Loader File",
-      "success": false,
-      "message": "IblProbeLoader.qml not found",
+      "name": "IBL primarySource",
+      "success": true,
+      "message": "Present",
       "duration": 0.0
+    },
+    {
+      "name": "IBL fallbackSource",
+      "success": true,
+      "message": "Present",
+      "duration": 0.0
+    },
+    {
+      "name": "IBL ready property",
+      "success": true,
+      "message": "Present",
+      "duration": 0.0
+    },
+    {
+      "name": "IBL Texture component",
+      "success": true,
+      "message": "Present",
+      "duration": 0.0
+    },
+    {
+      "name": "IBL Error handling",
+      "success": true,
+      "message": "Present",
+      "duration": 0.0
+    },
+    {
+      "name": "HDR File assets/hdr/studio.hdr",
+      "success": true,
+      "message": "Size: 6.0MB",
+      "duration": 0.0
+    },
+    {
+      "name": "HDR File assets/hdr/README.md",
+      "success": true,
+      "message": "Documentation present",
+      "duration": 0.0
+    },
+    {
+      "name": "Main QML IblProbeLoader import",
+      "success": true,
+      "message": "Present",
+      "duration": 0.0
+    },
+    {
+      "name": "Main QML iblTextureReady property",
+      "success": true,
+      "message": "Present",
+      "duration": 0.0
+    },
+    {
+      "name": "Main QML lightProbe binding",
+      "success": true,
+      "message": "Present",
+      "duration": 0.0
+    },
+    {
+      "name": "IBL System",
+      "success": true,
+      "message": "IBL system configured with HDR assets",
+      "duration": 0.002065896987915039
     },
     {
       "name": "App Module Import",
