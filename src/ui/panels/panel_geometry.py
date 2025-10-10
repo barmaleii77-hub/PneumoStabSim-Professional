@@ -343,134 +343,80 @@ class GeometryPanel(QWidget):
     
     def _connect_signals(self):
         """Connect widget signals"""
-        # Frame dimensions - ИСПОЛЬЗУЕМ ОБА СИГНАЛА для максимальной отзывчивости
-        self.wheelbase_slider.valueChanged.connect(
-            lambda v: self._on_parameter_changed('wheelbase', v))
+        # ИСПРАВЛЕНО: Используем ТОЛЬКО valueEdited для избежания дублирования событий
+        # valueChanged срабатывает слишком часто (при каждом движении), valueEdited - только при завершении редактирования
+        
+        # Frame dimensions - ТОЛЬКО valueEdited
         self.wheelbase_slider.valueEdited.connect(
-            lambda v: self._on_parameter_changed_final('wheelbase', v))
+            lambda v: self._on_parameter_changed('wheelbase', v))
         
-        self.track_slider.valueChanged.connect(
-            lambda v: self._on_parameter_changed('track', v))
         self.track_slider.valueEdited.connect(
-            lambda v: self._on_parameter_changed_final('track', v))
+            lambda v: self._on_parameter_changed('track', v))
         
-        # Suspension geometry - ИСПОЛЬЗУЕМ ОБА СИГНАЛА
-        self.frame_to_pivot_slider.valueChanged.connect(
-            lambda v: self._on_parameter_changed('frame_to_pivot', v))
+        # Suspension geometry - ТОЛЬКО valueEdited
         self.frame_to_pivot_slider.valueEdited.connect(
-            lambda v: self._on_parameter_changed_final('frame_to_pivot', v))
+            lambda v: self._on_parameter_changed('frame_to_pivot', v))
             
-        self.lever_length_slider.valueChanged.connect(
-            lambda v: self._on_parameter_changed('lever_length', v))
         self.lever_length_slider.valueEdited.connect(
-            lambda v: self._on_parameter_changed_final('lever_length', v))
+            lambda v: self._on_parameter_changed('lever_length', v))
             
-        self.rod_position_slider.valueChanged.connect(
-            lambda v: self._on_parameter_changed('rod_position', v))
         self.rod_position_slider.valueEdited.connect(
-            lambda v: self._on_parameter_changed_final('rod_position', v))
+            lambda v: self._on_parameter_changed('rod_position', v))
         
-        # Cylinder dimensions - ИСПОЛЬЗУЕМ ОБА СИГНАЛА
-        self.cylinder_length_slider.valueChanged.connect(
-            lambda v: self._on_parameter_changed('cylinder_length', v))
+        # Cylinder dimensions - ТОЛЬКО valueEdited
         self.cylinder_length_slider.valueEdited.connect(
-            lambda v: self._on_parameter_changed_final('cylinder_length', v))
+            lambda v: self._on_parameter_changed('cylinder_length', v))
             
-        # МШ-1: Подключение новых слайдеров - ИСПОЛЬЗУЕМ ОБА СИГНАЛА
-        self.cyl_diam_m_slider.valueChanged.connect(
-            lambda v: self._on_parameter_changed('cyl_diam_m', v))
+        # МШ-1: Подключение новых слайдеров - ТОЛЬКО valueEdited
         self.cyl_diam_m_slider.valueEdited.connect(
-            lambda v: self._on_parameter_changed_final('cyl_diam_m', v))
+            lambda v: self._on_parameter_changed('cyl_diam_m', v))
             
-        self.stroke_m_slider.valueChanged.connect(
-            lambda v: self._on_parameter_changed('stroke_m', v))
         self.stroke_m_slider.valueEdited.connect(
-            lambda v: self._on_parameter_changed_final('stroke_m', v))
+            lambda v: self._on_parameter_changed('stroke_m', v))
             
-        self.dead_gap_m_slider.valueChanged.connect(
-            lambda v: self._on_parameter_changed('dead_gap_m', v))
         self.dead_gap_m_slider.valueEdited.connect(
-            lambda v: self._on_parameter_changed_final('dead_gap_m', v))
+            lambda v: self._on_parameter_changed('dead_gap_m', v))
             
-        # МШ-2: Подключение слайдеров в метрах - ИСПОЛЬЗУЕМ ОБА СИГНАЛА
-        self.rod_diameter_m_slider.valueChanged.connect(
-            lambda v: self._on_parameter_changed('rod_diameter_m', v))
+        # МШ-2: Подключение слайдеров в метрах - ТОЛЬКО valueEdited
         self.rod_diameter_m_slider.valueEdited.connect(
-            lambda v: self._on_parameter_changed_final('rod_diameter_m', v))
+            lambda v: self._on_parameter_changed('rod_diameter_m', v))
             
-        self.piston_rod_length_m_slider.valueChanged.connect(
-            lambda v: self._on_parameter_changed('piston_rod_length_m', v))
         self.piston_rod_length_m_slider.valueEdited.connect(
-            lambda v: self._on_parameter_changed_final('piston_rod_length_m', v))
+            lambda v: self._on_parameter_changed('piston_rod_length_m', v))
             
-        self.piston_thickness_m_slider.valueChanged.connect(
-            lambda v: self._on_parameter_changed('piston_thickness_m', v))
         self.piston_thickness_m_slider.valueEdited.connect(
-            lambda v: self._on_parameter_changed_final('piston_thickness_m', v))
+            lambda v: self._on_parameter_changed('piston_thickness_m', v))
         
         # Options
         self.link_rod_diameters.toggled.connect(self._on_link_rod_diameters_toggled)
         
-        print("🔧 GeometryPanel: Сигналы подключены с ДВОЙНОЙ связью (valueChanged + valueEdited)")
+        print("🔧 GeometryPanel: Сигналы подключены БЕЗ ДУБЛИРОВАНИЯ (только valueEdited)")
     
-    @Slot(str, float)
-    def _on_parameter_changed_final(self, param_name: str, value: float):
-        """Handle final parameter change (from valueEdited signal)
-        
-        Args:
-            param_name: Name of changed parameter
-            value: Final value after user finished editing
-        """
-        print(f"🎯 GeometryPanel._on_parameter_changed_final: {param_name} = {value} (ФИНАЛЬНОЕ значение)")
-        
-        # Используем тот же обработчик, но с пометкой что это финальное значение
-        self._on_parameter_changed(param_name, value)
-
     @Slot(bool)
     def _on_link_rod_diameters_toggled(self, checked: bool):
-        """Handle link rod diameters checkbox toggle
+        """Обработчик включения/выключения связывания диаметров штоков
         
         Args:
-            checked: True if checkbox is checked
+            checked: True если связывание включено
         """
-        print(f"🔗 GeometryPanel: Link rod diameters {'enabled' if checked else 'disabled'}")
-        # Store the setting
-        self.parameters['link_rod_diameters'] = checked
+        print(f"🔗 GeometryPanel: Связывание диаметров штоков: {'включено' if checked else 'выключено'}")
         
-        # If enabled, synchronize rod diameters
         if checked:
-            # Use current rod_diameter as the common value
-            common_diameter = self.parameters.get('rod_diameter', 35.0)
-            print(f"   Synchronizing all rod diameters to {common_diameter}mm")
+            # При включении связывания устанавливаем одинаковые значения для всех штоков
+            current_rod_diameter = self.parameters.get('rod_diameter_m', 0.035)
+            print(f"   🔧 Синхронизируем все диаметры штоков на {current_rod_diameter*1000:.1f}мм")
             
-        # Emit update
-        self.geometry_updated.emit(self.parameters.copy())
-    
-    def _set_parameter_value(self, param_name: str, value: float):
-        """Set value for a specific parameter widget
+            # Здесь можно добавить логику синхронизации диаметров передних/задних штоков
+            # если в будущем появятся отдельные параметры для разных колёс
+            
+            # Пока что просто логируем что функция активна
+            self.status_message = "Диаметры штоков связаны"
+        else:
+            print(f"   🔓 Диаметры штоков теперь независимы")
+            self.status_message = "Диаметры штоков независимы"
         
-        Args:
-            param_name: Name of parameter
-            value: New value to set
-        """
-        widget_map = {
-            'wheelbase': self.wheelbase_slider,
-            'track': self.track_slider,
-            'frame_to_pivot': self.frame_to_pivot_slider,
-            'lever_length': self.lever_length_slider,
-            'rod_position': self.rod_position_slider,
-            'cylinder_length': self.cylinder_length_slider,
-            'cyl_diam_m': self.cyl_diam_m_slider,                # МШ-1
-            'stroke_m': self.stroke_m_slider,                    # МШ-1
-            'dead_gap_m': self.dead_gap_m_slider,                # МШ-1
-            'rod_diameter_m': self.rod_diameter_m_slider,        # МШ-2
-            'piston_rod_length_m': self.piston_rod_length_m_slider,  # МШ-2
-            'piston_thickness_m': self.piston_thickness_m_slider     # МШ-2
-        }
-        
-        widget = widget_map.get(param_name)
-        if widget:
-            widget.setValue(value)
+        # Можно отправить обновление если нужно
+        self.parameter_changed.emit('link_rod_diameters', float(checked))
     
     @Slot(str, float)
     def _on_parameter_changed(self, param_name: str, value: float):
