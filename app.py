@@ -222,6 +222,7 @@ Examples:
   python app.py --legacy           # Use legacy OpenGL
   python app.py --debug            # Debug mode
   python app.py --safe-mode        # Safe mode (minimal features)
+  python app.py --force-optimized  # Force main_optimized.qml loading
         """
     )
     
@@ -230,6 +231,7 @@ Examples:
     parser.add_argument('--legacy', action='store_true', help='Use legacy OpenGL')
     parser.add_argument('--debug', action='store_true', help='Enable debug messages')
     parser.add_argument('--safe-mode', action='store_true', help='Safe mode (basic features only)')
+    parser.add_argument('--force-optimized', action='store_true', help='Force load main_optimized.qml')
     
     return parser.parse_args()
 
@@ -249,6 +251,11 @@ def main():
         use_qml_3d = USE_QML_3D_SCHEMA and not args.legacy and not args.safe_mode
         backend_name = "Qt Quick 3D (U-Frame PBR)" if use_qml_3d else "Legacy OpenGL"
         
+        # Determine QML version preference
+        force_optimized = args.force_optimized
+        if force_optimized:
+            backend_name += " (OPTIMIZED FORCED)"
+        
         print("=" * 60)
         print("PNEUMOSTABSIM STARTING (Enhanced Terminal Support)")
         print("=" * 60)
@@ -263,6 +270,8 @@ def main():
             print("🔓 NON-BLOCKING MODE: Terminal won't be blocked")
         elif args.test_mode:
             print("🧪 TEST MODE: Auto-close after 5 seconds")
+        elif args.force_optimized:
+            print("🚀 FORCE OPTIMIZED: Using main_optimized.qml mandatorily")
         else:
             print("🔒 BLOCKING MODE: Terminal will be blocked until app closes")
         
@@ -297,8 +306,8 @@ def main():
         
         print(f"Step 4: Creating MainWindow (backend: {backend_name})...")
         
-        # Create and show main window (removed safe_mode parameter)
-        window = MainWindow(use_qml_3d=use_qml_3d)
+        # Create and show main window with force_optimized flag
+        window = MainWindow(use_qml_3d=use_qml_3d, force_optimized=force_optimized)
         window_instance = window
         
         print(f"Step 5: MainWindow created - Size: {window.size().width()}x{window.size().height()}")
