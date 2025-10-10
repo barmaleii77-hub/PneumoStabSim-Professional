@@ -4,7 +4,7 @@ Handles both incompressible and compressible flow regimes
 """
 
 import math
-from ..common.units import R_AIR, GAMMA_AIR
+from src.common.units import R_AIR, GAMMA_AIR
 
 
 def rho(p: float, T: float) -> float:
@@ -207,7 +207,7 @@ def mass_flow_unlimited(p_tank: float, T_tank: float) -> float:
     Returns:
         Mass flow rate (kg/s)
     """
-    from ..common.units import PA_ATM
+    from src.common.units import PA_ATM
     
     if p_tank <= PA_ATM or T_tank <= 0:
         return 0.0

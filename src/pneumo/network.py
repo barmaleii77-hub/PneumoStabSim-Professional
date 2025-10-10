@@ -11,7 +11,7 @@ from .enums import Line, Wheel, Port, CheckValveKind, ReliefValveKind, ThermoMod
 from .gas_state import LineGasState, TankGasState, iso_update, adiabatic_update, p_from_mTV
 from .flow import mass_flow_orifice, mass_flow_unlimited
 from .system import PneumaticSystem
-from ..common.units import PA_ATM, T_AMBIENT, R_AIR
+from src.common.units import PA_ATM, T_AMBIENT, R_AIR
 
 
 @dataclass

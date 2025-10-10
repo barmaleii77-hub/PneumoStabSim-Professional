@@ -17,8 +17,8 @@ import numpy as np
 from pathlib import Path
 from typing import Optional, Dict
 
-from .charts import ChartWidget
-from .panels import GeometryPanel, PneumoPanel, ModesPanel, RoadPanel, GraphicsPanel
+from src.ui.charts import ChartWidget
+from src.ui.panels import GeometryPanel, PneumoPanel, ModesPanel, RoadPanel, GraphicsPanel
 from ..runtime import SimulationManager, StateSnapshot
 
 
@@ -76,7 +76,7 @@ class MainWindow(QMainWindow):
         self.is_simulation_running = False
 
         # Geometry converter for Python↔QML integration
-        from .geometry_bridge import create_geometry_converter
+        from src.ui.geometry_bridge import create_geometry_converter
         self.geometry_converter = create_geometry_converter()
         print("✅ GeometryBridge создан для интеграции Python↔QML")
 
@@ -141,7 +141,7 @@ class MainWindow(QMainWindow):
         print("✅ MainWindow.__init__() завершён")
 
     # ------------------------------------------------------------------
-    # UI Construction - НОВАЯ СТРУКТУРНА!
+    # UI Construction - НОВАЯ СТРУКТРАА!
     # ------------------------------------------------------------------
     def _setup_central(self):
         """Создать центральный вид с горизонтальным и вертикальным сплиттерами
@@ -189,22 +189,26 @@ class MainWindow(QMainWindow):
 
     def _setup_qml_3d_view(self):
         """Setup Qt Quick 3D full suspension scene"""
-        print("    [QML] Загрузка main.qml...")
+        print("    [QML] Загрузка QML файла...")
         
         try:
             self._qquick_widget = QQuickWidget(self)
             self._qquick_widget.setResizeMode(QQuickWidget.ResizeMode.SizeRootObjectToView)
             
-            # Use optimized QML by default
+            # ✅ ИСПРАВЛЕНО: Используем оптимизированную версию вместо принудительной загрузки main.qml
             qml_path = Path("assets/qml/main_optimized.qml")
+            
+            # Fallback к оригинальному main.qml если оптимизированная версия недоступна
             if not qml_path.exists():
-                # Fallback to original main.qml if optimized not present
+                print(f"    ⚠️ Оптимизированная версия не найдена, переключаемся на main.qml")
                 qml_path = Path("assets/qml/main.qml")
+            
             if not qml_path.exists():
                 raise FileNotFoundException(f"QML файл не найден: {qml_path.absolute()}")
             
             qml_url = QUrl.fromLocalFile(str(qml_path.absolute()))
-            print(f"    Загрузка QML: {qml_url.toString()}")
+            print(f"    🔍 ДИАГНОСТИКА: Загружается QML файл: {qml_path.name}")
+            print(f"    📂 Полный путь: {qml_url.toString()}")
             
             self._qquick_widget.setSource(qml_url)
             
@@ -217,10 +221,29 @@ class MainWindow(QMainWindow):
             if not self._qml_root_object:
                 raise RuntimeError("Не удалось получить корневой объект QML")
             
-            print("    [OK] QML загружен успешно")
+            print(f"    [OK] ✅ QML файл '{qml_path.name}' загружен успешно")
+            
+            # Проверяем доступные свойства для диагностики
+            critical_properties = ['glassIOR', 'userFrameLength', 'bloomEnabled', 'metalRoughness']
+            print(f"    🔍 ДИАГНОСТИКА критических свойств:")
+            for prop in critical_properties:
+                if hasattr(self._qml_root_object, prop):
+                    value = self._qml_root_object.property(prop)
+                    print(f"    ✅ {prop}: {value}")
+                else:
+                    print(f"    ❌ {prop}: НЕ НАЙДЕНО")
+            
+            # Проверяем функции обновления
+            update_functions = ['updateGeometry', 'updateMaterials', 'updateLighting', 'updateEffects', 'applyBatchedUpdates']
+            print(f"    🔍 ДИАГНОСТИКА функций обновления:")
+            for func_name in update_functions:
+                if hasattr(self._qml_root_object, func_name):
+                    print(f"    ✅ Функция {func_name}() доступна")
+                else:
+                    print(f"    ❌ Функция {func_name}() не найдена!")
             
         except Exception as e:
-            print(f"    [ERROR] Ошибка загрузки main.qml: {e}")
+            print(f"    [ERROR] Ошибка загрузки QML: {e}")
             import traceback
             traceback.print_exc()
             
@@ -259,7 +282,7 @@ class MainWindow(QMainWindow):
         self.tab_widget.setMinimumWidth(300)  # Reduced minimum width
         self.tab_widget.setMaximumWidth(600)  # Increased maximum width for resizing
         
-        # Tab 1: Геометрия (Geometry)
+        # Tab 1: ГеOMETРИЯ (Geometry)
         self.geometry_panel = GeometryPanel(self)
         scroll_geometry = QScrollArea()
         scroll_geometry.setWidgetResizable(True)
@@ -268,7 +291,7 @@ class MainWindow(QMainWindow):
         self.tab_widget.addTab(scroll_geometry, "Геометрия")
         print("      ✅ Вкладка 'Геометрия' создана")
         
-        # Tab 2: Пневмосистема (Pneumatics)
+        # Tab 2: ПНЕВМОСИСТЕМА (Pneumatics)
         self.pneumo_panel = PneumoPanel(self)
         scroll_pneumo = QScrollArea()
         scroll_pneumo.setWidgetResizable(True)
@@ -277,7 +300,7 @@ class MainWindow(QMainWindow):
         self.tab_widget.addTab(scroll_pneumo, "Пневмосистема")
         print("      ✅ Вкладка 'Пневмосистема' создана")
         
-        # Tab 3: Режимы стабилизатора (Modes)
+        # Tab 3: РЕЖИМЫ СТАБИЛИЗАТОРА (Modes)
         self.modes_panel = ModesPanel(self)
         scroll_modes = QScrollArea()
         scroll_modes.setWidgetResizable(True)
@@ -286,13 +309,13 @@ class MainWindow(QMainWindow):
         self.tab_widget.addTab(scroll_modes, "Режимы стабилизатора")
         print("      ✅ Вкладка 'Режимы стабилизатора' создана")
         
-        # Tab 4: Графика и визуализация (объединенная панель)
+        # Tab 4: ГРАФИКА И ВИЗУАЛИЗАЦИЯ (объединенная панель)
         self.graphics_panel = GraphicsPanel(self)
         # Не помещаем в scroll area, так как панель уже имеет собственные вкладки с прокруткой
         self.tab_widget.addTab(self.graphics_panel, "🎨 Графика")
         print("      ✅ Вкладка 'Графика и визуализация' создана")
         
-        # Tab 5: Динамика движения (Road/Dynamics - stub, NO CSV loading!)
+        # Tab 5: ДИНАМИКА ДВИЖЕНИЯ (Road/Dynamics - stub, NO CSV loading!)
         dynamics_stub = QWidget()
         dynamics_layout = QVBoxLayout(dynamics_stub)
         dynamics_label = QLabel(
@@ -674,344 +697,7 @@ class MainWindow(QMainWindow):
             self.status_bar.showMessage(f"Ошибка: {command}")
             import traceback
             traceback.print_exc()
-
-    @Slot(dict)
-    def _on_animation_changed(self, animation_params: dict):
-        """Обработка изменения параметров анимации от ModesPanel
-        
-        Args:
-            animation_params: Dictionary with animation parameters:
-                - amplitude: амплитуда колебаний (м)
-                - frequency: частота (Гц)
-                - phase: глобальная фаза (градусы)
-                - lf_phase, rf_phase, lr_phase, rr_phase: фазы для каждого колеса (градусы)
-        """
-        print(f"═══════════════════════════════════════════════")
-        print(f"🎬 MainWindow: Параметры анимации изменены!")
-        print(f"   Получено параметров: {animation_params}")
-        print(f"═══════════════════════════════════════════════")
-        
-        self.logger.info(f"Animation changed: {animation_params}")
-        
-        # Обновляем параметры анимации в QML сцене
-        if self._qml_root_object:
-            # Batch animation parameters to send in a single flush
-            if self._qml_root_object:
-                # Convert amplitude meters -> degrees if present
-                if 'amplitude' in animation_params:
-                    animation_params = dict(animation_params)  # copy
-                    amplitude_m = animation_params['amplitude']
-                    animation_params['amplitude_deg'] = amplitude_m * 100
-                self._queue_qml_update('animation', animation_params)
-                self.status_bar.showMessage("Параметры анимации запланированы")
-                print(f"   ✅ Анимация поставлена в очередь (batch)")
-            else:
-                print(f"═══════════════════════════════════════════════")
-                print(f"❌ MainWindow: QML root object отсутствует!")
-                print(f"   Не можем обновить параметры анимации")
-                print(f"═══════════════════════════════════════════════")
     
-    # ------------------------------------------------------------------
-    def _queue_qml_update(self, key: str, params: dict):
-        """Add or merge an update into the batch queue and schedule a flush."""
-        if not isinstance(params, dict):
-            return
-        existing = self._qml_update_queue.get(key)
-        if existing:
-            # Shallow merge - newer keys overwrite older
-            existing.update(params)
-        else:
-            self._qml_update_queue[key] = dict(params)
-        # Schedule flush on next event loop iteration
-        if not self._qml_flush_timer.isActive():
-            self._qml_flush_timer.start(0)
-
-    def _flush_qml_updates(self):
-        """Flush queued updates to QML in a single batch where possible."""
-        if not self._qml_root_object or not self._qml_update_queue:
-            self._qml_update_queue.clear()
-            return
-
-        batched = dict(self._qml_update_queue)
-        self._qml_update_queue.clear()
-
-        try:
-            # Prefer single batched method if provided by QML
-            if hasattr(self._qml_root_object, 'applyBatchedUpdates'):
-                self._qml_root_object.applyBatchedUpdates(batched)
-                print("   ✅ Batched updates applied via applyBatchedUpdates()")
-                return
-
-            # Otherwise, call existing updateX methods once per category
-            if 'lighting' in batched and hasattr(self._qml_root_object, 'updateLighting'):
-                self._qml_root_object.updateLighting(batched['lighting'])
-            if 'environment' in batched and hasattr(self._qml_root_object, 'updateEnvironment'):
-                self._qml_root_object.updateEnvironment(batched['environment'])
-            if 'quality' in batched and hasattr(self._qml_root_object, 'updateQuality'):
-                self._qml_root_object.updateQuality(batched['quality'])
-            if 'preset' in batched and hasattr(self._qml_root_object, 'applyPreset'):
-                self._qml_root_object.applyPreset(batched['preset'].get('name'))
-            if 'material' in batched and hasattr(self._qml_root_object, 'updateMaterials'):
-                self._qml_root_object.updateMaterials(batched['material'])
-            if 'camera' in batched and hasattr(self._qml_root_object, 'updateCamera'):
-                self._qml_root_object.updateCamera(batched['camera'])
-            if 'effects' in batched and hasattr(self._qml_root_object, 'updateEffects'):
-                self._qml_root_object.updateEffects(batched['effects'])
-            if 'geometry' in batched and hasattr(self._qml_root_object, 'updateGeometry'):
-                self._qml_root_object.updateGeometry(batched['geometry'])
-            if 'animation' in batched and hasattr(self._qml_root_object, 'updateAnimation'):
-                self._qml_root_object.updateAnimation(batched['animation'])
-
-            # Fallback: set properties directly if specific updates not available
-            for k, v in batched.items():
-                if k in ('control', 'reset') and isinstance(v, dict):
-                    for prop, val in v.items():
-                        try:
-                            self._qml_root_object.setProperty(prop, val)
-                        except Exception:
-                            pass
-
-            print("   ✅ Batched updates flushed to QML")
-        except Exception as e:
-            print(f"⚠️ Ошибка при применении batched updates: {e}")
-            self.logger.error(f"Batched QML update failed: {e}")
-
-    # =================================================================
-    # UI Setup Methods (Menu, Toolbar, Status Bar)
-    # =================================================================
-    
-    def _setup_menus(self):
-        """Создать меню / Create menu bar"""
-        print("  ✅ Меню настроено (заглушка)")
-        pass  # TODO: Implement menu bar
-    
-    def _setup_toolbar(self):
-        """Создать панель инструментов / Create toolbar"""
-        print("  ✅ Панель инструментов настроена (заглушка)")
-        pass  # TODO: Implement toolbar
-    
-    def _setup_status_bar(self):
-        """Создать строку состояния / Create status bar"""
-        from PySide6.QtWidgets import QStatusBar, QLabel
-        
-        self.status_bar = QStatusBar()
-        self.setStatusBar(self.status_bar)
-        
-        # Create status bar widgets
-        self.sim_time_label = QLabel("Время симуляции: 0.000с")
-        self.sim_time_label.setMinimumWidth(180)
-        
-        self.step_count_label = QLabel("Шагов: 0")
-        self.step_count_label.setMinimumWidth(80)
-        
-        self.fps_label = QLabel("FPS: 0")
-        self.fps_label.setMinimumWidth(80)
-        
-        for w in [self.sim_time_label, self.step_count_label, self.fps_label]:
-            self.status_bar.addPermanentWidget(w)
-        
-        self.status_bar.showMessage("Готов")
-        self.status_bar.setMaximumHeight(30)
-        
-        print("  ✅ Строка состояния настроена")
-
-    def _connect_simulation_signals(self):
-        """Подключить сигналы симуляции / Connect simulation signals"""
-        print("  ✅ Сигналы подключены (заглушка)")
-        pass  # TODO: Connect simulation manager signals
-        
-    def _update_render(self):
-        """Обновить рендеринг / Update rendering (called by timer)"""
-        # Simple update - just process events
-        if hasattr(self, 'current_snapshot') and self.current_snapshot and hasattr(self, 'sim_time_label'):
-            self.sim_time_label.setText(f"Время симуляции: {self.current_snapshot.simulation_time:.3f}с")
-            self.step_count_label.setText(f"Шагов: {self.current_snapshot.step_number}")
-            
-            if self.current_snapshot.aggregates.physics_step_time > 0:
-                fps = 1.0 / self.current_snapshot.aggregates.physics_step_time
-                self.fps_label.setText(f"FPS: {fps:.0f}")
-
-        # ✅ ИСПРАВЛЕНО: Убрана старая дефолтная анимация!
-        # Старый код, который конфликтовал с новой анимацией:
-        # if self._qml_root_object and self.is_simulation_running:
-        #     # Старая синусоидальная анимация удалена
-        #     pass
-        
-        # Теперь анимация полностью управляется из QML через isRunning и userFrequency/userAmplitude
-        # Никаких прямых установок углов из Python больше нет!
-
-    # =================================================================
-    # Graphics Panel Signal Handlers - ДОПОЛНИТЕЛЬНЫЕ МЕТОДЫ
-    # =================================================================
-    
-    @Slot(dict)
-    def _on_material_changed(self, material_params: dict):
-        """Обработка изменения параметров материалов от GraphicsPanel
-        
-        Args:
-            material_params: Dictionary with material parameters
-        """
-        print(f"═══════════════════════════════════════════════")
-        print(f"🏗️ MainWindow: Параметры материалов изменены!")
-        print(f"   Получено параметров: {material_params}")
-        print(f"═══════════════════════════════════════════════")
-        
-        self.logger.info(f"Materials changed: {material_params}")
-        
-        # Обновляем материалы в QML сцене
-        if self._qml_root_object:
-            try:
-                # ИСПРАВЛЕНО: Используем новую функцию updateMaterials
-                if hasattr(self._qml_root_object, 'updateMaterials'):
-                    self._qml_root_object.updateMaterials(material_params)
-                    print(f"   ✅ Материалы переданы в QML через updateMaterials()")
-                else:
-                    # Fallback: прямая установка свойств
-                    if 'metal' in material_params:
-                        metal = material_params['metal']
-                        if 'roughness' in metal:
-                            self._qml_root_object.setProperty("metalRoughness", metal['roughness'])
-                        if 'metalness' in metal:
-                            self._qml_root_object.setProperty("metalMetalness", metal['metalness'])
-                        if 'clearcoat' in metal:
-                            self._qml_root_object.setProperty("metalClearcoat", metal['clearcoat'])
-                    
-                    if 'glass' in material_params:
-                        glass = material_params['glass']
-                        if 'opacity' in glass:
-                            self._qml_root_object.setProperty("glassOpacity", glass['opacity'])
-                        if 'roughness' in glass:
-                            self._qml_root_object.setProperty("glassRoughness", glass['roughness'])
-                    
-                    if 'frame' in material_params:
-                        frame = material_params['frame']
-                        if 'metalness' in frame:
-                            self._qml_root_object.setProperty("frameMetalness", frame['metalness'])
-                        if 'roughness' in frame:
-                            self._qml_root_object.setProperty("frameRoughness", frame['roughness'])
-                    
-                    print(f"   ✅ Материалы обновлены через setProperty() (fallback)")
-                
-                self.status_bar.showMessage("Материалы обновлены")
-                print(f"📊 Статус: Материалы успешно обновлены в QML")
-                print(f"═══════════════════════════════════════════════")
-                
-            except Exception as e:
-                print(f"═══════════════════════════════════════════════")
-                print(f"❌ ОШИБКА обновления материалов в QML!")
-                print(f"   Error: {e}")
-                print(f"═══════════════════════════════════════════════")
-                self.logger.error(f"QML material update failed: {e}")
-        else:
-            print(f"❌ QML root object отсутствует!")
-    
-    @Slot(dict)
-    def _on_camera_changed(self, camera_params: dict):
-        """Обработка изменения параметров камеры от GraphicsPanel
-        
-        Args:
-            camera_params: Dictionary with camera parameters
-        """
-        print(f"📷 MainWindow: Параметры камеры изменены: {camera_params}")
-        self.logger.info(f"Camera changed: {camera_params}")
-        
-        # Обновляем настройки камеры в QML сцене
-        if self._qml_root_object:
-            try:
-                # ИСПРАВЛЕНО: Используем новую функцию updateCamera
-                if hasattr(self._qml_root_object, 'updateCamera'):
-                    self._qml_root_object.updateCamera(camera_params)
-                    print(f"   ✅ Настройки камеры переданы в QML через updateCamera()")
-                else:
-                    # Fallback: прямая установка свойств
-                    if 'fov' in camera_params:
-                        self._qml_root_object.setProperty("cameraFov", camera_params['fov'])
-                        print(f"   ✅ Поле зрения: {camera_params['fov']}°")
-                    
-                    if 'near' in camera_params:
-                        self._qml_root_object.setProperty("cameraNear", camera_params['near'])
-                        print(f"   ✅ Ближняя плоскость: {camera_params['near']}мм")
-                    
-                    if 'far' in camera_params:
-                        self._qml_root_object.setProperty("cameraFar", camera_params['far'])
-                        print(f"   ✅ Дальняя плоскость: {camera_params['far']}мм")
-                    
-                    if 'speed' in camera_params:
-                        self._qml_root_object.setProperty("cameraSpeed", camera_params['speed'])
-                        print(f"   ✅ Скорость камеры: {camera_params['speed']}")
-                    
-                    if 'auto_rotate' in camera_params:
-                        self._qml_root_object.setProperty("autoRotate", camera_params['auto_rotate'])
-                        print(f"   ✅ Автоматическое вращение: {'включено' if camera_params['auto_rotate'] else 'отключено'}")
-                    
-                    if 'auto_rotate_speed' in camera_params:
-                        self._qml_root_object.setProperty("autoRotateSpeed", camera_params['auto_rotate_speed'])
-                        print(f"   ✅ Скорость автовращения: {camera_params['auto_rotate_speed']}")
-                
-                self.status_bar.showMessage("Настройки камеры обновлены")
-                
-            except Exception as e:
-                print(f"❌ ОШИБКА обновления настроек камеры в QML: {e}")
-                self.logger.error(f"QML camera update failed: {e}")
-        else:
-            print(f"❌ QML root object отсутствует!")
-    
-    @Slot(dict)
-    def _on_effects_changed(self, effects_params: dict):
-        """Обработка изменения параметров эффектов от GraphicsPanel
-        
-        Args:
-            effects_params: Dictionary with effects parameters
-        """
-        print(f"✨ MainWindow: Параметры эффектов изменены: {effects_params}")
-        self.logger.info(f"Effects changed: {effects_params}")
-        
-        # Обновляем эффекты в QML сцене
-        if self._qml_root_object:
-            try:
-                # ИСПРАВЛЕНО: Используем новую функцию updateEffects
-                if hasattr(self._qml_root_object, 'updateEffects'):
-                    self._qml_root_object.updateEffects(effects_params)
-                    print(f"   ✅ Эффекты переданы в QML через updateEffects()")
-                else:
-                    # Fallback: прямая установка свойств
-                    if 'bloom_enabled' in effects_params:
-                        self._qml_root_object.setProperty("bloomEnabled", effects_params['bloom_enabled'])
-                        print(f"   ✅ Bloom: {'включен' if effects_params['bloom_enabled'] else 'отключен'}")
-                    
-                    if 'bloom_intensity' in effects_params:
-                        self._qml_root_object.setProperty("bloomIntensity", effects_params['bloom_intensity'])
-                        print(f"   ✅ Интенсивность Bloom: {effects_params['bloom_intensity']}")
-                    
-                    if 'ssao_enabled' in effects_params:
-                        self._qml_root_object.setProperty("ssaoEnabled", effects_params['ssao_enabled'])
-                        print(f"   ✅ SSAO: {'включен' if effects_params['ssao_enabled'] else 'отключен'}")
-                    
-                    if 'ssao_intensity' in effects_params:
-                        self._qml_root_object.setProperty("ssaoIntensity", effects_params['ssao_intensity'])
-                        print(f"   ✅ Интенсивность SSAO: {effects_params['ssao_intensity']}")
-                    
-                    if 'motion_blur' in effects_params:
-                        self._qml_root_object.setProperty("motionBlur", effects_params['motion_blur'])
-                        print(f"   ✅ Motion Blur: {'включен' if effects_params['motion_blur'] else 'отключен'}")
-                    
-                    if 'depth_of_field' in effects_params:
-                        self._qml_root_object.setProperty("depthOfField", effects_params['depth_of_field'])
-                        print(f"   ✅ Depth of Field: {'включен' if effects_params['depth_of_field'] else 'отключен'}")
-                
-                self.status_bar.showMessage("Визуальные эффекты обновлены")
-                
-            except Exception as e:
-                print(f"❌ ОШИБКА обновления эффектов в QML: {e}")
-                self.logger.error(f"QML effects update failed: {e}")
-        else:
-            print(f"❌ QML root object отсутствует!")
-    
-    def _restore_settings(self):
-        """Восстановить настройки / Restore settings"""
-        print("  ✅ Настройки восстановлены (заглушка)")
-        pass  # TODO: Restore window settings
-
     @Slot(dict)
     def _on_geometry_changed_qml(self, geometry_params: dict):
         """Обработчик прямого изменения геометрии от панели геометрии
@@ -1092,3 +778,521 @@ class MainWindow(QMainWindow):
             self.status_bar.showMessage(f"Ошибка обновления геометрии: {e}")
         
         print(f"═══════════════════════════════════════════════")
+    @Slot(dict)
+    def _on_material_changed(self, material_params: dict):
+        """Обработка изменения параметров материалов от GraphicsPanel
+        
+        Args:
+            material_params: Dictionary with material parameters
+        """
+        print(f"🏗️ MainWindow: Параметры материалов изменены: {material_params}")
+        self.logger.info(f"Materials changed: {material_params}")
+        
+        # Обновляем материалы в QML сцене
+        if self._qml_root_object:
+            try:
+                # Используем новую функцию updateMaterials
+                if hasattr(self._qml_root_object, 'updateMaterials'):
+                    self._qml_root_object.updateMaterials(material_params)
+                    print(f"   ✅ Материалы переданы в QML через updateMaterials()")
+                else:
+                    # Fallback: прямая установка свойств
+                    if 'metal' in material_params:
+                        metal = material_params['metal']
+                        if 'roughness' in metal:
+                            self._qml_root_object.setProperty("metalRoughness", metal['roughness'])
+                        if 'metalness' in metal:
+                            self._qml_root_object.setProperty("metalMetalness", metal['metalness'])
+                        print(f"   ✅ Металл обновлен")
+                    
+                    if 'glass' in material_params:
+                        glass = material_params['glass']
+                        if 'opacity' in glass:
+                            self._qml_root_object.setProperty("glassOpacity", glass['opacity'])
+                        if 'ior' in glass:
+                            self._qml_root_object.setProperty("glassIOR", glass['ior'])
+                            print(f"   ✅ Коэффициент преломления стекла: {glass['ior']}")
+                        print(f"   ✅ Стекло обновлено")
+                
+                self.status_bar.showMessage("Материалы обновлены")
+                
+            except Exception as e:
+                print(f"❌ ОШИБКА обновления материалов в QML: {e}")
+                self.logger.error(f"QML materials update failed: {e}")
+        else:
+            print(f"❌ QML root object отсутствует!")
+
+    @Slot(dict)
+    def _on_camera_changed(self, camera_params: dict):
+        """Обработка изменения настроек камеры от GraphicsPanel
+        
+        Args:
+            camera_params: Dictionary with camera parameters
+        """
+        print(f"📷 MainWindow: Настройки камеры изменены: {camera_params}")
+        self.logger.info(f"Camera changed: {camera_params}")
+        
+        # Обновляем камеру в QML сцене
+        if self._qml_root_object:
+            try:
+                # Используем новую функцию updateCamera
+                if hasattr(self._qml_root_object, 'updateCamera'):
+                    self._qml_root_object.updateCamera(camera_params)
+                    print(f"   ✅ Камера передана в QML через updateCamera()")
+                else:
+                    # Fallback: прямая установка свойств
+                    if 'fov' in camera_params:
+                        self._qml_root_object.setProperty("cameraFov", camera_params['fov'])
+                        print(f"   ✅ FOV камеры: {camera_params['fov']}")
+                    if 'auto_rotate' in camera_params:
+                        self._qml_root_object.setProperty("autoRotate", camera_params['auto_rotate'])
+                        print(f"   ✅ Автовращение: {camera_params['auto_rotate']}")
+                
+                self.status_bar.showMessage("Настройки камеры обновлены")
+                
+            except Exception as e:
+                print(f"❌ ОШИБКА обновления камеры в QML: {e}")
+                self.logger.error(f"QML camera update failed: {e}")
+        else:
+            print(f"❌ QML root object отсутствует!")
+
+    @Slot(dict)
+    def _on_effects_changed(self, effects_params: dict):
+        """Обработка изменения визуальных эффектов от GraphicsPanel
+        
+        Args:
+            effects_params: Dictionary with effects parameters
+        """
+        print(f"✨ MainWindow: Визуальные эффекты изменены: {effects_params}")
+        self.logger.info(f"Effects changed: {effects_params}")
+        
+        # Обновляем эффекты в QML сцене
+        if self._qml_root_object:
+            try:
+                # Используем новую функцию updateEffects
+                if hasattr(self._qml_root_object, 'updateEffects'):
+                    self._qml_root_object.updateEffects(effects_params)
+                    print(f"   ✅ Эффекты переданы в QML через updateEffects()")
+                else:
+                    # Fallback: прямая установка свойств
+                    effect_updates = []
+                    if 'bloom_enabled' in effects_params:
+                        self._qml_root_object.setProperty("bloomEnabled", effects_params['bloom_enabled'])
+                        effect_updates.append(f"Bloom: {effects_params['bloom_enabled']}")
+                    if 'ssao_enabled' in effects_params:
+                        self._qml_root_object.setProperty("ssaoEnabled", effects_params['ssao_enabled'])
+                        effect_updates.append(f"SSAO: {effects_params['ssao_enabled']}")
+                    if 'vignette_enabled' in effects_params:
+                        self._qml_root_object.setProperty("vignetteEnabled", effects_params['vignette_enabled'])
+                        effect_updates.append(f"Vignette: {effects_params['vignette_enabled']}")
+                    
+                    if effect_updates:
+                        print(f"   ✅ Обновлены эффекты: {', '.join(effect_updates)}")
+                
+                self.status_bar.showMessage("Визуальные эффекты обновлены")
+                
+            except Exception as e:
+                print(f"❌ ОШИБКА обновления эффектов в QML: {e}")
+                self.logger.error(f"QML effects update failed: {e}")
+        else:
+            print(f"❌ QML root object отсутствует!")
+
+    @Slot(dict)
+    def _on_animation_changed(self, animation_params: dict):
+        """Обработка изменения параметров анимации от ModesPanel
+        
+        Args:
+            animation_params: Dictionary with animation parameters (amplitude, frequency, phases)
+        """
+        self.logger.info(f"Animation changed: {animation_params}")
+        
+        # Обновляем параметры анимации в QML сцене
+        if self._qml_root_object:
+            try:
+                print(f"🔧 Setting QML animation properties: {animation_params}")
+                
+                # Устанавливаем параметры анимации напрямую
+                if 'amplitude' in animation_params:
+                    # Конвертируем амплитуду из метров в градусы для вращения рычага
+                    amplitude_deg = animation_params['amplitude'] * 1000 / 10  # Масштабирующий коэффициент
+                    self._qml_root_object.setProperty("userAmplitude", amplitude_deg)
+                    print(f"   ✅ Set userAmplitude = {amplitude_deg} deg")
+                
+                if 'frequency' in animation_params:
+                    self._qml_root_object.setProperty("userFrequency", animation_params['frequency'])
+                    print(f"   ✅ Set userFrequency = {animation_params['frequency']} Hz")
+                
+                if 'phase' in animation_params:
+                    self._qml_root_object.setProperty("userPhaseGlobal", animation_params['phase'])
+                    print(f"   ✅ Set userPhaseGlobal = {animation_params['phase']} deg")
+                
+                if 'lf_phase' in animation_params:
+                    self._qml_root_object.setProperty("userPhaseFL", animation_params['lf_phase'])
+                    print(f"   ✅ Set userPhaseFL = {animation_params['lf_phase']} deg")
+                
+                if 'rf_phase' in animation_params:
+                    self._qml_root_object.setProperty("userPhaseFR", animation_params['rf_phase'])
+                    print(f"   ✅ Set userPhaseFR = {animation_params['rf_phase']} deg")
+                
+                if 'lr_phase' in animation_params:
+                    self._qml_root_object.setProperty("userPhaseRL", animation_params['lr_phase'])
+                    print(f"   ✅ Set userPhaseRL = {animation_params['lr_phase']} deg")
+                
+                if 'rr_phase' in animation_params:
+                    self._qml_root_object.setProperty("userPhaseRR", animation_params['rr_phase'])
+                    print(f"   ✅ Set userPhaseRR = {animation_params['rr_phase']} deg")
+                
+                self.status_bar.showMessage("Параметры анимации обновлены")
+                print(f"✅ QML animation properties set successfully")
+                    
+            except Exception as e:
+                self.logger.error(f"QML animation update failed: {e}")
+                self.status_bar.showMessage(f"Animation update failed: {e}")
+                import traceback
+                traceback.print_exc()
+
+    # =================================================================
+    # Batch QML Update System (для оптимизации)
+    # =================================================================
+    
+    def _queue_qml_update(self, update_type: str, params: dict):
+        """Поставить обновление QML в очередь для группового выполнения
+        
+        Args:
+            update_type: Тип обновления ('geometry', 'materials', 'lighting', etc.)
+            params: Параметры для обновления
+        """
+        self._qml_update_queue[update_type] = params
+        
+        # Запускаем таймер для группового выполнения (если не запущен)
+        if not self._qml_flush_timer.isActive():
+            self._qml_flush_timer.start(50)  # 50мс задержка для группировки
+    
+    @Slot()
+    def _flush_qml_updates(self):
+        """Выполнить все накопленные обновления QML"""
+        if not self._qml_update_queue or not self._qml_root_object:
+            return
+        
+        try:
+            print(f"📦 Flushing {len(self._qml_update_queue)} QML updates...")
+            
+            # Если есть функция applyBatchedUpdates в QML, используем её
+            if hasattr(self._qml_root_object, 'applyBatchedUpdates'):
+                self._qml_root_object.applyBatchedUpdates(self._qml_update_queue)
+                print(f"✅ Applied batched updates via applyBatchedUpdates()")
+            else:
+                # Fallback: применяем обновления по одному
+                for update_type, params in self._qml_update_queue.items():
+                    print(f"   Applying {update_type}: {params}")
+                    
+                    # Применяем прямые свойства
+                    for key, value in params.items():
+                        try:
+                            self._qml_root_object.setProperty(key, value)
+                        except Exception as e:
+                            print(f"     ❌ Failed to set {key}: {e}")
+                
+                print(f"✅ Applied {len(self._qml_update_queue)} updates individually")
+            
+        except Exception as e:
+            print(f"❌ Error flushing QML updates: {e}")
+            self.logger.error(f"QML batch update failed: {e}")
+        finally:
+            # Очищаем очередь
+            self._qml_update_queue.clear()
+
+    # =================================================================
+    # MISSING METHODS - CRITICAL FIX
+    # =================================================================
+    
+    def _setup_menus(self):
+        """Создать меню приложения / Create application menus"""
+        menubar = self.menuBar()
+
+        # File menu
+        file_menu = menubar.addMenu("Файл")
+        
+        # Preset actions
+        save_preset_act = QAction("Сохранить пресет...", self)
+        load_preset_act = QAction("Загрузить пресет...", self)
+        save_preset_act.triggered.connect(self._save_preset)
+        load_preset_act.triggered.connect(self._load_preset)
+        file_menu.addAction(save_preset_act)
+        file_menu.addAction(load_preset_act)
+        file_menu.addSeparator()
+        
+        # Export submenu
+        export_menu = file_menu.addMenu("Экспорт")
+        export_timeseries_act = QAction("Экспорт временных рядов...", self)
+        export_snapshots_act = QAction("Экспорт снимков состояния...", self)
+        export_timeseries_act.triggered.connect(self._export_timeseries)
+        export_snapshots_act.triggered.connect(self._export_snapshots)
+        export_menu.addAction(export_timeseries_act)
+        export_menu.addAction(export_snapshots_act)
+        file_menu.addSeparator()
+        
+        # Exit
+        exit_act = QAction("Выход", self)
+        exit_act.setShortcut(QKeySequence.StandardKey.Quit)
+        exit_act.triggered.connect(self.close)
+        file_menu.addAction(exit_act)
+
+        # View menu
+        view_menu = menubar.addMenu("Вид")
+        reset_ui_act = QAction("Сбросить интерфейс", self)
+        reset_ui_act.triggered.connect(self._reset_ui_layout)
+        view_menu.addAction(reset_ui_act)
+
+        # Settings menu
+        settings_menu = menubar.addMenu("Настройки")
+        preferences_act = QAction("Параметры...", self)
+        preferences_act.triggered.connect(self._show_preferences)
+        settings_menu.addAction(preferences_act)
+
+        # Help menu
+        help_menu = menubar.addMenu("Справка")
+        about_act = QAction("О программе", self)
+        about_act.triggered.connect(self._show_about)
+        help_menu.addAction(about_act)
+
+    def _setup_toolbar(self):
+        """Создать панель инструментов / Create toolbar"""
+        toolbar = self.addToolBar("Основная")
+        toolbar.setObjectName("MainToolbar")
+        toolbar.setMovable(True)
+        
+        # Simulation control actions
+        start_act = QAction("▶️ Старт", self)
+        stop_act = QAction("⏹️ Стоп", self)
+        pause_act = QAction("⏸️ Пауза", self)
+        reset_act = QAction("🔄 Сброс", self)
+        
+        start_act.triggered.connect(lambda: self._on_sim_control("start"))
+        stop_act.triggered.connect(lambda: self._on_sim_control("stop"))
+        pause_act.triggered.connect(lambda: self._on_sim_control("pause"))
+        reset_act.triggered.connect(lambda: self._on_sim_control("reset"))
+        
+        toolbar.addActions([start_act, stop_act, pause_act, reset_act])
+        toolbar.addSeparator()
+        
+        # Toggle tabs action
+        toggle_tabs_act = QAction("Скрыть/показать панели", self)
+        toggle_tabs_act.setCheckable(True)
+        toggle_tabs_act.setChecked(True)
+        toggle_tabs_act.toggled.connect(self._toggle_tabs_visibility)
+        toolbar.addAction(toggle_tabs_act)
+        
+        # Prevent toolbar from taking too much space
+        toolbar.setMaximumHeight(50)
+
+    def _setup_status_bar(self):
+        """Создать строку состояния / Create status bar"""
+        self.status_bar = QStatusBar()
+        self.setStatusBar(self.status_bar)
+        
+        # Create status bar widgets
+        self.sim_time_label = QLabel("Время симуляции: 0.000с")
+        self.sim_time_label.setMinimumWidth(150)
+        
+        self.step_count_label = QLabel("Шагов: 0")
+        self.step_count_label.setMinimumWidth(80)
+        
+        self.fps_label = QLabel("FPS: 0")
+        self.fps_label.setMinimumWidth(80)
+        
+        self.realtime_label = QLabel("RT: 1.00x")
+        self.realtime_label.setMinimumWidth(80)
+        
+        self.queue_label = QLabel("Очередь: 0/0")
+        self.queue_label.setMinimumWidth(100)
+        
+        # Add widgets to status bar
+        for widget in [self.sim_time_label, self.step_count_label, self.fps_label, 
+                      self.realtime_label, self.queue_label]:
+            self.status_bar.addPermanentWidget(widget)
+        
+        self.status_bar.showMessage("Готово к работе")
+        self.status_bar.setMaximumHeight(30)
+
+    def _connect_simulation_signals(self):
+        """Подключить сигналы симуляции / Connect simulation signals"""
+        try:
+            bus = self.simulation_manager.state_bus
+            bus.state_ready.connect(self._on_state_update, Qt.ConnectionType.QueuedConnection)
+            bus.physics_error.connect(self._on_physics_error, Qt.ConnectionType.QueuedConnection)
+            print("✅ Сигналы симуляции подключены")
+        except Exception as e:
+            print(f"⚠️ Ошибка подключения сигналов симуляции: {e}")
+
+    @Slot()
+    def _update_render(self):
+        """Обновить отображение / Update rendering"""
+        if not self._qml_root_object:
+            return
+        
+        try:
+            # Update simulation info if available
+            if hasattr(self, 'current_snapshot') and self.current_snapshot:
+                sim_text = f"Время: {self.current_snapshot.simulation_time:.2f}с | Шаг: {self.current_snapshot.step_number}"
+                if hasattr(self._qml_root_object, 'setProperty'):
+                    self._qml_root_object.setProperty("simulationText", sim_text)
+                
+                # Update status bar
+                self.sim_time_label.setText(f"Время симуляции: {self.current_snapshot.simulation_time:.3f}с")
+                self.step_count_label.setText(f"Шагов: {self.current_snapshot.step_number}")
+                
+                if hasattr(self.current_snapshot, 'aggregates') and self.current_snapshot.aggregates.physics_step_time > 0:
+                    fps = 1.0 / self.current_snapshot.aggregates.physics_step_time
+                    self.fps_label.setText(f"FPS: {fps:.0f}")
+            
+            # Update queue stats if available
+            if hasattr(self.simulation_manager, 'get_queue_stats'):
+                try:
+                    stats = self.simulation_manager.get_queue_stats()
+                    self.queue_label.setText(f"Очередь: {stats.get('get_count', 0)}/{stats.get('put_count', 0)}")
+                except:
+                    pass
+                    
+        except Exception as e:
+            # Fail silently to avoid spamming console
+            pass
+
+    def _restore_settings(self):
+        """Восстановить настройки окна / Restore window settings"""
+        try:
+            settings = QSettings(self.SETTINGS_ORG, self.SETTINGS_APP)
+            
+            # Restore geometry (window size and position)
+            if geometry := settings.value(self.SETTINGS_GEOMETRY):
+                self.restoreGeometry(geometry)
+            
+            # Restore window state (toolbars, dock widgets)
+            if state := settings.value(self.SETTINGS_STATE):
+                self.restoreState(state)
+            
+            # Restore splitter positions
+            if hasattr(self, 'main_horizontal_splitter') and self.main_horizontal_splitter:
+                if splitter_state := settings.value(self.SETTINGS_HORIZONTAL_SPLITTER):
+                    self.main_horizontal_splitter.restoreState(splitter_state)
+            
+            if hasattr(self, 'main_splitter') and self.main_splitter:
+                if splitter_state := settings.value(self.SETTINGS_SPLITTER):
+                    self.main_splitter.restoreState(splitter_state)
+                    
+            print("✅ Настройки окна восстановлены")
+        except Exception as e:
+            print(f"⚠️ Не удалось восстановить настройки: {e}")
+
+    # =================================================================
+    # Event Handlers and Signal Slots
+    # =================================================================
+
+    @Slot(object)
+    def _on_state_update(self, snapshot):
+        """Обработка обновления состояния симуляции"""
+        self.current_snapshot = snapshot
+        if self.chart_widget and snapshot:
+            self.chart_widget.update_from_snapshot(snapshot)
+
+    @Slot(str)
+    def _on_physics_error(self, msg: str):
+        """Обработка ошибок физики"""
+        self.status_bar.showMessage(f"Ошибка физики: {msg}", 5000)
+        self.logger.error(f"Physics error: {msg}")
+
+    def _toggle_tabs_visibility(self, visible: bool):
+        """Переключить видимость вкладок"""
+        if self.tab_widget:
+            self.tab_widget.setVisible(visible)
+        status_msg = "Панели показаны" if visible else "Панели скрыты"
+        self.status_bar.showMessage(status_msg)
+
+    # =================================================================
+    # Menu Actions (Stubs)
+    # =================================================================
+
+    def _save_preset(self):
+        """Сохранить пресет настроек (заглушка)"""
+        from PySide6.QtWidgets import QMessageBox
+        QMessageBox.information(self, "Пресет", "Функция сохранения пресетов будет реализована позже")
+
+    def _load_preset(self):
+        """Загрузить пресет настроек (заглушка)"""
+        from PySide6.QtWidgets import QMessageBox
+        QMessageBox.information(self, "Пресет", "Функция загрузки пресетов будет реализована позже")
+
+    def _export_timeseries(self):
+        """Экспорт временных рядов (заглушка)"""
+        from PySide6.QtWidgets import QMessageBox
+        QMessageBox.information(self, "Экспорт", "Функция экспорта данных будет реализована позже")
+
+    def _export_snapshots(self):
+        """Экспорт снимков состояния (заглушка)"""
+        from PySide6.QtWidgets import QMessageBox
+        QMessageBox.information(self, "Экспорт", "Функция экспорта снимков будет реализована позже")
+
+    def _reset_ui_layout(self):
+        """Сбросить макет интерфейса (заглушка)"""
+        self.status_bar.showMessage("Макет интерфейса сброшен")
+
+    def _show_preferences(self):
+        """Показать окно настроек (заглушка)"""
+        from PySide6.QtWidgets import QMessageBox
+        QMessageBox.information(self, "Настройки", "Окно настроек будет реализовано позже")
+
+    def _show_about(self):
+        """Показать окно 'О программе'"""
+        from PySide6.QtWidgets import QMessageBox
+        QMessageBox.about(
+            self,
+            "О программе PneumoStabSim",
+            "PneumoStabSim Professional v2.0.1\n\n"
+            "Симулятор пневматических стабилизаторов\n"
+            "с улучшенной 3D визуализацией и поддержкой терминала\n\n"
+            "© 2025 PneumoStabSim Project"
+        )
+
+    # =================================================================
+    # Window Events and Cleanup
+    # =================================================================
+
+    def closeEvent(self, event):
+        """Обработка закрытия окна"""
+        try:
+            self.logger.info("Main window closing")
+            
+            # Stop render timer
+            if hasattr(self, 'render_timer'):
+                self.render_timer.stop()
+            
+            # Save settings
+            self._save_settings()
+            
+            # Stop simulation manager
+            if hasattr(self, 'simulation_manager'):
+                self.simulation_manager.stop()
+            
+            event.accept()
+            self.logger.info("Main window closed successfully")
+        except Exception as e:
+            self.logger.error(f"Error during window close: {e}")
+            event.accept()  # Close anyway
+
+    def _save_settings(self):
+        """Сохранить настройки окна"""
+        try:
+            settings = QSettings(self.SETTINGS_ORG, self.SETTINGS_APP)
+            settings.setValue(self.SETTINGS_GEOMETRY, self.saveGeometry())
+            settings.setValue(self.SETTINGS_STATE, self.saveState())
+            
+            # Save splitter states
+            if hasattr(self, 'main_horizontal_splitter') and self.main_horizontal_splitter:
+                settings.setValue(self.SETTINGS_HORIZONTAL_SPLITTER, self.main_horizontal_splitter.saveState())
+            
+            if hasattr(self, 'main_splitter') and self.main_splitter:
+                settings.setValue(self.SETTINGS_SPLITTER, self.main_splitter.saveState())
+                
+            print("✅ Настройки окна сохранены")
+        except Exception as e:
+            print(f"⚠️ Не удалось сохранить настройки: {e}")

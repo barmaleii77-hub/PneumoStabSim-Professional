@@ -11,7 +11,7 @@ from PySide6.QtQuickWidgets import QQuickWidget
 
 # Import geometry bridge for correct coordinate calculation
 from ..core.geometry import GeometryParams
-from .geometry_bridge import GeometryTo3DConverter
+from src.ui.geometry_bridge import GeometryTo3DConverter
 
 
 class SuspensionSceneHost(QQuickWidget):

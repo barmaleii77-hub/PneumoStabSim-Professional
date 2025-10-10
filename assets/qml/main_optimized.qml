@@ -247,46 +247,125 @@ Item {
         cameraDistance = Math.max(minDistance, Math.min(maxDistance, dist))
     }
     
+    // ✅ УЛУЧШЕННАЯ функция resetView с сохранением позиции камеры
     function resetView() {
+        // Сохраняем текущую позицию камеры если она разумная
+        var preserveCamera = (Math.abs(yawDeg) < 720 && 
+                             Math.abs(pitchDeg) < 90 && 
+                             cameraDistance > minDistance && 
+                             cameraDistance < maxDistance)
+        
+        if (preserveCamera) {
+            console.log("🔄 Soft reset: preserving camera position")
+            // Обновляем только pivot, камера остается
+            pivot = Qt.vector3d(0, userBeamSize/2, userFrameLength/2)
+        } else {
+            console.log("🔄 Full reset: resetting camera to defaults")
+            // Полный сброс камеры
+            pivot = Qt.vector3d(0, userBeamSize/2, userFrameLength/2)
+            yawDeg = 225
+            pitchDeg = -25
+            panX = 0
+            panY = 0
+            autoFitFrame()
+        }
+        
+        console.log("🔄 View reset completed: pivot =", pivot, "distance =", cameraDistance)
+    }
+    
+    // ✅ НОВАЯ функция для полного сброса камеры
+    function fullResetView() {
+        console.log("🔄 Full camera reset requested")
         pivot = Qt.vector3d(0, userBeamSize/2, userFrameLength/2)
         yawDeg = 225
         pitchDeg = -25
         panX = 0
         panY = 0
         autoFitFrame()
-        console.log("🔄 View reset: pivot =", pivot, "distance =", cameraDistance)
+        console.log("🔄 Full reset completed")
     }
 
     // ===============================================================
     // ✅ COMPLETE BATCH UPDATE SYSTEM (All functions implemented)
     // ===============================================================
     
+    // ===============================================================
+    // ✅ ENHANCED BATCH UPDATE SYSTEM (Conflict Resolution)
+    // ===============================================================
+    
     function applyBatchedUpdates(updates) {
-        console.log("🚀 Applying batched updates:", Object.keys(updates))
+        console.log("🚀 Applying batched updates with conflict resolution:", Object.keys(updates))
         
-        if (updates.geometry) applyGeometryUpdates(updates.geometry)
-        if (updates.animation) applyAnimationUpdates(updates.animation)
-        if (updates.lighting) applyLightingUpdates(updates.lighting)
-        if (updates.materials) applyMaterialUpdates(updates.materials)
-        if (updates.environment) applyEnvironmentUpdates(updates.environment)
-        if (updates.quality) applyQualityUpdates(updates.quality)
-        if (updates.camera) applyCameraUpdates(updates.camera)
-        if (updates.effects) applyEffectsUpdates(updates.effects)
+        // Disable default behaviors temporarily 
+        var wasAutoUpdate = autoRotate
+        autoRotate = false
         
-        console.log("✅ Batch updates completed")
+        try {
+            if (updates.geometry) applyGeometryUpdates(updates.geometry)
+            if (updates.animation) applyAnimationUpdates(updates.animation)  
+            if (updates.lighting) applyLightingUpdates(updates.lighting)
+            if (updates.materials) applyMaterialUpdates(updates.materials)
+            if (updates.environment) applyEnvironmentUpdates(updates.environment)
+            if (updates.quality) applyQualityUpdates(updates.quality)
+            if (updates.camera) applyCameraUpdates(updates.camera)
+            if (updates.effects) applyEffectsUpdates(updates.effects)
+            
+            console.log("✅ Batch updates completed successfully")
+        } finally {
+            // Restore auto behaviors
+            autoRotate = wasAutoUpdate
+        }
     }
     
     function applyGeometryUpdates(params) {
-        console.log("📐 main.qml: applyGeometryUpdates() called")
-        if (params.frameLength !== undefined) userFrameLength = params.frameLength
-        if (params.frameHeight !== undefined) userFrameHeight = params.frameHeight
-        if (params.frameBeamSize !== undefined) userBeamSize = params.frameBeamSize
-        if (params.leverLength !== undefined) userLeverLength = params.leverLength
-        if (params.cylinderBodyLength !== undefined) userCylinderLength = params.cylinderBodyLength
-        if (params.trackWidth !== undefined) userTrackWidth = params.trackWidth
-        if (params.frameToPivot !== undefined) userFrameToPivot = params.frameToPivot
-        if (params.rodPosition !== undefined) userRodPosition = params.rodPosition
-        resetView()
+        console.log("📐 main.qml: applyGeometryUpdates() with conflict resolution")
+        
+        // ✅ ИСПРАВЛЕНО: Проверяем на undefined перед применением
+        if (params.frameLength !== undefined && params.frameLength !== userFrameLength) {
+            console.log("  📏 Updating frameLength:", userFrameLength, "→", params.frameLength)
+            userFrameLength = params.frameLength
+        }
+        if (params.frameHeight !== undefined && params.frameHeight !== userFrameHeight) {
+            console.log("  📏 Updating frameHeight:", userFrameHeight, "→", params.frameHeight)
+            userFrameHeight = params.frameHeight
+        }
+        if (params.frameBeamSize !== undefined && params.frameBeamSize !== userBeamSize) {
+            console.log("  📏 Updating frameBeamSize:", userBeamSize, "→", params.frameBeamSize)
+            userBeamSize = params.frameBeamSize
+        }
+        if (params.leverLength !== undefined && params.leverLength !== userLeverLength) {
+            console.log("  📏 Updating leverLength:", userLeverLength, "→", params.leverLength)
+            userLeverLength = params.leverLength
+        }
+        if (params.cylinderBodyLength !== undefined && params.cylinderBodyLength !== userCylinderLength) {
+            console.log("  📏 Updating cylinderLength:", userCylinderLength, "→", params.cylinderBodyLength)
+            userCylinderLength = params.cylinderBodyLength
+        }
+        if (params.trackWidth !== undefined && params.trackWidth !== userTrackWidth) {
+            console.log("  📏 Updating trackWidth:", userTrackWidth, "→", params.trackWidth)
+            userTrackWidth = params.trackWidth
+        }
+        if (params.frameToPivot !== undefined && params.frameToPivot !== userFrameToPivot) {
+            console.log("  📏 Updating frameToPivot:", userFrameToPivot, "→", params.frameToPivot)
+            userFrameToPivot = params.frameToPivot
+        }
+        if (params.rodPosition !== undefined && params.rodPosition !== userRodPosition) {
+            console.log("  ✨ КРИТИЧЕСКИЙ: Updating rodPosition:", userRodPosition, "→", params.rodPosition)
+            userRodPosition = params.rodPosition
+        }
+        
+        // ✅ ИСПРАВЛЕНО: Сброс вида только при значительных изменениях геометрии
+        var shouldResetView = (params.frameLength !== undefined || 
+                              params.frameHeight !== undefined || 
+                              params.trackWidth !== undefined)
+        
+        if (shouldResetView) {
+            console.log("  🔄 Significant geometry change - resetting view")
+            resetView()
+        } else {
+            console.log("  ✅ Minor geometry change - view preserved")
+        }
+        
         console.log("  ✅ Geometry updated successfully")
     }
     
@@ -664,7 +743,6 @@ Item {
             property real pistonPositionFromPython: 250.0
             
             // ✅ ИСПРАВЛЕНО: Избегаем циклические зависимости - используем прямые вычисления
-            
             // Базовая геометрия рычага
             readonly property real baseAngle: (j_arm.x < 0) ? 180 : 0
             readonly property real totalAngle: baseAngle + leverAngle
@@ -903,62 +981,50 @@ Item {
     // ===============================================================
 
     MouseArea {
-        id: mouseArea
         anchors.fill: parent
         hoverEnabled: true
         acceptedButtons: Qt.LeftButton | Qt.RightButton
 
-        // Кэшированные значения для mouse операций
-        property real cachedWorldPerPixel: 0
-        
-        // Обновление кэша при изменении камеры
-        function updateMouseCache() {
-            // Guard against zero/undefined view height during rapid resize
-            var h = (view3d && view3d.height) ? view3d.height : 1
-            // Use cachedTanHalfFov for cheaper computation
-            var tanHalf = geometryCache.cachedTanHalfFov !== undefined ? geometryCache.cachedTanHalfFov : Math.tan((root.cameraFov*Math.PI/180)/2)
-            cachedWorldPerPixel = (2 * root.cameraDistance * tanHalf) / h
-        }
-        
-        // Подключение к изменениям камеры и высоты view3d
-        Connections {
-            target: root
-            function onCameraDistanceChanged() { mouseArea.updateMouseCache() }
-            function onCameraFovChanged() { mouseArea.updateMouseCache() }
+        onPressed: (mouse) => {
+            // ✅ ИСПРАВЛЕНО: Правильная инициализация для избежания рывка
+            root.mouseDown = true
+            root.mouseButton = mouse.button
+            root.lastX = mouse.x
+            root.lastY = mouse.y
+            
+            console.log("Mouse pressed: button =", mouse.button, "at", mouse.x, mouse.y)
         }
 
-        // Also react to view3d height changes (resize)
-        Connections {
-            target: view3d
-            function onHeightChanged() { mouseArea.updateMouseCache() }
-        }
-         
-         Component.onCompleted: updateMouseCache()
-
-         onPressed: (mouse) => {
-             mouse.accepted = true
-             root.mouseDown = true
-             root.mouseButton = mouse.button
-             root.lastX = mouse.x
-             root.lastY = mouse.y
-         }
-
-        onReleased: {
+        onReleased: (mouse) => {
             root.mouseDown = false
             root.mouseButton = 0
+            console.log("Mouse released")
         }
 
         onPositionChanged: (mouse) => {
             if (!root.mouseDown) return
+            
             const dx = mouse.x - root.lastX
             const dy = mouse.y - root.lastY
 
+            // ✅ ИСПРАВЛЕНО: Проверяем на разумные значения delta для избежания рывков
+            if (Math.abs(dx) > 100 || Math.abs(dy) > 100) {
+                console.log("⚠️ Ignoring large mouse delta:", dx, dy)
+                root.lastX = mouse.x
+                root.lastY = mouse.y
+                return
+            }
+
             if (root.mouseButton === Qt.LeftButton) {
-                root.yawDeg = root.normAngleDeg(root.yawDeg + dx * root.rotateSpeed)
+                // ✅ ИСПРАВЛЕНО: Убрана инверсия горизонтального вращения
+                root.yawDeg = root.normAngleDeg(root.yawDeg - dx * root.rotateSpeed)
                 root.pitchDeg = root.clamp(root.pitchDeg - dy * root.rotateSpeed, -85, 85)
             } else if (root.mouseButton === Qt.RightButton) {
-                // ✅ Используем кэшированные значения
-                const s = cachedWorldPerPixel * root.cameraSpeed
+                // Panning: move camera in rig's local X/Y
+                const fovRad = camera.fieldOfView * Math.PI / 180.0
+                const worldPerPixel = (2 * root.cameraDistance * Math.tan(fovRad / 2)) / view3d.height
+                const s = worldPerPixel * root.cameraSpeed
+                
                 root.panX -= dx * s
                 root.panY += dy * s
             }
@@ -968,12 +1034,14 @@ Item {
         }
 
         onWheel: (wheel) => {
-            wheel.accepted = true
-            const factor = Math.exp(-wheel.angleDelta.y * 0.0016)
-            root.cameraDistance = root.clamp(root.cameraDistance * factor, root.minDistance, root.maxDistance)
+            const zoomFactor = 1.0 + (wheel.angleDelta.y / 1200.0)
+            root.cameraDistance = Math.max(root.minDistance, 
+                                     Math.min(root.maxDistance, 
+                                              root.cameraDistance * zoomFactor))
         }
 
-        onDoubleClicked: {
+        onDoubleClicked: () => {
+            console.log("🔄 Double-click: resetting view")
             resetView()
         }
     }

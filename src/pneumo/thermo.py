@@ -4,7 +4,7 @@ Function signatures for adiabatic and isothermal processes
 """
 
 from enum import Enum
-from ..common.units import GAMMA_AIR, R_AIR
+from src.common.units import GAMMA_AIR, R_AIR
 
 
 class ThermoMode(Enum):
