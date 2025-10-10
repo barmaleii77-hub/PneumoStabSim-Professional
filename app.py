@@ -216,13 +216,12 @@ def parse_arguments():
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-  python app.py                    # Normal mode (blocks terminal)
-  python app.py --no-block         # Non-blocking mode
-  python app.py --test-mode        # Test mode (auto-close 5s)
-  python app.py --legacy           # Use legacy OpenGL
-  python app.py --debug            # Debug mode
-  python app.py --safe-mode        # Safe mode (minimal features)
-  python app.py --force-optimized  # Force main_optimized.qml loading
+  py app.py                    # Normal mode (blocks terminal)
+  py app.py --no-block         # Non-blocking mode
+  py app.py --test-mode        # Test mode (auto-close 5s)
+  py app.py --legacy           # Use legacy OpenGL
+  py app.py --debug            # Debug mode
+  py app.py --safe-mode        # Safe mode (minimal features)
         """
     )
     
@@ -231,7 +230,6 @@ Examples:
     parser.add_argument('--legacy', action='store_true', help='Use legacy OpenGL')
     parser.add_argument('--debug', action='store_true', help='Enable debug messages')
     parser.add_argument('--safe-mode', action='store_true', help='Safe mode (basic features only)')
-    parser.add_argument('--force-optimized', action='store_true', help='Force load main_optimized.qml')
     
     return parser.parse_args()
 
@@ -249,20 +247,17 @@ def main():
         
         # Override backend if legacy requested
         use_qml_3d = USE_QML_3D_SCHEMA and not args.legacy and not args.safe_mode
-        backend_name = "Qt Quick 3D (U-Frame PBR)" if use_qml_3d else "Legacy OpenGL"
-        
-        # Determine QML version preference
-        force_optimized = args.force_optimized
-        if force_optimized:
-            backend_name += " (OPTIMIZED FORCED)"
+        backend_name = "Qt Quick 3D (Optimized v4.2)" if use_qml_3d else "Legacy OpenGL"
         
         print("=" * 60)
-        print("PNEUMOSTABSIM STARTING (Enhanced Terminal Support)")
+        print("PNEUMOSTABSIM STARTING (ExtendedSceneEnvironment v4.3)")
         print("=" * 60)
         print(f"Visualization backend: {backend_name}")
+        print(f"QML file: main_optimized.qml (ExtendedSceneEnvironment)")
         print(f"Qt RHI Backend: {os.environ.get('QSG_RHI_BACKEND', 'auto')}")
         print(f"Python encoding: {sys.getdefaultencoding()}")
         print(f"Terminal encoding: {locale.getpreferredencoding()}")
+        print(f"✅ ИСПРАВЛЕНИЯ: ExtendedSceneEnvironment + убрано дублирование событий")
         
         if args.safe_mode:
             print("🛡️ SAFE MODE: Using minimal features for compatibility")
@@ -270,8 +265,6 @@ def main():
             print("🔓 NON-BLOCKING MODE: Terminal won't be blocked")
         elif args.test_mode:
             print("🧪 TEST MODE: Auto-close after 5 seconds")
-        elif args.force_optimized:
-            print("🚀 FORCE OPTIMIZED: Using main_optimized.qml mandatorily")
         else:
             print("🔒 BLOCKING MODE: Terminal will be blocked until app closes")
         
@@ -306,8 +299,8 @@ def main():
         
         print(f"Step 4: Creating MainWindow (backend: {backend_name})...")
         
-        # Create and show main window with force_optimized flag
-        window = MainWindow(use_qml_3d=use_qml_3d, force_optimized=force_optimized)
+        # ✅ ИСПРАВЛЕНО: Всегда используем только main_optimized.qml
+        window = MainWindow(use_qml_3d=use_qml_3d)
         window_instance = window
         
         print(f"Step 5: MainWindow created - Size: {window.size().width()}x{window.size().height()}")
