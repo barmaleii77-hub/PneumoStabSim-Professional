@@ -1,0 +1,138 @@
+[OK] Windows UTF-8 encoding configured
+Python version: 3.13.7
+[WARNING] Python 3.12+ detected. Some packages may have compatibility issues.
+   Recommended: Python 3.8 - 3.11 for optimal stability
+[OK] PySide6 imported successfully
+[OK] Project modules imported successfully
+[OK] Custom 3D geometry types imported
+2025-10-11T11:11:53 | PID:25544 TID:21624 | INFO     | PneumoStabSim | ======================================================================
+2025-10-11T11:11:53 | PID:25544 TID:21624 | INFO     | PneumoStabSim | === START RUN: PneumoStabSim ===
+2025-10-11T11:11:53 | PID:25544 TID:21624 | INFO     | PneumoStabSim | ======================================================================
+2025-10-11T11:11:53 | PID:25544 TID:21624 | INFO     | PneumoStabSim | Python version: 3.13.7 (tags/v3.13.7:bcee1c3, Aug 14 2025, 14:15:11) [MSC v.1944 64 bit (AMD64)]
+2025-10-11T11:11:53 | PID:25544 TID:21624 | INFO     | PneumoStabSim | Platform: Windows-11-10.0.26200-SP0
+2025-10-11T11:11:53 | PID:25544 TID:21624 | INFO     | PneumoStabSim | Process ID: 25544
+2025-10-11T11:11:53 | PID:25544 TID:21624 | INFO     | PneumoStabSim | Log file: C:\Users\Алексей\source\repos\barmaleii77-hub\PneumoStabSim-Professional\logs\run.log
+2025-10-11T11:11:53 | PID:25544 TID:21624 | INFO     | PneumoStabSim | Timestamp: 2025-10-11T06:11:53.427047Z
+2025-10-11T11:11:53 | PID:25544 TID:21624 | INFO     | PneumoStabSim | PySide6 version: 6.10.0
+2025-10-11T11:11:53 | PID:25544 TID:21624 | INFO     | PneumoStabSim | NumPy version: 2.3.3
+============================================================
+PNEUMOSTABSIM STARTING (Enhanced Terminal + QtQuick3D Fix)
+============================================================
+Visualization backend: Qt Quick 3D (Optimized v4.1+ by default)
+QML file: main_optimized.qml (default) with main.qml fallback
+Qt RHI Backend: d3d11
+Python encoding: utf-8
+Terminal encoding: cp1251
+QtQuick3D setup: [OK]
+[TEST MODE] Auto-close after 5 seconds
+
+Step 1: Creating QApplication...
+2025-10-11T11:11:53 | PID:25544 TID:21624 | INFO     | PneumoStabSim | SciPy version: 1.16.2
+2025-10-11T11:11:53 | PID:25544 TID:21624 | INFO     | PneumoStabSim | ======================================================================
+2025-10-11T11:11:53 | PID:25544 TID:21624 | INFO     | PneumoStabSim | Application starting with enhanced encoding support...
+Step 2: Installing Qt message handler...
+Step 3: Setting application properties...
+Step 4: Creating MainWindow (backend: Qt Quick 3D (Optimized v4.1+ by default))...
+MainWindow: Создание SimulationManager...
+2025-10-11T11:11:53 | PID:25544 TID:21624 | INFO     | PneumoStabSim.UI | event=APP_CREATED | Qt application initialized with enhanced encoding
+✅ SimulationManager создан (не запущен)
+    GeometryBridge initialized:
+      Frame: 2000x650x120mm
+      Lever: 315mm
+      Cylinder: 250mm + 100mm tail
+✅ GeometryBridge создан для интеграции Python↔QML
+MainWindow: Построение UI...
+    _setup_central: Создание системы сплиттеров...
+    [QML] Загрузка ЕДИНОГО QML файла main.qml...
+    🔧 Added QML import path: C:/Users/Алексей/AppData/Local/Programs/Python/Python313/Lib/site-packages/PySide6/qml
+    🔧 Added local QML path: C:\Users\Алексей\source\repos\barmaleii77-hub\PneumoStabSim-Professional\assets\qml
+    🔍 ДИАГНОСТИКА ЗАГРУЗКИ QML:
+       Целевой файл: assets\qml\main.qml
+       Файл существует: True
+       Размер файла: 61,462 байт
+    📂 Полный путь: file:///C:/Users/Алексей/source/repos/barmaleii77-hub/PneumoStabSim-Professional/assets/qml/main.qml
+[QML DEBUG] file:///C:/Users/�������/source/repos/barmaleii77-hub/PneumoStabSim-Professional/assets/qml/main.qml:652:13: Cannot assign to non-existent property "fogDensity" 
+                 fogDensity: fogDensity
+ 
+                 ^
+    📊 QML статус загрузки: Status.Error
+    ❌ ОШИБКИ QML ЗАГРУЗКИ:
+       1. file:///C:/Users/Алексей/source/repos/barmaleii77-hub/PneumoStabSim-Professional/assets/qml/main.qml:652:13: Cannot assign to non-existent property "fogDensity"
+    [CRITICAL] Ошибка загрузки main.qml: Ошибки загрузки QML:
+file:///C:/Users/Алексей/source/repos/barmaleii77-hub/PneumoStabSim-Professional/assets/qml/main.qml:652:13: Cannot assign to non-existent property "fogDensity"
+    [WARNING] Использован заглушка-виджет
+    ✅ Система сплиттеров создана (горизонтальный + вертикальный)
+  ✅ Центральный вид Qt Quick 3D настроен
+    _setup_tabs: Создание вкладок с ресайзбаром...
+🔧 GeometryPanel: Сигналы подключены БЕЗ ДУБЛИРОВАНИЯ (только valueEdited)
+🔧 GeometryPanel: Планируем отправку начальных параметров геометрии...
+  ⏰ Таймер установлен на 500мс для отправки начальной геометрии
+      ✅ Вкладка 'Геометрия' создана
+      ✅ Вкладка 'Пневмосистема' создана
+      ✅ Вкладка 'Режимы стабилизатора' создана
+⏰ QTimer: Отправка начальной геометрии...
+🔄 GeometryPanel: Отправка ПОЛНОЙ геометрии в QML (изменён параметр: init = 0.0)
+   📐 Основные: frameLength=3200.0мм, leverLength=800.0мм
+   📐 Цилиндр: cylDiam=80.0мм, stroke=300.0мм
+   📐 Шток: diameter=35.0мм, length=200.0мм
+   🎯 rodPosition = 0.6 (КРИТИЧЕСКИЙ параметр)
+  ❌ Ошибка проверки подписчиков: 'PySide6.QtCore.SignalInstance' object has no attribute 'receivers'
+  📡 Сигналы отправлены без проверки подписчиков
+🎨 GraphicsPanel: Отправка начальных настроек графики...
+      ✅ Вкладка 'Графика и визуализация' создана
+      ✅ Вкладка 'Динамика движения' создана (заглушка)
+✅ Сигналы GeometryPanel подключены (geometry_changed → QML)
+✅ Сигналы PneumoPanel подключены (ЗАГЛУШКА)
+✅ Сигнал simulation_control подключен
+✅ Сигнал animation_changed подключен к _on_animation_changed
+✅ Сигналы ModesPanel подключены
+✅ Сигнал lighting_changed подключен
+✅ Сигнал material_changed подключен
+✅ Сигнал environment_changed подключен
+✅ Сигнал quality_changed подключен
+✅ Сигнал camera_changed подключен
+✅ Сигнал effects_changed подключен
+✅ Сигнал preset_applied подключен
+✅ Все сигналы GraphicsPanel подключены
+    ✅ Вкладки созданы и подключены к горизональному сплиттеру
+  ✅ Вкладки настроены
+  ✅ Меню настроено
+  ✅ Панель инструментов настроена
+  ✅ Строка состояния настроена
+  ✅ Сигналы подключены
+  ✅ Таймер рендеринга запущен
+  ⏸️  SimulationManager запустится после window.show()
+  ✅ Настройки восстановлены
+✅ MainWindow.__init__() завершён
+Step 5: MainWindow created - Size: 1400x900
+
+============================================================
+APPLICATION READY - Qt Quick 3D (Optimized v4.1+ by default)
+[FEATURES] 3D visualization, optimized performance, full IBL support, physics simulation
+[ENHANCED] Better encoding, terminal, and compatibility support
+[DEFAULT] main_optimized.qml (latest version) with fallback support
+[QTQUICK3D] Environment variables configured for plugin loading
+============================================================
+
+[STARTING] Application event loop...
+2025-10-11T11:11:55 | PID:25544 TID:21624 | INFO     | PneumoStabSim.UI | event=WINDOW_SHOWN | Main window displayed (Qt Quick 3D (Optimized v4.1+ by default))
+⏰ QTimer: Отправка начальных настроек графики...
+  ✅ Все начальные настройки графики отправлены!
+[TEST MODE] Auto-closing...
+
+=== APPLICATION CLOSED (code: 0) ===
+[CLEANUP] Completed
+2025-10-11T11:12:00 | PID:25544 TID:21624 | INFO     | PneumoStabSim | Application event loop finished with code: 0
+2025-10-11T11:12:00 | PID:25544 TID:21624 | INFO     | PneumoStabSim | ======================================================================
+2025-10-11T11:12:00 | PID:25544 TID:21624 | INFO     | PneumoStabSim | === END RUN ===
+2025-10-11T11:12:00 | PID:25544 TID:21624 | INFO     | PneumoStabSim | ======================================================================
+[SETUP] Setting up QtQuick3D environment...
+[OK] QtQuick3D environment configured:
+   QML2_IMPORT_PATH = C:/Users/�������/AppData/Local/Programs/Python/Python313/Lib/site-packages/PySide6/qml
+   QT_PLUGIN_PATH = C:/Users/�������/AppData/Local/Programs/Python/Python313/Lib/site-packages/PySide6/plugins
+[OK] QtQuick3D environment setup completed
+Traceback (most recent call last):
+  File "C:\Users\Алексей\source\repos\barmaleii77-hub\PneumoStabSim-Professional\src\ui\main_window.py", line 265, in _setup_qml_3d_view
+    raise RuntimeError(f"Ошибки загрузки QML:\n{error_msg}")
+RuntimeError: Ошибки загрузки QML:
+file:///C:/Users/Алексей/source/repos/barmaleii77-hub/PneumoStabSim-Professional/assets/qml/main.qml:652:13: Cannot assign to non-existent property "fogDensity"

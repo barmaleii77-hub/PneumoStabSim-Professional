@@ -14,12 +14,6 @@ from PySide6.QtGui import QColor, QPalette
 import logging
 from typing import Dict, Any
 import json
-import sys
-import os
-
-# ✅ КРИТИЧЕСКИ ВАЖНО: Импортируем дефолты из единого источника истины!
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../../..')))
-from config.graphics_defaults import get_all_graphics_defaults
 
 
 class ColorButton(QPushButton):
@@ -57,7 +51,7 @@ class ColorButton(QPushButton):
             self.color_changed.emit(color.name())
     
     def set_color(self, color_str: str):
-        """Установить цвет программой"""
+        """Установить цвет программно"""
         self.color = QColor(color_str)
         self.update_style()
 
@@ -84,31 +78,136 @@ class GraphicsPanel(QWidget):
         # Настройки
         self.settings = QSettings("PneumoStabSim", "GraphicsPanel")
         
-        # ✅ КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Используем ЕДИНЫЙ источник дефолтов!
-        self.current_graphics = get_all_graphics_defaults()
-        
-        self.logger.info(f"✅ GraphicsPanel: loaded {len(self.current_graphics)} defaults from config/graphics_defaults.py")
+        # ✅ РАСШИРЕННЫЕ текущие параметры графики (ПОЛНЫЙ НАБОР!)
+        self.current_graphics = {
+            # Освещение
+            'key_brightness': 2.8,
+            'key_color': '#ffffff',
+            'key_angle_x': -30,
+            'key_angle_y': -45,
+            'fill_brightness': 1.2,
+            'fill_color': '#f0f0ff',
+            'rim_brightness': 1.5,
+            'rim_color': '#ffffcc',
+            'point_brightness': 20000,
+            'point_color': '#ffffff',
+            'point_y': 1800,
+            'point_fade': 0.00008,
+            
+            # Окружение и IBL
+            'background_color': '#2a2a2a',
+            'fog_enabled': False,
+            'fog_color': '#808080',
+            'fog_density': 0.1,
+            'skybox_enabled': False,
+            'skybox_blur': 0.0,
+            'ibl_enabled': True,               # ✅ НОВОЕ: IBL
+            'ibl_intensity': 1.0,              # ✅ НОВОЕ: Интенсивность IBL
+            'ibl_source': '../hdr/studio.hdr',
+            'ibl_fallback': 'assets/studio_small_09_2k.hdr',
+            
+            # Качество рендеринга
+            'antialiasing': 2,          # 0=None, 1=SSAA, 2=MSAA
+            'aa_quality': 2,            # 0=Low, 1=Medium, 2=High
+            'shadows_enabled': True,
+            'shadow_quality': 1,        # 0=Low, 1=Medium, 2=High
+            'shadow_softness': 0.5,     # ✅ НОВОЕ: Мягкость теней
+            
+            # Материалы
+            'metal_roughness': 0.28,
+            'metal_metalness': 1.0,
+            'metal_clearcoat': 0.25,
+            'glass_opacity': 0.35,
+            'glass_roughness': 0.05,
+            'glass_ior': 1.52,              # ✅ НОВОЕ: Коэффициент преломления!
+            'frame_color': '#cc0000',
+            'frame_metalness': 0.8,
+            'frame_roughness': 0.4,
+            'frame_clearcoat': 0.1,
+            'frame_clearcoat_roughness': 0.2,
+            'lever_color': '#888888',
+            'lever_metalness': 1.0,
+            'lever_roughness': 0.28,
+            'lever_clearcoat': 0.25,
+            'lever_clearcoat_roughness': 0.1,
+            'tail_color': '#cccccc',
+            'tail_metalness': 1.0,
+            'tail_roughness': 0.3,
+            'cylinder_color': '#ffffff',
+            'cylinder_metalness': 0.0,
+            'cylinder_roughness': 0.05,
+            'piston_body_color': '#ff0066',
+            'piston_body_warning_color': '#ff4444',
+            'piston_body_metalness': 1.0,
+            'piston_body_roughness': 0.28,
+            'piston_rod_color': '#cccccc',
+            'piston_rod_warning_color': '#ff0000',
+            'piston_rod_metalness': 1.0,
+            'piston_rod_roughness': 0.28,
+            'joint_tail_color': '#0088ff',
+            'joint_arm_color': '#ff8800',
+            'joint_rod_ok_color': '#00ff44',
+            'joint_rod_error_color': '#ff0000',
+            'joint_metalness': 0.9,
+            'joint_roughness': 0.35,
+            
+            # Камера
+            'camera_fov': 45.0,
+            'camera_near': 10.0,
+            'camera_far': 50000.0,
+            'camera_speed': 1.0,
+            'auto_rotate': False,
+            'auto_rotate_speed': 0.5,
+            
+            # Эффекты - РАСШИРЕННЫЕ
+            'bloom_enabled': False,
+            'bloom_intensity': 0.3,
+            'bloom_threshold': 1.0,         # ✅ НОВОЕ: Порог Bloom
+            'ssao_enabled': False,
+            'ssao_intensity': 0.5,
+            'ssao_radius': 8.0,             # ✅ НОВОЕ: Радиус SSAO
+            'motion_blur': False,
+            'depth_of_field': False,
+            'dof_focus_distance': 2000,     # ✅ НОВОЕ: Дистанция фокуса DoF
+            'dof_focus_range': 900,         # ✅ НОВОЕ: Диапазон фокуса DoF
+            
+            # Тонемаппинг
+            'tonemap_enabled': True,        # ✅ НОВОЕ: Тонемаппинг
+            'tonemap_mode': 3,              # ✅ НОВОЕ: Режим тонемаппинга (0=None, 1=Linear, 2=Reinhard, 3=Filmic)
+            
+            # Виньетирование
+            'vignette_enabled': True,       # ✅ НОВОЕ: Виньетирование
+            'vignette_strength': 0.45,      # ✅ НОВОЕ: Сила виньетирования
+            
+            # Lens Flare
+            'lens_flare_enabled': True,     # ✅ НОВОЕ: Lens Flare
+        }
         
         # Построение UI с вкладками
         self.setup_ui()
         
-        # ✅ УБРАНО: Автоматическая загрузка настроек
-        # Теперь пользователь должен вручную нажать кнопку "📂 Загрузить"
-        # self.load_settings()
+        # Загрузить сохраненные настройки
+        self.load_settings()
         
-        # ✅ ИСПРАВЛЕНО: Отправляем начальные настройки СРАЗУ без задержки!
+        # ✨ ИСПРАВЛЕНО: Отправляем начальные настройки графики в QML!
         print("🎨 GraphicsPanel: Отправка начальных настроек графики...")
         
-        # ✅ КРИТИЧЕСКИ ВАЖНО: Отправляем СРАЗУ, без QTimer!
-        # Это гарантирует что QML получит значения ДО первого клика
-        self.emit_lighting_update()
-        self.emit_material_update()
-        self.emit_environment_update()
-        self.emit_quality_update()
-        self.emit_camera_update()
-        self.emit_effects_update()
+        # Используем QTimer для отложенной отправки после полной инициализации UI
+        from PySide6.QtCore import QTimer
+        def send_initial_graphics():
+            print("⏰ QTimer: Отправка начальных настроек графики...")
+            
+            # Отправляем все типы настроек
+            self.emit_lighting_update()
+            self.emit_material_update()
+            self.emit_environment_update()
+            self.emit_quality_update()
+            self.emit_camera_update()
+            self.emit_effects_update()
+            
+            print(f"  ✅ Все начальные настройки графики отправлены!")
         
-        print(f"  ✅ Все начальные настройки графики отправлены СРАЗУ (без QTimer)!")
+        QTimer.singleShot(200, send_initial_graphics)  # Отправить через 200мс
         
         self.logger.info("GraphicsPanel инициализирована (РАСШИРЕННАЯ версия с полным набором параметров)")
     
@@ -118,10 +217,6 @@ class GraphicsPanel(QWidget):
         layout.setContentsMargins(5, 5, 5, 5)
         layout.setSpacing(10)
         
-        # ✅ ИСПРАВЛЕНО: Убираем максимальную ширину для адаптивности
-        self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding) 
-        # НЕ устанавливаем setMaximumWidth - пусть панель адаптируется к TabWidget
-        
         # Заголовок
         title = QLabel("🎨 Графика и визуализация")
         title.setStyleSheet("font-size: 16px; font-weight: bold; color: #2c5aa0; margin-bottom: 5px;")
@@ -130,8 +225,6 @@ class GraphicsPanel(QWidget):
         # Создать вкладки для разных категорий настроек
         self.tab_widget = QTabWidget()
         self.tab_widget.setTabPosition(QTabWidget.TabPosition.North)
-        # ✅ ИСПРАВЛЕНО: Улучшаем настройки внутреннего TabWidget
-        self.tab_widget.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         
         # Вкладка 1: Освещение
         lighting_tab = self.create_lighting_tab()
@@ -162,27 +255,14 @@ class GraphicsPanel(QWidget):
         """Создать вкладку освещения"""
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
-        # ✅ ИСПРАВЛЕНО: Разрешаем горизонтальную прокрутку когда нужно
-        scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
-        scroll.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
-        # ✅ ИСПРАВЛЕНО: Устанавливаем правильную политику размеров
-        scroll.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+        scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         
         widget = QWidget()
-        # ✅ ИСПРАВЛЕНО: Устанавливаем минимальную ширину для содержимого
-        widget.setMinimumWidth(500)  # Гарантируем минимальную ширину
-        widget.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         layout = QVBoxLayout(widget)
-        # ✅ ИСПРАВЛЕНО: Уменьшаем отступы для экономии места
-        layout.setContentsMargins(8, 8, 8, 8)
-        layout.setSpacing(8)
         
         # Key Light (основной свет)
         key_group = QGroupBox("🔆 Основной свет")
         key_layout = QGridLayout(key_group)
-        # ✅ ИСПРАВЛЕНО: Компактная сетка
-        key_layout.setContentsMargins(6, 6, 6, 6)
-        key_layout.setSpacing(4)
         
         # Яркость
         key_layout.addWidget(QLabel("Яркость:"), 0, 0)
@@ -190,15 +270,13 @@ class GraphicsPanel(QWidget):
         self.key_brightness.setRange(0.0, 10.0)
         self.key_brightness.setSingleStep(0.1)
         self.key_brightness.setDecimals(1)
-        self.key_brightness.setValue(self.current_graphics['keyLightBrightness'])
+        self.key_brightness.setValue(self.current_graphics['key_brightness'])
         self.key_brightness.valueChanged.connect(self.on_key_brightness_changed)
-        # ✅ ИСПРАВЛЕНО: Ограничиваем ширину элементов управления
-        self.key_brightness.setMaximumWidth(80)
         key_layout.addWidget(self.key_brightness, 0, 1)
         
         # Цвет
         key_layout.addWidget(QLabel("Цвет:"), 0, 2)
-        self.key_color = ColorButton(self.current_graphics['keyLightColor'])
+        self.key_color = ColorButton(self.current_graphics['key_color'])
         self.key_color.color_changed.connect(self.on_key_color_changed)
         key_layout.addWidget(self.key_color, 0, 3)
         
@@ -207,40 +285,35 @@ class GraphicsPanel(QWidget):
         self.key_angle_x = QSpinBox()
         self.key_angle_x.setRange(-90, 90)
         self.key_angle_x.setSuffix("°")
-        self.key_angle_x.setValue(self.current_graphics['keyLightAngleX'])
+        self.key_angle_x.setValue(self.current_graphics['key_angle_x'])
         self.key_angle_x.valueChanged.connect(self.on_key_angle_x_changed)
-        self.key_angle_x.setMaximumWidth(80)
         key_layout.addWidget(self.key_angle_x, 1, 1)
         
         key_layout.addWidget(QLabel("Поворот Y:"), 1, 2)
         self.key_angle_y = QSpinBox()
         self.key_angle_y.setRange(-180, 180)
         self.key_angle_y.setSuffix("°")
-        self.key_angle_y.setValue(self.current_graphics['keyLightAngleY'])
+        self.key_angle_y.setValue(self.current_graphics['key_angle_y'])
         self.key_angle_y.valueChanged.connect(self.on_key_angle_y_changed)
-        self.key_angle_y.setMaximumWidth(80)
         key_layout.addWidget(self.key_angle_y, 1, 3)
         
         layout.addWidget(key_group)
         
-        # Fill Light (заполняющий свет) - более компактно
+        # Fill Light (заполняющий свет)
         fill_group = QGroupBox("🔅 Заполняющий свет")
         fill_layout = QGridLayout(fill_group)
-        fill_layout.setContentsMargins(6, 6, 6, 6)
-        fill_layout.setSpacing(4)
         
         fill_layout.addWidget(QLabel("Яркость:"), 0, 0)
         self.fill_brightness = QDoubleSpinBox()
         self.fill_brightness.setRange(0.0, 5.0)
         self.fill_brightness.setSingleStep(0.1)
         self.fill_brightness.setDecimals(1)
-        self.fill_brightness.setValue(self.current_graphics['fillLightBrightness'])
+        self.fill_brightness.setValue(self.current_graphics['fill_brightness'])
         self.fill_brightness.valueChanged.connect(self.on_fill_brightness_changed)
-        self.fill_brightness.setMaximumWidth(80)
         fill_layout.addWidget(self.fill_brightness, 0, 1)
         
         fill_layout.addWidget(QLabel("Цвет:"), 0, 2)
-        self.fill_color = ColorButton(self.current_graphics['fillLightColor'])
+        self.fill_color = ColorButton(self.current_graphics['fill_color'])
         self.fill_color.color_changed.connect(self.on_fill_color_changed)
         fill_layout.addWidget(self.fill_color, 0, 3)
         
@@ -249,39 +322,33 @@ class GraphicsPanel(QWidget):
         # Rim Light (контровой свет)
         rim_group = QGroupBox("✨ Контровой свет")
         rim_layout = QGridLayout(rim_group)
-        rim_layout.setContentsMargins(6, 6, 6, 6)
-        rim_layout.setSpacing(4)
 
         rim_layout.addWidget(QLabel("Яркость:"), 0, 0)
         self.rim_brightness = QDoubleSpinBox()
         self.rim_brightness.setRange(0.0, 5.0)
         self.rim_brightness.setSingleStep(0.1)
         self.rim_brightness.setDecimals(1)
-        self.rim_brightness.setValue(self.current_graphics['rimBrightness'])
+        self.rim_brightness.setValue(self.current_graphics['rim_brightness'])
         self.rim_brightness.valueChanged.connect(self.on_rim_brightness_changed)
-        self.rim_brightness.setMaximumWidth(80)
         rim_layout.addWidget(self.rim_brightness, 0, 1)
 
         rim_layout.addWidget(QLabel("Цвет:"), 0, 2)
-        self.rim_color = ColorButton(self.current_graphics['rimColor'])
+        self.rim_color = ColorButton(self.current_graphics['rim_color'])
         self.rim_color.color_changed.connect(self.on_rim_color_changed)
         rim_layout.addWidget(self.rim_color, 0, 3)
 
         layout.addWidget(rim_group)
 
-        # Point Light (точечный свет) - более компактно
+        # Point Light (точечный свет)
         point_group = QGroupBox("⚡ Точечный свет")
         point_layout = QGridLayout(point_group)
-        point_layout.setContentsMargins(6, 6, 6, 6)
-        point_layout.setSpacing(4)
         
         point_layout.addWidget(QLabel("Яркость:"), 0, 0)
         self.point_brightness = QSpinBox()
         self.point_brightness.setRange(0, 100000)
         self.point_brightness.setSingleStep(1000)
-        self.point_brightness.setValue(int(self.current_graphics['pointLightBrightness']))
+        self.point_brightness.setValue(int(self.current_graphics['point_brightness']))
         self.point_brightness.valueChanged.connect(self.on_point_brightness_changed)
-        self.point_brightness.setMaximumWidth(90)
         point_layout.addWidget(self.point_brightness, 0, 1)
         
         point_layout.addWidget(QLabel("Высота:"), 0, 2)
@@ -289,13 +356,12 @@ class GraphicsPanel(QWidget):
         self.point_y.setRange(0, 5000)
         self.point_y.setSingleStep(100)
         self.point_y.setSuffix("мм")
-        self.point_y.setValue(int(self.current_graphics['pointLightY']))
+        self.point_y.setValue(int(self.current_graphics['point_y']))
         self.point_y.valueChanged.connect(self.on_point_y_changed)
-        self.point_y.setMaximumWidth(90)
         point_layout.addWidget(self.point_y, 0, 3)
 
         point_layout.addWidget(QLabel("Цвет:"), 1, 0)
-        self.point_color = ColorButton(self.current_graphics['pointLightColor'])
+        self.point_color = ColorButton(self.current_graphics['point_color'])
         self.point_color.color_changed.connect(self.on_point_color_changed)
         point_layout.addWidget(self.point_color, 1, 1)
 
@@ -304,9 +370,8 @@ class GraphicsPanel(QWidget):
         self.point_fade.setRange(0.0, 0.0010)
         self.point_fade.setSingleStep(0.00001)
         self.point_fade.setDecimals(5)
-        self.point_fade.setValue(self.current_graphics['pointFade'])
+        self.point_fade.setValue(self.current_graphics['point_fade'])
         self.point_fade.valueChanged.connect(self.on_point_fade_changed)
-        self.point_fade.setMaximumWidth(90)
         point_layout.addWidget(self.point_fade, 1, 3)
 
         layout.addWidget(point_group)
@@ -314,8 +379,6 @@ class GraphicsPanel(QWidget):
         # Пресеты освещения
         presets_group = QGroupBox("🎭 Пресеты освещения")
         presets_layout = QHBoxLayout(presets_group)
-        presets_layout.setContentsMargins(6, 6, 6, 6)
-        presets_layout.setSpacing(4)
         
         day_btn = QPushButton("☀️ День")
         day_btn.clicked.connect(lambda: self.apply_preset('day'))
@@ -339,26 +402,15 @@ class GraphicsPanel(QWidget):
         """Создать вкладку настроек материалов"""
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
-        # ✅ ИСПРАВЛЕНО: Разрешаем горизонтальную прокрутку для широкого содержимого
-        scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
-        scroll.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
-        scroll.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+        scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         
         widget = QWidget()
-        # ✅ КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Устанавливаем фиксированную минимальную ширину для материалов
-        widget.setMinimumWidth(600)  # Материалы нуждаются в большей ширине
-        widget.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         layout = QVBoxLayout(widget)
-        layout.setContentsMargins(8, 8, 8, 8)
-        layout.setSpacing(8)
         
         # Металлические части
         metal_group = QGroupBox("🔩 Металлические части")
         metal_layout = QGridLayout(metal_group)
-        metal_layout.setContentsMargins(6, 6, 6, 6)
-        metal_layout.setSpacing(4)
         
-        # ✅ ИСПРАВЛЕНО: Более компактная компоновка - 2 колонки вместо 4
         # Шероховатость металла
         metal_layout.addWidget(QLabel("Шероховатость:"), 0, 0)
         self.metal_roughness = QDoubleSpinBox()
@@ -367,38 +419,33 @@ class GraphicsPanel(QWidget):
         self.metal_roughness.setDecimals(2)
         self.metal_roughness.setValue(self.current_graphics['metal_roughness'])
         self.metal_roughness.valueChanged.connect(self.on_metal_roughness_changed)
-        self.metal_roughness.setMaximumWidth(80)
         metal_layout.addWidget(self.metal_roughness, 0, 1)
         
         # Металличность
-        metal_layout.addWidget(QLabel("Металличность:"), 1, 0)
+        metal_layout.addWidget(QLabel("Металличность:"), 0, 2)
         self.metal_metalness = QDoubleSpinBox()
         self.metal_metalness.setRange(0.0, 1.0)
         self.metal_metalness.setSingleStep(0.1)
         self.metal_metalness.setDecimals(1)
         self.metal_metalness.setValue(self.current_graphics['metal_metalness'])
         self.metal_metalness.valueChanged.connect(self.on_metal_metalness_changed)
-        self.metal_metalness.setMaximumWidth(80)
-        metal_layout.addWidget(self.metal_metalness, 1, 1)
+        metal_layout.addWidget(self.metal_metalness, 0, 3)
         
         # Прозрачное покрытие
-        metal_layout.addWidget(QLabel("Покрытие:"), 2, 0)
+        metal_layout.addWidget(QLabel("Покрытие:"), 1, 0)
         self.metal_clearcoat = QDoubleSpinBox()
         self.metal_clearcoat.setRange(0.0, 1.0)
         self.metal_clearcoat.setSingleStep(0.05)
         self.metal_clearcoat.setDecimals(2)
         self.metal_clearcoat.setValue(self.current_graphics['metal_clearcoat'])
         self.metal_clearcoat.valueChanged.connect(self.on_metal_clearcoat_changed)
-        self.metal_clearcoat.setMaximumWidth(80)
-        metal_layout.addWidget(self.metal_clearcoat, 2, 1)
+        metal_layout.addWidget(self.metal_clearcoat, 1, 1)
         
         layout.addWidget(metal_group)
         
         # ✅ РАСШИРЕННЫЕ Стеклянные части (с коэффициентом преломления!)
         glass_group = QGroupBox("🪟 Стеклянные части")
         glass_layout = QGridLayout(glass_group)
-        glass_layout.setContentsMargins(6, 6, 6, 6)
-        glass_layout.setSpacing(4)
         
         # Прозрачность стекла
         glass_layout.addWidget(QLabel("Прозрачность:"), 0, 0)
@@ -408,22 +455,20 @@ class GraphicsPanel(QWidget):
         self.glass_opacity.setDecimals(2)
         self.glass_opacity.setValue(self.current_graphics['glass_opacity'])
         self.glass_opacity.valueChanged.connect(self.on_glass_opacity_changed)
-        self.glass_opacity.setMaximumWidth(80)
         glass_layout.addWidget(self.glass_opacity, 0, 1)
         
         # Шероховатость стекла
-        glass_layout.addWidget(QLabel("Шероховатость:"), 1, 0)
+        glass_layout.addWidget(QLabel("Шероховатость:"), 0, 2)
         self.glass_roughness = QDoubleSpinBox()
         self.glass_roughness.setRange(0.0, 1.0)
         self.glass_roughness.setSingleStep(0.05)
         self.glass_roughness.setDecimals(2)
         self.glass_roughness.setValue(self.current_graphics['glass_roughness']);
         self.glass_roughness.valueChanged.connect(self.on_glass_roughness_changed)
-        self.glass_roughness.setMaximumWidth(80)
-        glass_layout.addWidget(self.glass_roughness, 1, 1)
+        glass_layout.addWidget(self.glass_roughness, 0, 3)
         
         # ✅ НОВОЕ: Коэффициент преломления (IOR) - КРИТИЧЕСКИ ВАЖНО!
-        glass_layout.addWidget(QLabel("Преломление (IOR):"), 2, 0)
+        glass_layout.addWidget(QLabel("Преломление (IOR):"), 1, 0)
         self.glass_ior = QDoubleSpinBox()
         self.glass_ior.setRange(1.0, 3.0)
         self.glass_ior.setSingleStep(0.01)
@@ -431,154 +476,120 @@ class GraphicsPanel(QWidget):
         self.glass_ior.setValue(self.current_graphics['glass_ior'])
         self.glass_ior.valueChanged.connect(self.on_glass_ior_changed)
         self.glass_ior.setToolTip("Коэффициент преломления: Воздух=1.0, Вода=1.33, Стекло=1.52, Алмаз=2.42")
-        self.glass_ior.setMaximumWidth(80)
-        glass_layout.addWidget(self.glass_ior, 2, 1)
+        glass_layout.addWidget(self.glass_ior, 1, 1)
         
-        # Подсказка для IOR - в отдельной строке
+        # Подсказка для IOR
         ior_hint = QLabel("💡 Стекло: 1.52, Вода: 1.33, Воздух: 1.0")
         ior_hint.setStyleSheet("color: #666; font-size: 10px; font-style: italic;")
-        ior_hint.setWordWrap(True)  # Перенос строк
-        glass_layout.addWidget(ior_hint, 3, 0, 1, 2)
+        glass_layout.addWidget(ior_hint, 1, 2, 1, 2)
         
         layout.addWidget(glass_group)
         
-        # Рама и кузов - вертикальная компоновка
+        # Рама и кузов
         frame_group = QGroupBox("🏗️ Рама и кузов")
-        frame_layout = QVBoxLayout(frame_group)  # Используем VBox вместо Grid
-        frame_layout.setContentsMargins(6, 6, 6, 6)
-        frame_layout.setSpacing(4)
+        frame_layout = QGridLayout(frame_group)
 
-        # Цвет рамы - горизонтальная группа
-        color_layout = QHBoxLayout()
-        color_layout.addWidget(QLabel("Цвет:"))
+        # Цвет рамы
+        frame_layout.addWidget(QLabel("Цвет:"), 0, 0)
         self.frame_color = ColorButton(self.current_graphics['frame_color'])
         self.frame_color.color_changed.connect(self.on_frame_color_changed)
-        color_layout.addWidget(self.frame_color)
-        
+        frame_layout.addWidget(self.frame_color, 0, 1)
+
         reset_frame_color = QPushButton("Сброс")
         reset_frame_color.setMaximumWidth(60)
         reset_frame_color.clicked.connect(lambda: self.reset_material_color(self.frame_color, 'frame_color', '#cc0000'))
-        color_layout.addWidget(reset_frame_color)
-        color_layout.addStretch()
-        frame_layout.addLayout(color_layout)
+        frame_layout.addWidget(reset_frame_color, 0, 2)
 
-        # Металличность и шероховатость - горизонтальная группа
-        props_layout = QHBoxLayout()
-        props_layout.addWidget(QLabel("Металличность:"))
+        # Металличность рамы
+        frame_layout.addWidget(QLabel("Металличность:"), 1, 0)
         self.frame_metalness = QDoubleSpinBox()
         self.frame_metalness.setRange(0.0, 1.0)
         self.frame_metalness.setSingleStep(0.1)
         self.frame_metalness.setDecimals(1)
         self.frame_metalness.setValue(self.current_graphics['frame_metalness'])
         self.frame_metalness.valueChanged.connect(self.on_frame_metalness_changed)
-        self.frame_metalness.setMaximumWidth(70)
-        props_layout.addWidget(self.frame_metalness)
-        
-        props_layout.addWidget(QLabel("Шероховатость:"))
+        frame_layout.addWidget(self.frame_metalness, 1, 1)
+
+        # Шероховатость рамы
+        frame_layout.addWidget(QLabel("Шероховатость:"), 1, 2)
         self.frame_roughness = QDoubleSpinBox()
         self.frame_roughness.setRange(0.0, 1.0)
         self.frame_roughness.setSingleStep(0.1)
         self.frame_roughness.setDecimals(1)
         self.frame_roughness.setValue(self.current_graphics['frame_roughness'])
         self.frame_roughness.valueChanged.connect(self.on_frame_roughness_changed)
-        self.frame_roughness.setMaximumWidth(70)
-        props_layout.addWidget(self.frame_roughness)
-        props_layout.addStretch()
-        frame_layout.addLayout(props_layout)
+        frame_layout.addWidget(self.frame_roughness, 1, 3)
 
-        # Покрытие - горизонтальная группа
-        coating_layout = QHBoxLayout()
-        coating_layout.addWidget(QLabel("Покрытие:"))
+        # Прозрачное покрытие для рамы
+        frame_layout.addWidget(QLabel("Покрытие:"), 2, 0)
         self.frame_clearcoat = QDoubleSpinBox()
         self.frame_clearcoat.setRange(0.0, 1.0)
         self.frame_clearcoat.setSingleStep(0.05)
         self.frame_clearcoat.setDecimals(2)
         self.frame_clearcoat.setValue(self.current_graphics['frame_clearcoat'])
         self.frame_clearcoat.valueChanged.connect(self.on_frame_clearcoat_changed)
-        self.frame_clearcoat.setMaximumWidth(70)
-        coating_layout.addWidget(self.frame_clearcoat)
+        frame_layout.addWidget(self.frame_clearcoat, 2, 1)
 
-        coating_layout.addWidget(QLabel("Шероховатость покрытия:"))
+        frame_layout.addWidget(QLabel("Шероховатость покрытия:"), 2, 2)
         self.frame_clearcoat_roughness = QDoubleSpinBox()
         self.frame_clearcoat_roughness.setRange(0.0, 1.0)
         self.frame_clearcoat_roughness.setSingleStep(0.05)
         self.frame_clearcoat_roughness.setDecimals(2)
         self.frame_clearcoat_roughness.setValue(self.current_graphics['frame_clearcoat_roughness'])
         self.frame_clearcoat_roughness.valueChanged.connect(self.on_frame_clearcoat_roughness_changed)
-        self.frame_clearcoat_roughness.setMaximumWidth(70)
-        coating_layout.addWidget(self.frame_clearcoat_roughness)
-        coating_layout.addStretch()
-        frame_layout.addLayout(coating_layout)
+        frame_layout.addWidget(self.frame_clearcoat_roughness, 2, 3)
 
         layout.addWidget(frame_group)
 
-        # Рычаги - вертикальная компоновка
+        # Рычаги
         lever_group = QGroupBox("🦾 Рычаги")
-        lever_layout = QVBoxLayout(lever_group)
-        lever_layout.setContentsMargins(6, 6, 6, 6)
-        lever_layout.setSpacing(4)
+        lever_layout = QGridLayout(lever_group)
 
-        # Цвет рычага - горизонтальная группа
-        lever_color_layout = QHBoxLayout()
-        lever_color_layout.addWidget(QLabel("Цвет:"))
+        lever_layout.addWidget(QLabel("Цвет:"), 0, 0)
         self.lever_color = ColorButton(self.current_graphics['lever_color'])
         self.lever_color.color_changed.connect(self.on_lever_color_changed)
-        lever_color_layout.addWidget(self.lever_color)
-        
+        lever_layout.addWidget(self.lever_color, 0, 1)
+
         reset_lever_color = QPushButton("Сброс")
         reset_lever_color.setMaximumWidth(60)
         reset_lever_color.clicked.connect(lambda: self.reset_material_color(self.lever_color, 'lever_color', '#888888'))
-        lever_color_layout.addWidget(reset_lever_color)
-        lever_color_layout.addStretch()
-        lever_layout.addLayout(lever_color_layout)
+        lever_layout.addWidget(reset_lever_color, 0, 2)
 
-        # Металличность и шероховатость - горизонтальная группа
-        lever_props_layout = QHBoxLayout()
-        lever_props_layout.addWidget(QLabel("Металличность:"))
+        lever_layout.addWidget(QLabel("Металличность:"), 1, 0)
         self.lever_metalness = QDoubleSpinBox()
         self.lever_metalness.setRange(0.0, 1.0)
         self.lever_metalness.setSingleStep(0.1)
         self.lever_metalness.setDecimals(1)
         self.lever_metalness.setValue(self.current_graphics['lever_metalness'])
         self.lever_metalness.valueChanged.connect(self.on_lever_metalness_changed)
-        self.lever_metalness.setMaximumWidth(70)
-        lever_props_layout.addWidget(self.lever_metalness)
-        
-        lever_props_layout.addWidget(QLabel("Шероховатость:"))
+        lever_layout.addWidget(self.lever_metalness, 1, 1)
+
+        lever_layout.addWidget(QLabel("Шероховатость:"), 1, 2)
         self.lever_roughness = QDoubleSpinBox()
         self.lever_roughness.setRange(0.0, 1.0)
-        self.lever_roughness.setSingleStep(0.1)
-        self.lever_roughness.setDecimals(1)
+        self.lever_roughness.setSingleStep(0.05)
+        self.lever_roughness.setDecimals(2)
         self.lever_roughness.setValue(self.current_graphics['lever_roughness'])
         self.lever_roughness.valueChanged.connect(self.on_lever_roughness_changed)
-        self.lever_roughness.setMaximumWidth(70)
-        lever_props_layout.addWidget(self.lever_roughness)
-        lever_props_layout.addStretch()
-        lever_layout.addLayout(lever_props_layout)
+        lever_layout.addWidget(self.lever_roughness, 1, 3)
 
-        # Покрытие - горизонтальная группа
-        lever_coating_layout = QHBoxLayout()
-        lever_coating_layout.addWidget(QLabel("Покрытие:"))
+        lever_layout.addWidget(QLabel("Покрытие:"), 2, 0)
         self.lever_clearcoat = QDoubleSpinBox()
         self.lever_clearcoat.setRange(0.0, 1.0)
         self.lever_clearcoat.setSingleStep(0.05)
         self.lever_clearcoat.setDecimals(2)
         self.lever_clearcoat.setValue(self.current_graphics['lever_clearcoat'])
         self.lever_clearcoat.valueChanged.connect(self.on_lever_clearcoat_changed)
-        self.lever_clearcoat.setMaximumWidth(70)
-        lever_coating_layout.addWidget(self.lever_clearcoat)
+        lever_layout.addWidget(self.lever_clearcoat, 2, 1)
 
-        lever_coating_layout.addWidget(QLabel("Шероховатость покрытия:"))
+        lever_layout.addWidget(QLabel("Шероховатость покрытия:"), 2, 2)
         self.lever_clearcoat_roughness = QDoubleSpinBox()
         self.lever_clearcoat_roughness.setRange(0.0, 1.0)
         self.lever_clearcoat_roughness.setSingleStep(0.05)
         self.lever_clearcoat_roughness.setDecimals(2)
         self.lever_clearcoat_roughness.setValue(self.current_graphics['lever_clearcoat_roughness'])
         self.lever_clearcoat_roughness.valueChanged.connect(self.on_lever_clearcoat_roughness_changed)
-        self.lever_clearcoat_roughness.setMaximumWidth(70)
-        lever_coating_layout.addWidget(self.lever_clearcoat_roughness)
-        lever_coating_layout.addStretch()
-        lever_layout.addLayout(lever_coating_layout)
+        lever_layout.addWidget(self.lever_clearcoat_roughness, 2, 3)
 
         layout.addWidget(lever_group)
 
@@ -766,27 +777,247 @@ class GraphicsPanel(QWidget):
         scroll.setWidget(widget)
         return scroll
     
+    def create_effects_tab(self):
+        """Создать вкладку визуальных эффектов (РАСШИРЕННАЯ)"""
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        
+        widget = QWidget()
+        layout = QVBoxLayout(widget)
+        
+        # ✅ РАСШИРЕННЫЕ Пост-эффекты
+        post_group = QGroupBox("✨ Пост-эффекты")
+        post_layout = QGridLayout(post_group)
+        
+        # Bloom (свечение)
+        self.bloom_enabled = QCheckBox("Bloom (свечение)")
+        self.bloom_enabled.setChecked(self.current_graphics['bloom_enabled'])
+        self.bloom_enabled.toggled.connect(self.on_bloom_toggled)
+        post_layout.addWidget(self.bloom_enabled, 0, 0, 1, 2)
+        
+        # Интенсивность bloom
+        post_layout.addWidget(QLabel("Интенсивность:"), 0, 2)
+        self.bloom_intensity = QDoubleSpinBox()
+        self.bloom_intensity.setRange(0.0, 2.0)
+        self.bloom_intensity.setSingleStep(0.1)
+        self.bloom_intensity.setDecimals(1)
+        self.bloom_intensity.setValue(self.current_graphics['bloom_intensity'])
+        self.bloom_intensity.valueChanged.connect(self.on_bloom_intensity_changed)
+        post_layout.addWidget(self.bloom_intensity, 0, 3)
+        
+        # ✅ НОВОЕ: Порог Bloom
+        post_layout.addWidget(QLabel("Порог Bloom:"), 0, 4)
+        self.bloom_threshold = QDoubleSpinBox()
+        self.bloom_threshold.setRange(0.0, 3.0)
+        self.bloom_threshold.setSingleStep(0.1)
+        self.bloom_threshold.setDecimals(1)
+        self.bloom_threshold.setValue(self.current_graphics['bloom_threshold'])
+        self.bloom_threshold.valueChanged.connect(self.on_bloom_threshold_changed)
+        post_layout.addWidget(self.bloom_threshold, 0, 5)
+        
+        # SSAO (Screen Space Ambient Occlusion)
+        self.ssao_enabled = QCheckBox("SSAO (затенение)")
+        self.ssao_enabled.setChecked(self.current_graphics['ssao_enabled'])
+        self.ssao_enabled.toggled.connect(self.on_ssao_toggled)
+        post_layout.addWidget(self.ssao_enabled, 1, 0, 1, 2)
+        
+        # Интенсивность SSAO
+        post_layout.addWidget(QLabel("Интенсивность:"), 1, 2)
+        self.ssao_intensity = QDoubleSpinBox()
+        self.ssao_intensity.setRange(0.0, 2.0)
+        self.ssao_intensity.setSingleStep(0.1)
+        self.ssao_intensity.setDecimals(1)
+        self.ssao_intensity.setValue(self.current_graphics['ssao_intensity'])
+        self.ssao_intensity.valueChanged.connect(self.on_ssao_intensity_changed)
+        post_layout.addWidget(self.ssao_intensity, 1, 3)
+        
+        # ✅ НОВОЕ: Радиус SSAO
+        post_layout.addWidget(QLabel("Радиус SSAO:"), 1, 4)
+        self.ssao_radius = QDoubleSpinBox()
+        self.ssao_radius.setRange(1.0, 20.0)
+        self.ssao_radius.setSingleStep(1.0)
+        self.ssao_radius.setDecimals(1)
+        self.ssao_radius.setValue(self.current_graphics['ssao_radius'])
+        self.ssao_radius.valueChanged.connect(self.on_ssao_radius_changed)
+        post_layout.addWidget(self.ssao_radius, 1, 5)
+        
+        # Motion Blur
+        self.motion_blur = QCheckBox("Motion Blur (размытие движения)")
+        self.motion_blur.setChecked(self.current_graphics['motion_blur'])
+        self.motion_blur.toggled.connect(self.on_motion_blur_toggled)
+        post_layout.addWidget(self.motion_blur, 2, 0, 1, 6)
+        
+        # Depth of Field
+        self.depth_of_field = QCheckBox("Depth of Field (глубина резкости)")
+        self.depth_of_field.setChecked(self.current_graphics['depth_of_field'])
+        self.depth_of_field.toggled.connect(self.on_depth_of_field_toggled)
+        post_layout.addWidget(self.depth_of_field, 3, 0, 1, 2)
+        
+        # ✅ НОВОЕ: Дистанция фокуса DoF
+        post_layout.addWidget(QLabel("Дистанция фокуса:"), 3, 2)
+        self.dof_focus_distance = QSpinBox()
+        self.dof_focus_distance.setRange(100, 10000)
+        self.dof_focus_distance.setSingleStep(100)
+        self.dof_focus_distance.setSuffix("мм")
+        self.dof_focus_distance.setValue(int(self.current_graphics['dof_focus_distance']))
+        self.dof_focus_distance.valueChanged.connect(self.on_dof_focus_distance_changed)
+        post_layout.addWidget(self.dof_focus_distance, 3, 3)
+        
+        # ✅ НОВОЕ: Диапазон фокуса DoF
+        post_layout.addWidget(QLabel("Диапазон фокуса:"), 3, 4)
+        self.dof_focus_range = QSpinBox()
+        self.dof_focus_range.setRange(100, 5000)
+        self.dof_focus_range.setSingleStep(100)
+        self.dof_focus_range.setSuffix("мм")
+        self.dof_focus_range.setValue(int(self.current_graphics['dof_focus_range']))
+        self.dof_focus_range.valueChanged.connect(self.on_dof_focus_range_changed)
+        post_layout.addWidget(self.dof_focus_range, 3, 5)
+        
+        layout.addWidget(post_group)
+        
+        # ✅ НОВОЕ: Тонемаппинг группа
+        tonemap_group = QGroupBox("🎨 Тонемаппинг")
+        tonemap_layout = QGridLayout(tonemap_group)
+        
+        # Включение тонемаппинга
+        self.tonemap_enabled = QCheckBox("Включить тонемаппинг")
+        self.tonemap_enabled.setChecked(self.current_graphics['tonemap_enabled'])
+        self.tonemap_enabled.toggled.connect(self.on_tonemap_toggled)
+        tonemap_layout.addWidget(self.tonemap_enabled, 0, 0, 1, 2)
+        
+        # Режим тонемаппинга
+        tonemap_layout.addWidget(QLabel("Режим:"), 0, 2)
+        self.tonemap_mode = QComboBox()
+        self.tonemap_mode.addItems(["None", "Linear", "Reinhard", "Filmic"])
+        self.tonemap_mode.setCurrentIndex(self.current_graphics['tonemap_mode'])
+        self.tonemap_mode.currentIndexChanged.connect(self.on_tonemap_mode_changed)
+        tonemap_layout.addWidget(self.tonemap_mode, 0, 3)
+        
+        layout.addWidget(tonemap_group)
+        
+        # ✅ НОВОЕ: Виньетирование группа
+        vignette_group = QGroupBox("🖼️ Виньетирование")
+        vignette_layout = QGridLayout(vignette_group)
+        
+        # Включение виньетирования
+        self.vignette_enabled = QCheckBox("Включить виньетирование")
+        self.vignette_enabled.setChecked(self.current_graphics['vignette_enabled'])
+        self.vignette_enabled.toggled.connect(self.on_vignette_toggled)
+        vignette_layout.addWidget(self.vignette_enabled, 0, 0, 1, 2)
+        
+        # Сила виньетирования
+        vignette_layout.addWidget(QLabel("Сила:"), 0, 2)
+        self.vignette_strength = QDoubleSpinBox()
+        self.vignette_strength.setRange(0.0, 1.0)
+        self.vignette_strength.setSingleStep(0.05)
+        self.vignette_strength.setDecimals(2)
+        self.vignette_strength.setValue(self.current_graphics['vignette_strength'])
+        self.vignette_strength.valueChanged.connect(self.on_vignette_strength_changed)
+        vignette_layout.addWidget(self.vignette_strength, 0, 3)
+        
+        layout.addWidget(vignette_group)
+        
+        # ✅ НОВОЕ: Дополнительные эффекты группа
+        additional_group = QGroupBox("🌟 Дополнительные эффекты")
+        additional_layout = QGridLayout(additional_group)
+        
+        # Lens Flare
+        self.lens_flare_enabled = QCheckBox("Lens Flare (блики)")
+        self.lens_flare_enabled.setChecked(self.current_graphics['lens_flare_enabled'])
+        self.lens_flare_enabled.toggled.connect(self.on_lens_flare_toggled)
+        additional_layout.addWidget(self.lens_flare_enabled, 0, 0, 1, 4)
+        
+        layout.addWidget(additional_group)
+        
+        layout.addStretch()
+        scroll.setWidget(widget)
+        return scroll
+    
+    def create_camera_tab(self):
+        """Создать вкладку настроек камеры"""
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+
+        widget = QWidget()
+        layout = QVBoxLayout(widget)
+
+        cam_group = QGroupBox("📷 Камера")
+        cam_layout = QGridLayout(cam_group)
+
+        # FOV
+        cam_layout.addWidget(QLabel("Поле зрения (FOV):"), 0, 0)
+        self.camera_fov = QDoubleSpinBox()
+        self.camera_fov.setRange(1.0, 120.0)
+        self.camera_fov.setSingleStep(1.0)
+        self.camera_fov.setDecimals(1)
+        self.camera_fov.setValue(self.current_graphics.get('camera_fov', 45.0))
+        self.camera_fov.valueChanged.connect(self.on_camera_fov_changed)
+        cam_layout.addWidget(self.camera_fov, 0, 1)
+
+        # Near
+        cam_layout.addWidget(QLabel("Ближняя плоскость (near):"), 1, 0)
+        self.camera_near = QDoubleSpinBox()
+        self.camera_near.setRange(0.1, 1000.0)
+        self.camera_near.setSingleStep(0.1)
+        self.camera_near.setDecimals(1)
+        self.camera_near.setValue(self.current_graphics.get('camera_near', 10.0))
+        self.camera_near.valueChanged.connect(self.on_camera_near_changed)
+        cam_layout.addWidget(self.camera_near, 1, 1)
+
+        # Far
+        cam_layout.addWidget(QLabel("Дальняя плоскость (far):"), 2, 0)
+        self.camera_far = QSpinBox()
+        self.camera_far.setRange(100, 1000000)
+        self.camera_far.setSingleStep(100)
+        self.camera_far.setValue(int(self.current_graphics.get('camera_far', 50000)))
+        self.camera_far.valueChanged.connect(self.on_camera_far_changed)
+        cam_layout.addWidget(self.camera_far, 2, 1)
+
+        # Camera speed
+        cam_layout.addWidget(QLabel("Скорость камеры:"), 3, 0)
+        self.camera_speed = QDoubleSpinBox()
+        self.camera_speed.setRange(0.01, 10.0)
+        self.camera_speed.setSingleStep(0.1)
+        self.camera_speed.setDecimals(2)
+        self.camera_speed.setValue(self.current_graphics.get('camera_speed', 1.0))
+        self.camera_speed.valueChanged.connect(self.on_camera_speed_changed)
+        cam_layout.addWidget(self.camera_speed, 3, 1)
+
+        # Auto-rotate
+        self.auto_rotate = QCheckBox("Автовращение")
+        self.auto_rotate.setChecked(self.current_graphics.get('auto_rotate', False))
+        self.auto_rotate.toggled.connect(self.on_auto_rotate_toggled)
+        cam_layout.addWidget(self.auto_rotate, 4, 0, 1, 2)
+
+        # Auto-rotate speed
+        cam_layout.addWidget(QLabel("Скорость автовращения:"), 5, 0)
+        self.auto_rotate_speed = QDoubleSpinBox()
+        self.auto_rotate_speed.setRange(0.01, 10.0)
+        self.auto_rotate_speed.setSingleStep(0.1)
+        self.auto_rotate_speed.setDecimals(2)
+        self.auto_rotate_speed.setValue(self.current_graphics.get('auto_rotate_speed', 0.5))
+        self.auto_rotate_speed.valueChanged.connect(self.on_auto_rotate_speed_changed)
+        cam_layout.addWidget(self.auto_rotate_speed, 5, 1)
+
+        layout.addWidget(cam_group)
+        layout.addStretch()
+        scroll.setWidget(widget)
+        return scroll
+
     def create_environment_tab(self):
         """Создать вкладку настроек окружения"""
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
-        # ✅ ИСПРАВЛЕНО: Разрешаем горизонтальную прокрутку
-        scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
-        scroll.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
-        scroll.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+        scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         
         widget = QWidget()
-        widget.setMinimumWidth(480)  # Минимальная ширина для окружения
-        widget.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         layout = QVBoxLayout(widget)
-        layout.setContentsMargins(8, 8, 8, 8)
-        layout.setSpacing(8)
         
         # ✅ IBL (Image Based Lighting)
         ibl_group = QGroupBox("🌟 IBL (Image Based Lighting)")
         ibl_layout = QGridLayout(ibl_group)
-        ibl_layout.setContentsMargins(6, 6, 6, 6)
-        ibl_layout.setSpacing(4)
         
         # Включение IBL
         self.ibl_enabled = QCheckBox("Включить IBL")
@@ -802,7 +1033,6 @@ class GraphicsPanel(QWidget):
         self.ibl_intensity.setDecimals(1)
         self.ibl_intensity.setValue(self.current_graphics['ibl_intensity'])
         self.ibl_intensity.valueChanged.connect(self.on_ibl_intensity_changed)
-        self.ibl_intensity.setMaximumWidth(80)
         ibl_layout.addWidget(self.ibl_intensity, 1, 1)
         
         layout.addWidget(ibl_group)
@@ -810,8 +1040,6 @@ class GraphicsPanel(QWidget):
         # Фон
         bg_group = QGroupBox("🎨 Фон")
         bg_layout = QGridLayout(bg_group)
-        bg_layout.setContentsMargins(6, 6, 6, 6)
-        bg_layout.setSpacing(4)
         
         bg_layout.addWidget(QLabel("Цвет фона:"), 0, 0)
         self.background_color = ColorButton(self.current_graphics['background_color'])
@@ -831,7 +1059,6 @@ class GraphicsPanel(QWidget):
         self.skybox_blur.setDecimals(1)
         self.skybox_blur.setValue(self.current_graphics['skybox_blur'])
         self.skybox_blur.valueChanged.connect(self.on_skybox_blur_changed)
-        self.skybox_blur.setMaximumWidth(80)
         bg_layout.addWidget(self.skybox_blur, 1, 2)
         
         layout.addWidget(bg_group)
@@ -839,8 +1066,6 @@ class GraphicsPanel(QWidget):
         # Туман
         fog_group = QGroupBox("🌫️ Туман")
         fog_layout = QGridLayout(fog_group)
-        fog_layout.setContentsMargins(6, 6, 6, 6)
-        fog_layout.setSpacing(4)
         
         self.fog_enabled = QCheckBox("Включить туман")
         self.fog_enabled.setChecked(self.current_graphics['fog_enabled'])
@@ -859,7 +1084,6 @@ class GraphicsPanel(QWidget):
         self.fog_density.setDecimals(2)
         self.fog_density.setValue(self.current_graphics['fog_density'])
         self.fog_density.valueChanged.connect(self.on_fog_density_changed)
-        self.fog_density.setMaximumWidth(80)
         fog_layout.addWidget(self.fog_density, 2, 1)
         
         layout.addWidget(fog_group)
@@ -867,8 +1091,6 @@ class GraphicsPanel(QWidget):
         # ✅ Качество рендеринга
         quality_group = QGroupBox("⚙️ Качество рендеринга")
         quality_layout = QGridLayout(quality_group)
-        quality_layout.setContentsMargins(6, 6, 6, 6)
-        quality_layout.setSpacing(4)
         
         # Antialiasing
         quality_layout.addWidget(QLabel("Сглаживание:"), 0, 0)
@@ -876,33 +1098,30 @@ class GraphicsPanel(QWidget):
         self.antialiasing.addItems(["Нет", "SSAA", "MSAA"])
         self.antialiasing.setCurrentIndex(self.current_graphics['antialiasing'])
         self.antialiasing.currentIndexChanged.connect(self.on_antialiasing_changed)
-        self.antialiasing.setMaximumWidth(100)
         quality_layout.addWidget(self.antialiasing, 0, 1)
         
-        quality_layout.addWidget(QLabel("Качество AA:"), 1, 0)
+        quality_layout.addWidget(QLabel("Качество AA:"), 0, 2)
         self.aa_quality = QComboBox()
         self.aa_quality.addItems(["Низкое", "Среднее", "Высокое"])
         self.aa_quality.setCurrentIndex(self.current_graphics['aa_quality'])
         self.aa_quality.currentIndexChanged.connect(self.on_aa_quality_changed)
-        self.aa_quality.setMaximumWidth(100)
-        quality_layout.addWidget(self.aa_quality, 1, 1)
+        quality_layout.addWidget(self.aa_quality, 0, 3)
         
         # Тени
         self.shadows_enabled = QCheckBox("Тени")
         self.shadows_enabled.setChecked(self.current_graphics['shadows_enabled'])
         self.shadows_enabled.toggled.connect(self.on_shadows_toggled)
-        quality_layout.addWidget(self.shadows_enabled, 2, 0)
+        quality_layout.addWidget(self.shadows_enabled, 1, 0)
         
-        quality_layout.addWidget(QLabel("Качество теней:"), 3, 0)
+        quality_layout.addWidget(QLabel("Качество теней:"), 1, 1)
         self.shadow_quality = QComboBox()
         self.shadow_quality.addItems(["Низкое", "Среднее", "Высокое"])
         self.shadow_quality.setCurrentIndex(self.current_graphics['shadow_quality'])
         self.shadow_quality.currentIndexChanged.connect(self.on_shadow_quality_changed)
-        self.shadow_quality.setMaximumWidth(100)
-        quality_layout.addWidget(self.shadow_quality, 3, 1)
+        quality_layout.addWidget(self.shadow_quality, 1, 2)
         
         # ✅ НОВОЕ: Мягкость теней
-        quality_layout.addWidget(QLabel("Мягкость теней:"), 4, 0)
+        quality_layout.addWidget(QLabel("Мягкость теней:"), 2, 0)
         self.shadow_softness = QDoubleSpinBox()
         self.shadow_softness.setRange(0.0, 2.0)
         self.shadow_softness.setSingleStep(0.1)
@@ -910,277 +1129,9 @@ class GraphicsPanel(QWidget):
         self.shadow_softness.setValue(self.current_graphics['shadow_softness'])
         self.shadow_softness.valueChanged.connect(self.on_shadow_softness_changed)
         self.shadow_softness.setToolTip("Мягкость краёв теней (0.0 = резкие, 2.0 = очень мягкие)")
-        self.shadow_softness.setMaximumWidth(80)
-        quality_layout.addWidget(self.shadow_softness, 4, 1)
+        quality_layout.addWidget(self.shadow_softness, 2, 1)
         
         layout.addWidget(quality_group)
-        
-        layout.addStretch()
-        scroll.setWidget(widget)
-        return scroll
-    
-    def create_camera_tab(self):
-        """Создать вкладку настроек камеры"""
-        scroll = QScrollArea()
-        scroll.setWidgetResizable(True)
-        # ✅ ИСПРАВЛЕНО: Разрешаем горизонтальную прокрутку
-        scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
-        scroll.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
-        scroll.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
-
-        widget = QWidget()
-        widget.setMinimumWidth(450)  # Минимальная ширина для камеры
-        widget.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
-        layout = QVBoxLayout(widget)
-        layout.setContentsMargins(8, 8, 8, 8)
-        layout.setSpacing(8)
-
-        cam_group = QGroupBox("📷 Камера")
-        cam_layout = QGridLayout(cam_group)
-        cam_layout.setContentsMargins(6, 6, 6, 6)
-        cam_layout.setSpacing(4)
-
-        # FOV
-        cam_layout.addWidget(QLabel("Поле зрения (FOV):"), 0, 0)
-        self.camera_fov = QDoubleSpinBox()
-        self.camera_fov.setRange(1.0, 120.0)
-        self.camera_fov.setSingleStep(1.0)
-        self.camera_fov.setDecimals(1)
-        self.camera_fov.setValue(self.current_graphics.get('camera_fov', 45.0))
-        self.camera_fov.valueChanged.connect(self.on_camera_fov_changed)
-        self.camera_fov.setMaximumWidth(80)
-        cam_layout.addWidget(self.camera_fov, 0, 1)
-
-        # Near
-        cam_layout.addWidget(QLabel("Ближняя плоскость (near):"), 1, 0)
-        self.camera_near = QDoubleSpinBox()
-        self.camera_near.setRange(0.1, 1000.0)
-        self.camera_near.setSingleStep(0.1)
-        self.camera_near.setDecimals(1)
-        self.camera_near.setValue(self.current_graphics.get('camera_near', 10.0))
-        self.camera_near.valueChanged.connect(self.on_camera_near_changed)
-        self.camera_near.setMaximumWidth(80)
-        cam_layout.addWidget(self.camera_near, 1, 1)
-
-        # Far
-        cam_layout.addWidget(QLabel("Дальняя плоскость (far):"), 2, 0)
-        self.camera_far = QSpinBox()
-        self.camera_far.setRange(100, 1000000)
-        self.camera_far.setSingleStep(100)
-        self.camera_far.setValue(int(self.current_graphics.get('camera_far', 50000)))
-        self.camera_far.valueChanged.connect(self.on_camera_far_changed)
-        self.camera_far.setMaximumWidth(100)
-        cam_layout.addWidget(self.camera_far, 2, 1)
-
-        # Camera speed
-        cam_layout.addWidget(QLabel("Скорость камеры:"), 3, 0)
-        self.camera_speed = QDoubleSpinBox()
-        self.camera_speed.setRange(0.01, 10.0)
-        self.camera_speed.setSingleStep(0.1)
-        self.camera_speed.setDecimals(2)
-        self.camera_speed.setValue(self.current_graphics.get('camera_speed', 1.0))
-        self.camera_speed.valueChanged.connect(self.on_camera_speed_changed)
-        self.camera_speed.setMaximumWidth(80)
-        cam_layout.addWidget(self.camera_speed, 3, 1)
-
-        # Auto-rotate
-        self.auto_rotate = QCheckBox("Автовращение")
-        self.auto_rotate.setChecked(self.current_graphics.get('auto_rotate', False))
-        self.auto_rotate.toggled.connect(self.on_auto_rotate_toggled)
-        cam_layout.addWidget(self.auto_rotate, 4, 0, 1, 2)
-
-        # Auto-rotate speed
-        cam_layout.addWidget(QLabel("Скорость автовращения:"), 5, 0)
-        self.auto_rotate_speed = QDoubleSpinBox()
-        self.auto_rotate_speed.setRange(0.01, 10.0)
-        self.auto_rotate_speed.setSingleStep(0.1)
-        self.auto_rotate_speed.setDecimals(2)
-        self.auto_rotate_speed.setValue(self.current_graphics.get('auto_rotate_speed', 0.5))
-        self.auto_rotate_speed.valueChanged.connect(self.on_auto_rotate_speed_changed)
-        self.auto_rotate_speed.setMaximumWidth(80)
-        cam_layout.addWidget(self.auto_rotate_speed, 5, 1)
-
-        layout.addWidget(cam_group)
-        layout.addStretch()
-        scroll.setWidget(widget)
-        return scroll
-    
-    def create_effects_tab(self):
-        """Создать вкладку визуальных эффектов (РАСШИРЕННАЯ)"""
-        scroll = QScrollArea()
-        scroll.setWidgetResizable(True)
-        # ✅ ИСПРАВЛЕНО: Разрешаем горизонтальную прокрутку для эффектов
-        scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
-        scroll.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
-        scroll.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
-        
-        widget = QWidget()
-        widget.setMinimumWidth(520)  # Минимальная ширина для эффектов
-        widget.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
-        layout = QVBoxLayout(widget)
-        layout.setContentsMargins(8, 8, 8, 8)
-        layout.setSpacing(8)
-        
-        # ✅ РАСШИРЕННЫЕ Пост-эффекты - более компактно
-        post_group = QGroupBox("✨ Пост-эффекты")
-        post_layout = QVBoxLayout(post_group)  # ✅ ИСПРАВЛЕНО: Используем VBox вместо Grid для экономии места
-        post_layout.setContentsMargins(6, 6, 6, 6)
-        post_layout.setSpacing(4)
-        
-        # Bloom (свечение) - горизонтальная группа
-        bloom_layout = QHBoxLayout()
-        self.bloom_enabled = QCheckBox("Bloom (свечение)")
-        self.bloom_enabled.setChecked(self.current_graphics['bloom_enabled'])
-        self.bloom_enabled.toggled.connect(self.on_bloom_toggled)
-        bloom_layout.addWidget(self.bloom_enabled)
-        
-        bloom_layout.addWidget(QLabel("Интенсивность:"))
-        self.bloom_intensity = QDoubleSpinBox()
-        self.bloom_intensity.setRange(0.0, 2.0)
-        self.bloom_intensity.setSingleStep(0.1)
-        self.bloom_intensity.setDecimals(1)
-        self.bloom_intensity.setValue(self.current_graphics['bloom_intensity'])
-        self.bloom_intensity.valueChanged.connect(self.on_bloom_intensity_changed)
-        self.bloom_intensity.setMaximumWidth(60)
-        bloom_layout.addWidget(self.bloom_intensity)
-        
-        bloom_layout.addWidget(QLabel("Порог:"))
-        self.bloom_threshold = QDoubleSpinBox()
-        self.bloom_threshold.setRange(0.0, 3.0)
-        self.bloom_threshold.setSingleStep(0.1)
-        self.bloom_threshold.setDecimals(1)
-        self.bloom_threshold.setValue(self.current_graphics['bloom_threshold'])
-        self.bloom_threshold.valueChanged.connect(self.on_bloom_threshold_changed)
-        self.bloom_threshold.setMaximumWidth(60)
-        bloom_layout.addWidget(self.bloom_threshold)
-        bloom_layout.addStretch()
-        post_layout.addLayout(bloom_layout)
-        
-        # SSAO - горизонтальная группа
-        ssao_layout = QHBoxLayout()
-        self.ssao_enabled = QCheckBox("SSAO (затенение)")
-        self.ssao_enabled.setChecked(self.current_graphics['ssao_enabled'])
-        self.ssao_enabled.toggled.connect(self.on_ssao_toggled)
-        ssao_layout.addWidget(self.ssao_enabled)
-        
-        ssao_layout.addWidget(QLabel("Интенсивность:"))
-        self.ssao_intensity = QDoubleSpinBox()
-        self.ssao_intensity.setRange(0.0, 2.0)
-        self.ssao_intensity.setSingleStep(0.1)
-        self.ssao_intensity.setDecimals(1)
-        self.ssao_intensity.setValue(self.current_graphics['ssao_intensity'])
-        self.ssao_intensity.valueChanged.connect(self.on_ssao_intensity_changed)
-        self.ssao_intensity.setMaximumWidth(60)
-        ssao_layout.addWidget(self.ssao_intensity)
-        
-        ssao_layout.addWidget(QLabel("Радиус:"))
-        self.ssao_radius = QDoubleSpinBox()
-        self.ssao_radius.setRange(1.0, 20.0)
-        self.ssao_radius.setSingleStep(1.0)
-        self.ssao_radius.setDecimals(1)
-        self.ssao_radius.setValue(self.current_graphics['ssao_radius'])
-        self.ssao_radius.valueChanged.connect(self.on_ssao_radius_changed)
-        self.ssao_radius.setMaximumWidth(60)
-        ssao_layout.addWidget(self.ssao_radius)
-        ssao_layout.addStretch()
-        post_layout.addLayout(ssao_layout)
-        
-        # Motion Blur и Depth of Field - вертикально
-        self.motion_blur = QCheckBox("Motion Blur (размытие движения)")
-        self.motion_blur.setChecked(self.current_graphics['motion_blur'])
-        self.motion_blur.toggled.connect(self.on_motion_blur_toggled)
-        post_layout.addWidget(self.motion_blur)
-        
-        # Depth of Field - горизонтальная группа
-        dof_layout = QHBoxLayout()
-        self.depth_of_field = QCheckBox("Depth of Field (глубина резкости)")
-        self.depth_of_field.setChecked(self.current_graphics['depth_of_field'])
-        self.depth_of_field.toggled.connect(self.on_depth_of_field_toggled)
-        dof_layout.addWidget(self.depth_of_field)
-        
-        dof_layout.addWidget(QLabel("Дистанция:"))
-        self.dof_focus_distance = QSpinBox()
-        self.dof_focus_distance.setRange(100, 10000)
-        self.dof_focus_distance.setSingleStep(100)
-        self.dof_focus_distance.setSuffix("мм")
-        self.dof_focus_distance.setValue(int(self.current_graphics['dof_focus_distance']))
-        self.dof_focus_distance.valueChanged.connect(self.on_dof_focus_distance_changed)
-        self.dof_focus_distance.setMaximumWidth(80)
-        dof_layout.addWidget(self.dof_focus_distance)
-        
-        dof_layout.addWidget(QLabel("Диапазон:"))
-        self.dof_focus_range = QSpinBox()
-        self.dof_focus_range.setRange(100, 5000)
-        self.dof_focus_range.setSingleStep(100)
-        self.dof_focus_range.setSuffix("мм")
-        self.dof_focus_range.setValue(int(self.current_graphics['dof_focus_range']))
-        self.dof_focus_range.valueChanged.connect(self.on_dof_focus_range_changed)
-        self.dof_focus_range.setMaximumWidth(80)
-        dof_layout.addWidget(self.dof_focus_range)
-        dof_layout.addStretch()
-        post_layout.addLayout(dof_layout)
-        
-        layout.addWidget(post_group)
-        
-        # ✅ НОВОЕ: Тонемаппинг группа -compact
-        tonemap_group = QGroupBox("🎨 Тонемаппинг")
-        tonemap_layout = QHBoxLayout(tonemap_group)
-        tonemap_layout.setContentsMargins(6, 6, 6, 6)
-        tonemap_layout.setSpacing(4)
-        
-        self.tonemap_enabled = QCheckBox("Включить тонемаппинг")
-        self.tonemap_enabled.setChecked(self.current_graphics['tonemap_enabled'])
-        self.tonemap_enabled.toggled.connect(self.on_tonemap_toggled)
-        tonemap_layout.addWidget(self.tonemap_enabled)
-        
-        tonemap_layout.addWidget(QLabel("Режим:"))
-        self.tonemap_mode = QComboBox()
-        self.tonemap_mode.addItems(["None", "Linear", "Reinhard", "Filmic"])
-        self.tonemap_mode.setCurrentIndex(self.current_graphics['tonemap_mode'])
-        self.tonemap_mode.currentIndexChanged.connect(self.on_tonemap_mode_changed)
-        self.tonemap_mode.setMaximumWidth(100)
-        tonemap_layout.addWidget(self.tonemap_mode)
-        tonemap_layout.addStretch()
-        
-        layout.addWidget(tonemap_group)
-        
-        # ✅ НОВОЕ: Виньетирование группа -compact
-        vignette_group = QGroupBox("🖼️ Виньетирование")
-        vignette_layout = QHBoxLayout(vignette_group)
-        vignette_layout.setContentsMargins(6, 6, 6, 6)
-        vignette_layout.setSpacing(4)
-        
-        self.vignette_enabled = QCheckBox("Включить виньетирование")
-        self.vignette_enabled.setChecked(self.current_graphics['vignette_enabled'])
-        self.vignette_enabled.toggled.connect(self.on_vignette_toggled)
-        vignette_layout.addWidget(self.vignette_enabled)
-        
-        vignette_layout.addWidget(QLabel("Сила:"))
-        self.vignette_strength = QDoubleSpinBox()
-        self.vignette_strength.setRange(0.0, 1.0)
-        self.vignette_strength.setSingleStep(0.05)
-        self.vignette_strength.setDecimals(2)
-        self.vignette_strength.setValue(self.current_graphics['vignette_strength'])
-        self.vignette_strength.valueChanged.connect(self.on_vignette_strength_changed)
-        self.vignette_strength.setMaximumWidth(70)
-        vignette_layout.addWidget(self.vignette_strength)
-        vignette_layout.addStretch()
-        
-        layout.addWidget(vignette_group)
-        
-        # ✅ НОВОЕ: Дополнительные эффекты группа
-        additional_group = QGroupBox("🌟 Дополнительные эффекты")
-        additional_layout = QVBoxLayout(additional_group)
-        additional_layout.setContentsMargins(6, 6, 6, 6)
-        additional_layout.setSpacing(4)
-        
-        # Lens Flare
-        self.lens_flare_enabled = QCheckBox("Lens Flare (блики)")
-        self.lens_flare_enabled.setChecked(self.current_graphics['lens_flare_enabled'])
-        self.lens_flare_enabled.toggled.connect(self.on_lens_flare_toggled)
-        additional_layout.addWidget(self.lens_flare_enabled)
-        
-        layout.addWidget(additional_group)
         
         layout.addStretch()
         scroll.setWidget(widget)
@@ -1217,31 +1168,31 @@ class GraphicsPanel(QWidget):
         """Применить пресет освещения"""
         presets = {
             'day': {
-                'keyLightBrightness': 3.5,
-                'keyLightColor': '#ffffff',
-                'keyLightAngleX': -45,
-                'keyLightAngleY': 45,
-                'fillLightBrightness': 1.5,
-                'fillLightColor': '#f0f0ff',
-                'pointLightBrightness': 15000,
+                'key_brightness': 3.5,
+                'key_color': '#ffffff',
+                'key_angle_x': -45,
+                'key_angle_y': 45,
+                'fill_brightness': 1.5,
+                'fill_color': '#f0f0ff',
+                'point_brightness': 15000,
             },
             'night': {
-                'keyLightBrightness': 0.5,
-                'keyLightColor': '#4040ff',
-                'keyLightAngleX': -30,
-                'keyLightAngleY': -45,
-                'fillLightBrightness': 0.3,
-                'fillLightColor': '#202040',
-                'pointLightBrightness': 25000,
+                'key_brightness': 0.5,
+                'key_color': '#4040ff',
+                'key_angle_x': -30,
+                'key_angle_y': -45,
+                'fill_brightness': 0.3,
+                'fill_color': '#202040',
+                'point_brightness': 25000,
             },
             'industrial': {
-                'keyLightBrightness': 2.0,
-                'keyLightColor': '#ffffcc',
-                'keyLightAngleX': -60,
-                'keyLightAngleY': 90,
-                'fillLightBrightness': 1.0,
-                'fillLightColor': '#ccccff',
-                'pointLightBrightness': 18000,
+                'key_brightness': 2.0,
+                'key_color': '#ffffcc',
+                'key_angle_x': -60,
+                'key_angle_y': 90,
+                'fill_brightness': 1.0,
+                'fill_color': '#ccccff',
+                'point_brightness': 18000,
             },
         }
         
@@ -1365,7 +1316,7 @@ class GraphicsPanel(QWidget):
             'tonemap_enabled': self.current_graphics['tonemap_enabled'],  # ✅ НОВОЕ: Тонемаппинг
             'tonemap_mode': self.current_graphics['tonemap_mode'],  # ✅ НОВОЕ: Тонемаппинга
             'vignette_enabled': self.current_graphics['vignette_enabled'],  # ✅ НОВОЕ: Виньетирование
-            'vignette_strength': self.current_graphics['vignette_strength'],  # ✅ НОВОЕ: Виньетирования
+            'vignette_strength': self.current_graphics['vignette_strength'],  # ✅ НОВОЕ: Виньетирование
             'lens_flare_enabled': self.current_graphics['lens_flare_enabled'],  # ✅ НОВОЕ: Lens Flare
         }
         
@@ -1392,15 +1343,9 @@ class GraphicsPanel(QWidget):
             'antialiasing': self.current_graphics['antialiasing'],
             'aa_quality': self.current_graphics['aa_quality'],
             'shadows_enabled': self.current_graphics['shadows_enabled'],
-            'shadow_quality': self.current_graphics['shadow_quality'],  
+            'shadow_quality': self.current_graphics['shadow_quality'],
             'shadow_softness': self.current_graphics['shadow_softness'],  # ✅ НОВОЕ: Мягкость теней
         }
-        
-        print(f"⚙️  GraphicsPanel: EMIT quality_changed")
-        print(f"     antialiasing = {quality_params['antialiasing']}")
-        print(f"     aa_quality = {quality_params['aa_quality']}")
-        print(f"     shadows_enabled = {quality_params['shadows_enabled']}")
-        print(f"     shadow_quality = {quality_params['shadow_quality']}")
         
         self.logger.info(f"Quality updated: {quality_params}")
         self.quality_changed.emit(quality_params)
@@ -1408,100 +1353,61 @@ class GraphicsPanel(QWidget):
     def emit_lighting_update(self):
         """Отправить сигнал об изменении освещения"""
         lighting_params = {
-            'keyLightBrightness': self.current_graphics['keyLightBrightness'],
-            'keyLightColor': self.current_graphics['keyLightColor'],
-            'keyLightAngleX': self.current_graphics['keyLightAngleX'],
-            'keyLightAngleY': self.current_graphics['keyLightAngleY'],
-            'fillLightBrightness': self.current_graphics['fillLightBrightness'],
-            'fillLightColor': self.current_graphics['fillLightColor'],
-            'rimBrightness': self.current_graphics['rimBrightness'],
-            'rimColor': self.current_graphics['rimColor'],
-            'pointLightBrightness': self.current_graphics['pointLightBrightness'],
-            'pointLightColor': self.current_graphics['pointLightColor'],
-            'pointLightY': self.current_graphics['pointLightY'],
-            'pointFade': self.current_graphics['pointFade']
+            'key_brightness': self.current_graphics['key_brightness'],
+            'key_color': self.current_graphics['key_color'],
+            'key_angle_x': self.current_graphics['key_angle_x'],
+            'key_angle_y': self.current_graphics['key_angle_y'],
+            'fill_brightness': self.current_graphics['fill_brightness'],
+            'fill_color': self.current_graphics['fill_color'],
+            'rim_brightness': self.current_graphics['rim_brightness'],
+            'rim_color': self.current_graphics['rim_color'],
+            'point_brightness': self.current_graphics['point_brightness'],
+            'point_color': self.current_graphics['point_color'],
+            'point_y': self.current_graphics['point_y'],
+            'point_fade': self.current_graphics['point_fade']
         }
         
         self.logger.info(f"Lighting updated: {lighting_params}")
         self.lighting_changed.emit(lighting_params)
 
     def emit_material_update(self):
-        """Отправить сигнал об изменении материалов (ПОЛНЫЙ НАБОР)"""
+        """Отправить сигнал об изменении материалов"""
         material_params = {
-            # Metal (общие металлические части)
-            'metal': {
-                'roughness': self.current_graphics['metal_roughness'],
-                'metalness': self.current_graphics['metal_metalness'],
-                'clearcoat': self.current_graphics['metal_clearcoat'],
-            },
-            
-            # Glass (стеклянные части)
-            'glass': {
-                'opacity': self.current_graphics['glass_opacity'],
-                'roughness': self.current_graphics['glass_roughness'],
-                'ior': self.current_graphics['glass_ior'],
-            },
-            
-            # Frame (рама)
-            'frame': {
-                'color': self.current_graphics['frame_color'],
-                'metalness': self.current_graphics['frame_metalness'],
-                'roughness': self.current_graphics['frame_roughness'],
-                'clearcoat': self.current_graphics['frame_clearcoat'],
-                'clearcoat_roughness': self.current_graphics['frame_clearcoat_roughness'],
-            },
-            
-            # Lever (рычаги)
-            'lever': {
-                'color': self.current_graphics['lever_color'],
-                'metalness': self.current_graphics['lever_metalness'],
-                'roughness': self.current_graphics['lever_roughness'],
-                'clearcoat': self.current_graphics['lever_clearcoat'],
-                'clearcoat_roughness': self.current_graphics['lever_clearcoat_roughness'],
-            },
-            
-            # Tail (хвостовой шток)
-            'tail': {
-                'color': self.current_graphics['tail_color'],
-                'metalness': self.current_graphics['tail_metalness'],
-                'roughness': self.current_graphics['tail_roughness'],
-            },
-            
-            # Cylinder (корпус цилиндра)
-            'cylinder': {
-                'color': self.current_graphics['cylinder_color'],
-                'metalness': self.current_graphics['cylinder_metalness'],
-                'roughness': self.current_graphics['cylinder_roughness'],
-            },
-            
-            # Piston body (корпус поршня)
-            'piston_body': {
-                'color': self.current_graphics['piston_body_color'],
-                'warning_color': self.current_graphics['piston_body_warning_color'],
-                'metalness': self.current_graphics['piston_body_metalness'],
-                'roughness': self.current_graphics['piston_body_roughness'],
-            },
-            
-            # Piston rod (шток поршня)
-            'piston_rod': {
-                'color': self.current_graphics['piston_rod_color'],
-                'warning_color': self.current_graphics['piston_rod_warning_color'],
-                'metalness': self.current_graphics['piston_rod_metalness'],
-                'roughness': self.current_graphics['piston_rod_roughness'],
-            },
-            
-            # Joints (шарниры)
-            'joint': {
-                'tail_color': self.current_graphics['joint_tail_color'],
-                'arm_color': self.current_graphics['joint_arm_color'],
-                'rod_ok_color': self.current_graphics['joint_rod_ok_color'],
-                'rod_error_color': self.current_graphics['joint_rod_error_color'],
-                'metalness': self.current_graphics['joint_metalness'],
-                'roughness': self.current_graphics['joint_roughness'],
-            },
+            'metal_roughness': self.current_graphics['metal_roughness'],
+            'metal_metalness': self.current_graphics['metal_metalness'],
+            'metal_clearcoat': self.current_graphics['metal_clearcoat'],
+            'glass_opacity': self.current_graphics['glass_opacity'],
+            'glass_roughness': self.current_graphics['glass_roughness'],
+            'glass_ior': self.current_graphics['glass_ior'],  # ✅ НОВОЕ: Коэффициент преломления!
+            'frame_color': self.current_graphics['frame_color'],
+            'frame_metalness': self.current_graphics['frame_metalness'],
+            'frame_roughness': self.current_graphics['frame_roughness'],
+            'lever_color': self.current_graphics['lever_color'],
+            'lever_metalness': self.current_graphics['lever_metalness'],
+            'lever_roughness': self.current_graphics['lever_roughness'],
+            'tail_color': self.current_graphics['tail_color'],
+            'tail_metalness': self.current_graphics['tail_metalness'],
+            'tail_roughness': self.current_graphics['tail_roughness'],
+            'cylinder_color': self.current_graphics['cylinder_color'],
+            'cylinder_metalness': self.current_graphics['cylinder_metalness'],
+            'cylinder_roughness': self.current_graphics['cylinder_roughness'],
+            'piston_body_color': self.current_graphics['piston_body_color'],
+            'piston_body_warning_color': self.current_graphics['piston_body_warning_color'],
+            'piston_body_metalness': self.current_graphics['piston_body_metalness'],
+            'piston_body_roughness': self.current_graphics['piston_body_roughness'],
+            'piston_rod_color': self.current_graphics['piston_rod_color'],
+            'piston_rod_warning_color': self.current_graphics['piston_rod_warning_color'],
+            'piston_rod_metalness': self.current_graphics['piston_rod_metalness'],
+            'piston_rod_roughness': self.current_graphics['piston_rod_roughness'],
+            'joint_tail_color': self.current_graphics['joint_tail_color'],
+            'joint_arm_color': self.current_graphics['joint_arm_color'],
+            'joint_rod_ok_color': self.current_graphics['joint_rod_ok_color'],
+            'joint_rod_error_color': self.current_graphics['joint_rod_error_color'],
+            'joint_metalness': self.current_graphics['joint_metalness'],
+            'joint_roughness': self.current_graphics['joint_roughness']
         }
         
-        self.logger.info(f"Materials updated (COMPLETE): {len(material_params)} groups")
+        self.logger.info(f"Materials updated: {material_params}")
         self.material_changed.emit(material_params)
 
     def emit_environment_update(self):
@@ -1519,25 +1425,20 @@ class GraphicsPanel(QWidget):
             'fog_density': self.current_graphics['fog_density']
         }
         
-        print(f"🌫️  GraphicsPanel: EMIT environment_changed")
-        print(f"     fog_enabled = {environment_params['fog_enabled']}")
-        print(f"     fog_color = {environment_params['fog_color']}")
-        print(f"     fog_density = {environment_params['fog_density']}")
-        
         self.logger.info(f"Environment updated: {environment_params}")
         self.environment_changed.emit(environment_params)
     
     def update_ui_from_current_settings(self):
         """Обновить элементы UI согласно текущим настройкам"""
         # Освещение
-        if hasattr(self, 'keyLightBrightness'):
-            self.key_brightness.setValue(self.current_graphics['keyLightBrightness'])
-        if hasattr(self, 'keyLightColor'):
-            self.key_color.set_color(self.current_graphics['keyLightColor'])
-        if hasattr(self, 'keyLightAngleX'):
-            self.key_angle_x.setValue(self.current_graphics['keyLightAngleX'])
-        if hasattr(self, 'keyLightAngleY'):
-            self.key_angle_y.setValue(self.current_graphics['keyLightAngleY'])
+        if hasattr(self, 'key_brightness'):
+            self.key_brightness.setValue(self.current_graphics['key_brightness'])
+        if hasattr(self, 'key_color'):
+            self.key_color.set_color(self.current_graphics['key_color'])
+        if hasattr(self, 'key_angle_x'):
+            self.key_angle_x.setValue(self.current_graphics['key_angle_x'])
+        if hasattr(self, 'key_angle_y'):
+            self.key_angle_y.setValue(self.current_graphics['key_angle_y'])
         
         # Материалы
         if hasattr(self, 'glass_ior'):
@@ -1566,62 +1467,62 @@ class GraphicsPanel(QWidget):
     # ===== ОСВЕЩЕНИЕ (LIGHTING) =====
     @Slot(float)
     def on_key_brightness_changed(self, value: float):
-        self.current_graphics['keyLightBrightness'] = value
+        self.current_graphics['key_brightness'] = value
         self.emit_lighting_update()
 
     @Slot(str)
     def on_key_color_changed(self, color: str):
-        self.current_graphics['keyLightColor'] = color
+        self.current_graphics['key_color'] = color
         self.emit_lighting_update()
 
     @Slot(int)
     def on_key_angle_x_changed(self, angle: int):
-        self.current_graphics['keyLightAngleX'] = angle
+        self.current_graphics['key_angle_x'] = angle
         self.emit_lighting_update()
 
     @Slot(int)
     def on_key_angle_y_changed(self, angle: int):
-        self.current_graphics['keyLightAngleY'] = angle
+        self.current_graphics['key_angle_y'] = angle
         self.emit_lighting_update()
 
     @Slot(float)
     def on_fill_brightness_changed(self, value: float):
-        self.current_graphics['fillLightBrightness'] = value
+        self.current_graphics['fill_brightness'] = value
         self.emit_lighting_update()
 
     @Slot(str)
     def on_fill_color_changed(self, color: str):
-        self.current_graphics['fillLightColor'] = color
+        self.current_graphics['fill_color'] = color
         self.emit_lighting_update()
 
     @Slot(float)
     def on_rim_brightness_changed(self, value: float):
-        self.current_graphics['rimBrightness'] = value
+        self.current_graphics['rim_brightness'] = value
         self.emit_lighting_update()
 
     @Slot(str)
     def on_rim_color_changed(self, color: str):
-        self.current_graphics['rimColor'] = color
+        self.current_graphics['rim_color'] = color
         self.emit_lighting_update()
 
     @Slot(int)
     def on_point_brightness_changed(self, value: int):
-        self.current_graphics['pointLightBrightness'] = value
+        self.current_graphics['point_brightness'] = value
         self.emit_lighting_update()
 
     @Slot(str)
     def on_point_color_changed(self, color: str):
-        self.current_graphics['pointLightColor'] = color
+        self.current_graphics['point_color'] = color
         self.emit_lighting_update()
 
     @Slot(int)
     def on_point_y_changed(self, value: int):
-        self.current_graphics['pointLightY'] = value
+        self.current_graphics['point_y'] = value
         self.emit_lighting_update()
 
     @Slot(float)
     def on_point_fade_changed(self, value: float):
-        self.current_graphics['pointFade'] = value
+        self.current_graphics['point_fade'] = value
         self.emit_lighting_update()
 
     # ===== МАТЕРИАЛЫ (MATERIALS) =====
@@ -1881,7 +1782,7 @@ class GraphicsPanel(QWidget):
         self.current_graphics['lens_flare_enabled'] = enabled
         self.emit_effects_update()
 
-    #===== КАМЕРА (CAMERA) =====
+    # ===== КАМЕРА (CAMERA) =====
     @Slot(float)
     def on_camera_fov_changed(self, value: float):
         self.current_graphics['camera_fov'] = value
