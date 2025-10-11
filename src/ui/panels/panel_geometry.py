@@ -608,14 +608,8 @@ class GeometryPanel(QWidget):
             'frameToPivot': self.parameters.get('frame_to_pivot', 0.6) * 1000,  # м -> мм
             'rodPosition': self.parameters.get('rod_position', 0.6),  # доля 0-1 (без изменений)
             
-            # СОВМЕСТИМОСТЬ: Старые параметры цилиндра (устаревшие, но поддерживаем)
-            'boreHead': self.parameters.get('cyl_diam_m', 0.080) * 1000,  # NEW: используем новый параметр
-            'boreRod': self.parameters.get('cyl_diam_m', 0.080) * 1000,   # NEW: используем новый параметр
-            'rodDiameter': self.parameters.get('rod_diameter_m', 0.035) * 1000,  # NEW: используем новый параметр
-            'pistonThickness': self.parameters.get('piston_thickness_m', 0.025) * 1000,  # NEW: используем новый параметр
-            'pistonRodLength': self.parameters.get('piston_rod_length_m', 0.200) * 1000,  # NEW: используем новый параметр
-            
-            # ✨ НОВЫЕ ПАРАМЕТРЫ (МШ-1 и МШ-2): Все в мм для QML
+            # ✅ ИСПРАВЛЕНО: ТОЛЬКО НОВЫЕ ПАРАМЕТРЫ (убраны старые duplicate names!)
+            # Эти параметры используются в QML для визуализации
             'cylDiamM': self.parameters.get('cyl_diam_m', 0.080) * 1000,        # м -> мм: диаметр цилиндра
             'strokeM': self.parameters.get('stroke_m', 0.300) * 1000,            # м -> мм: ход поршня
             'deadGapM': self.parameters.get('dead_gap_m', 0.005) * 1000,         # м -> мм: мертвый зазор
