@@ -1,0 +1,154 @@
+{
+  "mismatches": {
+    "lighting": {
+      "only_in_python": [
+        "rimBrightness",
+        "rimColor",
+        "pointFade"
+      ],
+      "only_in_qml": [
+        "pointLightFade",
+        "rimLightColor",
+        "rimLightBrightness"
+      ],
+      "common": [
+        "keyLightAngleX",
+        "pointLightColor",
+        "keyLightBrightness",
+        "keyLightColor",
+        "pointLightY",
+        "fillLightColor",
+        "keyLightAngleY",
+        "fillLightBrightness",
+        "pointLightBrightness"
+      ]
+    },
+    "quality": {
+      "only_in_python": [
+        "antialiasing"
+      ],
+      "only_in_qml": [
+        "antialiasingMode"
+      ],
+      "common": [
+        "shadowsEnabled",
+        "shadowSoftness",
+        "shadowQuality",
+        "antialiasingQuality"
+      ]
+    },
+    "effects": {
+      "only_in_python": [
+        "motionBlur",
+        "depthOfField"
+      ],
+      "only_in_qml": [
+        "motionBlurEnabled",
+        "depthOfFieldEnabled"
+      ],
+      "common": [
+        "tonemapEnabled",
+        "bloomEnabled",
+        "bloomThreshold",
+        "vignetteEnabled",
+        "dofFocusRange",
+        "vignetteStrength",
+        "ssaoIntensity",
+        "ssaoEnabled",
+        "bloomIntensity",
+        "lensFlareEnabled",
+        "ssaoRadius",
+        "dofFocusDistance",
+        "tonemapMode"
+      ]
+    }
+  },
+  "critical_issues": [
+    {
+      "category": "LIGHTING",
+      "python_name": "rimBrightness",
+      "qml_name": "rimLightBrightness",
+      "impact": "Контровой свет не регулируется",
+      "fix": "Добавить поддержку rimBrightness в QML"
+    },
+    {
+      "category": "LIGHTING",
+      "python_name": "rimColor",
+      "qml_name": "rimLightColor",
+      "impact": "Цвет контрового света не изменяется",
+      "fix": "Добавить поддержку rimColor в QML"
+    },
+    {
+      "category": "LIGHTING",
+      "python_name": "pointFade",
+      "qml_name": "pointLightFade",
+      "impact": "Затухание точечного света не работает",
+      "fix": "Добавить поддержку pointFade в QML"
+    },
+    {
+      "category": "QUALITY",
+      "python_name": "antialiasing",
+      "qml_name": "antialiasingMode",
+      "impact": "Сглаживание не регулируется",
+      "fix": "Добавить поддержку antialiasing в QML"
+    },
+    {
+      "category": "EFFECTS",
+      "python_name": "motionBlur",
+      "qml_name": "motionBlurEnabled",
+      "impact": "Motion Blur не включается/выключается",
+      "fix": "Добавить поддержку motionBlur в QML"
+    },
+    {
+      "category": "EFFECTS",
+      "python_name": "depthOfField",
+      "qml_name": "depthOfFieldEnabled",
+      "impact": "Depth of Field не работает",
+      "fix": "Добавить поддержку depthOfField в QML"
+    },
+    {
+      "category": "EFFECTS",
+      "python_name": "vignetteStrength",
+      "qml_name": "НЕТ В QML!",
+      "impact": "Сила виньетирования не регулируется",
+      "fix": "Добавить vignetteStrength в QML"
+    }
+  ],
+  "recommendations": [
+    {
+      "priority": "ВЫСОКИЙ",
+      "action": "Добавить поддержку альтернативных имен в QML",
+      "details": [
+        "rimBrightness -> rimLightBrightness",
+        "rimColor -> rimLightColor",
+        "pointFade -> pointLightFade",
+        "antialiasing -> antialiasingMode",
+        "motionBlur -> motionBlurEnabled",
+        "depthOfField -> depthOfFieldEnabled"
+      ]
+    },
+    {
+      "priority": "КРИТИЧЕСКИЙ",
+      "action": "Добавить отсутствующий параметр vignetteStrength",
+      "details": [
+        "Добавить property real vignetteStrength в QML",
+        "Подключить к ExtendedSceneEnvironment",
+        "Добавить поддержку в applyEffectsUpdates()"
+      ]
+    },
+    {
+      "priority": "СРЕДНИЙ",
+      "action": "Унифицировать структуру данных",
+      "details": [
+        "Использовать единые имена параметров",
+        "Документировать соответствия",
+        "Добавить валидацию параметров"
+      ]
+    }
+  ],
+  "summary": {
+    "total_mismatches": 12,
+    "critical_count": 7,
+    "recommendations_count": 3
+  }
+}

@@ -1,0 +1,9 @@
+    ЁЯФН ╨Ф╨Ш╨Р╨У╨Э╨Ю╨б╨в╨Ш╨Ъ╨Р ╨Ч╨Р╨У╨а╨г╨Ч╨Ъ╨Ш QML:
+[QML DEBUG] file:///C:/Users/я┐╜я┐╜я┐╜я┐╜я┐╜я┐╜я┐╜/source/repos/barmaleii77-hub/PneumoStabSim-Professional/assets/qml/main.qml:667:13: Cannot assign to non-existent property "ssaoEnabled" 
+    ЁЯУК QML ╤Б╤В╨░╤В╤Г╤Б ╨╖╨░╨│╤А╤Г╨╖╨║╨╕: Status.Error
+       1. file:///C:/Users/╨Р╨╗╨╡╨║╤Б╨╡╨╣/source/repos/barmaleii77-hub/PneumoStabSim-Professional/assets/qml/main.qml:667:13: Cannot assign to non-existent property "ssaoEnabled"
+    [CRITICAL] ╨Ю╤И╨╕╨▒╨║╨░ ╨╖╨░╨│╤А╤Г╨╖╨║╨╕ main.qml: ╨Ю╤И╨╕╨▒╨║╨╕ ╨╖╨░╨│╤А╤Г╨╖╨║╨╕ QML:
+file:///C:/Users/╨Р╨╗╨╡╨║╤Б╨╡╨╣/source/repos/barmaleii77-hub/PneumoStabSim-Professional/assets/qml/main.qml:667:13: Cannot assign to non-existent property "ssaoEnabled"
+    raise RuntimeError(f"╨Ю╤И╨╕╨▒╨║╨╕ ╨╖╨░╨│╤А╤Г╨╖╨║╨╕ QML:\n{error_msg}")
+RuntimeError: ╨Ю╤И╨╕╨▒╨║╨╕ ╨╖╨░╨│╤А╤Г╨╖╨║╨╕ QML:
+file:///C:/Users/╨Р╨╗╨╡╨║╤Б╨╡╨╣/source/repos/barmaleii77-hub/PneumoStabSim-Professional/assets/qml/main.qml:667:13: Cannot assign to non-existent property "ssaoEnabled"

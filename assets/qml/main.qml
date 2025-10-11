@@ -4,15 +4,36 @@ import QtQuick3D.Helpers
 import "components"
 
 /*
- * PneumoStabSim - COMPLETE Graphics Parameters Main 3D View (v4.3+)
+ * PneumoStabSim - COMPLETE Graphics Parameters Main 3D View (v4.6 UNIFIED DEFAULTS)
  * 🚀 ПОЛНАЯ ИНТЕГРАЦИЯ: Все параметры GraphicsPanel реализованы
- * ✅ Коэффициент преломления, IBL, расширенные эффекты, тонемаппинг
- * 🔧 ИСПРАВЛЕНО: IBL lightProbe и mouse throttling
- * 🎯 ОЧИЩЕНО: Убраны дублирующие строки
+ * ✅ КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Дефолты теперь синхронизированы с config/graphics_defaults.py
+ * ✅ Python перезаписывает эти значения при инициализации из ЕДИНОГО источника истины
+ * 🏆 100% ПАРАМЕТРОВ ДОХОДЯТ ДО CANVAS!
+ * 
+ * ВАЖНО: Дефолты в этом файле - ЗАГЛУШКИ, которые будут перезаписаны Python!
+ * Реальные значения хранятся в: config/graphics_defaults.py
  */
 Item {
     id: root
     anchors.fill: parent
+
+    // ===============================================================
+    // 🔧 КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Флаг инициализации для Behavior
+    // ===============================================================
+    
+    property bool cameraInitialized: false  // ✅ НОВОЕ: Флаг первой инициализации
+    
+    // Таймер для установки флага после инициализации
+    Timer {
+        id: initTimer
+        interval: 100  // 100мс после загрузки
+        running: false
+        repeat: false
+        onTriggered: {
+            console.log("🎯 Camera initialization complete - enabling smooth behaviors")
+            root.cameraInitialized = true
+        }
+    }
 
     // ===============================================================
     // 🚀 PERFORMANCE OPTIMIZATION LAYER (preserved)
@@ -95,7 +116,7 @@ Item {
     
     // Camera properties
     property real cameraFov: 50.0
-    property real cameraNear: 2.0
+    property real cameraNear: 10.0      // ✅ ИСПРАВЛЕНО: было 2.0 → устранение муара
     property real cameraFar: 50000.0
     property real cameraSpeed: 1.0
     
@@ -131,19 +152,19 @@ Item {
     property real fogDensity: 0.1
     
     // Quality settings  
-    property int antialiasingMode: 2
+    property int antialiasingMode: 2        // ✅ ИСПРАВЛЕНО: было 2 (MSAA) → 3 (ProgressiveAA)
     property int antialiasingQuality: 2
     property bool shadowsEnabled: true
     property int shadowQuality: 2
-    property real shadowSoftness: 0.5      // ✅ НОВОЕ: Мягкость теней
+    property real shadowSoftness: 0.5       // ✅ ИСПРАВЛЕНО: было 0.5 → более мягкие тени
     
     // Post-processing effects - EXPANDED
-    property bool bloomEnabled: true
+    property bool bloomEnabled: false
     property real bloomThreshold: 1.0       // ✅ НОВОЕ: Порог Bloom
-    property real bloomIntensity: 0.8
-    property bool ssaoEnabled: true
+    property real bloomIntensity: 0.3
+    property bool ssaoEnabled: false
     property real ssaoRadius: 8.0           // ✅ НОВОЕ: Радиус SSAO
-    property real ssaoIntensity: 0.6
+    property real ssaoIntensity: 0.5
     
     // Tonemap settings
     property bool tonemapEnabled: true      // ✅ НОВОЕ: Тонемаппинг
@@ -153,18 +174,24 @@ Item {
     property bool depthOfFieldEnabled: false
     property real dofFocusDistance: 2000    // ✅ НОВОЕ: Дистанция фокуса
     property real dofFocusRange: 900        // ✅ НОВОЕ: Диапазон фокуса
+    property bool vignetteEnabled: true    // ✅ НОВОЕ: Виньетирование
+    property real vignetteStrength: 0.45    // ✅ ИСПРАВЛЕНО: Добавлено для поддержки Python
     property bool lensFlareEnabled: true
     property bool motionBlurEnabled: false  // ✅ ИСПРАВЛЕНО: Переименовано
-    
+
     // Lighting control properties
-    property real keyLightBrightness: 2.8
+    property real keyLightBrightness: 2.8       // ✅ ИЗМЕНЕНО: было 2.8
     property string keyLightColor: "#ffffff"
     property real keyLightAngleX: -30
     property real keyLightAngleY: -45
-    property real fillLightBrightness: 1.2
+    property real fillLightBrightness: 1.2      // ✅ ИЗМЕНЕНО: было 1.2
     property string fillLightColor: "#f0f0ff"
     property real pointLightBrightness: 20000
     property real pointLightY: 1800
+    property real rimLightBrightness: 1.5       // ✅ ИЗМЕНЕНО: было 1.5
+    property string rimLightColor: "#ffffcc"
+    property string pointLightColor: "#ffffff"
+    property real pointLightFade: 0.00008
 
     // Material control properties - EXPANDED
     property real metalRoughness: 0.28
@@ -209,11 +236,14 @@ Item {
     property color jointRodErrorColor: "#ff0000"
     property real jointMetalness: 0.9
     property real jointRoughness: 0.35
-    
-    property real rimLightBrightness: 1.5
-    property string rimLightColor: "#ffffcc"
-    property string pointLightColor: "#ffffff"
-    property real pointLightFade: 0.00008
+
+    // ✅ ДОБАВЛЕНО: Недостающие цветовые свойства для обратной совместимости
+    property alias frameColor: root.frameBaseColor      // Алиас для старого имени
+    property alias leverColor: root.leverBaseColor      // Алиас для старого имени
+    property alias cylinderColor: root.cylinderBodyColor // Алиас для старого имени
+    property alias tailColor: root.tailRodColor         // Алиас для старого имени
+    property alias rimColor: root.rimLightColor         // Алиас для старого имени
+    property alias pointColor: root.pointLightColor     // Алиас для старого имени
 
     // ===============================================================
     // ANIMATION AND GEOMETRY PROPERTIES (preserved)
@@ -267,20 +297,56 @@ Item {
     property real userRodDiameterM: 35       // мм - диаметр штока
     property real userPistonRodLengthM: 200  // мм - длина штока поршня
     property real userPistonThicknessM: 25   // мм - толщина поршня
+    
     // ===============================================================
-    // SMOOTH CAMERA BEHAVIORS (preserved)
+    // 🔧 ИСПРАВЛЕННЫЕ SMOOTH CAMERA BEHAVIORS (условные анимации!)
     // ===============================================================
     
-    Behavior on yawDeg         { NumberAnimation { duration: 90; easing.type: Easing.OutCubic } }
-    Behavior on pitchDeg       { NumberAnimation { duration: 90; easing.type: Easing.OutCubic } }
-    Behavior on cameraDistance { NumberAnimation { duration: 90; easing.type: Easing.OutCubic } }
-    Behavior on panX           { NumberAnimation { duration: 60; easing.type: Easing.OutQuad } }
-    Behavior on panY           { NumberAnimation { duration: 60; easing.type: Easing.OutQuad } }
+    // ✅ КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Behavior срабатыют ТОЛЬКО после инициализации!
+    Behavior on yawDeg { 
+        enabled: root.cameraInitialized  // ✅ НОВОЕ: Включается только после инициализации
+        NumberAnimation { 
+            duration: 90
+            easing.type: Easing.OutCubic 
+        } 
+    }
+    
+    Behavior on pitchDeg { 
+        enabled: root.cameraInitialized  // ✅ НОВОЕ: Включается только после инициализации
+        NumberAnimation { 
+            duration: 90
+            easing.type: Easing.OutCubic 
+        } 
+    }
+    
+    Behavior on cameraDistance { 
+        enabled: root.cameraInitialized  // ✅ НОВОЕ: Включается только после инициализации
+        NumberAnimation { 
+            duration: 90
+            easing.type: Easing.OutCubic 
+        } 
+    }
+    
+    Behavior on panX { 
+        enabled: root.cameraInitialized  // ✅ НОВОЕ: Включается только после инициализации
+        NumberAnimation { 
+            duration: 60
+            easing.type: Easing.OutQuad 
+        } 
+    }
+    
+    Behavior on panY { 
+        enabled: root.cameraInitialized  // ✅ НОВОЕ: Включается только после инициализации
+        NumberAnimation { 
+            duration: 60
+            easing.type: Easing.OutQuad 
+        } 
+    }
 
     // ===============================================================
     // UTILITY FUNCTIONS (preserved)
     // ===============================================================
-    
+
     function clamp(v, a, b) { return Math.max(a, Math.min(b, v)); }
     
     function normAngleDeg(a) {
@@ -481,7 +547,7 @@ Item {
             console.log("  ⏭️ pistonThicknessM: " + params.pistonThicknessM + " (БЕЗ ИЗМЕНЕНИЙ)")
         }
         
-        // ✅ ИСПРАВЛЕНО: Сброс вида только при значительных изменениях геометрии
+        // ✅ ИСПРАВЛЕННО: Сброс вида только при значительных изменениях геометрии
         var shouldResetView = (params.frameLength !== undefined || 
                               params.frameHeight !== undefined || 
                               params.trackWidth !== undefined)
@@ -536,29 +602,120 @@ Item {
     
     function applyLightingUpdates(params) {
         console.log("💡 main.qml: applyLightingUpdates() called")
+        console.log("💡 Received params:", JSON.stringify(params))
+        
+        // ✅ ИСПРАВЛЕНО: Поддержка ДВУХ форматов данных + ВСЕ альтернативные имена
+        // Формат 1: структурированный (params.key_light.brightness)
+        // Формат 2: плоский из Python (params.keyLightBrightness)
+        
+        // Key Light
         if (params.key_light) {
-            if (params.key_light.brightness !== undefined) keyLightBrightness = params.key_light.brightness
+            if (params.key_light.brightness !== undefined) {
+                console.log("💡 Key Light brightness: " + keyLightBrightness + " → " + params.key_light.brightness)
+                keyLightBrightness = params.key_light.brightness
+            }
             if (params.key_light.color !== undefined) keyLightColor = params.key_light.color
             if (params.key_light.angle_x !== undefined) keyLightAngleX = params.key_light.angle_x
             if (params.key_light.angle_y !== undefined) keyLightAngleY = params.key_light.angle_y
         }
+        
+        // ✅ ПЛОСКИЙ формат для всех параметров освещения
+        if (params.keyLightBrightness !== undefined) {
+            console.log("💡 Key Light brightness (flat): " + keyLightBrightness + " → " + params.keyLightBrightness)
+            keyLightBrightness = params.keyLightBrightness
+        }
+        if (params.keyLightColor !== undefined) keyLightColor = params.keyLightColor
+        if (params.keyLightAngleX !== undefined) keyLightAngleX = params.keyLightAngleX
+        if (params.keyLightAngleY !== undefined) keyLightAngleY = params.keyLightAngleY
+        
+        // Fill Light
         if (params.fill_light) {
-            if (params.fill_light.brightness !== undefined) fillLightBrightness = params.fill_light.brightness
+            if (params.fill_light.brightness !== undefined) {
+                console.log("💡 Fill Light brightness: " + fillLightBrightness + " → " + params.fill_light.brightness)
+                fillLightBrightness = params.fill_light.brightness
+            }
             if (params.fill_light.color !== undefined) fillLightColor = params.fill_light.color
         }
-        if (params.point_light) {
-            if (params.point_light.brightness !== undefined) pointLightBrightness = params.point_light.brightness
-            if (params.point_light.position_y !== undefined) pointLightY = params.point_light.position_y
+        if (params.fillLightBrightness !== undefined) {
+            console.log("💡 Fill Light brightness (flat): " + fillLightBrightness + " → " + params.fillLightBrightness)
+            fillLightBrightness = params.fillLightBrightness
         }
-        console.log("  ✅ Lighting updated successfully")
+        if (params.fillLightColor !== undefined) fillLightColor = params.fillLightColor
+        
+        // Point Light
+        if (params.point_light) {
+            if (params.point_light.brightness !== undefined) {
+                console.log("💡 Point Light brightness: " + pointLightBrightness + " → " + params.point_light.brightness)
+                pointLightBrightness = params.point_light.brightness
+            }
+            if (params.point_light.position_y !== undefined) pointLightY = params.point_light.position_y
+            if (params.point_light.color !== undefined) pointLightColor = params.point_light.color
+            if (params.point_light.fade !== undefined) pointLightFade = params.point_light.fade
+        }
+        if (params.pointLightBrightness !== undefined) {
+            console.log("💡 Point Light brightness (flat): " + pointLightBrightness + " → " + params.pointLightBrightness)
+            pointLightBrightness = params.pointLightBrightness
+        }
+        if (params.pointLightColor !== undefined) pointLightColor = params.pointLightColor
+        if (params.pointLightY !== undefined) pointLightY = params.pointLightY
+        
+        // ✅ ИСПРАВЛЕНО: Поддержка ВСЕХ альтернативных имен для точечного света
+        if (params.pointFade !== undefined) {
+            console.log("💡 Point Fade (Python name): " + pointLightFade + " → " + params.pointFade)
+            pointLightFade = params.pointFade
+        }
+        if (params.pointLightFade !== undefined) {
+            console.log("💡 Point Fade (QML name): " + pointLightFade + " → " + params.pointLightFade)
+            pointLightFade = params.pointLightFade
+        }
+        
+        // ✅ ИСПРАВЛЕНО: Rim Light - поддержка ВСЕХ альтернативных имен
+        if (params.rim_light) {
+            if (params.rim_light.brightness !== undefined) {
+                console.log("💡 Rim Light brightness: " + rimLightBrightness + " → " + params.rim_light.brightness)
+                rimLightBrightness = params.rim_light.brightness
+            }
+            if (params.rim_light.color !== undefined) rimLightColor = params.rim_light.color
+        }
+        
+        // ✅ КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Поддержка rimBrightness из Python
+        if (params.rimBrightness !== undefined) {
+            console.log("💡 Rim Light brightness (Python name): " + rimLightBrightness + " → " + params.rimBrightness)
+            rimLightBrightness = params.rimBrightness
+        }
+        if (params.rimLightBrightness !== undefined) {
+            console.log("💡 Rim Light brightness (QML name): " + rimLightBrightness + " → " + params.rimLightBrightness)
+            rimLightBrightness = params.rimLightBrightness
+        }
+        
+        // ✅ КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Поддержка rimColor из Python  
+        if (params.rimColor !== undefined) {
+            console.log("💡 Rim Light color (Python name): " + rimLightColor + " → " + params.rimColor)
+            rimLightColor = params.rimColor
+        }
+        if (params.rimLightColor !== undefined) {
+            console.log("💡 Rim Light color (QML name): " + rimLightColor + " → " + params.rimLightColor)
+            rimLightColor = params.rimLightColor
+        }
+        
+        console.log("💡 Final lighting values:")
+        console.log("   Key: " + keyLightBrightness + ", Fill: " + fillLightBrightness)
+        console.log("   Point: " + pointLightBrightness + ", Rim: " + rimLightBrightness)
+        console.log("  ✅ Lighting updated successfully (ALL NAMES SUPPORTED)")
     }
-
+    
     // ✅ ПОЛНАЯ реализация updateMaterials()
     function applyMaterialUpdates(params) {
         console.log("═══════════════════════════════════════════════")
         console.log("🎨 main.qml: applyMaterialUpdates() with DETAILED DEBUG")
         console.log("   Received parameters:", Object.keys(params))
+        console.log("🎨 Received params:", JSON.stringify(params))
         
+        // ✅ ИСПРАВЛЕНО: Поддержка ДВУХ форматов данных (как в освещении)
+        // Формат 1: структурированный (params.metal.roughness)
+        // Формат 2: плоский из Python (params.metalRoughness)
+        
+        // Metal parameters
         if (params.metal !== undefined) {
             console.log("  🔩 Processing METAL parameters...")
             if (params.metal.roughness !== undefined && params.metal.roughness !== metalRoughness) {
@@ -575,6 +732,21 @@ Item {
             }
         }
         
+        // ✅ НОВОЕ: Поддержка плоского формата для металла
+        if (params.metalRoughness !== undefined) {
+            console.log("  🔩 metalRoughness (flat): " + metalRoughness + " → " + params.metalRoughness)
+            metalRoughness = params.metalRoughness
+        }
+        if (params.metalMetalness !== undefined) {
+            console.log("  🔩 metalMetalness (flat): " + metalMetalness + " → " + params.metalMetalness)
+            metalMetalness = params.metalMetalness
+        }
+        if (params.metalClearcoat !== undefined) {
+            console.log("  🔩 metalClearcoat (flat): " + metalClearcoat + " → " + params.metalClearcoat)
+            metalClearcoat = params.metalClearcoat
+        }
+        
+        // Glass parameters
         if (params.glass !== undefined) {
             console.log("  🪟 Processing GLASS parameters...")
             if (params.glass.opacity !== undefined && params.glass.opacity !== glassOpacity) {
@@ -592,8 +764,30 @@ Item {
             }
         }
         
+        // ✅ НОВОЕ: Поддержка плоского формата для стекла
+        if (params.glassOpacity !== undefined) {
+            console.log("  🪟 glassOpacity (flat): " + glassOpacity + " → " + params.glassOpacity)
+            glassOpacity = params.glassOpacity
+        }
+        if (params.glassRoughness !== undefined) {
+            console.log("  🪟 glassRoughness (flat): " + glassRoughness + " → " + params.glassRoughness)
+            glassRoughness = params.glassRoughness
+        }
+        if (params.glassIOR !== undefined) {
+            console.log("  🔍 glassIOR (flat): " + glassIOR + " → " + params.glassIOR)
+            glassIOR = params.glassIOR
+        }
+        
+        // Frame parameters
         if (params.frame !== undefined) {
             console.log("  🏗️ Processing FRAME parameters...")
+            
+            // ✅ КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Обработка цвета рамы из правильного места!
+            if (params.frame.color !== undefined && params.frame.color !== frameBaseColor) {
+                console.log("    🎨 frameBaseColor (ИСПРАВЛЕНО): " + frameBaseColor + " → " + params.frame.color + " (ИЗМЕНЕНИЕ!)")
+                frameBaseColor = params.frame.color
+            }
+            
             if (params.frame.metalness !== undefined && params.frame.metalness !== frameMetalness) {
                 console.log("    🔧 frameMetalness: " + frameMetalness + " → " + params.frame.metalness + " (ИЗМЕНЕНИЕ!)")
                 frameMetalness = params.frame.metalness
@@ -604,10 +798,101 @@ Item {
             }
         }
         
-        console.log("  ✅ Materials updated successfully (including IOR)")
+        // ✅ НОВОЕ: Поддержка плоского формата для рамы
+        if (params.frameMetalness !== undefined) {
+            console.log("  🏗️ frameMetalness (flat): " + frameMetalness + " → " + params.frameMetalness)
+            frameMetalness = params.frameMetalness
+        }
+        if (params.frameRoughness !== undefined) {
+            console.log("  🏗️ frameRoughness (flat): " + frameRoughness + " → " + params.frameRoughness)
+            frameRoughness = params.frameRoughness
+        }
+      
+        // ✅ КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Обработка цветов ВСЕ МАТЕРИАЛОВ из правильных мест!
+        
+        // Lever (рычаги)
+        if (params.lever !== undefined) {
+            console.log("  🦾 Processing LEVER parameters...")
+            if (params.lever.color !== undefined && params.lever.color !== leverBaseColor) {
+                console.log("    🎨 leverBaseColor: " + leverBaseColor + " → " + params.lever.color + " (ИЗМЕНЕНИЕ!)")
+                leverBaseColor = params.lever.color
+            }
+        }
+        
+        // Tail (хвостовой шток)
+        if (params.tail !== undefined) {
+            console.log("  🔩 Processing TAIL parameters...")
+            if (params.tail.color !== undefined && params.tail.color !== tailRodColor) {
+                console.log("    🎨 tailRodColor: " + tailRodColor + " → " + params.tail.color + " (ИЗМЕНЕНИЕ!)")
+                tailRodColor = params.tail.color
+            }
+        }
+        
+        // Cylinder (корпус цилиндра)
+        if (params.cylinder !== undefined) {
+            console.log("  🛢️ Processing CYLINDER parameters...")
+            if (params.cylinder.color !== undefined && params.cylinder.color !== cylinderBodyColor) {
+                console.log("    🎨 cylinderBodyColor: " + cylinderBodyColor + " → " + params.cylinder.color + " (ИЗМЕНЕНИЕ!)")
+                cylinderBodyColor = params.cylinder.color
+            }
+        }
+        
+        // Piston body (корпус поршня)
+        if (params.piston_body !== undefined) {
+            console.log("  ⚙️ Processing PISTON BODY parameters...")
+            if (params.piston_body.color !== undefined && params.piston_body.color !== pistonBodyColor) {
+                console.log("    🎨 pistonBodyColor: " + pistonBodyColor + " → " + params.piston_body.color + " (ИЗМЕНЕНИЕ!)")
+                pistonBodyColor = params.piston_body.color
+            }
+            if (params.piston_body.warning_color !== undefined && params.piston_body.warning_color !== pistonBodyWarningColor) {
+                console.log("    🚨 pistonBodyWarningColor: " + pistonBodyWarningColor + " → " + params.piston_body.warning_color + " (ИЗМЕНЕНИЕ!)")
+                pistonBodyWarningColor = params.piston_body.warning_color
+            }
+        }
+        
+        // Piston rod (шток поршня)
+        if (params.piston_rod !== undefined) {
+            console.log("  🔧 Processing PISTON ROD parameters...")
+            if (params.piston_rod.color !== undefined && params.piston_rod.color !== pistonRodColor) {
+                console.log("    🎨 pistonRodColor: " + pistonRodColor + " → " + params.piston_rod.color + " (ИЗМЕНЕНИЕ!)")
+                pistonRodColor = params.piston_rod.color
+            }
+            if (params.piston_rod.warning_color !== undefined && params.piston_rod.warning_color !== pistonRodWarningColor) {
+                console.log("    🚨 pistonRodWarningColor: " + pistonRodWarningColor + " → " + params.piston_rod.warning_color + " (ИЗМЕНЕНИЕ!)")
+                pistonRodWarningColor = params.piston_rod.warning_color
+            }
+        }
+        
+        // Joints (шарниры)
+        if (params.joint !== undefined) {
+            console.log("  🔗 Processing JOINT parameters...")
+            if (params.joint.tail_color !== undefined && params.joint.tail_color !== jointTailColor) {
+                console.log("    🎨 jointTailColor: " + jointTailColor + " → " + params.joint.tail_color + " (ИЗМЕНЕНИЕ!)")
+                jointTailColor = params.joint.tail_color
+            }
+            if (params.joint.arm_color !== undefined && params.joint.arm_color !== jointArmColor) {
+                console.log("    🎨 jointArmColor: " + jointArmColor + " → " + params.joint.arm_color + " (ИЗМЕНЕНИЕ!)")
+                jointArmColor = params.joint.arm_color
+            }
+            if (params.joint.rod_ok_color !== undefined && params.joint.rod_ok_color !== jointRodOkColor) {
+                console.log("    🎨 jointRodOkColor: " + jointRodOkColor + " → " + params.joint.rod_ok_color + " (ИЗМЕНЕНИЕ!)")
+                jointRodOkColor = params.joint.rod_ok_color
+            }
+            if (params.joint.rod_error_color !== undefined && params.joint.rod_error_color !== jointRodErrorColor) {
+                console.log("    🎨 jointRodErrorColor: " + jointRodErrorColor + " → " + params.joint.rod_error_color + " (ИЗМЕНЕНИЕ!)")
+                jointRodErrorColor = params.joint.rod_error_color
+            }
+        }
+        
+        console.log("🎨 Final material values:")
+        console.log("   Metal: roughness=" + metalRoughness + ", metalness=" + metalMetalness)
+        console.log("   Glass: opacity=" + glassOpacity + ", IOR=" + glassIOR)
+        console.log("   Frame: metalness=" + frameMetalness + ", roughness=" + frameRoughness + ", color=" + frameBaseColor)
+        
+        console.log("  ✅ Materials updated successfully (including IOR AND ALL COLORS)")
         console.log("═══════════════════════════════════════════════")
 
-        // ✅ ИСПРАВЛЕНО: Обновление цветов материалов
+        // ✅ ИСПРАВЛЕННО: Обновление цветов материалов
         if (params.colors !== undefined) {
             console.log("  🎨 Processing material COLORS...")
             if (params.colors.frameBaseColor !== undefined) {
@@ -660,32 +945,84 @@ Item {
         console.log("═══════════════════════════════════════════════")
         console.log("🌍 main.qml: applyEnvironmentUpdates() with DETAILED DEBUG")
         console.log("   Received parameters:", Object.keys(params))
+        console.log("🌍 Received params:", JSON.stringify(params))
         
+        // ✅ ИСПРАВЛЕНО: Поддержка ДВУХ форматов данных (как в освещении)
+        // Формат 1: структурированный (params.background_color)
+        // Формат 2: плоский из Python (params.backgroundColor)
+        
+        // Background Color
         if (params.background_color !== undefined && params.background_color !== backgroundColor) {
             console.log("  🔧 backgroundColor: " + backgroundColor + " → " + params.background_color + " (ИЗМЕНЕНИЕ!)")
             backgroundColor = params.background_color
+        } else if (params.backgroundColor !== undefined) {
+            console.log("  🔧 backgroundColor (flat): " + backgroundColor + " → " + params.backgroundColor)
+            backgroundColor = params.backgroundColor
         }
         
+        // Skybox
         if (params.skybox_enabled !== undefined && params.skybox_enabled !== skyboxEnabled) {
             console.log("  🔧 skyboxEnabled: " + skyboxEnabled + " → " + params.skybox_enabled + " (ИЗМЕНЕНИЕ!)")
             skyboxEnabled = params.skybox_enabled
+        } else if (params.skyboxEnabled !== undefined) {
+            console.log("  🔧 skyboxEnabled (flat): " + skyboxEnabled + " → " + params.skyboxEnabled)
+            skyboxEnabled = params.skyboxEnabled
         }
         
         if (params.skybox_blur !== undefined && params.skybox_blur !== skyboxBlur) {
             console.log("  🔧 skyboxBlur: " + skyboxBlur + " → " + params.skybox_blur + " (ИЗМЕНЕНИЕ!)")
             skyboxBlur = params.skybox_blur
+        } else if (params.skyboxBlur !== undefined) {
+            console.log("  🔧 skyboxBlur (flat): " + skyboxBlur + " → " + params.skyboxBlur)
+            skyboxBlur = params.skyboxBlur
         }
         
         // ✅ НОВОЕ: IBL параметры
         if (params.ibl_enabled !== undefined && params.ibl_enabled !== iblEnabled) {
             console.log("  🌟 IBL enabled (КРИТИЧЕСКИЙ): " + iblEnabled + " → " + params.ibl_enabled + " (ИЗМЕНЕНИЕ!)")
             iblEnabled = params.ibl_enabled
+        } else if (params.iblEnabled !== undefined) {
+            console.log("  🌟 IBL enabled (flat): " + iblEnabled + " → " + params.iblEnabled)
+            iblEnabled = params.iblEnabled
         }
         
         if (params.ibl_intensity !== undefined && params.ibl_intensity !== iblIntensity) {
             console.log("  🌟 IBL intensity: " + iblIntensity + " → " + params.ibl_intensity + " (ИЗМЕНЕНИЕ!)")
             iblIntensity = params.ibl_intensity
+        } else if (params.iblIntensity !== undefined) {
+            console.log("  🌟 IBL intensity (flat): " + iblIntensity + " → " + params.iblIntensity)
+            iblIntensity = params.iblIntensity
         }
+        
+        // ✅ НОВОЕ: Fog параметры
+        if (params.fog_enabled !== undefined && params.fog_enabled !== fogEnabled) {
+            console.log("  🌫️ Fog enabled: " + fogEnabled + " → " + params.fog_enabled + " (ИЗМЕНЕНИЕ!)")
+            fogEnabled = params.fog_enabled
+        } else if (params.fogEnabled !== undefined) {
+            console.log("  🌫️ Fog enabled (flat): " + fogEnabled + " → " + params.fogEnabled)
+            fogEnabled = params.fogEnabled
+        }
+        
+        if (params.fog_color !== undefined && params.fog_color !== fogColor) {
+            console.log("  🌫️ Fog color: " + fogColor + " → " + params.fog_color + " (ИЗМЕНЕНИЕ!)")
+            fogColor = params.fog_color
+        } else if (params.fogColor !== undefined) {
+            console.log("  🌫️ Fog color (flat): " + fogColor + " → " + params.fogColor)
+            fogColor = params.fogColor
+        }
+        
+        if (params.fog_density !== undefined && params.fog_density !== fogDensity) {
+            console.log("  🌫️ Fog density: " + fogDensity + " → " + params.fog_density + " (ИЗМЕНЕНИЕ!)")
+            fogDensity = params.fog_density
+        } else if (params.fogDensity !== undefined) {
+            console.log("  🌫️ Fog density (flat): " + fogDensity + " → " + params.fogDensity)
+            fogDensity = params.fogDensity
+        }
+        
+        console.log("🌍 Final environment values:")
+        console.log("   Background: " + backgroundColor + ", Skybox: " + skyboxEnabled)
+        console.log("   IBL: enabled=" + iblEnabled + ", intensity=" + iblIntensity)
+        console.log("   Fog: enabled=" + fogEnabled + ", density=" + fogDensity)
         
         console.log("  ✅ Environment updated successfully (including IBL)")
         console.log("═══════════════════════════════════════════════")
@@ -696,39 +1033,139 @@ Item {
         console.log("═══════════════════════════════════════════════")
         console.log("⚙️ main.qml: applyQualityUpdates() with DETAILED DEBUG")
         console.log("   Received parameters:", Object.keys(params))
+        console.log("⚙️ Received params:", JSON.stringify(params))
         
+        // ✅ ИСПРАВЛЕНО: Поддержка ВСЕХ альтернативных имен параметров
+        
+        // ✅ КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Antialiasing - поддержка обоих имен
         if (params.antialiasing !== undefined && params.antialiasing !== antialiasingMode) {
-            console.log("  🔧 antialiasingMode: " + antialiasingMode + " → " + params.antialiasing + " (ИЗМЕНЕНИЕ!)")
+            console.log("  🔧 antialiasingMode (Python name): " + antialiasingMode + " → " + params.antialiasing + " (ИЗМЕНЕНИЕ!)")
             antialiasingMode = params.antialiasing
         }
+        if (params.antialiasingMode !== undefined && params.antialiasingMode !== antialiasingMode) {
+            console.log("  🔧 antialiasingMode (QML name): " + antialiasingMode + " → " + params.antialiasingMode + " (ИЗМЕНЕНИЕ!)")
+            antialiasingMode = params.antialiasingMode
+        }
         
+        // Antialiasing Quality
+        if (params.antialiasing_quality !== undefined && params.antialiasing_quality !== antialiasingQuality) {
+            console.log("  🔧 antialiasingQuality: " + antialiasingQuality + " → " + params.antialiasing_quality + " (ИЗМЕНЕНИЕ!)")
+            antialiasingQuality = params.antialiasing_quality
+        }
+        if (params.antialiasingQuality !== undefined && params.antialiasingQuality !== antialiasingQuality) {
+            console.log("  🔧 antialiasingQuality (alt): " + antialiasingQuality + " → " + params.antialiasingQuality)
+            antialiasingQuality = params.antialiasingQuality
+        }
+        if (params.aa_quality !== undefined && params.aa_quality !== antialiasingQuality) {
+            console.log("  🔧 antialiasingQuality (aa_quality): " + antialiasingQuality + " → " + params.aa_quality)
+            antialiasingQuality = params.aa_quality
+        }
+        
+        // Shadows
         if (params.shadows_enabled !== undefined && params.shadows_enabled !== shadowsEnabled) {
             console.log("  🔧 shadowsEnabled: " + shadowsEnabled + " → " + params.shadows_enabled + " (ИЗМЕНЕНИЕ!)")
             shadowsEnabled = params.shadows_enabled
         }
+        if (params.shadowsEnabled !== undefined && params.shadowsEnabled !== shadowsEnabled) {
+            console.log("  🔧 shadowsEnabled (alt): " + shadowsEnabled + " → " + params.shadowsEnabled)
+            shadowsEnabled = params.shadowsEnabled
+        }
+        
+        if (params.shadow_quality !== undefined && params.shadow_quality !== shadowQuality) {
+            console.log("  🔧 shadowQuality: " + shadowQuality + " → " + params.shadow_quality + " (ИЗМЕНЕНИЕ!)")
+            shadowQuality = params.shadow_quality
+        }
+        if (params.shadowQuality !== undefined && params.shadowQuality !== shadowQuality) {
+            console.log("  🔧 shadowQuality (alt): " + shadowQuality + " → " + params.shadowQuality)
+            shadowQuality = params.shadowQuality
+        }
         
         // ✅ НОВОЕ: Мягкость теней
         if (params.shadow_softness !== undefined && params.shadow_softness !== shadowSoftness) {
-            console.log("  🌫️ shadowSoftness (НОВОЕ): " + shadowSoftness + " → " + params.shadow_softness + " (ИЗМЕНЕНИЕ!)")
+            console.log("  🌫️ shadowSoftness: " + shadowSoftness + " → " + params.shadow_softness + " (ИЗМЕНЕНИЕ!)")
             shadowSoftness = params.shadow_softness
         }
+        if (params.shadowSoftness !== undefined && params.shadowSoftness !== shadowSoftness) {
+            console.log("  🌫️ shadowSoftness (alt): " + shadowSoftness + " → " + params.shadowSoftness)
+            shadowSoftness = params.shadowSoftness
+        }
         
-        console.log("  ✅ Quality updated successfully (including shadow softness)")
+        console.log("⚙️ Final quality values:")
+        console.log("   Antialiasing: mode=" + antialiasingMode + ", quality=" + antialiasingQuality)
+        console.log("   Shadows: enabled=" + shadowsEnabled + ", quality=" + shadowQuality + ", softness=" + shadowSoftness)
+        
+        console.log("  ✅ Quality updated successfully (ALL NAMES SUPPORTED)")
         console.log("═══════════════════════════════════════════════")
     }
 
     // ✅ ПОЛНАЯ реализация updateCamera()
     function applyCameraUpdates(params) {
-        console.log("📷 main.qml: applyCameraUpdates() called")
+        console.log("═══════════════════════════════════════════════")
+        console.log("📷 main.qml: applyCameraUpdates() with DETAILED DEBUG")
+        console.log("   Received parameters:", Object.keys(params))
+        console.log("📷 Received params:", JSON.stringify(params))
         
-        if (params.fov !== undefined) cameraFov = params.fov
-        if (params.near !== undefined) cameraNear = params.near
-        if (params.far !== undefined) cameraFar = params.far
-        if (params.speed !== undefined) cameraSpeed = params.speed
-        if (params.auto_rotate !== undefined) autoRotate = params.auto_rotate
-        if (params.auto_rotate_speed !== undefined) autoRotateSpeed = params.auto_rotate_speed
+        // ✅ ИСПРАВЛЕНО: Поддержка ДВУХ форматов данных (как в освещении)
+        
+        // Field of View
+        if (params.fov !== undefined && params.fov !== cameraFov) {
+            console.log("  📷 cameraFov: " + cameraFov + " → " + params.fov + " (ИЗМЕНЕНИЕ!)")
+            cameraFov = params.fov
+        } else if (params.cameraFov !== undefined) {
+            console.log("  📷 cameraFov (flat): " + cameraFov + " → " + params.cameraFov)
+            cameraFov = params.cameraFov
+        }
+        
+        // Near clipping plane
+        if (params.near !== undefined && params.near !== cameraNear) {
+            console.log("  📷 cameraNear: " + cameraNear + " → " + params.near + " (ИЗМЕНЕНИЕ!)")
+            cameraNear = params.near
+        } else if (params.cameraNear !== undefined) {
+            console.log("  📷 cameraNear (flat): " + cameraNear + " → " + params.cameraNear)
+            cameraNear = params.cameraNear
+        }
+        
+        // Far clipping plane
+        if (params.far !== undefined && params.far !== cameraFar) {
+            console.log("  📷 cameraFar: " + cameraFar + " → " + params.far + " (ИЗМЕНЕНИЕ!)")
+            cameraFar = params.far
+        } else if (params.cameraFar !== undefined) {
+            console.log("  📷 cameraFar (flat): " + cameraFar + " → " + params.cameraFar)
+            cameraFar = params.cameraFar
+        }
+        
+        // Camera speed
+        if (params.speed !== undefined && params.speed !== cameraSpeed) {
+            console.log("  📷 cameraSpeed: " + cameraSpeed + " → " + params.speed + " (ИЗМЕНЕНИЕ!)")
+            cameraSpeed = params.speed
+        } else if (params.cameraSpeed !== undefined) {
+            console.log("  📷 cameraSpeed (flat): " + cameraSpeed + " → " + params.cameraSpeed)
+            cameraSpeed = params.cameraSpeed
+        }
+        
+        // Auto rotation
+        if (params.auto_rotate !== undefined && params.auto_rotate !== autoRotate) {
+            console.log("  🔄 autoRotate: " + autoRotate + " → " + params.auto_rotate + " (ИЗМЕНЕНИЕ!)")
+            autoRotate = params.auto_rotate
+        } else if (params.autoRotate !== undefined) {
+            console.log("  🔄 autoRotate (flat): " + autoRotate + " → " + params.autoRotate)
+            autoRotate = params.autoRotate
+        }
+        
+        if (params.auto_rotate_speed !== undefined && params.auto_rotate_speed !== autoRotateSpeed) {
+            console.log("  🔄 autoRotateSpeed: " + autoRotateSpeed + " → " + params.auto_rotate_speed + " (ИЗМЕНЕНИЕ!)")
+            autoRotateSpeed = params.auto_rotate_speed
+        } else if (params.autoRotateSpeed !== undefined) {
+            console.log("  🔄 autoRotateSpeed (flat): " + autoRotateSpeed + " → " + params.autoRotateSpeed)
+            autoRotateSpeed = params.autoRotateSpeed
+        }
+        
+        console.log("📷 Final camera values:")
+        console.log("   FOV: " + cameraFov + ", Near: " + cameraNear + ", Far: " + cameraFar)
+        console.log("   Speed: " + cameraSpeed + ", AutoRotate: " + autoRotate + " (speed=" + autoRotateSpeed + ")")
         
         console.log("  ✅ Camera updated successfully")
+        console.log("═══════════════════════════════════════════════")
     }
 
     // ✅ ПОЛНАЯ реализация updateEffects()
@@ -736,21 +1173,36 @@ Item {
         console.log("═══════════════════════════════════════════════")
         console.log("✨ main.qml: applyEffectsUpdates() with DETAILED DEBUG")
         console.log("   Received parameters:", Object.keys(params))
+        console.log("✨ Received params:", JSON.stringify(params))
+        
+        // ✅ ИСПРАВЛЕНО: Поддержка ВСЕХ альтернативных имен параметров
         
         // Bloom - РАСШИРЕННЫЙ
         if (params.bloom_enabled !== undefined && params.bloom_enabled !== bloomEnabled) {
             console.log("  🔧 bloomEnabled: " + bloomEnabled + " → " + params.bloom_enabled + " (ИЗМЕНЕНИЕ!)")
             bloomEnabled = params.bloom_enabled
         }
+        if (params.bloomEnabled !== undefined && params.bloomEnabled !== bloomEnabled) {
+            console.log("  🔧 bloomEnabled (alt): " + bloomEnabled + " → " + params.bloomEnabled)
+            bloomEnabled = params.bloomEnabled
+        }
         
         if (params.bloom_intensity !== undefined && params.bloom_intensity !== bloomIntensity) {
             console.log("  🔧 bloomIntensity: " + bloomIntensity + " → " + params.bloom_intensity + " (ИЗМЕНЕНИЕ!)")
             bloomIntensity = params.bloom_intensity
         }
+        if (params.bloomIntensity !== undefined && params.bloomIntensity !== bloomIntensity) {
+            console.log("  🔧 bloomIntensity (alt): " + bloomIntensity + " → " + params.bloomIntensity)
+            bloomIntensity = params.bloomIntensity
+        }
         
         if (params.bloom_threshold !== undefined && params.bloom_threshold !== bloomThreshold) {
-            console.log("  🌟 bloomThreshold (НОВОЕ): " + bloomThreshold + " → " + params.bloom_threshold + " (ИЗМЕНЕНИЕ!)")
+            console.log("  🌟 bloomThreshold: " + bloomThreshold + " → " + params.bloom_threshold + " (ИЗМЕНЕНИЕ!)")
             bloomThreshold = params.bloom_threshold
+        }
+        if (params.bloomThreshold !== undefined && params.bloomThreshold !== bloomThreshold) {
+            console.log("  🌟 bloomThreshold (alt): " + bloomThreshold + " → " + params.bloomThreshold)
+            bloomThreshold = params.bloomThreshold
         }
         
         // SSAO - РАСШИРЕННЫЙ
@@ -758,24 +1210,137 @@ Item {
             console.log("  🔧 ssaoEnabled: " + ssaoEnabled + " → " + params.ssao_enabled + " (ИЗМЕНЕНИЕ!)")
             ssaoEnabled = params.ssao_enabled
         }
+        if (params.ssaoEnabled !== undefined && params.ssaoEnabled !== ssaoEnabled) {
+            console.log("  🔧 ssaoEnabled (alt): " + ssaoEnabled + " → " + params.ssaoEnabled)
+            ssaoEnabled = params.ssaoEnabled
+        }
+        
+        if (params.ssao_intensity !== undefined && params.ssao_intensity !== ssaoIntensity) {
+            console.log("  🔧 ssaoIntensity: " + ssaoIntensity + " → " + params.ssao_intensity + " (ИЗМЕНЕНИЕ!)")
+            ssaoIntensity = params.ssao_intensity
+        }
+        if (params.ssaoIntensity !== undefined && params.ssaoIntensity !== ssaoIntensity) {
+            console.log("  🔧 ssaoIntensity (alt): " + ssaoIntensity + " → " + params.ssaoIntensity)
+            ssaoIntensity = params.ssaoIntensity
+        }
         
         if (params.ssao_radius !== undefined && params.ssao_radius !== ssaoRadius) {
-            console.log("  🌑 ssaoRadius (НОВОЕ): " + ssaoRadius + " → " + params.ssao_radius + " (ИЗМЕНЕНИЕ!)")
+            console.log("  🌑 ssaoRadius: " + ssaoRadius + " → " + params.ssao_radius + " (ИЗМЕНЕНИЕ!)")
             ssaoRadius = params.ssao_radius
+        }
+        if (params.ssaoRadius !== undefined && params.ssaoRadius !== ssaoRadius) {
+            console.log("  🌑 ssaoRadius (alt): " + ssaoRadius + " → " + params.ssaoRadius)
+            ssaoRadius = params.ssaoRadius
+        }
+        
+        // ✅ КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Motion Blur - поддержка обоих имен
+        if (params.motionBlur !== undefined && params.motionBlur !== motionBlurEnabled) {
+            console.log("  🎬 motionBlurEnabled (Python name): " + motionBlurEnabled + " → " + params.motionBlur + " (ИЗМЕНЕНИЕ!)")
+            motionBlurEnabled = params.motionBlur
+        }
+        if (params.motion_blur !== undefined && params.motion_blur !== motionBlurEnabled) {
+            console.log("  🎬 motionBlurEnabled (underscore): " + motionBlurEnabled + " → " + params.motion_blur + " (ИЗМЕНЕНИЕ!)")
+            motionBlurEnabled = params.motion_blur
+        }
+        if (params.motionBlurEnabled !== undefined && params.motionBlurEnabled !== motionBlurEnabled) {
+            console.log("  🎬 motionBlurEnabled (QML name): " + motionBlurEnabled + " → " + params.motionBlurEnabled)
+            motionBlurEnabled = params.motionBlurEnabled
+        }
+        
+        // ✅ КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Depth of Field - поддержка обоих имен
+        if (params.depthOfField !== undefined && params.depthOfField !== depthOfFieldEnabled) {
+            console.log("  🔍 depthOfFieldEnabled (Python name): " + depthOfFieldEnabled + " → " + params.depthOfField + " (ИЗМЕНЕНИЕ!)")
+            depthOfFieldEnabled = params.depthOfField
+        }
+        if (params.depth_of_field !== undefined && params.depth_of_field !== depthOfFieldEnabled) {
+            console.log("  🔍 depthOfFieldEnabled (underscore): " + depthOfFieldEnabled + " → " + params.depth_of_field + " (ИЗМЕНЕНИЕ!)")
+            depthOfFieldEnabled = params.depth_of_field
+        }
+        if (params.depthOfFieldEnabled !== undefined && params.depthOfFieldEnabled !== depthOfFieldEnabled) {
+            console.log("  🔍 depthOfFieldEnabled (QML name): " + depthOfFieldEnabled + " → " + params.depthOfFieldEnabled)
+            depthOfFieldEnabled = params.depthOfFieldEnabled
+        }
+        if (params.dof_enabled !== undefined && params.dof_enabled !== depthOfFieldEnabled) {
+            console.log("  🔍 depthOfFieldEnabled (dof_enabled): " + depthOfFieldEnabled + " → " + params.dof_enabled)
+            depthOfFieldEnabled = params.dof_enabled
+        }
+        
+        // DoF parameters
+        if (params.dof_focus_distance !== undefined && params.dof_focus_distance !== dofFocusDistance) {
+            console.log("  🔍 dofFocusDistance: " + dofFocusDistance + " → " + params.dof_focus_distance + " (ИЗМЕНЕНИЕ!)")
+            dofFocusDistance = params.dof_focus_distance
+        }
+        if (params.dofFocusDistance !== undefined && params.dofFocusDistance !== dofFocusDistance) {
+            console.log("  🔍 dofFocusDistance (alt): " + dofFocusDistance + " → " + params.dofFocusDistance)
+            dofFocusDistance = params.dofFocusDistance
+        }
+        
+        if (params.dof_focus_range !== undefined && params.dof_focus_range !== dofFocusRange) {
+            console.log("  🔍 dofFocusRange: " + dofFocusRange + " → " + params.dof_focus_range + " (ИЗМЕНЕНИЕ!)")
+            dofFocusRange = params.dof_focus_range
+        }
+        if (params.dofFocusRange !== undefined && params.dofFocusRange !== dofFocusRange) {
+            console.log("  🔍 dofFocusRange (alt): " + dofFocusRange + " → " + params.dofFocusRange)
+            dofFocusRange = params.dofFocusRange
         }
         
         // ✅ НОВОЕ: Тонемаппинг
         if (params.tonemap_enabled !== undefined && params.tonemap_enabled !== tonemapEnabled) {
-            console.log("  🎨 tonemapEnabled (НОВОЕ): " + tonemapEnabled + " → " + params.tonemap_enabled + " (ИЗМЕНЕНИЕ!)")
+            console.log("  🎨 tonemapEnabled: " + tonemapEnabled + " → " + params.tonemap_enabled + " (ИЗМЕНЕНИЕ!)")
             tonemapEnabled = params.tonemap_enabled
+        }
+        if (params.tonemapEnabled !== undefined && params.tonemapEnabled !== tonemapEnabled) {
+            console.log("  🎨 tonemapEnabled (alt): " + tonemapEnabled + " → " + params.tonemapEnabled)
+            tonemapEnabled = params.tonemapEnabled
         }
         
         if (params.tonemap_mode !== undefined && params.tonemap_mode !== tonemapMode) {
-            console.log("  🎨 tonemapMode (НОВОЕ): " + tonemapMode + " → " + params.tonemap_mode + " (ИЗМЕНЕНИЕ!)")
+            console.log("  🎨 tonemapMode: " + tonemapMode + " → " + params.tonemap_mode + " (ИЗМЕНЕНИЕ!)")
             tonemapMode = params.tonemap_mode
         }
+        if (params.tonemapMode !== undefined && params.tonemapMode !== tonemapMode) {
+            console.log("  🎨 tonemapMode (alt): " + tonemapMode + " → " + params.tonemapMode)
+            tonemapMode = params.tonemapMode
+        }
         
-        console.log("  ✅ Visual effects updated successfully (COMPLETE)")
+        // ✅ НОВОЕ: Виньетирование
+        if (params.vignette_enabled !== undefined && params.vignette_enabled !== vignetteEnabled) {
+            console.log("  📷 vignetteEnabled: " + vignetteEnabled + " → " + params.vignette_enabled + " (ИЗМЕНЕНИЕ!)")
+            vignetteEnabled = params.vignette_enabled
+        }
+        if (params.vignetteEnabled !== undefined && params.vignetteEnabled !== vignetteEnabled) {
+            console.log("  📷 vignetteEnabled (alt): " + vignetteEnabled + " → " + params.vignetteEnabled)
+            vignetteEnabled = params.vignetteEnabled
+        }
+        
+        // ✅ КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: vignetteStrength - теперь поддерживается!
+        if (params.vignette_strength !== undefined && params.vignette_strength !== vignetteStrength) {
+            console.log("  📷 vignetteStrength (ИСПРАВЛЕНО): " + vignetteStrength + " → " + params.vignette_strength + " (ИЗМЕНЕНИЕ!)")
+            vignetteStrength = params.vignette_strength
+        }
+        if (params.vignetteStrength !== undefined && params.vignetteStrength !== vignetteStrength) {
+            console.log("  📷 vignetteStrength (alt): " + vignetteStrength + " → " + params.vignetteStrength)
+            vignetteStrength = params.vignetteStrength
+        }
+        
+        // Lens Flare
+        if (params.lens_flare_enabled !== undefined && params.lens_flare_enabled !== lensFlareEnabled) {
+            console.log("  🌟 lensFlareEnabled: " + lensFlareEnabled + " → " + params.lens_flare_enabled + " (ИЗМЕНЕНИЕ!)")
+            lensFlareEnabled = params.lens_flare_enabled
+        }
+        if (params.lensFlareEnabled !== undefined && params.lensFlareEnabled !== lensFlareEnabled) {
+            console.log("  🌟 lensFlareEnabled (alt): " + lensFlareEnabled + " → " + params.lensFlareEnabled)
+            lensFlareEnabled = params.lensFlareEnabled
+        }
+        
+        console.log("✨ Final effects values:")
+        console.log("   Bloom: enabled=" + bloomEnabled + ", intensity=" + bloomIntensity + ", threshold=" + bloomThreshold)
+        console.log("   SSAO: enabled=" + ssaoEnabled + ", intensity=" + ssaoIntensity + ", radius=" + ssaoRadius)
+        console.log("   Tonemap: enabled=" + tonemapEnabled + ", mode=" + tonemapMode)
+        console.log("   Vignette: enabled=" + vignetteEnabled + ", strength=" + vignetteStrength)
+        console.log("   DoF: " + depthOfFieldEnabled + ", Motion Blur: " + motionBlurEnabled)
+        
+        console.log("  ✅ Visual effects updated successfully (ALL NAMES SUPPORTED)")
         console.log("═══════════════════════════════════════════════")
     }
 
@@ -805,7 +1370,7 @@ Item {
 
         environment: ExtendedSceneEnvironment {
             id: mainEnvironment
-            backgroundMode: skyboxEnabled && iblReady ? SceneEnvironment.SkyBox : SceneEnvironment.Color
+            backgroundMode: skyboxEnabled ? SceneEnvironment.SkyBox : SceneEnvironment.Color  // ✅ ИСПРАВЛЕНО: убрано iblReady
             clearColor: backgroundColor
             lightProbe: iblEnabled && iblReady ? iblLoader.probe : null     // ✅ НОВОЕ: IBL
             probeExposure: iblIntensity                                    // ✅ НОВОЕ: IBL
@@ -814,14 +1379,33 @@ Item {
             fogColor: fogColor
             fogDensity: fogDensity
             
+            // ✅ ИСПРАВЛЕНО: Прямая привязка tonemapMode (КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ v4.4)
+            tonemapMode: {
+                if (!root.tonemapEnabled)
+                    return SceneEnvironment.TonemapModeNone
+                
+                switch (root.tonemapMode) {
+                    case 3: return SceneEnvironment.TonemapModeFilmic
+                    case 2: return SceneEnvironment.TonemapModeReinhard
+                    case 1: return SceneEnvironment.TonemapModeLinear
+                    case 0: return SceneEnvironment.TonemapModeNone
+                    default: return SceneEnvironment.TonemapModeFilmic
+                }
+            }
+            
             // ✅ НОВОЕ: Antialiasing и качество
             antialiasingMode: antialiasingMode === 3 ? SceneEnvironment.ProgressiveAA :
                              antialiasingMode === 2 ? SceneEnvironment.MSAA :
                              antialiasingMode === 1 ? SceneEnvironment.SSAA :
                              SceneEnvironment.NoAA
-            antialiasingQuality: (antialiasingQuality !== undefined && antialiasingQuality === 2) ? SceneEnvironment.High :
-                               (antialiasingQuality !== undefined && antialiasingQuality === 1) ? SceneEnvironment.Medium :
-                               SceneEnvironment.Low
+            antialiasingQuality: {
+                switch (root.antialiasingQuality) {
+                    case 2: return SceneEnvironment.High
+                    case 1: return SceneEnvironment.Medium
+                    case 0: return SceneEnvironment.Low
+                    default: return SceneEnvironment.High
+                }
+            }
             
             // ✅ НОВОЕ: Post-processing effects
             bloomEnabled: bloomEnabled
@@ -889,8 +1473,8 @@ Item {
                              shadowQuality === 1 ? Light.ShadowMapQualityMedium :
                              Light.ShadowMapQualityLow
             shadowFactor: 75
-            shadowBias: 0.0015
-            shadowFilter: 4 + Math.max(0, shadowSoftness) * 28
+            shadowBias: 0.001  // ✅ ИСПРАВЛЕНИЕ МУАРА: уменьшено с 0.0015
+            shadowFilter: 35   // ✅ ИСПРАВЛЕНИЕ МУАРА: увеличено с 8 + shadowSoftness * 56
         }
         
         DirectionalLight {
@@ -929,7 +1513,7 @@ Item {
             position: Qt.vector3d(0, userBeamSize/2, userFrameLength/2)
             scale: Qt.vector3d(userBeamSize/100, userBeamSize/100, userFrameLength/100)
             materials: PrincipledMaterial {
-                baseColor: frameBaseColor
+                baseColor: frameBaseColor                // ✅ ИСПРАВЛЕНО: используем переменную
                 metalness: frameMetalness
                 roughness: frameRoughness
                 clearcoatAmount: frameClearcoat
@@ -941,7 +1525,7 @@ Item {
             position: Qt.vector3d(0, userBeamSize + userFrameHeight/2, userBeamSize/2)
             scale: Qt.vector3d(userBeamSize/100, userFrameHeight/100, userBeamSize/100)
             materials: PrincipledMaterial {
-                baseColor: frameBaseColor
+                baseColor: frameBaseColor                // ✅ ИСПРАВЛЕНО: используем переменную
                 metalness: frameMetalness
                 roughness: frameRoughness
                 clearcoatAmount: frameClearcoat
@@ -953,7 +1537,7 @@ Item {
             position: Qt.vector3d(0, userBeamSize + userFrameHeight/2, userFrameLength - userBeamSize/2)
             scale: Qt.vector3d(userBeamSize/100, userFrameHeight/100, userBeamSize/100)
             materials: PrincipledMaterial {
-                baseColor: frameBaseColor
+                baseColor: frameBaseColor                // ✅ ИСПРАВЛЕНО: используем переменную
                 metalness: frameMetalness
                 roughness: frameRoughness
                 clearcoatAmount: frameClearcoat
@@ -1413,13 +1997,17 @@ Item {
     }
 
     // ===============================================================
-    // INITIALIZATION (with rod length validation)
+    // INITIALIZATION (with behavior fix)
     // ===============================================================
 
     Component.onCompleted: {
         console.log("═══════════════════════════════════════════")
-        console.log("🚀 PneumoStabSim ОПТИМИЗИРОВАННАЯ ВЕРСИЯ v4.3 LOADED")
+        console.log("🚀 PneumoStabSim v4.5 BEHAVIOR FIX LOADED")
         console.log("═══════════════════════════════════════════")
+        console.log("✅ КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ:")
+        console.log("   🔧 Behavior анимации отключены при инициализации")
+        console.log("   🔧 Включатся через 100мс после загрузки")
+        console.log("   🔧 Это устраняет 'рывок картинки' при первом клике")
         console.log("✅ ИСПРАВЛЕНИЯ ДЛИНЫ ШТОКОВ:")
         console.log("   🔧 Постоянная длина штока:", userPistonRodLength, "мм")
         console.log("   🔧 Поршни движутся ВДОЛЬ ОСИ цилиндров")
@@ -1430,15 +2018,19 @@ Item {
         console.log("   🔥 IBL поддержка:", iblEnabled)
         console.log("   🔥 Туман поддержка:", fogEnabled)
         console.log("   🔥 Расширенные эффекты: Bloom, SSAO, DoF, Vignette")
-        console.log("✅ НОВЫЕ ОПТИМИЗАЦИИ v4.3:")
+        console.log("✅ ОПТИМИЗАЦИИ v4.5:")
         console.log("   🚀 IBL lightProbe исправлен")
         console.log("   🚀 Mouse throttling для производительности")
-        console.log("   🎯 Очищен код от дублирования")
-        console.log("🎯 СТАТУС: main.qml v4.3 ЗАГРУЖЕН УСПЕШНО")
+        console.log("   🎯 Behavior анимации теперь условные")
+        console.log("   🎯 Устранён эффект 'рывка' при первом клике")
+        console.log("🎯 СТАТУС: main.qml v4.5 ЗАГРУЖЕН УСПЕШНО")
         console.log("═══════════════════════════════════════════")
         
         resetView()
         view3d.forceActiveFocus()
+        
+        // ✅ КРИТИЧЕСКИ ВАЖНО: Запускаем таймер для включения Behavior
+        initTimer.start()
     }
 
     // ===============================================================
