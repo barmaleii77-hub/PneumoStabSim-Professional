@@ -299,29 +299,26 @@ def main():
         use_qml_3d = USE_QML_3D_SCHEMA and not args.legacy and not args.safe_mode
         
         # Определяем версию QML для отображения
-        backend_name = "Qt Quick 3D (main.qml v4.3)" if use_qml_3d else "Legacy OpenGL"
+        backend_name = "Qt Quick 3D (main.qml v4.6)" if use_qml_3d else "Legacy OpenGL"
         
         print("=" * 60)
-        print("PNEUMOSTABSIM STARTING (Enhanced Terminal + QtQuick3D Fix)")
+        print("PNEUMOSTABSIM STARTING (IBL SkyBox Background v4.8)")
         print("=" * 60)
         print(f"Visualization backend: {backend_name}")
-        print(f"QML file: main.qml (единый файл с полной функциональностью)")
+        print(f"QML file: main.qml (единый файл с IBL окружением v4.8)")
         print(f"Qt RHI Backend: {os.environ.get('QSG_RHI_BACKEND', 'auto')}")
         print(f"Python encoding: {sys.getdefaultencoding()}")
         print(f"Terminal encoding: {locale.getpreferredencoding()}")
         print(f"QtQuick3D setup: {'[OK]' if qtquick3d_setup_ok else '[WARNING]'}")
-        
-        if args.safe_mode:
-            print("[SAFE MODE] Using minimal features for compatibility")
-        elif args.no_block:
-            print("[NON-BLOCKING MODE] Terminal won't be blocked")
-        elif args.test_mode:
-            print("[TEST MODE] Auto-close after 5 seconds")
-        else:
-            print("[DEFAULT MODE] Using main.qml (полная функциональность)")
-        
         print()
-        
+        print("🎨 IBL ОКРУЖЕНИЕ:")
+        print("   ✅ SkyBox фон из HDR файла")
+        print("   ✅ IBL освещение от HDR")
+        print("   ✅ Фон вращается с камерой (SkyBox)")
+        print("   ✅ Плавные переходы при загрузке")
+        print("   ✅ Fallback к простому цвету если HDR не загружен")
+        print()
+
         # Enable high DPI support (must be called BEFORE QApplication)
         try:
             QApplication.setHighDpiScaleFactorRoundingPolicy(

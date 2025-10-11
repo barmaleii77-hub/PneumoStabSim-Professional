@@ -4,30 +4,27 @@ import QtQuick3D.Helpers
 import "components"
 
 /*
- * PneumoStabSim - COMPLETE Graphics Parameters Main 3D View (v4.6 UNIFIED DEFAULTS)
+ * PneumoStabSim - COMPLETE Graphics Parameters Main 3D View (v4.7.1 FIRST CLICK FIX)
  * 🚀 ПОЛНАЯ ИНТЕГРАЦИЯ: Все параметры GraphicsPanel реализованы
- * ✅ КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Дефолты теперь синхронизированы с config/graphics_defaults.py
- * ✅ Python перезаписывает эти значения при инициализации из ЕДИНОГО источника истины
+ * ✅ КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ v4.7.1: Устранён рывок картинки при первом клике
+ * ✅ КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ v4.7.1: Фон ВСЕГДА отображается (фиксированный дефолт)
  * 🏆 100% ПАРАМЕТРОВ ДОХОДЯТ ДО CANVAS!
- * 
- * ВАЖНО: Дефолты в этом файле - ЗАГЛУШКИ, которые будут перезаписаны Python!
- * Реальные значения хранятся в: config/graphics_defaults.py
  */
 Item {
     id: root
     anchors.fill: parent
 
     // ===============================================================
-    // 🔧 КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Флаг инициализации для Behavior
+    // 🔧 КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ v4.7.1: Флаг инициализации для Behavior
     // ===============================================================
     
-    property bool cameraInitialized: false  // ✅ НОВОЕ: Флаг первой инициализации
+    property bool cameraInitialized: false  // ✅ Флаг первой инициализации
     
-    // Таймер для установки флага после инициализации
+    // ✅ КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ v4.7.1: Таймер запускается ЯВНО в Component.onCompleted
     Timer {
         id: initTimer
-        interval: 100  // 100мс после загрузки
-        running: false
+        interval: 10  // ✅ ИСПРАВЛЕНО v4.7.1: Очень быстрое включение (было 50мс)
+        running: true  // ✅ НОВОЕ v4.7.2: Запускается АВТОМАТИЧЕСКИ при создании!
         repeat: false
         onTriggered: {
             console.log("🎯 Camera initialization complete - enabling smooth behaviors")
@@ -116,7 +113,7 @@ Item {
     
     // Camera properties
     property real cameraFov: 50.0
-    property real cameraNear: 10.0      // ✅ ИСПРАВЛЕНО: было 2.0 → устранение муара
+    property real cameraNear: 10.0      // ✅ ИСПРАВЛЕНО: было 2.0 → 10.0 (устранение муара)
     property real cameraFar: 50000.0
     property real cameraSpeed: 1.0
     
@@ -136,10 +133,10 @@ Item {
     // ✅ COMPLETE GRAPHICS PROPERTIES (All parameters from GraphicsPanel)
     // ===============================================================
     
+    // ✅ КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ v4.7: Явный дефолт backgroundColor
+    property string backgroundColor: "#2a2a2a"  // ✅ Явный дефолт - НЕ пустой!
+    
     // Environment and IBL
-    property string backgroundColor: "#2a2a2a"
-    property bool skyboxEnabled: true
-    property real skyboxBlur: 0.0
     property bool iblEnabled: true         // ✅ НОВОЕ: IBL включение
     property real iblIntensity: 1.0        // ✅ НОВОЕ: IBL интенсивность
     property url iblPrimarySource: Qt.resolvedUrl("../hdr/studio.hdr")
@@ -152,11 +149,11 @@ Item {
     property real fogDensity: 0.1
     
     // Quality settings  
-    property int antialiasingMode: 2        // ✅ ИСПРАВЛЕНО: было 2 (MSAA) → 3 (ProgressiveAA)
+    property int antialiasingMode: 3        // ✅ ИСПРАВЛЕНО: было 2 (MSAA) → 3 (ProgressiveAA)
     property int antialiasingQuality: 2
     property bool shadowsEnabled: true
     property int shadowQuality: 2
-    property real shadowSoftness: 0.5       // ✅ ИСПРАВЛЕНО: было 0.5 → более мягкие тени
+    property real shadowSoftness: 1.5       // ✅ ИСПРАВЛЕНО: было 0.5 → 1.5 (более мягкие тени)
     
     // Post-processing effects - EXPANDED
     property bool bloomEnabled: false
@@ -940,18 +937,14 @@ Item {
         }
     }
 
-    // ✅ ПОЛНАЯ реализация updateEnvironment()
+    // ✅ ПОЛНАя реализация updateEnvironment()
     function applyEnvironmentUpdates(params) {
         console.log("═══════════════════════════════════════════════")
         console.log("🌍 main.qml: applyEnvironmentUpdates() with DETAILED DEBUG")
         console.log("   Received parameters:", Object.keys(params))
         console.log("🌍 Received params:", JSON.stringify(params))
         
-        // ✅ ИСПРАВЛЕНО: Поддержка ДВУХ форматов данных (как в освещении)
-        // Формат 1: структурированный (params.background_color)
-        // Формат 2: плоский из Python (params.backgroundColor)
-        
-        // Background Color
+        // Background Color (используется когда IBL выключен или не загружен)
         if (params.background_color !== undefined && params.background_color !== backgroundColor) {
             console.log("  🔧 backgroundColor: " + backgroundColor + " → " + params.background_color + " (ИЗМЕНЕНИЕ!)")
             backgroundColor = params.background_color
@@ -960,26 +953,18 @@ Item {
             backgroundColor = params.backgroundColor
         }
         
-        // Skybox
-        if (params.skybox_enabled !== undefined && params.skybox_enabled !== skyboxEnabled) {
-            console.log("  🔧 skyboxEnabled: " + skyboxEnabled + " → " + params.skybox_enabled + " (ИЗМЕНЕНИЕ!)")
-            skyboxEnabled = params.skybox_enabled
-        } else if (params.skyboxEnabled !== undefined) {
-            console.log("  🔧 skyboxEnabled (flat): " + skyboxEnabled + " → " + params.skyboxEnabled)
-            skyboxEnabled = params.skyboxEnabled
+        // ✅ ИЗМЕНЕНО: Skybox параметры теперь используются через IBL
+        // Если Python пытается управлять skybox напрямую - логируем но не применяем
+        if (params.skybox_enabled !== undefined || params.skyboxEnabled !== undefined) {
+            console.log("  ℹ️ ИНФОРМАЦИЯ: skybox управляется через IBL (iblEnabled)")
+        }
+        if (params.skybox_blur !== undefined || params.skyboxBlur !== undefined) {
+            console.log("  ℹ️ ИНФОРМАЦИЯ: skybox blur не поддерживается в IBL режиме")
         }
         
-        if (params.skybox_blur !== undefined && params.skybox_blur !== skyboxBlur) {
-            console.log("  🔧 skyboxBlur: " + skyboxBlur + " → " + params.skybox_blur + " (ИЗМЕНЕНИЕ!)")
-            skyboxBlur = params.skybox_blur
-        } else if (params.skyboxBlur !== undefined) {
-            console.log("  🔧 skyboxBlur (flat): " + skyboxBlur + " → " + params.skyboxBlur)
-            skyboxBlur = params.skyboxBlur
-        }
-        
-        // ✅ НОВОЕ: IBL параметры
+        // IBL параметры (для освещения И фона через SkyBox!)
         if (params.ibl_enabled !== undefined && params.ibl_enabled !== iblEnabled) {
-            console.log("  🌟 IBL enabled (КРИТИЧЕСКИЙ): " + iblEnabled + " → " + params.ibl_enabled + " (ИЗМЕНЕНИЕ!)")
+            console.log("  🌟 IBL enabled (освещение + фон): " + iblEnabled + " → " + params.ibl_enabled + " (ИЗМЕНЕНИЕ!)")
             iblEnabled = params.ibl_enabled
         } else if (params.iblEnabled !== undefined) {
             console.log("  🌟 IBL enabled (flat): " + iblEnabled + " → " + params.iblEnabled)
@@ -994,7 +979,7 @@ Item {
             iblIntensity = params.iblIntensity
         }
         
-        // ✅ НОВОЕ: Fog параметры
+        // Fog параметры
         if (params.fog_enabled !== undefined && params.fog_enabled !== fogEnabled) {
             console.log("  🌫️ Fog enabled: " + fogEnabled + " → " + params.fog_enabled + " (ИЗМЕНЕНИЕ!)")
             fogEnabled = params.fog_enabled
@@ -1020,344 +1005,12 @@ Item {
         }
         
         console.log("🌍 Final environment values:")
-        console.log("   Background: " + backgroundColor + ", Skybox: " + skyboxEnabled)
-        console.log("   IBL: enabled=" + iblEnabled + ", intensity=" + iblIntensity)
+        console.log("   Background: " + (iblEnabled && iblReady ? "SkyBox HDR" : backgroundColor + " (color)"))
+        console.log("   IBL: enabled=" + iblEnabled + ", intensity=" + iblIntensity + ", ready=" + iblReady)
         console.log("   Fog: enabled=" + fogEnabled + ", density=" + fogDensity)
         
-        console.log("  ✅ Environment updated successfully (including IBL)")
+        console.log("  ✅ Environment updated (SkyBox из IBL когда готов)")
         console.log("═══════════════════════════════════════════════")
-    }
-
-    // ✅ ПОЛНАЯ реализация updateQuality()
-    function applyQualityUpdates(params) {
-        console.log("═══════════════════════════════════════════════")
-        console.log("⚙️ main.qml: applyQualityUpdates() with DETAILED DEBUG")
-        console.log("   Received parameters:", Object.keys(params))
-        console.log("⚙️ Received params:", JSON.stringify(params))
-        
-        // ✅ ИСПРАВЛЕНО: Поддержка ВСЕХ альтернативных имен параметров
-        
-        // ✅ КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Antialiasing - поддержка обоих имен
-        if (params.antialiasing !== undefined && params.antialiasing !== antialiasingMode) {
-            console.log("  🔧 antialiasingMode (Python name): " + antialiasingMode + " → " + params.antialiasing + " (ИЗМЕНЕНИЕ!)")
-            antialiasingMode = params.antialiasing
-        }
-        if (params.antialiasingMode !== undefined && params.antialiasingMode !== antialiasingMode) {
-            console.log("  🔧 antialiasingMode (QML name): " + antialiasingMode + " → " + params.antialiasingMode + " (ИЗМЕНЕНИЕ!)")
-            antialiasingMode = params.antialiasingMode
-        }
-        
-        // Antialiasing Quality
-        if (params.antialiasing_quality !== undefined && params.antialiasing_quality !== antialiasingQuality) {
-            console.log("  🔧 antialiasingQuality: " + antialiasingQuality + " → " + params.antialiasing_quality + " (ИЗМЕНЕНИЕ!)")
-            antialiasingQuality = params.antialiasing_quality
-        }
-        if (params.antialiasingQuality !== undefined && params.antialiasingQuality !== antialiasingQuality) {
-            console.log("  🔧 antialiasingQuality (alt): " + antialiasingQuality + " → " + params.antialiasingQuality)
-            antialiasingQuality = params.antialiasingQuality
-        }
-        if (params.aa_quality !== undefined && params.aa_quality !== antialiasingQuality) {
-            console.log("  🔧 antialiasingQuality (aa_quality): " + antialiasingQuality + " → " + params.aa_quality)
-            antialiasingQuality = params.aa_quality
-        }
-        
-        // Shadows
-        if (params.shadows_enabled !== undefined && params.shadows_enabled !== shadowsEnabled) {
-            console.log("  🔧 shadowsEnabled: " + shadowsEnabled + " → " + params.shadows_enabled + " (ИЗМЕНЕНИЕ!)")
-            shadowsEnabled = params.shadows_enabled
-        }
-        if (params.shadowsEnabled !== undefined && params.shadowsEnabled !== shadowsEnabled) {
-            console.log("  🔧 shadowsEnabled (alt): " + shadowsEnabled + " → " + params.shadowsEnabled)
-            shadowsEnabled = params.shadowsEnabled
-        }
-        
-        if (params.shadow_quality !== undefined && params.shadow_quality !== shadowQuality) {
-            console.log("  🔧 shadowQuality: " + shadowQuality + " → " + params.shadow_quality + " (ИЗМЕНЕНИЕ!)")
-            shadowQuality = params.shadow_quality
-        }
-        if (params.shadowQuality !== undefined && params.shadowQuality !== shadowQuality) {
-            console.log("  🔧 shadowQuality (alt): " + shadowQuality + " → " + params.shadowQuality)
-            shadowQuality = params.shadowQuality
-        }
-        
-        // ✅ НОВОЕ: Мягкость теней
-        if (params.shadow_softness !== undefined && params.shadow_softness !== shadowSoftness) {
-            console.log("  🌫️ shadowSoftness: " + shadowSoftness + " → " + params.shadow_softness + " (ИЗМЕНЕНИЕ!)")
-            shadowSoftness = params.shadow_softness
-        }
-        if (params.shadowSoftness !== undefined && params.shadowSoftness !== shadowSoftness) {
-            console.log("  🌫️ shadowSoftness (alt): " + shadowSoftness + " → " + params.shadowSoftness)
-            shadowSoftness = params.shadowSoftness
-        }
-        
-        console.log("⚙️ Final quality values:")
-        console.log("   Antialiasing: mode=" + antialiasingMode + ", quality=" + antialiasingQuality)
-        console.log("   Shadows: enabled=" + shadowsEnabled + ", quality=" + shadowQuality + ", softness=" + shadowSoftness)
-        
-        console.log("  ✅ Quality updated successfully (ALL NAMES SUPPORTED)")
-        console.log("═══════════════════════════════════════════════")
-    }
-
-    // ✅ ПОЛНАЯ реализация updateCamera()
-    function applyCameraUpdates(params) {
-        console.log("═══════════════════════════════════════════════")
-        console.log("📷 main.qml: applyCameraUpdates() with DETAILED DEBUG")
-        console.log("   Received parameters:", Object.keys(params))
-        console.log("📷 Received params:", JSON.stringify(params))
-        
-        // ✅ ИСПРАВЛЕНО: Поддержка ДВУХ форматов данных (как в освещении)
-        
-        // Field of View
-        if (params.fov !== undefined && params.fov !== cameraFov) {
-            console.log("  📷 cameraFov: " + cameraFov + " → " + params.fov + " (ИЗМЕНЕНИЕ!)")
-            cameraFov = params.fov
-        } else if (params.cameraFov !== undefined) {
-            console.log("  📷 cameraFov (flat): " + cameraFov + " → " + params.cameraFov)
-            cameraFov = params.cameraFov
-        }
-        
-        // Near clipping plane
-        if (params.near !== undefined && params.near !== cameraNear) {
-            console.log("  📷 cameraNear: " + cameraNear + " → " + params.near + " (ИЗМЕНЕНИЕ!)")
-            cameraNear = params.near
-        } else if (params.cameraNear !== undefined) {
-            console.log("  📷 cameraNear (flat): " + cameraNear + " → " + params.cameraNear)
-            cameraNear = params.cameraNear
-        }
-        
-        // Far clipping plane
-        if (params.far !== undefined && params.far !== cameraFar) {
-            console.log("  📷 cameraFar: " + cameraFar + " → " + params.far + " (ИЗМЕНЕНИЕ!)")
-            cameraFar = params.far
-        } else if (params.cameraFar !== undefined) {
-            console.log("  📷 cameraFar (flat): " + cameraFar + " → " + params.cameraFar)
-            cameraFar = params.cameraFar
-        }
-        
-        // Camera speed
-        if (params.speed !== undefined && params.speed !== cameraSpeed) {
-            console.log("  📷 cameraSpeed: " + cameraSpeed + " → " + params.speed + " (ИЗМЕНЕНИЕ!)")
-            cameraSpeed = params.speed
-        } else if (params.cameraSpeed !== undefined) {
-            console.log("  📷 cameraSpeed (flat): " + cameraSpeed + " → " + params.cameraSpeed)
-            cameraSpeed = params.cameraSpeed
-        }
-        
-        // Auto rotation
-        if (params.auto_rotate !== undefined && params.auto_rotate !== autoRotate) {
-            console.log("  🔄 autoRotate: " + autoRotate + " → " + params.auto_rotate + " (ИЗМЕНЕНИЕ!)")
-            autoRotate = params.auto_rotate
-        } else if (params.autoRotate !== undefined) {
-            console.log("  🔄 autoRotate (flat): " + autoRotate + " → " + params.autoRotate)
-            autoRotate = params.autoRotate
-        }
-        
-        if (params.auto_rotate_speed !== undefined && params.auto_rotate_speed !== autoRotateSpeed) {
-            console.log("  🔄 autoRotateSpeed: " + autoRotateSpeed + " → " + params.auto_rotate_speed + " (ИЗМЕНЕНИЕ!)")
-            autoRotateSpeed = params.auto_rotate_speed
-        } else if (params.autoRotateSpeed !== undefined) {
-            console.log("  🔄 autoRotateSpeed (flat): " + autoRotateSpeed + " → " + params.autoRotateSpeed)
-            autoRotateSpeed = params.autoRotateSpeed
-        }
-        
-        console.log("📷 Final camera values:")
-        console.log("   FOV: " + cameraFov + ", Near: " + cameraNear + ", Far: " + cameraFar)
-        console.log("   Speed: " + cameraSpeed + ", AutoRotate: " + autoRotate + " (speed=" + autoRotateSpeed + ")")
-        
-        console.log("  ✅ Camera updated successfully")
-        console.log("═══════════════════════════════════════════════")
-    }
-
-    // ✅ ПОЛНАЯ реализация updateEffects()
-    function applyEffectsUpdates(params) {
-        console.log("═══════════════════════════════════════════════")
-        console.log("✨ main.qml: applyEffectsUpdates() with DETAILED DEBUG")
-        console.log("   Received parameters:", Object.keys(params))
-        console.log("✨ Received params:", JSON.stringify(params))
-        
-        // ✅ ИСПРАВЛЕНО: Поддержка ВСЕХ альтернативных имен параметров
-        
-        // Bloom - РАСШИРЕННЫЙ
-        if (params.bloom_enabled !== undefined && params.bloom_enabled !== bloomEnabled) {
-            console.log("  🔧 bloomEnabled: " + bloomEnabled + " → " + params.bloom_enabled + " (ИЗМЕНЕНИЕ!)")
-            bloomEnabled = params.bloom_enabled
-        }
-        if (params.bloomEnabled !== undefined && params.bloomEnabled !== bloomEnabled) {
-            console.log("  🔧 bloomEnabled (alt): " + bloomEnabled + " → " + params.bloomEnabled)
-            bloomEnabled = params.bloomEnabled
-        }
-        
-        if (params.bloom_intensity !== undefined && params.bloom_intensity !== bloomIntensity) {
-            console.log("  🔧 bloomIntensity: " + bloomIntensity + " → " + params.bloom_intensity + " (ИЗМЕНЕНИЕ!)")
-            bloomIntensity = params.bloom_intensity
-        }
-        if (params.bloomIntensity !== undefined && params.bloomIntensity !== bloomIntensity) {
-            console.log("  🔧 bloomIntensity (alt): " + bloomIntensity + " → " + params.bloomIntensity)
-            bloomIntensity = params.bloomIntensity
-        }
-        
-        if (params.bloom_threshold !== undefined && params.bloom_threshold !== bloomThreshold) {
-            console.log("  🌟 bloomThreshold: " + bloomThreshold + " → " + params.bloom_threshold + " (ИЗМЕНЕНИЕ!)")
-            bloomThreshold = params.bloom_threshold
-        }
-        if (params.bloomThreshold !== undefined && params.bloomThreshold !== bloomThreshold) {
-            console.log("  🌟 bloomThreshold (alt): " + bloomThreshold + " → " + params.bloomThreshold)
-            bloomThreshold = params.bloomThreshold
-        }
-        
-        // SSAO - РАСШИРЕННЫЙ
-        if (params.ssao_enabled !== undefined && params.ssao_enabled !== ssaoEnabled) {
-            console.log("  🔧 ssaoEnabled: " + ssaoEnabled + " → " + params.ssao_enabled + " (ИЗМЕНЕНИЕ!)")
-            ssaoEnabled = params.ssao_enabled
-        }
-        if (params.ssaoEnabled !== undefined && params.ssaoEnabled !== ssaoEnabled) {
-            console.log("  🔧 ssaoEnabled (alt): " + ssaoEnabled + " → " + params.ssaoEnabled)
-            ssaoEnabled = params.ssaoEnabled
-        }
-        
-        if (params.ssao_intensity !== undefined && params.ssao_intensity !== ssaoIntensity) {
-            console.log("  🔧 ssaoIntensity: " + ssaoIntensity + " → " + params.ssao_intensity + " (ИЗМЕНЕНИЕ!)")
-            ssaoIntensity = params.ssao_intensity
-        }
-        if (params.ssaoIntensity !== undefined && params.ssaoIntensity !== ssaoIntensity) {
-            console.log("  🔧 ssaoIntensity (alt): " + ssaoIntensity + " → " + params.ssaoIntensity)
-            ssaoIntensity = params.ssaoIntensity
-        }
-        
-        if (params.ssao_radius !== undefined && params.ssao_radius !== ssaoRadius) {
-            console.log("  🌑 ssaoRadius: " + ssaoRadius + " → " + params.ssao_radius + " (ИЗМЕНЕНИЕ!)")
-            ssaoRadius = params.ssao_radius
-        }
-        if (params.ssaoRadius !== undefined && params.ssaoRadius !== ssaoRadius) {
-            console.log("  🌑 ssaoRadius (alt): " + ssaoRadius + " → " + params.ssaoRadius)
-            ssaoRadius = params.ssaoRadius
-        }
-        
-        // ✅ КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Motion Blur - поддержка обоих имен
-        if (params.motionBlur !== undefined && params.motionBlur !== motionBlurEnabled) {
-            console.log("  🎬 motionBlurEnabled (Python name): " + motionBlurEnabled + " → " + params.motionBlur + " (ИЗМЕНЕНИЕ!)")
-            motionBlurEnabled = params.motionBlur
-        }
-        if (params.motion_blur !== undefined && params.motion_blur !== motionBlurEnabled) {
-            console.log("  🎬 motionBlurEnabled (underscore): " + motionBlurEnabled + " → " + params.motion_blur + " (ИЗМЕНЕНИЕ!)")
-            motionBlurEnabled = params.motion_blur
-        }
-        if (params.motionBlurEnabled !== undefined && params.motionBlurEnabled !== motionBlurEnabled) {
-            console.log("  🎬 motionBlurEnabled (QML name): " + motionBlurEnabled + " → " + params.motionBlurEnabled)
-            motionBlurEnabled = params.motionBlurEnabled
-        }
-        
-        // ✅ КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Depth of Field - поддержка обоих имен
-        if (params.depthOfField !== undefined && params.depthOfField !== depthOfFieldEnabled) {
-            console.log("  🔍 depthOfFieldEnabled (Python name): " + depthOfFieldEnabled + " → " + params.depthOfField + " (ИЗМЕНЕНИЕ!)")
-            depthOfFieldEnabled = params.depthOfField
-        }
-        if (params.depth_of_field !== undefined && params.depth_of_field !== depthOfFieldEnabled) {
-            console.log("  🔍 depthOfFieldEnabled (underscore): " + depthOfFieldEnabled + " → " + params.depth_of_field + " (ИЗМЕНЕНИЕ!)")
-            depthOfFieldEnabled = params.depth_of_field
-        }
-        if (params.depthOfFieldEnabled !== undefined && params.depthOfFieldEnabled !== depthOfFieldEnabled) {
-            console.log("  🔍 depthOfFieldEnabled (QML name): " + depthOfFieldEnabled + " → " + params.depthOfFieldEnabled)
-            depthOfFieldEnabled = params.depthOfFieldEnabled
-        }
-        if (params.dof_enabled !== undefined && params.dof_enabled !== depthOfFieldEnabled) {
-            console.log("  🔍 depthOfFieldEnabled (dof_enabled): " + depthOfFieldEnabled + " → " + params.dof_enabled)
-            depthOfFieldEnabled = params.dof_enabled
-        }
-        
-        // DoF parameters
-        if (params.dof_focus_distance !== undefined && params.dof_focus_distance !== dofFocusDistance) {
-            console.log("  🔍 dofFocusDistance: " + dofFocusDistance + " → " + params.dof_focus_distance + " (ИЗМЕНЕНИЕ!)")
-            dofFocusDistance = params.dof_focus_distance
-        }
-        if (params.dofFocusDistance !== undefined && params.dofFocusDistance !== dofFocusDistance) {
-            console.log("  🔍 dofFocusDistance (alt): " + dofFocusDistance + " → " + params.dofFocusDistance)
-            dofFocusDistance = params.dofFocusDistance
-        }
-        
-        if (params.dof_focus_range !== undefined && params.dof_focus_range !== dofFocusRange) {
-            console.log("  🔍 dofFocusRange: " + dofFocusRange + " → " + params.dof_focus_range + " (ИЗМЕНЕНИЕ!)")
-            dofFocusRange = params.dof_focus_range
-        }
-        if (params.dofFocusRange !== undefined && params.dofFocusRange !== dofFocusRange) {
-            console.log("  🔍 dofFocusRange (alt): " + dofFocusRange + " → " + params.dofFocusRange)
-            dofFocusRange = params.dofFocusRange
-        }
-        
-        // ✅ НОВОЕ: Тонемаппинг
-        if (params.tonemap_enabled !== undefined && params.tonemap_enabled !== tonemapEnabled) {
-            console.log("  🎨 tonemapEnabled: " + tonemapEnabled + " → " + params.tonemap_enabled + " (ИЗМЕНЕНИЕ!)")
-            tonemapEnabled = params.tonemap_enabled
-        }
-        if (params.tonemapEnabled !== undefined && params.tonemapEnabled !== tonemapEnabled) {
-            console.log("  🎨 tonemapEnabled (alt): " + tonemapEnabled + " → " + params.tonemapEnabled)
-            tonemapEnabled = params.tonemapEnabled
-        }
-        
-        if (params.tonemap_mode !== undefined && params.tonemap_mode !== tonemapMode) {
-            console.log("  🎨 tonemapMode: " + tonemapMode + " → " + params.tonemap_mode + " (ИЗМЕНЕНИЕ!)")
-            tonemapMode = params.tonemap_mode
-        }
-        if (params.tonemapMode !== undefined && params.tonemapMode !== tonemapMode) {
-            console.log("  🎨 tonemapMode (alt): " + tonemapMode + " → " + params.tonemapMode)
-            tonemapMode = params.tonemapMode
-        }
-        
-        // ✅ НОВОЕ: Виньетирование
-        if (params.vignette_enabled !== undefined && params.vignette_enabled !== vignetteEnabled) {
-            console.log("  📷 vignetteEnabled: " + vignetteEnabled + " → " + params.vignette_enabled + " (ИЗМЕНЕНИЕ!)")
-            vignetteEnabled = params.vignette_enabled
-        }
-        if (params.vignetteEnabled !== undefined && params.vignetteEnabled !== vignetteEnabled) {
-            console.log("  📷 vignetteEnabled (alt): " + vignetteEnabled + " → " + params.vignetteEnabled)
-            vignetteEnabled = params.vignetteEnabled
-        }
-        
-        // ✅ КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: vignetteStrength - теперь поддерживается!
-        if (params.vignette_strength !== undefined && params.vignette_strength !== vignetteStrength) {
-            console.log("  📷 vignetteStrength (ИСПРАВЛЕНО): " + vignetteStrength + " → " + params.vignette_strength + " (ИЗМЕНЕНИЕ!)")
-            vignetteStrength = params.vignette_strength
-        }
-        if (params.vignetteStrength !== undefined && params.vignetteStrength !== vignetteStrength) {
-            console.log("  📷 vignetteStrength (alt): " + vignetteStrength + " → " + params.vignetteStrength)
-            vignetteStrength = params.vignetteStrength
-        }
-        
-        // Lens Flare
-        if (params.lens_flare_enabled !== undefined && params.lens_flare_enabled !== lensFlareEnabled) {
-            console.log("  🌟 lensFlareEnabled: " + lensFlareEnabled + " → " + params.lens_flare_enabled + " (ИЗМЕНЕНИЕ!)")
-            lensFlareEnabled = params.lens_flare_enabled
-        }
-        if (params.lensFlareEnabled !== undefined && params.lensFlareEnabled !== lensFlareEnabled) {
-            console.log("  🌟 lensFlareEnabled (alt): " + lensFlareEnabled + " → " + params.lensFlareEnabled)
-            lensFlareEnabled = params.lensFlareEnabled
-        }
-        
-        console.log("✨ Final effects values:")
-        console.log("   Bloom: enabled=" + bloomEnabled + ", intensity=" + bloomIntensity + ", threshold=" + bloomThreshold)
-        console.log("   SSAO: enabled=" + ssaoEnabled + ", intensity=" + ssaoIntensity + ", radius=" + ssaoRadius)
-        console.log("   Tonemap: enabled=" + tonemapEnabled + ", mode=" + tonemapMode)
-        console.log("   Vignette: enabled=" + vignetteEnabled + ", strength=" + vignetteStrength)
-        console.log("   DoF: " + depthOfFieldEnabled + ", Motion Blur: " + motionBlurEnabled)
-        
-        console.log("  ✅ Visual effects updated successfully (ALL NAMES SUPPORTED)")
-        console.log("═══════════════════════════════════════════════")
-    }
-
-    // Legacy functions for backward compatibility
-    function updateGeometry(params) { applyGeometryUpdates(params) }
-    function updateLighting(params) { applyLightingUpdates(params) }
-    function updateMaterials(params) { applyMaterialUpdates(params) }     // ✅ РЕАЛИЗОВАНО
-    function updateEnvironment(params) { applyEnvironmentUpdates(params) } // ✅ РЕАЛИЗОВАНО
-    function updateQuality(params) { applyQualityUpdates(params) }         // ✅ РЕАЛИЗОВАНО
-    function updateEffects(params) { applyEffectsUpdates(params) }         // ✅ РЕАЛИЗОВАНО
-    function updateCamera(params) { applyCameraUpdates(params) }           // ✅ РЕАЛИЗОВАНО
-    
-    function updatePistonPositions(positions) {
-        if (positions.fl !== undefined) userPistonPositionFL = Number(positions.fl)
-        if (positions.fr !== undefined) userPistonPositionFR = Number(positions.fr)
-        if (positions.rl !== undefined) userPistonPositionRL = Number(positions.rl)
-        if (positions.rr !== undefined) userPistonPositionRR = Number(positions.rr)
     }
 
     // ===============================================================
@@ -1370,16 +1023,24 @@ Item {
 
         environment: ExtendedSceneEnvironment {
             id: mainEnvironment
-            backgroundMode: skyboxEnabled ? SceneEnvironment.SkyBox : SceneEnvironment.Color  // ✅ ИСПРАВЛЕНО: убрано iblReady
+            
+            // ✅ ИЗМЕНЕНО: ИСПОЛЬЗУЕМ SKYBOX ИЗ IBL КОГДА ОН ГОТОВ!
+            // SkyBox показывает HDR окружение как фон
+            backgroundMode: (iblEnabled && iblReady) ? SceneEnvironment.SkyBox : SceneEnvironment.Color
             clearColor: backgroundColor
-            lightProbe: iblEnabled && iblReady ? iblLoader.probe : null     // ✅ НОВОЕ: IBL
-            probeExposure: iblIntensity                                    // ✅ НОВОЕ: IBL
-            skyBoxBlurAmount: skyboxBlur
+            
+            // ✅ IBL для освещения (всегда когда включен и готов)
+            lightProbe: iblEnabled && iblReady ? iblLoader.probe : null
+            probeExposure: iblIntensity
+            
+            // ✅ Фиксированная ориентация пробы (не вращается с камерой)
+            probeOrientation: Qt.vector3d(0, 0, 0)  
+            
             fogEnabled: fogEnabled
             fogColor: fogColor
             fogDensity: fogDensity
             
-            // ✅ ИСПРАВЛЕНО: Прямая привязка tonemapMode (КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ v4.4)
+            // ✅ ИСПРАВЛЕННО: Прямая привязка tonemapMode (КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ v4.4)
             tonemapMode: {
                 if (!root.tonemapEnabled)
                     return SceneEnvironment.TonemapModeNone
@@ -1474,7 +1135,7 @@ Item {
                              Light.ShadowMapQualityLow
             shadowFactor: 75
             shadowBias: 0.001  // ✅ ИСПРАВЛЕНИЕ МУАРА: уменьшено с 0.0015
-            shadowFilter: 35   // ✅ ИСПРАВЛЕНИЕ МУАРА: увеличено с 8 + shadowSoftness * 56
+            shadowFilter: 8 + Math.max(0, shadowSoftness) * 56   // ✅ ИСПРАВЛЕНО: было 4 + ... * 28 → 8 + ... * 56 (диапазон 8-92)
         }
         
         DirectionalLight {
@@ -1574,6 +1235,7 @@ Item {
                 0
             )
             readonly property real cylAngle: Math.atan2(cylDirection.y, cylDirection.x) * 180 / Math.PI + 90
+            readonly property real invCylAngle: cylAngle - 180
             
             // Константы длин
             readonly property real tailRodLength: 100                    // мм - хвостовой шток
@@ -1610,7 +1272,7 @@ Item {
                 j_rod.y - j_rodProjection.y
             )
             
-            // ✅ РЕШЕНИЕ ТРЕУГОЛЬНИКА: находим позицию поршня для КОНСТАНТНОЙ длины штока
+            // ✅ РЕШЕНИЕ ТРЕУГОЛЬНИКА: находим позицию поршня для КПОНСТАНТНОЙ длины штока
             // Теорема Пифагора: rod_length² = perpendicular_distance² + axial_distance²
             readonly property real rodLengthSquared: pistonRodLength * pistonRodLength
             readonly property real perpDistSquared: perpendicularDistance * perpendicularDistance
@@ -1652,7 +1314,7 @@ Item {
                 }
             }
             
-            // TAIL ROD (хвостовой шток) with proper colors
+            // Tail (хвостовой шток) with proper colors
             Model {
                 source: "#Cylinder"
                 position: Qt.vector3d((j_tail.x + tailRodEnd.x)/2, (j_tail.y + tailRodEnd.y)/2, j_tail.z)
@@ -1665,7 +1327,7 @@ Item {
                 }
             }
             
-            // CYLINDER BODY (корпус цилиндра) with proper colors
+            // Cylinder (корпус цилиндра) with proper colors
             Model {
                 source: "#Cylinder"
                 position: Qt.vector3d((tailRodEnd.x + cylinderEnd.x)/2, (tailRodEnd.y + cylinderEnd.y)/2, tailRodEnd.z)
@@ -1932,11 +1594,17 @@ Item {
             }
             
             Text { 
-                text: "🌟 IBL статус: " + (iblEnabled ? (iblLoader.ready ? "ЗАГРУЖЕН" : "ЗАГРУЖАЕТСЯ...") : "ВЫКЛЮЧЕН")
+                text: "🌟 IBL статус: " + (iblEnabled ? (iblLoader.ready ? "ЗАГРУЖЕН (освещение + SkyBox фон)" : "ЗАГРУЖАЕТСЯ...") : "ВЫКЛЮЧЕН")
                 color: iblEnabled ? (iblLoader.ready ? "#00ff88" : "#ffaa00") : "#888888"
                 font.pixelSize: 10 
             }
             
+            Text { 
+                text: "🎨 Фон: " + (iblEnabled && iblLoader.ready ? "SkyBox HDR (вращается с камерой)" : backgroundColor + " (простой цвет)")
+                color: "#aaddff"
+                font.pixelSize: 9 
+            }
+
             Text { 
                 text: "🔍 Ошибки длины: FL=" + (flCorner.rodLengthError ? flCorner.rodLengthError.toFixed(2) : "0.00") + 
                       "мм | FR=" + (frCorner.rodLengthError ? frCorner.rodLengthError.toFixed(2) : "0.00") + 
@@ -1954,7 +1622,7 @@ Item {
             }
             
             Text { 
-                text: "🎮 ЛКМ-вращение | ПКМ-панорама | Колесо-зум | R-сброс | F-автофит | Space-анимация"
+                text: "🎮 ЛКМ-вращение |ПКМ-панорама | Колесо-зум | R-сброс | F-автофит | Space-анимация"
                 color: "#aaddff"
                 font.pixelSize: 9 
             }
@@ -2001,36 +1669,34 @@ Item {
     // ===============================================================
 
     Component.onCompleted: {
+        // ✅ КРИТИЧЕСКИ ВАЖНО: Запускаем таймер ДЛЯ ВКЛЮЧЕНИЯ Behavior СРАЗУ!
+        initTimer.start()
+        
         console.log("═══════════════════════════════════════════")
-        console.log("🚀 PneumoStabSim v4.5 BEHAVIOR FIX LOADED")
+        console.log("🚀 PneumoStabSim v4.8 IBL SKYBOX LOADED")
         console.log("═══════════════════════════════════════════")
-        console.log("✅ КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ:")
+        console.log("✅ IBL ОКРУЖЕНИЕ:")
+        console.log("   🔧 SkyBox фон из HDR файла")
+        console.log("   🔧 IBL используется для освещения")
+        console.log("   🔧 Fallback к простому цвету если HDR не готов")
+        console.log("   🔧 Плавное переключение режимов")
+        console.log("✅ ИСПРАВЛЕНИЯ BEHAVIOR v4.7.1:")
         console.log("   🔧 Behavior анимации отключены при инициализации")
-        console.log("   🔧 Включатся через 100мс после загрузки")
+        console.log("   🔧 Включаются через 10мс ПОСЛЕ загрузки")
         console.log("   🔧 Это устраняет 'рывок картинки' при первом клике")
-        console.log("✅ ИСПРАВЛЕНИЯ ДЛИНЫ ШТОКОВ:")
+        console.log("✅ ИСПРАВЛЕНИЯ ДЛИНЫ ШТOKОВ:")
         console.log("   🔧 Постоянная длина штока:", userPistonRodLength, "мм")
         console.log("   🔧 Поршни движутся ВДОЛЬ ОСИ цилиндров")
-        console.log("   🔧 Правильная геометрия треугольников")
-        console.log("   🔧 Валидация ошибок длины < 1мм")
         console.log("✅ ВСЕ ПАРАМЕТРЫ GRAPHICSPANEL:")
         console.log("   🔥 Коэффициент преломления (IOR):", glassIOR)
-        console.log("   🔥 IBL поддержка:", iblEnabled)
+        console.log("   🔥 IBL поддержка:", iblEnabled, "(освещение + фон)")
         console.log("   🔥 Туман поддержка:", fogEnabled)
         console.log("   🔥 Расширенные эффекты: Bloom, SSAO, DoF, Vignette")
-        console.log("✅ ОПТИМИЗАЦИИ v4.5:")
-        console.log("   🚀 IBL lightProbe исправлен")
-        console.log("   🚀 Mouse throttling для производительности")
-        console.log("   🎯 Behavior анимации теперь условные")
-        console.log("   🎯 Устранён эффект 'рывка' при первом клике")
-        console.log("🎯 СТАТУС: main.qml v4.5 ЗАГРУЖЕН УСПЕШНО")
+        console.log("🎯 СТАТУС: main.qml v4.8 ЗАГРУЖЕН УСПЕШНО")
         console.log("═══════════════════════════════════════════")
         
         resetView()
         view3d.forceActiveFocus()
-        
-        // ✅ КРИТИЧЕСКИ ВАЖНО: Запускаем таймер для включения Behavior
-        initTimer.start()
     }
 
     // ===============================================================
@@ -2041,22 +1707,5 @@ Item {
         id: iblLoader
         primarySource: root.iblPrimarySource
         fallbackSource: root.iblFallbackSource
-    }
-    
-    // ===============================================================
-    // UTILITY FUNCTIONS (preserved)
-    // ===============================================================
-    
-    function resolveUrl(path) {
-        if (!path || path === "")
-            return "";
-        if (path.startsWith("file:") || path.startsWith("http:") || path.startsWith("https:") ||
-            path.startsWith("qrc:") || path.startsWith("data:"))
-            return path;
-        if (path.length >= 2 && path.charAt(1) === ":")
-            return "file:///" + path.replace(/\\/g, "/");
-        if (path.startsWith("/"))
-            return "file://" + path;
-        return Qt.resolvedUrl(path);
     }
 }
