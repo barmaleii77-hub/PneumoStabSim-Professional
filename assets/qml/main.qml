@@ -493,36 +493,7 @@ Item {
             console.log("  ✅ Minor geometry change - view preserved")
         }
         
-        // обработки новых свойств с суффиксом M
-        if (params.strokeM !== undefined && params.strokeM !== userStrokeM) {
-            console.log("  🔧 Hод поршня (strokeM): " + userStrokeM + " → " + params.strokeM + " (ИЗМЕНЕНИЕ!)")
-            userStrokeM = params.strokeM
-        } else if (params.strokeM !== undefined) {
-            console.log("  ⏭️ Hод поршня (strokeM): " + params.strokeM + " (БЕЗ ИЗМЕНЕНИЙ)")
-        }
-
-        if (params.deadGapM !== undefined && params.deadGapM !== userDeadGapM) {
-            console.log("  🔧 Mертый зазор (deadGapM): " + userDeadGapM + " → " + params.deadGapM + " (ИЗМЕНЕНИЕ!)")
-            userDeadGapM = params.deadGapM
-        } else if (params.deadGapM !== undefined) {
-            console.log("  ⏭️ Mертый зазор (deadGapM): " + params.deadGapM + " (БЕЗ ИЗМЕНЕНИЙ)")
-        }
-
-        if (params.cylDiamM !== undefined && params.cylDiamM !== userCylDiamM) {
-            console.log("  🔧 Диаметр цилиндра (cylDiamM): " + userCylDiamM + " → " + params.cylDiamM + " (ИЗМЕНЕНИЕ!)")
-            userCylDiamM = params.cylDiamM
-        } else if (params.cylDiamM !== undefined) {
-            console.log("  ⏭️ Диаметр цилиндра (cylDiamM): " + params.cylDiamM + " (БЕЗ ИЗМЕНЕНИЙ)")
-        }
-
-        if (params.rodDiameterM !== undefined && params.rodDiameterM !== userRodDiameterM) {
-            console.log("  🔧 Диаметр штока (rodDiameterM): " + userRodDiameterM + " → " + params.rodDiameterM + " (ИЗМЕНЕНИЕ!)")
-            userRodDiameterM = params.rodDiameterM
-        } else if (params.rodDiameterM !== undefined) {
-            console.log("  ⏭️ Диаметр штока (rodDiameterM): " + params.rodDiameterM + " (БЕЗ ИЗМЕНЕНИЙ)")
-        }
-        
-        // Валидация настроек
+        // Валидация настроек параметров цилиндра
         var isValid = true
         if (userStrokeM <= 0 || userStrokeM > 1000) {
             console.warn("❌ Неверное значение Hода поршня (strokeM):", userStrokeM)
