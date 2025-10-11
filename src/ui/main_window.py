@@ -66,11 +66,12 @@ class MainWindow(QMainWindow):
         "PZ": "rr",
     }
 
-    def __init__(self, use_qml_3d: bool = True):
+    def __init__(self, use_qml_3d: bool = True, force_optimized: bool = False):
         super().__init__()
         
         # Store visualization backend choice
         self.use_qml_3d = use_qml_3d
+        self.force_optimized = force_optimized
         
         backend_name = "Qt Quick 3D (Enhanced v5.0)" if use_qml_3d else "Legacy OpenGL"
         self.setWindowTitle(f"PneumoStabSim - {backend_name}")
@@ -211,14 +212,29 @@ class MainWindow(QMainWindow):
         print("    ✅ Система сплиттеров создана (горизонтальный + вертикальный)")
 
     def _setup_qml_3d_view(self):
-        """Setup Qt Quick 3D full suspension scene - загружает main.qml"""
-        print("    [QML] Загрузка QML файла main.qml...")
+        """Setup Qt Quick 3D full suspension scene - теперь загружает ЕДИНЫЙ main.qml"""
+        print("    [QML] Загрузка ЕДИНОГО QML файла main.qml...")
         
         try:
             self._qquick_widget = QQuickWidget(self)
             self._qquick_widget.setResizeMode(QQuickWidget.ResizeMode.SizeRootObjectToView)
             
-            # Используем единый файл main.qml
+            # CRITICAL: Set up QML import paths BEFORE loading any QML
+            engine = self._qquick_widget.engine()
+            
+            # Add Qt's QML import path
+            from PySide6.QtCore import QLibraryInfo
+            qml_path = QLibraryInfo.path(QLibraryInfo.LibraryPath.Qml2ImportsPath)
+            engine.addImportPath(str(qml_path))
+            print(f"    🔧 Added QML import path: {qml_path}")
+            
+            # Also add local paths if they exist
+            local_qml_path = Path("assets/qml")
+            if local_qml_path.exists():
+                engine.addImportPath(str(local_qml_path.absolute()))
+                print(f"    🔧 Added local QML path: {local_qml_path.absolute()}")
+            
+            # ✅ НОВОЕ: Теперь используем только ОДИН файл main.qml
             qml_path = Path("assets/qml/main.qml")
             
             print(f"    🔍 ДИАГНОСТИКА ЗАГРУЗКИ QML:")
@@ -257,7 +273,9 @@ class MainWindow(QMainWindow):
             if not self._qml_root_object:
                 raise RuntimeError("Не удалось получить корневой объект QML")
             
-            print(f"    [OK] ✅ QML файл 'main.qml' загружен успешно")
+            print(f"    [OK] ✅ ЕДИНЫЙ QML файл 'main.qml' загружен успешно")
+            print(f"    ✨ Версия: Enhanced v5.0 (объединённая, оптимизированная, с IBL)")
+            print(f"    🔧 QML import paths настроены для QtQuick3D")
             
         except Exception as e:
             print(f"    [CRITICAL] Ошибка загрузки main.qml: {e}")
@@ -267,7 +285,8 @@ class MainWindow(QMainWindow):
             fallback = QLabel(
                 "КРИТИЧЕСКАЯ ОШИБКА ЗАГРУЗКИ 3D СЦЕНЫ\n\n"
                 f"Ошибка: {e}\n\n"
-                "Проверьте файл assets/qml/main.qml"
+                "Проверьте файл assets/qml/main.qml\n"
+                "и убедитесь, что QtQuick3D установлен правильно"
             )
             fallback.setAlignment(Qt.AlignmentFlag.AlignCenter)
             fallback.setStyleSheet("background: #1a1a2e; color: #ff6b6b; font-size: 12px; padding: 20px;")
@@ -464,7 +483,8 @@ class MainWindow(QMainWindow):
         print(f"   Параметры ({len(geometry_params)}): {list(geometry_params.keys())}")
         
         # Показываем ключевые значения для диагностики
-        key_params = ['frameLength', 'leverLength', 'trackWidth', 'rodPosition']
+        key_params = ['frameLength', 'leverLength', 'trackWidth', 'rodPosition', 
+                      'cylDiamM', 'rodDiameterM', 'pistonRodLengthM', 'pistonThicknessM']
         print(f"   Ключевые значения:")
         for key in key_params:
             if key in geometry_params:
@@ -473,35 +493,80 @@ class MainWindow(QMainWindow):
         
         self.logger.info(f"Геометрия изменена: {len(geometry_params)} параметров")
         
-        # Обновляем QML сцену прямо сейчас
+        # ✅ ИСПРАВЛЕНО: Устанавливаем свойства НАПРЯМУЮ для гарантированного обновления
         if self._qml_root_object:
             try:
-                print(f"   🔧 Вызываем updateGeometry() в QML...")
+                print(f"🔧 Устанавливаем свойства напрямую в QML...")
                 
-                # Используем QMetaObject.invokeMethod() для вызова QML функции
-                from PySide6.QtCore import QMetaObject, Q_ARG, Qt
+                # Параметры цилиндра с суффиксом M (НОВЫЕ!)
+                if 'cylDiamM' in geometry_params:
+                    value = float(geometry_params['cylDiamM'])
+                    self._qml_root_object.setProperty("userCylDiamM", value)
+                    self._qml_root_object.setProperty("userBoreHead", value)  # Обратная совместимость
+                    self._qml_root_object.setProperty("userBoreRod", value)
+                    print(f"   ✅ userCylDiamM = {value} мм")
                 
-                success = QMetaObject.invokeMethod(
-                    self._qml_root_object,
-                    "updateGeometry",
-                    Qt.ConnectionType.DirectConnection,
-                    Q_ARG("QVariant", geometry_params)
-                )
+                if 'rodDiameterM' in geometry_params:
+                    value = float(geometry_params['rodDiameterM'])
+                    self._qml_root_object.setProperty("userRodDiameterM", value)
+                    self._qml_root_object.setProperty("userRodDiameter", value)  # Обратная совместимость
+                    print(f"   ✅ userRodDiameterM = {value} мм")
                 
-                if success:
-                    print(f"   ✅ QML updateGeometry() вызван успешно")
-                    
-                    # Принудительно обновляем QML widget для немедленного отображения
-                    if self._qquick_widget:
-                        self._qquick_widget.update()
-                        print(f"   🔄 QML widget принудительно обновлен")
-                    
-                    self.status_bar.showMessage("Геометрия обновлена в 3D сцене")
-                    print(f"📊 Статус: Геометрия успешно обновлена")
-                else:
-                    print(f"   ❌ QML updateGeometry() не удалось вызвать")
-                    # Fallback к установке отдельных свойств
-                    self._set_geometry_properties_fallback(geometry_params)
+                if 'pistonRodLengthM' in geometry_params:
+                    value = float(geometry_params['pistonRodLengthM'])
+                    self._qml_root_object.setProperty("userPistonRodLengthM", value)
+                    self._qml_root_object.setProperty("userPistonRodLength", value)  # Обратная совместимость
+                    print(f"   ✅ userPistonRodLengthM = {value} мм")
+                
+                if 'pistonThicknessM' in geometry_params:
+                    value = float(geometry_params['pistonThicknessM'])
+                    self._qml_root_object.setProperty("userPistonThicknessM", value)
+                    self._qml_root_object.setProperty("userPistonThickness", value)  # Обратная совместимость
+                    print(f"   ✅ userPistonThicknessM = {value} мм")
+                
+                if 'strokeM' in geometry_params:
+                    value = float(geometry_params['strokeM'])
+                    self._qml_root_object.setProperty("userStrokeM", value)
+                    print(f"   ✅ userStrokeM = {value} мм")
+                
+                if 'deadGapM' in geometry_params:
+                    value = float(geometry_params['deadGapM'])
+                    self._qml_root_object.setProperty("userDeadGapM", value)
+                    print(f"   ✅ userDeadGapM = {value} мм")
+                
+                # Основные параметры геометрии
+                if 'frameLength' in geometry_params:
+                    self._qml_root_object.setProperty("userFrameLength", float(geometry_params['frameLength']))
+                
+                if 'frameHeight' in geometry_params:
+                    self._qml_root_object.setProperty("userFrameHeight", float(geometry_params['frameHeight']))
+                
+                if 'frameBeamSize' in geometry_params:
+                    self._qml_root_object.setProperty("userBeamSize", float(geometry_params['frameBeamSize']))
+                
+                if 'leverLength' in geometry_params:
+                    self._qml_root_object.setProperty("userLeverLength", float(geometry_params['leverLength']))
+                
+                if 'cylinderBodyLength' in geometry_params:
+                    self._qml_root_object.setProperty("userCylinderLength", float(geometry_params['cylinderBodyLength']))
+                
+                if 'trackWidth' in geometry_params:
+                    self._qml_root_object.setProperty("userTrackWidth", float(geometry_params['trackWidth']))
+                
+                if 'frameToPivot' in geometry_params:
+                    self._qml_root_object.setProperty("userFrameToPivot", float(geometry_params['frameToPivot']))
+                
+                if 'rodPosition' in geometry_params:
+                    self._qml_root_object.setProperty("userRodPosition", float(geometry_params['rodPosition']))
+                
+                # Принудительно обновляем виджет
+                if self._qquick_widget:
+                    self._qquick_widget.update()
+                    print(f"   🔄 QML widget принудительно обновлен")
+                
+                self.status_bar.showMessage("Геометрия обновлена в 3D сцене (прямая установка)")
+                print(f"📊 Статус: Геометрия успешно обновлена через прямую установку свойств")
+                print(f"═══════════════════════════════════════════════")
                     
             except Exception as e:
                 print(f"═══════════════════════════════════════════════")
@@ -512,99 +577,12 @@ class MainWindow(QMainWindow):
                 self.status_bar.showMessage(f"Ошибка обновления геометрии: {e}")
                 import traceback
                 traceback.print_exc()
-                
-                # Fallback к установке отдельных свойств
-                self._set_geometry_properties_fallback(geometry_params)
         else:
             print(f"═══════════════════════════════════════════════")
             print(f"❌ MainWindow: QML корневой объект недоступен!")
             print(f"   Невозможно обновить геометрию")
             print(f"═══════════════════════════════════════════════")
             self.status_bar.showMessage("QML недоступен для обновления геометрии")
-    
-    def _set_geometry_properties_fallback(self, geometry_params: dict):
-        """Fallback: Установка отдельных QML свойств напрямую
-        
-        Args:
-            geometry_params: Словарь с параметрами геометрии
-        """
-        print(f"🔧 Fallback: Установка отдельных QML свойств...")
-        
-        prop_count = 0
-        
-        # Конвертируем и устанавливаем основные свойства
-        if 'frameLength' in geometry_params:
-            self._qml_root_object.setProperty("userFrameLength", geometry_params['frameLength'])
-            print(f"   ✅ Set userFrameLength = {geometry_params['frameLength']}")
-            prop_count += 1
-        
-        if 'frameHeight' in geometry_params:
-            self._qml_root_object.setProperty("userFrameHeight", geometry_params['frameHeight'])
-            print(f"   ✅ Set userFrameHeight = {geometry_params['frameHeight']}")
-            prop_count += 1
-        
-        if 'frameBeamSize' in geometry_params:
-            self._qml_root_object.setProperty("userBeamSize", geometry_params['frameBeamSize'])
-            print(f"   ✅ Set userBeamSize = {geometry_params['frameBeamSize']}")
-            prop_count += 1
-        
-        if 'leverLength' in geometry_params:
-            self._qml_root_object.setProperty("userLeverLength", geometry_params['leverLength'])
-            print(f"   ✅ Set userLeverLength = {geometry_params['leverLength']}")
-            prop_count += 1
-        
-        if 'cylinderBodyLength' in geometry_params:
-            self._qml_root_object.setProperty("userCylinderLength", geometry_params['cylinderBodyLength'])
-            print(f"   ✅ Set userCylinderLength = {geometry_params['cylinderBodyLength']}")
-            prop_count += 1
-        
-        if 'trackWidth' in geometry_params:
-            self._qml_root_object.setProperty("userTrackWidth", geometry_params['trackWidth'])
-            print(f"   ✅ Set userTrackWidth = {geometry_params['trackWidth']}")
-            prop_count += 1
-        
-        if 'frameToPivot' in geometry_params:
-            self._qml_root_object.setProperty("userFrameToPivot", geometry_params['frameToPivot'])
-            print(f"   ✅ Set userFrameToPivot = {geometry_params['frameToPivot']}")
-            prop_count += 1
-        
-        if 'rodPosition' in geometry_params:
-            self._qml_root_object.setProperty("userRodPosition", geometry_params['rodPosition'])
-            print(f"   ✅ Set userRodPosition = {geometry_params['rodPosition']}")
-            prop_count += 1
-        
-        if 'boreHead' in geometry_params:
-            self._qml_root_object.setProperty("userBoreHead", geometry_params['boreHead'])
-            print(f"   ✅ Set userBoreHead = {geometry_params['boreHead']}")
-            prop_count += 1
-        
-        if 'boreRod' in geometry_params:
-            self._qml_root_object.setProperty("userBoreRod", geometry_params['boreRod'])
-            print(f"   ✅ Set userBoreRod = {geometry_params['boreRod']}")
-            prop_count += 1
-        
-        if 'rodDiameter' in geometry_params:
-            self._qml_root_object.setProperty("userRodDiameter", geometry_params['rodDiameter'])
-            print(f"   ✅ Set userRodDiameter = {geometry_params['rodDiameter']}")
-            prop_count += 1
-        
-        if 'pistonThickness' in geometry_params:
-            self._qml_root_object.setProperty("userPistonThickness", geometry_params['pistonThickness'])
-            print(f"   ✅ Set userPistonThickness = {geometry_params['pistonThickness']}")
-            prop_count += 1
-        
-        if 'pistonRodLength' in geometry_params:
-            self._qml_root_object.setProperty("userPistonRodLength", geometry_params['pistonRodLength'])
-            print(f"   ✅ Set userPistonRodLength = {geometry_params['pistonRodLength']}")
-            prop_count += 1
-        
-        # Принудительно обновляем виджет
-        if self._qquick_widget:
-            self._qquick_widget.update()
-        
-        self.status_bar.showMessage(f"Геометрия обновлена через свойства ({prop_count} параметров)")
-        print(f"✅ Установлено {prop_count} QML свойств через fallback")
-        print(f"═══════════════════════════════════════════════")
 
     @Slot(dict)
     def _on_lighting_changed(self, lighting_params: dict):
