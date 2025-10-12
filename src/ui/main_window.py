@@ -823,6 +823,8 @@ class MainWindow(QMainWindow):
             ("rodDiameter",): ("userRodDiameter", float),
             ("pistonThickness",): ("userPistonThickness", float),
             ("pistonRodLength",): ("userPistonRodLength", float),
+            ("cylinderSegments",): ("cylinderSegments", int),
+            ("cylinderRings",): ("cylinderRings", int),
         }
         self._apply_nested_mapping(geometry, mapping)
 
@@ -847,8 +849,13 @@ class MainWindow(QMainWindow):
         mapping = {
             ("background", "mode"): "backgroundMode",
             ("background", "color"): "backgroundColor",
+            ("background", "skybox_enabled"): "iblBackgroundEnabled",
             ("ibl", "enabled"): "iblEnabled",
+            ("ibl", "lighting_enabled"): "iblLightingEnabled",
+            ("ibl", "background_enabled"): "iblBackgroundEnabled",
             ("ibl", "intensity"): ("iblIntensity", float),
+            ("ibl", "exposure"): ("iblIntensity", float),
+            ("ibl", "rotation"): ("iblRotationDeg", float),
             ("ibl", "blur"): ("skyboxBlur", float),
             ("fog", "enabled"): "fogEnabled",
             ("fog", "color"): "fogColor",
