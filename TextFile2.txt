@@ -1,0 +1,572 @@
+Extended Graphics Control Panel for Qt Quick 3D (Copilot Prompt)
+Overview
+
+Design a “Graphics” settings panel in QML (Qt Quick 3D) with sections for Camera, Environment, Lighting, Materials, and Effects. The panel should expose all relevant rendering parameters to achieve maximum visual quality. Use Qt Quick 3D’s ExtendedSceneEnvironment and PrincipledMaterial features to allow fine-tuning of antialiasing, shadows, lighting, materials, transparency, reflections, etc. All numeric parameters should be adjustable with sliders (with ranges limited to valid values from Qt’s documentation), and color pickers for color properties. Changes must apply immediately and smoothly – as the user drags a slider or picks a color, the 3D scene updates in real time (no “Apply” button required). Use sensible default values (avoid extreme defaults like 20000 brightness). Below are the sections and controls to include:
+
+Camera Settings
+
+Provide controls to adjust the camera and view, influencing rendering quality:
+
+Field of View (FOV): Slider (in degrees, e.g. range 1°–120°). Default ~50° for a natural perspective.
+
+Near Clip Plane: Slider (min ~0.1, up to a reasonable value, e.g. 1–100). The default can be a small value (e.g. 5.0 units)
+GitHub
+ to avoid clipping close objects, but not too small to preserve depth precision.
+
+Far Clip Plane: Slider (allow large range, e.g. up to 100000). Default around 50000.0 as in current scene
+GitHub
+. Note: extremely large far planes can reduce depth accuracy and cause artifacts in effects like ambient occlusion
+felgo.com
+felgo.com
+. Allow users to adjust Far plane to balance scene size vs. Z-buffer precision.
+
+(Optional) Projection Mode: If needed, a toggle between Perspective and Orthographic (for specialized views), but default to Perspective for realism.
+
+Orbit Camera Behavior: The camera likely orbits around a fixed pivot (center of the model). Ensure the orbit/pan implementation (as in code) remains, but expose a checkbox for “Auto-Rotate” with a speed slider (to slowly rotate the camera for demo purposes). Keep the camera motion smooth.
+
+Camera Focus (if Depth of Field used): We will expose focus distance in the Effects section (Depth of Field), so no need to duplicate here.
+
+Environment Settings
+
+Controls for the background, image-based lighting (IBL), and global rendering settings:
+
+Background Mode: A dropdown or radio buttons for: Solid Color vs HDR SkyBox.
+
+If “Solid Color” is selected, use a plain background clear color. Provide a Color Picker for Background Color (default to a dark gray or black – e.g. #2a2a2a as used currently
+GitHub
+).
+
+If “HDR SkyBox” is selected, display the environment map as a sky. Use the loaded HDR (Texture with an .hdr file) as the skybox.
+
+HDR Environment Lighting (IBL): A checkbox “Use HDR Lighting” that toggles the scene’s global lightProbe. When enabled, assign a HDR environment map (e.g. an HDR texture) to the SceneEnvironment’s lightProbe
+GitHub
+. This provides image-based lighting for realistic reflections/refractions. If disabled, the scene relies only on explicit lights.
+
+Environment Intensity: Slider to control the HDR environment’s intensity/exposure (the probeExposure of the lightProbe). Range ~0.0–5.0 (or higher), default ~1.0 (neutral lighting)
+GitHub
+. This scales the contribution of the IBL on the scene.
+
+Show Sky Background: A checkbox “Visible Sky” that toggles whether the HDR is visible as background (backgroundMode = SkyBox) or just used for lighting (Color background with IBL on). If unchecked, the background stays as the solid color while still using the HDR for lighting. (This corresponds to backgroundMode: Color vs SkyBox and using the lightProbe for lighting
+GitHub
+.)
+
+Sky Blur: If SkyBox is enabled, provide a Skybox Blur slider (0.0–1.0) to blur the environment map for the background. Default 0 (sharp). This uses skyBoxBlurAmount (0 = no blur, 1 = fully blurred)
+felgo.com
+, helpful for focusing on models while keeping background abstract.
+
+Tonemapping: A dropdown to select tonemap curve for HDR rendering: None (linear), Linear, Reinhard, Filmic, etc. When a mode is selected (other than “None”), enable the tonemapper. Default to Filmic for a high-quality cinematic look
+GitHub
+. The panel can also have a master toggle “Enable Tonemapping” if needed, but selecting “None” can serve as off. Under the hood, set tonemapMode accordingly (e.g. SceneEnvironment.TonemapModeFilmic for Filmic
+GitHub
+).
+
+Additionally, provide an Exposure slider (to adjust overall scene brightness after tonemapping, default ~1.0) and perhaps White Point (default ~2.0 as in code
+GitHub
+) for fine-tuning tonemapper settings. These control how highlights are handled and the color balance in tonemapping
+doc.qt.io
+doc.qt.io
+.
+
+Dithering: Always enable dithering to avoid color banding (ExtendedSceneEnvironment’s ditheringEnabled = true as set in code
+GitHub
+). A checkbox can be provided to turn it off if needed, but default On for best quality.
+
+Antialiasing Mode: Allow selection of anti-aliasing methods to smooth jagged edges
+felgo.com
+:
+
+NoAA (no antialiasing)
+
+MSAA (Multisample AA)
+
+SSAA (Supersample AA)
+
+ProgressiveAA (temporal accumulation AA)
+Provide a Quality selector as well, since Qt Quick 3D supports multiple AA quality levels
+felgo.com
+. For example: Medium, High, VeryHigh corresponding to:
+
+MSAA 2x, 4x, 8x samples
+felgo.com
+ (and SSAA 1.2x, 1.5x, 2.0x resolution; Progressive 2, 4, 8 frames accumulation).
+
+Default to High (e.g. 4x MSAA or 4-frame Progressive) which balances quality/perf
+felgo.com
+.
+
+If Progressive AA is chosen, enable Temporal AA to accumulate frames (ExtendedSceneEnvironment’s temporalAAEnabled = true) for best results
+GitHub
+. Provide a checkbox for “Temporal AA” (default on). This reduces flicker by blending frames when the scene is static
+felgo.com
+.
+
+Optionally, a checkbox for FXAA (Fast Approximate AA) can be included. ExtendedSceneEnvironment supports fxaaEnabled
+GitHub
+. Default On for extra smoothing, as it can further soften jaggies in motion.
+
+Also enable specularAAEnabled = true by default
+GitHub
+ – this reduces aliasing on specular highlights (roughens very shiny reflections slightly to avoid pixel noise). Provide a toggle if the user wants to disable it.
+
+Important: Ensure the chosen AA actually takes effect. If using a View3D Inline in a Qt Quick window, MSAA might require enabling it on the surface format (per QQuickWindow)
+felgo.com
+. In our QML, using SceneEnvironment.antialiasingMode with an Offscreen or Underlay View3D should work; otherwise, document that enabling MSAA may require setting QSurfaceFormat samples at application startup
+felgo.com
+. The panel can include a note or handle this behind the scenes so that selecting MSAA applies correctly.
+
+Transparency Method: Use Order-Independent Transparency if available for best results with multiple transparent objects. Set oitMethod = SceneEnvironment.OITWeightedBlended for the environment
+GitHub
+. This weighted blended OIT avoids sorting artifacts and “popping” in overlapping transparent objects, giving more stable and correct blending. We can enable this by default for realistic transparency.
+
+Notes on Known Issues:
+
+Antialiasing: If one mode (e.g. ProgressiveAA) causes unwanted background jitter when orbiting the camera (due to sub-frame jittering), allow switching to a different mode like high-sample MSAA to stabilize the background. (Progressive AA juggles the camera slightly each frame
+felgo.com
+, which can make a static sky texture appear to “shimmer”. MSAA doesn’t have that issue for moving scenes.)
+
+Background Jitter: For shadow shimmering during camera movement, provide an option to enable Locked Shadowmap texels on directional lights (lockShadowmapTexels = true). This can eliminate moving pixel aliasing in shadows at the cost of lower shadow resolution
+doc.qt.io
+. Enabling this will reduce “crawling” shadows or background flicker caused by shadow aliasing during orbital camera motion
+doc.qt.io
+.
+
+Lighting Settings
+
+Give users control over the scene lights (directional “sun”, fill lights, etc.) to maximize realism:
+
+Main Light (Sun):
+
+Color: Color picker (default pure white #ffffff or slight warm tint).
+
+Intensity (Brightness): Slider, range say 0 to 100 (in practice ~1–10 is typical). Qt’s Light brightness is a multiplier (default 1.0 = full intensity)
+doc.qt.io
+. Use a moderate default (e.g. 2.0) to simulate sunlight brightness
+GitHub
+. (Avoid extremely high defaults like 20000, which was an earlier mistake.)
+
+Direction/Angle: Controls for rotation of the directional light. Provide two sliders for Rotation X (elevation) and Rotation Y (azimuth) in degrees. This allows positioning the “sun” in the sky. For example, default X = –45°, Y = 45° for a nice angled light
+GitHub
+. The Z axis of the light in Qt Quick 3D points in its forward direction
+doc.qt.io
+, so adjusting X (pitch) and Y (yaw) covers most use cases.
+
+Casts Shadows: Checkbox to toggle shadows from this light (castsShadow). Default On for the main light
+doc.qt.io
+. (If off, the scene will have no shadows from this source.)
+
+Secondary Lights: If the scene uses additional lights (e.g. a fill light, point light for highlights), include basic controls:
+
+Fill Light Intensity & Color: A secondary directional light used to soften shadows. Provide a brightness slider (default lower, e.g. ~0.5–1.0) and color picker (perhaps a cool slight bluish tint to contrast the sun’s warm light, e.g. #f0f0ff as in code
+GitHub
+). The fill light can have a fixed position (e.g. coming from opposite side of main light, as in code with Y=135°, X=-60°
+GitHub
+). Shadows can remain off for fill (to avoid double shadows).
+
+Point Light (e.g. for lamp or spark highlights): If present, slider for intensity and color. In the example, a point light illuminates from above (Y position ~2000) with brightness ~1.5
+GitHub
+. Provide a slider for height (Y position) if needed, or leave it fixed. Point lights have quadratic falloff; ensure the quadraticFade is set appropriately (the code uses 0.00008) for a realistic light radius.
+
+Shadow Settings (Quality): Fine-tune the quality of shadows cast by lights:
+
+Shadow Resolution: Dropdown with options Low, Medium, High, VeryHigh, Ultra corresponding to shadow map size (256, 512, 1024, 2048, 4096 respectively)
+doc.qt.io
+. The default Ultra (4096x4096) for the crispest shadows
+doc.qt.io
+. (Users can lower if performance suffers.) This sets shadowMapQuality on the Light. Higher values greatly reduce blockiness of shadows
+doc.qt.io
+ at cost of performance.
+
+Shadow Softness Quality: Dropdown for Hard Shadows vs PCF filtering levels (Percentage Closer Filtering): e.g. Hard, PCF4, PCF8, PCF16, PCF32, PCF64
+doc.qt.io
+. Higher PCF sample counts produce softer, more realistic penumbras but are costlier. Default to a high quality like PCF32 for very smooth shadows edges
+doc.qt.io
+doc.qt.io
+. This corresponds to setting softShadowQuality on the Light.
+
+Shadow Softness Radius: Slider for the PCF filter radius (pcfFactor). Range ~0 to 10 (world-space units). Default ~2.0
+doc.qt.io
+doc.qt.io
+, which is a moderate softness. Increasing this spreads the shadow edges (simulating larger light source) but requires higher PCF samples to avoid graininess
+doc.qt.io
+.
+
+Shadow Bias: Slider to adjust shadow bias (default 10 in Qt)
+doc.qt.io
+. Range can be 0 to ~20. A small bias helps remove “shadow acne” (self-shadowing artifacts)
+doc.qt.io
+, but too high a bias causes “Peter Pan” floating shadows
+doc.qt.io
+. Our scene scale might require a very small bias; for example, earlier we found 0.0005 worked to eliminate gaps
+GitHub
+GitHub
+. Let the user fine-tune this if shadow artifacts appear. Start with a low default (e.g. ~1 or adjust based on scene scale).
+
+Shadow Darkness: Slider for Shadow Strength (0–100%) which controls how dark shadows are. This ties to shadowFactor (0 means no shadow darkness, 100 means fully dark shadows)
+doc.qt.io
+. Default ~75%
+doc.qt.io
+, meaning the shadowed areas still retain 25% ambient light. Users can make shadows softer (lower value) or completely black (100).
+
+Cascaded Shadows (Directional Light): If using a large scene with a directional sun, expose controls for Cascaded Shadow Maps to improve quality at varying distances
+doc.qt.io
+doc.qt.io
+. Provide:
+
+Cascade Count: Slider or combo (0, 1, 2, or 3 splits) – sets csmNumSplits (max 3)
+doc.qt.io
+. Default 0 (no splits) unless large terrain. More splits = better near-camera shadow detail at the cost of performance
+doc.qt.io
+doc.qt.io
+.
+
+Split Distances: If splits >0, sliders for csmSplit1, csmSplit2, csmSplit3 (each 0–1, representing fractional distance of camera frustum)
+doc.qt.io
+doc.qt.io
+. Default ~0.1, 0.25, 0.5 for 3 splits
+doc.qt.io
+doc.qt.io
+. These determine where each cascade starts, optimizing shadow resolution closer to the camera.
+
+Cascade Blend: Slider for csmBlendRatio (0–1, default 0.05)
+doc.qt.io
+ to blend between cascades and avoid hard seams.
+
+Note: Cascades are an advanced setting; only necessary for big scenes where shadow resolution needs distribution
+doc.qt.io
+doc.qt.io
+. For a small model, a single shadow map may suffice.
+
+32-bit Depth Buffer: Checkbox “High Precision Shadows” to toggle use32BitShadowmap. Default off, but for very large scenes or if banding is noticed in shadows, enabling 32-bit can reduce depth artifacts
+doc.qt.io
+ at some performance/memory cost. This is especially useful if shadowMapFar is large (covering a big range)
+doc.qt.io
+.
+
+Ambient Lighting: We rely on IBL and AO for ambient light. Qt’s Light also has ambientColor (default black) which adds constant illumination
+thinkinginqt.com
+. We can expose an Ambient Light Color/Intensity if needed (to simulate global ambient term), but preferably keep it black when using physically based IBL + AO for realism.
+
+Lighting Notes: Encourage physically plausible values: for example, keep metallic surfaces lit mainly by bright environment reflections rather than extreme light intensity. The default sun brightness ~2–3 with a proper HDR environment yields realistic highlights. Use multiple light sources (sun + fill + maybe back-light) for a balanced scene.
+
+Material Settings
+
+A section to edit material properties of objects, ensuring all parameters provided by Qt’s material system are available for maximum realism. Use a dropdown to select which material (or object) to edit (e.g. “Frame Material”, “Cylinder Material”, etc.), then show controls for that material’s PrincipledMaterial properties. The UI fields remain static (for compactness), showing all possible properties – even if some are not used by the current material – so the user can experiment with all options. Key material controls (for PrincipledMaterial) include:
+
+Base Color: Color picker for the material’s baseColor (albedo)
+doc.qt.io
+. Default to a neutral gray or a preset value (e.g. the metal frame might default medium gray, the cylinder perhaps a blue). Changes reflect immediately on the model. (If an object uses a texture map, we won’t handle loading it here – focus on parameter tweaks.)
+
+Metalness: Slider 0.0–1.0
+doc.qt.io
+. Controls if the material is dielectric (0) or metallic (1). Default based on object: e.g. frame metal = 1.0, glass = 0.0. Intermediate values simulate mixed surfaces like corroded metal
+doc.qt.io
+. This significantly affects reflections: metals use baseColor as specular tint, dielectrics have white specular and use baseColor as diffuse
+doc.qt.io
+.
+
+Roughness: Slider 0.0–1.0
+doc.qt.io
+. Controls glossiness vs matte. 0 = perfectly smooth mirror, 1 = extremely rough diffuse. Default ~0.2–0.5 for moderately shiny surfaces. Lower roughness yields sharper reflections/highlights, but can cause aliasing on tiny highlights (specular AA helps with that).
+
+Specular Amount: Slider 0.0–1.0
+doc.qt.io
+. Strength of specular reflection for dielectrics (has no effect on pure metals)
+doc.qt.io
+. Default 1.0 (full specular for non-metals)
+doc.qt.io
+. Reducing this can make non-metal materials less shiny overall.
+
+Specular Tint: Slider 0.0–1.0. For dielectrics, how much the specular highlights are tinted by the base color
+doc.qt.io
+. 0 = specular is white (common for most materials), 1 = specular is colored by material. Default 0 (or moderate value if simulating things like skin or plastics that tint highlights slightly).
+
+Opacity: Slider 0.0–1.0 for overall opacity of the material (PrincipledMaterial’s opacity property)
+doc.qt.io
+. Default 1 (opaque). Reducing this will make the object uniformly transparent. Note: For proper transparency blending, ensure the material’s alphaMode is set to Blend when opacity < 1 to force blending
+doc.qt.io
+. We should by default use PrincipledMaterial.Blend mode for any material that isn’t fully opaque, to avoid it being treated as opaque by the renderer
+doc.qt.io
+.
+
+Transmission: Slider 0.0–1.0 for transparency (glass) effect
+doc.qt.io
+. This corresponds to the fraction of light that passes through the material. 0 means fully opaque (no light transmitted), 1.0 means all light is transmitted (completely transparent)
+doc.qt.io
+. Use 1.0 for glass or clear plastic. When Transmission > 0, the material becomes transparent and refractive (based on IOR), rather than just fading out like opacity. (Under the hood, Qt uses the combination of transmission and IOR to render refraction).
+
+Index of Refraction (IOR): Slider roughly 1.0 to 3.0
+doc.qt.io
+. Controls the bending of light in the material – critical for realistic glass/plastic. Common values: Air 1.0, Water ~1.33, Glass ~1.5, Diamond 2.42
+doc.qt.io
+. Default 1.5 (a reasonable glass/plastic value)
+doc.qt.io
+. The user can adjust this to match material (e.g. ~1.33 for water, ~1.76 sapphire). No real-world material exceeds ~3.0 IOR
+doc.qt.io
+, so clamp the slider at 3.0 for realism. (This property is ignored if Transmission=0, but we still allow setting it beforehand.)
+
+Thickness: Slider for volume thickness (in scene units). Default 0.0 (treat material as thin-walled)
+doc.qt.io
+. If >0, it means the object has volume and the shader will use this thickness (along with attenuation below) to simulate absorption of light through the material. For example, a liquid with certain thickness could get more color absorption over distance. If the geometry is a closed solid (like a solid glass sphere), set a positive thickness and Transmission to simulate volumetric refraction. Range: 0 (thin surface) up to a value representing the actual thickness of the object. (Since our geometry might not store per-pixel thickness, this acts as an approximation – uniform thickness or using a thickness map for variation).
+
+Attenuation Color: Color picker for the absorption tint (PrincipledMaterial attenuationColor)
+doc.qt.io
+. Default white (means no color tint). If the material is volumetric (thickness > 0), this color defines what color the light shifts towards after traveling the attenuation distance. For example, for a blue-tinted glass, use a blue attenuation color.
+
+Attenuation Distance: Slider for the distance (in scene units) over which the light of the attenuation color is fully absorbed
+doc.qt.io
+. Default is infinity (meaning virtually no absorption)
+doc.qt.io
+. Allow a range, e.g. 0 to maybe 10000 (with a special handling that a very high value ~10000 or a toggle means “no attenuation”). Shorter distances mean the color gets absorbed quickly, making the object appear more tinted and less light passes through if it’s thick. For instance, if attenuation distance is 5 and color is blue, a 5-unit thick object will absorb most non-blue light by the time it exits. If user wants a subtle tint in a large object, set a large distance.
+
+Clear Coat: Slider 0.0–1.0 for clearcoat layer intensity
+doc.qt.io
+. Default 0 (no clearcoat). 1.0 means a full clear coat layer on top (like a transparent varnish). This gives an additional reflective highlight layer. Example: car paint or polished wood often uses clearcoat ~1.0, metals can too (code set 0.8 on the cylinder’s material
+GitHub
+ to simulate a coated metal).
+
+Clear Coat Roughness: Slider 0.0–1.0. Roughness of the clearcoat layer (if any). Default 0 (clearcoat is glossy). If clearcoatAmount > 0, allow adjusting this – e.g. a slightly matte clearcoat might be ~0.2.
+
+Normal Map Strength: Slider (0–1 or higher) for normalMap influence
+doc.qt.io
+. Default 1.0. If a normal map is applied to the material, this scales its effect. 0 = ignore normal map, 1 = full effect, >1 could exaggerate bumps. (If no normal map on the material, this has no visible effect, but we keep the control for completeness).
+
+Occlusion Strength: Slider 0.0–1.0 for AO map influence
+doc.qt.io
+. Default 1.0
+doc.qt.io
+. If an ambient occlusion texture is used (darkens crevices), this scales it. 0 = disable AO map effect.
+
+Emissive (if supported): PrincipledMaterial doesn’t have a direct emissive color property in the docs we saw (it might not support emission in the PrincipledMaterial, unlike the older DefaultMaterial). If emission is needed, one might use a CustomMaterial or hack by unlit mode. We will skip explicit emissive control here unless using a different material type.
+
+Lighting Mode: If needed, a toggle for “Unlit Material” (set PrincipledMaterial.lighting = NoLighting)
+doc.qt.io
+. This would ignore lights and make the material purely display its base color (or emissive) – useful for debug or special effects. Default is FragmentLighting (lit)
+doc.qt.io
+. We can include a checkbox “Disable Lighting (shadeless)” for advanced use.
+
+Material Alpha Mode: A dropdown for Opaque/Blend/Mask could be included for completeness (tie into alphaMode
+doc.qt.io
+). By default we use Blend if Transmission<1 or opacity<1 to ensure proper transparency blending
+doc.qt.io
+. Mask mode can be used for cutout materials with an alpha cutoff (provide an Alpha Cutoff slider if mask mode is used, default 0.5)
+doc.qt.io
+. But unless we have masked materials (foliage, etc.), this might not be needed in UI. We can keep materials in Blend or Opaque automatically.
+
+Texture Maps: The panel won’t directly load textures (that’s beyond Copilot prompt scope), but ensure any existing maps (baseColorMap, normalMap, etc.) on the material remain functional. We expose numeric factors as above to tweak their effect. If desired, we could list which maps are present (for info) or allow toggling them on/off via those strength sliders or checkboxes.
+
+Apply to Selected Object: If multiple objects share one material or if the user wants to copy settings, maybe provide a “apply to all” if needed. This is more of an app logic – out of scope for prompt – but mention that each object’s material can be selected via the dropdown.
+
+Transparent Material Realism: To achieve realistic glass or transparent plastics, instruct the user to: set Transmission = 1.0, adjust IOR ~1.5 (or as needed)
+doc.qt.io
+, and optionally give the object some thickness and attenuation for color. The presence of a proper environment (the HDR lightProbe or a local ReflectionProbe) is crucial – the refractions will sample the environment map to show background distortion. We have enabled IBL, and additionally we have a ReflectionProbe in the scene (see below) for local reflections/refractions. With these, transparent objects will show realistic refraction and reflection of their surroundings, rather than appearing invisible. This addresses the previous “no refraction effect” issue: by using PrincipledMaterial’s transmission and IOR in combination with an environment map, we get visible refraction highlights and distortion through the object. If multiple transparent objects overlap, our OIT weighted blending ensures they compose correctly without order artifacts.
+
+Effects Settings
+
+Include a comprehensive post-processing effects section, leveraging ExtendedSceneEnvironment’s built-in effects for maximum quality. These effects can dramatically improve realism if used properly. All effect adjustments should take effect in real-time (ExtendedSceneEnvironment applies them on the fly). The panel should include:
+
+Screen Space Ambient Occlusion (SSAO):
+
+Enable SSAO: Checkbox to toggle ambient occlusion (aoEnabled)
+GitHub
+. Default On for realism (simulates contact shadows in creases where light is occluded).
+
+Strength: Slider 0–100% to control darkness of AO shadows (aoStrength)
+felgo.com
+. Default ~50%. Higher values (toward 100) make AO very dark and pronounced
+felgo.com
+, which can look unrealistic, so moderate values are best. (In code we used 70% as a strong effect
+GitHub
+).
+
+Radius (Distance): Slider for AO radius (aoDistance) in world units
+felgo.com
+. This determines how far out from surfaces the occlusion spreads. Default ~5.0 units for a moderate radius
+felgo.com
+. In our large model, we increased this (e.g. 200) to see AO on bigger gaps
+GitHub
+. Provide a range 1 up to a few hundred. Users can adjust based on scene scale: small value for tight crevices, large for big structures.
+
+Quality (Sample Rate): Dropdown or slider for AO sample rate (aoSampleRate)
+GitHub
+. Possible values 1 (low quality) up to 4 (very high). Default 3 (high) as used in code
+GitHub
+. Higher sample rate yields smoother, less noisy AO at cost of performance.
+
+Softness: Slider for AO blur (aoSoftness) – how soft vs sharp the AO shadows are. Range 0 (hard contact shadows) to maybe 20 or more. We used 20 as default in code
+GitHub
+ to get nicely blurred AO. This spreads the occlusion for more diffuse shading. The user can lower it for more defined dark creases or raise if seeing banding.
+
+Dither AO: Checkbox for aoDither (default true)
+GitHub
+. Dithering can hide pattern artifacts in AO at the cost of a little noise
+felgo.com
+. Leave it On by default (we set true) and allow turn off if the user sees unwanted artifacts.
+
+Note: AO is a subtle effect that adds realism by grounding objects with shadows. If performance is an issue, the user can disable it. Also, extremely large far clip values can interfere with AO correctness
+felgo.com
+, so keeping the camera’s far plane reasonable helps AO.
+
+Bloom & Glow:
+
+Enable Bloom/Glow: Checkbox to toggle bloom (glowEnabled)
+GitHub
+. Default On to highlight bright areas. Bloom adds a glow around bright highlights (emissive parts, reflections of sun, etc.), giving a more photographic look.
+
+Threshold: Slider for bloom threshold (glowHDRMinimumValue) – the brightness level above which bloom kicks in. Default ~1.0 (so any pixel brighter than the standard white will bloom)
+GitHub
+. Range maybe 0–10. Lowering it means more things bloom (even moderately bright areas), raising it restricts bloom to only extremely bright spots. Keep default around 1.0 so only intense highlights (like specular sun glints) bloom.
+
+Intensity: Slider for bloom intensity (glowIntensity)
+GitHub
+. Range 0–2 (since bloom is additive). Default ~0.8 (as in code) – enough to see a glow but not wash out the image. This scales the brightness of the bloom effect.
+
+Bloom Spread: Slider for bloom spread (glowBloom)
+doc.qt.io
+. This might control how wide the bloom extends. In code we set 0.5
+GitHub
+. Range 0–1. Higher might make bloom larger and softer. We can expose this as “Bloom Radius” or similar. Default 0.5.
+
+Bloom Strength: Slider for overall bloom strength (glowStrength)
+doc.qt.io
+. We used 0.8
+GitHub
+. This could be similar to intensity or control the shape of the bloom curve. Expose if needed to fine-tune how overpowering the bloom is.
+
+High Quality Bloom: Checkbox for glowQualityHigh
+GitHub
+. When checked, use a higher resolution or more samples for bloom for a smoother result (at performance cost). Default On for maximum quality.
+
+Bicubic Upsample: Checkbox for glowUseBicubicUpscale
+GitHub
+. When true, the bloom effect uses bicubic filtering when upscaling from a lower-res blur buffer, yielding a smoother glow. Default On (we set true) to avoid alias in the bloom.
+
+Blend Mode: If needed, allow selecting bloom blend mode (glowBlendMode). Usually additive (0) vs maybe screen; we set 0 (Add) in code
+GitHub
+. Probably keep additive which is standard.
+
+These bloom settings ensure bright highlights bloom realistically (e.g. sun reflections on metal will glow). This adds realism mimicking camera bloom.
+
+Depth of Field (DOF):
+
+Enable Depth of Field: Checkbox to toggle DOF (depthOfFieldEnabled)
+GitHub
+. Default Off (since in a technical model view, DOF blur might not always be desired unless focusing on a part). But it can be turned on for cinematic effect or to emphasize a specific depth.
+
+Focus Distance: Slider for focus plane distance (depthOfFieldFocusDistance)
+GitHub
+. In world units, distance from camera at which objects are in perfect focus. Default could be around the main subject distance (e.g. if our model is ~2000 units away, code used 2000)
+GitHub
+. The user can adjust to focus nearer or farther.
+
+Focus Range (Depth): Slider for focus range (depthOfFieldFocusRange)
+GitHub
+. This is the depth of the sharp zone. Default ~900 in our scene
+GitHub
+. A smaller value means a shallow depth of field (more background/foreground blur), a larger value approaches a wider focus range (less blur).
+
+Blur Amount: Slider for blur intensity (depthOfFieldBlurAmount)
+GitHub
+. Default ~3.0 (as set in code) – higher values produce more extreme blur in out-of-focus areas. Range perhaps 0–10.
+
+These DOF controls let the user simulate camera aperture effects, adding realism by blurring distant background or foreground elements. When enabled, ensure the ExtendedSceneEnvironment DOF effect is active. The implementation will use an additional pass (since DOF is a more complex effect).
+
+Lens Flare:
+
+Enable Lens Flare: Checkbox (lensFlareEnabled)
+GitHub
+. Default can be Off unless a bright light source is in view. If enabled, bright spots (like the sun) will generate spectral lens artifacts.
+
+Ghost Count: Slider for number of flare ghosts (lensFlareGhostCount)
+GitHub
+. Default 3 (as in code). This controls how many copies of the light image appear as flare. Range 0–5 or so.
+
+Ghost Dispersal: Slider (lensFlareGhostDispersal)
+GitHub
+ – how spread out the ghost images are. Default ~0.6. Range 0–1.
+
+Halo Width: Slider (lensFlareHaloWidth)
+GitHub
+. Default 0.25. Controls size of central halo.
+
+Bloom Bias: Slider (lensFlareBloomBias)
+GitHub
+. Default 0.35. Possibly controls how much bloom contributes to the flare.
+
+Distortion: Slider (lensFlareDistortion). Not set in code above, but present in ExtendedSceneEnvironment properties
+doc.qt.io
+. Could expose if needed – controls distortion of flare pattern by lens. Default maybe 0.
+
+Stretch to Aspect: Slider (lensFlareStretchToAspect)
+GitHub
+. Default 1.0. This might stretch flare elements based on aspect ratio. Usually 1.0 is fine (no stretch).
+
+If desired, also allow specifying lens dirt texture or starburst texture for more realistic flares (ExtendedSceneEnv supports lensFlareLensDirtTexture, etc.
+doc.qt.io
+). That might be beyond this prompt’s scope – we can use default or none.
+
+When enabled, lens flares will appear when looking toward bright lights (e.g. the sun). This enhances realism by simulating camera lens artifacts. Use in moderation – it’s off by default to not overwhelm the scene.
+
+Vignette:
+
+Enable Vignette: Checkbox (vignetteEnabled)
+GitHub
+. Default On or off depending on preference. We enabled it in code (true) to subtly darken corners and focus the image.
+
+Strength: Slider (vignetteStrength)
+GitHub
+. Default ~0.45–0.7 (we used 0.7 later
+GitHub
+). Range 0–1. Higher values = darker corners.
+
+Radius: Slider (vignetteRadius)
+GitHub
+. Default ~0.4 (in code) – this defines how far from center the vignette starts. 0 means very tight (only center is clear), 1 means almost no vignette (edges barely darkened). Adjust to taste.
+
+Color: If needed, color of vignette (vignetteColor). Usually black; we can keep it black or let user pick (perhaps not necessary – black is standard).
+
+Vignette adds a subtle cinematic framing by darkening edges, drawing attention to the center.
+
+Color Grading & Adjustments:
+
+Enable Color Adjustments: Checkbox (colorAdjustmentsEnabled)
+GitHub
+. Default On (we enabled with slight tweaks in code). This allows applying brightness/contrast/saturation tweaks.
+
+Brightness: Slider (adjustmentBrightness). Default 1.0 (no change). Range perhaps 0.0–2.0. This scales pixel brightness post-tonemap. In code we left at 1.0.
+
+Contrast: Slider (adjustmentContrast). Default 1.0. Range 0–2. We set 1.05 to give a small contrast boost
+GitHub
+.
+
+Saturation: Slider (adjustmentSaturation). Default 1.0. Range 0–2. We set 1.05 for a slight saturation increase
+GitHub
+.
+
+These allow fine-tuning the final image’s color balance. For example, the user can increase saturation to make colors pop, or reduce brightness if the tonemapped image is too bright. They work like simple post-processing filters.
+
+Lookup Table (LUT) Grading: (Optional advanced) If the user wants precise color grading, ExtendedSceneEnv supports LUTs (lutEnabled, lutTexture)
+doc.qt.io
+. We can omit for brevity or include a note that a LUT can be loaded for custom grading if needed.
+
+Sharpening:
+
+ExtendedSceneEnvironment has a sharpnessAmount property
+doc.qt.io
+. We can include a Sharpen slider (0 = no sharpen, 1 = default, higher might over-sharpen). Default maybe 0 (since rendering is crisp enough usually). If the user wants to counteract the slight blur from TAA or upscale, they can increase this. Keep it subtle to avoid ringing artifacts.
+
+Reflection Probe:
+(Although not a user-facing “effect”, we mention it as part of maximizing realism.) In the scene, we have added a ReflectionProbe covering the main object
+GitHub
+. This captures the environment and local objects into a cube map each frame, allowing real-time reflections on objects (and refractions). We set it to VeryHigh quality (max resolution)
+GitHub
+ and refresh every frame for dynamic reflections. Ensure this ReflectionProbe remains in use (and the PrincipledMaterials will automatically use it for local reflections). If performance is a concern, the user could toggle the probe or set it to refresh on demand, but for maximum quality we keep it on. We can provide a checkbox “Enable Real-Time Reflections” to toggle the ReflectionProbe’s refreshMode (EveryFrame vs Manual). Default On. This addresses the reflection realism: with the probe, shiny metals and glass reflect the scene around them accurately (not just the static sky). The probe uses parallax correction (we set parallaxCorrection: true
+GitHub
+), making reflections more accurate within the defined boxSize. We chose VeryHigh quality which likely corresponds to a 1024px cube face or similar high resolution. This significantly improves realism for metallic and refractive materials.
+
+Finally, ensure all default values are set to reasonable, realistic defaults rather than extreme placeholders. For example, default light brightness ~2 (not 20000), shadow quality high, IOR 1.5, etc., so that out-of-the-box the scene looks good. All controls should be laid out clearly under their section headings in the UI, possibly using collapsible panels or tabs for each section (Camera, Environment, etc.) for organization. Use Qt Quick Controls like Slider and CheckBox for inputs, and group related ones with Labels. The panel might use a Grid or Form layout for clarity.
+
+By implementing this extended graphics panel with all the above controls, we give the user full mastery over Qt Quick 3D’s rendering capabilities – allowing them to push the visual fidelity to the maximum supported by the engine. This addresses previous issues by enabling: proper antialiasing (no jaggies), high-res shadows (less blocky)
+doc.qt.io
+, refraction in transparent materials (via IBL and PrincipledMaterial settings), and eliminating background/shadow jitter (via improved AA or locking shadow texels)
+doc.qt.io
+. The result is a highly realistic render that can be tuned in real-time for optimal appearance.
