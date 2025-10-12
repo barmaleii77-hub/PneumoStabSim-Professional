@@ -4,8 +4,8 @@ import QtQuick3D.Helpers
 import "components"
 
 /*
- * PneumoStabSim - COMPLETE Graphics Parameters Main 3D View (v4.7)
- * 🚀 ПРАВИЛЬНЫЕ НАЗВАНИЯ СВОЙСТВ ExtendedSceneEnvironment
+ * PneumoStabSim - COMPLETE Graphics Parameters Main 3D View (v4.8)
+ * 🚀 ИСПРАВЛЕНО: Туман через объект Fog (Qt 6.10+)
  * ✅ Все свойства соответствуют официальной документации Qt Quick 3D
  */
 Item {
@@ -824,8 +824,21 @@ Item {
             probeExposure: root.iblIntensity
             probeHorizon: 0.08
             
-            // NOTE: skyBoxBlurAmount не существует в ExtendedSceneEnvironment
-            // Blur skybox осуществляется через настройку текстуры в IBL
+            // ⚠️ ПРИМЕЧАНИЕ: Туман настраивается через объект Fog
+            // НЕ существует: skyBoxBlurAmount, fogEnabled, fogColor и т.д.
+            
+            // ✅ ПРАВИЛЬНЫЙ ТУМАН через объект Fog (Qt 6.10+)
+            fog: Fog {
+                enabled: root.fogEnabled
+                color: root.fogColor
+                density: root.fogDensity
+                depthEnabled: true
+                depthNear: root.fogNear
+                depthFar: root.fogFar
+                depthCurve: 1.0
+                heightEnabled: false
+                transmitEnabled: false
+            }
 
             // ✅ ПРАВИЛЬНЫЕ СВОЙСТВА тонемаппинга
             tonemapMode: root.tonemapEnabled ?

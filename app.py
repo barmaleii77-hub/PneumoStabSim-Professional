@@ -416,7 +416,7 @@ def main():
         use_qml_3d = USE_QML_3D_SCHEMA and not args.legacy and not args.safe_mode
         
         # Определяем версию QML для отображения
-        backend_name = "Qt Quick 3D (main.qml v4.6)" if use_qml_3d else "Legacy OpenGL"
+        backend_name = "Qt Quick 3D (main.qml v4.8)" if use_qml_3d else "Legacy OpenGL"
         
         # Проверяем версию для ditheringEnabled
         from PySide6.QtCore import qVersion
@@ -429,32 +429,34 @@ def main():
         # Оптимизированный вывод информации о запуске
         startup_info = [
             "=" * 60,
-            "PNEUMOSTABSIM STARTING - ExtendedSceneEnvironment v4.7",
+            "PNEUMOSTABSIM STARTING - ExtendedSceneEnvironment v4.8",
             "=" * 60,
             f"Visualization backend: {backend_name}",
-            f"QML file: main.qml v4.7 (Правильные свойства API)",
+            f"QML file: main.qml v4.8 (Fog через объект Fog)",
             f"Qt version: {sys_info['qt_version']} ({qt_major}.{qt_minor})",
             "",
             "🎨 GRAPHICS ARCHITECTURE:",
             f"   ✅ ExtendedSceneEnvironment: Built-in from QtQuick3D.Helpers",
-            f"   ✅ Правильные названия свойств (проверено по документации)",
-            f"   ✅ Conflict resolution: Complete",
+            f"   ✅ Fog: Через объект Fog (правильный Qt 6.10+ API)",
+            f"   ✅ Все свойства проверены по официальной документации",
             f"   ✅ Import: import QtQuick3D.Helpers",
             "",
             f"⚙️ RENDERING:",
             f"   Qt RHI Backend: {os.environ.get('QSG_RHI_BACKEND', 'auto')}",
             f"   Dithering support: {'✅ YES (Qt 6.10+)' if supports_dithering else '⚠️ NO (Qt < 6.10)'}",
+            f"   Fog support: ✅ YES (через Fog объект)",
             f"   Python encoding: {sys_info['encoding']}",
             f"   Terminal encoding: {sys_info['terminal_encoding']}",
             f"   QtQuick3D setup: {'[OK]' if sys_info['qtquick3d_setup'] else '[WARNING]'}",
             "",
-            "🔧 KEY FIXES:",
-            "   ✅ Using BUILT-IN ExtendedSceneEnvironment",
-            "   ✅ Правильные названия всех свойств",
-            "   ✅ All visual effects enabled",
-            "   ✅ Correct import from QtQuick3D.Helpers",
+            "🔧 KEY FIXES v4.8:",
+            "   ✅ Fog: Через объект Fog { } вместо свойств на environment",
+            "   ✅ depthNear/depthFar вместо fogDepthBegin/fogDepthEnd",
+            "   ✅ Все свойства соответствуют Qt Quick 3D API",
+            "   ✅ Удалено несуществующее skyBoxBlurAmount",
             "",
             "🎨 VISUAL EFFECTS (ExtendedSceneEnvironment):",
+            "   ✅ Fog - туман через объект Fog",
             "   ✅ Bloom/Glow - свечение ярких областей",
             "   ✅ SSAO - объемное затенение",
             "   ✅ Tonemap - кинематографическая цветопередача",
@@ -462,7 +464,6 @@ def main():
             "   ✅ Vignette - художественное затемнение краев",
             "   ✅ Depth of Field - размытие по глубине",
             "   ✅ IBL - освещение на основе HDR окружения",
-            "   ✅ Fog - атмосферная дымка",
             ""
         ]
         
