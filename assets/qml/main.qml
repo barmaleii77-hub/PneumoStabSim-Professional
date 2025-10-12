@@ -1,7 +1,6 @@
 import QtQuick
 import QtQuick3D
 import QtQuick3D.Helpers
-import QtQuick3D.RenderSettings
 import "components"
 
 /*
@@ -770,6 +769,7 @@ Item {
     View3D {
         id: view3d
         anchors.fill: parent
+        camera: camera
 
         renderSettings: RenderSettings {
             renderScale: root.renderScale
