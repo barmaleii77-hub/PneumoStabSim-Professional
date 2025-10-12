@@ -98,6 +98,7 @@ class MainWindow(QMainWindow):
         self._qml_flush_timer = QTimer()
         self._qml_flush_timer.setSingleShot(True)
         self._qml_flush_timer.timeout.connect(self._flush_qml_updates)
+        self._qml_pending_property_supported: Optional[bool] = None
         
         # State tracking
         self.current_snapshot: Optional[StateSnapshot] = None
@@ -258,7 +259,14 @@ class MainWindow(QMainWindow):
                 raise RuntimeError("Не удалось получить корневой объект QML")
 
             self._qml_method_support.clear()
+            self._qml_pending_property_supported = None
             self._qml_base_dir = qml_path.parent.resolve()
+
+            try:
+                self._qml_root_object.setProperty("pendingPythonUpdates", None)
+            except Exception:
+                # Property may not exist on older scenes; ignore
+                pass
 
             print(f"    [OK] ✅ QML файл 'main.qml' загружен успешно")
             
@@ -660,6 +668,9 @@ class MainWindow(QMainWindow):
         pending = self._qml_update_queue
         self._qml_update_queue = {}
 
+        if self._push_batched_updates(pending):
+            return
+
         for key, payload in pending.items():
             methods = self.QML_UPDATE_METHODS.get(key, ())
             success = False
@@ -672,6 +683,25 @@ class MainWindow(QMainWindow):
                 continue
 
             self._apply_fallback(key, payload)
+
+    def _push_batched_updates(self, updates: Dict[str, Any]) -> bool:
+        if not updates:
+            return True
+        if not self._qml_root_object:
+            return False
+
+        if self._qml_pending_property_supported is False:
+            return False
+
+        try:
+            self._qml_root_object.setProperty("pendingPythonUpdates", updates)
+        except Exception as exc:
+            self.logger.debug("Failed to push batched QML updates: %s", exc)
+            self._qml_pending_property_supported = False
+            return False
+
+        self._qml_pending_property_supported = True
+        return True
 
     def _invoke_qml_function(self, method_name: str, payload: Optional[Dict[str, Any]] = None) -> bool:
         if not self._qml_root_object:
