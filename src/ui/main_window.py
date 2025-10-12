@@ -126,6 +126,7 @@ class MainWindow(QMainWindow):
         # Qt Quick 3D view reference
         self._qquick_widget: Optional[QQuickWidget] = None
         self._qml_root_object = None
+        self._qml_base_dir: Optional[Path] = None
 
         print("MainWindow: Построение UI...")
         
@@ -501,7 +502,7 @@ class MainWindow(QMainWindow):
                 else:
                     print(f"   ❌ QML updateGeometry() не удалось вызвать")
                     # Fallback к установке отдельных свойств
-                    self._set_geometry_properties_fallback(geometry_params)
+                    self._apply_geometry_fallback(geometry_params)
                     
             except Exception as e:
                 print(f"═══════════════════════════════════════════════")
@@ -514,7 +515,7 @@ class MainWindow(QMainWindow):
                 traceback.print_exc()
                 
                 # Fallback к установке отдельных свойств
-                self._set_geometry_properties_fallback(geometry_params)
+                self._apply_geometry_fallback(geometry_params)
         else:
             print(f"═══════════════════════════════════════════════")
             print(f"❌ MainWindow: QML корневой объект недоступен!")
@@ -522,327 +523,6 @@ class MainWindow(QMainWindow):
             print(f"═══════════════════════════════════════════════")
             self.status_bar.showMessage("QML недоступен для обновления геометрии")
     
-    def _set_geometry_properties_fallback(self, geometry_params: dict):
-        """Fallback: Установка отдельных QML свойств напрямую
-        
-        Args:
-            geometry_params: Словарь с параметрами геометрии
-        """
-        print(f"🔧 Fallback: Установка отдельных QML свойств...")
-        
-        prop_count = 0
-        
-        # Конвертируем и устанавливаем основные свойства
-        if 'frameLength' in geometry_params:
-            self._qml_root_object.setProperty("userFrameLength", geometry_params['frameLength'])
-            print(f"   ✅ Set userFrameLength = {geometry_params['frameLength']}")
-            prop_count += 1
-        
-        if 'frameHeight' in geometry_params:
-            self._qml_root_object.setProperty("userFrameHeight", geometry_params['frameHeight'])
-            print(f"   ✅ Set userFrameHeight = {geometry_params['frameHeight']}")
-            prop_count += 1
-        
-        if 'frameBeamSize' in geometry_params:
-            self._qml_root_object.setProperty("userBeamSize", geometry_params['frameBeamSize'])
-            print(f"   ✅ Set userBeamSize = {geometry_params['frameBeamSize']}")
-            prop_count += 1
-        
-        if 'leverLength' in geometry_params:
-            self._qml_root_object.setProperty("userLeverLength", geometry_params['leverLength'])
-            print(f"   ✅ Set userLeverLength = {geometry_params['leverLength']}")
-            prop_count += 1
-        
-        if 'cylinderBodyLength' in geometry_params:
-            self._qml_root_object.setProperty("userCylinderLength", geometry_params['cylinderBodyLength'])
-            print(f"   ✅ Set userCylinderLength = {geometry_params['cylinderBodyLength']}")
-            prop_count += 1
-        
-        if 'trackWidth' in geometry_params:
-            self._qml_root_object.setProperty("userTrackWidth", geometry_params['trackWidth'])
-            print(f"   ✅ Set userTrackWidth = {geometry_params['trackWidth']}")
-            prop_count += 1
-        
-        if 'frameToPivot' in geometry_params:
-            self._qml_root_object.setProperty("userFrameToPivot", geometry_params['frameToPivot'])
-            print(f"   ✅ Set userFrameToPivot = {geometry_params['frameToPivot']}")
-            prop_count += 1
-        
-        if 'rodPosition' in geometry_params:
-            self._qml_root_object.setProperty("userRodPosition", geometry_params['rodPosition'])
-            print(f"   ✅ Set userRodPosition = {geometry_params['rodPosition']}")
-            prop_count += 1
-        
-        if 'boreHead' in geometry_params:
-            self._qml_root_object.setProperty("userBoreHead", geometry_params['boreHead'])
-            print(f"   ✅ Set userBoreHead = {geometry_params['boreHead']}")
-            prop_count += 1
-        
-        if 'boreRod' in geometry_params:
-            self._qml_root_object.setProperty("userBoreRod", geometry_params['boreRod'])
-            print(f"   ✅ Set userBoreRod = {geometry_params['boreRod']}")
-            prop_count += 1
-        
-        if 'rodDiameter' in geometry_params:
-            self._qml_root_object.setProperty("userRodDiameter", geometry_params['rodDiameter'])
-            print(f"   ✅ Set userRodDiameter = {geometry_params['rodDiameter']}")
-            prop_count += 1
-        
-        if 'pistonThickness' in geometry_params:
-            self._qml_root_object.setProperty("userPistonThickness", geometry_params['pistonThickness'])
-            print(f"   ✅ Set userPistonThickness = {geometry_params['pistonThickness']}")
-            prop_count += 1
-        
-        if 'pistonRodLength' in geometry_params:
-            self._qml_root_object.setProperty("userPistonRodLength", geometry_params['pistonRodLength'])
-            print(f"   ✅ Set userPistonRodLength = {geometry_params['pistonRodLength']}")
-            prop_count += 1
-        
-        # Принудительно обновляем виджет
-        if self._qquick_widget:
-            self._qquick_widget.update()
-        
-        self.status_bar.showMessage(f"Геометрия обновлена через свойства ({prop_count} параметров)")
-        print(f"✅ Установлено {prop_count} QML свойств через fallback")
-        print(f"═══════════════════════════════════════════════")
-
-    @Slot(dict)
-    def _on_lighting_changed(self, lighting_params: dict):
-        """Обработчик изменения параметров освещения"""
-        print(f"💡 MainWindow: Lighting changed: {lighting_params}")
-        
-        if self._qml_root_object:
-            try:
-                from PySide6.QtCore import QMetaObject, Q_ARG, Qt
-                
-                success = QMetaObject.invokeMethod(
-                    self._qml_root_object,
-                    "updateLighting",
-                    Qt.ConnectionType.DirectConnection,
-                    Q_ARG("QVariant", lighting_params)
-                )
-                
-                if success:
-                    self.status_bar.showMessage("Освещение обновлено")
-                else:
-                    print("❌ Failed to call updateLighting()")
-                    
-            except Exception as e:
-                self.logger.error(f"Lighting update failed: {e}")
-    
-    @Slot(dict)
-    def _on_material_changed(self, material_params: dict):
-        """Обработчик изменения параметров материалов"""
-        print(f"🎨 MainWindow: Material changed: {material_params}")
-        
-        if self._qml_root_object:
-            try:
-                from PySide6.QtCore import QMetaObject, Q_ARG, Qt
-                
-                success = QMetaObject.invokeMethod(
-                    self._qml_root_object,
-                    "updateMaterials",
-                    Qt.ConnectionType.DirectConnection,
-                    Q_ARG("QVariant", material_params)
-                )
-                
-                if success:
-                    self.status_bar.showMessage("Материалы обновлены")
-                else:
-                    print("❌ Failed to call updateMaterials()")
-                    
-            except Exception as e:
-                self.logger.error(f"Material update failed: {e}")
-    
-    @Slot(dict) 
-    def _on_environment_changed(self, environment_params: dict):
-        """Обработчик изменения параметров окружения"""
-        print(f"🌍 MainWindow: Environment changed: {environment_params}")
-        
-        if self._qml_root_object:
-            try:
-                from PySide6.QtCore import QMetaObject, Q_ARG, Qt
-                
-                success = QMetaObject.invokeMethod(
-                    self._qml_root_object,
-                    "updateEnvironment",
-                    Qt.ConnectionType.DirectConnection,
-                    Q_ARG("QVariant", environment_params)
-                )
-                
-                if success:
-                    self.status_bar.showMessage("Окружение обновлено")
-                else:
-                    print("❌ Failed to call updateEnvironment()")
-                    
-            except Exception as e:
-                self.logger.error(f"Environment update failed: {e}")
-    
-    @Slot(dict)
-    def _on_quality_changed(self, quality_params: dict):
-        """Обработчик изменения параметров качества"""
-        print(f"⚙️ MainWindow: Quality changed: {quality_params}")
-        
-        if self._qml_root_object:
-            try:
-                from PySide6.QtCore import QMetaObject, Q_ARG, Qt
-                
-                success = QMetaObject.invokeMethod(
-                    self._qml_root_object,
-                    "updateQuality",
-                    Qt.ConnectionType.DirectConnection,
-                    Q_ARG("QVariant", quality_params)
-                )
-                
-                if success:
-                    self.status_bar.showMessage("Качество обновлено")
-                else:
-                    print("❌ Failed to call updateQuality()")
-                    
-            except Exception as e:
-                self.logger.error(f"Quality update failed: {e}")
-    
-    @Slot(dict)
-    def _on_camera_changed(self, camera_params: dict):
-        """Обработчик изменения параметров камеры"""
-        print(f"📷 MainWindow: Camera changed: {camera_params}")
-        
-        if self._qml_root_object:
-            try:
-                from PySide6.QtCore import QMetaObject, Q_ARG, Qt
-                
-                success = QMetaObject.invokeMethod(
-                    self._qml_root_object,
-                    "updateCamera",
-                    Qt.ConnectionType.DirectConnection,
-                    Q_ARG("QVariant", camera_params)
-                )
-                
-                if success:
-                    self.status_bar.showMessage("Камера обновлена")
-                else:
-                    print("❌ Failed to call updateCamera()")
-                    
-            except Exception as e:
-                self.logger.error(f"Camera update failed: {e}")
-    
-    @Slot(dict)
-    def _on_effects_changed(self, effects_params: dict):
-        """Обработчик изменения параметров эффектов"""
-        print(f"✨ MainWindow: Effects changed: {effects_params}")
-        
-        if self._qml_root_object:
-            try:
-                from PySide6.QtCore import QMetaObject, Q_ARG, Qt
-                
-                success = QMetaObject.invokeMethod(
-                    self._qml_root_object,
-                    "updateEffects",
-                    Qt.ConnectionType.DirectConnection,
-                    Q_ARG("QVariant", effects_params)
-                )
-                
-                if success:
-                    self.status_bar.showMessage("Эффекты обновлены")
-                else:
-                    print("❌ Failed to call updateEffects()")
-                    
-            except Exception as e:
-                self.logger.error(f"Effects update failed: {e}")
-    
-    @Slot(str)
-    def _on_preset_applied(self, preset_name: str):
-        """Обработчик применения пресета графики"""
-        print(f"🎯 MainWindow: Graphics preset applied: {preset_name}")
-        self.status_bar.showMessage(f"Пресет '{preset_name}' применен")
-    
-    @Slot(dict)
-    def _on_animation_changed(self, animation_params: dict):
-        """Обработчик изменения параметров анимации от ModesPanel
-        
-        Args:
-            animation_params: Словарь с параметрами анимации
-        """
-        print(f"🎬 MainWindow: Animation parameters changed: {animation_params}")
-        self.logger.info(f"Параметры анимации изменены: {animation_params}")
-        
-        # Обновляем QML свойства анимации, если доступны
-        if self._qml_root_object:
-            try:
-                print(f"🔧 Установка свойств анимации в QML: {animation_params}")
-                
-                # Устанавливаем свойства анимации напрямую (QML будет реагировать через property bindings)
-                if 'amplitude' in animation_params:
-                    # Конвертируем амплитуду из метров в градусы для визуального эффекта
-                    amplitude_deg = animation_params['amplitude'] * 1000 / 10  # Коэффициент масштабирования
-                    self._qml_root_object.setProperty("userAmplitude", amplitude_deg)
-                    print(f"   ✅ Set userAmplitude = {amplitude_deg} deg")
-                
-                if 'frequency' in animation_params:
-                    self._qml_root_object.setProperty("userFrequency", animation_params['frequency'])
-                    print(f"   ✅ Set userFrequency = {animation_params['frequency']} Hz")
-                
-                if 'phase' in animation_params:
-                    self._qml_root_object.setProperty("userPhaseGlobal", animation_params['phase'])
-                    print(f"   ✅ Set userPhaseGlobal = {animation_params['phase']} deg")
-                
-                if 'lf_phase' in animation_params:
-                    self._qml_root_object.setProperty("userPhaseFL", animation_params['lf_phase'])
-                    print(f"   ✅ Set userPhaseFL = {animation_params['lf_phase']} deg")
-                
-                if 'rf_phase' in animation_params:
-                    self._qml_root_object.setProperty("userPhaseFR", animation_params['rf_phase'])
-                    print(f"   ✅ Set userPhaseFR = {animation_params['rf_phase']} deg")
-                
-                if 'lr_phase' in animation_params:
-                    self._qml_root_object.setProperty("userPhaseRL", animation_params['lr_phase'])
-                    print(f"   ✅ Set userPhaseRL = {animation_params['lr_phase']} deg")
-                
-                if 'rr_phase' in animation_params:
-                    self._qml_root_object.setProperty("userPhaseRR", animation_params['rr_phase'])
-                    print(f"   ✅ Set userPhaseRR = {animation_params['rr_phase']} deg")
-                
-                self.status_bar.showMessage("Параметры анимации обновлены")
-                print(f"✅ QML свойства анимации установлены успешно")
-                    
-            except Exception as e:
-                self.logger.error(f"Ошибка обновления анимации в QML: {e}")
-                self.status_bar.showMessage(f"Ошибка обновления анимации: {e}")
-                import traceback
-                traceback.print_exc()
-    
-    @Slot(str)
-    def _on_sim_control(self, command: str):
-        """Обработчик команд управления симуляцией"""
-        bus = self.simulation_manager.state_bus
-
-        if command == "start":
-            bus.start_simulation.emit()
-            self.is_simulation_running = True
-            if self._qml_root_object:
-                self._qml_root_object.setProperty("isRunning", True)
-                print("✅ QML анимация ЗАПУЩЕНА")
-        elif command == "stop":
-            bus.stop_simulation.emit()
-            self.is_simulation_running = False
-            if self._qml_root_object:
-                self._qml_root_object.setProperty("isRunning", False)
-                print("✅ QML анимация ОСТАНОВЛЕНА")
-        elif command == "reset":
-            bus.reset_simulation.emit()
-            if self._qml_root_object:
-                self._qml_root_object.setProperty("animationTime", 0.0)
-                print("✅ QML анимация СБРОШЕНА")
-        elif command == "pause":
-            bus.pause_simulation.emit()
-            if self._qml_root_object:
-                self._qml_root_object.setProperty("isRunning", False)
-                print("✅ QML анимация ПРИОСТАНОВЛЕНА")
-        
-        self.status_bar.showMessage(f"Симуляция: {command}")
-        if self.modes_panel:
-            self.modes_panel.set_simulation_running(self.is_simulation_running)
-
     # ------------------------------------------------------------------
     # Меню, тулбар и строка состояния
     # ------------------------------------------------------------------
@@ -1037,8 +717,10 @@ class MainWindow(QMainWindow):
                     success = True
                     break
 
-            if not success and key == "geometry":
-                self._set_geometry_properties_fallback(payload)
+            if success:
+                continue
+
+            self._apply_fallback(key, payload)
 
     def _invoke_qml_function(self, method_name: str, payload: Optional[Dict[str, Any]] = None) -> bool:
         if not self._qml_root_object:
@@ -1070,48 +752,250 @@ class MainWindow(QMainWindow):
             else:
                 target[key] = value
 
-    @staticmethod
-    def _set_geometry_properties_fallback(geometry_params: Dict[str, Any]):
-        if not geometry_params:
+    def _apply_fallback(self, key: str, payload: Dict[str, Any]) -> None:
+        if not payload:
             return
 
-        mapping = {
-            "frameLength": "userFrameLength",
-            "frameHeight": "userFrameHeight",
-            "frameBeamSize": "userBeamSize",
-            "leverLength": "userLeverLength",
-            "cylinderBodyLength": "userCylinderLength",
-            "trackWidth": "userTrackWidth",
-            "frameToPivot": "userFrameToPivot",
-            "rodPosition": "userRodPosition",
-            "boreHead": "userBoreHead",
-            "boreRod": "userBoreRod",
-            "rodDiameter": "userRodDiameter",
-            "pistonThickness": "userPistonThickness",
-            "pistonRodLength": "userPistonRodLength",
+        handlers = {
+            "geometry": self._apply_geometry_fallback,
+            "lighting": self._apply_lighting_fallback,
+            "environment": self._apply_environment_fallback,
+            "quality": self._apply_quality_fallback,
+            "camera": self._apply_camera_fallback,
+            "effects": self._apply_effects_fallback,
+            "materials": self._apply_materials_fallback,
         }
 
-        for key, prop in mapping.items():
-            if key in geometry_params:
+        handler = handlers.get(key)
+        if handler:
+            handler(payload)
+        else:
+            self.logger.debug("No fallback handler for %s", key)
+
+    def _apply_geometry_fallback(self, geometry: Dict[str, Any]) -> None:
+        mapping = {
+            ("frameLength",): ("userFrameLength", float),
+            ("frameHeight",): ("userFrameHeight", float),
+            ("frameBeamSize",): ("userBeamSize", float),
+            ("leverLength",): ("userLeverLength", float),
+            ("cylinderBodyLength",): ("userCylinderLength", float),
+            ("trackWidth",): ("userTrackWidth", float),
+            ("frameToPivot",): ("userFrameToPivot", float),
+            ("rodPosition",): ("userRodPosition", float),
+            ("boreHead",): ("userBoreHead", float),
+            ("boreRod",): ("userBoreRod", float),
+            ("rodDiameter",): ("userRodDiameter", float),
+            ("pistonThickness",): ("userPistonThickness", float),
+            ("pistonRodLength",): ("userPistonRodLength", float),
+        }
+        self._apply_nested_mapping(geometry, mapping)
+
+    def _apply_lighting_fallback(self, lighting: Dict[str, Any]) -> None:
+        mapping = {
+            ("key_light", "brightness"): ("keyLightBrightness", float),
+            ("key_light", "color"): "keyLightColor",
+            ("key_light", "angle_x"): ("keyLightAngleX", float),
+            ("key_light", "angle_y"): ("keyLightAngleY", float),
+            ("fill_light", "brightness"): ("fillLightBrightness", float),
+            ("fill_light", "color"): "fillLightColor",
+            ("rim_light", "brightness"): ("rimLightBrightness", float),
+            ("rim_light", "color"): "rimLightColor",
+            ("point_light", "brightness"): ("pointLightBrightness", float),
+            ("point_light", "color"): "pointLightColor",
+            ("point_light", "position_y"): ("pointLightY", float),
+            ("point_light", "range"): ("pointLightRange", float),
+        }
+        self._apply_nested_mapping(lighting, mapping)
+
+    def _apply_environment_fallback(self, environment: Dict[str, Any]) -> None:
+        mapping = {
+            ("background", "mode"): "backgroundMode",
+            ("background", "color"): "backgroundColor",
+            ("ibl", "enabled"): "iblEnabled",
+            ("ibl", "intensity"): ("iblIntensity", float),
+            ("ibl", "blur"): ("skyboxBlur", float),
+            ("fog", "enabled"): "fogEnabled",
+            ("fog", "color"): "fogColor",
+            ("fog", "density"): ("fogDensity", float),
+            ("fog", "near"): ("fogNear", float),
+            ("fog", "far"): ("fogFar", float),
+            ("ambient_occlusion", "enabled"): "aoEnabled",
+            ("ambient_occlusion", "strength"): ("aoStrength", float),
+            ("ambient_occlusion", "radius"): ("aoRadius", float),
+        }
+        self._apply_nested_mapping(environment, mapping)
+
+        ibl = environment.get("ibl")
+        if isinstance(ibl, dict):
+            for key, prop in (("source", "iblPrimarySource"), ("fallback", "iblFallbackSource")):
+                value = ibl.get(key)
+                if isinstance(value, str) and value:
+                    resolved = self._resolve_qurl(value)
+                    if resolved is not None:
+                        self._set_qml_property(prop, resolved)
+
+    def _apply_quality_fallback(self, quality: Dict[str, Any]) -> None:
+        mapping = {
+            ("shadows", "enabled"): "shadowsEnabled",
+            ("shadows", "resolution"): "shadowResolution",
+            ("shadows", "filter"): ("shadowFilterSamples", int),
+            ("shadows", "bias"): ("shadowBias", float),
+            ("shadows", "darkness"): ("shadowFactor", float),
+            ("antialiasing", "primary"): "aaPrimaryMode",
+            ("antialiasing", "quality"): "aaQualityLevel",
+            ("antialiasing", "post"): "aaPostMode",
+            ("taa_enabled",): "taaEnabled",
+            ("taa_strength",): ("taaStrength", float),
+            ("taa_motion_adaptive",): "taaMotionAdaptive",
+            ("fxaa_enabled",): "fxaaEnabled",
+            ("specular_aa",): "specularAAEnabled",
+            ("dithering",): "ditheringEnabled",
+            ("render_scale",): ("renderScale", float),
+            ("render_policy",): "renderPolicy",
+            ("frame_rate_limit",): ("frameRateLimit", float),
+            ("oit",): "oitMode",
+            ("preset",): "qualityPreset",
+        }
+        self._apply_nested_mapping(quality, mapping)
+
+    def _apply_camera_fallback(self, camera: Dict[str, Any]) -> None:
+        mapping = {
+            ("fov",): ("cameraFov", float),
+            ("near",): ("cameraNear", float),
+            ("far",): ("cameraFar", float),
+            ("speed",): ("cameraSpeed", float),
+            ("auto_rotate",): "autoRotate",
+            ("auto_rotate_speed",): ("autoRotateSpeed", float),
+        }
+        self._apply_nested_mapping(camera, mapping)
+
+    def _apply_effects_fallback(self, effects: Dict[str, Any]) -> None:
+        mapping = {
+            ("bloom_enabled",): "bloomEnabled",
+            ("bloom_intensity",): ("bloomIntensity", float),
+            ("bloom_threshold",): ("bloomThreshold", float),
+            ("bloom_spread",): ("bloomSpread", float),
+            ("depth_of_field",): "depthOfFieldEnabled",
+            ("dof_focus_distance",): ("dofFocusDistance", float),
+            ("dof_blur",): ("dofBlurAmount", float),
+            ("motion_blur",): "motionBlurEnabled",
+            ("motion_blur_amount",): ("motionBlurAmount", float),
+            ("lens_flare",): "lensFlareEnabled",
+            ("vignette",): "vignetteEnabled",
+            ("vignette_strength",): ("vignetteStrength", float),
+            ("tonemap_enabled",): "tonemapEnabled",
+            ("tonemap_mode",): "tonemapModeName",
+        }
+        self._apply_nested_mapping(effects, mapping)
+
+    def _apply_materials_fallback(self, materials: Dict[str, Any]) -> None:
+        prefix_map = {
+            "frame": "frame",
+            "lever": "lever",
+            "tail": "tailRod",
+            "cylinder": "cylinder",
+            "piston_body": "pistonBody",
+            "piston_rod": "pistonRod",
+            "joint_tail": "jointTail",
+            "joint_arm": "jointArm",
+        }
+
+        suffix_map = {
+            "base_color": "BaseColor",
+            "metalness": "Metalness",
+            "roughness": "Roughness",
+            "specular_amount": "SpecularAmount",
+            "specular_tint": "SpecularTint",
+            "clearcoat": "Clearcoat",
+            "clearcoat_roughness": "ClearcoatRoughness",
+            "transmission": "Transmission",
+            "opacity": "Opacity",
+            "ior": "Ior",
+            "attenuation_distance": "AttenuationDistance",
+            "attenuation_color": "AttenuationColor",
+            "emissive_color": "EmissiveColor",
+            "emissive_intensity": "EmissiveIntensity",
+        }
+
+        for material_key, values in materials.items():
+            prefix = prefix_map.get(material_key)
+            if not prefix or not isinstance(values, dict):
+                continue
+
+            for prop_key, prop_value in values.items():
+                if prop_value is None:
+                    continue
+
+                if material_key == "piston_body" and prop_key == "warning_color":
+                    self._set_qml_property("pistonBodyWarningColor", prop_value)
+                    continue
+                if material_key == "piston_rod" and prop_key == "warning_color":
+                    self._set_qml_property("pistonRodWarningColor", prop_value)
+                    continue
+                if material_key == "joint_tail":
+                    if prop_key == "ok_color":
+                        self._set_qml_property("jointRodOkColor", prop_value)
+                        continue
+                    if prop_key == "error_color":
+                        self._set_qml_property("jointRodErrorColor", prop_value)
+                        continue
+
+                suffix = suffix_map.get(prop_key)
+                if not suffix:
+                    continue
+
+                self._set_qml_property(f"{prefix}{suffix}", prop_value)
+
+    def _apply_nested_mapping(self, payload: Dict[str, Any], mapping: Dict[tuple[str, ...], Any]) -> None:
+        for path, target in mapping.items():
+            cast = None
+            if isinstance(target, tuple):
+                target, cast = target
+
+            value = self._extract_nested_value(payload, path)
+            if value is None:
+                continue
+
+            if cast is not None:
                 try:
-                    value = float(geometry_params[key])
-                    MainWindow._set_qml_property(prop, value)
-                except Exception as e:
-                    print(f"  ❌ Failed to set {prop}: {e}")
+                    value = cast(value)
+                except (TypeError, ValueError):
+                    continue
+
+            self._set_qml_property(target, value)
 
     @staticmethod
-    def _set_qml_property(name: str, value: Any):
-        """Установить QML свойство через rootObject (если доступно)"""
+    def _extract_nested_value(data: Dict[str, Any], path: tuple[str, ...]) -> Any:
+        current: Any = data
+        for key in path:
+            if not isinstance(current, dict) or key not in current:
+                return None
+            current = current[key]
+        return current
+
+    def _resolve_qurl(self, value: str) -> Optional[QUrl]:
+        if not value:
+            return None
+
+        url = QUrl(value)
+        if url.isRelative() or not url.isValid() or not url.scheme():
+            base = getattr(self, "_qml_base_dir", None)
+            if isinstance(base, Path):
+                candidate = (base / value).resolve()
+                if candidate.exists():
+                    return QUrl.fromLocalFile(str(candidate))
+        return url
+
+    def _set_qml_property(self, name: str, value: Any) -> None:
         if not name or value is None:
             return
-
-        target = getattr(MainWindow, "_qml_root_object", None)
-        if target is not None:
-            try:
-                target.setProperty(name, value)
-                print(f"   ✅ Set {name} = {value}")
-            except Exception as e:
-                print(f"   ❌ Ошибка установки {name}: {e}")
+        if self._qml_root_object is None:
+            self.logger.debug("Cannot set %s: QML root not ready", name)
+            return
+        try:
+            self._qml_root_object.setProperty(name, value)
+        except Exception as exc:
+            self.logger.debug("Failed to set %s: %s", name, exc)
 
     # ------------------------------------------------------------------
     # Обработчики сигналов панелей
