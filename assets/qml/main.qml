@@ -1,7 +1,6 @@
 import QtQuick
 import QtQuick3D
 import QtQuick3D.Helpers
-import QtQuick3D.Effects
 import "components"
 
 /*
@@ -869,6 +868,9 @@ Item {
             depthOfFieldFocusDistance: root.dofFocusDistance
             depthOfFieldBlurAmount: root.dofBlurAmount
 
+            motionBlurEnabled: root.motionBlurEnabled
+            motionBlurAmount: root.motionBlurAmount
+
             vignetteEnabled: root.vignetteEnabled
             vignetteRadius: 0.4
             vignetteStrength: root.vignetteStrength
@@ -880,15 +882,6 @@ Item {
             adjustmentContrast: 1.05
             adjustmentSaturation: 1.05
         }
-
-        effects: [
-            MotionBlur {
-                id: motionBlurEffect
-                enabled: root.motionBlurEnabled && root.motionBlurAmount > 0.0
-                fadeAmount: root.clamp01(root.motionBlurAmount)
-                blurQuality: 0.1 + 0.9 * root.clamp01(root.motionBlurAmount)
-            }
-        ]
 
         // ===============================================================
         // MATERIAL LIBRARY (shared instances to avoid duplication)
