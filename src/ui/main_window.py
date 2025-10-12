@@ -96,6 +96,7 @@ class MainWindow(QMainWindow):
 
         # QML update system
         self._qml_update_queue: Dict[str, Dict[str, Any]] = {}
+        self._qml_method_support: Dict[tuple[str, bool], bool] = {}
         self._qml_flush_timer = QTimer()
         self._qml_flush_timer.setSingleShot(True)
         self._qml_flush_timer.timeout.connect(self._flush_qml_updates)
@@ -257,7 +258,10 @@ class MainWindow(QMainWindow):
             self._qml_root_object = self._qquick_widget.rootObject()
             if not self._qml_root_object:
                 raise RuntimeError("Не удалось получить корневой объект QML")
-            
+
+            self._qml_method_support.clear()
+            self._qml_base_dir = qml_path.parent.resolve()
+
             print(f"    [OK] ✅ QML файл 'main.qml' загружен успешно")
             
         except Exception as e:
@@ -726,6 +730,10 @@ class MainWindow(QMainWindow):
         if not self._qml_root_object:
             return False
 
+        has_payload = payload is not None
+        if not self._qml_supports_method(method_name, has_payload):
+            return False
+
         connection = Qt.ConnectionType.DirectConnection
         try:
             if payload is None:
@@ -738,7 +746,40 @@ class MainWindow(QMainWindow):
             )
         except Exception as exc:
             self.logger.debug(f"Failed to call {method_name} in QML: {exc}")
+            cache_key = (method_name, has_payload)
+            self._qml_method_support[cache_key] = False
             return False
+
+    def _qml_supports_method(self, method_name: str, has_payload: bool) -> bool:
+        if not self._qml_root_object:
+            return False
+
+        cache_key = (method_name, has_payload)
+        cached = self._qml_method_support.get(cache_key)
+        if cached is not None:
+            return cached
+
+        candidate = getattr(self._qml_root_object, method_name, None)
+        if callable(candidate):
+            self._qml_method_support[cache_key] = True
+            return True
+
+        meta = self._qml_root_object.metaObject()
+        supported = False
+        if meta is not None:
+            signatures = [f"{method_name}()"] if not has_payload else [
+                f"{method_name}(QVariant)",
+                f"{method_name}(QVariantMap)",
+                f"{method_name}(QVariantList)",
+                f"{method_name}(QJSValue)",
+            ]
+            for signature in signatures:
+                if meta.indexOfMethod(signature.encode("utf-8")) != -1:
+                    supported = True
+                    break
+
+        self._qml_method_support[cache_key] = supported
+        return supported
 
     @staticmethod
     def _deep_merge_dicts(target: Dict[str, Any], source: Dict[str, Any]):
