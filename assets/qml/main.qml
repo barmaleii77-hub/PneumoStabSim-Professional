@@ -4,9 +4,10 @@ import QtQuick3D.Helpers
 import "components"
 
 /*
- * PneumoStabSim - COMPLETE Graphics Parameters Main 3D View (v4.8)
- * 🚀 ИСПРАВЛЕНО: Туман через объект Fog (Qt 6.10+)
- * ✅ Все свойства соответствуют официальной документации Qt Quick 3D
+ * PneumoStabSim - COMPLETE Graphics Parameters Main 3D View (v4.9.1)
+ * 🚀 ENHANCED: Separate IBL lighting/background controls + procedural geometry quality
+ * ✅ All properties match official Qt Quick 3D documentation
+ * 🐛 FIXED: Removed skyBoxBlurAmount (not exposed by Qt Quick 3D API)
  */
 Item {
     id: root
@@ -158,9 +159,23 @@ Item {
     // Environment
     property string backgroundMode: "skybox"
     property color backgroundColor: "#1f242c"
-    property real skyboxBlur: 0.08
     property bool iblEnabled: true
+    property bool iblLightingEnabled: true
+    property bool iblBackgroundEnabled: true
+    property real iblRotationDeg: 0
     property real iblIntensity: 1.3
+
+    onIblEnabledChanged: {
+        iblLightingEnabled = iblEnabled
+        iblBackgroundEnabled = iblEnabled
+    }
+
+    onIblRotationDegChanged: {
+        var normalized = normAngleDeg(iblRotationDeg)
+        if (normalized !== iblRotationDeg)
+            iblRotationDeg = normalized
+    }
+
     property bool fogEnabled: true
     property color fogColor: "#b0c4d8"
     property real fogDensity: 0.12
@@ -169,6 +184,10 @@ Item {
     property bool aoEnabled: true
     property real aoStrength: 1.0
     property real aoRadius: 8.0
+
+    // Procedural geometry quality
+    property int cylinderSegments: 64
+    property int cylinderRings: 8
 
     // Quality and rendering
     property string aaPrimaryMode: "ssaa"
@@ -428,9 +447,9 @@ Item {
     function clamp(v, a, b) { return Math.max(a, Math.min(b, v)); }
     
     function normAngleDeg(a) {
-        var x = a % 360;
-        if (x > 180) x -= 360;
-        if (x < -180) x += 360;
+        var x = a % 360
+        if (x < 0)
+            x += 360
         return x;
     }
 
@@ -570,7 +589,17 @@ Item {
             console.log("  ✨ КРИТИЧЕСКИЙ: Updating rodPosition:", userRodPosition, "→", params.rodPosition)
             userRodPosition = params.rodPosition
         }
-        
+        if (params.cylinderSegments !== undefined) {
+            var newSegments = Math.floor(params.cylinderSegments)
+            if (!isNaN(newSegments))
+                cylinderSegments = Math.max(3, newSegments)
+        }
+        if (params.cylinderRings !== undefined) {
+            var newRings = Math.floor(params.cylinderRings)
+            if (!isNaN(newRings))
+                cylinderRings = Math.max(1, newRings)
+        }
+
         // ✅ ИСПРАВЛЕНО: Сброс вида только при значительных изменениях геометрии
         var shouldResetView = (params.frameLength !== undefined || 
                               params.frameHeight !== undefined || 
@@ -673,12 +702,16 @@ Item {
         if (params.background) {
             if (params.background.mode !== undefined) backgroundMode = params.background.mode
             if (params.background.color !== undefined) backgroundColor = params.background.color
+            if (params.background.skybox_enabled !== undefined) iblBackgroundEnabled = params.background.skybox_enabled
         }
 
         if (params.ibl) {
             if (params.ibl.enabled !== undefined) iblEnabled = params.ibl.enabled
+            if (params.ibl.lighting_enabled !== undefined) iblLightingEnabled = params.ibl.lighting_enabled
+            if (params.ibl.background_enabled !== undefined) iblBackgroundEnabled = params.ibl.background_enabled
+            if (params.ibl.rotation !== undefined) iblRotationDeg = normAngleDeg(params.ibl.rotation)
             if (params.ibl.intensity !== undefined) iblIntensity = params.ibl.intensity
-            if (params.ibl.blur !== undefined) skyboxBlur = params.ibl.blur
+            if (params.ibl.exposure !== undefined) iblIntensity = params.ibl.exposure
             if (params.ibl.source !== undefined) {
                 var resolvedSource = resolveUrl(params.ibl.source)
                 if (resolvedSource && resolvedSource !== "") {
@@ -818,15 +851,16 @@ Item {
 
         environment: ExtendedSceneEnvironment {
             id: mainEnvironment
-            backgroundMode: root.backgroundMode === "skybox" && root.iblReady ? SceneEnvironment.SkyBox : SceneEnvironment.Color
+            readonly property bool skyboxActive: root.backgroundMode === "skybox" && root.iblBackgroundEnabled && root.iblReady
+
+            backgroundMode: skyboxActive ? SceneEnvironment.SkyBox : SceneEnvironment.Color
             clearColor: root.backgroundColor
-            lightProbe: root.iblEnabled && root.iblReady ? iblLoader.probe : null
+            lightProbe: root.iblLightingEnabled && root.iblReady ? iblLoader.probe : null
+            skyBoxCubeMap: skyboxActive ? iblLoader.probe : null
+            probeOrientation: Qt.vector3d(0, root.iblRotationDeg, 0)
             probeExposure: root.iblIntensity
             probeHorizon: 0.08
-            
-            // ⚠️ ПРИМЕЧАНИЕ: Туман настраивается через объект Fog
-            // НЕ существует: skyBoxBlurAmount, fogEnabled, fogColor и т.д.
-            
+
             // ✅ ПРАВИЛЬНЫЙ ТУМАН через объект Fog (Qt 6.10+)
             fog: Fog {
                 enabled: root.fogEnabled
@@ -919,6 +953,10 @@ Item {
             
             // ✅ ПРАВИЛЬНОЕ СВОЙСТВО OIT (Order Independent Transparency)
             oitMethod: root.oitMode === "weighted" ? SceneEnvironment.OITWeightedBlended : SceneEnvironment.OITNone
+        }
+
+        Node {
+            id: worldRoot
         }
 
         // ===============================================================
@@ -1031,6 +1069,7 @@ Item {
         // Camera rig (preserved)
         Node {
             id: cameraRig
+            parent: worldRoot
             position: root.pivot
             eulerRotation: Qt.vector3d(root.pitchDeg, root.yawDeg, 0)
 
@@ -1051,6 +1090,7 @@ Item {
         // Lighting (with shadow softness)
         DirectionalLight {
             id: keyLight
+            parent: worldRoot
             eulerRotation.x: root.keyLightAngleX
             eulerRotation.y: root.keyLightAngleY
             brightness: root.keyLightBrightness
@@ -1074,6 +1114,7 @@ Item {
 
         DirectionalLight {
             id: fillLight
+            parent: worldRoot
             eulerRotation.x: -60
             eulerRotation.y: 135
             brightness: root.fillLightBrightness
@@ -1083,6 +1124,7 @@ Item {
 
         DirectionalLight {
             id: rimLight
+            parent: worldRoot
             eulerRotation.x: 15
             eulerRotation.y: 180
             brightness: root.rimLightBrightness
@@ -1092,6 +1134,7 @@ Item {
 
         PointLight {
             id: accentLight
+            parent: worldRoot
             position: Qt.vector3d(0, root.pointLightY, 1500)
             brightness: root.pointLightBrightness
             color: root.pointLightColor
@@ -1106,18 +1149,21 @@ Item {
 
         // U-FRAME (3 beams) with controlled materials
         Model {
+            parent: worldRoot
             source: "#Cube"
             position: Qt.vector3d(0, userBeamSize/2, userFrameLength/2)
             scale: Qt.vector3d(userBeamSize/100, userBeamSize/100, userFrameLength/100)
             materials: [frameMaterial]
         }
         Model {
+            parent: worldRoot
             source: "#Cube"
             position: Qt.vector3d(0, userBeamSize + userFrameHeight/2, userBeamSize/2)
             scale: Qt.vector3d(userBeamSize/100, userFrameHeight/100, userBeamSize/100)
             materials: [frameMaterial]
         }
         Model {
+            parent: worldRoot
             source: "#Cube"
             position: Qt.vector3d(0, userBeamSize + userFrameHeight/2, userFrameLength - userBeamSize/2)
             scale: Qt.vector3d(userBeamSize/100, userFrameHeight/100, userBeamSize/100)
@@ -1227,7 +1273,12 @@ Item {
             
             // TAIL ROD (хвостовой шток) - КОНСТАНТНАЯ длина
             Model {
-                source: "#Cylinder"
+                geometry: CylinderGeometry {
+                    segments: root.cylinderSegments
+                    rings: root.cylinderRings
+                    radius: 50
+                    length: 100
+                }
                 position: Qt.vector3d((j_tail.x + tailRodEnd.x)/2, (j_tail.y + tailRodEnd.y)/2, j_tail.z)
                 scale: Qt.vector3d(userRodDiameter/100, tailRodLength/100, userRodDiameter/100)
                 eulerRotation: Qt.vector3d(0, 0, cylAngle)
@@ -1236,7 +1287,12 @@ Item {
             
             // CYLINDER BODY (корпус цилиндра) с IOR
             Model {
-                source: "#Cylinder"
+                geometry: CylinderGeometry {
+                    segments: root.cylinderSegments
+                    rings: root.cylinderRings
+                    radius: 50
+                    length: 100
+                }
                 position: Qt.vector3d((tailRodEnd.x + cylinderEnd.x)/2, (tailRodEnd.y + cylinderEnd.y)/2, tailRodEnd.z)
                 scale: Qt.vector3d(userBoreHead/100, userCylinderLength/100, userBoreHead/100)
                 eulerRotation: Qt.vector3d(0, 0, cylAngle)
@@ -1245,7 +1301,12 @@ Item {
             
             // ✅ PISTON (поршень) - правильная позиция для константной длины штока
             Model {
-                source: "#Cylinder"
+                geometry: CylinderGeometry {
+                    segments: root.cylinderSegments
+                    rings: root.cylinderRings
+                    radius: 50
+                    length: 100
+                }
                 position: pistonCenter
                 scale: Qt.vector3d((userBoreHead - 2)/100, userPistonThickness/100, (userBoreHead - 2)/100)
                 eulerRotation: Qt.vector3d(0, 0, cylAngle)
@@ -1268,7 +1329,12 @@ Item {
 
             // ✅ PISTON ROD (шток поршня) - КОНСТАНТНАЯ длина!
             Model {
-                source: "#Cylinder"
+                geometry: CylinderGeometry {
+                    segments: root.cylinderSegments
+                    rings: root.cylinderRings
+                    radius: 50
+                    length: 100
+                }
                 position: Qt.vector3d((pistonCenter.x + j_rod.x)/2, (pistonCenter.y + j_rod.y)/2, pistonCenter.z)
                 scale: Qt.vector3d(userRodDiameter/100, pistonRodLength/100, userRodDiameter/100)  // ✅ КОНСТАНТНАЯ ДЛИНА!
                 eulerRotation: Qt.vector3d(0, 0, Math.atan2(j_rod.y - pistonCenter.y, j_rod.x - pistonCenter.x) * 180 / Math.PI + 90)
@@ -1291,7 +1357,12 @@ Item {
             
             // JOINTS (шарниры) - цветные маркеры
             Model {
-                source: "#Cylinder"
+                geometry: CylinderGeometry {
+                    segments: root.cylinderSegments
+                    rings: root.cylinderRings
+                    radius: 50
+                    length: 100
+                }
                 position: j_tail
                 scale: Qt.vector3d(1.2, 2.4, 1.2)
                 eulerRotation: Qt.vector3d(90, 0, 0)
@@ -1299,7 +1370,12 @@ Item {
             }
             
             Model {
-                source: "#Cylinder"
+                geometry: CylinderGeometry {
+                    segments: root.cylinderSegments
+                    rings: root.cylinderRings
+                    radius: 50
+                    length: 100
+                }
                 position: j_arm
                 scale: Qt.vector3d(1.0, 2.0, 1.0)
                 eulerRotation: Qt.vector3d(90, 0, 0)
@@ -1307,7 +1383,12 @@ Item {
             }
             
             Model {
-                source: "#Cylinder"
+                geometry: CylinderGeometry {
+                    segments: root.cylinderSegments
+                    rings: root.cylinderRings
+                    radius: 50
+                    length: 100
+                }
                 position: j_rod
                 scale: Qt.vector3d(0.8, 1.6, 0.8)
                 eulerRotation: Qt.vector3d(90, 0, leverAngle * 0.1)
@@ -1337,32 +1418,36 @@ Item {
         }
 
         // Four suspension corners with fixed rod lengths
-        OptimizedSuspensionCorner { 
+        OptimizedSuspensionCorner {
             id: flCorner
+            parent: worldRoot
             j_arm: Qt.vector3d(-userFrameToPivot, userBeamSize, userBeamSize/2)
             j_tail: Qt.vector3d(-userTrackWidth/2, userBeamSize + userFrameHeight, userBeamSize/2)
             leverAngle: fl_angle
             pistonPositionFromPython: root.userPistonPositionFL
         }
-        
-        OptimizedSuspensionCorner { 
+
+        OptimizedSuspensionCorner {
             id: frCorner
+            parent: worldRoot
             j_arm: Qt.vector3d(userFrameToPivot, userBeamSize, userBeamSize/2)
             j_tail: Qt.vector3d(userTrackWidth/2, userBeamSize + userFrameHeight, userBeamSize/2)
             leverAngle: fr_angle
             pistonPositionFromPython: root.userPistonPositionFR
         }
-        
-        OptimizedSuspensionCorner { 
+
+        OptimizedSuspensionCorner {
             id: rlCorner
+            parent: worldRoot
             j_arm: Qt.vector3d(-userFrameToPivot, userBeamSize, userFrameLength - userBeamSize/2)
             j_tail: Qt.vector3d(-userTrackWidth/2, userBeamSize + userFrameHeight, userFrameLength - userBeamSize/2)
             leverAngle: rl_angle
             pistonPositionFromPython: root.userPistonPositionRL
         }
-        
-        OptimizedSuspensionCorner { 
+
+        OptimizedSuspensionCorner {
             id: rrCorner
+            parent: worldRoot
             j_arm: Qt.vector3d(userFrameToPivot, userBeamSize, userFrameLength - userBeamSize/2)
             j_tail: Qt.vector3d(userTrackWidth/2, userBeamSize + userFrameHeight, userFrameLength - userBeamSize/2)
             leverAngle: rr_angle
@@ -1605,7 +1690,7 @@ Item {
 
     Component.onCompleted: {
         console.log("═══════════════════════════════════════════")
-        console.log("🚀 PneumoStabSim ОПТИМИЗИРОВАННАЯ ВЕРСИЯ v4.7 LOADED")
+        console.log("🚀 PneumoStabSim ENHANCED VERSION v4.9.1 LOADED")
         console.log("═══════════════════════════════════════════")
         console.log("🔧 Qt Version:", Qt.version)
         console.log("   Qt Major:", qtMajor, "| Qt Minor:", qtMinor)
@@ -1619,11 +1704,12 @@ Item {
         console.log("   ✅ Все свойства проверены по документации Qt Quick 3D")
         console.log("✅ ВСЕ ПАРАМЕТРЫ GRAPHICSPANEL:")
         console.log("   🔥 Коэффициент преломления (IOR):", cylinderIor)
-        console.log("   🔥 IBL поддержка:", iblEnabled)
+        console.log("   🔥 IBL освещение:", iblLightingEnabled, "| IBL фон:", iblBackgroundEnabled, "| Поворот:", iblRotationDeg.toFixed(1) + "°")
         console.log("   🔥 Туман поддержка:", fogEnabled)
         console.log("   🔥 Расширенные эффекты: Bloom, SSAO, DoF, Vignette, Lens Flare")
         console.log("   🔥 Dithering:", canUseDithering ? "Enabled" : "Not available")
-        console.log("🎯 СТАТУС: main.qml v4.7 С ПРАВИЛЬНЫМИ СВОЙСТВАМИ ЗАГРУЖЕН")
+        console.log("   🔥 Procedural geometry: segments=" + cylinderSegments + ", rings=" + cylinderRings)
+        console.log("🎯 СТАТУС: main.qml v4.9.1 С РАЗДЕЛЬНЫМ УПРАВЛЕНИЕМ IBL ЗАГРУЖЕН")
         console.log("═══════════════════════════════════════════")
         
         syncRenderSettings()

@@ -416,7 +416,7 @@ def main():
         use_qml_3d = USE_QML_3D_SCHEMA and not args.legacy and not args.safe_mode
         
         # Определяем версию QML для отображения
-        backend_name = "Qt Quick 3D (main.qml v4.8)" if use_qml_3d else "Legacy OpenGL"
+        backend_name = "Qt Quick 3D (main.qml v4.9 Enhanced)" if use_qml_3d else "Legacy OpenGL"
         
         # Проверяем версию для ditheringEnabled
         from PySide6.QtCore import qVersion
@@ -429,48 +429,62 @@ def main():
         # Оптимизированный вывод информации о запуске
         startup_info = [
             "=" * 60,
-            "PNEUMOSTABSIM STARTING - ExtendedSceneEnvironment v4.8",
+            "PNEUMOSTABSIM STARTING - main.qml v4.9 ENHANCED",
             "=" * 60,
             f"Visualization backend: {backend_name}",
-            f"QML file: main.qml v4.8 (Fog через объект Fog)",
+            f"QML file: main.qml v4.9 (Enhanced IBL + Geometry Quality)",
             f"Qt version: {sys_info['qt_version']} ({qt_major}.{qt_minor})",
             "",
             "🎨 GRAPHICS ARCHITECTURE:",
             f"   ✅ ExtendedSceneEnvironment: Built-in from QtQuick3D.Helpers",
-            f"   ✅ Fog: Через объект Fog (правильный Qt 6.10+ API)",
-            f"   ✅ Все свойства проверены по официальной документации",
+            f"   ✅ Fog: Через объект Fog (Qt 6.10+ API)",
+            f"   ✅ Separate IBL controls: lighting/background/rotation",
+            f"   ✅ Procedural geometry quality: segments/rings",
+            f"   ✅ All properties verified against Qt Quick 3D docs",
             f"   ✅ Import: import QtQuick3D.Helpers",
             "",
             f"⚙️ RENDERING:",
             f"   Qt RHI Backend: {os.environ.get('QSG_RHI_BACKEND', 'auto')}",
             f"   Dithering support: {'✅ YES (Qt 6.10+)' if supports_dithering else '⚠️ NO (Qt < 6.10)'}",
-            f"   Fog support: ✅ YES (через Fog объект)",
+            f"   Fog support: ✅ YES (Fog object)",
             f"   Python encoding: {sys_info['encoding']}",
             f"   Terminal encoding: {sys_info['terminal_encoding']}",
             f"   QtQuick3D setup: {'[OK]' if sys_info['qtquick3d_setup'] else '[WARNING]'}",
             "",
-            "🔧 KEY FIXES v4.8:",
-            "   ✅ Fog: Через объект Fog { } вместо свойств на environment",
-            "   ✅ depthNear/depthFar вместо fogDepthBegin/fogDepthEnd",
-            "   ✅ Все свойства соответствуют Qt Quick 3D API",
-            "   ✅ Удалено несуществующее skyBoxBlurAmount",
+            "🔧 KEY ENHANCEMENTS v4.9:",
+            "   ✅ Separate IBL lighting/background controls",
+            "   ✅ IBL rotation support (0-360°)",
+            "   ✅ Procedural geometry quality (cylinderSegments/Rings)",
+            "   ✅ Proper scene hierarchy (worldRoot node)",
+            "   ✅ Enhanced environment property mappings",
+            "   ✅ Fixed angle normalization (0-360° range)",
             "",
             "🎨 VISUAL EFFECTS (ExtendedSceneEnvironment):",
-            "   ✅ Fog - туман через объект Fog",
-            "   ✅ Bloom/Glow - свечение ярких областей",
-            "   ✅ SSAO - объемное затенение",
-            "   ✅ Tonemap - кинематографическая цветопередача",
-            "   ✅ Lens Flare - блики от источников света",
-            "   ✅ Vignette - художественное затемнение краев",
-            "   ✅ Depth of Field - размытие по глубине",
-            "   ✅ IBL - освещение на основе HDR окружения",
+            "   ✅ Fog - through Fog object",
+            "   ✅ Bloom/Glow - bright area glow",
+            "   ✅ SSAO - ambient occlusion",
+            "   ✅ Tonemap - cinematic color grading",
+            "   ✅ Lens Flare - light source halos",
+            "   ✅ Vignette - edge darkening",
+            "   ✅ Depth of Field - depth blur",
+            "   ✅ IBL - HDR environment lighting",
             ""
         ]
         
         if supports_dithering:
-            startup_info.append("   ✅ Dithering - устранение полос градиента (Qt 6.10+)")
+            startup_info.append("   ✅ Dithering - gradient banding elimination (Qt 6.10+)")
         else:
-            startup_info.append("   ⚠️ Dithering недоступен (требуется Qt 6.10+)")
+            startup_info.append("   ⚠️ Dithering not available (requires Qt 6.10+)")
+        
+        startup_info.extend([
+            "",
+            "🆕 NEW FEATURES v4.9:",
+            "   • Separate IBL for lighting vs. skybox background",
+            "   • IBL rotation for lighting adjustment",
+            "   • Adjustable cylinder geometry quality",
+            "   • Enhanced Python↔QML property bridge",
+            ""
+        ])
         
         # Единоразовый вывод всей информации
         print('\n'.join(startup_info))
@@ -497,9 +511,9 @@ def main():
         # Set application properties (ASCII-safe) - батч операция
         app_properties = {
             'ApplicationName': "PneumoStabSim",
-            'ApplicationVersion': "4.3.0",
+            'ApplicationVersion': "4.9.0",
             'OrganizationName': "PneumoStabSim",
-            'ApplicationDisplayName': "Pneumatic Stabilizer Simulator (v4.3)"
+            'ApplicationDisplayName': "Pneumatic Stabilizer Simulator (v4.9)"
         }
         
         for prop, value in app_properties.items():
@@ -530,13 +544,13 @@ def main():
         ]
         
         if use_qml_3d and not args.safe_mode:
-            final_info.append("[FEATURES] 3D visualization, IBL support, full parameter control, physics simulation")
+            final_info.append("[FEATURES] 3D visualization, Enhanced IBL, Geometry quality, Full physics simulation")
         else:
             final_info.append("[SAFE MODE] Basic functionality only")
             
         final_info.extend([
             "[ENHANCED] Better encoding, terminal, and compatibility support",
-            "[QML] main.qml (единый файл с полной функциональностью v4.3)",
+            "[QML] main.qml v4.9 (Enhanced with IBL separation + geometry quality)",
             "[QTQUICK3D] Environment variables configured for plugin loading",
             "=" * 60 + "\n"
         ])
