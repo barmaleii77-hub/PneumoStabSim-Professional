@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick3D
 import QtQuick3D.Helpers
+import QtQuick3D.Effects
 import "components"
 
 /*
@@ -347,6 +348,10 @@ Item {
         if (!color)
             return Qt.vector3d(0, 0, 0)
         return Qt.vector3d(color.r * intensity, color.g * intensity, color.b * intensity)
+    }
+
+    function clamp01(value) {
+        return Math.max(0.0, Math.min(1.0, value))
     }
 
     property color jointRodOkColor: "#00ff55"
@@ -816,13 +821,9 @@ Item {
 
             tonemapMode: root.tonemapEnabled ?
                 (root.tonemapModeName === "filmic" ? SceneEnvironment.TonemapModeFilmic :
-                 root.tonemapModeName === "aces" ?
-                     (SceneEnvironment.TonemapModeAces !== undefined ? SceneEnvironment.TonemapModeAces
-                                                                       : SceneEnvironment.TonemapModeFilmic) :
+                 root.tonemapModeName === "aces" ? SceneEnvironment.TonemapModeAces :
                  root.tonemapModeName === "reinhard" ? SceneEnvironment.TonemapModeReinhard :
-                 root.tonemapModeName === "gamma" ?
-                     (SceneEnvironment.TonemapModeGamma !== undefined ? SceneEnvironment.TonemapModeGamma
-                                                                       : SceneEnvironment.TonemapModeLinear) :
+                 root.tonemapModeName === "gamma" ? SceneEnvironment.TonemapModeGamma :
                  SceneEnvironment.TonemapModeLinear) : SceneEnvironment.TonemapModeNone
             exposure: 1.0
             whitePoint: 2.0
@@ -868,9 +869,6 @@ Item {
             depthOfFieldFocusDistance: root.dofFocusDistance
             depthOfFieldBlurAmount: root.dofBlurAmount
 
-            motionBlurEnabled: root.motionBlurEnabled
-            motionBlurAmount: root.motionBlurAmount
-
             vignetteEnabled: root.vignetteEnabled
             vignetteRadius: 0.4
             vignetteStrength: root.vignetteStrength
@@ -882,6 +880,15 @@ Item {
             adjustmentContrast: 1.05
             adjustmentSaturation: 1.05
         }
+
+        effects: [
+            MotionBlur {
+                id: motionBlurEffect
+                enabled: root.motionBlurEnabled && root.motionBlurAmount > 0.0
+                fadeAmount: root.clamp01(root.motionBlurAmount)
+                blurQuality: 0.1 + 0.9 * root.clamp01(root.motionBlurAmount)
+            }
+        ]
 
         // ===============================================================
         // MATERIAL LIBRARY (shared instances to avoid duplication)
@@ -1115,7 +1122,7 @@ Item {
                 0
             )
             readonly property real cylAngle: Math.atan2(cylDirection.y, cylDirection.x) * 180 / Math.PI + 90
-            
+                        
             // Константы длин
             readonly property real tailRodLength: 100                    // мм - хвостовой шток
             readonly property real pistonRodLength: userPistonRodLength  // мм - шток поршня (КОНСТАНТА!)
@@ -1134,7 +1141,6 @@ Item {
             )
             
             // ✅ ПРАВИЛЬНЫЙ РАСЧЕТ ПОЗИЦИИ ПОРШНЯ для КОНСТАНТНОЙ длины штока
-            
             // Проекция j_rod на ось цилиндра
             readonly property vector3d j_rodToCylStart: Qt.vector3d(j_rod.x - tailRodEnd.x, j_rod.y - tailRodEnd.y, 0)
             readonly property real projectionOnCylAxis: j_rodToCylStart.x * cylDirectionNorm.x + j_rodToCylStart.y * cylDirectionNorm.y
@@ -1160,7 +1166,7 @@ Item {
             
             // Позиция поршня на оси цилиндра (назад от проекции j_rod)
             readonly property real pistonPositionOnAxis: projectionOnCylAxis - axialDistanceFromProjection
-            
+                        
             // Ограничиваем поршень в пределах цилиндра
             readonly property real clampedPistonPosition: Math.max(10, Math.min(userCylinderLength - 10, pistonPositionOnAxis))
             
@@ -1365,7 +1371,7 @@ Item {
 
         onPositionChanged: (mouse) => {
             if (!root.mouseDown) return
-            
+                        
             const dx = mouse.x - root.lastX
             const dy = mouse.y - root.lastY
 
@@ -1571,7 +1577,7 @@ Item {
         console.log("   🔧 Валидация ошибок длины < 1мм")
         console.log("✅ ВСЕ ПАРАМЕТРЫ GRAPHICSPANEL:")
         console.log("   🔥 Коэффициент преломления (IOR):", glassIOR)
-        console.log("   🔥 IBL поддержka:", iblEnabled)
+        console.log("   🔥 IBL поддержка:", iblEnabled)
         console.log("   🔥 Туман поддержка:", fogEnabled)
         console.log("   🔥 Расширенные эффекты: Bloom, SSAO, DoF, Vignette")
         console.log("🎯 СТАТУС: main.qml v4.1 ЗАГРУЖЕН УСПЕШНО")
