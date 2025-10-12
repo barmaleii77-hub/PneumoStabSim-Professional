@@ -160,7 +160,10 @@ Item {
     property color backgroundColor: "#1f242c"
     property real skyboxBlur: 0.08
     property bool iblEnabled: true
+    property bool iblLightingEnabled: true  // Separate control for IBL lighting
+    property bool iblBackgroundEnabled: false  // Separate control for IBL background
     property real iblIntensity: 1.3
+    property real iblRotation: 0.0  // IBL environment rotation (0-360°)
     property bool fogEnabled: true
     property color fogColor: "#b0c4d8"
     property real fogDensity: 0.12
@@ -183,6 +186,10 @@ Item {
     property string renderPolicy: "always"
     property real frameRateLimit: 144.0
     property string qualityPreset: "ultra"
+    
+    // Cylinder geometry quality
+    property int cylinderSegments: 32  // Number of segments around cylinder
+    property int cylinderRings: 1  // Number of rings along cylinder length
 
     property var pendingPythonUpdates: null
 
@@ -428,9 +435,9 @@ Item {
     function clamp(v, a, b) { return Math.max(a, Math.min(b, v)); }
     
     function normAngleDeg(a) {
+        // Normalize to 0-360° range
         var x = a % 360;
-        if (x > 180) x -= 360;
-        if (x < -180) x += 360;
+        if (x < 0) x += 360;
         return x;
     }
 
@@ -677,7 +684,10 @@ Item {
 
         if (params.ibl) {
             if (params.ibl.enabled !== undefined) iblEnabled = params.ibl.enabled
+            if (params.ibl.lighting_enabled !== undefined) iblLightingEnabled = params.ibl.lighting_enabled
+            if (params.ibl.background_enabled !== undefined) iblBackgroundEnabled = params.ibl.background_enabled
             if (params.ibl.intensity !== undefined) iblIntensity = params.ibl.intensity
+            if (params.ibl.rotation !== undefined) iblRotation = normAngleDeg(params.ibl.rotation)
             if (params.ibl.blur !== undefined) skyboxBlur = params.ibl.blur
             if (params.ibl.source !== undefined) {
                 var resolvedSource = resolveUrl(params.ibl.source)
@@ -742,6 +752,10 @@ Item {
         if (params.frame_rate_limit !== undefined) frameRateLimit = params.frame_rate_limit
         if (params.oit !== undefined) oitMode = params.oit
         if (params.preset !== undefined) qualityPreset = params.preset
+        
+        // Cylinder geometry quality
+        if (params.cylinder_segments !== undefined) cylinderSegments = Math.max(3, Math.min(128, params.cylinder_segments))
+        if (params.cylinder_rings !== undefined) cylinderRings = Math.max(1, Math.min(32, params.cylinder_rings))
 
         console.log("  🎚 Quality preset:", qualityPreset, ", FPS limit:", frameRateLimit)
         console.log("  ✅ Quality updated successfully")
@@ -818,11 +832,18 @@ Item {
 
         environment: ExtendedSceneEnvironment {
             id: mainEnvironment
-            backgroundMode: root.backgroundMode === "skybox" && root.iblReady ? SceneEnvironment.SkyBox : SceneEnvironment.Color
+            // ✅ Granular control: background can be separate from lighting
+            backgroundMode: (root.backgroundMode === "skybox" && root.iblBackgroundEnabled && root.iblReady) ? 
+                           SceneEnvironment.SkyBox : SceneEnvironment.Color
             clearColor: root.backgroundColor
-            lightProbe: root.iblEnabled && root.iblReady ? iblLoader.probe : null
+            
+            // ✅ Granular control: lighting can be separate from background
+            lightProbe: (root.iblEnabled && root.iblLightingEnabled && root.iblReady) ? iblLoader.probe : null
             probeExposure: root.iblIntensity
             probeHorizon: 0.08
+            
+            // ✅ IBL environment rotation (0-360°)
+            probeOrientation: Qt.vector3d(0, root.iblRotation, 0)
             
             // ⚠️ ПРИМЕЧАНИЕ: Туман настраивается через объект Fog
             // НЕ существует: skyBoxBlurAmount, fogEnabled, fogColor и т.д.
@@ -1048,78 +1069,91 @@ Item {
             }
         }
 
-        // Lighting (with shadow softness)
-        DirectionalLight {
-            id: keyLight
-            eulerRotation.x: root.keyLightAngleX
-            eulerRotation.y: root.keyLightAngleY
-            brightness: root.keyLightBrightness
-            color: root.keyLightColor
-            castsShadow: root.shadowsEnabled
-            shadowMapQuality: root.shadowResolution === "4096" ?
-                                 (typeof Light.ShadowMapQualityUltra !== "undefined" ? Light.ShadowMapQualityUltra
-                                                                                       : Light.ShadowMapQualityVeryHigh) :
-                             root.shadowResolution === "2048" ? Light.ShadowMapQualityVeryHigh :
-                             root.shadowResolution === "1024" ? Light.ShadowMapQualityHigh :
-                             root.shadowResolution === "512" ? Light.ShadowMapQualityMedium :
-                             Light.ShadowMapQualityLow
-            shadowFactor: root.shadowFactor
-            shadowBias: root.shadowBias
-            shadowFilter: root.shadowFilterSamples === 32 ? Light.ShadowFilterPCF32 :
-                           root.shadowFilterSamples === 16 ? Light.ShadowFilterPCF16 :
-                           root.shadowFilterSamples === 8 ? Light.ShadowFilterPCF8 :
-                           root.shadowFilterSamples === 4 ? Light.ShadowFilterPCF4 :
-                           Light.ShadowFilterNone
-        }
-
-        DirectionalLight {
-            id: fillLight
-            eulerRotation.x: -60
-            eulerRotation.y: 135
-            brightness: root.fillLightBrightness
-            color: root.fillLightColor
-            castsShadow: false
-        }
-
-        DirectionalLight {
-            id: rimLight
-            eulerRotation.x: 15
-            eulerRotation.y: 180
-            brightness: root.rimLightBrightness
-            color: root.rimLightColor
-            castsShadow: false
-        }
-
-        PointLight {
-            id: accentLight
-            position: Qt.vector3d(0, root.pointLightY, 1500)
-            brightness: root.pointLightBrightness
-            color: root.pointLightColor
-            constantFade: 1.0
-            linearFade: 2.0 / Math.max(200.0, root.pointLightRange)
-            quadraticFade: 1.0 / Math.pow(Math.max(200.0, root.pointLightRange), 2)
-        }
-
         // ===============================================================
-        // SUSPENSION SYSTEM GEOMETRY (with IOR support)
+        // WORLD ROOT - Scene hierarchy organization
         // ===============================================================
+        Node {
+            id: worldRoot
+            
+            // Lighting (with shadow softness)
+            DirectionalLight {
+                id: keyLight
+                eulerRotation.x: root.keyLightAngleX
+                eulerRotation.y: root.keyLightAngleY
+                brightness: root.keyLightBrightness
+                color: root.keyLightColor
+                castsShadow: root.shadowsEnabled
+                shadowMapQuality: root.shadowResolution === "4096" ?
+                                     (typeof Light.ShadowMapQualityUltra !== "undefined" ? Light.ShadowMapQualityUltra
+                                                                                           : Light.ShadowMapQualityVeryHigh) :
+                                 root.shadowResolution === "2048" ? Light.ShadowMapQualityVeryHigh :
+                                 root.shadowResolution === "1024" ? Light.ShadowMapQualityHigh :
+                                 root.shadowResolution === "512" ? Light.ShadowMapQualityMedium :
+                                 Light.ShadowMapQualityLow
+                shadowFactor: root.shadowFactor
+                shadowBias: root.shadowBias
+                shadowFilter: root.shadowFilterSamples === 32 ? Light.ShadowFilterPCF32 :
+                               root.shadowFilterSamples === 16 ? Light.ShadowFilterPCF16 :
+                               root.shadowFilterSamples === 8 ? Light.ShadowFilterPCF8 :
+                               root.shadowFilterSamples === 4 ? Light.ShadowFilterPCF4 :
+                               Light.ShadowFilterNone
+            }
 
-        // U-FRAME (3 beams) with controlled materials
-        Model {
-            source: "#Cube"
-            position: Qt.vector3d(0, userBeamSize/2, userFrameLength/2)
-            scale: Qt.vector3d(userBeamSize/100, userBeamSize/100, userFrameLength/100)
-            materials: [frameMaterial]
-        }
-        Model {
-            source: "#Cube"
-            position: Qt.vector3d(0, userBeamSize + userFrameHeight/2, userBeamSize/2)
-            scale: Qt.vector3d(userBeamSize/100, userFrameHeight/100, userBeamSize/100)
-            materials: [frameMaterial]
-        }
-        Model {
-            source: "#Cube"
-            position: Qt.vector3d(0, userBeamSize + userFrameHeight/2, userFrameLength - userBeamSize/2)
+            DirectionalLight {
+                id: fillLight
+                eulerRotation.x: -60
+                eulerRotation.y: 135
+                brightness: root.fillLightBrightness
+                color: root.fillLightColor
+                castsShadow: false
+            }
+
+            DirectionalLight {
+                id: rimLight
+                eulerRotation.x: 15
+                eulerRotation.y: 180
+                brightness: root.rimLightBrightness
+                color: root.rimLightColor
+                castsShadow: false
+            }
+
+            PointLight {
+                id: accentLight
+                position: Qt.vector3d(0, root.pointLightY, 1500)
+                brightness: root.pointLightBrightness
+                color: root.pointLightColor
+                constantFade: 1.0
+                linearFade: 2.0 / Math.max(200.0, root.pointLightRange)
+            PointLight {
+                id: accentLight
+                position: Qt.vector3d(0, root.pointLightY, 1500)
+                brightness: root.pointLightBrightness
+                color: root.pointLightColor
+                constantFade: 1.0
+                linearFade: 2.0 / Math.max(200.0, root.pointLightRange)
+                quadraticFade: 1.0 / Math.pow(Math.max(200.0, root.pointLightRange), 2)
+            }
+
+            // ===============================================================
+            // SUSPENSION SYSTEM GEOMETRY (with IOR support)
+            // ===============================================================
+
+            // U-FRAME (3 beams) with controlled materials
+            Model {
+                source: "#Cube"
+                position: Qt.vector3d(0, userBeamSize/2, userFrameLength/2)
+                scale: Qt.vector3d(userBeamSize/100, userBeamSize/100, userFrameLength/100)
+                materials: [frameMaterial]
+            }
+            Model {
+                source: "#Cube"
+                position: Qt.vector3d(0, userBeamSize + userFrameHeight/2, userBeamSize/2)
+                scale: Qt.vector3d(userBeamSize/100, userFrameHeight/100, userBeamSize/100)
+                materials: [frameMaterial]
+            }
+            Model {
+                source: "#Cube"
+                position: Qt.vector3d(0, userBeamSize + userFrameHeight/2, userFrameLength - userBeamSize/2)
             scale: Qt.vector3d(userBeamSize/100, userFrameHeight/100, userBeamSize/100)
             materials: [frameMaterial]
         }
@@ -1336,38 +1370,39 @@ Item {
             }
         }
 
-        // Four suspension corners with fixed rod lengths
-        OptimizedSuspensionCorner { 
-            id: flCorner
-            j_arm: Qt.vector3d(-userFrameToPivot, userBeamSize, userBeamSize/2)
-            j_tail: Qt.vector3d(-userTrackWidth/2, userBeamSize + userFrameHeight, userBeamSize/2)
-            leverAngle: fl_angle
-            pistonPositionFromPython: root.userPistonPositionFL
-        }
-        
-        OptimizedSuspensionCorner { 
-            id: frCorner
-            j_arm: Qt.vector3d(userFrameToPivot, userBeamSize, userBeamSize/2)
-            j_tail: Qt.vector3d(userTrackWidth/2, userBeamSize + userFrameHeight, userBeamSize/2)
-            leverAngle: fr_angle
-            pistonPositionFromPython: root.userPistonPositionFR
-        }
-        
-        OptimizedSuspensionCorner { 
-            id: rlCorner
-            j_arm: Qt.vector3d(-userFrameToPivot, userBeamSize, userFrameLength - userBeamSize/2)
-            j_tail: Qt.vector3d(-userTrackWidth/2, userBeamSize + userFrameHeight, userFrameLength - userBeamSize/2)
-            leverAngle: rl_angle
-            pistonPositionFromPython: root.userPistonPositionRL
-        }
-        
-        OptimizedSuspensionCorner { 
-            id: rrCorner
-            j_arm: Qt.vector3d(userFrameToPivot, userBeamSize, userFrameLength - userBeamSize/2)
-            j_tail: Qt.vector3d(userTrackWidth/2, userBeamSize + userFrameHeight, userFrameLength - userBeamSize/2)
-            leverAngle: rr_angle
-            pistonPositionFromPython: root.userPistonPositionRR
-        }
+            // Four suspension corners with fixed rod lengths
+            OptimizedSuspensionCorner { 
+                id: flCorner
+                j_arm: Qt.vector3d(-userFrameToPivot, userBeamSize, userBeamSize/2)
+                j_tail: Qt.vector3d(-userTrackWidth/2, userBeamSize + userFrameHeight, userBeamSize/2)
+                leverAngle: fl_angle
+                pistonPositionFromPython: root.userPistonPositionFL
+            }
+            
+            OptimizedSuspensionCorner { 
+                id: frCorner
+                j_arm: Qt.vector3d(userFrameToPivot, userBeamSize, userBeamSize/2)
+                j_tail: Qt.vector3d(userTrackWidth/2, userBeamSize + userFrameHeight, userBeamSize/2)
+                leverAngle: fr_angle
+                pistonPositionFromPython: root.userPistonPositionFR
+            }
+            
+            OptimizedSuspensionCorner { 
+                id: rlCorner
+                j_arm: Qt.vector3d(-userFrameToPivot, userBeamSize, userFrameLength - userBeamSize/2)
+                j_tail: Qt.vector3d(-userTrackWidth/2, userBeamSize + userFrameHeight, userFrameLength - userBeamSize/2)
+                leverAngle: rl_angle
+                pistonPositionFromPython: root.userPistonPositionRL
+            }
+            
+            OptimizedSuspensionCorner { 
+                id: rrCorner
+                j_arm: Qt.vector3d(userFrameToPivot, userBeamSize, userFrameLength - userBeamSize/2)
+                j_tail: Qt.vector3d(userTrackWidth/2, userBeamSize + userFrameHeight, userFrameLength - userBeamSize/2)
+                leverAngle: rr_angle
+                pistonPositionFromPython: root.userPistonPositionRR
+            }
+        }  // End of worldRoot
     }
 
     // ===============================================================

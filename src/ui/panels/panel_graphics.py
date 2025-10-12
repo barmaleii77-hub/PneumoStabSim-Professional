@@ -240,7 +240,10 @@ class GraphicsPanel(QWidget):
                 "background_mode": "skybox",
                 "background_color": "#1f242c",
                 "ibl_enabled": True,
+                "ibl_lighting_enabled": True,
+                "ibl_background_enabled": False,
                 "ibl_intensity": 1.3,
+                "ibl_rotation": 0.0,
                 "ibl_source": "../hdr/studio.hdr",
                 "ibl_fallback": "assets/studio_small_09_2k.hdr",
                 "skybox_blur": 0.08,
@@ -255,6 +258,8 @@ class GraphicsPanel(QWidget):
             },
             "quality": {
                 "preset": "ultra",
+                "cylinder_segments": 32,
+                "cylinder_rings": 1,
                 "shadows": {
                     "enabled": True,
                     "resolution": "4096",
@@ -767,25 +772,40 @@ class GraphicsPanel(QWidget):
         ibl_check.stateChanged.connect(lambda state: self._update_environment("ibl_enabled", state == Qt.Checked))
         self._environment_controls["ibl.enabled"] = ibl_check
         grid.addWidget(ibl_check, 2, 0, 1, 2)
+        
+        lighting_check = QCheckBox("IBL для освещения", self)
+        lighting_check.stateChanged.connect(lambda state: self._update_environment("ibl_lighting_enabled", state == Qt.Checked))
+        self._environment_controls["ibl.lighting_enabled"] = lighting_check
+        grid.addWidget(lighting_check, 3, 0, 1, 2)
+        
+        bg_check = QCheckBox("IBL для фона", self)
+        bg_check.stateChanged.connect(lambda state: self._update_environment("ibl_background_enabled", state == Qt.Checked))
+        self._environment_controls["ibl.background_enabled"] = bg_check
+        grid.addWidget(bg_check, 4, 0, 1, 2)
 
         intensity = LabeledSlider("Интенсивность IBL", 0.0, 5.0, 0.05, decimals=2)
         intensity.valueChanged.connect(lambda v: self._update_environment("ibl_intensity", v))
         self._environment_controls["ibl.intensity"] = intensity
-        grid.addWidget(intensity, 3, 0, 1, 2)
+        grid.addWidget(intensity, 5, 0, 1, 2)
+        
+        rotation = LabeledSlider("Поворот окружения", 0.0, 360.0, 1.0, decimals=0, unit="°")
+        rotation.valueChanged.connect(lambda v: self._update_environment("ibl_rotation", v))
+        self._environment_controls["ibl.rotation"] = rotation
+        grid.addWidget(rotation, 6, 0, 1, 2)
 
         blur = LabeledSlider("Размытие skybox", 0.0, 1.0, 0.01, decimals=2)
         blur.valueChanged.connect(lambda v: self._update_environment("skybox_blur", v))
         self._environment_controls["skybox.blur"] = blur
-        grid.addWidget(blur, 4, 0, 1, 2)
+        grid.addWidget(blur, 7, 0, 1, 2)
 
         choose_hdr = QPushButton("Загрузить HDR…", self)
         choose_hdr.clicked.connect(self._choose_hdr_file)
-        grid.addWidget(choose_hdr, 5, 0)
+        grid.addWidget(choose_hdr, 8, 0)
 
         path_label = QLabel("", self)
         path_label.setWordWrap(True)
         self._environment_controls["ibl.path_label"] = path_label
-        grid.addWidget(path_label, 5, 1)
+        grid.addWidget(path_label, 8, 1)
         return group
 
     def _build_fog_group(self) -> QGroupBox:
@@ -1019,6 +1039,18 @@ class GraphicsPanel(QWidget):
         oit_check.stateChanged.connect(lambda state: self._update_quality("oit", "weighted" if state == Qt.Checked else "none"))
         self._quality_controls["oit.enabled"] = oit_check
         grid.addWidget(oit_check, 3, 0, 1, 2)
+        
+        # Cylinder geometry quality
+        segments_slider = LabeledSlider("Сегменты цилиндра", 3, 128, 1, decimals=0)
+        segments_slider.valueChanged.connect(lambda v: self._update_quality("cylinder_segments", int(v)))
+        self._quality_controls["cylinder.segments"] = segments_slider
+        grid.addWidget(segments_slider, 4, 0, 1, 2)
+        
+        rings_slider = LabeledSlider("Кольца цилиндра", 1, 32, 1, decimals=0)
+        rings_slider.valueChanged.connect(lambda v: self._update_quality("cylinder_rings", int(v)))
+        self._quality_controls["cylinder.rings"] = rings_slider
+        grid.addWidget(rings_slider, 5, 0, 1, 2)
+        
         return group
 
     def _on_quality_preset_changed(self, preset_key: str | None) -> None:
@@ -1562,7 +1594,10 @@ class GraphicsPanel(QWidget):
             },
             "ibl": {
                 "enabled": env["ibl_enabled"],
+                "lighting_enabled": env.get("ibl_lighting_enabled", True),
+                "background_enabled": env.get("ibl_background_enabled", False),
                 "intensity": env["ibl_intensity"],
+                "rotation": env.get("ibl_rotation", 0.0),
                 "source": env["ibl_source"],
                 "fallback": env["ibl_fallback"],
                 "blur": env["skybox_blur"],
@@ -1598,6 +1633,8 @@ class GraphicsPanel(QWidget):
             "frame_rate_limit": q["frame_rate_limit"],
             "oit": q["oit"],
             "preset": q.get("preset", "custom"),
+            "cylinder_segments": q.get("cylinder_segments", 32),
+            "cylinder_rings": q.get("cylinder_rings", 1),
         }
         self.quality_changed.emit(payload)
 
@@ -1658,7 +1695,20 @@ class GraphicsPanel(QWidget):
         bg_button.set_color(env["background_color"])
         ibl_check: QCheckBox = self._environment_controls["ibl.enabled"]  # type: ignore[assignment]
         ibl_check.setChecked(env["ibl_enabled"])
+        
+        # New IBL controls
+        if "ibl.lighting_enabled" in self._environment_controls:
+            lighting_check: QCheckBox = self._environment_controls["ibl.lighting_enabled"]  # type: ignore[assignment]
+            lighting_check.setChecked(env.get("ibl_lighting_enabled", True))
+        if "ibl.background_enabled" in self._environment_controls:
+            bg_check: QCheckBox = self._environment_controls["ibl.background_enabled"]  # type: ignore[assignment]
+            bg_check.setChecked(env.get("ibl_background_enabled", False))
+        
         self._environment_controls["ibl.intensity"].set_value(env["ibl_intensity"])  # type: ignore[index]
+        
+        if "ibl.rotation" in self._environment_controls:
+            self._environment_controls["ibl.rotation"].set_value(env.get("ibl_rotation", 0.0))  # type: ignore[index]
+        
         self._environment_controls["skybox.blur"].set_value(env["skybox_blur"])  # type: ignore[index]
         label: QLabel = self._environment_controls["ibl.path_label"]  # type: ignore[assignment]
         label.setText(env["ibl_source"])
@@ -1720,6 +1770,12 @@ class GraphicsPanel(QWidget):
             policy_combo.setCurrentIndex(index)
         oit_check: QCheckBox = self._quality_controls["oit.enabled"]  # type: ignore[assignment]
         oit_check.setChecked(q["oit"] == "weighted")
+        
+        # Cylinder quality controls
+        if "cylinder.segments" in self._quality_controls:
+            self._quality_controls["cylinder.segments"].set_value(q.get("cylinder_segments", 32))  # type: ignore[index]
+        if "cylinder.rings" in self._quality_controls:
+            self._quality_controls["cylinder.rings"].set_value(q.get("cylinder_rings", 1))  # type: ignore[index]
 
     def _apply_camera_ui(self) -> None:
         camera = self.state["camera"]
