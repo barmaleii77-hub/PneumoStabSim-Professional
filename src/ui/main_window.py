@@ -737,91 +737,34 @@ class MainWindow(QMainWindow):
             return False
 
         candidate = getattr(self._qml_root_object, method_name, None)
-        if callable(candidate):
-            try:
-                if payload is None:
-                    candidate()
-                else:
-                    candidate(payload)
-                self._qml_method_support[cache_key] = True
-                return True
-            except TypeError as exc:
-                self.logger.debug(
-                    "QML callable %s rejected payload: %s", method_name, exc
-                )
-            except Exception as exc:
-                self.logger.warning(
-                    "Unhandled exception when invoking QML callable %s: %s",
-                    method_name,
-                    exc,
-                )
-                return False
-
-        if not self._qml_supports_method(method_name, has_payload):
+        if not callable(candidate):
             self._qml_method_support[cache_key] = False
             return False
 
-        connection = Qt.ConnectionType.DirectConnection
-        arg_types = [None] if not has_payload else ["QVariantMap", "QVariant", "QJSValue"]
-        for arg_type in arg_types:
-            try:
-                if arg_type is None:
-                    if QMetaObject.invokeMethod(self._qml_root_object, method_name, connection):
-                        self._qml_method_support[cache_key] = True
-                        return True
-                else:
-                    if QMetaObject.invokeMethod(
-                        self._qml_root_object,
-                        method_name,
-                        connection,
-                        Q_ARG(arg_type, payload),
-                    ):
-                        self._qml_method_support[cache_key] = True
-                        return True
-            except TypeError:
-                continue
-            except Exception as exc:
-                self.logger.debug(
-                    "Failed to invoke %s via QMetaObject with arg type %s: %s",
-                    method_name,
-                    arg_type or "<none>",
-                    exc,
-                )
-                break
-
-        self._qml_method_support[cache_key] = False
-        return False
-
-    def _qml_supports_method(self, method_name: str, has_payload: bool) -> bool:
-        if not self._qml_root_object:
+        try:
+            if payload is None:
+                candidate()
+            else:
+                candidate(payload)
+        except TypeError as exc:
+            self.logger.debug(
+                "QML callable %s rejected payload: %s",
+                method_name,
+                exc,
+            )
+            self._qml_method_support[cache_key] = False
+            return False
+        except Exception as exc:
+            self.logger.warning(
+                "Unhandled exception when invoking QML callable %s: %s",
+                method_name,
+                exc,
+            )
+            self._qml_method_support[cache_key] = False
             return False
 
-        cache_key = (method_name, has_payload)
-        cached = self._qml_method_support.get(cache_key)
-        if cached is not None:
-            return cached
-
-        candidate = getattr(self._qml_root_object, method_name, None)
-        if callable(candidate):
-            self._qml_method_support[cache_key] = True
-            return True
-
-        meta = self._qml_root_object.metaObject()
-        supported = False
-        if meta is not None:
-            signatures = [f"{method_name}()"] if not has_payload else [
-                f"{method_name}(QVariantMap)",
-                f"{method_name}(QVariant)",
-                f"{method_name}(QVariantList)",
-                f"{method_name}(QJSValue)",
-            ]
-            for signature in signatures:
-                if meta.indexOfMethod(signature.encode("utf-8")) != -1:
-                    supported = True
-                    break
-
-        self._qml_method_support[cache_key] = supported
-        return supported
+        self._qml_method_support[cache_key] = True
+        return True
 
     @staticmethod
     def _deep_merge_dicts(target: Dict[str, Any], source: Dict[str, Any]):
