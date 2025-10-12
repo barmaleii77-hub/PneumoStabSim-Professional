@@ -731,24 +731,66 @@ class MainWindow(QMainWindow):
             return False
 
         has_payload = payload is not None
+        cache_key = (method_name, has_payload)
+        cached = self._qml_method_support.get(cache_key)
+        if cached is False:
+            return False
+
+        candidate = getattr(self._qml_root_object, method_name, None)
+        if callable(candidate):
+            try:
+                if payload is None:
+                    candidate()
+                else:
+                    candidate(payload)
+                self._qml_method_support[cache_key] = True
+                return True
+            except TypeError as exc:
+                self.logger.debug(
+                    "QML callable %s rejected payload: %s", method_name, exc
+                )
+            except Exception as exc:
+                self.logger.warning(
+                    "Unhandled exception when invoking QML callable %s: %s",
+                    method_name,
+                    exc,
+                )
+                return False
+
         if not self._qml_supports_method(method_name, has_payload):
+            self._qml_method_support[cache_key] = False
             return False
 
         connection = Qt.ConnectionType.DirectConnection
-        try:
-            if payload is None:
-                return QMetaObject.invokeMethod(self._qml_root_object, method_name, connection)
-            return QMetaObject.invokeMethod(
-                self._qml_root_object,
-                method_name,
-                connection,
-                Q_ARG("QVariant", payload),
-            )
-        except Exception as exc:
-            self.logger.debug(f"Failed to call {method_name} in QML: {exc}")
-            cache_key = (method_name, has_payload)
-            self._qml_method_support[cache_key] = False
-            return False
+        arg_types = [None] if not has_payload else ["QVariantMap", "QVariant", "QJSValue"]
+        for arg_type in arg_types:
+            try:
+                if arg_type is None:
+                    if QMetaObject.invokeMethod(self._qml_root_object, method_name, connection):
+                        self._qml_method_support[cache_key] = True
+                        return True
+                else:
+                    if QMetaObject.invokeMethod(
+                        self._qml_root_object,
+                        method_name,
+                        connection,
+                        Q_ARG(arg_type, payload),
+                    ):
+                        self._qml_method_support[cache_key] = True
+                        return True
+            except TypeError:
+                continue
+            except Exception as exc:
+                self.logger.debug(
+                    "Failed to invoke %s via QMetaObject with arg type %s: %s",
+                    method_name,
+                    arg_type or "<none>",
+                    exc,
+                )
+                break
+
+        self._qml_method_support[cache_key] = False
+        return False
 
     def _qml_supports_method(self, method_name: str, has_payload: bool) -> bool:
         if not self._qml_root_object:
@@ -768,8 +810,8 @@ class MainWindow(QMainWindow):
         supported = False
         if meta is not None:
             signatures = [f"{method_name}()"] if not has_payload else [
-                f"{method_name}(QVariant)",
                 f"{method_name}(QVariantMap)",
+                f"{method_name}(QVariant)",
                 f"{method_name}(QVariantList)",
                 f"{method_name}(QJSValue)",
             ]
