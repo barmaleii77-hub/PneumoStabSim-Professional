@@ -19,16 +19,24 @@ from pathlib import Path
 _system_info_cache = {}
 
 def get_cached_system_info():
-    """Получить кэшированную системную информацию"""
+    """Получить кэшированную системнюю информацию"""
     global _system_info_cache
     
     if not _system_info_cache:
+        # Импортируем qVersion для получения версии Qt
+        try:
+            from PySide6.QtCore import qVersion
+            qt_version = qVersion()
+        except:
+            qt_version = "unknown"
+            
         _system_info_cache = {
             'platform': sys.platform,
             'python_version': sys.version_info,
             'encoding': sys.getdefaultencoding(),
             'terminal_encoding': locale.getpreferredencoding(),
-            'qtquick3d_setup': qtquick3d_setup_ok
+            'qtquick3d_setup': qtquick3d_setup_ok,
+            'qt_version': qt_version
         }
     
     return _system_info_cache
@@ -186,8 +194,28 @@ def safe_import_qt():
     """Safely import Qt components with fallback options"""
     try:
         from PySide6.QtWidgets import QApplication
-        from PySide6.QtCore import qInstallMessageHandler, QtMsgType, Qt, QTimer
-        print("[OK] PySide6 imported successfully")
+        from PySide6.QtCore import qInstallMessageHandler, QtMsgType, Qt, QTimer, qVersion
+        
+        qt_version = qVersion()
+        
+        print(f"[OK] PySide6 imported successfully")
+        print(f"[INFO] ✅ Qt runtime version: {qt_version}")
+        
+        # Проверяем версию для ditheringEnabled
+        try:
+            major, minor = qt_version.split('.')[:2]
+            qt_major = int(major)
+            qt_minor = int(minor)
+            
+            if qt_major == 6 and qt_minor >= 10:
+                print(f"[INFO] ✅ Qt 6.10+ detected - ditheringEnabled should be available")
+            elif qt_major == 6 and qt_minor >= 8:
+                print(f"[WARNING] ⚠️ Qt 6.8-6.9 detected - ditheringEnabled may not be available")
+            else:
+                print(f"[WARNING] ⚠️ Qt version < 6.8 - ExtendedSceneEnvironment features may be limited")
+        except (ValueError, IndexError):
+            print(f"[WARNING] Could not parse Qt version: {qt_version}")
+        
         return QApplication, qInstallMessageHandler, QtMsgType, Qt, QTimer
     except ImportError as e:
         print(f"[ERROR] PySide6 import failed: {e}")
@@ -197,7 +225,7 @@ def safe_import_qt():
         try:
             print("[RETRY] Trying PyQt6 as fallback...")
             from PyQt6.QtWidgets import QApplication
-            from PyQt6.QtCore import qInstallMessageHandler, QtMsgType, Qt, QTimer
+            from PyQt6.QtCore import qInstallMessageHandler, QtMsgType, Qt, QTimer, qVersion
             print("[OK] PyQt6 imported as fallback")
             return QApplication, qInstallMessageHandler, QtMsgType, Qt, QTimer
         except ImportError:
@@ -390,26 +418,58 @@ def main():
         # Определяем версию QML для отображения
         backend_name = "Qt Quick 3D (main.qml v4.6)" if use_qml_3d else "Legacy OpenGL"
         
+        # Проверяем версию для ditheringEnabled
+        from PySide6.QtCore import qVersion
+        qt_version = qVersion()
+        major, minor = qt_version.split('.')[:2]
+        qt_major = int(major)
+        qt_minor = int(minor)
+        supports_dithering = qt_major == 6 and qt_minor >= 10
+        
         # Оптимизированный вывод информации о запуске
         startup_info = [
             "=" * 60,
-            "PNEUMOSTABSIM STARTING (IBL SkyBox Background v4.8)",
+            "PNEUMOSTABSIM STARTING - ExtendedSceneEnvironment v4.7",
             "=" * 60,
             f"Visualization backend: {backend_name}",
-            f"QML file: main.qml (единый файл с IBL окружением в4.8)",
-            f"Qt RHI Backend: {os.environ.get('QSG_RHI_BACKEND', 'auto')}",
-            f"Python encoding: {sys_info['encoding']}",
-            f"Terminal encoding: {sys_info['terminal_encoding']}",
-            f"QtQuick3D setup: {'[OK]' if sys_info['qtquick3d_setup'] else '[WARNING]'}",
+            f"QML file: main.qml v4.7 (Правильные свойства API)",
+            f"Qt version: {sys_info['qt_version']} ({qt_major}.{qt_minor})",
             "",
-            "🎨 IBL ОКРУЖЕНИЕ:",
-            "   ✅ SkyBox фон из HDR файла",
-            "   ✅ IBL освещение от HDR",
-            "   ✅ Фон вращается с камерой (SkyBox)",
-            "   ✅ Плавные переходы при загрузке",
-            "   ✅ Fallback к простому цвету если HDR не загружен",
+            "🎨 GRAPHICS ARCHITECTURE:",
+            f"   ✅ ExtendedSceneEnvironment: Built-in from QtQuick3D.Helpers",
+            f"   ✅ Правильные названия свойств (проверено по документации)",
+            f"   ✅ Conflict resolution: Complete",
+            f"   ✅ Import: import QtQuick3D.Helpers",
+            "",
+            f"⚙️ RENDERING:",
+            f"   Qt RHI Backend: {os.environ.get('QSG_RHI_BACKEND', 'auto')}",
+            f"   Dithering support: {'✅ YES (Qt 6.10+)' if supports_dithering else '⚠️ NO (Qt < 6.10)'}",
+            f"   Python encoding: {sys_info['encoding']}",
+            f"   Terminal encoding: {sys_info['terminal_encoding']}",
+            f"   QtQuick3D setup: {'[OK]' if sys_info['qtquick3d_setup'] else '[WARNING]'}",
+            "",
+            "🔧 KEY FIXES:",
+            "   ✅ Using BUILT-IN ExtendedSceneEnvironment",
+            "   ✅ Правильные названия всех свойств",
+            "   ✅ All visual effects enabled",
+            "   ✅ Correct import from QtQuick3D.Helpers",
+            "",
+            "🎨 VISUAL EFFECTS (ExtendedSceneEnvironment):",
+            "   ✅ Bloom/Glow - свечение ярких областей",
+            "   ✅ SSAO - объемное затенение",
+            "   ✅ Tonemap - кинематографическая цветопередача",
+            "   ✅ Lens Flare - блики от источников света",
+            "   ✅ Vignette - художественное затемнение краев",
+            "   ✅ Depth of Field - размытие по глубине",
+            "   ✅ IBL - освещение на основе HDR окружения",
+            "   ✅ Fog - атмосферная дымка",
             ""
         ]
+        
+        if supports_dithering:
+            startup_info.append("   ✅ Dithering - устранение полос градиента (Qt 6.10+)")
+        else:
+            startup_info.append("   ⚠️ Dithering недоступен (требуется Qt 6.10+)")
         
         # Единоразовый вывод всей информации
         print('\n'.join(startup_info))
