@@ -1,6 +1,8 @@
 import QtQuick
 import QtQuick3D
 import QtQuick3D.Helpers
+import QtQuick3D.RenderSettings
+import "components"
 
 /*
  * PneumoStabSim - COMPLETE Graphics Parameters Main 3D View (v4.0)
@@ -75,6 +77,16 @@ Item {
     }
 
     // ===============================================================
+    // IBL CONTROLLER
+    // ===============================================================
+
+    IblProbeLoader {
+        id: iblLoader
+        primarySource: root.iblPrimarySource
+        fallbackSource: root.iblFallbackSource
+    }
+
+    // ===============================================================
     // CAMERA SYSTEM (preserved)
     // ===============================================================
     
@@ -91,8 +103,8 @@ Item {
     property real panY: 0
     
     // Camera properties
-    property real cameraFov: 50.0
-    property real cameraNear: 2.0
+    property real cameraFov: 60.0
+    property real cameraNear: 10.0
     property real cameraFar: 50000.0
     property real cameraSpeed: 1.0
     
@@ -110,65 +122,204 @@ Item {
     // ===============================================================
     // ✅ COMPLETE GRAPHICS PROPERTIES (All parameters from GraphicsPanel)
     // ===============================================================
-    
-    // Environment and IBL
-    property string backgroundColor: "#2a2a2a"
-    property bool skyboxEnabled: true
-    property bool iblEnabled: true         // ✅ НОВОЕ: IBL включение
-    property real iblIntensity: 1.0        // ✅ НОВОЕ: IBL интенсивность
-    
-    // Fog
-    property bool fogEnabled: false
-    property string fogColor: "#808080"
-    property real fogDensity: 0.1
-    
-    // Quality settings  
-    property int antialiasingMode: 2
-    property int antialiasingQuality: 2
-    property bool shadowsEnabled: true
-    property int shadowQuality: 2
-    property real shadowSoftness: 0.5      // ✅ НОВОЕ: Мягкость теней
-    
-    // Post-processing effects - EXPANDED
-    property bool bloomEnabled: true
-    property real bloomThreshold: 1.0       // ✅ НОВОЕ: Порог Bloom
-    property real bloomIntensity: 0.8
-    property bool ssaoEnabled: true
-    property real ssaoRadius: 8.0           // ✅ НОВОЕ: Радиус SSAO
-    property real ssaoIntensity: 0.6
-    
-    // Tonemap settings
-    property bool tonemapEnabled: true      // ✅ НОВОЕ: Тонемаппинг
-    property int tonemapMode: 3             // ✅ НОВОЕ: Режим тонемаппинга
-    
-    // Advanced effects
-    property bool depthOfFieldEnabled: false
-    property real dofFocusDistance: 2000    // ✅ НОВОЕ: Дистанция фокуса
-    property real dofFocusRange: 900        // ✅ НОВОЕ: Диапазон фокуса
-    property bool lensFlareEnabled: true
-    property bool vignetteEnabled: true     // ✅ НОВОЕ: Виньетирование
-    property real vignetteStrength: 0.45    // ✅ НОВОЕ: Сила виньетирования
-    property bool motionBlurEnabled: false  // ✅ ИСПРАВЛЕНО: Переименовано
-    
-    // Lighting control properties
-    property real keyLightBrightness: 2.8
-    property string keyLightColor: "#ffffff"
-    property real keyLightAngleX: -30
-    property real keyLightAngleY: -45
-    property real fillLightBrightness: 1.2
-    property string fillLightColor: "#f0f0ff"
-    property real pointLightBrightness: 20000
-    property real pointLightY: 1800
 
-    // Material control properties - EXPANDED
-    property real metalRoughness: 0.28
-    property real metalMetalness: 1.0
-    property real metalClearcoat: 0.25
-    property real glassOpacity: 0.35
-    property real glassRoughness: 0.05
-    property real glassIOR: 1.52            // ✅ НОВОЕ: Коэффициент преломления!
-    property real frameMetalness: 0.8
-    property real frameRoughness: 0.4
+    // HDR resources
+    property url iblPrimarySource: Qt.resolvedUrl("../hdr/studio.hdr")
+    property url iblFallbackSource: Qt.resolvedUrl("assets/studio_small_09_2k.hdr")
+    readonly property bool iblReady: iblLoader.ready
+
+    // Lighting
+    property real keyLightBrightness: 1.2
+    property color keyLightColor: "#ffffff"
+    property real keyLightAngleX: -35
+    property real keyLightAngleY: -40
+    property real fillLightBrightness: 0.7
+    property color fillLightColor: "#dfe7ff"
+    property real rimLightBrightness: 1.0
+    property color rimLightColor: "#ffe2b0"
+    property real pointLightBrightness: 1500.0
+    property color pointLightColor: "#ffffff"
+    property real pointLightY: 2200.0
+    property real pointLightRange: 3200.0
+
+    // Environment
+    property string backgroundMode: "skybox"
+    property color backgroundColor: "#1f242c"
+    property real skyboxBlur: 0.08
+    property bool iblEnabled: true
+    property real iblIntensity: 1.3
+    property bool fogEnabled: true
+    property color fogColor: "#b0c4d8"
+    property real fogDensity: 0.12
+    property real fogNear: 1200.0
+    property real fogFar: 12000.0
+    property bool aoEnabled: true
+    property real aoStrength: 1.0
+    property real aoRadius: 8.0
+
+    // Quality and rendering
+    property string aaPrimaryMode: "ssaa"
+    property string aaQualityLevel: "high"
+    property string aaPostMode: "taa"
+    property bool taaEnabled: true
+    property real taaStrength: 0.4
+    property bool fxaaEnabled: false
+    property bool specularAAEnabled: true
+    property bool ditheringEnabled: true
+    property real renderScale: 1.05
+    property string renderPolicy: "always"
+    property real frameRateLimit: 144.0
+    property string qualityPreset: "ultra"
+    property bool shadowsEnabled: true
+    property string shadowResolution: "4096"
+    property int shadowFilterSamples: 32
+    property real shadowBias: 8.0
+    property real shadowFactor: 80.0
+    property string oitMode: "weighted"
+
+    // Post-processing effects
+    property bool bloomEnabled: true
+    property real bloomIntensity: 0.5
+    property real bloomThreshold: 1.0
+    property real bloomSpread: 0.65
+    property bool depthOfFieldEnabled: false
+    property real dofFocusDistance: 2200.0
+    property real dofBlurAmount: 4.0
+    property bool motionBlurEnabled: false
+    property real motionBlurAmount: 0.2
+    property bool lensFlareEnabled: true
+    property bool vignetteEnabled: true
+    property real vignetteStrength: 0.35
+
+    // Tonemap settings
+    property bool tonemapEnabled: true
+    property string tonemapModeName: "filmic"
+
+    // Material control properties
+    property color frameBaseColor: "#c53030"
+    property real frameMetalness: 0.85
+    property real frameRoughness: 0.35
+    property real frameSpecularAmount: 1.0
+    property real frameSpecularTint: 0.0
+    property real frameClearcoat: 0.22
+    property real frameClearcoatRoughness: 0.1
+    property real frameTransmission: 0.0
+    property real frameOpacity: 1.0
+    property real frameIor: 1.5
+    property real frameAttenuationDistance: 10000.0
+    property color frameAttenuationColor: "#ffffff"
+    property color frameEmissiveColor: "#000000"
+    property real frameEmissiveIntensity: 0.0
+
+    property color leverBaseColor: "#9ea4ab"
+    property real leverMetalness: 1.0
+    property real leverRoughness: 0.28
+    property real leverSpecularAmount: 1.0
+    property real leverSpecularTint: 0.0
+    property real leverClearcoat: 0.3
+    property real leverClearcoatRoughness: 0.08
+    property real leverTransmission: 0.0
+    property real leverOpacity: 1.0
+    property real leverIor: 1.5
+    property real leverAttenuationDistance: 10000.0
+    property color leverAttenuationColor: "#ffffff"
+    property color leverEmissiveColor: "#000000"
+    property real leverEmissiveIntensity: 0.0
+
+    property color tailRodBaseColor: "#d5d9df"
+    property real tailRodMetalness: 1.0
+    property real tailRodRoughness: 0.3
+    property real tailRodSpecularAmount: 1.0
+    property real tailRodSpecularTint: 0.0
+    property real tailRodClearcoat: 0.0
+    property real tailRodClearcoatRoughness: 0.0
+    property real tailRodTransmission: 0.0
+    property real tailRodOpacity: 1.0
+    property real tailRodIor: 1.5
+    property real tailRodAttenuationDistance: 10000.0
+    property color tailRodAttenuationColor: "#ffffff"
+    property color tailRodEmissiveColor: "#000000"
+    property real tailRodEmissiveIntensity: 0.0
+
+    property color cylinderBaseColor: "#e1f5ff"
+    property real cylinderMetalness: 0.0
+    property real cylinderRoughness: 0.05
+    property real cylinderSpecularAmount: 1.0
+    property real cylinderSpecularTint: 0.0
+    property real cylinderClearcoat: 0.0
+    property real cylinderClearcoatRoughness: 0.0
+    property real cylinderTransmission: 1.0
+    property real cylinderOpacity: 1.0
+    property real cylinderIor: 1.52
+    property real cylinderAttenuationDistance: 1800.0
+    property color cylinderAttenuationColor: "#b7e7ff"
+    property color cylinderEmissiveColor: "#000000"
+    property real cylinderEmissiveIntensity: 0.0
+
+    property color pistonBodyBaseColor: "#ff3c6e"
+    property color pistonBodyWarningColor: "#ff5454"
+    property real pistonBodyMetalness: 1.0
+    property real pistonBodyRoughness: 0.26
+    property real pistonBodySpecularAmount: 1.0
+    property real pistonBodySpecularTint: 0.0
+    property real pistonBodyClearcoat: 0.18
+    property real pistonBodyClearcoatRoughness: 0.06
+    property real pistonBodyTransmission: 0.0
+    property real pistonBodyOpacity: 1.0
+    property real pistonBodyIor: 1.5
+    property real pistonBodyAttenuationDistance: 10000.0
+    property color pistonBodyAttenuationColor: "#ffffff"
+    property color pistonBodyEmissiveColor: "#000000"
+    property real pistonBodyEmissiveIntensity: 0.0
+
+    property color pistonRodBaseColor: "#ececec"
+    property color pistonRodWarningColor: "#ff2a2a"
+    property real pistonRodMetalness: 1.0
+    property real pistonRodRoughness: 0.18
+    property real pistonRodSpecularAmount: 1.0
+    property real pistonRodSpecularTint: 0.0
+    property real pistonRodClearcoat: 0.12
+    property real pistonRodClearcoatRoughness: 0.05
+    property real pistonRodTransmission: 0.0
+    property real pistonRodOpacity: 1.0
+    property real pistonRodIor: 1.5
+    property real pistonRodAttenuationDistance: 10000.0
+    property color pistonRodAttenuationColor: "#ffffff"
+    property color pistonRodEmissiveColor: "#000000"
+    property real pistonRodEmissiveIntensity: 0.0
+
+    property color jointTailBaseColor: "#2a82ff"
+    property real jointTailMetalness: 0.9
+    property real jointTailRoughness: 0.35
+    property real jointTailSpecularAmount: 1.0
+    property real jointTailSpecularTint: 0.0
+    property real jointTailClearcoat: 0.1
+    property real jointTailClearcoatRoughness: 0.08
+    property real jointTailTransmission: 0.0
+    property real jointTailOpacity: 1.0
+    property real jointTailIor: 1.5
+    property real jointTailAttenuationDistance: 10000.0
+    property color jointTailAttenuationColor: "#ffffff"
+    property color jointTailEmissiveColor: "#000000"
+    property real jointTailEmissiveIntensity: 0.0
+
+    property color jointArmBaseColor: "#ff9c3a"
+    property real jointArmMetalness: 0.9
+    property real jointArmRoughness: 0.32
+    property real jointArmSpecularAmount: 1.0
+    property real jointArmSpecularTint: 0.0
+    property real jointArmClearcoat: 0.12
+    property real jointArmClearcoatRoughness: 0.08
+    property real jointArmTransmission: 0.0
+    property real jointArmOpacity: 1.0
+    property real jointArmIor: 1.5
+    property real jointArmAttenuationDistance: 10000.0
+    property color jointArmAttenuationColor: "#ffffff"
+    property color jointArmEmissiveColor: "#000000"
+    property real jointArmEmissiveIntensity: 0.0
+
+    property color jointRodOkColor: "#00ff55"
+    property color jointRodErrorColor: "#ff0000"
 
     // ===============================================================
     // ANIMATION AND GEOMETRY PROPERTIES (preserved)
@@ -234,6 +385,19 @@ Item {
         if (x > 180) x -= 360;
         if (x < -180) x += 360;
         return x;
+    }
+
+    function resolveUrl(path) {
+        if (!path || path === "")
+            return "";
+        if (path.startsWith("file:") || path.startsWith("http:") || path.startsWith("https:") ||
+            path.startsWith("qrc:") || path.startsWith("data:"))
+            return path;
+        if (path.length >= 2 && path.charAt(1) === ":")
+            return "file:///" + path.replace(/\\/g, "/");
+        if (path.startsWith("/"))
+            return "file://" + path;
+        return Qt.resolvedUrl(path);
     }
     
     function autoFitFrame(marginFactor) {
@@ -393,82 +557,141 @@ Item {
             if (params.fill_light.brightness !== undefined) fillLightBrightness = params.fill_light.brightness
             if (params.fill_light.color !== undefined) fillLightColor = params.fill_light.color
         }
+        if (params.rim_light) {
+            if (params.rim_light.brightness !== undefined) rimLightBrightness = params.rim_light.brightness
+            if (params.rim_light.color !== undefined) rimLightColor = params.rim_light.color
+        }
         if (params.point_light) {
             if (params.point_light.brightness !== undefined) pointLightBrightness = params.point_light.brightness
+            if (params.point_light.color !== undefined) pointLightColor = params.point_light.color
             if (params.point_light.position_y !== undefined) pointLightY = params.point_light.position_y
+            if (params.point_light.range !== undefined) pointLightRange = Math.max(1, params.point_light.range)
         }
         console.log("  ✅ Lighting updated successfully")
     }
 
-    // ✅ ПОЛНАЯ реализация updateMaterials()
     function applyMaterialUpdates(params) {
         console.log("🎨 main.qml: applyMaterialUpdates() called")
-        
-        if (params.metal !== undefined) {
-            if (params.metal.roughness !== undefined) metalRoughness = params.metal.roughness
-            if (params.metal.metalness !== undefined) metalMetalness = params.metal.metalness
-            if (params.metal.clearcoat !== undefined) metalClearcoat = params.metal.clearcoat
+        function applyCommon(values, prefix) {
+            if (values.base_color !== undefined) root[prefix + "BaseColor"] = values.base_color
+            if (values.metalness !== undefined) root[prefix + "Metalness"] = values.metalness
+            if (values.roughness !== undefined) root[prefix + "Roughness"] = values.roughness
+            if (values.specular !== undefined) root[prefix + "SpecularAmount"] = values.specular
+            if (values.specular_tint !== undefined) root[prefix + "SpecularTint"] = values.specular_tint
+            if (values.clearcoat !== undefined) root[prefix + "Clearcoat"] = values.clearcoat
+            if (values.clearcoat_roughness !== undefined) root[prefix + "ClearcoatRoughness"] = values.clearcoat_roughness
+            if (values.transmission !== undefined) root[prefix + "Transmission"] = values.transmission
+            if (values.opacity !== undefined) root[prefix + "Opacity"] = values.opacity
+            if (values.ior !== undefined) root[prefix + "Ior"] = values.ior
+            if (values.attenuation_distance !== undefined) root[prefix + "AttenuationDistance"] = values.attenuation_distance
+            if (values.attenuation_color !== undefined) root[prefix + "AttenuationColor"] = values.attenuation_color
+            if (values.emissive_color !== undefined) root[prefix + "EmissiveColor"] = values.emissive_color
+            if (values.emissive_intensity !== undefined) root[prefix + "EmissiveIntensity"] = values.emissive_intensity
         }
-        
-        if (params.glass !== undefined) {
-            if (params.glass.opacity !== undefined) glassOpacity = params.glass.opacity
-            if (params.glass.roughness !== undefined) glassRoughness = params.glass.roughness
-            // ✅ НОВОЕ: Коэффициент преломления
-            if (params.glass.ior !== undefined) {
-                glassIOR = params.glass.ior
-                console.log("  🔍 Glass IOR updated to:", glassIOR)
-            }
+
+        if (params.frame !== undefined) applyCommon(params.frame, "frame")
+        if (params.lever !== undefined) applyCommon(params.lever, "lever")
+        if (params.tail !== undefined) applyCommon(params.tail, "tailRod")
+        if (params.cylinder !== undefined) applyCommon(params.cylinder, "cylinder")
+        if (params.piston_body !== undefined) {
+            applyCommon(params.piston_body, "pistonBody")
+            if (params.piston_body.warning_color !== undefined) pistonBodyWarningColor = params.piston_body.warning_color
         }
-        
-        if (params.frame !== undefined) {
-            if (params.frame.metalness !== undefined) frameMetalness = params.frame.metalness
-            if (params.frame.roughness !== undefined) frameRoughness = params.frame.roughness
+        if (params.piston_rod !== undefined) {
+            applyCommon(params.piston_rod, "pistonRod")
+            if (params.piston_rod.warning_color !== undefined) pistonRodWarningColor = params.piston_rod.warning_color
         }
-        
-        console.log("  ✅ Materials updated successfully (including IOR)")
+        if (params.joint_tail !== undefined) {
+            applyCommon(params.joint_tail, "jointTail")
+            if (params.joint_tail.ok_color !== undefined) jointRodOkColor = params.joint_tail.ok_color
+            if (params.joint_tail.error_color !== undefined) jointRodErrorColor = params.joint_tail.error_color
+        }
+        if (params.joint_arm !== undefined) {
+            applyCommon(params.joint_arm, "jointArm")
+        }
+
+        console.log("  ✅ Materials updated successfully")
     }
 
     // ✅ ПОЛНАЯ реализация updateEnvironment()
     function applyEnvironmentUpdates(params) {
         console.log("🌍 main.qml: applyEnvironmentUpdates() called")
-        
-        if (params.background_color !== undefined) backgroundColor = params.background_color
-        if (params.skybox_enabled !== undefined) skyboxEnabled = params.skybox_enabled
-        
-        // ✅ НОВОЕ: IBL параметры
-        if (params.ibl_enabled !== undefined) {
-            iblEnabled = params.ibl_enabled
-            console.log("  🌟 IBL enabled:", iblEnabled)
+
+        if (params.background) {
+            if (params.background.mode !== undefined) backgroundMode = params.background.mode
+            if (params.background.color !== undefined) backgroundColor = params.background.color
         }
-        if (params.ibl_intensity !== undefined) {
-            iblIntensity = params.ibl_intensity
-            console.log("  🌟 IBL intensity:", iblIntensity)
+
+        if (params.ibl) {
+            if (params.ibl.enabled !== undefined) iblEnabled = params.ibl.enabled
+            if (params.ibl.intensity !== undefined) iblIntensity = params.ibl.intensity
+            if (params.ibl.blur !== undefined) skyboxBlur = params.ibl.blur
+            if (params.ibl.source !== undefined) {
+                var resolvedSource = resolveUrl(params.ibl.source)
+                if (resolvedSource && resolvedSource !== "") {
+                    iblLoader._fallbackTried = false
+                    iblPrimarySource = resolvedSource
+                    console.log("  🌟 IBL source:", iblPrimarySource)
+                }
+            }
+            if (params.ibl.fallback !== undefined) {
+                var resolvedFallback = resolveUrl(params.ibl.fallback)
+                if (resolvedFallback && resolvedFallback !== "") {
+                    iblLoader._fallbackTried = false
+                    iblFallbackSource = resolvedFallback
+                    console.log("  🌟 IBL fallback:", iblFallbackSource)
+                }
+            }
         }
-        
-        // Туман
-        if (params.fog_enabled !== undefined) fogEnabled = params.fog_enabled
-        if (params.fog_color !== undefined) fogColor = params.fog_color
-        if (params.fog_density !== undefined) fogDensity = params.fog_density
-        
-        console.log("  ✅ Environment updated successfully (including IBL)")
+
+        if (params.fog) {
+            if (params.fog.enabled !== undefined) fogEnabled = params.fog.enabled
+            if (params.fog.color !== undefined) fogColor = params.fog.color
+            if (params.fog.density !== undefined) fogDensity = params.fog.density
+            if (params.fog.near !== undefined) fogNear = params.fog.near
+            if (params.fog.far !== undefined) fogFar = params.fog.far
+        }
+
+        if (params.ambient_occlusion) {
+            if (params.ambient_occlusion.enabled !== undefined) aoEnabled = params.ambient_occlusion.enabled
+            if (params.ambient_occlusion.strength !== undefined) aoStrength = params.ambient_occlusion.strength
+            if (params.ambient_occlusion.radius !== undefined) aoRadius = params.ambient_occlusion.radius
+        }
+
+        console.log("  ✅ Environment updated successfully")
     }
 
     // ✅ ПОЛНАЯ реализация updateQuality()
     function applyQualityUpdates(params) {
         console.log("⚙️ main.qml: applyQualityUpdates() called")
-        
-        if (params.antialiasing !== undefined) antialiasingMode = params.antialiasing
-        if (params.aa_quality !== undefined) antialiasingQuality = params.aa_quality
-        if (params.shadows_enabled !== undefined) shadowsEnabled = params.shadows_enabled
-        if (params.shadow_quality !== undefined) shadowQuality = params.shadow_quality
-        
-        // ✅ НОВОЕ: Мягкость теней
-        if (params.shadow_softness !== undefined) {
-            shadowSoftness = params.shadow_softness
-            console.log("  🌫️ Shadow softness:", shadowSoftness)
+
+        if (params.shadows) {
+            if (params.shadows.enabled !== undefined) shadowsEnabled = params.shadows.enabled
+            if (params.shadows.resolution !== undefined) shadowResolution = params.shadows.resolution
+            if (params.shadows.filter !== undefined) shadowFilterSamples = params.shadows.filter
+            if (params.shadows.bias !== undefined) shadowBias = params.shadows.bias
+            if (params.shadows.darkness !== undefined) shadowFactor = params.shadows.darkness
         }
-        
-        console.log("  ✅ Quality updated successfully (including shadow softness)")
+
+        if (params.antialiasing) {
+            if (params.antialiasing.primary !== undefined) aaPrimaryMode = params.antialiasing.primary
+            if (params.antialiasing.quality !== undefined) aaQualityLevel = params.antialiasing.quality
+            if (params.antialiasing.post !== undefined) aaPostMode = params.antialiasing.post
+        }
+
+        if (params.taa_enabled !== undefined) taaEnabled = params.taa_enabled
+        if (params.taa_strength !== undefined) taaStrength = params.taa_strength
+        if (params.fxaa_enabled !== undefined) fxaaEnabled = params.fxaa_enabled
+        if (params.specular_aa !== undefined) specularAAEnabled = params.specular_aa
+        if (params.dithering !== undefined) ditheringEnabled = params.dithering
+        if (params.render_scale !== undefined) renderScale = params.render_scale
+        if (params.render_policy !== undefined) renderPolicy = params.render_policy
+        if (params.frame_rate_limit !== undefined) frameRateLimit = params.frame_rate_limit
+        if (params.oit !== undefined) oitMode = params.oit
+        if (params.preset !== undefined) qualityPreset = params.preset
+
+        console.log("  🎚 Quality preset:", qualityPreset, ", FPS limit:", frameRateLimit)
+        console.log("  ✅ Quality updated successfully")
     }
 
     // ✅ ПОЛНАЯ реализация updateCamera()
@@ -489,63 +712,30 @@ Item {
     function applyEffectsUpdates(params) {
         console.log("✨ main.qml: applyEffectsUpdates() called")
         
-        // Bloom - РАСШИРЕННЫЙ
         if (params.bloom_enabled !== undefined) bloomEnabled = params.bloom_enabled
         if (params.bloom_intensity !== undefined) bloomIntensity = params.bloom_intensity
-        if (params.bloom_threshold !== undefined) {
-            bloomThreshold = params.bloom_threshold
-            console.log("  🌟 Bloom threshold:", bloomThreshold)
-        }
-        
-        // SSAO - РАСШИРЕННЫЙ
-        if (params.ssao_enabled !== undefined) ssaoEnabled = params.ssao_enabled
-        if (params.ssao_intensity !== undefined) ssaoIntensity = params.ssao_intensity
-        if (params.ssao_radius !== undefined) {
-            ssaoRadius = params.ssao_radius
-            console.log("  🌑 SSAO radius:", ssaoRadius)
-        }
-        
-        // ✅ НОВОЕ: Тонемаппинг
-        if (params.tonemap_enabled !== undefined) {
-            tonemapEnabled = params.tonemap_enabled
-            console.log("  🎨 Tonemap enabled:", tonemapEnabled)
-        }
-        if (params.tonemap_mode !== undefined) {
-            tonemapMode = params.tonemap_mode
-            console.log("  🎨 Tonemap mode:", tonemapMode)
-        }
-        
-        // ✅ НОВОЕ: Depth of Field
+        if (params.bloom_threshold !== undefined) bloomThreshold = params.bloom_threshold
+        if (params.bloom_spread !== undefined) bloomSpread = params.bloom_spread
+
         if (params.depth_of_field !== undefined) depthOfFieldEnabled = params.depth_of_field
-        if (params.dof_focus_distance !== undefined) {
-            dofFocusDistance = params.dof_focus_distance
-            console.log("  🔍 DoF focus distance:", dofFocusDistance)
-        }
-        if (params.dof_focus_range !== undefined) {
-            dofFocusRange = params.dof_focus_range
-            console.log("  🔍 DoF focus range:", dofFocusRange)
-        }
-        
-        // ✅ НОВОЕ: Виньетирование
-        if (params.vignette_enabled !== undefined) {
-            vignetteEnabled = params.vignette_enabled
-            console.log("  🖼️ Vignette enabled:", vignetteEnabled)
-        }
-        if (params.vignette_strength !== undefined) {
-            vignetteStrength = params.vignette_strength
-            console.log("  🖼️ Vignette strength:", vignetteStrength)
-        }
-        
-        // ✅ НОВОЕ: Lens Flare
-        if (params.lens_flare_enabled !== undefined) {
-            lensFlareEnabled = params.lens_flare_enabled
-            console.log("  ✨ Lens Flare enabled:", lensFlareEnabled)
-        }
-        
-        // Motion Blur
+        if (params.dof_focus_distance !== undefined) dofFocusDistance = params.dof_focus_distance
+        if (params.dof_blur !== undefined) dofBlurAmount = params.dof_blur
+
         if (params.motion_blur !== undefined) motionBlurEnabled = params.motion_blur
-        
-        console.log("  ✅ Visual effects updated successfully (COMPLETE)")
+        if (params.motion_blur_amount !== undefined) motionBlurAmount = params.motion_blur_amount
+
+        if (params.lens_flare !== undefined) lensFlareEnabled = params.lens_flare
+        if (params.vignette !== undefined) vignetteEnabled = params.vignette
+        if (params.vignette_strength !== undefined) vignetteStrength = params.vignette_strength
+
+        if (params.tonemap_enabled !== undefined) tonemapEnabled = params.tonemap_enabled
+        if (params.tonemap_mode !== undefined) {
+            var allowedModes = ["filmic", "aces", "reinhard", "gamma", "linear"]
+            if (allowedModes.indexOf(params.tonemap_mode) !== -1)
+                tonemapModeName = params.tonemap_mode
+        }
+
+        console.log("  ✅ Visual effects updated successfully")
     }
 
     // Legacy functions for backward compatibility
@@ -572,70 +762,204 @@ Item {
         id: view3d
         anchors.fill: parent
 
+        renderSettings: RenderSettings {
+            renderScale: root.renderScale
+            renderPolicy: root.renderPolicy === "ondemand" ? RenderSettings.OnDemand : RenderSettings.Always
+            maximumFrameRate: root.frameRateLimit
+        }
+
         environment: ExtendedSceneEnvironment {
-            backgroundMode: skyboxEnabled ? SceneEnvironment.SkyBox : SceneEnvironment.Color
-            clearColor: backgroundColor
-            lightProbe: iblEnabled ? null : null                           // ✅ НОВОЕ: IBL
-            probeExposure: iblIntensity                                    // ✅ НОВОЕ: IBL
-            
-            tonemapMode: tonemapEnabled ? 
-                (tonemapMode === 3 ? SceneEnvironment.TonemapModeFilmic :
-                 tonemapMode === 2 ? SceneEnvironment.TonemapModeReinhard :
-                 tonemapMode === 1 ? SceneEnvironment.TonemapModeLinear :
-                 SceneEnvironment.TonemapModeNone) : SceneEnvironment.TonemapModeNone
+            id: mainEnvironment
+            backgroundMode: root.backgroundMode === "skybox" && root.iblReady ? SceneEnvironment.SkyBox : SceneEnvironment.Color
+            clearColor: root.backgroundColor
+            lightProbe: root.iblEnabled && root.iblReady ? iblLoader.probe : null
+            probeExposure: root.iblIntensity
+            skyBoxBlurAmount: root.skyboxBlur
+            fogEnabled: root.fogEnabled
+            fogColor: root.fogColor
+            fogDensity: root.fogDensity
+            fogDepthBegin: root.fogNear
+            fogDepthEnd: root.fogFar
+
+            tonemapMode: root.tonemapEnabled ?
+                (root.tonemapModeName === "filmic" ? SceneEnvironment.TonemapModeFilmic :
+                 root.tonemapModeName === "aces" ?
+                     (SceneEnvironment.TonemapModeAces !== undefined ? SceneEnvironment.TonemapModeAces
+                                                                       : SceneEnvironment.TonemapModeFilmic) :
+                 root.tonemapModeName === "reinhard" ? SceneEnvironment.TonemapModeReinhard :
+                 root.tonemapModeName === "gamma" ?
+                     (SceneEnvironment.TonemapModeGamma !== undefined ? SceneEnvironment.TonemapModeGamma
+                                                                       : SceneEnvironment.TonemapModeLinear) :
+                 SceneEnvironment.TonemapModeLinear) : SceneEnvironment.TonemapModeNone
             exposure: 1.0
             whitePoint: 2.0
-            
-            antialiasingMode: antialiasingMode === 3 ? SceneEnvironment.ProgressiveAA :
-                             antialiasingMode === 2 ? SceneEnvironment.MSAA :
-                             antialiasingMode === 1 ? SceneEnvironment.SSAA :
+
+            antialiasingMode: root.aaPrimaryMode === "msaa" ? SceneEnvironment.MSAA :
+                             root.aaPrimaryMode === "ssaa" ? SceneEnvironment.SSAA :
                              SceneEnvironment.NoAA
-            antialiasingQuality: (antialiasingQuality !== undefined && antialiasingQuality === 2) ? SceneEnvironment.High :
-                               (antialiasingQuality !== undefined && antialiasingQuality === 1) ? SceneEnvironment.Medium :
+            antialiasingQuality: root.aaQualityLevel === "high" ? SceneEnvironment.High :
+                               root.aaQualityLevel === "medium" ? SceneEnvironment.Medium :
                                SceneEnvironment.Low
-            
-            specularAAEnabled: true
-            ditheringEnabled: true
-            fxaaEnabled: true
-            temporalAAEnabled: isRunning
-            
-            aoEnabled: ssaoEnabled
-            aoStrength: ssaoIntensity * 100
-            aoDistance: ssaoRadius                                         // ✅ НОВОЕ: Радиус SSAO
+            fxaaEnabled: root.aaPostMode === "fxaa" && root.fxaaEnabled
+            temporalAAEnabled: (root.aaPostMode === "taa" && root.taaEnabled && root.aaPrimaryMode !== "msaa")
+            temporalAAStrength: root.taaStrength
+            specularAAEnabled: root.specularAAEnabled
+            ditheringEnabled: root.ditheringEnabled
+
+            aoEnabled: root.aoEnabled
+            aoStrength: root.aoStrength
+            aoDistance: Math.max(1.0, root.aoRadius)
             aoSoftness: 20
             aoDither: true
             aoSampleRate: 3
-            
-            glowEnabled: bloomEnabled
-            glowIntensity: bloomIntensity
-            glowBloom: 0.5
-            glowStrength: 0.8
+
+            glowEnabled: root.bloomEnabled
+            glowIntensity: root.bloomIntensity
+            glowBloom: root.bloomSpread
+            glowStrength: 0.9
             glowQualityHigh: true
             glowUseBicubicUpscale: true
-            glowHDRMinimumValue: bloomThreshold                            // ✅ НОВОЕ: Порог Bloom
-            glowHDRMaximumValue: 8.0
-            glowHDRScale: 2.0
-            
-            lensFlareEnabled: lensFlareEnabled                             // ✅ НОВОЕ: Lens Flare
+            glowHDRMinimumValue: root.bloomThreshold
+            glowHDRMaximumValue: 6.0
+            glowHDRScale: 1.5
+
+            lensFlareEnabled: root.lensFlareEnabled
             lensFlareGhostCount: 3
             lensFlareGhostDispersal: 0.6
             lensFlareHaloWidth: 0.25
             lensFlareBloomBias: 0.35
             lensFlareStretchToAspect: 1.0
-            
-            depthOfFieldEnabled: depthOfFieldEnabled
-            depthOfFieldFocusDistance: dofFocusDistance                    // ✅ НОВОЕ: Дистанция фокуса
-            depthOfFieldFocusRange: dofFocusRange                          // ✅ НОВОЕ: Диапазон фокуса
-            depthOfFieldBlurAmount: 3.0
-            
-            vignetteEnabled: vignetteEnabled                               // ✅ НОВОЕ: Виньетирование
+
+            depthOfFieldEnabled: root.depthOfFieldEnabled
+            depthOfFieldFocusDistance: root.dofFocusDistance
+            depthOfFieldBlurAmount: root.dofBlurAmount
+
+            motionBlurEnabled: root.motionBlurEnabled
+            motionBlurAmount: root.motionBlurAmount
+
+            vignetteEnabled: root.vignetteEnabled
             vignetteRadius: 0.4
-            vignetteStrength: vignetteStrength                             // ✅ НОВОЕ: Сила виньетирования
-            
+            vignetteStrength: root.vignetteStrength
+
+            oitMethod: root.oitMode === "weighted" ? SceneEnvironment.OITWeightedBlended : SceneEnvironment.OITNone
+
             colorAdjustmentsEnabled: true
             adjustmentBrightness: 1.0
             adjustmentContrast: 1.05
             adjustmentSaturation: 1.05
+        }
+
+        // ===============================================================
+        // MATERIAL LIBRARY (shared instances to avoid duplication)
+        // ===============================================================
+
+        PrincipledMaterial {
+            id: frameMaterial
+            baseColor: frameBaseColor
+            metalness: frameMetalness
+            roughness: frameRoughness
+            specularAmount: frameSpecularAmount
+            specularTint: frameSpecularTint
+            clearcoatAmount: frameClearcoat
+            clearcoatRoughnessAmount: frameClearcoatRoughness
+            transmissionFactor: frameTransmission
+            opacity: frameOpacity
+            indexOfRefraction: frameIor
+            attenuationDistance: frameAttenuationDistance
+            attenuationColor: frameAttenuationColor
+            emissiveColor: frameEmissiveColor
+            emissiveFactor: frameEmissiveIntensity
+        }
+
+        PrincipledMaterial {
+            id: leverMaterial
+            baseColor: leverBaseColor
+            metalness: leverMetalness
+            roughness: leverRoughness
+            specularAmount: leverSpecularAmount
+            specularTint: leverSpecularTint
+            clearcoatAmount: leverClearcoat
+            clearcoatRoughnessAmount: leverClearcoatRoughness
+            transmissionFactor: leverTransmission
+            opacity: leverOpacity
+            indexOfRefraction: leverIor
+            attenuationDistance: leverAttenuationDistance
+            attenuationColor: leverAttenuationColor
+            emissiveColor: leverEmissiveColor
+            emissiveFactor: leverEmissiveIntensity
+        }
+
+        PrincipledMaterial {
+            id: tailRodMaterial
+            baseColor: tailRodBaseColor
+            metalness: tailRodMetalness
+            roughness: tailRodRoughness
+            specularAmount: tailRodSpecularAmount
+            specularTint: tailRodSpecularTint
+            clearcoatAmount: tailRodClearcoat
+            clearcoatRoughnessAmount: tailRodClearcoatRoughness
+            transmissionFactor: tailRodTransmission
+            opacity: tailRodOpacity
+            indexOfRefraction: tailRodIor
+            attenuationDistance: tailRodAttenuationDistance
+            attenuationColor: tailRodAttenuationColor
+            emissiveColor: tailRodEmissiveColor
+            emissiveFactor: tailRodEmissiveIntensity
+        }
+
+        PrincipledMaterial {
+            id: cylinderMaterial
+            baseColor: cylinderBaseColor
+            metalness: cylinderMetalness
+            roughness: cylinderRoughness
+            specularAmount: cylinderSpecularAmount
+            specularTint: cylinderSpecularTint
+            clearcoatAmount: cylinderClearcoat
+            clearcoatRoughnessAmount: cylinderClearcoatRoughness
+            transmissionFactor: cylinderTransmission
+            opacity: cylinderOpacity
+            indexOfRefraction: cylinderIor
+            attenuationDistance: cylinderAttenuationDistance
+            attenuationColor: cylinderAttenuationColor
+            emissiveColor: cylinderEmissiveColor
+            emissiveFactor: cylinderEmissiveIntensity
+            alphaMode: PrincipledMaterial.Blend
+        }
+
+        PrincipledMaterial {
+            id: jointTailMaterial
+            baseColor: jointTailBaseColor
+            metalness: jointTailMetalness
+            roughness: jointTailRoughness
+            specularAmount: jointTailSpecularAmount
+            specularTint: jointTailSpecularTint
+            clearcoatAmount: jointTailClearcoat
+            clearcoatRoughnessAmount: jointTailClearcoatRoughness
+            transmissionFactor: jointTailTransmission
+            opacity: jointTailOpacity
+            indexOfRefraction: jointTailIor
+            attenuationDistance: jointTailAttenuationDistance
+            attenuationColor: jointTailAttenuationColor
+            emissiveColor: jointTailEmissiveColor
+            emissiveFactor: jointTailEmissiveIntensity
+        }
+
+        PrincipledMaterial {
+            id: jointArmMaterial
+            baseColor: jointArmBaseColor
+            metalness: jointArmMetalness
+            roughness: jointArmRoughness
+            specularAmount: jointArmSpecularAmount
+            specularTint: jointArmSpecularTint
+            clearcoatAmount: jointArmClearcoat
+            clearcoatRoughnessAmount: jointArmClearcoatRoughness
+            transmissionFactor: jointArmTransmission
+            opacity: jointArmOpacity
+            indexOfRefraction: jointArmIor
+            attenuationDistance: jointArmAttenuationDistance
+            attenuationColor: jointArmAttenuationColor
+            emissiveColor: jointArmEmissiveColor
+            emissiveFactor: jointArmEmissiveIntensity
         }
 
         // Camera rig (preserved)
@@ -661,42 +985,53 @@ Item {
         // Lighting (with shadow softness)
         DirectionalLight {
             id: keyLight
-            eulerRotation.x: keyLightAngleX
-            eulerRotation.y: keyLightAngleY
-            brightness: keyLightBrightness
-            color: keyLightColor
-            castsShadow: shadowsEnabled
-            shadowMapQuality: shadowQuality === 2 ? Light.ShadowMapQualityHigh :
-                             shadowQuality === 1 ? Light.ShadowMapQualityMedium :
+            eulerRotation.x: root.keyLightAngleX
+            eulerRotation.y: root.keyLightAngleY
+            brightness: root.keyLightBrightness
+            color: root.keyLightColor
+            castsShadow: root.shadowsEnabled
+            shadowMapQuality: root.shadowResolution === "4096" ?
+                                 (typeof Light.ShadowMapQualityUltra !== "undefined" ? Light.ShadowMapQualityUltra
+                                                                                       : Light.ShadowMapQualityVeryHigh) :
+                             root.shadowResolution === "2048" ? Light.ShadowMapQualityVeryHigh :
+                             root.shadowResolution === "1024" ? Light.ShadowMapQualityHigh :
+                             root.shadowResolution === "512" ? Light.ShadowMapQualityMedium :
                              Light.ShadowMapQualityLow
-            shadowFactor: 75
-            shadowBias: shadowSoftness * 0.001                            // ✅ НОВОЕ: Мягкость теней
+            shadowFactor: root.shadowFactor
+            shadowBias: root.shadowBias
+            shadowFilter: root.shadowFilterSamples === 32 ? Light.ShadowFilterPCF32 :
+                           root.shadowFilterSamples === 16 ? Light.ShadowFilterPCF16 :
+                           root.shadowFilterSamples === 8 ? Light.ShadowFilterPCF8 :
+                           root.shadowFilterSamples === 4 ? Light.ShadowFilterPCF4 :
+                           Light.ShadowFilterNone
         }
-        
+
         DirectionalLight {
             id: fillLight
             eulerRotation.x: -60
             eulerRotation.y: 135
-            brightness: fillLightBrightness
-            color: fillLightColor
+            brightness: root.fillLightBrightness
+            color: root.fillLightColor
             castsShadow: false
         }
-        
+
         DirectionalLight {
             id: rimLight
             eulerRotation.x: 15
             eulerRotation.y: 180
-            brightness: 1.5
-            color: "#ffffcc"
+            brightness: root.rimLightBrightness
+            color: root.rimLightColor
             castsShadow: false
         }
-        
+
         PointLight {
             id: accentLight
-            position: Qt.vector3d(0, pointLightY, 1500)
-            brightness: pointLightBrightness
-            color: "#ffffff"
-            quadraticFade: 0.00008
+            position: Qt.vector3d(0, root.pointLightY, 1500)
+            brightness: root.pointLightBrightness
+            color: root.pointLightColor
+            constantFade: 1.0
+            linearFade: 2.0 / Math.max(200.0, root.pointLightRange)
+            quadraticFade: 1.0 / Math.pow(Math.max(200.0, root.pointLightRange), 2)
         }
 
         // ===============================================================
@@ -708,31 +1043,19 @@ Item {
             source: "#Cube"
             position: Qt.vector3d(0, userBeamSize/2, userFrameLength/2)
             scale: Qt.vector3d(userBeamSize/100, userBeamSize/100, userFrameLength/100)
-            materials: PrincipledMaterial { 
-                baseColor: "#cc0000"
-                metalness: frameMetalness
-                roughness: frameRoughness
-            }
+            materials: [frameMaterial]
         }
         Model {
             source: "#Cube"
             position: Qt.vector3d(0, userBeamSize + userFrameHeight/2, userBeamSize/2)
             scale: Qt.vector3d(userBeamSize/100, userFrameHeight/100, userBeamSize/100)
-            materials: PrincipledMaterial { 
-                baseColor: "#cc0000"
-                metalness: frameMetalness
-                roughness: frameRoughness
-            }
+            materials: [frameMaterial]
         }
         Model {
             source: "#Cube"
             position: Qt.vector3d(0, userBeamSize + userFrameHeight/2, userFrameLength - userBeamSize/2)
             scale: Qt.vector3d(userBeamSize/100, userFrameHeight/100, userBeamSize/100)
-            materials: PrincipledMaterial { 
-                baseColor: "#cc0000"
-                metalness: frameMetalness
-                roughness: frameRoughness
-            }
+            materials: [frameMaterial]
         }
 
         // ✅ OPTIMIZED SUSPENSION COMPONENT (with CORRECT rod length calculation)
@@ -828,18 +1151,13 @@ Item {
             Model {
                 source: "#Cube"
                 position: Qt.vector3d(
-                    j_arm.x + (userLeverLength/2) * Math.cos(totalAngleRad), 
-                    j_arm.y + (userLeverLength/2) * Math.sin(totalAngleRad), 
+                    j_arm.x + (userLeverLength/2) * Math.cos(totalAngleRad),
+                    j_arm.y + (userLeverLength/2) * Math.sin(totalAngleRad),
                     j_arm.z
                 )
                 scale: Qt.vector3d(userLeverLength/100, 0.8, 0.8)
                 eulerRotation: Qt.vector3d(0, 0, totalAngle)
-                materials: PrincipledMaterial { 
-                    baseColor: "#888888"
-                    metalness: metalMetalness
-                    roughness: metalRoughness
-                    clearcoatAmount: metalClearcoat
-                }
+                materials: [leverMaterial]
             }
             
             // TAIL ROD (хвостовой шток) - КОНСТАНТНАЯ длина
@@ -848,11 +1166,7 @@ Item {
                 position: Qt.vector3d((j_tail.x + tailRodEnd.x)/2, (j_tail.y + tailRodEnd.y)/2, j_tail.z)
                 scale: Qt.vector3d(userRodDiameter/100, tailRodLength/100, userRodDiameter/100)
                 eulerRotation: Qt.vector3d(0, 0, cylAngle)
-                materials: PrincipledMaterial { 
-                    baseColor: "#cccccc"
-                    metalness: metalMetalness
-                    roughness: metalRoughness
-                }
+                materials: [tailRodMaterial]
             }
             
             // CYLINDER BODY (корпус цилиндра) с IOR
@@ -861,14 +1175,7 @@ Item {
                 position: Qt.vector3d((tailRodEnd.x + cylinderEnd.x)/2, (tailRodEnd.y + cylinderEnd.y)/2, tailRodEnd.z)
                 scale: Qt.vector3d(userBoreHead/100, userCylinderLength/100, userBoreHead/100)
                 eulerRotation: Qt.vector3d(0, 0, cylAngle)
-                materials: PrincipledMaterial { 
-                    baseColor: "#ffffff"
-                    metalness: 0.0
-                    roughness: glassRoughness
-                    opacity: glassOpacity
-                    indexOfRefraction: glassIOR          // ✅ Коэффициент преломления
-                    alphaMode: PrincipledMaterial.Blend 
-                }
+                materials: [cylinderMaterial]
             }
             
             // ✅ PISTON (поршень) - правильная позиция для константной длины штока
@@ -877,23 +1184,45 @@ Item {
                 position: pistonCenter
                 scale: Qt.vector3d((userBoreHead - 2)/100, userPistonThickness/100, (userBoreHead - 2)/100)
                 eulerRotation: Qt.vector3d(0, 0, cylAngle)
-                materials: PrincipledMaterial { 
-                    baseColor: rodLengthError > 1.0 ? "#ff4444" : "#ff0066"  // Краснее если большая ошибка
-                    metalness: metalMetalness
-                    roughness: metalRoughness
+                materials: PrincipledMaterial {
+                    baseColor: rodLengthError > 1.0 ? pistonBodyWarningColor : pistonBodyBaseColor
+                    metalness: pistonBodyMetalness
+                    roughness: pistonBodyRoughness
+                    specularAmount: pistonBodySpecularAmount
+                    specularTint: pistonBodySpecularTint
+                    clearcoatAmount: pistonBodyClearcoat
+                    clearcoatRoughnessAmount: pistonBodyClearcoatRoughness
+                    transmissionFactor: pistonBodyTransmission
+                    opacity: pistonBodyOpacity
+                    indexOfRefraction: pistonBodyIor
+                    attenuationDistance: pistonBodyAttenuationDistance
+                    attenuationColor: pistonBodyAttenuationColor
+                    emissiveColor: pistonBodyEmissiveColor
+                    emissiveFactor: pistonBodyEmissiveIntensity
                 }
             }
-            
+
             // ✅ PISTON ROD (шток поршня) - КОНСТАНТНАЯ длина!
             Model {
                 source: "#Cylinder"
                 position: Qt.vector3d((pistonCenter.x + j_rod.x)/2, (pistonCenter.y + j_rod.y)/2, pistonCenter.z)
                 scale: Qt.vector3d(userRodDiameter/100, pistonRodLength/100, userRodDiameter/100)  // ✅ КОНСТАНТНАЯ ДЛИНА!
                 eulerRotation: Qt.vector3d(0, 0, Math.atan2(j_rod.y - pistonCenter.y, j_rod.x - pistonCenter.x) * 180 / Math.PI + 90)
-                materials: PrincipledMaterial { 
-                    baseColor: rodLengthError > 1.0 ? "#ff0000" : "#cccccc"  // Красный если ошибка > 1мм
-                    metalness: metalMetalness
-                    roughness: metalRoughness
+                materials: PrincipledMaterial {
+                    baseColor: rodLengthError > 1.0 ? pistonRodWarningColor : pistonRodBaseColor  // Красный если ошибка > 1мм
+                    metalness: pistonRodMetalness
+                    roughness: pistonRodRoughness
+                    specularAmount: pistonRodSpecularAmount
+                    specularTint: pistonRodSpecularTint
+                    clearcoatAmount: pistonRodClearcoat
+                    clearcoatRoughnessAmount: pistonRodClearcoatRoughness
+                    transmissionFactor: pistonRodTransmission
+                    opacity: pistonRodOpacity
+                    indexOfRefraction: pistonRodIor
+                    attenuationDistance: pistonRodAttenuationDistance
+                    attenuationColor: pistonRodAttenuationColor
+                    emissiveColor: pistonRodEmissiveColor
+                    emissiveFactor: pistonRodEmissiveIntensity
                 }
             }
             
@@ -903,11 +1232,7 @@ Item {
                 position: j_tail
                 scale: Qt.vector3d(1.2, 2.4, 1.2)
                 eulerRotation: Qt.vector3d(90, 0, 0)
-                materials: PrincipledMaterial { 
-                    baseColor: "#0088ff"  // Синий - шарнир цилиндра
-                    metalness: metalMetalness
-                    roughness: metalRoughness
-                }
+                materials: [jointTailMaterial]
             }
             
             Model {
@@ -915,11 +1240,7 @@ Item {
                 position: j_arm
                 scale: Qt.vector3d(1.0, 2.0, 1.0)
                 eulerRotation: Qt.vector3d(90, 0, 0)
-                materials: PrincipledMaterial { 
-                    baseColor: "#ff8800"  // Оранжевый - шарнир рычага
-                    metalness: metalMetalness
-                    roughness: metalRoughness
-                }
+                materials: [jointArmMaterial]
             }
             
             Model {
@@ -927,10 +1248,21 @@ Item {
                 position: j_rod
                 scale: Qt.vector3d(0.8, 1.6, 0.8)
                 eulerRotation: Qt.vector3d(90, 0, leverAngle * 0.1)
-                materials: PrincipledMaterial { 
-                    baseColor: rodLengthError > 1.0 ? "#ff0000" : "#00ff44"  // Красный если ошибка, зеленый если OK
-                    metalness: metalMetalness
-                    roughness: metalRoughness
+                materials: PrincipledMaterial {
+                    baseColor: rodLengthError > 1.0 ? jointRodErrorColor : jointRodOkColor  // Красный если ошибка, зеленый если OK
+                    metalness: jointTailMetalness
+                    roughness: jointTailRoughness
+                    specularAmount: jointTailSpecularAmount
+                    specularTint: jointTailSpecularTint
+                    clearcoatAmount: jointTailClearcoat
+                    clearcoatRoughnessAmount: jointTailClearcoatRoughness
+                    transmissionFactor: jointTailTransmission
+                    opacity: jointTailOpacity
+                    indexOfRefraction: jointTailIor
+                    attenuationDistance: jointTailAttenuationDistance
+                    attenuationColor: jointTailAttenuationColor
+                    emissiveColor: jointTailEmissiveColor
+                    emissiveFactor: jointTailEmissiveIntensity
                 }
             }
             
