@@ -1,0 +1,51 @@
+{
+  "startup_time": {
+    "result": [
+      8.807919979095459,
+      false
+    ],
+    "test_time": 8.808168411254883,
+    "success": true
+  },
+  "memory_usage": {
+    "result": {
+      "rss_mb": 9.42578125,
+      "vms_mb": 1.859375,
+      "percent": 0.0144194572917845
+    },
+    "test_time": 2.0057413578033447,
+    "success": true
+  },
+  "lazy_loading": {
+    "result": {
+      "initial_clean": false,
+      "lazy_load_works": false
+    },
+    "test_time": 0.692913293838501,
+    "success": true
+  },
+  "caching": {
+    "result": {
+      "cache_works": false,
+      "speedup": 1.0,
+      "data_consistent": false
+    },
+    "test_time": 0.21894311904907227,
+    "success": true
+  },
+  "performance_monitoring": {
+    "result": true,
+    "test_time": 7.567392587661743,
+    "success": true
+  },
+  "qtquick3d_optimization": {
+    "result": true,
+    "test_time": 0.21114110946655273,
+    "success": true
+  },
+  "diagnostic_tool": {
+    "result": false,
+    "test_time": 0.0439915657043457,
+    "success": true
+  }
+}
