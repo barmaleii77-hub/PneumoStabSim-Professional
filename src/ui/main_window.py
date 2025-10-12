@@ -694,7 +694,8 @@ class MainWindow(QMainWindow):
             return False
 
         try:
-            self._qml_root_object.setProperty("pendingPythonUpdates", updates)
+            sanitized = self._prepare_updates_for_qml(updates)
+            self._qml_root_object.setProperty("pendingPythonUpdates", sanitized)
         except Exception as exc:
             self.logger.debug("Failed to push batched QML updates: %s", exc)
             self._qml_pending_property_supported = False
@@ -702,6 +703,21 @@ class MainWindow(QMainWindow):
 
         self._qml_pending_property_supported = True
         return True
+
+    @staticmethod
+    def _prepare_updates_for_qml(value: Any):
+        """Convert nested update payloads into Qt-friendly structures."""
+        if isinstance(value, dict):
+            return {str(key): MainWindow._prepare_updates_for_qml(val) for key, val in value.items()}
+        if isinstance(value, (list, tuple)):
+            return [MainWindow._prepare_updates_for_qml(item) for item in value]
+        if isinstance(value, np.generic):
+            return value.item()
+        if hasattr(value, 'tolist') and callable(value.tolist):
+            return MainWindow._prepare_updates_for_qml(value.tolist())
+        if isinstance(value, Path):
+            return str(value)
+        return value
 
     def _invoke_qml_function(self, method_name: str, payload: Optional[Dict[str, Any]] = None) -> bool:
         if not self._qml_root_object:
