@@ -171,6 +171,19 @@ Item {
     property string renderPolicy: "always"
     property real frameRateLimit: 144.0
     property string qualityPreset: "ultra"
+
+    function syncRenderSettings() {
+        if (!view3d || !view3d.renderSettings)
+            return
+        const settings = view3d.renderSettings
+        settings.renderScale = renderScale
+        settings.maximumFrameRate = frameRateLimit
+        settings.renderPolicy = renderPolicy === "ondemand" ? RenderSettings.OnDemand : RenderSettings.Always
+    }
+
+    onRenderScaleChanged: syncRenderSettings()
+    onFrameRateLimitChanged: syncRenderSettings()
+    onRenderPolicyChanged: syncRenderSettings()
     property bool shadowsEnabled: true
     property string shadowResolution: "4096"
     property int shadowFilterSamples: 32
@@ -770,12 +783,6 @@ Item {
         id: view3d
         anchors.fill: parent
         camera: camera
-
-        renderSettings: RenderSettings {
-            renderScale: root.renderScale
-            renderPolicy: root.renderPolicy === "ondemand" ? RenderSettings.OnDemand : RenderSettings.Always
-            maximumFrameRate: root.frameRateLimit
-        }
 
         environment: ExtendedSceneEnvironment {
             id: mainEnvironment
@@ -1562,6 +1569,7 @@ Item {
         console.log("🎯 СТАТУС: main.qml v4.1 ЗАГРУЖЕН УСПЕШНО")
         console.log("═══════════════════════════════════════════")
         
+        syncRenderSettings()
         resetView()
         view3d.forceActiveFocus()
     }
