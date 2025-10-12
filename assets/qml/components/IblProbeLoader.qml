@@ -20,26 +20,27 @@ QtObject {
     property bool _fallbackTried: false
 
     /** Expose the probe for consumers. */
-    readonly property alias probe: hdrProbe
-
-    /** Simple ready flag to avoid binding against an invalid texture. */
-    readonly property bool ready: hdrProbe.status === Texture.Ready
-
-    Texture {
+    property Texture probe: Texture {
         id: hdrProbe
         source: controller.primarySource
         minFilter: Texture.Linear
         magFilter: Texture.Linear
         generateMipmaps: true
+    }
 
-        onStatusChanged: {
-            if (status === Texture.Error && !controller._fallbackTried) {
+    /** Simple ready flag to avoid binding against an invalid texture. */
+    readonly property bool ready: probe.status === Texture.Ready
+
+    property Connections _statusMonitor: Connections {
+        target: controller.probe
+        function onStatusChanged() {
+            if (controller.probe.status === Texture.Error && !controller._fallbackTried) {
                 controller._fallbackTried = true
-                console.warn("⚠️ HDR probe not found at", source, "— falling back to", controller.fallbackSource)
-                source = controller.fallbackSource
-            } else if (status === Texture.Ready) {
-                console.log("✅ HDR probe ready:", source)
-            } else if (status === Texture.Error && controller._fallbackTried) {
+                console.warn("⚠️ HDR probe not found at", controller.probe.source, "— falling back to", controller.fallbackSource)
+                controller.probe.source = controller.fallbackSource
+            } else if (controller.probe.status === Texture.Ready) {
+                console.log("✅ HDR probe ready:", controller.probe.source)
+            } else if (controller.probe.status === Texture.Error && controller._fallbackTried) {
                 console.warn("❌ Both HDR probes failed to load, IBL will be disabled")
             }
         }

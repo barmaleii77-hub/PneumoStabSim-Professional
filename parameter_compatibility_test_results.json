@@ -1,0 +1,66 @@
+{
+  "test_results": {
+    "LIGHTING": {
+      "passed_params": [
+        "rimBrightness",
+        "rimColor",
+        "pointFade"
+      ],
+      "failed_params": [],
+      "missing_support": []
+    },
+    "QUALITY": {
+      "passed_params": [
+        "antialiasing",
+        "aa_quality",
+        "shadowSoftness"
+      ],
+      "failed_params": [],
+      "missing_support": []
+    },
+    "EFFECTS": {
+      "passed_params": [
+        "motionBlur",
+        "depthOfField",
+        "vignetteStrength",
+        "bloomThreshold",
+        "ssaoRadius"
+      ],
+      "failed_params": [],
+      "missing_support": []
+    },
+    "MATERIALS": {
+      "passed_params": [
+        "metalRoughness",
+        "glassIOR",
+        "frameMetalness"
+      ],
+      "failed_params": [],
+      "missing_support": []
+    },
+    "ENVIRONMENT": {
+      "passed_params": [
+        "backgroundColor",
+        "iblEnabled",
+        "fogDensity"
+      ],
+      "failed_params": [],
+      "missing_support": []
+    },
+    "CAMERA": {
+      "passed_params": [
+        "cameraFov",
+        "autoRotate",
+        "cameraSpeed"
+      ],
+      "failed_params": [],
+      "missing_support": []
+    }
+  },
+  "summary": {
+    "total_params": 20,
+    "total_passed": 20,
+    "percentage": 100.0
+  },
+  "all_passed": true
+}

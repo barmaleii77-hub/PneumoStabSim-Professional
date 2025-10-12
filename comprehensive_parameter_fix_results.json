@@ -1,0 +1,152 @@
+{
+  "test_results": {
+    "Критические параметры освещения": {
+      "success": false,
+      "error": "name 'success' is not defined",
+      "scenario": {
+        "name": "Критические параметры освещения",
+        "category": "lighting",
+        "params": {
+          "rimBrightness": 2.5,
+          "rimColor": "#ffdd88",
+          "pointFade": 0.0001,
+          "keyLightBrightness": 3.0,
+          "fillLightBrightness": 1.8
+        }
+      }
+    },
+    "Критические параметры качества": {
+      "success": false,
+      "error": "name 'success' is not defined",
+      "scenario": {
+        "name": "Критические параметры качества",
+        "category": "quality",
+        "params": {
+          "antialiasing": 1,
+          "aa_quality": 2,
+          "shadowSoftness": 1.0,
+          "shadowsEnabled": true
+        }
+      }
+    },
+    "Критические параметры эффектов": {
+      "success": false,
+      "error": "name 'success' is not defined",
+      "scenario": {
+        "name": "Критические параметры эффектов",
+        "category": "effects",
+        "params": {
+          "motionBlur": true,
+          "depthOfField": true,
+          "vignetteStrength": 0.7,
+          "bloomThreshold": 1.2,
+          "ssaoRadius": 10.0,
+          "tonemapEnabled": true,
+          "tonemapMode": 2
+        }
+      }
+    },
+    "Параметры материалов с IOR": {
+      "success": false,
+      "error": "name 'success' is not defined",
+      "scenario": {
+        "name": "Параметры материалов с IOR",
+        "category": "materials",
+        "params": {
+          "metalRoughness": 0.35,
+          "glassIOR": 1.62,
+          "frameMetalness": 0.9,
+          "leverRoughness": 0.2
+        }
+      }
+    },
+    "Параметры окружения с IBL": {
+      "success": false,
+      "error": "name 'success' is not defined",
+      "scenario": {
+        "name": "Параметры окружения с IBL",
+        "category": "environment",
+        "params": {
+          "backgroundColor": "#1a1a2e",
+          "iblEnabled": true,
+          "iblIntensity": 1.5,
+          "fogEnabled": true,
+          "fogDensity": 0.15
+        }
+      }
+    },
+    "Параметры камеры": {
+      "success": false,
+      "error": "name 'success' is not defined",
+      "scenario": {
+        "name": "Параметры камеры",
+        "category": "camera",
+        "params": {
+          "cameraFov": 55.0,
+          "autoRotate": true,
+          "autoRotateSpeed": 0.3,
+          "cameraSpeed": 1.5
+        }
+      }
+    }
+  },
+  "coverage_analysis": {
+    "total_issues": 13,
+    "fixed_issues": 8,
+    "coverage_percent": 61.53846153846154,
+    "fixes": {
+      "ОСВЕЩЕНИЕ": {
+        "rimBrightness → rimLightBrightness": "✅ ИСПРАВЛЕНО",
+        "rimColor → rimLightColor": "✅ ИСПРАВЛЕНО",
+        "pointFade → pointLightFade": "✅ ИСПРАВЛЕНО"
+      },
+      "КАЧЕСТВО": {
+        "antialiasing → antialiasingMode": "✅ ИСПРАВЛЕНО",
+        "aa_quality → antialiasingQuality": "✅ ИСПРАВЛЕНО"
+      },
+      "ЭФФЕКТЫ": {
+        "motionBlur → motionBlurEnabled": "✅ ИСПРАВЛЕНО",
+        "depthOfField → depthOfFieldEnabled": "✅ ИСПРАВЛЕНО",
+        "vignetteStrength → vignetteStrength": "✅ ДОБАВЛЕНО В QML"
+      },
+      "МАТЕРИАЛЫ": {
+        "glassIOR коэффициент преломления": "✅ УЖЕ ПОДДЕРЖИВАЛСЯ",
+        "metalRoughness, frameMetalness": "✅ УЖЕ ПОДДЕРЖИВАЛИСЬ"
+      },
+      "ОКРУЖЕНИЕ": {
+        "iblEnabled, iblIntensity": "✅ УЖЕ ПОДДЕРЖИВАЛИСЬ",
+        "backgroundColor, fogDensity": "✅ УЖЕ ПОДДЕРЖИВАЛИСЬ"
+      },
+      "КАМЕРА": {
+        "cameraFov, autoRotate": "✅ УЖЕ ПОДДЕРЖИВАЛИСЬ"
+      }
+    }
+  },
+  "syntax_validation": {
+    "valid": true,
+    "success_rate": 100.0,
+    "passed_checks": 12,
+    "total_checks": 12,
+    "details": {
+      "Открывающие скобки": true,
+      "Закрывающие скобки": true,
+      "Сбалансированность скобок": true,
+      "Property declarations": true,
+      "Function declarations": true,
+      "Import statements": true,
+      "vignetteStrength свойство": true,
+      "rimBrightness поддержка": true,
+      "pointFade поддержка": true,
+      "antialiasing поддержка": true,
+      "motionBlur поддержка": true,
+      "depthOfField поддержка": true
+    }
+  },
+  "final_report": {
+    "overall_success": false,
+    "test_success_rate": 0.0,
+    "fix_coverage": 61.53846153846154,
+    "qml_valid": true
+  },
+  "timestamp": "2025-10-11 15:45:17"
+}

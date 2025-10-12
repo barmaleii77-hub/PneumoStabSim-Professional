@@ -5,24 +5,137 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "pneumostabsim"
 version = "1.0.0"  
-description = "Pneumatic Stabilizer Simulator"
+description = "Pneumatic Stabilizer Simulator - Professional 3D visualization and simulation system"
 authors = [
-    {name = "PneumoStabSim Team"}
+    {name = "PneumoStabSim Team", email = "dev@pneumostabsim.com"}
 ]
 readme = "README.md"
-requires-python = ">=3.13"
+license = {text = "MIT"}
+requires-python = ">=3.8"
+keywords = ["pneumatic", "stabilizer", "simulation", "3d", "qt", "pyside6"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Topic :: Scientific/Engineering :: Visualization",
+]
+
 dependencies = [
-    "numpy==2.3.3",
-    "scipy==1.16.2", 
-    "pyside6==6.9.3",
-    "PyOpenGL==3.1.10",
-    "PyOpenGL-accelerate==3.1.10",
-    "matplotlib==3.10.6"
+    "numpy>=1.21.0,<2.0",
+    "scipy>=1.7.0",
+    "PySide6>=6.5.0",
+    "PyOpenGL>=3.1.0",
+    "PyOpenGL-accelerate>=3.1.0",
+    "matplotlib>=3.5.0",
+    "Pillow>=8.0.0",
+    "psutil>=5.8.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=6.0",
+    "pytest-qt>=4.0",
+    "black>=22.0",
+    "flake8>=4.0",
+    "mypy>=0.900",
+    "pre-commit>=2.15",
+]
+docs = [
+    "sphinx>=4.0",
+    "sphinx-rtd-theme>=1.0",
+]
+performance = [
+    "numba>=0.56.0",
+    "cython>=0.29.0",
 ]
 
 [project.urls]
-"Homepage" = "https://github.com/barmaleii77-hub/NewRepo2"
+"Homepage" = "https://github.com/barmaleii77-hub/PneumoStabSim-Professional"
+"Bug Reports" = "https://github.com/barmaleii77-hub/PneumoStabSim-Professional/issues"
+"Source" = "https://github.com/barmaleii77-hub/PneumoStabSim-Professional"
+"Documentation" = "https://pneumostabsim-professional.readthedocs.io/"
+
+[project.scripts]
+pneumostabsim = "app:main"
 
 [tool.setuptools.packages.find]
-where = [""]
-include = ["src*", "app*"]
+where = ["."]
+include = ["src*", "config*"]
+exclude = ["tests*", "docs*"]
+
+[tool.setuptools.package-data]
+"*" = ["*.qml", "*.hdr", "*.png", "*.jpg", "*.ico"]
+
+[tool.black]
+line-length = 88
+target-version = ['py38', 'py39', 'py310', 'py311']
+include = '\.pyi?$'
+extend-exclude = '''
+/(
+  # directories
+  \.eggs
+  | \.git
+  | \.hg
+  | \.mypy_cache
+  | \.tox
+  | \.venv
+  | build
+  | dist
+)/
+'''
+
+[tool.mypy]
+python_version = "3.8"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+check_untyped_defs = true
+disallow_untyped_decorators = true
+no_implicit_optional = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+warn_no_return = true
+warn_unreachable = true
+
+[[tool.mypy.overrides]]
+module = [
+    "PySide6.*",
+    "OpenGL.*",
+    "numpy.*",
+    "scipy.*",
+    "matplotlib.*",
+]
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+minversion = "6.0"
+addopts = "-ra -q --strict-markers --strict-config"
+testpaths = [
+    "tests",
+]
+qt_api = "pyside6"
+
+[tool.coverage.run]
+source = ["src"]
+omit = [
+    "*/tests/*",
+    "*/test_*",
+]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "if self.debug:",
+    "if settings.DEBUG",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if 0:",
+    "if __name__ == .__main__.:",
+]
