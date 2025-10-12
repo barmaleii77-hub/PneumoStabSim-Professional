@@ -118,6 +118,7 @@ Item {
     property real lastX: 0
     property real lastY: 0
     property real rotateSpeed: 0.35
+    property bool cameraIsMoving: false
 
     // ===============================================================
     // ✅ COMPLETE GRAPHICS PROPERTIES (All parameters from GraphicsPanel)
@@ -137,7 +138,7 @@ Item {
     property color fillLightColor: "#dfe7ff"
     property real rimLightBrightness: 1.0
     property color rimLightColor: "#ffe2b0"
-    property real pointLightBrightness: 1500.0
+    property real pointLightBrightness: 1000.0
     property color pointLightColor: "#ffffff"
     property real pointLightY: 2200.0
     property real pointLightRange: 3200.0
@@ -163,6 +164,7 @@ Item {
     property string aaPostMode: "taa"
     property bool taaEnabled: true
     property real taaStrength: 0.4
+    property bool taaMotionAdaptive: true
     property bool fxaaEnabled: false
     property bool specularAAEnabled: true
     property bool ditheringEnabled: true
@@ -449,6 +451,12 @@ Item {
         console.log("🔄 Full reset completed")
     }
 
+    function flagCameraMotion() {
+        if (!cameraIsMoving)
+            cameraIsMoving = true
+        cameraMotionSettler.restart()
+    }
+
     // ===============================================================
     // ✅ COMPLETE BATCH UPDATE SYSTEM (All functions implemented)
     // ===============================================================
@@ -681,6 +689,7 @@ Item {
 
         if (params.taa_enabled !== undefined) taaEnabled = params.taa_enabled
         if (params.taa_strength !== undefined) taaStrength = params.taa_strength
+        if (params.taa_motion_adaptive !== undefined) taaMotionAdaptive = params.taa_motion_adaptive
         if (params.fxaa_enabled !== undefined) fxaaEnabled = params.fxaa_enabled
         if (params.specular_aa !== undefined) specularAAEnabled = params.specular_aa
         if (params.dithering !== undefined) ditheringEnabled = params.dithering
@@ -801,7 +810,8 @@ Item {
                                root.aaQualityLevel === "medium" ? SceneEnvironment.Medium :
                                SceneEnvironment.Low
             fxaaEnabled: root.aaPostMode === "fxaa" && root.fxaaEnabled
-            temporalAAEnabled: (root.aaPostMode === "taa" && root.taaEnabled && root.aaPrimaryMode !== "msaa")
+            temporalAAEnabled: (root.aaPostMode === "taa" && root.taaEnabled && root.aaPrimaryMode !== "msaa" &&
+                                 (!root.taaMotionAdaptive || !root.cameraIsMoving))
             temporalAAStrength: root.taaStrength
             specularAAEnabled: root.specularAAEnabled
             ditheringEnabled: root.ditheringEnabled
@@ -1323,13 +1333,18 @@ Item {
             root.mouseButton = mouse.button
             root.lastX = mouse.x
             root.lastY = mouse.y
-            
+
+            if (taaMotionAdaptive)
+                flagCameraMotion()
+
             console.log("Mouse pressed: button =", mouse.button, "at", mouse.x, mouse.y)
         }
 
         onReleased: (mouse) => {
             root.mouseDown = false
             root.mouseButton = 0
+            if (taaMotionAdaptive)
+                cameraMotionSettler.restart()
             console.log("Mouse released")
         }
 
@@ -1363,13 +1378,18 @@ Item {
 
             root.lastX = mouse.x
             root.lastY = mouse.y
+
+            if (taaMotionAdaptive)
+                flagCameraMotion()
         }
 
         onWheel: (wheel) => {
             const zoomFactor = 1.0 + (wheel.angleDelta.y / 1200.0)
-            root.cameraDistance = Math.max(root.minDistance, 
-                                     Math.min(root.maxDistance, 
+            root.cameraDistance = Math.max(root.minDistance,
+                                     Math.min(root.maxDistance,
                                               root.cameraDistance * zoomFactor))
+            if (taaMotionAdaptive)
+                flagCameraMotion()
         }
 
         onDoubleClicked: () => {
@@ -1381,6 +1401,13 @@ Item {
     // ===============================================================
     // ANIMATION TIMERS (preserved)
     // ===============================================================
+
+    Timer {
+        id: cameraMotionSettler
+        interval: 240
+        repeat: false
+        onTriggered: root.cameraIsMoving = false
+    }
 
     Timer {
         running: isRunning
@@ -1397,6 +1424,8 @@ Item {
         repeat: true
         onTriggered: {
             yawDeg = normAngleDeg(yawDeg + autoRotateSpeed * 0.016 * 10)
+            if (taaMotionAdaptive)
+                flagCameraMotion()
         }
     }
 
