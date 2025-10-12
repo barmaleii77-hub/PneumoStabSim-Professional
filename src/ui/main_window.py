@@ -15,8 +15,6 @@ from PySide6.QtCore import (
     QSettings,
     QUrl,
     QFileInfo,
-    QMetaObject,
-    Q_ARG,
     QByteArray,
 )
 from PySide6.QtGui import QAction, QKeySequence
@@ -96,9 +94,11 @@ class MainWindow(QMainWindow):
 
         # QML update system
         self._qml_update_queue: Dict[str, Dict[str, Any]] = {}
+        self._qml_method_support: Dict[tuple[str, bool], bool] = {}
         self._qml_flush_timer = QTimer()
         self._qml_flush_timer.setSingleShot(True)
         self._qml_flush_timer.timeout.connect(self._flush_qml_updates)
+        self._qml_pending_property_supported: Optional[bool] = None
         
         # State tracking
         self.current_snapshot: Optional[StateSnapshot] = None
@@ -126,6 +126,7 @@ class MainWindow(QMainWindow):
         # Qt Quick 3D view reference
         self._qquick_widget: Optional[QQuickWidget] = None
         self._qml_root_object = None
+        self._qml_base_dir: Optional[Path] = None
 
         print("MainWindow: Построение UI...")
         
@@ -271,10 +272,11 @@ class MainWindow(QMainWindow):
             self._qml_root_object = self._qquick_widget.rootObject()
             if not self._qml_root_object:
                 raise RuntimeError("Не удалось получить корневой объект QML")
-            
+           
             print(f"    [OK] ✅ ЕДИНЫЙ QML файл 'main.qml' загружен успешно")
             print(f"    ✨ Версия: Enhanced v5.0 (объединённая, оптимизированная, с IBL)")
             print(f"    🔧 QML import paths настроены для QtQuick3D")
+
             
         except Exception as e:
             print(f"    [CRITICAL] Ошибка загрузки main.qml: {e}")
@@ -474,31 +476,28 @@ class MainWindow(QMainWindow):
             self.graphics_panel.preset_applied.connect(self._on_preset_applied)
             print("   ✅ Сигнал preset_applied подключен")
             
-            print("✅ Все сигналы GraphicsPanel подключены УСПЕШНО")
-            
-            # ✅ ДОБАВЛЯЕМ ТЕСТОВЕ ПОДКЛЮЧЕНИЕ ДЛЯ ДИАГНОСТИКИ
-            try:
-                # Тестируем работу сигналов немедленно после подключения
-                print("🧪 Тестирование подключения сигналов...")
-                
-                # Создаем тестовую функцию для проверки
-                def test_environment_signal(params):
-                    print(f"🔥 ТЕСТ: environment_changed получен! Параметры: {params}")
-                
-                def test_quality_signal(params):
-                    print(f"🔥 ТЕСТ: quality_changed получен! Параметры: {params}")
-                
-                # Подключаем тестовые обработчики 
-                self.graphics_panel.environment_changed.connect(test_environment_signal)
-                self.graphics_panel.quality_changed.connect(test_quality_signal)
-                
-                print("   ✅ Тестовые обработчики подключены")
-                
-            except Exception as e:
-                print(f"   ❌ Ошибка тестового подключения: {e}")
-            
-        else:
-            print("❌ GraphicsPanel недоступна для подключения сигналов!")
+
+            print("✅ Все сигналы GraphicsPanel подключены")
+
+    @Slot(dict)
+    def _on_geometry_changed_qml(self, geometry_params: dict):
+        """Получить обновления геометрии от панели и передать их в сцену."""
+        if not isinstance(geometry_params, dict):
+            self.logger.warning("Geometry update payload is not a dict: %r", geometry_params)
+            return
+
+        self.logger.info(
+            "Geometry update received (%d keys): %s",
+            len(geometry_params),
+            list(geometry_params.keys()),
+        )
+
+        self._queue_qml_update("geometry", geometry_params)
+
+        if self.status_bar:
+            self.status_bar.showMessage("Геометрия отправлена в 3D сцену", 2000)
+         
+
 
     # ------------------------------------------------------------------
     # Меню, тулбар и строка состояния
@@ -686,6 +685,9 @@ class MainWindow(QMainWindow):
         pending = self._qml_update_queue
         self._qml_update_queue = {}
 
+        if self._push_batched_updates(pending):
+            return
+
         for key, payload in pending.items():
             methods = self.QML_UPDATE_METHODS.get(key, ())
             success = False
@@ -694,26 +696,85 @@ class MainWindow(QMainWindow):
                     success = True
                     break
 
-            if not success and key == "geometry":
-                self._set_geometry_properties_fallback(payload)
+            if success:
+                continue
+
+            self._apply_fallback(key, payload)
+
+    def _push_batched_updates(self, updates: Dict[str, Any]) -> bool:
+        if not updates:
+            return True
+        if not self._qml_root_object:
+            return False
+
+        if self._qml_pending_property_supported is False:
+            return False
+
+        try:
+            sanitized = self._prepare_updates_for_qml(updates)
+            self._qml_root_object.setProperty("pendingPythonUpdates", sanitized)
+        except Exception as exc:
+            self.logger.debug("Failed to push batched QML updates: %s", exc)
+            self._qml_pending_property_supported = False
+            return False
+
+        self._qml_pending_property_supported = True
+        return True
+
+    @staticmethod
+    def _prepare_updates_for_qml(value: Any):
+        """Convert nested update payloads into Qt-friendly structures."""
+        if isinstance(value, dict):
+            return {str(key): MainWindow._prepare_updates_for_qml(val) for key, val in value.items()}
+        if isinstance(value, (list, tuple)):
+            return [MainWindow._prepare_updates_for_qml(item) for item in value]
+        if isinstance(value, np.generic):
+            return value.item()
+        if hasattr(value, 'tolist') and callable(value.tolist):
+            return MainWindow._prepare_updates_for_qml(value.tolist())
+        if isinstance(value, Path):
+            return str(value)
+        return value
 
     def _invoke_qml_function(self, method_name: str, payload: Optional[Dict[str, Any]] = None) -> bool:
         if not self._qml_root_object:
             return False
 
-        connection = Qt.ConnectionType.DirectConnection
+        has_payload = payload is not None
+        cache_key = (method_name, has_payload)
+        cached = self._qml_method_support.get(cache_key)
+        if cached is False:
+            return False
+
+        candidate = getattr(self._qml_root_object, method_name, None)
+        if not callable(candidate):
+            self._qml_method_support[cache_key] = False
+            return False
+
         try:
             if payload is None:
-                return QMetaObject.invokeMethod(self._qml_root_object, method_name, connection)
-            return QMetaObject.invokeMethod(
-                self._qml_root_object,
+                candidate()
+            else:
+                candidate(payload)
+        except TypeError as exc:
+            self.logger.debug(
+                "QML callable %s rejected payload: %s",
                 method_name,
-                connection,
-                Q_ARG("QVariant", payload),
+                exc,
             )
-        except Exception as exc:
-            self.logger.debug(f"Failed to call {method_name} in QML: {exc}")
+            self._qml_method_support[cache_key] = False
             return False
+        except Exception as exc:
+            self.logger.warning(
+                "Unhandled exception when invoking QML callable %s: %s",
+                method_name,
+                exc,
+            )
+            self._qml_method_support[cache_key] = False
+            return False
+
+        self._qml_method_support[cache_key] = True
+        return True
 
     @staticmethod
     def _deep_merge_dicts(target: Dict[str, Any], source: Dict[str, Any]):
@@ -727,48 +788,250 @@ class MainWindow(QMainWindow):
             else:
                 target[key] = value
 
-    @staticmethod
-    def _set_geometry_properties_fallback(geometry_params: Dict[str, Any]):
-        if not geometry_params:
+    def _apply_fallback(self, key: str, payload: Dict[str, Any]) -> None:
+        if not payload:
             return
 
-        mapping = {
-            "frameLength": "userFrameLength",
-            "frameHeight": "userFrameHeight",
-            "frameBeamSize": "userBeamSize",
-            "leverLength": "userLeverLength",
-            "cylinderBodyLength": "userCylinderLength",
-            "trackWidth": "userTrackWidth",
-            "frameToPivot": "userFrameToPivot",
-            "rodPosition": "userRodPosition",
-            "boreHead": "userBoreHead",
-            "boreRod": "userBoreRod",
-            "rodDiameter": "userRodDiameter",
-            "pistonThickness": "userPistonThickness",
-            "pistonRodLength": "userPistonRodLength",
+        handlers = {
+            "geometry": self._apply_geometry_fallback,
+            "lighting": self._apply_lighting_fallback,
+            "environment": self._apply_environment_fallback,
+            "quality": self._apply_quality_fallback,
+            "camera": self._apply_camera_fallback,
+            "effects": self._apply_effects_fallback,
+            "materials": self._apply_materials_fallback,
         }
 
-        for key, prop in mapping.items():
-            if key in geometry_params:
+        handler = handlers.get(key)
+        if handler:
+            handler(payload)
+        else:
+            self.logger.debug("No fallback handler for %s", key)
+
+    def _apply_geometry_fallback(self, geometry: Dict[str, Any]) -> None:
+        mapping = {
+            ("frameLength",): ("userFrameLength", float),
+            ("frameHeight",): ("userFrameHeight", float),
+            ("frameBeamSize",): ("userBeamSize", float),
+            ("leverLength",): ("userLeverLength", float),
+            ("cylinderBodyLength",): ("userCylinderLength", float),
+            ("trackWidth",): ("userTrackWidth", float),
+            ("frameToPivot",): ("userFrameToPivot", float),
+            ("rodPosition",): ("userRodPosition", float),
+            ("boreHead",): ("userBoreHead", float),
+            ("boreRod",): ("userBoreRod", float),
+            ("rodDiameter",): ("userRodDiameter", float),
+            ("pistonThickness",): ("userPistonThickness", float),
+            ("pistonRodLength",): ("userPistonRodLength", float),
+        }
+        self._apply_nested_mapping(geometry, mapping)
+
+    def _apply_lighting_fallback(self, lighting: Dict[str, Any]) -> None:
+        mapping = {
+            ("key_light", "brightness"): ("keyLightBrightness", float),
+            ("key_light", "color"): "keyLightColor",
+            ("key_light", "angle_x"): ("keyLightAngleX", float),
+            ("key_light", "angle_y"): ("keyLightAngleY", float),
+            ("fill_light", "brightness"): ("fillLightBrightness", float),
+            ("fill_light", "color"): "fillLightColor",
+            ("rim_light", "brightness"): ("rimLightBrightness", float),
+            ("rim_light", "color"): "rimLightColor",
+            ("point_light", "brightness"): ("pointLightBrightness", float),
+            ("point_light", "color"): "pointLightColor",
+            ("point_light", "position_y"): ("pointLightY", float),
+            ("point_light", "range"): ("pointLightRange", float),
+        }
+        self._apply_nested_mapping(lighting, mapping)
+
+    def _apply_environment_fallback(self, environment: Dict[str, Any]) -> None:
+        mapping = {
+            ("background", "mode"): "backgroundMode",
+            ("background", "color"): "backgroundColor",
+            ("ibl", "enabled"): "iblEnabled",
+            ("ibl", "intensity"): ("iblIntensity", float),
+            ("ibl", "blur"): ("skyboxBlur", float),
+            ("fog", "enabled"): "fogEnabled",
+            ("fog", "color"): "fogColor",
+            ("fog", "density"): ("fogDensity", float),
+            ("fog", "near"): ("fogNear", float),
+            ("fog", "far"): ("fogFar", float),
+            ("ambient_occlusion", "enabled"): "aoEnabled",
+            ("ambient_occlusion", "strength"): ("aoStrength", float),
+            ("ambient_occlusion", "radius"): ("aoRadius", float),
+        }
+        self._apply_nested_mapping(environment, mapping)
+
+        ibl = environment.get("ibl")
+        if isinstance(ibl, dict):
+            for key, prop in (("source", "iblPrimarySource"), ("fallback", "iblFallbackSource")):
+                value = ibl.get(key)
+                if isinstance(value, str) and value:
+                    resolved = self._resolve_qurl(value)
+                    if resolved is not None:
+                        self._set_qml_property(prop, resolved)
+
+    def _apply_quality_fallback(self, quality: Dict[str, Any]) -> None:
+        mapping = {
+            ("shadows", "enabled"): "shadowsEnabled",
+            ("shadows", "resolution"): "shadowResolution",
+            ("shadows", "filter"): ("shadowFilterSamples", int),
+            ("shadows", "bias"): ("shadowBias", float),
+            ("shadows", "darkness"): ("shadowFactor", float),
+            ("antialiasing", "primary"): "aaPrimaryMode",
+            ("antialiasing", "quality"): "aaQualityLevel",
+            ("antialiasing", "post"): "aaPostMode",
+            ("taa_enabled",): "taaEnabled",
+            ("taa_strength",): ("taaStrength", float),
+            ("taa_motion_adaptive",): "taaMotionAdaptive",
+            ("fxaa_enabled",): "fxaaEnabled",
+            ("specular_aa",): "specularAAEnabled",
+            ("dithering",): "ditheringEnabled",
+            ("render_scale",): ("renderScale", float),
+            ("render_policy",): "renderPolicy",
+            ("frame_rate_limit",): ("frameRateLimit", float),
+            ("oit",): "oitMode",
+            ("preset",): "qualityPreset",
+        }
+        self._apply_nested_mapping(quality, mapping)
+
+    def _apply_camera_fallback(self, camera: Dict[str, Any]) -> None:
+        mapping = {
+            ("fov",): ("cameraFov", float),
+            ("near",): ("cameraNear", float),
+            ("far",): ("cameraFar", float),
+            ("speed",): ("cameraSpeed", float),
+            ("auto_rotate",): "autoRotate",
+            ("auto_rotate_speed",): ("autoRotateSpeed", float),
+        }
+        self._apply_nested_mapping(camera, mapping)
+
+    def _apply_effects_fallback(self, effects: Dict[str, Any]) -> None:
+        mapping = {
+            ("bloom_enabled",): "bloomEnabled",
+            ("bloom_intensity",): ("bloomIntensity", float),
+            ("bloom_threshold",): ("bloomThreshold", float),
+            ("bloom_spread",): ("bloomSpread", float),
+            ("depth_of_field",): "depthOfFieldEnabled",
+            ("dof_focus_distance",): ("dofFocusDistance", float),
+            ("dof_blur",): ("dofBlurAmount", float),
+            ("motion_blur",): "motionBlurEnabled",
+            ("motion_blur_amount",): ("motionBlurAmount", float),
+            ("lens_flare",): "lensFlareEnabled",
+            ("vignette",): "vignetteEnabled",
+            ("vignette_strength",): ("vignetteStrength", float),
+            ("tonemap_enabled",): "tonemapEnabled",
+            ("tonemap_mode",): "tonemapModeName",
+        }
+        self._apply_nested_mapping(effects, mapping)
+
+    def _apply_materials_fallback(self, materials: Dict[str, Any]) -> None:
+        prefix_map = {
+            "frame": "frame",
+            "lever": "lever",
+            "tail": "tailRod",
+            "cylinder": "cylinder",
+            "piston_body": "pistonBody",
+            "piston_rod": "pistonRod",
+            "joint_tail": "jointTail",
+            "joint_arm": "jointArm",
+        }
+
+        suffix_map = {
+            "base_color": "BaseColor",
+            "metalness": "Metalness",
+            "roughness": "Roughness",
+            "specular_amount": "SpecularAmount",
+            "specular_tint": "SpecularTint",
+            "clearcoat": "Clearcoat",
+            "clearcoat_roughness": "ClearcoatRoughness",
+            "transmission": "Transmission",
+            "opacity": "Opacity",
+            "ior": "Ior",
+            "attenuation_distance": "AttenuationDistance",
+            "attenuation_color": "AttenuationColor",
+            "emissive_color": "EmissiveColor",
+            "emissive_intensity": "EmissiveIntensity",
+        }
+
+        for material_key, values in materials.items():
+            prefix = prefix_map.get(material_key)
+            if not prefix or not isinstance(values, dict):
+                continue
+
+            for prop_key, prop_value in values.items():
+                if prop_value is None:
+                    continue
+
+                if material_key == "piston_body" and prop_key == "warning_color":
+                    self._set_qml_property("pistonBodyWarningColor", prop_value)
+                    continue
+                if material_key == "piston_rod" and prop_key == "warning_color":
+                    self._set_qml_property("pistonRodWarningColor", prop_value)
+                    continue
+                if material_key == "joint_tail":
+                    if prop_key == "ok_color":
+                        self._set_qml_property("jointRodOkColor", prop_value)
+                        continue
+                    if prop_key == "error_color":
+                        self._set_qml_property("jointRodErrorColor", prop_value)
+                        continue
+
+                suffix = suffix_map.get(prop_key)
+                if not suffix:
+                    continue
+
+                self._set_qml_property(f"{prefix}{suffix}", prop_value)
+
+    def _apply_nested_mapping(self, payload: Dict[str, Any], mapping: Dict[tuple[str, ...], Any]) -> None:
+        for path, target in mapping.items():
+            cast = None
+            if isinstance(target, tuple):
+                target, cast = target
+
+            value = self._extract_nested_value(payload, path)
+            if value is None:
+                continue
+
+            if cast is not None:
                 try:
-                    value = float(geometry_params[key])
-                    MainWindow._set_qml_property(prop, value)
-                except Exception as e:
-                    print(f"  ❌ Failed to set {prop}: {e}")
+                    value = cast(value)
+                except (TypeError, ValueError):
+                    continue
+
+            self._set_qml_property(target, value)
 
     @staticmethod
-    def _set_qml_property(name: str, value: Any):
-        """Установить QML свойство через rootObject (если доступно)"""
+    def _extract_nested_value(data: Dict[str, Any], path: tuple[str, ...]) -> Any:
+        current: Any = data
+        for key in path:
+            if not isinstance(current, dict) or key not in current:
+                return None
+            current = current[key]
+        return current
+
+    def _resolve_qurl(self, value: str) -> Optional[QUrl]:
+        if not value:
+            return None
+
+        url = QUrl(value)
+        if url.isRelative() or not url.isValid() or not url.scheme():
+            base = getattr(self, "_qml_base_dir", None)
+            if isinstance(base, Path):
+                candidate = (base / value).resolve()
+                if candidate.exists():
+                    return QUrl.fromLocalFile(str(candidate))
+        return url
+
+    def _set_qml_property(self, name: str, value: Any) -> None:
         if not name or value is None:
             return
-
-        target = getattr(MainWindow, "_qml_root_object", None)
-        if target is not None:
-            try:
-                target.setProperty(name, value)
-                print(f"   ✅ Set {name} = {value}")
-            except Exception as e:
-                print(f"   ❌ Ошибка установки {name}: {e}")
+        if self._qml_root_object is None:
+            self.logger.debug("Cannot set %s: QML root not ready", name)
+            return
+        try:
+            self._qml_root_object.setProperty(name, value)
+        except Exception as exc:
+            self.logger.debug("Failed to set %s: %s", name, exc)
 
     # ------------------------------------------------------------------
     # Обработчики сигналов панелей
