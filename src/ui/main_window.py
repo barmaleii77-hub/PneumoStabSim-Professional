@@ -70,7 +70,7 @@ class MainWindow(QMainWindow):
         # Store visualization backend choice
         self.use_qml_3d = use_qml_3d
         
-        backend_name = "Qt Quick 3D (Enhanced v5.0)" if use_qml_3d else "Legacy OpenGL"
+        backend_name = "Qt Quick 3D (main.qml v4.3)" if use_qml_3d else "Legacy OpenGL"
         self.setWindowTitle(f"PneumoStabSim - {backend_name}")
         
         self.resize(1400, 900)
@@ -212,14 +212,29 @@ class MainWindow(QMainWindow):
         print("    ✅ Система сплиттеров создана (горизонтальный + вертикальный)")
 
     def _setup_qml_3d_view(self):
-        """Setup Qt Quick 3D full suspension scene - загружает main.qml"""
-        print("    [QML] Загрузка QML файла main.qml...")
+        """Setup Qt Quick 3D full suspension scene - теперь загружает ЕДИНЫЙ main.qml"""
+        print("    [QML] Загрузка ЕДИНОГО QML файла main.qml...")
         
         try:
             self._qquick_widget = QQuickWidget(self)
             self._qquick_widget.setResizeMode(QQuickWidget.ResizeMode.SizeRootObjectToView)
             
-            # Используем единый файл main.qml
+            # CRITICAL: Set up QML import paths BEFORE loading any QML
+            engine = self._qquick_widget.engine()
+            
+            # Add Qt's QML import path
+            from PySide6.QtCore import QLibraryInfo
+            qml_path = QLibraryInfo.path(QLibraryInfo.LibraryPath.Qml2ImportsPath)
+            engine.addImportPath(str(qml_path))
+            print(f"    🔧 Added QML import path: {qml_path}")
+            
+            # Also add local paths if they exist
+            local_qml_path = Path("assets/qml")
+            if local_qml_path.exists():
+                engine.addImportPath(str(local_qml_path.absolute()))
+                print(f"    🔧 Added local QML path: {local_qml_path.absolute()}")
+            
+            # ✅ НОВОЕ: Теперь используем только ОДИН файл main.qml
             qml_path = Path("assets/qml/main.qml")
             
             print(f"    🔍 ДИАГНОСТИКА ЗАГРУЗКИ QML:")
@@ -257,18 +272,11 @@ class MainWindow(QMainWindow):
             self._qml_root_object = self._qquick_widget.rootObject()
             if not self._qml_root_object:
                 raise RuntimeError("Не удалось получить корневой объект QML")
+           
+            print(f"    [OK] ✅ ЕДИНЫЙ QML файл 'main.qml' загружен успешно")
+            print(f"    ✨ Версия: Enhanced v5.0 (объединённая, оптимизированная, с IBL)")
+            print(f"    🔧 QML import paths настроены для QtQuick3D")
 
-            self._qml_method_support.clear()
-            self._qml_pending_property_supported = None
-            self._qml_base_dir = qml_path.parent.resolve()
-
-            try:
-                self._qml_root_object.setProperty("pendingPythonUpdates", None)
-            except Exception:
-                # Property may not exist on older scenes; ignore
-                pass
-
-            print(f"    [OK] ✅ QML файл 'main.qml' загружен успешно")
             
         except Exception as e:
             print(f"    [CRITICAL] Ошибка загрузки main.qml: {e}")
@@ -278,7 +286,8 @@ class MainWindow(QMainWindow):
             fallback = QLabel(
                 "КРИТИЧЕСКАЯ ОШИБКА ЗАГРУЗКИ 3D СЦЕНЫ\n\n"
                 f"Ошибка: {e}\n\n"
-                "Проверьте файл assets/qml/main.qml"
+                "Проверьте файл assets/qml/main.qml\n"
+                "и убедитесь, что QtQuick3D установлен правильно"
             )
             fallback.setAlignment(Qt.AlignmentFlag.AlignCenter)
             fallback.setStyleSheet("background: #1a1a2e; color: #ff6b6b; font-size: 12px; padding: 20px;")
@@ -306,15 +315,17 @@ class MainWindow(QMainWindow):
         # Create tab widget
         self.tab_widget = QTabWidget(self)
         self.tab_widget.setObjectName("ParameterTabs")
-        self.tab_widget.setMinimumWidth(300)  # Reduced minimum width
-        self.tab_widget.setMaximumWidth(600)  # Increased maximum width for resizing
+        # ✅ ИСПРАВЛЕНО: Разумные ограничения ширины для адаптивности
+        self.tab_widget.setMinimumWidth(300)  # Минимум для узких экранов
+        self.tab_widget.setMaximumWidth(800)  # Максимум чтобы не было слишком широко
         
         # Tab 1: ГеОМЕТРИЯ (Geometry)
         self.geometry_panel = GeometryPanel(self)
         scroll_geometry = QScrollArea()
         scroll_geometry.setWidgetResizable(True)
         scroll_geometry.setWidget(self.geometry_panel)
-        scroll_geometry.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        # ✅ ИСПРАВЛЕНО: Разрешаем горизонтальную прокрутку для геометрии если нужно
+        scroll_geometry.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
         self.tab_widget.addTab(scroll_geometry, "Геометрия")
         print("      ✅ Вкладка 'Геометрия' создана")
         
@@ -323,7 +334,7 @@ class MainWindow(QMainWindow):
         scroll_pneumo = QScrollArea()
         scroll_pneumo.setWidgetResizable(True)
         scroll_pneumo.setWidget(self.pneumo_panel)
-        scroll_pneumo.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        scroll_pneumo.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
         self.tab_widget.addTab(scroll_pneumo, "Пневмосистема")
         print("      ✅ Вкладка 'Пневмосистема' создана")
         
@@ -332,13 +343,15 @@ class MainWindow(QMainWindow):
         scroll_modes = QScrollArea()
         scroll_modes.setWidgetResizable(True)
         scroll_modes.setWidget(self.modes_panel)
-        scroll_modes.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        scroll_modes.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
         self.tab_widget.addTab(scroll_modes, "Режимы стабилизатора")
         print("      ✅ Вкладка 'Режимы стабилизатора' создана")
         
         # Tab 4: ГРАФИКА И ВИЗУАЛИЗАЦИЯ (объединенная панель)
         self.graphics_panel = GraphicsPanel(self)
-        # Не помещаем в scroll area, так как панель уже имеет собственные вкладки с прокруткой
+        self._graphics_panel = self.graphics_panel  # ✅ ИСПРАВЛЕНО: Добавляем атрибут для диагностики
+        # ✅ КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: НЕ оборачиваем GraphicsPanel в еще один ScrollArea!
+        # Она уже имеет внутренние ScrollArea для каждой вкладки
         self.tab_widget.addTab(self.graphics_panel, "🎨 Графика")
         print("      ✅ Вкладка 'Графика и визуализация' создана")
         
@@ -360,9 +373,9 @@ class MainWindow(QMainWindow):
         # Add tab widget to right side of horizontal splitter
         self.main_horizontal_splitter.addWidget(self.tab_widget)
         
-        # Set stretch factors for horizontal splitter
-        self.main_horizontal_splitter.setStretchFactor(0, 3)  # 75% for scene+charts
-        self.main_horizontal_splitter.setStretchFactor(1, 1)  # 25% for panels
+        # ✅ ИСПРАВЛЕНО: Более гибкие stretch factors для адаптивности
+        self.main_horizontal_splitter.setStretchFactor(0, 3)  # 75% для сцены+графиков
+        self.main_horizontal_splitter.setStretchFactor(1, 1)  # 25% для панелей (но может расти)
         
         # Connect panel signals
         self._wire_panel_signals()
@@ -431,36 +444,39 @@ class MainWindow(QMainWindow):
             
             print("✅ Сигналы ModesPanel подключены")
 
-        # Graphics panel  
+        # ✅ ИСПРАВЛЕНО: Graphics panel подключение сигналов
         if self.graphics_panel:
+            print("🔧 Подключаем сигналы GraphicsPanel...")
+            
             # Lighting changes
             self.graphics_panel.lighting_changed.connect(self._on_lighting_changed)
-            print("✅ Сигнал lighting_changed подключен")
+            print("   ✅ Сигнал lighting_changed подключен")
             
             # Material changes
             self.graphics_panel.material_changed.connect(self._on_material_changed)
-            print("✅ Сигнал material_changed подключен")
+            print("   ✅ Сигнал material_changed подключен")
             
-            # Environment changes
+            # ✅ КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Environment changes
             self.graphics_panel.environment_changed.connect(self._on_environment_changed)  
-            print("✅ Сигнал environment_changed подключен")
+            print("   ✅ Сигнал environment_changed подключен")
             
-            # Quality changes
+            # ✅ КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Quality changes
             self.graphics_panel.quality_changed.connect(self._on_quality_changed)
-            print("✅ Сигнал quality_changed подключен")
+            print("   ✅ Сигнал quality_changed подключен")
             
             # Camera changes
             self.graphics_panel.camera_changed.connect(self._on_camera_changed)
-            print("✅ Сигнал camera_changed подключен")
+            print("   ✅ Сигнал camera_changed подключен")
             
             # Effects changes
             self.graphics_panel.effects_changed.connect(self._on_effects_changed)
-            print("✅ Сигнал effects_changed подключен")
+            print("   ✅ Сигнал effects_changed подключен")
             
             # Preset applied
             self.graphics_panel.preset_applied.connect(self._on_preset_applied)
-            print("✅ Сигнал preset_applied подключен")
+            print("   ✅ Сигнал preset_applied подключен")
             
+
             print("✅ Все сигналы GraphicsPanel подключены")
 
     @Slot(dict)
@@ -480,6 +496,7 @@ class MainWindow(QMainWindow):
 
         if self.status_bar:
             self.status_bar.showMessage("Геометрия отправлена в 3D сцену", 2000)
+         
 
 
     # ------------------------------------------------------------------
@@ -1036,13 +1053,70 @@ class MainWindow(QMainWindow):
 
     @Slot(dict)
     def _on_environment_changed(self, params: Dict[str, Any]):
+        """Обработчик изменения параметров окружения - ПРЯМОЙ ВЫЗОВ QML"""
+        print(f"🌍 MainWindow: Environment changed: {params}")
         self.logger.debug(f"Environment update: {params}")
-        self._queue_qml_update("environment", params)
+        
+        # ✅ ИСПРАВЛЕНО: НЕ используем систему очередей, вызываем QML НАПРЯМУЮ
+        if self._qml_root_object:
+            try:
+                from PySide6.QtCore import QMetaObject, Q_ARG, Qt
+                
+                print(f"🔧 MainWindow: Вызываем applyEnvironmentUpdates напрямую...")
+                print(f"     fog_enabled = {params.get('fog_enabled', 'N/A')}")
+                
+                success = QMetaObject.invokeMethod(
+                    self._qml_root_object,
+                    "applyEnvironmentUpdates",
+                    Qt.ConnectionType.DirectConnection,
+                    Q_ARG("QVariant", params)
+                )
+                
+                if success:
+                    self.status_bar.showMessage("Окружение обновлено")
+                    print("✅ Successfully called applyEnvironmentUpdates()")
+                else:
+                    print("❌ Failed to call applyEnvironmentUpdates()")
+                    
+            except Exception as e:
+                self.logger.error(f"Environment update failed: {e}")
+                print(f"❌ Exception in environment update: {e}")
+                import traceback
+                traceback.print_exc()
 
     @Slot(dict)
     def _on_quality_changed(self, params: Dict[str, Any]):
+        """Обработчик изменения параметров качества - ПРЯМОЙ ВЫЗОВ QML"""
+        print(f"⚙️ MainWindow: Quality changed: {params}")
         self.logger.debug(f"Quality update: {params}")
-        self._queue_qml_update("quality", params)
+        
+        # ✅ ИСПРАВЛЕНО: НЕ используем систему очередей, вызываем QML НАПРЯМУЮ
+        if self._qml_root_object:
+            try:
+                from PySide6.QtCore import QMetaObject, Q_ARG, Qt
+                
+                print(f"🔧 MainWindow: Вызываем applyQualityUpdates напрямую...")
+                print(f"     antialiasing = {params.get('antialiasing', 'N/A')}")
+                print(f"     aa_quality = {params.get('aa_quality', 'N/A')}")
+                
+                success = QMetaObject.invokeMethod(
+                    self._qml_root_object,
+                    "applyQualityUpdates",
+                    Qt.ConnectionType.DirectConnection,
+                    Q_ARG("QVariant", params)
+                )
+                
+                if success:
+                    self.status_bar.showMessage("Качество обновлено")
+                    print("✅ Successfully called applyQualityUpdates()")
+                else:
+                    print("❌ Failed to call applyQualityUpdates()")
+                    
+            except Exception as e:
+                self.logger.error(f"Quality update failed: {e}")
+                print(f"❌ Exception in quality update: {e}")
+                import traceback
+                traceback.print_exc()
 
     @Slot(dict)
     def _on_camera_changed(self, params: Dict[str, Any]):

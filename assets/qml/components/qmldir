@@ -1,2 +1,3 @@
-// qmldir для компонентов
 singleton Materials 1.0 Materials.qml
+ExtendedSceneEnvironment 1.0 ExtendedSceneEnvironment.qml
+IblProbeLoader 1.0 IblProbeLoader.qml

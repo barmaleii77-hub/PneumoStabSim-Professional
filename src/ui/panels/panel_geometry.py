@@ -64,34 +64,14 @@ class GeometryPanel(QWidget):
             # Формируем полную геометрию для QML (как в _get_fast_geometry_update)
             initial_geometry = self._get_fast_geometry_update("init", 0.0)
             
-            # ДИАГНОСТИКА: Проверяем подписчиков перед отправкой
-            try:
-                geom_changed_receivers = self.geometry_changed.receivers()
-                geom_updated_receivers = self.geometry_updated.receivers()
-                
-                print(f"  📊 Подписчиков на geometry_changed: {geom_changed_receivers}")
-                print(f"  📊 Подписчиков на geometry_updated: {geom_updated_receivers}")
-                
-                if geom_changed_receivers > 0:
-                    print(f"  ✅ Есть подписчики, отправляем geometry_changed...")
-                    self.geometry_changed.emit(initial_geometry)
-                    print(f"  📡 geometry_changed отправлен с rodPosition = {initial_geometry.get('rodPosition', 'НЕ НАЙДЕН')}")
-                else:
-                    print(f"  ⚠️ Нет подписчиков на geometry_changed, возможно главное окно еще не готово")
-                
-                if geom_updated_receivers > 0:
-                    print(f"  ✅ Отправляем geometry_updated...")
-                    self.geometry_updated.emit(self.parameters.copy())
-                    print(f"  📡 geometry_updated отправлен")
-                else:
-                    print(f"  ⚠️ Нет подписчиков на geometry_updated")
-                    
-            except Exception as e:
-                print(f"  ❌ Ошибка проверки подписчиков: {e}")
-                # Отправляем в любом случае
-                self.geometry_changed.emit(initial_geometry)
-                self.geometry_updated.emit(self.parameters.copy())
-                print(f"  📡 Сигналы отправлены без проверки подписчиков")
+            # Отправляем сигналы без проверки подписчиков (она не работает в PySide6)
+            print(f"  📡 Отправка geometry_changed...")
+            self.geometry_changed.emit(initial_geometry)
+            print(f"  📡 geometry_changed отправлен с rodPosition = {initial_geometry.get('rodPosition', 'НЕ НАЙДЕН')}")
+            
+            print(f"  📡 Отправка geometry_updated...")
+            self.geometry_updated.emit(self.parameters.copy())
+            print(f"  📡 geometry_updated отправлен")
         
         # УВЕЛИЧИВАЕМ задержку для гарантии готовности главного окна
         QTimer.singleShot(500, send_initial_geometry)  # Было 100мс, стало 500мс
@@ -447,23 +427,6 @@ class GeometryPanel(QWidget):
         else:
             print(f"   ✅ Конфликтов нет, отправляем сигналы...")
             
-            # ДИАГНОСТИКА: Проверяем есть ли подписчики на сигналы
-            try:
-                param_receivers = self.parameter_changed.receivers()
-                geom_updated_receivers = self.geometry_updated.receivers() 
-                geom_changed_receivers = self.geometry_changed.receivers()
-                
-                print(f"   📡 Подписчиков на parameter_changed: {param_receivers}")
-                print(f"   📡 Подписчиков на geometry_updated: {geom_updated_receivers}")  
-                print(f"   📡 Подписчиков на geometry_changed: {geom_changed_receivers}")
-                
-                if geom_changed_receivers == 0:
-                    print(f"   ❌ ПРОБЛЕМА: Нет подписчиков на geometry_changed!")
-                    print(f"      Возможно сигнал не подключен в main_window.py")
-                
-            except Exception as e:
-                print(f"   ⚠️ Ошибка проверки подписчиков: {e}")
-            
             # МГНОВЕННОЕ обновление без задержек
             self.parameter_changed.emit(param_name, value)
             print(f"   📡 parameter_changed отправлен")
@@ -608,14 +571,8 @@ class GeometryPanel(QWidget):
             'frameToPivot': self.parameters.get('frame_to_pivot', 0.6) * 1000,  # м -> мм
             'rodPosition': self.parameters.get('rod_position', 0.6),  # доля 0-1 (без изменений)
             
-            # СОВМЕСТИМОСТЬ: Старые параметры цилиндра (устаревшие, но поддерживаем)
-            'boreHead': self.parameters.get('cyl_diam_m', 0.080) * 1000,  # NEW: используем новый параметр
-            'boreRod': self.parameters.get('cyl_diam_m', 0.080) * 1000,   # NEW: используем новый параметр
-            'rodDiameter': self.parameters.get('rod_diameter_m', 0.035) * 1000,  # NEW: используем новый параметр
-            'pistonThickness': self.parameters.get('piston_thickness_m', 0.025) * 1000,  # NEW: используем новый параметр
-            'pistonRodLength': self.parameters.get('piston_rod_length_m', 0.200) * 1000,  # NEW: используем новый параметр
-            
-            # ✨ НОВЫЕ ПАРАМЕТРЫ (МШ-1 и МШ-2): Все в мм для QML
+            # ✅ ИСПРАВЛЕНО: ТОЛЬКО НОВЫЕ ПАРАМЕТРЫ (убраны старые duplicate names!)
+            # Эти параметры используются в QML для визуализации
             'cylDiamM': self.parameters.get('cyl_diam_m', 0.080) * 1000,        # м -> мм: диаметр цилиндра
             'strokeM': self.parameters.get('stroke_m', 0.300) * 1000,            # м -> мм: ход поршня
             'deadGapM': self.parameters.get('dead_gap_m', 0.005) * 1000,         # м -> мм: мертвый зазор
