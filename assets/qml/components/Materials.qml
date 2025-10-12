@@ -1,10 +1,10 @@
-// Materials.qml - PBR материалы для визуализации
+// Materials.qml - PBR РјР°С‚РµСЂРёР°Р»С‹ РґР»СЏ РІРёР·СѓР°Р»РёР·Р°С†РёРё
 pragma Singleton
 import QtQuick
 import QtQuick3D
 
 QtObject {
-    // Красный металлик для рамы
+    // РљСЂР°СЃРЅС‹Р№ РјРµС‚Р°Р»Р»РёРє РґР»СЏ СЂР°РјС‹
     readonly property PrincipledMaterial redMetal: PrincipledMaterial {
         baseColor: "#d01515"
         metalness: 1.0
@@ -13,28 +13,28 @@ QtObject {
         clearcoatRoughnessAmount: 0.1
     }
 
-    // Сталь (рычаги/крышки/хвостовик/поршень)
+    // РЎС‚Р°Р»СЊ (СЂС‹С‡Р°РіРё/РєСЂС‹С€РєРё/С…РІРѕСЃС‚РѕРІРёРє/РїРѕСЂС€РµРЅСЊ)
     readonly property PrincipledMaterial steel: PrincipledMaterial {
         baseColor: "#9fa5ad"
         metalness: 0.9
         roughness: 0.35
     }
 
-    // Тонкая сталь (крышки)
+    // РўРѕРЅРєР°СЏ СЃС‚Р°Р»СЊ (РєСЂС‹С€РєРё)
     readonly property PrincipledMaterial steelThin: PrincipledMaterial {
         baseColor: "#b9c0c8"
         metalness: 0.8
         roughness: 0.25
     }
 
-    // Хром (шток)
+    // РҐСЂРѕРј (С€С‚РѕРє)
     readonly property PrincipledMaterial chrome: PrincipledMaterial {
         baseColor: "#e6e6e6"
         metalness: 1.0
         roughness: 0.12
     }
 
-    // Стекло для корпуса цилиндра
+    // РЎС‚РµРєР»Рѕ РґР»СЏ РєРѕСЂРїСѓСЃР° С†РёР»РёРЅРґСЂР°
     readonly property PrincipledMaterial glass: PrincipledMaterial {
         baseColor: "#ffffff"
         metalness: 0.0
@@ -44,7 +44,7 @@ QtObject {
         cullMode: Material.BackFaceCulling
     }
 
-    // Сфера массы (полупрозрачная голубая)
+    // РЎС„РµСЂР° РјР°СЃСЃС‹ (РїРѕР»СѓРїСЂРѕР·СЂР°С‡РЅР°СЏ РіРѕР»СѓР±Р°СЏ)
     readonly property PrincipledMaterial massSphere: PrincipledMaterial {
         baseColor: "#a0d8ff"
         metalness: 0.2

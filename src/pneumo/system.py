@@ -10,7 +10,7 @@ from .cylinder import CylinderState, CylinderSpec
 from .line import PneumoLine
 from .receiver import ReceiverState
 from .types import ValidationResult
-from ..common.errors import ConnectionError, InvariantViolation
+from src.common.errors import ConnectionError, InvariantViolation
 
 
 @dataclass

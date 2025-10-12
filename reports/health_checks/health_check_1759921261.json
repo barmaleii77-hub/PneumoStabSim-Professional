@@ -1,0 +1,166 @@
+{
+  "system": {
+    "platform": "Windows",
+    "platform_version": "10.0.26100",
+    "architecture": "64bit",
+    "processor": "Intel64 Family 6 Model 151 Stepping 2, GenuineIntel",
+    "python_implementation": "CPython",
+    "memory_info": "psutil недоступен"
+  },
+  "python": {
+    "version": "3.13.7 (tags/v3.13.7:bcee1c3, Aug 14 2025, 14:15:11) [MSC v.1944 64 bit (AMD64)]",
+    "version_info": [
+      3,
+      13,
+      7
+    ],
+    "executable": "C:\\Users\\Алексей\\source\\repos\\barmaleii77-hub\\PneumoStabSim-Professional\\env\\Scripts\\python.exe",
+    "platform": "win32",
+    "path_count": 7,
+    "encoding": "utf-8",
+    "virtual_env": {
+      "active": true,
+      "path": "C:\\Users\\Алексей\\source\\repos\\barmaleii77-hub\\PneumoStabSim-Professional\\env",
+      "in_project": false
+    },
+    "environment_vars": {
+      "PYTHONPATH": "НЕ_УСТАНОВЛЕНО",
+      "PYTHONIOENCODING": "НЕ_УСТАНОВЛЕНО",
+      "QSG_RHI_BACKEND": "НЕ_УСТАНОВЛЕНО",
+      "PYTHONUTF8": "НЕ_УСТАНОВЛЕНО"
+    }
+  },
+  "dependencies": {
+    "numpy": {
+      "installed": true,
+      "version": "2.3.3",
+      "import_name": "numpy",
+      "critical": true
+    },
+    "scipy": {
+      "installed": true,
+      "version": "1.16.2",
+      "import_name": "scipy",
+      "critical": true
+    },
+    "PySide6": {
+      "installed": true,
+      "version": "6.10.0",
+      "import_name": "PySide6",
+      "critical": true
+    },
+    "matplotlib": {
+      "installed": true,
+      "version": "3.10.6",
+      "import_name": "matplotlib",
+      "critical": true
+    },
+    "OpenGL": {
+      "installed": true,
+      "version": "3.1.10",
+      "import_name": "OpenGL",
+      "critical": true
+    },
+    "pytest": {
+      "installed": true,
+      "version": "8.4.2",
+      "critical": false
+    },
+    "black": {
+      "installed": false,
+      "critical": false
+    },
+    "psutil": {
+      "installed": false,
+      "critical": false
+    },
+    "qt_status": {
+      "qt_widgets": true,
+      "qt_quick_3d_core": false,
+      "qt_quick_widgets": true,
+      "pyside6_version": "6.10.0"
+    }
+  },
+  "project": {
+    "file_structure": {
+      "app.py": {
+        "exists": true,
+        "required": true
+      },
+      "requirements.txt": {
+        "exists": true,
+        "required": true
+      },
+      "pyproject.toml": {
+        "exists": true,
+        "required": true
+      },
+      ".env": {
+        "exists": true,
+        "required": true
+      },
+      "src/__init__.py": {
+        "exists": true,
+        "required": true
+      },
+      "assets/qml/main.qml": {
+        "exists": true,
+        "required": true
+      },
+      "README.md": {
+        "exists": true,
+        "required": false
+      },
+      "activate_venv.bat": {
+        "exists": true,
+        "required": false
+      },
+      "run.bat": {
+        "exists": true,
+        "required": false
+      },
+      "status.bat": {
+        "exists": true,
+        "required": false
+      },
+      "fix_terminal.bat": {
+        "exists": true,
+        "required": false
+      },
+      "VENV_SETUP_README.md": {
+        "exists": true,
+        "required": false
+      }
+    },
+    "graphics": {
+      "opengl_package": {
+        "available": true,
+        "version": "3.1.10"
+      },
+      "opengl_gl": {
+        "available": true
+      },
+      "qt_rhi_backend": "auto",
+      "qt_settings": {}
+    }
+  },
+  "performance": {
+    "numpy": {
+      "import_time": 0.36,
+      "compute_time": 13.1
+    },
+    "qt": {
+      "import_time": 0.08
+    }
+  },
+  "issues": [
+    "Python 3.13 слишком новый. Многие пакеты могут не работать",
+    "Qt Quick 3D не установлен - установите PySide6-Addons"
+  ],
+  "recommendations": [
+    "🎮 Установите Qt Quick 3D: pip install PySide6-Addons",
+    "🎨 Установите оптимальный графический backend: set QSG_RHI_BACKEND=d3d11",
+    "🐍 Рассмотрите использование Python 3.8-3.11 для лучшей совместимости"
+  ],
+  "overall_status": "good"
+}

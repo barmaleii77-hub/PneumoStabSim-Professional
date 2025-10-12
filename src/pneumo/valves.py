@@ -7,7 +7,7 @@ from dataclasses import dataclass
 from typing import Optional
 from .enums import CheckValveKind, ReliefValveKind
 from .types import ValidationResult
-from ..common.errors import ModelConfigError
+from src.common.errors import ModelConfigError
 
 
 @dataclass

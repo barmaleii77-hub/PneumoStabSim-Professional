@@ -16,8 +16,8 @@ from pathlib import Path
 from typing import Optional, Dict
 
 # NO OpenGL imports - using Qt Quick 3D instead
-from .charts import ChartWidget
-from .panels import GeometryPanel, PneumoPanel, ModesPanel, RoadPanel
+from src.ui.charts import ChartWidget
+from src.ui.panels import GeometryPanel, PneumoPanel, ModesPanel, RoadPanel
 from ..runtime import SimulationManager, StateSnapshot
 
 
@@ -69,7 +69,7 @@ class MainWindow(QMainWindow):
         self.is_simulation_running = False
 
         # NEW: Geometry converter for Python↔QML integration
-        from .geometry_bridge import create_geometry_converter
+        from src.ui.geometry_bridge import create_geometry_converter
         self.geometry_converter = create_geometry_converter()
         print("✅ GeometryBridge created for Python↔QML integration")
 
@@ -200,7 +200,7 @@ class MainWindow(QMainWindow):
             # Fallback to SuspensionSceneHost
             print("    [FALLBACK] Falling back to SuspensionSceneHost...")
             try:
-                from .qml_host import SuspensionSceneHost
+                from src.ui.qml_host import SuspensionSceneHost
                 self._qquick_widget = SuspensionSceneHost(self)
                 self.setCentralWidget(self._qquick_widget)
                 self._qml_root_object = self._qquick_widget.rootObject()

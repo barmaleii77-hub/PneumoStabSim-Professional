@@ -1,0 +1,178 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003" ToolsVersion="4.0">
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <SchemaVersion>2.0</SchemaVersion>
+    <ProjectGuid>a2fe74e1-b743-11d0-ae1a-00a0c90fffc3</ProjectGuid>
+    <ProjectHome>.</ProjectHome>
+    <StartupFile>app.py</StartupFile>
+    <SearchPath>src\;.\</SearchPath>
+    <WorkingDirectory>.</WorkingDirectory>
+    <OutputPath>.</OutputPath>
+    <Name>PneumoStabSim</Name>
+    <RootNamespace>PneumoStabSim</RootNamespace>
+    <InterpreterId>Global|PythonCore|3.11</InterpreterId>
+    <LaunchProvider>Standard Python launcher</LaunchProvider>
+    <EnableNativeCodeDebugging>false</EnableNativeCodeDebugging>
+  </PropertyGroup>
+  
+  <!-- DEBUG CONFIGURATION -->
+  <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
+    <DebugSymbols>true</DebugSymbols>
+    <EnableUnmanagedDebugging>false</EnableUnmanagedDebugging>
+    <CommandLineArguments>--debug</CommandLineArguments>
+    <Environment>
+PYTHONPATH=$(MSBuildProjectDirectory);$(MSBuildProjectDirectory)\src
+QT_DEBUG_PLUGINS=1
+QT_LOGGING_RULES=*.debug=true;js.debug=true;qt.qml.debug=true
+PYTHONDEBUG=1
+QT_SCALE_FACTOR_ROUNDING_POLICY=PassThrough
+QT_AUTO_SCREEN_SCALE_FACTOR=1
+    </Environment>
+  </PropertyGroup>
+  
+  <!-- RELEASE CONFIGURATION -->
+  <PropertyGroup Condition=" '$(Configuration)' == 'Release' ">
+    <DebugSymbols>false</DebugSymbols>
+    <EnableUnmanagedDebugging>false</EnableUnmanagedDebugging>
+    <CommandLineArguments></CommandLineArguments>
+    <Environment>
+PYTHONPATH=$(MSBuildProjectDirectory);$(MSBuildProjectDirectory)\src
+QT_DEBUG_PLUGINS=0
+QT_LOGGING_RULES=js.debug=false;qt.qml.debug=false
+QT_SCALE_FACTOR_ROUNDING_POLICY=PassThrough
+QT_AUTO_SCREEN_SCALE_FACTOR=1
+    </Environment>
+  </PropertyGroup>
+
+  <!-- SAFE MODE CONFIGURATION -->
+  <PropertyGroup Condition=" '$(Configuration)' == 'SafeMode' ">
+    <DebugSymbols>true</DebugSymbols>
+    <EnableUnmanagedDebugging>false</EnableUnmanagedDebugging>
+    <CommandLineArguments>--safe-mode</CommandLineArguments>
+    <Environment>
+PYTHONPATH=$(MSBuildProjectDirectory);$(MSBuildProjectDirectory)\src
+QT_DEBUG_PLUGINS=0
+    </Environment>
+  </PropertyGroup>
+  
+  <ItemGroup>
+    <!-- MAIN APPLICATION FILES -->
+    <Compile Include="app.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="apply_patches.py" />
+    <Compile Include="commit_script.py" />
+    <Compile Include="performance_monitor.py" />
+    <Compile Include="setup_dev.py" />
+    
+    <!-- CONFIGURATION -->
+    <Compile Include="config\__init__.py" />
+    <Compile Include="config\graphics_defaults.py" />
+    
+    <!-- SOURCE CODE -->
+    <Compile Include="src\__init__.py" />
+    <Compile Include="src\common\__init__.py" />
+    <Compile Include="src\common\logging_setup.py" />
+    
+    <!-- UI MODULES -->
+    <Compile Include="src\ui\__init__.py" />
+    <Compile Include="src\ui\main_window.py" />
+    <Compile Include="src\ui\panels\__init__.py" />
+    <Compile Include="src\ui\panels\panel_geometry.py" />
+    <Compile Include="src\ui\panels\panel_graphics.py" />
+    <Compile Include="src\ui\panels\panel_modes.py" />
+    <Compile Include="src\ui\panels\panel_pneumo.py" />
+    
+    <!-- SIMULATION ENGINE -->
+    <Compile Include="src\simulation\__init__.py" />
+    <Compile Include="src\simulation\manager.py" />
+    <Compile Include="src\simulation\physics.py" />
+    
+    <!-- UTILITY SCRIPTS -->
+    <Compile Include="scripts\clean.py" />
+  </ItemGroup>
+  
+  <ItemGroup>
+    <!-- QML FILES -->
+    <Content Include="assets\qml\main.qml">
+      <SubType>Code</SubType>
+    </Content>
+    <Content Include="assets\qml\components\CameraController.qml" />
+    <Content Include="assets\qml\components\MaterialEditor.qml" />
+    
+    <!-- ASSETS -->
+    <Content Include="assets\hdr\studio_small_09_2k.hdr" />
+    <Content Include="assets\images\icon.png" />
+    
+    <!-- DOCUMENTATION -->
+    <Content Include="README.md" />
+    <Content Include="DEVELOPER_GUIDE.md" />
+    <Content Include="TROUBLESHOOTING.md" />
+    <Content Include="LAUNCH_GUIDE.md" />
+    
+    <!-- CONFIGURATION FILES -->
+    <Content Include="requirements.txt" />
+    <Content Include="requirements-dev.txt" />
+    <Content Include="pyproject.toml" />
+    <Content Include=".gitignore" />
+    <Content Include=".editorconfig" />
+    
+    <!-- PATCH FILES -->
+    <Content Include="panel_graphics.patch" />
+    <Content Include="src\ui\panels\panel_graphics.patch" />
+    <Content Include="assets\qml\main.patch" />
+    
+    <!-- SCRIPTS -->
+    <Content Include="run_pneumostabsim.bat" />
+    
+    <!-- VS CODE SETTINGS -->
+    <Content Include=".vscode\launch.json" />
+    <Content Include=".vscode\settings.json" />
+    <Content Include=".vscode\tasks.json" />
+  </ItemGroup>
+  
+  <ItemGroup>
+    <!-- FOLDER STRUCTURE -->
+    <Folder Include="assets\" />
+    <Folder Include="assets\qml\" />
+    <Folder Include="assets\qml\components\" />
+    <Folder Include="assets\hdr\" />
+    <Folder Include="assets\images\" />
+    <Folder Include="config\" />
+    <Folder Include="src\" />
+    <Folder Include="src\common\" />
+    <Folder Include="src\ui\" />
+    <Folder Include="src\ui\panels\" />
+    <Folder Include="src\simulation\" />
+    <Folder Include="logs\" />
+    <Folder Include="tests\" />
+    <Folder Include="docs\" />
+    <Folder Include="scripts\" />
+    <Folder Include=".vscode\" />
+  </ItemGroup>
+  
+  <Import Project="$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\Python Tools\Microsoft.PythonTools.targets" />
+  
+  <!-- BUILD TARGETS -->
+  <Target Name="BeforeBuild">
+    <!-- Ensure virtual environment exists -->
+    <Exec Condition="!Exists('venv\Scripts\python.exe')" 
+          Command="python -m venv venv" 
+          ContinueOnError="false" />
+    
+    <!-- Install/update dependencies -->
+    <Exec Condition="Exists('venv\Scripts\python.exe')" 
+          Command="venv\Scripts\pip install -r requirements.txt" 
+          ContinueOnError="true" />
+  </Target>
+  
+  <Target Name="AfterBuild">
+    <!-- Optional: Run tests after build -->
+  </Target>
+  
+  <!-- CLEAN TARGET -->
+  <Target Name="Clean">
+    <Exec Command="python scripts\clean.py" ContinueOnError="true" />
+  </Target>
+</Project>

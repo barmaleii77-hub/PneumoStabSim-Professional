@@ -6,7 +6,7 @@ Replaces old dock widget panels
 from PySide6.QtWidgets import QWidget, QVBoxLayout, QLabel, QComboBox, QCheckBox, QHBoxLayout
 from PySide6.QtCore import Signal
 
-from .parameter_slider import ParameterSlider
+from src.ui.parameter_slider import ParameterSlider
 
 
 class GeometryPanelAccordion(QWidget):

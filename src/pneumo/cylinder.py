@@ -8,7 +8,7 @@ from dataclasses import dataclass
 from typing import Tuple
 from .geometry import CylinderGeom, LeverGeom
 from .types import ValidationResult
-from ..common.errors import GeometryError, InvariantViolation
+from src.common.errors import GeometryError, InvariantViolation
 
 
 @dataclass

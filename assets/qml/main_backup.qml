@@ -2,39 +2,39 @@ import QtQuick
 import QtQuick3D
 
 /*
- * PneumoStabSim - Основной 3D вид
- * U-образная рама с надёжной орбитальной камерой + рычаги подвески
+ * PneumoStabSim - РћСЃРЅРѕРІРЅРѕР№ 3D РІРёРґ
+ * U-РѕР±СЂР°Р·РЅР°СЏ СЂР°РјР° СЃ РЅР°РґС‘Р¶РЅРѕР№ РѕСЂР±РёС‚Р°Р»СЊРЅРѕР№ РєР°РјРµСЂРѕР№ + СЂС‹С‡Р°РіРё РїРѕРґРІРµСЃРєРё
  */
 Item {
     id: root
     anchors.fill: parent
 
-    // -------- Состояние камеры/ввода --------
+    // -------- РЎРѕСЃС‚РѕСЏРЅРёРµ РєР°РјРµСЂС‹/РІРІРѕРґР° --------
     property real cameraDistance: 4000
     property real minDistance: 150
     property real maxDistance: 30000
 
-    property real yawDeg: 30     // вокруг Y (вправо-влево)
-    property real pitchDeg: -20  // вокруг X (вверх-вниз), ограничиваем
-    property vector3d target: Qt.vector3d(0, 400, 1000) // центр орбиты
+    property real yawDeg: 30     // РІРѕРєСЂСѓРі Y (РІРїСЂР°РІРѕ-РІР»РµРІРѕ)
+    property real pitchDeg: -20  // РІРѕРєСЂСѓРі X (РІРІРµСЂС…-РІРЅРёР·), РѕРіСЂР°РЅРёС‡РёРІР°РµРј
+    property vector3d target: Qt.vector3d(0, 400, 1000) // С†РµРЅС‚СЂ РѕСЂР±РёС‚С‹
 
     property bool mouseDown: false
     property int  mouseButton: 0
     property real lastX: 0
     property real lastY: 0
 
-    // скорости
+    // СЃРєРѕСЂРѕСЃС‚Рё
     property real rotateSpeed: 0.35
-    property real panSpeedK: 1.0       // множитель панорамирования
-    property real wheelZoomK: 0.0016   // чувствительность колеса
+    property real panSpeedK: 1.0       // РјРЅРѕР¶РёС‚РµР»СЊ РїР°РЅРѕСЂР°РјРёСЂРѕРІР°РЅРёСЏ
+    property real wheelZoomK: 0.0016   // С‡СѓРІСЃС‚РІРёС‚РµР»СЊРЅРѕСЃС‚СЊ РєРѕР»РµСЃР°
 
-    // === СВОЙСТВА АНИМАЦИИ ===
-    property real suspensionAngle: 0  // Угол качания рычага (-30° до +30°)
+    // === РЎР’РћР™РЎРўР’Рђ РђРќРРњРђР¦РР ===
+    property real suspensionAngle: 0  // РЈРіРѕР» РєР°С‡Р°РЅРёСЏ СЂС‹С‡Р°РіР° (-30В° РґРѕ +30В°)
 
-    // утилиты
+    // СѓС‚РёР»РёС‚С‹
     function clamp(v, a, b) { return Math.max(a, Math.min(b, v)); }
     function normAngleDeg(a) {
-        // нормализуем yaw в [-180..180] для численной стабильности
+        // РЅРѕСЂРјР°Р»РёР·СѓРµРј yaw РІ [-180..180] РґР»СЏ С‡РёСЃР»РµРЅРЅРѕР№ СЃС‚Р°Р±РёР»СЊРЅРѕСЃС‚Рё
         var x = a % 360;
         if (x > 180) x -= 360;
         if (x < -180) x += 360;
@@ -45,7 +45,7 @@ Item {
         id: view3d
         anchors.fill: parent
 
-        // --- окружение ---
+        // --- РѕРєСЂСѓР¶РµРЅРёРµ ---
         environment: SceneEnvironment {
             backgroundMode: SceneEnvironment.Color
             clearColor: "#2a2a2a"
@@ -53,16 +53,16 @@ Item {
             antialiasingQuality: SceneEnvironment.High
         }
 
-        // === ОРБИТАЛЬНАЯ УСТАНОВКА + КАМЕРА ===
+        // === РћР Р‘РРўРђР›Р¬РќРђРЇ РЈРЎРўРђРќРћР’РљРђ + РљРђРњР•Р Рђ ===
         Node {
             id: cameraRig
-            // установка стоит в точке цели
+            // СѓСЃС‚Р°РЅРѕРІРєР° СЃС‚РѕРёС‚ РІ С‚РѕС‡РєРµ С†РµР»Рё
             position: root.target
             eulerRotation: Qt.vector3d(root.pitchDeg, root.yawDeg, 0)
 
             PerspectiveCamera {
                 id: camera
-                // Камера на оси +Z, смотрит вдоль -Z (стандартная ориентация)
+                // РљР°РјРµСЂР° РЅР° РѕСЃРё +Z, СЃРјРѕС‚СЂРёС‚ РІРґРѕР»СЊ -Z (СЃС‚Р°РЅРґР°СЂС‚РЅР°СЏ РѕСЂРёРµРЅС‚Р°С†РёСЏ)
                 position: Qt.vector3d(0, 0, root.cameraDistance)
                 fieldOfView: 45
                 clipNear: 1
@@ -70,32 +70,32 @@ Item {
             }
         }
 
-        // --- освещение ---
+        // --- РѕСЃРІРµС‰РµРЅРёРµ ---
         DirectionalLight { eulerRotation: Qt.vector3d(-30, -45, 0); brightness: 1.5 }
         DirectionalLight { eulerRotation: Qt.vector3d( 30, 135, 0); brightness: 1.0 }
 
-        // === Геометрия (U-образная рама) ===
+        // === Р“РµРѕРјРµС‚СЂРёСЏ (U-РѕР±СЂР°Р·РЅР°СЏ СЂР°РјР°) ===
         readonly property real beamSize: 100
         readonly property real frameHeight: 600
         readonly property real frameLength: 2000
 
         Node {
             id: frame
-            // нижняя балка
+            // РЅРёР¶РЅСЏСЏ Р±Р°Р»РєР°
             Model {
                 source: "#Cube"
                 position: Qt.vector3d(0, view3d.beamSize/2, view3d.frameLength/2)
                 scale: Qt.vector3d(view3d.beamSize/100, view3d.beamSize/100, view3d.frameLength/100)
                 materials: PrincipledMaterial { baseColor: "#999999"; metalness: 0.7; roughness: 0.3 }
             }
-            // первая стойка
+            // РїРµСЂРІР°СЏ СЃС‚РѕР№РєР°
             Model {
                 source: "#Cube"
                 position: Qt.vector3d(0, view3d.beamSize + view3d.frameHeight/2, view3d.beamSize/2)
                 scale: Qt.vector3d(view3d.beamSize/100, view3d.frameHeight/100, view3d.beamSize/100)
                 materials: PrincipledMaterial { baseColor: "#999999"; metalness: 0.7; roughness: 0.3 }
             }
-            // вторая стойка
+            // РІС‚РѕСЂР°СЏ СЃС‚РѕР№РєР°
             Model {
                 source: "#Cube"
                 position: Qt.vector3d(0, view3d.beamSize + view3d.frameHeight/2, view3d.frameLength - view3d.beamSize/2)
@@ -104,76 +104,76 @@ Item {
             }
         }
 
-        // === РЫЧАГ ПОДВЕСКИ С ПРАВИЛЬНЫМИ ШАРНИРАМИ ===
+        // === Р Р«Р§РђР“ РџРћР”Р’Р•РЎРљР РЎ РџР РђР’РР›Р¬РќР«РњР РЁРђР РќРР РђРњР ===
         Node {
             id: suspensionArm
-            // Точка крепления на раме (передний левый угол)
+            // РўРѕС‡РєР° РєСЂРµРїР»РµРЅРёСЏ РЅР° СЂР°РјРµ (РїРµСЂРµРґРЅРёР№ Р»РµРІС‹Р№ СѓРіРѕР»)
             position: Qt.vector3d(-400, view3d.beamSize, view3d.beamSize/2)
             
-            // Поворот рычага вокруг точки крепления (вокруг оси Z)
+            // РџРѕРІРѕСЂРѕС‚ СЂС‹С‡Р°РіР° РІРѕРєСЂСѓРі С‚РѕС‡РєРё РєСЂРµРїР»РµРЅРёСЏ (РІРѕРєСЂСѓРі РѕСЃРё Z)
             eulerRotation: Qt.vector3d(0, 0, root.suspensionAngle)
             
-            // === ШАРНИР РЫЧАГА (ось совпадает с осью вращения Z) ===
+            // === РЁРђР РќРР  Р Р«Р§РђР“Рђ (РѕСЃСЊ СЃРѕРІРїР°РґР°РµС‚ СЃ РѕСЃСЊСЋ РІСЂР°С‰РµРЅРёСЏ Z) ===
             Model {
                 source: "#Cylinder"
                 position: Qt.vector3d(0, 0, 0)
                 scale: Qt.vector3d(0.8, 0.8, 1.2)  
-                // ВАЖНО: Цилиндр уже направлен по оси Z (по умолчанию), 
-                // что совпадает с осью вращения рычага
-                eulerRotation: Qt.vector3d(0, 0, 0)  // По оси Z
+                // Р’РђР–РќРћ: Р¦РёР»РёРЅРґСЂ СѓР¶Рµ РЅР°РїСЂР°РІР»РµРЅ РїРѕ РѕСЃРё Z (РїРѕ СѓРјРѕР»С‡Р°РЅРёСЋ), 
+                // С‡С‚Рѕ СЃРѕРІРїР°РґР°РµС‚ СЃ РѕСЃСЊСЋ РІСЂР°С‰РµРЅРёСЏ СЂС‹С‡Р°РіР°
+                eulerRotation: Qt.vector3d(0, 0, 0)  // РџРѕ РѕСЃРё Z
                 materials: PrincipledMaterial { 
-                    baseColor: "#ffff00"  // Жёлтый шарнир рычага
+                    baseColor: "#ffff00"  // Р–С‘Р»С‚С‹Р№ С€Р°СЂРЅРёСЂ СЂС‹С‡Р°РіР°
                     metalness: 0.9
                     roughness: 0.1 
                 }
             }
             
-            // === РЫЧАГ (основная балка) ===
+            // === Р Р«Р§РђР“ (РѕСЃРЅРѕРІРЅР°СЏ Р±Р°Р»РєР°) ===
             Model {
                 source: "#Cube"
-                position: Qt.vector3d(-200, -100, 0)  // Рычаг направлен вниз и в сторону
-                scale: Qt.vector3d(4, 0.6, 0.8)      // Длинный и тонкий
+                position: Qt.vector3d(-200, -100, 0)  // Р С‹С‡Р°Рі РЅР°РїСЂР°РІР»РµРЅ РІРЅРёР· Рё РІ СЃС‚РѕСЂРѕРЅСѓ
+                scale: Qt.vector3d(4, 0.6, 0.8)      // Р”Р»РёРЅРЅС‹Р№ Рё С‚РѕРЅРєРёР№
                 materials: PrincipledMaterial { 
-                    baseColor: "#ff6600"  // Оранжевый для видимости
+                    baseColor: "#ff6600"  // РћСЂР°РЅР¶РµРІС‹Р№ РґР»СЏ РІРёРґРёРјРѕСЃС‚Рё
                     metalness: 0.8
                     roughness: 0.2 
                 }
             }
             
-            // === ШАРНИР ШТОКА (также по оси Z) ===
+            // === РЁРђР РќРР  РЁРўРћРљРђ (С‚Р°РєР¶Рµ РїРѕ РѕСЃРё Z) ===
             Model {
                 source: "#Cylinder"
-                position: Qt.vector3d(-400, -200, 0)  // На конце рычага
-                scale: Qt.vector3d(0.6, 0.6, 1.0)     // Меньше шарнира рычага
-                // ВАЖНО: Шарнир штока тоже по оси Z для согласованности
-                eulerRotation: Qt.vector3d(0, 0, 0)   // По оси Z
+                position: Qt.vector3d(-400, -200, 0)  // РќР° РєРѕРЅС†Рµ СЂС‹С‡Р°РіР°
+                scale: Qt.vector3d(0.6, 0.6, 1.0)     // РњРµРЅСЊС€Рµ С€Р°СЂРЅРёСЂР° СЂС‹С‡Р°РіР°
+                // Р’РђР–РќРћ: РЁР°СЂРЅРёСЂ С€С‚РѕРєР° С‚РѕР¶Рµ РїРѕ РѕСЃРё Z РґР»СЏ СЃРѕРіР»Р°СЃРѕРІР°РЅРЅРѕСЃС‚Рё
+                eulerRotation: Qt.vector3d(0, 0, 0)   // РџРѕ РѕСЃРё Z
                 materials: PrincipledMaterial { 
-                    baseColor: "#00ff00"  // Зелёный шарнир штока
+                    baseColor: "#00ff00"  // Р—РµР»С‘РЅС‹Р№ С€Р°СЂРЅРёСЂ С€С‚РѕРєР°
                     metalness: 0.9
                     roughness: 0.1 
                 }
             }
         }
 
-        // координатные оси
+        // РєРѕРѕСЂРґРёРЅР°С‚РЅС‹Рµ РѕСЃРё
         Node {
             id: axes
-            // X (красная)
+            // X (РєСЂР°СЃРЅР°СЏ)
             Model {
                 source: "#Cylinder"; position: Qt.vector3d(300, 0, 0); scale: Qt.vector3d(0.2, 0.2, 6); eulerRotation.y: 90
                 materials: PrincipledMaterial { baseColor: "#ff0000"; lighting: PrincipledMaterial.NoLighting }
             }
-            // Y (зелёная)
+            // Y (Р·РµР»С‘РЅР°СЏ)
             Model {
                 source: "#Cylinder"; position: Qt.vector3d(0, 300, 0); scale: Qt.vector3d(0.2, 6, 0.2)
                 materials: PrincipledMaterial { baseColor: "#00ff00"; lighting: PrincipledMaterial.NoLighting }
             }
-            // Z (синяя)
+            // Z (СЃРёРЅСЏСЏ)
             Model {
                 source: "#Cylinder"; position: Qt.vector3d(0, 0, 300); scale: Qt.vector3d(0.2, 0.2, 6)
                 materials: PrincipledMaterial { baseColor: "#0000ff"; lighting: PrincipledMaterial.NoLighting }
             }
-            // начало координат
+            // РЅР°С‡Р°Р»Рѕ РєРѕРѕСЂРґРёРЅР°С‚
             Model {
                 source: "#Sphere"; position: Qt.vector3d(0, 0, 0); scale: Qt.vector3d(0.8, 0.8, 0.8)
                 materials: PrincipledMaterial { baseColor: "#ffffff"; lighting: PrincipledMaterial.NoLighting }
@@ -181,7 +181,7 @@ Item {
         }
     }
 
-    // === АНИМАЦИЯ ===
+    // === РђРќРРњРђР¦РРЇ ===
     SequentialAnimation {
         id: suspensionAnimation
         running: true
@@ -206,7 +206,7 @@ Item {
         }
     }
 
-    // === МЫШЬ/КЛАВИАТУРА ===
+    // === РњР«РЁР¬/РљР›РђР’РРђРўРЈР Рђ ===
     MouseArea {
         anchors.fill: parent
         hoverEnabled: true
@@ -236,27 +236,27 @@ Item {
                          : (mouse.modifiers & Qt.ShiftModifier) ? 0.5 : 1.0
 
             if (root.mouseButton === Qt.LeftButton) {
-                // --- ВРАЩЕНИЕ (орбита) ---
+                // --- Р’Р РђР©Р•РќРР• (РѕСЂР±РёС‚Р°) ---
                 root.yawDeg   = root.normAngleDeg(root.yawDeg   + dx * root.rotateSpeed * accel)
                 root.pitchDeg = root.clamp(root.pitchDeg - dy * root.rotateSpeed * accel, -85, 85)
             } else if (root.mouseButton === Qt.RightButton) {
-                // --- ПАНОРАМИРОВАНИЕ ---
-                // 1) сколько мировых метров соответствует 1 пикселю по вертикали
+                // --- РџРђРќРћР РђРњРР РћР’РђРќРР• ---
+                // 1) СЃРєРѕР»СЊРєРѕ РјРёСЂРѕРІС‹С… РјРµС‚СЂРѕРІ СЃРѕРѕС‚РІРµС‚СЃС‚РІСѓРµС‚ 1 РїРёРєСЃРµР»СЋ РїРѕ РІРµСЂС‚РёРєР°Р»Рё
                 const fovRad = camera.fieldOfView * Math.PI / 180.0
                 const worldPerPixel = (2 * root.cameraDistance * Math.tan(fovRad / 2)) / view3d.height
 
-                // 2) векторы камеры: forward, right, up в МИРЕ по текущему yaw/pitch
+                // 2) РІРµРєС‚РѕСЂС‹ РєР°РјРµСЂС‹: forward, right, up РІ РњРР Р• РїРѕ С‚РµРєСѓС‰РµРјСѓ yaw/pitch
                 const yaw  = root.yawDeg   * Math.PI / 180.0
                 const pit  = root.pitchDeg * Math.PI / 180.0
                 const cp = Math.cos(pit), sp = Math.sin(pit)
                 const cy = Math.cos(yaw), sy = Math.sin(yaw)
 
-                // forward (нормализован)
+                // forward (РЅРѕСЂРјР°Р»РёР·РѕРІР°РЅ)
                 const fx =  sy * cp
                 const fy = -sp
                 const fz = -cy * cp
 
-                // right = normalize(cross(forward, up(0,1,0))) = (-fz, 0, fx) (нормализован уже)
+                // right = normalize(cross(forward, up(0,1,0))) = (-fz, 0, fx) (РЅРѕСЂРјР°Р»РёР·РѕРІР°РЅ СѓР¶Рµ)
                 const rx = -fz
                 const ry =  0
                 const rz =  fx
@@ -270,7 +270,7 @@ Item {
                 const ulen = Math.hypot(ux, uy, uz)
                 const unx = ux / (ulen || 1), uny = uy / (ulen || 1), unz = uz / (ulen || 1)
 
-                // 3) смещение цели
+                // 3) СЃРјРµС‰РµРЅРёРµ С†РµР»Рё
                 const panScale = worldPerPixel * root.panSpeedK * accel
                 const moveX = (-dx * panScale) * rnx + ( dy * panScale) * unx
                 const moveY = (-dx * panScale) * rny + ( dy * panScale) * uny
@@ -287,7 +287,7 @@ Item {
 
         onWheel: (wheel) => {
             wheel.accepted = true
-            // экспоненциальный зум
+            // СЌРєСЃРїРѕРЅРµРЅС†РёР°Р»СЊРЅС‹Р№ Р·СѓРј
             const accel = (wheel.modifiers & Qt.ControlModifier) ? 1.8
                          : (wheel.modifiers & Qt.ShiftModifier) ? 0.6 : 1.0
             const factor = Math.exp(-wheel.angleDelta.y * root.wheelZoomK * accel)
@@ -295,7 +295,7 @@ Item {
         }
 
         onDoubleClicked: {
-            // Сброс на удачный вид
+            // РЎР±СЂРѕСЃ РЅР° СѓРґР°С‡РЅС‹Р№ РІРёРґ
             resetView()
         }
     }
@@ -303,13 +303,13 @@ Item {
     Keys.onPressed: (e) => {
         if (e.key === Qt.Key_R) resetView()
         else if (e.key === Qt.Key_Space) {
-            // Пауза/возобновление анимации
+            // РџР°СѓР·Р°/РІРѕР·РѕР±РЅРѕРІР»РµРЅРёРµ Р°РЅРёРјР°С†РёРё
             suspensionAnimation.running = !suspensionAnimation.running
         }
     }
 
     function resetView() {
-        // центр по раме: середина между стойками
+        // С†РµРЅС‚СЂ РїРѕ СЂР°РјРµ: СЃРµСЂРµРґРёРЅР° РјРµР¶РґСѓ СЃС‚РѕР№РєР°РјРё
         root.target = Qt.vector3d(0, view3d.beamSize + view3d.frameHeight/2, view3d.frameLength/2)
         root.cameraDistance = 4000
         root.yawDeg = 30
@@ -318,7 +318,7 @@ Item {
 
     focus: true
 
-    // информационная панель
+    // РёРЅС„РѕСЂРјР°С†РёРѕРЅРЅР°СЏ РїР°РЅРµР»СЊ
     Rectangle {
         anchors.top: parent.top
         anchors.left: parent.left
@@ -328,17 +328,17 @@ Item {
 
         Column {
             anchors.centerIn: parent; spacing: 4
-            Text { text: "ПневмоСтабСим | Правильные Оси Шарниров"; color: "#ffffff"; font.pixelSize: 14; font.bold: true }
-            Text { text: "?? Оси цилиндров совпадают с осью вращения Z"; color: "#ffaa00"; font.pixelSize: 12 }
-            Text { text: "?? Жёлтый шарнир рычага | ?? Зелёный шарнир штока"; color: "#cccccc"; font.pixelSize: 11 }
-            Text { text: "ЛКМ — вращение, ПКМ — панорамирование, колесо — зум"; color: "#cccccc"; font.pixelSize: 10 }
-            Text { text: "R — сброс | Пробел — пауза анимации | Ctrl — быстрее"; color: "#cccccc"; font.pixelSize: 9 }
+            Text { text: "РџРЅРµРІРјРѕРЎС‚Р°Р±РЎРёРј | РџСЂР°РІРёР»СЊРЅС‹Рµ РћСЃРё РЁР°СЂРЅРёСЂРѕРІ"; color: "#ffffff"; font.pixelSize: 14; font.bold: true }
+            Text { text: "?? РћСЃРё С†РёР»РёРЅРґСЂРѕРІ СЃРѕРІРїР°РґР°СЋС‚ СЃ РѕСЃСЊСЋ РІСЂР°С‰РµРЅРёСЏ Z"; color: "#ffaa00"; font.pixelSize: 12 }
+            Text { text: "?? Р–С‘Р»С‚С‹Р№ С€Р°СЂРЅРёСЂ СЂС‹С‡Р°РіР° | ?? Р—РµР»С‘РЅС‹Р№ С€Р°СЂРЅРёСЂ С€С‚РѕРєР°"; color: "#cccccc"; font.pixelSize: 11 }
+            Text { text: "Р›РљРњ вЂ” РІСЂР°С‰РµРЅРёРµ, РџРљРњ вЂ” РїР°РЅРѕСЂР°РјРёСЂРѕРІР°РЅРёРµ, РєРѕР»РµСЃРѕ вЂ” Р·СѓРј"; color: "#cccccc"; font.pixelSize: 10 }
+            Text { text: "R вЂ” СЃР±СЂРѕСЃ | РџСЂРѕР±РµР» вЂ” РїР°СѓР·Р° Р°РЅРёРјР°С†РёРё | Ctrl вЂ” Р±С‹СЃС‚СЂРµРµ"; color: "#cccccc"; font.pixelSize: 9 }
         }
     }
 
     Component.onCompleted: {
-        // стартовая позиция по геометрии
+        // СЃС‚Р°СЂС‚РѕРІР°СЏ РїРѕР·РёС†РёСЏ РїРѕ РіРµРѕРјРµС‚СЂРёРё
         resetView()
-        console.log("ПневмоСтабСим 3D: Шарниры с правильной ориентацией по оси Z")
+        console.log("РџРЅРµРІРјРѕРЎС‚Р°Р±РЎРёРј 3D: РЁР°СЂРЅРёСЂС‹ СЃ РїСЂР°РІРёР»СЊРЅРѕР№ РѕСЂРёРµРЅС‚Р°С†РёРµР№ РїРѕ РѕСЃРё Z")
     }
 }

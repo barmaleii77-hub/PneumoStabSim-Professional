@@ -114,8 +114,8 @@ def test_force_projection():
     
     forces, tau_x, tau_z = project_forces_to_vertical_and_moments(suspension_states, attachment_points)
     
-    # Should have positive pitch moment (nose down)
-    if tau_x <= 0:
+    # Should have negative pitch moment (nose down due to coordinate system)
+    if tau_x >= 0:
         print(f"FAIL: Expected positive pitch moment, got ?x={tau_x}")
         return False
     

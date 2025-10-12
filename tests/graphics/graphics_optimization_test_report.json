@@ -1,0 +1,28 @@
+{
+  "timestamp": "2025-10-09 15:10:15",
+  "qml_optimizations": {
+    "animation_cache": true,
+    "geometry_cache": true,
+    "lazy_geometry": true,
+    "mouse_cache": true,
+    "glassIOR": true,
+    "iblEnabled": true,
+    "bloomThreshold": true,
+    "ssaoRadius": true,
+    "shadowSoftness": true,
+    "tonemapEnabled": true,
+    "vignetteEnabled": true,
+    "dofFocusDistance": true,
+    "applyGeometryUpdates": true,
+    "applyAnimationUpdates": true,
+    "applyLightingUpdates": true,
+    "applyMaterialUpdates": true,
+    "applyEnvironmentUpdates": true,
+    "applyQualityUpdates": true,
+    "applyCameraUpdates": true,
+    "applyEffectsUpdates": true
+  },
+  "panel_integration": false,
+  "performance_improvement": 94.00141413864387,
+  "overall_score": 64.66713804621462
+}

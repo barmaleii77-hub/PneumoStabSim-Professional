@@ -9,7 +9,7 @@ from collections import deque
 from typing import Optional, Dict, List
 import numpy as np
 
-from ..runtime.state import StateSnapshot
+from src.runtime.state import StateSnapshot
 
 
 class ChartWidget(QWidget):
