@@ -6,12 +6,20 @@ PneumoStabSim Performance Monitor
 """
 
 import time
-import psutil
 import threading
 from dataclasses import dataclass
 from typing import Dict, List, Optional
 import json
 from pathlib import Path
+
+# Опциональный импорт psutil с graceful fallback
+try:
+    import psutil
+    PSUTIL_AVAILABLE = True
+except ImportError:
+    PSUTIL_AVAILABLE = False
+    print("[WARNING] psutil not available. Performance monitoring will be limited.")
+    print("[TIP] Install psutil for full monitoring: pip install psutil")
 
 @dataclass
 class PerformanceMetrics:
@@ -28,8 +36,14 @@ class PerformanceMonitor:
     """Монитор производительности для PneumoStabSim"""
     
     def __init__(self, pid: Optional[int] = None):
-        self.pid = pid or psutil.Process().pid
-        self.process = psutil.Process(self.pid)
+        if not PSUTIL_AVAILABLE:
+            print("[PERF] Performance monitoring disabled (psutil not available)")
+            self.process = None
+            self.pid = None
+        else:
+            self.pid = pid or psutil.Process().pid
+            self.process = psutil.Process(self.pid)
+        
         self.metrics: List[PerformanceMetrics] = []
         self.monitoring = False
         self.monitor_thread: Optional[threading.Thread] = None
@@ -40,6 +54,10 @@ class PerformanceMonitor:
         
     def start_monitoring(self, interval: float = 1.0):
         """Запустить мониторинг"""
+        if not PSUTIL_AVAILABLE:
+            print("[PERF] Cannot start monitoring: psutil not available")
+            return
+            
         if self.monitoring:
             return
             
@@ -63,6 +81,10 @@ class PerformanceMonitor:
         """Основной цикл мониторинга"""
         while self.monitoring:
             try:
+                if not PSUTIL_AVAILABLE or not self.process:
+                    time.sleep(interval)
+                    continue
+                
                 # Получаем базовые метрики системы
                 cpu_percent = self.process.cpu_percent()
                 memory_info = self.process.memory_info()
@@ -147,6 +169,10 @@ class PerformanceMonitor:
         
     def print_status(self):
         """Вывести текущий статус производительности"""
+        if not PSUTIL_AVAILABLE:
+            print("[PERF] Мониторинг недоступен (psutil не установлен)")
+            return
+            
         current = self.get_current_metrics()
         if not current:
             print("[PERF] Нет данных о производительности")
@@ -173,6 +199,7 @@ class PerformanceMonitor:
         try:
             data = {
                 'pid': self.pid,
+                'psutil_available': PSUTIL_AVAILABLE,
                 'metrics': [
                     {
                         'timestamp': m.timestamp,
