@@ -341,6 +341,14 @@ Item {
     property color jointArmEmissiveColor: "#000000"
     property real jointArmEmissiveIntensity: 0.0
 
+    function emissiveVector(color, intensity) {
+        if (intensity === undefined)
+            intensity = 1.0
+        if (!color)
+            return Qt.vector3d(0, 0, 0)
+        return Qt.vector3d(color.r * intensity, color.g * intensity, color.b * intensity)
+    }
+
     property color jointRodOkColor: "#00ff55"
     property color jointRodErrorColor: "#ff0000"
 
@@ -893,8 +901,7 @@ Item {
             indexOfRefraction: frameIor
             attenuationDistance: frameAttenuationDistance
             attenuationColor: frameAttenuationColor
-            emissiveColor: frameEmissiveColor
-            emissiveFactor: frameEmissiveIntensity
+            emissiveFactor: emissiveVector(frameEmissiveColor, frameEmissiveIntensity)
         }
 
         PrincipledMaterial {
@@ -911,8 +918,7 @@ Item {
             indexOfRefraction: leverIor
             attenuationDistance: leverAttenuationDistance
             attenuationColor: leverAttenuationColor
-            emissiveColor: leverEmissiveColor
-            emissiveFactor: leverEmissiveIntensity
+            emissiveFactor: emissiveVector(leverEmissiveColor, leverEmissiveIntensity)
         }
 
         PrincipledMaterial {
@@ -929,8 +935,7 @@ Item {
             indexOfRefraction: tailRodIor
             attenuationDistance: tailRodAttenuationDistance
             attenuationColor: tailRodAttenuationColor
-            emissiveColor: tailRodEmissiveColor
-            emissiveFactor: tailRodEmissiveIntensity
+            emissiveFactor: emissiveVector(tailRodEmissiveColor, tailRodEmissiveIntensity)
         }
 
         PrincipledMaterial {
@@ -947,8 +952,7 @@ Item {
             indexOfRefraction: cylinderIor
             attenuationDistance: cylinderAttenuationDistance
             attenuationColor: cylinderAttenuationColor
-            emissiveColor: cylinderEmissiveColor
-            emissiveFactor: cylinderEmissiveIntensity
+            emissiveFactor: emissiveVector(cylinderEmissiveColor, cylinderEmissiveIntensity)
             alphaMode: PrincipledMaterial.Blend
         }
 
@@ -966,8 +970,7 @@ Item {
             indexOfRefraction: jointTailIor
             attenuationDistance: jointTailAttenuationDistance
             attenuationColor: jointTailAttenuationColor
-            emissiveColor: jointTailEmissiveColor
-            emissiveFactor: jointTailEmissiveIntensity
+            emissiveFactor: emissiveVector(jointTailEmissiveColor, jointTailEmissiveIntensity)
         }
 
         PrincipledMaterial {
@@ -984,8 +987,7 @@ Item {
             indexOfRefraction: jointArmIor
             attenuationDistance: jointArmAttenuationDistance
             attenuationColor: jointArmAttenuationColor
-            emissiveColor: jointArmEmissiveColor
-            emissiveFactor: jointArmEmissiveIntensity
+            emissiveFactor: emissiveVector(jointArmEmissiveColor, jointArmEmissiveIntensity)
         }
 
         // Camera rig (preserved)
@@ -1223,8 +1225,7 @@ Item {
                     indexOfRefraction: pistonBodyIor
                     attenuationDistance: pistonBodyAttenuationDistance
                     attenuationColor: pistonBodyAttenuationColor
-                    emissiveColor: pistonBodyEmissiveColor
-                    emissiveFactor: pistonBodyEmissiveIntensity
+                    emissiveFactor: emissiveVector(pistonBodyEmissiveColor, pistonBodyEmissiveIntensity)
                 }
             }
 
@@ -1247,8 +1248,7 @@ Item {
                     indexOfRefraction: pistonRodIor
                     attenuationDistance: pistonRodAttenuationDistance
                     attenuationColor: pistonRodAttenuationColor
-                    emissiveColor: pistonRodEmissiveColor
-                    emissiveFactor: pistonRodEmissiveIntensity
+                    emissiveFactor: emissiveVector(pistonRodEmissiveColor, pistonRodEmissiveIntensity)
                 }
             }
             
@@ -1287,8 +1287,7 @@ Item {
                     indexOfRefraction: jointTailIor
                     attenuationDistance: jointTailAttenuationDistance
                     attenuationColor: jointTailAttenuationColor
-                    emissiveColor: jointTailEmissiveColor
-                    emissiveFactor: jointTailEmissiveIntensity
+                    emissiveFactor: emissiveVector(jointTailEmissiveColor, jointTailEmissiveIntensity)
                 }
             }
             
