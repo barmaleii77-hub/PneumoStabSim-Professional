@@ -234,7 +234,7 @@ class GraphicsPanel(QWidget):
                 "key": {"brightness": 1.2, "color": "#ffffff", "angle_x": -35.0, "angle_y": -40.0},
                 "fill": {"brightness": 0.7, "color": "#dfe7ff"},
                 "rim": {"brightness": 1.0, "color": "#ffe2b0"},
-                "point": {"brightness": 1500.0, "color": "#ffffff", "height": 2200.0, "range": 3200.0},
+                "point": {"brightness": 1000.0, "color": "#ffffff", "height": 2200.0, "range": 3200.0},
             },
             "environment": {
                 "background_mode": "skybox",
@@ -265,6 +265,7 @@ class GraphicsPanel(QWidget):
                 "antialiasing": {"primary": "ssaa", "quality": "high", "post": "taa"},
                 "taa_enabled": True,
                 "taa_strength": 0.4,
+                "taa_motion_adaptive": True,
                 "fxaa_enabled": False,
                 "specular_aa": True,
                 "dithering": True,
@@ -476,6 +477,7 @@ class GraphicsPanel(QWidget):
                 "antialiasing": {"primary": "msaa", "quality": "high", "post": "off"},
                 "taa_enabled": False,
                 "taa_strength": 0.3,
+                "taa_motion_adaptive": True,
                 "fxaa_enabled": False,
                 "specular_aa": True,
                 "dithering": True,
@@ -489,6 +491,7 @@ class GraphicsPanel(QWidget):
                 "antialiasing": {"primary": "msaa", "quality": "medium", "post": "fxaa"},
                 "taa_enabled": False,
                 "taa_strength": 0.25,
+                "taa_motion_adaptive": True,
                 "fxaa_enabled": True,
                 "specular_aa": True,
                 "dithering": True,
@@ -502,6 +505,7 @@ class GraphicsPanel(QWidget):
                 "antialiasing": {"primary": "off", "quality": "low", "post": "fxaa"},
                 "taa_enabled": False,
                 "taa_strength": 0.2,
+                "taa_motion_adaptive": True,
                 "fxaa_enabled": True,
                 "specular_aa": False,
                 "dithering": True,
@@ -965,20 +969,25 @@ class GraphicsPanel(QWidget):
         self._quality_controls["taa.strength"] = taa_strength
         grid.addWidget(taa_strength, 4, 0, 1, 2)
 
+        taa_motion = QCheckBox("Отключать TAA при движении камеры", self)
+        taa_motion.stateChanged.connect(lambda state: self._update_quality("taa_motion_adaptive", state == Qt.Checked))
+        self._quality_controls["taa_motion_adaptive"] = taa_motion
+        grid.addWidget(taa_motion, 5, 0, 1, 2)
+
         fxaa_check = QCheckBox("Включить FXAA", self)
         fxaa_check.stateChanged.connect(lambda state: self._update_quality("fxaa_enabled", state == Qt.Checked))
         self._quality_controls["fxaa.enabled"] = fxaa_check
-        grid.addWidget(fxaa_check, 5, 0, 1, 2)
+        grid.addWidget(fxaa_check, 6, 0, 1, 2)
 
         specular_check = QCheckBox("Specular AA", self)
         specular_check.stateChanged.connect(lambda state: self._update_quality("specular_aa", state == Qt.Checked))
         self._quality_controls["specular.enabled"] = specular_check
-        grid.addWidget(specular_check, 6, 0, 1, 2)
+        grid.addWidget(specular_check, 7, 0, 1, 2)
 
         dithering_check = QCheckBox("Dithering", self)
         dithering_check.stateChanged.connect(lambda state: self._update_quality("dithering", state == Qt.Checked))
         self._quality_controls["dithering.enabled"] = dithering_check
-        grid.addWidget(dithering_check, 7, 0, 1, 2)
+        grid.addWidget(dithering_check, 8, 0, 1, 2)
         return group
 
     def _build_render_group(self) -> QGroupBox:
@@ -1580,6 +1589,7 @@ class GraphicsPanel(QWidget):
             "antialiasing": copy.deepcopy(q["antialiasing"]),
             "taa_enabled": q["taa_enabled"],
             "taa_strength": q["taa_strength"],
+            "taa_motion_adaptive": q.get("taa_motion_adaptive", True),
             "fxaa_enabled": q["fxaa_enabled"],
             "specular_aa": q["specular_aa"],
             "dithering": q["dithering"],
@@ -1699,6 +1709,7 @@ class GraphicsPanel(QWidget):
 
         self._quality_controls["taa.enabled"].setChecked(q["taa_enabled"])  # type: ignore[index]
         self._quality_controls["taa.strength"].set_value(q["taa_strength"])  # type: ignore[index]
+        self._quality_controls["taa_motion_adaptive"].setChecked(q.get("taa_motion_adaptive", True))  # type: ignore[index]
         self._quality_controls["fxaa.enabled"].setChecked(q["fxaa_enabled"])  # type: ignore[index]
         self._quality_controls["specular.enabled"].setChecked(q["specular_aa"])  # type: ignore[index]
         self._quality_controls["dithering.enabled"].setChecked(q["dithering"])  # type: ignore[index]
@@ -1828,5 +1839,9 @@ class GraphicsPanel(QWidget):
             taa_slider = self._quality_controls.get("taa.strength")
             if isinstance(taa_slider, LabeledSlider):
                 taa_slider.set_enabled(allow_taa and self.state["quality"].get("taa_enabled", False))
+
+            taa_motion = self._quality_controls.get("taa_motion_adaptive")
+            if isinstance(taa_motion, QCheckBox):
+                taa_motion.setEnabled(allow_taa and self.state["quality"].get("taa_enabled", False))
         finally:
             self._updating_ui = previous
