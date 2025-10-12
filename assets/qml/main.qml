@@ -172,6 +172,15 @@ Item {
     property real frameRateLimit: 144.0
     property string qualityPreset: "ultra"
 
+    property var pendingPythonUpdates: null
+
+    onPendingPythonUpdatesChanged: {
+        if (!pendingPythonUpdates || Object.keys(pendingPythonUpdates).length === 0)
+            return
+        applyBatchedUpdates(pendingPythonUpdates)
+        pendingPythonUpdates = null
+    }
+
     function syncRenderSettings() {
         if (!view3d || !view3d.renderSettings)
             return
