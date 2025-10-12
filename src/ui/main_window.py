@@ -15,8 +15,6 @@ from PySide6.QtCore import (
     QSettings,
     QUrl,
     QFileInfo,
-    QMetaObject,
-    Q_ARG,
     QByteArray,
 )
 from PySide6.QtGui import QAction, QKeySequence
@@ -459,74 +457,23 @@ class MainWindow(QMainWindow):
 
     @Slot(dict)
     def _on_geometry_changed_qml(self, geometry_params: dict):
-        """Обработчик изменения геометрии для отправки в QML
-        
-        Args:
-            geometry_params: Словарь с параметрами геометрии из GeometryPanel
-        """
-        print(f"═══════════════════════════════════════════════")
-        print(f"🔺 MainWindow: Получен сигнал geometry_changed от панели")
-        print(f"   Параметры ({len(geometry_params)}): {list(geometry_params.keys())}")
-        
-        # Показываем ключевые значения для диагностики
-        key_params = ['frameLength', 'leverLength', 'trackWidth', 'rodPosition']
-        print(f"   Ключевые значения:")
-        for key in key_params:
-            if key in geometry_params:
-                print(f"      {key} = {geometry_params[key]}")
-        print(f"═══════════════════════════════════════════════")
-        
-        self.logger.info(f"Геометрия изменена: {len(geometry_params)} параметров")
-        
-        # Обновляем QML сцену прямо сейчас
-        if self._qml_root_object:
-            try:
-                print(f"   🔧 Вызываем updateGeometry() в QML...")
-                
-                # Используем QMetaObject.invokeMethod() для вызова QML функции
-                from PySide6.QtCore import QMetaObject, Q_ARG, Qt
-                
-                success = QMetaObject.invokeMethod(
-                    self._qml_root_object,
-                    "updateGeometry",
-                    Qt.ConnectionType.DirectConnection,
-                    Q_ARG("QVariant", geometry_params)
-                )
-                
-                if success:
-                    print(f"   ✅ QML updateGeometry() вызван успешно")
-                    
-                    # Принудительно обновляем QML widget для немедленного отображения
-                    if self._qquick_widget:
-                        self._qquick_widget.update()
-                        print(f"   🔄 QML widget принудительно обновлен")
-                    
-                    self.status_bar.showMessage("Геометрия обновлена в 3D сцене")
-                    print(f"📊 Статус: Геометрия успешно обновлена")
-                else:
-                    print(f"   ❌ QML updateGeometry() не удалось вызвать")
-                    # Fallback к установке отдельных свойств
-                    self._apply_geometry_fallback(geometry_params)
-                    
-            except Exception as e:
-                print(f"═══════════════════════════════════════════════")
-                print(f"❌ Ошибка обновления геометрии в QML!")
-                print(f"   Ошибка: {e}")
-                print(f"═══════════════════════════════════════════════")
-                self.logger.error(f"Ошибка обновления геометрии в QML: {e}")
-                self.status_bar.showMessage(f"Ошибка обновления геометрии: {e}")
-                import traceback
-                traceback.print_exc()
-                
-                # Fallback к установке отдельных свойств
-                self._apply_geometry_fallback(geometry_params)
-        else:
-            print(f"═══════════════════════════════════════════════")
-            print(f"❌ MainWindow: QML корневой объект недоступен!")
-            print(f"   Невозможно обновить геометрию")
-            print(f"═══════════════════════════════════════════════")
-            self.status_bar.showMessage("QML недоступен для обновления геометрии")
-    
+        """Получить обновления геометрии от панели и передать их в сцену."""
+        if not isinstance(geometry_params, dict):
+            self.logger.warning("Geometry update payload is not a dict: %r", geometry_params)
+            return
+
+        self.logger.info(
+            "Geometry update received (%d keys): %s",
+            len(geometry_params),
+            list(geometry_params.keys()),
+        )
+
+        self._queue_qml_update("geometry", geometry_params)
+
+        if self.status_bar:
+            self.status_bar.showMessage("Геометрия отправлена в 3D сцену", 2000)
+
+
     # ------------------------------------------------------------------
     # Меню, тулбар и строка состояния
     # ------------------------------------------------------------------
