@@ -64,34 +64,14 @@ class GeometryPanel(QWidget):
             # Формируем полную геометрию для QML (как в _get_fast_geometry_update)
             initial_geometry = self._get_fast_geometry_update("init", 0.0)
             
-            # ДИАГНОСТИКА: Проверяем подписчиков перед отправкой
-            try:
-                geom_changed_receivers = self.geometry_changed.receivers()
-                geom_updated_receivers = self.geometry_updated.receivers()
-                
-                print(f"  📊 Подписчиков на geometry_changed: {geom_changed_receivers}")
-                print(f"  📊 Подписчиков на geometry_updated: {geom_updated_receivers}")
-                
-                if geom_changed_receivers > 0:
-                    print(f"  ✅ Есть подписчики, отправляем geometry_changed...")
-                    self.geometry_changed.emit(initial_geometry)
-                    print(f"  📡 geometry_changed отправлен с rodPosition = {initial_geometry.get('rodPosition', 'НЕ НАЙДЕН')}")
-                else:
-                    print(f"  ⚠️ Нет подписчиков на geometry_changed, возможно главное окно еще не готово")
-                
-                if geom_updated_receivers > 0:
-                    print(f"  ✅ Отправляем geometry_updated...")
-                    self.geometry_updated.emit(self.parameters.copy())
-                    print(f"  📡 geometry_updated отправлен")
-                else:
-                    print(f"  ⚠️ Нет подписчиков на geometry_updated")
-                    
-            except Exception as e:
-                print(f"  ❌ Ошибка проверки подписчиков: {e}")
-                # Отправляем в любом случае
-                self.geometry_changed.emit(initial_geometry)
-                self.geometry_updated.emit(self.parameters.copy())
-                print(f"  📡 Сигналы отправлены без проверки подписчиков")
+            # Отправляем сигналы без проверки подписчиков (она не работает в PySide6)
+            print(f"  📡 Отправка geometry_changed...")
+            self.geometry_changed.emit(initial_geometry)
+            print(f"  📡 geometry_changed отправлен с rodPosition = {initial_geometry.get('rodPosition', 'НЕ НАЙДЕН')}")
+            
+            print(f"  📡 Отправка geometry_updated...")
+            self.geometry_updated.emit(self.parameters.copy())
+            print(f"  📡 geometry_updated отправлен")
         
         # УВЕЛИЧИВАЕМ задержку для гарантии готовности главного окна
         QTimer.singleShot(500, send_initial_geometry)  # Было 100мс, стало 500мс
@@ -446,23 +426,6 @@ class GeometryPanel(QWidget):
             self._resolve_conflict(critical_conflicts)
         else:
             print(f"   ✅ Конфликтов нет, отправляем сигналы...")
-            
-            # ДИАГНОСТИКА: Проверяем есть ли подписчики на сигналы
-            try:
-                param_receivers = self.parameter_changed.receivers()
-                geom_updated_receivers = self.geometry_updated.receivers() 
-                geom_changed_receivers = self.geometry_changed.receivers()
-                
-                print(f"   📡 Подписчиков на parameter_changed: {param_receivers}")
-                print(f"   📡 Подписчиков на geometry_updated: {geom_updated_receivers}")  
-                print(f"   📡 Подписчиков на geometry_changed: {geom_changed_receivers}")
-                
-                if geom_changed_receivers == 0:
-                    print(f"   ❌ ПРОБЛЕМА: Нет подписчиков на geometry_changed!")
-                    print(f"      Возможно сигнал не подключен в main_window.py")
-                
-            except Exception as e:
-                print(f"   ⚠️ Ошибка проверки подписчиков: {e}")
             
             # МГНОВЕННОЕ обновление без задержек
             self.parameter_changed.emit(param_name, value)
