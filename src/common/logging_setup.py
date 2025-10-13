@@ -1,6 +1,7 @@
 """
 Logging setup with QueueHandler for non-blocking logging
 Overwrites log file on each run, ensures proper cleanup
+УЛУЧШЕННАЯ ВЕРСИЯ с ротацией и контекстными логгерами
 """
 
 import logging
@@ -11,27 +12,79 @@ import sys
 import os
 import platform
 from pathlib import Path
-from typing import Optional
+from typing import Optional, Dict, Any
 from datetime import datetime
+import traceback
 
 
 # Global queue listener for cleanup
 _queue_listener: Optional[logging.handlers.QueueListener] = None
+_logger_registry: Dict[str, logging.Logger] = {}
 
 
-def init_logging(app_name: str, log_dir: Path) -> logging.Logger:
+class ContextualFilter(logging.Filter):
+    """Добавляет контекстную информацию к логам"""
+    
+    def __init__(self, context: Dict[str, Any] = None):
+        super().__init__()
+        self.context = context or {}
+    
+    def filter(self, record):
+        # Добавляем контекст к каждому record
+        for key, value in self.context.items():
+            setattr(record, key, value)
+        return True
+
+
+class ColoredFormatter(logging.Formatter):
+    """Форматтер с цветами для консоли (опционально)"""
+    
+    COLORS = {
+        'DEBUG': '\033[36m',     # Cyan
+        'INFO': '\033[32m',      # Green
+        'WARNING': '\033[33m',   # Yellow
+        'ERROR': '\033[31m',     # Red
+        'CRITICAL': '\033[35m',  # Magenta
+        'RESET': '\033[0m'
+    }
+    
+    def format(self, record):
+        if hasattr(sys.stdout, 'isatty') and sys.stdout.isatty():
+            levelname = record.levelname
+            if levelname in self.COLORS:
+                record.levelname = f"{self.COLORS[levelname]}{levelname}{self.COLORS['RESET']}"
+        return super().format(record)
+
+
+def init_logging(
+    app_name: str,
+    log_dir: Path,
+    max_bytes: int = 10 * 1024 * 1024,  # 10 MB
+    backup_count: int = 5,
+    console_output: bool = False
+) -> logging.Logger:
     """Initialize application logging with non-blocking queue handler
     
+    УЛУЧШЕНИЯ v4.9.5:
+    - Ротация логов (max_bytes, backup_count)
+    - Опциональный вывод в консоль
+    - Цветной вывод для консоли
+    - Контекстные фильтры
+    
     Features:
-    - Overwrites log file on each run (mode='w')
+    - Log rotation with configurable size/count
     - Non-blocking logging via QueueHandler/QueueListener
     - UTC timestamps in ISO8601 format
     - PID/TID tracking
     - Automatic flush/close on exit
+    - Optional console output with colors
     
     Args:
         app_name: Application name for logger
         log_dir: Directory for log files
+        max_bytes: Maximum log file size before rotation (default 10MB)
+        backup_count: Number of backup files to keep (default 5)
+        console_output: Enable console output (default False)
         
     Returns:
         Root logger instance
@@ -44,8 +97,12 @@ def init_logging(app_name: str, log_dir: Path) -> logging.Logger:
     # Create log directory
     log_dir.mkdir(parents=True, exist_ok=True)
     
-    # Log file path (overwrite on each run)
-    log_file = log_dir / "run.log"
+    # Log file path with timestamp
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    log_file = log_dir / f"{app_name}_{timestamp}.log"
+    
+    # Также сохраняем копию в run.log для совместимости
+    run_log = log_dir / "run.log"
     
     # Create log queue for non-blocking writes
     log_queue = queue.Queue(-1)  # Unlimited size
@@ -58,27 +115,61 @@ def init_logging(app_name: str, log_dir: Path) -> logging.Logger:
     # Remove existing handlers
     root_logger.handlers.clear()
     
-    # Create formatter with UTC time, PID/TID
-    # Note: %f (microseconds) not supported by strftime, using custom format
-    formatter = logging.Formatter(
+    # ✅ УЛУЧШЕННЫЙ ФОРМАТТЕР с микросекундами
+    class MicrosecondFormatter(logging.Formatter):
+        """Форматтер с микросекундами"""
+        
+        converter = datetime.fromtimestamp
+        
+        def formatTime(self, record, datefmt=None):
+            ct = self.converter(record.created)
+            if datefmt:
+                s = ct.strftime(datefmt)
+            else:
+                s = ct.strftime("%Y-%m-%dT%H:%M:%S")
+                s = f"{s}.{int(record.msecs):03d}"
+            return s
+    
+    formatter = MicrosecondFormatter(
         fmt='%(asctime)s | PID:%(process)d TID:%(thread)d | %(levelname)-8s | %(name)s | %(message)s',
-        datefmt='%Y-%m-%dT%H:%M:%S'  # ISO8601 without microseconds
+        datefmt='%Y-%m-%dT%H:%M:%S'
     )
     
-    # File handler (overwrite mode)
-    file_handler = logging.FileHandler(
+    # ✅ РОТИРУЮЩИЙСЯ FILE HANDLER
+    rotating_handler = logging.handlers.RotatingFileHandler(
         log_file,
-        mode='w',  # Overwrite on each run
+        mode='a',
+        maxBytes=max_bytes,
+        backupCount=backup_count,
         encoding='utf-8'
     )
-    file_handler.setLevel(logging.DEBUG)
-    file_handler.setFormatter(formatter)
+    rotating_handler.setLevel(logging.DEBUG)
+    rotating_handler.setFormatter(formatter)
     
-    # Create QueueListener with ONLY file handler
-    # QueueListener runs in background thread
+    # ✅ ДОПОЛНИТЕЛЬНЫЙ HANDLER для run.log (всегда перезаписываем)
+    run_handler = logging.FileHandler(
+        run_log,
+        mode='w',
+        encoding='utf-8'
+    )
+    run_handler.setLevel(logging.DEBUG)
+    run_handler.setFormatter(formatter)
+    
+    handlers = [rotating_handler, run_handler]
+    
+    # ✅ ОПЦИОНАЛЬНЫЙ CONSOLE HANDLER
+    if console_output:
+        console_handler = logging.StreamHandler(sys.stdout)
+        console_handler.setLevel(logging.INFO)  # Только INFO+ в консоль
+        console_handler.setFormatter(ColoredFormatter(
+            fmt='%(levelname)-8s | %(name)s | %(message)s'
+        ))
+        handlers.append(console_handler)
+    
+    # Create QueueListener with ALL handlers
     _queue_listener = logging.handlers.QueueListener(
         log_queue,
-        file_handler,  # ТОЛЬКО файловый обработчик
+        *handlers,
         respect_handler_level=True
     )
     _queue_listener.start()
@@ -98,6 +189,9 @@ def init_logging(app_name: str, log_dir: Path) -> logging.Logger:
     root_logger.info(f"Platform: {platform.platform()}")
     root_logger.info(f"Process ID: {os.getpid()}")
     root_logger.info(f"Log file: {log_file.absolute()}")
+    root_logger.info(f"Run log: {run_log.absolute()}")
+    root_logger.info(f"Max log size: {max_bytes / 1024 / 1024:.1f} MB")
+    root_logger.info(f"Backup count: {backup_count}")
     root_logger.info(f"Timestamp: {datetime.utcnow().isoformat()}Z")
     
     # Log package versions
@@ -136,6 +230,7 @@ def _cleanup_logging(app_name: str):
         logger = logging.getLogger(app_name)
         logger.info("=" * 70)
         logger.info("=== END RUN ===")
+        logger.info(f"Shutdown at: {datetime.utcnow().isoformat()}Z")
         logger.info("=" * 70)
         
         # Stop listener (waits for queue to empty)
@@ -148,8 +243,13 @@ def _cleanup_logging(app_name: str):
             handler.close()
 
 
-def get_category_logger(category: str) -> logging.Logger:
-    """Get logger for specific category
+def get_category_logger(category: str, context: Dict[str, Any] = None) -> logging.Logger:
+    """Get logger for specific category with optional context
+    
+    УЛУЧШЕНИЯ v4.9.5:
+    - Кэширование логгеров
+    - Контекстные фильтры
+    - Автоматическое именование
     
     Categories:
     - GEOM_UPDATE: Geometry updates
@@ -160,18 +260,41 @@ def get_category_logger(category: str) -> logging.Logger:
     - ODE_STEP: Integration steps
     - EXPORT: Data export operations
     - UI: UI events
+    - GRAPHICS: Graphics changes
+    - IBL: IBL events
+    - QML: QML events
+    - PYTHON: Python events
     
     Args:
         category: Category name
+        context: Optional context dict to add to all log records
         
     Returns:
         Logger instance for category
     """
+    global _logger_registry
+    
+    # Кэшируем логгеры
+    cache_key = f"{category}_{id(context)}"
+    if cache_key in _logger_registry:
+        return _logger_registry[cache_key]
+    
     # Use PneumoStabSim as root, category as child
     logger = logging.getLogger(f"PneumoStabSim.{category}")
-    # Don't set level here - it inherits from parent
+    
+    # Добавляем контекстный фильтр если нужен
+    if context:
+        logger.addFilter(ContextualFilter(context))
+    
+    # Сохраняем в кэш
+    _logger_registry[cache_key] = logger
+    
     return logger
 
+
+# ============================================================================
+# СПЕЦИАЛИЗИРОВАННЫЕ ЛОГГЕРЫ
+# ============================================================================
 
 def log_valve_event(time: float, line: str, kind: str, state: bool, 
                    dp: float, mdot: float):
@@ -241,30 +364,44 @@ def log_export(operation: str, path: Path, rows: int):
     )
 
 
-def log_ui_event(event: str, details: str = ""):
-    """Log UI event
+def log_ui_event(event: str, details: str = "", **kwargs):
+    """Log UI event with optional context
     
     Args:
         event: Event type
         details: Additional details
+        **kwargs: Additional context to log
     """
     logger = get_category_logger("UI")
     msg = f"event={event}"
     if details:
         msg += f" | {details}"
+    
+    # Добавляем дополнительный контекст
+    if kwargs:
+        context_str = " | ".join(f"{k}={v}" for k, v in kwargs.items())
+        msg += f" | {context_str}"
+    
     logger.info(msg)
 
 
-def log_geometry_change(param_name: str, old_value: float, new_value: float):
+def log_geometry_change(param_name: str, old_value: float, new_value: float, **kwargs):
     """Log geometry parameter change
     
     Args:
         param_name: Parameter name
         old_value: Previous value
         new_value: New value
+        **kwargs: Additional context
     """
     logger = get_category_logger("GEOMETRY")
-    logger.info(f"param={param_name} | {old_value} → {new_value}")
+    msg = f"param={param_name} | {old_value} → {new_value}"
+    
+    if kwargs:
+        context_str = " | ".join(f"{k}={v}" for k, v in kwargs.items())
+        msg += f" | {context_str}"
+    
+    logger.info(msg)
 
 
 def log_simulation_step(step_num: int, sim_time: float, dt: float):
@@ -292,3 +429,59 @@ def log_performance_metric(metric_name: str, value: float, unit: str = ""):
     if unit:
         msg += f" | unit={unit}"
     logger.info(msg)
+
+
+# ============================================================================
+# EXCEPTION LOGGING
+# ============================================================================
+
+def log_exception(exc: Exception, context: str = "", **kwargs):
+    """Log exception with full traceback and context
+    
+    Args:
+        exc: Exception to log
+        context: Context description
+        **kwargs: Additional context
+    """
+    logger = get_category_logger("EXCEPTION")
+    
+    msg = f"Exception: {type(exc).__name__}: {exc}"
+    if context:
+        msg = f"{context} | {msg}"
+    
+    if kwargs:
+        context_str = " | ".join(f"{k}={v}" for k, v in kwargs.items())
+        msg += f" | {context_str}"
+    
+    logger.error(msg)
+    logger.error(f"Traceback:\n{traceback.format_exc()}")
+
+
+# ============================================================================
+# UTILITY FUNCTIONS
+# ============================================================================
+
+def rotate_old_logs(log_dir: Path, keep_count: int = 10):
+    """Удаляет старые лог-файлы, оставляя только последние N
+    
+    Args:
+        log_dir: Директория с логами
+        keep_count: Сколько последних файлов оставить
+    """
+    if not log_dir.exists():
+        return
+    
+    # Находим все лог-файлы с timestamp
+    log_files = sorted(
+        log_dir.glob("PneumoStabSim_*.log"),
+        key=lambda p: p.stat().st_mtime,
+        reverse=True
+    )
+    
+    # Удаляем старые
+    for old_log in log_files[keep_count:]:
+        try:
+            old_log.unlink()
+            print(f"🗑️  Удален старый лог: {old_log.name}")
+        except Exception as e:
+            print(f"⚠️  Не удалось удалить {old_log.name}: {e}")
