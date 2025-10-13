@@ -40,6 +40,11 @@ class GeometryPanel(QWidget):
         # Dependency resolution state
         self._resolving_conflict = False
         
+        # Logger
+        from src.common import get_category_logger
+        self.logger = get_category_logger("GeometryPanel")
+        self.logger.info("GeometryPanel initializing...")
+        
         # Setup UI
         self._setup_ui()
         
@@ -52,30 +57,18 @@ class GeometryPanel(QWidget):
         # Size policy
         self.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Expanding)
         
-        # ✨ ИСПРАВЛЕНО: Отправляем начальные параметры геометрии в QML!
-        print("🔧 GeometryPanel: Планируем отправку начальных параметров геометрии...")
-        
-        # Используем QTimer для отложенной отправки после полной инициализации UI
+        # Отправляем начальные параметры геометрии в QML
         from PySide6.QtCore import QTimer
         
         def send_initial_geometry():
-            print("⏰ QTimer: Отправка начальной геометрии...")
-            
-            # Формируем полную геометрию для QML (как в _get_fast_geometry_update)
+            self.logger.info("Sending initial geometry to QML...")
             initial_geometry = self._get_fast_geometry_update("init", 0.0)
-            
-            # Отправляем сигналы без проверки подписчиков (она не работает в PySide6)
-            print(f"  📡 Отправка geometry_changed...")
             self.geometry_changed.emit(initial_geometry)
-            print(f"  📡 geometry_changed отправлен с rodPosition = {initial_geometry.get('rodPosition', 'НЕ НАЙДЕН')}")
-            
-            print(f"  📡 Отправка geometry_updated...")
             self.geometry_updated.emit(self.parameters.copy())
-            print(f"  📡 geometry_updated отправлен")
+            self.logger.info("Initial geometry sent successfully")
         
-        # УВЕЛИЧИВАЕМ задержку для гарантии готовности главного окна
-        QTimer.singleShot(500, send_initial_geometry)  # Было 100мс, стало 500мс
-        print("  ⏰ Таймер установлен на 500мс для отправки начальной геометрии")
+        QTimer.singleShot(500, send_initial_geometry)
+        self.logger.info("GeometryPanel initialized successfully")
     
     def _setup_ui(self):
         """Настроить интерфейс / Setup user interface"""
@@ -323,17 +316,18 @@ class GeometryPanel(QWidget):
     
     def _connect_signals(self):
         """Connect widget signals"""
-        # ИСПРАВЛЕНО: Используем ТОЛЬКО valueEdited для избежания дублирования событий
-        # valueChanged срабатывает слишком часто (при каждом движении), valueEdited - только при завершении редактирования
+        # Используем ТОЛЬКО valueEdited для избежания дублирования событий
         
-        # Frame dimensions - ТОЛЬКО valueEdited
+        self.logger.debug("Connecting signals...")
+        
+        # Frame dimensions
         self.wheelbase_slider.valueEdited.connect(
             lambda v: self._on_parameter_changed('wheelbase', v))
         
         self.track_slider.valueEdited.connect(
             lambda v: self._on_parameter_changed('track', v))
         
-        # Suspension geometry - ТОЛЬКО valueEdited
+        # Suspension geometry
         self.frame_to_pivot_slider.valueEdited.connect(
             lambda v: self._on_parameter_changed('frame_to_pivot', v))
             
@@ -343,11 +337,11 @@ class GeometryPanel(QWidget):
         self.rod_position_slider.valueEdited.connect(
             lambda v: self._on_parameter_changed('rod_position', v))
         
-        # Cylinder dimensions - ТОЛЬКО valueEdited
+        # Cylinder dimensions
         self.cylinder_length_slider.valueEdited.connect(
             lambda v: self._on_parameter_changed('cylinder_length', v))
             
-        # МШ-1: Подключение новых слайдеров - ТОЛЬКО valueEdited
+        # МШ-1: Параметры цилиндра
         self.cyl_diam_m_slider.valueEdited.connect(
             lambda v: self._on_parameter_changed('cyl_diam_m', v))
             
@@ -357,7 +351,7 @@ class GeometryPanel(QWidget):
         self.dead_gap_m_slider.valueEdited.connect(
             lambda v: self._on_parameter_changed('dead_gap_m', v))
             
-        # МШ-2: Подключение слайдеров в метрах - ТОЛЬКО valueEdited
+        # МШ-2: Параметры штока и поршня
         self.rod_diameter_m_slider.valueEdited.connect(
             lambda v: self._on_parameter_changed('rod_diameter_m', v))
             
@@ -370,7 +364,7 @@ class GeometryPanel(QWidget):
         # Options
         self.link_rod_diameters.toggled.connect(self._on_link_rod_diameters_toggled)
         
-        print("🔧 GeometryPanel: Сигналы подключены БЕЗ ДУБЛИРОВАНИЯ (только valueEdited)")
+        self.logger.debug("Signals connected successfully")
     
     @Slot(bool)
     def _on_link_rod_diameters_toggled(self, checked: bool):
@@ -379,23 +373,12 @@ class GeometryPanel(QWidget):
         Args:
             checked: True если связывание включено
         """
-        print(f"🔗 GeometryPanel: Связывание диаметров штоков: {'включено' if checked else 'выключено'}")
-        
         if checked:
-            # При включении связывания устанавливаем одинаковые значения для всех штоков
             current_rod_diameter = self.parameters.get('rod_diameter_m', 0.035)
-            print(f"   🔧 Синхронизируем все диаметры штоков на {current_rod_diameter*1000:.1f}мм")
-            
-            # Здесь можно добавить логику синхронизации диаметров передних/задних штоков
-            # если в будущем появятся отдельные параметры для разных колёс
-            
-            # Пока что просто логируем что функция активна
             self.status_message = "Диаметры штоков связаны"
         else:
-            print(f"   🔓 Диаметры штоков теперь независимы")
             self.status_message = "Диаметры штоков независимы"
         
-        # Можно отправить обновление если нужно
         self.parameter_changed.emit('link_rod_diameters', float(checked))
     
     @Slot(str, float)
@@ -406,55 +389,39 @@ class GeometryPanel(QWidget):
             param_name: Name of changed parameter
             value: New value
         """
-        print(f"🔧 GeometryPanel._on_parameter_changed: {param_name} = {value}")
+        self.logger.debug(f"Parameter changed: {param_name} = {value}")
         
         if self._resolving_conflict:
-            print(f"   ⏸️ Пропуск - идет разрешение конфликта")
+            self.logger.debug("Skipping - conflict resolution in progress")
             return
         
         # Store new value
         old_value = self.parameters.get(param_name, 0.0)
         self.parameters[param_name] = value
-        print(f"   💾 Параметр сохранен: {param_name} {old_value} → {value}")
+        self.logger.info(f"Parameter updated: {param_name} {old_value} → {value}")
         
-        # БЫСТРАЯ ПРОВЕРКА конфликтов только для критических параметров
+        # Быстрая проверка критических конфликтов
         critical_conflicts = self._check_critical_dependencies(param_name, value, old_value)
         
         if critical_conflicts:
-            print(f"   ⚠️ Обнаружен критический конфликт: {critical_conflicts.get('type', 'неизвестный')}")
-            # Показываем конфликты только для критических проблем
+            self.logger.warning(f"Critical conflict detected: {critical_conflicts.get('type', 'unknown')}")
             self._resolve_conflict(critical_conflicts)
         else:
-            print(f"   ✅ Конфликтов нет, отправляем сигналы...")
-            
-            # МГНОВЕННОЕ обновление без задержек
+            # Мгновенное обновление
             self.parameter_changed.emit(param_name, value)
-            print(f"   📡 parameter_changed отправлен")
-            
             self.geometry_updated.emit(self.parameters.copy())
-            print(f"   📡 geometry_updated отправлен")
+            self.logger.debug("Signals emitted: parameter_changed, geometry_updated")
             
-            # БЫСТРОЕ обновление 3D сцены для видимых параметров
+            # Обновление 3D сцены для видимых параметров
             if param_name in ['wheelbase', 'track', 'lever_length', 'cylinder_length', 'frame_to_pivot', 'rod_position', 
                              'cyl_diam_m', 'stroke_m', 'dead_gap_m', 'rod_diameter_m', 'piston_rod_length_m', 'piston_thickness_m']:
-                print(f"   🎬 Параметр {param_name} требует обновления 3D сцены")
-                # Конвертируем только измененный параметр для быстроты
                 geometry_3d = self._get_fast_geometry_update(param_name, value)
-                
-                print(f"   📊 Отправляем geometry_changed с {len(geometry_3d)} параметрами")
-                print(f"   🔍 Ключевые параметры: frameLength={geometry_3d.get('frameLength', 'НЕТ')}, rodPosition={geometry_3d.get('rodPosition', 'НЕТ')}")
-                
-                # КРИТИЧНЫЙ МОМЕНТ: Отправляем сигнал geometry_changed
                 self.geometry_changed.emit(geometry_3d)
-                print(f"   📡 geometry_changed отправлен успешно!")
-                
-            else:
-                print(f"   ⏭️ Параметр {param_name} не требует обновления 3D сцены")
-    
+                self.logger.debug(f"3D scene update sent for parameter: {param_name}")
+
     @Slot()
     def _reset_to_defaults(self):
         """Сбросить все параметры к значениям по умолчанию / Reset all parameters to defaults"""
-        print("🔄 GeometryPanel: Сброс к значениям по умолчанию")
         self._set_default_values()
         
         # Update all widgets
@@ -464,11 +431,9 @@ class GeometryPanel(QWidget):
         self.lever_length_slider.setValue(self.parameters['lever_length'])
         self.rod_position_slider.setValue(self.parameters['rod_position'])
         self.cylinder_length_slider.setValue(self.parameters['cylinder_length'])
-        # МШ-1: Параметры цилиндра
         self.cyl_diam_m_slider.setValue(self.parameters['cyl_diam_m'])
         self.stroke_m_slider.setValue(self.parameters['stroke_m'])
         self.dead_gap_m_slider.setValue(self.parameters['dead_gap_m'])
-        # МШ-2: Параметры штока и поршня в метрах
         self.rod_diameter_m_slider.setValue(self.parameters['rod_diameter_m'])
         self.piston_rod_length_m_slider.setValue(self.parameters['piston_rod_length_m'])
         self.piston_thickness_m_slider.setValue(self.parameters['piston_thickness_m'])
@@ -477,12 +442,11 @@ class GeometryPanel(QWidget):
         self.interference_check.setChecked(True)
         self.link_rod_diameters.setChecked(False)
         
-        # Reset preset combo to "Стандартный грузовик"
+        # Reset preset combo
         self.preset_combo.setCurrentIndex(0)
         
         # Emit update
         self.geometry_updated.emit(self.parameters.copy())
-        print("✅ Параметры сброшены")
     
     @Slot()
     def _validate_geometry(self):
@@ -558,34 +522,33 @@ class GeometryPanel(QWidget):
         """
         # ПОЛНАЯ геометрия с ВСЕМИ параметрами для 3D сцены
         geometry_3d = {
-            # ОСНОВНЫЕ РАЗМЕРЫ РАМЫ (из метров в мм)
-            'frameLength': self.parameters.get('wheelbase', 3.2) * 1000,  # м -> мм
-            'frameHeight': 650.0,  # Фиксированное значение пока (TODO: добавить параметр)
-            'frameBeamSize': 120.0,  # Фиксированное значение пока (TODO: добавить параметр)
-            'leverLength': self.parameters.get('lever_length', 0.8) * 1000,  # м -> мм
-            'cylinderBodyLength': self.parameters.get('cylinder_length', 0.5) * 1000,  # м -> мм
-            'tailRodLength': 100.0,  # Фиксированное значение пока (TODO: добавить параметр)
+            # Основные размеры рамы (из метров в мм)
+            'frameLength': self.parameters.get('wheelbase', 3.2) * 1000,
+            'frameHeight': 650.0,
+            'frameBeamSize': 120.0,
+            'leverLength': self.parameters.get('lever_length', 0.8) * 1000,
+            'cylinderBodyLength': self.parameters.get('cylinder_length', 0.5) * 1000,
+            'tailRodLength': 100.0,
             
-            # ДОПОЛНИТЕЛЬНЫЕ ПАРАМЕТРЫ ГЕОМЕТРИИ (из метров в мм)
-            'trackWidth': self.parameters.get('track', 1.6) * 1000,  # м -> мм
-            'frameToPivot': self.parameters.get('frame_to_pivot', 0.6) * 1000,  # м -> мм
-            'rodPosition': self.parameters.get('rod_position', 0.6),  # доля 0-1 (без изменений)
+            # Дополнительные параметры геометрии (из метров в мм)
+            'trackWidth': self.parameters.get('track', 1.6) * 1000,
+            'frameToPivot': self.parameters.get('frame_to_pivot', 0.6) * 1000,
+            'rodPosition': self.parameters.get('rod_position', 0.6),
             
-            # ✅ ИСПРАВЛЕНО: ТОЛЬКО НОВЫЕ ПАРАМЕТРЫ (убраны старые duplicate names!)
-            # Эти параметры используются в QML для визуализации
-            'cylDiamM': self.parameters.get('cyl_diam_m', 0.080) * 1000,        # м -> мм: диаметр цилиндра
-            'strokeM': self.parameters.get('stroke_m', 0.300) * 1000,            # м -> мм: ход поршня
-            'deadGapM': self.parameters.get('dead_gap_m', 0.005) * 1000,         # м -> мм: мертвый зазор
-            'rodDiameterM': self.parameters.get('rod_diameter_m', 0.035) * 1000, # м -> мм: диаметр штока
-            'pistonRodLengthM': self.parameters.get('piston_rod_length_m', 0.200) * 1000,  # м -> мм: длина штока
-            'pistonThicknessM': self.parameters.get('piston_thickness_m', 0.025) * 1000,   # м -> мм: толщина поршня
+            # Параметры цилиндра и штока
+            'cylDiamM': self.parameters.get('cyl_diam_m', 0.080) * 1000,
+            'strokeM': self.parameters.get('stroke_m', 0.300) * 1000,
+            'deadGapM': self.parameters.get('dead_gap_m', 0.005) * 1000,
+            'rodDiameterM': self.parameters.get('rod_diameter_m', 0.035) * 1000,
+            'pistonRodLengthM': self.parameters.get('piston_rod_length_m', 0.200) * 1000,
+            'pistonThicknessM': self.parameters.get('piston_thickness_m', 0.025) * 1000,
         }
         
-        print(f"🔄 GeometryPanel: Отправка ПОЛНОЙ геометрии в QML (изменён параметр: {param_name} = {value})")
-        print(f"   📐 Основные: frameLength={geometry_3d['frameLength']:.1f}мм, leverLength={geometry_3d['leverLength']:.1f}мм")
-        print(f"   📐 Цилиндр: cylDiam={geometry_3d['cylDiamM']:.1f}мм, stroke={geometry_3d['strokeM']:.1f}мм")
-        print(f"   📐 Шток: diameter={geometry_3d['rodDiameterM']:.1f}мм, length={geometry_3d['pistonRodLengthM']:.1f}мм")
-        print(f"   🎯 rodPosition = {geometry_3d['rodPosition']} (КРИТИЧЕСКИЙ параметр)")
+        self.logger.debug(
+            f"Geometry update generated: {param_name}={value}, "
+            f"frameLength={geometry_3d['frameLength']:.1f}mm, "
+            f"rodPosition={geometry_3d['rodPosition']}"
+        )
         
         return geometry_3d
 

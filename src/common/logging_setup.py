@@ -74,17 +74,11 @@ def init_logging(app_name: str, log_dir: Path) -> logging.Logger:
     file_handler.setLevel(logging.DEBUG)
     file_handler.setFormatter(formatter)
     
-    # Console handler (INFO and above)
-    console_handler = logging.StreamHandler(sys.stdout)
-    console_handler.setLevel(logging.INFO)
-    console_handler.setFormatter(formatter)
-    
-    # Create QueueListener with both handlers
+    # Create QueueListener with ONLY file handler
     # QueueListener runs in background thread
     _queue_listener = logging.handlers.QueueListener(
         log_queue,
-        file_handler,
-        console_handler,
+        file_handler,  # ТОЛЬКО файловый обработчик
         respect_handler_level=True
     )
     _queue_listener.start()
@@ -258,4 +252,43 @@ def log_ui_event(event: str, details: str = ""):
     msg = f"event={event}"
     if details:
         msg += f" | {details}"
+    logger.info(msg)
+
+
+def log_geometry_change(param_name: str, old_value: float, new_value: float):
+    """Log geometry parameter change
+    
+    Args:
+        param_name: Parameter name
+        old_value: Previous value
+        new_value: New value
+    """
+    logger = get_category_logger("GEOMETRY")
+    logger.info(f"param={param_name} | {old_value} → {new_value}")
+
+
+def log_simulation_step(step_num: int, sim_time: float, dt: float):
+    """Log simulation step
+    
+    Args:
+        step_num: Step number
+        sim_time: Simulation time (s)
+        dt: Time step (s)
+    """
+    logger = get_category_logger("SIMULATION")
+    logger.debug(f"step={step_num} | t={sim_time:.6f}s | dt={dt:.6e}s")
+
+
+def log_performance_metric(metric_name: str, value: float, unit: str = ""):
+    """Log performance metric
+    
+    Args:
+        metric_name: Metric name
+        value: Metric value
+        unit: Unit of measurement (optional)
+    """
+    logger = get_category_logger("PERFORMANCE")
+    msg = f"metric={metric_name} | value={value:.6f}"
+    if unit:
+        msg += f" | unit={unit}"
     logger.info(msg)

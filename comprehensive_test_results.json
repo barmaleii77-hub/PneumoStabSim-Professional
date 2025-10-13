@@ -1,0 +1,386 @@
+{
+  "summary": {
+    "total": 47,
+    "passed": 41,
+    "failed": 1,
+    "warnings": 5,
+    "pass_rate": 87.2340425531915
+  },
+  "details": [
+    {
+      "category": "Environment",
+      "name": "Python Version",
+      "status": "PASS",
+      "message": "Python 3.13.7 ✅",
+      "details": {
+        "version": "3.13.7"
+      }
+    },
+    {
+      "category": "Environment",
+      "name": "Encoding",
+      "status": "PASS",
+      "message": "UTF-8 ✅",
+      "details": {}
+    },
+    {
+      "category": "Environment",
+      "name": "Platform",
+      "status": "PASS",
+      "message": "win32",
+      "details": {}
+    },
+    {
+      "category": "Dependencies",
+      "name": "PySide6",
+      "status": "PASS",
+      "message": "v6.10.0",
+      "details": {
+        "version": "6.10.0",
+        "min_required": "6.5.0"
+      }
+    },
+    {
+      "category": "Dependencies",
+      "name": "numpy",
+      "status": "PASS",
+      "message": "v2.3.3",
+      "details": {
+        "version": "2.3.3",
+        "min_required": "1.21.0"
+      }
+    },
+    {
+      "category": "Dependencies",
+      "name": "scipy",
+      "status": "PASS",
+      "message": "v1.16.2",
+      "details": {
+        "version": "1.16.2",
+        "min_required": "1.7.0"
+      }
+    },
+    {
+      "category": "Dependencies",
+      "name": "matplotlib",
+      "status": "PASS",
+      "message": "v3.10.6",
+      "details": {
+        "version": "3.10.6",
+        "min_required": "3.5.0"
+      }
+    },
+    {
+      "category": "Dependencies",
+      "name": "pytest",
+      "status": "PASS",
+      "message": "v8.4.2",
+      "details": {
+        "version": "8.4.2",
+        "min_required": "6.0.0"
+      }
+    },
+    {
+      "category": "Dependencies",
+      "name": "PyYAML",
+      "status": "FAIL",
+      "message": "Не установлен: No module named 'pyyaml'",
+      "details": {
+        "error": "No module named 'pyyaml'"
+      }
+    },
+    {
+      "category": "Qt",
+      "name": "Dithering Support",
+      "status": "PASS",
+      "message": "Qt 6.10+",
+      "details": {}
+    },
+    {
+      "category": "Qt",
+      "name": "Qt Version",
+      "status": "PASS",
+      "message": "6.10.0",
+      "details": {
+        "version": "6.10.0",
+        "qml_path": "C:/Users/Алексей/AppData/Local/Programs/Python/Python313/Lib/site-packages/PySide6/qml",
+        "plugins_path": "C:/Users/Алексей/AppData/Local/Programs/Python/Python313/Lib/site-packages/PySide6/plugins"
+      }
+    },
+    {
+      "category": "Structure",
+      "name": "Dir: src",
+      "status": "PASS",
+      "message": "Существует",
+      "details": {}
+    },
+    {
+      "category": "Structure",
+      "name": "Dir: src/common",
+      "status": "PASS",
+      "message": "Существует",
+      "details": {}
+    },
+    {
+      "category": "Structure",
+      "name": "Dir: src/core",
+      "status": "PASS",
+      "message": "Существует",
+      "details": {}
+    },
+    {
+      "category": "Structure",
+      "name": "Dir: src/ui",
+      "status": "PASS",
+      "message": "Существует",
+      "details": {}
+    },
+    {
+      "category": "Structure",
+      "name": "Dir: src/ui/panels",
+      "status": "PASS",
+      "message": "Существует",
+      "details": {}
+    },
+    {
+      "category": "Structure",
+      "name": "Dir: assets",
+      "status": "PASS",
+      "message": "Существует",
+      "details": {}
+    },
+    {
+      "category": "Structure",
+      "name": "Dir: assets/qml",
+      "status": "PASS",
+      "message": "Существует",
+      "details": {}
+    },
+    {
+      "category": "Structure",
+      "name": "Dir: assets/qml/components",
+      "status": "PASS",
+      "message": "Существует",
+      "details": {}
+    },
+    {
+      "category": "Structure",
+      "name": "Dir: assets/hdr",
+      "status": "PASS",
+      "message": "Существует",
+      "details": {}
+    },
+    {
+      "category": "Structure",
+      "name": "Dir: tests",
+      "status": "PASS",
+      "message": "Существует",
+      "details": {}
+    },
+    {
+      "category": "Structure",
+      "name": "File: app.py",
+      "status": "PASS",
+      "message": "27139 bytes",
+      "details": {
+        "size": 27139
+      }
+    },
+    {
+      "category": "Structure",
+      "name": "File: requirements.txt",
+      "status": "PASS",
+      "message": "1951 bytes",
+      "details": {
+        "size": 1951
+      }
+    },
+    {
+      "category": "Structure",
+      "name": "File: pytest.ini",
+      "status": "PASS",
+      "message": "806 bytes",
+      "details": {
+        "size": 806
+      }
+    },
+    {
+      "category": "Structure",
+      "name": "File: src/common/__init__.py",
+      "status": "PASS",
+      "message": "758 bytes",
+      "details": {
+        "size": 758
+      }
+    },
+    {
+      "category": "Structure",
+      "name": "File: src/core/geometry.py",
+      "status": "PASS",
+      "message": "9835 bytes",
+      "details": {
+        "size": 9835
+      }
+    },
+    {
+      "category": "Structure",
+      "name": "File: src/ui/main_window.py",
+      "status": "PASS",
+      "message": "55285 bytes",
+      "details": {
+        "size": 55285
+      }
+    },
+    {
+      "category": "Structure",
+      "name": "File: assets/qml/main.qml",
+      "status": "PASS",
+      "message": "83371 bytes",
+      "details": {
+        "size": 83371
+      }
+    },
+    {
+      "category": "Structure",
+      "name": "File: assets/qml/components/IblProbeLoader.qml",
+      "status": "PASS",
+      "message": "1918 bytes",
+      "details": {
+        "size": 1918
+      }
+    },
+    {
+      "category": "Imports",
+      "name": "src.common",
+      "status": "PASS",
+      "message": "Common utilities",
+      "details": {}
+    },
+    {
+      "category": "Imports",
+      "name": "src.core.geometry",
+      "status": "PASS",
+      "message": "Core geometry",
+      "details": {}
+    },
+    {
+      "category": "Imports",
+      "name": "src.ui.main_window",
+      "status": "PASS",
+      "message": "Main window",
+      "details": {}
+    },
+    {
+      "category": "Imports",
+      "name": "src.ui.custom_geometry",
+      "status": "PASS",
+      "message": "Custom geometry",
+      "details": {}
+    },
+    {
+      "category": "Imports",
+      "name": "src.ui.panels.panel_geometry",
+      "status": "PASS",
+      "message": "Geometry panel",
+      "details": {}
+    },
+    {
+      "category": "Imports",
+      "name": "src.ui.panels.panel_graphics",
+      "status": "PASS",
+      "message": "Graphics panel",
+      "details": {}
+    },
+    {
+      "category": "QML",
+      "name": "assets/qml/main.qml",
+      "status": "PASS",
+      "message": "Main 3D scene",
+      "details": {
+        "lines": 1738
+      }
+    },
+    {
+      "category": "QML",
+      "name": "assets/qml/components/IblProbeLoader.qml",
+      "status": "WARNING",
+      "message": "Возможные проблемы синтаксиса",
+      "details": {}
+    },
+    {
+      "category": "Physics",
+      "name": "Geometry Creation",
+      "status": "PASS",
+      "message": "Параметры корректны",
+      "details": {}
+    },
+    {
+      "category": "GUI",
+      "name": "MainWindow",
+      "status": "PASS",
+      "message": "Класс импортирован",
+      "details": {}
+    },
+    {
+      "category": "GUI",
+      "name": "GeometryPanel",
+      "status": "PASS",
+      "message": "Модуль доступен",
+      "details": {}
+    },
+    {
+      "category": "GUI",
+      "name": "GraphicsPanel",
+      "status": "PASS",
+      "message": "Модуль доступен",
+      "details": {}
+    },
+    {
+      "category": "Performance",
+      "name": "NumPy",
+      "status": "PASS",
+      "message": "8.08 мс",
+      "details": {
+        "time_ms": 8.081436157226562
+      }
+    },
+    {
+      "category": "Performance",
+      "name": "SciPy ODE",
+      "status": "PASS",
+      "message": "0.20 мс",
+      "details": {
+        "time_ms": 0.1952648162841797
+      }
+    },
+    {
+      "category": "Environment",
+      "name": "QSG_RHI_BACKEND",
+      "status": "WARNING",
+      "message": "Не установлена",
+      "details": {}
+    },
+    {
+      "category": "Environment",
+      "name": "QML2_IMPORT_PATH",
+      "status": "WARNING",
+      "message": "Не установлена",
+      "details": {}
+    },
+    {
+      "category": "Environment",
+      "name": "QT_PLUGIN_PATH",
+      "status": "WARNING",
+      "message": "Не установлена",
+      "details": {}
+    },
+    {
+      "category": "Environment",
+      "name": "PYTHONIOENCODING",
+      "status": "WARNING",
+      "message": "Не установлена",
+      "details": {}
+    }
+  ],
+  "timestamp": "2025-10-13 14:08:52"
+}
