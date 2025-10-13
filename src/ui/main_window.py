@@ -23,6 +23,7 @@ import logging
 import json
 import numpy as np
 import time
+from datetime import datetime
 from pathlib import Path
 from typing import Optional, Dict, Any
 
@@ -30,6 +31,8 @@ from src.ui.charts import ChartWidget
 from src.ui.panels import GeometryPanel, PneumoPanel, ModesPanel, RoadPanel, GraphicsPanel
 from ..runtime import SimulationManager, StateSnapshot
 from .ibl_logger import get_ibl_logger, log_ibl_event  # ✅ НОВОЕ: Импорт IBL логгера
+# ✅ НОВОЕ: EventLogger для логирования QML вызовов
+from src.common.event_logger import get_event_logger
 
 
 class MainWindow(QMainWindow):
@@ -45,6 +48,7 @@ class MainWindow(QMainWindow):
     SETTINGS_SPLITTER = "MainWindow/Splitter"
     SETTINGS_HORIZONTAL_SPLITTER = "MainWindow/HorizontalSplitter"
     SETTINGS_LAST_TAB = "MainWindow/LastTab"
+
     SETTINGS_LAST_PRESET = "Presets/LastPath"
 
     QML_UPDATE_METHODS: Dict[str, tuple[str, ...]] = {
@@ -84,6 +88,10 @@ class MainWindow(QMainWindow):
         # ✅ НОВОЕ: Инициализация IBL Signal Logger
         self.ibl_logger = get_ibl_logger()
         log_ibl_event("INFO", "MainWindow", "IBL Logger initialized")
+        
+        # ✅ НОВОЕ: Инициализируем EventLogger (Python↔QML)
+        self.event_logger = get_event_logger()
+        self.logger.info("EventLogger initialized in MainWindow")
         
         print("MainWindow: Создание SimulationManager...")
         
@@ -170,7 +178,7 @@ class MainWindow(QMainWindow):
         print("✅ MainWindow.__init__() завершён")
 
     # ------------------------------------------------------------------
-    # UI Construction - НОВАЯ СТРУКТРАА!
+    # UI Construction - НОВАЯ СТРУКРАА!
     # ------------------------------------------------------------------
     def _setup_central(self):
         """Создать центральный вид с горизонтальным и вертикальным сплиттерами
@@ -261,6 +269,12 @@ class MainWindow(QMainWindow):
             qml_url = QUrl.fromLocalFile(str(qml_path.absolute()))
             print(f"    📂 Полный путь: {qml_url.toString()}")
             
+            # ✅ Устанавливаем базовую директорию QML для разрешения относительных путей
+            try:
+                self._qml_base_dir = qml_path.parent.resolve()
+            except Exception:
+                self._qml_base_dir = None
+            
             self._qquick_widget.setSource(qml_url)
             
             status = self._qquick_widget.status()
@@ -305,7 +319,7 @@ class MainWindow(QMainWindow):
             traceback.print_exc()
             
             fallback = QLabel(
-                "КРИТИЧЕСКАЯ ОШИБКА ЗАГРУЗКИ 3D СЦЕНЫ\n\n"
+                "КРИТИЧСКАЯ ОШИБКА ЗАГРУЗКИ 3D СЦЕНЫ\n\n"
                 f"Ошибка: {e}\n\n"
                 "Проверьте файл assets/qml/main.qml\n"
                 "и убедитесь, что QtQuick3D установлен правильно"
@@ -517,8 +531,6 @@ class MainWindow(QMainWindow):
 
         if self.status_bar:
             self.status_bar.showMessage("Геометрия отправлена в 3D сцену", 2000)
-         
-
 
     # ------------------------------------------------------------------
     # Меню, тулбар и строка состояния
@@ -779,6 +791,12 @@ class MainWindow(QMainWindow):
             return False
 
         try:
+            # ✅ Логируем QML вызов (для EventLogger) перед фактическим вызовом
+            try:
+                self.event_logger.log_qml_invoke(method_name, payload or {})
+            except Exception:
+                pass
+
             if payload is None:
                 candidate()
             else:
@@ -803,366 +821,129 @@ class MainWindow(QMainWindow):
         self._qml_method_support[cache_key] = True
         return True
 
-    @staticmethod
-    def _deep_merge_dicts(target: Dict[str, Any], source: Dict[str, Any]):
-        for key, value in source.items():
-            if (
-                isinstance(value, dict)
-                and key in target
-                and isinstance(target[key], dict)
-            ):
-                MainWindow._deep_merge_dicts(target[key], value)
-            else:
-                target[key] = value
-
-    def _apply_fallback(self, key: str, payload: Dict[str, Any]) -> None:
-        if not payload:
-            return
-
-        handlers = {
-            "geometry": self._apply_geometry_fallback,
-            "lighting": self._apply_lighting_fallback,
-            "environment": self._apply_environment_fallback,
-            "quality": self._apply_quality_fallback,
-            "camera": self._apply_camera_fallback,
-            "effects": self._apply_effects_fallback,
-            "materials": self._apply_materials_fallback,
-        }
-
-        handler = handlers.get(key)
-        if handler:
-            handler(payload)
-        else:
-            self.logger.debug("No fallback handler for %s", key)
-
-    def _mark_pending_updates_applied(self, pending: Dict[str, Any]) -> None:
-        """Mark recent GraphicsLogger events as applied when batched updates were pushed.
-
-        This helps ensure events that were combined into a single pendingPythonUpdates
-        still get their `qml_state` / `applied_to_qml` updated in the logs.
-        """
-        try:
-            from .panels.graphics_logger import get_graphics_logger
-        except Exception:
-            return
-
-        logger = get_graphics_logger()
-        # Look through recent events (limit for performance)
-        recent_events = list(logger.get_recent_changes(500))
-
-        for key, payload in pending.items():
-            # For each pending category, mark matching recent events
-            matches = 0
-            for ev in reversed(recent_events):
-                try:
-                    if getattr(ev, 'qml_state', None) is not None or getattr(ev, 'applied_to_qml', False):
-                        continue
-
-                    # Match by category name
-                    if getattr(ev, 'category', None) != key:
-                        continue
-
-                    # Mark event as applied and attach payload summary
-                    ev.qml_state = {"applied": True, "params": payload}
-                    ev.applied_to_qml = True
-                    # Persist update to file
-                    try:
-                        logger._write_event_to_file(ev, update=True)
-                    except Exception:
-                        # Fallback to using log_qml_update if available
-                        try:
-                            logger.log_qml_update(ev, qml_state=ev.qml_state, success=True)
-                        except Exception:
-                            pass
-                    matches += 1
-                    # Limit markings per category to avoid over-marking
-                    if matches >= 50:
-                        break
-                except Exception:
-                    continue
-
-    def _apply_geometry_fallback(self, geometry: Dict[str, Any]) -> None:
-        mapping = {
-            ("frameLength",): ("userFrameLength", float),
-            ("frameHeight",): ("userFrameHeight", float),
-            ("frameBeamSize",): ("userBeamSize", float),
-            ("leverLength",): ("userLeverLength", float),
-            ("cylinderBodyLength",): ("userCylinderLength", float),
-            ("trackWidth",): ("userTrackWidth", float),
-            ("frameToPivot",): ("userFrameToPivot", float),
-            ("rodPosition",): ("userRodPosition", float),
-            ("boreHead",): ("userBoreHead", float),
-            ("boreRod",): ("userBoreRod", float),
-            ("rodDiameter",): ("userRodDiameter", float),
-            ("pistonThickness",): ("userPistonThickness", float),
-            ("pistonRodLength",): ("userPistonRodLength", float),
-            ("cylinderSegments",): ("cylinderSegments", int),
-            ("cylinderRings",): ("cylinderRings", int),
-        }
-        self._apply_nested_mapping(geometry, mapping)
-
-    def _apply_lighting_fallback(self, lighting: Dict[str, Any]) -> None:
-        mapping = {
-            ("key_light", "brightness"): ("keyLightBrightness", float),
-            ("key_light", "color"): "keyLightColor",
-            ("key_light", "angle_x"): ("keyLightAngleX", float),
-            ("key_light", "angle_y"): ("keyLightAngleY", float),
-            ("fill_light", "brightness"): ("fillLightBrightness", float),
-            ("fill_light", "color"): "fillLightColor",
-            ("rim_light", "brightness"): ("rimLightBrightness", float),
-            ("rim_light", "color"): "rimLightColor",
-            ("point_light", "brightness"): ("pointLightBrightness", float),
-            ("point_light", "color"): "pointLightColor",
-            ("point_light", "position_y"): ("pointLightY", float),
-            ("point_light", "range"): ("pointLightRange", float),
-        }
-        self._apply_nested_mapping(lighting, mapping)
-
-    def _apply_environment_fallback(self, environment: Dict[str, Any]) -> None:
-        mapping = {
-            ("background", "mode"): "backgroundMode",
-            ("background", "color"): "backgroundColor",
-            ("background", "skybox_enabled"): "iblBackgroundEnabled",
-            ("ibl", "enabled"): "iblEnabled",
-            ("ibl", "lighting_enabled"): "iblLightingEnabled",
-            ("ibl", "background_enabled"): "iblBackgroundEnabled",
-            ("ibl", "intensity"): ("iblIntensity", float),
-            ("ibl", "exposure"): ("iblIntensity", float),
-            ("ibl", "rotation"): ("iblRotationDeg", float),
-            ("ibl", "blur"): ("skyboxBlur", float),
-            ("fog", "enabled"): "fogEnabled",
-            ("fog", "color"): "fogColor",
-            ("fog", "density"): ("fogDensity", float),
-            ("fog", "near"): ("fogNear", float),
-            ("fog", "far"): ("fogFar", float),
-            ("ambient_occlusion", "enabled"): "aoEnabled",
-            ("ambient_occlusion", "strength"): ("aoStrength", float),
-            ("ambient_occlusion", "radius"): ("aoRadius", float),
-        }
-        self._apply_nested_mapping(environment, mapping)
-
-        ibl = environment.get("ibl")
-        if isinstance(ibl, dict):
-            for key, prop in (("source", "iblPrimarySource"), ("fallback", "iblFallbackSource")):
-                value = ibl.get(key)
-                if isinstance(value, str) and value:
-                    resolved = self._resolve_qurl(value)
-                    if resolved is not None:
-                        self._set_qml_property(prop, resolved)
-
-    def _apply_quality_fallback(self, quality: Dict[str, Any]) -> None:
-        mapping = {
-            ("shadows", "enabled"): "shadowsEnabled",
-            ("shadows", "resolution"): "shadowResolution",
-            ("shadows", "filter"): ("shadowFilterSamples", int),
-            ("shadows", "bias"): ("shadowBias", float),
-            ("shadows", "darkness"): ("shadowFactor", float),
-            ("antialiasing", "primary"): "aaPrimaryMode",
-            ("antialiasing", "quality"): "aaQualityLevel",
-            ("antialiasing", "post"): "aaPostMode",
-            ("taa_enabled",): "taaEnabled",
-            ("taa_strength",): ("taaStrength", float),
-            ("taa_motion_adaptive",): "taaMotionAdaptive",
-            ("fxaa_enabled",): "fxaaEnabled",
-            ("specular_aa",): "specularAAEnabled",
-            ("dithering",): "ditheringEnabled",
-            ("render_scale",): ("renderScale", float),
-            ("render_policy",): "renderPolicy",
-            ("frame_rate_limit",): ("frameRateLimit", float),
-            ("oit",): "oitMode",
-            ("preset",): "qualityPreset",
-        }
-        self._apply_nested_mapping(quality, mapping)
-
-    def _apply_camera_fallback(self, camera: Dict[str, Any]) -> None:
-        mapping = {
-            ("fov",): ("cameraFov", float),
-            ("near",): ("cameraNear", float),
-            ("far",): ("cameraFar", float),
-            ("speed",): ("cameraSpeed", float),
-            ("auto_rotate",): "autoRotate",
-            ("auto_rotate_speed",): ("autoRotateSpeed", float),
-        }
-        self._apply_nested_mapping(camera, mapping)
-
-    def _apply_effects_fallback(self, effects: Dict[str, Any]) -> None:
-        mapping = {
-            ("bloom_enabled",): "bloomEnabled",
-            ("bloom_intensity",): ("bloomIntensity", float),
-            ("bloom_threshold",): ("bloomThreshold", float),
-            ("bloom_spread",): ("bloomSpread", float),
-            ("depth_of_field",): "depthOfFieldEnabled",
-            ("dof_focus_distance",): ("dofFocusDistance", float),
-            ("dof_blur",): ("dofBlurAmount", float),
-            ("motion_blur",): "motionBlurEnabled",
-            ("motion_blur_amount",): ("motionBlurAmount", float),
-            ("lens_flare",): "lensFlareEnabled",
-            ("vignette",): "vignetteEnabled",
-            ("vignette_strength",): ("vignetteStrength", float),
-            ("tonemap_enabled",): "tonemapEnabled",
-            ("tonemap_mode",): "tonemapModeName",
-        }
-        self._apply_nested_mapping(effects, mapping)
-
-    def _apply_materials_fallback(self, materials: Dict[str, Any]) -> None:
-        prefix_map = {
-            "frame": "frame",
-            "lever": "lever",
-            "tail": "tailRod",
-            "cylinder": "cylinder",
-            "piston_body": "pistonBody",
-            "piston_rod": "pistonRod",
-            "joint_tail": "jointTail",
-            "joint_arm": "jointArm",
-        }
-
-        suffix_map = {
-            "base_color": "BaseColor",
-            "metalness": "Metalness",
-            "roughness": "Roughness",
-            "specular_amount": "SpecularAmount",
-            "specular_tint": "SpecularTint",
-            "clearcoat": "Clearcoat",
-            "clearcoat_roughness": "ClearcoatRoughness",
-            "transmission": "Transmission",
-            "opacity": "Opacity",
-            "ior": "Ior",
-            "attenuation_distance": "AttenuationDistance",
-            "attenuation_color": "AttenuationColor",
-            "emissive_color": "EmissiveColor",
-            "emissive_intensity": "EmissiveIntensity",
-        }
-
-        for material_key, values in materials.items():
-            prefix = prefix_map.get(material_key)
-            if not prefix or not isinstance(values, dict):
-                continue
-
-            for prop_key, prop_value in values.items():
-                if prop_value is None:
-                    continue
-
-                if material_key == "piston_body" and prop_key == "warning_color":
-                    self._set_qml_property("pistonBodyWarningColor", prop_value)
-                    continue
-                if material_key == "piston_rod" and prop_key == "warning_color":
-                    self._set_qml_property("pistonRodWarningColor", prop_value)
-                    continue
-                if material_key == "joint_tail":
-                    if prop_key == "ok_color":
-                        self._set_qml_property("jointRodOkColor", prop_value)
-                        continue
-                    if prop_key == "error_color":
-                        self._set_qml_property("jointRodErrorColor", prop_value)
-                        continue
-
-                suffix = suffix_map.get(prop_key)
-                if not suffix:
-                    continue
-
-                self._set_qml_property(f"{prefix}{suffix}", prop_value)
-
-    def _apply_nested_mapping(self, payload: Dict[str, Any], mapping: Dict[tuple[str, ...], Any]) -> None:
-        for path, target in mapping.items():
-            cast = None
-            if isinstance(target, tuple):
-                target, cast = target
-
-            value = self._extract_nested_value(payload, path)
-            if value is None:
-                continue
-
-            if cast is not None:
-                try:
-                    value = cast(value)
-                except (TypeError, ValueError):
-                    continue
-
-            self._set_qml_property(target, value)
-
-    @staticmethod
-    def _extract_nested_value(data: Dict[str, Any], path: tuple[str, ...]) -> Any:
-        current: Any = data
-        for key in path:
-            if not isinstance(current, dict) or key not in current:
-                return None
-            current = current[key]
-        return current
-
-    def _resolve_qurl(self, value: str) -> Optional[QUrl]:
-        if not value:
-            return None
-
-        url = QUrl(value)
-        if url.isRelative() or not url.isValid() or not url.scheme():
-            base = getattr(self, "_qml_base_dir", None)
-            if isinstance(base, Path):
-                candidate = (base / value).resolve()
-                if candidate.exists():
-                    return QUrl.fromLocalFile(str(candidate))
-        return url
-
-    def _set_qml_property(self, name: str, value: Any) -> None:
-        if not name or value is None:
-            return
-        if self._qml_root_object is None:
-            self.logger.debug("Cannot set %s: QML root not ready", name)
-            return
-        try:
-            self._qml_root_object.setProperty(name, value)
-        except Exception as exc:
-            self.logger.debug("Failed to set %s: %s", name, exc)
-
-    # ------------------------------------------------------------------
-    # Обработчики сигналов панелей
-    # ------------------------------------------------------------------
-    @Slot(dict)
-    def _on_geometry_changed_qml(self, geometry: Dict[str, Any]):
-        self.logger.info(f"Geometry update received: {list(geometry.keys())}")
-        self._queue_qml_update("geometry", geometry)
-
     @Slot(dict)
     def _on_lighting_changed(self, params: Dict[str, Any]):
+        """Обработчик изменения освещения - ПРЯМОЙ вызов QML для немедленного применения"""
         self.logger.debug(f"Lighting update: {params}")
-        self._queue_qml_update("lighting", params)
-        
-        # ✅ Логируем QML обновление
-        from .panels.graphics_logger import get_graphics_logger
-        logger = get_graphics_logger()
-        recent = logger.get_recent_changes(1)
-        
-        if recent and recent[0].category == "lighting":
-            event = recent[0]
+
+        if self._qml_root_object:
             try:
-                # QML обновление успешно
-                logger.log_qml_update(
-                    event,
-                    qml_state={"applied": True, "params": params},
-                    success=True
+                from PySide6.QtCore import QMetaObject, Q_ARG, Qt
+
+                # Логируем QML вызов
+                try:
+                    self.event_logger.log_qml_invoke("applyLightingUpdates", params)
+                except Exception:
+                    pass
+
+                success = QMetaObject.invokeMethod(
+                    self._qml_root_object,
+                    "applyLightingUpdates",
+                    Qt.ConnectionType.DirectConnection,
+                    Q_ARG("QVariant", params)
                 )
+
+                if success:
+                    if hasattr(self, "status_bar"):
+                        self.status_bar.showMessage("Освещение обновлено", 2000)
+
+                    # Логируем как применённые через GraphicsLogger
+                    from .panels.graphics_logger import get_graphics_logger
+                    logger = get_graphics_logger()
+                    # Пишем по ключам вложенных групп, если есть
+                    for block_key in ("key_light", "fill_light", "rim_light", "point_light"):
+                        if block_key in params:
+                            logger.log_change(
+                                parameter_name=block_key,
+                                old_value=None,
+                                new_value=params[block_key],
+                                category="lighting",
+                                panel_state=params,
+                                qml_state={"applied": True},
+                                applied_to_qml=True
+                            )
+                else:
+                    self.logger.warning("Failed to call applyLightingUpdates()")
             except Exception as e:
-                logger.log_qml_update(event, success=False, error=str(e))
+                self.logger.error(f"Lighting update failed: {e}")
+                import traceback
+                traceback.print_exc()
+        else:
+            # Если QML ещё не готов, ставим в очередь
+            self._queue_qml_update("lighting", params)
 
     @Slot(dict)
     def _on_material_changed(self, params: Dict[str, Any]):
+        """Обработчик изменения материалов - ставит обновление в очередь и логирует изменения"""
         self.logger.debug(f"Material update: {params}")
         self._queue_qml_update("materials", params)
-        
-        # ✅ Логируем QML обновление
-        from .panels.graphics_logger import get_graphics_logger
-        logger = get_graphics_logger()
-        recent = logger.get_recent_changes(1)
-        
-        if recent and recent[0].category == "material":
-            event = recent[0]
+
+        # ✅ Логируем изменения через GraphicsLogger (как применённые)
+        try:
+            from .panels.graphics_logger import get_graphics_logger
+            logger = get_graphics_logger()
+            recent = logger.get_recent_changes(1)
+            if recent and recent[0].category == "material":
+                event = recent[0]
+                try:
+                    logger.log_qml_update(
+                        event,
+                        qml_state={"applied": True, "params": params},
+                        success=True
+                    )
+                except Exception as e:
+                    logger.log_qml_update(event, success=False, error=str(e))
+        except Exception:
+            pass
+
+    @Slot(dict)
+    def _on_effects_changed(self, params: Dict[str, Any]):
+        """Обработчик изменения эффектов - ПРЯМОЙ вызов QML для надёжного применения"""
+        self.logger.debug(f"Effects update: {params}")
+
+        if self._qml_root_object:
             try:
-                logger.log_qml_update(
-                    event,
-                    qml_state={"applied": True, "params": params},
-                    success=True
+                from PySide6.QtCore import QMetaObject, Q_ARG, Qt
+
+                # Логируем QML вызов в EventLogger
+                try:
+                    self.event_logger.log_qml_invoke("applyEffectsUpdates", params)
+                except Exception:
+                    pass
+
+                success = QMetaObject.invokeMethod(
+                    self._qml_root_object,
+                    "applyEffectsUpdates",
+                    Qt.ConnectionType.DirectConnection,
+                    Q_ARG("QVariant", params)
                 )
+
+                if success:
+                    if hasattr(self, "status_bar"):
+                        self.status_bar.showMessage("Эффекты обновлены", 2000)
+
+                    # Логируем изменения через GraphicsLogger
+                    from .panels.graphics_logger import get_graphics_logger
+                    logger = get_graphics_logger()
+                    for key, value in params.items():
+                        logger.log_change(
+                            parameter_name=key,
+                            old_value=None,
+                            new_value=value,
+                            category="effects",
+                            panel_state=params,
+                            qml_state={"applied": True},
+                            applied_to_qml=True
+                        )
+                else:
+                    self.logger.warning("Failed to call applyEffectsUpdates()")
             except Exception as e:
-                logger.log_qml_update(event, success=False, error=str(e))
+                self.logger.error(f"Effects update failed: {e}")
+                import traceback
+                traceback.print_exc()
+        else:
+            # Если QML ещё не готов, ставим в очередь
+            self._queue_qml_update("effects", params)
 
     @Slot(dict)
     def _on_environment_changed(self, params: Dict[str, Any]):
@@ -1178,6 +959,12 @@ class MainWindow(QMainWindow):
                 print(f"🔧 MainWindow: Вызываем applyEnvironmentUpdates напрямую...")
                 print(f"     fog_enabled = {params.get('fog_enabled', 'N/A')}")
                 
+                # ✅ Логируем QML вызов в EventLogger
+                try:
+                    self.event_logger.log_qml_invoke("applyEnvironmentUpdates", params)
+                except Exception:
+                    pass
+                
                 success = QMetaObject.invokeMethod(
                     self._qml_root_object,
                     "applyEnvironmentUpdates",
@@ -1192,12 +979,10 @@ class MainWindow(QMainWindow):
                     # ✅ Логируем успешное QML обновление
                     from .panels.graphics_logger import get_graphics_logger
                     logger = get_graphics_logger()
-                    
-                    # Логируем каждый измененный параметр
                     for key, value in params.items():
                         logger.log_change(
                             parameter_name=key,
-                            old_value=None,  # Нет старого значения в MainWindow
+                            old_value=None,
                             new_value=value,
                             category="environment",
                             panel_state=params,
@@ -1227,6 +1012,12 @@ class MainWindow(QMainWindow):
                 print(f"🔧 MainWindow: Вызываем applyQualityUpdates напрямую...")
                 print(f"     antialiasing = {params.get('antialiasing', 'N/A')}")
                 print(f"     aa_quality = {params.get('aa_quality', 'N/A')}")
+                
+                # ✅ Логируем QML вызов в EventLogger
+                try:
+                    self.event_logger.log_qml_invoke("applyQualityUpdates", params)
+                except Exception:
+                    pass
                 
                 success = QMetaObject.invokeMethod(
                     self._qml_root_object,
@@ -1264,26 +1055,6 @@ class MainWindow(QMainWindow):
                 traceback.print_exc()
 
     @Slot(dict)
-    def _on_effects_changed(self, params: Dict[str, Any]):
-        self.logger.debug(f"Effects update: {params}")
-        self._queue_qml_update("effects", params)
-        
-        # ✅ Логируем QML обновление
-        from .panels.graphics_logger import get_graphics_logger
-        logger = get_graphics_logger()
-        
-        for key, value in params.items():
-            logger.log_change(
-                parameter_name=key,
-                old_value=None,
-                new_value=value,
-                category="effects",
-                panel_state=params,
-                qml_state={"applied": True},
-                applied_to_qml=True
-            )
-
-    @Slot(dict)
     def _on_camera_changed(self, params: Dict[str, Any]):
         """Обработчик изменения параметров камеры - вызывает QML и логирует событие"""
         self.logger.debug(f"Camera update: {params}")
@@ -1292,6 +1063,12 @@ class MainWindow(QMainWindow):
         if self._qml_root_object:
             try:
                 from PySide6.QtCore import QMetaObject, Q_ARG, Qt
+
+                # ✅ Логируем QML вызов в EventLogger
+                try:
+                    self.event_logger.log_qml_invoke("applyCameraUpdates", params)
+                except Exception:
+                    pass
 
                 success = QMetaObject.invokeMethod(
                     self._qml_root_object,
@@ -1338,6 +1115,12 @@ class MainWindow(QMainWindow):
             try:
                 from PySide6.QtCore import QMetaObject, Q_ARG, Qt
 
+                # ✅ Логируем QML вызов в EventLogger
+                try:
+                    self.event_logger.log_qml_invoke("applyAnimationUpdates", params)
+                except Exception:
+                    pass
+
                 success = QMetaObject.invokeMethod(
                     self._qml_root_object,
                     "applyAnimationUpdates",
@@ -1375,7 +1158,7 @@ class MainWindow(QMainWindow):
             # Просто поставим в очередь, если QML не готов
             self._queue_qml_update("animation", params)
 
-    @Slot(dict)
+    @Slot(str)
     def _on_preset_applied(self, preset_name: str):
         if hasattr(self, "status_bar"):
             self.status_bar.showMessage(f"Пресет '{preset_name}' применён", 2000)
@@ -1410,26 +1193,29 @@ class MainWindow(QMainWindow):
         now_ms = int(time.time() * 1000)
         window_ms = 2000  # 2 second window
         
+        # Синонимы категорий
+        category_aliases = {
+            "materials": "material",
+        }
+
         recent_events = list(logger.get_recent_changes(200))
         matched = 0
         
         for event in reversed(recent_events):
             try:
-                # Skip already marked events
                 if getattr(event, 'applied_to_qml', False):
                     continue
                 
-                # Check category match
                 event_category = getattr(event, 'category', None)
-                if event_category not in categories:
+                # Совпадение по категории или её алиасу
+                if not any(event_category == c or event_category == category_aliases.get(c) for c in categories):
                     continue
                 
-                # Check timing (event should be recent, before ACK)
-                event_ts_ms = int(event.timestamp.timestamp() * 1000)
+                # Timing check
+                event_ts_ms = int(datetime.fromisoformat(event.timestamp).timestamp() * 1000) if getattr(event, 'timestamp', None) else now_ms
                 if abs(event_ts_ms - timestamp_ms) > window_ms:
                     continue
                 
-                # Mark as applied
                 event.qml_state = {
                     "applied": True,
                     "ack_timestamp": timestamp_ms,
@@ -1437,17 +1223,14 @@ class MainWindow(QMainWindow):
                 }
                 event.applied_to_qml = True
                 
-                # Persist
                 try:
                     logger._write_event_to_file(event, update=True)
                 except Exception:
                     pass
                 
                 matched += 1
-                
-                if matched >= 50:  # Limit per ACK
+                if matched >= 50:
                     break
-                    
             except Exception as e:
                 self.logger.debug(f"Error processing ACK for event: {e}")
                 continue

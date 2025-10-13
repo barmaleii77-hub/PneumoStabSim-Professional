@@ -257,8 +257,8 @@ Item {
     property real dofBlurAmount: 4.0
     property bool motionBlurEnabled: false
     property real motionBlurAmount: 0.2
-    property bool lensFlareEnabled: true
-    property bool vignetteEnabled: true
+    property bool lensFlareEnabled: false    // ✅ По умолчанию выкл, чтобы не включалось без явного сигнала
+    property bool vignetteEnabled: false      // ✅ По умолчанию выкл, чтобы не включалось без явного сигнала
     property real vignetteStrength: 0.35
 
     // Tonemap settings

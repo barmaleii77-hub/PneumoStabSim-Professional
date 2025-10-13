@@ -21,6 +21,7 @@ def log_warning(msg: str):
     """Накапливает warning для вывода в конце"""
     _warnings_errors.append(("WARNING", msg))
 
+
 def log_error(msg: str):
     """Накапливает error для вывода в конце"""
     _warnings_errors.append(("ERROR", msg))
@@ -28,6 +29,7 @@ def log_error(msg: str):
 # =============================================================================
 # QtQuick3D Environment Setup
 # =============================================================================
+
 
 def setup_qtquick3d_environment():
     """Set up QtQuick3D environment variables before importing Qt"""
@@ -63,47 +65,53 @@ def setup_qtquick3d_environment():
         log_error(f"QtQuick3D setup failed: {e}")
         return False
 
+
 qtquick3d_setup_ok = setup_qtquick3d_environment()
 
 # =============================================================================
 # Terminal Encoding
 # =============================================================================
 
+
 def configure_terminal_encoding():
     """Configure terminal encoding for cross-platform Unicode support"""
     if sys.platform == 'win32':
         try:
             subprocess.run(['chcp', '65001'], capture_output=True, check=False)
-        except:
+        except Exception:
             pass
         
+        # На Windows не меняем locale на несуществующий 'C.UTF-8'
+        # Достаточно PYTHONIOENCODING и перевода консоли в UTF-8
         try:
             import codecs
             if hasattr(sys.stdout, 'buffer'):
                 sys.stdout = codecs.getwriter('utf-8')(sys.stdout.buffer, errors='replace')
-            if hasattr(sys.stderr, 'buffer'):    
+            if hasattr(sys.stderr, 'buffer'):
                 sys.stderr = codecs.getwriter('utf-8')(sys.stderr.buffer, errors='replace')
         except Exception as e:
             log_warning(f"UTF-8 setup: {e}")
     
     os.environ.setdefault('PYTHONIOENCODING', 'utf-8')
     
-    try:
-        if sys.platform == 'win32':
-            locale.setlocale(locale.LC_ALL, 'C.UTF-8')
-        else:
-            locale.setlocale(locale.LC_ALL, 'en_US.UTF-8')
-    except locale.Error:
+    # На Unix-системах пытаемся установить UTF-8 локаль
+    if sys.platform != 'win32':
         try:
-            locale.setlocale(locale.LC_ALL, 'C')
+            locale.setlocale(locale.LC_ALL, 'en_US.UTF-8')
         except locale.Error:
-            pass
+            try:
+                locale.setlocale(locale.LC_ALL, 'C.UTF-8')
+            except locale.Error:
+                # В крайнем случае остаёмся на системной локали
+                pass
+
 
 configure_terminal_encoding()
 
 # =============================================================================
 # Python Version Check
 # =============================================================================
+
 
 def check_python_compatibility():
     """Check Python version and warn about potential issues"""
@@ -114,6 +122,7 @@ def check_python_compatibility():
         sys.exit(1)
     elif version >= (3, 12):
         log_warning("Python 3.12+ detected. Some packages may have compatibility issues.")
+
 
 check_python_compatibility()
 
@@ -132,6 +141,7 @@ os.environ.setdefault("QT_ENABLE_HIGHDPI_SCALING", "1")
 # =============================================================================
 # Qt Import
 # =============================================================================
+
 
 def safe_import_qt():
     """Safely import Qt components"""
@@ -153,11 +163,13 @@ def safe_import_qt():
         log_error(f"PySide6 import failed: {e}")
         sys.exit(1)
 
+
 QApplication, qInstallMessageHandler, Qt, QTimer = safe_import_qt()
 
 # =============================================================================
 # Logging Setup - ВСЕГДА ВКЛЮЧЕНО
 # =============================================================================
+
 
 def setup_logging():
     """Настройка логирования - ВСЕГДА активно"""
@@ -199,6 +211,7 @@ def setup_logging():
 
 _main_window_module = None
 
+
 def get_main_window_class():
     """Ленивая загрузка MainWindow класса"""
     global _main_window_module
@@ -220,6 +233,7 @@ app_instance = None
 window_instance = None
 app_logger = None
 
+
 def signal_handler(signum, frame):
     """Handle Ctrl+C gracefully"""
     global app_instance, window_instance, app_logger
@@ -235,11 +249,13 @@ def signal_handler(signum, frame):
     except Exception as e:
         log_warning(f"Shutdown error: {e}")
 
+
 def qt_message_handler(mode, context, message):
     """Handle Qt log messages - redirect to logger"""
     global app_logger
     if app_logger:
         app_logger.debug(f"Qt: {message}")
+
 
 def parse_arguments():
     """Parse command line arguments"""
@@ -258,6 +274,7 @@ Examples:
     parser.add_argument('--verbose', action='store_true', help='Enable console logging')
     
     return parser.parse_args()
+
 
 def print_warnings_errors():
     """Вывод всех warnings/errors в конце"""
@@ -282,6 +299,7 @@ def print_warnings_errors():
             print(f"  • {e}")
     
     print("=" * 60 + "\n")
+
 
 def run_log_diagnostics():
     """Запускает ВСТРОЕННУЮ диагностику логов после закрытия приложения"""
@@ -403,6 +421,7 @@ def run_log_diagnostics():
         import traceback
         traceback.print_exc()
 
+
 def main():
     """Main application function - CLEAN OUTPUT"""
     global app_instance, window_instance, app_logger
@@ -507,6 +526,7 @@ def main():
         print_warnings_errors()
         
         return 1
+
 
 if __name__ == "__main__":
     sys.exit(main())

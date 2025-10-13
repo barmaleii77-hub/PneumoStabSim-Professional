@@ -8,6 +8,7 @@ from typing import Any, Dict
 
 from PySide6.QtCore import QSettings, Qt, QTimer, Signal, Slot
 from PySide6.QtGui import QColor, QStandardItem
+from PySide6 import QtWidgets  # ✅ ДОБАВЛЕНО: модуль QtWidgets для безопасного доступа к QSlider
 from PySide6.QtWidgets import (
     QCheckBox,
     QColorDialog,
@@ -139,7 +140,8 @@ class LabeledSlider(QWidget):
         row.setSpacing(6)
         layout.addLayout(row)
 
-        self._slider = QSlider(Qt.Horizontal, self)
+        # ✅ ИСПРАВЛЕНО: используем QtWidgets.QSlider, чтобы избежать NameError
+        self._slider = QtWidgets.QSlider(Qt.Horizontal, self)
         steps = max(1, int(round((self._max - self._min) / self._step)))
         self._slider.setRange(0, steps)
         
@@ -301,7 +303,7 @@ class GraphicsPanel(QWidget):
                 "ibl_enabled": True,
                 "ibl_intensity": 1.3,
                 "ibl_source": "../hdr/studio.hdr",
-                "ibl_fallback": "assets/studio_small_09_2k.hdr",
+                "ibl_fallback": "../hdr/studio_small_09_2k.hdr",  # ✅ ИСПРАВЛЕНО: корректный относительный путь
                 "skybox_blur": 0.08,
                 "fog_enabled": True,
                 "fog_color": "#b0c4d8",
@@ -354,8 +356,8 @@ class GraphicsPanel(QWidget):
                 "dof_blur": 4.0,
                 "motion_blur": False,
                 "motion_blur_amount": 0.2,
-                "lens_flare": True,
-                "vignette": True,
+                "lens_flare": False,   # ✅ По умолчанию выкл
+                "vignette": False,     # ✅ По умолчанию выкл
                 "vignette_strength": 0.35,
                 "tonemap_enabled": True,
                 "tonemap_mode": "filmic",
@@ -822,9 +824,9 @@ class GraphicsPanel(QWidget):
         bg_row.addStretch(1)
         grid.addLayout(bg_row, 1, 0, 1, 2)
 
-        # ✅ FIXED: IBL checkbox - правильное подключение clicked вместо stateChanged
+        # ✅ FIXED + LOGGING: IBL checkbox → обработчик с логированием клика
         ibl_check = QCheckBox("Включить HDR IBL", self)
-        ibl_check.clicked.connect(lambda checked: self._update_environment("ibl_enabled", checked))
+        ibl_check.clicked.connect(lambda checked: self._on_ibl_enabled_clicked(checked))
         self._environment_controls["ibl.enabled"] = ibl_check
         grid.addWidget(ibl_check, 2, 0, 1, 2)
 
@@ -1026,7 +1028,7 @@ class GraphicsPanel(QWidget):
         grid.addWidget(taa_check, 3, 0, 1, 2)
 
         taa_strength = LabeledSlider("Сила TAA", 0.0, 1.0, 0.01, decimals=2)
-        taa_strength.valueChanged.connect(lambda v: self._update_quality("taa.strength", v))
+        taa_strength.valueChanged.connect(lambda v: self._update_quality(" taa.strength", v))
         self._quality_controls["taa.strength"] = taa_strength
         grid.addWidget(taa_strength, 4, 0, 1, 2)
 
@@ -1335,6 +1337,12 @@ class GraphicsPanel(QWidget):
             panel_state=self.state
         )
         
+        # ✅ НОВОЕ: Логируем отправку Python-сигнала
+        try:
+            self.event_logger.log_signal_emit("material_changed", self._prepare_materials_payload())
+        except Exception:
+            pass
+        
         self._emit_material_update(key)
 
     def _on_material_value_changed(self, prop: str, value: float) -> None:
@@ -1357,6 +1365,12 @@ class GraphicsPanel(QWidget):
             category="material",
             panel_state=self.state
         )
+        
+        # ✅ НОВОЕ: Логируем отправку Python-сигнала
+        try:
+            self.event_logger.log_signal_emit("material_changed", self._prepare_materials_payload())
+        except Exception:
+            pass
         
         self._emit_material_update(key)
 
@@ -1577,29 +1591,38 @@ class GraphicsPanel(QWidget):
         
         # Сохраняем старое значение для логирования
         old_value = None
-        if "." in key:
-            parts = key.split(".")
-            target = self.state["quality"]
-            for part in parts[:-1]:
-                if part in target:
+
+        # ✅ Алиасы для плоских ключей качества (во избежание вложенных структур)
+        if key == "fxaa.enabled":
+            old_value = self.state["quality"].get("fxaa_enabled")
+            self.state["quality"]["fxaa_enabled"] = value
+        elif key == "taa.enabled":
+            old_value = self.state["quality"].get("taa_enabled")
+            self.state["quality"]["taa_enabled"] = value
+        else:
+            # Обычная обработка (включая вложенные shadows.*, antialiasing.*)
+            if "." in key:
+                parts = key.split(".")
+                target = self.state["quality"]
+                # Получаем старое значение, если возможно
+                tmp = target
+                for part in parts[:-1]:
+                    if part in tmp and isinstance(tmp[part], dict):
+                        tmp = tmp[part]
+                    else:
+                        tmp = None
+                        break
+                if isinstance(tmp, dict):
+                    old_value = tmp.get(parts[-1])
+                # Устанавливаем новое значение
+                for part in parts[:-1]:
+                    if part not in target or not isinstance(target[part], dict):
+                        target[part] = {}
                     target = target[part]
-                else:
-                    break
-            old_value = target.get(parts[-1]) if isinstance(target, dict) else None
-        else:
-            old_value = self.state["quality"].get(key)
-        
-        # Handle nested keys like "shadows.enabled"
-        if "." in key:
-            parts = key.split(".")
-            target = self.state["quality"]
-            for part in parts[:-1]:
-                if part not in target:
-                    target[part] = {}
-                target = target[part]
-            target[parts[-1]] = value
-        else:
-            self.state["quality"][key] = value
+                target[parts[-1]] = value
+            else:
+                old_value = self.state["quality"].get(key)
+                self.state["quality"][key] = value
         
         # Логируем изменение
         self.graphics_logger.log_change(
@@ -1646,6 +1669,8 @@ class GraphicsPanel(QWidget):
             panel_state=self.state
         )
         
+        self._emit_camera()
+        
         if key == "auto_rotate":
             self.logger.info(f"   New state saved: {self.state['camera']['auto_rotate']}")
             self.logger.info(f"   About to emit camera_changed signal...")
@@ -1676,17 +1701,32 @@ class GraphicsPanel(QWidget):
         
         self._emit_effects()
 
+    # ✅ НОВОЕ: Метод обработки клика IBL Enabled с логированием
+    def _on_ibl_enabled_clicked(self, checked: bool) -> None:
+        """Обработчик клика IBL Enabled с логированием USER_CLICK"""
+        # Логируем клик ПЕРЕД обработкой
+        self.event_logger.log_user_click(
+            widget_name="ibl_enabled",
+            widget_type="QCheckBox",
+            value=checked
+        )
+        # Дополнительно пишем в обычный лог
+        self.logger.info(f"IBL checkbox clicked: {checked}")
+        
+        # Вызываем стандартный обработчик
+        self._update_environment("ibl_enabled", checked)
+
     # ✅ НОВОЕ: Метод обработки клика Auto Rotate с логированием
     def _on_auto_rotate_clicked(self, checked: bool) -> None:
         """Обработчик клика Auto Rotate с логированием USER_CLICK"""
-        # Логируем клик ПЕРЕД обработкой
+        # Логируем КЛИК (перед обработчиком)
         self.event_logger.log_user_click(
             widget_name="auto_rotate",
             widget_type="QCheckBox",
             value=checked
         )
         
-        # Вызываем стандартный обработчик
+        # Вызываем обработчик
         self._update_camera("auto_rotate", checked)
 
     # ✅ НОВОЕ: Метод обработки клика Fog Enabled с логированием
@@ -1698,8 +1738,6 @@ class GraphicsPanel(QWidget):
             widget_type="QCheckBox",
             value=checked
         )
-        
-        # Вызываем стандартный обработчик
         self._update_environment("fog_enabled", checked)
 
     # ✅ НОВОЕ: Метод обработки клика Bloom Enabled с логированием
@@ -1711,8 +1749,6 @@ class GraphicsPanel(QWidget):
             widget_type="QCheckBox",
             value=checked
         )
-        
-        # Вызываем стандартный обработчик
         self._update_effects("bloom_enabled", checked)
 
     # ------------------------------------------------------------------
@@ -1745,26 +1781,56 @@ class GraphicsPanel(QWidget):
     # ------------------------------------------------------------------
     def _emit_lighting(self) -> None:
         payload = self._prepare_lighting_payload()
+        # ✅ Логируем факт отправки Python-сигнала
+        try:
+            self.event_logger.log_signal_emit("lighting_changed", payload)
+        except Exception:
+            pass
         self.lighting_changed.emit(payload)
 
     def _emit_environment(self) -> None:
         payload = self._prepare_environment_payload()
+        # ✅ Логируем факт отправки Python-сигнала
+        try:
+            self.event_logger.log_signal_emit("environment_changed", payload)
+        except Exception:
+            pass
         self.environment_changed.emit(payload)
 
     def _emit_material_update(self, key: str) -> None:
         payload = self._prepare_materials_payload()
+        # ✅ Логируем факт отправки Python-сигнала
+        try:
+            self.event_logger.log_signal_emit("material_changed", payload)
+        except Exception:
+            pass
         self.material_changed.emit(payload)
 
     def _emit_quality(self) -> None:
         payload = self._prepare_quality_payload()
+        # ✅ Логируем факт отправки Python-сигнала
+        try:
+            self.event_logger.log_signal_emit("quality_changed", payload)
+        except Exception:
+            pass
         self.quality_changed.emit(payload)
 
     def _emit_camera(self) -> None:
         payload = self._prepare_camera_payload()
+        # ✅ Логируем факт отправки Python-сигнала
+        try:
+            self.event_logger.log_signal_emit("camera_changed", payload)
+        except Exception:
+            pass
         self.camera_changed.emit(payload)
 
     def _emit_effects(self) -> None:
         payload = self._prepare_effects_payload()
+        # ✅ Логируем факт отправки Python-сигнала
+        try:
+            self.event_logger.log_signal_emit("effects_changed", payload)
+        except Exception:
+            pass
         self.effects_changed.emit(payload)
 
     def _emit_all(self) -> None:
@@ -1832,9 +1898,9 @@ class GraphicsPanel(QWidget):
                 pl["brightness"] = point.get("brightness")
             if "color" in point:
                 pl["color"] = point.get("color")
-            # ✅ CRITICAL: height → position_y
+            # ✅ CRITICAL: height → position_y (только такое имя читает QML)
             if "height" in point:
-                pl["height"] = point.get("height")  # ✅ FIXED: use "height" instead of "position_y"
+                pl["position_y"] = point.get("height")
             if "range" in point:
                 pl["range"] = point.get("range")
             payload["point_light"] = pl
@@ -1842,19 +1908,87 @@ class GraphicsPanel(QWidget):
         return payload
 
     def _prepare_environment_payload(self) -> Dict[str, Any]:
-        return copy.deepcopy(self.state["environment"])
+        """Собирает вложенный payload окружения в формате, ожидаемом QML applyEnvironmentUpdates()."""
+        env = self.state.get("environment", {})
+        payload: Dict[str, Any] = {}
+
+        # background
+        bg: Dict[str, Any] = {}
+        if "background_mode" in env:
+            bg["mode"] = env.get("background_mode")
+        if "background_color" in env:
+            bg["color"] = env.get("background_color")
+        if "ibl_enabled" in env:
+            # Когда ibl включён, фон skybox обычно тоже включён
+            bg["skybox_enabled"] = bool(env.get("ibl_enabled"))
+        if bg:
+            payload["background"] = bg
+
+        # ibl
+        ibl: Dict[str, Any] = {}
+        if "ibl_enabled" in env:
+            ibl["enabled"] = bool(env.get("ibl_enabled"))
+            # Зеркалим в дополнительные флаги как в QML
+            ibl["lighting_enabled"] = ibl["enabled"]
+            ibl["background_enabled"] = ibl["enabled"]
+        if "ibl_intensity" in env:
+            ibl["intensity"] = env.get("ibl_intensity")
+        if "ibl_source" in env:
+            ibl["source"] = env.get("ibl_source")
+        if "ibl_fallback" in env:
+            ibl["fallback"] = env.get("ibl_fallback")
+        # rotation / exposure могут быть добавлены в будущем (если появятся контроли)
+        if ibl:
+            payload["ibl"] = ibl
+
+        # fog
+        fog: Dict[str, Any] = {}
+        if "fog_enabled" in env:
+            fog["enabled"] = bool(env.get("fog_enabled"))
+        if "fog_color" in env:
+            fog["color"] = env.get("fog_color")
+        if "fog_density" in env:
+            fog["density"] = env.get("fog_density")
+        if "fog_near" in env:
+            fog["near"] = env.get("fog_near")
+        if "fog_far" in env:
+            fog["far"] = env.get("fog_far")
+        if fog:
+            payload["fog"] = fog
+
+        # ambient occlusion
+        ao: Dict[str, Any] = {}
+        if "ao_enabled" in env:
+            ao["enabled"] = bool(env.get("ao_enabled"))
+        if "ao_strength" in env:
+            ao["strength"] = env.get("ao_strength")
+        if "ao_radius" in env:
+            ao["radius"] = env.get("ao_radius")
+        if ao:
+            payload["ambient_occlusion"] = ao
+
+        return payload
 
     def _prepare_materials_payload(self) -> Dict[str, Any]:
         return copy.deepcopy(self.state["materials"])
 
     def _prepare_quality_payload(self) -> Dict[str, Any]:
-        return copy.deepcopy(self.state["quality"])
+        """Готовит payload качества в формате, ожидаемом QML applyQualityUpdates()."""
+        q = copy.deepcopy(self.state.get("quality", {}))
+        # Нормализуем алиасы, если пользовательские действия создали вложенные структуры
+        if isinstance(q.get("fxaa"), dict) and "enabled" in q["fxaa"]:
+            q["fxaa_enabled"] = q["fxaa"]["enabled"]
+        if isinstance(q.get("taa"), dict) and "enabled" in q["taa"]:
+            q["taa_enabled"] = q["taa"]["enabled"]
+        return q
 
     def _prepare_camera_payload(self) -> Dict[str, Any]:
-        return copy.deepcopy(self.state["camera"])
+        """Готовит payload камеры, применимый в QML applyCameraUpdates()."""
+        return copy.deepcopy(self.state.get("camera", {}))
 
     def _prepare_effects_payload(self) -> Dict[str, Any]:
-        return copy.deepcopy(self.state["effects"])
+        """Готовит payload эффектов, применимый в QML applyEffectsUpdates()."""
+        return copy.deepcopy(self.state.get("effects", {}))
 
     # ------------------------------------------------------------------
     # Settings persistence
