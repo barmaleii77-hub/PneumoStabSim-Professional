@@ -29,6 +29,9 @@ from PySide6.QtWidgets import (
 # Импортируем логгер графических изменений
 from .graphics_logger import get_graphics_logger
 
+# ✅ НОВОЕ: Импорт EventLogger для отслеживания UI событий
+from src.common.event_logger import get_event_logger, EventType
+
 
 class ColorButton(QPushButton):
     """Small color preview button that streams changes from QColorDialog."""
@@ -40,6 +43,7 @@ class ColorButton(QPushButton):
         self.setFixedSize(42, 28)
         self._color = QColor(initial_color)
         self._dialog = None
+        self._user_triggered = False  # ✅ НОВОЕ: флаг пользовательского действия
         self._update_swatch()
         self.clicked.connect(self._open_dialog)
 
@@ -47,6 +51,7 @@ class ColorButton(QPushButton):
         return self._color
 
     def set_color(self, color_str: str) -> None:
+        """Программное изменение цвета (без логирования)"""
         self._color = QColor(color_str)
         self._update_swatch()
 
@@ -62,6 +67,9 @@ class ColorButton(QPushButton):
 
     @Slot()
     def _open_dialog(self) -> None:
+        # ✅ Пользователь кликнул на кнопку - это пользовательское действие
+        self._user_triggered = True
+        
         if self._dialog:
             return
 
@@ -80,13 +88,17 @@ class ColorButton(QPushButton):
             return
         self._color = color
         self._update_swatch()
-        self.color_changed.emit(color.name())
+        
+        # ✅ Испускаем сигнал ТОЛЬКО если это пользовательское действие
+        if self._user_triggered:
+            self.color_changed.emit(color.name())
 
     @Slot()
     def _close_dialog(self) -> None:
         if self._dialog:
             self._dialog.deleteLater()
         self._dialog = None
+        self._user_triggered = False  # ✅ Сбрасываем флаг
 
 
 class LabeledSlider(QWidget):
@@ -113,6 +125,7 @@ class LabeledSlider(QWidget):
         self._decimals = decimals
         self._unit = unit or ""
         self._updating = False
+        self._user_triggered = False  # ✅ НОВОЕ: флаг пользовательского действия
 
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
@@ -129,6 +142,10 @@ class LabeledSlider(QWidget):
         self._slider = QSlider(Qt.Horizontal, self)
         steps = max(1, int(round((self._max - self._min) / self._step)))
         self._slider.setRange(0, steps)
+        
+        # ✅ КРИТИЧЕСКОЕ: Отслеживаем НАЧАЛО и КОНЕЦ пользовательского взаимодействия
+        self._slider.sliderPressed.connect(self._on_slider_pressed)
+        self._slider.sliderReleased.connect(self._on_slider_released)
         self._slider.valueChanged.connect(self._handle_slider)
         row.addWidget(self._slider, 1)
 
@@ -136,10 +153,32 @@ class LabeledSlider(QWidget):
         self._spin.setDecimals(self._decimals)
         self._spin.setRange(self._min, self._max)
         self._spin.setSingleStep(self._step)
+        
+        # ✅ КРИТИЧЕСКОЕ: Отслеживаем фокус SpinBox (пользователь редактирует вручную)
+        self._spin.installEventFilter(self)
         self._spin.valueChanged.connect(self._handle_spin)
         row.addWidget(self._spin)
 
         self.set_value(self._min)
+
+    def eventFilter(self, obj, event) -> bool:
+        """Отслеживаем фокус SpinBox для определения пользовательского ввода"""
+        if obj == self._spin:
+            if event.type() == event.Type.FocusIn:
+                self._user_triggered = True
+            elif event.type() == event.Type.FocusOut:
+                self._user_triggered = False
+        return super().eventFilter(obj, event)
+
+    @Slot()
+    def _on_slider_pressed(self) -> None:
+        """Пользователь начал перетаскивать слайдер"""
+        self._user_triggered = True
+
+    @Slot()
+    def _on_slider_released(self) -> None:
+        """Пользователь отпустил слайдер"""
+        self._user_triggered = False
 
     def set_enabled(self, enabled: bool) -> None:
         self.setEnabled(enabled)
@@ -148,6 +187,7 @@ class LabeledSlider(QWidget):
         return round(self._spin.value(), self._decimals)
 
     def set_value(self, value: float) -> None:
+        """Программное изменение значения (без логирования)"""
         value = max(self._min, min(self._max, value))
         slider_value = int(round((value - self._min) / self._step))
         self._updating = True
@@ -172,7 +212,10 @@ class LabeledSlider(QWidget):
         self._spin.setValue(value)
         self._update_label(value)
         self._updating = False
-        self.valueChanged.emit(round(value, self._decimals))
+        
+        # ✅ Испускаем сигнал ТОЛЬКО если пользователь двигает слайдер
+        if self._user_triggered:
+            self.valueChanged.emit(round(value, self._decimals))
 
     @Slot(float)
     def _handle_spin(self, value: float) -> None:
@@ -183,7 +226,10 @@ class LabeledSlider(QWidget):
         self._slider.setValue(slider_value)
         self._update_label(value)
         self._updating = False
-        self.valueChanged.emit(round(value, self._decimals))
+        
+        # ✅ Испускаем сигнал ТОЛЬКО если пользователь редактирует SpinBox
+        if self._user_triggered:
+            self.valueChanged.emit(round(value, self._decimals))
 
 
 class GraphicsPanel(QWidget):
@@ -209,6 +255,10 @@ class GraphicsPanel(QWidget):
         # Инициализируем логгер графических изменений
         self.graphics_logger = get_graphics_logger()
         self.logger.info("📊 Graphics logger initialized")
+        
+        # ✅ НОВОЕ: Инициализируем event logger для UI событий
+        self.event_logger = get_event_logger()
+        self.logger.info("🔗 Event logger initialized")
 
         self._defaults = self._build_defaults()
         self.state: Dict[str, Any] = copy.deepcopy(self._defaults)
@@ -237,7 +287,6 @@ class GraphicsPanel(QWidget):
     # ------------------------------------------------------------------
     # Defaults
     # ------------------------------------------------------------------
-
     def _build_defaults(self) -> Dict[str, Any]:
         return {
             "lighting": {
@@ -773,9 +822,9 @@ class GraphicsPanel(QWidget):
         bg_row.addStretch(1)
         grid.addLayout(bg_row, 1, 0, 1, 2)
 
-        # ✅ FIXED: IBL checkbox - правильное подключение сигнала
+        # ✅ FIXED: IBL checkbox - правильное подключение clicked вместо stateChanged
         ibl_check = QCheckBox("Включить HDR IBL", self)
-        ibl_check.stateChanged.connect(lambda state: self._update_environment("ibl_enabled", state == Qt.Checked))
+        ibl_check.clicked.connect(lambda checked: self._update_environment("ibl_enabled", checked))
         self._environment_controls["ibl.enabled"] = ibl_check
         grid.addWidget(ibl_check, 2, 0, 1, 2)
 
@@ -807,26 +856,14 @@ class GraphicsPanel(QWidget):
         grid.setVerticalSpacing(8)
 
         enabled = QCheckBox("Включить туман", self)
-        # ✅ CRITICAL FIX: Отключаем сигнал перед подключением (защита от дублирования)
-        try:
-            enabled.stateChanged.disconnect()
-        except:
-            pass  # Сигнал ещё не подключен - это нормально
-        
-        enabled.stateChanged.connect(lambda state: self._update_environment("fog_enabled", state == Qt.Checked))
+        # ✅ FIX: Логируем клик + вызываем обработчик
+        enabled.clicked.connect(lambda checked: self._on_fog_enabled_clicked(checked))
         self._environment_controls["fog.enabled"] = enabled
         grid.addWidget(enabled, 0, 0, 1, 2)
 
         color_row = QHBoxLayout()
         color_row.addWidget(QLabel("Цвет", self))
         fog_color = ColorButton()
-        
-        # ✅ CRITICAL FIX: Защита от дублирования для ColorButton
-        try:
-            fog_color.color_changed.disconnect()
-        except:
-            pass
-        
         fog_color.color_changed.connect(lambda c: self._update_environment("fog_color", c))
         self._environment_controls["fog.color"] = fog_color
         color_row.addWidget(fog_color)
@@ -834,35 +871,16 @@ class GraphicsPanel(QWidget):
         grid.addLayout(color_row, 1, 0, 1, 2)
 
         density = LabeledSlider("Плотность", 0.0, 1.0, 0.01, decimals=2)
-        
-        # ✅ CRITICAL FIX: Защита от дублирования для LabeledSlider
-        try:
-            density.valueChanged.disconnect()
-        except:
-            pass
-        
         density.valueChanged.connect(lambda v: self._update_environment("fog_density", v))
         self._environment_controls["fog.density"] = density
         grid.addWidget(density, 2, 0, 1, 2)
 
         near_slider = LabeledSlider("Начало", 0.0, 20000.0, 50.0, decimals=0, unit="мм")
-        
-        try:
-            near_slider.valueChanged.disconnect()
-        except:
-            pass
-        
         near_slider.valueChanged.connect(lambda v: self._update_environment("fog_near", v))
         self._environment_controls["fog.near"] = near_slider
         grid.addWidget(near_slider, 3, 0, 1, 2)
 
         far_slider = LabeledSlider("Конец", 500.0, 60000.0, 100.0, decimals=0, unit="мм")
-        
-        try:
-            far_slider.valueChanged.disconnect()
-        except:
-            pass
-        
         far_slider.valueChanged.connect(lambda v: self._update_environment("fog_far", v))
         self._environment_controls["fog.far"] = far_slider
         grid.addWidget(far_slider, 4, 0, 1, 2)
@@ -876,13 +894,13 @@ class GraphicsPanel(QWidget):
         grid.setVerticalSpacing(8)
 
         enabled = QCheckBox("Включить SSAO", self)
-        enabled.stateChanged.connect(lambda state: self._update_environment("ao_enabled", state == Qt.Checked))
+        enabled.clicked.connect(lambda checked: self._update_environment("ao_enabled", checked))
         self._environment_controls["ao.enabled"] = enabled
         grid.addWidget(enabled, 0, 0, 1, 2)
 
         strength = LabeledSlider("Интенсивность", 0.0, 2.0, 0.02, decimals=2)
         strength.valueChanged.connect(lambda v: self._update_environment("ao_strength", v))
-        self._environment_controls["ao.strength"] = strength
+        self._environment_controls["ao.strength"] = strength  # ✅ ИСПРАВЛЕНО: snake_case
         grid.addWidget(strength, 1, 0, 1, 2)
 
         radius = LabeledSlider("Радиус", 0.5, 20.0, 0.1, decimals=2)
@@ -934,7 +952,7 @@ class GraphicsPanel(QWidget):
         grid.setVerticalSpacing(8)
 
         enabled = QCheckBox("Включить тени", self)
-        enabled.stateChanged.connect(lambda state: self._update_quality("shadows.enabled", state == Qt.Checked))
+        enabled.clicked.connect(lambda checked: self._update_quality("shadows.enabled", checked))
         self._quality_controls["shadows.enabled"] = enabled
         grid.addWidget(enabled, 0, 0, 1, 2)
 
@@ -1003,7 +1021,7 @@ class GraphicsPanel(QWidget):
         grid.addWidget(post_combo, 2, 1)
 
         taa_check = QCheckBox("Включить TAA", self)
-        taa_check.stateChanged.connect(lambda state: self._update_quality("taa.enabled", state == Qt.Checked))
+        taa_check.clicked.connect(lambda checked: self._update_quality("taa.enabled", checked))
         self._quality_controls["taa.enabled"] = taa_check
         grid.addWidget(taa_check, 3, 0, 1, 2)
 
@@ -1013,17 +1031,17 @@ class GraphicsPanel(QWidget):
         grid.addWidget(taa_strength, 4, 0, 1, 2)
 
         taa_motion = QCheckBox("Отключать TAA при движении камеры", self)
-        taa_motion.stateChanged.connect(lambda state: self._update_quality("taa_motion_adaptive", state == Qt.Checked))
+        taa_motion.clicked.connect(lambda checked: self._update_quality("taa_motion_adaptive", checked))
         self._quality_controls["taa_motion_adaptive"] = taa_motion
         grid.addWidget(taa_motion, 5, 0, 1, 2)
 
         fxaa_check = QCheckBox("Включить FXAA", self)
-        fxaa_check.stateChanged.connect(lambda state: self._update_quality("fxaa_enabled", state == Qt.Checked))
+        fxaa_check.clicked.connect(lambda checked: self._update_quality("fxaa.enabled", checked))
         self._quality_controls["fxaa.enabled"] = fxaa_check
         grid.addWidget(fxaa_check, 6, 0, 1, 2)
 
         specular_check = QCheckBox("Specular AA", self)
-        specular_check.stateChanged.connect(lambda state: self._update_quality("specular_aa", state == Qt.Checked))
+        specular_check.clicked.connect(lambda checked: self._update_quality("specular_aa", checked))
         self._quality_controls["specular.enabled"] = specular_check
         grid.addWidget(specular_check, 7, 0, 1, 2)
 
@@ -1055,7 +1073,7 @@ class GraphicsPanel(QWidget):
         grid.addWidget(frame_slider, 2, 0, 1, 2)
 
         oit_check = QCheckBox("Weighted OIT", self)
-        oit_check.stateChanged.connect(lambda state: self._update_quality("oit", "weighted" if state == Qt.Checked else "none"))
+        oit_check.clicked.connect(lambda checked: self._update_quality("oit", "weighted" if checked else "none"))
         self._quality_controls["oit.enabled"] = oit_check
         grid.addWidget(oit_check, 3, 0, 1, 2)
         return group
@@ -1153,7 +1171,20 @@ class GraphicsPanel(QWidget):
         grid.addWidget(speed, 3, 0, 1, 2)
 
         auto_rotate = QCheckBox("Автоповорот", self)
-        auto_rotate.stateChanged.connect(lambda state: self._update_camera("auto_rotate", state == Qt.Checked))
+        
+        # ✅ НОВОЕ: Обработчик с логированием пользовательского клика
+        def on_auto_rotate_clicked(checked: bool):
+            # Логируем КЛИК (перед обработчиком)
+            self.event_logger.log_user_click(
+                widget_name="auto_rotate",
+                widget_type="QCheckBox",
+                value=checked
+            )
+            
+            # Вызываем обработчик
+            self._update_camera("auto_rotate", checked)
+        
+        auto_rotate.clicked.connect(on_auto_rotate_clicked)
         self._camera_controls["auto_rotate"] = auto_rotate
         grid.addWidget(auto_rotate, 4, 0, 1, 2)
 
@@ -1352,45 +1383,22 @@ class GraphicsPanel(QWidget):
 
         enabled = QCheckBox("Включить Bloom", self)
         
-        # ✅ CRITICAL FIX: Защита от множественного подключения
-        try:
-            enabled.stateChanged.disconnect()
-        except:
-            pass
-        
-        enabled.stateChanged.connect(lambda state: self._update_effects("bloom_enabled", state == Qt.Checked))
+        # ✅ FIX: Логируем клик + вызываем обработчик
+        enabled.clicked.connect(lambda checked: self._on_bloom_enabled_clicked(checked))
         self._effects_controls["bloom.enabled"] = enabled
         grid.addWidget(enabled, 0, 0, 1, 2)
 
         intensity = LabeledSlider("Интенсивность", 0.0, 2.0, 0.02, decimals=2)
-        
-        try:
-            intensity.valueChanged.disconnect()
-        except:
-            pass
-        
         intensity.valueChanged.connect(lambda v: self._update_effects("bloom_intensity", v))
         self._effects_controls["bloom.intensity"] = intensity
         grid.addWidget(intensity, 1, 0, 1, 2)
 
         threshold = LabeledSlider("Порог", 0.0, 4.0, 0.05, decimals=2)
-        
-        try:
-            threshold.valueChanged.disconnect()
-        except:
-            pass
-        
         threshold.valueChanged.connect(lambda v: self._update_effects("bloom_threshold", v))
         self._effects_controls["bloom.threshold"] = threshold
         grid.addWidget(threshold, 2, 0, 1, 2)
 
         spread = LabeledSlider("Распространение", 0.2, 1.0, 0.02, decimals=2)
-        
-        try:
-            spread.valueChanged.disconnect()
-        except:
-            pass
-        
         spread.valueChanged.connect(lambda v: self._update_effects("bloom_spread", v))
         self._effects_controls["bloom.spread"] = spread
         grid.addWidget(spread, 3, 0, 1, 2)
@@ -1404,7 +1412,7 @@ class GraphicsPanel(QWidget):
         grid.setVerticalSpacing(8)
 
         enabled = QCheckBox("Включить тонемаппинг", self)
-        enabled.stateChanged.connect(lambda state: self._update_effects("tonemap_enabled", state == Qt.Checked))
+        enabled.clicked.connect(lambda checked: self._update_effects("tonemap_enabled", checked))
         self._effects_controls["tonemap.enabled"] = enabled
         grid.addWidget(enabled, 0, 0, 1, 2)
 
@@ -1432,7 +1440,7 @@ class GraphicsPanel(QWidget):
         grid.setVerticalSpacing(8)
 
         enabled = QCheckBox("Включить DoF", self)
-        enabled.stateChanged.connect(lambda state: self._update_effects("depth_of_field", state == Qt.Checked))
+        enabled.clicked.connect(lambda checked: self._update_effects("depth_of_field", checked))
         self._effects_controls["dof.enabled"] = enabled
         grid.addWidget(enabled, 0, 0, 1, 2)
 
@@ -1455,7 +1463,7 @@ class GraphicsPanel(QWidget):
         grid.setVerticalSpacing(8)
 
         motion = QCheckBox("Размытие движения", self)
-        motion.stateChanged.connect(lambda state: self._update_effects("motion_blur", state == Qt.Checked))
+        motion.clicked.connect(lambda checked: self._update_effects("motion_blur", checked))
         self._effects_controls["motion.enabled"] = motion
         grid.addWidget(motion, 0, 0, 1, 2)
 
@@ -1465,12 +1473,12 @@ class GraphicsPanel(QWidget):
         grid.addWidget(motion_strength, 1, 0, 1, 2)
 
         lens_flare = QCheckBox("Линзовые блики", self)
-        lens_flare.stateChanged.connect(lambda state: self._update_effects("lens_flare", state == Qt.Checked))
+        lens_flare.clicked.connect(lambda checked: self._update_effects("lens_flare", checked))
         self._effects_controls["lens_flare.enabled"] = lens_flare
         grid.addWidget(lens_flare, 2, 0, 1, 2)
 
         vignette = QCheckBox("Виньетирование", self)
-        vignette.stateChanged.connect(lambda state: self._update_effects("vignette", state == Qt.Checked))
+        vignette.clicked.connect(lambda checked: self._update_effects("vignette", checked))
         self._effects_controls["vignette.enabled"] = vignette
         grid.addWidget(vignette, 3, 0, 1, 2)
 
@@ -1529,12 +1537,22 @@ class GraphicsPanel(QWidget):
             panel_state=self.state
         )
         
+        # ✅ ИСПРАВЛЕНО: Используем правильный API EventLogger
+        if group == "key" and key in {"brightness", "color", "angle_x", "angle_y"}:
+            self.event_logger.log_event(
+                event_type=EventType.STATE_CHANGE,
+                component=f"lighting.{group}",
+                action=key,
+                old_value=old_value,
+                new_value=value
+            )
+        
         self._emit_lighting()
 
     def _update_environment(self, key: str, value: Any) -> None:
         """Update environment parameter"""
         if self._updating_ui:
-            return
+            return 
         
         # Сохраняем старое значение для логирования
         old_value = self.state["environment"].get(key)
@@ -1592,6 +1610,15 @@ class GraphicsPanel(QWidget):
             panel_state=self.state
         )
         
+        # ✅ ИСПРАВЛЕНО: Используем правильный API EventLogger
+        self.event_logger.log_event(
+            event_type=EventType.STATE_CHANGE,
+            component="quality",
+            action=key,
+            old_value=old_value,
+            new_value=value
+        )
+        
         self._set_quality_custom()
         self._emit_quality()
 
@@ -1629,6 +1656,7 @@ class GraphicsPanel(QWidget):
             self.logger.info(f"   ✅ camera_changed signal emitted!")
 
     def _update_effects(self, key: str, value: Any) -> None:
+        """Update effects parameter"""
         if self._updating_ui:
             return
         
@@ -1647,6 +1675,45 @@ class GraphicsPanel(QWidget):
         )
         
         self._emit_effects()
+
+    # ✅ НОВОЕ: Метод обработки клика Auto Rotate с логированием
+    def _on_auto_rotate_clicked(self, checked: bool) -> None:
+        """Обработчик клика Auto Rotate с логированием USER_CLICK"""
+        # Логируем клик ПЕРЕД обработкой
+        self.event_logger.log_user_click(
+            widget_name="auto_rotate",
+            widget_type="QCheckBox",
+            value=checked
+        )
+        
+        # Вызываем стандартный обработчик
+        self._update_camera("auto_rotate", checked)
+
+    # ✅ НОВОЕ: Метод обработки клика Fog Enabled с логированием
+    def _on_fog_enabled_clicked(self, checked: bool) -> None:
+        """Обработчик клика Fog Enabled с логированием USER_CLICK"""
+        # Логируем клик ПЕРЕД обработкой
+        self.event_logger.log_user_click(
+            widget_name="fog_enabled",
+            widget_type="QCheckBox",
+            value=checked
+        )
+        
+        # Вызываем стандартный обработчик
+        self._update_environment("fog_enabled", checked)
+
+    # ✅ НОВОЕ: Метод обработки клика Bloom Enabled с логированием
+    def _on_bloom_enabled_clicked(self, checked: bool) -> None:
+        """Обработчик клика Bloom Enabled с логированием USER_CLICK"""
+        # Логируем клик ПЕРЕД обработкой
+        self.event_logger.log_user_click(
+            widget_name="bloom_enabled",
+            widget_type="QCheckBox",
+            value=checked
+        )
+        
+        # Вызываем стандартный обработчик
+        self._update_effects("bloom_enabled", checked)
 
     # ------------------------------------------------------------------
     # HDR file selection

@@ -162,10 +162,21 @@ QApplication, qInstallMessageHandler, Qt, QTimer = safe_import_qt()
 def setup_logging():
     """Настройка логирования - ВСЕГДА активно"""
     try:
-        from src.common.logging_setup import init_logging
+        from src.common.logging_setup import init_logging, rotate_old_logs
         
         logs_dir = Path("logs")
-        logger = init_logging("PneumoStabSim", logs_dir)
+        
+        # ✅ НОВОЕ: Ротация старых логов (оставляем только 10 последних)
+        rotate_old_logs(logs_dir, keep_count=10)
+        
+        # Инициализируем логирование с ротацией
+        logger = init_logging(
+            "PneumoStabSim",
+            logs_dir,
+            max_bytes=10 * 1024 * 1024,  # 10 MB на файл
+            backup_count=5,               # Держим 5 backup файлов
+            console_output=False          # НЕ выводим в консоль
+        )
         
         logger.info("=" * 60)
         logger.info("PneumoStabSim v4.9.5 - Application Started")
@@ -239,10 +250,12 @@ def parse_arguments():
 Examples:
   py app.py                    # Main Qt Quick 3D version
   py app.py --test-mode        # Test mode (auto-close 5s)
+  py app.py --verbose          # Verbose console output
         """
     )
     
     parser.add_argument('--test-mode', action='store_true', help='Test mode (auto-close 5s)')
+    parser.add_argument('--verbose', action='store_true', help='Enable console logging')
     
     return parser.parse_args()
 
@@ -277,78 +290,17 @@ def run_log_diagnostics():
     print("="*60)
     
     try:
-        # ✅ ИСПРАВЛЕНО: Все функции импортируются из analyze_logs
-        from analyze_logs import (
-            analyze_all_logs,
-            analyze_graphics_sync,
-            analyze_user_session
-        )
+        # ✅ НОВОЕ: Используем унифицированный анализатор
+        from src.common.log_analyzer import run_full_diagnostics
         
-        # Запускаем анализ логов
-        print("\n📊 Анализ всех логов...")
-        logs_result = analyze_all_logs()
+        # Запускаем комплексный анализ
+        diagnostics_ok = run_full_diagnostics(Path("logs"))
         
-        print("\n🎨 Анализ синхронизации графики...")
-        graphics_result = analyze_graphics_sync()
-        
-        print("\n👤 Анализ пользовательской сессии...")
-        session_result = analyze_user_session()
-        
-        # ✅ НОВОЕ: Анализ событий Python↔QML
-        print("\n🔗 Анализ событий Python↔QML...")
-        try:
-            from src.common.event_logger import get_event_logger
-            
-            event_logger = get_event_logger()
-            
-            # Экспортируем события
-            events_file = event_logger.export_events()
-            print(f"   📁 События экспортированы: {events_file}")
-            
-            # Анализируем синхронизацию
-            analysis = event_logger.analyze_sync()
-            
-            total = analysis.get('total_signals', 0)
-            synced = analysis.get('synced', 0)
-            missing = analysis.get('missing_qml', 0)
-            
-            if total > 0:
-                sync_rate = (synced / total) * 100
-                print(f"   Всего сигналов: {total}")
-                print(f"   Синхронизировано: {synced}")
-                print(f"   Пропущено QML: {missing}")
-                print(f"   Процент синхронизации: {sync_rate:.1f}%")
-                
-                if missing > 0:
-                    print(f"   ⚠️  Обнаружены несинхронизированные события!")
-                else:
-                    print(f"   ✅ Все события успешно синхронизированы")
-            else:
-                print(f"   ℹ️  Сигналов не обнаружено (событий не было)")
-            
-            # Статистика по типам событий
-            event_types = {}
-            for event in event_logger.events:
-                event_type = event.get('event_type', 'UNKNOWN')
-                event_types[event_type] = event_types.get(event_type, 0) + 1
-            
-            if event_types:
-                print(f"\n   📈 События по типам:")
-                for event_type, count in sorted(event_types.items(), key=lambda x: x[1], reverse=True):
-                    print(f"      {event_type}: {count}")
-            
-        except ImportError:
-            print(f"   ⚠️  EventLogger не доступен")
-        except Exception as e:
-            print(f"   ❌ Ошибка анализа событий: {e}")
-        
-        # Итоговый статус
+        # Результат анализа
         print("\n" + "="*60)
         
-        all_ok = all([logs_result, graphics_result, session_result])
-        
-        if all_ok:
-            print("✅ Диагностика завершена - проблем не обнаружено")
+        if diagnostics_ok:
+            print("✅ Диагностика завершена - критических проблем не обнаружено")
         else:
             print("⚠️  Диагностика завершена - обнаружены проблемы")
             print("💡 См. детали выше")
@@ -356,8 +308,96 @@ def run_log_diagnostics():
         print("="*60)
         
     except ImportError as e:
-        print(f"⚠️  Модули анализа не найдены: {e}")
-        print("💡 Используйте: python analyze_logs.py для ручного анализа")
+        print(f"⚠️  Модуль анализа не найден: {e}")
+        print("💡 Используйте устаревшую версию analyze_logs.py")
+        
+        # Fallback на старую версию
+        try:
+            # ✅ ИСПРАВЛЕНО: Все функции импортируются из analyze_logs
+            from analyze_logs import (
+                analyze_all_logs,
+                analyze_graphics_sync,
+                analyze_user_session
+            )
+            
+            # Запускаем анализ логов
+            print("\n📊 Анализ всех логов...")
+            logs_result = analyze_all_logs()
+            
+            print("\n🎨 Анализ синхронизации графики...")
+            graphics_result = analyze_graphics_sync()
+            
+            print("\n👤 Анализ пользовательской сессии...")
+            session_result = analyze_user_session()
+            
+            # ✅ НОВОЕ: Анализ событий Python↔QML
+            print("\n🔗 Анализ событий Python↔QML...")
+            try:
+                from src.common.event_logger import get_event_logger
+                
+                event_logger = get_event_logger()
+                
+                # Экспортируем события
+                events_file = event_logger.export_events()
+                print(f"   📁 События экспортированы: {events_file}")
+                
+                # Анализируем синхронизацию
+                analysis = event_logger.analyze_sync()
+                
+                total = analysis.get('total_signals', 0)
+                synced = analysis.get('synced', 0)
+                missing = analysis.get('missing_qml', 0)
+                
+                if total > 0:
+                    sync_rate = (synced / total) * 100
+                    print(f"   Всего сигналов: {total}")
+                    print(f"   Синхронизировано: {synced}")
+                    print(f"   Пропущено QML: {missing}")
+                    print(f"   Процент синхронизации: {sync_rate:.1f}%")
+                    
+                    if missing > 0:
+                        print(f"   ⚠️  Обнаружены несинхронизированные события!")
+                    else:
+                        print(f"   ✅ Все события успешно синхронизированы")
+                else:
+                    print(f"   ℹ️  Сигналов не обнаружено (событий не было)")
+                
+                # Статистика по типам событий
+                event_types = {}
+                for event in event_logger.events:
+                    event_type = event.get('event_type', 'UNKNOWN')
+                    event_types[event_type] = event_types.get(event_type, 0) + 1
+                
+                if event_types:
+                    print(f"\n   📈 События по типам:")
+                    for event_type, count in sorted(event_types.items(), key=lambda x: x[1], reverse=True):
+                        print(f"      {event_type}: {count}")
+                
+            except ImportError:
+                print(f"   ⚠️  EventLogger не доступен")
+            except Exception as e:
+                print(f"   ❌ Ошибка анализа событий: {e}")
+            
+            # Итоговый статус
+            print("\n" + "="*60)
+            
+            all_ok = all([logs_result, graphics_result, session_result])
+            
+            if all_ok:
+                print("✅ Диагностика завершена - проблем не обнаружено")
+            else:
+                print("⚠️  Диагностика завершена - обнаружены проблемы")
+                print("💡 См. детали выше")
+            
+            print("="*60)
+            
+        except ImportError:
+            print("⚠️  Модули анализа не доступны")
+        except Exception as e:
+            print(f"❌ Ошибка fallback диагностики: {e}")
+            import traceback
+            traceback.print_exc()
+    
     except Exception as e:
         print(f"❌ Ошибка диагностики: {e}")
         import traceback
@@ -387,6 +427,8 @@ def main():
         
         if app_logger:
             app_logger.info("Logging initialized successfully")
+            if args.verbose:
+                app_logger.info("Verbose mode enabled")
         
         try:
             QApplication.setHighDpiScaleFactorRoundingPolicy(
