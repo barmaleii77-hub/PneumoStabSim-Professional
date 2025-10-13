@@ -764,7 +764,8 @@ class GraphicsPanel(QWidget):
         grid.addLayout(bg_row, 1, 0, 1, 2)
 
         ibl_check = QCheckBox("Включить HDR IBL", self)
-        ibl_check.stateChanged.connect(lambda state: self._update_environment("ibl_enabled", state == Qt.Checked))
+        # FIX: Используем правильный обработчик вместо lambda
+        ibl_check.toggled.connect(self._on_ibl_checkbox_toggled)
         self._environment_controls["ibl.enabled"] = ibl_check
         grid.addWidget(ibl_check, 2, 0, 1, 2)
 
@@ -1425,6 +1426,18 @@ class GraphicsPanel(QWidget):
                 label.setText(value)
         self._emit_environment()
 
+    @Slot(bool)
+    def _on_ibl_checkbox_toggled(self, checked: bool) -> None:
+        """Обработчик изменения состояния IBL checkbox"""
+        if self._updating_ui:
+            return
+        self.state["environment"]["ibl_enabled"] = checked
+        # Активируем/деактивируем связанные элементы
+        intensity_slider = self._environment_controls.get("ibl.intensity")
+        if isinstance(intensity_slider, LabeledSlider):
+            intensity_slider.set_enabled(checked)
+        self._emit_environment()
+
     def _choose_hdr_file(self) -> None:
         filename, _ = QFileDialog.getOpenFileName(self, "Выбрать HDR", "", "HDR Images (*.hdr *.exr)")
         if filename:
@@ -1700,7 +1713,7 @@ class GraphicsPanel(QWidget):
         index = resolution_combo.findData(q["shadows"]["resolution"])
         if index >= 0:
             resolution_combo.setCurrentIndex(index)
-        filter_combo: QComboBox = self._quality_controls["shadows.filter"]  # type: ignore[assignment]
+        filter_combo: QComboBox = self._qualityControls["shadows.filter"]  # type: ignore[assignment]
         index = filter_combo.findData(q["shadows"]["filter"])
         if index >= 0:
             filter_combo.setCurrentIndex(index)
@@ -1753,95 +1766,3 @@ class GraphicsPanel(QWidget):
         self._effects_controls["lens_flare.enabled"].setChecked(eff["lens_flare"])  # type: ignore[index]
         self._effects_controls["vignette.enabled"].setChecked(eff["vignette"])  # type: ignore[index]
         self._effects_controls["vignette.strength"].set_value(eff["vignette_strength"])  # type: ignore[index]
-
-    # ------------------------------------------------------------------
-    # Persistence
-    # ------------------------------------------------------------------
-    def load_settings(self) -> None:
-        raw = self.settings.value("state")
-        if not raw:
-            return
-        try:
-            data = json.loads(raw)
-        except Exception as exc:  # pragma: no cover - defensive
-            self.logger.warning("Failed to parse saved graphics settings: %s", exc)
-            return
-        self._deep_update(self.state, data)
-        for material_key in self.state["materials"].keys():
-            self._ensure_material_defaults(material_key)
-
-    def save_settings(self) -> None:
-        self.settings.setValue("state", json.dumps(self.state))
-        self.settings.sync()
-        self.logger.info("Graphics settings saved")
-
-    def reset_to_defaults(self) -> None:
-        self.state = copy.deepcopy(self._defaults)
-        for material_key in self.state["materials"].keys():
-            self._ensure_material_defaults(material_key)
-        self._apply_quality_constraints()
-        self._apply_state_to_ui()
-        self._emit_all()
-        self.preset_applied.emit("Сброс")
-
-    def _deep_update(self, target: Dict[str, Any], source: Dict[str, Any]) -> None:
-        for key, value in source.items():
-            if isinstance(value, dict) and key in target and isinstance(target[key], dict):
-                self._deep_update(target[key], value)  # type: ignore[arg-type]
-            else:
-                target[key] = value
-
-    def _normalise_quality_state(self) -> None:
-        """Collapse legacy TAA dictionaries into the flat quality structure."""
-
-        q = self.state["quality"]
-        legacy = q.pop("taa", None)
-        if isinstance(legacy, dict):
-            enabled = legacy.get("enabled")
-            if isinstance(enabled, bool):
-                q["taa_enabled"] = enabled
-            strength = legacy.get("strength")
-            if isinstance(strength, (int, float)):
-                q["taa_strength"] = float(strength)
-
-        defaults = self._defaults["quality"]
-        for key, value in defaults.items():
-            if key not in q:
-                q[key] = copy.deepcopy(value) if isinstance(value, dict) else value
-
-        if "antialiasing" not in q or not isinstance(q["antialiasing"], dict):
-            q["antialiasing"] = copy.deepcopy(defaults["antialiasing"])
-        else:
-            q["antialiasing"].setdefault("primary", defaults["antialiasing"]["primary"])
-            q["antialiasing"].setdefault("quality", defaults["antialiasing"]["quality"])
-            q["antialiasing"].setdefault("post", defaults["antialiasing"]["post"])
-
-        if "frame_rate_limit" in q:
-            q["frame_rate_limit"] = max(24.0, min(240.0, float(q["frame_rate_limit"])))
-        else:
-            q["frame_rate_limit"] = defaults["frame_rate_limit"]
-
-        if "preset" not in q:
-            q["preset"] = "custom"
-    def _sync_taa_controls(self) -> None:
-        """Mirror the MSAA/TAA compatibility rules in the UI widgets."""
-
-        allow_taa = self.state["quality"]["antialiasing"]["primary"] != "msaa"
-        previous = self._updating_ui
-        self._updating_ui = True
-        try:
-            taa_check = self._quality_controls.get("taa.enabled")
-            if isinstance(taa_check, QCheckBox):
-                if not allow_taa and taa_check.isChecked():
-                    taa_check.setChecked(False)
-                taa_check.setEnabled(allow_taa)
-
-            taa_slider = self._quality_controls.get("taa.strength")
-            if isinstance(taa_slider, LabeledSlider):
-                taa_slider.set_enabled(allow_taa and self.state["quality"].get("taa_enabled", False))
-
-            taa_motion = self._quality_controls.get("taa_motion_adaptive")
-            if isinstance(taa_motion, QCheckBox):
-                taa_motion.setEnabled(allow_taa and self.state["quality"].get("taa_enabled", False))
-        finally:
-            self._updating_ui = previous
