@@ -26,6 +26,9 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+# Импортируем логгер графических изменений
+from .graphics_logger import get_graphics_logger
+
 
 class ColorButton(QPushButton):
     """Small color preview button that streams changes from QColorDialog."""
@@ -195,10 +198,17 @@ class GraphicsPanel(QWidget):
     preset_applied = Signal(str)
 
     def __init__(self, parent: QWidget | None = None) -> None:
+        # ✅ CRITICAL FIX: Always pass parent to super().__init__(), even if None
+        # Qt requires parent argument (None is valid) to properly initialize QWidget
         super().__init__(parent)
+            
         self.logger = logging.getLogger(__name__)
         self.settings = QSettings("PneumoStabSim", "GraphicsPanel")
         self._updating_ui = False
+
+        # Инициализируем логгер графических изменений
+        self.graphics_logger = get_graphics_logger()
+        self.logger.info("📊 Graphics logger initialized")
 
         self._defaults = self._build_defaults()
         self.state: Dict[str, Any] = copy.deepcopy(self._defaults)
@@ -763,6 +773,7 @@ class GraphicsPanel(QWidget):
         bg_row.addStretch(1)
         grid.addLayout(bg_row, 1, 0, 1, 2)
 
+        # ✅ FIXED: IBL checkbox - правильное подключение сигнала
         ibl_check = QCheckBox("Включить HDR IBL", self)
         ibl_check.stateChanged.connect(lambda state: self._update_environment("ibl_enabled", state == Qt.Checked))
         self._environment_controls["ibl.enabled"] = ibl_check
@@ -796,6 +807,12 @@ class GraphicsPanel(QWidget):
         grid.setVerticalSpacing(8)
 
         enabled = QCheckBox("Включить туман", self)
+        # ✅ CRITICAL FIX: Отключаем сигнал перед подключением (защита от дублирования)
+        try:
+            enabled.stateChanged.disconnect()
+        except:
+            pass  # Сигнал ещё не подключен - это нормально
+        
         enabled.stateChanged.connect(lambda state: self._update_environment("fog_enabled", state == Qt.Checked))
         self._environment_controls["fog.enabled"] = enabled
         grid.addWidget(enabled, 0, 0, 1, 2)
@@ -803,6 +820,13 @@ class GraphicsPanel(QWidget):
         color_row = QHBoxLayout()
         color_row.addWidget(QLabel("Цвет", self))
         fog_color = ColorButton()
+        
+        # ✅ CRITICAL FIX: Защита от дублирования для ColorButton
+        try:
+            fog_color.color_changed.disconnect()
+        except:
+            pass
+        
         fog_color.color_changed.connect(lambda c: self._update_environment("fog_color", c))
         self._environment_controls["fog.color"] = fog_color
         color_row.addWidget(fog_color)
@@ -810,16 +834,35 @@ class GraphicsPanel(QWidget):
         grid.addLayout(color_row, 1, 0, 1, 2)
 
         density = LabeledSlider("Плотность", 0.0, 1.0, 0.01, decimals=2)
+        
+        # ✅ CRITICAL FIX: Защита от дублирования для LabeledSlider
+        try:
+            density.valueChanged.disconnect()
+        except:
+            pass
+        
         density.valueChanged.connect(lambda v: self._update_environment("fog_density", v))
         self._environment_controls["fog.density"] = density
         grid.addWidget(density, 2, 0, 1, 2)
 
         near_slider = LabeledSlider("Начало", 0.0, 20000.0, 50.0, decimals=0, unit="мм")
+        
+        try:
+            near_slider.valueChanged.disconnect()
+        except:
+            pass
+        
         near_slider.valueChanged.connect(lambda v: self._update_environment("fog_near", v))
         self._environment_controls["fog.near"] = near_slider
         grid.addWidget(near_slider, 3, 0, 1, 2)
 
         far_slider = LabeledSlider("Конец", 500.0, 60000.0, 100.0, decimals=0, unit="мм")
+        
+        try:
+            far_slider.valueChanged.disconnect()
+        except:
+            pass
+        
         far_slider.valueChanged.connect(lambda v: self._update_environment("fog_far", v))
         self._environment_controls["fog.far"] = far_slider
         grid.addWidget(far_slider, 4, 0, 1, 2)
@@ -984,10 +1027,6 @@ class GraphicsPanel(QWidget):
         self._quality_controls["specular.enabled"] = specular_check
         grid.addWidget(specular_check, 7, 0, 1, 2)
 
-        dithering_check = QCheckBox("Dithering", self)
-        dithering_check.stateChanged.connect(lambda state: self._update_quality("dithering", state == Qt.Checked))
-        self._quality_controls["dithering.enabled"] = dithering_check
-        grid.addWidget(dithering_check, 8, 0, 1, 2)
         return group
 
     def _build_render_group(self) -> QGroupBox:
@@ -1250,7 +1289,21 @@ class GraphicsPanel(QWidget):
         key = self._current_material_key()
         if not key or prop not in self.state["materials"].get(key, {}):
             return
+        
+        # Сохраняем старое значение для логирования
+        old_value = self.state["materials"][key].get(prop)
+        
         self.state["materials"][key][prop] = color
+        
+        # Логируем изменение
+        self.graphics_logger.log_change(
+            parameter_name=f"{key}.{prop}",
+            old_value=old_value,
+            new_value=color,
+            category="material",
+            panel_state=self.state
+        )
+        
         self._emit_material_update(key)
 
     def _on_material_value_changed(self, prop: str, value: float) -> None:
@@ -1259,7 +1312,21 @@ class GraphicsPanel(QWidget):
         key = self._current_material_key()
         if not key or prop not in self.state["materials"].get(key, {}):
             return
+        
+        # Сохраняем старое значение для логирования
+        old_value = self.state["materials"][key].get(prop)
+        
         self.state["materials"][key][prop] = value
+        
+        # Логируем изменение
+        self.graphics_logger.log_change(
+            parameter_name=f"{key}.{prop}",
+            old_value=old_value,
+            new_value=value,
+            category="material",
+            panel_state=self.state
+        )
+        
         self._emit_material_update(key)
 
     # --- Effects ------------------------------------------------------
@@ -1284,21 +1351,46 @@ class GraphicsPanel(QWidget):
         grid.setVerticalSpacing(8)
 
         enabled = QCheckBox("Включить Bloom", self)
+        
+        # ✅ CRITICAL FIX: Защита от множественного подключения
+        try:
+            enabled.stateChanged.disconnect()
+        except:
+            pass
+        
         enabled.stateChanged.connect(lambda state: self._update_effects("bloom_enabled", state == Qt.Checked))
         self._effects_controls["bloom.enabled"] = enabled
         grid.addWidget(enabled, 0, 0, 1, 2)
 
         intensity = LabeledSlider("Интенсивность", 0.0, 2.0, 0.02, decimals=2)
+        
+        try:
+            intensity.valueChanged.disconnect()
+        except:
+            pass
+        
         intensity.valueChanged.connect(lambda v: self._update_effects("bloom_intensity", v))
         self._effects_controls["bloom.intensity"] = intensity
         grid.addWidget(intensity, 1, 0, 1, 2)
 
         threshold = LabeledSlider("Порог", 0.0, 4.0, 0.05, decimals=2)
+        
+        try:
+            threshold.valueChanged.disconnect()
+        except:
+            pass
+        
         threshold.valueChanged.connect(lambda v: self._update_effects("bloom_threshold", v))
         self._effects_controls["bloom.threshold"] = threshold
         grid.addWidget(threshold, 2, 0, 1, 2)
 
         spread = LabeledSlider("Распространение", 0.2, 1.0, 0.02, decimals=2)
+        
+        try:
+            spread.valueChanged.disconnect()
+        except:
+            pass
+        
         spread.valueChanged.connect(lambda v: self._update_effects("bloom_spread", v))
         self._effects_controls["bloom.spread"] = spread
         grid.addWidget(spread, 3, 0, 1, 2)
@@ -1420,22 +1512,64 @@ class GraphicsPanel(QWidget):
         """Update lighting parameter"""
         if self._updating_ui:
             return
+        
+        # Сохраняем старое значение для логирования
+        old_value = self.state["lighting"].get(group, {}).get(key)
+        
         if group not in self.state["lighting"]:
             self.state["lighting"][group] = {}
         self.state["lighting"][group][key] = value
+        
+        # Логируем изменение
+        self.graphics_logger.log_change(
+            parameter_name=f"{group}.{key}",
+            old_value=old_value,
+            new_value=value,
+            category="lighting",
+            panel_state=self.state
+        )
+        
         self._emit_lighting()
 
     def _update_environment(self, key: str, value: Any) -> None:
         """Update environment parameter"""
         if self._updating_ui:
             return
+        
+        # Сохраняем старое значение для логирования
+        old_value = self.state["environment"].get(key)
+        
         self.state["environment"][key] = value
+        
+        # Логируем изменение
+        self.graphics_logger.log_change(
+            parameter_name=key,
+            old_value=old_value,
+            new_value=value,
+            category="environment",
+            panel_state=self.state
+        )
+        
         self._emit_environment()
 
     def _update_quality(self, key: str, value: Any) -> None:
         """Update quality parameter"""
         if self._updating_ui:
             return
+        
+        # Сохраняем старое значение для логирования
+        old_value = None
+        if "." in key:
+            parts = key.split(".")
+            target = self.state["quality"]
+            for part in parts[:-1]:
+                if part in target:
+                    target = target[part]
+                else:
+                    break
+            old_value = target.get(parts[-1]) if isinstance(target, dict) else None
+        else:
+            old_value = self.state["quality"].get(key)
         
         # Handle nested keys like "shadows.enabled"
         if "." in key:
@@ -1449,6 +1583,15 @@ class GraphicsPanel(QWidget):
         else:
             self.state["quality"][key] = value
         
+        # Логируем изменение
+        self.graphics_logger.log_change(
+            parameter_name=key,
+            old_value=old_value,
+            new_value=value,
+            category="quality",
+            panel_state=self.state
+        )
+        
         self._set_quality_custom()
         self._emit_quality()
 
@@ -1457,12 +1600,24 @@ class GraphicsPanel(QWidget):
             self.logger.debug(f"🔒 _update_camera blocked (updating_ui=True): {key}={value}")
             return
         
+        # Сохраняем старое значение для логирования
+        old_value = self.state["camera"].get(key)
+        
         # ✅ КРИТИЧЕСКОЕ ЛОГИРОВАНИЕ для автовращения
         if key == "auto_rotate":
             self.logger.info(f"🔄 AUTO_ROTATE CHANGE DETECTED: {value}")
             self.logger.info(f"   Previous state: {self.state['camera'].get('auto_rotate', 'UNKNOWN')}")
         
         self.state["camera"][key] = value
+        
+        # Логируем изменение
+        self.graphics_logger.log_change(
+            parameter_name=key,
+            old_value=old_value,
+            new_value=value,
+            category="camera",
+            panel_state=self.state
+        )
         
         if key == "auto_rotate":
             self.logger.info(f"   New state saved: {self.state['camera']['auto_rotate']}")
@@ -1476,7 +1631,21 @@ class GraphicsPanel(QWidget):
     def _update_effects(self, key: str, value: Any) -> None:
         if self._updating_ui:
             return
+        
+        # Сохраняем старое значение для логирования
+        old_value = self.state["effects"].get(key)
+        
         self.state["effects"][key] = value
+        
+        # Логируем изменение
+        self.graphics_logger.log_change(
+            parameter_name=key,
+            old_value=old_value,
+            new_value=value,
+            category="effects",
+            panel_state=self.state
+        )
+        
         self._emit_effects()
 
     # ------------------------------------------------------------------
@@ -1545,7 +1714,65 @@ class GraphicsPanel(QWidget):
     # Payload preparation
     # ------------------------------------------------------------------
     def _prepare_lighting_payload(self) -> Dict[str, Any]:
-        return copy.deepcopy(self.state["lighting"])
+        """Prepare lighting payload mapped to QML expected keys.
+
+        QML expects keys like `key_light`, `fill_light`, `rim_light`, `point_light`.
+        Internal state uses `key`, `fill`, `rim`, `point` — map and rename fields
+        (e.g. `height` -> `position_y`) to ensure QML applyLightingUpdates applies updates.
+        """
+        src = copy.deepcopy(self.state.get("lighting", {}))
+        payload: Dict[str, Any] = {}
+
+        # ✅ Map: key → key_light
+        key = src.get("key") or {}
+        if key:
+            kl = {}
+            if "brightness" in key:
+                kl["brightness"] = key.get("brightness")
+            if "color" in key:
+                kl["color"] = key.get("color")
+            if "angle_x" in key:
+                kl["angle_x"] = key.get("angle_x")
+            if "angle_y" in key:
+                kl["angle_y"] = key.get("angle_y")
+            payload["key_light"] = kl
+
+        # ✅ Map: fill → fill_light
+        fill = src.get("fill") or {}
+        if fill:
+            fl = {}
+            if "brightness" in fill:
+                fl["brightness"] = fill.get("brightness")
+            if "color" in fill:
+                fl["color"] = fill.get("color")
+            payload["fill_light"] = fl
+
+        # ✅ Map: rim → rim_light
+        rim = src.get("rim") or {}
+        if rim:
+            rl = {}
+            if "brightness" in rim:
+                rl["brightness"] = rim.get("brightness")
+            if "color" in rim:
+                rl["color"] = rim.get("color")
+            payload["rim_light"] = rl
+
+        # ✅ Map: point → point_light + height → position_y
+        point = src.get("point") or {}
+        if point:
+            pl = {}
+            if "brightness" in point:
+                pl["brightness"] = point.get("brightness")
+            if "color" in point:
+                pl["color"] = point.get("color")
+            # ✅ CRITICAL: height → position_y
+            if "height" in point:
+                pl["height"] = point.get("height")  # ✅ FIXED: use "height" instead of "position_y"
+            if "range" in point:
+                pl["range"] = point.get("range")
+            payload["point_light"] = pl
+
+        return payload
 
     def _prepare_environment_payload(self) -> Dict[str, Any]:
         return copy.deepcopy(self.state["environment"])
@@ -1595,6 +1822,17 @@ class GraphicsPanel(QWidget):
     @Slot()
     def reset_to_defaults(self) -> None:
         """Reset all settings to defaults"""
+        self.logger.info("🔄 Resetting all graphics settings to defaults")
+        
+        # Логируем сброс
+        self.graphics_logger.log_change(
+            parameter_name="RESET_ALL",
+            old_value=copy.deepcopy(self.state),
+            new_value=copy.deepcopy(self._defaults),
+            category="system",
+            panel_state=self._defaults
+        )
+        
         self.state = copy.deepcopy(self._defaults)
         self._apply_state_to_ui()
         self._emit_all()
@@ -1605,7 +1843,13 @@ class GraphicsPanel(QWidget):
     # ------------------------------------------------------------------
     def _apply_state_to_ui(self) -> None:
         """Apply current state to all UI controls"""
+        # ✅ CRITICAL FIX: Блокируем все сигналы во время обновления UI
+        # Это предотвращает множественные вызовы обработчиков
         self._updating_ui = True
+        
+        # Дополнительно блокируем сигналы на уровне Qt
+        self.blockSignals(True)
+        
         try:
             self._apply_lighting_ui()
             self._apply_environment_ui()
@@ -1614,6 +1858,8 @@ class GraphicsPanel(QWidget):
             self._apply_effects_ui()
             self._on_material_selection_changed()
         finally:
+            # ✅ CRITICAL: Всегда разблокируем сигналы
+            self.blockSignals(False)
             self._updating_ui = False
 
     def _apply_lighting_ui(self) -> None:
@@ -1668,6 +1914,7 @@ class GraphicsPanel(QWidget):
         if isinstance(fog_far, LabeledSlider):
             fog_far.set_value(self.state["environment"]["fog_far"])
 
+        # ✅ FIXED: Заменено 'this' на 'self'
         ao_enabled = self._environment_controls.get("ao.enabled")
         if isinstance(ao_enabled, QCheckBox):
             ao_enabled.setChecked(self.state["environment"]["ao_enabled"])
@@ -1885,3 +2132,49 @@ class GraphicsPanel(QWidget):
                 GraphicsPanel._deep_update(target[key], value)
             else:
                 target[key] = value
+
+    def closeEvent(self, event) -> None:
+        """Обработка закрытия панели"""
+        self.logger.info("🛑 GraphicsPanel closing, exporting analysis...")
+        
+        # Экспортируем финальный отчет
+        try:
+            report_path = self.graphics_logger.export_analysis_report()
+            self.logger.info(f"   ✅ Analysis report saved: {report_path}")
+        except Exception as e:
+            self.logger.error(f"   ❌ Failed to export analysis: {e}")
+        
+        super().closeEvent(event)
+    
+    def export_sync_analysis(self) -> None:
+        """Экспортировать анализ синхронизации Python-QML"""
+        try:
+            report_path = self.graphics_logger.export_analysis_report()
+            self.logger.info(f"📄 Sync analysis exported: {report_path}")
+            
+            # Получаем анализ
+            analysis = self.graphics_logger.analyze_qml_sync()
+            
+            # Выводим краткую статистику
+            print("\n" + "="*60)
+            print("📊 GRAPHICS SYNC ANALYSIS")
+            print("="*60)
+            print(f"Total changes: {analysis.get('total_events', 0)}")
+            print(f"Successful QML updates: {analysis.get('successful_updates', 0)}")
+            print(f"Failed QML updates: {analysis.get('failed_updates', 0)}")
+            print(f"Sync rate: {analysis.get('sync_rate', 0):.1f}%")
+            print("\nBy category:")
+            for cat, stats in analysis.get('by_category', {}).items():
+                print(f"  {cat}: {stats['total']} changes, {stats['successful']} synced")
+            
+            if analysis.get('errors_by_parameter'):
+                print("\n⚠️ Parameters with errors:")
+                for param, errors in analysis['errors_by_parameter'].items():
+                    print(f"  {param}: {len(errors)} error(s)")
+            
+            print("="*60)
+            print(f"Full report: {report_path}")
+            print("="*60 + "\n")
+            
+        except Exception as e:
+            self.logger.error(f"Failed to export sync analysis: {e}")

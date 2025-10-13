@@ -17,14 +17,21 @@ import "components"
 Item {
     id: root
     anchors.fill: parent
+    
+    // ===============================================================
+    // 🚀 SIGNALS - ACK для Python после применения обновлений
+    // ===============================================================
+    
+    signal batchUpdatesApplied(var summary)
 
     // ===============================================================
     // 🚀 QT VERSION DETECTION (для условной активации возможностей)
     // ===============================================================
     
-    readonly property var qtVersionParts: Qt.version.split('.')
-    readonly property int qtMajor: parseInt(qtVersionParts[0])
-    readonly property int qtMinor: parseInt(qtVersionParts[1])
+    readonly property string qtVersionString: typeof Qt.version !== "undefined" ? Qt.version : "6.0.0"
+    readonly property var qtVersionParts: qtVersionString.split('.')
+    readonly property int qtMajor: qtVersionParts.length > 0 ? parseInt(qtVersionParts[0]) : 6
+    readonly property int qtMinor: qtVersionParts.length > 1 ? parseInt(qtVersionParts[1]) : 0
     readonly property bool supportsQtQuick3D610Features: qtMajor === 6 && qtMinor >= 10
     
     // ✅ Условная поддержка dithering (доступно с Qt 6.10)
@@ -556,6 +563,14 @@ Item {
             if (updates.effects) applyEffectsUpdates(updates.effects)
             
             console.log("✅ Batch updates completed successfully")
+            
+            // ✅ Send ACK to Python with summary of what was applied
+            var summary = {
+                timestamp: Date.now(),
+                categories: Object.keys(updates),
+                success: true
+            }
+            root.batchUpdatesApplied(summary)
         } finally {
             // Restore auto behaviors
             autoRotate = wasAutoUpdate
@@ -864,8 +879,7 @@ Item {
 
             backgroundMode: skyboxActive ? SceneEnvironment.SkyBox : SceneEnvironment.Color
             clearColor: root.backgroundColor
-            lightProbe: root.iblLightingEnabled && root.iblReady ? iblLoader.probe : null
-            skyBoxCubeMap: skyboxActive ? iblLoader.probe : null
+            lightProbe: root.iblReady ? iblLoader.probe : null
             
             // ✅ КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ v4.9.4: Skybox вращается ТОЛЬКО от iblRotationDeg
             // НЕТ привязки к камере! Камера и skybox НЕЗАВИСИМЫ!
@@ -1118,11 +1132,14 @@ Item {
                              Light.ShadowMapQualityLow
             shadowFactor: root.shadowFactor
             shadowBias: root.shadowBias
-            shadowFilter: root.shadowFilterSamples === 32 ? Light.ShadowFilterPCF32 :
-                           root.shadowFilterSamples === 16 ? Light.ShadowFilterPCF16 :
-                           root.shadowFilterSamples === 8 ? Light.ShadowFilterPCF8 :
-                           root.shadowFilterSamples === 4 ? Light.ShadowFilterPCF4 :
-                           Light.ShadowFilterNone
+            shadowFilter: {
+                var samples = Math.floor(root.shadowFilterSamples || 16)
+                return samples === 32 ? Light.ShadowFilterPCF32 :
+                       samples === 16 ? Light.ShadowFilterPCF16 :
+                       samples === 8 ? Light.ShadowFilterPCF8 :
+                       samples === 4 ? Light.ShadowFilterPCF4 :
+                       Light.ShadowFilterNone
+            }
         }
 
         DirectionalLight {
@@ -1422,7 +1439,7 @@ Item {
                 }
             }
             
-            // ✅ DEBUG: Логирование ошибок длины штока
+            // ✅ DEBUG: Логирование ошибок长度 штока
             onRodLengthErrorChanged: {
                 if (rodLengthError > 1.0) {  // Если ошибка больше 1мм
                     console.warn("⚠️ Rod length error:", rodLengthError.toFixed(2), "mm (target:", pistonRodLength, "actual:", actualRodLength.toFixed(2), ")")
@@ -1529,7 +1546,7 @@ Item {
             root.lastX = mouse.x
             root.lastY = mouse.y
 
-            if (taaMotionAdaptive)
+            if ( taaMotionAdaptive )
                 flagCameraMotion()
         }
 
