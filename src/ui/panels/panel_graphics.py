@@ -764,8 +764,7 @@ class GraphicsPanel(QWidget):
         grid.addLayout(bg_row, 1, 0, 1, 2)
 
         ibl_check = QCheckBox("Включить HDR IBL", self)
-        # FIX: Используем правильный обработчик вместо lambda
-        ibl_check.toggled.connect(self._on_ibl_checkbox_toggled)
+        ibl_check.stateChanged.connect(lambda state: self._update_environment("ibl_enabled", state == Qt.Checked))
         self._environment_controls["ibl.enabled"] = ibl_check
         grid.addWidget(ibl_check, 2, 0, 1, 2)
 
@@ -1389,271 +1388,236 @@ class GraphicsPanel(QWidget):
         grid.addWidget(vignette_strength, 4, 0, 1, 2)
         return group
 
-    # ------------------------------------------------------------------
-    # State update helpers
-    # ------------------------------------------------------------------
-    def _update_lighting(self, group: str, key: str, value: Any) -> None:
-        if self._updating_ui:
-            return
-        self.state["lighting"][group][key] = value
-        self._emit_lighting()
+    def _apply_quality_constraints(self) -> None:
+        """Apply constraints between quality settings"""
+        self._normalise_quality_state()
+        self._sync_taa_controls()
 
-    def _apply_lighting_preset(self, preset: Dict[str, Dict[str, Any]], name: str) -> None:
+    def _apply_lighting_preset(self, preset: Dict[str, Any], name: str) -> None:
+        """Apply lighting preset"""
         self._updating_ui = True
         try:
-            for group, values in preset.items():
-                if group not in self.state["lighting"]:
-                    continue
-                for key, value in values.items():
-                    self.state["lighting"][group][key] = value
-                    control = self._lighting_controls.get(f"{group}.{key}")
-                    if isinstance(control, ColorButton):
-                        control.set_color(value)
-                    elif isinstance(control, LabeledSlider):
-                        control.set_value(value)
+            self.state["lighting"] = copy.deepcopy(preset)
+            self._apply_lighting_ui()
         finally:
             self._updating_ui = False
         self._emit_lighting()
-        self.preset_applied.emit(name)
+        self.preset_applied.emit(f"Освещение: {name}")
+
+    def _on_primary_aa_changed(self, value: str) -> None:
+        """Handle primary AA mode change"""
+        if self._updating_ui:
+            return
+        self.state["quality"]["antialiasing"]["primary"] = value
+        self._set_quality_custom()
+        self._sync_taa_controls()
+        self._emit_quality()
+
+    # ------------------------------------------------------------------
+    # Update methods for state changes
+    # ------------------------------------------------------------------
+    def _update_lighting(self, group: str, key: str, value: Any) -> None:
+        """Update lighting parameter"""
+        if self._updating_ui:
+            return
+        if group not in self.state["lighting"]:
+            self.state["lighting"][group] = {}
+        self.state["lighting"][group][key] = value
+        self._emit_lighting()
 
     def _update_environment(self, key: str, value: Any) -> None:
+        """Update environment parameter"""
         if self._updating_ui:
             return
         self.state["environment"][key] = value
-        if key in {"ibl_source", "ibl_fallback"}:
-            label: QLabel = self._environment_controls.get("ibl.path_label")  # type: ignore[assignment]
-            if isinstance(label, QLabel):
-                label.setText(value)
         self._emit_environment()
 
-    @Slot(bool)
-    def _on_ibl_checkbox_toggled(self, checked: bool) -> None:
-        """Обработчик изменения состояния IBL checkbox"""
+    def _update_quality(self, key: str, value: Any) -> None:
+        """Update quality parameter"""
         if self._updating_ui:
             return
-        self.state["environment"]["ibl_enabled"] = checked
-        # Активируем/деактивируем связанные элементы
-        intensity_slider = self._environment_controls.get("ibl.intensity")
-        if isinstance(intensity_slider, LabeledSlider):
-            intensity_slider.set_enabled(checked)
-        self._emit_environment()
-
-    def _choose_hdr_file(self) -> None:
-        filename, _ = QFileDialog.getOpenFileName(self, "Выбрать HDR", "", "HDR Images (*.hdr *.exr)")
-        if filename:
-            self._update_environment("ibl_source", filename)
-
-    def _update_quality(self, path: str, value: Any) -> None:
-        if self._updating_ui:
-            return
-
-        if path == "taa.enabled":
-            self.state["quality"]["taa_enabled"] = bool(value)
-        elif path == "taa.strength":
-            self.state["quality"]["taa_strength"] = float(value)
-        else:
-            parts = path.split(".")
+        
+        # Handle nested keys like "shadows.enabled"
+        if "." in key:
+            parts = key.split(".")
             target = self.state["quality"]
             for part in parts[:-1]:
-                target = target.setdefault(part, {})  # type: ignore[assignment]
+                if part not in target:
+                    target[part] = {}
+                target = target[part]
             target[parts[-1]] = value
-
+        else:
+            self.state["quality"][key] = value
+        
         self._set_quality_custom()
-        self._apply_quality_constraints()
-        self._sync_quality_preset_ui()
         self._emit_quality()
-
-    def _on_primary_aa_changed(self, mode: str) -> None:
-        if self._updating_ui:
-            return
-        self.state["quality"]["antialiasing"]["primary"] = mode
-        self._set_quality_custom()
-        self._apply_quality_constraints()
-        self._sync_quality_preset_ui()
-        self._emit_quality()
-
-    def _apply_quality_constraints(self) -> None:
-        self._normalise_quality_state()
-
-        primary = self.state["quality"]["antialiasing"]["primary"]
-        post = self.state["quality"]["antialiasing"].get("post", "off")
-        changed = False
-        if primary == "msaa" and post == "taa":
-            self.state["quality"]["antialiasing"]["post"] = "off"
-            changed = True
-        if primary == "msaa" and self.state["quality"].get("taa_enabled"):
-            self.state["quality"]["taa_enabled"] = False
-            changed = True
-        if changed:
-            self._set_quality_custom()
-
-        self._update_post_aa_options()
-        self._sync_taa_controls()
-
-    def _update_post_aa_options(self) -> None:
-        combo: QComboBox = self._quality_controls.get("aa.post")  # type: ignore[assignment]
-        if not isinstance(combo, QComboBox):
-            return
-        allow_taa = self.state["quality"]["antialiasing"]["primary"] != "msaa"
-        index = combo.findData("taa")
-        if index >= 0 and hasattr(combo.model(), "item"):
-            item = combo.model().item(index)  # type: ignore[assignment]
-            if isinstance(item, QStandardItem):
-                item.setEnabled(allow_taa)
-        if not allow_taa and combo.currentData() == "taa":
-            fallback = combo.findData("off")
-            if fallback >= 0:
-                combo.setCurrentIndex(fallback)
-            self.state["quality"]["antialiasing"]["post"] = "off"
-            self._set_quality_custom()
-        self._sync_taa_controls()
 
     def _update_camera(self, key: str, value: Any) -> None:
         if self._updating_ui:
+            self.logger.debug(f"🔒 _update_camera blocked (updating_ui=True): {key}={value}")
             return
+        
+        # ✅ КРИТИЧЕСКОЕ ЛОГИРОВАНИЕ для автовращения
+        if key == "auto_rotate":
+            self.logger.info(f"🔄 AUTO_ROTATE CHANGE DETECTED: {value}")
+            self.logger.info(f"   Previous state: {self.state['camera'].get('auto_rotate', 'UNKNOWN')}")
+        
         self.state["camera"][key] = value
+        
+        if key == "auto_rotate":
+            self.logger.info(f"   New state saved: {self.state['camera']['auto_rotate']}")
+            self.logger.info(f"   About to emit camera_changed signal...")
+        
         self._emit_camera()
+        
+        if key == "auto_rotate":
+            self.logger.info(f"   ✅ camera_changed signal emitted!")
 
     def _update_effects(self, key: str, value: Any) -> None:
         if self._updating_ui:
             return
         self.state["effects"][key] = value
-        self._sync_effect_enablers()
         self._emit_effects()
 
-    def _sync_effect_enablers(self) -> None:
-        motion_slider = self._effects_controls.get("motion.amount")
-        if isinstance(motion_slider, LabeledSlider):
-            motion_slider.set_enabled(self.state["effects"].get("motion_blur", False))
-        dof_focus = self._effects_controls.get("dof.focus")
-        dof_blur = self._effects_controls.get("dof.blur")
-        enabled = self.state["effects"].get("depth_of_field", False)
-        if isinstance(dof_focus, LabeledSlider):
-            dof_focus.set_enabled(enabled)
-        if isinstance(dof_blur, LabeledSlider):
-            dof_blur.set_enabled(enabled)
-
-        tonemap_combo = self._effects_controls.get("tonemap.mode")
-        if isinstance(tonemap_combo, QComboBox):
-            tonemap_combo.setEnabled(self.state["effects"].get("tonemap_enabled", True))
+    # ------------------------------------------------------------------
+    # HDR file selection
+    # ------------------------------------------------------------------
+    @Slot()
+    def _choose_hdr_file(self) -> None:
+        """Open file dialog to choose HDR file"""
+        file_path, _ = QFileDialog.getOpenFileName(
+            self,
+            "Выбрать HDR файл",
+            "",
+            "HDR Files (*.hdr *.exr);;All Files (*)"
+        )
+        
+        if file_path:
+            self.state["environment"]["ibl_source"] = file_path
+            
+            # Update label
+            path_label = self._environment_controls.get("ibl.path_label")
+            if isinstance(path_label, QLabel):
+                from pathlib import Path
+                path_label.setText(Path(file_path).name)
+            
+            self.logger.info(f"HDR файл выбран: {file_path}")
+            self._emit_environment()
 
     # ------------------------------------------------------------------
-    # Emitters
+    # Signal emission methods
     # ------------------------------------------------------------------
     def _emit_lighting(self) -> None:
-        data = self.state["lighting"]
-        payload = {
-            "key_light": {
-                "brightness": data["key"]["brightness"],
-                "color": data["key"]["color"],
-                "angle_x": data["key"]["angle_x"],
-                "angle_y": data["key"]["angle_y"],
-            },
-            "fill_light": {
-                "brightness": data["fill"]["brightness"],
-                "color": data["fill"]["color"],
-            },
-            "rim_light": {
-                "brightness": data["rim"]["brightness"],
-                "color": data["rim"]["color"],
-            },
-            "point_light": {
-                "brightness": data["point"]["brightness"],
-                "color": data["point"]["color"],
-                "position_y": data["point"]["height"],
-                "range": data["point"]["range"],
-            },
-        }
+        payload = self._prepare_lighting_payload()
         self.lighting_changed.emit(payload)
 
     def _emit_environment(self) -> None:
-        env = self.state["environment"]
-        payload = {
-            "background": {
-                "mode": env["background_mode"],
-                "color": env["background_color"],
-            },
-            "ibl": {
-                "enabled": env["ibl_enabled"],
-                "intensity": env["ibl_intensity"],
-                "source": env["ibl_source"],
-                "fallback": env["ibl_fallback"],
-                "blur": env["skybox_blur"],
-            },
-            "fog": {
-                "enabled": env["fog_enabled"],
-                "color": env["fog_color"],
-                "density": env["fog_density"],
-                "near": env["fog_near"],
-                "far": env["fog_far"],
-            },
-            "ambient_occlusion": {
-                "enabled": env["ao_enabled"],
-                "strength": env["ao_strength"],
-                "radius": env["ao_radius"],
-            },
-        }
+        payload = self._prepare_environment_payload()
         self.environment_changed.emit(payload)
 
+    def _emit_material_update(self, key: str) -> None:
+        payload = self._prepare_materials_payload()
+        self.material_changed.emit(payload)
+
     def _emit_quality(self) -> None:
-        q = self.state["quality"]
-        payload = {
-            "shadows": copy.deepcopy(q["shadows"]),
-            "antialiasing": copy.deepcopy(q["antialiasing"]),
-            "taa_enabled": q["taa_enabled"],
-            "taa_strength": q["taa_strength"],
-            "taa_motion_adaptive": q.get("taa_motion_adaptive", True),
-            "fxaa_enabled": q["fxaa_enabled"],
-            "specular_aa": q["specular_aa"],
-            "dithering": q["dithering"],
-            "render_scale": q["render_scale"],
-            "render_policy": q["render_policy"],
-            "frame_rate_limit": q["frame_rate_limit"],
-            "oit": q["oit"],
-            "preset": q.get("preset", "custom"),
-        }
+        payload = self._prepare_quality_payload()
         self.quality_changed.emit(payload)
 
     def _emit_camera(self) -> None:
-        self.camera_changed.emit(copy.deepcopy(self.state["camera"]))
+        payload = self._prepare_camera_payload()
+        self.camera_changed.emit(payload)
 
     def _emit_effects(self) -> None:
-        self.effects_changed.emit(copy.deepcopy(self.state["effects"]))
-
-    def _emit_material_update(self, key: str) -> None:
-        self.material_changed.emit({key: copy.deepcopy(self.state["materials"][key])})
+        payload = self._prepare_effects_payload()
+        self.effects_changed.emit(payload)
 
     def _emit_all(self) -> None:
+        """Emit all signals with current state"""
         self._emit_lighting()
         self._emit_environment()
         self._emit_quality()
         self._emit_camera()
         self._emit_effects()
-        for key in self.state["materials"].keys():
+        for key in self.state["materials"]:
             self._emit_material_update(key)
 
     # ------------------------------------------------------------------
-    # UI synchronisation
+    # Payload preparation
+    # ------------------------------------------------------------------
+    def _prepare_lighting_payload(self) -> Dict[str, Any]:
+        return copy.deepcopy(self.state["lighting"])
+
+    def _prepare_environment_payload(self) -> Dict[str, Any]:
+        return copy.deepcopy(self.state["environment"])
+
+    def _prepare_materials_payload(self) -> Dict[str, Any]:
+        return copy.deepcopy(self.state["materials"])
+
+    def _prepare_quality_payload(self) -> Dict[str, Any]:
+        return copy.deepcopy(self.state["quality"])
+
+    def _prepare_camera_payload(self) -> Dict[str, Any]:
+        return copy.deepcopy(self.state["camera"])
+
+    def _prepare_effects_payload(self) -> Dict[str, Any]:
+        return copy.deepcopy(self.state["effects"])
+
+    # ------------------------------------------------------------------
+    # Settings persistence
+    # ------------------------------------------------------------------
+    @Slot()
+    def save_settings(self) -> None:
+        """Save current settings to QSettings"""
+        try:
+            for category, data in self.state.items():
+                self.settings.setValue(f"state/{category}", json.dumps(data))
+            self.settings.sync()
+            self.logger.info("Graphics settings saved")
+        except Exception as e:
+            self.logger.error(f"Failed to save settings: {e}")
+
+    @Slot()
+    def load_settings(self) -> None:
+        """Load settings from QSettings"""
+        try:
+            for category in self.state.keys():
+                value = self.settings.value(f"state/{category}")
+                if value:
+                    try:
+                        loaded = json.loads(value)
+                        self._deep_update(self.state[category], loaded)
+                    except json.JSONDecodeError as e:
+                        self.logger.warning(f"Failed to parse {category} settings: {e}")
+            self.logger.info("Graphics settings loaded")
+        except Exception as e:
+            self.logger.error(f"Failed to load settings: {e}")
+
+    @Slot()
+    def reset_to_defaults(self) -> None:
+        """Reset all settings to defaults"""
+        self.state = copy.deepcopy(self._defaults)
+        self._apply_state_to_ui()
+        self._emit_all()
+        self.preset_applied.emit("Сброс к значениям по умолчанию")
+
+    # ------------------------------------------------------------------
+    # UI state synchronization
     # ------------------------------------------------------------------
     def _apply_state_to_ui(self) -> None:
+        """Apply current state to all UI controls"""
         self._updating_ui = True
         try:
             self._apply_lighting_ui()
             self._apply_environment_ui()
             self._apply_quality_ui()
-            self._sync_quality_preset_ui()
             self._apply_camera_ui()
             self._apply_effects_ui()
             self._on_material_selection_changed()
         finally:
             self._updating_ui = False
-        self._sync_effect_enablers()
-        self._update_post_aa_options()
-        self._sync_taa_controls()
 
     def _apply_lighting_ui(self) -> None:
-        data = self.state["lighting"]
-        for group, values in data.items():
+        for group, values in self.state["lighting"].items():
             for key, value in values.items():
                 control = self._lighting_controls.get(f"{group}.{key}")
                 if isinstance(control, ColorButton):
@@ -1662,107 +1626,262 @@ class GraphicsPanel(QWidget):
                     control.set_value(value)
 
     def _apply_environment_ui(self) -> None:
-        env = self.state["environment"]
-        mode_combo: QComboBox = self._environment_controls["background.mode"]  # type: ignore[assignment]
-        index = mode_combo.findData(env["background_mode"])
-        if index >= 0:
-            mode_combo.setCurrentIndex(index)
-        bg_button: ColorButton = self._environment_controls["background.color"]  # type: ignore[assignment]
-        bg_button.set_color(env["background_color"])
-        ibl_check: QCheckBox = self._environment_controls["ibl.enabled"]  # type: ignore[assignment]
-        ibl_check.setChecked(env["ibl_enabled"])
-        self._environment_controls["ibl.intensity"].set_value(env["ibl_intensity"])  # type: ignore[index]
-        self._environment_controls["skybox.blur"].set_value(env["skybox_blur"])  # type: ignore[index]
-        label: QLabel = self._environment_controls["ibl.path_label"]  # type: ignore[assignment]
-        label.setText(env["ibl_source"])
+        mode_combo = self._environment_controls.get("background.mode")
+        if isinstance(mode_combo, QComboBox):
+            index = mode_combo.findData(self.state["environment"]["background_mode"])
+            if index >= 0:
+                mode_combo.setCurrentIndex(index)
 
-        fog_enabled: QCheckBox = self._environment_controls["fog.enabled"]  # type: ignore[assignment]
-        fog_enabled.setChecked(env["fog_enabled"])
-        self._environment_controls["fog.color"].set_color(env["fog_color"])  # type: ignore[index]
-        self._environment_controls["fog.density"].set_value(env["fog_density"])  # type: ignore[index]
-        self._environment_controls["fog.near"].set_value(env["fog_near"])  # type: ignore[index]
-        self._environment_controls["fog.far"].set_value(env["fog_far"])  # type: ignore[index]
+        bg_button = self._environment_controls.get("background.color")
+        if isinstance(bg_button, ColorButton):
+            bg_button.set_color(self.state["environment"]["background_color"])
 
-        ao_enabled: QCheckBox = self._environment_controls["ao.enabled"]  # type: ignore[assignment]
-        ao_enabled.setChecked(env["ao_enabled"])
-        self._environment_controls["ao.strength"].set_value(env["ao_strength"])  # type: ignore[index]
-        self._environment_controls["ao.radius"].set_value(env["ao_radius"])  # type: ignore[index]
+        ibl_check = self._environment_controls.get("ibl.enabled")
+        if isinstance(ibl_check, QCheckBox):
+            ibl_check.setChecked(self.state["environment"]["ibl_enabled"])
+
+        ibl_intensity = self._environment_controls.get("ibl.intensity")
+        if isinstance(ibl_intensity, LabeledSlider):
+            ibl_intensity.set_value(self.state["environment"]["ibl_intensity"])
+
+        skybox_blur = self._environment_controls.get("skybox.blur")
+        if isinstance(skybox_blur, LabeledSlider):
+            skybox_blur.set_value(self.state["environment"]["skybox_blur"])
+
+        fog_enabled = self._environment_controls.get("fog.enabled")
+        if isinstance(fog_enabled, QCheckBox):
+            fog_enabled.setChecked(self.state["environment"]["fog_enabled"])
+
+        fog_color = self._environment_controls.get("fog.color")
+        if isinstance(fog_color, ColorButton):
+            fog_color.set_color(self.state["environment"]["fog_color"])
+
+        fog_density = self._environment_controls.get("fog.density")
+        if isinstance(fog_density, LabeledSlider):
+            fog_density.set_value(self.state["environment"]["fog_density"])
+
+        fog_near = self._environment_controls.get("fog.near")
+        if isinstance(fog_near, LabeledSlider):
+            fog_near.set_value(self.state["environment"]["fog_near"])
+
+        fog_far = self._environment_controls.get("fog.far")
+        if isinstance(fog_far, LabeledSlider):
+            fog_far.set_value(self.state["environment"]["fog_far"])
+
+        ao_enabled = self._environment_controls.get("ao.enabled")
+        if isinstance(ao_enabled, QCheckBox):
+            ao_enabled.setChecked(self.state["environment"]["ao_enabled"])
+
+        ao_strength = self._environment_controls.get("ao.strength")
+        if isinstance(ao_strength, LabeledSlider):
+            ao_strength.set_value(self.state["environment"]["ao_strength"])
+
+        ao_radius = self._environment_controls.get("ao.radius")
+        if isinstance(ao_radius, LabeledSlider):
+            ao_radius.set_value(self.state["environment"]["ao_radius"])
 
     def _apply_quality_ui(self) -> None:
-        q = self.state["quality"]
-        preset_combo: QComboBox = self._quality_controls["quality.preset"]  # type: ignore[assignment]
-        index = preset_combo.findData(q.get("preset", "custom"))
-        if index >= 0:
-            preset_combo.setCurrentIndex(index)
-        self._quality_controls["frame_rate_limit"].set_value(q["frame_rate_limit"])  # type: ignore[index]
-        primary_combo: QComboBox = self._quality_controls["aa.primary"]  # type: ignore[assignment]
-        index = primary_combo.findData(q["antialiasing"]["primary"])
-        if index >= 0:
-            primary_combo.setCurrentIndex(index)
-        quality_combo: QComboBox = self._quality_controls["aa.quality"]  # type: ignore[assignment]
-        index = quality_combo.findData(q["antialiasing"]["quality"])
-        if index >= 0:
-            quality_combo.setCurrentIndex(index)
-        post_combo: QComboBox = self._quality_controls["aa.post"]  # type: ignore[assignment]
-        index = post_combo.findData(q["antialiasing"].get("post", "off"))
-        if index >= 0:
-            post_combo.setCurrentIndex(index)
+        self._sync_quality_preset_ui()
+        
+        shadows_enabled = self._quality_controls.get("shadows.enabled")
+        if isinstance(shadows_enabled, QCheckBox):
+            shadows_enabled.setChecked(self.state["quality"]["shadows"]["enabled"])
 
-        self._quality_controls["shadows.enabled"].setChecked(q["shadows"]["enabled"])  # type: ignore[index]
-        resolution_combo: QComboBox = self._quality_controls["shadows.resolution"]  # type: ignore[assignment]
-        index = resolution_combo.findData(q["shadows"]["resolution"])
-        if index >= 0:
-            resolution_combo.setCurrentIndex(index)
-        filter_combo: QComboBox = self._qualityControls["shadows.filter"]  # type: ignore[assignment]
-        index = filter_combo.findData(q["shadows"]["filter"])
-        if index >= 0:
-            filter_combo.setCurrentIndex(index)
-        self._quality_controls["shadows.bias"].set_value(q["shadows"]["bias"])  # type: ignore[index]
-        self._quality_controls["shadows.darkness"].set_value(q["shadows"]["darkness"])  # type: ignore[index]
+        shadows_res = self._quality_controls.get("shadows.resolution")
+        if isinstance(shadows_res, QComboBox):
+            index = shadows_res.findData(self.state["quality"]["shadows"]["resolution"])
+            if index >= 0:
+                shadows_res.setCurrentIndex(index)
 
-        self._quality_controls["taa.enabled"].setChecked(q["taa_enabled"])  # type: ignore[index]
-        self._quality_controls["taa.strength"].set_value(q["taa_strength"])  # type: ignore[index]
-        self._quality_controls["taa_motion_adaptive"].setChecked(q.get("taa_motion_adaptive", True))  # type: ignore[index]
-        self._quality_controls["fxaa.enabled"].setChecked(q["fxaa_enabled"])  # type: ignore[index]
-        self._quality_controls["specular.enabled"].setChecked(q["specular_aa"])  # type: ignore[index]
-        self._quality_controls["dithering.enabled"].setChecked(q["dithering"])  # type: ignore[index]
-        self._quality_controls["render.scale"].set_value(q["render_scale"])  # type: ignore[index]
-        policy_combo: QComboBox = self._quality_controls["render.policy"]  # type: ignore[assignment]
-        index = policy_combo.findData(q["render_policy"])
-        if index >= 0:
-            policy_combo.setCurrentIndex(index)
-        oit_check: QCheckBox = self._quality_controls["oit.enabled"]  # type: ignore[assignment]
-        oit_check.setChecked(q["oit"] == "weighted")
+        shadows_filter = self._quality_controls.get("shadows.filter")
+        if isinstance(shadows_filter, QComboBox):
+            index = shadows_filter.findData(self.state["quality"]["shadows"]["filter"])
+            if index >= 0:
+                shadows_filter.setCurrentIndex(index)
+
+        shadows_bias = self._quality_controls.get("shadows.bias")
+        if isinstance(shadows_bias, LabeledSlider):
+            shadows_bias.set_value(self.state["quality"]["shadows"]["bias"])
+
+        shadows_darkness = self._quality_controls.get("shadows.darkness")
+        if isinstance(shadows_darkness, LabeledSlider):
+            shadows_darkness.set_value(self.state["quality"]["shadows"]["darkness"])
+
+        aa_primary = self._quality_controls.get("aa.primary")
+        if isinstance(aa_primary, QComboBox):
+            index = aa_primary.findData(self.state["quality"]["antialiasing"]["primary"])
+            if index >= 0:
+                aa_primary.setCurrentIndex(index)
+
+        aa_quality = self._quality_controls.get("aa.quality")
+        if isinstance(aa_quality, QComboBox):
+            index = aa_quality.findData(self.state["quality"]["antialiasing"]["quality"])
+            if index >= 0:
+                aa_quality.setCurrentIndex(index)
+
+        aa_post = self._quality_controls.get("aa.post")
+        if isinstance(aa_post, QComboBox):
+            index = aa_post.findData(self.state["quality"]["antialiasing"]["post"])
+            if index >= 0:
+                aa_post.setCurrentIndex(index)
+
+        taa_check = self._quality_controls.get("taa.enabled")
+        if isinstance(taa_check, QCheckBox):
+            taa_check.setChecked(self.state["quality"]["taa_enabled"])
+
+        taa_strength = self._quality_controls.get("taa.strength")
+        if isinstance(taa_strength, LabeledSlider):
+            taa_strength.set_value(self.state["quality"]["taa_strength"])
+
+        taa_motion = self._quality_controls.get("taa_motion_adaptive")
+        if isinstance(taa_motion, QCheckBox):
+            taa_motion.setChecked(self.state["quality"]["taa_motion_adaptive"])
+
+        fxaa_check = self._quality_controls.get("fxaa.enabled")
+        if isinstance(fxaa_check, QCheckBox):
+            fxaa_check.setChecked(self.state["quality"]["fxaa_enabled"])
+
+        specular_check = self._quality_controls.get("specular.enabled")
+        if isinstance(specular_check, QCheckBox):
+            specular_check.setChecked(self.state["quality"]["specular_aa"])
+
+        dithering_check = self._quality_controls.get("dithering.enabled")
+        if isinstance(dithering_check, QCheckBox):
+            dithering_check.setChecked(self.state["quality"]["dithering"])
+
+        render_scale = self._quality_controls.get("render.scale")
+        if isinstance(render_scale, LabeledSlider):
+            render_scale.set_value(self.state["quality"]["render_scale"])
+
+        render_policy = self._quality_controls.get("render.policy")
+        if isinstance(render_policy, QComboBox):
+            index = render_policy.findData(self.state["quality"]["render_policy"])
+            if index >= 0:
+                render_policy.setCurrentIndex(index)
+
+        frame_limit = self._quality_controls.get("frame_rate_limit")
+        if isinstance(frame_limit, LabeledSlider):
+            frame_limit.set_value(self.state["quality"]["frame_rate_limit"])
+
+        oit_check = self._quality_controls.get("oit.enabled")
+        if isinstance(oit_check, QCheckBox):
+            oit_check.setChecked(self.state["quality"]["oit"] == "weighted")
 
     def _apply_camera_ui(self) -> None:
-        camera = self.state["camera"]
-        self._camera_controls["fov"].set_value(camera["fov"])  # type: ignore[index]
-        self._camera_controls["near"].set_value(camera["near"])  # type: ignore[index]
-        self._camera_controls["far"].set_value(camera["far"])  # type: ignore[index]
-        self._camera_controls["speed"].set_value(camera["speed"])  # type: ignore[index]
-        auto_rotate: QCheckBox = self._camera_controls["auto_rotate"]  # type: ignore[assignment]
-        auto_rotate.setChecked(camera["auto_rotate"])
-        self._camera_controls["auto_rotate_speed"].set_value(camera["auto_rotate_speed"])  # type: ignore[index]
+        fov = self._camera_controls.get("fov")
+        if isinstance(fov, LabeledSlider):
+            fov.set_value(self.state["camera"]["fov"])
+
+        near = self._camera_controls.get("near")
+        if isinstance(near, LabeledSlider):
+            near.set_value(self.state["camera"]["near"])
+
+        far = self._camera_controls.get("far")
+        if isinstance(far, LabeledSlider):
+            far.set_value(self.state["camera"]["far"])
+
+        speed = self._camera_controls.get("speed")
+        if isinstance(speed, LabeledSlider):
+            speed.set_value(self.state["camera"]["speed"])
+
+        auto_rotate = self._camera_controls.get("auto_rotate")
+        if isinstance(auto_rotate, QCheckBox):
+            auto_rotate.setChecked(self.state["camera"]["auto_rotate"])
+
+        rotate_speed = self._camera_controls.get("auto_rotate_speed")
+        if isinstance(rotate_speed, LabeledSlider):
+            rotate_speed.set_value(self.state["camera"]["auto_rotate_speed"])
 
     def _apply_effects_ui(self) -> None:
-        eff = self.state["effects"]
-        self._effects_controls["bloom.enabled"].setChecked(eff["bloom_enabled"])  # type: ignore[index]
-        self._effects_controls["bloom.intensity"].set_value(eff["bloom_intensity"])  # type: ignore[index]
-        self._effects_controls["bloom.threshold"].set_value(eff["bloom_threshold"])  # type: ignore[index]
-        self._effects_controls["bloom.spread"].set_value(eff["bloom_spread"])  # type: ignore[index]
+        bloom_enabled = self._effects_controls.get("bloom.enabled")
+        if isinstance(bloom_enabled, QCheckBox):
+            bloom_enabled.setChecked(self.state["effects"]["bloom_enabled"])
 
-        self._effects_controls["tonemap.enabled"].setChecked(eff["tonemap_enabled"])  # type: ignore[index]
-        tonemap_combo: QComboBox = self._effects_controls["tonemap.mode"]  # type: ignore[assignment]
-        index = tonemap_combo.findData(eff["tonemap_mode"])
-        if index >= 0:
-            tonemap_combo.setCurrentIndex(index)
+        bloom_intensity = self._effects_controls.get("bloom.intensity")
+        if isinstance(bloom_intensity, LabeledSlider):
+            bloom_intensity.set_value(self.state["effects"]["bloom_intensity"])
 
-        self._effects_controls["dof.enabled"].setChecked(eff["depth_of_field"])  # type: ignore[index]
-        self._effects_controls["dof.focus"].set_value(eff["dof_focus_distance"])  # type: ignore[index]
-        self._effects_controls["dof.blur"].set_value(eff["dof_blur"])  # type: ignore[index]
+        bloom_threshold = self._effects_controls.get("bloom.threshold")
+        if isinstance(bloom_threshold, LabeledSlider):
+            bloom_threshold.set_value(self.state["effects"]["bloom_threshold"])
 
-        self._effects_controls["motion.enabled"].setChecked(eff["motion_blur"])  # type: ignore[index]
-        self._effects_controls["motion.amount"].set_value(eff["motion_blur_amount"])  # type: ignore[index]
-        self._effects_controls["lens_flare.enabled"].setChecked(eff["lens_flare"])  # type: ignore[index]
-        self._effects_controls["vignette.enabled"].setChecked(eff["vignette"])  # type: ignore[index]
-        self._effects_controls["vignette.strength"].set_value(eff["vignette_strength"])  # type: ignore[index]
+        bloom_spread = self._effects_controls.get("bloom.spread")
+        if isinstance(bloom_spread, LabeledSlider):
+            bloom_spread.set_value(self.state["effects"]["bloom_spread"])
+
+        tonemap_enabled = self._effects_controls.get("tonemap.enabled")
+        if isinstance(tonemap_enabled, QCheckBox):
+            tonemap_enabled.setChecked(self.state["effects"]["tonemap_enabled"])
+
+        tonemap_mode = self._effects_controls.get("tonemap.mode")
+        if isinstance(tonemap_mode, QComboBox):
+            index = tonemap_mode.findData(self.state["effects"]["tonemap_mode"])
+            if index >= 0:
+                tonemap_mode.setCurrentIndex(index)
+
+        dof_enabled = self._effects_controls.get("dof.enabled")
+        if isinstance(dof_enabled, QCheckBox):
+            dof_enabled.setChecked(self.state["effects"]["depth_of_field"])
+
+        dof_focus = self._effects_controls.get("dof.focus")
+        if isinstance(dof_focus, LabeledSlider):
+            dof_focus.set_value(self.state["effects"]["dof_focus_distance"])
+
+        dof_blur = self._effects_controls.get("dof.blur")
+        if isinstance(dof_blur, LabeledSlider):
+            dof_blur.set_value(self.state["effects"]["dof_blur"])
+
+        motion_enabled = self._effects_controls.get("motion.enabled")
+        if isinstance(motion_enabled, QCheckBox):
+            motion_enabled.setChecked(self.state["effects"]["motion_blur"])
+
+        motion_amount = self._effects_controls.get("motion.amount")
+        if isinstance(motion_amount, LabeledSlider):
+            motion_amount.set_value(self.state["effects"]["motion_blur_amount"])
+
+        lens_flare = self._effects_controls.get("lens_flare.enabled")
+        if isinstance(lens_flare, QCheckBox):
+            lens_flare.setChecked(self.state["effects"]["lens_flare"])
+
+        vignette = self._effects_controls.get("vignette.enabled")
+        if isinstance(vignette, QCheckBox):
+            vignette.setChecked(self.state["effects"]["vignette"])
+
+        vignette_strength = self._effects_controls.get("vignette.strength")
+        if isinstance(vignette_strength, LabeledSlider):
+            vignette_strength.set_value(self.state["effects"]["vignette_strength"])
+
+    # ------------------------------------------------------------------
+    # Utility methods
+    # ------------------------------------------------------------------
+    def _sync_taa_controls(self) -> None:
+        primary = self.state["quality"]["antialiasing"]["primary"]
+        allow_taa = primary != "msaa"
+        
+        taa_check = self._quality_controls.get("taa.enabled")
+        if isinstance(taa_check, QCheckBox):
+            taa_check.setEnabled(allow_taa)
+            
+        taa_strength = self._quality_controls.get("taa.strength")
+        if isinstance(taa_strength, LabeledSlider):
+            taa_strength.set_enabled(allow_taa)
+            
+        taa_motion = self._quality_controls.get("taa_motion_adaptive")
+        if isinstance(taa_motion, QCheckBox):
+            taa_motion.setEnabled(allow_taa)
+
+    def _normalise_quality_state(self) -> None:
+        """Ensure quality state has all required keys"""
+        if "shadows" not in self.state["quality"]:
+            self.state["quality"]["shadows"] = {}
+        if "antialiasing" not in self.state["quality"]:
+            self.state["quality"]["antialiasing"] = {}
+
+    @staticmethod
+    def _deep_update(target: Dict[str, Any], source: Dict[str, Any]) -> None:
+        """Deep update dictionary recursively"""
+        for key, value in source.items():
+            if isinstance(value, dict) and key in target and isinstance(target[key], dict):
+                GraphicsPanel._deep_update(target[key], value)
+            else:
+                target[key] = value
