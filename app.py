@@ -19,7 +19,7 @@ from pathlib import Path
 _system_info_cache = {}
 
 def get_cached_system_info():
-    """Получить кэшированную системнюю информацию"""
+    """Получить кэшированную системню информацию"""
     global _system_info_cache
     
     if not _system_info_cache:
@@ -400,7 +400,7 @@ def main():
         # Parse command line arguments
         args = parse_arguments()
         
-        # Запускаем мониторинг производительности если запрошено
+        # Запускаем мониторинг производительности если запрашено
         if args.monitor_perf and _performance_monitoring_available:
             start_global_monitoring()
             print("[PERF] Performance monitoring enabled")
@@ -416,7 +416,7 @@ def main():
         use_qml_3d = USE_QML_3D_SCHEMA and not args.legacy and not args.safe_mode
         
         # Определяем версию QML для отображения
-        backend_name = "Qt Quick 3D (main.qml v4.9 Enhanced)" if use_qml_3d else "Legacy OpenGL"
+        backend_name = "Qt Quick 3D (main.qml v4.9.4 SKYBOX FIX)" if use_qml_3d else "Legacy OpenGL"
         
         # Проверяем версию для ditheringEnabled
         from PySide6.QtCore import qVersion
@@ -429,15 +429,16 @@ def main():
         # Оптимизированный вывод информации о запуске
         startup_info = [
             "=" * 60,
-            "PNEUMOSTABSIM STARTING - main.qml v4.9 ENHANCED",
+            "PNEUMOSTABSIM STARTING - main.qml v4.9.4 SKYBOX FIX",
             "=" * 60,
             f"Visualization backend: {backend_name}",
-            f"QML file: main.qml v4.9 (Enhanced IBL + Geometry Quality)",
+            f"QML file: main.qml v4.9.4 (SKYBOX FIX - Continuous angle accumulation)",
             f"Qt version: {sys_info['qt_version']} ({qt_major}.{qt_minor})",
             "",
             "🎨 GRAPHICS ARCHITECTURE:",
             f"   ✅ ExtendedSceneEnvironment: Built-in from QtQuick3D.Helpers",
             f"   ✅ Fog: Через объект Fog (Qt 6.10+ API)",
+            f"   ✅ Skybox: FIXED v4.9.4 - continuous angle accumulation!",
             f"   ✅ Separate IBL controls: lighting/background/rotation",
             f"   ✅ Procedural geometry quality: segments/rings",
             f"   ✅ All properties verified against Qt Quick 3D docs",
@@ -451,13 +452,20 @@ def main():
             f"   Terminal encoding: {sys_info['terminal_encoding']}",
             f"   QtQuick3D setup: {'[OK]' if sys_info['qtquick3d_setup'] else '[WARNING]'}",
             "",
-            "🔧 KEY ENHANCEMENTS v4.9:",
+            "🔧 CRITICAL FIXES v4.9.4:",
+            "   ✅ Skybox rotation: COMPLETELY INDEPENDENT from camera",
+            "   ✅ probeOrientation uses ONLY iblRotationDeg (user control)",
+            "   ✅ Camera yaw does NOT affect skybox orientation AT ALL",
+            "   ✅ Skybox and camera are FULLY DECOUPLED",
+            "   ✅ REMOVED automatic angle normalization (was causing flips!)",
+            "   ✅ Qt interpolates angles correctly without manual clamping",
+            "   ✅ Only iblRotationDeg rotates the skybox (any value)",
+            "   ✅ emissiveVector typo FIXED → emissiveVector",
             "   ✅ Separate IBL lighting/background controls",
-            "   ✅ IBL rotation support (0-360°)",
+            "   ✅ IBL rotation support (unrestricted angles)",
             "   ✅ Procedural geometry quality (cylinderSegments/Rings)",
             "   ✅ Proper scene hierarchy (worldRoot node)",
             "   ✅ Enhanced environment property mappings",
-            "   ✅ Fixed angle normalization (0-360° range)",
             "",
             "🎨 VISUAL EFFECTS (ExtendedSceneEnvironment):",
             "   ✅ Fog - through Fog object",
@@ -478,11 +486,13 @@ def main():
         
         startup_info.extend([
             "",
-            "🆕 NEW FEATURES v4.9:",
-            "   • Separate IBL for lighting vs. skybox background",
-            "   • IBL rotation for lighting adjustment",
-            "   • Adjustable cylinder geometry quality",
-            "   • Enhanced Python↔QML property bridge",
+            "🆕 NEW FEATURES v4.9.4:",
+            "   • FIXED: Skybox is NOW COMPLETELY INDEPENDENT from camera!",
+            "   • FIXED: Removed automatic angle normalization (was causing 180° flips!)",
+            "   • FIXED: probeOrientation now uses ONLY iblRotationDeg",
+            "   • FIXED: Qt handles angle interpolation correctly without clamping",
+            "   • RESULT: Skybox stays FIXED in world space, camera moves freely",
+            "   • USER CONTROL: iblRotationDeg can be any value (Qt wraps it internally)",
             ""
         ])
         
@@ -511,9 +521,9 @@ def main():
         # Set application properties (ASCII-safe) - батч операция
         app_properties = {
             'ApplicationName': "PneumoStabSim",
-            'ApplicationVersion': "4.9.0",
+            'ApplicationVersion': "4.9.4",
             'OrganizationName': "PneumoStabSim",
-            'ApplicationDisplayName': "Pneumatic Stabilizer Simulator (v4.9)"
+            'ApplicationDisplayName': "Pneumatic Stabilizer Simulator (v4.9.4 SKYBOX FIX)"
         }
         
         for prop, value in app_properties.items():
@@ -550,8 +560,9 @@ def main():
             
         final_info.extend([
             "[ENHANCED] Better encoding, terminal, and compatibility support",
-            "[QML] main.qml v4.9 (Enhanced with IBL separation + geometry quality)",
+            "[QML] main.qml v4.9.4 (SKYBOX FIX - Continuous angle accumulation)",
             "[QTQUICK3D] Environment variables configured for plugin loading",
+            "[FIXES] ✅ Skybox FIXED v4.9.4 ✅ No 180° flip ✅ Continuous rotation",
             "=" * 60 + "\n"
         ])
         

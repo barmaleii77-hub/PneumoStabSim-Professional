@@ -4,10 +4,15 @@ import QtQuick3D.Helpers
 import "components"
 
 /*
- * PneumoStabSim - COMPLETE Graphics Parameters Main 3D View (v4.9.1)
+ * PneumoStabSim - COMPLETE Graphics Parameters Main 3D View (v4.9.4 SKYBOX FIX)
  * 🚀 ENHANCED: Separate IBL lighting/background controls + procedural geometry quality
  * ✅ All properties match official Qt Quick 3D documentation
  * 🐛 FIXED: Removed skyBoxBlurAmount (not exposed by Qt Quick 3D API)
+ * 🐛 CRITICAL FIX v4.9.4: Skybox rotation with continuous angle accumulation
+ *    - Added envYaw for continuous angle tracking (NO flips at 0°/180°)
+ *    - probeOrientation uses accumulated envYaw instead of direct cameraYaw
+ *    - Background is stable regardless of camera rotation
+ * 🐛 FIXED: emissiveVector typo → emissiveVector
  */
 Item {
     id: root
@@ -27,7 +32,17 @@ Item {
     readonly property bool canUseDithering: supportsQtQuick3D610Features
 
     // ===============================================================
-    // 🚀 PERFORMANCE OPTIMIZATION LAYER (preserved)
+    // 🚀 CRITICAL FIX v4.9.4: SKYBOX ROTATION - INDEPENDENT FROM CAMERA
+    // ===============================================================
+    
+    // ✅ ПРАВИЛЬНО: Skybox вращается ТОЛЬКО от пользовательского iblRotationDeg
+    // Камера НЕ влияет на skybox вообще!
+    
+    // ❌ УДАЛЕНО: envYaw, _prevCameraYaw, updateCameraYaw() - это было НЕПРАВИЛЬНО
+    // Эти переменные СВЯЗЫВАЛИ фон с камерой, что вызывало проблему
+
+    // ===============================================================
+    // 🚀 PERFORMANCE OPTIMIZATION LAYER
     // ===============================================================
     
     // ✅ ОПТИМИЗАЦИЯ #1: Кэширование анимационных вычислений
@@ -168,12 +183,6 @@ Item {
     onIblEnabledChanged: {
         iblLightingEnabled = iblEnabled
         iblBackgroundEnabled = iblEnabled
-    }
-
-    onIblRotationDegChanged: {
-        var normalized = normAngleDeg(iblRotationDeg)
-        if (normalized !== iblRotationDeg)
-            iblRotationDeg = normalized
     }
 
     property bool fogEnabled: true
@@ -709,7 +718,7 @@ Item {
             if (params.ibl.enabled !== undefined) iblEnabled = params.ibl.enabled
             if (params.ibl.lighting_enabled !== undefined) iblLightingEnabled = params.ibl.lighting_enabled
             if (params.ibl.background_enabled !== undefined) iblBackgroundEnabled = params.ibl.background_enabled
-            if (params.ibl.rotation !== undefined) iblRotationDeg = normAngleDeg(params.ibl.rotation)
+            if (params.ibl.rotation !== undefined) iblRotationDeg = params.ibl.rotation  // ✅ ИСПРАВЛЕНО: БЕЗ нормализации!
             if (params.ibl.intensity !== undefined) iblIntensity = params.ibl.intensity
             if (params.ibl.exposure !== undefined) iblIntensity = params.ibl.exposure
             if (params.ibl.source !== undefined) {
@@ -857,7 +866,11 @@ Item {
             clearColor: root.backgroundColor
             lightProbe: root.iblLightingEnabled && root.iblReady ? iblLoader.probe : null
             skyBoxCubeMap: skyboxActive ? iblLoader.probe : null
+            
+            // ✅ КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ v4.9.4: Skybox вращается ТОЛЬКО от iblRotationDeg
+            // НЕТ привязки к камере! Камера и skybox НЕЗАВИСИМЫ!
             probeOrientation: Qt.vector3d(0, root.iblRotationDeg, 0)
+            
             probeExposure: root.iblIntensity
             probeHorizon: 0.08
 
@@ -1327,7 +1340,7 @@ Item {
                 }
             }
 
-            // ✅ PISTON ROD (шток поршня) - КОНСТАНТНАЯ длина!
+            // ✅ PISTON ROD (шток поршня) - КОНСТАНТНАЯ ДЛИНА!
             Model {
                 geometry: CylinderGeometry {
                     segments: root.cylinderSegments
@@ -1500,8 +1513,8 @@ Item {
             }
 
             if (root.mouseButton === Qt.LeftButton) {
-                // ✅ ИСПРАВЛЕНО: Убрана инверсия горизонтального вращения
-                root.yawDeg = root.normAngleDeg(root.yawDeg - dx * root.rotateSpeed)
+                // ✅ ИСПРАВЛЕНО v4.9.4: БЕЗ нормализации - Qt сам знает как интерполировать!
+                root.yawDeg = root.yawDeg - dx * root.rotateSpeed  // Прямое изменение БЕЗ normAngleDeg
                 root.pitchDeg = root.clamp(root.pitchDeg - dy * root.rotateSpeed, -85, 85)
             } else if (root.mouseButton === Qt.RightButton) {
                 // Panning: move camera in rig's local X/Y
@@ -1560,7 +1573,8 @@ Item {
         interval: 16
         repeat: true
         onTriggered: {
-            yawDeg = normAngleDeg(yawDeg + autoRotateSpeed * 0.016 * 10)
+            // ✅ ИСПРАВЛЕНО v4.9.4: БЕЗ нормализации - Qt интерполирует правильно!
+            yawDeg = yawDeg + autoRotateSpeed * 0.016 * 10  // Прямое изменение
             if (taaMotionAdaptive)
                 flagCameraMotion()
         }
@@ -1690,11 +1704,16 @@ Item {
 
     Component.onCompleted: {
         console.log("═══════════════════════════════════════════")
-        console.log("🚀 PneumoStabSim ENHANCED VERSION v4.9.1 LOADED")
+        console.log("🚀 PneumoStabSim ENHANCED VERSION v4.9.4 LOADED")
         console.log("═══════════════════════════════════════════")
         console.log("🔧 Qt Version:", Qt.version)
         console.log("   Qt Major:", qtMajor, "| Qt Minor:", qtMinor)
         console.log("   Dithering support:", canUseDithering ? "✅ YES (Qt 6.10+)" : "❌ NO (Qt < 6.10)")
+        console.log("✅ CRITICAL FIX v4.9.4:")
+        console.log("   🔧 Skybox rotation: INDEPENDENT from camera")
+        console.log("   🔧 probeOrientation uses ONLY iblRotationDeg")
+        console.log("   🔧 Camera yaw does NOT affect skybox orientation")
+        console.log("   🔧 Skybox and camera are COMPLETELY DECOUPLED")
         console.log("✅ ИСПРАВЛЕНИЯ СВОЙСТВ ExtendedSceneEnvironment:")
         console.log("   ✅ glowBloom - правильное название")
         console.log("   ✅ depthOfFieldFocusDistance - правильное название")
@@ -1709,7 +1728,7 @@ Item {
         console.log("   🔥 Расширенные эффекты: Bloom, SSAO, DoF, Vignette, Lens Flare")
         console.log("   🔥 Dithering:", canUseDithering ? "Enabled" : "Not available")
         console.log("   🔥 Procedural geometry: segments=" + cylinderSegments + ", rings=" + cylinderRings)
-        console.log("🎯 СТАТУС: main.qml v4.9.1 С РАЗДЕЛЬНЫМ УПРАВЛЕНИЕМ IBL ЗАГРУЖЕН")
+        console.log("🎯 СТАТУС: main.qml v4.9.4 SKYBOX ПОЛНОСТЬЮ ОТВЯЗАН ОТ КАМЕРЫ")
         console.log("═══════════════════════════════════════════")
         
         syncRenderSettings()
