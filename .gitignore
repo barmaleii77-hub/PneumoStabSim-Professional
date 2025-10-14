@@ -844,6 +844,8 @@ archive/old/
 !.vscode/tasks.json
 !.vscode/settings.json
 !.vscode/extensions.json
+!.vscode/profile.ps1
+!.vscode/copilot.json
 
 # ================================================================================================
 # END OF .GITIGNORE
