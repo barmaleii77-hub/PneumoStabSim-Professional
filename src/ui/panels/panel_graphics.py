@@ -5,6 +5,7 @@ import copy
 import json
 import logging
 from typing import Any, Dict
+from pathlib import Path
 
 from PySide6.QtCore import QSettings, Qt, QTimer, Signal, Slot
 from PySide6.QtGui import QColor, QStandardItem
@@ -14,7 +15,6 @@ from PySide6.QtWidgets import (
     QColorDialog,
     QComboBox,
     QDoubleSpinBox,
-    QFileDialog,
     QGridLayout,
     QGroupBox,
     QHBoxLayout,
@@ -292,13 +292,45 @@ class GraphicsPanel(QWidget):
     def _build_defaults(self) -> Dict[str, Any]:
         return {
             "lighting": {
-                "key": {"brightness": 1.2, "color": "#ffffff", "angle_x": -35.0, "angle_y": -40.0},
-                "fill": {"brightness": 0.7, "color": "#dfe7ff"},
-                "rim": {"brightness": 1.0, "color": "#ffe2b0"},
-                "point": {"brightness": 1000.0, "color": "#ffffff", "height": 2200.0, "range": 3200.0, "cast_shadow": False},
+                # Добавлены: cast_shadow, bind_to_camera, position_x/position_y для каждого источника
+                "key": {
+                    "brightness": 1.2,
+                    "color": "#ffffff",
+                    "angle_x": -35.0,
+                    "angle_y": -40.0,
+                    "cast_shadow": True,
+                    "bind_to_camera": False,
+                    "position_x": 0.0,
+                    "position_y": 0.0,
+                },
+                "fill": {
+                    "brightness": 0.7,
+                    "color": "#dfe7ff",
+                    "cast_shadow": False,
+                    "bind_to_camera": False,
+                    "position_x": 0.0,
+                    "position_y": 0.0,
+                },
+                "rim": {
+                    "brightness": 1.0,
+                    "color": "#ffe2b0",
+                    "cast_shadow": False,
+                    "bind_to_camera": False,
+                    "position_x": 0.0,
+                    "position_y": 0.0,
+                },
+                "point": {
+                    "brightness": 1000.0,
+                    "color": "#ffffff",
+                    "position_x": 0.0,
+                    "position_y": 2200.0,
+                    "range": 3200.0,
+                    "cast_shadow": False,
+                    "bind_to_camera": False,
+                },
             },
             "environment": {
-                "background_mode": "skybox",
+                "background_mode": "skybox",  # 'color' | 'skybox'
                 "background_color": "#1f242c",
                 "ibl_enabled": True,
                 "ibl_intensity": 1.3,
@@ -617,10 +649,6 @@ class GraphicsPanel(QWidget):
         button_row.setSpacing(8)
         button_row.addStretch(1)
 
-        save_btn = QPushButton("💾 Сохранить", self)
-        save_btn.clicked.connect(self.save_settings)
-        button_row.addWidget(save_btn)
-
         reset_btn = QPushButton("↩︎ Сброс", self)
         reset_btn.clicked.connect(self.reset_to_defaults)
         button_row.addWidget(reset_btn)
@@ -674,7 +702,28 @@ class GraphicsPanel(QWidget):
         angle_y.valueChanged.connect(lambda v: self._update_lighting("key", "angle_y", v))
         self._lighting_controls["key.angle_y"] = angle_y
         grid.addWidget(angle_y, 3, 0, 1, 2)
-        return group
++
++        # Позиция X/Y и флаги
++        posx = LabeledSlider("Позиция X", -5000.0, 5000.0, 10.0, decimals=0, unit="мм")
++        posx.valueChanged.connect(lambda v: self._update_lighting("key", "position_x", v))
++        self._lighting_controls["key.position_x"] = posx
++        grid.addWidget(posx, 4, 0, 1, 2)
++
++        posy = LabeledSlider("Позиция Y", -5000.0, 5000.0, 10.0, decimals=0, unit="мм")
++        posy.valueChanged.connect(lambda v: self._update_lighting("key", "position_y", v))
++        self._lighting_controls["key.position_y"] = posy
++        grid.addWidget(posy, 5, 0, 1, 2)
++
++        key_shadow = QCheckBox("Тени от ключевого света", self)
++        key_shadow.clicked.connect(lambda checked: self._update_lighting("key", "cast_shadow", checked))
++        self._lighting_controls["key.cast_shadow"] = key_shadow
++        grid.addWidget(key_shadow, 6, 0, 1, 2)
++
++        key_bind = QCheckBox("Привязать к камере", self)
++        key_bind.clicked.connect(lambda checked: self._update_lighting("key", "bind_to_camera", checked))
++        self._lighting_controls["key.bind"] = key_bind
++        grid.addWidget(key_bind, 7, 0, 1, 2)
+         return group
 
     def _build_fill_light_group(self) -> QGroupBox:
         group = QGroupBox("Заполняющий свет", self)
@@ -696,7 +745,28 @@ class GraphicsPanel(QWidget):
         color_row.addWidget(color_button)
         color_row.addStretch(1)
         grid.addLayout(color_row, 1, 0, 1, 2)
-        return group
++
++        # Позиция X/Y и флаги
++        posx = LabeledSlider("Позиция X", -5000.0, 5000.0, 10.0, decimals=0, unit="мм")
++        posx.valueChanged.connect(lambda v: self._update_lighting("fill", "position_x", v))
++        self._lighting_controls["fill.position_x"] = posx
++        grid.addWidget(posx, 2, 0, 1, 2)
++
++        posy = LabeledSlider("Позиция Y", -5000.0, 5000.0, 10.0, decimals=0, unit="мм")
++        posy.valueChanged.connect(lambda v: self._update_lighting("fill", "position_y", v))
++        self._lighting_controls["fill.position_y"] = posy
++        grid.addWidget(posy, 3, 0, 1, 2)
++
++        fill_shadow = QCheckBox("Тени от заполняющего света", self)
++        fill_shadow.clicked.connect(lambda checked: self._update_lighting("fill", "cast_shadow", checked))
++        self._lighting_controls["fill.cast_shadow"] = fill_shadow
++        grid.addWidget(fill_shadow, 4, 0, 1, 2)
++
++        fill_bind = QCheckBox("Привязать к камере", self)
++        fill_bind.clicked.connect(lambda checked: self._update_lighting("fill", "bind_to_camera", checked))
++        self._lighting_controls["fill.bind"] = fill_bind
++        grid.addWidget(fill_bind, 5, 0, 1, 2)
+         return group
 
     def _build_rim_light_group(self) -> QGroupBox:
         group = QGroupBox("Контровой свет", self)
@@ -718,7 +788,28 @@ class GraphicsPanel(QWidget):
         color_row.addWidget(color_button)
         color_row.addStretch(1)
         grid.addLayout(color_row, 1, 0, 1, 2)
-        return group
++
++        # Позиция X/Y и флаги
++        posx = LabeledSlider("Позиция X", -5000.0, 5000.0, 10.0, decimals=0, unit="мм")
++        posx.valueChanged.connect(lambda v: self._update_lighting("rim", "position_x", v))
++        self._lighting_controls["rim.position_x"] = posx
++        grid.addWidget(posx, 2, 0, 1, 2)
++
++        posy = LabeledSlider("Позиция Y", -5000.0, 5000.0, 10.0, decimals=0, unit="мм")
++        posy.valueChanged.connect(lambda v: self._update_lighting("rim", "position_y", v))
++        self._lighting_controls["rim.position_y"] = posy
++        grid.addWidget(posy, 3, 0, 1, 2)
++
++        rim_shadow = QCheckBox("Тени от контрового света", self)
++        rim_shadow.clicked.connect(lambda checked: self._update_lighting("rim", "cast_shadow", checked))
++        self._lighting_controls["rim.cast_shadow"] = rim_shadow
++        grid.addWidget(rim_shadow, 4, 0, 1, 2)
++
++        rim_bind = QCheckBox("Привязать к камере", self)
++        rim_bind.clicked.connect(lambda checked: self._update_lighting("rim", "bind_to_camera", checked))
++        self._lighting_controls["rim.bind"] = rim_bind
++        grid.addWidget(rim_bind, 5, 0, 1, 2)
+         return group
 
     def _build_point_light_group(self) -> QGroupBox:
         group = QGroupBox("Точечный свет", self)
@@ -740,23 +831,38 @@ class GraphicsPanel(QWidget):
         color_row.addWidget(color_button)
         color_row.addStretch(1)
         grid.addLayout(color_row, 1, 0, 1, 2)
-
-        height_slider = LabeledSlider("Высота", 0.0, 5000.0, 10.0, decimals=1, unit="мм")
-        height_slider.valueChanged.connect(lambda v: self._update_lighting("point", "height", v))
-        self._lighting_controls["point.height"] = height_slider
-        grid.addWidget(height_slider, 2, 0, 1, 2)
-
-        range_slider = LabeledSlider("Радиус действия", 200.0, 5000.0, 10.0, decimals=1, unit="мм")
-        range_slider.valueChanged.connect(lambda v: self._update_lighting("point", "range", v))
-        self._lighting_controls["point.range"] = range_slider
-        grid.addWidget(range_slider, 3, 0, 1, 2)
-
-        # ✅ Новый переключатель: тени от точечного света
-        point_shadows = QCheckBox("Тени от точечного света", self)
-        point_shadows.clicked.connect(lambda checked: self._update_lighting("point", "cast_shadow", checked))
-        self._lighting_controls["point.cast_shadow"] = point_shadows
-        grid.addWidget(point_shadows, 4, 0, 1, 2)
-        return group
+ 
+-        height_slider = LabeledSlider("Высота", 0.0, 5000.0, 10.0, decimals=1, unit="мм")
+-        height_slider.valueChanged.connect(lambda v: self._update_lighting("point", "height", v))
+-        self._lighting_controls["point.height"] = height_slider
+-        grid.addWidget(height_slider, 2, 0, 1, 2)
++        posx = LabeledSlider("Позиция X", -5000.0, 5000.0, 10.0, decimals=0, unit="мм")
++        posx.valueChanged.connect(lambda v: self._update_lighting("point", "position_x", v))
++        self._lighting_controls["point.position_x"] = posx
++        grid.addWidget(posx, 2, 0, 1, 2)
++
++        posy = LabeledSlider("Позиция Y", 0.0, 5000.0, 10.0, decimals=1, unit="мм")
++        posy.valueChanged.connect(lambda v: self._update_lighting("point", "position_y", v))
++        self._lighting_controls["point.position_y"] = posy
++        grid.addWidget(posy, 3, 0, 1, 2)
+ 
+         range_slider = LabeledSlider("Радиус действия", 200.0, 5000.0, 10.0, decimals=1, unit="мм")
+         range_slider.valueChanged.connect(lambda v: self._update_lighting("point", "range", v))
+         self._lighting_controls["point.range"] = range_slider
+         grid.addWidget(range_slider, 4, 0, 1, 2)
+ 
+         # ✅ Новый переключатель: тени от точечного света
+         point_shadows = QCheckBox("Тени от точечного света", self)
+         point_shadows.clicked.connect(lambda checked: self._update_lighting("point", "cast_shadow", checked))
+         self._lighting_controls["point.cast_shadow"] = point_shadows
+-        grid.addWidget(point_shadows, 5, 0, 1, 2)
++        grid.addWidget(point_shadows, 5, 0, 1, 2)
++
++        point_bind = QCheckBox("Привязать к камере", self)
++        point_bind.clicked.connect(lambda checked: self._update_lighting("point", "bind_to_camera", checked))
++        self._lighting_controls["point.bind"] = point_bind
++        grid.addWidget(point_bind, 6, 0, 1, 2)
+         return group
 
     def _build_lighting_preset_group(self) -> QGroupBox:
         group = QGroupBox("Пресеты освещения", self)
@@ -807,54 +913,72 @@ class GraphicsPanel(QWidget):
         return tab
 
     def _build_background_group(self) -> QGroupBox:
-        group = QGroupBox("Фон и HDR", self)
+        group = QGroupBox("Фон и IBL", self)
         grid = QGridLayout(group)
         grid.setContentsMargins(8, 8, 8, 8)
         grid.setHorizontalSpacing(12)
         grid.setVerticalSpacing(8)
-
+ 
+        # Комбинированный режим (4 опции)
         mode_combo = QComboBox(self)
-        mode_combo.addItem("Сплошной цвет", "color")
-        mode_combo.addItem("Skybox / HDR", "skybox")
-        mode_combo.currentIndexChanged.connect(lambda _: self._update_environment("background_mode", mode_combo.currentData()))
-        self._environment_controls["background.mode"] = mode_combo
-        grid.addWidget(QLabel("Режим фона", self), 0, 0)
+        mode_combo.addItem("IBL + Skybox (HDR)", (True, "skybox"))
+        mode_combo.addItem("IBL + Сплошной цвет", (True, "color"))
+        mode_combo.addItem("Без IBL + Skybox (HDR)", (False, "skybox"))
+        mode_combo.addItem("Без IBL + Сплошной цвет", (False, "color"))
+        def on_mode_changed():
+            ibl_on, bg_mode = mode_combo.currentData()
+            self._update_environment("ibl_enabled", bool(ibl_on))
+            self._update_environment("background_mode", bg_mode)
+        mode_combo.currentIndexChanged.connect(lambda _: on_mode_changed())
+        self._environment_controls["combined.mode"] = mode_combo
+        grid.addWidget(QLabel("Режим", self), 0, 0)
         grid.addWidget(mode_combo, 0, 1)
-
-        bg_row = QHBoxLayout()
-        bg_row.addWidget(QLabel("Цвет", self))
-        bg_button = ColorButton()
-        bg_button.color_changed.connect(lambda c: self._update_environment("background_color", c))
-        self._environment_controls["background.color"] = bg_button
-        bg_row.addWidget(bg_button)
-        bg_row.addStretch(1)
-        grid.addLayout(bg_row, 1, 0, 1, 2)
-
-        # ✅ FIXED + LOGGING: IBL checkbox → обработчик с логированием клика
-        ibl_check = QCheckBox("Включить HDR IBL", self)
-        ibl_check.clicked.connect(lambda checked: self._on_ibl_enabled_clicked(checked))
-        self._environment_controls["ibl.enabled"] = ibl_check
-        grid.addWidget(ibl_check, 2, 0, 1, 2)
-
-        intensity = LabeledSlider("Интенсивность IBL", 0.0, 5.0, 0.05, decimals=2)
-        intensity.valueChanged.connect(lambda v: self._update_environment("ibl_intensity", v))
-        self._environment_controls["ibl.intensity"] = intensity
-        grid.addWidget(intensity, 3, 0, 1, 2)
-
-        blur = LabeledSlider("Размытие skybox", 0.0, 1.0, 0.01, decimals=2)
-        blur.valueChanged.connect(lambda v: self._update_environment("skybox_blur", v))
-        self._environment_controls["skybox.blur"] = blur
-        grid.addWidget(blur, 4, 0, 1, 2)
-
-        choose_hdr = QPushButton("Загрузить HDR…", self)
-        choose_hdr.clicked.connect(self._choose_hdr_file)
-        grid.addWidget(choose_hdr, 5, 0)
-
-        path_label = QLabel("", self)
-        path_label.setWordWrap(True)
-        self._environment_controls["ibl.path_label"] = path_label
-        grid.addWidget(path_label, 5, 1)
-        return group
+ 
+         bg_row = QHBoxLayout()
+         bg_row.addWidget(QLabel("Цвет", self))
+         bg_button = ColorButton()
+         bg_button.color_changed.connect(lambda c: self._update_environment("background_color", c))
+         self._environment_controls["background.color"] = bg_button
+         bg_row.addWidget(bg_button)
+         bg_row.addStretch(1)
+         grid.addLayout(bg_row, 1, 0, 1, 2)
+ 
+         # Интенсивность IBL
+         ibl_check = QCheckBox("Включить IBL", self)
+         ibl_check.clicked.connect(lambda checked: self._on_ibl_enabled_clicked(checked))
+         self._environment_controls["ibl.enabled"] = ibl_check
+         grid.addWidget(ibl_check, 2, 0, 1, 2)
+ 
+         intensity = LabeledSlider("Интенсивность IBL", 0.0, 5.0, 0.05, decimals=2)
+         intensity.valueChanged.connect(lambda v: self._update_environment("ibl_intensity", v))
+         self._environment_controls["ibl.intensity"] = intensity
+         grid.addWidget(intensity, 3, 0, 1, 2)
+ 
+         blur = LabeledSlider("Размытие skybox", 0.0, 1.0, 0.01, decimals=2)
+         blur.valueChanged.connect(lambda v: self._update_environment("skybox_blur", v))
+         self._environment_controls["skybox.blur"] = blur
+         grid.addWidget(blur, 4, 0, 1, 2)
+ 
+-        choose_hdr = QPushButton("Загрузить HDR…", self)
+-        choose_hdr.clicked.connect(self._choose_hdr_file)
+-        grid.addWidget(choose_hdr, 5, 0)
+-
+-        path_label = QLabel("", self)
+-        path_label.setWordWrap(True)
+-        self._environment_controls["ibl.path_label"] = path_label
+-        grid.addWidget(path_label, 5, 1)
++        # Выпадающий список HDR/EXR из папки
++        hdr_combo = QComboBox(self)
++        hdr_files = self._discover_hdr_files()
++        for label, path in hdr_files:
++            hdr_combo.addItem(label, path)
++        def on_hdr_changed():
++            self._update_environment("ibl_source", hdr_combo.currentData())
++        hdr_combo.currentIndexChanged.connect(lambda _: on_hdr_changed())
++        self._environment_controls["ibl.file"] = hdr_combo
++        grid.addWidget(QLabel("HDR файл", self), 5, 0)
++        grid.addWidget(hdr_combo, 5, 1)
+         return group
 
     def _build_fog_group(self) -> QGroupBox:
         group = QGroupBox("Туман", self)
@@ -1697,13 +1821,13 @@ class GraphicsPanel(QWidget):
         self.state["effects"][key] = value
         
         # Логируем изменение
-        self graphics_logger.log_change(
-            parameter_name=key,
-            old_value=old_value,
-            new_value=value,
-            category="effects",
-            panel_state=self.state
-        )
+        self.graphics_logger.log_change(
+             parameter_name=key,
+             old_value=old_value,
+             new_value=value,
+             category="effects",
+             panel_state=self.state
+         )
         
         self._emit_effects()
 
@@ -1760,27 +1884,19 @@ class GraphicsPanel(QWidget):
     # ------------------------------------------------------------------
     # HDR file selection
     # ------------------------------------------------------------------
-    @Slot()
-    def _choose_hdr_file(self) -> None:
-        """Open file dialog to choose HDR file"""
-        file_path, _ = QFileDialog.getOpenFileName(
-            self,
-            "Выбрать HDR файл",
-            "",
-            "HDR Files (*.hdr *.exr);;All Files (*)"
-        )
-        
-        if file_path:
-            self.state["environment"]["ibl_source"] = file_path
-            
-            # Update label
-            path_label = self._environment_controls.get("ibl.path_label")
-            if isinstance(path_label, QLabel):
-                from pathlib import Path
-                path_label.setText(Path(file_path).name)
-            
-            self.logger.info(f"HDR файл выбран: {file_path}")
-            self._emit_environment()
+    def _discover_hdr_files(self) -> list[tuple[str, str]]:
+        """Ищет HDR/EXR файлы в каталоге assets/qml/assets и формирует список для combo."""
+        results: list[tuple[str, str]] = []
+        base = Path("assets/qml/assets")
+        if base.exists():
+            for ext in ("*.hdr", "*.exr"):
+                for p in sorted(base.glob(ext)):
+                    results.append((p.name, str(p.as_posix())))
+        # Добавляем текущий источник по умолчанию, если он вне папки
+        current = self.state.get("environment", {}).get("ibl_source")
+        if current and all(lbl != Path(current).name for lbl, _ in results):
+            results.insert(0, (Path(current).name, current))
+        return results
 
     # ------------------------------------------------------------------
     # Signal emission methods
@@ -1874,6 +1990,14 @@ class GraphicsPanel(QWidget):
                 kl["angle_x"] = key.get("angle_x")
             if "angle_y" in key:
                 kl["angle_y"] = key.get("angle_y")
+            if "cast_shadow" in key:
+                kl["casts_shadow"] = bool(key.get("cast_shadow"))
+            if "bind_to_camera" in key:
+                kl["bind_to_camera"] = bool(key.get("bind_to_camera"))
+            if "position_x" in key:
+                kl["position_x"] = key.get("position_x")
+            if "position_y" in key:
+                kl["position_y"] = key.get("position_y")
             payload["key_light"] = kl
 
         # ✅ Map: fill → fill_light
@@ -1884,6 +2008,14 @@ class GraphicsPanel(QWidget):
                 fl["brightness"] = fill.get("brightness")
             if "color" in fill:
                 fl["color"] = fill.get("color")
+            if "cast_shadow" in fill:
+                fl["casts_shadow"] = bool(fill.get("cast_shadow"))
+            if "bind_to_camera" in fill:
+                fl["bind_to_camera"] = bool(fill.get("bind_to_camera"))
+            if "position_x" in fill:
+                fl["position_x"] = fill.get("position_x")
+            if "position_y" in fill:
+                fl["position_y"] = fill.get("position_y")
             payload["fill_light"] = fl
 
         # ✅ Map: rim → rim_light
@@ -1894,9 +2026,17 @@ class GraphicsPanel(QWidget):
                 rl["brightness"] = rim.get("brightness")
             if "color" in rim:
                 rl["color"] = rim.get("color")
+            if "cast_shadow" in rim:
+                rl["casts_shadow"] = bool(rim.get("cast_shadow"))
+            if "bind_to_camera" in rim:
+                rl["bind_to_camera"] = bool(rim.get("bind_to_camera"))
+            if "position_x" in rim:
+                rl["position_x"] = rim.get("position_x")
+            if "position_y" in rim:
+                rl["position_y"] = rim.get("position_y")
             payload["rim_light"] = rl
 
-        # ✅ Map: point → point_light + height → position_y
+        # ✅ Map: point → point_light + position_x/position_y
         point = src.get("point") or {}
         if point:
             pl = {}
@@ -1904,14 +2044,17 @@ class GraphicsPanel(QWidget):
                 pl["brightness"] = point.get("brightness")
             if "color" in point:
                 pl["color"] = point.get("color")
-            # ✅ CRITICAL: height → position_y (только такое имя читает QML)
-            if "height" in point:
-                pl["position_y"] = point.get("height")
+            if "position_x" in point:
+                pl["position_x"] = point.get("position_x")
+            if "position_y" in point:
+                pl["position_y"] = point.get("position_y")
             if "range" in point:
                 pl["range"] = point.get("range")
             # ✅ Новый ключ для QML: casts_shadow
             if "cast_shadow" in point:
                 pl["casts_shadow"] = bool(point.get("cast_shadow"))
+            if "bind_to_camera" in point:
+                pl["bind_to_camera"] = bool(point.get("bind_to_camera"))
             payload["point_light"] = pl
 
         return payload
@@ -2082,11 +2225,16 @@ class GraphicsPanel(QWidget):
                     control.setChecked(bool(value))
 
     def _apply_environment_ui(self) -> None:
-        mode_combo = self._environment_controls.get("background.mode")
+        mode_combo = self._environment_controls.get("combined.mode")
         if isinstance(mode_combo, QComboBox):
-            index = mode_combo.findData(self.state["environment"]["background_mode"])
-            if index >= 0:
-                mode_combo.setCurrentIndex(index)
+            ibl_on = bool(self.state["environment"].get("ibl_enabled", True))
+            bg_mode = self.state["environment"].get("background_mode", "skybox")
+            target = (ibl_on, bg_mode)
+            # Найти по кортежу
+            for i in range(mode_combo.count()):
+                if mode_combo.itemData(i) == target:
+                    mode_combo.setCurrentIndex(i)
+                    break
 
         bg_button = self._environment_controls.get("background.color")
         if isinstance(bg_button, ColorButton):
@@ -2136,6 +2284,15 @@ class GraphicsPanel(QWidget):
         ao_radius = self._environment_controls.get("ao.radius")
         if isinstance(ao_radius, LabeledSlider):
             ao_radius.set_value(self.state["environment"]["ao_radius"])
+
+        hdr_combo = self._environment_controls.get("ibl.file")
+        if isinstance(hdr_combo, QComboBox):
+            current = self.state["environment"].get("ibl_source")
+            if current:
+                for i in range(hdr_combo.count()):
+                    if hdr_combo.itemData(i) == current:
+                        hdr_combo.setCurrentIndex(i)
+                        break
 
     def _apply_quality_ui(self) -> None:
         self._sync_quality_preset_ui()
@@ -2346,8 +2503,13 @@ class GraphicsPanel(QWidget):
     def closeEvent(self, event) -> None:
         """Обработка закрытия панели"""
         self.logger.info("🛑 GraphicsPanel closing, exporting analysis...")
-        
-        # Экспортируем финальный отчет
+        # Сохраняем настройки пользователя автоматически
+        try:
+            self.save_settings()
+        except Exception as e:
+            self.logger.error(f"Failed to auto-save settings on close: {e}")
+         
+         # Экспортируем финальный отчет
         try:
             report_path = self.graphics_logger.export_analysis_report()
             self.logger.info(f"   ✅ Analysis report saved: {report_path}")
