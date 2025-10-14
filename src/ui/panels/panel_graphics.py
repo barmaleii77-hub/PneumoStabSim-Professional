@@ -295,7 +295,7 @@ class GraphicsPanel(QWidget):
                 "key": {"brightness": 1.2, "color": "#ffffff", "angle_x": -35.0, "angle_y": -40.0},
                 "fill": {"brightness": 0.7, "color": "#dfe7ff"},
                 "rim": {"brightness": 1.0, "color": "#ffe2b0"},
-                "point": {"brightness": 1000.0, "color": "#ffffff", "height": 2200.0, "range": 3200.0},
+                "point": {"brightness": 1000.0, "color": "#ffffff", "height": 2200.0, "range": 3200.0, "cast_shadow": false},
             },
             "environment": {
                 "background_mode": "skybox",
@@ -750,6 +750,12 @@ class GraphicsPanel(QWidget):
         range_slider.valueChanged.connect(lambda v: self._update_lighting("point", "range", v))
         self._lighting_controls["point.range"] = range_slider
         grid.addWidget(range_slider, 3, 0, 1, 2)
+
+        # ✅ Новый переключатель: тени от точечного света
+        point_shadows = QCheckBox("Тени от точечного света", self)
+        point_shadows.clicked.connect(lambda checked: self._update_lighting("point", "cast_shadow", checked))
+        self._lighting_controls["point.cast_shadow"] = point_shadows
+        grid.addWidget(point_shadows, 4, 0, 1, 2)
         return group
 
     def _build_lighting_preset_group(self) -> QGroupBox:
@@ -1034,7 +1040,7 @@ class GraphicsPanel(QWidget):
 
         taa_motion = QCheckBox("Отключать TAA при движении камеры", self)
         taa_motion.clicked.connect(lambda checked: self._update_quality("taa_motion_adaptive", checked))
-        self._quality_controls["taa_motion_adaptive"] = taa_motion
+        self._qualitycontrols["taa_motion_adaptive"] = taa_motion
         grid.addWidget(taa_motion, 5, 0, 1, 2)
 
         fxaa_check = QCheckBox("Включить FXAA", self)
@@ -1903,6 +1909,9 @@ class GraphicsPanel(QWidget):
                 pl["position_y"] = point.get("height")
             if "range" in point:
                 pl["range"] = point.get("range")
+            # ✅ Новый ключ для QML: casts_shadow
+            if "cast_shadow" in point:
+                pl["casts_shadow"] = bool(point.get("cast_shadow"))
             payload["point_light"] = pl
 
         return payload
@@ -2069,6 +2078,8 @@ class GraphicsPanel(QWidget):
                     control.set_color(value)
                 elif isinstance(control, LabeledSlider):
                     control.set_value(value)
+                elif isinstance(control, QCheckBox):
+                    control.setChecked(bool(value))
 
     def _apply_environment_ui(self) -> None:
         mode_combo = self._environment_controls.get("background.mode")

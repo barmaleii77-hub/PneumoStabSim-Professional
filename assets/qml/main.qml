@@ -177,6 +177,7 @@ Item {
     property color pointLightColor: "#ffffff"
     property real pointLightY: 2200.0
     property real pointLightRange: 3200.0
+    property bool pointLightCastsShadow: false   // ✅ Новый пользовательский флаг теней точечного света
 
     // Environment
     property string backgroundMode: "skybox"
@@ -673,6 +674,7 @@ Item {
             if (params.point_light.color !== undefined) pointLightColor = params.point_light.color
             if (params.point_light.position_y !== undefined) pointLightY = params.point_light.position_y
             if (params.point_light.range !== undefined) pointLightRange = Math.max(1, params.point_light.range)
+            if (params.point_light.casts_shadow !== undefined) pointLightCastsShadow = !!params.point_light.casts_shadow
         }
         console.log("  ✅ Lighting updated successfully")
     }
@@ -1174,7 +1176,7 @@ Item {
             position: Qt.vector3d(0, root.pointLightY, 1500)
             brightness: root.pointLightBrightness
             color: root.pointLightColor
-            // castsShadow: true                    // ❗ Включите при необходимости (дорого для производительности)
+            castsShadow: root.pointLightCastsShadow   // ✅ Управляется пользователем
             constantFade: 1.0
             linearFade: 2.0 / Math.max(200.0, root.pointLightRange)
             quadraticFade: 1.0 / Math.pow(Math.max(200.0, root.pointLightRange), 2)
