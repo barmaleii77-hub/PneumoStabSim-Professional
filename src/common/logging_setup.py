@@ -466,19 +466,37 @@ def rotate_old_logs(log_dir: Path, keep_count: int = 10):
     
     Args:
         log_dir: Директория с логами
-        keep_count: Сколько последних файлов оставить
+        keep_count: Сколько последних файлов оставить (0 = удалить все)
     """
     if not log_dir.exists():
         return
     
     # Находим все лог-файлы с timestamp
     log_files = sorted(
-        log_dir.glob("PneumoStabSim_*.log"),
+        list(log_dir.glob("PneumoStabSim_*.log")),
         key=lambda p: p.stat().st_mtime,
         reverse=True
     )
     
-    # Удаляем старые
+    # Если keep_count == 0 — удаляем все timestamp-логи
+    if keep_count <= 0:
+        for lf in log_files:
+            try:
+                lf.unlink()
+                print(f"🗑️  Удален лог: {lf.name}")
+            except Exception as e:
+                print(f"⚠️  Не удалось удалить {lf.name}: {e}")
+        # Также очищаем run.log, если существует
+        run_log = log_dir / "run.log"
+        try:
+            if run_log.exists():
+                run_log.unlink()
+                print("🗑️  Удален старый run.log")
+        except Exception as e:
+            print(f"⚠️  Не удалось удалить run.log: {e}")
+        return
+    
+    # Обычный режим: оставляем N последних
     for old_log in log_files[keep_count:]:
         try:
             old_log.unlink()

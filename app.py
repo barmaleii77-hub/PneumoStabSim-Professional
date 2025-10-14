@@ -179,7 +179,9 @@ def setup_logging():
         logs_dir = Path("logs")
         
         # ✅ НОВОЕ: Ротация старых логов (оставляем только 10 последних)
-        rotate_old_logs(logs_dir, keep_count=10)
+        # Политика проекта: всегда начинать с чистых логов
+        # Стираем старые логи на запуске (keep_count=0)
+        rotate_old_logs(logs_dir, keep_count=0)
         
         # Инициализируем логирование с ротацией
         logger = init_logging(
