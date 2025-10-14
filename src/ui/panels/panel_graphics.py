@@ -1580,7 +1580,7 @@ class GraphicsPanel(QWidget):
         self.state["environment"][key] = value
         
         # Логируем изменение
-        self graphics_logger.log_change(
+        self.graphics_logger.log_change(
             parameter_name=key,
             old_value=old_value,
             new_value=value,
@@ -1697,7 +1697,7 @@ class GraphicsPanel(QWidget):
         self.state["effects"][key] = value
         
         # Логируем изменение
-        self.graphics_logger.log_change(
+        self graphics_logger.log_change(
             parameter_name=key,
             old_value=old_value,
             new_value=value,
