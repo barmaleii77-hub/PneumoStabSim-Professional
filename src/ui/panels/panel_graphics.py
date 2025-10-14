@@ -295,7 +295,7 @@ class GraphicsPanel(QWidget):
                 "key": {"brightness": 1.2, "color": "#ffffff", "angle_x": -35.0, "angle_y": -40.0},
                 "fill": {"brightness": 0.7, "color": "#dfe7ff"},
                 "rim": {"brightness": 1.0, "color": "#ffe2b0"},
-                "point": {"brightness": 1000.0, "color": "#ffffff", "height": 2200.0, "range": 3200.0, "cast_shadow": false},
+                "point": {"brightness": 1000.0, "color": "#ffffff", "height": 2200.0, "range": 3200.0, "cast_shadow": False},
             },
             "environment": {
                 "background_mode": "skybox",
