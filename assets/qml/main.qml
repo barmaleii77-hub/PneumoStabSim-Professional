@@ -884,7 +884,8 @@ Item {
 
             backgroundMode: skyboxActive ? SceneEnvironment.SkyBox : SceneEnvironment.Color
             clearColor: root.backgroundColor
-            lightProbe: (root.iblLightingEnabled && root.iblReady) ? iblLoader.probe : null   // ✅ IBL влияет ТОЛЬКО на освещение/отражения
+            // ✅ ПРОБА НУЖНА ДЛЯ ФОНА И/ИЛИ ОСВЕЩЕНИЯ
+            lightProbe: (root.iblReady && (root.iblLightingEnabled || (root.backgroundMode === "skybox" && root.iblBackgroundEnabled))) ? iblLoader.probe : null
             
             // ✅ Skybox вращается независимо от камеры, только от iblRotationDeg
             probeOrientation: Qt.vector3d(0, root.iblRotationDeg, 0)
@@ -1127,7 +1128,7 @@ Item {
             eulerRotation.y: root.keyLightAngleY
             brightness: root.keyLightBrightness
             color: root.keyLightColor
-            castsShadow: root.shadowsEnabled
+            castsShadow: root.shadowsEnabled       // ✅ Тени от ключевого света
             shadowMapQuality: root.shadowResolution === "4096" ?
                                  (typeof Light.ShadowMapQualityUltra !== "undefined" ? Light.ShadowMapQualityUltra
                                                                                        : Light.ShadowMapQualityVeryHigh) :
@@ -1154,7 +1155,7 @@ Item {
             eulerRotation.y: 135
             brightness: root.fillLightBrightness
             color: root.fillLightColor
-            castsShadow: false
+            castsShadow: false                      // Заполняющий свет без теней
         }
 
         DirectionalLight {
@@ -1164,7 +1165,7 @@ Item {
             eulerRotation.y: 180
             brightness: root.rimLightBrightness
             color: root.rimLightColor
-            castsShadow: false
+            castsShadow: false                      // Контровой свет без теней
         }
 
         PointLight {
@@ -1173,6 +1174,7 @@ Item {
             position: Qt.vector3d(0, root.pointLightY, 1500)
             brightness: root.pointLightBrightness
             color: root.pointLightColor
+            // castsShadow: true                    // ❗ Включите при необходимости (дорого для производительности)
             constantFade: 1.0
             linearFade: 2.0 / Math.max(200.0, root.pointLightRange)
             quadraticFade: 1.0 / Math.pow(Math.max(200.0, root.pointLightRange), 2)

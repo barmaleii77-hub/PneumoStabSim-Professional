@@ -874,27 +874,52 @@ class MainWindow(QMainWindow):
 
     @Slot(dict)
     def _on_material_changed(self, params: Dict[str, Any]):
-        """Обработчик изменения материалов - ставит обновление в очередь и логирует изменения"""
+        """Обработчик изменения материалов - ПРЯМОЙ вызов QML и логирование"""
         self.logger.debug(f"Material update: {params}")
-        self._queue_qml_update("materials", params)
 
-        # ✅ Логируем изменения через GraphicsLogger (как применённые)
-        try:
-            from .panels.graphics_logger import get_graphics_logger
-            logger = get_graphics_logger()
-            recent = logger.get_recent_changes(1)
-            if recent and recent[0].category == "material":
-                event = recent[0]
+        if self._qml_root_object:
+            try:
+                from PySide6.QtCore import QMetaObject, Q_ARG, Qt
+
+                # Логируем QML вызов в EventLogger
                 try:
-                    logger.log_qml_update(
-                        event,
-                        qml_state={"applied": True, "params": params},
-                        success=True
-                    )
-                except Exception as e:
-                    logger.log_qml_update(event, success=False, error=str(e))
-        except Exception:
-            pass
+                    self.event_logger.log_qml_invoke("applyMaterialUpdates", params)
+                except Exception:
+                    pass
+
+                success = QMetaObject.invokeMethod(
+                    self._qml_root_object,
+                    "applyMaterialUpdates",
+                    Qt.ConnectionType.DirectConnection,
+                    Q_ARG("QVariant", params)
+                )
+
+                if success:
+                    if hasattr(self, "status_bar"):
+                        self.status_bar.showMessage("Материалы обновлены", 2000)
+
+                    # Логируем изменения через GraphicsLogger
+                    from .panels.graphics_logger import get_graphics_logger
+                    logger = get_graphics_logger()
+                    for comp_key, comp_payload in params.items():
+                        logger.log_change(
+                            parameter_name=comp_key,
+                            old_value=None,
+                            new_value=comp_payload,
+                            category="material",
+                            panel_state=params,
+                            qml_state={"applied": True},
+                            applied_to_qml=True
+                        )
+                else:
+                    self.logger.warning("Failed to call applyMaterialUpdates()")
+            except Exception as e:
+                self.logger.error(f"Material update failed: {e}")
+                import traceback
+                traceback.print_exc()
+        else:
+            # Если QML ещё не готов, ставим в очередь
+            self._queue_qml_update("materials", params)
 
     @Slot(dict)
     def _on_effects_changed(self, params: Dict[str, Any]):
