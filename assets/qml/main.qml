@@ -181,16 +181,17 @@ Item {
     // Environment
     property string backgroundMode: "skybox"
     property color backgroundColor: "#1f242c"
-    property bool iblEnabled: true
-    property bool iblLightingEnabled: true
-    property bool iblBackgroundEnabled: true
+    property bool iblEnabled: true              // master-флаг (по UI) для освещения от IBL
+    property bool iblLightingEnabled: true      // реальный флаг освещения/отражений от IBL
+    property bool iblBackgroundEnabled: true    // независимый флаг показа skybox
     property real iblRotationDeg: 0
     property real iblIntensity: 1.3
 
-    onIblEnabledChanged: {
-        iblLightingEnabled = iblEnabled
-        iblBackgroundEnabled = iblEnabled
-    }
+    // ❌ Больше НЕ связываем фон со включением IBL
+    // onIblEnabledChanged: {
+    //     iblLightingEnabled = iblEnabled
+    //     iblBackgroundEnabled = iblEnabled
+    // }
 
     property bool fogEnabled: true
     property color fogColor: "#b0c4d8"
@@ -730,10 +731,14 @@ Item {
         }
 
         if (params.ibl) {
-            if (params.ibl.enabled !== undefined) iblEnabled = params.ibl.enabled
+            if (params.ibl.enabled !== undefined) {
+                iblEnabled = params.ibl.enabled
+                // По умолчанию включаем/выключаем освещение IBL согласно enabled, не затрагивая фон
+                iblLightingEnabled = params.ibl.enabled
+            }
             if (params.ibl.lighting_enabled !== undefined) iblLightingEnabled = params.ibl.lighting_enabled
             if (params.ibl.background_enabled !== undefined) iblBackgroundEnabled = params.ibl.background_enabled
-            if (params.ibl.rotation !== undefined) iblRotationDeg = params.ibl.rotation  // ✅ ИСПРАВЛЕНО: БЕЗ нормализации!
+            if (params.ibl.rotation !== undefined) iblRotationDeg = params.ibl.rotation
             if (params.ibl.intensity !== undefined) iblIntensity = params.ibl.intensity
             if (params.ibl.exposure !== undefined) iblIntensity = params.ibl.exposure
             if (params.ibl.source !== undefined) {
@@ -879,12 +884,12 @@ Item {
 
             backgroundMode: skyboxActive ? SceneEnvironment.SkyBox : SceneEnvironment.Color
             clearColor: root.backgroundColor
-            lightProbe: root.iblReady ? iblLoader.probe : null
+            lightProbe: (root.iblLightingEnabled && root.iblReady) ? iblLoader.probe : null   // ✅ IBL влияет ТОЛЬКО на освещение/отражения
             
-            // ✅ КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ v4.9.4: Skybox вращается ТОЛЬКО от iblRotationDeg
-            // НЕТ привязки к камере! Камера и skybox НЕЗАВИСИМЫ!
+            // ✅ Skybox вращается независимо от камеры, только от iblRotationDeg
             probeOrientation: Qt.vector3d(0, root.iblRotationDeg, 0)
             
+            // Экспозиция IBL (если lightProbe=null, не влияет)
             probeExposure: root.iblIntensity
             probeHorizon: 0.08
 

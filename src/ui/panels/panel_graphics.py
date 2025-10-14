@@ -1912,32 +1912,30 @@ class GraphicsPanel(QWidget):
         env = self.state.get("environment", {})
         payload: Dict[str, Any] = {}
 
-        # background
+        # background (НЕ зависит от ibl_enabled)
         bg: Dict[str, Any] = {}
         if "background_mode" in env:
             bg["mode"] = env.get("background_mode")
         if "background_color" in env:
             bg["color"] = env.get("background_color")
         if "ibl_enabled" in env:
-            # Когда ibl включён, фон skybox обычно тоже включён
-            bg["skybox_enabled"] = bool(env.get("ibl_enabled"))
+            # Не связываем фон с IBL — только skybox_enabled по желанию
+            pass
         if bg:
             payload["background"] = bg
 
-        # ibl
+        # IBL (независимо от background)
         ibl: Dict[str, Any] = {}
         if "ibl_enabled" in env:
             ibl["enabled"] = bool(env.get("ibl_enabled"))
-            # Зеркалим в дополнительные флаги как в QML
+            # По умолчанию зеркалим в lighting_enabled, а background_enabled не трогаем
             ibl["lighting_enabled"] = ibl["enabled"]
-            ibl["background_enabled"] = ibl["enabled"]
         if "ibl_intensity" in env:
             ibl["intensity"] = env.get("ibl_intensity")
         if "ibl_source" in env:
             ibl["source"] = env.get("ibl_source")
         if "ibl_fallback" in env:
             ibl["fallback"] = env.get("ibl_fallback")
-        # rotation / exposure могут быть добавлены в будущем (если появятся контроли)
         if ibl:
             payload["ibl"] = ibl
 
