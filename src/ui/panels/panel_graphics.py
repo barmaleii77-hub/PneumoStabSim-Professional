@@ -959,25 +959,33 @@ class GraphicsPanel(QWidget):
          self._environment_controls["skybox.blur"] = blur
          grid.addWidget(blur, 4, 0, 1, 2)
  
--        choose_hdr = QPushButton("Загрузить HDR…", self)
--        choose_hdr.clicked.connect(self._choose_hdr_file)
--        grid.addWidget(choose_hdr, 5, 0)
--
--        path_label = QLabel("", self)
--        path_label.setWordWrap(True)
--        self._environment_controls["ibl.path_label"] = path_label
--        grid.addWidget(path_label, 5, 1)
-+        # Выпадающий список HDR/EXR из папки
-+        hdr_combo = QComboBox(self)
-+        hdr_files = self._discover_hdr_files()
-+        for label, path in hdr_files:
-+            hdr_combo.addItem(label, path)
-+        def on_hdr_changed():
-+            self._update_environment("ibl_source", hdr_combo.currentData())
-+        hdr_combo.currentIndexChanged.connect(lambda _: on_hdr_changed())
-+        self._environment_controls["ibl.file"] = hdr_combo
-+        grid.addWidget(QLabel("HDR файл", self), 5, 0)
-+        grid.addWidget(hdr_combo, 5, 1)
+         # Выпадающий список HDR/EXR из папки
+         hdr_combo = QComboBox(self)
+         hdr_files = self._discover_hdr_files()
+         for label, path in hdr_files:
+             hdr_combo.addItem(label, path)
+         def on_hdr_changed():
+             self._update_environment("ibl_source", hdr_combo.currentData())
+         hdr_combo.currentIndexChanged.connect(lambda _: on_hdr_changed())
+         self._environment_controls["ibl.file"] = hdr_combo
+         grid.addWidget(QLabel("HDR файл", self), 5, 0)
+         grid.addWidget(hdr_combo, 5, 1)
++
++        # Размещение окружения относительно модели (X/Y) и привязка к камере
++        env_off_x = LabeledSlider("Смещение окружения X", -180.0, 180.0, 1.0, decimals=0, unit="°")
++        env_off_x.valueChanged.connect(lambda v: self._update_environment("ibl_offset_x", v))
++        self._environment_controls["ibl.offset_x"] = env_off_x
++        grid.addWidget(env_off_x, 6, 0, 1, 2)
++
++        env_off_y = LabeledSlider("Смещение окружения Y", -180.0, 180.0, 1.0, decimals=0, unit="°")
++        env_off_y.valueChanged.connect(lambda v: self._update_environment("ibl_offset_y", v))
++        self._environment_controls["ibl.offset_y"] = env_off_y
++        grid.addWidget(env_off_y, 7, 0, 1, 2)
++
++        env_bind = QCheckBox("Привязать окружение к камере", self)
++        env_bind.clicked.connect(lambda checked: self._update_environment("ibl_bind_to_camera", checked))
++        self._environment_controls["ibl.bind"] = env_bind
++        grid.addWidget(env_bind, 8, 0, 1, 2)
          return group
 
     def _build_fog_group(self) -> QGroupBox:
@@ -2088,6 +2096,13 @@ class GraphicsPanel(QWidget):
             ibl["source"] = env.get("ibl_source")
         if "ibl_fallback" in env:
             ibl["fallback"] = env.get("ibl_fallback")
+        # Новые параметры позиционирования окружения
+        if "ibl_offset_x" in env:
+            ibl["offset_x"] = env.get("ibl_offset_x")
+        if "ibl_offset_y" in env:
+            ibl["offset_y"] = env.get("ibl_offset_y")
+        if "ibl_bind_to_camera" in env:
+            ibl["bind_to_camera"] = bool(env.get("ibl_bind_to_camera"))
         if ibl:
             payload["ibl"] = ibl
 
@@ -2119,26 +2134,26 @@ class GraphicsPanel(QWidget):
 
         return payload
 
-    def _prepare_materials_payload(self) -> Dict[str, Any]:
-        return copy.deepcopy(self.state["materials"])
-
-    def _prepare_quality_payload(self) -> Dict[str, Any]:
-        """Готовит payload качества в формате, ожидаемом QML applyQualityUpdates()."""
-        q = copy.deepcopy(self.state.get("quality", {}))
-        # Нормализуем алиасы, если пользовательские действия создали вложенные структуры
-        if isinstance(q.get("fxaa"), dict) and "enabled" in q["fxaa"]:
-            q["fxaa_enabled"] = q["fxaa"]["enabled"]
-        if isinstance(q.get("taa"), dict) and "enabled" in q["taa"]:
-            q["taa_enabled"] = q["taa"]["enabled"]
-        return q
-
-    def _prepare_camera_payload(self) -> Dict[str, Any]:
-        """Готовит payload камеры, применимый в QML applyCameraUpdates()."""
-        return copy.deepcopy(self.state.get("camera", {}))
-
-    def _prepare_effects_payload(self) -> Dict[str, Any]:
-        """Готовит payload эффектов, применимый в QML applyEffectsUpdates()."""
-        return copy.deepcopy(self.state.get("effects", {}))
+    def _update_environment(self, key: str, value: Any) -> None:
+        """Update environment parameter"""
+        if self._updating_ui:
+            return 
+        
+        # Сохраняем старое значение для логирования
+        old_value = self.state["environment"].get(key)
+        
+        self.state["environment"][key] = value
+        
+        # Логируем изменение
+        self.graphics_logger.log_change(
+            parameter_name=key,
+            old_value=old_value,
+            new_value=value,
+            category="environment",
+            panel_state=self.state
+        )
+        
+        self._emit_environment()
 
     # ------------------------------------------------------------------
     # Settings persistence
@@ -2293,6 +2308,16 @@ class GraphicsPanel(QWidget):
                     if hdr_combo.itemData(i) == current:
                         hdr_combo.setCurrentIndex(i)
                         break
+
+        off_x = self._environment_controls.get("ibl.offset_x")
+        if isinstance(off_x, LabeledSlider):
+            off_x.set_value(self.state["environment"].get("ibl_offset_x", 0.0))
+        off_y = self._environment_controls.get("ibl.offset_y")
+        if isinstance(off_y, LabeledSlider):
+            off_y.set_value(self.state["environment"].get("ibl_offset_y", 0.0))
+        bind = self._environment_controls.get("ibl.bind")
+        if isinstance(bind, QCheckBox):
+            bind.setChecked(bool(self.state["environment"].get("ibl_bind_to_camera", False)))
 
     def _apply_quality_ui(self) -> None:
         self._sync_quality_preset_ui()

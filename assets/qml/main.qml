@@ -787,7 +787,10 @@ Item {
                     console.log("  🌟 IBL fallback:", iblFallbackSource)
                 }
             }
-        }
++            if (params.ibl.offset_x !== undefined) environmentOffsetX = Number(params.ibl.offset_x)
++            if (params.ibl.offset_y !== undefined) environmentOffsetY = Number(params.ibl.offset_y)
++            if (params.ibl.bind_to_camera !== undefined) environmentBindToCamera = !!params.ibl.bind_to_camera
+         }
 
         if (params.fog) {
             if (params.fog.enabled !== undefined) fogEnabled = params.fog.enabled
@@ -917,9 +920,14 @@ Item {
             // ✅ ПРОБА НУЖНА ДЛЯ ФОНА И/ИЛИ ОСВЕЩЕНИЯ
             lightProbe: (root.iblReady && (root.iblLightingEnabled || (root.backgroundMode === "skybox" && root.iblBackgroundEnabled))) ? iblLoader.probe : null
             
-            // ✅ Skybox вращается независимо от камеры, только от iblRotationDeg
-            probeOrientation: Qt.vector3d(0, root.iblRotationDeg, 0)
-            
+            // ✅ Skybox вращение: управляющиеся сдвиги X/Y и пользовательский поворот
+            // bind_to_camera — при true фон визуально следует за камерой (используем yawDeg)
+            probeOrientation: Qt.vector3d(
+                root.environmentOffsetX,
+                root.iblRotationDeg + (root.environmentBindToCamera ? root.yawDeg : 0) + root.environmentOffsetY,
+                0
+            )
+
             // Экспозиция IBL (если lightProbe=null, не влияет)
             probeExposure: root.iblIntensity
             probeHorizon: 0.08
