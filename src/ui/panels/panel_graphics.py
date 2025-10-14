@@ -1034,13 +1034,13 @@ class GraphicsPanel(QWidget):
         grid.addWidget(taa_check, 3, 0, 1, 2)
 
         taa_strength = LabeledSlider("Сила TAA", 0.0, 1.0, 0.01, decimals=2)
-        taa_strength.valueChanged.connect(lambda v: self._update_quality(" taa.strength", v))
+        taa_strength.valueChanged.connect(lambda v: self._update_quality("taa.strength", v))
         self._quality_controls["taa.strength"] = taa_strength
         grid.addWidget(taa_strength, 4, 0, 1, 2)
 
         taa_motion = QCheckBox("Отключать TAA при движении камеры", self)
         taa_motion.clicked.connect(lambda checked: self._update_quality("taa_motion_adaptive", checked))
-        self._qualitycontrols["taa_motion_adaptive"] = taa_motion
+        self._quality_controls["taa_motion_adaptive"] = taa_motion
         grid.addWidget(taa_motion, 5, 0, 1, 2)
 
         fxaa_check = QCheckBox("Включить FXAA", self)
@@ -1580,7 +1580,7 @@ class GraphicsPanel(QWidget):
         self.state["environment"][key] = value
         
         # Логируем изменение
-        self.graphics_logger.log_change(
+        self graphics_logger.log_change(
             parameter_name=key,
             old_value=old_value,
             new_value=value,
