@@ -1,0 +1,157 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "🚀 PneumoStabSim App (Главный)",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/app.py",
+            "args": [],
+            "console": "integratedTerminal",
+            "cwd": "${workspaceFolder}",
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}/src",
+                "QT_LOGGING_RULES": "qt.qml.debug=false",
+                "QSG_INFO": "0"
+            },
+            "justMyCode": false,
+            "stopOnEntry": false,
+            "presentation": {
+                "group": "main",
+                "order": 1
+            }
+        },
+        {
+            "name": "🐛 Verbose Mode (подробно)",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/app.py",
+            "args": ["--verbose"],
+            "console": "integratedTerminal",
+            "cwd": "${workspaceFolder}",
+            "env": {  
+                "PYTHONPATH": "${workspaceFolder}/src",
+                "QT_LOGGING_RULES": "*.debug=true",
+                "QSG_INFO": "1",
+                "QT_ASSUME_STDERR_HAS_CONSOLE": "1"
+            },
+            "justMyCode": false,
+            "stopOnEntry": false,
+            "presentation": {
+                "group": "debug",
+                "order": 1
+            }
+        },
+        {
+            "name": "🧪 Test Mode (Автозакрытие 5 сек)",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/app.py",
+            "args": ["--test-mode"],
+            "console": "integratedTerminal",
+            "cwd": "${workspaceFolder}",
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}/src"
+            },
+            "justMyCode": false,
+            "stopOnEntry": false,
+            "presentation": {
+                "group": "test",
+                "order": 1
+            }
+        },
+        {
+            "name": "🔓 Non-blocking Mode (Терминал свободен)",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/app.py",
+            "args": ["--no-block"],
+            "console": "integratedTerminal",
+            "cwd": "${workspaceFolder}",
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}/src"
+            },
+            "justMyCode": false,
+            "stopOnEntry": false,
+            "presentation": {
+                "group": "main",
+                "order": 2
+            }
+        },
+        {
+            "name": "🛡️ Safe Mode (Совместимость)",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/app.py",
+            "args": ["--safe-mode"],
+            "console": "integratedTerminal",
+            "cwd": "${workspaceFolder}",
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}/src"
+            },
+            "justMyCode": false,
+            "stopOnEntry": false,
+            "presentation": {
+                "group": "main",
+                "order": 3
+            }
+        },
+        {
+            "name": "🔧 Current File (Текущий файл)",
+            "type": "python",
+            "request": "launch",
+            "program": "${file}",
+            "console": "integratedTerminal",
+            "cwd": "${workspaceFolder}",
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}/src"
+            },
+            "justMyCode": false,
+            "presentation": {
+                "group": "utility",
+                "order": 1
+            }
+        },
+        {
+            "name": "🧪 Run Tests (PyTest)",
+            "type": "python",
+            "request": "launch",
+            "module": "pytest",
+            "args": [
+                "tests/",
+                "-v",
+                "--tb=short",
+                "--color=yes"
+            ],
+            "console": "integratedTerminal",
+            "cwd": "${workspaceFolder}",
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}/src"
+            },
+            "justMyCode": false,
+            "presentation": {
+                "group": "test",
+                "order": 2
+            }
+        },
+        {
+            "name": "🧪 Run Tests with Coverage",
+            "type": "python",
+            "request": "launch",
+            "module": "pytest",
+            "args": [
+                "--cov=src", "--cov-report=term", "--cov-report=html", "tests/"
+            ],
+            "console": "integratedTerminal",
+            "cwd": "${workspaceFolder}",
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}/src"
+            },
+            "justMyCode": false,
+            "presentation": {
+                "group": "test",
+                "order": 3
+            }
+        }
+    ]
+}

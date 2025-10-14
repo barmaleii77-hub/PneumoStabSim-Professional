@@ -624,6 +624,11 @@ bld/
 !.vscode/extensions.json
 !.vscode/*.code-snippets
 
+# --- Allowlist for VS hidden folder: keep only launch.vs.json in VCS ---
+!.vs/
+.vs/*
+!.vs/launch.vs.json
+
 # ================================================================================================
 # Qt & QML
 # ================================================================================================
@@ -829,6 +834,16 @@ archive/old/
 !pytest.ini
 !requirements*.txt
 !.editorconfig
+
+# ================================================================================================
+# Keep Visual Studio and VSCode launch configurations in VCS
+# ================================================================================================
+!.vs/launch.vs.json
+!.vscode/
+!.vscode/launch.json
+!.vscode/tasks.json
+!.vscode/settings.json
+!.vscode/extensions.json
 
 # ================================================================================================
 # END OF .GITIGNORE

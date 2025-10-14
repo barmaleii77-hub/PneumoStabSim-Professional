@@ -1,0 +1,490 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "🚀 Запуск PneumoStabSim (Главный)",
+            "type": "shell",
+            "command": "py",
+            "args": ["app.py"],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "options": {
+                "cwd": "${workspaceFolder}",
+                "env": {
+                    "PYTHONPATH": "${workspaceFolder}/src",
+                    "QT_LOGGING_RULES": "qt.qml.debug=false",
+                    "QSG_INFO": "0"
+                }
+            },
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "new",
+                "showReuseMessage": true,
+                "clear": false,
+                "group": "main"
+            },
+            "problemMatcher": [],
+            "detail": "Запуск основного приложения - всегда использует main_optimized.qml"
+        },
+        {
+            "label": "🐛 Verbose Mode (подробно)",
+            "type": "shell",
+            "command": "py",
+            "args": ["app.py", "--verbose"],
+            "group": "build",
+            "options": {
+                "cwd": "${workspaceFolder}",
+                "env": {
+                    "PYTHONPATH": "${workspaceFolder}/src",
+                    "QT_LOGGING_RULES": "*.debug=true",
+                    "QSG_INFO": "1",
+                    "QT_ASSUME_STDERR_HAS_CONSOLE": "1"
+                }
+            },
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "new",
+                "group": "debug"
+            },
+            "problemMatcher": [],
+            "detail": "Запуск с расширенной диагностикой и логированием"
+        },
+        {
+            "label": "🧪 Test Mode (Автозакрытие 5с)",
+            "type": "shell",
+            "command": "py",
+            "args": ["app.py", "--test-mode"],
+            "group": "test",
+            "options": {
+                "cwd": "${workspaceFolder}",
+                "env": {
+                    "PYTHONPATH": "${workspaceFolder}/src"
+                }
+            },
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "new",
+                "group": "test"
+            },
+            "problemMatcher": [],
+            "detail": "Быстрый тест - приложение закроется через 5 секунд"
+        },
+        {
+            "label": "🔓 Non-blocking Mode (Терминал свободен)",
+            "type": "shell",
+            "command": "py",
+            "args": ["app.py", "--no-block"],
+            "group": "build",
+            "options": {
+                "cwd": "${workspaceFolder}",
+                "env": {
+                    "PYTHONPATH": "${workspaceFolder}/src"
+                }
+            },
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "new",
+                "group": "main"
+            },
+            "problemMatcher": [],
+            "detail": "Запуск в фоновом режиме, терминал остается свободным"
+        },
+        {
+            "label": "🛡️ Safe Mode (Совместимость)",
+            "type": "shell",
+            "command": "py",
+            "args": ["app.py", "--safe-mode"],
+            "group": "build",
+            "options": {
+                "cwd": "${workspaceFolder}",
+                "env": {
+                    "PYTHONPATH": "${workspaceFolder}/src"
+                }
+            },
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "new",
+                "group": "main"
+            },
+            "problemMatcher": [],
+            "detail": "Безопасный режим для старых систем"
+        },
+        {
+            "label": "📦 Установка зависимостей",
+            "type": "shell",
+            "command": "py",
+            "args": ["-m", "pip", "install", "-r", "requirements.txt"],
+            "group": "build",
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "new",
+                "group": "setup"
+            },
+            "problemMatcher": [],
+            "detail": "Установка всех необходимых Python пакетов"
+        },
+        {
+            "label": "📦 Обновление зависимостей",
+            "type": "shell",
+            "command": "py",
+            "args": ["-m", "pip", "install", "--upgrade", "-r", "requirements.txt"],
+            "group": "build",
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "new",
+                "group": "setup"
+            },
+            "problemMatcher": [],
+            "detail": "Обновление Python пакетов до последних версий"
+        },
+        {
+            "label": "🧪 Запуск всех тестов",
+            "type": "shell",
+            "command": "py",
+            "args": ["-m", "pytest", "tests/", "-v", "--tb=short", "--color=yes"],
+            "group": "test",
+            "options": {
+                "cwd": "${workspaceFolder}",
+                "env": {
+                    "PYTHONPATH": "${workspaceFolder}/src"
+                }
+            },
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "new",
+                "group": "test"
+            },
+            "problemMatcher": [],
+            "detail": "Запуск всего набора тестов pytest"
+        },
+        {
+            "label": "🧪 Быстрые тесты (без UI)",
+            "type": "shell",
+            "command": "py",
+            "args": ["-m", "pytest", "tests/", "-v", "-x", "--tb=short", "-k", "not ui"],
+            "group": "test",
+            "options": {
+                "cwd": "${workspaceFolder}",
+                "env": {
+                    "PYTHONPATH": "${workspaceFolder}/src"
+                }
+            },
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "new",
+                "group": "test"
+            },
+            "problemMatcher": [],
+            "detail": "Быстрые тесты без пользовательского интерфейса"
+        },
+        {
+            "label": "🧪 Тесты физики",
+            "type": "shell",
+            "command": "py",
+            "args": ["-m", "pytest", "tests/test_physics*.py", "tests/test_integration*.py", "-v"],
+            "group": "test",
+            "options": {
+                "cwd": "${workspaceFolder}",
+                "env": {
+                    "PYTHONPATH": "${workspaceFolder}/src"
+                }
+            },
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "new",
+                "group": "test"
+            },
+            "problemMatcher": [],
+            "detail": "Тестирование физической модели и интеграции"
+        },
+        {
+            "label": "🧪 Тесты UI",
+            "type": "shell",
+            "command": "py",
+            "args": ["-m", "pytest", "tests/ui/", "tests/graphics/", "-v", "--tb=short"],
+            "group": "test",
+            "options": {
+                "cwd": "${workspaceFolder}",
+                "env": {
+                    "PYTHONPATH": "${workspaceFolder}/src"
+                }
+            },
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "new",
+                "group": "test"
+            },
+            "problemMatcher": [],
+            "detail": "Тестирование пользовательского интерфейса и графики"
+        },
+        {
+            "label": "🔍 QML Диагностика",
+            "type": "shell",
+            "command": "py",
+            "args": ["qml_diagnostic.py"],
+            "group": "build",
+            "options": {
+                "cwd": "${workspaceFolder}",
+                "env": {
+                    "PYTHONPATH": "${workspaceFolder}/src"
+                }
+            },
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "new",
+                "group": "utility"
+            },
+            "problemMatcher": [],
+            "detail": "Диагностика загрузки QML файлов"
+        },
+        {
+            "label": "🚑 Проверка состояния системы",
+            "type": "shell",
+            "command": "py",
+            "args": ["scripts/health_check.py"],
+            "group": "build",
+            "options": {
+                "cwd": "${workspaceFolder}",
+                "env": {
+                    "PYTHONPATH": "${workspaceFolder}/src"
+                }
+            },
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "new",
+                "group": "utility"
+            },
+            "problemMatcher": [],
+            "detail": "Комплексная проверка системы и зависимостей"
+        },
+        {
+            "label": "📊 Комплексное тестирование",
+            "type": "shell",
+            "command": "py",
+            "args": ["scripts/comprehensive_test.py"],
+            "group": "test",
+            "options": {
+                "cwd": "${workspaceFolder}",
+                "env": {
+                    "PYTHONPATH": "${workspaceFolder}/src"
+                }
+            },
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "new",
+                "group": "test"
+            },
+            "problemMatcher": [],
+            "detail": "Полное тестирование всех компонентов системы"
+        },
+        {
+            "label": "🔧 Быстрое исправление",
+            "type": "shell",
+            "command": "py",
+            "args": ["quick_fix.py"],
+            "group": "build",
+            "options": {
+                "cwd": "${workspaceFolder}",
+                "env": {
+                    "PYTHONPATH": "${workspaceFolder}/src"
+                }
+            },
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "new",
+                "group": "utility"
+            },
+            "problemMatcher": [],
+            "detail": "Автоматическое исправление известных проблем"
+        },
+        {
+            "label": "🧹 Очистка кэша Python",
+            "type": "shell",
+            "command": "powershell",
+            "args": [
+                "-NoProfile",
+                "-ExecutionPolicy", "Bypass",
+                "-Command",
+                "Get-ChildItem -Path . -Recurse -Filter '__pycache__' -Directory | ForEach-Object { Remove-Item -Path $_.FullName -Recurse -Force -Verbose }"
+            ],
+            "group": "build",
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "new",
+                "group": "utility"
+            },
+            "problemMatcher": [],
+            "detail": "Удаление всех кэш-файлов Python"
+        },
+        {
+            "label": "📄 Генерация отчета зависимостей",
+            "type": "shell",
+            "command": "powershell",
+            "args": [
+                "-NoProfile",
+                "-ExecutionPolicy", "Bypass",
+                "-Command",
+                "$req = pip freeze; Set-Content -Path 'requirements-current.txt' -Value $req -Encoding UTF8"
+            ],
+            "group": "build",
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "new",
+                "group": "utility"
+            },
+            "problemMatcher": [],
+            "detail": "Создание актуального списка установленных пакетов"
+        },
+        {
+            "label": "🔍 Проверка кода (Flake8)",
+            "type": "shell",
+            "command": "py",
+            "args": ["-m", "flake8", "src/", "--max-line-length=100", "--ignore=E203,W503,E501,F401"],
+            "group": "test",
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "new",
+                "group": "quality"
+            },
+            "problemMatcher": [],
+            "detail": "Проверка качества кода с помощью Flake8"
+        },
+        {
+            "label": "🎨 Форматирование кода (Black)",
+            "type": "shell",
+            "command": "py",
+            "args": ["-m", "black", "src/", "--line-length=100", "--target-version=py38"],
+            "group": "build",
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "new",
+                "group": "quality"
+            },
+            "problemMatcher": [],
+            "detail": "Автоматическое форматирование кода Black"
+        },
+        {
+            "label": "📊 Покрытие тестами",
+            "type": "shell",
+            "command": "py",
+            "args": ["-m", "pytest", "--cov=src", "--cov-report=html", "--cov-report=term", "tests/"],
+            "group": "test",
+            "options": {
+                "cwd": "${workspaceFolder}",
+                "env": {
+                    "PYTHONPATH": "${workspaceFolder}/src"
+                }
+            },
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "new",
+                "group": "test"
+            },
+            "problemMatcher": [],
+            "detail": "Анализ покрытия кода тестами с HTML отчетом"
+        },
+        {
+            "label": "🔄 Git Status",
+            "type": "shell",
+            "command": "git",
+            "args": ["status", "--porcelain"],
+            "group": "build",
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "new",
+                "group": "git"
+            },
+            "problemMatcher": [],
+            "detail": "Проверка статуса Git репозитория"
+        },
+        {
+            "label": "🏷️ Git Info",
+            "type": "shell",
+            "command": "powershell",
+            "args": [
+                "-NoProfile",
+                "-ExecutionPolicy", "Bypass",
+                "-Command",
+                "Write-Host 'Текущая ветка:' (git branch --show-current); Write-Host 'Последний коммит:' (git log -1 --oneline); Write-Host 'Файлов изменено:' (git status --porcelain | Measure-Object -Line).Lines"
+            ],
+            "group": "build",
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "new",
+                "group": "git"
+            },
+            "problemMatcher": [],
+            "detail": "Подробная информация о состоянии Git репозитория"
+        }
+    ]
+}
