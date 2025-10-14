@@ -10,6 +10,18 @@ import signal
 import argparse
 import subprocess
 from pathlib import Path
+import json
+
+# Ensure project src is importable without relying on external PYTHONPATH
+try:
+    PROJECT_ROOT = Path(__file__).parent.resolve()
+    SRC_DIR = PROJECT_ROOT / "src"
+    if SRC_DIR.exists():
+        src_str = str(SRC_DIR)
+        if src_str not in sys.path:
+            sys.path.insert(0, src_str)
+except Exception:
+    pass
 
 # =============================================================================
 # Накопление warnings/errors
@@ -24,6 +36,17 @@ def log_warning(msg: str):
 def log_error(msg: str):
     """Накапливает error для вывода в конце"""
     _warnings_errors.append(("ERROR", msg))
+
+# =============================================================================
+# Load .env early (environment variables)
+# =============================================================================
+try:
+    from dotenv import load_dotenv
+    # Load variables from .env if present, do not override already-set env vars
+    load_dotenv(dotenv_path=Path('.env'), override=False)
+except Exception as e:
+    # Non-fatal if dotenv not installed; requirements include it
+    pass
 
 # =============================================================================
 # QtQuick3D Environment Setup
@@ -239,7 +262,79 @@ def qt_message_handler(mode, context, message):
     """Handle Qt log messages - redirect to logger"""
     global app_logger
     if app_logger:
-        app_logger.debug(f"Qt: {message}")
+        try:
+            app_logger.debug(f"Qt: {message}")
+        except Exception:
+            pass
+    # Parse QML event logs like: "qml: [EVENT] MOUSE_PRESS: {json}"
+    try:
+        if isinstance(message, str):
+            msg = message.strip()
+            # Strip common QML prefix
+            if msg.lower().startswith("qml:"):
+                msg = msg[4:].strip()
+            # Find event marker anywhere in the message
+            idx = msg.find("[EVENT]")
+            if idx == -1:
+                return
+            event_str = msg[idx:]
+            # Split tag and payload
+            parts = event_str.split(":", 1)
+            event_tag = parts[0].strip()  # e.g. "[EVENT] MOUSE_PRESS"
+            payload = {}
+            evt_type = event_tag.replace("[EVENT]", "").strip().upper()
+            if len(parts) > 1:
+                payload_str = parts[1].strip()
+                # Some engines may append extra text after JSON; try safe parse
+                try:
+                    payload = json.loads(payload_str)
+                except Exception:
+                    # Try to cut at last closing brace
+                    try:
+                        last = payload_str.rfind("}")
+                        if last != -1:
+                            payload = json.loads(payload_str[: last + 1])
+                    except Exception:
+                        payload = {}
+
+            # Forward to EventLogger
+            try:
+                from src.common.event_logger import get_event_logger, EventType
+                logger = get_event_logger()
+                if evt_type.startswith("MOUSE_PRESS"):
+                    logger.log_mouse_press(
+                        x=payload.get("x", 0),
+                        y=payload.get("y", 0),
+                        button=payload.get("button", "unknown"),
+                        component=payload.get("component", "main.qml")
+                    )
+                elif evt_type.startswith("MOUSE_DRAG"):
+                    logger.log_mouse_drag(
+                        delta_x=payload.get("delta_x", 0),
+                        delta_y=payload.get("delta_y", 0),
+                        component=payload.get("component", "main.qml")
+                    )
+                elif evt_type.startswith("MOUSE_WHEEL"):
+                    logger.log_mouse_wheel(
+                        delta=payload.get("delta", 0),
+                        component=payload.get("component", "main.qml")
+                    )
+                elif evt_type.startswith("MOUSE_RELEASE"):
+                    logger.log_event(
+                        event_type=EventType.MOUSE_RELEASE,
+                        component="main.qml",
+                        action="mouse_release",
+                        new_value={
+                            "x": payload.get("x", 0),
+                            "y": payload.get("y", 0),
+                            "was_dragging": payload.get("was_dragging", False)
+                        },
+                        source="qml"
+                    )
+            except Exception:
+                pass
+    except Exception:
+        pass
 
 def parse_arguments():
     """Parse command line arguments"""
@@ -403,6 +498,94 @@ def run_log_diagnostics():
         import traceback
         traceback.print_exc()
 
+    # ✅ Доп. авто‑диагностика IBL: поверх общего отчета печатаем явные предупреждения
+    try:
+        ibl_dir = Path("logs/ibl")
+        if ibl_dir.exists():
+            latest = None
+            logs = sorted(ibl_dir.glob("ibl_signals_*.log"), key=lambda p: p.stat().st_mtime, reverse=True)
+            if logs:
+                latest = logs[0]
+            if latest and latest.exists():
+                tail_lines = latest.read_text(encoding="utf-8", errors="ignore").splitlines()[-200:]
+                joined = "\n".join(tail_lines)
+                has_critical = "Both HDR probes failed" in joined or ("| ERROR | IblProbeLoader |" in joined and "CRITICAL" in joined)
+                has_error = "Texture status: Error" in joined
+                used_fallback = "switching to fallback" in joined or "fallback" in joined.lower()
+                if has_critical or has_error or used_fallback:
+                    print("\n" + "-"*60)
+                    print("🌟 IBL DIAGNOSTICS (auto)")
+                    print(f"Файл: {latest}")
+                    if has_critical:
+                        print("❌ Обе HDR‑текстуры не загрузились. Фон будет цветным. Выберите другой HDR.")
+                    if has_error:
+                        print("⚠️ Обнаружены ошибки загрузки HDR (Texture status: Error). Проверьте путь/файл.")
+                    if used_fallback and not has_critical:
+                        print("ℹ️ Включён резервный HDR (fallback). Основной файл недоступен.")
+
+                    # Доп. разбор логов: какие конкретно URL пробовали и существуют ли локальные файлы
+                    try:
+                        import re
+                        from urllib.parse import urlparse, unquote
+
+                        def url_to_path(u: str):
+                            u = u.strip()
+                            if u.startswith("file:"):
+                                pr = urlparse(u)
+                                p = unquote(pr.path or "")
+                                # Windows: "/C:/..." -> "C:/..."
+                                if os.name == 'nt' and p.startswith('/') and len(p) > 2 and p[2] == ':':
+                                    p = p[1:]
+                                return p.replace('/', os.sep)
+                            # non-file schemes are not local files
+                            return None
+
+                        last_primary = None
+                        last_load = None
+                        last_failed = None
+                        last_fallback = None
+
+                        for line in tail_lines:
+                            if "Primary source changed:" in line:
+                                m = re.search(r"Primary source changed:\s*(\S+)", line)
+                                if m:
+                                    last_primary = m.group(1)
+                            if "Start loading HDR into slot" in line:
+                                m = re.search(r"Start loading HDR into slot\s*\d+\s*:\s*(\S+)", line)
+                                if m:
+                                    last_load = m.group(1)
+                            if "HDR probe FAILED at" in line:
+                                m = re.search(r"HDR probe FAILED at\s*(\S+)", line)
+                                if m:
+                                    last_failed = m.group(1)
+                            if "switching to fallback" in line:
+                                m = re.search(r"switching to fallback:\s*(\S+)", line, re.IGNORECASE)
+                                if m:
+                                    last_fallback = m.group(1)
+
+                        def report(label, url):
+                            if not url:
+                                return
+                            p = url_to_path(url)
+                            if p is None:
+                                print(f"   • {label}: {url} (non-file URL)")
+                            else:
+                                exists = os.path.exists(p)
+                                print(f"   • {label}: {url}")
+                                print(f"       → Local path: {p}")
+                                print(f"       → Exists: {'YES' if exists else 'NO'}")
+
+                        print("\n   🔎 Resolved paths:")
+                        report("Primary", last_primary)
+                        report("LoadAttempt", last_load)
+                        report("FailedAt", last_failed)
+                        report("Fallback", last_fallback)
+                    except Exception:
+                        pass
+                    print("-"*60)
+    except Exception:
+        pass
+
 def main():
     """Main application function - CLEAN OUTPUT"""
     global app_instance, window_instance, app_logger
@@ -489,9 +672,32 @@ def main():
         print_warnings_errors()
         
         print(f"\n✅ Application closed (code: {result})\n")
-        
-        # ✅ ВСЕГДА запускаем ВСТРОЕННУЮ диагностику логов после выхода
-        run_log_diagnostics()
+
+        # ✅ Готовим логи к анализу (экспорт событий, закрытие IBL логгера)
+        try:
+            from src.common.event_logger import get_event_logger
+            try:
+                get_event_logger().export_events()
+            except Exception:
+                pass
+        except Exception:
+            pass
+        try:
+            # Закрываем IBL логгер, если он использовался
+            from src.ui.ibl_logger import _ibl_logger_instance as _ibl
+            if _ibl is not None:
+                try:
+                    _ibl.close()
+                except Exception:
+                    pass
+        except Exception:
+            pass
+
+        # ✅ Автодиагностика ТОЛЬКО при нормальном выходе
+        if result == 0:
+            run_log_diagnostics()
+        else:
+            print("⚠️  Пропуск диагностики: приложение завершилось с ошибкой")
         
         return result
         

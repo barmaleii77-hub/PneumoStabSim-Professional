@@ -13,37 +13,83 @@ echo  PneumoStabSim Professional - Virtual Environment Setup
 echo ================================================================
 echo.
 
+rem Detect available Python command with preference for supported minors (3.11 -> 3.10 -> 3.9)
+set "PYTHON_CMD="
+py -3.11 -c "import sys" >nul 2>&1
+if not errorlevel 1 set "PYTHON_CMD=py -3.11"
+if not defined PYTHON_CMD (
+    py -3.10 -c "import sys" >nul 2>&1
+    if not errorlevel 1 set "PYTHON_CMD=py -3.10"
+)
+if not defined PYTHON_CMD (
+    py -3.9 -c "import sys" >nul 2>&1
+    if not errorlevel 1 set "PYTHON_CMD=py -3.9"
+)
+if not defined PYTHON_CMD (
+    py -3 -c "import sys" >nul 2>&1
+    if not errorlevel 1 set "PYTHON_CMD=py -3"
+)
+if not defined PYTHON_CMD (
+    python -c "import sys" >nul 2>&1
+    if not errorlevel 1 set "PYTHON_CMD=python"
+)
+if not defined PYTHON_CMD (
+    python3 -c "import sys" >nul 2>&1
+    if not errorlevel 1 set "PYTHON_CMD=python3"
+)
+if not defined PYTHON_CMD (
+    echo ERROR: Python not found or not working
+    echo Please install Python 3.9-3.11 and ensure it's in PATH
+    pause
+    exit /b 1
+)
+
 rem Check if virtual environment exists
 if not exist "venv\Scripts\activate.bat" (
     echo Creating virtual environment...
     
-    rem Try different Python commands for compatibility
-    python -c "import sys; exit(0)" >nul 2>&1
-    if errorlevel 1 (
-        echo Trying python3...
-        python3 -c "import sys; exit(0)" >nul 2>&1
-        if errorlevel 1 (
-            echo ERROR: Python not found or not working
-            echo Please install Python 3.8-3.11 and ensure it's in PATH
-            pause
-            exit /b 1
-        )
-        set PYTHON_CMD=python3
-    ) else (
-        set PYTHON_CMD=python
+    rem Detect available Python command with preference for supported minors
+    set "PYTHON_CMD="
+    rem Try py -3.11
+    if not defined PYTHON_CMD (
+        py -3.11 -c "import sys" >nul 2>&1
+        if not errorlevel 1 set "PYTHON_CMD=py -3.11"
+    )
+    rem Try py -3.10
+    if not defined PYTHON_CMD (
+        py -3.10 -c "import sys" >nul 2>&1
+        if not errorlevel 1 set "PYTHON_CMD=py -3.10"
+    )
+    rem Try py -3.9
+    if not defined PYTHON_CMD (
+        py -3.9 -c "import sys" >nul 2>&1
+        if not errorlevel 1 set "PYTHON_CMD=py -3.9"
+    )
+    rem Generic py -3 as fallback
+    if not defined PYTHON_CMD (
+        py -3 -c "import sys" >nul 2>&1
+        if not errorlevel 1 set "PYTHON_CMD=py -3"
+    )
+    rem Fallbacks: python, python3
+    if not defined PYTHON_CMD (
+        python -c "import sys" >nul 2>&1
+        if not errorlevel 1 set "PYTHON_CMD=python"
+    )
+    if not defined PYTHON_CMD (
+        python3 -c "import sys" >nul 2>&1
+        if not errorlevel 1 set "PYTHON_CMD=python3"
+    )
+    if not defined PYTHON_CMD (
+        echo ERROR: Python not found or not working
+        echo Please install Python 3.8+ and ensure it's in PATH
+        pause
+        exit /b 1
     )
     
-    rem Check Python version before creating venv
-    %PYTHON_CMD% -c "import sys; major, minor = sys.version_info[:2]; print(f'Using Python {major}.{minor}'); exit(0 if (3, 8) <= (major, minor) <= (3, 12) else 1)"
+    rem Check Python version before creating venv (warn outside 3.8-3.13), auto-continue
+    %PYTHON_CMD% -c "import sys; major, minor = sys.version_info[:2]; print(f'Using Python {major}.{minor}'); exit(0 if (3, 8) <= (major, minor) <= (3, 13) else 1)"
     if errorlevel 1 (
-        echo WARNING: Python version may not be fully compatible
-        echo Recommended: Python 3.8 - 3.11
-        echo Continue anyway? (Y/N)
-        set /p choice=
-        if /i not "%choice%"=="Y" if /i not "%choice%"=="y" (
-            echo Setup cancelled by user
-            exit /b 1
-        )
+        echo WARNING: Python version may not be fully compatible (recommended 3.8 - 3.13). Continuing...
     )
     
     %PYTHON_CMD% -m venv venv --clear
@@ -111,13 +157,16 @@ if exist "requirements.txt" (
             
             echo Installing PyOpenGL...
             pip install "PyOpenGL>=3.1.0" "PyOpenGL-accelerate>=3.1.0" --disable-pip-version-check
+
+            echo Installing python-dotenv...
+            pip install "python-dotenv>=1.0.0" --disable-pip-version-check
         )
     )
 ) else (
     echo WARNING: requirements.txt not found, installing basic packages...
     
     rem Install basic packages with version constraints for compatibility
-    pip install "numpy>=1.21.0,<2.0.0" "scipy>=1.9.0,<2.0.0" "PySide6>=6.4.0,<7.0.0" "matplotlib>=3.5.0" "PyOpenGL>=3.1.0" "PyOpenGL-accelerate>=3.1.0" --disable-pip-version-check
+    pip install "numpy>=1.21.0,<2.0.0" "scipy>=1.9.0,<2.0.0" "PySide6>=6.4.0,<7.0.0" "matplotlib>=3.5.0" "PyOpenGL>=3.1.0" "PyOpenGL-accelerate>=3.1.0" "python-dotenv>=1.0.0" --disable-pip-version-check
 )
 
 rem Set environment variables for optimal operation

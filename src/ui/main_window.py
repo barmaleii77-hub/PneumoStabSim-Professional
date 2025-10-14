@@ -283,6 +283,13 @@ class MainWindow(QMainWindow):
             self._qml_root_object = self._qquick_widget.rootObject()
             if not self._qml_root_object:
                 raise RuntimeError("Не удалось получить корневой объект QML")
+
+            # ✅ БАЗОВАЯ ДИРЕКТОРИЯ ДЛЯ РЕЗОЛЮЦИИ ПУТЕЙ (для _resolve_qurl)
+            try:
+                self._qml_base_dir = qml_path.parent.resolve()
+                print(f"    📁 Базовая директория QML: {self._qml_base_dir}")
+            except Exception:
+                self._qml_base_dir = None
             
             # ✅ Connect QML ACK signal for graphics logger sync
             try:
@@ -1090,17 +1097,110 @@ class MainWindow(QMainWindow):
         return current
 
     def _resolve_qurl(self, value: str) -> Optional[QUrl]:
+        """Resolve HDR source to a valid QUrl, searching multiple asset folders.
+
+        Handles:
+        - file:/// URLs (returned as-is)
+        - Windows backslash paths (normalizes to /)
+        - Absolute filesystem paths
+        - Relative paths anchored at project root when starting with 'assets/'
+        - Bare filenames searched in common HDR folders
+        - Relative paths from QML base dir (assets/qml)
+        """
         if not value:
             return None
 
-        url = QUrl(value)
-        if url.isRelative() or not url.isValid() or not url.scheme():
-            base = getattr(self, "_qml_base_dir", None)
-            if isinstance(base, Path):
-                candidate = (base / value).resolve()
-                if candidate.exists():
-                    return QUrl.fromLocalFile(str(candidate))
-        return url
+        try:
+            # Already a file URL
+            if isinstance(value, QUrl):
+                return value
+
+            raw = str(value).strip()
+
+            # If already a file URL in string form
+            if raw.lower().startswith("file:"):
+                return QUrl(raw)
+
+            # Normalize separators (avoid assets/qml/assets\\qml\\assets duplications)
+            norm = raw.replace("\\", "/")
+
+            # Absolute filesystem path
+            try:
+                p_abs = Path(norm)
+                if p_abs.is_absolute() and p_abs.exists():
+                    return QUrl.fromLocalFile(str(p_abs.resolve()))
+            except Exception:
+                pass
+
+            # Determine roots
+            qml_base: Optional[Path] = getattr(self, "_qml_base_dir", None)
+            project_root: Optional[Path] = None
+            if isinstance(qml_base, Path):
+                # assets/qml → project
+                try:
+                    project_root = qml_base.parent.parent
+                except Exception:
+                    project_root = Path.cwd()
+            else:
+                project_root = Path.cwd()
+
+            candidates: list[Path] = []
+
+            # If value starts with 'assets/' treat as project-root relative
+            if norm.startswith("assets/"):
+                candidates.append((project_root / norm))
+            else:
+                # Try relative to QML base (handles ../hdr/*.hdr etc.)
+                if isinstance(qml_base, Path):
+                    candidates.append((qml_base / norm))
+                # Then as project-root relative
+                candidates.append((project_root / norm))
+
+            # If it's a bare filename, search typical HDR folders
+            name_only = Path(norm).name
+            if name_only == norm:  # looks like just a filename
+                search_dirs = [
+                    project_root / "assets" / "hdr",
+                    project_root / "assets" / "hdri",
+                    project_root / "assets" / "qml" / "assets",
+                ]
+                for d in search_dirs:
+                    candidates.append(d / name_only)
+
+            # Also try to fix accidental duplication like 'assets/qml/assets/qml/assets/..'
+            # by collapsing repeated segments after normalization
+            def collapse_assets(path_str: str) -> str:
+                parts = path_str.split('/')
+                out = []
+                for part in parts:
+                    if out and part == 'assets' and out[-1] == 'assets':
+                        continue
+                    out.append(part)
+                return '/'.join(out)
+
+            more: list[Path] = []
+            for c in list(candidates):
+                fixed = collapse_assets(str(c).replace("\\", "/"))
+                more.append(Path(fixed))
+            candidates.extend(more)
+
+            # Return first existing candidate
+            for c in candidates:
+                try:
+                    if c.exists():
+                        return QUrl.fromLocalFile(str(c.resolve()))
+                except Exception:
+                    continue
+
+            # Fallback: return as relative URL (normalized) so QML may still resolve it
+            return QUrl(norm)
+
+        except Exception:
+            # Last resort
+            try:
+                return QUrl(str(value))
+            except Exception:
+                return None
 
     def _set_qml_property(self, name: str, value: Any) -> None:
         if not name or value is None:
@@ -1193,12 +1293,20 @@ class MainWindow(QMainWindow):
                     from .panels.graphics_logger import get_graphics_logger
                     logger = get_graphics_logger()
                     
-                    # Логируем каждый измененный параметр
-                    for key, value in params.items():
+                    # Логируем каждый измененный параметр (включая вложенные) в формате dotted path
+                    def _iter_flat(prefix, obj):
+                        if isinstance(obj, dict):
+                            for k, v in obj.items():
+                                new_prefix = f"{prefix}.{k}" if prefix else str(k)
+                                yield from _iter_flat(new_prefix, v)
+                        else:
+                            yield (prefix, obj)
+
+                    for dotted_key, leaf_value in _iter_flat("", params):
                         logger.log_change(
-                            parameter_name=key,
-                            old_value=None,  # Нет старого значения в MainWindow
-                            new_value=value,
+                            parameter_name=dotted_key,
+                            old_value=None,
+                            new_value=leaf_value,
                             category="environment",
                             panel_state=params,
                             qml_state={"applied": True},
@@ -1489,6 +1597,64 @@ class MainWindow(QMainWindow):
         """
         if self.ibl_logger:
             self.ibl_logger.logIblEvent(message)
+
+        # ✅ UI предупреждения для пользователя при ошибках загрузки HDR
+        try:
+            # Ожидаемый формат: "timestamp | LEVEL | IblProbeLoader | message"
+            parts = [p.strip() for p in message.split("|", 3)]
+            if len(parts) >= 4:
+                level = parts[1].upper()
+                source = parts[2]
+                msg_text = parts[3]
+
+                # Успешная загрузка
+                if "HDR probe LOADED successfully" in msg_text:
+                    # Вытаскиваем имя файла из URL, если есть
+                    url = msg_text.split(":", 1)[-1].strip()
+                    try:
+                        from urllib.parse import urlparse
+                        from pathlib import PurePosixPath
+                        parsed = urlparse(url)
+                        name = PurePosixPath(parsed.path).name if parsed.path else url
+                    except Exception:
+                        name = url
+                    if hasattr(self, "status_bar"):
+                        self.status_bar.showMessage(f"HDR загружен: {name}", 5000)
+
+                # Ошибка с переключением на fallback
+                elif (
+                    "switching to fallback" in msg_text.lower()
+                    or "texture status: error" in msg_text.lower()
+                    or (level == "WARN" and "FAILED" in msg_text)
+                ):
+                    if hasattr(self, "status_bar"):
+                        self.status_bar.showMessage("Ошибка загрузки HDR, переключение на резервный…", 6000)
+
+                # Обе текстуры не загрузились — критическая проблема
+                elif "Both HDR probes failed" in msg_text or (level == "ERROR" and "CRITICAL" in msg_text):
+                    if hasattr(self, "status_bar"):
+                        self.status_bar.showMessage("HDR не загружен (оба источника). Фон переключен на цвет.", 7000)
+
+                    # Безопасный режим: отключаем skybox фон, оставляем цвет
+                    try:
+                        self._set_qml_property("iblBackgroundEnabled", False)
+                        self._set_qml_property("backgroundMode", "color")
+                    except Exception:
+                        pass
+
+                    # Покажем предупреждение пользователю (неблокирующее критическое)
+                    try:
+                        QMessageBox.warning(
+                            self,
+                            "HDR не загружен",
+                            "Не удалось загрузить выбранный HDR и резервный файл.\n"
+                            "Фон переключен на сплошной цвет. Выберите другой HDR файл."
+                        )
+                    except Exception:
+                        pass
+        except Exception:
+            # Молча игнорируем ошибки парсинга сообщений UI
+            pass
 
     def _update_3d_from_snapshot(self, snapshot: StateSnapshot):
         if not self._qml_root_object or not snapshot:
