@@ -169,15 +169,29 @@ Item {
     property color keyLightColor: "#ffffff"
     property real keyLightAngleX: -35
     property real keyLightAngleY: -40
+    property bool keyLightCastsShadow: true
+    property bool keyLightBindToCamera: false
+    property real keyLightPosX: 0.0
+    property real keyLightPosY: 0.0
     property real fillLightBrightness: 0.7
     property color fillLightColor: "#dfe7ff"
+    property bool fillLightCastsShadow: false
+    property bool fillLightBindToCamera: false
+    property real fillLightPosX: 0.0
+    property real fillLightPosY: 0.0
     property real rimLightBrightness: 1.0
     property color rimLightColor: "#ffe2b0"
+    property bool rimLightCastsShadow: false
+    property bool rimLightBindToCamera: false
+    property real rimLightPosX: 0.0
+    property real rimLightPosY: 0.0
     property real pointLightBrightness: 1000.0
     property color pointLightColor: "#ffffff"
+    property real pointLightX: 0.0
     property real pointLightY: 2200.0
     property real pointLightRange: 3200.0
     property bool pointLightCastsShadow: false   // ✅ Новый пользовательский флаг теней точечного света
+    property bool pointLightBindToCamera: false
 
     // Environment
     property string backgroundMode: "skybox"
@@ -660,24 +674,38 @@ Item {
             if (params.key_light.color !== undefined) keyLightColor = params.key_light.color
             if (params.key_light.angle_x !== undefined) keyLightAngleX = params.key_light.angle_x
             if (params.key_light.angle_y !== undefined) keyLightAngleY = params.key_light.angle_y
++            if (params.key_light.casts_shadow !== undefined) keyLightCastsShadow = !!params.key_light.casts_shadow
++            if (params.key_light.bind_to_camera !== undefined) keyLightBindToCamera = !!params.key_light.bind_to_camera
++            if (params.key_light.position_x !== undefined) keyLightPosX = Number(params.key_light.position_x)
++            if (params.key_light.position_y !== undefined) keyLightPosY = Number(params.key_light.position_y)
         }
         if (params.fill_light) {
             if (params.fill_light.brightness !== undefined) fillLightBrightness = params.fill_light.brightness
             if (params.fill_light.color !== undefined) fillLightColor = params.fill_light.color
++            if (params.fill_light.casts_shadow !== undefined) fillLightCastsShadow = !!params.fill_light.casts_shadow
++            if (params.fill_light.bind_to_camera !== undefined) fillLightBindToCamera = !!params.fill_light.bind_to_camera
++            if (params.fill_light.position_x !== undefined) fillLightPosX = Number(params.fill_light.position_x)
++            if (params.fill_light.position_y !== undefined) fillLightPosY = Number(params.fill_light.position_y)
         }
         if (params.rim_light) {
             if (params.rim_light.brightness !== undefined) rimLightBrightness = params.rim_light.brightness
             if (params.rim_light.color !== undefined) rimLightColor = params.rim_light.color
++            if (params.rim_light.casts_shadow !== undefined) rimLightCastsShadow = !!params.rim_light.casts_shadow
++            if (params.rim_light.bind_to_camera !== undefined) rimLightBindToCamera = !!params.rim_light.bind_to_camera
++            if (params.rim_light.position_x !== undefined) rimLightPosX = Number(params.rim_light.position_x)
++            if (params.rim_light.position_y !== undefined) rimLightPosY = Number(params.rim_light.position_y)
         }
         if (params.point_light) {
             if (params.point_light.brightness !== undefined) pointLightBrightness = params.point_light.brightness
             if (params.point_light.color !== undefined) pointLightColor = params.point_light.color
-            if (params.point_light.position_y !== undefined) pointLightY = params.point_light.position_y
-            if (params.point_light.range !== undefined) pointLightRange = Math.max(1, params.point_light.range)
-            if (params.point_light.casts_shadow !== undefined) pointLightCastsShadow = !!params.point_light.casts_shadow
-        }
-        console.log("  ✅ Lighting updated successfully")
-    }
++            if (params.point_light.position_x !== undefined) pointLightX = Number(params.point_light.position_x)
+             if (params.point_light.position_y !== undefined) pointLightY = params.point_light.position_y
+             if (params.point_light.range !== undefined) pointLightRange = Math.max(1, params.point_light.range)
+             if (params.point_light.casts_shadow !== undefined) pointLightCastsShadow = !!params.point_light.casts_shadow
++            if (params.point_light.bind_to_camera !== undefined) pointLightBindToCamera = !!params.point_light.bind_to_camera
+         }
+         console.log("  ✅ Lighting updated successfully")
+     }
 
     function applyMaterialUpdates(params) {
         console.log("🎨 main.qml: applyMaterialUpdates() called")
@@ -1125,12 +1153,13 @@ Item {
         // Lighting (with shadow softness)
         DirectionalLight {
             id: keyLight
-            parent: worldRoot
+            parent: keyLightBindToCamera ? cameraRig : worldRoot
             eulerRotation.x: root.keyLightAngleX
             eulerRotation.y: root.keyLightAngleY
+            position: Qt.vector3d(root.keyLightPosX, root.keyLightPosY, 0)
             brightness: root.keyLightBrightness
             color: root.keyLightColor
-            castsShadow: root.shadowsEnabled       // ✅ Тени от ключевого света
+            castsShadow: (root.shadowsEnabled && root.keyLightCastsShadow)
             shadowMapQuality: root.shadowResolution === "4096" ?
                                  (typeof Light.ShadowMapQualityUltra !== "undefined" ? Light.ShadowMapQualityUltra
                                                                                        : Light.ShadowMapQualityVeryHigh) :
@@ -1152,28 +1181,30 @@ Item {
 
         DirectionalLight {
             id: fillLight
-            parent: worldRoot
+            parent: fillLightBindToCamera ? cameraRig : worldRoot
             eulerRotation.x: -60
             eulerRotation.y: 135
+            position: Qt.vector3d(root.fillLightPosX, root.fillLightPosY, 0)
             brightness: root.fillLightBrightness
             color: root.fillLightColor
-            castsShadow: false                      // Заполняющий свет без теней
+            castsShadow: (root.shadowsEnabled && root.fillLightCastsShadow)
         }
 
         DirectionalLight {
             id: rimLight
-            parent: worldRoot
+            parent: rimLightBindToCamera ? cameraRig : worldRoot
             eulerRotation.x: 15
             eulerRotation.y: 180
+            position: Qt.vector3d(root.rimLightPosX, root.rimLightPosY, 0)
             brightness: root.rimLightBrightness
             color: root.rimLightColor
-            castsShadow: false                      // Контровой свет без теней
+            castsShadow: (root.shadowsEnabled && root.rimLightCastsShadow)
         }
 
         PointLight {
             id: accentLight
-            parent: worldRoot
-            position: Qt.vector3d(0, root.pointLightY, 1500)
+            parent: pointLightBindToCamera ? cameraRig : worldRoot
+            position: Qt.vector3d(root.pointLightX, root.pointLightY, 1500)
             brightness: root.pointLightBrightness
             color: root.pointLightColor
             castsShadow: root.pointLightCastsShadow   // ✅ Управляется пользователем
@@ -1739,7 +1770,7 @@ Item {
         console.log("   🔧 Skybox rotation: INDEPENDENT from camera")
         console.log("   🔧 probeOrientation uses ONLY iblRotationDeg")
         console.log("   🔧 Camera yaw does NOT affect skybox orientation")
-        console.log("   🔧 Skybox and camera are COMPLETELY DECOUPLED")
+        console.log("   🔧 Skybox and camera are COMPLEТELY DECOUPLED")
         console.log("✅ ИСПРАВЛЕНИЯ СВОЙСТВ ExtendedSceneEnvironment:")
         console.log("   ✅ glowBloom - правильное название")
         console.log("   ✅ depthOfFieldFocusDistance - правильное название")

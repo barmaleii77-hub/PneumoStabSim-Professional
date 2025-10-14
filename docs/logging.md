@@ -30,3 +30,12 @@ Implementation notes:
 - `logging_setup.init_logging()` creates a timestamped file and run.log; rotate_old_logs(keep_count=0) is called before init to delete old logs
 - `event_logger` and `graphics_logger` record structured JSON-friendly data in parallel
 - `app.py` runs `run_log_diagnostics()` after exit to summarize results to console
+
+Pilot settings and responsibilities
+- Pilot must always read, rotate, and analyze logs automatically on each run
+- Pilot must interpret analysis results and act on findings without prompting the user
+- User only sees: final analysis summary, warnings, and errors in console
+
+Persistence of user graphics settings
+- Settings are auto-saved on normal application exit (no Save button)
+- Reset button restores defaults; current UI updates are emitted and saved on close
