@@ -674,35 +674,35 @@ Item {
             if (params.key_light.color !== undefined) keyLightColor = params.key_light.color
             if (params.key_light.angle_x !== undefined) keyLightAngleX = params.key_light.angle_x
             if (params.key_light.angle_y !== undefined) keyLightAngleY = params.key_light.angle_y
-+            if (params.key_light.casts_shadow !== undefined) keyLightCastsShadow = !!params.key_light.casts_shadow
-+            if (params.key_light.bind_to_camera !== undefined) keyLightBindToCamera = !!params.key_light.bind_to_camera
-+            if (params.key_light.position_x !== undefined) keyLightPosX = Number(params.key_light.position_x)
-+            if (params.key_light.position_y !== undefined) keyLightPosY = Number(params.key_light.position_y)
+            if (params.key_light.casts_shadow !== undefined) keyLightCastsShadow = !!params.key_light.casts_shadow
+            if (params.key_light.bind_to_camera !== undefined) keyLightBindToCamera = !!params.key_light.bind_to_camera
+            if (params.key_light.position_x !== undefined) keyLightPosX = Number(params.key_light.position_x)
+            if (params.key_light.position_y !== undefined) keyLightPosY = Number(params.key_light.position_y)
         }
         if (params.fill_light) {
             if (params.fill_light.brightness !== undefined) fillLightBrightness = params.fill_light.brightness
             if (params.fill_light.color !== undefined) fillLightColor = params.fill_light.color
-+            if (params.fill_light.casts_shadow !== undefined) fillLightCastsShadow = !!params.fill_light.casts_shadow
-+            if (params.fill_light.bind_to_camera !== undefined) fillLightBindToCamera = !!params.fill_light.bind_to_camera
-+            if (params.fill_light.position_x !== undefined) fillLightPosX = Number(params.fill_light.position_x)
-+            if (params.fill_light.position_y !== undefined) fillLightPosY = Number(params.fill_light.position_y)
+            if (params.fill_light.casts_shadow !== undefined) fillLightCastsShadow = !!params.fill_light.casts_shadow
+            if (params.fill_light.bind_to_camera !== undefined) fillLightBindToCamera = !!params.fill_light.bind_to_camera
+            if (params.fill_light.position_x !== undefined) fillLightPosX = Number(params.fill_light.position_x)
+            if (params.fill_light.position_y !== undefined) fillLightPosY = Number(params.fill_light.position_y)
         }
         if (params.rim_light) {
             if (params.rim_light.brightness !== undefined) rimLightBrightness = params.rim_light.brightness
             if (params.rim_light.color !== undefined) rimLightColor = params.rim_light.color
-+            if (params.rim_light.casts_shadow !== undefined) rimLightCastsShadow = !!params.rim_light.casts_shadow
-+            if (params.rim_light.bind_to_camera !== undefined) rimLightBindToCamera = !!params.rim_light.bind_to_camera
-+            if (params.rim_light.position_x !== undefined) rimLightPosX = Number(params.rim_light.position_x)
-+            if (params.rim_light.position_y !== undefined) rimLightPosY = Number(params.rim_light.position_y)
+            if (params.rim_light.casts_shadow !== undefined) rimLightCastsShadow = !!params.rim_light.casts_shadow
+            if (params.rim_light.bind_to_camera !== undefined) rimLightBindToCamera = !!params.rim_light.bind_to_camera
+            if (params.rim_light.position_x !== undefined) rimLightPosX = Number(params.rim_light.position_x)
+            if (params.rim_light.position_y !== undefined) rimLightPosY = Number(params.rim_light.position_y)
         }
         if (params.point_light) {
             if (params.point_light.brightness !== undefined) pointLightBrightness = params.point_light.brightness
             if (params.point_light.color !== undefined) pointLightColor = params.point_light.color
-+            if (params.point_light.position_x !== undefined) pointLightX = Number(params.point_light.position_x)
+            if (params.point_light.position_x !== undefined) pointLightX = Number(params.point_light.position_x)
              if (params.point_light.position_y !== undefined) pointLightY = params.point_light.position_y
              if (params.point_light.range !== undefined) pointLightRange = Math.max(1, params.point_light.range)
              if (params.point_light.casts_shadow !== undefined) pointLightCastsShadow = !!params.point_light.casts_shadow
-+            if (params.point_light.bind_to_camera !== undefined) pointLightBindToCamera = !!params.point_light.bind_to_camera
+             if (params.point_light.bind_to_camera !== undefined) pointLightBindToCamera = !!params.point_light.bind_to_camera
          }
          console.log("  ✅ Lighting updated successfully")
      }
@@ -787,9 +787,9 @@ Item {
                     console.log("  🌟 IBL fallback:", iblFallbackSource)
                 }
             }
-+            if (params.ibl.offset_x !== undefined) environmentOffsetX = Number(params.ibl.offset_x)
-+            if (params.ibl.offset_y !== undefined) environmentOffsetY = Number(params.ibl.offset_y)
-+            if (params.ibl.bind_to_camera !== undefined) environmentBindToCamera = !!params.ibl.bind_to_camera
+            if (params.ibl.offset_x !== undefined) environmentOffsetX = Number(params.ibl.offset_x)
+            if (params.ibl.offset_y !== undefined) environmentOffsetY = Number(params.ibl.offset_y)
+            if (params.ibl.bind_to_camera !== undefined) environmentBindToCamera = !!params.ibl.bind_to_camera
          }
 
         if (params.fog) {

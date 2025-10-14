@@ -760,452 +760,8 @@ class MainWindow(QMainWindow):
         self._qml_pending_property_supported = True
         return True
 
-    @staticmethod
-    def _prepare_updates_for_qml(value: Any):
-        """Convert nested update payloads into Qt-friendly structures."""
-        if isinstance(value, dict):
-            return {str(key): MainWindow._prepare_updates_for_qml(val) for key, val in value.items()}
-        if isinstance(value, (list, tuple)):
-            return [MainWindow._prepare_updates_for_qml(item) for item in value]
-        if isinstance(value, np.generic):
-            return value.item()
-        if hasattr(value, 'tolist') and callable(value.tolist):
-            return MainWindow._prepare_updates_for_qml(value.tolist())
-        if isinstance(value, Path):
-            return str(value)
-        return value
-
-    def _invoke_qml_function(self, method_name: str, payload: Optional[Dict[str, Any]] = None) -> bool:
-        if not self._qml_root_object:
-            return False
-
-        has_payload = payload is not None
-        cache_key = (method_name, has_payload)
-        cached = self._qml_method_support.get(cache_key)
-        if cached is False:
-            return False
-
-        candidate = getattr(self._qml_root_object, method_name, None)
-        if not callable(candidate):
-            self._qml_method_support[cache_key] = False
-            return False
-
-        try:
-            # ✅ Логируем QML вызов (для EventLogger) перед фактическим вызовом
-            try:
-                self.event_logger.log_qml_invoke(method_name, payload or {})
-            except Exception:
-                pass
-
-            if payload is None:
-                candidate()
-            else:
-                candidate(payload)
-        except TypeError as exc:
-            self.logger.debug(
-                "QML callable %s rejected payload: %s",
-                method_name,
-                exc,
-            )
-            self._qml_method_support[cache_key] = False
-            return False
-        except Exception as exc:
-            self.logger.warning(
-                "Unhandled exception when invoking QML callable %s: %s",
-                method_name,
-                exc,
-            )
-            self._qml_method_support[cache_key] = False
-            return False
-
-        self._qml_method_support[cache_key] = True
-        return True
-
-    @Slot(dict)
-    def _on_lighting_changed(self, params: Dict[str, Any]):
-        """Обработчик изменения освещения - ПРЯМОЙ вызов QML для немедленного применения"""
-        self.logger.debug(f"Lighting update: {params}")
-
-        if self._qml_root_object:
-            try:
-                from PySide6.QtCore import QMetaObject, Q_ARG, Qt
-
-                # Логируем QML вызов
-                try:
-                    self.event_logger.log_qml_invoke("applyLightingUpdates", params)
-                except Exception:
-                    pass
-
-                success = QMetaObject.invokeMethod(
-                    self._qml_root_object,
-                    "applyLightingUpdates",
-                    Qt.ConnectionType.DirectConnection,
-                    Q_ARG("QVariant", params)
-                )
-
-                if success:
-                    if hasattr(self, "status_bar"):
-                        self.status_bar.showMessage("Освещение обновлено", 2000)
-
-                    # Логируем как применённые через GraphicsLogger
-                    from .panels.graphics_logger import get_graphics_logger
-                    logger = get_graphics_logger()
-                    # Пишем по ключам вложенных групп, если есть
-                    for block_key in ("key_light", "fill_light", "rim_light", "point_light"):
-                        if block_key in params:
-                            logger.log_change(
-                                parameter_name=block_key,
-                                old_value=None,
-                                new_value=params[block_key],
-                                category="lighting",
-                                panel_state=params,
-                                qml_state={"applied": True},
-                                applied_to_qml=True
-                            )
-                else:
-                    self.logger.warning("Failed to call applyLightingUpdates()")
-            except Exception as e:
-                self.logger.error(f"Lighting update failed: {e}")
-                import traceback
-                traceback.print_exc()
-        else:
-            # Если QML ещё не готов, ставим в очередь
-            self._queue_qml_update("lighting", params)
-
-    @Slot(dict)
-    def _on_material_changed(self, params: Dict[str, Any]):
-        """Обработчик изменения материалов - ПРЯМОЙ вызов QML и логирование"""
-        self.logger.debug(f"Material update: {params}")
-
-        if self._qml_root_object:
-            try:
-                from PySide6.QtCore import QMetaObject, Q_ARG, Qt
-
-                # Логируем QML вызов в EventLogger
-                try:
-                    self.event_logger.log_qml_invoke("applyMaterialUpdates", params)
-                except Exception:
-                    pass
-
-                success = QMetaObject.invokeMethod(
-                    self._qml_root_object,
-                    "applyMaterialUpdates",
-                    Qt.ConnectionType.DirectConnection,
-                    Q_ARG("QVariant", params)
-                )
-
-                if success:
-                    if hasattr(self, "status_bar"):
-                        self.status_bar.showMessage("Материалы обновлены", 2000)
-
-                    # Логируем изменения через GraphicsLogger
-                    from .panels.graphics_logger import get_graphics_logger
-                    logger = get_graphics_logger()
-                    for comp_key, comp_payload in params.items():
-                        logger.log_change(
-                            parameter_name=comp_key,
-                            old_value=None,
-                            new_value=comp_payload,
-                            category="material",
-                            panel_state=params,
-                            qml_state={"applied": True},
-                            applied_to_qml=True
-                        )
-                else:
-                    self.logger.warning("Failed to call applyMaterialUpdates()")
-            except Exception as e:
-                self.logger.error(f"Material update failed: {e}")
-                import traceback
-                traceback.print_exc()
-        else:
-            # Если QML ещё не готов, ставим в очередь
-            self._queue_qml_update("materials", params)
-
-    @Slot(dict)
-    def _on_effects_changed(self, params: Dict[str, Any]):
-        """Обработчик изменения эффектов - ПРЯМОЙ вызов QML для надёжного применения"""
-        self.logger.debug(f"Effects update: {params}")
-
-        if self._qml_root_object:
-            try:
-                from PySide6.QtCore import QMetaObject, Q_ARG, Qt
-
-                # Логируем QML вызов в EventLogger
-                try:
-                    self.event_logger.log_qml_invoke("applyEffectsUpdates", params)
-                except Exception:
-                    pass
-
-                success = QMetaObject.invokeMethod(
-                    self._qml_root_object,
-                    "applyEffectsUpdates",
-                    Qt.ConnectionType.DirectConnection,
-                    Q_ARG("QVariant", params)
-                )
-
-                if success:
-                    if hasattr(self, "status_bar"):
-                        self.status_bar.showMessage("Эффекты обновлены", 2000)
-
-                    # Логируем изменения через GraphicsLogger
-                    from .panels.graphics_logger import get_graphics_logger
-                    logger = get_graphics_logger()
-                    for key, value in params.items():
-                        logger.log_change(
-                            parameter_name=key,
-                            old_value=None,
-                            new_value=value,
-                            category="effects",
-                            panel_state=params,
-                            qml_state={"applied": True},
-                            applied_to_qml=True
-                        )
-                else:
-                    self.logger.warning("Failed to call applyEffectsUpdates()")
-            except Exception as e:
-                self.logger.error(f"Effects update failed: {e}")
-                import traceback
-                traceback.print_exc()
-        else:
-            # Если QML ещё не готов, ставим в очередь
-            self._queue_qml_update("effects", params)
-
-    @Slot(dict)
-    def _on_environment_changed(self, params: Dict[str, Any]):
-        """Обработчик изменения параметров окружения - ПРЯМОЙ ВЫЗОВ QML"""
-        print(f"🌍 MainWindow: Environment changed: {params}")
-        self.logger.debug(f"Environment update: {params}")
-        
-        # ✅ ИСПРАВЛЕНО: НЕ используем систему очередей, вызываем QML НАПРЯМУЮ
-        if self._qml_root_object:
-            try:
-                from PySide6.QtCore import QMetaObject, Q_ARG, Qt
-                
-                print(f"🔧 MainWindow: Вызываем applyEnvironmentUpdates напрямую...")
-                print(f"     fog_enabled = {params.get('fog_enabled', 'N/A')}")
-                
-                # ✅ Логируем QML вызов в EventLogger
-                try:
-                    self.event_logger.log_qml_invoke("applyEnvironmentUpdates", params)
-                except Exception:
-                    pass
-                
-                success = QMetaObject.invokeMethod(
-                    self._qml_root_object,
-                    "applyEnvironmentUpdates",
-                    Qt.ConnectionType.DirectConnection,
-                    Q_ARG("QVariant", params)
-                )
-                
-                if success:
-                    self.status_bar.showMessage("Окружение обновлено")
-                    print("✅ Successfully called applyEnvironmentUpdates()")
-                    
-                    # ✅ Логируем успешное QML обновление
-                    from .panels.graphics_logger import get_graphics_logger
-                    logger = get_graphics_logger()
-                    for key, value in params.items():
-                        logger.log_change(
-                            parameter_name=key,
-                            old_value=None,
-                            new_value=value,
-                            category="environment",
-                            panel_state=params,
-                            qml_state={"applied": True},
-                            applied_to_qml=True
-                        )
-                else:
-                    print("❌ Failed to call applyEnvironmentUpdates()")
-                    
-            except Exception as e:
-                self.logger.error(f"Environment update failed: {e}")
-                print(f"❌ Exception in environment update: {e}")
-                import traceback
-                traceback.print_exc()
-
-    @Slot(dict)
-    def _on_quality_changed(self, params: Dict[str, Any]):
-        """Обработчик изменения параметров качества - ПРЯМОЙ ВЫЗОВ QML"""
-        print(f"⚙️ MainWindow: Quality changed: {params}")
-        self.logger.debug(f"Quality update: {params}")
-        
-        # ✅ ИСПРАВЛЕНО: НЕ используем систему очередей, вызываем QML НАПРЯМУЮ
-        if self._qml_root_object:
-            try:
-                from PySide6.QtCore import QMetaObject, Q_ARG, Qt
-                
-                print(f"🔧 MainWindow: Вызываем applyQualityUpdates напрямую...")
-                print(f"     antialiasing = {params.get('antialiasing', 'N/A')}")
-                print(f"     aa_quality = {params.get('aa_quality', 'N/A')}")
-                
-                # ✅ Логируем QML вызов в EventLogger
-                try:
-                    self.event_logger.log_qml_invoke("applyQualityUpdates", params)
-                except Exception:
-                    pass
-                
-                success = QMetaObject.invokeMethod(
-                    self._qml_root_object,
-                    "applyQualityUpdates",
-                    Qt.ConnectionType.DirectConnection,
-                    Q_ARG("QVariant", params)
-                )
-                
-                if success:
-                    self.status_bar.showMessage("Качество обновлено")
-                    print("✅ Successfully called applyQualityUpdates()")
-                    
-                    # ✅ Логируем успешное QML обновление
-                    from .panels.graphics_logger import get_graphics_logger
-                    logger = get_graphics_logger()
-                    
-                    # Логируем каждый измененный параметр
-                    for key, value in params.items():
-                        logger.log_change(
-                            parameter_name=key,
-                            old_value=None,
-                            new_value=value,
-                            category="quality",
-                            panel_state=params,
-                            qml_state={"applied": True},
-                            applied_to_qml=True
-                        )
-                else:
-                    print("❌ Failed to call applyQualityUpdates()")
-                    
-            except Exception as e:
-                self.logger.error(f"Quality update failed: {e}")
-                print(f"❌ Exception in quality update: {e}")
-                import traceback
-                traceback.print_exc()
-
-    @Slot(dict)
-    def _on_camera_changed(self, params: Dict[str, Any]):
-        """Обработчик изменения параметров камеры - вызывает QML и логирует событие"""
-        self.logger.debug(f"Camera update: {params}")
-
-        # Попробуем применить напрямую через QMetaObject
-        if self._qml_root_object:
-            try:
-                from PySide6.QtCore import QMetaObject, Q_ARG, Qt
-
-                # ✅ Логируем QML вызов в EventLogger
-                try:
-                    self.event_logger.log_qml_invoke("applyCameraUpdates", params)
-                except Exception:
-                    pass
-
-                success = QMetaObject.invokeMethod(
-                    self._qml_root_object,
-                    "applyCameraUpdates",
-                    Qt.ConnectionType.DirectConnection,
-                    Q_ARG("QVariant", params)
-                )
-
-                if success:
-                    if hasattr(self, "status_bar"):
-                        self.status_bar.showMessage("Камера обновлена", 2000)
-
-                    # Логируем изменения через GraphicsLogger
-                    from .panels.graphics_logger import get_graphics_logger
-                    logger = get_graphics_logger()
-                    for key, value in params.items():
-                        logger.log_change(
-                            parameter_name=key,
-                            old_value=None,
-                            new_value=value,
-                            category="camera",
-                            panel_state=params,
-                            qml_state={"applied": True},
-                            applied_to_qml=True
-                        )
-                else:
-                    self.logger.warning("Failed to call applyCameraUpdates()")
-            except Exception as e:
-                self.logger.error(f"Camera update failed: {e}")
-                import traceback
-                traceback.print_exc()
-        else:
-            # Просто поставим в очередь, если QML не готов
-            self._queue_qml_update("camera", params)
-
-    @Slot(dict)
-    def _on_animation_changed(self, params: Dict[str, Any]):
-        """Обработчик изменения параметров анимации - вызывает QML и логирует событие"""
-        self.logger.debug(f"Animation update: {params}")
-        print(f"🎬 MainWindow: Animation changed: {params}")
-        
-        # Попробуем применить напрямую через QMetaObject
-        if self._qml_root_object:
-            try:
-                from PySide6.QtCore import QMetaObject, Q_ARG, Qt
-
-                # ✅ Логируем QML вызов в EventLogger
-                try:
-                    self.event_logger.log_qml_invoke("applyAnimationUpdates", params)
-                except Exception:
-                    pass
-
-                success = QMetaObject.invokeMethod(
-                    self._qml_root_object,
-                    "applyAnimationUpdates",
-                    Qt.ConnectionType.DirectConnection,
-                    Q_ARG("QVariant", params)
-                )
-
-                if success:
-                    if hasattr(self, "status_bar"):
-                        self.status_bar.showMessage("Анимация обновлена", 2000)
-                    print("✅ Successfully called applyAnimationUpdates()")
-                    
-                    # Логируем изменения через GraphicsLogger
-                    from .panels.graphics_logger import get_graphics_logger
-                    logger = get_graphics_logger()
-                    for key, value in params.items():
-                        logger.log_change(
-                            parameter_name=key,
-                            old_value=None,
-                            new_value=value,
-                            category="animation",
-                            panel_state=params,
-                            qml_state={"applied": True},
-                            applied_to_qml=True
-                        )
-                else:
-                    self.logger.warning("Failed to call applyAnimationUpdates()")
-                    print("❌ Failed to call applyAnimationUpdates()")
-            except Exception as e:
-                self.logger.error(f"Animation update failed: {e}")
-                print(f"❌ Exception in animation update: {e}")
-                import traceback
-                traceback.print_exc()
-        else:
-            # Просто поставим в очередь, если QML не готов
-            self._queue_qml_update("animation", params)
-
-    @Slot(str)
-    def _on_preset_applied(self, preset_name: str):
-        if hasattr(self, "status_bar"):
-            self.status_bar.showMessage(f"Пресет '{preset_name}' применён", 2000)
-    
-    @Slot(object)
-    def _on_qml_batch_ack(self, summary: dict):
-        """Handle ACK from QML confirming batched updates were applied.
-        
-        Mark recent graphics_logger events matching the ACK'd categories as successfully applied.
-        """
-        if not isinstance(summary, dict):
-            return
-        
-        categories = summary.get("categories", [])
-        timestamp_ms = summary.get("timestamp", 0)
-        
-        if not categories:
-            return
-        
-        self.logger.debug(f"📨 QML ACK received: {categories} at {timestamp_ms}")
-        
-        # Import logger
+    def _mark_pending_updates_applied(self, updates: Dict[str, Any]):
+        """Mark GraphicsLogger events as applied after QML pendingPythonUpdates are sent."""
         try:
             from .panels.graphics_logger import get_graphics_logger
         except ImportError:
@@ -1213,16 +769,21 @@ class MainWindow(QMainWindow):
         
         logger = get_graphics_logger()
         
-        # Look for recent events matching these categories (within last 2 seconds)
+        # Extract categories from update keys
+        categories = list(updates.keys())
+        
+        if not categories:
+            return
+        
+        # Mark recent events matching these categories as applied
         import time
         now_ms = int(time.time() * 1000)
         window_ms = 2000  # 2 second window
         
-        # Синонимы категорий
         category_aliases = {
             "materials": "material",
         }
-
+        
         recent_events = list(logger.get_recent_changes(200))
         matched = 0
         
@@ -1232,18 +793,19 @@ class MainWindow(QMainWindow):
                     continue
                 
                 event_category = getattr(event, 'category', None)
-                # Совпадение по категории или её алиасу
+                # Match by category or alias
                 if not any(event_category == c or event_category == category_aliases.get(c) for c in categories):
                     continue
                 
                 # Timing check
                 event_ts_ms = int(datetime.fromisoformat(event.timestamp).timestamp() * 1000) if getattr(event, 'timestamp', None) else now_ms
-                if abs(event_ts_ms - timestamp_ms) > window_ms:
+                if abs(event_ts_ms - now_ms) > window_ms:
                     continue
                 
                 event.qml_state = {
                     "applied": True,
-                    "ack_timestamp": timestamp_ms,
+                    "via_pending": True,
+                    "timestamp": now_ms,
                     "categories": categories
                 }
                 event.applied_to_qml = True
@@ -1257,85 +819,183 @@ class MainWindow(QMainWindow):
                 if matched >= 50:
                     break
             except Exception as e:
-                self.logger.debug(f"Error processing ACK for event: {e}")
+                self.logger.debug(f"Error marking pending event: {e}")
                 continue
         
         if matched > 0:
-            self.logger.debug(f"✅ QML ACK marked {matched} events as applied")
+            self.logger.debug(f"✅ Marked {matched} pending events as applied via pendingPythonUpdates")
 
-    @Slot(str)
+    @staticmethod
+    def _deep_merge_dicts(target: dict, source: dict):
+        """Deep merge source dict into target dict (in-place)."""
+        for key, value in source.items():
+            if key in target and isinstance(target[key], dict) and isinstance(value, dict):
+                MainWindow._deep_merge_dicts(target[key], value)
+            else:
+                target[key] = value
+
+    # ------------------------------------------------------------------
+    # Управление симуляцией
+    # ------------------------------------------------------------------
     def _on_sim_control(self, command: str):
-        """Обработка команд управления симуляцией"""
+        """Обработка кнопок управления симуляцией (start/stop/pause/reset).
+        Безопасно запускает/останавливает SimulationManager и физику."""
         bus = self.simulation_manager.state_bus
-
-        if command == "start":
-            bus.start_simulation.emit()
-            self.is_simulation_running = True
-            if self._qml_root_object:
-                self._qml_root_object.setProperty("isRunning", True)
-        elif command == "stop":
-            bus.stop_simulation.emit()
-            self.is_simulation_running = False
-            if self._qml_root_object:
-                self._qml_root_object.setProperty("isRunning", False)
-        elif command == "pause":
-            bus.pause_simulation.emit()
-            self.is_simulation_running = False
-            if self._qml_root_object:
-                self._qml_root_object.setProperty("isRunning", False)
-        elif command == "reset":
-            bus.reset_simulation.emit()
-            if self._qml_root_object:
-                self._qml_root_object.setProperty("animationTime", 0.0)
-    
-    @Slot(str)
-    def logIblEvent(self, message: str):
-        """
-        Принимает события IBL из QML и записывает в лог-файл.
-        
-        Этот метод вызывается из IblProbeLoader.qml через window.logIblEvent()
-        """
-        if self.ibl_logger:
-            self.ibl_logger.logIblEvent(message)
-
-    def _update_3d_from_snapshot(self, snapshot: StateSnapshot):
-        if not self._qml_root_object or not snapshot:
-            return
-
-        piston_positions: Dict[str, float] = {}
-        for wheel_enum, wheel_state in snapshot.wheels.items():
-            corner_key = self.WHEEL_KEY_MAP.get(wheel_enum.value)
-            if not corner_key:
-                continue
-            piston_positions[corner_key] = float(wheel_state.piston_position * 1000.0)
-
-        if piston_positions:
-            self._invoke_qml_function("updatePistonPositions", piston_positions)
-
-        self._qml_root_object.setProperty("animationTime", float(snapshot.simulation_time))
-
-    # ------------------------------------------------------------------
-    # События окна
-    # ------------------------------------------------------------------
-    def showEvent(self, event):
-        super().showEvent(event)
-        if not getattr(self, "_sim_started", False):
-            try:
-                self.simulation_manager.start()
-                self._sim_started = True
-            except Exception as exc:
-                self.logger.error(f"Failed to start SimulationManager: {exc}")
-
-    def closeEvent(self, event):
-        """Сохранение настроек и корректное завершение"""
-        self._save_settings()
-        
-        # ✅ НОВОЕ: Закрываем IBL логгер
-        if hasattr(self, 'ibl_logger') and self.ibl_logger:
-            self.ibl_logger.close()
-            log_ibl_event("INFO", "MainWindow", "IBL Logger closed on application exit")
-        
+        cmd = command.lower().strip()
         try:
-            self.simulation_manager.cleanup()
-        finally:
-            super().closeEvent(event)
+            if cmd == "start":
+                # Первый запуск – запускаем поток
+                if not getattr(self, "_sim_started", False):
+                    self.simulation_manager.start()
+                    self._sim_started = True
+                bus.start_simulation.emit()
+                self.is_simulation_running = True
+                if self._qml_root_object:
+                    self._qml_root_object.setProperty("isRunning", True)
+            elif cmd == "stop":
+                bus.stop_simulation.emit()
+                self.is_simulation_running = False
+                if self._qml_root_object:
+                    self._qml_root_object.setProperty("isRunning", False)
+            elif cmd == "pause":
+                bus.pause_simulation.emit()
+                # Тоггл – не меняем _sim_started
+                self.is_simulation_running = not self.is_simulation_running
+                if self._qml_root_object:
+                    self._qml_root_object.setProperty("isRunning", self.is_simulation_running)
+            elif cmd == "reset":
+                bus.reset_simulation.emit()
+                if self._qml_root_object:
+                    self._qml_root_object.setProperty("animationTime", 0.0)
+            else:
+                self.logger.warning(f"Неизвестная команда симуляции: {command}")
+                return
+            if hasattr(self, "status_bar"):
+                self.status_bar.showMessage(f"Simulation: {cmd}", 2000)
+            if self.modes_panel:
+                try:
+                    self.modes_panel.set_simulation_running(self.is_simulation_running)
+                except Exception:
+                    pass
+        except Exception as e:
+            self.logger.error(f"Ошибка обработки команды симуляции '{command}': {e}")
+
+    # ----------------------------- QML UPDATE HANDLERS -----------------------------
+    def _generic_category_update(self, category: str, payload: dict, qml_method: str):
+        """Общая реализация: ставим батч и пробуем прямой вызов QML."""
+        if not isinstance(payload, dict):
+            return
+        # Очередь для батчевой отправки
+        self._queue_qml_update(category, payload)
+        # Прямая попытка – не критично если не удастся
+        self._invoke_qml_function(qml_method, payload)
+
+    def _on_animation_changed(self, params: dict):  # signal from ModesPanel
+        self.logger.debug(f"Animation update: {params}")
+        self._generic_category_update("animation", params, "applyAnimationUpdates")
+
+    def _on_lighting_changed(self, params: dict):
+        self.logger.debug(f"Lighting update: keys={list(params.keys())}")
+        self._generic_category_update("lighting", params, "applyLightingUpdates")
+
+    def _on_material_changed(self, params: dict):
+        self.logger.debug(f"Materials update: keys={list(params.keys())}")
+        self._generic_category_update("materials", params, "applyMaterialUpdates")
+
+    def _on_environment_changed(self, params: dict):
+        self.logger.debug(f"Environment update: keys={list(params.keys())}")
+        self._generic_category_update("environment", params, "applyEnvironmentUpdates")
+
+    def _on_quality_changed(self, params: dict):
+        self.logger.debug(f"Quality update: keys={list(params.keys())}")
+        self._generic_category_update("quality", params, "applyQualityUpdates")
+
+    def _on_camera_changed(self, params: dict):
+        self.logger.debug(f"Camera update: keys={list(params.keys())}")
+        self._generic_category_update("camera", params, "applyCameraUpdates")
+
+    def _on_effects_changed(self, params: dict):
+        self.logger.debug(f"Effects update: keys={list(params.keys())}")
+        self._generic_category_update("effects", params, "applyEffectsUpdates")
+
+    def _on_preset_applied(self, preset_name: str):
+        self.logger.info(f"Preset applied: {preset_name}")
+        if hasattr(self, "status_bar"):
+            self.status_bar.showMessage(preset_name, 2000)
+
+    # ----------------------------- QML BATCH SUPPORT -----------------------------
+    def _prepare_updates_for_qml(self, updates: dict) -> dict:
+        """Санитизация батч-структуры (удаляем неподдерживаемые типы)."""
+        def sanitize(obj):
+            if isinstance(obj, dict):
+                return {k: sanitize(v) for k, v in obj.items() if v is not None}
+            if isinstance(obj, (list, tuple)):
+                return [sanitize(v) for v in obj]
+            try:
+                # Простейшие типы
+                if isinstance(obj, (int, float, str, bool)) or obj is None:
+                    return obj
+                # Попытка приведения
+                return float(obj) if hasattr(obj, "__float__") else str(obj)
+            except Exception:
+                return str(obj)
+        return sanitize(updates)
+
+    def _invoke_qml_function(self, method_name: str, payload: dict) -> bool:
+        if not self._qml_root_object:
+            return False
+        try:
+            from PySide6.QtCore import QMetaObject, Q_ARG, Qt
+            ok = QMetaObject.invokeMethod(
+                self._qml_root_object,
+                method_name,
+                Qt.ConnectionType.QueuedConnection,
+                Q_ARG("QVariant", payload)
+            )
+            if not ok:
+                self.logger.debug(f"QML method '{method_name}' not invoked (maybe missing)")
+            return ok
+        except Exception as e:
+            self.logger.debug(f"Invoke '{method_name}' failed: {e}")
+            return False
+
+    def _apply_fallback(self, key: str, payload: dict):
+        self.logger.debug(f"Fallback apply for '{key}' (no direct QML method)")
+
+    # ----------------------------- QML ACK HANDLER -----------------------------
+    def _on_qml_batch_ack(self, summary: dict):  # connected in _setup_qml_3d_view
+        if not isinstance(summary, dict):
+            return
+        cats = summary.get("categories", [])
+        self.logger.debug(f"QML ACK: categories={cats} success={summary.get('success', True)}")
+        # Попытка отметить события в graphics_logger (не критично)
+        try:
+            from src.ui.panels.graphics_logger import get_graphics_logger
+            logger = get_graphics_logger()
+            recent = list(logger.get_recent_changes(200))
+            ts = summary.get("timestamp")
+            for ev in reversed(recent):
+                if getattr(ev, 'applied_to_qml', False):
+                    continue
+                if getattr(ev, 'category', None) in cats:
+                    ev.applied_to_qml = True
+                    ev.qml_state = {"applied": True, "ack": ts, "categories": cats}
+                    try:
+                        logger._write_event_to_file(ev, update=True)
+                    except Exception:
+                        pass
+        except Exception:
+            pass
+
+    # ----------------------------- SNAPSHOT → QML -----------------------------
+    def _update_3d_from_snapshot(self, snapshot: 'StateSnapshot'):
+        """Обновление минимальных визуальных параметров по снимку.
+        (Расширенную динамику можно добавить позднее.)"""
+        if not self._qml_root_object or snapshot is None:
+            return
+        try:
+            # Пример: передаём время симуляции в overlay, если есть
+            if hasattr(snapshot, 'simulation_time'):
+                self._qml_root_object.setProperty("simulationTime", float(snapshot.simulation_time))
+        except Exception as e:
+            self.logger.debug(f"Snapshot→QML update failed: {e}")

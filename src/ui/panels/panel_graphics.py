@@ -702,28 +702,28 @@ class GraphicsPanel(QWidget):
         angle_y.valueChanged.connect(lambda v: self._update_lighting("key", "angle_y", v))
         self._lighting_controls["key.angle_y"] = angle_y
         grid.addWidget(angle_y, 3, 0, 1, 2)
-+
-+        # Позиция X/Y и флаги
-+        posx = LabeledSlider("Позиция X", -5000.0, 5000.0, 10.0, decimals=0, unit="мм")
-+        posx.valueChanged.connect(lambda v: self._update_lighting("key", "position_x", v))
-+        self._lighting_controls["key.position_x"] = posx
-+        grid.addWidget(posx, 4, 0, 1, 2)
-+
-+        posy = LabeledSlider("Позиция Y", -5000.0, 5000.0, 10.0, decimals=0, unit="мм")
-+        posy.valueChanged.connect(lambda v: self._update_lighting("key", "position_y", v))
-+        self._lighting_controls["key.position_y"] = posy
-+        grid.addWidget(posy, 5, 0, 1, 2)
-+
-+        key_shadow = QCheckBox("Тени от ключевого света", self)
-+        key_shadow.clicked.connect(lambda checked: self._update_lighting("key", "cast_shadow", checked))
-+        self._lighting_controls["key.cast_shadow"] = key_shadow
-+        grid.addWidget(key_shadow, 6, 0, 1, 2)
-+
-+        key_bind = QCheckBox("Привязать к камере", self)
-+        key_bind.clicked.connect(lambda checked: self._update_lighting("key", "bind_to_camera", checked))
-+        self._lighting_controls["key.bind"] = key_bind
-+        grid.addWidget(key_bind, 7, 0, 1, 2)
-         return group
+
+        # Позиция X/Y и флаги
+        posx = LabeledSlider("Позиция X", -5000.0, 5000.0, 10.0, decimals=0, unit="мм")
+        posx.valueChanged.connect(lambda v: self._update_lighting("key", "position_x", v))
+        self._lighting_controls["key.position_x"] = posx
+        grid.addWidget(posx, 4, 0, 1, 2)
+
+        posy = LabeledSlider("Позиция Y", -5000.0, 5000.0, 10.0, decimals=0, unit="мм")
+        posy.valueChanged.connect(lambda v: self._update_lighting("key", "position_y", v))
+        self._lighting_controls["key.position_y"] = posy
+        grid.addWidget(posy, 5, 0, 1, 2)
+
+        key_shadow = QCheckBox("Тени от ключевого света", self)
+        key_shadow.clicked.connect(lambda checked: self._update_lighting("key", "cast_shadow", checked))
+        self._lighting_controls["key.cast_shadow"] = key_shadow
+        grid.addWidget(key_shadow, 6, 0, 1, 2)
+
+        key_bind = QCheckBox("Привязать к камере", self)
+        key_bind.clicked.connect(lambda checked: self._update_lighting("key", "bind_to_camera", checked))
+        self._lighting_controls["key.bind"] = key_bind
+        grid.addWidget(key_bind, 7, 0, 1, 2)
+        return group
 
     def _build_fill_light_group(self) -> QGroupBox:
         group = QGroupBox("Заполняющий свет", self)
@@ -745,28 +745,28 @@ class GraphicsPanel(QWidget):
         color_row.addWidget(color_button)
         color_row.addStretch(1)
         grid.addLayout(color_row, 1, 0, 1, 2)
-+
-+        # Позиция X/Y и флаги
-+        posx = LabeledSlider("Позиция X", -5000.0, 5000.0, 10.0, decimals=0, unit="мм")
-+        posx.valueChanged.connect(lambda v: self._update_lighting("fill", "position_x", v))
-+        self._lighting_controls["fill.position_x"] = posx
-+        grid.addWidget(posx, 2, 0, 1, 2)
-+
-+        posy = LabeledSlider("Позиция Y", -5000.0, 5000.0, 10.0, decimals=0, unit="мм")
-+        posy.valueChanged.connect(lambda v: self._update_lighting("fill", "position_y", v))
-+        self._lighting_controls["fill.position_y"] = posy
-+        grid.addWidget(posy, 3, 0, 1, 2)
-+
-+        fill_shadow = QCheckBox("Тени от заполняющего света", self)
-+        fill_shadow.clicked.connect(lambda checked: self._update_lighting("fill", "cast_shadow", checked))
-+        self._lighting_controls["fill.cast_shadow"] = fill_shadow
-+        grid.addWidget(fill_shadow, 4, 0, 1, 2)
-+
-+        fill_bind = QCheckBox("Привязать к камере", self)
-+        fill_bind.clicked.connect(lambda checked: self._update_lighting("fill", "bind_to_camera", checked))
-+        self._lighting_controls["fill.bind"] = fill_bind
-+        grid.addWidget(fill_bind, 5, 0, 1, 2)
-         return group
+        
+        # Позиция X/Y и флаги
+        posx = LabeledSlider("Позиция X", -5000.0, 5000.0, 10.0, decimals=0, unit="мм")
+        posx.valueChanged.connect(lambda v: self._update_lighting("fill", "position_x", v))
+        self._lighting_controls["fill.position_x"] = posx
+        grid.addWidget(posx, 2, 0, 1, 2)
+
+        posy = LabeledSlider("Позиция Y", -5000.0, 5000.0, 10.0, decimals=0, unit="мм")
+        posy.valueChanged.connect(lambda v: self._update_lighting("fill", "position_y", v))
+        self._lighting_controls["fill.position_y"] = posy
+        grid.addWidget(posy, 3, 0, 1, 2)
+
+        fill_shadow = QCheckBox("Тени от заполняющего света", self)
+        fill_shadow.clicked.connect(lambda checked: self._update_lighting("fill", "cast_shadow", checked))
+        self._lighting_controls["fill.cast_shadow"] = fill_shadow
+        grid.addWidget(fill_shadow, 4, 0, 1, 2)
+
+        fill_bind = QCheckBox("Привязать к камере", self)
+        fill_bind.clicked.connect(lambda checked: self._update_lighting("fill", "bind_to_camera", checked))
+        self._lighting_controls["fill.bind"] = fill_bind
+        grid.addWidget(fill_bind, 5, 0, 1, 2)
+        return group
 
     def _build_rim_light_group(self) -> QGroupBox:
         group = QGroupBox("Контровой свет", self)
@@ -788,28 +788,28 @@ class GraphicsPanel(QWidget):
         color_row.addWidget(color_button)
         color_row.addStretch(1)
         grid.addLayout(color_row, 1, 0, 1, 2)
-+
-+        # Позиция X/Y и флаги
-+        posx = LabeledSlider("Позиция X", -5000.0, 5000.0, 10.0, decimals=0, unit="мм")
-+        posx.valueChanged.connect(lambda v: self._update_lighting("rim", "position_x", v))
-+        self._lighting_controls["rim.position_x"] = posx
-+        grid.addWidget(posx, 2, 0, 1, 2)
-+
-+        posy = LabeledSlider("Позиция Y", -5000.0, 5000.0, 10.0, decimals=0, unit="мм")
-+        posy.valueChanged.connect(lambda v: self._update_lighting("rim", "position_y", v))
-+        self._lighting_controls["rim.position_y"] = posy
-+        grid.addWidget(posy, 3, 0, 1, 2)
-+
-+        rim_shadow = QCheckBox("Тени от контрового света", self)
-+        rim_shadow.clicked.connect(lambda checked: self._update_lighting("rim", "cast_shadow", checked))
-+        self._lighting_controls["rim.cast_shadow"] = rim_shadow
-+        grid.addWidget(rim_shadow, 4, 0, 1, 2)
-+
-+        rim_bind = QCheckBox("Привязать к камере", self)
-+        rim_bind.clicked.connect(lambda checked: self._update_lighting("rim", "bind_to_camera", checked))
-+        self._lighting_controls["rim.bind"] = rim_bind
-+        grid.addWidget(rim_bind, 5, 0, 1, 2)
-         return group
+        
+        # Позиция X/Y и флаги
+        posx = LabeledSlider("Позиция X", -5000.0, 5000.0, 10.0, decimals=0, unit="мм")
+        posx.valueChanged.connect(lambda v: self._update_lighting("rim", "position_x", v))
+        self._lighting_controls["rim.position_x"] = posx
+        grid.addWidget(posx, 2, 0, 1, 2)
+
+        posy = LabeledSlider("Позиция Y", -5000.0, 5000.0, 10.0, decimals=0, unit="мм")
+        posy.valueChanged.connect(lambda v: self._update_lighting("rim", "position_y", v))
+        self._lighting_controls["rim.position_y"] = posy
+        grid.addWidget(posy, 3, 0, 1, 2)
+
+        rim_shadow = QCheckBox("Тени от контрового света", self)
+        rim_shadow.clicked.connect(lambda checked: self._update_lighting("rim", "cast_shadow", checked))
+        self._lighting_controls["rim.cast_shadow"] = rim_shadow
+        grid.addWidget(rim_shadow, 4, 0, 1, 2)
+
+        rim_bind = QCheckBox("Привязать к камере", self)
+        rim_bind.clicked.connect(lambda checked: self._update_lighting("rim", "bind_to_camera", checked))
+        self._lighting_controls["rim.bind"] = rim_bind
+        grid.addWidget(rim_bind, 5, 0, 1, 2)
+        return group
 
     def _build_point_light_group(self) -> QGroupBox:
         group = QGroupBox("Точечный свет", self)
@@ -832,37 +832,32 @@ class GraphicsPanel(QWidget):
         color_row.addStretch(1)
         grid.addLayout(color_row, 1, 0, 1, 2)
  
--        height_slider = LabeledSlider("Высота", 0.0, 5000.0, 10.0, decimals=1, unit="мм")
--        height_slider.valueChanged.connect(lambda v: self._update_lighting("point", "height", v))
--        self._lighting_controls["point.height"] = height_slider
--        grid.addWidget(height_slider, 2, 0, 1, 2)
-+        posx = LabeledSlider("Позиция X", -5000.0, 5000.0, 10.0, decimals=0, unit="мм")
-+        posx.valueChanged.connect(lambda v: self._update_lighting("point", "position_x", v))
-+        self._lighting_controls["point.position_x"] = posx
-+        grid.addWidget(posx, 2, 0, 1, 2)
-+
-+        posy = LabeledSlider("Позиция Y", 0.0, 5000.0, 10.0, decimals=1, unit="мм")
-+        posy.valueChanged.connect(lambda v: self._update_lighting("point", "position_y", v))
-+        self._lighting_controls["point.position_y"] = posy
-+        grid.addWidget(posy, 3, 0, 1, 2)
+        posx = LabeledSlider("Позиция X", -5000.0, 5000.0, 10.0, decimals=0, unit="мм")
+        posx.valueChanged.connect(lambda v: self._update_lighting("point", "position_x", v))
+        self._lighting_controls["point.position_x"] = posx
+        grid.addWidget(posx, 2, 0, 1, 2)
  
-         range_slider = LabeledSlider("Радиус действия", 200.0, 5000.0, 10.0, decimals=1, unit="мм")
-         range_slider.valueChanged.connect(lambda v: self._update_lighting("point", "range", v))
-         self._lighting_controls["point.range"] = range_slider
-         grid.addWidget(range_slider, 4, 0, 1, 2)
+        posy = LabeledSlider("Позиция Y", 0.0, 5000.0, 10.0, decimals=1, unit="мм")
+        posy.valueChanged.connect(lambda v: self._update_lighting("point", "position_y", v))
+        self._lighting_controls["point.position_y"] = posy
+        grid.addWidget(posy, 3, 0, 1, 2)
  
-         # ✅ Новый переключатель: тени от точечного света
-         point_shadows = QCheckBox("Тени от точечного света", self)
-         point_shadows.clicked.connect(lambda checked: self._update_lighting("point", "cast_shadow", checked))
-         self._lighting_controls["point.cast_shadow"] = point_shadows
--        grid.addWidget(point_shadows, 5, 0, 1, 2)
-+        grid.addWidget(point_shadows, 5, 0, 1, 2)
-+
-+        point_bind = QCheckBox("Привязать к камере", self)
-+        point_bind.clicked.connect(lambda checked: self._update_lighting("point", "bind_to_camera", checked))
-+        self._lighting_controls["point.bind"] = point_bind
-+        grid.addWidget(point_bind, 6, 0, 1, 2)
-         return group
+        range_slider = LabeledSlider("Радиус действия", 200.0, 5000.0, 10.0, decimals=1, unit="мм")
+        range_slider.valueChanged.connect(lambda v: self._update_lighting("point", "range", v))
+        self._lighting_controls["point.range"] = range_slider
+        grid.addWidget(range_slider, 4, 0, 1, 2)
+ 
+        # ✅ Новый переключатель: тени от точечного света
+        point_shadows = QCheckBox("Тени от точечного света", self)
+        point_shadows.clicked.connect(lambda checked: self._update_lighting("point", "cast_shadow", checked))
+        self._lighting_controls["point.cast_shadow"] = point_shadows
+        grid.addWidget(point_shadows, 5, 0, 1, 2)
+ 
+        point_bind = QCheckBox("Привязать к камере", self)
+        point_bind.clicked.connect(lambda checked: self._update_lighting("point", "bind_to_camera", checked))
+        self._lighting_controls["point.bind"] = point_bind
+        grid.addWidget(point_bind, 6, 0, 1, 2)
+        return group
 
     def _build_lighting_preset_group(self) -> QGroupBox:
         group = QGroupBox("Пресеты освещения", self)
@@ -918,75 +913,71 @@ class GraphicsPanel(QWidget):
         grid.setContentsMargins(8, 8, 8, 8)
         grid.setHorizontalSpacing(12)
         grid.setVerticalSpacing(8)
- 
-        # Комбинированный режим (4 опции)
-        mode_combo = QComboBox(self)
-        mode_combo.addItem("IBL + Skybox (HDR)", (True, "skybox"))
-        mode_combo.addItem("IBL + Сплошной цвет", (True, "color"))
-        mode_combo.addItem("Без IBL + Skybox (HDR)", (False, "skybox"))
-        mode_combo.addItem("Без IBL + Сплошной цвет", (False, "color"))
-        def on_mode_changed():
-            ibl_on, bg_mode = mode_combo.currentData()
-            self._update_environment("ibl_enabled", bool(ibl_on))
-            self._update_environment("background_mode", bg_mode)
-        mode_combo.currentIndexChanged.connect(lambda _: on_mode_changed())
-        self._environment_controls["combined.mode"] = mode_combo
-        grid.addWidget(QLabel("Режим", self), 0, 0)
-        grid.addWidget(mode_combo, 0, 1)
- 
-         bg_row = QHBoxLayout()
-         bg_row.addWidget(QLabel("Цвет", self))
-         bg_button = ColorButton()
-         bg_button.color_changed.connect(lambda c: self._update_environment("background_color", c))
-         self._environment_controls["background.color"] = bg_button
-         bg_row.addWidget(bg_button)
-         bg_row.addStretch(1)
-         grid.addLayout(bg_row, 1, 0, 1, 2)
- 
-         # Интенсивность IBL
-         ibl_check = QCheckBox("Включить IBL", self)
-         ibl_check.clicked.connect(lambda checked: self._on_ibl_enabled_clicked(checked))
-         self._environment_controls["ibl.enabled"] = ibl_check
-         grid.addWidget(ibl_check, 2, 0, 1, 2)
- 
-         intensity = LabeledSlider("Интенсивность IBL", 0.0, 5.0, 0.05, decimals=2)
-         intensity.valueChanged.connect(lambda v: self._update_environment("ibl_intensity", v))
-         self._environment_controls["ibl.intensity"] = intensity
-         grid.addWidget(intensity, 3, 0, 1, 2)
- 
-         blur = LabeledSlider("Размытие skybox", 0.0, 1.0, 0.01, decimals=2)
-         blur.valueChanged.connect(lambda v: self._update_environment("skybox_blur", v))
-         self._environment_controls["skybox.blur"] = blur
-         grid.addWidget(blur, 4, 0, 1, 2)
- 
-         # Выпадающий список HDR/EXR из папки
-         hdr_combo = QComboBox(self)
-         hdr_files = self._discover_hdr_files()
-         for label, path in hdr_files:
-             hdr_combo.addItem(label, path)
-         def on_hdr_changed():
-             self._update_environment("ibl_source", hdr_combo.currentData())
-         hdr_combo.currentIndexChanged.connect(lambda _: on_hdr_changed())
-         self._environment_controls["ibl.file"] = hdr_combo
-         grid.addWidget(QLabel("HDR файл", self), 5, 0)
-         grid.addWidget(hdr_combo, 5, 1)
-+
-+        # Размещение окружения относительно модели (X/Y) и привязка к камере
-+        env_off_x = LabeledSlider("Смещение окружения X", -180.0, 180.0, 1.0, decimals=0, unit="°")
-+        env_off_x.valueChanged.connect(lambda v: self._update_environment("ibl_offset_x", v))
-+        self._environment_controls["ibl.offset_x"] = env_off_x
-+        grid.addWidget(env_off_x, 6, 0, 1, 2)
-+
-+        env_off_y = LabeledSlider("Смещение окружения Y", -180.0, 180.0, 1.0, decimals=0, unit="°")
-+        env_off_y.valueChanged.connect(lambda v: self._update_environment("ibl_offset_y", v))
-+        self._environment_controls["ibl.offset_y"] = env_off_y
-+        grid.addWidget(env_off_y, 7, 0, 1, 2)
-+
-+        env_bind = QCheckBox("Привязать окружение к камере", self)
-+        env_bind.clicked.connect(lambda checked: self._update_environment("ibl_bind_to_camera", checked))
-+        self._environment_controls["ibl.bind"] = env_bind
-+        grid.addWidget(env_bind, 8, 0, 1, 2)
-         return group
+
+        # Отдельные чекбоксы: 1) IBL освещение 2) Сплошной фон (выключение skybox)
+        ibl_check = QCheckBox("Включить IBL освещение", self)
+        ibl_check.clicked.connect(lambda checked: self._on_ibl_enabled_clicked(checked))
+        self._environment_controls["ibl.enabled"] = ibl_check
+        grid.addWidget(ibl_check, 0, 0, 1, 2)
+
+        solid_bg_check = QCheckBox("Сплошной фон (отключить skybox)", self)
+        def on_solid_bg_toggled(checked: bool):
+            # True -> color, False -> skybox
+            self._update_environment("background_mode", "color" if checked else "skybox")
+        solid_bg_check.clicked.connect(on_solid_bg_toggled)
+        self._environment_controls["background.solid"] = solid_bg_check
+        grid.addWidget(solid_bg_check, 1, 0, 1, 2)
+
+        # Цвет фона (активен только при сплошном фоне)
+        bg_row = QHBoxLayout()
+        bg_row.addWidget(QLabel("Цвет", self))
+        bg_button = ColorButton()
+        bg_button.color_changed.connect(lambda c: self._update_environment("background_color", c))
+        self._environment_controls["background.color"] = bg_button
+        bg_row.addWidget(bg_button)
+        bg_row.addStretch(1)
+        grid.addLayout(bg_row, 2, 0, 1, 2)
+
+        # Интенсивность IBL (всегда доступна при включенном IBL)
+        intensity = LabeledSlider("Интенсивность IBL", 0.0, 5.0, 0.05, decimals=2)
+        intensity.valueChanged.connect(lambda v: self._update_environment("ibl_intensity", v))
+        self._environment_controls["ibl.intensity"] = intensity
+        grid.addWidget(intensity, 3, 0, 1, 2)
+
+        blur = LabeledSlider("Размытие skybox", 0.0, 1.0, 0.01, decimals=2)
+        blur.valueChanged.connect(lambda v: self._update_environment("skybox_blur", v))
+        self._environment_controls["skybox.blur"] = blur
+        grid.addWidget(blur, 4, 0, 1, 2)
+
+        # Выпадающий список HDR/EXR из папки
+        hdr_combo = QComboBox(self)
+        hdr_files = self._discover_hdr_files()
+        for label, path in hdr_files:
+            hdr_combo.addItem(label, path)
+        def on_hdr_changed():
+            self._update_environment("ibl_source", hdr_combo.currentData())
+        hdr_combo.currentIndexChanged.connect(lambda _: on_hdr_changed())
+        self._environment_controls["ibl.file"] = hdr_combo
+        grid.addWidget(QLabel("HDR файл", self), 5, 0)
+        grid.addWidget(hdr_combo, 5, 1)
+
+        # Размещение окружения относительно модели (X/Y) и привязка к камере (актуально для skybox)
+        env_off_x = LabeledSlider("Смещение окружения X", -180.0, 180.0, 1.0, decimals=0, unit="°")
+        env_off_x.valueChanged.connect(lambda v: self._update_environment("ibl_offset_x", v))
+        self._environment_controls["ibl.offset_x"] = env_off_x
+        grid.addWidget(env_off_x, 6, 0, 1, 2)
+
+        env_off_y = LabeledSlider("Смещение окружения Y", -180.0, 180.0, 1.0, decimals=0, unit="°")
+        env_off_y.valueChanged.connect(lambda v: self._update_environment("ibl_offset_y", v))
+        self._environment_controls["ibl.offset_y"] = env_off_y
+        grid.addWidget(env_off_y, 7, 0, 1, 2)
+
+        env_bind = QCheckBox("Привязать окружение к камере", self)
+        env_bind.clicked.connect(lambda checked: self._update_environment("ibl_bind_to_camera", checked))
+        self._environment_controls["ibl.bind"] = env_bind
+        grid.addWidget(env_bind, 8, 0, 1, 2)
+
+        return group
 
     def _build_fog_group(self) -> QGroupBox:
         group = QGroupBox("Туман", self)
@@ -2240,20 +2231,16 @@ class GraphicsPanel(QWidget):
                     control.setChecked(bool(value))
 
     def _apply_environment_ui(self) -> None:
-        mode_combo = self._environment_controls.get("combined.mode")
-        if isinstance(mode_combo, QComboBox):
-            ibl_on = bool(self.state["environment"].get("ibl_enabled", True))
-            bg_mode = self.state["environment"].get("background_mode", "skybox")
-            target = (ibl_on, bg_mode)
-            # Найти по кортежу
-            for i in range(mode_combo.count()):
-                if mode_combo.itemData(i) == target:
-                    mode_combo.setCurrentIndex(i)
-                    break
+        # Привязка чекбоксов вместо комбинированного списка
+        solid_bg_check = self._environment_controls.get("background.solid")
+        if isinstance(solid_bg_check, QCheckBox):
+            solid_bg_check.setChecked(self.state["environment"].get("background_mode") == "color")
 
         bg_button = self._environment_controls.get("background.color")
         if isinstance(bg_button, ColorButton):
             bg_button.set_color(self.state["environment"]["background_color"])
+            # Доступно только при сплошном фоне
+            bg_button.setEnabled(self.state["environment"].get("background_mode") == "color")
 
         ibl_check = self._environment_controls.get("ibl.enabled")
         if isinstance(ibl_check, QCheckBox):
@@ -2266,6 +2253,523 @@ class GraphicsPanel(QWidget):
         skybox_blur = self._environment_controls.get("skybox.blur")
         if isinstance(skybox_blur, LabeledSlider):
             skybox_blur.set_value(self.state["environment"]["skybox_blur"])
+            # Имеет смысл только при skybox
+            skybox_blur.set_enabled(self.state["environment"].get("background_mode") == "skybox")
+
+        fog_enabled = self._environment_controls.get("fog.enabled")
+        if isinstance(fog_enabled, QCheckBox):
+            fog_enabled.setChecked(self.state["environment"]["fog_enabled"])
+
+        fog_color = self._environment_controls.get("fog.color")
+        if isinstance(fog_color, ColorButton):
+            fog_color.set_color(self.state["environment"]["fog_color"])
+
+        fog_density = self._environment_controls.get("fog.density")
+        if isinstance(fog_density, LabeledSlider):
+            fog_density.set_value(self.state["environment"]["fog_density"])
+
+        fog_near = self._environment_controls.get("fog.near")
+        if isinstance(fog_near, LabeledSlider):
+            fog_near.set_value(self.state["environment"]["fog_near"])
+
+        fog_far = self._environment_controls.get("fog.far")
+        if isinstance(fog_far, LabeledSlider):
+            fog_far.set_value(self.state["environment"]["fog_far"])
+
+        # ✅ FIXED: Заменено 'this' на 'self'
+        ao_enabled = self._environment_controls.get("ao.enabled")
+        if isinstance(ao_enabled, QCheckBox):
+            ao_enabled.setChecked(self.state["environment"]["ao_enabled"])
+
+        ao_strength = self._environment_controls.get("ao.strength")
+        if isinstance(ao_strength, LabeledSlider):
+            ao_strength.set_value(self.state["environment"]["ao_strength"])
+
+        ao_radius = self._environment_controls.get("ao.radius")
+        if isinstance(ao_radius, LabeledSlider):
+            ao_radius.set_value(self.state["environment"]["ao_radius"])
+
+        hdr_combo = self._environment_controls.get("ibl.file")
+        if isinstance(hdr_combo, QComboBox):
+            current = self.state["environment"].get("ibl_source")
+            if current:
+                for i in range(hdr_combo.count()):
+                    if hdr_combo.itemData(i) == current:
+                        hdr_combo.setCurrentIndex(i)
+                        break
+
+        off_x = self._environment_controls.get("ibl.offset_x")
+        if isinstance(off_x, LabeledSlider):
+            off_x.set_value(self.state["environment"].get("ibl_offset_x", 0.0))
+        off_y = self._environment_controls.get("ibl.offset_y")
+        if isinstance(off_y, LabeledSlider):
+            off_y.set_value(self.state["environment"].get("ibl_offset_y", 0.0))
+        bind = self._environment_controls.get("ibl.bind")
+        if isinstance(bind, QCheckBox):
+            bind.setChecked(bool(self.state["environment"].get("ibl_bind_to_camera", False)))
+
+    def _apply_quality_ui(self) -> None:
+        self._sync_quality_preset_ui()
+        
+        shadows_enabled = self._quality_controls.get("shadows.enabled")
+        if isinstance(shadows_enabled, QCheckBox):
+            shadows_enabled.setChecked(self.state["quality"]["shadows"]["enabled"])
+
+        shadows_res = self._quality_controls.get("shadows.resolution")
+        if isinstance(shadows_res, QComboBox):
+            index = shadows_res.findData(self.state["quality"]["shadows"]["resolution"])
+            if index >= 0:
+                shadows_res.setCurrentIndex(index)
+
+        shadows_filter = self._quality_controls.get("shadows.filter")
+        if isinstance(shadows_filter, QComboBox):
+            index = shadows_filter.findData(self.state["quality"]["shadows"]["filter"])
+            if index >= 0:
+                shadows_filter.setCurrentIndex(index)
+
+        shadows_bias = self._quality_controls.get("shadows.bias")
+        if isinstance(shadows_bias, LabeledSlider):
+            shadows_bias.set_value(self.state["quality"]["shadows"]["bias"])
+
+        shadows_darkness = self._quality_controls.get("shadows.darkness")
+        if isinstance(shadows_darkness, LabeledSlider):
+            shadows_darkness.set_value(self.state["quality"]["shadows"]["darkness"])
+
+        aa_primary = self._quality_controls.get("aa.primary")
+        if isinstance(aa_primary, QComboBox):
+            index = aa_primary.findData(self.state["quality"]["antialiasing"]["primary"])
+            if index >= 0:
+                aa_primary.setCurrentIndex(index)
+
+        aa_quality = self._quality_controls.get("aa.quality")
+        if isinstance(aa_quality, QComboBox):
+            index = aa_quality.findData(self.state["quality"]["antialiasing"]["quality"])
+            if index >= 0:
+                aa_quality.setCurrentIndex(index)
+
+        aa_post = self._quality_controls.get("aa.post")
+        if isinstance(aa_post, QComboBox):
+            index = aa_post.findData(self.state["quality"]["antialiasing"]["post"])
+            if index >= 0:
+                aa_post.setCurrentIndex(index)
+
+        taa_check = self._quality_controls.get("taa.enabled")
+        if isinstance(taa_check, QCheckBox):
+            taa_check.setChecked(self.state["quality"]["taa_enabled"])
+
+        taa_strength = self._quality_controls.get("taa.strength")
+        if isinstance(taa_strength, LabeledSlider):
+            taa_strength.set_value(self.state["quality"]["taa_strength"])
+
+        taa_motion = self._quality_controls.get("taa_motion_adaptive")
+        if isinstance(taa_motion, QCheckBox):
+            taa_motion.setChecked(self.state["quality"]["taa_motion_adaptive"])
+
+        fxaa_check = self._quality_controls.get("fxaa.enabled")
+        if isinstance(fxaa_check, QCheckBox):
+            fxaa_check.setChecked(self.state["quality"]["fxaa_enabled"])
+
+        specular_check = self._quality_controls.get("specular.enabled")
+        if isinstance(specular_check, QCheckBox):
+            specular_check.setChecked(self.state["quality"]["specular_aa"])
+
+        dithering_check = self._quality_controls.get("dithering.enabled")
+        if isinstance(dithering_check, QCheckBox):
+            dithering_check.setChecked(self.state["quality"]["dithering"])
+
+        render_scale = self._quality_controls.get("render.scale")
+        if isinstance(render_scale, LabeledSlider):
+            render_scale.set_value(self.state["quality"]["render_scale"])
+
+        render_policy = self._quality_controls.get("render.policy")
+        if isinstance(render_policy, QComboBox):
+            index = render_policy.findData(self.state["quality"]["render_policy"])
+            if index >= 0:
+                render_policy.setCurrentIndex(index)
+
+        frame_limit = self._quality_controls.get("frame_rate_limit")
+        if isinstance(frame_limit, LabeledSlider):
+            frame_limit.set_value(self.state["quality"]["frame_rate_limit"])
+
+        oit_check = self._quality_controls.get("oit.enabled")
+        if isinstance(oit_check, QCheckBox):
+            oit_check.setChecked(self.state["quality"]["oit"] == "weighted")
+
+    def _apply_camera_ui(self) -> None:
+        fov = self._camera_controls.get("fov")
+        if isinstance(fov, LabeledSlider):
+            fov.set_value(self.state["camera"]["fov"])
+
+        near = self._camera_controls.get("near")
+        if isinstance(near, LabeledSlider):
+            near.set_value(self.state["camera"]["near"])
+
+        far = self._camera_controls.get("far")
+        if isinstance(far, LabeledSlider):
+            far.set_value(self.state["camera"]["far"])
+
+        speed = self._camera_controls.get("speed")
+        if isinstance(speed, LabeledSlider):
+            speed.set_value(self.state["camera"]["speed"])
+
+        auto_rotate = self._camera_controls.get("auto_rotate")
+        if isinstance(auto_rotate, QCheckBox):
+            auto_rotate.setChecked(self.state["camera"]["auto_rotate"])
+
+        rotate_speed = self._camera_controls.get("auto_rotate_speed")
+        if isinstance(rotate_speed, LabeledSlider):
+            rotate_speed.set_value(self.state["camera"]["auto_rotate_speed"])
+
+    def _apply_effects_ui(self) -> None:
+        bloom_enabled = self._effects_controls.get("bloom.enabled")
+        if isinstance(bloom_enabled, QCheckBox):
+            bloom_enabled.setChecked(self.state["effects"]["bloom_enabled"])
+
+        bloom_intensity = self._effects_controls.get("bloom.intensity")
+        if isinstance(bloom_intensity, LabeledSlider):
+            bloom_intensity.set_value(self.state["effects"]["bloom_intensity"])
+
+        bloom_threshold = self._effects_controls.get("bloom.threshold")
+        if isinstance(bloom_threshold, LabeledSlider):
+            bloom_threshold.set_value(self.state["effects"]["bloom_threshold"])
+
+        bloom_spread = self._effects_controls.get("bloom.spread")
+        if isinstance(bloom_spread, LabeledSlider):
+            bloom_spread.set_value(self.state["effects"]["bloom_spread"])
+
+        tonemap_enabled = self._effects_controls.get("tonemap.enabled")
+        if isinstance(tonemap_enabled, QCheckBox):
+            tonemap_enabled.setChecked(self.state["effects"]["tonemap_enabled"])
+
+        tonemap_mode = self._effects_controls.get("tonemap.mode")
+        if isinstance(tonemap_mode, QComboBox):
+            index = tonemap_mode.findData(self.state["effects"]["tonemap_mode"])
+            if index >= 0:
+                tonemap_mode.setCurrentIndex(index)
+
+        dof_enabled = self._effects_controls.get("dof.enabled")
+        if isinstance(dof_enabled, QCheckBox):
+            dof_enabled.setChecked(self.state["effects"]["depth_of_field"])
+
+        dof_focus = self._effects_controls.get("dof.focus")
+        if isinstance(dof_focus, LabeledSlider):
+            dof_focus.set_value(self.state["effects"]["dof_focus_distance"])
+
+        dof_blur = self._effects_controls.get("dof.blur")
+        if isinstance(dof_blur, LabeledSlider):
+            dof_blur.set_value(self.state["effects"]["dof_blur"])
+
+        motion_enabled = self._effects_controls.get("motion.enabled")
+        if isinstance(motion_enabled, QCheckBox):
+            motion_enabled.setChecked(self.state["effects"]["motion_blur"])
+
+        motion_amount = self._effects_controls.get("motion.amount")
+        if isinstance(motion_amount, LabeledSlider):
+            motion_amount.set_value(self.state["effects"]["motion_blur_amount"])
+
+        lens_flare = self._effects_controls.get("lens_flare.enabled")
+        if isinstance(lens_flare, QCheckBox):
+            lens_flare.setChecked(self.state["effects"]["lens_flare"])
+
+        vignette = self._effects_controls.get("vignette.enabled")
+        if isinstance(vignette, QCheckBox):
+            vignette.setChecked(self.state["effects"]["vignette"])
+
+        vignette_strength = self._effects_controls.get("vignette.strength")
+        if isinstance(vignette_strength, LabeledSlider):
+            vignette_strength.set_value(self.state["effects"]["vignette_strength"])
+
+    # ------------------------------------------------------------------
+    # Payload preparation
+    # ------------------------------------------------------------------
+    def _prepare_lighting_payload(self) -> Dict[str, Any]:
+        """Prepare lighting payload mapped to QML expected keys.
+
+        QML expects keys like `key_light`, `fill_light`, `rim_light`, `point_light`.
+        Internal state uses `key`, `fill`, `rim`, `point` — map and rename fields
+        (e.g. `height` -> `position_y`) to ensure QML applyLightingUpdates applies updates.
+        """
+        src = copy.deepcopy(self.state.get("lighting", {}))
+        payload: Dict[str, Any] = {}
+
+        # ✅ Map: key → key_light
+        key = src.get("key") or {}
+        if key:
+            kl = {}
+            if "brightness" in key:
+                kl["brightness"] = key.get("brightness")
+            if "color" in key:
+                kl["color"] = key.get("color")
+            if "angle_x" in key:
+                kl["angle_x"] = key.get("angle_x")
+            if "angle_y" in key:
+                kl["angle_y"] = key.get("angle_y")
+            if "cast_shadow" in key:
+                kl["casts_shadow"] = bool(key.get("cast_shadow"))
+            if "bind_to_camera" in key:
+                kl["bind_to_camera"] = bool(key.get("bind_to_camera"))
+            if "position_x" in key:
+                kl["position_x"] = key.get("position_x")
+            if "position_y" in key:
+                kl["position_y"] = key.get("position_y")
+            payload["key_light"] = kl
+
+        # ✅ Map: fill → fill_light
+        fill = src.get("fill") or {}
+        if fill:
+            fl = {}
+            if "brightness" in fill:
+                fl["brightness"] = fill.get("brightness")
+            if "color" in fill:
+                fl["color"] = fill.get("color")
+            if "cast_shadow" in fill:
+                fl["casts_shadow"] = bool(fill.get("cast_shadow"))
+            if "bind_to_camera" in fill:
+                fl["bind_to_camera"] = bool(fill.get("bind_to_camera"))
+            if "position_x" in fill:
+                fl["position_x"] = fill.get("position_x")
+            if "position_y" in fill:
+                fl["position_y"] = fill.get("position_y")
+            payload["fill_light"] = fl
+
+        # ✅ Map: rim → rim_light
+        rim = src.get("rim") or {}
+        if rim:
+            rl = {}
+            if "brightness" in rim:
+                rl["brightness"] = rim.get("brightness")
+            if "color" in rim:
+                rl["color"] = rim.get("color")
+            if "cast_shadow" in rim:
+                rl["casts_shadow"] = bool(rim.get("cast_shadow"))
+            if "bind_to_camera" in rim:
+                rl["bind_to_camera"] = bool(rim.get("bind_to_camera"))
+            if "position_x" in rim:
+                rl["position_x"] = rim.get("position_x")
+            if "position_y" in rim:
+                rl["position_y"] = rim.get("position_y")
+            payload["rim_light"] = rl
+
+        # ✅ Map: point → point_light + position_x/position_y
+        point = src.get("point") or {}
+        if point:
+            pl = {}
+            if "brightness" in point:
+                pl["brightness"] = point.get("brightness")
+            if "color" in point:
+                pl["color"] = point.get("color")
+            if "position_x" in point:
+                pl["position_x"] = point.get("position_x")
+            if "position_y" in point:
+                pl["position_y"] = point.get("position_y")
+            if "range" in point:
+                pl["range"] = point.get("range")
+            # ✅ Новый ключ для QML: casts_shadow
+            if "cast_shadow" in point:
+                pl["casts_shadow"] = bool(point.get("cast_shadow"))
+            if "bind_to_camera" in point:
+                pl["bind_to_camera"] = bool(point.get("bind_to_camera"))
+            payload["point_light"] = pl
+
+        return payload
+
+    def _prepare_environment_payload(self) -> Dict[str, Any]:
+        """Собирает вложенный payload окружения в формате, ожидаемом QML applyEnvironmentUpdates()."""
+        env = self.state.get("environment", {})
+        payload: Dict[str, Any] = {}
+
+        # background (НЕ зависит от ibl_enabled)
+        bg: Dict[str, Any] = {}
+        if "background_mode" in env:
+            bg["mode"] = env.get("background_mode")
+        if "background_color" in env:
+            bg["color"] = env.get("background_color")
+        if "ibl_enabled" in env:
+            # Не связываем фон с IBL — только skybox_enabled по желанию
+            pass
+        if bg:
+            payload["background"] = bg
+
+        # IBL (независимо от background)
+        ibl: Dict[str, Any] = {}
+        if "ibl_enabled" in env:
+            ibl["enabled"] = bool(env.get("ibl_enabled"))
+            # По умолчанию зеркалим в lighting_enabled, а background_enabled не трогаем
+            ibl["lighting_enabled"] = ibl["enabled"]
+        if "ibl_intensity" in env:
+            ibl["intensity"] = env.get("ibl_intensity")
+        if "ibl_source" in env:
+            ibl["source"] = env.get("ibl_source")
+        if "ibl_fallback" in env:
+            ibl["fallback"] = env.get("ibl_fallback")
+        # Новые параметры позиционирования окружения
+        if "ibl_offset_x" in env:
+            ibl["offset_x"] = env.get("ibl_offset_x")
+        if "ibl_offset_y" in env:
+            ibl["offset_y"] = env.get("ibl_offset_y")
+        if "ibl_bind_to_camera" in env:
+            ibl["bind_to_camera"] = bool(env.get("ibl_bind_to_camera"))
+        if ibl:
+            payload["ibl"] = ibl
+
+        # fog
+        fog: Dict[str, Any] = {}
+        if "fog_enabled" in env:
+            fog["enabled"] = bool(env.get("fog_enabled"))
+        if "fog_color" in env:
+            fog["color"] = env.get("fog_color")
+        if "fog_density" in env:
+            fog["density"] = env.get("fog_density")
+        if "fog_near" in env:
+            fog["near"] = env.get("fog_near")
+        if "fog_far" in env:
+            fog["far"] = env.get("fog_far")
+        if fog:
+            payload["fog"] = fog
+
+        # ambient occlusion
+        ao: Dict[str, Any] = {}
+        if "ao_enabled" in env:
+            ao["enabled"] = bool(env.get("ao_enabled"))
+        if "ao_strength" in env:
+            ao["strength"] = env.get("ao_strength")
+        if "ao_radius" in env:
+            ao["radius"] = env.get("ao_radius")
+        if ao:
+            payload["ambient_occlusion"] = ao
+
+        return payload
+
+    def _update_environment(self, key: str, value: Any) -> None:
+        """Update environment parameter"""
+        if self._updating_ui:
+            return 
+        
+        # Сохраняем старое значение для логирования
+        old_value = self.state["environment"].get(key)
+        
+        self.state["environment"][key] = value
+        
+        # Логируем изменение
+        self.graphics_logger.log_change(
+            parameter_name=key,
+            old_value=old_value,
+            new_value=value,
+            category="environment",
+            panel_state=self.state
+        )
+        
+        self._emit_environment()
+
+    # ------------------------------------------------------------------
+    # Settings persistence
+    # ------------------------------------------------------------------
+    @Slot()
+    def save_settings(self) -> None:
+        """Save current settings to QSettings"""
+        try:
+            for category, data in self.state.items():
+                self.settings.setValue(f"state/{category}", json.dumps(data))
+            self.settings.sync()
+            self.logger.info("Graphics settings saved")
+        except Exception as e:
+            self.logger.error(f"Failed to save settings: {e}")
+
+    @Slot()
+    def load_settings(self) -> None:
+        """Load settings from QSettings"""
+        try:
+            for category in self.state.keys():
+                value = self.settings.value(f"state/{category}")
+                if value:
+                    try:
+                        loaded = json.loads(value)
+                        self._deep_update(self.state[category], loaded)
+                    except json.JSONDecodeError as e:
+                        self.logger.warning(f"Failed to parse {category} settings: {e}")
+            self.logger.info("Graphics settings loaded")
+        except Exception as e:
+            self.logger.error(f"Failed to load settings: {e}")
+
+    @Slot()
+    def reset_to_defaults(self) -> None:
+        """Reset all settings to defaults"""
+        self.logger.info("🔄 Resetting all graphics settings to defaults")
+        
+        # Логируем сброс
+        self.graphics_logger.log_change(
+            parameter_name="RESET_ALL",
+            old_value=copy.deepcopy(self.state),
+            new_value=copy.deepcopy(self._defaults),
+            category="system",
+            panel_state=self._defaults
+        )
+        
+        self.state = copy.deepcopy(self._defaults)
+        self._apply_state_to_ui()
+        self._emit_all()
+        self.preset_applied.emit("Сброс к значениям по умолчанию")
+
+    # ------------------------------------------------------------------
+    # UI state synchronization
+    # ------------------------------------------------------------------
+    def _apply_state_to_ui(self) -> None:
+        """Apply current state to all UI controls"""
+        # ✅ CRITICAL FIX: Блокируем все сигналы во время обновления UI
+        # Это предотвращает множественные вызовы обработчиков
+        self._updating_ui = True
+        
+        # Дополнительно блокируем сигналы на уровне Qt
+        self.blockSignals(True)
+        
+        try:
+            self._apply_lighting_ui()
+            self._apply_environment_ui()
+            self._apply_quality_ui()
+            self._apply_camera_ui()
+            self._apply_effects_ui()
+            self._on_material_selection_changed()
+        finally:
+            # ✅ CRITICAL: Всегда разблокируем сигналы
+            self.blockSignals(False)
+            self._updating_ui = False
+
+    def _apply_lighting_ui(self) -> None:
+        for group, values in self.state["lighting"].items():
+            for key, value in values.items():
+                control = self._lighting_controls.get(f"{group}.{key}")
+                if isinstance(control, ColorButton):
+                    control.set_color(value)
+                elif isinstance(control, LabeledSlider):
+                    control.set_value(value)
+                elif isinstance(control, QCheckBox):
+                    control.setChecked(bool(value))
+
+    def _apply_environment_ui(self) -> None:
+        # Привязка чекбоксов вместо комбинированного списка
+        solid_bg_check = self._environment_controls.get("background.solid")
+        if isinstance(solid_bg_check, QCheckBox):
+            solid_bg_check.setChecked(self.state["environment"].get("background_mode") == "color")
+
+        bg_button = self._environment_controls.get("background.color")
+        if isinstance(bg_button, ColorButton):
+            bg_button.set_color(self.state["environment"]["background_color"])
+            # Доступно только при сплошном фоне
+            bg_button.setEnabled(self.state["environment"].get("background_mode") == "color")
+
+        ibl_check = self._environment_controls.get("ibl.enabled")
+        if isinstance(ibl_check, QCheckBox):
+            ibl_check.setChecked(self.state["environment"]["ibl_enabled"])
+
+        ibl_intensity = self._environment_controls.get("ibl.intensity")
+        if isinstance(ibl_intensity, LabeledSlider):
+            ibl_intensity.set_value(self.state["environment"]["ibl_intensity"])
+
+        skybox_blur = self._environment_controls.get("skybox.blur")
+        if isinstance(skybox_blur, LabeledSlider):
+            skybox_blur.set_value(self.state["environment"]["skybox_blur"])
+            # Имеет смысл только при skybox
+            skybox_blur.set_enabled(self.state["environment"].get("background_mode") == "skybox")
 
         fog_enabled = self._environment_controls.get("fog.enabled")
         if isinstance(fog_enabled, QCheckBox):
@@ -2533,8 +3037,8 @@ class GraphicsPanel(QWidget):
             self.save_settings()
         except Exception as e:
             self.logger.error(f"Failed to auto-save settings on close: {e}")
-         
-         # Экспортируем финальный отчет
+ 
+        # Экспортируем финальный отчет
         try:
             report_path = self.graphics_logger.export_analysis_report()
             self.logger.info(f"   ✅ Analysis report saved: {report_path}")
