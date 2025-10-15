@@ -51,6 +51,11 @@ class LogAnalysisResult:
     def add_recommendation(self, message: str):
         """Добавляет рекомендацию"""
         self.recommendations.append(message)
+    # --- NEW helpers for structured errors ---
+    def add_collapsed_errors(self, errors: List[str]):
+        """Добавляет набор конкретных ошибок (уникализируя по сообщению)."""
+        for e in errors:
+            self.add_error(e)
 
 
 class UnifiedLogAnalyzer:
@@ -101,9 +106,25 @@ class UnifiedLogAnalyzer:
             result.add_metric('warnings', len(warnings))
             
             if errors:
-                result.add_error(f"Обнаружено {len(errors)} ошибок в run.log")
-                for error in errors[:3]:  # Первые 3
-                    result.add_error(f"  → {error.strip()}")
+                # Полный разбор ошибок с группировкой одинаковых сообщений без таймстемпов
+                norm_errors: Dict[str, List[str]] = defaultdict(list)
+                ts_re = re.compile(r'^\s*\d{4}-\d{2}-\d{2}[^ ]*\s+')
+                for line in errors:
+                    base = ts_re.sub('', line).strip()
+                    # Урезаем путь внутри traceback строк до последнего сегмента для агрегирования
+                    base_short = re.sub(r'File "([^"]+)"', lambda m: f"File '{Path(m.group(1)).name}'", base)
+                    norm_errors[base_short].append(line.strip())
+    
+                # Добавляем агрегированную строку
+                result.add_error(f"Обнаружено {len(errors)} ошибок в run.log (уникальных: {len(norm_errors)})")
+                # Сортируем по количеству вхождений
+                for msg, lines_same in sorted(norm_errors.items(), key=lambda x: len(x[1]), reverse=True):
+                    count = len(lines_same)
+                    prefix = 'CRITICAL' if 'CRITICAL' in msg or 'FATAL' in msg else 'ERROR'
+                    result.add_error(f"[{prefix}] {count}× {msg}")
+                # Добавляем короткий совет если много разных типов
+                if len(norm_errors) > 5:
+                    result.add_recommendation("Слишком много разных типов ошибок — начните с первой по количеству повторов.")
             
             if warnings:
                 result.add_warning(f"Обнаружено {len(warnings)} предупреждений")
@@ -197,6 +218,17 @@ class UnifiedLogAnalyzer:
             if categories:
                 result.add_info(f"Категории изменений: {dict(categories)}")
             
+            # Конкретные ошибки QML sync (error поля)
+            error_events = [e for e in events if e.get('error')]
+            if error_events:
+                grouped = defaultdict(list)
+                for ev in error_events:
+                    key = ev.get('error')
+                    grouped[key].append(ev)
+                for msg, group_list in sorted(grouped.items(), key=lambda x: len(x[1]), reverse=True):
+                    result.add_error(f"GRAPHICS_SYNC {len(group_list)}× {msg}")
+                result.add_recommendation("Проверьте соответствие payload ↔ apply*Updates обработчиков")
+            
         except Exception as e:
             result.add_error(f"Ошибка анализа graphics логов: {e}")
         
@@ -233,10 +265,15 @@ class UnifiedLogAnalyzer:
             result.add_metric('ibl_success', len(success))
             
             if errors:
-                result.add_error(f"IBL ошибки: {len(errors)}")
-                for error in errors[:2]:
-                    result.add_error(f"  → {error.strip()}")
-                result.add_recommendation("Проверьте пути к HDR файлам")
+                # Группируем одинаковые сообщения
+                norm = defaultdict(list)
+                for line in errors:
+                    msg = re.sub(r'\s+', ' ', line.strip())
+                    norm[msg].append(line)
+                result.add_error(f"IBL ошибки: {len(errors)} (уникальных: {len(norm)})")
+                for msg, lines_same in sorted(norm.items(), key=lambda x: len(x[1]), reverse=True):
+                    result.add_error(f"[IBL] {len(lines_same)}× {msg}")
+                result.add_recommendation("Проверьте пути к HDR / права доступа / наличие файлов")
             
             if success:
                 result.add_info(f"IBL успешно загружен ({len(success)} событий)")
@@ -275,10 +312,17 @@ class UnifiedLogAnalyzer:
                     result.add_warning(f"Python↔QML синхронизация: {sync_rate:.1f}%")
                 else:
                     result.add_error(f"Python↔QML синхронизация: {sync_rate:.1f}% (критично)")
-                
+            
                 if missing > 0:
                     result.add_warning(f"Пропущено QML событий: {missing}")
-                    result.add_recommendation("Проверьте QML connections и signals")
+                    # Детальный список пропусков если предоставлен
+                    missing_list = analysis.get('missing_event_names') or []
+                    if missing_list:
+                        for name in missing_list[:10]:
+                            result.add_error(f"MISSING_QML_SIGNAL {name}")
+                        if len(missing_list) > 10:
+                            result.add_warning(f"... ещё {len(missing_list)-10} пропущенных сигналов скрыто")
+                    result.add_recommendation("Проверьте QML Connections или именование сигналов")
             else:
                 result.add_info("Событий Python↔QML не обнаружено (возможно, не было активности)")
             
@@ -372,9 +416,9 @@ class UnifiedLogAnalyzer:
                 for warning in result.warnings:
                     print(f"  {warning}")
             
-            # Ошибки
+            # Ошибки (уже конкретные строки/агрегации)
             if result.errors:
-                print("\n❌ Ошибки:")
+                print("\n❌ Ошибки (конкретные / агрегированные):")
                 for error in result.errors:
                     print(f"  {error}")
         
@@ -393,7 +437,7 @@ class UnifiedLogAnalyzer:
             }.get(summary.status, '❓')
             
             print(f"\nСтатус: {status_icon} {summary.status.upper()}")
-            print(f"Ошибок: {len(summary.errors)}")
+            print(f"Ошибок (включая агрегированные): {len(summary.errors)}")
             print(f"Предупреждений: {len(summary.warnings)}")
             
             if summary.recommendations:
