@@ -32,7 +32,7 @@ from src.ui.panels import GeometryPanel, PneumoPanel, ModesPanel, RoadPanel, Gra
 from ..runtime import SimulationManager, StateSnapshot
 from .ibl_logger import get_ibl_logger, log_ibl_event  # ✅ НОВОЕ: Импорт IBL логгера
 # ✅ НОВОЕ: EventLogger для логирования QML вызовов
-from src.common.event_logger import get_event_logger
+from src.common.event_logger import get_event_logger, EventType
 
 
 class MainWindow(QMainWindow):
@@ -175,6 +175,35 @@ class MainWindow(QMainWindow):
 
         self.logger.info("Главное окно (Qt Quick 3D) инициализировано")
         print("✅ MainWindow.__init__() завершён")
+
+    @Slot(str, str)
+    def logQmlEvent(self, event_type: str, name: str) -> None:
+        """Слот для QML: регистрирует событие в EventLogger.
+
+        Args:
+            event_type: Тип события (например, "signal_received", "function_called")
+            name: Имя сигнала/функции
+        """
+        try:
+            etype_norm = (event_type or "").strip().lower()
+            if etype_norm == "signal_received":
+                etype = EventType.SIGNAL_RECEIVED
+            elif etype_norm == "function_called":
+                etype = EventType.FUNCTION_CALLED
+            elif etype_norm == "property_changed":
+                etype = EventType.PROPERTY_CHANGED
+            else:
+                etype = EventType.FUNCTION_CALLED
+
+            self.event_logger.log_event(
+                event_type=etype,
+                component="main.qml",
+                action=name,
+                source="qml",
+            )
+        except Exception:
+            # Защита от любых ошибок в логировании
+            pass
 
     # ------------------------------------------------------------------
     # UI Construction - НОВАЯ СТРУКРАА!

@@ -556,6 +556,9 @@ Item {
     // ===============================================================
     
     function applyBatchedUpdates(updates) {
+        if (typeof window !== 'undefined' && window && window.logQmlEvent) {
+            try { window.logQmlEvent("signal_received", "applyBatchedUpdates"); } catch(e) {}
+        }
         console.log("🚀 Applying batched updates with conflict resolution:", Object.keys(updates))
         
         // Disable default behaviors temporarily 
@@ -588,6 +591,9 @@ Item {
     }
     
     function applyGeometryUpdates(params) {
+        if (typeof window !== 'undefined' && window && window.logQmlEvent) {
+            try { window.logQmlEvent("function_called", "applyGeometryUpdates"); } catch(e) {}
+        }
         console.log("📐 main.qml: applyGeometryUpdates() with conflict resolution")
         
         // ✅ ИСПРАВЛЕНО: Проверяем на undefined перед применением
@@ -650,6 +656,9 @@ Item {
     }
     
     function applyAnimationUpdates(params) {
+        if (typeof window !== 'undefined' && window && window.logQmlEvent) {
+            try { window.logQmlEvent("function_called", "applyAnimationUpdates"); } catch(e) {}
+        }
         console.log("🎬 main.qml: applyAnimationUpdates() called")
         if (params.amplitude !== undefined) userAmplitude = params.amplitude
         if (params.frequency !== undefined) userFrequency = params.frequency
@@ -662,6 +671,9 @@ Item {
     }
     
     function applyLightingUpdates(params) {
+        if (typeof window !== 'undefined' && window && window.logQmlEvent) {
+            try { window.logQmlEvent("function_called", "applyLightingUpdates"); } catch(e) {}
+        }
         console.log("💡 main.qml: applyLightingUpdates() called")
         if (params.key_light) {
             if (params.key_light.brightness !== undefined) keyLightBrightness = params.key_light.brightness
@@ -702,6 +714,9 @@ Item {
     }
 
     function applyMaterialUpdates(params) {
+        if (typeof window !== 'undefined' && window && window.logQmlEvent) {
+            try { window.logQmlEvent("function_called", "applyMaterialUpdates"); } catch(e) {}
+        }
         console.log("🎨 main.qml: applyMaterialUpdates() called")
         function applyCommon(values, prefix) {
             if (values.base_color !== undefined) root[prefix + "BaseColor"] = values.base_color
@@ -746,6 +761,9 @@ Item {
 
     // ✅ ПОЛНАЯ реализация updateEnvironment()
     function applyEnvironmentUpdates(params) {
+        if (typeof window !== 'undefined' && window && window.logQmlEvent) {
+            try { window.logQmlEvent("function_called", "applyEnvironmentUpdates"); } catch(e) {}
+        }
         console.log("🌍 main.qml: applyEnvironmentUpdates() called")
 
         if (params.background) {
@@ -802,6 +820,9 @@ Item {
 
     // ✅ ПОЛНАЯ реализация updateQuality()
     function applyQualityUpdates(params) {
+        if (typeof window !== 'undefined' && window && window.logQmlEvent) {
+            try { window.logQmlEvent("function_called", "applyQualityUpdates"); } catch(e) {}
+        }
         console.log("⚙️ main.qml: applyQualityUpdates() called")
 
         if (params.shadows) {
@@ -837,6 +858,9 @@ Item {
 
     // ✅ ПОЛНАЯ реализация updateCamera()
     function applyCameraUpdates(params) {
+        if (typeof window !== 'undefined' && window && window.logQmlEvent) {
+            try { window.logQmlEvent("function_called", "applyCameraUpdates"); } catch(e) {}
+        }
         console.log("📷 main.qml: applyCameraUpdates() called")
         
         if (params.fov !== undefined) cameraFov = params.fov
@@ -851,6 +875,9 @@ Item {
 
     // ✅ ПОЛНАЯ реализация updateEffects()
     function applyEffectsUpdates(params) {
+        if (typeof window !== 'undefined' && window && window.logQmlEvent) {
+            try { window.logQmlEvent("function_called", "applyEffectsUpdates"); } catch(e) {}
+        }
         console.log("✨ main.qml: applyEffectsUpdates() called")
         
         if (params.bloom_enabled !== undefined) bloomEnabled = params.bloom_enabled

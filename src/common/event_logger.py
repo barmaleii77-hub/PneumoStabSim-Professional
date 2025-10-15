@@ -366,7 +366,7 @@ class EventLogger:
                     next_event = self.events[j]
                     recv_time = datetime.fromisoformat(next_event["timestamp"])
                     
-                    if (recv_time - emit_time).total_seconds() > 1.0:
+                    if (recv_time - emit_time).total_seconds() > 2.0:
                         break  # Слишком поздно
                     
                     # ✅ Вариант 1: QML подписался на сигнал (onXxxChanged)
