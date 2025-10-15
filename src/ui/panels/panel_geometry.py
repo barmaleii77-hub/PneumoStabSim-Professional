@@ -430,6 +430,8 @@ class GeometryPanel(QWidget):
         
         if critical_conflicts:
             self.logger.warning(f"Critical conflict detected: {critical_conflicts.get('type', 'unknown')}")
+            # Добавляем предыдущее значение для корректного отката при отмене
+            critical_conflicts['previous_value'] = old_value
             self._resolve_conflict(critical_conflicts)
         else:
             # Мгновенное обновление
@@ -567,6 +569,12 @@ class GeometryPanel(QWidget):
             'rodDiameterM': self.parameters.get('rod_diameter_m', 0.035) * 1000,
             'pistonRodLengthM': self.parameters.get('piston_rod_length_m', 0.200) * 1000,
             'pistonThicknessM': self.parameters.get('piston_thickness_m', 0.025) * 1000,
+
+            # Дублирующие ключи совместимости (ожидаются QML и fallback-мэппером Python)
+            'boreHead': self.parameters.get('cyl_diam_m', 0.080) * 1000,              # диаметр цилиндра (мм)
+            'rodDiameter': self.parameters.get('rod_diameter_m', 0.035) * 1000,       # диаметр штока (мм)
+            'pistonRodLength': self.parameters.get('piston_rod_length_m', 0.200) * 1000,  # длина штока поршня (мм)
+            'pistonThickness': self.parameters.get('piston_thickness_m', 0.025) * 1000,   # толщина поршня (мм)
         }
         
         self.logger.debug(
@@ -640,10 +648,12 @@ class GeometryPanel(QWidget):
             clicked_button = msg_box.clickedButton()
             
             if clicked_button == cancel_button:
-                # Revert to old value
-                changed_param = conflict_info['changed_param']
-                old_value = self._get_widget_for_parameter(changed_param)
-                self._set_parameter_value(changed_param, old_value)
+                # Откатить изменённый параметр к предыдущему значению
+                changed_param = conflict_info.get('changed_param')
+                prev_value = conflict_info.get('previous_value')
+                if changed_param is not None and prev_value is not None:
+                    self._set_parameter_value(changed_param, float(prev_value))
+                    self.parameters[changed_param] = float(prev_value)
             else:
                 # Apply selected resolution
                 for button, param_name, suggested_value in buttons:
@@ -671,3 +681,63 @@ class GeometryPanel(QWidget):
         self.parameters[param_name] = value
         geometry_3d = self._get_fast_geometry_update(param_name, value)
         self.geometry_changed.emit(geometry_3d)
+
+    # ------------------------------------------------------------------
+    # ВСПОМОГАТЕЛЬНЫЕ МЕТОДЫ ДЛЯ МАППИНГА ПАРАМЕТРОВ ↔ ВИДЖЕТЫ
+    # ------------------------------------------------------------------
+    def _get_widget_for_parameter(self, param_name: str):
+        """Получить текущее значение параметра из соответствующего виджета.
+        Используется для безопасного чтения значения при откатах.
+        """
+        mapping = {
+            'wheelbase': self.wheelbase_slider,
+            'track': self.track_slider,
+            'frame_to_pivot': self.frame_to_pivot_slider,
+            'lever_length': self.lever_length_slider,
+            'rod_position': self.rod_position_slider,
+            'cylinder_length': self.cylinder_length_slider,
+            'cyl_diam_m': self.cyl_diam_m_slider,
+            'stroke_m': self.stroke_m_slider,
+            'dead_gap_m': self.dead_gap_m_slider,
+            'rod_diameter_m': self.rod_diameter_m_slider,
+            'piston_rod_length_m': self.piston_rod_length_m_slider,
+            'piston_thickness_m': self.piston_thickness_m_slider,
+        }
+        slider = mapping.get(param_name)
+        if slider is None:
+            return self.parameters.get(param_name)
+        try:
+            return float(slider.value())
+        except Exception:
+            return self.parameters.get(param_name)
+
+    def _set_parameter_value(self, param_name: str, value: float) -> None:
+        """Установить значение параметра в соответствующий виджет БЕЗ побочных эффектов.
+        Во время разрешения конфликтов и массовых установок self._resolving_conflict=True,
+        что предотвращает каскадные сигналы и лишние обновления.
+        """
+        mapping = {
+            'wheelbase': self.wheelbase_slider,
+            'track': self.track_slider,
+            'frame_to_pivot': self.frame_to_pivot_slider,
+            'lever_length': self.lever_length_slider,
+            'rod_position': self.rod_position_slider,
+            'cylinder_length': self.cylinder_length_slider,
+            'cyl_diam_m': self.cyl_diam_m_slider,
+            'stroke_m': self.stroke_m_slider,
+            'dead_gap_m': self.dead_gap_m_slider,
+            'rod_diameter_m': self.rod_diameter_m_slider,
+            'piston_rod_length_m': self.piston_rod_length_m_slider,
+            'piston_thickness_m': self.piston_thickness_m_slider,
+        }
+        slider = mapping.get(param_name)
+        if slider is None:
+            # Неизвестный параметр — только обновим локальное хранилище
+            self.parameters[param_name] = value
+            return
+        try:
+            slider.setValue(float(value))
+            # Синхронизируем локальное хранилище
+            self.parameters[param_name] = float(value)
+        except Exception as e:
+            self.logger.warning(f"Не удалось установить {param_name}={value}: {e}")

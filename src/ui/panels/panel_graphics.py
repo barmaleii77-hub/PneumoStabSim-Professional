@@ -1,39 +1,30 @@
-"""Graphics panel providing exhaustive Qt Quick 3D controls."""
+"""Graphics panel providing exhaustive Qt Quick 3D controls.
+
+Панель настроек графики с полным управлением параметрами Qt Quick 3D.
+Все пользовательские строки на русском, имена переменных на английском.
+"""
 from __future__ import annotations
 
 import copy
 import json
 import logging
-from typing import Any, Dict
 from pathlib import Path
-<<<<<<< HEAD
-from urllib.parse import urlparse
-from pathlib import PurePosixPath
+from typing import Any, Dict, List, Tuple
 
+from PySide6 import QtWidgets
 from PySide6.QtCore import QSettings, Qt, QTimer, Signal, Slot
-from PySide6.QtGui import QColor, QStandardItem
-=======
-
-from PySide6.QtCore import QSettings, Qt, QTimer, Signal, Slot
-from PySide6.QtGui import QColor, QStandardItem
-from PySide6 import QtWidgets  # ✅ ДОБАВЛЕНО: модуль QtWidgets для безопасного доступа к QSlider
->>>>>>> sync/remote-main
+from PySide6.QtGui import QColor
 from PySide6.QtWidgets import (
     QCheckBox,
     QColorDialog,
     QComboBox,
     QDoubleSpinBox,
-<<<<<<< HEAD
-    QFileDialog,
-=======
->>>>>>> sync/remote-main
     QGridLayout,
     QGroupBox,
     QHBoxLayout,
     QLabel,
     QPushButton,
     QScrollArea,
-    QSlider,
     QTabWidget,
     QVBoxLayout,
     QWidget,
@@ -42,12 +33,12 @@ from PySide6.QtWidgets import (
 # Импортируем логгер графических изменений
 from .graphics_logger import get_graphics_logger
 
-# ✅ НОВОЕ: Импорт EventLogger для отслеживания UI событий
+# EventLogger для отслеживания UI событий
 from src.common.event_logger import get_event_logger, EventType
 
 
 class ColorButton(QPushButton):
-    """Small color preview button that streams changes from QColorDialog."""
+    """Небольшая кнопка предпросмотра цвета, транслирующая изменения из QColorDialog."""
 
     color_changed = Signal(str)
 
@@ -55,8 +46,8 @@ class ColorButton(QPushButton):
         super().__init__(parent)
         self.setFixedSize(42, 28)
         self._color = QColor(initial_color)
-        self._dialog = None
-        self._user_triggered = False  # ✅ НОВОЕ: флаг пользовательского действия
+        self._dialog: QColorDialog | None = None
+        self._user_triggered = False  # Флаг пользовательского действия
         self._update_swatch()
         self.clicked.connect(self._open_dialog)
 
@@ -64,7 +55,7 @@ class ColorButton(QPushButton):
         return self._color
 
     def set_color(self, color_str: str) -> None:
-        """Программное изменение цвета (без логирования)"""
+        """Программное изменение цвета (без логирования)."""
         self._color = QColor(color_str)
         self._update_swatch()
 
@@ -80,12 +71,10 @@ class ColorButton(QPushButton):
 
     @Slot()
     def _open_dialog(self) -> None:
-        # ✅ Пользователь кликнул на кнопку - это пользовательское действие
+        # Пользователь кликнул на кнопку
         self._user_triggered = True
-        
         if self._dialog:
             return
-
         dialog = QColorDialog(self._color, self)
         dialog.setOption(QColorDialog.DontUseNativeDialog, True)
         dialog.setOption(QColorDialog.ShowAlphaChannel, False)
@@ -101,8 +90,6 @@ class ColorButton(QPushButton):
             return
         self._color = color
         self._update_swatch()
-        
-        # ✅ Испускаем сигнал ТОЛЬКО если это пользовательское действие
         if self._user_triggered:
             self.color_changed.emit(color.name())
 
@@ -111,11 +98,11 @@ class ColorButton(QPushButton):
         if self._dialog:
             self._dialog.deleteLater()
         self._dialog = None
-        self._user_triggered = False  # ✅ Сбрасываем флаг
+        self._user_triggered = False
 
 
 class LabeledSlider(QWidget):
-    """Slider + spin box pair with labelled feedback."""
+    """Пара слайдер + спинбокс с подписью и единицами измерения."""
 
     valueChanged = Signal(float)
 
@@ -138,7 +125,7 @@ class LabeledSlider(QWidget):
         self._decimals = decimals
         self._unit = unit or ""
         self._updating = False
-        self._user_triggered = False  # ✅ НОВОЕ: флаг пользовательского действия
+        self._user_triggered = False
 
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
@@ -152,16 +139,10 @@ class LabeledSlider(QWidget):
         row.setSpacing(6)
         layout.addLayout(row)
 
-<<<<<<< HEAD
-        self._slider = QSlider(Qt.Horizontal, self)
-=======
-        # ✅ ИСПРАВЛЕНО: используем QtWidgets.QSlider, чтобы избежать NameError
+        # Используем QtWidgets.QSlider для надёжности
         self._slider = QtWidgets.QSlider(Qt.Horizontal, self)
->>>>>>> sync/remote-main
         steps = max(1, int(round((self._max - self._min) / self._step)))
         self._slider.setRange(0, steps)
-        
-        # ✅ КРИТИЧЕСКОЕ: Отслеживаем НАЧАЛО и КОНЕЦ пользовательского взаимодействия
         self._slider.sliderPressed.connect(self._on_slider_pressed)
         self._slider.sliderReleased.connect(self._on_slider_released)
         self._slider.valueChanged.connect(self._handle_slider)
@@ -171,8 +152,6 @@ class LabeledSlider(QWidget):
         self._spin.setDecimals(self._decimals)
         self._spin.setRange(self._min, self._max)
         self._spin.setSingleStep(self._step)
-        
-        # ✅ КРИТИЧЕСКОЕ: Отслеживаем фокус SpinBox (пользователь редактирует вручную)
         self._spin.installEventFilter(self)
         self._spin.valueChanged.connect(self._handle_spin)
         row.addWidget(self._spin)
@@ -180,7 +159,6 @@ class LabeledSlider(QWidget):
         self.set_value(self._min)
 
     def eventFilter(self, obj, event) -> bool:
-        """Отслеживаем фокус SpinBox для определения пользовательского ввода"""
         if obj == self._spin:
             if event.type() == event.Type.FocusIn:
                 self._user_triggered = True
@@ -190,12 +168,10 @@ class LabeledSlider(QWidget):
 
     @Slot()
     def _on_slider_pressed(self) -> None:
-        """Пользователь начал перетаскивать слайдер"""
         self._user_triggered = True
 
     @Slot()
     def _on_slider_released(self) -> None:
-        """Пользователь отпустил слайдер"""
         self._user_triggered = False
 
     def set_enabled(self, enabled: bool) -> None:
@@ -205,7 +181,6 @@ class LabeledSlider(QWidget):
         return round(self._spin.value(), self._decimals)
 
     def set_value(self, value: float) -> None:
-        """Программное изменение значения (без логирования)"""
         value = max(self._min, min(self._max, value))
         slider_value = int(round((value - self._min) / self._step))
         self._updating = True
@@ -230,8 +205,6 @@ class LabeledSlider(QWidget):
         self._spin.setValue(value)
         self._update_label(value)
         self._updating = False
-        
-        # ✅ Испускаем сигнал ТОЛЬКО если пользователь двигает слайдер
         if self._user_triggered:
             self.valueChanged.emit(round(value, self._decimals))
 
@@ -244,8 +217,6 @@ class LabeledSlider(QWidget):
         self._slider.setValue(slider_value)
         self._update_label(value)
         self._updating = False
-        
-        # ✅ Испускаем сигнал ТОЛЬКО если пользователь редактирует SpinBox
         if self._user_triggered:
             self.valueChanged.emit(round(value, self._decimals))
 
@@ -262,21 +233,15 @@ class GraphicsPanel(QWidget):
     preset_applied = Signal(str)
 
     def __init__(self, parent: QWidget | None = None) -> None:
-        # ✅ CRITICAL FIX: Always pass parent to super().__init__(), even if None
-        # Qt requires parent argument (None is valid) to properly initialize QWidget
         super().__init__(parent)
-            
+
         self.logger = logging.getLogger(__name__)
         self.settings = QSettings("PneumoStabSim", "GraphicsPanel")
         self._updating_ui = False
 
-        # Инициализируем логгер графических изменений
+        # Логгеры
         self.graphics_logger = get_graphics_logger()
-        self.logger.info("📊 Graphics logger initialized")
-        
-        # ✅ НОВОЕ: Инициализируем event logger для UI событий
         self.event_logger = get_event_logger()
-        self.logger.info("🔗 Event logger initialized")
 
         self._defaults = self._build_defaults()
         self.state: Dict[str, Any] = copy.deepcopy(self._defaults)
@@ -308,17 +273,6 @@ class GraphicsPanel(QWidget):
     def _build_defaults(self) -> Dict[str, Any]:
         return {
             "lighting": {
-<<<<<<< HEAD
-                # ✅ Добавлены флаги теней для каждого источника света
-                "key": {"brightness": 1.2, "color": "#ffffff", "angle_x": -35.0, "angle_y": -40.0, "casts_shadow": True},
-                "fill": {"brightness": 0.7, "color": "#dfe7ff", "casts_shadow": False},
-                "rim": {"brightness": 1.0, "color": "#ffe2b0", "casts_shadow": False},
-                "point": {"brightness": 1000.0, "color": "#ffffff", "height": 2200.0, "range": 3200.0, "casts_shadow": False},
-            },
-            "environment": {
-                "background_mode": "skybox",
-=======
-                # Добавлены: cast_shadow, bind_to_camera, position_x/position_y для каждого источника
                 "key": {
                     "brightness": 1.2,
                     "color": "#ffffff",
@@ -356,17 +310,14 @@ class GraphicsPanel(QWidget):
                 },
             },
             "environment": {
-                "background_mode": "skybox",  # 'color' | 'skybox'
->>>>>>> sync/remote-main
+                "background_mode": "skybox",
                 "background_color": "#1f242c",
                 "ibl_enabled": True,
+                "skybox_enabled": True,
                 "ibl_intensity": 1.3,
+                "ibl_rotation": 0.0,
                 "ibl_source": "../hdr/studio.hdr",
-<<<<<<< HEAD
-                "ibl_fallback": "assets/studio_small_09_2k.hdr",
-=======
-                "ibl_fallback": "../hdr/studio_small_09_2k.hdr",  # ✅ ИСПРАВЛЕНО: корректный относительный путь
->>>>>>> sync/remote-main
+                "ibl_fallback": "../hdr/studio_small_09_2k.hdr",
                 "skybox_blur": 0.08,
                 "fog_enabled": True,
                 "fog_color": "#b0c4d8",
@@ -419,13 +370,8 @@ class GraphicsPanel(QWidget):
                 "dof_blur": 4.0,
                 "motion_blur": False,
                 "motion_blur_amount": 0.2,
-<<<<<<< HEAD
-                "lens_flare": True,
-                "vignette": True,
-=======
-                "lens_flare": False,   # ✅ По умолчанию выкл
-                "vignette": False,     # ✅ По умолчанию выкл
->>>>>>> sync/remote-main
+                "lens_flare": False,
+                "vignette": False,
                 "vignette_strength": 0.35,
                 "tonemap_enabled": True,
                 "tonemap_mode": "filmic",
@@ -644,6 +590,7 @@ class GraphicsPanel(QWidget):
                 "oit": "none",
             },
         }
+
     # ------------------------------------------------------------------
     # UI creation
     # ------------------------------------------------------------------
@@ -685,13 +632,6 @@ class GraphicsPanel(QWidget):
         button_row.setSpacing(8)
         button_row.addStretch(1)
 
-<<<<<<< HEAD
-        save_btn = QPushButton("💾 Сохранить", self)
-        save_btn.clicked.connect(self.save_settings)
-        button_row.addWidget(save_btn)
-
-=======
->>>>>>> sync/remote-main
         reset_btn = QPushButton("↩︎ Сброс", self)
         reset_btn.clicked.connect(self.reset_to_defaults)
         button_row.addWidget(reset_btn)
@@ -745,38 +685,27 @@ class GraphicsPanel(QWidget):
         angle_y.valueChanged.connect(lambda v: self._update_lighting("key", "angle_y", v))
         self._lighting_controls["key.angle_y"] = angle_y
         grid.addWidget(angle_y, 3, 0, 1, 2)
-<<<<<<< HEAD
 
-        # ✅ Переключатель теней для Key Light
-        key_shadows = QCheckBox("Тени от Key", self)
-        key_shadows.clicked.connect(lambda checked: self._update_lighting("key", "casts_shadow", checked))
-        self._lighting_controls["key.casts_shadow"] = key_shadows
-        grid.addWidget(key_shadows, 4, 0, 1, 2)
+        posx = LabeledSlider("Позиция X", -5000.0, 5000.0, 10.0, decimals=0, unit="мм")
+        posx.valueChanged.connect(lambda v: self._update_lighting("key", "position_x", v))
+        self._lighting_controls["key.position_x"] = posx
+        grid.addWidget(posx, 4, 0, 1, 2)
+
+        posy = LabeledSlider("Позиция Y", -5000.0, 5000.0, 10.0, decimals=0, unit="мм")
+        posy.valueChanged.connect(lambda v: self._update_lighting("key", "position_y", v))
+        self._lighting_controls["key.position_y"] = posy
+        grid.addWidget(posy, 5, 0, 1, 2)
+
+        key_shadow = QCheckBox("Тени от ключевого света", self)
+        key_shadow.clicked.connect(lambda checked: self._update_lighting("key", "cast_shadow", checked))
+        self._lighting_controls["key.cast_shadow"] = key_shadow
+        grid.addWidget(key_shadow, 6, 0, 1, 2)
+
+        key_bind = QCheckBox("Привязать к камере", self)
+        key_bind.clicked.connect(lambda checked: self._update_lighting("key", "bind_to_camera", checked))
+        self._lighting_controls["key.bind"] = key_bind
+        grid.addWidget(key_bind, 7, 0, 1, 2)
         return group
-=======
-+
-+        # Позиция X/Y и флаги
-+        posx = LabeledSlider("Позиция X", -5000.0, 5000.0, 10.0, decimals=0, unit="мм")
-+        posx.valueChanged.connect(lambda v: self._update_lighting("key", "position_x", v))
-+        self._lighting_controls["key.position_x"] = posx
-+        grid.addWidget(posx, 4, 0, 1, 2)
-+
-+        posy = LabeledSlider("Позиция Y", -5000.0, 5000.0, 10.0, decimals=0, unit="мм")
-+        posy.valueChanged.connect(lambda v: self._update_lighting("key", "position_y", v))
-+        self._lighting_controls["key.position_y"] = posy
-+        grid.addWidget(posy, 5, 0, 1, 2)
-+
-+        key_shadow = QCheckBox("Тени от ключевого света", self)
-+        key_shadow.clicked.connect(lambda checked: self._update_lighting("key", "cast_shadow", checked))
-+        self._lighting_controls["key.cast_shadow"] = key_shadow
-+        grid.addWidget(key_shadow, 6, 0, 1, 2)
-+
-+        key_bind = QCheckBox("Привязать к камере", self)
-+        key_bind.clicked.connect(lambda checked: self._update_lighting("key", "bind_to_camera", checked))
-+        self._lighting_controls["key.bind"] = key_bind
-+        grid.addWidget(key_bind, 7, 0, 1, 2)
-         return group
->>>>>>> sync/remote-main
 
     def _build_fill_light_group(self) -> QGroupBox:
         group = QGroupBox("Заполняющий свет", self)
@@ -798,38 +727,27 @@ class GraphicsPanel(QWidget):
         color_row.addWidget(color_button)
         color_row.addStretch(1)
         grid.addLayout(color_row, 1, 0, 1, 2)
-<<<<<<< HEAD
 
-        # ✅ Переключатель теней для Fill Light
-        fill_shadows = QCheckBox("Тени от Fill", self)
-        fill_shadows.clicked.connect(lambda checked: self._update_lighting("fill", "casts_shadow", checked))
-        self._lighting_controls["fill.casts_shadow"] = fill_shadows
-        grid.addWidget(fill_shadows, 2, 0, 1, 2)
+        posx = LabeledSlider("Позиция X", -5000.0, 5000.0, 10.0, decimals=0, unit="мм")
+        posx.valueChanged.connect(lambda v: self._update_lighting("fill", "position_x", v))
+        self._lighting_controls["fill.position_x"] = posx
+        grid.addWidget(posx, 2, 0, 1, 2)
+
+        posy = LabeledSlider("Позиция Y", -5000.0, 5000.0, 10.0, decimals=0, unit="мм")
+        posy.valueChanged.connect(lambda v: self._update_lighting("fill", "position_y", v))
+        self._lighting_controls["fill.position_y"] = posy
+        grid.addWidget(posy, 3, 0, 1, 2)
+
+        fill_shadow = QCheckBox("Тени от заполняющего света", self)
+        fill_shadow.clicked.connect(lambda checked: self._update_lighting("fill", "cast_shadow", checked))
+        self._lighting_controls["fill.cast_shadow"] = fill_shadow
+        grid.addWidget(fill_shadow, 4, 0, 1, 2)
+
+        fill_bind = QCheckBox("Привязать к камере", self)
+        fill_bind.clicked.connect(lambda checked: self._update_lighting("fill", "bind_to_camera", checked))
+        self._lighting_controls["fill.bind"] = fill_bind
+        grid.addWidget(fill_bind, 5, 0, 1, 2)
         return group
-=======
-+
-+        # Позиция X/Y и флаги
-+        posx = LabeledSlider("Позиция X", -5000.0, 5000.0, 10.0, decimals=0, unit="мм")
-+        posx.valueChanged.connect(lambda v: self._update_lighting("fill", "position_x", v))
-+        self._lighting_controls["fill.position_x"] = posx
-+        grid.addWidget(posx, 2, 0, 1, 2)
-+
-+        posy = LabeledSlider("Позиция Y", -5000.0, 5000.0, 10.0, decimals=0, unit="мм")
-+        posy.valueChanged.connect(lambda v: self._update_lighting("fill", "position_y", v))
-+        self._lighting_controls["fill.position_y"] = posy
-+        grid.addWidget(posy, 3, 0, 1, 2)
-+
-+        fill_shadow = QCheckBox("Тени от заполняющего света", self)
-+        fill_shadow.clicked.connect(lambda checked: self._update_lighting("fill", "cast_shadow", checked))
-+        self._lighting_controls["fill.cast_shadow"] = fill_shadow
-+        grid.addWidget(fill_shadow, 4, 0, 1, 2)
-+
-+        fill_bind = QCheckBox("Привязать к камере", self)
-+        fill_bind.clicked.connect(lambda checked: self._update_lighting("fill", "bind_to_camera", checked))
-+        self._lighting_controls["fill.bind"] = fill_bind
-+        grid.addWidget(fill_bind, 5, 0, 1, 2)
-         return group
->>>>>>> sync/remote-main
 
     def _build_rim_light_group(self) -> QGroupBox:
         group = QGroupBox("Контровой свет", self)
@@ -851,38 +769,27 @@ class GraphicsPanel(QWidget):
         color_row.addWidget(color_button)
         color_row.addStretch(1)
         grid.addLayout(color_row, 1, 0, 1, 2)
-<<<<<<< HEAD
 
-        # ✅ Переключатель теней для Rim Light
-        rim_shadows = QCheckBox("Тени от Rim", self)
-        rim_shadows.clicked.connect(lambda checked: self._update_lighting("rim", "casts_shadow", checked))
-        self._lighting_controls["rim.casts_shadow"] = rim_shadows
-        grid.addWidget(rim_shadows, 2, 0, 1, 2)
+        posx = LabeledSlider("Позиция X", -5000.0, 5000.0, 10.0, decimals=0, unit="мм")
+        posx.valueChanged.connect(lambda v: self._update_lighting("rim", "position_x", v))
+        self._lighting_controls["rim.position_x"] = posx
+        grid.addWidget(posx, 2, 0, 1, 2)
+
+        posy = LabeledSlider("Позиция Y", -5000.0, 5000.0, 10.0, decimals=0, unit="мм")
+        posy.valueChanged.connect(lambda v: self._update_lighting("rim", "position_y", v))
+        self._lighting_controls["rim.position_y"] = posy
+        grid.addWidget(posy, 3, 0, 1, 2)
+
+        rim_shadow = QCheckBox("Тени от контрового света", self)
+        rim_shadow.clicked.connect(lambda checked: self._update_lighting("rim", "cast_shadow", checked))
+        self._lighting_controls["rim.cast_shadow"] = rim_shadow
+        grid.addWidget(rim_shadow, 4, 0, 1, 2)
+
+        rim_bind = QCheckBox("Привязать к камере", self)
+        rim_bind.clicked.connect(lambda checked: self._update_lighting("rim", "bind_to_camera", checked))
+        self._lighting_controls["rim.bind"] = rim_bind
+        grid.addWidget(rim_bind, 5, 0, 1, 2)
         return group
-=======
-+
-+        # Позиция X/Y и флаги
-+        posx = LabeledSlider("Позиция X", -5000.0, 5000.0, 10.0, decimals=0, unit="мм")
-+        posx.valueChanged.connect(lambda v: self._update_lighting("rim", "position_x", v))
-+        self._lighting_controls["rim.position_x"] = posx
-+        grid.addWidget(posx, 2, 0, 1, 2)
-+
-+        posy = LabeledSlider("Позиция Y", -5000.0, 5000.0, 10.0, decimals=0, unit="мм")
-+        posy.valueChanged.connect(lambda v: self._update_lighting("rim", "position_y", v))
-+        self._lighting_controls["rim.position_y"] = posy
-+        grid.addWidget(posy, 3, 0, 1, 2)
-+
-+        rim_shadow = QCheckBox("Тени от контрового света", self)
-+        rim_shadow.clicked.connect(lambda checked: self._update_lighting("rim", "cast_shadow", checked))
-+        self._lighting_controls["rim.cast_shadow"] = rim_shadow
-+        grid.addWidget(rim_shadow, 4, 0, 1, 2)
-+
-+        rim_bind = QCheckBox("Привязать к камере", self)
-+        rim_bind.clicked.connect(lambda checked: self._update_lighting("rim", "bind_to_camera", checked))
-+        self._lighting_controls["rim.bind"] = rim_bind
-+        grid.addWidget(rim_bind, 5, 0, 1, 2)
-         return group
->>>>>>> sync/remote-main
 
     def _build_point_light_group(self) -> QGroupBox:
         group = QGroupBox("Точечный свет", self)
@@ -904,58 +811,32 @@ class GraphicsPanel(QWidget):
         color_row.addWidget(color_button)
         color_row.addStretch(1)
         grid.addLayout(color_row, 1, 0, 1, 2)
-<<<<<<< HEAD
 
-        height_slider = LabeledSlider("Высота", 0.0, 5000.0, 10.0, decimals=1, unit="мм")
-        height_slider.valueChanged.connect(lambda v: self._update_lighting("point", "height", v))
-        self._lighting_controls["point.height"] = height_slider
-        grid.addWidget(height_slider, 2, 0, 1, 2)
+        posx = LabeledSlider("Позиция X", -5000.0, 5000.0, 10.0, decimals=0, unit="мм")
+        posx.valueChanged.connect(lambda v: self._update_lighting("point", "position_x", v))
+        self._lighting_controls["point.position_x"] = posx
+        grid.addWidget(posx, 2, 0, 1, 2)
+
+        posy = LabeledSlider("Позиция Y", 0.0, 5000.0, 10.0, decimals=1, unit="мм")
+        posy.valueChanged.connect(lambda v: self._update_lighting("point", "position_y", v))
+        self._lighting_controls["point.position_y"] = posy
+        grid.addWidget(posy, 3, 0, 1, 2)
 
         range_slider = LabeledSlider("Радиус действия", 200.0, 5000.0, 10.0, decimals=1, unit="мм")
         range_slider.valueChanged.connect(lambda v: self._update_lighting("point", "range", v))
         self._lighting_controls["point.range"] = range_slider
-        grid.addWidget(range_slider, 3, 0, 1, 2)
+        grid.addWidget(range_slider, 4, 0, 1, 2)
 
-        # ✅ Переключатель теней для Point Light
-        point_shadows = QCheckBox("Тени от Point", self)
-        point_shadows.clicked.connect(lambda checked: self._update_lighting("point", "casts_shadow", checked))
-        self._lighting_controls["point.casts_shadow"] = point_shadows
-        grid.addWidget(point_shadows, 4, 0, 1, 2)
+        point_shadows = QCheckBox("Тени от точечного света", self)
+        point_shadows.clicked.connect(lambda checked: self._update_lighting("point", "cast_shadow", checked))
+        self._lighting_controls["point.cast_shadow"] = point_shadows
+        grid.addWidget(point_shadows, 5, 0, 1, 2)
+
+        point_bind = QCheckBox("Привязать к камере", self)
+        point_bind.clicked.connect(lambda checked: self._update_lighting("point", "bind_to_camera", checked))
+        self._lighting_controls["point.bind"] = point_bind
+        grid.addWidget(point_bind, 6, 0, 1, 2)
         return group
-=======
- 
--        height_slider = LabeledSlider("Высота", 0.0, 5000.0, 10.0, decimals=1, unit="мм")
--        height_slider.valueChanged.connect(lambda v: self._update_lighting("point", "height", v))
--        self._lighting_controls["point.height"] = height_slider
--        grid.addWidget(height_slider, 2, 0, 1, 2)
-+        posx = LabeledSlider("Позиция X", -5000.0, 5000.0, 10.0, decimals=0, unit="мм")
-+        posx.valueChanged.connect(lambda v: self._update_lighting("point", "position_x", v))
-+        self._lighting_controls["point.position_x"] = posx
-+        grid.addWidget(posx, 2, 0, 1, 2)
-+
-+        posy = LabeledSlider("Позиция Y", 0.0, 5000.0, 10.0, decimals=1, unit="мм")
-+        posy.valueChanged.connect(lambda v: self._update_lighting("point", "position_y", v))
-+        self._lighting_controls["point.position_y"] = posy
-+        grid.addWidget(posy, 3, 0, 1, 2)
- 
-         range_slider = LabeledSlider("Радиус действия", 200.0, 5000.0, 10.0, decimals=1, unit="мм")
-         range_slider.valueChanged.connect(lambda v: self._update_lighting("point", "range", v))
-         self._lighting_controls["point.range"] = range_slider
-         grid.addWidget(range_slider, 4, 0, 1, 2)
- 
-         # ✅ Новый переключатель: тени от точечного света
-         point_shadows = QCheckBox("Тени от точечного света", self)
-         point_shadows.clicked.connect(lambda checked: self._update_lighting("point", "cast_shadow", checked))
-         self._lighting_controls["point.cast_shadow"] = point_shadows
--        grid.addWidget(point_shadows, 5, 0, 1, 2)
-+        grid.addWidget(point_shadows, 5, 0, 1, 2)
-+
-+        point_bind = QCheckBox("Привязать к камере", self)
-+        point_bind.clicked.connect(lambda checked: self._update_lighting("point", "bind_to_camera", checked))
-+        self._lighting_controls["point.bind"] = point_bind
-+        grid.addWidget(point_bind, 6, 0, 1, 2)
-         return group
->>>>>>> sync/remote-main
 
     def _build_lighting_preset_group(self) -> QGroupBox:
         group = QGroupBox("Пресеты освещения", self)
@@ -963,7 +844,7 @@ class GraphicsPanel(QWidget):
         layout.setContentsMargins(8, 8, 8, 8)
         layout.setSpacing(12)
 
-        presets = {
+        presets: Dict[str, Dict[str, Any]] = {
             "☀️ Дневной свет": {
                 "key": {"brightness": 1.6, "color": "#ffffff", "angle_x": -45.0, "angle_y": -30.0},
                 "fill": {"brightness": 0.9, "color": "#f1f4ff"},
@@ -1006,27 +887,25 @@ class GraphicsPanel(QWidget):
         return tab
 
     def _build_background_group(self) -> QGroupBox:
-<<<<<<< HEAD
-        group = QGroupBox("Фон и HDR", self)
-=======
         group = QGroupBox("Фон и IBL", self)
->>>>>>> sync/remote-main
         grid = QGridLayout(group)
         grid.setContentsMargins(8, 8, 8, 8)
         grid.setHorizontalSpacing(12)
         grid.setVerticalSpacing(8)
-<<<<<<< HEAD
 
+        # Комбинированный режим (4 опции)
         mode_combo = QComboBox(self)
-        mode_combo.addItem("Сплошной цвет", "color")
-        mode_combo.addItem("Skybox / HDR", "skybox")
-        def on_mode_changed(_index: int):
-            if self._updating_ui:
-                return
-            self._update_environment("background_mode", mode_combo.currentData())
-        mode_combo.currentIndexChanged.connect(on_mode_changed)
-        self._environment_controls["background.mode"] = mode_combo
-        grid.addWidget(QLabel("Режим фона", self), 0, 0)
+        mode_combo.addItem("IBL + Skybox (HDR)", (True, "skybox"))
+        mode_combo.addItem("IBL + Сплошной цвет", (True, "color"))
+        mode_combo.addItem("Без IBL + Skybox (HDR)", (False, "skybox"))
+        mode_combo.addItem("Без IBL + Сплошной цвет", (False, "color"))
+        def on_mode_changed() -> None:
+            ibl_on, bg_mode = mode_combo.currentData()
+            self._update_environment("ibl_enabled", bool(ibl_on))
+            self._update_environment("background_mode", bg_mode)
+        mode_combo.currentIndexChanged.connect(lambda _: on_mode_changed())
+        self._environment_controls["combined.mode"] = mode_combo
+        grid.addWidget(QLabel("Режим", self), 0, 0)
         grid.addWidget(mode_combo, 0, 1)
 
         bg_row = QHBoxLayout()
@@ -1038,179 +917,73 @@ class GraphicsPanel(QWidget):
         bg_row.addStretch(1)
         grid.addLayout(bg_row, 1, 0, 1, 2)
 
-        # ✅ FIXED: IBL checkbox - правильное подключение clicked вместо stateChanged
-        ibl_check = QCheckBox("Включить HDR IBL", self)
-        def on_ibl_clicked(checked: bool):
-            if self._updating_ui:
-                return
-            # Debug print to verify handler invoked
-            print(f"[GraphicsPanel] IBL checkbox clicked -> {checked}")
-            self._update_environment("ibl_enabled", checked)
-        ibl_check.clicked.connect(on_ibl_clicked)
+        ibl_check = QCheckBox("Включить IBL", self)
+        ibl_check.clicked.connect(lambda checked: self._on_ibl_enabled_clicked(checked))
         self._environment_controls["ibl.enabled"] = ibl_check
         grid.addWidget(ibl_check, 2, 0, 1, 2)
-
-        # ✅ НОВОЕ: Выпадающий список HDR-файлов (фоны)
-        hdr_label = QLabel("HDR файл", self)
-        hdr_combo = QComboBox(self)
-        hdr_combo.setMinimumWidth(220)
-        # Список доступных HDR/EXR файлов
-        self._available_hdrs = self._scan_hdr_files()
-        hdr_combo.addItem("Плоский фон (цвет)", "")
-        for p in self._available_hdrs:
-            # Храним абсолютный file:// URL, чтобы QML не строил относительные пути
-            try:
-                file_url = Path(p).resolve().as_uri()
-            except Exception:
-                file_url = str(Path(p).resolve())
-                # На всякий случай нормализуем обратные слэши
-                if "\\" in file_url:
-                    file_url = "file:///" + file_url.replace("\\", "/")
-            hdr_combo.addItem(p.name, file_url)
-
-        def on_hdr_selected(index: int):
-            if self._updating_ui:
-                return
-            print(f"[GraphicsPanel] HDR combo index -> {index}")
-            if index <= 0:
-                # Плоский фон
-                self._update_environment("background_mode", "color")
-                # Не используем HDR как фон
-                self._update_environment("ibl_source", "")
-                # Обновляем подпись пути
-                path_label = self._environment_controls.get("ibl.path_label")
-                if isinstance(path_label, QLabel):
-                    path_label.setText("")
-                return
-            path = hdr_combo.currentData()
-            if path:
-                # Переключаемся на skybox и устанавливаем источник IBL
-                self._update_environment("background_mode", "skybox")
-                self._update_environment("ibl_source", path)
-                # Автовключаем IBL освещение при выборе HDR
-                self._update_environment("ibl_enabled", True)
-                # Обновляем подпись пути
-                path_label = self._environment_controls.get("ibl.path_label")
-                if isinstance(path_label, QLabel):
-                    path_label.setText(self._basename_from_any_path(path))
-
-        hdr_combo.currentIndexChanged.connect(on_hdr_selected)
-        self._environment_controls["ibl.combo"] = hdr_combo
-        grid.addWidget(hdr_label, 3, 0)
-        grid.addWidget(hdr_combo, 3, 1)
 
         intensity = LabeledSlider("Интенсивность IBL", 0.0, 5.0, 0.05, decimals=2)
         intensity.valueChanged.connect(lambda v: self._update_environment("ibl_intensity", v))
         self._environment_controls["ibl.intensity"] = intensity
-        grid.addWidget(intensity, 4, 0, 1, 2)
+        grid.addWidget(intensity, 3, 0, 1, 2)
 
         blur = LabeledSlider("Размытие skybox", 0.0, 1.0, 0.01, decimals=2)
         blur.valueChanged.connect(lambda v: self._update_environment("skybox_blur", v))
         self._environment_controls["skybox.blur"] = blur
-        grid.addWidget(blur, 5, 0, 1, 2)
+        grid.addWidget(blur, 4, 0, 1, 2)
 
-        path_label = QLabel("", self)
-        path_label.setWordWrap(True)
-        self._environment_controls["ibl.path_label"] = path_label
-        grid.addWidget(path_label, 6, 1)
+        # Список HDR/EXR
+        hdr_combo = QComboBox(self)
+        hdr_files = self._discover_hdr_files()
+        for label, path in hdr_files:
+            hdr_combo.addItem(label, path)
+        hdr_combo.currentIndexChanged.connect(lambda _: self._update_environment("ibl_source", hdr_combo.currentData()))
+        self._environment_controls["ibl.file"] = hdr_combo
+        grid.addWidget(QLabel("HDR файл", self), 5, 0)
+        grid.addWidget(hdr_combo, 5, 1)
+
+        # Поворот IBL (в градусах) — напрямую управляет probeOrientation в QML
+        ibl_rot = LabeledSlider("Поворот IBL", -1080.0, 1080.0, 1.0, decimals=0, unit="°")
+        ibl_rot.valueChanged.connect(lambda v: self._update_environment("ibl_rotation", v))
+        self._environment_controls["ibl.rotation"] = ibl_rot
+        grid.addWidget(ibl_rot, 6, 0, 1, 2)
+
+        # Отображать ли сам skybox (фон), независимо от освещения IBL
+        skybox_toggle = QCheckBox("Показывать Skybox (фон)", self)
+        skybox_toggle.clicked.connect(lambda checked: self._update_environment("skybox_enabled", checked))
+        self._environment_controls["background.skybox_enabled"] = skybox_toggle
+        grid.addWidget(skybox_toggle, 7, 0, 1, 2)
+
+        # Смещение окружения и привязка к камере
+        env_off_x = LabeledSlider("Смещение окружения X", -180.0, 180.0, 1.0, decimals=0, unit="°")
+        env_off_x.valueChanged.connect(lambda v: self._update_environment("ibl_offset_x", v))
+        self._environment_controls["ibl.offset_x"] = env_off_x
+        grid.addWidget(env_off_x, 8, 0, 1, 2)
+
+        env_off_y = LabeledSlider("Смещение окружения Y", -180.0, 180.0, 1.0, decimals=0, unit="°")
+        env_off_y.valueChanged.connect(lambda v: self._update_environment("ibl_offset_y", v))
+        self._environment_controls["ibl.offset_y"] = env_off_y
+        grid.addWidget(env_off_y, 9, 0, 1, 2)
+
+        env_bind = QCheckBox("Привязать окружение к камере", self)
+        env_bind.clicked.connect(lambda checked: self._update_environment("ibl_bind_to_camera", checked))
+        self._environment_controls["ibl.bind"] = env_bind
+        grid.addWidget(env_bind, 10, 0, 1, 2)
         return group
 
-    def _scan_hdr_files(self) -> list[Path]:
-        """Сканирует директории проекта на наличие HDR/EXR файлов."""
-        candidates = [
-            Path("assets/qml/assets"),
-            Path("assets/hdr"),
-            Path("assets/hdri"),
-        ]
-        exts = {".hdr", ".exr"}
-        found: list[Path] = []
-        for folder in candidates:
-            try:
-                if folder.exists():
-                    for p in folder.iterdir():
-                        if p.is_file() and p.suffix.lower() in exts:
-                            found.append(p)
-            except Exception:
-                pass
-        # Уникальные по имени, сохраняем первый найденный путь
-        seen = set()
-        unique: list[Path] = []
-        for p in found:
-            if p.name not in seen:
-                unique.append(p)
-                seen.add(p.name)
-        return sorted(unique, key=lambda x: x.name.lower())
-=======
- 
-        # Комбинированный режим (4 опции)
-        mode_combo = QComboBox(self)
-        mode_combo.addItem("IBL + Skybox (HDR)", (True, "skybox"))
-        mode_combo.addItem("IBL + Сплошной цвет", (True, "color"))
-        mode_combo.addItem("Без IBL + Skybox (HDR)", (False, "skybox"))
-        mode_combo.addItem("Без IBL + Сплошной цвет", (False, "color"))
-        def on_mode_changed():
-            ibl_on, bg_mode = mode_combo.currentData()
-            self._update_environment("ibl_enabled", bool(ibl_on))
-            self._update_environment("background_mode", bg_mode)
-        mode_combo.currentIndexChanged.connect(lambda _: on_mode_changed())
-        self._environment_controls["combined.mode"] = mode_combo
-        grid.addWidget(QLabel("Режим", self), 0, 0)
-        grid.addWidget(mode_combo, 0, 1)
- 
-         bg_row = QHBoxLayout()
-         bg_row.addWidget(QLabel("Цвет", self))
-         bg_button = ColorButton()
-         bg_button.color_changed.connect(lambda c: self._update_environment("background_color", c))
-         self._environment_controls["background.color"] = bg_button
-         bg_row.addWidget(bg_button)
-         bg_row.addStretch(1)
-         grid.addLayout(bg_row, 1, 0, 1, 2)
- 
-         # Интенсивность IBL
-         ibl_check = QCheckBox("Включить IBL", self)
-         ibl_check.clicked.connect(lambda checked: self._on_ibl_enabled_clicked(checked))
-         self._environment_controls["ibl.enabled"] = ibl_check
-         grid.addWidget(ibl_check, 2, 0, 1, 2)
- 
-         intensity = LabeledSlider("Интенсивность IBL", 0.0, 5.0, 0.05, decimals=2)
-         intensity.valueChanged.connect(lambda v: self._update_environment("ibl_intensity", v))
-         self._environment_controls["ibl.intensity"] = intensity
-         grid.addWidget(intensity, 3, 0, 1, 2)
- 
-         blur = LabeledSlider("Размытие skybox", 0.0, 1.0, 0.01, decimals=2)
-         blur.valueChanged.connect(lambda v: self._update_environment("skybox_blur", v))
-         self._environment_controls["skybox.blur"] = blur
-         grid.addWidget(blur, 4, 0, 1, 2)
- 
-         # Выпадающий список HDR/EXR из папки
-         hdr_combo = QComboBox(self)
-         hdr_files = self._discover_hdr_files()
-         for label, path in hdr_files:
-             hdr_combo.addItem(label, path)
-         def on_hdr_changed():
-             self._update_environment("ibl_source", hdr_combo.currentData())
-         hdr_combo.currentIndexChanged.connect(lambda _: on_hdr_changed())
-         self._environment_controls["ibl.file"] = hdr_combo
-         grid.addWidget(QLabel("HDR файл", self), 5, 0)
-         grid.addWidget(hdr_combo, 5, 1)
-+
-+        # Размещение окружения относительно модели (X/Y) и привязка к камере
-+        env_off_x = LabeledSlider("Смещение окружения X", -180.0, 180.0, 1.0, decimals=0, unit="°")
-+        env_off_x.valueChanged.connect(lambda v: self._update_environment("ibl_offset_x", v))
-+        self._environment_controls["ibl.offset_x"] = env_off_x
-+        grid.addWidget(env_off_x, 6, 0, 1, 2)
-+
-+        env_off_y = LabeledSlider("Смещение окружения Y", -180.0, 180.0, 1.0, decimals=0, unit="°")
-+        env_off_y.valueChanged.connect(lambda v: self._update_environment("ibl_offset_y", v))
-+        self._environment_controls["ibl.offset_y"] = env_off_y
-+        grid.addWidget(env_off_y, 7, 0, 1, 2)
-+
-+        env_bind = QCheckBox("Привязать окружение к камере", self)
-+        env_bind.clicked.connect(lambda checked: self._update_environment("ibl_bind_to_camera", checked))
-+        self._environment_controls["ibl.bind"] = env_bind
-+        grid.addWidget(env_bind, 8, 0, 1, 2)
-         return group
->>>>>>> sync/remote-main
+    def _discover_hdr_files(self) -> List[Tuple[str, str]]:
+        """Ищет HDR/EXR файлы в каталоге assets/qml/assets и формирует список для ComboBox."""
+        results: List[Tuple[str, str]] = []
+        base = Path("assets/qml/assets")
+        if base.exists():
+            for ext in ("*.hdr", "*.exr"):
+                for p in sorted(base.glob(ext)):
+                    results.append((p.name, str(p.as_posix())))
+        # Добавляем текущий источник по умолчанию, если он вне папки
+        current = self.state.get("environment", {}).get("ibl_source")
+        if current and all(lbl != Path(current).name for lbl, _ in results):
+            results.insert(0, (Path(current).name, current))
+        return results
 
     def _build_fog_group(self) -> QGroupBox:
         group = QGroupBox("Туман", self)
@@ -1220,7 +993,6 @@ class GraphicsPanel(QWidget):
         grid.setVerticalSpacing(8)
 
         enabled = QCheckBox("Включить туман", self)
-        # ✅ FIX: Логируем клик + вызываем обработчик
         enabled.clicked.connect(lambda checked: self._on_fog_enabled_clicked(checked))
         self._environment_controls["fog.enabled"] = enabled
         grid.addWidget(enabled, 0, 0, 1, 2)
@@ -1264,7 +1036,7 @@ class GraphicsPanel(QWidget):
 
         strength = LabeledSlider("Интенсивность", 0.0, 2.0, 0.02, decimals=2)
         strength.valueChanged.connect(lambda v: self._update_environment("ao_strength", v))
-        self._environment_controls["ao.strength"] = strength  # ✅ ИСПРАВЛЕНО: snake_case
+        self._environment_controls["ao.strength"] = strength
         grid.addWidget(strength, 1, 0, 1, 2)
 
         radius = LabeledSlider("Радиус", 0.5, 20.0, 0.1, decimals=2)
@@ -1408,7 +1180,6 @@ class GraphicsPanel(QWidget):
         specular_check.clicked.connect(lambda checked: self._update_quality("specular_aa", checked))
         self._quality_controls["specular.enabled"] = specular_check
         grid.addWidget(specular_check, 7, 0, 1, 2)
-
         return group
 
     def _build_render_group(self) -> QGroupBox:
@@ -1436,10 +1207,16 @@ class GraphicsPanel(QWidget):
         self._quality_controls["frame_rate_limit"] = frame_slider
         grid.addWidget(frame_slider, 2, 0, 1, 2)
 
+        # Переключатель Dithering (Qt 6.10+)
+        dithering_check = QCheckBox("Dithering (Qt 6.10+)", self)
+        dithering_check.clicked.connect(lambda checked: self._update_quality("dithering", checked))
+        self._quality_controls["dithering.enabled"] = dithering_check
+        grid.addWidget(dithering_check, 3, 0, 1, 2)
+
         oit_check = QCheckBox("Weighted OIT", self)
         oit_check.clicked.connect(lambda checked: self._update_quality("oit", "weighted" if checked else "none"))
         self._quality_controls["oit.enabled"] = oit_check
-        grid.addWidget(oit_check, 3, 0, 1, 2)
+        grid.addWidget(oit_check, 4, 0, 1, 2)
         return group
 
     def _on_quality_preset_changed(self, preset_key: str | None) -> None:
@@ -1535,7 +1312,7 @@ class GraphicsPanel(QWidget):
         grid.addWidget(speed, 3, 0, 1, 2)
 
         auto_rotate = QCheckBox("Автоповорот", self)
-        
+
         # ✅ НОВОЕ: Обработчик с логированием пользовательского клика
         def on_auto_rotate_clicked(checked: bool):
             # Логируем КЛИК (перед обработчиком)
@@ -1544,10 +1321,10 @@ class GraphicsPanel(QWidget):
                 widget_type="QCheckBox",
                 value=checked
             )
-            
+
             # Вызываем обработчик
             self._update_camera("auto_rotate", checked)
-        
+
         auto_rotate.clicked.connect(on_auto_rotate_clicked)
         self._camera_controls["auto_rotate"] = auto_rotate
         grid.addWidget(auto_rotate, 4, 0, 1, 2)
@@ -1684,30 +1461,19 @@ class GraphicsPanel(QWidget):
         key = self._current_material_key()
         if not key or prop not in self.state["materials"].get(key, {}):
             return
-        
-        # Сохраняем старое значение для логирования
         old_value = self.state["materials"][key].get(prop)
-        
         self.state["materials"][key][prop] = color
-        
-        # Логируем изменение
         self.graphics_logger.log_change(
             parameter_name=f"{key}.{prop}",
             old_value=old_value,
             new_value=color,
             category="material",
-            panel_state=self.state
+            panel_state=self.state,
         )
-        
-<<<<<<< HEAD
-=======
-        # ✅ НОВОЕ: Логируем отправку Python-сигнала
         try:
             self.event_logger.log_signal_emit("material_changed", self._prepare_materials_payload())
         except Exception:
             pass
-        
->>>>>>> sync/remote-main
         self._emit_material_update(key)
 
     def _on_material_value_changed(self, prop: str, value: float) -> None:
@@ -1716,30 +1482,19 @@ class GraphicsPanel(QWidget):
         key = self._current_material_key()
         if not key or prop not in self.state["materials"].get(key, {}):
             return
-        
-        # Сохраняем старое значение для логирования
         old_value = self.state["materials"][key].get(prop)
-        
         self.state["materials"][key][prop] = value
-        
-        # Логируем изменение
         self.graphics_logger.log_change(
             parameter_name=f"{key}.{prop}",
             old_value=old_value,
             new_value=value,
             category="material",
-            panel_state=self.state
+            panel_state=self.state,
         )
-        
-<<<<<<< HEAD
-=======
-        # ✅ НОВОЕ: Логируем отправку Python-сигнала
         try:
             self.event_logger.log_signal_emit("material_changed", self._prepare_materials_payload())
         except Exception:
             pass
-        
->>>>>>> sync/remote-main
         self._emit_material_update(key)
 
     # --- Effects ------------------------------------------------------
@@ -1764,8 +1519,6 @@ class GraphicsPanel(QWidget):
         grid.setVerticalSpacing(8)
 
         enabled = QCheckBox("Включить Bloom", self)
-        
-        # ✅ FIX: Логируем клик + вызываем обработчик
         enabled.clicked.connect(lambda checked: self._on_bloom_enabled_clicked(checked))
         self._effects_controls["bloom.enabled"] = enabled
         grid.addWidget(enabled, 0, 0, 1, 2)
@@ -1799,13 +1552,7 @@ class GraphicsPanel(QWidget):
         grid.addWidget(enabled, 0, 0, 1, 2)
 
         combo = QComboBox(self)
-        for label, value in [
-            ("Filmic", "filmic"),
-            ("ACES", "aces"),
-            ("Reinhard", "reinhard"),
-            ("Gamma", "gamma"),
-            ("Linear", "linear"),
-        ]:
+        for label, value in [("Filmic", "filmic"), ("ACES", "aces"), ("Reinhard", "reinhard"), ("Gamma", "gamma"), ("Linear", "linear")]:
             combo.addItem(label, value)
         combo.currentIndexChanged.connect(lambda _: self._update_effects("tonemap_mode", combo.currentData()))
         self._effects_controls["tonemap.mode"] = combo
@@ -1835,6 +1582,7 @@ class GraphicsPanel(QWidget):
         blur.valueChanged.connect(lambda v: self._update_effects("dof_blur", v))
         self._effects_controls["dof.blur"] = blur
         grid.addWidget(blur, 2, 0, 1, 2)
+
         return group
 
     def _build_misc_effects_group(self) -> QGroupBox:
@@ -1870,13 +1618,14 @@ class GraphicsPanel(QWidget):
         grid.addWidget(vignette_strength, 4, 0, 1, 2)
         return group
 
+    # ------------------------------------------------------------------
+    # Обработчики обновлений состояния
+    # ------------------------------------------------------------------
     def _apply_quality_constraints(self) -> None:
-        """Apply constraints between quality settings"""
         self._normalise_quality_state()
         self._sync_taa_controls()
 
     def _apply_lighting_preset(self, preset: Dict[str, Any], name: str) -> None:
-        """Apply lighting preset"""
         self._updating_ui = True
         try:
             self.state["lighting"] = copy.deepcopy(preset)
@@ -1887,7 +1636,6 @@ class GraphicsPanel(QWidget):
         self.preset_applied.emit(f"Освещение: {name}")
 
     def _on_primary_aa_changed(self, value: str) -> None:
-        """Handle primary AA mode change"""
         if self._updating_ui:
             return
         self.state["quality"]["antialiasing"]["primary"] = value
@@ -1895,97 +1643,48 @@ class GraphicsPanel(QWidget):
         self._sync_taa_controls()
         self._emit_quality()
 
-    # ------------------------------------------------------------------
-    # Update methods for state changes
-    # ------------------------------------------------------------------
     def _update_lighting(self, group: str, key: str, value: Any) -> None:
-        """Update lighting parameter"""
         if self._updating_ui:
             return
-        
-        # Сохраняем старое значение для логирования
         old_value = self.state["lighting"].get(group, {}).get(key)
-        
         if group not in self.state["lighting"]:
             self.state["lighting"][group] = {}
         self.state["lighting"][group][key] = value
-        
-        # Логируем изменение
         self.graphics_logger.log_change(
             parameter_name=f"{group}.{key}",
             old_value=old_value,
             new_value=value,
             category="lighting",
-            panel_state=self.state
+            panel_state=self.state,
         )
-        
-        # ✅ ИСПРАВЛЕНО: Используем правильный API EventLogger
         if group == "key" and key in {"brightness", "color", "angle_x", "angle_y"}:
             self.event_logger.log_event(
                 event_type=EventType.STATE_CHANGE,
                 component=f"lighting.{group}",
                 action=key,
                 old_value=old_value,
-                new_value=value
+                new_value=value,
             )
-        
         self._emit_lighting()
 
     def _update_environment(self, key: str, value: Any) -> None:
-        """Update environment parameter"""
         if self._updating_ui:
-            return 
-        
-        # Сохраняем старое значение для логирования
+            return
         old_value = self.state["environment"].get(key)
-        
         self.state["environment"][key] = value
-        
-        # Логируем изменение
         self.graphics_logger.log_change(
             parameter_name=key,
             old_value=old_value,
             new_value=value,
             category="environment",
-            panel_state=self.state
+            panel_state=self.state,
         )
-        
         self._emit_environment()
 
     def _update_quality(self, key: str, value: Any) -> None:
-        """Update quality parameter"""
         if self._updating_ui:
             return
-        
-        # Сохраняем старое значение для логирования
         old_value = None
-<<<<<<< HEAD
-        if "." in key:
-            parts = key.split(".")
-            target = self.state["quality"]
-            for part in parts[:-1]:
-                if part in target:
-                    target = target[part]
-                else:
-                    break
-            old_value = target.get(parts[-1]) if isinstance(target, dict) else None
-        else:
-            old_value = self.state["quality"].get(key)
-        
-        # Handle nested keys like "shadows.enabled"
-        if "." in key:
-            parts = key.split(".")
-            target = self.state["quality"]
-            for part in parts[:-1]:
-                if part not in target:
-                    target[part] = {}
-                target = target[part]
-            target[parts[-1]] = value
-        else:
-            self.state["quality"][key] = value
-=======
-
-        # ✅ Алиасы для плоских ключей качества (во избежание вложенных структур)
         if key == "fxaa.enabled":
             old_value = self.state["quality"].get("fxaa_enabled")
             self.state["quality"]["fxaa_enabled"] = value
@@ -1993,11 +1692,9 @@ class GraphicsPanel(QWidget):
             old_value = self.state["quality"].get("taa_enabled")
             self.state["quality"]["taa_enabled"] = value
         else:
-            # Обычная обработка (включая вложенные shadows.*, antialiasing.*)
             if "." in key:
                 parts = key.split(".")
-                target = self.state["quality"]
-                # Получаем старое значение, если возможно
+                target: Dict[str, Any] = self.state["quality"]
                 tmp = target
                 for part in parts[:-1]:
                     if part in tmp and isinstance(tmp[part], dict):
@@ -2007,7 +1704,6 @@ class GraphicsPanel(QWidget):
                         break
                 if isinstance(tmp, dict):
                     old_value = tmp.get(parts[-1])
-                # Устанавливаем новое значение
                 for part in parts[:-1]:
                     if part not in target or not isinstance(target[part], dict):
                         target[part] = {}
@@ -2016,26 +1712,20 @@ class GraphicsPanel(QWidget):
             else:
                 old_value = self.state["quality"].get(key)
                 self.state["quality"][key] = value
->>>>>>> sync/remote-main
-        
-        # Логируем изменение
         self.graphics_logger.log_change(
             parameter_name=key,
             old_value=old_value,
             new_value=value,
             category="quality",
-            panel_state=self.state
+            panel_state=self.state,
         )
-        
-        # ✅ ИСПРАВЛЕНО: Используем правильный API EventLogger
         self.event_logger.log_event(
             event_type=EventType.STATE_CHANGE,
             component="quality",
             action=key,
             old_value=old_value,
-            new_value=value
+            new_value=value,
         )
-        
         self._set_quality_custom()
         self._emit_quality()
 
@@ -2043,261 +1733,106 @@ class GraphicsPanel(QWidget):
         if self._updating_ui:
             self.logger.debug(f"🔒 _update_camera blocked (updating_ui=True): {key}={value}")
             return
-        
-        # Сохраняем старое значение для логирования
         old_value = self.state["camera"].get(key)
-        
-        # ✅ КРИТИЧЕСКОЕ ЛОГИРОВАНИЕ для автовращения
         if key == "auto_rotate":
             self.logger.info(f"🔄 AUTO_ROTATE CHANGE DETECTED: {value}")
             self.logger.info(f"   Previous state: {self.state['camera'].get('auto_rotate', 'UNKNOWN')}")
-        
         self.state["camera"][key] = value
-        
-        # Логируем изменение
         self.graphics_logger.log_change(
             parameter_name=key,
             old_value=old_value,
             new_value=value,
             category="camera",
-            panel_state=self.state
+            panel_state=self.state,
         )
-        
-<<<<<<< HEAD
-=======
         self._emit_camera()
-        
->>>>>>> sync/remote-main
         if key == "auto_rotate":
-            self.logger.info(f"   New state saved: {self.state['camera']['auto_rotate']}")
-            self.logger.info(f"   About to emit camera_changed signal...")
-        
-        self._emit_camera()
-        
-        if key == "auto_rotate":
-            self.logger.info(f"   ✅ camera_changed signal emitted!")
+            self.logger.info("   ✅ camera_changed signal emitted!")
 
     def _update_effects(self, key: str, value: Any) -> None:
-        """Update effects parameter"""
         if self._updating_ui:
             return
-        
-        # Сохраняем старое значение для логирования
         old_value = self.state["effects"].get(key)
-        
         self.state["effects"][key] = value
-        
-        # Логируем изменение
         self.graphics_logger.log_change(
-<<<<<<< HEAD
             parameter_name=key,
             old_value=old_value,
             new_value=value,
             category="effects",
-            panel_state=self.state
+            panel_state=self.state,
         )
-        
         self._emit_effects()
 
-    # ✅ НОВОЕ: Метод обработки клика Auto Rotate с логированием
-    def _on_auto_rotate_clicked(self, checked: bool) -> None:
-        """Обработчик клика Auto Rotate с логированием USER_CLICK"""
-        # Логируем клик ПЕРЕД обработкой
-=======
-             parameter_name=key,
-             old_value=old_value,
-             new_value=value,
-             category="effects",
-             panel_state=self.state
-         )
-        
-        self._emit_effects()
-
-    # ✅ НОВОЕ: Метод обработки клика IBL Enabled с логированием
+    # Обработчики кликов с логированием
     def _on_ibl_enabled_clicked(self, checked: bool) -> None:
-        """Обработчик клика IBL Enabled с логированием USER_CLICK"""
-        # Логируем клик ПЕРЕД обработкой
-        self.event_logger.log_user_click(
-            widget_name="ibl_enabled",
-            widget_type="QCheckBox",
-            value=checked
-        )
-        # Дополнительно пишем в обычный лог
+        self.event_logger.log_user_click(widget_name="ibl_enabled", widget_type="QCheckBox", value=checked)
         self.logger.info(f"IBL checkbox clicked: {checked}")
-        
-        # Вызываем стандартный обработчик
         self._update_environment("ibl_enabled", checked)
 
-    # ✅ НОВОЕ: Метод обработки клика Auto Rotate с логированием
     def _on_auto_rotate_clicked(self, checked: bool) -> None:
-        """Обработчик клика Auto Rotate с логированием USER_CLICK"""
-        # Логируем КЛИК (перед обработчиком)
->>>>>>> sync/remote-main
-        self.event_logger.log_user_click(
-            widget_name="auto_rotate",
-            widget_type="QCheckBox",
-            value=checked
-        )
-        
-<<<<<<< HEAD
-        # Вызываем стандартный обработчик
-=======
-        # Вызываем обработчик
->>>>>>> sync/remote-main
+        self.event_logger.log_user_click(widget_name="auto_rotate", widget_type="QCheckBox", value=checked)
         self._update_camera("auto_rotate", checked)
 
-    # ✅ НОВОЕ: Метод обработки клика Fog Enabled с логированием
     def _on_fog_enabled_clicked(self, checked: bool) -> None:
-        """Обработчик клика Fog Enabled с логированием USER_CLICK"""
-        # Логируем клик ПЕРЕД обработкой
-        self.event_logger.log_user_click(
-            widget_name="fog_enabled",
-            widget_type="QCheckBox",
-            value=checked
-        )
-<<<<<<< HEAD
-        
-        # Вызываем стандартный обработчик
-=======
->>>>>>> sync/remote-main
+        self.event_logger.log_user_click(widget_name="fog_enabled", widget_type="QCheckBox", value=checked)
         self._update_environment("fog_enabled", checked)
 
-    # ✅ НОВОЕ: Метод обработки клика Bloom Enabled с логированием
     def _on_bloom_enabled_clicked(self, checked: bool) -> None:
-        """Обработчик клика Bloom Enabled с логированием USER_CLICK"""
-        # Логируем клик ПЕРЕД обработкой
-        self.event_logger.log_user_click(
-            widget_name="bloom_enabled",
-            widget_type="QCheckBox",
-            value=checked
-        )
-<<<<<<< HEAD
-        
-        # Вызываем стандартный обработчик
-=======
->>>>>>> sync/remote-main
+        self.event_logger.log_user_click(widget_name="bloom_enabled", widget_type="QCheckBox", value=checked)
         self._update_effects("bloom_enabled", checked)
 
     # ------------------------------------------------------------------
-    # HDR file selection
-    # ------------------------------------------------------------------
-<<<<<<< HEAD
-    @Slot()
-    def _choose_hdr_file(self) -> None:
-        """Open file dialog to choose HDR file"""
-        file_path, _ = QFileDialog.getOpenFileName(
-            self,
-            "Выбрать HDR файл",
-            "",
-            "HDR Files (*.hdr *.exr);;All Files (*)"
-        )
-        
-        if file_path:
-            self.state["environment"]["ibl_source"] = file_path
-            
-            # Update label
-            path_label = self._environment_controls.get("ibl.path_label")
-            if isinstance(path_label, QLabel):
-                from pathlib import Path
-                path_label.setText(Path(file_path).name)
-            
-            self.logger.info(f"HDR файл выбран: {file_path}")
-            self._emit_environment()
-=======
-    def _discover_hdr_files(self) -> list[tuple[str, str]]:
-        """Ищет HDR/EXR файлы в каталоге assets/qml/assets и формирует список для combo."""
-        results: list[tuple[str, str]] = []
-        base = Path("assets/qml/assets")
-        if base.exists():
-            for ext in ("*.hdr", "*.exr"):
-                for p in sorted(base.glob(ext)):
-                    results.append((p.name, str(p.as_posix())))
-        # Добавляем текущий источник по умолчанию, если он вне папки
-        current = self.state.get("environment", {}).get("ibl_source")
-        if current and all(lbl != Path(current).name for lbl, _ in results):
-            results.insert(0, (Path(current).name, current))
-        return results
->>>>>>> sync/remote-main
-
-    # ------------------------------------------------------------------
-    # Signal emission methods
+    # Сигналы
     # ------------------------------------------------------------------
     def _emit_lighting(self) -> None:
         payload = self._prepare_lighting_payload()
-<<<<<<< HEAD
-=======
-        # ✅ Логируем факт отправки Python-сигнала
         try:
             self.event_logger.log_signal_emit("lighting_changed", payload)
         except Exception:
             pass
->>>>>>> sync/remote-main
         self.lighting_changed.emit(payload)
 
     def _emit_environment(self) -> None:
         payload = self._prepare_environment_payload()
-<<<<<<< HEAD
-        try:
-            print(f"[GraphicsPanel] EMIT environment_changed -> {payload}")
-=======
-        # ✅ Логируем факт отправки Python-сигнала
         try:
             self.event_logger.log_signal_emit("environment_changed", payload)
->>>>>>> sync/remote-main
         except Exception:
             pass
         self.environment_changed.emit(payload)
 
     def _emit_material_update(self, key: str) -> None:
         payload = self._prepare_materials_payload()
-<<<<<<< HEAD
-=======
-        # ✅ Логируем факт отправки Python-сигнала
         try:
             self.event_logger.log_signal_emit("material_changed", payload)
         except Exception:
             pass
->>>>>>> sync/remote-main
         self.material_changed.emit(payload)
 
     def _emit_quality(self) -> None:
         payload = self._prepare_quality_payload()
-<<<<<<< HEAD
-=======
-        # ✅ Логируем факт отправки Python-сигнала
         try:
             self.event_logger.log_signal_emit("quality_changed", payload)
         except Exception:
             pass
->>>>>>> sync/remote-main
         self.quality_changed.emit(payload)
 
     def _emit_camera(self) -> None:
         payload = self._prepare_camera_payload()
-<<<<<<< HEAD
-=======
-        # ✅ Логируем факт отправки Python-сигнала
         try:
             self.event_logger.log_signal_emit("camera_changed", payload)
         except Exception:
             pass
->>>>>>> sync/remote-main
         self.camera_changed.emit(payload)
 
     def _emit_effects(self) -> None:
         payload = self._prepare_effects_payload()
-<<<<<<< HEAD
-=======
-        # ✅ Логируем факт отправки Python-сигнала
         try:
             self.event_logger.log_signal_emit("effects_changed", payload)
         except Exception:
             pass
->>>>>>> sync/remote-main
         self.effects_changed.emit(payload)
 
     def _emit_all(self) -> None:
-        """Emit all signals with current state"""
         self._emit_lighting()
         self._emit_environment()
         self._emit_quality()
@@ -2307,22 +1842,15 @@ class GraphicsPanel(QWidget):
             self._emit_material_update(key)
 
     # ------------------------------------------------------------------
-    # Payload preparation
+    # Payloads for QML
     # ------------------------------------------------------------------
     def _prepare_lighting_payload(self) -> Dict[str, Any]:
-        """Prepare lighting payload mapped to QML expected keys.
-
-        QML expects keys like `key_light`, `fill_light`, `rim_light`, `point_light`.
-        Internal state uses `key`, `fill`, `rim`, `point` — map and rename fields
-        (e.g. `height` -> `position_y`) to ensure QML applyLightingUpdates applies updates.
-        """
         src = copy.deepcopy(self.state.get("lighting", {}))
         payload: Dict[str, Any] = {}
 
-        # ✅ Map: key → key_light
         key = src.get("key") or {}
         if key:
-            kl = {}
+            kl: Dict[str, Any] = {}
             if "brightness" in key:
                 kl["brightness"] = key.get("brightness")
             if "color" in key:
@@ -2331,10 +1859,6 @@ class GraphicsPanel(QWidget):
                 kl["angle_x"] = key.get("angle_x")
             if "angle_y" in key:
                 kl["angle_y"] = key.get("angle_y")
-<<<<<<< HEAD
-            if "casts_shadow" in key:
-                kl["casts_shadow"] = key.get("casts_shadow")
-=======
             if "cast_shadow" in key:
                 kl["casts_shadow"] = bool(key.get("cast_shadow"))
             if "bind_to_camera" in key:
@@ -2343,21 +1867,15 @@ class GraphicsPanel(QWidget):
                 kl["position_x"] = key.get("position_x")
             if "position_y" in key:
                 kl["position_y"] = key.get("position_y")
->>>>>>> sync/remote-main
             payload["key_light"] = kl
 
-        # ✅ Map: fill → fill_light
         fill = src.get("fill") or {}
         if fill:
-            fl = {}
+            fl: Dict[str, Any] = {}
             if "brightness" in fill:
                 fl["brightness"] = fill.get("brightness")
             if "color" in fill:
                 fl["color"] = fill.get("color")
-<<<<<<< HEAD
-            if "casts_shadow" in fill:
-                fl["casts_shadow"] = fill.get("casts_shadow")
-=======
             if "cast_shadow" in fill:
                 fl["casts_shadow"] = bool(fill.get("cast_shadow"))
             if "bind_to_camera" in fill:
@@ -2366,24 +1884,15 @@ class GraphicsPanel(QWidget):
                 fl["position_x"] = fill.get("position_x")
             if "position_y" in fill:
                 fl["position_y"] = fill.get("position_y")
->>>>>>> sync/remote-main
             payload["fill_light"] = fl
 
-        # ✅ Map: rim → rim_light
         rim = src.get("rim") or {}
         if rim:
-            rl = {}
+            rl: Dict[str, Any] = {}
             if "brightness" in rim:
                 rl["brightness"] = rim.get("brightness")
             if "color" in rim:
                 rl["color"] = rim.get("color")
-<<<<<<< HEAD
-            if "casts_shadow" in rim:
-                rl["casts_shadow"] = rim.get("casts_shadow")
-            payload["rim_light"] = rl
-
-        # ✅ Map: point → point_light + height → position_y
-=======
             if "cast_shadow" in rim:
                 rl["casts_shadow"] = bool(rim.get("cast_shadow"))
             if "bind_to_camera" in rim:
@@ -2394,27 +1903,13 @@ class GraphicsPanel(QWidget):
                 rl["position_y"] = rim.get("position_y")
             payload["rim_light"] = rl
 
-        # ✅ Map: point → point_light + position_x/position_y
->>>>>>> sync/remote-main
         point = src.get("point") or {}
         if point:
-            pl = {}
+            pl: Dict[str, Any] = {}
             if "brightness" in point:
                 pl["brightness"] = point.get("brightness")
             if "color" in point:
                 pl["color"] = point.get("color")
-<<<<<<< HEAD
-            # ✅ CRITICAL: height → position_y (QML expects position_y)
-            if "height" in point:
-                # Primary key expected by main.qml
-                pl["position_y"] = point.get("height")
-                # Backward-compat: also include legacy key if any consumer still reads it
-                pl["height"] = point.get("height")
-            if "range" in point:
-                pl["range"] = point.get("range")
-            if "casts_shadow" in point:
-                pl["casts_shadow"] = point.get("casts_shadow")
-=======
             if "position_x" in point:
                 pl["position_x"] = point.get("position_x")
             if "position_y" in point:
@@ -2426,86 +1921,25 @@ class GraphicsPanel(QWidget):
                 pl["casts_shadow"] = bool(point.get("cast_shadow"))
             if "bind_to_camera" in point:
                 pl["bind_to_camera"] = bool(point.get("bind_to_camera"))
->>>>>>> sync/remote-main
             payload["point_light"] = pl
 
         return payload
 
     def _prepare_environment_payload(self) -> Dict[str, Any]:
-<<<<<<< HEAD
-        env = self.state.get("environment", {})
-        # Derive skybox state from background_mode
-        bg_mode = env.get("background_mode", "color")
-        is_skybox = (bg_mode == "skybox")
-
-        payload: Dict[str, Any] = {
-            "background": {
-                "mode": bg_mode,
-                "color": env.get("background_color", "#1f242c"),
-            },
-            "ibl": {
-                # Single authoritative toggle; QML's onIblEnabledChanged will fan-out
-                "enabled": bool(env.get("ibl_enabled", True)),
-                # Явные флаги для разделенного управления (поддержка QML v4.9)
-                "lighting_enabled": bool(env.get("ibl_enabled", True)),
-                "background_enabled": bool(is_skybox),
-                "intensity": float(env.get("ibl_intensity", 1.0)),
-                # Optional rotation support if present in state
-                "rotation": float(env.get("ibl_rotation", 0.0)),
-                # Skybox blur (mapped in QML to skyboxBlur)
-                "blur": float(env.get("skybox_blur", 0.0)),
-                # IBL sources
-                "source": env.get("ibl_source", ""),
-                "fallback": env.get("ibl_fallback", ""),
-            },
-            "fog": {
-                "enabled": bool(env.get("fog_enabled", True)),
-                "color": env.get("fog_color", "#b0c4d8"),
-                "density": float(env.get("fog_density", 0.1)),
-                "near": float(env.get("fog_near", 1200.0)),
-                "far": float(env.get("fog_far", 12000.0)),
-            },
-            "ambient_occlusion": {
-                "enabled": bool(env.get("ao_enabled", True)),
-                "strength": float(env.get("ao_strength", 1.0)),
-                "radius": float(env.get("ao_radius", 8.0)),
-            },
-        }
-        return payload
-
-    def _prepare_materials_payload(self) -> Dict[str, Any]:
-        return copy.deepcopy(self.state["materials"])
-
-    def _prepare_quality_payload(self) -> Dict[str, Any]:
-        return copy.deepcopy(self.state["quality"])
-
-    def _prepare_camera_payload(self) -> Dict[str, Any]:
-        return copy.deepcopy(self.state["camera"])
-
-    def _prepare_effects_payload(self) -> Dict[str, Any]:
-        return copy.deepcopy(self.state["effects"])
-=======
-        """Собирает вложенный payload окружения в формате, ожидаемом QML applyEnvironmentUpdates()."""
         env = self.state.get("environment", {})
         payload: Dict[str, Any] = {}
 
-        # background (НЕ зависит от ibl_enabled)
         bg: Dict[str, Any] = {}
         if "background_mode" in env:
             bg["mode"] = env.get("background_mode")
         if "background_color" in env:
             bg["color"] = env.get("background_color")
-        if "ibl_enabled" in env:
-            # Не связываем фон с IBL — только skybox_enabled по желанию
-            pass
         if bg:
             payload["background"] = bg
 
-        # IBL (независимо от background)
         ibl: Dict[str, Any] = {}
         if "ibl_enabled" in env:
             ibl["enabled"] = bool(env.get("ibl_enabled"))
-            # По умолчанию зеркалим в lighting_enabled, а background_enabled не трогаем
             ibl["lighting_enabled"] = ibl["enabled"]
         if "ibl_intensity" in env:
             ibl["intensity"] = env.get("ibl_intensity")
@@ -2513,17 +1947,17 @@ class GraphicsPanel(QWidget):
             ibl["source"] = env.get("ibl_source")
         if "ibl_fallback" in env:
             ibl["fallback"] = env.get("ibl_fallback")
-        # Новые параметры позиционирования окружения
         if "ibl_offset_x" in env:
             ibl["offset_x"] = env.get("ibl_offset_x")
         if "ibl_offset_y" in env:
             ibl["offset_y"] = env.get("ibl_offset_y")
         if "ibl_bind_to_camera" in env:
             ibl["bind_to_camera"] = bool(env.get("ibl_bind_to_camera"))
+        if "skybox_blur" in env:
+            ibl["blur"] = env.get("skybox_blur")
         if ibl:
             payload["ibl"] = ibl
 
-        # fog
         fog: Dict[str, Any] = {}
         if "fog_enabled" in env:
             fog["enabled"] = bool(env.get("fog_enabled"))
@@ -2551,94 +1985,24 @@ class GraphicsPanel(QWidget):
 
         return payload
 
-    def _update_environment(self, key: str, value: Any) -> None:
-        """Update environment parameter"""
-        if self._updating_ui:
-            return 
-        
-        # Сохраняем старое значение для логирования
-        old_value = self.state["environment"].get(key)
-        
-        self.state["environment"][key] = value
-        
-        # Логируем изменение
-        self.graphics_logger.log_change(
-            parameter_name=key,
-            old_value=old_value,
-            new_value=value,
-            category="environment",
-            panel_state=self.state
-        )
-        
-        self._emit_environment()
->>>>>>> sync/remote-main
+    def _prepare_materials_payload(self) -> Dict[str, Any]:
+        return copy.deepcopy(self.state["materials"])
 
-    # ------------------------------------------------------------------
-    # Settings persistence
-    # ------------------------------------------------------------------
-    @Slot()
-    def save_settings(self) -> None:
-        """Save current settings to QSettings"""
-        try:
-            for category, data in self.state.items():
-                self.settings.setValue(f"state/{category}", json.dumps(data))
-            self.settings.sync()
-            self.logger.info("Graphics settings saved")
-        except Exception as e:
-            self.logger.error(f"Failed to save settings: {e}")
+    def _prepare_quality_payload(self) -> Dict[str, Any]:
+        return copy.deepcopy(self.state["quality"])
 
-    @Slot()
-    def load_settings(self) -> None:
-        """Load settings from QSettings"""
-        try:
-            for category in self.state.keys():
-                value = self.settings.value(f"state/{category}")
-                if value:
-                    try:
-                        loaded = json.loads(value)
-                        self._deep_update(self.state[category], loaded)
-                    except json.JSONDecodeError as e:
-                        self.logger.warning(f"Failed to parse {category} settings: {e}")
-            self.logger.info("Graphics settings loaded")
-        except Exception as e:
-            self.logger.error(f"Failed to load settings: {e}")
+    def _prepare_camera_payload(self) -> Dict[str, Any]:
+        return copy.deepcopy(self.state["camera"])
 
-    @Slot()
-    def reset_to_defaults(self) -> None:
-        """Reset all settings to defaults"""
-        self.logger.info("🔄 Resetting all graphics settings to defaults")
-        
-        # Логируем сброс
-        self.graphics_logger.log_change(
-            parameter_name="RESET_ALL",
-            old_value=copy.deepcopy(self.state),
-            new_value=copy.deepcopy(self._defaults),
-            category="system",
-            panel_state=self._defaults
-        )
-        
-        self.state = copy.deepcopy(self._defaults)
-        self._apply_state_to_ui()
-        self._emit_all()
-        self.preset_applied.emit("Сброс к значениям по умолчанию")
+    def _prepare_effects_payload(self) -> Dict[str, Any]:
+        return copy.deepcopy(self.state["effects"])
 
     # ------------------------------------------------------------------
     # UI state synchronization
     # ------------------------------------------------------------------
     def _apply_state_to_ui(self) -> None:
-        """Apply current state to all UI controls"""
-<<<<<<< HEAD
-        # ✅ CRITICAL FIX: Блокируем сигналы на время синхронизации UI
         self._updating_ui = True
-=======
-        # ✅ CRITICAL FIX: Блокируем все сигналы во время обновления UI
-        # Это предотвращает множественные вызовы обработчиков
-        self._updating_ui = True
-        
-        # Дополнительно блокируем сигналы на уровне Qt
->>>>>>> sync/remote-main
         self.blockSignals(True)
-        
         try:
             self._apply_lighting_ui()
             self._apply_environment_ui()
@@ -2647,7 +2011,6 @@ class GraphicsPanel(QWidget):
             self._apply_effects_ui()
             self._on_material_selection_changed()
         finally:
-            # ✅ CRITICAL: Всегда разблокируем сигналы
             self.blockSignals(False)
             self._updating_ui = False
 
@@ -2663,24 +2026,15 @@ class GraphicsPanel(QWidget):
                     control.setChecked(bool(value))
 
     def _apply_environment_ui(self) -> None:
-<<<<<<< HEAD
-        mode_combo = self._environment_controls.get("background.mode")
-        if isinstance(mode_combo, QComboBox):
-            index = mode_combo.findData(self.state["environment"]["background_mode"])
-            if index >= 0:
-                mode_combo.setCurrentIndex(index)
-=======
         mode_combo = self._environment_controls.get("combined.mode")
         if isinstance(mode_combo, QComboBox):
             ibl_on = bool(self.state["environment"].get("ibl_enabled", True))
             bg_mode = self.state["environment"].get("background_mode", "skybox")
             target = (ibl_on, bg_mode)
-            # Найти по кортежу
             for i in range(mode_combo.count()):
                 if mode_combo.itemData(i) == target:
                     mode_combo.setCurrentIndex(i)
                     break
->>>>>>> sync/remote-main
 
         bg_button = self._environment_controls.get("background.color")
         if isinstance(bg_button, ColorButton):
@@ -2698,27 +2052,25 @@ class GraphicsPanel(QWidget):
         if isinstance(skybox_blur, LabeledSlider):
             skybox_blur.set_value(self.state["environment"]["skybox_blur"])
 
-<<<<<<< HEAD
-        # ✅ Синхронизация выбора HDR в выпадающем списке
-        hdr_combo = self._environment_controls.get("ibl.combo")
+        hdr_combo = self._environment_controls.get("ibl.file")
         if isinstance(hdr_combo, QComboBox):
-            current_source = str(self.state["environment"].get("ibl_source", ""))
-            target_name = self._basename_from_any_path(current_source) if current_source else ""
-            # По умолчанию "Плоский фон (цвет)"
-            selected_index = 0
-            for i in range(1, hdr_combo.count()):
-                if self._basename_from_any_path(hdr_combo.itemData(i)) == target_name and target_name:
-                    selected_index = i
-                    break
-            previous = self._updating_ui
-            self._updating_ui = True
-            try:
-                hdr_combo.setCurrentIndex(selected_index)
-            finally:
-                self._updating_ui = previous
+            current = self.state["environment"].get("ibl_source")
+            if current:
+                for i in range(hdr_combo.count()):
+                    if hdr_combo.itemData(i) == current:
+                        hdr_combo.setCurrentIndex(i)
+                        break
 
-=======
->>>>>>> sync/remote-main
+        # Поворот IBL
+        ibl_rot = self._environment_controls.get("ibl.rotation")
+        if isinstance(ibl_rot, LabeledSlider):
+            ibl_rot.set_value(self.state["environment"].get("ibl_rotation", 0.0))
+
+        # Отображение skybox
+        skybox_toggle = self._environment_controls.get("background.skybox_enabled")
+        if isinstance(skybox_toggle, QCheckBox):
+            skybox_toggle.setChecked(bool(self.state["environment"].get("skybox_enabled", True)))
+
         fog_enabled = self._environment_controls.get("fog.enabled")
         if isinstance(fog_enabled, QCheckBox):
             fog_enabled.setChecked(self.state["environment"]["fog_enabled"])
@@ -2739,7 +2091,6 @@ class GraphicsPanel(QWidget):
         if isinstance(fog_far, LabeledSlider):
             fog_far.set_value(self.state["environment"]["fog_far"])
 
-        # ✅ FIXED: Заменено 'this' на 'self'
         ao_enabled = self._environment_controls.get("ao.enabled")
         if isinstance(ao_enabled, QCheckBox):
             ao_enabled.setChecked(self.state["environment"]["ao_enabled"])
@@ -2752,33 +2103,6 @@ class GraphicsPanel(QWidget):
         if isinstance(ao_radius, LabeledSlider):
             ao_radius.set_value(self.state["environment"]["ao_radius"])
 
-<<<<<<< HEAD
-    def _basename_from_any_path(self, value: str) -> str:
-        """Возвращает имя файла из file:// URL, абсолютного или относительного пути."""
-        try:
-            if not value:
-                return ""
-            parsed = urlparse(value)
-            if parsed.scheme == 'file':
-                return PurePosixPath(parsed.path).name
-            # Нормализуем обратные слэши для Windows-путей
-            v = value.replace("\\", "/")
-            return Path(v).name
-        except Exception:
-            try:
-                return Path(value).name
-            except Exception:
-                return str(value).split('/')[-1]
-=======
-        hdr_combo = self._environment_controls.get("ibl.file")
-        if isinstance(hdr_combo, QComboBox):
-            current = self.state["environment"].get("ibl_source")
-            if current:
-                for i in range(hdr_combo.count()):
-                    if hdr_combo.itemData(i) == current:
-                        hdr_combo.setCurrentIndex(i)
-                        break
-
         off_x = self._environment_controls.get("ibl.offset_x")
         if isinstance(off_x, LabeledSlider):
             off_x.set_value(self.state["environment"].get("ibl_offset_x", 0.0))
@@ -2788,11 +2112,10 @@ class GraphicsPanel(QWidget):
         bind = self._environment_controls.get("ibl.bind")
         if isinstance(bind, QCheckBox):
             bind.setChecked(bool(self.state["environment"].get("ibl_bind_to_camera", False)))
->>>>>>> sync/remote-main
 
     def _apply_quality_ui(self) -> None:
         self._sync_quality_preset_ui()
-        
+
         shadows_enabled = self._quality_controls.get("shadows.enabled")
         if isinstance(shadows_enabled, QCheckBox):
             shadows_enabled.setChecked(self.state["quality"]["shadows"]["enabled"])
@@ -2837,45 +2160,49 @@ class GraphicsPanel(QWidget):
 
         taa_check = self._quality_controls.get("taa.enabled")
         if isinstance(taa_check, QCheckBox):
-            taa_check.setChecked(self.state["quality"]["taa_enabled"])
+            taa_check.setChecked(self.state["quality"].get("taa_enabled", False))
 
         taa_strength = self._quality_controls.get("taa.strength")
         if isinstance(taa_strength, LabeledSlider):
-            taa_strength.set_value(self.state["quality"]["taa_strength"])
+            taa_strength.set_value(self.state["quality"].get("taa_strength", 0.0))
 
         taa_motion = self._quality_controls.get("taa_motion_adaptive")
         if isinstance(taa_motion, QCheckBox):
-            taa_motion.setChecked(self.state["quality"]["taa_motion_adaptive"])
+            taa_motion.setChecked(self.state["quality"].get("taa_motion_adaptive", False))
 
         fxaa_check = self._quality_controls.get("fxaa.enabled")
         if isinstance(fxaa_check, QCheckBox):
-            fxaa_check.setChecked(self.state["quality"]["fxaa_enabled"])
+            fxaa_check.setChecked(self.state["quality"].get("fxaa_enabled", False))
 
         specular_check = self._quality_controls.get("specular.enabled")
         if isinstance(specular_check, QCheckBox):
-            specular_check.setChecked(self.state["quality"]["specular_aa"])
+            specular_check.setChecked(self.state["quality"].get("specular_aa", False))
 
         dithering_check = self._quality_controls.get("dithering.enabled")
         if isinstance(dithering_check, QCheckBox):
-            dithering_check.setChecked(self.state["quality"]["dithering"])
+            dithering_check.setChecked(self.state["quality"].get("dithering", False))
 
         render_scale = self._quality_controls.get("render.scale")
         if isinstance(render_scale, LabeledSlider):
-            render_scale.set_value(self.state["quality"]["render_scale"])
+            render_scale.set_value(self.state["quality"].get("render_scale", 1.0))
 
         render_policy = self._quality_controls.get("render.policy")
         if isinstance(render_policy, QComboBox):
-            index = render_policy.findData(self.state["quality"]["render_policy"])
+            index = render_policy.findData(self.state["quality"].get("render_policy", "always"))
             if index >= 0:
                 render_policy.setCurrentIndex(index)
 
         frame_limit = self._quality_controls.get("frame_rate_limit")
         if isinstance(frame_limit, LabeledSlider):
-            frame_limit.set_value(self.state["quality"]["frame_rate_limit"])
+            frame_limit.set_value(self.state["quality"].get("frame_rate_limit", 60.0))
+
+        dithering_check = self._quality_controls.get("dithering.enabled")
+        if isinstance(dithering_check, QCheckBox):
+            dithering_check.setChecked(self.state["quality"].get("dithering", True))
 
         oit_check = self._quality_controls.get("oit.enabled")
         if isinstance(oit_check, QCheckBox):
-            oit_check.setChecked(self.state["quality"]["oit"] == "weighted")
+            oit_check.setChecked(self.state["quality"].get("oit", "none") == "weighted")
 
     def _apply_camera_ui(self) -> None:
         fov = self._camera_controls.get("fov")
@@ -2951,37 +2278,33 @@ class GraphicsPanel(QWidget):
 
         lens_flare = self._effects_controls.get("lens_flare.enabled")
         if isinstance(lens_flare, QCheckBox):
-            lens_flare.setChecked(self.state["effects"]["lens_flare"])
+            lens_flare.setChecked(self.state["effects"].get("lens_flare", False))
 
         vignette = self._effects_controls.get("vignette.enabled")
         if isinstance(vignette, QCheckBox):
-            vignette.setChecked(self.state["effects"]["vignette"])
+            vignette.setChecked(self.state["effects"].get("vignette", False))
 
         vignette_strength = self._effects_controls.get("vignette.strength")
         if isinstance(vignette_strength, LabeledSlider):
-            vignette_strength.set_value(self.state["effects"]["vignette_strength"])
+            vignette_strength.set_value(self.state["effects"].get("vignette_strength", 0.0))
 
     # ------------------------------------------------------------------
-    # Utility methods
+    # Утилиты и завершение
     # ------------------------------------------------------------------
     def _sync_taa_controls(self) -> None:
         primary = self.state["quality"]["antialiasing"]["primary"]
         allow_taa = primary != "msaa"
-        
         taa_check = self._quality_controls.get("taa.enabled")
         if isinstance(taa_check, QCheckBox):
             taa_check.setEnabled(allow_taa)
-            
         taa_strength = self._quality_controls.get("taa.strength")
         if isinstance(taa_strength, LabeledSlider):
             taa_strength.set_enabled(allow_taa)
-            
         taa_motion = self._quality_controls.get("taa_motion_adaptive")
         if isinstance(taa_motion, QCheckBox):
             taa_motion.setEnabled(allow_taa)
 
     def _normalise_quality_state(self) -> None:
-        """Ensure quality state has all required keys"""
         if "shadows" not in self.state["quality"]:
             self.state["quality"]["shadows"] = {}
         if "antialiasing" not in self.state["quality"]:
@@ -2989,7 +2312,6 @@ class GraphicsPanel(QWidget):
 
     @staticmethod
     def _deep_update(target: Dict[str, Any], source: Dict[str, Any]) -> None:
-        """Deep update dictionary recursively"""
         for key, value in source.items():
             if isinstance(value, dict) and key in target and isinstance(target[key], dict):
                 GraphicsPanel._deep_update(target[key], value)
@@ -2997,28 +2319,58 @@ class GraphicsPanel(QWidget):
                 target[key] = value
 
     def closeEvent(self, event) -> None:
-        """Обработка закрытия панели"""
         self.logger.info("🛑 GraphicsPanel closing, exporting analysis...")
-<<<<<<< HEAD
-        
-        # Экспортируем финальный отчет
-=======
-        # Сохраняем настройки пользователя автоматически
         try:
             self.save_settings()
         except Exception as e:
             self.logger.error(f"Failed to auto-save settings on close: {e}")
-         
-         # Экспортируем финальный отчет
->>>>>>> sync/remote-main
         try:
             report_path = self.graphics_logger.export_analysis_report()
             self.logger.info(f"   ✅ Analysis report saved: {report_path}")
         except Exception as e:
             self.logger.error(f"   ❌ Failed to export analysis: {e}")
-        
         super().closeEvent(event)
-    
+
+    @Slot()
+    def save_settings(self) -> None:
+        try:
+            for category, data in self.state.items():
+                self.settings.setValue(f"state/{category}", json.dumps(data))
+            self.settings.sync()
+            self.logger.info("Graphics settings saved")
+        except Exception as e:
+            self.logger.error(f"Failed to save settings: {e}")
+
+    @Slot()
+    def load_settings(self) -> None:
+        try:
+            for category in self.state.keys():
+                value = self.settings.value(f"state/{category}")
+                if value:
+                    try:
+                        loaded = json.loads(value)
+                        self._deep_update(self.state[category], loaded)
+                    except json.JSONDecodeError as e:
+                        self.logger.warning(f"Failed to parse {category} settings: {e}")
+            self.logger.info("Graphics settings loaded")
+        except Exception as e:
+            self.logger.error(f"Failed to load settings: {e}")
+
+    @Slot()
+    def reset_to_defaults(self) -> None:
+        self.logger.info("🔄 Resetting all graphics settings to defaults")
+        self.graphics_logger.log_change(
+            parameter_name="RESET_ALL",
+            old_value=copy.deepcopy(self.state),
+            new_value=copy.deepcopy(self._defaults),
+            category="system",
+            panel_state=self._defaults,
+        )
+        self.state = copy.deepcopy(self._defaults)
+        self._apply_state_to_ui()
+        self._emit_all()
+        self.preset_applied.emit("Сброс к значениям по умолчанию")
+
     def export_sync_analysis(self) -> None:
         """Экспортировать анализ синхронизации Python-QML"""
         try:

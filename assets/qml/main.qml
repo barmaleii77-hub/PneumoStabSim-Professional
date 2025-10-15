@@ -823,6 +823,8 @@ Item {
         if (params.taa_motion_adaptive !== undefined) taaMotionAdaptive = params.taa_motion_adaptive
         if (params.fxaa_enabled !== undefined) fxaaEnabled = params.fxaa_enabled
         if (params.specular_aa !== undefined) specularAAEnabled = params.specular_aa
+        // ✅ НОВОЕ: Мгновенная обработка dither при прямом вызове из Python
+        if (params.dithering !== undefined) ditheringEnabled = params.dithering
         if (params.render_scale !== undefined) renderScale = params.render_scale
         if (params.render_policy !== undefined) renderPolicy = params.render_policy
         if (params.frame_rate_limit !== undefined) frameRateLimit = params.frame_rate_limit
