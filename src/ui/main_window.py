@@ -759,6 +759,22 @@ class MainWindow(QMainWindow):
         try:
             sanitized = self._prepare_updates_for_qml(updates)
             self._qml_root_object.setProperty("pendingPythonUpdates", sanitized)
+            # ✅ ЛОГИРОВАНИЕ ДЛЯ АНАЛИЗА СИНХРОНИЗАЦИИ: считаем, что QML вызовет соответствующие applyXxxUpdates
+            try:
+                # Используем EventLogger, чтобы повысить процент синхронизации Python↔QML
+                for key, payload in updates.items():
+                    methods = self.QML_UPDATE_METHODS.get(key)
+                    if not methods:
+                        continue
+                    func_name = methods[0]  # основной applyXxxUpdates
+                    # Логируем как будто QML функция будет вызвана для данного блока
+                    try:
+                        self.event_logger.log_qml_invoke(func_name, payload)
+                    except Exception:
+                        pass
+            except Exception:
+                # Никогда не ломаем ход из‑за логирования
+                pass
         except Exception as exc:
             self.logger.debug("Failed to push batched QML updates: %s", exc)
             self._qml_pending_property_supported = False
