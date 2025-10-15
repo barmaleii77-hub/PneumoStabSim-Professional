@@ -316,50 +316,25 @@ class GeometryPanel(QWidget):
     
     def _connect_signals(self):
         """Connect widget signals"""
-<<<<<<< HEAD
         # Реал-тайм: valueChanged для мгновенных обновлений геометрии
         # Финальное подтверждение: valueEdited
-=======
-        # Используем ТОЛЬКО valueEdited для избежания дублирования событий
->>>>>>> sync/remote-main
         
         self.logger.debug("Connecting signals...")
         
         # Frame dimensions
-        self.wheelbase_slider.valueChanged.connect(
-            lambda v: self._on_parameter_changed('wheelbase', v))
         self.wheelbase_slider.valueEdited.connect(
             lambda v: self._on_parameter_changed('wheelbase', v))
-<<<<<<< HEAD
-        
-        self.track_slider.valueChanged.connect(
-            lambda v: self._on_parameter_changed('track', v))
-=======
-        # Мгновенные обновления канвы
         self.wheelbase_slider.valueChanged.connect(
             lambda v: self._on_parameter_live_change('wheelbase', v))
         
->>>>>>> sync/remote-main
         self.track_slider.valueEdited.connect(
             lambda v: self._on_parameter_changed('track', v))
         self.track_slider.valueChanged.connect(
             lambda v: self._on_parameter_live_change('track', v))
         
         # Suspension geometry
-        self.frame_to_pivot_slider.valueChanged.connect(
-            lambda v: self._on_parameter_changed('frame_to_pivot', v))
         self.frame_to_pivot_slider.valueEdited.connect(
             lambda v: self._on_parameter_changed('frame_to_pivot', v))
-<<<<<<< HEAD
-            
-        self.lever_length_slider.valueChanged.connect(
-            lambda v: self._on_parameter_changed('lever_length', v))
-        self.lever_length_slider.valueEdited.connect(
-            lambda v: self._on_parameter_changed('lever_length', v))
-            
-        self.rod_position_slider.valueChanged.connect(
-            lambda v: self._on_parameter_changed('rod_position', v))
-=======
         self.frame_to_pivot_slider.valueChanged.connect(
             lambda v: self._on_parameter_live_change('frame_to_pivot', v))
             
@@ -368,51 +343,14 @@ class GeometryPanel(QWidget):
         self.lever_length_slider.valueChanged.connect(
             lambda v: self._on_parameter_live_change('lever_length', v))
             
->>>>>>> sync/remote-main
         self.rod_position_slider.valueEdited.connect(
             lambda v: self._on_parameter_changed('rod_position', v))
         self.rod_position_slider.valueChanged.connect(
             lambda v: self._on_parameter_live_change('rod_position', v))
         
         # Cylinder dimensions
-        self.cylinder_length_slider.valueChanged.connect(
-            lambda v: self._on_parameter_changed('cylinder_length', v))
         self.cylinder_length_slider.valueEdited.connect(
             lambda v: self._on_parameter_changed('cylinder_length', v))
-<<<<<<< HEAD
-            
-        # МШ-1: Параметры цилиндра
-        self.cyl_diam_m_slider.valueChanged.connect(
-            lambda v: self._on_parameter_changed('cyl_diam_m', v))
-        self.cyl_diam_m_slider.valueEdited.connect(
-            lambda v: self._on_parameter_changed('cyl_diam_m', v))
-            
-        self.stroke_m_slider.valueChanged.connect(
-            lambda v: self._on_parameter_changed('stroke_m', v))
-        self.stroke_m_slider.valueEdited.connect(
-            lambda v: self._on_parameter_changed('stroke_m', v))
-            
-        self.dead_gap_m_slider.valueChanged.connect(
-            lambda v: self._on_parameter_changed('dead_gap_m', v))
-        self.dead_gap_m_slider.valueEdited.connect(
-            lambda v: self._on_parameter_changed('dead_gap_m', v))
-            
-        # МШ-2: Параметры штока и поршня
-        self.rod_diameter_m_slider.valueChanged.connect(
-            lambda v: self._on_parameter_changed('rod_diameter_m', v))
-        self.rod_diameter_m_slider.valueEdited.connect(
-            lambda v: self._on_parameter_changed('rod_diameter_m', v))
-            
-        self.piston_rod_length_m_slider.valueChanged.connect(
-            lambda v: self._on_parameter_changed('piston_rod_length_m', v))
-        self.piston_rod_length_m_slider.valueEdited.connect(
-            lambda v: self._on_parameter_changed('piston_rod_length_m', v))
-            
-        self.piston_thickness_m_slider.valueChanged.connect(
-            lambda v: self._on_parameter_changed('piston_thickness_m', v))
-        self.piston_thickness_m_slider.valueEdited.connect(
-            lambda v: self._on_parameter_changed('piston_thickness_m', v))
-=======
         self.cylinder_length_slider.valueChanged.connect(
             lambda v: self._on_parameter_live_change('cylinder_length', v))
             
@@ -447,7 +385,6 @@ class GeometryPanel(QWidget):
             lambda v: self._on_parameter_changed('piston_thickness_m', v))
         self.piston_thickness_m_slider.valueChanged.connect(
             lambda v: self._on_parameter_live_change('piston_thickness_m', v))
->>>>>>> sync/remote-main
         
         # Options
         self.link_rod_diameters.toggled.connect(self._on_link_rod_diameters_toggled)
@@ -720,8 +657,7 @@ class GeometryPanel(QWidget):
         
         finally:
             self._resolving_conflict = False
-<<<<<<< HEAD
-=======
+
     @Slot(str, float)
     def _on_parameter_live_change(self, param_name: str, value: float):
         """Мгновенно отражать изменения значения на 3D канве во время движения слайдера.
@@ -735,4 +671,3 @@ class GeometryPanel(QWidget):
         self.parameters[param_name] = value
         geometry_3d = self._get_fast_geometry_update(param_name, value)
         self.geometry_changed.emit(geometry_3d)
->>>>>>> sync/remote-main

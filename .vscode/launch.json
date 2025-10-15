@@ -2,17 +2,16 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "🚀 PneumoStabSim App (Главный)",
+            "name": "F5: PneumoStabSim (Главный)",
             "type": "python",
             "request": "launch",
             "program": "${workspaceFolder}/app.py",
             "args": [],
             "console": "integratedTerminal",
             "cwd": "${workspaceFolder}",
+            "envFile": "${workspaceFolder}/.env",
             "env": {
-                "PYTHONPATH": "${workspaceFolder}/src",
-                "QT_LOGGING_RULES": "qt.qml.debug=false",
-                "QSG_INFO": "0"
+                "PYTHONPATH": "${workspaceFolder}/src"
             },
             "justMyCode": false,
             "stopOnEntry": false,
@@ -22,52 +21,14 @@
             }
         },
         {
-            "name": "🐛 Verbose Mode (подробно)",
+            "name": "F5: Verbose (подробные логи)",
             "type": "python",
             "request": "launch",
             "program": "${workspaceFolder}/app.py",
             "args": ["--verbose"],
             "console": "integratedTerminal",
             "cwd": "${workspaceFolder}",
-            "env": {  
-                "PYTHONPATH": "${workspaceFolder}/src",
-                "QT_LOGGING_RULES": "*.debug=true",
-                "QSG_INFO": "1",
-                "QT_ASSUME_STDERR_HAS_CONSOLE": "1"
-            },
-            "justMyCode": false,
-            "stopOnEntry": false,
-            "presentation": {
-                "group": "debug",
-                "order": 1
-            }
-        },
-        {
-            "name": "🧪 Test Mode (Автозакрытие 5 сек)",
-            "type": "python",
-            "request": "launch",
-            "program": "${workspaceFolder}/app.py",
-            "args": ["--test-mode"],
-            "console": "integratedTerminal",
-            "cwd": "${workspaceFolder}",
-            "env": {
-                "PYTHONPATH": "${workspaceFolder}/src"
-            },
-            "justMyCode": false,
-            "stopOnEntry": false,
-            "presentation": {
-                "group": "test",
-                "order": 1
-            }
-        },
-        {
-            "name": "🔓 Non-blocking Mode (Терминал свободен)",
-            "type": "python",
-            "request": "launch",
-            "program": "${workspaceFolder}/app.py",
-            "args": ["--no-block"],
-            "console": "integratedTerminal",
-            "cwd": "${workspaceFolder}",
+            "envFile": "${workspaceFolder}/.env",
             "env": {
                 "PYTHONPATH": "${workspaceFolder}/src"
             },
@@ -79,30 +40,51 @@
             }
         },
         {
-            "name": "🛡️ Safe Mode (Совместимость)",
+            "name": "F5: Test Mode (автозакрытие 5с)",
             "type": "python",
             "request": "launch",
             "program": "${workspaceFolder}/app.py",
-            "args": ["--safe-mode"],
+            "args": ["--test-mode"],
             "console": "integratedTerminal",
             "cwd": "${workspaceFolder}",
+            "envFile": "${workspaceFolder}/.env",
             "env": {
                 "PYTHONPATH": "${workspaceFolder}/src"
             },
             "justMyCode": false,
             "stopOnEntry": false,
             "presentation": {
-                "group": "main",
-                "order": 3
+                "group": "test",
+                "order": 1
             }
         },
         {
-            "name": "🔧 Current File (Текущий файл)",
+            "name": "F5: Verbose + Test (5с)",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/app.py",
+            "args": ["--verbose", "--test-mode"],
+            "console": "integratedTerminal",
+            "cwd": "${workspaceFolder}",
+            "envFile": "${workspaceFolder}/.env",
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}/src"
+            },
+            "justMyCode": false,
+            "stopOnEntry": false,
+            "presentation": {
+                "group": "test",
+                "order": 2
+            }
+        },
+        {
+            "name": "F5: Current File (текущий .py)",
             "type": "python",
             "request": "launch",
             "program": "${file}",
             "console": "integratedTerminal",
             "cwd": "${workspaceFolder}",
+            "envFile": "${workspaceFolder}/.env",
             "env": {
                 "PYTHONPATH": "${workspaceFolder}/src"
             },
@@ -113,7 +95,7 @@
             }
         },
         {
-            "name": "🧪 Run Tests (PyTest)",
+            "name": "F5: Run Tests (pytest)",
             "type": "python",
             "request": "launch",
             "module": "pytest",
@@ -125,25 +107,7 @@
             ],
             "console": "integratedTerminal",
             "cwd": "${workspaceFolder}",
-            "env": {
-                "PYTHONPATH": "${workspaceFolder}/src"
-            },
-            "justMyCode": false,
-            "presentation": {
-                "group": "test",
-                "order": 2
-            }
-        },
-        {
-            "name": "🧪 Run Tests with Coverage",
-            "type": "python",
-            "request": "launch",
-            "module": "pytest",
-            "args": [
-                "--cov=src", "--cov-report=term", "--cov-report=html", "tests/"
-            ],
-            "console": "integratedTerminal",
-            "cwd": "${workspaceFolder}",
+            "envFile": "${workspaceFolder}/.env",
             "env": {
                 "PYTHONPATH": "${workspaceFolder}/src"
             },

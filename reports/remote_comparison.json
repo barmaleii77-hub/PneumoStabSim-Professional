@@ -1,0 +1,128 @@
+{
+  "current": {
+    "branch": "merge/best-of",
+    "sha": "02ac2cdd5f4569aaf881921f2890db08e4fc5a97"
+  },
+  "branches": [
+    {
+      "branch": "origin",
+      "sha": "ad6bed72a4fa130e4156a79e046607d30c81e22e",
+      "date": "Tue Oct 14 20:32:40 2025 +0500",
+      "diff_counts": {
+        "M": 14,
+        "A": 38
+      },
+      "total_diff": 52
+    },
+    {
+      "branch": "origin/codex/analyze-latest-commit-for-graphics-improvements",
+      "sha": "bea96d29ee3705a94df32f5899d6db032c18c81f",
+      "date": "Sun Oct 12 19:32:35 2025 +0500",
+      "diff_counts": {
+        "M": 15,
+        "A": 126,
+        "D": 1
+      },
+      "total_diff": 142
+    },
+    {
+      "branch": "origin/copilot/add-ibl-control-features",
+      "sha": "a58e37a0589438590042840854dd8489646da05c",
+      "date": "Sun Oct 12 21:04:33 2025 +0000",
+      "diff_counts": {
+        "M": 14,
+        "A": 110,
+        "D": 4
+      },
+      "total_diff": 128
+    },
+    {
+      "branch": "origin/copilot/clone-repo-to-local-machine",
+      "sha": "6a7554365ab6d40e3e04200a0599dcae872969dc",
+      "date": "Sun Oct 12 19:28:10 2025 +0500",
+      "diff_counts": {
+        "M": 15,
+        "A": 126,
+        "D": 1
+      },
+      "total_diff": 142
+    },
+    {
+      "branch": "origin/feature/hdr-assets-migration",
+      "sha": "1a71282cc8edfac6bff3122cd51ef6d0777df155",
+      "date": "Wed Oct 15 09:49:43 2025 +0500",
+      "diff_counts": {
+        "M": 18,
+        "A": 36,
+        "D": 1
+      },
+      "total_diff": 55
+    },
+    {
+      "branch": "origin/feature/ibl-rotation-and-cylinder-geometry",
+      "sha": "cda11b4a3d7b606e5062f322c13b58cd2b893767",
+      "date": "Sun Oct 12 22:54:23 2025 +0500",
+      "diff_counts": {
+        "M": 14,
+        "A": 110
+      },
+      "total_diff": 124
+    },
+    {
+      "branch": "origin/latest-main",
+      "sha": "092bd2abf92377ef567785f1fe7d93ed4dd9fc81",
+      "date": "Fri Oct 10 14:34:59 2025 +0300",
+      "diff_counts": {
+        "M": 23,
+        "A": 238,
+        "D": 1,
+        "R086": 1
+      },
+      "total_diff": 263
+    },
+    {
+      "branch": "origin/main",
+      "sha": "ad6bed72a4fa130e4156a79e046607d30c81e22e",
+      "date": "Tue Oct 14 20:32:40 2025 +0500",
+      "diff_counts": {
+        "M": 14,
+        "A": 38
+      },
+      "total_diff": 52
+    },
+    {
+      "branch": "origin/main-3b8da9a",
+      "sha": "6abe30d6ae9347172855dc8339f0e7b98bc59613",
+      "date": "Thu Oct 9 15:33:20 2025 +0300",
+      "diff_counts": {
+        "M": 46,
+        "A": 293,
+        "R066": 1
+      },
+      "total_diff": 340
+    },
+    {
+      "branch": "origin/merge-latest-remote",
+      "sha": "66c157b8f4a27620205e096443656ba48c46b832",
+      "date": "Fri Oct 10 17:44:44 2025 +0500",
+      "diff_counts": {
+        "M": 23,
+        "A": 238,
+        "D": 1,
+        "R086": 1
+      },
+      "total_diff": 263
+    },
+    {
+      "branch": "origin/qml-method-fixes",
+      "sha": "db3e34c657d93e49f7ef66cab1f170bc8cdd60c8",
+      "date": "Sun Oct 12 18:17:26 2025 +0500",
+      "diff_counts": {
+        "M": 17,
+        "A": 233,
+        "D": 4
+      },
+      "total_diff": 254
+    }
+  ]
+}
