@@ -21,22 +21,34 @@
     <UnitTestRootDirectory>tests</UnitTestRootDirectory>
     <LaunchProvider>Standard Python launcher</LaunchProvider>
     <EnableNativeCodeDebugging>False</EnableNativeCodeDebugging>
+<<<<<<< HEAD
     <!-- Включаем консольный режим для отображения логов/вывода -->
     <IsWindowsApplication>False</IsWindowsApplication>
+=======
+    <IsWindowsApplication>True</IsWindowsApplication>
+>>>>>>> sync/remote-main
   </PropertyGroup>
   
   <!-- Конфигурации сборки -->
   <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
     <DebugSymbols>true</DebugSymbols>
     <EnableUnmanagedDebugging>false</EnableUnmanagedDebugging>
+<<<<<<< HEAD
     <!-- Соответствует app.py: используем --verbose вместо устаревшего --debug -->
     <CommandLineArguments>--verbose</CommandLineArguments>
+=======
+    <CommandLineArguments>--debug</CommandLineArguments>
+>>>>>>> sync/remote-main
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)' == 'Release' ">
     <DebugSymbols>false</DebugSymbols>
     <EnableUnmanagedDebugging>false</EnableUnmanagedDebugging>
+<<<<<<< HEAD
     <!-- Удален несуществующий флаг --force-optimized -->
     <CommandLineArguments></CommandLineArguments>
+=======
+    <CommandLineArguments>--force-optimized</CommandLineArguments>
+>>>>>>> sync/remote-main
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)' == 'Test' ">
     <DebugSymbols>true</DebugSymbols>
@@ -390,10 +402,13 @@
     <Content Include="assets\qml\main_optimized.qml">
       <SubType>Content</SubType>
     </Content>
+<<<<<<< HEAD
     <!-- Добавлен компонент для IBL -->
     <Content Include="assets\qml\components\IblProbeLoader.qml">
       <SubType>Content</SubType>
     </Content>
+=======
+>>>>>>> sync/remote-main
   </ItemGroup>
 
   <!-- Конфигурационные файлы -->
@@ -535,7 +550,10 @@
     <Folder Include="scripts\" />
     <Folder Include="assets\" />
     <Folder Include="assets\qml\" />
+<<<<<<< HEAD
     <Folder Include="assets\qml\components\" />
+=======
+>>>>>>> sync/remote-main
     <Folder Include="docs\" />
     <Folder Include="logs\" />
     <Folder Include="reports\" />

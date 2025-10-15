@@ -173,38 +173,38 @@ Item {
     property color keyLightColor: "#ffffff"
     property real keyLightAngleX: -35
     property real keyLightAngleY: -40
-    // Per-light shadow toggles
     property bool keyLightCastsShadow: true
-    property bool fillLightCastsShadow: false
-    property bool rimLightCastsShadow: false
-    property bool pointLightCastsShadow: false
+    property bool keyLightBindToCamera: false
+    property real keyLightPosX: 0.0
+    property real keyLightPosY: 0.0
     property real fillLightBrightness: 0.7
     property color fillLightColor: "#dfe7ff"
+    property bool fillLightCastsShadow: false
+    property bool fillLightBindToCamera: false
+    property real fillLightPosX: 0.0
+    property real fillLightPosY: 0.0
     property real rimLightBrightness: 1.0
     property color rimLightColor: "#ffe2b0"
+    property bool rimLightCastsShadow: false
+    property bool rimLightBindToCamera: false
+    property real rimLightPosX: 0.0
+    property real rimLightPosY: 0.0
     property real pointLightBrightness: 1000.0
     property color pointLightColor: "#ffffff"
+    property real pointLightX: 0.0
     property real pointLightY: 2200.0
     property real pointLightRange: 3200.0
+    property bool pointLightCastsShadow: false   // ✅ Новый пользовательский флаг теней точечного света
+    property bool pointLightBindToCamera: false
 
     // Environment
     property string backgroundMode: "skybox"
     property color backgroundColor: "#1f242c"
-    property bool iblEnabled: true
-    property bool iblLightingEnabled: true
-    property bool iblBackgroundEnabled: true
-    // Global toggle to allow/disallow shadows when using IBL setup
-    property bool iblShadowsEnabled: true
+    property bool iblEnabled: true              // master-флаг (по UI) для освещения от IBL
+    property bool iblLightingEnabled: true      // реальный флаг освещения/отражений от IBL
+    property bool iblBackgroundEnabled: true    // независимый флаг показа skybox
     property real iblRotationDeg: 0
     property real iblIntensity: 1.3
-    // Folder for HDR files and dropdown selection state
-    readonly property url hdriFolderUrl: Qt.resolvedUrl("../hdr")
-    property string selectedHdriFileName: ""
-
-    onIblEnabledChanged: {
-        iblLightingEnabled = iblEnabled
-        iblBackgroundEnabled = iblEnabled
-    }
 
     property bool fogEnabled: true
     property color fogColor: "#b0c4d8"
@@ -271,8 +271,8 @@ Item {
     property real dofBlurAmount: 4.0
     property bool motionBlurEnabled: false
     property real motionBlurAmount: 0.2
-    property bool lensFlareEnabled: true
-    property bool vignetteEnabled: true
+    property bool lensFlareEnabled: false    // ✅ По умолчанию выкл, чтобы не включалось без явного сигнала
+    property bool vignetteEnabled: false      // ✅ По умолчанию выкл, чтобы не включалось без явного сигнала
     property real vignetteStrength: 0.35
 
     // Tonemap settings
@@ -555,10 +555,6 @@ Item {
     // ✅ COMPLETE BATCH UPDATE SYSTEM (All functions implemented)
     // ===============================================================
     
-    // ===============================================================
-    // ✅ ENHANCED BATCH UPDATE SYSTEM (Conflict Resolution)
-    // ===============================================================
-    
     function applyBatchedUpdates(updates) {
         console.log("🚀 Applying batched updates with conflict resolution:", Object.keys(updates))
         
@@ -672,24 +668,35 @@ Item {
             if (params.key_light.color !== undefined) keyLightColor = params.key_light.color
             if (params.key_light.angle_x !== undefined) keyLightAngleX = params.key_light.angle_x
             if (params.key_light.angle_y !== undefined) keyLightAngleY = params.key_light.angle_y
-            if (params.key_light.casts_shadow !== undefined) keyLightCastsShadow = params.key_light.casts_shadow
+            if (params.key_light.casts_shadow !== undefined) keyLightCastsShadow = !!params.key_light.casts_shadow
+            if (params.key_light.bind_to_camera !== undefined) keyLightBindToCamera = !!params.key_light.bind_to_camera
+            if (params.key_light.position_x !== undefined) keyLightPosX = Number(params.key_light.position_x)
+            if (params.key_light.position_y !== undefined) keyLightPosY = Number(params.key_light.position_y)
         }
         if (params.fill_light) {
             if (params.fill_light.brightness !== undefined) fillLightBrightness = params.fill_light.brightness
             if (params.fill_light.color !== undefined) fillLightColor = params.fill_light.color
-            if (params.fill_light.casts_shadow !== undefined) fillLightCastsShadow = params.fill_light.casts_shadow
+            if (params.fill_light.casts_shadow !== undefined) fillLightCastsShadow = !!params.fill_light.casts_shadow
+            if (params.fill_light.bind_to_camera !== undefined) fillLightBindToCamera = !!params.fill_light.bind_to_camera
+            if (params.fill_light.position_x !== undefined) fillLightPosX = Number(params.fill_light.position_x)
+            if (params.fill_light.position_y !== undefined) fillLightPosY = Number(params.fill_light.position_y)
         }
         if (params.rim_light) {
             if (params.rim_light.brightness !== undefined) rimLightBrightness = params.rim_light.brightness
             if (params.rim_light.color !== undefined) rimLightColor = params.rim_light.color
-            if (params.rim_light.casts_shadow !== undefined) rimLightCastsShadow = params.rim_light.casts_shadow
+            if (params.rim_light.casts_shadow !== undefined) rimLightCastsShadow = !!params.rim_light.casts_shadow
+            if (params.rim_light.bind_to_camera !== undefined) rimLightBindToCamera = !!params.rim_light.bind_to_camera
+            if (params.rim_light.position_x !== undefined) rimLightPosX = Number(params.rim_light.position_x)
+            if (params.rim_light.position_y !== undefined) rimLightPosY = Number(params.rim_light.position_y)
         }
         if (params.point_light) {
             if (params.point_light.brightness !== undefined) pointLightBrightness = params.point_light.brightness
             if (params.point_light.color !== undefined) pointLightColor = params.point_light.color
+            if (params.point_light.position_x !== undefined) pointLightX = Number(params.point_light.position_x)
             if (params.point_light.position_y !== undefined) pointLightY = params.point_light.position_y
             if (params.point_light.range !== undefined) pointLightRange = Math.max(1, params.point_light.range)
-            if (params.point_light.casts_shadow !== undefined) pointLightCastsShadow = params.point_light.casts_shadow
+            if (params.point_light.casts_shadow !== undefined) pointLightCastsShadow = !!params.point_light.casts_shadow
+            if (params.point_light.bind_to_camera !== undefined) pointLightBindToCamera = !!params.point_light.bind_to_camera
         }
         console.log("  ✅ Lighting updated successfully")
     }
@@ -744,23 +751,18 @@ Item {
         if (params.background) {
             if (params.background.mode !== undefined) backgroundMode = params.background.mode
             if (params.background.color !== undefined) backgroundColor = params.background.color
-            // background.skybox_enabled no longer required; backgroundMode drives visibility
-            iblBackgroundEnabled = (backgroundMode === "skybox")
+            if (params.background.skybox_enabled !== undefined) iblBackgroundEnabled = params.background.skybox_enabled
         }
 
         if (params.ibl) {
-            // Master toggle (affects lighting only; background is independent)
             if (params.ibl.enabled !== undefined) {
                 iblEnabled = params.ibl.enabled
-                iblLightingEnabled = iblEnabled
+                // По умолчанию включаем/выключаем освещение IBL согласно enabled, не затрагивая фон
+                iblLightingEnabled = params.ibl.enabled
             }
-            // Optional explicit flags for separated control
-            if (params.ibl.lighting_enabled !== undefined)
-                iblLightingEnabled = params.ibl.lighting_enabled
-            if (params.ibl.background_enabled !== undefined)
-                iblBackgroundEnabled = params.ibl.background_enabled
-            if (params.ibl.shadows_enabled !== undefined) iblShadowsEnabled = params.ibl.shadows_enabled
-            if (params.ibl.rotation !== undefined) iblRotationDeg = params.ibl.rotation  // ✅ ИСПРАВЛЕНО: БЕЗ нормализации!
+            if (params.ibl.lighting_enabled !== undefined) iblLightingEnabled = params.ibl.lighting_enabled
+            if (params.ibl.background_enabled !== undefined) iblBackgroundEnabled = params.ibl.background_enabled
+            if (params.ibl.rotation !== undefined) iblRotationDeg = params.ibl.rotation
             if (params.ibl.intensity !== undefined) iblIntensity = params.ibl.intensity
             if (params.ibl.exposure !== undefined) iblIntensity = params.ibl.exposure
             if (params.ibl.source !== undefined) {
@@ -769,9 +771,6 @@ Item {
                     iblLoader._fallbackTried = false
                     iblPrimarySource = resolvedSource
                     console.log("  🌟 IBL source:", iblPrimarySource)
-                    console.log("[IBL] SOURCE:", JSON.stringify({ source: iblPrimarySource }))
-                    // If only the source changes without explicit enable flag, do not disable anything.
-                    // Optionally auto-keep lighting enabled as-is; no action needed here.
                 }
             }
             if (params.ibl.fallback !== undefined) {
@@ -780,7 +779,6 @@ Item {
                     iblLoader._fallbackTried = false
                     iblFallbackSource = resolvedFallback
                     console.log("  🌟 IBL fallback:", iblFallbackSource)
-                    console.log("[IBL] FALLBACK:", JSON.stringify({ fallback: iblFallbackSource }))
                 }
             }
         }
@@ -910,12 +908,13 @@ Item {
 
             backgroundMode: skyboxActive ? SceneEnvironment.SkyBox : SceneEnvironment.Color
             clearColor: root.backgroundColor
-            lightProbe: (root.iblReady && (root.iblLightingEnabled || skyboxActive)) ? iblLoader.probe : null
+            // ✅ ПРОБА НУЖНА ДЛЯ ФОНА И/ИЛИ ОСВЕЩЕНИЯ
+            lightProbe: (root.iblReady && (root.iblLightingEnabled || (root.backgroundMode === "skybox" && root.iblBackgroundEnabled))) ? iblLoader.probe : null
             
-            // ✅ КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ v4.9.4: Skybox вращается ТОЛЬКО от iblRotationDeg
-            // НЕТ привязки к камере! Камера и skybox НЕЗАВИСИМЫ!
+            // ✅ Skybox вращение: только пользовательский поворот
             probeOrientation: Qt.vector3d(0, root.iblRotationDeg, 0)
-            
+
+            // Экспозиция IBL (если lightProbe=null, не влияет)
             probeExposure: root.iblIntensity
             probeHorizon: 0.08
 
@@ -1148,12 +1147,13 @@ Item {
         // Lighting (with shadow softness)
         DirectionalLight {
             id: keyLight
-            parent: worldRoot
+            parent: keyLightBindToCamera ? cameraRig : worldRoot
             eulerRotation.x: root.keyLightAngleX
             eulerRotation.y: root.keyLightAngleY
+            position: Qt.vector3d(root.keyLightPosX, root.keyLightPosY, 0)
             brightness: root.keyLightBrightness
             color: root.keyLightColor
-            castsShadow: root.shadowsEnabled && root.iblShadowsEnabled && root.keyLightCastsShadow
+            castsShadow: (root.shadowsEnabled && root.keyLightCastsShadow)
             shadowMapQuality: root.shadowResolution === "4096" ?
                                  (typeof Light.ShadowMapQualityUltra !== "undefined" ? Light.ShadowMapQualityUltra
                                                                                        : Light.ShadowMapQualityVeryHigh) :
@@ -1175,31 +1175,33 @@ Item {
 
         DirectionalLight {
             id: fillLight
-            parent: worldRoot
+            parent: fillLightBindToCamera ? cameraRig : worldRoot
             eulerRotation.x: -60
             eulerRotation.y: 135
+            position: Qt.vector3d(root.fillLightPosX, root.fillLightPosY, 0)
             brightness: root.fillLightBrightness
             color: root.fillLightColor
-            castsShadow: root.shadowsEnabled && root.iblShadowsEnabled && root.fillLightCastsShadow
+            castsShadow: (root.shadowsEnabled && root.fillLightCastsShadow)
         }
 
         DirectionalLight {
             id: rimLight
-            parent: worldRoot
+            parent: rimLightBindToCamera ? cameraRig : worldRoot
             eulerRotation.x: 15
             eulerRotation.y: 180
+            position: Qt.vector3d(root.rimLightPosX, root.rimLightPosY, 0)
             brightness: root.rimLightBrightness
             color: root.rimLightColor
-            castsShadow: root.shadowsEnabled && root.iblShadowsEnabled && root.rimLightCastsShadow
+            castsShadow: (root.shadowsEnabled && root.rimLightCastsShadow)
         }
 
         PointLight {
             id: accentLight
-            parent: worldRoot
-            position: Qt.vector3d(0, root.pointLightY, 1500)
+            parent: pointLightBindToCamera ? cameraRig : worldRoot
+            position: Qt.vector3d(root.pointLightX, root.pointLightY, 1500)
             brightness: root.pointLightBrightness
             color: root.pointLightColor
-            castsShadow: root.shadowsEnabled && root.iblShadowsEnabled && root.pointLightCastsShadow
+            castsShadow: root.pointLightCastsShadow   // ✅ Управляется пользователем
             constantFade: 1.0
             linearFade: 2.0 / Math.max(200.0, root.pointLightRange)
             quadraticFade: 1.0 / Math.pow(Math.max(200.0, root.pointLightRange), 2)
@@ -1536,22 +1538,6 @@ Item {
             if (taaMotionAdaptive)
                 flagCameraMotion()
 
-            // 🔗 QML→Python событийное логирование
-            let buttonName = "unknown"
-            if (mouse.button === Qt.LeftButton) buttonName = "left"
-            else if (mouse.button === Qt.RightButton) buttonName = "right"
-            else if (mouse.button === Qt.MiddleButton) buttonName = "middle"
-            console.log(
-                "[EVENT] MOUSE_PRESS:",
-                JSON.stringify({
-                    component: "main.qml",
-                    action: "mouse_press",
-                    x: mouse.x,
-                    y: mouse.y,
-                    button: buttonName
-                })
-            )
-
             console.log("Mouse pressed: button =", mouse.button, "at", mouse.x, mouse.y)
         }
 
@@ -1560,17 +1546,7 @@ Item {
             root.mouseButton = 0
             if (taaMotionAdaptive)
                 cameraMotionSettler.restart()
-            // 🔗 QML→Python событие: отпускание кнопки
-            console.log(
-                "[EVENT] MOUSE_RELEASE:",
-                JSON.stringify({
-                    component: "main.qml",
-                    action: "mouse_release",
-                    x: mouse.x,
-                    y: mouse.y,
-                    was_dragging: true
-                })
-            )
+            console.log("Mouse released")
         }
 
         onPositionChanged: (mouse) => {
@@ -1591,18 +1567,6 @@ Item {
                 // ✅ ИСПРАВЛЕНО v4.9.4: БЕЗ нормализации - Qt сам знает как интерполировать!
                 root.yawDeg = root.yawDeg - dx * root.rotateSpeed  // Прямое изменение БЕЗ normAngleDeg
                 root.pitchDeg = root.clamp(root.pitchDeg - dy * root.rotateSpeed, -85, 85)
-                // 🔗 Логирование перетаскивания
-                console.log(
-                    "[EVENT] MOUSE_DRAG:",
-                    JSON.stringify({
-                        component: "main.qml",
-                        action: "mouse_drag",
-                        delta_x: dx,
-                        delta_y: dy,
-                        abs_x: mouse.x,
-                        abs_y: mouse.y
-                    })
-                )
             } else if (root.mouseButton === Qt.RightButton) {
                 // Panning: move camera in rig's local X/Y
                 const fovRad = camera.fieldOfView * Math.PI / 180.0
@@ -1627,15 +1591,6 @@ Item {
                                               root.cameraDistance * zoomFactor))
             if (taaMotionAdaptive)
                 flagCameraMotion()
-            // 🔗 QML→Python событие: колесо мыши
-            console.log(
-                "[EVENT] MOUSE_WHEEL:",
-                JSON.stringify({
-                    component: "main.qml",
-                    action: "mouse_wheel",
-                    delta: wheel.angleDelta.y
-                })
-            )
         }
 
         onDoubleClicked: () => {
@@ -1701,7 +1656,7 @@ Item {
         anchors.left: parent.left
         anchors.margins: 15
         width: 550
-        height: 310
+        height: 240
         color: "#aa000000"
         border.color: "#60ffffff"
         radius: 8
@@ -1756,98 +1711,6 @@ Item {
                 color: "#aaddff"
                 font.pixelSize: 9 
             }
-
-            // HDRI selection row
-            Row {
-                spacing: 8
-                visible: root.showOverlayControls
-                Rectangle {
-                    width: 120; height: 28
-                    color: "#22000000"; radius: 4
-                    border.color: "#40ffffff"
-                    Text { anchors.centerIn: parent; text: "Окружение:"; color: "#dddddd"; font.pixelSize: 10 }
-                }
-                ComboBox {
-                    id: hdrCombo
-                    width: 360
-                    model: hdriModel.count + 1 // 0: Flat color, >=1: hdr files
-                    delegate: ItemDelegate {
-                        width: hdrCombo.width
-                        text: index === 0 ? "Плоский фон (цвет)" : hdriModel.get(index - 1).fileName
-                    }
-                    onActivated: (idx) => {
-                        if (idx === 0) {
-                            // Flat color background only; user controls IBL lighting separately
-                            root.backgroundMode = "color"
-                            root.iblBackgroundEnabled = false
-                            console.log("[IBL] MODE:", JSON.stringify({ mode: "color" }))
-                        } else {
-                            // HDR selection: set file and enable skybox background
-                            const entry = hdriModel.get(idx - 1)
-                            root.selectedHdriFileName = entry.fileName
-                            const url = entry.fileURL // absolute URL
-                            root.backgroundMode = "skybox"
-                            root.iblBackgroundEnabled = true
-                            // Ensure IBL lighting stays enabled when choosing an HDR
-                            root.iblEnabled = true
-                            root.iblLightingEnabled = true
-                            iblLoader._fallbackTried = false
-                            root.iblPrimarySource = url
-                            console.log("[IBL] SELECT:", JSON.stringify({ source: url, file: entry.fileName }))
-                        }
-                    }
-                }
-                Button {
-                    text: root.backgroundMode === "skybox" ? "HDR фон" : "Плоский фон"
-                    onClicked: {
-                        if (root.backgroundMode === "skybox") {
-                            hdrCombo.currentIndex = 0
-                        } else if (hdriModel.count > 0) {
-                            hdrCombo.currentIndex = 1
-                        }
-                    }
-                }
-            }
-
-            // IBL toggles (lighting vs background)
-            Row {
-                spacing: 12
-                visible: root.showOverlayControls
-                CheckBox {
-                    id: iblLightToggle
-                    checked: root.iblLightingEnabled
-                    text: "IBL освещение"
-                    onToggled: {
-                        root.iblLightingEnabled = checked
-                        console.log("[IBL] LIGHTING:", JSON.stringify({ enabled: checked }))
-                    }
-                }
-                CheckBox {
-                    id: iblBgToggle
-                    checked: root.backgroundMode === "skybox" && root.iblBackgroundEnabled
-                    text: "IBL фон (skybox)"
-                    onToggled: {
-                        if (checked) {
-                            root.backgroundMode = "skybox"
-                            root.iblBackgroundEnabled = true
-                        } else {
-                            root.iblBackgroundEnabled = false
-                            root.backgroundMode = "color"
-                        }
-                        console.log("[IBL] BACKGROUND:", JSON.stringify({ enabled: root.iblBackgroundEnabled, mode: root.backgroundMode }))
-                    }
-                }
-            }
-
-            // Per-light shadow toggles
-            Row {
-                spacing: 10
-                visible: root.showOverlayControls
-                CheckBox { text: "Тени Key"; checked: root.keyLightCastsShadow; onToggled: root.keyLightCastsShadow = checked }
-                CheckBox { text: "Тени Fill"; checked: root.fillLightCastsShadow; onToggled: root.fillLightCastsShadow = checked }
-                CheckBox { text: "Тени Rim"; checked: root.rimLightCastsShadow; onToggled: root.rimLightCastsShadow = checked }
-                CheckBox { text: "Тени Point"; checked: root.pointLightCastsShadow; onToggled: root.pointLightCastsShadow = checked }
-            }
         }
     }
 
@@ -1887,17 +1750,6 @@ Item {
         syncRenderSettings()
         resetView()
         view3d.forceActiveFocus()
-
-        // Try to select studio.hdr if present
-        if (hdriModel.count > 0) {
-            for (let i = 0; i < hdriModel.count; ++i) {
-                const name = hdriModel.get(i).fileName
-                if (name.toLowerCase() === "studio.hdr") {
-                    hdrCombo.currentIndex = i + 1 // +1 because 0 is "Flat color"
-                    break
-                }
-            }
-        }
     }
 
     // IBL readiness console log for Python-side logger
@@ -1908,7 +1760,7 @@ Item {
     // Model of HDR/EXR files from assets/hdr
     FolderListModel {
         id: hdriModel
-        folder: root.hdriFolderUrl
+        folder: Qt.resolvedUrl("../hdr")
         nameFilters: ["*.hdr", "*.exr"]
         showDirs: false
         showDotAndDotDot: false

@@ -342,13 +342,24 @@ class EventLogger:
         """Найти пары Python→QML событий для анализа синхронизации"""
         pairs = []
         
+        # Сопоставление signal → QML функции (apply*Updates)
+        signal_to_qml = {
+            "lighting_changed": "applyLightingUpdates",
+            "environment_changed": "applyEnvironmentUpdates",
+            "material_changed": "applyMaterialUpdates",
+            "quality_changed": "applyQualityUpdates",
+            "camera_changed": "applyCameraUpdates",
+            "effects_changed": "applyEffectsUpdates",
+            "animation_changed": "applyAnimationUpdates",
+        }
+        
         # Группируем по timestamp
         for i, event in enumerate(self.events):
             if event["event_type"] == "SIGNAL_EMIT":
-                # Ищем соответствующий SIGNAL_RECEIVED в QML
+                # Ищем соответствующую реакцию на стороне QML
                 signal_name = event["action"].replace("emit_", "")
+                expected_qml_func = signal_to_qml.get(signal_name)
                 
-                # Ищем в следующих 1000ms
                 emit_time = datetime.fromisoformat(event["timestamp"])
                 
                 for j in range(i+1, len(self.events)):
@@ -358,9 +369,25 @@ class EventLogger:
                     if (recv_time - emit_time).total_seconds() > 1.0:
                         break  # Слишком поздно
                     
-                    if (next_event["event_type"] == "SIGNAL_RECEIVED" and
-                        signal_name in next_event["action"]):
-                        
+                    # ✅ Вариант 1: QML подписался на сигнал (onXxxChanged)
+                    if (
+                        next_event["event_type"] == "SIGNAL_RECEIVED"
+                        and signal_name in next_event["action"]
+                    ):
+                        pairs.append({
+                            "python_event": event,
+                            "qml_event": next_event,
+                            "latency_ms": (recv_time - emit_time).total_seconds() * 1000,
+                            "status": "synced"
+                        })
+                        break
+                    
+                    # ✅ Вариант 2: Python вызывает QML функцию напрямую (invokeMethod)
+                    if (
+                        next_event["event_type"] == "QML_INVOKE"
+                        and expected_qml_func is not None
+                        and next_event["action"] == expected_qml_func
+                    ):
                         pairs.append({
                             "python_event": event,
                             "qml_event": next_event,

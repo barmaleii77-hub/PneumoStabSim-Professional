@@ -481,10 +481,6 @@ temp_*
 *_temp.py
 test_*.py
 check_*.py
-diagnose_*.py
-full_project_check.py
-save_all_project.py
-simple_check.py
 
 # Temporary batch files
 *.bat
@@ -847,6 +843,14 @@ archive/old/
 !.vscode/profile.ps1
 !.vscode/copilot.json
 
-# ================================================================================================
+# HDR assets policy: keep placeholder and README, ignore binaries in repo root
+assets/hdr/*.hdr
+assets/hdr/*.exr
+!assets/hdr/README.md
+!assets/hdr/.gitignore
+!assets/hdr/studio.hdr.placeholder
+
+# Allow small demo HDR in qml assets (fallback)
+!assets/qml/assets/studio_small_09_2k.hdr
+
 # END OF .GITIGNORE
-# ================================================================================================

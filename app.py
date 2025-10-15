@@ -12,17 +12,6 @@ import subprocess
 from pathlib import Path
 import json
 
-# Ensure project src is importable without relying on external PYTHONPATH
-try:
-    PROJECT_ROOT = Path(__file__).parent.resolve()
-    SRC_DIR = PROJECT_ROOT / "src"
-    if SRC_DIR.exists():
-        src_str = str(SRC_DIR)
-        if src_str not in sys.path:
-            sys.path.insert(0, src_str)
-except Exception:
-    pass
-
 # =============================================================================
 # Накопление warnings/errors
 # =============================================================================
@@ -33,24 +22,15 @@ def log_warning(msg: str):
     """Накапливает warning для вывода в конце"""
     _warnings_errors.append(("WARNING", msg))
 
+
 def log_error(msg: str):
     """Накапливает error для вывода в конце"""
     _warnings_errors.append(("ERROR", msg))
 
 # =============================================================================
-# Load .env early (environment variables)
-# =============================================================================
-try:
-    from dotenv import load_dotenv
-    # Load variables from .env if present, do not override already-set env vars
-    load_dotenv(dotenv_path=Path('.env'), override=False)
-except Exception as e:
-    # Non-fatal if dotenv not installed; requirements include it
-    pass
-
-# =============================================================================
 # QtQuick3D Environment Setup
 # =============================================================================
+
 
 def setup_qtquick3d_environment():
     """Set up QtQuick3D environment variables before importing Qt"""
@@ -86,47 +66,53 @@ def setup_qtquick3d_environment():
         log_error(f"QtQuick3D setup failed: {e}")
         return False
 
+
 qtquick3d_setup_ok = setup_qtquick3d_environment()
 
 # =============================================================================
 # Terminal Encoding
 # =============================================================================
 
+
 def configure_terminal_encoding():
     """Configure terminal encoding for cross-platform Unicode support"""
     if sys.platform == 'win32':
         try:
             subprocess.run(['chcp', '65001'], capture_output=True, check=False)
-        except:
+        except Exception:
             pass
         
+        # На Windows не меняем locale на несуществующий 'C.UTF-8'
+        # Достаточно PYTHONIOENCODING и перевода консоли в UTF-8
         try:
             import codecs
             if hasattr(sys.stdout, 'buffer'):
                 sys.stdout = codecs.getwriter('utf-8')(sys.stdout.buffer, errors='replace')
-            if hasattr(sys.stderr, 'buffer'):    
+            if hasattr(sys.stderr, 'buffer'):
                 sys.stderr = codecs.getwriter('utf-8')(sys.stderr.buffer, errors='replace')
         except Exception as e:
             log_warning(f"UTF-8 setup: {e}")
     
     os.environ.setdefault('PYTHONIOENCODING', 'utf-8')
     
-    try:
-        if sys.platform == 'win32':
-            locale.setlocale(locale.LC_ALL, 'C.UTF-8')
-        else:
-            locale.setlocale(locale.LC_ALL, 'en_US.UTF-8')
-    except locale.Error:
+    # На Unix-системах пытаемся установить UTF-8 локаль
+    if sys.platform != 'win32':
         try:
-            locale.setlocale(locale.LC_ALL, 'C')
+            locale.setlocale(locale.LC_ALL, 'en_US.UTF-8')
         except locale.Error:
-            pass
+            try:
+                locale.setlocale(locale.LC_ALL, 'C.UTF-8')
+            except locale.Error:
+                # В крайнем случае остаёмся на системной локали
+                pass
+
 
 configure_terminal_encoding()
 
 # =============================================================================
 # Python Version Check
 # =============================================================================
+
 
 def check_python_compatibility():
     """Check Python version and warn about potential issues"""
@@ -137,6 +123,7 @@ def check_python_compatibility():
         sys.exit(1)
     elif version >= (3, 12):
         log_warning("Python 3.12+ detected. Some packages may have compatibility issues.")
+
 
 check_python_compatibility()
 
@@ -155,6 +142,7 @@ os.environ.setdefault("QT_ENABLE_HIGHDPI_SCALING", "1")
 # =============================================================================
 # Qt Import
 # =============================================================================
+
 
 def safe_import_qt():
     """Safely import Qt components"""
@@ -176,11 +164,13 @@ def safe_import_qt():
         log_error(f"PySide6 import failed: {e}")
         sys.exit(1)
 
+
 QApplication, qInstallMessageHandler, Qt, QTimer = safe_import_qt()
 
 # =============================================================================
 # Logging Setup - ВСЕГДА ВКЛЮЧЕНО
 # =============================================================================
+
 
 def setup_logging():
     """Настройка логирования - ВСЕГДА активно"""
@@ -190,7 +180,9 @@ def setup_logging():
         logs_dir = Path("logs")
         
         # ✅ НОВОЕ: Ротация старых логов (оставляем только 10 последних)
-        rotate_old_logs(logs_dir, keep_count=10)
+        # Политика проекта: всегда начинать с чистых логов
+        # Стираем старые логи на запуске (keep_count=0)
+        rotate_old_logs(logs_dir, keep_count=0)
         
         # Инициализируем логирование с ротацией
         logger = init_logging(
@@ -222,6 +214,7 @@ def setup_logging():
 
 _main_window_module = None
 
+
 def get_main_window_class():
     """Ленивая загрузка MainWindow класса"""
     global _main_window_module
@@ -243,6 +236,7 @@ app_instance = None
 window_instance = None
 app_logger = None
 
+
 def signal_handler(signum, frame):
     """Handle Ctrl+C gracefully"""
     global app_instance, window_instance, app_logger
@@ -258,83 +252,13 @@ def signal_handler(signum, frame):
     except Exception as e:
         log_warning(f"Shutdown error: {e}")
 
+
 def qt_message_handler(mode, context, message):
     """Handle Qt log messages - redirect to logger"""
     global app_logger
     if app_logger:
-        try:
-            app_logger.debug(f"Qt: {message}")
-        except Exception:
-            pass
-    # Parse QML event logs like: "qml: [EVENT] MOUSE_PRESS: {json}"
-    try:
-        if isinstance(message, str):
-            msg = message.strip()
-            # Strip common QML prefix
-            if msg.lower().startswith("qml:"):
-                msg = msg[4:].strip()
-            # Find event marker anywhere in the message
-            idx = msg.find("[EVENT]")
-            if idx == -1:
-                return
-            event_str = msg[idx:]
-            # Split tag and payload
-            parts = event_str.split(":", 1)
-            event_tag = parts[0].strip()  # e.g. "[EVENT] MOUSE_PRESS"
-            payload = {}
-            evt_type = event_tag.replace("[EVENT]", "").strip().upper()
-            if len(parts) > 1:
-                payload_str = parts[1].strip()
-                # Some engines may append extra text after JSON; try safe parse
-                try:
-                    payload = json.loads(payload_str)
-                except Exception:
-                    # Try to cut at last closing brace
-                    try:
-                        last = payload_str.rfind("}")
-                        if last != -1:
-                            payload = json.loads(payload_str[: last + 1])
-                    except Exception:
-                        payload = {}
+        app_logger.debug(f"Qt: {message}")
 
-            # Forward to EventLogger
-            try:
-                from src.common.event_logger import get_event_logger, EventType
-                logger = get_event_logger()
-                if evt_type.startswith("MOUSE_PRESS"):
-                    logger.log_mouse_press(
-                        x=payload.get("x", 0),
-                        y=payload.get("y", 0),
-                        button=payload.get("button", "unknown"),
-                        component=payload.get("component", "main.qml")
-                    )
-                elif evt_type.startswith("MOUSE_DRAG"):
-                    logger.log_mouse_drag(
-                        delta_x=payload.get("delta_x", 0),
-                        delta_y=payload.get("delta_y", 0),
-                        component=payload.get("component", "main.qml")
-                    )
-                elif evt_type.startswith("MOUSE_WHEEL"):
-                    logger.log_mouse_wheel(
-                        delta=payload.get("delta", 0),
-                        component=payload.get("component", "main.qml")
-                    )
-                elif evt_type.startswith("MOUSE_RELEASE"):
-                    logger.log_event(
-                        event_type=EventType.MOUSE_RELEASE,
-                        component="main.qml",
-                        action="mouse_release",
-                        new_value={
-                            "x": payload.get("x", 0),
-                            "y": payload.get("y", 0),
-                            "was_dragging": payload.get("was_dragging", False)
-                        },
-                        source="qml"
-                    )
-            except Exception:
-                pass
-    except Exception:
-        pass
 
 def parse_arguments():
     """Parse command line arguments"""
@@ -353,6 +277,7 @@ Examples:
     parser.add_argument('--verbose', action='store_true', help='Enable console logging')
     
     return parser.parse_args()
+
 
 def print_warnings_errors():
     """Вывод всех warnings/errors в конце"""
@@ -377,6 +302,7 @@ def print_warnings_errors():
             print(f"  • {e}")
     
     print("=" * 60 + "\n")
+
 
 def run_log_diagnostics():
     """Запускает ВСТРОЕННУЮ диагностику логов после закрытия приложения"""
@@ -498,83 +424,6 @@ def run_log_diagnostics():
         import traceback
         traceback.print_exc()
 
-    # ✅ Доп. авто‑диагностика IBL: поверх общего отчета печатаем явные предупреждения
-    try:
-        ibl_dir = Path("logs/ibl")
-        if ibl_dir.exists():
-            latest = None
-            logs = sorted(ibl_dir.glob("ibl_signals_*.log"), key=lambda p: p.stat().st_mtime, reverse=True)
-            if logs:
-                latest = logs[0]
-            if latest and latest.exists():
-                tail_lines = latest.read_text(encoding="utf-8", errors="ignore").splitlines()[-200:]
-                joined = "\n".join(tail_lines)
-                has_critical = "Both HDR probes failed" in joined or ("| ERROR | IblProbeLoader |" in joined and "CRITICAL" in joined)
-                has_error = "Texture status: Error" in joined
-                used_fallback = "switching to fallback" in joined or "fallback" in joined.lower()
-                if has_critical or has_error or used_fallback:
-                    print("\n" + "-"*60)
-                    print("🌟 IBL DIAGNOSTICS (auto)")
-                    print(f"Файл: {latest}")
-                    if has_critical:
-                        print("❌ Обе HDR‑текстуры не загрузились. Фон будет цветным. Выберите другой HDR.")
-                    if has_error:
-                        print("⚠️ Обнаружены ошибки загрузки HDR (Texture status: Error). Проверьте путь/файл.")
-                    if used_fallback and not has_critical:
-                        print("ℹ️ Включён резервный HDR (fallback). Основной файл недоступен.")
-
-                    # Доп. разбор логов: какие конкретно URL пробовали и существуют ли локальные файлы
-                    try:
-                        import re
-                        from urllib.parse import urlparse, unquote
-
-                        def url_to_path(u: str):
-                            u = u.strip()
-                            if u.startswith("file:"):
-                                pr = urlparse(u)
-                                p = unquote(pr.path or "")
-                                # Windows: "/C:/..." -> "C:/..."
-                                if os.name == 'nt' and p.startswith('/') and len(p) > 2 and p[2] == ':':
-                                    p = p[1:]
-                                return p.replace('/', os.sep)
-                            # non-file schemes are not local files
-                            return None
-
-                        last_primary = None
-                        last_load = None
-                        last_failed = None
-                        last_fallback = None
-
-                        for line in tail_lines:
-                            if "Primary source changed:" in line:
-                                m = re.search(r"Primary source changed:\s*(\S+)", line)
-                                if m:
-                                    last_primary = m.group(1)
-                            if "Start loading HDR into slot" in line:
-                                m = re.search(r"Start loading HDR into slot\s*\d+\s*:\s*(\S+)", line)
-                                if m:
-                                    last_load = m.group(1)
-                            if "HDR probe FAILED at" in line:
-                                m = re.search(r"HDR probe FAILED at\s*(\S+)", line)
-                                if m:
-                                    last_failed = m.group(1)
-                            if "switching to fallback" in line:
-                                m = re.search(r"switching to fallback:\s*(\S+)", line, re.IGNORECASE)
-                                if m:
-                                    last_fallback = m.group(1)
-
-                        def report(label, url):
-                            if not url:
-                                return
-                            p = url_to_path(url)
-                            if p is None:
-                                print(f"   • {label}: {url} (non-file URL)")
-                            else:
-                                exists = os.path.exists(p)
-                                print(f"   • {label}: {url}")
-                                print(f"       → Local path: {p}")
-                                print(f"       → Exists: {'YES' if exists else 'NO'}")
-
                         print("\n   🔎 Resolved paths:")
                         report("Primary", last_primary)
                         report("LoadAttempt", last_load)
@@ -672,32 +521,9 @@ def main():
         print_warnings_errors()
         
         print(f"\n✅ Application closed (code: {result})\n")
-
-        # ✅ Готовим логи к анализу (экспорт событий, закрытие IBL логгера)
-        try:
-            from src.common.event_logger import get_event_logger
-            try:
-                get_event_logger().export_events()
-            except Exception:
-                pass
-        except Exception:
-            pass
-        try:
-            # Закрываем IBL логгер, если он использовался
-            from src.ui.ibl_logger import _ibl_logger_instance as _ibl
-            if _ibl is not None:
-                try:
-                    _ibl.close()
-                except Exception:
-                    pass
-        except Exception:
-            pass
-
-        # ✅ Автодиагностика ТОЛЬКО при нормальном выходе
-        if result == 0:
-            run_log_diagnostics()
-        else:
-            print("⚠️  Пропуск диагностики: приложение завершилось с ошибкой")
+        
+        # ✅ ВСЕГДА запускаем ВСТРОЕННУЮ диагностику логов после выхода
+        run_log_diagnostics()
         
         return result
         
@@ -713,6 +539,7 @@ def main():
         print_warnings_errors()
         
         return 1
+
 
 if __name__ == "__main__":
     sys.exit(main())
