@@ -1,6 +1,8 @@
 import QtQuick
 import QtQuick3D
 import QtQuick3D.Helpers
+import QtQuick.Controls
+import Qt.labs.folderlistmodel
 import "components"
 
 /*
@@ -17,6 +19,8 @@ import "components"
 Item {
     id: root
     anchors.fill: parent
+    // Toggle to show/hide in-canvas UI controls (to avoid duplication with external GraphicsPanel)
+    property bool showOverlayControls: false
     
     // ===============================================================
     // 🚀 SIGNALS - ACK для Python после применения обновлений
@@ -201,12 +205,6 @@ Item {
     property bool iblBackgroundEnabled: true    // независимый флаг показа skybox
     property real iblRotationDeg: 0
     property real iblIntensity: 1.3
-
-    // ❌ Больше НЕ связываем фон со включением IBL
-    // onIblEnabledChanged: {
-    //     iblLightingEnabled = iblEnabled
-    //     iblBackgroundEnabled = iblEnabled
-    // }
 
     property bool fogEnabled: true
     property color fogColor: "#b0c4d8"
@@ -557,10 +555,6 @@ Item {
     // ✅ COMPLETE BATCH UPDATE SYSTEM (All functions implemented)
     // ===============================================================
     
-    // ===============================================================
-    // ✅ ENHANCED BATCH UPDATE SYSTEM (Conflict Resolution)
-    // ===============================================================
-    
     function applyBatchedUpdates(updates) {
         console.log("🚀 Applying batched updates with conflict resolution:", Object.keys(updates))
         
@@ -674,38 +668,38 @@ Item {
             if (params.key_light.color !== undefined) keyLightColor = params.key_light.color
             if (params.key_light.angle_x !== undefined) keyLightAngleX = params.key_light.angle_x
             if (params.key_light.angle_y !== undefined) keyLightAngleY = params.key_light.angle_y
-+            if (params.key_light.casts_shadow !== undefined) keyLightCastsShadow = !!params.key_light.casts_shadow
-+            if (params.key_light.bind_to_camera !== undefined) keyLightBindToCamera = !!params.key_light.bind_to_camera
-+            if (params.key_light.position_x !== undefined) keyLightPosX = Number(params.key_light.position_x)
-+            if (params.key_light.position_y !== undefined) keyLightPosY = Number(params.key_light.position_y)
+            if (params.key_light.casts_shadow !== undefined) keyLightCastsShadow = !!params.key_light.casts_shadow
+            if (params.key_light.bind_to_camera !== undefined) keyLightBindToCamera = !!params.key_light.bind_to_camera
+            if (params.key_light.position_x !== undefined) keyLightPosX = Number(params.key_light.position_x)
+            if (params.key_light.position_y !== undefined) keyLightPosY = Number(params.key_light.position_y)
         }
         if (params.fill_light) {
             if (params.fill_light.brightness !== undefined) fillLightBrightness = params.fill_light.brightness
             if (params.fill_light.color !== undefined) fillLightColor = params.fill_light.color
-+            if (params.fill_light.casts_shadow !== undefined) fillLightCastsShadow = !!params.fill_light.casts_shadow
-+            if (params.fill_light.bind_to_camera !== undefined) fillLightBindToCamera = !!params.fill_light.bind_to_camera
-+            if (params.fill_light.position_x !== undefined) fillLightPosX = Number(params.fill_light.position_x)
-+            if (params.fill_light.position_y !== undefined) fillLightPosY = Number(params.fill_light.position_y)
+            if (params.fill_light.casts_shadow !== undefined) fillLightCastsShadow = !!params.fill_light.casts_shadow
+            if (params.fill_light.bind_to_camera !== undefined) fillLightBindToCamera = !!params.fill_light.bind_to_camera
+            if (params.fill_light.position_x !== undefined) fillLightPosX = Number(params.fill_light.position_x)
+            if (params.fill_light.position_y !== undefined) fillLightPosY = Number(params.fill_light.position_y)
         }
         if (params.rim_light) {
             if (params.rim_light.brightness !== undefined) rimLightBrightness = params.rim_light.brightness
             if (params.rim_light.color !== undefined) rimLightColor = params.rim_light.color
-+            if (params.rim_light.casts_shadow !== undefined) rimLightCastsShadow = !!params.rim_light.casts_shadow
-+            if (params.rim_light.bind_to_camera !== undefined) rimLightBindToCamera = !!params.rim_light.bind_to_camera
-+            if (params.rim_light.position_x !== undefined) rimLightPosX = Number(params.rim_light.position_x)
-+            if (params.rim_light.position_y !== undefined) rimLightPosY = Number(params.rim_light.position_y)
+            if (params.rim_light.casts_shadow !== undefined) rimLightCastsShadow = !!params.rim_light.casts_shadow
+            if (params.rim_light.bind_to_camera !== undefined) rimLightBindToCamera = !!params.rim_light.bind_to_camera
+            if (params.rim_light.position_x !== undefined) rimLightPosX = Number(params.rim_light.position_x)
+            if (params.rim_light.position_y !== undefined) rimLightPosY = Number(params.rim_light.position_y)
         }
         if (params.point_light) {
             if (params.point_light.brightness !== undefined) pointLightBrightness = params.point_light.brightness
             if (params.point_light.color !== undefined) pointLightColor = params.point_light.color
-+            if (params.point_light.position_x !== undefined) pointLightX = Number(params.point_light.position_x)
-             if (params.point_light.position_y !== undefined) pointLightY = params.point_light.position_y
-             if (params.point_light.range !== undefined) pointLightRange = Math.max(1, params.point_light.range)
-             if (params.point_light.casts_shadow !== undefined) pointLightCastsShadow = !!params.point_light.casts_shadow
-+            if (params.point_light.bind_to_camera !== undefined) pointLightBindToCamera = !!params.point_light.bind_to_camera
-         }
-         console.log("  ✅ Lighting updated successfully")
-     }
+            if (params.point_light.position_x !== undefined) pointLightX = Number(params.point_light.position_x)
+            if (params.point_light.position_y !== undefined) pointLightY = params.point_light.position_y
+            if (params.point_light.range !== undefined) pointLightRange = Math.max(1, params.point_light.range)
+            if (params.point_light.casts_shadow !== undefined) pointLightCastsShadow = !!params.point_light.casts_shadow
+            if (params.point_light.bind_to_camera !== undefined) pointLightBindToCamera = !!params.point_light.bind_to_camera
+        }
+        console.log("  ✅ Lighting updated successfully")
+    }
 
     function applyMaterialUpdates(params) {
         console.log("🎨 main.qml: applyMaterialUpdates() called")
@@ -787,10 +781,7 @@ Item {
                     console.log("  🌟 IBL fallback:", iblFallbackSource)
                 }
             }
-+            if (params.ibl.offset_x !== undefined) environmentOffsetX = Number(params.ibl.offset_x)
-+            if (params.ibl.offset_y !== undefined) environmentOffsetY = Number(params.ibl.offset_y)
-+            if (params.ibl.bind_to_camera !== undefined) environmentBindToCamera = !!params.ibl.bind_to_camera
-         }
+        }
 
         if (params.fog) {
             if (params.fog.enabled !== undefined) fogEnabled = params.fog.enabled
@@ -920,13 +911,8 @@ Item {
             // ✅ ПРОБА НУЖНА ДЛЯ ФОНА И/ИЛИ ОСВЕЩЕНИЯ
             lightProbe: (root.iblReady && (root.iblLightingEnabled || (root.backgroundMode === "skybox" && root.iblBackgroundEnabled))) ? iblLoader.probe : null
             
-            // ✅ Skybox вращение: управляющиеся сдвиги X/Y и пользовательский поворот
-            // bind_to_camera — при true фон визуально следует за камерой (используем yawDeg)
-            probeOrientation: Qt.vector3d(
-                root.environmentOffsetX,
-                root.iblRotationDeg + (root.environmentBindToCamera ? root.yawDeg : 0) + root.environmentOffsetY,
-                0
-            )
+            // ✅ Skybox вращение: только пользовательский поворот
+            probeOrientation: Qt.vector3d(0, root.iblRotationDeg, 0)
 
             // Экспозиция IBL (если lightProbe=null, не влияет)
             probeExposure: root.iblIntensity
@@ -1670,7 +1656,7 @@ Item {
         anchors.left: parent.left
         anchors.margins: 15
         width: 550
-        height: 310
+        height: 240
         color: "#aa000000"
         border.color: "#60ffffff"
         radius: 8
@@ -1725,41 +1711,6 @@ Item {
                 color: "#aaddff"
                 font.pixelSize: 9 
             }
-            
-            // Animation status
-            Rectangle {
-                width: 520
-                height: 70
-                color: "#33000000"
-                border.color: isRunning ? "#00ff00" : "#ff0000"
-                border.width: 2
-                radius: 6
-                
-                Column {
-                    anchors.centerIn: parent
-                    spacing: 4
-                    
-                    Text {
-                        text: isRunning ? "🎬 АНИМАЦИЯ С ПРАВИЛЬНОЙ КИНЕМАТИКОЙ ШТОКОВ" : "⏸️ Анимация остановлена"
-                        color: isRunning ? "#00ff88" : "#ff6666"
-                        font.pixelSize: 12
-                        font.bold: true
-                    }
-                    
-                    Text {
-                        text: "Параметры: A=" + userAmplitude.toFixed(1) + "° | f=" + userFrequency.toFixed(1) + "Гц | φ=" + userPhaseGlobal.toFixed(0) + "°"
-                        color: "#cccccc"
-                        font.pixelSize: 9
-                    }
-                    
-                    Text {
-                        text: "🔧 Углы: FL=" + fl_angle.toFixed(1) + "° | FR=" + fr_angle.toFixed(1) + 
-                              "° | RL=" + rl_angle.toFixed(1) + "° | RR=" + rr_angle.toFixed(1) + "°"
-                        color: "#aaaaaa"
-                        font.pixelSize: 8
-                    }
-                }
-            }
         }
     }
 
@@ -1778,7 +1729,7 @@ Item {
         console.log("   🔧 Skybox rotation: INDEPENDENT from camera")
         console.log("   🔧 probeOrientation uses ONLY iblRotationDeg")
         console.log("   🔧 Camera yaw does NOT affect skybox orientation")
-        console.log("   🔧 Skybox and camera are COMPLEТELY DECOUPLED")
+        console.log("   🔧 Skybox and camera are COMPLETELY DECOUPLED")
         console.log("✅ ИСПРАВЛЕНИЯ СВОЙСТВ ExtendedSceneEnvironment:")
         console.log("   ✅ glowBloom - правильное название")
         console.log("   ✅ depthOfFieldFocusDistance - правильное название")
@@ -1800,4 +1751,19 @@ Item {
         resetView()
         view3d.forceActiveFocus()
     }
+
+    // IBL readiness console log for Python-side logger
+    onIblReadyChanged: {
+        console.log("[IBL] READY:", JSON.stringify({ ready: iblReady }))
+    }
+
+    // Model of HDR/EXR files from assets/hdr
+    FolderListModel {
+        id: hdriModel
+        folder: Qt.resolvedUrl("../hdr")
+        nameFilters: ["*.hdr", "*.exr"]
+        showDirs: false
+        showDotAndDotDot: false
+    }
+    
 }

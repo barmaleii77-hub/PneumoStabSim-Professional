@@ -239,8 +239,14 @@ def _cleanup_logging(app_name: str):
         
         # Flush and close all handlers
         for handler in logger.handlers:
-            handler.flush()
-            handler.close()
+            try:
+                handler.flush()
+            except Exception:
+                pass
+            try:
+                handler.close()
+            except Exception:
+                pass
 
 
 def get_category_logger(category: str, context: Dict[str, Any] = None) -> logging.Logger:

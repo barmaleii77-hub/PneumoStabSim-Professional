@@ -1,0 +1,79 @@
+{
+  "version": "0.2.1",
+  "defaults": {
+    "python": {
+      "command": "py",
+      "args": [],
+      "env": {
+        "PYTHONPATH": "${workspaceRoot}/src"
+      }
+    }
+  },
+  "configurations": [
+    {
+      "type": "python",
+      "name": "🚀 PneumoStabSim (Main)",
+      "program": "app.py",
+      "args": [],
+      "currentDir": "${workspaceRoot}",
+      "env": {
+        "PYTHONPATH": "${workspaceRoot}/src",
+        "QT_LOGGING_RULES": "qt.qml.debug=false",
+        "QSG_INFO": "0"
+      }
+    },
+    {
+      "type": "python",
+      "name": "🧪 Test Mode (auto-close 5s)",
+      "program": "app.py",
+      "args": ["--test-mode"],
+      "currentDir": "${workspaceRoot}",
+      "env": {
+        "PYTHONPATH": "${workspaceRoot}/src"
+      }
+    },
+    {
+      "type": "python",
+      "name": "🐛 Verbose Mode",
+      "program": "app.py",
+      "args": ["--verbose"],
+      "currentDir": "${workspaceRoot}",
+      "env": {
+        "PYTHONPATH": "${workspaceRoot}/src",
+        "QT_LOGGING_RULES": "*.debug=true",
+        "QSG_INFO": "1",
+        "QT_ASSUME_STDERR_HAS_CONSOLE": "1"
+      }
+    },
+    {
+      "type": "python",
+      "name": "🔓 Non-blocking Mode",
+      "program": "app.py",
+      "args": ["--no-block"],
+      "currentDir": "${workspaceRoot}",
+      "env": {
+        "PYTHONPATH": "${workspaceRoot}/src"
+      }
+    },
+    {
+      "type": "python",
+      "name": "🛡️ Safe Mode",
+      "program": "app.py",
+      "args": ["--safe-mode"],
+      "currentDir": "${workspaceRoot}",
+      "env": {
+        "PYTHONPATH": "${workspaceRoot}/src"
+      }
+    },
+    {
+      "type": "python",
+      "name": "🧪 PyTest - all",
+      "module": "pytest",
+      "args": ["tests/", "-v", "--tb=short", "--color=yes"],
+      "currentDir": "${workspaceRoot}",
+      "env": {
+        "PYTHONPATH": "${workspaceRoot}/src"
+      }
+    }
+  ]
+}

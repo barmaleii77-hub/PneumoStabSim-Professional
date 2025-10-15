@@ -316,14 +316,14 @@ class GeometryPanel(QWidget):
     
     def _connect_signals(self):
         """Connect widget signals"""
-        # Используем ТОЛЬКО valueEdited для избежания дублирования событий
+        # Реал-тайм: valueChanged для мгновенных обновлений геометрии
+        # Финальное подтверждение: valueEdited
         
         self.logger.debug("Connecting signals...")
         
         # Frame dimensions
         self.wheelbase_slider.valueEdited.connect(
             lambda v: self._on_parameter_changed('wheelbase', v))
-        # Мгновенные обновления канвы
         self.wheelbase_slider.valueChanged.connect(
             lambda v: self._on_parameter_live_change('wheelbase', v))
         
@@ -657,6 +657,7 @@ class GeometryPanel(QWidget):
         
         finally:
             self._resolving_conflict = False
+
     @Slot(str, float)
     def _on_parameter_live_change(self, param_name: str, value: float):
         """Мгновенно отражать изменения значения на 3D канве во время движения слайдера.

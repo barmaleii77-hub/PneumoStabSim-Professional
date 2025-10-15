@@ -1,0 +1,56 @@
+{
+  "github.copilot.advanced": {
+    // Настройки для работы на русском языке
+    "length": 1000,
+    "temperature": 0.3,
+    "top_p": 0.95,
+    "listCount": 5,
+    "inlineSuggestCount": 3,
+    "debug.overrideEngine": "copilot-codex",
+    "debug.overrideProxyUrl": "",
+    "debug.showScores": false,
+    "debug.testOverrideProxyUrl": "",
+    "debug.filterLogCategories": []
+  },
+  
+  "github.copilot.enable": {
+    "*": true,
+    "plaintext": true,
+    "markdown": true,
+    "scminput": false,
+    "python": true,
+    "json": true,
+    "yaml": true,
+    "xml": true,
+    "qml": true,
+    "javascript": true,
+    "typescript": true,
+    "powershell": true,
+    "shellscript": true,
+    "bat": true,
+    "dockerfile": true
+  },
+  
+  // Настройки для русского языка
+  "github.copilot.chat.localeOverride": "ru",
+  "github.copilot.chat.welcomeMessage": "inline",
+  
+  // Специальные настройки для проекта PneumoStabSim
+  "github.copilot.editor.enableAutoCompletions": true,
+  "github.copilot.editor.enableCodeActions": true,
+  
+  // Контекст проекта для лучших предложений
+  "github.copilot.chat.useProjectContexts": true,
+  
+  // Отключение ненужных предложений
+  "github.copilot.advanced.inlineSuggestCount": 3,
+  "github.copilot.advanced.listCount": 10,
+  
+  // Настройки для конкретных типов файлов
+  "github.copilot.python.completions": {
+    "enabled": true,
+    "suggestions": true,
+    "docstrings": true,
+    "imports": true
+  }
+}

@@ -14,7 +14,8 @@ Item {
       * Optional fallback map that is tried automatically when the primary
       * asset is missing (useful for developer setups without HDR packages).
       */
-    property url fallbackSource: Qt.resolvedUrl("../../assets/studio_small_09_2k.hdr")
+    // Путь из components/ → assets/qml/assets/studio_small_09_2k.hdr
+    property url fallbackSource: Qt.resolvedUrl("../assets/studio_small_09_2k.hdr")
 
     /** Internal flag preventing infinite fallback recursion. */
     property bool _fallbackTried: false

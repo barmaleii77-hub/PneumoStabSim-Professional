@@ -10,6 +10,7 @@ import signal
 import argparse
 import subprocess
 from pathlib import Path
+import json
 
 # =============================================================================
 # Накопление warnings/errors
@@ -113,15 +114,21 @@ configure_terminal_encoding()
 # =============================================================================
 
 
-def check_python_compatibility():
-    """Check Python version and warn about potential issues"""
-    version = sys.version_info
+def check_python_compatibility() -> None:
+    """Проверка версии Python: проект таргетирует Python 3.13+
     
-    if version < (3, 8):
-        log_error("Python 3.8+ required. Please upgrade Python.")
+    Разрешаем обход проверки через переменную окружения
+    `PSS_IGNORE_PYTHON_CHECK=1` (для CI/диагностики на старых окружениях).
+    """
+    # Позволяем обходить проверку при явном запросе
+    if os.environ.get('PSS_IGNORE_PYTHON_CHECK') == '1':
+        log_warning("Python version check bypassed via PSS_IGNORE_PYTHON_CHECK=1")
+        return
+    
+    version = sys.version_info
+    if version < (3, 13):
+        log_error("Python 3.13+ required. Please upgrade Python.")
         sys.exit(1)
-    elif version >= (3, 12):
-        log_warning("Python 3.12+ detected. Some packages may have compatibility issues.")
 
 
 check_python_compatibility()
@@ -153,8 +160,8 @@ def safe_import_qt():
         
         try:
             major, minor = qt_version.split('.')[:2]
-            if int(major) == 6 and int(minor) < 8:
-                log_warning(f"Qt {qt_version} - ExtendedSceneEnvironment may be limited")
+            if int(major) == 6 and int(minor) < 10:
+                log_warning(f"Qt {qt_version} detected. Some 6.10+ features may be unavailable")
         except (ValueError, IndexError):
             log_warning(f"Could not parse Qt version: {qt_version}")
         
@@ -171,16 +178,18 @@ QApplication, qInstallMessageHandler, Qt, QTimer = safe_import_qt()
 # =============================================================================
 
 
-def setup_logging():
-    """Настройка логирования - ВСЕГДА активно"""
+def setup_logging(verbose_console: bool = False):
+    """Настройка логирования - ВСЕГДА активно
+    
+    Args:
+        verbose_console: Включать ли вывод логов в консоль (аргумент --verbose)
+    """
     try:
         from src.common.logging_setup import init_logging, rotate_old_logs
         
         logs_dir = Path("logs")
         
-        # ✅ НОВОЕ: Ротация старых логов (оставляем только 10 последних)
-        # Политика проекта: всегда начинать с чистых логов
-        # Стираем старые логи на запуске (keep_count=0)
+        # Политика проекта: начинаем с чистых логов
         rotate_old_logs(logs_dir, keep_count=0)
         
         # Инициализируем логирование с ротацией
@@ -189,7 +198,7 @@ def setup_logging():
             logs_dir,
             max_bytes=10 * 1024 * 1024,  # 10 MB на файл
             backup_count=5,               # Держим 5 backup файлов
-            console_output=False          # НЕ выводим в консоль
+            console_output=bool(verbose_console)  # Включаем по запросу
         )
         
         logger.info("=" * 60)
@@ -201,6 +210,9 @@ def setup_logging():
         logger.info(f"Qt: {qVersion()}")
         logger.info(f"Platform: {sys.platform}")
         logger.info(f"Backend: {os.environ.get('QSG_RHI_BACKEND', 'auto')}")
+        
+        if verbose_console:
+            logger.info("Console verbose mode is ENABLED")
         
         return logger
     except Exception as e:
@@ -417,12 +429,10 @@ def run_log_diagnostics():
             print(f"❌ Ошибка fallback диагностики: {e}")
             import traceback
             traceback.print_exc()
-    
     except Exception as e:
         print(f"❌ Ошибка диагностики: {e}")
         import traceback
         traceback.print_exc()
-
 
 def main():
     """Main application function - CLEAN OUTPUT"""
@@ -443,8 +453,8 @@ def main():
         print(f"🎨 Graphics: Qt Quick 3D | Backend: {os.environ.get('QSG_RHI_BACKEND', 'auto')}")
         print("⏳ Initializing...")
         
-        # ✅ ЛОГИРОВАНИЕ ВСЕГДА ВКЛЮЧЕНО
-        app_logger = setup_logging()
+        # ✅ ЛОГИРОВАНИЕ ВСЕГДА ВКЛЮЧЕНО (с поддержкой --verbose)
+        app_logger = setup_logging(verbose_console=args.verbose)
         
         if app_logger:
             app_logger.info("Logging initialized successfully")
@@ -495,10 +505,11 @@ def main():
             if app_logger:
                 app_logger.info("Test mode: auto-closing in 5 seconds")
             
-            close_timer = QTimer()
-            close_timer.setSingleShot(True)
-            close_timer.timeout.connect(lambda: window.close())
-            close_timer.start(5000)
+            # ✅ ФИКС: удерживаем QTimer в живых и задаём родителя
+            window._auto_close_timer = QTimer(window)
+            window._auto_close_timer.setSingleShot(True)
+            window._auto_close_timer.timeout.connect(lambda: window.close())
+            window._auto_close_timer.start(5000)
         
         result = app.exec()
         
