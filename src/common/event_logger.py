@@ -395,6 +395,20 @@ class EventLogger:
                             "status": "synced"
                         })
                         break
+
+                    # ✅ Вариант 3: QML-хук зафиксировал вход в функцию applyXxxUpdates
+                    if (
+                        next_event["event_type"] == "FUNCTION_CALLED"
+                        and expected_qml_func is not None
+                        and next_event["action"] == expected_qml_func
+                    ):
+                        pairs.append({
+                            "python_event": event,
+                            "qml_event": next_event,
+                            "latency_ms": (recv_time - emit_time).total_seconds() * 1000,
+                            "status": "synced"
+                        })
+                        break
                 else:
                     # Не нашли соответствующий QML event
                     pairs.append({
