@@ -4,6 +4,7 @@ QML Host for full suspension 3D visualization
 Embeds UFrameScene.qml with all 4 corners (FL/FR/RL/RR) into PySide6 application
 Uses geometry_bridge.py for correct coordinate calculation
 """
+import logging
 from pathlib import Path
 from PySide6.QtCore import QUrl, QObject, Signal, Slot
 from PySide6.QtGui import QVector3D
@@ -12,6 +13,8 @@ from PySide6.QtQuickWidgets import QQuickWidget
 # Import geometry bridge for correct coordinate calculation
 from ..core.geometry import GeometryParams
 from src.ui.geometry_bridge import GeometryTo3DConverter
+
+_logger = logging.getLogger(__name__)
 
 
 class SuspensionSceneHost(QQuickWidget):
@@ -67,18 +70,16 @@ class SuspensionSceneHost(QQuickWidget):
                 f'{corner_key}_position': corner_data['position'],
             })
         
-        print(f"? Loaded coordinates from geometry_bridge:")
-        print(f"   Frame: {frame_params}")
-        print(f"   FL j_arm: {all_corners['fl']['j_arm']}")
-        print(f"   FR j_arm: {all_corners['fr']['j_arm']}")
+        _logger.debug("Loaded coordinates from geometry_bridge: Frame=%s", frame_params)
+        _logger.debug("FL j_arm: %s", all_corners['fl']['j_arm'])
+        _logger.debug("FR j_arm: %s", all_corners['fr']['j_arm'])
         
         # Setup QML
         self.setResizeMode(QQuickWidget.SizeRootObjectToView)
         
         # Load QML scene
         qml_path = Path(__file__).parent.parent.parent / "assets" / "qml" / "UFrameScene.qml"
-        print(f"?? SuspensionSceneHost: Loading QML from: {qml_path}")
-        print(f"?? Path exists: {qml_path.exists()}")
+        _logger.info("SuspensionSceneHost: Loading QML from: %s (exists=%s)", qml_path, qml_path.exists())
         
         self.setSource(QUrl.fromLocalFile(str(qml_path)))
         
@@ -86,10 +87,10 @@ class SuspensionSceneHost(QQuickWidget):
         if self.status() == QQuickWidget.Status.Error:
             errors = self.errors()
             error_msg = "\n".join(str(e) for e in errors)
-            print(f"? QML ERRORS in UFrameScene.qml:\n{error_msg}")
+            _logger.error("QML ERRORS in UFrameScene.qml:\n%s", error_msg)
             raise RuntimeError(f"QML errors:\n{error_msg}")
         
-        print(f"? UFrameScene.qml loaded, status: {self.status()}")
+        _logger.info("UFrameScene.qml loaded, status: %s", self.status())
         
         # Wait for QML to be fully ready, then apply parameters
         if self.status() == QQuickWidget.Status.Ready:
@@ -101,7 +102,7 @@ class SuspensionSceneHost(QQuickWidget):
                 if self.status() == QQuickWidget.Status.Ready:
                     self._apply_all_parameters()
                 else:
-                    print("?? QML still not ready, retrying...")
+                    _logger.debug("QML still not ready, retrying...")
                     QTimer.singleShot(100, delayed_apply)
             QTimer.singleShot(50, delayed_apply)
     
@@ -109,13 +110,13 @@ class SuspensionSceneHost(QQuickWidget):
         """Apply all parameters to QML root object"""
         root = self.rootObject()
         if not root:
-            print("?? WARNING: QML root object is None!")
+            _logger.warning("QML root object is None!")
             return
         
         applied_count = 0
         failed_count = 0
         
-        print(f"?? Applying {len(self._params)} parameters to QML:")
+        _logger.debug("Applying %d parameters to QML", len(self._params))
         
         for key, value in self._params.items():
             try:
@@ -124,29 +125,24 @@ class SuspensionSceneHost(QQuickWidget):
                 
                 # Debug key coordinates and lever lengths
                 if key in ['fl_j_arm', 'fr_j_arm', 'fl_leverLength', 'fr_leverLength']:
-                    print(f"   ? Set {key} = {value}")
+                    _logger.debug("Set %s = %s", key, value)
                 elif 'cylinderBodyLength' in key or 'tailRodLength' in key:
-                    print(f"   ?? Set {key} = {value}")
+                    _logger.debug("Set %s = %s", key, value)
                     
             except Exception as e:
-                print(f"   ? Failed to set {key} = {value}: {e}")
+                _logger.warning("Failed to set %s = %s: %s", key, value, e)
                 failed_count += 1
                 
-        print(f"? Applied {applied_count}/{len(self._params)} parameters to QML")
-        if failed_count > 0:
-            print(f"? Failed to apply {failed_count} parameters")
+        _logger.info("Applied %d/%d parameters to QML (failed=%d)", applied_count, len(self._params), failed_count)
         
         # Debug: Try to read some values back
-        print(f"?? Reading back some key values:")
         try:
             beamSize = root.property("beamSize") 
             frameLength = root.property("frameLength")
             fl_leverLength = root.property("fl_leverLength")
-            print(f"   beamSize: {beamSize}")
-            print(f"   frameLength: {frameLength}")
-            print(f"   fl_leverLength: {fl_leverLength}")
+            _logger.debug("Read-back beamSize=%s frameLength=%s fl_leverLength=%s", beamSize, frameLength, fl_leverLength)
         except Exception as e:
-            print(f"   ? Failed to read back values: {e}")
+            _logger.debug("Failed to read back values: %s", e)
     
     def update_corner(self, corner: str, **kwargs):
         """Update parameters for specific corner (FL/FR/RL/RR)

@@ -1,14 +1,7 @@
-# HDR assets folder
+# HDR Placeholder
+# Real HDR file needed for IBL (download from https://polyhaven.com/hdris)
+# Suggested: studio_small_09_2k.hdr (~4MB)
+# Place in: assets/qml/assets/studio_small_09_2k.hdr
 
-Эта папка предназначена для локального хранения HDR/EXR карт окружения (IBL).
-
-Файлы не хранятся в репозитории, чтобы избежать лимитов GitHub (>100MB).
-
-Как использовать локально:
-1) Скачайте нужные карты (HDR/EXR/JPG) и положите их в эту папку.
-2) Рекомендуется Git LFS для совместной работы:
-   - Установите Git LFS (https://git-lfs.com/)
-   - Выполните один раз: `git lfs install`
-   - Добавление больших файлов автоматически пойдет через LFS (см. корневой `.gitattributes`).
-
-Примечание: `.gitignore` в этой папке блокирует коммит тяжёлых форматов, чтобы случайно не попасть в историю.
+# For now, create a placeholder to prevent QML errors
+# Replace with actual HDR for proper IBL reflections

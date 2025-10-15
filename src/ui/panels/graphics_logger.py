@@ -125,8 +125,9 @@ class GraphicsLogger:
         # Если у нас уже есть QML информация — отмечаем как update
         self._write_event_to_file(event, update=bool(qml_state or applied_to_qml or error))
         
-        # Выводим в консоль
-        print(f"📊 GRAPHICS CHANGE: {category}.{parameter_name}: {old_value} → {new_value}")
+        # Раньше здесь был шумный вывод в консоль: "📊 GRAPHICS CHANGE: ..."
+        # Удалено по просьбе пользователя. Все изменения пишутся в файл лога.
+        # self.logger.debug(f"GRAPHICS CHANGE: {category}.{parameter_name}: {old_value} → {new_value}")
         
         return event
     
@@ -160,7 +161,7 @@ class GraphicsLogger:
         # Записываем обновленное событие
         self._write_event_to_file(event, update=True)
         
-        # Выводим результат
+        # Сохраняем краткий вывод о результате (оставляем по умолчанию)
         if success:
             print(f"   ✅ QML updated: {event.parameter_name}")
         else:

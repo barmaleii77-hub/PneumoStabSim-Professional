@@ -10,20 +10,22 @@ import signal
 import argparse
 import subprocess
 from pathlib import Path
-import json
+import logging
+from typing import Any, Optional
 
 # =============================================================================
 # Накопление warnings/errors
 # =============================================================================
 
-_warnings_errors = []
+_warnings_errors: list[tuple[str, str]] = []
 
-def log_warning(msg: str):
+
+def log_warning(msg: str) -> None:
     """Накапливает warning для вывода в конце"""
     _warnings_errors.append(("WARNING", msg))
 
 
-def log_error(msg: str):
+def log_error(msg: str) -> None:
     """Накапливает error для вывода в конце"""
     _warnings_errors.append(("ERROR", msg))
 
@@ -32,7 +34,7 @@ def log_error(msg: str):
 # =============================================================================
 
 
-def setup_qtquick3d_environment():
+def setup_qtquick3d_environment() -> bool:
     """Set up QtQuick3D environment variables before importing Qt"""
     required_vars = ["QML2_IMPORT_PATH", "QML_IMPORT_PATH", "QT_PLUGIN_PATH", "QT_QML_IMPORT_PATH"]
     if all(var in os.environ for var in required_vars):
@@ -67,14 +69,14 @@ def setup_qtquick3d_environment():
         return False
 
 
-qtquick3d_setup_ok = setup_qtquick3d_environment()
+qtquick3d_setup_ok: bool = setup_qtquick3d_environment()
 
 # =============================================================================
 # Terminal Encoding
 # =============================================================================
 
 
-def configure_terminal_encoding():
+def configure_terminal_encoding() -> None:
     """Configure terminal encoding for cross-platform Unicode support"""
     if sys.platform == 'win32':
         try:
@@ -138,8 +140,9 @@ check_python_compatibility()
 # =============================================================================
 
 os.environ.setdefault("QSG_RHI_BACKEND", "d3d11" if sys.platform == 'win32' else "opengl")
+OS_QT_LOGGING_DEFAULT = "*.debug=false;*.info=false"
 os.environ.setdefault("QSG_INFO", "0")
-os.environ.setdefault("QT_LOGGING_RULES", "*.debug=false;*.info=false")
+os.environ.setdefault("QT_LOGGING_RULES", OS_QT_LOGGING_DEFAULT)
 os.environ.setdefault("QT_ASSUME_STDERR_HAS_CONSOLE", "1")
 os.environ.setdefault("QT_AUTO_SCREEN_SCALE_FACTOR", "1")
 os.environ.setdefault("QT_SCALE_FACTOR_ROUNDING_POLICY", "PassThrough")
@@ -150,7 +153,7 @@ os.environ.setdefault("QT_ENABLE_HIGHDPI_SCALING", "1")
 # =============================================================================
 
 
-def safe_import_qt():
+def safe_import_qt() -> tuple[Any, Any, Any, Any]:
     """Safely import Qt components"""
     try:
         from PySide6.QtWidgets import QApplication
@@ -178,7 +181,7 @@ QApplication, qInstallMessageHandler, Qt, QTimer = safe_import_qt()
 # =============================================================================
 
 
-def setup_logging(verbose_console: bool = False):
+def setup_logging(verbose_console: bool = False) -> Optional[logging.Logger]:
     """Настройка логирования - ВСЕГДА активно
     
     Args:
@@ -223,10 +226,10 @@ def setup_logging(verbose_console: bool = False):
 # Project Imports
 # =============================================================================
 
-_main_window_module = None
+_main_window_module: Optional[Any] = None
 
 
-def get_main_window_class():
+def get_main_window_class() -> Any:
     """Ленивая загрузка MainWindow класса"""
     global _main_window_module
     if _main_window_module is None:
@@ -242,13 +245,13 @@ def get_main_window_class():
 # Application Logic
 # =============================================================================
 
-USE_QML_3D_SCHEMA = True
-app_instance = None
-window_instance = None
-app_logger = None
+USE_QML_3D_SCHEMA: bool = True
+app_instance: Optional[Any] = None
+window_instance: Optional[Any] = None
+app_logger: Optional[logging.Logger] = None
 
 
-def signal_handler(signum, frame):
+def signal_handler(signum: int, frame: Any) -> None:
     """Handle Ctrl+C gracefully"""
     global app_instance, window_instance, app_logger
     
@@ -264,14 +267,14 @@ def signal_handler(signum, frame):
         log_warning(f"Shutdown error: {e}")
 
 
-def qt_message_handler(mode, context, message):
+def qt_message_handler(mode: Any, context: Any, message: str) -> None:
     """Handle Qt log messages - redirect to logger"""
     global app_logger
     if app_logger:
         app_logger.debug(f"Qt: {message}")
 
 
-def parse_arguments():
+def parse_arguments() -> argparse.Namespace:
     """Parse command line arguments"""
     parser = argparse.ArgumentParser(
         description="PneumoStabSim - Pneumatic Stabilizer Simulator",
@@ -281,16 +284,18 @@ Examples:
   py app.py                    # Main Qt Quick 3D version
   py app.py --test-mode        # Test mode (auto-close 5s)
   py app.py --verbose          # Verbose console output
+  py app.py --diag             # Run post-run diagnostics to console
         """
     )
     
     parser.add_argument('--test-mode', action='store_true', help='Test mode (auto-close 5s)')
     parser.add_argument('--verbose', action='store_true', help='Enable console logging')
+    parser.add_argument('--diag', action='store_true', help='Run post-run diagnostics to console')
     
     return parser.parse_args()
 
 
-def print_warnings_errors():
+def print_warnings_errors() -> None:
     """Вывод всех warnings/errors в конце"""
     if not _warnings_errors:
         return
@@ -315,7 +320,7 @@ def print_warnings_errors():
     print("=" * 60 + "\n")
 
 
-def run_log_diagnostics():
+def run_log_diagnostics() -> None:
     """Запускает ВСТРОЕННУЮ диагностику логов после закрытия приложения"""
     print("\n" + "="*60)
     print("🔍 ДИАГНОСТИКА ЛОГОВ И СОБЫТИЙ")
@@ -395,7 +400,7 @@ def run_log_diagnostics():
                     print(f"   ℹ️  Сигналов не обнаружено (событий не было)")
                 
                 # Статистика по типам событий
-                event_types = {}
+                event_types: dict[str, int] = {}
                 for event in event_logger.events:
                     event_type = event.get('event_type', 'UNKNOWN')
                     event_types[event_type] = event_types.get(event_type, 0) + 1
@@ -434,7 +439,8 @@ def run_log_diagnostics():
         import traceback
         traceback.print_exc()
 
-def main():
+
+def main() -> int:
     """Main application function - CLEAN OUTPUT"""
     global app_instance, window_instance, app_logger
     
@@ -522,10 +528,11 @@ def main():
         
         print(f"\n✅ Application closed (code: {result})\n")
         
-        # ✅ ВСЕГДА запускаем ВСТРОЕННУЮ диагностику логов после выхода
-        run_log_diagnostics()
+        # ✅ ВСТРОЕННУЮ диагностику логов запускаем только по запросу
+        if args.diag or args.verbose or os.environ.get("PSS_DIAG") == "1":
+            run_log_diagnostics()
         
-        return result
+        return int(result)
         
     except Exception as e:
         print(f"\n❌ FATAL ERROR: {e}")

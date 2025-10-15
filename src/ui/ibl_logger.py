@@ -5,7 +5,7 @@ IBL Signal Logger - Система записи логов сигналов IBL 
 для последующего анализа прохождения сигналов через систему.
 """
 
-import os
+import logging
 from datetime import datetime
 from pathlib import Path
 from PySide6.QtCore import QObject, Slot
@@ -21,6 +21,7 @@ class IblSignalLogger(QObject):
     
     def __init__(self, log_dir: str = "logs/ibl"):
         super().__init__()
+        self._logger = logging.getLogger(self.__class__.__name__)
         
         # Создаем директорию для логов
         self.log_dir = Path(log_dir)
@@ -35,15 +36,17 @@ class IblSignalLogger(QObject):
         
     def _init_log_file(self):
         """Создает файл и записывает заголовок."""
-        with open(self.log_file, "w", encoding="utf-8") as f:
-            f.write("=" * 80 + "\n")
-            f.write("IBL SIGNAL LOGGER - Signal Flow Analysis\n")
-            f.write(f"Log started: {datetime.now().isoformat()}\n")
-            f.write("=" * 80 + "\n\n")
-            f.write("FORMAT: timestamp | level | source | message\n")
-            f.write("-" * 80 + "\n\n")
-        
-        print(f"📝 IBL Logger: Writing to {self.log_file}")
+        try:
+            with open(self.log_file, "w", encoding="utf-8") as f:
+                f.write("=" * 80 + "\n")
+                f.write("IBL SIGNAL LOGGER - Signal Flow Analysis\n")
+                f.write(f"Log started: {datetime.now().isoformat()}\n")
+                f.write("=" * 80 + "\n\n")
+                f.write("FORMAT: timestamp | level | source | message\n")
+                f.write("-" * 80 + "\n\n")
+            self._logger.info("IBL Logger: Writing to %s", self.log_file)
+        except Exception as e:
+            self._logger.error("Failed to initialize IBL log file: %s", e)
     
     @Slot(str)
     def logIblEvent(self, message: str):
@@ -58,7 +61,7 @@ class IblSignalLogger(QObject):
                 f.write(message + "\n")
                 f.flush()  # Немедленная запись
         except Exception as e:
-            print(f"❌ IBL Logger ERROR: {e}")
+            self._logger.error("IBL Logger write error: %s", e)
     
     def log_python_event(self, level: str, source: str, message: str):
         """
@@ -77,7 +80,7 @@ class IblSignalLogger(QObject):
                 f.write(log_entry + "\n")
                 f.flush()
         except Exception as e:
-            print(f"❌ IBL Logger ERROR: {e}")
+            self._logger.error("IBL Logger write error: %s", e)
     
     def close(self):
         """Закрывает лог-файл с финальной записью."""
@@ -86,10 +89,9 @@ class IblSignalLogger(QObject):
                 f.write("\n" + "-" * 80 + "\n")
                 f.write(f"Log closed: {datetime.now().isoformat()}\n")
                 f.write("=" * 80 + "\n")
-            
-            print(f"✅ IBL Logger: Closed {self.log_file}")
+            self._logger.info("IBL Logger: Closed %s", self.log_file)
         except Exception as e:
-            print(f"❌ IBL Logger close ERROR: {e}")
+            self._logger.error("IBL Logger close error: %s", e)
 
 
 # Глобальный экземпляр для использования

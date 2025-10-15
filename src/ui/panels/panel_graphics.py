@@ -327,6 +327,10 @@ class GraphicsPanel(QWidget):
                 "ao_enabled": True,
                 "ao_strength": 1.0,
                 "ao_radius": 8.0,
+                # ✅ Новые ключи по умолчанию, чтобы в QML не оставались скрытые дефолты
+                "ibl_offset_x": 0.0,
+                "ibl_offset_y": 0.0,
+                "ibl_bind_to_camera": False,
             },
             "quality": {
                 "preset": "ultra",
@@ -972,17 +976,41 @@ class GraphicsPanel(QWidget):
         return group
 
     def _discover_hdr_files(self) -> List[Tuple[str, str]]:
-        """Ищет HDR/EXR файлы в каталоге assets/qml/assets и формирует список для ComboBox."""
+        """Ищет HDR/EXR файлы в типичных каталогах проекта и формирует список для ComboBox.
+        Поиск ведётся в:
+          - assets/hdr
+          - assets/hdri
+          - assets/qml/assets (исторически)
+        Возвращает пары (label, path).
+        """
         results: List[Tuple[str, str]] = []
-        base = Path("assets/qml/assets")
-        if base.exists():
+
+        search_dirs = [
+            Path("assets/hdr"),                # ✅ основной каталог HDR
+            Path("assets/hdri"),               # альтернативный каталог
+            Path("assets/qml/assets"),         # исторический путь
+        ]
+
+        seen: set[str] = set()
+        for base in search_dirs:
+            if not base.exists():
+                continue
             for ext in ("*.hdr", "*.exr"):
                 for p in sorted(base.glob(ext)):
+                    key = p.name.lower()
+                    if key in seen:
+                        continue
+                    seen.add(key)
                     results.append((p.name, str(p.as_posix())))
-        # Добавляем текущий источник по умолчанию, если он вне папки
+
+        # Добавляем текущий источник по умолчанию, если он вне перечисленных папок
         current = self.state.get("environment", {}).get("ibl_source")
-        if current and all(lbl != Path(current).name for lbl, _ in results):
-            results.insert(0, (Path(current).name, current))
+        if current:
+            from pathlib import Path as _Path
+            name = _Path(current).name
+            if all(lbl != name for lbl, _ in results):
+                results.insert(0, (name, current))
+
         return results
 
     def _build_fog_group(self) -> QGroupBox:
@@ -1934,6 +1962,9 @@ class GraphicsPanel(QWidget):
             bg["mode"] = env.get("background_mode")
         if "background_color" in env:
             bg["color"] = env.get("background_color")
+        # ✅ Передаём флаг видимости skybox в секции background
+        if "skybox_enabled" in env:
+            bg["skybox_enabled"] = bool(env.get("skybox_enabled"))
         if bg:
             payload["background"] = bg
 
@@ -1943,6 +1974,8 @@ class GraphicsPanel(QWidget):
             ibl["lighting_enabled"] = ibl["enabled"]
         if "ibl_intensity" in env:
             ibl["intensity"] = env.get("ibl_intensity")
+        if "ibl_rotation" in env:
+            ibl["rotation"] = env.get("ibl_rotation")
         if "ibl_source" in env:
             ibl["source"] = env.get("ibl_source")
         if "ibl_fallback" in env:
@@ -2160,31 +2193,31 @@ class GraphicsPanel(QWidget):
 
         taa_check = self._quality_controls.get("taa.enabled")
         if isinstance(taa_check, QCheckBox):
-            taa_check.setChecked(self.state["quality"].get("taa_enabled", False))
+            taa_check.setChecked(self.state["quality"]["taa_enabled"])
 
         taa_strength = self._quality_controls.get("taa.strength")
         if isinstance(taa_strength, LabeledSlider):
-            taa_strength.set_value(self.state["quality"].get("taa_strength", 0.0))
+            taa_strength.set_value(self.state["quality"]["taa_strength"])
 
         taa_motion = self._quality_controls.get("taa_motion_adaptive")
         if isinstance(taa_motion, QCheckBox):
-            taa_motion.setChecked(self.state["quality"].get("taa_motion_adaptive", False))
+            taa_motion.setChecked(self.state["quality"]["taa_motion_adaptive"])
 
         fxaa_check = self._quality_controls.get("fxaa.enabled")
         if isinstance(fxaa_check, QCheckBox):
-            fxaa_check.setChecked(self.state["quality"].get("fxaa_enabled", False))
+            fxaa_check.setChecked(self.state["quality"]["fxaa_enabled"])
 
         specular_check = self._quality_controls.get("specular.enabled")
         if isinstance(specular_check, QCheckBox):
-            specular_check.setChecked(self.state["quality"].get("specular_aa", False))
+            specular_check.setChecked(self.state["quality"]["specular_aa"])
 
         dithering_check = self._quality_controls.get("dithering.enabled")
         if isinstance(dithering_check, QCheckBox):
-            dithering_check.setChecked(self.state["quality"].get("dithering", False))
+            dithering_check.setChecked(self.state["quality"]["dithering"])
 
         render_scale = self._quality_controls.get("render.scale")
         if isinstance(render_scale, LabeledSlider):
-            render_scale.set_value(self.state["quality"].get("render_scale", 1.0))
+            render_scale.set_value(self.state["quality"]["render_scale"])
 
         render_policy = self._quality_controls.get("render.policy")
         if isinstance(render_policy, QComboBox):
@@ -2194,7 +2227,7 @@ class GraphicsPanel(QWidget):
 
         frame_limit = self._quality_controls.get("frame_rate_limit")
         if isinstance(frame_limit, LabeledSlider):
-            frame_limit.set_value(self.state["quality"].get("frame_rate_limit", 60.0))
+            frame_limit.set_value(self.state["quality"]["frame_rate_limit"])
 
         dithering_check = self._quality_controls.get("dithering.enabled")
         if isinstance(dithering_check, QCheckBox):

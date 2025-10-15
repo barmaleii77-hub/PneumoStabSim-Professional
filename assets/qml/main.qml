@@ -41,6 +41,8 @@ Item {
     // ✅ Условная поддержка dithering (доступно с Qt 6.10)
     property bool ditheringEnabled: true  // Управляется из GraphicsPanel
     readonly property bool canUseDithering: supportsQtQuick3D610Features
+    // ✅ Гейт для Specular AA (временно отключаем по умолчанию из-за ошибки шейдера)
+    readonly property bool canUseSpecularAA: false
 
     // ===============================================================
     // 🚀 CRITICAL FIX v4.9.4: SKYBOX ROTATION - INDEPENDENT FROM CAMERA
@@ -164,9 +166,18 @@ Item {
     // ===============================================================
 
     // HDR resources
-    property url iblPrimarySource: Qt.resolvedUrl("../hdr/studio.hdr")
-    property url iblFallbackSource: Qt.resolvedUrl("assets/studio_small_09_2k.hdr")
+    property url iblPrimarySource: startIblSource && startIblSource !== "" ? resolveUrl(startIblSource) : Qt.resolvedUrl("../hdr/studio.hdr")
+    property url iblFallbackSource: startIblFallback && startIblFallback !== "" ? resolveUrl(startIblFallback) : Qt.resolvedUrl("../hdr/studio_small_09_2k.hdr")
     readonly property bool iblReady: iblLoader.ready
+
+    // Environment defaults c учетом стартовых флагов
+    property string backgroundMode: startBackgroundMode
+    property color backgroundColor: "#1f242c"
+    property bool iblEnabled: startIblEnabled
+    property bool iblLightingEnabled: startIblEnabled
+    property bool iblBackgroundEnabled: startSkyboxEnabled
+    property real iblRotationDeg: startIblRotation
+    property real iblIntensity: startIblIntensity
 
     // Lighting
     property real keyLightBrightness: 1.2
@@ -197,24 +208,6 @@ Item {
     property bool pointLightCastsShadow: false   // ✅ Новый пользовательский флаг теней точечного света
     property bool pointLightBindToCamera: false
 
-    // Environment
-    property string backgroundMode: "skybox"
-    property color backgroundColor: "#1f242c"
-    property bool iblEnabled: true              // master-флаг (по UI) для освещения от IBL
-    property bool iblLightingEnabled: true      // реальный флаг освещения/отражений от IBL
-    property bool iblBackgroundEnabled: true    // независимый флаг показа skybox
-    property real iblRotationDeg: 0
-    property real iblIntensity: 1.3
-
-    property bool fogEnabled: true
-    property color fogColor: "#b0c4d8"
-    property real fogDensity: 0.12
-    property real fogNear: 1200.0
-    property real fogFar: 12000.0
-    property bool aoEnabled: true
-    property real aoStrength: 1.0
-    property real aoRadius: 8.0
-
     // Procedural geometry quality
     property int cylinderSegments: 64
     property int cylinderRings: 8
@@ -227,11 +220,19 @@ Item {
     property real taaStrength: 0.4
     property bool taaMotionAdaptive: true
     property bool fxaaEnabled: false
-    property bool specularAAEnabled: true
+    // ВРЕМЕННЫЙ ФИКС: отключаем Specular AA по умолчанию (ошибка компиляции шейдера на некоторых драйверах)
+    property bool specularAAEnabled: false
     property real renderScale: 1.05
     property string renderPolicy: "always"
     property real frameRateLimit: 144.0
     property string qualityPreset: "ultra"
+
+    // === Fog properties (Qt 6.10+ Fog object) ===
+    property bool fogEnabled: false
+    property color fogColor: "#808080"
+    property real fogDensity: 0.1
+    property real fogNear: 1200.0
+    property real fogFar: 12000.0
 
     property var pendingPythonUpdates: null
 
@@ -278,6 +279,9 @@ Item {
     // Tonemap settings
     property bool tonemapEnabled: true
     property string tonemapModeName: "filmic"
+    // ✅ Новые управляемые параметры тонемаппинга
+    property real tonemapExposure: 1.0
+    property real tonemapWhitePoint: 2.0
 
     // Material control properties
     property color frameBaseColor: "#c53030"
@@ -629,6 +633,20 @@ Item {
             console.log("  ✨ КРИТИЧЕСКИЙ: Updating rodPosition:", userRodPosition, "→", params.rodPosition)
             userRodPosition = params.rodPosition
         }
+
+        // ✅ ДОПОЛНИТЕЛЬНЫЕ ПАРАМЕТРЫ ГЕОМЕТРИИ, ПРИХОДЯЩИЕ ИЗ PYTHON (мм)
+        if (params.boreHead !== undefined) userBoreHead = Number(params.boreHead)
+        if (params.boreRod !== undefined) userBoreRod = Number(params.boreRod)
+        if (params.rodDiameter !== undefined) userRodDiameter = Number(params.rodDiameter)
+        if (params.pistonThickness !== undefined) userPistonThickness = Number(params.pistonThickness)
+        if (params.pistonRodLength !== undefined) userPistonRodLength = Number(params.pistonRodLength)
+
+        // ✅ ПОДДЕРЖКА АЛЬТЕРНАТИВНЫХ КЛЮЧЕЙ (исторически) — уже в мм
+        if (params.cylDiamM !== undefined) userBoreHead = Number(params.cylDiamM)
+        if (params.rodDiameterM !== undefined) userRodDiameter = Number(params.rodDiameterM)
+        if (params.pistonThicknessM !== undefined) userPistonThickness = Number(params.pistonThicknessM)
+        if (params.pistonRodLengthM !== undefined) userPistonRodLength = Number(params.pistonRodLengthM)
+
         if (params.cylinderSegments !== undefined) {
             var newSegments = Math.floor(params.cylinderSegments)
             if (!isNaN(newSegments))
@@ -704,8 +722,8 @@ Item {
         if (params.point_light) {
             if (params.point_light.brightness !== undefined) pointLightBrightness = params.point_light.brightness
             if (params.point_light.color !== undefined) pointLightColor = params.point_light.color
-            if (params.point_light.position_x !== undefined) pointLightX = Number(params.point_light.position_x)
-            if (params.point_light.position_y !== undefined) pointLightY = params.point_light.position_y
+            if (params.point_light.position_x !== undefined) pointLightX = Number(params.pointLight.position_x)
+            if (params.point_light.position_y !== undefined) pointLightY = params.pointLight.position_y
             if (params.point_light.range !== undefined) pointLightRange = Math.max(1, params.point_light.range)
             if (params.point_light.casts_shadow !== undefined) pointLightCastsShadow = !!params.point_light.casts_shadow
             if (params.point_light.bind_to_camera !== undefined) pointLightBindToCamera = !!params.point_light.bind_to_camera
@@ -805,8 +823,6 @@ Item {
             if (params.fog.enabled !== undefined) fogEnabled = params.fog.enabled
             if (params.fog.color !== undefined) fogColor = params.fog.color
             if (params.fog.density !== undefined) fogDensity = params.fog.density
-            if (params.fog.near !== undefined) fogNear = params.fog.near
-            if (params.fog.far !== undefined) fogFar = params.fog.far
         }
 
         if (params.ambient_occlusion) {
@@ -884,25 +900,23 @@ Item {
         if (params.bloom_intensity !== undefined) bloomIntensity = params.bloom_intensity
         if (params.bloom_threshold !== undefined) bloomThreshold = params.bloom_threshold
         if (params.bloom_spread !== undefined) bloomSpread = params.bloom_spread
-
         if (params.depth_of_field !== undefined) depthOfFieldEnabled = params.depth_of_field
         if (params.dof_focus_distance !== undefined) dofFocusDistance = params.dof_focus_distance
         if (params.dof_blur !== undefined) dofBlurAmount = params.dof_blur
-
         if (params.motion_blur !== undefined) motionBlurEnabled = params.motion_blur
         if (params.motion_blur_amount !== undefined) motionBlurAmount = params.motion_blur_amount
-
         if (params.lens_flare !== undefined) lensFlareEnabled = params.lens_flare
         if (params.vignette !== undefined) vignetteEnabled = params.vignette
         if (params.vignette_strength !== undefined) vignetteStrength = params.vignette_strength
-
         if (params.tonemap_enabled !== undefined) tonemapEnabled = params.tonemap_enabled
         if (params.tonemap_mode !== undefined) {
             var allowedModes = ["filmic", "aces", "reinhard", "gamma", "linear"]
             if (allowedModes.indexOf(params.tonemap_mode) !== -1)
                 tonemapModeName = params.tonemap_mode
         }
-
+        // ✅ Управление параметрами тонемаппинга
+        if (params.tonemap_exposure !== undefined) tonemapExposure = Number(params.tonemap_exposure)
+        if (params.tonemap_whitepoint !== undefined) tonemapWhitePoint = Number(params.tonemap_whitepoint)
         console.log("  ✅ Visual effects updated successfully")
     }
 
@@ -914,6 +928,7 @@ Item {
     function updateQuality(params) { applyQualityUpdates(params) }         // ✅ РЕАЛИЗОВАНО
     function updateEffects(params) { applyEffectsUpdates(params) }         // ✅ РЕАЛИЗОВАНО
     function updateCamera(params) { applyCameraUpdates(params) }           // ✅ РЕАЛИЗОВАНО
+    function updateAnimation(params) { applyAnimationUpdates(params) }     // ✅ РЕАЛИЗОВАНО
     
     function updatePistonPositions(positions) {
         if (positions.fl !== undefined) userPistonPositionFL = Number(positions.fl)
@@ -937,100 +952,33 @@ Item {
 
             backgroundMode: skyboxActive ? SceneEnvironment.SkyBox : SceneEnvironment.Color
             clearColor: root.backgroundColor
-            // ✅ ПРОБА НУЖНА ДЛЯ ФОНА И/ИЛИ ОСВЕЩЕНИЯ
+            // ✅ IBL подключается для освещения ИЛИ для skybox
             lightProbe: (root.iblReady && (root.iblLightingEnabled || (root.backgroundMode === "skybox" && root.iblBackgroundEnabled))) ? iblLoader.probe : null
-            
-            // ✅ Skybox вращение: только пользовательский поворот
             probeOrientation: Qt.vector3d(0, root.iblRotationDeg, 0)
-
-            // Экспозиция IBL (если lightProbe=null, не влияет)
             probeExposure: root.iblIntensity
             probeHorizon: 0.08
 
-            // ✅ ПРАВИЛЬНЫЙ ТУМАН через объект Fog (Qt 6.10+)
+            // ✅ Fog configuration (Qt 6.10+): глубинный туман по Near/Far
             fog: Fog {
                 enabled: root.fogEnabled
                 color: root.fogColor
-                density: root.fogDensity
                 depthEnabled: true
                 depthNear: root.fogNear
                 depthFar: root.fogFar
                 depthCurve: 1.0
-                heightEnabled: false
-                transmitEnabled: false
             }
 
-            // ✅ ПРАВИЛЬНЫЕ СВОЙСТВА тонемаппинга
+            // ✅ Тонемаппинг — управляется флагами и параметрами
             tonemapMode: root.tonemapEnabled ?
-                (root.tonemapModeName === "filmic" ? SceneEnvironment.TonemapModeFilmic :
-                 root.tonemapModeName === "aces" ? SceneEnvironment.TonemapModeAces :
-                 root.tonemapModeName === "reinhard" ? SceneEnvironment.TonemapModeReinhard :
-                 root.tonemapModeName === "gamma" ? SceneEnvironment.TonemapModeGamma :
-                 SceneEnvironment.TonemapModeLinear) : SceneEnvironment.TonemapModeNone
-            exposure: 1.0
-            whitePoint: 2.0
-
-            // ✅ ПРАВИЛЬНЫЕ СВОЙСТВА сглаживания
-            antialiasingMode: root.aaPrimaryMode === "msaa" ? SceneEnvironment.MSAA :
-                             root.aaPrimaryMode === "ssaa" ? SceneEnvironment.SSAA :
-                             SceneEnvironment.NoAA
-            antialiasingQuality: root.aaQualityLevel === "high" ? SceneEnvironment.High :
-                               root.aaQualityLevel === "medium" ? SceneEnvironment.Medium :
-                               SceneEnvironment.Low
-            fxaaEnabled: root.aaPostMode === "fxaa" && root.fxaaEnabled
-            temporalAAEnabled: (root.aaPostMode === "taa" && root.taaEnabled && root.aaPrimaryMode !== "msaa" &&
-                                 (!root.taaMotionAdaptive || !root.cameraIsMoving))
-            temporalAAStrength: root.taaStrength
-            specularAAEnabled: root.specularAAEnabled
-            
-            // ✅ УСЛОВНАЯ АКТИВАЦИЯ: ditheringEnabled доступно только в Qt 6.10+
-            Component.onCompleted: {
-                if (root.canUseDithering) {
-                    console.log("✅ Qt 6.10+ detected - enabling ditheringEnabled support")
-                    mainEnvironment.ditheringEnabled = Qt.binding(function() { return root.ditheringEnabled })
-                } else {
-                    console.log("⚠️ Qt < 6.10 - ditheringEnabled not available (current version: Qt " + Qt.version + ")")
-                }
-            }
-
-            // ✅ ПРАВИЛЬНЫЕ СВОЙСТВА SSAO (Ambient Occlusion)
-            aoEnabled: root.aoEnabled
-            aoStrength: root.aoStrength
-            aoDistance: Math.max(1.0, root.aoRadius)
-            aoSoftness: 20
-            aoDither: true
-            aoSampleRate: 3
-
-            // ✅ ПРАВИЛЬНЫЕ СВОЙСТВА Bloom/Glow
-            glowEnabled: root.bloomEnabled
-            glowIntensity: root.bloomIntensity
-            glowBloom: root.bloomSpread
-            glowStrength: 0.9
-            glowQualityHigh: true
-            glowUseBicubicUpscale: true
-            glowHDRMinimumValue: root.bloomThreshold
-            glowHDRMaximumValue: 6.0
-            glowHDRScale: 1.5
-
-            // ✅ ПРАВИЛЬНЫЕ СВОЙСТВА Lens Flare
-            lensFlareEnabled: root.lensFlareEnabled
-            lensFlareGhostCount: 3
-            lensFlareGhostDispersal: 0.6
-            lensFlareHaloWidth: 0.25
-            lensFlareBloomBias: 0.35
-            lensFlareStretchToAspect: 1.0
-
-            // ✅ ПРАВИЛЬНЫЕ СВОЙСТВА Depth of Field
-            depthOfFieldEnabled: root.depthOfFieldEnabled
-            depthOfFieldFocusDistance: root.dofFocusDistance
-            depthOfFieldFocusRange: 900
-            depthOfFieldBlurAmount: root.dofBlurAmount
-
-            // ✅ ПРАВИЛЬНЫЕ СВОЙСТВА Vignette
-            vignetteEnabled: root.vignetteEnabled
-            vignetteRadius: 0.4
-            vignetteStrength: root.vignetteStrength
-
+                         (root.tonemapModeName === "filmic"   ? SceneEnvironment.TonemapModeFilmic :
+                          root.tonemapModeName === "aces"     ? SceneEnvironment.TonemapModeAces :
+                          root.tonemapModeName === "reinhard" ? SceneEnvironment.TonemapModeReinhard :
+                          root.tonemapModeName === "gamma"    ? SceneEnvironment.TonemapModeGamma :
+                                                                  SceneEnvironment.TonemapModeLinear)
+                         : SceneEnvironment.TonemapModeNone
+            exposure: root.tonemapExposure
+            whitePoint: root.tonemapWhitePoint
+             
             // ✅ ПРАВИЛЬНЫЕ СВОЙСТВА цветокоррекции
             colorAdjustmentsEnabled: true
             adjustmentBrightness: 1.0
@@ -1183,22 +1131,21 @@ Item {
             brightness: root.keyLightBrightness
             color: root.keyLightColor
             castsShadow: (root.shadowsEnabled && root.keyLightCastsShadow)
-            shadowMapQuality: root.shadowResolution === "4096" ?
-                                 (typeof Light.ShadowMapQualityUltra !== "undefined" ? Light.ShadowMapQualityUltra
-                                                                                       : Light.ShadowMapQualityVeryHigh) :
-                             root.shadowResolution === "2048" ? Light.ShadowMapQualityVeryHigh :
-                             root.shadowResolution === "1024" ? Light.ShadowMapQualityHigh :
-                             root.shadowResolution === "512" ? Light.ShadowMapQualityMedium :
-                             Light.ShadowMapQualityLow
+            // ✅ Чистая маппинг логика без синтаксических ошибок
+            shadowMapQuality: root.shadowResolution === "4096" ? Light.ShadowMapQualityVeryHigh :
+                              root.shadowResolution === "2048" ? Light.ShadowMapQualityVeryHigh :
+                              root.shadowResolution === "1024" ? Light.ShadowMapQualityHigh :
+                              root.shadowResolution === "512"  ? Light.ShadowMapQualityMedium :
+                                                                   Light.ShadowMapQualityLow
             shadowFactor: root.shadowFactor
             shadowBias: root.shadowBias
             shadowFilter: {
                 var samples = Math.floor(root.shadowFilterSamples || 16)
                 return samples === 32 ? Light.ShadowFilterPCF32 :
                        samples === 16 ? Light.ShadowFilterPCF16 :
-                       samples === 8 ? Light.ShadowFilterPCF8 :
-                       samples === 4 ? Light.ShadowFilterPCF4 :
-                       Light.ShadowFilterNone
+                       samples === 8  ? Light.ShadowFilterPCF8  :
+                       samples === 4  ? Light.ShadowFilterPCF4  :
+                                        Light.ShadowFilterNone
             }
         }
 
@@ -1269,87 +1216,16 @@ Item {
             property vector3d j_tail  
             property real leverAngle
             property real pistonPositionFromPython: 250.0
-            
+                        
             // ✅ ИСПРАВЛЕНО: Избегаем циклические зависимости - используем прямые вычисления
             // Базовая геометрия рычага
             readonly property real baseAngle: (j_arm.x < 0) ? 180 : 0
             readonly property real totalAngle: baseAngle + leverAngle
             readonly property real totalAngleRad: totalAngle * Math.PI / 180
-            
-            // Позиция шарнира штока на рычаге
-            readonly property vector3d j_rod: Qt.vector3d(
-                j_arm.x + (userLeverLength * userRodPosition) * Math.cos(totalAngleRad),
-                j_arm.y + (userLeverLength * userRodPosition) * Math.sin(totalAngleRad),
-                j_arm.z
-            )
-            
-            // Направление от j_tail к j_rod (направление цилиндра)
-            readonly property vector3d cylDirection: Qt.vector3d(j_rod.x - j_tail.x, j_rod.y - j_tail.y, 0)
-            readonly property real cylDirectionLength: Math.hypot(cylDirection.x, cylDirection.y)
-            readonly property vector3d cylDirectionNorm: Qt.vector3d(
-                cylDirection.x / cylDirectionLength,
-                cylDirection.y / cylDirectionLength,
-                0
-            )
-            readonly property real cylAngle: Math.atan2(cylDirection.y, cylDirection.x) * 180 / Math.PI + 90
                         
             // Константы длин
-            readonly property real tailRodLength: 100                    // мм - хвостовой шток
-            readonly property real pistonRodLength: userPistonRodLength  // мм - шток поршня (КОНСТАНТА!)
-            
-            // Базовые позиции цилиндра
-            readonly property vector3d tailRodEnd: Qt.vector3d(
-                j_tail.x + cylDirectionNorm.x * tailRodLength,
-                j_tail.y + cylDirectionNorm.y * tailRodLength,
-                j_tail.z
-            )
-            
-            readonly property vector3d cylinderEnd: Qt.vector3d(
-                tailRodEnd.x + cylDirectionNorm.x * userCylinderLength,
-                tailRodEnd.y + cylDirectionNorm.y * userCylinderLength,
-                tailRodEnd.z
-            )
-            
-            // ✅ ПРАВИЛЬНЫЙ РАСЧЕТ ПОЗИЦИИ ПОРШНЯ для КОНСТАНТНОЙ длины штока
-            // Проекция j_rod на ось цилиндра
-            readonly property vector3d j_rodToCylStart: Qt.vector3d(j_rod.x - tailRodEnd.x, j_rod.y - tailRodEnd.y, 0)
-            readonly property real projectionOnCylAxis: j_rodToCylStart.x * cylDirectionNorm.x + j_rodToCylStart.y * cylDirectionNorm.y
-            
-            // Точка на оси цилиндра ближайшая к j_rod
-            readonly property vector3d j_rodProjection: Qt.vector3d(
-                tailRodEnd.x + cylDirectionNorm.x * projectionOnCylAxis,
-                tailRodEnd.y + cylDirectionNorm.y * projectionOnCylAxis,
-                tailRodEnd.z
-            )
-            
-            // Перпендикулярное расстояние от j_rod до оси цилиндра
-            readonly property real perpendicularDistance: Math.hypot(
-                j_rod.x - j_rodProjection.x,
-                j_rod.y - j_rodProjection.y
-            )
-            
-            // ✅ РЕШЕНИЕ ТРЕУГОЛЬНИКА: находим позицию поршня для КОНСТАНТНОЙ длины штока
-            // Теорема Пифагора: rod_length² = perpendicular_distance² + axial_distance²
-            readonly property real rodLengthSquared: pistonRodLength * pistonRodLength
-            readonly property real perpDistSquared: perpendicularDistance * perpendicularDistance
-            readonly property real axialDistanceFromProjection: Math.sqrt(Math.max(0, rodLengthSquared - perpDistSquared))
-            
-            // Позиция поршня на оси цилиндра (назад от проекции j_rod)
-            readonly property real pistonPositionOnAxis: projectionOnCylAxis - axialDistanceFromProjection
-                        
-            // Ограничиваем поршень в пределах цилиндра
-            readonly property real clampedPistonPosition: Math.max(10, Math.min(userCylinderLength - 10, pistonPositionOnAxis))
-            
-            // ✅ ФИНАЛЬНАЯ позиция поршня (на оси цилиндра)
-            readonly property vector3d pistonCenter: Qt.vector3d(
-                tailRodEnd.x + cylDirectionNorm.x * clampedPistonPosition,
-                tailRodEnd.y + cylDirectionNorm.y * clampedPistonPosition,
-                tailRodEnd.z
-            )
-            
-            // ✅ ПРОВЕРКА: реальная длина штока (для отладки)
-            readonly property real actualRodLength: Math.hypot(j_rod.x - pistonCenter.x, j_rod.y - pistonCenter.y)
-            readonly property real rodLengthError: Math.abs(actualRodLength - pistonRodLength)
+            readonly property real tailRodLength: 100                    //мм - хвостовой шток
+            readonly property real pistonRodLength: userPistonRodLength  //мм - шток поршня (КОНСТАНТА!)
             
             // LEVER (рычаг)
             Model {
@@ -1502,10 +1378,66 @@ Item {
                 }
             }
             
-            // ✅ DEBUG: Логирование ошибок长度 штока
-            onRodLengthErrorChanged: {
-                if (rodLengthError > 1.0) {  // Если ошибка больше 1мм
-                    console.warn("⚠️ Rod length error:", rodLengthError.toFixed(2), "mm (target:", pistonRodLength, "actual:", actualRodLength.toFixed(2), ")")
+            // ✅ DEBUG: Логирование ошибок длины штока
+            // Удалено: onRodLengthErrorChanged — не все версии Qt/QML генерируют notify-сигнал для readonly-свойств
+            // Диагностический лог можно включить через таймер/кнопку при необходимости
+            // onRodLengthErrorChanged: {
+            //     if (rodLengthError > 1.0) {
+            //         console.warn("⚠️ Rod length error:", rodLengthError.toFixed(2), "mm (target:", pistonRodLength, "actual:", actualRodLength.toFixed(2), ")")
+            //     }
+            // }
+            
+            // JOINTS (шарниры) - цветные маркеры
+            Model {
+                geometry: CylinderGeometry {
+                    segments: root.cylinderSegments
+                    rings: root.cylinderRings
+                    radius: 50
+                    length: 100
+                }
+                position: j_tail
+                scale: Qt.vector3d(1.2, 2.4, 1.2)
+                eulerRotation: Qt.vector3d(90, 0, 0)
+                materials: [jointTailMaterial]
+            }
+            
+            Model {
+                geometry: CylinderGeometry {
+                    segments: root.cylinderSegments
+                    rings: root.cylinderRings
+                    radius: 50
+                    length: 100
+                }
+                position: j_arm
+                scale: Qt.vector3d(1.0, 2.0, 1.0)
+                eulerRotation: Qt.vector3d(90, 0, 0)
+                materials: [jointArmMaterial]
+            }
+            
+            Model {
+                geometry: CylinderGeometry {
+                    segments: root.cylinderSegments
+                    rings: root.cylinderRings
+                    radius: 50
+                    length: 100
+                }
+                position: j_rod
+                scale: Qt.vector3d(0.8, 1.6, 0.8)
+                eulerRotation: Qt.vector3d(90, 0, leverAngle * 0.1)
+                materials: PrincipledMaterial {
+                    baseColor: rodLengthError > 1.0 ? jointRodErrorColor : jointRodOkColor  // Красный если ошибка, зеленый если OK
+                    metalness: jointTailMetalness
+                    roughness: jointTailRoughness
+                    specularAmount: jointTailSpecularAmount
+                    specularTint: jointTailSpecularTint
+                    clearcoatAmount: jointTailClearcoat
+                    clearcoatRoughnessAmount: jointTailClearcoatRoughness
+                    transmissionFactor: jointTailTransmission
+                    opacity: jointTailOpacity
+                    indexOfRefraction: jointTailIor
+                    attenuationDistance: jointTailAttenuationDistance
+                    attenuationColor: jointTailAttenuationColor
+                    emissiveFactor: emissiveVector(jointTailEmissiveColor, jointTailEmissiveIntensity)
                 }
             }
         }
@@ -1748,12 +1680,20 @@ Item {
     // ===============================================================
 
     Component.onCompleted: {
+        // Лог старта для диагностики рассинхрона
+        console.log("[START] IBL primary:", iblPrimarySource,
+                    "fallback:", iblFallbackSource,
+                    "mode:", backgroundMode,
+                    "iblEnabled:", iblEnabled,
+                    "skybox:", iblBackgroundEnabled)
+
         console.log("═══════════════════════════════════════════")
         console.log("🚀 PneumoStabSim ENHANCED VERSION v4.9.4 LOADED")
         console.log("═══════════════════════════════════════════")
         console.log("🔧 Qt Version:", Qt.version)
         console.log("   Qt Major:", qtMajor, "| Qt Minor:", qtMinor)
         console.log("   Dithering support:", canUseDithering ? "✅ YES (Qt 6.10+)" : "❌ NO (Qt < 6.10)")
+        console.log("   Specular AA:", canUseSpecularAA ? "ENABLED" : "DISABLED (temporary workaround)")
         console.log("✅ CRITICAL FIX v4.9.4:")
         console.log("   🔧 Skybox rotation: INDEPENDENT from camera")
         console.log("   🔧 probeOrientation uses ONLY iblRotationDeg")
