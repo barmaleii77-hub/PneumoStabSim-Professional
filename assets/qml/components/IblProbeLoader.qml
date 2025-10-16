@@ -5,9 +5,9 @@ Item {
     id: controller
 
     // Основной HDR для IBL/skybox
-    property url primarySource: Qt.resolvedUrl("../../hdr/studio.hdr")
+    property url primarySource: ""   // ✅ Без дефолтов — задаётся из UI/настроек
     // Резервный HDR (на случай ошибки загрузки основного) — приводим к той же папке assets/hdr
-    property url fallbackSource: Qt.resolvedUrl("../../hdr/studio_small_09_2k.hdr")
+    property url fallbackSource: ""   // ✅ Без дефолтов — задаётся из UI/настроек
 
     // Внутренние флаги
     property bool _fallbackTried: false
@@ -79,13 +79,25 @@ Item {
         writeLog("INFO", "Texture status: " + statusStr + " | source: " + hdrProbe.source)
 
         if (hdrProbe.status === Texture.Error && !controller._fallbackTried) {
-            // ✅ Переключаемся на fallback НЕ трогая биндинг source
+            // ✅ Переключаемся на fallback ТОЛЬКО если указан primarySource (т.е. пользователь выбирал HDR)
             controller._fallbackTried = true
-            controller._useFallback = true
-            writeLog("WARN", "Primary FAILED → switch to fallback: " + controller.fallbackSource)
+            var hasPrimary = (controller.primarySource && String(controller.primarySource) !== "")
+            if (hasPrimary && controller.fallbackSource && String(controller.fallbackSource) !== "") {
+                controller._useFallback = true
+                writeLog("WARN", "Primary FAILED → switch to fallback: " + controller.fallbackSource)
+            } else if (!hasPrimary) {
+                // Нет выбранного primary — не активируем fallback автоматически
+                writeLog("INFO", "No primarySource selected, skip fallback auto-switch")
+            } else {
+                writeLog("ERROR", "Primary FAILED and no valid fallback specified")
+            }
         } else if (hdrProbe.status === Texture.Ready) {
             // ✅ Сообщение совместимо с обработчиком в Python
             writeLog("SUCCESS", "HDR probe LOADED successfully: " + hdrProbe.source)
+            // Если primary загрузился успешно, сбрасываем флаги возврата к норме
+            if (!controller._useFallback) {
+                controller._fallbackTried = false
+            }
         } else if (hdrProbe.status === Texture.Error && controller._fallbackTried) {
             writeLog("ERROR", "CRITICAL: Both HDR probes failed to load")
         }
@@ -97,20 +109,25 @@ Item {
         // ✅ При выборе нового файла: заново пробуем primary
         controller._fallbackTried = false
         controller._useFallback = false
+        controller._lastStatus = -1
     }
 
     onFallbackSourceChanged: {
         writeLog("INFO", "Fallback source changed: " + fallbackSource)
         // Если сейчас используем fallback — перезагрузим его
-        if (controller._useFallback)
-            controller._lastStatus = -1
+        controller._lastStatus = -1
     }
 
-    // Готовность проба
-    readonly property bool ready: probe.status === Texture.Ready
+    // Готовность проба: считаем готовым только когда source валиден и статус Ready
+    readonly property bool ready: (
+        hdrProbe && hdrProbe.source && String(hdrProbe.source) !== "" && hdrProbe.status === Texture.Ready
+    )
 
     Component.onCompleted: {
-        writeLog("INFO", "IblProbeLoader initialized | Primary: " + primarySource + " | Fallback: " + fallbackSource)
+        writeLog("INFO", "IblProbeLoader initialized | Primary: " + (primarySource || "<empty>") + " | Fallback: " + (fallbackSource || "<empty>"))
+        if (!primarySource || String(primarySource) === "") {
+            writeLog("WARN", "No primarySource provided at init")
+        }
         _checkStatus()
     }
 

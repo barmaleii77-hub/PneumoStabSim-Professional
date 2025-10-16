@@ -192,9 +192,13 @@ class UnifiedLogAnalyzer:
                             continue
             
             # Анализ синхронизации
-            total_events = len([e for e in events if e.get('event_type') in ('parameter_change', 'parameter_update')])
-            synced_events = len([e for e in events if e.get('applied_to_qml', False)])
-            failed_events = len([e for e in events if e.get('error')])
+            # Берем за основу только исходные изменения пользователя (parameter_change)
+            change_events = [e for e in events if e.get('event_type') == 'parameter_change']
+            update_success = [e for e in events if e.get('event_type') == 'parameter_update' and e.get('applied_to_qml', False)]
+            total_events = len(change_events)
+            # Количество успешных применений не может превышать количество изменений
+            synced_events = min(len(update_success), total_events)
+            failed_events = len([e for e in events if e.get('event_type') == 'parameter_update' and e.get('error')])
             
             result.add_metric('graphics_total_events', total_events)
             result.add_metric('graphics_synced', synced_events)
@@ -214,7 +218,8 @@ class UnifiedLogAnalyzer:
                     result.add_recommendation("Критические проблемы синхронизации - проверьте Python↔QML мост")
             
             # Анализ по категориям
-            categories = Counter(e.get('category', 'unknown') for e in events if e.get('category'))
+            # Категории считаем по исходным изменениям
+            categories = Counter(e.get('category', 'unknown') for e in change_events if e.get('category'))
             if categories:
                 result.add_info(f"Категории изменений: {dict(categories)}")
             
@@ -253,17 +258,123 @@ class UnifiedLogAnalyzer:
         
         try:
             with open(latest_ibl, 'r', encoding='utf-8') as f:
-                lines = f.readlines()
-            
-            errors = [line for line in lines if 'ERROR' in line or 'CRITICAL' in line]
-            warnings = [line for line in lines if 'WARN' in line]
-            success = [line for line in lines if 'SUCCESS' in line or 'LOADED successfully' in line]
-            
+                lines = [ln.strip() for ln in f.readlines() if ln.strip()]
+
+            # Базовые подсчёты
+            errors = [line for line in lines if ' ERROR ' in line or ' CRITICAL ' in line]
+            warnings = [line for line in lines if ' WARN ' in line]
+            success = [line for line in lines if 'SUCCESS' in line and 'HDR probe LOADED successfully' in line]
+
             result.add_metric('ibl_total_events', len(lines))
             result.add_metric('ibl_errors', len(errors))
             result.add_metric('ibl_warnings', len(warnings))
             result.add_metric('ibl_success', len(success))
-            
+
+            # Валидация последовательностей: Change → Loading → Ready (или Error → fallback → Ready)
+            re_change = re.compile(r'Primary source changed:\s+(.*)')
+            re_status = re.compile(r'Texture status:\s+(\w+)\s+\|\s+source:\s+(.*)')
+            re_success = re.compile(r'HDR probe LOADED successfully:\s+(.*)')
+            re_switch = re.compile(r'Primary FAILED\s+→\s+switch to fallback:\s+(.*)')
+            re_init = re.compile(r'IblProbeLoader initialized \| Primary:\s*(.*)\s*\|\s*Fallback:\s*(.*)')
+
+            state = 'idle'
+            current = None
+            fallback = None
+            saw_loading = False
+            switched = False
+            saw_ready = False
+            last_status = None
+            last_source = None
+            sequence_errors: list[str] = []
+            init_primary = None
+            init_fallback = None
+
+            def flush_state():
+                nonlocal state, saw_loading, switched, saw_ready, current
+                if state in ('changed', 'loading') and not saw_ready:
+                    sequence_errors.append(f"Последовательность для {current or '?'} не завершилась Ready")
+                if state == 'changed' and not saw_loading:
+                    sequence_errors.append(f"Для {current or '?'} не было статуса Loading после смены источника")
+                # Сброс признаков
+                state = 'idle'
+                saw_loading = False
+                switched = False
+                saw_ready = False
+
+            for ln in lines:
+                m = re_init.search(ln)
+                if m:
+                    init_primary = (m.group(1) or '').strip()
+                    init_fallback = (m.group(2) or '').strip()
+                    if not init_primary or init_primary == '<empty>':
+                        result.add_warning("IBL: первичный источник не задан при инициализации")
+                    if not init_fallback or init_fallback == '<empty>':
+                        result.add_warning("IBL: fallback источник не задан при инициализации")
+                    continue
+
+                m = re_change.search(ln)
+                if m:
+                    # Завершаем предыдущую последовательность
+                    flush_state()
+                    current = m.group(1).strip()
+                    state = 'changed'
+                    continue
+
+                m = re_status.search(ln)
+                if m:
+                    last_status = m.group(1)
+                    last_source = m.group(2).strip()
+                    if last_status == 'Loading' and state in ('changed', 'loading'):
+                        saw_loading = True
+                        state = 'loading'
+                    elif last_status == 'Ready':
+                        saw_ready = True
+                        state = 'ready'
+                    elif last_status == 'Error':
+                        # Ошибка первичного источника должна сопровождаться switch → fallback
+                        if not switched:
+                            # Подождём switch-запись; если её не будет до следующей смены, отметим ошибку при flush
+                            pass
+                        state = 'error'
+                    continue
+
+                m = re_switch.search(ln)
+                if m:
+                    switched = True
+                    fallback = m.group(1).strip()
+                    state = 'changed'  # ожидаем загрузку нового (fallback)
+                    continue
+
+                m = re_success.search(ln)
+                if m:
+                    last_source = m.group(1).strip()
+                    saw_ready = True
+                    state = 'ready'
+                    continue
+
+            # Проверка хвоста
+            flush_state()
+
+            # Метрики последовательностей
+            result.add_metric('ibl_sequence_ok', 1.0 if not sequence_errors else 0.0)
+            if last_status:
+                result.add_metric('ibl_last_status', 1 if last_status == 'Ready' else 0)
+            if last_source:
+                try:
+                    result.add_info(f"Последний источник IBL: {last_source}")
+                except Exception:
+                    pass
+
+            # Сигналы о небезопасных дефолтах/несоответствиях
+            if init_primary and init_primary.endswith(('studio.hdr', 'studio_small_09_2k.hdr')):
+                result.add_warning("IBL: обнаружен возможный дефолтный HDR при старте — проверьте синхронизацию UI настроек")
+
+            if sequence_errors:
+                for err in sequence_errors:
+                    result.add_error(f"IBL sequence: {err}")
+                if not success:
+                    result.add_recommendation("Проверьте, что после выбора HDR идёт Loading → Ready; при Error должен сработать fallback")
+
             if errors:
                 # Группируем одинаковые сообщения
                 norm = defaultdict(list)
@@ -274,10 +385,10 @@ class UnifiedLogAnalyzer:
                 for msg, lines_same in sorted(norm.items(), key=lambda x: len(x[1]), reverse=True):
                     result.add_error(f"[IBL] {len(lines_same)}× {msg}")
                 result.add_recommendation("Проверьте пути к HDR / права доступа / наличие файлов")
-            
+
             if success:
                 result.add_info(f"IBL успешно загружен ({len(success)} событий)")
-            
+
         except Exception as e:
             result.add_error(f"Ошибка анализа IBL логов: {e}")
         

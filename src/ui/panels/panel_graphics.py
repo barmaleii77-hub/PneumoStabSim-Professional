@@ -268,6 +268,18 @@ class GraphicsPanel(QWidget):
         QTimer.singleShot(0, self._emit_all)
 
     # ------------------------------------------------------------------
+    # Helpers
+    # ------------------------------------------------------------------
+    @staticmethod
+    def _norm_path(p: Any) -> str:
+        """Нормализует путь к виду с прямыми слешами для кроссплатформенного сравнения."""
+        try:
+            s = str(p)
+            return s.replace("\\", "/")
+        except Exception:
+            return str(p) if p is not None else ""
+
+    # ------------------------------------------------------------------
     # Defaults
     # ------------------------------------------------------------------
     def _build_defaults(self) -> Dict[str, Any]:
@@ -316,8 +328,9 @@ class GraphicsPanel(QWidget):
                 "skybox_enabled": True,
                 "ibl_intensity": 1.3,
                 "ibl_rotation": 0.0,
-                "ibl_source": "../hdr/studio.hdr",
-                "ibl_fallback": "../hdr/studio_small_09_2k.hdr",
+                # ✅ БЕЗ ДЕФОЛТНЫХ ПУТЕЙ — источники задаются из настроек/пользователем
+                "ibl_source": "",
+                "ibl_fallback": "",
                 "skybox_blur": 0.08,
                 "fog_enabled": True,
                 "fog_color": "#b0c4d8",
@@ -896,21 +909,7 @@ class GraphicsPanel(QWidget):
         grid.setContentsMargins(8, 8, 8, 8)
         grid.setHorizontalSpacing(12)
         grid.setVerticalSpacing(8)
-
-        # Комбинированный режим (4 опции)
-        mode_combo = QComboBox(self)
-        mode_combo.addItem("IBL + Skybox (HDR)", (True, "skybox"))
-        mode_combo.addItem("IBL + Сплошной цвет", (True, "color"))
-        mode_combo.addItem("Без IBL + Skybox (HDR)", (False, "skybox"))
-        mode_combo.addItem("Без IBL + Сплошной цвет", (False, "color"))
-        def on_mode_changed() -> None:
-            ibl_on, bg_mode = mode_combo.currentData()
-            self._update_environment("ibl_enabled", bool(ibl_on))
-            self._update_environment("background_mode", bg_mode)
-        mode_combo.currentIndexChanged.connect(lambda _: on_mode_changed())
-        self._environment_controls["combined.mode"] = mode_combo
-        grid.addWidget(QLabel("Режим", self), 0, 0)
-        grid.addWidget(mode_combo, 0, 1)
+        row = 0
 
         bg_row = QHBoxLayout()
         bg_row.addWidget(QLabel("Цвет", self))
@@ -919,60 +918,90 @@ class GraphicsPanel(QWidget):
         self._environment_controls["background.color"] = bg_button
         bg_row.addWidget(bg_button)
         bg_row.addStretch(1)
-        grid.addLayout(bg_row, 1, 0, 1, 2)
+        grid.addLayout(bg_row, row, 0, 1, 2)
+        row += 1
 
         ibl_check = QCheckBox("Включить IBL", self)
         ibl_check.clicked.connect(lambda checked: self._on_ibl_enabled_clicked(checked))
         self._environment_controls["ibl.enabled"] = ibl_check
-        grid.addWidget(ibl_check, 2, 0, 1, 2)
+        grid.addWidget(ibl_check, row, 0, 1, 2)
+        row += 1
 
         intensity = LabeledSlider("Интенсивность IBL", 0.0, 5.0, 0.05, decimals=2)
         intensity.valueChanged.connect(lambda v: self._update_environment("ibl_intensity", v))
         self._environment_controls["ibl.intensity"] = intensity
-        grid.addWidget(intensity, 3, 0, 1, 2)
+        grid.addWidget(intensity, row, 0, 1, 2)
+        row += 1
 
         blur = LabeledSlider("Размытие skybox", 0.0, 1.0, 0.01, decimals=2)
         blur.valueChanged.connect(lambda v: self._update_environment("skybox_blur", v))
         self._environment_controls["skybox.blur"] = blur
-        grid.addWidget(blur, 4, 0, 1, 2)
+        grid.addWidget(blur, row, 0, 1, 2)
+        row += 1
 
         # Список HDR/EXR
         hdr_combo = QComboBox(self)
+        # Изначально заполняем список найденных HDR файлов
         hdr_files = self._discover_hdr_files()
         for label, path in hdr_files:
             hdr_combo.addItem(label, path)
-        hdr_combo.currentIndexChanged.connect(lambda _: self._update_environment("ibl_source", hdr_combo.currentData()))
+        # Если источник не задан в состоянии — добавляем плейсхолдер,
+        # чтобы не выбирать первый HDR автоматически
+        try:
+            current_src = (self.state.get("environment", {}) or {}).get("ibl_source", "")
+        except Exception:
+            current_src = ""
+        if not current_src:
+            hdr_combo.insertItem(0, "— не выбран —", "")
+            hdr_combo.setCurrentIndex(0)
+        def on_hdr_changed() -> None:
+            data = hdr_combo.currentData()
+            if not data:
+                # Не отправляем пустой путь в QML — это выключит текстуру
+                return
+            # Нормализуем слеши для Windows путей
+            try:
+                p = str(data).replace('\\', '/')
+            except Exception:
+                p = data
+            self._update_environment("ibl_source", p)
+        hdr_combo.currentIndexChanged.connect(lambda _: on_hdr_changed())
         self._environment_controls["ibl.file"] = hdr_combo
-        grid.addWidget(QLabel("HDR файл", self), 5, 0)
-        grid.addWidget(hdr_combo, 5, 1)
+        grid.addWidget(QLabel("HDR файл", self), row, 0)
+        grid.addWidget(hdr_combo, row, 1)
+        row += 1
 
         # Поворот IBL (в градусах) — напрямую управляет probeOrientation в QML
         ibl_rot = LabeledSlider("Поворот IBL", -1080.0, 1080.0, 1.0, decimals=0, unit="°")
         ibl_rot.valueChanged.connect(lambda v: self._update_environment("ibl_rotation", v))
         self._environment_controls["ibl.rotation"] = ibl_rot
-        grid.addWidget(ibl_rot, 6, 0, 1, 2)
+        grid.addWidget(ibl_rot, row, 0, 1, 2)
+        row += 1
 
         # Отображать ли сам skybox (фон), независимо от освещения IBL
         skybox_toggle = QCheckBox("Показывать Skybox (фон)", self)
         skybox_toggle.clicked.connect(lambda checked: self._update_environment("skybox_enabled", checked))
         self._environment_controls["background.skybox_enabled"] = skybox_toggle
-        grid.addWidget(skybox_toggle, 7, 0, 1, 2)
+        grid.addWidget(skybox_toggle, row, 0, 1, 2)
+        row += 1
 
         # Смещение окружения и привязка к камере
         env_off_x = LabeledSlider("Смещение окружения X", -180.0, 180.0, 1.0, decimals=0, unit="°")
         env_off_x.valueChanged.connect(lambda v: self._update_environment("ibl_offset_x", v))
         self._environment_controls["ibl.offset_x"] = env_off_x
-        grid.addWidget(env_off_x, 8, 0, 1, 2)
+        grid.addWidget(env_off_x, row, 0, 1, 2)
+        row += 1
 
         env_off_y = LabeledSlider("Смещение окружения Y", -180.0, 180.0, 1.0, decimals=0, unit="°")
         env_off_y.valueChanged.connect(lambda v: self._update_environment("ibl_offset_y", v))
         self._environment_controls["ibl.offset_y"] = env_off_y
-        grid.addWidget(env_off_y, 9, 0, 1, 2)
+        grid.addWidget(env_off_y, row, 0, 1, 2)
+        row += 1
 
         env_bind = QCheckBox("Привязать окружение к камере", self)
         env_bind.clicked.connect(lambda checked: self._update_environment("ibl_bind_to_camera", checked))
         self._environment_controls["ibl.bind"] = env_bind
-        grid.addWidget(env_bind, 10, 0, 1, 2)
+        grid.addWidget(env_bind, row, 0, 1, 2)
         return group
 
     def _discover_hdr_files(self) -> List[Tuple[str, str]]:
@@ -991,6 +1020,27 @@ class GraphicsPanel(QWidget):
             Path("assets/qml/assets"),         # исторический путь
         ]
 
+        # База для относительных путей: каталог, где лежит main.qml
+        qml_dir = Path("assets/qml").resolve()
+
+        def to_qml_relative(p: Path) -> str:
+            """Возвращает путь, корректно резолвящийся из main.qml (../hdr/xxx.hdr),
+            либо абсолютный путь, если относительный построить нельзя."""
+            try:
+                abs_p = p.resolve()
+                rel = abs_p.relative_to(qml_dir)
+                # Если файл внутри assets/qml, то используем относительный напрямую
+                return rel.as_posix()
+            except Exception:
+                # Построим относительный путь от qml_dir до файла (../hdr/xxx.hdr)
+                try:
+                    import os
+                    relpath = os.path.relpath(p.resolve(), start=qml_dir)
+                    return Path(relpath).as_posix()
+                except Exception:
+                    # Фоллбэк — абсолютный путь; QML resolveUrl обработает его
+                    return p.resolve().as_posix()
+
         seen: set[str] = set()
         for base in search_dirs:
             if not base.exists():
@@ -1001,15 +1051,22 @@ class GraphicsPanel(QWidget):
                     if key in seen:
                         continue
                     seen.add(key)
-                    results.append((p.name, str(p.as_posix())))
+                    results.append((p.name, to_qml_relative(p)))
 
         # Добавляем текущий источник по умолчанию, если он вне перечисленных папок
         current = self.state.get("environment", {}).get("ibl_source")
         if current:
-            from pathlib import Path as _Path
-            name = _Path(current).name
-            if all(lbl != name for lbl, _ in results):
-                results.insert(0, (name, current))
+            try:
+                from pathlib import Path as _Path
+                cur_path = _Path(str(current))
+                label = cur_path.name
+                # Приводим к формату, понятному QML
+                cur_rel = to_qml_relative(cur_path)
+                if all(lbl != label for lbl, _ in results):
+                    results.insert(0, (label, cur_rel))
+            except Exception:
+                # В крайнем случае подставим как есть
+                results.insert(0, (str(current), str(current)))
 
         return results
 
@@ -1685,6 +1742,11 @@ class GraphicsPanel(QWidget):
             category="lighting",
             panel_state=self.state,
         )
+        # ✅ Автосохранение настроек освещения
+        try:
+            self.save_settings()
+        except Exception:
+            pass
         if group == "key" and key in {"brightness", "color", "angle_x", "angle_y"}:
             self.event_logger.log_event(
                 event_type=EventType.STATE_CHANGE,
@@ -1707,6 +1769,13 @@ class GraphicsPanel(QWidget):
             category="environment",
             panel_state=self.state,
         )
+        # ✅ Немедленно сохраняем критичные параметры окружения, чтобы HDR и флаги
+        #    восстанавливались после перезапуска
+        try:
+            # Сохраняем ВСЕ изменения окружения
+            self.save_settings()
+        except Exception:
+            pass
         self._emit_environment()
 
     def _update_quality(self, key: str, value: Any) -> None:
@@ -1755,6 +1824,11 @@ class GraphicsPanel(QWidget):
             new_value=value,
         )
         self._set_quality_custom()
+        # ✅ Автосохранение настроек качества
+        try:
+            self.save_settings()
+        except Exception:
+            pass
         self._emit_quality()
 
     def _update_camera(self, key: str, value: Any) -> None:
@@ -1773,6 +1847,11 @@ class GraphicsPanel(QWidget):
             category="camera",
             panel_state=self.state,
         )
+        # ✅ Автосохранение настроек камеры
+        try:
+            self.save_settings()
+        except Exception:
+            pass
         self._emit_camera()
         if key == "auto_rotate":
             self.logger.info("   ✅ camera_changed signal emitted!")
@@ -1789,12 +1868,18 @@ class GraphicsPanel(QWidget):
             category="effects",
             panel_state=self.state,
         )
+        # ✅ Автосохранение настроек эффектов
+        try:
+            self.save_settings()
+        except Exception:
+            pass
         self._emit_effects()
 
     # Обработчики кликов с логированием
     def _on_ibl_enabled_clicked(self, checked: bool) -> None:
         self.event_logger.log_user_click(widget_name="ibl_enabled", widget_type="QCheckBox", value=checked)
         self.logger.info(f"IBL checkbox clicked: {checked}")
+        # Правильно: IBL управляет только освещением. Фон (skybox) — независим.
         self._update_environment("ibl_enabled", checked)
 
     def _on_auto_rotate_clicked(self, checked: bool) -> None:
@@ -1972,6 +2057,9 @@ class GraphicsPanel(QWidget):
         if "ibl_enabled" in env:
             ibl["enabled"] = bool(env.get("ibl_enabled"))
             ibl["lighting_enabled"] = ibl["enabled"]
+            # ✅ Явно дублируем флаг фона в IBL, чтобы не зависеть от fallback‑карт
+            if "skybox_enabled" in env:
+                ibl["background_enabled"] = bool(env.get("skybox_enabled"))
         if "ibl_intensity" in env:
             ibl["intensity"] = env.get("ibl_intensity")
         if "ibl_rotation" in env:
@@ -2059,16 +2147,6 @@ class GraphicsPanel(QWidget):
                     control.setChecked(bool(value))
 
     def _apply_environment_ui(self) -> None:
-        mode_combo = self._environment_controls.get("combined.mode")
-        if isinstance(mode_combo, QComboBox):
-            ibl_on = bool(self.state["environment"].get("ibl_enabled", True))
-            bg_mode = self.state["environment"].get("background_mode", "skybox")
-            target = (ibl_on, bg_mode)
-            for i in range(mode_combo.count()):
-                if mode_combo.itemData(i) == target:
-                    mode_combo.setCurrentIndex(i)
-                    break
-
         bg_button = self._environment_controls.get("background.color")
         if isinstance(bg_button, ColorButton):
             bg_button.set_color(self.state["environment"]["background_color"])
@@ -2087,22 +2165,50 @@ class GraphicsPanel(QWidget):
 
         hdr_combo = self._environment_controls.get("ibl.file")
         if isinstance(hdr_combo, QComboBox):
-            current = self.state["environment"].get("ibl_source")
-            if current:
+            current_raw = self.state["environment"].get("ibl_source", "")
+            current = self._norm_path(current_raw)
+
+            # Обновляем список, если нужно, чтобы включить текущий сохранённый путь
+            existing_norms = []
+            for i in range(hdr_combo.count()):
+                existing_norms.append(self._norm_path(hdr_combo.itemData(i)))
+
+            if current and current not in existing_norms:
+                # Добавляем текущий сохранённый файл в начало списка
+                try:
+                    name = Path(current).name
+                except Exception:
+                    name = current
+                hdr_combo.insertItem(0, name, current)
+                hdr_combo.setCurrentIndex(0)
+            else:
+                # Ищем существующий элемент по нормализованному пути
+                found_index = -1
                 for i in range(hdr_combo.count()):
-                    if hdr_combo.itemData(i) == current:
-                        hdr_combo.setCurrentIndex(i)
+                    if self._norm_path(hdr_combo.itemData(i)) == current:
+                        found_index = i
                         break
+                if found_index >= 0:
+                    hdr_combo.setCurrentIndex(found_index)
+                else:
+                    # Если текущий путь пуст — устанавливаем плейсхолдер, если он есть
+                    if not current:
+                        for i in range(hdr_combo.count()):
+                            if (hdr_combo.itemData(i) or "") == "":
+                                hdr_combo.setCurrentIndex(i)
+                                break
 
         # Поворот IBL
         ibl_rot = self._environment_controls.get("ibl.rotation")
         if isinstance(ibl_rot, LabeledSlider):
             ibl_rot.set_value(self.state["environment"].get("ibl_rotation", 0.0))
 
-        # Отображение skybox
+        # Отображение skybox — полностью независимо от IBL
         skybox_toggle = self._environment_controls.get("background.skybox_enabled")
         if isinstance(skybox_toggle, QCheckBox):
-            skybox_toggle.setChecked(bool(self.state["environment"].get("skybox_enabled", True)))
+            skybox_toggle.setEnabled(True)
+            skybox_val = bool(self.state["environment"].get("skybox_enabled", False))
+            skybox_toggle.setChecked(skybox_val)
 
         fog_enabled = self._environment_controls.get("fog.enabled")
         if isinstance(fog_enabled, QCheckBox):
@@ -2145,6 +2251,8 @@ class GraphicsPanel(QWidget):
         bind = self._environment_controls.get("ibl.bind")
         if isinstance(bind, QCheckBox):
             bind.setChecked(bool(self.state["environment"].get("ibl_bind_to_camera", False)))
+
+        # Не форсируем эмит сразу; состояние будет отправлено при пользовательских действиях
 
     def _apply_quality_ui(self) -> None:
         self._sync_quality_preset_ui()
@@ -2386,6 +2494,47 @@ class GraphicsPanel(QWidget):
                     except json.JSONDecodeError as e:
                         self.logger.warning(f"Failed to parse {category} settings: {e}")
             self.logger.info("Graphics settings loaded")
+            # ✅ После загрузки состояния принудительно обновляем HDR ComboBox,
+            # чтобы отразить сохранённый путь и избежать ложного плейсхолдера
+            try:
+                hdr_combo = self._environment_controls.get("ibl.file")
+                if isinstance(hdr_combo, QComboBox):
+                    # Пересобираем список с учётом текущего состояния
+                    current_src = self._norm_path(self.state.get("environment", {}).get("ibl_source", ""))
+                    # Сохраняем выбранный индекс для аккуратного обновления
+                    prev_block = hdr_combo.blockSignals(True)
+                    try:
+                        hdr_combo.clear()
+                        files = self._discover_hdr_files()
+                        # Если есть текущий путь и его нет в выдаче — добавим в начало
+                        present = False
+                        for label, path in files:
+                            norm = self._norm_path(path)
+                            hdr_combo.addItem(label, path)
+                            if norm == current_src:
+                                present = True
+                        if not current_src:
+                            hdr_combo.insertItem(0, "— не выбран —", "")
+                            hdr_combo.setCurrentIndex(0)
+                        else:
+                            if not present:
+                                from pathlib import Path as _P
+                                name = _P(current_src).name
+                                hdr_combo.insertItem(0, name, current_src)
+                                hdr_combo.setCurrentIndex(0)
+                            else:
+                                # Найдём индекс существующего
+                                idx = -1
+                                for i in range(hdr_combo.count()):
+                                    if self._norm_path(hdr_combo.itemData(i)) == current_src:
+                                        idx = i
+                                        break
+                                if idx >= 0:
+                                    hdr_combo.setCurrentIndex(idx)
+                    finally:
+                        hdr_combo.blockSignals(prev_block)
+            except Exception:
+                pass
         except Exception as e:
             self.logger.error(f"Failed to load settings: {e}")
 
@@ -2402,6 +2551,11 @@ class GraphicsPanel(QWidget):
         self.state = copy.deepcopy(self._defaults)
         self._apply_state_to_ui()
         self._emit_all()
+        # ✅ Сохранение после сброса
+        try:
+            self.save_settings()
+        except Exception:
+            pass
         self.preset_applied.emit("Сброс к значениям по умолчанию")
 
     def export_sync_analysis(self) -> None:

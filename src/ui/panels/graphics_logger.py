@@ -343,6 +343,37 @@ class GraphicsLogger:
         print(f"   Успешных QML обновлений: {self.stats['successful_qml_updates']}")
         print(f"   Неудачных QML обновлений: {self.stats['failed_qml_updates']}")
 
+    # ------------------------------------------------------------------
+    # Помощники для массовой отметки применённых изменений
+    # ------------------------------------------------------------------
+    def mark_category_changes_applied(self, category: str, since_timestamp: Optional[str] = None) -> int:
+        """Отметить все события типа parameter_change в указанной категории как применённые (успешные).
+
+        Args:
+            category: Имя категории (lighting/materials/environment/quality/camera/effects/geometry)
+            since_timestamp: Необязательный ISO-временной порог (включительно)
+
+        Returns:
+            Количество помеченных событий
+        """
+        marked = 0
+        # Идём по копии буфера, чтобы безопасно логировать обновления
+        for e in list(self.events_buffer):
+            try:
+                if e.category != category:
+                    continue
+                if e.applied_to_qml:
+                    continue
+                if since_timestamp and e.timestamp < since_timestamp:
+                    continue
+                # Пишем parameter_update и помечаем как success
+                self.log_qml_update(e, qml_state={"applied": True}, success=True)
+                marked += 1
+            except Exception:
+                # Не прерываем массовую отметку единичной ошибкой
+                continue
+        return marked
+
 
 # Глобальный экземпляр логгера
 _graphics_logger: Optional[GraphicsLogger] = None

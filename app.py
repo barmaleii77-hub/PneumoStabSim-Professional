@@ -346,19 +346,20 @@ def run_log_diagnostics() -> None:
     _orig_stdout = sys.stdout
     _orig_stderr = sys.stderr
     try:
+        # Включаем tee в VS Output
         sys.stdout = _VSOutputTee(_orig_stdout)
         sys.stderr = _VSOutputTee(_orig_stderr)
 
         print("\n" + "="*60)
         print("🔍 ДИАГНОСТИКА ЛОГОВ И СОБЫТИЙ")
         print("="*60)
-    
-    try:
+
         # ✅ НОВОЕ: Используем унифицированный анализатор
-        from src.common.log_analyzer import run_full_diagnostics
+        from src.common.log_analyzer import run_full_diagnostics, quick_diagnostics
         
         # Запускаем комплексный анализ
-        diagnostics_ok = run_full_diagnostics(Path("logs"))
+        diag_result = run_full_diagnostics(Path("logs"))
+        diagnostics_ok = bool(diag_result) if not isinstance(diag_result, dict) else bool(diag_result.get("ok", True))
         
         # Результат анализа
         print("\n" + "="*60)
@@ -370,6 +371,49 @@ def run_log_diagnostics() -> None:
             print("💡 См. детали выше")
         
         print("="*60)
+
+        # Дополнительный раздел: несоответствия анализа (EVENTS vs GRAPHICS)
+        try:
+            q = quick_diagnostics(Path("logs")) or {}
+            metrics = q.get("metrics", {}) or {}
+            events_sync = None
+            graphics_sync = None
+            # Достаём метрики из summary.metrics (prefix category_)
+            for key, val in metrics.items():
+                if key.endswith("event_sync_rate") and key.startswith("events_"):
+                    events_sync = float(val)
+                if key.endswith("graphics_sync_rate") and key.startswith("graphics_"):
+                    graphics_sync = float(val)
+            if events_sync is not None and graphics_sync is not None and abs(events_sync - graphics_sync) >= 5.0:
+                print("\n—— Несоответствия анализа ————————")
+                print(f"EVENTS sync_rate: {events_sync:.1f}% vs GRAPHICS sync_rate: {graphics_sync:.1f}%")
+                reason_hint = "QML-функции вызываются (EVENTS=OK), но часть графических обновлений не применяется или не подтверждается в graphics-логах (дубль/батч/валидация)."
+                if events_sync < graphics_sync:
+                    reason_hint = "Графические метрики выше событийных — возможно, не все SIGNAL_EMIT/INVOKE логируются в EventLogger."
+                print(f"Причина (гипотеза): {reason_hint}")
+                # Детальная расшифровка по запросу
+                if os.environ.get("PSS_DIAG_DETAILS") == "1":
+                    try:
+                        from src.common.event_logger import get_event_logger
+                        evlog = get_event_logger()
+                        analysis = evlog.analyze_sync()
+                        pairs = analysis.get("pairs", [])
+                        missing = [p for p in pairs if p.get("status") != "synced"]
+                        if missing:
+                            print("\nНесинхронизированные пары (последние 10):")
+                            for p in missing[-10:]:
+                                py = p.get("python_event", {})
+                                ts = py.get("timestamp", "?")
+                                action = py.get("action", "?")
+                                print(f"  • {ts} — {action} → missing in QML")
+                        else:
+                            print("\nEVENTS: все пары синхронизированы (нет missing)")
+                    except Exception:
+                        pass
+                print("——————————————\n")
+        except Exception:
+            # Никогда не ломаем диагностику из‑за раздела несоответствий
+            pass
         
     except ImportError as e:
         print(f"⚠️  Модуль анализа не найден: {e}")
@@ -497,7 +541,7 @@ def main() -> int:
             app_logger.info("Logging initialized successfully")
             if args.verbose:
                 app_logger.info("Verbose mode enabled")
-        
+         
         try:
             QApplication.setHighDpiScaleFactorRoundingPolicy(
                 Qt.HighDpiScaleFactorRoundingPolicy.PassThrough

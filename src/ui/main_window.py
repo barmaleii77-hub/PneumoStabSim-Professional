@@ -280,26 +280,56 @@ class MainWindow(QMainWindow):
                 if env_raw:
                     try:
                         env_state = json.loads(env_raw)
+                        def _norm_for_qml(path_str: str) -> str:
+                            """Нормализует путь к виду, который корректно резолвится из main.qml.
+                            Предпочитаем относительный путь от каталога assets/qml (../hdr/xxx.hdr)."""
+                            try:
+                                if not path_str:
+                                    return ""
+                                p = Path(path_str)
+                                qml_dir = Path("assets/qml").resolve()
+                                abs_p = p.resolve()
+                                try:
+                                    rel = abs_p.relative_to(qml_dir)
+                                    return rel.as_posix()
+                                except Exception:
+                                    import os
+                                    relpath = os.path.relpath(abs_p, start=qml_dir)
+                                    return Path(relpath).as_posix()
+                            except Exception:
+                                return path_str
+
                         def _ctx(name: str, value):
-                            context.setContextProperty(name, value)
-                            self.logger.debug(f"    🔗 Context property set: {name} = {value}")
+                            # Нормализуем пути для IBL sources, прочие значения передаём как есть
+                            if name in ("startIblSource", "startIblFallback") and isinstance(value, (str, Path)):
+                                norm_val = _norm_for_qml(str(value))
+                                context.setContextProperty(name, norm_val)
+                                self.logger.debug(f"    🔗 Context property set: {name} = {norm_val}")
+                            else:
+                                context.setContextProperty(name, value)
+                                self.logger.debug(f"    🔗 Context property set: {name} = {value}")
                         # Источники HDR
-                        if isinstance(env_state.get("ibl_source"), str) and env_state.get("ibl_source"):
+                        has_primary = isinstance(env_state.get("ibl_source"), str) and bool(env_state.get("ibl_source"))
+                        if has_primary:
                             _ctx("startIblSource", env_state.get("ibl_source"))
-                        if isinstance(env_state.get("ibl_fallback"), str) and env_state.get("ibl_fallback"):
-                            _ctx("startIblFallback", env_state.get("ibl_fallback"))
+                            # ✅ Fallback допустим только если есть primary
+                            if isinstance(env_state.get("ibl_fallback"), str) and env_state.get("ibl_fallback"):
+                                _ctx("startIblFallback", env_state.get("ibl_fallback"))
                         # Режимы фона / флаги
                         if env_state.get("background_mode"):
                             _ctx("startBackgroundMode", env_state.get("background_mode"))
-                        if "ibl_enabled" in env_state:
-                            _ctx("startIblEnabled", bool(env_state.get("ibl_enabled")))
-                        if "skybox_enabled" in env_state:
-                            _ctx("startSkyboxEnabled", bool(env_state.get("skybox_enabled")))
+                        # ✅ Включаем стартовые флаги только если есть выбранный HDR
+                        if has_primary:
+                            if "ibl_enabled" in env_state:
+                                _ctx("startIblEnabled", bool(env_state.get("ibl_enabled")))
+                            if "skybox_enabled" in env_state:
+                                _ctx("startSkyboxEnabled", bool(env_state.get("skybox_enabled")))
                         # Доп.параметры
-                        if "ibl_intensity" in env_state:
-                            _ctx("startIblIntensity", float(env_state.get("ibl_intensity")))
-                        if "ibl_rotation" in env_state:
-                            _ctx("startIblRotation", float(env_state.get("ibl_rotation")))
+                        if has_primary:
+                            if "ibl_intensity" in env_state:
+                                _ctx("startIblIntensity", float(env_state.get("ibl_intensity")))
+                            if "ibl_rotation" in env_state:
+                                _ctx("startIblRotation", float(env_state.get("ibl_rotation")))
                     except Exception as ex:
                         self.logger.warning(f"    ⚠️ Failed to parse GraphicsPanel environment settings: {ex}")
             except Exception as ex:
@@ -763,9 +793,16 @@ class MainWindow(QMainWindow):
 
             # Повышаем метрику синхронизации: отмечаем, что все отправленные категории применены
             if self._last_batched_updates:
+                from .panels.graphics_logger import get_graphics_logger
+                glog = get_graphics_logger()
+                since_ts = summary.get("timestamp") if isinstance(summary, dict) else None
                 for cat, payload in self._last_batched_updates.items():
                     if isinstance(payload, dict) and payload:
                         self._log_graphics_change(str(cat), payload, applied=True)
+                        try:
+                            glog.mark_category_changes_applied(str(cat), since_timestamp=since_ts)
+                        except Exception:
+                            pass
                 self._last_batched_updates = None
         except Exception:
             pass

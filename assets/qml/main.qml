@@ -168,12 +168,13 @@ Item {
     // ✅ COMPLETE GRAPHICS PROPERTIES (All parameters from GraphicsPanel)
     // ===============================================================
 
-    // HDR resources
-    property url iblPrimarySource: startIblSource && startIblSource !== "" ? resolveUrl(startIblSource) : Qt.resolvedUrl("../hdr/studio.hdr")
-    property url iblFallbackSource: startIblFallback && startIblFallback !== "" ? resolveUrl(startIblFallback) : Qt.resolvedUrl("../hdr/studio_small_09_2k.hdr")
+    // HDR resources (без дефолтов — всё задаёт UI/настройки)
+    property url iblPrimarySource: startIblSource && startIblSource !== "" ? resolveUrl(startIblSource) : ""
+    property url iblFallbackSource: startIblFallback && startIblFallback !== "" ? resolveUrl(startIblFallback) : ""
     readonly property bool iblReady: iblLoader.ready
 
     // Environment defaults c учетом стартовых флагов
+    // Режим фона (исторический ключ от Python; не влияет на показ skybox)
     property string backgroundMode: startBackgroundMode
     property color backgroundColor: "#1f242c"
     property bool iblEnabled: startIblEnabled
@@ -731,7 +732,7 @@ Item {
             if (params.point_light.brightness !== undefined) pointLightBrightness = params.point_light.brightness
             if (params.point_light.color !== undefined) pointLightColor = params.point_light.color
             if (params.point_light.position_x !== undefined) pointLightX = Number(params.point_light.position_x)
-            if (params.point_light.position_y !== undefined) pointLightY = params.pointLight.position_y
+            if (params.point_light.position_y !== undefined) pointLightY = Number(params.point_light.position_y)
             if (params.point_light.range !== undefined) pointLightRange = Math.max(1, params.point_light.range)
             if (params.point_light.casts_shadow !== undefined) pointLightCastsShadow = !!params.point_light.casts_shadow
             if (params.point_light.bind_to_camera !== undefined) pointLightBindToCamera = !!params.point_light.bind_to_camera
@@ -796,6 +797,9 @@ Item {
         if (params.background_mode !== undefined) backgroundMode = params.background_mode
         if (params.background_color !== undefined) backgroundColor = params.background_color
         if (params.ibl_enabled !== undefined) { iblEnabled = !!params.ibl_enabled; iblLightingEnabled = iblEnabled }
+        // ✅ ПОДДЕРЖКА РАЗДЕЛЬНЫХ ФЛАГОВ ЧЕРЕЗ ПЛОСКИЕ КЛЮЧИ
+        if (params.ibl_lighting_enabled !== undefined) iblLightingEnabled = !!params.ibl_lighting_enabled
+        if (params.ibl_background_enabled !== undefined) iblBackgroundEnabled = !!params.ibl_background_enabled
         if (params.skybox_enabled !== undefined) iblBackgroundEnabled = !!params.skybox_enabled
         if (params.ibl_intensity !== undefined) iblIntensity = Number(params.ibl_intensity)
         if (params.ibl_rotation !== undefined) iblRotationDeg = Number(params.ibl_rotation)
@@ -820,6 +824,9 @@ Item {
         if (params.ibl) {
             const ibl = params.ibl
             if (ibl.enabled !== undefined) { iblEnabled = !!ibl.enabled; iblLightingEnabled = iblEnabled }
+            // ✅ НОВОЕ: отдельные флаги для освещения и фона
+            if (ibl.lighting_enabled !== undefined) iblLightingEnabled = !!ibl.lighting_enabled
+            if (ibl.background_enabled !== undefined) iblBackgroundEnabled = !!ibl.background_enabled
             if (ibl.intensity !== undefined) iblIntensity = Number(ibl.intensity)
             if (ibl.rotation !== undefined) iblRotationDeg = Number(ibl.rotation)
             if (ibl.source !== undefined && ibl.source) iblPrimarySource = resolveUrl(ibl.source)
@@ -871,9 +878,15 @@ Item {
 
         environment: ExtendedSceneEnvironment {
             id: mainEnvironment
-            backgroundMode: (backgroundMode === "skybox" && iblReady && iblBackgroundEnabled) ? SceneEnvironment.SkyBox : SceneEnvironment.Color
+            // Показ фона зависит ТОЛЬКО от чекбокса skybox_enabled и готовности IBL
+            backgroundMode: (iblBackgroundEnabled && iblReady) ? SceneEnvironment.SkyBox : SceneEnvironment.Color
             clearColor: root.backgroundColor
-            lightProbe: (iblEnabled && iblReady) ? iblLoader.probe : null
+            // ✅ Фон (skybox) теперь НЕ зависит от lightProbe и остаётся при выключенном IBL освещении
+            // Используем HDR-пробу напрямую для кубкарты фона
+            skyBoxCubeMap: (iblBackgroundEnabled && iblReady) ? iblLoader.probe : null
+            // ✅ ИСПРАВЛЕНО: чекбокс IBL управляет ТОЛЬКО освещением
+            // Освещение от IBL зависит от iblLightingEnabled, а фон — от iblBackgroundEnabled
+            lightProbe: (iblLightingEnabled && iblReady) ? iblLoader.probe : null
             probeExposure: root.iblIntensity
             probeOrientation: Qt.vector3d(0, root.iblRotationDeg, 0)
             // Fog (Qt 6.10+)
