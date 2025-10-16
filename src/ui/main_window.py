@@ -285,21 +285,21 @@ class MainWindow(QMainWindow):
                             self.logger.debug(f"    🔗 Context property set: {name} = {value}")
                         # Источники HDR
                         if isinstance(env_state.get("ibl_source"), str) and env_state.get("ibl_source"):
-                            _ctx("initialIblSource", env_state.get("ibl_source"))
+                            _ctx("startIblSource", env_state.get("ibl_source"))
                         if isinstance(env_state.get("ibl_fallback"), str) and env_state.get("ibl_fallback"):
-                            _ctx("initialIblFallback", env_state.get("ibl_fallback"))
+                            _ctx("startIblFallback", env_state.get("ibl_fallback"))
                         # Режимы фона / флаги
                         if env_state.get("background_mode"):
-                            _ctx("initialBackgroundMode", env_state.get("background_mode"))
+                            _ctx("startBackgroundMode", env_state.get("background_mode"))
                         if "ibl_enabled" in env_state:
-                            _ctx("initialIblEnabled", bool(env_state.get("ibl_enabled")))
+                            _ctx("startIblEnabled", bool(env_state.get("ibl_enabled")))
                         if "skybox_enabled" in env_state:
-                            _ctx("initialSkyboxEnabled", bool(env_state.get("skybox_enabled")))
+                            _ctx("startSkyboxEnabled", bool(env_state.get("skybox_enabled")))
                         # Доп.параметры
                         if "ibl_intensity" in env_state:
-                            _ctx("initialIblIntensity", float(env_state.get("ibl_intensity")))
+                            _ctx("startIblIntensity", float(env_state.get("ibl_intensity")))
                         if "ibl_rotation" in env_state:
-                            _ctx("initialIblRotation", float(env_state.get("ibl_rotation")))
+                            _ctx("startIblRotation", float(env_state.get("ibl_rotation")))
                     except Exception as ex:
                         self.logger.warning(f"    ⚠️ Failed to parse GraphicsPanel environment settings: {ex}")
             except Exception as ex:

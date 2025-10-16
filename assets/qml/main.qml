@@ -125,6 +125,9 @@ Item {
         id: iblLoader
         primarySource: root.iblPrimarySource
         fallbackSource: root.iblFallbackSource
+        onActiveSourceChanged: {
+            console.log("🌐 IBL activeSource:", activeSource)
+        }
     }
 
     // ===============================================================
@@ -233,6 +236,11 @@ Item {
     property real fogDensity: 0.1
     property real fogNear: 1200.0
     property real fogFar: 12000.0
+
+    // === SSAO properties (Effects/Environment binding) ===
+    property bool ssaoEnabled: false
+    property real ssaoRadius: 8.0
+    property real ssaoIntensity: 1.0
 
     property var pendingPythonUpdates: null
 
@@ -722,7 +730,7 @@ Item {
         if (params.point_light) {
             if (params.point_light.brightness !== undefined) pointLightBrightness = params.point_light.brightness
             if (params.point_light.color !== undefined) pointLightColor = params.point_light.color
-            if (params.point_light.position_x !== undefined) pointLightX = Number(params.pointLight.position_x)
+            if (params.point_light.position_x !== undefined) pointLightX = Number(params.point_light.position_x)
             if (params.point_light.position_y !== undefined) pointLightY = params.pointLight.position_y
             if (params.point_light.range !== undefined) pointLightRange = Math.max(1, params.point_light.range)
             if (params.point_light.casts_shadow !== undefined) pointLightCastsShadow = !!params.point_light.casts_shadow
@@ -782,183 +790,93 @@ Item {
         if (typeof window !== 'undefined' && window && window.logQmlEvent) {
             try { window.logQmlEvent("function_called", "applyEnvironmentUpdates"); } catch(e) {}
         }
-        console.log("🌍 main.qml: applyEnvironmentUpdates() called")
+        console.log("🌍 main.qml: applyEnvironmentUpdates() called", JSON.stringify(params))
 
+        // --- Backward-compatible flat keys ---
+        if (params.background_mode !== undefined) backgroundMode = params.background_mode
+        if (params.background_color !== undefined) backgroundColor = params.background_color
+        if (params.ibl_enabled !== undefined) { iblEnabled = !!params.ibl_enabled; iblLightingEnabled = iblEnabled }
+        if (params.skybox_enabled !== undefined) iblBackgroundEnabled = !!params.skybox_enabled
+        if (params.ibl_intensity !== undefined) iblIntensity = Number(params.ibl_intensity)
+        if (params.ibl_rotation !== undefined) iblRotationDeg = Number(params.ibl_rotation)
+        if (params.ibl_source !== undefined && params.ibl_source) iblPrimarySource = resolveUrl(params.ibl_source)
+        if (params.ibl_fallback !== undefined && params.ibl_fallback) iblFallbackSource = resolveUrl(params.ibl_fallback)
+        if (params.fog_enabled !== undefined) fogEnabled = !!params.fog_enabled
+        if (params.fog_color !== undefined) fogColor = params.fog_color
+        if (params.fog_density !== undefined) fogDensity = Number(params.fog_density)
+        if (params.fog_near !== undefined) fogNear = Number(params.fog_near)
+        if (params.fog_far !== undefined) fogFar = Number(params.fog_far)
+        if (params.ao_enabled !== undefined) ssaoEnabled = !!params.ao_enabled
+        if (params.ao_radius !== undefined) ssaoRadius = Number(params.ao_radius)
+        if (params.ao_strength !== undefined) ssaoIntensity = Number(params.ao_strength)
+
+        // --- New nested structure from Python panel ---
         if (params.background) {
-            if (params.background.mode !== undefined) backgroundMode = params.background.mode
-            if (params.background.color !== undefined) backgroundColor = params.background.color
-            if (params.background.skybox_enabled !== undefined) iblBackgroundEnabled = params.background.skybox_enabled
+            const bg = params.background
+            if (bg.mode !== undefined) backgroundMode = bg.mode
+            if (bg.color !== undefined) backgroundColor = bg.color
+            if (bg.skybox_enabled !== undefined) iblBackgroundEnabled = !!bg.skybox_enabled
         }
-
         if (params.ibl) {
-            if (params.ibl.enabled !== undefined) {
-                iblEnabled = params.ibl.enabled
-                // По умолчанию включаем/выключаем освещение IBL согласно enabled, не затрагивая фон
-                iblLightingEnabled = params.ibl.enabled
-            }
-            if (params.ibl.lighting_enabled !== undefined) iblLightingEnabled = params.ibl.lighting_enabled
-            if (params.ibl.background_enabled !== undefined) iblBackgroundEnabled = params.ibl.background_enabled
-            if (params.ibl.rotation !== undefined) iblRotationDeg = params.ibl.rotation
-            if (params.ibl.intensity !== undefined) iblIntensity = params.ibl.intensity
-            if (params.ibl.exposure !== undefined) iblIntensity = params.ibl.exposure
-            if (params.ibl.source !== undefined) {
-                var resolvedSource = resolveUrl(params.ibl.source)
-                if (resolvedSource && resolvedSource !== "") {
-                    iblLoader._fallbackTried = false
-                    iblPrimarySource = resolvedSource
-                    console.log("  🌟 IBL source:", iblPrimarySource)
-                }
-            }
-            if (params.ibl.fallback !== undefined) {
-                var resolvedFallback = resolveUrl(params.ibl.fallback)
-                if (resolvedFallback && resolvedFallback !== "") {
-                    iblLoader._fallbackTried = false
-                    iblFallbackSource = resolvedFallback
-                    console.log("  🌟 IBL fallback:", iblFallbackSource)
-                }
-            }
+            const ibl = params.ibl
+            if (ibl.enabled !== undefined) { iblEnabled = !!ibl.enabled; iblLightingEnabled = iblEnabled }
+            if (ibl.intensity !== undefined) iblIntensity = Number(ibl.intensity)
+            if (ibl.rotation !== undefined) iblRotationDeg = Number(ibl.rotation)
+            if (ibl.source !== undefined && ibl.source) iblPrimarySource = resolveUrl(ibl.source)
+            if (ibl.fallback !== undefined && ibl.fallback) iblFallbackSource = resolveUrl(ibl.fallback)
+            // offset_x/offset_y/bind_to_camera пока не используются, оставляем для совместимости
         }
-
         if (params.fog) {
-            if (params.fog.enabled !== undefined) fogEnabled = params.fog.enabled
-            if (params.fog.color !== undefined) fogColor = params.fog.color
-            if (params.fog.density !== undefined) fogDensity = params.fog.density
+            const fog = params.fog
+            if (fog.enabled !== undefined) fogEnabled = !!fog.enabled
+            if (fog.color !== undefined) fogColor = fog.color
+            if (fog.density !== undefined) fogDensity = Number(fog.density)
+            if (fog.near !== undefined) fogNear = Number(fog.near)
+            if (fog.far !== undefined) fogFar = Number(fog.far)
         }
-
         if (params.ambient_occlusion) {
-            if (params.ambient_occlusion.enabled !== undefined) aoEnabled = params.ambient_occlusion.enabled
-            if (params.ambient_occlusion.strength !== undefined) aoStrength = params.ambient_occlusion.strength
-            if (params.ambient_occlusion.radius !== undefined) aoRadius = params.ambient_occlusion.radius
+            const ao = params.ambient_occlusion
+            if (ao.enabled !== undefined) ssaoEnabled = !!ao.enabled
+            if (ao.radius !== undefined) ssaoRadius = Number(ao.radius)
+            if (ao.strength !== undefined) ssaoIntensity = Number(ao.strength)
         }
-
-        console.log("  ✅ Environment updated successfully")
+        console.log("  ✅ Environment updated")
     }
 
-    // ✅ ПОЛНАЯ реализация updateQuality()
-    function applyQualityUpdates(params) {
-        if (typeof window !== 'undefined' && window && window.logQmlEvent) {
-            try { window.logQmlEvent("function_called", "applyQualityUpdates"); } catch(e) {}
-        }
-        console.log("⚙️ main.qml: applyQualityUpdates() called")
-
-        if (params.shadows) {
-            if (params.shadows.enabled !== undefined) shadowsEnabled = params.shadows.enabled
-            if (params.shadows.resolution !== undefined) shadowResolution = params.shadows.resolution
-            if (params.shadows.filter !== undefined) shadowFilterSamples = params.shadows.filter
-            if (params.shadows.bias !== undefined) shadowBias = params.shadows.bias
-            if (params.shadows.darkness !== undefined) shadowFactor = params.shadows.darkness
-        }
-
-        if (params.antialiasing) {
-            if (params.antialiasing.primary !== undefined) aaPrimaryMode = params.antialiasing.primary
-            if (params.antialiasing.quality !== undefined) aaQualityLevel = params.antialiasing.quality
-            if (params.antialiasing.post !== undefined) aaPostMode = params.antialiasing.post
-        }
-
-        if (params.taa_enabled !== undefined) taaEnabled = params.taa_enabled
-        if (params.taa_strength !== undefined) taaStrength = params.taa_strength
-        if (params.taa_motion_adaptive !== undefined) taaMotionAdaptive = params.taa_motion_adaptive
-        if (params.fxaa_enabled !== undefined) fxaaEnabled = params.fxaa_enabled
-        if (params.specular_aa !== undefined) specularAAEnabled = params.specular_aa
-        // ✅ НОВОЕ: Мгновенная обработка dither при прямом вызове из Python
-        if (params.dithering !== undefined) ditheringEnabled = params.dithering
-        if (params.render_scale !== undefined) renderScale = params.render_scale
-        if (params.render_policy !== undefined) renderPolicy = params.render_policy
-        if (params.frame_rate_limit !== undefined) frameRateLimit = params.frame_rate_limit
-        if (params.oit !== undefined) oitMode = params.oit
-        if (params.preset !== undefined) qualityPreset = params.preset
-
-        console.log("  🎚 Quality preset:", qualityPreset, ", FPS limit:", frameRateLimit)
-        console.log("  ✅ Quality updated successfully")
-    }
-
-    // ✅ ПОЛНАЯ реализация updateCamera()
-    function applyCameraUpdates(params) {
-        if (typeof window !== 'undefined' && window && window.logQmlEvent) {
-            try { window.logQmlEvent("function_called", "applyCameraUpdates"); } catch(e) {}
-        }
-        console.log("📷 main.qml: applyCameraUpdates() called")
-        
-        if (params.fov !== undefined) cameraFov = params.fov
-        if (params.near !== undefined) cameraNear = params.near
-        if (params.far !== undefined) cameraFar = params.far
-        if (params.speed !== undefined) cameraSpeed = params.speed
-        if (params.auto_rotate !== undefined) autoRotate = params.auto_rotate
-        if (params.auto_rotate_speed !== undefined) autoRotateSpeed = params.auto_rotate_speed
-        
-        console.log("  ✅ Camera updated successfully")
-    }
-
-    // ✅ ПОЛНАЯ реализация updateEffects()
     function applyEffectsUpdates(params) {
         if (typeof window !== 'undefined' && window && window.logQmlEvent) {
             try { window.logQmlEvent("function_called", "applyEffectsUpdates"); } catch(e) {}
         }
-        console.log("✨ main.qml: applyEffectsUpdates() called")
-        
-        if (params.bloom_enabled !== undefined) bloomEnabled = params.bloom_enabled
-        if (params.bloom_intensity !== undefined) bloomIntensity = params.bloom_intensity
-        if (params.bloom_threshold !== undefined) bloomThreshold = params.bloom_threshold
-        if (params.bloom_spread !== undefined) bloomSpread = params.bloom_spread
-        if (params.depth_of_field !== undefined) depthOfFieldEnabled = params.depth_of_field
-        if (params.dof_focus_distance !== undefined) dofFocusDistance = params.dof_focus_distance
-        if (params.dof_blur !== undefined) dofBlurAmount = params.dof_blur
-        if (params.motion_blur !== undefined) motionBlurEnabled = params.motion_blur
-        if (params.motion_blur_amount !== undefined) motionBlurAmount = params.motion_blur_amount
-        if (params.lens_flare !== undefined) lensFlareEnabled = params.lens_flare
-        if (params.vignette !== undefined) vignetteEnabled = params.vignette
-        if (params.vignette_strength !== undefined) vignetteStrength = params.vignette_strength
-        if (params.tonemap_enabled !== undefined) tonemapEnabled = params.tonemap_enabled
-        if (params.tonemap_mode !== undefined) {
-            var allowedModes = ["filmic", "aces", "reinhard", "gamma", "linear"]
-            if (allowedModes.indexOf(params.tonemap_mode) !== -1)
-                tonemapModeName = params.tonemap_mode
-        }
-        // ✅ Управление параметрами тонемаппинга
-        if (params.tonemap_exposure !== undefined) tonemapExposure = Number(params.tonemap_exposure)
-        if (params.tonemap_whitepoint !== undefined) tonemapWhitePoint = Number(params.tonemap_whitepoint)
-        console.log("  ✅ Visual effects updated successfully")
+        console.log("✨ main.qml: applyEffectsUpdates() called", JSON.stringify(params))
+        if (params.bloom_enabled !== undefined) bloomEnabled = !!params.bloom_enabled
+        if (params.bloom_intensity !== undefined) bloomIntensity = Number(params.bloom_intensity)
+        if (params.bloom_threshold !== undefined) bloomThreshold = Number(params.bloom_threshold)
+        if (params.ssao_enabled !== undefined) ssaoEnabled = !!params.ssao_enabled
+        if (params.ssao_radius !== undefined) ssaoRadius = Number(params.ssao_radius)
+        if (params.ssao_intensity !== undefined) ssaoIntensity = Number(params.ssao_intensity)
+        if (params.tonemap_enabled !== undefined) tonemapEnabled = !!params.tonemap_enabled
+        if (params.tonemap_mode !== undefined) tonemapModeName = String(params.tonemap_mode)
+        if (params.depth_of_field !== undefined) depthOfFieldEnabled = !!params.depth_of_field
+        if (params.dof_focus_distance !== undefined) dofFocusDistance = Number(params.dof_focus_distance)
+        if (params.dof_focus_range !== undefined) dofFocusRange = Number(params.dof_focus_range)
+        if (params.vignette_enabled !== undefined) vignetteEnabled = !!params.vignette_enabled
+        if (params.vignette_strength !== undefined) vignetteStrength = Number(params.vignette_strength)
+        if (params.lens_flare_enabled !== undefined) lensFlareEnabled = !!params.lens_flare_enabled
+        console.log("  ✅ Effects updated")
     }
-
-    // Legacy functions for backward compatibility
-    function updateGeometry(params) { applyGeometryUpdates(params) }
-    function updateLighting(params) { applyLightingUpdates(params) }
-    function updateMaterials(params) { applyMaterialUpdates(params) }     // ✅ РЕАЛИЗОВАНО
-    function updateEnvironment(params) { applyEnvironmentUpdates(params) } // ✅ РЕАЛИЗОВАНО
-    function updateQuality(params) { applyQualityUpdates(params) }         // ✅ РЕАЛИЗОВАНО
-    function updateEffects(params) { applyEffectsUpdates(params) }         // ✅ РЕАЛИЗОВАНО
-    function updateCamera(params) { applyCameraUpdates(params) }           // ✅ РЕАЛИЗОВАНО
-    function updateAnimation(params) { applyAnimationUpdates(params) }     // ✅ РЕАЛИЗОВАНО
-    
-    function updatePistonPositions(positions) {
-        if (positions.fl !== undefined) userPistonPositionFL = Number(positions.fl)
-        if (positions.fr !== undefined) userPistonPositionFR = Number(positions.fr)
-        if (positions.rl !== undefined) userPistonPositionRL = Number(positions.rl)
-        if (positions.rr !== undefined) userPistonPositionRR = Number(positions.rr)
-    }
-
-    // ===============================================================
-    // 3D SCENE (ИСПРАВЛЕННЫЕ СВОЙСТВА ExtendedSceneEnvironment)
-    // ===============================================================
 
     View3D {
         id: view3d
         anchors.fill: parent
-        camera: camera
 
         environment: ExtendedSceneEnvironment {
             id: mainEnvironment
-            readonly property bool skyboxActive: root.backgroundMode === "skybox" && root.iblBackgroundEnabled && root.iblReady
-
-            backgroundMode: skyboxActive ? SceneEnvironment.SkyBox : SceneEnvironment.Color
+            backgroundMode: (backgroundMode === "skybox" && iblReady && iblBackgroundEnabled) ? SceneEnvironment.SkyBox : SceneEnvironment.Color
             clearColor: root.backgroundColor
-            // ✅ IBL подключается для освещения ИЛИ для skybox
-            lightProbe: (root.iblReady && (root.iblLightingEnabled || (root.backgroundMode === "skybox" && root.iblBackgroundEnabled))) ? iblLoader.probe : null
-            probeOrientation: Qt.vector3d(0, root.iblRotationDeg, 0)
+            lightProbe: (iblEnabled && iblReady) ? iblLoader.probe : null
             probeExposure: root.iblIntensity
-            probeHorizon: 0.08
-
-            // ✅ Fog configuration (Qt 6.10+): глубинный туман по Near/Far
+            probeOrientation: Qt.vector3d(0, root.iblRotationDeg, 0)
+            // Fog (Qt 6.10+)
             fog: Fog {
                 enabled: root.fogEnabled
                 color: root.fogColor
@@ -967,26 +885,21 @@ Item {
                 depthFar: root.fogFar
                 depthCurve: 1.0
             }
-
-            // ✅ Тонемаппинг — управляется флагами и параметрами
-            tonemapMode: root.tonemapEnabled ?
-                         (root.tonemapModeName === "filmic"   ? SceneEnvironment.TonemapModeFilmic :
-                          root.tonemapModeName === "aces"     ? SceneEnvironment.TonemapModeAces :
-                          root.tonemapModeName === "reinhard" ? SceneEnvironment.TonemapModeReinhard :
-                          root.tonemapModeName === "gamma"    ? SceneEnvironment.TonemapModeGamma :
-                                                                  SceneEnvironment.TonemapModeLinear)
-                         : SceneEnvironment.TonemapModeNone
-            exposure: root.tonemapExposure
-            whitePoint: root.tonemapWhitePoint
-             
-            // ✅ ПРАВИЛЬНЫЕ СВОЙСТВА цветокоррекции
-            colorAdjustmentsEnabled: true
-            adjustmentBrightness: 1.0
-            adjustmentContrast: 1.05
-            adjustmentSaturation: 1.05
-            
-            // ✅ ПРАВИЛЬНОЕ СВОЙСТВО OIT (Order Independent Transparency)
-            oitMethod: root.oitMode === "weighted" ? SceneEnvironment.OITWeightedBlended : SceneEnvironment.OITNone
+            // Tonemap
+            tonemapMode: tonemapEnabled ? (
+                tonemapModeName === "filmic" ? SceneEnvironment.TonemapModeFilmic :
+                tonemapModeName === "aces" ? SceneEnvironment.TonemapModeFilmic : // безопасный фоллбэк
+                tonemapModeName === "reinhard" ? SceneEnvironment.TonemapModeReinhard :
+                tonemapModeName === "gamma" ? SceneEnvironment.TonemapModeLinear : // безопасный фоллбэк
+                tonemapModeName === "linear" ? SceneEnvironment.TonemapModeLinear : SceneEnvironment.TonemapModeNone
+            ) : SceneEnvironment.TonemapModeNone
+            // Bloom / SSAO
+            glowEnabled: root.bloomEnabled
+            glowIntensity: root.bloomIntensity
+            glowHDRMinimumValue: root.bloomThreshold
+            aoEnabled: root.ssaoEnabled
+            aoDistance: root.ssaoRadius
+            aoStrength: root.ssaoIntensity
         }
 
         Node {
@@ -1210,22 +1123,61 @@ Item {
             materials: [frameMaterial]
         }
 
-        // ✅ OPTIMIZED SUSPENSION COMPONENT (with CORRECT rod length calculation)
+        // ✅ OPTIMIZED SUSPENSION COMPONENT (with CORRECT property definitions)
         component OptimizedSuspensionCorner: Node {
             property vector3d j_arm
             property vector3d j_tail  
             property real leverAngle
             property real pistonPositionFromPython: 250.0
                         
-            // ✅ ИСПРАВЛЕНО: Избегаем циклические зависимости - используем прямые вычисления
             // Базовая геометрия рычага
             readonly property real baseAngle: (j_arm.x < 0) ? 180 : 0
             readonly property real totalAngle: baseAngle + leverAngle
             readonly property real totalAngleRad: totalAngle * Math.PI / 180
-                        
+
+            // Точка крепления штока на рычаге
+            readonly property vector3d j_rod: Qt.vector3d(
+                j_arm.x + (userLeverLength * userRodPosition) * Math.cos(totalAngleRad),
+                j_arm.y + (userLeverLength * userRodPosition) * Math.sin(totalAngleRad),
+                j_arm.z
+            )
+
+            // Ось цилиндра
+            readonly property real _dx: j_rod.x - j_tail.x
+            readonly property real _dy: j_rod.y - j_tail.y
+            readonly property real _axisLen: Math.max(1e-6, Math.hypot(_dx, _dy))
+            readonly property vector3d cylDirNorm: Qt.vector3d(_dx/_axisLen, _dy/_axisLen, 0)
+            readonly property real cylAngle: Math.atan2(_dy, _dx) * 180 / Math.PI + 90
+
             // Константы длин
-            readonly property real tailRodLength: 100                    //мм - хвостовой шток
-            readonly property real pistonRodLength: userPistonRodLength  //мм - шток поршня (КОНСТАНТА!)
+            readonly property real tailRodLength: 100                    // мм - хвостовой шток
+            readonly property real pistonRodLength: userPistonRodLength  // мм - шток поршня (КОНСТАНТА)
+            
+            // Хвостовой шток: конец
+            readonly property vector3d tailRodEnd: Qt.vector3d(
+                j_tail.x + cylDirNorm.x * tailRodLength,
+                j_tail.y + cylDirNorm.y * tailRodLength,
+                j_tail.z
+            )
+
+            // Корпус цилиндра: конец
+            readonly property vector3d cylinderEnd: Qt.vector3d(
+                tailRodEnd.x + cylDirNorm.x * userCylinderLength,
+                tailRodEnd.y + cylDirNorm.y * userCylinderLength,
+                tailRodEnd.z
+            )
+
+            // Поршень: позиция по данным Python (ограничиваем корпусом)
+            readonly property real _pistonS: Math.max(0, Math.min(userCylinderLength, pistonPositionFromPython))
+            readonly property vector3d pistonCenter: Qt.vector3d(
+                tailRodEnd.x + cylDirNorm.x * _pistonS,
+                tailRodEnd.y + cylDirNorm.y * _pistonS,
+                tailRodEnd.z
+            )
+
+            // Фактическая длина штока (между j_rod и поршнем)
+            readonly property real actualRodLength: Math.hypot(j_rod.x - pistonCenter.x, j_rod.y - pistonCenter.y)
+            readonly property real rodLengthError: Math.abs(actualRodLength - pistonRodLength)
             
             // LEVER (рычаг)
             Model {
@@ -1254,7 +1206,7 @@ Item {
                 materials: [tailRodMaterial]
             }
             
-            // CYLINDER BODY (корпус цилиндра) с IOR
+            // CYLINDER BODY (корпус цилиндра)
             Model {
                 geometry: CylinderGeometry {
                     segments: root.cylinderSegments
@@ -1268,7 +1220,7 @@ Item {
                 materials: [cylinderMaterial]
             }
             
-            // ✅ PISTON (поршень) - правильная позиция для константной длины штока
+            // ✅ PISTON (поршень)
             Model {
                 geometry: CylinderGeometry {
                     segments: root.cylinderSegments
@@ -1305,10 +1257,10 @@ Item {
                     length: 100
                 }
                 position: Qt.vector3d((pistonCenter.x + j_rod.x)/2, (pistonCenter.y + j_rod.y)/2, pistonCenter.z)
-                scale: Qt.vector3d(userRodDiameter/100, pistonRodLength/100, userRodDiameter/100)  // ✅ КОНСТАНТНАЯ ДЛИНА!
+                scale: Qt.vector3d(userRodDiameter/100, pistonRodLength/100, userRodDiameter/100)
                 eulerRotation: Qt.vector3d(0, 0, Math.atan2(j_rod.y - pistonCenter.y, j_rod.x - pistonCenter.x) * 180 / Math.PI + 90)
                 materials: PrincipledMaterial {
-                    baseColor: rodLengthError > 1.0 ? pistonRodWarningColor : pistonRodBaseColor  // Красный если ошибка > 1мм
+                    baseColor: rodLengthError > 1.0 ? pistonRodWarningColor : pistonRodBaseColor
                     metalness: pistonRodMetalness
                     roughness: pistonRodRoughness
                     specularAmount: pistonRodSpecularAmount
@@ -1324,7 +1276,7 @@ Item {
                 }
             }
             
-            // JOINTS (шарниры) - цветные маркеры
+            // JOINTS (шарниры)
             Model {
                 geometry: CylinderGeometry {
                     segments: root.cylinderSegments
@@ -1362,70 +1314,7 @@ Item {
                 scale: Qt.vector3d(0.8, 1.6, 0.8)
                 eulerRotation: Qt.vector3d(90, 0, leverAngle * 0.1)
                 materials: PrincipledMaterial {
-                    baseColor: rodLengthError > 1.0 ? jointRodErrorColor : jointRodOkColor  // Красный если ошибка, зеленый если OK
-                    metalness: jointTailMetalness
-                    roughness: jointTailRoughness
-                    specularAmount: jointTailSpecularAmount
-                    specularTint: jointTailSpecularTint
-                    clearcoatAmount: jointTailClearcoat
-                    clearcoatRoughnessAmount: jointTailClearcoatRoughness
-                    transmissionFactor: jointTailTransmission
-                    opacity: jointTailOpacity
-                    indexOfRefraction: jointTailIor
-                    attenuationDistance: jointTailAttenuationDistance
-                    attenuationColor: jointTailAttenuationColor
-                    emissiveFactor: emissiveVector(jointTailEmissiveColor, jointTailEmissiveIntensity)
-                }
-            }
-            
-            // ✅ DEBUG: Логирование ошибок длины штока
-            // Удалено: onRodLengthErrorChanged — не все версии Qt/QML генерируют notify-сигнал для readonly-свойств
-            // Диагностический лог можно включить через таймер/кнопку при необходимости
-            // onRodLengthErrorChanged: {
-            //     if (rodLengthError > 1.0) {
-            //         console.warn("⚠️ Rod length error:", rodLengthError.toFixed(2), "mm (target:", pistonRodLength, "actual:", actualRodLength.toFixed(2), ")")
-            //     }
-            // }
-            
-            // JOINTS (шарниры) - цветные маркеры
-            Model {
-                geometry: CylinderGeometry {
-                    segments: root.cylinderSegments
-                    rings: root.cylinderRings
-                    radius: 50
-                    length: 100
-                }
-                position: j_tail
-                scale: Qt.vector3d(1.2, 2.4, 1.2)
-                eulerRotation: Qt.vector3d(90, 0, 0)
-                materials: [jointTailMaterial]
-            }
-            
-            Model {
-                geometry: CylinderGeometry {
-                    segments: root.cylinderSegments
-                    rings: root.cylinderRings
-                    radius: 50
-                    length: 100
-                }
-                position: j_arm
-                scale: Qt.vector3d(1.0, 2.0, 1.0)
-                eulerRotation: Qt.vector3d(90, 0, 0)
-                materials: [jointArmMaterial]
-            }
-            
-            Model {
-                geometry: CylinderGeometry {
-                    segments: root.cylinderSegments
-                    rings: root.cylinderRings
-                    radius: 50
-                    length: 100
-                }
-                position: j_rod
-                scale: Qt.vector3d(0.8, 1.6, 0.8)
-                eulerRotation: Qt.vector3d(90, 0, leverAngle * 0.1)
-                materials: PrincipledMaterial {
-                    baseColor: rodLengthError > 1.0 ? jointRodErrorColor : jointRodOkColor  // Красный если ошибка, зеленый если OK
+                    baseColor: rodLengthError > 1.0 ? jointRodErrorColor : jointRodOkColor
                     metalness: jointTailMetalness
                     roughness: jointTailRoughness
                     specularAmount: jointTailSpecularAmount
@@ -1662,7 +1551,7 @@ Item {
             
             Text { 
                 text: "📷 Камера: " + cameraDistance.toFixed(0) + "мм | Pivot: (" + 
-                      pivot.x.toFixed(0) + ", " + pivot.y.toFixed(0) + ", " + pivot.z.toFixed(0) + ")"
+                      pivot.x.toFixed(0) + ", " + pivot.y.toFixed(0) + ", " + pivot.z.toFixed(0)
                 color: "#cccccc"
                 font.pixelSize: 10 
             }
