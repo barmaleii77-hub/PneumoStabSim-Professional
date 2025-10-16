@@ -12,6 +12,7 @@ import subprocess
 from pathlib import Path
 import logging
 from typing import Any, Optional
+import ctypes
 
 # =============================================================================
 # Накопление warnings/errors
@@ -147,6 +148,9 @@ os.environ.setdefault("QT_ASSUME_STDERR_HAS_CONSOLE", "1")
 os.environ.setdefault("QT_AUTO_SCREEN_SCALE_FACTOR", "1")
 os.environ.setdefault("QT_SCALE_FACTOR_ROUNDING_POLICY", "PassThrough")
 os.environ.setdefault("QT_ENABLE_HIGHDPI_SCALING", "1")
+
+# Включаем вывод диагностики по умолчанию (можно переопределить переменной среды)
+os.environ.setdefault("PSS_DIAG", "1")
 
 # =============================================================================
 # Qt Import
@@ -322,9 +326,32 @@ def print_warnings_errors() -> None:
 
 def run_log_diagnostics() -> None:
     """Запускает ВСТРОЕННУЮ диагностику логов после закрытия приложения"""
-    print("\n" + "="*60)
-    print("🔍 ДИАГНОСТИКА ЛОГОВ И СОБЫТИЙ")
-    print("="*60)
+    # Дублируем вывод в окно Output Visual Studio (через OutputDebugString)
+    class _VSOutputTee:
+        def __init__(self, real):
+            self._real = real
+        def write(self, s: str) -> int:
+            try:
+                if sys.platform == 'win32' and s:
+                    ctypes.windll.kernel32.OutputDebugStringW(str(s))
+            except Exception:
+                pass
+            return self._real.write(s)
+        def flush(self) -> None:
+            try:
+                self._real.flush()
+            except Exception:
+                pass
+
+    _orig_stdout = sys.stdout
+    _orig_stderr = sys.stderr
+    try:
+        sys.stdout = _VSOutputTee(_orig_stdout)
+        sys.stderr = _VSOutputTee(_orig_stderr)
+
+        print("\n" + "="*60)
+        print("🔍 ДИАГНОСТИКА ЛОГОВ И СОБЫТИЙ")
+        print("="*60)
     
     try:
         # ✅ НОВОЕ: Используем унифицированный анализатор
@@ -438,6 +465,10 @@ def run_log_diagnostics() -> None:
         print(f"❌ Ошибка диагностики: {e}")
         import traceback
         traceback.print_exc()
+    finally:
+        # Восстанавливаем стандартные потоки
+        sys.stdout = _orig_stdout
+        sys.stderr = _orig_stderr
 
 
 def main() -> int:
