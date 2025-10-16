@@ -178,7 +178,9 @@ Item {
     property string backgroundMode: startBackgroundMode
     property color backgroundColor: "#1f242c"
     property bool iblEnabled: startIblEnabled
-    property bool iblLightingEnabled: startIblEnabled
+    // ✅ CRITICAL FIX v4.9.5: НЕЗАВИСИМОЕ начальное значение для iblLightingEnabled!
+    // НЕ копируем startIblEnabled - пусть каждый флаг независим с самого начала!
+    property bool iblLightingEnabled: true   // По умолчанию ВКЛ (независимо от master)
     property bool iblBackgroundEnabled: startSkyboxEnabled
     property real iblRotationDeg: startIblRotation
     property real iblIntensity: startIblIntensity
@@ -732,7 +734,7 @@ Item {
             if (params.point_light.brightness !== undefined) pointLightBrightness = params.point_light.brightness
             if (params.point_light.color !== undefined) pointLightColor = params.point_light.color
             if (params.point_light.position_x !== undefined) pointLightX = Number(params.point_light.position_x)
-            if (params.point_light.position_y !== undefined) pointLightY = Number(params.point_light.position_y)
+            if (params.point_light.position_y !== undefined) pointLightY = Number(params.pointLight.position_y)
             if (params.point_light.range !== undefined) pointLightRange = Math.max(1, params.point_light.range)
             if (params.point_light.casts_shadow !== undefined) pointLightCastsShadow = !!params.point_light.casts_shadow
             if (params.point_light.bind_to_camera !== undefined) pointLightBindToCamera = !!params.point_light.bind_to_camera
@@ -786,25 +788,191 @@ Item {
         console.log("  ✅ Materials updated successfully")
     }
 
+    // ✅ НОВОЕ: Функция для обновления качества рендеринга
+    function applyQualityUpdates(params) {
+        if (typeof window !== 'undefined' && window && window.logQmlEvent) {
+            try { window.logQmlEvent("function_called", "applyQualityUpdates"); } catch(e) {}
+        }
+        console.log("⚙️ main.qml: applyQualityUpdates() called")
+        
+        // Shadows
+        if (params.shadows) {
+            if (params.shadows.enabled !== undefined) shadowsEnabled = !!params.shadows.enabled
+            if (params.shadows.resolution !== undefined) shadowResolution = String(params.shadows.resolution)
+            if (params.shadows.filter !== undefined) shadowFilterSamples = Number(params.shadows.filter)
+            if (params.shadows.bias !== undefined) shadowBias = Number(params.shadows.bias)
+            if (params.shadows.darkness !== undefined) shadowFactor = Number(params.shadows.darkness)
+        }
+        
+        // Antialiasing
+        if (params.antialiasing) {
+            var aa = params.antialiasing
+            if (aa.primary !== undefined) {
+                aaPrimaryMode = String(aa.primary)
+                console.log("  🔧 AA primary mode:", aaPrimaryMode)
+            }
+            if (aa.quality !== undefined) {
+                aaQualityLevel = String(aa.quality)
+                console.log("  🔧 AA quality level:", aaQualityLevel)
+            }
+            if (aa.post !== undefined) {
+                aaPostMode = String(aa.post)
+                console.log("  🔧 AA post mode:", aaPostMode)
+            }
+        }
+        
+        // TAA settings
+        if (params.taa_enabled !== undefined) taaEnabled = !!params.taa_enabled
+        if (params.taa_strength !== undefined) taaStrength = Number(params.taa_strength)
+        if (params.taa_motion_adaptive !== undefined) taaMotionAdaptive = !!params.taa_motion_adaptive
+        
+        // FXAA
+        if (params.fxaa_enabled !== undefined) fxaaEnabled = !!params.fxaa_enabled
+        
+        // Specular AA
+        if (params.specular_aa !== undefined) specularAAEnabled = !!params.specular_aa
+        
+        // Dithering (Qt 6.10+)
+        if (params.dithering !== undefined && canUseDithering) {
+            ditheringEnabled = !!params.dithering
+        }
+        
+        // Rendering settings
+        if (params.render_scale !== undefined) renderScale = Number(params.render_scale)
+        if (params.render_policy !== undefined) renderPolicy = String(params.render_policy)
+        if (params.frame_rate_limit !== undefined) frameRateLimit = Number(params.frame_rate_limit)
+        
+        // OIT
+        if (params.oit !== undefined) oitMode = String(params.oit)
+        
+        console.log("  ✅ Quality updated successfully")
+    }
+    
+    // ✅ НОВОЕ: Функция для обновления эффектов
+    function applyEffectsUpdates(params) {
+        if (typeof window !== 'undefined' && window && window.logQmlEvent) {
+            try { window.logQmlEvent("function_called", "applyEffectsUpdates"); } catch(e) {}
+        }
+        console.log("✨ main.qml: applyEffectsUpdates() called")
+        
+        // Bloom
+        if (params.bloom_enabled !== undefined) bloomEnabled = !!params.bloom_enabled
+        if (params.bloom_intensity !== undefined) bloomIntensity = Number(params.bloom_intensity)
+        if (params.bloom_threshold !== undefined) bloomThreshold = Number(params.bloom_threshold)
+        if (params.bloom_spread !== undefined) bloomSpread = Number(params.bloom_spread)
+        
+        // SSAO
+        if (params.ssao_enabled !== undefined) ssaoEnabled = !!params.ssao_enabled
+        if (params.ssao_strength !== undefined) ssaoIntensity = Number(params.ssao_strength)
+        if (params.ssao_radius !== undefined) ssaoRadius = Number(params.ssao_radius)
+        
+        // Depth of Field
+        if (params.depth_of_field !== undefined) depthOfFieldEnabled = !!params.depth_of_field
+        if (params.dof_focus_distance !== undefined) dofFocusDistance = Number(params.dof_focus_distance)
+        if (params.dof_blur !== undefined) dofBlurAmount = Number(params.dof_blur)
+        
+        // Motion Blur
+        if (params.motion_blur !== undefined) motionBlurEnabled = !!params.motion_blur
+        if (params.motion_blur_amount !== undefined) motionBlurAmount = Number(params.motion_blur_amount)
+        
+        // Lens Flare
+        if (params.lens_flare !== undefined) lensFlareEnabled = !!params.lens_flare
+        
+        // Vignette
+        if (params.vignette !== undefined) vignetteEnabled = !!params.vignette
+        if (params.vignette_strength !== undefined) vignetteStrength = Number(params.vignette_strength)
+        
+        // Tonemap
+        if (params.tonemap_enabled !== undefined) tonemapEnabled = !!params.tonemap_enabled
+        if (params.tonemap_mode !== undefined) tonemapModeName = String(params.tonemap_mode)
+        if (params.tonemap_exposure !== undefined) tonemapExposure = Number(params.tonemap_exposure)
+        if (params.tonemap_white_point !== undefined) tonemapWhitePoint = Number(params.tonemap_white_point)
+        
+        console.log("  ✅ Effects updated successfully")
+    }
+    
+    // ✅ НОВОЕ: Функция для обновления камеры
+    function applyCameraUpdates(params) {
+        if (typeof window !== 'undefined' && window && window.logQmlEvent) {
+            try { window.logQmlEvent("function_called", "applyCameraUpdates"); } catch(e) {}
+        }
+        console.log("📷 main.qml: applyCameraUpdates() called")
+        
+        if (params.fov !== undefined) cameraFov = Number(params.fov)
+        if (params.near !== undefined) cameraNear = Number(params.near)
+        if (params.far !== undefined) cameraFar = Number(params.far)
+        if (params.speed !== undefined) cameraSpeed = Number(params.speed)
+        if (params.auto_rotate !== undefined) autoRotate = !!params.auto_rotate
+        if (params.auto_rotate_speed !== undefined) autoRotateSpeed = Number(params.auto_rotate_speed)
+        
+        console.log("  ✅ Camera updated successfully")
+    }
+
     // ✅ ПОЛНАЯ реализация updateEnvironment()
     function applyEnvironmentUpdates(params) {
         if (typeof window !== 'undefined' && window && window.logQmlEvent) {
             try { window.logQmlEvent("function_called", "applyEnvironmentUpdates"); } catch(e) {}
         }
-        console.log("🌍 main.qml: applyEnvironmentUpdates() called", JSON.stringify(params))
+        
+        // ✅ ДЕТАЛЬНЫЙ ЛОГ НАЧАЛЬНОГО СОСТОЯНИЯ
+        console.log("🌍 ═══ applyEnvironmentUpdates START ═══")
+        console.log("  📥 Входные параметры:", JSON.stringify(params))
+        console.log("  📊 ТЕКУЩЕЕ состояние ДО обновления:")
+        console.log("     iblEnabled:", iblEnabled)
+        console.log("     iblLightingEnabled:", iblLightingEnabled)
+        console.log("     iblBackgroundEnabled:", iblBackgroundEnabled)
+        console.log("     iblRotationDeg:", iblRotationDeg)
+        console.log("     iblIntensity:", iblIntensity)
 
         // --- Backward-compatible flat keys ---
         if (params.background_mode !== undefined) backgroundMode = params.background_mode
         if (params.background_color !== undefined) backgroundColor = params.background_color
-        if (params.ibl_enabled !== undefined) { iblEnabled = !!params.ibl_enabled; iblLightingEnabled = iblEnabled }
-        // ✅ ПОДДЕРЖКА РАЗДЕЛЬНЫХ ФЛАГОВ ЧЕРЕЗ ПЛОСКИЕ КЛЮЧИ
-        if (params.ibl_lighting_enabled !== undefined) iblLightingEnabled = !!params.ibl_lighting_enabled
-        if (params.ibl_background_enabled !== undefined) iblBackgroundEnabled = !!params.ibl_background_enabled
-        if (params.skybox_enabled !== undefined) iblBackgroundEnabled = !!params.skybox_enabled
-        if (params.ibl_intensity !== undefined) iblIntensity = Number(params.ibl_intensity)
-        if (params.ibl_rotation !== undefined) iblRotationDeg = Number(params.ibl_rotation)
-        if (params.ibl_source !== undefined && params.ibl_source) iblPrimarySource = resolveUrl(params.ibl_source)
-        if (params.ibl_fallback !== undefined && params.ibl_fallback) iblFallbackSource = resolveUrl(params.ibl_fallback)
+        
+        // ✅ CRITICAL FIX v4.9.5: НЕЗАВИСИМЫЕ ФЛАГИ - каждый управляется отдельно!
+        // Master флаг ibl_enabled больше НЕ влияет на lighting/background флаги
+        if (params.ibl_enabled !== undefined) {
+            iblEnabled = !!params.ibl_enabled
+            console.log("  🔧 IBL master enabled обновлен:", iblEnabled)
+            // ❌ ВАЖНО: НЕ копируем в iblLightingEnabled!
+            // Каждый флаг теперь полностью независим
+        }
+        
+        // ✅ РАЗДЕЛЬНОЕ УПРАВЛЕНИЕ через плоские ключи
+        if (params.ibl_lighting_enabled !== undefined) {
+            iblLightingEnabled = !!params.ibl_lighting_enabled
+            console.log("  💡 IBL lighting обновлен:", iblLightingEnabled)
+        }
+        
+        if (params.ibl_background_enabled !== undefined) {
+            iblBackgroundEnabled = !!params.ibl_background_enabled
+            console.log("  🎨 IBL background обновлен:", iblBackgroundEnabled)
+        }
+        
+        if (params.skybox_enabled !== undefined) {
+            iblBackgroundEnabled = !!params.skybox_enabled
+            console.log("  🌌 Skybox обновлен:", iblBackgroundEnabled)
+        }
+        
+        if (params.ibl_intensity !== undefined) {
+            iblIntensity = Number(params.ibl_intensity)
+            console.log("  ✨ IBL intensity обновлен:", iblIntensity)
+        }
+        
+        if (params.ibl_rotation !== undefined) {
+            iblRotationDeg = Number(params.ibl_rotation)
+            console.log("  🔄 IBL rotation обновлен:", iblRotationDeg)
+        }
+        
+        if (params.ibl_source !== undefined && params.ibl_source) {
+            iblPrimarySource = resolveUrl(params.ibl_source)
+            console.log("  📁 IBL source обновлен:", iblPrimarySource)
+        }
+        
+        if (params.ibl_fallback !== undefined && params.ibl_fallback) {
+            iblFallbackSource = resolveUrl(params.ibl_fallback)
+            console.log("  📁 IBL fallback обновлен:", iblFallbackSource)
+        }
+        
         if (params.fog_enabled !== undefined) fogEnabled = !!params.fog_enabled
         if (params.fog_color !== undefined) fogColor = params.fog_color
         if (params.fog_density !== undefined) fogDensity = Number(params.fog_density)
@@ -819,20 +987,56 @@ Item {
             const bg = params.background
             if (bg.mode !== undefined) backgroundMode = bg.mode
             if (bg.color !== undefined) backgroundColor = bg.color
-            if (bg.skybox_enabled !== undefined) iblBackgroundEnabled = !!bg.skybox_enabled
+            if (bg.skybox_enabled !== undefined) {
+                iblBackgroundEnabled = !!bg.skybox_enabled
+                console.log("  🌌 Skybox (from bg) обновлен:", iblBackgroundEnabled)
+            }
         }
+        
         if (params.ibl) {
             const ibl = params.ibl
-            if (ibl.enabled !== undefined) { iblEnabled = !!ibl.enabled; iblLightingEnabled = iblEnabled }
-            // ✅ НОВОЕ: отдельные флаги для освещения и фона
-            if (ibl.lighting_enabled !== undefined) iblLightingEnabled = !!ibl.lighting_enabled
-            if (ibl.background_enabled !== undefined) iblBackgroundEnabled = !!ibl.background_enabled
-            if (ibl.intensity !== undefined) iblIntensity = Number(ibl.intensity)
-            if (ibl.rotation !== undefined) iblRotationDeg = Number(ibl.rotation)
-            if (ibl.source !== undefined && ibl.source) iblPrimarySource = resolveUrl(ibl.source)
-            if (ibl.fallback !== undefined && ibl.fallback) iblFallbackSource = resolveUrl(ibl.fallback)
+            
+            // ✅ CRITICAL FIX v4.9.5: Master флаг больше НЕ влияет на подфлаги!
+            if (ibl.enabled !== undefined) {
+                iblEnabled = !!ibl.enabled
+                console.log("  🔧 IBL master (nested) обновлен:", iblEnabled)
+                // ❌ КРИТИЧНО: НЕ переопределяем lighting/background!
+                // Они управляются НЕЗАВИСИМО через свои собственные ключи
+            }
+            
+            // ✅ НЕЗАВИСИМОЕ УПРАВЛЕНИЕ через вложенные ключи
+            if (ibl.lighting_enabled !== undefined) {
+                iblLightingEnabled = !!ibl.lighting_enabled
+                console.log("  💡 IBL lighting (nested) обновлен:", iblLightingEnabled)
+            }
+            
+            if (ibl.background_enabled !== undefined) {
+                iblBackgroundEnabled = !!ibl.background_enabled
+                console.log("  🎨 IBL background (nested) обновлен:", iblBackgroundEnabled)
+            }
+            
+            if (ibl.intensity !== undefined) {
+                iblIntensity = Number(ibl.intensity)
+                console.log("  ✨ IBL intensity (nested) обновлен:", iblIntensity)
+            }
+            
+            if (ibl.rotation !== undefined) {
+                iblRotationDeg = Number(ibl.rotation)
+                console.log("  🔄 IBL rotation (nested) обновлен:", iblRotationDeg)
+            }
+            
+            if (ibl.source !== undefined && ibl.source) {
+                iblPrimarySource = resolveUrl(ibl.source)
+                console.log("  📁 IBL source (nested) обновлен:", iblPrimarySource)
+            }
+            
+            if (ibl.fallback !== undefined && ibl.fallback) {
+                iblFallbackSource = resolveUrl(ibl.fallback)
+                console.log("  📁 IBL fallback (nested) обновлен:", iblFallbackSource)
+            }
             // offset_x/offset_y/bind_to_camera пока не используются, оставляем для совместимости
         }
+        
         if (params.fog) {
             const fog = params.fog
             if (fog.enabled !== undefined) fogEnabled = !!fog.enabled
@@ -841,35 +1045,22 @@ Item {
             if (fog.near !== undefined) fogNear = Number(fog.near)
             if (fog.far !== undefined) fogFar = Number(fog.far)
         }
+        
         if (params.ambient_occlusion) {
             const ao = params.ambient_occlusion
             if (ao.enabled !== undefined) ssaoEnabled = !!ao.enabled
             if (ao.radius !== undefined) ssaoRadius = Number(ao.radius)
             if (ao.strength !== undefined) ssaoIntensity = Number(ao.strength)
         }
-        console.log("  ✅ Environment updated")
-    }
-
-    function applyEffectsUpdates(params) {
-        if (typeof window !== 'undefined' && window && window.logQmlEvent) {
-            try { window.logQmlEvent("function_called", "applyEffectsUpdates"); } catch(e) {}
-        }
-        console.log("✨ main.qml: applyEffectsUpdates() called", JSON.stringify(params))
-        if (params.bloom_enabled !== undefined) bloomEnabled = !!params.bloom_enabled
-        if (params.bloom_intensity !== undefined) bloomIntensity = Number(params.bloom_intensity)
-        if (params.bloom_threshold !== undefined) bloomThreshold = Number(params.bloom_threshold)
-        if (params.ssao_enabled !== undefined) ssaoEnabled = !!params.ssao_enabled
-        if (params.ssao_radius !== undefined) ssaoRadius = Number(params.ssao_radius)
-        if (params.ssao_intensity !== undefined) ssaoIntensity = Number(params.ssao_intensity)
-        if (params.tonemap_enabled !== undefined) tonemapEnabled = !!params.tonemap_enabled
-        if (params.tonemap_mode !== undefined) tonemapModeName = String(params.tonemap_mode)
-        if (params.depth_of_field !== undefined) depthOfFieldEnabled = !!params.depth_of_field
-        if (params.dof_focus_distance !== undefined) dofFocusDistance = Number(params.dof_focus_distance)
-        if (params.dof_focus_range !== undefined) dofFocusRange = Number(params.dof_focus_range)
-        if (params.vignette_enabled !== undefined) vignetteEnabled = !!params.vignette_enabled
-        if (params.vignette_strength !== undefined) vignetteStrength = Number(params.vignette_strength)
-        if (params.lens_flare_enabled !== undefined) lensFlareEnabled = !!params.lens_flare_enabled
-        console.log("  ✅ Effects updated")
+        
+        // ✅ ФИНАЛЬНЫЙ ЛОГ СОСТОЯНИЯ
+        console.log("  📊 ФИНАЛЬНОЕ состояние ПОСЛЕ обновления:")
+        console.log("     iblEnabled:", iblEnabled)
+        console.log("     iblLightingEnabled:", iblLightingEnabled)
+        console.log("     iblBackgroundEnabled:", iblBackgroundEnabled)
+        console.log("     iblRotationDeg:", iblRotationDeg)
+        console.log("     iblIntensity:", iblIntensity)
+        console.log("🌍 ═══ applyEnvironmentUpdates END ═══")
     }
 
     View3D {
@@ -889,6 +1080,39 @@ Item {
             lightProbe: (iblLightingEnabled && iblReady) ? iblLoader.probe : null
             probeExposure: root.iblIntensity
             probeOrientation: Qt.vector3d(0, root.iblRotationDeg, 0)
+            
+            // ✅ КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Добавлены настройки антиалиасинга!
+            antialiasingMode: {
+                if (root.aaPrimaryMode === "ssaa") return SceneEnvironment.SSAA
+                if (root.aaPrimaryMode === "msaa") return SceneEnvironment.MSAA
+                if (root.aaPrimaryMode === "progressive") return SceneEnvironment.ProgressiveAA
+                return SceneEnvironment.NoAA
+            }
+            antialiasingQuality: {
+                if (root.aaQualityLevel === "high") return SceneEnvironment.High
+                if (root.aaQualityLevel === "medium") return SceneEnvironment.Medium
+                if (root.aaQualityLevel === "low") return SceneEnvironment.Low
+                return SceneEnvironment.Medium
+            }
+            
+            // ✅ КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Post-processing AA
+            temporalAAEnabled: (root.aaPostMode === "taa" && root.taaEnabled && (!root.taaMotionAdaptive || root.cameraIsMoving))
+            temporalAAStrength: root.taaStrength
+            fxaaEnabled: (root.aaPostMode === "fxaa" || root.fxaaEnabled)
+            specularAAEnabled: root.canUseSpecularAA && root.specularAAEnabled
+            
+            // ✅ Dithering (Qt 6.10+)
+            Component.onCompleted: {
+                if (root.canUseDithering) {
+                    console.log("✅ Qt 6.10+ - enabling dithering")
+                    mainEnvironment.ditheringEnabled = Qt.binding(function() { 
+                        return root.ditheringEnabled 
+                    })
+                } else {
+                    console.log("⚠️ Qt < 6.10 - dithering not available")
+                }
+            }
+            
             // Fog (Qt 6.10+)
             fog: Fog {
                 enabled: root.fogEnabled
@@ -898,6 +1122,7 @@ Item {
                 depthFar: root.fogFar
                 depthCurve: 1.0
             }
+            
             // Tonemap
             tonemapMode: tonemapEnabled ? (
                 tonemapModeName === "filmic" ? SceneEnvironment.TonemapModeFilmic :
@@ -906,13 +1131,52 @@ Item {
                 tonemapModeName === "gamma" ? SceneEnvironment.TonemapModeLinear : // безопасный фоллбэк
                 tonemapModeName === "linear" ? SceneEnvironment.TonemapModeLinear : SceneEnvironment.TonemapModeNone
             ) : SceneEnvironment.TonemapModeNone
+            exposure: root.tonemapExposure
+            whitePoint: root.tonemapWhitePoint
+            
             // Bloom / SSAO
             glowEnabled: root.bloomEnabled
             glowIntensity: root.bloomIntensity
             glowHDRMinimumValue: root.bloomThreshold
+            glowBloom: root.bloomSpread
+            glowQualityHigh: true
+            glowUseBicubicUpscale: true
+            glowHDRMaximumValue: 8.0
+            glowHDRScale: 2.0
+            
             aoEnabled: root.ssaoEnabled
             aoDistance: root.ssaoRadius
-            aoStrength: root.ssaoIntensity
+            aoStrength: root.ssaoIntensity * 100
+            aoSoftness: 20
+            aoDither: true
+            aoSampleRate: 3
+            
+            // Depth of Field
+            depthOfFieldEnabled: root.depthOfFieldEnabled
+            depthOfFieldFocusDistance: root.dofFocusDistance
+            depthOfFieldBlurAmount: root.dofBlurAmount
+            
+            // Vignette
+            vignetteEnabled: root.vignetteEnabled
+            vignetteStrength: root.vignetteStrength
+            vignetteRadius: 0.4
+            
+            // Lens Flare
+            lensFlareEnabled: root.lensFlareEnabled
+            lensFlareGhostCount: 3
+            lensFlareGhostDispersal: 0.6
+            lensFlareHaloWidth: 0.25
+            lensFlareBloomBias: 0.35
+            lensFlareStretchToAspect: 1.0
+            
+            // OIT (Order Independent Transparency)
+            oitMethod: root.oitMode === "weighted" ? SceneEnvironment.OITWeightedBlended : SceneEnvironment.OITNone
+            
+            // Color adjustments
+            colorAdjustmentsEnabled: true
+            adjustmentBrightness: 1.0
+            adjustmentContrast: 1.05
+            adjustmentSaturation: 1.05
         }
 
         Node {

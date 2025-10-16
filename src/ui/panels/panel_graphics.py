@@ -324,8 +324,8 @@ class GraphicsPanel(QWidget):
             "environment": {
                 "background_mode": "skybox",
                 "background_color": "#1f242c",
-                "ibl_enabled": True,
-                "skybox_enabled": True,
+                "ibl_enabled": True,  # По умолчанию IBL ОСВЕЩЕНИЕ включено
+                "skybox_enabled": True,  # ✅ ИСПравЛЕНО: По умолчанию SKYBOX ФОН включен (независимо от ibl_enabled)
                 "ibl_intensity": 1.3,
                 "ibl_rotation": 0.0,
                 # ✅ БЕЗ ДЕФОЛТНЫХ ПУТЕЙ — источники задаются из настроек/пользователем
@@ -714,12 +714,12 @@ class GraphicsPanel(QWidget):
         grid.addWidget(posy, 5, 0, 1, 2)
 
         key_shadow = QCheckBox("Тени от ключевого света", self)
-        key_shadow.clicked.connect(lambda checked: self._update_lighting("key", "cast_shadow", checked))
+        key_shadow.toggled.connect(lambda checked: self._update_lighting("key", "cast_shadow", checked))
         self._lighting_controls["key.cast_shadow"] = key_shadow
         grid.addWidget(key_shadow, 6, 0, 1, 2)
 
         key_bind = QCheckBox("Привязать к камере", self)
-        key_bind.clicked.connect(lambda checked: self._update_lighting("key", "bind_to_camera", checked))
+        key_bind.toggled.connect(lambda checked: self._update_lighting("key", "bind_to_camera", checked))
         self._lighting_controls["key.bind"] = key_bind
         grid.addWidget(key_bind, 7, 0, 1, 2)
         return group
@@ -756,13 +756,13 @@ class GraphicsPanel(QWidget):
         grid.addWidget(posy, 3, 0, 1, 2)
 
         fill_shadow = QCheckBox("Тени от заполняющего света", self)
-        fill_shadow.clicked.connect(lambda checked: self._update_lighting("fill", "cast_shadow", checked))
+        fill_shadow.toggled.connect(lambda checked: self._update_lighting("fill", "cast_shadow", checked))
         self._lighting_controls["fill.cast_shadow"] = fill_shadow
         grid.addWidget(fill_shadow, 4, 0, 1, 2)
 
         fill_bind = QCheckBox("Привязать к камере", self)
-        fill_bind.clicked.connect(lambda checked: self._update_lighting("fill", "bind_to_camera", checked))
-        self._lighting_controls["fill.bind"] = fill_bind
+        fill_bind.toggled.connect(lambda checked: self._update_lighting("fill", "bind_to_camera", checked))
+        self._lighting_controls["fill.bind"] = fill_bind  # ✅ ИСПРАВЛЕНО
         grid.addWidget(fill_bind, 5, 0, 1, 2)
         return group
 
@@ -798,12 +798,12 @@ class GraphicsPanel(QWidget):
         grid.addWidget(posy, 3, 0, 1, 2)
 
         rim_shadow = QCheckBox("Тени от контрового света", self)
-        rim_shadow.clicked.connect(lambda checked: self._update_lighting("rim", "cast_shadow", checked))
+        rim_shadow.toggled.connect(lambda checked: self._update_lighting("rim", "cast_shadow", checked))
         self._lighting_controls["rim.cast_shadow"] = rim_shadow
         grid.addWidget(rim_shadow, 4, 0, 1, 2)
 
         rim_bind = QCheckBox("Привязать к камере", self)
-        rim_bind.clicked.connect(lambda checked: self._update_lighting("rim", "bind_to_camera", checked))
+        rim_bind.toggled.connect(lambda checked: self._update_lighting("rim", "bind_to_camera", checked))
         self._lighting_controls["rim.bind"] = rim_bind
         grid.addWidget(rim_bind, 5, 0, 1, 2)
         return group
@@ -845,12 +845,12 @@ class GraphicsPanel(QWidget):
         grid.addWidget(range_slider, 4, 0, 1, 2)
 
         point_shadows = QCheckBox("Тени от точечного света", self)
-        point_shadows.clicked.connect(lambda checked: self._update_lighting("point", "cast_shadow", checked))
+        point_shadows.toggled.connect(lambda checked: self._update_lighting("point", "cast_shadow", checked))
         self._lighting_controls["point.cast_shadow"] = point_shadows
         grid.addWidget(point_shadows, 5, 0, 1, 2)
 
         point_bind = QCheckBox("Привязать к камере", self)
-        point_bind.clicked.connect(lambda checked: self._update_lighting("point", "bind_to_camera", checked))
+        point_bind.toggled.connect(lambda checked: self._update_lighting("point", "bind_to_camera", checked))
         self._lighting_controls["point.bind"] = point_bind
         grid.addWidget(point_bind, 6, 0, 1, 2)
         return group
@@ -922,7 +922,7 @@ class GraphicsPanel(QWidget):
         row += 1
 
         ibl_check = QCheckBox("Включить IBL", self)
-        ibl_check.clicked.connect(lambda checked: self._on_ibl_enabled_clicked(checked))
+        ibl_check.toggled.connect(lambda checked: self._on_ibl_enabled_clicked(checked))
         self._environment_controls["ibl.enabled"] = ibl_check
         grid.addWidget(ibl_check, row, 0, 1, 2)
         row += 1
@@ -980,7 +980,7 @@ class GraphicsPanel(QWidget):
 
         # Отображать ли сам skybox (фон), независимо от освещения IBL
         skybox_toggle = QCheckBox("Показывать Skybox (фон)", self)
-        skybox_toggle.clicked.connect(lambda checked: self._update_environment("skybox_enabled", checked))
+        skybox_toggle.toggled.connect(lambda checked: self._on_skybox_enabled_clicked(checked))
         self._environment_controls["background.skybox_enabled"] = skybox_toggle
         grid.addWidget(skybox_toggle, row, 0, 1, 2)
         row += 1
@@ -999,13 +999,13 @@ class GraphicsPanel(QWidget):
         row += 1
 
         env_bind = QCheckBox("Привязать окружение к камере", self)
-        env_bind.clicked.connect(lambda checked: self._update_environment("ibl_bind_to_camera", checked))
+        env_bind.toggled.connect(lambda checked: self._update_environment("ibl_bind_to_camera", checked))
         self._environment_controls["ibl.bind"] = env_bind
         grid.addWidget(env_bind, row, 0, 1, 2)
         return group
 
     def _discover_hdr_files(self) -> List[Tuple[str, str]]:
-        """Ищет HDR/EXR файлы в типичных каталогах проекта и формирует список для ComboBox.
+        """Ищет HDR/EXR файлы в типичных каталях проекта и формирует список для ComboBox.
         Поиск ведётся в:
           - assets/hdr
           - assets/hdri
@@ -1078,7 +1078,7 @@ class GraphicsPanel(QWidget):
         grid.setVerticalSpacing(8)
 
         enabled = QCheckBox("Включить туман", self)
-        enabled.clicked.connect(lambda checked: self._on_fog_enabled_clicked(checked))
+        enabled.toggled.connect(lambda checked: self._on_fog_enabled_clicked(checked))
         self._environment_controls["fog.enabled"] = enabled
         grid.addWidget(enabled, 0, 0, 1, 2)
 
@@ -1115,7 +1115,7 @@ class GraphicsPanel(QWidget):
         grid.setVerticalSpacing(8)
 
         enabled = QCheckBox("Включить SSAO", self)
-        enabled.clicked.connect(lambda checked: self._update_environment("ao_enabled", checked))
+        enabled.toggled.connect(lambda checked: self._update_environment("ao_enabled", checked))
         self._environment_controls["ao.enabled"] = enabled
         grid.addWidget(enabled, 0, 0, 1, 2)
 
@@ -1173,7 +1173,7 @@ class GraphicsPanel(QWidget):
         grid.setVerticalSpacing(8)
 
         enabled = QCheckBox("Включить тени", self)
-        enabled.clicked.connect(lambda checked: self._update_quality("shadows.enabled", checked))
+        enabled.toggled.connect(lambda checked: self._update_quality("shadows.enabled", checked))
         self._quality_controls["shadows.enabled"] = enabled
         grid.addWidget(enabled, 0, 0, 1, 2)
 
@@ -1242,7 +1242,7 @@ class GraphicsPanel(QWidget):
         grid.addWidget(post_combo, 2, 1)
 
         taa_check = QCheckBox("Включить TAA", self)
-        taa_check.clicked.connect(lambda checked: self._update_quality("taa.enabled", checked))
+        taa_check.toggled.connect(lambda checked: self._update_quality("taa.enabled", checked))
         self._quality_controls["taa.enabled"] = taa_check
         grid.addWidget(taa_check, 3, 0, 1, 2)
 
@@ -1252,17 +1252,17 @@ class GraphicsPanel(QWidget):
         grid.addWidget(taa_strength, 4, 0, 1, 2)
 
         taa_motion = QCheckBox("Отключать TAA при движении камеры", self)
-        taa_motion.clicked.connect(lambda checked: self._update_quality("taa_motion_adaptive", checked))
+        taa_motion.toggled.connect(lambda checked: self._update_quality("taa_motion_adaptive", checked))
         self._quality_controls["taa_motion_adaptive"] = taa_motion
         grid.addWidget(taa_motion, 5, 0, 1, 2)
 
         fxaa_check = QCheckBox("Включить FXAA", self)
-        fxaa_check.clicked.connect(lambda checked: self._update_quality("fxaa.enabled", checked))
+        fxaa_check.toggled.connect(lambda checked: self._update_quality("fxaa.enabled", checked))
         self._quality_controls["fxaa.enabled"] = fxaa_check
         grid.addWidget(fxaa_check, 6, 0, 1, 2)
 
         specular_check = QCheckBox("Specular AA", self)
-        specular_check.clicked.connect(lambda checked: self._update_quality("specular_aa", checked))
+        specular_check.toggled.connect(lambda checked: self._update_quality("specular_aa", checked))
         self._quality_controls["specular.enabled"] = specular_check
         grid.addWidget(specular_check, 7, 0, 1, 2)
         return group
@@ -1294,12 +1294,12 @@ class GraphicsPanel(QWidget):
 
         # Переключатель Dithering (Qt 6.10+)
         dithering_check = QCheckBox("Dithering (Qt 6.10+)", self)
-        dithering_check.clicked.connect(lambda checked: self._update_quality("dithering", checked))
+        dithering_check.toggled.connect(lambda checked: self._update_quality("dithering", checked))
         self._quality_controls["dithering.enabled"] = dithering_check
         grid.addWidget(dithering_check, 3, 0, 1, 2)
 
         oit_check = QCheckBox("Weighted OIT", self)
-        oit_check.clicked.connect(lambda checked: self._update_quality("oit", "weighted" if checked else "none"))
+        oit_check.toggled.connect(lambda checked: self._update_quality("oit", "weighted" if checked else "none"))
         self._quality_controls["oit.enabled"] = oit_check
         grid.addWidget(oit_check, 4, 0, 1, 2)
         return group
@@ -1604,7 +1604,7 @@ class GraphicsPanel(QWidget):
         grid.setVerticalSpacing(8)
 
         enabled = QCheckBox("Включить Bloom", self)
-        enabled.clicked.connect(lambda checked: self._on_bloom_enabled_clicked(checked))
+        enabled.toggled.connect(lambda checked: self._on_bloom_enabled_clicked(checked))
         self._effects_controls["bloom.enabled"] = enabled
         grid.addWidget(enabled, 0, 0, 1, 2)
 
@@ -1632,7 +1632,7 @@ class GraphicsPanel(QWidget):
         grid.setVerticalSpacing(8)
 
         enabled = QCheckBox("Включить тонемаппинг", self)
-        enabled.clicked.connect(lambda checked: self._update_effects("tonemap_enabled", checked))
+        enabled.toggled.connect(lambda checked: self._update_effects("tonemap_enabled", checked))
         self._effects_controls["tonemap.enabled"] = enabled
         grid.addWidget(enabled, 0, 0, 1, 2)
 
@@ -1654,7 +1654,7 @@ class GraphicsPanel(QWidget):
         grid.setVerticalSpacing(8)
 
         enabled = QCheckBox("Включить DoF", self)
-        enabled.clicked.connect(lambda checked: self._update_effects("depth_of_field", checked))
+        enabled.toggled.connect(lambda checked: self._update_effects("depth_of_field", checked))
         self._effects_controls["dof.enabled"] = enabled
         grid.addWidget(enabled, 0, 0, 1, 2)
 
@@ -1678,7 +1678,7 @@ class GraphicsPanel(QWidget):
         grid.setVerticalSpacing(8)
 
         motion = QCheckBox("Размытие движения", self)
-        motion.clicked.connect(lambda checked: self._update_effects("motion_blur", checked))
+        motion.toggled.connect(lambda checked: self._update_effects("motion_blur", checked))
         self._effects_controls["motion.enabled"] = motion
         grid.addWidget(motion, 0, 0, 1, 2)
 
@@ -1688,12 +1688,12 @@ class GraphicsPanel(QWidget):
         grid.addWidget(motion_strength, 1, 0, 1, 2)
 
         lens_flare = QCheckBox("Линзовые блики", self)
-        lens_flare.clicked.connect(lambda checked: self._update_effects("lens_flare", checked))
+        lens_flare.toggled.connect(lambda checked: self._update_effects("lens_flare", checked))
         self._effects_controls["lens_flare.enabled"] = lens_flare
         grid.addWidget(lens_flare, 2, 0, 1, 2)
 
         vignette = QCheckBox("Виньетирование", self)
-        vignette.clicked.connect(lambda checked: self._update_effects("vignette", checked))
+        vignette.toggled.connect(lambda checked: self._update_effects("vignette", checked))
         self._effects_controls["vignette.enabled"] = vignette
         grid.addWidget(vignette, 3, 0, 1, 2)
 
@@ -1757,58 +1757,45 @@ class GraphicsPanel(QWidget):
             )
         self._emit_lighting()
 
-    def _update_environment(self, key: str, value: Any) -> None:
-        if self._updating_ui:
-            return
-        old_value = self.state["environment"].get(key)
+    def _update_environment(self, key: str, value: Any, emit: bool = True) -> None:
+        """Update environment state.
+        
+        Args:
+            key: Environment parameter key
+            value: New value
+            emit: Whether to emit signal (default True)
+        
+        ✅ CRITICAL FIX v4.9.5: Опциональный emit для группировки изменений
+        """
         self.state["environment"][key] = value
-        self.graphics_logger.log_change(
-            parameter_name=key,
-            old_value=old_value,
-            new_value=value,
-            category="environment",
-            panel_state=self.state,
-        )
-        # ✅ Немедленно сохраняем критичные параметры окружения, чтобы HDR и флаги
-        #    восстанавливались после перезапуска
-        try:
-            # Сохраняем ВСЕ изменения окружения
-            self.save_settings()
-        except Exception:
-            pass
-        self._emit_environment()
-
+        
+        # ✅ КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Эмитим только если явно разрешено
+        if emit:
+            self._emit_environment()
+    
     def _update_quality(self, key: str, value: Any) -> None:
+        """Update quality state - НОВЫЙ МЕТОД для обработки изменений качества
+        
+        Args:
+            key: Quality parameter key (может быть вложенным как "shadows.resolution")
+            value: New value
+        """
         if self._updating_ui:
             return
-        old_value = None
-        if key == "fxaa.enabled":
-            old_value = self.state["quality"].get("fxaa_enabled")
-            self.state["quality"]["fxaa_enabled"] = value
-        elif key == "taa.enabled":
-            old_value = self.state["quality"].get("taa_enabled")
-            self.state["quality"]["taa_enabled"] = value
+        
+        # Парсим вложенный ключ (shadows.resolution -> shadows, resolution)
+        if "." in key:
+            category, param = key.split(".", 1)
+            if category not in self.state["quality"]:
+                self.state["quality"][category] = {}
+            old_value = self.state["quality"][category].get(param)
+            self.state["quality"][category][param] = value
         else:
-            if "." in key:
-                parts = key.split(".")
-                target: Dict[str, Any] = self.state["quality"]
-                tmp = target
-                for part in parts[:-1]:
-                    if part in tmp and isinstance(tmp[part], dict):
-                        tmp = tmp[part]
-                    else:
-                        tmp = None
-                        break
-                if isinstance(tmp, dict):
-                    old_value = tmp.get(parts[-1])
-                for part in parts[:-1]:
-                    if part not in target or not isinstance(target[part], dict):
-                        target[part] = {}
-                    target = target[part]
-                target[parts[-1]] = value
-            else:
-                old_value = self.state["quality"].get(key)
-                self.state["quality"][key] = value
+            # Простой ключ (taa_enabled, render_scale, и т.д.)
+            old_value = self.state["quality"].get(key)
+            self.state["quality"][key] = value
+        
+        # Логируем изменение
         self.graphics_logger.log_change(
             parameter_name=key,
             old_value=old_value,
@@ -1816,30 +1803,27 @@ class GraphicsPanel(QWidget):
             category="quality",
             panel_state=self.state,
         )
-        self.event_logger.log_event(
-            event_type=EventType.STATE_CHANGE,
-            component="quality",
-            action=key,
-            old_value=old_value,
-            new_value=value,
-        )
+        
+        # Переключаем в custom при ручных изменениях
         self._set_quality_custom()
-        # ✅ Автосохранение настроек качества
-        try:
-            self.save_settings()
-        except Exception:
-            pass
+        
+        # Эмитим сигнал
         self._emit_quality()
-
+    
     def _update_camera(self, key: str, value: Any) -> None:
+        """Update camera state - НОВЫЙ МЕТОД для обработки изменений камеры
+        
+        Args:
+            key: Camera parameter key
+            value: New value
+        """
         if self._updating_ui:
-            self.logger.debug(f"🔒 _update_camera blocked (updating_ui=True): {key}={value}")
             return
+        
         old_value = self.state["camera"].get(key)
-        if key == "auto_rotate":
-            self.logger.info(f"🔄 AUTO_ROTATE CHANGE DETECTED: {value}")
-            self.logger.info(f"   Previous state: {self.state['camera'].get('auto_rotate', 'UNKNOWN')}")
         self.state["camera"][key] = value
+        
+        # Логируем изменение
         self.graphics_logger.log_change(
             parameter_name=key,
             old_value=old_value,
@@ -1847,20 +1831,24 @@ class GraphicsPanel(QWidget):
             category="camera",
             panel_state=self.state,
         )
-        # ✅ Автосохранение настроек камеры
-        try:
-            self.save_settings()
-        except Exception:
-            pass
+        
+        # Эмитим сигнал
         self._emit_camera()
-        if key == "auto_rotate":
-            self.logger.info("   ✅ camera_changed signal emitted!")
-
+    
     def _update_effects(self, key: str, value: Any) -> None:
+        """Update effects state - НОВЫЙ МЕТОД для обработки изменений эффектов
+        
+        Args:
+            key: Effects parameter key
+            value: New value
+        """
         if self._updating_ui:
             return
+        
         old_value = self.state["effects"].get(key)
         self.state["effects"][key] = value
+        
+        # Логируем изменение
         self.graphics_logger.log_change(
             parameter_name=key,
             old_value=old_value,
@@ -1868,34 +1856,12 @@ class GraphicsPanel(QWidget):
             category="effects",
             panel_state=self.state,
         )
-        # ✅ Автосохранение настроек эффектов
-        try:
-            self.save_settings()
-        except Exception:
-            pass
+        
+        # Эмитим сигнал
         self._emit_effects()
 
-    # Обработчики кликов с логированием
-    def _on_ibl_enabled_clicked(self, checked: bool) -> None:
-        self.event_logger.log_user_click(widget_name="ibl_enabled", widget_type="QCheckBox", value=checked)
-        self.logger.info(f"IBL checkbox clicked: {checked}")
-        # Правильно: IBL управляет только освещением. Фон (skybox) — независим.
-        self._update_environment("ibl_enabled", checked)
-
-    def _on_auto_rotate_clicked(self, checked: bool) -> None:
-        self.event_logger.log_user_click(widget_name="auto_rotate", widget_type="QCheckBox", value=checked)
-        self._update_camera("auto_rotate", checked)
-
-    def _on_fog_enabled_clicked(self, checked: bool) -> None:
-        self.event_logger.log_user_click(widget_name="fog_enabled", widget_type="QCheckBox", value=checked)
-        self._update_environment("fog_enabled", checked)
-
-    def _on_bloom_enabled_clicked(self, checked: bool) -> None:
-        self.event_logger.log_user_click(widget_name="bloom_enabled", widget_type="QCheckBox", value=checked)
-        self._update_effects("bloom_enabled", checked)
-
     # ------------------------------------------------------------------
-    # Сигналы
+    # Signals
     # ------------------------------------------------------------------
     def _emit_lighting(self) -> None:
         payload = self._prepare_lighting_payload()
@@ -2055,11 +2021,16 @@ class GraphicsPanel(QWidget):
 
         ibl: Dict[str, Any] = {}
         if "ibl_enabled" in env:
+            # ✅ ИСПРАВЛЕНО: ibl_enabled управляет ТОЛЬКО освещением
             ibl["enabled"] = bool(env.get("ibl_enabled"))
             ibl["lighting_enabled"] = ibl["enabled"]
-            # ✅ Явно дублируем флаг фона в IBL, чтобы не зависеть от fallback‑карт
-            if "skybox_enabled" in env:
-                ibl["background_enabled"] = bool(env.get("skybox_enabled"))
+            # ✅ НЕ копируем флаг фона из ibl_enabled!
+            # Фон управляется отдельно через skybox_enabled
+        if "ibl_lighting_enabled" in env:
+            ibl["lighting_enabled"] = bool(env.get("ibl_lighting_enabled"))
+        if "skybox_enabled" in env:
+            # ✅ Фон управляется отдельно
+            ibl["background_enabled"] = bool(env.get("skybox_enabled"))
         if "ibl_intensity" in env:
             ibl["intensity"] = env.get("ibl_intensity")
         if "ibl_rotation" in env:
@@ -2531,6 +2502,13 @@ class GraphicsPanel(QWidget):
                                         break
                                 if idx >= 0:
                                     hdr_combo.setCurrentIndex(idx)
+                                else:
+                                    # Если текущий путь пуст — устанавливаем плейсхолдер, если он есть
+                                    if not current_src:
+                                        for i in range(hdr_combo.count()):
+                                            if (hdr_combo.itemData(i) or "") == "":
+                                                hdr_combo.setCurrentIndex(i)
+                                                break
                     finally:
                         hdr_combo.blockSignals(prev_block)
             except Exception:
@@ -2559,7 +2537,7 @@ class GraphicsPanel(QWidget):
         self.preset_applied.emit("Сброс к значениям по умолчанию")
 
     def export_sync_analysis(self) -> None:
-        """Экспортировать анализ синхронизации Python-QML"""
+        """Экспортирует анализ синхронизации Python-QML"""
         try:
             report_path = self.graphics_logger.export_analysis_report()
             self.logger.info(f"📄 Sync analysis exported: {report_path}")
@@ -2590,3 +2568,95 @@ class GraphicsPanel(QWidget):
             
         except Exception as e:
             self.logger.error(f"Failed to export sync analysis: {e}")
+    
+    # ✅ ИСПРАВЛЕННЫЕ обработчики чекбоксов
+    def _on_ibl_enabled_clicked(self, checked: bool) -> None:
+        """Обработчик клика на чекбокс IBL"""
+        if self._updating_ui:
+            return
+        self.state["environment"]["ibl_enabled"] = checked
+        self.graphics_logger.log_change(
+            parameter_name="ibl_enabled",
+            old_value=not checked,
+            new_value=checked,
+            category="environment",
+            panel_state=self.state,
+        )
+        self._emit_environment()
+
+    def _on_skybox_enabled_clicked(self, checked: bool) -> None:
+        """Обработчик клика на чекбокс Skybox"""
+        if self._updating_ui:
+            return
+        self.state["environment"]["skybox_enabled"] = checked
+        self.graphics_logger.log_change(
+            parameter_name="skybox_enabled",
+            old_value=not checked,
+            new_value=checked,
+            category="environment",
+            panel_state=self.state,
+        )
+        self._emit_environment()
+
+    def _on_fog_enabled_clicked(self, checked: bool) -> None:
+        """Обработчик клика на чекбокс тумана"""
+        if self._updating_ui:
+            return
+        old_value = self.state["environment"].get("fog_enabled")
+        self.state["environment"]["fog_enabled"] = checked
+        self.graphics_logger.log_change(
+            parameter_name="fog_enabled",
+            old_value=old_value,
+            new_value=checked,
+            category="environment",
+            panel_state=self.state,
+        )
+        # Логируем клик
+        try:
+            self.event_logger.log_user_click(
+                widget_name="fog_enabled",
+                widget_type="QCheckBox",
+                value=checked
+            )
+        except Exception:
+            pass
+        self._emit_environment()
+
+    def _on_bloom_enabled_clicked(self, checked: bool) -> None:
+        """Обработчик клика на чекбокс Bloom"""
+        if self._updating_ui:
+            return
+        old_value = self.state["effects"].get("bloom_enabled")
+        self.state["effects"]["bloom_enabled"] = checked
+        self.graphics_logger.log_change(
+            parameter_name="bloom_enabled",
+            old_value=old_value,
+            new_value=checked,
+            category="effects",
+            panel_state=self.state,
+        )
+        # Логируем клик
+        try:
+            self.event_logger.log_user_click(
+                widget_name="bloom_enabled",
+                widget_type="QCheckBox",
+                value=checked
+            )
+        except Exception:
+            pass
+        self._emit_effects()
+
+    def _on_taa_enabled_clicked(self, checked: bool) -> None:
+        """Обработчик клика на чекбокс TAA"""
+        if self._updating_ui:
+            return
+        self.state["quality"]["taa_enabled"] = checked
+        self.graphics_logger.log_change(
+            parameter_name="taa_enabled",
+            old_value=not checked,
+            new_value=checked,
+            category="quality",
+            panel_state=self.state,
+        )
+        self._set_quality_custom()
+        self._emit_quality()
