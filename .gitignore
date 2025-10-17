@@ -850,6 +850,9 @@ assets/hdr/*.exr
 !assets/hdr/.gitignore
 !assets/hdr/studio.hdr.placeholder
 
+# Yandex Disk temporary download files
+*.yandex_disk_download
+
 # Allow small demo HDR in qml assets (fallback)
 !assets/qml/assets/studio_small_09_2k.hdr
 
