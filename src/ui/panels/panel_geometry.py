@@ -386,10 +386,33 @@ class GeometryPanel(QWidget):
         self.piston_thickness_m_slider.valueChanged.connect(
             lambda v: self._on_parameter_live_change('piston_thickness_m', v))
         
-        # Options
+        # ✅ ИСПРАВЛЕНО: Подключаем чекбоксы
+        self.interference_check.toggled.connect(self._on_interference_check_toggled)
         self.link_rod_diameters.toggled.connect(self._on_link_rod_diameters_toggled)
         
         self.logger.debug("Signals connected successfully")
+
+    @Slot(bool)
+    def _on_interference_check_toggled(self, checked: bool):
+        """Обработчик включения/выключения проверки пересечений геометрии
+        
+        Args:
+            checked: True если проверка включена
+        """
+        self.logger.info(f"Interference checking: {checked}")
+        
+        # Сохраняем настройку
+        self.parameters['interference_check'] = checked
+        
+        # Эмитим событие для возможной реакции других компонентов
+        self.parameter_changed.emit('interference_check', float(checked))
+        
+        # Если включена автоматическая проверка - запускаем валидацию
+        if checked:
+            # Проверяем текущую геометрию
+            errors = self._get_geometry_errors()
+            if errors:
+                self.logger.warning(f"Geometry errors detected: {len(errors)} issues")
     
     @Slot(bool)
     def _on_link_rod_diameters_toggled(self, checked: bool):
@@ -398,14 +421,53 @@ class GeometryPanel(QWidget):
         Args:
             checked: True если связывание включено
         """
+        self.logger.info(f"Link rod diameters: {checked}")
+        
+        # Сохраняем настройку
+        self.parameters['link_rod_diameters'] = checked
+        
         if checked:
+            # При включении - синхронизируем все диаметры к текущему значению
             current_rod_diameter = self.parameters.get('rod_diameter_m', 0.035)
+            self.logger.info(f"Synchronizing all rod diameters to {current_rod_diameter}m")
+            
+            # В текущей реализации есть только один параметр rod_diameter_m
+            # Если в будущем будут отдельные диаметры для передних/задних колёс,
+            # здесь нужно будет синхронизировать их все
+            
+            # Сообщаем пользователю
             self.status_message = "Диаметры штоков связаны"
         else:
             self.status_message = "Диаметры штоков независимы"
         
         self.parameter_changed.emit('link_rod_diameters', float(checked))
     
+    def _get_geometry_errors(self) -> list[str]:
+        """Получить список ошибок геометрии без показа диалога
+        
+        Returns:
+            Список сообщений об ошибках
+        """
+        errors = []
+        
+        # Check geometric constraints
+        wheelbase = self.parameters.get('wheelbase', 3.2)
+        lever_length = self.parameters.get('lever_length', 0.8)
+        frame_to_pivot = self.parameters.get('frame_to_pivot', 0.6)
+        
+        max_lever_reach = wheelbase / 2.0 - 0.1
+        if frame_to_pivot + lever_length > max_lever_reach:
+            errors.append(f"Геометрия рычага превышает доступное пространство: {frame_to_pivot + lever_length:.2f} > {max_lever_reach:.2f}м")
+        
+        # Проверка гидравлических ограничений
+        rod_diameter_m = self.parameters.get('rod_diameter_m', 0.035)
+        cyl_diam_m = self.parameters.get('cyl_diam_m', 0.080)
+        
+        if rod_diameter_m >= cyl_diam_m * 0.8:
+            errors.append(f"Диаметр штока слишком велик: {rod_diameter_m*1000:.1f}мм >= 80% от {cyl_diam_m*1000:.1f}мм цилиндра")
+        
+        return errors
+
     @Slot(str, float)
     def _on_parameter_changed(self, param_name: str, value: float):
         """Handle parameter change with dependency resolution
@@ -454,16 +516,16 @@ class GeometryPanel(QWidget):
         # Update all widgets
         self.wheelbase_slider.setValue(self.parameters['wheelbase'])
         self.track_slider.setValue(self.parameters['track'])
-        self.frame_to_pivot_slider.setValue(self.parameters['frame_to_pivot'])
-        self.lever_length_slider.setValue(self.parameters['lever_length'])
-        self.rod_position_slider.setValue(self.parameters['rod_position'])
-        self.cylinder_length_slider.setValue(self.parameters['cylinder_length'])
-        self.cyl_diam_m_slider.setValue(self.parameters['cyl_diam_m'])
-        self.stroke_m_slider.setValue(self.parameters['stroke_m'])
-        self.dead_gap_m_slider.setValue(self.parameters['dead_gap_m'])
-        self.rod_diameter_m_slider.setValue(self.parameters['rod_diameter_m'])
-        self.piston_rod_length_m_slider.setValue(self.parameters['piston_rod_length_m'])
-        self.piston_thickness_m_slider.setValue(self.parameters['piston_thickness_m'])
+        self.frame_to_pivot_slider.setValue(self.parameters['frame_to_pivot']);
+        self.lever_length_slider.setValue(self.parameters['lever_length']);
+        self.rod_position_slider.setValue(self.parameters['rod_position']);
+        self.cylinder_length_slider.setValue(self.parameters['cylinder_length']);
+        self.cyl_diam_m_slider.setValue(self.parameters['cyl_diam_m']);
+        self.stroke_m_slider.setValue(self.parameters['stroke_m']);
+        self.dead_gap_m_slider.setValue(self.parameters['dead_gap_m']);
+        self.rod_diameter_m_slider.setValue(self.parameters['rod_diameter_m']);
+        self.piston_rod_length_m_slider.setValue(self.parameters['piston_rod_length_m']);
+        self.piston_thickness_m_slider.setValue(self.parameters['piston_thickness_m']);
         
         # Reset checkboxes
         self.interference_check.setChecked(True)
