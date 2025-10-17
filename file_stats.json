@@ -1,0 +1,612 @@
+{
+  "timestamp": "C:\\Users\\CADuser\\source\\repos\\barmaleii77-hub\\PneumoStabSim-Professional",
+  "total_files": 101,
+  "files": [
+    {
+      "path": "src\\ui\\panels\\panel_graphics.py",
+      "lines": 2662,
+      "size_kb": 116.4,
+      "priority": "⭐⭐⭐ КРИТИЧЕСКИЙ"
+    },
+    {
+      "path": "src\\ui\\main_window_backup.py",
+      "lines": 1206,
+      "size_kb": 55.3,
+      "priority": "⭐⭐⭐ КРИТИЧЕСКИЙ"
+    },
+    {
+      "path": "src\\ui\\main_window.py",
+      "lines": 1152,
+      "size_kb": 57.49,
+      "priority": "⭐⭐⭐ КРИТИЧЕСКИЙ"
+    },
+    {
+      "path": "src\\ui\\panels_accordion.py",
+      "lines": 889,
+      "size_kb": 29.85,
+      "priority": "⭐⭐ ВЫСОКИЙ"
+    },
+    {
+      "path": "src\\ui\\panels\\panel_geometry.py",
+      "lines": 805,
+      "size_kb": 39.04,
+      "priority": "⭐⭐ ВЫСОКИЙ"
+    },
+    {
+      "path": "src\\ui\\panels\\panel_pneumo.py",
+      "lines": 771,
+      "size_kb": 34.77,
+      "priority": "⭐⭐ ВЫСОКИЙ"
+    },
+    {
+      "path": "src\\runtime\\sim_loop.py",
+      "lines": 730,
+      "size_kb": 29.24,
+      "priority": "⭐⭐ ВЫСОКИЙ"
+    },
+    {
+      "path": "src\\ui\\panels\\panel_modes.py",
+      "lines": 670,
+      "size_kb": 26.8,
+      "priority": "⭐ СРЕДНИЙ"
+    },
+    {
+      "path": "src\\common\\log_analyzer.py",
+      "lines": 602,
+      "size_kb": 27.69,
+      "priority": "⭐ СРЕДНИЙ"
+    },
+    {
+      "path": "src\\common\\logging_setup.py",
+      "lines": 511,
+      "size_kb": 16.58,
+      "priority": "⭐ СРЕДНИЙ"
+    },
+    {
+      "path": "src\\ui\\widgets\\range_slider.py",
+      "lines": 482,
+      "size_kb": 21.95,
+      "priority": "✅ OK"
+    },
+    {
+      "path": "src\\common\\event_logger.py",
+      "lines": 463,
+      "size_kb": 16.36,
+      "priority": "✅ OK"
+    },
+    {
+      "path": "src\\ui\\panels\\panel_road.py",
+      "lines": 448,
+      "size_kb": 16.22,
+      "priority": "✅ OK"
+    },
+    {
+      "path": "src\\road\\engine.py",
+      "lines": 447,
+      "size_kb": 16.23,
+      "priority": "✅ OK"
+    },
+    {
+      "path": "src\\mechanics\\kinematics.py",
+      "lines": 432,
+      "size_kb": 13.58,
+      "priority": "✅ OK"
+    },
+    {
+      "path": "src\\ui\\hud.py",
+      "lines": 420,
+      "size_kb": 14.19,
+      "priority": "✅ OK"
+    },
+    {
+      "path": "src\\road\\csv_io.py",
+      "lines": 399,
+      "size_kb": 14.94,
+      "priority": "✅ OK"
+    },
+    {
+      "path": "src\\ui\\panels\\graphics_logger.py",
+      "lines": 395,
+      "size_kb": 15.76,
+      "priority": "✅ OK"
+    },
+    {
+      "path": "src\\ui\\charts.py",
+      "lines": 386,
+      "size_kb": 14.4,
+      "priority": "✅ OK"
+    },
+    {
+      "path": "src\\physics\\integrator.py",
+      "lines": 382,
+      "size_kb": 12.18,
+      "priority": "✅ OK"
+    },
+    {
+      "path": "src\\road\\generators.py",
+      "lines": 380,
+      "size_kb": 14.11,
+      "priority": "✅ OK"
+    },
+    {
+      "path": "src\\ui\\parameter_slider.py",
+      "lines": 364,
+      "size_kb": 11.89,
+      "priority": "✅ OK"
+    },
+    {
+      "path": "src\\ui\\panels\\graphics\\defaults.py",
+      "lines": 347,
+      "size_kb": 11.72,
+      "priority": "✅ OK"
+    },
+    {
+      "path": "src\\road\\scenarios.py",
+      "lines": 339,
+      "size_kb": 10.86,
+      "priority": "✅ OK"
+    },
+    {
+      "path": "src\\pneumo\\network.py",
+      "lines": 323,
+      "size_kb": 12.69,
+      "priority": "✅ OK"
+    },
+    {
+      "path": "src\\runtime\\sync.py",
+      "lines": 301,
+      "size_kb": 9.57,
+      "priority": "✅ OK"
+    },
+    {
+      "path": "src\\physics\\odes.py",
+      "lines": 297,
+      "size_kb": 11.23,
+      "priority": "✅ OK"
+    },
+    {
+      "path": "src\\ui\\panels\\graphics\\lighting_tab.py",
+      "lines": 292,
+      "size_kb": 13.94,
+      "priority": "✅ OK"
+    },
+    {
+      "path": "src\\physics\\forces.py",
+      "lines": 278,
+      "size_kb": 9.78,
+      "priority": "✅ OK"
+    },
+    {
+      "path": "src\\pneumo\\geometry.py",
+      "lines": 274,
+      "size_kb": 10.69,
+      "priority": "✅ OK"
+    },
+    {
+      "path": "src\\app\\config_defaults.py",
+      "lines": 273,
+      "size_kb": 9.0,
+      "priority": "✅ OK"
+    },
+    {
+      "path": "src\\ui\\widgets\\knob.py",
+      "lines": 267,
+      "size_kb": 8.43,
+      "priority": "✅ OK"
+    },
+    {
+      "path": "src\\common\\csv_export.py",
+      "lines": 258,
+      "size_kb": 7.53,
+      "priority": "✅ OK"
+    },
+    {
+      "path": "src\\app_runner.py",
+      "lines": 252,
+      "size_kb": 9.47,
+      "priority": "✅ OK"
+    },
+    {
+      "path": "src\\ui\\custom_geometry.py",
+      "lines": 241,
+      "size_kb": 8.53,
+      "priority": "✅ OK"
+    },
+    {
+      "path": "src\\ui\\accordion.py",
+      "lines": 239,
+      "size_kb": 7.74,
+      "priority": "✅ OK"
+    },
+    {
+      "path": "src\\pneumo\\system.py",
+      "lines": 238,
+      "size_kb": 9.26,
+      "priority": "✅ OK"
+    },
+    {
+      "path": "src\\diagnostics\\logs.py",
+      "lines": 227,
+      "size_kb": 9.5,
+      "priority": "✅ OK"
+    },
+    {
+      "path": "src\\app\\smoke_test.py",
+      "lines": 219,
+      "size_kb": 7.41,
+      "priority": "✅ OK"
+    },
+    {
+      "path": "src\\pneumo\\flow.py",
+      "lines": 218,
+      "size_kb": 6.5,
+      "priority": "✅ OK"
+    },
+    {
+      "path": "src\\core\\initial_geometry.py",
+      "lines": 208,
+      "size_kb": 7.35,
+      "priority": "✅ OK"
+    },
+    {
+      "path": "src\\ui\\panels\\graphics\\widgets.py",
+      "lines": 207,
+      "size_kb": 6.87,
+      "priority": "✅ OK"
+    },
+    {
+      "path": "src\\road\\types.py",
+      "lines": 200,
+      "size_kb": 7.58,
+      "priority": "✅ OK"
+    },
+    {
+      "path": "src\\ui\\qml_host.py",
+      "lines": 197,
+      "size_kb": 8.0,
+      "priority": "✅ OK"
+    },
+    {
+      "path": "src\\pneumo\\cylinder.py",
+      "lines": 161,
+      "size_kb": 5.87,
+      "priority": "✅ OK"
+    },
+    {
+      "path": "src\\common\\logging_slider_wrapper.py",
+      "lines": 151,
+      "size_kb": 6.41,
+      "priority": "✅ OK"
+    },
+    {
+      "path": "src\\pneumo\\thermo.py",
+      "lines": 143,
+      "size_kb": 3.77,
+      "priority": "✅ OK"
+    },
+    {
+      "path": "src\\pneumo\\sim_time.py",
+      "lines": 134,
+      "size_kb": 4.95,
+      "priority": "✅ OK"
+    },
+    {
+      "path": "src\\pneumo\\gas_state.py",
+      "lines": 133,
+      "size_kb": 4.48,
+      "priority": "✅ OK"
+    },
+    {
+      "path": "src\\pneumo\\valves.py",
+      "lines": 133,
+      "size_kb": 4.99,
+      "priority": "✅ OK"
+    },
+    {
+      "path": "src\\app\\smoke_gas_final.py",
+      "lines": 129,
+      "size_kb": 4.48,
+      "priority": "✅ OK"
+    },
+    {
+      "path": "src\\common\\logging_widgets.py",
+      "lines": 125,
+      "size_kb": 4.74,
+      "priority": "✅ OK"
+    },
+    {
+      "path": "src\\ui\\ibl_logger.py",
+      "lines": 119,
+      "size_kb": 4.78,
+      "priority": "✅ OK"
+    },
+    {
+      "path": "src\\pneumo\\line.py",
+      "lines": 116,
+      "size_kb": 4.47,
+      "priority": "✅ OK"
+    },
+    {
+      "path": "src\\ui\\stable_geometry.py",
+      "lines": 103,
+      "size_kb": 3.53,
+      "priority": "✅ OK"
+    },
+    {
+      "path": "src\\app\\smoke_gas_simple.py",
+      "lines": 96,
+      "size_kb": 3.05,
+      "priority": "✅ OK"
+    },
+    {
+      "path": "src\\ui\\example_geometry.py",
+      "lines": 96,
+      "size_kb": 3.02,
+      "priority": "✅ OK"
+    },
+    {
+      "path": "src\\ui\\simple_geometry.py",
+      "lines": 94,
+      "size_kb": 3.07,
+      "priority": "✅ OK"
+    },
+    {
+      "path": "src\\pneumo\\enums.py",
+      "lines": 84,
+      "size_kb": 1.9,
+      "priority": "✅ OK"
+    },
+    {
+      "path": "src\\ui\\correct_geometry.py",
+      "lines": 80,
+      "size_kb": 3.13,
+      "priority": "✅ OK"
+    },
+    {
+      "path": "src\\ui\\direct_geometry.py",
+      "lines": 67,
+      "size_kb": 2.08,
+      "priority": "✅ OK"
+    },
+    {
+      "path": "src\\bootstrap\\environment.py",
+      "lines": 65,
+      "size_kb": 2.5,
+      "priority": "✅ OK"
+    },
+    {
+      "path": "src\\diagnostics\\warnings.py",
+      "lines": 65,
+      "size_kb": 2.13,
+      "priority": "✅ OK"
+    },
+    {
+      "path": "src\\road\\__init__.py",
+      "lines": 65,
+      "size_kb": 2.09,
+      "priority": "✅ OK"
+    },
+    {
+      "path": "src\\ui\\triangle_geometry.py",
+      "lines": 64,
+      "size_kb": 2.23,
+      "priority": "✅ OK"
+    },
+    {
+      "path": "src\\mechanics\\components.py",
+      "lines": 56,
+      "size_kb": 1.54,
+      "priority": "✅ OK"
+    },
+    {
+      "path": "src\\pneumo\\types.py",
+      "lines": 50,
+      "size_kb": 1.28,
+      "priority": "✅ OK"
+    },
+    {
+      "path": "src\\bootstrap\\terminal.py",
+      "lines": 48,
+      "size_kb": 1.79,
+      "priority": "✅ OK"
+    },
+    {
+      "path": "src\\bootstrap\\qt_imports.py",
+      "lines": 45,
+      "size_kb": 1.62,
+      "priority": "✅ OK"
+    },
+    {
+      "path": "src\\common\\__init__.py",
+      "lines": 41,
+      "size_kb": 0.96,
+      "priority": "✅ OK"
+    },
+    {
+      "path": "src\\core\\__init__.py",
+      "lines": 39,
+      "size_kb": 0.72,
+      "priority": "✅ OK"
+    },
+    {
+      "path": "src\\mechanics\\__init__.py",
+      "lines": 39,
+      "size_kb": 0.9,
+      "priority": "✅ OK"
+    },
+    {
+      "path": "src\\common\\errors.py",
+      "lines": 38,
+      "size_kb": 0.85,
+      "priority": "✅ OK"
+    },
+    {
+      "path": "src\\bootstrap\\version_check.py",
+      "lines": 35,
+      "size_kb": 1.27,
+      "priority": "✅ OK"
+    },
+    {
+      "path": "src\\cli\\arguments.py",
+      "lines": 34,
+      "size_kb": 1.29,
+      "priority": "✅ OK"
+    },
+    {
+      "path": "src\\runtime\\__init_simple.py",
+      "lines": 31,
+      "size_kb": 0.82,
+      "priority": "✅ OK"
+    },
+    {
+      "path": "src\\runtime\\__init__.py",
+      "lines": 31,
+      "size_kb": 0.79,
+      "priority": "✅ OK"
+    },
+    {
+      "path": "src\\bootstrap\\__init__.py",
+      "lines": 23,
+      "size_kb": 0.77,
+      "priority": "✅ OK"
+    },
+    {
+      "path": "src\\physics\\__init__.py",
+      "lines": 21,
+      "size_kb": 0.79,
+      "priority": "✅ OK"
+    },
+    {
+      "path": "src\\ui\\__init__.py",
+      "lines": 21,
+      "size_kb": 0.58,
+      "priority": "✅ OK"
+    },
+    {
+      "path": "src\\mechanics\\suspension.py",
+      "lines": 19,
+      "size_kb": 0.45,
+      "priority": "✅ OK"
+    },
+    {
+      "path": "src\\diagnostics\\__init__.py",
+      "lines": 14,
+      "size_kb": 0.35,
+      "priority": "✅ OK"
+    },
+    {
+      "path": "src\\ui\\panels\\__init__.py",
+      "lines": 12,
+      "size_kb": 0.41,
+      "priority": "✅ OK"
+    },
+    {
+      "path": "src\\pneumo\\thermo_stub.py",
+      "lines": 11,
+      "size_kb": 0.2,
+      "priority": "✅ OK"
+    },
+    {
+      "path": "src\\ui\\widgets\\__init__.py",
+      "lines": 9,
+      "size_kb": 0.24,
+      "priority": "✅ OK"
+    },
+    {
+      "path": "src\\cli\\__init__.py",
+      "lines": 8,
+      "size_kb": 0.22,
+      "priority": "✅ OK"
+    },
+    {
+      "path": "src\\ui\\panels\\graphics\\__init__.py",
+      "lines": 8,
+      "size_kb": 0.26,
+      "priority": "✅ OK"
+    },
+    {
+      "path": "src\\app\\__init__.py",
+      "lines": 3,
+      "size_kb": 0.04,
+      "priority": "✅ OK"
+    },
+    {
+      "path": "src\\__init__.py",
+      "lines": 1,
+      "size_kb": 0.03,
+      "priority": "✅ OK"
+    },
+    {
+      "path": "src\\pneumo\\__init__.py",
+      "lines": 1,
+      "size_kb": 0.03,
+      "priority": "✅ OK"
+    },
+    {
+      "path": "src\\app\\smoke_gas.py",
+      "lines": 0,
+      "size_kb": 11.45,
+      "priority": "✅ OK"
+    },
+    {
+      "path": "src\\app\\smoke_gas_complete.py",
+      "lines": 0,
+      "size_kb": 7.44,
+      "priority": "✅ OK"
+    },
+    {
+      "path": "src\\common\\units.py",
+      "lines": 0,
+      "size_kb": 0.79,
+      "priority": "✅ OK"
+    },
+    {
+      "path": "src\\core\\geometry.py",
+      "lines": 0,
+      "size_kb": 9.6,
+      "priority": "✅ OK"
+    },
+    {
+      "path": "src\\mechanics\\constraints.py",
+      "lines": 0,
+      "size_kb": 9.72,
+      "priority": "✅ OK"
+    },
+    {
+      "path": "src\\physics\\__init_new.py",
+      "lines": 0,
+      "size_kb": 0.0,
+      "priority": "✅ OK"
+    },
+    {
+      "path": "src\\pneumo\\receiver.py",
+      "lines": 0,
+      "size_kb": 4.82,
+      "priority": "✅ OK"
+    },
+    {
+      "path": "src\\runtime\\state.py",
+      "lines": 0,
+      "size_kb": 11.31,
+      "priority": "✅ OK"
+    },
+    {
+      "path": "src\\ui\\geometry_bridge.py",
+      "lines": 0,
+      "size_kb": 16.59,
+      "priority": "✅ OK"
+    },
+    {
+      "path": "src\\ui\\geo_state.py",
+      "lines": 0,
+      "size_kb": 24.6,
+      "priority": "✅ OK"
+    },
+    {
+      "path": "src\\ui\\panels\\panel_pneumo_broken.py",
+      "lines": 0,
+      "size_kb": 13.1,
+      "priority": "✅ OK"
+    }
+  ]
+}

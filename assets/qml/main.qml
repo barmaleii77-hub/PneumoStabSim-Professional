@@ -4,6 +4,8 @@ import QtQuick3D.Helpers
 import QtQuick.Controls
 import Qt.labs.folderlistmodel
 import "components"
+import "core"  // ✅ PHASE 1: Core Utilities (MathUtils, GeometryCalculations, StateCache)
+import "camera"  // ✅ PHASE 2: Camera System Modules
 
 /*
  * PneumoStabSim - COMPLETE Graphics Parameters Main 3D View (v4.9.4 SKYBOX FIX)
@@ -55,65 +57,53 @@ Item {
     // Эти переменные СВЯЗЫВАЛИ фон с камерой, что вызывало проблему
 
     // ===============================================================
-    // 🚀 PERFORMANCE OPTIMIZATION LAYER
+    // 🚀 PERFORMANCE OPTIMIZATION LAYER (✅ PHASE 1: Using StateCache)
     // ===============================================================
     
-    // ✅ ОПТИМИЗАЦИЯ #1: Кэширование анимационных вычислений
-    QtObject {
-        id: animationCache
+    // ✅ PHASE 1: Connect StateCache to root properties
+    Connections {
+        target: root
         
-        // Базовые значения (вычисляются 1 раз за фрейм вместо 4х)
-        property real basePhase: animationTime * userFrequency * 2 * Math.PI
-        property real globalPhaseRad: userPhaseGlobal * Math.PI / 180
-        
-        // Предварительно вычисленные фазы для каждого угла
-        property real flPhaseRad: globalPhaseRad + userPhaseFL * Math.PI / 180
-        property real frPhaseRad: globalPhaseRad + userPhaseFR * Math.PI / 180
-        property real rlPhaseRad: globalPhaseRad + userPhaseRL * Math.PI / 180
-        property real rrPhaseRad: globalPhaseRad + userPhaseRR * Math.PI / 180
-        
-        // Кэшированные синусы (4 sin() вызова → 4 кэшированных значения)
-        property real flSin: Math.sin(basePhase + flPhaseRad)
-        property real frSin: Math.sin(basePhase + frPhaseRad)
-        property real rlSin: Math.sin(basePhase + rlPhaseRad)
-        property real rrSin: Math.sin(basePhase + rrPhaseRad)
+        function onAnimationTimeChanged() { StateCache.animationTime = root.animationTime }
+        function onUserFrequencyChanged() { StateCache.userFrequency = root.userFrequency }
+        function onUserPhaseGlobalChanged() { StateCache.userPhaseGlobal = root.userPhaseGlobal }
+        function onUserPhaseFLChanged() { StateCache.userPhaseFL = root.userPhaseFL }
+        function onUserPhaseFRChanged() { StateCache.userPhaseFR = root.userPhaseFR }
+        function onUserPhaseRLChanged() { StateCache.userPhaseRL = root.userPhaseRL }
+        function onUserPhaseRRChanged() { StateCache.userPhaseRR = root.userPhaseRR }
+        function onUserAmplitudeChanged() { StateCache.userAmplitude = root.userAmplitude }
+        function onUserLeverLengthChanged() { StateCache.userLeverLength = root.userLeverLength }
+        function onUserRodPositionChanged() { StateCache.userRodPosition = root.userRodPosition }
+        function onUserCylinderLengthChanged() { StateCache.userCylinderLength = root.userCylinderLength }
+        function onUserTrackWidthChanged() { StateCache.userTrackWidth = root.userTrackWidth }
+        function onUserFrameLengthChanged() { StateCache.userFrameLength = root.userFrameLength }
+        function onCameraFovChanged() { StateCache.cameraFov = root.cameraFov }
     }
     
-    // ✅ ОПТИМИЗАЦИЯ #2: Геометрический калькулятор
-    QtObject {
-        id: geometryCache
+    // ✅ PHASE 1: Use StateCache (Singleton) instead of local animationCache
+    readonly property var animationCache: StateCache
+    
+    // ✅ PHASE 1: Use GeometryCalculations (Singleton) instead of local geometryCache
+    readonly property var geometryCache: QtObject {
+        // ✅ Cached constants from StateCache
+        readonly property real leverLengthRodPos: StateCache.leverLengthRodPos
+        readonly property real piOver180: StateCache.piOver180
+        readonly property real deg180OverPi: StateCache.deg180OverPi
         
-        // Константы (вычисляются только при изменении параметров)
-        property real leverLengthRodPos: userLeverLength * userRodPosition
-        property real piOver180: Math.PI / 180
-        property real _180OverPi: 180 / Math.PI
+        // ✅ Cached camera calculations from StateCache
+        readonly property real cachedFovRad: StateCache.cachedFovRad
+        readonly property real cachedTanHalfFov: StateCache.cachedTanHalfFov
         
-        // Кэшированные вычисления камеры
-        property real cachedFovRad: cameraFov * piOver180
-        property real cachedTanHalfFov: Math.tan(cachedFovRad / 2)
-        
-        // Обновление кэша камеры при необходимости
-        onCachedFovRadChanged: cachedTanHalfFov = Math.tan(cachedFovRad / 2)
-        
+        // ✅ PHASE 1: Delegate to GeometryCalculations
         function calculateJRod(j_arm, baseAngle, leverAngle) {
-            var totalAngleRad = (baseAngle + leverAngle) * piOver180
-            return Qt.vector3d(
-                j_arm.x + leverLengthRodPos * Math.cos(totalAngleRad),
-                j_arm.y + leverLengthRodPos * Math.sin(totalAngleRad),
-                j_arm.z
+            return GeometryCalculations.calculateJRodPosition(
+                j_arm, root.userLeverLength, root.userRodPosition, baseAngle, leverAngle
             )
         }
         
+        // ✅ PHASE 1: Delegate to GeometryCalculations
         function normalizeCylDirection(j_rod, j_tail) {
-            var dx = j_rod.x - j_tail.x
-            var dy = j_rod.y - j_tail.y
-            var length = Math.hypot(dx, dy)
-            return {
-                direction: Qt.vector3d(dx, dy, 0),
-                length: length,
-                normalized: Qt.vector3d(dx/length, dy/length, 0),
-                angle: Math.atan2(dy, dx) * _180OverPi + 90
-            }
+            return GeometryCalculations.calculateCylinderAxis(j_rod, j_tail)
         }
     }
 
@@ -131,39 +121,32 @@ Item {
     }
 
     // ===============================================================
-    // CAMERA SYSTEM (preserved)
+    // ✅ PHASE 2: CAMERA SYSTEM (modular)
     // ===============================================================
     
-    property vector3d pivot: Qt.vector3d(0, userBeamSize/2, userFrameLength/2)
+    // ✅ Заменено на CameraController - см. assets/qml/camera/
+    // Все 21 camera properties + 5 behaviors + 4 functions (169 lines) → 1 component
+
+    // ===============================================================
+    // ✅ PHASE 2: CAMERA PROPERTIES (for backward compatibility)
+    // ===============================================================
     
-    // Camera orbital parameters
-    property real cameraDistance: 3500
-    property real minDistance: 150
-    property real maxDistance: 30000
-    property real yawDeg: 225
-    property real pitchDeg: -25
+    // ✅ Expose camera properties from CameraController for backward compatibility
+    readonly property alias cameraDistance: cameraController.distance
+    readonly property alias cameraYaw: cameraController.yawDeg
+    readonly property alias cameraPitch: cameraController.pitchDeg
+    readonly property alias pivot: cameraController.pivot
+    readonly property alias cameraIsMoving: cameraController.isMoving
     
-    property real panX: 0
-    property real panY: 0
-    
-    // Camera properties
+    // ✅ Camera settings (writable properties synced with CameraState)
+    // ВАЖНО: Используем прямые свойства вместо aliases, чтобы избежать проблем с порядком инициализации
     property real cameraFov: 60.0
     property real cameraNear: 10.0
     property real cameraFar: 50000.0
     property real cameraSpeed: 1.0
-    
-    // Auto rotation
     property bool autoRotate: false
     property real autoRotateSpeed: 0.5
-
-    // Mouse input state
-    property bool mouseDown: false
-    property int mouseButton: 0
-    property real lastX: 0
-    property real lastY: 0
-    property real rotateSpeed: 0.35
-    property bool cameraIsMoving: false
-
+    
     // ===============================================================
     // ✅ COMPLETE GRAPHICS PROPERTIES (All parameters from GraphicsPanel)
     // ===============================================================
@@ -425,8 +408,9 @@ Item {
         return Qt.vector3d(color.r * intensity, color.g * intensity, color.b * intensity)
     }
 
+    // ✅ PHASE 1: Using MathUtils.clamp01 instead of local function
     function clamp01(value) {
-        return Math.max(0.0, Math.min(1.0, value))
+        return MathUtils.clamp01(value)
     }
 
     property color jointRodOkColor: "#00ff55"
@@ -476,26 +460,21 @@ Item {
     property real userPistonRodLength: 200
 
     // ===============================================================
-    // SMOOTH CAMERA BEHAVIORS (preserved)
+    // ✅ PHASE 2: Smooth Camera Behaviors - moved to CameraState.qml
     // ===============================================================
     
-    Behavior on yawDeg         { NumberAnimation { duration: 90; easing.type: Easing.OutCubic } }
-    Behavior on pitchDeg       { NumberAnimation { duration: 90; easing.type: Easing.OutCubic } }
-    Behavior on cameraDistance { NumberAnimation { duration: 90; easing.type: Easing.OutCubic } }
-    Behavior on panX           { NumberAnimation { duration: 60; easing.type: Easing.OutQuad } }
-    Behavior on panY           { NumberAnimation { duration: 60; easing.type: Easing.OutQuad } }
+    // ✅ Moved: 5 Behavior animations are now in CameraState.qml
 
     // ===============================================================
-    // UTILITY FUNCTIONS (preserved)
+    // UTILITY FUNCTIONS (✅ PHASE 1: Using MathUtils)
     // ===============================================================
     
-    function clamp(v, a, b) { return Math.max(a, Math.min(b, v)); }
+    // ✅ PHASE 1: Delegate to MathUtils
+    function clamp(v, a, b) { return MathUtils.clamp(v, a, b); }
     
+    // ✅ PHASE 1: Delegate to MathUtils (NO manual normalization!)
     function normAngleDeg(a) {
-        var x = a % 360
-        if (x < 0)
-            x += 360
-        return x;
+        return MathUtils.normalizeAngleDeg(a);
     }
 
     function resolveUrl(path) {
@@ -511,59 +490,31 @@ Item {
         return Qt.resolvedUrl(path);
     }
     
+    // ===============================================================
+    // ✅ PHASE 2: Camera functions - moved to CameraController
+    // ===============================================================
+    
+    // ✅ Moved to CameraController:
+    // - autoFitFrame(marginFactor) → cameraController.autoFitFrame()
+    // - resetView() → cameraController.resetView()
+    // - fullResetView() → cameraController.fullResetView()
+    
+    // ✅ Wrapper functions for backward compatibility:
     function autoFitFrame(marginFactor) {
-        const L = Math.max(1, userFrameLength)
-        const T = Math.max(1, userTrackWidth)  
-        const H = Math.max(1, userFrameHeight)
-        const margin = marginFactor !== undefined ? marginFactor : 1.15
-        const R = 0.5 * Math.sqrt(L*L + T*T + H*H)
-        const fov = cameraFov * Math.PI / 180.0
-        const dist = (R * margin) / Math.tan(fov * 0.5)
-        cameraDistance = Math.max(minDistance, Math.min(maxDistance, dist))
+        cameraController.autoFitFrame(marginFactor)
     }
     
-    // ✅ УЛУЧШЕННАЯ функция resetView с сохранением позиции камеры
     function resetView() {
-        // Сохраняем текущую позицию камеры если она разумная
-        var preserveCamera = (Math.abs(yawDeg) < 720 && 
-                             Math.abs(pitchDeg) < 90 && 
-                             cameraDistance > minDistance && 
-                             cameraDistance < maxDistance)
-        
-        if (preserveCamera) {
-            console.log("🔄 Soft reset: preserving camera position")
-            // Обновляем только pivot, камера остается
-            pivot = Qt.vector3d(0, userBeamSize/2, userFrameLength/2)
-        } else {
-            console.log("🔄 Full reset: resetting camera to defaults")
-            // Полный сброс камеры
-            pivot = Qt.vector3d(0, userBeamSize/2, userFrameLength/2)
-            yawDeg = 225
-            pitchDeg = -25
-            panX = 0
-            panY = 0
-            autoFitFrame()
-        }
-        
-        console.log("🔄 View reset completed: pivot =", pivot, "distance =", cameraDistance)
+        cameraController.resetView()
     }
     
-    // ✅ НОВАЯ функция для полного сброса камеры
     function fullResetView() {
-        console.log("🔄 Full camera reset requested")
-        pivot = Qt.vector3d(0, userBeamSize/2, userFrameLength/2)
-        yawDeg = 225
-        pitchDeg = -25
-        panX = 0
-        panY = 0
-        autoFitFrame()
-        console.log("🔄 Full reset completed")
+        cameraController.fullResetView()
     }
 
     function flagCameraMotion() {
-        if (!cameraIsMoving)
-            cameraIsMoving = true
-        cameraMotionSettler.restart()
+        // Delegate to CameraController
+        cameraController.state.flagMotion()
     }
 
     // ===============================================================
@@ -1290,31 +1241,68 @@ Item {
             emissiveFactor: emissiveVector(jointArmEmissiveColor, jointArmEmissiveIntensity)
         }
 
-        // Camera rig (preserved)
-        Node {
-            id: cameraRig
-            parent: worldRoot
-            position: root.pivot
-            eulerRotation: Qt.vector3d(root.pitchDeg, root.yawDeg, 0)
-
-            Node {
-                id: panNode
-                position: Qt.vector3d(root.panX, root.panY, 0)
-
-                PerspectiveCamera {
-                    id: camera
-                    position: Qt.vector3d(0, 0, root.cameraDistance)
-                    fieldOfView: root.cameraFov
-                    clipNear: root.cameraNear
-                    clipFar: root.cameraFar
-                }
+        // ===============================================================
+        // ✅ PHASE 2: CAMERA SYSTEM (CameraController module)
+        // ===============================================================
+        
+        CameraController {
+            id: cameraController
+            worldRoot: worldRoot
+            view3d: view3d
+            
+            // ✅ Bind to geometry for pivot/fit calculations
+            frameLength: root.userFrameLength
+            frameHeight: root.userFrameHeight
+            beamSize: root.userBeamSize
+            trackWidth: root.userTrackWidth
+            
+            // ✅ Bind to TAA for motion detection
+            taaMotionAdaptive: root.taaMotionAdaptive
+            
+            // ✅ Callback for animation toggle
+            onToggleAnimation: {
+                root.isRunning = !root.isRunning
             }
+            
+            // ✅ Initial camera state
+            Component.onCompleted: {
+                // Sync camera settings from root to CameraState
+                state.fov = root.cameraFov
+                state.nearPlane = root.cameraNear
+                state.farPlane = root.cameraFar
+                state.speed = root.cameraSpeed
+                state.autoRotate = root.autoRotate
+                state.autoRotateSpeed = root.autoRotateSpeed
+                
+                console.log("📷 Camera initialized: distance =", state.distance, "yaw =", state.yawDeg, "pitch =", state.pitchDeg)
+            }
+        }
+        
+        // ✅ PHASE 2: Sync camera settings bidirectionally
+        Connections {
+            target: root
+            function onCameraFovChanged() { if (cameraController.state.fov !== root.cameraFov) cameraController.state.fov = root.cameraFov }
+            function onCameraNearChanged() { if (cameraController.state.nearPlane !== root.cameraNear) cameraController.state.nearPlane = root.cameraNear }
+            function onCameraFarChanged() { if (cameraController.state.farPlane !== root.cameraFar) cameraController.state.farPlane = root.cameraFar }
+            function onCameraSpeedChanged() { if (cameraController.state.speed !== root.cameraSpeed) cameraController.state.speed = root.cameraSpeed }
+            function onAutoRotateChanged() { if (cameraController.state.autoRotate !== root.autoRotate) cameraController.state.autoRotate = root.autoRotate }
+            function onAutoRotateSpeedChanged() { if (cameraController.state.autoRotateSpeed !== root.autoRotateSpeed) cameraController.state.autoRotateSpeed = root.autoRotateSpeed }
+        }
+        
+        Connections {
+            target: cameraController.state
+            function onFovChanged() { if (root.cameraFov !== cameraController.state.fov) root.cameraFov = cameraController.state.fov }
+            function onNearPlaneChanged() { if (root.cameraNear !== cameraController.state.nearPlane) root.cameraNear = cameraController.state.nearPlane }
+            function onFarPlaneChanged() { if (root.cameraFar !== cameraController.state.farPlane) root.cameraFar = cameraController.state.farPlane }
+            function onSpeedChanged() { if (root.cameraSpeed !== cameraController.state.speed) root.cameraSpeed = cameraController.state.speed }
+            function onAutoRotateChanged() { if (root.autoRotate !== cameraController.state.autoRotate) root.autoRotate = cameraController.state.autoRotate }
+            function onAutoRotateSpeedChanged() { if (root.autoRotateSpeed !== cameraController.state.autoRotateSpeed) root.autoRotateSpeed = cameraController.state.autoRotateSpeed }
         }
 
         // Lighting (with shadow softness)
         DirectionalLight {
             id: keyLight
-            parent: keyLightBindToCamera ? cameraRig : worldRoot
+            parent: keyLightBindToCamera ? cameraController.rig : worldRoot
             eulerRotation.x: root.keyLightAngleX
             eulerRotation.y: root.keyLightAngleY
             position: Qt.vector3d(root.keyLightPosX, root.keyLightPosY, 0)
@@ -1341,7 +1329,7 @@ Item {
 
         DirectionalLight {
             id: fillLight
-            parent: fillLightBindToCamera ? cameraRig : worldRoot
+            parent: fillLightBindToCamera ? cameraController.rig : worldRoot
             eulerRotation.x: -60
             eulerRotation.y: 135
             position: Qt.vector3d(root.fillLightPosX, root.fillLightPosY, 0)
@@ -1352,7 +1340,7 @@ Item {
 
         DirectionalLight {
             id: rimLight
-            parent: rimLightBindToCamera ? cameraRig : worldRoot
+            parent: rimLightBindToCamera ? cameraController.rig : worldRoot
             eulerRotation.x: 15
             eulerRotation.y: 180
             position: Qt.vector3d(root.rimLightPosX, root.rimLightPosY, 0)
@@ -1363,7 +1351,7 @@ Item {
 
         PointLight {
             id: accentLight
-            parent: pointLightBindToCamera ? cameraRig : worldRoot
+            parent: pointLightBindToCamera ? cameraController.rig : worldRoot
             position: Qt.vector3d(root.pointLightX, root.pointLightY, 1500)
             brightness: root.pointLightBrightness
             color: root.pointLightColor
@@ -1647,95 +1635,14 @@ Item {
     }
 
     // ===============================================================
-    // ✅ ОПТИМИЗИРОВАННЫЕ MOUSE CONTROLS (preserved)
+    // ✅ PHASE 2: MOUSE CONTROLS (integrated in CameraController)
     // ===============================================================
-
-    MouseArea {
-        anchors.fill: parent
-        hoverEnabled: true
-        acceptedButtons: Qt.LeftButton | Qt.RightButton
-
-        onPressed: (mouse) => {
-            // ✅ ИСПРАВЛЕНО: Правильная инициализация для избежания рывка
-            root.mouseDown = true
-            root.mouseButton = mouse.button
-            root.lastX = mouse.x
-            root.lastY = mouse.y
-
-            if (taaMotionAdaptive)
-                flagCameraMotion()
-
-            console.log("Mouse pressed: button =", mouse.button, "at", mouse.x, mouse.y)
-        }
-
-        onReleased: (mouse) => {
-            root.mouseDown = false
-            root.mouseButton = 0
-            if (taaMotionAdaptive)
-                cameraMotionSettler.restart()
-            console.log("Mouse released")
-        }
-
-        onPositionChanged: (mouse) => {
-            if (!root.mouseDown) return
-                        
-            const dx = mouse.x - root.lastX
-            const dy = mouse.y - root.lastY
-
-            // ✅ ИСПРАВЛЕНО: Проверяем на разумные значения delta для избежания рывков
-            if (Math.abs(dx) > 100 || Math.abs(dy) > 100) {
-                console.log("⚠️ Ignoring large mouse delta:", dx, dy)
-                root.lastX = mouse.x
-                root.lastY = mouse.y
-                return
-            }
-
-            if (root.mouseButton === Qt.LeftButton) {
-                // ✅ ИСПРАВЛЕНО v4.9.4: БЕЗ нормализации - Qt сам знает как интерполировать!
-                root.yawDeg = root.yawDeg - dx * root.rotateSpeed  // Прямое изменение БЕЗ normAngleDeg
-                root.pitchDeg = root.clamp(root.pitchDeg - dy * root.rotateSpeed, -85, 85)
-            } else if (root.mouseButton === Qt.RightButton) {
-                // Panning: move camera in rig's local X/Y
-                const fovRad = camera.fieldOfView * Math.PI / 180.0
-                const worldPerPixel = (2 * root.cameraDistance * Math.tan(fovRad / 2)) / view3d.height
-                const s = worldPerPixel * root.cameraSpeed
-                
-                root.panX -= dx * s
-                root.panY += dy * s
-            }
-
-            root.lastX = mouse.x
-            root.lastY = mouse.y
-
-            if ( taaMotionAdaptive )
-                flagCameraMotion()
-        }
-
-        onWheel: (wheel) => {
-            const zoomFactor = 1.0 + (wheel.angleDelta.y / 1200.0)
-            root.cameraDistance = Math.max(root.minDistance,
-                                     Math.min(root.maxDistance,
-                                              root.cameraDistance * zoomFactor))
-            if (taaMotionAdaptive)
-                flagCameraMotion()
-        }
-
-        onDoubleClicked: () => {
-            console.log("🔄 Double-click: resetting view")
-            resetView()
-        }
-    }
+    
+    // ✅ MouseControls are now part of CameraController - no separate component needed
 
     // ===============================================================
-    // ANIMATION TIMERS (preserved)
+    // ANIMATION TIMERS
     // ===============================================================
-
-    Timer {
-        id: cameraMotionSettler
-        interval: 240
-        repeat: false
-        onTriggered: root.cameraIsMoving = false
-    }
 
     Timer {
         running: isRunning
@@ -1746,17 +1653,8 @@ Item {
         }
     }
     
-    Timer {
-        running: autoRotate
-        interval: 16
-        repeat: true
-        onTriggered: {
-            // ✅ ИСПРАВЛЕНО v4.9.4: БЕЗ нормализации - Qt интерполирует правильно!
-            yawDeg = yawDeg + autoRotateSpeed * 0.016 * 10  // Прямое изменение
-            if (taaMotionAdaptive)
-                flagCameraMotion()
-        }
-    }
+    // ✅ PHASE 2: Auto-rotate timer - integrated in CameraController
+    // Auto-rotation is now handled internally by CameraController
 
     // ===============================================================
     // KEYBOARD SHORTCUTS (preserved)
@@ -1827,8 +1725,8 @@ Item {
             }
             
             Text { 
-                text: "📷 Камера: " + cameraDistance.toFixed(0) + "мм | Pivot: (" + 
-                      pivot.x.toFixed(0) + ", " + pivot.y.toFixed(0) + ", " + pivot.z.toFixed(0)
+                text: "📷 Камера: " + cameraController.distance.toFixed(0) + "мм | Pivot: (" + 
+                      cameraController.pivot.x.toFixed(0) + ", " + cameraController.pivot.y.toFixed(0) + ", " + cameraController.pivot.z.toFixed(0) + ")"
                 color: "#cccccc"
                 font.pixelSize: 10 
             }
@@ -1854,24 +1752,22 @@ Item {
                     "skybox:", iblBackgroundEnabled)
 
         console.log("═══════════════════════════════════════════")
-        console.log("🚀 PneumoStabSim ENHANCED VERSION v4.9.4 LOADED")
+        console.log("🚀 PneumoStabSim PHASE 2 CAMERA SYSTEM v1.0")
         console.log("═══════════════════════════════════════════")
         console.log("🔧 Qt Version:", Qt.version)
         console.log("   Qt Major:", qtMajor, "| Qt Minor:", qtMinor)
         console.log("   Dithering support:", canUseDithering ? "✅ YES (Qt 6.10+)" : "❌ NO (Qt < 6.10)")
         console.log("   Specular AA:", canUseSpecularAA ? "ENABLED" : "DISABLED (temporary workaround)")
+        console.log("✅ PHASE 2: CAMERA SYSTEM MODULAR")
+        console.log("   🎥 CameraController: Integrated")
+        console.log("   🎯 CameraState: 21 properties → 1 module")
+        console.log("   🖱️ MouseControls: Separated")
+        console.log("   🌍 CameraRig: Optimized")
         console.log("✅ CRITICAL FIX v4.9.4:")
         console.log("   🔧 Skybox rotation: INDEPENDENT from camera")
         console.log("   🔧 probeOrientation uses ONLY iblRotationDeg")
         console.log("   🔧 Camera yaw does NOT affect skybox orientation")
         console.log("   🔧 Skybox and camera are COMPLETELY DECOUPLED")
-        console.log("✅ ИСПРАВЛЕНИЯ СВОЙСТВ ExtendedSceneEnvironment:")
-        console.log("   ✅ glowBloom - правильное название")
-        console.log("   ✅ depthOfFieldFocusDistance - правильное название")
-        console.log("   ✅ depthOfFieldFocusRange - правильное название")
-        console.log("   ✅ vignetteRadius - правильное название")
-        console.log("   ✅ vignetteStrength - правильное название")
-        console.log("   ✅ Все свойства проверены по документации Qt Quick 3D")
         console.log("✅ ВСЕ ПАРАМЕТРЫ GRAPHICSPANEL:")
         console.log("   🔥 Коэффициент преломления (IOR):", cylinderIor)
         console.log("   🔥 IBL освещение:", iblLightingEnabled, "| IBL фон:", iblBackgroundEnabled, "| Поворот:", iblRotationDeg.toFixed(1) + "°")
@@ -1879,11 +1775,11 @@ Item {
         console.log("   🔥 Расширенные эффекты: Bloom, SSAO, DoF, Vignette, Lens Flare")
         console.log("   🔥 Dithering:", canUseDithering ? "Enabled" : "Not available")
         console.log("   🔥 Procedural geometry: segments=" + cylinderSegments + ", rings=" + cylinderRings)
-        console.log("🎯 СТАТУС: main.qml v4.9.4 SKYBOX ПОЛНОСТЬЮ ОТВЯЗАН ОТ КАМЕРЫ")
+        console.log("🎯 СТАТУС: PHASE 2 CAMERA INTEGRATION COMPLETE")
         console.log("═══════════════════════════════════════════")
         
         syncRenderSettings()
-        resetView()
+        cameraController.resetView()  // ✅ PHASE 2: delegate to CameraController
         view3d.forceActiveFocus()
     }
 
