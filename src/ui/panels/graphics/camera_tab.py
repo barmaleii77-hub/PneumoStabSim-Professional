@@ -9,7 +9,7 @@ Part of modular GraphicsPanel restructuring
 """
 
 from PySide6.QtWidgets import (
-    QWidget, QVBoxLayout, QGroupBox, QCheckBox, QGridLayout
+    QWidget, QVBoxLayout, QGroupBox, QCheckBox, QGridLayout, QPushButton
 )
 from PySide6.QtCore import Signal
 from typing import Dict, Any
@@ -18,7 +18,7 @@ from .widgets import LabeledSlider
 
 
 class CameraTab(QWidget):
-    """Вкладка настроек камеры: FOV, clipping, auto-rotate
+    """Вкладка настроек камеры: FOV, clipping, auto-rotate, auto-fit
     
     Signals:
         camera_changed: Dict[str, Any] - параметры камеры изменились
@@ -37,7 +37,7 @@ class CameraTab(QWidget):
         self._setup_ui()
     
     def _setup_ui(self):
-        """Построить UI вкладки - ТОЧНО КАК В МОНОЛИТЕ"""
+        """Построить UI вкладки - ТОЧНО КАК В МОНОЛИТЕ + автофит"""
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(12)
@@ -84,6 +84,18 @@ class CameraTab(QWidget):
         rotate_speed.valueChanged.connect(lambda v: self._on_control_changed("auto_rotate_speed", v))
         self._controls["auto_rotate_speed"] = rotate_speed
         grid.addWidget(rotate_speed, 5, 0, 1, 2)
+
+        # Auto-fit checkbox
+        auto_fit = QCheckBox("Автоподгон камеры при изменении геометрии", self)
+        auto_fit.setToolTip("Если включено, камера автоматически центрируется и подгоняется при изменении геометрии. Также доступно двойным кликом по сцене.")
+        auto_fit.clicked.connect(lambda checked: self._on_control_changed("auto_fit", checked))
+        self._controls["auto_fit"] = auto_fit
+        grid.addWidget(auto_fit, 6, 0, 1, 2)
+
+        # Hint button (manual center)
+        hint_btn = QPushButton("Двойной клик по сцене — автофит", self)
+        hint_btn.setEnabled(False)
+        grid.addWidget(hint_btn, 7, 0, 1, 2)
         
         layout.addWidget(group)
         layout.addStretch(1)
@@ -103,7 +115,7 @@ class CameraTab(QWidget):
         """Получить текущее состояние всех параметров камеры
         
         Returns:
-            Словарь с параметрами - ТОЧНО КАК В МОНОЛИТЕ
+            Словарь с параметрами - ТОЧНО КАК В МОНОЛИТЕ + auto_fit
         """
         return {
             'fov': self._controls["fov"].value(),
@@ -112,6 +124,7 @@ class CameraTab(QWidget):
             'speed': self._controls["speed"].value(),
             'auto_rotate': self._controls["auto_rotate"].isChecked(),
             'auto_rotate_speed': self._controls["auto_rotate_speed"].value(),
+            'auto_fit': self._controls["auto_fit"].isChecked(),
         }
     
     def set_state(self, state: Dict[str, Any]):
@@ -148,6 +161,10 @@ class CameraTab(QWidget):
                 self._controls["auto_rotate"].setChecked(state['auto_rotate'])
             if 'auto_rotate_speed' in state:
                 self._controls["auto_rotate_speed"].set_value(state['auto_rotate_speed'])
+
+            # Auto-fit
+            if 'auto_fit' in state:
+                self._controls["auto_fit"].setChecked(state['auto_fit'])
         
         finally:
             # Разблокируем сигналы и UI

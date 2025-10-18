@@ -53,7 +53,7 @@ Item {
         if (updates.effects) { applyEffectsUpdates(updates.effects); applied.effects = true; }
         if (updates.animation) { applyAnimationUpdates(updates.animation); applied.animation = true; }
         batchUpdatesApplied(applied);
-        // Автоподгон камеры после батч-обновлений геометрии
+        // Автоподгон камеры после батч-обновлений геометрии (если включено)
         if (updates.geometry && root.autoFitCameraOnGeometryChange)
             fitCameraToModel(true);
     }
@@ -298,8 +298,8 @@ Item {
     property real cameraNear: 10.0
     property real cameraFar: 50000.0
 
-    // Автонастройка камеры
-    property bool autoFitCameraOnGeometryChange: true
+    // Автонастройка камеры (вкл/выкл из UI; дефолтов в коде нет → false)
+    property bool autoFitCameraOnGeometryChange: false
 
     // Lighting
     property real keyLightBrightness: 1.2
@@ -369,6 +369,29 @@ Item {
     // Auto-rotate camera (optional)
     property bool autoRotateEnabled: false
     property real autoRotateSpeed: 8.0  // deg/sec
+
+    // ================================================================
+    // АНИМАЦИОННЫЕ СВОЙСТВА (ВОССТАНОВЛЕНО)
+    // ================================================================
+    property real animationTime: 0.0
+    property bool isRunning: false
+    property real userAmplitude: 8.0         // градусы
+    property real userFrequency: 1.0         // Гц
+    property real userPhaseGlobal: 0.0       // градусы
+    property real userPhaseFL: 0.0
+    property real userPhaseFR: 0.0
+    property real userPhaseRL: 0.0
+    property real userPhaseRR: 0.0
+
+    property real fl_angle: 0.0
+    property real fr_angle: 0.0
+    property real rl_angle: 0.0
+    property real rr_angle: 0.0
+
+    property real userPistonPositionFL: 250.0
+    property real userPistonPositionFR: 250.0
+    property real userPistonPositionRL: 250.0
+    property real userPistonPositionRR: 250.0
 
     // ================================================================
     // ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ДЛЯ КАМЕРЫ
@@ -745,7 +768,7 @@ Item {
             Text { text: "✅ Frame centered (U-shape, 3 beams)"; color: "#00ff88"; font.pixelSize: 10 }
             Text { text: "✅ 4 Suspension corners (FL, FR, RL, RR)"; color: "#00ff88"; font.pixelSize: 10 }
             Text { text: "✅ IBL loader expects ../hdr/*.hdr relative to assets/qml"; color: "#00ff88"; font.pixelSize: 9 }
-            Text { text: "🖱️ Управление: ЛКМ-орбита, ПКМ-панорама, колесо-зум"; color: "#aaddff"; font.pixelSize: 9 }
+            Text { text: "🖱️ Управление: ЛКМ-орбита, ПКМ-панорама, колесо-зум, двойной клик — автофит"; color: "#aaddff"; font.pixelSize: 9 }
         }
     }
 
@@ -836,6 +859,9 @@ Item {
             updateCameraOrbit()
         }
 
+        // Двойной клик — автофит камеры
+        onDoubleClicked: fitCameraToModel(true)
+
         function updateCameraOrbit() {
             // Вычисляем позицию камеры на орбите
             var yawRad = orbitYaw * Math.PI / 180
@@ -863,8 +889,9 @@ Item {
         }
 
         Component.onCompleted: {
-            // Автоцентрирование камеры на старте
-            fitCameraToModel(true)
+            // Автоцентрирование камеры на старте — только если включено в UI
+            if (root.autoFitCameraOnGeometryChange)
+                fitCameraToModel(true)
         }
 
         // Автовращение камеры
@@ -905,7 +932,7 @@ Item {
 
     Component.onCompleted: {
         console.log("=".repeat(60))
-        console.log("🚀 FULL MODEL LOADED - MODULAR ARCHITECTURE + IBL (centered) + auto camera fit")
+        console.log("🚀 FULL MODEL LOADED - MODULAR ARCHITECTURE + IBL (centered) + auto camera fit toggle")
         console.log("=".repeat(60))
     }
 }
