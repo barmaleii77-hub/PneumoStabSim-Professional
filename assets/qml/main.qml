@@ -53,6 +53,9 @@ Item {
         if (updates.effects) { applyEffectsUpdates(updates.effects); applied.effects = true; }
         if (updates.animation) { applyAnimationUpdates(updates.animation); applied.animation = true; }
         batchUpdatesApplied(applied);
+        // Автоподгон камеры после батч-обновлений геометрии
+        if (updates.geometry && root.autoFitCameraOnGeometryChange)
+            fitCameraToModel(true);
     }
 
     function applyGeometryUpdates(p) {
@@ -84,6 +87,9 @@ Item {
         // Автовращение камеры (необязательно)
         if (typeof p.auto_rotate_enabled === 'boolean') root.autoRotateEnabled = p.auto_rotate_enabled;
         if (typeof p.auto_rotate_speed === 'number') root.autoRotateSpeed = p.auto_rotate_speed;
+        // Вспомогательно: автоподгон
+        if (typeof p.auto_fit === 'boolean') root.autoFitCameraOnGeometryChange = p.auto_fit;
+        if (typeof p.center_camera === 'boolean' && p.center_camera) fitCameraToModel(true);
     }
 
     function applyLightingUpdates(p) {
@@ -287,31 +293,13 @@ Item {
     property real userPistonThickness: 25
     property real userPistonRodLength: 200
 
-    // Animation params
-    property real animationTime: 0.0
-    property bool isRunning: false
-    property real userAmplitude: 8.0         // в градусах
-    property real userFrequency: 1.0         // Гц
-    property real userPhaseGlobal: 0.0       // градусы
-    property real userPhaseFL: 0.0
-    property real userPhaseFR: 0.0
-    property real userPhaseRL: 0.0
-    property real userPhaseRR: 0.0
-
-    property real fl_angle: 0.0
-    property real fr_angle: 0.0
-    property real rl_angle: 0.0
-    property real rr_angle: 0.0
-
-    property real userPistonPositionFL: 250.0
-    property real userPistonPositionFR: 250.0
-    property real userPistonPositionRL: 250.0
-    property real userPistonPositionRR: 250.0
-
     // Camera
     property real cameraFov: 60.0
     property real cameraNear: 10.0
     property real cameraFar: 50000.0
+
+    // Автонастройка камеры
+    property bool autoFitCameraOnGeometryChange: true
 
     // Lighting
     property real keyLightBrightness: 1.2
@@ -381,6 +369,39 @@ Item {
     // Auto-rotate camera (optional)
     property bool autoRotateEnabled: false
     property real autoRotateSpeed: 8.0  // deg/sec
+
+    // ================================================================
+    // ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ДЛЯ КАМЕРЫ
+    // ================================================================
+
+    // Центр модели (по X/Z = 0, по Y = середина высоты рамы)
+    function getModelCenter() {
+        return Qt.vector3d(0, root.userBeamSize + root.userFrameHeight / 2.0, 0)
+    }
+
+    // Приближённый радиус модели для подгонки под FOV
+    function getModelRadius() {
+        var halfX = Math.max(root.userTrackWidth/2.0, root.userFrameToPivot + root.userLeverLength)
+        var halfY = (root.userBeamSize + root.userFrameHeight) * 0.6 // центрированная половина высоты
+        var halfZ = root.userFrameLength/2.0
+        var r = Math.sqrt(halfX*halfX + halfY*halfY + halfZ*halfZ)
+        return r * 1.05 // небольшой запас
+    }
+
+    // Подогнать камеру под модель (центрировать + выставить расстояние по FOV)
+    function fitCameraToModel(adjustDistance) {
+        var center = getModelCenter()
+        // Обновляем цель орбиты
+        mouseControls.orbitTarget = center
+        // Опционально обновляем дистанцию
+        if (adjustDistance) {
+            var r = getModelRadius()
+            var fovRad = (root.cameraFov || 60) * Math.PI / 180.0
+            var dist = r / Math.sin(Math.min(Math.PI/3, fovRad/2.0)) + 300 // доп. отступ
+            mouseControls.orbitDistance = Math.max(500, Math.min(30000, dist))
+        }
+        mouseControls.updateCameraOrbit()
+    }
 
     // ================================================================
     // MATERIALS - Создаём ЗАРАНЕЕ для передачи в компоненты
@@ -481,7 +502,7 @@ Item {
             clearColor: root.backgroundColor
             antialiasingMode: SceneEnvironment.MSAA
             antialiasingQuality: SceneEnvironment.High
-            // ВАЖНО: Skybox не должен пропадать при выключении IBL — probe остаётся подключённым
+            // ВАЖНО: Skybox независим от положения камеры; поворот управляется только iblRotationDeg
             lightProbe: iblProbe.ready ? iblProbe.probe : null
             probeExposure: root.iblLightingEnabled ? root.iblIntensity : 0.0
             probeOrientation: Qt.vector3d(0, root.iblRotationDeg, 0)
@@ -494,10 +515,10 @@ Item {
         Node {
             id: worldRoot
 
-            // Камера нацелена в центр сцены (0, 400, 0)
+            // Камера нацелена в центр сцены (центр модели)
             Node {
                 id: cameraRig
-                position: Qt.vector3d(0, 400, 0)
+                position: getModelCenter()
 
                 PerspectiveCamera {
                     id: camera
@@ -542,8 +563,6 @@ Item {
             readonly property real pivotZRear:   root.userFrameLength/2 - root.userBeamSize/2
 
             // === Поперечные координаты X ===
-            // «Колея» управляет положением ХВОСТОВИКА ЦИЛИНДРА (j_tail) — ±trackWidth/2
-            // «Рама → ось рычага» (userFrameToPivot) — абсолют от центра: НЕ зависит от «колеи»
             function armXLeft()  { return -root.userFrameToPivot }
             function armXRight() { return  root.userFrameToPivot }
             function tailXLeft() { return -root.userTrackWidth/2 }
@@ -554,12 +573,12 @@ Item {
                 id: flCorner
 
                 j_arm: Qt.vector3d(
-                    worldRoot.armXLeft(),      // X: Рама→ось рычага (от центра), НЕ зависит от колеи
-                    root.userBeamSize,         // Y = верх нижней балки
-                    worldRoot.pivotZFront      // Z = плоскость передних рогов
+                    worldRoot.armXLeft(),
+                    root.userBeamSize,
+                    worldRoot.pivotZFront
                 )
                 j_tail: Qt.vector3d(
-                    worldRoot.tailXLeft(),     // X: завязан на «колею»
+                    worldRoot.tailXLeft(),
                     root.userBeamSize + root.userFrameHeight,
                     worldRoot.pivotZFront
                 )
@@ -592,12 +611,12 @@ Item {
                 id: frCorner
 
                 j_arm: Qt.vector3d(
-                    worldRoot.armXRight(),     // НЕ зависит от колеи
+                    worldRoot.armXRight(),
                     root.userBeamSize,
                     worldRoot.pivotZFront
                 )
                 j_tail: Qt.vector3d(
-                    worldRoot.tailXRight(),    // зависит от колеи
+                    worldRoot.tailXRight(),
                     root.userBeamSize + root.userFrameHeight,
                     worldRoot.pivotZFront
                 )
@@ -735,6 +754,7 @@ Item {
     // ===============================================================
 
     MouseArea {
+        id: mouseControls
         anchors.fill: parent
         acceptedButtons: Qt.LeftButton | Qt.RightButton
 
@@ -747,7 +767,7 @@ Item {
         property real orbitYaw: 30        // Горизонтальный угол (вокруг Y)
         property real orbitPitch: -20     // Вертикальный угол (вокруг X)
         property real orbitDistance: 4000 // Расстояние камеры
-        property vector3d orbitTarget: Qt.vector3d(0, 400, 0)
+        property vector3d orbitTarget: getModelCenter()
 
         // Скорости управления
         property real rotateSpeed: 0.35
@@ -843,7 +863,8 @@ Item {
         }
 
         Component.onCompleted: {
-            updateCameraOrbit()
+            // Автоцентрирование камеры на старте
+            fitCameraToModel(true)
         }
 
         // Автовращение камеры
@@ -884,7 +905,7 @@ Item {
 
     Component.onCompleted: {
         console.log("=".repeat(60))
-        console.log("🚀 FULL MODEL LOADED - MODULAR ARCHITECTURE + IBL (centered)")
+        console.log("🚀 FULL MODEL LOADED - MODULAR ARCHITECTURE + IBL (centered) + auto camera fit")
         console.log("=".repeat(60))
     }
 }
