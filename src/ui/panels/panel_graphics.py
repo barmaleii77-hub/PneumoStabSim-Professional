@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """Graphics panel providing exhaustive Qt Quick 3D controls.
 
 Панель настроек графики с полным управлением параметрами Qt Quick 3D.
@@ -2474,8 +2475,23 @@ class GraphicsPanel(QWidget):
     @Slot()
     def save_settings(self) -> None:
         try:
-            # ✅ НОВОЕ: Сохраняем через SettingsManager
-            self.settings_manager.save_settings(self.state)
+            # ✅ ИСПРАВЛЕНО: Вызываем метод save() у _settings_manager
+            # SettingsManager не имеет метода save_settings(), есть save()
+            category_data = {
+                "graphics": {
+                    "lighting": self.state.get("lighting", {}),
+                    "environment": self.state.get("environment", {}),
+                    "quality": self.state.get("quality", {}),
+                    "camera": self.state.get("camera", {}),
+                    "effects": self.state.get("effects", {}),
+                    "materials": self.state.get("materials", {})
+                }
+            }
+            # Сохраняем через set_category() для каждой подкатегории
+            for key, value in category_data["graphics"].items():
+                self._settings_manager.set(f"graphics.{key}", value, auto_save=False)
+            # Сохраняем один раз в конце
+            self._settings_manager.save()
             self.logger.info("Graphics settings saved")
         except Exception as e:
             self.logger.error(f"Failed to save settings: {e}")
@@ -2483,20 +2499,18 @@ class GraphicsPanel(QWidget):
     @Slot()
     def load_settings(self) -> None:
         try:
-            # ✅ НОВОЕ: Загружаем через SettingsManager
-            loaded_state = self.settings_manager.load_settings()
-
-            # ✅ Дополнительное логирование загрузки настроек
-            self.logger.info(f"Loaded settings: {json.dumps(loaded_state, ensure_ascii=False, indent=2)}")
-
+            # ✅ ИСПРАВЛЕНО: Загружаем через get() для каждой категории
+            # SettingsManager не имеет метода load_settings(), есть load() + get()
             for category in self.state.keys():
-                value = loaded_state.get(category)
+                # Загружаем данные из SettingsManager
+                value = self._settings_manager.get(f"graphics.{category}")
                 if value:
                     try:
                         self._deep_update(self.state[category], value)
-                    except json.JSONDecodeError as e:
-                        self.logger.warning(f"Failed to parse {category} settings: {e}")
+                    except Exception as e:
+                        self.logger.warning(f"Failed to update {category} settings: {e}")
             self.logger.info("Graphics settings loaded")
+            
             # ✅ После загрузки состояния принудительно обновляем HDR ComboBox,
             # чтобы отразить сохранённый путь и избежать ложного плейсхолдера
             try:

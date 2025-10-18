@@ -1388,6 +1388,33 @@ Item {
         // SUSPENSION SYSTEM GEOMETRY (with IOR support)
         // ===============================================================
 
+        // U-FRAME (3 beams) with controlled materials
+        Model {
+            parent: worldRoot
+            source: "#Cube"
+            position: Qt.vector3d(0, userBeamSize/2, userFrameLength/2)
+            scale: Qt.vector3d(userBeamSize/100, userBeamSize/100, userFrameLength/100)
+            materials: [materials.frameMaterial]
+        }
+        Model {
+            parent: worldRoot
+            source: "#Cube"
+            position: Qt.vector3d(0, userBeamSize + userFrameHeight/2, userBeamSize/2)
+            scale: Qt.vector3d(userBeamSize/100, userFrameHeight/100, userBeamSize/100)
+            materials: [materials.frameMaterial]
+        }
+        Model {
+            parent: worldRoot
+            source: "#Cube"
+            position: Qt.vector3d(0, userBeamSize + userFrameHeight/2, userFrameLength - userBeamSize/2)
+            scale: Qt.vector3d(userBeamSize/100, userFrameHeight/100, userBeamSize/100)
+            materials: [materials.frameMaterial]
+        }
+
+        // ===============================================================
+        // ✅ SUSPENSION SYSTEM - МОДУЛЬНЫЕ КОМПОНЕНТЫ
+        // ===============================================================
+        
         // ✅ Frame component - централизованный U-образный корпус
         Frame {
             id: mainFrame
