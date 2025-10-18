@@ -8,6 +8,7 @@ Russian comments / English code.
 from __future__ import annotations
 
 import logging
+from pathlib import Path
 from typing import TYPE_CHECKING, Any, Dict
 
 from PySide6.QtCore import QByteArray, QSettings
@@ -123,42 +124,81 @@ class StateSync:
         """
         from .qml_bridge import QMLBridge
         
-        # Reset QML defaults first
+        # Мягкий сброс вида (если реализовано в QML)
         try:
             QMLBridge.invoke_qml_function(window, "fullResetView")
         except Exception:
             pass
         
-        if not window.graphics_panel:
+        if not getattr(window, "graphics_panel", None):
             return
         
         try:
-            pending: Dict[str, Any] = {}
+            # ✅ Берём полное состояние из публичного API панели
+            full_state: Dict[str, Any] = {}
+            try:
+                if hasattr(window.graphics_panel, "collect_state"):
+                    full_state = window.graphics_panel.collect_state() or {}
+                elif hasattr(window.graphics_panel, "get_state"):
+                    # Fallback: некоторые панели могут иметь get_state()
+                    full_state = window.graphics_panel.get_state() or {}
+            except Exception as ex:
+                StateSync.logger.warning(f"GraphicsPanel state read failed: {ex}")
+                full_state = {}
             
-            # Gather all graphics settings
-            pending["lighting"] = window.graphics_panel._prepare_lighting_payload()
-            pending["environment"] = window.graphics_panel._prepare_environment_payload()
-            pending["materials"] = window.graphics_panel._prepare_materials_payload()
-            pending["quality"] = window.graphics_panel._prepare_quality_payload()
-            pending["camera"] = window.graphics_panel._prepare_camera_payload()
-            pending["effects"] = window.graphics_panel._prepare_effects_payload()
-            
-            # Send as batch
-            if not QMLBridge._push_batched_updates(window, pending):
-                # Fallback: individual calls
-                for cat, payload in pending.items():
-                    methods = QMLBridge.QML_UPDATE_METHODS.get(cat, ())
-                    sent = False
-                    for m in methods:
-                        if QMLBridge.invoke_qml_function(window, m, payload):
-                            sent = True
+            # ✅ Инициализация окружения по умолчанию (HDR IBL и skybox)
+            env = full_state.get("environment") if isinstance(full_state.get("environment"), dict) else {}
+            changed_env = False
+            try:
+                hdr_dir = Path("assets/hdr")
+                qml_dir = Path("assets/qml").resolve()
+                if (not env) or (not env.get("ibl_source")):
+                    # Ищем первый HDR файл
+                    hdr_path: Path | None = None
+                    if hdr_dir.exists():
+                        for p in hdr_dir.glob("*.hdr"):
+                            hdr_path = p
                             break
-                    QMLBridge._log_graphics_change(window, cat, payload, applied=sent)
-            else:
-                # Wait for ACK
-                window._last_batched_updates = pending
+                    if hdr_path:
+                        rel = (hdr_path.resolve().relative_to(qml_dir)).as_posix() if hdr_path.is_absolute() else ("../hdr/" + hdr_path.name)
+                        env = env or {}
+                        env.setdefault("background_mode", "skybox")
+                        env.setdefault("skybox_enabled", True)
+                        env.setdefault("ibl_enabled", True)
+                        env.setdefault("ibl_intensity", 1.0)
+                        env.setdefault("ibl_rotation", 0.0)
+                        env["ibl_source"] = rel
+                        # fallback = тот же файл (или другой, если есть)
+                        env.setdefault("ibl_fallback", rel)
+                        full_state["environment"] = env
+                        changed_env = True
+            except Exception:
+                pass
             
-            StateSync.logger.info("✅ Initial full sync completed")
+            if not isinstance(full_state, dict) or not full_state:
+                StateSync.logger.info("No graphics state to sync on startup")
+                return
+            
+            # ✅ Пытаемся отправить одним батчем
+            if QMLBridge._push_batched_updates(window, full_state):
+                window._last_batched_updates = full_state
+                StateSync.logger.info("Initial full sync pushed as batch" + (" (env defaults applied)" if changed_env else ""))
+                return
+            
+            # 🔁 Fallback: по категориям
+            for cat, payload in full_state.items():
+                if not isinstance(payload, dict):
+                    continue
+                methods = QMLBridge.QML_UPDATE_METHODS.get(str(cat), ())
+                sent = False
+                for m in methods:
+                    if QMLBridge.invoke_qml_function(window, m, payload):
+                        sent = True
+                        break
+                # Лог в GraphicsLogger (если доступен)
+                QMLBridge._log_graphics_change(window, str(cat), payload, applied=sent)
+            
+            StateSync.logger.info("✅ Initial full sync completed" + (" (env defaults applied)" if changed_env else ""))
         except Exception as e:
             StateSync.logger.error(f"Initial full sync failed: {e}")
     

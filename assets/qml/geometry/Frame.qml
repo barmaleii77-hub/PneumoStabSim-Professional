@@ -25,31 +25,33 @@ Node {
     
     // ===============================================================
     // FRAME GEOMETRY (3 beams forming U-shape)
+    // Центрируем U-раму относительно нуля координат по оси Z.
+    // Нижняя балка проходит от -L/2 до +L/2, стойки на концах.
     // ===============================================================
     
-    // 1. BOTTOM BEAM (horizontal, along Z axis)
+    // 1. BOTTOM BEAM (horizontal, along Z axis) — центр по Z в 0
     Model {
         parent: worldRoot
         source: "#Cube"
-        position: Qt.vector3d(0, beamSize/2, frameLength/2)
+        position: Qt.vector3d(0, beamSize/2, 0)
         scale: Qt.vector3d(beamSize/100, beamSize/100, frameLength/100)
         materials: [frameMaterial]
     }
     
-    // 2. FRONT VERTICAL BEAM (at Z = beamSize/2)
+    // 2. FRONT VERTICAL BEAM (at Z = -frameLength/2 + beamSize/2)
     Model {
         parent: worldRoot
         source: "#Cube"
-        position: Qt.vector3d(0, beamSize + frameHeight/2, beamSize/2)
+        position: Qt.vector3d(0, beamSize + frameHeight/2, -frameLength/2 + beamSize/2)
         scale: Qt.vector3d(beamSize/100, frameHeight/100, beamSize/100)
         materials: [frameMaterial]
     }
     
-    // 3. REAR VERTICAL BEAM (at Z = frameLength - beamSize/2)
+    // 3. REAR VERTICAL BEAM (at Z = +frameLength/2 - beamSize/2)
     Model {
         parent: worldRoot
         source: "#Cube"
-        position: Qt.vector3d(0, beamSize + frameHeight/2, frameLength - beamSize/2)
+        position: Qt.vector3d(0, beamSize + frameHeight/2, frameLength/2 - beamSize/2)
         scale: Qt.vector3d(beamSize/100, frameHeight/100, beamSize/100)
         materials: [frameMaterial]
     }
@@ -59,6 +61,6 @@ Node {
     // ===============================================================
     
     Component.onCompleted: {
-        console.log("🏗️ Frame initialized: " + beamSize + " × " + frameHeight + " × " + frameLength + " mm")
+        console.log("🏗️ Frame initialized (centered): " + beamSize + " × " + frameHeight + " × " + frameLength + " mm")
     }
 }

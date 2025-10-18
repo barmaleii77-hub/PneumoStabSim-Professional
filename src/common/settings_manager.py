@@ -98,6 +98,9 @@ class SettingsManager:
             bool: True если успешно
         """
         try:
+            # Гарантируем наличие директории
+            self.settings_file.parent.mkdir(parents=True, exist_ok=True)
+            
             # Обновляем metadata
             self._metadata["last_modified"] = datetime.now().isoformat()
             

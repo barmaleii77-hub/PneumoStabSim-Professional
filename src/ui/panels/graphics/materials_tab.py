@@ -56,12 +56,12 @@ class MaterialsTab(QWidget):
         self._setup_ui()
     
     def _setup_ui(self):
-        """Построить UI вкладки - ТОЧНО КАК В МОНОЛИТЕ"""
+        """Построить UI вкладки - ОБНОВЛЁННАЯ ВЕРСИЯ ДЛЯ Qt 6.10"""
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(12)
         
-        # ✅ ТОЧНО КАК В МОНОЛИТЕ - селектор компонента
+        # Селектор компонента
         selector_row = QHBoxLayout()
         selector_row.addWidget(QLabel("Компонент", self))
         self._material_selector = QComboBox(self)
@@ -72,8 +72,8 @@ class MaterialsTab(QWidget):
         selector_row.addStretch(1)
         layout.addLayout(selector_row)
         
-        # ✅ ТОЧНО КАК В МОНОЛИТЕ - группа параметров материала
-        group = QGroupBox("Параметры материала", self)
+        # Группа параметров материала - ТОЛЬКО ПОДДЕРЖИВАЕМЫЕ СВОЙСТВА Qt 6.10
+        group = QGroupBox("Параметры материала (Qt 6.10 PrincipledMaterial)", self)
         grid = QGridLayout(group)
         grid.setContentsMargins(8, 8, 8, 8)
         grid.setHorizontalSpacing(12)
@@ -81,56 +81,30 @@ class MaterialsTab(QWidget):
         
         row = 0
         
-        # Base color
+        # ===== БАЗОВЫЕ ЦВЕТА =====
         row = self._add_color_control(grid, row, "Базовый цвет", "base_color")
         
-        # Metalness
+        # ===== METALNESS & ROUGHNESS =====
         row = self._add_slider_control(grid, row, "Металличность", "metalness", 0.0, 1.0, 0.01)
-        
-        # Roughness
         row = self._add_slider_control(grid, row, "Шероховатость", "roughness", 0.0, 1.0, 0.01)
         
-        # Specular
-        row = self._add_slider_control(grid, row, "Specular", "specular", 0.0, 1.0, 0.01)
+        # ===== SPECULAR (НОВОЕ!) =====
+        row = self._add_slider_control(grid, row, "Specular Amount", "specular", 0.0, 1.0, 0.01)
+        row = self._add_color_control(grid, row, "Specular Tint", "specular_tint")
         
-        # Specular Tint
-        row = self._add_slider_control(grid, row, "Specular Tint", "specular_tint", 0.0, 1.0, 0.01)
-        
-        # Clearcoat
-        row = self._add_slider_control(grid, row, "Clearcoat", "clearcoat", 0.0, 1.0, 0.01)
-        
-        # Clearcoat roughness
-        row = self._add_slider_control(grid, row, "Шероховатость лака", "clearcoat_roughness", 0.0, 1.0, 0.01)
-        
-        # Transmission
-        row = self._add_slider_control(grid, row, "Пропускание", "transmission", 0.0, 1.0, 0.01)
-        
-        # Opacity
+        # ===== ПРОЗРАЧНОСТЬ =====
         row = self._add_slider_control(grid, row, "Непрозрачность", "opacity", 0.0, 1.0, 0.01)
         
-        # Index of Refraction
-        row = self._add_slider_control(grid, row, "Index of Refraction", "ior", 1.0, 3.0, 0.01)
-        
-        # Attenuation distance
-        row = self._add_slider_control(grid, row, "Attenuation distance", "attenuation_distance", 0.0, 10000.0, 10.0, decimals=1)
-        
-        # Attenuation color
-        row = self._add_color_control(grid, row, "Attenuation color", "attenuation_color")
-        
-        # Emissive color
+        # ===== EMISSIVE (ИЗЛУЧЕНИЕ) =====
         row = self._add_color_control(grid, row, "Излучающий цвет", "emissive_color")
-        
-        # Emissive intensity
         row = self._add_slider_control(grid, row, "Яркость излучения", "emissive_intensity", 0.0, 5.0, 0.05)
         
-        # Warning color
-        row = self._add_color_control(grid, row, "Цвет предупреждения", "warning_color")
+        # ===== NORMAL MAP =====
+        # TODO: Добавить чекбокс + file picker для normalMap
+        row = self._add_slider_control(grid, row, "Normal Strength", "normal_strength", 0.0, 2.0, 0.05)
         
-        # OK color
-        row = self._add_color_control(grid, row, "Цвет OK", "ok_color")
-        
-        # Error color
-        row = self._add_color_control(grid, row, "Цвет ошибки", "error_color")
+        # ===== OCCLUSION =====
+        row = self._add_slider_control(grid, row, "Occlusion Amount", "occlusion_amount", 0.0, 1.0, 0.01)
         
         layout.addWidget(group)
         layout.addStretch(1)
@@ -195,26 +169,19 @@ class MaterialsTab(QWidget):
         """Получить состояние ТЕКУЩЕГО выбранного материала
         
         Returns:
-            Словарь с параметрами одного материала (17 параметров)
+            Словарь с параметрами одного материала (Qt 6.10 совместимые)
         """
         return {
             "base_color": self._controls["base_color"].color().name(),
             "metalness": self._controls["metalness"].value(),
             "roughness": self._controls["roughness"].value(),
             "specular": self._controls["specular"].value(),
-            "specular_tint": self._controls["specular_tint"].value(),
-            "clearcoat": self._controls["clearcoat"].value(),
-            "clearcoat_roughness": self._controls["clearcoat_roughness"].value(),
-            "transmission": self._controls["transmission"].value(),
+            "specular_tint": self._controls["specular_tint"].color().name(),
             "opacity": self._controls["opacity"].value(),
-            "ior": self._controls["ior"].value(),
-            "attenuation_distance": self._controls["attenuation_distance"].value(),
-            "attenuation_color": self._controls["attenuation_color"].color().name(),
             "emissive_color": self._controls["emissive_color"].color().name(),
             "emissive_intensity": self._controls["emissive_intensity"].value(),
-            "warning_color": self._controls["warning_color"].color().name(),
-            "ok_color": self._controls["ok_color"].color().name(),
-            "error_color": self._controls["error_color"].color().name(),
+            "normal_strength": self._controls["normal_strength"].value(),
+            "occlusion_amount": self._controls["occlusion_amount"].value(),
         }
     
     def get_state(self) -> Dict[str, Any]:
@@ -244,7 +211,7 @@ class MaterialsTab(QWidget):
         
         Args:
             material_key: Ключ материала (frame, lever, tail, ...)
-            state: Словарь с параметрами материала
+            state: Словарь с параметрами материала (Qt 6.10 совместимые)
         """
         # Переключаемся на нужный материал
         index = self._material_selector.findData(material_key)
@@ -260,7 +227,7 @@ class MaterialsTab(QWidget):
                 pass
         
         try:
-            # Устанавливаем параметры
+            # Устанавливаем параметры (ТОЛЬКО ПОДДЕРЖИВАЕМЫЕ Qt 6.10)
             if "base_color" in state:
                 self._controls["base_color"].set_color(state["base_color"])
             if "metalness" in state:
@@ -270,31 +237,17 @@ class MaterialsTab(QWidget):
             if "specular" in state:
                 self._controls["specular"].set_value(state["specular"])
             if "specular_tint" in state:
-                self._controls["specular_tint"].set_value(state["specular_tint"])
-            if "clearcoat" in state:
-                self._controls["clearcoat"].set_value(state["clearcoat"])
-            if "clearcoat_roughness" in state:
-                self._controls["clearcoat_roughness"].set_value(state["clearcoat_roughness"])
-            if "transmission" in state:
-                self._controls["transmission"].set_value(state["transmission"])
+                self._controls["specular_tint"].set_color(state["specular_tint"])
             if "opacity" in state:
                 self._controls["opacity"].set_value(state["opacity"])
-            if "ior" in state:
-                self._controls["ior"].set_value(state["ior"])
-            if "attenuation_distance" in state:
-                self._controls["attenuation_distance"].set_value(state["attenuation_distance"])
-            if "attenuation_color" in state:
-                self._controls["attenuation_color"].set_color(state["attenuation_color"])
             if "emissive_color" in state:
                 self._controls["emissive_color"].set_color(state["emissive_color"])
             if "emissive_intensity" in state:
                 self._controls["emissive_intensity"].set_value(state["emissive_intensity"])
-            if "warning_color" in state:
-                self._controls["warning_color"].set_color(state["warning_color"])
-            if "ok_color" in state:
-                self._controls["ok_color"].set_color(state["ok_color"])
-            if "error_color" in state:
-                self._controls["error_color"].set_color(state["error_color"])
+            if "normal_strength" in state:
+                self._controls["normal_strength"].set_value(state["normal_strength"])
+            if "occlusion_amount" in state:
+                self._controls["occlusion_amount"].set_value(state["occlusion_amount"])
         
         finally:
             # Разблокируем сигналы

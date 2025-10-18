@@ -6,6 +6,16 @@ Main application entry point - MODULAR VERSION v4.9.5
 import sys
 
 # =============================================================================
+# Bootstrap Phase 0: .env
+# =============================================================================
+# Загружаем переменные окружения из .env до настройки Qt
+try:
+    from dotenv import load_dotenv  # type: ignore
+    load_dotenv()
+except Exception:
+    pass
+
+# =============================================================================
 # Bootstrap Phase 1: Environment & Terminal
 # =============================================================================
 

@@ -55,7 +55,7 @@
     "graphics": {
       "lighting": {
         "key": {
-          "brightness": 1.2,
+          "brightness": 4.6,
           "color": "#ffffff",
           "angle_x": -35.0,
           "angle_y": -40.0,
@@ -65,11 +65,11 @@
           "position_y": 0.0
         },
         "fill": {
-          "brightness": 0.7,
+          "brightness": 3.3,
           "color": "#dfe7ff",
-          "cast_shadow": false,
+          "cast_shadow": true,
           "bind_to_camera": false,
-          "position_x": 0.0,
+          "position_x": -780.0,
           "position_y": 0.0
         },
         "rim": {
@@ -97,7 +97,7 @@
         "ibl_enabled": true,
         "ibl_intensity": 1.3,
         "ibl_rotation": 0.0,
-        "ibl_source": "",
+        "ibl_source": "../hdr/adams_place_bridge_4k.exr",
         "ibl_fallback": "",
         "skybox_blur": 0.08,
         "ibl_offset_x": 0.0,
@@ -138,18 +138,18 @@
         "oit": "weighted"
       },
       "camera": {
-        "fov": 60.0,
-        "near": 10.0,
-        "far": 50000.0,
-        "speed": 1.0,
-        "auto_rotate": false,
+        "fov": 116.0,
+        "near": 23.0,
+        "far": 100000.0,
+        "speed": 0.3,
+        "auto_rotate": true,
         "auto_rotate_speed": 1.0
       },
       "materials": {
         "current_material": "joint_arm",
         "joint_arm": {
           "base_color": "#ff9c3a",
-          "metalness": 0.9,
+          "metalness": 0.74,
           "roughness": 0.32,
           "specular": 1.0,
           "specular_tint": 0.0,
@@ -168,15 +168,15 @@
         }
       },
       "effects": {
-        "bloom_enabled": false,
+        "bloom_enabled": true,
         "bloom_intensity": 0.5,
         "bloom_threshold": 1.0,
         "bloom_spread": 0.65,
-        "bloom_glow_strength": 0.0,
-        "bloom_hdr_max": 0.0,
-        "bloom_hdr_scale": 1.0,
-        "bloom_quality_high": false,
-        "bloom_bicubic_upscale": false,
+        "bloom_glow_strength": 1.24,
+        "bloom_hdr_max": 6.9,
+        "bloom_hdr_scale": 4.1,
+        "bloom_quality_high": true,
+        "bloom_bicubic_upscale": true,
         "tonemap_enabled": true,
         "tonemap_mode": "filmic",
         "tonemap_exposure": 1.0,
@@ -736,7 +736,7 @@
   },
   "metadata": {
     "version": "4.9.5",
-    "last_modified": "2025-10-18T17:21:37.945895",
+    "last_modified": "2025-10-18T21:08:45.294138",
     "migrated_from": "src/ui/panels/graphics/defaults.py",
     "migration_date": "2025-10-18",
     "total_parameters": 241,
