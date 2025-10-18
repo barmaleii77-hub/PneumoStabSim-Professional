@@ -5,18 +5,17 @@ Graphics Panel - модульная реструктуризация
 
 СТРУКТУРА МОДУЛЯ:
 - widgets.py: Переиспользуемые UI компоненты (ColorButton, LabeledSlider)
-- defaults.py: Дефолтные настройки и пресеты
 - lighting_tab.py: Вкладка освещения
 - environment_tab.py: Вкладка окружения (фон, IBL, туман)
 - quality_tab.py: Вкладка качества (тени, AA)
 - camera_tab.py: Вкладка камеры (FOV, clipping)
 - materials_tab.py: Вкладка материалов (PBR)
 - effects_tab.py: Вкладка эффектов (Bloom, SSAO, DoF)
-- state_manager.py: Управление состоянием (QSettings)
-- panel_graphics_refactored.py: ✅ НОВЫЙ рефакторенный координатор (~300 строк)
+- state_manager.py: Управление состоянием
+- panel_graphics_refactored.py: ✅ НОВЫЙ рефакторенный координатор v3.0 (SettingsManager)
 - panel_graphics.py: ⚠️ LEGACY монолитная версия (~2600 строк)
 
-MIGRATION STATUS: ✅ Рефакторинг завершён!
+MIGRATION STATUS: ✅ Рефакторинг завершён! v3.0 - SettingsManager integrated
 """
 
 # ✅ REFACTORED VERSION: Используем новый модульный координатор
@@ -41,10 +40,12 @@ from .effects_tab import EffectsTab
 # Экспорт вспомогательных модулей
 from .widgets import ColorButton, LabeledSlider
 from .state_manager import GraphicsStateManager
-from .defaults import build_defaults, build_quality_presets
+
+# ✅ НОВОЕ: SettingsManager вместо defaults.py
+from src.common.settings_manager import get_settings_manager
 
 __all__ = [
-    # ✅ Главный класс (REFACTORED!)
+    # ✅ Главный класс (REFACTORED v3.0!)
     'GraphicsPanel',
     
     # Вкладки
@@ -61,14 +62,13 @@ __all__ = [
     
     # Утилиты
     'GraphicsStateManager',
-    'build_defaults',
-    'build_quality_presets'
+    'get_settings_manager',  # ✅ НОВОЕ: Экспорт SettingsManager
 ]
 
 # Вывод статуса загрузки
 import logging
 _logger = logging.getLogger(__name__)
 if _USING_REFACTORED:
-    _logger.info("✅ GraphicsPanel: REFACTORED version loaded (~300 lines)")
+    _logger.info("✅ GraphicsPanel: REFACTORED version v3.0 loaded (SettingsManager)")
 else:
     _logger.warning("⚠️ GraphicsPanel: Using LEGACY version (~2600 lines) - migration incomplete")

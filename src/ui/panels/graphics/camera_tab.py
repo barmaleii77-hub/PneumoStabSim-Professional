@@ -1,12 +1,15 @@
 # -*- coding: utf-8 -*-
 """
-Camera Tab - вкладка настроек камеры (FOV, clipping, auto-rotate)
+Camera Tab - вкладка настроек камеры
 Part of modular GraphicsPanel restructuring
+
+СТРУКТУРА ТОЧНО ПОВТОРЯЕТ МОНОЛИТ panel_graphics.py (строки 1303-1370):
+- Одна группа "Камера" со всеми параметрами
+- FOV, near, far, speed, auto_rotate, auto_rotate_speed
 """
 
 from PySide6.QtWidgets import (
-    QWidget, QVBoxLayout, QGroupBox, QLabel,
-    QCheckBox, QHBoxLayout
+    QWidget, QVBoxLayout, QGroupBox, QCheckBox, QGridLayout
 )
 from PySide6.QtCore import Signal
 from typing import Dict, Any
@@ -26,163 +29,89 @@ class CameraTab(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
         
-        # Current state
-        self._state = {}
+        # Контролы UI
+        self._controls: Dict[str, Any] = {}
+        self._updating_ui = False
         
         # Setup UI
         self._setup_ui()
-        
-        # Connect signals
-        self._connect_signals()
     
     def _setup_ui(self):
-        """Построить UI вкладки"""
+        """Построить UI вкладки - ТОЧНО КАК В МОНОЛИТЕ"""
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(10, 10, 10, 10)
-        layout.setSpacing(10)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(12)
         
-        # Field of view group
-        layout.addWidget(self._create_fov_group())
+        # ✅ ТОЧНО КАК В МОНОЛИТЕ - одна группа "Камера"
+        group = QGroupBox("Камера", self)
+        grid = QGridLayout(group)
+        grid.setContentsMargins(8, 8, 8, 8)
+        grid.setHorizontalSpacing(12)
+        grid.setVerticalSpacing(8)
         
-        # Clipping planes group
-        layout.addWidget(self._create_clipping_group())
+        # FOV slider (10-120°)
+        fov = LabeledSlider("Поле зрения", 10.0, 120.0, 0.5, decimals=1, unit="°")
+        fov.valueChanged.connect(lambda v: self._on_control_changed("fov", v))
+        self._controls["fov"] = fov
+        grid.addWidget(fov, 0, 0, 1, 2)
         
-        # Camera behavior group
-        layout.addWidget(self._create_behavior_group())
+        # Near clipping plane (1-100 мм)
+        near_clip = LabeledSlider("Ближняя плоскость", 1.0, 100.0, 1.0, decimals=1, unit="мм")
+        near_clip.valueChanged.connect(lambda v: self._on_control_changed("near", v))
+        self._controls["near"] = near_clip
+        grid.addWidget(near_clip, 1, 0, 1, 2)
         
-        layout.addStretch()
+        # Far clipping plane (1000-100000 мм)
+        far_clip = LabeledSlider("Дальняя плоскость", 1000.0, 100000.0, 500.0, decimals=0, unit="мм")
+        far_clip.valueChanged.connect(lambda v: self._on_control_changed("far", v))
+        self._controls["far"] = far_clip
+        grid.addWidget(far_clip, 2, 0, 1, 2)
+        
+        # Camera speed (0.1-5.0)
+        speed = LabeledSlider("Скорость камеры", 0.1, 5.0, 0.1, decimals=2)
+        speed.valueChanged.connect(lambda v: self._on_control_changed("speed", v))
+        self._controls["speed"] = speed
+        grid.addWidget(speed, 3, 0, 1, 2)
+        
+        # Auto-rotate checkbox
+        auto_rotate = QCheckBox("Автоповорот", self)
+        auto_rotate.clicked.connect(lambda checked: self._on_control_changed("auto_rotate", checked))
+        self._controls["auto_rotate"] = auto_rotate
+        grid.addWidget(auto_rotate, 4, 0, 1, 2)
+        
+        # Auto-rotate speed (0.1-3.0)
+        rotate_speed = LabeledSlider("Скорость автоповорота", 0.1, 3.0, 0.05, decimals=2)
+        rotate_speed.valueChanged.connect(lambda v: self._on_control_changed("auto_rotate_speed", v))
+        self._controls["auto_rotate_speed"] = rotate_speed
+        grid.addWidget(rotate_speed, 5, 0, 1, 2)
+        
+        layout.addWidget(group)
+        layout.addStretch(1)
     
-    def _create_fov_group(self) -> QGroupBox:
-        """Создать группу настроек поля зрения"""
-        group = QGroupBox("Поле зрения (Field of View)")
-        layout = QVBoxLayout(group)
-        
-        # FOV slider
-        self.fov_slider = LabeledSlider(
-            "FOV:",
-            minimum=30.0,
-            maximum=120.0,
-            value=60.0,
-            step=1.0,
-            suffix="°"
-        )
-        layout.addWidget(self.fov_slider)
-        
-        return group
+    # ========== ОБРАБОТЧИКИ ИЗМЕНЕНИЙ ========= =
     
-    def _create_clipping_group(self) -> QGroupBox:
-        """Создать группу настроек clipping planes"""
-        group = QGroupBox("Плоскости отсечения (Clipping Planes)")
-        layout = QVBoxLayout(group)
-        
-        # Near clipping
-        self.near_clip_slider = LabeledSlider(
-            "Near Clip:",
-            minimum=0.01,
-            maximum=10.0,
-            value=0.1,
-            step=0.01,
-            suffix=" m"
-        )
-        layout.addWidget(self.near_clip_slider)
-        
-        # Far clipping
-        self.far_clip_slider = LabeledSlider(
-            "Far Clip:",
-            minimum=10.0,
-            maximum=1000.0,
-            value=100.0,
-            step=10.0,
-            suffix=" m"
-        )
-        layout.addWidget(self.far_clip_slider)
-        
-        return group
+    def _on_control_changed(self, key: str, value: Any) -> None:
+        """Обработчик изменения любого контрола"""
+        if self._updating_ui:
+            return
+        # Эмитим сигнал
+        self.camera_changed.emit(self.get_state())
     
-    def _create_behavior_group(self) -> QGroupBox:
-        """Создать группу настроек поведения камеры"""
-        group = QGroupBox("Поведение камеры")
-        layout = QVBoxLayout(group)
-        
-        # Auto-rotate enabled
-        self.auto_rotate_check = QCheckBox("Автоматическое вращение")
-        self.auto_rotate_check.setChecked(False)
-        layout.addWidget(self.auto_rotate_check)
-        
-        # Auto-rotate speed
-        self.auto_rotate_speed_slider = LabeledSlider(
-            "Скорость вращения:",
-            minimum=0.1,
-            maximum=5.0,
-            value=1.0,
-            step=0.1,
-            suffix=" °/s"
-        )
-        layout.addWidget(self.auto_rotate_speed_slider)
-        
-        # Camera distance
-        self.camera_distance_slider = LabeledSlider(
-            "Расстояние камеры:",
-            minimum=1.0,
-            maximum=20.0,
-            value=5.0,
-            step=0.1,
-            suffix=" m"
-        )
-        layout.addWidget(self.camera_distance_slider)
-        
-        # Camera speed (mouse control)
-        self.camera_speed_slider = LabeledSlider(
-            "Чувствительность мыши:",
-            minimum=0.1,
-            maximum=5.0,
-            value=1.0,
-            step=0.1,
-            suffix=""
-        )
-        layout.addWidget(self.camera_speed_slider)
-        
-        return group
-    
-    def _connect_signals(self):
-        """Подключить сигналы контролов"""
-        # FOV
-        self.fov_slider.value_changed.connect(self._emit_changes)
-        
-        # Clipping
-        self.near_clip_slider.value_changed.connect(self._emit_changes)
-        self.far_clip_slider.value_changed.connect(self._emit_changes)
-        
-        # Behavior
-        self.auto_rotate_check.toggled.connect(self._emit_changes)
-        self.auto_rotate_speed_slider.value_changed.connect(self._emit_changes)
-        self.camera_distance_slider.value_changed.connect(self._emit_changes)
-        self.camera_speed_slider.value_changed.connect(self._emit_changes)
-    
-    def _emit_changes(self):
-        """Собрать текущее состояние и испустить сигнал"""
-        self._state = self.get_state()
-        self.camera_changed.emit(self._state)
+    # ========== ГЕТТЕРЫ/СЕТТЕРЫ СОСТОЯНИЯ ========= =
     
     def get_state(self) -> Dict[str, Any]:
-        """Получить текущее состояние всех параметров
+        """Получить текущее состояние всех параметров камеры
         
         Returns:
-            Словарь с параметрами камеры
+            Словарь с параметрами - ТОЧНО КАК В МОНОЛИТЕ
         """
         return {
-            # FOV
-            'fov': self.fov_slider.get_value(),
-            
-            # Clipping
-            'near_clip': self.near_clip_slider.get_value(),
-            'far_clip': self.far_clip_slider.get_value(),
-            
-            # Behavior
-            'auto_rotate': self.auto_rotate_check.isChecked(),
-            'auto_rotate_speed': self.auto_rotate_speed_slider.get_value(),
-            'camera_distance': self.camera_distance_slider.get_value(),
-            'camera_speed': self.camera_speed_slider.get_value()
+            'fov': self._controls["fov"].value(),
+            'near': self._controls["near"].value(),
+            'far': self._controls["far"].value(),
+            'speed': self._controls["speed"].value(),
+            'auto_rotate': self._controls["auto_rotate"].isChecked(),
+            'auto_rotate_speed': self._controls["auto_rotate_speed"].value(),
         }
     
     def set_state(self, state: Dict[str, Any]):
@@ -191,50 +120,48 @@ class CameraTab(QWidget):
         Args:
             state: Словарь с параметрами камеры
         """
-        # Temporarily disconnect signals
-        self._disconnect_signals_temp()
+        # Временно блокируем сигналы и UI updates
+        self._updating_ui = True
+        for control in self._controls.values():
+            try:
+                control.blockSignals(True)
+            except:
+                pass
         
         try:
             # FOV
             if 'fov' in state:
-                self.fov_slider.set_value(state['fov'])
+                self._controls["fov"].set_value(state['fov'])
             
-            # Clipping
-            if 'near_clip' in state:
-                self.near_clip_slider.set_value(state['near_clip'])
+            # Clipping planes
+            if 'near' in state:
+                self._controls["near"].set_value(state['near'])
+            if 'far' in state:
+                self._controls["far"].set_value(state['far'])
             
-            if 'far_clip' in state:
-                self.far_clip_slider.set_value(state['far_clip'])
+            # Speed
+            if 'speed' in state:
+                self._controls["speed"].set_value(state['speed'])
             
-            # Behavior
+            # Auto-rotate
             if 'auto_rotate' in state:
-                self.auto_rotate_check.setChecked(state['auto_rotate'])
-            
+                self._controls["auto_rotate"].setChecked(state['auto_rotate'])
             if 'auto_rotate_speed' in state:
-                self.auto_rotate_speed_slider.set_value(state['auto_rotate_speed'])
-            
-            if 'camera_distance' in state:
-                self.camera_distance_slider.set_value(state['camera_distance'])
-            
-            if 'camera_speed' in state:
-                self.camera_speed_slider.set_value(state['camera_speed'])
+                self._controls["auto_rotate_speed"].set_value(state['auto_rotate_speed'])
         
         finally:
-            # Reconnect signals
-            self._connect_signals()
-        
-        # Update internal state
-        self._state = self.get_state()
+            # Разблокируем сигналы и UI
+            for control in self._controls.values():
+                try:
+                    control.blockSignals(False)
+                except:
+                    pass
+            self._updating_ui = False
     
-    def _disconnect_signals_temp(self):
-        """Временно отключить сигналы (для batch update)"""
-        try:
-            self.fov_slider.value_changed.disconnect()
-            self.near_clip_slider.value_changed.disconnect()
-            self.far_clip_slider.value_changed.disconnect()
-            self.auto_rotate_check.toggled.disconnect()
-            self.auto_rotate_speed_slider.value_changed.disconnect()
-            self.camera_distance_slider.value_changed.disconnect()
-            self.camera_speed_slider.value_changed.disconnect()
-        except:
-            pass  # Signals may not be connected yet
+    def get_controls(self) -> Dict[str, Any]:
+        """Получить словарь контролов для внешнего управления"""
+        return self._controls
+    
+    def set_updating_ui(self, updating: bool) -> None:
+        """Установить флаг обновления UI"""
+        self._updating_ui = updating

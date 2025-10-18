@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 """
 Simulation modes configuration panel - РУССКИЙ ИНТЕРФЕЙС
-Controls for simulation type, physics options, and road excitation with standard sliders
-Панель конфигурации режимов симуляции со стандартными слайдерами
+Controls for simulation type, physics options, and road excitation
+Панель конфигурации режимов симуляции
 """
 
 from PySide6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QGroupBox, 
@@ -11,6 +11,9 @@ from PySide6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QGroupBox,
                               QDoubleSpinBox, QSpinBox)
 from PySide6.QtCore import Signal, Slot, Qt
 from PySide6.QtGui import QFont
+
+# ✅ НОВОЕ: Импортируем SettingsManager
+from src.common.settings_manager import SettingsManager
 
 
 class StandardSlider(QWidget):
@@ -112,7 +115,7 @@ class StandardSlider(QWidget):
     
     @Slot(int)
     def _on_slider_changed(self, slider_value):
-        """Обработать изменение слайдера"""
+        """Обратиться к изменению слайдера"""
         if self._updating:
             return
         
@@ -136,7 +139,7 @@ class StandardSlider(QWidget):
     
     @Slot()
     def _on_spinbox_changed(self, value):
-        """Обработать изменение поля ввода"""
+        """Обратиться к изменению поля ввода"""
         if self._updating:
             return
         
@@ -153,20 +156,20 @@ class StandardSlider(QWidget):
 
 
 class ModesPanel(QWidget):
-    """Панель конфигурации режимов симуляции со стандартными слайдерами
-    
-    Panel for simulation mode configuration with standard Qt sliders (Russian UI)
-    """
+    """Панель конфигурации режимов симуляции"""
     
     # Signals
-    simulation_control = Signal(str)        # "start", "stop", "reset", "pause"
-    mode_changed = Signal(str, str)         # mode_type, new_mode
-    parameter_changed = Signal(str, float)  # parameter_name, new_value
-    physics_options_changed = Signal(dict)  # Physics option toggles
-    animation_changed = Signal(dict)        # Animation parameters changed
+    simulation_control = Signal(str)
+    mode_changed = Signal(str, str)
+    parameter_changed = Signal(str, float)
+    physics_options_changed = Signal(dict)
+    animation_changed = Signal(dict)
     
     def __init__(self, parent=None):
         super().__init__(parent)
+        
+        # ✅ НОВОЕ: Используем SettingsManager
+        self._settings_manager = SettingsManager()
         
         # Parameter storage
         self.parameters = {}
@@ -175,8 +178,8 @@ class ModesPanel(QWidget):
         # Setup UI
         self._setup_ui()
         
-        # Set default values
-        self._set_default_values()
+        # ✅ ИЗМЕНЕНО: Загружаем defaults из SettingsManager
+        self._load_defaults_from_settings()
         
         # Connect signals
         self._connect_signals()
@@ -463,6 +466,33 @@ class ModesPanel(QWidget):
         layout.addLayout(wheel_layout)
         
         return group
+    
+    def _load_defaults_from_settings(self):
+        """Загрузить defaults из SettingsManager"""
+        defaults = self._settings_manager.get("modes", {
+            # Simulation modes
+            'sim_type': 'KINEMATICS',
+            'thermo_mode': 'ISOTHERMAL',
+            'mode_preset': 'standard',
+            
+            # Road excitation
+            'amplitude': 0.05,
+            'frequency': 1.0,
+            'phase': 0.0,
+            'lf_phase': 0.0,
+            'rf_phase': 0.0,
+            'lr_phase': 0.0,
+            'rr_phase': 0.0,
+        })
+        
+        physics_defaults = self._settings_manager.get("modes.physics", {
+            'include_springs': True,
+            'include_dampers': True,
+            'include_pneumatics': True
+        })
+        
+        self.parameters.update(defaults)
+        self.physics_options.update(physics_defaults)
     
     def _set_default_values(self):
         """Установить значения по умолчанию"""

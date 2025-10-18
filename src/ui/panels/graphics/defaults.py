@@ -2,6 +2,10 @@
 """
 Graphics panel defaults and presets
 Значения по умолчанию и пресеты для панели графики
+
+ОБНОВЛЕНО v2.0:
+- Добавлены Qt 6.10 параметры для Effects Tab
+- Все новые параметры из рефакторенных табов
 """
 from typing import Any, Dict
 
@@ -102,23 +106,54 @@ def build_defaults() -> Dict[str, Any]:
             "auto_rotate_speed": 1.0,
         },
         "effects": {
+            # Bloom (4 базовых + 5 Qt 6.10)
             "bloom_enabled": True,
             "bloom_intensity": 0.5,
             "bloom_threshold": 1.0,
             "bloom_spread": 0.65,
-            "ssao_enabled": True,
-            "ssao_strength": 1.0,
-            "ssao_radius": 8.0,
+            "bloom_kernel_size": "large",  # Qt 6.10
+            "bloom_kernel_quality": "high",  # Qt 6.10
+            "bloom_up_scale_blur": True,  # Qt 6.10
+            "bloom_down_scale_blur": True,  # Qt 6.10
+            "bloom_glow_level": 0,  # Qt 6.10
+            
+            # Tonemap (2 базовых + 2 Qt 6.10)
+            "tonemap_enabled": True,
+            "tonemap_mode": "filmic",
+            "tonemap_exposure": 1.0,  # Qt 6.10
+            "tonemap_white_point": 1.0,  # Qt 6.10
+            
+            # Depth of Field (3 базовых)
             "depth_of_field": False,
             "dof_focus_distance": 2200.0,
             "dof_blur": 4.0,
+            
+            # Motion Blur (2)
             "motion_blur": False,
             "motion_blur_amount": 0.2,
+            
+            # Lens Flare (1 базовый + 5 Qt 6.10)
             "lens_flare": False,
+            "lens_flare_intensity": 1.0,  # Qt 6.10
+            "lens_flare_scale": 1.0,  # Qt 6.10
+            "lens_flare_spread": 0.5,  # Qt 6.10
+            "lens_flare_streak_intensity": 0.5,  # Qt 6.10
+            "lens_flare_bloom_scale": 1.0,  # Qt 6.10
+            
+            # Vignette (2 базовых + 1 Qt 6.10)
             "vignette": False,
             "vignette_strength": 0.35,
-            "tonemap_enabled": True,
-            "tonemap_mode": "filmic",
+            "vignette_radius": 0.5,  # Qt 6.10
+            
+            # Color Adjustments (3 Qt 6.10)
+            "saturation": 1.0,  # Qt 6.10
+            "contrast": 1.0,  # Qt 6.10
+            "brightness": 0.0,  # Qt 6.10
+            
+            # SSAO (deprecated, оставлено для совместимости)
+            "ssao_enabled": True,
+            "ssao_strength": 1.0,
+            "ssao_radius": 8.0,
         },
         "materials": _build_materials_defaults(),
     }
@@ -294,6 +329,7 @@ def build_quality_presets() -> Dict[str, Dict[str, Any]]:
             "antialiasing": {"primary": "ssaa", "quality": "high", "post": "taa"},
             "taa_enabled": True,
             "taa_strength": 0.4,
+            "taa_motion_adaptive": True,
             "fxaa_enabled": False,
             "specular_aa": True,
             "dithering": True,
@@ -345,3 +381,7 @@ def build_quality_presets() -> Dict[str, Dict[str, Any]]:
             "oit": "none",
         },
     }
+
+
+# Экспорт главного объекта
+GRAPHICS_DEFAULTS = build_defaults()

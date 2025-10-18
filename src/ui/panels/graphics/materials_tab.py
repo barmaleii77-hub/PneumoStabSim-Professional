@@ -2,11 +2,21 @@
 """
 Materials Tab - вкладка настроек PBR материалов всех компонентов
 Part of modular GraphicsPanel restructuring
+
+СТРУКТУРА ТОЧНО ПОВТОРЯЕТ МОНОЛИТ panel_graphics.py (строки 1373-1520):
+- Селектор компонента (ComboBox) - 8 материалов
+- Единая форма с ПОЛНЫМ набором PBR параметров (17 параметров):
+  * base_color, metalness, roughness, specular, specular_tint
+  * clearcoat, clearcoat_roughness
+  * transmission, opacity, ior
+  * attenuation_distance, attenuation_color
+  * emissive_color, emissive_intensity
+  * warning_color, ok_color, error_color
 """
 
 from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QGroupBox, QLabel,
-    QTabWidget, QHBoxLayout
+    QComboBox, QHBoxLayout, QGridLayout
 )
 from PySide6.QtCore import Signal
 from typing import Dict, Any
@@ -15,400 +25,302 @@ from .widgets import ColorButton, LabeledSlider
 
 
 class MaterialsTab(QWidget):
-    """Вкладка настроек материалов: металл, стекло, рама, рычаг, цилиндр
+    """Вкладка настроек материалов: 8 компонентов с полным PBR набором
     
     Signals:
-        materials_changed: Dict[str, Any] - параметры материалов изменились
+        material_changed: Dict[str, Any] - параметры материалов изменились
     """
     
-    materials_changed = Signal(dict)
+    material_changed = Signal(dict)
     
     def __init__(self, parent=None):
         super().__init__(parent)
         
-        # Current state
-        self._state = {}
+        # Контролы UI
+        self._controls: Dict[str, Any] = {}
+        self._updating_ui = False
+        
+        # Названия материалов - ТОЧНО КАК В МОНОЛИТЕ
+        self._material_labels = {
+            "frame": "Рама",
+            "lever": "Рычаг",
+            "tail": "Хвостовик",
+            "cylinder": "Цилиндр (стекло)",
+            "piston_body": "Корпус поршня",
+            "piston_rod": "Шток",
+            "joint_tail": "Шарнир хвостовика",
+            "joint_arm": "Шарнир рычага",
+        }
         
         # Setup UI
         self._setup_ui()
-        
-        # Connect signals
-        self._connect_signals()
     
     def _setup_ui(self):
-        """Построить UI вкладки"""
+        """Построить UI вкладки - ТОЧНО КАК В МОНОЛИТЕ"""
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(10, 10, 10, 10)
-        layout.setSpacing(10)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(12)
         
-        # Tabs for different materials
-        self.material_tabs = QTabWidget()
+        # ✅ ТОЧНО КАК В МОНОЛИТЕ - селектор компонента
+        selector_row = QHBoxLayout()
+        selector_row.addWidget(QLabel("Компонент", self))
+        self._material_selector = QComboBox(self)
+        for key, label in self._material_labels.items():
+            self._material_selector.addItem(label, key)
+        self._material_selector.currentIndexChanged.connect(self._on_material_selection_changed)
+        selector_row.addWidget(self._material_selector, 1)
+        selector_row.addStretch(1)
+        layout.addLayout(selector_row)
         
-        # Add material groups as tabs
-        self.material_tabs.addTab(self._create_metal_material(), "Металл")
-        self.material_tabs.addTab(self._create_glass_material(), "Стекло")
-        self.material_tabs.addTab(self._create_frame_material(), "Рама")
-        self.material_tabs.addTab(self._create_cylinder_material(), "Цилиндр")
+        # ✅ ТОЧНО КАК В МОНОЛИТЕ - группа параметров материала
+        group = QGroupBox("Параметры материала", self)
+        grid = QGridLayout(group)
+        grid.setContentsMargins(8, 8, 8, 8)
+        grid.setHorizontalSpacing(12)
+        grid.setVerticalSpacing(8)
         
-        layout.addWidget(self.material_tabs)
-    
-    def _create_metal_material(self) -> QWidget:
-        """Создать настройки металлического материала"""
-        widget = QWidget()
-        layout = QVBoxLayout(widget)
+        row = 0
         
         # Base color
-        color_layout = QHBoxLayout()
-        color_layout.addWidget(QLabel("Базовый цвет:"))
-        self.metal_color_button = ColorButton("#808080")
-        color_layout.addWidget(self.metal_color_button)
-        color_layout.addStretch()
-        layout.addLayout(color_layout)
+        row = self._add_color_control(grid, row, "Базовый цвет", "base_color")
         
         # Metalness
-        self.metal_metalness_slider = LabeledSlider(
-            "Металличность:",
-            minimum=0.0,
-            maximum=1.0,
-            value=1.0,
-            step=0.01,
-            suffix=""
-        )
-        layout.addWidget(self.metal_metalness_slider)
+        row = self._add_slider_control(grid, row, "Металличность", "metalness", 0.0, 1.0, 0.01)
         
         # Roughness
-        self.metal_roughness_slider = LabeledSlider(
-            "Шероховатость:",
-            minimum=0.0,
-            maximum=1.0,
-            value=0.3,
-            step=0.01,
-            suffix=""
-        )
-        layout.addWidget(self.metal_roughness_slider)
+        row = self._add_slider_control(grid, row, "Шероховатость", "roughness", 0.0, 1.0, 0.01)
+        
+        # Specular
+        row = self._add_slider_control(grid, row, "Specular", "specular", 0.0, 1.0, 0.01)
+        
+        # Specular Tint
+        row = self._add_slider_control(grid, row, "Specular Tint", "specular_tint", 0.0, 1.0, 0.01)
         
         # Clearcoat
-        self.metal_clearcoat_slider = LabeledSlider(
-            "Лаковое покрытие:",
-            minimum=0.0,
-            maximum=1.0,
-            value=0.0,
-            step=0.01,
-            suffix=""
-        )
-        layout.addWidget(self.metal_clearcoat_slider)
+        row = self._add_slider_control(grid, row, "Clearcoat", "clearcoat", 0.0, 1.0, 0.01)
         
         # Clearcoat roughness
-        self.metal_clearcoat_roughness_slider = LabeledSlider(
-            "Шероховатость лака:",
-            minimum=0.0,
-            maximum=1.0,
-            value=0.01,
-            step=0.01,
-            suffix=""
-        )
-        layout.addWidget(self.metal_clearcoat_roughness_slider)
-        
-        layout.addStretch()
-        return widget
-    
-    def _create_glass_material(self) -> QWidget:
-        """Создать настройки стеклянного материала"""
-        widget = QWidget()
-        layout = QVBoxLayout(widget)
-        
-        # Base color
-        color_layout = QHBoxLayout()
-        color_layout.addWidget(QLabel("Цвет стекла:"))
-        self.glass_color_button = ColorButton("#aaaaaa")
-        color_layout.addWidget(self.glass_color_button)
-        color_layout.addStretch()
-        layout.addLayout(color_layout)
-        
-        # Opacity
-        self.glass_opacity_slider = LabeledSlider(
-            "Непрозрачность:",
-            minimum=0.0,
-            maximum=1.0,
-            value=0.3,
-            step=0.01,
-            suffix=""
-        )
-        layout.addWidget(self.glass_opacity_slider)
-        
-        # Roughness
-        self.glass_roughness_slider = LabeledSlider(
-            "Шероховатость:",
-            minimum=0.0,
-            maximum=1.0,
-            value=0.0,
-            step=0.01,
-            suffix=""
-        )
-        layout.addWidget(self.glass_roughness_slider)
-        
-        # IOR (Index of Refraction)
-        self.glass_ior_slider = LabeledSlider(
-            "Коэффициент преломления:",
-            minimum=1.0,
-            maximum=2.5,
-            value=1.52,
-            step=0.01,
-            suffix=""
-        )
-        layout.addWidget(self.glass_ior_slider)
+        row = self._add_slider_control(grid, row, "Шероховатость лака", "clearcoat_roughness", 0.0, 1.0, 0.01)
         
         # Transmission
-        self.glass_transmission_slider = LabeledSlider(
-            "Пропускание:",
-            minimum=0.0,
-            maximum=1.0,
-            value=0.95,
-            step=0.01,
-            suffix=""
-        )
-        layout.addWidget(self.glass_transmission_slider)
+        row = self._add_slider_control(grid, row, "Пропускание", "transmission", 0.0, 1.0, 0.01)
         
-        layout.addStretch()
-        return widget
+        # Opacity
+        row = self._add_slider_control(grid, row, "Непрозрачность", "opacity", 0.0, 1.0, 0.01)
+        
+        # Index of Refraction
+        row = self._add_slider_control(grid, row, "Index of Refraction", "ior", 1.0, 3.0, 0.01)
+        
+        # Attenuation distance
+        row = self._add_slider_control(grid, row, "Attenuation distance", "attenuation_distance", 0.0, 10000.0, 10.0, decimals=1)
+        
+        # Attenuation color
+        row = self._add_color_control(grid, row, "Attenuation color", "attenuation_color")
+        
+        # Emissive color
+        row = self._add_color_control(grid, row, "Излучающий цвет", "emissive_color")
+        
+        # Emissive intensity
+        row = self._add_slider_control(grid, row, "Яркость излучения", "emissive_intensity", 0.0, 5.0, 0.05)
+        
+        # Warning color
+        row = self._add_color_control(grid, row, "Цвет предупреждения", "warning_color")
+        
+        # OK color
+        row = self._add_color_control(grid, row, "Цвет OK", "ok_color")
+        
+        # Error color
+        row = self._add_color_control(grid, row, "Цвет ошибки", "error_color")
+        
+        layout.addWidget(group)
+        layout.addStretch(1)
     
-    def _create_frame_material(self) -> QWidget:
-        """Создать настройки материала рамы"""
-        widget = QWidget()
-        layout = QVBoxLayout(widget)
-        
-        # Base color
-        color_layout = QHBoxLayout()
-        color_layout.addWidget(QLabel("Цвет рамы:"))
-        self.frame_color_button = ColorButton("#2a2a3e")
-        color_layout.addWidget(self.frame_color_button)
-        color_layout.addStretch()
-        layout.addLayout(color_layout)
-        
-        # Metalness
-        self.frame_metalness_slider = LabeledSlider(
-            "Металличность:",
-            minimum=0.0,
-            maximum=1.0,
-            value=0.8,
-            step=0.01,
-            suffix=""
-        )
-        layout.addWidget(self.frame_metalness_slider)
-        
-        # Roughness
-        self.frame_roughness_slider = LabeledSlider(
-            "Шероховатость:",
-            minimum=0.0,
-            maximum=1.0,
-            value=0.4,
-            step=0.01,
-            suffix=""
-        )
-        layout.addWidget(self.frame_roughness_slider)
-        
-        layout.addStretch()
-        return widget
+    def _add_color_control(self, grid: QGridLayout, row: int, title: str, key: str) -> int:
+        """Добавить контрол выбора цвета"""
+        container = QWidget(self)
+        hbox = QHBoxLayout(container)
+        hbox.setContentsMargins(0, 0, 0, 0)
+        hbox.setSpacing(6)
+        hbox.addWidget(QLabel(title, self))
+        button = ColorButton()
+        button.color_changed.connect(lambda c: self._on_control_changed(key, c))
+        self._controls[key] = button
+        hbox.addWidget(button)
+        hbox.addStretch(1)
+        grid.addWidget(container, row, 0, 1, 2)
+        return row + 1
     
-    def _create_cylinder_material(self) -> QWidget:
-        """Создать настройки материала цилиндра"""
-        widget = QWidget()
-        layout = QVBoxLayout(widget)
-        
-        # Base color
-        color_layout = QHBoxLayout()
-        color_layout.addWidget(QLabel("Цвет цилиндра:"))
-        self.cylinder_color_button = ColorButton("#606060")
-        color_layout.addWidget(self.cylinder_color_button)
-        color_layout.addStretch()
-        layout.addLayout(color_layout)
-        
-        # Metalness
-        self.cylinder_metalness_slider = LabeledSlider(
-            "Металличность:",
-            minimum=0.0,
-            maximum=1.0,
-            value=0.9,
-            step=0.01,
-            suffix=""
-        )
-        layout.addWidget(self.cylinder_metalness_slider)
-        
-        # Roughness
-        self.cylinder_roughness_slider = LabeledSlider(
-            "Шероховатость:",
-            minimum=0.0,
-            maximum=1.0,
-            value=0.5,
-            step=0.01,
-            suffix=""
-        )
-        layout.addWidget(self.cylinder_roughness_slider)
-        
-        layout.addStretch()
-        return widget
+    def _add_slider_control(
+        self,
+        grid: QGridLayout,
+        row: int,
+        title: str,
+        key: str,
+        minimum: float,
+        maximum: float,
+        step: float,
+        *,
+        decimals: int = 2,
+    ) -> int:
+        """Добавить контрол слайдера"""
+        slider = LabeledSlider(title, minimum, maximum, step, decimals=decimals)
+        slider.valueChanged.connect(lambda v: self._on_control_changed(key, v))
+        self._controls[key] = slider
+        grid.addWidget(slider, row, 0, 1, 2)
+        return row + 1
     
-    def _connect_signals(self):
-        """Подключить сигналы контролов"""
-        # Metal
-        self.metal_color_button.color_changed.connect(self._emit_changes)
-        self.metal_metalness_slider.value_changed.connect(self._emit_changes)
-        self.metal_roughness_slider.value_changed.connect(self._emit_changes)
-        self.metal_clearcoat_slider.value_changed.connect(self._emit_changes)
-        self.metal_clearcoat_roughness_slider.value_changed.connect(self._emit_changes)
-        
-        # Glass
-        self.glass_color_button.color_changed.connect(self._emit_changes)
-        self.glass_opacity_slider.value_changed.connect(self._emit_changes)
-        self.glass_roughness_slider.value_changed.connect(self._emit_changes)
-        self.glass_ior_slider.value_changed.connect(self._emit_changes)
-        self.glass_transmission_slider.value_changed.connect(self._emit_changes)
-        
-        # Frame
-        self.frame_color_button.color_changed.connect(self._emit_changes)
-        self.frame_metalness_slider.value_changed.connect(self._emit_changes)
-        self.frame_roughness_slider.value_changed.connect(self._emit_changes)
-        
-        # Cylinder
-        self.cylinder_color_button.color_changed.connect(self._emit_changes)
-        self.cylinder_metalness_slider.value_changed.connect(self._emit_changes)
-        self.cylinder_roughness_slider.value_changed.connect(self._emit_changes)
+    # ========== ОБРАБОТЧИКИ ИЗМЕНЕНИЙ ==========
     
-    def _emit_changes(self):
-        """Собрать текущее состояние и испустить сигнал"""
-        self._state = self.get_state()
-        self.materials_changed.emit(self._state)
+    def _on_material_selection_changed(self) -> None:
+        """Обработчик изменения выбранного материала - КАК В МОНОЛИТЕ"""
+        # Этот метод вызывается при смене материала в селекторе
+        # НЕ эмитим сигнал, только обновляем UI (если нужно загрузить состояние извне)
+        pass
     
-    def get_state(self) -> Dict[str, Any]:
-        """Получить текущее состояние всех параметров
+    def _on_control_changed(self, key: str, value: Any) -> None:
+        """Обработчик изменения любого контрола"""
+        if self._updating_ui:
+            return
+        
+        # Эмитим сигнал с полным состоянием ВСЕХ материалов
+        self.material_changed.emit(self.get_state())
+    
+    # ========== ГЕТТЕРЫ/СЕТТЕРЫ СОСТОЯНИЯ ==========
+    
+    def get_current_material_key(self) -> str:
+        """Получить ключ текущего выбранного материала"""
+        return self._material_selector.currentData()
+    
+    def get_current_material_state(self) -> Dict[str, Any]:
+        """Получить состояние ТЕКУЩЕГО выбранного материала
         
         Returns:
-            Словарь с параметрами материалов
+            Словарь с параметрами одного материала (17 параметров)
         """
         return {
-            # Metal
-            'metal': {
-                'color': self.metal_color_button.get_color(),
-                'metalness': self.metal_metalness_slider.get_value(),
-                'roughness': self.metal_roughness_slider.get_value(),
-                'clearcoat': self.metal_clearcoat_slider.get_value(),
-                'clearcoat_roughness': self.metal_clearcoat_roughness_slider.get_value()
-            },
-            
-            # Glass
-            'glass': {
-                'color': self.glass_color_button.get_color(),
-                'opacity': self.glass_opacity_slider.get_value(),
-                'roughness': self.glass_roughness_slider.get_value(),
-                'ior': self.glass_ior_slider.get_value(),
-                'transmission': self.glass_transmission_slider.get_value()
-            },
-            
-            # Frame
-            'frame': {
-                'color': self.frame_color_button.get_color(),
-                'metalness': self.frame_metalness_slider.get_value(),
-                'roughness': self.frame_roughness_slider.get_value()
-            },
-            
-            # Cylinder
-            'cylinder': {
-                'color': self.cylinder_color_button.get_color(),
-                'metalness': self.cylinder_metalness_slider.get_value(),
-                'roughness': self.cylinder_roughness_slider.get_value()
+            "base_color": self._controls["base_color"].color().name(),
+            "metalness": self._controls["metalness"].value(),
+            "roughness": self._controls["roughness"].value(),
+            "specular": self._controls["specular"].value(),
+            "specular_tint": self._controls["specular_tint"].value(),
+            "clearcoat": self._controls["clearcoat"].value(),
+            "clearcoat_roughness": self._controls["clearcoat_roughness"].value(),
+            "transmission": self._controls["transmission"].value(),
+            "opacity": self._controls["opacity"].value(),
+            "ior": self._controls["ior"].value(),
+            "attenuation_distance": self._controls["attenuation_distance"].value(),
+            "attenuation_color": self._controls["attenuation_color"].color().name(),
+            "emissive_color": self._controls["emissive_color"].color().name(),
+            "emissive_intensity": self._controls["emissive_intensity"].value(),
+            "warning_color": self._controls["warning_color"].color().name(),
+            "ok_color": self._controls["ok_color"].color().name(),
+            "error_color": self._controls["error_color"].color().name(),
+        }
+    
+    def get_state(self) -> Dict[str, Any]:
+        """Получить полное состояние ВСЕХ материалов
+        
+        Возвращает структуру:
+        {
+            "current_material": "frame",  # текущий выбранный материал
+            "materials": {
+                "frame": {...},  # 17 параметров
+                "lever": {...},
+                ...
             }
         }
+        """
+        # Эмитим только состояние ТЕКУЩЕГО материала и его ключ
+        current_key = self.get_current_material_key()
+        current_state = self.get_current_material_state()
+        
+        return {
+            "current_material": current_key,
+            current_key: current_state,
+        }
+    
+    def set_material_state(self, material_key: str, state: Dict[str, Any]):
+        """Установить состояние ОДНОГО материала
+        
+        Args:
+            material_key: Ключ материала (frame, lever, tail, ...)
+            state: Словарь с параметрами материала
+        """
+        # Переключаемся на нужный материал
+        index = self._material_selector.findData(material_key)
+        if index >= 0:
+            self._material_selector.setCurrentIndex(index)
+        
+        # Блокируем сигналы
+        self._updating_ui = True
+        for control in self._controls.values():
+            try:
+                control.blockSignals(True)
+            except:
+                pass
+        
+        try:
+            # Устанавливаем параметры
+            if "base_color" in state:
+                self._controls["base_color"].set_color(state["base_color"])
+            if "metalness" in state:
+                self._controls["metalness"].set_value(state["metalness"])
+            if "roughness" in state:
+                self._controls["roughness"].set_value(state["roughness"])
+            if "specular" in state:
+                self._controls["specular"].set_value(state["specular"])
+            if "specular_tint" in state:
+                self._controls["specular_tint"].set_value(state["specular_tint"])
+            if "clearcoat" in state:
+                self._controls["clearcoat"].set_value(state["clearcoat"])
+            if "clearcoat_roughness" in state:
+                self._controls["clearcoat_roughness"].set_value(state["clearcoat_roughness"])
+            if "transmission" in state:
+                self._controls["transmission"].set_value(state["transmission"])
+            if "opacity" in state:
+                self._controls["opacity"].set_value(state["opacity"])
+            if "ior" in state:
+                self._controls["ior"].set_value(state["ior"])
+            if "attenuation_distance" in state:
+                self._controls["attenuation_distance"].set_value(state["attenuation_distance"])
+            if "attenuation_color" in state:
+                self._controls["attenuation_color"].set_color(state["attenuation_color"])
+            if "emissive_color" in state:
+                self._controls["emissive_color"].set_color(state["emissive_color"])
+            if "emissive_intensity" in state:
+                self._controls["emissive_intensity"].set_value(state["emissive_intensity"])
+            if "warning_color" in state:
+                self._controls["warning_color"].set_color(state["warning_color"])
+            if "ok_color" in state:
+                self._controls["ok_color"].set_color(state["ok_color"])
+            if "error_color" in state:
+                self._controls["error_color"].set_color(state["error_color"])
+        
+        finally:
+            # Разблокируем сигналы
+            for control in self._controls.values():
+                try:
+                    control.blockSignals(False)
+                except:
+                    pass
+            self._updating_ui = False
     
     def set_state(self, state: Dict[str, Any]):
         """Установить состояние из словаря
         
         Args:
-            state: Словарь с параметрами материалов
+            state: Словарь со ВСЕМИ материалами
+            Формат: {"frame": {...}, "lever": {...}, ...}
         """
-        # Temporarily disconnect signals
-        self._disconnect_signals_temp()
-        
-        try:
-            # Metal
-            if 'metal' in state:
-                metal = state['metal']
-                if 'color' in metal:
-                    self.metal_color_button.set_color(metal['color'])
-                if 'metalness' in metal:
-                    self.metal_metalness_slider.set_value(metal['metalness'])
-                if 'roughness' in metal:
-                    self.metal_roughness_slider.set_value(metal['roughness'])
-                if 'clearcoat' in metal:
-                    self.metal_clearcoat_slider.set_value(metal['clearcoat'])
-                if 'clearcoat_roughness' in metal:
-                    self.metal_clearcoat_roughness_slider.set_value(metal['clearcoat_roughness'])
-            
-            # Glass
-            if 'glass' in state:
-                glass = state['glass']
-                if 'color' in glass:
-                    self.glass_color_button.set_color(glass['color'])
-                if 'opacity' in glass:
-                    self.glass_opacity_slider.set_value(glass['opacity'])
-                if 'roughness' in glass:
-                    self.glass_roughness_slider.set_value(glass['roughness'])
-                if 'ior' in glass:
-                    self.glass_ior_slider.set_value(glass['ior'])
-                if 'transmission' in glass:
-                    self.glass_transmission_slider.set_value(glass['transmission'])
-            
-            # Frame
-            if 'frame' in state:
-                frame = state['frame']
-                if 'color' in frame:
-                    self.frame_color_button.set_color(frame['color'])
-                if 'metalness' in frame:
-                    self.frame_metalness_slider.set_value(frame['metalness'])
-                if 'roughness' in frame:
-                    self.frame_roughness_slider.set_value(frame['roughness'])
-            
-            # Cylinder
-            if 'cylinder' in state:
-                cylinder = state['cylinder']
-                if 'color' in cylinder:
-                    self.cylinder_color_button.set_color(cylinder['color'])
-                if 'metalness' in cylinder:
-                    self.cylinder_metalness_slider.set_value(cylinder['metalness'])
-                if 'roughness' in cylinder:
-                    self.cylinder_roughness_slider.set_value(cylinder['roughness'])
-        
-        finally:
-            # Reconnect signals
-            self._connect_signals()
-        
-        # Update internal state
-        self._state = self.get_state()
+        # Устанавливаем каждый материал
+        for material_key, material_state in state.items():
+            if material_key in self._material_labels:
+                self.set_material_state(material_key, material_state)
     
-    def _disconnect_signals_temp(self):
-        """Временно отключить сигналы (для batch update)"""
-        try:
-            # Metal
-            self.metal_color_button.color_changed.disconnect()
-            self.metal_metalness_slider.value_changed.disconnect()
-            self.metal_roughness_slider.value_changed.disconnect()
-            self.metal_clearcoat_slider.value_changed.disconnect()
-            self.metal_clearcoat_roughness_slider.value_changed.disconnect()
-            
-            # Glass
-            self.glass_color_button.color_changed.disconnect()
-            self.glass_opacity_slider.value_changed.disconnect()
-            self.glass_roughness_slider.value_changed.disconnect()
-            self.glass_ior_slider.value_changed.disconnect()
-            self.glass_transmission_slider.value_changed.disconnect()
-            
-            # Frame
-            self.frame_color_button.color_changed.disconnect()
-            self.frame_metalness_slider.value_changed.disconnect()
-            self.frame_roughness_slider.value_changed.disconnect()
-            
-            # Cylinder
-            self.cylinder_color_button.color_changed.disconnect()
-            self.cylinder_metalness_slider.value_changed.disconnect()
-            self.cylinder_roughness_slider.value_changed.disconnect()
-        except:
-            pass  # Signals may not be connected yet
+    def get_controls(self) -> Dict[str, Any]:
+        """Получить словарь контролов для внешнего управления"""
+        return self._controls
+    
+    def set_updating_ui(self, updating: bool) -> None:
+        """Установить флаг обновления UI"""
+        self._updating_ui = updating

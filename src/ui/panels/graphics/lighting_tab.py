@@ -3,6 +3,7 @@
 Graphics panel - lighting configuration tab
 Вкладка настройки освещения
 """
+import copy
 from typing import Any, Dict
 
 from PySide6.QtCore import Signal
@@ -18,6 +19,8 @@ from PySide6.QtWidgets import (
 )
 
 from .widgets import ColorButton, LabeledSlider
+# ✅ ИСПРАВЛЕНО: SettingsManager вместо defaults.py
+from src.common.settings_manager import get_settings_manager
 
 
 class LightingTab(QWidget):
@@ -30,6 +33,12 @@ class LightingTab(QWidget):
         super().__init__(parent)
         self._controls: Dict[str, Any] = {}
         self._updating_ui = False
+        
+        # ✅ НОВОЕ: State из SettingsManager
+        settings_manager = get_settings_manager()
+        graphics_settings = settings_manager.get_category("graphics")
+        self._state = copy.deepcopy(graphics_settings.get("lighting", {}))
+        
         self._setup_ui()
     
     def _setup_ui(self) -> None:
@@ -274,14 +283,64 @@ class LightingTab(QWidget):
         """Обновить параметр освещения"""
         if self._updating_ui:
             return
+        
+        # Обновляем внутреннее состояние
+        if group not in self._state:
+            self._state[group] = {}
+        self._state[group][key] = value
+        
         # Эмитируем сигнал с обновлением
         update = {group: {key: value}}
         self.lighting_changed.emit(update)
     
     def _apply_lighting_preset(self, preset: Dict[str, Any], name: str) -> None:
         """Применить пресет освещения"""
+        # Обновляем внутреннее состояние
+        self._state = copy.deepcopy(preset)
+        
         self.lighting_changed.emit(preset)
         self.preset_applied.emit(f"Освещение: {name}")
+    
+    # ✅ НОВЫЕ МЕТОДЫ: get_state() и set_state()
+    def get_state(self) -> Dict[str, Any]:
+        """Получить текущее состояние освещения
+        
+        Returns:
+            Словарь с параметрами освещения (key, fill, rim, point)
+        """
+        return copy.deepcopy(self._state)
+    
+    def set_state(self, state: Dict[str, Any]) -> None:
+        """Установить состояние освещения из словаря
+        
+        Args:
+            state: Словарь с параметрами освещения
+        """
+        self._updating_ui = True
+        try:
+            # Обновляем внутреннее состояние
+            self._state = copy.deepcopy(state)
+            
+            # Обновляем UI controls
+            for group in ["key", "fill", "rim", "point"]:
+                if group not in state:
+                    continue
+                
+                group_state = state[group]
+                
+                for key, value in group_state.items():
+                    control_key = f"{group}.{key}"
+                    control = self._controls.get(control_key)
+                    
+                    if isinstance(control, ColorButton):
+                        control.set_color(value)
+                    elif isinstance(control, LabeledSlider):
+                        control.set_value(value)
+                    elif isinstance(control, QCheckBox):
+                        control.setChecked(bool(value))
+        
+        finally:
+            self._updating_ui = False
     
     def get_controls(self) -> Dict[str, Any]:
         """Получить словарь контролов для внешнего управления"""

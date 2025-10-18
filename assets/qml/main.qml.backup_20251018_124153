@@ -6,7 +6,6 @@ import Qt.labs.folderlistmodel
 import "components"
 import "core"  // ✅ PHASE 1: Core Utilities (MathUtils, GeometryCalculations, StateCache)
 import "camera"  // ✅ PHASE 2: Camera System Modules
-import "lighting"  // ✅ STEP 1: Lighting System Modules
 
 /*
  * PneumoStabSim - COMPLETE Graphics Parameters Main 3D View (v4.9.4 SKYBOX FIX)
@@ -1300,60 +1299,67 @@ Item {
             function onAutoRotateSpeedChanged() { if (root.autoRotateSpeed !== cameraController.state.autoRotateSpeed) root.autoRotateSpeed = cameraController.state.autoRotateSpeed }
         }
 
-            // ===============================================================
-    // ✅ STEP 1: MODULAR LIGHTING SYSTEM
-    // ===============================================================
-    
-    // ✅ DirectionalLights module (Key, Fill, Rim lights)
-    DirectionalLights {
-        id: directionalLights
-        worldRoot: worldRoot
-        cameraRig: cameraController.rig
-        
-        shadowsEnabled: root.shadowsEnabled
-        shadowResolution: root.shadowResolution
-        shadowFilterSamples: root.shadowFilterSamples
-        shadowBias: root.shadowBias
-        shadowFactor: root.shadowFactor
-        
-        keyLightBrightness: root.keyLightBrightness
-        keyLightColor: root.keyLightColor
-        keyLightAngleX: root.keyLightAngleX
-        keyLightAngleY: root.keyLightAngleY
-        keyLightCastsShadow: root.keyLightCastsShadow
-        keyLightBindToCamera: root.keyLightBindToCamera
-        keyLightPosX: root.keyLightPosX
-        keyLightPosY: root.keyLightPosY
-        
-        fillLightBrightness: root.fillLightBrightness
-        fillLightColor: root.fillLightColor
-        fillLightCastsShadow: root.fillLightCastsShadow
-        fillLightBindToCamera: root.fillLightBindToCamera
-        fillLightPosX: root.fillLightPosX
-        fillLightPosY: root.fillLightPosY
-        
-        rimLightBrightness: root.rimLightBrightness
-        rimLightColor: root.rimLightColor
-        rimLightCastsShadow: root.rimLightCastsShadow
-        rimLightBindToCamera: root.rimLightBindToCamera
-        rimLightPosX: root.rimLightPosX
-        rimLightPosY: root.rimLightPosY
-    }
-    
-    // ✅ PointLights module (Accent light)
-    PointLights {
-        id: pointLights
-        worldRoot: worldRoot
-        cameraRig: cameraController.rig
-        
-        pointLightBrightness: root.pointLightBrightness
-        pointLightColor: root.pointLightColor
-        pointLightX: root.pointLightX
-        pointLightY: root.pointLightY
-        pointLightRange: root.pointLightRange
-        pointLightCastsShadow: root.pointLightCastsShadow
-        pointLightBindToCamera: root.pointLightBindToCamera
-    }
+        // Lighting (with shadow softness)
+        DirectionalLight {
+            id: keyLight
+            parent: keyLightBindToCamera ? cameraController.rig : worldRoot
+            eulerRotation.x: root.keyLightAngleX
+            eulerRotation.y: root.keyLightAngleY
+            position: Qt.vector3d(root.keyLightPosX, root.keyLightPosY, 0)
+            brightness: root.keyLightBrightness
+            color: root.keyLightColor
+            castsShadow: (root.shadowsEnabled && root.keyLightCastsShadow)
+            // ✅ Чистая маппинг логика без синтаксических ошибок
+            shadowMapQuality: root.shadowResolution === "4096" ? Light.ShadowMapQualityVeryHigh :
+                              root.shadowResolution === "2048" ? Light.ShadowMapQualityVeryHigh :
+                              root.shadowResolution === "1024" ? Light.ShadowMapQualityHigh :
+                              root.shadowResolution === "512"  ? Light.ShadowMapQualityMedium :
+                                                                   Light.ShadowMapQualityLow
+            shadowFactor: root.shadowFactor
+            shadowBias: root.shadowBias
+            shadowFilter: {
+                var samples = Math.floor(root.shadowFilterSamples || 16)
+                return samples === 32 ? Light.ShadowFilterPCF32 :
+                       samples === 16 ? Light.ShadowFilterPCF16 :
+                       samples === 8  ? Light.ShadowFilterPCF8  :
+                       samples === 4  ? Light.ShadowFilterPCF4  :
+                                        Light.ShadowFilterNone
+            }
+        }
+
+        DirectionalLight {
+            id: fillLight
+            parent: fillLightBindToCamera ? cameraController.rig : worldRoot
+            eulerRotation.x: -60
+            eulerRotation.y: 135
+            position: Qt.vector3d(root.fillLightPosX, root.fillLightPosY, 0)
+            brightness: root.fillLightBrightness
+            color: root.fillLightColor
+            castsShadow: (root.shadowsEnabled && root.fillLightCastsShadow)
+        }
+
+        DirectionalLight {
+            id: rimLight
+            parent: rimLightBindToCamera ? cameraController.rig : worldRoot
+            eulerRotation.x: 15
+            eulerRotation.y: 180
+            position: Qt.vector3d(root.rimLightPosX, root.rimLightPosY, 0)
+            brightness: root.rimLightBrightness
+            color: root.rimLightColor
+            castsShadow: (root.shadowsEnabled && root.rimLightCastsShadow)
+        }
+
+        PointLight {
+            id: accentLight
+            parent: pointLightBindToCamera ? cameraController.rig : worldRoot
+            position: Qt.vector3d(root.pointLightX, root.pointLightY, 1500)
+            brightness: root.pointLightBrightness
+            color: root.pointLightColor
+            castsShadow: root.pointLightCastsShadow   // ✅ Управляется пользователем
+            constantFade: 1.0
+            linearFade: 2.0 / Math.max(200.0, root.pointLightRange)
+            quadraticFade: 1.0 / Math.pow(Math.max(200.0, root.pointLightRange), 2)
+        }
 
         // ===============================================================
         // SUSPENSION SYSTEM GEOMETRY (with IOR support)

@@ -7,11 +7,13 @@ Controls for pneumatic parameters using knobs and radio buttons
 
 from PySide6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QGroupBox, 
                               QRadioButton, QCheckBox, QPushButton, QLabel,
-                              QButtonGroup, QSizePolicy, QComboBox)  # NEW: QComboBox
+                              QButtonGroup, QSizePolicy, QComboBox, QMessageBox)
 from PySide6.QtCore import Signal, Slot, Qt
 from PySide6.QtGui import QFont
 
 from ..widgets import Knob
+# ✅ НОВОЕ: Импортируем SettingsManager
+from src.common.settings_manager import SettingsManager
 
 
 class PneumoPanel(QWidget):
@@ -37,14 +39,18 @@ class PneumoPanel(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
         
+        # ✅ НОВОЕ: Используем SettingsManager
+        self._settings_manager = SettingsManager()
+        
         # Parameter storage
         self.parameters = {}
+        self.physics_options = {}
         
         # Setup UI
         self._setup_ui()
         
-        # Set default values
-        self._set_default_values()
+        # ✅ ИЗМЕНЕНО: Загружаем defaults из SettingsManager
+        self._load_defaults_from_settings()
         
         # Connect signals
         self._connect_signals()
@@ -370,6 +376,39 @@ class PneumoPanel(QWidget):
         
         return layout
     
+    def _load_defaults_from_settings(self):
+        """Загрузить defaults из SettingsManager"""
+        defaults = self._settings_manager.get("pneumatic", {
+            # Receiver parameters
+            'volume_mode': 'MANUAL',
+            'receiver_volume': 0.020,
+            'receiver_diameter': 0.200,
+            'receiver_length': 0.500,
+            
+            # Check valves
+            'cv_atmo_dp': 0.01,
+            'cv_tank_dp': 0.01,
+            'cv_atmo_dia': 3.0,
+            'cv_tank_dia': 3.0,
+            
+            # Relief valves
+            'relief_min_pressure': 2.5,
+            'relief_stiff_pressure': 15.0,
+            'relief_safety_pressure': 50.0,
+            'throttle_min_dia': 1.0,
+            'throttle_stiff_dia': 1.5,
+            
+            # Environment
+            'atmo_temp': 20.0,
+            'thermo_mode': 'ISOTHERMAL',
+            
+            # Options
+            'master_isolation_open': False,
+            'link_rod_dia': False,
+        })
+        
+        self.parameters.update(defaults)
+    
     def _set_default_values(self):
         """Set default parameter values"""
         defaults = {
@@ -546,11 +585,12 @@ class PneumoPanel(QWidget):
     
     @Slot()
     def _reset_to_defaults(self):
-        """Сбросить все параметры к значениям по умолчанию / Reset all parameters to defaults"""
-        self._set_default_values()
+        """Сбросить все параметры к значениям по умолчанию из JSON"""
+        self._settings_manager.reset_to_defaults(category="pneumatic")
+        self.parameters = self._settings_manager.get("pneumatic")
         
-        # Update receiver controls (NEW!)
-        self.volume_mode_combo.setCurrentIndex(0)  # Manual mode
+        # Update receiver controls
+        self.volume_mode_combo.setCurrentIndex(0)
         self.manual_volume_knob.setValue(self.parameters['receiver_volume'])
         self.receiver_diameter_knob.setValue(self.parameters['receiver_diameter'])
         self.receiver_length_knob.setValue(self.parameters['receiver_length'])
@@ -580,71 +620,6 @@ class PneumoPanel(QWidget):
         # Emit update
         self.pneumatic_updated.emit(self.parameters.copy())
     
-    @Slot()
-    def _validate_system(self):
-        """Проверить конфигурацию пневмосистемы / Validate pneumatic system configuration"""
-        warnings = []
-        errors = []
-        
-        # Check receiver parameters (NEW!)
-        volume = self.parameters.get('receiver_volume', 0)
-        if volume <= 0:
-            errors.append("Объём ресивера должен быть положительным")
-        elif volume < 0.005:  # < 5 liters
-            warnings.append(f"Малый объём ресивера ({volume*1000:.1f} л) может снизить эффективность")
-        elif volume > 0.200:  # > 200 liters
-            warnings.append(f"Большой объём ресивера ({volume*1000:.1f} л) может замедлить реакцию")
-        
-        # Check geometric parameters if in geometric mode
-        if self.parameters.get('volume_mode') == 'GEOMETRIC':
-            diameter = self.parameters.get('receiver_diameter', 0)
-            length = self.parameters.get('receiver_length', 0)
-            
-            if diameter <= 0 or length <= 0:
-                errors.append("Геометрические размеры ресивера должны быть положительными")
-            else:
-                # Check realistic proportions
-                aspect_ratio = length / diameter
-                if aspect_ratio < 1.0:
-                    warnings.append(f"Ресивер короче диаметра (L/D = {aspect_ratio:.2f})")
-                elif aspect_ratio > 20.0:
-                    warnings.append(f"Ресивер очень длинный (L/D = {aspect_ratio:.2f})")
-        
-        # Check relief valve pressure ordering (Проверка порядка давлений)
-        min_p = self.parameters['relief_min_pressure']
-        stiff_p = self.parameters['relief_stiff_pressure']
-        safety_p = self.parameters['relief_safety_pressure']
-        
-        if not (min_p < stiff_p < safety_p):
-            errors.append("Давления сброса должны быть упорядочены: Мин < Жёсткость < Аварийный")
-        
-        # Check temperature range (Проверка диапазона температуры)
-        temp = self.parameters['atmo_temp']
-        if temp < -10.0:
-            warnings.append(f"Низкая температура ({temp}°C) может повлиять на свойства газа")
-        elif temp > 40.0:
-            warnings.append(f"Высокая температура ({temp}°C) может повлиять на работу системы")
-        
-        # Check throttle sizes (Проверка размеров дросселей)
-        min_throttle = self.parameters['throttle_min_dia']
-        stiff_throttle = self.parameters['throttle_stiff_dia']
-        
-        if min_throttle >= stiff_throttle:
-            warnings.append("Диаметр минимального drosselя должен быть меньше дросселя жёсткости")
-        
-        # Show results (Показать результаты)
-        from PySide6.QtWidgets import QMessageBox
-        
-        if errors:
-            QMessageBox.critical(self, 'Ошибки пневмосистемы',
-                               'Обнаружены ошибки:\n' + '\n'.join(errors))
-        elif warnings:
-            QMessageBox.warning(self, 'Предупреждения пневмосистемы',
-                              'Предупреждения:\n' + '\n'.join(warnings))
-        else:
-            QMessageBox.information(self, 'Проверка пневмосистемы',
-                                  'Все параметры пневмосистемы корректны.')
-    
     def get_parameters(self) -> dict:
         """Get current parameter values
         
@@ -654,13 +629,16 @@ class PneumoPanel(QWidget):
         return self.parameters.copy()
     
     def set_parameters(self, params: dict):
-        """Set parameter values from dictionary
+        """Set parameter values and save to SettingsManager
         
         Args:
             params: Dictionary of parameter values
         """
         # Update internal storage
         self.parameters.update(params)
+        
+        # ✅ НОВОЕ: Сохраняем через SettingsManager
+        self._settings_manager.set("pneumatic", self.parameters, auto_save=True)
         
         # Update receiver controls (NEW!)
         if 'volume_mode' in params:
@@ -769,3 +747,92 @@ class PneumoPanel(QWidget):
         self.calculated_volume_label.setText(f"Расчётный объём: {volume:.3f} м³")
         
         print(f"🧮 Геометрический расчёт: D={diameter:.3f}м, L={length:.3f}м → V={volume:.3f}м³")
+    
+    @Slot()
+    def _validate_system(self):
+        """Проверить корректность настроек пневмосистемы / Validate pneumatic system settings"""
+        issues = []
+        warnings = []
+        
+        # Проверка 1: Порядок давлений предохранительных клапанов
+        min_p = self.parameters.get('relief_min_pressure', 0)
+        stiff_p = self.parameters.get('relief_stiff_pressure', 0)
+        safety_p = self.parameters.get('relief_safety_pressure', 0)
+        
+        if not (min_p < stiff_p < safety_p):
+            issues.append(
+                f"❌ Некорректный порядок давлений клапанов:\n"
+                f"   Мин: {min_p:.1f} бар, Жёстк: {stiff_p:.1f} бар, Аварийн: {safety_p:.1f} бар\n"
+                f"   Требуется: Мин < Жёстк < Аварийн"
+            )
+        
+        # Проверка 2: Объём ресивера
+        volume = self.parameters.get('receiver_volume', 0)
+        if volume < 0.001:
+            issues.append("❌ Слишком малый объём ресивера (< 1 литр)")
+        elif volume < 0.005:
+            warnings.append("⚠️ Малый объём ресивера (< 5 литров) - возможны проблемы с давлением")
+        
+        if volume > 0.100:
+            warnings.append("⚠️ Большой объём ресивера (> 100 литров) - медленная реакция системы")
+        
+        # Проверка 3: Диаметры дросселей
+        throttle_min = self.parameters.get('throttle_min_dia', 0)
+        throttle_stiff = self.parameters.get('throttle_stiff_dia', 0)
+        
+        if throttle_min >= throttle_stiff:
+            issues.append(
+                f"❌ Диаметр минимального дросселя ({throttle_min:.1f} мм) "
+                f"должен быть меньше жёсткости ({throttle_stiff:.1f} мм)"
+            )
+        
+        if throttle_min < 0.3:
+            warnings.append("⚠️ Слишком малый диаметр минимального дросселя (< 0.3 мм)")
+        
+        # Проверка 4: Температура
+        temp = self.parameters.get('atmo_temp', 20)
+        if temp < -40 or temp > 60:
+            warnings.append(f"⚠️ Экстремальная температура ({temp}°C) - проверьте корректность")
+        
+        # Проверка 5: Перепады давления обратных клапанов
+        cv_atmo_dp = self.parameters.get('cv_atmo_dp', 0)
+        cv_tank_dp = self.parameters.get('cv_tank_dp', 0)
+        
+        if cv_atmo_dp > 0.05:
+            warnings.append(f"⚠️ Большой перепад обратного клапана атмосферы ({cv_atmo_dp:.3f} бар)")
+        
+        if cv_tank_dp > 0.05:
+            warnings.append(f"⚠️ Большой перепад обратного клапана ресивера ({cv_tank_dp:.3f} бар)")
+        
+        # Формирование сообщения
+        if issues:
+            # Критические ошибки
+            message = "🔴 ОБНАРУЖЕНЫ КРИТИЧЕСКИЕ ОШИБКИ:\n\n" + "\n\n".join(issues)
+            if warnings:
+                message += "\n\n⚠️ ПРЕДУПРЕЖДЕНИЯ:\n\n" + "\n\n".join(warnings)
+            
+            QMessageBox.critical(self, "Ошибки конфигурации", message)
+            print("❌ Проверка пневмосистемы: ОШИБКИ")
+            
+        elif warnings:
+            # Только предупреждения
+            message = "⚠️ ПРЕДУПРЕЖДЕНИЯ:\n\n" + "\n\n".join(warnings)
+            message += "\n\nСистема работоспособна, но рекомендуется проверить параметры."
+            
+            QMessageBox.warning(self, "Предупреждения", message)
+            print("⚠️ Проверка пневмосистемы: ПРЕДУПРЕЖДЕНИЯ")
+            
+        else:
+            # Всё в порядке
+            message = (
+                "✅ Конфигурация пневмосистемы корректна!\n\n"
+                f"Параметры:\n"
+                f"  • Объём ресивера: {volume:.3f} м³ ({volume*1000:.1f} л)\n"
+                f"  • Давления клапанов: {min_p:.1f} / {stiff_p:.1f} / {safety_p:.1f} бар\n"
+                f"  • Температура: {temp:.0f}°C\n"
+                f"  • Режим: {self.parameters.get('thermo_mode', 'N/A')}\n"
+                f"  • Главная изоляция: {'Открыта' if self.parameters.get('master_isolation_open') else 'Закрыта'}"
+            )
+            
+            QMessageBox.information(self, "Проверка успешна", message)
+            print("✅ Проверка пневмосистемы: ВСЁ В ПОРЯДКЕ")

@@ -1,11 +1,19 @@
-# -*- coding: utf-8 -*-
+ # -*- coding: utf-8 -*-
 """
 Effects Tab - вкладка настроек визуальных эффектов (Bloom, DoF, Vignette и т.д.)
 Part of modular GraphicsPanel restructuring
+
+СТРУКТУРА ТОЧНО ПОВТОРЯЕТ МОНОЛИТ panel_graphics.py:
+- _build_bloom_group() → Bloom эффекты
+- _build_tonemap_group() → Тонемаппинг
+- _build_dof_group() → Depth of Field
+- _build_misc_effects_group() → Дополнительные эффекты (Motion Blur, Lens Flare, Vignette)
+
+✅ ДОПОЛНЕНО: Расширенные параметры из Qt 6.10 ExtendedSceneEnvironment
 """
 
 from PySide6.QtWidgets import (
-    QWidget, QVBoxLayout, QGroupBox, QCheckBox
+    QWidget, QVBoxLayout, QGroupBox, QCheckBox, QComboBox, QLabel, QGridLayout
 )
 from PySide6.QtCore import Signal
 from typing import Dict, Any
@@ -14,7 +22,7 @@ from .widgets import LabeledSlider
 
 
 class EffectsTab(QWidget):
-    """Вкладка настроек эффектов: Bloom, SSAO, DoF, Vignette
+    """Вкладка настроек эффектов: Bloom, Tonemap, DoF, Misc
     
     Signals:
         effects_changed: Dict[str, Any] - параметры эффектов изменились
@@ -25,270 +33,356 @@ class EffectsTab(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
         
-        # Current state
-        self._state = {}
+        # Current state - храним ссылки на контролы
+        self._controls: Dict[str, Any] = {}
         
         # Setup UI
         self._setup_ui()
-        
-        # Connect signals
-        self._connect_signals()
     
     def _setup_ui(self):
-        """Построить UI вкладки"""
+        """Построить UI вкладки - ТОЧНО КАК В МОНОЛИТЕ + расширенные параметры"""
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(10, 10, 10, 10)
-        layout.setSpacing(10)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(12)
         
-        # Bloom group
-        layout.addWidget(self._create_bloom_group())
+        # ✅ ТОЧНО КАК В МОНОЛИТЕ - 4 основные группы:
+        layout.addWidget(self._build_bloom_group())
+        layout.addWidget(self._build_tonemap_group())
+        layout.addWidget(self._build_dof_group())
+        layout.addWidget(self._build_misc_effects_group())
         
-        # SSAO group
-        layout.addWidget(self._create_ssao_group())
+        # ✅ НОВОЕ: Color Adjustments (Qt 6.10+)
+        layout.addWidget(self._build_color_adjustments_group())
         
-        # Depth of Field group
-        layout.addWidget(self._create_dof_group())
-        
-        # Vignette & Misc group
-        layout.addWidget(self._create_misc_effects_group())
-        
-        layout.addStretch()
+        layout.addStretch(1)
     
-    def _create_bloom_group(self) -> QGroupBox:
-        """Создать группу настроек Bloom (свечение)"""
-        group = QGroupBox("Bloom (Свечение)")
-        layout = QVBoxLayout(group)
+    def _build_bloom_group(self) -> QGroupBox:
+        """Создать группу Bloom - МОНОЛИТ + расширенные параметры Qt 6.10"""
+        group = QGroupBox("Bloom (Свечение)", self)
+        grid = QGridLayout(group)
+        grid.setContentsMargins(8, 8, 8, 8)
+        grid.setHorizontalSpacing(12)
+        grid.setVerticalSpacing(8)
+
+        row = 0
         
-        # Bloom enabled
-        self.bloom_enabled_check = QCheckBox("Включить Bloom")
-        self.bloom_enabled_check.setChecked(True)
-        layout.addWidget(self.bloom_enabled_check)
+        # ✅ ИЗ МОНОЛИТА: Checkbox enabled
+        enabled = QCheckBox("Включить Bloom", self)
+        enabled.clicked.connect(lambda checked: self._on_control_changed("bloom_enabled", checked))
+        self._controls["bloom.enabled"] = enabled
+        grid.addWidget(enabled, row, 0, 1, 2)
+        row += 1
+
+        # ✅ ИЗ МОНОЛИТА: Intensity slider
+        intensity = LabeledSlider("Интенсивность (glowIntensity)", 0.0, 2.0, 0.02, decimals=2)
+        intensity.valueChanged.connect(lambda v: self._on_control_changed("bloom_intensity", v))
+        self._controls["bloom.intensity"] = intensity
+        grid.addWidget(intensity, row, 0, 1, 2)
+        row += 1
+
+        # ✅ ИЗ МОНОЛИТА: Threshold slider
+        threshold = LabeledSlider("Порог (glowHDRMinimumValue)", 0.0, 4.0, 0.05, decimals=2)
+        threshold.valueChanged.connect(lambda v: self._on_control_changed("bloom_threshold", v))
+        self._controls["bloom.threshold"] = threshold
+        grid.addWidget(threshold, row, 0, 1, 2)
+        row += 1
+
+        # ✅ ИЗ МОНОЛИТЕ: Spread slider
+        spread = LabeledSlider("Распространение (glowBloom)", 0.0, 1.0, 0.01, decimals=2)
+        spread.valueChanged.connect(lambda v: self._on_control_changed("bloom_spread", v))
+        self._controls["bloom.spread"] = spread
+        grid.addWidget(spread, row, 0, 1, 2)
+        row += 1
         
-        # Bloom intensity
-        self.bloom_intensity_slider = LabeledSlider(
-            "Интенсивность:",
-            minimum=0.0,
-            maximum=2.0,
-            value=0.5,
-            step=0.01,
-            suffix=""
-        )
-        layout.addWidget(self.bloom_intensity_slider)
+        # ✅ НОВОЕ Qt 6.10: Glow Strength
+        glow_strength = LabeledSlider("Сила свечения (glowStrength)", 0.0, 2.0, 0.02, decimals=2)
+        glow_strength.valueChanged.connect(lambda v: self._on_control_changed("bloom_glow_strength", v))
+        self._controls["bloom.glow_strength"] = glow_strength
+        grid.addWidget(glow_strength, row, 0, 1, 2)
+        row += 1
         
-        # Bloom threshold
-        self.bloom_threshold_slider = LabeledSlider(
-            "Порог свечения:",
-            minimum=0.0,
-            maximum=2.0,
-            value=1.0,
-            step=0.01,
-            suffix=""
-        )
-        layout.addWidget(self.bloom_threshold_slider)
+        # ✅ НОВОЕ Qt 6.10: HDR Maximum Value
+        hdr_max = LabeledSlider("HDR Maximum (glowHDRMaximumValue)", 0.0, 10.0, 0.1, decimals=1)
+        hdr_max.valueChanged.connect(lambda v: self._on_control_changed("bloom_hdr_max", v))
+        self._controls["bloom.hdr_max"] = hdr_max
+        grid.addWidget(hdr_max, row, 0, 1, 2)
+        row += 1
         
-        # Bloom blur passes
-        self.bloom_blur_slider = LabeledSlider(
-            "Размытие:",
-            minimum=1.0,
-            maximum=8.0,
-            value=4.0,
-            step=1.0,
-            suffix=" проходов"
-        )
-        layout.addWidget(self.bloom_blur_slider)
+        # ✅ НОВОЕ Qt 6.10: HDR Scale
+        hdr_scale = LabeledSlider("HDR Scale (glowHDRScale)", 1.0, 5.0, 0.1, decimals=1)
+        hdr_scale.valueChanged.connect(lambda v: self._on_control_changed("bloom_hdr_scale", v))
+        self._controls["bloom.hdr_scale"] = hdr_scale
+        grid.addWidget(hdr_scale, row, 0, 1, 2)
+        row += 1
+        
+        # ✅ НОВОЕ Qt 6.10: Quality High checkbox
+        quality_high = QCheckBox("Высокое качество (glowQualityHigh)", self)
+        quality_high.clicked.connect(lambda checked: self._on_control_changed("bloom_quality_high", checked))
+        self._controls["bloom.quality_high"] = quality_high
+        grid.addWidget(quality_high, row, 0, 1, 2)
+        row += 1
+        
+        # ✅ НОВОЕ Qt 6.10: Bicubic Upscale checkbox
+        bicubic = QCheckBox("Бикубическое увеличение (glowUseBicubicUpscale)", self)
+        bicubic.clicked.connect(lambda checked: self._on_control_changed("bloom_bicubic_upscale", checked))
+        self._controls["bloom.bicubic_upscale"] = bicubic
+        grid.addWidget(bicubic, row, 0, 1, 2)
         
         return group
     
-    def _create_ssao_group(self) -> QGroupBox:
-        """Создать группу настроек SSAO (Screen-Space Ambient Occlusion)"""
-        group = QGroupBox("SSAO (Ambient Occlusion)")
-        layout = QVBoxLayout(group)
+    def _build_tonemap_group(self) -> QGroupBox:
+        """Создать группу Тонемаппинг - МОНОЛИТ + расширенные параметры Qt 6.10"""
+        group = QGroupBox("Тонемаппинг", self)
+        grid = QGridLayout(group)
+        grid.setContentsMargins(8, 8, 8, 8)
+        grid.setHorizontalSpacing(12)
+        grid.setVerticalSpacing(8)
+
+        row = 0
         
-        # SSAO enabled
-        self.ssao_enabled_check = QCheckBox("Включить SSAO")
-        self.ssao_enabled_check.setChecked(True)
-        layout.addWidget(self.ssao_enabled_check)
+        # ✅ ИЗ МОНОЛИТА: Checkbox enabled
+        enabled = QCheckBox("Включить тонемаппинг", self)
+        enabled.clicked.connect(lambda checked: self._on_control_changed("tonemap_enabled", checked))
+        self._controls["tonemap.enabled"] = enabled
+        grid.addWidget(enabled, row, 0, 1, 2)
+        row += 1
+
+        # ✅ ИЗ МОНОЛИТА: Tonemap mode ComboBox
+        combo = QComboBox(self)
+        for label, value in [
+            ("Filmic", "filmic"), 
+            ("ACES", "aces"), 
+            ("Reinhard", "reinhard"), 
+            ("Gamma", "gamma"), 
+            ("Linear", "linear")
+        ]:
+            combo.addItem(label, value)
+        combo.currentIndexChanged.connect(lambda _: self._on_control_changed("tonemap_mode", combo.currentData()))
+        self._controls["tonemap.mode"] = combo
+        grid.addWidget(QLabel("Режим", self), row, 0)
+        grid.addWidget(combo, row, 1)
+        row += 1
         
-        # SSAO strength
-        self.ssao_strength_slider = LabeledSlider(
-            "Сила SSAO:",
-            minimum=0.0,
-            maximum=100.0,
-            value=50.0,
-            step=1.0,
-            suffix=""
-        )
-        layout.addWidget(self.ssao_strength_slider)
+        # ✅ НОВОЕ Qt 6.10: Exposure
+        exposure = LabeledSlider("Экспозиция (tonemapExposure)", 0.1, 5.0, 0.05, decimals=2)
+        exposure.valueChanged.connect(lambda v: self._on_control_changed("tonemap_exposure", v))
+        self._controls["tonemap.exposure"] = exposure
+        grid.addWidget(exposure, row, 0, 1, 2)
+        row += 1
         
-        # SSAO radius
-        self.ssao_radius_slider = LabeledSlider(
-            "Радиус SSAO:",
-            minimum=0.1,
-            maximum=10.0,
-            value=1.0,
-            step=0.1,
-            suffix=" m"
-        )
-        layout.addWidget(self.ssao_radius_slider)
+        # ✅ НОВОЕ Qt 6.10: White Point
+        white_point = LabeledSlider("Белая точка (tonemapWhitePoint)", 0.5, 5.0, 0.1, decimals=1)
+        white_point.valueChanged.connect(lambda v: self._on_control_changed("tonemap_white_point", v))
+        self._controls["tonemap.white_point"] = white_point
+        grid.addWidget(white_point, row, 0, 1, 2)
+
+        return group
+    
+    def _build_dof_group(self) -> QGroupBox:
+        """Создать группу Глубина резкости - ТОЧНО КАК В МОНОЛИТЕ"""
+        group = QGroupBox("Depth of Field (Глубина резкости)", self)
+        grid = QGridLayout(group)
+        grid.setContentsMargins(8, 8, 8, 8)
+        grid.setHorizontalSpacing(12)
+        grid.setVerticalSpacing(8)
+
+        # Checkbox enabled
+        enabled = QCheckBox("Включить DoF", self)
+        enabled.clicked.connect(lambda checked: self._on_control_changed("depth_of_field", checked))
+        self._controls["dof.enabled"] = enabled
+        grid.addWidget(enabled, 0, 0, 1, 2)
+
+        # Focus distance slider
+        focus = LabeledSlider("Фокусное расстояние", 200.0, 20000.0, 50.0, decimals=0, unit="мм")
+        focus.valueChanged.connect(lambda v: self._on_control_changed("dof_focus_distance", v))
+        self._controls["dof.focus"] = focus
+        grid.addWidget(focus, 1, 0, 1, 2)
+
+        # Blur slider
+        blur = LabeledSlider("Размытие", 0.0, 10.0, 0.1, decimals=2)
+        blur.valueChanged.connect(lambda v: self._on_control_changed("dof_blur", v))
+        self._controls["dof.blur"] = blur
+        grid.addWidget(blur, 2, 0, 1, 2)
+
+        return group
+    
+    def _build_misc_effects_group(self) -> QGroupBox:
+        """Создать группу Дополнительные эффекты - МОНОЛИТ + расширенные параметры Qt 6.10"""
+        group = QGroupBox("Дополнительные эффекты", self)
+        grid = QGridLayout(group)
+        grid.setContentsMargins(8, 8, 8, 8)
+        grid.setHorizontalSpacing(12)
+        grid.setVerticalSpacing(8)
+
+        row = 0
         
-        # SSAO sample count
-        self.ssao_samples_slider = LabeledSlider(
-            "Количество сэмплов:",
-            minimum=4.0,
-            maximum=32.0,
-            value=16.0,
-            step=4.0,
-            suffix=""
-        )
-        layout.addWidget(self.ssao_samples_slider)
+        # ========== MOTION BLUR (из монолита) ==========
+        motion = QCheckBox("Размытие движения", self)
+        motion.clicked.connect(lambda checked: self._on_control_changed("motion_blur", checked))
+        self._controls["motion.enabled"] = motion
+        grid.addWidget(motion, row, 0, 1, 2)
+        row += 1
+
+        motion_strength = LabeledSlider("Сила размытия", 0.0, 1.0, 0.02, decimals=2)
+        motion_strength.valueChanged.connect(lambda v: self._on_control_changed("motion_blur_amount", v))
+        self._controls["motion.amount"] = motion_strength
+        grid.addWidget(motion_strength, row, 0, 1, 2)
+        row += 1
+
+        # ========== LENS FLARE (из монолита + расширенные) ==========
+        lens_flare = QCheckBox("Линзовые блики", self)
+        lens_flare.clicked.connect(lambda checked: self._on_control_changed("lens_flare", checked))
+        self._controls["lens_flare.enabled"] = lens_flare
+        grid.addWidget(lens_flare, row, 0, 1, 2)
+        row += 1
+        
+        # ✅ НОВОЕ Qt 6.10: Lens Flare Ghost Count
+        lf_ghost_count = LabeledSlider("Количество призраков", 1.0, 10.0, 1.0, decimals=0)
+        lf_ghost_count.valueChanged.connect(lambda v: self._on_control_changed("lens_flare_ghost_count", int(v)))
+        self._controls["lens_flare.ghost_count"] = lf_ghost_count
+        grid.addWidget(lf_ghost_count, row, 0, 1, 2)
+        row += 1
+        
+        # ✅ НОВОЕ Qt 6.10: Ghost Dispersal
+        lf_dispersal = LabeledSlider("Распределение призраков", 0.0, 1.0, 0.01, decimals=2)
+        lf_dispersal.valueChanged.connect(lambda v: self._on_control_changed("lens_flare_ghost_dispersal", v))
+        self._controls["lens_flare.ghost_dispersal"] = lf_dispersal
+        grid.addWidget(lf_dispersal, row, 0, 1, 2)
+        row += 1
+        
+        # ✅ НОВОЕ Qt 6.10: Halo Width
+        lf_halo = LabeledSlider("Ширина гало", 0.0, 1.0, 0.01, decimals=2)
+        lf_halo.valueChanged.connect(lambda v: self._on_control_changed("lens_flare_halo_width", v))
+        self._controls["lens_flare.halo_width"] = lf_halo
+        grid.addWidget(lf_halo, row, 0, 1, 2)
+        row += 1
+        
+        # ✅ НОВОЕ Qt 6.10: Bloom Bias
+        lf_bloom_bias = LabeledSlider("Смещение bloom", 0.0, 1.0, 0.01, decimals=2)
+        lf_bloom_bias.valueChanged.connect(lambda v: self._on_control_changed("lens_flare_bloom_bias", v))
+        self._controls["lens_flare.bloom_bias"] = lf_bloom_bias
+        grid.addWidget(lf_bloom_bias, row, 0, 1, 2)
+        row += 1
+        
+        # ✅ НОВОЕ Qt 6.10: Stretch to Aspect checkbox
+        lf_stretch = QCheckBox("Растяжение по пропорциям", self)
+        lf_stretch.clicked.connect(lambda checked: self._on_control_changed("lens_flare_stretch_to_aspect", checked))
+        self._controls["lens_flare.stretch"] = lf_stretch
+        grid.addWidget(lf_stretch, row, 0, 1, 2)
+        row += 1
+
+        # ========== VIGNETTE (из монолита + расширенные) ==========
+        vignette = QCheckBox("Виньетирование", self)
+        vignette.clicked.connect(lambda checked: self._on_control_changed("vignette", checked))
+        self._controls["vignette.enabled"] = vignette
+        grid.addWidget(vignette, row, 0, 1, 2)
+        row += 1
+
+        vignette_strength = LabeledSlider("Сила виньетки", 0.0, 1.0, 0.02, decimals=2)
+        vignette_strength.valueChanged.connect(lambda v: self._on_control_changed("vignette_strength", v))
+        self._controls["vignette.strength"] = vignette_strength
+        grid.addWidget(vignette_strength, row, 0, 1, 2)
+        row += 1
+        
+        # ✅ НОВОЕ Qt 6.10: Vignette Radius
+        vignette_radius = LabeledSlider("Радиус виньетки", 0.0, 1.0, 0.01, decimals=2)
+        vignette_radius.valueChanged.connect(lambda v: self._on_control_changed("vignette_radius", v))
+        self._controls["vignette.radius"] = vignette_radius
+        grid.addWidget(vignette_radius, row, 0, 1, 2)
         
         return group
     
-    def _create_dof_group(self) -> QGroupBox:
-        """Создать группу настроек Depth of Field (глубина резкости)"""
-        group = QGroupBox("Depth of Field (Глубина резкости)")
-        layout = QVBoxLayout(group)
+    def _build_color_adjustments_group(self) -> QGroupBox:
+        """✅ НОВОЕ Qt 6.10: Color Adjustments группа"""
+        group = QGroupBox("Цветокоррекция (Qt 6.10+)", self)
+        grid = QGridLayout(group)
+        grid.setContentsMargins(8, 8, 8, 8)
+        grid.setHorizontalSpacing(12)
+        grid.setVerticalSpacing(8)
         
-        # DoF enabled
-        self.dof_enabled_check = QCheckBox("Включить DoF")
-        self.dof_enabled_check.setChecked(False)
-        layout.addWidget(self.dof_enabled_check)
+        row = 0
         
-        # DoF focus distance
-        self.dof_focus_slider = LabeledSlider(
-            "Расстояние фокуса:",
-            minimum=0.1,
-            maximum=20.0,
-            value=5.0,
-            step=0.1,
-            suffix=" m"
-        )
-        layout.addWidget(self.dof_focus_slider)
+        # Brightness
+        brightness = LabeledSlider("Яркость", -1.0, 1.0, 0.01, decimals=2)
+        brightness.valueChanged.connect(lambda v: self._on_control_changed("adjustment_brightness", v))
+        self._controls["color.brightness"] = brightness
+        grid.addWidget(brightness, row, 0, 1, 2)
+        row += 1
         
-        # DoF focus range
-        self.dof_range_slider = LabeledSlider(
-            "Диапазон фокуса:",
-            minimum=0.1,
-            maximum=10.0,
-            value=2.0,
-            step=0.1,
-            suffix=" m"
-        )
-        layout.addWidget(self.dof_range_slider)
+        # Contrast
+        contrast = LabeledSlider("Контраст", -1.0, 1.0, 0.01, decimals=2)
+        contrast.valueChanged.connect(lambda v: self._on_control_changed("adjustment_contrast", v))
+        self._controls["color.contrast"] = contrast
+        grid.addWidget(contrast, row, 0, 1, 2)
+        row += 1
         
-        # DoF blur amount
-        self.dof_blur_slider = LabeledSlider(
-            "Сила размытия:",
-            minimum=0.0,
-            maximum=10.0,
-            value=4.0,
-            step=0.1,
-            suffix=""
-        )
-        layout.addWidget(self.dof_blur_slider)
+        # Saturation
+        saturation = LabeledSlider("Насыщенность", -1.0, 1.0, 0.01, decimals=2)
+        saturation.valueChanged.connect(lambda v: self._on_control_changed("adjustment_saturation", v))
+        self._controls["color.saturation"] = saturation
+        grid.addWidget(saturation, row, 0, 1, 2)
         
         return group
     
-    def _create_misc_effects_group(self) -> QGroupBox:
-        """Создать группу прочих эффектов (Vignette, Motion Blur и т.д.)"""
-        group = QGroupBox("Прочие эффекты")
-        layout = QVBoxLayout(group)
-        
-        # Vignette enabled
-        self.vignette_enabled_check = QCheckBox("Включить виньетирование")
-        self.vignette_enabled_check.setChecked(True)
-        layout.addWidget(self.vignette_enabled_check)
-        
-        # Vignette strength
-        self.vignette_strength_slider = LabeledSlider(
-            "Сила виньетки:",
-            minimum=0.0,
-            maximum=1.0,
-            value=0.45,
-            step=0.01,
-            suffix=""
-        )
-        layout.addWidget(self.vignette_strength_slider)
-        
-        # Motion blur enabled
-        self.motion_blur_check = QCheckBox("Включить Motion Blur")
-        self.motion_blur_check.setChecked(False)
-        layout.addWidget(self.motion_blur_check)
-        
-        # Motion blur quality
-        self.motion_blur_quality_slider = LabeledSlider(
-            "Качество Motion Blur:",
-            minimum=1.0,
-            maximum=8.0,
-            value=4.0,
-            step=1.0,
-            suffix=" сэмплов"
-        )
-        layout.addWidget(self.motion_blur_quality_slider)
-        
-        return group
-    
-    def _connect_signals(self):
-        """Подключить сигналы контролов"""
-        # Bloom
-        self.bloom_enabled_check.toggled.connect(self._emit_changes)
-        self.bloom_intensity_slider.value_changed.connect(self._emit_changes)
-        self.bloom_threshold_slider.value_changed.connect(self._emit_changes)
-        self.bloom_blur_slider.value_changed.connect(self._emit_changes)
-        
-        # SSAO
-        self.ssao_enabled_check.toggled.connect(self._emit_changes)
-        self.ssao_strength_slider.value_changed.connect(self._emit_changes)
-        self.ssao_radius_slider.value_changed.connect(self._emit_changes)
-        self.ssao_samples_slider.value_changed.connect(self._emit_changes)
-        
-        # DoF
-        self.dof_enabled_check.toggled.connect(self._emit_changes)
-        self.dof_focus_slider.value_changed.connect(self._emit_changes)
-        self.dof_range_slider.value_changed.connect(self._emit_changes)
-        self.dof_blur_slider.value_changed.connect(self._emit_changes)
-        
-        # Misc
-        self.vignette_enabled_check.toggled.connect(self._emit_changes)
-        self.vignette_strength_slider.value_changed.connect(self._emit_changes)
-        self.motion_blur_check.toggled.connect(self._emit_changes)
-        self.motion_blur_quality_slider.value_changed.connect(self._emit_changes)
-    
-    def _emit_changes(self):
-        """Собрать текущее состояние и испустить сигнал"""
-        self._state = self.get_state()
-        self.effects_changed.emit(self._state)
+    def _on_control_changed(self, key: str, value: Any):
+        """Обработчик изменения любого контрола - испускаем сигнал"""
+        # Собираем полное состояние
+        state = self.get_state()
+        self.effects_changed.emit(state)
     
     def get_state(self) -> Dict[str, Any]:
-        """Получить текущее состояние всех параметров
+        """Получить текущее состояние всех параметров эффектов
         
         Returns:
-            Словарь с параметрами эффектов
+            Словарь с параметрами - МОНОЛИТ + расширенные Qt 6.10
         """
         return {
-            # Bloom
-            'bloom_enabled': self.bloom_enabled_check.isChecked(),
-            'bloom_intensity': self.bloom_intensity_slider.get_value(),
-            'bloom_threshold': self.bloom_threshold_slider.get_value(),
-            'bloom_blur_passes': int(self.bloom_blur_slider.get_value()),
+            # ========== BLOOM (монолит + расширенные) ==========
+            'bloom_enabled': self._controls["bloom.enabled"].isChecked(),
+            'bloom_intensity': self._controls["bloom.intensity"].value(),
+            'bloom_threshold': self._controls["bloom.threshold"].value(),
+            'bloom_spread': self._controls["bloom.spread"].value(),
+            # Qt 6.10 расширенные
+            'bloom_glow_strength': self._controls["bloom.glow_strength"].value(),
+            'bloom_hdr_max': self._controls["bloom.hdr_max"].value(),
+            'bloom_hdr_scale': self._controls["bloom.hdr_scale"].value(),
+            'bloom_quality_high': self._controls["bloom.quality_high"].isChecked(),
+            'bloom_bicubic_upscale': self._controls["bloom.bicubic_upscale"].isChecked(),
             
-            # SSAO
-            'ssao_enabled': self.ssao_enabled_check.isChecked(),
-            'ssao_strength': self.ssao_strength_slider.get_value(),
-            'ssao_radius': self.ssao_radius_slider.get_value(),
-            'ssao_sample_count': int(self.ssao_samples_slider.get_value()),
+            # ========== TONEMAP (монолит + расширенные) ==========
+            'tonemap_enabled': self._controls["tonemap.enabled"].isChecked(),
+            'tonemap_mode': self._controls["tonemap.mode"].currentData(),
+            # Qt 6.10 расширенные
+            'tonemap_exposure': self._controls["tonemap.exposure"].value(),
+            'tonemap_white_point': self._controls["tonemap.white_point"].value(),
             
-            # DoF
-            'dof_enabled': self.dof_enabled_check.isChecked(),
-            'dof_focus_distance': self.dof_focus_slider.get_value(),
-            'dof_focus_range': self.dof_range_slider.get_value(),
-            'dof_blur_amount': self.dof_blur_slider.get_value(),
+            # ========== DOF (монолит без изменений) ==========
+            'depth_of_field': self._controls["dof.enabled"].isChecked(),
+            'dof_focus_distance': self._controls["dof.focus"].value(),
+            'dof_blur': self._controls["dof.blur"].value(),
             
-            # Misc
-            'vignette_enabled': self.vignette_enabled_check.isChecked(),
-            'vignette_strength': self.vignette_strength_slider.get_value(),
-            'motion_blur_enabled': self.motion_blur_check.isChecked(),
-            'motion_blur_quality': int(self.motion_blur_quality_slider.get_value())
+            # ========== MISC EFFECTS ==========
+            # Motion Blur (монолит)
+            'motion_blur': self._controls["motion.enabled"].isChecked(),
+            'motion_blur_amount': self._controls["motion.amount"].value(),
+            
+            # Lens Flare (монолит + расширенные Qt 6.10)
+            'lens_flare': self._controls["lens_flare.enabled"].isChecked(),
+            'lens_flare_ghost_count': int(self._controls["lens_flare.ghost_count"].value()),
+            'lens_flare_ghost_dispersal': self._controls["lens_flare.ghost_dispersal"].value(),
+            'lens_flare_halo_width': self._controls["lens_flare.halo_width"].value(),
+            'lens_flare_bloom_bias': self._controls["lens_flare.bloom_bias"].value(),
+            'lens_flare_stretch_to_aspect': self._controls["lens_flare.stretch"].isChecked(),
+            
+            # Vignette (монолит + расширенные Qt 6.10)
+            'vignette': self._controls["vignette.enabled"].isChecked(),
+            'vignette_strength': self._controls["vignette.strength"].value(),
+            'vignette_radius': self._controls["vignette.radius"].value(),
+            
+            # ========== COLOR ADJUSTMENTS (Qt 6.10+) ==========
+            'adjustment_brightness': self._controls["color.brightness"].value(),
+            'adjustment_contrast': self._controls["color.contrast"].value(),
+            'adjustment_saturation': self._controls["color.saturation"].value(),
         }
     
     def set_state(self, state: Dict[str, Any]):
@@ -297,82 +391,92 @@ class EffectsTab(QWidget):
         Args:
             state: Словарь с параметрами эффектов
         """
-        # Temporarily disconnect signals
-        self._disconnect_signals_temp()
+        # Временно блокируем сигналы чтобы избежать множественных emit
+        for control in self._controls.values():
+            control.blockSignals(True)
         
         try:
-            # Bloom
+            # ========== BLOOM ==========
             if 'bloom_enabled' in state:
-                self.bloom_enabled_check.setChecked(state['bloom_enabled'])
+                self._controls["bloom.enabled"].setChecked(state['bloom_enabled'])
             if 'bloom_intensity' in state:
-                self.bloom_intensity_slider.set_value(state['bloom_intensity'])
+                self._controls["bloom.intensity"].set_value(state['bloom_intensity'])
             if 'bloom_threshold' in state:
-                self.bloom_threshold_slider.set_value(state['bloom_threshold'])
-            if 'bloom_blur_passes' in state:
-                self.bloom_blur_slider.set_value(float(state['bloom_blur_passes']))
+                self._controls["bloom.threshold"].set_value(state['bloom_threshold'])
+            if 'bloom_spread' in state:
+                self._controls["bloom.spread"].set_value(state['bloom_spread'])
+            # Qt 6.10 расширенные
+            if 'bloom_glow_strength' in state:
+                self._controls["bloom.glow_strength"].set_value(state['bloom_glow_strength'])
+            if 'bloom_hdr_max' in state:
+                self._controls["bloom.hdr_max"].set_value(state['bloom_hdr_max'])
+            if 'bloom_hdr_scale' in state:
+                self._controls["bloom.hdr_scale"].set_value(state['bloom_hdr_scale'])
+            if 'bloom_quality_high' in state:
+                self._controls["bloom.quality_high"].setChecked(state['bloom_quality_high'])
+            if 'bloom_bicubic_upscale' in state:
+                self._controls["bloom.bicubic_upscale"].setChecked(state['bloom_bicubic_upscale'])
             
-            # SSAO
-            if 'ssao_enabled' in state:
-                self.ssao_enabled_check.setChecked(state['ssao_enabled'])
-            if 'ssao_strength' in state:
-                self.ssao_strength_slider.set_value(state['ssao_strength'])
-            if 'ssao_radius' in state:
-                self.ssao_radius_slider.set_value(state['ssao_radius'])
-            if 'ssao_sample_count' in state:
-                self.ssao_samples_slider.set_value(float(state['ssao_sample_count']))
+            # ========== TONEMAP ==========
+            if 'tonemap_enabled' in state:
+                self._controls["tonemap.enabled"].setChecked(state['tonemap_enabled'])
+            if 'tonemap_mode' in state:
+                combo = self._controls["tonemap.mode"]
+                index = combo.findData(state['tonemap_mode'])
+                if index >= 0:
+                    combo.setCurrentIndex(index)
+            # Qt 6.10 расширенные
+            if 'tonemap_exposure' in state:
+                self._controls["tonemap.exposure"].set_value(state['tonemap_exposure'])
+            if 'tonemap_white_point' in state:
+                self._controls["tonemap.white_point"].set_value(state['tonemap_white_point'])
             
-            # DoF
-            if 'dof_enabled' in state:
-                self.dof_enabled_check.setChecked(state['dof_enabled'])
+            # ========== DOF ==========
+            if 'depth_of_field' in state:
+                self._controls["dof.enabled"].setChecked(state['depth_of_field'])
             if 'dof_focus_distance' in state:
-                self.dof_focus_slider.set_value(state['dof_focus_distance'])
-            if 'dof_focus_range' in state:
-                self.dof_range_slider.set_value(state['dof_focus_range'])
-            if 'dof_blur_amount' in state:
-                self.dof_blur_slider.set_value(state['dof_blur_amount'])
+                self._controls["dof.focus"].set_value(state['dof_focus_distance'])
+            if 'dof_blur' in state:
+                self._controls["dof.blur"].set_value(state['dof_blur'])
             
-            # Misc
-            if 'vignette_enabled' in state:
-                self.vignette_enabled_check.setChecked(state['vignette_enabled'])
+            # ========== MISC EFFECTS ==========
+            # Motion Blur
+            if 'motion_blur' in state:
+                self._controls["motion.enabled"].setChecked(state['motion_blur'])
+            if 'motion_blur_amount' in state:
+                self._controls["motion.amount"].set_value(state['motion_blur_amount'])
+            
+            # Lens Flare
+            if 'lens_flare' in state:
+                self._controls["lens_flare.enabled"].setChecked(state['lens_flare'])
+            if 'lens_flare_ghost_count' in state:
+                self._controls["lens_flare.ghost_count"].set_value(float(state['lens_flare_ghost_count']))
+            if 'lens_flare_ghost_dispersal' in state:
+                self._controls["lens_flare.ghost_dispersal"].set_value(state['lens_flare_ghost_dispersal'])
+            if 'lens_flare_halo_width' in state:
+                self._controls["lens_flare.halo_width"].set_value(state['lens_flare_halo_width'])
+            if 'lens_flare_bloom_bias' in state:
+                self._controls["lens_flare.bloom_bias"].set_value(state['lens_flare_bloom_bias'])
+            if 'lens_flare_stretch_to_aspect' in state:
+                self._controls["lens_flare.stretch"].setChecked(state['lens_flare_stretch_to_aspect'])
+            
+            # Vignette
+            if 'vignette' in state:
+                self._controls["vignette.enabled"].setChecked(state['vignette'])
             if 'vignette_strength' in state:
-                self.vignette_strength_slider.set_value(state['vignette_strength'])
-            if 'motion_blur_enabled' in state:
-                self.motion_blur_check.setChecked(state['motion_blur_enabled'])
-            if 'motion_blur_quality' in state:
-                self.motion_blur_quality_slider.set_value(float(state['motion_blur_quality']))
+                self._controls["vignette.strength"].set_value(state['vignette_strength'])
+            if 'vignette_radius' in state:
+                self._controls["vignette.radius"].set_value(state['vignette_radius'])
+            
+            # ========== COLOR ADJUSTMENTS ==========
+            if 'adjustment_brightness' in state:
+                self._controls["color.brightness"].set_value(state['adjustment_brightness'])
+            if 'adjustment_contrast' in state:
+                self._controls["color.contrast"].set_value(state['adjustment_contrast'])
+            if 'adjustment_saturation' in state:
+                self._controls["color.saturation"].set_value(state['adjustment_saturation'])
         
         finally:
-            # Reconnect signals
-            self._connect_signals()
-        
-        # Update internal state
-        self._state = self.get_state()
-    
-    def _disconnect_signals_temp(self):
-        """Временно отключить сигналы (для batch update)"""
-        try:
-            # Bloom
-            self.bloom_enabled_check.toggled.disconnect()
-            self.bloom_intensity_slider.value_changed.disconnect()
-            self.bloom_threshold_slider.value_changed.disconnect()
-            self.bloom_blur_slider.value_changed.disconnect()
-            
-            # SSAO
-            self.ssao_enabled_check.toggled.disconnect()
-            self.ssao_strength_slider.value_changed.disconnect()
-            self.ssao_radius_slider.value_changed.disconnect()
-            self.ssao_samples_slider.value_changed.disconnect()
-            
-            # DoF
-            self.dof_enabled_check.toggled.disconnect()
-            self.dof_focus_slider.value_changed.disconnect()
-            self.dof_range_slider.value_changed.disconnect()
-            self.dof_blur_slider.value_changed.disconnect()
-            
-            # Misc
-            self.vignette_enabled_check.toggled.disconnect()
-            self.vignette_strength_slider.value_changed.disconnect()
-            self.motion_blur_check.toggled.disconnect()
-            self.motion_blur_quality_slider.value_changed.disconnect()
-        except:
-            pass  # Signals may not be connected yet
+            # Разблокируем сигналы
+            for control in self._controls.values():
+                control.blockSignals(False)

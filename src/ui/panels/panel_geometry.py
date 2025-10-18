@@ -7,11 +7,13 @@ Controls for vehicle geometry parameters with dependency management
 
 from PySide6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QGroupBox, 
                               QCheckBox, QPushButton, QLabel, QMessageBox,
-                              QSizePolicy, QComboBox)  # NEW: QComboBox for presets
+                              QSizePolicy, QComboBox)
 from PySide6.QtCore import Signal, Slot, Qt
 from PySide6.QtGui import QFont
 
 from ..widgets import RangeSlider
+# ✅ НОВОЕ: Импортируем SettingsManager
+from src.common.settings_manager import SettingsManager
 
 
 class GeometryPanel(QWidget):
@@ -27,12 +29,15 @@ class GeometryPanel(QWidget):
     """
     
     # Signals for parameter changes
-    parameter_changed = Signal(str, float)  # parameter_name, new_value
-    geometry_updated = Signal(dict)         # Complete geometry dictionary
-    geometry_changed = Signal(dict)         # 3D scene geometry update
+    parameter_changed = Signal(str, float)
+    geometry_updated = Signal(dict)
+    geometry_changed = Signal(dict)
     
     def __init__(self, parent=None):
         super().__init__(parent)
+        
+        # ✅ НОВОЕ: Используем SettingsManager вместо локальных defaults
+        self._settings_manager = SettingsManager()
         
         # Parameter storage
         self.parameters = {}
@@ -48,8 +53,8 @@ class GeometryPanel(QWidget):
         # Setup UI
         self._setup_ui()
         
-        # Set default values
-        self._set_default_values()
+        # ✅ ИЗМЕНЕНО: Загружаем defaults из SettingsManager
+        self._load_defaults_from_settings()
         
         # Connect signals
         self._connect_signals()
@@ -295,6 +300,27 @@ class GeometryPanel(QWidget):
                 self.set_parameters(preset)
                 self.geometry_updated.emit(self.parameters.copy())
     
+    def _load_defaults_from_settings(self):
+        """Загрузить defaults из SettingsManager вместо жёстко закодированных значений"""
+        # ✅ НОВЫЙ ПОДХОД: Загружаем из JSON
+        defaults = self._settings_manager.get("geometry", {
+            'wheelbase': 3.2,
+            'track': 1.6,
+            'frame_to_pivot': 0.6,
+            'lever_length': 0.8,
+            'rod_position': 0.6,
+            'cylinder_length': 0.5,
+            'cyl_diam_m': 0.080,
+            'stroke_m': 0.300,
+            'dead_gap_m': 0.005,
+            'rod_diameter_m': 0.035,
+            'piston_rod_length_m': 0.200,
+            'piston_thickness_m': 0.025
+        })
+        
+        self.parameters.update(defaults)
+        self.logger.info("✅ Geometry defaults loaded from SettingsManager")
+    
     def _set_default_values(self):
         """Set default parameter values"""
         defaults = {
@@ -510,8 +536,12 @@ class GeometryPanel(QWidget):
 
     @Slot()
     def _reset_to_defaults(self):
-        """Сбросить все параметры к значениям по умолчанию / Reset all parameters to defaults"""
-        self._set_default_values()
+        """Сбросить все параметры к значениям по умолчанию из JSON"""
+        self.logger.info("🔄 Resetting geometry to defaults from SettingsManager")
+        
+        # ✅ НОВОЕ: Сброс через SettingsManager
+        self._settings_manager.reset_to_defaults(category="geometry")
+        self.parameters = self._settings_manager.get("geometry")
         
         # Update all widgets
         self.wheelbase_slider.setValue(self.parameters['wheelbase'])
@@ -581,16 +611,15 @@ class GeometryPanel(QWidget):
         return self.parameters.copy()
     
     def set_parameters(self, params: dict):
-        """Set parameter values from dictionary
-        
-        Args:
-            params: Dictionary of parameter values
-        """
+        """Set parameter values from dictionary and save to SettingsManager"""
         self._resolving_conflict = True
         
         try:
             # Update internal storage
             self.parameters.update(params)
+            
+            # ✅ НОВОЕ: Сохраняем через SettingsManager
+            self._settings_manager.set("geometry", self.parameters, auto_save=True)
             
             # Update widgets
             for param_name, value in params.items():

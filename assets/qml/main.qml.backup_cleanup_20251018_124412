@@ -1,12 +1,18 @@
 import QtQuick
 import QtQuick3D
+
+// ✅ REFACTORED: Module imports
+import "lighting"
+import "materials"
+import "geometry"
+import "effects"
+import "scene"
 import QtQuick3D.Helpers
 import QtQuick.Controls
 import Qt.labs.folderlistmodel
 import "components"
 import "core"  // ✅ PHASE 1: Core Utilities (MathUtils, GeometryCalculations, StateCache)
 import "camera"  // ✅ PHASE 2: Camera System Modules
-import "lighting"  // ✅ STEP 1: Lighting System Modules
 
 /*
  * PneumoStabSim - COMPLETE Graphics Parameters Main 3D View (v4.9.4 SKYBOX FIX)
@@ -1133,6 +1139,203 @@ Item {
 
         Node {
             id: worldRoot
+
+    // ✅ REFACTORED: Shared materials (all PBR parameters)
+    SharedMaterials {
+        id: sharedMaterials
+        
+        // Frame Material
+        frameBaseColor: root.frameBaseColor
+        frameMetalness: root.frameMetalness
+        frameRoughness: root.frameRoughness
+        frameSpecularAmount: root.frameSpecularAmount
+        frameSpecularTint: root.frameSpecularTint
+        frameClearcoat: root.frameClearcoat
+        frameClearcoatRoughness: root.frameClearcoatRoughness
+        frameTransmission: root.frameTransmission
+        frameOpacity: root.frameOpacity
+        frameIor: root.frameIor
+        frameAttenuationDistance: root.frameAttenuationDistance
+        frameAttenuationColor: root.frameAttenuationColor
+        frameEmissiveColor: root.frameEmissiveColor
+        frameEmissiveIntensity: root.frameEmissiveIntensity
+        
+        // Lever Material
+        leverBaseColor: root.leverBaseColor
+        leverMetalness: root.leverMetalness
+        leverRoughness: root.leverRoughness
+        leverSpecularAmount: root.leverSpecularAmount
+        leverSpecularTint: root.leverSpecularTint
+        leverClearcoat: root.leverClearcoat
+        leverClearcoatRoughness: root.leverClearcoatRoughness
+        leverTransmission: root.leverTransmission
+        leverOpacity: root.leverOpacity
+        leverIor: root.leverIor
+        leverAttenuationDistance: root.leverAttenuationDistance
+        leverAttenuationColor: root.leverAttenuationColor
+        leverEmissiveColor: root.leverEmissiveColor
+        leverEmissiveIntensity: root.leverEmissiveIntensity
+        
+        // Tail Rod Material
+        tailRodBaseColor: root.tailRodBaseColor
+        tailRodMetalness: root.tailRodMetalness
+        tailRodRoughness: root.tailRodRoughness
+        tailRodSpecularAmount: root.tailRodSpecularAmount
+        tailRodSpecularTint: root.tailRodSpecularTint
+        tailRodClearcoat: root.tailRodClearcoat
+        tailRodClearcoatRoughness: root.tailRodClearcoatRoughness
+        tailRodTransmission: root.tailRodTransmission
+        tailRodOpacity: root.tailRodOpacity
+        tailRodIor: root.tailRodIor
+        tailRodAttenuationDistance: root.tailRodAttenuationDistance
+        tailRodAttenuationColor: root.tailRodAttenuationColor
+        tailRodEmissiveColor: root.tailRodEmissiveColor
+        tailRodEmissiveIntensity: root.tailRodEmissiveIntensity
+        
+        // Cylinder Material
+        cylinderBaseColor: root.cylinderBaseColor
+        cylinderMetalness: root.cylinderMetalness
+        cylinderRoughness: root.cylinderRoughness
+        cylinderSpecularAmount: root.cylinderSpecularAmount
+        cylinderSpecularTint: root.cylinderSpecularTint
+        cylinderClearcoat: root.cylinderClearcoat
+        cylinderClearcoatRoughness: root.cylinderClearcoatRoughness
+        cylinderTransmission: root.cylinderTransmission
+        cylinderOpacity: root.cylinderOpacity
+        cylinderIor: root.cylinderIor
+        cylinderAttenuationDistance: root.cylinderAttenuationDistance
+        cylinderAttenuationColor: root.cylinderAttenuationColor
+        cylinderEmissiveColor: root.cylinderEmissiveColor
+        cylinderEmissiveIntensity: root.cylinderEmissiveIntensity
+        
+        // Piston Body Material
+        pistonBodyBaseColor: root.pistonBodyBaseColor
+        pistonBodyWarningColor: root.pistonBodyWarningColor
+        pistonBodyMetalness: root.pistonBodyMetalness
+        pistonBodyRoughness: root.pistonBodyRoughness
+        pistonBodySpecularAmount: root.pistonBodySpecularAmount
+        pistonBodySpecularTint: root.pistonBodySpecularTint
+        pistonBodyClearcoat: root.pistonBodyClearcoat
+        pistonBodyClearcoatRoughness: root.pistonBodyClearcoatRoughness
+        pistonBodyTransmission: root.pistonBodyTransmission
+        pistonBodyOpacity: root.pistonBodyOpacity
+        pistonBodyIor: root.pistonBodyIor
+        pistonBodyAttenuationDistance: root.pistonBodyAttenuationDistance
+        pistonBodyAttenuationColor: root.pistonBodyAttenuationColor
+        pistonBodyEmissiveColor: root.pistonBodyEmissiveColor
+        pistonBodyEmissiveIntensity: root.pistonBodyEmissiveIntensity
+        
+        // Piston Rod Material
+        pistonRodBaseColor: root.pistonRodBaseColor
+        pistonRodWarningColor: root.pistonRodWarningColor
+        pistonRodMetalness: root.pistonRodMetalness
+        pistonRodRoughness: root.pistonRodRoughness
+        pistonRodSpecularAmount: root.pistonRodSpecularAmount
+        pistonRodSpecularTint: root.pistonRodSpecularTint
+        pistonRodClearcoat: root.pistonRodClearcoat
+        pistonRodClearcoatRoughness: root.pistonRodClearcoatRoughness
+        pistonRodTransmission: root.pistonRodTransmission
+        pistonRodOpacity: root.pistonRodOpacity
+        pistonRodIor: root.pistonRodIor
+        pistonRodAttenuationDistance: root.pistonRodAttenuationDistance
+        pistonRodAttenuationColor: root.pistonRodAttenuationColor
+        pistonRodEmissiveColor: root.pistonRodEmissiveColor
+        pistonRodEmissiveIntensity: root.pistonRodEmissiveIntensity
+        
+        // Joint Tail Material
+        jointTailBaseColor: root.jointTailBaseColor
+        jointTailMetalness: root.jointTailMetalness
+        jointTailRoughness: root.jointTailRoughness
+        jointTailSpecularAmount: root.jointTailSpecularAmount
+        jointTailSpecularTint: root.jointTailSpecularTint
+        jointTailClearcoat: root.jointTailClearcoat
+        jointTailClearcoatRoughness: root.jointTailClearcoatRoughness
+        jointTailTransmission: root.jointTailTransmission
+        jointTailOpacity: root.jointTailOpacity
+        jointTailIor: root.jointTailIor
+        jointTailAttenuationDistance: root.jointTailAttenuationDistance
+        jointTailAttenuationColor: root.jointTailAttenuationColor
+        jointTailEmissiveColor: root.jointTailEmissiveColor
+        jointTailEmissiveIntensity: root.jointTailEmissiveIntensity
+        
+        // Joint Arm Material
+        jointArmBaseColor: root.jointArmBaseColor
+        jointArmMetalness: root.jointArmMetalness
+        jointArmRoughness: root.jointArmRoughness
+        jointArmSpecularAmount: root.jointArmSpecularAmount
+        jointArmSpecularTint: root.jointArmSpecularTint
+        jointArmClearcoat: root.jointArmClearcoat
+        jointArmClearcoatRoughness: root.jointArmClearcoatRoughness
+        jointArmTransmission: root.jointArmTransmission
+        jointArmOpacity: root.jointArmOpacity
+        jointArmIor: root.jointArmIor
+        jointArmAttenuationDistance: root.jointArmAttenuationDistance
+        jointArmAttenuationColor: root.jointArmAttenuationColor
+        jointArmEmissiveColor: root.jointArmEmissiveColor
+        jointArmEmissiveIntensity: root.jointArmEmissiveIntensity
+        
+        // Joint Rod Colors
+        jointRodOkColor: root.jointRodOkColor
+        jointRodErrorColor: root.jointRodErrorColor
+    }
+
+    // ✅ REFACTORED: Directional Lights (Key + Fill + Rim)
+    DirectionalLights {
+        id: directionalLights
+        worldRoot: worldRoot
+        cameraRig: cameraController.rig
+        
+        // Key Light
+        keyBrightness: root.keyLightBrightness
+        keyColor: root.keyLightColor
+        keyAngleX: root.keyLightAngleX
+        keyAngleY: root.keyLightAngleY
+        keyCastsShadow: root.keyLightCastsShadow
+        keyBindToCamera: root.keyLightBindToCamera
+        keyPosX: root.keyLightPosX
+        keyPosY: root.keyLightPosY
+        
+        // Fill Light
+        fillBrightness: root.fillLightBrightness
+        fillColor: root.fillLightColor
+        fillCastsShadow: root.fillLightCastsShadow
+        fillBindToCamera: root.fillLightBindToCamera
+        fillPosX: root.fillLightPosX
+        fillPosY: root.fillLightPosY
+        
+        // Rim Light
+        rimBrightness: root.rimLightBrightness
+        rimColor: root.rimLightColor
+        rimCastsShadow: root.rimLightCastsShadow
+        rimBindToCamera: root.rimLightBindToCamera
+        rimPosX: root.rimLightPosX
+        rimPosY: root.rimLightPosY
+        
+        // Shadow settings
+        shadowsEnabled: root.shadowsEnabled
+        shadowQuality: root.shadowResolution === "4096" ? 2 :
+                      root.shadowResolution === "2048" ? 1 : 0
+        shadowBias: root.shadowBias
+        shadowFactor: root.shadowFactor
+        shadowSoftness: root.shadowFilterSamples / 32.0
+    }
+    
+    // ✅ REFACTORED: Point Light
+    PointLights {
+        id: pointLights
+        worldRoot: worldRoot
+        
+        brightness: root.pointLightBrightness
+        color: root.pointLightColor
+        posX: root.pointLightX
+        posY: root.pointLightY
+        range: root.pointLightRange
+        castsShadow: root.pointLightCastsShadow
+        bindToCamera: root.pointLightBindToCamera
+    }
+
+
+
         }
 
         // ===============================================================
@@ -1300,60 +1503,67 @@ Item {
             function onAutoRotateSpeedChanged() { if (root.autoRotateSpeed !== cameraController.state.autoRotateSpeed) root.autoRotateSpeed = cameraController.state.autoRotateSpeed }
         }
 
-            // ===============================================================
-    // ✅ STEP 1: MODULAR LIGHTING SYSTEM
-    // ===============================================================
-    
-    // ✅ DirectionalLights module (Key, Fill, Rim lights)
-    DirectionalLights {
-        id: directionalLights
-        worldRoot: worldRoot
-        cameraRig: cameraController.rig
-        
-        shadowsEnabled: root.shadowsEnabled
-        shadowResolution: root.shadowResolution
-        shadowFilterSamples: root.shadowFilterSamples
-        shadowBias: root.shadowBias
-        shadowFactor: root.shadowFactor
-        
-        keyLightBrightness: root.keyLightBrightness
-        keyLightColor: root.keyLightColor
-        keyLightAngleX: root.keyLightAngleX
-        keyLightAngleY: root.keyLightAngleY
-        keyLightCastsShadow: root.keyLightCastsShadow
-        keyLightBindToCamera: root.keyLightBindToCamera
-        keyLightPosX: root.keyLightPosX
-        keyLightPosY: root.keyLightPosY
-        
-        fillLightBrightness: root.fillLightBrightness
-        fillLightColor: root.fillLightColor
-        fillLightCastsShadow: root.fillLightCastsShadow
-        fillLightBindToCamera: root.fillLightBindToCamera
-        fillLightPosX: root.fillLightPosX
-        fillLightPosY: root.fillLightPosY
-        
-        rimLightBrightness: root.rimLightBrightness
-        rimLightColor: root.rimLightColor
-        rimLightCastsShadow: root.rimLightCastsShadow
-        rimLightBindToCamera: root.rimLightBindToCamera
-        rimLightPosX: root.rimLightPosX
-        rimLightPosY: root.rimLightPosY
-    }
-    
-    // ✅ PointLights module (Accent light)
-    PointLights {
-        id: pointLights
-        worldRoot: worldRoot
-        cameraRig: cameraController.rig
-        
-        pointLightBrightness: root.pointLightBrightness
-        pointLightColor: root.pointLightColor
-        pointLightX: root.pointLightX
-        pointLightY: root.pointLightY
-        pointLightRange: root.pointLightRange
-        pointLightCastsShadow: root.pointLightCastsShadow
-        pointLightBindToCamera: root.pointLightBindToCamera
-    }
+        // Lighting (with shadow softness)
+        DirectionalLight {
+            id: keyLight
+            parent: keyLightBindToCamera ? cameraController.rig : worldRoot
+            eulerRotation.x: root.keyLightAngleX
+            eulerRotation.y: root.keyLightAngleY
+            position: Qt.vector3d(root.keyLightPosX, root.keyLightPosY, 0)
+            brightness: root.keyLightBrightness
+            color: root.keyLightColor
+            castsShadow: (root.shadowsEnabled && root.keyLightCastsShadow)
+            // ✅ Чистая маппинг логика без синтаксических ошибок
+            shadowMapQuality: root.shadowResolution === "4096" ? Light.ShadowMapQualityVeryHigh :
+                              root.shadowResolution === "2048" ? Light.ShadowMapQualityVeryHigh :
+                              root.shadowResolution === "1024" ? Light.ShadowMapQualityHigh :
+                              root.shadowResolution === "512"  ? Light.ShadowMapQualityMedium :
+                                                                   Light.ShadowMapQualityLow
+            shadowFactor: root.shadowFactor
+            shadowBias: root.shadowBias
+            shadowFilter: {
+                var samples = Math.floor(root.shadowFilterSamples || 16)
+                return samples === 32 ? Light.ShadowFilterPCF32 :
+                       samples === 16 ? Light.ShadowFilterPCF16 :
+                       samples === 8  ? Light.ShadowFilterPCF8  :
+                       samples === 4  ? Light.ShadowFilterPCF4  :
+                                        Light.ShadowFilterNone
+            }
+        }
+
+        DirectionalLight {
+            id: fillLight
+            parent: fillLightBindToCamera ? cameraController.rig : worldRoot
+            eulerRotation.x: -60
+            eulerRotation.y: 135
+            position: Qt.vector3d(root.fillLightPosX, root.fillLightPosY, 0)
+            brightness: root.fillLightBrightness
+            color: root.fillLightColor
+            castsShadow: (root.shadowsEnabled && root.fillLightCastsShadow)
+        }
+
+        DirectionalLight {
+            id: rimLight
+            parent: rimLightBindToCamera ? cameraController.rig : worldRoot
+            eulerRotation.x: 15
+            eulerRotation.y: 180
+            position: Qt.vector3d(root.rimLightPosX, root.rimLightPosY, 0)
+            brightness: root.rimLightBrightness
+            color: root.rimLightColor
+            castsShadow: (root.shadowsEnabled && root.rimLightCastsShadow)
+        }
+
+        PointLight {
+            id: accentLight
+            parent: pointLightBindToCamera ? cameraController.rig : worldRoot
+            position: Qt.vector3d(root.pointLightX, root.pointLightY, 1500)
+            brightness: root.pointLightBrightness
+            color: root.pointLightColor
+            castsShadow: root.pointLightCastsShadow   // ✅ Управляется пользователем
+            constantFade: 1.0
+            linearFade: 2.0 / Math.max(200.0, root.pointLightRange)
+            quadraticFade: 1.0 / Math.pow(Math.max(200.0, root.pointLightRange), 2)
+        }
 
         // ===============================================================
         // SUSPENSION SYSTEM GEOMETRY (with IOR support)
@@ -1365,21 +1575,21 @@ Item {
             source: "#Cube"
             position: Qt.vector3d(0, userBeamSize/2, userFrameLength/2)
             scale: Qt.vector3d(userBeamSize/100, userBeamSize/100, userFrameLength/100)
-            materials: [frameMaterial]
+            materials: [sharedMaterials.frameMaterial]
         }
         Model {
             parent: worldRoot
             source: "#Cube"
             position: Qt.vector3d(0, userBeamSize + userFrameHeight/2, userBeamSize/2)
             scale: Qt.vector3d(userBeamSize/100, userFrameHeight/100, userBeamSize/100)
-            materials: [frameMaterial]
+            materials: [sharedMaterials.frameMaterial]
         }
         Model {
             parent: worldRoot
             source: "#Cube"
             position: Qt.vector3d(0, userBeamSize + userFrameHeight/2, userFrameLength - userBeamSize/2)
             scale: Qt.vector3d(userBeamSize/100, userFrameHeight/100, userBeamSize/100)
-            materials: [frameMaterial]
+            materials: [sharedMaterials.frameMaterial]
         }
 
         // ✅ OPTIMIZED SUSPENSION COMPONENT (with CORRECT property definitions)
@@ -1448,7 +1658,7 @@ Item {
                 )
                 scale: Qt.vector3d(userLeverLength/100, 0.8, 0.8)
                 eulerRotation: Qt.vector3d(0, 0, totalAngle)
-                materials: [leverMaterial]
+                materials: [sharedMaterials.leverMaterial]
             }
             
             // TAIL ROD (хвостовой шток) - КОНСТАНТНАЯ длина
@@ -1462,7 +1672,7 @@ Item {
                 position: Qt.vector3d((j_tail.x + tailRodEnd.x)/2, (j_tail.y + tailRodEnd.y)/2, j_tail.z)
                 scale: Qt.vector3d(userRodDiameter/100, tailRodLength/100, userRodDiameter/100)
                 eulerRotation: Qt.vector3d(0, 0, cylAngle)
-                materials: [tailRodMaterial]
+                materials: [sharedMaterials.tailRodMaterial]
             }
             
             // CYLINDER BODY (корпус цилиндра)
@@ -1476,7 +1686,7 @@ Item {
                 position: Qt.vector3d((tailRodEnd.x + cylinderEnd.x)/2, (tailRodEnd.y + cylinderEnd.y)/2, tailRodEnd.z)
                 scale: Qt.vector3d(userBoreHead/100, userCylinderLength/100, userBoreHead/100)
                 eulerRotation: Qt.vector3d(0, 0, cylAngle)
-                materials: [cylinderMaterial]
+                materials: [sharedMaterials.cylinderMaterial]
             }
             
             // ✅ PISTON (поршень)
@@ -1546,7 +1756,7 @@ Item {
                 position: j_tail
                 scale: Qt.vector3d(1.2, 2.4, 1.2)
                 eulerRotation: Qt.vector3d(90, 0, 0)
-                materials: [jointTailMaterial]
+                materials: [sharedMaterials.jointTailMaterial]
             }
             
             Model {
@@ -1559,7 +1769,7 @@ Item {
                 position: j_arm
                 scale: Qt.vector3d(1.0, 2.0, 1.0)
                 eulerRotation: Qt.vector3d(90, 0, 0)
-                materials: [jointArmMaterial]
+                materials: [sharedMaterials.jointArmMaterial]
             }
             
             Model {
