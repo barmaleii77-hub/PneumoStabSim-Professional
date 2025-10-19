@@ -50,6 +50,35 @@ class SettingsManager:
         # Загрузка настроек
         self.load()
     
+    def _migrate_keys(self, data: Dict[str, Any]) -> Dict[str, Any]:
+        """Миграция старых ключей к новым именам без потери данных.
+        Выполняется для секции current и defaults_snapshot отдельно.
+        """
+        try:
+            geom = data.get("geometry")
+            if isinstance(geom, dict):
+                # tailRodLength -> tail_rod_length_mm
+                if "tailRodLength" in geom and "tail_rod_length_mm" not in geom:
+                    try:
+                        v = geom.get("tailRodLength")
+                        if isinstance(v, (int, float)):
+                            geom["tail_rod_length_mm"] = float(v)
+                    except Exception:
+                        pass
+                # frameHeight -> frame_height_mm
+                if "frameHeight" in geom and "frame_height_mm" not in geom:
+                    v = geom.get("frameHeight")
+                    if isinstance(v, (int, float)):
+                        geom["frame_height_mm"] = float(v)
+                # frameBeamSize -> frame_beam_size_mm
+                if "frameBeamSize" in geom and "frame_beam_size_mm" not in geom:
+                    v = geom.get("frameBeamSize")
+                    if isinstance(v, (int, float)):
+                        geom["frame_beam_size_mm"] = float(v)
+        except Exception as e:
+            self.logger.warning(f"Не удалось выполнить миграцию ключей: {e}")
+        return data
+    
     def load(self) -> bool:
         """
         Загрузить настройки из JSON файла
@@ -69,13 +98,18 @@ class SettingsManager:
             
             # Новая структура с разделением current/defaults
             if "current" in data:
+                # Мягкая миграция ключей
+                data["current"] = self._migrate_keys(data.get("current", {}))
+                data["defaults_snapshot"] = self._migrate_keys(data.get("defaults_snapshot", {}))
+                
                 self._current = data["current"]
                 self._defaults_snapshot = data.get("defaults_snapshot", copy.deepcopy(self._current))
                 self._metadata = data.get("metadata", {})
             else:
                 # Старая структура - мигрируем
-                self._current = data
-                self._defaults_snapshot = copy.deepcopy(data)
+                migrated = self._migrate_keys(data)
+                self._current = migrated
+                self._defaults_snapshot = copy.deepcopy(migrated)
                 self._metadata = {
                     "version": data.get("version", "4.9.5"),
                     "last_modified": datetime.now().isoformat()
