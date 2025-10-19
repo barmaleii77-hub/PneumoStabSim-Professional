@@ -566,6 +566,49 @@ class MainWindow(QMainWindow):
             self._queue_qml_update("animation", params)
 
     # ---------- Simulation ----------
+    @Slot(str)
+    def _on_sim_control(self, command: str) -> None:
+        """Управление симуляцией из панели режимов и тулбара.
+        Синхронизирует состояние анимации в QML (isRunning/animationTime).
+        """
+        try:
+            bus = self.simulation_manager.state_bus
+            cmd = str(command).lower().strip()
+            if cmd == "start":
+                bus.start_simulation.emit()
+                self.is_simulation_running = True
+                if self._qml_root_object:
+                    # Запускаем QML-анимацию
+                    self._qml_root_object.setProperty("isRunning", True)
+                if hasattr(self, "status_bar") and self.status_bar:
+                    self.status_bar.showMessage("Симуляция: старт", 2000)
+            elif cmd == "pause":
+                bus.pause_simulation.emit()
+                self.is_simulation_running = False
+                if self._qml_root_object:
+                    self._qml_root_object.setProperty("isRunning", False)
+                if hasattr(self, "status_bar") and self.status_bar:
+                    self.status_bar.showMessage("Симуляция: пауза", 2000)
+            elif cmd == "stop":
+                bus.stop_simulation.emit()
+                self.is_simulation_running = False
+                if self._qml_root_object:
+                    self._qml_root_object.setProperty("isRunning", False)
+                if hasattr(self, "status_bar") and self.status_bar:
+                    self.status_bar.showMessage("Симуляция: стоп", 2000)
+            elif cmd == "reset":
+                bus.reset_simulation.emit()
+                if self._qml_root_object:
+                    # Сбрасываем время анимации, оставляя её выключенной
+                    self._qml_root_object.setProperty("animationTime", 0.0)
+                if hasattr(self, "status_bar") and self.status_bar:
+                    self.status_bar.showMessage("Симуляция: сброс", 2000)
+            else:
+                # Неизвестная команда — просто залогируем
+                self.logger.warning(f"Неизвестная команда симуляции: {command}")
+        except Exception as e:
+            self.logger.error(f"Ошибка управления симуляцией '{command}': {e}")
+
     @Slot(object)
     def _on_state_update(self, snapshot: StateSnapshot) -> None:
         self.current_snapshot = snapshot

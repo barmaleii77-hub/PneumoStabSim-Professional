@@ -38,6 +38,13 @@ Node {
     property real pistonRodLength: 200    // мм
     property int cylinderSegments: 64
     property int cylinderRings: 8
+    // Новый параметр длины хвостовика цилиндра (отрезок от j_tail до начала цилиндра)
+    property real tailRodLength: 100      // мм
+
+    // Масштабы шарниров (радиус/высота) как множители базовых значений
+    property real jointTailScale: 1.0
+    property real jointArmScale: 1.0
+    property real jointRodScale: 1.0
     
     // ===============================================================
     // MATERIAL PROPERTIES (required from parent)
@@ -76,7 +83,6 @@ Node {
     )
     
     // Tail rod end position (cylinder starts here)
-    property real tailRodLength: 100  // мм
     readonly property vector3d tailRodEnd: Qt.vector3d(
         j_tail.x + cylDirectionNorm.x * tailRodLength,
         j_tail.y + cylDirectionNorm.y * tailRodLength,
@@ -201,7 +207,8 @@ Node {
     Model {
         source: "#Cylinder"
         position: j_tail
-        scale: Qt.vector3d(1.2, 2.4, 1.2)
+        // Масштабируем базовые значения через множитель jointTailScale
+        scale: Qt.vector3d(1.2 * jointTailScale, 2.4 * jointTailScale, 1.2 * jointTailScale)
         eulerRotation: Qt.vector3d(90, 0, 0)
         materials: [jointTailMaterial]
     }
@@ -210,7 +217,7 @@ Node {
     Model {
         source: "#Cylinder"
         position: j_arm
-        scale: Qt.vector3d(1.0, 2.0, 1.0)
+        scale: Qt.vector3d(1.0 * jointArmScale, 2.0 * jointArmScale, 1.0 * jointArmScale)
         eulerRotation: Qt.vector3d(90, 0, 0)
         materials: [jointArmMaterial]
     }
@@ -219,7 +226,7 @@ Node {
     Model {
         source: "#Cylinder"
         position: j_rod
-        scale: Qt.vector3d(0.8, 1.6, 0.8)
+        scale: Qt.vector3d(0.8 * jointRodScale, 1.6 * jointRodScale, 0.8 * jointRodScale)
         eulerRotation: Qt.vector3d(90, 0, 0)
         materials: [jointRodMaterial]
     }

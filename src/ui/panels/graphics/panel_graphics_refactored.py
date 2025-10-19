@@ -205,6 +205,7 @@ class GraphicsPanel(QWidget):
             if "camera" in self.state:
                 self.camera_tab.set_state(self.state["camera"])
             if "materials" in self.state:
+                # Передаём БЕЗ обёртки current_material — таб сам разберёт ключи
                 self.materials_tab.set_state(self.state["materials"])
             if "effects" in self.state:
                 self.effects_tab.set_state(self.state["effects"])
@@ -218,6 +219,7 @@ class GraphicsPanel(QWidget):
             self.environment_changed.emit(self.environment_tab.get_state())
             self.quality_changed.emit(self.quality_tab.get_state())
             self.camera_changed.emit(self.camera_tab.get_state())
+            # Материалы: эмитим только текущий payload, как ожидает QML
             self.material_changed.emit(self.materials_tab.get_state())
             self.effects_changed.emit(self.effects_tab.get_state())
         except Exception as e:
@@ -259,7 +261,8 @@ class GraphicsPanel(QWidget):
                 "environment": self.environment_tab.get_state(),
                 "quality": self.quality_tab.get_state(),
                 "camera": self.camera_tab.get_state(),
-                "materials": self.materials_tab.get_state(),
+                # Для сохранения берём ВСЕ материалы из кэша таба
+                "materials": self.materials_tab.get_all_state(),
                 "effects": self.effects_tab.get_state(),
             }
             return state

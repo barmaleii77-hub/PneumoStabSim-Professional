@@ -8,6 +8,7 @@ Part of modular GraphicsPanel restructuring
 - _build_shadow_group() → Тени (enabled, resolution, filter, bias, darkness)
 - _build_antialiasing_group() → Сглаживание (primary, quality, post, TAA, FXAA, specular AA)
 - _build_render_group() → Производительность (render scale, policy, FPS limit, dithering, OIT)
+- _build_mesh_group() → Параметры мешей (цилиндр: сегменты/кольца)
 """
 
 from PySide6.QtWidgets import (
@@ -72,6 +73,7 @@ class QualityTab(QWidget):
                 "render_policy": "always",
                 "frame_rate_limit": 144.0,
                 "oit": "weighted",
+                "mesh": {"cylinder_segments": 48, "cylinder_rings": 6},
             },
             "high": {
                 "shadows": {"enabled": True, "resolution": "2048", "filter": 16, "bias": 9.5, "darkness": 78.0},
@@ -86,6 +88,7 @@ class QualityTab(QWidget):
                 "render_policy": "always",
                 "frame_rate_limit": 120.0,
                 "oit": "weighted",
+                "mesh": {"cylinder_segments": 40, "cylinder_rings": 5},
             },
             "medium": {
                 "shadows": {"enabled": True, "resolution": "1024", "filter": 8, "bias": 10.0, "darkness": 75.0},
@@ -100,6 +103,7 @@ class QualityTab(QWidget):
                 "render_policy": "always",
                 "frame_rate_limit": 90.0,
                 "oit": "weighted",
+                "mesh": {"cylinder_segments": 28, "cylinder_rings": 4},
             },
             "low": {
                 "shadows": {"enabled": True, "resolution": "512", "filter": 4, "bias": 12.0, "darkness": 70.0},
@@ -114,6 +118,7 @@ class QualityTab(QWidget):
                 "render_policy": "ondemand",
                 "frame_rate_limit": 60.0,
                 "oit": "none",
+                "mesh": {"cylinder_segments": 20, "cylinder_rings": 3},
             },
         }
     
@@ -123,11 +128,12 @@ class QualityTab(QWidget):
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(12)
         
-        # ✅ ТОЧНО КАК В МОНОЛИТЕ - 4 группы:
+        # ✅ ТОЧНО КАК В МОНОЛИТЕ - 5 групп:
         layout.addWidget(self._build_quality_preset_group())
         layout.addWidget(self._build_shadow_group())
         layout.addWidget(self._build_antialiasing_group())
         layout.addWidget(self._build_render_group())
+        layout.addWidget(self._build_mesh_group())
         
         layout.addStretch(1)
     
@@ -314,6 +320,26 @@ class QualityTab(QWidget):
         grid.addWidget(oit_check, 4, 0, 1, 2)
         
         return group
+
+    def _build_mesh_group(self) -> QGroupBox:
+        """Создать группу параметров мешей (упрощает/детализирует цилиндры)"""
+        group = QGroupBox("Геометрия мешей", self)
+        grid = QGridLayout(group)
+        grid.setContentsMargins(8, 8, 8, 8)
+        grid.setHorizontalSpacing(12)
+        grid.setVerticalSpacing(8)
+
+        seg = LabeledSlider("Сегменты цилиндра по окружности", 8.0, 128.0, 1.0, decimals=0)
+        seg.valueChanged.connect(lambda v: self._on_control_changed("mesh.cylinder_segments", int(v)))
+        self._controls["mesh.cylinder_segments"] = seg
+        grid.addWidget(seg, 0, 0, 1, 2)
+
+        rings = LabeledSlider("Кольца цилиндра по длине", 1.0, 32.0, 1.0, decimals=0)
+        rings.valueChanged.connect(lambda v: self._on_control_changed("mesh.cylinder_rings", int(v)))
+        self._controls["mesh.cylinder_rings"] = rings
+        grid.addWidget(rings, 1, 0, 1, 2)
+
+        return group
     
     # ========== ОБРАБОТЧИКИ ИЗМЕНЕНИЙ ==========
     
@@ -446,6 +472,10 @@ class QualityTab(QWidget):
             "render_policy": self._controls["render.policy"].currentData(),
             "frame_rate_limit": self._controls["frame_rate_limit"].value(),
             "oit": self._controls["oit.enabled"].isChecked() and "weighted" or "none",
+            "mesh": {
+                "cylinder_segments": int(self._controls["mesh.cylinder_segments"].value()),
+                "cylinder_rings": int(self._controls["mesh.cylinder_rings"].value()),
+            },
         }
     
     def set_state(self, state: Dict[str, Any]):
@@ -541,6 +571,13 @@ class QualityTab(QWidget):
             if 'oit' in state:
                 is_weighted = state['oit'] == "weighted"
                 self._controls["oit.enabled"].setChecked(is_weighted)
+
+            # Mesh
+            mesh = state.get('mesh', {}) or {}
+            if 'cylinder_segments' in mesh:
+                self._controls["mesh.cylinder_segments"].set_value(float(mesh['cylinder_segments']))
+            if 'cylinder_rings' in mesh:
+                self._controls["mesh.cylinder_rings"].set_value(float(mesh['cylinder_rings']))
         
         finally:
             # Разблокируем сигналы и UI

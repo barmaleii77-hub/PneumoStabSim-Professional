@@ -1,17 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 Materials Tab - вкладка настроек PBR материалов всех компонентов
-Part of modular GraphicsPanel restructuring
-
-СТРУКТУРА ТОЧНО ПОВТОРЯЕТ МОНОЛИТ panel_graphics.py (строки 1373-1520):
-- Селектор компонента (ComboBox) - 8 материалов
-- Единая форма с ПОЛНЫМ набором PBR параметров (17 параметров):
-  * base_color, metalness, roughness, specular, specular_tint
-  * clearcoat, clearcoat_roughness
-  * transmission, opacity, ior
-  * attenuation_distance, attenuation_color
-  * emissive_color, emissive_intensity
-  * warning_color, ok_color, error_color
+Полный набор параметров PrincipledMaterial (Qt 6.10)
 """
 
 from PySide6.QtWidgets import (
@@ -19,7 +9,7 @@ from PySide6.QtWidgets import (
     QComboBox, QHBoxLayout, QGridLayout
 )
 from PySide6.QtCore import Signal
-from typing import Dict, Any
+from typing import Dict, Any, Optional
 
 from .widgets import ColorButton, LabeledSlider
 
@@ -35,12 +25,11 @@ class MaterialsTab(QWidget):
     
     def __init__(self, parent=None):
         super().__init__(parent)
-        
-        # Контролы UI
         self._controls: Dict[str, Any] = {}
         self._updating_ui = False
-        
-        # Названия материалов - ТОЧНО КАК В МОНОЛИТЕ
+        # Кэш состояний по каждому материалу
+        self._materials_state: Dict[str, Dict[str, Any]] = {}
+        self._current_key: Optional[str] = None
         self._material_labels = {
             "frame": "Рама",
             "lever": "Рычаг",
@@ -50,18 +39,17 @@ class MaterialsTab(QWidget):
             "piston_rod": "Шток",
             "joint_tail": "Шарнир хвостовика",
             "joint_arm": "Шарнир рычага",
+            "joint_rod": "Шарнир штока",
         }
-        
-        # Setup UI
         self._setup_ui()
+        # Инициализируем текущий ключ после создания селектора
+        self._current_key = self.get_current_material_key()
     
     def _setup_ui(self):
-        """Построить UI вкладки - ОБНОВЛЁННАЯ ВЕРСИЯ ДЛЯ Qt 6.10"""
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(12)
         
-        # Селектор компонента
         selector_row = QHBoxLayout()
         selector_row.addWidget(QLabel("Компонент", self))
         self._material_selector = QComboBox(self)
@@ -72,45 +60,61 @@ class MaterialsTab(QWidget):
         selector_row.addStretch(1)
         layout.addLayout(selector_row)
         
-        # Группа параметров материала - ТОЛЬКО ПОДДЕРЖИВАЕМЫЕ СВОЙСТВА Qt 6.10
         group = QGroupBox("Параметры материала (Qt 6.10 PrincipledMaterial)", self)
         grid = QGridLayout(group)
         grid.setContentsMargins(8, 8, 8, 8)
         grid.setHorizontalSpacing(12)
         grid.setVerticalSpacing(8)
+        r = 0
         
-        row = 0
+        # Base
+        r = self._add_color_control(grid, r, "Базовый цвет", "base_color")
+        r = self._add_slider_control(grid, r, "Непрозрачность", "opacity", 0.0, 1.0, 0.01)
         
-        # ===== БАЗОВЫЕ ЦВЕТА =====
-        row = self._add_color_control(grid, row, "Базовый цвет", "base_color")
+        # Metal/Rough/Specular
+        r = self._add_slider_control(grid, r, "Металличность", "metalness", 0.0, 1.0, 0.01)
+        r = self._add_slider_control(grid, r, "Шероховатость", "roughness", 0.0, 1.0, 0.01)
+        r = self._add_slider_control(grid, r, "Specular Amount", "specular", 0.0, 1.0, 0.01)
+        r = self._add_color_control(grid, r, "Specular Tint", "specular_tint")
         
-        # ===== METALNESS & ROUGHNESS =====
-        row = self._add_slider_control(grid, row, "Металличность", "metalness", 0.0, 1.0, 0.01)
-        row = self._add_slider_control(grid, row, "Шероховатость", "roughness", 0.0, 1.0, 0.01)
+        # Clearcoat
+        r = self._add_slider_control(grid, r, "Clearcoat", "clearcoat", 0.0, 1.0, 0.01)
+        r = self._add_slider_control(grid, r, "Clearcoat Roughness", "clearcoat_roughness", 0.0, 1.0, 0.01)
         
-        # ===== SPECULAR (НОВОЕ!) =====
-        row = self._add_slider_control(grid, row, "Specular Amount", "specular", 0.0, 1.0, 0.01)
-        row = self._add_color_control(grid, row, "Specular Tint", "specular_tint")
+        # Transmission / IOR / Thickness
+        r = self._add_slider_control(grid, r, "Transmission", "transmission", 0.0, 1.0, 0.01)
+        r = self._add_slider_control(grid, r, "Index of Refraction (IOR)", "ior", 1.0, 3.0, 0.01)
+        r = self._add_slider_control(grid, r, "Толщина (thickness)", "thickness", 0.0, 500.0, 1.0, decimals=0)
         
-        # ===== ПРОЗРАЧНОСТЬ =====
-        row = self._add_slider_control(grid, row, "Непрозрачность", "opacity", 0.0, 1.0, 0.01)
+        # Attenuation
+        r = self._add_slider_control(grid, r, "Attenuation Distance", "attenuation_distance", 0.0, 100000.0, 10.0)
+        r = self._add_color_control(grid, r, "Attenuation Color", "attenuation_color")
         
-        # ===== EMISSIVE (ИЗЛУЧЕНИЕ) =====
-        row = self._add_color_control(grid, row, "Излучающий цвет", "emissive_color")
-        row = self._add_slider_control(grid, row, "Яркость излучения", "emissive_intensity", 0.0, 5.0, 0.05)
+        # Emissive
+        r = self._add_color_control(grid, r, "Излучающий цвет", "emissive_color")
+        r = self._add_slider_control(grid, r, "Яркость излучения", "emissive_intensity", 0.0, 50.0, 0.1)
         
-        # ===== NORMAL MAP =====
-        # TODO: Добавить чекбокс + file picker для normalMap
-        row = self._add_slider_control(grid, row, "Normal Strength", "normal_strength", 0.0, 2.0, 0.05)
+        # Normal/Occlusion
+        r = self._add_slider_control(grid, r, "Normal Strength", "normal_strength", 0.0, 2.0, 0.01)
+        r = self._add_slider_control(grid, r, "Occlusion Amount", "occlusion_amount", 0.0, 1.0, 0.01)
         
-        # ===== OCCLUSION =====
-        row = self._add_slider_control(grid, row, "Occlusion Amount", "occlusion_amount", 0.0, 1.0, 0.01)
+        # Alpha Mode/Mask
+        alpha_row = QHBoxLayout(); alpha_row.addWidget(QLabel("Alpha Mode", self))
+        alpha_combo = QComboBox(self)
+        alpha_combo.addItem("Default", "default")
+        alpha_combo.addItem("Mask", "mask")
+        alpha_combo.addItem("Blend", "blend")
+        alpha_combo.currentIndexChanged.connect(lambda _: self._on_control_changed("alpha_mode", alpha_combo.currentData()))
+        self._controls["alpha_mode"] = alpha_combo
+        alpha_row.addWidget(alpha_combo)
+        alpha_row.addStretch(1)
+        grid.addLayout(alpha_row, r, 0, 1, 2); r += 1
+        r = self._add_slider_control(grid, r, "Alpha Cutoff (Mask)", "alpha_cutoff", 0.0, 1.0, 0.01)
         
         layout.addWidget(group)
         layout.addStretch(1)
     
     def _add_color_control(self, grid: QGridLayout, row: int, title: str, key: str) -> int:
-        """Добавить контрол выбора цвета"""
         container = QWidget(self)
         hbox = QHBoxLayout(container)
         hbox.setContentsMargins(0, 0, 0, 0)
@@ -124,53 +128,123 @@ class MaterialsTab(QWidget):
         grid.addWidget(container, row, 0, 1, 2)
         return row + 1
     
-    def _add_slider_control(
-        self,
-        grid: QGridLayout,
-        row: int,
-        title: str,
-        key: str,
-        minimum: float,
-        maximum: float,
-        step: float,
-        *,
-        decimals: int = 2,
-    ) -> int:
-        """Добавить контрол слайдера"""
+    def _add_slider_control(self, grid: QGridLayout, row: int, title: str, key: str, minimum: float, maximum: float, step: float, *, decimals: int = 2) -> int:
         slider = LabeledSlider(title, minimum, maximum, step, decimals=decimals)
         slider.valueChanged.connect(lambda v: self._on_control_changed(key, v))
         self._controls[key] = slider
         grid.addWidget(slider, row, 0, 1, 2)
         return row + 1
     
-    # ========== ОБРАБОТЧИКИ ИЗМЕНЕНИЙ ==========
+    # ========== HELPERS ==========
+    def _coerce_color(self, value: Any, *, default: str = "#ffffff") -> str:
+        """Преобразовать значение к hex цвету
+        Поддерживает str (hex), tuple/list (r,g,b[,a]) и число [0..1] → оттенок серого
+        """
+        try:
+            if isinstance(value, str) and value:
+                return value
+            if isinstance(value, (tuple, list)) and len(value) >= 3:
+                r = max(0, min(255, int(value[0])))
+                g = max(0, min(255, int(value[1])))
+                b = max(0, min(255, int(value[2])))
+                return f"#{r:02x}{g:02x}{b:02x}"
+            if isinstance(value, (int, float)):
+                v = max(0.0, min(1.0, float(value)))
+                c = int(round(v * 255))
+                return f"#{c:02x}{c:02x}{c:02x}"
+        except Exception:
+            pass
+        return default
     
+    def _coerce_material_state(self, state: Dict[str, Any]) -> Dict[str, Any]:
+        """Нормализовать типы значений для совместимости со старыми пресетами"""
+        normalized = dict(state) if isinstance(state, dict) else {}
+        # Цвета
+        for ckey in ("base_color", "specular_tint", "attenuation_color", "emissive_color"):
+            if ckey in normalized:
+                normalized[ckey] = self._coerce_color(normalized.get(ckey), default=("#000000" if ckey == "specular_tint" else "#ffffff"))
+        return normalized
+    
+    def _apply_controls_from_state(self, state: Dict[str, Any]) -> None:
+        """Установить значения контролов из состояния (без эмита сигналов)"""
+        if not isinstance(state, dict):
+            return
+        st = self._coerce_material_state(state)
+        self._updating_ui = True
+        # Блокируем сигналы на время установки
+        for control in self._controls.values():
+            try:
+                control.blockSignals(True)
+            except Exception:
+                pass
+        try:
+            def set_if(k: str):
+                if k in st and k in self._controls:
+                    ctrl = self._controls[k]
+                    v = st[k]
+                    if isinstance(ctrl, ColorButton):
+                        ctrl.set_color(v)
+                    elif isinstance(ctrl, LabeledSlider):
+                        ctrl.set_value(v)
+                    elif hasattr(ctrl, 'findData'):
+                        idx = ctrl.findData(v)
+                        if idx >= 0:
+                            ctrl.setCurrentIndex(idx)
+            for k in (
+                "base_color","metalness","roughness","specular","specular_tint","opacity",
+                "clearcoat","clearcoat_roughness","transmission","ior","thickness",
+                "attenuation_distance","attenuation_color","emissive_color","emissive_intensity",
+                "normal_strength","occlusion_amount","alpha_mode","alpha_cutoff"
+            ):
+                set_if(k)
+        finally:
+            for control in self._controls.values():
+                try:
+                    control.blockSignals(False)
+                except Exception:
+                    pass
+            self._updating_ui = False
+    
+    def _save_current_into_cache(self) -> None:
+        """Сохранить текущее состояние контролов в кэш для выбранного материала"""
+        key = self.get_current_material_key()
+        if not key:
+            return
+        self._materials_state[key] = self.get_current_material_state()
+    
+    # ========== EVENTS ==========
     def _on_material_selection_changed(self) -> None:
-        """Обработчик изменения выбранного материала - КАК В МОНОЛИТЕ"""
-        # Этот метод вызывается при смене материала в селекторе
-        # НЕ эмитим сигнал, только обновляем UI (если нужно загрузить состояние извне)
-        pass
-    
-    def _on_control_changed(self, key: str, value: Any) -> None:
-        """Обработчик изменения любого контрола"""
+        # Смена выбранного материала: сохраняем предыдущий и загружаем новый
         if self._updating_ui:
             return
-        
-        # Эмитим сигнал с полным состоянием ВСЕХ материалов
-        self.material_changed.emit(self.get_state())
+        # Сохраняем текущее состояние в кэш
+        if self._current_key:
+            self._save_current_into_cache()
+        # Применяем состояние для нового ключа (если есть сохранённое)
+        new_key = self.get_current_material_key()
+        st = self._materials_state.get(new_key)
+        if st:
+            self._apply_controls_from_state(st)
+        self._current_key = new_key
     
-    # ========== ГЕТТЕРЫ/СЕТТЕРЫ СОСТОЯНИЯ ==========
+    def _on_control_changed(self, key: str, value: Any) -> None:
+        if self._updating_ui:
+            return
+        # Обновляем кэш текущего материала
+        cur_key = self.get_current_material_key()
+        if cur_key:
+            self._materials_state[cur_key] = self.get_current_material_state()
+        # Эмитим payload ТОЛЬКО для текущего материала
+        self.material_changed.emit({
+            "current_material": cur_key,
+            cur_key: self.get_current_material_state()
+        })
     
+    # ========== STATE API ==========
     def get_current_material_key(self) -> str:
-        """Получить ключ текущего выбранного материала"""
         return self._material_selector.currentData()
     
     def get_current_material_state(self) -> Dict[str, Any]:
-        """Получить состояние ТЕКУЩЕГО выбранного материала
-        
-        Returns:
-            Словарь с параметрами одного материала (Qt 6.10 совместимые)
-        """
         return {
             "base_color": self._controls["base_color"].color().name(),
             "metalness": self._controls["metalness"].value(),
@@ -178,102 +252,72 @@ class MaterialsTab(QWidget):
             "specular": self._controls["specular"].value(),
             "specular_tint": self._controls["specular_tint"].color().name(),
             "opacity": self._controls["opacity"].value(),
+            "clearcoat": self._controls.get("clearcoat").value(),
+            "clearcoat_roughness": self._controls.get("clearcoat_roughness").value(),
+            "transmission": self._controls.get("transmission").value(),
+            "ior": self._controls.get("ior").value(),
+            "thickness": self._controls.get("thickness").value(),
+            "attenuation_distance": self._controls.get("attenuation_distance").value(),
+            "attenuation_color": self._controls.get("attenuation_color").color().name(),
             "emissive_color": self._controls["emissive_color"].color().name(),
             "emissive_intensity": self._controls["emissive_intensity"].value(),
             "normal_strength": self._controls["normal_strength"].value(),
             "occlusion_amount": self._controls["occlusion_amount"].value(),
+            "alpha_mode": self._controls["alpha_mode"].currentData(),
+            "alpha_cutoff": self._controls["alpha_cutoff"].value(),
         }
     
     def get_state(self) -> Dict[str, Any]:
-        """Получить полное состояние ВСЕХ материалов
-        
-        Возвращает структуру:
-        {
-            "current_material": "frame",  # текущий выбранный материал
-            "materials": {
-                "frame": {...},  # 17 параметров
-                "lever": {...},
-                ...
-            }
-        }
+        """Вернуть payload только для текущего материала (для сигналов/UI)
+        Формат: {"current_material": key, key: {..params..}}
         """
-        # Эмитим только состояние ТЕКУЩЕГО материала и его ключ
         current_key = self.get_current_material_key()
-        current_state = self.get_current_material_state()
-        
+        # Обновляем кэш перед возвратом
+        if current_key:
+            self._materials_state[current_key] = self.get_current_material_state()
         return {
             "current_material": current_key,
-            current_key: current_state,
+            current_key: self.get_current_material_state(),
         }
     
+    def get_all_state(self) -> Dict[str, Dict[str, Any]]:
+        """Вернуть состояние ВСЕХ материалов для сохранения/пресетов"""
+        # Обновим кэш текущего
+        if self.get_current_material_key():
+            self._materials_state[self.get_current_material_key()] = self.get_current_material_state()
+        # Возвращаем копию только известных ключей
+        result: Dict[str, Dict[str, Any]] = {}
+        for key in self._material_labels.keys():
+            if key in self._materials_state:
+                result[key] = dict(self._materials_state[key])
+        return result
+    
     def set_material_state(self, material_key: str, state: Dict[str, Any]):
-        """Установить состояние ОДНОГО материала
-        
-        Args:
-            material_key: Ключ материала (frame, lever, tail, ...)
-            state: Словарь с параметрами материала (Qt 6.10 совместимые)
-        """
-        # Переключаемся на нужный материал
-        index = self._material_selector.findData(material_key)
-        if index >= 0:
-            self._material_selector.setCurrentIndex(index)
-        
-        # Блокируем сигналы
-        self._updating_ui = True
-        for control in self._controls.values():
-            try:
-                control.blockSignals(True)
-            except:
-                pass
-        
-        try:
-            # Устанавливаем параметры (ТОЛЬКО ПОДДЕРЖИВАЕМЫЕ Qt 6.10)
-            if "base_color" in state:
-                self._controls["base_color"].set_color(state["base_color"])
-            if "metalness" in state:
-                self._controls["metalness"].set_value(state["metalness"])
-            if "roughness" in state:
-                self._controls["roughness"].set_value(state["roughness"])
-            if "specular" in state:
-                self._controls["specular"].set_value(state["specular"])
-            if "specular_tint" in state:
-                self._controls["specular_tint"].set_color(state["specular_tint"])
-            if "opacity" in state:
-                self._controls["opacity"].set_value(state["opacity"])
-            if "emissive_color" in state:
-                self._controls["emissive_color"].set_color(state["emissive_color"])
-            if "emissive_intensity" in state:
-                self._controls["emissive_intensity"].set_value(state["emissive_intensity"])
-            if "normal_strength" in state:
-                self._controls["normal_strength"].set_value(state["normal_strength"])
-            if "occlusion_amount" in state:
-                self._controls["occlusion_amount"].set_value(state["occlusion_amount"])
-        
-        finally:
-            # Разблокируем сигналы
-            for control in self._controls.values():
-                try:
-                    control.blockSignals(False)
-                except:
-                    pass
-            self._updating_ui = False
+        # Обновляем кэш состояния
+        if not isinstance(state, dict):
+            return
+        self._materials_state[material_key] = self._coerce_material_state(state)
+        # Если этот материал текущий — применяем к контролам
+        if material_key == self.get_current_material_key():
+            self._apply_controls_from_state(self._materials_state[material_key])
     
     def set_state(self, state: Dict[str, Any]):
-        """Установить состояние из словаря
-        
-        Args:
-            state: Словарь со ВСЕМИ материалами
-            Формат: {"frame": {...}, "lever": {...}, ...}
+        """Установить состояния нескольких материалов сразу (из SettingsManager)
+        Ожидается словарь { material_key: {..params..}, ... }
         """
-        # Устанавливаем каждый материал
+        if not isinstance(state, dict):
+            return
+        # Заполняем кэш без трогания селектора
         for material_key, material_state in state.items():
-            if material_key in self._material_labels:
-                self.set_material_state(material_key, material_state)
+            if material_key in self._material_labels and isinstance(material_state, dict):
+                self._materials_state[material_key] = self._coerce_material_state(material_state)
+        # Обновляем контролы для текущего выбранного
+        cur_key = self.get_current_material_key()
+        if cur_key and cur_key in self._materials_state:
+            self._apply_controls_from_state(self._materials_state[cur_key])
     
     def get_controls(self) -> Dict[str, Any]:
-        """Получить словарь контролов для внешнего управления"""
         return self._controls
     
     def set_updating_ui(self, updating: bool) -> None:
-        """Установить флаг обновления UI"""
         self._updating_ui = updating
