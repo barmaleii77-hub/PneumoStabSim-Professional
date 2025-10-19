@@ -75,6 +75,8 @@ Item {
         if (p.cylinderRings) setIfExists(root, 'cylinderRings', p.cylinderRings);
         // Доп. визуальная геометрия
         if (typeof p.tail_rod_length === 'number') root.tailRodLength = p.tail_rod_length;
+        // Поддержка camelCase на период миграции
+        if (typeof p.tailRodLength === 'number' && typeof p.tail_rod_length !== 'number') root.tailRodLength = p.tailRodLength;
         if (typeof p.joint_tail_scale === 'number') root.jointTailScale = p.joint_tail_scale;
         if (typeof p.joint_arm_scale === 'number') root.jointArmScale = p.joint_arm_scale;
         if (typeof p.joint_rod_scale === 'number') root.jointRodScale = p.joint_rod_scale;
@@ -257,7 +259,14 @@ Item {
             setIfExists(spotLight, 'castsShadow', p.shadows.enabled);
         }
         if (p.shadows && typeof p.shadows.resolution === 'string') {
-            setIfExists(env, 'shadowMapQuality', p.shadows.resolution);
+            // Конверсия строкового разрешения в enum SceneEnvironment.ShadowMapQuality*
+            var res = p.shadows.resolution.trim();
+            var q = SceneEnvironment.ShadowMapQualityMedium; // fallback
+            if (res === '512') q = SceneEnvironment.ShadowMapQualityLow;
+            else if (res === '1024') q = SceneEnvironment.ShadowMapQualityMedium;
+            else if (res === '2048') q = SceneEnvironment.ShadowMapQualityHigh;
+            else if (res === '4096') q = SceneEnvironment.ShadowMapQualityVeryHigh;
+            setIfExists(env, 'shadowMapQuality', q);
         }
         if (p.mesh) {
             if (typeof p.mesh.cylinder_segments === 'number') root.cylinderSegments = p.mesh.cylinder_segments;

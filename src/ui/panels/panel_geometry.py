@@ -269,27 +269,29 @@ class GeometryPanel(QWidget):
             self.geometry_changed.emit(self._get_fast_geometry_update(param_name, value))
 
     def _get_fast_geometry_update(self, param_name: str, value: float) -> dict:
-        return {
-            'frameLength': self.parameters.get('wheelbase', 0) * 1000,
-            'frameHeight': 650.0,
-            'frameBeamSize': 120.0,
-            'leverLength': self.parameters.get('lever_length', 0) * 1000,
-            'cylinderBodyLength': self.parameters.get('cylinder_length', 0) * 1000,
-            'tailRodLength': 100.0,
-            'trackWidth': self.parameters.get('track', 0) * 1000,
-            'frameToPivot': self.parameters.get('frame_to_pivot', 0) * 1000,
-            'rodPosition': self.parameters.get('rod_position', 0),
-            'cylDiamM': self.parameters.get('cyl_diam_m', 0) * 1000,
-            'strokeM': self.parameters.get('stroke_m', 0) * 1000,
-            'deadGapM': self.parameters.get('dead_gap_m', 0) * 1000,
-            'rodDiameterM': self.parameters.get('rod_diameter_m', 0) * 1000,
-            'pistonRodLengthM': self.parameters.get('piston_rod_length_m', 0) * 1000,
-            'pistonThicknessM': self.parameters.get('piston_thickness_m', 0) * 1000,
-            'boreHead': self.parameters.get('cyl_diam_m', 0) * 1000,
-            'rodDiameter': self.parameters.get('rod_diameter_m', 0) * 1000,
-            'pistonRodLength': self.parameters.get('piston_rod_length_m', 0) * 1000,
-            'pistonThickness': self.parameters.get('piston_thickness_m', 0) * 1000,
+        # Читаем дополнительные параметры из SettingsManager.geometry (в мм в QML)
+        geom_cfg = self._settings_manager.get_category("geometry") or {}
+        payload: dict[str, float] = {
+            'frameLength': (self.parameters.get('wheelbase', 0) or 0) * 1000.0,
+            'leverLength': (self.parameters.get('lever_length', 0) or 0) * 1000.0,
+            'cylinderBodyLength': (self.parameters.get('cylinder_length', 0) or 0) * 1000.0,
+            'trackWidth': (self.parameters.get('track', 0) or 0) * 1000.0,
+            'frameToPivot': (self.parameters.get('frame_to_pivot', 0) or 0) * 1000.0,
+            'rodPosition': float(self.parameters.get('rod_position', 0) or 0),
+            'boreHead': (self.parameters.get('cyl_diam_m', 0) or 0) * 1000.0,
+            'rodDiameter': (self.parameters.get('rod_diameter_m', 0) or 0) * 1000.0,
+            'pistonRodLength': (self.parameters.get('piston_rod_length_m', 0) or 0) * 1000.0,
+            'pistonThickness': (self.parameters.get('piston_thickness_m', 0) or 0) * 1000.0,
         }
+        # Опциональные: не задаем дефолты в коде, если нет в настройках — пропускаем
+        if isinstance(geom_cfg.get('frame_height_mm'), (int, float)):
+            payload['frameHeight'] = float(geom_cfg['frame_height_mm'])
+        if isinstance(geom_cfg.get('frame_beam_size_mm'), (int, float)):
+            payload['frameBeamSize'] = float(geom_cfg['frame_beam_size_mm'])
+        if isinstance(geom_cfg.get('tail_rod_length_mm'), (int, float)):
+            # ПЕРЕИМЕНОВАНО: используем snake_case ключ, как в QML ожидается
+            payload['tail_rod_length'] = float(geom_cfg['tail_rod_length_mm'])
+        return payload
 
     def _set_parameter_value(self, param_name: str, value: float) -> None:
         mapping = {
