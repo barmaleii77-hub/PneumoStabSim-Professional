@@ -170,6 +170,7 @@ class MaterialsTab(QWidget):
         if not isinstance(state, dict):
             return
         st = self._coerce_material_state(state)
+        print(f"    🔧 _apply_controls_from_state: {len(st)} params to apply")
         self._updating_ui = True
         # Блокируем сигналы на время установки
         for control in self._controls.values():
@@ -177,19 +178,29 @@ class MaterialsTab(QWidget):
                 control.blockSignals(True)
             except Exception:
                 pass
+        applied_count = 0
         try:
             def set_if(k: str):
+                nonlocal applied_count
                 if k in st and k in self._controls:
                     ctrl = self._controls[k]
                     v = st[k]
                     if isinstance(ctrl, ColorButton):
+                        print(f"      🎨 {k}: {ctrl.color().name()} → {v}")
                         ctrl.set_color(v)
+                        applied_count += 1
                     elif isinstance(ctrl, LabeledSlider):
+                        old_val = ctrl.value()
+                        print(f"      🎚️ {k}: {old_val} → {v}")
                         ctrl.set_value(v)
+                        applied_count += 1
                     elif hasattr(ctrl, 'findData'):
+                        old_idx = ctrl.currentIndex()
                         idx = ctrl.findData(v)
                         if idx >= 0:
+                            print(f"      📋 {k}: index {old_idx} → {idx} (value: {v})")
                             ctrl.setCurrentIndex(idx)
+                            applied_count += 1
             for k in (
                 "base_color","metalness","roughness","specular","specular_tint","opacity",
                 "clearcoat","clearcoat_roughness","transmission","ior","thickness",
@@ -197,6 +208,7 @@ class MaterialsTab(QWidget):
                 "normal_strength","occlusion_amount","alpha_mode","alpha_cutoff"
             ):
                 set_if(k)
+            print(f"    ✅ Applied {applied_count}/{len(st)} controls")
         finally:
             for control in self._controls.values():
                 try:
@@ -213,26 +225,51 @@ class MaterialsTab(QWidget):
         self._materials_state[key] = self.get_current_material_state()
     
     # ========== EVENTS ==========
-    def _on_material_selection_changed(self) -> None:
-        # Смена выбранного материала: сохраняем предыдущий и загружаем новый
+    def _on_material_selection_changed(self, index: int) -> None:
+        # Смена выбранного материала: загружаем новый из кэша
         if self._updating_ui:
             return
-        # Сохраняем текущее состояние в кэш
-        if self._current_key:
-            self._save_current_into_cache()
-        # Применяем состояние для нового ключа (если есть сохранённое)
+        print(f"🔄 MaterialsTab: Changing selection from '{self._current_key}' to material at index {index}")
+        
+        # ❌ УДАЛЕНО: НЕ сохраняем текущее состояние при переключении!
+        # Контролы могут быть в промежуточном состоянии редактирования
+        # Сохранение происходит ТОЛЬКО при изменении пользователем (_on_control_changed)
+        
+        # Получаем новый ключ
         new_key = self.get_current_material_key()
+        print(f"  🔑 New material key: {new_key}")
+        
+        # КРИТИЧНО: Загружаем состояние для нового материала из кэша
         st = self._materials_state.get(new_key)
         if st:
+            print(f"  ✅ Loading saved state for '{new_key}' ({len(st)} params)")
             self._apply_controls_from_state(st)
+        else:
+            print(f"  ⚠️ No saved state for '{new_key}' - using control defaults")
+            # НЕ применяем контролы - пользователь видит дефолты
+            # Но добавляем в кэш, чтобы сохранить при следующем изменении
+            self._materials_state[new_key] = self.get_current_material_state()
+            print(f"  📝 Initialized cache for '{new_key}' from controls")
+        
+        # Обновляем текущий ключ
         self._current_key = new_key
+        
+        # Эмитим payload текущего материала, чтобы сцена сразу отразила выбор
+        if new_key:
+            self.material_changed.emit(self.get_state())
+            print(f"  📡 Emitted material_changed for '{new_key}'")
     
     def _on_control_changed(self, key: str, value: Any) -> None:
         if self._updating_ui:
             return
-        # Обновляем кэш текущего материала
+        # КРИТИЧНО: Обновляем кэш текущего материала ПЕРЕД эмитом
         cur_key = self.get_current_material_key()
         if cur_key:
+            # Сначала обновляем параметр в кэше
+            if cur_key not in self._materials_state:
+                self._materials_state[cur_key] = {}
+            self._materials_state[cur_key][key] = value
+            # Потом обновляем полное состояние
             self._materials_state[cur_key] = self.get_current_material_state()
         # Эмитим payload ТОЛЬКО для текущего материала
         self.material_changed.emit({
@@ -283,13 +320,16 @@ class MaterialsTab(QWidget):
     def get_all_state(self) -> Dict[str, Dict[str, Any]]:
         """Вернуть состояние ВСЕХ материалов для сохранения/пресетов"""
         # Обновим кэш текущего
-        if self.get_current_material_key():
-            self._materials_state[self.get_current_material_key()] = self.get_current_material_state()
+        cur_key = self.get_current_material_key()
+        if cur_key:
+            self._materials_state[cur_key] = self.get_current_material_state()
         # Возвращаем копию только известных ключей
         result: Dict[str, Dict[str, Any]] = {}
         for key in self._material_labels.keys():
             if key in self._materials_state:
                 result[key] = dict(self._materials_state[key])
+        # DEBUG: Логируем количество материалов в результате
+        print(f"🔍 MaterialsTab.get_all_state(): returning {len(result)} materials")
         return result
     
     def set_material_state(self, material_key: str, state: Dict[str, Any]):
@@ -306,15 +346,30 @@ class MaterialsTab(QWidget):
         Ожидается словарь { material_key: {..params..}, ... }
         """
         if not isinstance(state, dict):
+            print(f"⚠️ MaterialsTab.set_state: state is not dict, got {type(state)}")
             return
+        print(f"🔍 MaterialsTab.set_state: loading {len(state)} materials")
+        # КРИТИЧНО: Сначала очищаем старый кэш
+        self._materials_state.clear()
         # Заполняем кэш без трогания селектора
         for material_key, material_state in state.items():
             if material_key in self._material_labels and isinstance(material_state, dict):
+                # Принудительно сохраняем ВСЕ поля в кэш (даже если их нет в контролах)
                 self._materials_state[material_key] = self._coerce_material_state(material_state)
+                print(f"  ✅ Loaded {material_key}: {len(material_state)} params")
+            else:
+                print(f"  ⚠️ Skipped {material_key}: not in labels or not dict")
         # Обновляем контролы для текущего выбранного
         cur_key = self.get_current_material_key()
         if cur_key and cur_key in self._materials_state:
             self._apply_controls_from_state(self._materials_state[cur_key])
+            print(f"  ✅ Applied controls for current material: {cur_key}")
+        else:
+            # Если текущий материал не найден в кэше — инициализируем его из контролов
+            if cur_key and cur_key not in self._materials_state:
+                self._materials_state[cur_key] = self.get_current_material_state()
+                print(f"  ⚠️ Initialized {cur_key} from controls (was missing in state)")
+        print(f"  📊 Total materials in cache: {len(self._materials_state)}")
     
     def get_controls(self) -> Dict[str, Any]:
         return self._controls

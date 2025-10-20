@@ -243,6 +243,10 @@ Item {
 
     function applyQualityUpdates(p) {
         if (!p) return;
+        console.log("🎨 applyQualityUpdates вызван с параметрами:", JSON.stringify(p));
+        
+        // ======== ANTIALIASING ========
+        // Вариант 1: вложенный объект (новый формат)
         if (p.antialiasing && p.antialiasing.primary) {
             switch (p.antialiasing.primary) {
             case 'off': env.antialiasingMode = SceneEnvironment.NoAA; break;
@@ -257,37 +261,88 @@ Item {
             case 'high': env.antialiasingQuality = SceneEnvironment.High; break;
             }
         }
+        
+        // Вариант 2: плоская структура (старый формат GraphicsPanel)
+        if (typeof p.antialiasing === 'string') {
+            console.log("  → antialiasing (flat):", p.antialiasing);
+            switch (p.antialiasing) {
+            case 'off': env.antialiasingMode = SceneEnvironment.NoAA; break;
+            case 'msaa': env.antialiasingMode = SceneEnvironment.MSAA; break;
+            case 'ssaa': env.antialiasingMode = SceneEnvironment.SSAA; break;
+            }
+        }
+        if (typeof p.aa_quality === 'string') {
+            console.log("  → aa_quality (flat):", p.aa_quality);
+            switch (p.aa_quality) {
+            case 'low': env.antialiasingQuality = SceneEnvironment.Low; break;
+            case 'medium': env.antialiasingQuality = SceneEnvironment.Medium; break;
+            case 'high': env.antialiasingQuality = SceneEnvironment.High; break;
+            }
+        }
+        
         // Temporal AA (Qt 6.10)
         if (typeof p.taa_enabled === 'boolean') setIfExists(env, 'temporalAAEnabled', p.taa_enabled);
         if (typeof p.taa_strength === 'number') setIfExists(env, 'temporalAAStrength', p.taa_strength);
         if (typeof p.dithering === 'boolean') setIfExists(env, 'ditheringEnabled', p.dithering);
-        if (p.shadows && typeof p.shadows.enabled === 'boolean') {
-            setIfExists(keyLight, 'castsShadow', p.shadows.enabled);
-            setIfExists(fillLight, 'castsShadow', p.shadows.enabled);
-            setIfExists(rimLight, 'castsShadow', p.shadows.enabled);
-            setIfExists(pointLight, 'castsShadow', p.shadows.enabled);
-            setIfExists(spotLight, 'castsShadow', p.shadows.enabled);
+        
+        // ======== SHADOWS ========
+        // Вариант 1: плоская структура (GraphicsPanel)
+        if (typeof p.shadows_enabled === 'boolean') {
+            console.log("  → shadows_enabled (flat):", p.shadows_enabled);
+            root.shadowsEnabled = p.shadows_enabled;
+            keyLight.castsShadow = p.shadows_enabled;
+            if (typeof fillLight !== 'undefined' && fillLight) fillLight.castsShadow = false;
+            if (typeof rimLight !== 'undefined' && rimLight) rimLight.castsShadow = false;
+            console.log("  ✅ Тени установлены (flat):", p.shadows_enabled);
         }
+        
+        // Вариант 2: вложенная структура (старый формат)
+        if (p.shadows && typeof p.shadows.enabled === 'boolean') {
+            console.log("  → shadows.enabled (legacy):", p.shadows.enabled);
+            root.shadowsEnabled = p.shadows.enabled;
+            keyLight.castsShadow = p.shadows.enabled;
+            console.log("  ✅ Тени установлены (legacy):", p.shadows.enabled);
+        }
+        
+        // Качество теней - плоская структура
+        if (typeof p.shadow_quality === 'string') {
+            console.log("  → shadow_quality (flat):", p.shadow_quality);
+            switch (p.shadow_quality) {
+            case 'low': env.shadowMapQuality = SceneEnvironment.Low; break;
+            case 'medium': env.shadowMapQuality = SceneEnvironment.Medium; break;
+            case 'high': env.shadowMapQuality = SceneEnvironment.High; break;
+            }
+        }
+        
+        // Качество теней - вложенная структура
         if (p.shadows && typeof p.shadows.resolution === 'string') {
-            // Маппинг строкового разрешения на уровни качества Qt
+            console.log("  → shadows.resolution (legacy):", p.shadows.resolution);
             switch (p.shadows.resolution) {
             case '512': env.shadowMapQuality = SceneEnvironment.VeryLow; break;
             case '1024': env.shadowMapQuality = SceneEnvironment.Low; break;
             case '2048': env.shadowMapQuality = SceneEnvironment.Medium; break;
             case '4096': env.shadowMapQuality = SceneEnvironment.High; break;
-            default: env.shadowMapQuality = SceneEnvironment.Medium; break;
             }
         }
+        
+        // Мягкость теней
+        if (typeof p.shadow_softness === 'number') {
+            console.log("  → shadow_softness:", p.shadow_softness);
+            // Применяем к keyLight если доступно
+            if (typeof keyLight !== 'undefined' && keyLight && 'shadowFilter' in keyLight) {
+                keyLight.shadowFilter = 4 + Math.max(0, p.shadow_softness) * 28;
+            }
+        }
+        
         // Прозрачность (Order-Independent Transparency)
         if (typeof p.oit === 'string') {
             switch (p.oit) {
-            case 'none': env.transparencyMode = SceneEnvironment.Transparent;
-                         break;
-            case 'weighted': env.transparencyMode = SceneEnvironment.ScreenSpace;
-                             break;
-            default: /* leave as is */ break;
+            case 'none': env.transparencyMode = SceneEnvironment.Transparent; break;
+            case 'weighted': env.transparencyMode = SceneEnvironment.ScreenSpace; break;
             }
         }
+        
+        // Mesh quality
         if (p.mesh) {
             if (typeof p.mesh.cylinder_segments === 'number') root.cylinderSegments = p.mesh.cylinder_segments;
             if (typeof p.mesh.cylinder_rings === 'number') root.cylinderRings = p.mesh.cylinder_rings;
@@ -300,88 +355,153 @@ Item {
 
     function applyMaterialUpdates(p) {
         if (!p) return;
-        var key = p.current_material || Object.keys(p)[0];
-        var s = p[key];
-        if (!s) return;
-        var target = null;
-        switch (key) {
-        case 'frame': target = frameMat; break;
-        case 'lever': target = leverMat; break;
-        case 'tail': target = tailRodMat; break;
-        case 'cylinder': target = cylinderMat; break;
-        case 'piston_body': target = pistonBodyMat; break;
-        case 'piston_rod': target = pistonRodMat; break;
-        case 'joint_tail': target = jointTailMat; break;
-        case 'joint_arm': target = jointArmMat; break;
-        case 'joint_rod': target = jointRodMat; break;
-        default: target = null;
-        }
-        if (!target) return;
-        if (s.base_color) setIfExists(target, 'baseColor', s.base_color);
-        if (typeof s.metalness === 'number') setIfExists(target, 'metalness', s.metalness);
-        if (typeof s.roughness === 'number') setIfExists(target, 'roughness', s.roughness);
-        if (typeof s.specular === 'number') setIfExists(target, 'specularAmount', s.specular);
-        if (s.specular_tint) setIfExists(target, 'specularTint', s.specular_tint);
-        if (typeof s.opacity === 'number') setIfExists(target, 'opacity', s.opacity);
-        if (typeof s.clearcoat === 'number') setIfExists(target, 'clearcoatAmount', s.clearcoat);
-        if (typeof s.clearcoat_roughness === 'number') setIfExists(target, 'clearcoatRoughness', s.clearcoat_roughness);
-        if (typeof s.ior === 'number') setIfExists(target, 'indexOfRefraction', s.ior);
-        if (s.emissive_color) setIfExists(target, 'emissiveColor', s.emissive_color);
-        if (typeof s.emissive_intensity === 'number') setIfExists(target, 'emissivePower', s.emissive_intensity);
-        if (typeof s.normal_strength === 'number') setIfExists(target, 'normalStrength', s.normal_strength);
-        if (typeof s.occlusion_amount === 'number') setIfExists(target, 'occlusionAmount', s.occlusion_amount);
-        if (typeof s.alpha_cutoff === 'number') setIfExists(target, 'alphaCutoff', s.alpha_cutoff);
-        if (typeof s.transmission === 'number') setIfExists(target, 'transmissionFactor', s.transmission);
-        if (typeof s.thickness === 'number') setIfExists(target, 'thicknessFactor', s.thickness);
-        if (typeof s.alpha_mode === 'string') {
-            switch (s.alpha_mode) {
-            case 'default': target.alphaMode = PrincipledMaterial.Default; break;
-            case 'mask': target.alphaMode = PrincipledMaterial.Mask; break;
-            case 'blend': target.alphaMode = PrincipledMaterial.Blend; break;
+        // Поддержка как одиночного обновления (current_material), так и пакетного (несколько ключей)
+        function applyOne(key, s) {
+            if (!s) return;
+            var target = null;
+            switch (key) {
+            case 'frame': target = frameMat; break;
+            case 'lever': target = leverMat; break;
+            case 'tail': target = tailRodMat; break;
+            case 'cylinder': target = cylinderMat; break;
+            case 'piston_body': target = pistonBodyMat; break;
+            case 'piston_rod': target = pistonRodMat; break;
+            case 'joint_tail': target = jointTailMat; break;
+            case 'joint_arm': target = jointArmMat; break;
+            case 'joint_rod': target = jointRodMat; break;
+            default: target = null;
             }
+            if (!target) return;
+            if (s.base_color) setIfExists(target, 'baseColor', s.base_color);
+            if (typeof s.metalness === 'number') setIfExists(target, 'metalness', s.metalness);
+            if (typeof s.roughness === 'number') setIfExists(target, 'roughness', s.roughness);
+            if (typeof s.specular === 'number') setIfExists(target, 'specularAmount', s.specular);
+            if (s.specular_tint) setIfExists(target, 'specularTint', s.specular_tint);
+            if (typeof s.opacity === 'number') setIfExists(target, 'opacity', s.opacity);
+            if (typeof s.clearcoat === 'number') setIfExists(target, 'clearcoatAmount', s.clearcoat);
+            if (typeof s.clearcoat_roughness === 'number') setIfExists(target, 'clearcoatRoughness', s.clearcoat_roughness);
+            if (typeof s.ior === 'number') setIfExists(target, 'indexOfRefraction', s.ior);
+            if (s.emissive_color) setIfExists(target, 'emissiveColor', s.emissive_color);
+            if (typeof s.emissive_intensity === 'number') setIfExists(target, 'emissivePower', s.emissive_intensity);
+            if (typeof s.normal_strength === 'number') setIfExists(target, 'normalStrength', s.normal_strength);
+            if (typeof s.occlusion_amount === 'number') setIfExists(target, 'occlusionAmount', s.occlusion_amount);
+            if (typeof s.alpha_cutoff === 'number') setIfExists(target, 'alphaCutoff', s.alpha_cutoff);
+            if (typeof s.transmission === 'number') setIfExists(target, 'transmissionFactor', s.transmission);
+            if (typeof s.thickness === 'number') setIfExists(target, 'thicknessFactor', s.thickness);
+            if (typeof s.attenuation_distance === 'number') setIfExists(target, 'transmissionAttenuationDistance', s.attenuation_distance);
+            if (s.attenuation_color) setIfExists(target, 'transmissionAttenuationColor', s.attenuation_color);
+            if (typeof s.alpha_mode === 'string') {
+                switch (s.alpha_mode) {
+                case 'default': target.alphaMode = PrincipledMaterial.Default; break;
+                case 'mask': target.alphaMode = PrincipledMaterial.Mask; break;
+                case 'blend': target.alphaMode = PrincipledMaterial.Blend; break;
+                }
+            }
+        }
+        if (p.current_material) {
+            var key = p.current_material;
+            applyOne(key, p[key]);
+            return;
+        }
+        // Пакетный режим: применяем все известные ключи, которые присутствуют в p
+        var known = ['frame','lever','tail','cylinder','piston_body','piston_rod','joint_tail','joint_arm','joint_rod'];
+        for (var i = 0; i < known.length; ++i) {
+            var k = known[i];
+            if (p[k]) applyOne(k, p[k]);
         }
     }
 
     function applyEffectsUpdates(p) {
         if (!p) return;
-        if (typeof p.bloom_enabled === 'boolean') setIfExists(env, 'glowEnabled', p.bloom_enabled);
-        if (typeof p.bloom_intensity === 'number') setIfExists(env, 'glowIntensity', p.bloom_intensity);
-        if (typeof p.bloom_threshold === 'number') setIfExists(env, 'glowHDRMinimumValue', p.bloom_threshold);
-        if (typeof p.bloom_spread === 'number') setIfExists(env, 'glowBloom', p.bloom_spread);
-        if (typeof p.bloom_glow_strength === 'number') setIfExists(env, 'glowStrength', p.bloom_glow_strength);
-        if (typeof p.bloom_hdr_max === 'number') setIfExists(env, 'glowHDRMaximumValue', p.bloom_hdr_max);
-        if (typeof p.bloom_hdr_scale === 'number') setIfExists(env, 'glowHDRScale', p.bloom_hdr_scale);
-        if (typeof p.bloom_quality_high === 'boolean') setIfExists(env, 'glowQualityHigh', p.bloom_quality_high);
-        if (typeof p.bloom_bicubic_upscale === 'boolean') setIfExists(env, 'glowUseBicubicUpscale', p.bloom_bicubic_upscale);
-        if (typeof p.tonemap_enabled === 'boolean') setIfExists(env, 'tonemapEnabled', p.tonemap_enabled);
-        if (p.tonemap_mode) {
-            switch (p.tonemap_mode) {
-            case 'filmic': setIfExists(env, 'tonemapMode', SceneEnvironment.TonemapFilmic); break;
-            case 'aces': setIfExists(env, 'tonemapMode', SceneEnvironment.TonemapAces); break;
-            case 'reinhard': setIfExists(env, 'tonemapMode', SceneEnvironment.TonemapReinhard); break;
-            case 'gamma': setIfExists(env, 'tonemapMode', SceneEnvironment.TonemapGamma); break;
-            case 'linear': setIfExists(env, 'tonemapMode', SceneEnvironment.TonemapLinear); break;
+        console.log("✨ applyEffectsUpdates вызван с параметрами:", JSON.stringify(p));
+        try {
+            // ======== BLOOM/GLOW ========
+            if (typeof p.bloom_enabled === 'boolean') { 
+                console.log("  → bloom_enabled:", p.bloom_enabled); 
+                env.glowEnabled = p.bloom_enabled; 
             }
+            if (typeof p.bloom_intensity === 'number') env.glowIntensity = p.bloom_intensity;
+            if (typeof p.bloom_threshold === 'number') env.glowHDRMinimumValue = p.bloom_threshold;
+            if (typeof p.bloom_spread === 'number') env.glowBloom = p.bloom_spread;
+            if (typeof p.bloom_glow_strength === 'number') env.glowStrength = p.bloom_glow_strength;
+            if (typeof p.bloom_hdr_max === 'number') env.glowHDRMaximumValue = p.bloom_hdr_max;
+            if (typeof p.bloom_hdr_scale === 'number') env.glowHDRScale = p.bloom_hdr_scale;
+            if (typeof p.bloom_quality_high === 'boolean') env.glowQualityHigh = p.bloom_quality_high;
+            if (typeof p.bloom_bicubic_upscale === 'boolean') env.glowUseBicubicUpscale = p.bloom_bicubic_upscale;
+            
+            // ======== TONEMAP ========
+            // Проверяем ОБА варианта: с enabled и без
+            if (typeof p.tonemap_enabled === 'boolean') {
+                console.log("  → tonemap_enabled:", p.tonemap_enabled);
+                if (!p.tonemap_enabled) {
+                    // Выключен - ставим None
+                    console.log("  → ПРИМЕНЯЕМ: TonemapModeNone (отключён)");
+                    env.tonemapMode = SceneEnvironment.TonemapModeNone;
+                } else if (typeof p.tonemap_mode === 'string') {
+                    // Включен и есть режим - применяем его
+                    console.log("  → ПРИМЕНЯЕМ режим:", p.tonemap_mode);
+                    switch (p.tonemap_mode) {
+                    case 'filmic': env.tonemapMode = SceneEnvironment.TonemapModeFilmic; break;
+                    case 'aces': env.tonemapMode = SceneEnvironment.TonemapModeAces; break;
+                    case 'reinhard': env.tonemapMode = SceneEnvironment.TonemapModeReinhard; break;
+                    case 'gamma': env.tonemapMode = SceneEnvironment.TonemapModeGamma; break;
+                    case 'linear': env.tonemapMode = SceneEnvironment.TonemapModeLinear; break;
+                    case 'none': env.tonemapMode = SceneEnvironment.TonemapModeNone; break;
+                    default: console.warn("  ⚠️ Неизвестный режим:", p.tonemap_mode); break;
+                    }
+                    console.log("  ✅ Тонемаппинг установлен:", p.tonemap_mode);
+                }
+            } else if (typeof p.tonemap_mode === 'string') {
+                // Только режим без флага enabled - значит включён и меняем режим
+                console.log("  → tonemap_mode (без enabled):", p.tonemap_mode);
+                switch (p.tonemap_mode) {
+                case 'filmic': env.tonemapMode = SceneEnvironment.TonemapModeFilmic; break;
+                case 'aces': env.tonemapMode = SceneEnvironment.TonemapModeAces; break;
+                case 'reinhard': env.tonemapMode = SceneEnvironment.TonemapModeReinhard; break;
+                case 'gamma': env.tonemapMode = SceneEnvironment.TonemapModeGamma; break;
+                case 'linear': env.tonemapMode = SceneEnvironment.TonemapModeLinear; break;
+                case 'none': env.tonemapMode = SceneEnvironment.TonemapModeNone; break;
+                default: console.warn("  ⚠️ Неизвестный режим:", p.tonemap_mode); break;
+                }
+                console.log("  ✅ Тонемаппинг установлен (без enabled):", p.tonemap_mode);
+            }
+            
+            if (typeof p.tonemap_exposure === 'number') env.exposure = p.tonemap_exposure;
+            if (typeof p.tonemap_white_point === 'number') env.whitePoint = p.tonemap_white_point;
+            
+            // ======== DEPTH OF FIELD ========
+            if (typeof p.depth_of_field === 'boolean') env.depthOfFieldEnabled = p.depth_of_field;
+            if (typeof p.dof_focus_distance === 'number') env.depthOfFieldFocusDistance = p.dof_focus_distance;
+            if (typeof p.dof_blur === 'number') env.depthOfFieldBlurAmount = p.dof_blur;
+            
+            // ======== LENS FLARE ========
+            if (typeof p.lens_flare === 'boolean') env.lensFlareEnabled = p.lens_flare;
+            if (typeof p.lens_flare_ghost_count === 'number') env.lensFlareGhostCount = p.lens_flare_ghost_count;
+            if (typeof p.lens_flare_ghost_dispersal === 'number') env.lensFlareGhostDispersal = p.lens_flare_ghost_dispersal;
+            if (typeof p.lens_flare_halo_width === 'number') env.lensFlareHaloWidth = p.lens_flare_halo_width;
+            if (typeof p.lens_flare_bloom_bias === 'number') env.lensFlareBloomBias = p.lens_flare_bloom_bias;
+            if (typeof p.lens_flare_stretch_to_aspect === 'boolean') env.lensFlareStretchToAspect = p.lens_flare_stretch_to_aspect;
+            
+            // ======== VIGNETTE ========
+            if (typeof p.vignette === 'boolean') { 
+                console.log("  → vignette:", p.vignette); 
+                env.vignetteEnabled = p.vignette; 
+            }
+            if (typeof p.vignette_strength === 'number') { 
+                console.log("  → vignette_strength:", p.vignette_strength); 
+                env.vignetteStrength = p.vignette_strength; 
+            }
+            if (typeof p.vignette_radius === 'number') env.vignetteRadius = p.vignette_radius;
+            
+            // ======== COLOR ADJUSTMENTS ========
+            if (typeof p.adjustment_brightness === 'number') env.adjustmentBrightness = p.adjustment_brightness;
+            if (typeof p.adjustment_contrast === 'number') env.adjustmentContrast = p.adjustment_contrast;
+            if (typeof p.adjustment_saturation === 'number') env.adjustmentSaturation = p.adjustment_saturation;
+            
+            console.log("✅ applyEffectsUpdates завершён успешно");
+        } catch (e) {
+            console.error("❌ Ошибка в applyEffectsUpdates:", e, e.stack);
         }
-        if (typeof p.tonemap_exposure === 'number') setIfExists(env, 'tonemapExposure', p.tonemap_exposure);
-        if (typeof p.tonemap_white_point === 'number') setIfExists(env, 'tonemapWhitePoint', p.tonemap_white_point);
-        if (typeof p.depth_of_field === 'boolean') setIfExists(env, 'depthOfFieldEnabled', p.depth_of_field);
-        if (typeof p.dof_focus_distance === 'number') setIfExists(env, 'depthOfFieldFocusDistance', p.dof_focus_distance);
-        if (typeof p.dof_blur === 'number') setIfExists(env, 'depthOfFieldBlurAmount', p.dof_blur);
-        if (typeof p.motion_blur === 'boolean') setIfExists(env, 'motionBlurEnabled', p.motion_blur);
-        if (typeof p.motion_blur_amount === 'number') setIfExists(env, 'motionBlurAmount', p.motion_blur_amount);
-        if (typeof p.lens_flare === 'boolean') setIfExists(env, 'lensFlareEnabled', p.lens_flare);
-        if (typeof p.lens_flare_ghost_count === 'number') setIfExists(env, 'lensFlareGhostCount', p.lens_flare_ghost_count);
-        if (typeof p.lens_flare_ghost_dispersal === 'number') setIfExists(env, 'lensFlareGhostDispersal', p.lens_flare_ghost_dispersal);
-        if (typeof p.lens_flare_halo_width === 'number') setIfExists(env, 'lensFlareHaloWidth', p.lens_flare_halo_width);
-        if (typeof p.lens_flare_bloom_bias === 'number') setIfExists(env, 'lensFlareBloomBias', p.lens_flare_bloom_bias);
-        if (typeof p.lens_flare_stretch_to_aspect === 'boolean') setIfExists(env, 'lensFlareStretchToAspect', p.lens_flare_stretch_to_aspect);
-        if (typeof p.vignette === 'boolean') setIfExists(env, 'vignetteEnabled', p.vignette);
-        if (typeof p.vignette_strength === 'number') setIfExists(env, 'vignetteStrength', p.vignette_strength);
-        if (typeof p.vignette_radius === 'number') setIfExists(env, 'vignetteRadius', p.vignette_radius);
-        if (typeof p.adjustment_brightness === 'number') setIfExists(env, 'colorAdjustmentBrightness', p.adjustment_brightness);
-        if (typeof p.adjustment_contrast === 'number') setIfExists(env, 'colorAdjustmentContrast', p.adjustment_contrast);
-        if (typeof p.adjustment_saturation === 'number') setIfExists(env, 'colorAdjustmentSaturation', p.adjustment_saturation);
     }
 
     // === Анимация: обновления из Python/панелей ===
@@ -622,10 +742,12 @@ Item {
 
         environment: ExtendedSceneEnvironment {
             id: env
+            // ❌ НЕТ ДЕФОЛТНЫХ ЗНАЧЕНИЙ В QML!
+            // ✅ ВСЕ значения устанавливаются ТОЛЬКО из Python через applyBatchedUpdates()
+            
+            // Только критичные для работы сцены
             backgroundMode: root.backgroundMode
             clearColor: root.backgroundColor
-            antialiasingMode: SceneEnvironment.MSAA
-            antialiasingQuality: SceneEnvironment.High
             lightProbe: iblProbe.ready ? iblProbe.probe : null
             probeExposure: root.iblLightingEnabled ? root.iblIntensity : 0.0
             probeOrientation: Qt.vector3d(0, root.iblRotationDeg, 0)

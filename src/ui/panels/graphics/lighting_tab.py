@@ -111,13 +111,13 @@ class LightingTab(QWidget):
         grid.addWidget(posz, row, 0, 1, 2); row += 1
         
         key_shadow = QCheckBox("Тени от ключевого света", self)
-        key_shadow.toggled.connect(lambda checked: self._update_lighting("key", "cast_shadow", checked))
+        key_shadow.clicked.connect(lambda checked: self._update_lighting("key", "cast_shadow", checked))
         self._controls["key.cast_shadow"] = key_shadow
         grid.addWidget(key_shadow, row, 0, 1, 2); row += 1
         
         key_bind = QCheckBox("Привязать к камере", self)
-        key_bind.toggled.connect(lambda checked: self._update_lighting("key", "bind_to_camera", checked))
-        self._controls["key.bind"] = key_bind
+        key_bind.clicked.connect(lambda checked: self._update_lighting("key", "bind_to_camera", checked))
+        self._controls["key.bind_to_camera"] = key_bind
         grid.addWidget(key_bind, row, 0, 1, 2)
         return group
     
@@ -155,13 +155,13 @@ class LightingTab(QWidget):
         self._controls["fill.position_z"] = posz; grid.addWidget(posz, row, 0, 1, 2); row += 1
         
         fill_shadow = QCheckBox("Тени от заполняющего света", self)
-        fill_shadow.toggled.connect(lambda checked: self._update_lighting("fill", "cast_shadow", checked))
+        fill_shadow.clicked.connect(lambda checked: self._update_lighting("fill", "cast_shadow", checked))
         self._controls["fill.cast_shadow"] = fill_shadow
         grid.addWidget(fill_shadow, row, 0, 1, 2); row += 1
         
         fill_bind = QCheckBox("Привязать к камере", self)
-        fill_bind.toggled.connect(lambda checked: self._update_lighting("fill", "bind_to_camera", checked))
-        self._controls["fill.bind"] = fill_bind
+        fill_bind.clicked.connect(lambda checked: self._update_lighting("fill", "bind_to_camera", checked))
+        self._controls["fill.bind_to_camera"] = fill_bind
         grid.addWidget(fill_bind, row, 0, 1, 2)
         return group
     
@@ -199,13 +199,13 @@ class LightingTab(QWidget):
         self._controls["rim.position_z"] = posz; grid.addWidget(posz, row, 0, 1, 2); row += 1
         
         rim_shadow = QCheckBox("Тени от контрового света", self)
-        rim_shadow.toggled.connect(lambda checked: self._update_lighting("rim", "cast_shadow", checked))
+        rim_shadow.clicked.connect(lambda checked: self._update_lighting("rim", "cast_shadow", checked))
         self._controls["rim.cast_shadow"] = rim_shadow
         grid.addWidget(rim_shadow, row, 0, 1, 2); row += 1
         
         rim_bind = QCheckBox("Привязать к камере", self)
-        rim_bind.toggled.connect(lambda checked: self._update_lighting("rim", "bind_to_camera", checked))
-        self._controls["rim.bind"] = rim_bind
+        rim_bind.clicked.connect(lambda checked: self._update_lighting("rim", "bind_to_camera", checked))
+        self._controls["rim.bind_to_camera"] = rim_bind
         grid.addWidget(rim_bind, row, 0, 1, 2)
         return group
     
@@ -256,13 +256,13 @@ class LightingTab(QWidget):
         grid.addWidget(qfade, row, 0, 1, 2); row += 1
         
         point_shadows = QCheckBox("Тени от точечного света", self)
-        point_shadows.toggled.connect(lambda checked: self._update_lighting("point", "cast_shadow", checked))
+        point_shadows.clicked.connect(lambda checked: self._update_lighting("point", "cast_shadow", checked))
         self._controls["point.cast_shadow"] = point_shadows
         grid.addWidget(point_shadows, row, 0, 1, 2); row += 1
         
         point_bind = QCheckBox("Привязать к камере", self)
-        point_bind.toggled.connect(lambda checked: self._update_lighting("point", "bind_to_camera", checked))
-        self._controls["point.bind"] = point_bind
+        point_bind.clicked.connect(lambda checked: self._update_lighting("point", "bind_to_camera", checked))
+        self._controls["point.bind_to_camera"] = point_bind
         grid.addWidget(point_bind, row, 0, 1, 2)
         return group
     
@@ -318,13 +318,13 @@ class LightingTab(QWidget):
         grid.addWidget(inner, row, 0, 1, 2); row += 1
         
         spot_shadows = QCheckBox("Тени от прожектора", self)
-        spot_shadows.toggled.connect(lambda checked: self._update_lighting("spot", "cast_shadow", checked))
+        spot_shadows.clicked.connect(lambda checked: self._update_lighting("spot", "cast_shadow", checked))
         self._controls["spot.cast_shadow"] = spot_shadows
         grid.addWidget(spot_shadows, row, 0, 1, 2); row += 1
         
         spot_bind = QCheckBox("Привязать к камере", self)
-        spot_bind.toggled.connect(lambda checked: self._update_lighting("spot", "bind_to_camera", checked))
-        self._controls["spot.bind"] = spot_bind
+        spot_bind.clicked.connect(lambda checked: self._update_lighting("spot", "bind_to_camera", checked))
+        self._controls["spot.bind_to_camera"] = spot_bind
         grid.addWidget(spot_bind, row, 0, 1, 2)
         
         return group

@@ -91,23 +91,41 @@ class StateSync:
         Args:
             window: MainWindow instance
         """
+        # 1) Сохраняем UI-состояние (QSettings)
         settings = QSettings(window.SETTINGS_ORG, window.SETTINGS_APP)
         settings.setValue(window.SETTINGS_GEOMETRY, window.saveGeometry())
         settings.setValue(window.SETTINGS_STATE, window.saveState())
-        
         if window.main_splitter:
-            settings.setValue(
-                window.SETTINGS_SPLITTER,
-                window.main_splitter.saveState()
-            )
-        
+            settings.setValue(window.SETTINGS_SPLITTER, window.main_splitter.saveState())
         if window.main_horizontal_splitter:
-            settings.setValue(
-                window.SETTINGS_HORIZONTAL_SPLITTER,
-                window.main_horizontal_splitter.saveState()
-            )
-        
-        StateSync.logger.debug("✅ Settings saved")
+            settings.setValue(window.SETTINGS_HORIZONTAL_SPLITTER, window.main_horizontal_splitter.saveState())
+
+        # 2) Сохраняем JSON-конфиг через SettingsManager (без заглушек)
+        try:
+            from src.common.settings_manager import get_settings_manager
+            sm = get_settings_manager()
+
+            # Собираем состояния панелей при наличии публичного API
+            if getattr(window, "graphics_panel", None) and hasattr(window.graphics_panel, "collect_state"):
+                g = window.graphics_panel.collect_state()
+                sm.set_category("graphics", g, auto_save=False)
+            if getattr(window, "geometry_panel", None) and hasattr(window.geometry_panel, "collect_state"):
+                geo = window.geometry_panel.collect_state()
+                sm.set_category("geometry", geo, auto_save=False)
+            if getattr(window, "pneumo_panel", None) and hasattr(window.pneumo_panel, "collect_state"):
+                pneu = window.pneumo_panel.collect_state()
+                sm.set_category("pneumatic", pneu, auto_save=False)
+            if getattr(window, "modes_panel", None) and hasattr(window.modes_panel, "collect_state"):
+                modes = window.modes_panel.collect_state()
+                sm.set_category("modes", modes, auto_save=False)
+
+            # Пишем один раз
+            sm.save()
+            StateSync.logger.info("✅ app_settings.json saved on exit")
+        except Exception as e:
+            # Не скрываем ошибку — поднимаем дальше
+            StateSync.logger.critical(f"❌ Failed to save app_settings.json: {e}")
+            raise
     
     # ------------------------------------------------------------------
     # Initial Synchronization
@@ -134,47 +152,17 @@ class StateSync:
             return
         
         try:
-            # ✅ Берём полное состояние из публичного API панели
+            # ✅ Берём полное состояние из публичного API панели (без автодефолтов)
             full_state: Dict[str, Any] = {}
             try:
                 if hasattr(window.graphics_panel, "collect_state"):
                     full_state = window.graphics_panel.collect_state() or {}
                 elif hasattr(window.graphics_panel, "get_state"):
-                    # Fallback: некоторые панели могут иметь get_state()
                     full_state = window.graphics_panel.get_state() or {}
             except Exception as ex:
                 StateSync.logger.warning(f"GraphicsPanel state read failed: {ex}")
                 full_state = {}
-            
-            # ✅ Инициализация окружения по умолчанию (HDR IBL и skybox)
-            env = full_state.get("environment") if isinstance(full_state.get("environment"), dict) else {}
-            changed_env = False
-            try:
-                hdr_dir = Path("assets/hdr")
-                qml_dir = Path("assets/qml").resolve()
-                if (not env) or (not env.get("ibl_source")):
-                    # Ищем первый HDR файл
-                    hdr_path: Path | None = None
-                    if hdr_dir.exists():
-                        for p in hdr_dir.glob("*.hdr"):
-                            hdr_path = p
-                            break
-                    if hdr_path:
-                        rel = (hdr_path.resolve().relative_to(qml_dir)).as_posix() if hdr_path.is_absolute() else ("../hdr/" + hdr_path.name)
-                        env = env or {}
-                        env.setdefault("background_mode", "skybox")
-                        env.setdefault("skybox_enabled", True)
-                        env.setdefault("ibl_enabled", True)
-                        env.setdefault("ibl_intensity", 1.0)
-                        env.setdefault("ibl_rotation", 0.0)
-                        env["ibl_source"] = rel
-                        # fallback = тот же файл (или другой, если есть)
-                        env.setdefault("ibl_fallback", rel)
-                        full_state["environment"] = env
-                        changed_env = True
-            except Exception:
-                pass
-            
+
             if not isinstance(full_state, dict) or not full_state:
                 StateSync.logger.info("No graphics state to sync on startup")
                 return
@@ -182,7 +170,7 @@ class StateSync:
             # ✅ Пытаемся отправить одним батчем
             if QMLBridge._push_batched_updates(window, full_state):
                 window._last_batched_updates = full_state
-                StateSync.logger.info("Initial full sync pushed as batch" + (" (env defaults applied)" if changed_env else ""))
+                StateSync.logger.info("Initial full sync pushed as batch")
                 return
             
             # 🔁 Fallback: по категориям
@@ -198,7 +186,7 @@ class StateSync:
                 # Лог в GraphicsLogger (если доступен)
                 QMLBridge._log_graphics_change(window, str(cat), payload, applied=sent)
             
-            StateSync.logger.info("✅ Initial full sync completed" + (" (env defaults applied)" if changed_env else ""))
+            StateSync.logger.info("✅ Initial full sync completed")
         except Exception as e:
             StateSync.logger.error(f"Initial full sync failed: {e}")
     

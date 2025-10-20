@@ -101,8 +101,8 @@ class EffectsTab(QWidget):
         grid.addWidget(glow_strength, row, 0, 1, 2)
         row += 1
         
-        # ✅ НОВОЕ Qt 6.10: HDR Maximum Value
-        hdr_max = LabeledSlider("HDR Maximum (glowHDRMaximumValue)", 0.0, 10.0, 0.1, decimals=1)
+        # ✅ ИСПРАВЛЕНО: Минимум 5.0 (должен быть > threshold), максимум 20.0 для HDR
+        hdr_max = LabeledSlider("HDR Maximum (glowHDRMaximumValue)", 5.0, 20.0, 0.5, decimals=1)
         hdr_max.valueChanged.connect(lambda v: self._on_control_changed("bloom_hdr_max", v))
         self._controls["bloom.hdr_max"] = hdr_max
         grid.addWidget(hdr_max, row, 0, 1, 2)

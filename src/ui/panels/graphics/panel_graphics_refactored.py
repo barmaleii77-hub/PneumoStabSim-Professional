@@ -195,6 +195,11 @@ class GraphicsPanel(QWidget):
     @Slot()
     def load_settings(self) -> None:
         try:
+            # Диагностика: где именно лежит файл настроек
+            try:
+                self.logger.info(f"Settings file path: {self.settings_manager.settings_file}")
+            except Exception:
+                pass
             self.state = self.settings_manager.get_category("graphics") or {}
             if "lighting" in self.state:
                 self.lighting_tab.set_state(self.state["lighting"])
@@ -204,14 +209,39 @@ class GraphicsPanel(QWidget):
                 self.quality_tab.set_state(self.state["quality"])
             if "camera" in self.state:
                 self.camera_tab.set_state(self.state["camera"])
-            if "materials" in self.state:
-                # Передаём БЕЗ обёртки current_material — таб сам разберёт ключи
-                self.materials_tab.set_state(self.state["materials"])
+            # Материалы: строгая валидация (никаких скрытых автодополнений)
+            materials_state = self.state.get("materials") if isinstance(self.state, dict) else None
+            expected_keys = {
+                "frame", "lever", "tail", "cylinder", "piston_body",
+                "piston_rod", "joint_tail", "joint_arm", "joint_rod"
+            }
+            if not isinstance(materials_state, dict):
+                cfg_path = getattr(self.settings_manager, "settings_file", "<unknown>")
+                msg = (
+                    f"Некорректный формат graphics.materials (ожидался dict)\n"
+                    f"Путь: {cfg_path}\nТип: {type(materials_state).__name__}"
+                )
+                self.logger.critical(msg)
+                raise RuntimeError(msg)
+            found_keys = set(k for k in materials_state.keys() if isinstance(materials_state.get(k), dict))
+            missing = sorted(list(expected_keys - found_keys))
+            if missing:
+                cfg_path = getattr(self.settings_manager, "settings_file", "<unknown>")
+                msg = (
+                    f"Отсутствуют обязательные материалы в graphics.materials: {', '.join(missing)}\n"
+                    f"Путь: {cfg_path}\nНайдено: {sorted(list(found_keys))}"
+                )
+                self.logger.critical(msg)
+                raise RuntimeError(msg)
+            # Передаём БЕЗ обёртки current_material — таб сам разберёт ключи
+            self.materials_tab.set_state(materials_state)
             if "effects" in self.state:
                 self.effects_tab.set_state(self.state["effects"])
             self.logger.info("✅ Graphics settings loaded from app_settings.json")
         except Exception as e:
+            # Эскалируем исключение — заглушки запрещены
             self.logger.error(f"❌ Failed to load graphics settings: {e}")
+            raise
 
     def _emit_all_initial(self) -> None:
         try:
@@ -219,8 +249,8 @@ class GraphicsPanel(QWidget):
             self.environment_changed.emit(self.environment_tab.get_state())
             self.quality_changed.emit(self.quality_tab.get_state())
             self.camera_changed.emit(self.camera_tab.get_state())
-            # Материалы: эмитим только текущий payload, как ожидает QML
-            self.material_changed.emit(self.materials_tab.get_state())
+            # Материалы: при инициализации отправляем ПОЛНЫЙ набор, чтобы QML применил все
+            self.material_changed.emit(self.materials_tab.get_all_state())
             self.effects_changed.emit(self.effects_tab.get_state())
         except Exception as e:
             self.logger.error(f"❌ Failed to emit initial graphics state: {e}")

@@ -12,6 +12,7 @@ import logging
 from pathlib import Path
 from typing import Any, Optional
 import argparse
+import json
 
 
 class ApplicationRunner:
@@ -140,9 +141,18 @@ class ApplicationRunner:
     
     def create_main_window(self) -> None:
         """Создание и отображение главного окна."""
-        from src.ui.main_window import MainWindow
-        
-        window = MainWindow(use_qml_3d=self.use_qml_3d_schema)
+        # Предпочитаем модульную рефакторенную версию, чтобы избежать конфликта имён
+        MW = None
+        try:
+            from src.ui.main_window.main_window_refactored import MainWindow as MW  # type: ignore
+            if self.app_logger:
+                self.app_logger.info("MainWindow: using refactored version (package module)")
+        except Exception:
+            from src.ui.main_window import MainWindow as MW  # type: ignore
+            if self.app_logger:
+                self.app_logger.warning("MainWindow: refactored import failed, using default import")
+
+        window = MW(use_qml_3d=self.use_qml_3d_schema)
         self.window_instance = window
         
         window.show()
@@ -151,6 +161,95 @@ class ApplicationRunner:
         
         if self.app_logger:
             self.app_logger.info("MainWindow created and shown")
+
+    def _validate_settings_file(self) -> None:
+        """Строгая валидация конфигурации до создания MainWindow.
+
+        Проверяем:
+        - Путь к файлу и источник (ENV/CWD/PROJECT)
+        - Наличие файла и корректность JSON
+        - Обязательные ключи graphics.materials
+        - Права на запись в каталог config (создание temp-файла)
+        """
+        from PySide6.QtWidgets import QMessageBox
+        from src.common.settings_manager import get_settings_manager
+        import os
+
+        sm = get_settings_manager()
+        cfg_path = Path(sm.settings_file).absolute()
+
+        # Определяем источник пути
+        src = "CWD"
+        if os.environ.get("PSS_SETTINGS_FILE"):
+            src = "ENV"
+        else:
+            # Попробуем угадать project path
+            try:
+                project_candidate = Path(__file__).resolve().parents[1].parent / "config" / "app_settings.json"
+                if cfg_path.samefile(project_candidate):
+                    src = "PROJECT"
+            except Exception:
+                pass
+
+        msg_base = f"Settings file: {cfg_path} [source={src}]"
+        print(msg_base)
+        if self.app_logger:
+            self.app_logger.info(msg_base)
+
+        # 1) Существование
+        if not cfg_path.exists():
+            err = f"Файл настроек не найден: {cfg_path}"
+            if self.app_logger:
+                self.app_logger.critical(err)
+            QMessageBox.critical(None, "Ошибка конфигурации", err)
+            raise FileNotFoundError(err)
+
+        # 2) Чтение и JSON
+        try:
+            with open(cfg_path, "r", encoding="utf-8") as f:
+                data = json.load(f)
+        except Exception as ex:
+            err = f"Некорректный JSON в файле настроек: {cfg_path}\n{ex}"
+            if self.app_logger:
+                self.app_logger.critical(err)
+            QMessageBox.critical(None, "Ошибка конфигурации", err)
+            raise
+
+        # 3) Обязательные ключи материалов
+        try:
+            current = data.get("current", {}) if isinstance(data, dict) else {}
+            graphics = current.get("graphics", {}) if isinstance(current, dict) else {}
+            materials = graphics.get("materials", {}) if isinstance(graphics, dict) else {}
+            required_keys = {
+                "frame", "lever", "tail", "cylinder", "piston_body",
+                "piston_rod", "joint_tail", "joint_arm", "joint_rod"
+            }
+            present = set(materials.keys()) if isinstance(materials, dict) else set()
+            missing = sorted(list(required_keys - present))
+            if missing:
+                err = (
+                    "Отсутствуют обязательные материалы в current.graphics.materials: "
+                    + ", ".join(missing)
+                )
+                if self.app_logger:
+                    self.app_logger.critical(err)
+                QMessageBox.critical(None, "Ошибка конфигурации", err)
+                raise ValueError(err)
+        except Exception:
+            raise
+
+        # 4) Проверка записи в каталог
+        try:
+            tmp = cfg_path.parent / "~pss_write_test.tmp"
+            with open(tmp, "w", encoding="utf-8") as tf:
+                tf.write("ok")
+            tmp.unlink(missing_ok=True)
+        except Exception as ex:
+            err = f"Нет прав на запись в каталог конфигурации: {cfg_path.parent}\n{ex}"
+            if self.app_logger:
+                self.app_logger.critical(err)
+            QMessageBox.critical(None, "Ошибка конфигурации", err)
+            raise
     
     def setup_test_mode(self, enabled: bool) -> None:
         """
@@ -199,6 +298,8 @@ class ApplicationRunner:
             
             self.setup_high_dpi()
             self.create_application()
+            # Строгая валидация конфигурации до создания окна
+            self._validate_settings_file()
             self.create_main_window()
             
             print("✅ Ready!")

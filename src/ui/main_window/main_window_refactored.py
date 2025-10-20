@@ -350,6 +350,20 @@ class MainWindow(QMainWindow):
         """Close event → save settings"""
         try:
             StateSync.save_settings(self)
-        except Exception:
-            pass
+        except Exception as e:
+            try:
+                from PySide6.QtWidgets import QMessageBox
+                QMessageBox.critical(
+                    self,
+                    "Ошибка сохранения настроек",
+                    f"Не удалось сохранить config/app_settings.json:\n{e}"
+                )
+            except Exception:
+                pass
+            # Прерываем закрытие, чтобы не терять состояние молча
+            try:
+                event.ignore()
+                return
+            except Exception:
+                pass
         super().closeEvent(event)

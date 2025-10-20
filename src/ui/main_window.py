@@ -447,6 +447,13 @@ class MainWindow(QMainWindow):
             self.graphics_panel.preset_applied.connect(self._on_preset_applied)
 
     # ---------- QML update batching ----------
+    def _queue_qml_update(self, category: str, payload: Dict[str, Any]) -> None:
+        """Добавить обновление в очередь QML"""
+        if not isinstance(payload, dict):
+            return
+        self._qml_update_queue[category] = payload
+        self._qml_flush_timer.start(50)  # Батчим через 50мс
+    
     @Slot(dict)
     def _on_geometry_changed_qml(self, geometry_params: Dict[str, Any]):
         if not isinstance(geometry_params, dict):

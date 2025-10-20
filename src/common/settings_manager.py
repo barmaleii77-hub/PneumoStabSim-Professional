@@ -40,7 +40,8 @@ class SettingsManager:
     
     def __init__(self, settings_file: str | Path = "config/app_settings.json"):
         self.logger = logging.getLogger(__name__)
-        self.settings_file = Path(settings_file)
+        # Разрешаем путь к файлу настроек более надёжно (CWD / корень проекта / env var)
+        self.settings_file = self._resolve_settings_file(settings_file)
         
         # Внутреннее состояние
         self._current: Dict[str, Any] = {}
@@ -49,6 +50,58 @@ class SettingsManager:
         
         # Загрузка настроек
         self.load()
+
+    def _resolve_settings_file(self, settings_file: str | Path) -> Path:
+        """Определить корректный путь к файлу настроек.
+
+        Алгоритм:
+        1) PSS_SETTINGS_FILE из окружения (если задан и существует)
+        2) Относительно текущего каталога (CWD)
+        3) Относительно корня проекта (../../config от src/common)
+        4) Возврат пути из аргумента (как есть)
+        """
+        try:
+            # 1) ENV override
+            import os
+            env_path = os.environ.get("PSS_SETTINGS_FILE")
+            if env_path:
+                p = Path(env_path)
+                if p.exists():
+                    self.logger.info(f"Settings: using PSS_SETTINGS_FILE={p}")
+                    if os.environ.get("PSS_VERBOSE_CONFIG") == "1":
+                        print(f"[Settings] Using PSS_SETTINGS_FILE: {p}")
+                    return p
+                else:
+                    self.logger.warning(f"Settings: PSS_SETTINGS_FILE points to missing file: {p}")
+
+            # 2) CWD relative
+            p_in_cwd = Path(settings_file)
+            if not p_in_cwd.is_absolute():
+                p_in_cwd = Path.cwd() / p_in_cwd
+            if p_in_cwd.exists():
+                self.logger.info(f"Settings: found at CWD path: {p_in_cwd}")
+                if os.environ.get("PSS_VERBOSE_CONFIG") == "1":
+                    print(f"[Settings] Found at CWD: {p_in_cwd}")
+                return p_in_cwd
+
+            # 3) Project root relative (../../ from this file to repo root)
+            project_root = Path(__file__).resolve().parents[2]
+            candidate = project_root / "config" / "app_settings.json"
+            if candidate.exists():
+                self.logger.info(f"Settings: found at project path: {candidate}")
+                if os.environ.get("PSS_VERBOSE_CONFIG") == "1":
+                    print(f"[Settings] Found at project path: {candidate}")
+                return candidate
+
+            # 4) Fallback: as given
+            p_fallback = Path(settings_file)
+            self.logger.warning(f"Settings: using fallback path (may be created): {p_fallback}")
+            if os.environ.get("PSS_VERBOSE_CONFIG") == "1":
+                print(f"[Settings] Fallback path: {p_fallback}")
+            return p_fallback
+        except Exception as e:
+            self.logger.warning(f"Settings path resolve failed: {e}")
+            return Path(settings_file)
     
     def _migrate_keys(self, data: Dict[str, Any]) -> Dict[str, Any]:
         """Миграция старых ключей к новым именам без потери данных.
@@ -87,14 +140,19 @@ class SettingsManager:
             bool: True если успешно
         """
         if not self.settings_file.exists():
-            self.logger.warning(f"Settings file not found: {self.settings_file}")
-            self.logger.info("Creating default settings file...")
-            self._create_default_file()
-            return False
+            # Больше не создаём заглушки — это критическая ошибка конфигурации
+            msg = f"Settings file not found: {self.settings_file}"
+            self.logger.error(msg)
+            raise FileNotFoundError(msg)
         
         try:
             with open(self.settings_file, 'r', encoding='utf-8') as f:
-                data = json.load(f)
+                try:
+                    data = json.load(f)
+                except json.JSONDecodeError as jde:
+                    msg = f"Invalid JSON in settings file: {self.settings_file} — {jde}"
+                    self.logger.error(msg)
+                    raise
             
             # Новая структура с разделением current/defaults
             if "current" in data:
@@ -103,7 +161,16 @@ class SettingsManager:
                 data["defaults_snapshot"] = self._migrate_keys(data.get("defaults_snapshot", {}))
                 
                 self._current = data["current"]
-                self._defaults_snapshot = data.get("defaults_snapshot", copy.deepcopy(self._current))
+                self._defaults_snapshot = data.get("defaults_snapshot", {})
+                # Если дефолтный снапшот отсутствует или пуст — делаем его равным current и сохраняем обратно
+                if not isinstance(self._defaults_snapshot, dict) or not self._defaults_snapshot:
+                    self._defaults_snapshot = copy.deepcopy(self._current)
+                    # Немедленно сохраняем, чтобы файл содержал все дефолты (без скрытых значений)
+                    try:
+                        self.save()
+                    except Exception:
+                        # Если сохранение не удалось — пусть поднимется позже при явном save()
+                        pass
                 self._metadata = data.get("metadata", {})
             else:
                 # Старая структура - мигрируем
@@ -114,15 +181,30 @@ class SettingsManager:
                     "version": data.get("version", "4.9.5"),
                     "last_modified": datetime.now().isoformat()
                 }
-                # Сохраняем в новом формате
+                # Сохраняем в новом формате (если запись невозможна — бросим исключение)
                 self.save()
             
-            self.logger.info(f"Settings loaded from {self.settings_file}")
+            # Диагностика наличия критичных секций
+            mats_cnt = 0
+            try:
+                mats = self._current.get("graphics", {}).get("materials", {})
+                if isinstance(mats, dict):
+                    mats_cnt = len(mats.keys())
+            except Exception:
+                pass
+            self.logger.info(f"Settings loaded from {self.settings_file} (materials keys: {mats_cnt})")
+            try:
+                import os as _os
+                if _os.environ.get("PSS_VERBOSE_CONFIG") == "1":
+                    print(f"[Settings] Loaded: {self.settings_file}")
+                    print(f"[Settings] materials keys: {mats_cnt}")
+            except Exception:
+                pass
             return True
             
         except Exception as e:
-            self.logger.error(f"Failed to load settings: {e}")
-            return False
+            # Пропускаем вверх — заглушки запрещены
+            raise
     
     def save(self) -> bool:
         """
@@ -146,15 +228,27 @@ class SettingsManager:
             }
             
             # Сохраняем с отступами для читаемости
+            import os as _os
             with open(self.settings_file, 'w', encoding='utf-8') as f:
                 json.dump(data, f, indent=2, ensure_ascii=False)
-            
-            self.logger.info(f"Settings saved to {self.settings_file}")
+                # Гарантируем запись на диск (без кешей ОС)
+                f.flush()
+                try:
+                    _os.fsync(f.fileno())
+                except Exception:
+                    # fsync может быть не доступен на некоторых FS — игнорируем
+                    pass
+            try:
+                size = self.settings_file.stat().st_size
+                self.logger.info(f"Settings saved to {self.settings_file} ({size} bytes)")
+            except Exception:
+                self.logger.info(f"Settings saved to {self.settings_file}")
             return True
             
         except Exception as e:
-            self.logger.error(f"Failed to save settings: {e}")
-            return False
+            # Больше не скрываем ошибки сохранения
+            self.logger.error(f"Failed to save settings to {self.settings_file}: {e}")
+            raise
     
     def get(self, path: str, default: Any = None) -> Any:
         """
@@ -224,9 +318,10 @@ class SettingsManager:
             category: Название категории ("graphics", "geometry", и т.д.)
         
         Returns:
-            Словарь с настройками категории
+            Словарь с настройками категории (КОПИЯ для безопасности)
         """
-        return self._current.get(category, {})
+        # ✅ ИСПРАВЛЕНИЕ: Возвращаем глубокую копию чтобы избежать случайной модификации
+        return copy.deepcopy(self._current.get(category, {}))
     
     def set_category(self, category: str, data: Dict[str, Any], auto_save: bool = True) -> bool:
         """
