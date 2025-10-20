@@ -124,26 +124,41 @@ class EnvironmentTab(QWidget):
         grid.addWidget(blur, row, 0, 1, 2)
         row += 1
         
-        # HDR file
+        # HDR file (primary)
         hdr_combo = QComboBox(self)
         hdr_files = self._discover_hdr_files()
         for label, path in hdr_files:
             hdr_combo.addItem(label, path)
         hdr_combo.insertItem(0, "— не выбран —", "")
         hdr_combo.setCurrentIndex(0)
+
         def on_hdr_changed() -> None:
             data = hdr_combo.currentData()
-            if not data:
-                return
-            try:
-                p = str(data).replace('\\', '/')
-            except Exception:
-                p = data
-            self._on_control_changed("ibl_source", p)
+            path = self._normalize_ibl_path(data)
+            self._on_control_changed("ibl_source", path)
+
         hdr_combo.currentIndexChanged.connect(lambda _: on_hdr_changed())
         self._controls["ibl.file"] = hdr_combo
-        grid.addWidget(QLabel("HDR файл", self), row, 0)
+        grid.addWidget(QLabel("HDR файл (primary)", self), row, 0)
         grid.addWidget(hdr_combo, row, 1)
+        row += 1
+
+        # HDR fallback file
+        fallback_combo = QComboBox(self)
+        for label, path in hdr_files:
+            fallback_combo.addItem(label, path)
+        fallback_combo.insertItem(0, "— не выбран —", "")
+        fallback_combo.setCurrentIndex(0)
+
+        def on_fallback_changed() -> None:
+            data = fallback_combo.currentData()
+            path = self._normalize_ibl_path(data)
+            self._on_control_changed("ibl_fallback", path)
+
+        fallback_combo.currentIndexChanged.connect(lambda _: on_fallback_changed())
+        self._controls["ibl.fallback"] = fallback_combo
+        grid.addWidget(QLabel("HDR fallback", self), row, 0)
+        grid.addWidget(fallback_combo, row, 1)
         row += 1
         
         # IBL rotation
@@ -201,6 +216,40 @@ class EnvironmentTab(QWidget):
                     seen.add(key)
                     results.append((p.name, to_qml_relative(p)))
         return results
+
+    def _normalize_ibl_path(self, value: Any) -> str:
+        """Нормализовать путь для IBL (привести к POSIX и убрать None)."""
+        if value is None:
+            return ""
+        try:
+            text = str(value)
+        except Exception:
+            return ""
+        text = text.strip()
+        if not text:
+            return ""
+        return text.replace("\\", "/")
+
+    def _select_combo_path(self, combo: QComboBox, raw_path: Any) -> None:
+        """Выбрать элемент в комбобоксе по пути, добавляя при необходимости."""
+        if combo is None:
+            return
+        path = self._normalize_ibl_path(raw_path)
+        if not path:
+            combo.setCurrentIndex(0)
+            return
+        target_index = -1
+        for i in range(combo.count()):
+            data = combo.itemData(i)
+            if self._normalize_ibl_path(data) == path:
+                target_index = i
+                break
+        if target_index < 0:
+            # Добавляем элемент, чтобы пользователь видел фактический путь из настроек
+            label = f"{Path(path).name} (config)"
+            combo.addItem(label, path)
+            target_index = combo.count() - 1
+        combo.setCurrentIndex(target_index if target_index >= 0 else 0)
     
     def _build_fog_group(self) -> QGroupBox:
         """Создать группу Туман - расширенная (Fog Qt 6.10)"""
@@ -315,7 +364,7 @@ class EnvironmentTab(QWidget):
         
         return group
     
-    # ========== ОБРАБОТЧИКИ ЧЕКБОКСОВ ==========
+    # ========== ОБРАБОТЧИКИ ЧЕКБОКСОВ ==========(
     
     def _on_ibl_enabled_clicked(self, checked: bool) -> None:
         if self._updating_ui:
@@ -332,7 +381,7 @@ class EnvironmentTab(QWidget):
             return
         self._on_control_changed("fog_enabled", checked)
     
-    # ========== ОБЩИЙ ОБРАБОТЧИК ==========
+    # ========== ОБЩИЙ ОБРАБОТЧИК =========
     
     def _on_control_changed(self, key: str, value: Any):
         if self._updating_ui:
@@ -356,8 +405,8 @@ class EnvironmentTab(QWidget):
             'probe_brightness': self._controls["ibl.probe_brightness"].value(),
             'probe_horizon': self._controls["ibl.probe_horizon"].value(),
             'ibl_rotation': self._controls["ibl.rotation"].value(),
-            'ibl_source': self._controls["ibl.file"].currentData() or "",
-            'ibl_fallback': "",
+            'ibl_source': self._normalize_ibl_path(self._controls["ibl.file"].currentData()),
+            'ibl_fallback': self._normalize_ibl_path(self._controls["ibl.fallback"].currentData()),
             'skybox_blur': self._controls["skybox.blur"].value(),
             'ibl_offset_x': self._controls["ibl.offset_x"].value(),
             'ibl_offset_y': self._controls["ibl.offset_y"].value(),
@@ -418,15 +467,9 @@ class EnvironmentTab(QWidget):
             if 'ibl_rotation' in state:
                 self._controls["ibl.rotation"].set_value(state['ibl_rotation'])
             if 'ibl_source' in state:
-                combo = self._controls["ibl.file"]
-                source_path = state['ibl_source']
-                index = -1
-                for i in range(combo.count()):
-                    if combo.itemData(i) == source_path:
-                        index = i
-                        break
-                if index >= 0:
-                    combo.setCurrentIndex(index)
+                self._select_combo_path(self._controls["ibl.file"], state['ibl_source'])
+            if 'ibl_fallback' in state:
+                self._select_combo_path(self._controls["ibl.fallback"], state['ibl_fallback'])
             if 'skybox_blur' in state:
                 self._controls["skybox.blur"].set_value(state['skybox_blur'])
             if 'ibl_offset_x' in state:
