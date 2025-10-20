@@ -221,20 +221,84 @@ class GraphicsStateManager:
     
     def _validate_environment(self, state: Dict[str, Any]) -> Dict[str, Any]:
         """Валидировать параметры окружения"""
-        # Validate IBL paths exist
+        # Normalize and validate HDR paths без подмены значений
+        qml_root = Path("assets/qml").resolve()
         for key in ['ibl_source', 'ibl_fallback']:
-            if key in state and state[key]:
-                path = Path(state[key])
-                if not path.exists():
-                    self.logger.warning(f"IBL file not found: {path}")
-                    state[key] = ""
+            if key not in state:
+                continue
+            raw_value = state[key]
+            if raw_value is None:
+                state[key] = ""
+                continue
+            try:
+                normalized = str(raw_value).strip().replace("\\", "/")
+            except Exception:
+                normalized = ""
+            state[key] = normalized
+            if not normalized:
+                continue
+            candidate = Path(normalized)
+            if not candidate.is_absolute():
+                candidate = (qml_root / normalized).resolve()
+            if not candidate.exists():
+                self.logger.warning(f"IBL file not found: {candidate}")
         
-        # Clamp values
-        if 'fog_density' in state:
-            state['fog_density'] = max(0.0, min(1.0, state['fog_density']))
-        
+        # Clamp scalar values к диапазонам Qt 6.10
         if 'ibl_intensity' in state:
-            state['ibl_intensity'] = max(0.0, min(5.0, state['ibl_intensity']))
+            state['ibl_intensity'] = max(0.0, min(8.0, float(state['ibl_intensity'])))
+        if 'probe_brightness' in state:
+            state['probe_brightness'] = max(0.0, min(8.0, float(state['probe_brightness'])))
+        if 'probe_horizon' in state:
+            state['probe_horizon'] = max(-1.0, min(1.0, float(state['probe_horizon'])))
+        if 'ibl_rotation' in state:
+            state['ibl_rotation'] = max(-1080.0, min(1080.0, float(state['ibl_rotation'])))
+        if 'ibl_offset_x' in state:
+            state['ibl_offset_x'] = max(-180.0, min(180.0, float(state['ibl_offset_x'])))
+        if 'ibl_offset_y' in state:
+            state['ibl_offset_y'] = max(-180.0, min(180.0, float(state['ibl_offset_y'])))
+        if 'skybox_blur' in state:
+            state['skybox_blur'] = max(0.0, min(1.0, float(state['skybox_blur'])))
+        
+        if 'fog_density' in state:
+            state['fog_density'] = max(0.0, min(1.0, float(state['fog_density'])))
+        if 'fog_near' in state:
+            state['fog_near'] = max(0.0, min(200000.0, float(state['fog_near'])))
+        if 'fog_far' in state:
+            state['fog_far'] = max(500.0, min(400000.0, float(state['fog_far'])))
+        if 'fog_height_curve' in state:
+            state['fog_height_curve'] = max(0.0, min(4.0, float(state['fog_height_curve'])))
+        if 'fog_transmit_curve' in state:
+            state['fog_transmit_curve'] = max(0.0, min(4.0, float(state['fog_transmit_curve'])))
+        if 'fog_least_intense_y' in state:
+            state['fog_least_intense_y'] = max(-100000.0, min(100000.0, float(state['fog_least_intense_y'])))
+        if 'fog_most_intense_y' in state:
+            state['fog_most_intense_y'] = max(-100000.0, min(100000.0, float(state['fog_most_intense_y'])))
+        if state.get('fog_far', 0.0) < state.get('fog_near', 0.0):
+            state['fog_far'] = state['fog_near']
+        
+        if 'ao_strength' in state:
+            state['ao_strength'] = max(0.0, min(100.0, float(state['ao_strength'])))
+        if 'ao_radius' in state:
+            state['ao_radius'] = max(0.5, min(50.0, float(state['ao_radius'])))
+        if 'ao_softness' in state:
+            state['ao_softness'] = max(0.0, min(50.0, float(state['ao_softness'])))
+        if 'ao_sample_rate' in state:
+            state['ao_sample_rate'] = max(1, min(4, int(state['ao_sample_rate'])))
+        if 'ao_dither' in state:
+            state['ao_dither'] = bool(state['ao_dither'])
+        
+        # Нормализуем булевы флаги явно
+        for key in ['ibl_enabled', 'skybox_enabled', 'ibl_bind_to_camera', 'fog_enabled',
+                    'fog_height_enabled', 'fog_transmit_enabled', 'ao_enabled']:
+            if key in state:
+                state[key] = bool(state[key])
+        
+        if 'background_mode' in state:
+            mode = str(state['background_mode']).lower()
+            if mode not in {'skybox', 'color', 'transparent'}:
+                self.logger.warning(f"Unknown background_mode '{state['background_mode']}', fallback to 'skybox'")
+                mode = 'skybox'
+            state['background_mode'] = mode
         
         return state
     

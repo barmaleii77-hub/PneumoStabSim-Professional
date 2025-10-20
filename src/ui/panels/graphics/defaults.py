@@ -75,18 +75,18 @@ def build_defaults() -> Dict[str, Any]:
             "fog_far": 12000.0,
             "fog_height_enabled": False,
             "fog_least_intense_y": 0.0,
-            "fog_most_intense_y": 5000.0,
+            "fog_most_intense_y": 3000.0,
             "fog_height_curve": 1.0,
-            "fog_transmit_enabled": False,
+            "fog_transmit_enabled": True,
             "fog_transmit_curve": 1.0,
             # SSAO
             "ao_enabled": True,
             "ao_strength": 1.0,
             "ao_radius": 8.0,
             # Расширенные параметры SSAO (Qt 6.10)
-            "ao_softness": 0.0,
-            "ao_dither": False,
-            "ao_sample_rate": 2,
+            "ao_softness": 20.0,
+            "ao_dither": True,
+            "ao_sample_rate": 4,
             # IBL orientation offsets/bind
             "ibl_offset_x": 0.0,
             "ibl_offset_y": 0.0,
