@@ -699,7 +699,7 @@ Item {
             return;
         }
         // Пакетный режим: применяем все известные ключи, которые присутствуют в p
-        var known = ['frame','lever','tail','cylinder','piston_body','piston_rod','joint_tail','joint_arm','joint_rod'];
+        var known = root.materialKeys;
         for (var i = 0; i < known.length; ++i) {
             var matKey = known[i];
             if (p[matKey])
@@ -945,6 +945,11 @@ Item {
     property bool spotLightCastShadow: false
 
     // ====== MATERIAL STATE (каждый параметр хранится в структуре для полной трассировки) ======
+    // Централизованный список ключей материалов
+    readonly property var materialKeys: [
+        'frame', 'lever', 'tail', 'cylinder', 'piston_body', 'piston_rod',
+        'joint_tail', 'joint_arm', 'joint_rod'
+    ]
     property var materialsState: ({
         frame: {
             base_color: "#c53030",
@@ -2002,7 +2007,26 @@ Item {
     onUserPhaseRLChanged: updateLeverAngles()
     onUserPhaseRRChanged: updateLeverAngles()
 
+    // Применение стартовых состояний из контекста Python (если заданы)
+    function primeInitialStateFromContext() {
+        try {
+            if (typeof startMaterialsState === 'object' && startMaterialsState)
+                applyMaterialUpdates(startMaterialsState);
+            if (typeof startLightingState === 'object' && startLightingState)
+                applyLightingUpdates(startLightingState);
+            if (typeof startQualityState === 'object' && startQualityState)
+                applyQualityUpdates(startQualityState);
+            if (typeof startEffectsState === 'object' && startEffectsState)
+                applyEffectsUpdates(startEffectsState);
+            if (typeof startCameraState === 'object' && startCameraState)
+                applyCameraUpdates(startCameraState);
+        } catch (err) {
+            console.error("❌ Ошибка применения стартовых параметров из контекста:", err);
+        }
+    }
+
     Component.onCompleted: {
+        primeInitialStateFromContext();
         updatePostAaState();
         console.log("=".repeat(60))
         console.log("🚀 FULL MODEL LOADED - MODULAR ARCHITECTURE + IBL (centered) + extended controls + orbit smoothing")

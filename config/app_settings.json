@@ -1042,7 +1042,7 @@
   },
   "metadata": {
     "version": "4.9.5",
-    "last_modified": "2025-10-21T01:21:37.737849",
+    "last_modified": "2025-10-21T02:28:14.346895",
     "migrated_from": "src/ui/panels/graphics/defaults.py",
     "migration_date": "2025-10-18",
     "total_parameters": 300,

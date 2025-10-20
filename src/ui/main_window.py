@@ -20,6 +20,7 @@ from PySide6.QtQuickWidgets import QQuickWidget
 import logging
 import time
 import os
+import json
 from pathlib import Path
 from typing import Optional, Dict, Any
 
@@ -337,6 +338,29 @@ class MainWindow(QMainWindow):
 
             except Exception as ex:
                 self.logger.warning(f"Не удалось применить стартовые параметры окружения: {ex}")
+
+            # Пробрасываем стартовые словари состояния графики (lighting/quality/camera/materials/effects)
+            try:
+                graphics_state = self.settings_manager.get("graphics", {}) or {}
+
+                def _ctx_dict(name: str, payload: Any) -> None:
+                    """Пробрасывает словарь в контекст, с безопасной нормализацией JSON"""
+                    if not isinstance(payload, dict) or not payload:
+                        return
+                    try:
+                        # Нормализуем JSON-совместимые структуры
+                        normalized = json.loads(json.dumps(payload))
+                    except TypeError:
+                        normalized = payload
+                    _ctx(name, normalized)
+
+                _ctx_dict("startLightingState", graphics_state.get("lighting"))
+                _ctx_dict("startQualityState", graphics_state.get("quality"))
+                _ctx_dict("startCameraState", graphics_state.get("camera"))
+                _ctx_dict("startMaterialsState", graphics_state.get("materials"))
+                _ctx_dict("startEffectsState", graphics_state.get("effects"))
+            except Exception as ex:
+                self.logger.warning(f"Не удалось подготовить стартовые состояния графики: {ex}")
 
             # Путь импорта Qt
             from PySide6.QtCore import QLibraryInfo
