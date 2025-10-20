@@ -188,54 +188,86 @@ class MainWindow(QMainWindow):
                     except Exception:
                         pass
 
-                # Базовые
-                if isinstance(env.get("background_mode"), str):
-                    _ctx("startBackgroundMode", env.get("background_mode"))
-                # .env fallback → str to bool/float
+                # .env fallback helpers
                 def _getenv_float(key: str, default: float | None = None) -> float | None:
                     try:
                         v = os.environ.get(key)
                         return float(v) if v is not None else default
                     except Exception:
                         return default
+
                 def _getenv_bool(key: str, default: bool | None = None) -> bool | None:
                     v = os.environ.get(key)
                     if v is None:
                         return default
-                    return v.strip() in ("1", "true", "True", "yes", "on")
+                    return v.strip().lower() in {"1", "true", "yes", "on"}
 
-                skybox_enabled = env.get("skybox_enabled")
+                # Value converters (без скрытых дефолтов — только приведение типов)
+                def _as_str(value: Any) -> str | None:
+                    if value is None:
+                        return None
+                    text = str(value).strip()
+                    return text
+
+                def _as_float(value: Any) -> float | None:
+                    try:
+                        return float(value)
+                    except (TypeError, ValueError):
+                        return None
+
+                def _as_int(value: Any) -> int | None:
+                    try:
+                        return int(value)
+                    except (TypeError, ValueError):
+                        return None
+
+                def _as_bool(value: Any) -> bool | None:
+                    if isinstance(value, bool):
+                        return value
+                    if isinstance(value, (int, float)):
+                        return bool(value)
+                    if isinstance(value, str):
+                        return value.strip().lower() in {"1", "true", "yes", "on"}
+                    return None
+
+                env_values: Dict[str, Any] = {}
+                if isinstance(env, dict):
+                    env_values.update(env)
+
+                # Сквозная обработка ключевых параметров окружения (с .env fallback)
+                skybox_enabled = env_values.get("skybox_enabled")
                 if skybox_enabled is None:
                     skybox_enabled = _getenv_bool("START_SKYBOX_ENABLED")
                 if skybox_enabled is not None:
-                    _ctx("startSkyboxEnabled", bool(skybox_enabled))
+                    env_values["skybox_enabled"] = bool(skybox_enabled)
 
-                ibl_enabled = env.get("ibl_enabled")
+                ibl_enabled = env_values.get("ibl_enabled")
                 if ibl_enabled is None:
                     ibl_enabled = _getenv_bool("START_IBL_ENABLED")
                 if ibl_enabled is not None:
-                    _ctx("startIblEnabled", bool(ibl_enabled))
+                    env_values["ibl_enabled"] = bool(ibl_enabled)
 
-                ibl_intensity = env.get("ibl_intensity")
+                ibl_intensity = env_values.get("ibl_intensity")
                 if ibl_intensity is None:
                     ibl_intensity = _getenv_float("START_IBL_INTENSITY")
                 if ibl_intensity is not None:
-                    _ctx("startIblIntensity", float(ibl_intensity))
+                    env_values["ibl_intensity"] = ibl_intensity
 
-                if "ibl_rotation" in env:
-                    _ctx("startIblRotation", float(env.get("ibl_rotation")))
+                rotation = _as_float(env_values.get("ibl_rotation"))
+                if rotation is not None:
+                    env_values["ibl_rotation"] = rotation
 
                 # Источники IBL: приоритет Settings → .env → autodiscovery (assets/hdr/*.hdr)
                 src_rel: str | None = None
-                if isinstance(env.get("ibl_source"), str) and env.get("ibl_source"):
-                    src_rel = str(env.get("ibl_source"))
+                raw_source = env_values.get("ibl_source")
+                if isinstance(raw_source, str) and raw_source:
+                    src_rel = raw_source
                 elif os.environ.get("START_IBL_SOURCE"):
                     src_rel = os.environ.get("START_IBL_SOURCE")
                 else:
                     hdr_dir = Path("assets/hdr")
                     try:
                         for p in hdr_dir.glob("*.hdr"):
-                            # делаем путь относительно assets/qml
                             abs_p = p.resolve()
                             try:
                                 src_rel = abs_p.relative_to(qml_dir).as_posix()
@@ -245,18 +277,63 @@ class MainWindow(QMainWindow):
                             break
                     except Exception:
                         pass
-                if src_rel:
-                    _ctx("startIblSource", src_rel)
+                if src_rel is not None:
+                    env_values["ibl_source"] = src_rel
 
                 fb_rel: str | None = None
-                if isinstance(env.get("ibl_fallback"), str) and env.get("ibl_fallback"):
-                    fb_rel = str(env.get("ibl_fallback"))
+                raw_fallback = env_values.get("ibl_fallback")
+                if isinstance(raw_fallback, str) and raw_fallback:
+                    fb_rel = raw_fallback
                 elif os.environ.get("START_IBL_FALLBACK"):
                     fb_rel = os.environ.get("START_IBL_FALLBACK")
-                else:
+                elif src_rel:
                     fb_rel = src_rel
-                if fb_rel:
-                    _ctx("startIblFallback", fb_rel)
+                if fb_rel is not None:
+                    env_values["ibl_fallback"] = fb_rel
+
+                # Пробрасываем ВСЕ параметры окружения в QML контекст
+                env_ctx_map = {
+                    "background_mode": ("startBackgroundMode", _as_str),
+                    "background_color": ("startBackgroundColor", _as_str),
+                    "skybox_enabled": ("startSkyboxEnabled", _as_bool),
+                    "ibl_enabled": ("startIblEnabled", _as_bool),
+                    "ibl_intensity": ("startIblIntensity", _as_float),
+                    "probe_brightness": ("startProbeBrightness", _as_float),
+                    "probe_horizon": ("startProbeHorizon", _as_float),
+                    "ibl_rotation": ("startIblRotation", _as_float),
+                    "ibl_offset_x": ("startIblOffsetX", _as_float),
+                    "ibl_offset_y": ("startIblOffsetY", _as_float),
+                    "ibl_bind_to_camera": ("startIblBindToCamera", _as_bool),
+                    "skybox_blur": ("startSkyboxBlur", _as_float),
+                    "ibl_source": ("startIblSource", _as_str),
+                    "ibl_fallback": ("startIblFallback", _as_str),
+                    "fog_enabled": ("startFogEnabled", _as_bool),
+                    "fog_color": ("startFogColor", _as_str),
+                    "fog_density": ("startFogDensity", _as_float),
+                    "fog_near": ("startFogNear", _as_float),
+                    "fog_far": ("startFogFar", _as_float),
+                    "fog_height_enabled": ("startFogHeightEnabled", _as_bool),
+                    "fog_least_intense_y": ("startFogLeastY", _as_float),
+                    "fog_most_intense_y": ("startFogMostY", _as_float),
+                    "fog_height_curve": ("startFogHeightCurve", _as_float),
+                    "fog_transmit_enabled": ("startFogTransmitEnabled", _as_bool),
+                    "fog_transmit_curve": ("startFogTransmitCurve", _as_float),
+                    "ao_enabled": ("startAoEnabled", _as_bool),
+                    "ao_strength": ("startAoStrength", _as_float),
+                    "ao_radius": ("startAoRadius", _as_float),
+                    "ao_softness": ("startAoSoftness", _as_float),
+                    "ao_dither": ("startAoDither", _as_bool),
+                    "ao_sample_rate": ("startAoSampleRate", _as_int),
+                }
+
+                for key, (ctx_name, converter) in env_ctx_map.items():
+                    raw_val = env_values.get(key)
+                    if raw_val is None:
+                        continue
+                    value = converter(raw_val) if converter else raw_val
+                    if value is None:
+                        continue
+                    _ctx(ctx_name, value)
 
             except Exception as ex:
                 self.logger.warning(f"Не удалось применить стартовые параметры окружения: {ex}")

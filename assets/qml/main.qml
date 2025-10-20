@@ -69,6 +69,18 @@ Item {
         }
     }
 
+    // Конвертация строкового режима фона в enum Qt
+    function backgroundModeFromString(mode) {
+        switch ((mode || '').toLowerCase()) {
+        case 'color':
+            return SceneEnvironment.Color;
+        case 'transparent':
+            return SceneEnvironment.Transparent;
+        default:
+            return SceneEnvironment.SkyBox;
+        }
+    }
+
     function alphaModeFromString(mode) {
         switch ((mode || '').toLowerCase()) {
         case 'mask':
@@ -77,6 +89,26 @@ Item {
             return PrincipledMaterial.Blend;
         default:
             return PrincipledMaterial.Default;
+        }
+    }
+
+    // Нормализация и резолв путей для IBL источников
+    function normalizeSourcePath(value) {
+        if (value === undefined || value === null)
+            return "";
+        var str = String(value);
+        return str.trim();
+    }
+
+    function resolveIblUrl(path) {
+        var normalized = normalizeSourcePath(path);
+        if (!normalized)
+            return "";
+        try {
+            return Qt.resolvedUrl(normalized);
+        } catch (err) {
+            console.warn("⚠️ Не удалось разрешить путь IBL:", normalized, err);
+            return "";
         }
     }
 
@@ -355,8 +387,13 @@ Item {
                 break;
             }
         }
-        if (p.ibl_source) { iblProbe.primarySource = Qt.resolvedUrl(p.ibl_source); }
-        if (p.ibl_fallback) { iblProbe.fallbackSource = Qt.resolvedUrl(p.ibl_fallback); }
+        // Храним пути источников IBL в свойстве root, реальный url формируется биндингом
+        if (Object.prototype.hasOwnProperty.call(p, 'ibl_source')) {
+            root.iblPrimarySourceSetting = normalizeSourcePath(p.ibl_source);
+        }
+        if (Object.prototype.hasOwnProperty.call(p, 'ibl_fallback')) {
+            root.iblFallbackSourceSetting = normalizeSourcePath(p.ibl_fallback);
+        }
         if (typeof p.ibl_intensity === 'number' && isFinite(p.ibl_intensity)) root.iblIntensity = Math.max(0.0, Math.min(8.0, p.ibl_intensity));
         if (typeof p.probe_brightness === 'number' && isFinite(p.probe_brightness)) root.envProbeBrightness = Math.max(0.0, Math.min(8.0, p.probe_brightness));
         if (typeof p.probe_horizon === 'number' && isFinite(p.probe_horizon)) root.envProbeHorizon = Math.max(-1.0, Math.min(1.0, p.probe_horizon));
@@ -1100,36 +1137,113 @@ Item {
         }
     })
 
-    property bool iblLightingEnabled: true
-    property bool iblBackgroundEnabled: true
-    property real iblRotationDeg: 0.0
-    // Управление IBL: привязка к камере и смещения (для полноценной трассировки параметров UI)
-    property bool iblBindToCamera: false
-    property real iblOffsetXDeg: 0.0  // вращение вокруг X (наклон неба)
-    property real iblOffsetYDeg: 0.0  // вращение вокруг Z (ролл)
-    property real iblIntensity: 1.0
-    property real envProbeBrightness: 1.0
-    property real envProbeHorizon: 0.0
-    property real envSkyboxBlurAmount: 0.0
-    property bool fogEnabledSetting: false
-    property color fogColorSetting: "#000000"
-    property real fogDensitySetting: 0.0
-    property real fogNearSetting: 0.0
-    property real fogFarSetting: 0.0
-    property bool fogHeightEnabledSetting: false
-    property real fogGroundLevelSetting: 0.0
-    property real fogHeightSetting: 0.0
-    property real fogHeightFalloffSetting: 0.0
-    property bool fogTransmittanceEnabledSetting: false
-    property real fogTransmittanceFalloffSetting: 0.0
-    property bool aoEnabledSetting: false
-    property real aoStrengthSetting: 0.0
-    property real aoRadiusSetting: 0.0
-    property real aoSoftnessSetting: 0.0
-    property bool aoDitherSetting: false
-    property int aoSampleRateSetting: 2
-    property color backgroundColor: "#1f242c"
-    property int backgroundMode: SceneEnvironment.SkyBox
+    // ====== Окружение/эффекты: стартовые значения из контекста Python (start*) ======
+    property color backgroundColor: (typeof startBackgroundColor === 'string' && startBackgroundColor.length)
+            ? startBackgroundColor
+            : "#1f242c"
+    property int backgroundMode: backgroundModeFromString(
+            typeof startBackgroundMode === 'string' && startBackgroundMode.length
+            ? startBackgroundMode
+            : 'skybox')
+    property bool iblBackgroundEnabled: typeof startSkyboxEnabled === 'boolean'
+            ? startSkyboxEnabled
+            : backgroundMode === SceneEnvironment.SkyBox
+    property bool iblLightingEnabled: typeof startIblEnabled === 'boolean' ? startIblEnabled : true
+    property string iblPrimarySourceSetting: typeof startIblSource === 'string' ? normalizeSourcePath(startIblSource) : ""
+    property url iblPrimarySourceUrl: resolveIblUrl(iblPrimarySourceSetting)
+    property string iblFallbackSourceSetting: typeof startIblFallback === 'string'
+            ? normalizeSourcePath(startIblFallback)
+            : (typeof startIblSource === 'string' ? normalizeSourcePath(startIblSource) : "")
+    property url iblFallbackSourceUrl: resolveIblUrl(iblFallbackSourceSetting)
+    property real iblRotationDeg: (function() {
+        var v = Number(startIblRotation);
+        return isFinite(v) ? clamp(v, -1080.0, 1080.0) : 0.0;
+    })()
+    // Управление IBL: привязка к камере и смещения
+    property bool iblBindToCamera: typeof startIblBindToCamera === 'boolean' ? startIblBindToCamera : false
+    property real iblOffsetXDeg: (function() {
+        var v = Number(startIblOffsetX);
+        return isFinite(v) ? clamp(v, -180.0, 180.0) : 0.0;
+    })()
+    property real iblOffsetYDeg: (function() {
+        var v = Number(startIblOffsetY);
+        return isFinite(v) ? clamp(v, -180.0, 180.0) : 0.0;
+    })()
+    property real iblIntensity: (function() {
+        var v = Number(startIblIntensity);
+        return isFinite(v) ? clamp(v, 0.0, 8.0) : 1.0;
+    })()
+    property real envProbeBrightness: (function() {
+        var v = Number(startProbeBrightness);
+        return isFinite(v) ? clamp(v, 0.0, 8.0) : 1.0;
+    })()
+    property real envProbeHorizon: (function() {
+        var v = Number(startProbeHorizon);
+        return isFinite(v) ? clamp(v, -1.0, 1.0) : 0.0;
+    })()
+    property real envSkyboxBlurAmount: (function() {
+        var v = Number(startSkyboxBlur);
+        return isFinite(v) ? clamp(v, 0.0, 1.0) : 0.0;
+    })()
+
+    // Fog
+    property bool fogEnabledSetting: typeof startFogEnabled === 'boolean' ? startFogEnabled : false
+    property color fogColorSetting: (typeof startFogColor === 'string' && startFogColor.length)
+            ? startFogColor
+            : "#000000"
+    property real fogDensitySetting: (function() {
+        var v = Number(startFogDensity);
+        return isFinite(v) ? clamp(v, 0.0, 1.0) : 0.0;
+    })()
+    property real fogNearSetting: (function() {
+        var v = Number(startFogNear);
+        return isFinite(v) ? clamp(v, 0.0, 200000.0) : 0.0;
+    })()
+    property real fogFarSetting: (function() {
+        var v = Number(startFogFar);
+        var clamped = isFinite(v) ? clamp(v, 500.0, 400000.0) : 0.0;
+        return clamped < fogNearSetting ? fogNearSetting : clamped;
+    })()
+    property bool fogHeightEnabledSetting: typeof startFogHeightEnabled === 'boolean' ? startFogHeightEnabled : false
+    property real fogGroundLevelSetting: (function() {
+        var v = Number(startFogLeastY);
+        return isFinite(v) ? clamp(v, -100000.0, 100000.0) : 0.0;
+    })()
+    property real fogHeightSetting: (function() {
+        var v = Number(startFogMostY);
+        return isFinite(v) ? clamp(v, -100000.0, 100000.0) : 0.0;
+    })()
+    property real fogHeightFalloffSetting: (function() {
+        var v = Number(startFogHeightCurve);
+        return isFinite(v) ? clamp(v, 0.0, 4.0) : 0.0;
+    })()
+    property bool fogTransmittanceEnabledSetting: typeof startFogTransmitEnabled === 'boolean'
+            ? startFogTransmitEnabled
+            : false
+    property real fogTransmittanceFalloffSetting: (function() {
+        var v = Number(startFogTransmitCurve);
+        return isFinite(v) ? clamp(v, 0.0, 4.0) : 0.0;
+    })()
+
+    // AO
+    property bool aoEnabledSetting: typeof startAoEnabled === 'boolean' ? startAoEnabled : false
+    property real aoStrengthSetting: (function() {
+        var v = Number(startAoStrength);
+        return isFinite(v) ? clamp(v, 0.0, 100.0) : 0.0;
+    })()
+    property real aoRadiusSetting: (function() {
+        var v = Number(startAoRadius);
+        return isFinite(v) ? clamp(v, 0.5, 50.0) : 0.5;
+    })()
+    property real aoSoftnessSetting: (function() {
+        var v = Number(startAoSoftness);
+        return isFinite(v) ? clamp(v, 0.0, 50.0) : 0.0;
+    })()
+    property bool aoDitherSetting: typeof startAoDither === 'boolean' ? startAoDither : false
+    property int aoSampleRateSetting: (function() {
+        var v = Number(startAoSampleRate);
+        return isFinite(v) ? Math.max(1, Math.min(4, Math.round(v))) : 2;
+    })()
 
     // Effects / post-processing state
     property bool bloomEnabledSetting: false
@@ -1484,7 +1598,11 @@ Item {
     // VIEW3D - 3D СЦЕНА + IBL PROBE
     // ===============================================================
 
-    IblProbeLoader { id: iblProbe; primarySource: typeof startIblSource !== 'undefined' ? Qt.resolvedUrl(startIblSource) : ""; fallbackSource: typeof startIblFallback !== 'undefined' ? Qt.resolvedUrl(startIblFallback) : "" }
+    IblProbeLoader {
+        id: iblProbe
+        primarySource: root.iblPrimarySourceUrl
+        fallbackSource: root.iblFallbackSourceUrl || root.iblPrimarySourceUrl
+    }
 
     View3D {
         id: view3d
