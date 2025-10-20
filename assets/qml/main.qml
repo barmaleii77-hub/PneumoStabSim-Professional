@@ -41,6 +41,45 @@ Item {
         } catch (e) { /* ignore */ }
     }
 
+    // Универсальный clamp для безопасного приёма числовых значений из Python/UI
+    function clamp(value, minValue, maxValue) {
+        if (typeof value !== 'number' || !isFinite(value)) {
+            return minValue;
+        }
+        return Math.max(minValue, Math.min(maxValue, value));
+    }
+
+    // Конвертация строкового режима тонемаппинга в enum Qt
+    function tonemapModeFromString(mode) {
+        switch ((mode || '').toLowerCase()) {
+        case 'filmic':
+            return SceneEnvironment.TonemapModeFilmic;
+        case 'aces':
+            return SceneEnvironment.TonemapModeAces;
+        case 'reinhard':
+            return SceneEnvironment.TonemapModeReinhard;
+        case 'gamma':
+            return SceneEnvironment.TonemapModeGamma;
+        case 'linear':
+            return SceneEnvironment.TonemapModeLinear;
+        case 'none':
+            return SceneEnvironment.TonemapModeNone;
+        default:
+            return SceneEnvironment.TonemapModeFilmic;
+        }
+    }
+
+    function alphaModeFromString(mode) {
+        switch ((mode || '').toLowerCase()) {
+        case 'mask':
+            return PrincipledMaterial.Mask;
+        case 'blend':
+            return PrincipledMaterial.Blend;
+        default:
+            return PrincipledMaterial.Default;
+        }
+    }
+
     function applyBatchedUpdates(updates) {
         if (!updates) return;
         var applied = {};
@@ -151,47 +190,142 @@ Item {
 
     function applyLightingUpdates(p) {
         if (!p) return;
+
+        function resolveColor(value) {
+            if (value === undefined || value === null)
+                return null;
+            if (typeof value === 'string')
+                return value;
+            if (typeof value === 'object' && value.r !== undefined && value.g !== undefined && value.b !== undefined) {
+                var a = (value.a === undefined) ? 1.0 : clamp(value.a, 0.0, 1.0);
+                return Qt.rgba(clamp(value.r, 0.0, 1.0), clamp(value.g, 0.0, 1.0), clamp(value.b, 0.0, 1.0), a);
+            }
+            return null;
+        }
+
         function applyDir(lightObj, data) {
             if (!data) return;
-            if (typeof data.brightness === 'number') setIfExists(lightObj, 'brightness', data.brightness);
-            if (typeof data.color === 'string') setIfExists(lightObj, 'color', data.color);
-            if (typeof data.angle_x === 'number') lightObj.eulerRotation.x = data.angle_x;
-            if (typeof data.angle_y === 'number') lightObj.eulerRotation.y = data.angle_y;
-            if (typeof data.angle_z === 'number') lightObj.eulerRotation.z = data.angle_z;
-            if (typeof data.position_x === 'number') lightObj.position.x = data.position_x;
-            if (typeof data.position_y === 'number') lightObj.position.y = data.position_y;
-            if (typeof data.position_z === 'number') lightObj.position.z = data.position_z;
-            if (typeof data.cast_shadow === 'boolean') setIfExists(lightObj, 'castsShadow', data.cast_shadow);
+            var prefix = '';
+            if (lightObj === keyLight) {
+                prefix = 'key';
+            } else if (lightObj === fillLight) {
+                prefix = 'fill';
+            } else if (lightObj === rimLight) {
+                prefix = 'rim';
+            }
+            var isKey = prefix === 'key';
+
+            if (typeof data.brightness === 'number' && isFinite(data.brightness)) {
+                if (prefix) {
+                    setIfExists(root, prefix + 'LightBrightness', data.brightness);
+                } else {
+                    setIfExists(lightObj, 'brightness', data.brightness);
+                }
+            }
+
+            if (data.color !== undefined) {
+                var color = resolveColor(data.color);
+                if (color !== null) {
+                    if (prefix) {
+                        setIfExists(root, prefix + 'LightColor', color);
+                    } else {
+                        setIfExists(lightObj, 'color', color);
+                    }
+                }
+            }
+
+            if (typeof data.angle_x === 'number' && isFinite(data.angle_x)) {
+                if (prefix) {
+                    setIfExists(root, prefix + 'LightAngleX', data.angle_x);
+                } else {
+                    lightObj.eulerRotation.x = data.angle_x;
+                }
+            }
+
+            if (typeof data.angle_y === 'number' && isFinite(data.angle_y)) {
+                if (prefix) {
+                    setIfExists(root, prefix + 'LightAngleY', data.angle_y);
+                } else {
+                    lightObj.eulerRotation.y = data.angle_y;
+                }
+            }
+
+            if (typeof data.angle_z === 'number' && isFinite(data.angle_z)) {
+                if (prefix) {
+                    setIfExists(root, prefix + 'LightAngleZ', data.angle_z);
+                } else {
+                    lightObj.eulerRotation.z = data.angle_z;
+                }
+            }
+
+            if (typeof data.position_x === 'number' && isFinite(data.position_x)) {
+                if (prefix) {
+                    setIfExists(root, prefix + 'LightPosX', data.position_x);
+                } else {
+                    lightObj.position.x = data.position_x;
+                }
+            }
+            if (typeof data.position_y === 'number' && isFinite(data.position_y)) {
+                if (prefix) {
+                    setIfExists(root, prefix + 'LightPosY', data.position_y);
+                } else {
+                    lightObj.position.y = data.position_y;
+                }
+            }
+            if (typeof data.position_z === 'number' && isFinite(data.position_z)) {
+                if (prefix) {
+                    setIfExists(root, prefix + 'LightPosZ', data.position_z);
+                } else {
+                    lightObj.position.z = data.position_z;
+                }
+            }
+
+            if (typeof data.cast_shadow === 'boolean') {
+                if (isKey) {
+                    root.shadowsEnabled = data.cast_shadow;
+                    setIfExists(root, 'keyLightCastShadow', data.cast_shadow);
+                } else if (prefix) {
+                    setIfExists(root, prefix + 'LightCastShadow', data.cast_shadow);
+                } else {
+                    setIfExists(lightObj, 'castsShadow', data.cast_shadow);
+                }
+            }
         }
         if (p.key) applyDir(keyLight, p.key);
         if (p.fill) applyDir(fillLight, p.fill);
         if (p.rim) applyDir(rimLight, p.rim);
         if (p.point && pointLight) {
             var d = p.point;
-            if (typeof d.brightness === 'number') setIfExists(pointLight, 'brightness', d.brightness);
-            if (typeof d.color === 'string') setIfExists(pointLight, 'color', d.color);
-            if (typeof d.position_x === 'number') pointLight.position.x = d.position_x;
-            if (typeof d.position_y === 'number') pointLight.position.y = d.position_y;
-            if (typeof d.position_z === 'number') pointLight.position.z = d.position_z;
-            if (typeof d.constant_fade === 'number') setIfExists(pointLight, 'constantFade', d.constant_fade);
-            if (typeof d.linear_fade === 'number') setIfExists(pointLight, 'linearFade', d.linear_fade);
-            if (typeof d.quadratic_fade === 'number') setIfExists(pointLight, 'quadraticFade', d.quadratic_fade);
-            if (typeof d.cast_shadow === 'boolean') setIfExists(pointLight, 'castsShadow', d.cast_shadow);
+            if (typeof d.brightness === 'number' && isFinite(d.brightness)) setIfExists(root, 'pointLightBrightness', d.brightness);
+            if (d.color !== undefined) {
+                var pColor = resolveColor(d.color);
+                if (pColor !== null) setIfExists(root, 'pointLightColor', pColor);
+            }
+            if (typeof d.position_x === 'number' && isFinite(d.position_x)) setIfExists(root, 'pointLightPosX', d.position_x);
+            if (typeof d.position_y === 'number' && isFinite(d.position_y)) setIfExists(root, 'pointLightPosY', d.position_y);
+            if (typeof d.position_z === 'number' && isFinite(d.position_z)) setIfExists(root, 'pointLightPosZ', d.position_z);
+            if (typeof d.constant_fade === 'number' && isFinite(d.constant_fade)) setIfExists(root, 'pointLightConstantFade', d.constant_fade);
+            if (typeof d.linear_fade === 'number' && isFinite(d.linear_fade)) setIfExists(root, 'pointLightLinearFade', d.linear_fade);
+            if (typeof d.quadratic_fade === 'number' && isFinite(d.quadratic_fade)) setIfExists(root, 'pointLightQuadraticFade', d.quadratic_fade);
+            if (typeof d.cast_shadow === 'boolean') setIfExists(root, 'pointLightCastShadow', d.cast_shadow);
         }
         if (p.spot && spotLight) {
             var s = p.spot;
-            if (typeof s.brightness === 'number') setIfExists(spotLight, 'brightness', s.brightness);
-            if (typeof s.color === 'string') setIfExists(spotLight, 'color', s.color);
-            if (typeof s.position_x === 'number') spotLight.position.x = s.position_x;
-            if (typeof s.position_y === 'number') spotLight.position.y = s.position_y;
-            if (typeof s.position_z === 'number') spotLight.position.z = s.position_z;
-            if (typeof s.angle_x === 'number') spotLight.eulerRotation.x = s.angle_x;
-            if (typeof s.angle_y === 'number') spotLight.eulerRotation.y = s.angle_y;
-            if (typeof s.angle_z === 'number') spotLight.eulerRotation.z = s.angle_z;
-            if (typeof s.range === 'number') setIfExists(spotLight, 'range', s.range);
-            if (typeof s.cone_angle === 'number') setIfExists(spotLight, 'coneAngle', s.cone_angle);
-            if (typeof s.inner_cone_angle === 'number') setIfExists(spotLight, 'innerConeAngle', s.inner_cone_angle);
-            if (typeof s.cast_shadow === 'boolean') setIfExists(spotLight, 'castsShadow', s.cast_shadow);
+            if (typeof s.brightness === 'number' && isFinite(s.brightness)) setIfExists(root, 'spotLightBrightness', s.brightness);
+            if (s.color !== undefined) {
+                var sColor = resolveColor(s.color);
+                if (sColor !== null) setIfExists(root, 'spotLightColor', sColor);
+            }
+            if (typeof s.position_x === 'number' && isFinite(s.position_x)) setIfExists(root, 'spotLightPosX', s.position_x);
+            if (typeof s.position_y === 'number' && isFinite(s.position_y)) setIfExists(root, 'spotLightPosY', s.position_y);
+            if (typeof s.position_z === 'number' && isFinite(s.position_z)) setIfExists(root, 'spotLightPosZ', s.position_z);
+            if (typeof s.angle_x === 'number' && isFinite(s.angle_x)) setIfExists(root, 'spotLightAngleX', s.angle_x);
+            if (typeof s.angle_y === 'number' && isFinite(s.angle_y)) setIfExists(root, 'spotLightAngleY', s.angle_y);
+            if (typeof s.angle_z === 'number' && isFinite(s.angle_z)) setIfExists(root, 'spotLightAngleZ', s.angle_z);
+            if (typeof s.range === 'number' && isFinite(s.range)) setIfExists(root, 'spotLightRange', s.range);
+            if (typeof s.cone_angle === 'number' && isFinite(s.cone_angle)) setIfExists(root, 'spotLightConeAngle', s.cone_angle);
+            if (typeof s.inner_cone_angle === 'number' && isFinite(s.inner_cone_angle)) setIfExists(root, 'spotLightInnerConeAngle', s.inner_cone_angle);
+            if (typeof s.cast_shadow === 'boolean') setIfExists(root, 'spotLightCastShadow', s.cast_shadow);
         }
     }
 
@@ -199,6 +333,7 @@ Item {
         if (!p) return;
         if (p.background_color) root.backgroundColor = p.background_color;
         if (typeof p.skybox_enabled === 'boolean') {
+            root.iblBackgroundEnabled = p.skybox_enabled;
             if (!p.background_mode) {
                 root.backgroundMode = p.skybox_enabled ? SceneEnvironment.SkyBox : SceneEnvironment.Color;
             }
@@ -206,40 +341,78 @@ Item {
         if (typeof p.ibl_enabled === 'boolean') root.iblLightingEnabled = p.ibl_enabled;
         if (p.background_mode) {
             switch (p.background_mode) {
-            case 'color': root.backgroundMode = SceneEnvironment.Color; break;
-            case 'skybox': root.backgroundMode = SceneEnvironment.SkyBox; break;
-            case 'transparent': root.backgroundMode = SceneEnvironment.Transparent; break;
+            case 'color':
+                root.backgroundMode = SceneEnvironment.Color;
+                root.iblBackgroundEnabled = false;
+                break;
+            case 'skybox':
+                root.backgroundMode = SceneEnvironment.SkyBox;
+                root.iblBackgroundEnabled = true;
+                break;
+            case 'transparent':
+                root.backgroundMode = SceneEnvironment.Transparent;
+                root.iblBackgroundEnabled = false;
+                break;
             }
         }
         if (p.ibl_source) { iblProbe.primarySource = Qt.resolvedUrl(p.ibl_source); }
         if (p.ibl_fallback) { iblProbe.fallbackSource = Qt.resolvedUrl(p.ibl_fallback); }
-        if (typeof p.ibl_intensity === 'number') setIfExists(env, 'probeExposure', p.ibl_intensity);
-        if (typeof p.ibl_rotation === 'number') root.iblRotationDeg = p.ibl_rotation;
-        if (typeof p.ibl_offset_x === 'number') root.iblOffsetXDeg = p.ibl_offset_x;
-        if (typeof p.ibl_offset_y === 'number') root.iblOffsetYDeg = p.ibl_offset_y;
+        if (typeof p.ibl_intensity === 'number' && isFinite(p.ibl_intensity)) root.iblIntensity = Math.max(0.0, Math.min(8.0, p.ibl_intensity));
+        if (typeof p.probe_brightness === 'number' && isFinite(p.probe_brightness)) root.envProbeBrightness = Math.max(0.0, Math.min(8.0, p.probe_brightness));
+        if (typeof p.probe_horizon === 'number' && isFinite(p.probe_horizon)) root.envProbeHorizon = Math.max(-1.0, Math.min(1.0, p.probe_horizon));
+        if (typeof p.ibl_rotation === 'number' && isFinite(p.ibl_rotation)) root.iblRotationDeg = Math.max(-1080.0, Math.min(1080.0, p.ibl_rotation));
+        if (typeof p.ibl_offset_x === 'number' && isFinite(p.ibl_offset_x)) root.iblOffsetXDeg = Math.max(-180.0, Math.min(180.0, p.ibl_offset_x));
+        if (typeof p.ibl_offset_y === 'number' && isFinite(p.ibl_offset_y)) root.iblOffsetYDeg = Math.max(-180.0, Math.min(180.0, p.ibl_offset_y));
         if (typeof p.ibl_bind_to_camera === 'boolean') root.iblBindToCamera = p.ibl_bind_to_camera;
-        // Обновляем ориентацию пробы с учетом привязки/смещений
-        env.probeOrientation = Qt.vector3d(
-            root.iblOffsetXDeg,
-            root.iblRotationDeg + (root.iblBindToCamera ? mouseControls.orbitYaw : 0) + 0,
-            root.iblOffsetYDeg
-        );
+        if (typeof p.skybox_blur === 'number' && isFinite(p.skybox_blur)) root.envSkyboxBlurAmount = Math.max(0.0, Math.min(1.0, p.skybox_blur));
 
         // Туман
-        if (typeof p.fog_enabled === 'boolean') setIfExists(env, 'fogEnabled', p.fog_enabled);
-        if (p.fog_color) setIfExists(env, 'fogColor', p.fog_color);
-        if (typeof p.fog_density === 'number') setIfExists(env, 'fogDensity', p.fog_density);
-        if (typeof p.fog_near === 'number') setIfExists(env, 'fogDepthNear', p.fog_near);
-        if (typeof p.fog_far === 'number') setIfExists(env, 'fogDepthFar', p.fog_far);
+        if (typeof p.fog_enabled === 'boolean') root.fogEnabledSetting = p.fog_enabled;
+        if (p.fog_color) root.fogColorSetting = p.fog_color;
+        if (typeof p.fog_density === 'number' && isFinite(p.fog_density)) root.fogDensitySetting = Math.max(0.0, Math.min(1.0, p.fog_density));
+        if (typeof p.fog_near === 'number' && isFinite(p.fog_near)) root.fogNearSetting = Math.max(0.0, Math.min(200000.0, p.fog_near));
+        if (typeof p.fog_far === 'number' && isFinite(p.fog_far)) root.fogFarSetting = Math.max(500.0, Math.min(400000.0, p.fog_far));
+        if (typeof p.fog_height_enabled === 'boolean') root.fogHeightEnabledSetting = p.fog_height_enabled;
+        if (typeof p.fog_least_intense_y === 'number' && isFinite(p.fog_least_intense_y)) root.fogGroundLevelSetting = Math.max(-100000.0, Math.min(100000.0, p.fog_least_intense_y));
+        if (typeof p.fog_most_intense_y === 'number' && isFinite(p.fog_most_intense_y)) root.fogHeightSetting = Math.max(-100000.0, Math.min(100000.0, p.fog_most_intense_y));
+        if (typeof p.fog_height_curve === 'number' && isFinite(p.fog_height_curve)) root.fogHeightFalloffSetting = Math.max(0.0, Math.min(4.0, p.fog_height_curve));
+        if (typeof p.fog_transmit_enabled === 'boolean') root.fogTransmittanceEnabledSetting = p.fog_transmit_enabled;
+        if (typeof p.fog_transmit_curve === 'number' && isFinite(p.fog_transmit_curve)) root.fogTransmittanceFalloffSetting = Math.max(0.0, Math.min(4.0, p.fog_transmit_curve));
+        if (root.fogFarSetting < root.fogNearSetting) {
+            root.fogFarSetting = root.fogNearSetting;
+        }
 
         // SSAO расширенный (если доступно)
-        if (typeof p.ao_enabled === 'boolean') setIfExists(env, 'aoEnabled', p.ao_enabled);
-        if (typeof p.ao_strength === 'number') setIfExists(env, 'aoStrength', p.ao_strength);
-        if (typeof p.ao_radius === 'number') setIfExists(env, 'aoDistance', p.ao_radius);
-        if (typeof p.ao_softness === 'number') setIfExists(env, 'aoSoftness', p.ao_softness);
-        if (typeof p.ao_dither === 'boolean') setIfExists(env, 'aoDither', p.ao_dither);
-        if (typeof p.ao_sample_rate === 'number') setIfExists(env, 'aoSampleRate', p.ao_sample_rate);
+        if (typeof p.ao_enabled === 'boolean') root.aoEnabledSetting = p.ao_enabled;
+        if (typeof p.ao_strength === 'number' && isFinite(p.ao_strength)) root.aoStrengthSetting = Math.max(0.0, Math.min(100.0, p.ao_strength));
+        if (typeof p.ao_radius === 'number' && isFinite(p.ao_radius)) root.aoRadiusSetting = Math.max(0.5, Math.min(50.0, p.ao_radius));
+        if (typeof p.ao_softness === 'number' && isFinite(p.ao_softness)) root.aoSoftnessSetting = Math.max(0.0, Math.min(50.0, p.ao_softness));
+        if (typeof p.ao_dither === 'boolean') root.aoDitherSetting = p.ao_dither;
+        if (typeof p.ao_sample_rate === 'number' && isFinite(p.ao_sample_rate)) root.aoSampleRateSetting = Math.max(1, Math.min(4, Math.round(p.ao_sample_rate)));
     }
+
+    function updatePostAaState() {
+        var post = (root.aaPostMode || "").toLowerCase();
+        var wantsTaa = post.indexOf('taa') !== -1;
+        var wantsFxaa = post.indexOf('fxaa') !== -1;
+        var taaActive = root.taaEnabledSetting && wantsTaa;
+        if (taaActive && root.taaMotionAdaptive && root.cameraMovementActive) {
+            taaActive = false;
+        }
+        setIfExists(env, 'temporalAAEnabled', taaActive);
+        setIfExists(env, 'temporalAAStrength', Math.max(0.0, Math.min(1.0, root.taaStrengthSetting || 0.0)));
+        var fxaaActive = root.fxaaEnabledSetting && wantsFxaa;
+        setIfExists(env, 'fxaaEnabled', fxaaActive);
+        setIfExists(env, 'specularAAEnabled', !!root.specularAAEnabledSetting);
+    }
+
+    onAaPostModeChanged: updatePostAaState()
+    onTaaEnabledSettingChanged: updatePostAaState()
+    onTaaMotionAdaptiveChanged: updatePostAaState()
+    onFxaaEnabledSettingChanged: updatePostAaState()
+    onSpecularAAEnabledSettingChanged: updatePostAaState()
+    onCameraMovementActiveChanged: updatePostAaState()
+    onTaaStrengthSettingChanged: updatePostAaState()
 
     function applyQualityUpdates(p) {
         if (!p) return;
@@ -261,6 +434,9 @@ Item {
             case 'high': env.antialiasingQuality = SceneEnvironment.High; break;
             }
         }
+        if (p.antialiasing && typeof p.antialiasing.post === 'string') {
+            root.aaPostMode = p.antialiasing.post.toLowerCase();
+        }
         
         // Вариант 2: плоская структура (старый формат GraphicsPanel)
         if (typeof p.antialiasing === 'string') {
@@ -279,10 +455,20 @@ Item {
             case 'high': env.antialiasingQuality = SceneEnvironment.High; break;
             }
         }
+        if (typeof p.aa_post === 'string') {
+            root.aaPostMode = p.aa_post.toLowerCase();
+        }
         
         // Temporal AA (Qt 6.10)
-        if (typeof p.taa_enabled === 'boolean') setIfExists(env, 'temporalAAEnabled', p.taa_enabled);
-        if (typeof p.taa_strength === 'number') setIfExists(env, 'temporalAAStrength', p.taa_strength);
+        if (p.taa_enabled !== undefined) root.taaEnabledSetting = !!p.taa_enabled;
+        if (typeof p.taa_strength === 'number' && isFinite(p.taa_strength)) {
+            root.taaStrengthSetting = Math.max(0.0, Math.min(1.0, p.taa_strength));
+        }
+        if (p.taa_motion_adaptive !== undefined) root.taaMotionAdaptive = !!p.taa_motion_adaptive;
+
+        if (p.fxaa_enabled !== undefined) root.fxaaEnabledSetting = !!p.fxaa_enabled;
+        if (p.specular_aa !== undefined) root.specularAAEnabledSetting = !!p.specular_aa;
+
         if (typeof p.dithering === 'boolean') setIfExists(env, 'ditheringEnabled', p.dithering);
         
         // ======== SHADOWS ========
@@ -290,9 +476,9 @@ Item {
         if (typeof p.shadows_enabled === 'boolean') {
             console.log("  → shadows_enabled (flat):", p.shadows_enabled);
             root.shadowsEnabled = p.shadows_enabled;
-            keyLight.castsShadow = p.shadows_enabled;
-            if (typeof fillLight !== 'undefined' && fillLight) fillLight.castsShadow = false;
-            if (typeof rimLight !== 'undefined' && rimLight) rimLight.castsShadow = false;
+            root.keyLightCastShadow = p.shadows_enabled;
+            root.fillLightCastShadow = false;
+            root.rimLightCastShadow = false;
             console.log("  ✅ Тени установлены (flat):", p.shadows_enabled);
         }
         
@@ -300,8 +486,17 @@ Item {
         if (p.shadows && typeof p.shadows.enabled === 'boolean') {
             console.log("  → shadows.enabled (legacy):", p.shadows.enabled);
             root.shadowsEnabled = p.shadows.enabled;
-            keyLight.castsShadow = p.shadows.enabled;
+            root.keyLightCastShadow = p.shadows.enabled;
             console.log("  ✅ Тени установлены (legacy):", p.shadows.enabled);
+        }
+        if (p.shadows && typeof p.shadows.filter === 'number' && isFinite(p.shadows.filter)) {
+            root.shadowFilterSamples = Math.max(1, Math.round(p.shadows.filter));
+        }
+        if (p.shadows && typeof p.shadows.bias === 'number' && isFinite(p.shadows.bias)) {
+            root.shadowBias = Math.max(0.0, p.shadows.bias);
+        }
+        if (p.shadows && typeof p.shadows.darkness === 'number' && isFinite(p.shadows.darkness)) {
+            root.shadowFactor = Math.max(0.0, Math.min(100.0, p.shadows.darkness));
         }
         
         // Качество теней - плоская структура
@@ -326,12 +521,9 @@ Item {
         }
         
         // Мягкость теней
-        if (typeof p.shadow_softness === 'number') {
+        if (typeof p.shadow_softness === 'number' && isFinite(p.shadow_softness)) {
             console.log("  → shadow_softness:", p.shadow_softness);
-            // Применяем к keyLight если доступно
-            if (typeof keyLight !== 'undefined' && keyLight && 'shadowFilter' in keyLight) {
-                keyLight.shadowFilter = 4 + Math.max(0, p.shadow_softness) * 28;
-            }
+            root.shadowFilterSamples = Math.max(1, Math.round(4 + Math.max(0, p.shadow_softness) * 28));
         }
         
         // Прозрачность (Order-Independent Transparency)
@@ -340,6 +532,22 @@ Item {
             case 'none': env.transparencyMode = SceneEnvironment.Transparent; break;
             case 'weighted': env.transparencyMode = SceneEnvironment.ScreenSpace; break;
             }
+        }
+
+        // Render scale & policy & frame rate limit
+        if (typeof p.render_scale === 'number' && isFinite(p.render_scale)) {
+            var scale = Math.max(0.1, Math.min(8.0, p.render_scale));
+            root.renderScaleSetting = scale;
+        }
+        if (typeof p.render_policy === 'string') {
+            var policy = p.render_policy.toLowerCase();
+            if (policy === 'ondemand' || policy === 'always') {
+                root.renderPolicySetting = policy;
+            }
+        }
+        if (typeof p.frame_rate_limit === 'number' && isFinite(p.frame_rate_limit)) {
+            var fps = Math.max(0.0, Math.min(480.0, p.frame_rate_limit));
+            root.frameRateLimitSetting = fps;
         }
         
         // Mesh quality
@@ -351,63 +559,114 @@ Item {
             if (typeof p.mesh.joint_arm_scale === 'number') root.jointArmScale = p.mesh.joint_arm_scale;
             if (typeof p.mesh.joint_rod_scale === 'number') root.jointRodScale = p.mesh.joint_rod_scale;
         }
+
+        updatePostAaState();
     }
 
     function applyMaterialUpdates(p) {
         if (!p) return;
-        // Поддержка как одиночного обновления (current_material), так и пакетного (несколько ключей)
-        function applyOne(key, s) {
-            if (!s) return;
-            var target = null;
-            switch (key) {
-            case 'frame': target = frameMat; break;
-            case 'lever': target = leverMat; break;
-            case 'tail': target = tailRodMat; break;
-            case 'cylinder': target = cylinderMat; break;
-            case 'piston_body': target = pistonBodyMat; break;
-            case 'piston_rod': target = pistonRodMat; break;
-            case 'joint_tail': target = jointTailMat; break;
-            case 'joint_arm': target = jointArmMat; break;
-            case 'joint_rod': target = jointRodMat; break;
-            default: target = null;
+        // Храним состояние материалов в одном объекте и изменяем его копию
+        function cloneMaterialsState() {
+            var source = root.materialsState || {};
+            var clone = {};
+            for (var key in source) {
+                if (Object.prototype.hasOwnProperty.call(source, key))
+                    clone[key] = Object.assign({}, source[key]);
             }
-            if (!target) return;
-            if (s.base_color) setIfExists(target, 'baseColor', s.base_color);
-            if (typeof s.metalness === 'number') setIfExists(target, 'metalness', s.metalness);
-            if (typeof s.roughness === 'number') setIfExists(target, 'roughness', s.roughness);
-            if (typeof s.specular === 'number') setIfExists(target, 'specularAmount', s.specular);
-            if (s.specular_tint) setIfExists(target, 'specularTint', s.specular_tint);
-            if (typeof s.opacity === 'number') setIfExists(target, 'opacity', s.opacity);
-            if (typeof s.clearcoat === 'number') setIfExists(target, 'clearcoatAmount', s.clearcoat);
-            if (typeof s.clearcoat_roughness === 'number') setIfExists(target, 'clearcoatRoughness', s.clearcoat_roughness);
-            if (typeof s.ior === 'number') setIfExists(target, 'indexOfRefraction', s.ior);
-            if (s.emissive_color) setIfExists(target, 'emissiveColor', s.emissive_color);
-            if (typeof s.emissive_intensity === 'number') setIfExists(target, 'emissivePower', s.emissive_intensity);
-            if (typeof s.normal_strength === 'number') setIfExists(target, 'normalStrength', s.normal_strength);
-            if (typeof s.occlusion_amount === 'number') setIfExists(target, 'occlusionAmount', s.occlusion_amount);
-            if (typeof s.alpha_cutoff === 'number') setIfExists(target, 'alphaCutoff', s.alpha_cutoff);
-            if (typeof s.transmission === 'number') setIfExists(target, 'transmissionFactor', s.transmission);
-            if (typeof s.thickness === 'number') setIfExists(target, 'thicknessFactor', s.thickness);
-            if (typeof s.attenuation_distance === 'number') setIfExists(target, 'transmissionAttenuationDistance', s.attenuation_distance);
-            if (s.attenuation_color) setIfExists(target, 'transmissionAttenuationColor', s.attenuation_color);
-            if (typeof s.alpha_mode === 'string') {
-                switch (s.alpha_mode) {
-                case 'default': target.alphaMode = PrincipledMaterial.Default; break;
-                case 'mask': target.alphaMode = PrincipledMaterial.Mask; break;
-                case 'blend': target.alphaMode = PrincipledMaterial.Blend; break;
-                }
-            }
+            return clone;
         }
-        if (p.current_material) {
-            var key = p.current_material;
-            applyOne(key, p[key]);
+
+        function assignColor(entry, field, value) {
+            if (value === undefined || value === null)
+                return false;
+            var resolved = null;
+            if (typeof value === 'string') {
+                resolved = value;
+            } else if (value && typeof value === 'object' && value.r !== undefined && value.g !== undefined && value.b !== undefined) {
+                var a = (value.a === undefined) ? 1.0 : clamp(value.a, 0.0, 1.0);
+                resolved = Qt.rgba(clamp(value.r, 0.0, 1.0), clamp(value.g, 0.0, 1.0), clamp(value.b, 0.0, 1.0), a);
+            }
+            if (resolved === null)
+                return false;
+            var existing = entry[field];
+            if (existing === resolved)
+                return false;
+            if (existing && resolved && existing.toString && resolved.toString && existing.toString() === resolved.toString())
+                return false;
+            entry[field] = resolved;
+            return true;
+        }
+
+        function assignNumber(entry, field, value, minValue, maxValue) {
+            if (typeof value !== 'number' || !isFinite(value))
+                return false;
+            var clamped = clamp(value, minValue, maxValue);
+            if (entry[field] === clamped)
+                return false;
+            entry[field] = clamped;
+            return true;
+        }
+
+        function assignAlphaMode(entry, value) {
+            if (typeof value !== 'string')
+                return false;
+            var normalized = value.toLowerCase();
+            if (normalized !== 'default' && normalized !== 'mask' && normalized !== 'blend')
+                return false;
+            if (entry.alpha_mode === normalized)
+                return false;
+            entry.alpha_mode = normalized;
+            return true;
+        }
+
+        function updateMaterialEntry(key, update) {
+            if (!update)
+                return;
+            var currentState = root.materialsState || {};
+            if (!Object.prototype.hasOwnProperty.call(currentState, key))
+                return;
+
+            var nextState = cloneMaterialsState();
+            var entry = Object.assign({}, nextState[key] || {});
+            var changed = false;
+
+            if (assignColor(entry, 'base_color', update.base_color)) changed = true;
+            if (assignNumber(entry, 'metalness', update.metalness, 0.0, 1.0)) changed = true;
+            if (assignNumber(entry, 'roughness', update.roughness, 0.0, 1.0)) changed = true;
+            if (assignNumber(entry, 'specular', update.specular, 0.0, 1.0)) changed = true;
+            if (assignColor(entry, 'specular_tint', update.specular_tint)) changed = true;
+            if (assignNumber(entry, 'opacity', update.opacity, 0.0, 1.0)) changed = true;
+            if (assignNumber(entry, 'clearcoat', update.clearcoat, 0.0, 1.0)) changed = true;
+            if (assignNumber(entry, 'clearcoat_roughness', update.clearcoat_roughness, 0.0, 1.0)) changed = true;
+            if (assignNumber(entry, 'transmission', update.transmission, 0.0, 1.0)) changed = true;
+            if (assignNumber(entry, 'ior', update.ior, 1.0, 3.0)) changed = true;
+            if (assignNumber(entry, 'thickness', update.thickness, 0.0, 10.0)) changed = true;
+            if (assignNumber(entry, 'attenuation_distance', update.attenuation_distance, 0.0, 1000000.0)) changed = true;
+            if (assignColor(entry, 'attenuation_color', update.attenuation_color)) changed = true;
+            if (assignColor(entry, 'emissive_color', update.emissive_color)) changed = true;
+            if (assignNumber(entry, 'emissive_intensity', update.emissive_intensity, 0.0, 1000.0)) changed = true;
+            if (assignNumber(entry, 'normal_strength', update.normal_strength, 0.0, 10.0)) changed = true;
+            if (assignNumber(entry, 'occlusion_amount', update.occlusion_amount, 0.0, 1.0)) changed = true;
+            if (assignNumber(entry, 'alpha_cutoff', update.alpha_cutoff, 0.0, 1.0)) changed = true;
+            if (assignAlphaMode(entry, update.alpha_mode)) changed = true;
+
+            if (!changed)
+                return;
+
+            nextState[key] = entry;
+            root.materialsState = nextState;
+        }
+
+        if (p.current_material && p[p.current_material]) {
+            updateMaterialEntry(p.current_material, p[p.current_material]);
             return;
         }
         // Пакетный режим: применяем все известные ключи, которые присутствуют в p
         var known = ['frame','lever','tail','cylinder','piston_body','piston_rod','joint_tail','joint_arm','joint_rod'];
         for (var i = 0; i < known.length; ++i) {
-            var k = known[i];
-            if (p[k]) applyOne(k, p[k]);
+            var matKey = known[i];
+            if (p[matKey])
+                updateMaterialEntry(matKey, p[matKey]);
         }
     }
 
@@ -416,87 +675,73 @@ Item {
         console.log("✨ applyEffectsUpdates вызван с параметрами:", JSON.stringify(p));
         try {
             // ======== BLOOM/GLOW ========
-            if (typeof p.bloom_enabled === 'boolean') { 
-                console.log("  → bloom_enabled:", p.bloom_enabled); 
-                env.glowEnabled = p.bloom_enabled; 
+            if (typeof p.bloom_enabled === 'boolean') {
+                console.log("  → bloom_enabled:", p.bloom_enabled);
+                root.bloomEnabledSetting = p.bloom_enabled;
             }
-            if (typeof p.bloom_intensity === 'number') env.glowIntensity = p.bloom_intensity;
-            if (typeof p.bloom_threshold === 'number') env.glowHDRMinimumValue = p.bloom_threshold;
-            if (typeof p.bloom_spread === 'number') env.glowBloom = p.bloom_spread;
-            if (typeof p.bloom_glow_strength === 'number') env.glowStrength = p.bloom_glow_strength;
-            if (typeof p.bloom_hdr_max === 'number') env.glowHDRMaximumValue = p.bloom_hdr_max;
-            if (typeof p.bloom_hdr_scale === 'number') env.glowHDRScale = p.bloom_hdr_scale;
-            if (typeof p.bloom_quality_high === 'boolean') env.glowQualityHigh = p.bloom_quality_high;
-            if (typeof p.bloom_bicubic_upscale === 'boolean') env.glowUseBicubicUpscale = p.bloom_bicubic_upscale;
+            if (typeof p.bloom_intensity === 'number' && isFinite(p.bloom_intensity)) root.bloomIntensitySetting = clamp(p.bloom_intensity, 0.0, 10.0);
+            if (typeof p.bloom_threshold === 'number' && isFinite(p.bloom_threshold)) root.bloomThresholdSetting = clamp(p.bloom_threshold, 0.0, 20.0);
+            if (typeof p.bloom_spread === 'number' && isFinite(p.bloom_spread)) root.bloomSpreadSetting = clamp(p.bloom_spread, 0.0, 5.0);
+            if (typeof p.bloom_glow_strength === 'number' && isFinite(p.bloom_glow_strength)) root.bloomGlowStrengthSetting = clamp(p.bloom_glow_strength, 0.0, 10.0);
+            if (typeof p.bloom_hdr_max === 'number' && isFinite(p.bloom_hdr_max)) root.bloomHdrMaxSetting = clamp(p.bloom_hdr_max, 0.0, 100.0);
+            if (typeof p.bloom_hdr_scale === 'number' && isFinite(p.bloom_hdr_scale)) root.bloomHdrScaleSetting = clamp(p.bloom_hdr_scale, 0.0, 10.0);
+            if (typeof p.bloom_quality_high === 'boolean') root.bloomQualityHighSetting = p.bloom_quality_high;
+            if (typeof p.bloom_bicubic_upscale === 'boolean') root.bloomBicubicUpscaleSetting = p.bloom_bicubic_upscale;
             
             // ======== TONEMAP ========
             // Проверяем ОБА варианта: с enabled и без
             if (typeof p.tonemap_enabled === 'boolean') {
                 console.log("  → tonemap_enabled:", p.tonemap_enabled);
-                if (!p.tonemap_enabled) {
-                    // Выключен - ставим None
-                    console.log("  → ПРИМЕНЯЕМ: TonemapModeNone (отключён)");
-                    env.tonemapMode = SceneEnvironment.TonemapModeNone;
-                } else if (typeof p.tonemap_mode === 'string') {
-                    // Включен и есть режим - применяем его
-                    console.log("  → ПРИМЕНЯЕМ режим:", p.tonemap_mode);
-                    switch (p.tonemap_mode) {
-                    case 'filmic': env.tonemapMode = SceneEnvironment.TonemapModeFilmic; break;
-                    case 'aces': env.tonemapMode = SceneEnvironment.TonemapModeAces; break;
-                    case 'reinhard': env.tonemapMode = SceneEnvironment.TonemapModeReinhard; break;
-                    case 'gamma': env.tonemapMode = SceneEnvironment.TonemapModeGamma; break;
-                    case 'linear': env.tonemapMode = SceneEnvironment.TonemapModeLinear; break;
-                    case 'none': env.tonemapMode = SceneEnvironment.TonemapModeNone; break;
-                    default: console.warn("  ⚠️ Неизвестный режим:", p.tonemap_mode); break;
-                    }
-                    console.log("  ✅ Тонемаппинг установлен:", p.tonemap_mode);
+                root.tonemapEnabledSetting = p.tonemap_enabled;
+            }
+            if (typeof p.tonemap_mode === 'string') {
+                console.log("  → tonemap_mode:", p.tonemap_mode);
+                var tonemapValue = p.tonemap_mode.toLowerCase();
+                var knownTonemapModes = ['filmic', 'aces', 'reinhard', 'gamma', 'linear', 'none'];
+                if (knownTonemapModes.indexOf(tonemapValue) === -1) {
+                    console.warn("  ⚠️ Неизвестный режим тонемаппинга:", p.tonemap_mode);
                 }
-            } else if (typeof p.tonemap_mode === 'string') {
-                // Только режим без флага enabled - значит включён и меняем режим
-                console.log("  → tonemap_mode (без enabled):", p.tonemap_mode);
-                switch (p.tonemap_mode) {
-                case 'filmic': env.tonemapMode = SceneEnvironment.TonemapModeFilmic; break;
-                case 'aces': env.tonemapMode = SceneEnvironment.TonemapModeAces; break;
-                case 'reinhard': env.tonemapMode = SceneEnvironment.TonemapModeReinhard; break;
-                case 'gamma': env.tonemapMode = SceneEnvironment.TonemapModeGamma; break;
-                case 'linear': env.tonemapMode = SceneEnvironment.TonemapModeLinear; break;
-                case 'none': env.tonemapMode = SceneEnvironment.TonemapModeNone; break;
-                default: console.warn("  ⚠️ Неизвестный режим:", p.tonemap_mode); break;
+                root.tonemapModeSetting = tonemapValue;
+                if (typeof p.tonemap_enabled !== 'boolean') {
+                    root.tonemapEnabledSetting = tonemapValue !== 'none';
                 }
-                console.log("  ✅ Тонемаппинг установлен (без enabled):", p.tonemap_mode);
             }
             
-            if (typeof p.tonemap_exposure === 'number') env.exposure = p.tonemap_exposure;
-            if (typeof p.tonemap_white_point === 'number') env.whitePoint = p.tonemap_white_point;
+            if (typeof p.tonemap_exposure === 'number' && isFinite(p.tonemap_exposure)) root.tonemapExposureSetting = clamp(p.tonemap_exposure, 0.0, 10.0);
+            if (typeof p.tonemap_white_point === 'number' && isFinite(p.tonemap_white_point)) root.tonemapWhitePointSetting = clamp(p.tonemap_white_point, 0.0, 20.0);
             
             // ======== DEPTH OF FIELD ========
-            if (typeof p.depth_of_field === 'boolean') env.depthOfFieldEnabled = p.depth_of_field;
-            if (typeof p.dof_focus_distance === 'number') env.depthOfFieldFocusDistance = p.dof_focus_distance;
-            if (typeof p.dof_blur === 'number') env.depthOfFieldBlurAmount = p.dof_blur;
+            if (typeof p.depth_of_field === 'boolean') root.depthOfFieldEnabledSetting = p.depth_of_field;
+            if (typeof p.dof_focus_distance === 'number' && isFinite(p.dof_focus_distance)) root.dofFocusDistanceSetting = clamp(p.dof_focus_distance, 0.0, 400000.0);
+            if (typeof p.dof_blur === 'number' && isFinite(p.dof_blur)) root.dofBlurAmountSetting = clamp(p.dof_blur, 0.0, 100.0);
             
             // ======== LENS FLARE ========
-            if (typeof p.lens_flare === 'boolean') env.lensFlareEnabled = p.lens_flare;
-            if (typeof p.lens_flare_ghost_count === 'number') env.lensFlareGhostCount = p.lens_flare_ghost_count;
-            if (typeof p.lens_flare_ghost_dispersal === 'number') env.lensFlareGhostDispersal = p.lens_flare_ghost_dispersal;
-            if (typeof p.lens_flare_halo_width === 'number') env.lensFlareHaloWidth = p.lens_flare_halo_width;
-            if (typeof p.lens_flare_bloom_bias === 'number') env.lensFlareBloomBias = p.lens_flare_bloom_bias;
-            if (typeof p.lens_flare_stretch_to_aspect === 'boolean') env.lensFlareStretchToAspect = p.lens_flare_stretch_to_aspect;
+            if (typeof p.lens_flare === 'boolean') root.lensFlareEnabledSetting = p.lens_flare;
+            if (typeof p.lens_flare_ghost_count === 'number' && isFinite(p.lens_flare_ghost_count)) root.lensFlareGhostCountSetting = Math.max(0, Math.min(8, Math.round(p.lens_flare_ghost_count)));
+            if (typeof p.lens_flare_ghost_dispersal === 'number' && isFinite(p.lens_flare_ghost_dispersal)) root.lensFlareGhostDispersalSetting = clamp(p.lens_flare_ghost_dispersal, 0.0, 5.0);
+            if (typeof p.lens_flare_halo_width === 'number' && isFinite(p.lens_flare_halo_width)) root.lensFlareHaloWidthSetting = clamp(p.lens_flare_halo_width, 0.0, 10.0);
+            if (typeof p.lens_flare_bloom_bias === 'number' && isFinite(p.lens_flare_bloom_bias)) root.lensFlareBloomBiasSetting = clamp(p.lens_flare_bloom_bias, 0.0, 5.0);
+            if (typeof p.lens_flare_stretch_to_aspect === 'boolean') root.lensFlareStretchSetting = p.lens_flare_stretch_to_aspect;
             
             // ======== VIGNETTE ========
-            if (typeof p.vignette === 'boolean') { 
-                console.log("  → vignette:", p.vignette); 
-                env.vignetteEnabled = p.vignette; 
+            if (typeof p.vignette === 'boolean') {
+                console.log("  → vignette:", p.vignette);
+                root.vignetteEnabledSetting = p.vignette;
             }
-            if (typeof p.vignette_strength === 'number') { 
-                console.log("  → vignette_strength:", p.vignette_strength); 
-                env.vignetteStrength = p.vignette_strength; 
+            if (typeof p.vignette_strength === 'number' && isFinite(p.vignette_strength)) {
+                console.log("  → vignette_strength:", p.vignette_strength);
+                root.vignetteStrengthSetting = clamp(p.vignette_strength, 0.0, 1.0);
             }
-            if (typeof p.vignette_radius === 'number') env.vignetteRadius = p.vignette_radius;
+            if (typeof p.vignette_radius === 'number' && isFinite(p.vignette_radius)) root.vignetteRadiusSetting = clamp(p.vignette_radius, 0.0, 1.0);
+            
+            // ======== MOTION BLUR ========
+            if (typeof p.motion_blur === 'boolean') root.motionBlurEnabledSetting = p.motion_blur;
+            if (typeof p.motion_blur_amount === 'number' && isFinite(p.motion_blur_amount)) root.motionBlurAmountSetting = clamp(p.motion_blur_amount, 0.0, 1.0);
             
             // ======== COLOR ADJUSTMENTS ========
-            if (typeof p.adjustment_brightness === 'number') env.adjustmentBrightness = p.adjustment_brightness;
-            if (typeof p.adjustment_contrast === 'number') env.adjustmentContrast = p.adjustment_contrast;
-            if (typeof p.adjustment_saturation === 'number') env.adjustmentSaturation = p.adjustment_saturation;
+            if (typeof p.adjustment_brightness === 'number' && isFinite(p.adjustment_brightness)) root.adjustmentBrightnessSetting = clamp(p.adjustment_brightness, -10.0, 10.0);
+            if (typeof p.adjustment_contrast === 'number' && isFinite(p.adjustment_contrast)) root.adjustmentContrastSetting = clamp(p.adjustment_contrast, -10.0, 10.0);
+            if (typeof p.adjustment_saturation === 'number' && isFinite(p.adjustment_saturation)) root.adjustmentSaturationSetting = clamp(p.adjustment_saturation, -10.0, 10.0);
             
             console.log("✅ applyEffectsUpdates завершён успешно");
         } catch (e) {
@@ -507,13 +752,42 @@ Item {
     // === Анимация: обновления из Python/панелей ===
     function applyAnimationUpdates(params) {
         if (!params) return;
-        if (typeof params.amplitude === 'number') root.userAmplitude = params.amplitude;
-        if (typeof params.frequency === 'number') root.userFrequency = params.frequency;
-        if (typeof params.phase === 'number') root.userPhaseGlobal = params.phase;
-        if (typeof params.lf_phase === 'number') root.userPhaseFL = params.lf_phase;
-        if (typeof params.rf_phase === 'number') root.userPhaseFR = params.rf_phase;
-        if (typeof params.lr_phase === 'number') root.userPhaseRL = params.lr_phase;
-        if (typeof params.rr_phase === 'number') root.userPhaseRR = params.rr_phase;
+
+        function asNumber(value) {
+            if (value === undefined || value === null)
+                return null;
+            var num = Number(value);
+            return isFinite(num) ? num : null;
+        }
+
+        var amplitude = asNumber(params.amplitude);
+        if (amplitude !== null)
+            root.userAmplitude = clamp(amplitude, 0.0, 0.2);
+
+        var frequency = asNumber(params.frequency);
+        if (frequency !== null)
+            root.userFrequency = clamp(frequency, 0.1, 10.0);
+
+        var phase = asNumber(params.phase);
+        if (phase !== null)
+            root.userPhaseGlobal = clamp(phase, 0.0, 360.0);
+
+        var lfPhase = asNumber(params.lf_phase);
+        if (lfPhase !== null)
+            root.userPhaseFL = clamp(lfPhase, 0.0, 360.0);
+
+        var rfPhase = asNumber(params.rf_phase);
+        if (rfPhase !== null)
+            root.userPhaseFR = clamp(rfPhase, 0.0, 360.0);
+
+        var lrPhase = asNumber(params.lr_phase);
+        if (lrPhase !== null)
+            root.userPhaseRL = clamp(lrPhase, 0.0, 360.0);
+
+        var rrPhase = asNumber(params.rr_phase);
+        if (rrPhase !== null)
+            root.userPhaseRR = clamp(rrPhase, 0.0, 360.0);
+
         updateLeverAngles();
     }
 
@@ -524,6 +798,18 @@ Item {
         if (positions.rl !== undefined) root.userPistonPositionRL = Number(positions.rl);
         if (positions.rr !== undefined) root.userPistonPositionRR = Number(positions.rr);
     }
+
+    // Совместимость: простые update* функции вызывают соответствующие apply*Updates
+    function updateGeometry(params) { applyGeometryUpdates(params); }
+    function updateCamera(params) { applyCameraUpdates(params); }
+    function updateLighting(params) { applyLightingUpdates(params); }
+    function updateEnvironment(params) { applyEnvironmentUpdates(params); }
+    function updateQuality(params) { applyQualityUpdates(params); }
+    function updateMaterials(params) { applyMaterialUpdates(params); }
+    function updateEffects(params) { applyEffectsUpdates(params); }
+    function updateAnimation(params) { applyAnimationUpdates(params); }
+    function applyAnimParamsUpdates(params) { applyAnimationUpdates(params); }
+    function updateAnimParams(params) { applyAnimationUpdates(params); }
 
     // ===============================================================
     // МИНИМАЛЬНЫЕ СВОЙСТВА ДЛЯ СЦЕНЫ
@@ -572,52 +858,247 @@ Item {
     property color keyLightColor: "#ffffff"
     property real keyLightAngleX: -35
     property real keyLightAngleY: -40
+    property real keyLightAngleZ: 0.0
+    property real keyLightPosX: 0.0
+    property real keyLightPosY: 0.0
+    property real keyLightPosZ: 0.0
+    property bool keyLightCastShadow: true
 
-    // ====== MATERIAL PROPS (initial placeholders; overridden from Settings) ======
-    property color frameBaseColor: "#c53030"
-    property real frameMetalness: 0.85
-    property real frameRoughness: 0.35
-    property real frameSpecular: 0.8
+    property real fillLightBrightness: 0.7
+    property color fillLightColor: "#dfe7ff"
+    property real fillLightAngleX: -60
+    property real fillLightAngleY: 135
+    property real fillLightAngleZ: 0.0
+    property real fillLightPosX: 0.0
+    property real fillLightPosY: 0.0
+    property real fillLightPosZ: 0.0
+    property bool fillLightCastShadow: false
 
-    property color leverBaseColor: "#9ea4ab"
-    property real leverMetalness: 1.0
-    property real leverRoughness: 0.28
-    property real leverSpecular: 0.9
+    property real rimLightBrightness: 0.6
+    property color rimLightColor: "#ffe2b0"
+    property real rimLightAngleX: 30
+    property real rimLightAngleY: -135
+    property real rimLightAngleZ: 0.0
+    property real rimLightPosX: 0.0
+    property real rimLightPosY: 0.0
+    property real rimLightPosZ: 0.0
+    property bool rimLightCastShadow: false
 
-    property color cylinderBaseColor: "#e1f5ff"
-    property real cylinderOpacity: 0.3
-    property real cylinderRoughness: 0.2
-    property real cylinderSpecular: 0.6
+    property real pointLightBrightness: 0.0
+    property color pointLightColor: "#ffffff"
+    property real pointLightPosX: 0.0
+    property real pointLightPosY: 2200.0
+    property real pointLightPosZ: 0.0
+    property real pointLightConstantFade: 1.0
+    property real pointLightLinearFade: 0.0
+    property real pointLightQuadraticFade: 0.0
+    property bool pointLightCastShadow: false
 
-    property color pistonBodyBaseColor: "#ff3c6e"
-    property real pistonBodyMetalness: 1.0
-    property real pistonBodyRoughness: 0.26
-    property real pistonBodySpecular: 0.9
+    property real spotLightBrightness: 0.0
+    property color spotLightColor: "#ffffff"
+    property real spotLightPosX: 0.0
+    property real spotLightPosY: 2500.0
+    property real spotLightPosZ: 1000.0
+    property real spotLightAngleX: 0.0
+    property real spotLightAngleY: 0.0
+    property real spotLightAngleZ: 0.0
+    property real spotLightRange: 0.0
+    property real spotLightConeAngle: 45.0
+    property real spotLightInnerConeAngle: 25.0
+    property bool spotLightCastShadow: false
 
-    property color pistonRodBaseColor: "#ececec"
-    property real pistonRodMetalness: 1.0
-    property real pistonRodRoughness: 0.18
-    property real pistonRodSpecular: 1.0
-
-    property color tailRodBaseColor: "#d5d9df"
-    property real tailRodMetalness: 1.0
-    property real tailRodRoughness: 0.3
-    property real tailRodSpecular: 0.8
-
-    property color jointTailBaseColor: "#2a82ff"
-    property real jointTailMetalness: 0.9
-    property real jointTailRoughness: 0.35
-    property real jointTailSpecular: 0.7
-
-    property color jointArmBaseColor: "#ff9c3a"
-    property real jointArmMetalness: 0.9
-    property real jointArmRoughness: 0.32
-    property real jointArmSpecular: 0.7
-
-    property color jointRodBaseColor: "#00ff55"
-    property real jointRodMetalness: 0.9
-    property real jointRodRoughness: 0.3
-    property real jointRodSpecular: 0.7
+    // ====== MATERIAL STATE (каждый параметр хранится в структуре для полной трассировки) ======
+    property var materialsState: ({
+        frame: {
+            base_color: "#c53030",
+            metalness: 0.85,
+            roughness: 0.35,
+            specular: 0.8,
+            specular_tint: "#ffffff",
+            opacity: 1.0,
+            clearcoat: 0.0,
+            clearcoat_roughness: 0.0,
+            transmission: 0.0,
+            ior: 1.0,
+            thickness: 0.0,
+            attenuation_distance: 0.0,
+            attenuation_color: "#ffffff",
+            emissive_color: "#000000",
+            emissive_intensity: 0.0,
+            normal_strength: 0.0,
+            occlusion_amount: 0.0,
+            alpha_mode: "default",
+            alpha_cutoff: 0.0
+        },
+        lever: {
+            base_color: "#9ea4ab",
+            metalness: 1.0,
+            roughness: 0.28,
+            specular: 0.9,
+            specular_tint: "#ffffff",
+            opacity: 1.0,
+            clearcoat: 0.0,
+            clearcoat_roughness: 0.0,
+            transmission: 0.0,
+            ior: 1.0,
+            thickness: 0.0,
+            attenuation_distance: 0.0,
+            attenuation_color: "#ffffff",
+            emissive_color: "#000000",
+            emissive_intensity: 0.0,
+            normal_strength: 0.0,
+            occlusion_amount: 0.0,
+            alpha_mode: "default",
+            alpha_cutoff: 0.0
+        },
+        tail: {
+            base_color: "#d5d9df",
+            metalness: 1.0,
+            roughness: 0.3,
+            specular: 0.8,
+            specular_tint: "#ffffff",
+            opacity: 1.0,
+            clearcoat: 0.0,
+            clearcoat_roughness: 0.0,
+            transmission: 0.0,
+            ior: 1.0,
+            thickness: 0.0,
+            attenuation_distance: 0.0,
+            attenuation_color: "#ffffff",
+            emissive_color: "#000000",
+            emissive_intensity: 0.0,
+            normal_strength: 0.0,
+            occlusion_amount: 0.0,
+            alpha_mode: "default",
+            alpha_cutoff: 0.0
+        },
+        cylinder: {
+            base_color: "#e1f5ff",
+            metalness: 0.0,
+            roughness: 0.2,
+            specular: 0.6,
+            specular_tint: "#ffffff",
+            opacity: 0.3,
+            clearcoat: 0.0,
+            clearcoat_roughness: 0.0,
+            transmission: 0.0,
+            ior: 1.0,
+            thickness: 0.0,
+            attenuation_distance: 0.0,
+            attenuation_color: "#ffffff",
+            emissive_color: "#000000",
+            emissive_intensity: 0.0,
+            normal_strength: 0.0,
+            occlusion_amount: 0.0,
+            alpha_mode: "blend",
+            alpha_cutoff: 0.0
+        },
+        piston_body: {
+            base_color: "#ff3c6e",
+            metalness: 1.0,
+            roughness: 0.26,
+            specular: 0.9,
+            specular_tint: "#ffffff",
+            opacity: 1.0,
+            clearcoat: 0.0,
+            clearcoat_roughness: 0.0,
+            transmission: 0.0,
+            ior: 1.0,
+            thickness: 0.0,
+            attenuation_distance: 0.0,
+            attenuation_color: "#ffffff",
+            emissive_color: "#000000",
+            emissive_intensity: 0.0,
+            normal_strength: 0.0,
+            occlusion_amount: 0.0,
+            alpha_mode: "default",
+            alpha_cutoff: 0.0
+        },
+        piston_rod: {
+            base_color: "#ececec",
+            metalness: 1.0,
+            roughness: 0.18,
+            specular: 1.0,
+            specular_tint: "#ffffff",
+            opacity: 1.0,
+            clearcoat: 0.0,
+            clearcoat_roughness: 0.0,
+            transmission: 0.0,
+            ior: 1.0,
+            thickness: 0.0,
+            attenuation_distance: 0.0,
+            attenuation_color: "#ffffff",
+            emissive_color: "#000000",
+            emissive_intensity: 0.0,
+            normal_strength: 0.0,
+            occlusion_amount: 0.0,
+            alpha_mode: "default",
+            alpha_cutoff: 0.0
+        },
+        joint_tail: {
+            base_color: "#2a82ff",
+            metalness: 0.9,
+            roughness: 0.35,
+            specular: 0.7,
+            specular_tint: "#ffffff",
+            opacity: 1.0,
+            clearcoat: 0.0,
+            clearcoat_roughness: 0.0,
+            transmission: 0.0,
+            ior: 1.0,
+            thickness: 0.0,
+            attenuation_distance: 0.0,
+            attenuation_color: "#ffffff",
+            emissive_color: "#000000",
+            emissive_intensity: 0.0,
+            normal_strength: 0.0,
+            occlusion_amount: 0.0,
+            alpha_mode: "default",
+            alpha_cutoff: 0.0
+        },
+        joint_arm: {
+            base_color: "#ff9c3a",
+            metalness: 0.9,
+            roughness: 0.32,
+            specular: 0.7,
+            specular_tint: "#ffffff",
+            opacity: 1.0,
+            clearcoat: 0.0,
+            clearcoat_roughness: 0.0,
+            transmission: 0.0,
+            ior: 1.0,
+            thickness: 0.0,
+            attenuation_distance: 0.0,
+            attenuation_color: "#ffffff",
+            emissive_color: "#000000",
+            emissive_intensity: 0.0,
+            normal_strength: 0.0,
+            occlusion_amount: 0.0,
+            alpha_mode: "default",
+            alpha_cutoff: 0.0
+        },
+        joint_rod: {
+            base_color: "#00ff55",
+            metalness: 0.9,
+            roughness: 0.3,
+            specular: 0.7,
+            specular_tint: "#ffffff",
+            opacity: 1.0,
+            clearcoat: 0.0,
+            clearcoat_roughness: 0.0,
+            transmission: 0.0,
+            ior: 1.0,
+            thickness: 0.0,
+            attenuation_distance: 0.0,
+            attenuation_color: "#ffffff",
+            emissive_color: "#000000",
+            emissive_intensity: 0.0,
+            normal_strength: 0.0,
+            occlusion_amount: 0.0,
+            alpha_mode: "default",
+            alpha_cutoff: 0.0
+        }
+    })
 
     property bool iblLightingEnabled: true
     property bool iblBackgroundEnabled: true
@@ -627,14 +1108,85 @@ Item {
     property real iblOffsetXDeg: 0.0  // вращение вокруг X (наклон неба)
     property real iblOffsetYDeg: 0.0  // вращение вокруг Z (ролл)
     property real iblIntensity: 1.0
+    property real envProbeBrightness: 1.0
+    property real envProbeHorizon: 0.0
+    property real envSkyboxBlurAmount: 0.0
+    property bool fogEnabledSetting: false
+    property color fogColorSetting: "#000000"
+    property real fogDensitySetting: 0.0
+    property real fogNearSetting: 0.0
+    property real fogFarSetting: 0.0
+    property bool fogHeightEnabledSetting: false
+    property real fogGroundLevelSetting: 0.0
+    property real fogHeightSetting: 0.0
+    property real fogHeightFalloffSetting: 0.0
+    property bool fogTransmittanceEnabledSetting: false
+    property real fogTransmittanceFalloffSetting: 0.0
+    property bool aoEnabledSetting: false
+    property real aoStrengthSetting: 0.0
+    property real aoRadiusSetting: 0.0
+    property real aoSoftnessSetting: 0.0
+    property bool aoDitherSetting: false
+    property int aoSampleRateSetting: 2
     property color backgroundColor: "#1f242c"
     property int backgroundMode: SceneEnvironment.SkyBox
+
+    // Effects / post-processing state
+    property bool bloomEnabledSetting: false
+    property real bloomIntensitySetting: 0.0
+    property real bloomThresholdSetting: 1.0
+    property real bloomSpreadSetting: 0.0
+    property real bloomGlowStrengthSetting: 0.0
+    property real bloomHdrMaxSetting: 0.0
+    property real bloomHdrScaleSetting: 1.0
+    property bool bloomQualityHighSetting: false
+    property bool bloomBicubicUpscaleSetting: false
+    property bool tonemapEnabledSetting: false
+    property string tonemapModeSetting: "none"
+    property real tonemapExposureSetting: 1.0
+    property real tonemapWhitePointSetting: 1.0
+    property bool depthOfFieldEnabledSetting: false
+    property real dofFocusDistanceSetting: 0.0
+    property real dofBlurAmountSetting: 0.0
+    property bool lensFlareEnabledSetting: false
+    property int lensFlareGhostCountSetting: 0
+    property real lensFlareGhostDispersalSetting: 0.0
+    property real lensFlareHaloWidthSetting: 0.0
+    property real lensFlareBloomBiasSetting: 0.0
+    property bool lensFlareStretchSetting: false
+    property bool motionBlurEnabledSetting: false
+    property real motionBlurAmountSetting: 0.0
+    property bool vignetteEnabledSetting: false
+    property real vignetteStrengthSetting: 0.0
+    property real vignetteRadiusSetting: 0.0
+    property real adjustmentBrightnessSetting: 0.0
+    property real adjustmentContrastSetting: 0.0
+    property real adjustmentSaturationSetting: 0.0
 
     // Quality
     property bool shadowsEnabled: true
     property string shadowResolution: "2048"
+    property int shadowFilterSamples: 16
+    property real shadowBias: 0.0
+    property real shadowFactor: 75.0
+    property string aaPostMode: "off"
+    property bool taaEnabledSetting: false
+    property real taaStrengthSetting: 0.0
+    property bool taaMotionAdaptive: false
+    property bool fxaaEnabledSetting: false
+    property bool specularAAEnabledSetting: false
+    property real renderScaleSetting: 1.0
+    property string renderPolicySetting: "always"
+    property real frameRateLimitSetting: 0.0
+    property bool cameraMovementActive: false
     property int cylinderSegments: 32
     property int cylinderRings: 4
+
+    onShadowsEnabledChanged: {
+        if (root.keyLightCastShadow !== root.shadowsEnabled) {
+            root.keyLightCastShadow = root.shadowsEnabled;
+        }
+    }
 
     // Auto-rotate camera
     property bool autoRotateEnabled: false
@@ -720,15 +1272,213 @@ Item {
     // MATERIALS - заранее
     // ===============================================================
 
-    PrincipledMaterial { id: leverMat; baseColor: root.leverBaseColor; metalness: root.leverMetalness; roughness: root.leverRoughness; specularAmount: root.leverSpecular }
-    PrincipledMaterial { id: tailRodMat; baseColor: root.tailRodBaseColor; metalness: root.tailRodMetalness; roughness: root.tailRodRoughness; specularAmount: root.tailRodSpecular }
-    PrincipledMaterial { id: cylinderMat; baseColor: root.cylinderBaseColor; opacity: root.cylinderOpacity; alphaMode: PrincipledMaterial.Blend; roughness: root.cylinderRoughness; specularAmount: root.cylinderSpecular }
-    PrincipledMaterial { id: pistonBodyMat; baseColor: root.pistonBodyBaseColor; metalness: root.pistonBodyMetalness; roughness: root.pistonBodyRoughness; specularAmount: root.pistonBodySpecular }
-    PrincipledMaterial { id: pistonRodMat; baseColor: root.pistonRodBaseColor; metalness: root.pistonRodMetalness; roughness: root.pistonRodRoughness; specularAmount: root.pistonRodSpecular }
-    PrincipledMaterial { id: jointTailMat; baseColor: root.jointTailBaseColor; metalness: root.jointTailMetalness; roughness: root.jointTailRoughness; specularAmount: root.jointTailSpecular }
-    PrincipledMaterial { id: jointArmMat; baseColor: root.jointArmBaseColor; metalness: root.jointArmMetalness; roughness: root.jointArmRoughness; specularAmount: root.jointArmSpecular }
-    PrincipledMaterial { id: jointRodMat; baseColor: root.jointRodBaseColor; metalness: root.jointRodMetalness; roughness: root.jointRodRoughness; specularAmount: root.jointRodSpecular }
-    PrincipledMaterial { id: frameMat; baseColor: root.frameBaseColor; metalness: root.frameMetalness; roughness: root.frameRoughness; specularAmount: root.frameSpecular }
+    PrincipledMaterial {
+        id: leverMat
+        readonly property var state: root.materialsState.lever
+        baseColor: state.base_color
+        metalness: state.metalness
+        roughness: state.roughness
+        specularAmount: state.specular
+        specularTint: state.specular_tint
+        opacity: state.opacity
+        clearcoatAmount: state.clearcoat
+        clearcoatRoughness: state.clearcoat_roughness
+        transmissionFactor: state.transmission
+        indexOfRefraction: state.ior
+        thicknessFactor: state.thickness
+        transmissionAttenuationDistance: state.attenuation_distance
+        transmissionAttenuationColor: state.attenuation_color
+        emissiveColor: state.emissive_color
+        emissivePower: state.emissive_intensity
+        normalStrength: state.normal_strength
+        occlusionAmount: state.occlusion_amount
+        alphaMode: alphaModeFromString(state.alpha_mode)
+        alphaCutoff: state.alpha_cutoff
+    }
+    PrincipledMaterial {
+        id: tailRodMat
+        readonly property var state: root.materialsState.tail
+        baseColor: state.base_color
+        metalness: state.metalness
+        roughness: state.roughness
+        specularAmount: state.specular
+        specularTint: state.specular_tint
+        opacity: state.opacity
+        clearcoatAmount: state.clearcoat
+        clearcoatRoughness: state.clearcoat_roughness
+        transmissionFactor: state.transmission
+        indexOfRefraction: state.ior
+        thicknessFactor: state.thickness
+        transmissionAttenuationDistance: state.attenuation_distance
+        transmissionAttenuationColor: state.attenuation_color
+        emissiveColor: state.emissive_color
+        emissivePower: state.emissive_intensity
+        normalStrength: state.normal_strength
+        occlusionAmount: state.occlusion_amount
+        alphaMode: alphaModeFromString(state.alpha_mode)
+        alphaCutoff: state.alpha_cutoff
+    }
+    PrincipledMaterial {
+        id: cylinderMat
+        readonly property var state: root.materialsState.cylinder
+        baseColor: state.base_color
+        metalness: state.metalness
+        roughness: state.roughness
+        specularAmount: state.specular
+        specularTint: state.specular_tint
+        opacity: state.opacity
+        clearcoatAmount: state.clearcoat
+        clearcoatRoughness: state.clearcoat_roughness
+        transmissionFactor: state.transmission
+        indexOfRefraction: state.ior
+        thicknessFactor: state.thickness
+        transmissionAttenuationDistance: state.attenuation_distance
+        transmissionAttenuationColor: state.attenuation_color
+        emissiveColor: state.emissive_color
+        emissivePower: state.emissive_intensity
+        normalStrength: state.normal_strength
+        occlusionAmount: state.occlusion_amount
+        alphaMode: alphaModeFromString(state.alpha_mode)
+        alphaCutoff: state.alpha_cutoff
+    }
+    PrincipledMaterial {
+        id: pistonBodyMat
+        readonly property var state: root.materialsState.piston_body
+        baseColor: state.base_color
+        metalness: state.metalness
+        roughness: state.roughness
+        specularAmount: state.specular
+        specularTint: state.specular_tint
+        opacity: state.opacity
+        clearcoatAmount: state.clearcoat
+        clearcoatRoughness: state.clearcoat_roughness
+        transmissionFactor: state.transmission
+        indexOfRefraction: state.ior
+        thicknessFactor: state.thickness
+        transmissionAttenuationDistance: state.attenuation_distance
+        transmissionAttenuationColor: state.attenuation_color
+        emissiveColor: state.emissive_color
+        emissivePower: state.emissive_intensity
+        normalStrength: state.normal_strength
+        occlusionAmount: state.occlusion_amount
+        alphaMode: alphaModeFromString(state.alpha_mode)
+        alphaCutoff: state.alpha_cutoff
+    }
+    PrincipledMaterial {
+        id: pistonRodMat
+        readonly property var state: root.materialsState.piston_rod
+        baseColor: state.base_color
+        metalness: state.metalness
+        roughness: state.roughness
+        specularAmount: state.specular
+        specularTint: state.specular_tint
+        opacity: state.opacity
+        clearcoatAmount: state.clearcoat
+        clearcoatRoughness: state.clearcoat_roughness
+        transmissionFactor: state.transmission
+        indexOfRefraction: state.ior
+        thicknessFactor: state.thickness
+        transmissionAttenuationDistance: state.attenuation_distance
+        transmissionAttenuationColor: state.attenuation_color
+        emissiveColor: state.emissive_color
+        emissivePower: state.emissive_intensity
+        normalStrength: state.normal_strength
+        occlusionAmount: state.occlusion_amount
+        alphaMode: alphaModeFromString(state.alpha_mode)
+        alphaCutoff: state.alpha_cutoff
+    }
+    PrincipledMaterial {
+        id: jointTailMat
+        readonly property var state: root.materialsState.joint_tail
+        baseColor: state.base_color
+        metalness: state.metalness
+        roughness: state.roughness
+        specularAmount: state.specular
+        specularTint: state.specular_tint
+        opacity: state.opacity
+        clearcoatAmount: state.clearcoat
+        clearcoatRoughness: state.clearcoat_roughness
+        transmissionFactor: state.transmission
+        indexOfRefraction: state.ior
+        thicknessFactor: state.thickness
+        transmissionAttenuationDistance: state.attenuation_distance
+        transmissionAttenuationColor: state.attenuation_color
+        emissiveColor: state.emissive_color
+        emissivePower: state.emissive_intensity
+        normalStrength: state.normal_strength
+        occlusionAmount: state.occlusion_amount
+        alphaMode: alphaModeFromString(state.alpha_mode)
+        alphaCutoff: state.alpha_cutoff
+    }
+    PrincipledMaterial {
+        id: jointArmMat
+        readonly property var state: root.materialsState.joint_arm
+        baseColor: state.base_color
+        metalness: state.metalness
+        roughness: state.roughness
+        specularAmount: state.specular
+        specularTint: state.specular_tint
+        opacity: state.opacity
+        clearcoatAmount: state.clearcoat
+        clearcoatRoughness: state.clearcoat_roughness
+        transmissionFactor: state.transmission
+        indexOfRefraction: state.ior
+        thicknessFactor: state.thickness
+        transmissionAttenuationDistance: state.attenuation_distance
+        transmissionAttenuationColor: state.attenuation_color
+        emissiveColor: state.emissive_color
+        emissivePower: state.emissive_intensity
+        normalStrength: state.normal_strength
+        occlusionAmount: state.occlusion_amount
+        alphaMode: alphaModeFromString(state.alpha_mode)
+        alphaCutoff: state.alpha_cutoff
+    }
+    PrincipledMaterial {
+        id: jointRodMat
+        readonly property var state: root.materialsState.joint_rod
+        baseColor: state.base_color
+        metalness: state.metalness
+        roughness: state.roughness
+        specularAmount: state.specular
+        specularTint: state.specular_tint
+        opacity: state.opacity
+        clearcoatAmount: state.clearcoat
+        clearcoatRoughness: state.clearcoat_roughness
+        transmissionFactor: state.transmission
+        indexOfRefraction: state.ior
+        thicknessFactor: state.thickness
+        transmissionAttenuationDistance: state.attenuation_distance
+        transmissionAttenuationColor: state.attenuation_color
+        emissiveColor: state.emissive_color
+        emissivePower: state.emissive_intensity
+        normalStrength: state.normal_strength
+        occlusionAmount: state.occlusion_amount
+        alphaMode: alphaModeFromString(state.alpha_mode)
+        alphaCutoff: state.alpha_cutoff
+    }
+    PrincipledMaterial {
+        id: frameMat
+        readonly property var state: root.materialsState.frame
+        baseColor: state.base_color
+        metalness: state.metalness
+        roughness: state.roughness
+        specularAmount: state.specular
+        specularTint: state.specular_tint
+        opacity: state.opacity
+        clearcoatAmount: state.clearcoat
+        clearcoatRoughness: state.clearcoat_roughness
+        transmissionFactor: state.transmission
+        indexOfRefraction: state.ior
+        thicknessFactor: state.thickness
+        transmissionAttenuationDistance: state.attenuation_distance
+        transmissionAttenuationColor: state.attenuation_color
+        emissiveColor: state.emissive_color
+        emissivePower: state.emissive_intensity
+        normalStrength: state.normal_strength
+        occlusionAmount: state.occlusion_amount
+        alphaMode: alphaModeFromString(state.alpha_mode)
+        alphaCutoff: state.alpha_cutoff
+    }
 
     // ===============================================================
     // VIEW3D - 3D СЦЕНА + IBL PROBE
@@ -740,6 +1490,13 @@ Item {
         id: view3d
         anchors.fill: parent
 
+        renderSettings: RenderSettings {
+            id: renderSettings
+            renderScale: root.renderScaleSetting
+            maximumFrameRate: root.frameRateLimitSetting > 0 ? root.frameRateLimitSetting : 0
+            renderPolicy: root.renderPolicySetting === 'ondemand' ? RenderSettings.OnDemand : RenderSettings.Always
+        }
+
         environment: ExtendedSceneEnvironment {
             id: env
             // ❌ НЕТ ДЕФОЛТНЫХ ЗНАЧЕНИЙ В QML!
@@ -750,7 +1507,60 @@ Item {
             clearColor: root.backgroundColor
             lightProbe: iblProbe.ready ? iblProbe.probe : null
             probeExposure: root.iblLightingEnabled ? root.iblIntensity : 0.0
-            probeOrientation: Qt.vector3d(0, root.iblRotationDeg, 0)
+            probeBrightness: root.envProbeBrightness
+            probeHorizon: root.envProbeHorizon
+            skyBoxBlurAmount: root.envSkyboxBlurAmount
+            probeOrientation: Qt.vector3d(
+                root.iblOffsetXDeg,
+                root.iblRotationDeg + (root.iblBindToCamera ? mouseControls.orbitYaw : 0),
+                root.iblOffsetYDeg
+            )
+            fogEnabled: root.fogEnabledSetting
+            fogColor: root.fogColorSetting
+            fogDensity: root.fogDensitySetting
+            fogDepthNear: root.fogNearSetting
+            fogDepthFar: root.fogFarSetting
+            fogHeightEnabled: root.fogHeightEnabledSetting
+            fogGroundLevel: root.fogGroundLevelSetting
+            fogHeight: root.fogHeightSetting
+            fogHeightFalloff: root.fogHeightFalloffSetting
+            fogTransmittanceEnabled: root.fogTransmittanceEnabledSetting
+            fogTransmittanceFalloff: root.fogTransmittanceFalloffSetting
+            aoEnabled: root.aoEnabledSetting
+            aoStrength: root.aoStrengthSetting
+            aoDistance: root.aoRadiusSetting
+            aoSoftness: root.aoSoftnessSetting
+            aoDither: root.aoDitherSetting
+            aoSampleRate: root.aoSampleRateSetting
+            glowEnabled: root.bloomEnabledSetting
+            glowIntensity: root.bloomIntensitySetting
+            glowHDRMinimumValue: root.bloomThresholdSetting
+            glowBloom: root.bloomSpreadSetting
+            glowStrength: root.bloomGlowStrengthSetting
+            glowHDRMaximumValue: root.bloomHdrMaxSetting
+            glowHDRScale: root.bloomHdrScaleSetting
+            glowQualityHigh: root.bloomQualityHighSetting
+            glowUseBicubicUpscale: root.bloomBicubicUpscaleSetting
+            tonemapMode: root.tonemapEnabledSetting ? tonemapModeFromString(root.tonemapModeSetting) : SceneEnvironment.TonemapModeNone
+            exposure: root.tonemapExposureSetting
+            whitePoint: root.tonemapWhitePointSetting
+            depthOfFieldEnabled: root.depthOfFieldEnabledSetting
+            depthOfFieldFocusDistance: root.dofFocusDistanceSetting
+            depthOfFieldBlurAmount: root.dofBlurAmountSetting
+            lensFlareEnabled: root.lensFlareEnabledSetting
+            lensFlareGhostCount: root.lensFlareGhostCountSetting
+            lensFlareGhostDispersal: root.lensFlareGhostDispersalSetting
+            lensFlareHaloWidth: root.lensFlareHaloWidthSetting
+            lensFlareBloomBias: root.lensFlareBloomBiasSetting
+            lensFlareStretchToAspect: root.lensFlareStretchSetting
+            motionBlurEnabled: root.motionBlurEnabledSetting
+            motionBlurAmount: root.motionBlurAmountSetting
+            vignetteEnabled: root.vignetteEnabledSetting
+            vignetteStrength: root.vignetteStrengthSetting
+            vignetteRadius: root.vignetteRadiusSetting
+            adjustmentBrightness: root.adjustmentBrightnessSetting
+            adjustmentContrast: root.adjustmentContrastSetting
+            adjustmentSaturation: root.adjustmentSaturationSetting
         }
 
         Node {
@@ -779,11 +1589,54 @@ Item {
                 }
             }
 
-            DirectionalLight { id: keyLight; eulerRotation.x: root.keyLightAngleX; eulerRotation.y: root.keyLightAngleY; brightness: root.keyLightBrightness; color: root.keyLightColor; castsShadow: root.shadowsEnabled }
-            DirectionalLight { id: fillLight; eulerRotation.x: -60; eulerRotation.y: 135; brightness: 0.7; color: "#dfe7ff" }
-            DirectionalLight { id: rimLight; eulerRotation.x: 30; eulerRotation.y: -135; brightness: 0.6; color: "#ffe2b0" }
-            PointLight { id: pointLight; position: Qt.vector3d(0, 2200, 0); brightness: 0; castsShadow: false }
-            SpotLight { id: spotLight; position: Qt.vector3d(0, 2500, 1000); brightness: 0; coneAngle: 45; innerConeAngle: 25; castsShadow: false }
+            DirectionalLight {
+                id: keyLight
+                eulerRotation: Qt.vector3d(root.keyLightAngleX, root.keyLightAngleY, root.keyLightAngleZ)
+                position: Qt.vector3d(root.keyLightPosX, root.keyLightPosY, root.keyLightPosZ)
+                brightness: root.keyLightBrightness
+                color: root.keyLightColor
+                castsShadow: root.keyLightCastShadow
+                shadowFilter: root.shadowFilterSamples
+                shadowBias: root.shadowBias
+                shadowFactor: root.shadowFactor
+            }
+            DirectionalLight {
+                id: fillLight
+                eulerRotation: Qt.vector3d(root.fillLightAngleX, root.fillLightAngleY, root.fillLightAngleZ)
+                position: Qt.vector3d(root.fillLightPosX, root.fillLightPosY, root.fillLightPosZ)
+                brightness: root.fillLightBrightness
+                color: root.fillLightColor
+                castsShadow: root.fillLightCastShadow
+            }
+            DirectionalLight {
+                id: rimLight
+                eulerRotation: Qt.vector3d(root.rimLightAngleX, root.rimLightAngleY, root.rimLightAngleZ)
+                position: Qt.vector3d(root.rimLightPosX, root.rimLightPosY, root.rimLightPosZ)
+                brightness: root.rimLightBrightness
+                color: root.rimLightColor
+                castsShadow: root.rimLightCastShadow
+            }
+            PointLight {
+                id: pointLight
+                position: Qt.vector3d(root.pointLightPosX, root.pointLightPosY, root.pointLightPosZ)
+                brightness: root.pointLightBrightness
+                color: root.pointLightColor
+                constantFade: root.pointLightConstantFade
+                linearFade: root.pointLightLinearFade
+                quadraticFade: root.pointLightQuadraticFade
+                castsShadow: root.pointLightCastShadow
+            }
+            SpotLight {
+                id: spotLight
+                position: Qt.vector3d(root.spotLightPosX, root.spotLightPosY, root.spotLightPosZ)
+                brightness: root.spotLightBrightness
+                color: root.spotLightColor
+                eulerRotation: Qt.vector3d(root.spotLightAngleX, root.spotLightAngleY, root.spotLightAngleZ)
+                range: root.spotLightRange
+                coneAngle: root.spotLightConeAngle
+                innerConeAngle: root.spotLightInnerConeAngle
+                castsShadow: root.spotLightCastShadow
+            }
 
             Frame { id: frameGeometry; worldRoot: worldRoot; beamSize: root.userBeamSize; frameHeight: root.userFrameHeight; frameLength: root.userFrameLength; frameMaterial: frameMat }
 
@@ -986,6 +1839,20 @@ Item {
                     mouseControls.orbitDistance += ((mouseControls._distanceTarget - mouseControls.orbitDistance) - root.zoomVelocity * root.inertia) * Math.max(0.01, root.zoomSmoothing)
                 }
                 mouseControls.updateCameraOrbit()
+
+                var moving = mouseControls.isDragging || root.autoRotateEnabled ||
+                        Math.abs(mouseControls._yawTarget - mouseControls.orbitYaw) > 0.01 ||
+                        Math.abs(mouseControls._pitchTarget - mouseControls.orbitPitch) > 0.01 ||
+                        Math.abs(mouseControls._distanceTarget - mouseControls.orbitDistance) > 0.5 ||
+                        Math.abs(mouseControls._targetTarget.x - mouseControls.orbitTarget.x) > 0.5 ||
+                        Math.abs(mouseControls._targetTarget.y - mouseControls.orbitTarget.y) > 0.5 ||
+                        Math.abs(mouseControls._targetTarget.z - mouseControls.orbitTarget.z) > 0.5 ||
+                        Math.abs(root.panVX) > 0.01 || Math.abs(root.panVY) > 0.01 ||
+                        Math.abs(root.zoomVelocity) > 0.01 || Math.abs(root.yawVelocity) > 0.01 ||
+                        Math.abs(root.pitchVelocity) > 0.01;
+                if (root.cameraMovementActive !== moving) {
+                    root.cameraMovementActive = moving;
+                }
             }
         }
 
@@ -1018,6 +1885,7 @@ Item {
     onUserPhaseRRChanged: updateLeverAngles()
 
     Component.onCompleted: {
+        updatePostAaState();
         console.log("=".repeat(60))
         console.log("🚀 FULL MODEL LOADED - MODULAR ARCHITECTURE + IBL (centered) + extended controls + orbit smoothing")
         console.log("=".repeat(60))
