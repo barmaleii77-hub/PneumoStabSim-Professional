@@ -214,7 +214,16 @@ Item {
         if (p.ibl_source) { iblProbe.primarySource = Qt.resolvedUrl(p.ibl_source); }
         if (p.ibl_fallback) { iblProbe.fallbackSource = Qt.resolvedUrl(p.ibl_fallback); }
         if (typeof p.ibl_intensity === 'number') setIfExists(env, 'probeExposure', p.ibl_intensity);
-        if (typeof p.ibl_rotation === 'number') setIfExists(env, 'probeOrientation', Qt.vector3d(0, p.ibl_rotation, 0));
+        if (typeof p.ibl_rotation === 'number') root.iblRotationDeg = p.ibl_rotation;
+        if (typeof p.ibl_offset_x === 'number') root.iblOffsetXDeg = p.ibl_offset_x;
+        if (typeof p.ibl_offset_y === 'number') root.iblOffsetYDeg = p.ibl_offset_y;
+        if (typeof p.ibl_bind_to_camera === 'boolean') root.iblBindToCamera = p.ibl_bind_to_camera;
+        // Обновляем ориентацию пробы с учетом привязки/смещений
+        env.probeOrientation = Qt.vector3d(
+            root.iblOffsetXDeg,
+            root.iblRotationDeg + (root.iblBindToCamera ? mouseControls.orbitYaw : 0) + 0,
+            root.iblOffsetYDeg
+        );
 
         // Туман
         if (typeof p.fog_enabled === 'boolean') setIfExists(env, 'fogEnabled', p.fog_enabled);
@@ -248,6 +257,9 @@ Item {
             case 'high': env.antialiasingQuality = SceneEnvironment.High; break;
             }
         }
+        // Temporal AA (Qt 6.10)
+        if (typeof p.taa_enabled === 'boolean') setIfExists(env, 'temporalAAEnabled', p.taa_enabled);
+        if (typeof p.taa_strength === 'number') setIfExists(env, 'temporalAAStrength', p.taa_strength);
         if (typeof p.dithering === 'boolean') setIfExists(env, 'ditheringEnabled', p.dithering);
         if (p.shadows && typeof p.shadows.enabled === 'boolean') {
             setIfExists(keyLight, 'castsShadow', p.shadows.enabled);
@@ -257,7 +269,24 @@ Item {
             setIfExists(spotLight, 'castsShadow', p.shadows.enabled);
         }
         if (p.shadows && typeof p.shadows.resolution === 'string') {
-            setIfExists(env, 'shadowMapQuality', p.shadows.resolution);
+            // Маппинг строкового разрешения на уровни качества Qt
+            switch (p.shadows.resolution) {
+            case '512': env.shadowMapQuality = SceneEnvironment.VeryLow; break;
+            case '1024': env.shadowMapQuality = SceneEnvironment.Low; break;
+            case '2048': env.shadowMapQuality = SceneEnvironment.Medium; break;
+            case '4096': env.shadowMapQuality = SceneEnvironment.High; break;
+            default: env.shadowMapQuality = SceneEnvironment.Medium; break;
+            }
+        }
+        // Прозрачность (Order-Independent Transparency)
+        if (typeof p.oit === 'string') {
+            switch (p.oit) {
+            case 'none': env.transparencyMode = SceneEnvironment.Transparent;
+                         break;
+            case 'weighted': env.transparencyMode = SceneEnvironment.ScreenSpace;
+                             break;
+            default: /* leave as is */ break;
+            }
         }
         if (p.mesh) {
             if (typeof p.mesh.cylinder_segments === 'number') root.cylinderSegments = p.mesh.cylinder_segments;
@@ -473,6 +502,10 @@ Item {
     property bool iblLightingEnabled: true
     property bool iblBackgroundEnabled: true
     property real iblRotationDeg: 0.0
+    // Управление IBL: привязка к камере и смещения (для полноценной трассировки параметров UI)
+    property bool iblBindToCamera: false
+    property real iblOffsetXDeg: 0.0  // вращение вокруг X (наклон неба)
+    property real iblOffsetYDeg: 0.0  // вращение вокруг Z (ролл)
     property real iblIntensity: 1.0
     property color backgroundColor: "#1f242c"
     property int backgroundMode: SceneEnvironment.SkyBox
