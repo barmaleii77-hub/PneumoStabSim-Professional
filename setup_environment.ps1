@@ -61,7 +61,8 @@ try {
 if (-not $SkipVenv) {
     Write-Step "Настройка виртуального окружения..."
     
-    $VenvPath = "venv"
+    # Используем .venv как стандарт для проекта
+    $VenvPath = ".venv"
     
     if (Test-Path $VenvPath) {
         if ($Force) {
@@ -74,7 +75,7 @@ if (-not $SkipVenv) {
     
     if (-not (Test-Path $VenvPath)) {
         Write-Info "Создание виртуального окружения..."
-        python -m venv venv
+        python -m venv $VenvPath
         Write-Success "Виртуальное окружение создано: $VenvPath"
     }
     
@@ -112,7 +113,8 @@ if (Test-Path "requirements.txt") {
 # Установка dev зависимостей
 $DevDeps = @("pytest", "pytest-qt", "black", "mypy", "flake8")
 Write-Info "Установка dev зависимостей: $($DevDeps -join ', ')"
-python -m pip install @DevDeps
+# В PowerShell массив корректно разворачивается в аргументы нативной команды
+python -m pip install $DevDeps
 Write-Success "Dev зависимости установлены"
 
 # === ПРОВЕРКА УСТАНОВКИ ===
@@ -260,7 +262,7 @@ Write-Host @"
 "@ -ForegroundColor Green
 
 Write-Info "Следующие шаги:"
-Write-Host "  1. Активируйте venv:      .\\venv\\Scripts\\Activate.ps1" -ForegroundColor Yellow
+Write-Host "  1. Активируйте venv:      .\\.venv\\Scripts\\Activate.ps1" -ForegroundColor Yellow
 Write-Host "  2. Запустите приложение:  python app.py" -ForegroundColor Yellow
 Write-Host "  3. Или используйте F5 в VS Code для отладки" -ForegroundColor Yellow
 Write-Host ""
