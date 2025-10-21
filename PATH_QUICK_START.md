@@ -20,16 +20,16 @@ source ./activate_environment.sh
 
 ## What This Does
 
-✅ Configures `PYTHONPATH` (adds `src/`, `tests/`, `scripts/`)  
-✅ Sets up Qt environment (QML paths, graphics backend, High DPI)  
-✅ Creates `.env` file with all settings  
-✅ Verifies Python, PySide6, QtQuick3D installation  
-✅ Checks project structure integrity  
+✅ Configures `PYTHONPATH` (adds `src/`, `tests/`, `scripts/`)
+✅ Sets up Qt environment (QML paths, graphics backend, High DPI)
+✅ Creates `.env` file with all settings
+✅ Verifies Python, PySide6, QtQuick3D installation
+✅ Checks project structure integrity
 
 ## Files Created
 
 - `setup_all_paths.ps1` - Windows PowerShell setup
-- `setup_all_paths.sh` - Linux/macOS Bash setup  
+- `setup_all_paths.sh` - Linux/macOS Bash setup
 - `activate_environment.ps1` - Quick activate (Windows)
 - `activate_environment.sh` - Quick activate (Linux/macOS)
 - `.env` - Environment variables (auto-generated)
@@ -80,6 +80,6 @@ echo $PYTHONPATH  # Linux
 
 ---
 
-**Status**: ✅ Ready to use  
-**Platforms**: Windows 10+, Linux, macOS  
+**Status**: ✅ Ready to use
+**Platforms**: Windows 10+, Linux, macOS
 **Last Updated**: 2025-01-24

@@ -77,20 +77,20 @@ if ($allMissing.Count -gt 0) {
  Write-Host "`n========================================" -ForegroundColor Cyan
     Write-Host " Installing Missing Extensions" -ForegroundColor Cyan
     Write-Host "========================================`n" -ForegroundColor Cyan
-    
+
     Write-Host "Found $($allMissing.Count) missing extensions" -ForegroundColor Yellow
     Write-Host "Press Enter to install or Ctrl+C to cancel..."
     Read-Host
-    
+
     $success = 0
     $failed = 0
-    
+
     foreach ($ext in $allMissing) {
         Write-Host "`nInstalling: $ext..." -ForegroundColor Yellow
-  
+
         try {
             & $codeCmd --install-extension $ext --force 2>&1 | Out-Null
-            
+
     if ($LASTEXITCODE -eq 0) {
                 Write-Host "  SUCCESS: Installed" -ForegroundColor Green
        $success++
@@ -103,14 +103,14 @@ if ($allMissing.Count -gt 0) {
  $failed++
         }
     }
-  
+
     Write-Host "`n========================================" -ForegroundColor Cyan
     Write-Host " Summary" -ForegroundColor Cyan
  Write-Host "========================================`n" -ForegroundColor Cyan
-    
+
   Write-Host "  Installed: $success" -ForegroundColor Green
     Write-Host "  Failed: $failed" -ForegroundColor Red
-    
+
 } else {
     Write-Host "`nAll extensions are already installed!" -ForegroundColor Green
 }

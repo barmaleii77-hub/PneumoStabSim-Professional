@@ -167,6 +167,6 @@ $vscodePath = "${env:LOCALAPPDATA}\Programs\Microsoft VS Code\bin"
 
 ---
 
-**Status**: ⚠️ **VS Code must be installed first**  
-**Last Updated**: 2025-01-24  
+**Status**: ⚠️ **VS Code must be installed first**
+**Last Updated**: 2025-01-24
 **Action Required**: Install VS Code from https://code.visualstudio.com/

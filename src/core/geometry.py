@@ -13,7 +13,7 @@ References:
 
 from dataclasses import dataclass
 import numpy as np
-from typing import Tuple, Optional
+from typing import Tuple
 
 
 @dataclass
@@ -21,20 +21,20 @@ class Point2:
     """2D point in plane"""
     x: float
     y: float
-    
+
     def as_array(self) -> np.ndarray:
         """Convert to numpy array"""
         return np.array([self.x, self.y])
-    
+
     def __sub__(self, other: 'Point2') -> np.ndarray:
         """Vector from other to self"""
         return self.as_array() - other.as_array()
-    
+
     def __add__(self, vec: np.ndarray) -> 'Point2':
         """Add vector to point"""
         result = self.as_array() + vec
         return Point2(result[0], result[1])
-    
+
     def distance_to(self, other: 'Point2') -> float:
         """Euclidean distance to another point"""
         return np.linalg.norm(self - other)
@@ -45,17 +45,17 @@ class Segment2:
     """2D line segment"""
     p0: Point2  # Start point
     p1: Point2  # End point
-    
+
     def length(self) -> float:
         """Segment length"""
         return self.p0.distance_to(self.p1)
-    
+
     def direction(self) -> np.ndarray:
         """Unit direction vector"""
         vec = self.p1 - self.p0
         length = np.linalg.norm(vec)
         return vec / length if length > 1e-10 else np.array([1.0, 0.0])
-    
+
     def point_at(self, t: float) -> Point2:
         """Point at parameter t ? [0,1]"""
         vec = self.p1 - self.p0
@@ -68,7 +68,7 @@ class Capsule2:
     """2D capsule (segment with radius)"""
     segment: Segment2
     radius: float
-    
+
     def contains_point(self, point: Point2) -> bool:
         """Check if point is inside capsule"""
         return dist_point_segment(point, self.segment) <= self.radius
@@ -76,46 +76,46 @@ class Capsule2:
 
 class GeometryParams:
     """Geometry parameters for kinematics"""
-    
+
     def __init__(self):
         # Wheelbase and lever geometry
-        self.wheelbase = 2.5  # m (track width)
+        self.track_width = 2.5  # m (track width)
         self.lever_length = 0.4  # m (arm length L)
         self.pivot_offset_from_frame = 0.3  # m (offset b)
-        
+
         # Cylinder geometry
         self.cylinder_inner_diameter = 0.08  # m (D_in)
         self.rod_diameter = 0.032  # m (D_rod)
         self.piston_thickness = 0.02  # m (t_p)
         self.cylinder_body_length = 0.25  # m (L_body)
-        
+
         # Dead zones (minimum pocket volumes)
         self.dead_zone_rod = 0.00005  # m? (rod side, 50 cm?)
         self.dead_zone_head = 0.00005  # m? (head side, 50 cm?)
-        
+
         # Visualization radii
         self.arm_vis_radius = 0.025  # m (25mm arm thickness)
         self.cylinder_vis_radius = 0.045  # m (45mm cylinder outer)
-        
+
         # Attachment point on lever (fraction of length)
         self.rod_attach_fraction = 0.7  # ? (0.7 = 70% from pivot)
-        
+
     def validate_invariant_track(self) -> bool:
         """Validate track = 2 * (arm_length + pivot_offset)"""
         expected_track = 2.0 * (self.lever_length + self.pivot_offset_from_frame)
-        return abs(self.wheelbase - expected_track) < 1e-6
-    
+        return abs(self.track_width - expected_track) < 1e-6
+
     def enforce_track_from_geometry(self):
         """Recalculate track from arm_length and pivot_offset"""
-        self.wheelbase = 2.0 * (self.lever_length + self.pivot_offset_from_frame)
-    
+        self.track_width = 2.0 * (self.lever_length + self.pivot_offset_from_frame)
+
     def enforce_arm_length_from_track(self):
         """Recalculate arm_length from track (keeping pivot_offset fixed)"""
-        self.lever_length = (self.wheelbase / 2.0) - self.pivot_offset_from_frame
-    
+        self.lever_length = (self.track_width / 2.0) - self.pivot_offset_from_frame
+
     def enforce_pivot_offset_from_track(self):
         """Recalculate pivot_offset from track (keeping arm_length fixed)"""
-        self.pivot_offset_from_frame = (self.wheelbase / 2.0) - self.lever_length
+        self.pivot_offset_from_frame = (self.track_width / 2.0) - self.lever_length
 
 
 # =============================================================================
@@ -124,7 +124,7 @@ class GeometryParams:
 
 def dot(a: np.ndarray, b: np.ndarray) -> float:
     """Dot product (scalar product)
-    
+
     References: https://numpy.org/doc/stable/reference/generated/numpy.dot.html
     """
     return np.dot(a, b)
@@ -166,93 +166,93 @@ def angle_from_x_axis(v: np.ndarray) -> float:
 
 def dist_point_segment(point: Point2, segment: Segment2) -> float:
     """Distance from point to line segment
-    
+
     Algorithm:
     1. Project point onto infinite line containing segment
     2. Clamp projection parameter t to [0,1]
     3. Compute distance to clamped point
-    
+
     References: https://www.geometrictools.com/Source/Distance2D.html
     """
     p = point.as_array()
     a = segment.p0.as_array()
     b = segment.p1.as_array()
-    
+
     # Vector from a to b
     ab = b - a
     length_sq = dot(ab, ab)
-    
+
     # Degenerate segment (point)
     if length_sq < 1e-10:
         return norm(p - a)
-    
-    # Project point onto line: t = (p-a)·(b-a) / |b-a|?
+
+    # Project point onto line: t = (p-a)Â·(b-a) / |b-a|?
     t = dot(p - a, ab) / length_sq
-    
+
     # Clamp to segment
     t = np.clip(t, 0.0, 1.0)
-    
+
     # Closest point on segment
     closest = a + t * ab
-    
+
     return norm(p - closest)
 
 
 def closest_point_on_segment(point: Point2, segment: Segment2) -> Tuple[Point2, float]:
     """Find closest point on segment to given point
-    
+
     Returns:
         (closest_point, parameter_t)
     """
     p = point.as_array()
     a = segment.p0.as_array()
     b = segment.p1.as_array()
-    
+
     ab = b - a
     length_sq = dot(ab, ab)
-    
+
     if length_sq < 1e-10:
         return segment.p0, 0.0
-    
+
     t = dot(p - a, ab) / length_sq
     t = np.clip(t, 0.0, 1.0)
-    
+
     closest = a + t * ab
     return Point2(closest[0], closest[1]), t
 
 
 def dist_segment_segment(seg1: Segment2, seg2: Segment2) -> float:
     """Distance between two line segments
-    
+
     Algorithm:
     - Check if segments are parallel/degenerate
     - Find closest points on infinite lines
     - Clamp to segment bounds
     - Return minimum distance
-    
+
     References: https://www.geometrictools.com/Source/Distance2D.html
     """
     # Segment 1: p(s) = p0 + s*(p1-p0), s ? [0,1]
     # Segment 2: q(t) = q0 + t*(q1-q0), t ? [0,1]
-    
+
     p0 = seg1.p0.as_array()
     p1 = seg1.p1.as_array()
     q0 = seg2.p0.as_array()
     q1 = seg2.p1.as_array()
-    
+
     d1 = p1 - p0  # Direction of segment 1
     d2 = q1 - q0  # Direction of segment 2
     r = p0 - q0   # Vector from q0 to p0
-    
+
     a = dot(d1, d1)
     b = dot(d1, d2)
     c = dot(d2, d2)
     d = dot(d1, r)
     e = dot(d2, r)
-    
+
     # Parallel/degenerate check
     det = a * c - b * b
-    
+
     if abs(det) < 1e-10:
         # Segments are parallel - use endpoint distances
         distances = [
@@ -262,25 +262,25 @@ def dist_segment_segment(seg1: Segment2, seg2: Segment2) -> float:
             dist_point_segment(seg2.p1, seg1),
         ]
         return min(distances)
-    
+
     # Non-parallel case: solve for closest points
     s = (b * e - c * d) / det
     t = (a * e - b * d) / det
-    
+
     # Clamp to [0,1] x [0,1]
     s = np.clip(s, 0.0, 1.0)
     t = np.clip(t, 0.0, 1.0)
-    
+
     # Compute closest points
     closest1 = p0 + s * d1
     closest2 = q0 + t * d2
-    
+
     return norm(closest1 - closest2)
 
 
 def capsule_capsule_intersect(cap1: Capsule2, cap2: Capsule2) -> bool:
     """Check if two capsules intersect
-    
+
     Capsules intersect if distance between segments < sum of radii
     """
     dist = dist_segment_segment(cap1.segment, cap2.segment)

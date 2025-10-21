@@ -75,7 +75,7 @@ $gitConfigured = $false
 try {
     $userName = git config --local user.name 2>$null
 $userEmail = git config --local user.email 2>$null
-    
+
     if ($userName -and $userEmail) {
         Write-Host "   ✅ Git user configured" -ForegroundColor Green
         Write-Host "      Name: $userName"
@@ -86,7 +86,7 @@ $userEmail = git config --local user.email 2>$null
         Write-Host "      Run: git config --local user.name 'Your Name'" -ForegroundColor Gray
         Write-Host "      Run: git config --local user.email 'your@email.com'" -ForegroundColor Gray
     }
-    
+
     $autocrlf = git config --local core.autocrlf 2>$null
     if ($autocrlf -eq "true") {
         Write-Host " ✅ CRLF handling configured" -ForegroundColor Green

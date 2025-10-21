@@ -128,7 +128,7 @@ Then come back and verify the checklist.
 
 ---
 
-**Created**: 2024  
-**Status**: ✅ READY TO APPLY  
-**Time Required**: 5 minutes  
+**Created**: 2024
+**Status**: ✅ READY TO APPLY
+**Time Required**: 5 minutes
 **Priority**: 🔴 CRITICAL

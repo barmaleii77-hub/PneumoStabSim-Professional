@@ -42,7 +42,7 @@ Write-Host "Путь к профилю: $PROFILE" -ForegroundColor White
 
 if (Test-Path $PROFILE) {
     Write-Host "✅ Профиль существует" -ForegroundColor Green
- 
+
   # Проверяем, есть ли уже настройки кодировки
   $profileContent = Get-Content $PROFILE -Raw
     if ($profileContent -match "Console.*OutputEncoding.*UTF8") {

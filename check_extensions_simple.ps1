@@ -119,7 +119,7 @@ if ($missingCritical.Count -gt 0 -or $missingRecommended.Count -gt 0) {
     Write-Host "========================================"
     Write-Host " INSTALL COMMANDS"
     Write-Host "========================================"
-    
+
     if ($missingCritical.Count -gt 0) {
       Write-Host ""
      Write-Host "Install CRITICAL extensions:" -ForegroundColor Red
@@ -127,7 +127,7 @@ if ($missingCritical.Count -gt 0 -or $missingRecommended.Count -gt 0) {
 Write-Host "code --install-extension $ext"
         }
     }
-    
+
     if ($missingRecommended.Count -gt 0) {
         Write-Host ""
         Write-Host "Install RECOMMENDED extensions:" -ForegroundColor Yellow
@@ -135,7 +135,7 @@ Write-Host "code --install-extension $ext"
         Write-Host "code --install-extension $ext"
         }
     }
-    
+
     # Create install script
     Write-Host ""
     Write-Host "Creating install_extensions.ps1..." -ForegroundColor Cyan

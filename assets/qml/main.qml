@@ -101,40 +101,26 @@ function alphaModeFromString(mode) {
  }
 }
 
+// Enhanced error handling and validation utilities
 function requireDefinedSetting(name, value) {
- if (value === undefined || value === null)
- throw new Error('Missing required setting: ' + name);
- return value;
+    if (value === undefined || value === null)
+    throw new Error('Missing required setting: ' + name);
+    return value;
 }
 
 function requireObjectSetting(name, value) {
- var resolved = requireDefinedSetting(name, value);
- if (typeof resolved !== 'object')
- throw new Error('Invalid object for ' + name + ': ' + resolved);
- return resolved;
-}
-
-function requireObjectKey(objectName, objectValue, key) {
- var container = requireObjectSetting(objectName, objectValue);
- if (!Object.prototype.hasOwnProperty.call(container, key))
- throw new Error('Missing required setting: ' + objectName + '.' + key);
- var resolved = container[key];
- if (resolved === undefined || resolved === null)
- throw new Error('Missing required setting: ' + objectName + '.' + key);
- return resolved;
+    var resolved = requireDefinedSetting(name, value);
+    if (typeof resolved !== 'object')
+   throw new Error('Invalid object for ' + name + ': ' + resolved);
+return resolved;
 }
 
 function requireNumericSetting(name, value, minValue, maxValue) {
- var resolved = requireDefinedSetting(name, value);
- var numeric = Number(resolved);
- if (!isFinite(numeric))
- throw new Error('Invalid numeric value for ' + name + ': ' + resolved);
- if (typeof minValue === 'number' && typeof maxValue === 'number') {
- if (numeric < minValue || numeric > maxValue)
- console.warn('Value out of range for ' + name + ': ' + numeric + ' (expected ' + minValue + '…' + maxValue + ')');
- return clamp(numeric, minValue, maxValue);
- }
- return numeric;
+    var resolved = requireDefinedSetting(name, value);
+var numeric = Number(resolved);
+    if (!isFinite(numeric))
+        throw new Error('Invalid numeric value for ' + name + ': ' + resolved);
+    return clamp(numeric, minValue, maxValue);
 }
 
 function requireBooleanSetting(name, value) {
@@ -433,7 +419,7 @@ function requireStringSetting(name, value, allowEmpty) {
  root.iblPrimarySourceSetting = normalizeSourcePath(p.ibl_source);
  }
  if (Object.prototype.hasOwnProperty.call(p, 'ibl_fallback')) {
- root.iblFallbackSourceSetting = normalizeSourcePath(p.ibl_fallback);
+ root.ibtFallbackSourceSetting = normalizeSourcePath(p.ibl_fallback);
  }
  if (typeof p.ibl_intensity === 'number' && isFinite(p.ibl_intensity)) root.iblIntensity = Math.max(0.0, Math.min(8.0, p.ibl_intensity));
  if (typeof p.probe_brightness === 'number' && isFinite(p.probe_brightness)) root.envProbeBrightness = Math.max(0.0, Math.min(8.0, p.probe_brightness));
@@ -495,7 +481,7 @@ function requireStringSetting(name, value, allowEmpty) {
  function applyQualityUpdates(p) {
  if (!p) return;
  console.log("🎨 applyQualityUpdates вызван с параметрами:", JSON.stringify(p));
- 
+
  // ======== ANTIALIASING ========
  // Вариант1: вложенный объект (новый формат)
  if (p.antialiasing && p.antialiasing.primary) {
@@ -515,7 +501,7 @@ function requireStringSetting(name, value, allowEmpty) {
  if (p.antialiasing && typeof p.antialiasing.post === 'string') {
  root.aaPostMode = p.antialiasing.post.toLowerCase();
  }
- 
+
  // Вариант2: плоская структура (старый формат GraphicsPanel)
  if (typeof p.antialiasing === 'string') {
  console.log(" → antialiasing (flat):", p.antialiasing);
@@ -536,7 +522,7 @@ function requireStringSetting(name, value, allowEmpty) {
  if (typeof p.aa_post === 'string') {
  root.aaPostMode = p.aa_post.toLowerCase();
  }
- 
+
  // Temporal AA (Qt6.10)
  if (p.taa_enabled !== undefined) root.taaEnabledSetting = !!p.taa_enabled;
  if (typeof p.taa_strength === 'number' && isFinite(p.taa_strength)) {
@@ -548,7 +534,7 @@ function requireStringSetting(name, value, allowEmpty) {
  if (p.specular_aa !== undefined) root.specularAAEnabledSetting = !!p.specular_aa;
 
  if (typeof p.dithering === 'boolean') setIfExists(env, 'ditheringEnabled', p.dithering);
- 
+
  // ======== SHADOWS ========
  // Вариант1: плоская структура (GraphicsPanel)
  if (typeof p.shadows_enabled === 'boolean') {
@@ -559,7 +545,7 @@ function requireStringSetting(name, value, allowEmpty) {
  root.rimLightCastShadow = false;
  console.log(" ✅ Тени установлены (flat):", p.shadows_enabled);
  }
- 
+
  // Вариант2: вложенная структура (старый формат)
  if (p.shadows && typeof p.shadows.enabled === 'boolean') {
  console.log(" → shadows.enabled (legacy):", p.shadows.enabled);
@@ -576,7 +562,7 @@ function requireStringSetting(name, value, allowEmpty) {
  if (p.shadows && typeof p.shadows.darkness === 'number' && isFinite(p.shadows.darkness)) {
  root.shadowFactor = Math.max(0.0, Math.min(100.0, p.shadows.darkness));
  }
- 
+
  // Качество теней - плоская структура
  if (typeof p.shadow_quality === 'string') {
  console.log(" → shadow_quality (flat):", p.shadow_quality);
@@ -586,7 +572,7 @@ function requireStringSetting(name, value, allowEmpty) {
  case 'high': env.shadowMapQuality = SceneEnvironment.High; break;
  }
  }
- 
+
  // Качество теней - вложенная структура
  if (p.shadows && typeof p.shadows.resolution === 'string') {
  console.log(" → shadows.resolution (legacy):", p.shadows.resolution);
@@ -597,13 +583,13 @@ function requireStringSetting(name, value, allowEmpty) {
  case '4096': env.shadowMapQuality = SceneEnvironment.High; break;
  }
  }
- 
+
  // Мягкость теней
  if (typeof p.shadow_softness === 'number' && isFinite(p.shadow_softness)) {
  console.log(" → shadow_softness:", p.shadow_softness);
  root.shadowFilterSamples = Math.max(1, Math.round(4 + Math.max(0, p.shadow_softness) *28));
  }
- 
+
  // Прозрачность (Order-Independent Transparency)
  if (typeof p.oit === 'string') {
  switch (p.oit) {
@@ -627,7 +613,7 @@ function requireStringSetting(name, value, allowEmpty) {
  var fps = Math.max(0.0, Math.min(480.0, p.frame_rate_limit));
  root.frameRateLimitSetting = fps;
  }
- 
+
  // Mesh quality
  if (p.mesh) {
  if (typeof p.mesh.cylinder_segments === 'number') root.cylinderSegments = p.mesh.cylinder_segments;
@@ -658,7 +644,7 @@ function requireStringSetting(name, value, allowEmpty) {
  if (typeof p.bloom_hdr_scale === 'number' && isFinite(p.bloom_hdr_scale)) root.bloomHdrScaleSetting = clamp(p.bloom_hdr_scale,0.0,10.0);
  if (typeof p.bloom_quality_high === 'boolean') root.bloomQualityHighSetting = p.bloom_quality_high;
  if (typeof p.bloom_bicubic_upscale === 'boolean') root.bloomBicubicUpscaleSetting = p.bloom_bicubic_upscale;
- 
+
  // ======== TONEMAP ========
  // Проверяем ОБА варианта: с enabled и без
  if (typeof p.tonemap_enabled === 'boolean') {
@@ -677,15 +663,15 @@ function requireStringSetting(name, value, allowEmpty) {
  root.tonemapEnabledSetting = tonemapValue !== 'none';
  }
  }
- 
+
  if (typeof p.tonemap_exposure === 'number' && isFinite(p.tonemap_exposure)) root.tonemapExposureSetting = clamp(p.tonemap_exposure,0.0,10.0);
  if (typeof p.tonemap_white_point === 'number' && isFinite(p.tonemap_white_point)) root.tonemapWhitePointSetting = clamp(p.tonemap_white_point,0.0,20.0);
- 
+
  // ======== DEPTH OF FIELD ========
  if (typeof p.depth_of_field === 'boolean') root.depthOfFieldEnabledSetting = p.depth_of_field;
  if (typeof p.dof_focus_distance === 'number' && isFinite(p.dof_focus_distance)) root.dofFocusDistanceSetting = clamp(p.dof_focus_distance,0.0,400000.0);
  if (typeof p.dof_blur === 'number' && isFinite(p.dof_blur)) root.dofBlurAmountSetting = clamp(p.dof_blur,0.0,100.0);
- 
+
  // ======== LENS FLARE ========
  if (typeof p.lens_flare === 'boolean') root.lensFlareEnabledSetting = p.lens_flare;
  if (typeof p.lens_flare_ghost_count === 'number' && isFinite(p.lens_flare_ghost_count)) root.lensFlareGhostCountSetting = Math.max(0, Math.min(8, Math.round(p.lens_flare_ghost_count)));
@@ -693,7 +679,7 @@ function requireStringSetting(name, value, allowEmpty) {
  if (typeof p.lens_flare_halo_width === 'number' && isFinite(p.lens_flare_halo_width)) root.lensFlareHaloWidthSetting = clamp(p.lens_flare_halo_width,0.0,10.0);
  if (typeof p.lens_flare_bloom_bias === 'number' && isFinite(p.lens_flare_bloom_bias)) root.lensFlareBloomBiasSetting = clamp(p.lens_flare_bloom_bias,0.0,5.0);
  if (typeof p.lens_flare_stretch_to_aspect === 'boolean') root.lensFlareStretchSetting = p.lens_flare_stretch_to_aspect;
- 
+
  // ======== VIGNETTE ========
  if (typeof p.vignette === 'boolean') {
  console.log(" → vignette:", p.vignette);
@@ -704,16 +690,16 @@ function requireStringSetting(name, value, allowEmpty) {
  root.vignetteStrengthSetting = clamp(p.vignette_strength,0.0,1.0);
  }
  if (typeof p.vignette_radius === 'number' && isFinite(p.vignette_radius)) root.vignetteRadiusSetting = clamp(p.vignette_radius,0.0,1.0);
- 
+
  // ======== MOTION BLUR ========
  if (typeof p.motion_blur === 'boolean') root.motionBlurEnabledSetting = p.motion_blur;
  if (typeof p.motion_blur_amount === 'number' && isFinite(p.motion_blur_amount)) root.motionBlurAmountSetting = clamp(p.motion_blur_amount,0.0,1.0);
- 
+
  // ======== COLOR ADJUSTMENTS ========
  if (typeof p.adjustment_brightness === 'number' && isFinite(p.adjustment_brightness)) root.adjustmentBrightnessSetting = clamp(p.adjustment_brightness, -10.0,10.0);
  if (typeof p.adjustment_contrast === 'number' && isFinite(p.adjustment_contrast)) root.adjustmentContrastSetting = clamp(p.adjustment_contrast, -10.0,10.0);
  if (typeof p.adjustment_saturation === 'number' && isFinite(p.adjustment_saturation)) root.adjustmentSaturationSetting = clamp(p.adjustment_saturation, -10.0,10.0);
- 
+
  console.log("✅ applyEffectsUpdates завершён успешно");
  } catch (e) {
  console.error("❌ Ошибка в applyEffectsUpdates:", e, e.stack);
@@ -787,7 +773,7 @@ function requireStringSetting(name, value, allowEmpty) {
  // ===============================================================
 
  // Geometry parameters (мм)
- property real userBeamSize:120
+ property real userBeamSize: requireNumericSetting("geometry.userBeamSize", geometryStart.userBeamSize, 0.0, 100000.0)
  property real userFrameHeight:650
  property real userFrameLength:3200
  property real userLeverLength:800
@@ -1488,7 +1474,7 @@ function requireStringSetting(name, value, allowEmpty) {
  id: env
  // ❌ НЕТ ДЕФОЛТНЫХ ЗНАЧЕНИЙ В QML!
  // ✅ ВСЕ значения устанавливаются ТОЛЬКО из Python через applyBatchedUpdates()
- 
+
  // Только критичные для работы сцены
  backgroundMode: root.backgroundMode
  clearColor: root.backgroundColor

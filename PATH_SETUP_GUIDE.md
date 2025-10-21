@@ -291,6 +291,6 @@ CMD ["python", "app.py"]
 
 ---
 
-**Last Updated**: 2025-01-24  
-**Script Version**: 1.0.0  
+**Last Updated**: 2025-01-24
+**Script Version**: 1.0.0
 **Compatibility**: Windows 10+, Linux, macOS

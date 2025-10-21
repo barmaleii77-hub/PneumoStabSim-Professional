@@ -14,7 +14,13 @@
       "piston_rod_length_m": 0.5,
       "piston_thickness_m": 0.1,
       "interference_check": true,
-      "link_rod_diameters": false
+      "link_rod_diameters": false,
+      "frame_height_mm": 650.0,
+      "frame_beam_size_mm": 120.0,
+      "tail_mount_offset_mm": 100.0,
+      "joint_tail_scale": 1.0,
+      "joint_arm_scale": 1.0,
+      "joint_rod_scale": 1.0
     },
     "pneumatic": {
       "volume_mode": "MANUAL",
@@ -547,7 +553,13 @@
       "piston_rod_length_m": 0.5,
       "piston_thickness_m": 0.1,
       "interference_check": true,
-      "link_rod_diameters": false
+      "link_rod_diameters": false,
+      "frame_height_mm": 650.0,
+      "frame_beam_size_mm": 120.0,
+      "tail_mount_offset_mm": 100.0,
+      "joint_tail_scale": 1.0,
+      "joint_arm_scale": 1.0,
+      "joint_rod_scale": 1.0
     },
     "pneumatic": {
       "volume_mode": "MANUAL",

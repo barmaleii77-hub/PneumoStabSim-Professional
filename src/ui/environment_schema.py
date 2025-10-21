@@ -7,7 +7,7 @@ and falls within the documented Qt6.10 ranges.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Any, Dict, Mapping, Sequence
+from typing import Any, Sequence
 import re
 
 __all__ = [

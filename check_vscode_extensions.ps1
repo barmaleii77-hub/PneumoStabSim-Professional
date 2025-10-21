@@ -38,7 +38,7 @@ $extensionsFile = ".vscode\extensions.json"
 if (-not (Test-Path $extensionsFile)) {
     Write-Host "`nWARNING: $extensionsFile not found!" -ForegroundColor Yellow
     Write-Host "Creating recommended extensions list..." -ForegroundColor Yellow
-    
+
     # Create recommended list
     $recommended = @{
   recommendations = @(
@@ -48,32 +48,32 @@ if (-not (Test-Path $extensionsFile)) {
    "ms-python.black-formatter",
     "ms-python.flake8",
      "ms-python.mypy-type-checker",
-            
+
           # AI & Copilot
             "github.copilot",
       "github.copilot-chat",
-            
+
             # Git
             "eamodio.gitlens",
             "donjayamanne.githistory",
     "mhutchie.git-graph",
-        
+
       # QML
             "bbenoist.QML",
-    
+
             # Productivity
         "streetsidesoftware.code-spell-checker",
             "streetsidesoftware.code-spell-checker-russian",
             "aaron-bond.better-comments",
   "wayou.vscode-todo-highlight",
             "usernamehw.errorlens",
-     
+
           # Markdown
             "yzhang.markdown-all-in-one",
          "davidanson.vscode-markdownlint"
     )
     }
-    
+
     New-Item -ItemType Directory -Path ".vscode" -Force | Out-Null
     $recommended | ConvertTo-Json -Depth 10 | Set-Content $extensionsFile -Encoding UTF8
     Write-Host "OK: Created $extensionsFile" -ForegroundColor Green
@@ -139,7 +139,7 @@ $installedCount = 0
 
 foreach ($category in $categories.Keys) {
     Write-Host "`n$category :" -ForegroundColor Yellow
-    
+
     foreach ($ext in $categories[$category]) {
         $isInstalled = $installed -contains $ext
      $isCritical = $ext -in @(
@@ -150,14 +150,14 @@ foreach ($category in $categories.Keys) {
       "eamodio.gitlens",
   "streetsidesoftware.code-spell-checker-russian"
         )
-        
+
    if ($isInstalled) {
        Write-Host "  ✅ $ext" -ForegroundColor Green
           $installedCount++
         } else {
    $marker = if ($isCritical) { "🔴" } else { "⚠️" }
             Write-Host "  $marker $ext" -ForegroundColor $(if ($isCritical) { "Red" } else { "Yellow" })
-            
+
             if ($isCritical) {
     $missingCritical += $ext
     } else {
@@ -200,7 +200,7 @@ if ($missingCritical.Count -gt 0) {
     Write-Host "`n🔴 INSTALL CRITICAL EXTENSIONS (REQUIRED):" -ForegroundColor Red
     Write-Host "`nOption 1 - Install all critical at once:" -ForegroundColor White
     Write-Host "code --install-extension $($missingCritical -join ' --install-extension ')" -ForegroundColor Gray
-    
+
     Write-Host "`nOption 2 - Use VS Code UI:" -ForegroundColor White
     Write-Host "1. Press Ctrl+Shift+X" -ForegroundColor Gray
     Write-Host "2. Type '@recommended'" -ForegroundColor Gray
@@ -226,13 +226,13 @@ if ($missingCritical.Count -gt 0 -or $missingOptional.Count -gt 0) {
     Write-Host "`n========================================" -ForegroundColor Cyan
     Write-Host " QUICK INSTALL COMMAND" -ForegroundColor Cyan
     Write-Host "========================================" -ForegroundColor Cyan
-    
+
     $allMissing = $missingCritical + $missingOptional
     $installCmd = "code " + ($allMissing | ForEach-Object { "--install-extension $_" }) -join " "
-    
+
     Write-Host "`nCopy and run this command to install ALL missing extensions:" -ForegroundColor Yellow
     Write-Host $installCmd -ForegroundColor Gray
-    
+
     Write-Host "`nOr save to file:" -ForegroundColor Yellow
     $installScript = "install_missing_extensions.ps1"
     $installCmd | Set-Content $installScript -Encoding UTF8

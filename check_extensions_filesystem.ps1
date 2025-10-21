@@ -102,11 +102,11 @@ $totalCount = 0
 
 foreach ($category in $recommended.Keys) {
     Write-Host "`n📦 $category :" -ForegroundColor Yellow
-    
+
     foreach ($ext in $recommended[$category]) {
         $totalCount++
         $isInstalled = $installed -contains $ext.id
- 
+
         if ($isInstalled) {
         Write-Host "  ✅ $($ext.name) ($($ext.id))" -ForegroundColor Green
             $installedCount++
@@ -114,7 +114,7 @@ foreach ($category in $recommended.Keys) {
  $marker = if ($ext.critical) { "🔴" } else { "⚠️" }
             $color = if ($ext.critical) { "Red" } else { "Yellow" }
             Write-Host "  $marker $($ext.name) ($($ext.id))" -ForegroundColor $color
-      
+
          if ($ext.critical) {
     $missingCritical += @{ id = $ext.id; name = $ext.name }
      } else {
@@ -159,24 +159,24 @@ Write-Host "1. Open VS Code" -ForegroundColor White
     Write-Host "2. Press Ctrl+Shift+X (Extensions)" -ForegroundColor White
     Write-Host "3. Type: @recommended" -ForegroundColor White
     Write-Host "4. Click 'Install Workspace Extension Recommendations'" -ForegroundColor White
-    
+
     Write-Host "`n📝 METHOD 2: Search Manually" -ForegroundColor Yellow
     Write-Host "In VS Code Extensions (Ctrl+Shift+X), search for:" -ForegroundColor White
-    
+
     if ($missingCritical.Count -gt 0) {
       Write-Host "`nCRITICAL:" -ForegroundColor Red
      foreach ($ext in $missingCritical) {
        Write-Host "  - $($ext.name)" -ForegroundColor White
         }
     }
-    
+
     if ($missingOptional.Count -gt 0) {
   Write-Host "`nOPTIONAL:" -ForegroundColor Yellow
         foreach ($ext in $missingOptional) {
             Write-Host "  - $($ext.name)" -ForegroundColor Gray
         }
  }
-  
+
     Write-Host "`n📝 METHOD 3: Command Line (if 'code' in PATH)" -ForegroundColor Yellow
  $allMissing = ($missingCritical + $missingOptional) | ForEach-Object { $_.id }
     foreach ($extId in $allMissing) {
@@ -192,8 +192,8 @@ if ($missingCritical.Count -gt 0) {
     Write-Host "`n========================================" -ForegroundColor Cyan
     Write-Host " ⭐ TOP PRIORITY (Install First)" -ForegroundColor Cyan
     Write-Host "========================================" -ForegroundColor Cyan
-    
-    $priority = $missingCritical | Sort-Object { 
+
+    $priority = $missingCritical | Sort-Object {
       switch ($_.id) {
         "github.copilot" { 1 }
   "github.copilot-chat" { 2 }
@@ -206,7 +206,7 @@ if ($missingCritical.Count -gt 0) {
             default { 99 }
  }
     }
-    
+
   $num = 1
     foreach ($ext in $priority) {
         Write-Host "$num. $($ext.name)" -ForegroundColor White
@@ -223,18 +223,18 @@ Write-Host "========================================" -ForegroundColor Cyan
 $extensionsJsonPath = ".vscode\extensions.json"
 if (-not (Test-Path $extensionsJsonPath)) {
     Write-Host "`nCreating .vscode\extensions.json..." -ForegroundColor Yellow
-    
+
     $allExtIds = @()
     foreach ($category in $recommended.Keys) {
      foreach ($ext in $recommended[$category]) {
             $allExtIds += $ext.id
         }
     }
-    
+
     $extensionsJson = @{
       recommendations = $allExtIds
     } | ConvertTo-Json -Depth 10
-  
+
     New-Item -ItemType Directory -Path ".vscode" -Force -ErrorAction SilentlyContinue | Out-Null
     $extensionsJson | Set-Content $extensionsJsonPath -Encoding UTF8
     Write-Host "✅ Created: $extensionsJsonPath" -ForegroundColor Green

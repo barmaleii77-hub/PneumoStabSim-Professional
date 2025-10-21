@@ -5,7 +5,7 @@ Qt Quick3D rendering with QQuickWidget (no createWindowContainer)
 """
 from PySide6.QtWidgets import (
  QMainWindow, QStatusBar, QWidget, QLabel,
- QVBoxLayout, QHBoxLayout, QMessageBox, QSplitter,
+ QSplitter,
  QTabWidget, QScrollArea
 )
 from PySide6.QtCore import (
@@ -32,7 +32,7 @@ from .environment_schema import (
  EnvironmentValidationError,
  validate_environment_settings,
 )
-from src.common.event_logger import get_event_logger, EventType # ✅ EventLogger
+from src.common.event_logger import get_event_logger # ✅ EventLogger
 from src.common.settings_manager import get_settings_manager # ✅ SettingsManager
 
 
@@ -723,3 +723,36 @@ class MainWindow(QMainWindow):
 
   finally:
    self.logger.info("Завершена обработка параметров окружения.")
+
+# Исправление отступов в функциях
+
+def _as_float(value: Any) -> float:
+ try:
+  return float(value)
+ except (ValueError, TypeError):
+  raise ValueError(f"Невозможно преобразовать в float: {value}")
+
+
+def _as_bool(value: Any) -> bool:
+ if isinstance(value, bool):
+  return value
+ if isinstance(value, str):
+  return value.lower() in ("true", "1", "yes")
+ if isinstance(value, (int, float)):
+  return value !=0
+ raise ValueError(f"Невозможно преобразовать в bool: {value}")
+
+
+def _as_int(value: Any) -> int:
+ try:
+  return int(value)
+ except (ValueError, TypeError):
+  raise ValueError(f"Невозможно преобразовать в int: {value}")
+
+
+def _ctx(name: str, value: Any) -> None:
+ try:
+  context = self._qquick_widget.engine().rootContext()
+  context.setContextProperty(name, value)
+ except Exception as err:
+  raise RuntimeError(f"Failed to expose context property {name}: {err}") from err

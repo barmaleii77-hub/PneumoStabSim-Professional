@@ -84,8 +84,8 @@ Setup complete when:
 
 ---
 
-**Time**: 5 minutes  
-**Difficulty**: Easy  
+**Time**: 5 minutes
+**Difficulty**: Easy
 **Impact**: +11.4% productivity
 
 ---

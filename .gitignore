@@ -855,5 +855,6 @@ assets/hdr/*.exr
 
 # Allow targeted unit tests for schema validation
 !tests/unit/test_environment_schema.py
+!tests/unit/test_geometry_schema.py
 
 # END OF .GITIGNORE

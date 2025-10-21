@@ -70,11 +70,11 @@ PneumoStabSim-Professional/
 def calculate_position(angle: float, length: float) -> tuple[float, float]:
     """
     Вычисляет позицию точки по углу и длине.
-    
+
     Args:
         angle: Угол в градусах
         length: Длина в миллиметрах
-        
+
     Returns:
         Кортеж (x, y) координат в мм
     """
@@ -160,7 +160,7 @@ def closeEvent(self, event):
     if self.graphics_panel:
         state = self.graphics_panel.collect_state()
         self.settings_manager.set_category("graphics", state, auto_save=False)
-    
+
     # 2) Пишем на диск ОДИН РАЗ
     self.settings_manager.save()
 ```
@@ -172,14 +172,14 @@ def _normalize_hdr_path(candidate: Any, qml_dir: Path) -> str:
     """Преобразует любой путь к HDR в POSIX формат относительно qml_dir"""
     if not candidate:
         return ""
-    
+
     path_obj = Path(str(candidate).replace("\\", "/"))
     resolved = path_obj.resolve(strict=False)
-    
+
     # Относительный путь предпочтительнее
     if not path_obj.is_absolute():
         return path_obj.as_posix()
-    
+
     try:
         return resolved.relative_to(qml_dir).as_posix()
     except ValueError:

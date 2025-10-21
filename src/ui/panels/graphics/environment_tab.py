@@ -10,7 +10,7 @@ Part of modular GraphicsPanel restructuring
 """
 
 from PySide6.QtWidgets import (
-    QWidget, QVBoxLayout, QGroupBox, QLabel, 
+    QWidget, QVBoxLayout, QGroupBox, QLabel,
     QComboBox, QCheckBox, QHBoxLayout, QGridLayout
 )
 from PySide6.QtCore import Signal
@@ -23,35 +23,35 @@ from src.ui.environment_schema import validate_environment_settings
 
 class EnvironmentTab(QWidget):
     """Вкладка настроек окружения: фон, IBL, туман, AO
-    
+
     Signals:
         environment_changed: Dict[str, Any] - параметры окружения изменились
     """
-    
+
     environment_changed = Signal(dict)
-    
+
     def __init__(self, parent=None):
         super().__init__(parent)
-        
+
         # Current state - храним ссылки на контролы
         self._controls: Dict[str, Any] = {}
         self._updating_ui = False
-        
+
         # Setup UI
         self._setup_ui()
-    
+
     def _setup_ui(self):
         """Построить UI вкладки - РАСШИРЕННАЯ ВЕРСИЯ"""
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(12)
-        
+
         layout.addWidget(self._build_background_group())
         layout.addWidget(self._build_fog_group())
         layout.addWidget(self._build_ao_group())
-        
+
         layout.addStretch(1)
-    
+
     def _build_background_group(self) -> QGroupBox:
         """Создать группу Фон и IBL - расширенная"""
         group = QGroupBox("Фон и IBL", self)
@@ -60,7 +60,7 @@ class EnvironmentTab(QWidget):
         grid.setHorizontalSpacing(12)
         grid.setVerticalSpacing(8)
         row = 0
-        
+
         # Background mode
         grid.addWidget(QLabel("Режим фона", self), row, 0)
         bg_mode = QComboBox(self)
@@ -71,7 +71,7 @@ class EnvironmentTab(QWidget):
         self._controls["background.mode"] = bg_mode
         grid.addWidget(bg_mode, row, 1)
         row += 1
-        
+
         # Background color
         bg_row = QHBoxLayout()
         bg_row.addWidget(QLabel("Цвет", self))
@@ -82,49 +82,49 @@ class EnvironmentTab(QWidget):
         bg_row.addStretch(1)
         grid.addLayout(bg_row, row, 0, 1, 2)
         row += 1
-        
+
         # Skybox enabled
         skybox_toggle = QCheckBox("Показывать Skybox (фон)", self)
         skybox_toggle.clicked.connect(lambda checked: self._on_skybox_enabled_clicked(checked))
         self._controls["background.skybox_enabled"] = skybox_toggle
         grid.addWidget(skybox_toggle, row, 0, 1, 2)
         row += 1
-        
+
         # IBL enabled
         ibl_check = QCheckBox("Включить IBL", self)
         ibl_check.clicked.connect(lambda checked: self._on_ibl_enabled_clicked(checked))
         self._controls["ibl.enabled"] = ibl_check
         grid.addWidget(ibl_check, row, 0, 1, 2)
         row += 1
-        
+
         # IBL intensity
         intensity = LabeledSlider("Интенсивность IBL", 0.0, 8.0, 0.05, decimals=2)
         intensity.valueChanged.connect(lambda v: self._on_control_changed("ibl_intensity", v))
         self._controls["ibl.intensity"] = intensity
         grid.addWidget(intensity, row, 0, 1, 2)
         row += 1
-        
+
         # IBL extra: probe brightness (если поддерживается движком)
         probe_brightness = LabeledSlider("Яркость пробы (probeBrightness)", 0.0, 8.0, 0.05, decimals=2)
         probe_brightness.valueChanged.connect(lambda v: self._on_control_changed("probe_brightness", v))
         self._controls["ibl.probe_brightness"] = probe_brightness
         grid.addWidget(probe_brightness, row, 0, 1, 2)
         row += 1
-        
+
         # IBL extra: probe horizon cutoff (-1..1)
         probe_horizon = LabeledSlider("Горизонт пробы (probeHorizon)", -1.0, 1.0, 0.01, decimals=2)
         probe_horizon.valueChanged.connect(lambda v: self._on_control_changed("probe_horizon", v))
         self._controls["ibl.probe_horizon"] = probe_horizon
         grid.addWidget(probe_horizon, row, 0, 1, 2)
         row += 1
-        
+
         # Skybox blur
         blur = LabeledSlider("Размытие skybox", 0.0, 1.0, 0.01, decimals=2)
         blur.valueChanged.connect(lambda v: self._on_control_changed("skybox_blur", v))
         self._controls["skybox.blur"] = blur
         grid.addWidget(blur, row, 0, 1, 2)
         row += 1
-        
+
         # HDR file (primary)
         hdr_combo = QComboBox(self)
         hdr_files = self._discover_hdr_files()
@@ -161,14 +161,14 @@ class EnvironmentTab(QWidget):
         grid.addWidget(QLabel("HDR fallback", self), row, 0)
         grid.addWidget(fallback_combo, row, 1)
         row += 1
-        
+
         # IBL rotation
         ibl_rot = LabeledSlider("Поворот IBL", -1080.0, 1080.0, 1.0, decimals=0, unit="°")
         ibl_rot.valueChanged.connect(lambda v: self._on_control_changed("ibl_rotation", v))
         self._controls["ibl.rotation"] = ibl_rot
         grid.addWidget(ibl_rot, row, 0, 1, 2)
         row += 1
-        
+
         # IBL offsets
         env_off_x = LabeledSlider("Смещение окружения X", -180.0, 180.0, 1.0, decimals=0, unit="°")
         env_off_x.valueChanged.connect(lambda v: self._on_control_changed("ibl_offset_x", v))
@@ -180,15 +180,15 @@ class EnvironmentTab(QWidget):
         self._controls["ibl.offset_y"] = env_off_y
         grid.addWidget(env_off_y, row, 0, 1, 2)
         row += 1
-        
+
         # IBL bind
         env_bind = QCheckBox("Привязать окружение к камере", self)
         env_bind.clicked.connect(lambda checked: self._on_control_changed("ibl_bind_to_camera", checked))
         self._controls["ibl.bind"] = env_bind
         grid.addWidget(env_bind, row, 0, 1, 2)
-        
+
         return group
-    
+
     def _discover_hdr_files(self) -> List[Tuple[str, str]]:
         results: List[Tuple[str, str]] = []
         search_dirs = [Path("assets/hdr"), Path("assets/hdri"), Path("assets/qml/assets")]
@@ -251,7 +251,7 @@ class EnvironmentTab(QWidget):
             combo.addItem(label, path)
             target_index = combo.count() - 1
         combo.setCurrentIndex(target_index if target_index >= 0 else 0)
-    
+
     def _build_fog_group(self) -> QGroupBox:
         """Создать группу Туман - расширенная (Fog Qt 6.10)"""
         group = QGroupBox("Туман", self)
@@ -260,66 +260,94 @@ class EnvironmentTab(QWidget):
         grid.setHorizontalSpacing(12)
         grid.setVerticalSpacing(8)
         row = 0
-        
+
         enabled = QCheckBox("Включить туман", self)
         enabled.clicked.connect(lambda checked: self._on_fog_enabled_clicked(checked))
         self._controls["fog.enabled"] = enabled
-        grid.addWidget(enabled, row, 0, 1, 2); row += 1
-        
-        color_row = QHBoxLayout(); color_row.addWidget(QLabel("Цвет", self))
-        fog_color = ColorButton(); fog_color.color_changed.connect(lambda c: self._on_control_changed("fog_color", c))
-        self._controls["fog.color"] = fog_color; color_row.addWidget(fog_color); color_row.addStretch(1)
-        grid.addLayout(color_row, row, 0, 1, 2); row += 1
-        
+        grid.addWidget(enabled, row, 0, 1, 2)
+        row += 1
+
+        color_row = QHBoxLayout()
+        color_row.addWidget(QLabel("Цвет", self))
+        fog_color = ColorButton()
+        fog_color.color_changed.connect(lambda c: self._on_control_changed("fog_color", c))
+        self._controls["fog.color"] = fog_color
+        color_row.addWidget(fog_color)
+        color_row.addStretch(1)
+        grid.addLayout(color_row, row, 0, 1, 2)
+        row += 1
+
         density = LabeledSlider("Плотность", 0.0, 1.0, 0.01, decimals=2)
         density.valueChanged.connect(lambda v: self._on_control_changed("fog_density", v))
         self._controls["fog.density"] = density
-        grid.addWidget(density, row, 0, 1, 2); row += 1
-        
+        grid.addWidget(density, row, 0, 1, 2)
+        row += 1
+
         near_slider = LabeledSlider("Начало (Near)", 0.0, 200000.0, 50.0, decimals=0, unit="мм")
         near_slider.valueChanged.connect(lambda v: self._on_control_changed("fog_near", v))
         self._controls["fog.near"] = near_slider
-        grid.addWidget(near_slider, row, 0, 1, 2); row += 1
-        
+        grid.addWidget(near_slider, row, 0, 1, 2)
+        row += 1
+
         far_slider = LabeledSlider("Конец (Far)", 500.0, 400000.0, 100.0, decimals=0, unit="мм")
         far_slider.valueChanged.connect(lambda v: self._on_control_changed("fog_far", v))
         self._controls["fog.far"] = far_slider
-        grid.addWidget(far_slider, row, 0, 1, 2); row += 1
-        
+        grid.addWidget(far_slider, row, 0, 1, 2)
+        row += 1
+
         # Высотный туман
         h_enabled = QCheckBox("Высотный туман (height)", self)
         h_enabled.clicked.connect(lambda checked: self._on_control_changed("fog_height_enabled", checked))
         self._controls["fog.height_enabled"] = h_enabled
-        grid.addWidget(h_enabled, row, 0, 1, 2); row += 1
-        
-        least_y = LabeledSlider("Наименее интенсивная высота Y", -100000.0, 100000.0, 50.0, decimals=0, unit="мм")
+        grid.addWidget(h_enabled, row, 0, 1, 2)
+        row += 1
+
+        least_y = LabeledSlider(
+            "Наименее интенсивная высота Y",
+            -100000.0,
+            100000.0,
+            50.0,
+            decimals=0,
+            unit="мм",
+        )
         least_y.valueChanged.connect(lambda v: self._on_control_changed("fog_least_intense_y", v))
         self._controls["fog.least_y"] = least_y
-        grid.addWidget(least_y, row, 0, 1, 2); row += 1
-        
-        most_y = LabeledSlider("Наиболее интенсивная высота Y", -100000.0, 100000.0, 50.0, decimals=0, unit="мм")
+        grid.addWidget(least_y, row, 0, 1, 2)
+        row += 1
+
+        most_y = LabeledSlider(
+            "Наиболее интенсивная высота Y",
+            -100000.0,
+            100000.0,
+            50.0,
+            decimals=0,
+            unit="мм",
+        )
         most_y.valueChanged.connect(lambda v: self._on_control_changed("fog_most_intense_y", v))
         self._controls["fog.most_y"] = most_y
-        grid.addWidget(most_y, row, 0, 1, 2); row += 1
-        
+        grid.addWidget(most_y, row, 0, 1, 2)
+        row += 1
+
         h_curve = LabeledSlider("Кривая высоты", 0.0, 4.0, 0.05, decimals=2)
         h_curve.valueChanged.connect(lambda v: self._on_control_changed("fog_height_curve", v))
         self._controls["fog.height_curve"] = h_curve
-        grid.addWidget(h_curve, row, 0, 1, 2); row += 1
-        
+        grid.addWidget(h_curve, row, 0, 1, 2)
+        row += 1
+
         # Transmit
         t_enabled = QCheckBox("Учитывать передачу света (transmit)", self)
         t_enabled.clicked.connect(lambda checked: self._on_control_changed("fog_transmit_enabled", checked))
         self._controls["fog.transmit_enabled"] = t_enabled
-        grid.addWidget(t_enabled, row, 0, 1, 2); row += 1
-        
+        grid.addWidget(t_enabled, row, 0, 1, 2)
+        row += 1
+
         t_curve = LabeledSlider("Кривая передачи", 0.0, 4.0, 0.05, decimals=2)
         t_curve.valueChanged.connect(lambda v: self._on_control_changed("fog_transmit_curve", v))
         self._controls["fog.transmit_curve"] = t_curve
         grid.addWidget(t_curve, row, 0, 1, 2)
-        
+
         return group
-    
+
     def _build_ao_group(self) -> QGroupBox:
         """Создать группу Ambient Occlusion - расширенная"""
         group = QGroupBox("Ambient Occlusion (SSAO)", self)
@@ -328,32 +356,37 @@ class EnvironmentTab(QWidget):
         grid.setHorizontalSpacing(12)
         grid.setVerticalSpacing(8)
         row = 0
-        
+
         enabled = QCheckBox("Включить SSAO", self)
         enabled.clicked.connect(lambda checked: self._on_control_changed("ao_enabled", checked))
         self._controls["ao.enabled"] = enabled
-        grid.addWidget(enabled, row, 0, 1, 2); row += 1
-        
+        grid.addWidget(enabled, row, 0, 1, 2)
+        row += 1
+
         strength = LabeledSlider("Интенсивность", 0.0, 100.0, 1.0, decimals=0, unit="%")
         strength.valueChanged.connect(lambda v: self._on_control_changed("ao_strength", v))
         self._controls["ao.strength"] = strength
-        grid.addWidget(strength, row, 0, 1, 2); row += 1
-        
+        grid.addWidget(strength, row, 0, 1, 2)
+        row += 1
+
         radius = LabeledSlider("Радиус", 0.5, 50.0, 0.1, decimals=1, unit="мм")
         radius.valueChanged.connect(lambda v: self._on_control_changed("ao_radius", v))
         self._controls["ao.radius"] = radius
-        grid.addWidget(radius, row, 0, 1, 2); row += 1
-        
+        grid.addWidget(radius, row, 0, 1, 2)
+        row += 1
+
         softness = LabeledSlider("Мягкость", 0.0, 50.0, 1.0, decimals=0)
         softness.valueChanged.connect(lambda v: self._on_control_changed("ao_softness", v))
         self._controls["ao.softness"] = softness
-        grid.addWidget(softness, row, 0, 1, 2); row += 1
-        
+        grid.addWidget(softness, row, 0, 1, 2)
+        row += 1
+
         dither = QCheckBox("Dither для AO", self)
         dither.clicked.connect(lambda checked: self._on_control_changed("ao_dither", checked))
         self._controls["ao.dither"] = dither
-        grid.addWidget(dither, row, 0, 1, 2); row += 1
-        
+        grid.addWidget(dither, row, 0, 1, 2)
+        row += 1
+
         sample_rate = QComboBox(self)
         sample_rate.addItem("2x", 2)
         sample_rate.addItem("3x", 3)
@@ -362,36 +395,36 @@ class EnvironmentTab(QWidget):
         self._controls["ao.sample_rate"] = sample_rate
         grid.addWidget(QLabel("Сэмплов", self), row, 0)
         grid.addWidget(sample_rate, row, 1)
-        
+
         return group
-    
+
     # ========== ОБРАБОТЧИКИ ЧЕКБОКСОВ ==========(
-    
+
     def _on_ibl_enabled_clicked(self, checked: bool) -> None:
         if self._updating_ui:
             return
         self._on_control_changed("ibl_enabled", checked)
-    
+
     def _on_skybox_enabled_clicked(self, checked: bool) -> None:
         if self._updating_ui:
             return
         self._on_control_changed("skybox_enabled", checked)
-    
+
     def _on_fog_enabled_clicked(self, checked: bool) -> None:
         if self._updating_ui:
             return
         self._on_control_changed("fog_enabled", checked)
-    
+
     # ========== ОБЩИЙ ОБРАБОТЧИК =========
-    
+
     def _on_control_changed(self, key: str, value: Any):
         if self._updating_ui:
             return
         state = self.get_state()
         self.environment_changed.emit(state)
-    
+
     # ========== ГЕТТЕРЫ/СЕТТЕРЫ ==========
-    
+
     def _require_control(self, key: str):
         control = self._controls.get(key)
         if control is None:
@@ -442,7 +475,7 @@ class EnvironmentTab(QWidget):
         for control in self._controls.values():
             try:
                 control.blockSignals(True)
-            except:
+            except Exception:
                 pass
         try:
             combo = self._require_control("background.mode")
@@ -489,12 +522,12 @@ class EnvironmentTab(QWidget):
             for control in self._controls.values():
                 try:
                     control.blockSignals(False)
-                except:
+                except Exception:
                     pass
             self._updating_ui = False
-    
+
     def get_controls(self) -> Dict[str, Any]:
         return self._controls
-    
+
     def set_updating_ui(self, updating: bool) -> None:
         self._updating_ui = updating

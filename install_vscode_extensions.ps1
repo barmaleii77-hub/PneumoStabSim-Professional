@@ -77,20 +77,20 @@ if ($allMissing.Count -gt 0) {
     Write-Host "`n========================================" -ForegroundColor Cyan
     Write-Host " Установка недостающих расширений" -ForegroundColor Cyan
     Write-Host "========================================`n" -ForegroundColor Cyan
-    
+
     Write-Host "Найдено недостающих: $($allMissing.Count)" -ForegroundColor Yellow
     Write-Host "Нажмите Enter для установки или Ctrl+C для отмены..."
     Read-Host
-    
+
     $success = 0
     $failed = 0
-    
+
     foreach ($ext in $allMissing) {
    Write-Host "`nУстановка: $ext..." -ForegroundColor Yellow
-        
+
      try {
   & $codeCmd --install-extension $ext --force 2>&1 | Out-Null
-        
+
  if ($LASTEXITCODE -eq 0) {
            Write-Host "  ✅ Установлено" -ForegroundColor Green
     $success++
@@ -103,14 +103,14 @@ if ($allMissing.Count -gt 0) {
    $failed++
 }
     }
-    
+
   Write-Host "`n========================================" -ForegroundColor Cyan
     Write-Host " Итого" -ForegroundColor Cyan
     Write-Host "========================================`n" -ForegroundColor Cyan
-  
+
     Write-Host "  ✅ Установлено: $success" -ForegroundColor Green
     Write-Host "  ❌ Ошибок: $failed" -ForegroundColor Red
-    
+
 } else {
     Write-Host "`n✅ Все расширения уже установлены!" -ForegroundColor Green
 }

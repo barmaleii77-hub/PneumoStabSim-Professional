@@ -174,7 +174,7 @@ You'll know setup is complete when:
 
 ---
 
-**Status**: ⚠️ **Waiting for VS Code Installation**  
-**Action Required**: Install VS Code, then run `.\install_extensions.ps1`  
-**Last Updated**: 2025-01-24  
+**Status**: ⚠️ **Waiting for VS Code Installation**
+**Action Required**: Install VS Code, then run `.\install_extensions.ps1`
+**Last Updated**: 2025-01-24
 **Total Extensions**: 17 (4 critical + 13 recommended)
