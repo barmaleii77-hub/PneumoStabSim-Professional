@@ -600,113 +600,6 @@ Item {
         updatePostAaState();
     }
 
-    function applyMaterialUpdates(p) {
-        if (!p) return;
-        // Храним состояние материалов в одном объекте и изменяем его копию
-        function cloneMaterialsState() {
-            var source = root.materialsState || {};
-            var clone = {};
-            for (var key in source) {
-                if (Object.prototype.hasOwnProperty.call(source, key))
-                    clone[key] = Object.assign({}, source[key]);
-            }
-            return clone;
-        }
-
-        function assignColor(entry, field, value) {
-            if (value === undefined || value === null)
-                return false;
-            var resolved = null;
-            if (typeof value === 'string') {
-                resolved = value;
-            } else if (value && typeof value === 'object' && value.r !== undefined && value.g !== undefined && value.b !== undefined) {
-                var a = (value.a === undefined) ? 1.0 : clamp(value.a, 0.0, 1.0);
-                resolved = Qt.rgba(clamp(value.r, 0.0, 1.0), clamp(value.g, 0.0, 1.0), clamp(value.b, 0.0, 1.0), a);
-            }
-            if (resolved === null)
-                return false;
-            var existing = entry[field];
-            if (existing === resolved)
-                return false;
-            if (existing && resolved && existing.toString && resolved.toString && existing.toString() === resolved.toString())
-                return false;
-            entry[field] = resolved;
-            return true;
-        }
-
-        function assignNumber(entry, field, value, minValue, maxValue) {
-            if (typeof value !== 'number' || !isFinite(value))
-                return false;
-            var clamped = clamp(value, minValue, maxValue);
-            if (entry[field] === clamped)
-                return false;
-            entry[field] = clamped;
-            return true;
-        }
-
-        function assignAlphaMode(entry, value) {
-            if (typeof value !== 'string')
-                return false;
-            var normalized = value.toLowerCase();
-            if (normalized !== 'default' && normalized !== 'mask' && normalized !== 'blend')
-                return false;
-            if (entry.alpha_mode === normalized)
-                return false;
-            entry.alpha_mode = normalized;
-            return true;
-        }
-
-        function updateMaterialEntry(key, update) {
-            if (!update)
-                return;
-            var currentState = root.materialsState || {};
-            if (!Object.prototype.hasOwnProperty.call(currentState, key))
-                return;
-
-            var nextState = cloneMaterialsState();
-            var entry = Object.assign({}, nextState[key] || {});
-            var changed = false;
-
-            if (assignColor(entry, 'base_color', update.base_color)) changed = true;
-            if (assignNumber(entry, 'metalness', update.metalness, 0.0, 1.0)) changed = true;
-            if (assignNumber(entry, 'roughness', update.roughness, 0.0, 1.0)) changed = true;
-            if (assignNumber(entry, 'specular', update.specular, 0.0, 1.0)) changed = true;
-            if (assignColor(entry, 'specular_tint', update.specular_tint)) changed = true;
-            if (assignNumber(entry, 'opacity', update.opacity, 0.0, 1.0)) changed = true;
-            if (assignNumber(entry, 'clearcoat', update.clearcoat, 0.0, 1.0)) changed = true;
-            if (assignNumber(entry, 'clearcoat_roughness', update.clearcoat_roughness, 0.0, 1.0)) changed = true;
-            if (assignNumber(entry, 'transmission', update.transmission, 0.0, 1.0)) changed = true;
-            if (assignNumber(entry, 'ior', update.ior, 1.0, 3.0)) changed = true;
-            if (assignNumber(entry, 'thickness', update.thickness, 0.0, 10.0)) changed = true;
-            if (assignNumber(entry, 'attenuation_distance', update.attenuation_distance, 0.0, 1000000.0)) changed = true;
-            if (assignColor(entry, 'attenuation_color', update.attenuation_color)) changed = true;
-            if (assignColor(entry, 'emissive_color', update.emissive_color)) changed = true;
-            if (assignNumber(entry, 'emissive_intensity', update.emissive_intensity, 0.0, 1000.0)) changed = true;
-            if (assignNumber(entry, 'normal_strength', update.normal_strength, 0.0, 10.0)) changed = true;
-            if (assignNumber(entry, 'occlusion_amount', update.occlusion_amount, 0.0, 1.0)) changed = true;
-            if (assignNumber(entry, 'alpha_cutoff', update.alpha_cutoff, 0.0, 1.0)) changed = true;
-            if (assignAlphaMode(entry, update.alpha_mode)) changed = true;
-
-            if (!changed)
-                return;
-
-            nextState[key] = entry;
-            root.materialsState = nextState;
-        }
-
-        if (p.current_material && p[p.current_material]) {
-            updateMaterialEntry(p.current_material, p[p.current_material]);
-            return;
-        }
-        // Пакетный режим: применяем все известные ключи, которые присутствуют в p
-        var known = root.materialKeys;
-        for (var i = 0; i < known.length; ++i) {
-            var matKey = known[i];
-            if (p[matKey])
-                updateMaterialEntry(matKey, p[matKey]);
-        }
-    }
-
     function applyEffectsUpdates(p) {
         if (!p) return;
         console.log("✨ applyEffectsUpdates вызван с параметрами:", JSON.stringify(p));
@@ -1613,13 +1506,6 @@ Item {
         id: view3d
         anchors.fill: parent
 
-        renderSettings: RenderSettings {
-            id: renderSettings
-            renderScale: root.renderScaleSetting
-            maximumFrameRate: root.frameRateLimitSetting > 0 ? root.frameRateLimitSetting : 0
-            renderPolicy: root.renderPolicySetting === 'ondemand' ? RenderSettings.OnDemand : RenderSettings.Always
-        }
-
         environment: ExtendedSceneEnvironment {
             id: env
             // ❌ НЕТ ДЕФОЛТНЫХ ЗНАЧЕНИЙ В QML!
@@ -1818,9 +1704,9 @@ Item {
             anchors.centerIn: parent
             spacing: 5
             Text { text: "PneumoStabSim - FULL MODEL + ORBIT"; color: "#ffffff"; font.pixelSize: 14; font.bold: true }
-            Text { text: "✅ Frame centered (U-shape, 3 beams)"; color: "#00ff88"; font.pixelSize: 10 }
-            Text { text: "✅ 4 Suspension corners (FL, FR, RL, RR)"; color: "#00ff88"; font.pixelSize: 10 }
-            Text { text: "✅ IBL loader expects ../hdr/*.hdr relative to assets/qml"; color: "#00ff88"; font.pixelSize: 9 }
+            Text { text: "✅ Геометрия в центре (U-образная, 3 балки)"; color: "#00ff88"; font.pixelSize: 10 }
+            Text { text: "✅ 4 угла подвески (FL, FR, RL, RR)"; color: "#00ff88"; font.pixelSize: 10 }
+            Text { text: "✅ Загрузчик IBL ожидает ../hdr/*.hdr относительно assets/qml"; color: "#00ff88"; font.pixelSize: 9 }
             Text { text: "🖱️ Управление: ЛКМ-орбита, ПКМ-панорама, колесо-зум, двойной клик — автофит"; color: "#aaddff"; font.pixelSize: 9 }
         }
     }
@@ -2025,9 +1911,28 @@ Item {
         }
     }
 
+    // Без использования QML-типа RenderSettings — настраиваем программно
+    function applyRenderSettings() {
+        try {
+            var rs = view3d && view3d.renderSettings ? view3d.renderSettings : null;
+            if (!rs) return;
+            rs.renderScale = root.renderScaleSetting;
+            rs.maximumFrameRate = root.frameRateLimitSetting > 0 ? root.frameRateLimitSetting : 0;
+            // Числовые значения enum (без зависимости от QML-типа): Always=0, OnDemand=1
+            rs.renderPolicy = (root.renderPolicySetting === 'ondemand') ? 1 : 0;
+        } catch (e) {
+            console.warn('⚠️ applyRenderSettings failed:', e);
+        }
+    }
+
+    onRenderScaleSettingChanged: applyRenderSettings()
+    onRenderPolicySettingChanged: applyRenderSettings()
+    onFrameRateLimitSettingChanged: applyRenderSettings()
+
     Component.onCompleted: {
         primeInitialStateFromContext();
         updatePostAaState();
+        applyRenderSettings();
         console.log("=".repeat(60))
         console.log("🚀 FULL MODEL LOADED - MODULAR ARCHITECTURE + IBL (centered) + extended controls + orbit smoothing")
         console.log("=".repeat(60))
