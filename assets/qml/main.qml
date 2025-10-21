@@ -1298,10 +1298,10 @@ Item {
         transmissionFactor: state.transmission
         indexOfRefraction: state.ior
         thicknessFactor: state.thickness
-        transmissionAttenuationDistance: state.attenuation_distance
-        transmissionAttenuationColor: state.attenuation_color
+        attenuationDistance: state.attenuation_distance
+        attenuationColor: state.attenuation_color
         emissiveColor: state.emissive_color
-        emissivePower: state.emissive_intensity
+        emissiveFactor: Qt.vector3d(state.emissive_intensity, state.emissive_intensity, state.emissive_intensity)
         normalStrength: state.normal_strength
         occlusionAmount: state.occlusion_amount
         alphaMode: alphaModeFromString(state.alpha_mode)
@@ -1321,10 +1321,10 @@ Item {
         transmissionFactor: state.transmission
         indexOfRefraction: state.ior
         thicknessFactor: state.thickness
-        transmissionAttenuationDistance: state.attenuation_distance
-        transmissionAttenuationColor: state.attenuation_color
+        attenuationDistance: state.attenuation_distance
+        attenuationColor: state.attenuation_color
         emissiveColor: state.emissive_color
-        emissivePower: state.emissive_intensity
+        emissiveFactor: Qt.vector3d(state.emissive_intensity, state.emissive_intensity, state.emissive_intensity)
         normalStrength: state.normal_strength
         occlusionAmount: state.occlusion_amount
         alphaMode: alphaModeFromString(state.alpha_mode)
@@ -1344,10 +1344,10 @@ Item {
         transmissionFactor: state.transmission
         indexOfRefraction: state.ior
         thicknessFactor: state.thickness
-        transmissionAttenuationDistance: state.attenuation_distance
-        transmissionAttenuationColor: state.attenuation_color
+        attenuationDistance: state.attenuation_distance
+        attenuationColor: state.attenuation_color
         emissiveColor: state.emissive_color
-        emissivePower: state.emissive_intensity
+        emissiveFactor: Qt.vector3d(state.emissive_intensity, state.emissive_intensity, state.emissive_intensity)
         normalStrength: state.normal_strength
         occlusionAmount: state.occlusion_amount
         alphaMode: alphaModeFromString(state.alpha_mode)
@@ -1367,10 +1367,10 @@ Item {
         transmissionFactor: state.transmission
         indexOfRefraction: state.ior
         thicknessFactor: state.thickness
-        transmissionAttenuationDistance: state.attenuation_distance
-        transmissionAttenuationColor: state.attenuation_color
+        attenuationDistance: state.attenuation_distance
+        attenuationColor: state.attenuation_color
         emissiveColor: state.emissive_color
-        emissivePower: state.emissive_intensity
+        emissiveFactor: Qt.vector3d(state.emissive_intensity, state.emissive_intensity, state.emissive_intensity)
         normalStrength: state.normal_strength
         occlusionAmount: state.occlusion_amount
         alphaMode: alphaModeFromString(state.alpha_mode)
@@ -1390,10 +1390,10 @@ Item {
         transmissionFactor: state.transmission
         indexOfRefraction: state.ior
         thicknessFactor: state.thickness
-        transmissionAttenuationDistance: state.attenuation_distance
-        transmissionAttenuationColor: state.attenuation_color
+        attenuationDistance: state.attenuation_distance
+        attenuationColor: state.attenuation_color
         emissiveColor: state.emissive_color
-        emissivePower: state.emissive_intensity
+        emissiveFactor: Qt.vector3d(state.emissive_intensity, state.emissive_intensity, state.emissive_intensity)
         normalStrength: state.normal_strength
         occlusionAmount: state.occlusion_amount
         alphaMode: alphaModeFromString(state.alpha_mode)
@@ -1413,10 +1413,10 @@ Item {
         transmissionFactor: state.transmission
         indexOfRefraction: state.ior
         thicknessFactor: state.thickness
-        transmissionAttenuationDistance: state.attenuation_distance
-        transmissionAttenuationColor: state.attenuation_color
+        attenuationDistance: state.attenuation_distance
+        attenuationColor: state.attenuation_color
         emissiveColor: state.emissive_color
-        emissivePower: state.emissive_intensity
+        emissiveFactor: Qt.vector3d(state.emissive_intensity, state.emissive_intensity, state.emissive_intensity)
         normalStrength: state.normal_strength
         occlusionAmount: state.occlusion_amount
         alphaMode: alphaModeFromString(state.alpha_mode)
@@ -1436,10 +1436,10 @@ Item {
         transmissionFactor: state.transmission
         indexOfRefraction: state.ior
         thicknessFactor: state.thickness
-        transmissionAttenuationDistance: state.attenuation_distance
-        transmissionAttenuationColor: state.attenuation_color
+        attenuationDistance: state.attenuation_distance
+        attenuationColor: state.attenuation_color
         emissiveColor: state.emissive_color
-        emissivePower: state.emissive_intensity
+        emissiveFactor: Qt.vector3d(state.emissive_intensity, state.emissive_intensity, state.emissive_intensity)
         normalStrength: state.normal_strength
         occlusionAmount: state.occlusion_amount
         alphaMode: alphaModeFromString(state.alpha_mode)
@@ -1459,10 +1459,10 @@ Item {
         transmissionFactor: state.transmission
         indexOfRefraction: state.ior
         thicknessFactor: state.thickness
-        transmissionAttenuationDistance: state.attenuation_distance
-        transmissionAttenuationColor: state.attenuation_color
+        attenuationDistance: state.attenuation_distance
+        attenuationColor: state.attenuation_color
         emissiveColor: state.emissive_color
-        emissivePower: state.emissive_intensity
+        emissiveFactor: Qt.vector3d(state.emissive_intensity, state.emissive_intensity, state.emissive_intensity)
         normalStrength: state.normal_strength
         occlusionAmount: state.occlusion_amount
         alphaMode: alphaModeFromString(state.alpha_mode)
@@ -1482,10 +1482,10 @@ Item {
         transmissionFactor: state.transmission
         indexOfRefraction: state.ior
         thicknessFactor: state.thickness
-        transmissionAttenuationDistance: state.attenuation_distance
-        transmissionAttenuationColor: state.attenuation_color
+        attenuationDistance: state.attenuation_distance
+        attenuationColor: state.attenuation_color
         emissiveColor: state.emissive_color
-        emissivePower: state.emissive_intensity
+        emissiveFactor: Qt.vector3d(state.emissive_intensity, state.emissive_intensity, state.emissive_intensity)
         normalStrength: state.normal_strength
         occlusionAmount: state.occlusion_amount
         alphaMode: alphaModeFromString(state.alpha_mode)
