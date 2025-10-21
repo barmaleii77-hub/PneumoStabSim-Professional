@@ -1284,6 +1284,18 @@ Item {
     // MATERIALS - заранее
     // ===============================================================
 
+    function emissiveVector(colorValue, intensity) {
+        try {
+            // Приводим к типу color через Qt.darker(..., 1.0), затем берём компоненты r/g/b
+            var c = Qt.darker(colorValue, 1.0);
+            var i = (typeof intensity === 'number' && isFinite(intensity)) ? intensity : 0.0;
+            return Qt.vector3d(c.r * i, c.g * i, c.b * i, i);
+        } catch (e) {
+            var ii = (typeof intensity === 'number' && isFinite(intensity)) ? intensity : 0.0;
+            return Qt.vector3d(ii, ii, ii, ii);
+        }
+    }
+
     PrincipledMaterial {
         id: leverMat
         readonly property var state: root.materialsState.lever
@@ -1300,8 +1312,7 @@ Item {
         thicknessFactor: state.thickness
         attenuationDistance: state.attenuation_distance
         attenuationColor: state.attenuation_color
-        emissiveColor: state.emissive_color
-        emissiveFactor: Qt.vector3d(state.emissive_intensity, state.emissive_intensity, state.emissive_intensity)
+        emissiveFactor: emissiveVector(state.emissive_color, state.emissive_intensity)
         normalStrength: state.normal_strength
         occlusionAmount: state.occlusion_amount
         alphaMode: alphaModeFromString(state.alpha_mode)
@@ -1323,8 +1334,7 @@ Item {
         thicknessFactor: state.thickness
         attenuationDistance: state.attenuation_distance
         attenuationColor: state.attenuation_color
-        emissiveColor: state.emissive_color
-        emissiveFactor: Qt.vector3d(state.emissive_intensity, state.emissive_intensity, state.emissive_intensity)
+        emissiveFactor: emissiveVector(state.emissive_color, state.emissive_intensity)
         normalStrength: state.normal_strength
         occlusionAmount: state.occlusion_amount
         alphaMode: alphaModeFromString(state.alpha_mode)
@@ -1346,8 +1356,7 @@ Item {
         thicknessFactor: state.thickness
         attenuationDistance: state.attenuation_distance
         attenuationColor: state.attenuation_color
-        emissiveColor: state.emissive_color
-        emissiveFactor: Qt.vector3d(state.emissive_intensity, state.emissive_intensity, state.emissive_intensity)
+        emissiveFactor: emissiveVector(state.emissive_color, state.emissive_intensity)
         normalStrength: state.normal_strength
         occlusionAmount: state.occlusion_amount
         alphaMode: alphaModeFromString(state.alpha_mode)
@@ -1369,8 +1378,7 @@ Item {
         thicknessFactor: state.thickness
         attenuationDistance: state.attenuation_distance
         attenuationColor: state.attenuation_color
-        emissiveColor: state.emissive_color
-        emissiveFactor: Qt.vector3d(state.emissive_intensity, state.emissive_intensity, state.emissive_intensity)
+        emissiveFactor: emissiveVector(state.emissive_color, state.emissive_intensity)
         normalStrength: state.normal_strength
         occlusionAmount: state.occlusion_amount
         alphaMode: alphaModeFromString(state.alpha_mode)
@@ -1392,8 +1400,7 @@ Item {
         thicknessFactor: state.thickness
         attenuationDistance: state.attenuation_distance
         attenuationColor: state.attenuation_color
-        emissiveColor: state.emissive_color
-        emissiveFactor: Qt.vector3d(state.emissive_intensity, state.emissive_intensity, state.emissive_intensity)
+        emissiveFactor: emissiveVector(state.emissive_color, state.emissive_intensity)
         normalStrength: state.normal_strength
         occlusionAmount: state.occlusion_amount
         alphaMode: alphaModeFromString(state.alpha_mode)
@@ -1415,8 +1422,7 @@ Item {
         thicknessFactor: state.thickness
         attenuationDistance: state.attenuation_distance
         attenuationColor: state.attenuation_color
-        emissiveColor: state.emissive_color
-        emissiveFactor: Qt.vector3d(state.emissive_intensity, state.emissive_intensity, state.emissive_intensity)
+        emissiveFactor: emissiveVector(state.emissive_color, state.emissive_intensity)
         normalStrength: state.normal_strength
         occlusionAmount: state.occlusion_amount
         alphaMode: alphaModeFromString(state.alpha_mode)
@@ -1438,8 +1444,7 @@ Item {
         thicknessFactor: state.thickness
         attenuationDistance: state.attenuation_distance
         attenuationColor: state.attenuation_color
-        emissiveColor: state.emissive_color
-        emissiveFactor: Qt.vector3d(state.emissive_intensity, state.emissive_intensity, state.emissive_intensity)
+        emissiveFactor: emissiveVector(state.emissive_color, state.emissive_intensity)
         normalStrength: state.normal_strength
         occlusionAmount: state.occlusion_amount
         alphaMode: alphaModeFromString(state.alpha_mode)
@@ -1461,8 +1466,7 @@ Item {
         thicknessFactor: state.thickness
         attenuationDistance: state.attenuation_distance
         attenuationColor: state.attenuation_color
-        emissiveColor: state.emissive_color
-        emissiveFactor: Qt.vector3d(state.emissive_intensity, state.emissive_intensity, state.emissive_intensity)
+        emissiveFactor: emissiveVector(state.emissive_color, state.emissive_intensity)
         normalStrength: state.normal_strength
         occlusionAmount: state.occlusion_amount
         alphaMode: alphaModeFromString(state.alpha_mode)
@@ -1484,8 +1488,7 @@ Item {
         thicknessFactor: state.thickness
         attenuationDistance: state.attenuation_distance
         attenuationColor: state.attenuation_color
-        emissiveColor: state.emissive_color
-        emissiveFactor: Qt.vector3d(state.emissive_intensity, state.emissive_intensity, state.emissive_intensity)
+        emissiveFactor: emissiveVector(state.emissive_color, state.emissive_intensity)
         normalStrength: state.normal_strength
         occlusionAmount: state.occlusion_amount
         alphaMode: alphaModeFromString(state.alpha_mode)
