@@ -188,28 +188,28 @@ def generate_final_report(results):
     
     for component, status in results.items():
         status_icon = "?" if status else "?"
-        print(f"   {status_icon} {component}")
+        print(f" {status_icon} {component}")
     
     print(f"\nP7 FEATURES IMPLEMENTED:")
-    print("   • Fixed timestep physics accumulator")
-    print("   • Thread-safe state snapshots")  
-    print("   • Latest-only queue (prevents frame lag)")
-    print("   • Performance monitoring system")
-    print("   • Qt signal bus for thread communication")
-    print("   • Atomic counters for statistics")
+    print(" â€¢ Fixed timestep physics accumulator")
+    print(" â€¢ Thread-safe state snapshots")  
+    print(" â€¢ Latest-only queue (prevents frame lag)")
+    print(" â€¢ Performance monitoring system")
+    print(" â€¢ Qt signal bus for thread communication")
+    print(" â€¢ Atomic counters for statistics")
     
     print(f"\nARCHITECTURE READY FOR:")
-    print("   • Physics simulation in separate QThread")
-    print("   • QTimer-based physics loop (1ms timestep)")  
-    print("   • UI render loop (~60 FPS)")
-    print("   • OpenGL rendering from state snapshots")
-    print("   • Real-time charts and diagnostics")
+    print(" â€¢ Physics simulation in separate QThread")
+    print(" â€¢ QTimer-based physics loop (1ms timestep)")  
+    print(" â€¢ UI render loop (~60 FPS)")
+    print(" â€¢ OpenGL rendering from state snapshots")
+    print(" â€¢ Real-time charts and diagnostics")
     
     print(f"\nTHREAD SAFETY:")
-    print("   • Qt queued signal connections")
-    print("   • LatestOnlyQueue thread-safe operations")  
-    print("   • No shared mutable state")
-    print("   • OpenGL calls only from UI thread")
+    print(" â€¢ Qt queued signal connections")
+    print(" â€¢ LatestOnlyQueue thread-safe operations")  
+    print(" â€¢ No shared mutable state")
+    print(" â€¢ OpenGL calls only from UI thread")
     
     success_rate = passed / total
     if success_rate >= 1.0:
@@ -233,7 +233,7 @@ def show_performance_characteristics():
     """Show P7 performance characteristics"""
     
     print(f"\nPERFORMANCE CHARACTERISTICS:")
-    print(f"{'='*30}")
+    print(f"{"="*30}")
     
     try:
         from runtime.sync import LatestOnlyQueue, TimingAccumulator
@@ -252,9 +252,9 @@ def show_performance_characteristics():
         stats = queue.get_stats()
         
         print(f"Queue Performance:")
-        print(f"  • 1000 operations in {queue_time*1000:.2f}ms")
-        print(f"  • Efficiency: {stats['efficiency']:.1%}")
-        print(f"  • Max latency: 1 frame (latest-only)")
+        print(f" â€¢ 1000 operations in {queue_time*1000:.2f}ms")
+        print(f" â€¢ Efficiency: {stats['efficiency']:.1%}")
+        print(f" â€¢ Max latency: 1 frame (latest-only)")
         
         # Test accumulator performance  
         acc = TimingAccumulator(0.001)
@@ -269,9 +269,9 @@ def show_performance_characteristics():
         acc_time = time.perf_counter() - start_time
         
         print(f"\nAccumulator Performance:")
-        print(f"  • Target: 1000 Hz (1ms timestep)")
-        print(f"  • Actual: {total_steps/acc_time:.0f} Hz")
-        print(f"  • Realtime factor: {acc.get_realtime_factor():.2f}")
+        print(f" â€¢ Target: 1000 Hz (1ms timestep)")
+        print(f" â€¢ Actual: {total_steps/acc_time:.0f} Hz")
+        print(f" â€¢ Realtime factor: {acc.get_realtime_factor():.2f}")
         
     except Exception as e:
         print(f"Performance test failed: {e}")

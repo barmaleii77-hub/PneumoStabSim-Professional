@@ -98,17 +98,17 @@ def report_p7_status():
     print("   ? LatestOnlyQueue thread-safe")
     
     print("\n5. PERFORMANCE CHARACTERISTICS:")
-    print("   • Physics: Fixed 1ms timestep (1000 Hz)")
-    print("   • Render: Variable ~60 FPS")
-    print("   • Queue: Max 1 frame latency")
-    print("   • Memory: Bounded buffers (5000 points)")
+    print(" â€¢ Physics: Fixed 1ms timestep (1000 Hz)")
+    print(" â€¢ Render: Variable ~60 FPS")
+    print(" â€¢ Queue: Max 1 frame latency")
+    print(" â€¢ Memory: Bounded buffers (5000 points)")
     
     print("\n6. READY FOR INTEGRATION:")
-    print("   ? 3-DOF physics simulation")
-    print("   ? Road input processing")  
-    print("   ? Pneumatic system updates")
-    print("   ? OpenGL visualization")
-    print("   ? QtCharts plotting")
+    print(" ? 3-DOF physics simulation")
+    print(" ? Road input processing")  
+    print(" ? Pneumatic system updates")
+    print(" ? OpenGL visualization")
+    print(" ? QtCharts plotting")
     
     print("\n7. COMMIT STATUS:")
     try:

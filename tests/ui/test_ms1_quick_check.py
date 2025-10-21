@@ -1,77 +1,77 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 """
-Быстрая проверка МШ-1: Изменения геометрии цилиндра
+Р‘С‹СЃС‚СЂР°СЏ РїСЂРѕРІРµСЂРєР° РњРЁ-1: РР·РјРµРЅРµРЅРёСЏ РіРµРѕРјРµС‚СЂРёРё С†РёР»РёРЅРґСЂР°
 """
 
 import sys
 from PySide6.QtWidgets import QApplication
 
-# Создать приложение
+# РЎРѕР·РґР°С‚СЊ РїСЂРёР»РѕР¶РµРЅРёРµ
 app = QApplication.instance() or QApplication(sys.argv)
 
-# Импортировать панель
+# РРјРїРѕСЂС‚РёСЂРѕРІР°С‚СЊ РїР°РЅРµР»СЊ
 from src.ui.panels.panel_geometry import GeometryPanel
 
 print("=" * 60)
-print("МШ-1: ПРОВЕРКА ИЗМЕНЕНИЙ ГЕОМЕТРИИ ЦИЛИНДРА")
+print("РњРЁ-1: РџР РћР’Р•Р РљРђ РР—РњР•РќР•РќРР™ Р“Р•РћРњР•РўР РР Р¦РР›РРќР”Р Рђ")
 print("=" * 60)
 
-# Создать панель
+# РЎРѕР·РґР°С‚СЊ РїР°РЅРµР»СЊ
 panel = GeometryPanel()
 
-# Проверка 1: Наличие новых слайдеров
-print("\n? ПРОВЕРКА 1: Новые слайдеры")
-print(f"   cyl_diam_m_slider:  {hasattr(panel, 'cyl_diam_m_slider')}")
-print(f"   stroke_m_slider:    {hasattr(panel, 'stroke_m_slider')}")
-print(f"   dead_gap_m_slider:  {hasattr(panel, 'dead_gap_m_slider')}")
+# РџСЂРѕРІРµСЂРєР°1: РќР°Р»РёС‡РёРµ РЅРѕРІС‹С… СЃР»Р°Р№РґРµСЂРѕРІ
+print("\n? РџР РћР’Р•Р РљРђ1: РќРѕРІС‹Рµ СЃР»Р°Р№РґРµСЂС‹")
+print(f" cyl_diam_m_slider: {hasattr(panel, 'cyl_diam_m_slider')}")
+print(f" stroke_m_slider: {hasattr(panel, 'stroke_m_slider')}")
+print(f" dead_gap_m_slider: {hasattr(panel, 'dead_gap_m_slider')}")
 
-# Проверка 2: Отсутствие старых слайдеров
-print("\n? ПРОВЕРКА 2: Старые слайдеры удалены")
-print(f"   bore_head_slider:   {not hasattr(panel, 'bore_head_slider')} (должно быть True)")
-print(f"   bore_rod_slider:    {not hasattr(panel, 'bore_rod_slider')} (должно быть True)")
+# РџСЂРѕРІРµСЂРєР°2: РћС‚СЃСѓС‚СЃС‚РІРёРµ СЃС‚Р°СЂС‹С… СЃР»Р°Р№РґРµСЂРѕРІ
+print("\n? РџР РћР’Р•Р РљРђ2: РЎС‚Р°СЂС‹Рµ СЃР»Р°Р№РґРµСЂС‹ СѓРґР°Р»РµРЅС‹")
+print(f" bore_head_slider: {not hasattr(panel, 'bore_head_slider')} (РґРѕР»Р¶РЅРѕ Р±С‹С‚СЊTrue)")
+print(f" bore_rod_slider: {not hasattr(panel, 'bore_rod_slider')} (РґРѕР»Р¶РЅРѕ Р±С‹С‚СЊTrue)")
 
-# Проверка 3: Параметры слайдеров
+# РџСЂРѕРІРµСЂРєР°3: РџР°СЂР°РјРµС‚СЂС‹ СЃР»Р°Р№РґРµСЂРѕРІ
 if hasattr(panel, 'cyl_diam_m_slider'):
-    print("\n?? ПРОВЕРКА 3a: Параметры cyl_diam_m_slider")
+    print("\n?? РџР РћР’Р•Р РљРђ3a: РџР°СЂР°РјРµС‚СЂС‹ cyl_diam_m_slider")
     slider = panel.cyl_diam_m_slider
-    print(f"   minimum:   {slider.minimum()} (ожидается 0.030)")
-    print(f"   maximum:   {slider.maximum()} (ожидается 0.150)")
-    print(f"   value:     {slider.value()} (ожидается 0.080)")
-    print(f"   step:      {slider.step()} (ожидается 0.001)")
-    print(f"   decimals:  {slider.decimals()} (ожидается 3)")
-    print(f"   units:     '{slider.units()}' (ожидается 'м')")
+    print(f" minimum: {slider.minimum()} (РѕР¶РёРґР°РµС‚СЃСЏ0.030)")
+    print(f" maximum: {slider.maximum()} (РѕР¶РёРґР°РµС‚СЃСЏ0.150)")
+    print(f" value: {slider.value()} (РѕР¶РёРґР°РµС‚СЃСЏ0.080)")
+    print(f" step: {slider.step()} (РѕР¶РёРґР°РµС‚СЃСЏ0.001)")
+    print(f" decimals: {slider.decimals()} (РѕР¶РёРґР°РµС‚СЃСЏ3)")
+    print(f" units: '{slider.units()}' (РѕР¶РёРґР°РµС‚СЃСЏ'Рј')")
 
 if hasattr(panel, 'stroke_m_slider'):
-    print("\n?? ПРОВЕРКА 3b: Параметры stroke_m_slider")
+    print("\n?? РџР РћР’Р•Р РљРђ3b: РџР°СЂР°РјРµС‚СЂС‹ stroke_m_slider")
     slider = panel.stroke_m_slider
-    print(f"   minimum:   {slider.minimum()} (ожидается 0.100)")
-    print(f"   maximum:   {slider.maximum()} (ожидается 0.500)")
-    print(f"   value:     {slider.value()} (ожидается 0.300)")
-    print(f"   step:      {slider.step()} (ожидается 0.001)")
-    print(f"   decimals:  {slider.decimals()} (ожидается 3)")
-    print(f"   units:     '{slider.units()}' (ожидается 'м')")
+    print(f" minimum: {slider.minimum()} (РѕР¶РёРґР°РµС‚СЃСЏ0.100)")
+    print(f" maximum: {slider.maximum()} (РѕР¶РёРґР°РµС‚СЃСЏ0.500)")
+    print(f" value: {slider.value()} (РѕР¶РёРґР°РµС‚СЃСЏ0.300)")
+    print(f" step: {slider.step()} (РѕР¶РёРґР°РµС‚СЃСЏ0.001)")
+    print(f" decimals: {slider.decimals()} (РѕР¶РёРґР°РµС‚СЃСЏ3)")
+    print(f" units: '{slider.units()}' (РѕР¶РёРґР°РµС‚СЃСЏ'Рј')")
 
 if hasattr(panel, 'dead_gap_m_slider'):
-    print("\n?? ПРОВЕРКА 3c: Параметры dead_gap_m_slider")
+    print("\n?? РџР РћР’Р•Р РљРђ3c: РџР°СЂР°РјРµС‚СЂС‹ dead_gap_m_slider")
     slider = panel.dead_gap_m_slider
-    print(f"   minimum:   {slider.minimum()} (ожидается 0.000)")
-    print(f"   maximum:   {slider.maximum()} (ожидается 0.020)")
-    print(f"   value:     {slider.value()} (ожидается 0.005)")
-    print(f"   step:      {slider.step()} (ожидается 0.001)")
-    print(f"   decimals:  {slider.decimals()} (ожидается 3)")
-    print(f"   units:     '{slider.units()}' (ожидается 'м')")
+    print(f" minimum: {slider.minimum()} (РѕР¶РёРґР°РµС‚СЃСЏ0.000)")
+    print(f" maximum: {slider.maximum()} (РѕР¶РёРґР°РµС‚СЃСЏ0.020)")
+    print(f" value: {slider.value()} (РѕР¶РёРґР°РµС‚СЃСЏ0.005)")
+    print(f" step: {slider.step()} (РѕР¶РёРґР°РµС‚СЃСЏ0.001)")
+    print(f" decimals: {slider.decimals()} (РѕР¶РёРґР°РµС‚СЃСЏ3)")
+    print(f" units: '{slider.units()}' (РѕР¶РёРґР°РµС‚СЃСЏ'Рј')")
 
-# Проверка 4: Параметры в словаре
-print("\n?? ПРОВЕРКА 4: Параметры в словаре")
+# РџСЂРѕРІРµСЂРєР°4: РџР°СЂР°РјРµС‚СЂС‹ РІ СЃР»РѕРІР°СЂРµ
+print("\n?? РџР РћР’Р•Р РљРђ4: РџР°СЂР°РјРµС‚СЂС‹ РІ СЃР»РѕРІР°СЂРµ")
 params = panel.get_parameters()
-print(f"   'cyl_diam_m' в parameters:  {('cyl_diam_m' in params)} = {params.get('cyl_diam_m', 'НЕ НАЙДЕНО')}")
-print(f"   'stroke_m' в parameters:    {('stroke_m' in params)} = {params.get('stroke_m', 'НЕ НАЙДЕНО')}")
-print(f"   'dead_gap_m' в parameters:  {('dead_gap_m' in params)} = {params.get('dead_gap_m', 'НЕ НАЙДЕНО')}")
-print(f"   'bore_head' ОТСУТСТВУЕТ:    {('bore_head' not in params)} (должно быть True)")
-print(f"   'bore_rod' ОТСУТСТВУЕТ:     {('bore_rod' not in params)} (должно быть True)")
+print(f" 'cyl_diam_m' РІ parameters: {('cyl_diam_m' in params)} = {params.get('cyl_diam_m', 'РќР• РќРђР™Р”Р•РќРћ')}")
+print(f" 'stroke_m' РІ parameters: {('stroke_m' in params)} = {params.get('stroke_m', 'РќР• РќРђР™Р”Р•РќРћ')}")
+print(f" 'dead_gap_m' РІ parameters: {('dead_gap_m' in params)} = {params.get('dead_gap_m', 'РќР• РќРђР™Р”Р•РќРћ')}")
+print(f" 'bore_head' РћРўРЎРЈРўРЎРўР’РЈР•Рў: {('bore_head' not in params)} (РґРѕР»Р¶РЅРѕ Р±С‹С‚СЊTrue)")
+print(f" 'bore_rod' РћРўРЎРЈРўРЎРўР’РЈР•Рў: {('bore_rod' not in params)} (РґРѕР»Р¶РЅРѕ Р±С‹С‚СЊTrue)")
 
-# Итоговая проверка
+# РС‚РѕРіРѕРІР°СЏ РїСЂРѕРІРµСЂРєР°
 print("\n" + "=" * 60)
 all_checks = [
     hasattr(panel, 'cyl_diam_m_slider'),
@@ -87,11 +87,11 @@ all_checks = [
 ]
 
 if all(all_checks):
-    print("?? МШ-1: ВСЕ ПРОВЕРКИ ПРОЙДЕНЫ УСПЕШНО!")
+    print("?? РњРЁ-1: Р’РЎР• РџР РћР’Р•Р РљР РџР РћР™Р”Р•РќР« РЈРЎРџР•РЁРќРћ!")
     print("=" * 60)
     sys.exit(0)
 else:
-    print("? МШ-1: НЕКОТОРЫЕ ПРОВЕРКИ НЕ ПРОЙДЕНЫ")
-    print(f"   Пройдено: {sum(all_checks)}/{len(all_checks)}")
+    print("? РњРЁ-1: РќР•РљРћРўРћР Р«Р• РџР РћР’Р•Р РљР РќР• РџР РћР™Р”Р•РќР«")
+    print(f" РџСЂРѕР№РґРµРЅРѕ: {sum(all_checks)}/{len(all_checks)}")
     print("=" * 60)
     sys.exit(1)

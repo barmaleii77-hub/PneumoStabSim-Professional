@@ -100,7 +100,7 @@ class TestCylinderUnificationIntegration:
         
         for param_name, slider in linear_sliders:
             # All should use meters
-            assert slider.units == "м", f"{param_name}: should use 'м', got '{slider.units}'"
+            assert slider.units == "Рј", f"{param_name}: should use 'Рј', got '{slider.units}'"
             # All should have 0.001 step
             assert slider.step == 0.001, f"{param_name}: should have step 0.001, got {slider.step}"
             # All should have 3 decimals
@@ -149,20 +149,20 @@ class TestCylinderUnificationIntegration:
         
         # Create hydraulic constraint scenario
         panel.parameters.update({
-            'cyl_diam_m': 0.050,    # 50mm cylinder
-            'rod_diam_m': 0.045     # 45mm rod (90% - too big!)
+            'cyl_diam_m':0.050, #50mm cylinder
+            'rod_diam_m':0.045 #45mm rod (90% - too big!)
         })
         
-        conflict = panel._check_dependencies('rod_diam_m', 0.045, 0.035)
+        conflict = panel._check_dependencies('rod_diam_m',0.045,0.035)
         
-        # Should detect hydraulic constraint violation  
+        # Should detect hydraulic constraint violation
         assert conflict is not None
         assert conflict['type'] == 'hydraulic_constraint'
         
         # Should suggest reducing rod or increasing cylinder
         option_texts = [opt[0] for opt in conflict['options']]
-        assert any('штока' in text for text in option_texts)
-        assert any('цилиндра' in text for text in option_texts)
+        assert any('С€С‚РѕРєР°' in text for text in option_texts)
+        assert any('С†РёР»РёРЅРґСЂР°' in text for text in option_texts)
     
     def test_ms3_dependency_resolution_stroke(self, geometry_panel):
         """MS-3: Test stroke dependency resolution"""

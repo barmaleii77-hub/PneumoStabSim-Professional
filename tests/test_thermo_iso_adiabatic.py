@@ -1,10 +1,10 @@
 """
-P12: Thermodynamic mode validation tests
+Unit tests for isothermal and adiabatic thermodynamic processes.
 
 Tests:
-- Isothermal process (T=const, p=mRT/V)
-- Adiabatic process (temperature mixing, p=mRT/V)
-- Mass/energy conservation
+- Isothermal compression and expansion
+- Adiabatic compression and expansion
+- Ideal gas law consistency
 - Mode switching consistency
 
 References:
@@ -30,10 +30,10 @@ class TestIsothermalProcess(unittest.TestCase):
     
     def setUp(self):
         """Setup gas state for isothermal tests"""
-        self.R = 287.05  # J/(kg·K) for air
+        self.R = 287.05  # J/(kgÂ·K) for air
         
         # Initial state
-        self.T_const = 293.15  # K (20°C)
+        self.T_const = 293.15  # K (20Â°C)
         self.p0 = 200000.0  # 2 bar
         self.V0 = 0.001  # 1 liter
         
@@ -65,14 +65,22 @@ class TestIsothermalProcess(unittest.TestCase):
             err_msg="Temperature should remain constant in isothermal process"
         )
         
-        # Check pressure doubled
+        # Check pressure matches expected
         assert_allclose(
             self.gas.pressure,
             p_expected,
-            rtol=1e-6,
-            err_msg=f"Pressure should double: {self.gas.pressure:.0f} vs {p_expected:.0f}"
+            rtol=1e-10,
+            err_msg="Pressure mismatch in isothermal compression"
         )
         
+        # Check mass conserved
+        assert_allclose(
+            self.gas.mass,
+            self.m0,
+            rtol=1e-10,
+            err_msg="Mass should be conserved in closed system"
+        )
+
     def test_isothermal_expansion(self):
         """Test isothermal expansion: V? ? p?, T=const"""
         # Expand to double volume
@@ -96,8 +104,8 @@ class TestIsothermalProcess(unittest.TestCase):
         assert_allclose(
             self.gas.pressure,
             p_expected,
-            rtol=1e-6,
-            err_msg=f"Pressure should halve: {self.gas.pressure:.0f} vs {p_expected:.0f}"
+            rtol=1e-10,
+            err_msg="Pressure mismatch in isothermal expansion"
         )
         
     def test_isothermal_mass_constant(self):
@@ -137,7 +145,7 @@ class TestAdiabaticProcess(unittest.TestCase):
     
     def setUp(self):
         """Setup gas state for adiabatic tests"""
-        self.R = 287.05  # J/(kg·K)
+        self.R = 287.05  # J/(kgÂ·K)
         self.gamma = 1.4  # Heat capacity ratio for air
         
         # Initial state
@@ -288,7 +296,7 @@ class TestModeConsistency(unittest.TestCase):
         """
         gas = GasState(pressure=200000.0, temperature=293.15, volume=0.001)
         
-        cv = 717.5  # J/(kg·K) for air
+        cv = 717.5  # J/(kgÂ·K) for air
         
         # Initial internal energy
         U0 = gas.mass * cv * gas.temperature
