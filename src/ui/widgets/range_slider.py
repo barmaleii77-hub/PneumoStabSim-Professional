@@ -283,7 +283,7 @@ class RangeSlider(QWidget):
         # ✨ ОБНОВЛЕНО: Вычисляем ширину диапазона (абсолютное значение)
         range_width = abs(max_val - min_val)
         
-        # ОБНОВЛЕНО: Индикатор диапазона с шириной диапазона БЕЗ СКОБОК
+        # ОБНОВЛЕНО: Индикатор диапазона с шириной диапазона БЕЗ СКБОК
         range_text = f"Диапазон: {min_val:.{self._decimals}f} — {max_val:.{self._decimals}f} ширина диапазона {range_width:.{self._decimals}f}"
         if self._units:
             range_text += f" {self._units}"
@@ -480,3 +480,29 @@ class RangeSlider(QWidget):
         except (RuntimeError, AttributeError):
             # Объект уже удален или недоступен
             pass
+    
+    ### УСТАРЕВШИЙ АПИ ДЛЯ КОМПАТИБЕЛЬНОСТИ ###
+    
+    def setLimits(self, minimum, maximum):
+        """Устаревший метод, используйте setRange вместо этого"""
+        self.setRange(minimum, maximum)
+    
+    def getLimits(self):
+        """Устаревший метод, используйте minimum() и maximum() вместо этого"""
+        return (self.minimum(), self.maximum())
+    
+    def setInterval(self, value):
+        """Устаревший метод, используйте setStep вместо этого"""
+        self.setStep(value)
+    
+    def setValueInterval(self, value):
+        """Устаревший метод, используйте setValue вместо этого"""
+        self.setValue(value)
+    
+    def onValueChanged(self, slot):
+        """Устаревший метод, используйте valueChanged.connect(slot) вместо этого"""
+        self.valueChanged.connect(slot)
+    
+    def onRangeChanged(self, slot):
+        """Устаревший метод, используйте rangeChanged.connect(slot) вместо этого"""
+        self.rangeChanged.connect(slot)

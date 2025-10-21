@@ -55,7 +55,7 @@ def _coerce_bool(value: Any, key: str) -> bool:
     if isinstance(value, (int, float)):
         if value in (0, 1):
             return bool(value)
-        raise EnvironmentValidationError(f"'{key}' numeric boolean must be0 or1, got {value!r}")
+        raise EnvironmentValidationError(f"'{key}' numeric boolean must be 0 or 1, got {value!r}")
     if isinstance(value, str):
         lowered = value.strip().lower()
         if lowered in _TRUE_SET:
@@ -120,3 +120,158 @@ def _validate_range(defn: EnvironmentParameterDefinition, value: float | int) ->
         raise EnvironmentValidationError(
             f"'{defn.key}'={value!r} above maximum {defn.max_value!r}"
         )
+
+
+# Extended validation helpers for graphics environment configuration
+ENVIRONMENT_PARAMETERS: tuple[EnvironmentParameterDefinition, ...] = (
+    EnvironmentParameterDefinition(
+        key="background_mode",
+        value_type="string",
+        allowed_values=("skybox", "color", "transparent"),
+    ),
+    EnvironmentParameterDefinition(
+        key="background_color",
+        value_type="string",
+        pattern=_HEX_COLOR_RE,
+    ),
+    EnvironmentParameterDefinition(key="skybox_enabled", value_type="bool"),
+    EnvironmentParameterDefinition(key="ibl_enabled", value_type="bool"),
+    EnvironmentParameterDefinition(
+        key="ibl_intensity",
+        value_type="float",
+        min_value=0.0,
+        max_value=8.0,
+    ),
+    EnvironmentParameterDefinition(
+        key="probe_brightness",
+        value_type="float",
+        min_value=0.0,
+        max_value=8.0,
+    ),
+    EnvironmentParameterDefinition(
+        key="probe_horizon",
+        value_type="float",
+        min_value=-1.0,
+        max_value=1.0,
+    ),
+    EnvironmentParameterDefinition(
+        key="ibl_rotation",
+        value_type="float",
+        min_value=-1080.0,
+        max_value=1080.0,
+    ),
+    EnvironmentParameterDefinition(
+        key="ibl_source",
+        value_type="string",
+        allow_empty_string=True,
+    ),
+    EnvironmentParameterDefinition(
+        key="ibl_fallback",
+        value_type="string",
+        allow_empty_string=True,
+    ),
+    EnvironmentParameterDefinition(
+        key="skybox_blur",
+        value_type="float",
+        min_value=0.0,
+        max_value=1.0,
+    ),
+    EnvironmentParameterDefinition(
+        key="ibl_offset_x",
+        value_type="float",
+        min_value=-180.0,
+        max_value=180.0,
+    ),
+    EnvironmentParameterDefinition(
+        key="ibl_offset_y",
+        value_type="float",
+        min_value=-180.0,
+        max_value=180.0,
+    ),
+    EnvironmentParameterDefinition(
+        key="ibl_bind_to_camera",
+        value_type="bool",
+    ),
+    EnvironmentParameterDefinition(key="fog_enabled", value_type="bool"),
+    EnvironmentParameterDefinition(
+        key="fog_color",
+        value_type="string",
+        pattern=_HEX_COLOR_RE,
+    ),
+    EnvironmentParameterDefinition(
+        key="fog_density",
+        value_type="float",
+        min_value=0.0,
+        max_value=1.0,
+    ),
+    EnvironmentParameterDefinition(
+        key="fog_near",
+        value_type="float",
+        min_value=0.0,
+        max_value=200_000.0,
+    ),
+    EnvironmentParameterDefinition(
+        key="fog_far",
+        value_type="float",
+        min_value=500.0,
+        max_value=400_000.0,
+    ),
+    EnvironmentParameterDefinition(
+        key="fog_height_enabled",
+        value_type="bool",
+    ),
+    EnvironmentParameterDefinition(
+        key="fog_least_intense_y",
+        value_type="float",
+        min_value=-100_000.0,
+        max_value=100_000.0,
+    ),
+    EnvironmentParameterDefinition(
+        key="fog_most_intense_y",
+        value_type="float",
+        min_value=-100_000.0,
+        max_value=100_000.0,
+    ),
+    EnvironmentParameterDefinition(
+        key="fog_height_curve",
+        value_type="float",
+        min_value=0.0,
+        max_value=4.0,
+    ),
+    EnvironmentParameterDefinition(
+        key="fog_transmit_enabled",
+        value_type="bool",
+    ),
+    EnvironmentParameterDefinition(
+        key="fog_transmit_curve",
+        value_type="float",
+        min_value=0.0,
+        max_value=4.0,
+    ),
+    EnvironmentParameterDefinition(key="ao_enabled", value_type="bool"),
+    EnvironmentParameterDefinition(
+        key="ao_strength",
+        value_type="float",
+        min_value=0.0,
+        max_value=100.0,
+    ),
+    EnvironmentParameterDefinition(
+        key="ao_radius",
+        value_type="float",
+        min_value=0.5,
+        max_value=50.0,
+    ),
+    EnvironmentParameterDefinition(
+        key="ao_softness",
+        value_type="float",
+        min_value=0.0,
+        max_value=50.0,
+    ),
+    EnvironmentParameterDefinition(key="ao_dither", value_type="bool"),
+    EnvironmentParameterDefinition(
+        key="ao_sample_rate",
+        value_type="int",
+        min_value=1,
+        max_value=4,
+    ),
+)

@@ -88,3 +88,17 @@ class TestGeometryBridge:
         for corner in ['fl', 'fr', 'rl', 'rr']:
             assert corner in all_coords
             assert 'pistonPositionMm' in all_coords[corner]
+    
+    def test_integration_with_settings_manager(self, geometry_bridge, settings_manager):
+        """Test GeometryBridge integration with SettingsManager"""
+        # Example test that checks if settings_manager can be used to update geometry_bridge settings
+        initial_wheelbase = geometry_bridge.wheelbase
+        new_wheelbase = initial_wheelbase + 0.1
+        
+        settings_manager.set_wheelbase(new_wheelbase)
+        geometry_bridge.update_from_settings_manager()
+        
+        assert geometry_bridge.wheelbase == new_wheelbase
+        
+        # Validate other properties as needed
+        # ...

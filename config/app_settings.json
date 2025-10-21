@@ -20,7 +20,11 @@
       "tail_mount_offset_mm": 100.0,
       "joint_tail_scale": 1.0,
       "joint_arm_scale": 1.0,
-      "joint_rod_scale": 1.0
+      "joint_rod_scale": 1.0,
+      "frame_length_mm": 800.0,
+      "lever_length_mm": 150.0,
+      "cylinder_body_length_mm": 300.0,
+      "cylinder_cap_length_mm": 50.0
     },
     "pneumatic": {
       "volume_mode": "MANUAL",
@@ -559,7 +563,11 @@
       "tail_mount_offset_mm": 100.0,
       "joint_tail_scale": 1.0,
       "joint_arm_scale": 1.0,
-      "joint_rod_scale": 1.0
+      "joint_rod_scale": 1.0,
+      "frame_length_mm": 800.0,
+      "lever_length_mm": 150.0,
+      "cylinder_body_length_mm": 300.0,
+      "cylinder_cap_length_mm": 50.0
     },
     "pneumatic": {
       "volume_mode": "MANUAL",
@@ -699,9 +707,9 @@
         "fxaa_enabled": false,
         "specular_aa": true,
         "dithering": true,
-        "render_scale": 1.2,
+        "render_scale": 1.05,
         "render_policy": "always",
-        "frame_rate_limit": 120.0,
+        "frame_rate_limit": 144.0,
         "oit": "weighted",
         "mesh": {
           "cylinder_segments": 128,

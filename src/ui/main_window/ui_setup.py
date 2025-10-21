@@ -111,6 +111,12 @@ class UISetup:
             context.setContextProperty("window", window)
             UISetup.logger.info("    ✅ Window context registered")
             
+            # Expose initial settings to QML context
+            from src.settings import SimulationSettings
+            settings = SimulationSettings()
+            context.setContextProperty("simSettings", settings)
+            UISetup.logger.info("    ✅ Simulation settings context registered")
+            
             # Import paths
             from PySide6.QtCore import QLibraryInfo
             qml_import_path = QLibraryInfo.path(QLibraryInfo.LibraryPath.Qml2ImportsPath)

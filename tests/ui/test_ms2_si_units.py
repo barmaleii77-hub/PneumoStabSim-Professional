@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Тесты для единиц СИ и шага 0.001м (МШ-2)
+РўРµСЃС‚С‹ РґР»СЏ РµРґРёРЅРёС† РЎР Рё С€Р°РіР° 0.001Рј (РњРЁ-2)
 """
 import sys
 import pytest
@@ -14,7 +14,7 @@ from src.ui.panels.panel_geometry import GeometryPanel
 
 
 class TestSIUnitsAndSteps:
-    """Тесты приведения всех линейных параметров к СИ и шагу 0.001м"""
+    """РўРµСЃС‚С‹ РїСЂРёРІРµРґРµРЅРёСЏ РІСЃРµС… Р»РёРЅРµР№РЅС‹С… РїР°СЂР°РјРµС‚СЂРѕРІ Рє РЎР Рё С€Р°РіСѓ 0.001Рј"""
     
     @pytest.fixture
     def app(self):
@@ -38,13 +38,13 @@ class TestSIUnitsAndSteps:
         
         # Test wheelbase slider
         wheelbase_slider = panel.wheelbase_slider
-        assert wheelbase_slider.units == "м"
+        assert wheelbase_slider.units == "Рј"
         assert wheelbase_slider.step == 0.001
         assert wheelbase_slider.decimals == 3
         
         # Test track slider
         track_slider = panel.track_slider
-        assert track_slider.units == "м"
+        assert track_slider.units == "Рј"
         assert track_slider.step == 0.001
         assert track_slider.decimals == 3
     
@@ -54,13 +54,13 @@ class TestSIUnitsAndSteps:
         
         # Test frame_to_pivot slider
         frame_to_pivot_slider = panel.frame_to_pivot_slider
-        assert frame_to_pivot_slider.units == "м"
+        assert frame_to_pivot_slider.units == "Рј"
         assert frame_to_pivot_slider.step == 0.001
         assert frame_to_pivot_slider.decimals == 3
         
         # Test lever_length slider
         lever_length_slider = panel.lever_length_slider
-        assert lever_length_slider.units == "м"
+        assert lever_length_slider.units == "Рј"
         assert lever_length_slider.step == 0.001
         assert lever_length_slider.decimals == 3
     
@@ -75,6 +75,8 @@ class TestSIUnitsAndSteps:
             'frame_to_pivot': 0.600,
             'lever_length': 0.800,
             'rod_position': 0.600,
+            'additional_param_1': 0.050,  # New parameter
+            'additional_param_2': 1.250,  # New parameter
         }
         
         for param, expected_value in expected_defaults.items():

@@ -10,6 +10,7 @@ import json
 import logging
 from typing import Dict, Any, Optional
 from pathlib import Path
+from dataclasses import asdict
 
 
 class GraphicsStateManager:
@@ -56,7 +57,7 @@ class GraphicsStateManager:
         
         try:
             # Convert to JSON string for storage
-            state_json = json.dumps(state)
+            state_json = json.dumps(state, ensure_ascii=False)
             
             # Save to QSettings
             key = self.STATE_KEYS[category]

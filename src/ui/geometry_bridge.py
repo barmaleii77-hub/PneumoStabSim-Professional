@@ -147,7 +147,7 @@ class GeometryTo3DConverter(QObject):
         pivot_height = self._frame_beam_size / 2.0  # ON BEAM AXIS
         
         j_arm = QVector3D(
-            pivot_offset_x * side_mult,  # ±150mm from center
+            pivot_offset_x * side_mult,  # Â±150mm from center
             pivot_height,                # beam axis height
             z_plane                      # EXACTLY in plane
         )
@@ -158,14 +158,14 @@ class GeometryTo3DConverter(QObject):
         tail_offset_x = 100.0  # mm from center
         
         j_tail = QVector3D(
-            tail_offset_x * side_mult,   # ±100mm from center
+            tail_offset_x * side_mult,   # Â±100mm from center
             tail_height,                 # horn height
             z_plane                      # EXACTLY in plane
         )
         
         # MOVING PARTS (depend on lever angle)
         
-        # Base angle: LEFT side points LEFT (180°), RIGHT side points RIGHT (0°)
+        # Base angle: LEFT side points LEFT (180Â°), RIGHT side points RIGHT (0Â°)
         base_angle_deg = 180.0 if is_left else 0.0
         total_angle_deg = base_angle_deg + lever_angle_deg
         total_angle_rad = np.deg2rad(total_angle_deg)
@@ -230,7 +230,7 @@ class GeometryTo3DConverter(QObject):
             
             # Calculate piston position from stroke
             # Assuming stroke 0 = center of cylinder
-            max_stroke_mm = self._cylinder_body_length * 0.4  # ±40% stroke range
+            max_stroke_mm = self._cylinder_body_length * 0.4  # Â±40% stroke range
             piston_ratio_physics = 0.5 + (stroke_mm / (2 * max_stroke_mm))
             piston_ratio_physics = float(np.clip(piston_ratio_physics, 0.1, 0.9))
             piston_position_mm_physics = piston_ratio_physics * self._cylinder_body_length
@@ -350,11 +350,12 @@ class GeometryTo3DConverter(QObject):
             }
         }
     
-    def update_user_parameters(self, params: Dict[str, float]):
+    def update_user_parameters(self, params: Dict[str, float], persist: bool = False):
         """Update multiple user parameters at once
         
         Args:
             params: Dictionary with parameter names and values
+            persist: If True, persist changes to settings manager
         """
         changed = False
         
@@ -384,18 +385,58 @@ class GeometryTo3DConverter(QObject):
         
         if changed:
             print(f"    GeometryBridge updated: {params}")
+        
+        # Persist changes to settings manager
+        if persist:
+            self.save_to_settings()
+    
+    def save_to_settings(self):
+        """Save current geometry settings to persistent storage"""
+        from ..core.settings import SettingsManager
+        
+        # Collect settings data
+        settings_data = {
+            'frameLength': self._frame_length,
+            'frameHeight': self._frame_height,
+            'frameBeamSize': self._frame_beam_size,
+            'leverLength': self._lever_length,
+            'cylinderBodyLength': self._cylinder_body_length,
+            'tailRodLength': self._tail_rod_length
+        }
+        
+        # Update settings manager
+        SettingsManager.set_geometry_settings(settings_data)
+        
+        print(f"    Geometry settings saved: {settings_data}")
+    
+    def export_geometry_params(self) -> Dict[str, Any]:
+        """Export current geometry parameters as dictionary
+        
+        Returns:
+            Dictionary with geometry parameters for export
+        """
+        return {
+            'frameLength': self._frame_length,
+            'frameHeight': self._frame_height,
+            'frameBeamSize': self._frame_beam_size,
+            'leverLength': self._lever_length,
+            'cylinderBodyLength': self._cylinder_body_length,
+            'tailRodLength': self._tail_rod_length
+        }
 
 
 # Convenience function for easy integration
 def create_geometry_converter(wheelbase: float = 2.0, 
                             lever_length: float = 0.315,
-                            cylinder_diameter: float = 0.08) -> GeometryTo3DConverter:
+                            cylinder_diameter: float = 0.08,
+                            settings_manager: Optional[Any] = None) -> GeometryTo3DConverter:
     """Create geometry converter with common parameters
     
     Args:
         wheelbase: Vehicle track width in meters
         lever_length: Suspension lever length in meters  
         cylinder_diameter: Cylinder bore diameter in meters
+        settings_manager: Optional SettingsManager instance for persistent settings
         
     Returns:
         Configured GeometryTo3DConverter
@@ -406,4 +447,11 @@ def create_geometry_converter(wheelbase: float = 2.0,
     geometry.cylinder_inner_diameter = cylinder_diameter
     geometry.enforce_track_from_geometry()  # Ensure consistency
     
-    return GeometryTo3DConverter(geometry)
+    converter = GeometryTo3DConverter(geometry)
+    
+    # Load settings from manager if available
+    if settings_manager is not None:
+        settings = settings_manager.get_geometry_settings()
+        converter.update_user_parameters(settings, persist=False)
+    
+    return converter

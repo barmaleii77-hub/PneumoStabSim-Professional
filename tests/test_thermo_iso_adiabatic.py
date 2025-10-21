@@ -303,27 +303,29 @@ class TestModeConsistency(unittest.TestCase):
         
         # Compress adiabatically
         V_new = 0.0005
-        dV = V_new - gas.volume
-        
-        # Work done on gas (negative dV ? positive work)
-        # Simplified: W ? p_avg * dV
-        p_avg = gas.pressure
-        W = -p_avg * dV
-        
+        p_initial = gas.pressure
+        V_initial = gas.volume
+
         # Update state
         gas.update_volume(V_new, mode=ThermoMode.ADIABATIC)
-        
+
+        # Work done on the gas using the adiabatic work integral
+        gamma = gas.gamma
+        p_final = gas.pressure
+        V_final = gas.volume
+        W = (p_final * V_final - p_initial * V_initial) / (gamma -1.0)
+
         # Final internal energy
         U1 = gas.mass * cv * gas.temperature
         
         # Change in internal energy
         dU = U1 - U0
         
-        # Should approximately equal work done
+        # Should equal work done (first law for adiabatic process)
         assert_allclose(
             dU,
             W,
-            rtol=0.1,  # 10% tolerance (simplified calculation)
+            rtol=5e-4,
             err_msg=f"Energy balance: dU={dU:.2f}J, W={W:.2f}J"
         )
 

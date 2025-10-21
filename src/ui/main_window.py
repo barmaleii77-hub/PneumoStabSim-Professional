@@ -88,7 +88,7 @@ class MainWindow(QMainWindow):
 
   # Geometry bridge
   from src.ui.geometry_bridge import create_geometry_converter
-  self.geometry_converter = create_geometry_converter()
+  self.geometry_converter = create_geometry_converter(self.settings_manager)
   self.logger.info("✅ GeometryBridge создан для интеграции Python↔QML")
 
   # Panels references

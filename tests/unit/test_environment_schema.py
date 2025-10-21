@@ -95,3 +95,52 @@ def test_environment_parameters_metadata_ranges_match():
         if definition.value_type in {"float", "int"}:
             assert definition.min_value is not None, f"Missing min for {definition.key}"
             assert definition.max_value is not None, f"Missing max for {definition.key}"
+
+
+# Additional test cases
+def test_environment_validation_accepts_minimal_valid_payload():
+    payload = {key: 0 for key in ENVIRONMENT_REQUIRED_KEYS}
+    sanitized = validate_environment_settings(payload)
+    assert sanitized == payload
+
+
+def test_environment_validation_rejects_payload_missing_required_key():
+    payload = {key: 0 for key in ENVIRONMENT_REQUIRED_KEYS - {"ao_radius"}}
+    with pytest.raises(EnvironmentValidationError):
+        validate_environment_settings(payload)
+
+
+def test_environment_validation_rejects_payload_with_additional_unexpected_key():
+    baseline = _baseline_environment()
+    mutated = baseline.copy()
+    mutated["unexpected_key"] = "surprise"
+    with pytest.raises(EnvironmentValidationError):
+        validate_environment_settings(mutated)
+
+
+def test_environment_validation_handles_edge_case_values():
+    baseline = _baseline_environment()
+    mutated = baseline.copy()
+    mutated["fog_near"] = 0
+    mutated["fog_far"] = 1e6
+    sanitized = validate_environment_settings(mutated)
+    assert sanitized["fog_near"] == 0
+    assert sanitized["fog_far"] == 1e6
+
+
+def test_environment_validation_rejects_empty_payload():
+    with pytest.raises(EnvironmentValidationError):
+        validate_environment_settings({})
+
+
+def test_environment_validation_accepts_validations_payload():
+    payload = {
+        "ao_radius": 3.0,
+        "fog_near": 10.0,
+        "fog_far": 1000.0,
+        "ibl_intensity": 1.0,
+        "ao_sample_rate": 64,
+        "background_color": [0, 0, 0],
+    }
+    sanitized = validate_environment_settings(payload)
+    assert sanitized == payload

@@ -33,7 +33,7 @@ class CheckValve:
     def __init__(
         self,
         kind: Optional[CheckValveKind] = None,
-        *,
+        *args,
         p_upstream: Optional[float] = None,
         p_downstream: Optional[float] = None,
         delta_open_min: Optional[float] = None,
@@ -42,7 +42,35 @@ class CheckValve:
         d_eff: Optional[float] = None,
         hyst: float = 0.0,
     ) -> None:
+        if kind is not None and not isinstance(kind, CheckValveKind):
+            args = (kind, *args)
+            kind = None
+
         self.kind = kind
+
+        # Support the legacy positional signature
+        # CheckValve(p_upstream, p_downstream, delta_open, d_eq)
+        if args:
+            if len(args) > 4:
+                raise TypeError(
+                    "CheckValve() accepts at most four positional arguments: "
+                    "p_upstream, p_downstream, delta_open, d_eq"
+                )
+
+            pos_p_upstream = args[0] if len(args) > 0 else None
+            pos_p_downstream = args[1] if len(args) > 1 else None
+            pos_delta = args[2] if len(args) > 2 else None
+            pos_d_eq = args[3] if len(args) > 3 else None
+
+            if p_upstream is None:
+                p_upstream = pos_p_upstream
+            if p_downstream is None:
+                p_downstream = pos_p_downstream
+            if delta_open_min is None and delta_open is None:
+                delta_open = pos_delta
+            if d_eq is None and d_eff is None:
+                d_eq = pos_d_eq
+
         self.delta_open_min = self._coerce_positive(
             delta_open_min if delta_open_min is not None else delta_open,
             "delta_open_min",

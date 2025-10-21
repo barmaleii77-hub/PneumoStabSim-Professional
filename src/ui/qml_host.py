@@ -13,6 +13,7 @@ from PySide6.QtQuickWidgets import QQuickWidget
 # Import geometry bridge for correct coordinate calculation
 from ..core.geometry import GeometryParams
 from src.ui.geometry_bridge import GeometryTo3DConverter
+from src.core.settings_manager import SettingsManager
 
 _logger = logging.getLogger(__name__)
 
@@ -26,13 +27,17 @@ class SuspensionSceneHost(QQuickWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
         
-        # Create geometry converter with 2-meter dimensions
+        # Load geometry settings from SettingsManager
+        settings = SettingsManager().geometry_settings
+        _logger.debug("Loaded geometry settings: %s", settings)
+        
+        # Create geometry converter with settings values
         geometry_params = GeometryParams()
-        geometry_params.lever_length = 0.45  # 450mm
-        geometry_params.cylinder_inner_diameter = 0.085  # 85mm  
-        geometry_params.rod_diameter = 0.032  # 32mm
-        geometry_params.cylinder_body_length = 0.25  # 250mm
-        geometry_params.piston_thickness = 0.02  # 20mm
+        geometry_params.lever_length = settings.lever_length  # mm
+        geometry_params.cylinder_inner_diameter = settings.cylinder_inner_diameter  # mm  
+        geometry_params.rod_diameter = settings.rod_diameter  # mm
+        geometry_params.cylinder_body_length = settings.cylinder_body_length  # mm
+        geometry_params.piston_thickness = settings.piston_thickness  # mm
         
         self.geometry_converter = GeometryTo3DConverter(geometry_params)
         

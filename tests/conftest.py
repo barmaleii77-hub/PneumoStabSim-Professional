@@ -1,6 +1,7 @@
 """
 Pytest configuration and shared fixtures
 """
+import os
 import pytest
 import sys
 from pathlib import Path
@@ -8,6 +9,11 @@ from pathlib import Path
 # Add project root to path
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
+
+# Set up environment variables for testing
+os.environ.setdefault('QT_QPA_PLATFORM', 'offscreen')
+os.environ.setdefault('QT_QUICK_BACKEND', 'software')
+os.environ.setdefault('PYTHONHASHSEED', '0')
 
 
 @pytest.fixture(scope='session')
@@ -87,3 +93,12 @@ def pytest_configure(config):
     config.addinivalue_line(
         "markers", "gui: Tests requiring GUI/QML"
     )
+
+
+# Safe exit on test completion
+def pytest_unconfigure(config):
+    """Clean up after tests"""
+    from PySide6.QtWidgets import QApplication
+    app = QApplication.instance()
+    if app is not None:
+        app.quit()

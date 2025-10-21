@@ -17,7 +17,7 @@ def adiabatic_p(V: float, C: float) -> float:
     """Calculate pressure from adiabatic relation p*V^? = C
 
     Args:
-        V: Volume (m?)
+        V: Volume (m³)
         C: Adiabatic constant p*V^? (Pa*m^(3?))
 
     Returns:
