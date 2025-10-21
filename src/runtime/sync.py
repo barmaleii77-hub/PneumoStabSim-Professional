@@ -187,12 +187,13 @@ class TimingAccumulator:
     physics timestep from rendering framerate.
     """
     
-    def __init__(self, target_dt: float = 0.001):
+    def __init__(self, target_dt: float = 0.001, max_steps_per_frame: int = 10, max_frame_time: float = 0.05):
         self.target_dt = target_dt
         self.accumulator = 0.0
         self.last_time = time.perf_counter()
-        self.max_steps_per_frame = 10  # Prevent spiral of death
-        
+        self.max_steps_per_frame = max(1, int(max_steps_per_frame))  # Prevent spiral of death
+        self.max_frame_time = max_frame_time
+
         # Statistics
         self.steps_taken = 0
         self.frames_processed = 0
@@ -210,8 +211,8 @@ class TimingAccumulator:
         self.last_time = current_time
         
         # Clamp maximum frame time to prevent spiral of death
-        if real_dt > 0.05:  # 50ms max frame time
-            real_dt = 0.05
+        if real_dt > self.max_frame_time:
+            real_dt = self.max_frame_time
         
         self.accumulator += real_dt
         self.total_real_time += real_dt

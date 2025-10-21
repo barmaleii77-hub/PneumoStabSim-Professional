@@ -78,6 +78,9 @@ except ImportError:
         RoadInput = None  # Заглушка
 
 
+# Added import for settings_manager
+from src.common.settings_manager import get_settings_manager
+
 class PhysicsWorker(QObject):
     """Physics simulation worker running in dedicated thread
     
@@ -93,9 +96,15 @@ class PhysicsWorker(QObject):
     def __init__(self, parent=None):
         super().__init__(parent)
         
-        # Physics configuration
-        self.dt_physics = 0.001         # 1ms physics timestep
-        self.vsync_render_hz = 60.0     # Target render rate
+        # Logging and settings access
+        self.logger = logging.getLogger(__name__)
+        self.settings_manager = get_settings_manager()
+
+        # Physics configuration (loaded from settings file)
+        self.dt_physics: float =0.0
+        self.vsync_render_hz: float =0.0
+        self.max_steps_per_frame: int =1
+        self.max_frame_time: float =0.05
         
         # Simulation state
         self.is_running = False
@@ -112,42 +121,170 @@ class PhysicsWorker(QObject):
         # Current physics state
         self.physics_state: np.ndarray = np.zeros(6)  # [Y, φz, θx, dY, dφz, dθx]
         
-        # Simulation modes
+        # Simulation modes (overridden by persisted settings)
         self.thermo_mode = ThermoMode.ISOTHERMAL
         self.master_isolation_open = False
         
-        # NEW: Receiver parameters
-        self.receiver_volume = 0.020  # 20L default
-        self.receiver_volume_mode = 'NO_RECALC'  # Default mode
+        # Receiver parameters and limits (loaded from settings)
+        self.receiver_volume: float =0.0
+        self.receiver_volume_mode: str = ""
+        self._volume_limits: tuple[float, float] = (0.0,0.0)
         
         # Threading objects (created in target thread)
         self.physics_timer: Optional[QTimer] = None
         
         # Performance monitoring
         self.performance = PerformanceMetrics()
-        self.timing_accumulator = TimingAccumulator(self.dt_physics)
+        self.timing_accumulator: Optional[TimingAccumulator] = None
         self.step_time_samples = []
         
         # Thread safety
         self.error_counter = ThreadSafeCounter()
         
-        # Logging
-        self.logger = logging.getLogger(__name__)
+        # Load persisted configuration
+        self._load_initial_settings()
+        self._apply_timing_configuration()
+
+        self.logger.info(
+            "PhysicsWorker settings: dt=%.6fs, vsync=%.1fHz, max_steps=%d, max_frame_time=%.3fs, "
+            "receiver=%.3fm³ (%s mode)",
+            self.dt_physics,
+            self.vsync_render_hz,
+            self.max_steps_per_frame,
+            self.max_frame_time,
+            self.receiver_volume,
+            self.receiver_volume_mode,
+        )
         
-    def configure(self, dt_phys: float = 0.001, vsync_render_hz: float = 60.0):
-        """Configure physics parameters"""
-        self.dt_physics = dt_phys
-        self.vsync_render_hz = vsync_render_hz
-        
-        # Update timing accumulator
-        self.timing_accumulator = TimingAccumulator(self.dt_physics)
+    def _load_initial_settings(self) -> None:
+        """Load simulation-related settings from SettingsManager"""
+        defaults = self.settings_manager.get_all_defaults()
+
+        def _current(path: str) -> Any:
+            return self.settings_manager.get(path, None)
+
+        def _default(category: str, key: str) -> Any:
+            block = defaults.get(category, {})
+            if isinstance(block, dict):
+                return block.get(key)
+            return None
+
+        def _require_number(category: str, key: str) -> float:
+            value = _current(f"{category}.{key}")
+            if isinstance(value, bool):
+                value = None
+            if isinstance(value, (int, float)) and not isinstance(value, bool):
+                return float(value)
+            fallback = _default(category, key)
+            if isinstance(fallback, bool):
+                fallback = None
+            if isinstance(fallback, (int, float)) and not isinstance(fallback, bool):
+                return float(fallback)
+            raise RuntimeError(f"Missing numeric setting: {category}.{key}")
+
+        def _require_bool(category: str, key: str) -> bool:
+            value = _current(f"{category}.{key}")
+            if isinstance(value, bool):
+                return value
+            if isinstance(value, (int, float)) and not isinstance(value, bool):
+                return bool(value)
+            fallback = _default(category, key)
+            if isinstance(fallback, bool):
+                return fallback
+            if isinstance(fallback, (int, float)) and not isinstance(fallback, bool):
+                return bool(fallback)
+            raise RuntimeError(f"Missing boolean setting: {category}.{key}")
+
+        def _require_str(category: str, key: str) -> str:
+            value = _current(f"{category}.{key}")
+            if isinstance(value, str) and value.strip():
+                return value.strip()
+            fallback = _default(category, key)
+            if isinstance(fallback, str) and fallback.strip():
+                return fallback.strip()
+            raise RuntimeError(f"Missing text setting: {category}.{key}")
+
+        try:
+            self.dt_physics = _require_number("simulation", "physics_dt")
+            self.vsync_render_hz = _require_number("simulation", "render_vsync_hz")
+            self.max_steps_per_frame = max(
+                1, int(round(_require_number("simulation", "max_steps_per_frame")))
+            )
+            self.max_frame_time = _require_number("simulation", "max_frame_time")
+
+            limits = self.settings_manager.get("pneumatic.receiver_volume_limits", None)
+            if not isinstance(limits, dict) or not limits:
+                limits = _default("pneumatic", "receiver_volume_limits")
+            if not isinstance(limits, dict):
+                raise RuntimeError("Missing pneumatic.receiver_volume_limits")
+            min_limit = limits.get("min_m3")
+            max_limit = limits.get("max_m3")
+            if not isinstance(min_limit, (int, float)) or not isinstance(max_limit, (int, float)):
+                raise RuntimeError("Invalid receiver volume limits in settings")
+            min_limit = float(min_limit)
+            max_limit = float(max_limit)
+            if max_limit <= min_limit or min_limit <=0:
+                raise RuntimeError("Receiver volume limits must satisfy0 < min < max")
+            self._volume_limits = (min_limit, max_limit)
+
+            self.receiver_volume = _require_number("pneumatic", "receiver_volume")
+            if not (self._volume_limits[0] <= self.receiver_volume <= self._volume_limits[1]):
+                raise RuntimeError(
+                    f"Receiver volume {self.receiver_volume} outside limits {self._volume_limits}"
+                )
+
+            mode = _require_str("pneumatic", "volume_mode").upper()
+            if mode not in {"MANUAL", "GEOMETRIC"}:
+                raise RuntimeError(f"Unsupported receiver volume mode: {mode}")
+            self.receiver_volume_mode = mode
+
+            self.master_isolation_open = _require_bool("pneumatic", "master_isolation_open")
+
+            thermo = _require_str("pneumatic", "thermo_mode").upper()
+            try:
+                self.thermo_mode = ThermoMode[thermo]
+            except KeyError as exc:
+                raise RuntimeError(f"Unsupported thermo_mode: {thermo}") from exc
+        except Exception as exc:
+            self.logger.critical(f"Failed to load physics settings: {exc}")
+            raise
+
+    def _apply_timing_configuration(self) -> None:
+        """Recreate timing accumulator with current configuration"""
+        self.timing_accumulator = TimingAccumulator(
+            self.dt_physics,
+            self.max_steps_per_frame,
+            self.max_frame_time,
+        )
         self.performance.target_dt = self.dt_physics
-        
+
+    def configure(
+        self,
+        dt_phys: Optional[float] = None,
+        vsync_render_hz: Optional[float] = None,
+        max_steps_per_frame: Optional[int] = None,
+        max_frame_time: Optional[float] = None,
+    ):
+        """Configure physics parameters"""
+        if isinstance(dt_phys, (int, float)) and not isinstance(dt_phys, bool):
+            self.dt_physics = float(dt_phys)
+        if isinstance(vsync_render_hz, (int, float)) and not isinstance(vsync_render_hz, bool):
+            self.vsync_render_hz = float(vsync_render_hz)
+        if isinstance(max_steps_per_frame, (int, float)) and not isinstance(max_steps_per_frame, bool):
+            self.max_steps_per_frame = max(1, int(round(max_steps_per_frame)))
+        if isinstance(max_frame_time, (int, float)) and not isinstance(max_frame_time, bool):
+            self.max_frame_time = float(max_frame_time)
+
+        # Update timing accumulator
+        self._apply_timing_configuration()
+
         # Create default physics objects
         self._initialize_physics_objects()
         
         self.is_configured = True
-        self.logger.info(f"Physics configured: dt={dt_phys*1000:.3f}ms, render={vsync_render_hz:.1f}Hz")
+        self.logger.info(
+            f"Physics configured: dt={self.dt_physics*1000:.3f}ms, render={self.vsync_render_hz:.1f}Hz"
+        )
     
     def _initialize_physics_objects(self):
         """Initialize physics simulation objects"""

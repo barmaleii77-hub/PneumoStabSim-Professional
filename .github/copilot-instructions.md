@@ -134,25 +134,60 @@ updates = {
 self._qml_root_object.applyBatchedUpdates(updates)
 ```
 
-### Known Issues & Solutions
-
-#### Issue: Angle Normalization Flips (FIXED in v4.9.4)
-**Problem**: Manual angle normalization caused 180° flips
-**Solution**: Removed ALL `normAngleDeg()` calls - Qt SLERP handles everything
-
-**Affected locations (FIXED)**:
-1. ~~`onIblRotationDegChanged`~~ - REMOVED
-2. ~~`applyEnvironmentUpdates()`~~ - FIXED
-3. ~~Mouse controls~~ - FIXED
-4. ~~autoRotate timer~~ - FIXED
-
-#### Issue: IBL Rotation vs Camera (FIXED in v4.9.4)
-**Problem**: Skybox rotated with camera
-**Solution**: `probeOrientation` uses ONLY `iblRotationDeg`, NOT `cameraYaw`
-
+#### 4. **QML State Management**
 ```qml
-// ✅ ПРАВИЛЬНО - skybox независим от камеры
-probeOrientation: Qt.vector3d(0, root.iblRotationDeg, 0)
+// ✅ ПРАВИЛЬНО: Используй Component.onCompleted для инициализации
+Component.onCompleted: {
+    if (typeof startLightingState !== "undefined") {
+        applyLightingUpdates(startLightingState)
+    }
+}
+
+// ❌ НЕПРАВИЛЬНО: Прямой доступ к undefined свойствам
+property var intensity: startLightIntensity // может быть undefined
+```
+
+#### 5. **Settings Persistence Strategy**
+- **SettingsManager**: Централизованное хранилище (config/app_settings.json)
+- **НЕ ИСПОЛЬЗОВАТЬ**: QSettings для Python-side конфигураций
+- **Panel State**: Собирается через `collect_state()` методы
+- **Save Strategy**: Батч-сохранение при closeEvent() основного окна
+
+```python
+# ✅ ПРАВИЛЬНО: Централизованное сохранение в MainWindow.closeEvent()
+def closeEvent(self, event):
+    # 1) Собираем состояние всех панелей
+    if self.graphics_panel:
+        state = self.graphics_panel.collect_state()
+        self.settings_manager.set_category("graphics", state, auto_save=False)
+    
+    # 2) Пишем на диск ОДИН РАЗ
+    self.settings_manager.save()
+```
+
+#### 6. **Critical IBL/HDR Path Handling**
+```python
+# ✅ ПРАВИЛЬНО: Нормализация путей относительно QML директории
+def _normalize_hdr_path(candidate: Any, qml_dir: Path) -> str:
+    """Преобразует любой путь к HDR в POSIX формат относительно qml_dir"""
+    if not candidate:
+        return ""
+    
+    path_obj = Path(str(candidate).replace("\\", "/"))
+    resolved = path_obj.resolve(strict=False)
+    
+    # Относительный путь предпочтительнее
+    if not path_obj.is_absolute():
+        return path_obj.as_posix()
+    
+    try:
+        return resolved.relative_to(qml_dir).as_posix()
+    except ValueError:
+        return resolved.as_posix()
+
+# ❌ НЕПРАВИЛЬНО: Смешанные разделители или абсолютные пути
+ibl_source = "C:\\Users\\...\\assets\\hdr\\file.hdr"  # Windows path
+ibl_source = "../hdr/file.hdr"  # Может не работать из QML
 ```
 
 ### Performance Optimizations

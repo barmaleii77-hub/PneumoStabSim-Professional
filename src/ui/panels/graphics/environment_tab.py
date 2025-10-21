@@ -18,6 +18,7 @@ from pathlib import Path
 from typing import Dict, Any, List, Tuple
 
 from .widgets import ColorButton, LabeledSlider
+from src.ui.environment_schema import validate_environment_settings
 
 
 class EnvironmentTab(QWidget):
@@ -391,51 +392,52 @@ class EnvironmentTab(QWidget):
     
     # ========== ГЕТТЕРЫ/СЕТТЕРЫ ==========
     
+    def _require_control(self, key: str):
+        control = self._controls.get(key)
+        if control is None:
+            raise KeyError(f"Control '{key}' is not registered")
+        return control
+
     def get_state(self) -> Dict[str, Any]:
         """Получить текущее состояние всех параметров окружения"""
-        return {
-            # Background
-            'background_mode': self._controls["background.mode"].currentData() if self._controls.get("background.mode") else 'skybox',
-            'background_color': self._controls["background.color"].color().name(),
-            'skybox_enabled': self._controls["background.skybox_enabled"].isChecked(),
-            
-            # IBL
-            'ibl_enabled': self._controls["ibl.enabled"].isChecked(),
-            'ibl_intensity': self._controls["ibl.intensity"].value(),
-            'probe_brightness': self._controls["ibl.probe_brightness"].value(),
-            'probe_horizon': self._controls["ibl.probe_horizon"].value(),
-            'ibl_rotation': self._controls["ibl.rotation"].value(),
-            'ibl_source': self._normalize_ibl_path(self._controls["ibl.file"].currentData()),
-            'ibl_fallback': self._normalize_ibl_path(self._controls["ibl.fallback"].currentData()),
-            'skybox_blur': self._controls["skybox.blur"].value(),
-            'ibl_offset_x': self._controls["ibl.offset_x"].value(),
-            'ibl_offset_y': self._controls["ibl.offset_y"].value(),
-            'ibl_bind_to_camera': self._controls["ibl.bind"].isChecked(),
-            
-            # Fog
-            'fog_enabled': self._controls["fog.enabled"].isChecked(),
-            'fog_color': self._controls["fog.color"].color().name(),
-            'fog_density': self._controls["fog.density"].value(),
-            'fog_near': self._controls["fog.near"].value(),
-            'fog_far': self._controls["fog.far"].value(),
-            'fog_height_enabled': self._controls["fog.height_enabled"].isChecked(),
-            'fog_least_intense_y': self._controls["fog.least_y"].value(),
-            'fog_most_intense_y': self._controls["fog.most_y"].value(),
-            'fog_height_curve': self._controls["fog.height_curve"].value(),
-            'fog_transmit_enabled': self._controls["fog.transmit_enabled"].isChecked(),
-            'fog_transmit_curve': self._controls["fog.transmit_curve"].value(),
-            
-            # Ambient Occlusion
-            'ao_enabled': self._controls["ao.enabled"].isChecked(),
-            'ao_strength': self._controls["ao.strength"].value(),
-            'ao_radius': self._controls["ao.radius"].value(),
-            'ao_softness': self._controls["ao.softness"].value(),
-            'ao_dither': self._controls["ao.dither"].isChecked(),
-            'ao_sample_rate': self._controls["ao.sample_rate"].currentData(),
+        raw_state = {
+            'background_mode': self._require_control("background.mode").currentData(),
+            'background_color': self._require_control("background.color").color().name(),
+            'skybox_enabled': self._require_control("background.skybox_enabled").isChecked(),
+            'ibl_enabled': self._require_control("ibl.enabled").isChecked(),
+            'ibl_intensity': self._require_control("ibl.intensity").value(),
+            'probe_brightness': self._require_control("ibl.probe_brightness").value(),
+            'probe_horizon': self._require_control("ibl.probe_horizon").value(),
+            'ibl_rotation': self._require_control("ibl.rotation").value(),
+            'ibl_source': self._normalize_ibl_path(self._require_control("ibl.file").currentData()),
+            'ibl_fallback': self._normalize_ibl_path(self._require_control("ibl.fallback").currentData()),
+            'skybox_blur': self._require_control("skybox.blur").value(),
+            'ibl_offset_x': self._require_control("ibl.offset_x").value(),
+            'ibl_offset_y': self._require_control("ibl.offset_y").value(),
+            'ibl_bind_to_camera': self._require_control("ibl.bind").isChecked(),
+            'fog_enabled': self._require_control("fog.enabled").isChecked(),
+            'fog_color': self._require_control("fog.color").color().name(),
+            'fog_density': self._require_control("fog.density").value(),
+            'fog_near': self._require_control("fog.near").value(),
+            'fog_far': self._require_control("fog.far").value(),
+            'fog_height_enabled': self._require_control("fog.height_enabled").isChecked(),
+            'fog_least_intense_y': self._require_control("fog.least_y").value(),
+            'fog_most_intense_y': self._require_control("fog.most_y").value(),
+            'fog_height_curve': self._require_control("fog.height_curve").value(),
+            'fog_transmit_enabled': self._require_control("fog.transmit_enabled").isChecked(),
+            'fog_transmit_curve': self._require_control("fog.transmit_curve").value(),
+            'ao_enabled': self._require_control("ao.enabled").isChecked(),
+            'ao_strength': self._require_control("ao.strength").value(),
+            'ao_radius': self._require_control("ao.radius").value(),
+            'ao_softness': self._require_control("ao.softness").value(),
+            'ao_dither': self._require_control("ao.dither").isChecked(),
+            'ao_sample_rate': self._require_control("ao.sample_rate").currentData(),
         }
-    
+        return validate_environment_settings(raw_state)
+
     def set_state(self, state: Dict[str, Any]):
         """Установить состояние из словаря"""
+        validated = validate_environment_settings(state)
         self._updating_ui = True
         for control in self._controls.values():
             try:
@@ -443,82 +445,46 @@ class EnvironmentTab(QWidget):
             except:
                 pass
         try:
-            # Background
-            if 'background_mode' in state:
-                combo = self._controls.get("background.mode")
-                if combo:
-                    idx = combo.findData(state['background_mode'])
-                    if idx >= 0:
-                        combo.setCurrentIndex(idx)
-            if 'background_color' in state:
-                self._controls["background.color"].set_color(state['background_color'])
-            if 'skybox_enabled' in state:
-                self._controls["background.skybox_enabled"].setChecked(state['skybox_enabled'])
-            
-            # IBL
-            if 'ibl_enabled' in state:
-                self._controls["ibl.enabled"].setChecked(state['ibl_enabled'])
-            if 'ibl_intensity' in state:
-                self._controls["ibl.intensity"].set_value(state['ibl_intensity'])
-            if 'probe_brightness' in state:
-                self._controls["ibl.probe_brightness"].set_value(state['probe_brightness'])
-            if 'probe_horizon' in state:
-                self._controls["ibl.probe_horizon"].set_value(state['probe_horizon'])
-            if 'ibl_rotation' in state:
-                self._controls["ibl.rotation"].set_value(state['ibl_rotation'])
-            if 'ibl_source' in state:
-                self._select_combo_path(self._controls["ibl.file"], state['ibl_source'])
-            if 'ibl_fallback' in state:
-                self._select_combo_path(self._controls["ibl.fallback"], state['ibl_fallback'])
-            if 'skybox_blur' in state:
-                self._controls["skybox.blur"].set_value(state['skybox_blur'])
-            if 'ibl_offset_x' in state:
-                self._controls["ibl.offset_x"].set_value(state['ibl_offset_x'])
-            if 'ibl_offset_y' in state:
-                self._controls["ibl.offset_y"].set_value(state['ibl_offset_y'])
-            if 'ibl_bind_to_camera' in state:
-                self._controls["ibl.bind"].setChecked(state['ibl_bind_to_camera'])
-            
-            # Fog
-            if 'fog_enabled' in state:
-                self._controls["fog.enabled"].setChecked(state['fog_enabled'])
-            if 'fog_color' in state:
-                self._controls["fog.color"].set_color(state['fog_color'])
-            if 'fog_density' in state:
-                self._controls["fog.density"].set_value(state['fog_density'])
-            if 'fog_near' in state:
-                self._controls["fog.near"].set_value(state['fog_near'])
-            if 'fog_far' in state:
-                self._controls["fog.far"].set_value(state['fog_far'])
-            if 'fog_height_enabled' in state:
-                self._controls["fog.height_enabled"].setChecked(state['fog_height_enabled'])
-            if 'fog_least_intense_y' in state:
-                self._controls["fog.least_y"].set_value(state['fog_least_intense_y'])
-            if 'fog_most_intense_y' in state:
-                self._controls["fog.most_y"].set_value(state['fog_most_intense_y'])
-            if 'fog_height_curve' in state:
-                self._controls["fog.height_curve"].set_value(state['fog_height_curve'])
-            if 'fog_transmit_enabled' in state:
-                self._controls["fog.transmit_enabled"].setChecked(state['fog_transmit_enabled'])
-            if 'fog_transmit_curve' in state:
-                self._controls["fog.transmit_curve"].set_value(state['fog_transmit_curve'])
-            
-            # AO
-            if 'ao_enabled' in state:
-                self._controls["ao.enabled"].setChecked(state['ao_enabled'])
-            if 'ao_strength' in state:
-                self._controls["ao.strength"].set_value(state['ao_strength'])
-            if 'ao_radius' in state:
-                self._controls["ao.radius"].set_value(state['ao_radius'])
-            if 'ao_softness' in state:
-                self._controls["ao.softness"].set_value(state['ao_softness'])
-            if 'ao_dither' in state:
-                self._controls["ao.dither"].setChecked(state['ao_dither'])
-            if 'ao_sample_rate' in state:
-                combo = self._controls["ao.sample_rate"]
-                idx = combo.findData(state['ao_sample_rate'])
-                if idx >= 0:
-                    combo.setCurrentIndex(idx)
+            combo = self._require_control("background.mode")
+            idx = combo.findData(validated['background_mode'])
+            if idx >=0:
+                combo.setCurrentIndex(idx)
+            self._require_control("background.color").set_color(validated['background_color'])
+            self._require_control("background.skybox_enabled").setChecked(validated['skybox_enabled'])
+
+            self._require_control("ibl.enabled").setChecked(validated['ibl_enabled'])
+            self._require_control("ibl.intensity").set_value(validated['ibl_intensity'])
+            self._require_control("ibl.probe_brightness").set_value(validated['probe_brightness'])
+            self._require_control("ibl.probe_horizon").set_value(validated['probe_horizon'])
+            self._require_control("ibl.rotation").set_value(validated['ibl_rotation'])
+            self._select_combo_path(self._require_control("ibl.file"), validated['ibl_source'])
+            self._select_combo_path(self._require_control("ibl.fallback"), validated['ibl_fallback'])
+            self._require_control("skybox.blur").set_value(validated['skybox_blur'])
+            self._require_control("ibl.offset_x").set_value(validated['ibl_offset_x'])
+            self._require_control("ibl.offset_y").set_value(validated['ibl_offset_y'])
+            self._require_control("ibl.bind").setChecked(validated['ibl_bind_to_camera'])
+
+            self._require_control("fog.enabled").setChecked(validated['fog_enabled'])
+            self._require_control("fog.color").set_color(validated['fog_color'])
+            self._require_control("fog.density").set_value(validated['fog_density'])
+            self._require_control("fog.near").set_value(validated['fog_near'])
+            self._require_control("fog.far").set_value(validated['fog_far'])
+            self._require_control("fog.height_enabled").setChecked(validated['fog_height_enabled'])
+            self._require_control("fog.least_y").set_value(validated['fog_least_intense_y'])
+            self._require_control("fog.most_y").set_value(validated['fog_most_intense_y'])
+            self._require_control("fog.height_curve").set_value(validated['fog_height_curve'])
+            self._require_control("fog.transmit_enabled").setChecked(validated['fog_transmit_enabled'])
+            self._require_control("fog.transmit_curve").set_value(validated['fog_transmit_curve'])
+
+            self._require_control("ao.enabled").setChecked(validated['ao_enabled'])
+            self._require_control("ao.strength").set_value(validated['ao_strength'])
+            self._require_control("ao.radius").set_value(validated['ao_radius'])
+            self._require_control("ao.softness").set_value(validated['ao_softness'])
+            self._require_control("ao.dither").setChecked(validated['ao_dither'])
+            combo = self._require_control("ao.sample_rate")
+            idx = combo.findData(validated['ao_sample_rate'])
+            if idx >=0:
+                combo.setCurrentIndex(idx)
         finally:
             for control in self._controls.values():
                 try:

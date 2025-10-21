@@ -853,7 +853,7 @@ assets/hdr/*.exr
 # Yandex Disk temporary download files
 *.yandex_disk_download
 
-# Allow small demo HDR in qml assets (fallback)
-!assets/qml/assets/studio_small_09_2k.hdr
+# Allow targeted unit tests for schema validation
+!tests/unit/test_environment_schema.py
 
 # END OF .GITIGNORE
