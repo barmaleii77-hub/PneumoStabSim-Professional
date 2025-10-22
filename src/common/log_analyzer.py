@@ -337,7 +337,7 @@ class UnifiedLogAnalyzer:
 
             state = "idle"
             current = None
-            fallback = None
+            _fallback = None
             saw_loading = False
             switched = False
             saw_ready = False
@@ -357,7 +357,7 @@ class UnifiedLogAnalyzer:
                     sequence_errors.append(
                         f"Для {current or '?'} не было статуса Loading после смены источника"
                     )
-                # Сброс признаков
+                # Сброс признаки
                 state = "idle"
                 saw_loading = False
                 switched = False
@@ -407,7 +407,7 @@ class UnifiedLogAnalyzer:
                 m = re_switch.search(ln)
                 if m:
                     switched = True
-                    fallback = m.group(1).strip()
+                    _fallback = m.group(1).strip()
                     state = "changed"  # ожидаем загрузку нового (fallback)
                     continue
 

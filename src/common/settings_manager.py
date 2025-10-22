@@ -17,6 +17,7 @@ from pathlib import Path
 from typing import Any, Dict, Optional
 from datetime import datetime
 import copy
+import re
 
 
 class SettingsManager:
@@ -471,6 +472,41 @@ class SettingsManager:
         # Сохраняем
         self.save()
 
+    def _convert_value(self, value: Any) -> float | None:
+        """
+        Универсальная попытка преобразовать значение в число с плавающей точкой.
+
+        Поддерживаемые варианты входа:
+        - Число (int|float) → float
+        - Строка с русской/английской записью дробей ("," или ".")
+        - Строка с лишними символами/единицами (удаляются)
+
+        Возвращает None если преобразование невозможно.
+        """
+        if value is None:
+            return None
+        if isinstance(value, (int, float)):
+            return float(value)
+        if isinstance(value, str):
+            s = value.strip().lower()
+            if not s:
+                return None
+            # Удаляем пробелы-разделители тысяч и апострофы
+            s = s.replace(" ", "").replace("'", "")
+            # Оставляем только допустимые символы числа, остальные (буквы единиц) режем
+            s = re.sub(r"[^0-9\,\.eE\+\-]", "", s)
+            # Если есть запятая и нет точки — считаем запятую десятичной
+            if "," in s and "." not in s:
+                s = s.replace(",", ".")
+            else:
+                # Иначе запятые считаем разделителями тысяч — убираем
+                s = s.replace(",", "")
+            try:
+                return float(s)
+            except Exception:
+                return None
+        return None
+
     def _convert_geometry_to_meters(self, section: Dict[str, Any]) -> bool:
         """Перевод геометрических значений из миллиметров в метры."""
         changed = False
@@ -521,6 +557,7 @@ class SettingsManager:
             converted_value = self._convert_value(pneumo[key])
             if converted_value is None:
                 continue
+            # Если значение похоже на бары (мало), конвертируем в Па
             if converted_value < 1000.0:
                 pneumo[key] = converted_value * 100000.0
                 changed = True

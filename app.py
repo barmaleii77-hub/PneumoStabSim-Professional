@@ -6,7 +6,7 @@ Main application entry point - MODULAR VERSION v4.9.5
 import sys
 
 # =============================================================================
-# Bootstrap Phase 0: .env
+# Bootstrap Phase0: .env
 # =============================================================================
 # Загружаем переменные окружения из .env до настройки Qt
 try:
@@ -17,7 +17,7 @@ except Exception:
     pass
 
 # =============================================================================
-# Bootstrap Phase 1: Environment & Terminal
+# Bootstrap Phase1: Environment & Terminal
 # =============================================================================
 
 from src.diagnostics.warnings import log_warning, log_error
@@ -47,12 +47,12 @@ check_python_compatibility(log_warning, log_error)
 configure_qt_environment()
 
 # =============================================================================
-# Bootstrap Phase 2: Qt Import
+# Bootstrap Phase2: Qt Import
 # =============================================================================
 
-from src.bootstrap.qt_imports import safe_import_qt
+from src.bootstrap.qt_imports import safe_import_qt  # noqa: E402
 
-QApplication, qInstallMessageHandler, Qt, QTimer = safe_import_qt(
+QApplication, qInstallMessageHandler, Qt, QTimer = safe_import_qt(  # noqa: E402
     log_warning, log_error
 )
 
@@ -60,8 +60,8 @@ QApplication, qInstallMessageHandler, Qt, QTimer = safe_import_qt(
 # Application Entry Point
 # =============================================================================
 
-from src.cli.arguments import parse_arguments
-from src.app_runner import ApplicationRunner
+from src.cli.arguments import parse_arguments  # noqa: E402
+from src.app_runner import ApplicationRunner  # noqa: E402
 
 
 def main() -> int:

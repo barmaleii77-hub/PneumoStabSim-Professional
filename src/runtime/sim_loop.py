@@ -116,7 +116,7 @@ except ImportError:
         RoadInput = None  # Заглушка
 
 
-# Added import for settings_manager
+# Settings manager (используем абсолютный импорт, т.к. общий модуль)
 from src.common.settings_manager import get_settings_manager
 
 
@@ -124,7 +124,7 @@ class PhysicsWorker(QObject):
     """Physics simulation worker running in dedicated thread
 
     Handles fixed-timestep physics simulation with road inputs,
-    pneumatic system, and 3-DOF frame dynamics.
+    pneumatic system, and3-DOF frame dynamics.
     """
 
     # Signals emitted to UI thread
@@ -587,7 +587,6 @@ class PhysicsWorker(QObject):
     def _execute_physics_step(self):
         """Execute single physics timestep"""
         # 1. Get road inputs
-        road_excitations = self._get_road_inputs()
 
         # 2. Update geometry/kinematics
         # TODO: Update lever angles, piston positions, volumes
@@ -633,7 +632,7 @@ class PhysicsWorker(QObject):
                 self.logger.warning(f"Road input error: {e}")
 
         # Return zero excitation as fallback
-        return {"LF": 0.0, "RF": 0.0, "LR": 0.0, "RR": 0.0}
+        return {"LP": 0.0, "PP": 0.0, "LZ": 0.0, "PZ": 0.0}
 
     def _create_state_snapshot(self) -> Optional[StateSnapshot]:
         """Create current state snapshot"""

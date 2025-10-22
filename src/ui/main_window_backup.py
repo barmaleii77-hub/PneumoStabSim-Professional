@@ -1,6 +1,6 @@
 """
 Main window for PneumoStabSim application
-Qt Quick 3D rendering with QQuickWidget (no createWindowContainer)
+Qt Quick3D rendering with QQuickWidget (no createWindowContainer)
 """
 from PySide6.QtWidgets import (
     QMainWindow,
@@ -21,14 +21,14 @@ import numpy as np  # NEW: For calculations
 from pathlib import Path
 from typing import Optional
 
-# NO OpenGL imports - using Qt Quick 3D instead
+# NO OpenGL imports - using Qt Quick3D instead
 from src.ui.charts import ChartWidget
 from src.ui.panels import GeometryPanel, PneumoPanel, ModesPanel, RoadPanel
 from ..runtime import SimulationManager, StateSnapshot
 
 
 class MainWindow(QMainWindow):
-    """Main application window with Qt Quick 3D rendering (RHI/Direct3D)"""
+    """Main application window with Qt Quick3D rendering (RHI/Direct3D)"""
 
     SETTINGS_ORG = "PneumoStabSim"
     SETTINGS_APP = "PneumoStabSimApp"
@@ -43,7 +43,7 @@ class MainWindow(QMainWindow):
         # Store visualization backend choice
         self.use_qml_3d = use_qml_3d
 
-        backend_name = "Qt Quick 3D (U-Frame PBR)" if use_qml_3d else "Legacy OpenGL"
+        backend_name = "Qt Quick3D (U-Frame PBR)" if use_qml_3d else "Legacy OpenGL"
         self.setWindowTitle(f"PneumoStabSim - {backend_name}")
 
         # Set reasonable initial size (not too large)
@@ -89,7 +89,7 @@ class MainWindow(QMainWindow):
         self.road_panel: Optional[RoadPanel] = None
         self.chart_widget: Optional[ChartWidget] = None
 
-        # Qt Quick 3D view reference
+        # Qt Quick3D view reference
         self._qquick_widget: Optional[QQuickWidget] = None  # ? ��������
         self._qml_root_object = None
 
@@ -97,7 +97,7 @@ class MainWindow(QMainWindow):
 
         # Build UI
         self._setup_central()
-        print("  ? Central Qt Quick 3D view setup")
+        print("  ? Central Qt Quick3D view setup")
 
         self._setup_docks()
         print("  ? Docks setup (panels disabled)")
@@ -127,16 +127,16 @@ class MainWindow(QMainWindow):
         # self._restore_settings()
         print("  ??  Settings restore skipped (avoiding potential crashes)")
 
-        self.logger.info("Main window (Qt Quick 3D) initialized")
+        self.logger.info("Main window (Qt Quick3D) initialized")
         print("? MainWindow.__init__() complete")
 
     # ------------------------------------------------------------------
     # UI Construction
     # ------------------------------------------------------------------
     def _setup_central(self):
-        """Create central visualization view (QML 3D or legacy OpenGL)"""
+        """Create central visualization view (QML3D or legacy OpenGL)"""
         print(
-            f"    _setup_central: Creating visualization ({self.use_qml_3d and 'QML 3D' or 'legacy'})..."
+            f"    _setup_central: Creating visualization ({self.use_qml_3d and 'QML3D' or 'legacy'})..."
         )
 
         if self.use_qml_3d:
@@ -145,7 +145,7 @@ class MainWindow(QMainWindow):
             self._setup_legacy_opengl_view()
 
     def _setup_qml_3d_view(self):
-        """Setup Qt Quick 3D full suspension scene"""
+        """Setup Qt Quick3D full suspension scene"""
         print("    [QML] Loading main.qml directly for better UI integration...")
 
         try:
@@ -242,7 +242,7 @@ class MainWindow(QMainWindow):
         print("    _setup_legacy_opengl_view: Loading legacy QML...")
 
         try:
-            # Create QQuickWidget for legacy Qt Quick 3D content
+            # Create QQuickWidget for legacy Qt Quick3D content
             self._qquick_widget = QQuickWidget(self)
 
             # CRITICAL: Set resize mode BEFORE loading source
@@ -276,17 +276,17 @@ class MainWindow(QMainWindow):
             # Set as central widget
             self.setCentralWidget(self._qquick_widget)
 
-            print("    ✅ Legacy Qt Quick 3D view set as central widget")
+            print("    ✅ Legacy Qt Quick3D view set as central widget")
 
         except Exception as e:
-            print(f"    ❌ Legacy Qt Quick 3D view creation failed: {e}")
+            print(f"    ❌ Legacy Qt Quick3D view creation failed: {e}")
             import traceback
 
             traceback.print_exc()
 
             # Fallback to simple label
             fallback = QLabel(
-                "Qt Quick 3D initialization failed\n\n"
+                "Qt Quick3D initialization failed\n\n"
                 "Check:\n"
                 "1. PySide6-Addons installed (pip install PySide6-Addons)\n"
                 "2. QML file exists: assets/qml/main.qml\n"
@@ -397,9 +397,7 @@ class MainWindow(QMainWindow):
 
     def _wire_panel_signals(self):
         """Connect panel signals to simulation/state bus"""
-        bus = self.simulation_manager.state_bus
-
-        # Geometry updates -> 3D SCENE GEOMETRY CHANGES (MAIN!)
+        # Geometry updates ->3D SCENE GEOMETRY CHANGES (MAIN!)
         if self.geometry_panel:
             self.geometry_panel.parameter_changed.connect(
                 lambda name, val: [
@@ -407,7 +405,7 @@ class MainWindow(QMainWindow):
                     print(f"🔧 GeometryPanel signal: {name}={val}"),
                 ]
             )
-            # NEW: Connect geometry_changed signal for 3D scene updates
+            # NEW: Connect geometry_changed signal for3D scene updates
             self.geometry_panel.geometry_changed.connect(self._on_geometry_changed)
             print("✅ GeometryPanel geometry_changed signal connected")
 
@@ -554,7 +552,7 @@ class MainWindow(QMainWindow):
         toolbar.setMaximumHeight(50)
 
     def _toggle_all_panels(self, visible: bool):
-        """Toggle visibility of all dock panels to show/hide 3D view"""
+        """Toggle visibility of all dock panels to show/hide3D view"""
         for dock in [
             self.geometry_dock,
             self.pneumo_dock,
@@ -573,25 +571,23 @@ class MainWindow(QMainWindow):
         self.setStatusBar(self.status_bar)
 
         # Create status bar widgets with reasonable sizes
-        self.sim_time_label = QLabel("Sim Time: 0.000s")
+        self.sim_time_label = QLabel("Sim Time:0.000s")
         self.sim_time_label.setMinimumWidth(120)
 
-        self.step_count_label = QLabel("Steps: 0")
+        self.step_count_label = QLabel("Steps:0")
         self.step_count_label.setMinimumWidth(80)
 
-        self.fps_label = QLabel("Physics FPS: 0")
+        self.fps_label = QLabel("Physics FPS:0")
         self.fps_label.setMinimumWidth(100)
 
-        self.realtime_label = QLabel("RT: 1.00x")
+        self.realtime_label = QLabel("RT:1.00x")
         self.realtime_label.setMinimumWidth(80)
 
-        self.queue_label = QLabel("Queue: 0/0")
+        self.queue_label = QLabel("Queue:0/0")
         self.queue_label.setMinimumWidth(100)
 
         # P13 Kinematics display
-        self.kinematics_label = QLabel(
-            "alpha: 0.0deg | s: 0.0mm | V_h: 0cm3 | V_r: 0cm3"
-        )
+        self.kinematics_label = QLabel("alpha:0.0deg | s:0.0mm | V_h:0cm3 | V_r:0cm3")
         self.kinematics_label.setToolTip(
             "Lever angle (alpha), Cylinder stroke (s), Head/Rod volumes"
         )
@@ -630,7 +626,7 @@ class MainWindow(QMainWindow):
                 fps = 1.0 / snapshot.aggregates.physics_step_time
                 self.fps_label.setText(f"Physics FPS: {fps:.1f}")
 
-            # NEW: Update 3D scene with full simulation state (including piston positions!)
+            # NEW: Update3D scene with full simulation state (including piston positions!)
             self._update_3d_scene_from_snapshot(snapshot)
 
         if self.chart_widget:
@@ -658,7 +654,7 @@ class MainWindow(QMainWindow):
             )
 
     def _update_3d_scene_from_snapshot(self, snapshot: StateSnapshot):
-        """Update 3D scene with full simulation state including piston positions
+        """Update3D scene with full simulation state including piston positions
 
         Args:
             snapshot: Current simulation state snapshot
@@ -752,7 +748,7 @@ class MainWindow(QMainWindow):
                 )
 
             # CRITICAL: Update lever angles FIRST (so j_rod positions are correct)
-            from PySide6.QtCore import QMetaObject, Q_ARG, Qt
+            from PySide6.QtCore import QMetaObject, Q_ARG, Qt as _Qt
 
             # WORKAROUND: Set angles directly via properties instead of method call
             # This is more reliable than invokeMethod for simple value updates
@@ -765,7 +761,7 @@ class MainWindow(QMainWindow):
                 success_pistons = QMetaObject.invokeMethod(
                     self._qml_root_object,
                     "updatePistonPositions",
-                    Qt.ConnectionType.DirectConnection,
+                    _Qt.ConnectionType.DirectConnection,
                     Q_ARG("QVariant", piston_positions),
                 )
 
@@ -775,7 +771,7 @@ class MainWindow(QMainWindow):
                     )
 
         except Exception as e:
-            self.logger.error(f"Failed to update 3D scene from snapshot: {e}")
+            self.logger.error(f"Failed to update3D scene from snapshot: {e}")
             import traceback
 
             traceback.print_exc()
@@ -850,14 +846,14 @@ class MainWindow(QMainWindow):
                 print("🔧 Attempting to update QML using QMetaObject.invokeMethod()...")
 
                 # Use QMetaObject.invokeMethod() to call QML function
-                from PySide6.QtCore import QMetaObject, Q_ARG, Qt
+                from PySide6.QtCore import QMetaObject, Q_ARG, Qt as _Qt
 
                 # In PySide6, dict is automatically converted to JS object
                 # No need for QVariant wrapper
                 success = QMetaObject.invokeMethod(
                     self._qml_root_object,
                     "updateGeometry",
-                    Qt.ConnectionType.DirectConnection,
+                    _Qt.ConnectionType.DirectConnection,
                     Q_ARG("QVariant", geometry_params),  # Pass dict directly
                 )
 
@@ -1123,7 +1119,7 @@ class MainWindow(QMainWindow):
 
         # Restart timer on each resize event
         self._resize_timer.stop()
-        self._resize_timer.start(100)  # Wait 100ms after last resize
+        self._resize_timer.start(100)  # Wait100ms after last resize
 
     def _handle_resize_complete(self):
         """Called after resize operation completes"""

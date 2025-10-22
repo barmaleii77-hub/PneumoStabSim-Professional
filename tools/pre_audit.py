@@ -208,7 +208,7 @@ def create_report(audit_data):
     # Создание директорий
     reports_dir = ensure_dir("reports/ui")
     artifacts_dir = ensure_dir("artifacts/ui")
-    logs_dir = ensure_dir("logs/ui")
+    ensure_dir("logs/ui")
 
     # Основной отчет
     report_path = reports_dir / "audit_pre.md"
