@@ -6,7 +6,7 @@
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>{6D6D7E5C-8F5A-4B5E-A6F1-2C8E9B3D4A5F}</ProjectGuid>
     <ProjectHome>.</ProjectHome>
-    <ProjectTypeGuids>{9A19103F-16F7-4668-BE54-9A1E7A4F7556}</ProjectTypeGuids>
+    <ProjectTypeGuids>{888888A0-9F3D-457C-B088-3A5042F75D52}</ProjectTypeGuids>
     <StartupFile>app.py</StartupFile>
     <SearchPath>src\;tests\;scripts\;</SearchPath>
     <WorkingDirectory>.</WorkingDirectory>
@@ -14,8 +14,8 @@
     <ProjectName>PneumoStabSim-Professional</ProjectName>
     <Name>PneumoStabSim-Professional</Name>
     <RootNamespace>pneumostabsim</RootNamespace>
-    <!-- Указываем интерпретатор проекта на локальный venv -->
-    <InterpreterPath>$(MSBuildProjectDirectory)\venv\Scripts\python.exe</InterpreterPath>
+    <!-- Указываем интерпретатор проекта на локальный .venv -->
+    <InterpreterPath>$(MSBuildProjectDirectory)\.venv\Scripts\python.exe</InterpreterPath>
     <SuppressConfigureTestFrameworkPrompt>true</SuppressConfigureTestFrameworkPrompt>
     <TestFramework>pytest</TestFramework>
     <UnitTestPattern>test_*.py</UnitTestPattern>
@@ -28,15 +28,13 @@
 
   <!-- Конфигурации сборки -->
   <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
-    <DebugSymbols>true</DebugSymbols>
+ <DebugSymbols>true</DebugSymbols>
     <EnableUnmanagedDebugging>false</EnableUnmanagedDebugging>
-    <!-- Соответствует app.py: используем --verbose вместо устаревшего --debug -->
     <CommandLineArguments>--verbose</CommandLineArguments>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)' == 'Release' ">
-    <DebugSymbols>false</DebugSymbols>
+ <DebugSymbols>false</DebugSymbols>
     <EnableUnmanagedDebugging>false</EnableUnmanagedDebugging>
-    <!-- Удален несуществующий флаг --force-optimized -->
     <CommandLineArguments></CommandLineArguments>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)' == 'Test' ">
@@ -47,486 +45,341 @@
 
   <!-- Основные файлы проекта -->
   <ItemGroup>
-    <Compile Include="app.py">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="launch.py">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="quick_fix.py">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="quick_test.py">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="qml_diagnostic.py">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="setup_vscode.py">
-      <SubType>Code</SubType>
-    </Compile>
+    <Compile Include="app.py" />
+    <Compile Include="launch.py" />
+ <Compile Include="quick_fix.py" />
+    <Compile Include="quick_test.py" />
+  <Compile Include="qml_diagnostic.py" />
+    <Compile Include="setup_vscode.py" />
+  <Compile Include="setup.py" />
   </ItemGroup>
 
-  <!-- Модули src -->
+  <!-- Корневые модули src -->
   <ItemGroup>
-    <Compile Include="src\__init__.py">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="src\ui\__init__.py">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="src\ui\main_window.py">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="src\ui\panels\__init__.py">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="src\ui\panels\panel_geometry.py">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="src\ui\panels\panel_graphics.py">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="src\ui\panels\panel_modes.py">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="src\ui\panels\panel_pneumo.py">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="src\ui\charts.py">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="src\ui\geometry_bridge.py">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="src\ui\custom_geometry.py">
-      <SubType>Code</SubType>
-    </Compile>
+    <Compile Include="src\__init__.py" />
+    <Compile Include="src\app_runner.py" />
+  </ItemGroup>
+
+  <!-- Bootstrap система -->
+  <ItemGroup>
+    <Compile Include="src\bootstrap\__init__.py" />
+    <Compile Include="src\bootstrap\environment.py" />
+    <Compile Include="src\bootstrap\qt_imports.py" />
+    <Compile Include="src\bootstrap\terminal.py" />
+    <Compile Include="src\bootstrap\version_check.py" />
+  </ItemGroup>
+
+  <!-- CLI -->
+  <ItemGroup>
+    <Compile Include="src\cli\__init__.py" />
+    <Compile Include="src\cli\arguments.py" />
+  </ItemGroup>
+
+  <!-- Diagnostics -->
+  <ItemGroup>
+    <Compile Include="src\diagnostics\__init__.py" />
+    <Compile Include="src\diagnostics\warnings.py" />
+    <Compile Include="src\diagnostics\logs.py" />
+  </ItemGroup>
+
+  <!-- Модули UI -->
+  <ItemGroup>
+    <Compile Include="src\ui\__init__.py" />
+    <Compile Include="src\ui\main_window.py" />
+    <Compile Include="src\ui\main_window_backup.py" />
+    <Compile Include="src\ui\custom_geometry.py" />
+    <Compile Include="src\ui\charts.py" />
+    <Compile Include="src\ui\geometry_bridge.py" />
+    <Compile Include="src\ui\qml_host.py" />
+    <Compile Include="src\ui\accordion.py" />
+    <Compile Include="src\ui\hud.py" />
+    <Compile Include="src\ui\ibl_logger.py" />
+    <Compile Include="src\ui\panels_accordion.py" />
+    <Compile Include="src\ui\parameter_slider.py" />
+    <Compile Include="src\ui\geo_state.py" />
+    <Compile Include="src\ui\environment_schema.py" />
+  </ItemGroup>
+
+  <!-- UI Main Window подмодули -->
+  <ItemGroup>
+ <Compile Include="src\ui\main_window\__init__.py" />
+    <Compile Include="src\ui\main_window\main_window_refactored.py" />
+    <Compile Include="src\ui\main_window\menu_actions.py" />
+    <Compile Include="src\ui\main_window\qml_bridge.py" />
+    <Compile Include="src\ui\main_window\signals_router.py" />
+    <Compile Include="src\ui\main_window\state_sync.py" />
+    <Compile Include="src\ui\main_window\ui_setup.py" />
+  </ItemGroup>
+
+  <!-- UI Panels -->
+  <ItemGroup>
+    <Compile Include="src\ui\panels\__init__.py" />
+<Compile Include="src\ui\panels\panel_geometry.py" />
+    <Compile Include="src\ui\panels\panel_modes.py" />
+    <Compile Include="src\ui\panels\panel_pneumo.py" />
+    <Compile Include="src\ui\panels\panel_road.py" />
+    <Compile Include="src\ui\panels\graphics_logger.py" />
+  </ItemGroup>
+
+  <!-- UI Panels - Geometry -->
+  <ItemGroup>
+    <Compile Include="src\ui\panels\geometry\__init__.py" />
+    <Compile Include="src\ui\panels\geometry\panel_geometry_refactored.py" />
+    <Compile Include="src\ui\panels\geometry\cylinder_tab.py" />
+    <Compile Include="src\ui\panels\geometry\frame_tab.py" />
+    <Compile Include="src\ui\panels\geometry\suspension_tab.py" />
+    <Compile Include="src\ui\panels\geometry\options_tab.py" />
+    <Compile Include="src\ui\panels\geometry\state_manager.py" />
+    <Compile Include="src\ui\panels\geometry\defaults.py" />
+  </ItemGroup>
+
+  <!-- UI Panels - Graphics -->
+  <ItemGroup>
+    <Compile Include="src\ui\panels\graphics\__init__.py" />
+    <Compile Include="src\ui\panels\graphics\panel_graphics_refactored.py" />
+    <Compile Include="src\ui\panels\graphics\panel_graphics_settings_manager.py" />
+    <Compile Include="src\ui\panels\graphics\camera_tab.py" />
+    <Compile Include="src\ui\panels\graphics\lighting_tab.py" />
+    <Compile Include="src\ui\panels\graphics\materials_tab.py" />
+    <Compile Include="src\ui\panels\graphics\environment_tab.py" />
+    <Compile Include="src\ui\panels\graphics\effects_tab.py" />
+    <Compile Include="src\ui\panels\graphics\quality_tab.py" />
+    <Compile Include="src\ui\panels\graphics\state_manager.py" />
+    <Compile Include="src\ui\panels\graphics\defaults.py" />
+    <Compile Include="src\ui\panels\graphics\widgets.py" />
+    <Compile Include="src\ui\panels\graphics\test_graphics_panel_integration.py" />
+  </ItemGroup>
+
+  <!-- UI Panels - Modes -->
+  <ItemGroup>
+    <Compile Include="src\ui\panels\modes\__init__.py" />
+    <Compile Include="src\ui\panels\modes\panel_modes_refactored.py" />
+    <Compile Include="src\ui\panels\modes\control_tab.py" />
+    <Compile Include="src\ui\panels\modes\physics_tab.py" />
+    <Compile Include="src\ui\panels\modes\simulation_tab.py" />
+    <Compile Include="src\ui\panels\modes\road_excitation_tab.py" />
+  <Compile Include="src\ui\panels\modes\state_manager.py" />
+ <Compile Include="src\ui\panels\modes\defaults.py" />
+  </ItemGroup>
+
+  <!-- UI Widgets -->
+  <ItemGroup>
+    <Compile Include="src\ui\widgets\__init__.py" />
+    <Compile Include="src\ui\widgets\knob.py" />
+    <Compile Include="src\ui\widgets\range_slider.py" />
   </ItemGroup>
 
   <!-- Runtime система -->
   <ItemGroup>
-    <Compile Include="src\runtime\__init__.py">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="src\runtime\sim_loop.py">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="src\runtime\state.py">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="src\runtime\sync.py">
-      <SubType>Code</SubType>
-    </Compile>
+    <Compile Include="src\runtime\__init__.py" />
+    <Compile Include="src\runtime\sim_loop.py" />
+    <Compile Include="src\runtime\state.py" />
+    <Compile Include="src\runtime\sync.py" />
   </ItemGroup>
 
-  <!-- Физика и механика -->
+  <!-- Физика -->
   <ItemGroup>
-    <Compile Include="src\physics\__init__.py">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="src\physics\integrator.py">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="src\physics\odes.py">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="src\mechanics\__init__.py">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="src\mechanics\kinematics.py">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="src\mechanics\components.py">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="src\mechanics\constraints.py">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="src\mechanics\suspension.py">
-      <SubType>Code</SubType>
-    </Compile>
+    <Compile Include="src\physics\__init__.py" />
+ <Compile Include="src\physics\integrator.py" />
+    <Compile Include="src\physics\odes.py" />
+    <Compile Include="src\physics\forces.py" />
+  </ItemGroup>
+
+  <!-- Механика -->
+  <ItemGroup>
+    <Compile Include="src\mechanics\__init__.py" />
+    <Compile Include="src\mechanics\kinematics.py" />
+    <Compile Include="src\mechanics\components.py" />
+    <Compile Include="src\mechanics\constraints.py" />
+    <Compile Include="src\mechanics\suspension.py" />
   </ItemGroup>
 
   <!-- Пневматическая система -->
   <ItemGroup>
-    <Compile Include="src\pneumo\__init__.py">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="src\pneumo\enums.py">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="src\pneumo\states.py">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="src\pneumo\valves.py">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="src\pneumo\flows.py">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="src\pneumo\network.py">
-      <SubType>Code</SubType>
-    </Compile>
+    <Compile Include="src\pneumo\__init__.py" />
+    <Compile Include="src\pneumo\enums.py" />
+    <Compile Include="src\pneumo\types.py" />
+    <Compile Include="src\pneumo\gas_state.py" />
+    <Compile Include="src\pneumo\valves.py" />
+    <Compile Include="src\pneumo\flow.py" />
+  <Compile Include="src\pneumo\network.py" />
+    <Compile Include="src\pneumo\cylinder.py" />
+    <Compile Include="src\pneumo\receiver.py" />
+    <Compile Include="src\pneumo\line.py" />
+    <Compile Include="src\pneumo\system.py" />
+    <Compile Include="src\pneumo\geometry.py" />
+    <Compile Include="src\pneumo\thermo.py" />
+    <Compile Include="src\pneumo\thermo_stub.py" />
+    <Compile Include="src\pneumo\sim_time.py" />
   </ItemGroup>
 
   <!-- Дорожная система -->
   <ItemGroup>
-    <Compile Include="src\road\__init__.py">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="src\road\engine.py">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="src\road\profiles.py">
-      <SubType>Code</SubType>
-    </Compile>
+    <Compile Include="src\road\__init__.py" />
+  <Compile Include="src\road\engine.py" />
+    <Compile Include="src\road\types.py" />
+    <Compile Include="src\road\generators.py" />
+    <Compile Include="src\road\scenarios.py" />
+    <Compile Include="src\road\csv_io.py" />
   </ItemGroup>
 
   <!-- Общие утилиты -->
   <ItemGroup>
-    <Compile Include="src\common\__init__.py">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="src\common\logging_setup.py">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="src\common\errors.py">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="src\common\units.py">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="src\common\csv_export.py">
-      <SubType>Code</SubType>
-    </Compile>
-  </ItemGroup>
+    <Compile Include="src\common\__init__.py" />
+ <Compile Include="src\common\logging_setup.py" />
+    <Compile Include="src\common\errors.py" />
+    <Compile Include="src\common\units.py" />
+    <Compile Include="src\common\csv_export.py" />
+    <Compile Include="src\common\settings_manager.py" />
+    <Compile Include="src\common\settings_requirements.py" />
+    <Compile Include="src\common\event_logger.py" />
+    <Compile Include="src\common\log_analyzer.py" />
+    <Compile Include="src\common\logging_slider_wrapper.py" />
+    <Compile Include="src\common\logging_widgets.py" />
+</ItemGroup>
 
   <!-- Геометрия -->
   <ItemGroup>
-    <Compile Include="src\core\__init__.py">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="src\core\geometry.py">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="src\core\initial_geometry.py">
-      <SubType>Code</SubType>
-    </Compile>
+    <Compile Include="src\core\__init__.py" />
+    <Compile Include="src\core\geometry.py" />
+    <Compile Include="src\core\initial_geometry.py" />
   </ItemGroup>
 
   <!-- Приложения -->
   <ItemGroup>
-    <Compile Include="src\app\__init__.py">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="src\app\smoke_gas.py">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="src\app\smoke_gas_complete.py">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="src\app\smoke_gas_final.py">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="src\app\smoke_gas_simple.py">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="src\app\smoke_test.py">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="src\app\config_defaults.py">
-      <SubType>Code</SubType>
-    </Compile>
+    <Compile Include="src\app\__init__.py" />
+    <Compile Include="src\app\smoke_gas.py" />
+    <Compile Include="src\app\smoke_gas_complete.py" />
+    <Compile Include="src\app\smoke_gas_final.py" />
+ <Compile Include="src\app\smoke_gas_simple.py" />
+    <Compile Include="src\app\smoke_test.py" />
+    <Compile Include="src\app\config_defaults.py" />
   </ItemGroup>
 
   <!-- Тесты -->
   <ItemGroup>
-    <Compile Include="tests\conftest.py">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="tests\test_integration_simple.py">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="tests\test_physics_simple.py">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="tests\test_gas_adiabatic_isothermal.py">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="tests\test_gas_simple.py">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="tests\test_gas_valves.py">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="tests\test_invariants.py">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="tests\test_invariants_geometry.py">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="tests\test_kinematics.py">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="tests\test_logging_and_export.py">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="tests\test_mapping.py">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="tests\test_odes_basic.py">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="tests\test_ode_dynamics.py">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="tests\test_performance_smoke.py">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="tests\test_physics_integration.py">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="tests\test_receiver_relief.py">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="tests\test_road_basic.py">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="tests\test_road_simple.py">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="tests\test_runtime_basic.py">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="tests\test_runtime_complete.py">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="tests\test_scipy_direct.py">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="tests\test_thermo_iso_adiabatic.py">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="tests\test_ui_signals.py">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="tests\test_valves_and_flows.py">
-      <SubType>Code</SubType>
-    </Compile>
+    <Compile Include="tests\conftest.py" />
+    <Compile Include="tests\test_integration_simple.py" />
+    <Compile Include="tests\test_physics_simple.py" />
+  <Compile Include="tests\test_gas_adiabatic_isothermal.py" />
+  <Compile Include="tests\test_gas_simple.py" />
+    <Compile Include="tests\test_gas_valves.py" />
+    <Compile Include="tests\test_invariants.py" />
+    <Compile Include="tests\test_invariants_geometry.py" />
+    <Compile Include="tests\test_kinematics.py" />
+    <Compile Include="tests\test_logging_and_export.py" />
+    <Compile Include="tests\test_mapping.py" />
+    <Compile Include="tests\test_odes_basic.py" />
+<Compile Include="tests\test_ode_dynamics.py" />
+    <Compile Include="tests\test_performance_smoke.py" />
+    <Compile Include="tests\test_physics_integration.py" />
+    <Compile Include="tests\test_receiver_relief.py" />
+    <Compile Include="tests\test_road_basic.py" />
+    <Compile Include="tests\test_road_simple.py" />
+    <Compile Include="tests\test_runtime_basic.py" />
+    <Compile Include="tests\test_runtime_complete.py" />
+    <Compile Include="tests\test_scipy_direct.py" />
+    <Compile Include="tests\test_thermo_iso_adiabatic.py" />
+    <Compile Include="tests\test_ui_signals.py" />
+    <Compile Include="tests\test_valves_and_flows.py" />
   </ItemGroup>
 
   <!-- UI тесты -->
   <ItemGroup>
-    <Compile Include="tests\ui\__init__.py">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="tests\ui\test_comprehensive_integration.py">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="tests\ui\test_geometry_ui.py">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="tests\ui\test_ms1_quick_check.py">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="tests\ui\test_ms2_quick_check.py">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="tests\ui\test_ms2_si_units.py">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="tests\ui\test_ms3_dependency.py">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="tests\ui\test_panel_functionality.py">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="tests\ui\test_si_units.py">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="tests\ui\test_ui_layout.py">
-      <SubType>Code</SubType>
-    </Compile>
+    <Compile Include="tests\ui\__init__.py" />
+    <Compile Include="tests\ui\test_comprehensive_integration.py" />
+    <Compile Include="tests\ui\test_geometry_ui.py" />
+ <Compile Include="tests\ui\test_ms1_quick_check.py" />
+    <Compile Include="tests\ui\test_ms2_quick_check.py" />
+    <Compile Include="tests\ui\test_ms2_si_units.py" />
+    <Compile Include="tests\ui\test_ms3_dependency.py" />
+    <Compile Include="tests\ui\test_panel_functionality.py" />
+    <Compile Include="tests\ui\test_si_units.py" />
+    <Compile Include="tests\ui\test_ui_layout.py" />
   </ItemGroup>
 
   <!-- Графические тесты -->
   <ItemGroup>
-    <Compile Include="tests\graphics\__init__.py">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="tests\graphics\final_graphics_test.py">
-      <SubType>Code</SubType>
-    </Compile>
+    <Compile Include="tests\graphics\__init__.py" />
+    <Compile Include="tests\graphics\final_graphics_test.py" />
   </ItemGroup>
 
   <!-- Системные тесты -->
   <ItemGroup>
-    <Compile Include="tests\system\__init__.py">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="tests\system\test_full_app.py">
-      <SubType>Code</SubType>
-    </Compile>
+    <Compile Include="tests\system\__init__.py" />
+  <Compile Include="tests\system\test_full_app.py" />
   </ItemGroup>
 
   <!-- Скрипты -->
   <ItemGroup>
-    <Compile Include="scripts\__init__.py">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="scripts\health_check.py">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="scripts\comprehensive_test.py">
-      <SubType>Code</SubType>
-    </Compile>
+    <Compile Include="scripts\__init__.py" />
+  <Compile Include="scripts\health_check.py" />
+    <Compile Include="scripts\comprehensive_test.py" />
+    <Compile Include="scripts\create_solution.py" />
   </ItemGroup>
 
   <!-- QML файлы -->
   <ItemGroup>
-    <Content Include="assets\qml\main.qml">
-      <SubType>Content</SubType>
-    </Content>
-    <Content Include="assets\qml\main_optimized.qml">
-      <SubType>Content</SubType>
-    </Content>
-    <!-- Добавлен компонент для IBL -->
-    <Content Include="assets\qml\components\IblProbeLoader.qml">
-      <SubType>Content</SubType>
-    </Content>
+    <Content Include="assets\qml\main.qml" />
+    <Content Include="assets\qml\main_optimized.qml" />
+    <Content Include="assets\qml\components\IblProbeLoader.qml" />
   </ItemGroup>
 
   <!-- Конфигурационные файлы -->
   <ItemGroup>
-    <Content Include="requirements.txt">
-      <SubType>Content</SubType>
-    </Content>
-    <Content Include="requirements-dev.txt">
-      <SubType>Content</SubType>
-    </Content>
-    <Content Include="requirements-compatible.txt">
-      <SubType>Content</SubType>
-    </Content>
-    <Content Include="pytest.ini">
-      <SubType>Content</SubType>
-    </Content>
-    <Content Include="pyproject.toml">
-      <SubType>Content</SubType>
-    </Content>
-    <Content Include="runtimeconfig.json">
-      <SubType>Content</SubType>
-    </Content>
-    <Content Include=".gitignore">
-      <SubType>Content</SubType>
-    </Content>
+    <Content Include="requirements.txt" />
+    <Content Include="requirements-dev.txt" />
+    <Content Include="requirements-compatible.txt" />
+    <Content Include="pytest.ini" />
+    <Content Include="pyproject.toml" />
+    <Content Include="runtimeconfig.json" />
+    <Content Include=".gitignore" />
+    <Content Include=".env" />
   </ItemGroup>
 
   <!-- Batch файлы -->
   <ItemGroup>
-    <Content Include="run.bat">
-      <SubType>Content</SubType>
-    </Content>
-    <Content Include="run_app.bat">
-      <SubType>Content</SubType>
-    </Content>
-    <Content Include="status.bat">
-      <SubType>Content</SubType>
-    </Content>
-    <Content Include="quick_diagnostic.bat">
-      <SubType>Content</SubType>
-    </Content>
+    <Content Include="run.bat" />
+    <Content Include="run_app.bat" />
+    <Content Include="run_py.bat" />
+    <Content Include="status.bat" />
+    <Content Include="quick_diagnostic.bat" />
   </ItemGroup>
 
   <!-- Документация -->
   <ItemGroup>
-    <Content Include="README.md">
-      <SubType>Content</SubType>
-    </Content>
-    <Content Include="ROADMAP.md">
-      <SubType>Content</SubType>
-    </Content>
-    <Content Include="PROJECT_AUDIT_FULL.md">
-      <SubType>Content</SubType>
-    </Content>
-    <Content Include="PROJECT_AUDIT_REPORT.md">
-      <SubType>Content</SubType>
-    </Content>
-    <Content Include="STABLE_RELEASE_v2.0.1.md">
-      <SubType>Content</SubType>
-    </Content>
-    <Content Include="VISUALIZATION_AUDIT_REPORT.md">
-      <SubType>Content</SubType>
-    </Content>
-    <Content Include="TECHNICAL_CODE_ANALYSIS.md">
-      <SubType>Content</SubType>
-    </Content>
-    <Content Include="REPOSITORY_ANALYSIS_FINAL.md">
-      <SubType>Content</SubType>
-    </Content>
-    <Content Include="TROUBLESHOOTING.md">
-      <SubType>Content</SubType>
-    </Content>
-    <Content Include="VSCODE_PY_SETUP.md">
-      <SubType>Content</SubType>
-    </Content>
-    <Content Include="VENV_SETUP_README.md">
-      <SubType>Content</SubType>
-    </Content>
-    <Content Include="QTQUICK3D_REQUIREMENTS.md">
-      <SubType>Content</SubType>
-    </Content>
-  </ItemGroup>
-
-  <!-- Отчеты -->
-  <ItemGroup>
-    <Content Include="QML_FIXES_FINAL_REPORT.md">
-      <SubType>Content</SubType>
-    </Content>
-    <Content Include="QML_LOADING_ERROR_FIX_REPORT.md">
-      <SubType>Content</SubType>
-    </Content>
-    <Content Include="QML_PERFORMANCE_COMPARISON_REPORT.md">
-      <SubType>Content</SubType>
-    </Content>
-    <Content Include="QML_PERFORMANCE_OPTIMIZATION_PLAN.md">
-      <SubType>Content</SubType>
-    </Content>
-    <Content Include="QML_SIGNAL_CORRECTNESS_REPORT.md">
-      <SubType>Content</SubType>
-    </Content>
-    <Content Include="ROD_LENGTH_FIX_REPORT.md">
-      <SubType>Content</SubType>
-    </Content>
-    <Content Include="pyinstrument_report.html">
-      <SubType>Content</SubType>
-    </Content>
-  </ItemGroup>
-
-  <!-- Русские отчеты -->
-  <ItemGroup>
-    <Content Include="АУДИТ_СИСТЕМЫ_ГРАФИКИ_2025.md">
-      <SubType>Content</SubType>
-    </Content>
-    <Content Include="ОТЧЕТ_ТЕСТИРОВАНИЯ_ГРАФИКИ.md">
-      <SubType>Content</SubType>
-    </Content>
-    <Content Include="ПОЛНЫЙ_АУДИТ_ПРОЕКТА_2025.md">
-      <SubType>Content</SubType>
-    </Content>
+    <Content Include="README.md" />
+    <Content Include="ROADMAP.md" />
+    <Content Include="PROJECT_STATUS.md" />
+    <Content Include="QUICK_DEPLOY.md" />
+    <Content Include="BACKUP_CONFIG.md" />
+    <Content Include="F5_QUICK_START.md" />
+    <Content Include="TROUBLESHOOTING.md" />
+    <Content Include="VSCODE_PY_SETUP.md" />
+    <Content Include="VS_PROJECT_SETUP.md" />
+    <Content Include="QTQUICK3D_REQUIREMENTS.md" />
   </ItemGroup>
 
   <!-- Папки -->
   <ItemGroup>
     <Folder Include="src\" />
     <Folder Include="src\ui\" />
-    <Folder Include="src\ui\panels\" />
-    <Folder Include="src\runtime\" />
+    <Folder Include="src\ui\main_window\" />
+  <Folder Include="src\ui\panels\" />
+  <Folder Include="src\ui\panels\geometry\" />
+    <Folder Include="src\ui\panels\graphics\" />
+    <Folder Include="src\ui\panels\graphics\tabs\" />
+    <Folder Include="src\ui\panels\modes\" />
+    <Folder Include="src\ui\widgets\" />
+    <Folder Include="src\bootstrap\" />
+    <Folder Include="src\cli\" />
+    <Folder Include="src\diagnostics\" />
+  <Folder Include="src\runtime\" />
     <Folder Include="src\physics\" />
     <Folder Include="src\mechanics\" />
     <Folder Include="src\pneumo\" />
     <Folder Include="src\road\" />
-    <Folder Include="src\common\" />
+<Folder Include="src\common\" />
     <Folder Include="src\core\" />
     <Folder Include="src\app\" />
     <Folder Include="tests\" />
@@ -535,41 +388,37 @@
     <Folder Include="tests\system\" />
     <Folder Include="scripts\" />
     <Folder Include="assets\" />
-    <Folder Include="assets\qml\" />
+<Folder Include="assets\qml\" />
     <Folder Include="assets\qml\components\" />
+    <Folder Include="assets\hdr\" />
     <Folder Include="docs\" />
     <Folder Include="logs\" />
     <Folder Include="reports\" />
-    <Folder Include="profiles\" />
-    <Folder Include="bin\" />
-    <Folder Include="obj\" />
     <Folder Include="config\" />
-    <Folder Include="tools\" />
-    <Folder Include="archive\" />
     <Folder Include=".vscode\" />
     <Folder Include=".github\" />
     <Folder Include=".vs\" />
     <Folder Include=".venv\" />
-    <Folder Include="venv\" />
-    <Folder Include="__pycache__\" />
   </ItemGroup>
 
-  <!-- Интерпретаторы Python (оставлены для справки/подсказок) -->
+  <!-- Интерпретаторы Python -->
   <ItemGroup>
     <InterpreterReference Include="Global|PythonCore|3.13" />
     <InterpreterReference Include="Global|PythonCore|3.12" />
     <InterpreterReference Include="Global|PythonCore|3.11" />
   </ItemGroup>
 
-  <!-- Внешние библиотеки (для подсказок в VS) -->
+  <!-- Внешние библиотеки -->
   <ItemGroup>
     <PackageReference Include="PySide6" Version="6.10.0" />
     <PackageReference Include="numpy" Version="1.26.4" />
     <PackageReference Include="scipy" Version="1.11.4" />
-    <PackageReference Include="matplotlib" Version="3.8.0" />
+  <PackageReference Include="matplotlib" Version="3.8.0" />
     <PackageReference Include="pytest" Version="8.4.2" />
     <PackageReference Include="PyYAML" Version="6.0" />
     <PackageReference Include="pillow" Version="9.0.0" />
+    <PackageReference Include="python-dotenv" Version="1.0.0" />
+    <PackageReference Include="psutil" Version="5.8.0" />
   </ItemGroup>
 
   <!-- Python Tools для Visual Studio -->
