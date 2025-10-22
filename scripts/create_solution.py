@@ -1,3 +1,10 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+"""
+Создание файла решения Visual Studio (.sln) для PneumoStabSim-Professional
+"""
+
+solution_content = r"""
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.0.31903.59
@@ -22,3 +29,9 @@ Global
 		SolutionGuid = {1A2B3C4D-5E6F-7890-ABCD-EF1234567890}
 	EndGlobalSection
 EndGlobal
+""".strip()
+
+if __name__ == "__main__":
+    with open("PneumoStabSim-Professional.sln", "w", encoding="utf-8", newline='\r\n') as f:
+        f.write(solution_content)
+    print("✅ Файл решения PneumoStabSim-Professional.sln успешно создан!")
