@@ -68,7 +68,7 @@ class CameraTab(QWidget):
         r += 1
 
         near_clip = LabeledSlider(
-            "Ближняя плоскость", 0.1, 1000.0, 0.1, decimals=1, unit="мм"
+            "Ближняя плоскость", 0.0001, 1.0, 0.0001, decimals=4, unit="м"
         )
         near_clip.valueChanged.connect(lambda v: self._emit())
         self._controls["near"] = near_clip
@@ -76,7 +76,7 @@ class CameraTab(QWidget):
         r += 1
 
         far_clip = LabeledSlider(
-            "Дальняя плоскость", 100.0, 1_000_000.0, 100.0, decimals=0, unit="мм"
+            "Дальняя плоскость", 0.1, 1_000.0, 0.1, decimals=1, unit="м"
         )
         far_clip.valueChanged.connect(lambda v: self._emit())
         self._controls["far"] = far_clip
@@ -127,7 +127,7 @@ class CameraTab(QWidget):
         r += 1
 
         camx = LabeledSlider(
-            "Камера X", -100_000.0, 100_000.0, 10.0, decimals=0, unit="мм"
+            "Камера X", -100.0, 100.0, 0.01, decimals=2, unit="м"
         )
         camx.valueChanged.connect(lambda v: self._emit())
         self._controls["camera_pos_x"] = camx
@@ -135,7 +135,7 @@ class CameraTab(QWidget):
         r += 1
 
         camy = LabeledSlider(
-            "Камера Y", -100_000.0, 100_000.0, 10.0, decimals=0, unit="мм"
+            "Камера Y", -100.0, 100.0, 0.01, decimals=2, unit="м"
         )
         camy.valueChanged.connect(lambda v: self._emit())
         self._controls["camera_pos_y"] = camy
@@ -143,7 +143,7 @@ class CameraTab(QWidget):
         r += 1
 
         camz = LabeledSlider(
-            "Камера Z", -100_000.0, 100_000.0, 10.0, decimals=0, unit="мм"
+            "Камера Z", -100.0, 100.0, 0.01, decimals=2, unit="м"
         )
         camz.valueChanged.connect(lambda v: self._emit())
         self._controls["camera_pos_z"] = camz
@@ -178,19 +178,19 @@ class CameraTab(QWidget):
         grid.setVerticalSpacing(8)
         r = 0
 
-        tx = LabeledSlider("Цель X", -100_000.0, 100_000.0, 10.0, decimals=0, unit="мм")
+        tx = LabeledSlider("Цель X", -100.0, 100.0, 0.01, decimals=2, unit="м")
         tx.valueChanged.connect(lambda v: self._emit())
         self._controls["orbit_target_x"] = tx
         grid.addWidget(tx, r, 0, 1, 2)
         r += 1
 
-        ty = LabeledSlider("Цель Y", -100_000.0, 100_000.0, 10.0, decimals=0, unit="мм")
+        ty = LabeledSlider("Цель Y", -100.0, 100.0, 0.01, decimals=2, unit="м")
         ty.valueChanged.connect(lambda v: self._emit())
         self._controls["orbit_target_y"] = ty
         grid.addWidget(ty, r, 0, 1, 2)
         r += 1
 
-        tz = LabeledSlider("Цель Z", -100_000.0, 100_000.0, 10.0, decimals=0, unit="мм")
+        tz = LabeledSlider("Цель Z", -100.0, 100.0, 0.01, decimals=2, unit="м")
         tz.valueChanged.connect(lambda v: self._emit())
         self._controls["orbit_target_z"] = tz
         grid.addWidget(tz, r, 0, 1, 2)
@@ -208,7 +208,7 @@ class CameraTab(QWidget):
         grid.addWidget(pitch, r, 0, 1, 2)
         r += 1
 
-        dist = LabeledSlider("Дистанция", 1.0, 100_000.0, 10.0, decimals=0, unit="мм")
+        dist = LabeledSlider("Дистанция", 0.001, 100.0, 0.01, decimals=2, unit="м")
         dist.valueChanged.connect(lambda v: self._emit())
         self._controls["orbit_distance"] = dist
         grid.addWidget(dist, r, 0, 1, 2)
@@ -285,7 +285,7 @@ class CameraTab(QWidget):
         r = 0
 
         wx = LabeledSlider(
-            "Позиция X", -100_000.0, 100_000.0, 10.0, decimals=0, unit="мм"
+            "Позиция X", -100.0, 100.0, 0.01, decimals=2, unit="м"
         )
         wx.valueChanged.connect(lambda v: self._emit())
         self._controls["world_pos_x"] = wx
@@ -293,7 +293,7 @@ class CameraTab(QWidget):
         r += 1
 
         wy = LabeledSlider(
-            "Позиция Y", -100_000.0, 100_000.0, 10.0, decimals=0, unit="мм"
+            "Позиция Y", -100.0, 100.0, 0.01, decimals=2, unit="м"
         )
         wy.valueChanged.connect(lambda v: self._emit())
         self._controls["world_pos_y"] = wy
@@ -301,7 +301,7 @@ class CameraTab(QWidget):
         r += 1
 
         wz = LabeledSlider(
-            "Позиция Z", -100_000.0, 100_000.0, 10.0, decimals=0, unit="мм"
+            "Позиция Z", -100.0, 100.0, 0.01, decimals=2, unit="м"
         )
         wz.valueChanged.connect(lambda v: self._emit())
         self._controls["world_pos_z"] = wz
@@ -477,38 +477,38 @@ class CameraTab(QWidget):
         - `orbit_inertia` активно только при включенной инерции
         """
 
-    try:
-        auto_rotate = (
-            bool(self._controls.get("auto_rotate").isChecked())
-            if self._controls.get("auto_rotate")
-            else False
-        )
-        if self._controls.get("auto_rotate_speed"):
-            self._controls["auto_rotate_speed"].set_enabled(auto_rotate)
+        try:
+            auto_rotate = (
+                bool(self._controls.get("auto_rotate").isChecked())
+                if self._controls.get("auto_rotate")
+                else False
+            )
+            if self._controls.get("auto_rotate_speed"):
+                self._controls["auto_rotate_speed"].set_enabled(auto_rotate)
 
-        manual = (
-            bool(self._controls.get("manual_camera").isChecked())
-            if self._controls.get("manual_camera")
-            else False
-        )
-        for k in (
-            "camera_pos_x",
-            "camera_pos_y",
-            "camera_pos_z",
-            "camera_rot_x",
-            "camera_rot_y",
-            "camera_rot_z",
-        ):
-            if self._controls.get(k):
-                self._controls[k].set_enabled(manual)
+            manual = (
+                bool(self._controls.get("manual_camera").isChecked())
+                if self._controls.get("manual_camera")
+                else False
+            )
+            for k in (
+                "camera_pos_x",
+                "camera_pos_y",
+                "camera_pos_z",
+                "camera_rot_x",
+                "camera_rot_y",
+                "camera_rot_z",
+            ):
+                if self._controls.get(k):
+                    self._controls[k].set_enabled(manual)
 
-        inertia_on = (
-            bool(self._controls.get("orbit_inertia_enabled").isChecked())
-            if self._controls.get("orbit_inertia_enabled")
-            else False
-        )
-        if self._controls.get("orbit_inertia"):
-            self._controls["orbit_inertia"].set_enabled(inertia_on)
-    except Exception:
-        # Без падений при частично инициализированных контролах
-        pass
+            inertia_on = (
+                bool(self._controls.get("orbit_inertia_enabled").isChecked())
+                if self._controls.get("orbit_inertia_enabled")
+                else False
+            )
+            if self._controls.get("orbit_inertia"):
+                self._controls["orbit_inertia"].set_enabled(inertia_on)
+        except Exception:
+            # Без падений при частично инициализированных контролах
+            pass

@@ -112,7 +112,7 @@ class LightingTab(QWidget):
         row += 1
 
         posx = LabeledSlider(
-            "Позиция X", -100000.0, 100000.0, 10.0, decimals=0, unit="мм"
+            "Позиция X", -100.0, 100.0, 0.1, decimals=1, unit="м"
         )
         posx.valueChanged.connect(
             lambda v: self._update_lighting("key", "position_x", v)
@@ -122,7 +122,7 @@ class LightingTab(QWidget):
         row += 1
 
         posy = LabeledSlider(
-            "Позиция Y", -100000.0, 100000.0, 10.0, decimals=0, unit="мм"
+            "Позиция Y", -100.0, 100.0, 0.1, decimals=1, unit="м"
         )
         posy.valueChanged.connect(
             lambda v: self._update_lighting("key", "position_y", v)
@@ -132,7 +132,7 @@ class LightingTab(QWidget):
         row += 1
 
         posz = LabeledSlider(
-            "Позиция Z", -100000.0, 100000.0, 10.0, decimals=0, unit="мм"
+            "Позиция Z", -100.0, 100.0, 0.1, decimals=1, unit="м"
         )
         posz.valueChanged.connect(
             lambda v: self._update_lighting("key", "position_z", v)
@@ -209,7 +209,7 @@ class LightingTab(QWidget):
         row += 1
 
         posx = LabeledSlider(
-            "Позиция X", -100000.0, 100000.0, 10.0, decimals=0, unit="мм"
+            "Позиция X", -100.0, 100.0, 0.1, decimals=1, unit="м"
         )
         posx.valueChanged.connect(
             lambda v: self._update_lighting("fill", "position_x", v)
@@ -218,7 +218,7 @@ class LightingTab(QWidget):
         grid.addWidget(posx, row, 0, 1, 2)
         row += 1
         posy = LabeledSlider(
-            "Позиция Y", -100000.0, 100000.0, 10.0, decimals=0, unit="мм"
+            "Позиция Y", -100.0, 100.0, 0.1, decimals=1, unit="м"
         )
         posy.valueChanged.connect(
             lambda v: self._update_lighting("fill", "position_y", v)
@@ -227,7 +227,7 @@ class LightingTab(QWidget):
         grid.addWidget(posy, row, 0, 1, 2)
         row += 1
         posz = LabeledSlider(
-            "Позиция Z", -100000.0, 100000.0, 10.0, decimals=0, unit="мм"
+            "Позиция Z", -100.0, 100.0, 0.1, decimals=1, unit="м"
         )
         posz.valueChanged.connect(
             lambda v: self._update_lighting("fill", "position_z", v)
@@ -304,7 +304,7 @@ class LightingTab(QWidget):
         row += 1
 
         posx = LabeledSlider(
-            "Позиция X", -100000.0, 100000.0, 10.0, decimals=0, unit="мм"
+            "Позиция X", -100.0, 100.0, 0.1, decimals=1, unit="м"
         )
         posx.valueChanged.connect(
             lambda v: self._update_lighting("rim", "position_x", v)
@@ -313,7 +313,7 @@ class LightingTab(QWidget):
         grid.addWidget(posx, row, 0, 1, 2)
         row += 1
         posy = LabeledSlider(
-            "Позиция Y", -100000.0, 100000.0, 10.0, decimals=0, unit="мм"
+            "Позиция Y", -100.0, 100.0, 0.1, decimals=1, unit="м"
         )
         posy.valueChanged.connect(
             lambda v: self._update_lighting("rim", "position_y", v)
@@ -322,7 +322,7 @@ class LightingTab(QWidget):
         grid.addWidget(posy, row, 0, 1, 2)
         row += 1
         posz = LabeledSlider(
-            "Позиция Z", -100000.0, 100000.0, 10.0, decimals=0, unit="мм"
+            "Позиция Z", -100.0, 100.0, 0.1, decimals=1, unit="м"
         )
         posz.valueChanged.connect(
             lambda v: self._update_lighting("rim", "position_z", v)
@@ -377,7 +377,7 @@ class LightingTab(QWidget):
         row += 1
 
         posx = LabeledSlider(
-            "Позиция X", -100000.0, 100000.0, 10.0, decimals=0, unit="мм"
+            "Позиция X", -100.0, 100.0, 0.1, decimals=1, unit="м"
         )
         posx.valueChanged.connect(
             lambda v: self._update_lighting("point", "position_x", v)
@@ -386,7 +386,7 @@ class LightingTab(QWidget):
         grid.addWidget(posx, row, 0, 1, 2)
         row += 1
         posy = LabeledSlider(
-            "Позиция Y", -100000.0, 100000.0, 10.0, decimals=0, unit="мм"
+            "Позиция Y", -100.0, 100.0, 0.1, decimals=1, unit="м"
         )
         posy.valueChanged.connect(
             lambda v: self._update_lighting("point", "position_y", v)
@@ -395,7 +395,7 @@ class LightingTab(QWidget):
         grid.addWidget(posy, row, 0, 1, 2)
         row += 1
         posz = LabeledSlider(
-            "Позиция Z", -100000.0, 100000.0, 10.0, decimals=0, unit="мм"
+            "Позиция Z", -100.0, 100.0, 0.1, decimals=1, unit="м"
         )
         posz.valueChanged.connect(
             lambda v: self._update_lighting("point", "position_z", v)
@@ -405,7 +405,7 @@ class LightingTab(QWidget):
         row += 1
 
         range_slider = LabeledSlider(
-            "Радиус действия", 10.0, 200000.0, 10.0, decimals=0, unit="мм"
+            "Радиус действия", 10.0, 200000.0, 10.0, decimals=0, unit="м"
         )
         range_slider.valueChanged.connect(
             lambda v: self._update_lighting("point", "range", v)
@@ -485,7 +485,7 @@ class LightingTab(QWidget):
 
         # Позиция
         posx = LabeledSlider(
-            "Позиция X", -100000.0, 100000.0, 10.0, decimals=0, unit="мм"
+            "Позиция X", -100.0, 100.0, 0.1, decimals=1, unit="м"
         )
         posx.valueChanged.connect(
             lambda v: self._update_lighting("spot", "position_x", v)
@@ -494,7 +494,7 @@ class LightingTab(QWidget):
         grid.addWidget(posx, row, 0, 1, 2)
         row += 1
         posy = LabeledSlider(
-            "Позиция Y", -100000.0, 100000.0, 10.0, decimals=0, unit="мм"
+            "Позиция Y", -100.0, 100.0, 0.1, decimals=1, unit="м"
         )
         posy.valueChanged.connect(
             lambda v: self._update_lighting("spot", "position_y", v)
@@ -503,7 +503,7 @@ class LightingTab(QWidget):
         grid.addWidget(posy, row, 0, 1, 2)
         row += 1
         posz = LabeledSlider(
-            "Позиция Z", -100000.0, 100000.0, 10.0, decimals=0, unit="мм"
+            "Позиция Z", -100.0, 100.0, 0.1, decimals=1, unit="м"
         )
         posz.valueChanged.connect(
             lambda v: self._update_lighting("spot", "position_z", v)
@@ -537,7 +537,7 @@ class LightingTab(QWidget):
 
         # Диапазон и конусы
         range_slider = LabeledSlider(
-            "Радиус действия", 10.0, 200000.0, 10.0, decimals=0, unit="мм"
+            "Радиус действия", 10.0, 200000.0, 10.0, decimals=0, unit="м"
         )
         range_slider.valueChanged.connect(
             lambda v: self._update_lighting("spot", "range", v)

@@ -18,6 +18,8 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from ...core.units import Quantity, Unit
+
 
 class ColorButton(QPushButton):
     """Небольшая кнопка предпросмотра цвета, транслирующая изменения из QColorDialog."""
@@ -205,3 +207,61 @@ class LabeledSlider(QWidget):
         self._updating = False
         if self._user_triggered:
             self.valueChanged.emit(round(value, self._decimals))
+
+
+class QuantitySlider(LabeledSlider):
+    """Слайдер для изменения Quantity."""
+
+    valueChanged = Signal(Quantity)
+
+    def __init__(
+        self,
+        title: str,
+        quantity: Quantity,
+        *,
+        parent: QWidget | None = None,
+    ) -> None:
+        super().__init__(
+            title,
+            quantity.definition.minimal.value,
+            quantity.definition.maximal.value,
+            quantity.definition.small_step or 1.0,
+            decimals=quantity.definition.decimals,
+            unit=quantity.definition.unit,
+            parent=parent,
+        )
+        self.set_value(quantity.value)
+
+    def value(self) -> Quantity:
+        base_value = super().value()
+        return Quantity(base_value, self._unit)
+
+    def set_value(self, value: Quantity | float) -> None:
+        if isinstance(value, Quantity):
+            value = value.value
+        super().set_value(value)
+
+    @Slot()
+    def _handle_slider(self, slider_value: int) -> None:
+        if self._updating:
+            return
+        value = self._min + slider_value * self._step
+        value = max(self._min, min(self._max, value))
+        self._updating = True
+        self._spin.setValue(value)
+        self._update_label(value)
+        self._updating = False
+        if self._user_triggered:
+            self.valueChanged.emit(Quantity(value, self._unit))
+
+    @Slot(float)
+    def _handle_spin(self, value: float) -> None:
+        if self._updating:
+            return
+        slider_value = int(round((value - self._min) / self._step))
+        self._updating = True
+        self._slider.setValue(slider_value)
+        self._update_label(value)
+        self._updating = False
+        if self._user_triggered:
+            self.valueChanged.emit(Quantity(value, self._unit))

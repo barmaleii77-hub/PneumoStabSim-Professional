@@ -40,6 +40,9 @@ Item {
  property real userPistonThickness:0.025
  property real userPistonRodLength:0.2
 
+ // Масштаб перевода метров в сцену Qt Quick3D (исторически миллиметры)
+ property real sceneScaleFactor:1000.0
+
  // Анимация рычагов (град)
  property real userAmplitude:8.0
  property real userFrequency:1.0
@@ -81,13 +84,52 @@ Item {
  if (obj && (prop in obj || typeof obj[prop] !== 'undefined')) {
  obj[prop] = value;
  }
- } catch (e) { /* ignore */ }
+ } catch (e) {
+ console.warn("setIfExists failed", prop, e);
+ }
  }
 
  function clamp(value, minValue, maxValue) {
  if (typeof value !== 'number' || !isFinite(value))
  return minValue;
  return Math.max(minValue, Math.min(maxValue, value));
+ }
+
+ function toSceneLength(meters) {
+ var numeric = Number(meters);
+ if (!isFinite(numeric))
+ return0;
+ return numeric * sceneScaleFactor;
+ }
+
+ function toSceneScale(meters) {
+ return toSceneLength(meters) /100.0;
+ }
+
+ function normalizeLengthMeters(value) {
+ if (value === undefined || value === null)
+ return undefined;
+ var numeric = Number(value);
+ if (!isFinite(numeric))
+ return undefined;
+ if (Math.abs(numeric) >10.0)
+ return numeric /1000.0;
+ return numeric;
+ }
+
+ function toSceneVector3(position) {
+ if (!position)
+ return null;
+ var x = position.x !== undefined ? position.x : position[0];
+ var y = position.y !== undefined ? position.y : position[1];
+ var z = position.z !== undefined ? position.z : position[2];
+ if (x === undefined || y === undefined || z === undefined)
+ return null;
+ return Qt.vector3d(
+ toSceneLength(Number(x)),
+ toSceneLength(Number(y)),
+ toSceneLength(Number(z))
+ );
  }
 
  // ---------------------------------------------
@@ -133,48 +175,96 @@ Item {
  return def;
  }
  var v;
- v = pick(params, ['frameLength','frame_length','userFrameLength'], undefined); if (v!==undefined) userFrameLength = Number(v);
- v = pick(params, ['frameHeight','frame_height','userFrameHeight'], undefined); if (v!==undefined) userFrameHeight = Number(v);
- v = pick(params, ['frameBeamSize','beamSize','userBeamSize'], undefined); if (v!==undefined) userBeamSize = Number(v);
- v = pick(params, ['leverLength','userLeverLength'], undefined); if (v!==undefined) userLeverLength = Number(v);
- v = pick(params, ['cylinderBodyLength','cylinderLength','userCylinderLength'], undefined); if (v!==undefined) userCylinderLength = Number(v);
- v = pick(params, ['trackWidth','track','userTrackWidth'], undefined); if (v!==undefined) userTrackWidth = Number(v);
- v = pick(params, ['frameToPivot','frame_to_pivot','userFrameToPivot'], undefined); if (v!==undefined) userFrameToPivot = Number(v);
- v = pick(params, ['rodPosition','attachFrac','userRodPosition'], undefined); if (v!==undefined) userRodPosition = Number(v);
- v = pick(params, ['boreHead','bore','bore_d','userBoreHead'], undefined); if (v!==undefined) userBoreHead = Number(v);
- v = pick(params, ['rod_d','rodDiameter','userRodDiameter'], undefined); if (v!==undefined) userRodDiameter = Number(v);
- v = pick(params, ['pistonThickness','userPistonThickness'], undefined); if (v!==undefined) userPistonThickness = Number(v);
- v = pick(params, ['pistonRodLength','userPistonRodLength'], undefined); if (v!==undefined) userPistonRodLength = Number(v);
+ v = pick(params, ['frameLength','frame_length','userFrameLength'], undefined);
+ if (v !== undefined) {
+ var frameLen = normalizeLengthMeters(v);
+ if (frameLen !== undefined) userFrameLength = frameLen;
+ }
+ v = pick(params, ['frameHeight','frame_height','userFrameHeight'], undefined);
+ if (v !== undefined) {
+ var frameHeight = normalizeLengthMeters(v);
+ if (frameHeight !== undefined) userFrameHeight = frameHeight;
+ }
+ v = pick(params, ['frameBeamSize','beamSize','userBeamSize'], undefined);
+ if (v !== undefined) {
+ var beamSize = normalizeLengthMeters(v);
+ if (beamSize !== undefined) userBeamSize = beamSize;
+ }
+ v = pick(params, ['leverLength','userLeverLength'], undefined);
+ if (v !== undefined) {
+ var leverLen = normalizeLengthMeters(v);
+ if (leverLen !== undefined) userLeverLength = leverLen;
+ }
+ v = pick(params, ['cylinderBodyLength','cylinderLength','userCylinderLength'], undefined);
+ if (v !== undefined) {
+ var cylLen = normalizeLengthMeters(v);
+ if (cylLen !== undefined) userCylinderLength = cylLen;
+ }
+ v = pick(params, ['trackWidth','track','userTrackWidth'], undefined);
+ if (v !== undefined) {
+ var track = normalizeLengthMeters(v);
+ if (track !== undefined) userTrackWidth = track;
+ }
+ v = pick(params, ['frameToPivot','frame_to_pivot','userFrameToPivot'], undefined);
+ if (v !== undefined) {
+ var pivot = normalizeLengthMeters(v);
+ if (pivot !== undefined) userFrameToPivot = pivot;
+ }
+ v = pick(params, ['rodPosition','attachFrac','userRodPosition'], undefined);
+ if (v !== undefined) {
+ var rodPos = Number(v);
+ if (isFinite(rodPos)) userRodPosition = rodPos;
+ }
+ v = pick(params, ['boreHead','bore','bore_d','userBoreHead'], undefined);
+ if (v !== undefined) {
+ var bore = normalizeLengthMeters(v);
+ if (bore !== undefined) userBoreHead = bore;
+ }
+ v = pick(params, ['rod_d','rodDiameter','userRodDiameter'], undefined);
+ if (v !== undefined) {
+ var rodDia = normalizeLengthMeters(v);
+ if (rodDia !== undefined) userRodDiameter = rodDia;
+ }
+ v = pick(params, ['pistonThickness','userPistonThickness'], undefined);
+ if (v !== undefined) {
+ var pistonThick = normalizeLengthMeters(v);
+ if (pistonThick !== undefined) userPistonThickness = pistonThick;
+ }
+ v = pick(params, ['pistonRodLength','userPistonRodLength'], undefined);
+ if (v !== undefined) {
+ var rodLen = normalizeLengthMeters(v);
+ if (rodLen !== undefined) userPistonRodLength = rodLen;
+ }
  }
 
  function applyCameraUpdates(params) {
  if (!params) return;
- if (params.fov !== undefined) setIfExists(camera, 'fieldOfView', Number(params.fov));
- if (params.clipNear !== undefined) setIfExists(camera, 'clipNear', Number(params.clipNear));
- if (params.clipFar !== undefined) setIfExists(camera, 'clipFar', Number(params.clipFar));
- if (params.position) {
- var p = params.position;
- try { camera.position = Qt.vector3d(Number(p.x||p[0]), Number(p.y||p[1]), Number(p.z||p[2])); } catch(e) {}
+ if (params.fov !== undefined)
+ setIfExists(camera, 'fieldOfView', Number(params.fov));
+
+ var clipNearMeters = params.clipNear !== undefined ? Number(params.clipNear) : undefined;
+ if (clipNearMeters !== undefined && isFinite(clipNearMeters)) {
+ var clipNearScene = Math.max(0.0001, toSceneLength(clipNearMeters));
+ setIfExists(camera, 'clipNear', clipNearScene);
+ try { camera.clipNear = clipNearScene; } catch (e) { console.warn("Camera near clip update failed:", e); }
  }
+
+ var clipFarMeters = params.clipFar !== undefined ? Number(params.clipFar) : undefined;
+ if (clipFarMeters !== undefined && isFinite(clipFarMeters)) {
+ var clipFarScene = toSceneLength(clipFarMeters);
+ setIfExists(camera, 'clipFar', clipFarScene);
+ try { camera.clipFar = clipFarScene; } catch (e) { console.warn("Camera far clip update failed:", e); }
+ }
+
+ var positionVector = params.position ? toSceneVector3(params.position) : null;
+ if (positionVector) {
+ setIfExists(camera, 'position', positionVector);
+ try { camera.position = positionVector; } catch (e) { console.warn("Camera position update failed:", e); }
+ }
+
  if (params.eulerRotation) {
  var r = params.eulerRotation;
- try { camera.eulerRotation = Qt.vector3d(Number(r.x||r[0]), Number(r.y||r[1]), Number(r.z||r[2])); } catch(e) {}
- }
- // Обработка ошибок установки камеры
- try {
- if (params.fov !== undefined) camera.fieldOfView = Number(params.fov);
- if (params.clipNear !== undefined) camera.clipNear = Number(params.clipNear);
- if (params.clipFar !== undefined) camera.clipFar = Number(params.clipFar);
- if (params.position) {
- var p = params.position;
- camera.position = Qt.vector3d(Number(p.x||p[0]), Number(p.y||p[1]), Number(p.z||p[2]));
- }
- if (params.eulerRotation) {
- var r = params.eulerRotation;
- camera.eulerRotation = Qt.vector3d(Number(r.x||r[0]), Number(r.y||r[1]), Number(r.z||r[2]));
- }
- } catch(e) {
- console.warn("Camera update error:", e);
+ try { camera.eulerRotation = Qt.vector3d(Number(r.x||r[0]), Number(r.y||r[1]), Number(r.z||r[2])); } catch(e) { console.warn("Camera rotation normalization failed:", e); }
  }
  }
 
@@ -184,7 +274,7 @@ Item {
  if (params.brightness !== undefined) setIfExists(keyLight, 'brightness', Number(params.brightness));
  if (params.eulerRotation) {
  var r = params.eulerRotation;
- try { keyLight.eulerRotation = Qt.vector3d(Number(r.x||r[0]), Number(r.y||r[1]), Number(r.z||r[2])); } catch(e) {}
+ try { keyLight.eulerRotation = Qt.vector3d(Number(r.x||r[0]), Number(r.y||r[1]), Number(r.z||r[2])); } catch(e) { console.warn("Lighting rotation normalization failed:", e); }
  }
  // Обработка ошибок установки освещения
  try {
@@ -213,7 +303,7 @@ Item {
  if (params.iblPrimary || params.hdrSource || params.iblSource) {
  var src = params.iblPrimary || params.hdrSource || params.iblSource;
  if (typeof window !== 'undefined' && window && typeof window.normalizeHdrPath === 'function') {
- try { src = window.normalizeHdrPath(String(src)); } catch(e) {}
+ try { src = window.normalizeHdrPath(String(src)); } catch(e) { console.warn("HDR path normalization failed:", e); }
  }
  setIfExists(iblLoader, 'primarySource', src);
  }
@@ -223,18 +313,27 @@ Item {
  if (params.tonemapModeName) setIfExists(sceneEnvCtl, 'tonemapModeName', String(params.tonemapModeName));
  if (params.tonemapExposure !== undefined) setIfExists(sceneEnvCtl, 'tonemapExposure', Number(params.tonemapExposure));
  if (params.tonemapWhitePoint !== undefined) setIfExists(sceneEnvCtl, 'tonemapWhitePoint', Number(params.tonemapWhitePoint));
- // Туман
+ // Туман (метры → сцена)
  if (params.fogEnabled !== undefined) setIfExists(sceneEnvCtl, 'fogEnabled', !!params.fogEnabled);
  if (params.fogColor) setIfExists(sceneEnvCtl, 'fogColor', params.fogColor);
- if (params.fogNear !== undefined) setIfExists(sceneEnvCtl, 'fogNear', Number(params.fogNear));
- if (params.fogFar !== undefined) setIfExists(sceneEnvCtl, 'fogFar', Number(params.fogFar));
+ if (params.fogNear !== undefined) {
+ var fogNearVal = Number(params.fogNear);
+ if (isFinite(fogNearVal)) setIfExists(sceneEnvCtl, 'fogNear', toSceneLength(fogNearVal));
+ }
+ if (params.fogFar !== undefined) {
+ var fogFarVal = Number(params.fogFar);
+ if (isFinite(fogFarVal)) setIfExists(sceneEnvCtl, 'fogFar', toSceneLength(fogFarVal));
+ }
  // SSAO
  if (params.ssaoEnabled !== undefined) setIfExists(sceneEnvCtl, 'ssaoEnabled', !!params.ssaoEnabled);
  if (params.ssaoRadius !== undefined) setIfExists(sceneEnvCtl, 'ssaoRadius', Number(params.ssaoRadius));
  if (params.ssaoIntensity !== undefined) setIfExists(sceneEnvCtl, 'ssaoIntensity', Number(params.ssaoIntensity));
  // DoF
  if (params.depthOfFieldEnabled !== undefined) setIfExists(sceneEnvCtl, 'internalDepthOfFieldEnabled', !!params.depthOfFieldEnabled);
- if (params.dofFocusDistance !== undefined) setIfExists(sceneEnvCtl, 'dofFocusDistance', Number(params.dofFocusDistance));
+ if (params.dofFocusDistance !== undefined) {
+ var dofDist = Number(params.dofFocusDistance);
+ if (isFinite(dofDist)) setIfExists(sceneEnvCtl, 'dofFocusDistance', toSceneLength(dofDist));
+ }
  if (params.dofBlurAmount !== undefined) setIfExists(sceneEnvCtl, 'dofBlurAmount', Number(params.dofBlurAmount));
  // Vignette
  if (params.vignetteEnabled !== undefined) setIfExists(sceneEnvCtl, 'internalVignetteEnabled', !!params.vignetteEnabled);
@@ -393,10 +492,10 @@ Item {
 
  PerspectiveCamera {
  id: camera
- position: Qt.vector3d(0,0,600)
+ position: Qt.vector3d(0,0, toSceneLength(0.6))
  fieldOfView:60
- clipNear:1
- clipFar:50000
+ clipNear: toSceneLength(0.001)
+ clipFar: toSceneLength(50)
  }
 
  DirectionalLight {
@@ -410,24 +509,24 @@ Item {
  // === Рама (центральная балка) ===
  Model {
  id: mainFrame
- position: Qt.vector3d(0, root.userBeamSize/2, root.userFrameLength/2)
+ position: Qt.vector3d(0, toSceneLength(root.userBeamSize)/2, toSceneLength(root.userFrameLength)/2)
  source: "#Cube"
- scale: Qt.vector3d(root.userTrackWidth/100, root.userBeamSize/100, root.userFrameLength/100)
+ scale: Qt.vector3d(toSceneScale(root.userTrackWidth), toSceneScale(root.userBeamSize), toSceneScale(root.userFrameLength))
  materials: PrincipledMaterial { baseColor: "#4a4a4a"; metalness:0.85; roughness:0.3 }
  }
 
  // === Рычаги ===
- Model { id: frontLeftLever; position: Qt.vector3d(-root.userTrackWidth/2, root.userBeamSize, root.userFrameToPivot); source: "#Cube"; scale: Qt.vector3d(root.userLeverLength/100,8,8); eulerRotation: Qt.vector3d(0,0, root.fl_angle); materials: PrincipledMaterial { baseColor: root.modelBaseColor; metalness: root.modelMetalness; roughness: root.modelRoughness } }
- Model { id: frontRightLever; position: Qt.vector3d( root.userTrackWidth/2, root.userBeamSize, root.userFrameToPivot); source: "#Cube"; scale: Qt.vector3d(root.userLeverLength/100,8,8); eulerRotation: Qt.vector3d(0,0, root.fr_angle); materials: PrincipledMaterial { baseColor: root.modelBaseColor; metalness: root.modelMetalness; roughness: root.modelRoughness } }
- Model { id: rearLeftLever; position: Qt.vector3d(-root.userTrackWidth/2, root.userBeamSize, root.userFrameLength - root.userFrameToPivot); source: "#Cube"; scale: Qt.vector3d(root.userLeverLength/100,8,8); eulerRotation: Qt.vector3d(0,0, root.rl_angle); materials: PrincipledMaterial { baseColor: root.modelBaseColor; metalness: root.modelMetalness; roughness: root.modelRoughness } }
- Model { id: rearRightLever; position: Qt.vector3d( root.userTrackWidth/2, root.userBeamSize, root.userFrameLength - root.userFrameToPivot); source: "#Cube"; scale: Qt.vector3d(root.userLeverLength/100,8,8); eulerRotation: Qt.vector3d(0,0, root.rr_angle); materials: PrincipledMaterial { baseColor: root.modelBaseColor; metalness: root.modelMetalness; roughness: root.modelRoughness } }
+ Model { id: frontLeftLever; position: Qt.vector3d(-toSceneLength(root.userTrackWidth)/2, toSceneLength(root.userBeamSize), toSceneLength(root.userFrameToPivot)); source: "#Cube"; scale: Qt.vector3d(toSceneScale(root.userLeverLength),8,8); eulerRotation: Qt.vector3d(0,0, root.fl_angle); materials: PrincipledMaterial { baseColor: root.modelBaseColor; metalness: root.modelMetalness; roughness: root.modelRoughness } }
+ Model { id: frontRightLever; position: Qt.vector3d( toSceneLength(root.userTrackWidth)/2, toSceneLength(root.userBeamSize), toSceneLength(root.userFrameToPivot)); source: "#Cube"; scale: Qt.vector3d(toSceneScale(root.userLeverLength),8,8); eulerRotation: Qt.vector3d(0,0, root.fr_angle); materials: PrincipledMaterial { baseColor: root.modelBaseColor; metalness: root.modelMetalness; roughness: root.modelRoughness } }
+ Model { id: rearLeftLever; position: Qt.vector3d(-toSceneLength(root.userTrackWidth)/2, toSceneLength(root.userBeamSize), toSceneLength(root.userFrameLength - root.userFrameToPivot)); source: "#Cube"; scale: Qt.vector3d(toSceneScale(root.userLeverLength),8,8); eulerRotation: Qt.vector3d(0,0, root.rl_angle); materials: PrincipledMaterial { baseColor: root.modelBaseColor; metalness: root.modelMetalness; roughness: root.modelRoughness } }
+ Model { id: rearRightLever; position: Qt.vector3d( toSceneLength(root.userTrackWidth)/2, toSceneLength(root.userBeamSize), toSceneLength(root.userFrameLength - root.userFrameToPivot)); source: "#Cube"; scale: Qt.vector3d(toSceneScale(root.userLeverLength),8,8); eulerRotation: Qt.vector3d(0,0, root.rr_angle); materials: PrincipledMaterial { baseColor: root.modelBaseColor; metalness: root.modelMetalness; roughness: root.modelRoughness } }
 
  // === Простой цилиндр (визуальная верификация) ===
  Model {
  id: cylinderFL
- position: Qt.vector3d(-root.userTrackWidth/4, root.userBeamSize + root.userFrameHeight/2, root.userFrameToPivot)
+ position: Qt.vector3d(-toSceneLength(root.userTrackWidth)/4, toSceneLength(root.userBeamSize) + toSceneLength(root.userFrameHeight)/2, toSceneLength(root.userFrameToPivot))
  source: "#Cylinder"
- scale: Qt.vector3d(root.userBoreHead/100, root.userCylinderLength/100, root.userBoreHead/100)
+ scale: Qt.vector3d(toSceneScale(root.userBoreHead), toSceneScale(root.userCylinderLength), toSceneScale(root.userBoreHead))
  materials: PrincipledMaterial { baseColor: "#bcd7ff"; metalness:0.0; roughness:0.08; transmissionFactor:0.6; opacity:0.8; indexOfRefraction:1.52; alphaMode: PrincipledMaterial.Blend }
  }
  }

@@ -15,6 +15,27 @@ from PySide6.QtWidgets import (
 from PySide6.QtCore import Signal, Slot, Qt
 from PySide6.QtGui import QFont
 
+# SI Prefixes for unit scaling
+SI_PREFIXES = {
+    -24: "y",  # yocto
+    -21: "z",  # zepto
+    -18: "a",  # atto
+    -15: "f",  # femto
+    -12: "p",  # pico
+    -9:  "n",  # nano
+    -6:  "μ",  # micro
+    -3:  "m",  # milli
+     0:  "",   # no prefix
+     3:  "k",  # kilo
+     6:  "M",  # mega
+     9:  "G",  # giga
+    12: "T",  # tera
+    15: "P",  # peta
+    18: "E",  # exa
+    21: "Z",  # zetta
+    24: "Y",  # yotta
+}
+
 
 class Knob(QWidget):
     """Universal rotary knob with value display and units
@@ -250,7 +271,43 @@ class Knob(QWidget):
         Args:
             units: Units string
         """
-        self._units = units
+        # Special handling for SI units: scale factor and prefix
+        if units.startswith("SI"):
+            try:
+                # Extract scale factor and unit from string
+                _, scale_str, unit = units.split()
+                scale = float(scale_str)
+            except ValueError:
+                # Handle invalid format
+                super().setUnits(units)
+                return
+
+            # Adjust value range and step
+            min_scaled = self._minimum * scale
+            max_scaled = self._maximum * scale
+            step_scaled = self._step * scale
+
+            # Find appropriate SI prefix
+            prefix = ""
+            for exp, pre in sorted(SI_PREFIXES.items()):
+                if min_scaled >= 10**exp:
+                    prefix = pre
+                    break
+
+            # Update parameters
+            self._minimum = min_scaled / scale
+            self._maximum = max_scaled / scale
+            self._step = step_scaled / scale
+            self._decimals = max(0, decimals - (3 + exp))  # Adjust decimals for scaling
+            self._units = f"{prefix}{unit}"  # Combine prefix and unit
+
+            # Update spinbox and dial ranges
+            self.spinbox.setMinimum(self._minimum)
+            self.spinbox.setMaximum(self._maximum)
+            self.spinbox.setSingleStep(self._step)
+        else:
+            self._units = units
+
         if hasattr(self, "units_label"):
             self.units_label.setText(units)
 

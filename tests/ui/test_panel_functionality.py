@@ -2,7 +2,7 @@
 """
 UI Panel Functionality Tests - PROMPT #1 Validation
 Tests for panel signal emissions and parameter handling
-Тесты функциональности панелей и обработки параметров
+РўРµСЃС‚С‹ С„СѓРЅРєС†РёРѕРЅР°Р»СЊРЅРѕСЃС‚Рё РїР°РЅРµР»РµР№ Рё РѕР±СЂР°Р±РѕС‚РєРё РїР°СЂР°РјРµС‚СЂРѕРІ
 """
 
 import pytest
@@ -61,7 +61,7 @@ class TestGeometryPanelFunctionality:
 
     def test_preset_changes_parameters(self, geometry_panel):
         """Verify preset selection changes parameters"""
-        # Select "Лёгкий коммерческий" preset (index 1)
+        # Select "Р›С‘РіРєРёР№ РєРѕРјРјРµСЂС‡РµСЃРєРёР№" preset (index 1)
         geometry_panel.preset_combo.setCurrentIndex(1)
 
         params = geometry_panel.get_parameters()
@@ -159,6 +159,24 @@ class TestGeometryPanelFunctionality:
         assert abs(geometry_panel.lever_length_slider.value() - 0.95) < 0.01, \
             "lever_length slider should be updated"
 
+    def test_si_unit_ranges_displayed(self, geometry_panel):
+        """Verify SI unit ranges are displayed in the UI"""
+        # Check range labels are visible
+        assert geometry_panel.wheelbase_range_label.isVisible(), \
+            "Wheelbase range label should be visible"
+        assert geometry_panel.track_range_label.isVisible(), \
+            "Track range label should be visible"
+        assert geometry_panel.lever_length_range_label.isVisible(), \
+            "Lever length range label should be visible"
+
+        # Check SI unit values are correct
+        assert geometry_panel.wheelbase_range_label.text() == "3.0 - 4.5 Рј", \
+            "Wheelbase range should be '3.0 - 4.5 Рј'"
+        assert geometry_panel.track_range_label.text() == "1.4 - 2.0 Рј", \
+            "Track range should be '1.4 - 2.0 Рј'"
+        assert geometry_panel.lever_length_range_label.text() == "0.8 - 1.2 Рј", \
+            "Lever length range should be '0.8 - 1.2 Рј'"
+
 
 # ============================================================================
 # PNEUMO PANEL FUNCTIONALITY TESTS
@@ -212,7 +230,7 @@ class TestPneumoPanelFunctionality:
 
         # Check console output
         captured = capsys.readouterr()
-        assert "кПа" in captured.out or "кПа" in str(pneumo_panel.parameters.get('pressure_units', '')), \
+        assert "РєРџР°" in captured.out or "РєРџР°" in str(pneumo_panel.parameters.get('pressure_units', '')), \
             "Pressure units change should be logged"
 
     def test_relief_pressure_validation(self, pneumo_panel, qapp):
@@ -266,6 +284,20 @@ class TestPneumoPanelFunctionality:
             f"Reset should restore atmo_temp to 20.0"
         assert params['thermo_mode'] == 'ISOTHERMAL', \
             f"Reset should restore thermo_mode to ISOTHERMAL"
+
+    def test_si_unit_ranges_displayed(self, pneumo_panel):
+        """Verify SI unit ranges are displayed in the UI"""
+        # Check range labels are visible
+        assert pneumo_panel.relief_min_pressure_range_label.isVisible(), \
+            "Relief min pressure range label should be visible"
+        assert pneumo_panel.atmo_temp_range_label.isVisible(), \
+            "Atmospheric temperature range label should be visible"
+
+        # Check SI unit values are correct
+        assert pneumo_panel.relief_min_pressure_range_label.text() == "0.0 - 10.0 Р±Р°СЂ", \
+            "Relief min pressure range should be '0.0 - 10.0 Р±Р°СЂ'"
+        assert pneumo_panel.atmo_temp_range_label.text() == "-40.0 - 85.0 В°C", \
+            "Atmospheric temperature range should be '-40.0 - 85.0 В°C'"
 
 
 # ============================================================================

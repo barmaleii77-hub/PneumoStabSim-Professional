@@ -576,6 +576,22 @@ class SettingsManager:
                 return None
         return None
 
+    def _convert_values_with_threshold(
+        self, target: Dict[str, Any], thresholds: Dict[str, float], factor: float
+    ) -> bool:
+        """Конвертировать значения, превышающие указанный порог."""
+        changed = False
+        for key, threshold in thresholds.items():
+            if key not in target:
+                continue
+            converted_value = self._convert_value(target[key])
+            if converted_value is None:
+                continue
+            if abs(converted_value) > threshold:
+                target[key] = converted_value / factor
+                changed = True
+        return changed
+
     def _convert_geometry_to_meters(self, section: Dict[str, Any]) -> bool:
         """Перевод геометрических значений из миллиметров в метры."""
         changed = False
@@ -638,11 +654,107 @@ class SettingsManager:
 
         return changed
 
+    def _convert_pneumatic_lengths_to_meters(self, section: Dict[str, Any]) -> bool:
+        """Перевод длин пневмосистемы из миллиметров в метры."""
+        pneumo = section.get("pneumatic")
+        if not isinstance(pneumo, dict):
+            return False
+
+        thresholds = {
+            "receiver_diameter": 5.0,
+            "receiver_length": 5.0,
+            "cv_atmo_dia": 0.1,
+            "cv_tank_dia": 0.1,
+            "throttle_min_dia": 0.05,
+            "throttle_stiff_dia": 0.05,
+        }
+
+        changed = self._convert_values_with_threshold(pneumo, thresholds, 1000.0)
+        return changed
+
+    def _convert_graphics_camera_to_si(self, graphics: Dict[str, Any]) -> bool:
+        camera = graphics.get("camera")
+        if not isinstance(camera, dict):
+            return False
+
+        changed = False
+        changed |= self._convert_values_with_threshold(
+            camera,
+            {
+                "near": 2.0,
+                "far": 200.0,
+                "orbit_distance": 20.0,
+            },
+            1000.0,
+        )
+
+        position_thresholds = {
+            "camera_pos_x": 20.0,
+            "camera_pos_y": 20.0,
+            "camera_pos_z": 20.0,
+            "orbit_target_x": 20.0,
+            "orbit_target_y": 20.0,
+            "orbit_target_z": 20.0,
+            "world_pos_x": 20.0,
+            "world_pos_y": 20.0,
+            "world_pos_z": 20.0,
+        }
+        changed |= self._convert_values_with_threshold(camera, position_thresholds, 1000.0)
+
+        return changed
+
+    def _convert_graphics_environment_to_si(self, graphics: Dict[str, Any]) -> bool:
+        environment = graphics.get("environment")
+        if not isinstance(environment, dict):
+            return False
+
+        changed = False
+        changed |= self._convert_values_with_threshold(
+            environment,
+            {"fog_near": 5.0, "fog_far": 5.0, "fog_least_intense_y": 5.0, "fog_most_intense_y": 5.0},
+            1000.0,
+        )
+
+        changed |= self._convert_values_with_threshold(
+            environment,
+            {"ao_radius": 0.2, "dof_focus_distance": 1.0},
+            1000.0,
+        )
+
+        return changed
+
+    def _convert_graphics_lighting_to_si(self, graphics: Dict[str, Any]) -> bool:
+        lighting = graphics.get("lighting")
+        if not isinstance(lighting, dict):
+            return False
+
+        changed = False
+        for light in lighting.values():
+            if not isinstance(light, dict):
+                continue
+            position_keys = {k: 20.0 for k in ("position_x", "position_y", "position_z")}
+            changed |= self._convert_values_with_threshold(light, position_keys, 1000.0)
+            if "range" in light:
+                changed |= self._convert_values_with_threshold(light, {"range": 20.0}, 1000.0)
+        return changed
+
+    def _convert_graphics_effects_to_si(self, graphics: Dict[str, Any]) -> bool:
+        effects = graphics.get("effects")
+        if not isinstance(effects, dict):
+            return False
+
+        changed = self._convert_values_with_threshold(
+            effects,
+            {"dof_focus_distance": 1.0},
+            1000.0,
+        )
+        return changed
+
     def _maybe_upgrade_units(self, data: Dict[str, Any]) -> bool:
         """Переход на систему СИ (метры/Паскали)."""
         metadata = data.setdefault("metadata", {})
         units_version = metadata.get("units_version")
-        if units_version == "si_v2":
+        if units_version == "si_v3":
             return False
 
         changed = False
@@ -654,9 +766,22 @@ class SettingsManager:
                 changed = True
             if self._convert_pneumatic_to_pascals(section):
                 changed = True
+            if self._convert_pneumatic_lengths_to_meters(section):
+                changed = True
 
-        metadata_changed = metadata.get("units_version") != "si_v2"
-        metadata["units_version"] = "si_v2"
+            graphics = section.get("graphics")
+            if isinstance(graphics, dict):
+                if self._convert_graphics_camera_to_si(graphics):
+                    changed = True
+                if self._convert_graphics_environment_to_si(graphics):
+                    changed = True
+                if self._convert_graphics_lighting_to_si(graphics):
+                    changed = True
+                if self._convert_graphics_effects_to_si(graphics):
+                    changed = True
+
+        metadata_changed = metadata.get("units_version") != "si_v3"
+        metadata["units_version"] = "si_v3"
         return changed or metadata_changed
 
     def _freeze_geometry_settings(self, section: Dict[str, Any]) -> None:
