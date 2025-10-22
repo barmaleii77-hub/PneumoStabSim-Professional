@@ -67,3 +67,8 @@ repos:
        entry: python tools/check_ui_utf8.py
        language: system
        pass_filenames: false
+     - id: check-forbidden-artifacts
+       name: Check repository for forbidden artifacts
+       entry: python tools/check_forbidden_artifacts.py
+       language: system
+       pass_filenames: false

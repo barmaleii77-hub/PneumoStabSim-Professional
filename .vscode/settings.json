@@ -81,7 +81,9 @@
     "**/dist": true,
     "**/.git": true,
     "**/venv": true,
-    "**/.venv": true
+    "**/.venv": true,
+    "**/*.rej": true,
+    "**/*.orig": true
   },
   "files.watcherExclude": {
     "**/logs/**": true,
