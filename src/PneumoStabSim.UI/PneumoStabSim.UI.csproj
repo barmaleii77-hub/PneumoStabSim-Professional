@@ -18,11 +18,11 @@
   <ItemGroup>
     <!-- WPF and graphics -->
     <PackageReference Include="System.Drawing.Common" Version="8.0.0" />
-    
+
     <!-- Charts and plotting -->
     <PackageReference Include="OxyPlot.Wpf" Version="2.1.2" />
     <PackageReference Include="ScottPlot.WPF" Version="5.0.37" />
-    
+
     <!-- Logging -->
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="8.0.0" />
   </ItemGroup>

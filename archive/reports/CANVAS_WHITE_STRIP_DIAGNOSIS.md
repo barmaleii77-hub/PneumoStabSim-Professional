@@ -1,7 +1,7 @@
 # ?? ДИАГНОСТИКА: Белая полоса в Canvas (ПРОБЛЕМА НАЙДЕНА)
 
-**Дата:** 3 января 2025  
-**Симптом:** Панель с Canvas видна, но пустая (белая полоса на черном фоне)  
+**Дата:** 3 января 2025
+**Симптом:** Панель с Canvas видна, но пустая (белая полоса на черном фоне)
 **Статус:** ? **ПРОБЛЕМА НАЙДЕНА И РЕШЕНА**
 
 ---
@@ -18,7 +18,7 @@ BEFORE SHOW:
   QQuickWidget size: 800x600
   QQuickWidget minimum size: 0x0  ? ПРОБЛЕМА!
   QQuickWidget visible: False
-  
+
 AFTER SHOW:
   Window size: 1500x950
   Central widget size: 1500x950
@@ -42,12 +42,12 @@ self._qquick_widget.setMinimumSize(800, 600)
 1. **Окно:** 1500x950
 2. **Dock-панели занимают:**
    - Left (Geometry + Pneumatics): ~400px
-   - Right (Charts + Modes): ~400px  
+   - Right (Charts + Modes): ~400px
    - Bottom (Road): ~200px
 3. **Остаток для центра:** ~700x750px
 4. **Минимум QQuickWidget:** 800x600
 
-**Результат:** 
+**Результат:**
 ```
 700px (доступно) < 800px (минимум)
 ? QMainWindow сжимает панели
@@ -137,7 +137,7 @@ def _create_pressure_chart(self):
 def update_from_snapshot(self, snapshot: StateSnapshot):
     if self.update_counter % self.update_interval != 0:
         return  # Throttling
-    
+
     # Update data...
 ```
 
@@ -188,9 +188,9 @@ def _on_state_update(self, snapshot: StateSnapshot):
 **После исправления:**
 ```python
             print("    ? QML loaded successfully")
-            
+
             # УДАЛЕНО: setMinimumSize(800, 600)
-            
+
             # Set as central widget (QQuickWidget IS a QWidget, no container needed!)
             self.setCentralWidget(self._qquick_widget)
 ```
@@ -208,7 +208,7 @@ def _on_state_update(self, snapshot: StateSnapshot):
     # DEBUG
     if snapshot and self.update_counter % 100 == 0:  # Каждые 100 обновлений
         print(f"DEBUG: State update - time={snapshot.simulation_time:.3f}s, step={snapshot.step_number}")
-    
+
     self.current_snapshot = snapshot
     # ...
 ```
@@ -225,11 +225,11 @@ def _create_pressure_chart(self):
     chart = QChart()
     chart.setTitle("System Pressures")
     chart.setAnimationOptions(QChart.AnimationOption.NoAnimation)
-    
+
     # ADD: Set background color to distinguish from empty state
     chart.setBackgroundBrush(QColor(30, 30, 40))  # Темно-серый фон
     chart.setTitleBrush(QColor(255, 255, 255))    # Белый заголовок
-    
+
     # ...
 ```
 
@@ -333,18 +333,18 @@ code src/ui/main_window.py
 
 ## ?? ВЫВОД
 
-**Проблема идентифицирована:** 
+**Проблема идентифицирована:**
 - Минимальный размер QQuickWidget (800x600) конфликтует с dock-панелями
 - Вызывает overflow и белые полосы
 
 **Решение:**
-- Убрать `setMinimumSize` 
+- Убрать `setMinimumSize`
 - Полагаться на `SizeRootObjectToView` для автоматического изменения размера
 
 **Статус:** ? **ГОТОВО К ИСПРАВЛЕНИЮ**
 
 ---
 
-**Дата:** 3 января 2025  
-**Время диагностики:** ~15 минут  
+**Дата:** 3 января 2025
+**Время диагностики:** ~15 минут
 **Статус:** ? **ПРОБЛЕМА РЕШЕНА**

@@ -68,7 +68,7 @@ def _handle_slider(self, slider_value: int) -> None:
         return
     value = self._min + slider_value * self._step
     # ... вычисления ...
-    
+
     if self._user_triggered:
         self.valueChanged.emit(round(value, self._decimals))
 
@@ -78,7 +78,7 @@ def _handle_slider(self, slider_value: int) -> None:
         return
     value = self._min + slider_value * self._step
     # ... вычисления ...
-    
+
     if self._user_triggered:
         # Логируем ПЕРЕД emit
         event_logger = get_event_logger()
@@ -87,7 +87,7 @@ def _handle_slider(self, slider_value: int) -> None:
             old_value=self._previous_value,
             new_value=value
         )
-        
+
         self.valueChanged.emit(round(value, self._decimals))
 ```
 
@@ -107,7 +107,7 @@ def on_ibl_clicked(checked: bool):
         widget_type="QCheckBox",
         value=checked
     )
-    
+
     self._update_environment("ibl_enabled", checked)
 
 ibl_check.clicked.connect(on_ibl_clicked)
@@ -129,7 +129,7 @@ def on_bg_color_changed(color: str):
         old_color=self.state["environment"]["background_color"],
         new_color=color
     )
-    
+
     self._update_environment("background_color", color)
 
 bg_button.color_changed.connect(on_bg_color_changed)
@@ -224,11 +224,11 @@ self.event_logger = get_event_logger()
 
 ---
 
-**Причина проблемы**: EventLogger создан, но не используется.  
-**Решение**: Добавить вызовы `event_logger.log_*()` в обработчики событий.  
+**Причина проблемы**: EventLogger создан, но не используется.
+**Решение**: Добавить вызовы `event_logger.log_*()` в обработчики событий.
 **Время на исправление**: 5-30 минут в зависимости от варианта.
 
 ---
 
-**Дата диагностики**: 2024-12-15  
+**Дата диагностики**: 2024-12-15
 **Статус**: ⚠️  Требуется интеграция EventLogger в panel_graphics.py

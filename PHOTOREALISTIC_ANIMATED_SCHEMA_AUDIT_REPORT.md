@@ -1,9 +1,9 @@
 # Аудит системы фотореалистичной анимированной схемы PneumoStabSim
 ## Photorealistic Animated Schema System Audit Report
 
-**Дата:** 2024-12-19  
-**Версия системы:** PneumoStabSim Professional v2.2 (Enhanced)  
-**Аудируемые компоненты:** Qt Quick 3D, PBR материалы, анимация, интеграция Python↔QML  
+**Дата:** 2024-12-19
+**Версия системы:** PneumoStabSim Professional v2.2 (Enhanced)
+**Аудируемые компоненты:** Qt Quick 3D, PBR материалы, анимация, интеграция Python↔QML
 
 ---
 
@@ -111,8 +111,8 @@ PrincipledMaterial {
 
 ### 3.1 Параметрическая анимация
 ```qml
-property real fl_angle: isRunning ? 
-    userAmplitude * Math.sin(animationTime * userFrequency * 2 * Math.PI + 
+property real fl_angle: isRunning ?
+    userAmplitude * Math.sin(animationTime * userFrequency * 2 * Math.PI +
                             (userPhaseGlobal + userPhaseFL) * Math.PI / 180) : 0.0
 ```
 **Оценка:** ✅ Excellent (9/10)
@@ -243,8 +243,8 @@ def _on_lighting_changed(self, lighting_params: dict):
 ## 🔍 Детальный анализ компонентов
 
 ### 8.1 QML Scene (`main.qml`)
-**Размер:** 1,247 строк  
-**Сложность:** High  
+**Размер:** 1,247 строк
+**Сложность:** High
 **Maintainability:** Good (8/10)
 
 **Структура:**
@@ -254,8 +254,8 @@ def _on_lighting_changed(self, lighting_params: dict):
 - ⚠️ Большой размер файла - рекомендуется разделение
 
 ### 8.2 Graphics Panel (`panel_graphics.py`)
-**Размер:** 852 строки  
-**Сложность:** Medium-High  
+**Размер:** 852 строки
+**Сложность:** Medium-High
 **Maintainability:** Excellent (9/10)
 
 **Архитектура:**
@@ -265,8 +265,8 @@ def _on_lighting_changed(self, lighting_params: dict):
 - ✅ Persistence через QSettings
 
 ### 8.3 Main Window (`main_window.py`)
-**Размер:** 589 строк (показаны)  
-**Сложность:** Medium-High  
+**Размер:** 589 строк (показаны)
+**Сложность:** Medium-High
 **Maintainability:** Good (8/10)
 
 **Интеграция:**
@@ -355,6 +355,6 @@ def _on_lighting_changed(self, lighting_params: dict):
 
 ---
 
-*Аудит проведен: AI Assistant*  
-*Дата: 2024-12-19*  
+*Аудит проведен: AI Assistant*
+*Дата: 2024-12-19*
 *Методология: Статический анализ кода + архитектурный обзор + performance analysis*

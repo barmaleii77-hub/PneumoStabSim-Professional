@@ -1,7 +1,7 @@
 # 🎉 Implementation Complete: IBL Controls and Scene Enhancements
 
-**Pull Request:** copilot/add-ibl-control-features  
-**Date:** 2025-10-12  
+**Pull Request:** copilot/add-ibl-control-features
+**Date:** 2025-10-12
 **Status:** ✅ COMPLETE AND READY FOR REVIEW
 
 ---
@@ -150,24 +150,24 @@ quality_changed.emit({
 function applyEnvironmentUpdates(params) {
     if (params.ibl) {
         // Existing
-        if (params.ibl.enabled !== undefined) 
+        if (params.ibl.enabled !== undefined)
             iblEnabled = params.ibl.enabled
-        
+
         // NEW
-        if (params.ibl.lighting_enabled !== undefined) 
+        if (params.ibl.lighting_enabled !== undefined)
             iblLightingEnabled = params.ibl.lighting_enabled
-        if (params.ibl.background_enabled !== undefined) 
+        if (params.ibl.background_enabled !== undefined)
             iblBackgroundEnabled = params.ibl.background_enabled
-        if (params.ibl.rotation !== undefined) 
+        if (params.ibl.rotation !== undefined)
             iblRotation = normAngleDeg(params.ibl.rotation)
     }
 }
 
 function applyQualityUpdates(params) {
     // NEW
-    if (params.cylinder_segments !== undefined) 
+    if (params.cylinder_segments !== undefined)
         cylinderSegments = Math.max(3, Math.min(128, params.cylinder_segments))
-    if (params.cylinder_rings !== undefined) 
+    if (params.cylinder_rings !== undefined)
         cylinderRings = Math.max(1, Math.min(32, params.cylinder_rings))
 }
 ```

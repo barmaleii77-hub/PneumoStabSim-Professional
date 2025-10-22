@@ -7,10 +7,10 @@ Rectangle {
     id: root
     width: 800
     height: 600
-    
+
     // Bright red background - should be VERY visible!
     color: "#ff0000"
-    
+
     // Big white text
     Text {
         anchors.centerIn: parent
@@ -20,7 +20,7 @@ Rectangle {
         font.bold: true
         horizontalAlignment: Text.AlignHCenter
     }
-    
+
     // Small info in corner
     Text {
         anchors.top: parent.top
@@ -30,7 +30,7 @@ Rectangle {
         color: "#ffffff"
         font.pixelSize: 14
     }
-    
+
     // Animation to prove it's live
     Rectangle {
         id: spinner
@@ -40,7 +40,7 @@ Rectangle {
         width: 100
         height: 100
         color: "#00ff00"
-        
+
         RotationAnimation on rotation {
             from: 0
             to: 360

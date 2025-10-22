@@ -1,7 +1,7 @@
 # ✅ УСПЕШНОЕ ЗАВЕРШЕНИЕ: ИСПРАВЛЕНИЕ МАППИНГА ПАРАМЕТРОВ
 
-**Дата:** 10 декабря 2025  
-**Коммит:** `bc46e59`  
+**Дата:** 10 декабря 2025
+**Коммит:** `bc46e59`
 **Статус:** ✅ **ЗАВЕРШЕНО И ЗАФИКСИРОВАНО В GIT**
 
 ---
@@ -117,7 +117,7 @@ geometry_3d = {
     'frameLength': wheelbase * 1000,        # мм
     'trackWidth': track * 1000,             # мм
     'leverLength': lever_length * 1000,     # мм
-    
+
     # Цилиндр и шток
     'cylDiamM': cyl_diam_m * 1000,          # мм ✅
     'strokeM': stroke_m * 1000,             # мм ✅
@@ -125,7 +125,7 @@ geometry_3d = {
     'rodDiameterM': rod_diameter_m * 1000,  # мм ✅
     'pistonRodLengthM': piston_rod_length_m * 1000,  # мм ✅
     'pistonThicknessM': piston_thickness_m * 1000,   # мм ✅
-    
+
     # Критический параметр
     'rodPosition': rod_position,            # 0-1 ✅
 }
@@ -173,6 +173,6 @@ geometry_3d = {
 
 ---
 
-**Отчёт создан:** 10 декабря 2025  
-**Коммит:** bc46e59  
+**Отчёт создан:** 10 декабря 2025
+**Коммит:** bc46e59
 **Статус:** ✅ **ЗАВЕРШЕНО УСПЕШНО**

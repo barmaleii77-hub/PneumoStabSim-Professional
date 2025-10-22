@@ -5,7 +5,7 @@
 ```txt
 # Основные зависимости (РАБОТАЮТ)
 PySide6==6.10.0
-PySide6-Essentials==6.10.0  
+PySide6-Essentials==6.10.0
 PySide6-Addons==6.10.0
 shiboken6==6.10.0
 
@@ -63,10 +63,10 @@ graph TD
     D --> E[Geometry]
     D --> F[Materials]
     D --> G[Lighting]
-    
+
     H[GraphicsPanel] --> I[Settings]
     I --> C
-    
+
     J[Performance Monitor] --> K[Metrics]
 ```
 
@@ -107,7 +107,7 @@ python app.py --test-mode   # Проверка
 | Параметр | Значение | Дата измерения |
 |----------|----------|----------------|
 | Время запуска | 4.2 сек | 2025-10-12 |
-| CPU (idle) | 1.6% | 2025-10-12 |  
+| CPU (idle) | 1.6% | 2025-10-12 |
 | RAM (peak) | 320.6 MB | 2025-10-12 |
 | FPS (Ultra) | 144 | 2025-10-12 |
 
@@ -122,10 +122,10 @@ python app.py --test-mode   # Проверка
 
 Если проект не запускается:
 1. Проверьте `PROJECT_STATUS.md` для текущего состояния
-2. Используйте `QUICK_DEPLOY.md` для быстрого развертывания  
+2. Используйте `QUICK_DEPLOY.md` для быстрого развертывания
 3. Логи находятся в папке `logs/`
 4. Используйте `python app.py --debug` для подробной диагностики
 
 ---
-**Конфигурация сохранена**: 2025-10-12 18:05:00  
+**Конфигурация сохранена**: 2025-10-12 18:05:00
 **Версия**: PneumoStabSim Professional v4.8

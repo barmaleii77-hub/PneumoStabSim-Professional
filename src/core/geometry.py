@@ -19,6 +19,7 @@ from typing import Tuple
 @dataclass
 class Point2:
     """2D point in plane"""
+
     x: float
     y: float
 
@@ -26,16 +27,16 @@ class Point2:
         """Convert to numpy array"""
         return np.array([self.x, self.y])
 
-    def __sub__(self, other: 'Point2') -> np.ndarray:
+    def __sub__(self, other: "Point2") -> np.ndarray:
         """Vector from other to self"""
         return self.as_array() - other.as_array()
 
-    def __add__(self, vec: np.ndarray) -> 'Point2':
+    def __add__(self, vec: np.ndarray) -> "Point2":
         """Add vector to point"""
         result = self.as_array() + vec
         return Point2(result[0], result[1])
 
-    def distance_to(self, other: 'Point2') -> float:
+    def distance_to(self, other: "Point2") -> float:
         """Euclidean distance to another point"""
         return np.linalg.norm(self - other)
 
@@ -43,6 +44,7 @@ class Point2:
 @dataclass
 class Segment2:
     """2D line segment"""
+
     p0: Point2  # Start point
     p1: Point2  # End point
 
@@ -66,6 +68,7 @@ class Segment2:
 @dataclass
 class Capsule2:
     """2D capsule (segment with radius)"""
+
     segment: Segment2
     radius: float
 
@@ -122,6 +125,7 @@ class GeometryParams:
 # Vector utilities
 # ============================================================================
 
+
 def dot(a: np.ndarray, b: np.ndarray) -> float:
     """Dot product (scalar product)
 
@@ -163,6 +167,7 @@ def angle_from_x_axis(v: np.ndarray) -> float:
 # ==============================================================================
 # Distance calculations
 # ==============================================================================
+
 
 def dist_point_segment(point: Point2, segment: Segment2) -> float:
     """Distance from point to line segment
@@ -242,7 +247,7 @@ def dist_segment_segment(seg1: Segment2, seg2: Segment2) -> float:
 
     d1 = p1 - p0  # Direction of segment 1
     d2 = q1 - q0  # Direction of segment 2
-    r = p0 - q0   # Vector from q0 to p0
+    r = p0 - q0  # Vector from q0 to p0
 
     a = dot(d1, d1)
     b = dot(d1, d2)
@@ -298,19 +303,19 @@ def capsule_capsule_clearance(cap1: Capsule2, cap2: Capsule2) -> float:
 # ==========================================================================
 
 __all__ = [
-    'Point2',
-    'Segment2',
-    'Capsule2',
-    'GeometryParams',
-    'dot',
-    'norm',
-    'normalize',
-    'project',
-    'angle_between',
-    'angle_from_x_axis',
-    'dist_point_segment',
-    'closest_point_on_segment',
-    'dist_segment_segment',
-    'capsule_capsule_intersect',
-    'capsule_capsule_clearance',
+    "Point2",
+    "Segment2",
+    "Capsule2",
+    "GeometryParams",
+    "dot",
+    "norm",
+    "normalize",
+    "project",
+    "angle_between",
+    "angle_from_x_axis",
+    "dist_point_segment",
+    "closest_point_on_segment",
+    "dist_segment_segment",
+    "capsule_capsule_intersect",
+    "capsule_capsule_clearance",
 ]

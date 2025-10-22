@@ -111,18 +111,18 @@ logger.debug("Loading modules...")
 #### Добавлено:
 ```python
 # ✅ Новый аргумент
-parser.add_argument('--run-tests', action='store_true', 
+parser.add_argument('--run-tests', action='store_true',
                     help='Run tests after exit')
 
 # ✅ Функция запуска тестов после выхода
 def run_post_exit_tests():
     """Запускает тесты после закрытия приложения"""
     test_runner_script = Path(__file__).parent / "run_tests_after_exit.py"
-    
+
     if not test_runner_script.exists():
         print("⚠️  Скрипт run_tests_after_exit.py не найден!")
         return
-    
+
     subprocess.run([sys.executable, str(test_runner_script)])
 
 # ✅ Вызов в main()
@@ -225,18 +225,18 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      
+
       - name: Setup Python
         uses: actions/setup-python@v4
         with:
           python-version: '3.11'
-      
+
       - name: Install dependencies
         run: pip install -r requirements.txt
-      
+
       - name: Run app and tests
         run: python app.py --test-mode --run-tests
-      
+
       - name: Upload test report
         uses: actions/upload-artifact@v3
         with:

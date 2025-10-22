@@ -1,7 +1,7 @@
 # 📦 Модуляризация app.py - Отчёт
 
-**Версия**: v4.9.5  
-**Дата**: 2024  
+**Версия**: v4.9.5
+**Дата**: 2024
 **Статус**: ✅ ЗАВЕРШЕНО
 
 ---
@@ -207,7 +207,7 @@ from src.app_runner import ApplicationRunner
 def main() -> int:
     """Main application entry point - MODULAR VERSION"""
     args = parse_arguments()
-    
+
     runner = ApplicationRunner(QApplication, qInstallMessageHandler, Qt, QTimer)
     return runner.run(args)
 
@@ -232,13 +232,13 @@ if __name__ == "__main__":
 # Пример теста
 def test_version_check():
     from src.bootstrap.version_check import check_python_compatibility
-    
+
     # Mock log_warning, log_error
     warnings = []
     errors = []
-    
+
     check_python_compatibility(warnings.append, errors.append)
-    
+
     assert len(errors) == 0  # Python 3.13+
 ```
 
@@ -363,11 +363,11 @@ py app.py --verbose --diag
 
 ## 🎓 Соответствие стандартам проекта
 
-✅ **PEP 8**: Все модули проверены  
-✅ **Type Hints**: Python 3.13 syntax (`str | None`)  
-✅ **Docstrings**: Русский язык + английские термины  
-✅ **Naming**: snake_case для Python, camelCase для QML  
-✅ **Comments**: Русский язык с техническими терминами  
+✅ **PEP 8**: Все модули проверены
+✅ **Type Hints**: Python 3.13 syntax (`str | None`)
+✅ **Docstrings**: Русский язык + английские термины
+✅ **Naming**: snake_case для Python, camelCase для QML
+✅ **Comments**: Русский язык с техническими терминами
 
 ---
 
@@ -407,6 +407,6 @@ py app.py --verbose --diag
 
 ---
 
-**Автор**: GitHub Copilot  
-**Версия отчёта**: 1.0  
+**Автор**: GitHub Copilot
+**Версия отчёта**: 1.0
 **Дата**: 2024

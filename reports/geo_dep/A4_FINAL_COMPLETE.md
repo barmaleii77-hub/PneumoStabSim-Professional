@@ -11,7 +11,7 @@
 - Определены недостающие кинематические ограничения
 - Составлен план реализации
 
-#### ? A-4.2: Создание GeometryState с кинематическими расчётами  
+#### ? A-4.2: Создание GeometryState с кинематическими расчётами
 **Файл**: `src/ui/geo_state.py` + `reports/geo_dep/A4_2_geometry_state_complete.md`
 - Создан модуль GeometryState с кинематическими расчётами
 - Интегрированы LeverKinematics и CylinderKinematics
@@ -63,7 +63,7 @@ A-4.3: Kinematic Constraint Validation
 
 Computed values:
 • Max stroke (kinematic): 287mm
-• Max lever angle: 38.7°  
+• Max lever angle: 38.7°
 • Current stroke: 300mm
 
 ? 1 ERROR:
@@ -76,7 +76,7 @@ Auto-correct these violations?
 **Улучшено**: Все пресеты теперь проходят кинематическую валидацию
 
 - Standard Truck: 3200mm wheelbase, 800mm lever, max stroke 287mm
-- Light Commercial: 2800mm wheelbase, 700mm lever, max stroke 248mm  
+- Light Commercial: 2800mm wheelbase, 700mm lever, max stroke 248mm
 - Heavy Truck: 3800mm wheelbase, 950mm lever, max stroke 342mm
 
 ---
@@ -106,14 +106,14 @@ Auto-correct these violations?
 
 ### До A-4:
 - Панель геометрии с базовой валидацией
-- Упрощённые геометрические ограничения  
+- Упрощённые геометрические ограничения
 - Возможность создания физически невозможных конфигураций
 - Отсутствие связи между UI и кинематическими модулями
 
 ### После A-4:
 - ? **Физически корректная панель** с кинематическими ограничениями
 - ? **Реальные пределы подвески** на основе кинематических расчётов
-- ? **Автоматическое предотвращение** невозможных конфигураций  
+- ? **Автоматическое предотвращение** невозможных конфигураций
 - ? **Полная интеграция** UI с существующими кинематическими модулями
 - ? **Обучающий интерфейс** с объяснением физических ограничений
 
@@ -129,7 +129,7 @@ Auto-correct these violations?
 
 ### ? Качество кода:
 - Comprehensive error handling с fallback режимом
-- Полная обратная совместимость  
+- Полная обратная совместимость
 - Хорошая документация (4 детальных отчёта)
 - Интеграция с существующей архитектурой
 
@@ -149,7 +149,7 @@ Auto-correct these violations?
 
 ### Статистика:
 - **Микрошагов завершено**: 3/3 (A-4.1, A-4.2, A-4.3)
-- **Новых модулей**: 1 (GeometryState)  
+- **Новых модулей**: 1 (GeometryState)
 - **Обновлённых модулей**: 1 (GeometryPanel)
 - **Типов ограничений**: 4 (wheelbase, kinematic, hydraulic, geometric)
 - **Автокоррекций**: 3 вида

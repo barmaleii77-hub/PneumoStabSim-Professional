@@ -35,7 +35,7 @@ import "effects"
 
 environment: SceneEnvironmentController {
     id: mainEnvironment
-    
+
     // Background & IBL
     iblBackgroundEnabled: root.iblBackgroundEnabled
     iblLightingEnabled: root.iblLightingEnabled
@@ -43,7 +43,7 @@ environment: SceneEnvironmentController {
     iblProbe: iblLoader.probe
     iblIntensity: root.iblIntensity
     iblRotationDeg: root.iblRotationDeg
-    
+
     // AA
     aaPrimaryMode: root.aaPrimaryMode
     aaQualityLevel: root.aaQualityLevel
@@ -54,47 +54,47 @@ environment: SceneEnvironmentController {
     fxaaEnabled: root.fxaaEnabled
     specularAAEnabled: root.specularAAEnabled
     cameraIsMoving: root.cameraIsMoving
-    
+
     // Dithering
     ditheringEnabled: root.ditheringEnabled
     canUseDithering: root.canUseDithering
-    
+
     // Fog
     fogEnabled: root.fogEnabled
     fogColor: root.fogColor
     fogDensity: root.fogDensity
     fogNear: root.fogNear
     fogFar: root.fogFar
-    
+
     // Tonemap
     tonemapEnabled: root.tonemapEnabled
     tonemapModeName: root.tonemapModeName
     tonemapExposure: root.tonemapExposure
     tonemapWhitePoint: root.tonemapWhitePoint
-    
+
     // Bloom
     bloomEnabled: root.bloomEnabled
     bloomIntensity: root.bloomIntensity
     bloomThreshold: root.bloomThreshold
     bloomSpread: root.bloomSpread
-    
+
     // SSAO
     ssaoEnabled: root.ssaoEnabled
     ssaoRadius: root.ssaoRadius
     ssaoIntensity: root.ssaoIntensity
-    
+
     // DOF
     depthOfFieldEnabled: root.depthOfFieldEnabled
     dofFocusDistance: root.dofFocusDistance
     dofBlurAmount: root.dofBlurAmount
-    
+
     // Vignette
     vignetteEnabled: root.vignetteEnabled
     vignetteStrength: root.vignetteStrength
-    
+
     // Lens Flare
     lensFlareEnabled: root.lensFlareEnabled
-    
+
     // OIT
     oitMode: root.oitMode
 }
@@ -116,7 +116,7 @@ Node {
 // ✅ SHARED MATERIALS (replaces 200+ lines of inline PrincipledMaterial)
 SharedMaterials {
     id: sharedMaterials
-    
+
     // Bind все root properties
     frameBaseColor: root.frameBaseColor
     frameMetalness: root.frameMetalness
@@ -132,7 +132,7 @@ SharedMaterials {
     frameAttenuationColor: root.frameAttenuationColor
     frameEmissiveColor: root.frameEmissiveColor
     frameEmissiveIntensity: root.frameEmissiveIntensity
-    
+
     // Lever
     leverBaseColor: root.leverBaseColor
     leverMetalness: root.leverMetalness
@@ -148,7 +148,7 @@ SharedMaterials {
     leverAttenuationColor: root.leverAttenuationColor
     leverEmissiveColor: root.leverEmissiveColor
     leverEmissiveIntensity: root.leverEmissiveIntensity
-    
+
     // TailRod
     tailRodBaseColor: root.tailRodBaseColor
     tailRodMetalness: root.tailRodMetalness
@@ -164,7 +164,7 @@ SharedMaterials {
     tailRodAttenuationColor: root.tailRodAttenuationColor
     tailRodEmissiveColor: root.tailRodEmissiveColor
     tailRodEmissiveIntensity: root.tailRodEmissiveIntensity
-    
+
     // Cylinder
     cylinderBaseColor: root.cylinderBaseColor
     cylinderMetalness: root.cylinderMetalness
@@ -180,7 +180,7 @@ SharedMaterials {
     cylinderAttenuationColor: root.cylinderAttenuationColor
     cylinderEmissiveColor: root.cylinderEmissiveColor
     cylinderEmissiveIntensity: root.cylinderEmissiveIntensity
-    
+
     // JointTail
     jointTailBaseColor: root.jointTailBaseColor
     jointTailMetalness: root.jointTailMetalness
@@ -196,7 +196,7 @@ SharedMaterials {
     jointTailAttenuationColor: root.jointTailAttenuationColor
     jointTailEmissiveColor: root.jointTailEmissiveColor
     jointTailEmissiveIntensity: root.jointTailEmissiveIntensity
-    
+
     // JointArm
     jointArmBaseColor: root.jointArmBaseColor
     jointArmMetalness: root.jointArmMetalness
@@ -376,7 +376,7 @@ SuspensionCorner {
     j_tail: Qt.vector3d(-root.userTrackWidth/2, root.userBeamSize + root.userFrameHeight, root.userBeamSize/2)
     leverAngle: root.fl_angle
     pistonPositionFromPython: root.userPistonPositionFL
-    
+
     // Geometry
     userLeverLength: root.userLeverLength
     userRodPosition: root.userRodPosition
@@ -385,11 +385,11 @@ SuspensionCorner {
     userRodDiameter: root.userRodDiameter
     userPistonThickness: root.userPistonThickness
     userPistonRodLength: root.userPistonRodLength
-    
+
     // Quality
     cylinderSegments: root.cylinderSegments
     cylinderRings: root.cylinderRings
-    
+
     // Materials
     sharedMaterials: sharedMaterials
     pistonBodyBaseColor: root.pistonBodyBaseColor
@@ -407,7 +407,7 @@ SuspensionCorner {
     j_tail: Qt.vector3d(root.userTrackWidth/2, root.userBeamSize + root.userFrameHeight, root.userBeamSize/2)
     leverAngle: root.fr_angle
     pistonPositionFromPython: root.userPistonPositionFR
-    
+
     // Same parameters as FL
     userLeverLength: root.userLeverLength
     userRodPosition: root.userRodPosition
@@ -434,7 +434,7 @@ SuspensionCorner {
     j_tail: Qt.vector3d(-root.userTrackWidth/2, root.userBeamSize + root.userFrameHeight, root.userFrameLength - root.userBeamSize/2)
     leverAngle: root.rl_angle
     pistonPositionFromPython: root.userPistonPositionRL
-    
+
     userLeverLength: root.userLeverLength
     userRodPosition: root.userRodPosition
     userCylinderLength: root.userCylinderLength
@@ -460,7 +460,7 @@ SuspensionCorner {
     j_tail: Qt.vector3d(root.userTrackWidth/2, root.userBeamSize + root.userFrameHeight, root.userFrameLength - root.userBeamSize/2)
     leverAngle: root.rr_angle
     pistonPositionFromPython: root.userPistonPositionRR
-    
+
     userLeverLength: root.userLeverLength
     userRodPosition: root.userRodPosition
     userCylinderLength: root.userCylinderLength

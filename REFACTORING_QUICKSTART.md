@@ -134,11 +134,11 @@ from src.ui.panels.graphics.defaults import build_defaults, build_quality_preset
 3. **Документируйте модули** в README:
    ```markdown
    # Модуль XYZ
-   
+
    ## Обязанности
    - Задача 1
    - Задача 2
-   
+
    ## Структура
    - file1.py - описание
    - file2.py - описание
@@ -269,5 +269,5 @@ python tools/analyze_file_sizes.py
 
 ---
 
-**Версия**: 1.0  
+**Версия**: 1.0
 **Последнее обновление**: 2024

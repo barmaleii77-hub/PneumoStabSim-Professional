@@ -19,43 +19,44 @@ if TYPE_CHECKING:
 
 class MenuActions:
     """Обработчики действий меню и toolbar
-    
+
     Содержит callback-функции для:
     - Управления файлами
     - Управления видом
     - Управления симуляцией
     - Обновления рендера
-    
+
     Static methods для делегирования из MainWindow.
     """
-    
+
     logger = logging.getLogger(__name__)
-    
+
     # ------------------------------------------------------------------
     # File Menu Actions
     # ------------------------------------------------------------------
     @staticmethod
     def file_exit(window: MainWindow) -> None:
         """Exit application
-        
+
         Args:
             window: MainWindow instance
         """
         window.close()
-    
+
     # ------------------------------------------------------------------
     # View Menu Actions
     # ------------------------------------------------------------------
     @staticmethod
     def view_reset_layout(window: MainWindow) -> None:
         """Reset UI layout to defaults
-        
+
         Args:
             window: MainWindow instance
         """
         from .state_sync import StateSync
+
         StateSync.reset_ui_layout(window)
-    
+
     # ------------------------------------------------------------------
     # Tab Management
     # ------------------------------------------------------------------
@@ -63,18 +64,18 @@ class MenuActions:
     @Slot(int)
     def on_tab_changed(window: MainWindow, index: int) -> None:
         """Handle tab change event
-        
+
         Saves selected tab index to QSettings.
-        
+
         Args:
             window: MainWindow instance
             index: New tab index
         """
         from PySide6.QtCore import QSettings
-        
+
         settings = QSettings(window.SETTINGS_ORG, window.SETTINGS_APP)
         settings.setValue(window.SETTINGS_LAST_TAB, index)
-        
+
         tab_names = [
             "Геометрия",
             "ПневмоСистема",
@@ -82,51 +83,52 @@ class MenuActions:
             "Графика и визуализация",
             "Динамика движения",
         ]
-        
+
         if 0 <= index < len(tab_names):
             MenuActions.logger.debug(f"Переключено на вкладку: {tab_names[index]}")
-    
+
     # ------------------------------------------------------------------
     # Render Update
     # ------------------------------------------------------------------
     @staticmethod
     def update_render(window: MainWindow) -> None:
         """Периодический тик UI/анимации (~60 FPS)
-        
+
         Updates:
         - QML animation time
         - Queue statistics
-        
+
         Args:
             window: MainWindow instance
         """
         if not window._qml_root_object:
             return
-        
+
         # Update animation time
         now = time.perf_counter()
         last_tick = getattr(window, "_last_animation_tick", None)
         window._last_animation_tick = now
-        
+
         try:
             is_running = bool(window._qml_root_object.property("isRunning"))
             if is_running and last_tick is not None:
                 elapsed = now - last_tick
-                current = float(window._qml_root_object.property("animationTime") or 0.0)
+                current = float(
+                    window._qml_root_object.property("animationTime") or 0.0
+                )
                 window._qml_root_object.setProperty(
-                    "animationTime",
-                    current + float(elapsed)
+                    "animationTime", current + float(elapsed)
                 )
         except Exception:
             pass
-        
+
         # Update queue statistics
         try:
             if hasattr(window.simulation_manager, "get_queue_stats"):
                 stats = window.simulation_manager.get_queue_stats()
                 get_c = stats.get("get_count", 0)
                 put_c = stats.get("put_count", 0)
-                
+
                 if hasattr(window, "queue_label") and window.queue_label:
                     window.queue_label.setText(f"Queue: {get_c}/{put_c}")
         except Exception:

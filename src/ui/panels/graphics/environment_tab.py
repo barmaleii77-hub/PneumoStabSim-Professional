@@ -10,8 +10,14 @@ Part of modular GraphicsPanel restructuring
 """
 
 from PySide6.QtWidgets import (
-    QWidget, QVBoxLayout, QGroupBox, QLabel,
-    QComboBox, QCheckBox, QHBoxLayout, QGridLayout
+    QWidget,
+    QVBoxLayout,
+    QGroupBox,
+    QLabel,
+    QComboBox,
+    QCheckBox,
+    QHBoxLayout,
+    QGridLayout,
 )
 from PySide6.QtCore import Signal
 from pathlib import Path
@@ -67,7 +73,9 @@ class EnvironmentTab(QWidget):
         bg_mode.addItem("Skybox", "skybox")
         bg_mode.addItem("Сплошной цвет", "color")
         bg_mode.addItem("Прозрачный", "transparent")
-        bg_mode.currentIndexChanged.connect(lambda _: self._on_control_changed("background_mode", bg_mode.currentData()))
+        bg_mode.currentIndexChanged.connect(
+            lambda _: self._on_control_changed("background_mode", bg_mode.currentData())
+        )
         self._controls["background.mode"] = bg_mode
         grid.addWidget(bg_mode, row, 1)
         row += 1
@@ -76,7 +84,9 @@ class EnvironmentTab(QWidget):
         bg_row = QHBoxLayout()
         bg_row.addWidget(QLabel("Цвет", self))
         bg_button = ColorButton()
-        bg_button.color_changed.connect(lambda c: self._on_control_changed("background_color", c))
+        bg_button.color_changed.connect(
+            lambda c: self._on_control_changed("background_color", c)
+        )
         self._controls["background.color"] = bg_button
         bg_row.addWidget(bg_button)
         bg_row.addStretch(1)
@@ -85,7 +95,9 @@ class EnvironmentTab(QWidget):
 
         # Skybox enabled
         skybox_toggle = QCheckBox("Показывать Skybox (фон)", self)
-        skybox_toggle.clicked.connect(lambda checked: self._on_skybox_enabled_clicked(checked))
+        skybox_toggle.clicked.connect(
+            lambda checked: self._on_skybox_enabled_clicked(checked)
+        )
         self._controls["background.skybox_enabled"] = skybox_toggle
         grid.addWidget(skybox_toggle, row, 0, 1, 2)
         row += 1
@@ -99,21 +111,31 @@ class EnvironmentTab(QWidget):
 
         # IBL intensity
         intensity = LabeledSlider("Интенсивность IBL", 0.0, 8.0, 0.05, decimals=2)
-        intensity.valueChanged.connect(lambda v: self._on_control_changed("ibl_intensity", v))
+        intensity.valueChanged.connect(
+            lambda v: self._on_control_changed("ibl_intensity", v)
+        )
         self._controls["ibl.intensity"] = intensity
         grid.addWidget(intensity, row, 0, 1, 2)
         row += 1
 
         # IBL extra: probe brightness (если поддерживается движком)
-        probe_brightness = LabeledSlider("Яркость пробы (probeBrightness)", 0.0, 8.0, 0.05, decimals=2)
-        probe_brightness.valueChanged.connect(lambda v: self._on_control_changed("probe_brightness", v))
+        probe_brightness = LabeledSlider(
+            "Яркость пробы (probeBrightness)", 0.0, 8.0, 0.05, decimals=2
+        )
+        probe_brightness.valueChanged.connect(
+            lambda v: self._on_control_changed("probe_brightness", v)
+        )
         self._controls["ibl.probe_brightness"] = probe_brightness
         grid.addWidget(probe_brightness, row, 0, 1, 2)
         row += 1
 
         # IBL extra: probe horizon cutoff (-1..1)
-        probe_horizon = LabeledSlider("Горизонт пробы (probeHorizon)", -1.0, 1.0, 0.01, decimals=2)
-        probe_horizon.valueChanged.connect(lambda v: self._on_control_changed("probe_horizon", v))
+        probe_horizon = LabeledSlider(
+            "Горизонт пробы (probeHorizon)", -1.0, 1.0, 0.01, decimals=2
+        )
+        probe_horizon.valueChanged.connect(
+            lambda v: self._on_control_changed("probe_horizon", v)
+        )
         self._controls["ibl.probe_horizon"] = probe_horizon
         grid.addWidget(probe_horizon, row, 0, 1, 2)
         row += 1
@@ -163,27 +185,41 @@ class EnvironmentTab(QWidget):
         row += 1
 
         # IBL rotation
-        ibl_rot = LabeledSlider("Поворот IBL", -1080.0, 1080.0, 1.0, decimals=0, unit="°")
-        ibl_rot.valueChanged.connect(lambda v: self._on_control_changed("ibl_rotation", v))
+        ibl_rot = LabeledSlider(
+            "Поворот IBL", -1080.0, 1080.0, 1.0, decimals=0, unit="°"
+        )
+        ibl_rot.valueChanged.connect(
+            lambda v: self._on_control_changed("ibl_rotation", v)
+        )
         self._controls["ibl.rotation"] = ibl_rot
         grid.addWidget(ibl_rot, row, 0, 1, 2)
         row += 1
 
         # IBL offsets
-        env_off_x = LabeledSlider("Смещение окружения X", -180.0, 180.0, 1.0, decimals=0, unit="°")
-        env_off_x.valueChanged.connect(lambda v: self._on_control_changed("ibl_offset_x", v))
+        env_off_x = LabeledSlider(
+            "Смещение окружения X", -180.0, 180.0, 1.0, decimals=0, unit="°"
+        )
+        env_off_x.valueChanged.connect(
+            lambda v: self._on_control_changed("ibl_offset_x", v)
+        )
         self._controls["ibl.offset_x"] = env_off_x
         grid.addWidget(env_off_x, row, 0, 1, 2)
         row += 1
-        env_off_y = LabeledSlider("Смещение окружения Y", -180.0, 180.0, 1.0, decimals=0, unit="°")
-        env_off_y.valueChanged.connect(lambda v: self._on_control_changed("ibl_offset_y", v))
+        env_off_y = LabeledSlider(
+            "Смещение окружения Y", -180.0, 180.0, 1.0, decimals=0, unit="°"
+        )
+        env_off_y.valueChanged.connect(
+            lambda v: self._on_control_changed("ibl_offset_y", v)
+        )
         self._controls["ibl.offset_y"] = env_off_y
         grid.addWidget(env_off_y, row, 0, 1, 2)
         row += 1
 
         # IBL bind
         env_bind = QCheckBox("Привязать окружение к камере", self)
-        env_bind.clicked.connect(lambda checked: self._on_control_changed("ibl_bind_to_camera", checked))
+        env_bind.clicked.connect(
+            lambda checked: self._on_control_changed("ibl_bind_to_camera", checked)
+        )
         self._controls["ibl.bind"] = env_bind
         grid.addWidget(env_bind, row, 0, 1, 2)
 
@@ -191,8 +227,13 @@ class EnvironmentTab(QWidget):
 
     def _discover_hdr_files(self) -> List[Tuple[str, str]]:
         results: List[Tuple[str, str]] = []
-        search_dirs = [Path("assets/hdr"), Path("assets/hdri"), Path("assets/qml/assets")]
+        search_dirs = [
+            Path("assets/hdr"),
+            Path("assets/hdri"),
+            Path("assets/qml/assets"),
+        ]
         qml_dir = Path("assets/qml").resolve()
+
         def to_qml_relative(p: Path) -> str:
             try:
                 abs_p = p.resolve()
@@ -201,10 +242,12 @@ class EnvironmentTab(QWidget):
             except Exception:
                 try:
                     import os
+
                     relpath = os.path.relpath(p.resolve(), start=qml_dir)
                     return Path(relpath).as_posix()
                 except Exception:
                     return p.resolve().as_posix()
+
         seen: set[str] = set()
         for base in search_dirs:
             if not base.exists():
@@ -270,7 +313,9 @@ class EnvironmentTab(QWidget):
         color_row = QHBoxLayout()
         color_row.addWidget(QLabel("Цвет", self))
         fog_color = ColorButton()
-        fog_color.color_changed.connect(lambda c: self._on_control_changed("fog_color", c))
+        fog_color.color_changed.connect(
+            lambda c: self._on_control_changed("fog_color", c)
+        )
         self._controls["fog.color"] = fog_color
         color_row.addWidget(fog_color)
         color_row.addStretch(1)
@@ -278,26 +323,38 @@ class EnvironmentTab(QWidget):
         row += 1
 
         density = LabeledSlider("Плотность", 0.0, 1.0, 0.01, decimals=2)
-        density.valueChanged.connect(lambda v: self._on_control_changed("fog_density", v))
+        density.valueChanged.connect(
+            lambda v: self._on_control_changed("fog_density", v)
+        )
         self._controls["fog.density"] = density
         grid.addWidget(density, row, 0, 1, 2)
         row += 1
 
-        near_slider = LabeledSlider("Начало (Near)", 0.0, 200000.0, 50.0, decimals=0, unit="мм")
-        near_slider.valueChanged.connect(lambda v: self._on_control_changed("fog_near", v))
+        near_slider = LabeledSlider(
+            "Начало (Near)", 0.0, 200000.0, 50.0, decimals=0, unit="мм"
+        )
+        near_slider.valueChanged.connect(
+            lambda v: self._on_control_changed("fog_near", v)
+        )
         self._controls["fog.near"] = near_slider
         grid.addWidget(near_slider, row, 0, 1, 2)
         row += 1
 
-        far_slider = LabeledSlider("Конец (Far)", 500.0, 400000.0, 100.0, decimals=0, unit="мм")
-        far_slider.valueChanged.connect(lambda v: self._on_control_changed("fog_far", v))
+        far_slider = LabeledSlider(
+            "Конец (Far)", 500.0, 400000.0, 100.0, decimals=0, unit="мм"
+        )
+        far_slider.valueChanged.connect(
+            lambda v: self._on_control_changed("fog_far", v)
+        )
         self._controls["fog.far"] = far_slider
         grid.addWidget(far_slider, row, 0, 1, 2)
         row += 1
 
         # Высотный туман
         h_enabled = QCheckBox("Высотный туман (height)", self)
-        h_enabled.clicked.connect(lambda checked: self._on_control_changed("fog_height_enabled", checked))
+        h_enabled.clicked.connect(
+            lambda checked: self._on_control_changed("fog_height_enabled", checked)
+        )
         self._controls["fog.height_enabled"] = h_enabled
         grid.addWidget(h_enabled, row, 0, 1, 2)
         row += 1
@@ -310,7 +367,9 @@ class EnvironmentTab(QWidget):
             decimals=0,
             unit="мм",
         )
-        least_y.valueChanged.connect(lambda v: self._on_control_changed("fog_least_intense_y", v))
+        least_y.valueChanged.connect(
+            lambda v: self._on_control_changed("fog_least_intense_y", v)
+        )
         self._controls["fog.least_y"] = least_y
         grid.addWidget(least_y, row, 0, 1, 2)
         row += 1
@@ -323,26 +382,34 @@ class EnvironmentTab(QWidget):
             decimals=0,
             unit="мм",
         )
-        most_y.valueChanged.connect(lambda v: self._on_control_changed("fog_most_intense_y", v))
+        most_y.valueChanged.connect(
+            lambda v: self._on_control_changed("fog_most_intense_y", v)
+        )
         self._controls["fog.most_y"] = most_y
         grid.addWidget(most_y, row, 0, 1, 2)
         row += 1
 
         h_curve = LabeledSlider("Кривая высоты", 0.0, 4.0, 0.05, decimals=2)
-        h_curve.valueChanged.connect(lambda v: self._on_control_changed("fog_height_curve", v))
+        h_curve.valueChanged.connect(
+            lambda v: self._on_control_changed("fog_height_curve", v)
+        )
         self._controls["fog.height_curve"] = h_curve
         grid.addWidget(h_curve, row, 0, 1, 2)
         row += 1
 
         # Transmit
         t_enabled = QCheckBox("Учитывать передачу света (transmit)", self)
-        t_enabled.clicked.connect(lambda checked: self._on_control_changed("fog_transmit_enabled", checked))
+        t_enabled.clicked.connect(
+            lambda checked: self._on_control_changed("fog_transmit_enabled", checked)
+        )
         self._controls["fog.transmit_enabled"] = t_enabled
         grid.addWidget(t_enabled, row, 0, 1, 2)
         row += 1
 
         t_curve = LabeledSlider("Кривая передачи", 0.0, 4.0, 0.05, decimals=2)
-        t_curve.valueChanged.connect(lambda v: self._on_control_changed("fog_transmit_curve", v))
+        t_curve.valueChanged.connect(
+            lambda v: self._on_control_changed("fog_transmit_curve", v)
+        )
         self._controls["fog.transmit_curve"] = t_curve
         grid.addWidget(t_curve, row, 0, 1, 2)
 
@@ -358,13 +425,17 @@ class EnvironmentTab(QWidget):
         row = 0
 
         enabled = QCheckBox("Включить SSAO", self)
-        enabled.clicked.connect(lambda checked: self._on_control_changed("ao_enabled", checked))
+        enabled.clicked.connect(
+            lambda checked: self._on_control_changed("ao_enabled", checked)
+        )
         self._controls["ao.enabled"] = enabled
         grid.addWidget(enabled, row, 0, 1, 2)
         row += 1
 
         strength = LabeledSlider("Интенсивность", 0.0, 100.0, 1.0, decimals=0, unit="%")
-        strength.valueChanged.connect(lambda v: self._on_control_changed("ao_strength", v))
+        strength.valueChanged.connect(
+            lambda v: self._on_control_changed("ao_strength", v)
+        )
         self._controls["ao.strength"] = strength
         grid.addWidget(strength, row, 0, 1, 2)
         row += 1
@@ -376,13 +447,17 @@ class EnvironmentTab(QWidget):
         row += 1
 
         softness = LabeledSlider("Мягкость", 0.0, 50.0, 1.0, decimals=0)
-        softness.valueChanged.connect(lambda v: self._on_control_changed("ao_softness", v))
+        softness.valueChanged.connect(
+            lambda v: self._on_control_changed("ao_softness", v)
+        )
         self._controls["ao.softness"] = softness
         grid.addWidget(softness, row, 0, 1, 2)
         row += 1
 
         dither = QCheckBox("Dither для AO", self)
-        dither.clicked.connect(lambda checked: self._on_control_changed("ao_dither", checked))
+        dither.clicked.connect(
+            lambda checked: self._on_control_changed("ao_dither", checked)
+        )
         self._controls["ao.dither"] = dither
         grid.addWidget(dither, row, 0, 1, 2)
         row += 1
@@ -391,7 +466,11 @@ class EnvironmentTab(QWidget):
         sample_rate.addItem("2x", 2)
         sample_rate.addItem("3x", 3)
         sample_rate.addItem("4x", 4)
-        sample_rate.currentIndexChanged.connect(lambda _: self._on_control_changed("ao_sample_rate", sample_rate.currentData()))
+        sample_rate.currentIndexChanged.connect(
+            lambda _: self._on_control_changed(
+                "ao_sample_rate", sample_rate.currentData()
+            )
+        )
         self._controls["ao.sample_rate"] = sample_rate
         grid.addWidget(QLabel("Сэмплов", self), row, 0)
         grid.addWidget(sample_rate, row, 1)
@@ -434,37 +513,49 @@ class EnvironmentTab(QWidget):
     def get_state(self) -> Dict[str, Any]:
         """Получить текущее состояние всех параметров окружения"""
         raw_state = {
-            'background_mode': self._require_control("background.mode").currentData(),
-            'background_color': self._require_control("background.color").color().name(),
-            'skybox_enabled': self._require_control("background.skybox_enabled").isChecked(),
-            'ibl_enabled': self._require_control("ibl.enabled").isChecked(),
-            'ibl_intensity': self._require_control("ibl.intensity").value(),
-            'probe_brightness': self._require_control("ibl.probe_brightness").value(),
-            'probe_horizon': self._require_control("ibl.probe_horizon").value(),
-            'ibl_rotation': self._require_control("ibl.rotation").value(),
-            'ibl_source': self._normalize_ibl_path(self._require_control("ibl.file").currentData()),
-            'ibl_fallback': self._normalize_ibl_path(self._require_control("ibl.fallback").currentData()),
-            'skybox_blur': self._require_control("skybox.blur").value(),
-            'ibl_offset_x': self._require_control("ibl.offset_x").value(),
-            'ibl_offset_y': self._require_control("ibl.offset_y").value(),
-            'ibl_bind_to_camera': self._require_control("ibl.bind").isChecked(),
-            'fog_enabled': self._require_control("fog.enabled").isChecked(),
-            'fog_color': self._require_control("fog.color").color().name(),
-            'fog_density': self._require_control("fog.density").value(),
-            'fog_near': self._require_control("fog.near").value(),
-            'fog_far': self._require_control("fog.far").value(),
-            'fog_height_enabled': self._require_control("fog.height_enabled").isChecked(),
-            'fog_least_intense_y': self._require_control("fog.least_y").value(),
-            'fog_most_intense_y': self._require_control("fog.most_y").value(),
-            'fog_height_curve': self._require_control("fog.height_curve").value(),
-            'fog_transmit_enabled': self._require_control("fog.transmit_enabled").isChecked(),
-            'fog_transmit_curve': self._require_control("fog.transmit_curve").value(),
-            'ao_enabled': self._require_control("ao.enabled").isChecked(),
-            'ao_strength': self._require_control("ao.strength").value(),
-            'ao_radius': self._require_control("ao.radius").value(),
-            'ao_softness': self._require_control("ao.softness").value(),
-            'ao_dither': self._require_control("ao.dither").isChecked(),
-            'ao_sample_rate': self._require_control("ao.sample_rate").currentData(),
+            "background_mode": self._require_control("background.mode").currentData(),
+            "background_color": self._require_control("background.color")
+            .color()
+            .name(),
+            "skybox_enabled": self._require_control(
+                "background.skybox_enabled"
+            ).isChecked(),
+            "ibl_enabled": self._require_control("ibl.enabled").isChecked(),
+            "ibl_intensity": self._require_control("ibl.intensity").value(),
+            "probe_brightness": self._require_control("ibl.probe_brightness").value(),
+            "probe_horizon": self._require_control("ibl.probe_horizon").value(),
+            "ibl_rotation": self._require_control("ibl.rotation").value(),
+            "ibl_source": self._normalize_ibl_path(
+                self._require_control("ibl.file").currentData()
+            ),
+            "ibl_fallback": self._normalize_ibl_path(
+                self._require_control("ibl.fallback").currentData()
+            ),
+            "skybox_blur": self._require_control("skybox.blur").value(),
+            "ibl_offset_x": self._require_control("ibl.offset_x").value(),
+            "ibl_offset_y": self._require_control("ibl.offset_y").value(),
+            "ibl_bind_to_camera": self._require_control("ibl.bind").isChecked(),
+            "fog_enabled": self._require_control("fog.enabled").isChecked(),
+            "fog_color": self._require_control("fog.color").color().name(),
+            "fog_density": self._require_control("fog.density").value(),
+            "fog_near": self._require_control("fog.near").value(),
+            "fog_far": self._require_control("fog.far").value(),
+            "fog_height_enabled": self._require_control(
+                "fog.height_enabled"
+            ).isChecked(),
+            "fog_least_intense_y": self._require_control("fog.least_y").value(),
+            "fog_most_intense_y": self._require_control("fog.most_y").value(),
+            "fog_height_curve": self._require_control("fog.height_curve").value(),
+            "fog_transmit_enabled": self._require_control(
+                "fog.transmit_enabled"
+            ).isChecked(),
+            "fog_transmit_curve": self._require_control("fog.transmit_curve").value(),
+            "ao_enabled": self._require_control("ao.enabled").isChecked(),
+            "ao_strength": self._require_control("ao.strength").value(),
+            "ao_radius": self._require_control("ao.radius").value(),
+            "ao_softness": self._require_control("ao.softness").value(),
+            "ao_dither": self._require_control("ao.dither").isChecked(),
+            "ao_sample_rate": self._require_control("ao.sample_rate").currentData(),
         }
         return validate_environment_settings(raw_state)
 
@@ -479,44 +570,70 @@ class EnvironmentTab(QWidget):
                 pass
         try:
             combo = self._require_control("background.mode")
-            idx = combo.findData(validated['background_mode'])
-            if idx >=0:
+            idx = combo.findData(validated["background_mode"])
+            if idx >= 0:
                 combo.setCurrentIndex(idx)
-            self._require_control("background.color").set_color(validated['background_color'])
-            self._require_control("background.skybox_enabled").setChecked(validated['skybox_enabled'])
+            self._require_control("background.color").set_color(
+                validated["background_color"]
+            )
+            self._require_control("background.skybox_enabled").setChecked(
+                validated["skybox_enabled"]
+            )
 
-            self._require_control("ibl.enabled").setChecked(validated['ibl_enabled'])
-            self._require_control("ibl.intensity").set_value(validated['ibl_intensity'])
-            self._require_control("ibl.probe_brightness").set_value(validated['probe_brightness'])
-            self._require_control("ibl.probe_horizon").set_value(validated['probe_horizon'])
-            self._require_control("ibl.rotation").set_value(validated['ibl_rotation'])
-            self._select_combo_path(self._require_control("ibl.file"), validated['ibl_source'])
-            self._select_combo_path(self._require_control("ibl.fallback"), validated['ibl_fallback'])
-            self._require_control("skybox.blur").set_value(validated['skybox_blur'])
-            self._require_control("ibl.offset_x").set_value(validated['ibl_offset_x'])
-            self._require_control("ibl.offset_y").set_value(validated['ibl_offset_y'])
-            self._require_control("ibl.bind").setChecked(validated['ibl_bind_to_camera'])
+            self._require_control("ibl.enabled").setChecked(validated["ibl_enabled"])
+            self._require_control("ibl.intensity").set_value(validated["ibl_intensity"])
+            self._require_control("ibl.probe_brightness").set_value(
+                validated["probe_brightness"]
+            )
+            self._require_control("ibl.probe_horizon").set_value(
+                validated["probe_horizon"]
+            )
+            self._require_control("ibl.rotation").set_value(validated["ibl_rotation"])
+            self._select_combo_path(
+                self._require_control("ibl.file"), validated["ibl_source"]
+            )
+            self._select_combo_path(
+                self._require_control("ibl.fallback"), validated["ibl_fallback"]
+            )
+            self._require_control("skybox.blur").set_value(validated["skybox_blur"])
+            self._require_control("ibl.offset_x").set_value(validated["ibl_offset_x"])
+            self._require_control("ibl.offset_y").set_value(validated["ibl_offset_y"])
+            self._require_control("ibl.bind").setChecked(
+                validated["ibl_bind_to_camera"]
+            )
 
-            self._require_control("fog.enabled").setChecked(validated['fog_enabled'])
-            self._require_control("fog.color").set_color(validated['fog_color'])
-            self._require_control("fog.density").set_value(validated['fog_density'])
-            self._require_control("fog.near").set_value(validated['fog_near'])
-            self._require_control("fog.far").set_value(validated['fog_far'])
-            self._require_control("fog.height_enabled").setChecked(validated['fog_height_enabled'])
-            self._require_control("fog.least_y").set_value(validated['fog_least_intense_y'])
-            self._require_control("fog.most_y").set_value(validated['fog_most_intense_y'])
-            self._require_control("fog.height_curve").set_value(validated['fog_height_curve'])
-            self._require_control("fog.transmit_enabled").setChecked(validated['fog_transmit_enabled'])
-            self._require_control("fog.transmit_curve").set_value(validated['fog_transmit_curve'])
+            self._require_control("fog.enabled").setChecked(validated["fog_enabled"])
+            self._require_control("fog.color").set_color(validated["fog_color"])
+            self._require_control("fog.density").set_value(validated["fog_density"])
+            self._require_control("fog.near").set_value(validated["fog_near"])
+            self._require_control("fog.far").set_value(validated["fog_far"])
+            self._require_control("fog.height_enabled").setChecked(
+                validated["fog_height_enabled"]
+            )
+            self._require_control("fog.least_y").set_value(
+                validated["fog_least_intense_y"]
+            )
+            self._require_control("fog.most_y").set_value(
+                validated["fog_most_intense_y"]
+            )
+            self._require_control("fog.height_curve").set_value(
+                validated["fog_height_curve"]
+            )
+            self._require_control("fog.transmit_enabled").setChecked(
+                validated["fog_transmit_enabled"]
+            )
+            self._require_control("fog.transmit_curve").set_value(
+                validated["fog_transmit_curve"]
+            )
 
-            self._require_control("ao.enabled").setChecked(validated['ao_enabled'])
-            self._require_control("ao.strength").set_value(validated['ao_strength'])
-            self._require_control("ao.radius").set_value(validated['ao_radius'])
-            self._require_control("ao.softness").set_value(validated['ao_softness'])
-            self._require_control("ao.dither").setChecked(validated['ao_dither'])
+            self._require_control("ao.enabled").setChecked(validated["ao_enabled"])
+            self._require_control("ao.strength").set_value(validated["ao_strength"])
+            self._require_control("ao.radius").set_value(validated["ao_radius"])
+            self._require_control("ao.softness").set_value(validated["ao_softness"])
+            self._require_control("ao.dither").setChecked(validated["ao_dither"])
             combo = self._require_control("ao.sample_rate")
-            idx = combo.findData(validated['ao_sample_rate'])
-            if idx >=0:
+            idx = combo.findData(validated["ao_sample_rate"])
+            if idx >= 0:
                 combo.setCurrentIndex(idx)
         finally:
             for control in self._controls.values():

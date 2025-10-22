@@ -90,14 +90,14 @@ if ($startOk -eq "Y" -or $startOk -eq "y") {
     Write-Host ""
     Write-Host "Did you see Core Utilities initialization messages? (Y/N)" -ForegroundColor Yellow
     $initOk = Read-Host
-    
+
     if ($initOk -eq "Y" -or $initOk -eq "y") {
         Write-Host ""
         Write-Host "✅ Core Utilities initialized successfully!" -ForegroundColor Green
         Write-Host ""
         Write-Host "Was the 3D rendering correct? (Y/N)" -ForegroundColor Yellow
         $renderOk = Read-Host
-        
+
         if ($renderOk -eq "Y" -or $renderOk -eq "y") {
             Write-Host ""
             Write-Host "✅ 3D rendering working correctly!" -ForegroundColor Green

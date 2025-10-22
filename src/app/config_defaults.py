@@ -20,17 +20,16 @@ stable while still producing realistic numbers for manual experiments.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any, Dict
+from typing import Dict
 
-from src.common.settings_manager import get_settings_manager
 from src.common.units import PA_ATM, T_AMBIENT
 from src.pneumo.cylinder import CylinderSpec
 from src.pneumo.enums import (
- CheckValveKind,
- Line,
- ReceiverVolumeMode,
- ThermoMode,
- Wheel,
+    CheckValveKind,
+    Line,
+    ReceiverVolumeMode,
+    ThermoMode,
+    Wheel,
 )
 from src.pneumo.geometry import CylinderGeom, FrameGeom, LeverGeom
 from src.pneumo.network import GasNetwork
@@ -46,55 +45,55 @@ from src.pneumo.valves import CheckValve
 
 
 def _create_default_geometry() -> tuple[FrameGeom, LeverGeom, CylinderGeom]:
- """Return a validated set of geometry primitives.
+    """Return a validated set of geometry primitives.
 
- The numbers reflect a mid-sized commercial chassis. They satisfy all
- invariants enforced by :mod:`src.pneumo.geometry` and are intentionally
- symmetrical which simplifies many analytical calculations in the tests.
- """
+    The numbers reflect a mid-sized commercial chassis. They satisfy all
+    invariants enforced by :mod:`src.pneumo.geometry` and are intentionally
+    symmetrical which simplifies many analytical calculations in the tests.
+    """
 
- frame = FrameGeom(L_wb=3.4)
+    frame = FrameGeom(L_wb=3.4)
 
- lever = LeverGeom(
- L_lever=0.75,
- rod_joint_frac=0.45,
- d_frame_to_lever_hinge=0.42,
- )
+    lever = LeverGeom(
+        L_lever=0.75,
+        rod_joint_frac=0.45,
+        d_frame_to_lever_hinge=0.42,
+    )
 
- cylinder = CylinderGeom(
- D_in_front=0.11,
- D_in_rear=0.11,
- D_out_front=0.13,
- D_out_rear=0.13,
- L_inner=0.46,
- t_piston=0.025,
- D_rod=0.035,
- link_rod_diameters_front_rear=True,
- L_dead_head=0.018,
- L_dead_rod=0.02,
- residual_frac_min=0.01,
- Y_tail=0.45,
- Z_axle=0.55,
- )
+    cylinder = CylinderGeom(
+        D_in_front=0.11,
+        D_in_rear=0.11,
+        D_out_front=0.13,
+        D_out_rear=0.13,
+        L_inner=0.46,
+        t_piston=0.025,
+        D_rod=0.035,
+        link_rod_diameters_front_rear=True,
+        L_dead_head=0.018,
+        L_dead_rod=0.02,
+        residual_frac_min=0.01,
+        Y_tail=0.45,
+        Z_axle=0.55,
+    )
 
- return frame, lever, cylinder
+    return frame, lever, cylinder
 
 
 def _create_line_valves() -> Dict[Line, dict]:
- """Create check valve configuration for every pneumatic line."""
+    """Create check valve configuration for every pneumatic line."""
 
- def _check_valve(kind: CheckValveKind) -> CheckValve:
-  return CheckValve(kind=kind, delta_open=5_000.0, d_eq=0.008)
+    def _check_valve(kind: CheckValveKind) -> CheckValve:
+        return CheckValve(kind=kind, delta_open=5_000.0, d_eq=0.008)
 
- line_defaults: Dict[Line, dict] = {}
- for line in (Line.A1, Line.B1, Line.A2, Line.B2):
-  line_defaults[line] = {
-   "cv_atmo": _check_valve(CheckValveKind.ATMO_TO_LINE),
-   "cv_tank": _check_valve(CheckValveKind.LINE_TO_TANK),
-   "p_line": PA_ATM,
-  }
+    line_defaults: Dict[Line, dict] = {}
+    for line in (Line.A1, Line.B1, Line.A2, Line.B2):
+        line_defaults[line] = {
+            "cv_atmo": _check_valve(CheckValveKind.ATMO_TO_LINE),
+            "cv_tank": _check_valve(CheckValveKind.LINE_TO_TANK),
+            "p_line": PA_ATM,
+        }
 
- return line_defaults
+    return line_defaults
 
 
 # ---------------------------------------------------------------------------
@@ -103,106 +102,106 @@ def _create_line_valves() -> Dict[Line, dict]:
 
 
 def create_default_system_configuration() -> dict:
- """Return a fully validated default system configuration."""
+    """Return a fully validated default system configuration."""
 
- frame_geom, lever_geom, cylinder_geom = _create_default_geometry()
+    frame_geom, lever_geom, cylinder_geom = _create_default_geometry()
 
- cylinder_specs = {
- Wheel.LP: CylinderSpec(cylinder_geom, True, lever_geom),
- Wheel.PP: CylinderSpec(cylinder_geom, True, lever_geom),
- Wheel.LZ: CylinderSpec(cylinder_geom, False, lever_geom),
- Wheel.PZ: CylinderSpec(cylinder_geom, False, lever_geom),
- }
+    cylinder_specs = {
+        Wheel.LP: CylinderSpec(cylinder_geom, True, lever_geom),
+        Wheel.PP: CylinderSpec(cylinder_geom, True, lever_geom),
+        Wheel.LZ: CylinderSpec(cylinder_geom, False, lever_geom),
+        Wheel.PZ: CylinderSpec(cylinder_geom, False, lever_geom),
+    }
 
- receiver_spec = ReceiverSpec(V_min=0.0018, V_max=0.0045)
- receiver_state = ReceiverState(
- spec=receiver_spec,
- V=0.003,
- p=PA_ATM,
- T=T_AMBIENT,
- mode=ReceiverVolumeMode.ADIABATIC_RECALC,
- )
+    receiver_spec = ReceiverSpec(V_min=0.0018, V_max=0.0045)
+    receiver_state = ReceiverState(
+        spec=receiver_spec,
+        V=0.003,
+        p=PA_ATM,
+        T=T_AMBIENT,
+        mode=ReceiverVolumeMode.ADIABATIC_RECALC,
+    )
 
- return {
- "frame_geom": frame_geom,
- "lever_geom": lever_geom,
- "cylinder_geom": cylinder_geom,
- "cylinder_specs": cylinder_specs,
- "line_configs": _create_line_valves(),
- "receiver": receiver_state,
- "master_isolation_open": False,
- }
+    return {
+        "frame_geom": frame_geom,
+        "lever_geom": lever_geom,
+        "cylinder_geom": cylinder_geom,
+        "cylinder_specs": cylinder_specs,
+        "line_configs": _create_line_valves(),
+        "receiver": receiver_state,
+        "master_isolation_open": False,
+    }
 
 
 def create_default_gas_network(system) -> GasNetwork:
- """Create a gas network with atmospheric initial conditions."""
+    """Create a gas network with atmospheric initial conditions."""
 
- line_volumes = system.get_line_volumes()
+    line_volumes = system.get_line_volumes()
 
- line_states = {
- line: create_line_gas_state(line, PA_ATM, T_AMBIENT, volume)
- for line, volume in line_volumes.items()
- }
+    line_states = {
+        line: create_line_gas_state(line, PA_ATM, T_AMBIENT, volume)
+        for line, volume in line_volumes.items()
+    }
 
- tank_state = create_tank_gas_state(
- V_initial=0.0035,
- p_initial=PA_ATM,
- T_initial=T_AMBIENT,
- mode=ReceiverVolumeMode.ADIABATIC_RECALC,
- )
+    tank_state = create_tank_gas_state(
+        V_initial=0.0035,
+        p_initial=PA_ATM,
+        T_initial=T_AMBIENT,
+        mode=ReceiverVolumeMode.ADIABATIC_RECALC,
+    )
 
- return GasNetwork(
- lines=line_states,
- tank=tank_state,
- system_ref=system,
- master_isolation_open=False,
- )
+    return GasNetwork(
+        lines=line_states,
+        tank=tank_state,
+        system_ref=system,
+        master_isolation_open=False,
+    )
 
 
 def get_default_lever_angles() -> Dict[Wheel, float]:
- """Return zeroed lever angles for all wheels."""
+    """Return zeroed lever angles for all wheels."""
 
- return {wheel:0.0 for wheel in Wheel}
+    return {wheel: 0.0 for wheel in Wheel}
 
 
 def get_default_gas_parameters() -> dict:
- """Return time-integration parameters for gas simulations."""
+    """Return time-integration parameters for gas simulations."""
 
- return {
- "dt":0.005,
- "thermo_mode": ThermoMode.ISOTHERMAL,
- "total_time":3.0,
- }
+    return {
+        "dt": 0.005,
+        "thermo_mode": ThermoMode.ISOTHERMAL,
+        "total_time": 3.0,
+    }
 
 
 @dataclass
 class SystemWithDefaults:
- """Convenience wrapper combining system and gas network defaults."""
+    """Convenience wrapper combining system and gas network defaults."""
 
- system: object
- gas_network: GasNetwork
+    system: object
+    gas_network: GasNetwork
 
 
 def create_system_with_gas_network() -> SystemWithDefaults:
- """Create a pneumatic system and matching gas network in one call."""
+    """Create a pneumatic system and matching gas network in one call."""
 
- config = create_default_system_configuration()
- system = create_standard_diagonal_system(
- cylinder_specs=config["cylinder_specs"],
- line_configs=config["line_configs"],
- receiver=config["receiver"],
- master_isolation_open=config["master_isolation_open"],
- )
+    config = create_default_system_configuration()
+    system = create_standard_diagonal_system(
+        cylinder_specs=config["cylinder_specs"],
+        line_configs=config["line_configs"],
+        receiver=config["receiver"],
+        master_isolation_open=config["master_isolation_open"],
+    )
 
- gas_network = create_default_gas_network(system)
- return SystemWithDefaults(system=system, gas_network=gas_network)
+    gas_network = create_default_gas_network(system)
+    return SystemWithDefaults(system=system, gas_network=gas_network)
 
 
 __all__ = [
- "create_default_system_configuration",
- "create_default_gas_network",
- "get_default_lever_angles",
- "get_default_gas_parameters",
- "create_system_with_gas_network",
- "SystemWithDefaults",
+    "create_default_system_configuration",
+    "create_default_gas_network",
+    "get_default_lever_angles",
+    "get_default_gas_parameters",
+    "create_system_with_gas_network",
+    "SystemWithDefaults",
 ]

@@ -11,7 +11,7 @@ os.environ.setdefault("QSG_INFO", "1")
 
 from PySide6.QtWidgets import QApplication, QMainWindow, QWidget
 from PySide6.QtQuick import QQuickView
-from PySide6.QtCore import QUrl, Qt
+from PySide6.QtCore import QUrl
 from pathlib import Path
 
 print("=== QML DIAGNOSTIC TEST ===\n")
@@ -60,12 +60,12 @@ container = QWidget.createWindowContainer(view, window)
 container.setMinimumSize(800, 600)
 window.setCentralWidget(container)
 
-print("="*60)
+print("=" * 60)
 print("WINDOW SHOULD SHOW:")
 print("  - Bright RED background")
 print("  - White text in center")
 print("  - Green rotating square")
-print("="*60)
+print("=" * 60)
 print("\nIf you DON'T see it - Qt Quick rendering broken")
 print("If you SEE it - QML works, problem is Qt Quick 3D\n")
 

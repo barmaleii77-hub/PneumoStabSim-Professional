@@ -1,7 +1,7 @@
 # ✅ QML РЕФАКТОРИНГ - ЗАВЕРШЕНО 100%
 
-**Дата:** 2025-01-05  
-**Статус:** ✅ ПОЛНОСТЬЮ ГОТОВО  
+**Дата:** 2025-01-05
+**Статус:** ✅ ПОЛНОСТЬЮ ГОТОВО
 **Модулей:** 5 из 5 ✅
 
 ---
@@ -131,7 +131,7 @@ View3D {
         iblProbe: iblLoader.probe
         iblIntensity: root.iblIntensity
         iblRotationDeg: root.iblRotationDeg
-        
+
         // AA
         aaPrimaryMode: root.aaPrimaryMode
         aaQualityLevel: root.aaQualityLevel
@@ -142,47 +142,47 @@ View3D {
         fxaaEnabled: root.fxaaEnabled
         specularAAEnabled: root.specularAAEnabled
         cameraIsMoving: root.cameraIsMoving
-        
+
         // Dithering
         ditheringEnabled: root.ditheringEnabled
         canUseDithering: root.canUseDithering
-        
+
         // Fog
         fogEnabled: root.fogEnabled
         fogColor: root.fogColor
         fogDensity: root.fogDensity
         fogNear: root.fogNear
         fogFar: root.fogFar
-        
+
         // Tonemap
         tonemapEnabled: root.tonemapEnabled
         tonemapModeName: root.tonemapModeName
         tonemapExposure: root.tonemapExposure
         tonemapWhitePoint: root.tonemapWhitePoint
-        
+
         // Bloom
         bloomEnabled: root.bloomEnabled
         bloomIntensity: root.bloomIntensity
         bloomThreshold: root.bloomThreshold
         bloomSpread: root.bloomSpread
-        
+
         // SSAO
         ssaoEnabled: root.ssaoEnabled
         ssaoRadius: root.ssaoRadius
         ssaoIntensity: root.ssaoIntensity
-        
+
         // DOF
         depthOfFieldEnabled: root.depthOfFieldEnabled
         dofFocusDistance: root.dofFocusDistance
         dofBlurAmount: root.dofBlurAmount
-        
+
         // Vignette
         vignetteEnabled: root.vignetteEnabled
         vignetteStrength: root.vignetteStrength
-        
+
         // Lens Flare
         lensFlareEnabled: root.lensFlareEnabled
-        
+
         // OIT
         oitMode: root.oitMode
     }
@@ -248,7 +248,7 @@ import "scene"
 
 SharedMaterials {
     id: sharedMaterials
-    
+
     // Bind все root properties
     frameBaseColor: root.frameBaseColor
     frameMetalness: root.frameMetalness
@@ -314,7 +314,7 @@ SuspensionCorner {
     j_tail: Qt.vector3d(-userTrackWidth/2, userBeamSize + userFrameHeight, userBeamSize/2)
     leverAngle: fl_angle
     pistonPositionFromPython: root.userPistonPositionFL
-    
+
     // Geometry
     userLeverLength: root.userLeverLength
     userRodPosition: root.userRodPosition
@@ -323,11 +323,11 @@ SuspensionCorner {
     userRodDiameter: root.userRodDiameter
     userPistonThickness: root.userPistonThickness
     userPistonRodLength: root.userPistonRodLength
-    
+
     // Quality
     cylinderSegments: root.cylinderSegments
     cylinderRings: root.cylinderRings
-    
+
     // Materials
     sharedMaterials: sharedMaterials
     pistonBodyBaseColor: root.pistonBodyBaseColor
@@ -364,9 +364,9 @@ effects/: 200 строк (вынесено)
 scene/: 250 строк (вынесено)
 ```
 
-**Общий объём:** 5960 строк (-4%)  
-**Модульность:** ✅ 100%  
-**Переиспользование:** ✅ Да  
+**Общий объём:** 5960 строк (-4%)
+**Модульность:** ✅ 100%
+**Переиспользование:** ✅ Да
 **Тестируемость:** ✅ Отличная
 
 ---
@@ -438,6 +438,6 @@ python app.py
 
 ---
 
-**Автор:** GitHub Copilot  
-**Версия:** 2.0 (ИСПРАВЛЕННАЯ)  
+**Автор:** GitHub Copilot
+**Версия:** 2.0 (ИСПРАВЛЕННАЯ)
 **Статус:** ✅ 100% ЗАВЕРШЕНО

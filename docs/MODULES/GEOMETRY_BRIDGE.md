@@ -16,7 +16,7 @@
    - Lever pivot points
    - Lever tip (rod attachment)
    - Piston position inside cylinder
-   
+
 2. **Kinematic Calculations**
    - Distance from pivot to cylinder tail
    - Piston position from lever angle
@@ -142,7 +142,7 @@ delta_dist = tail_to_rod - base_dist
 piston_position = (cylinder_body_length / 2.0) + delta_dist
 
 # Clip to safe range
-piston_position = clip(piston_position, 
+piston_position = clip(piston_position,
                        cylinder_body_length * 0.1,  # 10% minimum
                        cylinder_body_length * 0.9)  # 90% maximum
 ```

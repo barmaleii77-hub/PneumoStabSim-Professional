@@ -49,14 +49,14 @@ logger.export_analysis_report()
 def _log_qml_update(self, category: str, data: dict):
     logger = get_graphics_logger()
     recent = logger.get_recent_changes(1)
-    
+
     if recent and recent[0].category == category:
         event = recent[0]
-        
+
         try:
             # Применить в QML
             self._apply_to_qml(data)
-            
+
             # Логировать успех
             logger.log_qml_update(event, qml_state=data, success=True)
         except Exception as e:

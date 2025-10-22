@@ -1,7 +1,7 @@
 # 🔍 АУДИТ ПАНЕЛЕЙ НА ПРЕДМЕТ ОШИБОК СОХРАНЕНИЯ СОСТОЯНИЯ
 
-**Дата:** 2025-01-12  
-**Версия:** PneumoStabSim Professional v4.9.5  
+**Дата:** 2025-01-12
+**Версия:** PneumoStabSim Professional v4.9.5
 **Инициатор:** Проверка после исправления `MaterialsTab`
 
 ---
@@ -24,7 +24,7 @@ def _on_material_selection_changed(self, index: int) -> None:
     # ❌ НЕПРАВИЛЬНО: Сохранение при переключении
     if self._current_key:
         self._save_current_into_cache()  # ← ПЕРЕЗАПИСЬ КЭША!
-    
+
     new_key = self.get_current_material_key()
     st = self._materials_state.get(new_key)
     if st:
@@ -41,11 +41,11 @@ def _on_material_selection_changed(self, index: int) -> None:
 def _on_material_selection_changed(self, index: int) -> None:
     # ✅ ПРАВИЛЬНО: Только загрузка из кэша
     new_key = self.get_current_material_key()
-    
+
     st = self._materials_state.get(new_key)
     if st:
         self._apply_controls_from_state(st)  # ТОЛЬКО загрузка
-    
+
     # Сохранение происходит ТОЛЬКО при изменении пользователем (_on_control_changed)
 ```
 
@@ -69,11 +69,11 @@ class LightingTab(QWidget):
         # ✅ ПРАВИЛЬНО: Сохраняет ТОЛЬКО при изменении пользователем
         if self._updating_ui:
             return
-        
+
         if group not in self._state:
             self._state[group] = {}
         self._state[group][key] = value  # Запись в state
-        
+
         update = {group: {key: value}}
         self.lighting_changed.emit(update)  # Сигнал
 ```
@@ -92,7 +92,7 @@ class SomeTab(QWidget):
     def _update_parameter(self, key: str, value: Any) -> None:
         if self._updating_ui:
             return
-        
+
         # ✅ Сохранение при изменении пользователем
         self._state[key] = value
         self.parameter_changed.emit({key: value})
@@ -197,9 +197,9 @@ class ModesPanel(QWidget):
 | ModesPanel | ✅ Да (пресеты) | ❌ Нет | ✅ Корректна |
 | RoadPanel | ✅ Да (CSV/Preset) | ❌ Нет | ✅ Корректна |
 
-**ВСЕГО:** 10 панелей проверено  
-**ПРОБЛЕМ:** 1 (MaterialsTab)  
-**ИСПРАВЛЕНО:** 1  
+**ВСЕГО:** 10 панелей проверено
+**ПРОБЛЕМ:** 1 (MaterialsTab)
+**ИСПРАВЛЕНО:** 1
 **СТАТУС:** ✅ **ВСЕ ПАНЕЛИ КОРРЕКТНЫ**
 
 ---
@@ -214,16 +214,16 @@ class ModesPanel(QWidget):
 def _on_material_selection_changed(self, index: int) -> None:
     if self._updating_ui:
         return
-    
+
     # ❌ УДАЛЕНО: Сохранение при переключении
     # if self._current_key:
     #     self._save_current_into_cache()  # ← БЫЛО
-    
+
     new_key = self.get_current_material_key()
     st = self._materials_state.get(new_key)
     if st:
         self._apply_controls_from_state(st)  # ✅ ТОЛЬКО загрузка
-    
+
     self._current_key = new_key
     if new_key:
         self.material_changed.emit(self.get_state())
@@ -258,18 +258,18 @@ class SomePanel(QWidget):
         super().__init__()
         self._state = {}  # Локальный state
         self._updating_ui = False  # Флаг блокировки
-    
+
     def _on_user_change(self, key: str, value: Any):
         """Вызывается ТОЛЬКО при действии пользователя"""
         if self._updating_ui:
             return
-        
+
         # ✅ Сохраняем изменение
         self._state[key] = value
-        
+
         # ✅ Эмитим сигнал
         self.parameter_changed.emit({key: value})
-    
+
     def set_state(self, state: Dict[str, Any]):
         """Загружает состояние (из JSON/settings)"""
         self._updating_ui = True  # ✅ Блокируем сигналы
@@ -278,7 +278,7 @@ class SomePanel(QWidget):
             self._apply_to_controls(state)
         finally:
             self._updating_ui = False
-    
+
     def get_state(self) -> Dict[str, Any]:
         """Возвращает текущее состояние"""
         return copy.deepcopy(self._state)  # ✅ Копия!
@@ -290,15 +290,15 @@ class SomePanel(QWidget):
 class BadPanel(QWidget):
     def __init__(self):
         self._cache = {}
-    
+
     def _on_selection_changed(self, new_key: str):
         # ❌ НЕПРАВИЛЬНО: Сохранение при переключении
         self._save_current_to_cache()  # ← БАГ! Перезапись кэша
-        
+
         # Загрузка нового
         new_state = self._cache.get(new_key)
         self._apply_controls(new_state)
-    
+
     def _save_current_to_cache(self):
         # ❌ ПРОБЛЕМА: Читаем ТЕКУЩИЕ контролы (могут быть старые!)
         key = self._current_key
@@ -322,9 +322,9 @@ class BadPanel(QWidget):
 
 ---
 
-**Автор:** GitHub Copilot  
-**Дата:** 2025-01-12  
-**Версия:** Final Audit Report v1.0  
+**Автор:** GitHub Copilot
+**Дата:** 2025-01-12
+**Версия:** Final Audit Report v1.0
 **Статус:** ✅ **COMPLETE - ALL PANELS VALIDATED**
 
 ---

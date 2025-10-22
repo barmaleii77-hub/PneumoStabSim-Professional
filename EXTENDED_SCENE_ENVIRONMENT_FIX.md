@@ -14,7 +14,7 @@
 - **Исправления**:
   ```qml
   // БЫЛО:
-  tonemapMode: root.tonemapEnabled 
+  tonemapMode: root.tonemapEnabled
     ? (root.tonemapMode === 3 ? SceneEnvironment.TonemappingFilmic
        : root.tonemapMode === 2 ? SceneEnvironment.TonemappingReinhard
        : root.tonemapMode === 1 ? SceneEnvironment.TonemappingLinear
@@ -40,11 +40,11 @@
 ### 4. **Орбитальная камера (УЛУЧШЕНИЕ)**
 - **Файл**: `assets/qml/main_v2_realism.qml`
 - **Проблема**: Камера вращалась не вокруг центра конструкции
-- **Исправление**: 
+- **Исправление**:
   ```qml
   // Фиксированная точка вращения - центр нижней балки
   property vector3d pivot: Qt.vector3d(0, userBeamSize/2, userFrameLength/2)
-  
+
   function computePivot() {
       return Qt.vector3d(0, userBeamSize/2, userFrameLength/2)
   }
@@ -53,11 +53,11 @@
 
 ### 5. **QML Engine конфигурация (НОВОЕ)**
 - **Файл**: `app.py`
-- **Добавлено**: 
+- **Добавлено**:
   ```python
   # === ADDED: Expose QML engine for configuration ===
   self.qml_engine = self._qquick_widget.engine()
-  
+
   def configure_qml_engine(engine):
       """Configure QML engine for ExtendedSceneEnvironment support"""
       # Add project root to QML import paths

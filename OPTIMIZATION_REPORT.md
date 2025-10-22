@@ -2,8 +2,8 @@
 
 ## Отчет о внедренных оптимизациях производительности
 
-**Дата:** $(Get-Date)  
-**Версия:** 4.3.0  
+**Дата:** $(Get-Date)
+**Версия:** 4.3.0
 **Статус:** ✅ ЗАВЕРШЕНО
 
 ---
@@ -81,7 +81,7 @@ def qt_message_handler(mode, context, message):
     # Кэшируем logger
     if not hasattr(qt_message_handler, '_logger'):
         qt_message_handler._logger = logging.getLogger("Qt")
-    
+
     # Кэшируем индикаторы QML
     if not hasattr(qt_message_handler, '_qml_indicators'):
         qt_message_handler._qml_indicators = {"qml:", "custom sphere", ...}

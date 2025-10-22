@@ -99,13 +99,13 @@ Examples:
 ```diff
 function applyMaterialUpdates(params) {
     // ...existing code...
-    
+
 +   // ✅ НОВОЕ: Frame advanced
 +   if (params.frame !== undefined) {
 +       if (params.frame.color !== undefined) frameColor = params.frame.color
 +       // ...
 +   }
-+   
++
 +   // ✅ НОВОЕ: Lever, Tail, Cylinder, Piston, Joints
 +   // ... обработка всех компонентов
 }
@@ -213,14 +213,14 @@ def on_frame_color_changed(self, color: str):
 ```qml
 function applyMaterialUpdates(params) {
     if (params.frame !== undefined) {
-        if (params.frame.color !== undefined) 
+        if (params.frame.color !== undefined)
             frameColor = params.frame.color  // ← Применяется к геометрии
     }
 }
 
 // Использование в геометрии
 Model {
-    materials: PrincipledMaterial { 
+    materials: PrincipledMaterial {
         baseColor: frameColor  // ← Динамически обновляется
     }
 }
@@ -317,14 +317,14 @@ py -m py_compile src/ui/panels/panel_graphics.py
 
 ## 📞 Контакты и поддержка
 
-**Проект:** PneumoStabSim-Professional  
-**Репозиторий:** https://github.com/barmaleii77-hub/PneumoStabSim-Professional  
+**Проект:** PneumoStabSim-Professional
+**Репозиторий:** https://github.com/barmaleii77-hub/PneumoStabSim-Professional
 **Ветка:** main
 
 ---
 
-**Версия README**: 1.0  
-**Последнее обновление**: 2024  
+**Версия README**: 1.0
+**Последнее обновление**: 2024
 **Статус**: Готово к использованию ✅
 
 **Следующий шаг:**

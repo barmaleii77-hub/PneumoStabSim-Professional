@@ -35,16 +35,16 @@ switch ($choice) {
     "1" {
         Write-Host ""
         Write-Host "Сохранение только .vscode изменений..." -ForegroundColor Green
-        
+
         # Добавить только .vscode
         git add .vscode/tasks.json .vscode/launch.json
-        
+
         # Показать что будет закоммичено
         Write-Host ""
         Write-Host "Будет закоммичено:" -ForegroundColor Yellow
         git status --short
         Write-Host ""
-        
+
         # Коммит
         $commitMsg = @"
 FIX: .vscode tasks - use venv Python 3.13 for all commands
@@ -59,41 +59,41 @@ RESULT:
 - No conflicts with global Python installations
 - Consistent environment across all tasks
 "@
-        
+
         git commit -m $commitMsg
-        
+
         Write-Host ""
         Write-Host "OK: Изменения закоммичены!" -ForegroundColor Green
         Write-Host ""
         Write-Host "Отправить в remote? (Y/N)" -ForegroundColor Yellow
         $push = Read-Host
-        
+
         if ($push -eq "Y" -or $push -eq "y") {
             git push origin feature/hdr-assets-migration
             Write-Host ""
             Write-Host "OK: Изменения отправлены в remote!" -ForegroundColor Green
         }
     }
-    
+
     "2" {
         Write-Host ""
         Write-Host "Сохранение всех изменений..." -ForegroundColor Green
-        
+
         # Добавить .vscode
         git add .vscode/
-        
+
         # Добавить полезные скрипты
         git add check_git_sync.ps1 quick_setup.ps1 run.ps1 setup_environment.ps1
-        
+
         # Добавить документацию
         git add FINAL_GIT_REPORT.md README_GIT_CHECK.md QUICKSTART.md SETUP_GUIDE.md
-        
+
         # Показать что будет закоммичено
         Write-Host ""
         Write-Host "Будет закоммичено:" -ForegroundColor Yellow
         git status --short
         Write-Host ""
-        
+
         # Два коммита: сначала .vscode, потом скрипты
         $commitMsg1 = @"
 FIX: .vscode tasks - use venv Python 3.13 for all commands
@@ -107,9 +107,9 @@ RESULT:
 - All tasks now use correct venv Python 3.13
 - No conflicts with global Python installations
 "@
-        
+
         git commit .vscode/ -m $commitMsg1
-        
+
         $commitMsg2 = @"
 ADD: Git sync checker and automation scripts
 
@@ -127,30 +127,30 @@ RESULT:
 - Automated setup process
 - Better documentation
 "@
-        
+
         git add check_git_sync.ps1 *.ps1 *.md
         git commit -m $commitMsg2
-        
+
         Write-Host ""
         Write-Host "OK: Все изменения закоммичены!" -ForegroundColor Green
         Write-Host ""
         Write-Host "Отправить в remote? (Y/N)" -ForegroundColor Yellow
         $push = Read-Host
-        
+
         if ($push -eq "Y" -or $push -eq "y") {
             git push origin feature/hdr-assets-migration
             Write-Host ""
             Write-Host "OK: Изменения отправлены в remote!" -ForegroundColor Green
         }
     }
-    
+
     "3" {
         Write-Host ""
         Write-Host "Выход без изменений." -ForegroundColor Gray
         Write-Host ""
         exit
     }
-    
+
     default {
         Write-Host ""
         Write-Host "ОШИБКА: Неверный выбор!" -ForegroundColor Red

@@ -78,9 +78,7 @@ class CheckValve:
         self.d_eq = self._coerce_positive(d_eq if d_eq is not None else d_eff, "d_eq")
         self.hyst = float(hyst)
         if self.hyst < 0:
-            raise ModelConfigError(
-                f"Hysteresis must be non-negative, got {self.hyst}"
-            )
+            raise ModelConfigError(f"Hysteresis must be non-negative, got {self.hyst}")
 
         self._p_upstream = float(p_upstream) if p_upstream is not None else None
         self._p_downstream = float(p_downstream) if p_downstream is not None else None
@@ -209,7 +207,9 @@ class ReliefValve:
         throttle_coeff: Optional[float] = None,
     ) -> None:
         self.kind = kind or ReliefValveKind.STIFFNESS
-        self.p_set = self._coerce_positive(p_set if p_set is not None else p_setpoint, "p_set")
+        self.p_set = self._coerce_positive(
+            p_set if p_set is not None else p_setpoint, "p_set"
+        )
 
         hyst_value = hyst if hyst is not None else hysteresis
         self.hyst = float(hyst_value) if hyst_value is not None else 0.0

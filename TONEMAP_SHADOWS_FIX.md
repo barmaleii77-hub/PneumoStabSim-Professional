@@ -1,7 +1,7 @@
 # 🔧 ИСПРАВЛЕНИЕ ТОНЕМАППИНГА И ТЕНЕЙ
 
-**Дата:** 2025-01-13  
-**Версия:** PneumoStabSim Professional v4.9  
+**Дата:** 2025-01-13
+**Версия:** PneumoStabSim Professional v4.9
 **Статус:** ✅ КРИТИЧЕСКИЕ ИСПРАВЛЕНИЯ ПРИМЕНЕНЫ
 
 ---
@@ -219,9 +219,9 @@ if (p.shadows && typeof p.shadows.enabled === 'boolean') {
 ```qml
 console.log("✨ applyEffectsUpdates вызван с параметрами:", JSON.stringify(p));
 // ... для каждого критического параметра:
-if (typeof p.bloom_enabled === 'boolean') { 
-    console.log("  → bloom_enabled:", p.bloom_enabled); 
-    env.glowEnabled = p.bloom_enabled; 
+if (typeof p.bloom_enabled === 'boolean') {
+    console.log("  → bloom_enabled:", p.bloom_enabled);
+    env.glowEnabled = p.bloom_enabled;
 }
 // ... и т.д.
 console.log("✅ applyEffectsUpdates завершён успешно");
@@ -280,4 +280,3 @@ python app.py
 ```
 
 Открыть панель "Графика" → "Эффекты" и проверить переключение режимов тонемаппинга.
-

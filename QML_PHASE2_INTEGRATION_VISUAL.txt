@@ -64,7 +64,7 @@ Aliases added to main.qml:
   • cameraPitch → cameraController.pitchDeg
   • pivot → cameraController.pivot
   • cameraIsMoving → cameraController.isMoving
-  
+
 Writable settings:
   • cameraFov, cameraNear, cameraFar
   • cameraSpeed, autoRotate, autoRotateSpeed
@@ -84,7 +84,7 @@ Visual Testing: ⏳ Ready (manual testing required)
 
 To test:
   .\run.ps1
-  
+
 or:
   .\test_phase2_integration.ps1
 
@@ -147,4 +147,3 @@ After:  Modular, clean, testable, maintainable ✅
 ╔═══════════════════════════════════════════════════════════╗
 ║         CAMERA MODULARIZATION SUCCESSFUL! 🚀              ║
 ╚═══════════════════════════════════════════════════════════╝
-

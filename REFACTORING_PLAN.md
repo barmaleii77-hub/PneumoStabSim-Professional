@@ -39,7 +39,7 @@
 ```
 src/ui/panels/graphics/
 ├── __init__.py              ✅ Создан
-├── README.md                ✅ Создан  
+├── README.md                ✅ Создан
 ├── widgets.py               ✅ Создан (ColorButton, LabeledSlider)
 ├── defaults.py              ✅ Создан (настройки по умолчанию)
 ├── lighting_tab.py          ✅ Создан (вкладка освещения)

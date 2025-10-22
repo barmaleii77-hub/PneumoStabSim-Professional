@@ -1,7 +1,7 @@
 # 🎨 ИСПРАВЛЕНИЕ ТОНЕМАППИНГА И ТЕНЕЙ v3
 
-**Дата:** 2025-01-12  
-**Проблема:** Тонемаппинг (Reinhard, Gamma) не работают, тени не отключаются  
+**Дата:** 2025-01-12
+**Проблема:** Тонемаппинг (Reinhard, Gamma) не работают, тени не отключаются
 **Статус:** ✅ **ИСПРАВЛЕНО И ГОТОВО К ТЕСТИРОВАНИЮ**
 
 ---
@@ -69,7 +69,7 @@ if (typeof p.shadow_enabled === 'boolean') {
 // ✅ НОВАЯ ЛОГИКА v3 - УПРОЩЕННАЯ, БЕЗ FALLBACK
 if (typeof p.tonemap_enabled === 'boolean' && typeof p.tonemap_mode === 'string') {
     console.log("  → tonemap_enabled:", p.tonemap_enabled, "tonemap_mode:", p.tonemap_mode);
-    
+
     if (!p.tonemap_enabled) {
         // Если выключен - явно ставим None
         console.log("  → ПРИМЕНЯЕМ: TonemapModeNone (отключён)");
@@ -126,11 +126,11 @@ if (typeof p.tonemap_enabled === 'boolean' && typeof p.tonemap_mode === 'string'
 // ✅ НОВАЯ ЛОГИКА v3 - УПРОЩЕННАЯ, ОБНОВЛЯЕМ ВСЕ ИСТОЧНИКИ
 if (typeof p.shadow_enabled === 'boolean') {
     console.log("  → ПРИМЕНЯЕМ shadow_enabled:", p.shadow_enabled);
-    
+
     // Обновляем ВСЕ 3 места где используются тени
     root.shadowsEnabled = p.shadow_enabled;
     keyLight.castsShadow = p.shadow_enabled;
-    
+
     // Проверяем если есть fillLight и rimLight (могут быть недоступны в некоторых сценах)
     if (typeof fillLight !== 'undefined' && fillLight && fillLight.castsShadow !== undefined) {
         fillLight.castsShadow = false;  // Fill/Rim обычно без теней
@@ -138,7 +138,7 @@ if (typeof p.shadow_enabled === 'boolean') {
     if (typeof rimLight !== 'undefined' && rimLight && rimLight.castsShadow !== undefined) {
         rimLight.castsShadow = false;
     }
-    
+
     console.log("  ✅ Тени установлены:", p.shadow_enabled, "KeyLight.castsShadow:", keyLight.castsShadow);
 }
 ```
@@ -350,7 +350,7 @@ python app.py
 
 ---
 
-**Версия исправления:** v3 (FINAL)  
-**Файлы изменены:** `assets/qml/main.qml`  
-**Функции:** `applyEffectsUpdates()`, `applyQualityUpdates()`  
+**Версия исправления:** v3 (FINAL)
+**Файлы изменены:** `assets/qml/main.qml`
+**Функции:** `applyEffectsUpdates()`, `applyQualityUpdates()`
 **Дата:** 2025-01-12

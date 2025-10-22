@@ -1,7 +1,7 @@
 # GeometryPanel - Модульная структура
 
-**Версия:** v1.0.0  
-**Статус:** ✅ Refactored  
+**Версия:** v1.0.0
+**Статус:** ✅ Refactored
 **Дата:** 2025-01-XX
 
 ---
@@ -77,7 +77,7 @@ class GeometryStateManager:
 ```python
 class FrameTab(QWidget):
     parameter_changed = Signal(str, float)
-    
+
     # Widgets:
     # - wheelbase_slider
     # - track_slider
@@ -90,7 +90,7 @@ class FrameTab(QWidget):
 ```python
 class SuspensionTab(QWidget):
     parameter_changed = Signal(str, float)
-    
+
     # Widgets:
     # - frame_to_pivot_slider
     # - lever_length_slider
@@ -104,7 +104,7 @@ class SuspensionTab(QWidget):
 ```python
 class CylinderTab(QWidget):
     parameter_changed = Signal(str, float)
-    
+
     # Widgets:
     # - cylinder_length_slider
     # - cyl_diam_m_slider
@@ -123,7 +123,7 @@ class CylinderTab(QWidget):
 class OptionsTab(QWidget):
     preset_changed = Signal(int)
     option_changed = Signal(str, bool)
-    
+
     # Widgets:
     # - preset_combo
     # - interference_check
@@ -139,11 +139,11 @@ class OptionsTab(QWidget):
 ```python
 class GeometryPanel(QWidget):
     """Тонкий координатор - делегирует работу вкладкам"""
-    
+
     parameter_changed = Signal(str, float)
     geometry_updated = Signal(dict)
     geometry_changed = Signal(dict)
-    
+
     def __init__(self):
         self.state_manager = GeometryStateManager()
         self.frame_tab = FrameTab(self.state_manager)

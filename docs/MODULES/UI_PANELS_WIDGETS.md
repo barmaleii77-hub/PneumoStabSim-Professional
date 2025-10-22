@@ -283,10 +283,10 @@ ROAD_PRESETS = {
 ```python
 class RangeSlider(QWidget):
     """Custom slider with value display"""
-    
+
     # Signal emitted when value changes
     valueEdited = Signal(float)
-    
+
     def __init__(
         self,
         minimum: float = 0.0,
@@ -299,11 +299,11 @@ class RangeSlider(QWidget):
     ):
         """Initialize range slider"""
         ...
-    
+
     def value(self) -> float:
         """Get current value"""
         return self._value
-    
+
     def set_value(self, value: float):
         """Set value programmatically"""
         self._value = np.clip(value, self.minimum, self.maximum)
@@ -353,9 +353,9 @@ layout.addWidget(amplitude_slider)
 ```python
 class RotaryKnob(QWidget):
     """Rotary knob control"""
-    
+
     valueChanged = Signal(float)
-    
+
     def __init__(
         self,
         minimum: float = 0.0,
@@ -365,11 +365,11 @@ class RotaryKnob(QWidget):
     ):
         """Initialize rotary knob"""
         ...
-    
+
     def value(self) -> float:
         """Get current value"""
         return self._value
-    
+
     def paintEvent(self, event):
         """Custom painting (dial + indicator)"""
         ...
@@ -445,11 +445,11 @@ SLIDER_STYLE = """
 QSlider::groove:horizontal {
     border: 1px solid #999999;
     height: 8px;
-    background: qlineargradient(x1:0, y1:0, x2:0, y2:1, 
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
         stop:0 #B1B1B1, stop:1 #c4c4c4);
 }
 QSlider::handle:horizontal {
-    background: qlineargradient(x1:0, y1:0, x2:1, y2:1, 
+    background: qlineargradient(x1:0, y1:0, x2:1, y2:1,
         stop:0 #b4b4b4, stop:1 #8f8f8f);
     border: 1px solid #5c5c5c;
     width: 18px;
@@ -479,6 +479,6 @@ QSlider::handle:horizontal {
 
 ---
 
-**Last Updated:** 2025-01-05  
-**Module Version:** 2.0.0  
+**Last Updated:** 2025-01-05
+**Module Version:** 2.0.0
 **Status:** Production Ready ?

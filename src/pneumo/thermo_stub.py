@@ -7,5 +7,6 @@ from enum import Enum
 
 class ThermoMode(Enum):
     """Thermodynamic calculation mode"""
+
     ISOTHERMAL = "isothermal"
     ADIABATIC = "adiabatic"

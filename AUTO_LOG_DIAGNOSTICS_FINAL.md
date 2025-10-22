@@ -1,7 +1,7 @@
 # Автоматическая диагностика логов - Финальный отчет
 
-**Дата:** 2025-01-13  
-**Версия:** 4.9.5  
+**Дата:** 2025-01-13
+**Версия:** 4.9.5
 **Статус:** ✅ Завершено
 
 ---
@@ -40,27 +40,27 @@ def run_log_diagnostics():
     print("\n" + "="*60)
     print("🔍 ДИАГНОСТИКА ЛОГОВ")
     print("="*60)
-    
+
     # Проверяем наличие скриптов анализа
     analyze_scripts = [
         Path("analyze_logs.py"),
         Path("analyze_graphics_logs.py"),
         Path("analyze_user_session.py"),
     ]
-    
+
     found_scripts = [s for s in analyze_scripts if s.exists()]
-    
+
     if not found_scripts:
         print("⚠️  Скрипты анализа логов не найдены!")
         print("💡 Создайте analyze_logs.py для автоматической диагностики")
         return
-    
+
     print(f"📋 Найдено скриптов анализа: {len(found_scripts)}")
-    
+
     for script in found_scripts:
         print(f"\n🔧 Запуск: {script.name}")
         print("-" * 60)
-        
+
         try:
             result = subprocess.run(
                 [sys.executable, str(script)],
@@ -68,17 +68,17 @@ def run_log_diagnostics():
                 text=True,
                 timeout=30
             )
-            
+
             if result.returncode == 0:
                 print(f"✅ {script.name} - успешно")
             else:
                 print(f"⚠️  {script.name} - код возврата: {result.returncode}")
-                
+
         except subprocess.TimeoutExpired:
             print(f"⏱️  {script.name} - таймаут (>30s)")
         except Exception as e:
             print(f"❌ {script.name} - ошибка: {e}")
-    
+
     print("\n" + "="*60)
     print("✅ Диагностика завершена")
     print("="*60)
@@ -252,21 +252,21 @@ def analyze_my_feature():
     """Анализирует логи фичи"""
     print("📊 АНАЛИЗ МОЕЙ ФИЧИ")
     print("-" * 60)
-    
+
     # Найти логи
     log_dir = Path("logs/my_feature")
     if not log_dir.exists():
         print("⚠️  Логи не найдены")
         return 1
-    
+
     # Анализ
     log_files = list(log_dir.glob("*.log"))
     print(f"📂 Найдено логов: {len(log_files)}")
-    
+
     # Ваша логика анализа
     errors = []
     warnings = []
-    
+
     for log_file in log_files:
         with open(log_file, 'r', encoding='utf-8') as f:
             for line in f:
@@ -274,25 +274,25 @@ def analyze_my_feature():
                     errors.append(line.strip())
                 elif 'WARNING' in line:
                     warnings.append(line.strip())
-    
+
     # Вывод результатов
     if errors:
         print(f"\n❌ Ошибки ({len(errors)}):")
         for err in errors[:5]:  # Первые 5
             print(f"  • {err}")
-    
+
     if warnings:
         print(f"\n⚠️  Предупреждения ({len(warnings)}):")
         for warn in warnings[:5]:  # Первые 5
             print(f"  • {warn}")
-    
+
     # Рекомендации
     print("\n💡 РЕКОМЕНДАЦИИ:")
     if errors:
         print("  1. Исправить критические ошибки")
     if warnings:
         print("  2. Проверить предупреждения")
-    
+
     return 0 if not errors else 1
 
 if __name__ == "__main__":
@@ -442,7 +442,7 @@ py app.py
 
 ---
 
-**Версия:** 4.9.5  
-**Дата:** 2025-01-13  
-**Автор:** Development Team  
+**Версия:** 4.9.5
+**Дата:** 2025-01-13
+**Автор:** Development Team
 **Статус:** ✅ Завершено

@@ -1,7 +1,7 @@
 # Syntax Error Fix Report
 
-**Date**: 2024-XX-XX  
-**File**: `src/ui/panels/panel_graphics.py`  
+**Date**: 2024-XX-XX
+**File**: `src/ui/panels/panel_graphics.py`
 **Issue**: Line 1218 - `this` instead of `self`
 
 ---

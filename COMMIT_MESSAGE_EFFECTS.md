@@ -65,7 +65,7 @@ python app.py
 
 ---
 
-**Версия**: v4.9.5  
-**Дата**: 2025-01-15  
-**Автор**: AI Assistant (GitHub Copilot)  
+**Версия**: v4.9.5
+**Дата**: 2025-01-15
+**Автор**: AI Assistant (GitHub Copilot)
 **Статус**: ✅ Ready for Production

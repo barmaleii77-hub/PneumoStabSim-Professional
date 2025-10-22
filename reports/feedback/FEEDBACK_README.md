@@ -86,6 +86,6 @@ logs/
 
 ѕри обнаружении проблем проверьте:
 1. `reports/feedback/CONTROL_PLAN.json` - текущий статус
-2. `reports/ui/audit_*.md` - анализ изменений  
+2. `reports/ui/audit_*.md` - анализ изменений
 3. `logs/ui/` - детальные логи
 4. `artifacts/ui/` - снимки состо€ни€

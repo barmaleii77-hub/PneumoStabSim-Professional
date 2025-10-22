@@ -48,7 +48,7 @@ def my_log_warning(msg: str):
 
 def my_log_error(msg: str):
     print(f"ERROR: {msg}")
-    
+
 try:
     check_python_compatibility(my_log_warning, my_log_error)
     print(f"Python {sys.version_info.major}.{sys.version_info.minor} OK ✅")
@@ -201,16 +201,16 @@ from src.app_runner import ApplicationRunner
 
 class MyCustomRunner(ApplicationRunner):
     """Кастомный runner с дополнительной логикой."""
-    
+
     def setup_logging(self, verbose_console: bool = False):
         """Переопределяем логирование."""
         logger = super().setup_logging(verbose_console)
-        
+
         if logger:
             logger.info("🎨 Custom runner initialized")
-        
+
         return logger
-    
+
     def _print_header(self):
         """Кастомный заголовок."""
         print("=" * 60)
@@ -290,9 +290,9 @@ args = parse_arguments()
 def main():
     try:
         print("🚀 Starting custom app...")
-        
+
         # Ваша логика
-        
+
         return 0
     except Exception as e:
         log_error(f"Fatal error: {e}")
@@ -319,12 +319,12 @@ from src.bootstrap.environment import configure_qt_environment
 def test_configure_qt_environment():
     """Тест настройки Qt переменных среды."""
     configure_qt_environment()
-    
+
     # Проверяем, что переменные установлены
     assert "QSG_RHI_BACKEND" in os.environ
     assert "QT_LOGGING_RULES" in os.environ
     assert "PSS_DIAG" in os.environ
-    
+
     # Проверяем значения
     backend = os.environ["QSG_RHI_BACKEND"]
     assert backend in ["d3d11", "opengl"]
@@ -334,10 +334,10 @@ def test_version_check():
     """Тест проверки версии Python."""
     import sys
     from src.bootstrap.version_check import check_python_compatibility
-    
+
     warnings = []
     errors = []
-    
+
     # Если Python >= 3.13, ошибок быть не должно
     if sys.version_info >= (3, 13):
         check_python_compatibility(warnings.append, errors.append)
@@ -352,19 +352,19 @@ from src.diagnostics.warnings import WarningErrorCollector
 def test_warning_error_collector():
     """Тест коллектора warnings/errors."""
     collector = WarningErrorCollector()
-    
+
     # Добавляем warnings и errors
     collector.log_warning("Test warning 1")
     collector.log_warning("Test warning 2")
     collector.log_error("Test error 1")
-    
+
     # Проверяем накопление
     assert len(collector._items) == 3
-    
+
     # Проверяем типы
     warnings = [item for item in collector._items if item[0] == "WARNING"]
     errors = [item for item in collector._items if item[0] == "ERROR"]
-    
+
     assert len(warnings) == 2
     assert len(errors) == 1
 ```
@@ -423,7 +423,7 @@ from src.diagnostics.warnings import WarningErrorCollector
 def diagnostic_context():
     """Context manager для диагностики."""
     collector = WarningErrorCollector()
-    
+
     try:
         yield collector
     finally:

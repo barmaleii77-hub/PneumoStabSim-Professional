@@ -1,9 +1,9 @@
 # 🚨 КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Сглаживание не работало!
 
-**Дата:** 11 января 2025  
-**Статус:** ✅ **ПОЛНОСТЬЮ ИСПРАВЛЕНО**  
-**Проблема:** Сглаживание (антиалиасинг) никогда не применялось в QML  
-**Версия:** v4.9.5  
+**Дата:** 11 января 2025
+**Статус:** ✅ **ПОЛНОСТЬЮ ИСПРАВЛЕНО**
+**Проблема:** Сглаживание (антиалиасинг) никогда не применялось в QML
+**Версия:** v4.9.5
 
 ---
 
@@ -43,14 +43,14 @@
 ```javascript
 environment: ExtendedSceneEnvironment {
     // ... было много настроек ...
-    
+
     // ❌ НО ОТСУТСТВОВАЛИ:
     // antialiasingMode - НЕ ЗАДАН!
     // antialiasingQuality - НЕ ЗАДАН!
     // temporalAAEnabled - НЕ ЗАДАН!
     // fxaaEnabled - НЕ ЗАДАН!
     // specularAAEnabled - НЕ ЗАДАН!
-    
+
     // Только Bloom и SSAO были:
     glowEnabled: root.bloomEnabled
     aoEnabled: root.ssaoEnabled
@@ -68,7 +68,7 @@ environment: ExtendedSceneEnvironment {
 ```javascript
 function applyQualityUpdates(params) {
     console.log("⚙️ main.qml: applyQualityUpdates() called")
-    
+
     // Shadows
     if (params.shadows) {
         if (params.shadows.enabled !== undefined) shadowsEnabled = !!params.shadows.enabled
@@ -77,7 +77,7 @@ function applyQualityUpdates(params) {
         if (params.shadows.bias !== undefined) shadowBias = Number(params.shadows.bias)
         if (params.shadows.darkness !== undefined) shadowFactor = Number(params.shadows.darkness)
     }
-    
+
     // Antialiasing - КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ!
     if (params.antialiasing) {
         var aa = params.antialiasing
@@ -94,31 +94,31 @@ function applyQualityUpdates(params) {
             console.log("  🔧 AA post mode:", aaPostMode)
         }
     }
-    
+
     // TAA settings
     if (params.taa_enabled !== undefined) taaEnabled = !!params.taa_enabled
     if (params.taa_strength !== undefined) taaStrength = Number(params.taa_strength)
     if (params.taa_motion_adaptive !== undefined) taaMotionAdaptive = !!params.taa_motion_adaptive
-    
+
     // FXAA
     if (params.fxaa_enabled !== undefined) fxaaEnabled = !!params.fxaa_enabled
-    
+
     // Specular AA
     if (params.specular_aa !== undefined) specularAAEnabled = !!params.specular_aa
-    
+
     // Dithering (Qt 6.10+)
     if (params.dithering !== undefined && canUseDithering) {
         ditheringEnabled = !!params.dithering
     }
-    
+
     // Rendering settings
     if (params.render_scale !== undefined) renderScale = Number(params.render_scale)
     if (params.render_policy !== undefined) renderPolicy = String(params.render_policy)
     if (params.frame_rate_limit !== undefined) frameRateLimit = Number(params.frame_rate_limit)
-    
+
     // OIT
     if (params.oit !== undefined) oitMode = String(params.oit)
-    
+
     console.log("  ✅ Quality updated successfully")
 }
 ```
@@ -128,40 +128,40 @@ function applyQualityUpdates(params) {
 ```javascript
 function applyEffectsUpdates(params) {
     console.log("✨ main.qml: applyEffectsUpdates() called")
-    
+
     // Bloom
     if (params.bloom_enabled !== undefined) bloomEnabled = !!params.bloom_enabled
     if (params.bloom_intensity !== undefined) bloomIntensity = Number(params.bloom_intensity)
     if (params.bloom_threshold !== undefined) bloomThreshold = Number(params.bloom_threshold)
     if (params.bloom_spread !== undefined) bloomSpread = Number(params.bloom_spread)
-    
+
     // SSAO
     if (params.ssao_enabled !== undefined) ssaoEnabled = !!params.ssao_enabled
     if (params.ssao_strength !== undefined) ssaoIntensity = Number(params.ssao_strength)
     if (params.ssao_radius !== undefined) ssaoRadius = Number(params.ssao_radius)
-    
+
     // Depth of Field
     if (params.depth_of_field !== undefined) depthOfFieldEnabled = !!params.depth_of_field
     if (params.dof_focus_distance !== undefined) dofFocusDistance = Number(params.dof_focus_distance)
     if (params.dof_blur !== undefined) dofBlurAmount = Number(params.dof_blur)
-    
+
     // Motion Blur
     if (params.motion_blur !== undefined) motionBlurEnabled = !!params.motion_blur
     if (params.motion_blur_amount !== undefined) motionBlurAmount = Number(params.motion_blur_amount)
-    
+
     // Lens Flare
     if (params.lens_flare !== undefined) lensFlareEnabled = !!params.lens_flare
-    
+
     // Vignette
     if (params.vignette !== undefined) vignetteEnabled = !!params.vignette
     if (params.vignette_strength !== undefined) vignetteStrength = Number(params.vignette_strength)
-    
+
     // Tonemap
     if (params.tonemap_enabled !== undefined) tonemapEnabled = !!params.tonemap_enabled
     if (params.tonemap_mode !== undefined) tonemapModeName = String(params.tonemap_mode)
     if (params.tonemap_exposure !== undefined) tonemapExposure = Number(params.tonemap_exposure)
     if (params.tonemap_white_point !== undefined) tonemapWhitePoint = Number(params.tonemap_white_point)
-    
+
     console.log("  ✅ Effects updated successfully")
 }
 ```
@@ -171,14 +171,14 @@ function applyEffectsUpdates(params) {
 ```javascript
 function applyCameraUpdates(params) {
     console.log("📷 main.qml: applyCameraUpdates() called")
-    
+
     if (params.fov !== undefined) cameraFov = Number(params.fov)
     if (params.near !== undefined) cameraNear = Number(params.near)
     if (params.far !== undefined) cameraFar = Number(params.far)
     if (params.speed !== undefined) cameraSpeed = Number(params.speed)
     if (params.auto_rotate !== undefined) autoRotate = !!params.auto_rotate
     if (params.auto_rotate_speed !== undefined) autoRotateSpeed = Number(params.auto_rotate_speed)
-    
+
     console.log("  ✅ Camera updated successfully")
 }
 ```
@@ -188,9 +188,9 @@ function applyCameraUpdates(params) {
 ```javascript
 environment: ExtendedSceneEnvironment {
     id: mainEnvironment
-    
+
     // ... существующие настройки фона/IBL/тумана ...
-    
+
     // ✅ КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Добавлены настройки антиалиасинга!
     antialiasingMode: {
         if (root.aaPrimaryMode === "ssaa") return SceneEnvironment.SSAA
@@ -198,32 +198,32 @@ environment: ExtendedSceneEnvironment {
         if (root.aaPrimaryMode === "progressive") return SceneEnvironment.ProgressiveAA
         return SceneEnvironment.NoAA
     }
-    
+
     antialiasingQuality: {
         if (root.aaQualityLevel === "high") return SceneEnvironment.High
         if (root.aaQualityLevel === "medium") return SceneEnvironment.Medium
         if (root.aaQualityLevel === "low") return SceneEnvironment.Low
         return SceneEnvironment.Medium
     }
-    
+
     // ✅ КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Post-processing AA
     temporalAAEnabled: (root.aaPostMode === "taa" && root.taaEnabled && (!root.taaMotionAdaptive || root.cameraIsMoving))
     temporalAAStrength: root.taaStrength
     fxaaEnabled: (root.aaPostMode === "fxaa" || root.fxaaEnabled)
     specularAAEnabled: root.canUseSpecularAA && root.specularAAEnabled
-    
+
     // ✅ Dithering (Qt 6.10+)
     Component.onCompleted: {
         if (root.canUseDithering) {
             console.log("✅ Qt 6.10+ - enabling dithering")
-            mainEnvironment.ditheringEnabled = Qt.binding(function() { 
-                return root.ditheringEnabled 
+            mainEnvironment.ditheringEnabled = Qt.binding(function() {
+                return root.ditheringEnabled
             })
         } else {
             console.log("⚠️ Qt < 6.10 - dithering not available")
         }
     }
-    
+
     // ✅ ПОЛНЫЕ настройки эффектов
     glowEnabled: root.bloomEnabled
     glowIntensity: root.bloomIntensity
@@ -231,26 +231,26 @@ environment: ExtendedSceneEnvironment {
     glowBloom: root.bloomSpread
     glowQualityHigh: true
     glowUseBicubicUpscale: true
-    
+
     aoEnabled: root.ssaoEnabled
     aoDistance: root.ssaoRadius
     aoStrength: root.ssaoIntensity * 100
     aoSoftness: 20
     aoDither: true
     aoSampleRate: 3
-    
+
     depthOfFieldEnabled: root.depthOfFieldEnabled
     depthOfFieldFocusDistance: root.dofFocusDistance
     depthOfFieldBlurAmount: root.dofBlurAmount
-    
+
     vignetteEnabled: root.vignetteEnabled
     vignetteStrength: root.vignetteStrength
     vignetteRadius: 0.4
-    
+
     lensFlareEnabled: root.lensFlareEnabled
     lensFlareGhostCount: 3
     lensFlareGhostDispersal: 0.6
-    
+
     exposure: root.tonemapExposure
     whitePoint: root.tonemapWhitePoint
 }
@@ -424,6 +424,6 @@ _on_quality_changed() вызывает QMetaObject.invokeMethod("applyQualityUpd
 
 ---
 
-*Отчет создан автоматически*  
-*Дата: 11 января 2025*  
+*Отчет создан автоматически*
+*Дата: 11 января 2025*
 *Версия: v4.9.5*

@@ -1,7 +1,7 @@
 # ✅ ФИНАЛЬНЫЙ ОТЧЕТ: ИСПРАВЛЕНИЕ CHECKBOXES В GRAPHICSPANEL
 
-**Дата**: 2025-01-11  
-**Компонент**: `src/ui/panels/panel_graphics.py`  
+**Дата**: 2025-01-11
+**Компонент**: `src/ui/panels/panel_graphics.py`
 **Проблема**: Checkboxes использовали `.clicked.connect()` вместо `.toggled.connect()`
 
 ---
@@ -209,9 +209,9 @@ auto_rotate.clicked.connect(on_auto_rotate_clicked)
 
 ---
 
-**Автор**: GitHub Copilot  
-**Дата**: 2025-01-11  
-**Версия**: Final v1.0  
+**Автор**: GitHub Copilot
+**Дата**: 2025-01-11
+**Версия**: Final v1.0
 **Статус**: ✅ **COMPLETE - ALL CHECKBOXES FIXED**
 
 ---

@@ -55,14 +55,18 @@ def _coerce_bool(value: Any, key: str) -> bool:
     if isinstance(value, (int, float)):
         if value in (0, 1):
             return bool(value)
-        raise EnvironmentValidationError(f"'{key}' numeric boolean must be 0 or 1, got {value!r}")
+        raise EnvironmentValidationError(
+            f"'{key}' numeric boolean must be 0 or 1, got {value!r}"
+        )
     if isinstance(value, str):
         lowered = value.strip().lower()
         if lowered in _TRUE_SET:
             return True
         if lowered in _FALSE_SET:
             return False
-    raise EnvironmentValidationError(f"'{key}' must be a boolean-compatible value, got {value!r}")
+    raise EnvironmentValidationError(
+        f"'{key}' must be a boolean-compatible value, got {value!r}"
+    )
 
 
 def _coerce_float(value: Any, key: str) -> float:
@@ -80,7 +84,9 @@ def _coerce_float(value: Any, key: str) -> float:
 
 def _coerce_int(value: Any, key: str) -> int:
     if isinstance(value, bool):  # pragma: no cover - defensive guard
-        raise EnvironmentValidationError(f"'{key}' must be an integer, got boolean {value!r}")
+        raise EnvironmentValidationError(
+            f"'{key}' must be an integer, got boolean {value!r}"
+        )
     if isinstance(value, int):
         return value
     if isinstance(value, float):
@@ -93,7 +99,9 @@ def _coerce_int(value: Any, key: str) -> int:
             raise EnvironmentValidationError(
                 f"'{key}' must be an integer-compatible value, got {value!r}"
             ) from exc
-    raise EnvironmentValidationError(f"'{key}' must be integer-compatible, got {value!r}")
+    raise EnvironmentValidationError(
+        f"'{key}' must be integer-compatible, got {value!r}"
+    )
 
 
 def _coerce_string(defn: EnvironmentParameterDefinition, value: Any) -> str:

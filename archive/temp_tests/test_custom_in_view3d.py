@@ -16,10 +16,9 @@ from PySide6.QtCore import QUrl
 from pathlib import Path
 
 # Import our geometry
-from src.ui.custom_geometry import SphereGeometry
 
 # Test QML - minimal setup with our geometry
-test_qml = '''
+test_qml = """
 import QtQuick
 import QtQuick3D
 import CustomGeometry 1.0
@@ -27,29 +26,29 @@ import CustomGeometry 1.0
 Item {
     View3D {
         anchors.fill: parent
-        
+
         environment: SceneEnvironment {
             backgroundMode: SceneEnvironment.Color
             clearColor: "#ff0000"
         }
-        
+
         PerspectiveCamera {
             position: Qt.vector3d(0, 0, 3)
         }
-        
+
         DirectionalLight {
             brightness: 10.0
             eulerRotation.x: -45
         }
-        
+
         Model {
             geometry: SphereGeometry { }
-            
+
             materials: PrincipledMaterial {
                 baseColor: "#ffffff"
                 lighting: PrincipledMaterial.NoLighting
             }
-            
+
             Component.onCompleted: {
                 console.log("=== MODEL DEBUG ===")
                 console.log("Model created")
@@ -64,28 +63,29 @@ Item {
         }
     }
 }
-'''
+"""
+
 
 def main():
-    print("="*60)
+    print("=" * 60)
     print("MINIMAL CUSTOM GEOMETRY IN VIEW3D TEST")
-    print("="*60)
+    print("=" * 60)
     print("Red background + White sphere (no lighting)")
     print()
-    
+
     app = QApplication(sys.argv)
-    
+
     widget = QQuickWidget()
     widget.setResizeMode(QQuickWidget.ResizeMode.SizeRootObjectToView)
     widget.resize(600, 400)
     widget.setWindowTitle("Custom Geometry in View3D")
-    
+
     qml_path = Path("test_custom_in_view3d.qml")
-    qml_path.write_text(test_qml, encoding='utf-8')
-    
+    qml_path.write_text(test_qml, encoding="utf-8")
+
     print("Loading QML with custom geometry...")
     widget.setSource(QUrl.fromLocalFile(str(qml_path.absolute())))
-    
+
     if widget.status() == QQuickWidget.Status.Error:
         print("? QML ERRORS:")
         for error in widget.errors():
@@ -93,11 +93,11 @@ def main():
         return 1
     elif widget.status() == QQuickWidget.Status.Ready:
         print("? QML loaded successfully")
-    
+
     widget.show()
-    
+
     print()
-    print("="*60)  
+    print("=" * 60)
     print("CRITICAL TEST:")
     print("Do you see a WHITE SPHERE on RED background?")
     print()
@@ -106,9 +106,10 @@ def main():
     print("  - Geometry: SphereGeometry(...)")
     print("  - Geometry != null: true")
     print("  - Visible: true")
-    print("="*60)
-    
+    print("=" * 60)
+
     return app.exec()
+
 
 if __name__ == "__main__":
     sys.exit(main())

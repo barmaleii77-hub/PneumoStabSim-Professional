@@ -4,8 +4,9 @@
 Create geometry qmldir file
 """
 
-with open('assets/qml/geometry/qmldir', 'w', encoding='utf-8') as f:
-    f.write("""# QML Module Definition for Geometry Components
+with open("assets/qml/geometry/qmldir", "w", encoding="utf-8") as f:
+    f.write(
+        """# QML Module Definition for Geometry Components
 # Модули геометрии подвески
 
 module geometry
@@ -17,6 +18,7 @@ CylinderGeometry 1.0 CylinderGeometry.qml
 
 # Component descriptions
 typeinfo geometry.qmltypes
-""")
+"""
+    )
 
-print('✅ Created assets/qml/geometry/qmldir')
+print("✅ Created assets/qml/geometry/qmldir")

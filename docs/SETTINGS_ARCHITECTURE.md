@@ -1,7 +1,7 @@
 # 📖 SETTINGS ARCHITECTURE - ПОЛНАЯ ДОКУМЕНТАЦИЯ
 
-**Дата:** 2025-01-18  
-**Версия:** PneumoStabSim Professional v4.9.5  
+**Дата:** 2025-01-18
+**Версия:** PneumoStabSim Professional v4.9.5
 **Статус:** ✅ **PRODUCTION READY**
 
 ---
@@ -124,7 +124,7 @@ settings_manager.save_settings(state)
   "version": "4.9.5",
   "last_modified": "2025-01-18T12:00:00Z",
   "description": "Unified settings - single source of truth",
-  
+
   // ============================================================
   // DEFAULTS (используются при первом запуске)
   // ============================================================
@@ -132,7 +132,7 @@ settings_manager.save_settings(state)
   "pneumatic": { ... },
   "modes": { ... },
   "graphics": { ... },
-  
+
   // ============================================================
   // CURRENT (текущие настройки пользователя)
   // ============================================================
@@ -142,7 +142,7 @@ settings_manager.save_settings(state)
     "modes": { ... },
     "graphics": { ... }
   },
-  
+
   // ============================================================
   // DEFAULTS_SNAPSHOT (пользовательские дефолты)
   // Обновляется кнопкой "Сохранить как дефолт"
@@ -153,7 +153,7 @@ settings_manager.save_settings(state)
     "modes": { ... },
     "graphics": { ... }
   },
-  
+
   // ============================================================
   // METADATA
   // ============================================================
@@ -260,13 +260,13 @@ except Exception as e:
 class GeometryPanel(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
-        
+
         # ✅ Используем SettingsManager
         self._settings_manager = SettingsManager()
-        
+
         # Загружаем настройки
         self._load_defaults_from_settings()
-    
+
     def _load_defaults_from_settings(self):
         """Загрузить defaults из SettingsManager"""
         defaults = self._settings_manager.get("geometry", {
@@ -274,10 +274,10 @@ class GeometryPanel(QWidget):
             'track': 1.6,
             # ...резервные дефолты на случай отсутствия JSON
         })
-        
+
         self.parameters.update(defaults)
         self.logger.info("✅ Geometry defaults loaded from SettingsManager")
-    
+
     @Slot()
     def _reset_to_defaults(self):
         """Сброс к дефолтам из JSON"""
@@ -285,16 +285,16 @@ class GeometryPanel(QWidget):
         self.parameters = self._settings_manager.get("geometry")
         self._apply_settings_to_ui()
         self.geometry_updated.emit(self.parameters.copy())
-    
+
     @Slot(str, float)
     def _on_parameter_changed(self, param_name: str, value: float):
         """Обработка изменения параметра"""
         # 1. Обновить локально
         self.parameters[param_name] = value
-        
+
         # 2. Сохранить через SettingsManager
         self._settings_manager.set(f"geometry.{param_name}", value, auto_save=True)
-        
+
         # 3. Эмитить сигнал
         self.parameter_changed.emit(param_name, value)
 ```
@@ -305,31 +305,31 @@ class GeometryPanel(QWidget):
 class GraphicsPanel(QWidget):
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
-        
+
         # ✅ Используем SettingsManager
         self._settings_manager = SettingsManager()
-        
+
         # Загружаем дефолты из SettingsManager
         self._defaults = self._load_defaults_from_settings()
         self.state: Dict[str, Any] = copy.deepcopy(self._defaults)
-    
+
     def _load_defaults_from_settings(self) -> Dict[str, Any]:
         """Загрузить дефолты из SettingsManager"""
         defaults = {}
-        
+
         # Загружаем каждую категорию
         defaults["lighting"] = self._settings_manager.get("graphics.lighting", {
             # ...резервные дефолты
         })
-        
+
         defaults["environment"] = self._settings_manager.get("graphics.environment", {
             # ...резервные дефолты
         })
-        
+
         # ...остальные категории
-        
+
         return defaults
-    
+
     @Slot()
     def reset_to_defaults(self) -> None:
         """Сброс к дефолтам из JSON"""
@@ -452,18 +452,18 @@ defaults = self._settings_manager.get("geometry", {
 
 ### **ВСЁ РАБОТАЕТ КОРРЕКТНО!**
 
-✅ **Единый источник настроек:** `config/app_settings.json`  
-✅ **Никаких дефолтов в коде:** ВСЕ в JSON  
-✅ **Прослеживаемость:** JSON → Panel → QML  
-✅ **Автосохранение:** Каждое изменение  
-✅ **Дефолты по кнопке:** defaults_snapshot обновляется  
-✅ **Сброс по кнопке:** Загружает из defaults_snapshot  
+✅ **Единый источник настроек:** `config/app_settings.json`
+✅ **Никаких дефолтов в коде:** ВСЕ в JSON
+✅ **Прослеживаемость:** JSON → Panel → QML
+✅ **Автосохранение:** Каждое изменение
+✅ **Дефолты по кнопке:** defaults_snapshot обновляется
+✅ **Сброс по кнопке:** Загружает из defaults_snapshot
 
 **СИСТЕМА ГОТОВА К PRODUCTION!** 🚀
 
 ---
 
-**Автор:** GitHub Copilot  
-**Дата:** 2025-01-18  
-**Версия:** v1.0  
+**Автор:** GitHub Copilot
+**Дата:** 2025-01-18
+**Версия:** v1.0
 **Статус:** ✅ **COMPLETE**

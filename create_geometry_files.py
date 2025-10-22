@@ -3,7 +3,7 @@
 from pathlib import Path
 
 # Frame.qml
-frame_qml = '''import QtQuick
+frame_qml = """import QtQuick
 import QtQuick3D
 
 Node {
@@ -13,7 +13,7 @@ Node {
     required property real frameHeight
     required property real frameLength
     required property var frameMaterial
-    
+
     Model {
         parent: worldRoot
         source: "#Cube"
@@ -21,7 +21,7 @@ Node {
         scale: Qt.vector3d(beamSize/100, beamSize/100, frameLength/100)
         materials: [frameMaterial]
     }
-    
+
     Model {
         parent: worldRoot
         source: "#Cube"
@@ -29,7 +29,7 @@ Node {
         scale: Qt.vector3d(beamSize/100, frameHeight/100, beamSize/100)
         materials: [frameMaterial]
     }
-    
+
     Model {
         parent: worldRoot
         source: "#Cube"
@@ -38,31 +38,35 @@ Node {
         materials: [frameMaterial]
     }
 }
-'''
+"""
 
 # CylinderGeometry.qml (placeholder)
-cylinder_qml = '''import QtQuick
+cylinder_qml = """import QtQuick
 import QtQuick3D
 
 Model {
     id: cylinderGeometry
     source: "#Cylinder"
 }
-'''
+"""
 
 # SuspensionCorner.qml (placeholder - will use inline version from main.qml)
-suspension_qml = '''import QtQuick
+suspension_qml = """import QtQuick
 import QtQuick3D
 
 // TODO: Extract from main.qml OptimizedSuspensionCorner
 Node {
     id: suspensionCorner
 }
-'''
+"""
 
 # Write files
-Path('assets/qml/geometry/Frame.qml').write_text(frame_qml, encoding='utf-8')
-Path('assets/qml/geometry/CylinderGeometry.qml').write_text(cylinder_qml, encoding='utf-8')
-Path('assets/qml/geometry/SuspensionCorner.qml').write_text(suspension_qml, encoding='utf-8')
+Path("assets/qml/geometry/Frame.qml").write_text(frame_qml, encoding="utf-8")
+Path("assets/qml/geometry/CylinderGeometry.qml").write_text(
+    cylinder_qml, encoding="utf-8"
+)
+Path("assets/qml/geometry/SuspensionCorner.qml").write_text(
+    suspension_qml, encoding="utf-8"
+)
 
 print("✅ Created 3 geometry QML files")

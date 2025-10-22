@@ -149,7 +149,7 @@
    ```
 
 2. 📋 Начать Фазу 4 (PneumoPanel):
-   - Прочитать план: REFACTORING_PHASE4_PNEUMOPANEL_PLAN.md  
+   - Прочитать план: REFACTORING_PHASE4_PNEUMOPANEL_PLAN.md
    - Создать структуру: mkdir src/ui/panels/pneumo
    - Следовать детальному плану
 

@@ -9,12 +9,13 @@
 from .hud import PressureScaleWidget, TankOverlayHUD
 
 __all__ = [
-    'PressureScaleWidget',
-    'TankOverlayHUD', 
+    "PressureScaleWidget",
+    "TankOverlayHUD",
 ]
 
 # NOTE: 3D rendering now done via Qt Quick 3D QML scene
 # See: assets/qml/main.qml
+
 
 def __getattr__(name):
     # Ленивая загрузка компонентов интерфейса пользователя

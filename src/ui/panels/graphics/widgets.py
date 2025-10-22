@@ -5,18 +5,15 @@ Graphics panel widgets - reusable UI components
 """
 from __future__ import annotations
 
-from typing import Any
 
 from PySide6.QtCore import Qt, Signal, Slot
 from PySide6.QtGui import QColor
 from PySide6.QtWidgets import (
-    QCheckBox,
     QColorDialog,
     QDoubleSpinBox,
     QHBoxLayout,
     QLabel,
     QPushButton,
-    QSlider,
     QVBoxLayout,
     QWidget,
 )
@@ -27,7 +24,9 @@ class ColorButton(QPushButton):
 
     color_changed = Signal(str)
 
-    def __init__(self, initial_color: str = "#ffffff", parent: QWidget | None = None) -> None:
+    def __init__(
+        self, initial_color: str = "#ffffff", parent: QWidget | None = None
+    ) -> None:
         super().__init__(parent)
         self.setFixedSize(42, 28)
         self._color = QColor(initial_color)
@@ -126,6 +125,7 @@ class LabeledSlider(QWidget):
 
         # Используем QtWidgets.QSlider для надёжности
         from PySide6 import QtWidgets
+
         self._slider = QtWidgets.QSlider(Qt.Horizontal, self)
         steps = max(1, int(round((self._max - self._min) / self._step)))
         self._slider.setRange(0, steps)

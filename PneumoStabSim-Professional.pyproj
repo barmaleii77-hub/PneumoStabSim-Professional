@@ -25,7 +25,7 @@
     <!-- Включаем консольный режим для отображения логов/вывода -->
     <IsWindowsApplication>False</IsWindowsApplication>
   </PropertyGroup>
-  
+
   <!-- Конфигурации сборки -->
   <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
     <DebugSymbols>true</DebugSymbols>

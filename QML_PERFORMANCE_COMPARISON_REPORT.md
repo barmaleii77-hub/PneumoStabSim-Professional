@@ -1,7 +1,7 @@
 # 📊 СРАВНЕНИЕ ПРОИЗВОДИТЕЛЬНОСТИ QML - ДО И ПОСЛЕ ОПТИМИЗАЦИИ
 
-**Проект:** PneumoStabSim Professional  
-**Дата анализа:** 12 декабря 2025  
+**Проект:** PneumoStabSim Professional
+**Дата анализа:** 12 декабря 2025
 **Анализируемый файл:** `assets/qml/main.qml` → `assets/qml/main_optimized.qml`
 
 ---
@@ -11,7 +11,7 @@
 ### **Метрики производительности:**
 - **Operations/frame** - количество математических операций за фрейм
 - **Math.sin/cos calls** - вызовы тригонометрических функций
-- **Property bindings** - количество активных связываний свойств  
+- **Property bindings** - количество активных связываний свойств
 - **Memory allocations** - выделения памяти для временных объектов
 - **Cache hits/misses** - эффективность кэширования
 
@@ -58,11 +58,11 @@ property real rr_angle: isRunning ? userAmplitude * Math.sin(animationTime * use
 // ✅ Кэшированные вычисления
 QtObject {
     id: animationCache
-    
+
     // Базовые значения (1 раз за фрейм)
     property real basePhase: animationTime * userFrequency * 2 * Math.PI
     property real globalPhaseRad: userPhaseGlobal * Math.PI / 180
-    
+
     // Кэшированные синусы
     property real flSin: Math.sin(basePhase + globalPhaseRad + userPhaseFL * Math.PI / 180)
     property real frSin: Math.sin(basePhase + globalPhaseRad + userPhaseFR * Math.PI / 180)
@@ -97,13 +97,13 @@ property real rr_angle: isRunning ? userAmplitude * animationCache.rrSin : 0.0
 component SuspensionCorner: Node {
     // В каждом из 4 компонентов:
     property real totalAngle: baseAngle + leverAngle
-    
+
     property vector3d j_rod: Qt.vector3d(
         j_arm.x + (userLeverLength * userRodPosition) * Math.cos(totalAngle * Math.PI / 180),
         j_arm.y + (userLeverLength * userRodPosition) * Math.sin(totalAngle * Math.PI / 180),
         j_arm.z
     )
-    
+
     property vector3d cylDirection: Qt.vector3d(j_rod.x - j_tail.x, j_rod.y - j_tail.y, 0)
     property real cylDirectionLength: Math.hypot(cylDirection.x, cylDirection.y)
     // ... и множество других повторяющихся вычислений
@@ -112,7 +112,7 @@ component SuspensionCorner: Node {
 
 **Профилирование (× 4 компонента):**
 - **Math.cos():** 4 вызова/фрейм
-- **Math.sin():** 4 вызова/фрейм  
+- **Math.sin():** 4 вызова/фрейм
 - **Math.hypot():** 4 вызова/фрейм
 - **Math.atan2():** ~8 вызовов/фрейм
 - **userLeverLength × userRodPosition:** 8 повторений
@@ -125,11 +125,11 @@ component SuspensionCorner: Node {
 ```qml
 QtObject {
     id: geometryCache
-    
+
     // Константы (вычисляются только при изменении)
     property real leverLengthRodPos: userLeverLength * userRodPosition
     property real piOver180: Math.PI / 180
-    
+
     function calculateJRod(j_arm, baseAngle, leverAngle) {
         var totalAngleRad = (baseAngle + leverAngle) * piOver180
         return Qt.vector3d(
@@ -144,7 +144,7 @@ component OptimizedSuspensionCorner: Node {
     // Кэшированные вычисления
     property var _cachedGeometry: null
     property bool _geometryDirty: true
-    
+
     // Ленивое вычисление
     function getGeometry() {
         if (_geometryDirty || !_cachedGeometry) {
@@ -183,7 +183,7 @@ onPositionChanged: (mouse) => {
         const fovRad = camera.fieldOfView * Math.PI / 180.0
         const worldPerPixel = (2 * root.cameraDistance * Math.tan(fovRad / 2)) / view3d.height
         const s = worldPerPixel * root.cameraSpeed
-        
+
         root.panX -= dx * s
         root.panY += dy * s
     }
@@ -204,11 +204,11 @@ onPositionChanged: (mouse) => {
 MouseArea {
     // Кэшированные значения
     property real cachedWorldPerPixel: 0
-    
+
     function updateMouseCache() {
         cachedWorldPerPixel = (2 * root.cameraDistance * geometryCache.cachedTanHalfFov) / view3d.height
     }
-    
+
     onPositionChanged: (mouse) => {
         if (root.mouseButton === Qt.RightButton) {
             // ✅ Используем кэшированные значения
@@ -276,7 +276,7 @@ MouseArea {
 
 ### **3. Batch updates:**
 - **Принцип:** Группировка множественных обновлений в один вызов
-- **Реализация:** applyBatchedUpdates() function  
+- **Реализация:** applyBatchedUpdates() function
 - **Выигрыш:** Снижение overhead Python↔QML вызовов
 
 ### **4. Mouse event optimization:**
@@ -293,10 +293,10 @@ MouseArea {
 ```javascript
 // Benchmark: 1000 frames animation test
 // Original code: ~165ms total
-// Optimized code: ~65ms total  
+// Optimized code: ~65ms total
 // Performance gain: +154%
 
-// Benchmark: 100 mouse events test  
+// Benchmark: 100 mouse events test
 // Original code: ~45ms total
 // Optimized code: ~18ms total
 // Performance gain: +150%
@@ -316,13 +316,13 @@ MouseArea {
 2. ✅ Тестировать анимацию и геометрию
 3. ✅ Проверить совместимость с Python API
 
-### **Фаза 2: Валидация (3-5 дней)**  
+### **Фаза 2: Валидация (3-5 дней)**
 1. ✅ Создать бенчмарки производительности
 2. ✅ Профилировать реальное использование
 3. ✅ Оптимизировать дополнительные hotspots
 
 ### **Фаза 3: Продвинутые оптимизации (1-2 недели)**
-1. ✅ Внедрить WebWorkers для сложных вычислений  
+1. ✅ Внедрить WebWorkers для сложных вычислений
 2. ✅ GPU compute shaders для массовой геометрии
 3. ✅ LOD система для дальних объектов
 
@@ -333,14 +333,14 @@ MouseArea {
 Проведенный анализ выявил **критические проблемы производительности** в оригинальном QML коде:
 
 - **100+ избыточных операций за фрейм**
-- **Отсутствие кэширования** математических вычислений  
+- **Отсутствие кэширования** математических вычислений
 - **Повторяющиеся тригонометрические операции**
 - **Неоптимизированные mouse events**
 
 **Оптимизированная версия обеспечивает:**
 
 - **+75% общую производительность**
-- **+67% увеличение FPS**  
+- **+67% увеличение FPS**
 - **-65% снижение операций за фрейм**
 - **+50% улучшение отзывчивости**
 
@@ -350,6 +350,6 @@ MouseArea {
 
 ---
 
-**Дата анализа:** 12 декабря 2025  
-**Аналитик:** QML Performance Optimization System  
+**Дата анализа:** 12 декабря 2025
+**Аналитик:** QML Performance Optimization System
 **Приоритет:** КРИТИЧЕСКИЙ 🔥

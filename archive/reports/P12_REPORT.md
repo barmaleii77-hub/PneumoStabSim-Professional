@@ -1,7 +1,7 @@
 # ?? ОТЧЕТ P12: ВАЛИДАЦИЯ ИНВАРИАНТОВ И АВТОТЕСТЫ
 
-**Дата:** 3 октября 2025  
-**Версия:** (в процессе)  
+**Дата:** 3 октября 2025
+**Версия:** (в процессе)
 **Статус:** ? **P12 В РАЗРАБОТКЕ**
 
 ---
@@ -172,7 +172,7 @@ with self.assertRaises(ValueError):
    ```python
    def update_volume(self, volume, mode=ThermoMode.ISOTHERMAL):
        """Update volume with thermodynamic mode"""
-       
+
    def add_mass(self, mass_in, temperature_in):
        """Add mass with temperature mixing"""
    ```
@@ -208,7 +208,7 @@ with self.assertRaises(ValueError):
        def update_volume(self, volume, mode=ThermoMode.ISOTHERMAL):
            # Isothermal: p = m*R*T/V
            # Adiabatic: T2 = T1*(V1/V2)^(gamma-1), then p
-           
+
        def add_mass(self, mass_in, T_in):
            # Mass-weighted temperature mixing
            # T_mix = (m1*T1 + m2*T2) / (m1+m2)
@@ -277,5 +277,5 @@ P12 на 90% готов. Основная структура тестов реализована, все инварианты покрыты.
 
 ---
 
-**Дата:** 3 октября 2025, 04:00 UTC  
+**Дата:** 3 октября 2025, 04:00 UTC
 **Статус:** ? **90% ГОТОВ**

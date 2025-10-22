@@ -5,7 +5,7 @@
 Были выявлены и исправлены три критические проблемы в PneumoStabSim:
 
 1. ❌ **Геометрия не меняется при изменении параметров**
-2. ❌ **Анимация дёргается**  
+2. ❌ **Анимация дёргается**
 3. ❌ **Изменение свойств материалов не влияет на графику**
 
 ## Проблема 1: Геометрия не меняется ✅ ИСПРАВЛЕНО
@@ -19,7 +19,7 @@
    def _on_geometry_changed_real(self):
        # Получаем все текущие параметры геометрии
        geometry_params = self.geometry_panel.get_parameters()
-       
+
        # Конвертируем параметры для QML (в мм)
        geometry_3d = {
            'frameLength': geometry_params.get('wheelbase', 3.2) * 1000,
@@ -27,7 +27,7 @@
            'rodPosition': geometry_params.get('rod_position', 0.6),
            # ... остальные параметры
        }
-       
+
        # Обновляем через updateGeometry()
        self._qml_root_object.updateGeometry(geometry_3d)
    ```
@@ -105,27 +105,27 @@ QML файл не имел свойств для управления матер
 2. **Обновлены все материалы** для использования управляемых свойств:
    ```qml
    // Материалы рамы
-   materials: PrincipledMaterial { 
+   materials: PrincipledMaterial {
        baseColor: "#cc0000"
        metalness: root.frameMetalness     // Управляемая металличность
        roughness: root.frameRoughness     // Управляемая шероховатость
    }
-   
+
    // Материалы рычагов и штоков
-   materials: PrincipledMaterial { 
+   materials: PrincipledMaterial {
        baseColor: "#888888"
        metalness: root.metalMetalness
        roughness: root.metalRoughness
        clearcoatAmount: root.metalClearcoat
    }
-   
+
    // Материалы цилиндров (стекло)
-   materials: PrincipledMaterial { 
+   materials: PrincipledMaterial {
        baseColor: "#ffffff"
        metalness: 0.0
        roughness: root.glassRoughness     // Управляемая шероховатость стекла
        opacity: root.glassOpacity         // Управляемая прозрачность
-       alphaMode: PrincipledMaterial.Blend 
+       alphaMode: PrincipledMaterial.Blend
    }
    ```
 
@@ -137,7 +137,7 @@ QML файл не имел свойств для управления матер
    property real cameraFar: 50000.0
    property bool autoRotate: false
    property real autoRotateSpeed: 0.5
-   
+
    // Управляемые эффекты (готово для будущего использования)
    property bool bloomEnabled: false
    property real bloomIntensity: 0.3
@@ -190,7 +190,7 @@ QML файл не имел свойств для управления матер
 ❌ Анимация была рывками
 ❌ Материалы были фиксированными
 
-### После исправлений  
+### После исправлений
 ✅ **Полностью функциональная 3D сцена** с управляемой геометрией
 ✅ **Плавная анимация** с автовращением камеры
 ✅ **Реалистичные материалы** с полным контролем свойств

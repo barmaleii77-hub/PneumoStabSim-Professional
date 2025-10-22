@@ -33,18 +33,18 @@ Write-Step "Проверка Python..."
 try {
     $PythonVersion = python --version 2>&1
     Write-Success "Найден: $PythonVersion"
-    
+
     # Проверка версии Python (требуется 3.11+)
     if ($PythonVersion -match "Python (\d+)\.(\d+)\.(\d+)") {
         $Major = [int]$Matches[1]
         $Minor = [int]$Matches[2]
-        
+
         if ($Major -lt 3 -or ($Major -eq 3 -and $Minor -lt 11)) {
             Write-Error "Требуется Python 3.11 или выше! Текущая версия: $PythonVersion"
             Write-Info "Рекомендуется Python 3.13"
             exit 1
         }
-        
+
         if ($Major -eq 3 -and $Minor -eq 13) {
             Write-Success "Python 3.13 - отлично! (рекомендуемая версия)"
         } elseif ($Major -eq 3 -and $Minor -ge 11) {
@@ -60,10 +60,10 @@ try {
 # === ВИРТУАЛЬНОЕ ОКРУЖЕНИЕ ===
 if (-not $SkipVenv) {
     Write-Step "Настройка виртуального окружения..."
-    
+
     # Используем .venv как стандарт для проекта
     $VenvPath = ".venv"
-    
+
     if (Test-Path $VenvPath) {
         if ($Force) {
             Write-Warning "Удаление существующего venv (--Force)..."
@@ -72,17 +72,17 @@ if (-not $SkipVenv) {
             Write-Info "Виртуальное окружение уже существует (используйте --Force для пересоздания)"
         }
     }
-    
+
     if (-not (Test-Path $VenvPath)) {
         Write-Info "Создание виртуального окружения..."
         python -m venv $VenvPath
         Write-Success "Виртуальное окружение создано: $VenvPath"
     }
-    
+
     # Активация venv
     Write-Info "Активация виртуального окружения..."
     $ActivateScript = Join-Path $VenvPath "Scripts\Activate.ps1"
-    
+
     if (Test-Path $ActivateScript) {
         & $ActivateScript
         Write-Success "Виртуальное окружение активировано"
@@ -158,7 +158,7 @@ Write-Step "Проверка файла .env..."
 
 if (Test-Path ".env") {
     Write-Success "Файл .env найден"
-    
+
     # Вывод содержимого .env
     Write-Info "Содержимое .env:"
     Get-Content ".env" | Where-Object { $_ -notmatch "^\s*#" -and $_ -notmatch "^\s*$" } | ForEach-Object {
@@ -199,7 +199,7 @@ Write-Step "Проверка Git конфигурации..."
 
 if (Test-Path ".git") {
     Write-Success "Git репозиторий инициализирован"
-    
+
     # Проверка remote
     $RemoteUrl = git remote get-url origin 2>&1
     if ($LASTEXITCODE -eq 0) {
@@ -207,7 +207,7 @@ if (Test-Path ".git") {
     } else {
         Write-Warning "Git remote не настроен"
     }
-    
+
     # Текущая ветка
     $Branch = git branch --show-current 2>&1
     if ($LASTEXITCODE -eq 0) {
@@ -228,16 +228,16 @@ sys.path.insert(0, 'src')
 try:
     from src.diagnostics.warnings import log_warning, log_error
     print('✅ diagnostics.warnings')
-    
+
     from src.bootstrap.environment import setup_qtquick3d_environment
     print('✅ bootstrap.environment')
-    
+
     from src.bootstrap.terminal import configure_terminal_encoding
     print('✅ bootstrap.terminal')
-    
+
     from src.bootstrap.version_check import check_python_compatibility
     print('✅ bootstrap.version_check')
-    
+
     print('✅ Все модули импортированы успешно!')
 except Exception as e:
     print(f'❌ Ошибка импорта: {e}')

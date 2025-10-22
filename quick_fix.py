@@ -11,6 +11,7 @@ sys.path.insert(0, str(Path(__file__).parent))
 
 try:
     from fix_critical_imports import main
+
     main()
 except ImportError as e:
     print(f"❌ Ошибка импорта: {e}")

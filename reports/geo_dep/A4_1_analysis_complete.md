@@ -38,7 +38,7 @@
 ### В GeometryPanel._validate_geometry():
 ```python
 stroke = self.parameters['stroke_m']
-cylinder_length = self.parameters['cylinder_length']  
+cylinder_length = self.parameters['cylinder_length']
 piston_thickness = self.parameters['piston_thickness_m']
 dead_gap = self.parameters['dead_gap_m']
 
@@ -54,7 +54,7 @@ lever_kinematics = LeverKinematics(...)
 max_lever_angle = calculate_max_lever_angle(wheelbase, lever_geometry)
 stroke_max_kinematic = calculate_stroke_from_angle(lever_kinematics, max_lever_angle)
 
-# Реальное ограничение:  
+# Реальное ограничение:
 stroke <= min(stroke_max_kinematic, stroke_max_cylinder)
 ```
 
@@ -72,12 +72,12 @@ class GeometryState:
     lever_length: float = 0.800
     frame_to_pivot: float = 0.600
     # ... другие параметры
-    
-    # Кинематические ограничения  
+
+    # Кинематические ограничения
     def calculate_stroke_max_kinematic(self) -> float:
         """Точный кинематический расчёт stroke_max"""
         # Используем LeverKinematics для расчёта
-        
+
     def validate_kinematic_constraints(self) -> List[str]:
         """Проверка всех кинематических ограничений"""
 ```
@@ -95,7 +95,7 @@ corrections = self.geo_state.apply_kinematic_corrections(param_name, value)
 ```python
 def calculate_max_lever_angle(wheelbase: float, lever_geometry: float) -> float:
     """Максимальный угол поворота рычага без пересечений"""
-    
+
 def calculate_stroke_from_lever_angle(kinematics: LeverKinematics, angle: float) -> float:
     """Расчёт хода цилиндра по углу рычага"""
 ```

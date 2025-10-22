@@ -63,15 +63,15 @@ def test_qml_core():
     from PySide6.QtQuickWidgets import QQuickWidget
     from PySide6.QtCore import QUrl
     from pathlib import Path
-    
+
     widget = QQuickWidget()
     qml_path = Path("assets/qml/test_core_phase1.qml")
     widget.setSource(QUrl.fromLocalFile(str(qml_path.absolute())))
-    
+
     if widget.status() == QQuickWidget.Status.Error:
         print("❌ Core utilities test failed")
         return False
-    
+
     print("✅ Core utilities test passed")
     return True
 
@@ -102,27 +102,27 @@ Item {
 ```qml
 Item {
     id: root
-    
+
     // Existing properties
     property real animationTime: 0.0
     property real userFrequency: 1.0
     // ...
-    
+
     // ✅ НОВОЕ: Подключаем StateCache
     Connections {
         target: root
-        
+
         function onAnimationTimeChanged() {
             StateCache.animationTime = root.animationTime
         }
-        
+
         function onUserFrequencyChanged() {
             StateCache.userFrequency = root.userFrequency
         }
-        
+
         // ... остальные параметры
     }
-    
+
     // ✅ НОВОЕ: Используем кэшированные углы
     property real fl_angle: StateCache.flAngle  // вместо расчета каждый раз
     property real fr_angle: StateCache.frAngle
@@ -189,11 +189,11 @@ property var j_rod: GeometryCalculations.calculateJRodPosition(
 Component.onCompleted: {
     // Test clamp
     console.log("Clamp test:", MathUtils.clamp(5, 0, 10))  // Expected: 5
-    
+
     // Test vector operations
     var vec = Qt.vector3d(3, 4, 0)
     console.log("Vector length:", MathUtils.vector3dLength(vec))  // Expected: 5
-    
+
     // Test angle conversion
     console.log("180° in rad:", MathUtils.degToRad(180))  // Expected: 3.14159
 }
@@ -209,7 +209,7 @@ Component.onCompleted: {
         j_arm, 800, 0.6, 0, 0
     )
     console.log("j_rod position:", j_rod)  // Expected: (480, 0, 0)
-    
+
     // Test cylinder axis
     var axis = GeometryCalculations.calculateCylinderAxis(
         Qt.vector3d(100, 100, 0),
@@ -227,18 +227,18 @@ Component.onCompleted: {
     StateCache.userAmplitude = 10
     StateCache.userFrequency = 1
     StateCache.animationTime = 0
-    
+
     // Check cached values
     console.log("Base phase:", StateCache.basePhase)  // Expected: 0
     console.log("FL angle:", StateCache.flAngle)       // Expected: 0 (at t=0)
-    
+
     // Check if ready
     StateCache.userLeverLength = 800
     StateCache.userRodPosition = 0.6
     StateCache.userCylinderLength = 500
     StateCache.userTrackWidth = 1600
     StateCache.userFrameLength = 3200
-    
+
     console.log("Cache ready:", StateCache.isReady())  // Expected: true
 }
 ```

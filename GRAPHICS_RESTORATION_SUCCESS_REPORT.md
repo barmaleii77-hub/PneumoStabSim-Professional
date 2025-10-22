@@ -1,7 +1,7 @@
 # 🎉 УСПЕШНОЕ ВОССТАНОВЛЕНИЕ 3D ГРАФИКИ - ОТЧЁТ
 
-**Дата:** 2025-10-10  
-**Время:** 22:11  
+**Дата:** 2025-10-10
+**Время:** 22:11
 **Статус:** ✅ **ВОССТАНОВЛЕНО И РАБОТАЕТ**
 
 ---
@@ -164,11 +164,11 @@ geometryCache.cachedFovRad, .cachedTanHalfFov
 // PERFORMANCE OPTIMIZATION LAYER
 QtObject {
     id: animationCache
-    
+
     // Базовые значения (1 раз за фрейм вместо 4х)
     property real basePhase: animationTime * userFrequency * 2 * Math.PI
     property real globalPhaseRad: userPhaseGlobal * Math.PI / 180
-    
+
     // Кэшированные синусы
     property real flSin: Math.sin(basePhase + flPhaseRad)
     property real frSin: Math.sin(basePhase + frPhaseRad)
@@ -178,11 +178,11 @@ QtObject {
 
 QtObject {
     id: geometryCache
-    
+
     // Константы (вычисляются только при изменении)
     property real leverLengthRodPos: userLeverLength * userRodPosition
     property real piOver180: Math.PI / 180
-    
+
     // Функции геометрии
     function calculateJRod(j_arm, baseAngle, leverAngle) { ... }
     function normalizeCylDirection(j_rod, j_tail) { ... }
@@ -279,6 +279,6 @@ py app.py
 
 ---
 
-*Отчёт создан: 2025-10-10 22:12*  
-*Восстановлено из коммита: `bddfdeb`*  
+*Отчёт создан: 2025-10-10 22:12*
+*Восстановлено из коммита: `bddfdeb`*
 *Статус: ✅ SUCCESS*

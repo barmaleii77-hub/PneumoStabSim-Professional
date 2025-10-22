@@ -28,12 +28,14 @@ _USING_REFACTORED = False
 
 try:
     from .main_window_refactored import MainWindow
+
     _USING_REFACTORED = True
     print("✅ MainWindow: REFACTORED version loaded (~300 lines coordinator)")
 except ImportError as e:
     print(f"⚠️ MainWindow: Refactored version failed ({e}), using LEGACY")
     try:
         from ..main_window import MainWindow
+
         print("✅ MainWindow: LEGACY version loaded (1053 lines)")
     except ImportError:
         raise ImportError("Cannot load MainWindow (neither refactored nor legacy)")
@@ -49,7 +51,7 @@ __version__ = "4.9.5"
 
 def get_version_info() -> dict:
     """Get module version info
-    
+
     Returns:
         Dict with version details
     """

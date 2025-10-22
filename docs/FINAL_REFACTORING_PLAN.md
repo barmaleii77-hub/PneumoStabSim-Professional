@@ -1,8 +1,8 @@
 # 🎯 ФИНАЛЬНЫЙ ПЛАН ЗАВЕРШЕНИЯ РЕФАКТОРИНГА
 
-> **Дата:** 2025-01-18  
-> **Версия:** PneumoStabSim Professional v4.9.5  
-> **Приоритет:** 🔴 КРИТИЧНО  
+> **Дата:** 2025-01-18
+> **Версия:** PneumoStabSim Professional v4.9.5
+> **Приоритет:** 🔴 КРИТИЧНО
 
 ---
 
@@ -51,20 +51,20 @@ self.state: Dict[str, Any] = self.settings_manager.get_category("graphics")
 ```python
 def __init__(self, parent: QWidget | None = None) -> None:
     super().__init__(parent)
-    
+
     self.logger = logging.getLogger(__name__)
-    
+
     # ✅ НОВОЕ: Используем SettingsManager
     self.settings_manager = get_settings_manager()
     self.state = self.settings_manager.get_category("graphics")
-    
+
     # Логгеры
     self.graphics_logger = get_graphics_logger()
     self.event_logger = get_event_logger()
-    
+
     self._create_ui()
     self._apply_state_to_ui()
-    
+
     QTimer.singleShot(0, self._emit_all)
 ```
 
@@ -101,15 +101,15 @@ def load_settings(self) -> None:
 def reset_to_defaults(self) -> None:
     """Сброс к дефолтам (из JSON!)"""
     self.logger.info("🔄 Resetting graphics settings to defaults (from JSON)")
-    
+
     try:
         # ✅ НОВОЕ: Сброс через SettingsManager
         self.settings_manager.reset_to_defaults(category="graphics")
         self.state = self.settings_manager.get_category("graphics")
-        
+
         self._apply_state_to_ui()
         self._emit_all()
-        
+
         self.preset_applied.emit("Сброс к значениям из config/app_settings.json")
     except Exception as e:
         self.logger.error(f"Reset failed: {e}")
@@ -135,21 +135,21 @@ def save_current_as_defaults(self) -> None:
 ```python
 def _create_ui(self) -> None:
     # ...existing code...
-    
+
     button_row = QHBoxLayout()
-    
+
     # Кнопка "Сброс к дефолтам"
     reset_btn = QPushButton("↩︎ Сброс к дефолтам", self)
     reset_btn.setToolTip("Загрузить дефолты из config/app_settings.json")
     reset_btn.clicked.connect(self.reset_to_defaults)
     button_row.addWidget(reset_btn)
-    
+
     # ✅ НОВАЯ кнопка "Сохранить как дефолт"
     save_default_btn = QPushButton("💾 Сохранить как дефолт", self)
     save_default_btn.setToolTip("Сохранить текущие настройки в defaults_snapshot")
     save_default_btn.clicked.connect(self.save_current_as_defaults)
     button_row.addWidget(save_default_btn)
-    
+
     button_row.addStretch(1)
     main_layout.addLayout(button_row)
 ```
@@ -189,32 +189,32 @@ from src.ui.panels.graphics.defaults import build_defaults, build_quality_preset
 
 def migrate():
     """Мигрировать defaults.py → app_settings.json"""
-    
+
     # Загружаем существующий файл
     settings_file = Path("config/app_settings.json")
     with open(settings_file, 'r', encoding='utf-8') as f:
         settings = json.load(f)
-    
+
     # Получаем все дефолты из defaults.py
     graphics_defaults = build_defaults()
     quality_presets = build_quality_presets()
-    
+
     # Обновляем текущие настройки
     settings["current"]["graphics"] = graphics_defaults
     settings["current"]["quality_presets"] = quality_presets
-    
+
     # Сохраняем как дефолты
     settings["defaults_snapshot"]["graphics"] = graphics_defaults
     settings["defaults_snapshot"]["quality_presets"] = quality_presets
-    
+
     # Метаданные
     settings["metadata"]["migrated_from_defaults_py"] = True
     settings["metadata"]["migration_date"] = "2025-01-18"
-    
+
     # Сохраняем
     with open(settings_file, 'w', encoding='utf-8') as f:
         json.dump(settings, f, indent=2, ensure_ascii=False)
-    
+
     print(f"✅ Migrated {len(graphics_defaults)} parameters to {settings_file}")
 
 if __name__ == "__main__":
@@ -244,15 +244,15 @@ from src.common.settings_manager import get_settings_manager
 def test_defaults_from_json():
     """Тест: дефолты загружаются из JSON, не из кода"""
     manager = get_settings_manager()
-    
+
     # Проверяем что defaults_snapshot существует
     defaults = manager.get_all_defaults()
     assert "graphics" in defaults
-    
+
     # Проверяем ключевые параметры
     assert defaults["graphics"]["effects"]["bloom_intensity"] == 0.5
     assert defaults["graphics"]["lighting"]["key"]["brightness"] == 1.2
-    
+
     print("✅ Defaults loaded from JSON successfully")
 ```
 
@@ -274,13 +274,13 @@ import "scene"
 
 SharedMaterials {
     id: sharedMaterials
-    
+
     // Frame
     frameBaseColor: root.frameBaseColor
     frameMetalness: root.frameMetalness
     frameRoughness: root.frameRoughness
     // ... все параметры
-    
+
     // Lever, Tail, Cylinder, Piston*, Joint*
     // ... все материалы
 }

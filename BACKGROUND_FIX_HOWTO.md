@@ -107,5 +107,5 @@ py app.py
 
 ---
 
-*PneumoStabSim Professional v4.6*  
+*PneumoStabSim Professional v4.6*
 *Background Stability Fix - 2025-01-03*

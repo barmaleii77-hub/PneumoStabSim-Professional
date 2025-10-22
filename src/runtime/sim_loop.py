@@ -11,13 +11,30 @@ import numpy as np
 from PySide6.QtCore import QObject, QTimer, Signal, Slot, Qt
 from PySide6.QtCore import QThread
 
-from .state import StateSnapshot, StateBus, FrameState, WheelState, LineState, TankState, SystemAggregates
-from .sync import LatestOnlyQueue, PerformanceMetrics, TimingAccumulator, ThreadSafeCounter
+from .state import (
+    StateSnapshot,
+    StateBus,
+    FrameState,
+    WheelState,
+    LineState,
+    TankState,
+    SystemAggregates,
+)
+from .sync import (
+    LatestOnlyQueue,
+    PerformanceMetrics,
+    TimingAccumulator,
+    ThreadSafeCounter,
+)
 
 # ИСПРАВЛЕНО: Заменены импорты src. на относительные
 try:
     from ..physics.odes import RigidBody3DOF, create_initial_conditions, f_rhs
-    from ..physics.integrator import step_dynamics, PhysicsLoopConfig, create_default_rigid_body
+    from ..physics.integrator import (
+        step_dynamics,
+        PhysicsLoopConfig,
+        create_default_rigid_body,
+    )
     from ..pneumo.enums import Wheel, Line, ThermoMode
     from ..road.engine import RoadInput
 except ImportError:
@@ -25,7 +42,11 @@ except ImportError:
     try:
         # Попробуем прямые импорты (когда src в sys.path)
         from physics.odes import RigidBody3DOF, create_initial_conditions, f_rhs
-        from physics.integrator import step_dynamics, PhysicsLoopConfig, create_default_rigid_body
+        from physics.integrator import (
+            step_dynamics,
+            PhysicsLoopConfig,
+            create_default_rigid_body,
+        )
         from pneumo.enums import Wheel, Line, ThermoMode
         from road.engine import RoadInput
     except ImportError:
@@ -45,11 +66,28 @@ except ImportError:
 
         def step_dynamics(*args, **kwargs):
             from types import SimpleNamespace
-            return SimpleNamespace(success=True, y_final=np.zeros(6), t_final=0.0,
-                                 message="OK", method_used="STUB", n_evaluations=1, solve_time=0.001)
+
+            return SimpleNamespace(
+                success=True,
+                y_final=np.zeros(6),
+                t_final=0.0,
+                message="OK",
+                method_used="STUB",
+                n_evaluations=1,
+                solve_time=0.001,
+            )
 
         def create_default_rigid_body():
-            return RigidBody3DOF(M=1500, Ix=2000, Iz=3000, g=9.81, track=1.6, wheelbase=3.2, angle_limit=0.5, damping_coefficient=0.1)
+            return RigidBody3DOF(
+                M=1500,
+                Ix=2000,
+                Iz=3000,
+                g=9.81,
+                track=1.6,
+                wheelbase=3.2,
+                angle_limit=0.5,
+                damping_coefficient=0.1,
+            )
 
         class PhysicsLoopConfig:
             def __init__(self, **kwargs):
@@ -81,6 +119,7 @@ except ImportError:
 # Added import for settings_manager
 from src.common.settings_manager import get_settings_manager
 
+
 class PhysicsWorker(QObject):
     """Physics simulation worker running in dedicated thread
 
@@ -89,9 +128,9 @@ class PhysicsWorker(QObject):
     """
 
     # Signals emitted to UI thread
-    state_ready = Signal(object)       # StateSnapshot
-    error_occurred = Signal(str)       # Error message
-    performance_update = Signal(object) # PerformanceMetrics
+    state_ready = Signal(object)  # StateSnapshot
+    error_occurred = Signal(str)  # Error message
+    performance_update = Signal(object)  # PerformanceMetrics
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -101,10 +140,10 @@ class PhysicsWorker(QObject):
         self.settings_manager = get_settings_manager()
 
         # Physics configuration (loaded from settings file)
-        self.dt_physics: float =0.0
-        self.vsync_render_hz: float =0.0
-        self.max_steps_per_frame: int =1
-        self.max_frame_time: float =0.05
+        self.dt_physics: float = 0.0
+        self.vsync_render_hz: float = 0.0
+        self.max_steps_per_frame: int = 1
+        self.max_frame_time: float = 0.05
 
         # Simulation state
         self.is_running = False
@@ -126,9 +165,9 @@ class PhysicsWorker(QObject):
         self.master_isolation_open = False
 
         # Receiver parameters and limits (loaded from settings)
-        self.receiver_volume: float =0.0
+        self.receiver_volume: float = 0.0
         self.receiver_volume_mode: str = ""
-        self._volume_limits: tuple[float, float] = (0.0,0.0)
+        self._volume_limits: tuple[float, float] = (0.0, 0.0)
 
         # Threading objects (created in target thread)
         self.physics_timer: Optional[QTimer] = None
@@ -219,16 +258,20 @@ class PhysicsWorker(QObject):
                 raise RuntimeError("Missing pneumatic.receiver_volume_limits")
             min_limit = limits.get("min_m3")
             max_limit = limits.get("max_m3")
-            if not isinstance(min_limit, (int, float)) or not isinstance(max_limit, (int, float)):
+            if not isinstance(min_limit, (int, float)) or not isinstance(
+                max_limit, (int, float)
+            ):
                 raise RuntimeError("Invalid receiver volume limits in settings")
             min_limit = float(min_limit)
             max_limit = float(max_limit)
-            if max_limit <= min_limit or min_limit <=0:
+            if max_limit <= min_limit or min_limit <= 0:
                 raise RuntimeError("Receiver volume limits must satisfy0 < min < max")
             self._volume_limits = (min_limit, max_limit)
 
             self.receiver_volume = _require_number("pneumatic", "receiver_volume")
-            if not (self._volume_limits[0] <= self.receiver_volume <= self._volume_limits[1]):
+            if not (
+                self._volume_limits[0] <= self.receiver_volume <= self._volume_limits[1]
+            ):
                 raise RuntimeError(
                     f"Receiver volume {self.receiver_volume} outside limits {self._volume_limits}"
                 )
@@ -238,7 +281,9 @@ class PhysicsWorker(QObject):
                 raise RuntimeError(f"Unsupported receiver volume mode: {mode}")
             self.receiver_volume_mode = mode
 
-            self.master_isolation_open = _require_bool("pneumatic", "master_isolation_open")
+            self.master_isolation_open = _require_bool(
+                "pneumatic", "master_isolation_open"
+            )
 
             thermo = _require_str("pneumatic", "thermo_mode").upper()
             try:
@@ -268,11 +313,17 @@ class PhysicsWorker(QObject):
         """Configure physics parameters"""
         if isinstance(dt_phys, (int, float)) and not isinstance(dt_phys, bool):
             self.dt_physics = float(dt_phys)
-        if isinstance(vsync_render_hz, (int, float)) and not isinstance(vsync_render_hz, bool):
+        if isinstance(vsync_render_hz, (int, float)) and not isinstance(
+            vsync_render_hz, bool
+        ):
             self.vsync_render_hz = float(vsync_render_hz)
-        if isinstance(max_steps_per_frame, (int, float)) and not isinstance(max_steps_per_frame, bool):
+        if isinstance(max_steps_per_frame, (int, float)) and not isinstance(
+            max_steps_per_frame, bool
+        ):
             self.max_steps_per_frame = max(1, int(round(max_steps_per_frame)))
-        if isinstance(max_frame_time, (int, float)) and not isinstance(max_frame_time, bool):
+        if isinstance(max_frame_time, (int, float)) and not isinstance(
+            max_frame_time, bool
+        ):
             self.max_frame_time = float(max_frame_time)
 
         # Update timing accumulator
@@ -334,7 +385,9 @@ class PhysicsWorker(QObject):
         self.is_running = True
         self.timing_accumulator.reset()
 
-        self.logger.info(f"Physics simulation started, timer interval: {timer_interval_ms}ms")
+        self.logger.info(
+            f"Physics simulation started, timer interval: {timer_interval_ms}ms"
+        )
 
     @Slot()
     def stop_simulation(self):
@@ -369,6 +422,7 @@ class PhysicsWorker(QObject):
         except Exception as e:
             self.logger.error(f"Ошибка остановки physics simulation: {e}")
             import traceback
+
             traceback.print_exc()
 
         # В любом случае помечаем как остановленную
@@ -553,7 +607,7 @@ class PhysicsWorker(QObject):
                     params=self.rigid_body,
                     system=self.pneumatic_system,
                     gas=self.gas_network,
-                    method="Radau"
+                    method="Radau",
                 )
 
                 if result.success:
@@ -579,7 +633,7 @@ class PhysicsWorker(QObject):
                 self.logger.warning(f"Road input error: {e}")
 
         # Return zero excitation as fallback
-        return {'LF': 0.0, 'RF': 0.0, 'LR': 0.0, 'RR': 0.0}
+        return {"LF": 0.0, "RF": 0.0, "LR": 0.0, "RR": 0.0}
 
     def _create_state_snapshot(self) -> Optional[StateSnapshot]:
         """Create current state snapshot"""
@@ -601,7 +655,7 @@ class PhysicsWorker(QObject):
                     pitch=float(theta_x),
                     heave_rate=float(dY),
                     roll_rate=float(dphi_z),
-                    pitch_rate=float(dtheta_x)
+                    pitch_rate=float(dtheta_x),
                 )
 
             # Road excitations
@@ -636,12 +690,16 @@ class PhysicsWorker(QObject):
             snapshot.aggregates = SystemAggregates(
                 physics_step_time=self.performance.avg_step_time,
                 integration_steps=self.step_counter,
-                integration_failures=self.performance.integration_failures
+                integration_failures=self.performance.integration_failures,
             )
 
             # Configuration
             snapshot.master_isolation_open = self.master_isolation_open
-            snapshot.thermo_mode = self.thermo_mode.name if hasattr(self.thermo_mode, 'name') else str(self.thermo_mode)
+            snapshot.thermo_mode = (
+                self.thermo_mode.name
+                if hasattr(self.thermo_mode, "name")
+                else str(self.thermo_mode)
+            )
 
             return snapshot
 
@@ -683,29 +741,39 @@ class SimulationManager(QObject):
         """Connect signals between components"""
         # Physics worker signals
         self.physics_worker.state_ready.connect(
-            self._on_state_ready, Qt.QueuedConnection)
+            self._on_state_ready, Qt.QueuedConnection
+        )
         self.physics_worker.error_occurred.connect(
-            self._on_physics_error, Qt.QueuedConnection)
+            self._on_physics_error, Qt.QueuedConnection
+        )
 
         # State bus control signals
         self.state_bus.start_simulation.connect(
-            self.physics_worker.start_simulation, Qt.QueuedConnection)
+            self.physics_worker.start_simulation, Qt.QueuedConnection
+        )
         self.state_bus.stop_simulation.connect(
-            self.physics_worker.stop_simulation, Qt.QueuedConnection)
+            self.physics_worker.stop_simulation, Qt.QueuedConnection
+        )
         self.state_bus.reset_simulation.connect(
-            self.physics_worker.reset_simulation, Qt.QueuedConnection)
+            self.physics_worker.reset_simulation, Qt.QueuedConnection
+        )
         self.state_bus.pause_simulation.connect(
-            self.physics_worker.pause_simulation, Qt.QueuedConnection)
+            self.physics_worker.pause_simulation, Qt.QueuedConnection
+        )
 
         # Configuration signals
         self.state_bus.set_physics_dt.connect(
-            self.physics_worker.set_physics_dt, Qt.QueuedConnection)
+            self.physics_worker.set_physics_dt, Qt.QueuedConnection
+        )
         self.state_bus.set_thermo_mode.connect(
-            self.physics_worker.set_thermo_mode, Qt.QueuedConnection)
+            self.physics_worker.set_thermo_mode, Qt.QueuedConnection
+        )
         self.state_bus.set_master_isolation.connect(
-            self.physics_worker.set_master_isolation, Qt.QueuedConnection)
+            self.physics_worker.set_master_isolation, Qt.QueuedConnection
+        )
         self.state_bus.set_receiver_volume.connect(
-            self.physics_worker.set_receiver_volume, Qt.QueuedConnection)  # NEW!
+            self.physics_worker.set_receiver_volume, Qt.QueuedConnection
+        )  # NEW!
 
         # Thread lifecycle
         self.physics_thread.started.connect(self._on_thread_started)
@@ -729,11 +797,13 @@ class SimulationManager(QObject):
         try:
             if self.physics_thread.isRunning():
                 # 1. Сначала остановить симуляцию через worker
-                if hasattr(self.physics_worker, 'force_cleanup'):
+                if hasattr(self.physics_worker, "force_cleanup"):
                     try:
                         self.physics_worker.force_cleanup()
                     except Exception as e:
-                        self.logger.warning(f"Ошибка принудительной очистки worker: {e}")
+                        self.logger.warning(
+                            f"Ошибка принудительной очистки worker: {e}"
+                        )
 
                 # 2. Отправить сигнал остановки
                 try:
@@ -743,6 +813,7 @@ class SimulationManager(QObject):
 
                 # 3. Дать короткое время на корректную остановку (50мс)
                 import time
+
                 time.sleep(0.05)
 
                 # 4. Попытаться корректно завершить поток
@@ -751,12 +822,16 @@ class SimulationManager(QObject):
 
                 # 5. Ждать завершения максимум 2 секунды
                 if not self.physics_thread.wait(2000):
-                    self.logger.warning("Physics thread не завершился за 2 секунды, принудительное завершение...")
+                    self.logger.warning(
+                        "Physics thread не завершился за 2 секунды, принудительное завершение..."
+                    )
                     self.physics_thread.terminate()
 
                     # Дать полсекунды на принудительное завершение
                     if not self.physics_thread.wait(500):
-                        self.logger.error("Physics thread не удалось завершить даже принудительно!")
+                        self.logger.error(
+                            "Physics thread не удалось завершить даже принудительно!"
+                        )
                     else:
                         self.logger.info("Physics thread завершен принудительно")
                 else:
@@ -768,11 +843,12 @@ class SimulationManager(QObject):
         except Exception as e:
             self.logger.error(f"Ошибка при остановке simulation manager: {e}")
             import traceback
+
             traceback.print_exc()
 
             # В случае ошибки все равно пытаемся принудительно завершить
             try:
-                if hasattr(self, 'physics_thread') and self.physics_thread.isRunning():
+                if hasattr(self, "physics_thread") and self.physics_thread.isRunning():
                     self.physics_thread.terminate()
                     self.physics_thread.wait(500)
             except:
@@ -789,10 +865,10 @@ class SimulationManager(QObject):
     def force_shutdown(self):
         """Принудительное завершение для критических случаев"""
         try:
-            if hasattr(self, 'physics_worker') and self.physics_worker:
+            if hasattr(self, "physics_worker") and self.physics_worker:
                 self.physics_worker.force_cleanup()
 
-            if hasattr(self, 'physics_thread') and self.physics_thread.isRunning():
+            if hasattr(self, "physics_thread") and self.physics_thread.isRunning():
                 self.physics_thread.terminate()
                 self.physics_thread.wait(1000)
 
@@ -823,7 +899,9 @@ class SimulationManager(QObject):
             try:
                 self.force_shutdown()
             except Exception as cleanup_error:
-                self.logger.error(f"Критическая ошибка при принудительной очистке: {cleanup_error}")
+                self.logger.error(
+                    f"Критическая ошибка при принудительной очистке: {cleanup_error}"
+                )
 
     def get_latest_state(self) -> Optional[StateSnapshot]:
         """Get latest state snapshot without blocking"""

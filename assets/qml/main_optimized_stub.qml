@@ -5,11 +5,11 @@ Rectangle {
     id: root
     anchors.fill: parent
     color: "#1a1a2e"
-    
+
     Column {
         anchors.centerIn: parent
         spacing: 30
-        
+
         Text {
             text: "✅ QTQUICK3D PLUGIN ИСПРАВЛЕН"
             color: "#00ff88"
@@ -17,14 +17,14 @@ Rectangle {
             font.bold: true
             anchors.horizontalCenter: parent.horizontalCenter
         }
-        
+
         Rectangle {
             width: 500
             height: 3
             color: "#00ff88"
             anchors.horizontalCenter: parent.horizontalCenter
         }
-        
+
         Text {
             text: "🎯 PneumoStabSim Professional\n⚡ Оптимизированная версия v4.1+"
             color: "#ffffff"
@@ -32,7 +32,7 @@ Rectangle {
             horizontalAlignment: Text.AlignHCenter
             anchors.horizontalCenter: parent.horizontalCenter
         }
-        
+
         Text {
             text: "СТАТУС ИСПРАВЛЕНИЯ:"
             color: "#ffaa00"
@@ -40,17 +40,17 @@ Rectangle {
             font.bold: true
             anchors.horizontalCenter: parent.horizontalCenter
         }
-        
+
         Column {
             anchors.horizontalCenter: parent.horizontalCenter
             spacing: 8
-            
+
             Text { text: "✅ QML загружается без ошибок"; color: "#cccccc"; font.pixelSize: 14 }
             Text { text: "✅ Плагин qquick3dplugin обойден"; color: "#cccccc"; font.pixelSize: 14 }
             Text { text: "✅ Интерфейс функционирует"; color: "#cccccc"; font.pixelSize: 14 }
             Text { text: "✅ Заглушка-виджет отключена"; color: "#cccccc"; font.pixelSize: 14 }
         }
-        
+
         Button {
             text: "🚀 ЗАПУСТИТЬ ПОЛНУЮ ВЕРСИЮ"
             anchors.horizontalCenter: parent.horizontalCenter
@@ -60,7 +60,7 @@ Rectangle {
             }
         }
     }
-    
+
     // Анимированный индикатор
     Rectangle {
         width: 60
@@ -70,7 +70,7 @@ Rectangle {
         anchors.bottom: parent.bottom
         anchors.right: parent.right
         anchors.margins: 30
-        
+
         Text {
             text: "✓"
             color: "#1a1a2e"
@@ -78,7 +78,7 @@ Rectangle {
             font.bold: true
             anchors.centerIn: parent
         }
-        
+
         SequentialAnimation on scale {
             loops: Animation.Infinite
             NumberAnimation { to: 1.2; duration: 1000 }

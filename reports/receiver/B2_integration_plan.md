@@ -30,7 +30,7 @@ set_receiver_volume = Signal(float, str)  # volume (m?), ReceiverVolumeMode
 def _on_receiver_volume_changed(self, volume: float, mode: str):
     # Map UI modes to ReceiverVolumeMode enum
     receiver_mode = 'NO_RECALC' if mode == 'MANUAL' else 'ADIABATIC_RECALC'
-    
+
     # Emit signal to physics thread
     self.simulation_manager.state_bus.set_receiver_volume.emit(volume, receiver_mode)
 ```
@@ -58,7 +58,7 @@ def set_receiver_volume(self, volume: float, mode: str):
 ```python
 receiver_params = {
     'receiverDiameter': diameter * 1000,  # m ? mm
-    'receiverLength': length * 1000,      # m ? mm  
+    'receiverLength': length * 1000,      # m ? mm
     'receiverVolume': volume * 1000000,   # m? ? cm?
 }
 ```
@@ -75,7 +75,7 @@ receiver_params = {
 + Signal parameters captured
 ?? Режим объёма: Геометрический (0.016 м?)
 
---- Parameter flow test ---  
+--- Parameter flow test ---
 + Mapping: MANUAL -> NO_RECALC
 + Mapping: GEOMETRIC -> ADIABATIC_RECALC
 
@@ -113,7 +113,7 @@ UI updated with new tank state
 **Интеграция с термодинамической логикой полностью реализована:**
 
 1. **UI ? Signals**: Работает ?
-2. **Signals ? MainWindow**: Работает ?  
+2. **Signals ? MainWindow**: Работает ?
 3. **MainWindow ? StateBus**: Работает ?
 4. **StateBus ? PhysicsWorker**: Работает ?
 5. **Mode Mapping**: Работает ?
@@ -123,5 +123,5 @@ UI updated with new tank state
 
 ---
 
-**Статус**: ? **ЗАВЕРШЕНО**  
+**Статус**: ? **ЗАВЕРШЕНО**
 **Следующий шаг**: **B-3. Тестирование полной интеграции с запущенной симуляцией**

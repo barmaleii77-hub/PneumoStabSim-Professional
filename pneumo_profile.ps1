@@ -15,9 +15,9 @@ function Start-PneumoStabSim {
         [switch]$Debug,
         [switch]$NoBlock
     )
-    
+
     Set-Location $PneumoPath
-    
+
     $arguments = @()
     if ($TestMode) { $arguments += "--test-mode" }
     if ($Monitor) { $arguments += "--monitor-perf" }
@@ -25,7 +25,7 @@ function Start-PneumoStabSim {
     if ($Legacy) { $arguments += "--legacy" }
     if ($Debug) { $arguments += "--debug" }
     if ($NoBlock) { $arguments += "--no-block" }
-    
+
     Write-Host "🚀 Запуск PneumoStabSim..." -ForegroundColor Green
     py app.py @arguments
 }

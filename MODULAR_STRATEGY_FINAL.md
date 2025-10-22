@@ -1,7 +1,7 @@
 # ✅ МОДУЛЬНАЯ АРХИТЕКТУРА - ФИНАЛЬНАЯ СТРАТЕГИЯ
 
-**Дата:** 2025-01-18  
-**Версия:** v4.9.5 MODULAR  
+**Дата:** 2025-01-18
+**Версия:** v4.9.5 MODULAR
 **Статус:** 🎉 **STRATEGY COMPLETE - NO MONOLITH!**
 
 ---
@@ -13,7 +13,7 @@
 // main.qml - МОНОЛИТ
 Node {
     id: worldRoot
-    
+
     // 80 строк FL suspension (инлайн)
     Node {
         Model { /* lever */ }
@@ -23,7 +23,7 @@ Node {
         Model { /* piston rod */ }
         Model { /* 3 joints */ }
     }
-    
+
     // 80 строк FR suspension (инлайн)
     // 80 строк RL suspension (инлайн)
     // 80 строк RR suspension (инлайн)
@@ -36,7 +36,7 @@ Node {
 // main.qml - КОМПАКТНЫЙ
 Node {
     id: worldRoot
-    
+
     Frame {
         id: frameGeometry
         worldRoot: worldRoot
@@ -45,7 +45,7 @@ Node {
         frameLength: root.userFrameLength
         frameMaterial: PrincipledMaterial { /* ... */ }
     }
-    
+
     SuspensionCorner { id: flCorner; j_arm: ...; /* ... */ }
     SuspensionCorner { id: frCorner; j_arm: ...; /* ... */ }
     SuspensionCorner { id: rlCorner; j_arm: ...; /* ... */ }
@@ -84,7 +84,7 @@ Node {
     required property real frameHeight
     required property real frameLength
     required property var frameMaterial
-    
+
     // 3 балки (bottom, front, rear)
 }
 ```
@@ -117,15 +117,15 @@ Node {
     required property vector3d j_tail
     required property real leverAngle
     required property real pistonPositionFromPython
-    
+
     property real leverLength: 800
     property real rodPosition: 0.6
     // ... остальные параметры ...
-    
+
     required property var leverMaterial
     required property var tailRodMaterial
     // ... остальные материалы ...
-    
+
     // 8 компонентов: lever, tailRod, cylinder, piston, pistonRod, 3 joints
 }
 ```
@@ -134,17 +134,17 @@ Node {
 ```qml
 SuspensionCorner {
     id: flCorner
-    
+
     j_arm: Qt.vector3d(-root.userTrackWidth/2, root.userBeamSize, root.userFrameToPivot)
     j_tail: Qt.vector3d(-root.userTrackWidth/2, root.userBeamSize + root.userFrameHeight, root.userFrameToPivot)
-    
+
     leverAngle: root.fl_angle
     pistonPositionFromPython: root.userPistonPositionFL
-    
+
     leverLength: root.userLeverLength
     rodPosition: root.userRodPosition
     // ... остальные параметры ...
-    
+
     leverMaterial: PrincipledMaterial { /* ... */ }
     // ... остальные материалы ...
 }
@@ -162,7 +162,7 @@ DirectionalLights {
     id: directionalLights
     worldRoot: worldRoot
     cameraRig: cameraRig
-    
+
     keyLightBrightness: root.keyLightBrightness
     // ... параметры ...
 }
@@ -171,7 +171,7 @@ PointLights {
     id: pointLights
     worldRoot: worldRoot
     cameraRig: cameraRig
-    
+
     pointLightBrightness: root.pointLightBrightness
     // ... параметры ...
 }
@@ -189,7 +189,7 @@ MouseArea {
     property real orbitYaw: 30
     property real orbitPitch: -20
     property real orbitDistance: 4000
-    
+
     function updateCameraOrbit() { /* ... */ }
 }
 ```
@@ -209,20 +209,20 @@ import "lighting" // DirectionalLights, PointLights
 
 Item {
     id: root
-    
+
     // ✅ Свойства (~100 строк)
-    
+
     View3D {
         Node {
             id: worldRoot
-            
+
             // ✅ Камера (инлайн, 20 строк)
             // ✅ Освещение (инлайн, 30 строк)
             // ❌ Frame (инлайн, 60 строк) → ЗАМЕНИТЬ НА МОДУЛЬ
             // ❌ FL suspension (инлайн, 80 строк) → ЗАМЕНИТЬ НА МОДУЛЬ
         }
     }
-    
+
     // ✅ Info panel (40 строк)
     // ✅ Mouse controls (80 строк)
 }
@@ -242,20 +242,20 @@ import "camera"   // CameraController
 
 Item {
     id: root
-    
+
     // ✅ Свойства (~100 строк)
-    
+
     View3D {
         Node {
             id: worldRoot
-            
+
             // ✅ Frame module (12 строк)
             // ✅ DirectionalLights module (10 строк)
             // ✅ PointLights module (8 строк)
             // ✅ 4x SuspensionCorner modules (120 строк = 30 × 4)
         }
     }
-    
+
     // ✅ CameraController module (20 строк)
     // ✅ Info panel (40 строк)
 }
@@ -372,7 +372,7 @@ main.qml:
   - 100 строк свойств
   - 150 строк модулей (Frame + 4 corners + Lights + Camera)
   - 50 строк UI (info panel)
-  
+
 ИТОГО: ~300 строк (вместо 1500+)
 ```
 
@@ -405,11 +405,11 @@ main.qml:
 
 ---
 
-**Вы правы: НЕ РАЗДУВАТЬ QML!** 🎯  
+**Вы правы: НЕ РАЗДУВАТЬ QML!** 🎯
 **Используем МОДУЛИ!** 🚀
 
 ---
 
-**Автор:** GitHub Copilot  
-**Дата:** 2025-01-18  
+**Автор:** GitHub Copilot
+**Дата:** 2025-01-18
 **Версия:** MODULAR STRATEGY FINAL

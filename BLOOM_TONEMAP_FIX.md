@@ -1,7 +1,7 @@
 # 🔧 КРИТИЧЕСКИЕ ИСПРАВЛЕНИЯ: Bloom и Tonemapping
 
-**Дата:** 2025-01-12  
-**Статус:** ✅ ИСПРАВЛЕНО  
+**Дата:** 2025-01-12
+**Статус:** ✅ ИСПРАВЛЕНО
 **Версия:** PneumoStabSim Professional v4.9.5
 
 ---
@@ -20,7 +20,7 @@
 ```qml
 function applyEffectsUpdates(p) {
     if (!p) return;
-    if (typeof p.bloom_enabled === 'boolean') 
+    if (typeof p.bloom_enabled === 'boolean')
         setIfExists(env, 'glowEnabled', p.bloom_enabled);  // ❌ Вызывает crash
     // ...
 }
@@ -31,7 +31,7 @@ function applyEffectsUpdates(p) {
 function applyEffectsUpdates(p) {
     if (!p) return;
     try {
-        if (typeof p.bloom_enabled === 'boolean') 
+        if (typeof p.bloom_enabled === 'boolean')
             env.glowEnabled = p.bloom_enabled;  // ✅ Прямое присваивание
         // ...
     } catch (e) {
@@ -57,7 +57,7 @@ function applyEffectsUpdates(p) {
 ```qml
 function applyEffectsUpdates(p) {
     // ...
-    if (typeof p.tonemap_enabled === 'boolean') 
+    if (typeof p.tonemap_enabled === 'boolean')
         env.tonemapEnabled = p.tonemap_enabled;  // ❌ Свойство не существует!
     // ...
 }
@@ -107,7 +107,7 @@ function applyEffectsUpdates(p) {
         if (typeof p.bloom_hdr_scale === 'number') env.glowHDRScale = p.bloom_hdr_scale;
         if (typeof p.bloom_quality_high === 'boolean') env.glowQualityHigh = p.bloom_quality_high;
         if (typeof p.bloom_bicubic_upscale === 'boolean') env.glowUseBicubicUpscale = p.bloom_bicubic_upscale;
-        
+
         // Tonemapping
         if (typeof p.tonemap_enabled === 'boolean') env.tonemapEnabled = p.tonemap_enabled;
         if (p.tonemap_mode) {
@@ -121,12 +121,12 @@ function applyEffectsUpdates(p) {
         }
         if (typeof p.tonemap_exposure === 'number') env.tonemapExposure = p.tonemap_exposure;
         if (typeof p.tonemap_white_point === 'number') env.tonemapWhitePoint = p.tonemap_white_point;
-        
+
         // Depth of Field
         if (typeof p.depth_of_field === 'boolean') env.depthOfFieldEnabled = p.depth_of_field;
         if (typeof p.dof_focus_distance === 'number') env.depthOfFieldFocusDistance = p.dof_focus_distance;
         if (typeof p.dof_blur === 'number') env.depthOfFieldBlurAmount = p.dof_blur;
-        
+
         // Lens Flare
         if (typeof p.lens_flare === 'boolean') env.lensFlareEnabled = p.lens_flare;
         if (typeof p.lens_flare_ghost_count === 'number') env.lensFlareGhostCount = p.lens_flare_ghost_count;
@@ -134,12 +134,12 @@ function applyEffectsUpdates(p) {
         if (typeof p.lens_flare_halo_width === 'number') env.lensFlareHaloWidth = p.lens_flare_halo_width;
         if (typeof p.lens_flare_bloom_bias === 'number') env.lensFlareBloomBias = p.lens_flare_bloom_bias;
         if (typeof p.lens_flare_stretch_to_aspect === 'boolean') env.lensFlareStretchToAspect = p.lens_flare_stretch_to_aspect;
-        
+
         // Vignette
         if (typeof p.vignette === 'boolean') env.vignetteEnabled = p.vignette;
         if (typeof p.vignette_strength === 'number') env.vignetteStrength = p.vignette_strength;
         if (typeof p.vignette_radius === 'number') env.vignetteRadius = p.vignette_radius;
-        
+
         // Color Adjustments
         if (typeof p.adjustment_brightness === 'number') env.colorAdjustmentBrightness = p.adjustment_brightness;
         if (typeof p.adjustment_contrast === 'number') env.colorAdjustmentContrast = p.adjustment_contrast;
@@ -158,7 +158,7 @@ function applyEffectsUpdates(p) {
     try {
         // Bloom (без изменений)
         // ...
-        
+
         // Tonemapping - В Qt 6.10 управляется ТОЛЬКО через tonemapMode
         // Если tonemap_enabled=false, устанавливаем TonemapModeNone
         // Если tonemap_enabled=true, используем указанный режим
@@ -189,7 +189,7 @@ function applyEffectsUpdates(p) {
         }
         if (typeof p.tonemap_exposure === 'number') env.exposure = p.tonemap_exposure;
         if (typeof p.tonemap_white_point === 'number') env.whitePoint = p.tonemap_white_point;
-        
+
         // Другие эффекты...
     } catch (e) {
         console.error("⚠️ Ошибка применения эффектов:", e);
@@ -336,6 +336,6 @@ python app.py
 
 ---
 
-**Автор исправления:** GitHub Copilot  
-**Дата:** 2025-01-12  
+**Автор исправления:** GitHub Copilot
+**Дата:** 2025-01-12
 **Статус:** ✅ ГОТОВО К РЕЛИЗУ

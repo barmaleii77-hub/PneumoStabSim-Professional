@@ -1,6 +1,6 @@
 # ?? КРИТИЧЕСКАЯ ДИАГНОСТИКА: Черная канва и статичные графики
 
-**Дата:** 3 января 2025, 12:00 UTC  
+**Дата:** 3 января 2025, 12:00 UTC
 **Проблемы:**
 1. ? Черная канва вместо 3D анимации
 2. ? График давления не меняется (всегда 101325 Pa)
@@ -45,13 +45,13 @@ def assemble_forces(...):
     # ...
     for i, wheel_name in enumerate(wheel_names):
         # ...
-        
+
         # TODO: Calculate pneumatic cylinder force
         F_cyl_axis = 0.0  # ? ПРОБЛЕМА! Всегда 0
-        
+
         # TODO: Calculate spring force
         F_spring_axis = 0.0  # ? ПРОБЛЕМА! Всегда 0
-        
+
         # TODO: Calculate damper force
         F_damper_axis = 0.0  # ? ПРОБЛЕМА! Всегда 0
 ```
@@ -117,7 +117,7 @@ self.pressure = 101325.0  # Атмосферное давление (дефолт)
 def _update_render(self):
     if not self._qml_root_object:
         return  # ? Если root = None, рендеринг НЕ работает
-    
+
     # Update QML properties...
 ```
 
@@ -153,47 +153,47 @@ PerspectiveCamera {
 **Добавить базовую пружину и демпфер:**
 
 ```python
-def assemble_forces(system: Any, gas: Any, y: np.ndarray, 
+def assemble_forces(system: Any, gas: Any, y: np.ndarray,
                    params: RigidBody3DOF) -> Tuple[np.ndarray, float, float]:
     """Assemble forces and moments from suspension system"""
     Y, phi_z, theta_x, dY, dphi_z, dtheta_x = y
-    
+
     wheel_names = ['LP', 'PP', 'LZ', 'PZ']
     vertical_forces = np.zeros(4)
-    
+
     # TEMPORARY: Add basic spring/damper until pneumatics connected
     k_spring = 50000.0  # N/m (spring constant)
     c_damper = 2000.0   # N·s/m (damping coefficient)
-    
+
     for i, wheel_name in enumerate(wheel_names):
         x_i, z_i = params.attachment_points.get(wheel_name, (0.0, 0.0))
-        
+
         # Calculate wheel vertical position relative to frame
         # Y is heave (positive down), so suspension compression is Y
         compression = Y  # Simplified
-        
+
         # Spring force (resists compression, acts upward = negative)
         F_spring = -k_spring * compression
-        
+
         # Damper force (resists velocity, acts upward if moving down)
         F_damper = -c_damper * dY
-        
+
         # Pneumatic force (TODO: get from gas network)
         F_pneumatic = 0.0
-        
+
         # Total vertical force (positive downward)
         F_total = F_spring + F_damper + F_pneumatic
         vertical_forces[i] = F_total
-    
+
     # Calculate moments
     tau_x = 0.0
     tau_z = 0.0
-    
+
     for i, wheel_name in enumerate(wheel_names):
         x_i, z_i = params.attachment_points.get(wheel_name, (0.0, 0.0))
         tau_x += vertical_forces[i] * z_i
         tau_z += vertical_forces[i] * x_i
-    
+
     return vertical_forces, tau_x, tau_z
 ```
 
@@ -242,14 +242,14 @@ def _update_render(self):
     if not self._qml_root_object:
         print("??  QML root object is None!")  # DEBUG
         return
-    
+
     # Debug: print first time
     if not hasattr(self, '_debug_printed'):
         print(f"? QML root object: {self._qml_root_object}")
         print(f"  width: {self._qml_root_object.property('width')}")
         print(f"  height: {self._qml_root_object.property('height')}")
         self._debug_printed = True
-    
+
     # Update properties...
 ```
 
@@ -412,7 +412,7 @@ def _update_pressure_data(self, snapshot: StateSnapshot):
 
 ---
 
-**Дата завершения диагностики:** 3 января 2025, 12:00 UTC  
+**Дата завершения диагностики:** 3 января 2025, 12:00 UTC
 **Статус:** ?? **КРИТИЧЕСКИЕ ПРОБЛЕМЫ ТРЕБУЮТ НЕМЕДЛЕННОГО ИСПРАВЛЕНИЯ**
 
 ?? **ПРИЛОЖЕНИЕ НЕ ФУНКЦИОНАЛЬНО БЕЗ ИСПРАВЛЕНИЙ!** ??

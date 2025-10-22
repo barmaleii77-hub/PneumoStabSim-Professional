@@ -1,7 +1,7 @@
 # ✅ КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Разделение IBL флагов (v4.9.5)
 
-**Дата:** 2025  
-**Версия:** main.qml v4.9.5  
+**Дата:** 2025
+**Версия:** main.qml v4.9.5
 **Статус:** ✅ ПОЛНОСТЬЮ ИСПРАВЛЕНО
 
 ---
@@ -89,7 +89,7 @@ if (params.ibl) {
         iblEnabled = !!ibl.enabled
         // ❌ УДАЛЕНО: iblLightingEnabled = iblEnabled
     }
-    
+
     // ✅ Отдельные флаги управляются НЕЗАВИСИМО
     if (ibl.lighting_enabled !== undefined) iblLightingEnabled = !!ibl.lighting_enabled
     if (ibl.background_enabled !== undefined) iblBackgroundEnabled = !!ibl.background_enabled
@@ -216,8 +216,7 @@ iblBackgroundEnabled: true  // ✅ Включено
 
 ---
 
-**Версия:** v4.9.5  
-**Дата:** 2025  
-**Автор:** GitHub Copilot  
+**Версия:** v4.9.5
+**Дата:** 2025
+**Автор:** GitHub Copilot
 **Статус:** 🟢 PRODUCTION READY
-

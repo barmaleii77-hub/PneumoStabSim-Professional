@@ -55,3 +55,12 @@ repos:
      - id: python-check-blanket-type-ignore
      - id: python-no-eval
      - id: python-use-type-annotations
+
+ # Local hook: Check UTF-8 encoding for UI files
+ - repo: local
+   hooks:
+     - id: check-ui-utf8
+       name: Check UI files for UTF-8 encoding
+       entry: python tools/check_ui_utf8.py
+       language: system
+       pass_filenames: false

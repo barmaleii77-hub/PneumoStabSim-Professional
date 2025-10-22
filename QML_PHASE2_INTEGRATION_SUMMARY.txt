@@ -67,7 +67,7 @@ Aliases added to main.qml:
   • cameraPitch → cameraController.pitchDeg
   • pivot → cameraController.pivot
   • cameraIsMoving → cameraController.isMoving
-  
+
 Settings (writeable):
   • cameraFov
   • cameraNear
@@ -169,4 +169,3 @@ Next: Visual testing to verify functionality
 CAMERA INTEGRATION SUCCESSFUL! 🚀
 
 ═══════════════════════════════════════════════════════════
-

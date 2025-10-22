@@ -1,7 +1,7 @@
 # 🚨 КРИТИЧЕСКИЙ ПЛАН: QML РЕФАКТОРИНГ MAIN.QML
 
-**Дата:** 2025-01-05  
-**Проблема:** `main.qml` = **6200+ строк МОНОЛИТ**  
+**Дата:** 2025-01-05
+**Проблема:** `main.qml` = **6200+ строк МОНОЛИТ**
 **Решение:** Разбить на модули используя УЖЕ СОЗДАННУЮ структуру
 
 ---
@@ -31,7 +31,7 @@ assets/qml/
 ```
 assets/qml/
 ├── lighting/       ❌ НЕТ! Освещение ВСЁ ЕЩЁ В МОНОЛИТЕ
-├── materials/      ❌ НЕТ! Материалы ВСЁ ЕЩЁ В МОНОЛИТЕ  
+├── materials/      ❌ НЕТ! Материалы ВСЁ ЕЩЁ В МОНОЛИТЕ
 ├── effects/        ❌ НЕТ! Эффекты ВСЁ ЕЩЁ В МОНОЛИТЕ
 ├── geometry/       ❌ НЕТ! Геометрия подвески ВСЁ ЕЩЁ В МОНОЛИТЕ
 └── environment/    ❌ НЕТ! IBL/Fog/Environment ВСЁ ЕЩЁ В МОНОЛИТЕ
@@ -52,14 +52,14 @@ import QtQuick3D
 
 Node {
     id: root
-    
+
     // Properties
     property real keyLightBrightness: 1.2
     property color keyLightColor: "#ffffff"
     property real keyLightAngleX: -35
     property real keyLightAngleY: -40
     // ... все остальные свойства освещения
-    
+
     // 3 DirectionalLight компонента
     DirectionalLight { id: keyLight; ... }
     DirectionalLight { id: fillLight; ... }
@@ -123,7 +123,7 @@ CylinderMaterial 1.0 CylinderMaterial.qml
 
 ---
 
-### ФАЗА 3: GEOMETRY MODULE (1.5 часа) 
+### ФАЗА 3: GEOMETRY MODULE (1.5 часа)
 
 **Создать:** `assets/qml/geometry/`
 
@@ -136,15 +136,15 @@ import "../materials"
 
 Node {
     id: root
-    
+
     property vector3d j_arm
-    property vector3d j_tail  
+    property vector3d j_tail
     property real leverAngle
     property real pistonPositionFromPython: 250.0
-    
+
     // ✅ Используем GeometryCalculations из core/
     readonly property vector3d j_rod: GeometryCalculations.calculateJRodPosition(...)
-    
+
     // Model компоненты для lever, cylinder, piston, joints
 }
 
@@ -182,7 +182,7 @@ ExtendedSceneEnvironment {
     property bool bloomEnabled: true
     property real bloomIntensity: 0.5
     // ... все остальные эффекты
-    
+
     // Bind свойства к ExtendedSceneEnvironment
     glowEnabled: bloomEnabled
     glowIntensity: bloomIntensity
@@ -210,7 +210,7 @@ import "../components"  // IblProbeLoader
 
 Node {
     id: root
-    
+
     property url iblPrimarySource
     property url iblFallbackSource
     property bool iblEnabled
@@ -218,7 +218,7 @@ Node {
     property bool iblBackgroundEnabled
     property real iblRotationDeg
     property real iblIntensity
-    
+
     IblProbeLoader {
         id: iblLoader
         primarySource: root.iblPrimarySource
@@ -262,32 +262,32 @@ import "environment"     // ✅ НОВЫЙ MODULE
 
 Item {
     id: root
-    
+
     // ✅ ТОЛЬКО root properties (флаги, координаты)
     // ✅ StateCache для кэширования
     // ✅ Python integration functions (applyBatchedUpdates, etc.)
-    
+
     View3D {
         id: view3d
-        
+
         // ✅ ИСПОЛЬЗУЕМ МОДУЛИ:
         environment: ExtendedEnvironment {
             // ✅ Делегируем в effects/ExtendedEnvironment.qml
         }
-        
+
         // ✅ Camera system
         CameraController { id: cameraController; ... }
-        
+
         // ✅ Lighting system
         DirectionalLights { id: dirLights; ... }
         PointLights { id: pointLights; ... }
-        
+
         // ✅ Environment system
         IBL { id: ibl; ... }
-        
+
         // ✅ Geometry system
         Frame { id: frame; ... }
-        
+
         SuspensionCorner { id: flCorner; ... }
         SuspensionCorner { id: frCorner; ... }
         SuspensionCorner { id: rlCorner; ... }
@@ -347,7 +347,7 @@ python app.py
 
 ## 🚀 СЛЕДУЮЩИЙ ШАГ: НАЧАТЬ РЕФАКТОРИНГ!
 
-**Приоритет:** **КРИТИЧЕСКИЙ**  
+**Приоритет:** **КРИТИЧЕСКИЙ**
 **Срок:** **1 рабочий день** (5-6 часов чистой работы)
 
 **Команда для начала:**
@@ -372,6 +372,6 @@ code assets/qml/lighting/DirectionalLights.qml
 
 ---
 
-**СТАТУС:** 🚨 ТРЕБУЕТ НЕМЕДЛЕННОГО ВНИМАНИЯ  
-**АВТОР:** GitHub Copilot  
+**СТАТУС:** 🚨 ТРЕБУЕТ НЕМЕДЛЕННОГО ВНИМАНИЯ
+**АВТОР:** GitHub Copilot
 **ДАТА:** 2025-01-05

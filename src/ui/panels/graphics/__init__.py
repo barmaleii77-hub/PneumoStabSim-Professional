@@ -21,12 +21,17 @@ MIGRATION STATUS: ✅ Рефакторинг завершён! v3.0 - SettingsMa
 # ✅ REFACTORED VERSION: Используем новый модульный координатор
 try:
     from .panel_graphics_refactored import GraphicsPanel
+
     _USING_REFACTORED = True
 except ImportError as e:
     # Fallback к старой монолитной версии (если что-то сломалось)
     import logging
-    logging.getLogger(__name__).warning(f"Failed to load refactored version: {e}, falling back to legacy")
+
+    logging.getLogger(__name__).warning(
+        f"Failed to load refactored version: {e}, falling back to legacy"
+    )
     from ..panel_graphics import GraphicsPanel
+
     _USING_REFACTORED = False
 
 # Экспорт вкладок (для прямого импорта если нужно)
@@ -46,29 +51,29 @@ from src.common.settings_manager import get_settings_manager
 
 __all__ = [
     # ✅ Главный класс (REFACTORED v3.0!)
-    'GraphicsPanel',
-    
+    "GraphicsPanel",
     # Вкладки
-    'LightingTab',
-    'EnvironmentTab',
-    'QualityTab',
-    'CameraTab',
-    'MaterialsTab',
-    'EffectsTab',
-    
+    "LightingTab",
+    "EnvironmentTab",
+    "QualityTab",
+    "CameraTab",
+    "MaterialsTab",
+    "EffectsTab",
     # Виджеты
-    'ColorButton',
-    'LabeledSlider',
-    
+    "ColorButton",
+    "LabeledSlider",
     # Утилиты
-    'GraphicsStateManager',
-    'get_settings_manager',  # ✅ НОВОЕ: Экспорт SettingsManager
+    "GraphicsStateManager",
+    "get_settings_manager",  # ✅ НОВОЕ: Экспорт SettingsManager
 ]
 
 # Вывод статуса загрузки
 import logging
+
 _logger = logging.getLogger(__name__)
 if _USING_REFACTORED:
     _logger.info("✅ GraphicsPanel: REFACTORED version v3.0 loaded (SettingsManager)")
 else:
-    _logger.warning("⚠️ GraphicsPanel: Using LEGACY version (~2600 lines) - migration incomplete")
+    _logger.warning(
+        "⚠️ GraphicsPanel: Using LEGACY version (~2600 lines) - migration incomplete"
+    )

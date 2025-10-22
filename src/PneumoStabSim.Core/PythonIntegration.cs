@@ -33,7 +33,7 @@ namespace PneumoStabSim.Core
 
                 // Find Python executable
                 _pythonExecutable = FindPythonExecutable();
-                
+
                 if (string.IsNullOrEmpty(_pythonExecutable))
                 {
                     _logger.LogError("Python executable not found");
@@ -42,7 +42,7 @@ namespace PneumoStabSim.Core
 
                 // Test Python installation
                 var testResult = ExecutePythonCommand("import sys; print(sys.version)");
-                
+
                 if (!testResult.Success)
                 {
                     _logger.LogError($"Python test failed: {testResult.Error}");
@@ -129,7 +129,7 @@ except ImportError as e:
             {
                 // Convert arguments to JSON for Python
                 var argsJson = JsonSerializer.Serialize(args);
-                
+
                 var script = $@"
 import sys
 import json
@@ -143,7 +143,7 @@ print(json.dumps(result) if result is not None else 'null')
 ";
 
                 var result = ExecutePythonCommand(script);
-                
+
                 if (!result.Success || string.IsNullOrEmpty(result.Output))
                 {
                     return default;
@@ -153,7 +153,7 @@ print(json.dumps(result) if result is not None else 'null')
                 {
                     return (T)(object)result.Output.Trim();
                 }
-                
+
                 try
                 {
                     return JsonSerializer.Deserialize<T>(result.Output.Trim());
@@ -174,7 +174,7 @@ print(json.dumps(result) if result is not None else 'null')
         private string? FindPythonExecutable()
         {
             var candidates = new[] { "python", "python3", "py" };
-            
+
             foreach (var candidate in candidates)
             {
                 try
@@ -234,7 +234,7 @@ print(json.dumps(result) if result is not None else 'null')
                 };
 
                 process.Start();
-                
+
                 // Send the command to Python
                 process.StandardInput.WriteLine(command);
                 process.StandardInput.Close();
@@ -298,17 +298,17 @@ print(json.dumps(result) if result is not None else 'null')
 
                     if (!_pythonEngine.IsInitialized)
                     {
-                        return new SimulationResult 
-                        { 
-                            Success = false, 
-                            ErrorMessage = "Python engine not initialized" 
+                        return new SimulationResult
+                        {
+                            Success = false,
+                            ErrorMessage = "Python engine not initialized"
                         };
                     }
 
                     // Create a simulation script
                     var parametersJson = JsonSerializer.Serialize(parameters);
                     var escapedJson = parametersJson.Replace("'", "\\'").Replace("\"", "\\\"");
-                    
+
                     var script = $@"
 import json
 import sys
@@ -338,13 +338,13 @@ print(json.dumps(result))
 ";
 
                     var result = _pythonEngine.ExecuteScript(script);
-                    
+
                     if (result == null)
                     {
-                        return new SimulationResult 
-                        { 
-                            Success = false, 
-                            ErrorMessage = "No result from Python simulation" 
+                        return new SimulationResult
+                        {
+                            Success = false,
+                            ErrorMessage = "No result from Python simulation"
                         };
                     }
 
@@ -357,20 +357,20 @@ print(json.dumps(result))
                     catch (JsonException ex)
                     {
                         _logger.LogError(ex, "Failed to deserialize simulation result");
-                        return new SimulationResult 
-                        { 
-                            Success = false, 
-                            ErrorMessage = $"Deserialization error: {ex.Message}" 
+                        return new SimulationResult
+                        {
+                            Success = false,
+                            ErrorMessage = $"Deserialization error: {ex.Message}"
                         };
                     }
                 }
                 catch (Exception ex)
                 {
                     _logger.LogError(ex, "Error running Python simulation");
-                    return new SimulationResult 
-                    { 
-                        Success = false, 
-                        ErrorMessage = ex.Message 
+                    return new SimulationResult
+                    {
+                        Success = false,
+                        ErrorMessage = ex.Message
                     };
                 }
             });
@@ -451,7 +451,7 @@ print(json.dumps(result))
 
                     var parametersJson = JsonSerializer.Serialize(parameters);
                     var escapedJson = parametersJson.Replace("'", "\\'").Replace("\"", "\\\"");
-                    
+
                     var script = $@"
 import json
 parameters = json.loads(r'{escapedJson}')

@@ -244,17 +244,17 @@ function applyGeometryUpdates(params) { }
 ```qml
 /*
  * OrbitalCamera - Orbital camera system
- * 
+ *
  * Features:
  *  - Mouse controls (LMB rotate, RMB pan, wheel zoom)
  *  - Auto-rotation mode
  *  - Reset view (R key or double-click)
- * 
+ *
  * Properties:
  *  - cameraDistance: Distance from pivot (mm)
  *  - yawDeg: Horizontal rotation (degrees)
  *  - pitchDeg: Vertical rotation (degrees)
- * 
+ *
  * Functions:
  *  - resetView(): Reset camera to default position
  *  - autoFitFrame(): Fit frame in view
@@ -334,7 +334,7 @@ tests/qml/
 ## ⚠️ Риски и митигация
 
 ### Риск 1: Поломка Python↔QML API
-**Митигация:** 
+**Митигация:**
 - Сохранить старый `main.qml` как `main_legacy.qml`
 - Протестировать все Python функции после каждой фазы
 - Использовать integration тесты

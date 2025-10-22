@@ -1,7 +1,7 @@
 # 🔧 КРИТИЧЕСКИЕ ИСПРАВЛЕНИЯ СИНХРОНИЗАЦИИ ПАНЕЛИ ГРАФИКИ И QML
 
-**Дата:** 2025-01-12  
-**Статус:** 🚨 НАЙДЕНЫ КРИТИЧЕСКИЕ ПРОБЛЕМЫ  
+**Дата:** 2025-01-12
+**Статус:** 🚨 НАЙДЕНЫ КРИТИЧЕСКИЕ ПРОБЛЕМЫ
 **Приоритет:** ВЫСОКИЙ
 
 ---
@@ -26,9 +26,9 @@
 ```qml
 function applyLightingUpdates(params) {
     if (params.key_light) {
-        if (params.key_light.brightness !== undefined) 
+        if (params.key_light.brightness !== undefined)
             keyLightBrightness = params.key_light.brightness  // ✅ OK
-        
+
         // ❌ ОШИБКА: QML не имеет свойства pointLightPositionY!
         // QML использует: pointLightY (без "Position")
     }
@@ -117,11 +117,11 @@ property real pointLightPositionY: 2200.0  // Соответствует Python 
 function applyLightingUpdates(params) {
     if (params.point_light) {
         // ❌ БЫЛО:
-        if (params.point_light.position_y !== undefined) 
+        if (params.point_light.position_y !== undefined)
             pointLightY = params.point_light.position_y
-        
+
         // ✅ ИЛИ ИСПОЛЬЗОВАТЬ height:
-        if (params.point_light.height !== undefined) 
+        if (params.point_light.height !== undefined)
             pointLightY = params.point_light.height
     }
 }
@@ -140,16 +140,16 @@ function applyLightingUpdates(params) {
 ```qml
 function applyCameraUpdates(params) {
     console.log("📷 main.qml: applyCameraUpdates() called")
-    
+
     if (params.fov !== undefined) cameraFov = params.fov
     if (params.near !== undefined) cameraNear = params.near
     if (params.far !== undefined) cameraFar = params.far
     if (params.speed !== undefined) cameraSpeed = params.speed
-    
+
     // ✅ КРИТИЧЕСКОЕ: проверьте, что эти строки есть!
     if (params.auto_rotate !== undefined) autoRotate = params.auto_rotate
     if (params.auto_rotate_speed !== undefined) autoRotateSpeed = params.auto_rotate_speed
-    
+
     console.log("  ✅ Camera updated successfully")
 }
 ```
@@ -167,26 +167,26 @@ function applyCameraUpdates(params) {
 ```qml
 function applyEffectsUpdates(params) {
     console.log("✨ main.qml: applyEffectsUpdates() called")
-    
+
     // Bloom
     if (params.bloom_enabled !== undefined) bloomEnabled = params.bloom_enabled
     if (params.bloom_intensity !== undefined) bloomIntensity = params.bloom_intensity
     if (params.bloom_threshold !== undefined) bloomThreshold = params.bloom_threshold
     if (params.bloom_spread !== undefined) bloomSpread = params.bloom_spread
-    
+
     // ✅ КРИТИЧЕСКОЕ: проверить vignette_strength
     if (params.vignette !== undefined) vignetteEnabled = params.vignette
     if (params.vignette_strength !== undefined) vignetteStrength = params.vignette_strength
-    
+
     // ✅ Motion Blur
     if (params.motion_blur !== undefined) motionBlurEnabled = params.motion_blur
     if (params.motion_blur_amount !== undefined) motionBlurAmount = params.motion_blur_amount
-    
+
     // ✅ DoF
     if (params.depth_of_field !== undefined) depthOfFieldEnabled = params.depth_of_field
     if (params.dof_focus_distance !== undefined) dofFocusDistance = params.dof_focus_distance
     if (params.dof_blur !== undefined) dofBlurAmount = params.dof_blur
-    
+
     // ✅ Tonemap
     if (params.tonemap_enabled !== undefined) tonemapEnabled = params.tonemap_enabled
     if (params.tonemap_mode !== undefined) {
@@ -194,7 +194,7 @@ function applyEffectsUpdates(params) {
         if (allowedModes.indexOf(params.tonemap_mode) !== -1)
             tonemapModeName = params.tonemap_mode
     }
-    
+
     console.log("  ✅ Visual effects updated successfully")
 }
 ```
@@ -273,14 +273,14 @@ python app.py
 
 После исправлений:
 
-✅ **Освещение:** Все параметры применяются мгновенно  
-✅ **Камера:** Автовращение работает корректно  
-✅ **Эффекты:** Vignette, Motion Blur, DoF функционируют  
-✅ **Производительность:** Нет задержек при обновлении  
+✅ **Освещение:** Все параметры применяются мгновенно
+✅ **Камера:** Автовращение работает корректно
+✅ **Эффекты:** Vignette, Motion Blur, DoF функционируют
+✅ **Производительность:** Нет задержек при обновлении
 ✅ **Стабильность:** Нет ошибок в консоли QML
 
 ---
 
-*Отчет создан автоматическим анализатором синхронизации*  
-*Система: PneumoStabSim Professional Graphics Analysis v2.0*  
+*Отчет создан автоматическим анализатором синхронизации*
+*Система: PneumoStabSim Professional Graphics Analysis v2.0*
 *Дата: 2025-01-12*

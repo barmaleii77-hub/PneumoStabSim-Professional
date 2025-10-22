@@ -16,11 +16,11 @@ os.environ["QT_ASSUME_STDERR_HAS_CONSOLE"] = "1"
 from PySide6.QtWidgets import QApplication
 from PySide6.QtCore import qInstallMessageHandler, QtMsgType
 
-from src.common import init_logging, log_ui_event
+from src.common import init_logging
 from src.ui.main_window import MainWindow
 
 # Import custom geometry types
-from src.ui.custom_geometry import SphereGeometry, CubeGeometry
+
 
 def qt_message_handler(mode, context, message):
     """Handle Qt log messages - print all to console"""
@@ -36,43 +36,47 @@ def qt_message_handler(mode, context, message):
         elif mode == QtMsgType.QtInfoMsg:
             print(f"INFO: {message}")
 
+
 def main():
     logger = init_logging("PneumoStabSim", Path("logs"))
-    
+
     print("=== MAIN APP TEST WITH QML LOGGING ===")
     print("Looking for QML console.log messages...")
     print()
-    
+
     app = QApplication(sys.argv)
     qInstallMessageHandler(qt_message_handler)
-    
+
     app.setApplicationName("PneumoStabSim")
-    
+
     try:
         window = MainWindow()
         window.show()
-        
-        print("\n" + "="*60)
+
+        print("\n" + "=" * 60)
         print("APP RUNNING - Check for QML messages above")
         print("Expected:")
         print("  ?? QML: Custom sphere created")
         print("  ?? QML: Geometry: SphereGeometry(...)")
-        print("="*60)
-        
+        print("=" * 60)
+
         # Run for a few seconds then exit
         import time
+
         time.sleep(2)
-        
+
         print("\nClosing after 2 seconds...")
         window.close()
-        
+
         return 0
-        
+
     except Exception as e:
         print(f"\nERROR: {e}")
         import traceback
+
         traceback.print_exc()
         return 1
+
 
 if __name__ == "__main__":
     sys.exit(main())

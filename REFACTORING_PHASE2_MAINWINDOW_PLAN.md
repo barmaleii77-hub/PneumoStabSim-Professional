@@ -39,27 +39,27 @@ touch src/ui/main_window/README.md
 
 class UISetup:
     """Построение UI элементов MainWindow"""
-    
+
     @staticmethod
     def setup_central(window):
         """Создать центральный вид (3D сцена + графики)"""
         # _setup_central() logic
-    
+
     @staticmethod
     def setup_tabs(window):
         """Создать панели с вкладками"""
         # _setup_tabs() logic
-    
+
     @staticmethod
     def setup_menus(window):
         """Создать меню"""
         # _setup_menus() logic
-    
+
     @staticmethod
     def setup_toolbar(window):
         """Создать панель инструментов"""
         # _setup_toolbar() logic
-    
+
     @staticmethod
     def setup_status_bar(window):
         """Создать строку состояния"""
@@ -75,22 +75,22 @@ class UISetup:
 
 class QMLBridge:
     """Интеграция Python с Qt Quick 3D"""
-    
+
     @staticmethod
     def setup_qml_view(window):
         """Создать QQuickWidget и загрузить QML"""
         # _setup_qml_3d_view() logic
-    
+
     @staticmethod
     def invoke_qml_function(qml_object, function_name, *args):
         """Вызвать QML функцию из Python"""
         # _invoke_qml_function() logic
-    
+
     @staticmethod
     def set_qml_property(qml_object, property_name, value):
         """Установить свойство QML"""
         # Direct property access
-    
+
     @staticmethod
     def batch_update(qml_object, updates: dict):
         """Групповое обновление QML"""
@@ -106,17 +106,17 @@ class QMLBridge:
 
 class SignalsRouter:
     """Роутинг сигналов между компонентами"""
-    
+
     @staticmethod
     def connect_panel_signals(window):
         """Подключить сигналы панелей"""
         # _wire_panel_signals() logic
-    
+
     @staticmethod
     def connect_simulation_signals(window):
         """Подключить сигналы симуляции"""
         # _connect_simulation_signals() logic
-    
+
     @staticmethod
     def connect_qml_signals(window):
         """Подключить сигналы QML"""
@@ -132,22 +132,22 @@ class SignalsRouter:
 
 class StateSync:
     """Синхронизация состояния между Python и QML"""
-    
+
     @staticmethod
     def update_from_snapshot(window, snapshot):
         """Обновить UI из состояния физики"""
         # _update_3d_scene_from_snapshot() logic
-    
+
     @staticmethod
     def update_geometry(window, params):
         """Обновить геометрию в QML"""
         # _on_geometry_changed() logic
-    
+
     @staticmethod
     def update_animation(window, params):
         """Обновить анимацию в QML"""
         # _on_animation_changed() logic
-    
+
     @staticmethod
     def sync_graphics(window, params):
         """Синхронизировать настройки графики"""
@@ -163,22 +163,22 @@ class StateSync:
 
 class MenuActions:
     """Обработчики действий меню и панели инструментов"""
-    
+
     @staticmethod
     def show_about(window):
         """Диалог О программе"""
         # _show_about() logic
-    
+
     @staticmethod
     def open_file(window):
         """Открыть файл конфигурации"""
         # File open logic
-    
+
     @staticmethod
     def save_file(window):
         """Сохранить конфигурацию"""
         # File save logic
-    
+
     @staticmethod
     def export_data(window):
         """Экспортировать данные"""
@@ -200,38 +200,38 @@ from .menu_actions import MenuActions
 
 class MainWindow(QMainWindow):
     """Главное окно приложения - КООРДИНАТОР"""
-    
+
     def __init__(self, use_qml_3d=True):
         super().__init__()
-        
+
         # Инициализация state
         self._init_state()
-        
+
         # Построение UI (ДЕЛЕГИРОВАНИЕ)
         UISetup.setup_central(self)
         UISetup.setup_tabs(self)
         UISetup.setup_menus(self)
         UISetup.setup_toolbar(self)
         UISetup.setup_status_bar(self)
-        
+
         # QML интеграция (ДЕЛЕГИРОВАНИЕ)
         QMLBridge.setup_qml_view(self)
-        
+
         # Подключение сигналов (ДЕЛЕГИРОВАНИЕ)
         SignalsRouter.connect_panel_signals(self)
         SignalsRouter.connect_simulation_signals(self)
-        
+
         # Таймеры
         self._setup_timers()
-    
+
     def _on_state_update(self, snapshot):
         """Обработка обновления состояния"""
         StateSync.update_from_snapshot(self, snapshot)
-    
+
     def _on_geometry_changed(self, params):
         """Обработка изменения геометрии"""
         StateSync.update_geometry(self, params)
-    
+
     def _show_about(self):
         """Показать диалог О программе"""
         MenuActions.show_about(self)
@@ -311,14 +311,14 @@ def test_signals_router():
     """Тест SignalsRouter"""
     window = MainWindow()
     signal_received = False
-    
+
     def on_signal():
         nonlocal signal_received
         signal_received = True
-    
+
     window.geometry_panel.geometry_changed.connect(on_signal)
     window.geometry_panel.geometry_changed.emit({})
-    
+
     assert signal_received
 ```
 
@@ -328,16 +328,16 @@ def test_main_window_integration():
     """Интеграционный тест MainWindow"""
     app = QApplication([])
     window = MainWindow()
-    
+
     # Проверка создания всех компонентов
     assert window.geometry_panel is not None
     assert window._qml_root_object is not None
-    
+
     # Проверка сигналов
     window.geometry_panel.geometry_changed.emit({
         'frameLength': 2.5
     })
-    
+
     # QML должен обновиться
     # (требует реальной QML сцены для проверки)
 ```
@@ -375,6 +375,6 @@ src/ui/main_window.py → src/ui/main_window/main_window.py
 
 ---
 
-**Дата создания:** 2025-01-XX  
-**Версия:** v4.9.5  
+**Дата создания:** 2025-01-XX
+**Версия:** v4.9.5
 **Приоритет:** ⭐⭐⭐ ВЫСОКИЙ

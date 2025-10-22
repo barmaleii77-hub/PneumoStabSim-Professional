@@ -15,9 +15,9 @@ from .version_check import check_python_compatibility
 from .qt_imports import safe_import_qt
 
 __all__ = [
-    'setup_qtquick3d_environment',
-    'configure_qt_environment',
-    'configure_terminal_encoding',
-    'check_python_compatibility',
-    'safe_import_qt',
+    "setup_qtquick3d_environment",
+    "configure_qt_environment",
+    "configure_terminal_encoding",
+    "check_python_compatibility",
+    "safe_import_qt",
 ]

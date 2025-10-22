@@ -1,169 +1,118 @@
-"""
-Minimal runtime test without physics imports
-"""
+"""Comprehensive pytest coverage for runtime utilities."""
 
 import sys
-import time
+import pytest
 from pathlib import Path
 
-# Add src to path
-sys.path.insert(0, str(Path(__file__).parent.parent / 'src'))
+project_root = Path(__file__).parent.parent
+src_path = project_root / "src"
+if str(src_path) not in sys.path:
+    sys.path.insert(0, str(src_path))
 
-def test_runtime_components():
-    """Test runtime components individually"""
-    print("=== Testing Runtime Components ===")
-    
-    try:
-        # Test state management
-        from runtime.state import StateSnapshot, StateBus, FrameState, WheelState
-        print("? State management imported")
-        
-        # Test synchronization
-        from runtime.sync import LatestOnlyQueue, PerformanceMetrics, TimingAccumulator
-        print("? Synchronization imported")
-        
-        # Test basic state creation
-        snapshot = StateSnapshot()
-        snapshot.simulation_time = 1.0
-        snapshot.step_number = 100
-        
-        print(f"? StateSnapshot: t={snapshot.simulation_time}s, step={snapshot.step_number}")
-        
-        # Test frame state
-        frame = FrameState()
-        frame.heave = 0.01
-        frame.roll = 0.005
-        frame.pitch = 0.002
-        snapshot.frame = frame
-        
-        print(f"? FrameState: heave={frame.heave}m, roll={frame.roll}rad, pitch={frame.pitch}rad")
-        
-        # Test validation
-        is_valid = snapshot.validate()
-        print(f"? Snapshot validation: {is_valid}")
-        
-        return True
-        
-    except Exception as e:
-        print(f"? Runtime test failed: {e}")
-        import traceback
-        traceback.print_exc()
-        return False
+pytest.importorskip("PySide6")
+
+import runtime.sync as sync_module  # noqa: E402
+from runtime.state import FrameState, Line, StateSnapshot, Wheel  # noqa: E402
+from runtime.sync import (  # noqa: E402
+    LatestOnlyQueue,
+    PerformanceMetrics,
+    TimingAccumulator,
+)
 
 
-def test_sync_components():
-    """Test synchronization components"""
-    print("\n=== Testing Synchronization ===")
-    
-    try:
-        from runtime.sync import LatestOnlyQueue, PerformanceMetrics, TimingAccumulator
-        
-        # Test latest-only queue
-        queue = LatestOnlyQueue()
-        
-        # Test multiple puts - should keep only latest
-        queue.put_nowait("item1")
-        queue.put_nowait("item2")
-        queue.put_nowait("item3")
-        
-        # Should get only the latest
-        result = queue.get_nowait()
-        print(f"? LatestOnlyQueue: got '{result}' (should be 'item3')")
-        
-        # Queue should be empty now
-        result2 = queue.get_nowait()
-        print(f"? Queue empty check: {result2} (should be None)")
-        
-        # Test statistics
-        stats = queue.get_stats()
-        print(f"? Queue stats: {stats}")
-        
-        # Test performance metrics
-        perf = PerformanceMetrics()
-        perf.target_dt = 0.001
-        
-        # Simulate some step times
-        for i in range(5):
-            step_time = 0.001 + i * 0.0001  # Gradually increasing
-            perf.update_step_time(step_time)
-        
-        print(f"? Performance metrics: avg={perf.avg_step_time*1000:.3f}ms, fps={perf.get_fps():.1f}")
-        
-        # Test timing accumulator
-        acc = TimingAccumulator(0.001)  # 1ms target
-        
-        # Simulate timing
-        time.sleep(0.005)  # Sleep 5ms
-        steps = acc.update()
-        print(f"? Timing accumulator: {steps} steps needed")
-        
-        return True
-        
-    except Exception as e:
-        print(f"? Sync test failed: {e}")
-        import traceback
-        traceback.print_exc()
-        return False
+def test_state_snapshot_arrays_and_validation():
+    snapshot = StateSnapshot()
+    snapshot.simulation_time = 1.0
+    snapshot.step_number = 100
+    snapshot.frame = FrameState(heave=0.01, roll=0.005, pitch=0.002)
+
+    pressures = snapshot.get_pressure_array()
+    flows = snapshot.get_flow_array()
+
+    assert pressures.shape == (4,)
+    assert all(value > 0 for value in pressures)
+    assert flows == pytest.approx([0.0, 0.0, 0.0])
+    assert snapshot.validate()
 
 
-def test_qt_components():
-    """Test Qt components"""
-    print("\n=== Testing Qt Components ===")
-    
-    try:
-        from PySide6.QtCore import QObject, Signal, QTimer
-        from PySide6.QtWidgets import QApplication
-        
-        # Test signal creation
-        from runtime.state import StateBus
-        
-        bus = StateBus()
-        print("? StateBus created")
-        
-        # Test signal connections (without actual emission)
-        print("? Qt signals available")
-        
-        return True
-        
-    except Exception as e:
-        print(f"? Qt test failed: {e}")
-        return False
+def test_state_snapshot_invalid_orientation_fails_validation():
+    snapshot = StateSnapshot()
+    snapshot.frame.roll = 1.0
+
+    assert not snapshot.validate()
 
 
-def main():
-    """Run all runtime tests"""
-    print("="*60)
-    print("RUNTIME SYSTEM TESTS (P7)")
-    print("="*60)
-    
-    tests = [
-        test_runtime_components,
-        test_sync_components, 
-        test_qt_components
-    ]
-    
-    passed = 0
-    
-    for test in tests:
-        if test():
-            passed += 1
-        else:
-            print("? Test failed!")
-    
-    print(f"\n{'='*60}")
-    print(f"RESULTS: {passed}/{len(tests)} tests passed")
-    
-    if passed == len(tests):
-        print("? ALL RUNTIME TESTS PASSED!")
-        print("?? Runtime system (P7) is functional!")
-    else:
-        print("?? Some tests failed")
-    
-    print("="*60)
-    
-    return passed == len(tests)
+def test_latest_only_queue_stats_reset():
+    queue = LatestOnlyQueue()
+    queue.put_nowait({"value": 1})
+    queue.put_nowait({"value": 2})
+    assert queue.get_nowait() == {"value": 2}
+
+    queue.reset_stats()
+    stats = queue.get_stats()
+    assert stats["put_count"] == 0
+    assert stats["get_count"] == 0
+    assert stats["dropped_count"] == 0
+    assert stats["efficiency"] == 0
 
 
-if __name__ == "__main__":
-    success = main()
-    exit(0 if success else 1)
+def test_performance_metrics_summary_values():
+    metrics = PerformanceMetrics(target_dt=0.01)
+    metrics.update_step_time(0.02)
+    metrics.update_realtime_factor(sim_dt=0.02, real_dt=0.02)
+
+    summary = metrics.get_summary()
+    assert summary["steps"] == 1
+    assert summary["fps_actual"] == pytest.approx(50.0)
+    assert summary["fps_target"] == pytest.approx(100.0)
+    assert summary["realtime_factor"] == pytest.approx(1.0)
+
+
+def test_timing_accumulator_regular_updates(monkeypatch):
+    time_values = iter([100.0, 100.015, 100.03])
+    monkeypatch.setattr(
+        sync_module.time,
+        "perf_counter",
+        lambda: next(time_values),
+    )
+
+    accumulator = TimingAccumulator(target_dt=0.01, max_steps_per_frame=5)
+
+    steps_first = accumulator.update()
+    assert steps_first == 1
+    assert 0.0 < accumulator.get_interpolation_alpha() < 1.0
+
+    steps_second = accumulator.update()
+    assert steps_second == 2
+    assert accumulator.get_interpolation_alpha() == pytest.approx(0.0)
+    assert accumulator.get_realtime_factor() == pytest.approx(1.0)
+
+
+def test_timing_accumulator_respects_step_limit(monkeypatch):
+    time_values = iter([200.0, 200.2])
+    monkeypatch.setattr(
+        sync_module.time,
+        "perf_counter",
+        lambda: next(time_values),
+    )
+
+    accumulator = TimingAccumulator(
+        target_dt=0.01,
+        max_steps_per_frame=3,
+        max_frame_time=0.05,
+    )
+
+    steps = accumulator.update()
+    assert steps == 3
+    assert accumulator.get_interpolation_alpha() > 1.0
+
+
+def test_state_snapshot_wheel_population():
+    snapshot = StateSnapshot()
+    for wheel in (Wheel.LP, Wheel.PP, Wheel.LZ, Wheel.PZ):
+        assert wheel in snapshot.wheels
+        assert snapshot.wheels[wheel].wheel == wheel
+
+    for line in (Line.A1, Line.B1, Line.A2, Line.B2):
+        assert line in snapshot.lines
+        assert snapshot.lines[line].line == line

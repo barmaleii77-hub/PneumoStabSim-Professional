@@ -16,7 +16,7 @@ from __future__ import annotations
 import logging
 from typing import Any, Dict
 
-from PySide6.QtCore import Qt, QTimer, Signal, Slot
+from PySide6.QtCore import QTimer, Signal, Slot
 from PySide6.QtWidgets import (
     QHBoxLayout,
     QPushButton,
@@ -67,7 +67,9 @@ class GraphicsPanel(QWidget):
         self.event_logger = get_event_logger()
 
         # Загружаем текущее состояние из JSON (не дефолты)
-        self.state: Dict[str, Any] = self.settings_manager.get_category("graphics") or {}
+        self.state: Dict[str, Any] = (
+            self.settings_manager.get_category("graphics") or {}
+        )
 
         # Таб-виджеты
         self.lighting_tab: LightingTab | None = None
@@ -83,7 +85,9 @@ class GraphicsPanel(QWidget):
 
         # Начальная синхронизация
         QTimer.singleShot(0, self._emit_all_initial)
-        self.logger.info("✅ GraphicsPanel coordinator initialized (v3.1, centralized save-on-exit)")
+        self.logger.info(
+            "✅ GraphicsPanel coordinator initialized (v3.1, centralized save-on-exit)"
+        )
 
     # ------------------------------------------------------------------
     # UI Construction
@@ -135,12 +139,16 @@ class GraphicsPanel(QWidget):
     def _connect_tab_signals(self) -> None:
         # Без автосохранения — только проброс сигналов к MainWindow
         self.lighting_tab.lighting_changed.connect(self._on_lighting_changed)
-        if hasattr(self.lighting_tab, 'preset_applied'):
-            self.lighting_tab.preset_applied.connect(lambda _: self.preset_applied.emit(self.collect_state()))
+        if hasattr(self.lighting_tab, "preset_applied"):
+            self.lighting_tab.preset_applied.connect(
+                lambda _: self.preset_applied.emit(self.collect_state())
+            )
 
         self.environment_tab.environment_changed.connect(self._on_environment_changed)
         self.quality_tab.quality_changed.connect(self._on_quality_changed)
-        self.quality_tab.preset_applied.connect(lambda _: self.preset_applied.emit(self.collect_state()))
+        self.quality_tab.preset_applied.connect(
+            lambda _: self.preset_applied.emit(self.collect_state())
+        )
         self.camera_tab.camera_changed.connect(self._on_camera_changed)
         self.materials_tab.material_changed.connect(self._on_material_changed)
         self.effects_tab.effects_changed.connect(self._on_effects_changed)
@@ -173,7 +181,9 @@ class GraphicsPanel(QWidget):
         row.addStretch(1)
 
         reset_btn = QPushButton("↩︎ Сброс к дефолтам", self)
-        reset_btn.setToolTip("Сбросить к значениям из config/app_settings.json (defaults_snapshot)")
+        reset_btn.setToolTip(
+            "Сбросить к значениям из config/app_settings.json (defaults_snapshot)"
+        )
         reset_btn.clicked.connect(self.reset_to_defaults)
         row.addWidget(reset_btn)
 
@@ -183,7 +193,9 @@ class GraphicsPanel(QWidget):
         row.addWidget(save_default_btn)
 
         export_btn = QPushButton("📊 Экспорт анализа", self)
-        export_btn.setToolTip("Экспортировать анализ синхронизации Python↔QML (не настройки)")
+        export_btn.setToolTip(
+            "Экспортировать анализ синхронизации Python↔QML (не настройки)"
+        )
         export_btn.clicked.connect(self.export_sync_analysis)
         row.addWidget(export_btn)
 
@@ -197,7 +209,9 @@ class GraphicsPanel(QWidget):
         try:
             # Диагностика: где именно лежит файл настроек
             try:
-                self.logger.info(f"Settings file path: {self.settings_manager.settings_file}")
+                self.logger.info(
+                    f"Settings file path: {self.settings_manager.settings_file}"
+                )
             except Exception:
                 pass
             self.state = self.settings_manager.get_category("graphics") or {}
@@ -210,10 +224,19 @@ class GraphicsPanel(QWidget):
             if "camera" in self.state:
                 self.camera_tab.set_state(self.state["camera"])
             # Материалы: строгая валидация (никаких скрытых автодополнений)
-            materials_state = self.state.get("materials") if isinstance(self.state, dict) else None
+            materials_state = (
+                self.state.get("materials") if isinstance(self.state, dict) else None
+            )
             expected_keys = {
-                "frame", "lever", "tail", "cylinder", "piston_body",
-                "piston_rod", "joint_tail", "joint_arm", "joint_rod"
+                "frame",
+                "lever",
+                "tail",
+                "cylinder",
+                "piston_body",
+                "piston_rod",
+                "joint_tail",
+                "joint_arm",
+                "joint_rod",
             }
             if not isinstance(materials_state, dict):
                 cfg_path = getattr(self.settings_manager, "settings_file", "<unknown>")
@@ -223,7 +246,11 @@ class GraphicsPanel(QWidget):
                 )
                 self.logger.critical(msg)
                 raise RuntimeError(msg)
-            found_keys = set(k for k in materials_state.keys() if isinstance(materials_state.get(k), dict))
+            found_keys = set(
+                k
+                for k in materials_state.keys()
+                if isinstance(materials_state.get(k), dict)
+            )
             missing = sorted(list(expected_keys - found_keys))
             if missing:
                 cfg_path = getattr(self.settings_manager, "settings_file", "<unknown>")
@@ -307,19 +334,21 @@ class GraphicsPanel(QWidget):
         try:
             report_path = self.graphics_logger.export_analysis_report()
             analysis = self.graphics_logger.analyze_qml_sync()
-            print("\n" + "="*60)
+            print("\n" + "=" * 60)
             print("📊 GRAPHICS SYNC ANALYSIS")
-            print("="*60)
+            print("=" * 60)
             print(f"Total changes: {analysis.get('total_events', 0)}")
             print(f"Successful QML updates: {analysis.get('successful_updates', 0)}")
             print(f"Failed QML updates: {analysis.get('failed_updates', 0)}")
-            print("="*60)
+            print("=" * 60)
             print(f"Full report: {report_path}")
-            print("="*60 + "\n")
+            print("=" * 60 + "\n")
         except Exception as e:
             self.logger.error(f"Failed to export sync analysis: {e}")
 
     # Не сохраняем здесь — централизованно в MainWindow.closeEvent()
     def closeEvent(self, event) -> None:  # type: ignore[override]
-        self.logger.info("GraphicsPanel closed (no direct save, centralized by MainWindow)")
+        self.logger.info(
+            "GraphicsPanel closed (no direct save, centralized by MainWindow)"
+        )
         super().closeEvent(event)

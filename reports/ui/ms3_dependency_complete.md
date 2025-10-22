@@ -2,7 +2,7 @@
 
 ## ВЫПОЛНЕНО ?
 
-Дата: 2024-01-XX  
+Дата: 2024-01-XX
 Статус: **ЗАВЕРШЕНО**
 
 ### Цель
@@ -18,7 +18,7 @@ message: f'Текущее: {frame_to_pivot + lever_length:.2f}м'
 ```
 
 **После:**
-```python  
+```python
 max_lever_reach = wheelbase / 2.0 - 0.100  # 100mm clearance explicit
 message: f'Текущее: {frame_to_pivot + lever_length:.3f}м'  # 3 decimals for SI
 ```
@@ -27,7 +27,7 @@ message: f'Текущее: {frame_to_pivot + lever_length:.3f}м'  # 3 decimals for SI
 **До:**
 ```python
 rod_diameter = self.parameters['rod_diameter']  # mm
-min_bore = min(bore_head, bore_rod)             # mm  
+min_bore = min(bore_head, bore_rod)             # mm
 ```
 
 **После:**
@@ -72,7 +72,7 @@ presets = {
 
 #### Унифицированная логика dependency resolution:
 - ? **Геометрические ограничения** работают с СИ единицами и точностью 0.001м
-- ? **Гидравлические ограничения** используют unified `cyl_diam_m` параметр  
+- ? **Гидравлические ограничения** используют unified `cyl_diam_m` параметр
 - ? **Stroke constraints** поддерживают все новые параметры
 - ? **3D Scene конверсия** корректно преобразует СИ ? мм
 - ? **Пресеты** обновлены для всех новых параметров
@@ -87,14 +87,14 @@ presets = {
 
 1. `src/ui/panels/panel_geometry.py`
    - `_check_dependencies()` - полностью обновлён для унифицированных параметров
-   - `_on_parameter_changed()` - обновлена логика emit geometry_changed  
+   - `_on_parameter_changed()` - обновлена логика emit geometry_changed
    - `_on_preset_changed()` - пресеты обновлены для новых параметров
 
 2. `tests/ui/test_ms3_dependency.py` - тесты для валидации МШ-3
 
 ### Валидация
 
-- ? Компиляция без ошибок  
+- ? Компиляция без ошибок
 - ? Импорт модуля успешен
 - ? Dependency check работает корректно
 - ? Геометрические ограничения в СИ единицах

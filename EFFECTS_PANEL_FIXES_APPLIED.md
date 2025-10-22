@@ -1,8 +1,8 @@
 # ✅ ИСПРАВЛЕНИЯ ПАНЕЛИ ЭФФЕКТОВ - ПРИМЕНЕНО
 
-**Дата**: 2025-01-15  
-**Версия**: v4.9.5  
-**Файл**: `src/ui/panels/graphics/effects_tab.py`  
+**Дата**: 2025-01-15
+**Версия**: v4.9.5
+**Файл**: `src/ui/panels/graphics/effects_tab.py`
 **Статус**: ✅ ВСЕ ИСПРАВЛЕНИЯ ПРИМЕНЕНЫ
 
 ---
@@ -209,19 +209,19 @@ hdr_max = 5.0    # ✅ Минимум для hdr_max (больше threshold!)
 
 ## 📚 ССЫЛКИ НА ДОКУМЕНТАЦИЮ:
 
-1. **ExtendedSceneEnvironment**:  
+1. **ExtendedSceneEnvironment**:
    https://doc.qt.io/qt-6/qml-qtquick3d-extendedsceneenvironment.html
 
-2. **Bloom Properties** (`glow*`):  
+2. **Bloom Properties** (`glow*`):
    https://doc.qt.io/qt-6/qml-qtquick3d-extendedsceneenvironment.html#glow-properties
 
-3. **Tone Mapping**:  
+3. **Tone Mapping**:
    https://doc.qt.io/qt-6/qml-qtquick3d-extendedsceneenvironment.html#tone-mapping
 
-4. **Lens Flare**:  
+4. **Lens Flare**:
    https://doc.qt.io/qt-6/qml-qtquick3d-extendedsceneenvironment.html#lens-flare
 
-5. **Color Adjustments**:  
+5. **Color Adjustments**:
    https://doc.qt.io/qt-6/qml-qtquick3d-extendedsceneenvironment.html#color-adjustments
 
 ---
@@ -253,5 +253,5 @@ hdr_max = 5.0    # ✅ Минимум для hdr_max (больше threshold!)
 
 ---
 
-**Все исправления применены и готовы к тестированию!** 🚀  
+**Все исправления применены и готовы к тестированию!** 🚀
 **Панель эффектов теперь работает корректно и стабильно!** ✅

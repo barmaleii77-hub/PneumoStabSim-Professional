@@ -6,7 +6,7 @@
 
 **1. Архитектура сигналов:**
 - `PneumoPanel.receiver_volume_changed(float, str)` - новый сигнал для объёма
-- `StateBus.set_receiver_volume(float, str)` - сигнал для физического потока  
+- `StateBus.set_receiver_volume(float, str)` - сигнал для физического потока
 - `MainWindow._on_receiver_volume_changed()` - обработчик интеграции
 - `PhysicsWorker.set_receiver_volume()` - обновление физической модели
 
@@ -33,7 +33,7 @@ UI Change ? Panel Signal ? MainWindow ? StateBus ? PhysicsWorker ? ReceiverState
 ? StateBus has set_receiver_volume signal
 ? receiver_volume_changed signal emitted: 1 times
 ? UI signals work
-? Mode mapping implemented  
+? Mode mapping implemented
 ? StateBus signals added
 ```
 
@@ -81,5 +81,5 @@ UI Change ? Panel Signal ? MainWindow ? StateBus ? PhysicsWorker ? ReceiverState
 
 ---
 
-**Дата завершения**: 2025-01-05  
+**Дата завершения**: 2025-01-05
 **Статус**: ? **ЗАВЕРШЕНО УСПЕШНО**

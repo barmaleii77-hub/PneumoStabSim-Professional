@@ -23,13 +23,13 @@ readonly property bool canUseDithering: supportsQtQuick3D610Features
 environment: ExtendedSceneEnvironment {
     id: mainEnvironment
     // ... other properties ...
-    
+
     // Conditional activation: ditheringEnabled only available in Qt 6.10+
     Component.onCompleted: {
         if (root.canUseDithering) {
             console.log("✅ Qt 6.10+ detected - enabling ditheringEnabled support")
-            mainEnvironment.ditheringEnabled = Qt.binding(function() { 
-                return root.ditheringEnabled 
+            mainEnvironment.ditheringEnabled = Qt.binding(function() {
+                return root.ditheringEnabled
             })
         } else {
             console.log("⚠️ Qt < 6.10 - ditheringEnabled not available (current version: Qt " + Qt.version + ")")

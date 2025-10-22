@@ -1,7 +1,7 @@
 # 🔥 КРИТИЧЕСКИЙ ПЛАН ОПТИМИЗАЦИИ QML - PneumoStabSim
 
-**Дата:** 12 декабря 2025  
-**Приоритет:** ВЫСОКИЙ - Производительность критически важна  
+**Дата:** 12 декабря 2025
+**Приоритет:** ВЫСОКИЙ - Производительность критически важна
 **Статус:** ТРЕБУЕТСЯ НЕМЕДЛЕННОЕ ВНЕДРЕНИЕ
 
 ---
@@ -12,7 +12,7 @@
 
 ### 📊 **Статистика избыточности:**
 - **~100+ избыточных операций за фрейм** при 60 FPS
-- **4× повторяющиеся trigonometric вычисления**  
+- **4× повторяющиеся trigonometric вычисления**
 - **20+ ненужные Math.PI операции**
 - **Отсутствие кэширования** критических вычислений
 
@@ -38,17 +38,17 @@ property real rr_angle: isRunning ? userAmplitude * Math.sin(animationTime * use
 // ✅ Кэшированные базовые вычисления (1 раз за фрейм)
 QtObject {
     id: animationCache
-    
+
     // Базовые значения (вычисляются 1 раз)
     property real basePhase: animationTime * userFrequency * 2 * Math.PI
     property real globalPhaseRad: userPhaseGlobal * Math.PI / 180
-    
+
     // Предварительные фазы
     property real flPhase: globalPhaseRad + userPhaseFL * Math.PI / 180
     property real frPhase: globalPhaseRad + userPhaseFR * Math.PI / 180
     property real rlPhase: globalPhaseRad + userPhaseRL * Math.PI / 180
     property real rrPhase: globalPhaseRad + userPhaseRR * Math.PI / 180
-    
+
     // Кэшированные синусы
     property real flSin: Math.sin(basePhase + flPhase)
     property real frSin: Math.sin(basePhase + frPhase)
@@ -72,13 +72,13 @@ property real rr_angle: isRunning ? userAmplitude * animationCache.rrSin : 0.0
 // ❌ В каждом из 4 компонентов повторяются одинаковые вычисления
 component SuspensionCorner: Node {
     property real totalAngle: baseAngle + leverAngle
-    
+
     property vector3d j_rod: Qt.vector3d(
         j_arm.x + (userLeverLength * userRodPosition) * Math.cos(totalAngle * Math.PI / 180),
         j_arm.y + (userLeverLength * userRodPosition) * Math.sin(totalAngle * Math.PI / 180),
         j_arm.z
     )
-    
+
     // Множество повторяющихся вычислений...
 }
 ```
@@ -88,11 +88,11 @@ component SuspensionCorner: Node {
 // ✅ Общий калькулятор геометрии
 QtObject {
     id: geometryCache
-    
+
     // Константы (вычисляются только при изменении параметров)
     property real leverRodPos: userLeverLength * userRodPosition
     property real piOver180: Math.PI / 180
-    
+
     // Функция для расчета j_rod (переиспользуемая)
     function calculateJRod(j_arm, baseAngle, leverAngle) {
         var totalAngleRad = (baseAngle + leverAngle) * piOver180
@@ -109,15 +109,15 @@ component OptimizedSuspensionCorner: Node {
     property vector3d j_arm
     property real leverAngle
     property real baseAngle: (j_arm.x < 0) ? 180 : 0
-    
+
     // Кэшированные вычисления
     property var _geometryCache: null
     property bool _geometryDirty: true
-    
+
     // Инвалидация кэша
     onLeverAngleChanged: _geometryDirty = true
     onJ_armChanged: _geometryDirty = true
-    
+
     // Ленивое вычисление геометрии
     function getGeometry() {
         if (_geometryDirty || !_geometryCache) {
@@ -130,7 +130,7 @@ component OptimizedSuspensionCorner: Node {
         }
         return _geometryCache
     }
-    
+
     // Использование кэшированных значений
     property vector3d j_rod: getGeometry().j_rod
 }
@@ -148,7 +148,7 @@ onPositionChanged: (mouse) => {
         const fovRad = camera.fieldOfView * Math.PI / 180.0
         const worldPerPixel = (2 * root.cameraDistance * Math.tan(fovRad / 2)) / view3d.height
         const s = worldPerPixel * root.cameraSpeed
-        
+
         root.panX -= dx * s
         root.panY += dy * s
     }
@@ -161,20 +161,20 @@ MouseArea {
     // Кэшированные значения для камеры
     property real _cachedFovRad: camera.fieldOfView * Math.PI / 180.0
     property real _cachedWorldPerPixel: 0
-    
+
     // Обновление кэша только при изменении камеры
     function updateCameraCache() {
         _cachedFovRad = camera.fieldOfView * Math.PI / 180.0
         _cachedWorldPerPixel = (2 * root.cameraDistance * Math.tan(_cachedFovRad / 2)) / view3d.height
     }
-    
+
     // Подключение к изменениям
     Connections {
         target: root
         function onCameraDistanceChanged() { updateCameraCache() }
         function onCameraFovChanged() { updateCameraCache() }
     }
-    
+
     Component.onCompleted: updateCameraCache()
 
     onPositionChanged: (mouse) => {
@@ -201,7 +201,7 @@ MouseArea {
 Loader {
     id: suspensionLoader
     active: isRunning || forceVisible
-    
+
     sourceComponent: Component {
         Item {
             // Весь SuspensionCorner загружается только при необходимости
@@ -233,7 +233,7 @@ function applyBatchedUpdates(updates) {
 WorkerScript {
     id: geometryWorker
     source: "geometryCalculations.js"
-    
+
     onMessage: {
         // Применяем результаты вычислений
         applyGeometryResults(messageObject)
@@ -282,7 +282,7 @@ ComputeShader {
 
 ### **Метрики:**
 - **FPS:** 45-60 → 75-95 FPS
-- **Операций/фрейм:** 100+ → 30-40  
+- **Операций/фрейм:** 100+ → 30-40
 - **Время отклика мыши:** 15-25ms → 5-10ms
 - **Memory usage:** -30% для кэшей
 - **CPU utilization:** -40% для вычислений

@@ -2,7 +2,7 @@
 
 ## ?? Overview
 
-**Modules:** 
+**Modules:**
 - `src/pneumo/network.py` - Gas network simulation
 - `src/pneumo/cylinder.py` - Cylinder gas chambers
 - `src/pneumo/flow.py` - Valve flow calculations
@@ -95,10 +95,10 @@
 ```python
 class GasNetwork:
     """Pneumatic gas network with 4 cylinders + receiver"""
-    
+
     def __init__(self, config: dict):
         """Initialize gas network
-        
+
         Args:
             config: Configuration dictionary
                 {
@@ -118,18 +118,18 @@ class GasNetwork:
         }
         self.receiver = Receiver(config['receiver_volume'])
         self.valves = self._create_valves()
-    
+
     def get_pressure(
-        self, 
-        wheel: Wheel, 
+        self,
+        wheel: Wheel,
         chamber: str
     ) -> float:
         """Get chamber pressure
-        
+
         Args:
             wheel: Wheel identifier (FL, FR, RL, RR)
             chamber: 'head' or 'rod'
-            
+
         Returns:
             Pressure in Pa
         """
@@ -138,35 +138,35 @@ class GasNetwork:
             return cylinder.head_pressure
         else:
             return cylinder.rod_pressure
-    
+
     def set_valve_position(
         self,
         line: Line,
         position: float
     ):
         """Set valve opening position
-        
+
         Args:
             line: Line identifier (SUPPLY, EXHAUST, etc.)
             position: 0.0 (closed) to 1.0 (fully open)
         """
         self.valves[line].position = np.clip(position, 0.0, 1.0)
-    
+
     def apply_flows(self, dt: float):
         """Apply valve flows for one timestep
-        
+
         Args:
             dt: Timestep in seconds
         """
         # Calculate all mass flows
         flows = self._calculate_all_flows()
-        
+
         # Apply to each cylinder
         for wheel, cylinder in self.cylinders.items():
             dm_head = flows[wheel]['head']
             dm_rod = flows[wheel]['rod']
             cylinder.apply_mass_flow(dm_head, dm_rod, dt)
-        
+
         # Apply to receiver
         dm_receiver = flows['receiver']
         self.receiver.apply_mass_flow(dm_receiver, dt)
@@ -177,10 +177,10 @@ class GasNetwork:
 ```python
 class Cylinder:
     """Single pneumatic cylinder with head/rod chambers"""
-    
+
     def __init__(self, config: dict):
         """Initialize cylinder
-        
+
         Args:
             config: Cylinder configuration
         """
@@ -188,7 +188,7 @@ class Cylinder:
         self.bore_rod = config['bore_rod']
         self.rod_diameter = config['rod_diameter']
         self.stroke = config['stroke']
-        
+
         # Initial state
         self.piston_position = self.stroke / 2.0  # Center
         self.head_pressure = config['initial_pressure']
@@ -201,19 +201,19 @@ class Cylinder:
             self.rod_pressure,
             self.get_rod_volume()
         )
-    
+
     def get_head_volume(self) -> float:
         """Calculate head chamber volume
-        
+
         Returns:
             Volume in m?
         """
         area = np.pi * (self.bore_head / 2.0) ** 2
         return area * self.piston_position
-    
+
     def get_rod_volume(self) -> float:
         """Calculate rod chamber volume
-        
+
         Returns:
             Volume in m?
         """
@@ -221,7 +221,7 @@ class Cylinder:
         rod_area = np.pi * (self.rod_diameter / 2.0) ** 2
         effective_area = bore_area - rod_area
         return effective_area * (self.stroke - self.piston_position)
-    
+
     def apply_mass_flow(
         self,
         dm_head: float,
@@ -229,7 +229,7 @@ class Cylinder:
         dt: float
     ):
         """Apply mass flows to chambers
-        
+
         Args:
             dm_head: Mass flow to head (kg/s)
             dm_rod: Mass flow to rod (kg/s)
@@ -238,7 +238,7 @@ class Cylinder:
         # Update masses
         self.head_mass += dm_head * dt
         self.rod_mass += dm_rod * dt
-        
+
         # Recalculate pressures (ideal gas law)
         self.head_pressure = self._calc_pressure(
             self.head_mass,
@@ -248,20 +248,20 @@ class Cylinder:
             self.rod_mass,
             self.get_rod_volume()
         )
-    
+
     def get_force(self) -> float:
         """Calculate net force on piston
-        
+
         Returns:
             Force in N (positive = extension)
         """
         head_area = np.pi * (self.bore_head / 2.0) ** 2
         rod_area = np.pi * (self.rod_diameter / 2.0) ** 2
         rod_bore_area = np.pi * (self.bore_rod / 2.0) ** 2
-        
+
         F_head = self.head_pressure * head_area
         F_rod = self.rod_pressure * (rod_bore_area - rod_area)
-        
+
         return F_head - F_rod
 ```
 
@@ -276,51 +276,51 @@ def calculate_mass_flow(
     position: float
 ) -> float:
     """Calculate mass flow through valve (ISO 6358)
-    
+
     Args:
         p_upstream: Upstream pressure (Pa)
         p_downstream: Downstream pressure (Pa)
         temp: Temperature (K)
         Cv: Flow coefficient (m?/(s·bar))
         position: Valve position (0-1)
-        
+
     Returns:
         Mass flow rate (kg/s)
     """
     if position <= 0.0:
         return 0.0
-    
+
     # Pressure ratio
     ratio = p_downstream / p_upstream
-    
+
     # Critical pressure ratio (for air, ~0.528)
     b = 0.528
-    
+
     # Choked flow
     if ratio < b:
         # Sonic flow
         rho_ref = 1.185  # kg/m? at STP
         p_ref = 101325   # Pa
         T_ref = 293.15   # K
-        
+
         rho = rho_ref * (p_upstream / p_ref) * (T_ref / temp)
-        
+
         # ISO 6358 formula
         dm = 0.0404 * Cv * position * p_upstream * rho
-        
+
     else:
         # Subsonic flow
         rho_ref = 1.185
         p_ref = 101325
         T_ref = 293.15
-        
+
         rho = rho_ref * (p_upstream / p_ref) * (T_ref / temp)
-        
+
         # ISO 6358 formula (subsonic)
         dm = 0.0404 * Cv * position * p_upstream * rho * np.sqrt(
             1 - ((ratio - b) / (1 - b)) ** 2
         )
-    
+
     return dm
 ```
 
@@ -336,10 +336,10 @@ def _calc_pressure_isothermal(self, mass: float, volume: float) -> float:
     """Calculate pressure (isothermal)"""
     R = 287.05  # J/(kg·K) for air
     T = self.ambient_temp  # K
-    
+
     if volume < 1e-9:
         return self.ambient_pressure
-    
+
     return (mass * R * T) / volume
 ```
 
@@ -356,10 +356,10 @@ def _calc_pressure_adiabatic(
 ) -> float:
     """Calculate pressure (adiabatic)"""
     gamma = 1.4  # Heat capacity ratio
-    
+
     if volume < 1e-9:
         return self.ambient_pressure
-    
+
     # PV^? = const
     # P2 = P1 * (V1/V2)^?
     return prev_pressure * (prev_volume / volume) ** gamma
@@ -376,20 +376,20 @@ DEFAULT_PNEUMATIC_CONFIG = {
     'bore_rod': 0.08,           # m (80mm)
     'rod_diameter': 0.035,      # m (35mm)
     'stroke': 0.25,             # m (250mm)
-    
+
     # Gas properties
     'initial_pressure': 600000,  # Pa (6 bar)
     'ambient_pressure': 101325,  # Pa (1 bar)
     'ambient_temp': 293.15,      # K (20°C)
-    
+
     # Receiver tank
     'receiver_volume': 0.01,     # m? (10 liters)
-    
+
     # Valves (ISO 6358)
     'Cv_supply': 0.5,            # Flow coefficient
     'Cv_exhaust': 0.5,
     'Cv_cross': 0.3,
-    
+
     # Thermodynamic mode
     'thermo_mode': ThermoMode.ISOTHERMAL
 }
@@ -492,6 +492,6 @@ else:
 
 ---
 
-**Last Updated:** 2025-01-05  
-**Module Version:** 2.0.0  
+**Last Updated:** 2025-01-05
+**Module Version:** 2.0.0
 **Status:** Production Ready ?

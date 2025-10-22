@@ -1,7 +1,7 @@
 # 🎯 ФИНАЛЬНЫЙ ПЛАН ЗАВЕРШЕНИЯ РЕФАКТОРИНГА
 
-**Дата:** 2025-01-18  
-**Версия:** PneumoStabSim Professional v4.9.5  
+**Дата:** 2025-01-18
+**Версия:** PneumoStabSim Professional v4.9.5
 **Статус:** 🟡 **В ПРОЦЕССЕ (95% ГОТОВО)**
 
 ---
@@ -59,13 +59,13 @@ QML модули созданы, но НЕ используются в main.qml
 1. **Интегрировать DirectionalLights + PointLights** (20 мин)
    ```qml
    import "lighting"
-   
+
    // ❌ УДАЛИТЬ старые:
    // DirectionalLight { id: keyLight; ... }
    // DirectionalLight { id: fillLight; ... }
    // DirectionalLight { id: rimLight; ... }
    // PointLight { id: accentLight; ... }
-   
+
    // ✅ ЗАМЕНИТЬ на:
    DirectionalLights {
        worldRoot: worldRoot
@@ -74,7 +74,7 @@ QML модули созданы, но НЕ используются в main.qml
        keyLightBrightness: root.keyLightBrightness
        // ...все параметры из GraphicsPanel
    }
-   
+
    PointLights {
        worldRoot: worldRoot
        cameraRig: cameraController.rig
@@ -86,21 +86,21 @@ QML модули созданы, но НЕ используются в main.qml
 2. **Интегрировать SharedMaterials** (30 мин)
    ```qml
    import "scene"
-   
+
    // ❌ УДАЛИТЬ старые:
    // PrincipledMaterial { id: frameMaterial; ... }
    // PrincipledMaterial { id: leverMaterial; ... }
    // ... (всего 8 материалов)
-   
+
    // ✅ ЗАМЕНИТЬ на:
    SharedMaterials {
        id: sharedMaterials
-       
+
        frameBaseColor: root.frameBaseColor
        frameMetalness: root.frameMetalness
        // ...все параметры материалов
    }
-   
+
    // Использование:
    Model {
        materials: [sharedMaterials.frameMaterial]
@@ -110,12 +110,12 @@ QML модули созданы, но НЕ используются в main.qml
 3. **Интегрировать Frame** (15 мин)
    ```qml
    import "geometry"
-   
+
    // ❌ УДАЛИТЬ старые:
    // Model { /* нижняя балка */ }
    // Model { /* передняя балка */ }
    // Model { /* задняя балка */ }
-   
+
    // ✅ ЗАМЕНИТЬ на:
    Frame {
        worldRoot: worldRoot
@@ -129,9 +129,9 @@ QML модули созданы, но НЕ используются в main.qml
 4. **Интегрировать SuspensionCorner** (45 мин)
    ```qml
    import "geometry"
-   
+
    // ❌ УДАЛИТЬ component OptimizedSuspensionCorner
-   
+
    // ✅ ЗАМЕНИТЬ на:
    SuspensionCorner {
        id: flCorner
@@ -143,7 +143,7 @@ QML модули созданы, но НЕ используются в main.qml
        // ...все параметры геометрии
        sharedMaterials: sharedMaterials
    }
-   
+
    // + ещё 3 угла (FR, RL, RR)
    ```
 
@@ -151,7 +151,7 @@ QML модули созданы, но НЕ используются в main.qml
    ```bash
    python app.py
    ```
-   
+
    **Ожидаемые сообщения:**
    ```
    💡 DirectionalLights initialized
@@ -370,7 +370,7 @@ git commit -m "feat: Complete refactoring - unified settings for all panels"
 
 ---
 
-**Автор:** GitHub Copilot  
-**Дата:** 2025-01-18  
-**Версия:** Final Complete Plan v1.0  
+**Автор:** GitHub Copilot
+**Дата:** 2025-01-18
+**Версия:** Final Complete Plan v1.0
 **Статус:** ✅ ПЛАН ГОТОВ К ВЫПОЛНЕНИЮ

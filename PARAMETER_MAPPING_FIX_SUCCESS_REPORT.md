@@ -1,6 +1,6 @@
 # ✅ ИСПРАВЛЕНИЕ МАППИНГА ПАРАМЕТРОВ PYTHON↔QML - УСПЕШНО
 
-**Дата:** 10 декабря 2025  
+**Дата:** 10 декабря 2025
 **Статус:** ✅ **ИСПРАВЛЕНО И ПРОТЕСТИРОВАНО**
 
 ---
@@ -19,14 +19,14 @@
 ```python
 geometry_3d = {
     # ... другие параметры ...
-    
+
     # ❌ СТАРЫЕ ПАРАМЕТРЫ (дублирующие)
     'boreHead': self.parameters.get('cyl_diam_m', 0.080) * 1000,
     'boreRod': self.parameters.get('cyl_diam_m', 0.080) * 1000,
     'rodDiameter': self.parameters.get('rod_diameter_m', 0.035) * 1000,
     'pistonThickness': self.parameters.get('piston_thickness_m', 0.025) * 1000,
     'pistonRodLength': self.parameters.get('piston_rod_length_m', 0.200) * 1000,
-    
+
     # ✅ НОВЫЕ ПАРАМЕТРЫ (правильные)
     'cylDiamM': self.parameters.get('cyl_diam_m', 0.080) * 1000,
     'strokeM': self.parameters.get('stroke_m', 0.300) * 1000,
@@ -66,12 +66,12 @@ geometry_3d = {
     'leverLength': self.parameters.get('lever_length', 0.8) * 1000,
     'cylinderBodyLength': self.parameters.get('cylinder_length', 0.5) * 1000,
     'tailRodLength': 100.0,
-    
+
     # ДОПОЛНИТЕЛЬНЫЕ ПАРАМЕТРЫ ГЕОМЕТРИИ (из метров в мм)
     'trackWidth': self.parameters.get('track', 1.6) * 1000,
     'frameToPivot': self.parameters.get('frame_to_pivot', 0.6) * 1000,
     'rodPosition': self.parameters.get('rod_position', 0.6),  # доля 0-1
-    
+
     # ✅ ТОЛЬКО НОВЫЕ ПАРАМЕТРЫ (убраны старые duplicate names!)
     'cylDiamM': self.parameters.get('cyl_diam_m', 0.080) * 1000,
     'strokeM': self.parameters.get('stroke_m', 0.300) * 1000,
@@ -201,10 +201,10 @@ py test_parameter_mapping_fix.py
 
 ### Deprecated параметры (больше НЕ используются):
 
-❌ `boreHead` → используйте `cylDiamM`  
-❌ `boreRod` → используйте `cylDiamM`  
-❌ `rodDiameter` → используйте `rodDiameterM`  
-❌ `pistonThickness` → используйте `pistonThicknessM`  
+❌ `boreHead` → используйте `cylDiamM`
+❌ `boreRod` → используйте `cylDiamM`
+❌ `rodDiameter` → используйте `rodDiameterM`
+❌ `pistonThickness` → используйте `pistonThicknessM`
 ❌ `pistonRodLength` → используйте `pistonRodLengthM`
 
 ---
@@ -231,7 +231,7 @@ py test_parameter_mapping_fix.py
 
 ---
 
-**Отчёт создан:** 10 декабря 2025  
-**Исправлено в:** `src/ui/panels/panel_geometry.py`  
-**Протестировано:** `test_parameter_mapping_fix.py`  
+**Отчёт создан:** 10 декабря 2025
+**Исправлено в:** `src/ui/panels/panel_geometry.py`
+**Протестировано:** `test_parameter_mapping_fix.py`
 **Статус:** ✅ **SUCCESS**

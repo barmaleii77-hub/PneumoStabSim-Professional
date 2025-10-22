@@ -343,5 +343,5 @@ from src.ui.panels.graphics import GraphicsPanel
 
 ---
 
-**Последнее обновление**: 2024  
+**Последнее обновление**: 2024
 **Автор**: Copilot + команда разработки

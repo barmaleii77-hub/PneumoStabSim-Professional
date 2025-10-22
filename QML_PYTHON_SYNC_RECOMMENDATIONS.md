@@ -172,21 +172,21 @@ property string iblFallback: "assets/studio_small_09_2k.hdr"
 ```qml
 function applyMaterialUpdates(params) {
     console.log("🎨 main.qml: applyMaterialUpdates() called")
-    
+
     // Metal
     if (params.metal !== undefined) {
         if (params.metal.roughness !== undefined) metalRoughness = params.metal.roughness
         if (params.metal.metalness !== undefined) metalMetalness = params.metal.metalness
         if (params.metal.clearcoat !== undefined) metalClearcoat = params.metal.clearcoat
     }
-    
+
     // Glass
     if (params.glass !== undefined) {
         if (params.glass.opacity !== undefined) glassOpacity = params.glass.opacity
         if (params.glass.roughness !== undefined) glassRoughness = params.glass.roughness
         if (params.glass.ior !== undefined) glassIOR = params.glass.ior
     }
-    
+
     // ✅ НОВОЕ: Frame advanced
     if (params.frame !== undefined) {
         if (params.frame.color !== undefined) frameColor = params.frame.color
@@ -195,7 +195,7 @@ function applyMaterialUpdates(params) {
         if (params.frame.clearcoat !== undefined) frameClearcoat = params.frame.clearcoat
         if (params.frame.clearcoat_roughness !== undefined) frameClearcoatRoughness = params.frame.clearcoat_roughness
     }
-    
+
     // ✅ НОВОЕ: Lever advanced
     if (params.lever !== undefined) {
         if (params.lever.color !== undefined) leverColor = params.lever.color
@@ -204,21 +204,21 @@ function applyMaterialUpdates(params) {
         if (params.lever.clearcoat !== undefined) leverClearcoat = params.lever.clearcoat
         if (params.lever.clearcoat_roughness !== undefined) leverClearcoatRoughness = params.lever.clearcoat_roughness
     }
-    
+
     // ✅ НОВОЕ: Tail rod
     if (params.tail !== undefined) {
         if (params.tail.color !== undefined) tailColor = params.tail.color
         if (params.tail.metalness !== undefined) tailMetalness = params.tail.metalness
         if (params.tail.roughness !== undefined) tailRoughness = params.tail.roughness
     }
-    
+
     // ✅ НОВОЕ: Cylinder
     if (params.cylinder !== undefined) {
         if (params.cylinder.color !== undefined) cylinderColor = params.cylinder.color
         if (params.cylinder.metalness !== undefined) cylinderMetalness = params.cylinder.metalness
         if (params.cylinder.roughness !== undefined) cylinderRoughness = params.cylinder.roughness
     }
-    
+
     // ✅ НОВОЕ: Piston body
     if (params.piston_body !== undefined) {
         if (params.piston_body.color !== undefined) pistonBodyColor = params.piston_body.color
@@ -226,7 +226,7 @@ function applyMaterialUpdates(params) {
         if (params.piston_body.metalness !== undefined) pistonBodyMetalness = params.piston_body.metalness
         if (params.piston_body.roughness !== undefined) pistonBodyRoughness = params.piston_body.roughness
     }
-    
+
     // ✅ НОВОЕ: Piston rod
     if (params.piston_rod !== undefined) {
         if (params.piston_rod.color !== undefined) pistonRodColor = params.piston_rod.color
@@ -234,7 +234,7 @@ function applyMaterialUpdates(params) {
         if (params.piston_rod.metalness !== undefined) pistonRodMetalness = params.piston_rod.metalness
         if (params.piston_rod.roughness !== undefined) pistonRodRoughness = params.piston_rod.roughness
     }
-    
+
     // ✅ НОВОЕ: Joints
     if (params.joint !== undefined) {
         if (params.joint.tail_color !== undefined) jointTailColor = params.joint.tail_color
@@ -244,7 +244,7 @@ function applyMaterialUpdates(params) {
         if (params.joint.metalness !== undefined) jointMetalness = params.joint.metalness
         if (params.joint.roughness !== undefined) jointRoughness = params.joint.roughness
     }
-    
+
     console.log("  ✅ Materials updated successfully (COMPLETE with all colors)")
 }
 ```
@@ -254,25 +254,25 @@ function applyMaterialUpdates(params) {
 ```qml
 function applyLightingUpdates(params) {
     console.log("💡 main.qml: applyLightingUpdates() called")
-    
+
     if (params.key_light) {
         if (params.key_light.brightness !== undefined) keyLightBrightness = params.key_light.brightness
         if (params.key_light.color !== undefined) keyLightColor = params.key_light.color
         if (params.key_light.angle_x !== undefined) keyLightAngleX = params.key_light.angle_x
         if (params.key_light.angle_y !== undefined) keyLightAngleY = params.key_light.angle_y
     }
-    
+
     if (params.fill_light) {
         if (params.fill_light.brightness !== undefined) fillLightBrightness = params.fill_light.brightness
         if (params.fill_light.color !== undefined) fillLightColor = params.fill_light.color
     }
-    
+
     // ✅ НОВОЕ: Rim light
     if (params.rim_light) {
         if (params.rim_light.brightness !== undefined) rimBrightness = params.rim_light.brightness
         if (params.rim_light.color !== undefined) rimColor = params.rim_light.color
     }
-    
+
     // ✅ РАСШИРЕННОЕ: Point light
     if (params.point_light) {
         if (params.point_light.brightness !== undefined) pointLightBrightness = params.point_light.brightness
@@ -280,7 +280,7 @@ function applyLightingUpdates(params) {
         if (params.point_light.position_y !== undefined) pointLightY = params.point_light.position_y
         if (params.point_light.fade !== undefined) pointFade = params.point_light.fade
     }
-    
+
     console.log("  ✅ Lighting updated successfully (COMPLETE)")
 }
 ```
@@ -301,14 +301,14 @@ def emit_material_update(self):
             'metalness': self.current_graphics['metal_metalness'],
             'clearcoat': self.current_graphics['metal_clearcoat'],
         },
-        
+
         # Glass (стеклянные части)
         'glass': {
             'opacity': self.current_graphics['glass_opacity'],
             'roughness': self.current_graphics['glass_roughness'],
             'ior': self.current_graphics['glass_ior'],
         },
-        
+
         # Frame (рама)
         'frame': {
             'color': self.current_graphics['frame_color'],
@@ -317,7 +317,7 @@ def emit_material_update(self):
             'clearcoat': self.current_graphics['frame_clearcoat'],
             'clearcoat_roughness': self.current_graphics['frame_clearcoat_roughness'],
         },
-        
+
         # Lever (рычаги)
         'lever': {
             'color': self.current_graphics['lever_color'],
@@ -326,21 +326,21 @@ def emit_material_update(self):
             'clearcoat': self.current_graphics['lever_clearcoat'],
             'clearcoat_roughness': self.current_graphics['lever_clearcoat_roughness'],
         },
-        
+
         # Tail (хвостовой шток)
         'tail': {
             'color': self.current_graphics['tail_color'],
             'metalness': self.current_graphics['tail_metalness'],
             'roughness': self.current_graphics['tail_roughness'],
         },
-        
+
         # Cylinder (корпус цилиндра)
         'cylinder': {
             'color': self.current_graphics['cylinder_color'],
             'metalness': self.current_graphics['cylinder_metalness'],
             'roughness': self.current_graphics['cylinder_roughness'],
         },
-        
+
         # Piston body (корпус поршня)
         'piston_body': {
             'color': self.current_graphics['piston_body_color'],
@@ -348,7 +348,7 @@ def emit_material_update(self):
             'metalness': self.current_graphics['piston_body_metalness'],
             'roughness': self.current_graphics['piston_body_roughness'],
         },
-        
+
         # Piston rod (шток поршня)
         'piston_rod': {
             'color': self.current_graphics['piston_rod_color'],
@@ -356,7 +356,7 @@ def emit_material_update(self):
             'metalness': self.current_graphics['piston_rod_metalness'],
             'roughness': self.current_graphics['piston_rod_roughness'],
         },
-        
+
         # Joints (шарниры)
         'joint': {
             'tail_color': self.current_graphics['joint_tail_color'],
@@ -367,7 +367,7 @@ def emit_material_update(self):
             'roughness': self.current_graphics['joint_roughness'],
         },
     }
-    
+
     self.logger.info(f"Materials updated (COMPLETE): {len(material_params)} groups")
     self.material_changed.emit(material_params)
 ```
@@ -399,7 +399,7 @@ def emit_lighting_update(self):
             'fade': self.current_graphics['point_fade'],
         }
     }
-    
+
     self.logger.info(f"Lighting updated (COMPLETE)")
     self.lighting_changed.emit(lighting_params)
 ```
@@ -434,6 +434,6 @@ def emit_lighting_update(self):
 
 ---
 
-**Версия документа**: 1.0  
-**Дата создания**: 2024  
+**Версия документа**: 1.0
+**Дата создания**: 2024
 **Статус**: Готово к реализации ✅

@@ -12,7 +12,7 @@
 **В Python (panel_graphics.py):**
 ```python
 'keyLightBrightness': self.key_brightness.value(),
-'fillLightBrightness': self.fill_brightness.value(), 
+'fillLightBrightness': self.fill_brightness.value(),
 'pointLightBrightness': self.point_brightness.value()
 ```
 
@@ -84,6 +84,6 @@ py app.py
 ```
 
 ---
-**Дата:** 11.10.2025  
-**Статус:** ✅ УСПЕШНО ЗАВЕРШЕНО  
+**Дата:** 11.10.2025
+**Статус:** ✅ УСПЕШНО ЗАВЕРШЕНО
 **Тестирование:** ✅ ПРОЙДЕНО

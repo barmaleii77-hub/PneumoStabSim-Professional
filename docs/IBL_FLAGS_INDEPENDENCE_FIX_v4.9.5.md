@@ -39,7 +39,7 @@ property bool iblLightingEnabled: true   // По умолчанию ВКЛ (не
 property bool iblBackgroundEnabled: startSkyboxEnabled
 ```
 
-**Было:** `iblLightingEnabled: startIblEnabled` — копировалось из master флага  
+**Было:** `iblLightingEnabled: startIblEnabled` — копировалось из master флага
 **Стало:** `iblLightingEnabled: true` — независимое значение по умолчанию
 
 #### 2. **Функция `applyEnvironmentUpdates()` (строка ~636)**
@@ -72,20 +72,20 @@ if (params.ibl_background_enabled !== undefined) {
 ```qml
 if (params.ibl) {
     const ibl = params.ibl
-    
+
     // ✅ Master флаг больше НЕ влияет на подфлаги!
     if (ibl.enabled !== undefined) {
         iblEnabled = !!ibl.enabled
         console.log("  🔧 IBL master (nested) обновлен:", iblEnabled)
         // ❌ КРИТИЧНО: НЕ переопределяем lighting/background!
     }
-    
+
     // ✅ Независимое управление
     if (ibl.lighting_enabled !== undefined) {
         iblLightingEnabled = !!ibl.lighting_enabled
         console.log("  💡 IBL lighting (nested) обновлен:", iblLightingEnabled)
     }
-    
+
     if (ibl.background_enabled !== undefined) {
         iblBackgroundEnabled = !!ibl.background_enabled
         console.log("  🎨 IBL background (nested) обновлен:", iblBackgroundEnabled)
@@ -106,9 +106,9 @@ function applyEnvironmentUpdates(params) {
     console.log("     iblEnabled:", iblEnabled)
     console.log("     iblLightingEnabled:", iblLightingEnabled)
     console.log("     iblBackgroundEnabled:", iblBackgroundEnabled)
-    
+
     // ... обработка параметров ...
-    
+
     // ✅ ПОСЛЕ обновления
     console.log("  📊 ФИНАЛЬНОЕ состояние ПОСЛЕ обновления:")
     console.log("     iblEnabled:", iblEnabled)
@@ -179,8 +179,8 @@ panel.ibl_enabled_check.setChecked(False)
 
 ## Версия
 
-**v4.9.5** - IBL Flags Independence Fix  
-**Дата:** 2024  
+**v4.9.5** - IBL Flags Independence Fix
+**Дата:** 2024
 **Автор:** GitHub Copilot (AI Assistant)
 
 ---
@@ -194,5 +194,5 @@ panel.ibl_enabled_check.setChecked(False)
 
 ---
 
-**🚀 Статус:** ИСПРАВЛЕНО ✅  
+**🚀 Статус:** ИСПРАВЛЕНО ✅
 **📝 Требуется тестирование:** ДА (необходим перезапуск приложения)

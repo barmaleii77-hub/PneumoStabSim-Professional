@@ -3,12 +3,12 @@ import QtQuick3D
 
 /*
  * SharedMaterials - Централизованное управление материалами
- * 
+ *
  * НАЗНАЧЕНИЕ:
  * - Единый источник всех PBR материалов для 3D сцены
  * - Избежание дублирования материалов
  * - Централизованное управление через Python bindings
- * 
+ *
  * USAGE:
  * ```qml
  * SharedMaterials {
@@ -16,7 +16,7 @@ import QtQuick3D
  *     frameBaseColor: root.frameBaseColor
  *     // ... все остальные bindings
  * }
- * 
+ *
  * Model {
  *     materials: [sharedMaterials.frameMaterial]
  * }
@@ -24,11 +24,11 @@ import QtQuick3D
  */
 QtObject {
     id: root
-    
+
     // ===============================================================
     // FRAME MATERIAL PROPERTIES
     // ===============================================================
-    
+
     property color frameBaseColor: "#c53030"
     property real frameMetalness: 0.85
     property real frameRoughness: 0.35
@@ -43,11 +43,11 @@ QtObject {
     property color frameAttenuationColor: "#ffffff"
     property color frameEmissiveColor: "#000000"
     property real frameEmissiveIntensity: 0.0
-    
+
     // ===============================================================
     // LEVER MATERIAL PROPERTIES
     // ===============================================================
-    
+
     property color leverBaseColor: "#9ea4ab"
     property real leverMetalness: 1.0
     property real leverRoughness: 0.28
@@ -62,11 +62,11 @@ QtObject {
     property color leverAttenuationColor: "#ffffff"
     property color leverEmissiveColor: "#000000"
     property real leverEmissiveIntensity: 0.0
-    
+
     // ===============================================================
     // TAIL ROD MATERIAL PROPERTIES
     // ===============================================================
-    
+
     property color tailRodBaseColor: "#d5d9df"
     property real tailRodMetalness: 1.0
     property real tailRodRoughness: 0.3
@@ -81,11 +81,11 @@ QtObject {
     property color tailRodAttenuationColor: "#ffffff"
     property color tailRodEmissiveColor: "#000000"
     property real tailRodEmissiveIntensity: 0.0
-    
+
     // ===============================================================
     // CYLINDER MATERIAL PROPERTIES (GLASS)
     // ===============================================================
-    
+
     property color cylinderBaseColor: "#e1f5ff"
     property real cylinderMetalness: 0.0
     property real cylinderRoughness: 0.05
@@ -100,11 +100,11 @@ QtObject {
     property color cylinderAttenuationColor: "#b7e7ff"
     property color cylinderEmissiveColor: "#000000"
     property real cylinderEmissiveIntensity: 0.0
-    
+
     // ===============================================================
     // PISTON BODY MATERIAL PROPERTIES
     // ===============================================================
-    
+
     property color pistonBodyBaseColor: "#ff3c6e"
     property color pistonBodyWarningColor: "#ff5454"
     property real pistonBodyMetalness: 1.0
@@ -120,11 +120,11 @@ QtObject {
     property color pistonBodyAttenuationColor: "#ffffff"
     property color pistonBodyEmissiveColor: "#000000"
     property real pistonBodyEmissiveIntensity: 0.0
-    
+
     // ===============================================================
     // PISTON ROD MATERIAL PROPERTIES
     // ===============================================================
-    
+
     property color pistonRodBaseColor: "#ececec"
     property color pistonRodWarningColor: "#ff2a2a"
     property real pistonRodMetalness: 1.0
@@ -140,11 +140,11 @@ QtObject {
     property color pistonRodAttenuationColor: "#ffffff"
     property color pistonRodEmissiveColor: "#000000"
     property real pistonRodEmissiveIntensity: 0.0
-    
+
     // ===============================================================
     // JOINT TAIL MATERIAL PROPERTIES
     // ===============================================================
-    
+
     property color jointTailBaseColor: "#2a82ff"
     property real jointTailMetalness: 0.9
     property real jointTailRoughness: 0.35
@@ -159,11 +159,11 @@ QtObject {
     property color jointTailAttenuationColor: "#ffffff"
     property color jointTailEmissiveColor: "#000000"
     property real jointTailEmissiveIntensity: 0.0
-    
+
     // ===============================================================
     // JOINT ARM MATERIAL PROPERTIES
     // ===============================================================
-    
+
     property color jointArmBaseColor: "#ff9c3a"
     property real jointArmMetalness: 0.9
     property real jointArmRoughness: 0.32
@@ -178,18 +178,18 @@ QtObject {
     property color jointArmAttenuationColor: "#ffffff"
     property color jointArmEmissiveColor: "#000000"
     property real jointArmEmissiveIntensity: 0.0
-    
+
     // ===============================================================
     // JOINT ROD SPECIAL COLORS
     // ===============================================================
-    
+
     property color jointRodOkColor: "#00ff55"
     property color jointRodErrorColor: "#ff0000"
-    
+
     // ===============================================================
     // HELPER FUNCTION
     // ===============================================================
-    
+
     function emissiveVector(color, intensity) {
         if (intensity === undefined)
             intensity = 1.0
@@ -197,11 +197,11 @@ QtObject {
             return Qt.vector3d(0, 0, 0)
         return Qt.vector3d(color.r * intensity, color.g * intensity, color.b * intensity)
     }
-    
+
     // ===============================================================
     // MATERIAL INSTANCES
     // ===============================================================
-    
+
     readonly property PrincipledMaterial frameMaterial: PrincipledMaterial {
         baseColor: root.frameBaseColor
         metalness: root.frameMetalness
@@ -217,7 +217,7 @@ QtObject {
         attenuationColor: root.frameAttenuationColor
         emissiveFactor: root.emissiveVector(root.frameEmissiveColor, root.frameEmissiveIntensity)
     }
-    
+
     readonly property PrincipledMaterial leverMaterial: PrincipledMaterial {
         baseColor: root.leverBaseColor
         metalness: root.leverMetalness
@@ -233,7 +233,7 @@ QtObject {
         attenuationColor: root.leverAttenuationColor
         emissiveFactor: root.emissiveVector(root.leverEmissiveColor, root.leverEmissiveIntensity)
     }
-    
+
     readonly property PrincipledMaterial tailRodMaterial: PrincipledMaterial {
         baseColor: root.tailRodBaseColor
         metalness: root.tailRodMetalness
@@ -249,7 +249,7 @@ QtObject {
         attenuationColor: root.tailRodAttenuationColor
         emissiveFactor: root.emissiveVector(root.tailRodEmissiveColor, root.tailRodEmissiveIntensity)
     }
-    
+
     readonly property PrincipledMaterial cylinderMaterial: PrincipledMaterial {
         baseColor: root.cylinderBaseColor
         metalness: root.cylinderMetalness
@@ -266,7 +266,7 @@ QtObject {
         emissiveFactor: root.emissiveVector(root.cylinderEmissiveColor, root.cylinderEmissiveIntensity)
         alphaMode: PrincipledMaterial.Blend
     }
-    
+
     readonly property PrincipledMaterial jointTailMaterial: PrincipledMaterial {
         baseColor: root.jointTailBaseColor
         metalness: root.jointTailMetalness
@@ -282,7 +282,7 @@ QtObject {
         attenuationColor: root.jointTailAttenuationColor
         emissiveFactor: root.emissiveVector(root.jointTailEmissiveColor, root.jointTailEmissiveIntensity)
     }
-    
+
     readonly property PrincipledMaterial jointArmMaterial: PrincipledMaterial {
         baseColor: root.jointArmBaseColor
         metalness: root.jointArmMetalness
@@ -298,14 +298,14 @@ QtObject {
         attenuationColor: root.jointArmAttenuationColor
         emissiveFactor: root.emissiveVector(root.jointArmEmissiveColor, root.jointArmEmissiveIntensity)
     }
-    
+
     // ===============================================================
     // DYNAMIC MATERIALS (для поршня и штока с warning colors)
     // ===============================================================
-    
+
     // Эти материалы создаются динамически в компонентах, так как зависят от rodLengthError
     // Но свойства для них доступны через root
-    
+
     Component.onCompleted: {
         console.log("🎨 SharedMaterials initialized")
         console.log("   📦 7 static materials created")

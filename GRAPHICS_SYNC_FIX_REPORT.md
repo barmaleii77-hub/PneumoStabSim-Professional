@@ -1,7 +1,7 @@
 # 🔧 ИСПРАВЛЕНИЕ СИНХРОНИЗАЦИИ GRAPHICS PANEL → QML
 
-**Дата:** 12 января 2025  
-**Статус:** ✅ **КРИТИЧЕСКАЯ ПРОБЛЕМА ИСПРАВЛЕНА**  
+**Дата:** 12 января 2025
+**Статус:** ✅ **КРИТИЧЕСКАЯ ПРОБЛЕМА ИСПРАВЛЕНА**
 **Версия:** Final Complete v3.0
 
 ---
@@ -108,13 +108,13 @@ def _prepare_lighting_payload(self) -> Dict[str, Any]:
 ```javascript
 Item {
     id: root
-    
+
     // ✅ NEW: Signal to Python confirming batch updates applied
     signal batchUpdatesApplied(var summary)
-    
+
     function applyBatchedUpdates(updates) {
         // ... apply updates ...
-        
+
         // ✅ Send ACK to Python
         var summary = {
             timestamp: Date.now(),
@@ -139,10 +139,10 @@ def _on_qml_batch_ack(self, summary: dict):
     """Mark graphics_logger events as applied when QML confirms."""
     categories = summary.get("categories", [])
     timestamp_ms = summary.get("timestamp", 0)
-    
+
     logger = get_graphics_logger()
     recent_events = list(logger.get_recent_changes(200))
-    
+
     for event in reversed(recent_events):
         if event.category in categories and not event.applied_to_qml:
             # Check timing (within 2 second window)
@@ -378,9 +378,9 @@ socketio.emit('sync_update', {
 
 ---
 
-**Автор:** GitHub Copilot  
-**Дата:** 12 января 2025  
-**Версия:** Final Complete v3.0  
+**Автор:** GitHub Copilot
+**Дата:** 12 января 2025
+**Версия:** Final Complete v3.0
 **Статус:** ✅ **ГОТОВО К ПРОДАКШЕНУ**
 
 ---

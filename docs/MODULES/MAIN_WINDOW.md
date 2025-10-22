@@ -80,27 +80,27 @@
 ```python
 def __init__(self, use_qml_3d: bool = True):
     """Initialize main window
-    
+
     Args:
         use_qml_3d: Use Qt Quick 3D (True) or legacy OpenGL (False)
     """
     super().__init__()
-    
+
     # Create simulation manager
     self.simulation_manager = SimulationManager(self)
-    
+
     # Create geometry converter
     self.geometry_converter = create_geometry_converter()
-    
+
     # Setup UI
     self._setup_central()      # QML 3D scene
     self._setup_docks()        # Control panels
     self._setup_menus()        # Menu bar
     self._setup_toolbar()      # Toolbar
-    
+
     # Connect signals
     self._connect_simulation_signals()
-    
+
     # Start render timer (60 FPS)
     self.render_timer = QTimer(self)
     self.render_timer.timeout.connect(self._update_render)
@@ -119,15 +119,15 @@ def _setup_qml_3d_view(self):
     self._qquick_widget.setResizeMode(
         QQuickWidget.ResizeMode.SizeRootObjectToView
     )
-    
+
     # Load main.qml
     qml_path = Path("assets/qml/main.qml")
     qml_url = QUrl.fromLocalFile(str(qml_path.absolute()))
     self._qquick_widget.setSource(qml_url)
-    
+
     # Get root object for property access
     self._qml_root_object = self._qquick_widget.rootObject()
-    
+
     # Set as central widget
     self.setCentralWidget(self._qquick_widget)
 ```
@@ -139,22 +139,22 @@ def _setup_qml_3d_view(self):
 ```python
 def _wire_panel_signals(self):
     """Connect panel signals to handlers"""
-    
+
     # Geometry changes ? Update 3D scene
     self.geometry_panel.geometry_changed.connect(
         self._on_geometry_changed
     )
-    
+
     # Animation changes ? Update animation params
     self.modes_panel.animation_changed.connect(
         self._on_animation_changed
     )
-    
+
     # Simulation control ? Start/stop physics
     self.modes_panel.simulation_control.connect(
         self._on_sim_control
     )
-    
+
     # Physics state ? Update UI
     self.simulation_manager.state_bus.state_ready.connect(
         self._on_state_update
@@ -168,7 +168,7 @@ def _wire_panel_signals(self):
 ```python
 def _on_geometry_changed(self, geometry_params: dict):
     """Handle geometry parameter changes
-    
+
     Args:
         geometry_params: Dict with geometry values
             {
@@ -181,14 +181,14 @@ def _on_geometry_changed(self, geometry_params: dict):
     """
     # Update QML scene via invokeMethod
     from PySide6.QtCore import QMetaObject, Q_ARG, Qt
-    
+
     success = QMetaObject.invokeMethod(
         self._qml_root_object,
         "updateGeometry",
         Qt.ConnectionType.DirectConnection,
         Q_ARG("QVariant", geometry_params)
     )
-    
+
     if not success:
         # Fallback: Set properties individually
         self._set_geometry_properties_fallback(geometry_params)
@@ -201,7 +201,7 @@ def _on_geometry_changed(self, geometry_params: dict):
 ```python
 def _on_animation_changed(self, animation_params: dict):
     """Handle animation parameter changes
-    
+
     Args:
         animation_params: Dict with animation values
             {
@@ -217,13 +217,13 @@ def _on_animation_changed(self, animation_params: dict):
         # Convert amplitude from meters to degrees
         amplitude_deg = animation_params['amplitude'] * 1000 / 10
         self._qml_root_object.setProperty("userAmplitude", amplitude_deg)
-    
+
     if 'frequency' in animation_params:
         self._qml_root_object.setProperty(
-            "userFrequency", 
+            "userFrequency",
             animation_params['frequency']
         )
-    
+
     # ... (other parameters)
 ```
 
@@ -234,33 +234,33 @@ def _on_animation_changed(self, animation_params: dict):
 ```python
 def _update_3d_scene_from_snapshot(self, snapshot: StateSnapshot):
     """Update 3D scene with simulation state
-    
+
     This is called 60 times per second from render timer!
-    
+
     Args:
         snapshot: Current physics state
     """
     if not self._qml_root_object:
         return
-    
+
     # Read animation parameters FROM QML
     # (These were set by _on_animation_changed)
     amplitude = self._qml_root_object.property("userAmplitude") or 8.0
     frequency = self._qml_root_object.property("userFrequency") or 1.0
     phase_global = self._qml_root_object.property("userPhaseGlobal") or 0.0
-    
+
     # Calculate lever angles using animation formula
     import time
     t = time.time()
     omega = 2.0 * np.pi * frequency
-    
+
     angles = {
         'fl': amplitude * np.sin(omega * t + np.deg2rad(phase_global)),
         'fr': amplitude * np.sin(omega * t + np.deg2rad(phase_global)),
         'rl': amplitude * np.sin(omega * t + np.deg2rad(phase_global)),
         'rr': amplitude * np.sin(omega * t + np.deg2rad(phase_global))
     }
-    
+
     # Calculate piston positions using GeometryBridge
     piston_positions = {}
     for corner, angle in angles.items():
@@ -268,11 +268,11 @@ def _update_3d_scene_from_snapshot(self, snapshot: StateSnapshot):
             corner, angle, None
         )
         piston_positions[corner] = coords['pistonPositionMm']
-    
+
     # Update QML: Set angles
     for corner, angle in angles.items():
         self._qml_root_object.setProperty(f"{corner}_angle", float(angle))
-    
+
     # Update QML: Set piston positions
     QMetaObject.invokeMethod(
         self._qml_root_object,
@@ -350,13 +350,13 @@ PHYSICS_FPS = 1000   # Physics timestep
 ```python
 def _on_physics_error(self, msg: str):
     """Handle physics errors
-    
+
     Args:
         msg: Error message from physics engine
     """
     self.status_bar.showMessage(f"Physics Error: {msg}")
     self.logger.error(f"Physics engine error: {msg}")
-    
+
     # Show critical error dialog
     if "CRITICAL" in msg.upper():
         QMessageBox.critical(
@@ -376,12 +376,12 @@ def _update_render(self):
     """Update UI (60 FPS)"""
     if not self._qml_root_object:
         return
-    
+
     # Update status bar
     if self.current_snapshot:
         fps = 1.0 / self.current_snapshot.aggregates.physics_step_time
         self.fps_label.setText(f"Physics FPS: {fps:.1f}")
-    
+
     # Update queue stats
     stats = self.simulation_manager.get_queue_stats()
     self.queue_label.setText(f"Queue: {stats['get_count']}/{stats['put_count']}")

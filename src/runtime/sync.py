@@ -76,10 +76,10 @@ class LatestOnlyQueue:
         """
         with self._lock:
             return {
-                'put_count': self._put_count,
-                'get_count': self._get_count,
-                'dropped_count': self._dropped_count,
-                'efficiency': self._get_count / max(self._put_count, 1)
+                "put_count": self._put_count,
+                "get_count": self._get_count,
+                "dropped_count": self._dropped_count,
+                "efficiency": self._get_count / max(self._put_count, 1),
             }
 
     def reset_stats(self):
@@ -101,10 +101,11 @@ class LatestOnlyQueue:
 @dataclass
 class PerformanceMetrics:
     """Performance metrics for physics loop monitoring"""
+
     # Timing statistics
     total_steps: int = 0
     total_time: float = 0.0
-    min_step_time: float = float('inf')
+    min_step_time: float = float("inf")
     max_step_time: float = 0.0
     avg_step_time: float = 0.0
 
@@ -119,7 +120,7 @@ class PerformanceMetrics:
     queue_overruns: int = 0
 
     # Real-time factors
-    realtime_factor: float = 1.0       # sim_time / real_time
+    realtime_factor: float = 1.0  # sim_time / real_time
     cpu_usage_percent: float = 0.0
 
     # Last update timestamp
@@ -169,14 +170,15 @@ class PerformanceMetrics:
     def get_summary(self) -> Dict[str, Any]:
         """Get performance summary for logging/display"""
         return {
-            'steps': self.total_steps,
-            'avg_step_time_ms': self.avg_step_time * 1000,
-            'fps_actual': self.get_fps(),
-            'fps_target': self.get_target_fps(),
-            'realtime_factor': self.realtime_factor,
-            'frames_dropped': self.frames_dropped,
-            'integration_failures': self.integration_failures,
-            'efficiency': (self.total_steps - self.frames_dropped) / max(self.total_steps, 1)
+            "steps": self.total_steps,
+            "avg_step_time_ms": self.avg_step_time * 1000,
+            "fps_actual": self.get_fps(),
+            "fps_target": self.get_target_fps(),
+            "realtime_factor": self.realtime_factor,
+            "frames_dropped": self.frames_dropped,
+            "integration_failures": self.integration_failures,
+            "efficiency": (self.total_steps - self.frames_dropped)
+            / max(self.total_steps, 1),
         }
 
 
@@ -187,11 +189,18 @@ class TimingAccumulator:
     physics timestep from rendering framerate.
     """
 
-    def __init__(self, target_dt: float = 0.001, max_steps_per_frame: int = 10, max_frame_time: float = 0.05):
+    def __init__(
+        self,
+        target_dt: float = 0.001,
+        max_steps_per_frame: int = 10,
+        max_frame_time: float = 0.05,
+    ):
         self.target_dt = target_dt
         self.accumulator = 0.0
         self.last_time = time.perf_counter()
-        self.max_steps_per_frame = max(1, int(max_steps_per_frame))  # Prevent spiral of death
+        self.max_steps_per_frame = max(
+            1, int(max_steps_per_frame)
+        )  # Prevent spiral of death
         self.max_frame_time = max_frame_time
 
         # Statistics
@@ -221,7 +230,10 @@ class TimingAccumulator:
         # Calculate number of steps to take
         steps_to_take = 0
 
-        while self.accumulator >= self.target_dt and steps_to_take < self.max_steps_per_frame:
+        while (
+            self.accumulator >= self.target_dt
+            and steps_to_take < self.max_steps_per_frame
+        ):
             self.accumulator -= self.target_dt
             self.total_sim_time += self.target_dt
             steps_to_take += 1
@@ -297,6 +309,9 @@ def create_state_queue() -> LatestOnlyQueue:
 
 # Export main classes
 __all__ = [
-    'LatestOnlyQueue', 'PerformanceMetrics', 'TimingAccumulator',
-    'ThreadSafeCounter', 'create_state_queue'
+    "LatestOnlyQueue",
+    "PerformanceMetrics",
+    "TimingAccumulator",
+    "ThreadSafeCounter",
+    "create_state_queue",
 ]

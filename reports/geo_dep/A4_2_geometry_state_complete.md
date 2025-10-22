@@ -26,7 +26,7 @@ def calculate_stroke_max_kinematic(self) -> float:
 ```python
 def validate_all_constraints(self) -> bool:
     # 1. Геометрические ограничения (wheelbase vs lever)
-    # 2. Цилиндрические ограничения (stroke vs length)  
+    # 2. Цилиндрические ограничения (stroke vs length)
     # 3. Гидравлические ограничения (rod vs cylinder ratio)
     # 4. ? НОВОЕ: Кинематические ограничения (stroke vs kinematics)
 ```
@@ -77,7 +77,7 @@ min_cylinder_length = stroke + piston_thickness + 2 * dead_gap
 **Проблема**: Это ограничение ЦИЛИНДРА, не подвески!
 
 ### После A-4.2 (в GeometryState):
-```python  
+```python
 # Реальное кинематическое ограничение
 stroke_max_kinematic = calculate_stroke_max_kinematic()  # Учитывает wheelbase, lever_length, geometry
 stroke_max_geometric = cylinder_length - piston - 2*gaps  # Классическое ограничение цилиндра
@@ -113,7 +113,7 @@ stroke_max = min(stroke_max_kinematic, stroke_max_geometric)
 
 ### Тесты подтверждают:
 - ? GeometryState создаётся без ошибок
-- ? Кинематические модули импортируются корректно  
+- ? Кинематические модули импортируются корректно
 - ? Валидация работает для всех типов ограничений
 - ? Preset'ы создают корректные конфигурации
 

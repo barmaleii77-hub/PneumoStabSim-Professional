@@ -5,6 +5,7 @@
 Проблема: module "QtQuick3D" plugin "qquick3dplugin" not found
 """
 
+
 def analyze_logs():
     """Анализ проблемы из логов"""
     print("🔍 АНАЛИЗ ЛОГОВ APP.PY")
@@ -21,24 +22,25 @@ def analyze_logs():
     print("   ✅ Заглушка-виджет АКТИВНА")
     print()
 
+
 def create_working_qml():
     """Создание гарантированно работающего QML"""
     print("🛠️ СОЗДАНИЕ РАБОТАЮЩЕГО QML")
     print("=" * 50)
-    
+
     # Простой QML БЕЗ QtQuick3D
-    working_qml = '''import QtQuick
+    working_qml = """import QtQuick
 import QtQuick.Controls
 
 Rectangle {
     id: root
     anchors.fill: parent
     color: "#1a1a2e"
-    
+
     Column {
         anchors.centerIn: parent
         spacing: 30
-        
+
         Text {
             text: "✅ QTQUICK3D PLUGIN ИСПРАВЛЕН"
             color: "#00ff88"
@@ -46,14 +48,14 @@ Rectangle {
             font.bold: true
             anchors.horizontalCenter: parent.horizontalCenter
         }
-        
+
         Rectangle {
             width: 500
             height: 3
             color: "#00ff88"
             anchors.horizontalCenter: parent.horizontalCenter
         }
-        
+
         Text {
             text: "🎯 PneumoStabSim Professional\\n⚡ Оптимизированная версия v4.1+"
             color: "#ffffff"
@@ -61,7 +63,7 @@ Rectangle {
             horizontalAlignment: Text.AlignHCenter
             anchors.horizontalCenter: parent.horizontalCenter
         }
-        
+
         Text {
             text: "СТАТУС ИСПРАВЛЕНИЯ:"
             color: "#ffaa00"
@@ -69,17 +71,17 @@ Rectangle {
             font.bold: true
             anchors.horizontalCenter: parent.horizontalCenter
         }
-        
+
         Column {
             anchors.horizontalCenter: parent.horizontalCenter
             spacing: 8
-            
+
             Text { text: "✅ QML загружается без ошибок"; color: "#cccccc"; font.pixelSize: 14 }
             Text { text: "✅ Плагин qquick3dplugin обойден"; color: "#cccccc"; font.pixelSize: 14 }
             Text { text: "✅ Интерфейс функционирует"; color: "#cccccc"; font.pixelSize: 14 }
             Text { text: "✅ Заглушка-виджет отключена"; color: "#cccccc"; font.pixelSize: 14 }
         }
-        
+
         Button {
             text: "🚀 ЗАПУСТИТЬ ПОЛНУЮ ВЕРСИЮ"
             anchors.horizontalCenter: parent.horizontalCenter
@@ -89,7 +91,7 @@ Rectangle {
             }
         }
     }
-    
+
     // Анимированный индикатор
     Rectangle {
         width: 60
@@ -99,7 +101,7 @@ Rectangle {
         anchors.bottom: parent.bottom
         anchors.right: parent.right
         anchors.margins: 30
-        
+
         Text {
             text: "✓"
             color: "#1a1a2e"
@@ -107,22 +109,22 @@ Rectangle {
             font.bold: true
             anchors.centerIn: parent
         }
-        
+
         SequentialAnimation on scale {
             loops: Animation.Infinite
             NumberAnimation { to: 1.2; duration: 1000 }
             NumberAnimation { to: 1.0; duration: 1000 }
         }
     }
-}'''
-    
+}"""
+
     from pathlib import Path
-    
+
     # Сохраняем рабочий QML
     working_path = Path("assets/qml/main_working_fixed.qml")
-    working_path.write_text(working_qml, encoding='utf-8')
+    working_path.write_text(working_qml, encoding="utf-8")
     print(f"✅ Создан: {working_path}")
-    
+
     # Временно заменяем main_optimized.qml
     main_opt = Path("assets/qml/main_optimized.qml")
     if main_opt.exists():
@@ -130,34 +132,37 @@ Rectangle {
         backup = Path("assets/qml/main_optimized_backup.qml")
         if not backup.exists():
             import shutil
+
             shutil.copy2(main_opt, backup)
             print(f"📦 Бэкап: {backup}")
-        
+
         # Заменяем на рабочую версию
-        main_opt.write_text(working_qml, encoding='utf-8')
+        main_opt.write_text(working_qml, encoding="utf-8")
         print(f"🔄 Заменен: {main_opt}")
-    
+
     # Также исправляем main.qml
     main_qml = Path("assets/qml/main.qml")
     if main_qml.exists():
         backup_main = Path("assets/qml/main_backup.qml")
         if not backup_main.exists():
             import shutil
+
             shutil.copy2(main_qml, backup_main)
             print(f"📦 Бэкап: {backup_main}")
-        
-        main_qml.write_text(working_qml, encoding='utf-8')
+
+        main_qml.write_text(working_qml, encoding="utf-8")
         print(f"🔄 Заменен: {main_qml}")
+
 
 def main():
     """Быстрое исправление"""
     print("🚨 БЫСТРОЕ ИСПРАВЛЕНИЕ QTQUICK3D PLUGIN")
     print("На основе анализа логов app.py от 2025-01-05")
     print("=" * 60)
-    
+
     analyze_logs()
     create_working_qml()
-    
+
     print("\n🎉 ИСПРАВЛЕНИЕ ПРИМЕНЕНО!")
     print("=" * 60)
     print("🚀 ТЕПЕРЬ ЗАПУСТИТЕ:")
@@ -168,6 +173,7 @@ def main():
     print("   ✅ Нет ошибок qquick3dplugin")
     print("   ✅ Нет заглушки-виджета")
     print("   ✅ Приложение полностью работает")
+
 
 if __name__ == "__main__":
     main()

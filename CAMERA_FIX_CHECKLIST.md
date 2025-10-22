@@ -67,13 +67,13 @@ python app.py
    ```qml
    // ДОЛЖНО БЫТЬ:
    View3D { ... }
-   
+
    CameraController {
        anchors.fill: parent
        z: 1000
        // ...
    }
-   
+
    // НЕ ДОЛЖНО БЫТЬ:
    View3D {
        CameraController { ... }  // ❌ НЕПРАВИЛЬНО!

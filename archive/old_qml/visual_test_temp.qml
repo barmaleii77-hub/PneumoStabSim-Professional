@@ -4,30 +4,30 @@ import QtQuick3D
 
 Item {
     anchors.fill: parent
-    
+
     // Background indicator (should always be visible)
     Rectangle {
         anchors.fill: parent
         color: "#1a1a2e"
-        
+
         // Visual test pattern
         Column {
             anchors.centerIn: parent
             spacing: 20
-            
+
             Text {
                 text: "2D QML IS WORKING"
                 color: "#00ff00"
                 font.pixelSize: 32
                 font.bold: true
             }
-            
+
             Rectangle {
                 width: 200
                 height: 200
                 color: "#ff00ff"
                 radius: 100
-                
+
                 Text {
                     anchors.centerIn: parent
                     text: "2D CIRCLE"
@@ -35,7 +35,7 @@ Item {
                     font.pixelSize: 16
                 }
             }
-            
+
             Text {
                 text: "If you see this, 2D QML works!"
                 color: "#ffff00"
@@ -43,26 +43,26 @@ Item {
             }
         }
     }
-    
+
     // 3D View (will it render on top?)
     View3D {
         anchors.fill: parent
-        
+
         environment: SceneEnvironment {
             backgroundMode: SceneEnvironment.Transparent
             antialiasingMode: SceneEnvironment.MSAA
         }
-        
+
         PerspectiveCamera {
             id: camera
             position: Qt.vector3d(0, 0, 5)
         }
-        
+
         DirectionalLight {
             eulerRotation.x: -30
             brightness: 2.0
         }
-        
+
         // Red sphere
         Model {
             source: "#Sphere"
@@ -73,7 +73,7 @@ Item {
                 metalness: 0.0
                 roughness: 0.5
             }
-            
+
             NumberAnimation on eulerRotation.y {
                 from: 0
                 to: 360
@@ -81,7 +81,7 @@ Item {
                 loops: Animation.Infinite
             }
         }
-        
+
         // Green cube
         Model {
             source: "#Cube"
@@ -92,7 +92,7 @@ Item {
                 metalness: 0.0
                 roughness: 0.5
             }
-            
+
             NumberAnimation on eulerRotation.x {
                 from: 0
                 to: 360
@@ -100,7 +100,7 @@ Item {
                 loops: Animation.Infinite
             }
         }
-        
+
         // Blue cylinder
         Model {
             source: "#Cylinder"
@@ -111,7 +111,7 @@ Item {
                 metalness: 0.0
                 roughness: 0.5
             }
-            
+
             NumberAnimation on eulerRotation.z {
                 from: 0
                 to: 360
@@ -120,7 +120,7 @@ Item {
             }
         }
     }
-    
+
     // Overlay info (should be on top)
     Rectangle {
         anchors.top: parent.top
@@ -132,43 +132,43 @@ Item {
         border.color: "#ffffff"
         border.width: 2
         radius: 5
-        
+
         Column {
             anchors.fill: parent
             anchors.margins: 10
             spacing: 5
-            
+
             Text {
                 text: "3D Test Status"
                 color: "#ffffff"
                 font.pixelSize: 16
                 font.bold: true
             }
-            
+
             Text {
                 text: "Expected:"
                 color: "#aaaaaa"
                 font.pixelSize: 12
             }
-            
+
             Text {
                 text: "- Red sphere (rotating)"
                 color: "#ff4444"
                 font.pixelSize: 11
             }
-            
+
             Text {
                 text: "- Green cube (rotating)"
                 color: "#44ff44"
                 font.pixelSize: 11
             }
-            
+
             Text {
                 text: "- Blue cylinder (rotating)"
                 color: "#4444ff"
                 font.pixelSize: 11
             }
-            
+
             Text {
                 text: "If you see only 2D -> 3D broken"
                 color: "#ffaa00"

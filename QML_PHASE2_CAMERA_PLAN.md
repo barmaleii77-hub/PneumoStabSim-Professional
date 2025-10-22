@@ -101,14 +101,14 @@ function flagMotion()
 Node {
     id: cameraRig
     // parent: worldRoot (set by main.qml)
-    
+
     position: cameraState.pivot
     eulerRotation: Qt.vector3d(cameraState.pitchDeg, cameraState.yawDeg, 0)
-    
+
     Node {
         id: panNode
         position: Qt.vector3d(cameraState.panX, cameraState.panY, 0)
-        
+
         PerspectiveCamera {
             id: camera
             position: Qt.vector3d(0, 0, cameraState.distance)
@@ -164,15 +164,15 @@ Keys.onPressed: (e) => { /* R, F, Space */ }
 ```qml
 Item {
     id: controller
-    
+
     // Public API
     readonly property alias state: cameraState
     readonly property alias rig: cameraRig
     readonly property alias camera: cameraRig.camera
-    
+
     // Signals
     signal cameraChanged()
-    
+
     // Components
     CameraState { id: cameraState }
     CameraRig { id: cameraRig; cameraState: cameraState }
@@ -211,10 +211,10 @@ import "camera"
 CameraController {
     id: cameraController
     anchors.fill: parent
-    
+
     worldRoot: worldRoot
     taaMotionAdaptive: root.taaMotionAdaptive
-    
+
     onCameraChanged: {
         // Update StateCache
         StateCache.cameraFov = cameraController.state.fov
@@ -344,7 +344,7 @@ CameraController 1.0 CameraController.qml
 
 ## 🚀 READY TO START
 
-**Current Status:** Plan Complete  
+**Current Status:** Plan Complete
 **Next Step:** Implement CameraState.qml
 
 **Estimated Time:**
@@ -355,7 +355,6 @@ CameraController 1.0 CameraController.qml
 
 ---
 
-**Date:** 2025-01-17  
-**Phase:** 2 of 5  
+**Date:** 2025-01-17
+**Phase:** 2 of 5
 **Status:** PLANNING COMPLETE
-

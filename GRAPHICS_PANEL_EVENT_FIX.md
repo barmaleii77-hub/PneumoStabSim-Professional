@@ -1,7 +1,7 @@
 # 🔧 ИСПРАВЛЕНИЕ СОБЫТИЙ ГРАФИЧЕСКОЙ ПАНЕЛИ
 
-**Дата**: 2024-12-15  
-**Компонент**: `src/ui/panels/panel_graphics.py`  
+**Дата**: 2024-12-15
+**Компонент**: `src/ui/panels/panel_graphics.py`
 **Проблема**: RuntimeWarning при disconnect() сигналов
 
 ---
@@ -68,11 +68,11 @@ def _handle_slider(self, slider_value: int) -> None:
 ```python
 def __init__(self, ...):
     self._user_triggered = False
-    
+
     # ✅ Отслеживаем НАЧАЛО и КОНЕЦ перетаскивания
     self._slider.sliderPressed.connect(self._on_slider_pressed)
     self._slider.sliderReleased.connect(self._on_slider_released)
-    
+
     # ✅ Отслеживаем фокус в SpinBox
     self._spin.installEventFilter(self)
 
@@ -178,7 +178,7 @@ python app.py
 
 🔗 Анализ событий Python↔QML...
    Процент синхронизации: 97.8%  ← ✅ Должно быть >95%
-   
+
    ⚠️  Обнаружены несинхронизированные события  ← ❌ Должно быть 0
 ```
 
@@ -192,6 +192,5 @@ python app.py
 
 ---
 
-**Автор**: GitHub Copilot  
+**Автор**: GitHub Copilot
 **Статус**: ✅ ИСПРАВЛЕНО
-

@@ -5,7 +5,7 @@
 ### ✅ Добавлено логирование для:
 
 1. **QCheckBox** - клики на чекбоксы
-2. **LabeledSlider** - изменения слайдеров  
+2. **LabeledSlider** - изменения слайдеров
 3. **QComboBox** - выбор в выпадающих списках
 4. **ColorButton** - выбор цвета
 5. **Мышь в QML** - drag, zoom, rotate на 3D канве
@@ -27,9 +27,9 @@ from src.common.logging_slider_wrapper import create_logging_slider, LoggingColo
 ```python
 def __init__(self, parent: QWidget | None = None):
     super().__init__(parent)
-    
+
     # ... существующий код ...
-    
+
     # ✅ НОВОЕ: Инициализируем event logger
     self.event_logger = get_event_logger()
 ```
@@ -82,7 +82,7 @@ fog_enabled = QCheckBox("Включить туман", self)
 
 def on_fog_changed(state: int):
     checked = (state == Qt.Checked)
-    
+
     # 1️⃣ Логируем клик
     self.event_logger.log_user_click(
         widget_name="fog_enabled",
@@ -90,7 +90,7 @@ def on_fog_changed(state: int):
         value=checked,
         text="Включить туман"
     )
-    
+
     # 2️⃣ Обрабатываем
     self._update_environment("fog_enabled", checked)
 
@@ -109,7 +109,7 @@ previous_mode = [None]
 
 def on_mode_changed(index: int):
     new_mode = mode_combo.currentData()
-    
+
     # Логируем выбор
     self.event_logger.log_user_combo(
         combo_name="background_mode",
@@ -118,7 +118,7 @@ def on_mode_changed(index: int):
         index=index,
         text=mode_combo.currentText()
     )
-    
+
     previous_mode[0] = new_mode
     self._update_environment("background_mode", new_mode)
 
@@ -137,19 +137,19 @@ import "components"
 View3D {
     id: view3D
     anchors.fill: parent
-    
+
     // ... существующий код ...
-    
+
     // ✅ НОВОЕ: Логирование мыши
     MouseEventLogger {
         id: mouseLogger
         enableLogging: true
         componentName: "main.qml"
         z: -1  // Под остальными элементами
-        
+
         // Обработчики уже встроены в компонент
     }
-    
+
     // ... остальной код ...
 }
 ```
@@ -181,7 +181,7 @@ View3D {
    Пропущено QML: 2
    Процент синхронизации: 97.0%
    ⚠️  Обнаружены несинхронизированные события!
-   
+
    📈 События по типам:
       USER_SLIDER: 34
       STATE_CHANGE: 45
@@ -352,5 +352,5 @@ MouseEventLogger {
 
 ---
 
-**Версия**: 2.0  
+**Версия**: 2.0
 **Дата**: 2024-12-15

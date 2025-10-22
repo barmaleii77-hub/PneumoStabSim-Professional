@@ -1,6 +1,6 @@
 # ? НОВЫЕ UI КОМПОНЕНТЫ - ACCORDION И PARAMETER SLIDER
 
-**Дата:** 3 января 2025, 13:00 UTC  
+**Дата:** 3 января 2025, 13:00 UTC
 **Статус:** ? **РАБОТАЕТ ИДЕАЛЬНО**
 
 ---
@@ -196,21 +196,21 @@ self.addDockWidget(Qt.DockWidgetArea.LeftDockWidgetArea, left_dock)
 class GeometryPanelAccordion(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
-        
+
         layout = QVBoxLayout(self)
-        
+
         # Wheelbase
         self.wheelbase = ParameterSlider(
             "Wheelbase (L)", 3.0, 2.0, 5.0, 0.01, 3, "m"
         )
         layout.addWidget(self.wheelbase)
-        
+
         # Track width
         self.track = ParameterSlider(
             "Track Width (B)", 1.8, 1.0, 2.5, 0.01, 3, "m"
         )
         layout.addWidget(self.track)
-        
+
         # ... остальные параметры
 ```
 
@@ -241,14 +241,14 @@ class GeometryPanelAccordion(QWidget):
 ```python
 class ParameterManager:
     """Управление взаимосвязями параметров"""
-    
+
     def __init__(self):
         self.params = {}
         self.dependencies = {}  # Граф зависимостей
-    
+
     def register(self, name, slider, depends_on=None, formula=None):
         """Зарегистрировать параметр
-        
+
         Args:
             name: Имя параметра
             slider: ParameterSlider
@@ -256,30 +256,30 @@ class ParameterManager:
             formula: Функция пересчета
         """
         self.params[name] = slider
-        
+
         if depends_on and formula:
             self.dependencies[name] = {
                 'deps': depends_on,
                 'formula': formula
             }
-            
+
             # Подключить обновления
             for dep in depends_on:
                 self.params[dep].value_changed.connect(
                     lambda: self._update_dependent(name)
                 )
-    
+
     def _update_dependent(self, name):
         """Обновить зависимый параметр"""
         dep_info = self.dependencies[name]
-        
+
         # Получить значения зависимостей
-        values = {dep: self.params[dep].value() 
+        values = {dep: self.params[dep].value()
                   for dep in dep_info['deps']}
-        
+
         # Вычислить новое значение
         new_value = dep_info['formula'](**values)
-        
+
         # Установить
         self.params[name].set_value(new_value)
 ```
@@ -379,8 +379,8 @@ max_pressure_slider = ParameterSlider(
 
 ---
 
-**Дата:** 3 января 2025, 13:00 UTC  
-**Статус:** ? **КОМПОНЕНТЫ ГОТОВЫ К ИНТЕГРАЦИИ**  
+**Дата:** 3 января 2025, 13:00 UTC
+**Статус:** ? **КОМПОНЕНТЫ ГОТОВЫ К ИНТЕГРАЦИИ**
 **Прогресс:** **25% ? 45%** (+20%)
 
 ?? **ACCORDION И PARAMETER SLIDER РАБОТАЮТ ИДЕАЛЬНО!** ??

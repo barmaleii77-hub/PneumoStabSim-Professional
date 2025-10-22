@@ -1,7 +1,7 @@
 # 🎨 КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Фон больше НЕ вращается с камерой
 
-**Дата:** 2025-01-03  
-**Статус:** ✅ ПОЛНОСТЬЮ ИСПРАВЛЕНО  
+**Дата:** 2025-01-03
+**Статус:** ✅ ПОЛНОСТЬЮ ИСПРАВЛЕНО
 **Версия:** main.qml v4.6
 
 ---
@@ -41,14 +41,14 @@ environment: ExtendedSceneEnvironment {
     // ✅ КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: ФОН ВСЕГДА ЦВЕТ
     backgroundMode: SceneEnvironment.Color  // НИКОГДА SkyBox!
     clearColor: backgroundColor             // Простой статичный цвет
-    
+
     // ✅ IBL используется ТОЛЬКО для освещения, НЕ для фона
     lightProbe: iblEnabled && iblReady ? iblLoader.probe : null
     probeExposure: iblIntensity
-    
+
     // ✅ Фиксированная ориентация (не зависит от камеры)
     probeOrientation: Qt.vector3d(0, 0, 0)
-    
+
     // ✅ skyBoxBlurAmount УДАЛЁН - не нужен без SkyBox
 }
 ```
@@ -77,11 +77,11 @@ function applyEnvironmentUpdates(params) {
     // Background Color - применяется
     if (params.backgroundColor !== undefined)
         backgroundColor = params.backgroundColor
-    
+
     // ✅ Skybox параметры ИГНОРИРУЮТСЯ с предупреждением
     if (params.skybox_enabled !== undefined)
         console.log("⚠️ ИГНОРИРОВАНО: skybox (фон всегда Color)")
-    
+
     // IBL параметры - применяются (только для освещения!)
     if (params.ibl_enabled !== undefined)
         iblEnabled = params.ibl_enabled
@@ -217,7 +217,7 @@ QML response:
 function applyEnvironmentUpdates(params) {
     if (params.skybox_enabled !== undefined)
         console.log("⚠️ ИГНОРИРОВАНО: skybox параметры")
-    
+
     // Только backgroundColor применяется
     backgroundColor = params.backgroundColor
 }
@@ -315,7 +315,7 @@ probeOrientation: Qt.vector3d(0, 0, 0)  // ВСЕГДА фиксирован
 
 ---
 
-*Отчет создан автоматически*  
-*Система анализа: GitHub Copilot*  
-*Дата: 2025-01-03*  
+*Отчет создан автоматически*
+*Система анализа: GitHub Copilot*
+*Дата: 2025-01-03*
 *PneumoStabSim Professional - Background Stability Fix v4.6*

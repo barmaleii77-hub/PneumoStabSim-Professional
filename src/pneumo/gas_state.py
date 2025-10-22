@@ -97,7 +97,9 @@ class GasState:
         total_volume = self.total_volume
         if total_volume <= 0:
             raise ValueError("Total volume must be positive to compute pressure")
-        return (self.line.p * self.line.V_curr + self.tank.p * self.tank.V) / total_volume
+        return (
+            self.line.p * self.line.V_curr + self.tank.p * self.tank.V
+        ) / total_volume
 
     @property
     def total_temperature(self) -> float:
@@ -156,9 +158,7 @@ class LegacyGasState:
         if self.volume <= 0:
             raise ValueError(f"Volume must be positive, got {self.volume}")
         if self.gas_constant <= 0:
-            raise ValueError(
-                f"Gas constant must be positive, got {self.gas_constant}"
-            )
+            raise ValueError(f"Gas constant must be positive, got {self.gas_constant}")
         if self.gamma <= 1.0:
             raise ValueError(f"Adiabatic gamma must be >1.0, got {self.gamma}")
 
@@ -182,14 +182,12 @@ class LegacyGasState:
             return
 
         if mode == ThermoMode.ADIABATIC:
-            pv_constant = self.pressure * (self.volume ** self.gamma)
+            pv_constant = self.pressure * (self.volume**self.gamma)
             tv_constant = self.temperature * (self.volume ** (self.gamma - 1.0))
 
             self.volume = float(new_volume)
-            self.pressure = pv_constant / (self.volume ** self.gamma)
-            self.temperature = tv_constant / (
-                self.volume ** (self.gamma - 1.0)
-            )
+            self.pressure = pv_constant / (self.volume**self.gamma)
+            self.temperature = tv_constant / (self.volume ** (self.gamma - 1.0))
             return
 
         raise ValueError(f"Unsupported thermo mode: {mode}")
@@ -209,7 +207,9 @@ class LegacyGasState:
             raise ValueError(f"Inlet temperature must be positive, got {inlet_T}")
 
         new_mass = self.mass + delta_mass
-        self.temperature = (self.mass * self.temperature + delta_mass * inlet_T) / new_mass
+        self.temperature = (
+            self.mass * self.temperature + delta_mass * inlet_T
+        ) / new_mass
         self.mass = new_mass
         self._recalculate_pressure()
 
@@ -230,13 +230,17 @@ def iso_update(
 ) -> None:
     """Perform an isothermal update on a line gas state."""
     if target_temperature <= 0:
-        raise ValueError(f"Target temperature must be positive, got {target_temperature}")
+        raise ValueError(
+            f"Target temperature must be positive, got {target_temperature}"
+        )
     state.set_volume(new_volume)
     state.T = target_temperature
     state.update_pressure()
 
 
-def adiabatic_update(state: LineGasState, new_volume: float, gamma: float = GAMMA_AIR) -> None:
+def adiabatic_update(
+    state: LineGasState, new_volume: float, gamma: float = GAMMA_AIR
+) -> None:
     """Perform an adiabatic update on a line gas state."""
     if gamma <= 1.0:
         raise ValueError(f"Adiabatic gamma must be >1.0, got {gamma}")

@@ -14,26 +14,26 @@ from PySide6.QtCore import QObject, Slot
 class IblSignalLogger(QObject):
     """
     Логгер для записи событий IBL loader в файл.
-    
+
     Записывает все события загрузки HDR текстур, смены источников,
     fallback переключений и ошибок в timestamped лог-файл.
     """
-    
+
     def __init__(self, log_dir: str = "logs/ibl"):
         super().__init__()
         self._logger = logging.getLogger(self.__class__.__name__)
-        
+
         # Создаем директорию для логов
         self.log_dir = Path(log_dir)
         self.log_dir.mkdir(parents=True, exist_ok=True)
-        
+
         # Генерируем имя файла с timestamp
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         self.log_file = self.log_dir / f"ibl_signals_{timestamp}.log"
-        
+
         # Инициализируем файл
         self._init_log_file()
-        
+
     def _init_log_file(self):
         """Создает файл и записывает заголовок."""
         try:
@@ -47,12 +47,12 @@ class IblSignalLogger(QObject):
             self._logger.info("IBL Logger: Writing to %s", self.log_file)
         except Exception as e:
             self._logger.error("Failed to initialize IBL log file: %s", e)
-    
+
     @Slot(str)
     def logIblEvent(self, message: str):
         """
         Принимает событие из QML и записывает в файл.
-        
+
         Args:
             message: Сообщение с форматом "timestamp | level | source | message"
         """
@@ -62,11 +62,11 @@ class IblSignalLogger(QObject):
                 f.flush()  # Немедленная запись
         except Exception as e:
             self._logger.error("IBL Logger write error: %s", e)
-    
+
     def log_python_event(self, level: str, source: str, message: str):
         """
         Записывает событие из Python кода.
-        
+
         Args:
             level: Уровень (INFO, WARN, ERROR, SUCCESS)
             source: Источник события (например, "MainWindow", "GraphicsPanel")
@@ -74,14 +74,14 @@ class IblSignalLogger(QObject):
         """
         timestamp = datetime.now().isoformat()
         log_entry = f"{timestamp} | {level} | {source} | {message}"
-        
+
         try:
             with open(self.log_file, "a", encoding="utf-8") as f:
                 f.write(log_entry + "\n")
                 f.flush()
         except Exception as e:
             self._logger.error("IBL Logger write error: %s", e)
-    
+
     def close(self):
         """Закрывает лог-файл с финальной записью."""
         try:
@@ -109,7 +109,7 @@ def get_ibl_logger() -> IblSignalLogger:
 def log_ibl_event(level: str, source: str, message: str):
     """
     Удобная функция для логирования из Python кода.
-    
+
     Args:
         level: INFO, WARN, ERROR, SUCCESS
         source: Источник события

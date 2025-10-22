@@ -2,8 +2,8 @@
 
 ## 📋 **Резюме выполненной работы**
 
-**Дата:** 10 октября 2025  
-**Статус:** ✅ **ПОЛНОСТЬЮ ИСПРАВЛЕНО**  
+**Дата:** 10 октября 2025
+**Статус:** ✅ **ПОЛНОСТЬЮ ИСПРАВЛЕНО**
 **Время выполнения:** ~30 минут
 
 ## ❌ **Исходная проблема**
@@ -29,7 +29,7 @@ def _on_geometry_changed_qml(self, geometry_params: dict):
 
 ### 2. **Добавлены все обработчики графической панели**
 - `_on_lighting_changed` - управление освещением
-- `_on_material_changed` - управление материалами  
+- `_on_material_changed` - управление материалами
 - `_on_environment_changed` - управление окружением
 - `_on_quality_changed` - управление качеством рендера
 - `_on_camera_changed` - управление камерой
@@ -53,7 +53,7 @@ function resolvedTonemapMode() {
     if (!tonemapEnabled) return "None"
     switch(tonemapMode) {
         case 0: return "None"
-        case 1: return "Linear" 
+        case 1: return "Linear"
         case 2: return "Reinhard"
         case 3: return "Filmic"
         default: return "Auto"
@@ -88,10 +88,10 @@ py app.py --no-block
 
 ### **Поток данных исправлен:**
 ```
-GeometryPanel.valueEdited 
+GeometryPanel.valueEdited
     ↓
 GeometryPanel.geometry_changed.emit(dict)
-    ↓  
+    ↓
 MainWindow._on_geometry_changed_qml(dict)
     ↓
 QMetaObject.invokeMethod(root_object, "updateGeometry", params)
@@ -115,7 +115,7 @@ QML.updateGeometry() → Обновление 3D сцены
 - `py app.py` - Стандартный режим (расширенная версия с IBL)
 - `py app.py --force-optimized` - Принудительная оптимизированная версия
 - `py app.py --test-mode` - Тестовый режим (автозакрытие)
-- `py app.py --no-block` - Неблокирующий режим  
+- `py app.py --no-block` - Неблокирующий режим
 - `py app.py --debug` - Отладочный режим
 - `py app.py --safe-mode` - Безопасный режим
 

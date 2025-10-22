@@ -109,37 +109,37 @@ Item {
             id: suspensionArm
             // Точка крепления на раме (передний левый угол)
             position: Qt.vector3d(-400, view3d.beamSize, view3d.beamSize/2)
-            
+
             // Поворот рычага вокруг точки крепления (вокруг оси Z)
             eulerRotation: Qt.vector3d(0, 0, root.suspensionAngle)
-            
+
             // === ШАРНИР РЫЧАГА (ось совпадает с осью вращения Z) ===
             Model {
                 source: "#Cylinder"
                 position: Qt.vector3d(0, 0, 0)
-                scale: Qt.vector3d(0.8, 0.8, 1.2)  
-                // ВАЖНО: Цилиндр уже направлен по оси Z (по умолчанию), 
+                scale: Qt.vector3d(0.8, 0.8, 1.2)
+                // ВАЖНО: Цилиндр уже направлен по оси Z (по умолчанию),
                 // что совпадает с осью вращения рычага
                 eulerRotation: Qt.vector3d(0, 0, 0)  // По оси Z
-                materials: PrincipledMaterial { 
+                materials: PrincipledMaterial {
                     baseColor: "#ffff00"  // Жёлтый шарнир рычага
                     metalness: 0.9
-                    roughness: 0.1 
+                    roughness: 0.1
                 }
             }
-            
+
             // === РЫЧАГ (основная балка) ===
             Model {
                 source: "#Cube"
                 position: Qt.vector3d(-200, -100, 0)  // Рычаг направлен вниз и в сторону
                 scale: Qt.vector3d(4, 0.6, 0.8)      // Длинный и тонкий
-                materials: PrincipledMaterial { 
+                materials: PrincipledMaterial {
                     baseColor: "#ff6600"  // Оранжевый для видимости
                     metalness: 0.8
-                    roughness: 0.2 
+                    roughness: 0.2
                 }
             }
-            
+
             // === ШАРНИР ШТОКА (также по оси Z) ===
             Model {
                 source: "#Cylinder"
@@ -147,10 +147,10 @@ Item {
                 scale: Qt.vector3d(0.6, 0.6, 1.0)     // Меньше шарнира рычага
                 // ВАЖНО: Шарнир штока тоже по оси Z для согласованности
                 eulerRotation: Qt.vector3d(0, 0, 0)   // По оси Z
-                materials: PrincipledMaterial { 
+                materials: PrincipledMaterial {
                     baseColor: "#00ff00"  // Зелёный шарнир штока
                     metalness: 0.9
-                    roughness: 0.1 
+                    roughness: 0.1
                 }
             }
         }
@@ -186,7 +186,7 @@ Item {
         id: suspensionAnimation
         running: true
         loops: Animation.Infinite
-        
+
         NumberAnimation {
             target: root
             property: "suspensionAngle"
@@ -195,7 +195,7 @@ Item {
             duration: 2000
             easing.type: Easing.InOutSine
         }
-        
+
         NumberAnimation {
             target: root
             property: "suspensionAngle"

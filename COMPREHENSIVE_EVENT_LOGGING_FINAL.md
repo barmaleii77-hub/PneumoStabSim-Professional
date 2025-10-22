@@ -76,13 +76,13 @@ import "components"
 Window {
     id: root
     // ... existing code ...
-    
+
     View3D {
         id: view3D
         anchors.fill: parent
-        
+
         // ... existing 3D content ...
-        
+
         // ✅ НОВОЕ: Логирование мыши
         MouseEventLogger {
             id: mouseLogger
@@ -119,7 +119,7 @@ Window {
    Пропущено QML: 2
    Процент синхронизации: 97.8%
    ⚠️  Обнаружены несинхронизированные события!
-   
+
    📈 События по типам:
       USER_SLIDER: 45        ← Изменения слайдеров
       STATE_CHANGE: 67       ← Изменения state
@@ -246,7 +246,7 @@ for pair in missing:
 ### **Найти медленные обновления (>50ms)**
 
 ```python
-slow = [p for p in analysis['pairs'] 
+slow = [p for p in analysis['pairs']
         if p['status'] == 'synced' and p['latency_ms'] > 50]
 
 for item in slow:
@@ -378,6 +378,6 @@ slider.valueChanged.connect(handler1)
 
 ---
 
-**Версия**: 3.0 (FINAL)  
-**Дата**: 2024-12-15  
+**Версия**: 3.0 (FINAL)
+**Дата**: 2024-12-15
 **Статус**: ✅ Готово к применению

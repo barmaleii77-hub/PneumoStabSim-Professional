@@ -1,7 +1,7 @@
 # IBL Controls and Scene Enhancements - Implementation Report
 
-**Date:** 2025-10-12  
-**Status:** ✅ COMPLETE  
+**Date:** 2025-10-12
+**Status:** ✅ COMPLETE
 **Version:** main.qml v4.9, panel_graphics.py v2.0
 
 ---
@@ -28,14 +28,14 @@ property bool iblBackgroundEnabled: false         // IBL for background skybox (
 #### **ExtendedSceneEnvironment Implementation:**
 ```qml
 // Background uses IBL only if explicitly enabled
-backgroundMode: (root.backgroundMode === "skybox" && 
-                 root.iblBackgroundEnabled && 
-                 root.iblReady) ? 
+backgroundMode: (root.backgroundMode === "skybox" &&
+                 root.iblBackgroundEnabled &&
+                 root.iblReady) ?
                SceneEnvironment.SkyBox : SceneEnvironment.Color
 
 // Lighting uses IBL independently from background
-lightProbe: (root.iblEnabled && 
-             root.iblLightingEnabled && 
+lightProbe: (root.iblEnabled &&
+             root.iblLightingEnabled &&
              root.iblReady) ? iblLoader.probe : null
 ```
 
@@ -91,7 +91,7 @@ property int cylinderRings: 1      // Number of rings along cylinder length (1-3
 - **High (32 segments):** Smooth appearance (default)
 - **Ultra (64+ segments):** Maximum quality, minimal performance impact
 
-#### **Note:** 
+#### **Note:**
 Current implementation defines the properties. To use custom geometry, cylinders would need to be replaced with custom Model instances using procedurally generated geometry. The built-in `#Cylinder` primitive doesn't support quality parameters directly.
 
 ---
@@ -115,7 +115,7 @@ View3D {
 View3D {
     // Camera rig (independent)
     Node { id: cameraRig }
-    
+
     // All scene content organized
     Node {
         id: worldRoot
@@ -182,7 +182,7 @@ ibl_check = QCheckBox("Включить HDR IBL")
 lighting_check = QCheckBox("IBL для освещения")
 lighting_check.setChecked(True)  # Default: enabled
 
-# NEW: Separate background control  
+# NEW: Separate background control
 bg_check = QCheckBox("IBL для фона")
 bg_check.setChecked(False)  # Default: disabled
 
@@ -233,13 +233,13 @@ payload = {
 ```qml
 // QML side (applyEnvironmentUpdates)
 if (params.ibl) {
-    if (params.ibl.enabled !== undefined) 
+    if (params.ibl.enabled !== undefined)
         iblEnabled = params.ibl.enabled
-    if (params.ibl.lighting_enabled !== undefined) 
+    if (params.ibl.lighting_enabled !== undefined)
         iblLightingEnabled = params.ibl.lighting_enabled    // NEW
-    if (params.ibl.background_enabled !== undefined) 
+    if (params.ibl.background_enabled !== undefined)
         iblBackgroundEnabled = params.ibl.background_enabled // NEW
-    if (params.ibl.rotation !== undefined) 
+    if (params.ibl.rotation !== undefined)
         iblRotation = normAngleDeg(params.ibl.rotation)     // NEW
     // ... existing parameters
 }
@@ -258,9 +258,9 @@ payload = {
 
 ```qml
 // QML side (applyQualityUpdates)
-if (params.cylinder_segments !== undefined) 
+if (params.cylinder_segments !== undefined)
     cylinderSegments = Math.max(3, Math.min(128, params.cylinder_segments))
-if (params.cylinder_rings !== undefined) 
+if (params.cylinder_rings !== undefined)
     cylinderRings = Math.max(1, Math.min(32, params.cylinder_rings))
 ```
 

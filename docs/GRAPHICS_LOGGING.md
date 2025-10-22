@@ -58,17 +58,17 @@ logger.export_analysis_report()
 def on_lighting_changed(self, data):
     logger = get_graphics_logger()
     recent = logger.get_recent_changes(1)
-    
+
     if recent:
         event = recent[0]
-        
+
         # Логируем успешное применение в QML
         logger.log_qml_update(
             event,
             qml_state={"applied_to_qml": True},
             success=True
         )
-        
+
         # Или логируем ошибку
         # logger.log_qml_update(
         #     event,
@@ -239,28 +239,28 @@ Full report: logs/graphics/analysis_20240101_120000.json
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
-        
+
         # Создаем панель графики
         self.graphics_panel = GraphicsPanel()
-        
+
         # Подключаем сигналы для отслеживания QML обновлений
         self.graphics_panel.lighting_changed.connect(
             lambda data: self._on_graphics_updated("lighting", data)
         )
         # ... другие сигналы
-    
+
     def _on_graphics_updated(self, category: str, data: dict):
         """Обработчик обновления графики"""
         logger = get_graphics_logger()
         recent = logger.get_recent_changes(1)
-        
+
         if recent and recent[0].category == category:
             event = recent[0]
-            
+
             try:
                 # Применяем в QML
                 self._apply_to_qml(category, data)
-                
+
                 # Логируем успех
                 logger.log_qml_update(
                     event,
@@ -285,7 +285,7 @@ analysis = logger.analyze_qml_sync()
 
 if analysis['sync_rate'] < 90:
     print("⚠️ Низкий процент синхронизации!")
-    
+
     # Проверяем проблемные категории
     for cat, stats in analysis['by_category'].items():
         if stats['failed'] > 0:
@@ -300,9 +300,9 @@ if analysis['sync_rate'] < 90:
 def check_sync():
     panel_state = graphics_panel.state
     qml_state = get_qml_state()  # Получаем из QML
-    
+
     diff = logger.compare_states(panel_state, qml_state)
-    
+
     if diff['mismatched']:
         print(f"⚠️ Найдено {len(diff['mismatched'])} рассинхронизаций")
         for m in diff['mismatched']:
@@ -345,10 +345,10 @@ QTimer.interval(5000, check_sync)
 def _update_custom(self, key: str, value: Any) -> None:
     if self._updating_ui:
         return
-    
+
     old_value = self.state["custom"].get(key)
     self.state["custom"][key] = value
-    
+
     # Логируем изменение
     self.graphics_logger.log_change(
         parameter_name=key,
@@ -357,7 +357,7 @@ def _update_custom(self, key: str, value: Any) -> None:
         category="custom",  # Новая категория
         panel_state=self.state
     )
-    
+
     self._emit_custom()
 ```
 
@@ -369,17 +369,17 @@ class CustomGraphicsLogger(GraphicsLogger):
     def analyze_performance(self) -> Dict[str, Any]:
         """Анализ производительности изменений"""
         timings = []
-        
+
         for i in range(1, len(self.events_buffer)):
             prev = self.events_buffer[i-1]
             curr = self.events_buffer[i]
-            
+
             prev_time = datetime.fromisoformat(prev.timestamp)
             curr_time = datetime.fromisoformat(curr.timestamp)
-            
+
             delta = (curr_time - prev_time).total_seconds()
             timings.append(delta)
-        
+
         return {
             'avg_time_between_changes': sum(timings) / len(timings),
             'max_time': max(timings),
@@ -437,6 +437,6 @@ except Exception as e:
 
 ---
 
-**Версия**: 1.0.0  
-**Дата**: 2024  
+**Версия**: 1.0.0
+**Дата**: 2024
 **Автор**: PneumoStabSim Development Team

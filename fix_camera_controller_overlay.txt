@@ -13,7 +13,7 @@ CameraController находится ВНУТРИ View3D → MouseArea не по�
 View3D {
     id: view3d
     // ...
-    
+
     // ❌ УДАЛИТЬ отсюда:
     CameraController {
         id: cameraController
@@ -37,21 +37,21 @@ CameraController {
     // ✅ КРИТИЧНО: заполняет весь экран ПОВЕРХ View3D!
     anchors.fill: parent
     z: 1000  // поверх всего
-    
+
     worldRoot: worldRoot
     view3d: view3d
-    
+
     // остальные параметры без изменений
     frameLength: root.userFrameLength
     frameHeight: root.userFrameHeight
     beamSize: root.userBeamSize
     trackWidth: root.userTrackWidth
     taaMotionAdaptive: root.taaMotionAdaptive
-    
+
     onToggleAnimation: {
         root.isRunning = !root.isRunning
     }
-    
+
     Component.onCompleted: {
         state.fov = root.cameraFov
         state.nearPlane = root.cameraNear
@@ -59,7 +59,7 @@ CameraController {
         state.speed = root.cameraSpeed
         state.autoRotate = root.autoRotate
         state.autoRotateSpeed = root.autoRotateSpeed
-        
+
         console.log("📷 Camera initialized: distance =", state.distance, "yaw =", state.yawDeg, "pitch =", state.pitchDeg)
     }
 }

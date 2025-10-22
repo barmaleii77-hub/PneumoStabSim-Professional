@@ -34,7 +34,7 @@ Updated `src/ui/main_window.py` to support all new features from `main.qml v4.9`
 ("ibl", "rotation"): ("iblRotationDeg", float),
 ```
 
-**Purpose**: 
+**Purpose**:
 - Separate control of IBL for lighting vs. background skybox
 - IBL rotation support (0-360°)
 - Exposure as alias for intensity

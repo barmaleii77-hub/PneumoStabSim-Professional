@@ -15,7 +15,7 @@ import QtQuick
 Rectangle {
     anchors.fill: parent
     color: "#1a1a2e"
-    
+
     // Red circle
     Rectangle {
         id: circle
@@ -24,7 +24,7 @@ Rectangle {
         radius: 100
         color: "#ff4444"
         anchors.centerIn: parent
-        
+
         // Rotation animation
         RotationAnimation on rotation {
             from: 0
@@ -32,7 +32,7 @@ Rectangle {
             duration: 3000
             loops: Animation.Infinite
         }
-        
+
         // White dot in center to show rotation
         Rectangle {
             width: 20
@@ -43,7 +43,7 @@ Rectangle {
             y: 20
         }
     }
-    
+
     // Title text
     Text {
         anchors.top: parent.top
@@ -54,7 +54,7 @@ Rectangle {
         font.pixelSize: 24
         font.bold: true
     }
-    
+
     // Info text
     Text {
         anchors.bottom: parent.bottom
@@ -70,29 +70,29 @@ Rectangle {
 
 class Simple2DWindow(QWidget):
     """Simple 2D test window"""
-    
+
     def __init__(self):
         super().__init__()
-        
+
         self.setWindowTitle("QML 2D Test - Circle")
         self.resize(800, 600)
-        
+
         # Layout
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
-        
+
         # QQuickWidget
         self.qml_widget = QQuickWidget(self)
         self.qml_widget.setResizeMode(QQuickWidget.ResizeMode.SizeRootObjectToView)
-        
+
         # Save QML
         qml_path = Path("test_circle_2d_temp.qml")
-        qml_path.write_text(SIMPLE_2D_QML, encoding='utf-8')
-        
+        qml_path.write_text(SIMPLE_2D_QML, encoding="utf-8")
+
         # Load QML
         qml_url = QUrl.fromLocalFile(str(qml_path.absolute()))
         self.qml_widget.setSource(qml_url)
-        
+
         # Check status
         if self.qml_widget.status() == QQuickWidget.Status.Error:
             print("ERROR: QML ERRORS:")
@@ -101,29 +101,29 @@ class Simple2DWindow(QWidget):
         else:
             print("SUCCESS: 2D QML loaded")
             print(f"   Status: {self.qml_widget.status()}")
-        
+
         layout.addWidget(self.qml_widget)
-        
-        print("\n" + "="*60)
+
+        print("\n" + "=" * 60)
         print("2D QML TEST (NO 3D)")
-        print("="*60)
+        print("=" * 60)
         print("Expected:")
         print("  - Dark blue background")
         print("  - Red circle in center (200x200)")
         print("  - White dot rotating to show animation")
         print("  - Text on top and bottom")
-        print("="*60 + "\n")
+        print("=" * 60 + "\n")
 
 
 def main():
     app = QApplication(sys.argv)
-    
+
     print("Creating 2D test window...")
     window = Simple2DWindow()
-    
+
     print("Showing window...")
     window.show()
-    
+
     print("Starting event loop...\n")
     sys.exit(app.exec())
 

@@ -11,7 +11,9 @@ def _load_environment_schema():
     module_name = "_environment_schema_for_tests"
     if module_name in sys.modules:
         return sys.modules[module_name]
-    module_path = Path(__file__).resolve().parents[2] / "src" / "ui" / "environment_schema.py"
+    module_path = (
+        Path(__file__).resolve().parents[2] / "src" / "ui" / "environment_schema.py"
+    )
     spec = importlib.util.spec_from_file_location(module_name, module_path)
     module = importlib.util.module_from_spec(spec)
     assert spec and spec.loader, "Failed to resolve environment_schema module"

@@ -164,9 +164,9 @@ def on_frame_color_changed(self, color: str):
 // В main_optimized.qml нужно добавить:
 function applyMaterialUpdates(params) {
     // ...existing code...
-    
+
     if (params.frame !== undefined) {
-        if (params.frame.color !== undefined) 
+        if (params.frame.color !== undefined)
             frameColor = params.frame.color  // ← Применяется к геометрии
     }
 }
@@ -174,7 +174,7 @@ function applyMaterialUpdates(params) {
 // Использование в геометрии:
 Model {
     source: "#Cube"
-    materials: PrincipledMaterial { 
+    materials: PrincipledMaterial {
         baseColor: frameColor  // ← Использует обновленный цвет
         metalness: frameMetalness
         roughness: frameRoughness
@@ -202,9 +202,9 @@ Model {
 
 ---
 
-**Статус**: Готово к реализации ✅  
-**Приоритет**: Средний  
-**Сложность**: Низкая (копирование/вставка кода)  
+**Статус**: Готово к реализации ✅
+**Приоритет**: Средний
+**Сложность**: Низкая (копирование/вставка кода)
 **Время**: ~30-45 минут
 
 **Следующий шаг**: Начать с добавления свойств в QML (Приоритет 1)

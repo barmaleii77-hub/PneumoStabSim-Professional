@@ -10,8 +10,6 @@
 Принцип: ВСЕ параметры доступны юзеру, никаких ограничений!
 """
 
-from pathlib import Path
-from typing import Dict, List
 
 # ============================================================================
 # ПОЛНЫЙ СПИСОК ПАРАМЕТРОВ Qt 6.10 ExtendedSceneEnvironment
@@ -27,7 +25,16 @@ QT_EXTENDED_SCENE_ENVIRONMENT_PARAMS = {
         ("specularAAEnabled", "CheckBox", None),
     ],
     "tonemapping": [
-        ("tonemapMode", "ComboBox", ["TonemapModeNone", "TonemapModeLinear", "TonemapModeFilmic", "TonemapModeReinhard"]),
+        (
+            "tonemapMode",
+            "ComboBox",
+            [
+                "TonemapModeNone",
+                "TonemapModeLinear",
+                "TonemapModeFilmic",
+                "TonemapModeReinhard",
+            ],
+        ),
         ("exposure", "Slider", (0.0, 10.0, 0.1)),
         ("whitePoint", "Slider", (0.1, 10.0, 0.1)),
     ],
@@ -40,22 +47,18 @@ QT_EXTENDED_SCENE_ENVIRONMENT_PARAMS = {
         ("glowUseBicubicUpscale", "CheckBox", None),
         ("glowHDRMaximumValue", "Slider", (1.0, 20.0, 0.5)),
         ("glowHDRScale", "Slider", (0.5, 5.0, 0.1)),
-        
         ("aoEnabled", "CheckBox", None),
         ("aoDistance", "Slider", (0.0, 100.0, 0.5)),  # SSAO radius
         ("aoStrength", "Slider", (0, 500, 5)),  # SSAO intensity * 100
         ("aoSoftness", "Slider", (0, 50, 1)),
         ("aoDither", "CheckBox", None),
         ("aoSampleRate", "Slider", (2, 4, 1)),
-        
         ("depthOfFieldEnabled", "CheckBox", None),
         ("depthOfFieldFocusDistance", "Slider", (100.0, 50000.0, 100.0)),
         ("depthOfFieldBlurAmount", "Slider", (0.0, 20.0, 0.1)),
-        
         ("vignetteEnabled", "CheckBox", None),
         ("vignetteStrength", "Slider", (0.0, 2.0, 0.02)),
         ("vignetteRadius", "Slider", (0.0, 2.0, 0.02)),
-        
         ("lensFlareEnabled", "CheckBox", None),
         ("lensFlareGhostCount", "Slider", (0, 10, 1)),
         ("lensFlareGhostDispersal", "Slider", (0.0, 1.0, 0.01)),
@@ -118,10 +121,29 @@ LIGHT_PARAMS = {
         ("position.y", "Slider", (-10000.0, 10000.0, 10.0)),
         ("position.z", "Slider", (-10000.0, 10000.0, 10.0)),
         ("castsShadow", "CheckBox", None),
-        ("shadowMapQuality", "ComboBox", ["ShadowMapQualityLow", "ShadowMapQualityMedium", "ShadowMapQualityHigh", "ShadowMapQualityVeryHigh"]),
+        (
+            "shadowMapQuality",
+            "ComboBox",
+            [
+                "ShadowMapQualityLow",
+                "ShadowMapQualityMedium",
+                "ShadowMapQualityHigh",
+                "ShadowMapQualityVeryHigh",
+            ],
+        ),
         ("shadowFactor", "Slider", (0.0, 100.0, 1.0)),  # Darkness
         ("shadowBias", "Slider", (0.0, 100.0, 0.1)),
-        ("shadowFilter", "ComboBox", ["ShadowFilterNone", "ShadowFilterPCF4", "ShadowFilterPCF8", "ShadowFilterPCF16", "ShadowFilterPCF32"]),
+        (
+            "shadowFilter",
+            "ComboBox",
+            [
+                "ShadowFilterNone",
+                "ShadowFilterPCF4",
+                "ShadowFilterPCF8",
+                "ShadowFilterPCF16",
+                "ShadowFilterPCF32",
+            ],
+        ),
     ],
     "point": [
         ("brightness", "Slider", (0.0, 100000.0, 100.0)),
@@ -183,47 +205,47 @@ def main():
     print("=" * 80)
     print("📋 ПОЛНЫЙ СПИСОК ПАРАМЕТРОВ Qt 6.10 GRAPHICSPANEL")
     print("=" * 80)
-    
+
     # Подсчёт общего количества
     total = 0
-    
+
     print("\n🎨 ExtendedSceneEnvironment:")
     for category, params in QT_EXTENDED_SCENE_ENVIRONMENT_PARAMS.items():
         print(f"\n  {category.upper()} ({len(params)} параметров):")
         for param_name, widget_type, values in params:
             print(f"    - {param_name} ({widget_type})")
             total += 1
-    
+
     print(f"\n💡 DirectionalLight ({len(LIGHT_PARAMS['directional'])} параметров):")
     for param_name, widget_type, values in LIGHT_PARAMS["directional"]:
         print(f"    - {param_name} ({widget_type})")
         total += len(LIGHT_PARAMS["directional"])
-    
+
     print(f"\n💡 PointLight ({len(LIGHT_PARAMS['point'])} параметров):")
     for param_name, widget_type, values in LIGHT_PARAMS["point"]:
         print(f"    - {param_name} ({widget_type})")
         total += len(LIGHT_PARAMS["point"])
-    
+
     print(f"\n🎨 PrincipledMaterial ({len(MATERIAL_PARAMS)} параметров):")
     for param_name, widget_type, values in MATERIAL_PARAMS:
         print(f"    - {param_name} ({widget_type})")
         total += len(MATERIAL_PARAMS)
-    
+
     print(f"\n📷 Camera ({len(CAMERA_PARAMS)} параметров):")
     for param_name, widget_type, values in CAMERA_PARAMS:
         print(f"    - {param_name} ({widget_type})")
         total += len(CAMERA_PARAMS)
-    
+
     print("\n" + "=" * 80)
     print(f"📊 ИТОГО: {total} параметров доступны в Qt 6.10")
     print("=" * 80)
-    
+
     print("\n💡 РЕКОМЕНДАЦИИ:")
     print("  1. Создать табы на основе этого списка")
     print("  2. Добавить ВСЕ параметры без ограничений")
     print("  3. Юзер сам контролирует всё")
     print("  4. Никаких связей между параметрами")
-    
+
     print("\n✅ Следующий шаг: Генерация кода табов")
 
 

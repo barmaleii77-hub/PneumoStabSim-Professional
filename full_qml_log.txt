@@ -51,9 +51,9 @@ MainWindow: Построение UI...
        Файл существует: True
        Размер файла: 61,462 байт
     📂 Полный путь: file:///C:/Users/Алексей/source/repos/barmaleii77-hub/PneumoStabSim-Professional/assets/qml/main.qml
-[QML DEBUG] file:///C:/Users/�������/source/repos/barmaleii77-hub/PneumoStabSim-Professional/assets/qml/main.qml:652:13: Cannot assign to non-existent property "fogDensity" 
+[QML DEBUG] file:///C:/Users/�������/source/repos/barmaleii77-hub/PneumoStabSim-Professional/assets/qml/main.qml:652:13: Cannot assign to non-existent property "fogDensity"
                  fogDensity: fogDensity
- 
+
                  ^
     📊 QML статус загрузки: Status.Error
     ❌ ОШИБКИ QML ЗАГРУЗКИ:

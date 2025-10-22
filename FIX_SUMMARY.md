@@ -32,16 +32,16 @@ def _on_material_selection_changed(self, index: int) -> None:
     if self._updating_ui:
         return
     print(f"🔄 MaterialsTab: Changing selection from '{self._current_key}' to material at index {index}")
-    
+
     # Сохраняем текущее состояние в кэш ПЕРЕД сменой
     if self._current_key:
         self._save_current_into_cache()
         print(f"  💾 Saved current material: {self._current_key}")
-    
+
     # Получаем новый ключ
     new_key = self.get_current_material_key()
     print(f"  🔑 New material key: {new_key}")
-    
+
     # ✅ КРИТИЧНО: Загружаем состояние для нового материала
     st = self._materials_state.get(new_key)
     if st:
@@ -52,10 +52,10 @@ def _on_material_selection_changed(self, index: int) -> None:
         # ✅ Инициализируем кэш из текущих контролов
         self._materials_state[new_key] = self.get_current_material_state()
         print(f"  📝 Initialized cache for '{new_key}' from controls")
-    
+
     # Обновляем текущий ключ
     self._current_key = new_key
-    
+
     # Эмитим payload текущего материала
     if new_key:
         self.material_changed.emit(self.get_state())
@@ -116,6 +116,6 @@ py app.py
 
 ---
 
-**Дата**: 2025-01-15  
-**Версия**: v4.9.5 FINAL  
+**Дата**: 2025-01-15
+**Версия**: v4.9.5 FINAL
 **Статус**: ✅ **ИСПРАВЛЕНО**

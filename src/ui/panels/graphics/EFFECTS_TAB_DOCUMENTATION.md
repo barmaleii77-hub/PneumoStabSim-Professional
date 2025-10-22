@@ -1,7 +1,7 @@
 # Effects Tab - Полная документация параметров
 
-**Версия:** 1.0  
-**Дата:** 2025-01-13  
+**Версия:** 1.0
+**Дата:** 2025-01-13
 **Qt версия:** 6.10+
 
 ---
@@ -372,23 +372,23 @@ EFFECTS_DEFAULTS = {
     "bloom_hdr_scale": 2.0,
     "bloom_quality_high": False,
     "bloom_bicubic_upscale": False,
-    
+
     # Tonemap
     "tonemap_enabled": True,
     "tonemap_mode": "filmic",
     # Qt 6.10 расширенные
     "tonemap_exposure": 1.0,
     "tonemap_white_point": 2.0,
-    
+
     # Depth of Field
     "depth_of_field": False,
     "dof_focus_distance": 2200.0,
     "dof_blur": 4.0,
-    
+
     # Motion Blur (НЕ ПОДДЕРЖИВАЕТСЯ в Qt 6.10)
     "motion_blur": False,
     "motion_blur_amount": 0.2,
-    
+
     # Lens Flare
     "lens_flare": False,
     # Qt 6.10 расширенные
@@ -397,13 +397,13 @@ EFFECTS_DEFAULTS = {
     "lens_flare_halo_width": 0.25,
     "lens_flare_bloom_bias": 0.0,
     "lens_flare_stretch_to_aspect": False,
-    
+
     # Vignette
     "vignette": False,
     "vignette_strength": 0.35,
     # Qt 6.10 расширенный
     "vignette_radius": 0.4,
-    
+
     # Color Adjustments (Qt 6.10+)
     "adjustment_brightness": 0.0,
     "adjustment_contrast": 0.0,
@@ -441,6 +441,6 @@ EFFECTS_DEFAULTS = {
 
 ---
 
-**Документация создана:** 2025-01-13  
-**Автор:** PneumoStabSim Professional Graphics System  
+**Документация создана:** 2025-01-13
+**Автор:** PneumoStabSim Professional Graphics System
 **Версия:** 1.0

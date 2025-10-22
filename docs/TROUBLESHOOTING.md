@@ -228,12 +228,12 @@ def _on_sim_control(self, command: str):
 # Add logging in _on_animation_changed
 def _on_animation_changed(self, params):
     print(f"?? Animation params received: {params}")
-    
+
     amplitude = params.get('amplitude', 0.05)
     print(f"   Setting userAmplitude = {amplitude}")
-    
+
     self._qml_root_object.setProperty("userAmplitude", amplitude)
-    
+
     # Verify
     actual = self._qml_root_object.property("userAmplitude")
     print(f"   Actual value in QML: {actual}")
@@ -295,11 +295,11 @@ component SuspensionCorner: Node {
     property vector3d j_arm
     property vector3d j_tail
     property real leverAngle
-    
+
     // CALCULATE j_rod here (not outside!)
     property real baseAngle: (j_arm.x < 0) ? 180 : 0
     property real totalAngle: baseAngle + leverAngle
-    
+
     property vector3d j_rod: Qt.vector3d(
         j_arm.x + leverLength * Math.cos(totalAngle * Math.PI / 180),
         j_arm.y + leverLength * Math.sin(totalAngle * Math.PI / 180),
@@ -377,7 +377,7 @@ class FPSCounter:
     def __init__(self):
         self.frames = 0
         self.start_time = time.time()
-    
+
     def tick(self):
         self.frames += 1
         elapsed = time.time() - self.start_time
@@ -514,10 +514,10 @@ for stat in top_stats[:10]:
 
 ### **Before Asking**
 
-? Check this troubleshooting guide  
-? Search existing GitHub issues  
-? Read relevant module documentation  
-? Try minimal reproducible example  
+? Check this troubleshooting guide
+? Search existing GitHub issues
+? Read relevant module documentation
+? Try minimal reproducible example
 
 ---
 
@@ -550,8 +550,8 @@ window.activateWindow()
 
 ---
 
-**Last Updated:** 2025-01-05  
-**Maintainer:** Development Team  
+**Last Updated:** 2025-01-05
+**Maintainer:** Development Team
 **Status:** Living Document
 
 **Found a new issue?** Please contribute to this guide!

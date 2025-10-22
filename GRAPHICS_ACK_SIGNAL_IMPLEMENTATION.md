@@ -21,9 +21,9 @@ signal batchUpdatesApplied(var summary)
 ```qml
 function applyBatchedUpdates(updates) {
     console.log("🚀 Applying batched updates with conflict resolution:", Object.keys(updates))
-    
+
     // ... применяем обновления ...
-    
+
     // ✅ Send ACK to Python with summary of what was applied
     var summary = {
         timestamp: Date.now(),
@@ -56,20 +56,20 @@ except AttributeError:
 @Slot(object)
 def _on_qml_batch_ack(self, summary: dict):
     """Handle ACK from QML confirming batched updates were applied.
-    
+
     Mark recent graphics_logger events matching the ACK'd categories as successfully applied.
     """
     if not isinstance(summary, dict):
         return
-    
+
     categories = summary.get("categories", [])
     timestamp_ms = summary.get("timestamp", 0)
-    
+
     if not categories:
         return
-    
+
     self.logger.debug(f"📨 QML ACK received: {categories} at {timestamp_ms}")
-    
+
     # ... маркировка событий как применённых ...
 ```
 
@@ -83,7 +83,7 @@ def _on_animation_changed(self, params: Dict[str, Any]):
     """Обработчик изменения параметров анимации - вызывает QML и логирует событие"""
     self.logger.debug(f"Animation update: {params}")
     print(f"🎬 MainWindow: Animation changed: {params}")
-    
+
     if self._qml_root_object:
         try:
             from PySide6.QtCore import QMetaObject, Q_ARG, Qt
@@ -99,7 +99,7 @@ def _on_animation_changed(self, params: Dict[str, Any]):
                 if hasattr(self, "status_bar"):
                     self.status_bar.showMessage("Анимация обновлена", 2000)
                 print("✅ Successfully called applyAnimationUpdates()")
-                
+
                 # Логируем изменения через GraphicsLogger
                 from .panels.graphics_logger import get_graphics_logger
                 logger = get_graphics_logger()

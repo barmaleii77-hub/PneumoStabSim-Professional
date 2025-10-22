@@ -196,7 +196,7 @@ py app.py
    # В panel_graphics.py
    self.bloom_enabled = True
    self.bloom_intensity = 1.5
-   self.ssao_enabled = True  
+   self.ssao_enabled = True
    self.ssao_intensity = 1.0
    ```
 
@@ -211,7 +211,7 @@ py app.py
 **ВСЕ КРИТИЧЕСКИЕ ПРОБЛЕМЫ ИСПРАВЛЕНЫ!**
 
 - ✅ Муар: УСТРАНЁН
-- ✅ Дергание фона: УСТРАНЕНО  
+- ✅ Дергание фона: УСТРАНЕНО
 - ✅ Сглаживание: УЛУЧШЕНО
 - ✅ Мягкость теней: УВЕЛИЧЕНА
 - ✅ Дублирование геометрии: НЕ ОБНАРУЖЕНО

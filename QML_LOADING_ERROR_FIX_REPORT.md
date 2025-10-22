@@ -1,7 +1,7 @@
 # QML Loading Error Fix Report
-**Дата:** 2024-12-19  
-**Проблема:** Ошибка загрузки QML файла в PneumoStabSim  
-**Статус:** ✅ ИСПРАВЛЕНО  
+**Дата:** 2024-12-19
+**Проблема:** Ошибка загрузки QML файла в PneumoStabSim
+**Статус:** ✅ ИСПРАВЛЕНО
 
 ---
 
@@ -16,7 +16,7 @@
 При запуске приложения с расширенной диагностикой была обнаружена синтаксическая ошибка в файле `assets/qml/main.qml`:
 
 ```
-🔍 QML DEBUG: file:///C:/Users/User.GPC-01/source/repos/barmaleii77-hub/PneumoStabSim-Professional/assets/qml/main.qml:46:18: Expected token `identifier' 
+🔍 QML DEBUG: file:///C:/Users/User.GPC-01/source/repos/barmaleii77-hub/PneumoStabSim-Professional/assets/qml/main.qml:46:18: Expected token `identifier'
          property last: 0
                       ^
 ```
@@ -64,13 +64,13 @@ property real rotateSpeed: 0.35
 def _setup_qml_3d_view(self):
     """Setup Qt Quick 3D full suspension scene"""
     print("    [QML] Загрузка main.qml...")
-    
+
     try:
         # Расширенная диагностика статусов загрузки
         print(f"    📊 Статус до загрузки: {self._qquick_widget.status()}")
         self._qquick_widget.setSource(qml_url)
         print(f"    📊 Статус после загрузки: {self._qquick_widget.status()}")
-        
+
         # Детальная обработка ошибок
         if self._qquick_widget.status() == QQuickWidget.Status.Error:
             errors = self._qquick_widget.errors()
@@ -80,11 +80,11 @@ def _setup_qml_3d_view(self):
                 print(f"         Строка: {error.line()}")
                 print(f"         Столбец: {error.column()}")
                 print(f"         Описание: {error.description()}")
-        
+
         # Проверка доступных методов API
         if self._qml_root_object:
             available_methods = []
-            method_names = ['updateGeometry', 'updateLighting', 'updateMaterials', 
+            method_names = ['updateGeometry', 'updateLighting', 'updateMaterials',
                           'updateEnvironment', 'updateQuality', 'updateCamera', 'updateEffects']
             for method_name in method_names:
                 if hasattr(self._qml_root_object, method_name):
@@ -118,6 +118,6 @@ def _setup_qml_3d_view(self):
 
 **Проблема успешно решена!** Синтаксическая ошибка в QML файле была обнаружена и исправлена. Приложение теперь должно корректно загружать 3D сцену и обеспечивать полную функциональность фотореалистичной анимированной схемы.
 
-**Время решения:** ~30 минут  
-**Сложность:** Низкая (синтаксическая ошибка)  
+**Время решения:** ~30 минут
+**Сложность:** Низкая (синтаксическая ошибка)
 **Влияние:** Критическое (блокировала загрузку 3D визуализации)

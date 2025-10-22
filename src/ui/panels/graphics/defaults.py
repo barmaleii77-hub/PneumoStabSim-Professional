@@ -12,7 +12,7 @@ from typing import Any, Dict
 
 def build_defaults() -> Dict[str, Any]:
     """Построить дефолтные настройки графики
-    
+
     Returns:
         Словарь с настройками по умолчанию
     """
@@ -132,22 +132,18 @@ def build_defaults() -> Dict[str, Any]:
             "bloom_up_scale_blur": True,  # Qt 6.10
             "bloom_down_scale_blur": True,  # Qt 6.10
             "bloom_glow_level": 0,  # Qt 6.10
-            
             # Tonemap (2 базовых + 2 Qt 6.10)
             "tonemap_enabled": True,
             "tonemap_mode": "filmic",
             "tonemap_exposure": 1.0,  # Qt 6.10
             "tonemap_white_point": 1.0,  # Qt 6.10
-            
             # Depth of Field (3 базовых)
             "depth_of_field": False,
             "dof_focus_distance": 2200.0,
             "dof_blur": 4.0,
-            
             # Motion Blur (2)
             "motion_blur": False,
             "motion_blur_amount": 0.2,
-            
             # Lens Flare (1 базовый + 5 Qt 6.10)
             "lens_flare": False,
             "lens_flare_intensity": 1.0,  # Qt 6.10
@@ -155,17 +151,14 @@ def build_defaults() -> Dict[str, Any]:
             "lens_flare_spread": 0.5,  # Qt 6.10
             "lens_flare_streak_intensity": 0.5,  # Qt 6.10
             "lens_flare_bloom_scale": 1.0,  # Qt 6.10
-            
             # Vignette (2 базовых + 1 Qt 6.10)
             "vignette": False,
             "vignette_strength": 0.35,
             "vignette_radius": 0.5,  # Qt 6.10
-            
             # Color Adjustments (3 Qt 6.10)
             "saturation": 1.0,  # Qt 6.10
             "contrast": 1.0,  # Qt 6.10
             "brightness": 0.0,  # Qt 6.10
-            
             # SSAO (deprecated, оставлено для совместимости)
             "ssao_enabled": True,
             "ssao_strength": 1.0,
@@ -354,13 +347,19 @@ def _build_materials_defaults() -> Dict[str, Dict[str, Any]]:
 
 def build_quality_presets() -> Dict[str, Dict[str, Any]]:
     """Построить пресеты качества графики
-    
+
     Returns:
         Словарь с пресетами качества (ultra, high, medium, low)
     """
     return {
         "ultra": {
-            "shadows": {"enabled": True, "resolution": "4096", "filter": 32, "bias": 8.0, "darkness": 80.0},
+            "shadows": {
+                "enabled": True,
+                "resolution": "4096",
+                "filter": 32,
+                "bias": 8.0,
+                "darkness": 80.0,
+            },
             "antialiasing": {"primary": "ssaa", "quality": "high", "post": "taa"},
             "taa_enabled": True,
             "taa_strength": 0.4,
@@ -374,7 +373,13 @@ def build_quality_presets() -> Dict[str, Dict[str, Any]]:
             "oit": "weighted",
         },
         "high": {
-            "shadows": {"enabled": True, "resolution": "2048", "filter": 16, "bias": 9.5, "darkness": 78.0},
+            "shadows": {
+                "enabled": True,
+                "resolution": "2048",
+                "filter": 16,
+                "bias": 9.5,
+                "darkness": 78.0,
+            },
             "antialiasing": {"primary": "msaa", "quality": "high", "post": "off"},
             "taa_enabled": False,
             "taa_strength": 0.3,
@@ -388,7 +393,13 @@ def build_quality_presets() -> Dict[str, Dict[str, Any]]:
             "oit": "weighted",
         },
         "medium": {
-            "shadows": {"enabled": True, "resolution": "1024", "filter": 8, "bias": 10.0, "darkness": 75.0},
+            "shadows": {
+                "enabled": True,
+                "resolution": "1024",
+                "filter": 8,
+                "bias": 10.0,
+                "darkness": 75.0,
+            },
             "antialiasing": {"primary": "msaa", "quality": "medium", "post": "fxaa"},
             "taa_enabled": False,
             "taa_strength": 0.25,
@@ -402,7 +413,13 @@ def build_quality_presets() -> Dict[str, Dict[str, Any]]:
             "oit": "weighted",
         },
         "low": {
-            "shadows": {"enabled": True, "resolution": "512", "filter": 4, "bias": 12.0, "darkness": 70.0},
+            "shadows": {
+                "enabled": True,
+                "resolution": "512",
+                "filter": 4,
+                "bias": 12.0,
+                "darkness": 70.0,
+            },
             "antialiasing": {"primary": "off", "quality": "low", "post": "fxaa"},
             "taa_enabled": False,
             "taa_strength": 0.2,

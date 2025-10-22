@@ -135,11 +135,10 @@ notepad (Get-ChildItem logs\events_*.json | Sort-Object LastWriteTime -Descendin
 python app.py
 ```
 
-**Время теста**: ~2 минуты  
+**Время теста**: ~2 минуты
 **Ожидаемый результат**: 9 событий USER_CLICK
 
 ---
 
-**Дата**: 2024-12-15  
+**Дата**: 2024-12-15
 **Статус**: ✅ Готово к запуску
-

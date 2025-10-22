@@ -1,7 +1,7 @@
 # ИСПРАВЛЕНИЕ: Разделение IBL освещения и Skybox фона
 
-**Дата**: 2024  
-**Версия**: v4.9.5  
+**Дата**: 2024
+**Версия**: v4.9.5
 **Статус**: ✅ ИСПРАВЛЕНО
 
 ---
@@ -159,6 +159,6 @@ python test_ibl_skybox_separation.py
 
 ---
 
-**Автор**: GitHub Copilot  
-**Reviewer**: —  
+**Автор**: GitHub Copilot
+**Reviewer**: —
 **Status**: Ready for Testing

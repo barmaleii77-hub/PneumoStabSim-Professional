@@ -11,7 +11,7 @@
 **ExtendedSceneEnvironment** (из `QtQuick3D.Helpers`) расширяет стандартный `SceneEnvironment` и может устанавливать **свои дефолтные значения** для:
 
 - `antialiasingMode`
-- `antialiasingQuality`  
+- `antialiasingQuality`
 - `tonemapMode`
 - `glowEnabled`
 - `aoEnabled`
@@ -101,11 +101,11 @@ environment: ExtendedSceneEnvironment {
     antialiasingMode: root.aaPrimaryMode === "ssaa" ? SceneEnvironment.SSAA :
                      root.aaPrimaryMode === "msaa" ? SceneEnvironment.MSAA :
                      SceneEnvironment.NoAA
-    
+
     antialiasingQuality: root.aaQualityLevel === "high" ? SceneEnvironment.High :
                         root.aaQualityLevel === "medium" ? SceneEnvironment.Medium :
                         SceneEnvironment.Low
-    
+
     // И все остальные...
 }
 ```
@@ -145,21 +145,21 @@ environment: ExtendedSceneEnvironment {
             if (root.aaPrimaryMode === "msaa") return SceneEnvironment.MSAA
             return SceneEnvironment.NoAA
         })
-        
+
         antialiasingQuality = Qt.binding(() => {
             if (root.aaQualityLevel === "high") return SceneEnvironment.High
             if (root.aaQualityLevel === "medium") return SceneEnvironment.Medium
             return SceneEnvironment.Low
         })
-        
+
         // Эффекты
         glowEnabled = Qt.binding(() => root.bloomEnabled)
         aoEnabled = Qt.binding(() => root.ssaoEnabled)
         tonemapMode = Qt.binding(() => root.tonemapMode)
-        
+
         // IBL
         lightProbe = Qt.binding(() => (root.iblLightingEnabled && root.iblReady) ? iblLoader.probe : null)
-        
+
         // И так далее для ВСЕХ свойств...
     }
 }
@@ -183,16 +183,16 @@ View3D {
         // ⚠️ ВАЖНО: Все свойства должны быть явно заданы!
         backgroundMode: SceneEnvironment.Color
         clearColor: "#000000"
-        
+
         // Антиалиасинг - ВСЕГДА задавайте явно
         antialiasingMode: SceneEnvironment.MSAA
         antialiasingQuality: SceneEnvironment.High
-        
+
         // Эффекты - задавайте явно
         tonemapMode: SceneEnvironment.TonemapModeFilmic
         glowEnabled: true
         aoEnabled: true
-        
+
         // ✅ Или используйте биндинги для динамических значений
         Component.onCompleted: {
             tonemapMode = Qt.binding(() => myTonemapMode)
@@ -240,6 +240,6 @@ python test_extended_scene_environment.py
 
 ---
 
-**Дата:** 2024  
-**Версия:** 1.0  
+**Дата:** 2024
+**Версия:** 1.0
 **Автор:** GitHub Copilot (AI Assistant)

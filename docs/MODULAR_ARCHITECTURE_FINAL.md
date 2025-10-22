@@ -1,7 +1,7 @@
 # 🏗️ МОДУЛЬНАЯ АРХИТЕКТУРА QML - ФИНАЛЬНАЯ ВЕРСИЯ
 
-**Дата**: 2025-01-18  
-**Версия**: v4.9.5  
+**Дата**: 2025-01-18
+**Версия**: v4.9.5
 **Статус**: ✅ PRODUCTION READY
 
 ---
@@ -47,7 +47,7 @@ CameraController {
     view3d: view3d
     frameLength: root.userFrameLength
     frameHeight: root.userFrameHeight
-    
+
     onToggleAnimation: { /* ... */ }
 }
 
@@ -86,10 +86,10 @@ import "lighting"
 DirectionalLights {
     worldRoot: worldRoot
     cameraRig: cameraController.rig
-    
+
     shadowsEnabled: true
     shadowResolution: "4096"
-    
+
     keyLightBrightness: 1.2
     keyLightBindToCamera: false
 }
@@ -128,7 +128,7 @@ SuspensionCorner {
     j_tail: Qt.vector3d(-800, 750, 60)
     leverAngle: fl_angle
     pistonPositionFromPython: 250.0
-    
+
     leverMaterial: materials.leverMaterial
     cylinderMaterial: materials.cylinderMaterial
 }
@@ -179,15 +179,15 @@ import "scene"
 // SharedMaterials.qml - Централизованный менеджер
 SharedMaterials {
     id: materials
-    
+
     // Bind все root properties
     frameBaseColor: root.frameBaseColor
     frameMetalness: root.frameMetalness
-    
+
     // Статические материалы
     property var frameMaterial
     property var leverMaterial
-    
+
     // Динамические функции
     function createPistonBodyMaterial(isWarning) { /* ... */ }
     function createJointRodMaterial(hasError) { /* ... */ }
@@ -384,4 +384,3 @@ Model {
 - ✅ Production ready
 
 **Архитектура соответствует QML Best Practices!** 🚀
-

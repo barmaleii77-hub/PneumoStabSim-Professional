@@ -5,7 +5,7 @@
 ### Основные компоненты
 
 1. **UI Layer** (`src/ui/`) - пользовательский интерфейс
-2. **Core Layer** (`src/core/`) - ядро симуляции  
+2. **Core Layer** (`src/core/`) - ядро симуляции
 3. **Physics Layer** (`src/physics/`) - физические расчеты
 4. **Pneumatics Layer** (`src/pneumo/`) - пневматические системы
 5. **Mechanics Layer** (`src/mechanics/`) - механические расчеты
@@ -31,7 +31,7 @@ UI Events -> Controller -> Model -> Physics Engine -> Results -> UI Update
 - Документация в формате Google docstring
 - Максимальная длина строки: 88 символов (Black formatter)
 
-### QML код  
+### QML код
 - Отступы: 4 пробела
 - CamelCase для компонентов
 - camelCase для свойств и методов
@@ -51,7 +51,7 @@ UI Events -> Controller -> Model -> Physics Engine -> Results -> UI Update
 
 ### Необходимые расширения VS Code
 - Python
-- QML  
+- QML
 - EditorConfig
 - GitLens
 - Python Docstring Generator
