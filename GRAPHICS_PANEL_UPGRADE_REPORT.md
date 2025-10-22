@@ -10,7 +10,7 @@
 - **Основной свет (Key Light)**
   - Яркость: 0.0 - 10.0
   - Цвет: полный цветовой спектр
-  - Наклон X: -90° до +90°  
+  - Наклон X: -90° до +90°
   - Поворот Y: -180° до +180°
 
 - **Заполняющий свет (Fill Light)**
@@ -84,7 +84,7 @@
 
 ```python
 lighting_changed = Signal(dict)      # Изменение освещения
-material_changed = Signal(dict)      # Изменение материалов  
+material_changed = Signal(dict)      # Изменение материалов
 environment_changed = Signal(dict)   # Изменение окружения
 quality_changed = Signal(dict)       # Изменение качества
 camera_changed = Signal(dict)        # Изменение камеры
@@ -110,7 +110,7 @@ preset_applied = Signal(str)         # Применение пресета
 
 ### Обработчики в MainWindow
 - `_on_lighting_changed()`: обновление освещения в QML
-- `_on_material_changed()`: обновление материалов в QML  
+- `_on_material_changed()`: обновление материалов в QML
 - `_on_environment_changed()`: обновление окружения в QML
 - `_on_quality_changed()`: обновление качества рендеринга
 - `_on_camera_changed()`: обновление настроек камеры
@@ -122,7 +122,7 @@ preset_applied = Signal(str)         # Применение пресета
 ```qml
 // Освещение
 property real keyLightBrightness
-property color keyLightColor  
+property color keyLightColor
 property int keyLightAngleX
 property int keyLightAngleY
 
@@ -163,7 +163,7 @@ property real bloomIntensity
 
 ### Зависимости
 - PySide6.QtWidgets: интерфейсные компоненты
-- PySide6.QtCore: сигналы и настройки  
+- PySide6.QtCore: сигналы и настройки
 - PySide6.QtGui: цвета и графика
 - logging: журналирование
 - json: экспорт/импорт настроек

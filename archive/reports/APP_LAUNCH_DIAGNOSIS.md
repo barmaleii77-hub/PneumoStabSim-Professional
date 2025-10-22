@@ -15,7 +15,7 @@ QApplication + QMainWindow + show() + exec()
 
 ### ?? Приложение с логированием
 ```python
-# app_minimal.py  
+# app_minimal.py
 QApplication + logging + QMainWindow
 ```
 **Статус:** ?? **КРАШ после show()**

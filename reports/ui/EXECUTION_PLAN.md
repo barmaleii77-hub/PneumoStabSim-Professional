@@ -116,7 +116,7 @@ splitter.setStretchFactor(1, 2)    # Графики 40%
 def test_tabs_exist(qtbot):
     window = MainWindow()
     qtbot.addWidget(window)
-    
+
     # Проверить наличие вкладок
     tab_widget = window.findChild(QTabWidget)
     assert tab_widget is not None

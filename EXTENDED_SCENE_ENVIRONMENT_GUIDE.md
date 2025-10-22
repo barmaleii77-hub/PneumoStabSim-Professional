@@ -1,7 +1,7 @@
 # ExtendedSceneEnvironment - Правильное использование
 
-**Дата:** Декабрь 2024  
-**Версия проекта:** PneumoStabSim Professional v4.9  
+**Дата:** Декабрь 2024
+**Версия проекта:** PneumoStabSim Professional v4.9
 **Статус:** ✅ КОРРЕКТНАЯ КОНФИГУРАЦИЯ
 
 ---
@@ -45,9 +45,9 @@ View3D {
 
     environment: ExtendedSceneEnvironment {
         id: mainEnvironment
-        
+
         // Фон и IBL
-        backgroundMode: root.backgroundMode === "skybox" && root.iblReady ? 
+        backgroundMode: root.backgroundMode === "skybox" && root.iblReady ?
                        SceneEnvironment.SkyBox : SceneEnvironment.Color
         clearColor: root.backgroundColor
         lightProbe: root.iblEnabled && root.iblReady ? iblLoader.probe : null
@@ -115,8 +115,8 @@ View3D {
         vignetteStrength: root.vignetteStrength
 
         // OIT (Order Independent Transparency)
-        oitMethod: root.oitMode === "weighted" ? 
-                  SceneEnvironment.OITWeightedBlended : 
+        oitMethod: root.oitMode === "weighted" ?
+                  SceneEnvironment.OITWeightedBlended :
                   SceneEnvironment.OITNone
 
         // Цветокоррекция
@@ -124,13 +124,13 @@ View3D {
         adjustmentBrightness: 1.0
         adjustmentContrast: 1.05
         adjustmentSaturation: 1.05
-        
+
         // ✅ Условная поддержка Dithering (Qt 6.10+)
         Component.onCompleted: {
             if (root.canUseDithering) {
                 console.log("✅ Qt 6.10+ - enabling dithering")
-                mainEnvironment.ditheringEnabled = Qt.binding(function() { 
-                    return root.ditheringEnabled 
+                mainEnvironment.ditheringEnabled = Qt.binding(function() {
+                    return root.ditheringEnabled
                 })
             } else {
                 console.log("⚠️ Qt < 6.10 - dithering not available")
@@ -224,8 +224,8 @@ readonly property bool supportsQtQuick3D610Features: qtMajor === 6 && qtMinor >=
 ```qml
 Component.onCompleted: {
     if (root.canUseDithering) {
-        mainEnvironment.ditheringEnabled = Qt.binding(function() { 
-            return root.ditheringEnabled 
+        mainEnvironment.ditheringEnabled = Qt.binding(function() {
+            return root.ditheringEnabled
         })
     }
 }
@@ -235,8 +235,8 @@ Component.onCompleted: {
 
 ```qml
 // Адаптивный TAA - включается только при движении камеры
-temporalAAEnabled: (root.aaPostMode === "taa" && 
-                   root.taaEnabled && 
+temporalAAEnabled: (root.aaPostMode === "taa" &&
+                   root.taaEnabled &&
                    (!root.taaMotionAdaptive || !root.cameraIsMoving))
 ```
 
@@ -343,6 +343,6 @@ Component.onCompleted: {
 
 ---
 
-**Документ создан:** Декабрь 2024  
-**Версия:** 1.0  
+**Документ создан:** Декабрь 2024
+**Версия:** 1.0
 **Статус:** ✅ Актуальный и протестированный

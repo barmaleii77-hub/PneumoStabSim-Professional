@@ -1,6 +1,6 @@
 # ?? Проверка кода на наличие заглушек и отключенных модулей
 
-**Дата:** 3 января 2025  
+**Дата:** 3 января 2025
 **Запрос:** "я не вижу анимированную схему"
 
 ---
@@ -42,16 +42,16 @@ Model {
 def _setup_central(self):
     # Create QQuickWidget for Qt Quick 3D content
     self._qquick_widget = QQuickWidget(self)
-    
+
     # Set resize mode
     self._qquick_widget.setResizeMode(
         QQuickWidget.ResizeMode.SizeRootObjectToView
     )
-    
+
     # Load QML file
     qml_path = Path("assets/qml/main.qml")
     self._qquick_widget.setSource(QUrl.fromLocalFile(...))
-    
+
     # Set as central widget
     self.setCentralWidget(self._qquick_widget)
 ```
@@ -73,7 +73,7 @@ self.render_timer.start(16)  # ~60 FPS
 def _update_render(self):
     if not self._qml_root_object:
         return
-    
+
     # Update QML properties
     self._qml_root_object.setProperty("simulationText", sim_text)
     self._qml_root_object.setProperty("fpsText", fps_text)
@@ -179,14 +179,14 @@ Rectangle {
     border.color: "#ff6b35"
     border.width: 2
     radius: 50
-    
+
     Text {
         anchors.centerIn: parent
         text: "3D"
         color: "#ffffff"
         font.pixelSize: 24
     }
-    
+
     RotationAnimation on rotation {
         from: 0; to: 360
         duration: 3000

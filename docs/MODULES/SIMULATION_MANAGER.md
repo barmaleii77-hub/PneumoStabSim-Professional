@@ -95,49 +95,49 @@
 ```python
 class SimulationManager:
     """Manage physics simulation thread and state communication"""
-    
+
     def __init__(self, parent: QObject):
         """Initialize simulation manager
-        
+
         Args:
             parent: Parent QObject (usually MainWindow)
         """
         self.state_bus = StateBus()  # Signal emitter
         self.snapshot_queue = LatestOnlyQueue()  # Thread-safe queue
         self.physics_worker = PhysicsWorker(self)  # Background thread
-    
+
     def start(self):
         """Start physics simulation thread"""
         if not self.physics_worker.isRunning():
             self.physics_worker.start()
             self.state_bus.simulation_started.emit()
-    
+
     def stop(self):
         """Stop physics simulation thread"""
         if self.physics_worker.isRunning():
             self.physics_worker.running = False
             self.physics_worker.wait(1000)  # Wait 1 second
             self.state_bus.simulation_stopped.emit()
-    
+
     def pause(self, paused: bool):
         """Pause/resume simulation
-        
+
         Args:
             paused: True to pause, False to resume
         """
         self.physics_worker.paused = paused
         self.state_bus.simulation_paused.emit(paused)
-    
+
     def reset(self):
         """Reset simulation to initial state"""
         self.stop()
         # Reset all systems
         self.physics_worker.reset_state()
         self.state_bus.simulation_reset.emit()
-    
+
     def get_queue_stats(self) -> dict:
         """Get queue statistics
-        
+
         Returns:
             Dictionary with queue metrics
         """
@@ -154,14 +154,14 @@ class SimulationManager:
 ```python
 class PhysicsWorker(QThread):
     """Background thread for physics simulation"""
-    
+
     # Signals
     state_ready = Signal(object)  # StateSnapshot
     error_occurred = Signal(str)  # Error message
-    
+
     def __init__(self, manager: SimulationManager):
         """Initialize physics worker
-        
+
         Args:
             manager: Parent simulation manager
         """
@@ -169,54 +169,54 @@ class PhysicsWorker(QThread):
         self.manager = manager
         self.running = False
         self.paused = False
-        
+
         # Physics systems
         self.integrator = ODEIntegrator()
         self.kinematics = CylinderKinematics()
         self.gas_network = GasNetwork()
         self.road_input = RoadInput()
-        
+
         # Timing
         self.dt = 0.001  # 1ms timestep
         self.simulation_time = 0.0
-    
+
     def run(self):
         """Main physics loop (runs in thread)"""
         self.running = True
-        
+
         # Create timer for fixed timestep
         self.physics_timer = QTimer()
         self.physics_timer.setInterval(1)  # 1ms
         self.physics_timer.timeout.connect(self._physics_step)
         self.physics_timer.start()
-        
+
         # Start event loop
         self.exec()
-    
+
     def _physics_step(self):
         """Execute single physics timestep"""
         if self.paused or not self.running:
             return
-        
+
         try:
             # Execute physics
             self._execute_physics_step(self.dt)
-            
+
             # Create snapshot
             snapshot = self._create_state_snapshot()
-            
+
             # Emit to main thread (Qt.QueuedConnection)
             self.state_ready.emit(snapshot)
-            
+
             # Update time
             self.simulation_time += self.dt
-            
+
         except Exception as e:
             self._handle_integration_error(e)
-    
+
     def _execute_physics_step(self, dt: float):
         """Execute physics calculations
-        
+
         Args:
             dt: Timestep in seconds
         """
@@ -224,19 +224,19 @@ class PhysicsWorker(QThread):
         road_inputs = self.road_input.get_wheel_excitation(
             self.simulation_time
         )
-        
+
         # 2. Update kinematics
         self.kinematics.update_from_angles(road_inputs)
-        
+
         # 3. Update gas network
         self.gas_network.apply_valves_and_flows(dt)
-        
+
         # 4. Integrate dynamics
         self.integrator.step(dt)
-    
+
     def _create_state_snapshot(self) -> StateSnapshot:
         """Create state snapshot for UI
-        
+
         Returns:
             StateSnapshot with current physics state
         """
@@ -252,16 +252,16 @@ class PhysicsWorker(QThread):
             gas_network=self.gas_network.get_state(),
             aggregates=self._compute_aggregates()
         )
-    
+
     def _handle_integration_error(self, error: Exception):
         """Handle physics integration errors
-        
+
         Args:
             error: Exception that occurred
         """
         error_msg = f"Physics error: {str(error)}"
         self.error_occurred.emit(error_msg)
-        
+
         # Log but continue
         import logging
         logging.getLogger(__name__).error(error_msg)
@@ -418,34 +418,34 @@ from PySide6.QtWidgets import QMainWindow
 class MyWindow(QMainWindow):
     def __init__(self):
         super().__init__()
-        
+
         # Create simulation manager
         self.sim_manager = SimulationManager(self)
-        
+
         # Connect signals
         self.sim_manager.state_bus.state_ready.connect(
             self._on_state_update,
             Qt.QueuedConnection
         )
-        
+
         self.sim_manager.state_bus.physics_error.connect(
             self._on_physics_error,
             Qt.QueuedConnection
         )
-    
+
     def start_simulation(self):
         """Start simulation"""
         self.sim_manager.start()
-    
+
     def stop_simulation(self):
         """Stop simulation"""
         self.sim_manager.stop()
-    
+
     def _on_state_update(self, snapshot):
         """Handle state snapshot"""
         print(f"Time: {snapshot.simulation_time:.3f}s")
         print(f"Step: {snapshot.step_number}")
-    
+
     def _on_physics_error(self, error_msg):
         """Handle physics error"""
         print(f"ERROR: {error_msg}")
@@ -541,6 +541,6 @@ DEFAULT_PHYSICS_CONFIG = {
 
 ---
 
-**Last Updated:** 2025-01-05  
-**Module Version:** 2.0.0  
+**Last Updated:** 2025-01-05
+**Module Version:** 2.0.0
 **Status:** Production Ready ?

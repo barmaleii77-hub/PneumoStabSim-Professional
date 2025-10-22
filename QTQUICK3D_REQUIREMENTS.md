@@ -9,7 +9,7 @@ pip install PySide6-Addons
 
 This provides:
 - QtQuick
-- QtQml  
+- QtQml
 - QtQuick3D (for View3D, PBR materials, lighting)
 
 ## Full dependency list:

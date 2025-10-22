@@ -79,10 +79,10 @@ def test_cylinder_kinematics():
         dead_zone_rod=0.001,
         dead_zone_head=0.001
     )
-    
+
     # Act
     # ... perform test
-    
+
     # Assert
     assert result == expected
 ```
@@ -95,10 +95,10 @@ from src.ui.main_window import MainWindow
 def test_geometry_update_flow(qapp):
     """Test geometry parameter update through entire stack"""
     window = MainWindow()
-    
+
     # Update geometry
     window.update_geometry({'frameLength': 2500.0})
-    
+
     # Verify QML received update
     assert window.qml_root.property('frameLength') == 2500.0
 ```
@@ -151,6 +151,6 @@ View with: `open htmlcov/index.html`
 
 ---
 
-**Last Updated:** 2025-01-05  
-**Test Framework:** pytest  
+**Last Updated:** 2025-01-05
+**Test Framework:** pytest
 **Coverage Tool:** pytest-cov

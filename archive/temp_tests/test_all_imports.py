@@ -14,9 +14,9 @@ if str(src_path) not in sys.path:
 import sys
 from pathlib import Path
 
-print("="*60)
+print("=" * 60)
 print("COMPREHENSIVE IMPORT TEST")
-print("="*60)
+print("=" * 60)
 print()
 
 # Counters
@@ -30,20 +30,17 @@ modules_to_test = [
     # Core
     ("src.core", "Core geometry"),
     ("src.core.geometry", "GeometryParams"),
-    
     # Mechanics
     ("src.mechanics", "Mechanics"),
     ("src.mechanics.components", "Components"),
     ("src.mechanics.constraints", "Constraints"),
     ("src.mechanics.kinematics", "Kinematics"),
     ("src.mechanics.suspension", "Suspension"),
-    
     # Physics
     ("src.physics", "Physics"),
     ("src.physics.forces", "Forces"),
     ("src.physics.integrator", "Integrator"),
     ("src.physics.odes", "ODEs"),
-    
     # Pneumatics
     ("src.pneumo", "Pneumo"),
     ("src.pneumo.cylinder", "Cylinder"),
@@ -57,20 +54,17 @@ modules_to_test = [
     ("src.pneumo.system", "System"),
     ("src.pneumo.thermo", "Thermo"),
     ("src.pneumo.valves", "Valves"),
-    
     # Runtime
     ("src.runtime", "Runtime"),
     ("src.runtime.state", "State"),
     ("src.runtime.sync", "Sync"),
     ("src.runtime.sim_loop", "SimLoop"),
-    
     # Common
     ("src.common", "Common"),
     ("src.common.logging_setup", "Logging"),
     ("src.common.csv_export", "CSV Export"),
     ("src.common.errors", "Errors"),
     ("src.common.units", "Units"),
-    
     # UI - NO OpenGL!
     ("src.ui", "UI"),
     ("src.ui.main_window", "MainWindow"),
@@ -88,7 +82,7 @@ for item in modules_to_test:
     else:
         module_name, desc = item
         optional = False
-    
+
     total_modules += 1
     try:
         __import__(module_name)
@@ -105,11 +99,11 @@ for item in modules_to_test:
             failures.append((module_name, str(e)))
 
 print()
-print("="*60)
+print("=" * 60)
 print(f"RESULT: {success_count}/{total_modules} successful")
 print(f"Success: {success_count}")
 print(f"Failures: {fail_count}")
-print("="*60)
+print("=" * 60)
 
 if failures:
     print()

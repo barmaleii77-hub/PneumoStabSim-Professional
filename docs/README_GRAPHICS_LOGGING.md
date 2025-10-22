@@ -84,7 +84,7 @@ class GraphicsLogger:
 def _update_lighting(self, group: str, key: str, value: Any):
     old_value = self.state["lighting"].get(group, {}).get(key)
     self.state["lighting"][group][key] = value
-    
+
     # Автоматическое логирование
     self.graphics_logger.log_change(
         parameter_name=f"{group}.{key}",
@@ -138,23 +138,23 @@ panel.export_sync_analysis()
 class MainWindow(QMainWindow):
     def __init__(self):
         self.graphics_panel = GraphicsPanel()
-        
+
         # Подключить сигналы
         self.graphics_panel.lighting_changed.connect(
             self._on_lighting_changed
         )
-    
+
     def _on_lighting_changed(self, data):
         logger = get_graphics_logger()
         recent = logger.get_recent_changes(1)
-        
+
         if recent:
             event = recent[0]
-            
+
             try:
                 # Применить в QML
                 self._apply_to_qml(data)
-                
+
                 # Логировать успех
                 logger.log_qml_update(
                     event,
@@ -275,7 +275,7 @@ logger = get_graphics_logger()
 
 # Ищем изменения auto_rotate
 auto_rotate_events = [
-    e for e in logger.events_buffer 
+    e for e in logger.events_buffer
     if 'auto_rotate' in e.parameter_name
 ]
 
@@ -319,11 +319,11 @@ from PySide6.QtCore import QTimer
 def monitor_changes():
     logger = get_graphics_logger()
     recent = logger.get_recent_changes(1)
-    
+
     if recent:
         event = recent[0]
         print(f"[{event.timestamp}] {event.parameter_name}: {event.new_value}")
-        
+
         if not event.applied_to_qml:
             print(f"  ⚠️ Not applied to QML yet!")
 
@@ -345,7 +345,7 @@ if analysis['sync_rate'] < 90:
     for cat, stats in analysis['by_category'].items():
         if stats['failed'] > 0:
             print(f"⚠️ {cat}: {stats['failed']}/{stats['total']} failed")
-            
+
     # Смотрим конкретные ошибки
     for param, errors in analysis['errors_by_parameter'].items():
         print(f"❌ {param}:")
@@ -388,6 +388,6 @@ panel.material_changed.connect(on_material_changed)
 
 ---
 
-**Версия**: 1.0.0  
-**Последнее обновление**: 2024  
+**Версия**: 1.0.0
+**Последнее обновление**: 2024
 **Автор**: PneumoStabSim Development Team

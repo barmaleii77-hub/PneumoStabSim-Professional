@@ -477,10 +477,11 @@ test_report_*.txt
 *.rar
 
 # Temporary Python files
-temp_*
 *_temp.py
 test_*.py
 check_*.py
+!tools/check_ui_utf8.py
+!tools/check_forbidden_artifacts.py
 
 # Temporary batch files
 *.bat
@@ -850,7 +851,14 @@ assets/hdr/*.exr
 !assets/hdr/.gitignore
 !assets/hdr/studio.hdr.placeholder
 
-# Allow small demo HDR in qml assets (fallback)
-!assets/qml/assets/studio_small_09_2k.hdr
+# Yandex Disk temporary download files
+*.yandex_disk_download
+
+# Allow targeted unit tests for schema validation
+!tests/unit/test_environment_schema.py
+!tests/unit/test_geometry_schema.py
+!tests/unit/test_settings_validation.py
+!tests/test_settings_smoke.py
+!tests/system/test_physics_integration.py
 
 # END OF .GITIGNORE

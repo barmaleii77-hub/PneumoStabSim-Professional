@@ -85,7 +85,7 @@ python app.py --debug          # Отладочные сообщения
 ### Qt Quick 3D
 ```
 QML2_IMPORT_PATH: [Qt plugins path]
-QT_PLUGIN_PATH: [Qt plugins path]  
+QT_PLUGIN_PATH: [Qt plugins path]
 QSG_RHI_BACKEND: d3d11 (Windows) / opengl (Linux/macOS)
 ```
 
@@ -140,5 +140,5 @@ PneumoStabSim-Professional/
 3. Проверьте `logs/` для детальной информации
 
 ---
-**Последнее обновление**: 2025-10-12 18:01:30  
+**Последнее обновление**: 2025-10-12 18:01:30
 **Статус**: ✅ Полностью рабочее состояние

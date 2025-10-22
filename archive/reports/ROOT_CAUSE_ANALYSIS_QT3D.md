@@ -1,8 +1,8 @@
 # ?? ROOT CAUSE ANALYSIS - Qt Quick 3D Animation Problem
 
-**Date:** 3 October 2025, 20:45 UTC  
-**Status:** ? **ROOT CAUSE IDENTIFIED**  
-**Severity:** CRITICAL  
+**Date:** 3 October 2025, 20:45 UTC
+**Status:** ? **ROOT CAUSE IDENTIFIED**
+**Severity:** CRITICAL
 
 ---
 
@@ -176,7 +176,7 @@ class CustomSphere(QQuick3DGeometry):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.generateSphere()
-    
+
     def generateSphere(self, radius=1.0, segments=32):
         # Generate vertices
         vertices = []
@@ -188,7 +188,7 @@ class CustomSphere(QQuick3DGeometry):
                 y = radius * np.sin(theta) * np.sin(phi)
                 z = radius * np.cos(theta)
                 vertices.append([x, y, z])
-        
+
         # Set vertex data
         vertex_data = np.array(vertices, dtype=np.float32)
         self.setVertexData(vertex_data.tobytes())

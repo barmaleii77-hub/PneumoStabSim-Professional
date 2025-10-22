@@ -41,7 +41,7 @@ try:
     major, minor = qt_version.split('.')[:2]
     qt_major = int(major)
     qt_minor = int(minor)
-    
+
     if qt_major == 6 and qt_minor >= 10:
         print(f"[INFO] ✅ Qt 6.10+ detected - ditheringEnabled should be available")
     elif qt_major == 6 and qt_minor >= 8:

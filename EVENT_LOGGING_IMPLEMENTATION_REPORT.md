@@ -60,7 +60,7 @@ def __init__(self, parent=None):
 # Добавить wrapper для 2-3 ключевых чекбоксов:
 def _build_fog_group(self):
     enabled = QCheckBox("Включить туман", self)
-    
+
     def on_fog_changed(state):
         checked = (state == Qt.Checked)
         self.event_logger.log_user_click(
@@ -69,7 +69,7 @@ def _build_fog_group(self):
             value=checked
         )
         self._update_environment("fog_enabled", checked)
-    
+
     enabled.stateChanged.connect(on_fog_changed)
 ```
 
@@ -163,6 +163,6 @@ def _build_fog_group(self):
 
 ---
 
-**Дата**: 2024-12-15  
-**Версия**: FINAL  
+**Дата**: 2024-12-15
+**Версия**: FINAL
 **Статус**: ✅ Готово к применению (требует финальной интеграции в panel_graphics.py)

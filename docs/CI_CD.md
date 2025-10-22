@@ -31,8 +31,8 @@ The project uses GitHub Actions for automated testing and quality checks.
 ### Test Matrix
 
 ```
-OS: [Ubuntu, Windows, macOS]  
-Python: [3.11, 3.12, 3.13]  
+OS: [Ubuntu, Windows, macOS]
+Python: [3.11, 3.12, 3.13]
 Total Combinations: 9
 ```
 
@@ -179,6 +179,6 @@ requirements-dev.txt
 
 ---
 
-**Last Updated:** 2025-01-05  
-**CI/CD Platform:** GitHub Actions  
+**Last Updated:** 2025-01-05
+**CI/CD Platform:** GitHub Actions
 **Status:** ? Configured and Ready

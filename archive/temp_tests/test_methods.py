@@ -1,11 +1,11 @@
 from src.ui.custom_geometry import SphereGeometry
 
 s = SphereGeometry()
-methods = [m for m in dir(s) if not m.startswith('_') and callable(getattr(s, m))]
+methods = [m for m in dir(s) if not m.startswith("_") and callable(getattr(s, m))]
 
-print('Available methods:')
+print("Available methods:")
 for m in sorted(methods):
-    print(f'  {m}')
+    print(f"  {m}")
 
 print()
 print("Testing key methods:")

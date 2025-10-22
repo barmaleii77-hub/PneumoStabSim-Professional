@@ -23,25 +23,25 @@
     <PublishReadyToRun>true</PublishReadyToRun>
     <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
     <EnableCompressionInSingleFile>true</EnableCompressionInSingleFile>
-    
+
     <!-- Debug settings -->
     <DebugType>embedded</DebugType>
     <DebugSymbols>true</DebugSymbols>
-    
+
     <!-- Performance optimizations -->
     <Optimize>true</Optimize>
     <TieredCompilation>true</TieredCompilation>
     <TieredPGO>true</TieredPGO>
     <ReadyToRunUseCrossgen2>true</ReadyToRunUseCrossgen2>
-    
+
     <!-- Language and encoding -->
     <LangVersion>latest</LangVersion>
     <WarningsAsErrors />
     <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
-    
+
     <!-- High DPI support -->
     <ApplicationManifest>app.manifest</ApplicationManifest>
-    
+
     <!-- Resource embedding -->
     <GenerateResourceUsePreserializedResources>true</GenerateResourceUsePreserializedResources>
   </PropertyGroup>
@@ -71,34 +71,34 @@
     <PackageReference Include="Microsoft.Extensions.Logging" Version="8.0.0" />
     <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="8.0.0" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="8.0.0" />
-    
+
     <!-- Mathematics and physics -->
     <PackageReference Include="MathNet.Numerics" Version="5.0.0" />
     <PackageReference Include="System.Numerics.Vectors" Version="4.5.0" />
-    
+
     <!-- 3D graphics and visualization (using .NET compatible versions) -->
     <PackageReference Include="System.Drawing.Common" Version="8.0.0" />
-    
+
     <!-- Charts and plotting -->
     <PackageReference Include="OxyPlot.Wpf" Version="2.1.2" />
     <PackageReference Include="ScottPlot.WPF" Version="5.0.37" />
-    
+
     <!-- Data handling -->
     <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
     <PackageReference Include="System.Text.Json" Version="8.0.5" />
     <PackageReference Include="CsvHelper" Version="30.0.1" />
-    
+
     <!-- Unit testing -->
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.8.0" />
     <PackageReference Include="xunit" Version="2.4.2" />
     <PackageReference Include="xunit.runner.visualstudio" Version="2.4.5" />
     <PackageReference Include="FluentAssertions" Version="6.12.0" />
     <PackageReference Include="Moq" Version="4.20.69" />
-    
+
     <!-- Performance monitoring -->
     <PackageReference Include="System.Diagnostics.PerformanceCounter" Version="8.0.0" />
     <PackageReference Include="BenchmarkDotNet" Version="0.13.12" />
-    
+
     <!-- Process management for Python interop -->
     <PackageReference Include="System.Diagnostics.Process" Version="4.3.0" />
   </ItemGroup>

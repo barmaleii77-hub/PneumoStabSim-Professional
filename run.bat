@@ -22,7 +22,7 @@ rem Check if venv exists and works
 if not exist "venv\Scripts\python.exe" (
     echo Virtual environment not found. Setting up automatically...
     echo.
-    
+
     rem Run full setup
     if exist "activate_venv.bat" (
         call activate_venv.bat
@@ -43,19 +43,19 @@ if not exist "venv\Scripts\python.exe" (
     rem Quick activation of existing venv
     echo Activating existing virtual environment...
     call venv\Scripts\activate.bat
-    
+
     if "%VIRTUAL_ENV%"=="" (
         echo WARNING: Virtual environment activation may have failed
         echo Trying to continue with py launcher...
     ) else (
         echo [✓] Virtual environment activated: %VIRTUAL_ENV%
     )
-    
+
     rem Set critical environment variables
     set PYTHONPATH=%CD%;%CD%\src
     set QSG_RHI_BACKEND=d3d11
     set QT_LOGGING_RULES=js.debug=true;qt.qml.debug=true
-    
+
     rem Enhanced encoding settings (don't set PYTHONUTF8 for Python 3.13)
     set PYTHONIOENCODING=utf-8
     set PYTHONLEGACYWINDOWSFSENCODING=utf-8
@@ -151,7 +151,7 @@ if %APP_EXIT_CODE% equ -1073741510 (
 )
 
 if %APP_EXIT_CODE% equ 3221225477 (
-    echo [!] Application crashed (segmentation fault equivalent)  
+    echo [!] Application crashed (segmentation fault equivalent)
     echo This might be related to OpenGL or graphics drivers
     echo.
     echo Try running with: py app.py --legacy

@@ -1,5 +1,4 @@
 from src.ui.custom_geometry import SphereGeometry
-import numpy as np
 
 print("=== TESTING SPHERE GEOMETRY GENERATION ===")
 print()
@@ -32,21 +31,21 @@ print("4. Checking Qt methods...")
 try:
     stride = sphere.stride()
     print(f"   Stride: {stride} bytes")
-    
+
     bounds = sphere.bounds()
     print(f"   Bounds: {bounds}")
-    
+
     primitive_type = sphere.primitiveType()
     print(f"   Primitive type: {primitive_type}")
-    
+
     attribute_count = sphere.attributeCount()
     print(f"   Attribute count: {attribute_count}")
-    
+
     if attribute_count > 0:
         print("   ? Geometry has attributes")
     else:
         print("   ? No attributes - geometry empty!")
-        
+
 except Exception as e:
     print(f"   ERROR accessing Qt methods: {e}")
 

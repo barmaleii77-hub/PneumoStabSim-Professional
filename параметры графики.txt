@@ -1212,6 +1212,6 @@ GitHub
 GitHub
 .
 
- 
+
 
 Note: Parameters not utilized in the current project (e.g. transmissionFactor, attenuation, 32-bit shadows) are included for completeness but marked as not used. The table highlights which Qt Quick 3D features the project actively employs versus those simply available in Qt.

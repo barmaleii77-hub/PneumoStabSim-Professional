@@ -1,0 +1,9 @@
+# QML Module Registration - Core Utilities
+# PneumoStabSim Professional - Phase 1
+# Version: 1.0.0
+
+module core
+
+singleton MathUtils 1.0 MathUtils.qml
+singleton GeometryCalculations 1.0 GeometryCalculations.qml
+singleton StateCache 1.0 StateCache.qml

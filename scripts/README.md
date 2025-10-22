@@ -10,7 +10,7 @@
 - `code_quality.py` - проверка качества кода
 - `build_docs.py` - генерация документации
 
-### Сборка  
+### Сборка
 - `build_app.py` - сборка приложения
 - `create_installer.py` - создание установщика
 - `package_release.py` - упаковка релиза

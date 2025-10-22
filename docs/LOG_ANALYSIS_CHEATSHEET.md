@@ -132,5 +132,5 @@ function applyEnvironmentUpdates(params) {
 
 ---
 
-**Дата:** 2024-10-13  
+**Дата:** 2024-10-13
 **Версия:** 1.0.0

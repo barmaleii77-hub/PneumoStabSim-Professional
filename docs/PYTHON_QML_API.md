@@ -210,7 +210,7 @@ def _on_sim_control(self, command: str):
     if command == "start":
         bus.start_simulation.emit()
         self.is_simulation_running = True
-        
+
         # Update QML
         if self._qml_root_object:
             self._qml_root_object.setProperty("isRunning", True)
@@ -225,16 +225,16 @@ def _update_3d_scene_from_snapshot(self, snapshot):
     for corner in ['fl', 'fr', 'rl', 'rr']:
         corner_data = snapshot.corners[corner]
         cylinder_state = corner_data.cylinder_state
-        
+
         # Use GeometryBridge to calculate 3D position
         corner_3d = self.geometry_converter.get_corner_3d_coords(
-            corner, 
+            corner,
             corner_data.lever_angle,
             cylinder_state  # Physics data!
         )
-        
+
         piston_positions[corner] = corner_3d['pistonPositionMm']
-    
+
     # Send to QML
     QMetaObject.invokeMethod(
         self._qml_root_object,

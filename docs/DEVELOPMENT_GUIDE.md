@@ -132,11 +132,11 @@ def calculate_piston_position(
     cylinder_length: float
 ) -> float:
     """Calculate piston position from lever angle
-    
+
     Args:
         lever_angle: Lever rotation in degrees
         cylinder_length: Cylinder body length in mm
-        
+
     Returns:
         Piston position from cylinder start (mm)
     """
@@ -150,17 +150,17 @@ from PySide6.QtCore import Qt, QTimer, Slot
 # 3. Docstrings for public methods
 class GeometryBridge:
     """Convert 2D kinematics to 3D coordinates
-    
+
     This class bridges the gap between 2D mechanical
     calculations and 3D visualization coordinates.
     """
-    
+
     def get_corner_3d_coords(self, corner: str) -> dict:
         """Get 3D coordinates for suspension corner
-        
+
         Args:
             corner: Corner identifier ('fl', 'fr', 'rl', 'rr')
-            
+
         Returns:
             Dictionary with 3D coordinate arrays
         """
@@ -184,12 +184,12 @@ component SuspensionCorner: Node {
     // Properties BEFORE functions
     property real leverAngle: 0.0
     property vector3d position: Qt.vector3d(0, 0, 0)
-    
+
     // Functions use camelCase
     function updatePosition(newPos) {
         position = newPos
     }
-    
+
     // Models INSIDE component
     Model {
         source: "#Cube"
@@ -220,10 +220,10 @@ property vector3d correct: Qt.vector3d(1.0, 2.0, 3.0)
         /\
        /  \      E2E Tests (few)
       /????\     - Full app integration
-     /??????\    
+     /??????\
     /????????\   Integration Tests (some)
    /??????????\  - Module interactions
-  /????????????\ 
+  /????????????\
  /??????????????\ Unit Tests (many)
 /????????????????\ - Individual functions
 ```
@@ -240,15 +240,15 @@ from src.ui.geometry_bridge import GeometryBridge
 def test_piston_position_calculation():
     """Test piston position from lever angle"""
     bridge = GeometryBridge()
-    
+
     # Test center position (0� angle)
     coords = bridge.get_corner_3d_coords('fl', lever_angle=0.0)
     assert abs(coords['pistonPositionMm'] - 125.0) < 1.0
-    
+
     # Test extended (positive angle)
     coords = bridge.get_corner_3d_coords('fl', lever_angle=5.0)
     assert coords['pistonPositionMm'] > 125.0
-    
+
     # Test retracted (negative angle)
     coords = bridge.get_corner_3d_coords('fl', lever_angle=-5.0)
     assert coords['pistonPositionMm'] < 125.0
@@ -267,10 +267,10 @@ def test_qml_property_update(qtbot):
     """Test Python?QML property updates"""
     window = MainWindow()
     qtbot.addWidget(window)
-    
+
     # Set amplitude in Python
     window._qml_root_object.setProperty("userAmplitude", 15.0)
-    
+
     # Read back
     value = window._qml_root_object.property("userAmplitude")
     assert value == 15.0
@@ -287,12 +287,12 @@ def test_qml_property_update(qtbot):
 class PistonTestWindow(QMainWindow):
     def __init__(self):
         super().__init__()
-        
+
         # Create sliders
         self.fl_slider = QSlider(Qt.Horizontal)
         self.fl_slider.setRange(25, 225)  # 10%-90%
         self.fl_slider.valueChanged.connect(self.update_piston)
-        
+
     def update_piston(self, value):
         # Update QML
         positions = {'fl': float(value)}
@@ -411,7 +411,7 @@ from PySide6.QtCore import Signal
 class MyNewPanel(QWidget):
     # Define signals
     parameter_changed = Signal(str, float)
-    
+
     def __init__(self, parent=None):
         super().__init__(parent)
         self._setup_ui()
@@ -443,7 +443,7 @@ def _setup_docks(self):
 ```qml
 Item {
     id: root
-    
+
     // Add property
     property real userNewParameter: 10.0
 }
@@ -594,7 +594,7 @@ def set_amplitude(self, value: float):
     # Validate range
     if not (0.0 <= value <= 1.0):
         raise ValueError(f"Amplitude must be 0-1, got {value}")
-    
+
     self._amplitude = value
 ```
 
@@ -618,6 +618,6 @@ def set_amplitude(self, value: float):
 
 ---
 
-**Last Updated:** 2025-01-05  
-**Maintainer:** Development Team  
+**Last Updated:** 2025-01-05
+**Maintainer:** Development Team
 **Status:** Living Document (update as needed!)

@@ -4,7 +4,7 @@
 
 #### 1. **Замена `python` на `py` во всех файлах:**
 - ✅ `app.py` - обновлены примеры использования в parse_arguments()
-- ✅ `quick_start.bat` - убран --force-optimized, заменен на --no-block  
+- ✅ `quick_start.bat` - убран --force-optimized, заменен на --no-block
 - ✅ `.vscode/launch.json` - убрана конфигурация "Optimized (Принудительно)"
 - ✅ `.vscode/tasks.json` - убрана задача "Запуск Optimized"
 - ✅ `.vscode/profile.ps1` - убран алиас `opt`, добавлен `nb` (no-block)

@@ -1,0 +1,38 @@
+FEAT: Камера — 360° вращение, плавность/инерция/трение, пресеты UI
+
+Добавлено неограниченное вращение камеры (yaw/pitch 360+) и улучшен UX управления камерой: сглаживание, инерция, трение и автоповорот без ограничений. В UI добавлены пресеты «Жёстко», «Сглажено», «Кино».
+
+CHANGES:
+1. QML: добавлены параметры и логика плавности орбиты (smoothing), инерции (velocities + friction) и автоповорот без ограничений.
+2. QML: синхронизация внешних апдейтов орбиты с внутренними целями (_yawTarget/_pitchTarget/_distanceTarget) для исключения рывков.
+3. Python (CameraTab): добавлены контролы инерции/сглаживания/трения, а также UI-пресеты для быстрых профилей («Жёстко», «Сглажено», «Кино»).
+4. Python→QML: корректное применение новых параметров в `applyCameraUpdates`.
+5. QML: восстановлены анимационные свойства (userPhase*, animationTime, и т.д.) для валидности on*Changed.
+
+RESULT:
+✅ Камера вращается без ограничений по углам (360+)
+✅ Плавные движения с мягким стартом/торможением
+✅ Быстрое переключение профилей управления камерой из UI
+
+Files changed:
+- assets/qml/main.qml
+- src/ui/panels/graphics/camera_tab.py
+
+FEAT: Graphics — IBL fallback, HDR path normalization, Fog/AO Qt 6.10 ranges
+
+Добавлена поддержка HDR fallback в Environment Tab, нормализация путей IBL и улучшенная валидация окружения. Обновлены дефолтные значения Fog и Ambient Occlusion под Qt 6.10.
+
+CHANGES:
+1. EnvironmentTab: добавлен комбобокс HDR fallback; единая нормализация путей `_normalize_ibl_path` и выбор `_select_combo_path`; геттер/сеттер обновлены.
+2. Defaults: расширены параметры окружения — probeBrightness/probeHorizon, IBL offsets/bind; Fog (height/transmit) и AO (softness/dither/sample_rate) дефолты.
+3. StateManager: переписана `_validate_environment` — без очистки путей, с резолвом от `assets/qml`; клампинг диапазонов IBL/Skybox/Fog/AO; нормализация булевых флагов; проверка `background_mode`.
+
+RESULT:
+✅ Корректный выбор primary/fallback HDR с консистентными путями
+✅ Значения Fog/AO соответствуют Qt 6.10 и безопасно клампятся
+✅ Более предсказуемое поведение окружения и меньше скрытых сайд-эффектов
+
+Files changed:
+- src/ui/panels/graphics/environment_tab.py
+- src/ui/panels/graphics/defaults.py
+- src/ui/panels/graphics/state_manager.py

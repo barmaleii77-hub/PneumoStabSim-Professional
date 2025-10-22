@@ -1,0 +1,348 @@
+diff a/assets/qml/main_v2_realism.qml b/assets/qml/main_v2_realism.qml	(rejected hunks)
+@@ -1,193 +1,311 @@
+ import QtQuick
+ import QtQuick3D
+ import QtQuick3D.Helpers   // === FIXED: Remove version number for Qt 6.9.3 compatibility
+ 
+ Item {
+     id: root
+     anchors.fill: parent
+ 
++    // --- Batched updates from Python ---
++    property var pendingPythonUpdates: null
++    signal batchUpdatesApplied(var summary)
++
+     // --- Camera/control properties with fixed orbit around bottom beam center ---
+-    property real cameraDistance: 3200
+-    property real minDistance: 150
+-    property real maxDistance: 30000
++    property real cameraDistance: 35
++    property real minDistance: 5
++    property real maxDistance: 500
+     property real yawDeg: 30            // === CHANGED: Better initial angle
+     property real pitchDeg: -10
+-    property vector3d pivot: Qt.vector3d(0, userBeamSize/2, userFrameLength/2)   // === FIXED: Center of bottom beam
++    property vector3d pivot: Qt.vector3d(0, toScene(userBeamSize) / 2, toScene(userFrameLength) / 2)
+     property real panX: 0               // === ADDED: Pan offset in rig's local X
+     property real panY: 0               // === ADDED: Pan offset in rig's local Y
+     property bool autoRotate: false
+     property real autoRotateSpeed: 0.5
+     property real cameraFov: 50.0
+     property real cameraNear: 5.0       // === CHANGED: Better near clip
+     property real cameraFar: 50000.0
+     property real cameraSpeed: 1.0
+ 
+     // === Lighting properties ===
+     property real keyLightBrightness: 2.5
+     property string keyLightColor: "#ffffff"
+     property real keyLightAngleX: -45
+     property real keyLightAngleY: 45
+     property real fillLightBrightness: 0.8
+     property string fillLightColor: "#f0f0ff"
+     property real pointLightBrightness: 1.5
+-    property real pointLightY: 2000
++    property real pointLightY: 2.0
+ 
+     // --- Environment/quality properties ---
+     property string backgroundColor: "#2a2a2a"
+     property bool skyboxEnabled: true
+     property bool iblEnabled: true
+     property real iblIntensity: 1.3     // === CHANGED: Better exposure
+ 
+     property int antialiasingMode: 2     // 0 NoAA, 1 SSAA, 2 MSAA
+     property int antialiasingQuality: 2  // 0 Low, 1 Medium, 2 High
+     property bool shadowsEnabled: true
+     property int shadowQuality: 2
+     property real shadowSoftness: 0.5
+ 
+     // --- Effects properties ---
+     property bool bloomEnabled: true
+     property real bloomThreshold: 1.0
+     property real bloomIntensity: 0.6    // === CHANGED: More balanced for filmic
+     property bool ssaoEnabled: true
+     property real ssaoRadius: 200        // === CHANGED: Scene units for better visibility
+     property real ssaoIntensity: 70      // === CHANGED: Proper strength value
+     property bool tonemapEnabled: true
+     property int tonemapMode: 3          // 0=None, 1=Linear, 2=Reinhard, 3=Filmic
+ 
+     property bool depthOfFieldEnabled: false
+-    property real dofFocusDistance: 2000
+-    property real dofFocusRange: 900
+-
+-    // --- Geometry/animation properties (unchanged) ---
+-    property real userFrameLength: 3200
+-    property real userFrameHeight: 650
+-    property real userBeamSize: 120
+-    property real userLeverLength: 800
+-    property real userCylinderLength: 500
+-    property real userTrackWidth: 1600
+-    property real userFrameToPivot: 600
++    property real dofFocusDistance: 20
++    property real dofFocusRange: 9
++
++    // --- Geometry properties in meters ---
++    property real sceneScale: 10.0
++    property real userFrameLength: 3.2
++    property real userFrameHeight: 0.65
++    property real userBeamSize: 0.12
++    property real userLeverLength: 0.8
++    property real userCylinderLength: 0.5
++    property real userTrackWidth: 1.6
++    property real userFrameToPivot: 0.6
+     property real userRodPosition: 0.6
+-    property real userBoreHead: 80
+-    property real userRodDiameter: 35
+-    property real userPistonThickness: 25
+-    property real userPistonRodLength: 200
++    property real userBoreHead: 0.08
++    property real userRodDiameter: 0.035
++    property real userPistonThickness: 0.025
++    property real userPistonRodLength: 0.2
++
++    // --- Simulation state (radians/meters/pascals) ---
++    property var leverAngles: ({ fl: 0.0, fr: 0.0, rl: 0.0, rr: 0.0 })
++    property var pistonPositions: ({ fl: 0.0, fr: 0.0, rl: 0.0, rr: 0.0 })
++    property var lineStates: ({})
++    property var aggregateState: ({})
++    property var frameState: ({})
++
+     property bool isRunning: false
+     property real animationTime: 0.0
+-    property real userAmplitude: 8.0
+-    property real userFrequency: 1.0
+-    property real userPhaseGlobal: 0.0
+-    property real userPhaseFL: 0.0
+-    property real userPhaseFR: 0.0
+-    property real userPhaseRL: 0.0
+-    property real userPhaseRR: 0.0
+-    property real fl_angle: isRunning ? userAmplitude * Math.sin(animationTime * userFrequency * 2 * Math.PI + (userPhaseGlobal + userPhaseFL) * Math.PI / 180) : 0.0
+-    property real fr_angle: isRunning ? userAmplitude * Math.sin(animationTime * userFrequency * 2 * Math.PI + (userPhaseGlobal + userPhaseFR) * Math.PI / 180) : 0.0
+-    property real rl_angle: isRunning ? userAmplitude * Math.sin(animationTime * userFrequency * 2 * Math.PI + (userPhaseGlobal + userPhaseRL) * Math.PI / 180) : 0.0
+-    property real rr_angle: isRunning ? userAmplitude * Math.sin(animationTime * userFrequency * 2 * Math.PI + (userPhaseGlobal + userPhaseRR) * Math.PI / 180) : 0.0
++
++    function toScene(value) {
++        return Number(value) * sceneScale
++    }
++
++    function leverAngleRadFor(name) {
++        if (!leverAngles || leverAngles[name] === undefined)
++            return 0.0
++        const v = leverAngles[name]
++        return typeof v === "number" ? v : Number(v)
++    }
++
++    function pistonPositionFor(name) {
++        if (!pistonPositions || pistonPositions[name] === undefined)
++            return 0.0
++        const v = pistonPositions[name]
++        return typeof v === "number" ? v : Number(v)
++    }
++
++    function updatePivot() {
++        pivot = Qt.vector3d(0, toScene(userBeamSize) / 2, toScene(userFrameLength) / 2)
++    }
++
++    onUserFrameLengthChanged: updatePivot()
++    onUserBeamSizeChanged: updatePivot()
++
++    onPendingPythonUpdatesChanged: {
++        if (!pendingPythonUpdates)
++            return
++        try {
++            applyBatchedUpdates(pendingPythonUpdates)
++        } finally {
++            pendingPythonUpdates = null
++        }
++    }
++
++    function applyBatchedUpdates(updates) {
++        if (!updates)
++            return
++        var applied = {}
++        if (updates.geometry) { applyGeometryUpdates(updates.geometry); applied.geometry = true }
++        if (updates.camera) { applyCameraUpdates(updates.camera); applied.camera = true }
++        if (updates.lighting) { applyLightingUpdates(updates.lighting); applied.lighting = true }
++        if (updates.environment) { applyEnvironmentUpdates(updates.environment); applied.environment = true }
++        if (updates.quality) { applyQualityUpdates(updates.quality); applied.quality = true }
++        if (updates.materials) { applyMaterialUpdates(updates.materials); applied.materials = true }
++        if (updates.effects) { applyEffectsUpdates(updates.effects); applied.effects = true }
++        if (updates.animation) { applyAnimationUpdates(updates.animation); applied.animation = true }
++        if (updates.simulation) { applySimulationUpdates(updates.simulation); applied.simulation = true }
++
++        batchUpdatesApplied(applied)
++    }
++
++    function applySimulationUpdates(params) {
++        if (!params)
++            return
++        if (params.levers)
++            leverAngles = Object.assign({}, leverAngles, params.levers)
++        if (params.pistons)
++            pistonPositions = Object.assign({}, pistonPositions, params.pistons)
++        if (params.lines)
++            lineStates = params.lines
++        if (params.aggregates)
++            aggregateState = params.aggregates
++        if (params.frame)
++            frameState = params.frame
++    }
++
++    function applyGeometryUpdates(params) { updateGeometry(params) }
++    function applyLightingUpdates(params) { updateLighting(params) }
++    function applyEnvironmentUpdates(params) { updateEnvironment(params) }
++    function applyQualityUpdates(params) { updateQuality(params) }
++    function applyMaterialUpdates(params) { updateMaterials(params) }
++    function applyEffectsUpdates(params) { updateEffects(params) }
++    function applyCameraUpdates(params) { updateCamera(params) }
++    function applyAnimationUpdates(params) { updateAnimation(params) }
+ 
+     // === HDR probe with fallback ===
+     Texture {
+         id: hdrProbe
+         source: "assets/studio_small_09_2k.hdr"  // === FIXED: Relative path
+     }
+ 
+     // === Smooth camera animations ===
+     Behavior on yawDeg         { NumberAnimation { duration: 90; easing.type: Easing.OutCubic } }
+     Behavior on pitchDeg       { NumberAnimation { duration: 90; easing.type: Easing.OutCubic } }
+     Behavior on cameraDistance { NumberAnimation { duration: 90; easing.type: Easing.OutCubic } }
+     Behavior on panX           { NumberAnimation { duration: 120; easing.type: Easing.OutCubic } }
+     Behavior on panY           { NumberAnimation { duration: 120; easing.type: Easing.OutCubic } }
+ 
+     // === Python integration functions ===
+     function updateGeometry(params) {
+         console.log("QML: updateGeometry called with", JSON.stringify(params))
+ 
+         if (params.frameLength !== undefined) userFrameLength = params.frameLength
+         if (params.frameHeight !== undefined) userFrameHeight = params.frameHeight
+         if (params.frameBeamSize !== undefined) userBeamSize = params.frameBeamSize
+         if (params.leverLength !== undefined) userLeverLength = params.leverLength
+         if (params.cylinderBodyLength !== undefined) userCylinderLength = params.cylinderBodyLength
+         if (params.trackWidth !== undefined) userTrackWidth = params.trackWidth
+         if (params.frameToPivot !== undefined) userFrameToPivot = params.frameToPivot
+         if (params.rodPosition !== undefined) userRodPosition = params.rodPosition
+ 
++        updatePivot()
+         resetView() // Update camera after geometry changes
+     }
+ 
+     function updateLighting(params) {
+         console.log("QML: updateLighting called with", JSON.stringify(params))
+ 
+         if (params.key_light) {
+             var kl = params.key_light
+             if (kl.brightness !== undefined) keyLightBrightness = kl.brightness
+             if (kl.color !== undefined) keyLightColor = kl.color
+             if (kl.angle_x !== undefined) keyLightAngleX = kl.angle_x
+             if (kl.angle_y !== undefined) keyLightAngleY = kl.angle_y
+         }
+ 
+         if (params.fill_light) {
+             var fl = params.fill_light
+             if (fl.brightness !== undefined) fillLightBrightness = fl.brightness
+             if (fl.color !== undefined) fillLightColor = fl.color
+         }
+ 
+         if (params.point_light) {
+             var pl = params.point_light
+             if (pl.brightness !== undefined) pointLightBrightness = pl.brightness
+             if (pl.position_y !== undefined) pointLightY = pl.position_y
+         }
+     }
+ 
+     function updateEnvironment(params) {
+         console.log("QML: updateEnvironment called with", JSON.stringify(params))
+ 
+         if (params.background_color !== undefined) backgroundColor = params.background_color
+         if (params.skybox_enabled !== undefined) skyboxEnabled = params.skybox_enabled
+         if (params.ibl_enabled !== undefined) iblEnabled = params.ibl_enabled
+         if (params.ibl_intensity !== undefined) iblIntensity = params.ibl_intensity
+     }
+ 
+     function updateQuality(params) {
+         console.log("QML: updateQuality called with", JSON.stringify(params))
+ 
+         if (params.antialiasing !== undefined) antialiasingMode = params.antialiasing
+         if (params.aa_quality !== undefined) antialiasingQuality = params.aa_quality
+         if (params.shadows_enabled !== undefined) shadowsEnabled = params.shadows_enabled
+         if (params.shadow_quality !== undefined) shadowQuality = params.shadow_quality
+         if (params.shadow_softness !== undefined) shadowSoftness = params.shadow_softness
+     }
+ 
++    function updateMaterials(params) {
++        if (!params)
++            return
++        console.log("QML: updateMaterials called with", JSON.stringify(params))
++    }
++
++    function updateEffects(params) {
++        if (!params)
++            return
++        console.log("QML: updateEffects called with", JSON.stringify(params))
++        if (params.bloomEnabled !== undefined) bloomEnabled = !!params.bloomEnabled
++        if (params.bloomIntensity !== undefined) bloomIntensity = Number(params.bloomIntensity)
++        if (params.bloomThreshold !== undefined) bloomThreshold = Number(params.bloomThreshold)
++        if (params.ssaoEnabled !== undefined) ssaoEnabled = !!params.ssaoEnabled
++    }
++
++    function updateCamera(params) {
++        if (!params)
++            return
++        console.log("QML: updateCamera called with", JSON.stringify(params))
++        if (params.distance !== undefined) cameraDistance = Number(params.distance)
++        if (params.yaw !== undefined) yawDeg = Number(params.yaw)
++        if (params.pitch !== undefined) pitchDeg = Number(params.pitch)
++        if (params.panX !== undefined) panX = Number(params.panX)
++        if (params.panY !== undefined) panY = Number(params.panY)
++        if (params.pivot) {
++            var p = params.pivot
++            try { pivot = Qt.vector3d(Number(p.x||p[0]), Number(p.y||p[1]), Number(p.z||p[2])) } catch(e) { }
++        }
++    }
++
++    function updateAnimation(params) {
++        if (!params)
++            return
++        console.log("QML: updateAnimation called with", JSON.stringify(params))
++        if (params.isRunning !== undefined) isRunning = !!params.isRunning
++        if (params.animationTime !== undefined) animationTime = Number(params.animationTime)
++    }
++
+     // === Fixed camera functions - pivot always at bottom beam center ===
+     function computePivot() {
+-        return Qt.vector3d(0, userBeamSize/2, userFrameLength/2)
++        return Qt.vector3d(0, toScene(userBeamSize)/2, toScene(userFrameLength)/2)
+     }
+ 
+     function autoFitFrame(marginFactor) {
+-        const L = Math.max(1, userFrameLength)
+-        const T = Math.max(1, userTrackWidth)
+-        const H = Math.max(1, userFrameHeight)
++        const L = Math.max(0.01, toScene(userFrameLength))
++        const T = Math.max(0.01, toScene(userTrackWidth))
++        const H = Math.max(0.01, toScene(userFrameHeight))
+         const margin = marginFactor !== undefined ? marginFactor : 1.15
+         const R = 0.5 * Math.sqrt(L*L + T*T + H*H)
+         const fov = cameraFov * Math.PI / 180.0
+         const dist = (R * margin) / Math.tan(fov * 0.5)
+         cameraDistance = Math.max(minDistance, Math.min(maxDistance, dist))
+     }
+ 
+     function resetView() {
+         pivot = computePivot()
+         yawDeg = 30       // Front-right view
+         pitchDeg = -10
+         panX = 0          // Reset pan
+         panY = 0
+         autoFitFrame()
+     }
+ 
+     View3D {
+         id: view3d
+         anchors.fill: parent
+ 
+         // === FIXED: Proper ExtendedSceneEnvironment implementation for Qt 6.9.3 ===
+         environment: ExtendedSceneEnvironment {
+             // Background and IBL
+             backgroundMode: root.skyboxEnabled ? SceneEnvironment.SkyBox : SceneEnvironment.Color
+             clearColor: root.backgroundColor

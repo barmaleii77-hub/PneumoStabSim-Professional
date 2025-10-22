@@ -225,24 +225,24 @@ from ui.panels.graphics_logger import get_graphics_logger
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
-        
+
         # Подключить сигналы для отслеживания QML обновлений
         self.graphics_panel.lighting_changed.connect(
             lambda data: self._log_qml_update("lighting", data)
         )
         # ... аналогично для других категорий
-    
+
     def _log_qml_update(self, category: str, data: dict):
         logger = get_graphics_logger()
         recent = logger.get_recent_changes(1)
-        
+
         if recent and recent[0].category == category:
             event = recent[0]
-            
+
             try:
                 # Применить в QML
                 self._apply_to_qml(category, data)
-                
+
                 # Логировать успех
                 logger.log_qml_update(
                     event,
@@ -267,7 +267,7 @@ logger = get_graphics_logger()
 
 # Ищем события auto_rotate
 auto_rotate_events = [
-    e for e in logger.events_buffer 
+    e for e in logger.events_buffer
     if 'auto_rotate' in e.parameter_name
 ]
 
@@ -287,12 +287,12 @@ analysis = logger.analyze_qml_sync()
 
 if analysis['sync_rate'] < 90:
     print("⚠️ Низкая синхронизация!")
-    
+
     # Проблемные категории
     for cat, stats in analysis['by_category'].items():
         if stats['failed'] > 0:
             print(f"  {cat}: {stats['failed']}/{stats['total']} failed")
-    
+
     # Конкретные ошибки
     for param, errors in analysis['errors_by_parameter'].items():
         print(f"  ❌ {param}:")
@@ -352,13 +352,13 @@ if analysis['sync_rate'] < 90:
 
 ### Возможности
 
-✅ **Автоматическое логирование** всех изменений на GraphicsPanel  
-✅ **Отслеживание синхронизации** Python ↔ QML  
-✅ **Анализ производительности** и паттернов изменений  
-✅ **Диагностика проблем** с детальными логами  
-✅ **Экспорт отчетов** в JSON и CSV  
-✅ **Сравнение состояний** Panel ↔ QML  
-✅ **Полная документация** с примерами  
+✅ **Автоматическое логирование** всех изменений на GraphicsPanel
+✅ **Отслеживание синхронизации** Python ↔ QML
+✅ **Анализ производительности** и паттернов изменений
+✅ **Диагностика проблем** с детальными логами
+✅ **Экспорт отчетов** в JSON и CSV
+✅ **Сравнение состояний** Panel ↔ QML
+✅ **Полная документация** с примерами
 
 ### Следующие шаги
 
@@ -370,8 +370,8 @@ if analysis['sync_rate'] < 90:
 
 ---
 
-**Дата завершения**: 2024  
-**Версия**: 1.0.0  
+**Дата завершения**: 2024
+**Версия**: 1.0.0
 **Статус**: ✅ ГОТОВО К ИСПОЛЬЗОВАНИЮ
 
 **Совет**: Начните с запуска теста (`python test_graphics_logger.py`), чтобы увидеть систему в действии!

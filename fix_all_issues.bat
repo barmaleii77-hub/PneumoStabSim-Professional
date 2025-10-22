@@ -12,7 +12,7 @@ echo ================================================================
 echo.
 echo This script will:
 echo   1. Fix terminal encoding issues
-echo   2. Configure Python environment  
+echo   2. Configure Python environment
 echo   3. Set up proper virtual environment
 echo   4. Install/update all dependencies
 echo   5. Test the complete setup
@@ -34,7 +34,7 @@ if %errorlevel% equ 0 (
     echo [!] Could not set UTF-8 encoding, using fallback
 )
 
-rem Configure registry for better console support  
+rem Configure registry for better console support
 reg add "HKCU\Console" /v "FaceName" /t REG_SZ /d "Consolas" /f >nul 2>&1
 reg add "HKCU\Console" /v "FontSize" /t REG_DWORD /d 0x00120000 /f >nul 2>&1
 echo [✓] Console font configured
@@ -52,7 +52,7 @@ set COLORTERM=truecolor
 echo [✓] Python encoding environment configured
 
 echo.
-echo ================================================================  
+echo ================================================================
 echo  STEP 2: Python Version Check and Configuration
 echo ================================================================
 
@@ -155,7 +155,7 @@ if exist "requirements-compatible.txt" (
     )
 )
 
-rem Strategy 2: Try standard requirements  
+rem Strategy 2: Try standard requirements
 if exist "requirements.txt" (
     echo [2/3] Trying standard requirements...
     pip install -r requirements.txt --disable-pip-version-check --quiet
@@ -185,7 +185,7 @@ for %%p in (%CRITICAL_PACKAGES%) do (
 
 echo.
 echo ================================================================
-echo  STEP 5: Environment Variables and Configuration  
+echo  STEP 5: Environment Variables and Configuration
 echo ================================================================
 
 rem Set all necessary environment variables
@@ -195,7 +195,7 @@ set QT_LOGGING_RULES=js.debug=true;qt.qml.debug=true
 
 rem Additional Qt optimizations
 set QT_AUTO_SCREEN_SCALE_FACTOR=1
-set QT_SCALE_FACTOR_ROUNDING_POLICY=PassThrough  
+set QT_SCALE_FACTOR_ROUNDING_POLICY=PassThrough
 set QT_ENABLE_HIGHDPI_SCALING=1
 set QT_FONT_DPI=96
 
@@ -255,14 +255,14 @@ echo ================================================================
 echo.
 echo Environment Status:
 echo   Virtual Environment: %VIRTUAL_ENV%
-echo   Python Version: 
+echo   Python Version:
 python --version
 echo   Encoding: UTF-8 configured
 echo   Packages: Installed and tested
 echo.
 echo Available commands:
 echo   run.bat                          # Quick application launch
-echo   python app.py                    # Standard launch  
+echo   python app.py                    # Standard launch
 echo   python app.py --test-mode        # Test mode (5 seconds)
 echo   python app.py --safe-mode        # Safe mode (minimal features)
 echo   quick_diagnostic.bat             # Quick problem check
@@ -293,7 +293,7 @@ echo Setup cancelled by user.
 pause
 exit /b 1
 
-:error_exit  
+:error_exit
 echo.
 echo ================================================================
 echo  SETUP FAILED

@@ -14,13 +14,16 @@ checks = []
 # 1. Python
 try:
     assert sys.version_info >= (3, 8), "Python 3.8+ required"
-    checks.append(("Python", True, f"{sys.version_info.major}.{sys.version_info.minor}"))
+    checks.append(
+        ("Python", True, f"{sys.version_info.major}.{sys.version_info.minor}")
+    )
 except Exception as e:
     checks.append(("Python", False, str(e)))
 
 # 2. PySide6
 try:
     from PySide6.QtWidgets import QApplication
+
     checks.append(("PySide6", True, "OK"))
 except ImportError:
     checks.append(("PySide6", False, "Not installed"))
@@ -29,6 +32,7 @@ except ImportError:
 try:
     from src.common import init_logging
     from src.ui.main_window import MainWindow
+
     checks.append(("Modules", True, "OK"))
 except ImportError as e:
     checks.append(("Modules", False, str(e)))
@@ -36,6 +40,7 @@ except ImportError as e:
 # 4. QML files
 try:
     from pathlib import Path
+
     qml = Path("assets/qml/main_optimized.qml")
     checks.append(("QML", qml.exists(), "Found" if qml.exists() else "Missing"))
 except Exception as e:

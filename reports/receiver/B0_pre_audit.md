@@ -31,7 +31,7 @@ self.manual_volume_knob = Knob(
 ```
 
 **Режим 2: Geometric Calculation (геометрический расчёт)**
-```python  
+```python
 self.receiver_length_knob = Knob(
     minimum=0.100, maximum=2.000, value=0.500, step=0.001,
     decimals=3, units="м", title="Длина ресивера"

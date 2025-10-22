@@ -30,14 +30,14 @@ except ImportError:
 ```python
 def _apply_ui_change_with_geometry_state(self, param_name: str, value: float):
     """A-4.3: Apply UI change using GeometryState for validation and normalization"""
-    
+
     # Update GeometryState parameter
     setattr(self.geo_state, param_name, value)
-    
+
     # Validate constraints
     is_valid = self.geo_state.validate_all_constraints()
     errors, warnings = self.geo_state.get_validation_results()
-    
+
     if errors:
         # Show kinematic constraint violations with auto-correction option
 ```
@@ -66,7 +66,7 @@ if GEOMETRY_STATE_AVAILABLE:
 
 **Обновлённые пресеты:**
 - ? Standard Truck ? `create_default_geometry()`
-- ? Light Commercial ? `create_light_commercial_geometry()`  
+- ? Light Commercial ? `create_light_commercial_geometry()`
 - ? Heavy Truck ? `create_heavy_truck_geometry()` (добавлен в geo_state.py)
 - ? Custom ? сохраняет текущее состояние
 
@@ -180,7 +180,7 @@ get_errors(["src/ui/panels/panel_geometry.py", "src/ui/geo_state.py"])
 
 ### Выполненные микрошаги:
 - ? **A-4.1**: Анализ текущего состояния
-- ? **A-4.2**: Создание GeometryState с кинематическими расчётами  
+- ? **A-4.2**: Создание GeometryState с кинематическими расчётами
 - ? **A-4.3**: Интеграция GeometryState с GeometryPanel
 
 ### Достигнутые цели:

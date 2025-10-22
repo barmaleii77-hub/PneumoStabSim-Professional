@@ -51,7 +51,7 @@
 ---
 
 ### STEP 2: Panels Russification (67%)
-**Files:** 
+**Files:**
 - `src/ui/panels/panel_geometry.py` ?
 - `src/ui/panels/panel_pneumo.py` ?
 - `src/ui/panels/panel_modes.py` ? (pending)

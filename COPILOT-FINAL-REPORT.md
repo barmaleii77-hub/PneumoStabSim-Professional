@@ -1,6 +1,6 @@
 # ✅ GitHub Copilot Configuration - Summary
 
-**Date**: 2024  
+**Date**: 2024
 **Status**: ✅ COMPLETED AND DEPLOYED
 
 ---
@@ -72,11 +72,11 @@
 def calculate_kinematics(angle: float, lever_length: float) -> tuple[float, float]:
     """
     Вычисляет кинематику рычага подвески.
-    
+
     Args:
         angle: Угол рычага в градусах
         lever_length: Длина рычага в мм
-        
+
     Returns:
         Кортеж (x, y) координат в мм
     """
@@ -99,10 +99,10 @@ def calculate_kinematics(angle: float, lever_length: float) -> tuple[float, floa
 // Компонент управления вращением IBL
 Item {
     id: iblControl
-    
+
     // ✅ ПРАВИЛЬНО: прямое присваивание без нормализации
     property real iblRotationDeg: 0
-    
+
     // Qt сам обрабатывает интерполяцию через SLERP
     onIblRotationDegChanged: {
         // Обновляем проб environment
@@ -210,6 +210,6 @@ Start coding - Copilot will help with:
 
 ---
 
-**Version**: 1.0  
-**Last Updated**: 2024  
+**Version**: 1.0
+**Last Updated**: 2024
 **Status**: PRODUCTION READY

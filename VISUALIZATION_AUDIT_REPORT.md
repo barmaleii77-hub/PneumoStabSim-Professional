@@ -1,7 +1,7 @@
 # 🔍 ПОЛНЫЙ АУДИТ СИСТЕМЫ ВИЗУАЛИЗАЦИИ - ОТЧЕТ
 
-**Дата аудита:** 2025-01-07  
-**Проект:** PneumoStabSim Professional  
+**Дата аудита:** 2025-01-07
+**Проект:** PneumoStabSim Professional
 **Система:** Qt Quick 3D + Python Integration
 
 ---
@@ -100,7 +100,7 @@ PrincipledMaterial {
 Node {
     position: root.target               // Центр вращения
     eulerRotation: Qt.vector3d(pitchDeg, yawDeg, 0)
-    
+
     PerspectiveCamera {
         position: Qt.vector3d(0, 0, root.cameraDistance)
         fieldOfView: root.cameraFov     // 45° (управляемый)
@@ -126,7 +126,7 @@ Node {
 # Обновление освещения
 self._qml_root_object.updateLighting(lighting_params)
 
-# Обновление материалов  
+# Обновление материалов
 self._qml_root_object.updateMaterials(material_params)
 
 # Обновление камеры
@@ -149,7 +149,7 @@ self._qml_root_object.updateCamera(camera_params)
 
 **Текущий код:**
 ```qml
-materials: PrincipledMaterial { 
+materials: PrincipledMaterial {
     opacity: root.glassOpacity      // Только прозрачность
     roughness: root.glassRoughness  // Без преломления
 }
@@ -338,7 +338,7 @@ Texture {
 ### **ОПТИМИЗАЦИЯ ПРОИЗВОДИТЕЛЬНОСТИ**
 
 1. **Level of Detail (LOD)** - для дальних объектов
-2. **Frustum Culling** - отсечение невидимых объектов  
+2. **Frustum Culling** - отсечение невидимых объектов
 3. **Instancing** - для повторяющихся элементов (болты, шарниры)
 4. **Texture Atlases** - объединение текстур
 
@@ -448,6 +448,6 @@ Texture {
 
 ---
 
-*Аудит проведен: 2025-01-07*  
-*Инженер: GitHub Copilot*  
+*Аудит проведен: 2025-01-07*
+*Инженер: GitHub Copilot*
 *Проект: PneumoStabSim Professional*

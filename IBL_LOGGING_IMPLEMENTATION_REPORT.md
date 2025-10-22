@@ -171,7 +171,7 @@ Timer {
 property int _lastStatus: -1  // Start with -1
 
 onTriggered: {
-    if (typeof hdrProbe.status !== "undefined" && 
+    if (typeof hdrProbe.status !== "undefined" &&
         hdrProbe.status !== controller._lastStatus) {
         // Safe to use
     }
@@ -318,6 +318,6 @@ grep "LOADED successfully" logs/ibl/*.log
 
 ---
 
-**Implementation Date**: 2024-01-15  
-**Version**: 1.0  
+**Implementation Date**: 2024-01-15
+**Version**: 1.0
 **Status**: ✅ Complete and Tested

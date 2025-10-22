@@ -101,7 +101,7 @@ property int antialiasingMode: 3  // ✅ ИСПРАВЛЕНО: ProgressiveAA
   ```qml
   // БЫЛО:
   property real shadowSoftness: 0.5
-  
+
   // СТАЛО:
   property real shadowSoftness: 1.5  // ✅ ИСПРАВЛЕНО: увеличено в 3 раза
   ```
@@ -110,7 +110,7 @@ property int antialiasingMode: 3  // ✅ ИСПРАВЛЕНО: ProgressiveAA
   ```qml
   // БЫЛО:
   shadowFilter: 4 + Math.max(0, shadowSoftness) * 28
-  
+
   // СТАЛО:
   shadowFilter: 8 + Math.max(0, shadowSoftness) * 56  // ✅ ИСПРАВЛЕНО: диапазон × 2
   ```

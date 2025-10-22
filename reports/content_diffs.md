@@ -20,20 +20,20 @@
  import subprocess
  from pathlib import Path
 +import json
- 
+
  # =============================================================================
  # Накопление warnings/errors
 @@ -113,15 +114,12 @@
 
  # =============================================================================
- 
- 
+
+
 -def check_python_compatibility():
 -    """Check Python version and warn about potential issues"""
 +def check_python_compatibility() -> None:
 +    """Проверка версии Python: проект таргетирует Python 3.13+"""
      version = sys.version_info
--    
+-
 -    if version < (3, 8):
 -        log_error("Python 3.8+ required. Please upgrade Python.")
 +    if version < (3, 13):
@@ -41,12 +41,12 @@
          sys.exit(1)
 -    elif version >= (3, 12):
 -        log_warning("Python 3.12+ detected. Some packages may have compatibility issues.")
- 
- 
+
+
  check_python_compatibility()
 @@ -153,8 +151,8 @@
 
-         
+
          try:
              major, minor = qt_version.split('.')[:2]
 -            if int(major) == 6 and int(minor) < 8:
@@ -55,31 +55,31 @@
 +                log_warning(f"Qt {qt_version} detected. Some 6.10+ features may be unavailable")
          except (ValueError, IndexError):
              log_warning(f"Could not parse Qt version: {qt_version}")
-         
+
 @@ -171,16 +169,18 @@
 
  # =============================================================================
- 
- 
+
+
 -def setup_logging():
 -    """Настройка логирования - ВСЕГДА активно"""
 +def setup_logging(verbose_console: bool = False):
 +    """Настройка логирования - ВСЕГДА активно
-+    
++
 +    Args:
 +        verbose_console: Включать ли вывод логов в консоль (аргумент --verbose)
 +    """
      try:
          from src.common.logging_setup import init_logging, rotate_old_logs
-         
+
          logs_dir = Path("logs")
-         
+
 -        # ✅ НОВОЕ: Ротация старых логов (оставляем только 10 последних)
 -        # Политика проекта: всегда начинать с чистых логов
 -        # Стираем старые логи на запуске (keep_count=0)
 +        # Политика проекта: начинаем с чистых логов
          rotate_old_logs(logs_dir, keep_count=0)
-         
+
          # Инициализируем логирование с ротацией
 @@ -189,7 +189,7 @@
 
@@ -89,14 +89,14 @@
 -            console_output=False          # НЕ выводим в консоль
 +            console_output=bool(verbose_console)  # Включаем по запросу
          )
-         
+
          logger.info("=" * 60)
 @@ -201,6 +201,9 @@
 
          logger.info(f"Qt: {qVersion()}")
          logger.info(f"Platform: {sys.platform}")
          logger.info(f"Backend: {os.environ.get('QSG_RHI_BACKEND', 'auto')}")
-+        
++
 +        if verbose_console:
 ... (обрезано)
 
@@ -118,13 +118,13 @@
  # PneumoStabSim Professional - Production Dependencies
 -# Проверено для Python 3.9-3.13 (рекомендуется 3.11-3.13)
 +# Проверено для Python 3.11-3.13 (рекомендуется 3.13)
- 
+
  # === КРИТИЧЕСКИЕ ЗАВИСИМОСТИ ===
  # Qt Framework - основа GUI и 3D рендеринга
 @@ -16,23 +16,22 @@
 
  pillow>=9.0.0             # Обработка изображений для HDR текстур
- 
+
  # Testing и development
 -pytest>=7.0.0            # Тестирование
 -PyYAML>=6.0              # Конфигурационные файлы
@@ -132,7 +132,7 @@
 +PyYAML>=6.0               # Конфигурационные файлы
 +python-dotenv>=1.0.0      # Переменные окружения из .env
 +psutil>=5.8.0             # Мониторинг
- 
+
  # === ОПЦИОНАЛЬНЫЕ УЛУЧШЕНИЯ ===
 -# 3D геометрия и визуализация
  # trimesh>=3.15.0         # 3D mesh обработка (опционально)
@@ -141,7 +141,7 @@
 -# Производительность
  # numba>=0.56.0           # JIT компиляция (опционально)
  # cython>=0.29.0          # C расширения (опционально)
- 
+
  # === СОВМЕСТИМОСТЬ ===
  # Проверено на:
  # - Windows 10/11 (Python 3.11-3.13)
@@ -149,7 +149,7 @@
 -# - macOS 12+ (Python 3.11-3.12)
 +# - Ubuntu 22.04/24.04 (Python 3.11-3.12)
 +# - macOS 13+ (Python 3.11-3.12)
- 
+
  # Примечания:
  # 1. Требуется PySide6 6.10+ из-за использования Fog и dithering
 
@@ -170,7 +170,7 @@
 
  echo ================================================================
  echo.
- 
+
 +rem Prefer Python 3.13 if available via py launcher
 +set "PYTHON_CMD="
 +py -3.13 -c "import sys" >nul 2>&1 && set "PYTHON_CMD=py -3.13"
@@ -201,7 +201,7 @@
  rem Check if virtual environment exists
  if not exist "venv\Scripts\activate.bat" (
      echo Creating virtual environment...
--    
+-
 -    rem Try different Python commands for compatibility
 -    python -c "import sys; exit(0)" >nul 2>&1
 +
@@ -221,7 +221,7 @@
 -        set PYTHON_CMD=python
 +        echo WARNING: Python version may not be fully compatible (recommended 3.13). Continuing...
      )
--    
+-
 -    rem Check Python version before creating venv
 -    %PYTHON_CMD% -c "import sys; major, minor = sys.version_info[:2]; print(f'Using Python {major}.{minor}'); exit(0 if (3, 8) <= (major, minor) <= (3, 12) else 1)"
 -    if errorlevel 1 (
@@ -234,7 +234,7 @@
 -            exit /b 1
 -        )
 -    )
--    
+-
 +
      %PYTHON_CMD% -m venv venv --clear
      if errorlevel 1 (
@@ -244,7 +244,7 @@
  echo Installing project dependencies...
  if exist "requirements.txt" (
      echo Installing from requirements.txt...
--    
+-
 -    rem First try normal installation
 ... (обрезано)
 
@@ -396,7 +396,7 @@
 +import QtQuick.Controls
 +import Qt.labs.folderlistmodel
  import "components"
- 
+
  /*
 @@ -17,6 +19,8 @@
 
@@ -405,14 +405,14 @@
      anchors.fill: parent
 +    // Toggle to show/hide in-canvas UI controls (to avoid duplication with external GraphicsPanel)
 +    property bool showOverlayControls: false
-     
+
      // ===============================================================
      // 🚀 SIGNALS - ACK для Python после применения обновлений
 @@ -202,12 +206,6 @@
 
      property real iblRotationDeg: 0
      property real iblIntensity: 1.3
- 
+
 -    // ❌ Больше НЕ связываем фон со включением IBL
 -    // onIblEnabledChanged: {
 -    //     iblLightingEnabled = iblEnabled
@@ -426,14 +426,14 @@
 
      // ✅ COMPLETE BATCH UPDATE SYSTEM (All functions implemented)
      // ===============================================================
-     
+
 -    // ===============================================================
 -    // ✅ ENHANCED BATCH UPDATE SYSTEM (Conflict Resolution)
 -    // ===============================================================
--    
+-
      function applyBatchedUpdates(updates) {
          console.log("🚀 Applying batched updates with conflict resolution:", Object.keys(updates))
-         
+
 @@ -674,38 +668,38 @@
 
              if (params.key_light.color !== undefined) keyLightColor = params.key_light.color
@@ -497,10 +497,10 @@
 +=======
      property url fallbackSource: Qt.resolvedUrl("../../assets/studio_small_09_2k.hdr")
 +>>>>>>> sync/remote-main
- 
+
      /** Internal flag preventing infinite fallback recursion. */
      property bool _fallbackTried: false
- 
+
 +<<<<<<< HEAD
 +    /**
 +      * Double-buffered textures to prevent flicker when switching HDRs.
@@ -527,7 +527,7 @@
 +=======
      /** Expose the probe for consumers. */
      property Texture probe: hdrProbe
- 
+
      Texture {
          id: hdrProbe
          source: controller.primarySource
@@ -538,7 +538,7 @@
 @@ -49,6 +79,12 @@
 
      }
- 
+
      // Monitor texture status using Timer polling (Texture has no statusChanged signal!)
 +<<<<<<< HEAD
 +    property int _lastStatusA: -1
@@ -547,12 +547,12 @@
 +    // Polling-based status check for both textures
 +=======
      property int _lastStatus: -1  // Начинаем с -1 вместо Texture.Null
-     
+
      onProbeChanged: {
 @@ -59,11 +95,53 @@
 
      }
-     
+
      // Polling-based status check (since Texture doesn't emit statusChanged signal)
 +>>>>>>> sync/remote-main
      Timer {
@@ -584,7 +584,7 @@
 
 @@ -466,18 +466,29 @@
 
-     
+
      Args:
          log_dir: Директория с логами
 +<<<<<<< HEAD
@@ -595,7 +595,7 @@
      """
      if not log_dir.exists():
          return
-     
+
      # Находим все лог-файлы с timestamp
      log_files = sorted(
 +<<<<<<< HEAD
@@ -606,7 +606,7 @@
          key=lambda p: p.stat().st_mtime,
          reverse=True
      )
-     
+
 +<<<<<<< HEAD
 +    # Удаляем старые
 +=======
@@ -616,7 +616,7 @@
 @@ -497,6 +508,7 @@
 
          return
-     
+
      # Обычный режим: оставляем N последних
 +>>>>>>> sync/remote-main
      for old_log in log_files[keep_count:]:
@@ -640,14 +640,14 @@
 
          """Найти пары Python→QML событий для анализа синхронизации"""
          pairs = []
-         
+
 +<<<<<<< HEAD
 +        # Группируем по timestamp
 +        for i, event in enumerate(self.events):
 +            if event["event_type"] == "SIGNAL_EMIT":
 +                # Ищем соответствующий SIGNAL_RECEIVED в QML
 +                signal_name = event["action"].replace("emit_", "")
-+                
++
 +                # Ищем в следующих 1000ms
 +=======
          # Сопоставление signal → QML функции (apply*Updates)
@@ -657,20 +657,20 @@
 
                  signal_name = event["action"].replace("emit_", "")
                  expected_qml_func = signal_to_qml.get(signal_name)
-                 
+
 +>>>>>>> sync/remote-main
                  emit_time = datetime.fromisoformat(event["timestamp"])
-                 
+
                  for j in range(i+1, len(self.events)):
 @@ -369,6 +379,11 @@
 
                      if (recv_time - emit_time).total_seconds() > 1.0:
                          break  # Слишком поздно
-                     
+
 +<<<<<<< HEAD
 +                    if (next_event["event_type"] == "SIGNAL_RECEIVED" and
 +                        signal_name in next_event["action"]):
-+                        
++
 +=======
                      # ✅ Вариант 1: QML подписался на сигнал (onXxxChanged)
                      if (
@@ -709,7 +709,7 @@
 +>>>>>>> sync/remote-main
  from pathlib import Path
  from typing import Optional, Dict, Any
- 
+
 @@ -31,8 +34,11 @@
 
  from src.ui.panels import GeometryPanel, PneumoPanel, ModesPanel, RoadPanel, GraphicsPanel
@@ -720,8 +720,8 @@
  # ✅ НОВОЕ: EventLogger для логирования QML вызовов
  from src.common.event_logger import get_event_logger
 +>>>>>>> sync/remote-main
- 
- 
+
+
  class MainWindow(QMainWindow):
 @@ -48,7 +54,10 @@
 
@@ -734,27 +734,27 @@
 +
 +>>>>>>> sync/remote-main
      SETTINGS_LAST_PRESET = "Presets/LastPath"
- 
+
      QML_UPDATE_METHODS: Dict[str, tuple[str, ...]] = {
 @@ -89,10 +98,13 @@
 
          self.ibl_logger = get_ibl_logger()
          log_ibl_event("INFO", "MainWindow", "IBL Logger initialized")
-         
+
 +<<<<<<< HEAD
 +=======
          # ✅ НОВОЕ: Инициализируем EventLogger (Python↔QML)
          self.event_logger = get_event_logger()
          self.logger.info("EventLogger initialized in MainWindow")
-         
+
 +>>>>>>> sync/remote-main
          print("MainWindow: Создание SimulationManager...")
-         
+
          # Simulation manager
 @@ -178,7 +190,11 @@
 
          print("✅ MainWindow.__init__() завершён")
- 
+
      # ------------------------------------------------------------------
 +<<<<<<< HEAD
 +    # UI Construction - НОВАЯ СТРУКТРАА!
@@ -766,21 +766,21 @@
          """Создать центральный вид с горизонтальным и вертикальным сплиттерами
 @@ -268,12 +284,15 @@
 
-             
+
              qml_url = QUrl.fromLocalFile(str(qml_path.absolute()))
              print(f"    📂 Полный путь: {qml_url.toString()}")
 +<<<<<<< HEAD
 +=======
-             
+
              # ✅ Устанавливаем базовую директорию QML для разрешения относительных путей
              try:
                  self._qml_base_dir = qml_path.parent.resolve()
              except Exception:
                  self._qml_base_dir = None
 +>>>>>>> sync/remote-main
-             
+
              self._qquick_widget.setSource(qml_url)
-             
+
 @@ -297,6 +316,16 @@
 
 ... (обрезано)
@@ -800,7 +800,7 @@
 
 @@ -316,25 +316,50 @@
 
-     
+
      def _connect_signals(self):
          """Connect widget signals"""
 +<<<<<<< HEAD
@@ -809,71 +809,71 @@
 +=======
          # Используем ТОЛЬКО valueEdited для избежания дублирования событий
 +>>>>>>> sync/remote-main
-         
+
          self.logger.debug("Connecting signals...")
-         
+
          # Frame dimensions
 +        self.wheelbase_slider.valueChanged.connect(
 +            lambda v: self._on_parameter_changed('wheelbase', v))
          self.wheelbase_slider.valueEdited.connect(
              lambda v: self._on_parameter_changed('wheelbase', v))
 +<<<<<<< HEAD
-+        
++
 +        self.track_slider.valueChanged.connect(
 +            lambda v: self._on_parameter_changed('track', v))
 +=======
          # Мгновенные обновления канвы
          self.wheelbase_slider.valueChanged.connect(
              lambda v: self._on_parameter_live_change('wheelbase', v))
-         
+
 +>>>>>>> sync/remote-main
          self.track_slider.valueEdited.connect(
              lambda v: self._on_parameter_changed('track', v))
          self.track_slider.valueChanged.connect(
              lambda v: self._on_parameter_live_change('track', v))
-         
+
          # Suspension geometry
 +        self.frame_to_pivot_slider.valueChanged.connect(
 +            lambda v: self._on_parameter_changed('frame_to_pivot', v))
          self.frame_to_pivot_slider.valueEdited.connect(
              lambda v: self._on_parameter_changed('frame_to_pivot', v))
 +<<<<<<< HEAD
-+            
++
 +        self.lever_length_slider.valueChanged.connect(
 +            lambda v: self._on_parameter_changed('lever_length', v))
 +        self.lever_length_slider.valueEdited.connect(
 +            lambda v: self._on_parameter_changed('lever_length', v))
-+            
++
 +        self.rod_position_slider.valueChanged.connect(
 +            lambda v: self._on_parameter_changed('rod_position', v))
 +=======
          self.frame_to_pivot_slider.valueChanged.connect(
              lambda v: self._on_parameter_live_change('frame_to_pivot', v))
-             
+
 @@ -343,14 +368,51 @@
 
          self.lever_length_slider.valueChanged.connect(
              lambda v: self._on_parameter_live_change('lever_length', v))
-             
+
 +>>>>>>> sync/remote-main
          self.rod_position_slider.valueEdited.connect(
              lambda v: self._on_parameter_changed('rod_position', v))
          self.rod_position_slider.valueChanged.connect(
              lambda v: self._on_parameter_live_change('rod_position', v))
-         
+
          # Cylinder dimensions
 +        self.cylinder_length_slider.valueChanged.connect(
 +            lambda v: self._on_parameter_changed('cylinder_length', v))
          self.cylinder_length_slider.valueEdited.connect(
              lambda v: self._on_parameter_changed('cylinder_length', v))
 +<<<<<<< HEAD
-+            
++
 +        # МШ-1: Параметры цилиндра
 +        self.cyl_diam_m_slider.valueChanged.connect(
 +            lambda v: self._on_parameter_changed('cyl_diam_m', v))
 +        self.cyl_diam_m_slider.valueEdited.connect(
 +            lambda v: self._on_parameter_changed('cyl_diam_m', v))
-+            
++
 +        self.stroke_m_slider.valueChanged.connect(
 +            lambda v: self._on_parameter_changed('stroke_m', v))
 +        self.stroke_m_slider.valueEdited.connect(
@@ -905,7 +905,7 @@
 +from PySide6.QtCore import QSettings, Qt, QTimer, Signal, Slot
 +from PySide6.QtGui import QColor, QStandardItem
 +=======
- 
+
  from PySide6.QtCore import QSettings, Qt, QTimer, Signal, Slot
  from PySide6.QtGui import QColor, QStandardItem
  from PySide6 import QtWidgets  # ✅ ДОБАВЛЕНО: модуль QtWidgets для безопасного доступа к QSlider
@@ -926,7 +926,7 @@
 
          row.setSpacing(6)
          layout.addLayout(row)
- 
+
 +<<<<<<< HEAD
 +        self._slider = QSlider(Qt.Horizontal, self)
 +=======
@@ -935,7 +935,7 @@
 +>>>>>>> sync/remote-main
          steps = max(1, int(round((self._max - self._min) / self._step)))
          self._slider.setRange(0, steps)
-         
+
 @@ -292,6 +308,16 @@
 
      def _build_defaults(self) -> Dict[str, Any]:
@@ -1021,7 +1021,7 @@
 -def get_cached_system_info():
 -    """Получить кэшированную системную информацию"""
 -    global _system_info_cache
--    
+-
 -    if not _system_info_cache:
 -        _system_info_cache = {
 -            'platform': sys.platform,
@@ -1030,7 +1030,7 @@
 -            'terminal_encoding': locale.getpreferredencoding(),
 -            'qtquick3d_setup': qtquick3d_setup_ok
 -        }
--    
+-
 -    return _system_info_cache
 -
 -# =============================================================================
@@ -1057,17 +1057,17 @@
 +# QtQuick3D Environment Setup
 +# =============================================================================
 +
- 
+
  def setup_qtquick3d_environment():
 -    """Set up QtQuick3D environment variables before importing Qt - ОПТИМИЗИРОВАННАЯ"""
--    
+-
 -    # Проверяем кэш переменных окружения
 +    """Set up QtQuick3D environment variables before importing Qt"""
      required_vars = ["QML2_IMPORT_PATH", "QML_IMPORT_PATH", "QT_PLUGIN_PATH", "QT_QML_IMPORT_PATH"]
      if all(var in os.environ for var in required_vars):
 -        print("[CACHE] QtQuick3D environment already configured")
          return True
-     
+
      try:
 -        # First, do a minimal import to get Qt paths
          import importlib.util
@@ -1093,27 +1093,27 @@
  # PneumoStabSim Professional - Production Dependencies
 -# Проверено для Python 3.8-3.13 (рекомендуется 3.9-3.11)
 +# Проверено для Python 3.11-3.13 (рекомендуется 3.13)
- 
+
  # === КРИТИЧЕСКИЕ ЗАВИСИМОСТИ ===
  # Qt Framework - основа GUI и 3D рендеринга
 -PySide6>=6.5.0,<7.0.0    # Qt6 framework для GUI и 3D
 -shiboken6                # Qt6 bindings generator
 +PySide6>=6.10.0,<7.0.0   # Qt6.10+ (ExtendedSceneEnvironment, Fog, dithering)
 +shiboken6                 # Qt6 bindings generator
- 
+
  # Numerical computing - основа физических расчетов
 -numpy>=1.21.0,<3.0.0     # Векторные вычисления
 -scipy>=1.7.0,<2.0.0      # Научные вычисления и ODE solver
 +numpy>=1.24.0,<3.0.0      # Векторные вычисления
 +scipy>=1.10.0,<2.0.0      # Научные вычисления и ODE solver
- 
+
  # === ДОПОЛНИТЕЛЬНЫЕ ПАКЕТЫ ===
  # Visualization и анализ данных
 -matplotlib>=3.5.0        # Графики и чарты
 -pillow>=9.0.0            # Обработка изображений для HDR текстур
 +matplotlib>=3.5.0         # Графики и чарты
 +pillow>=9.0.0             # Обработка изображений для HDR текстур
- 
+
  # Testing и development
 -pytest>=6.0.0           # Тестирование
 -PyYAML>=6.0             # Конфигурационные файлы
@@ -1121,7 +1121,7 @@
 +PyYAML>=6.0               # Конфигурационные файлы
 +python-dotenv>=1.0.0      # Переменные окружения из .env
 +psutil>=5.8.0             # Мониторинг
- 
+
  # === ОПЦИОНАЛЬНЫЕ УЛУЧШЕНИЯ ===
 -# 3D геометрия и визуализация
 -# trimesh>=3.15.0        # 3D mesh обработка (опционально)
@@ -1134,7 +1134,7 @@
 +# pyqtgraph>=0.12.0       # Быстрые графики (опционально)
 +# numba>=0.56.0           # JIT компиляция (опционально)
 +# cython>=0.29.0          # C расширения (опционально)
- 
+
  # === СОВМЕСТИМОСТЬ ===
  # Проверено на:
 -# - Windows 10/11 (Python 3.9-3.13)
@@ -1143,7 +1143,7 @@
 +# - Windows 10/11 (Python 3.11-3.13)
 +# - Ubuntu 22.04/24.04 (Python 3.11-3.12)
 +# - macOS 13+ (Python 3.11-3.12)
- 
+
  # Примечания:
 -# 1. PySide6 6.9.3+ рекомендуется для ExtendedSceneEnvironment
 -# 2. NumPy 2.0+ совместим, но может требовать обновления других пакетов
@@ -1169,7 +1169,7 @@
 
  echo ================================================================
  echo.
- 
+
 +rem Prefer Python 3.13 if available via py launcher
 +set "PYTHON_CMD="
 +py -3.13 -c "import sys" >nul 2>&1 && set "PYTHON_CMD=py -3.13"
@@ -1200,7 +1200,7 @@
  rem Check if virtual environment exists
  if not exist "venv\Scripts\activate.bat" (
      echo Creating virtual environment...
--    
+-
 -    rem Try different Python commands for compatibility
 -    python -c "import sys; exit(0)" >nul 2>&1
 +
@@ -1220,7 +1220,7 @@
 -        set PYTHON_CMD=python
 +        echo WARNING: Python version may not be fully compatible (recommended 3.13). Continuing...
      )
--    
+-
 -    rem Check Python version before creating venv
 -    %PYTHON_CMD% -c "import sys; major, minor = sys.version_info[:2]; print(f'Using Python {major}.{minor}'); exit(0 if (3, 8) <= (major, minor) <= (3, 12) else 1)"
 -    if errorlevel 1 (
@@ -1233,7 +1233,7 @@
 -            exit /b 1
 -        )
 -    )
--    
+-
 +
      %PYTHON_CMD% -m venv venv --clear
      if errorlevel 1 (
@@ -1243,7 +1243,7 @@
  echo Installing project dependencies...
  if exist "requirements.txt" (
      echo Installing from requirements.txt...
--    
+-
 -    rem First try normal installation
 ... (обрезано)
 
@@ -1395,7 +1395,7 @@
 +import QtQuick.Controls
 +import Qt.labs.folderlistmodel
  import "components"
- 
+
  /*
 - * PneumoStabSim - COMPLETE Graphics Parameters Main 3D View (v4.0)
 - * 🚀 ПОЛНАЯ ИНТЕРАЦИЯ: Все параметры GraphicsPanel реализованы
@@ -1418,23 +1418,23 @@
 -    // 🚀 PERFORMANCE OPTIMIZATION LAYER (preserved)
 +    // Toggle to show/hide in-canvas UI controls (to avoid duplication with external GraphicsPanel)
 +    property bool showOverlayControls: false
-+    
++
 +    // ===============================================================
 +    // 🚀 SIGNALS - ACK для Python после применения обновлений
 +    // ===============================================================
-+    
++
 +    signal batchUpdatesApplied(var summary)
 +
 +    // ===============================================================
 +    // 🚀 QT VERSION DETECTION (для условной активации возможностей)
 +    // ===============================================================
-+    
++
 +    readonly property string qtVersionString: typeof Qt.version !== "undefined" ? Qt.version : "6.0.0"
 +    readonly property var qtVersionParts: qtVersionString.split('.')
 +    readonly property int qtMajor: qtVersionParts.length > 0 ? parseInt(qtVersionParts[0]) : 6
 +    readonly property int qtMinor: qtVersionParts.length > 1 ? parseInt(qtVersionParts[1]) : 0
 +    readonly property bool supportsQtQuick3D610Features: qtMajor === 6 && qtMinor >= 10
-+    
++
 +    // ✅ Условная поддержка dithering (доступно с Qt 6.10)
 +    property bool ditheringEnabled: true  // Управляется из GraphicsPanel
 +    readonly property bool canUseDithering: supportsQtQuick3D610Features
@@ -1442,17 +1442,17 @@
 +    // ===============================================================
 +    // 🚀 CRITICAL FIX v4.9.4: SKYBOX ROTATION - INDEPENDENT FROM CAMERA
 +    // ===============================================================
-+    
++
 +    // ✅ ПРАВИЛЬНО: Skybox вращается ТОЛЬКО от пользовательского iblRotationDeg
 +    // Камера НЕ влияет на skybox вообще!
-+    
++
 +    // ❌ УДАЛЕНО: envYaw, _prevCameraYaw, updateCameraYaw() - это было НЕПРАВИЛЬНО
 +    // Эти переменные СВЯЗЫВАЛИ фон с камерой, что вызывало проблему
 +
 +    // ===============================================================
 +    // 🚀 PERFORMANCE OPTIMIZATION LAYER
      // ===============================================================
-     
+
      // ✅ ОПТИМИЗАЦИЯ #1: Кэширование анимационных вычислений
 @@ -133,21 +173,39 @@
 
@@ -1486,11 +1486,11 @@
 
  import QtQuick
  import QtQuick3D
- 
+
 -QtObject {
 +Item {
      id: controller
- 
+
      /**
 @@ -14,35 +14,215 @@
 
@@ -1503,10 +1503,10 @@
 +=======
      property url fallbackSource: Qt.resolvedUrl("../../assets/studio_small_09_2k.hdr")
 +>>>>>>> sync/remote-main
- 
+
      /** Internal flag preventing infinite fallback recursion. */
      property bool _fallbackTried: false
- 
+
 -    /** Expose the probe for consumers. */
 -    property Texture probe: Texture {
 -        id: hdrProbe
@@ -1551,12 +1551,12 @@
 +    function writeLog(level, message) {
 +        var timestamp = new Date().toISOString()
 +        var logEntry = timestamp + " | " + level + " | IblProbeLoader | " + message
-+        
++
 +        // Отправляем в Python для записи в файл
 +        if (typeof window !== "undefined" && window !== null && window.logIblEvent) {
 +            window.logIblEvent(logEntry)
 +        }
-+        
++
 +        // Также выводим в консоль для отладки
 +        if (level === "ERROR" || level === "WARN") {
 +            console.warn(logEntry)
@@ -1584,7 +1584,7 @@
  Overwrites log file on each run, ensures proper cleanup
 +УЛУЧШЕННАЯ ВЕРСИЯ с ротацией и контекстными логгерами
  """
- 
+
  import logging
 @@ -11,27 +12,79 @@
 
@@ -1595,8 +1595,8 @@
 +from typing import Optional, Dict, Any
  from datetime import datetime
 +import traceback
- 
- 
+
+
  # Global queue listener for cleanup
  _queue_listener: Optional[logging.handlers.QueueListener] = None
 -
@@ -1607,11 +1607,11 @@
 +
 +class ContextualFilter(logging.Filter):
 +    """Добавляет контекстную информацию к логам"""
-+    
++
 +    def __init__(self, context: Dict[str, Any] = None):
 +        super().__init__()
 +        self.context = context or {}
-+    
++
 +    def filter(self, record):
 +        # Добавляем контекст к каждому record
 +        for key, value in self.context.items():
@@ -1621,7 +1621,7 @@
 +
 +class ColoredFormatter(logging.Formatter):
 +    """Форматтер с цветами для консоли (опционально)"""
-+    
++
 +    COLORS = {
 +        'DEBUG': '\033[36m',     # Cyan
 +        'INFO': '\033[32m',      # Green
@@ -1630,7 +1630,7 @@
 +        'CRITICAL': '\033[35m',  # Magenta
 +        'RESET': '\033[0m'
 +    }
-+    
++
 +    def format(self, record):
 +        if hasattr(sys.stdout, 'isatty') and sys.stdout.isatty():
 +            levelname = record.levelname
@@ -1647,13 +1647,13 @@
 +    console_output: bool = False
 +) -> logging.Logger:
      """Initialize application logging with non-blocking queue handler
-     
+
 +    УЛУЧШЕНИЯ v4.9.5:
 +    - Ротация логов (max_bytes, backup_count)
 +    - Опциональный вывод в консоль
 +    - Цветной вывод для консоли
 +    - Контекстные фильтры
-+    
++
      Features:
 -    - Overwrites log file on each run (mode='w')
 +    - Log rotation with configurable size/count
@@ -1698,18 +1698,18 @@
 +    STATE_CHANGE = auto()        # Изменение state в Python
 +    SIGNAL_EMIT = auto()         # Вызов .emit() сигнала
 +    QML_INVOKE = auto()          # QMetaObject.invokeMethod
-+    
++
 +    # QML events
 +    SIGNAL_RECEIVED = auto()     # QML получил сигнал (onXxxChanged)
 +    FUNCTION_CALLED = auto()     # QML функция вызвана
 +    PROPERTY_CHANGED = auto()    # QML property изменилось
-+    
++
 +    # ✅ НОВОЕ: Mouse events in QML
 +    MOUSE_PRESS = auto()         # Нажатие мыши на канве
 +    MOUSE_DRAG = auto()          # Перетаскивание
 +    MOUSE_WHEEL = auto()         # Прокрутка колесика (zoom)
 +    MOUSE_RELEASE = auto()       # Отпускание мыши
-+    
++
 +    # Errors
 +    PYTHON_ERROR = auto()        # Ошибка в Python
 +    QML_ERROR = auto()           # Ошибка в QML
@@ -1717,24 +1717,24 @@
 +
 +class EventLogger:
 +    """Singleton логгер для отслеживания Python↔QML событий"""
-+    
++
 +    _instance: Optional['EventLogger'] = None
 +    _initialized: bool = False
-+    
++
 +    def __new__(cls):
 +        if cls._instance is None:
 +            cls._instance = super().__new__(cls)
 +        return cls._instance
-+    
++
 +    def __init__(self):
 +        if EventLogger._initialized:
 +            return
-+        
++
 +        self.logger = logging.getLogger("EventLogger")
 +        self.events: list[Dict[str, Any]] = []
 +        self._session_id = datetime.now().strftime("%Y%m%d_%H%M%S")
 +        EventLogger._initialized = True
-+    
++
 +    def log_event(
 +        self,
 +        event_type: EventType,
@@ -1748,7 +1748,7 @@
 +    ) -> None:
 +        """
 +        Логирование события
-+        
++
 +        Args:
 +            event_type: Тип события
 ... (обрезано)
@@ -1784,7 +1784,7 @@
 +
 +class LogAnalysisResult:
 +    """Результат анализа логов"""
-+    
++
 +    def __init__(self):
 +        self.errors: List[str] = []
 +        self.warnings: List[str] = []
@@ -1792,32 +1792,32 @@
 +        self.metrics: Dict[str, float] = {}
 +        self.recommendations: List[str] = []
 +        self.status: str = "unknown"  # ok, warning, error
-+    
++
 +    def is_ok(self) -> bool:
 +        """Проверяет, всё ли в порядке"""
 +        return len(self.errors) == 0 and self.status != "error"
-+    
++
 +    def add_error(self, message: str):
 +        """Добавляет ошибку"""
 +        self.errors.append(message)
 +        self.status = "error"
-+    
++
 +    def add_warning(self, message: str):
 +        """Добавляет предупреждение"""
 +        self.warnings.append(message)
 +        if self.status != "error":
 +            self.status = "warning"
-+    
++
 +    def add_info(self, message: str):
 +        """Добавляет информацию"""
 +        self.info.append(message)
 +        if self.status == "unknown":
 +            self.status = "ok"
-+    
++
 +    def add_metric(self, name: str, value: float):
 +        """Добавляет метрику"""
 +        self.metrics[name] = value
-+    
++
 +    def add_recommendation(self, message: str):
 +        """Добавляет рекомендацию"""
 +        self.recommendations.append(message)
@@ -1825,26 +1825,26 @@
 +
 +class UnifiedLogAnalyzer:
 +    """Объединенный анализатор всех типов логов"""
-+    
++
 +    def __init__(self, logs_dir: Path = Path("logs")):
 +        self.logs_dir = logs_dir
 +        self.results: Dict[str, LogAnalysisResult] = {}
-+    
++
 +    def analyze_all(self) -> Dict[str, LogAnalysisResult]:
 +        """Запускает полный анализ всех логов"""
-+        
++
 +        # Основной лог
 +        self.results['main'] = self._analyze_main_log()
-+        
++
 +        # Graphics логи
 +        self.results['graphics'] = self._analyze_graphics_logs()
-+        
++
 +        # IBL логи
 +        self.results['ibl'] = self._analyze_ibl_logs()
-+        
++
 +        # Event логи (Python↔QML)
 +        self.results['events'] = self._analyze_event_logs()
-+        
++
 ... (обрезано)
 
 ```
@@ -1871,7 +1871,7 @@
 +>>>>>>> sync/remote-main
  from pathlib import Path
  from typing import Optional, Dict, Any
- 
+
  from src.ui.charts import ChartWidget
  from src.ui.panels import GeometryPanel, PneumoPanel, ModesPanel, RoadPanel, GraphicsPanel
  from ..runtime import SimulationManager, StateSnapshot
@@ -1881,8 +1881,8 @@
 +# ✅ НОВОЕ: EventLogger для логирования QML вызовов
 +from src.common.event_logger import get_event_logger
 +>>>>>>> sync/remote-main
- 
- 
+
+
  class MainWindow(QMainWindow):
 @@ -44,6 +54,10 @@
 
@@ -1894,31 +1894,31 @@
 +
 +>>>>>>> sync/remote-main
      SETTINGS_LAST_PRESET = "Presets/LastPath"
- 
+
      QML_UPDATE_METHODS: Dict[str, tuple[str, ...]] = {
 @@ -80,6 +94,17 @@
 
          # Logging
          self.logger = logging.getLogger(self.__class__.__name__)
-         
+
 +        # ✅ НОВОЕ: Инициализация IBL Signal Logger
 +        self.ibl_logger = get_ibl_logger()
 +        log_ibl_event("INFO", "MainWindow", "IBL Logger initialized")
-+        
++
 +<<<<<<< HEAD
 +=======
 +        # ✅ НОВОЕ: Инициализируем EventLogger (Python↔QML)
 +        self.event_logger = get_event_logger()
 +        self.logger.info("EventLogger initialized in MainWindow")
-+        
++
 +>>>>>>> sync/remote-main
          print("MainWindow: Создание SimulationManager...")
-         
+
          # Simulation manager
 @@ -165,7 +190,11 @@
 
          print("✅ MainWindow.__init__() завершён")
- 
+
      # ------------------------------------------------------------------
 +<<<<<<< HEAD
      # UI Construction - НОВАЯ СТРУКТРАА!
@@ -1932,13 +1932,13 @@
 
              # CRITICAL: Set up QML import paths BEFORE loading any QML
              engine = self._qquick_widget.engine()
-             
+
 +            # ✅ КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Устанавливаем контекст ДО загрузки QML!
 +            context = engine.rootContext()
 +            context.setContextProperty("window", self)  # Экспонируем MainWindow в QML
 +            log_ibl_event("INFO", "MainWindow", "IBL Logger registered in QML context (BEFORE QML load)")
 +            print("    ✅ IBL Logger context registered BEFORE QML load")
-+            
++
              # Add Qt's QML import path
              from PySide6.QtCore import QLibraryInfo
              qml_path = QLibraryInfo.path(QLibraryInfo.LibraryPath.Qml2ImportsPath)
@@ -1963,61 +1963,61 @@
 
          # Dependency resolution state
          self._resolving_conflict = False
-         
+
 +        # Logger
 +        from src.common import get_category_logger
 +        self.logger = get_category_logger("GeometryPanel")
 +        self.logger.info("GeometryPanel initializing...")
-+        
++
          # Setup UI
          self._setup_ui()
-         
+
 @@ -52,30 +57,18 @@
 
          # Size policy
          self.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Expanding)
-         
+
 -        # ✨ ИСПРАВЛЕНО: Отправляем начальные параметры геометрии в QML!
 -        print("🔧 GeometryPanel: Планируем отправку начальных параметров геометрии...")
--        
+-
 -        # Используем QTimer для отложенной отправки после полной инициализации UI
 +        # Отправляем начальные параметры геометрии в QML
          from PySide6.QtCore import QTimer
-         
+
          def send_initial_geometry():
 -            print("⏰ QTimer: Отправка начальной геометрии...")
--            
+-
 -            # Формируем полную геометрию для QML (как в _get_fast_geometry_update)
 +            self.logger.info("Sending initial geometry to QML...")
              initial_geometry = self._get_fast_geometry_update("init", 0.0)
--            
+-
 -            # Отправляем сигналы без проверки подписчиков (она не работает в PySide6)
 -            print(f"  📡 Отправка geometry_changed...")
              self.geometry_changed.emit(initial_geometry)
 -            print(f"  📡 geometry_changed отправлен с rodPosition = {initial_geometry.get('rodPosition', 'НЕ НАЙДЕН')}")
--            
+-
 -            print(f"  📡 Отправка geometry_updated...")
              self.geometry_updated.emit(self.parameters.copy())
 -            print(f"  📡 geometry_updated отправлен")
--        
+-
 -        # УВЕЛИЧИВАЕМ задержку для гарантии готовности главного окна
 -        QTimer.singleShot(500, send_initial_geometry)  # Было 100мс, стало 500мс
 -        print("  ⏰ Таймер установлен на 500мс для отправки начальной геометрии")
 +            self.logger.info("Initial geometry sent successfully")
-+        
++
 +        QTimer.singleShot(500, send_initial_geometry)
 +        self.logger.info("GeometryPanel initialized successfully")
-     
+
      def _setup_ui(self):
          """Настроить интерфейс / Setup user interface"""
 @@ -323,54 +316,143 @@
 
-     
+
      def _connect_signals(self):
          """Connect widget signals"""
 -        # ИСПРАВЛЕНО: Используем ТОЛЬКО valueEdited для избежания дублирования событий
 -        # valueChanged срабатывает слишком часто (при каждом движении), valueEdited - только при завершении редактирования
--        
+-
 -        # Frame dimensions - ТОЛЬКО valueEdited
 +<<<<<<< HEAD
 +        # Реал-тайм: valueChanged для мгновенных обновлений геометрии
@@ -2025,17 +2025,17 @@
 +=======
 +        # Используем ТОЛЬКО valueEdited для избежания дублирования событий
 +>>>>>>> sync/remote-main
-+        
++
 +        self.logger.debug("Connecting signals...")
-+        
++
 +        # Frame dimensions
 +        self.wheelbase_slider.valueChanged.connect(
 +            lambda v: self._on_parameter_changed('wheelbase', v))
          self.wheelbase_slider.valueEdited.connect(
              lambda v: self._on_parameter_changed('wheelbase', v))
--        
+-
 +<<<<<<< HEAD
-+        
++
 +        self.track_slider.valueChanged.connect(
 +            lambda v: self._on_parameter_changed('track', v))
 +=======
@@ -2064,7 +2064,7 @@
 +<<<<<<< HEAD
 +from urllib.parse import urlparse
 +from pathlib import PurePosixPath
- 
+
  from PySide6.QtCore import QSettings, Qt, QTimer, Signal, Slot
  from PySide6.QtGui import QColor, QStandardItem
 +=======
@@ -2089,14 +2089,14 @@
 
      QWidget,
  )
- 
+
 +# Импортируем логгер графических изменений
 +from .graphics_logger import get_graphics_logger
 +
 +# ✅ НОВОЕ: Импорт EventLogger для отслеживания UI событий
 +from src.common.event_logger import get_event_logger, EventType
 +
- 
+
  class ColorButton(QPushButton):
      """Small color preview button that streams changes from QColorDialog."""
 @@ -37,6 +56,7 @@
@@ -2107,38 +2107,38 @@
 +        self._user_triggered = False  # ✅ НОВОЕ: флаг пользовательского действия
          self._update_swatch()
          self.clicked.connect(self._open_dialog)
- 
+
 @@ -44,6 +64,7 @@
 
          return self._color
- 
+
      def set_color(self, color_str: str) -> None:
 +        """Программное изменение цвета (без логирования)"""
          self._color = QColor(color_str)
          self._update_swatch()
- 
+
 @@ -59,6 +80,9 @@
 
- 
+
      @Slot()
      def _open_dialog(self) -> None:
 +        # ✅ Пользователь кликнул на кнопку - это пользовательское действие
 +        self._user_triggered = True
-+        
++
          if self._dialog:
              return
- 
+
 @@ -77,13 +101,17 @@
 
              return
          self._color = color
          self._update_swatch()
 -        self.color_changed.emit(color.name())
-+        
++
 +        # ✅ Испускаем сигнал ТОЛЬКО если это пользовательское действие
 +        if self._user_triggered:
 +            self.color_changed.emit(color.name())
- 
+
 ... (обрезано)
 
 ```
@@ -2184,7 +2184,7 @@
 -def get_cached_system_info():
 -    """Получить кэшированную системнюю информацию"""
 -    global _system_info_cache
--    
+-
 -    if not _system_info_cache:
 -        # Импортируем qVersion для получения версии Qt
 -        try:
@@ -2192,7 +2192,7 @@
 -            qt_version = qVersion()
 -        except:
 -            qt_version = "unknown"
--            
+-
 -        _system_info_cache = {
 -            'platform': sys.platform,
 -            'python_version': sys.version_info,
@@ -2201,7 +2201,7 @@
 -            'qtquick3d_setup': qtquick3d_setup_ok,
 -            'qt_version': qt_version
 -        }
--    
+-
 -    return _system_info_cache
 -
 -# =============================================================================
@@ -2228,10 +2228,10 @@
 +# QtQuick3D Environment Setup
 +# =============================================================================
 +
- 
+
  def setup_qtquick3d_environment():
 -    """Set up QtQuick3D environment variables before importing Qt - ОПТИМИЗИРОВАННАЯ"""
--    
+-
 -    # Проверяем кэш переменных окружения
 +    """Set up QtQuick3D environment variables before importing Qt"""
      required_vars = ["QML2_IMPORT_PATH", "QML_IMPORT_PATH", "QT_PLUGIN_PATH", "QT_QML_IMPORT_PATH"]
@@ -2256,27 +2256,27 @@
  # PneumoStabSim Professional - Production Dependencies
 -# Проверено для Python 3.8-3.13 (рекомендуется 3.9-3.11)
 +# Проверено для Python 3.11-3.13 (рекомендуется 3.13)
- 
+
  # === КРИТИЧЕСКИЕ ЗАВИСИМОСТИ ===
  # Qt Framework - основа GUI и 3D рендеринга
 -PySide6>=6.5.0,<7.0.0    # Qt6 framework для GUI и 3D
 -shiboken6                # Qt6 bindings generator
 +PySide6>=6.10.0,<7.0.0   # Qt6.10+ (ExtendedSceneEnvironment, Fog, dithering)
 +shiboken6                 # Qt6 bindings generator
- 
+
  # Numerical computing - основа физических расчетов
 -numpy>=1.21.0,<3.0.0     # Векторные вычисления
 -scipy>=1.7.0,<2.0.0      # Научные вычисления и ODE solver
 +numpy>=1.24.0,<3.0.0      # Векторные вычисления
 +scipy>=1.10.0,<2.0.0      # Научные вычисления и ODE solver
- 
+
  # === ДОПОЛНИТЕЛЬНЫЕ ПАКЕТЫ ===
  # Visualization и анализ данных
 -matplotlib>=3.5.0        # Графики и чарты
 -pillow>=9.0.0            # Обработка изображений для HDR текстур
 +matplotlib>=3.5.0         # Графики и чарты
 +pillow>=9.0.0             # Обработка изображений для HDR текстур
- 
+
  # Testing и development
 -pytest>=6.0.0           # Тестирование
 -PyYAML>=6.0             # Конфигурационные файлы
@@ -2284,7 +2284,7 @@
 +PyYAML>=6.0               # Конфигурационные файлы
 +python-dotenv>=1.0.0      # Переменные окружения из .env
 +psutil>=5.8.0             # Мониторинг
- 
+
  # === ОПЦИОНАЛЬНЫЕ УЛУЧШЕНИЯ ===
 -# 3D геометрия и визуализация
 -# trimesh>=3.15.0        # 3D mesh обработка (опционально)
@@ -2297,7 +2297,7 @@
 +# pyqtgraph>=0.12.0       # Быстрые графики (опционально)
 +# numba>=0.56.0           # JIT компиляция (опционально)
 +# cython>=0.29.0          # C расширения (опционально)
- 
+
  # === СОВМЕСТИМОСТЬ ===
  # Проверено на:
 -# - Windows 10/11 (Python 3.9-3.13)
@@ -2306,7 +2306,7 @@
 +# - Windows 10/11 (Python 3.11-3.13)
 +# - Ubuntu 22.04/24.04 (Python 3.11-3.12)
 +# - macOS 13+ (Python 3.11-3.12)
- 
+
  # Примечания:
 -# 1. PySide6 6.9.3+ рекомендуется для ExtendedSceneEnvironment
 -# 2. NumPy 2.0+ совместим, но может требовать обновления других пакетов
@@ -2332,7 +2332,7 @@
 
  echo ================================================================
  echo.
- 
+
 +rem Prefer Python 3.13 if available via py launcher
 +set "PYTHON_CMD="
 +py -3.13 -c "import sys" >nul 2>&1 && set "PYTHON_CMD=py -3.13"
@@ -2363,7 +2363,7 @@
  rem Check if virtual environment exists
  if not exist "venv\Scripts\activate.bat" (
      echo Creating virtual environment...
--    
+-
 -    rem Try different Python commands for compatibility
 -    python -c "import sys; exit(0)" >nul 2>&1
 +
@@ -2383,7 +2383,7 @@
 -        set PYTHON_CMD=python
 +        echo WARNING: Python version may not be fully compatible (recommended 3.13). Continuing...
      )
--    
+-
 -    rem Check Python version before creating venv
 -    %PYTHON_CMD% -c "import sys; major, minor = sys.version_info[:2]; print(f'Using Python {major}.{minor}'); exit(0 if (3, 8) <= (major, minor) <= (3, 12) else 1)"
 -    if errorlevel 1 (
@@ -2396,7 +2396,7 @@
 -            exit /b 1
 -        )
 -    )
--    
+-
 +
      %PYTHON_CMD% -m venv venv --clear
      if errorlevel 1 (
@@ -2406,7 +2406,7 @@
  echo Installing project dependencies...
  if exist "requirements.txt" (
      echo Installing from requirements.txt...
--    
+-
 -    rem First try normal installation
 ... (обрезано)
 
@@ -2558,7 +2558,7 @@
 +import QtQuick.Controls
 +import Qt.labs.folderlistmodel
  import "components"
- 
+
  /*
 - * PneumoStabSim - COMPLETE Graphics Parameters Main 3D View (v4.8)
 - * 🚀 ИСПРАВЛЕНО: Туман через объект Fog (Qt 6.10+)
@@ -2578,17 +2578,17 @@
      anchors.fill: parent
 +    // Toggle to show/hide in-canvas UI controls (to avoid duplication with external GraphicsPanel)
 +    property bool showOverlayControls: false
-+    
++
 +    // ===============================================================
 +    // 🚀 SIGNALS - ACK для Python после применения обновлений
 +    // ===============================================================
-+    
++
 +    signal batchUpdatesApplied(var summary)
- 
+
      // ===============================================================
      // 🚀 QT VERSION DETECTION (для условной активации возможностей)
      // ===============================================================
-     
+
 -    readonly property var qtVersionParts: Qt.version.split('.')
 -    readonly property int qtMajor: parseInt(qtVersionParts[0])
 -    readonly property int qtMinor: parseInt(qtVersionParts[1])
@@ -2597,27 +2597,27 @@
 +    readonly property int qtMajor: qtVersionParts.length > 0 ? parseInt(qtVersionParts[0]) : 6
 +    readonly property int qtMinor: qtVersionParts.length > 1 ? parseInt(qtVersionParts[1]) : 0
      readonly property bool supportsQtQuick3D610Features: qtMajor === 6 && qtMinor >= 10
-     
+
      // ✅ Условная поддержка dithering (доступно с Qt 6.10)
 @@ -26,7 +43,17 @@
 
      readonly property bool canUseDithering: supportsQtQuick3D610Features
- 
+
      // ===============================================================
 -    // 🚀 PERFORMANCE OPTIMIZATION LAYER (preserved)
 +    // 🚀 CRITICAL FIX v4.9.4: SKYBOX ROTATION - INDEPENDENT FROM CAMERA
 +    // ===============================================================
-+    
++
 +    // ✅ ПРАВИЛЬНО: Skybox вращается ТОЛЬКО от пользовательского iblRotationDeg
 +    // Камера НЕ влияет на skybox вообще!
-+    
++
 +    // ❌ УДАЛЕНО: envYaw, _prevCameraYaw, updateCameraYaw() - это было НЕПРАВИЛЬНО
 +    // Эти переменные СВЯЗЫВАЛИ фон с камерой, что вызывало проблему
 +
 +    // ===============================================================
 +    // 🚀 PERFORMANCE OPTIMIZATION LAYER
      // ===============================================================
-     
+
      // ✅ ОПТИМИЗАЦИЯ #1: Кэширование анимационных вычислений
 @@ -146,24 +173,39 @@
 
@@ -2650,11 +2650,11 @@
 
  import QtQuick
  import QtQuick3D
- 
+
 -QtObject {
 +Item {
      id: controller
- 
+
      /**
 @@ -14,35 +14,215 @@
 
@@ -2667,10 +2667,10 @@
 +=======
      property url fallbackSource: Qt.resolvedUrl("../../assets/studio_small_09_2k.hdr")
 +>>>>>>> sync/remote-main
- 
+
      /** Internal flag preventing infinite fallback recursion. */
      property bool _fallbackTried: false
- 
+
 -    /** Expose the probe for consumers. */
 -    property Texture probe: Texture {
 -        id: hdrProbe
@@ -2715,12 +2715,12 @@
 +    function writeLog(level, message) {
 +        var timestamp = new Date().toISOString()
 +        var logEntry = timestamp + " | " + level + " | IblProbeLoader | " + message
-+        
++
 +        // Отправляем в Python для записи в файл
 +        if (typeof window !== "undefined" && window !== null && window.logIblEvent) {
 +            window.logIblEvent(logEntry)
 +        }
-+        
++
 +        // Также выводим в консоль для отладки
 +        if (level === "ERROR" || level === "WARN") {
 +            console.warn(logEntry)
@@ -2748,7 +2748,7 @@
  Overwrites log file on each run, ensures proper cleanup
 +УЛУЧШЕННАЯ ВЕРСИЯ с ротацией и контекстными логгерами
  """
- 
+
  import logging
 @@ -11,27 +12,79 @@
 
@@ -2759,8 +2759,8 @@
 +from typing import Optional, Dict, Any
  from datetime import datetime
 +import traceback
- 
- 
+
+
  # Global queue listener for cleanup
  _queue_listener: Optional[logging.handlers.QueueListener] = None
 -
@@ -2771,11 +2771,11 @@
 +
 +class ContextualFilter(logging.Filter):
 +    """Добавляет контекстную информацию к логам"""
-+    
++
 +    def __init__(self, context: Dict[str, Any] = None):
 +        super().__init__()
 +        self.context = context or {}
-+    
++
 +    def filter(self, record):
 +        # Добавляем контекст к каждому record
 +        for key, value in self.context.items():
@@ -2785,7 +2785,7 @@
 +
 +class ColoredFormatter(logging.Formatter):
 +    """Форматтер с цветами для консоли (опционально)"""
-+    
++
 +    COLORS = {
 +        'DEBUG': '\033[36m',     # Cyan
 +        'INFO': '\033[32m',      # Green
@@ -2794,7 +2794,7 @@
 +        'CRITICAL': '\033[35m',  # Magenta
 +        'RESET': '\033[0m'
 +    }
-+    
++
 +    def format(self, record):
 +        if hasattr(sys.stdout, 'isatty') and sys.stdout.isatty():
 +            levelname = record.levelname
@@ -2811,13 +2811,13 @@
 +    console_output: bool = False
 +) -> logging.Logger:
      """Initialize application logging with non-blocking queue handler
-     
+
 +    УЛУЧШЕНИЯ v4.9.5:
 +    - Ротация логов (max_bytes, backup_count)
 +    - Опциональный вывод в консоль
 +    - Цветной вывод для консоли
 +    - Контекстные фильтры
-+    
++
      Features:
 -    - Overwrites log file on each run (mode='w')
 +    - Log rotation with configurable size/count
@@ -2862,18 +2862,18 @@
 +    STATE_CHANGE = auto()        # Изменение state в Python
 +    SIGNAL_EMIT = auto()         # Вызов .emit() сигнала
 +    QML_INVOKE = auto()          # QMetaObject.invokeMethod
-+    
++
 +    # QML events
 +    SIGNAL_RECEIVED = auto()     # QML получил сигнал (onXxxChanged)
 +    FUNCTION_CALLED = auto()     # QML функция вызвана
 +    PROPERTY_CHANGED = auto()    # QML property изменилось
-+    
++
 +    # ✅ НОВОЕ: Mouse events in QML
 +    MOUSE_PRESS = auto()         # Нажатие мыши на канве
 +    MOUSE_DRAG = auto()          # Перетаскивание
 +    MOUSE_WHEEL = auto()         # Прокрутка колесика (zoom)
 +    MOUSE_RELEASE = auto()       # Отпускание мыши
-+    
++
 +    # Errors
 +    PYTHON_ERROR = auto()        # Ошибка в Python
 +    QML_ERROR = auto()           # Ошибка в QML
@@ -2881,24 +2881,24 @@
 +
 +class EventLogger:
 +    """Singleton логгер для отслеживания Python↔QML событий"""
-+    
++
 +    _instance: Optional['EventLogger'] = None
 +    _initialized: bool = False
-+    
++
 +    def __new__(cls):
 +        if cls._instance is None:
 +            cls._instance = super().__new__(cls)
 +        return cls._instance
-+    
++
 +    def __init__(self):
 +        if EventLogger._initialized:
 +            return
-+        
++
 +        self.logger = logging.getLogger("EventLogger")
 +        self.events: list[Dict[str, Any]] = []
 +        self._session_id = datetime.now().strftime("%Y%m%d_%H%M%S")
 +        EventLogger._initialized = True
-+    
++
 +    def log_event(
 +        self,
 +        event_type: EventType,
@@ -2912,7 +2912,7 @@
 +    ) -> None:
 +        """
 +        Логирование события
-+        
++
 +        Args:
 +            event_type: Тип события
 ... (обрезано)
@@ -2948,7 +2948,7 @@
 +
 +class LogAnalysisResult:
 +    """Результат анализа логов"""
-+    
++
 +    def __init__(self):
 +        self.errors: List[str] = []
 +        self.warnings: List[str] = []
@@ -2956,32 +2956,32 @@
 +        self.metrics: Dict[str, float] = {}
 +        self.recommendations: List[str] = []
 +        self.status: str = "unknown"  # ok, warning, error
-+    
++
 +    def is_ok(self) -> bool:
 +        """Проверяет, всё ли в порядке"""
 +        return len(self.errors) == 0 and self.status != "error"
-+    
++
 +    def add_error(self, message: str):
 +        """Добавляет ошибку"""
 +        self.errors.append(message)
 +        self.status = "error"
-+    
++
 +    def add_warning(self, message: str):
 +        """Добавляет предупреждение"""
 +        self.warnings.append(message)
 +        if self.status != "error":
 +            self.status = "warning"
-+    
++
 +    def add_info(self, message: str):
 +        """Добавляет информацию"""
 +        self.info.append(message)
 +        if self.status == "unknown":
 +            self.status = "ok"
-+    
++
 +    def add_metric(self, name: str, value: float):
 +        """Добавляет метрику"""
 +        self.metrics[name] = value
-+    
++
 +    def add_recommendation(self, message: str):
 +        """Добавляет рекомендацию"""
 +        self.recommendations.append(message)
@@ -2989,26 +2989,26 @@
 +
 +class UnifiedLogAnalyzer:
 +    """Объединенный анализатор всех типов логов"""
-+    
++
 +    def __init__(self, logs_dir: Path = Path("logs")):
 +        self.logs_dir = logs_dir
 +        self.results: Dict[str, LogAnalysisResult] = {}
-+    
++
 +    def analyze_all(self) -> Dict[str, LogAnalysisResult]:
 +        """Запускает полный анализ всех логов"""
-+        
++
 +        # Основной лог
 +        self.results['main'] = self._analyze_main_log()
-+        
++
 +        # Graphics логи
 +        self.results['graphics'] = self._analyze_graphics_logs()
-+        
++
 +        # IBL логи
 +        self.results['ibl'] = self._analyze_ibl_logs()
-+        
++
 +        # Event логи (Python↔QML)
 +        self.results['events'] = self._analyze_event_logs()
-+        
++
 ... (обрезано)
 
 ```
@@ -3035,7 +3035,7 @@
 +>>>>>>> sync/remote-main
  from pathlib import Path
  from typing import Optional, Dict, Any
- 
+
  from src.ui.charts import ChartWidget
  from src.ui.panels import GeometryPanel, PneumoPanel, ModesPanel, RoadPanel, GraphicsPanel
  from ..runtime import SimulationManager, StateSnapshot
@@ -3045,8 +3045,8 @@
 +# ✅ НОВОЕ: EventLogger для логирования QML вызовов
 +from src.common.event_logger import get_event_logger
 +>>>>>>> sync/remote-main
- 
- 
+
+
  class MainWindow(QMainWindow):
 @@ -44,6 +54,10 @@
 
@@ -3058,31 +3058,31 @@
 +
 +>>>>>>> sync/remote-main
      SETTINGS_LAST_PRESET = "Presets/LastPath"
- 
+
      QML_UPDATE_METHODS: Dict[str, tuple[str, ...]] = {
 @@ -80,6 +94,17 @@
 
          # Logging
          self.logger = logging.getLogger(self.__class__.__name__)
-         
+
 +        # ✅ НОВОЕ: Инициализация IBL Signal Logger
 +        self.ibl_logger = get_ibl_logger()
 +        log_ibl_event("INFO", "MainWindow", "IBL Logger initialized")
-+        
++
 +<<<<<<< HEAD
 +=======
 +        # ✅ НОВОЕ: Инициализируем EventLogger (Python↔QML)
 +        self.event_logger = get_event_logger()
 +        self.logger.info("EventLogger initialized in MainWindow")
-+        
++
 +>>>>>>> sync/remote-main
          print("MainWindow: Создание SimulationManager...")
-         
+
          # Simulation manager
 @@ -165,7 +190,11 @@
 
          print("✅ MainWindow.__init__() завершён")
- 
+
      # ------------------------------------------------------------------
 +<<<<<<< HEAD
      # UI Construction - НОВАЯ СТРУКТРАА!
@@ -3096,13 +3096,13 @@
 
              # CRITICAL: Set up QML import paths BEFORE loading any QML
              engine = self._qquick_widget.engine()
-             
+
 +            # ✅ КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Устанавливаем контекст ДО загрузки QML!
 +            context = engine.rootContext()
 +            context.setContextProperty("window", self)  # Экспонируем MainWindow в QML
 +            log_ibl_event("INFO", "MainWindow", "IBL Logger registered in QML context (BEFORE QML load)")
 +            print("    ✅ IBL Logger context registered BEFORE QML load")
-+            
++
              # Add Qt's QML import path
              from PySide6.QtCore import QLibraryInfo
              qml_path = QLibraryInfo.path(QLibraryInfo.LibraryPath.Qml2ImportsPath)
@@ -3127,61 +3127,61 @@
 
          # Dependency resolution state
          self._resolving_conflict = False
-         
+
 +        # Logger
 +        from src.common import get_category_logger
 +        self.logger = get_category_logger("GeometryPanel")
 +        self.logger.info("GeometryPanel initializing...")
-+        
++
          # Setup UI
          self._setup_ui()
-         
+
 @@ -52,30 +57,18 @@
 
          # Size policy
          self.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Expanding)
-         
+
 -        # ✨ ИСПРАВЛЕНО: Отправляем начальные параметры геометрии в QML!
 -        print("🔧 GeometryPanel: Планируем отправку начальных параметров геометрии...")
--        
+-
 -        # Используем QTimer для отложенной отправки после полной инициализации UI
 +        # Отправляем начальные параметры геометрии в QML
          from PySide6.QtCore import QTimer
-         
+
          def send_initial_geometry():
 -            print("⏰ QTimer: Отправка начальной геометрии...")
--            
+-
 -            # Формируем полную геометрию для QML (как в _get_fast_geometry_update)
 +            self.logger.info("Sending initial geometry to QML...")
              initial_geometry = self._get_fast_geometry_update("init", 0.0)
--            
+-
 -            # Отправляем сигналы без проверки подписчиков (она не работает в PySide6)
 -            print(f"  📡 Отправка geometry_changed...")
              self.geometry_changed.emit(initial_geometry)
 -            print(f"  📡 geometry_changed отправлен с rodPosition = {initial_geometry.get('rodPosition', 'НЕ НАЙДЕН')}")
--            
+-
 -            print(f"  📡 Отправка geometry_updated...")
              self.geometry_updated.emit(self.parameters.copy())
 -            print(f"  📡 geometry_updated отправлен")
--        
+-
 -        # УВЕЛИЧИВАЕМ задержку для гарантии готовности главного окна
 -        QTimer.singleShot(500, send_initial_geometry)  # Было 100мс, стало 500мс
 -        print("  ⏰ Таймер установлен на 500мс для отправки начальной геометрии")
 +            self.logger.info("Initial geometry sent successfully")
-+        
++
 +        QTimer.singleShot(500, send_initial_geometry)
 +        self.logger.info("GeometryPanel initialized successfully")
-     
+
      def _setup_ui(self):
          """Настроить интерфейс / Setup user interface"""
 @@ -323,54 +316,143 @@
 
-     
+
      def _connect_signals(self):
          """Connect widget signals"""
 -        # ИСПРАВЛЕНО: Используем ТОЛЬКО valueEdited для избежания дублирования событий
 -        # valueChanged срабатывает слишком часто (при каждом движении), valueEdited - только при завершении редактирования
--        
+-
 -        # Frame dimensions - ТОЛЬКО valueEdited
 +<<<<<<< HEAD
 +        # Реал-тайм: valueChanged для мгновенных обновлений геометрии
@@ -3189,17 +3189,17 @@
 +=======
 +        # Используем ТОЛЬКО valueEdited для избежания дублирования событий
 +>>>>>>> sync/remote-main
-+        
++
 +        self.logger.debug("Connecting signals...")
-+        
++
 +        # Frame dimensions
 +        self.wheelbase_slider.valueChanged.connect(
 +            lambda v: self._on_parameter_changed('wheelbase', v))
          self.wheelbase_slider.valueEdited.connect(
              lambda v: self._on_parameter_changed('wheelbase', v))
--        
+-
 +<<<<<<< HEAD
-+        
++
 +        self.track_slider.valueChanged.connect(
 +            lambda v: self._on_parameter_changed('track', v))
 +=======
@@ -3228,7 +3228,7 @@
 +<<<<<<< HEAD
 +from urllib.parse import urlparse
 +from pathlib import PurePosixPath
- 
+
  from PySide6.QtCore import QSettings, Qt, QTimer, Signal, Slot
  from PySide6.QtGui import QColor, QStandardItem
 +=======
@@ -3253,14 +3253,14 @@
 
      QWidget,
  )
- 
+
 +# Импортируем логгер графических изменений
 +from .graphics_logger import get_graphics_logger
 +
 +# ✅ НОВОЕ: Импорт EventLogger для отслеживания UI событий
 +from src.common.event_logger import get_event_logger, EventType
 +
- 
+
  class ColorButton(QPushButton):
      """Small color preview button that streams changes from QColorDialog."""
 @@ -37,6 +56,7 @@
@@ -3271,38 +3271,38 @@
 +        self._user_triggered = False  # ✅ НОВОЕ: флаг пользовательского действия
          self._update_swatch()
          self.clicked.connect(self._open_dialog)
- 
+
 @@ -44,6 +64,7 @@
 
          return self._color
- 
+
      def set_color(self, color_str: str) -> None:
 +        """Программное изменение цвета (без логирования)"""
          self._color = QColor(color_str)
          self._update_swatch()
- 
+
 @@ -59,6 +80,9 @@
 
- 
+
      @Slot()
      def _open_dialog(self) -> None:
 +        # ✅ Пользователь кликнул на кнопку - это пользовательское действие
 +        self._user_triggered = True
-+        
++
          if self._dialog:
              return
- 
+
 @@ -77,13 +101,17 @@
 
              return
          self._color = color
          self._update_swatch()
 -        self.color_changed.emit(color.name())
-+        
++
 +        # ✅ Испускаем сигнал ТОЛЬКО если это пользовательское действие
 +        if self._user_triggered:
 +            self.color_changed.emit(color.name())
- 
+
 ... (обрезано)
 
 ```
@@ -3348,7 +3348,7 @@
 -def get_cached_system_info():
 -    """Получить кэшированную системную информацию"""
 -    global _system_info_cache
--    
+-
 -    if not _system_info_cache:
 -        _system_info_cache = {
 -            'platform': sys.platform,
@@ -3357,7 +3357,7 @@
 -            'terminal_encoding': locale.getpreferredencoding(),
 -            'qtquick3d_setup': qtquick3d_setup_ok
 -        }
--    
+-
 -    return _system_info_cache
 -
 -# =============================================================================
@@ -3384,17 +3384,17 @@
 +# QtQuick3D Environment Setup
 +# =============================================================================
 +
- 
+
  def setup_qtquick3d_environment():
 -    """Set up QtQuick3D environment variables before importing Qt - ОПТИМИЗИРОВАННАЯ"""
--    
+-
 -    # Проверяем кэш переменных окружения
 +    """Set up QtQuick3D environment variables before importing Qt"""
      required_vars = ["QML2_IMPORT_PATH", "QML_IMPORT_PATH", "QT_PLUGIN_PATH", "QT_QML_IMPORT_PATH"]
      if all(var in os.environ for var in required_vars):
 -        print("[CACHE] QtQuick3D environment already configured")
          return True
-     
+
      try:
 -        # First, do a minimal import to get Qt paths
          import importlib.util
@@ -3420,27 +3420,27 @@
  # PneumoStabSim Professional - Production Dependencies
 -# Проверено для Python 3.8-3.13 (рекомендуется 3.9-3.11)
 +# Проверено для Python 3.11-3.13 (рекомендуется 3.13)
- 
+
  # === КРИТИЧЕСКИЕ ЗАВИСИМОСТИ ===
  # Qt Framework - основа GUI и 3D рендеринга
 -PySide6>=6.5.0,<7.0.0    # Qt6 framework для GUI и 3D
 -shiboken6                # Qt6 bindings generator
 +PySide6>=6.10.0,<7.0.0   # Qt6.10+ (ExtendedSceneEnvironment, Fog, dithering)
 +shiboken6                 # Qt6 bindings generator
- 
+
  # Numerical computing - основа физических расчетов
 -numpy>=1.21.0,<3.0.0     # Векторные вычисления
 -scipy>=1.7.0,<2.0.0      # Научные вычисления и ODE solver
 +numpy>=1.24.0,<3.0.0      # Векторные вычисления
 +scipy>=1.10.0,<2.0.0      # Научные вычисления и ODE solver
- 
+
  # === ДОПОЛНИТЕЛЬНЫЕ ПАКЕТЫ ===
  # Visualization и анализ данных
 -matplotlib>=3.5.0        # Графики и чарты
 -pillow>=9.0.0            # Обработка изображений для HDR текстур
 +matplotlib>=3.5.0         # Графики и чарты
 +pillow>=9.0.0             # Обработка изображений для HDR текстур
- 
+
  # Testing и development
 -pytest>=6.0.0           # Тестирование
 -PyYAML>=6.0             # Конфигурационные файлы
@@ -3448,7 +3448,7 @@
 +PyYAML>=6.0               # Конфигурационные файлы
 +python-dotenv>=1.0.0      # Переменные окружения из .env
 +psutil>=5.8.0             # Мониторинг
- 
+
  # === ОПЦИОНАЛЬНЫЕ УЛУЧШЕНИЯ ===
 -# 3D геометрия и визуализация
 -# trimesh>=3.15.0        # 3D mesh обработка (опционально)
@@ -3461,7 +3461,7 @@
 +# pyqtgraph>=0.12.0       # Быстрые графики (опционально)
 +# numba>=0.56.0           # JIT компиляция (опционально)
 +# cython>=0.29.0          # C расширения (опционально)
- 
+
  # === СОВМЕСТИМОСТЬ ===
  # Проверено на:
 -# - Windows 10/11 (Python 3.9-3.13)
@@ -3470,7 +3470,7 @@
 +# - Windows 10/11 (Python 3.11-3.13)
 +# - Ubuntu 22.04/24.04 (Python 3.11-3.12)
 +# - macOS 13+ (Python 3.11-3.12)
- 
+
  # Примечания:
 -# 1. PySide6 6.9.3+ рекомендуется для ExtendedSceneEnvironment
 -# 2. NumPy 2.0+ совместим, но может требовать обновления других пакетов
@@ -3496,7 +3496,7 @@
 
  echo ================================================================
  echo.
- 
+
 +rem Prefer Python 3.13 if available via py launcher
 +set "PYTHON_CMD="
 +py -3.13 -c "import sys" >nul 2>&1 && set "PYTHON_CMD=py -3.13"
@@ -3527,7 +3527,7 @@
  rem Check if virtual environment exists
  if not exist "venv\Scripts\activate.bat" (
      echo Creating virtual environment...
--    
+-
 -    rem Try different Python commands for compatibility
 -    python -c "import sys; exit(0)" >nul 2>&1
 +
@@ -3547,7 +3547,7 @@
 -        set PYTHON_CMD=python
 +        echo WARNING: Python version may not be fully compatible (recommended 3.13). Continuing...
      )
--    
+-
 -    rem Check Python version before creating venv
 -    %PYTHON_CMD% -c "import sys; major, minor = sys.version_info[:2]; print(f'Using Python {major}.{minor}'); exit(0 if (3, 8) <= (major, minor) <= (3, 12) else 1)"
 -    if errorlevel 1 (
@@ -3560,7 +3560,7 @@
 -            exit /b 1
 -        )
 -    )
--    
+-
 +
      %PYTHON_CMD% -m venv venv --clear
      if errorlevel 1 (
@@ -3570,7 +3570,7 @@
  echo Installing project dependencies...
  if exist "requirements.txt" (
      echo Installing from requirements.txt...
--    
+-
 -    rem First try normal installation
 ... (обрезано)
 
@@ -3740,23 +3740,23 @@
 +    anchors.fill: parent
 +    // Toggle to show/hide in-canvas UI controls (to avoid duplication with external GraphicsPanel)
 +    property bool showOverlayControls: false
-+    
++
 +    // ===============================================================
 +    // 🚀 SIGNALS - ACK для Python после применения обновлений
 +    // ===============================================================
-+    
++
 +    signal batchUpdatesApplied(var summary)
 +
 +    // ===============================================================
 +    // 🚀 QT VERSION DETECTION (для условной активации возможностей)
 +    // ===============================================================
-+    
++
 +    readonly property string qtVersionString: typeof Qt.version !== "undefined" ? Qt.version : "6.0.0"
 +    readonly property var qtVersionParts: qtVersionString.split('.')
 +    readonly property int qtMajor: qtVersionParts.length > 0 ? parseInt(qtVersionParts[0]) : 6
 +    readonly property int qtMinor: qtVersionParts.length > 1 ? parseInt(qtVersionParts[1]) : 0
 +    readonly property bool supportsQtQuick3D610Features: qtMajor === 6 && qtMinor >= 10
-+    
++
 +    // ✅ Условная поддержка dithering (доступно с Qt 6.10)
 +    property bool ditheringEnabled: true  // Управляется из GraphicsPanel
 +    readonly property bool canUseDithering: supportsQtQuick3D610Features
@@ -3764,31 +3764,31 @@
 +    // ===============================================================
 +    // 🚀 CRITICAL FIX v4.9.4: SKYBOX ROTATION - INDEPENDENT FROM CAMERA
 +    // ===============================================================
-+    
++
 +    // ✅ ПРАВИЛЬНО: Skybox вращается ТОЛЬКО от пользовательского iblRotationDeg
 +    // Камера НЕ влияет на skybox вообще!
-+    
++
 +    // ❌ УДАЛЕНО: envYaw, _prevCameraYaw, updateCameraYaw() - это было НЕПРАВИЛЬНО
 +    // Эти переменные СВЯЗЫВАЛИ фон с камерой, что вызывало проблему
 +
 +    // ===============================================================
 +    // 🚀 PERFORMANCE OPTIMIZATION LAYER
 +    // ===============================================================
-+    
++
 +    // ✅ ОПТИМИЗАЦИЯ #1: Кэширование анимационных вычислений
 +    QtObject {
 +        id: animationCache
-+        
++
 +        // Базовые значения (вычисляются 1 раз за фрейм вместо 4х)
 +        property real basePhase: animationTime * userFrequency * 2 * Math.PI
 +        property real globalPhaseRad: userPhaseGlobal * Math.PI / 180
-+        
++
 +        // Предварительно вычисленные фазы для каждого угла
 +        property real flPhaseRad: globalPhaseRad + userPhaseFL * Math.PI / 180
 +        property real frPhaseRad: globalPhaseRad + userPhaseFR * Math.PI / 180
 +        property real rlPhaseRad: globalPhaseRad + userPhaseRL * Math.PI / 180
 +        property real rrPhaseRad: globalPhaseRad + userPhaseRR * Math.PI / 180
-+        
++
 +        // Кэшированные синусы (4 sin() вызова → 4 кэшированных значения)
 +        property real flSin: Math.sin(basePhase + flPhaseRad)
 +        property real frSin: Math.sin(basePhase + frPhaseRad)
@@ -3812,11 +3812,11 @@
 
  import QtQuick
  import QtQuick3D
- 
+
 -QtObject {
 +Item {
      id: controller
- 
+
      /**
 @@ -14,35 +14,215 @@
 
@@ -3829,10 +3829,10 @@
 +=======
      property url fallbackSource: Qt.resolvedUrl("../../assets/studio_small_09_2k.hdr")
 +>>>>>>> sync/remote-main
- 
+
      /** Internal flag preventing infinite fallback recursion. */
      property bool _fallbackTried: false
- 
+
 -    /** Expose the probe for consumers. */
 -    property Texture probe: Texture {
 -        id: hdrProbe
@@ -3877,12 +3877,12 @@
 +    function writeLog(level, message) {
 +        var timestamp = new Date().toISOString()
 +        var logEntry = timestamp + " | " + level + " | IblProbeLoader | " + message
-+        
++
 +        // Отправляем в Python для записи в файл
 +        if (typeof window !== "undefined" && window !== null && window.logIblEvent) {
 +            window.logIblEvent(logEntry)
 +        }
-+        
++
 +        // Также выводим в консоль для отладки
 +        if (level === "ERROR" || level === "WARN") {
 +            console.warn(logEntry)
@@ -3910,7 +3910,7 @@
  Overwrites log file on each run, ensures proper cleanup
 +УЛУЧШЕННАЯ ВЕРСИЯ с ротацией и контекстными логгерами
  """
- 
+
  import logging
 @@ -11,27 +12,79 @@
 
@@ -3921,8 +3921,8 @@
 +from typing import Optional, Dict, Any
  from datetime import datetime
 +import traceback
- 
- 
+
+
  # Global queue listener for cleanup
  _queue_listener: Optional[logging.handlers.QueueListener] = None
 -
@@ -3933,11 +3933,11 @@
 +
 +class ContextualFilter(logging.Filter):
 +    """Добавляет контекстную информацию к логам"""
-+    
++
 +    def __init__(self, context: Dict[str, Any] = None):
 +        super().__init__()
 +        self.context = context or {}
-+    
++
 +    def filter(self, record):
 +        # Добавляем контекст к каждому record
 +        for key, value in self.context.items():
@@ -3947,7 +3947,7 @@
 +
 +class ColoredFormatter(logging.Formatter):
 +    """Форматтер с цветами для консоли (опционально)"""
-+    
++
 +    COLORS = {
 +        'DEBUG': '\033[36m',     # Cyan
 +        'INFO': '\033[32m',      # Green
@@ -3956,7 +3956,7 @@
 +        'CRITICAL': '\033[35m',  # Magenta
 +        'RESET': '\033[0m'
 +    }
-+    
++
 +    def format(self, record):
 +        if hasattr(sys.stdout, 'isatty') and sys.stdout.isatty():
 +            levelname = record.levelname
@@ -3973,13 +3973,13 @@
 +    console_output: bool = False
 +) -> logging.Logger:
      """Initialize application logging with non-blocking queue handler
-     
+
 +    УЛУЧШЕНИЯ v4.9.5:
 +    - Ротация логов (max_bytes, backup_count)
 +    - Опциональный вывод в консоль
 +    - Цветной вывод для консоли
 +    - Контекстные фильтры
-+    
++
      Features:
 -    - Overwrites log file on each run (mode='w')
 +    - Log rotation with configurable size/count
@@ -4024,18 +4024,18 @@
 +    STATE_CHANGE = auto()        # Изменение state в Python
 +    SIGNAL_EMIT = auto()         # Вызов .emit() сигнала
 +    QML_INVOKE = auto()          # QMetaObject.invokeMethod
-+    
++
 +    # QML events
 +    SIGNAL_RECEIVED = auto()     # QML получил сигнал (onXxxChanged)
 +    FUNCTION_CALLED = auto()     # QML функция вызвана
 +    PROPERTY_CHANGED = auto()    # QML property изменилось
-+    
++
 +    # ✅ НОВОЕ: Mouse events in QML
 +    MOUSE_PRESS = auto()         # Нажатие мыши на канве
 +    MOUSE_DRAG = auto()          # Перетаскивание
 +    MOUSE_WHEEL = auto()         # Прокрутка колесика (zoom)
 +    MOUSE_RELEASE = auto()       # Отпускание мыши
-+    
++
 +    # Errors
 +    PYTHON_ERROR = auto()        # Ошибка в Python
 +    QML_ERROR = auto()           # Ошибка в QML
@@ -4043,24 +4043,24 @@
 +
 +class EventLogger:
 +    """Singleton логгер для отслеживания Python↔QML событий"""
-+    
++
 +    _instance: Optional['EventLogger'] = None
 +    _initialized: bool = False
-+    
++
 +    def __new__(cls):
 +        if cls._instance is None:
 +            cls._instance = super().__new__(cls)
 +        return cls._instance
-+    
++
 +    def __init__(self):
 +        if EventLogger._initialized:
 +            return
-+        
++
 +        self.logger = logging.getLogger("EventLogger")
 +        self.events: list[Dict[str, Any]] = []
 +        self._session_id = datetime.now().strftime("%Y%m%d_%H%M%S")
 +        EventLogger._initialized = True
-+    
++
 +    def log_event(
 +        self,
 +        event_type: EventType,
@@ -4074,7 +4074,7 @@
 +    ) -> None:
 +        """
 +        Логирование события
-+        
++
 +        Args:
 +            event_type: Тип события
 ... (обрезано)
@@ -4110,7 +4110,7 @@
 +
 +class LogAnalysisResult:
 +    """Результат анализа логов"""
-+    
++
 +    def __init__(self):
 +        self.errors: List[str] = []
 +        self.warnings: List[str] = []
@@ -4118,32 +4118,32 @@
 +        self.metrics: Dict[str, float] = {}
 +        self.recommendations: List[str] = []
 +        self.status: str = "unknown"  # ok, warning, error
-+    
++
 +    def is_ok(self) -> bool:
 +        """Проверяет, всё ли в порядке"""
 +        return len(self.errors) == 0 and self.status != "error"
-+    
++
 +    def add_error(self, message: str):
 +        """Добавляет ошибку"""
 +        self.errors.append(message)
 +        self.status = "error"
-+    
++
 +    def add_warning(self, message: str):
 +        """Добавляет предупреждение"""
 +        self.warnings.append(message)
 +        if self.status != "error":
 +            self.status = "warning"
-+    
++
 +    def add_info(self, message: str):
 +        """Добавляет информацию"""
 +        self.info.append(message)
 +        if self.status == "unknown":
 +            self.status = "ok"
-+    
++
 +    def add_metric(self, name: str, value: float):
 +        """Добавляет метрику"""
 +        self.metrics[name] = value
-+    
++
 +    def add_recommendation(self, message: str):
 +        """Добавляет рекомендацию"""
 +        self.recommendations.append(message)
@@ -4151,26 +4151,26 @@
 +
 +class UnifiedLogAnalyzer:
 +    """Объединенный анализатор всех типов логов"""
-+    
++
 +    def __init__(self, logs_dir: Path = Path("logs")):
 +        self.logs_dir = logs_dir
 +        self.results: Dict[str, LogAnalysisResult] = {}
-+    
++
 +    def analyze_all(self) -> Dict[str, LogAnalysisResult]:
 +        """Запускает полный анализ всех логов"""
-+        
++
 +        # Основной лог
 +        self.results['main'] = self._analyze_main_log()
-+        
++
 +        # Graphics логи
 +        self.results['graphics'] = self._analyze_graphics_logs()
-+        
++
 +        # IBL логи
 +        self.results['ibl'] = self._analyze_ibl_logs()
-+        
++
 +        # Event логи (Python↔QML)
 +        self.results['events'] = self._analyze_event_logs()
-+        
++
 ... (обрезано)
 
 ```
@@ -4207,7 +4207,7 @@
 +>>>>>>> sync/remote-main
  from pathlib import Path
  from typing import Optional, Dict, Any
- 
+
  from src.ui.charts import ChartWidget
  from src.ui.panels import GeometryPanel, PneumoPanel, ModesPanel, RoadPanel, GraphicsPanel
  from ..runtime import SimulationManager, StateSnapshot
@@ -4217,8 +4217,8 @@
 +# ✅ НОВОЕ: EventLogger для логирования QML вызовов
 +from src.common.event_logger import get_event_logger
 +>>>>>>> sync/remote-main
- 
- 
+
+
  class MainWindow(QMainWindow):
 @@ -46,6 +54,10 @@
 
@@ -4230,30 +4230,30 @@
 +
 +>>>>>>> sync/remote-main
      SETTINGS_LAST_PRESET = "Presets/LastPath"
- 
+
      QML_UPDATE_METHODS: Dict[str, tuple[str, ...]] = {
 @@ -82,6 +94,17 @@
 
          # Logging
          self.logger = logging.getLogger(self.__class__.__name__)
-         
+
 +        # ✅ НОВОЕ: Инициализация IBL Signal Logger
 +        self.ibl_logger = get_ibl_logger()
 +        log_ibl_event("INFO", "MainWindow", "IBL Logger initialized")
-+        
++
 +<<<<<<< HEAD
 +=======
 +        # ✅ НОВОЕ: Инициализируем EventLogger (Python↔QML)
 +        self.event_logger = get_event_logger()
 +        self.logger.info("EventLogger initialized in MainWindow")
-+        
++
 +>>>>>>> sync/remote-main
          print("MainWindow: Создание SimulationManager...")
-         
+
          # Simulation manager
 @@ -96,9 +119,11 @@
 
- 
+
          # QML update system
          self._qml_update_queue: Dict[str, Dict[str, Any]] = {}
 +        self._qml_method_support: Dict[tuple[str, bool], bool] = {}
@@ -4261,7 +4261,7 @@
          self._qml_flush_timer.setSingleShot(True)
          self._qml_flush_timer.timeout.connect(self._flush_qml_updates)
 +        self._qml_pending_property_supported: Optional[bool] = None
-         
+
          # State tracking
          self.current_snapshot: Optional[StateSnapshot] = None
 @@ -126,6 +151,7 @@
@@ -4289,61 +4289,61 @@
 
          # Dependency resolution state
          self._resolving_conflict = False
-         
+
 +        # Logger
 +        from src.common import get_category_logger
 +        self.logger = get_category_logger("GeometryPanel")
 +        self.logger.info("GeometryPanel initializing...")
-+        
++
          # Setup UI
          self._setup_ui()
-         
+
 @@ -52,30 +57,18 @@
 
          # Size policy
          self.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Expanding)
-         
+
 -        # ✨ ИСПРАВЛЕНО: Отправляем начальные параметры геометрии в QML!
 -        print("🔧 GeometryPanel: Планируем отправку начальных параметров геометрии...")
--        
+-
 -        # Используем QTimer для отложенной отправки после полной инициализации UI
 +        # Отправляем начальные параметры геометрии в QML
          from PySide6.QtCore import QTimer
-         
+
          def send_initial_geometry():
 -            print("⏰ QTimer: Отправка начальной геометрии...")
--            
+-
 -            # Формируем полную геометрию для QML (как в _get_fast_geometry_update)
 +            self.logger.info("Sending initial geometry to QML...")
              initial_geometry = self._get_fast_geometry_update("init", 0.0)
--            
+-
 -            # Отправляем сигналы без проверки подписчиков (она не работает в PySide6)
 -            print(f"  📡 Отправка geometry_changed...")
              self.geometry_changed.emit(initial_geometry)
 -            print(f"  📡 geometry_changed отправлен с rodPosition = {initial_geometry.get('rodPosition', 'НЕ НАЙДЕН')}")
--            
+-
 -            print(f"  📡 Отправка geometry_updated...")
              self.geometry_updated.emit(self.parameters.copy())
 -            print(f"  📡 geometry_updated отправлен")
--        
+-
 -        # УВЕЛИЧИВАЕМ задержку для гарантии готовности главного окна
 -        QTimer.singleShot(500, send_initial_geometry)  # Было 100мс, стало 500мс
 -        print("  ⏰ Таймер установлен на 500мс для отправки начальной геометрии")
 +            self.logger.info("Initial geometry sent successfully")
-+        
++
 +        QTimer.singleShot(500, send_initial_geometry)
 +        self.logger.info("GeometryPanel initialized successfully")
-     
+
      def _setup_ui(self):
          """Настроить интерфейс / Setup user interface"""
 @@ -323,54 +316,143 @@
 
-     
+
      def _connect_signals(self):
          """Connect widget signals"""
 -        # ИСПРАВЛЕНО: Используем ТОЛЬКО valueEdited для избежания дублирования событий
 -        # valueChanged срабатывает слишком часто (при каждом движении), valueEdited - только при завершении редактирования
--        
+-
 -        # Frame dimensions - ТОЛЬКО valueEdited
 +<<<<<<< HEAD
 +        # Реал-тайм: valueChanged для мгновенных обновлений геометрии
@@ -4351,17 +4351,17 @@
 +=======
 +        # Используем ТОЛЬКО valueEdited для избежания дублирования событий
 +>>>>>>> sync/remote-main
-+        
++
 +        self.logger.debug("Connecting signals...")
-+        
++
 +        # Frame dimensions
 +        self.wheelbase_slider.valueChanged.connect(
 +            lambda v: self._on_parameter_changed('wheelbase', v))
          self.wheelbase_slider.valueEdited.connect(
              lambda v: self._on_parameter_changed('wheelbase', v))
--        
+-
 +<<<<<<< HEAD
-+        
++
 +        self.track_slider.valueChanged.connect(
 +            lambda v: self._on_parameter_changed('track', v))
 +=======
@@ -4390,7 +4390,7 @@
 +<<<<<<< HEAD
 +from urllib.parse import urlparse
 +from pathlib import PurePosixPath
- 
+
  from PySide6.QtCore import QSettings, Qt, QTimer, Signal, Slot
  from PySide6.QtGui import QColor, QStandardItem
 +=======
@@ -4415,14 +4415,14 @@
 
      QWidget,
  )
- 
+
 +# Импортируем логгер графических изменений
 +from .graphics_logger import get_graphics_logger
 +
 +# ✅ НОВОЕ: Импорт EventLogger для отслеживания UI событий
 +from src.common.event_logger import get_event_logger, EventType
 +
- 
+
  class ColorButton(QPushButton):
      """Small color preview button that streams changes from QColorDialog."""
 @@ -37,6 +56,7 @@
@@ -4433,38 +4433,38 @@
 +        self._user_triggered = False  # ✅ НОВОЕ: флаг пользовательского действия
          self._update_swatch()
          self.clicked.connect(self._open_dialog)
- 
+
 @@ -44,6 +64,7 @@
 
          return self._color
- 
+
      def set_color(self, color_str: str) -> None:
 +        """Программное изменение цвета (без логирования)"""
          self._color = QColor(color_str)
          self._update_swatch()
- 
+
 @@ -59,6 +80,9 @@
 
- 
+
      @Slot()
      def _open_dialog(self) -> None:
 +        # ✅ Пользователь кликнул на кнопку - это пользовательское действие
 +        self._user_triggered = True
-+        
++
          if self._dialog:
              return
- 
+
 @@ -77,13 +101,17 @@
 
              return
          self._color = color
          self._update_swatch()
 -        self.color_changed.emit(color.name())
-+        
++
 +        # ✅ Испускаем сигнал ТОЛЬКО если это пользовательское действие
 +        if self._user_triggered:
 +            self.color_changed.emit(color.name())
- 
+
 ... (обрезано)
 
 ```
@@ -4489,20 +4489,20 @@
  import subprocess
  from pathlib import Path
 +import json
- 
+
  # =============================================================================
  # Накопление warnings/errors
 @@ -113,15 +114,12 @@
 
  # =============================================================================
- 
- 
+
+
 -def check_python_compatibility():
 -    """Check Python version and warn about potential issues"""
 +def check_python_compatibility() -> None:
 +    """Проверка версии Python: проект таргетирует Python 3.13+"""
      version = sys.version_info
--    
+-
 -    if version < (3, 8):
 -        log_error("Python 3.8+ required. Please upgrade Python.")
 +    if version < (3, 13):
@@ -4510,12 +4510,12 @@
          sys.exit(1)
 -    elif version >= (3, 12):
 -        log_warning("Python 3.12+ detected. Some packages may have compatibility issues.")
- 
- 
+
+
  check_python_compatibility()
 @@ -153,8 +151,8 @@
 
-         
+
          try:
              major, minor = qt_version.split('.')[:2]
 -            if int(major) == 6 and int(minor) < 8:
@@ -4524,31 +4524,31 @@
 +                log_warning(f"Qt {qt_version} detected. Some 6.10+ features may be unavailable")
          except (ValueError, IndexError):
              log_warning(f"Could not parse Qt version: {qt_version}")
-         
+
 @@ -171,16 +169,18 @@
 
  # =============================================================================
- 
- 
+
+
 -def setup_logging():
 -    """Настройка логирования - ВСЕГДА активно"""
 +def setup_logging(verbose_console: bool = False):
 +    """Настройка логирования - ВСЕГДА активно
-+    
++
 +    Args:
 +        verbose_console: Включать ли вывод логов в консоль (аргумент --verbose)
 +    """
      try:
          from src.common.logging_setup import init_logging, rotate_old_logs
-         
+
          logs_dir = Path("logs")
-         
+
 -        # ✅ НОВОЕ: Ротация старых логов (оставляем только 10 последних)
 -        # Политика проекта: всегда начинать с чистых логов
 -        # Стираем старые логи на запуске (keep_count=0)
 +        # Политика проекта: начинаем с чистых логов
          rotate_old_logs(logs_dir, keep_count=0)
-         
+
          # Инициализируем логирование с ротацией
 @@ -189,7 +189,7 @@
 
@@ -4558,14 +4558,14 @@
 -            console_output=False          # НЕ выводим в консоль
 +            console_output=bool(verbose_console)  # Включаем по запросу
          )
-         
+
          logger.info("=" * 60)
 @@ -201,6 +201,9 @@
 
          logger.info(f"Qt: {qVersion()}")
          logger.info(f"Platform: {sys.platform}")
          logger.info(f"Backend: {os.environ.get('QSG_RHI_BACKEND', 'auto')}")
-+        
++
 +        if verbose_console:
 ... (обрезано)
 
@@ -4587,13 +4587,13 @@
  # PneumoStabSim Professional - Production Dependencies
 -# Проверено для Python 3.9-3.13 (рекомендуется 3.11-3.13)
 +# Проверено для Python 3.11-3.13 (рекомендуется 3.13)
- 
+
  # === КРИТИЧЕСКИЕ ЗАВИСИМОСТИ ===
  # Qt Framework - основа GUI и 3D рендеринга
 @@ -16,23 +16,22 @@
 
  pillow>=9.0.0             # Обработка изображений для HDR текстур
- 
+
  # Testing и development
 -pytest>=7.0.0            # Тестирование
 -PyYAML>=6.0              # Конфигурационные файлы
@@ -4601,7 +4601,7 @@
 +PyYAML>=6.0               # Конфигурационные файлы
 +python-dotenv>=1.0.0      # Переменные окружения из .env
 +psutil>=5.8.0             # Мониторинг
- 
+
  # === ОПЦИОНАЛЬНЫЕ УЛУЧШЕНИЯ ===
 -# 3D геометрия и визуализация
  # trimesh>=3.15.0         # 3D mesh обработка (опционально)
@@ -4610,7 +4610,7 @@
 -# Производительность
  # numba>=0.56.0           # JIT компиляция (опционально)
  # cython>=0.29.0          # C расширения (опционально)
- 
+
  # === СОВМЕСТИМОСТЬ ===
  # Проверено на:
  # - Windows 10/11 (Python 3.11-3.13)
@@ -4618,7 +4618,7 @@
 -# - macOS 12+ (Python 3.11-3.12)
 +# - Ubuntu 22.04/24.04 (Python 3.11-3.12)
 +# - macOS 13+ (Python 3.11-3.12)
- 
+
  # Примечания:
  # 1. Требуется PySide6 6.10+ из-за использования Fog и dithering
 
@@ -4639,7 +4639,7 @@
 
  echo ================================================================
  echo.
- 
+
 +rem Prefer Python 3.13 if available via py launcher
 +set "PYTHON_CMD="
 +py -3.13 -c "import sys" >nul 2>&1 && set "PYTHON_CMD=py -3.13"
@@ -4670,7 +4670,7 @@
  rem Check if virtual environment exists
  if not exist "venv\Scripts\activate.bat" (
      echo Creating virtual environment...
--    
+-
 -    rem Try different Python commands for compatibility
 -    python -c "import sys; exit(0)" >nul 2>&1
 +
@@ -4690,7 +4690,7 @@
 -        set PYTHON_CMD=python
 +        echo WARNING: Python version may not be fully compatible (recommended 3.13). Continuing...
      )
--    
+-
 -    rem Check Python version before creating venv
 -    %PYTHON_CMD% -c "import sys; major, minor = sys.version_info[:2]; print(f'Using Python {major}.{minor}'); exit(0 if (3, 8) <= (major, minor) <= (3, 12) else 1)"
 -    if errorlevel 1 (
@@ -4703,7 +4703,7 @@
 -            exit /b 1
 -        )
 -    )
--    
+-
 +
      %PYTHON_CMD% -m venv venv --clear
      if errorlevel 1 (
@@ -4713,7 +4713,7 @@
  echo Installing project dependencies...
  if exist "requirements.txt" (
      echo Installing from requirements.txt...
--    
+-
 -    rem First try normal installation
 ... (обрезано)
 
@@ -4865,7 +4865,7 @@
 +import QtQuick.Controls
 +import Qt.labs.folderlistmodel
  import "components"
- 
+
  /*
 @@ -17,6 +19,8 @@
 
@@ -4874,14 +4874,14 @@
      anchors.fill: parent
 +    // Toggle to show/hide in-canvas UI controls (to avoid duplication with external GraphicsPanel)
 +    property bool showOverlayControls: false
-     
+
      // ===============================================================
      // 🚀 SIGNALS - ACK для Python после применения обновлений
 @@ -202,12 +206,6 @@
 
      property real iblRotationDeg: 0
      property real iblIntensity: 1.3
- 
+
 -    // ❌ Больше НЕ связываем фон со включением IBL
 -    // onIblEnabledChanged: {
 -    //     iblLightingEnabled = iblEnabled
@@ -4895,14 +4895,14 @@
 
      // ✅ COMPLETE BATCH UPDATE SYSTEM (All functions implemented)
      // ===============================================================
-     
+
 -    // ===============================================================
 -    // ✅ ENHANCED BATCH UPDATE SYSTEM (Conflict Resolution)
 -    // ===============================================================
--    
+-
      function applyBatchedUpdates(updates) {
          console.log("🚀 Applying batched updates with conflict resolution:", Object.keys(updates))
-         
+
 @@ -699,13 +693,13 @@
 
              if (params.point_light.brightness !== undefined) pointLightBrightness = params.point_light.brightness
@@ -4922,7 +4922,7 @@
 +        }
 +        console.log("  ✅ Lighting updated successfully")
 +    }
- 
+
      function applyMaterialUpdates(params) {
          console.log("🎨 main.qml: applyMaterialUpdates() called")
 @@ -787,10 +781,7 @@
@@ -4935,7 +4935,7 @@
 -            if (params.ibl.bind_to_camera !== undefined) environmentBindToCamera = !!params.ibl.bind_to_camera
 -         }
 +        }
- 
+
          if (params.fog) {
              if (params.fog.enabled !== undefined) fogEnabled = params.fog.enabled
 @@ -920,13 +911,8 @@
@@ -4968,10 +4968,10 @@
 +=======
      property url fallbackSource: Qt.resolvedUrl("../../assets/studio_small_09_2k.hdr")
 +>>>>>>> sync/remote-main
- 
+
      /** Internal flag preventing infinite fallback recursion. */
      property bool _fallbackTried: false
- 
+
 +<<<<<<< HEAD
 +    /**
 +      * Double-buffered textures to prevent flicker when switching HDRs.
@@ -4998,7 +4998,7 @@
 +=======
      /** Expose the probe for consumers. */
      property Texture probe: hdrProbe
- 
+
      Texture {
          id: hdrProbe
          source: controller.primarySource
@@ -5009,7 +5009,7 @@
 @@ -49,6 +79,12 @@
 
      }
- 
+
      // Monitor texture status using Timer polling (Texture has no statusChanged signal!)
 +<<<<<<< HEAD
 +    property int _lastStatusA: -1
@@ -5018,12 +5018,12 @@
 +    // Polling-based status check for both textures
 +=======
      property int _lastStatus: -1  // Начинаем с -1 вместо Texture.Null
-     
+
      onProbeChanged: {
 @@ -59,11 +95,53 @@
 
      }
-     
+
      // Polling-based status check (since Texture doesn't emit statusChanged signal)
 +>>>>>>> sync/remote-main
      Timer {
@@ -5055,7 +5055,7 @@
 
 @@ -466,18 +466,29 @@
 
-     
+
      Args:
          log_dir: Директория с логами
 +<<<<<<< HEAD
@@ -5066,7 +5066,7 @@
      """
      if not log_dir.exists():
          return
-     
+
      # Находим все лог-файлы с timestamp
      log_files = sorted(
 +<<<<<<< HEAD
@@ -5077,7 +5077,7 @@
          key=lambda p: p.stat().st_mtime,
          reverse=True
      )
-     
+
 +<<<<<<< HEAD
 +    # Удаляем старые
 +=======
@@ -5087,7 +5087,7 @@
 @@ -497,6 +508,7 @@
 
          return
-     
+
      # Обычный режим: оставляем N последних
 +>>>>>>> sync/remote-main
      for old_log in log_files[keep_count:]:
@@ -5111,14 +5111,14 @@
 
          """Найти пары Python→QML событий для анализа синхронизации"""
          pairs = []
-         
+
 +<<<<<<< HEAD
 +        # Группируем по timestamp
 +        for i, event in enumerate(self.events):
 +            if event["event_type"] == "SIGNAL_EMIT":
 +                # Ищем соответствующий SIGNAL_RECEIVED в QML
 +                signal_name = event["action"].replace("emit_", "")
-+                
++
 +                # Ищем в следующих 1000ms
 +=======
          # Сопоставление signal → QML функции (apply*Updates)
@@ -5128,20 +5128,20 @@
 
                  signal_name = event["action"].replace("emit_", "")
                  expected_qml_func = signal_to_qml.get(signal_name)
-                 
+
 +>>>>>>> sync/remote-main
                  emit_time = datetime.fromisoformat(event["timestamp"])
-                 
+
                  for j in range(i+1, len(self.events)):
 @@ -369,6 +379,11 @@
 
                      if (recv_time - emit_time).total_seconds() > 1.0:
                          break  # Слишком поздно
-                     
+
 +<<<<<<< HEAD
 +                    if (next_event["event_type"] == "SIGNAL_RECEIVED" and
 +                        signal_name in next_event["action"]):
-+                        
++
 +=======
                      # ✅ Вариант 1: QML подписался на сигнал (onXxxChanged)
                      if (
@@ -5179,13 +5179,13 @@
 -        """Добавляет набор конкретных ошибок (уникализируя по сообщению)."""
 -        for e in errors:
 -            self.add_error(e)
- 
- 
+
+
  class UnifiedLogAnalyzer:
 @@ -106,25 +101,9 @@
 
              result.add_metric('warnings', len(warnings))
-             
+
              if errors:
 -                # Полный разбор ошибок с группировкой одинаковых сообщений без таймстемпов
 -                norm_errors: Dict[str, List[str]] = defaultdict(list)
@@ -5195,7 +5195,7 @@
 -                    # Урезаем путь внутри traceback строк до последнего сегмента для агрегирования
 -                    base_short = re.sub(r'File "([^"]+)"', lambda m: f"File '{Path(m.group(1)).name}'", base)
 -                    norm_errors[base_short].append(line.strip())
--    
+-
 -                # Добавляем агрегированную строку
 -                result.add_error(f"Обнаружено {len(errors)} ошибок в run.log (уникальных: {len(norm_errors)})")
 -                # Сортируем по количеству вхождений
@@ -5209,14 +5209,14 @@
 +                result.add_error(f"Обнаружено {len(errors)} ошибок в run.log")
 +                for error in errors[:3]:  # Первые 3
 +                    result.add_error(f"  → {error.strip()}")
-             
+
              if warnings:
                  result.add_warning(f"Обнаружено {len(warnings)} предупреждений")
 @@ -218,17 +197,6 @@
 
              if categories:
                  result.add_info(f"Категории изменений: {dict(categories)}")
-             
+
 -            # Конкретные ошибки QML sync (error поля)
 -            error_events = [e for e in events if e.get('error')]
 -            if error_events:
@@ -5227,14 +5227,14 @@
 -                for msg, group_list in sorted(grouped.items(), key=lambda x: len(x[1]), reverse=True):
 -                    result.add_error(f"GRAPHICS_SYNC {len(group_list)}× {msg}")
 -                result.add_recommendation("Проверьте соответствие payload ↔ apply*Updates обработчиков")
--            
+-
          except Exception as e:
              result.add_error(f"Ошибка анализа graphics логов: {e}")
-         
+
 @@ -265,15 +233,10 @@
 
              result.add_metric('ibl_success', len(success))
-             
+
              if errors:
 -                # Группируем одинаковые сообщения
 -                norm = defaultdict(list)
@@ -5249,7 +5249,7 @@
 +                for error in errors[:2]:
 +                    result.add_error(f"  → {error.strip()}")
 +                result.add_recommendation("Проверьте пути к HDR файлам")
-             
+
              if success:
 ... (обрезано)
 
@@ -5277,7 +5277,7 @@
 +>>>>>>> sync/remote-main
  from pathlib import Path
  from typing import Optional, Dict, Any
- 
+
 @@ -31,8 +34,11 @@
 
  from src.ui.panels import GeometryPanel, PneumoPanel, ModesPanel, RoadPanel, GraphicsPanel
@@ -5288,8 +5288,8 @@
  # ✅ НОВОЕ: EventLogger для логирования QML вызовов
  from src.common.event_logger import get_event_logger
 +>>>>>>> sync/remote-main
- 
- 
+
+
  class MainWindow(QMainWindow):
 @@ -48,7 +54,10 @@
 
@@ -5302,27 +5302,27 @@
 +
 +>>>>>>> sync/remote-main
      SETTINGS_LAST_PRESET = "Presets/LastPath"
- 
+
      QML_UPDATE_METHODS: Dict[str, tuple[str, ...]] = {
 @@ -89,10 +98,13 @@
 
          self.ibl_logger = get_ibl_logger()
          log_ibl_event("INFO", "MainWindow", "IBL Logger initialized")
-         
+
 +<<<<<<< HEAD
 +=======
          # ✅ НОВОЕ: Инициализируем EventLogger (Python↔QML)
          self.event_logger = get_event_logger()
          self.logger.info("EventLogger initialized in MainWindow")
-         
+
 +>>>>>>> sync/remote-main
          print("MainWindow: Создание SimulationManager...")
-         
+
          # Simulation manager
 @@ -178,7 +190,11 @@
 
          print("✅ MainWindow.__init__() завершён")
- 
+
      # ------------------------------------------------------------------
 +<<<<<<< HEAD
 +    # UI Construction - НОВАЯ СТРУКТРАА!
@@ -5334,21 +5334,21 @@
          """Создать центральный вид с горизонтальным и вертикальным сплиттерами
 @@ -268,12 +284,15 @@
 
-             
+
              qml_url = QUrl.fromLocalFile(str(qml_path.absolute()))
              print(f"    📂 Полный путь: {qml_url.toString()}")
 +<<<<<<< HEAD
 +=======
-             
+
              # ✅ Устанавливаем базовую директорию QML для разрешения относительных путей
              try:
                  self._qml_base_dir = qml_path.parent.resolve()
              except Exception:
                  self._qml_base_dir = None
 +>>>>>>> sync/remote-main
-             
+
              self._qquick_widget.setSource(qml_url)
-             
+
 @@ -297,6 +316,16 @@
 
 ... (обрезано)
@@ -5368,7 +5368,7 @@
 
 @@ -316,25 +316,50 @@
 
-     
+
      def _connect_signals(self):
          """Connect widget signals"""
 +<<<<<<< HEAD
@@ -5377,71 +5377,71 @@
 +=======
          # Используем ТОЛЬКО valueEdited для избежания дублирования событий
 +>>>>>>> sync/remote-main
-         
+
          self.logger.debug("Connecting signals...")
-         
+
          # Frame dimensions
 +        self.wheelbase_slider.valueChanged.connect(
 +            lambda v: self._on_parameter_changed('wheelbase', v))
          self.wheelbase_slider.valueEdited.connect(
              lambda v: self._on_parameter_changed('wheelbase', v))
 +<<<<<<< HEAD
-+        
++
 +        self.track_slider.valueChanged.connect(
 +            lambda v: self._on_parameter_changed('track', v))
 +=======
          # Мгновенные обновления канвы
          self.wheelbase_slider.valueChanged.connect(
              lambda v: self._on_parameter_live_change('wheelbase', v))
-         
+
 +>>>>>>> sync/remote-main
          self.track_slider.valueEdited.connect(
              lambda v: self._on_parameter_changed('track', v))
          self.track_slider.valueChanged.connect(
              lambda v: self._on_parameter_live_change('track', v))
-         
+
          # Suspension geometry
 +        self.frame_to_pivot_slider.valueChanged.connect(
 +            lambda v: self._on_parameter_changed('frame_to_pivot', v))
          self.frame_to_pivot_slider.valueEdited.connect(
              lambda v: self._on_parameter_changed('frame_to_pivot', v))
 +<<<<<<< HEAD
-+            
++
 +        self.lever_length_slider.valueChanged.connect(
 +            lambda v: self._on_parameter_changed('lever_length', v))
 +        self.lever_length_slider.valueEdited.connect(
 +            lambda v: self._on_parameter_changed('lever_length', v))
-+            
++
 +        self.rod_position_slider.valueChanged.connect(
 +            lambda v: self._on_parameter_changed('rod_position', v))
 +=======
          self.frame_to_pivot_slider.valueChanged.connect(
              lambda v: self._on_parameter_live_change('frame_to_pivot', v))
-             
+
 @@ -343,14 +368,51 @@
 
          self.lever_length_slider.valueChanged.connect(
              lambda v: self._on_parameter_live_change('lever_length', v))
-             
+
 +>>>>>>> sync/remote-main
          self.rod_position_slider.valueEdited.connect(
              lambda v: self._on_parameter_changed('rod_position', v))
          self.rod_position_slider.valueChanged.connect(
              lambda v: self._on_parameter_live_change('rod_position', v))
-         
+
          # Cylinder dimensions
 +        self.cylinder_length_slider.valueChanged.connect(
 +            lambda v: self._on_parameter_changed('cylinder_length', v))
          self.cylinder_length_slider.valueEdited.connect(
              lambda v: self._on_parameter_changed('cylinder_length', v))
 +<<<<<<< HEAD
-+            
++
 +        # МШ-1: Параметры цилиндра
 +        self.cyl_diam_m_slider.valueChanged.connect(
 +            lambda v: self._on_parameter_changed('cyl_diam_m', v))
 +        self.cyl_diam_m_slider.valueEdited.connect(
 +            lambda v: self._on_parameter_changed('cyl_diam_m', v))
-+            
++
 +        self.stroke_m_slider.valueChanged.connect(
 +            lambda v: self._on_parameter_changed('stroke_m', v))
 +        self.stroke_m_slider.valueEdited.connect(
@@ -5473,7 +5473,7 @@
 +from PySide6.QtCore import QSettings, Qt, QTimer, Signal, Slot
 +from PySide6.QtGui import QColor, QStandardItem
 +=======
- 
+
  from PySide6.QtCore import QSettings, Qt, QTimer, Signal, Slot
  from PySide6.QtGui import QColor, QStandardItem
  from PySide6 import QtWidgets  # ✅ ДОБАВЛЕНО: модуль QtWidgets для безопасного доступа к QSlider
@@ -5494,7 +5494,7 @@
 
          row.setSpacing(6)
          layout.addLayout(row)
- 
+
 +<<<<<<< HEAD
 +        self._slider = QSlider(Qt.Horizontal, self)
 +=======
@@ -5503,7 +5503,7 @@
 +>>>>>>> sync/remote-main
          steps = max(1, int(round((self._max - self._min) / self._step)))
          self._slider.setRange(0, steps)
-         
+
 @@ -292,6 +308,16 @@
 
      def _build_defaults(self) -> Dict[str, Any]:
@@ -5589,7 +5589,7 @@
 -def get_cached_system_info():
 -    """Получить кэшированную системнюю информацию"""
 -    global _system_info_cache
--    
+-
 -    if not _system_info_cache:
 -        # Импортируем qVersion для получения версии Qt
 -        try:
@@ -5597,7 +5597,7 @@
 -            qt_version = qVersion()
 -        except:
 -            qt_version = "unknown"
--            
+-
 -        _system_info_cache = {
 -            'platform': sys.platform,
 -            'python_version': sys.version_info,
@@ -5606,7 +5606,7 @@
 -            'qtquick3d_setup': qtquick3d_setup_ok,
 -            'qt_version': qt_version
 -        }
--    
+-
 -    return _system_info_cache
 -
 -# =============================================================================
@@ -5633,10 +5633,10 @@
 +# QtQuick3D Environment Setup
 +# =============================================================================
 +
- 
+
  def setup_qtquick3d_environment():
 -    """Set up QtQuick3D environment variables before importing Qt - ОПТИМИЗИРОВАННАЯ"""
--    
+-
 -    # Проверяем кэш переменных окружения
 +    """Set up QtQuick3D environment variables before importing Qt"""
      required_vars = ["QML2_IMPORT_PATH", "QML_IMPORT_PATH", "QT_PLUGIN_PATH", "QT_QML_IMPORT_PATH"]
@@ -5661,27 +5661,27 @@
  # PneumoStabSim Professional - Production Dependencies
 -# Проверено для Python 3.8-3.13 (рекомендуется 3.9-3.11)
 +# Проверено для Python 3.11-3.13 (рекомендуется 3.13)
- 
+
  # === КРИТИЧЕСКИЕ ЗАВИСИМОСТИ ===
  # Qt Framework - основа GUI и 3D рендеринга
 -PySide6>=6.5.0,<7.0.0    # Qt6 framework для GUI и 3D
 -shiboken6                # Qt6 bindings generator
 +PySide6>=6.10.0,<7.0.0   # Qt6.10+ (ExtendedSceneEnvironment, Fog, dithering)
 +shiboken6                 # Qt6 bindings generator
- 
+
  # Numerical computing - основа физических расчетов
 -numpy>=1.21.0,<3.0.0     # Векторные вычисления
 -scipy>=1.7.0,<2.0.0      # Научные вычисления и ODE solver
 +numpy>=1.24.0,<3.0.0      # Векторные вычисления
 +scipy>=1.10.0,<2.0.0      # Научные вычисления и ODE solver
- 
+
  # === ДОПОЛНИТЕЛЬНЫЕ ПАКЕТЫ ===
  # Visualization и анализ данных
 -matplotlib>=3.5.0        # Графики и чарты
 -pillow>=9.0.0            # Обработка изображений для HDR текстур
 +matplotlib>=3.5.0         # Графики и чарты
 +pillow>=9.0.0             # Обработка изображений для HDR текстур
- 
+
  # Testing и development
 -pytest>=6.0.0           # Тестирование
 -PyYAML>=6.0             # Конфигурационные файлы
@@ -5689,7 +5689,7 @@
 +PyYAML>=6.0               # Конфигурационные файлы
 +python-dotenv>=1.0.0      # Переменные окружения из .env
 +psutil>=5.8.0             # Мониторинг
- 
+
  # === ОПЦИОНАЛЬНЫЕ УЛУЧШЕНИЯ ===
 -# 3D геометрия и визуализация
 -# trimesh>=3.15.0        # 3D mesh обработка (опционально)
@@ -5702,7 +5702,7 @@
 +# pyqtgraph>=0.12.0       # Быстрые графики (опционально)
 +# numba>=0.56.0           # JIT компиляция (опционально)
 +# cython>=0.29.0          # C расширения (опционально)
- 
+
  # === СОВМЕСТИМОСТЬ ===
  # Проверено на:
 -# - Windows 10/11 (Python 3.9-3.13)
@@ -5711,7 +5711,7 @@
 +# - Windows 10/11 (Python 3.11-3.13)
 +# - Ubuntu 22.04/24.04 (Python 3.11-3.12)
 +# - macOS 13+ (Python 3.11-3.12)
- 
+
  # Примечания:
 -# 1. PySide6 6.9.3+ рекомендуется для ExtendedSceneEnvironment
 -# 2. NumPy 2.0+ совместим, но может требовать обновления других пакетов
@@ -5737,7 +5737,7 @@
 
  echo ================================================================
  echo.
- 
+
 +rem Prefer Python 3.13 if available via py launcher
 +set "PYTHON_CMD="
 +py -3.13 -c "import sys" >nul 2>&1 && set "PYTHON_CMD=py -3.13"
@@ -5768,7 +5768,7 @@
  rem Check if virtual environment exists
  if not exist "venv\Scripts\activate.bat" (
      echo Creating virtual environment...
--    
+-
 -    rem Try different Python commands for compatibility
 -    python -c "import sys; exit(0)" >nul 2>&1
 +
@@ -5788,7 +5788,7 @@
 -        set PYTHON_CMD=python
 +        echo WARNING: Python version may not be fully compatible (recommended 3.13). Continuing...
      )
--    
+-
 -    rem Check Python version before creating venv
 -    %PYTHON_CMD% -c "import sys; major, minor = sys.version_info[:2]; print(f'Using Python {major}.{minor}'); exit(0 if (3, 8) <= (major, minor) <= (3, 12) else 1)"
 -    if errorlevel 1 (
@@ -5801,7 +5801,7 @@
 -            exit /b 1
 -        )
 -    )
--    
+-
 +
      %PYTHON_CMD% -m venv venv --clear
      if errorlevel 1 (
@@ -5811,7 +5811,7 @@
  echo Installing project dependencies...
  if exist "requirements.txt" (
      echo Installing from requirements.txt...
--    
+-
 -    rem First try normal installation
 ... (обрезано)
 
@@ -5963,7 +5963,7 @@
 +import QtQuick.Controls
 +import Qt.labs.folderlistmodel
  import "components"
- 
+
  /*
 - * PneumoStabSim - COMPLETE Graphics Parameters Main 3D View (v4.8)
 - * 🚀 ИСПРАВЛЕНО: Туман через объект Fog (Qt 6.10+)
@@ -5983,17 +5983,17 @@
      anchors.fill: parent
 +    // Toggle to show/hide in-canvas UI controls (to avoid duplication with external GraphicsPanel)
 +    property bool showOverlayControls: false
-+    
++
 +    // ===============================================================
 +    // 🚀 SIGNALS - ACK для Python после применения обновлений
 +    // ===============================================================
-+    
++
 +    signal batchUpdatesApplied(var summary)
- 
+
      // ===============================================================
      // 🚀 QT VERSION DETECTION (для условной активации возможностей)
      // ===============================================================
-     
+
 -    readonly property var qtVersionParts: Qt.version.split('.')
 -    readonly property int qtMajor: parseInt(qtVersionParts[0])
 -    readonly property int qtMinor: parseInt(qtVersionParts[1])
@@ -6002,27 +6002,27 @@
 +    readonly property int qtMajor: qtVersionParts.length > 0 ? parseInt(qtVersionParts[0]) : 6
 +    readonly property int qtMinor: qtVersionParts.length > 1 ? parseInt(qtVersionParts[1]) : 0
      readonly property bool supportsQtQuick3D610Features: qtMajor === 6 && qtMinor >= 10
-     
+
      // ✅ Условная поддержка dithering (доступно с Qt 6.10)
 @@ -26,7 +43,17 @@
 
      readonly property bool canUseDithering: supportsQtQuick3D610Features
- 
+
      // ===============================================================
 -    // 🚀 PERFORMANCE OPTIMIZATION LAYER (preserved)
 +    // 🚀 CRITICAL FIX v4.9.4: SKYBOX ROTATION - INDEPENDENT FROM CAMERA
 +    // ===============================================================
-+    
++
 +    // ✅ ПРАВИЛЬНО: Skybox вращается ТОЛЬКО от пользовательского iblRotationDeg
 +    // Камера НЕ влияет на skybox вообще!
-+    
++
 +    // ❌ УДАЛЕНО: envYaw, _prevCameraYaw, updateCameraYaw() - это было НЕПРАВИЛЬНО
 +    // Эти переменные СВЯЗЫВАЛИ фон с камерой, что вызывало проблему
 +
 +    // ===============================================================
 +    // 🚀 PERFORMANCE OPTIMIZATION LAYER
      // ===============================================================
-     
+
      // ✅ ОПТИМИЗАЦИЯ #1: Кэширование анимационных вычислений
 @@ -146,21 +173,39 @@
 
@@ -6055,11 +6055,11 @@
 
  import QtQuick
  import QtQuick3D
- 
+
 -QtObject {
 +Item {
      id: controller
- 
+
      /**
 @@ -14,35 +14,215 @@
 
@@ -6072,10 +6072,10 @@
 +=======
      property url fallbackSource: Qt.resolvedUrl("../../assets/studio_small_09_2k.hdr")
 +>>>>>>> sync/remote-main
- 
+
      /** Internal flag preventing infinite fallback recursion. */
      property bool _fallbackTried: false
- 
+
 -    /** Expose the probe for consumers. */
 -    property Texture probe: Texture {
 -        id: hdrProbe
@@ -6120,12 +6120,12 @@
 +    function writeLog(level, message) {
 +        var timestamp = new Date().toISOString()
 +        var logEntry = timestamp + " | " + level + " | IblProbeLoader | " + message
-+        
++
 +        // Отправляем в Python для записи в файл
 +        if (typeof window !== "undefined" && window !== null && window.logIblEvent) {
 +            window.logIblEvent(logEntry)
 +        }
-+        
++
 +        // Также выводим в консоль для отладки
 +        if (level === "ERROR" || level === "WARN") {
 +            console.warn(logEntry)
@@ -6153,7 +6153,7 @@
  Overwrites log file on each run, ensures proper cleanup
 +УЛУЧШЕННАЯ ВЕРСИЯ с ротацией и контекстными логгерами
  """
- 
+
  import logging
 @@ -11,27 +12,79 @@
 
@@ -6164,8 +6164,8 @@
 +from typing import Optional, Dict, Any
  from datetime import datetime
 +import traceback
- 
- 
+
+
  # Global queue listener for cleanup
  _queue_listener: Optional[logging.handlers.QueueListener] = None
 -
@@ -6176,11 +6176,11 @@
 +
 +class ContextualFilter(logging.Filter):
 +    """Добавляет контекстную информацию к логам"""
-+    
++
 +    def __init__(self, context: Dict[str, Any] = None):
 +        super().__init__()
 +        self.context = context or {}
-+    
++
 +    def filter(self, record):
 +        # Добавляем контекст к каждому record
 +        for key, value in self.context.items():
@@ -6190,7 +6190,7 @@
 +
 +class ColoredFormatter(logging.Formatter):
 +    """Форматтер с цветами для консоли (опционально)"""
-+    
++
 +    COLORS = {
 +        'DEBUG': '\033[36m',     # Cyan
 +        'INFO': '\033[32m',      # Green
@@ -6199,7 +6199,7 @@
 +        'CRITICAL': '\033[35m',  # Magenta
 +        'RESET': '\033[0m'
 +    }
-+    
++
 +    def format(self, record):
 +        if hasattr(sys.stdout, 'isatty') and sys.stdout.isatty():
 +            levelname = record.levelname
@@ -6216,13 +6216,13 @@
 +    console_output: bool = False
 +) -> logging.Logger:
      """Initialize application logging with non-blocking queue handler
-     
+
 +    УЛУЧШЕНИЯ v4.9.5:
 +    - Ротация логов (max_bytes, backup_count)
 +    - Опциональный вывод в консоль
 +    - Цветной вывод для консоли
 +    - Контекстные фильтры
-+    
++
      Features:
 -    - Overwrites log file on each run (mode='w')
 +    - Log rotation with configurable size/count
@@ -6267,18 +6267,18 @@
 +    STATE_CHANGE = auto()        # Изменение state в Python
 +    SIGNAL_EMIT = auto()         # Вызов .emit() сигнала
 +    QML_INVOKE = auto()          # QMetaObject.invokeMethod
-+    
++
 +    # QML events
 +    SIGNAL_RECEIVED = auto()     # QML получил сигнал (onXxxChanged)
 +    FUNCTION_CALLED = auto()     # QML функция вызвана
 +    PROPERTY_CHANGED = auto()    # QML property изменилось
-+    
++
 +    # ✅ НОВОЕ: Mouse events in QML
 +    MOUSE_PRESS = auto()         # Нажатие мыши на канве
 +    MOUSE_DRAG = auto()          # Перетаскивание
 +    MOUSE_WHEEL = auto()         # Прокрутка колесика (zoom)
 +    MOUSE_RELEASE = auto()       # Отпускание мыши
-+    
++
 +    # Errors
 +    PYTHON_ERROR = auto()        # Ошибка в Python
 +    QML_ERROR = auto()           # Ошибка в QML
@@ -6286,24 +6286,24 @@
 +
 +class EventLogger:
 +    """Singleton логгер для отслеживания Python↔QML событий"""
-+    
++
 +    _instance: Optional['EventLogger'] = None
 +    _initialized: bool = False
-+    
++
 +    def __new__(cls):
 +        if cls._instance is None:
 +            cls._instance = super().__new__(cls)
 +        return cls._instance
-+    
++
 +    def __init__(self):
 +        if EventLogger._initialized:
 +            return
-+        
++
 +        self.logger = logging.getLogger("EventLogger")
 +        self.events: list[Dict[str, Any]] = []
 +        self._session_id = datetime.now().strftime("%Y%m%d_%H%M%S")
 +        EventLogger._initialized = True
-+    
++
 +    def log_event(
 +        self,
 +        event_type: EventType,
@@ -6317,7 +6317,7 @@
 +    ) -> None:
 +        """
 +        Логирование события
-+        
++
 +        Args:
 +            event_type: Тип события
 ... (обрезано)
@@ -6353,7 +6353,7 @@
 +
 +class LogAnalysisResult:
 +    """Результат анализа логов"""
-+    
++
 +    def __init__(self):
 +        self.errors: List[str] = []
 +        self.warnings: List[str] = []
@@ -6361,32 +6361,32 @@
 +        self.metrics: Dict[str, float] = {}
 +        self.recommendations: List[str] = []
 +        self.status: str = "unknown"  # ok, warning, error
-+    
++
 +    def is_ok(self) -> bool:
 +        """Проверяет, всё ли в порядке"""
 +        return len(self.errors) == 0 and self.status != "error"
-+    
++
 +    def add_error(self, message: str):
 +        """Добавляет ошибку"""
 +        self.errors.append(message)
 +        self.status = "error"
-+    
++
 +    def add_warning(self, message: str):
 +        """Добавляет предупреждение"""
 +        self.warnings.append(message)
 +        if self.status != "error":
 +            self.status = "warning"
-+    
++
 +    def add_info(self, message: str):
 +        """Добавляет информацию"""
 +        self.info.append(message)
 +        if self.status == "unknown":
 +            self.status = "ok"
-+    
++
 +    def add_metric(self, name: str, value: float):
 +        """Добавляет метрику"""
 +        self.metrics[name] = value
-+    
++
 +    def add_recommendation(self, message: str):
 +        """Добавляет рекомендацию"""
 +        self.recommendations.append(message)
@@ -6394,26 +6394,26 @@
 +
 +class UnifiedLogAnalyzer:
 +    """Объединенный анализатор всех типов логов"""
-+    
++
 +    def __init__(self, logs_dir: Path = Path("logs")):
 +        self.logs_dir = logs_dir
 +        self.results: Dict[str, LogAnalysisResult] = {}
-+    
++
 +    def analyze_all(self) -> Dict[str, LogAnalysisResult]:
 +        """Запускает полный анализ всех логов"""
-+        
++
 +        # Основной лог
 +        self.results['main'] = self._analyze_main_log()
-+        
++
 +        # Graphics логи
 +        self.results['graphics'] = self._analyze_graphics_logs()
-+        
++
 +        # IBL логи
 +        self.results['ibl'] = self._analyze_ibl_logs()
-+        
++
 +        # Event логи (Python↔QML)
 +        self.results['events'] = self._analyze_event_logs()
-+        
++
 ... (обрезано)
 
 ```
@@ -6440,7 +6440,7 @@
 +>>>>>>> sync/remote-main
  from pathlib import Path
  from typing import Optional, Dict, Any
- 
+
  from src.ui.charts import ChartWidget
  from src.ui.panels import GeometryPanel, PneumoPanel, ModesPanel, RoadPanel, GraphicsPanel
  from ..runtime import SimulationManager, StateSnapshot
@@ -6450,8 +6450,8 @@
 +# ✅ НОВОЕ: EventLogger для логирования QML вызовов
 +from src.common.event_logger import get_event_logger
 +>>>>>>> sync/remote-main
- 
- 
+
+
  class MainWindow(QMainWindow):
 @@ -44,6 +54,10 @@
 
@@ -6463,31 +6463,31 @@
 +
 +>>>>>>> sync/remote-main
      SETTINGS_LAST_PRESET = "Presets/LastPath"
- 
+
      QML_UPDATE_METHODS: Dict[str, tuple[str, ...]] = {
 @@ -80,6 +94,17 @@
 
          # Logging
          self.logger = logging.getLogger(self.__class__.__name__)
-         
+
 +        # ✅ НОВОЕ: Инициализация IBL Signal Logger
 +        self.ibl_logger = get_ibl_logger()
 +        log_ibl_event("INFO", "MainWindow", "IBL Logger initialized")
-+        
++
 +<<<<<<< HEAD
 +=======
 +        # ✅ НОВОЕ: Инициализируем EventLogger (Python↔QML)
 +        self.event_logger = get_event_logger()
 +        self.logger.info("EventLogger initialized in MainWindow")
-+        
++
 +>>>>>>> sync/remote-main
          print("MainWindow: Создание SimulationManager...")
-         
+
          # Simulation manager
 @@ -165,7 +190,11 @@
 
          print("✅ MainWindow.__init__() завершён")
- 
+
      # ------------------------------------------------------------------
 +<<<<<<< HEAD
      # UI Construction - НОВАЯ СТРУКТРАА!
@@ -6501,13 +6501,13 @@
 
              # CRITICAL: Set up QML import paths BEFORE loading any QML
              engine = self._qquick_widget.engine()
-             
+
 +            # ✅ КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Устанавливаем контекст ДО загрузки QML!
 +            context = engine.rootContext()
 +            context.setContextProperty("window", self)  # Экспонируем MainWindow в QML
 +            log_ibl_event("INFO", "MainWindow", "IBL Logger registered in QML context (BEFORE QML load)")
 +            print("    ✅ IBL Logger context registered BEFORE QML load")
-+            
++
              # Add Qt's QML import path
              from PySide6.QtCore import QLibraryInfo
              qml_path = QLibraryInfo.path(QLibraryInfo.LibraryPath.Qml2ImportsPath)
@@ -6532,61 +6532,61 @@
 
          # Dependency resolution state
          self._resolving_conflict = False
-         
+
 +        # Logger
 +        from src.common import get_category_logger
 +        self.logger = get_category_logger("GeometryPanel")
 +        self.logger.info("GeometryPanel initializing...")
-+        
++
          # Setup UI
          self._setup_ui()
-         
+
 @@ -52,30 +57,18 @@
 
          # Size policy
          self.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Expanding)
-         
+
 -        # ✨ ИСПРАВЛЕНО: Отправляем начальные параметры геометрии в QML!
 -        print("🔧 GeometryPanel: Планируем отправку начальных параметров геометрии...")
--        
+-
 -        # Используем QTimer для отложенной отправки после полной инициализации UI
 +        # Отправляем начальные параметры геометрии в QML
          from PySide6.QtCore import QTimer
-         
+
          def send_initial_geometry():
 -            print("⏰ QTimer: Отправка начальной геометрии...")
--            
+-
 -            # Формируем полную геометрию для QML (как в _get_fast_geometry_update)
 +            self.logger.info("Sending initial geometry to QML...")
              initial_geometry = self._get_fast_geometry_update("init", 0.0)
--            
+-
 -            # Отправляем сигналы без проверки подписчиков (она не работает в PySide6)
 -            print(f"  📡 Отправка geometry_changed...")
              self.geometry_changed.emit(initial_geometry)
 -            print(f"  📡 geometry_changed отправлен с rodPosition = {initial_geometry.get('rodPosition', 'НЕ НАЙДЕН')}")
--            
+-
 -            print(f"  📡 Отправка geometry_updated...")
              self.geometry_updated.emit(self.parameters.copy())
 -            print(f"  📡 geometry_updated отправлен")
--        
+-
 -        # УВЕЛИЧИВАЕМ задержку для гарантии готовности главного окна
 -        QTimer.singleShot(500, send_initial_geometry)  # Было 100мс, стало 500мс
 -        print("  ⏰ Таймер установлен на 500мс для отправки начальной геометрии")
 +            self.logger.info("Initial geometry sent successfully")
-+        
++
 +        QTimer.singleShot(500, send_initial_geometry)
 +        self.logger.info("GeometryPanel initialized successfully")
-     
+
      def _setup_ui(self):
          """Настроить интерфейс / Setup user interface"""
 @@ -323,54 +316,143 @@
 
-     
+
      def _connect_signals(self):
          """Connect widget signals"""
 -        # ИСПРАВЛЕНО: Используем ТОЛЬКО valueEdited для избежания дублирования событий
 -        # valueChanged срабатывает слишком часто (при каждом движении), valueEdited - только при завершении редактирования
--        
+-
 -        # Frame dimensions - ТОЛЬКО valueEdited
 +<<<<<<< HEAD
 +        # Реал-тайм: valueChanged для мгновенных обновлений геометрии
@@ -6594,17 +6594,17 @@
 +=======
 +        # Используем ТОЛЬКО valueEdited для избежания дублирования событий
 +>>>>>>> sync/remote-main
-+        
++
 +        self.logger.debug("Connecting signals...")
-+        
++
 +        # Frame dimensions
 +        self.wheelbase_slider.valueChanged.connect(
 +            lambda v: self._on_parameter_changed('wheelbase', v))
          self.wheelbase_slider.valueEdited.connect(
              lambda v: self._on_parameter_changed('wheelbase', v))
--        
+-
 +<<<<<<< HEAD
-+        
++
 +        self.track_slider.valueChanged.connect(
 +            lambda v: self._on_parameter_changed('track', v))
 +=======
@@ -6633,7 +6633,7 @@
 +<<<<<<< HEAD
 +from urllib.parse import urlparse
 +from pathlib import PurePosixPath
- 
+
  from PySide6.QtCore import QSettings, Qt, QTimer, Signal, Slot
  from PySide6.QtGui import QColor, QStandardItem
 +=======
@@ -6658,14 +6658,14 @@
 
      QWidget,
  )
- 
+
 +# Импортируем логгер графических изменений
 +from .graphics_logger import get_graphics_logger
 +
 +# ✅ НОВОЕ: Импорт EventLogger для отслеживания UI событий
 +from src.common.event_logger import get_event_logger, EventType
 +
- 
+
  class ColorButton(QPushButton):
      """Small color preview button that streams changes from QColorDialog."""
 @@ -37,6 +56,7 @@
@@ -6676,38 +6676,38 @@
 +        self._user_triggered = False  # ✅ НОВОЕ: флаг пользовательского действия
          self._update_swatch()
          self.clicked.connect(self._open_dialog)
- 
+
 @@ -44,6 +64,7 @@
 
          return self._color
- 
+
      def set_color(self, color_str: str) -> None:
 +        """Программное изменение цвета (без логирования)"""
          self._color = QColor(color_str)
          self._update_swatch()
- 
+
 @@ -59,6 +80,9 @@
 
- 
+
      @Slot()
      def _open_dialog(self) -> None:
 +        # ✅ Пользователь кликнул на кнопку - это пользовательское действие
 +        self._user_triggered = True
-+        
++
          if self._dialog:
              return
- 
+
 @@ -77,13 +101,17 @@
 
              return
          self._color = color
          self._update_swatch()
 -        self.color_changed.emit(color.name())
-+        
++
 +        # ✅ Испускаем сигнал ТОЛЬКО если это пользовательское действие
 +        if self._user_triggered:
 +            self.color_changed.emit(color.name())
- 
+
 ... (обрезано)
 
 ```
@@ -6774,31 +6774,31 @@
 +    required_vars = ["QML2_IMPORT_PATH", "QML_IMPORT_PATH", "QT_PLUGIN_PATH", "QT_QML_IMPORT_PATH"]
 +    if all(var in os.environ for var in required_vars):
 +        return True
-+    
++
 +    try:
 +        import importlib.util
 +        spec = importlib.util.find_spec("PySide6.QtCore")
 +        if spec is None:
 +            log_error("PySide6 not found!")
 +            return False
-+            
++
 +        from PySide6.QtCore import QLibraryInfo
-+        
++
 +        qml_path = QLibraryInfo.path(QLibraryInfo.LibraryPath.Qml2ImportsPath)
 +        plugins_path = QLibraryInfo.path(QLibraryInfo.LibraryPath.PluginsPath)
-+        
++
 +        qtquick3d_env = {
 +            "QML2_IMPORT_PATH": str(qml_path),
 +            "QML_IMPORT_PATH": str(qml_path),
 +            "QT_PLUGIN_PATH": str(plugins_path),
 +            "QT_QML_IMPORT_PATH": str(qml_path),
 +        }
-+        
++
 +        for var, value in qtquick3d_env.items():
 +            os.environ[var] = value
-+        
++
 +        return True
-+        
++
 +    except Exception as e:
 +        log_error(f"QtQuick3D setup failed: {e}")
 +        return False
@@ -6825,27 +6825,27 @@
  # PneumoStabSim Professional - Production Dependencies
 -# Проверено для Python 3.8-3.13 (рекомендуется 3.9-3.11)
 +# Проверено для Python 3.11-3.13 (рекомендуется 3.13)
- 
+
  # === КРИТИЧЕСКИЕ ЗАВИСИМОСТИ ===
  # Qt Framework - основа GUI и 3D рендеринга
 -PySide6>=6.5.0,<7.0.0    # Qt6 framework для GUI и 3D
 -shiboken6                # Qt6 bindings generator
 +PySide6>=6.10.0,<7.0.0   # Qt6.10+ (ExtendedSceneEnvironment, Fog, dithering)
 +shiboken6                 # Qt6 bindings generator
- 
+
  # Numerical computing - основа физических расчетов
 -numpy>=1.21.0,<3.0.0     # Векторные вычисления
 -scipy>=1.7.0,<2.0.0      # Научные вычисления и ODE solver
 +numpy>=1.24.0,<3.0.0      # Векторные вычисления
 +scipy>=1.10.0,<2.0.0      # Научные вычисления и ODE solver
- 
+
  # === ДОПОЛНИТЕЛЬНЫЕ ПАКЕТЫ ===
  # Visualization и анализ данных
 -matplotlib>=3.5.0        # Графики и чарты
 -pillow>=9.0.0            # Обработка изображений для HDR текстур
 +matplotlib>=3.5.0         # Графики и чарты
 +pillow>=9.0.0             # Обработка изображений для HDR текстур
- 
+
  # Testing и development
 -pytest>=6.0.0           # Тестирование
 -PyYAML>=6.0             # Конфигурационные файлы
@@ -6853,7 +6853,7 @@
 +PyYAML>=6.0               # Конфигурационные файлы
 +python-dotenv>=1.0.0      # Переменные окружения из .env
 +psutil>=5.8.0             # Мониторинг
- 
+
  # === ОПЦИОНАЛЬНЫЕ УЛУЧШЕНИЯ ===
 -# 3D геометрия и визуализация
 -# trimesh>=3.15.0        # 3D mesh обработка (опционально)
@@ -6866,7 +6866,7 @@
 +# pyqtgraph>=0.12.0       # Быстрые графики (опционально)
 +# numba>=0.56.0           # JIT компиляция (опционально)
 +# cython>=0.29.0          # C расширения (опционально)
- 
+
  # === СОВМЕСТИМОСТЬ ===
  # Проверено на:
 -# - Windows 10/11 (Python 3.9-3.13)
@@ -6875,7 +6875,7 @@
 +# - Windows 10/11 (Python 3.11-3.13)
 +# - Ubuntu 22.04/24.04 (Python 3.11-3.12)
 +# - macOS 13+ (Python 3.11-3.12)
- 
+
  # Примечания:
 -# 1. PySide6 6.9.3+ рекомендуется для ExtendedSceneEnvironment
 -# 2. NumPy 2.0+ совместим, но может требовать обновления других пакетов
@@ -6901,7 +6901,7 @@
 
  echo ================================================================
  echo.
- 
+
 +rem Prefer Python 3.13 if available via py launcher
 +set "PYTHON_CMD="
 +py -3.13 -c "import sys" >nul 2>&1 && set "PYTHON_CMD=py -3.13"
@@ -6932,7 +6932,7 @@
  rem Check if virtual environment exists
  if not exist "venv\Scripts\activate.bat" (
      echo Creating virtual environment...
--    
+-
 -    rem Try different Python commands for compatibility
 -    python -c "import sys; exit(0)" >nul 2>&1
 +
@@ -6952,7 +6952,7 @@
 -        set PYTHON_CMD=python
 +        echo WARNING: Python version may not be fully compatible (recommended 3.13). Continuing...
      )
--    
+-
 -    rem Check Python version before creating venv
 -    %PYTHON_CMD% -c "import sys; major, minor = sys.version_info[:2]; print(f'Using Python {major}.{minor}'); exit(0 if (3, 8) <= (major, minor) <= (3, 12) else 1)"
 -    if errorlevel 1 (
@@ -6965,7 +6965,7 @@
 -            exit /b 1
 -        )
 -    )
--    
+-
 +
      %PYTHON_CMD% -m venv venv --clear
      if errorlevel 1 (
@@ -6975,7 +6975,7 @@
  echo Installing project dependencies...
  if exist "requirements.txt" (
      echo Installing from requirements.txt...
--    
+-
 -    rem First try normal installation
 ... (обрезано)
 
@@ -7014,7 +7014,7 @@
  PYTHONIOENCODING=utf-8
 -PYTHONDONTWRITEBYTECODE=1
 -
--# Qt Configuration  
+-# Qt Configuration
 -QSG_RHI_BACKEND=d3d11
 -QT_LOGGING_RULES=js.debug=true;qt.qml.debug=true
 -QSG_INFO=1
@@ -7149,7 +7149,7 @@
 +import QtQuick.Controls
 +import Qt.labs.folderlistmodel
 +import "components"
- 
+
  /*
 - * PneumoStabSim - Unified Optimized 3D View v3.0
 - * ✅ Объединяет лучшие части main.qml и main_optimized.qml
@@ -7171,23 +7171,23 @@
      anchors.fill: parent
 +    // Toggle to show/hide in-canvas UI controls (to avoid duplication with external GraphicsPanel)
 +    property bool showOverlayControls: false
-+    
++
 +    // ===============================================================
 +    // 🚀 SIGNALS - ACK для Python после применения обновлений
 +    // ===============================================================
-+    
++
 +    signal batchUpdatesApplied(var summary)
 +
 +    // ===============================================================
 +    // 🚀 QT VERSION DETECTION (для условной активации возможностей)
 +    // ===============================================================
-+    
++
 +    readonly property string qtVersionString: typeof Qt.version !== "undefined" ? Qt.version : "6.0.0"
 +    readonly property var qtVersionParts: qtVersionString.split('.')
 +    readonly property int qtMajor: qtVersionParts.length > 0 ? parseInt(qtVersionParts[0]) : 6
 +    readonly property int qtMinor: qtVersionParts.length > 1 ? parseInt(qtVersionParts[1]) : 0
 +    readonly property bool supportsQtQuick3D610Features: qtMajor === 6 && qtMinor >= 10
-+    
++
 +    // ✅ Условная поддержка dithering (доступно с Qt 6.10)
 +    property bool ditheringEnabled: true  // Управляется из GraphicsPanel
 +    readonly property bool canUseDithering: supportsQtQuick3D610Features
@@ -7195,32 +7195,32 @@
 +    // ===============================================================
 +    // 🚀 CRITICAL FIX v4.9.4: SKYBOX ROTATION - INDEPENDENT FROM CAMERA
 +    // ===============================================================
-+    
++
 +    // ✅ ПРАВИЛЬНО: Skybox вращается ТОЛЬКО от пользовательского iblRotationDeg
 +    // Камера НЕ влияет на skybox вообще!
-+    
++
 +    // ❌ УДАЛЕНО: envYaw, _prevCameraYaw, updateCameraYaw() - это было НЕПРАВИЛЬНО
 +    // Эти переменные СВЯЗЫВАЛИ фон с камерой, что вызывало проблему
- 
+
      // ===============================================================
      // 🚀 PERFORMANCE OPTIMIZATION LAYER
      // ===============================================================
-     
+
 -    // Кэширование анимационных вычислений
 +    // ✅ ОПТИМИЗАЦИЯ #1: Кэширование анимационных вычислений
      QtObject {
          id: animationCache
-         
+
 @@ -38,7 +77,7 @@
 
          property real rrSin: Math.sin(basePhase + rrPhaseRad)
      }
-     
+
 -    // Геометрический калькулятор с кэшированием
 +    // ✅ ОПТИМИЗАЦИЯ #2: Геометрический калькулятор
      QtObject {
          id: geometryCache
-         
+
 ... (обрезано)
 
 ```
@@ -7240,11 +7240,11 @@
 
  import QtQuick
  import QtQuick3D
- 
+
 -QtObject {
 +Item {
      id: controller
- 
+
      /**
 @@ -14,34 +14,215 @@
 
@@ -7257,10 +7257,10 @@
 +=======
      property url fallbackSource: Qt.resolvedUrl("../../assets/studio_small_09_2k.hdr")
 +>>>>>>> sync/remote-main
- 
+
      /** Internal flag preventing infinite fallback recursion. */
      property bool _fallbackTried: false
- 
+
 +<<<<<<< HEAD
 +    /**
 +      * Double-buffered textures to prevent flicker when switching HDRs.
@@ -7291,7 +7291,7 @@
 -    /** Simple ready flag to avoid binding against an invalid texture. */
 -    readonly property bool ready: hdrProbe.status === Texture.Ready
 +    property Texture probe: hdrProbe
- 
+
      Texture {
          id: hdrProbe
          source: controller.primarySource
@@ -7315,7 +7315,7 @@
 +    function writeLog(level, message) {
 +        var timestamp = new Date().toISOString()
 +        var logEntry = timestamp + " | " + level + " | IblProbeLoader | " + message
-+        
++
 ... (обрезано)
 
 ```
@@ -7338,7 +7338,7 @@
  Overwrites log file on each run, ensures proper cleanup
 +УЛУЧШЕННАЯ ВЕРСИЯ с ротацией и контекстными логгерами
  """
- 
+
  import logging
 @@ -11,27 +12,79 @@
 
@@ -7349,8 +7349,8 @@
 +from typing import Optional, Dict, Any
  from datetime import datetime
 +import traceback
- 
- 
+
+
  # Global queue listener for cleanup
  _queue_listener: Optional[logging.handlers.QueueListener] = None
 -
@@ -7361,11 +7361,11 @@
 +
 +class ContextualFilter(logging.Filter):
 +    """Добавляет контекстную информацию к логам"""
-+    
++
 +    def __init__(self, context: Dict[str, Any] = None):
 +        super().__init__()
 +        self.context = context or {}
-+    
++
 +    def filter(self, record):
 +        # Добавляем контекст к каждому record
 +        for key, value in self.context.items():
@@ -7375,7 +7375,7 @@
 +
 +class ColoredFormatter(logging.Formatter):
 +    """Форматтер с цветами для консоли (опционально)"""
-+    
++
 +    COLORS = {
 +        'DEBUG': '\033[36m',     # Cyan
 +        'INFO': '\033[32m',      # Green
@@ -7384,7 +7384,7 @@
 +        'CRITICAL': '\033[35m',  # Magenta
 +        'RESET': '\033[0m'
 +    }
-+    
++
 +    def format(self, record):
 +        if hasattr(sys.stdout, 'isatty') and sys.stdout.isatty():
 +            levelname = record.levelname
@@ -7401,13 +7401,13 @@
 +    console_output: bool = False
 +) -> logging.Logger:
      """Initialize application logging with non-blocking queue handler
-     
+
 +    УЛУЧШЕНИЯ v4.9.5:
 +    - Ротация логов (max_bytes, backup_count)
 +    - Опциональный вывод в консоль
 +    - Цветной вывод для консоли
 +    - Контекстные фильтры
-+    
++
      Features:
 -    - Overwrites log file on each run (mode='w')
 +    - Log rotation with configurable size/count
@@ -7452,18 +7452,18 @@
 +    STATE_CHANGE = auto()        # Изменение state в Python
 +    SIGNAL_EMIT = auto()         # Вызов .emit() сигнала
 +    QML_INVOKE = auto()          # QMetaObject.invokeMethod
-+    
++
 +    # QML events
 +    SIGNAL_RECEIVED = auto()     # QML получил сигнал (onXxxChanged)
 +    FUNCTION_CALLED = auto()     # QML функция вызвана
 +    PROPERTY_CHANGED = auto()    # QML property изменилось
-+    
++
 +    # ✅ НОВОЕ: Mouse events in QML
 +    MOUSE_PRESS = auto()         # Нажатие мыши на канве
 +    MOUSE_DRAG = auto()          # Перетаскивание
 +    MOUSE_WHEEL = auto()         # Прокрутка колесика (zoom)
 +    MOUSE_RELEASE = auto()       # Отпускание мыши
-+    
++
 +    # Errors
 +    PYTHON_ERROR = auto()        # Ошибка в Python
 +    QML_ERROR = auto()           # Ошибка в QML
@@ -7471,24 +7471,24 @@
 +
 +class EventLogger:
 +    """Singleton логгер для отслеживания Python↔QML событий"""
-+    
++
 +    _instance: Optional['EventLogger'] = None
 +    _initialized: bool = False
-+    
++
 +    def __new__(cls):
 +        if cls._instance is None:
 +            cls._instance = super().__new__(cls)
 +        return cls._instance
-+    
++
 +    def __init__(self):
 +        if EventLogger._initialized:
 +            return
-+        
++
 +        self.logger = logging.getLogger("EventLogger")
 +        self.events: list[Dict[str, Any]] = []
 +        self._session_id = datetime.now().strftime("%Y%m%d_%H%M%S")
 +        EventLogger._initialized = True
-+    
++
 +    def log_event(
 +        self,
 +        event_type: EventType,
@@ -7502,7 +7502,7 @@
 +    ) -> None:
 +        """
 +        Логирование события
-+        
++
 +        Args:
 +            event_type: Тип события
 ... (обрезано)
@@ -7538,7 +7538,7 @@
 +
 +class LogAnalysisResult:
 +    """Результат анализа логов"""
-+    
++
 +    def __init__(self):
 +        self.errors: List[str] = []
 +        self.warnings: List[str] = []
@@ -7546,32 +7546,32 @@
 +        self.metrics: Dict[str, float] = {}
 +        self.recommendations: List[str] = []
 +        self.status: str = "unknown"  # ok, warning, error
-+    
++
 +    def is_ok(self) -> bool:
 +        """Проверяет, всё ли в порядке"""
 +        return len(self.errors) == 0 and self.status != "error"
-+    
++
 +    def add_error(self, message: str):
 +        """Добавляет ошибку"""
 +        self.errors.append(message)
 +        self.status = "error"
-+    
++
 +    def add_warning(self, message: str):
 +        """Добавляет предупреждение"""
 +        self.warnings.append(message)
 +        if self.status != "error":
 +            self.status = "warning"
-+    
++
 +    def add_info(self, message: str):
 +        """Добавляет информацию"""
 +        self.info.append(message)
 +        if self.status == "unknown":
 +            self.status = "ok"
-+    
++
 +    def add_metric(self, name: str, value: float):
 +        """Добавляет метрику"""
 +        self.metrics[name] = value
-+    
++
 +    def add_recommendation(self, message: str):
 +        """Добавляет рекомендацию"""
 +        self.recommendations.append(message)
@@ -7579,26 +7579,26 @@
 +
 +class UnifiedLogAnalyzer:
 +    """Объединенный анализатор всех типов логов"""
-+    
++
 +    def __init__(self, logs_dir: Path = Path("logs")):
 +        self.logs_dir = logs_dir
 +        self.results: Dict[str, LogAnalysisResult] = {}
-+    
++
 +    def analyze_all(self) -> Dict[str, LogAnalysisResult]:
 +        """Запускает полный анализ всех логов"""
-+        
++
 +        # Основной лог
 +        self.results['main'] = self._analyze_main_log()
-+        
++
 +        # Graphics логи
 +        self.results['graphics'] = self._analyze_graphics_logs()
-+        
++
 +        # IBL логи
 +        self.results['ibl'] = self._analyze_ibl_logs()
-+        
++
 +        # Event логи (Python↔QML)
 +        self.results['events'] = self._analyze_event_logs()
-+        
++
 ... (обрезано)
 
 ```
@@ -7645,7 +7645,7 @@
  from pathlib import Path
 -from typing import Optional, Dict
 +from typing import Optional, Dict, Any
- 
+
  from src.ui.charts import ChartWidget
  from src.ui.panels import GeometryPanel, PneumoPanel, ModesPanel, RoadPanel, GraphicsPanel
  from ..runtime import SimulationManager, StateSnapshot
@@ -7655,8 +7655,8 @@
 +# ✅ НОВОЕ: EventLogger для логирования QML вызовов
 +from src.common.event_logger import get_event_logger
 +>>>>>>> sync/remote-main
- 
- 
+
+
  class MainWindow(QMainWindow):
 @@ -32,10 +51,32 @@
 
@@ -7692,7 +7692,7 @@
 +        "LZ": "rl",
 +        "PZ": "rr",
 +    }
- 
+
      def __init__(self, use_qml_3d: bool = True):
 ... (обрезано)
 
@@ -7713,83 +7713,83 @@
 
          # Dependency resolution state
          self._resolving_conflict = False
-         
+
 +        # Logger
 +        from src.common import get_category_logger
 +        self.logger = get_category_logger("GeometryPanel")
 +        self.logger.info("GeometryPanel initializing...")
-+        
++
          # Setup UI
          self._setup_ui()
-         
+
 @@ -52,50 +57,18 @@
 
          # Size policy
          self.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Expanding)
-         
+
 -        # ✨ ИСПРАВЛЕНО: Отправляем начальные параметры геометрии в QML!
 -        print("🔧 GeometryPanel: Планируем отправку начальных параметров геометрии...")
--        
+-
 -        # Используем QTimer для отложенной отправки после полной инициализации UI
 +        # Отправляем начальные параметры геометрии в QML
          from PySide6.QtCore import QTimer
-         
+
          def send_initial_geometry():
 -            print("⏰ QTimer: Отправка начальной геометрии...")
--            
+-
 -            # Формируем полную геометрию для QML (как в _get_fast_geometry_update)
 +            self.logger.info("Sending initial geometry to QML...")
              initial_geometry = self._get_fast_geometry_update("init", 0.0)
--            
+-
 -            # ДИАГНОСТИКА: Проверяем подписчиков перед отправкой
 -            try:
 -                geom_changed_receivers = self.geometry_changed.receivers()
 -                geom_updated_receivers = self.geometry_updated.receivers()
--                
+-
 -                print(f"  📊 Подписчиков на geometry_changed: {geom_changed_receivers}")
 -                print(f"  📊 Подписчиков на geometry_updated: {geom_updated_receivers}")
--                
+-
 -                if geom_changed_receivers > 0:
 -                    print(f"  ✅ Есть подписчики, отправляем geometry_changed...")
 -                    self.geometry_changed.emit(initial_geometry)
 -                    print(f"  📡 geometry_changed отправлен с rodPosition = {initial_geometry.get('rodPosition', 'НЕ НАЙДЕН')}")
 -                else:
 -                    print(f"  ⚠️ Нет подписчиков на geometry_changed, возможно главное окно еще не готово")
--                
+-
 -                if geom_updated_receivers > 0:
 -                    print(f"  ✅ Отправляем geometry_updated...")
 -                    self.geometry_updated.emit(self.parameters.copy())
 -                    print(f"  📡 geometry_updated отправлен")
 -                else:
 -                    print(f"  ⚠️ Нет подписчиков на geometry_updated")
--                    
+-
 -            except Exception as e:
 -                print(f"  ❌ Ошибка проверки подписчиков: {e}")
 -                # Отправляем в любом случае
 -                self.geometry_changed.emit(initial_geometry)
 -                self.geometry_updated.emit(self.parameters.copy())
 -                print(f"  📡 Сигналы отправлены без проверки подписчиков")
--        
+-
 -        # УВЕЛИЧИВАЕМ задержку для гарантии готовности главного окна
 -        QTimer.singleShot(500, send_initial_geometry)  # Было 100мс, стало 500мс
 -        print("  ⏰ Таймер установлен на 500мс для отправки начальной геометрии")
 +            self.geometry_changed.emit(initial_geometry)
 +            self.geometry_updated.emit(self.parameters.copy())
 +            self.logger.info("Initial geometry sent successfully")
-+        
++
 +        QTimer.singleShot(500, send_initial_geometry)
 +        self.logger.info("GeometryPanel initialized successfully")
-     
+
      def _setup_ui(self):
          """Настроить интерфейс / Setup user interface"""
 @@ -343,54 +316,143 @@
 
-     
+
      def _connect_signals(self):
          """Connect widget signals"""
 -        # ИСПРАВЛЕНО: Используем ТОЛЬКО valueEdited для избежания дублирования событий
 -        # valueChanged срабатывает слишком часто (при каждом движении), valueEdited - только при завершении редактирования
--        
+-
 ... (обрезано)
 
 ```
@@ -7833,7 +7833,7 @@
 +from PySide6 import QtWidgets  # ✅ ДОБАВЛЕНО: модуль QtWidgets для безопасного доступа к QSlider
 +>>>>>>> sync/remote-main
  from PySide6.QtWidgets import (
--    QWidget, QVBoxLayout, QHBoxLayout, QGridLayout, QGroupBox, QLabel, 
+-    QWidget, QVBoxLayout, QHBoxLayout, QGridLayout, QGroupBox, QLabel,
 -    QSlider, QSpinBox, QDoubleSpinBox, QComboBox, QCheckBox, QPushButton,
 -    QColorDialog, QFrame, QSizePolicy, QScrollArea, QTabWidget, QFileDialog, QMessageBox
 +    QCheckBox,
@@ -7866,8 +7866,8 @@
 +
 +# ✅ НОВОЕ: Импорт EventLogger для отслеживания UI событий
 +from src.common.event_logger import get_event_logger, EventType
- 
- 
+
+
  class ColorButton(QPushButton):
 -    """Кнопка выбора цвета с предварительным просмотром"""
 +    """Small color preview button that streams changes from QColorDialog."""
@@ -7908,20 +7908,20 @@
  import subprocess
  from pathlib import Path
 +import json
- 
+
  # =============================================================================
  # Накопление warnings/errors
 @@ -113,15 +114,12 @@
 
  # =============================================================================
- 
- 
+
+
 -def check_python_compatibility():
 -    """Check Python version and warn about potential issues"""
 +def check_python_compatibility() -> None:
 +    """Проверка версии Python: проект таргетирует Python 3.13+"""
      version = sys.version_info
--    
+-
 -    if version < (3, 8):
 -        log_error("Python 3.8+ required. Please upgrade Python.")
 +    if version < (3, 13):
@@ -7929,12 +7929,12 @@
          sys.exit(1)
 -    elif version >= (3, 12):
 -        log_warning("Python 3.12+ detected. Some packages may have compatibility issues.")
- 
- 
+
+
  check_python_compatibility()
 @@ -153,8 +151,8 @@
 
-         
+
          try:
              major, minor = qt_version.split('.')[:2]
 -            if int(major) == 6 and int(minor) < 8:
@@ -7943,31 +7943,31 @@
 +                log_warning(f"Qt {qt_version} detected. Some 6.10+ features may be unavailable")
          except (ValueError, IndexError):
              log_warning(f"Could not parse Qt version: {qt_version}")
-         
+
 @@ -171,16 +169,18 @@
 
  # =============================================================================
- 
- 
+
+
 -def setup_logging():
 -    """Настройка логирования - ВСЕГДА активно"""
 +def setup_logging(verbose_console: bool = False):
 +    """Настройка логирования - ВСЕГДА активно
-+    
++
 +    Args:
 +        verbose_console: Включать ли вывод логов в консоль (аргумент --verbose)
 +    """
      try:
          from src.common.logging_setup import init_logging, rotate_old_logs
-         
+
          logs_dir = Path("logs")
-         
+
 -        # ✅ НОВОЕ: Ротация старых логов (оставляем только 10 последних)
 -        # Политика проекта: всегда начинать с чистых логов
 -        # Стираем старые логи на запуске (keep_count=0)
 +        # Политика проекта: начинаем с чистых логов
          rotate_old_logs(logs_dir, keep_count=0)
-         
+
          # Инициализируем логирование с ротацией
 @@ -189,7 +189,7 @@
 
@@ -7977,14 +7977,14 @@
 -            console_output=False          # НЕ выводим в консоль
 +            console_output=bool(verbose_console)  # Включаем по запросу
          )
-         
+
          logger.info("=" * 60)
 @@ -201,6 +201,9 @@
 
          logger.info(f"Qt: {qVersion()}")
          logger.info(f"Platform: {sys.platform}")
          logger.info(f"Backend: {os.environ.get('QSG_RHI_BACKEND', 'auto')}")
-+        
++
 +        if verbose_console:
 ... (обрезано)
 
@@ -8006,13 +8006,13 @@
  # PneumoStabSim Professional - Production Dependencies
 -# Проверено для Python 3.9-3.13 (рекомендуется 3.11-3.13)
 +# Проверено для Python 3.11-3.13 (рекомендуется 3.13)
- 
+
  # === КРИТИЧЕСКИЕ ЗАВИСИМОСТИ ===
  # Qt Framework - основа GUI и 3D рендеринга
 @@ -16,23 +16,22 @@
 
  pillow>=9.0.0             # Обработка изображений для HDR текстур
- 
+
  # Testing и development
 -pytest>=7.0.0            # Тестирование
 -PyYAML>=6.0              # Конфигурационные файлы
@@ -8020,7 +8020,7 @@
 +PyYAML>=6.0               # Конфигурационные файлы
 +python-dotenv>=1.0.0      # Переменные окружения из .env
 +psutil>=5.8.0             # Мониторинг
- 
+
  # === ОПЦИОНАЛЬНЫЕ УЛУЧШЕНИЯ ===
 -# 3D геометрия и визуализация
  # trimesh>=3.15.0         # 3D mesh обработка (опционально)
@@ -8029,7 +8029,7 @@
 -# Производительность
  # numba>=0.56.0           # JIT компиляция (опционально)
  # cython>=0.29.0          # C расширения (опционально)
- 
+
  # === СОВМЕСТИМОСТЬ ===
  # Проверено на:
  # - Windows 10/11 (Python 3.11-3.13)
@@ -8037,7 +8037,7 @@
 -# - macOS 12+ (Python 3.11-3.12)
 +# - Ubuntu 22.04/24.04 (Python 3.11-3.12)
 +# - macOS 13+ (Python 3.11-3.12)
- 
+
  # Примечания:
  # 1. Требуется PySide6 6.10+ из-за использования Fog и dithering
 
@@ -8058,7 +8058,7 @@
 
  echo ================================================================
  echo.
- 
+
 +rem Prefer Python 3.13 if available via py launcher
 +set "PYTHON_CMD="
 +py -3.13 -c "import sys" >nul 2>&1 && set "PYTHON_CMD=py -3.13"
@@ -8089,7 +8089,7 @@
  rem Check if virtual environment exists
  if not exist "venv\Scripts\activate.bat" (
      echo Creating virtual environment...
--    
+-
 -    rem Try different Python commands for compatibility
 -    python -c "import sys; exit(0)" >nul 2>&1
 +
@@ -8109,7 +8109,7 @@
 -        set PYTHON_CMD=python
 +        echo WARNING: Python version may not be fully compatible (recommended 3.13). Continuing...
      )
--    
+-
 -    rem Check Python version before creating venv
 -    %PYTHON_CMD% -c "import sys; major, minor = sys.version_info[:2]; print(f'Using Python {major}.{minor}'); exit(0 if (3, 8) <= (major, minor) <= (3, 12) else 1)"
 -    if errorlevel 1 (
@@ -8122,7 +8122,7 @@
 -            exit /b 1
 -        )
 -    )
--    
+-
 +
      %PYTHON_CMD% -m venv venv --clear
      if errorlevel 1 (
@@ -8132,7 +8132,7 @@
  echo Installing project dependencies...
  if exist "requirements.txt" (
      echo Installing from requirements.txt...
--    
+-
 -    rem First try normal installation
 ... (обрезано)
 
@@ -8284,7 +8284,7 @@
 +import QtQuick.Controls
 +import Qt.labs.folderlistmodel
  import "components"
- 
+
  /*
 @@ -17,6 +19,8 @@
 
@@ -8293,14 +8293,14 @@
      anchors.fill: parent
 +    // Toggle to show/hide in-canvas UI controls (to avoid duplication with external GraphicsPanel)
 +    property bool showOverlayControls: false
-     
+
      // ===============================================================
      // 🚀 SIGNALS - ACK для Python после применения обновлений
 @@ -202,12 +206,6 @@
 
      property real iblRotationDeg: 0
      property real iblIntensity: 1.3
- 
+
 -    // ❌ Больше НЕ связываем фон со включением IBL
 -    // onIblEnabledChanged: {
 -    //     iblLightingEnabled = iblEnabled
@@ -8314,14 +8314,14 @@
 
      // ✅ COMPLETE BATCH UPDATE SYSTEM (All functions implemented)
      // ===============================================================
-     
+
 -    // ===============================================================
 -    // ✅ ENHANCED BATCH UPDATE SYSTEM (Conflict Resolution)
 -    // ===============================================================
--    
+-
      function applyBatchedUpdates(updates) {
          console.log("🚀 Applying batched updates with conflict resolution:", Object.keys(updates))
-         
+
 @@ -674,38 +668,38 @@
 
              if (params.key_light.color !== undefined) keyLightColor = params.key_light.color
@@ -8385,10 +8385,10 @@
 +=======
      property url fallbackSource: Qt.resolvedUrl("../../assets/studio_small_09_2k.hdr")
 +>>>>>>> sync/remote-main
- 
+
      /** Internal flag preventing infinite fallback recursion. */
      property bool _fallbackTried: false
- 
+
 +<<<<<<< HEAD
 +    /**
 +      * Double-buffered textures to prevent flicker when switching HDRs.
@@ -8415,7 +8415,7 @@
 +=======
      /** Expose the probe for consumers. */
      property Texture probe: hdrProbe
- 
+
      Texture {
          id: hdrProbe
          source: controller.primarySource
@@ -8426,7 +8426,7 @@
 @@ -49,6 +79,12 @@
 
      }
- 
+
      // Monitor texture status using Timer polling (Texture has no statusChanged signal!)
 +<<<<<<< HEAD
 +    property int _lastStatusA: -1
@@ -8435,12 +8435,12 @@
 +    // Polling-based status check for both textures
 +=======
      property int _lastStatus: -1  // Начинаем с -1 вместо Texture.Null
-     
+
      onProbeChanged: {
 @@ -59,11 +95,53 @@
 
      }
-     
+
      // Polling-based status check (since Texture doesn't emit statusChanged signal)
 +>>>>>>> sync/remote-main
      Timer {
@@ -8472,7 +8472,7 @@
 
 @@ -466,18 +466,29 @@
 
-     
+
      Args:
          log_dir: Директория с логами
 +<<<<<<< HEAD
@@ -8483,7 +8483,7 @@
      """
      if not log_dir.exists():
          return
-     
+
      # Находим все лог-файлы с timestamp
      log_files = sorted(
 +<<<<<<< HEAD
@@ -8494,7 +8494,7 @@
          key=lambda p: p.stat().st_mtime,
          reverse=True
      )
-     
+
 +<<<<<<< HEAD
 +    # Удаляем старые
 +=======
@@ -8504,7 +8504,7 @@
 @@ -497,6 +508,7 @@
 
          return
-     
+
      # Обычный режим: оставляем N последних
 +>>>>>>> sync/remote-main
      for old_log in log_files[keep_count:]:
@@ -8528,14 +8528,14 @@
 
          """Найти пары Python→QML событий для анализа синхронизации"""
          pairs = []
-         
+
 +<<<<<<< HEAD
 +        # Группируем по timestamp
 +        for i, event in enumerate(self.events):
 +            if event["event_type"] == "SIGNAL_EMIT":
 +                # Ищем соответствующий SIGNAL_RECEIVED в QML
 +                signal_name = event["action"].replace("emit_", "")
-+                
++
 +                # Ищем в следующих 1000ms
 +=======
          # Сопоставление signal → QML функции (apply*Updates)
@@ -8545,20 +8545,20 @@
 
                  signal_name = event["action"].replace("emit_", "")
                  expected_qml_func = signal_to_qml.get(signal_name)
-                 
+
 +>>>>>>> sync/remote-main
                  emit_time = datetime.fromisoformat(event["timestamp"])
-                 
+
                  for j in range(i+1, len(self.events)):
 @@ -369,6 +379,11 @@
 
                      if (recv_time - emit_time).total_seconds() > 1.0:
                          break  # Слишком поздно
-                     
+
 +<<<<<<< HEAD
 +                    if (next_event["event_type"] == "SIGNAL_RECEIVED" and
 +                        signal_name in next_event["action"]):
-+                        
++
 +=======
                      # ✅ Вариант 1: QML подписался на сигнал (onXxxChanged)
                      if (
@@ -8597,7 +8597,7 @@
 +>>>>>>> sync/remote-main
  from pathlib import Path
  from typing import Optional, Dict, Any
- 
+
 @@ -31,8 +34,11 @@
 
  from src.ui.panels import GeometryPanel, PneumoPanel, ModesPanel, RoadPanel, GraphicsPanel
@@ -8608,8 +8608,8 @@
  # ✅ НОВОЕ: EventLogger для логирования QML вызовов
  from src.common.event_logger import get_event_logger
 +>>>>>>> sync/remote-main
- 
- 
+
+
  class MainWindow(QMainWindow):
 @@ -48,7 +54,10 @@
 
@@ -8622,27 +8622,27 @@
 +
 +>>>>>>> sync/remote-main
      SETTINGS_LAST_PRESET = "Presets/LastPath"
- 
+
      QML_UPDATE_METHODS: Dict[str, tuple[str, ...]] = {
 @@ -89,10 +98,13 @@
 
          self.ibl_logger = get_ibl_logger()
          log_ibl_event("INFO", "MainWindow", "IBL Logger initialized")
-         
+
 +<<<<<<< HEAD
 +=======
          # ✅ НОВОЕ: Инициализируем EventLogger (Python↔QML)
          self.event_logger = get_event_logger()
          self.logger.info("EventLogger initialized in MainWindow")
-         
+
 +>>>>>>> sync/remote-main
          print("MainWindow: Создание SimulationManager...")
-         
+
          # Simulation manager
 @@ -178,7 +190,11 @@
 
          print("✅ MainWindow.__init__() завершён")
- 
+
      # ------------------------------------------------------------------
 +<<<<<<< HEAD
 +    # UI Construction - НОВАЯ СТРУКТРАА!
@@ -8654,21 +8654,21 @@
          """Создать центральный вид с горизонтальным и вертикальным сплиттерами
 @@ -268,12 +284,15 @@
 
-             
+
              qml_url = QUrl.fromLocalFile(str(qml_path.absolute()))
              print(f"    📂 Полный путь: {qml_url.toString()}")
 +<<<<<<< HEAD
 +=======
-             
+
              # ✅ Устанавливаем базовую директорию QML для разрешения относительных путей
              try:
                  self._qml_base_dir = qml_path.parent.resolve()
              except Exception:
                  self._qml_base_dir = None
 +>>>>>>> sync/remote-main
-             
+
              self._qquick_widget.setSource(qml_url)
-             
+
 @@ -297,6 +316,16 @@
 
 ... (обрезано)
@@ -8688,7 +8688,7 @@
 
 @@ -316,25 +316,50 @@
 
-     
+
      def _connect_signals(self):
          """Connect widget signals"""
 +<<<<<<< HEAD
@@ -8697,71 +8697,71 @@
 +=======
          # Используем ТОЛЬКО valueEdited для избежания дублирования событий
 +>>>>>>> sync/remote-main
-         
+
          self.logger.debug("Connecting signals...")
-         
+
          # Frame dimensions
 +        self.wheelbase_slider.valueChanged.connect(
 +            lambda v: self._on_parameter_changed('wheelbase', v))
          self.wheelbase_slider.valueEdited.connect(
              lambda v: self._on_parameter_changed('wheelbase', v))
 +<<<<<<< HEAD
-+        
++
 +        self.track_slider.valueChanged.connect(
 +            lambda v: self._on_parameter_changed('track', v))
 +=======
          # Мгновенные обновления канвы
          self.wheelbase_slider.valueChanged.connect(
              lambda v: self._on_parameter_live_change('wheelbase', v))
-         
+
 +>>>>>>> sync/remote-main
          self.track_slider.valueEdited.connect(
              lambda v: self._on_parameter_changed('track', v))
          self.track_slider.valueChanged.connect(
              lambda v: self._on_parameter_live_change('track', v))
-         
+
          # Suspension geometry
 +        self.frame_to_pivot_slider.valueChanged.connect(
 +            lambda v: self._on_parameter_changed('frame_to_pivot', v))
          self.frame_to_pivot_slider.valueEdited.connect(
              lambda v: self._on_parameter_changed('frame_to_pivot', v))
 +<<<<<<< HEAD
-+            
++
 +        self.lever_length_slider.valueChanged.connect(
 +            lambda v: self._on_parameter_changed('lever_length', v))
 +        self.lever_length_slider.valueEdited.connect(
 +            lambda v: self._on_parameter_changed('lever_length', v))
-+            
++
 +        self.rod_position_slider.valueChanged.connect(
 +            lambda v: self._on_parameter_changed('rod_position', v))
 +=======
          self.frame_to_pivot_slider.valueChanged.connect(
              lambda v: self._on_parameter_live_change('frame_to_pivot', v))
-             
+
 @@ -343,14 +368,51 @@
 
          self.lever_length_slider.valueChanged.connect(
              lambda v: self._on_parameter_live_change('lever_length', v))
-             
+
 +>>>>>>> sync/remote-main
          self.rod_position_slider.valueEdited.connect(
              lambda v: self._on_parameter_changed('rod_position', v))
          self.rod_position_slider.valueChanged.connect(
              lambda v: self._on_parameter_live_change('rod_position', v))
-         
+
          # Cylinder dimensions
 +        self.cylinder_length_slider.valueChanged.connect(
 +            lambda v: self._on_parameter_changed('cylinder_length', v))
          self.cylinder_length_slider.valueEdited.connect(
              lambda v: self._on_parameter_changed('cylinder_length', v))
 +<<<<<<< HEAD
-+            
++
 +        # МШ-1: Параметры цилиндра
 +        self.cyl_diam_m_slider.valueChanged.connect(
 +            lambda v: self._on_parameter_changed('cyl_diam_m', v))
 +        self.cyl_diam_m_slider.valueEdited.connect(
 +            lambda v: self._on_parameter_changed('cyl_diam_m', v))
-+            
++
 +        self.stroke_m_slider.valueChanged.connect(
 +            lambda v: self._on_parameter_changed('stroke_m', v))
 +        self.stroke_m_slider.valueEdited.connect(
@@ -8793,7 +8793,7 @@
 +from PySide6.QtCore import QSettings, Qt, QTimer, Signal, Slot
 +from PySide6.QtGui import QColor, QStandardItem
 +=======
- 
+
  from PySide6.QtCore import QSettings, Qt, QTimer, Signal, Slot
  from PySide6.QtGui import QColor, QStandardItem
  from PySide6 import QtWidgets  # ✅ ДОБАВЛЕНО: модуль QtWidgets для безопасного доступа к QSlider
@@ -8814,7 +8814,7 @@
 
          row.setSpacing(6)
          layout.addLayout(row)
- 
+
 +<<<<<<< HEAD
 +        self._slider = QSlider(Qt.Horizontal, self)
 +=======
@@ -8823,7 +8823,7 @@
 +>>>>>>> sync/remote-main
          steps = max(1, int(round((self._max - self._min) / self._step)))
          self._slider.setRange(0, steps)
-         
+
 @@ -292,6 +308,16 @@
 
      def _build_defaults(self) -> Dict[str, Any]:
@@ -8930,31 +8930,31 @@
 +    required_vars = ["QML2_IMPORT_PATH", "QML_IMPORT_PATH", "QT_PLUGIN_PATH", "QT_QML_IMPORT_PATH"]
 +    if all(var in os.environ for var in required_vars):
 +        return True
-+    
++
 +    try:
 +        import importlib.util
 +        spec = importlib.util.find_spec("PySide6.QtCore")
 +        if spec is None:
 +            log_error("PySide6 not found!")
 +            return False
-+            
++
 +        from PySide6.QtCore import QLibraryInfo
-+        
++
 +        qml_path = QLibraryInfo.path(QLibraryInfo.LibraryPath.Qml2ImportsPath)
 +        plugins_path = QLibraryInfo.path(QLibraryInfo.LibraryPath.PluginsPath)
-+        
++
 +        qtquick3d_env = {
 +            "QML2_IMPORT_PATH": str(qml_path),
 +            "QML_IMPORT_PATH": str(qml_path),
 +            "QT_PLUGIN_PATH": str(plugins_path),
 +            "QT_QML_IMPORT_PATH": str(qml_path),
 +        }
-+        
++
 +        for var, value in qtquick3d_env.items():
 +            os.environ[var] = value
-+        
++
 +        return True
-+        
++
 +    except Exception as e:
 +        log_error(f"QtQuick3D setup failed: {e}")
 +        return False
@@ -9041,7 +9041,7 @@
 
  echo ================================================================
  echo.
- 
+
 +rem Prefer Python 3.13 if available via py launcher
 +set "PYTHON_CMD="
 +py -3.13 -c "import sys" >nul 2>&1 && set "PYTHON_CMD=py -3.13"
@@ -9072,7 +9072,7 @@
  rem Check if virtual environment exists
  if not exist "venv\Scripts\activate.bat" (
      echo Creating virtual environment...
--    
+-
 -    rem Try different Python commands for compatibility
 -    python -c "import sys; exit(0)" >nul 2>&1
 +
@@ -9092,7 +9092,7 @@
 -        set PYTHON_CMD=python
 +        echo WARNING: Python version may not be fully compatible (recommended 3.13). Continuing...
      )
--    
+-
 -    rem Check Python version before creating venv
 -    %PYTHON_CMD% -c "import sys; major, minor = sys.version_info[:2]; print(f'Using Python {major}.{minor}'); exit(0 if (3, 8) <= (major, minor) <= (3, 12) else 1)"
 -    if errorlevel 1 (
@@ -9105,7 +9105,7 @@
 -            exit /b 1
 -        )
 -    )
--    
+-
 +
      %PYTHON_CMD% -m venv venv --clear
      if errorlevel 1 (
@@ -9115,7 +9115,7 @@
  echo Installing project dependencies...
  if exist "requirements.txt" (
      echo Installing from requirements.txt...
--    
+-
 -    rem First try normal installation
 ... (обрезано)
 
@@ -9137,11 +9137,11 @@
 -# PneumoStabSim Professional - Environment Variables
 -# These variables will be automatically loaded by the IDE and scripts
 +# PneumoStabSim Professional Environment Configuration
- 
+
 -# Python path configuration
 +# Python module paths
  PYTHONPATH=.;src
- 
+
 -# Qt configuration for optimal performance
 +# Qt/QtQuick options
  QSG_RHI_BACKEND=d3d11
@@ -9152,7 +9152,7 @@
 +QT_AUTO_SCREEN_SCALE_FACTOR=1
 +QT_SCALE_FACTOR_ROUNDING_POLICY=PassThrough
 +QT_ENABLE_HIGHDPI_SCALING=1
- 
+
 -# Python optimization
 -PYTHONOPTIMIZE=1
 +# Python I/O and encoding
@@ -9290,7 +9290,7 @@
 +import QtQuick.Controls
 +import Qt.labs.folderlistmodel
 +import "components"
- 
+
  /*
 - * PneumoStabSim - Main 3D View (Enhanced Realism v2.1)
 - * ИСПРАВЛЕНО: ExtendedSceneEnvironment с Qt 6.9.3 совместимостью
@@ -9312,27 +9312,27 @@
 -    // ===============================================================
 -    // CAMERA SYSTEM - Improved Orbital Camera with Fixed Pivot
 -    // ===============================================================
--    
+-
 -    // Фиксированный pivot - всегда центр нижней балки рамы
 +    // Toggle to show/hide in-canvas UI controls (to avoid duplication with external GraphicsPanel)
 +    property bool showOverlayControls: false
-+    
++
 +    // ===============================================================
 +    // 🚀 SIGNALS - ACK для Python после применения обновлений
 +    // ===============================================================
-+    
++
 +    signal batchUpdatesApplied(var summary)
 +
 +    // ===============================================================
 +    // 🚀 QT VERSION DETECTION (для условной активации возможностей)
 +    // ===============================================================
-+    
++
 +    readonly property string qtVersionString: typeof Qt.version !== "undefined" ? Qt.version : "6.0.0"
 +    readonly property var qtVersionParts: qtVersionString.split('.')
 +    readonly property int qtMajor: qtVersionParts.length > 0 ? parseInt(qtVersionParts[0]) : 6
 +    readonly property int qtMinor: qtVersionParts.length > 1 ? parseInt(qtVersionParts[1]) : 0
 +    readonly property bool supportsQtQuick3D610Features: qtMajor === 6 && qtMinor >= 10
-+    
++
 +    // ✅ Условная поддержка dithering (доступно с Qt 6.10)
 +    property bool ditheringEnabled: true  // Управляется из GraphicsPanel
 +    readonly property bool canUseDithering: supportsQtQuick3D610Features
@@ -9340,25 +9340,25 @@
 +    // ===============================================================
 +    // 🚀 CRITICAL FIX v4.9.4: SKYBOX ROTATION - INDEPENDENT FROM CAMERA
 +    // ===============================================================
-+    
++
 +    // ✅ ПРАВИЛЬНО: Skybox вращается ТОЛЬКО от пользовательского iblRotationDeg
 +    // Камера НЕ влияет на skybox вообще!
-+    
++
 +    // ❌ УДАЛЕНО: envYaw, _prevCameraYaw, updateCameraYaw() - это было НЕПРАВИЛЬНО
 +    // Эти переменные СВЯЗЫВАЛИ фон с камерой, что вызывало проблему
 +
 +    // ===============================================================
 +    // 🚀 PERFORMANCE OPTIMIZATION LAYER
 +    // ===============================================================
-+    
++
 +    // ✅ ОПТИМИЗАЦИЯ #1: Кэширование анимационных вычислений
 +    QtObject {
 +        id: animationCache
-+        
++
 +        // Базовые значения (вычисляются 1 раз за фрейм вместо 4х)
 +        property real basePhase: animationTime * userFrequency * 2 * Math.PI
 +        property real globalPhaseRad: userPhaseGlobal * Math.PI / 180
-+        
++
 +        // Предварительно вычисленные фазы для каждого угла
 ... (обрезано)
 
@@ -9443,12 +9443,12 @@
 +    function writeLog(level, message) {
 +        var timestamp = new Date().toISOString()
 +        var logEntry = timestamp + " | " + level + " | IblProbeLoader | " + message
-+        
++
 +        // Отправляем в Python для записи в файл
 +        if (typeof window !== "undefined" && window !== null && window.logIblEvent) {
 +            window.logIblEvent(logEntry)
 +        }
-+        
++
 +        // Также выводим в консоль для отладки
 +        if (level === "ERROR" || level === "WARN") {
 +            console.warn(logEntry)
@@ -9476,7 +9476,7 @@
  Overwrites log file on each run, ensures proper cleanup
 +УЛУЧШЕННАЯ ВЕРСИЯ с ротацией и контекстными логгерами
  """
- 
+
  import logging
 @@ -11,27 +12,79 @@
 
@@ -9487,8 +9487,8 @@
 +from typing import Optional, Dict, Any
  from datetime import datetime
 +import traceback
- 
- 
+
+
  # Global queue listener for cleanup
  _queue_listener: Optional[logging.handlers.QueueListener] = None
 -
@@ -9499,11 +9499,11 @@
 +
 +class ContextualFilter(logging.Filter):
 +    """Добавляет контекстную информацию к логам"""
-+    
++
 +    def __init__(self, context: Dict[str, Any] = None):
 +        super().__init__()
 +        self.context = context or {}
-+    
++
 +    def filter(self, record):
 +        # Добавляем контекст к каждому record
 +        for key, value in self.context.items():
@@ -9513,7 +9513,7 @@
 +
 +class ColoredFormatter(logging.Formatter):
 +    """Форматтер с цветами для консоли (опционально)"""
-+    
++
 +    COLORS = {
 +        'DEBUG': '\033[36m',     # Cyan
 +        'INFO': '\033[32m',      # Green
@@ -9522,7 +9522,7 @@
 +        'CRITICAL': '\033[35m',  # Magenta
 +        'RESET': '\033[0m'
 +    }
-+    
++
 +    def format(self, record):
 +        if hasattr(sys.stdout, 'isatty') and sys.stdout.isatty():
 +            levelname = record.levelname
@@ -9539,13 +9539,13 @@
 +    console_output: bool = False
 +) -> logging.Logger:
      """Initialize application logging with non-blocking queue handler
-     
+
 +    УЛУЧШЕНИЯ v4.9.5:
 +    - Ротация логов (max_bytes, backup_count)
 +    - Опциональный вывод в консоль
 +    - Цветной вывод для консоли
 +    - Контекстные фильтры
-+    
++
      Features:
 -    - Overwrites log file on each run (mode='w')
 +    - Log rotation with configurable size/count
@@ -9590,18 +9590,18 @@
 +    STATE_CHANGE = auto()        # Изменение state в Python
 +    SIGNAL_EMIT = auto()         # Вызов .emit() сигнала
 +    QML_INVOKE = auto()          # QMetaObject.invokeMethod
-+    
++
 +    # QML events
 +    SIGNAL_RECEIVED = auto()     # QML получил сигнал (onXxxChanged)
 +    FUNCTION_CALLED = auto()     # QML функция вызвана
 +    PROPERTY_CHANGED = auto()    # QML property изменилось
-+    
++
 +    # ✅ НОВОЕ: Mouse events in QML
 +    MOUSE_PRESS = auto()         # Нажатие мыши на канве
 +    MOUSE_DRAG = auto()          # Перетаскивание
 +    MOUSE_WHEEL = auto()         # Прокрутка колесика (zoom)
 +    MOUSE_RELEASE = auto()       # Отпускание мыши
-+    
++
 +    # Errors
 +    PYTHON_ERROR = auto()        # Ошибка в Python
 +    QML_ERROR = auto()           # Ошибка в QML
@@ -9609,24 +9609,24 @@
 +
 +class EventLogger:
 +    """Singleton логгер для отслеживания Python↔QML событий"""
-+    
++
 +    _instance: Optional['EventLogger'] = None
 +    _initialized: bool = False
-+    
++
 +    def __new__(cls):
 +        if cls._instance is None:
 +            cls._instance = super().__new__(cls)
 +        return cls._instance
-+    
++
 +    def __init__(self):
 +        if EventLogger._initialized:
 +            return
-+        
++
 +        self.logger = logging.getLogger("EventLogger")
 +        self.events: list[Dict[str, Any]] = []
 +        self._session_id = datetime.now().strftime("%Y%m%d_%H%M%S")
 +        EventLogger._initialized = True
-+    
++
 +    def log_event(
 +        self,
 +        event_type: EventType,
@@ -9640,7 +9640,7 @@
 +    ) -> None:
 +        """
 +        Логирование события
-+        
++
 +        Args:
 +            event_type: Тип события
 ... (обрезано)
@@ -9676,7 +9676,7 @@
 +
 +class LogAnalysisResult:
 +    """Результат анализа логов"""
-+    
++
 +    def __init__(self):
 +        self.errors: List[str] = []
 +        self.warnings: List[str] = []
@@ -9684,32 +9684,32 @@
 +        self.metrics: Dict[str, float] = {}
 +        self.recommendations: List[str] = []
 +        self.status: str = "unknown"  # ok, warning, error
-+    
++
 +    def is_ok(self) -> bool:
 +        """Проверяет, всё ли в порядке"""
 +        return len(self.errors) == 0 and self.status != "error"
-+    
++
 +    def add_error(self, message: str):
 +        """Добавляет ошибку"""
 +        self.errors.append(message)
 +        self.status = "error"
-+    
++
 +    def add_warning(self, message: str):
 +        """Добавляет предупреждение"""
 +        self.warnings.append(message)
 +        if self.status != "error":
 +            self.status = "warning"
-+    
++
 +    def add_info(self, message: str):
 +        """Добавляет информацию"""
 +        self.info.append(message)
 +        if self.status == "unknown":
 +            self.status = "ok"
-+    
++
 +    def add_metric(self, name: str, value: float):
 +        """Добавляет метрику"""
 +        self.metrics[name] = value
-+    
++
 +    def add_recommendation(self, message: str):
 +        """Добавляет рекомендацию"""
 +        self.recommendations.append(message)
@@ -9717,26 +9717,26 @@
 +
 +class UnifiedLogAnalyzer:
 +    """Объединенный анализатор всех типов логов"""
-+    
++
 +    def __init__(self, logs_dir: Path = Path("logs")):
 +        self.logs_dir = logs_dir
 +        self.results: Dict[str, LogAnalysisResult] = {}
-+    
++
 +    def analyze_all(self) -> Dict[str, LogAnalysisResult]:
 +        """Запускает полный анализ всех логов"""
-+        
++
 +        # Основной лог
 +        self.results['main'] = self._analyze_main_log()
-+        
++
 +        # Graphics логи
 +        self.results['graphics'] = self._analyze_graphics_logs()
-+        
++
 +        # IBL логи
 +        self.results['ibl'] = self._analyze_ibl_logs()
-+        
++
 +        # Event логи (Python↔QML)
 +        self.results['events'] = self._analyze_event_logs()
-+        
++
 ... (обрезано)
 
 ```
@@ -9796,8 +9796,8 @@
 +# ✅ НОВОЕ: EventLogger для логирования QML вызовов
 +from src.common.event_logger import get_event_logger
 +>>>>>>> sync/remote-main
- 
- 
+
+
  class MainWindow(QMainWindow):
 @@ -32,10 +51,32 @@
 
@@ -9851,30 +9851,30 @@
 
          # Dependency resolution state
          self._resolving_conflict = False
-         
+
 +        # Logger
 +        from src.common import get_category_logger
 +        self.logger = get_category_logger("GeometryPanel")
 +        self.logger.info("GeometryPanel initializing...")
-+        
++
          # Setup UI
          self._setup_ui()
-         
+
 @@ -52,21 +57,18 @@
 
          # Size policy
          self.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Expanding)
-         
+
 -        # ✨ ИСПРАВЛЕНО: Отправляем начальные параметры геометрии в QML!
 -        print("🔧 GeometryPanel: Отправка начальных параметров геометрии...")
--        
+-
 -        # Формируем полную геометрию для QML (как в _get_fast_geometry_update)
 -        initial_geometry = self._get_fast_geometry_update("init", 0.0)
--        
+-
 -        # Используем QTimer для отложенной отправки после полной инициализации UI
 +        # Отправляем начальные параметры геометрии в QML
          from PySide6.QtCore import QTimer
-+        
++
          def send_initial_geometry():
 -            print("⏰ QTimer: Отправка начальной геометрии...")
 +            self.logger.info("Sending initial geometry to QML...")
@@ -9882,18 +9882,18 @@
              self.geometry_changed.emit(initial_geometry)
              self.geometry_updated.emit(self.parameters.copy())
 -            print(f"  ✅ Начальная геометрия отправлена: rodPosition = {initial_geometry.get('rodPosition', 'НЕ НАЙДЕН')}")
--        
+-
 -        QTimer.singleShot(100, send_initial_geometry)  # Отправить через 100мс
 +            self.logger.info("Initial geometry sent successfully")
-+        
++
 +        QTimer.singleShot(500, send_initial_geometry)
 +        self.logger.info("GeometryPanel initialized successfully")
-     
+
      def _setup_ui(self):
          """Настроить интерфейс / Setup user interface"""
 @@ -314,88 +316,158 @@
 
-     
+
      def _connect_signals(self):
          """Connect widget signals"""
 -        # Frame dimensions - МГНОВЕННОЕ ОБНОВЛЕНИЕ во время движения
@@ -9903,31 +9903,31 @@
 +=======
 +        # Используем ТОЛЬКО valueEdited для избежания дублирования событий
 +>>>>>>> sync/remote-main
-+        
++
 +        self.logger.debug("Connecting signals...")
-+        
++
 +        # Frame dimensions
          self.wheelbase_slider.valueChanged.connect(
              lambda v: self._on_parameter_changed('wheelbase', v))
 +        self.wheelbase_slider.valueEdited.connect(
 +            lambda v: self._on_parameter_changed('wheelbase', v))
 +<<<<<<< HEAD
-+        
++
          self.track_slider.valueChanged.connect(
              lambda v: self._on_parameter_changed('track', v))
--        
+-
 -        # Suspension geometry - МГНОВЕННОЕ ОБНОВЛЕНИЕ во время движения
 +=======
 +        # Мгновенные обновления канвы
 +        self.wheelbase_slider.valueChanged.connect(
 +            lambda v: self._on_parameter_live_change('wheelbase', v))
-+        
++
 +>>>>>>> sync/remote-main
 +        self.track_slider.valueEdited.connect(
 +            lambda v: self._on_parameter_changed('track', v))
 +        self.track_slider.valueChanged.connect(
 +            lambda v: self._on_parameter_live_change('track', v))
-+        
++
 ... (обрезано)
 
 ```
@@ -9971,7 +9971,7 @@
 +from PySide6 import QtWidgets  # ✅ ДОБАВЛЕНО: модуль QtWidgets для безопасного доступа к QSlider
 +>>>>>>> sync/remote-main
  from PySide6.QtWidgets import (
--    QWidget, QVBoxLayout, QHBoxLayout, QGridLayout, QGroupBox, QLabel, 
+-    QWidget, QVBoxLayout, QHBoxLayout, QGridLayout, QGroupBox, QLabel,
 -    QSlider, QSpinBox, QDoubleSpinBox, QComboBox, QCheckBox, QPushButton,
 -    QColorDialog, QFrame, QSizePolicy, QScrollArea, QTabWidget, QFileDialog, QMessageBox
 +    QCheckBox,
@@ -10004,8 +10004,8 @@
 +
 +# ✅ НОВОЕ: Импорт EventLogger для отслеживания UI событий
 +from src.common.event_logger import get_event_logger, EventType
- 
- 
+
+
  class ColorButton(QPushButton):
 -    """Кнопка выбора цвета с предварительным просмотром"""
 +    """Small color preview button that streams changes from QColorDialog."""
@@ -10088,31 +10088,31 @@
 +    required_vars = ["QML2_IMPORT_PATH", "QML_IMPORT_PATH", "QT_PLUGIN_PATH", "QT_QML_IMPORT_PATH"]
 +    if all(var in os.environ for var in required_vars):
 +        return True
-+    
++
 +    try:
 +        import importlib.util
 +        spec = importlib.util.find_spec("PySide6.QtCore")
 +        if spec is None:
 +            log_error("PySide6 not found!")
 +            return False
-+            
++
 +        from PySide6.QtCore import QLibraryInfo
-+        
++
 +        qml_path = QLibraryInfo.path(QLibraryInfo.LibraryPath.Qml2ImportsPath)
 +        plugins_path = QLibraryInfo.path(QLibraryInfo.LibraryPath.PluginsPath)
-+        
++
 +        qtquick3d_env = {
 +            "QML2_IMPORT_PATH": str(qml_path),
 +            "QML_IMPORT_PATH": str(qml_path),
 +            "QT_PLUGIN_PATH": str(plugins_path),
 +            "QT_QML_IMPORT_PATH": str(qml_path),
 +        }
-+        
++
 +        for var, value in qtquick3d_env.items():
 +            os.environ[var] = value
-+        
++
 +        return True
-+        
++
 +    except Exception as e:
 +        log_error(f"QtQuick3D setup failed: {e}")
 +        return False
@@ -10139,27 +10139,27 @@
  # PneumoStabSim Professional - Production Dependencies
 -# Проверено для Python 3.8-3.13 (рекомендуется 3.9-3.11)
 +# Проверено для Python 3.11-3.13 (рекомендуется 3.13)
- 
+
  # === КРИТИЧЕСКИЕ ЗАВИСИМОСТИ ===
  # Qt Framework - основа GUI и 3D рендеринга
 -PySide6>=6.5.0,<7.0.0    # Qt6 framework для GUI и 3D
 -shiboken6                # Qt6 bindings generator
 +PySide6>=6.10.0,<7.0.0   # Qt6.10+ (ExtendedSceneEnvironment, Fog, dithering)
 +shiboken6                 # Qt6 bindings generator
- 
+
  # Numerical computing - основа физических расчетов
 -numpy>=1.21.0,<3.0.0     # Векторные вычисления
 -scipy>=1.7.0,<2.0.0      # Научные вычисления и ODE solver
 +numpy>=1.24.0,<3.0.0      # Векторные вычисления
 +scipy>=1.10.0,<2.0.0      # Научные вычисления и ODE solver
- 
+
  # === ДОПОЛНИТЕЛЬНЫЕ ПАКЕТЫ ===
  # Visualization и анализ данных
 -matplotlib>=3.5.0        # Графики и чарты
 -pillow>=9.0.0            # Обработка изображений для HDR текстур
 +matplotlib>=3.5.0         # Графики и чарты
 +pillow>=9.0.0             # Обработка изображений для HDR текстур
- 
+
  # Testing и development
 -pytest>=6.0.0           # Тестирование
 -PyYAML>=6.0             # Конфигурационные файлы
@@ -10167,7 +10167,7 @@
 +PyYAML>=6.0               # Конфигурационные файлы
 +python-dotenv>=1.0.0      # Переменные окружения из .env
 +psutil>=5.8.0             # Мониторинг
- 
+
  # === ОПЦИОНАЛЬНЫЕ УЛУЧШЕНИЯ ===
 -# 3D геометрия и визуализация
 -# trimesh>=3.15.0        # 3D mesh обработка (опционально)
@@ -10180,7 +10180,7 @@
 +# pyqtgraph>=0.12.0       # Быстрые графики (опционально)
 +# numba>=0.56.0           # JIT компиляция (опционально)
 +# cython>=0.29.0          # C расширения (опционально)
- 
+
  # === СОВМЕСТИМОСТЬ ===
  # Проверено на:
 -# - Windows 10/11 (Python 3.9-3.13)
@@ -10189,7 +10189,7 @@
 +# - Windows 10/11 (Python 3.11-3.13)
 +# - Ubuntu 22.04/24.04 (Python 3.11-3.12)
 +# - macOS 13+ (Python 3.11-3.12)
- 
+
  # Примечания:
 -# 1. PySide6 6.9.3+ рекомендуется для ExtendedSceneEnvironment
 -# 2. NumPy 2.0+ совместим, но может требовать обновления других пакетов
@@ -10215,7 +10215,7 @@
 
  echo ================================================================
  echo.
- 
+
 +rem Prefer Python 3.13 if available via py launcher
 +set "PYTHON_CMD="
 +py -3.13 -c "import sys" >nul 2>&1 && set "PYTHON_CMD=py -3.13"
@@ -10246,7 +10246,7 @@
  rem Check if virtual environment exists
  if not exist "venv\Scripts\activate.bat" (
      echo Creating virtual environment...
--    
+-
 -    rem Try different Python commands for compatibility
 -    python -c "import sys; exit(0)" >nul 2>&1
 +
@@ -10266,7 +10266,7 @@
 -        set PYTHON_CMD=python
 +        echo WARNING: Python version may not be fully compatible (recommended 3.13). Continuing...
      )
--    
+-
 -    rem Check Python version before creating venv
 -    %PYTHON_CMD% -c "import sys; major, minor = sys.version_info[:2]; print(f'Using Python {major}.{minor}'); exit(0 if (3, 8) <= (major, minor) <= (3, 12) else 1)"
 -    if errorlevel 1 (
@@ -10279,7 +10279,7 @@
 -            exit /b 1
 -        )
 -    )
--    
+-
 +
      %PYTHON_CMD% -m venv venv --clear
      if errorlevel 1 (
@@ -10289,7 +10289,7 @@
  echo Installing project dependencies...
  if exist "requirements.txt" (
      echo Installing from requirements.txt...
--    
+-
 -    rem First try normal installation
 ... (обрезано)
 
@@ -10328,7 +10328,7 @@
  PYTHONIOENCODING=utf-8
 -PYTHONDONTWRITEBYTECODE=1
 -
--# Qt Configuration  
+-# Qt Configuration
 -QSG_RHI_BACKEND=d3d11
 -QT_LOGGING_RULES=js.debug=true;qt.qml.debug=true
 -QSG_INFO=1
@@ -10463,7 +10463,7 @@
 +import QtQuick.Controls
 +import Qt.labs.folderlistmodel
 +import "components"
- 
+
  /*
 - * PneumoStabSim - Unified Optimized 3D View v3.0
 - * ✅ Объединяет лучшие части main.qml и main_optimized.qml
@@ -10485,23 +10485,23 @@
      anchors.fill: parent
 +    // Toggle to show/hide in-canvas UI controls (to avoid duplication with external GraphicsPanel)
 +    property bool showOverlayControls: false
-+    
++
 +    // ===============================================================
 +    // 🚀 SIGNALS - ACK для Python после применения обновлений
 +    // ===============================================================
-+    
++
 +    signal batchUpdatesApplied(var summary)
 +
 +    // ===============================================================
 +    // 🚀 QT VERSION DETECTION (для условной активации возможностей)
 +    // ===============================================================
-+    
++
 +    readonly property string qtVersionString: typeof Qt.version !== "undefined" ? Qt.version : "6.0.0"
 +    readonly property var qtVersionParts: qtVersionString.split('.')
 +    readonly property int qtMajor: qtVersionParts.length > 0 ? parseInt(qtVersionParts[0]) : 6
 +    readonly property int qtMinor: qtVersionParts.length > 1 ? parseInt(qtVersionParts[1]) : 0
 +    readonly property bool supportsQtQuick3D610Features: qtMajor === 6 && qtMinor >= 10
-+    
++
 +    // ✅ Условная поддержка dithering (доступно с Qt 6.10)
 +    property bool ditheringEnabled: true  // Управляется из GraphicsPanel
 +    readonly property bool canUseDithering: supportsQtQuick3D610Features
@@ -10509,32 +10509,32 @@
 +    // ===============================================================
 +    // 🚀 CRITICAL FIX v4.9.4: SKYBOX ROTATION - INDEPENDENT FROM CAMERA
 +    // ===============================================================
-+    
++
 +    // ✅ ПРАВИЛЬНО: Skybox вращается ТОЛЬКО от пользовательского iblRotationDeg
 +    // Камера НЕ влияет на skybox вообще!
-+    
++
 +    // ❌ УДАЛЕНО: envYaw, _prevCameraYaw, updateCameraYaw() - это было НЕПРАВИЛЬНО
 +    // Эти переменные СВЯЗЫВАЛИ фон с камерой, что вызывало проблему
- 
+
      // ===============================================================
      // 🚀 PERFORMANCE OPTIMIZATION LAYER
      // ===============================================================
-     
+
 -    // Кэширование анимационных вычислений
 +    // ✅ ОПТИМИЗАЦИЯ #1: Кэширование анимационных вычислений
      QtObject {
          id: animationCache
-         
+
 @@ -38,7 +77,7 @@
 
          property real rrSin: Math.sin(basePhase + rrPhaseRad)
      }
-     
+
 -    // Геометрический калькулятор с кэшированием
 +    // ✅ ОПТИМИЗАЦИЯ #2: Геометрический калькулятор
      QtObject {
          id: geometryCache
-         
+
 ... (обрезано)
 
 ```
@@ -10554,11 +10554,11 @@
 
  import QtQuick
  import QtQuick3D
- 
+
 -QtObject {
 +Item {
      id: controller
- 
+
      /**
 @@ -14,34 +14,215 @@
 
@@ -10571,10 +10571,10 @@
 +=======
      property url fallbackSource: Qt.resolvedUrl("../../assets/studio_small_09_2k.hdr")
 +>>>>>>> sync/remote-main
- 
+
      /** Internal flag preventing infinite fallback recursion. */
      property bool _fallbackTried: false
- 
+
 +<<<<<<< HEAD
 +    /**
 +      * Double-buffered textures to prevent flicker when switching HDRs.
@@ -10605,7 +10605,7 @@
 -    /** Simple ready flag to avoid binding against an invalid texture. */
 -    readonly property bool ready: hdrProbe.status === Texture.Ready
 +    property Texture probe: hdrProbe
- 
+
      Texture {
          id: hdrProbe
          source: controller.primarySource
@@ -10629,7 +10629,7 @@
 +    function writeLog(level, message) {
 +        var timestamp = new Date().toISOString()
 +        var logEntry = timestamp + " | " + level + " | IblProbeLoader | " + message
-+        
++
 ... (обрезано)
 
 ```
@@ -10652,7 +10652,7 @@
  Overwrites log file on each run, ensures proper cleanup
 +УЛУЧШЕННАЯ ВЕРСИЯ с ротацией и контекстными логгерами
  """
- 
+
  import logging
 @@ -11,27 +12,79 @@
 
@@ -10663,8 +10663,8 @@
 +from typing import Optional, Dict, Any
  from datetime import datetime
 +import traceback
- 
- 
+
+
  # Global queue listener for cleanup
  _queue_listener: Optional[logging.handlers.QueueListener] = None
 -
@@ -10675,11 +10675,11 @@
 +
 +class ContextualFilter(logging.Filter):
 +    """Добавляет контекстную информацию к логам"""
-+    
++
 +    def __init__(self, context: Dict[str, Any] = None):
 +        super().__init__()
 +        self.context = context or {}
-+    
++
 +    def filter(self, record):
 +        # Добавляем контекст к каждому record
 +        for key, value in self.context.items():
@@ -10689,7 +10689,7 @@
 +
 +class ColoredFormatter(logging.Formatter):
 +    """Форматтер с цветами для консоли (опционально)"""
-+    
++
 +    COLORS = {
 +        'DEBUG': '\033[36m',     # Cyan
 +        'INFO': '\033[32m',      # Green
@@ -10698,7 +10698,7 @@
 +        'CRITICAL': '\033[35m',  # Magenta
 +        'RESET': '\033[0m'
 +    }
-+    
++
 +    def format(self, record):
 +        if hasattr(sys.stdout, 'isatty') and sys.stdout.isatty():
 +            levelname = record.levelname
@@ -10715,13 +10715,13 @@
 +    console_output: bool = False
 +) -> logging.Logger:
      """Initialize application logging with non-blocking queue handler
-     
+
 +    УЛУЧШЕНИЯ v4.9.5:
 +    - Ротация логов (max_bytes, backup_count)
 +    - Опциональный вывод в консоль
 +    - Цветной вывод для консоли
 +    - Контекстные фильтры
-+    
++
      Features:
 -    - Overwrites log file on each run (mode='w')
 +    - Log rotation with configurable size/count
@@ -10766,18 +10766,18 @@
 +    STATE_CHANGE = auto()        # Изменение state в Python
 +    SIGNAL_EMIT = auto()         # Вызов .emit() сигнала
 +    QML_INVOKE = auto()          # QMetaObject.invokeMethod
-+    
++
 +    # QML events
 +    SIGNAL_RECEIVED = auto()     # QML получил сигнал (onXxxChanged)
 +    FUNCTION_CALLED = auto()     # QML функция вызвана
 +    PROPERTY_CHANGED = auto()    # QML property изменилось
-+    
++
 +    # ✅ НОВОЕ: Mouse events in QML
 +    MOUSE_PRESS = auto()         # Нажатие мыши на канве
 +    MOUSE_DRAG = auto()          # Перетаскивание
 +    MOUSE_WHEEL = auto()         # Прокрутка колесика (zoom)
 +    MOUSE_RELEASE = auto()       # Отпускание мыши
-+    
++
 +    # Errors
 +    PYTHON_ERROR = auto()        # Ошибка в Python
 +    QML_ERROR = auto()           # Ошибка в QML
@@ -10785,24 +10785,24 @@
 +
 +class EventLogger:
 +    """Singleton логгер для отслеживания Python↔QML событий"""
-+    
++
 +    _instance: Optional['EventLogger'] = None
 +    _initialized: bool = False
-+    
++
 +    def __new__(cls):
 +        if cls._instance is None:
 +            cls._instance = super().__new__(cls)
 +        return cls._instance
-+    
++
 +    def __init__(self):
 +        if EventLogger._initialized:
 +            return
-+        
++
 +        self.logger = logging.getLogger("EventLogger")
 +        self.events: list[Dict[str, Any]] = []
 +        self._session_id = datetime.now().strftime("%Y%m%d_%H%M%S")
 +        EventLogger._initialized = True
-+    
++
 +    def log_event(
 +        self,
 +        event_type: EventType,
@@ -10816,7 +10816,7 @@
 +    ) -> None:
 +        """
 +        Логирование события
-+        
++
 +        Args:
 +            event_type: Тип события
 ... (обрезано)
@@ -10852,7 +10852,7 @@
 +
 +class LogAnalysisResult:
 +    """Результат анализа логов"""
-+    
++
 +    def __init__(self):
 +        self.errors: List[str] = []
 +        self.warnings: List[str] = []
@@ -10860,32 +10860,32 @@
 +        self.metrics: Dict[str, float] = {}
 +        self.recommendations: List[str] = []
 +        self.status: str = "unknown"  # ok, warning, error
-+    
++
 +    def is_ok(self) -> bool:
 +        """Проверяет, всё ли в порядке"""
 +        return len(self.errors) == 0 and self.status != "error"
-+    
++
 +    def add_error(self, message: str):
 +        """Добавляет ошибку"""
 +        self.errors.append(message)
 +        self.status = "error"
-+    
++
 +    def add_warning(self, message: str):
 +        """Добавляет предупреждение"""
 +        self.warnings.append(message)
 +        if self.status != "error":
 +            self.status = "warning"
-+    
++
 +    def add_info(self, message: str):
 +        """Добавляет информацию"""
 +        self.info.append(message)
 +        if self.status == "unknown":
 +            self.status = "ok"
-+    
++
 +    def add_metric(self, name: str, value: float):
 +        """Добавляет метрику"""
 +        self.metrics[name] = value
-+    
++
 +    def add_recommendation(self, message: str):
 +        """Добавляет рекомендацию"""
 +        self.recommendations.append(message)
@@ -10893,26 +10893,26 @@
 +
 +class UnifiedLogAnalyzer:
 +    """Объединенный анализатор всех типов логов"""
-+    
++
 +    def __init__(self, logs_dir: Path = Path("logs")):
 +        self.logs_dir = logs_dir
 +        self.results: Dict[str, LogAnalysisResult] = {}
-+    
++
 +    def analyze_all(self) -> Dict[str, LogAnalysisResult]:
 +        """Запускает полный анализ всех логов"""
-+        
++
 +        # Основной лог
 +        self.results['main'] = self._analyze_main_log()
-+        
++
 +        # Graphics логи
 +        self.results['graphics'] = self._analyze_graphics_logs()
-+        
++
 +        # IBL логи
 +        self.results['ibl'] = self._analyze_ibl_logs()
-+        
++
 +        # Event логи (Python↔QML)
 +        self.results['events'] = self._analyze_event_logs()
-+        
++
 ... (обрезано)
 
 ```
@@ -10959,7 +10959,7 @@
  from pathlib import Path
 -from typing import Optional, Dict
 +from typing import Optional, Dict, Any
- 
+
  from src.ui.charts import ChartWidget
  from src.ui.panels import GeometryPanel, PneumoPanel, ModesPanel, RoadPanel, GraphicsPanel
  from ..runtime import SimulationManager, StateSnapshot
@@ -10969,8 +10969,8 @@
 +# ✅ НОВОЕ: EventLogger для логирования QML вызовов
 +from src.common.event_logger import get_event_logger
 +>>>>>>> sync/remote-main
- 
- 
+
+
  class MainWindow(QMainWindow):
 @@ -32,51 +51,84 @@
 
@@ -10988,7 +10988,7 @@
 +
 +>>>>>>> sync/remote-main
      SETTINGS_LAST_PRESET = "Presets/LastPath"
- 
+
 -    def __init__(self, use_qml_3d: bool = True, force_optimized: bool = False):
 +    QML_UPDATE_METHODS: Dict[str, tuple[str, ...]] = {
 +        "geometry": ("applyGeometryUpdates", "updateGeometry"),
@@ -11027,83 +11027,83 @@
 
          # Dependency resolution state
          self._resolving_conflict = False
-         
+
 +        # Logger
 +        from src.common import get_category_logger
 +        self.logger = get_category_logger("GeometryPanel")
 +        self.logger.info("GeometryPanel initializing...")
-+        
++
          # Setup UI
          self._setup_ui()
-         
+
 @@ -52,50 +57,18 @@
 
          # Size policy
          self.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Expanding)
-         
+
 -        # ✨ ИСПРАВЛЕНО: Отправляем начальные параметры геометрии в QML!
 -        print("🔧 GeometryPanel: Планируем отправку начальных параметров геометрии...")
--        
+-
 -        # Используем QTimer для отложенной отправки после полной инициализации UI
 +        # Отправляем начальные параметры геометрии в QML
          from PySide6.QtCore import QTimer
-         
+
          def send_initial_geometry():
 -            print("⏰ QTimer: Отправка начальной геометрии...")
--            
+-
 -            # Формируем полную геометрию для QML (как в _get_fast_geometry_update)
 +            self.logger.info("Sending initial geometry to QML...")
              initial_geometry = self._get_fast_geometry_update("init", 0.0)
--            
+-
 -            # ДИАГНОСТИКА: Проверяем подписчиков перед отправкой
 -            try:
 -                geom_changed_receivers = self.geometry_changed.receivers()
 -                geom_updated_receivers = self.geometry_updated.receivers()
--                
+-
 -                print(f"  📊 Подписчиков на geometry_changed: {geom_changed_receivers}")
 -                print(f"  📊 Подписчиков на geometry_updated: {geom_updated_receivers}")
--                
+-
 -                if geom_changed_receivers > 0:
 -                    print(f"  ✅ Есть подписчики, отправляем geometry_changed...")
 -                    self.geometry_changed.emit(initial_geometry)
 -                    print(f"  📡 geometry_changed отправлен с rodPosition = {initial_geometry.get('rodPosition', 'НЕ НАЙДЕН')}")
 -                else:
 -                    print(f"  ⚠️ Нет подписчиков на geometry_changed, возможно главное окно еще не готово")
--                
+-
 -                if geom_updated_receivers > 0:
 -                    print(f"  ✅ Отправляем geometry_updated...")
 -                    self.geometry_updated.emit(self.parameters.copy())
 -                    print(f"  📡 geometry_updated отправлен")
 -                else:
 -                    print(f"  ⚠️ Нет подписчиков на geometry_updated")
--                    
+-
 -            except Exception as e:
 -                print(f"  ❌ Ошибка проверки подписчиков: {e}")
 -                # Отправляем в любом случае
 -                self.geometry_changed.emit(initial_geometry)
 -                self.geometry_updated.emit(self.parameters.copy())
 -                print(f"  📡 Сигналы отправлены без проверки подписчиков")
--        
+-
 -        # УВЕЛИЧИВАЕМ задержку для гарантии готовности главного окна
 -        QTimer.singleShot(500, send_initial_geometry)  # Было 100мс, стало 500мс
 -        print("  ⏰ Таймер установлен на 500мс для отправки начальной геометрии")
 +            self.geometry_changed.emit(initial_geometry)
 +            self.geometry_updated.emit(self.parameters.copy())
 +            self.logger.info("Initial geometry sent successfully")
-+        
++
 +        QTimer.singleShot(500, send_initial_geometry)
 +        self.logger.info("GeometryPanel initialized successfully")
-     
+
      def _setup_ui(self):
          """Настроить интерфейс / Setup user interface"""
 @@ -343,54 +316,143 @@
 
-     
+
      def _connect_signals(self):
          """Connect widget signals"""
 -        # ИСПРАВЛЕНО: Используем ТОЛЬКО valueEdited для избежания дублирования событий
 -        # valueChanged срабатывает слишком часто (при каждом движении), valueEdited - только при завершении редактирования
--        
+-
 ... (обрезано)
 
 ```
@@ -11147,7 +11147,7 @@
 +from PySide6 import QtWidgets  # ✅ ДОБАВЛЕНО: модуль QtWidgets для безопасного доступа к QSlider
 +>>>>>>> sync/remote-main
  from PySide6.QtWidgets import (
--    QWidget, QVBoxLayout, QHBoxLayout, QGridLayout, QGroupBox, QLabel, 
+-    QWidget, QVBoxLayout, QHBoxLayout, QGridLayout, QGroupBox, QLabel,
 -    QSlider, QSpinBox, QDoubleSpinBox, QComboBox, QCheckBox, QPushButton,
 -    QColorDialog, QFrame, QSizePolicy, QScrollArea, QTabWidget, QFileDialog, QMessageBox
 +    QCheckBox,
@@ -11180,8 +11180,8 @@
 +
 +# ✅ НОВОЕ: Импорт EventLogger для отслеживания UI событий
 +from src.common.event_logger import get_event_logger, EventType
- 
- 
+
+
  class ColorButton(QPushButton):
 -    """Кнопка выбора цвета с предварительным просмотром"""
 +    """Small color preview button that streams changes from QColorDialog."""
@@ -11264,31 +11264,31 @@
 +    required_vars = ["QML2_IMPORT_PATH", "QML_IMPORT_PATH", "QT_PLUGIN_PATH", "QT_QML_IMPORT_PATH"]
 +    if all(var in os.environ for var in required_vars):
 +        return True
-+    
++
 +    try:
 +        import importlib.util
 +        spec = importlib.util.find_spec("PySide6.QtCore")
 +        if spec is None:
 +            log_error("PySide6 not found!")
 +            return False
-+            
++
 +        from PySide6.QtCore import QLibraryInfo
-+        
++
 +        qml_path = QLibraryInfo.path(QLibraryInfo.LibraryPath.Qml2ImportsPath)
 +        plugins_path = QLibraryInfo.path(QLibraryInfo.LibraryPath.PluginsPath)
-+        
++
 +        qtquick3d_env = {
 +            "QML2_IMPORT_PATH": str(qml_path),
 +            "QML_IMPORT_PATH": str(qml_path),
 +            "QT_PLUGIN_PATH": str(plugins_path),
 +            "QT_QML_IMPORT_PATH": str(qml_path),
 +        }
-+        
++
 +        for var, value in qtquick3d_env.items():
 +            os.environ[var] = value
-+        
++
 +        return True
-+        
++
 +    except Exception as e:
 +        log_error(f"QtQuick3D setup failed: {e}")
 +        return False
@@ -11315,27 +11315,27 @@
  # PneumoStabSim Professional - Production Dependencies
 -# Проверено для Python 3.8-3.13 (рекомендуется 3.9-3.11)
 +# Проверено для Python 3.11-3.13 (рекомендуется 3.13)
- 
+
  # === КРИТИЧЕСКИЕ ЗАВИСИМОСТИ ===
  # Qt Framework - основа GUI и 3D рендеринга
 -PySide6>=6.5.0,<7.0.0    # Qt6 framework для GUI и 3D
 -shiboken6                # Qt6 bindings generator
 +PySide6>=6.10.0,<7.0.0   # Qt6.10+ (ExtendedSceneEnvironment, Fog, dithering)
 +shiboken6                 # Qt6 bindings generator
- 
+
  # Numerical computing - основа физических расчетов
 -numpy>=1.21.0,<3.0.0     # Векторные вычисления
 -scipy>=1.7.0,<2.0.0      # Научные вычисления и ODE solver
 +numpy>=1.24.0,<3.0.0      # Векторные вычисления
 +scipy>=1.10.0,<2.0.0      # Научные вычисления и ODE solver
- 
+
  # === ДОПОЛНИТЕЛЬНЫЕ ПАКЕТЫ ===
  # Visualization и анализ данных
 -matplotlib>=3.5.0        # Графики и чарты
 -pillow>=9.0.0            # Обработка изображений для HDR текстур
 +matplotlib>=3.5.0         # Графики и чарты
 +pillow>=9.0.0             # Обработка изображений для HDR текстур
- 
+
  # Testing и development
 -pytest>=6.0.0           # Тестирование
 -PyYAML>=6.0             # Конфигурационные файлы
@@ -11343,7 +11343,7 @@
 +PyYAML>=6.0               # Конфигурационные файлы
 +python-dotenv>=1.0.0      # Переменные окружения из .env
 +psutil>=5.8.0             # Мониторинг
- 
+
  # === ОПЦИОНАЛЬНЫЕ УЛУЧШЕНИЯ ===
 -# 3D геометрия и визуализация
 -# trimesh>=3.15.0        # 3D mesh обработка (опционально)
@@ -11356,7 +11356,7 @@
 +# pyqtgraph>=0.12.0       # Быстрые графики (опционально)
 +# numba>=0.56.0           # JIT компиляция (опционально)
 +# cython>=0.29.0          # C расширения (опционально)
- 
+
  # === СОВМЕСТИМОСТЬ ===
  # Проверено на:
 -# - Windows 10/11 (Python 3.9-3.13)
@@ -11365,7 +11365,7 @@
 +# - Windows 10/11 (Python 3.11-3.13)
 +# - Ubuntu 22.04/24.04 (Python 3.11-3.12)
 +# - macOS 13+ (Python 3.11-3.12)
- 
+
  # Примечания:
 -# 1. PySide6 6.9.3+ рекомендуется для ExtendedSceneEnvironment
 -# 2. NumPy 2.0+ совместим, но может требовать обновления других пакетов
@@ -11391,7 +11391,7 @@
 
  echo ================================================================
  echo.
- 
+
 +rem Prefer Python 3.13 if available via py launcher
 +set "PYTHON_CMD="
 +py -3.13 -c "import sys" >nul 2>&1 && set "PYTHON_CMD=py -3.13"
@@ -11422,7 +11422,7 @@
  rem Check if virtual environment exists
  if not exist "venv\Scripts\activate.bat" (
      echo Creating virtual environment...
--    
+-
 -    rem Try different Python commands for compatibility
 -    python -c "import sys; exit(0)" >nul 2>&1
 +
@@ -11442,7 +11442,7 @@
 -        set PYTHON_CMD=python
 +        echo WARNING: Python version may not be fully compatible (recommended 3.13). Continuing...
      )
--    
+-
 -    rem Check Python version before creating venv
 -    %PYTHON_CMD% -c "import sys; major, minor = sys.version_info[:2]; print(f'Using Python {major}.{minor}'); exit(0 if (3, 8) <= (major, minor) <= (3, 12) else 1)"
 -    if errorlevel 1 (
@@ -11455,7 +11455,7 @@
 -            exit /b 1
 -        )
 -    )
--    
+-
 +
      %PYTHON_CMD% -m venv venv --clear
      if errorlevel 1 (
@@ -11465,7 +11465,7 @@
  echo Installing project dependencies...
  if exist "requirements.txt" (
      echo Installing from requirements.txt...
--    
+-
 -    rem First try normal installation
 ... (обрезано)
 
@@ -11504,7 +11504,7 @@
  PYTHONIOENCODING=utf-8
 -PYTHONDONTWRITEBYTECODE=1
 -
--# Qt Configuration  
+-# Qt Configuration
 -QSG_RHI_BACKEND=d3d11
 -QT_LOGGING_RULES=js.debug=true;qt.qml.debug=true
 -QSG_INFO=1
@@ -11639,7 +11639,7 @@
 +import QtQuick.Controls
 +import Qt.labs.folderlistmodel
  import "components"
- 
+
  /*
 - * PneumoStabSim - COMPLETE Graphics Parameters Main 3D View (v4.0)
 - * 🚀 ПОЛНАЯ ИНТЕРАЦИЯ: Все параметры GraphicsPanel реализованы
@@ -11662,23 +11662,23 @@
 -    // 🚀 PERFORMANCE OPTIMIZATION LAYER (preserved)
 +    // Toggle to show/hide in-canvas UI controls (to avoid duplication with external GraphicsPanel)
 +    property bool showOverlayControls: false
-+    
++
 +    // ===============================================================
 +    // 🚀 SIGNALS - ACK для Python после применения обновлений
 +    // ===============================================================
-+    
++
 +    signal batchUpdatesApplied(var summary)
 +
 +    // ===============================================================
 +    // 🚀 QT VERSION DETECTION (для условной активации возможностей)
 +    // ===============================================================
-+    
++
 +    readonly property string qtVersionString: typeof Qt.version !== "undefined" ? Qt.version : "6.0.0"
 +    readonly property var qtVersionParts: qtVersionString.split('.')
 +    readonly property int qtMajor: qtVersionParts.length > 0 ? parseInt(qtVersionParts[0]) : 6
 +    readonly property int qtMinor: qtVersionParts.length > 1 ? parseInt(qtVersionParts[1]) : 0
 +    readonly property bool supportsQtQuick3D610Features: qtMajor === 6 && qtMinor >= 10
-+    
++
 +    // ✅ Условная поддержка dithering (доступно с Qt 6.10)
 +    property bool ditheringEnabled: true  // Управляется из GraphicsPanel
 +    readonly property bool canUseDithering: supportsQtQuick3D610Features
@@ -11686,17 +11686,17 @@
 +    // ===============================================================
 +    // 🚀 CRITICAL FIX v4.9.4: SKYBOX ROTATION - INDEPENDENT FROM CAMERA
 +    // ===============================================================
-+    
++
 +    // ✅ ПРАВИЛЬНО: Skybox вращается ТОЛЬКО от пользовательского iblRotationDeg
 +    // Камера НЕ влияет на skybox вообще!
-+    
++
 +    // ❌ УДАЛЕНО: envYaw, _prevCameraYaw, updateCameraYaw() - это было НЕПРАВИЛЬНО
 +    // Эти переменные СВЯЗЫВАЛИ фон с камерой, что вызывало проблему
 +
 +    // ===============================================================
 +    // 🚀 PERFORMANCE OPTIMIZATION LAYER
      // ===============================================================
-     
+
      // ✅ ОПТИМИЗАЦИЯ #1: Кэширование анимационных вычислений
 @@ -133,21 +173,39 @@
 
@@ -11730,11 +11730,11 @@
 
  import QtQuick
  import QtQuick3D
- 
+
 -QtObject {
 +Item {
      id: controller
- 
+
      /**
 @@ -14,34 +14,215 @@
 
@@ -11747,10 +11747,10 @@
 +=======
      property url fallbackSource: Qt.resolvedUrl("../../assets/studio_small_09_2k.hdr")
 +>>>>>>> sync/remote-main
- 
+
      /** Internal flag preventing infinite fallback recursion. */
      property bool _fallbackTried: false
- 
+
 +<<<<<<< HEAD
 +    /**
 +      * Double-buffered textures to prevent flicker when switching HDRs.
@@ -11781,7 +11781,7 @@
 -    /** Simple ready flag to avoid binding against an invalid texture. */
 -    readonly property bool ready: hdrProbe.status === Texture.Ready
 +    property Texture probe: hdrProbe
- 
+
      Texture {
          id: hdrProbe
          source: controller.primarySource
@@ -11805,7 +11805,7 @@
 +    function writeLog(level, message) {
 +        var timestamp = new Date().toISOString()
 +        var logEntry = timestamp + " | " + level + " | IblProbeLoader | " + message
-+        
++
 ... (обрезано)
 
 ```
@@ -11828,7 +11828,7 @@
  Overwrites log file on each run, ensures proper cleanup
 +УЛУЧШЕННАЯ ВЕРСИЯ с ротацией и контекстными логгерами
  """
- 
+
  import logging
 @@ -11,27 +12,79 @@
 
@@ -11839,8 +11839,8 @@
 +from typing import Optional, Dict, Any
  from datetime import datetime
 +import traceback
- 
- 
+
+
  # Global queue listener for cleanup
  _queue_listener: Optional[logging.handlers.QueueListener] = None
 -
@@ -11851,11 +11851,11 @@
 +
 +class ContextualFilter(logging.Filter):
 +    """Добавляет контекстную информацию к логам"""
-+    
++
 +    def __init__(self, context: Dict[str, Any] = None):
 +        super().__init__()
 +        self.context = context or {}
-+    
++
 +    def filter(self, record):
 +        # Добавляем контекст к каждому record
 +        for key, value in self.context.items():
@@ -11865,7 +11865,7 @@
 +
 +class ColoredFormatter(logging.Formatter):
 +    """Форматтер с цветами для консоли (опционально)"""
-+    
++
 +    COLORS = {
 +        'DEBUG': '\033[36m',     # Cyan
 +        'INFO': '\033[32m',      # Green
@@ -11874,7 +11874,7 @@
 +        'CRITICAL': '\033[35m',  # Magenta
 +        'RESET': '\033[0m'
 +    }
-+    
++
 +    def format(self, record):
 +        if hasattr(sys.stdout, 'isatty') and sys.stdout.isatty():
 +            levelname = record.levelname
@@ -11891,13 +11891,13 @@
 +    console_output: bool = False
 +) -> logging.Logger:
      """Initialize application logging with non-blocking queue handler
-     
+
 +    УЛУЧШЕНИЯ v4.9.5:
 +    - Ротация логов (max_bytes, backup_count)
 +    - Опциональный вывод в консоль
 +    - Цветной вывод для консоли
 +    - Контекстные фильтры
-+    
++
      Features:
 -    - Overwrites log file on each run (mode='w')
 +    - Log rotation with configurable size/count
@@ -11942,18 +11942,18 @@
 +    STATE_CHANGE = auto()        # Изменение state в Python
 +    SIGNAL_EMIT = auto()         # Вызов .emit() сигнала
 +    QML_INVOKE = auto()          # QMetaObject.invokeMethod
-+    
++
 +    # QML events
 +    SIGNAL_RECEIVED = auto()     # QML получил сигнал (onXxxChanged)
 +    FUNCTION_CALLED = auto()     # QML функция вызвана
 +    PROPERTY_CHANGED = auto()    # QML property изменилось
-+    
++
 +    # ✅ НОВОЕ: Mouse events in QML
 +    MOUSE_PRESS = auto()         # Нажатие мыши на канве
 +    MOUSE_DRAG = auto()          # Перетаскивание
 +    MOUSE_WHEEL = auto()         # Прокрутка колесика (zoom)
 +    MOUSE_RELEASE = auto()       # Отпускание мыши
-+    
++
 +    # Errors
 +    PYTHON_ERROR = auto()        # Ошибка в Python
 +    QML_ERROR = auto()           # Ошибка в QML
@@ -11961,24 +11961,24 @@
 +
 +class EventLogger:
 +    """Singleton логгер для отслеживания Python↔QML событий"""
-+    
++
 +    _instance: Optional['EventLogger'] = None
 +    _initialized: bool = False
-+    
++
 +    def __new__(cls):
 +        if cls._instance is None:
 +            cls._instance = super().__new__(cls)
 +        return cls._instance
-+    
++
 +    def __init__(self):
 +        if EventLogger._initialized:
 +            return
-+        
++
 +        self.logger = logging.getLogger("EventLogger")
 +        self.events: list[Dict[str, Any]] = []
 +        self._session_id = datetime.now().strftime("%Y%m%d_%H%M%S")
 +        EventLogger._initialized = True
-+    
++
 +    def log_event(
 +        self,
 +        event_type: EventType,
@@ -11992,7 +11992,7 @@
 +    ) -> None:
 +        """
 +        Логирование события
-+        
++
 +        Args:
 +            event_type: Тип события
 ... (обрезано)
@@ -12028,7 +12028,7 @@
 +
 +class LogAnalysisResult:
 +    """Результат анализа логов"""
-+    
++
 +    def __init__(self):
 +        self.errors: List[str] = []
 +        self.warnings: List[str] = []
@@ -12036,32 +12036,32 @@
 +        self.metrics: Dict[str, float] = {}
 +        self.recommendations: List[str] = []
 +        self.status: str = "unknown"  # ok, warning, error
-+    
++
 +    def is_ok(self) -> bool:
 +        """Проверяет, всё ли в порядке"""
 +        return len(self.errors) == 0 and self.status != "error"
-+    
++
 +    def add_error(self, message: str):
 +        """Добавляет ошибку"""
 +        self.errors.append(message)
 +        self.status = "error"
-+    
++
 +    def add_warning(self, message: str):
 +        """Добавляет предупреждение"""
 +        self.warnings.append(message)
 +        if self.status != "error":
 +            self.status = "warning"
-+    
++
 +    def add_info(self, message: str):
 +        """Добавляет информацию"""
 +        self.info.append(message)
 +        if self.status == "unknown":
 +            self.status = "ok"
-+    
++
 +    def add_metric(self, name: str, value: float):
 +        """Добавляет метрику"""
 +        self.metrics[name] = value
-+    
++
 +    def add_recommendation(self, message: str):
 +        """Добавляет рекомендацию"""
 +        self.recommendations.append(message)
@@ -12069,26 +12069,26 @@
 +
 +class UnifiedLogAnalyzer:
 +    """Объединенный анализатор всех типов логов"""
-+    
++
 +    def __init__(self, logs_dir: Path = Path("logs")):
 +        self.logs_dir = logs_dir
 +        self.results: Dict[str, LogAnalysisResult] = {}
-+    
++
 +    def analyze_all(self) -> Dict[str, LogAnalysisResult]:
 +        """Запускает полный анализ всех логов"""
-+        
++
 +        # Основной лог
 +        self.results['main'] = self._analyze_main_log()
-+        
++
 +        # Graphics логи
 +        self.results['graphics'] = self._analyze_graphics_logs()
-+        
++
 +        # IBL логи
 +        self.results['ibl'] = self._analyze_ibl_logs()
-+        
++
 +        # Event логи (Python↔QML)
 +        self.results['events'] = self._analyze_event_logs()
-+        
++
 ... (обрезано)
 
 ```
@@ -12125,7 +12125,7 @@
 +>>>>>>> sync/remote-main
  from pathlib import Path
  from typing import Optional, Dict, Any
- 
+
  from src.ui.charts import ChartWidget
  from src.ui.panels import GeometryPanel, PneumoPanel, ModesPanel, RoadPanel, GraphicsPanel
  from ..runtime import SimulationManager, StateSnapshot
@@ -12135,8 +12135,8 @@
 +# ✅ НОВОЕ: EventLogger для логирования QML вызовов
 +from src.common.event_logger import get_event_logger
 +>>>>>>> sync/remote-main
- 
- 
+
+
  class MainWindow(QMainWindow):
 @@ -46,6 +54,10 @@
 
@@ -12148,36 +12148,36 @@
 +
 +>>>>>>> sync/remote-main
      SETTINGS_LAST_PRESET = "Presets/LastPath"
- 
+
      QML_UPDATE_METHODS: Dict[str, tuple[str, ...]] = {
 @@ -72,7 +84,7 @@
 
          # Store visualization backend choice
          self.use_qml_3d = use_qml_3d
-         
+
 -        backend_name = "Qt Quick 3D (Enhanced v5.0)" if use_qml_3d else "Legacy OpenGL"
 +        backend_name = "Qt Quick 3D (main.qml v4.3)" if use_qml_3d else "Legacy OpenGL"
          self.setWindowTitle(f"PneumoStabSim - {backend_name}")
-         
+
          self.resize(1400, 900)
 @@ -82,6 +94,17 @@
 
          # Logging
          self.logger = logging.getLogger(self.__class__.__name__)
-         
+
 +        # ✅ НОВОЕ: Инициализация IBL Signal Logger
 +        self.ibl_logger = get_ibl_logger()
 +        log_ibl_event("INFO", "MainWindow", "IBL Logger initialized")
-+        
++
 +<<<<<<< HEAD
 +=======
 +        # ✅ НОВОЕ: Инициализируем EventLogger (Python↔QML)
 +        self.event_logger = get_event_logger()
 +        self.logger.info("EventLogger initialized in MainWindow")
-+        
++
 +>>>>>>> sync/remote-main
          print("MainWindow: Создание SimulationManager...")
-         
+
          # Simulation manager
 @@ -100,6 +123,7 @@
 
@@ -12185,7 +12185,7 @@
          self._qml_flush_timer.setSingleShot(True)
          self._qml_flush_timer.timeout.connect(self._flush_qml_updates)
 +        self._qml_pending_property_supported: Optional[bool] = None
-         
+
          # State tracking
          self.current_snapshot: Optional[StateSnapshot] = None
 ... (обрезано)
@@ -12207,83 +12207,83 @@
 
          # Dependency resolution state
          self._resolving_conflict = False
-         
+
 +        # Logger
 +        from src.common import get_category_logger
 +        self.logger = get_category_logger("GeometryPanel")
 +        self.logger.info("GeometryPanel initializing...")
-+        
++
          # Setup UI
          self._setup_ui()
-         
+
 @@ -52,50 +57,18 @@
 
          # Size policy
          self.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Expanding)
-         
+
 -        # ✨ ИСПРАВЛЕНО: Отправляем начальные параметры геометрии в QML!
 -        print("🔧 GeometryPanel: Планируем отправку начальных параметров геометрии...")
--        
+-
 -        # Используем QTimer для отложенной отправки после полной инициализации UI
 +        # Отправляем начальные параметры геометрии в QML
          from PySide6.QtCore import QTimer
-         
+
          def send_initial_geometry():
 -            print("⏰ QTimer: Отправка начальной геометрии...")
--            
+-
 -            # Формируем полную геометрию для QML (как в _get_fast_geometry_update)
 +            self.logger.info("Sending initial geometry to QML...")
              initial_geometry = self._get_fast_geometry_update("init", 0.0)
--            
+-
 -            # ДИАГНОСТИКА: Проверяем подписчиков перед отправкой
 -            try:
 -                geom_changed_receivers = self.geometry_changed.receivers()
 -                geom_updated_receivers = self.geometry_updated.receivers()
--                
+-
 -                print(f"  📊 Подписчиков на geometry_changed: {geom_changed_receivers}")
 -                print(f"  📊 Подписчиков на geometry_updated: {geom_updated_receivers}")
--                
+-
 -                if geom_changed_receivers > 0:
 -                    print(f"  ✅ Есть подписчики, отправляем geometry_changed...")
 -                    self.geometry_changed.emit(initial_geometry)
 -                    print(f"  📡 geometry_changed отправлен с rodPosition = {initial_geometry.get('rodPosition', 'НЕ НАЙДЕН')}")
 -                else:
 -                    print(f"  ⚠️ Нет подписчиков на geometry_changed, возможно главное окно еще не готово")
--                
+-
 -                if geom_updated_receivers > 0:
 -                    print(f"  ✅ Отправляем geometry_updated...")
 -                    self.geometry_updated.emit(self.parameters.copy())
 -                    print(f"  📡 geometry_updated отправлен")
 -                else:
 -                    print(f"  ⚠️ Нет подписчиков на geometry_updated")
--                    
+-
 -            except Exception as e:
 -                print(f"  ❌ Ошибка проверки подписчиков: {e}")
 -                # Отправляем в любом случае
 -                self.geometry_changed.emit(initial_geometry)
 -                self.geometry_updated.emit(self.parameters.copy())
 -                print(f"  📡 Сигналы отправлены без проверки подписчиков")
--        
+-
 -        # УВЕЛИЧИВАЕМ задержку для гарантии готовности главного окна
 -        QTimer.singleShot(500, send_initial_geometry)  # Было 100мс, стало 500мс
 -        print("  ⏰ Таймер установлен на 500мс для отправки начальной геометрии")
 +            self.geometry_changed.emit(initial_geometry)
 +            self.geometry_updated.emit(self.parameters.copy())
 +            self.logger.info("Initial geometry sent successfully")
-+        
++
 +        QTimer.singleShot(500, send_initial_geometry)
 +        self.logger.info("GeometryPanel initialized successfully")
-     
+
      def _setup_ui(self):
          """Настроить интерфейс / Setup user interface"""
 @@ -343,54 +316,143 @@
 
-     
+
      def _connect_signals(self):
          """Connect widget signals"""
 -        # ИСПРАВЛЕНО: Используем ТОЛЬКО valueEdited для избежания дублирования событий
 -        # valueChanged срабатывает слишком часто (при каждом движении), valueEdited - только при завершении редактирования
--        
+-
 ... (обрезано)
 
 ```
@@ -12308,7 +12308,7 @@
 +<<<<<<< HEAD
 +from urllib.parse import urlparse
 +from pathlib import PurePosixPath
- 
+
  from PySide6.QtCore import QSettings, Qt, QTimer, Signal, Slot
  from PySide6.QtGui import QColor, QStandardItem
 +=======
@@ -12333,14 +12333,14 @@
 
      QWidget,
  )
- 
+
 +# Импортируем логгер графических изменений
 +from .graphics_logger import get_graphics_logger
 +
 +# ✅ НОВОЕ: Импорт EventLogger для отслеживания UI событий
 +from src.common.event_logger import get_event_logger, EventType
 +
- 
+
  class ColorButton(QPushButton):
      """Small color preview button that streams changes from QColorDialog."""
 @@ -37,6 +56,7 @@
@@ -12351,38 +12351,38 @@
 +        self._user_triggered = False  # ✅ НОВОЕ: флаг пользовательского действия
          self._update_swatch()
          self.clicked.connect(self._open_dialog)
- 
+
 @@ -44,6 +64,7 @@
 
          return self._color
- 
+
      def set_color(self, color_str: str) -> None:
 +        """Программное изменение цвета (без логирования)"""
          self._color = QColor(color_str)
          self._update_swatch()
- 
+
 @@ -59,6 +80,9 @@
 
- 
+
      @Slot()
      def _open_dialog(self) -> None:
 +        # ✅ Пользователь кликнул на кнопку - это пользовательское действие
 +        self._user_triggered = True
-+        
++
          if self._dialog:
              return
- 
+
 @@ -77,13 +101,17 @@
 
              return
          self._color = color
          self._update_swatch()
 -        self.color_changed.emit(color.name())
-+        
++
 +        # ✅ Испускаем сигнал ТОЛЬКО если это пользовательское действие
 +        if self._user_triggered:
 +            self.color_changed.emit(color.name())
- 
+
 ... (обрезано)
 
 ```

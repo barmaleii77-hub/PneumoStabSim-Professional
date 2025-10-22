@@ -57,7 +57,7 @@ pip install numpy==2.3.3 scipy==1.16.2 pyside6==6.9.3
 python build_check.py
 
 # Автоматическое исправление
-python fix_build.py  
+python fix_build.py
 
 # Тестовый запуск (5 секунд)
 python app.py --test-mode

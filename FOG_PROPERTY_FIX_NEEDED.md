@@ -6,7 +6,7 @@ Cannot assign to non-existent property "fogDepthEnd"
 ```
 
 ## 💡 Причина
-`ExtendedSceneEnvironment` не имеет свойств `fogDepthEnd` и `fogDepthBegin`. 
+`ExtendedSceneEnvironment` не имеет свойств `fogDepthEnd` и `fogDepthBegin`.
 Эти свойства были в кастомном компоненте, который мы удалили.
 
 ## ✅ Правильное решение
@@ -24,7 +24,7 @@ Cannot assign to non-existent property "fogDepthEnd"
 
 **Найти строки с:**
 - `fogDepthEnd`
-- `fogDepthBegin` 
+- `fogDepthBegin`
 - `fogDepthNear`
 
 **Заменить на правильные свойства или удалить**

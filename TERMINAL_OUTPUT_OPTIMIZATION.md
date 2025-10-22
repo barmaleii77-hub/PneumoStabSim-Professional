@@ -181,9 +181,9 @@ ImportError: No module named 'some_module'
 2. **Добавлено:**
    ```python
    # Аргумент для запуска тестов
-   parser.add_argument('--run-tests', action='store_true', 
+   parser.add_argument('--run-tests', action='store_true',
                        help='Run tests after exit')
-   
+
    # Функция запуска тестов
    def run_post_exit_tests():
        """Запускает тесты после закрытия приложения"""
@@ -244,7 +244,7 @@ ImportError: No module named 'some_module'
    ```bash
    # Было
    py app.py  # + 100 строк логов
-   
+
    # Стало
    py app.py  # + 5 строк диагностики
    ```
@@ -256,7 +256,7 @@ ImportError: No module named 'some_module'
    py test_graphics_sync.py
    py analyze_logs.py
    # ...
-   
+
    # Стало
    py app.py --run-tests  # запускает ВСЕ тесты автоматически
    ```
@@ -265,7 +265,7 @@ ImportError: No module named 'some_module'
    ```bash
    # Было
    py app.py  # логи всегда в logs/run.log
-   
+
    # Стало
    py app.py --debug  # логи ТОЛЬКО в debug режиме
    ```
@@ -277,7 +277,7 @@ ImportError: No module named 'some_module'
 - name: Run app and tests
   run: |
     python app.py --test-mode --run-tests
-    
+
 - name: Upload test report
   uses: actions/upload-artifact@v3
   with:

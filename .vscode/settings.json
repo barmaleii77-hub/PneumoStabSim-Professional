@@ -1,184 +1,232 @@
 {
-    "python.defaultInterpreterPath": "./venv/Scripts/python.exe",
-    "python.terminal.activateEnvironment": true,
-    
-    // === GITHUB COPILOT SETTINGS ===
-    "github.copilot.enable": {
-        "*": true,
-        "python": true,
-        "qml": true,
-        "markdown": true,
-        "plaintext": true
+  "python.defaultInterpreterPath": "${workspaceFolder}/.venv/Scripts/python.exe",
+  "python.terminal.activateEnvironment": true,
+  "github.copilot.enable": {
+    "*": true,
+    "python": true,
+    "qml": true,
+    "markdown": true,
+    "plaintext": true
+  },
+  "github.copilot.editor.enableAutoCompletions": true,
+  "github.copilot.chat.localeOverride": "ru",
+  "github.copilot.editor.iterativeFixing": true,
+  "github.copilot.advanced": {
+    "debug.overrideEngine": "",
+    "debug.testOverrideProxyUrl": "",
+    "debug.overrideProxyUrl": "",
+    "authProvider": "github"
+  },
+  "debug.console.closeOnEnd": false,
+  "debug.console.fontSize": 14,
+  "debug.console.wordWrap": true,
+  "debug.internalConsoleOptions": "openOnSessionStart",
+  "debug.openDebug": "openOnDebugBreak",
+  "debug.showBreakpointsInOverviewRuler": true,
+  "debug.toolBarLocation": "floating",
+  "python.linting.enabled": true,
+  "python.linting.pylintEnabled": false,
+  "python.linting.flake8Enabled": true,
+  "python.linting.mypyEnabled": true,
+  "python.formatting.provider": "black",
+  "python.formatting.blackArgs": [
+    "--line-length=88"
+  ],
+  "python.sortImports.args": [
+    "--profile",
+    "black"
+  ],
+  "python.analysis.autoImportCompletions": true,
+  "python.analysis.typeCheckingMode": "basic",
+  "python.testing.pytestEnabled": true,
+  "python.testing.pytestArgs": [
+    "tests",
+    "-v",
+    "--tb=short"
+  ],
+  "python.testing.autoTestDiscoverOnSaveEnabled": true,
+  "files.associations": {
+    "*.qml": "qml",
+    "*.patch": "diff",
+    "*.pyproj": "xml",
+    "*.sln": "plaintext"
+  },
+  "files.exclude": {
+    "**/__pycache__": true,
+    "**/*.pyc": true,
+    "**/node_modules": true,
+    "**/.git": true,
+    "**/.svn": true,
+    "**/.hg": true,
+    "**/CVS": true,
+    "**/.DS_Store": true,
+    "**/Thumbs.db": true,
+    "**/*.egg-info": true,
+    "**/build": true,
+    "**/dist": true,
+    "**/.pytest_cache": true,
+    "**/.mypy_cache": true,
+    "**/.coverage": true,
+    "**/logs/*.log": true,
+    "**/*.rej": true,
+    "**/*.orig": true
+  },
+  "search.exclude": {
+    "**/node_modules": true,
+    "**/bower_components": true,
+    "**/*.code-search": true,
+    "**/pycache__": true,
+    "**/logs": true,
+    "**/build": true,
+    "**/dist": true,
+    "**/.git": true,
+    "**/venv": true,
+    "**/.venv": true
+  },
+  "files.watcherExclude": {
+    "**/logs/**": true,
+    "**/__pycache__/**": true,
+    "**/node_modules/**": true,
+    "**/.git/**": true,
+    "**/venv/**": true,
+    "**/.venv/**": true,
+    "**/build/**": true,
+    "**/dist/**": true
+  },
+  "[python]": {
+    "editor.formatOnSave": true,
+    "editor.codeActionsOnSave": {
+      "source.organizeImports": "explicit"
     },
-    "github.copilot.editor.enableAutoCompletions": true,
-    
-    // === DEBUGGING SETTINGS ===
-    "debug.console.closeOnEnd": false,
-    "debug.console.fontSize": 14,
-    "debug.console.wordWrap": true,
-    "debug.internalConsoleOptions": "openOnSessionStart",
-    "debug.openDebug": "openOnDebugBreak",
-    "debug.showBreakpointsInOverviewRuler": true,
-    "debug.toolBarLocation": "floating",
-    
-    // === PYTHON SETTINGS (Python 3.13 + Qt 6.10) ===
-    "python.linting.enabled": true,
-    "python.linting.pylintEnabled": false,
-    "python.linting.flake8Enabled": true,
-    "python.linting.mypyEnabled": true,
-    "python.formatting.provider": "black",
-    "python.formatting.blackArgs": ["--line-length=88"],
-    "python.sortImports.args": ["--profile", "black"],
-    "python.analysis.autoImportCompletions": true,
-    "python.analysis.typeCheckingMode": "basic",
-    
-    // === TESTING ===
-    "python.testing.pytestEnabled": true,
-    "python.testing.pytestArgs": [
-        "tests",
-        "-v",
-        "--tb=short"
+    "editor.tabSize": 4,
+    "editor.insertSpaces": true,
+    "editor.rulers": [
+      88
     ],
-    "python.testing.autoTestDiscoverOnSaveEnabled": true,
-    
-    // === FILE ASSOCIATIONS ===
-    "files.associations": {
-        "*.qml": "qml",
-        "*.patch": "diff",
-        "*.pyproj": "xml",
-        "*.sln": "plaintext"
-    },
-    
-    // === EXCLUSIONS FOR PERFORMANCE ===
-    "files.exclude": {
-        "**/__pycache__": true,
-        "**/*.pyc": true,
-        "**/node_modules": true,
-        "**/.git": true,
-        "**/.svn": true,
-        "**/.hg": true,
-        "**/CVS": true,
-        "**/.DS_Store": true,
-        "**/Thumbs.db": true,
-        "**/*.egg-info": true,
-        "**/build": true,
-        "**/dist": true,
-        "**/.pytest_cache": true,
-        "**/.mypy_cache": true,
-        "**/.coverage": true,
-        "**/logs/*.log": true,
-        "**/*.rej": true,
-        "**/*.orig": true
-    },
-
-    "search.exclude": {
-        "**/node_modules": true,
-        "**/bower_components": true,
-        "**/*.code-search": true,
-        "**/pycache__": true,
-        "**/logs": true,
-        "**/build": true,
-        "**/dist": true,
-        "**/.git": true,
-        "**/venv": true,
-        "**/.venv": true
-    },
-
-    "files.watcherExclude": {
-        "**/logs/**": true,
-        "**/__pycache__/**": true,
-        "**/node_modules/**": true,
-        "**/.git/**": true,
-        "**/venv/**": true,
-        "**/.venv/**": true,
-        "**/build/**": true,
-        "**/dist/**": true
-    },
-
-    // === EDITOR SETTINGS ===
-    "[python]": {
-        "editor.formatOnSave": true,
-        "editor.codeActionsOnSave": {
-            "source.organizeImports": "explicit"
-        },
-        "editor.tabSize": 4,
-        "editor.insertSpaces": true,
-        "editor.rulers": [88],
-        "editor.wordWrap": "bounded",
-        "editor.wordWrapColumn": 88
-    },
-
-    "[qml]": {
-        "editor.tabSize": 4,
-        "editor.insertSpaces": true,
-        "editor.formatOnSave": false,
-        "editor.wordWrap": "bounded",
-        "editor.wordWrapColumn": 120
-    },
-
-    "[json]": {
-        "editor.formatOnSave": true,
-        "editor.tabSize": 2
-    },
-    
-    "[markdown]": {
-        "editor.wordWrap": "on",
-        "editor.quickSuggestions": {
-            "comments": "on",
-            "strings": "on",
-            "other": "on"
-        }
-    },
-
-    // === TERMINAL ENVIRONMENT (Qt 6.10 + Python 3.13) ===
-    "terminal.integrated.env.windows": {
-        "PYTHONPATH": "${workspaceFolder};${workspaceFolder}\\src",
-        "PYTHONIOENCODING": "utf-8",
-        "QT_SCALE_FACTOR_ROUNDING_POLICY": "PassThrough",
-        "QT_AUTO_SCREEN_SCALE_FACTOR": "1",
-        "QSG_RHI_BACKEND": "d3d11"
-    },
-
-    "terminal.integrated.env.linux": {
-        "PYTHONPATH": "${workspaceFolder}:${workspaceFolder}/src",
-        "PYTHONIOENCODING": "utf-8",
-        "QT_SCALE_FACTOR_ROUNDING_POLICY": "PassThrough",
-        "QT_AUTO_SCREEN_SCALE_FACTOR": "1",
-        "QSG_RHI_BACKEND": "opengl"
-    },
-
-    // === QML SUPPORT (Qt 6.10) ===
-    "emmet.includeLanguages": {
-        "qml": "html"
-    },
-    
-    // Если установлен Qt extension
-    "qt.qmlls.enabled": true,
-    "qt.qmlls.path": "",
-
-    // === GIT SETTINGS ===
-    "git.ignoreLimitWarning": true,
-    "git.autofetch": true,
-    "git.confirmSync": false,
-    "git.enableSmartCommit": true,
-    
-    // === PERFORMANCE ===
-    "editor.semanticHighlighting.enabled": true,
-    "editor.bracketPairColorization.enabled": true,
-    "editor.guides.bracketPairs": true,
-    "editor.inlineSuggest.enabled": true,
-    
-    // === WORKSPACE SPECIFIC ===
-    "workbench.startupEditor": "readme",
-    "explorer.confirmDelete": false,
-    "explorer.confirmDragAndDrop": false,
-    "files.encoding": "utf8",
-    "files.autoSave": "afterDelay",
-    "files.autoSaveDelay": 1000,
-    
-    // === F5 DEFAULT CONFIGURATION ===
-    "launch": {
-        "version": "0.2.0",
-        "configurations": []
+    "editor.wordWrap": "bounded",
+    "editor.wordWrapColumn": 88
+  },
+  "[qml]": {
+    "editor.tabSize": 4,
+    "editor.insertSpaces": true,
+    "editor.formatOnSave": false,
+    "editor.wordWrap": "bounded",
+    "editor.wordWrapColumn": 120
+  },
+  "[json]": {
+    "editor.formatOnSave": true,
+    "editor.tabSize": 2
+  },
+  "[markdown]": {
+    "editor.wordWrap": "on",
+    "editor.quickSuggestions": {
+      "comments": "on",
+      "strings": "on",
+      "other": "on"
     }
+  },
+  "terminal.integrated.env.windows": {
+    "PYTHONPATH": "${workspaceFolder};${workspaceFolder}\\src",
+    "PYTHONIOENCODING": "utf-8",
+    "QT_SCALE_FACTOR_ROUNDING_POLICY": "PassThrough",
+    "QT_AUTO_SCREEN_SCALE_FACTOR": "1",
+    "QSG_RHI_BACKEND": "d3d11"
+  },
+  "terminal.integrated.env.linux": {
+    "PYTHONPATH": "${workspaceFolder}:${workspaceFolder}/src",
+    "PYTHONIOENCODING": "utf-8",
+    "QT_SCALE_FACTOR_ROUNDING_POLICY": "PassThrough",
+    "QT_AUTO_SCREEN_SCALE_FACTOR": "1",
+    "QSG_RHI_BACKEND": "opengl"
+  },
+  "terminal.integrated.defaultProfile.windows": "PowerShell",
+  "terminal.integrated.profiles.windows": {
+    "PowerShell": {
+      "source": "PowerShell",
+      "args": [
+        "-NoExit",
+        "-Command",
+        "[Console]::OutputEncoding=[System.Text.Encoding]::UTF8"
+      ]
+    },
+    "Command Prompt": {
+      "path": [
+        "${env:windir}\\System32\\cmd.exe"
+      ],
+      "args": [
+        "/K",
+        "chcp 65001"
+      ]
+    },
+    "Git Bash": {
+      "source": "Git Bash"
+    }
+  },
+  "terminal.integrated.shellIntegration.enabled": true,
+  "terminal.integrated.unicodeVersion": "11",
+  "terminal.integrated.fontFamily": "Cascadia Code, Consolas, 'Courier New', monospace",
+  "terminal.integrated.fontSize": 12,
+  "terminal.integrated.lineHeight": 1.2,
+  "terminal.integrated.cursorBlinking": true,
+  "terminal.integrated.cursorStyle": "line",
+  "terminal.integrated.scrollback": 10000,
+  "emmet.includeLanguages": {
+    "qml": "html"
+  },
+  "qt.qmlls.enabled": true,
+  "qt.qmlls.path": "",
+  "git.ignoreLimitWarning": true,
+  "git.confirmSync": false,
+  "git.enableSmartCommit": true,
+  "editor.semanticHighlighting.enabled": true,
+  "editor.bracketPairColorization.enabled": true,
+  "editor.guides.bracketPairs": true,
+  "editor.inlineSuggest.enabled": true,
+  "workbench.startupEditor": "readme",
+  "explorer.confirmDelete": false,
+  "explorer.confirmDragAndDrop": false,
+  "files.encoding": "utf8",
+  "files.autoSave": "afterDelay",
+  "files.autoSaveDelay": 1000,
+  "launch": {
+    "version": "0.2.0",
+    "configurations": []
+  },
+  "github.copilot.editor.enableCodeActions": true,
+  "github.copilot.renameSuggestions.triggerAutomatically": true,
+  "github.copilot.chat.followUps": "always",
+  "github.copilot.chat.useProjectTemplates": true,
+  "github.copilot.editor.enableMultilineSuggestions": true,
+  "github.copilot.editor.enablePartialAcceptance": true,
+  "python.analysis.diagnosticMode": "workspace",
+  "python.analysis.completeFunctionParens": true,
+  "python.analysis.autoSearchPaths": true,
+  "python.analysis.indexing": true,
+  "python.analysis.inlayHints.functionReturnTypes": true,
+  "python.analysis.inlayHints.variableTypes": true,
+  "python.analysis.inlayHints.pytestParameters": true,
+  "git.autofetch": "all",
+  "git.autofetchPeriod": 180,
+  "git.decorations.enabled": true,
+  "git.showPushSuccessNotification": true,
+  "git.timeline.showAuthor": true,
+  "git.timeline.showUncommitted": true,
+  "editor.stickyScroll.enabled": true,
+  "editor.stickyScroll.maxLineCount": 5,
+  "editor.cursorSmoothCaretAnimation": "on",
+  "editor.smoothScrolling": true,
+  "editor.formatOnType": true,
+  "editor.formatOnPaste": true,
+  "editor.codeLens": true,
+  "workbench.editor.limit.enabled": true,
+  "workbench.editor.limit.value": 10,
+  "search.smartCase": true,
+  "files.trimTrailingWhitespace": true,
+  "terminal.integrated.enablePersistentSessions": true,
+  "terminal.integrated.tabs.enabled": true,
+  "terminal.integrated.gpuAcceleration": "on",
+  "terminal.integrated.copyOnSelection": true,
+  "workbench.tree.indent": 20,
+  "workbench.list.smoothScrolling": true,
+  "breadcrumbs.enabled": true
 }

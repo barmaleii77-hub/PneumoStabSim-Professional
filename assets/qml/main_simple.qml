@@ -13,7 +13,7 @@ Item {
     // ===============================================================
     // ANIMATION AND GEOMETRY PROPERTIES
     // ===============================================================
-    
+
     property real animationTime: 0.0
     property bool isRunning: false
 
@@ -50,7 +50,7 @@ Item {
     // ===============================================================
     // GRAPHICS PROPERTIES (заглушки)
     // ===============================================================
-    
+
     property string backgroundColor: "#2a2a2a"
     property bool skyboxEnabled: true
     property bool iblEnabled: true
@@ -99,11 +99,11 @@ Item {
     // ===============================================================
     // UPDATE FUNCTIONS FOR PYTHON INTEGRATION
     // ===============================================================
-    
+
     function applyBatchedUpdates(updates) {
         console.log("🚀 Simple fallback: Applying batched updates:", Object.keys(updates))
         if (updates.geometry) applyGeometryUpdates(updates.geometry)
-        if (updates.animation) applyAnimationUpdates(updates.animation)  
+        if (updates.animation) applyAnimationUpdates(updates.animation)
         if (updates.lighting) applyLightingUpdates(updates.lighting)
         if (updates.materials) applyMaterialUpdates(updates.materials)
         if (updates.environment) applyEnvironmentUpdates(updates.environment)
@@ -112,7 +112,7 @@ Item {
         if (updates.effects) applyEffectsUpdates(updates.effects)
         console.log("✅ Simple fallback: Updates completed")
     }
-    
+
     function applyGeometryUpdates(params) {
         console.log("📐 Simple fallback: Geometry update")
         if (params.frameLength !== undefined) userFrameLength = params.frameLength
@@ -124,7 +124,7 @@ Item {
         if (params.frameToPivot !== undefined) userFrameToPivot = params.frameToPivot
         if (params.rodPosition !== undefined) userRodPosition = params.rodPosition
     }
-    
+
     function applyAnimationUpdates(params) {
         console.log("🎬 Simple fallback: Animation update")
         if (params.amplitude !== undefined) userAmplitude = params.amplitude
@@ -132,32 +132,32 @@ Item {
         if (params.phase !== undefined) userPhaseGlobal = params.phase
         if (params.lf_phase !== undefined) userPhaseFL = params.lf_phase
     }
-    
+
     function applyLightingUpdates(params) {
         console.log("💡 Simple fallback: Lighting update")
     }
-    
+
     function applyMaterialUpdates(params) {
         console.log("🎨 Simple fallback: Material update")
         if (params.glass && params.glass.ior !== undefined) {
             glassIOR = params.glass.ior
         }
     }
-    
+
     function applyEnvironmentUpdates(params) {
         console.log("🌍 Simple fallback: Environment update")
         if (params.ibl_enabled !== undefined) iblEnabled = params.ibl_enabled
         if (params.fog_enabled !== undefined) fogEnabled = params.fog_enabled
     }
-    
+
     function applyQualityUpdates(params) {
         console.log("⚙️ Simple fallback: Quality update")
     }
-    
+
     function applyCameraUpdates(params) {
         console.log("📷 Simple fallback: Camera update")
     }
-    
+
     function applyEffectsUpdates(params) {
         console.log("✨ Simple fallback: Effects update")
     }
@@ -170,7 +170,7 @@ Item {
     function updateQuality(params) { applyQualityUpdates(params) }
     function updateEffects(params) { applyEffectsUpdates(params) }
     function updateCamera(params) { applyCameraUpdates(params) }
-    
+
     function updatePistonPositions(positions) {
         if (positions.fl !== undefined) userPistonPositionFL = Number(positions.fl)
         if (positions.fr !== undefined) userPistonPositionFR = Number(positions.fr)
@@ -185,11 +185,11 @@ Item {
     Rectangle {
         anchors.fill: parent
         color: "#1a1a2e"
-        
+
         Column {
             anchors.centerIn: parent
             spacing: 20
-            
+
             Rectangle {
                 width: 600
                 height: 400
@@ -197,11 +197,11 @@ Item {
                 border.color: "#0f3460"
                 border.width: 2
                 radius: 10
-                
+
                 Column {
                     anchors.centerIn: parent
                     spacing: 15
-                    
+
                     Text {
                         text: "PneumoStabSim Professional"
                         color: "#ffffff"
@@ -209,71 +209,71 @@ Item {
                         font.bold: true
                         anchors.horizontalCenter: parent.horizontalCenter
                     }
-                    
+
                     Text {
                         text: "2D Fallback Mode (QtQuick3D not available)"
                         color: "#ffaa00"
                         font.pixelSize: 16
                         anchors.horizontalCenter: parent.horizontalCenter
                     }
-                    
+
                     Rectangle {
                         width: 500
                         height: 2
                         color: "#0f3460"
                         anchors.horizontalCenter: parent.horizontalCenter
                     }
-                    
+
                     Grid {
                         columns: 2
                         spacing: 10
                         anchors.horizontalCenter: parent.horizontalCenter
-                        
-                        Text { 
+
+                        Text {
                             text: "Frame Length:"
                             color: "#cccccc"
                             font.pixelSize: 12
                         }
-                        Text { 
+                        Text {
                             text: userFrameLength + " mm"
                             color: "#ffffff"
                             font.pixelSize: 12
                         }
-                        
-                        Text { 
+
+                        Text {
                             text: "Track Width:"
                             color: "#cccccc"
                             font.pixelSize: 12
                         }
-                        Text { 
+                        Text {
                             text: userTrackWidth + " mm"
                             color: "#ffffff"
                             font.pixelSize: 12
                         }
-                        
-                        Text { 
+
+                        Text {
                             text: "Lever Length:"
                             color: "#cccccc"
                             font.pixelSize: 12
                         }
-                        Text { 
+                        Text {
                             text: userLeverLength + " mm"
                             color: "#ffffff"
                             font.pixelSize: 12
                         }
-                        
-                        Text { 
+
+                        Text {
                             text: "Rod Position:"
                             color: "#cccccc"
                             font.pixelSize: 12
                         }
-                        Text { 
+                        Text {
                             text: userRodPosition.toFixed(2)
                             color: "#ffffff"
                             font.pixelSize: 12
                         }
                     }
-                    
+
                     Rectangle {
                         width: 400
                         height: 60
@@ -282,11 +282,11 @@ Item {
                         border.width: 2
                         radius: 8
                         anchors.horizontalCenter: parent.horizontalCenter
-                        
+
                         Column {
                             anchors.centerIn: parent
                             spacing: 4
-                            
+
                             Text {
                                 text: isRunning ? "🎬 АНИМАЦИЯ АКТИВНА" : "⏸️ Анимация остановлена"
                                 color: isRunning ? "#00ff88" : "#ff6666"
@@ -294,7 +294,7 @@ Item {
                                 font.bold: true
                                 anchors.horizontalCenter: parent.horizontalCenter
                             }
-                            
+
                             Text {
                                 text: "A=" + userAmplitude.toFixed(1) + "° | f=" + userFrequency.toFixed(1) + "Hz | t=" + animationTime.toFixed(2) + "s"
                                 color: "#cccccc"
@@ -305,7 +305,7 @@ Item {
                     }
                 }
             }
-            
+
             Text {
                 text: "✨ Все функции Python↔QML работают!\n🔧 Панели управления активны\n📊 Данные обновляются в реальном времени"
                 color: "#aaddff"

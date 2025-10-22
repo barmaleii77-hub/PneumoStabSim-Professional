@@ -5,7 +5,7 @@
 $OutputEncoding = [console]::InputEncoding = [console]::OutputEncoding = New-Object System.Text.UTF8Encoding
 
 Write-Host "================================================================" -ForegroundColor Cyan
-Write-Host " PneumoStabSim Professional - Enhanced Environment Setup" -ForegroundColor Cyan  
+Write-Host " PneumoStabSim Professional - Enhanced Environment Setup" -ForegroundColor Cyan
 Write-Host "================================================================" -ForegroundColor Cyan
 Write-Host ""
 
@@ -57,7 +57,7 @@ try {
     if ($LASTEXITCODE -ne 0) {
         Write-Host "⚠ WARNING: Python version may have compatibility issues" -ForegroundColor Yellow
         Write-Host "Recommended: Python 3.8 - 3.11 for optimal stability" -ForegroundColor Yellow
-        
+
         $continue = Read-Host "Continue anyway? (y/N)"
         if ($continue -notmatch '^[Yy]') {
             Write-Host "Setup cancelled by user" -ForegroundColor Yellow
@@ -76,7 +76,7 @@ Write-Host "📦 Setting up virtual environment..." -ForegroundColor Yellow
 # Check if virtual environment exists
 if (-Not (Test-Path "venv\Scripts\Activate.ps1")) {
     Write-Host "Creating new virtual environment..." -ForegroundColor Yellow
-    
+
     try {
         & $pythonCmd -m venv venv --clear
         if ($LASTEXITCODE -ne 0) {
@@ -144,16 +144,16 @@ foreach ($reqFile in $requirementsFiles) {
 
 if (-not $installed) {
     Write-Host "Installing essential packages manually..." -ForegroundColor Yellow
-    
+
     $essentialPackages = @(
         "numpy>=1.21.0,<2.0.0",
-        "scipy>=1.7.0,<2.0.0", 
+        "scipy>=1.7.0,<2.0.0",
         "PySide6>=6.4.0,<7.0.0",
         "matplotlib>=3.5.0",
         "PyOpenGL>=3.1.0",
         "PyOpenGL-accelerate>=3.1.0"
     )
-    
+
     foreach ($package in $essentialPackages) {
         try {
             Write-Host "  Installing $($package.Split('>=')[0])..." -ForegroundColor Cyan
@@ -230,7 +230,7 @@ Write-Host ""
 
 Write-Host "Available commands:" -ForegroundColor Yellow
 Write-Host "  python app.py                    # Run main application"
-Write-Host "  python app.py --test-mode        # Test mode (auto-close 5s)"  
+Write-Host "  python app.py --test-mode        # Test mode (auto-close 5s)"
 Write-Host "  python app.py --debug            # Debug mode"
 Write-Host "  python app.py --safe-mode        # Safe mode (basic features)"
 Write-Host "  python scripts\terminal_diagnostic.py  # Terminal diagnostic"

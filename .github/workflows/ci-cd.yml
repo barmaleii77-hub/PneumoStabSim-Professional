@@ -10,11 +10,16 @@ jobs:
   test:
     name: Test Suite
     runs-on: ${{ matrix.os }}
+    env:
+      QT_QPA_PLATFORM: offscreen
+      QT_QUICK_BACKEND: software
+      QT_PLUGIN_PATH: ''
+      QML2_IMPORT_PATH: ''
     strategy:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
-        python-version: ['3.11', '3.12', '3.13']
+        python-version: ['3.10', '3.11', '3.12']
 
     steps:
     - name: Checkout code
@@ -25,25 +30,73 @@ jobs:
       with:
         python-version: ${{ matrix.python-version }}
 
-    - name: Install dependencies
+    - name: Install project and dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install -r requirements.txt
-        pip install -r requirements-dev.txt
+        pip install .[dev]
+
+    - name: Configure Qt runtime paths
+      shell: python
+      run: |
+        import os
+        from pathlib import Path
+
+        def write_env(key: str, value: str) -> None:
+            if not value:
+                return
+            env_file = Path(os.environ["GITHUB_ENV"])
+            with env_file.open("a", encoding="utf-8") as handle:
+                handle.write(f"{key}={value}\n")
+
+        try:
+            from PySide6.QtCore import QLibraryInfo, LibraryLocation
+        except Exception as exc: # pragma: no cover - diagnostic output only
+            print(f"Unable to configure Qt paths automatically: {exc}")
+        else:
+            write_env("QT_PLUGIN_PATH", QLibraryInfo.path(LibraryLocation.Plugins))
+            write_env("QML2_IMPORT_PATH", QLibraryInfo.path(LibraryLocation.QmlImports))
+
+    - name: Configure pytest command
+      shell: bash
+      run: |
+        if [ "${{ matrix.os }}" = "ubuntu-latest" ]; then
+          echo "PYTEST_PREFIX=xvfb-run -a" >> "$GITHUB_ENV"
+        else
+          echo "PYTEST_PREFIX=" >> "$GITHUB_ENV"
+        fi
 
     - name: Run unit tests
+      shell: bash
       run: |
-        pytest tests/unit/ -v --cov=src --cov-report=xml
+        if [ -n "${PYTEST_PREFIX:-}" ]; then
+          ${PYTEST_PREFIX} pytest tests/unit/ -v --cov=src --cov-report=xml
+        else
+          pytest tests/unit/ -v --cov=src --cov-report=xml
+        fi
 
     - name: Run integration tests
+      shell: bash
       run: |
-        pytest tests/integration/ -v
+        if [ -n "${PYTEST_PREFIX:-}" ]; then
+          ${PYTEST_PREFIX} pytest tests/integration/ -v --cov=src --cov-report=xml --cov-append
+        else
+          pytest tests/integration/ -v --cov=src --cov-report=xml --cov-append
+        fi
+
+    - name: Run system tests
+      shell: bash
+      run: |
+        if [ -n "${PYTEST_PREFIX:-}" ]; then
+          ${PYTEST_PREFIX} pytest tests/system/ -v --cov=src --cov-report=xml --cov-append
+        else
+          pytest tests/system/ -v --cov=src --cov-report=xml --cov-append
+        fi
 
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v4
       with:
         file: ./coverage.xml
-        flags: unittests
+        flags: unit,integration,system
         name: codecov-${{ matrix.os }}-${{ matrix.python-version }}
 
   lint:
@@ -57,12 +110,12 @@ jobs:
     - name: Set up Python
       uses: actions/setup-python@v5
       with:
-        python-version: '3.13'
+        python-version: '3.12'
 
-    - name: Install dependencies
+    - name: Install lint dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install flake8 black mypy
+        pip install .[dev]
 
     - name: Run flake8
       run: |
@@ -89,7 +142,7 @@ jobs:
     - name: Set up Python
       uses: actions/setup-python@v5
       with:
-        python-version: '3.13'
+        python-version: '3.12'
 
     - name: Install dependencies
       run: |
@@ -119,3 +172,16 @@ jobs:
       run: |
         git tag -a v2.0.0 -m "Release v2.0.0"
         # git push origin v2.0.0  # Commented out for safety
+
+  check_artifacts:
+    name: Check for Forbidden Artifacts
+    runs-on: ubuntu-latest
+    needs: [test, lint, build]
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Check repository for forbidden artifacts
+      run: |
+        python tools/check_forbidden_artifacts.py

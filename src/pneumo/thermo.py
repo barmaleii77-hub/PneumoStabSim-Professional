@@ -9,6 +9,7 @@ from src.common.units import GAMMA_AIR, R_AIR
 
 class ThermoMode(Enum):
     """Thermodynamic calculation mode"""
+
     ISOTHERMAL = "isothermal"
     ADIABATIC = "adiabatic"
 
@@ -17,7 +18,7 @@ def adiabatic_p(V: float, C: float) -> float:
     """Calculate pressure from adiabatic relation p*V^? = C
 
     Args:
-        V: Volume (m?)
+        V: Volume (m³)
         C: Adiabatic constant p*V^? (Pa*m^(3?))
 
     Returns:
@@ -88,7 +89,7 @@ def adiabatic_constant_pV(p: float, V: float) -> float:
     if V <= 0:
         raise ValueError(f"Volume must be positive, got {V}")
 
-    return p * (V ** GAMMA_AIR)
+    return p * (V**GAMMA_AIR)
 
 
 def adiabatic_constant_TV(T: float, V: float) -> float:
@@ -135,9 +136,13 @@ def gas_mass_from_pVT(p: float, V: float, T: float, R: float = R_AIR) -> float:
 
 # Re-export constants and classes for convenience
 __all__ = [
-    'ThermoMode',  # Enum for thermo mode
-    'GAMMA_AIR', 'R_AIR',
-    'adiabatic_p', 'adiabatic_T', 'isothermal_p',
-    'adiabatic_constant_pV', 'adiabatic_constant_TV',
-    'gas_mass_from_pVT'
+    "ThermoMode",  # Enum for thermo mode
+    "GAMMA_AIR",
+    "R_AIR",
+    "adiabatic_p",
+    "adiabatic_T",
+    "isothermal_p",
+    "adiabatic_constant_pV",
+    "adiabatic_constant_TV",
+    "gas_mass_from_pVT",
 ]

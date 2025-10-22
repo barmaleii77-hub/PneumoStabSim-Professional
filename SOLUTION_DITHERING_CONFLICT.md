@@ -57,14 +57,14 @@ readonly property bool canUseDithering: supportsQtQuick3D610Features
 // Dynamic binding in ExtendedSceneEnvironment
 environment: ExtendedSceneEnvironment {
     id: mainEnvironment
-    
+
     // ...other properties...
-    
+
     Component.onCompleted: {
         if (root.canUseDithering) {
             console.log("✅ Qt 6.10+ detected - enabling ditheringEnabled support")
-            mainEnvironment.ditheringEnabled = Qt.binding(function() { 
-                return root.ditheringEnabled 
+            mainEnvironment.ditheringEnabled = Qt.binding(function() {
+                return root.ditheringEnabled
             })
         } else {
             console.log("⚠️ Qt < 6.10 - ditheringEnabled not available")
@@ -85,18 +85,18 @@ def safe_import_qt():
     try:
         from PySide6.QtWidgets import QApplication
         from PySide6.QtCore import qInstallMessageHandler, QtMsgType, Qt, QTimer, qVersion
-        
+
         qt_version = qVersion()
-        
+
         print(f"[OK] PySide6 imported successfully")
         print(f"[INFO] ✅ Qt runtime version: {qt_version}")
-        
+
         # Version parsing with error handling
         try:
             major, minor = qt_version.split('.')[:2]
             qt_major = int(major)
             qt_minor = int(minor)
-            
+
             if qt_major == 6 and qt_minor >= 10:
                 print(f"[INFO] ✅ Qt 6.10+ detected - ditheringEnabled should be available")
             elif qt_major == 6 and qt_minor >= 8:
@@ -105,7 +105,7 @@ def safe_import_qt():
                 print(f"[WARNING] ⚠️ Qt version < 6.8 - ExtendedSceneEnvironment features may be limited")
         except (ValueError, IndexError):
             print(f"[WARNING] Could not parse Qt version: {qt_version}")
-        
+
         return QApplication, qInstallMessageHandler, QtMsgType, Qt, QTimer
     except ImportError as e:
         print(f"[ERROR] PySide6 import failed: {e}")
@@ -197,7 +197,7 @@ If you want to migrate to the official Qt component in the future:
 
 The solution provides:
 - ✅ Immediate fix for the `ditheringEnabled` error
-- ✅ Universal compatibility across Qt 6.8+  
+- ✅ Universal compatibility across Qt 6.8+
 - ✅ Conditional feature activation based on Qt version
 - ✅ Clear user feedback about feature availability
 - ✅ No breaking changes to existing code

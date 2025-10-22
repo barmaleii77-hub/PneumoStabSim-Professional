@@ -15,7 +15,7 @@
 ### 1. **Основная панель GraphicsPanel**
 ```python
 # Установлена правильная политика размеров
-self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding) 
+self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
 self.setMaximumWidth(580)  # Ограничение максимальной ширины
 ```
 

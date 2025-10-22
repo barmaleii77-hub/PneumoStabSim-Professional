@@ -1,8 +1,8 @@
 # ?? ДИАГНОСТИКА: Qt Quick 3D НЕ РЕНДЕРИТ 3D ОБЪЕКТЫ
 
-**Дата:** 3 октября 2025, 20:20 UTC  
-**Проблема:** Сценарий B - Видны только 2D элементы QML  
-**Статус:** Qt Quick 3D частично работает  
+**Дата:** 3 октября 2025, 20:20 UTC
+**Проблема:** Сценарий B - Видны только 2D элементы QML
+**Статус:** Qt Quick 3D частично работает
 
 ---
 
@@ -125,20 +125,20 @@ import QtQuick3D
 
 View3D {
     anchors.fill: parent
-    
+
     environment: SceneEnvironment {
         backgroundMode: SceneEnvironment.Color
         clearColor: "#ff0000"  // Ярко-красный для видимости
     }
-    
+
     PerspectiveCamera {
         position: Qt.vector3d(0, 0, 5)
     }
-    
+
     DirectionalLight {
         brightness: 2.0
     }
-    
+
     Model {
         source: "#Sphere"
         materials: PrincipledMaterial {
@@ -166,5 +166,5 @@ View3D {
 
 ---
 
-**Статус:** ?? **ДИАГНОСТИКА В ПРОЦЕССЕ**  
+**Статус:** ?? **ДИАГНОСТИКА В ПРОЦЕССЕ**
 **Следующий шаг:** Создание диагностических скриптов

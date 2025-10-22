@@ -1,7 +1,7 @@
 # 🔍 АНАЛИЗ ИЗБЫТОЧНЫХ ВЫЧИСЛЕНИЙ В QML - PneumoStabSim
 
-**Дата анализа:** 12 декабря 2025  
-**Анализатор:** QML Performance Optimization System  
+**Дата анализа:** 12 декабря 2025
+**Анализатор:** QML Performance Optimization System
 **Фокус:** Redundant Calculations & Performance Bottlenecks
 
 ---
@@ -29,7 +29,7 @@ property real rl_angle: isRunning ? userAmplitude * Math.sin(animationTime * use
 property real rr_angle: isRunning ? userAmplitude * Math.sin(animationTime * userFrequency * 2 * Math.PI + (userPhaseGlobal + userPhaseRR) * Math.PI / 180) : 0.0
 ```
 
-**Производительность:** 
+**Производительность:**
 - **4 вызова Math.sin()** каждый фрейм
 - **4 вызова Math.PI** операций
 - **Повторяющиеся** `animationTime * userFrequency * 2 * Math.PI` вычисления
@@ -58,13 +58,13 @@ property real rr_angle: isRunning ? userAmplitude * Math.sin(baseTimePhase + glo
 component SuspensionCorner: Node {
     // Эти вычисления повторяются в каждом углу:
     property real totalAngle: baseAngle + leverAngle
-    
+
     property vector3d j_rod: Qt.vector3d(
         j_arm.x + (userLeverLength * userRodPosition) * Math.cos(totalAngle * Math.PI / 180),
         j_arm.y + (userLeverLength * userRodPosition) * Math.sin(totalAngle * Math.PI / 180),
         j_arm.z
     )
-    
+
     // Cylinder geometry calculations - МНОГО тригонометрии!
     property vector3d cylDirection: Qt.vector3d(j_rod.x - j_tail.x, j_rod.y - j_tail.y, 0)
     property real cylDirectionLength: Math.hypot(cylDirection.x, cylDirection.y)
@@ -73,7 +73,7 @@ component SuspensionCorner: Node {
         cylDirection.y / cylDirectionLength,
         0
     )
-    
+
     // И так далее... КАЖДЫЙ компонент делает одинаковые вычисления!
 }
 ```
@@ -113,7 +113,7 @@ onPositionChanged: (mouse) => {
         const fovRad = camera.fieldOfView * Math.PI / 180.0
         const worldPerPixel = (2 * root.cameraDistance * Math.tan(fovRad / 2)) / view3d.height
         const s = worldPerPixel * root.cameraSpeed
-        
+
         root.panX -= dx * s
         root.panY += dy * s
     }
@@ -159,17 +159,17 @@ onPositionChanged: (mouse) => {
 // ✅ ХОРОШО: Централизованные вычисления
 QtObject {
     id: animationCalculator
-    
+
     // Базовые значения (вычисляются 1 раз за фрейм)
     property real basePhase: animationTime * userFrequency * 2 * Math.PI
     property real globalPhaseRad: userPhaseGlobal * Math.PI / 180
-    
+
     // Кэшированные фазы для каждого угла
     property real flPhaseRad: globalPhaseRad + userPhaseFL * Math.PI / 180
     property real frPhaseRad: globalPhaseRad + userPhaseFR * Math.PI / 180
     property real rlPhaseRad: globalPhaseRad + userPhaseRL * Math.PI / 180
     property real rrPhaseRad: globalPhaseRad + userPhaseRR * Math.PI / 180
-    
+
     // Предварительно вычисленные углы
     property real fl_sin: Math.sin(basePhase + flPhaseRad)
     property real fr_sin: Math.sin(basePhase + frPhaseRad)
@@ -190,12 +190,12 @@ property real rr_angle: isRunning ? userAmplitude * animationCalculator.rr_sin :
 ```qml
 QtObject {
     id: geometryCalculator
-    
+
     // Общие константы (вычисляются только при изменении параметров)
     property real leverLengthRodPos: userLeverLength * userRodPosition
     property real piOver180: Math.PI / 180
     property real _180OverPi: 180 / Math.PI
-    
+
     // Функция для расчета j_rod (переиспользуемая)
     function calculateJRod(j_arm, baseAngle, leverAngle) {
         var totalAngleRad = (baseAngle + leverAngle) * piOver180
@@ -205,7 +205,7 @@ QtObject {
             j_arm.z
         )
     }
-    
+
     // Функция для нормализации направления цилиндра
     function normalizeCylDirection(j_rod, j_tail) {
         var dx = j_rod.x - j_tail.x
@@ -228,12 +228,12 @@ component OptimizedSuspensionCorner: Node {
     // Кэшированные значения
     property var _cachedGeometry: null
     property bool _geometryDirty: true
-    
+
     // Trigger для пересчета
     onLeverAngleChanged: _geometryDirty = true
     onJ_armChanged: _geometryDirty = true
     onJ_tailChanged: _geometryDirty = true
-    
+
     // Ленивое вычисление геометрии
     function getGeometry() {
         if (_geometryDirty || !_cachedGeometry) {
@@ -242,7 +242,7 @@ component OptimizedSuspensionCorner: Node {
         }
         return _cachedGeometry
     }
-    
+
     // Использование кэшированных значений
     property vector3d j_rod: getGeometry().j_rod
     property vector3d cylDirectionNorm: getGeometry().cylDirectionNorm
@@ -257,20 +257,20 @@ MouseArea {
     // Кэшированные значения для камеры
     property real _cachedFovRad: camera.fieldOfView * Math.PI / 180.0
     property real _cachedWorldPerPixel: 0
-    
+
     // Обновление кэша только при изменении камеры
     function updateCameraCache() {
         _cachedFovRad = camera.fieldOfView * Math.PI / 180.0
         _cachedWorldPerPixel = (2 * root.cameraDistance * Math.tan(_cachedFovRad / 2)) / view3d.height
     }
-    
+
     // Подключение к изменениям
     Connections {
         target: root
         function onCameraDistanceChanged() { updateCameraCache() }
         function onCameraFovChanged() { updateCameraCache() }
     }
-    
+
     onPositionChanged: (mouse) => {
         if (root.mouseButton === Qt.RightButton) {
             // ✅ Используем кэшированные значения
@@ -290,7 +290,7 @@ MouseArea {
 
 #### **Высокий приоритет (1-2 дня):**
 1. **Кэширование анимационных вычислений** → +15% FPS
-2. **Оптимизация Mouse Events** → +10% responsiveness  
+2. **Оптимизация Mouse Events** → +10% responsiveness
 3. **Константы Math.PI** → +5% для всех операций
 
 #### **Средний приоритет (3-5 дней):**
@@ -345,46 +345,46 @@ Item {
     // ===============================================================
     // 🟢 OPTIMIZED ANIMATION CALCULATOR
     // ===============================================================
-    
+
     QtObject {
         id: animationCalculator
-        
+
         // Base values (calculated once per frame)
         property real basePhase: animationTime * userFrequency * 2 * Math.PI
         property real globalPhaseRad: userPhaseGlobal * Math.PI / 180
-        
+
         // Pre-calculated phase values for each corner
         property real flPhaseRad: globalPhaseRad + userPhaseFL * Math.PI / 180
         property real frPhaseRad: globalPhaseRad + userPhaseFR * Math.PI / 180
         property real rlPhaseRad: globalPhaseRad + userPhaseRL * Math.PI / 180
         property real rrPhaseRad: globalPhaseRad + userPhaseRR * Math.PI / 180
-        
+
         // Pre-calculated sine values (4 sin() calls → 4 cached values)
         property real fl_sin: Math.sin(basePhase + flPhaseRad)
         property real fr_sin: Math.sin(basePhase + frPhaseRad)
         property real rl_sin: Math.sin(basePhase + rlPhaseRad)
         property real rr_sin: Math.sin(basePhase + rrPhaseRad)
     }
-    
+
     // ===============================================================
-    // 🟢 OPTIMIZED GEOMETRY CALCULATOR  
+    // 🟢 OPTIMIZED GEOMETRY CALCULATOR
     // ===============================================================
-    
+
     QtObject {
         id: geometryCalculator
-        
+
         // Constants (calculated only when parameters change)
         property real leverLengthRodPos: userLeverLength * userRodPosition
         property real piOver180: Math.PI / 180
         property real _180OverPi: 180 / Math.PI
-        
+
         // Cached camera calculations
         property real cachedFovRad: cameraFov * piOver180
         property real cachedTanHalfFov: Math.tan(cachedFovRad / 2)
-        
+
         // Update camera cache when needed
         onCachedFovRadChanged: cachedTanHalfFov = Math.tan(cachedFovRad / 2)
-        
+
         function calculateJRod(j_arm, baseAngle, leverAngle) {
             var totalAngleRad = (baseAngle + leverAngle) * piOver180
             return Qt.vector3d(
@@ -393,7 +393,7 @@ Item {
                 j_arm.z
             )
         }
-        
+
         function normalizeCylDirection(j_rod, j_tail) {
             var dx = j_rod.x - j_tail.x
             var dy = j_rod.y - j_tail.y
@@ -410,7 +410,7 @@ Item {
     // ===============================================================
     // 🟢 OPTIMIZED ANGLE CALCULATIONS (using cached sin values)
     // ===============================================================
-    
+
     property real fl_angle: isRunning ? userAmplitude * animationCalculator.fl_sin : 0.0
     property real fr_angle: isRunning ? userAmplitude * animationCalculator.fr_sin : 0.0
     property real rl_angle: isRunning ? userAmplitude * animationCalculator.rl_sin : 0.0
@@ -419,7 +419,7 @@ Item {
     // ===============================================================
     // 🟢 OPTIMIZED MOUSE AREA
     // ===============================================================
-    
+
     MouseArea {
         id: mouseArea
         anchors.fill: parent
@@ -428,19 +428,19 @@ Item {
 
         // Cached values for mouse operations
         property real cachedWorldPerPixel: 0
-        
+
         // Update cache when camera changes
         function updateMouseCache() {
             cachedWorldPerPixel = (2 * root.cameraDistance * geometryCalculator.cachedTanHalfFov) / view3d.height
         }
-        
+
         // Connect to camera changes
         Connections {
             target: root
             function onCameraDistanceChanged() { mouseArea.updateMouseCache() }
             function onCameraFovChanged() { mouseArea.updateMouseCache() }
         }
-        
+
         Component.onCompleted: updateMouseCache()
 
         onPositionChanged: (mouse) => {
@@ -467,29 +467,29 @@ Item {
     // ===============================================================
     // 🟢 OPTIMIZED SUSPENSION COMPONENT
     // ===============================================================
-    
+
     component OptimizedSuspensionCorner: Node {
         property vector3d j_arm
-        property vector3d j_tail  
+        property vector3d j_tail
         property real leverAngle
         property real pistonPositionFromPython: 250.0
-        
+
         // Cached calculations
         property bool _geometryDirty: true
         property var _cachedGeometry: null
-        
+
         // Invalidate cache when inputs change
         onLeverAngleChanged: _geometryDirty = true
         onJ_armChanged: _geometryDirty = true
         onJ_tailChanged: _geometryDirty = true
-        
+
         // Lazy geometry calculation
         function getGeometry() {
             if (_geometryDirty || !_cachedGeometry) {
                 const baseAngle = (j_arm.x < 0) ? 180 : 0
                 const j_rod = geometryCalculator.calculateJRod(j_arm, baseAngle, leverAngle)
                 const cylGeom = geometryCalculator.normalizeCylDirection(j_rod, j_tail)
-                
+
                 _cachedGeometry = {
                     j_rod: j_rod,
                     totalAngle: baseAngle + leverAngle,
@@ -502,13 +502,13 @@ Item {
             }
             return _cachedGeometry
         }
-        
+
         // Use cached geometry
         property vector3d j_rod: getGeometry().j_rod
         property real totalAngle: getGeometry().totalAngle
         property vector3d cylDirectionNorm: getGeometry().cylDirectionNorm
         property real cylAngle: getGeometry().cylAngle
-        
+
         // Rest of component unchanged but uses cached values...
     }
 }

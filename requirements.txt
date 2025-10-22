@@ -1,10 +1,10 @@
 # PneumoStabSim Professional - Production Dependencies
-# Проверено для Python 3.11-3.13 (рекомендуется 3.13)
+# Проверено для Python 3.10-3.12 (рекомендуется 3.12)
 
 # === КРИТИЧЕСКИЕ ЗАВИСИМОСТИ ===
 # Qt Framework - основа GUI и 3D рендеринга
 PySide6>=6.10.0,<7.0.0   # Qt6.10+ (ExtendedSceneEnvironment, Fog, dithering)
-shiboken6                 # Qt6 bindings generator
+shiboken6>=6.10.0,<7.0.0 # Qt6 bindings generator
 
 # Numerical computing - основа физических расчетов
 numpy>=1.24.0,<3.0.0      # Векторные вычисления
@@ -29,11 +29,14 @@ psutil>=5.8.0             # Мониторинг
 
 # === СОВМЕСТИМОСТЬ ===
 # Проверено на:
-# - Windows 10/11 (Python 3.11-3.13)
-# - Ubuntu 22.04/24.04 (Python 3.11-3.12)
-# - macOS 13+ (Python 3.11-3.12)
+# - Windows 10/11 (Python 3.10-3.12)
+# - Ubuntu 22.04/24.04 (Python 3.10-3.12)
+# - macOS 13+ (Python 3.10-3.12)
 
 # Примечания:
 # 1. Требуется PySide6 6.10+ из-за использования Fog и dithering
 # 2. NumPy 2.0+ совместим, но требует обновления других пакетов
-# 3. Python 3.13 поддерживается
+# 3. Python 3.13 не поддерживается (зависимости ещё не готовы)
+
+# Устанавливаем сам пакет вместе с доменными подпакетами physics/pneumo/road
+-e .

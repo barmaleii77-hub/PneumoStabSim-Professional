@@ -1,7 +1,7 @@
 # ?? ОТЧЕТ P11: ЛОГИРОВАНИЕ И ЭКСПОРТ CSV
 
-**Дата:** 3 октября 2025  
-**Версия:** dc36094  
+**Дата:** 3 октября 2025
+**Версия:** dc36094
 **Статус:** ? P11 РЕАЛИЗОВАН
 
 ---
@@ -24,10 +24,10 @@ init_logging(app_name, log_dir) -> Logger
   - Создает logs/run.log (overwrite)
   - Настраивает QueueHandler + QueueListener
   - Регистрирует atexit cleanup
-  
+
 get_category_logger(category) -> Logger
   - Возвращает именованный logger ("PneumoStabSim.{category}")
-  
+
 log_valve_event(t, line, kind, state, dp, mdot)
 log_pressure_update(t, loc, p, T, m)
 log_ode_step(t, step, dt, error)
@@ -292,6 +292,6 @@ P11 достаточно функционален для базового логирования и экспорта. Оставшиеся элем
 
 ---
 
-**Подписано:** GitHub Copilot  
-**Дата:** 3 октября 2025, 03:15 UTC  
+**Подписано:** GitHub Copilot
+**Дата:** 3 октября 2025, 03:15 UTC
 **Коммит:** dc36094

@@ -1,6 +1,6 @@
 # ?? ПОЛНАЯ ПРОВЕРКА ПРОЕКТА - НАЙДЕННЫЕ ПРОБЛЕМЫ
 
-**Дата проверки:** 3 октября 2025  
+**Дата проверки:** 3 октября 2025
 **Статус:** ? **НАЙДЕНЫ КРИТИЧЕСКИЕ ОШИБКИ**
 
 ---
@@ -26,12 +26,12 @@
 
 ### 2. Crash в `_reset_ui_layout()` из-за None docks
 
-**Файл:** `src/ui/main_window.py`  
+**Файл:** `src/ui/main_window.py`
 **Строка:** ~540
 
 ```python
 def _reset_ui_layout(self):
-    for dock in [self.geometry_dock, self.pneumo_dock, self.charts_dock, 
+    for dock in [self.geometry_dock, self.pneumo_dock, self.charts_dock,
                  self.modes_dock, self.road_dock]:
         dock.show()  # ? CRASH! dock is None
 ```
@@ -43,7 +43,7 @@ def _reset_ui_layout(self):
 **Исправление:**
 ```python
 def _reset_ui_layout(self):
-    for dock in [self.geometry_dock, self.pneumo_dock, self.charts_dock, 
+    for dock in [self.geometry_dock, self.pneumo_dock, self.charts_dock,
                  self.modes_dock, self.road_dock]:
         if dock:  # ? Добавить проверку
             dock.show()
@@ -54,7 +54,7 @@ def _reset_ui_layout(self):
 
 ### 3. View Menu обращается к None docks
 
-**Файл:** `src/ui/main_window.py`  
+**Файл:** `src/ui/main_window.py`
 **Метод:** `_setup_menus()`
 
 ```python
@@ -101,7 +101,7 @@ for dock, title in [
 - `test_with_surface_format.py` - OpenGL тесты
 - `check_opengl.py` - проверка OpenGL
 
-**Действие:** 
+**Действие:**
 - Переименовать в `*.old.py` ИЛИ удалить
 - Создать новые тесты для Qt Quick 3D
 

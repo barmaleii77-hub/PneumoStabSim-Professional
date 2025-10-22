@@ -1,0 +1,49 @@
+QML REFACTORING: SharedMaterials module created (67% complete)
+
+✅ СОЗДАНО:
+- assets/qml/scene/SharedMaterials.qml (13,395 chars)
+- assets/qml/scene/qmldir
+- 7 PBR материалов централизованы
+
+📊 ПРОГРЕСС:
+- 4 из 6 модулей завершено (67%)
+- 1170+ строк модульного кода создано
+- ~1050 строк из main.qml уже вынесено
+
+🎯 МОДУЛИ:
+✅ core/ (MathUtils, GeometryCalculations, StateCache)
+✅ camera/ (CameraController, CameraState, MouseControls, CameraRig)
+✅ lighting/ (DirectionalLights, PointLights)
+✅ scene/ (SharedMaterials) 🆕 НОВОЕ
+⏳ geometry/ (Frame, SuspensionCorner) - СЛЕДУЮЩИЙ ШАГ
+⏳ effects/ (SceneEnvironmentController)
+
+💡 ПРЕИМУЩЕСТВА SharedMaterials:
+- Централизация: 1 файл вместо 6 PrincipledMaterial блоков
+- Переиспользование: материалы создаются ОДИН раз
+- Производительность: shared instances вместо дублирования
+- Поддержка: легко добавить новый материал
+
+📝 МАТЕРИАЛЫ (7):
+1. frameMaterial - Рама (красный металл)
+2. leverMaterial - Рычаг (серый металл)
+3. tailRodMaterial - Хвостовой шток (светлый металл)
+4. cylinderMaterial - Цилиндр (прозрачное стекло IOR 1.52)
+5. jointTailMaterial - Шарнир хвоста (синий)
+6. jointArmMaterial - Шарнир рычага (оранжевый)
+7. Dynamic piston/rod materials (с warning colors)
+
+⏱️ ОЦЕНКА: ~5 часов до полного завершения
+
+📚 ДОКУМЕНТАЦИЯ:
+- QML_REFACTORING_PROGRESS.md - обновлён
+- QML_REFACTORING_SHARED_MATERIALS_COMPLETE.md - создан
+
+---
+
+Changes made:
+- assets/qml/scene/SharedMaterials.qml
+- assets/qml/scene/qmldir
+- create_shared_materials.py
+- QML_REFACTORING_PROGRESS.md
+- QML_REFACTORING_SHARED_MATERIALS_COMPLETE.md

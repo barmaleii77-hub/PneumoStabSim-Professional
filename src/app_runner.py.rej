@@ -1,0 +1,193 @@
+diff a/src/app_runner.py b/src/app_runner.py	(rejected hunks)
+@@ -150,102 +150,189 @@ class ApplicationRunner:
+                 )
+         except Exception:
+             from src.ui.main_window import MainWindow as MW
+ 
+             if self.app_logger:
+                 self.app_logger.warning(
+                     "MainWindow: refactored import failed, using default import"
+                 )
+ 
+         window = MW(use_qml_3d=self.use_qml_3d_schema)
+         self.window_instance = window
+ 
+         window.show()
+         window.raise_()
+         window.activateWindow()
+ 
+         if self.app_logger:
+             self.app_logger.info("MainWindow created and shown")
+ 
+     def _validate_settings_file(self) -> None:
+         """Строгая валидация конфигурации до создания MainWindow.
+ 
+         Проверяем:
+         - Путь к файлу и источник (ENV/CWD/PROJECT)
+         - Наличие файла и корректность JSON
++        - Секции current.simulation/pneumatic/geometry и ключи PhysicsWorker
+         - Обязательные ключи graphics.materials
+         - Права на запись в каталог config (создание temp-файла)
+         """
+         from PySide6.QtWidgets import QMessageBox
+         from src.common.settings_manager import get_settings_manager
+         import os
+ 
+         sm = get_settings_manager()
+         cfg_path = Path(sm.settings_file).absolute()
+ 
+         def _fail(message: str, exc_type: type[Exception] = ValueError) -> None:
+             if self.app_logger:
+                 self.app_logger.critical(message)
+             QMessageBox.critical(None, "Ошибка конфигурации", message)
+             raise exc_type(message)
+ 
+         # Определяем источник пути
+         src = "CWD"
+         if os.environ.get("PSS_SETTINGS_FILE"):
+             src = "ENV"
+         else:
+             # Попробуем угадать project path
+             try:
+                 project_candidate = (
+                     Path(__file__).resolve().parents[1].parent
+                     / "config"
+                     / "app_settings.json"
+                 )
+                 if cfg_path.samefile(project_candidate):
+                     src = "PROJECT"
+             except Exception:
+                 pass
+ 
+         msg_base = f"Settings file: {cfg_path} [source={src}]"
+         print(msg_base)
+         if self.app_logger:
+             self.app_logger.info(msg_base)
+ 
+         # 1) Существование
+         if not cfg_path.exists():
+             _fail(f"Файл настроек не найден: {cfg_path}")
+ 
+         # 2) Чтение и JSON
+         try:
+             with open(cfg_path, "r", encoding="utf-8") as f:
+                 data = json.load(f)
+         except Exception as ex:
+             _fail(f"Некорректный JSON в файле настроек: {cfg_path}\n{ex}")
+ 
+-        # 3) Обязательные ключи материалов
++        if not isinstance(data, dict):
++            _fail("Файл настроек должен содержать JSON-объект на верхнем уровне")
++
++        # 3) Обязательные секции current.*
++        current = data.get("current")
++        if not isinstance(current, dict):
++            _fail("Отсутствует секция current в файле настроек")
++
++        def _require_section(name: str) -> dict:
++            section = current.get(name)
++            if not isinstance(section, dict):
++                _fail(f"Отсутствует секция current.{name}")
++            return section
++
++        simulation = _require_section("simulation")
++        pneumatic = _require_section("pneumatic")
++        geometry = _require_section("geometry")
++
++        if not geometry:
++            _fail("Секция current.geometry не может быть пустой")
++
++        def _require_number(section: dict, key: str, path: str) -> float:
++            value = section.get(key)
++            if isinstance(value, bool) or not isinstance(value, (int, float)):
++                _fail(f"Отсутствует числовой параметр {path}")
++            return float(value)
++
++        def _require_bool(section: dict, key: str, path: str) -> bool:
++            value = section.get(key)
++            if not isinstance(value, bool):
++                _fail(f"Отсутствует булевый параметр {path}")
++            return value
++
++        def _require_str(section: dict, key: str, path: str) -> str:
++            value = section.get(key)
++            if not isinstance(value, str) or not value.strip():
++                _fail(f"Отсутствует строковый параметр {path}")
++            return value.strip()
++
++        # Параметры, которые использует PhysicsWorker
++        for key in (
++            "physics_dt",
++            "render_vsync_hz",
++            "max_steps_per_frame",
++            "max_frame_time",
++        ):
++            _require_number(simulation, key, f"current.simulation.{key}")
++
++        receiver_limits = pneumatic.get("receiver_volume_limits")
++        if not isinstance(receiver_limits, dict):
++            _fail("Отсутствует секция current.pneumatic.receiver_volume_limits")
++
++        min_limit = _require_number(
++            receiver_limits,
++            "min_m3",
++            "current.pneumatic.receiver_volume_limits.min_m3",
++        )
++        max_limit = _require_number(
++            receiver_limits,
++            "max_m3",
++            "current.pneumatic.receiver_volume_limits.max_m3",
++        )
++        if not (0 < min_limit < max_limit):
++            _fail(
++                "Пределы current.pneumatic.receiver_volume_limits должны удовлетворять "
++                "0 < min < max"
++            )
++
++        receiver_volume = _require_number(
++            pneumatic,
++            "receiver_volume",
++            "current.pneumatic.receiver_volume",
++        )
++        if not (min_limit <= receiver_volume <= max_limit):
++            _fail(
++                "Параметр current.pneumatic.receiver_volume выходит за пределы допустимого "
++                "диапазона"
++            )
++
++        _require_str(pneumatic, "volume_mode", "current.pneumatic.volume_mode")
++        _require_bool(
++            pneumatic,
++            "master_isolation_open",
++            "current.pneumatic.master_isolation_open",
++        )
++        _require_str(pneumatic, "thermo_mode", "current.pneumatic.thermo_mode")
++
++        # 4) Обязательные ключи материалов
+         try:
+-            current = data.get("current", {}) if isinstance(data, dict) else {}
+             graphics = current.get("graphics", {}) if isinstance(current, dict) else {}
+             materials = (
+                 graphics.get("materials", {}) if isinstance(graphics, dict) else {}
+             )
+             required_keys = {
+                 "frame",
+                 "lever",
+                 "tail",
+                 "cylinder",
+                 "piston_body",
+                 "piston_rod",
+                 "joint_tail",
+                 "joint_arm",
+                 "joint_rod",
+             }
+             present = set(materials.keys()) if isinstance(materials, dict) else set()
+             missing = sorted(list(required_keys - present))
+             if missing:
+                 _fail(
+                     "Отсутствуют обязательные материалы в current.graphics.materials: "
+                     + ", ".join(missing)
+                 )
+         except Exception:
+             raise
+ 

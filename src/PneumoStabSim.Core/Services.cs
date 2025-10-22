@@ -27,10 +27,10 @@ namespace PneumoStabSim.Core
                 {
                     if (value is T directValue)
                         return directValue;
-                    
+
                     if (value is JsonElement jsonElement)
                         return jsonElement.Deserialize<T>() ?? defaultValue;
-                    
+
                     return (T)Convert.ChangeType(value, typeof(T));
                 }
             }
@@ -38,7 +38,7 @@ namespace PneumoStabSim.Core
             {
                 _logger.LogWarning(ex, $"Error getting configuration value for key: {key}");
             }
-            
+
             return defaultValue;
         }
 
@@ -57,11 +57,11 @@ namespace PneumoStabSim.Core
                     Directory.CreateDirectory(directory);
                 }
 
-                var json = JsonSerializer.Serialize(_configuration, new JsonSerializerOptions 
-                { 
-                    WriteIndented = true 
+                var json = JsonSerializer.Serialize(_configuration, new JsonSerializerOptions
+                {
+                    WriteIndented = true
                 });
-                
+
                 File.WriteAllText(_configPath, json);
                 _logger.LogInformation($"Configuration saved to: {_configPath}");
             }
@@ -79,7 +79,7 @@ namespace PneumoStabSim.Core
                 {
                     var json = File.ReadAllText(_configPath);
                     var config = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(json);
-                    
+
                     if (config != null)
                     {
                         foreach (var kvp in config)
@@ -87,7 +87,7 @@ namespace PneumoStabSim.Core
                             _configuration[kvp.Key] = kvp.Value;
                         }
                     }
-                    
+
                     _logger.LogInformation($"Configuration loaded from: {_configPath}");
                 }
                 else
@@ -161,7 +161,7 @@ namespace PneumoStabSim.Core
                 }
 
                 using var writer = new StreamWriter(filePath);
-                
+
                 var dataList = data.ToList();
                 if (dataList.Count == 0) return;
 
@@ -197,11 +197,11 @@ namespace PneumoStabSim.Core
                     Directory.CreateDirectory(directory);
                 }
 
-                var json = JsonSerializer.Serialize(data, new JsonSerializerOptions 
-                { 
-                    WriteIndented = true 
+                var json = JsonSerializer.Serialize(data, new JsonSerializerOptions
+                {
+                    WriteIndented = true
                 });
-                
+
                 await File.WriteAllTextAsync(filePath, json);
                 _logger.LogInformation($"Data exported to JSON: {filePath}");
             }
@@ -216,12 +216,12 @@ namespace PneumoStabSim.Core
         {
             // Placeholder implementation - would need PDF library
             await Task.Delay(100);
-            
-            var json = JsonSerializer.Serialize(data, new JsonSerializerOptions 
-            { 
-                WriteIndented = true 
+
+            var json = JsonSerializer.Serialize(data, new JsonSerializerOptions
+            {
+                WriteIndented = true
             });
-            
+
             return System.Text.Encoding.UTF8.GetBytes($"PDF Export Placeholder:\n{json}");
         }
     }

@@ -4,28 +4,25 @@ import QtQuick3D
 Item {
     id: controller
 
-    /**
-      * Primary HDR environment map used for IBL/skybox lighting.
-      * Defaults to the studio lighting provided with the project.
-      */
-    property url primarySource: Qt.resolvedUrl("../../hdr/studio.hdr")
+    // Основной HDR для IBL/skybox
+    property url primarySource: ""   // ✅ Без дефолтов — задаётся из UI/настроек
+    // Резервный HDR (на случай ошибки загрузки основного) — приводим к той же папке assets/hdr
+    property url fallbackSource: ""   // ✅ Без дефолтов — задаётся из UI/настроек
 
-    /**
-      * Optional fallback map that is tried automatically when the primary
-      * asset is missing (useful for developer setups without HDR packages).
-      */
-    // Путь из components/ → assets/qml/assets/studio_small_09_2k.hdr
-    property url fallbackSource: Qt.resolvedUrl("../assets/studio_small_09_2k.hdr")
-
-    /** Internal flag preventing infinite fallback recursion. */
+    // Внутренние флаги
     property bool _fallbackTried: false
+    property bool _useFallback: false   // ✅ НЕ ломаем биндинг, управляем источником через флаг
 
-    /** Expose the probe for consumers. */
+    // Экспортируемый probe
     property Texture probe: hdrProbe
 
+    // Текущий активный источник (удобно для отладки/синхронизации UI)
+    readonly property url activeSource: _useFallback ? fallbackSource : primarySource
+
+    // Текстура HDR. Источник определяется логикой выбора (primary/fallback)
     Texture {
         id: hdrProbe
-        source: controller.primarySource
+        source: controller._useFallback ? controller.fallbackSource : controller.primarySource
         minFilter: Texture.Linear
         magFilter: Texture.Linear
         generateMipmaps: true
@@ -35,13 +32,9 @@ Item {
     function writeLog(level, message) {
         var timestamp = new Date().toISOString()
         var logEntry = timestamp + " | " + level + " | IblProbeLoader | " + message
-        
-        // Отправляем в Python для записи в файл
         if (typeof window !== "undefined" && window !== null && window.logIblEvent) {
             window.logIblEvent(logEntry)
         }
-        
-        // Также выводим в консоль для отладки
         if (level === "ERROR" || level === "WARN") {
             console.warn(logEntry)
         } else {
@@ -49,69 +42,93 @@ Item {
         }
     }
 
-    // Monitor texture status using Timer polling (Texture has no statusChanged signal!)
-    property int _lastStatus: -1  // Начинаем с -1 вместо Texture.Null
-    
+    // Отслеживание статуса через polling (Texture не шлет statusChanged)
+    property int _lastStatus: -1
+
     onProbeChanged: {
         if (probe && typeof probe.status !== "undefined") {
             _lastStatus = probe.status
             _checkStatus()
         }
     }
-    
-    // Polling-based status check (since Texture doesn't emit statusChanged signal)
+
     Timer {
-        interval: 100  // Check every 100ms
+        interval: 100
         running: true
         repeat: true
         onTriggered: {
-            // Безопасная проверка на undefined
             if (typeof hdrProbe.status !== "undefined" && hdrProbe.status !== controller._lastStatus) {
                 controller._lastStatus = hdrProbe.status
                 controller._checkStatus()
             }
         }
     }
-    
+
+    function statusToString(s) {
+        return s === Texture.Null ? "Null" :
+               s === Texture.Ready ? "Ready" :
+               s === Texture.Loading ? "Loading" :
+               s === Texture.Error ? "Error" : ("Unknown(" + s + ")")
+    }
+
     function _checkStatus() {
-        // Безопасная проверка статуса
-        if (typeof hdrProbe.status === "undefined") {
+        if (typeof hdrProbe.status === "undefined")
             return
-        }
-        
-        var statusStr = hdrProbe.status === Texture.Null ? "Null" :
-                      hdrProbe.status === Texture.Ready ? "Ready" :
-                      hdrProbe.status === Texture.Loading ? "Loading" :
-                      hdrProbe.status === Texture.Error ? "Error" : "Unknown(" + hdrProbe.status + ")"
-        
+
+        var statusStr = statusToString(hdrProbe.status)
         writeLog("INFO", "Texture status: " + statusStr + " | source: " + hdrProbe.source)
-        
+
         if (hdrProbe.status === Texture.Error && !controller._fallbackTried) {
+            // ✅ Переключаемся на fallback ТОЛЬКО если указан primarySource (т.е. пользователь выбирал HDR)
             controller._fallbackTried = true
-            writeLog("WARN", "HDR probe FAILED at " + hdrProbe.source + " — switching to fallback: " + controller.fallbackSource)
-            hdrProbe.source = controller.fallbackSource
+            var hasPrimary = (controller.primarySource && String(controller.primarySource) !== "")
+            if (hasPrimary && controller.fallbackSource && String(controller.fallbackSource) !== "") {
+                controller._useFallback = true
+                writeLog("WARN", "Primary FAILED → switch to fallback: " + controller.fallbackSource)
+            } else if (!hasPrimary) {
+                // Нет выбранного primary — не активируем fallback автоматически
+                writeLog("INFO", "No primarySource selected, skip fallback auto-switch")
+            } else {
+                writeLog("ERROR", "Primary FAILED and no valid fallback specified")
+            }
         } else if (hdrProbe.status === Texture.Ready) {
+            // ✅ Сообщение совместимо с обработчиком в Python
             writeLog("SUCCESS", "HDR probe LOADED successfully: " + hdrProbe.source)
+            // Если primary загрузился успешно, сбрасываем флаги возврата к норме
+            if (!controller._useFallback) {
+                controller._fallbackTried = false
+            }
         } else if (hdrProbe.status === Texture.Error && controller._fallbackTried) {
-            writeLog("ERROR", "CRITICAL: Both HDR probes failed to load - IBL will be disabled")
+            writeLog("ERROR", "CRITICAL: Both HDR probes failed to load")
         }
     }
 
-    // Логирование изменения source
+    // Логирование изменения source'ов
     onPrimarySourceChanged: {
         writeLog("INFO", "Primary source changed: " + primarySource)
+        // ✅ При выборе нового файла: заново пробуем primary
+        controller._fallbackTried = false
+        controller._useFallback = false
+        controller._lastStatus = -1
     }
 
     onFallbackSourceChanged: {
         writeLog("INFO", "Fallback source changed: " + fallbackSource)
+        // Если сейчас используем fallback — перезагрузим его
+        controller._lastStatus = -1
     }
 
-    /** Simple ready flag to avoid binding against an invalid texture. */
-    readonly property bool ready: probe.status === Texture.Ready
+    // Готовность проба: считаем готовым только когда source валиден и статус Ready
+    readonly property bool ready: (
+        hdrProbe && hdrProbe.source && String(hdrProbe.source) !== "" && hdrProbe.status === Texture.Ready
+    )
 
     Component.onCompleted: {
-        writeLog("INFO", "IblProbeLoader initialized | Primary: " + primarySource + " | Fallback: " + fallbackSource)
-        _checkStatus()  // Первоначальная проверка
+        writeLog("INFO", "IblProbeLoader initialized | Primary: " + (primarySource || "<empty>") + " | Fallback: " + (fallbackSource || "<empty>"))
+        if (!primarySource || String(primarySource) === "") {
+            writeLog("WARN", "No primarySource provided at init")
+        }
+        _checkStatus()
     }
 
     Component.onDestruction: {

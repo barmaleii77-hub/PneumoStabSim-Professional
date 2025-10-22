@@ -8,7 +8,7 @@
 
 ### ѕроверенные параметры
 1. `wheelbase_slider` - ? м, 0.001, 3 decimals
-2. `track_slider` - ? м, 0.001, 3 decimals  
+2. `track_slider` - ? м, 0.001, 3 decimals
 3. `frame_to_pivot_slider` - ? м, 0.001, 3 decimals
 4. `lever_length_slider` - ? м, 0.001, 3 decimals
 5. `rod_position_slider` - ? безразмерна€ дол€, 0.001, 3 decimals

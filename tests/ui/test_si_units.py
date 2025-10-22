@@ -249,7 +249,7 @@ def test_rod_diameter_m_signal_emission(geometry_panel, qtbot):
     """Проверить emission сигнала parameter_changed при изменении rod_diameter_m"""
     with qtbot.waitSignal(geometry_panel.parameter_changed, timeout=1000) as blocker:
         geometry_panel.rod_diameter_m_slider.setValue(0.040)
-    
+
     # Проверить параметры сигнала
     assert blocker.args == ['rod_diameter_m', 0.040], \
         f"Сигнал должен быть ('rod_diameter_m', 0.040), получено {blocker.args}"
@@ -259,7 +259,7 @@ def test_piston_rod_length_m_signal_emission(geometry_panel, qtbot):
     """Проверить emission сигнала parameter_changed при изменении piston_rod_length_m"""
     with qtbot.waitSignal(geometry_panel.parameter_changed, timeout=1000) as blocker:
         geometry_panel.piston_rod_length_m_slider.setValue(0.300)
-    
+
     assert blocker.args == ['piston_rod_length_m', 0.300], \
         f"Сигнал должен быть ('piston_rod_length_m', 0.300), получено {blocker.args}"
 
@@ -268,7 +268,7 @@ def test_piston_thickness_m_signal_emission(geometry_panel, qtbot):
     """Проверить emission сигнала parameter_changed при изменении piston_thickness_m"""
     with qtbot.waitSignal(geometry_panel.parameter_changed, timeout=1000) as blocker:
         geometry_panel.piston_thickness_m_slider.setValue(0.030)
-    
+
     assert blocker.args == ['piston_thickness_m', 0.030], \
         f"Сигнал должен быть ('piston_thickness_m', 0.030), получено {blocker.args}"
 
@@ -277,7 +277,7 @@ def test_geometry_updated_signal_with_m_params(geometry_panel, qtbot):
     """Проверить emission сигнала geometry_updated с новыми параметрами в метрах"""
     with qtbot.waitSignal(geometry_panel.geometry_updated, timeout=1000) as blocker:
         geometry_panel.rod_diameter_m_slider.setValue(0.045)
-    
+
     # Проверить, что словарь содержит новые параметры
     params = blocker.args[0]
     assert 'rod_diameter_m' in params
@@ -288,7 +288,7 @@ def test_rod_diameter_m_validation_updated(geometry_panel):
     """Проверить валидацию: rod_diameter_m < 80% cyl_diam_m (оба в метрах)"""
     # Установить диаметр цилиндра 0.080 м
     geometry_panel.cyl_diam_m_slider.setValue(0.080)
-    
+
     # Установить диаметр штока 0.035 м (< 80% от 0.080 м = 0.064 м) - OK
     geometry_panel.rod_diameter_m_slider.setValue(0.035)
     params = geometry_panel.get_parameters()
@@ -301,10 +301,10 @@ def test_reset_to_defaults_sets_m_params(geometry_panel):
     geometry_panel.rod_diameter_m_slider.setValue(0.050)
     geometry_panel.piston_rod_length_m_slider.setValue(0.400)
     geometry_panel.piston_thickness_m_slider.setValue(0.040)
-    
+
     # Сбросить
     geometry_panel._reset_to_defaults()
-    
+
     # Проверить значения
     assert geometry_panel.rod_diameter_m_slider.value() == 0.035
     assert geometry_panel.piston_rod_length_m_slider.value() == 0.200
@@ -318,9 +318,9 @@ def test_set_parameters_accepts_m_params(geometry_panel):
         'piston_rod_length_m': 0.350,
         'piston_thickness_m': 0.032
     }
-    
+
     geometry_panel.set_parameters(new_params)
-    
+
     params = geometry_panel.get_parameters()
     assert params['rod_diameter_m'] == 0.042
     assert params['piston_rod_length_m'] == 0.350
@@ -331,14 +331,14 @@ def test_presets_use_m_params(geometry_panel):
     """Проверить, что пресеты используют параметры в метрах"""
     # Установить пресет "Лёгкий коммерческий"
     geometry_panel._on_preset_changed(1)
-    
+
     params = geometry_panel.get_parameters()
     assert 'rod_diameter_m' in params
     assert params['rod_diameter_m'] == 0.028  # 28 мм -> 0.028 м
-    
+
     # Установить пресет "Тяжёлый грузовик"
     geometry_panel._on_preset_changed(2)
-    
+
     params = geometry_panel.get_parameters()
     assert params['rod_diameter_m'] == 0.045  # 45 мм -> 0.045 м
 
@@ -351,7 +351,7 @@ def test_geometry_changed_uses_m_params(geometry_panel, qtbot):
     """Проверить, что geometry_changed использует параметры в метрах с правильной конвертацией"""
     with qtbot.waitSignal(geometry_panel.geometry_changed, timeout=1000) as blocker:
         geometry_panel.rod_diameter_m_slider.setValue(0.040)  # 0.040 м = 40 мм
-    
+
     # Проверить, что в 3D формате значение конвертировано правильно
     geometry_3d = blocker.args[0]
     assert 'rodDiameterM' in geometry_3d
@@ -368,12 +368,12 @@ def test_ms2_complete_si_units(geometry_panel):
     assert hasattr(geometry_panel, 'rod_diameter_m_slider')
     assert hasattr(geometry_panel, 'piston_rod_length_m_slider')
     assert hasattr(geometry_panel, 'piston_thickness_m_slider')
-    
+
     # 2. Проверить отсутствие старых слайдеров в мм
     assert not hasattr(geometry_panel, 'rod_diameter_slider')
     assert not hasattr(geometry_panel, 'piston_rod_length_slider')
     assert not hasattr(geometry_panel, 'piston_thickness_slider')
-    
+
     # 3. Проверить параметры в словаре
     params = geometry_panel.get_parameters()
     assert 'rod_diameter_m' in params
@@ -382,71 +382,71 @@ def test_ms2_complete_si_units(geometry_panel):
     assert 'rod_diameter' not in params
     assert 'piston_rod_length' not in params
     assert 'piston_thickness' not in params
-    
+
     # 4. Проверить единицы измерения СИ
     assert geometry_panel.rod_diameter_m_slider.units() == "м"
     assert geometry_panel.piston_rod_length_m_slider.units() == "м"
     assert geometry_panel.piston_thickness_m_slider.units() == "м"
-    
+
     # 5. Проверить шаг = 0.001
     assert geometry_panel.rod_diameter_m_slider.step() == 0.001
     assert geometry_panel.piston_rod_length_m_slider.step() == 0.001
     assert geometry_panel.piston_thickness_m_slider.step() == 0.001
-    
+
     # 6. Проверить decimals = 3
     assert geometry_panel.rod_diameter_m_slider.decimals() == 3
     assert geometry_panel.piston_rod_length_m_slider.decimals() == 3
     assert geometry_panel.piston_thickness_m_slider.decimals() == 3
-    
+
     # 7. Проверить диапазоны конвертированы правильно
     # rod_diameter: 20-60 мм -> 0.020-0.060 м
     assert geometry_panel.rod_diameter_m_slider.minimum() == 0.020
     assert geometry_panel.rod_diameter_m_slider.maximum() == 0.060
-    
+
     # piston_rod_length: 100-500 мм -> 0.100-0.500 м
     assert geometry_panel.piston_rod_length_m_slider.minimum() == 0.100
     assert geometry_panel.piston_rod_length_m_slider.maximum() == 0.500
-    
+
     # piston_thickness: 10-50 мм -> 0.010-0.050 м
     assert geometry_panel.piston_thickness_m_slider.minimum() == 0.010
     assert geometry_panel.piston_thickness_m_slider.maximum() == 0.050
-    
+
     # 8. Проверить значения по умолчанию конвертированы правильно
     assert geometry_panel.rod_diameter_m_slider.value() == 0.035   # 35 мм -> 0.035 м
     assert geometry_panel.piston_rod_length_m_slider.value() == 0.200  # 200 мм -> 0.200 м
     assert geometry_panel.piston_thickness_m_slider.value() == 0.025   # 25 мм -> 0.025 м
-    
+
     print("? МШ-2: Все критерии успеха выполнены!")
 
 
 def test_all_linear_params_si_units(geometry_panel):
     """МШ-2: Проверить, что ВСЕ линейные параметры в СИ единицах (метрах)"""
     params = geometry_panel.get_parameters()
-    
+
     # Собрать все линейные параметры и их единицы
     linear_params = {}
-    
+
     # От МШ-0: уже в метрах
     linear_params['wheelbase'] = geometry_panel.wheelbase_slider.units()
     linear_params['track'] = geometry_panel.track_slider.units()
     linear_params['frame_to_pivot'] = geometry_panel.frame_to_pivot_slider.units()
     linear_params['lever_length'] = geometry_panel.lever_length_slider.units()
     linear_params['cylinder_length'] = geometry_panel.cylinder_length_slider.units()
-    
+
     # От МШ-1: новые в метрах
     linear_params['cyl_diam_m'] = geometry_panel.cyl_diam_m_slider.units()
     linear_params['stroke_m'] = geometry_panel.stroke_m_slider.units()
     linear_params['dead_gap_m'] = geometry_panel.dead_gap_m_slider.units()
-    
+
     # От МШ-2: переведённые в метры
     linear_params['rod_diameter_m'] = geometry_panel.rod_diameter_m_slider.units()
     linear_params['piston_rod_length_m'] = geometry_panel.piston_rod_length_m_slider.units()
     linear_params['piston_thickness_m'] = geometry_panel.piston_thickness_m_slider.units()
-    
+
     # Проверить, что ВСЕ линейные параметры в метрах
     for param_name, units in linear_params.items():
         assert units == "м", f"Параметр {param_name} должен быть в метрах, получено '{units}'"
-    
+
     print(f"? Все {len(linear_params)} линейных параметров в СИ единицах (метрах)!")
 
 

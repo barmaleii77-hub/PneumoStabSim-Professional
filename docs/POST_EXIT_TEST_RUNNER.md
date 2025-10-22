@@ -127,7 +127,7 @@ py app.py --run-tests
 - name: Run app and tests
   run: |
     python app.py --test-mode --run-tests
-    
+
 - name: Upload test report
   uses: actions/upload-artifact@v3
   with:

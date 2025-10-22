@@ -1,0 +1,8 @@
+# QML Module Registration - Lighting System
+# PneumoStabSim Professional - Lighting Components
+# Version: 1.0.0
+
+module lighting
+
+DirectionalLights 1.0 DirectionalLights.qml
+PointLights 1.0 PointLights.qml

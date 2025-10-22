@@ -7,11 +7,11 @@ Item {
     anchors.fill: parent
 
     // --- Camera/control properties with fixed orbit around bottom beam center ---
-    property real cameraDistance: 3500
+    property real cameraDistance: 3200
     property real minDistance: 150
     property real maxDistance: 30000
-    property real yawDeg: 45            // === CHANGED: Better initial angle
-    property real pitchDeg: -15
+    property real yawDeg: 30            // === CHANGED: Better initial angle
+    property real pitchDeg: -10
     property vector3d pivot: Qt.vector3d(0, userBeamSize/2, userFrameLength/2)   // === FIXED: Center of bottom beam
     property real panX: 0               // === ADDED: Pan offset in rig's local X
     property real panY: 0               // === ADDED: Pan offset in rig's local Y
@@ -80,13 +80,25 @@ Item {
     property real userPhaseFR: 0.0
     property real userPhaseRL: 0.0
     property real userPhaseRR: 0.0
-    property real fl_angle: isRunning ? userAmplitude * Math.sin(animationTime * userFrequency * 2 * Math.PI + (userPhaseGlobal + userPhaseFL) * Math.PI / 180) : 0.0
-    property real fr_angle: isRunning ? userAmplitude * Math.sin(animationTime * userFrequency * 2 * Math.PI + (userPhaseGlobal + userPhaseFR) * Math.PI / 180) : 0.0
-    property real rl_angle: isRunning ? userAmplitude * Math.sin(animationTime * userFrequency * 2 * Math.PI + (userPhaseGlobal + userPhaseRL) * Math.PI / 180) : 0.0
-    property real rr_angle: isRunning ? userAmplitude * Math.sin(animationTime * userFrequency * 2 * Math.PI + (userPhaseGlobal + userPhaseRR) * Math.PI / 180) : 0.0
+property real flAngleRad: 0.0
+property real frAngleRad: 0.0
+property real rlAngleRad: 0.0
+property real rrAngleRad: 0.0
+property real fl_angle: flAngleRad * 180 / Math.PI
+property real fr_angle: frAngleRad * 180 / Math.PI
+property real rl_angle: rlAngleRad * 180 / Math.PI
+property real rr_angle: rrAngleRad * 180 / Math.PI
+property real frameHeave: 0.0
+property real frameRollRad: 0.0
+property real framePitchRad: 0.0
+property real frameRollDeg: frameRollRad * 180 / Math.PI
+property real framePitchDeg: framePitchRad * 180 / Math.PI
+property var pistonPositions: ({ fl: 0.0, fr: 0.0, rl: 0.0, rr: 0.0 })
+property var linePressures: ({})
+property real tankPressure: 0.0
 
     // === HDR probe with fallback ===
-    Texture { 
+    Texture {
         id: hdrProbe
         source: "assets/studio_small_09_2k.hdr"  // === FIXED: Relative path
     }
@@ -101,7 +113,7 @@ Item {
     // === Python integration functions ===
     function updateGeometry(params) {
         console.log("QML: updateGeometry called with", JSON.stringify(params))
-        
+
         if (params.frameLength !== undefined) userFrameLength = params.frameLength
         if (params.frameHeight !== undefined) userFrameHeight = params.frameHeight
         if (params.frameBeamSize !== undefined) userBeamSize = params.frameBeamSize
@@ -110,13 +122,13 @@ Item {
         if (params.trackWidth !== undefined) userTrackWidth = params.trackWidth
         if (params.frameToPivot !== undefined) userFrameToPivot = params.frameToPivot
         if (params.rodPosition !== undefined) userRodPosition = params.rodPosition
-        
+
         resetView() // Update camera after geometry changes
     }
 
     function updateLighting(params) {
         console.log("QML: updateLighting called with", JSON.stringify(params))
-        
+
         if (params.key_light) {
             var kl = params.key_light
             if (kl.brightness !== undefined) keyLightBrightness = kl.brightness
@@ -124,13 +136,13 @@ Item {
             if (kl.angle_x !== undefined) keyLightAngleX = kl.angle_x
             if (kl.angle_y !== undefined) keyLightAngleY = kl.angle_y
         }
-        
+
         if (params.fill_light) {
             var fl = params.fill_light
             if (fl.brightness !== undefined) fillLightBrightness = fl.brightness
             if (fl.color !== undefined) fillLightColor = fl.color
         }
-        
+
         if (params.point_light) {
             var pl = params.point_light
             if (pl.brightness !== undefined) pointLightBrightness = pl.brightness
@@ -140,7 +152,7 @@ Item {
 
     function updateEnvironment(params) {
         console.log("QML: updateEnvironment called with", JSON.stringify(params))
-        
+
         if (params.background_color !== undefined) backgroundColor = params.background_color
         if (params.skybox_enabled !== undefined) skyboxEnabled = params.skybox_enabled
         if (params.ibl_enabled !== undefined) iblEnabled = params.ibl_enabled
@@ -149,7 +161,7 @@ Item {
 
     function updateQuality(params) {
         console.log("QML: updateQuality called with", JSON.stringify(params))
-        
+
         if (params.antialiasing !== undefined) antialiasingMode = params.antialiasing
         if (params.aa_quality !== undefined) antialiasingQuality = params.aa_quality
         if (params.shadows_enabled !== undefined) shadowsEnabled = params.shadows_enabled
@@ -161,7 +173,7 @@ Item {
     function computePivot() {
         return Qt.vector3d(0, userBeamSize/2, userFrameLength/2)
     }
-    
+
     function autoFitFrame(marginFactor) {
         const L = Math.max(1, userFrameLength)
         const T = Math.max(1, userTrackWidth)
@@ -172,11 +184,11 @@ Item {
         const dist = (R * margin) / Math.tan(fov * 0.5)
         cameraDistance = Math.max(minDistance, Math.min(maxDistance, dist))
     }
-    
+
     function resetView() {
         pivot = computePivot()
-        yawDeg = 45       // Front-right view
-        pitchDeg = -15
+        yawDeg = 30       // Front-right view
+        pitchDeg = -10
         panX = 0          // Reset pan
         panY = 0
         autoFitFrame()
@@ -282,7 +294,7 @@ Item {
         ReflectionProbe {
             id: probeMain
             position: root.pivot
-            boxSize: Qt.vector3d(root.userTrackWidth, root.userFrameHeight, root.userFrameLength)
+            boxSize: Qt.vector3d(toScene(root.userTrackWidth), toScene(root.userFrameHeight), toScene(root.userFrameLength))
             parallaxCorrection: true
             quality: ReflectionProbe.VeryHigh
             refreshMode: ReflectionProbe.EveryFrame
@@ -301,7 +313,7 @@ Item {
             shadowFactor: 75
             shadowBias: root.shadowSoftness * 0.001
         }
-        
+
         DirectionalLight {
             id: fillLight
             eulerRotation.x: -60
@@ -310,27 +322,27 @@ Item {
             color: root.fillLightColor
             castsShadow: false
         }
-        
+
         PointLight {
             id: pointLight
-            position: Qt.vector3d(0, root.pointLightY, 1500)
+            position: Qt.vector3d(0, toScene(root.pointLightY), toScene(1.5))
             brightness: root.pointLightBrightness
             color: "#ffffff"
             quadraticFade: 0.00008
         }
 
         // === Suspension geometry (basic for testing) ===
-        
+
         // === ИСПРАВЛЕННАЯ ГЕОМЕТРИЯ: Правильные координаты и масштабирование ===
-        
+
         // Main frame (центральная балка на земле)
         Model {
             id: mainFrame
-            position: Qt.vector3d(0, root.userBeamSize/2, root.userFrameLength/2)  // ИСПРАВЛЕНО: По центру
-            
+            position: Qt.vector3d(0, toScene(root.userBeamSize)/2, toScene(root.userFrameLength)/2)  // ИСПРАВЛЕНО: По центру
+
             source: "#Cube"
-            scale: Qt.vector3d(root.userTrackWidth/100, root.userBeamSize/100, root.userFrameLength/100)
-            
+            scale: Qt.vector3d(toScene(root.userTrackWidth), toScene(root.userBeamSize), toScene(root.userFrameLength))
+
             materials: [
                 PrincipledMaterial {
                     baseColor: "#4a4a4a"
@@ -341,16 +353,16 @@ Item {
         }
 
         // ИСПРАВЛЕННАЯ ПОДВЕСКА: Правильные позиции и масштабы
-        
+
         // Front left lever (передний левый рычаг)
         Model {
             id: frontLeftLever
-            position: Qt.vector3d(-root.userTrackWidth/2, root.userBeamSize, root.userFrameToPivot)
-            
+            position: Qt.vector3d(-toScene(root.userTrackWidth)/2, toScene(root.userBeamSize), toScene(root.userFrameToPivot))
+
             source: "#Cube"
-            scale: Qt.vector3d(root.userLeverLength/100, 8, 8)  // ИСПРАВЛЕНО: Правильный масштаб
-            eulerRotation: Qt.vector3d(0, 0, root.fl_angle)     // ИСПРАВЛЕНО: Правильная ось вращения
-            
+            scale: Qt.vector3d(toScene(root.userLeverLength), 8, 8)  // ИСПРАВЛЕНО: Правильный масштаб
+            eulerRotation: Qt.vector3d(0, 0, Qt.radiansToDegrees(leverAngleRadFor("fl")))     // ИСПРАВЛЕНО: Правильная ось вращения
+
             materials: [
                 PrincipledMaterial {
                     baseColor: "#ff6b35"
@@ -363,12 +375,12 @@ Item {
         // Front right lever (передний правый рычаг)
         Model {
             id: frontRightLever
-            position: Qt.vector3d(root.userTrackWidth/2, root.userBeamSize, root.userFrameToPivot)
-            
+            position: Qt.vector3d(toScene(root.userTrackWidth)/2, toScene(root.userBeamSize), toScene(root.userFrameToPivot))
+
             source: "#Cube"
-            scale: Qt.vector3d(root.userLeverLength/100, 8, 8)  // ИСПРАВЛЕНО: Правильный масштаб
-            eulerRotation: Qt.vector3d(0, 0, root.fr_angle)     // ИСПРАВЛЕНО: Правильная ось вращения
-            
+            scale: Qt.vector3d(toScene(root.userLeverLength), 8, 8)  // ИСПРАВЛЕНО: Правильный масштаб
+            eulerRotation: Qt.vector3d(0, 0, Qt.radiansToDegrees(leverAngleRadFor("fr")))     // ИСПРАВЛЕНО: Правильная ось вращения
+
             materials: [
                 PrincipledMaterial {
                     baseColor: "#ff6b35"
@@ -381,12 +393,12 @@ Item {
         // Rear left lever (задний левый рычаг)
         Model {
             id: rearLeftLever
-            position: Qt.vector3d(-root.userTrackWidth/2, root.userBeamSize, root.userFrameLength - root.userFrameToPivot)
-            
+            position: Qt.vector3d(-toScene(root.userTrackWidth)/2, toScene(root.userBeamSize), toScene(root.userFrameLength - root.userFrameToPivot))
+
             source: "#Cube"
-            scale: Qt.vector3d(root.userLeverLength/100, 8, 8)  // ИСПРАВЛЕНО: Правильный масштаб
-            eulerRotation: Qt.vector3d(0, 0, root.rl_angle)     // ИСПРАВЛЕНО: Правильная ось вращения
-            
+            scale: Qt.vector3d(toScene(root.userLeverLength), 8, 8)  // ИСПРАВЛЕНО: Правильный масштаб
+            eulerRotation: Qt.vector3d(0, 0, Qt.radiansToDegrees(leverAngleRadFor("rl")))     // ИСПРАВЛЕНО: Правильная ось вращения
+
             materials: [
                 PrincipledMaterial {
                     baseColor: "#35ff6b"
@@ -399,12 +411,12 @@ Item {
         // Rear right lever (задний правый рычаг)
         Model {
             id: rearRightLever
-            position: Qt.vector3d(root.userTrackWidth/2, root.userBeamSize, root.userFrameLength - root.userFrameToPivot)
-            
-            source: "#Cube" 
-            scale: Qt.vector3d(root.userLeverLength/100, 8, 8)  // ИСПРАВЛЕНО: Правильный масштаб
-            eulerRotation: Qt.vector3d(0, 0, root.rr_angle)     // ИСПРАВЛЕНО: Правильная ось вращения
-            
+            position: Qt.vector3d(toScene(root.userTrackWidth)/2, toScene(root.userBeamSize), toScene(root.userFrameLength - root.userFrameToPivot))
+
+            source: "#Cube"
+            scale: Qt.vector3d(toScene(root.userLeverLength), 8, 8)  // ИСПРАВЛЕНО: Правильный масштаб
+            eulerRotation: Qt.vector3d(0, 0, Qt.radiansToDegrees(leverAngleRadFor("rr")))     // ИСПРАВЛЕНО: Правильная ось вращения
+
             materials: [
                 PrincipledMaterial {
                     baseColor: "#35ff6b"
@@ -417,11 +429,11 @@ Item {
         // Pneumatic cylinder (пневматический цилиндр)
         Model {
             id: cylinderFL
-            position: Qt.vector3d(-root.userTrackWidth/4, root.userBeamSize + root.userFrameHeight/2, root.userFrameToPivot)
-            
+            position: Qt.vector3d(-toScene(root.userTrackWidth)/4, toScene(root.userBeamSize + root.userFrameHeight/2), toScene(root.userFrameToPivot))
+
             source: "#Cylinder"
-            scale: Qt.vector3d(root.userBoreHead/100, root.userCylinderLength/100, root.userBoreHead/100)  // ИСПРАВЛЕНО: Правильные размеры
-            
+            scale: Qt.vector3d(toScene(root.userBoreHead), toScene(root.userCylinderLength), toScene(root.userBoreHead))  // ИСПРАВЛЕНО: Правильные размеры
+
             materials: [
                 PrincipledMaterial {
                     baseColor: "#6b35ff"
@@ -443,11 +455,11 @@ Item {
         property real lastY: 0
 
         onPressed: (m) => { lastX = m.x; lastY = m.y }
-        
+
         onPositionChanged: (m) => {
             const dx = m.x - lastX
             const dy = m.y - lastY
-            
+
             if (m.buttons & Qt.LeftButton) {
                 // Rotation around pivot (bottom beam center)
                 root.yawDeg = (root.yawDeg + dx * 0.35) % 360
@@ -461,13 +473,13 @@ Item {
             }
             lastX = m.x; lastY = m.y
         }
-        
+
         onWheel: (w) => {
-            root.cameraDistance = Math.max(root.minDistance, 
-                                     Math.min(root.maxDistance, 
+            root.cameraDistance = Math.max(root.minDistance,
+                                     Math.min(root.maxDistance,
                                               root.cameraDistance * Math.exp(-w.angleDelta.y * 0.0016)))
         }
-        
+
         onDoubleClicked: () => resetView()
     }
 
@@ -480,4 +492,49 @@ Item {
         resetView()
         view3d.forceActiveFocus()
     }
+
+    function applyAnimationUpdates(params) {
+    if (!params) return;
+    if (params.isRunning !== undefined) isRunning = !!params.isRunning;
+    if (params.simulationTime !== undefined) animationTime = Number(params.simulationTime);
+    if (params.amplitude !== undefined) userAmplitude = Number(params.amplitude);
+    if (params.frequency !== undefined) userFrequency = Number(params.frequency);
+    if (params.phase_global !== undefined) userPhaseGlobal = Number(params.phase_global);
+    if (params.phase_fl !== undefined) userPhaseFL = Number(params.phase_fl);
+    if (params.phase_fr !== undefined) userPhaseFR = Number(params.phase_fr);
+if (params.phase_rl !== undefined) userPhaseRL = Number(params.phase_rl);
+    if (params.phase_rr !== undefined) userPhaseRR = Number(params.phase_rr);
+    if (params.frame) {
+   const frame = params.frame;
+        if (frame.heave !== undefined) frameHeave = Number(frame.heave);
+  if (frame.roll !== undefined) frameRollRad = Number(frame.roll);
+  if (frame.pitch !== undefined) framePitchRad = Number(frame.pitch);
+    }
+    if (params.leverAngles) {
+   const angles = params.leverAngles;
+   if (angles.fl !== undefined) flAngleRad = Number(angles.fl);
+    if (angles.fr !== undefined) frAngleRad = Number(angles.fr);
+  if (angles.rl !== undefined) rlAngleRad = Number(angles.rl);
+   if (angles.rr !== undefined) rrAngleRad = Number(angles.rr);
+    }
+    if (params.pistonPositions) {
+  const pist = params.pistonPositions;
+        const updated = Object.assign({}, pistonPositions || {});
+   if (pist.fl !== undefined) updated.fl = Number(pist.fl);
+  if (pist.fr !== undefined) updated.fr = Number(pist.fr);
+    if (pist.rl !== undefined) updated.rl = Number(pist.rl);
+        if (pist.rr !== undefined) updated.rr = Number(pist.rr);
+    pistonPositions = updated;
+    }
+    if (params.linePressures) {
+    const lp = params.linePressures;
+  const updatedPressures = Object.assign({}, linePressures || {});
+  if (lp.a1 !== undefined) updatedPressures.a1 = Number(lp.a1);
+   if (lp.b1 !== undefined) updatedPressures.b1 = Number(lp.b1);
+    if (lp.a2 !== undefined) updatedPressures.a2 = Number(lp.a2);
+    if (lp.b2 !== undefined) updatedPressures.b2 = Number(lp.b2);
+  linePressures = updatedPressures;
+    }
+    if (params.tankPressure !== undefined) tankPressure = Number(params.tankPressure);
+}
 }

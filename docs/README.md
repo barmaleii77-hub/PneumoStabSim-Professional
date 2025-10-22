@@ -72,11 +72,11 @@ PneumoStabSim/
 
 ## ?? Key Features
 
-? **Real-time 3D visualization** (Qt Quick 3D + D3D11)  
-? **Correct mechanical kinematics** (GeometryBridge)  
-? **User-controllable animation** (amplitude, frequency, phase)  
-? **4-corner independent suspension** (FL, FR, RL, RR)  
-? **Transparent cylinders** (see pistons inside!)  
+? **Real-time 3D visualization** (Qt Quick 3D + D3D11)
+? **Correct mechanical kinematics** (GeometryBridge)
+? **User-controllable animation** (amplitude, frequency, phase)
+? **4-corner independent suspension** (FL, FR, RL, RR)
+? **Transparent cylinders** (see pistons inside!)
 ? **Constant rod length** (realistic constraint)
 
 ---
@@ -129,8 +129,8 @@ python test_geometry_bridge.py
 
 ## ?? Current Status
 
-**Version:** 2.0.0 (Qt Quick 3D Release)  
-**Status:** ? Core Features Complete  
+**Version:** 2.0.0 (Qt Quick 3D Release)
+**Status:** ? Core Features Complete
 **Next:** Physics integration
 
 **See:** [Status Report](docs/REPORTS/STATUS_2025_01_05.md) for details

@@ -1,294 +1,192 @@
-"""
-P12: UI signals validation tests (QtTest/QSignalSpy)
+"""UI signal validation tests using pytest and pytest-qt."""
 
-Tests:
-- Panel signals (sliders, knobs)
-- Signal emission and reception
-- Parameter updates
+from __future__ import annotations
 
-References:
-- PySide6.QtTest.QSignalSpy: https://doc.qt.io/qtforpython-6/PySide6/QtTest/QSignalSpy.html
-- Qt QSignalSpy: https://doc.qt.io/qt-6/qsignalspy.html
-- unittest: https://docs.python.org/3/library/unittest.html
-"""
-
-import unittest
-import sys
-from pathlib import Path
-
-# Qt imports
-from PySide6.QtWidgets import QApplication
+import pytest
 from PySide6.QtTest import QSignalSpy
-from PySide6.QtCore import Qt
-
-# Add project root to path
-sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from src.ui.widgets.knob import Knob
 from src.ui.widgets.range_slider import RangeSlider
 from src.ui.panels.panel_pneumo import PneumoPanel
 
-
-# Create QApplication once for all UI tests
-app = None
-
-def setUpModule():
-    """Create QApplication once before any UI tests"""
-    global app
-    if QApplication.instance() is None:
-        app = QApplication(sys.argv)
+pytestmark = pytest.mark.gui
 
 
-class TestKnobSignals(unittest.TestCase):
-    """Test Knob widget signal emission"""
-    
-    def test_knob_value_changed_signal(self):
-        """Test Knob emits valueChanged signal when value is set"""
-        knob = Knob(minimum=0.0, maximum=100.0, value=50.0)
-        
-        # Create signal spy
-        spy = QSignalSpy(knob.valueChanged)
-        
-        # Change value
-        new_value = 75.0
-        knob.setValue(new_value)
-        
-        # Check signal emitted
-        self.assertEqual(
-            len(spy),
-            1,
-            f"Signal should be emitted once, got {len(spy)} emissions"
-        )
-        
-        # Check signal argument
-        if len(spy) > 0:
-            emitted_value = spy[0][0]
-            self.assertEqual(
-                emitted_value,
-                new_value,
-                f"Signal argument should be {new_value}, got {emitted_value}"
-            )
-            
-    def test_knob_multiple_changes(self):
-        """Test Knob signal spy counts multiple changes"""
-        knob = Knob(minimum=0.0, maximum=100.0, value=0.0)
-        spy = QSignalSpy(knob.valueChanged)
-        
-        # Make multiple changes
-        values = [25.0, 50.0, 75.0, 100.0]
-        for val in values:
-            knob.setValue(val)
-        
-        # Check count
-        self.assertEqual(
-            len(spy),
-            len(values),
-            f"Should have {len(values)} emissions, got {len(spy)}"
-        )
-        
-    def test_knob_bounds(self):
-        """Test Knob respects min/max bounds"""
-        minimum = 10.0
-        maximum = 90.0
-        knob = Knob(minimum=minimum, maximum=maximum, value=50.0)
-        
-        # Try to set below minimum
-        knob.setValue(5.0)
-        self.assertGreaterEqual(
-            knob.value(),
-            minimum,
-            "Value should be clamped to minimum"
-        )
-        
-        # Try to set above maximum
-        knob.setValue(95.0)
-        self.assertLessEqual(
-            knob.value(),
-            maximum,
-            "Value should be clamped to maximum"
-        )
+@pytest.fixture
+def ensure_no_windows(qapp, qtbot):
+    """Ensure that no top-level windows remain visible after a test."""
+
+    yield
+
+    def _no_visible_windows() -> bool:
+        return all(not widget.isVisible() for widget in qapp.topLevelWidgets())
+
+    qtbot.waitUntil(_no_visible_windows, timeout=1000)
 
 
-class TestRangeSliderSignals(unittest.TestCase):
-    """Test RangeSlider widget signal emission"""
-    
-    def test_range_slider_min_changed(self):
-        """Test RangeSlider emits signal when min value changes"""
-        slider = RangeSlider(minimum=0.0, maximum=100.0)
-        slider.setMinValue(20.0)
-        slider.setMaxValue(80.0)
-        
-        spy = QSignalSpy(slider.minValueChanged)
-        
-        # Change min value
-        new_min = 30.0
-        slider.setMinValue(new_min)
-        
-        # Check signal
-        self.assertGreater(len(spy), 0, "minValueChanged should be emitted")
-        
-    def test_range_slider_max_changed(self):
-        """Test RangeSlider emits signal when max value changes"""
-        slider = RangeSlider(minimum=0.0, maximum=100.0)
-        slider.setMinValue(20.0)
-        slider.setMaxValue(80.0)
-        
-        spy = QSignalSpy(slider.maxValueChanged)
-        
-        # Change max value
-        new_max = 90.0
-        slider.setMaxValue(new_max)
-        
-        # Check signal
-        self.assertGreater(len(spy), 0, "maxValueChanged should be emitted")
-        
-    def test_range_slider_bounds_validation(self):
-        """Test RangeSlider keeps min < max"""
-        slider = RangeSlider(minimum=0.0, maximum=100.0)
-        
-        # Set min and max
-        slider.setMinValue(40.0)
-        slider.setMaxValue(60.0)
-        
-        # Min should be <= max
-        self.assertLessEqual(
-            slider.minValue(),
-            slider.maxValue(),
-            "Min value should be <= max value"
-        )
+def test_knob_value_changed_signal(qtbot, ensure_no_windows):
+    """Knob should emit valueChanged once when the value changes."""
+    knob = Knob(minimum=0.0, maximum=100.0, value=50.0)
+    qtbot.addWidget(knob)
+
+    spy = QSignalSpy(knob.valueChanged)
+    new_value = 75.0
+
+    knob.setValue(new_value)
+
+    assert len(spy) == 1, "Signal should be emitted once, got " f"{len(spy)} emissions"
+    emitted_value = spy[0][0]
+    assert emitted_value == pytest.approx(new_value)
 
 
-class TestPneumoPanelSignals(unittest.TestCase):
-    """Test PneumoPanel parameter signals"""
-    
-    def test_pneumo_panel_creates(self):
-        """Test PneumoPanel can be instantiated"""
-        try:
-            panel = PneumoPanel()
-            self.assertIsNotNone(panel, "PneumoPanel should be created")
-        except Exception as e:
-            self.fail(f"PneumoPanel initialization failed: {e}")
-            
-    def test_pneumo_panel_has_signals(self):
-        """Test PneumoPanel has required signals"""
-        panel = PneumoPanel()
-        
-        # Check signal existence
-        self.assertTrue(
-            hasattr(panel, 'parameter_changed'),
-            "PneumoPanel should have parameter_changed signal"
-        )
-        
-        self.assertTrue(
-            hasattr(panel, 'mode_changed'),
-            "PneumoPanel should have mode_changed signal"
-        )
-        
-    def test_pneumo_panel_parameter_update(self):
-        """Test PneumoPanel emits signal on parameter change"""
-        panel = PneumoPanel()
-        
-        # Create spy for parameter_changed signal
-        spy = QSignalSpy(panel.parameter_changed)
-        
-        # Get parameters and modify
-        params = panel.get_parameters()
-        
-        # Simulate parameter change (if panel has setter)
-        if hasattr(panel, 'set_parameters'):
-            # Modify a parameter
-            new_params = params.copy()
-            new_params['tank_volume'] = 0.05  # Change tank volume
-            
-            panel.set_parameters(new_params)
-            
-            # Signal might be emitted (depends on implementation)
-            # Just check it doesn't crash
-            self.assertIsInstance(params, dict, "Parameters should be dict")
+def test_knob_multiple_changes(qtbot, ensure_no_windows):
+    """Knob signal spy should track multiple value changes."""
+    knob = Knob(minimum=0.0, maximum=100.0, value=0.0)
+    qtbot.addWidget(knob)
+
+    spy = QSignalSpy(knob.valueChanged)
+    values = [25.0, 50.0, 75.0, 100.0]
+
+    for value in values:
+        knob.setValue(value)
+
+    assert len(spy) == len(values)
 
 
-class TestSignalConnection(unittest.TestCase):
-    """Test signal-slot connections"""
-    
-    def test_signal_slot_basic(self):
-        """Test basic signal-slot connection"""
-        knob = Knob(minimum=0.0, maximum=100.0)
-        
-        # Track received values
-        received_values = []
-        
-        def slot(value):
-            received_values.append(value)
-        
-        # Connect signal to slot
-        knob.valueChanged.connect(slot)
-        
-        # Emit signals
-        knob.setValue(25.0)
-        knob.setValue(75.0)
-        
-        # Check slot received values
-        self.assertEqual(
-            len(received_values),
-            2,
-            f"Slot should receive 2 values, got {len(received_values)}"
-        )
-        
-        self.assertEqual(received_values[0], 25.0)
-        self.assertEqual(received_values[1], 75.0)
-        
-    def test_signal_disconnect(self):
-        """Test signal can be disconnected"""
-        knob = Knob(minimum=0.0, maximum=100.0)
-        
-        received_values = []
-        
-        def slot(value):
-            received_values.append(value)
-        
-        # Connect
-        knob.valueChanged.connect(slot)
-        knob.setValue(10.0)
-        
-        # Disconnect
-        knob.valueChanged.disconnect(slot)
-        knob.setValue(20.0)
-        
-        # Only first value should be received
-        self.assertEqual(
-            len(received_values),
-            1,
-            "After disconnect, slot should not receive new values"
-        )
+def test_knob_bounds(qtbot, ensure_no_windows):
+    """Knob should respect defined minimum and maximum bounds."""
+    minimum = 10.0
+    maximum = 90.0
+    knob = Knob(minimum=minimum, maximum=maximum, value=50.0)
+    qtbot.addWidget(knob)
+
+    knob.setValue(5.0)
+    assert knob.value() >= minimum
+
+    knob.setValue(95.0)
+    assert knob.value() <= maximum
 
 
-class TestUIParameterFlow(unittest.TestCase):
-    """Test parameter flow from UI to model"""
-    
-    def test_knob_to_model_flow(self):
-        """Test knob value flows to model parameter"""
-        knob = Knob(minimum=0.0, maximum=10.0, value=5.0)
-        
-        # Mock model parameter
-        model_param = {'value': 0.0}
-        
-        def update_model(value):
-            model_param['value'] = value
-        
-        # Connect
-        knob.valueChanged.connect(update_model)
-        
-        # Change knob
-        knob.setValue(7.5)
-        
-        # Check model updated
-        self.assertEqual(
-            model_param['value'],
-            7.5,
-            "Model parameter should be updated from knob"
-        )
+def test_range_slider_min_changed(qtbot, ensure_no_windows):
+    """RangeSlider should emit minValueChanged when the minimum changes."""
+    slider = RangeSlider(minimum=0.0, maximum=100.0)
+    qtbot.addWidget(slider)
+
+    slider.setMinValue(20.0)
+    slider.setMaxValue(80.0)
+
+    spy = QSignalSpy(slider.minValueChanged)
+    new_min = 30.0
+
+    slider.setMinValue(new_min)
+
+    assert len(spy) > 0
 
 
-if __name__ == '__main__':
-    # Run tests
-    unittest.main(verbosity=2)
+def test_range_slider_max_changed(qtbot, ensure_no_windows):
+    """RangeSlider should emit maxValueChanged when the maximum changes."""
+    slider = RangeSlider(minimum=0.0, maximum=100.0)
+    qtbot.addWidget(slider)
+
+    slider.setMinValue(20.0)
+    slider.setMaxValue(80.0)
+
+    spy = QSignalSpy(slider.maxValueChanged)
+    new_max = 90.0
+
+    slider.setMaxValue(new_max)
+
+    assert len(spy) > 0
+
+
+def test_range_slider_bounds_validation(qtbot, ensure_no_windows):
+    """RangeSlider should keep minimum value less than or equal to maximum."""
+    slider = RangeSlider(minimum=0.0, maximum=100.0)
+    qtbot.addWidget(slider)
+
+    slider.setMinValue(40.0)
+    slider.setMaxValue(60.0)
+
+    assert slider.minValue() <= slider.maxValue()
+
+
+def test_pneumo_panel_creates(qtbot, ensure_no_windows):
+    """PneumoPanel should be instantiated without errors."""
+    panel = PneumoPanel()
+    qtbot.addWidget(panel)
+
+    assert panel is not None
+
+
+def test_pneumo_panel_has_signals(qtbot, ensure_no_windows):
+    """PneumoPanel should expose required signals."""
+    panel = PneumoPanel()
+    qtbot.addWidget(panel)
+
+    assert hasattr(panel, "parameter_changed")
+    assert hasattr(panel, "mode_changed")
+
+
+def test_pneumo_panel_parameter_update(qtbot, ensure_no_windows):
+    """PneumoPanel should expose parameters as a mutable mapping."""
+    panel = PneumoPanel()
+    qtbot.addWidget(panel)
+
+    params = panel.get_parameters()
+
+    assert isinstance(params, dict)
+    assert "receiver_volume" in params or "tank_volume" in params
+
+
+def test_signal_slot_basic(qtbot, ensure_no_windows):
+    """Signal-slot connections should deliver emitted values."""
+    knob = Knob(minimum=0.0, maximum=100.0)
+    qtbot.addWidget(knob)
+
+    received_values: list[float] = []
+
+    def slot(value: float) -> None:
+        received_values.append(value)
+
+    knob.valueChanged.connect(slot)
+
+    knob.setValue(25.0)
+    knob.setValue(75.0)
+
+    assert received_values == [25.0, 75.0]
+
+
+def test_signal_disconnect(qtbot, ensure_no_windows):
+    """Disconnecting a signal should stop the slot from receiving updates."""
+    knob = Knob(minimum=0.0, maximum=100.0)
+    qtbot.addWidget(knob)
+
+    received_values: list[float] = []
+
+    def slot(value: float) -> None:
+        received_values.append(value)
+
+    knob.valueChanged.connect(slot)
+    knob.setValue(10.0)
+
+    knob.valueChanged.disconnect(slot)
+    knob.setValue(20.0)
+
+    assert received_values == [10.0]
+
+
+def test_knob_to_model_flow(qtbot, ensure_no_windows):
+    """Knob updates should propagate to a connected model parameter."""
+    knob = Knob(minimum=0.0, maximum=10.0, value=5.0)
+    qtbot.addWidget(knob)
+
+    model_param = {"value": 0.0}
+
+    def update_model(value: float) -> None:
+        model_param["value"] = value
+
+    knob.valueChanged.connect(update_model)
+
+    knob.setValue(7.5)
+
+    assert model_param["value"] == pytest.approx(7.5)

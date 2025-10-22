@@ -4,32 +4,32 @@ import QtQuick
 
 MouseArea {
     id: mouseLogger
-    
+
     // Properties
     property bool enableLogging: true
     property string componentName: "main.qml"
-    
+
     // Tracking state
     property real lastX: 0
     property real lastY: 0
     property bool isDragging: false
-    
+
     anchors.fill: parent
     acceptedButtons: Qt.LeftButton | Qt.RightButton | Qt.MiddleButton
-    
+
     // Mouse Press
     onPressed: (mouse) => {
         if (!enableLogging) return;
-        
+
         lastX = mouse.x;
         lastY = mouse.y;
         isDragging = false;
-        
+
         let buttonName = "unknown";
         if (mouse.button === Qt.LeftButton) buttonName = "left";
         else if (mouse.button === Qt.RightButton) buttonName = "right";
         else if (mouse.button === Qt.MiddleButton) buttonName = "middle";
-        
+
         console.log(
             "[EVENT] MOUSE_PRESS:",
             JSON.stringify({
@@ -46,22 +46,22 @@ MouseArea {
             })
         );
     }
-    
+
     // Mouse Move (Drag)
     onPositionChanged: (mouse) => {
         if (!enableLogging) return;
         if (!pressed) return; // Игнорируем движение без нажатия
-        
+
         let deltaX = mouse.x - lastX;
         let deltaY = mouse.y - lastY;
-        
+
         // Логируем только если реальное движение (не шум)
         if (Math.abs(deltaX) > 1 || Math.abs(deltaY) > 1) {
             if (!isDragging) {
                 isDragging = true;
                 console.log("[EVENT] MOUSE_DRAG: started");
             }
-            
+
             console.log(
                 "[EVENT] MOUSE_DRAG:",
                 JSON.stringify({
@@ -73,16 +73,16 @@ MouseArea {
                     abs_y: mouse.y
                 })
             );
-            
+
             lastX = mouse.x;
             lastY = mouse.y;
         }
     }
-    
+
     // Mouse Release
     onReleased: (mouse) => {
         if (!enableLogging) return;
-        
+
         console.log(
             "[EVENT] MOUSE_RELEASE:",
             JSON.stringify({
@@ -93,14 +93,14 @@ MouseArea {
                 y: mouse.y
             })
         );
-        
+
         isDragging = false;
     }
-    
+
     // Mouse Wheel (Zoom)
     onWheel: (wheel) => {
         if (!enableLogging) return;
-        
+
         console.log(
             "[EVENT] MOUSE_WHEEL:",
             JSON.stringify({

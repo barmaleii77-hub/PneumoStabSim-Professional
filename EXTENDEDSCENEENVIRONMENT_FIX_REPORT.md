@@ -1,7 +1,7 @@
 # 🎨 ExtendedSceneEnvironment - Исправления и улучшения
 
-**Дата:** 10 октября 2025  
-**Статус:** ✅ ИСПРАВЛЕНО И ПРОТЕСТИРОВАНО  
+**Дата:** 10 октября 2025
+**Статус:** ✅ ИСПРАВЛЕНО И ПРОТЕСТИРОВАНО
 **Версия Qt:** 6.9.3 с PySide6
 
 ---
@@ -43,18 +43,18 @@ import QtQuick3D.Helpers  // ПРАВИЛЬНЫЙ импорт для ExtendedSc
 ```qml
 environment: ExtendedSceneEnvironment {
     // ✅ ПРАВИЛЬНЫЕ enum значения
-    tonemapMode: tonemapEnabled ? 
+    tonemapMode: tonemapEnabled ?
         (tonemapMode === 3 ? SceneEnvironment.TonemapModeFilmic :
          tonemapMode === 2 ? SceneEnvironment.TonemapModeReinhard :
          tonemapMode === 1 ? SceneEnvironment.TonemapModeLinear :
          SceneEnvironment.TonemapModeNone) : SceneEnvironment.TonemapModeNone
-    
+
     // ✅ ПРАВИЛЬНЫЕ настройки антиалиасинга
     antialiasingMode: antialiasingMode === 3 ? SceneEnvironment.ProgressiveAA :
                      antialiasingMode === 2 ? SceneEnvironment.MSAA :
                      antialiasingMode === 1 ? SceneEnvironment.SSAA :
                      SceneEnvironment.NoAA
-    
+
     // ✅ ИСПРАВЛЕННЫЕ параметры Bloom
     glowEnabled: bloomEnabled
     glowIntensity: bloomIntensity
@@ -65,7 +65,7 @@ environment: ExtendedSceneEnvironment {
     glowHDRMinimumValue: bloomThreshold
     glowHDRMaximumValue: 8.0
     glowHDRScale: 2.0
-    
+
     // ✅ ПРАВИЛЬНЫЕ настройки SSAO
     aoEnabled: ssaoEnabled
     aoStrength: ssaoIntensity * 100  // Convert to 0-100 range
@@ -73,27 +73,27 @@ environment: ExtendedSceneEnvironment {
     aoSoftness: 20
     aoDither: true
     aoSampleRate: 3
-    
+
     // ✅ НОВЫЕ эффекты
     lensFlareEnabled: lensFlareEnabled
     lensFlareGhostCount: 3
     lensFlareGhostDispersal: 0.6
-    
+
     vignetteEnabled: vignetteEnabled
     vignetteRadius: 0.4
     vignetteStrength: vignetteStrength
-    
+
     depthOfFieldEnabled: depthOfFieldEnabled
     depthOfFieldFocusDistance: dofFocusDistance
     depthOfFieldFocusRange: dofFocusRange
     depthOfFieldBlurAmount: 3.0
-    
+
     // ✅ Качество рендеринга
     specularAAEnabled: true
     ditheringEnabled: true
     fxaaEnabled: true
     temporalAAEnabled: isRunning  // TAA только во время анимации
-    
+
     // ✅ Цветокоррекция
     colorAdjustmentsEnabled: true
     adjustmentBrightness: 1.0
@@ -161,7 +161,7 @@ Behavior on panY           { NumberAnimation { duration: 60; easing.type: Easing
 ```
 🔍 QML DEBUG: 💡 main.qml: updateLighting() called
    ✅ Освещение передано в QML через updateLighting()
-🔍 QML DEBUG: 🎨 main.qml: updateMaterials() called  
+🔍 QML DEBUG: 🎨 main.qml: updateMaterials() called
    ✅ Материалы переданы в QML через updateMaterials()
 🔍 QML DEBUG: ⚙️ main.qml: updateQuality() called
    ✅ Качество передано в QML через updateQuality()
@@ -240,7 +240,7 @@ environment: SceneEnvironment {
     clearColor: backgroundColor
     antialiasingMode: SceneEnvironment.MSAA
     antialiasingQuality: SceneEnvironment.High
-    
+
     // Базовые эффекты доступны в обычном SceneEnvironment
     aoEnabled: ssaoEnabled
     aoStrength: ssaoIntensity * 100
@@ -256,7 +256,7 @@ environment: SceneEnvironment {
 
 #### **Professional Lighting Setup:**
 - **Key Light** - основной направленный свет с тенями
-- **Fill Light** - заполняющий свет для смягчения теней  
+- **Fill Light** - заполняющий свет для смягчения теней
 - **Rim Light** - контровой свет для контуров объектов
 - **Point Light** - точечный акцентный свет
 
@@ -275,7 +275,7 @@ environment: SceneEnvironment {
 - **Color Grading** - цветокоррекция (яркость, контраст, насыщенность)
 
 #### **Quality Settings:**
-- **Progressive AA** - высококачественное сглаживание  
+- **Progressive AA** - высококачественное сглаживание
 - **Temporal AA** - сглаживание при анимации
 - **FXAA** - быстрое дополнительное сглаживание
 - **Specular AA** - сглаживание отражений
@@ -338,6 +338,6 @@ environment: SceneEnvironment {
 
 ---
 
-*Отчет создан автоматически*  
-*Система анализа: GitHub Copilot*  
+*Отчет создан автоматически*
+*Система анализа: GitHub Copilot*
 *Дата: 10.10.2025*

@@ -11,7 +11,7 @@
 - **Type:** `QQuickWidget` (Qt Quick 3D scene)
 - **QML Source:** `assets/qml/main.qml`
 - **Resize Mode:** `SizeRootObjectToView`
-- **Features:** 
+- **Features:**
   - Full 3D suspension visualization
   - U-Frame with PBR materials
   - 4 suspension corners with cylinders, levers
@@ -211,7 +211,7 @@
 1. **Knob** - `src/ui/widgets/knob.py`
    - Circular rotary control
    - Used for precise value input
-   
+
 2. **RangeSlider** - `src/ui/widgets/range_slider.py`
    - Two-handle slider for ranges
    - Used for min/max bounds

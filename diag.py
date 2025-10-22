@@ -3,18 +3,22 @@ import os
 
 print("🚀 PNEUMOSTABSIM DIAGNOSTIC")
 print("=" * 40)
-print(f"Python: {sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}")
+print(
+    f"Python: {sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}"
+)
 print(f"Platform: {sys.platform}")
 print(f"Directory: {os.getcwd()}")
 
 try:
     import PySide6
+
     print("✅ PySide6: OK")
 except ImportError:
     print("❌ PySide6: FAILED")
 
 try:
     from src.common import init_logging
+
     print("✅ src.common: OK")
 except ImportError:
     print("❌ src.common: FAILED")

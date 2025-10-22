@@ -49,11 +49,11 @@
 def calculate_position(angle: float, length: float) -> tuple[float, float]:
     """
     Вычисляет позицию точки по углу и длине.
-    
+
     Args:
         angle: Угол в градусах
         length: Длина в миллиметрах
-        
+
     Returns:
         Кортеж (x, y) координат в мм
     """

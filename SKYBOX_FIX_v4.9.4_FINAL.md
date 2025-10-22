@@ -102,9 +102,9 @@ probeOrientation: Qt.vector3d(0, root.iblRotationDeg, 0)
 Из официальной документации `SceneEnvironment.probeOrientation`:
 
 > **probeOrientation : vector3d**
-> 
+>
 > This property defines the orientation of the light probe. Rotation is applied in the order X, Y, Z in degrees.
-> 
+>
 > Applies to both **IBL lighting** and **SkyBox background**.
 
 **Ключевое понимание:**
@@ -153,6 +153,6 @@ probeOrientation: Qt.vector3d(0, root.iblRotationDeg, 0)
 
 ---
 
-**Версия:** v4.9.4 FINAL  
-**Дата:** 2024  
+**Версия:** v4.9.4 FINAL
+**Дата:** 2024
 **Статус:** ✅ ИСПРАВЛЕНО ОКОНЧАТЕЛЬНО

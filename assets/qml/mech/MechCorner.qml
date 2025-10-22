@@ -53,7 +53,7 @@ Node {
     )
 
     // ========== ЦИЛИНДР ГЕОМЕТРИЯ ==========
-    
+
             // Вспомогательные вычисления
             readonly property vector3d v_CE: Qt.vector3d(j_rod.x - j_tail.x, j_rod.y - j_tail.y, j_rod.z - j_tail.z)
             readonly property real lPin: Math.hypot(v_CE.x, v_CE.y, v_CE.z)
@@ -72,7 +72,7 @@ Node {
             // ПРОВЕРКА: центр поршня должен совпадать с центром штока
             readonly property vector3d piston_center: Qt.vector3d((pBack.x + pFront.x) / 2, (pBack.y + pFront.y) / 2, (pBack.z + pFront.z) / 2)
             readonly property vector3d rod_start: fPoint  // Шток начинается от передней крышки
-            
+
             Component.onCompleted: {
                 console.log(`=== ${corner || "?"} CYLINDER GEOMETRY ===`)
                 console.log(`j_tail: (${j_tail.x.toFixed(0)}, ${j_tail.y.toFixed(0)}, ${j_tail.z.toFixed(0)})`)
@@ -110,7 +110,7 @@ Node {
         const axis = Qt.vector3d(ax.x / axLen, ax.y / axLen, ax.z / axLen)
         const dot = Math.max(-1, Math.min(1, Y.x * vn.x + Y.y * vn.y + Y.z * vn.z))
         const angle = Math.acos(dot) * 180 / Math.PI
-        
+
         // Use eulerRotation instead of quaternion for simplicity
         // Convert axis-angle to euler (simplified: assume rotation around single axis)
         node.eulerRotation.x = axis.x * angle
@@ -141,24 +141,24 @@ Node {
             function placeAlongAxis(node, A, B, radius) {
                 const v = Qt.vector3d(B.x - A.x, B.y - A.y, B.z - A.z)
                 const L = Math.hypot(v.x, v.y, v.z)
-                
+
                 if (L < 1e-6) {
                     node.scale = Qt.vector3d(0.01, 0.01, 0.01)
                     return
                 }
-                
+
                 // Центр цилиндра - СЕРЕДИНА между A и B
                 node.position = Qt.vector3d((A.x + B.x) / 2, (A.y + B.y) / 2, (A.z + B.z) / 2)
-                
+
                 // Направление от A к B (нормализованный)
                 const vn = Qt.vector3d(v.x / L, v.y / L, v.z / L)
-                
+
                 // Выравнивание: поворот стандартного цилиндра (ось Y) к направлению vn
                 const yaw = Math.atan2(vn.x, vn.z) * 180 / Math.PI
                 const pitch = -Math.asin(vn.y) * 180 / Math.PI
-                
+
                 node.eulerRotation = Qt.vector3d(pitch, yaw, 0)
-                
+
                 // Масштаб: диаметр в XZ, длина в Y
                 const scale_factor = 100.0
                 node.scale = Qt.vector3d(
@@ -166,7 +166,7 @@ Node {
                     L / scale_factor,             // длина Y
                     (radius * 2) / scale_factor   // диаметр Z
                 )
-                
+
                 console.log(`placeAlongAxis: A=(${A.x.toFixed(0)},${A.y.toFixed(0)},${A.z.toFixed(0)}), B=(${B.x.toFixed(0)},${B.y.toFixed(0)},${B.z.toFixed(0)}), L=${L.toFixed(1)}`)
             }
 
@@ -181,7 +181,7 @@ Node {
                     lighting: PrincipledMaterial.NoLighting
                 }
             }
-            
+
             // Маркер j_tail (синий) - крепление цилиндра к раме
             Model {
                 source: "#Sphere"
@@ -192,7 +192,7 @@ Node {
                     lighting: PrincipledMaterial.NoLighting
                 }
             }
-            
+
             // Маркер j_rod (красный) - крепление штока к рычагу
             Model {
                 source: "#Sphere"
@@ -203,7 +203,7 @@ Node {
                     lighting: PrincipledMaterial.NoLighting
                 }
             }
-            
+
             // Маркер lever_end (жёлтый) - конец рычага (масса)
             Model {
                 source: "#Sphere"
@@ -233,7 +233,7 @@ Node {
             }
 
             // ===== ЦИЛИНДР - ПРАВИЛЬНАЯ ГЕОМЕТРИЯ =====
-            
+
             // Хвостовик (патрубок C -> R)
             Model {
                 id: tail
@@ -245,7 +245,7 @@ Node {
             // Корпус цилиндра (стекло, R -> F) - ИСПРАВЛЕН
             Model {
                 id: barrel
-                source: "#Cylinder" 
+                source: "#Cylinder"
                 materials: glass
                 Component.onCompleted: placeAlongAxis(barrel, rPoint, fPoint, 0.55 * bore_d)
             }
@@ -259,7 +259,7 @@ Node {
                 // НЕТ поворота - плоская крышка
             }
 
-            // Крышка передняя (F) - цилиндр по Z  
+            // Крышка передняя (F) - цилиндр по Z
             Model {
                 source: "#Cylinder"
                 materials: steelThin

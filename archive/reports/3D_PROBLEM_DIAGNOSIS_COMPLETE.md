@@ -1,7 +1,7 @@
 # ?? ДИАГНОСТИКА 3D ПРОБЛЕМЫ - ПОЛНЫЙ ОТЧЕТ
 
-**Дата:** 3 января 2025, 16:00 UTC  
-**Проблема:** Qt Quick 3D сфера не отображается  
+**Дата:** 3 января 2025, 16:00 UTC
+**Проблема:** Qt Quick 3D сфера не отображается
 **Статус:** ?? **ПРОБЛЕМА ЧАСТИЧНО ИДЕНТИФИЦИРОВАНА**
 
 ---
@@ -151,26 +151,26 @@ import QtQuick
 Canvas {
     id: schemeCanvas
     anchors.fill: parent
-    
+
     onPaint: {
         var ctx = getContext("2d")
-        
+
         // Clear
         ctx.fillStyle = "#1a1a2e"
         ctx.fillRect(0, 0, width, height)
-        
+
         // Draw frame
         ctx.strokeStyle = "#ffffff"
         ctx.lineWidth = 2
         ctx.strokeRect(100, 200, 400, 100)
-        
+
         // Draw wheels (circles)
         drawWheel(ctx, 150, 350, 50)
         drawWheel(ctx, 450, 350, 50)
-        
+
         // Draw levers, cylinders, etc.
     }
-    
+
     function drawWheel(ctx, x, y, r) {
         ctx.beginPath()
         ctx.arc(x, y, r, 0, 2*Math.PI)
@@ -303,6 +303,6 @@ dxdiag /t dxdiag_report.txt
 
 ---
 
-**Дата:** 3 января 2025, 16:00 UTC  
-**Статус:** Причина найдена - программный рендерер  
+**Дата:** 3 января 2025, 16:00 UTC
+**Статус:** Причина найдена - программный рендерер
 **Решение:** Использовать 2D Canvas вместо 3D

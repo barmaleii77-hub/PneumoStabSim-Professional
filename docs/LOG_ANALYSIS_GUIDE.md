@@ -158,11 +158,11 @@ class GraphicsPanel:
         self._update_timer = QTimer()
         self._update_timer.setSingleShot(True)
         self._update_timer.timeout.connect(self._emit_delayed_update)
-    
+
     def on_slider_change(self, value):
         self._pending_value = value
         self._update_timer.start(100)  # Debounce 100ms
-    
+
     def _emit_delayed_update(self):
         self._emit_environment()
 ```
@@ -187,7 +187,7 @@ ls -la assets/hdr/
 
 ### Логи не создаются
 
-**Симптомы:** 
+**Симптомы:**
 - `analyze_logs.py` показывает "файлы не найдены"
 - Директория `logs/` пустая
 
@@ -290,7 +290,7 @@ logs/
   run: |
     python app.py --test-mode
     python analyze_logs.py > analysis_report.txt
-    
+
 - name: Upload Report
   uses: actions/upload-artifact@v3
   with:
@@ -346,5 +346,5 @@ fi
 
 ---
 
-**Последнее обновление:** 2024-10-13  
+**Последнее обновление:** 2024-10-13
 **Версия:** 1.0.0

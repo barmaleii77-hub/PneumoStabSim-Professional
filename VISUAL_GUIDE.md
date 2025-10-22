@@ -115,11 +115,11 @@
       ☀️ (Sun position)
        ↓
    ┌─────────┐
-   │         │  
-   │ OBJECT  │  
-   │         │  
+   │         │
+   │ OBJECT  │
+   │         │
    └─────────┘
-   
+
 Lighting: From above
 Shadow: Below object
 ```
@@ -131,7 +131,7 @@ Shadow: Below object
         ┌─────────┐
         │ OBJECT  │
         └─────────┘
-        
+
 Lighting: From left
 Shadow: To right
 ```
@@ -139,13 +139,13 @@ Shadow: To right
 ### Rotation: 180°
 ```
    ┌─────────┐
-   │         │  
-   │ OBJECT  │  
-   │         │  
+   │         │
+   │ OBJECT  │
+   │         │
    └─────────┘
        ↑
       ☀️ (Sun position)
-      
+
 Lighting: From below
 Shadow: Above object
 ```
@@ -260,12 +260,12 @@ View3D
       │          │          │
       ├──────────┼──────────┤
   -180  -90      0    +90  +180
-  
+
   Examples:
   • 270° → -90°
   • -45° → -45°
   • 190° → -170°
-  
+
   Problem: Negative angles confusing
 ```
 
@@ -275,12 +275,12 @@ View3D
        │                 │               │
        ├─────────────────┼───────────────┤
        0       90       180     270     360
-  
+
   Examples:
   • 270° → 270° ✓
   • -45° → 315° ✓
   • 190° → 190° ✓
-  
+
   Benefit: Always positive, intuitive
 ```
 

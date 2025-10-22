@@ -1,28 +1,30 @@
 {
-    "version": "0.2.0",
-    "configurations": [
-        {
-            "name": "F5: PneumoStabSim (Главный)",
-            "type": "python",
-            "request": "launch",
-            "program": "${workspaceFolder}/app.py",
-            "args": [],
-            "console": "integratedTerminal",
-            "cwd": "${workspaceFolder}",
-            "envFile": "${workspaceFolder}/.env",
-            "env": {
-                "PYTHONPATH": "${workspaceFolder}/src"
-            },
-            "justMyCode": false,
-            "stopOnEntry": false,
-            "presentation": {
-                "group": "main",
-                "order": 1
-            }
+"version": "0.2.0",
+"configurations": [
+    {
+        "name": "F5: PneumoStabSim (Главный)",
+        "type": "debugpy",
+        "request": "launch",
+        "program": "${workspaceFolder}/app.py",
+        "args": [],
+        "console": "integratedTerminal",
+        "cwd": "${workspaceFolder}",
+        "envFile": "${workspaceFolder}/.env",
+        "env": {
+            "PYTHONPATH": "${workspaceFolder};${workspaceFolder}/src"
         },
+        "justMyCode": false,
+        "stopOnEntry": false,
+        "showReturnValue": true,
+        "redirectOutput": true,
+        "presentation": {
+            "group": "main",
+            "order": 1
+        }
+    },
         {
             "name": "F5: Verbose (подробные логи)",
-            "type": "python",
+            "type": "debugpy",
             "request": "launch",
             "program": "${workspaceFolder}/app.py",
             "args": ["--verbose"],
@@ -30,10 +32,14 @@
             "cwd": "${workspaceFolder}",
             "envFile": "${workspaceFolder}/.env",
             "env": {
-                "PYTHONPATH": "${workspaceFolder}/src"
+                "PYTHONPATH": "${workspaceFolder};${workspaceFolder}/src",
+                "QSG_INFO": "1",
+                "QT_LOGGING_RULES": "qt.qml.connections=true;qt.quick.3d=true"
             },
             "justMyCode": false,
             "stopOnEntry": false,
+            "showReturnValue": true,
+            "redirectOutput": true,
             "presentation": {
                 "group": "main",
                 "order": 2
@@ -41,7 +47,7 @@
         },
         {
             "name": "F5: Test Mode (автозакрытие 5с)",
-            "type": "python",
+            "type": "debugpy",
             "request": "launch",
             "program": "${workspaceFolder}/app.py",
             "args": ["--test-mode"],
@@ -49,7 +55,7 @@
             "cwd": "${workspaceFolder}",
             "envFile": "${workspaceFolder}/.env",
             "env": {
-                "PYTHONPATH": "${workspaceFolder}/src"
+                "PYTHONPATH": "${workspaceFolder};${workspaceFolder}/src"
             },
             "justMyCode": false,
             "stopOnEntry": false,
@@ -60,7 +66,7 @@
         },
         {
             "name": "F5: Verbose + Test (5с)",
-            "type": "python",
+            "type": "debugpy",
             "request": "launch",
             "program": "${workspaceFolder}/app.py",
             "args": ["--verbose", "--test-mode"],
@@ -68,7 +74,7 @@
             "cwd": "${workspaceFolder}",
             "envFile": "${workspaceFolder}/.env",
             "env": {
-                "PYTHONPATH": "${workspaceFolder}/src"
+                "PYTHONPATH": "${workspaceFolder};${workspaceFolder}/src"
             },
             "justMyCode": false,
             "stopOnEntry": false,
@@ -79,14 +85,14 @@
         },
         {
             "name": "F5: Current File (текущий .py)",
-            "type": "python",
+            "type": "debugpy",
             "request": "launch",
             "program": "${file}",
             "console": "integratedTerminal",
             "cwd": "${workspaceFolder}",
             "envFile": "${workspaceFolder}/.env",
             "env": {
-                "PYTHONPATH": "${workspaceFolder}/src"
+                "PYTHONPATH": "${workspaceFolder};${workspaceFolder}/src"
             },
             "justMyCode": false,
             "presentation": {
@@ -96,7 +102,7 @@
         },
         {
             "name": "F5: Run Tests (pytest)",
-            "type": "python",
+            "type": "debugpy",
             "request": "launch",
             "module": "pytest",
             "args": [
@@ -109,7 +115,7 @@
             "cwd": "${workspaceFolder}",
             "envFile": "${workspaceFolder}/.env",
             "env": {
-                "PYTHONPATH": "${workspaceFolder}/src"
+                "PYTHONPATH": "${workspaceFolder};${workspaceFolder}/src"
             },
             "justMyCode": false,
             "presentation": {

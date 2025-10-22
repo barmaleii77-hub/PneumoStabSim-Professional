@@ -1,6 +1,6 @@
 # 🔬 ФИНАЛЬНЫЙ ДИАГНОСТИЧЕСКИЙ ОТЧЁТ: Параметры Цилиндра
 
-**Дата:** 10 января 2026  
+**Дата:** 10 января 2026
 **Статус:** ⚠️ **ПРОБЛЕМА ЧАСТИЧНО ДИАГНОСТИРОВАНА**
 
 ---
@@ -25,12 +25,12 @@
 
 **Результат:**
 ```
-✅ userCylDiamM: 80.0 мм  
-✅ userStrokeM: 300.0 мм  
-✅ userDeadGapM: 5.0 мм  
-✅ userRodDiameterM: 35.0 мм  
-✅ userPistonRodLengthM: 200.0 мм  
-✅ userPistonThicknessM: 25.0 мм  
+✅ userCylDiamM: 80.0 мм
+✅ userStrokeM: 300.0 мм
+✅ userDeadGapM: 5.0 мм
+✅ userRodDiameterM: 35.0 мм
+✅ userPistonRodLengthM: 200.0 мм
+✅ userPistonThicknessM: 25.0 мм
 ```
 
 **Вывод:** Свойства **СУЩЕСТВУЮТ** и имеют **ПРАВИЛЬНЫЕ** начальные значения.
@@ -45,10 +45,10 @@ Python:
   🔧 Слайдер изменён: cyl_diam_m = 0.090 м (90 мм)
   📡 Сигнал geometry_changed отправлен
   📊 Параметры: cylDiamM=90.0, rodDiameterM=35.0, ...
-  
+
 QML (ожидалось):
   userCylDiamM = 90.0 мм  ← ДОЛЖНО ОБНОВИТЬСЯ
-  
+
 QML (реально):
   userCylDiamM = 80.0 мм  ← НЕ ОБНОВИЛОСЬ!
 ```
@@ -86,7 +86,7 @@ if success:
 ```qml
 function applyGeometryUpdates(params) {
     // ... обработка frameLength, trackWidth и т.д. ...
-    
+
     // ✅ Код для обработки cylDiamM ДОБАВЛЕН
     if (params.cylDiamM !== undefined) {
         console.log("  🔧 cylDiamM: " + userCylDiamM + " → " + params.cylDiamM)
@@ -94,7 +94,7 @@ function applyGeometryUpdates(params) {
         userBoreHead = params.cylDiamM  // Обратная совместимость
         userBoreRod = params.cylDiamM
     }
-    
+
     // ❌ НО: Проверка показывает, что значения НЕ ИЗМЕНИЛИСЬ!
 }
 ```
@@ -132,34 +132,34 @@ function applyGeometryUpdates(params) {
 ```python
 def _on_geometry_changed_qml(self, geometry_params: dict):
     """Обновить геометрию в QML (прямая установка свойств)"""
-    
+
     if not self._qml_root_object:
         return
-    
+
     # Вместо вызова updateGeometry(), устанавливаем свойства напрямую
     if 'cylDiamM' in geometry_params:
         self._qml_root_object.setProperty("userCylDiamM", geometry_params['cylDiamM'])
         self._qml_root_object.setProperty("userBoreHead", geometry_params['cylDiamM'])
         self._qml_root_object.setProperty("userBoreRod", geometry_params['cylDiamM'])
-    
+
     if 'rodDiameterM' in geometry_params:
         self._qml_root_object.setProperty("userRodDiameterM", geometry_params['rodDiameterM'])
         self._qml_root_object.setProperty("userRodDiameter", geometry_params['rodDiameterM'])
-    
+
     if 'pistonRodLengthM' in geometry_params:
         self._qml_root_object.setProperty("userPistonRodLengthM", geometry_params['pistonRodLengthM'])
         self._qml_root_object.setProperty("userPistonRodLength", geometry_params['pistonRodLengthM'])
-    
+
     if 'pistonThicknessM' in geometry_params:
         self._qml_root_object.setProperty("userPistonThicknessM", geometry_params['pistonThicknessM'])
         self._qml_root_object.setProperty("userPistonThickness", geometry_params['pistonThicknessM'])
-    
+
     if 'strokeM' in geometry_params:
         self._qml_root_object.setProperty("userStrokeM", geometry_params['strokeM'])
-    
+
     if 'deadGapM' in geometry_params:
         self._qml_root_object.setProperty("userDeadGapM", geometry_params['deadGapM'])
-    
+
     # Принудительно обновить виджет
     if self._qquick_widget:
         self._qquick_widget.update()
@@ -184,7 +184,7 @@ def _on_geometry_changed_qml(self, geometry_params: dict):
 ```qml
 function applyGeometryUpdates(params) {
     console.log("📐 applyGeometryUpdates() с параметрами:", Object.keys(params))
-    
+
     // ✅ ИСПРАВЛЕНО: Использовать root.property вместо просто property
     if (params.cylDiamM !== undefined) {
         console.log("  🔧 Обновление cylDiamM: " + root.userCylDiamM + " → " + params.cylDiamM)
@@ -193,7 +193,7 @@ function applyGeometryUpdates(params) {
         root.userBoreRod = params.cylDiamM
         console.log("  ✅ userCylDiamM установлен: " + root.userCylDiamM)
     }
-    
+
     // ... аналогично для остальных параметров ...
 }
 ```
@@ -253,21 +253,21 @@ function applyGeometryUpdates(params) {
 
 Python:
   📡 geometry_changed {cylDiamM: 90.0}
-  
+
 QML:
   🔧 applyGeometryUpdates(): cylDiamM = 90.0
   ✅ userCylDiamM = 90.0
   ✅ userBoreHead = 90.0
   ✅ userBoreRod = 90.0
-  
+
 Визуально:
   🎨 Цилиндры стали толще на 10мм!
 ```
 
 ---
 
-**Отчёт создан:** 10 января 2026  
-**Статус:** ⚠️ **ТРЕБУЕТСЯ ИСПРАВЛЕНИЕ**  
+**Отчёт создан:** 10 января 2026
+**Статус:** ⚠️ **ТРЕБУЕТСЯ ИСПРАВЛЕНИЕ**
 **Рекомендация:** **Начать с Варианта 1** для быстрой проверки
 
 **Следующий шаг:** Реализовать прямую установку свойств в `main_window.py` 🚀

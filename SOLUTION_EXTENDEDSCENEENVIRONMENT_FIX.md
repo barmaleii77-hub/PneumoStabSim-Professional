@@ -134,14 +134,14 @@ environment: ExtendedSceneEnvironment {
 ```qml
 environment: ExtendedSceneEnvironment {
     id: mainEnvironment
-    
+
     // ❌ НЕ использовать ditheringEnabled напрямую
-    
+
     Component.onCompleted: {
         // ✅ Условная активация
         if (root.canUseDithering) {
-            mainEnvironment.ditheringEnabled = Qt.binding(function() { 
-                return root.ditheringEnabled 
+            mainEnvironment.ditheringEnabled = Qt.binding(function() {
+                return root.ditheringEnabled
             })
         }
     }
@@ -214,6 +214,6 @@ environment: ExtendedSceneEnvironment {
 
 ---
 
-**Дата решения:** $(Get-Date -Format "yyyy-MM-dd HH:mm")  
-**Статус:** ✅ ПРОБЛЕМА ПОЛНОСТЬЮ РЕШЕНА  
+**Дата решения:** $(Get-Date -Format "yyyy-MM-dd HH:mm")
+**Статус:** ✅ ПРОБЛЕМА ПОЛНОСТЬЮ РЕШЕНА
 **Версия:** PneumoStabSim Professional v4.0+

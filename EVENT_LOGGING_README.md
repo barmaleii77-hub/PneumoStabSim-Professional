@@ -143,7 +143,7 @@ for pair in analysis['pairs']:
 ### Найти медленные обновления
 
 ```python
-slow = [p for p in analysis['pairs'] 
+slow = [p for p in analysis['pairs']
         if p['status'] == 'synced' and p['latency_ms'] > 50]
 
 for item in slow:
@@ -163,7 +163,7 @@ class MyPanel(QWidget):
     def __init__(self):
         super().__init__()
         self.event_logger = get_event_logger()
-    
+
     def on_button_clicked(self):
         # 1️⃣ Логируем клик
         self.event_logger.log_user_click(
@@ -171,19 +171,19 @@ class MyPanel(QWidget):
             widget_type="QPushButton",
             value="clicked"
         )
-        
+
         # 2️⃣ Обрабатываем
         self._handle_click()
-    
+
     def _emit_signal(self):
         payload = {"value": 42}
-        
+
         # 1️⃣ Логируем emit
         self.event_logger.log_signal_emit(
             signal_name="my_signal",
             payload=payload
         )
-        
+
         # 2️⃣ Эмитим
         self.my_signal.emit(payload)
 ```
@@ -193,14 +193,14 @@ class MyPanel(QWidget):
 ```qml
 Connections {
     target: myPanel
-    
+
     function onMySignal(params) {
         // ✅ Логируем получение
         console.log("[EVENT] SIGNAL_RECEIVED: mySignal")
-        
+
         // ✅ Логируем вызов функции
         console.log("[EVENT] FUNCTION_CALLED: handleSignal")
-        
+
         // Обрабатываем
         handleSignal(params)
     }
@@ -300,6 +300,6 @@ Connections {
 
 ---
 
-**Версия**: 1.0  
-**Дата**: 2024-12-15  
+**Версия**: 1.0
+**Дата**: 2024-12-15
 **Автор**: GitHub Copilot

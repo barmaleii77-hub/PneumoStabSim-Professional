@@ -32,10 +32,10 @@ print("Showing window...")
 window.show()
 print(f"? Window shown: visible={window.isVisible()}\n")
 
-print("="*60)
+print("=" * 60)
 print("If window appears and stays open - problem is in GLView!")
 print("Close window to exit")
-print("="*60 + "\n")
+print("=" * 60 + "\n")
 
 result = app.exec()
 print(f"\n? Closed normally (code: {result})")
