@@ -12,13 +12,39 @@ YELLOW='\033[0;33m'
 CYAN='\033[0;36m'
 NC='\033[0m' # No Color
 
+# Resolve preferred Python interpreter (3.13 by default)
+PYTHON_CMD=""
+if command -v python3.13 >/dev/null 2>&1; then
+    PYTHON_CMD="python3.13"
+elif command -v python3 >/dev/null 2>&1; then
+    PYTHON_CMD="python3"
+elif command -v python >/dev/null 2>&1; then
+    PYTHON_CMD="python"
+fi
+
+if [ -z "$PYTHON_CMD" ]; then
+    echo -e "${RED}ERROR: Python 3.13 is not installed or not in PATH${NC}"
+    echo -e "${RED}Please install Python 3.13.x before continuing${NC}"
+    exit 1
+fi
+
+# Check interpreter version
+VERSION_OUTPUT=$($PYTHON_CMD --version 2>&1)
+PYTHON_VERSION=$(echo "$VERSION_OUTPUT" | awk '{print $2}')
+PY_MAJOR=$(echo "$PYTHON_VERSION" | cut -d. -f1)
+PY_MINOR=$(echo "$PYTHON_VERSION" | cut -d. -f2)
+if [ "$PY_MAJOR" -ne 3 ] || [ "$PY_MINOR" -ne 13 ]; then
+    echo -e "${YELLOW}WARNING: Detected $VERSION_OUTPUT${NC}"
+    echo -e "${YELLOW}This project now targets Python 3.13.x by default.${NC}"
+fi
+
 # Check if virtual environment exists
 if [ ! -f "venv/bin/activate" ]; then
-    echo -e "${YELLOW}Creating virtual environment...${NC}"
-    python3 -m venv venv
+    echo -e "${YELLOW}Creating virtual environment with ${PYTHON_CMD}...${NC}"
+    "$PYTHON_CMD" -m venv venv
     if [ $? -ne 0 ]; then
         echo -e "${RED}ERROR: Failed to create virtual environment${NC}"
-        echo -e "${RED}Please ensure Python 3 is installed and accessible${NC}"
+        echo -e "${RED}Please ensure Python 3.13 is installed and accessible${NC}"
         exit 1
     fi
     echo -e "${GREEN}Virtual environment created successfully.${NC}"

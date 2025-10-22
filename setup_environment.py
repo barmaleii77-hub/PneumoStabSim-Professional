@@ -6,12 +6,12 @@ PneumoStabSim-Professional Environment Setup Script
 """
 
 import os
-import sys
+import platform
 import subprocess
+import sys
 from functools import lru_cache
 from pathlib import Path
-from typing import Dict
-import platform
+from typing import Dict, List
 
 
 QT_ENV_DEFAULTS: Dict[str, str] = {
@@ -66,29 +66,40 @@ class EnvironmentSetup:
             print(f" • {key}={value}")
         print("=" * 60)
 
-    def _find_python(self):
-        """Находит доступный Python интерпретатор"""
-        python_commands = ["py", "python3", "python"]
+    def _find_python(self) -> List[str]:
+        """Находит предпочтительный интерпретатор Python 3.13."""
 
-        for cmd in python_commands:
+        python_candidates: List[List[str]] = [
+            ["py", "-3.13"],
+            ["python3.13"],
+            ["python3"],
+            ["python"],
+        ]
+
+        for candidate in python_candidates:
             try:
                 result = subprocess.run(
-                    [cmd, "--version"], capture_output=True, text=True
+                    candidate + ["--version"], capture_output=True, text=True
                 )
                 if result.returncode == 0:
-                    print(f"✅ Найден Python: {cmd} ({result.stdout.strip()})")
-                    return cmd
+                    cmd_display = " ".join(candidate)
+                    print(
+                        f"✅ Найден Python: {cmd_display} ({result.stdout.strip()})"
+                    )
+                    return candidate
             except FileNotFoundError:
                 continue
 
-        print("❌ Python не найден!")
+        print("❌ Python 3.13 не найден!")
         sys.exit(1)
 
     def check_python_version(self):
         """Проверяет версию Python"""
         try:
             result = subprocess.run(
-                [self.python_executable, "--version"], capture_output=True, text=True
+                self.python_executable + ["--version"],
+                capture_output=True,
+                text=True,
             )
             version_str = result.stdout.strip()
             print(f"🐍 Проверка версии Python: {version_str}")
@@ -97,18 +108,12 @@ class EnvironmentSetup:
             version_parts = version_str.split()[1].split(".")
             major, minor = int(version_parts[0]), int(version_parts[1])
 
-            if major < 3 or (major == 3 and minor < 10):
-                print("❌ Требуется Python 3.10-3.12!")
-                return False
-            if major == 3 and minor >= 13:
-                print("⚠️  Python 3.13+ обнаружен. Текущая версия не поддерживается.")
-                print("📝 Используйте Python 3.10-3.12 для полной совместимости")
+            if major != 3 or minor != 13:
+                print("❌ Требуется Python 3.13.x!")
+                print("📝 Установите актуальную версию Python 3.13 и повторите настройку")
                 return False
 
-            if major == 3 and minor == 12:
-                print("✅ Оптимальная версия Python для проекта")
-            else:
-                print("✅ Поддерживаемая версия Python")
+            print("✅ Оптимальная версия Python обнаружена")
 
             return True
 
@@ -127,7 +132,8 @@ class EnvironmentSetup:
         print("📦 Создание виртуального окружения...")
         try:
             subprocess.run(
-                [self.python_executable, "-m", "venv", str(venv_path)], check=True
+                self.python_executable + ["-m", "venv", str(venv_path)],
+                check=True,
             )
             print("✅ Виртуальное окружение создано успешно")
 
@@ -160,7 +166,7 @@ class EnvironmentSetup:
         try:
             # Используем pip для установки зависимостей
             cmd = [
-                self.python_executable,
+                *self.python_executable,
                 "-m",
                 "pip",
                 "install",
@@ -177,7 +183,13 @@ class EnvironmentSetup:
 
             for package in key_packages:
                 try:
-                    check_cmd = [self.python_executable, "-m", "pip", "show", package]
+                    check_cmd = [
+                        *self.python_executable,
+                        "-m",
+                        "pip",
+                        "show",
+                        package,
+                    ]
                     check_result = subprocess.run(
                         check_cmd, capture_output=True, text=True
                     )
@@ -273,7 +285,7 @@ COPILOT_LANGUAGE=ru
         for module_name, display_name in test_imports:
             try:
                 subprocess.run(
-                    [self.python_executable, "-c", f"import {module_name}"],
+                    self.python_executable + ["-c", f"import {module_name}"],
                     check=True,
                     capture_output=True,
                 )
@@ -290,7 +302,7 @@ COPILOT_LANGUAGE=ru
         if qml_diag.exists():
             try:
                 result = subprocess.run(
-                    [self.python_executable, str(qml_diag)],
+                    self.python_executable + [str(qml_diag)],
                     capture_output=True,
                     text=True,
                     timeout=10,
@@ -309,7 +321,7 @@ COPILOT_LANGUAGE=ru
             try:
                 # Запускаем в тестовом режиме
                 result = subprocess.run(
-                    [self.python_executable, str(app_file), "--test-mode"],
+                    self.python_executable + [str(app_file), "--test-mode"],
                     capture_output=True,
                     text=True,
                     timeout=30,
@@ -322,7 +334,7 @@ COPILOT_LANGUAGE=ru
                         print(f"      Детали: {result.stderr[:200]}...")
             except subprocess.TimeoutExpired:
                 print(
-                    "  ⚠️  Приложение запустилось (timeout - это нормально для тестового режима)"
+                    "  ⚠️  Приложение запустилось (timeout - это нормально для тестового режима) "
                 )
             except Exception as e:
                 print(f"  ❌ Ошибка запуска приложения: {e}")
@@ -344,15 +356,16 @@ COPILOT_LANGUAGE=ru
         print("=" * 50)
 
         print("📋 Основные команды для запуска:")
-        print(f"  {self.python_executable} app.py                # Основной запуск")
-        print(f"  {self.python_executable} app.py --no-block     # Фоновый режим")
-        print(f"  {self.python_executable} app.py --test-mode    # Тестовый режим")
-        print(f"  {self.python_executable} app.py --debug        # Режим отладки")
+        executable = " ".join(self.python_executable)
+        print(f"  {executable} app.py        # Основной запуск")
+        print(f"  {executable} app.py --no-block     # Фоновый режим")
+        print(f"  {executable} app.py --test-mode    # Тестовый режим")
+        print(f"  {executable} app.py --debug        # Режим отладки")
 
         print("\n🧪 Команды для тестирования:")
-        print(f"  {self.python_executable} -m pytest tests/ -v  # Запуск всех тестов")
-        print(f"  {self.python_executable} quick_test.py         # Быстрый тест")
-        print(f"  {self.python_executable} qml_diagnostic.py     # QML диагностика")
+        print(f"  {executable} -m pytest tests/ -v  # Запуск всех тестов")
+        print(f"  {executable} quick_test.py  # Быстрый тест")
+        print(f"  {executable} qml_diagnostic.py     # QML диагностика")
 
         print("\n🔧 VS Code:")
         print("  1. Откройте папку проекта в VS Code")

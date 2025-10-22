@@ -29,15 +29,22 @@ Write-Host ""
 Write-Host "🐍 Checking Python installation..." -ForegroundColor Yellow
 
 $pythonCmd = $null
-$pythonCommands = @("python", "python3", "py")
+$pythonCandidates = @(
+ @("py", "-3.13"),
+    @("python3.13"),
+    @("python"),
+@("python3"),
+    @("py")
+)
 
-foreach ($cmd in $pythonCommands) {
+foreach ($candidate in $pythonCandidates) {
     try {
-        $version = & $cmd --version 2>$null
+        $version = & $candidate --version 2>$null
         if ($LASTEXITCODE -eq 0) {
-            $pythonCmd = $cmd
-            Write-Host "✓ Found Python: $version using '$cmd'" -ForegroundColor Green
-            break
+   $pythonCmd = $candidate
+     $cmdDisplay = ($candidate -join ' ')
+            Write-Host "✓ Found Python: $version using '$cmdDisplay'" -ForegroundColor Green
+      break
         }
     } catch {
         continue
@@ -45,27 +52,27 @@ foreach ($cmd in $pythonCommands) {
 }
 
 if (-not $pythonCmd) {
-    Write-Host "❌ ERROR: Python not found" -ForegroundColor Red
-    Write-Host "Please install Python 3.8-3.11 from python.org" -ForegroundColor Red
+  Write-Host "❌ ERROR: Python not found" -ForegroundColor Red
+    Write-Host "Please install Python 3.13.x from python.org" -ForegroundColor Red
     Read-Host "Press Enter to exit"
     exit 1
 }
 
 # Check Python version compatibility
 try {
-    $versionCheck = & $pythonCmd -c "import sys; major, minor = sys.version_info[:2]; print(f'{major}.{minor}'); exit(0 if (3, 8) <= (major, minor) <= (3, 12) else 1)" 2>$null
+    $versionCheck = & $pythonCmd -c "import sys; major, minor = sys.version_info[:2]; print(f'{major}.{minor}'); exit(0 if (major, minor) == (3, 13) else 1)" 2>$null
     if ($LASTEXITCODE -ne 0) {
-        Write-Host "⚠ WARNING: Python version may have compatibility issues" -ForegroundColor Yellow
-        Write-Host "Recommended: Python 3.8 - 3.11 for optimal stability" -ForegroundColor Yellow
+        Write-Host "⚠ WARNING: Detected Python version $versionCheck (project targets 3.13.x)" -ForegroundColor Yellow
+        Write-Host "Recommended: Install Python 3.13.x for full support" -ForegroundColor Yellow
 
         $continue = Read-Host "Continue anyway? (y/N)"
-        if ($continue -notmatch '^[Yy]') {
+ if ($continue -notmatch '^[Yy]') {
             Write-Host "Setup cancelled by user" -ForegroundColor Yellow
             exit 1
         }
     } else {
         Write-Host "✓ Python version $versionCheck is compatible" -ForegroundColor Green
-    }
+ }
 } catch {
     Write-Host "⚠ Could not verify Python version, continuing..." -ForegroundColor Yellow
 }
@@ -146,24 +153,24 @@ if (-not $installed) {
     Write-Host "Installing essential packages manually..." -ForegroundColor Yellow
 
     $essentialPackages = @(
-        "numpy>=1.21.0,<2.0.0",
-        "scipy>=1.7.0,<2.0.0",
-        "PySide6>=6.4.0,<7.0.0",
-        "matplotlib>=3.5.0",
-        "PyOpenGL>=3.1.0",
-        "PyOpenGL-accelerate>=3.1.0"
+"numpy>=1.26.0,<3.0.0",
+        "scipy>=1.11.0,<2.0.0",
+        "PySide6>=6.10.0,<7.0.0",
+        "matplotlib>=3.7.0",
+ "PyOpenGL>=3.1.0",
+      "PyOpenGL-accelerate>=3.1.0"
     )
 
     foreach ($package in $essentialPackages) {
         try {
-            Write-Host "  Installing $($package.Split('>=')[0])..." -ForegroundColor Cyan
+     Write-Host "  Installing $($package.Split('>=')[0])..." -ForegroundColor Cyan
             pip install $package --disable-pip-version-check --quiet
-            if ($LASTEXITCODE -eq 0) {
-                Write-Host "  ✓ $($package.Split('>=')[0]) installed" -ForegroundColor Green
-            }
+ if ($LASTEXITCODE -eq 0) {
+          Write-Host "  ✓ $($package.Split('>=')[0]) installed" -ForegroundColor Green
+     }
         } catch {
-            Write-Host "  ⚠ Failed to install $($package.Split('>=')[0])" -ForegroundColor Yellow
-        }
+    Write-Host "  ⚠ Failed to install $($package.Split('>=')[0])" -ForegroundColor Yellow
+ }
     }
 }
 
