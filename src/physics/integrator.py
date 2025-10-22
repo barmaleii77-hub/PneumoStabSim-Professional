@@ -185,16 +185,16 @@ def clamp_state(y: np.ndarray, params: RigidBody3DOF) -> np.ndarray:
     y_clamped = y.copy()
 
     # Clamp angles to limits
-    y_clamped[1] = np.clip(y[1], -params.angle_limit, params.angle_limit)  # ?z
-    y_clamped[2] = np.clip(y[2], -params.angle_limit, params.angle_limit)  # ?x
+    y_clamped[1] = np.clip(y[1], -params.angle_limit, params.angle_limit)
+    y_clamped[2] = np.clip(y[2], -params.angle_limit, params.angle_limit)
 
     # Clamp velocities to reasonable ranges
     max_velocity = 10.0  # 10 m/s heave
     max_angular_velocity = 10.0  # 10 rad/s
 
-    y_clamped[3] = np.clip(y[3], -max_velocity, max_velocity)  # dY
-    y_clamped[4] = np.clip(y[4], -max_angular_velocity, max_angular_velocity)  # d?z
-    y_clamped[5] = np.clip(y[5], -max_angular_velocity, max_angular_velocity)  # d?x
+    y_clamped[3] = np.clip(y[3], -max_velocity, max_velocity)
+    y_clamped[4] = np.clip(y[4], -max_angular_velocity, max_angular_velocity)
+    y_clamped[5] = np.clip(y[5], -max_angular_velocity, max_angular_velocity)
 
     # Remove NaN/inf
     y_clamped = np.nan_to_num(y_clamped, nan=0.0, posinf=0.0, neginf=0.0)
@@ -203,10 +203,14 @@ def clamp_state(y: np.ndarray, params: RigidBody3DOF) -> np.ndarray:
 
 
 class PhysicsLoop:
-    """Physics simulation loop with fixed timestep and render synchronization"""
+    """Physics simulation loop with fixed timestep and render sync."""
 
     def __init__(
-        self, config: PhysicsLoopConfig, params: RigidBody3DOF, system: Any, gas: Any
+        self,
+        config: PhysicsLoopConfig,
+        params: RigidBody3DOF,
+        system: Any,
+        gas: Any,
     ):
         self.config = config
         self.params = params
@@ -281,8 +285,10 @@ class PhysicsLoop:
                 self.successful_steps += 1
             else:
                 self.failed_steps += 1
-                self.logger.warning(f"Physics step failed: {result.message}")
-                # Keep current state, advance time anyway to prevent infinite loop
+                self.logger.warning(
+                    "Physics step failed: %s", result.message
+                )
+                # Keep state but advance time to avoid stalls
                 self.time_physics += self.config.dt_physics
 
             self.total_solve_time += result.solve_time
@@ -291,7 +297,9 @@ class PhysicsLoop:
             self.step_count += 1
 
         # Check if render update is due
-        render_due = (self.time_physics - self.time_render) >= self.config.dt_render
+        render_due = (
+            self.time_physics - self.time_render
+        ) >= self.config.dt_render
         if render_due:
             self.time_render = self.time_physics
 
@@ -307,13 +315,14 @@ class PhysicsLoop:
     def get_statistics(self) -> Dict[str, Any]:
         """Get performance statistics"""
         total_steps = self.successful_steps + self.failed_steps
+        denominator = max(total_steps, 1)
 
         return {
             "total_steps": total_steps,
             "successful_steps": self.successful_steps,
             "failed_steps": self.failed_steps,
-            "success_rate": self.successful_steps / max(total_steps, 1),
-            "average_solve_time": self.total_solve_time / max(total_steps, 1),
+            "success_rate": self.successful_steps / denominator,
+            "average_solve_time": self.total_solve_time / denominator,
             "physics_frequency": 1.0 / self.config.dt_physics,
             "render_frequency": 1.0 / self.config.dt_render,
         }
@@ -340,55 +349,3 @@ def create_default_rigid_body() -> RigidBody3DOF:
         angle_limit=0.5,
         damping_coefficient=0.1,
     )
-
-
-def run_integration_test(duration: float = 5.0, dt: float = 0.001) -> Dict[str, Any]:
-    """Run integration test with default parameters
-
-    Args:
-        duration: Test duration (s)
-        dt: Time step (s)
-
-    Returns:
-        Test results and statistics
-    """
-    # Create test setup
-    params = create_default_rigid_body()
-
-    # TODO: Create minimal system and gas stubs for testing
-    system = None  # Placeholder
-    gas = None  # Placeholder
-
-    # Initial conditions (at rest)
-    y0 = np.zeros(6)
-
-    # Run simulation
-    t = 0.0
-    y = y0.copy()
-    results = []
-
-    steps = int(duration / dt)
-
-    for i in range(steps):
-        result = step_dynamics(y, t, dt, params, system, gas)
-        results.append(result)
-
-        if result.success:
-            y = result.y_final
-            t = result.t_final
-        else:
-            print(f"Step {i} failed: {result.message}")
-            break
-
-    # Analyze results
-    successful = sum(1 for r in results if r.success)
-    failed = len(results) - successful
-
-    return {
-        "total_steps": len(results),
-        "successful_steps": successful,
-        "failed_steps": failed,
-        "final_state": y,
-        "final_time": t,
-        "success_rate": successful / len(results) if results else 0,
-    }

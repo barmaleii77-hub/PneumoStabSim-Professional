@@ -13,6 +13,8 @@ jobs:
     env:
       QT_QPA_PLATFORM: offscreen
       QT_QUICK_BACKEND: software
+      QT_PLUGIN_PATH: ''
+      QML2_IMPORT_PATH: ''
     strategy:
       fail-fast: false
       matrix:
@@ -66,15 +68,29 @@ jobs:
     - name: Run unit tests
       shell: bash
       run: |
-        ${PYTEST_PREFIX:-} pytest tests/unit/ -v --cov=src --cov-report=xml
+        if [ -n "${PYTEST_PREFIX:-}" ]; then
+          ${PYTEST_PREFIX} pytest tests/unit/ -v --cov=src --cov-report=xml
+        else
+          pytest tests/unit/ -v --cov=src --cov-report=xml
+        fi
 
     - name: Run integration tests
+      shell: bash
       run: |
-        pytest tests/integration/ -v --cov=src --cov-report=xml --cov-append
+        if [ -n "${PYTEST_PREFIX:-}" ]; then
+          ${PYTEST_PREFIX} pytest tests/integration/ -v --cov=src --cov-report=xml --cov-append
+        else
+          pytest tests/integration/ -v --cov=src --cov-report=xml --cov-append
+        fi
 
     - name: Run system tests
+      shell: bash
       run: |
-        pytest tests/system/ -v --cov=src --cov-report=xml --cov-append
+        if [ -n "${PYTEST_PREFIX:-}" ]; then
+          ${PYTEST_PREFIX} pytest tests/system/ -v --cov=src --cov-report=xml --cov-append
+        else
+          pytest tests/system/ -v --cov=src --cov-report=xml --cov-append
+        fi
 
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v4

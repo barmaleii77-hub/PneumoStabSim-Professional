@@ -13,6 +13,9 @@ from typing import TYPE_CHECKING, Any, Dict, Optional
 
 from PySide6.QtCore import Q_ARG, QMetaObject, Qt
 
+from src.pneumo.enums import Line, Wheel
+from src.runtime.state import StateSnapshot
+
 if TYPE_CHECKING:
     from .main_window import MainWindow
 
@@ -46,6 +49,7 @@ class QMLBridge:
         "quality": ("applyQualityUpdates", "updateQuality"),
         "camera": ("applyCameraUpdates", "updateCamera"),
         "effects": ("applyEffectsUpdates", "updateEffects"),
+        "simulation": ("applySimulationUpdates",),
     }
 
     # ------------------------------------------------------------------
@@ -106,7 +110,9 @@ class QMLBridge:
                     break
 
     @staticmethod
-    def _push_batched_updates(window: MainWindow, updates: Dict[str, Any]) -> bool:
+    def _push_batched_updates(
+        window: MainWindow, updates: Dict[str, Any]
+    ) -> bool:
         """Push updates via pendingPythonUpdates property
 
         Args:
@@ -123,17 +129,146 @@ class QMLBridge:
 
         try:
             sanitized = QMLBridge._prepare_for_qml(updates)
-            window._qml_root_object.setProperty("pendingPythonUpdates", sanitized)
+            window._qml_root_object.setProperty(
+                "pendingPythonUpdates",
+                sanitized,
+            )
             return True
         except Exception:
             return False
+
+    # ------------------------------------------------------------------
+    # Simulation State Synchronization
+    # ------------------------------------------------------------------
+    @staticmethod
+    def set_simulation_state(
+        window: "MainWindow", snapshot: StateSnapshot
+    ) -> bool:
+        """Push complete simulation state into QML as SI-based payload."""
+
+        if snapshot is None or not window._qml_root_object:
+            return False
+
+        try:
+            payload = QMLBridge._snapshot_to_payload(snapshot)
+            payload.setdefault("animation", {})["isRunning"] = bool(
+                getattr(window, "is_simulation_running", False)
+            )
+
+            sanitized = QMLBridge._prepare_for_qml(payload)
+            window._qml_root_object.setProperty(
+                "pendingPythonUpdates",
+                sanitized,
+            )
+            return True
+        except Exception as exc:
+            QMLBridge.logger.debug(
+                f"Failed to push simulation state: {exc}"
+            )
+            return False
+
+    @staticmethod
+    def _snapshot_to_payload(snapshot: StateSnapshot) -> Dict[str, Any]:
+        """Convert StateSnapshot dataclass into QML-friendly SI dictionary."""
+
+        wheel_key_map = {
+            Wheel.LP: "fl",
+            Wheel.PP: "fr",
+            Wheel.LZ: "rl",
+            Wheel.PZ: "rr",
+        }
+
+        wheels_payload: Dict[str, Dict[str, Any]] = {}
+        lever_angles: Dict[str, float] = {}
+        piston_positions: Dict[str, float] = {}
+
+        for wheel_enum, corner_key in wheel_key_map.items():
+            wheel_state = snapshot.wheels.get(wheel_enum)
+            if not wheel_state:
+                continue
+
+            lever_angle = float(wheel_state.lever_angle)
+            piston_position = float(wheel_state.piston_position)
+
+            wheels_payload[corner_key] = {
+                "leverAngle": lever_angle,
+                "pistonPosition": piston_position,
+                "pistonVelocity": float(wheel_state.piston_velocity),
+                "joint": {
+                    "x": float(wheel_state.joint_x),
+                    "y": float(wheel_state.joint_y),
+                    "z": float(wheel_state.joint_z),
+                },
+                "forces": {
+                    "pneumatic": float(wheel_state.force_pneumatic),
+                    "spring": float(wheel_state.force_spring),
+                    "damper": float(wheel_state.force_damper),
+                },
+            }
+
+            lever_angles[corner_key] = lever_angle
+            piston_positions[corner_key] = piston_position
+
+        line_payload: Dict[str, Dict[str, Any]] = {}
+        for line_enum in Line:
+            line_state = snapshot.lines.get(line_enum)
+            if not line_state:
+                continue
+
+            key = line_enum.value.lower()
+            line_payload[key] = {
+                "pressure": float(line_state.pressure),
+                "temperature": float(line_state.temperature),
+                "mass": float(line_state.mass),
+            }
+
+        animation_payload = {
+            "timestamp": float(snapshot.timestamp),
+            "simulationTime": float(snapshot.simulation_time),
+            "frame": {
+                "heave": float(snapshot.frame.heave),
+                "roll": float(snapshot.frame.roll),
+                "pitch": float(snapshot.frame.pitch),
+                "heaveRate": float(snapshot.frame.heave_rate),
+                "rollRate": float(snapshot.frame.roll_rate),
+                "pitchRate": float(snapshot.frame.pitch_rate),
+            },
+            "leverAngles": lever_angles,
+            "pistonPositions": piston_positions,
+            "linePressures": {
+                key: state["pressure"]
+                for key, state in line_payload.items()
+            },
+            "tankPressure": float(snapshot.tank.pressure),
+        }
+
+        three_d_payload = {
+            "wheels": wheels_payload,
+            "lines": line_payload,
+            "tank": {
+                "pressure": float(snapshot.tank.pressure),
+                "temperature": float(snapshot.tank.temperature),
+            },
+            "frame": {
+                "heave": float(snapshot.frame.heave),
+                "roll": float(snapshot.frame.roll),
+                "pitch": float(snapshot.frame.pitch),
+            },
+        }
+
+        return {
+            "animation": animation_payload,
+            "threeD": three_d_payload,
+        }
 
     # ------------------------------------------------------------------
     # Function Invocation
     # ------------------------------------------------------------------
     @staticmethod
     def invoke_qml_function(
-        window: MainWindow, method_name: str, payload: Optional[Dict[str, Any]] = None
+        window: MainWindow,
+        method_name: str,
+        payload: Optional[Dict[str, Any]] = None,
     ) -> bool:
         """Безопасный вызов QML-функции
 
@@ -151,7 +286,10 @@ class QMLBridge:
         try:
             # Log QML invoke
             try:
-                window.event_logger.log_qml_invoke(method_name, payload or {})
+                window.event_logger.log_qml_invoke(
+                    method_name,
+                    payload or {},
+                )
             except Exception:
                 pass
 
@@ -170,8 +308,10 @@ class QMLBridge:
                 )
 
             return bool(success)
-        except Exception as e:
-            QMLBridge.logger.debug(f"QML call failed: {method_name} - {e}")
+        except Exception as exc:
+            QMLBridge.logger.debug(
+                f"QML call failed: {method_name} - {exc}"
+            )
             return False
 
     # ------------------------------------------------------------------
@@ -193,7 +333,10 @@ class QMLBridge:
             QML-safe value
         """
         if isinstance(value, dict):
-            return {str(k): QMLBridge._prepare_for_qml(v) for k, v in value.items()}
+            return {
+                str(k): QMLBridge._prepare_for_qml(v)
+                for k, v in value.items()
+            }
 
         if isinstance(value, (list, tuple)):
             return [QMLBridge._prepare_for_qml(i) for i in value]
@@ -216,7 +359,9 @@ class QMLBridge:
         return value
 
     @staticmethod
-    def _deep_merge_dicts(target: Dict[str, Any], source: Dict[str, Any]) -> None:
+    def _deep_merge_dicts(
+        target: Dict[str, Any], source: Dict[str, Any]
+    ) -> None:
         """Deep merge source dict into target
 
         Args:
@@ -225,7 +370,10 @@ class QMLBridge:
         """
         for k, v in source.items():
             if isinstance(v, dict) and isinstance(target.get(k), dict):
-                QMLBridge._deep_merge_dicts(target[k], v)
+                QMLBridge._deep_merge_dicts(
+                    target[k],
+                    v,
+                )
             else:
                 target[k] = v
 
@@ -244,7 +392,10 @@ class QMLBridge:
             QMLBridge.logger.info(f"QML batch ACK: {summary}")
 
             if hasattr(window, "status_bar"):
-                window.status_bar.showMessage("Обновления применены в сцене", 1500)
+                window.status_bar.showMessage(
+                    "Обновления применены в сцене",
+                    1500,
+                )
 
             # Mark changes as applied in GraphicsLogger
             if window._last_batched_updates:
@@ -254,7 +405,9 @@ class QMLBridge:
                     glog = get_graphics_logger()
 
                     since_ts = (
-                        summary.get("timestamp") if isinstance(summary, dict) else None
+                        summary.get("timestamp")
+                        if isinstance(summary, dict)
+                        else None
                     )
 
                     for cat, payload in window._last_batched_updates.items():
@@ -267,7 +420,8 @@ class QMLBridge:
                             # Mark category as synced
                             try:
                                 glog.mark_category_changes_applied(
-                                    str(cat), since_timestamp=since_ts
+                                    str(cat),
+                                    since_timestamp=since_ts,
                                 )
                             except Exception:
                                 pass
@@ -283,7 +437,10 @@ class QMLBridge:
     # ------------------------------------------------------------------
     @staticmethod
     def _log_graphics_change(
-        window: MainWindow, category: str, payload: Dict[str, Any], applied: bool
+        window: MainWindow,
+        category: str,
+        payload: Dict[str, Any],
+        applied: bool,
     ) -> None:
         """Log graphics change for sync metrics
 
@@ -308,3 +465,122 @@ class QMLBridge:
             )
         except Exception:
             pass
+
+    @staticmethod
+    def set_simulation_state(window: "MainWindow", snapshot: StateSnapshot) -> bool:
+        """Push complete simulation state into QML as SI-based payload."""
+
+        if snapshot is None or not window._qml_root_object:
+            return False
+
+        try:
+            payload = QMLBridge._snapshot_to_payload(snapshot)
+            payload.setdefault("animation", {})["isRunning"] = bool(
+                getattr(window, "is_simulation_running", False)
+            )
+
+            sanitized = QMLBridge._prepare_for_qml(payload)
+            window._qml_root_object.setProperty(
+                "pendingPythonUpdates",
+                sanitized,
+            )
+            return True
+        except Exception as exc:
+            QMLBridge.logger.debug(
+                f"Failed to push simulation state: {exc}"
+            )
+            return False
+
+    @staticmethod
+    def _snapshot_to_payload(snapshot: StateSnapshot) -> Dict[str, Any]:
+        """Convert StateSnapshot dataclass into QML-friendly SI dictionary."""
+
+        wheel_key_map = {
+            Wheel.LP: "fl",
+            Wheel.PP: "fr",
+            Wheel.LZ: "rl",
+            Wheel.PZ: "rr",
+        }
+
+        wheels_payload: Dict[str, Dict[str, Any]] = {}
+        lever_angles: Dict[str, float] = {}
+        piston_positions: Dict[str, float] = {}
+
+        for wheel_enum, corner_key in wheel_key_map.items():
+            wheel_state = snapshot.wheels.get(wheel_enum)
+            if not wheel_state:
+                continue
+
+            lever_angle = float(wheel_state.lever_angle)
+            piston_position = float(wheel_state.piston_position)
+
+            wheels_payload[corner_key] = {
+                "leverAngle": lever_angle,
+                "pistonPosition": piston_position,
+                "pistonVelocity": float(wheel_state.piston_velocity),
+                "joint": {
+                    "x": float(wheel_state.joint_x),
+                    "y": float(wheel_state.joint_y),
+                    "z": float(wheel_state.joint_z),
+                },
+                "forces": {
+                    "pneumatic": float(wheel_state.force_pneumatic),
+                    "spring": float(wheel_state.force_spring),
+                    "damper": float(wheel_state.force_damper),
+                },
+            }
+
+            lever_angles[corner_key] = lever_angle
+            piston_positions[corner_key] = piston_position
+
+        line_payload: Dict[str, Dict[str, Any]] = {}
+        for line_enum in Line:
+            line_state = snapshot.lines.get(line_enum)
+            if not line_state:
+                continue
+
+            key = line_enum.value.lower()
+            line_payload[key] = {
+                "pressure": float(line_state.pressure),
+                "temperature": float(line_state.temperature),
+                "mass": float(line_state.mass),
+            }
+
+        animation_payload = {
+            "timestamp": float(snapshot.timestamp),
+            "simulationTime": float(snapshot.simulation_time),
+            "frame": {
+                "heave": float(snapshot.frame.heave),
+                "roll": float(snapshot.frame.roll),
+                "pitch": float(snapshot.frame.pitch),
+                "heaveRate": float(snapshot.frame.heave_rate),
+                "rollRate": float(snapshot.frame.roll_rate),
+                "pitchRate": float(snapshot.frame.pitch_rate),
+            },
+            "leverAngles": lever_angles,
+            "pistonPositions": piston_positions,
+            "linePressures": {
+                key: state["pressure"]
+                for key, state in line_payload.items()
+            },
+            "tankPressure": float(snapshot.tank.pressure),
+        }
+
+        three_d_payload = {
+            "wheels": wheels_payload,
+            "lines": line_payload,
+            "tank": {
+                "pressure": float(snapshot.tank.pressure),
+                "temperature": float(snapshot.tank.temperature),
+            },
+            "frame": {
+                "heave": float(snapshot.frame.heave),
+                "roll": float(snapshot.frame.roll),
+                "pitch": float(snapshot.frame.pitch),
+            },
+        }
+
+        return {
+            "animation": animation_payload,
+            "threeD": three_d_payload,
+        }

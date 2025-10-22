@@ -481,6 +481,7 @@ test_report_*.txt
 test_*.py
 check_*.py
 !tools/check_ui_utf8.py
+!tools/check_forbidden_artifacts.py
 
 # Temporary batch files
 *.bat
@@ -858,5 +859,6 @@ assets/hdr/*.exr
 !tests/unit/test_geometry_schema.py
 !tests/unit/test_settings_validation.py
 !tests/test_settings_smoke.py
+!tests/system/test_physics_integration.py
 
 # END OF .GITIGNORE

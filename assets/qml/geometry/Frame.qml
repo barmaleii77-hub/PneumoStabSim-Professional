@@ -18,9 +18,9 @@ Node {
     // ===============================================================
 
     required property Node worldRoot
-    required property real beamSize       // mm - cross-section size
-    required property real frameHeight    // mm - height of vertical beams
-    required property real frameLength    // mm - length along Z axis
+    required property real beamSizeM // m - cross-section size
+    required property real frameHeightM // m - height of vertical beams
+    required property real frameLengthM // m - length along Z axis
     required property var frameMaterial
 
     // ===============================================================
@@ -33,8 +33,8 @@ Node {
     Model {
         parent: worldRoot
         source: "#Cube"
-        position: Qt.vector3d(0, beamSize/2, 0)
-        scale: Qt.vector3d(beamSize/100, beamSize/100, frameLength/100)
+        position: Qt.vector3d(0, beamSizeM /2,0)
+        scale: Qt.vector3d(beamSizeM, beamSizeM, frameLengthM)
         materials: [frameMaterial]
     }
 
@@ -42,8 +42,8 @@ Node {
     Model {
         parent: worldRoot
         source: "#Cube"
-        position: Qt.vector3d(0, beamSize + frameHeight/2, -frameLength/2 + beamSize/2)
-        scale: Qt.vector3d(beamSize/100, frameHeight/100, beamSize/100)
+        position: Qt.vector3d(0, beamSizeM + frameHeightM /2, -frameLengthM /2 + beamSizeM /2)
+        scale: Qt.vector3d(beamSizeM, frameHeightM, beamSizeM)
         materials: [frameMaterial]
     }
 
@@ -51,8 +51,8 @@ Node {
     Model {
         parent: worldRoot
         source: "#Cube"
-        position: Qt.vector3d(0, beamSize + frameHeight/2, frameLength/2 - beamSize/2)
-        scale: Qt.vector3d(beamSize/100, frameHeight/100, beamSize/100)
+        position: Qt.vector3d(0, beamSizeM + frameHeightM /2, frameLengthM /2 - beamSizeM /2)
+        scale: Qt.vector3d(beamSizeM, frameHeightM, beamSizeM)
         materials: [frameMaterial]
     }
 
@@ -61,6 +61,6 @@ Node {
     // ===============================================================
 
     Component.onCompleted: {
-        console.log("🏗️ Frame initialized (centered): " + beamSize + " × " + frameHeight + " × " + frameLength + " mm")
+        console.log("🏗️ Frame initialized (centered): " + beamSizeM.toFixed(3) + " × " + frameHeightM.toFixed(3) + " × " + frameLengthM.toFixed(3) + " m")
     }
 }

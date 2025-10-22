@@ -49,11 +49,23 @@ Item {
  property real userPhaseRL:0.0
  property real userPhaseRR:0.0
 
- // Вычисляемые углы (SLERP handled by Qt)
- property real fl_angle: isRunning ? userAmplitude * Math.sin(animationTime * userFrequency *2 * Math.PI + (userPhaseGlobal + userPhaseFL) * Math.PI /180) :0.0
- property real fr_angle: isRunning ? userAmplitude * Math.sin(animationTime * userFrequency *2 * Math.PI + (userPhaseGlobal + userPhaseFR) * Math.PI /180) :0.0
- property real rl_angle: isRunning ? userAmplitude * Math.sin(animationTime * userFrequency *2 * Math.PI + (userPhaseGlobal + userPhaseRL) * Math.PI /180) :0.0
- property real rr_angle: isRunning ? userAmplitude * Math.sin(animationTime * userFrequency *2 * Math.PI + (userPhaseGlobal + userPhaseRR) * Math.PI /180) :0.0
+ // Данные симуляции в СИ
+ property real flAngleRad:0.0
+ property real frAngleRad:0.0
+ property real rlAngleRad:0.0
+ property real rrAngleRad:0.0
+ property real fl_angle: flAngleRad *180 / Math.PI
+ property real fr_angle: frAngleRad *180 / Math.PI
+ property real rl_angle: rlAngleRad *180 / Math.PI
+ property real rr_angle: rrAngleRad *180 / Math.PI
+ property real frameHeave:0.0
+ property real frameRollRad:0.0
+ property real framePitchRad:0.0
+ property real frameRollDeg: frameRollRad *180 / Math.PI
+ property real framePitchDeg: framePitchRad *180 / Math.PI
+ property var pistonPositions: ({ fl:0.0, fr:0.0, rl:0.0, rr:0.0 })
+ property var linePressures: ({})
+ property real tankPressure:0.0
 
  // -------- Материалы/вид --------
  property color defaultClearColor: "#1a1a2e"
@@ -105,6 +117,7 @@ Item {
  if (updates.animation) { applyAnimationUpdates(updates.animation); applied.animation = true; }
  if (updates.threeD) { apply3DUpdates(updates.threeD); applied.threeD = true; }
  if (updates.render) { applyRenderSettings(updates.render); applied.render = true; }
+ if (updates.simulation) { applySimulationUpdates(updates.simulation); applied.simulation = true; }
 
  batchUpdatesApplied(applied);
  }
@@ -264,6 +277,7 @@ Item {
  function applyAnimationUpdates(params) {
  if (!params) return;
  if (params.isRunning !== undefined) isRunning = !!params.isRunning;
+ if (params.simulationTime !== undefined) animationTime = Number(params.simulationTime);
  if (params.amplitude !== undefined) userAmplitude = Number(params.amplitude);
  if (params.frequency !== undefined) userFrequency = Number(params.frequency);
  if (params.phase_global !== undefined) userPhaseGlobal = Number(params.phase_global);
@@ -271,9 +285,87 @@ Item {
  if (params.phase_fr !== undefined) userPhaseFR = Number(params.phase_fr);
  if (params.phase_rl !== undefined) userPhaseRL = Number(params.phase_rl);
  if (params.phase_rr !== undefined) userPhaseRR = Number(params.phase_rr);
+ if (params.frame) {
+ var frame = params.frame;
+ if (frame.heave !== undefined) frameHeave = Number(frame.heave);
+ if (frame.roll !== undefined) frameRollRad = Number(frame.roll);
+ if (frame.pitch !== undefined) framePitchRad = Number(frame.pitch);
+ }
+ if (params.leverAngles) {
+ var angles = params.leverAngles;
+ if (angles.fl !== undefined) flAngleRad = Number(angles.fl);
+ if (angles.fr !== undefined) frAngleRad = Number(angles.fr);
+ if (angles.rl !== undefined) rlAngleRad = Number(angles.rl);
+ if (angles.rr !== undefined) rrAngleRad = Number(angles.rr);
+ }
+ if (params.pistonPositions) {
+ var pist = params.pistonPositions;
+ var updatedPistons = Object.assign({}, pistonPositions || {});
+ if (pist.fl !== undefined) updatedPistons.fl = Number(pist.fl);
+ if (pist.fr !== undefined) updatedPistons.fr = Number(pist.fr);
+ if (pist.rl !== undefined) updatedPistons.rl = Number(pist.rl);
+ if (pist.rr !== undefined) updatedPistons.rr = Number(pist.rr);
+ pistonPositions = updatedPistons;
+ }
+ if (params.linePressures) {
+ var lp = params.linePressures;
+ var updatedPressures = Object.assign({}, linePressures || {});
+ if (lp.a1 !== undefined) updatedPressures.a1 = Number(lp.a1);
+ if (lp.b1 !== undefined) updatedPressures.b1 = Number(lp.b1);
+ if (lp.a2 !== undefined) updatedPressures.a2 = Number(lp.a2);
+ if (lp.b2 !== undefined) updatedPressures.b2 = Number(lp.b2);
+ linePressures = updatedPressures;
+ }
+ if (params.tankPressure !== undefined) tankPressure = Number(params.tankPressure);
  }
 
  function apply3DUpdates(params) {
+ if (!params) return;
+ if (params.frame) {
+ var f = params.frame;
+ if (f.heave !== undefined) frameHeave = Number(f.heave);
+ if (f.roll !== undefined) frameRollRad = Number(f.roll);
+ if (f.pitch !== undefined) framePitchRad = Number(f.pitch);
+ }
+ if (params.wheels) {
+ var wheelData = params.wheels;
+ var pist = Object.assign({}, pistonPositions || {});
+ if (wheelData.fl) {
+ if (wheelData.fl.leverAngle !== undefined) flAngleRad = Number(wheelData.fl.leverAngle);
+ if (wheelData.fl.pistonPosition !== undefined) pist.fl = Number(wheelData.fl.pistonPosition);
+ }
+ if (wheelData.fr) {
+ if (wheelData.fr.leverAngle !== undefined) frAngleRad = Number(wheelData.fr.leverAngle);
+ if (wheelData.fr.pistonPosition !== undefined) pist.fr = Number(wheelData.fr.pistonPosition);
+ }
+ if (wheelData.rl) {
+ if (wheelData.rl.leverAngle !== undefined) rlAngleRad = Number(wheelData.rl.leverAngle);
+ if (wheelData.rl.pistonPosition !== undefined) pist.rl = Number(wheelData.rl.pistonPosition);
+ }
+ if (wheelData.rr) {
+ if (wheelData.rr.leverAngle !== undefined) rrAngleRad = Number(wheelData.rr.leverAngle);
+ if (wheelData.rr.pistonPosition !== undefined) pist.rr = Number(wheelData.rr.pistonPosition);
+ }
+ pistonPositions = pist;
+ }
+ if (params.lines) {
+ var lines = params.lines;
+ var updated = Object.assign({}, linePressures || {});
+ for (var name in lines) {
+ if (!Object.prototype.hasOwnProperty.call(lines, name)) continue;
+ var ln = lines[name];
+ if (ln && ln.pressure !== undefined) updated[name] = Number(ln.pressure);
+ }
+ linePressures = updated;
+ }
+ if (params.tank && params.tank.pressure !== undefined) tankPressure = Number(params.tank.pressure);
+ }
+
+ function applySimulationUpdates(params) {
+ if (!params) return;
+ // pass-through convenience wrapper to update animation+3D in one call
+ if (params.animation) applyAnimationUpdates(params.animation);
+ if (params.threeD) apply3DUpdates(params.threeD);
  }
 
  function applyRenderSettings(params) {

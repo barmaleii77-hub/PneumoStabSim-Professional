@@ -5,6 +5,7 @@ Runs in dedicated QThread with QTimer for precise timing
 
 import time
 import logging
+from dataclasses import replace
 from typing import Optional, Dict, Any
 import numpy as np
 
@@ -37,13 +38,21 @@ from src.pneumo.enums import (
     Wheel,
     Line,
     ThermoMode,
+    Port,
+    ReceiverVolumeMode,
 )
-from src.pneumo.receiver import ReceiverState
+from src.pneumo.receiver import ReceiverState, ReceiverSpec
 from src.pneumo.system import create_standard_diagonal_system
-from src.pneumo.gas_state import create_line_gas_state, create_tank_gas_state
+from src.pneumo.gas_state import (
+    create_line_gas_state,
+    create_tank_gas_state,
+    apply_instant_volume_change,
+)
 from src.pneumo.network import GasNetwork
-from src.road.engine import RoadInput
+from src.road.engine import RoadInput, create_road_input_from_preset
 from src.road.scenarios import get_preset_by_name
+from src.common.units import PA_ATM, T_AMBIENT
+from src.app.config_defaults import create_default_system_configuration
 
 # Settings manager (используем абсолютный импорт, т.к. общий модуль)
 from src.common.settings_manager import get_settings_manager
@@ -88,6 +97,8 @@ class PhysicsWorker(QObject):
 
         # Current physics state
         self.physics_state: np.ndarray = np.zeros(6)  # [Y, φz, θx, dY, dφz, dθx]
+        self._prev_frame_velocities = np.zeros(3)
+        self._latest_frame_accel = np.zeros(3)
 
         # Simulation modes (overridden by persisted settings)
         self.thermo_mode = ThermoMode.ISOTHERMAL
@@ -97,6 +108,21 @@ class PhysicsWorker(QObject):
         self.receiver_volume: float = 0.0
         self.receiver_volume_mode: str = ""
         self._volume_limits: tuple[float, float] = (0.0, 0.0)
+
+        # Cached state for snapshot creation
+        self._latest_wheel_states: Dict[Wheel, WheelState] = {
+            wheel: WheelState(wheel=wheel) for wheel in Wheel
+        }
+        self._latest_line_states: Dict[Line, LineState] = {
+            line: LineState(line=line) for line in Line
+        }
+        self._latest_tank_state = TankState()
+        self._prev_piston_positions: Dict[Wheel, float] = {
+            wheel: 0.0 for wheel in Wheel
+        }
+        self._last_road_inputs: Dict[str, float] = {
+            k: 0.0 for k in ("LF", "RF", "LR", "RR")
+        }
 
         # Threading objects (created in target thread)
         self.physics_timer: Optional[QTimer] = None
@@ -172,13 +198,37 @@ class PhysicsWorker(QObject):
                 return fallback.strip()
             raise RuntimeError(f"Missing text setting: {category}.{key}")
 
+        # Keys lists imported from settings_requirements if available
         try:
-            self.dt_physics = _require_number("simulation", "physics_dt")
-            self.vsync_render_hz = _require_number("simulation", "render_vsync_hz")
-            self.max_steps_per_frame = max(
-                1, int(round(_require_number("simulation", "max_steps_per_frame")))
+            from src.common.settings_requirements import (
+                NUMERIC_SIMULATION_KEYS,
+                NUMERIC_PNEUMATIC_KEYS,
+                RECEIVER_VOLUME_LIMIT_KEYS,
+                STRING_PNEUMATIC_KEYS,
+                BOOL_PNEUMATIC_KEYS,
             )
-            self.max_frame_time = _require_number("simulation", "max_frame_time")
+        except Exception:
+            NUMERIC_SIMULATION_KEYS = (
+                "physics_dt",
+                "render_vsync_hz",
+                "max_steps_per_frame",
+                "max_frame_time",
+            )
+            NUMERIC_PNEUMATIC_KEYS = ("receiver_volume",)
+            RECEIVER_VOLUME_LIMIT_KEYS = ("min_m3", "max_m3")
+            STRING_PNEUMATIC_KEYS = ("volume_mode", "thermo_mode")
+            BOOL_PNEUMATIC_KEYS = ("master_isolation_open",)
+
+        try:
+            sim_values = {
+                key: _require_number("simulation", key) for key in NUMERIC_SIMULATION_KEYS
+            }
+            self.dt_physics = sim_values["physics_dt"]
+            self.vsync_render_hz = sim_values["render_vsync_hz"]
+            self.max_steps_per_frame = max(
+                1, int(round(sim_values["max_steps_per_frame"]))
+            )
+            self.max_frame_time = sim_values["max_frame_time"]
 
             limits = self.settings_manager.get("pneumatic.receiver_volume_limits", None)
             if not isinstance(limits, dict) or not limits:
@@ -197,7 +247,17 @@ class PhysicsWorker(QObject):
                 raise RuntimeError("Receiver volume limits must satisfy0 < min < max")
             self._volume_limits = (min_limit, max_limit)
 
-            self.receiver_volume = _require_number("pneumatic", "receiver_volume")
+            for key in RECEIVER_VOLUME_LIMIT_KEYS:
+                if key not in limits:
+                    raise RuntimeError(
+                        "Missing pneumatic.receiver_volume_limits." + key
+                    )
+
+            pneumatic_numbers = {
+                key: _require_number("pneumatic", key)
+                for key in NUMERIC_PNEUMATIC_KEYS
+            }
+            self.receiver_volume = pneumatic_numbers["receiver_volume"]
             if not (
                 self._volume_limits[0] <= self.receiver_volume <= self._volume_limits[1]
             ):
@@ -205,16 +265,23 @@ class PhysicsWorker(QObject):
                     f"Receiver volume {self.receiver_volume} outside limits {self._volume_limits}"
                 )
 
-            mode = _require_str("pneumatic", "volume_mode").upper()
+            pneumatic_strings = {
+                key: _require_str("pneumatic", key)
+                for key in STRING_PNEUMATIC_KEYS
+            }
+
+            mode = pneumatic_strings["volume_mode"].upper()
             if mode not in {"MANUAL", "GEOMETRIC"}:
                 raise RuntimeError(f"Unsupported receiver volume mode: {mode}")
             self.receiver_volume_mode = mode
 
-            self.master_isolation_open = _require_bool(
-                "pneumatic", "master_isolation_open"
-            )
+            pneumatic_bools = {
+                key: _require_bool("pneumatic", key)
+                for key in BOOL_PNEUMATIC_KEYS
+            }
+            self.master_isolation_open = pneumatic_bools["master_isolation_open"]
 
-            thermo = _require_str("pneumatic", "thermo_mode").upper()
+            thermo = pneumatic_strings["thermo_mode"].upper()
             try:
                 self.thermo_mode = ThermoMode[thermo]
             except KeyError as exc:
@@ -275,46 +342,87 @@ class PhysicsWorker(QObject):
             # Initialize physics state (at rest)
             self.physics_state = create_initial_conditions()
 
-            # TODO: Initialize pneumatic system and gas network
-            # For now, create minimal stubs
-            self.pneumatic_system = None  # Will be set up later
-            self.gas_network = None
+            config_defaults = create_default_system_configuration()
 
-            # TODO: Initialize road input
-            # For now, create minimal stub
-            self.road_input = None
+            receiver_spec = ReceiverSpec(
+                V_min=self._volume_limits[0],
+                V_max=self._volume_limits[1],
+            )
+            receiver_mode = self._resolve_receiver_mode(self.receiver_volume_mode)
+            receiver_state = ReceiverState(
+                spec=receiver_spec,
+                V=self.receiver_volume,
+                p=PA_ATM,
+                T=T_AMBIENT,
+                mode=receiver_mode,
+            )
 
-            # NEW: Initialize road input with default scenario
-            road_scenario = "default_scenario"  # Заменить на нужный пресет
-            road_config = get_preset_by_name(road_scenario)
-            if road_config:
-                self.road_input = RoadInput(config=road_config)
-                self.logger.info(
-                    f"Road input initialized with scenario: {road_scenario}"
+            self.pneumatic_system = create_standard_diagonal_system(
+                cylinder_specs=config_defaults["cylinder_specs"],
+                line_configs=config_defaults["line_configs"],
+                receiver=receiver_state,
+                master_isolation_open=self.master_isolation_open,
+            )
+
+            line_volumes = self.pneumatic_system.get_line_volumes()
+            line_states: Dict[Line, Any] = {}
+            for line_name, volume_info in line_volumes.items():
+                if not isinstance(volume_info, dict) or "total_volume" not in volume_info:
+                    raise RuntimeError(
+                        f"Line volume information missing for {line_name.value}"
+                    )
+                total_volume = float(volume_info.get("total_volume"))
+                if total_volume <= 0:
+                    raise RuntimeError(
+                        f"Line {line_name.value} has non-positive volume {total_volume}"
+                    )
+                line_states[line_name] = create_line_gas_state(
+                    line_name,
+                    PA_ATM,
+                    T_AMBIENT,
+                    total_volume,
                 )
-            else:
-                self.logger.warning(f"Road scenario not found: {road_scenario}")
-                self.road_input = None  # Использовать заглушку
 
-            # NEW: Initialize pneumatic system with standard configuration
-            try:
-                self.pneumatic_system = create_standard_diagonal_system()
-                self.logger.info(
-                    "Pneumatic system initialized with standard configuration"
-                )
-            except Exception as e:
-                self.logger.warning(f"Failed to create standard pneumatic system: {e}")
-                self.pneumatic_system = None  # Использовать заглушку
+            tank_state = create_tank_gas_state(
+                V_initial=self.receiver_volume,
+                p_initial=PA_ATM,
+                T_initial=T_AMBIENT,
+                mode=receiver_mode,
+            )
 
-            # NEW: Initialize gas network with default parameters
-            try:
-                self.gas_network = GasNetwork()
-                self.logger.info("Gas network initialized with default parameters")
-            except Exception as e:
-                self.logger.warning(f"Failed to create gas network: {e}")
-                self.gas_network = None  # Использовать заглушку
+            self.gas_network = GasNetwork(
+                lines=line_states,
+                tank=tank_state,
+                system_ref=self.pneumatic_system,
+                master_isolation_open=self.master_isolation_open,
+            )
 
-            self.logger.info("Physics objects initialized successfully")
+            self._latest_tank_state = TankState(
+                pressure=tank_state.p,
+                temperature=tank_state.T,
+                mass=tank_state.m,
+                volume=tank_state.V,
+            )
+
+            for wheel, cylinder in self.pneumatic_system.cylinders.items():
+                self._prev_piston_positions[wheel] = cylinder.x
+                wheel_state = self._latest_wheel_states[wheel]
+                wheel_state.piston_position = cylinder.x
+                wheel_state.lever_angle = 0.0
+
+            preset_name = self._select_road_preset()
+            road_input = create_road_input_from_preset(preset_name)
+            road_input.configure(road_input.config, system=self.pneumatic_system)
+            road_input.prime()
+            self.road_input = road_input
+
+            if not all([self.pneumatic_system, self.gas_network, self.road_input]):
+                raise RuntimeError("Failed to initialize all physics dependencies")
+
+            self.logger.info(
+                "Physics objects initialized successfully with preset '%s'",
+                preset_name,
+            )
 
         except Exception as e:
             self.logger.error(f"Failed to initialize physics objects: {e}")
@@ -478,11 +586,27 @@ class PhysicsWorker(QObject):
         self.receiver_volume = volume
         self.receiver_volume_mode = mode
 
-        # TODO: Update actual ReceiverState when gas network is integrated
-        # For now, just log the change
-        self.logger.info(f"Receiver volume set: {volume:.3f}m? (mode: {mode})")
+        mode_enum = self._resolve_receiver_mode(mode)
 
-        print(f"?? PhysicsWorker: Receiver volume={volume*1000:.1f}L, mode={mode}")
+        if self.pneumatic_system is not None:
+            try:
+                self.pneumatic_system.receiver.mode = mode_enum
+                self.pneumatic_system.receiver.apply_instant_volume_change(volume)
+            except Exception as exc:
+                self.logger.warning(f"Failed to update receiver state: {exc}")
+
+        if self.gas_network is not None:
+            try:
+                self.gas_network.tank.mode = mode_enum
+                apply_instant_volume_change(
+                    self.gas_network.tank,
+                    volume,
+                    gamma=self.gas_network.tank.gamma,
+                )
+            except Exception as exc:
+                self.logger.warning(f"Failed to update gas network tank volume: {exc}")
+
+        self.logger.info(f"Receiver volume set: {volume:.3f}m? (mode: {mode})")
 
     @Slot(float)
     def set_physics_dt(self, dt: float):
@@ -545,55 +669,116 @@ class PhysicsWorker(QObject):
 
     def _execute_physics_step(self):
         """Execute single physics timestep"""
+        if not self.pneumatic_system or not self.gas_network or not self.road_input:
+            raise RuntimeError("Physics dependencies are not initialized")
+
         # 1. Get road inputs
         road_inputs = self._get_road_inputs()
+        self._last_road_inputs = {k: float(v) for k, v in road_inputs.items()}
 
         # 2. Update geometry/kinematics
-        if self.rigid_body:
-            try:
-                # Update lever angles and piston positions from road inputs
-                if self.pneumatic_system:
-                    for wheel, input_value in road_inputs.items():
-                        if wheel in {Wheel.LP.value, Wheel.PP.value}:  # Левые колеса
-                            cylinder = self.pneumatic_system.left_cylinder
-                            if cylinder:
-                                # Применяем возбуждение к позиции поршня
-                                cylinder.piston_position += input_value
+        lever_angles: Dict[Wheel, float] = {}
+        wheel_key_map = {
+            Wheel.LP: "LF",
+            Wheel.PP: "RF",
+            Wheel.LZ: "LR",
+            Wheel.PZ: "RR",
+        }
 
-                        elif wheel in {Wheel.LZ.value, Wheel.PZ.value}:  # Правые колеса
-                            cylinder = self.pneumatic_system.right_cylinder
-                            if cylinder:
-                                # Применяем возбуждение к позиции поршня
-                                cylinder.piston_position += input_value
+        for wheel, key in wheel_key_map.items():
+            excitation = float(road_inputs.get(key, 0.0))
+            cylinder = self.pneumatic_system.cylinders[wheel]
+            lever = cylinder.spec.lever_geom
+            lever_length = max(lever.L_lever, 1e-6)
+            angle = float(np.clip(excitation / lever_length, -0.5, 0.5))
+            lever_angles[wheel] = angle
 
-            except Exception as e:
-                self.logger.warning(f"Failed to update kinematics: {e}")
+        self.pneumatic_system.update_system_from_lever_angles(lever_angles)
+
+        for wheel, angle in lever_angles.items():
+            cylinder = self.pneumatic_system.cylinders[wheel]
+            piston_pos = float(cylinder.x)
+            prev_pos = self._prev_piston_positions.get(wheel, 0.0)
+            piston_vel = (
+                (piston_pos - prev_pos) / self.dt_physics
+                if self.dt_physics > 0
+                else 0.0
+            )
+            self._prev_piston_positions[wheel] = piston_pos
+
+            geom = cylinder.spec.geometry
+            rod_x, rod_y = cylinder.spec.lever_geom.rod_joint_pos(angle)
+            wheel_state = self._latest_wheel_states[wheel]
+            wheel_state.lever_angle = angle
+            wheel_state.piston_position = piston_pos
+            wheel_state.piston_velocity = piston_vel
+            wheel_state.vol_head = cylinder.vol_head()
+            wheel_state.vol_rod = cylinder.vol_rod()
+            wheel_state.joint_x = 0.0
+            wheel_state.joint_y = rod_x
+            wheel_state.joint_z = geom.Z_axle + rod_y
+            wheel_state.road_excitation = self._last_road_inputs.get(
+                wheel_key_map[wheel], 0.0
+            )
+
+            head_pressure = self._get_line_pressure(wheel, Port.HEAD)
+            rod_pressure = self._get_line_pressure(wheel, Port.ROD)
+            area_head = geom.area_head(cylinder.spec.is_front)
+            area_rod = geom.area_rod(cylinder.spec.is_front)
+            wheel_state.force_pneumatic = head_pressure * area_head - rod_pressure * area_rod
 
         # 3. Update gas system
-        if self.gas_network:
+        line_volumes = self.pneumatic_system.get_line_volumes()
+        for line_name, volume_info in line_volumes.items():
+            total_volume = float(volume_info.get("total_volume"))
+            self.gas_network.lines[line_name].set_volume(total_volume)
+
+        self.gas_network.master_isolation_open = self.master_isolation_open
+        self.gas_network.update_pressures_due_to_volume(self.thermo_mode)
+
+        receiver_mode = self._resolve_receiver_mode(self.receiver_volume_mode)
+        self.gas_network.tank.mode = receiver_mode
+        if abs(self.gas_network.tank.V - self.receiver_volume) > 1e-9:
+            apply_instant_volume_change(
+                self.gas_network.tank,
+                self.receiver_volume,
+                gamma=self.gas_network.tank.gamma,
+            )
+
+        self.gas_network.apply_valves_and_flows(self.dt_physics, self.logger)
+        self.gas_network.enforce_master_isolation(self.logger)
+
+        for line_name, gas_state in self.gas_network.lines.items():
+            line_state = self._latest_line_states[line_name]
+            line_state.pressure = gas_state.p
+            line_state.temperature = gas_state.T
+            line_state.mass = gas_state.m
+            line_state.volume = gas_state.V_curr
+            pneumo_line = self.pneumatic_system.lines[line_name]
             try:
-                # Получаем текущее состояние газа в трубопроводах и резервуарах
-                line_gas_states = create_line_gas_state(self.gas_network)
-                tank_gas_states = create_tank_gas_state(self.gas_network)
+                line_state.cv_atmo_open = pneumo_line.cv_atmo.is_open(
+                    PA_ATM, gas_state.p
+                )
+            except Exception:
+                line_state.cv_atmo_open = False
+            try:
+                line_state.cv_tank_open = pneumo_line.cv_tank.is_open(
+                    gas_state.p, self.gas_network.tank.p
+                )
+            except Exception:
+                line_state.cv_tank_open = False
+            line_state.flow_atmo = 0.0
+            line_state.flow_tank = 0.0
 
-                # Обновляем состояния резервуаров в системе
-                for state in tank_gas_states:
-                    if state.receiver_id == "default_receiver":
-                        # Применяем новое состояние газа к резервуару
-                        receiver_state = ReceiverState(
-                            pressure=state.pressure,
-                            temperature=state.temperature,
-                            volume=self.receiver_volume,
-                        )
-                        self.gas_network.update_receiver_state(receiver_state)
-
-            except Exception as e:
-                self.logger.warning(f"Failed to update gas network: {e}")
+        tank_state = self.gas_network.tank
+        self._latest_tank_state.pressure = tank_state.p
+        self._latest_tank_state.temperature = tank_state.T
+        self._latest_tank_state.mass = tank_state.m
+        self._latest_tank_state.volume = tank_state.V
 
         # 4. Integrate 3-DOF dynamics
         if self.rigid_body:
             try:
-                # Use placeholder system/gas for now
                 result = step_dynamics(
                     y0=self.physics_state,
                     t0=self.simulation_time,
@@ -605,7 +790,12 @@ class PhysicsWorker(QObject):
                 )
 
                 if result.success:
+                    prev_vel = self.physics_state[3:6].copy()
                     self.physics_state = result.y_final
+                    velocities = self.physics_state[3:6]
+                    if self.dt_physics > 0:
+                        self._latest_frame_accel = (velocities - prev_vel) / self.dt_physics
+                    self._prev_frame_velocities = velocities.copy()
                 else:
                     self.performance.integration_failures += 1
                     self.logger.warning(f"Integration failed: {result.message}")
@@ -627,7 +817,7 @@ class PhysicsWorker(QObject):
                 self.logger.warning(f"Road input error: {e}")
 
         # Return zero excitation as fallback
-        return {"LP": 0.0, "PP": 0.0, "LZ": 0.0, "PZ": 0.0}
+        return {"LF": 0.0, "RF": 0.0, "LR": 0.0, "RR": 0.0}
 
     def _create_state_snapshot(self) -> Optional[StateSnapshot]:
         """Create current state snapshot"""
@@ -650,35 +840,30 @@ class PhysicsWorker(QObject):
                     heave_rate=float(dY),
                     roll_rate=float(dphi_z),
                     pitch_rate=float(dtheta_x),
+                    heave_accel=float(self._latest_frame_accel[0]),
+                    roll_accel=float(self._latest_frame_accel[1]),
+                    pitch_accel=float(self._latest_frame_accel[2]),
                 )
 
             # Road excitations
-            road_excitations = self._get_road_inputs()
+            road_excitations = self._last_road_inputs
 
             # Wheel states
             for wheel in [Wheel.LP, Wheel.PP, Wheel.LZ, Wheel.PZ]:
-                wheel_state = WheelState(wheel=wheel)
+                wheel_state = replace(self._latest_wheel_states[wheel])
 
-                # Add road excitation
                 wheel_key = wheel.value  # LP, PP, LZ, PZ
                 if wheel_key in road_excitations:
                     wheel_state.road_excitation = road_excitations[wheel_key]
 
-                # TODO: Add actual wheel state from pneumatic system
-
                 snapshot.wheels[wheel] = wheel_state
 
-            # Line states (placeholder)
+            # Line states
             for line in [Line.A1, Line.B1, Line.A2, Line.B2]:
-                line_state = LineState(line=line)
-                # TODO: Get actual line state from gas network
-                snapshot.lines[line] = line_state
+                snapshot.lines[line] = replace(self._latest_line_states[line])
 
-            # Tank state (placeholder)
-            snapshot.tank = TankState()
-
-            # NEW: Update tank volume from receiver settings
-            snapshot.tank.volume = self.receiver_volume
+            # Tank state
+            snapshot.tank = replace(self._latest_tank_state)
 
             # System aggregates
             snapshot.aggregates = SystemAggregates(
@@ -700,6 +885,56 @@ class PhysicsWorker(QObject):
         except Exception as e:
             self.logger.error(f"Failed to create state snapshot: {e}")
             return None
+
+    def _resolve_receiver_mode(self, mode: Optional[str] = None) -> ReceiverVolumeMode:
+        raw_mode = (mode or self.receiver_volume_mode or "MANUAL").strip().upper()
+        mapping = {
+            "MANUAL": ReceiverVolumeMode.NO_RECALC,
+            "GEOMETRIC": ReceiverVolumeMode.ADIABATIC_RECALC,
+            ReceiverVolumeMode.NO_RECALC.name: ReceiverVolumeMode.NO_RECALC,
+            ReceiverVolumeMode.ADIABATIC_RECALC.name: ReceiverVolumeMode.ADIABATIC_RECALC,
+        }
+        if raw_mode not in mapping:
+            raise RuntimeError(f"Unsupported receiver volume mode: {raw_mode}")
+        return mapping[raw_mode]
+
+    def _select_road_preset(self) -> str:
+        preset_candidates = [
+            self.settings_manager.get("simulation.road_preset", None),
+            self.settings_manager.get("modes.road_preset", None),
+            self.settings_manager.get("modes.mode_preset", None),
+        ]
+
+        for candidate in preset_candidates:
+            if candidate:
+                preset = str(candidate).strip()
+                if preset:
+                    break
+        else:
+            preset = "test_sine"
+
+        alias_map = {
+            "standard": "urban_50kmh",
+            "полная динамика": "sine_sweep",
+            "только кинематика": "test_sine",
+            "тест пневматики": "test_sine",
+        }
+
+        lookup = alias_map.get(preset.lower(), preset)
+        if get_preset_by_name(lookup) is None:
+            self.logger.warning(
+                "Unknown road preset '%s', falling back to 'test_sine'",
+                lookup,
+            )
+            lookup = "test_sine"
+        return lookup
+
+    def _get_line_pressure(self, wheel: Wheel, port: Port) -> float:
+        for line_name, line in self.pneumatic_system.lines.items():
+            for endpoint_wheel, endpoint_port in line.endpoints:
+                if endpoint_wheel == wheel and endpoint_port == port:
+                    return float(self.gas_network.lines[line_name].p)
+        return float(self.gas_network.tank.p)
 
 
 class SimulationManager(QObject):

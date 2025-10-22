@@ -177,6 +177,14 @@ class ApplicationRunner:
         """
         from PySide6.QtWidgets import QMessageBox
         from src.common.settings_manager import get_settings_manager
+        from src.common.settings_requirements import (
+            BOOL_PNEUMATIC_KEYS,
+            NUMERIC_PNEUMATIC_KEYS,
+            NUMERIC_SIMULATION_KEYS,
+            RECEIVER_VOLUME_LIMIT_KEYS,
+            REQUIRED_CURRENT_SECTIONS,
+            STRING_PNEUMATIC_KEYS,
+        )
         import os
 
         sm = get_settings_manager()
@@ -221,7 +229,81 @@ class ApplicationRunner:
         except Exception as ex:
             _fail(f"Некорректный JSON в файле настроек: {cfg_path}\n{ex}")
 
-        # 3) Обязательные ключи материалов
+        if not isinstance(data, dict):
+            _fail("Файл настроек должен содержать JSON-объект на верхнем уровне")
+
+        current = data.get("current")
+        if not isinstance(current, dict):
+            _fail("Отсутствует секция current с текущими настройками")
+
+        def _get_path(payload: dict, path: str) -> Any:
+            node: Any = payload
+            for part in path.split("."):
+                if not isinstance(node, dict) or part not in node:
+                    raise KeyError(path)
+                node = node[part]
+            return node
+
+        def _require_dict(path: str) -> dict:
+            try:
+                value = _get_path(data, path)
+            except KeyError:
+                _fail(f"Отсутствует обязательная секция {path}")
+            if not isinstance(value, dict):
+                _fail(f"Секция {path} должна быть объектом")
+            return value
+
+        def _require_number(path: str) -> float:
+            try:
+                value = _get_path(data, path)
+            except KeyError:
+                _fail(f"Отсутствует обязательный числовой параметр {path}")
+            if isinstance(value, bool) or not isinstance(value, (int, float)):
+                _fail(f"Параметр {path} должен быть числом")
+            return float(value)
+
+        def _require_string(path: str) -> str:
+            try:
+                value = _get_path(data, path)
+            except KeyError:
+                _fail(f"Отсутствует обязательный текстовый параметр {path}")
+            if not isinstance(value, str) or not value.strip():
+                _fail(f"Параметр {path} должен быть непустой строкой")
+            return value
+
+        def _require_bool(path: str) -> bool:
+            try:
+                value = _get_path(data, path)
+            except KeyError:
+                _fail(f"Отсутствует обязательный логический параметр {path}")
+            if isinstance(value, bool):
+                return value
+            if isinstance(value, (int, float)) and not isinstance(value, bool):
+                return bool(value)
+            _fail(f"Параметр {path} должен быть логическим значением (true/false)")
+
+        # 3) Обязательные секции current.*
+        for section in REQUIRED_CURRENT_SECTIONS:
+            _require_dict(section)
+
+        # 4) Обязательные числовые параметры
+        for key in NUMERIC_SIMULATION_KEYS:
+            _require_number(f"current.simulation.{key}")
+
+        for key in NUMERIC_PNEUMATIC_KEYS:
+            _require_number(f"current.pneumatic.{key}")
+
+        for key in RECEIVER_VOLUME_LIMIT_KEYS:
+            _require_number(f"current.pneumatic.receiver_volume_limits.{key}")
+
+        # 5) Обязательные текстовые и логические параметры
+        for key in STRING_PNEUMATIC_KEYS:
+            _require_string(f"current.pneumatic.{key}")
+
+        for key in BOOL_PNEUMATIC_KEYS:
+            _require_bool(f"current.pneumatic.{key}")
+
+        # 6) Обязательные ключи материалов
         try:
             current = data.get("current", {}) if isinstance(data, dict) else {}
             graphics = current.get("graphics", {}) if isinstance(current, dict) else {}

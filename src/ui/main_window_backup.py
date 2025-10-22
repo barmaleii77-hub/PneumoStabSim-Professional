@@ -734,12 +734,12 @@ class MainWindow(QMainWindow):
                     corner_3d = self.geometry_converter.get_corner_3d_coords(
                         corner, angle, None  # No physics state, pure geometry
                     )
-                    piston_positions[corner] = corner_3d.get("pistonPositionMm", 125.0)
+                    piston_positions[corner] = corner_3d.get("pistonPosition", 0.125)
                 else:
                     # Fallback without GeometryBridge
                     piston_ratio = 0.5 + angle / 20.0
                     piston_ratio = np.clip(piston_ratio, 0.1, 0.9)
-                    piston_positions[corner] = piston_ratio * 250.0
+                    piston_positions[corner] = piston_ratio * 0.25
 
             # Update animation time in QML (for smooth interpolation if needed)
             if hasattr(snapshot, "simulation_time"):

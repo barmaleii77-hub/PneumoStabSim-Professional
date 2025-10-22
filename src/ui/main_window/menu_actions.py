@@ -16,6 +16,8 @@ from PySide6.QtCore import Slot
 if TYPE_CHECKING:
     from .main_window import MainWindow
 
+from .signals_router import SignalsRouter
+
 
 class MenuActions:
     """Обработчики действий меню и toolbar
@@ -144,3 +146,24 @@ class MenuActions:
         except Exception:
             if hasattr(window, "snapshot_label") and window.snapshot_label:
                 window.snapshot_label.setText("Snapshot: None")
+
+        # Fetch and push the latest snapshot to QML (SI units)
+        latest_snapshot = None
+        try:
+            if (
+                hasattr(window, "simulation_manager")
+                and window.simulation_manager is not None
+                and hasattr(window.simulation_manager, "get_latest_state")
+            ):
+                latest_snapshot = window.simulation_manager.get_latest_state()
+        except Exception as exc:
+            MenuActions.logger.debug(
+                "Latest snapshot retrieval failed: %s", exc, exc_info=exc
+            )
+
+        if latest_snapshot is not None:
+            window.current_snapshot = latest_snapshot
+
+        SignalsRouter._queue_simulation_update(
+            window, getattr(window, "current_snapshot", None)
+        )

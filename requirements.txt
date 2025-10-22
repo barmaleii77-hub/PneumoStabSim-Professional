@@ -4,7 +4,7 @@
 # === КРИТИЧЕСКИЕ ЗАВИСИМОСТИ ===
 # Qt Framework - основа GUI и 3D рендеринга
 PySide6>=6.10.0,<7.0.0   # Qt6.10+ (ExtendedSceneEnvironment, Fog, dithering)
-shiboken6                 # Qt6 bindings generator
+shiboken6>=6.10.0,<7.0.0 # Qt6 bindings generator
 
 # Numerical computing - основа физических расчетов
 numpy>=1.24.0,<3.0.0      # Векторные вычисления

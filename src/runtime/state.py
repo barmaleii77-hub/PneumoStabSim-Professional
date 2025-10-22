@@ -5,7 +5,7 @@ Provides snapshot-based state sharing between physics and UI threads
 
 import time
 from dataclasses import dataclass, field
-from typing import Dict
+from typing import Dict, Optional
 import numpy as np
 from PySide6.QtCore import QObject, Signal, Qt
 
@@ -25,6 +25,12 @@ class WheelState:
     # Cylinder volumes
     vol_head: float = 0.0  # Head side volume (m3)
     vol_rod: float = 0.0  # Rod side volume (m3)
+    vol_head_min: float = 0.0
+    vol_head_max: float = 0.0
+    vol_rod_min: float = 0.0
+    vol_rod_max: float = 0.0
+    lever_angle_min: Optional[float] = None
+    lever_angle_max: Optional[float] = None
 
     # Joint coordinates
     joint_x: float = 0.0  # Joint X coordinate (m)
@@ -46,11 +52,16 @@ class LineState:
 
     line: Line
 
-    # Gas state (TEMPORARY: different initial pressures for visibility)
-    pressure: float = 150000.0  # Pressure (Pa) -1.5 bar for lines
-    temperature: float = 293.15  # Temperature (K)
+    pressure: float = 0.0  # Pressure (Pa)
+    temperature: float = 0.0  # Temperature (K)
     mass: float = 0.0  # Gas mass (kg)
     volume: float = 0.0  # Total volume (m3)
+    pressure_min: Optional[float] = None
+    pressure_max: Optional[float] = None
+    volume_min: Optional[float] = None
+    volume_max: Optional[float] = None
+    temperature_min: Optional[float] = None
+    temperature_max: Optional[float] = None
 
     # Valve states and flows
     cv_atmo_open: bool = False  # Atmosphere check valve open
@@ -63,10 +74,14 @@ class LineState:
 class TankState:
     """State of receiver tank"""
 
-    pressure: float = 200000.0  # Pressure (Pa) -2.0 bar for tank
-    temperature: float = 293.15  # Temperature (K)
+    pressure: float = 0.0  # Pressure (Pa)
+    temperature: float = 0.0  # Temperature (K)
     mass: float = 0.0  # Gas mass (kg)
-    volume: float = 0.0005  # Volume (m3)
+    volume: float = 0.0  # Volume (m3)
+    pressure_min: Optional[float] = None
+    pressure_max: Optional[float] = None
+    volume_min: Optional[float] = None
+    volume_max: Optional[float] = None
 
     # Relief valve states
     relief_min_open: bool = False  # Min pressure relief open
@@ -240,14 +255,114 @@ class StateSnapshot:
 
             # Check line pressures (must be positive, reasonable range)
             for line_state in self.lines.values():
-                if line_state.pressure <= 0 or line_state.pressure > 1e7:  # 0 to100 bar
+                if not np.isfinite(line_state.pressure) or not np.isfinite(
+                    line_state.volume
+                ):
                     return False
-                if not np.isfinite(line_state.pressure):
+
+                if line_state.pressure <= 0.0:
+                    return False
+
+                if line_state.volume <= 0.0:
+                    return False
+
+                if (
+                    line_state.pressure_min is not None
+                    and line_state.pressure < line_state.pressure_min * 0.999
+                ):
+                    return False
+
+                if (
+                    line_state.pressure_max is not None
+                    and line_state.pressure > line_state.pressure_max * 1.001
+                ):
+                    return False
+
+                if (
+                    line_state.volume_min is not None
+                    and line_state.volume < line_state.volume_min * 0.999
+                ):
+                    return False
+
+                if (
+                    line_state.volume_max is not None
+                    and line_state.volume > line_state.volume_max * 1.001
+                ):
                     return False
 
             # Check tank pressure
-            if self.tank.pressure <= 0 or not np.isfinite(self.tank.pressure):
+            if not np.isfinite(self.tank.pressure) or not np.isfinite(
+                self.tank.volume
+            ):
                 return False
+
+            if self.tank.pressure <= 0 or self.tank.volume <= 0:
+                return False
+
+            if (
+                self.tank.pressure_min is not None
+                and self.tank.pressure < self.tank.pressure_min * 0.999
+            ):
+                return False
+
+            if (
+                self.tank.pressure_max is not None
+                and self.tank.pressure > self.tank.pressure_max * 1.001
+            ):
+                return False
+
+            if (
+                self.tank.volume_min is not None
+                and self.tank.volume < self.tank.volume_min * 0.999
+            ):
+                return False
+
+            if (
+                self.tank.volume_max is not None
+                and self.tank.volume > self.tank.volume_max * 1.001
+            ):
+                return False
+
+            # Wheel volumes and lever angles
+            for wheel_state in self.wheels.values():
+                if not np.isfinite(wheel_state.lever_angle):
+                    return False
+                if (
+                    wheel_state.lever_angle_min is not None
+                    and wheel_state.lever_angle < wheel_state.lever_angle_min - 1e-6
+                ):
+                    return False
+                if (
+                    wheel_state.lever_angle_max is not None
+                    and wheel_state.lever_angle > wheel_state.lever_angle_max + 1e-6
+                ):
+                    return False
+                if not np.isfinite(wheel_state.vol_head) or not np.isfinite(
+                    wheel_state.vol_rod
+                ):
+                    return False
+                if wheel_state.vol_head <= 0 or wheel_state.vol_rod <= 0:
+                    return False
+                if (
+                    wheel_state.vol_head_min > 0
+                    and wheel_state.vol_head < wheel_state.vol_head_min * 0.999
+                ):
+                    return False
+                if (
+                    wheel_state.vol_head_max > 0
+                    and wheel_state.vol_head > wheel_state.vol_head_max * 1.001
+                ):
+                    return False
+                if (
+                    wheel_state.vol_rod_min > 0
+                    and wheel_state.vol_rod < wheel_state.vol_rod_min * 0.999
+                ):
+                    return False
+                if (
+                    wheel_state.vol_rod_max > 0
+                    and wheel_state.vol_rod > wheel_state.vol_rod_max * 1.001
+                ):
+                    return False
 
             return True
 

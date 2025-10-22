@@ -7,7 +7,7 @@ repos:
    rev: 23.12.1
    hooks:
      - id: black
-       language_version: python3.13
+       language_version: python3.12
        args: ['--line-length=88']
 
  # Flake8 - проверка стиля кода (только src/, app.py и tools/)
@@ -23,7 +23,7 @@ repos:
    rev: v1.8.0
    hooks:
      - id: mypy
-       args: ['--ignore-missing-imports', '--python-version=3.13']
+       args: ['--ignore-missing-imports', '--python-version=3.12']
        files: '^(app\.py|src/|tools/)'
 
  # Ruff - быстрая проверка кода (только src/, app.py и tools/)

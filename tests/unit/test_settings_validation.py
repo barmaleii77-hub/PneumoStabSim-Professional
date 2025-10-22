@@ -111,7 +111,7 @@ def test_validate_settings_missing_simulation_section(
     with pytest.raises(ValueError) as exc:
         runner._validate_settings_file()
 
-    assert "current.simulation" in str(exc.value)
+    assert "обязательная секция current.simulation" in str(exc.value)
     assert "current.simulation" in _last_error(stub_qmessagebox)
 
 
@@ -125,7 +125,7 @@ def test_validate_settings_missing_physics_dt(
     with pytest.raises(ValueError) as exc:
         runner._validate_settings_file()
 
-    assert "current.simulation.physics_dt" in str(exc.value)
+    assert "physics_dt" in str(exc.value)
     assert "physics_dt" in _last_error(stub_qmessagebox)
 
 
@@ -141,3 +141,31 @@ def test_validate_settings_missing_receiver_limit(
 
     assert "receiver_volume_limits" in str(exc.value)
     assert "receiver_volume_limits" in _last_error(stub_qmessagebox)
+
+
+def test_validate_settings_missing_geometry_section(
+    runner: ApplicationRunner, write_config, stub_qmessagebox
+):
+    settings = _base_settings()
+    settings["current"].pop("geometry")
+    write_config(settings)
+
+    with pytest.raises(ValueError) as exc:
+        runner._validate_settings_file()
+
+    assert "current.geometry" in str(exc.value)
+    assert "geometry" in _last_error(stub_qmessagebox)
+
+
+def test_validate_settings_missing_volume_mode(
+    runner: ApplicationRunner, write_config, stub_qmessagebox
+):
+    settings = _base_settings()
+    settings["current"]["pneumatic"].pop("volume_mode")
+    write_config(settings)
+
+    with pytest.raises(ValueError) as exc:
+        runner._validate_settings_file()
+
+    assert "volume_mode" in str(exc.value)
+    assert "volume_mode" in _last_error(stub_qmessagebox)

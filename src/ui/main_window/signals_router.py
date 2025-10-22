@@ -8,9 +8,12 @@ Russian comments / English code.
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING, Any, Dict
+from typing import TYPE_CHECKING, Any, Dict, Optional
 
 from PySide6.QtCore import Qt
+
+from ...pneumo.enums import Line, Wheel
+from .qml_bridge import QMLBridge
 
 if TYPE_CHECKING:
     from .main_window import MainWindow
@@ -29,6 +32,91 @@ class SignalsRouter:
     """
 
     logger = logging.getLogger(__name__)
+    _WHEEL_KEY_MAP = {
+        Wheel.LP: "fl",
+        Wheel.PP: "fr",
+        Wheel.LZ: "rl",
+        Wheel.PZ: "rr",
+    }
+
+    @staticmethod
+    def _build_simulation_payload(snapshot: "StateSnapshot") -> Dict[str, Any]:
+        if snapshot is None:
+            return {}
+
+        levers: Dict[str, float] = {}
+        pistons: Dict[str, float] = {}
+        for wheel_enum, state in snapshot.wheels.items():
+            corner = SignalsRouter._WHEEL_KEY_MAP.get(wheel_enum)
+            if not corner:
+                continue
+            levers[corner] = float(state.lever_angle)
+            pistons[corner] = float(state.piston_position)
+
+        lines: Dict[str, Dict[str, Any]] = {}
+        for line_enum, line_state in snapshot.lines.items():
+            lines[line_enum.value] = {
+                "pressure": float(line_state.pressure),
+                "temperature": float(line_state.temperature),
+                "flowAtmo": float(line_state.flow_atmo),
+                "flowTank": float(line_state.flow_tank),
+                "cvAtmoOpen": bool(line_state.cv_atmo_open),
+                "cvTankOpen": bool(line_state.cv_tank_open),
+            }
+
+        aggregates = snapshot.aggregates
+        aggregates_payload = {
+            "kineticEnergy": float(aggregates.kinetic_energy),
+            "potentialEnergy": float(aggregates.potential_energy),
+            "pneumaticEnergy": float(aggregates.pneumatic_energy),
+            "totalFlowIn": float(aggregates.total_flow_in),
+            "totalFlowOut": float(aggregates.total_flow_out),
+            "netFlow": float(aggregates.net_flow),
+            "physicsStepTime": float(aggregates.physics_step_time),
+            "integrationSteps": int(aggregates.integration_steps),
+            "integrationFailures": int(aggregates.integration_failures),
+            "stepNumber": int(snapshot.step_number),
+            "simulationTime": float(snapshot.simulation_time),
+        }
+
+        frame_state = snapshot.frame
+        frame_payload = {
+            "heave": float(frame_state.heave),
+            "roll": float(frame_state.roll),
+            "pitch": float(frame_state.pitch),
+            "heaveRate": float(frame_state.heave_rate),
+            "rollRate": float(frame_state.roll_rate),
+            "pitchRate": float(frame_state.pitch_rate),
+        }
+
+        tank_state = snapshot.tank
+        tank_payload = {
+            "pressure": float(tank_state.pressure),
+            "temperature": float(tank_state.temperature),
+            "volume": float(tank_state.volume),
+        }
+
+        return {
+            "levers": levers,
+            "pistons": pistons,
+            "lines": lines,
+            "aggregates": aggregates_payload,
+            "frame": frame_payload,
+            "tank": tank_payload,
+            "masterIsolationOpen": bool(snapshot.master_isolation_open),
+            "thermoMode": snapshot.thermo_mode,
+        }
+
+    @staticmethod
+    def _queue_simulation_update(
+        window: "MainWindow", snapshot: Optional["StateSnapshot"]
+    ) -> None:
+        if snapshot is None:
+            return
+
+        payload = SignalsRouter._build_simulation_payload(snapshot)
+        if payload:
+            QMLBridge.queue_update(window, "simulation", payload)
 
     # ------------------------------------------------------------------
     # Setup Connections
@@ -277,28 +365,44 @@ class SignalsRouter:
             window: MainWindow instance
             snapshot: Current simulation state
         """
-        window.current_snapshot = snapshot
+        latest_snapshot: Optional[StateSnapshot] = snapshot
 
         try:
-            if snapshot:
+            if (
+                hasattr(window, "simulation_manager")
+                and window.simulation_manager is not None
+                and hasattr(window.simulation_manager, "get_latest_state")
+            ):
+                fresh_snapshot = window.simulation_manager.get_latest_state()
+                if fresh_snapshot is not None:
+                    latest_snapshot = fresh_snapshot
+        except Exception as exc:
+            SignalsRouter.logger.debug(
+                "Failed to fetch latest snapshot: %s", exc, exc_info=exc
+            )
+
+        window.current_snapshot = latest_snapshot
+
+        try:
+            if latest_snapshot:
                 # Update status bar metrics
                 window.sim_time_label.setText(
-                    f"Sim Time: {snapshot.simulation_time:.3f}s"
+                    f"Sim Time: {latest_snapshot.simulation_time:.3f}s"
                 )
-                window.step_count_label.setText(f"Steps: {snapshot.step_number}")
+                window.step_count_label.setText(
+                    f"Steps: {latest_snapshot.step_number}"
+                )
 
-                if snapshot.aggregates.physics_step_time > 0:
-                    fps = 1.0 / snapshot.aggregates.physics_step_time
+                if latest_snapshot.aggregates.physics_step_time > 0:
+                    fps = 1.0 / latest_snapshot.aggregates.physics_step_time
                     window.fps_label.setText(f"Physics FPS: {fps:.1f}")
 
             # Update charts
             if window.chart_widget:
-                window.chart_widget.update_from_snapshot(snapshot)
+                window.chart_widget.update_from_snapshot(latest_snapshot)
 
-            # Push state to QML
-            from .qml_bridge import QMLBridge
-
-            QMLBridge.set_simulation_state(window, snapshot)
+            # Push state to QML (meters/pascals/radians)
+            SignalsRouter._queue_simulation_update(window, latest_snapshot)
         except Exception as e:
             SignalsRouter.logger.error(f"State update error: {e}")
 

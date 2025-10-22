@@ -39,6 +39,51 @@ class SettingsManager:
     }
     """
 
+    # Canonical geometry keys exposed in meters for UI/visualization modules
+    _GEOMETRY_KEY_ALIASES = {
+        "frame_length_m": (
+            "frame_length_m",
+            "frameLength",
+            "frame_length",
+            "frameLengthMeters",
+        ),
+        "frame_height_m": (
+            "frame_height_m",
+            "frameHeight",
+            "frame_height",
+        ),
+        "frame_beam_size_m": (
+            "frame_beam_size_m",
+            "frameBeamSize",
+            "beam_size",
+        ),
+        "lever_length_m": (
+            "lever_length_m",
+            "lever_length",
+            "leverLength",
+        ),
+        "cylinder_body_length_m": (
+            "cylinder_body_length_m",
+            "cylinder_length",
+            "cylinderBodyLength",
+        ),
+        "tail_rod_length_m": (
+            "tail_rod_length_m",
+            "tailRodLength",
+            "tail_rod_length",
+            "piston_rod_length_m",
+        ),
+    }
+
+    _GEOMETRY_DEFAULTS_METERS = {
+        "frame_length_m": 2.0,
+        "frame_height_m": 0.65,
+        "frame_beam_size_m": 0.12,
+        "lever_length_m": 0.315,
+        "cylinder_body_length_m": 0.25,
+        "tail_rod_length_m": 0.1,
+    }
+
     def __init__(self, settings_file: str | Path = "config/app_settings.json"):
         self.logger = logging.getLogger(__name__)
         # Разрешаем путь к файлу настроек более надёжно (CWD / корень проекта / env var)
@@ -51,6 +96,30 @@ class SettingsManager:
 
         # Загрузка настроек
         self.load()
+
+    # ------------------------------------------------------------------
+    # Geometry helpers
+    # ------------------------------------------------------------------
+    def get_geometry_snapshot(self) -> Dict[str, float]:
+        """Return geometry configuration in meters with sensible defaults."""
+
+        geometry_raw = self.get_category("geometry") or {}
+        snapshot: Dict[str, float] = {}
+
+        for canonical_key, aliases in self._GEOMETRY_KEY_ALIASES.items():
+            value = None
+            for alias in aliases:
+                if alias in geometry_raw:
+                    value = self._convert_value(geometry_raw[alias])
+                    break
+
+            if value is None:
+                value = self._GEOMETRY_DEFAULTS_METERS.get(canonical_key)
+
+            if value is not None:
+                snapshot[canonical_key] = float(value)
+
+        return snapshot
 
     def _resolve_settings_file(self, settings_file: str | Path) -> Path:
         """Определить корректный путь к файлу настроек.

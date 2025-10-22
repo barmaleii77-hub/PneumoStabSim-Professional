@@ -17,6 +17,8 @@ import platform
 QT_ENV_DEFAULTS: Dict[str, str] = {
     "QT_QPA_PLATFORM": "offscreen",
     "QT_QUICK_BACKEND": "software",
+    "QT_PLUGIN_PATH": "",
+    "QML2_IMPORT_PATH": "",
 }
 
 

@@ -118,6 +118,35 @@ python -c "import scipy; print(f'SciPy {scipy.__version__}')"
 - ✅ Устанавливается кодировка UTF-8
 - ✅ Показывается справка с полезными командами
 
+---
+
+## Обязательные поля конфигурации
+
+Перед запуском приложение валидирует `config/app_settings.json`. Убедитесь, что в файле присутствуют следующие ключи и что значения заданы в корректных единицах (СИ):
+
+- `current.simulation.physics_dt` — шаг физики в секундах.
+- `current.simulation.render_vsync_hz` — целевая частота отрисовки.
+- `current.simulation.max_steps_per_frame` — максимальное число шагов симуляции за кадр.
+- `current.simulation.max_frame_time` — ограничение длительности кадра симуляции.
+- `current.pneumatic.receiver_volume_limits.min_m3` / `max_m3` — допустимый диапазон объёма ресивера (0 < min < max).
+- `current.pneumatic.receiver_volume` — рабочий объём ресивера, лежит внутри диапазона.
+- `current.pneumatic.volume_mode` — режим расчёта объёма (`MANUAL` или `GEOMETRIC`).
+- `current.pneumatic.master_isolation_open` — состояние главного отсечного клапана.
+- `current.pneumatic.thermo_mode` — режим термодинамики (`ISOTHERMAL`, `ADIABATIC`, ...).
+- `current.geometry` — непустая секция с геометрическими параметрами (например, `wheelbase`, `track`, `lever_length_m`).
+- `current.graphics.materials` — содержит материалы `frame`, `lever`, `tail`, `cylinder`, `piston_body`, `piston_rod`, `joint_tail`, `joint_arm`, `joint_rod`.
+
+При отсутствии любого из перечисленных значений запуск будет прерван с диагностикой до создания окна.
+
+### Миграция единиц (legacy → SI)
+
+Если вы обновляетесь со старой версии настроек, выполните следующие шаги:
+
+1. Сделайте резервную копию `config/app_settings.json`.
+2. Приведите все значения геометрии к метрам, а давления — к Паскалям (см. комментарии в файле).
+3. Убедитесь, что секция `metadata.units_version` установлена в `"si_v2"`.
+4. Запустите приложение (`python app.py --test-mode` или `python app.py`) — при старте выполнится дополнительная проверка и будет выведено предупреждение, если какие-либо поля ещё требуют обновления.
+
 Доступные команды в терминале:
 ```powershell
 run              # Запустить приложение

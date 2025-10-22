@@ -82,7 +82,9 @@ class GasNetwork:
             else:
                 raise ValueError(f"Unknown thermo mode: {thermo_mode}")
 
-    def apply_valves_and_flows(self, dt: float, log: Optional[logging.Logger] = None):
+    def apply_valves_and_flows(
+        self, dt: float, log: Optional[logging.Logger] = None
+    ) -> Dict[str, Dict[str, float]]:
         """Apply valve flows for one time step
 
         Args:
@@ -93,6 +95,10 @@ class GasNetwork:
             raise ValueError(f"Time step must be positive: {dt}")
 
         # Process flows for each line
+        line_flows: Dict[Line, Dict[str, float]] = {
+            line_name: {"flow_atmo": 0.0, "flow_tank": 0.0}
+            for line_name in self.lines.keys()
+        }
         for line_name, line_state in self.lines.items():
             pneumo_line = self.system_ref.lines[line_name]
 
@@ -106,6 +112,7 @@ class GasNetwork:
                 # Add mass to line
                 mass_added = m_dot_atmo * dt
                 self._add_mass_to_line(line_state, mass_added, T_AMBIENT)
+                line_flows[line_name]["flow_atmo"] = float(m_dot_atmo)
 
                 if log:
                     log.debug(
@@ -124,6 +131,7 @@ class GasNetwork:
                     m_dot_tank * dt, line_state.m * 0.99
                 )  # Prevent complete depletion
                 self._transfer_mass_line_to_tank(line_state, mass_transferred)
+                line_flows[line_name]["flow_tank"] = float(m_dot_tank)
 
                 if log:
                     log.debug(
@@ -131,7 +139,9 @@ class GasNetwork:
                     )
 
         # Process receiver relief valves
-        self._apply_receiver_relief_valves(dt, log)
+        relief_flows = self._apply_receiver_relief_valves(dt, log)
+
+        return {"lines": line_flows, "relief": relief_flows}
 
     def _add_mass_to_line(
         self, line_state: LineGasState, mass_added: float, T_inlet: float
@@ -196,7 +206,7 @@ class GasNetwork:
 
     def _apply_receiver_relief_valves(
         self, dt: float, log: Optional[logging.Logger] = None
-    ):
+    ) -> Dict[str, float]:
         """Apply receiver relief valve flows
 
         Args:
@@ -214,6 +224,7 @@ class GasNetwork:
         d_eq_stiff_bleed = 1.0e-3  # 1mm throttle
 
         total_mass_out = 0.0
+        relief_log = {"flow_min": 0.0, "flow_stiff": 0.0, "flow_safety": 0.0}
 
         # MIN_PRESS relief (maintain minimum pressure)
         if self.tank.p > p_min_threshold:
@@ -222,6 +233,7 @@ class GasNetwork:
             )
             mass_out_min = m_dot_min * dt
             total_mass_out += mass_out_min
+            relief_log["flow_min"] = float(m_dot_min)
 
             if log:
                 log.debug(
@@ -235,6 +247,7 @@ class GasNetwork:
             )
             mass_out_stiff = m_dot_stiff * dt
             total_mass_out += mass_out_stiff
+            relief_log["flow_stiff"] = float(m_dot_stiff)
 
             if log:
                 log.debug(
@@ -246,6 +259,7 @@ class GasNetwork:
             m_dot_safety = mass_flow_unlimited(self.tank.p, self.tank.T)
             mass_out_safety = m_dot_safety * dt
             total_mass_out += mass_out_safety
+            relief_log["flow_safety"] = float(m_dot_safety)
 
             if log:
                 log.debug(
@@ -261,6 +275,8 @@ class GasNetwork:
                 self.tank.p = p_from_mTV(self.tank.m, self.tank.T, self.tank.V)
             else:
                 self.tank.p = 0.0
+
+        return relief_log
 
     def enforce_master_isolation(self, log: Optional[logging.Logger] = None):
         """Enforce master isolation when enabled - equalize all line pressures

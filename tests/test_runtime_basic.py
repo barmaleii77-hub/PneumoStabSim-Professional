@@ -5,6 +5,9 @@ from pathlib import Path
 
 import pytest
 
+PA_ATM = 101325.0
+T_AMBIENT = 293.15
+
 project_root = Path(__file__).parent.parent
 src_path = project_root / "src"
 if str(src_path) not in sys.path:
@@ -21,6 +24,35 @@ def test_state_snapshot_defaults_are_valid():
 
     assert snapshot.step_number == 0
     assert snapshot.simulation_time == pytest.approx(0.0)
+
+    for wheel_state in snapshot.wheels.values():
+        wheel_state.lever_angle = 0.0
+        wheel_state.lever_angle_min = -0.5
+        wheel_state.lever_angle_max = 0.5
+        wheel_state.vol_head = 1e-4
+        wheel_state.vol_head_min = 5e-5
+        wheel_state.vol_head_max = 2e-4
+        wheel_state.vol_rod = 1e-4
+        wheel_state.vol_rod_min = 5e-5
+        wheel_state.vol_rod_max = 2e-4
+
+    for line_state in snapshot.lines.values():
+        line_state.pressure = PA_ATM
+        line_state.pressure_min = PA_ATM * 0.5
+        line_state.pressure_max = PA_ATM * 5.0
+        line_state.volume = 1e-4
+        line_state.volume_min = 5e-5
+        line_state.volume_max = 2e-4
+        line_state.temperature = T_AMBIENT
+
+    snapshot.tank.pressure = PA_ATM
+    snapshot.tank.pressure_min = PA_ATM * 0.5
+    snapshot.tank.pressure_max = PA_ATM * 5.0
+    snapshot.tank.volume = 5e-3
+    snapshot.tank.volume_min = 1e-3
+    snapshot.tank.volume_max = 1e-2
+    snapshot.tank.temperature = T_AMBIENT
+
     assert snapshot.validate()
     expected_wheels = {Wheel.LP, Wheel.PP, Wheel.LZ, Wheel.PZ}
     expected_lines = {Line.A1, Line.B1, Line.A2, Line.B2}
@@ -31,6 +63,35 @@ def test_state_snapshot_defaults_are_valid():
 
 def test_state_snapshot_invalid_pressure_fails_validation():
     snapshot = StateSnapshot()
+
+    for wheel_state in snapshot.wheels.values():
+        wheel_state.lever_angle = 0.0
+        wheel_state.lever_angle_min = -0.5
+        wheel_state.lever_angle_max = 0.5
+        wheel_state.vol_head = 1e-4
+        wheel_state.vol_head_min = 5e-5
+        wheel_state.vol_head_max = 2e-4
+        wheel_state.vol_rod = 1e-4
+        wheel_state.vol_rod_min = 5e-5
+        wheel_state.vol_rod_max = 2e-4
+
+    for line_state in snapshot.lines.values():
+        line_state.pressure = PA_ATM
+        line_state.pressure_min = PA_ATM * 0.5
+        line_state.pressure_max = PA_ATM * 5.0
+        line_state.volume = 1e-4
+        line_state.volume_min = 5e-5
+        line_state.volume_max = 2e-4
+        line_state.temperature = T_AMBIENT
+
+    snapshot.tank.pressure = PA_ATM
+    snapshot.tank.pressure_min = PA_ATM * 0.5
+    snapshot.tank.pressure_max = PA_ATM * 5.0
+    snapshot.tank.volume = 5e-3
+    snapshot.tank.volume_min = 1e-3
+    snapshot.tank.volume_max = 1e-2
+    snapshot.tank.temperature = T_AMBIENT
+
     first_line = next(iter(snapshot.lines.values()))
     first_line.pressure = -10.0
 

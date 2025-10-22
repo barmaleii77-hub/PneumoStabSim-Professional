@@ -23,23 +23,23 @@ Node {
     required property vector3d j_arm      // Arm pivot point
     required property vector3d j_tail     // Tail attachment point
     required property real leverAngle     // Lever rotation angle (degrees)
-    required property real pistonPositionFromPython  // Piston position from simulation (mm)
+    required property real pistonPositionM // Piston position from simulation (m)
 
     // ===============================================================
     // GEOMETRY PARAMETERS (from root or defaults)
     // ===============================================================
 
-    property real leverLength: 800        // мм
+    property real leverLengthM:0.8        // м
     property real rodPosition: 0.6        // Fraction (0.0 - 1.0)
-    property real cylinderLength: 500     // мм
-    property real boreHead: 80            // мм
-    property real rodDiameter: 35         // мм
-    property real pistonThickness: 25     // мм
-    property real pistonRodLength: 200    // мм
+    property real cylinderLength: 500E-3  // м
+    property real boreHead: 80E-3         // м
+    property real rodDiameter: 35E-3      // м
+    property real pistonThickness: 25E-3  // м
+    property real pistonRodLength: 200E-3 // м
     property int cylinderSegments: 64
     property int cylinderRings: 8
     // Новый параметр длины хвостовика цилиндра (отрезок от j_tail до начала цилиндра)
-    property real tailRodLength: 100      // мм
+    property real tailRodLength: 100E-3   // м
 
     // Масштабы шарниров (радиус/высота) как множители базовых значений
     property real jointTailScale: 1.0
@@ -68,8 +68,8 @@ Node {
 
     // Calculate j_rod position (rod attachment point on lever)
     readonly property vector3d j_rod: Qt.vector3d(
-        j_arm.x + (leverLength * rodPosition) * Math.cos(totalAngle * Math.PI / 180),
-        j_arm.y + (leverLength * rodPosition) * Math.sin(totalAngle * Math.PI / 180),
+        j_arm.x + (leverLengthM * rodPosition) * Math.cos(totalAngle * Math.PI / 180),
+        j_arm.y + (leverLengthM * rodPosition) * Math.sin(totalAngle * Math.PI / 180),
         j_arm.z
     )
 
@@ -99,8 +99,8 @@ Node {
 
     // Piston center position (from Python simulation)
     readonly property vector3d pistonCenter: Qt.vector3d(
-        cylStart.x + cylDirectionNorm.x * pistonPositionFromPython,
-        cylStart.y + cylDirectionNorm.y * pistonPositionFromPython,
+        cylStart.x + cylDirectionNorm.x * pistonPositionM,
+        cylStart.y + cylDirectionNorm.y * pistonPositionM,
         cylStart.z
     )
 
@@ -123,12 +123,12 @@ Node {
     Model {
         source: "#Cube"
         position: Qt.vector3d(
-            j_arm.x + (leverLength/2) * Math.cos(totalAngle * Math.PI / 180),
-            j_arm.y + (leverLength/2) * Math.sin(totalAngle * Math.PI / 180),
+            j_arm.x + (leverLengthM /2) * Math.cos(totalAngle),
+            j_arm.y + (leverLengthM /2) * Math.sin(totalAngle),
             j_arm.z
         )
-        scale: Qt.vector3d(leverLength/100, 0.8, 0.8)
-        eulerRotation: Qt.vector3d(0, 0, totalAngle)
+        scale: Qt.vector3d(leverLengthM,0.008,0.008)
+        eulerRotation: Qt.vector3d(0,0, totalAngle *180 / Math.PI)
         materials: [leverMaterial]
     }
 
@@ -136,12 +136,12 @@ Node {
     Model {
         source: "#Cylinder"
         position: Qt.vector3d(
-            (j_tail.x + tailRodEnd.x)/2,
-            (j_tail.y + tailRodEnd.y)/2,
+            (j_tail.x + tailRodEnd.x) /2,
+            (j_tail.y + tailRodEnd.y) /2,
             j_tail.z
         )
-        scale: Qt.vector3d(0.5, tailRodLength/100, 0.5)
-        eulerRotation: Qt.vector3d(0, 0, Math.atan2(tailRodEnd.y - j_tail.y, tailRodEnd.x - j_tail.x) * 180 / Math.PI + 90)
+        scale: Qt.vector3d(0.005, tailRodLength /100,0.005)
+        eulerRotation: Qt.vector3d(0,0, Math.atan2(tailRodEnd.y - j_tail.y, tailRodEnd.x - j_tail.x) *180 / Math.PI +90)
         materials: [tailRodMaterial]
     }
 
@@ -149,12 +149,12 @@ Node {
     Model {
         source: "#Cylinder"
         position: Qt.vector3d(
-            (cylStart.x + cylEnd.x)/2,
-            (cylStart.y + cylEnd.y)/2,
+            (cylStart.x + cylEnd.x) /2,
+            (cylStart.y + cylEnd.y) /2,
             cylStart.z
         )
-        scale: Qt.vector3d(boreHead/100 * 1.2, cylinderLength/100, boreHead/100 * 1.2)
-        eulerRotation: Qt.vector3d(0, 0, Math.atan2(cylEnd.y - cylStart.y, cylEnd.x - cylStart.x) * 180 / Math.PI + 90)
+        scale: Qt.vector3d(boreHead /100 *1.2, cylinderLength /100, boreHead /100 *1.2)
+        eulerRotation: Qt.vector3d(0,0, Math.atan2(cylEnd.y - cylStart.y, cylEnd.x - cylStart.x) *180 / Math.PI +90)
         materials: [cylinderMaterial]
     }
 
@@ -162,9 +162,8 @@ Node {
     Model {
         source: "#Cylinder"
         position: pistonCenter
-        // ✅ ЕДИНОЕ масштабирование /100 для согласованности
-        scale: Qt.vector3d(boreHead/100 * 1.08, pistonThickness/100, boreHead/100 * 1.08)
-        eulerRotation: Qt.vector3d(0, 0, Math.atan2(cylDirection.y, cylDirection.x) * 180 / Math.PI + 90)
+        scale: Qt.vector3d(boreHead /100 *1.08, pistonThickness /100, boreHead /100 *1.08)
+        eulerRotation: Qt.vector3d(0,0, Math.atan2(cylDirection.y, cylDirection.x) *180 / Math.PI +90)
         materials: [pistonBodyMaterial]
     }
 
@@ -241,7 +240,7 @@ Node {
         console.log("   j_tail:", j_tail.x, j_tail.y, j_tail.z)
         console.log("   j_rod:", j_rod.x, j_rod.y, j_rod.z)
         console.log("   leverAngle:", leverAngle, "deg")
-        console.log("   pistonPosition:", pistonPositionFromPython, "mm")
+        console.log("   pistonPosition:", pistonPositionM, "mm")
         console.log("   rodLengthError:", rodLengthError.toFixed(2), "mm")
     }
 }

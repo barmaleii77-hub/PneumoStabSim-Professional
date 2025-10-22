@@ -8,6 +8,7 @@ Russian UI / English code.
 from __future__ import annotations
 
 import logging
+import os
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -36,6 +37,14 @@ class UISetup:
     """
 
     logger = logging.getLogger(__name__)
+
+    _SUPPORTED_SCENES: dict[str, Path] = {
+        "main": Path("assets/qml/main.qml"),
+        "realism": Path("assets/qml/main_v2_realism.qml"),
+        "fallback": Path("assets/qml/main_fallback.qml"),
+    }
+    _SCENE_LOAD_ORDER: tuple[str, ...] = ("main", "realism", "fallback")
+    _SCENE_ENV_VAR = "PSS_QML_SCENE"
 
     # ------------------------------------------------------------------
     # Central Widget Setup
@@ -125,7 +134,7 @@ class UISetup:
                 engine.addImportPath(str(local_qml_path.absolute()))
 
             # Load QML file
-            qml_file = Path("assets/qml/main.qml")
+            qml_file = UISetup._resolve_supported_qml_scene()
             if not qml_file.exists():
                 raise FileNotFoundError(f"QML file not found: {qml_file}")
 
@@ -147,7 +156,9 @@ class UISetup:
             # Store base directory
             window._qml_base_dir = qml_file.parent.resolve()
 
-            UISetup.logger.info("    ✅ main.qml loaded successfully")
+            UISetup.logger.info(
+                "    ✅ %s loaded successfully", qml_file.name
+            )
 
         except Exception as e:
             UISetup.logger.exception(f"    ❌ QML load failed: {e}")
@@ -170,6 +181,67 @@ class UISetup:
         """Setup legacy OpenGL widget (stub)"""
         UISetup.logger.debug("_setup_legacy_opengl_view: Fallback to QML")
         UISetup._setup_qml_3d_view(window)
+
+    @staticmethod
+    def _normalize_scene_key(value: str) -> str:
+        key = value.strip().lower().replace("-", "_")
+        if key.endswith(".qml"):
+            key = key[:-4]
+        if key.startswith("main.") and key != "main":
+            key = key.split(".", 1)[0]
+        if key.startswith("main_") and key != "main":
+            key = key[len("main_") :]
+        return key
+
+    @staticmethod
+    def _resolve_supported_qml_scene() -> Path:
+        """Resolve which QML scene should be loaded."""
+
+        requested = os.environ.get(UISetup._SCENE_ENV_VAR)
+        load_order = list(UISetup._SCENE_LOAD_ORDER)
+
+        if requested:
+            normalized = UISetup._normalize_scene_key(requested)
+            if normalized in UISetup._SUPPORTED_SCENES:
+                load_order = [normalized] + [
+                    name for name in load_order if name != normalized
+                ]
+                UISetup.logger.info(
+                    "    [QML] Requested scene via %s: %s",
+                    UISetup._SCENE_ENV_VAR,
+                    UISetup._SUPPORTED_SCENES[normalized].name,
+                )
+            else:
+                UISetup.logger.warning(
+                    "    [QML] Unsupported scene '%s' requested via %s. "
+                    "Allowed: %s",
+                    requested,
+                    UISetup._SCENE_ENV_VAR,
+                    ", ".join(
+                        UISetup._SUPPORTED_SCENES[name].name
+                        for name in UISetup._SCENE_LOAD_ORDER
+                    ),
+                )
+
+        for scene_key in load_order:
+            scene_path = UISetup._SUPPORTED_SCENES[scene_key]
+            if scene_path.exists():
+                UISetup.logger.info(
+                    "    [QML] Загрузка сцены: %s", scene_path.name
+                )
+                return scene_path
+            UISetup.logger.debug(
+                "    [QML] Scene %s not found at %s",
+                scene_key,
+                scene_path,
+            )
+
+        searched = ", ".join(
+            str(UISetup._SUPPORTED_SCENES[key]) for key in UISetup._SCENE_LOAD_ORDER
+        )
+        raise FileNotFoundError(
+            "No supported QML scenes found. Checked: " + searched
+        )
 
     # ------------------------------------------------------------------
     # Tabs Setup
