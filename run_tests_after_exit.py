@@ -5,11 +5,42 @@ Post-Exit Test Runner
 Запускает тестовые скрипты ПОСЛЕ закрытия приложения
 """
 
+import os
 import sys
 import subprocess
 import time
+from functools import lru_cache
 from pathlib import Path
-from typing import List, Dict, Optional
+from typing import Dict, List, Optional
+
+
+QT_ENV_DEFAULTS: Dict[str, str] = {
+    "QT_QPA_PLATFORM": "offscreen",
+    "QT_QUICK_BACKEND": "software",
+}
+
+
+@lru_cache(maxsize=1)
+def _detect_qt_environment() -> Dict[str, str]:
+    """Возвращает значения переменных окружения для корректной работы Qt."""
+
+    environment = dict(QT_ENV_DEFAULTS)
+
+    try:
+        from PySide6.QtCore import QLibraryInfo, LibraryLocation  # type: ignore
+    except Exception as exc:  # pragma: no cover - диагностический вывод
+        print(f"⚠️ Не удалось определить пути Qt автоматически: {exc}")
+        return environment
+
+    plugin_path = QLibraryInfo.path(LibraryLocation.Plugins)
+    if plugin_path:
+        environment["QT_PLUGIN_PATH"] = plugin_path
+
+    qml_import_path = QLibraryInfo.path(LibraryLocation.QmlImports)
+    if qml_import_path:
+        environment["QML2_IMPORT_PATH"] = qml_import_path
+
+    return environment
 
 
 class PostExitTestRunner:
@@ -18,6 +49,12 @@ class PostExitTestRunner:
     def __init__(self):
         self.project_root = Path(__file__).parent
         self.test_results: List[Dict] = []
+        self.test_environment = os.environ.copy()
+        self.test_environment.update(_detect_qt_environment())
+
+        print("🔧 Настройка окружения Qt для тестов:")
+        for key, value in _detect_qt_environment().items():
+            print(f" • {key}={value}")
 
     def run_test_script(self, script_path: Path, timeout: int = 30) -> Dict:
         """
@@ -46,6 +83,7 @@ class PostExitTestRunner:
                 timeout=timeout,
                 encoding="utf-8",
                 errors="replace",
+                env=self.test_environment,
             )
 
             elapsed = time.perf_counter() - start_time

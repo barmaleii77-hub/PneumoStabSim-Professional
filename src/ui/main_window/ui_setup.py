@@ -91,12 +91,12 @@ class UISetup:
     def _setup_qml_3d_view(window: MainWindow) -> None:
         """Setup Qt Quick 3D scene with QQuickWidget
 
-        Loads full-featured scene (main_v2_realism.qml) with complete animation/geometry.
+        Loads unified main.qml file with full suspension visualization.
 
         Args:
             window: MainWindow instance
         """
-        UISetup.logger.info("    [QML] Загрузка полной сцены...")
+        UISetup.logger.info("    [QML] Загрузка main.qml...")
 
         try:
             window._qquick_widget = QQuickWidget(window)
@@ -124,10 +124,8 @@ class UISetup:
             if local_qml_path.exists():
                 engine.addImportPath(str(local_qml_path.absolute()))
 
-            # Prefer full scene file; fallback to main.qml if not present
-            primary_qml = Path("assets/qml/main_v2_realism.qml")
-            fallback_qml = Path("assets/qml/main.qml")
-            qml_file = primary_qml if primary_qml.exists() else fallback_qml
+            # Load QML file
+            qml_file = Path("assets/qml/main.qml")
             if not qml_file.exists():
                 raise FileNotFoundError(f"QML file not found: {qml_file}")
 
@@ -146,10 +144,10 @@ class UISetup:
             if not window._qml_root_object:
                 raise RuntimeError("Failed to get QML root object")
 
-            # Store base directory (for HDR path normalization etc.)
+            # Store base directory
             window._qml_base_dir = qml_file.parent.resolve()
 
-            UISetup.logger.info(f"    ✅ Загружен файл: {qml_file.name}")
+            UISetup.logger.info("    ✅ main.qml loaded successfully")
 
         except Exception as e:
             UISetup.logger.exception(f"    ❌ QML load failed: {e}")
@@ -158,7 +156,7 @@ class UISetup:
             fallback = QLabel(
                 f"КРИТИЧЕСКАЯ ОШИБКА ЗАГРУЗКИ 3D СЦЕНЫ\n\n"
                 f"Ошибка: {e}\n\n"
-                f"Проверьте файл assets/qml/main_v2_realism.qml или assets/qml/main.qml"
+                f"Проверьте файл assets/qml/main.qml"
             )
             fallback.setAlignment(Qt.AlignmentFlag.AlignCenter)
             fallback.setStyleSheet(

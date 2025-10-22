@@ -9,6 +9,7 @@ from PySide6.QtGui import QVector3D
 from PySide6.QtCore import QObject, Signal, Property
 from typing import Dict, Any, Optional
 
+from ..core.settings import SettingsManager
 from ..core.geometry import GeometryParams
 
 
@@ -411,8 +412,6 @@ class GeometryTo3DConverter(QObject):
 
     def save_to_settings(self):
         """Save current geometry settings to persistent storage"""
-        from ..core.settings import SettingsManager
-
         # Collect settings data
         settings_data = {
             "frameLength": self._frame_length,

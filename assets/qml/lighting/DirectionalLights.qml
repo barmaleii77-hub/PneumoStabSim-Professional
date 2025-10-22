@@ -22,11 +22,13 @@ Node {
 
     required property Node worldRoot
     required property Node cameraRig
-    required property bool shadowsEnabled
-    required property string shadowResolution
-    required property int shadowFilterSamples
-    required property real shadowBias
-    required property real shadowFactor
+
+    // OPTIONAL PROPERTIES (default values are provided)
+    property bool shadowsEnabled: true
+    property string shadowResolution: "2048"
+    property int shadowFilterSamples: 16
+    property real shadowBias: 4.0
+    property real shadowFactor: 75.0
 
     // ===============================================================
     // KEY LIGHT PROPERTIES

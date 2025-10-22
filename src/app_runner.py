@@ -182,6 +182,12 @@ class ApplicationRunner:
         sm = get_settings_manager()
         cfg_path = Path(sm.settings_file).absolute()
 
+        def _fail(message: str, exc_type: type[Exception] = ValueError) -> None:
+            if self.app_logger:
+                self.app_logger.critical(message)
+            QMessageBox.critical(None, "Ошибка конфигурации", message)
+            raise exc_type(message)
+
         # Определяем источник пути
         src = "CWD"
         if os.environ.get("PSS_SETTINGS_FILE"):
@@ -206,22 +212,14 @@ class ApplicationRunner:
 
         # 1) Существование
         if not cfg_path.exists():
-            err = f"Файл настроек не найден: {cfg_path}"
-            if self.app_logger:
-                self.app_logger.critical(err)
-            QMessageBox.critical(None, "Ошибка конфигурации", err)
-            raise FileNotFoundError(err)
+            _fail(f"Файл настроек не найден: {cfg_path}")
 
         # 2) Чтение и JSON
         try:
             with open(cfg_path, "r", encoding="utf-8") as f:
                 data = json.load(f)
         except Exception as ex:
-            err = f"Некорректный JSON в файле настроек: {cfg_path}\n{ex}"
-            if self.app_logger:
-                self.app_logger.critical(err)
-            QMessageBox.critical(None, "Ошибка конфигурации", err)
-            raise
+            _fail(f"Некорректный JSON в файле настроек: {cfg_path}\n{ex}")
 
         # 3) Обязательные ключи материалов
         try:
@@ -244,14 +242,10 @@ class ApplicationRunner:
             present = set(materials.keys()) if isinstance(materials, dict) else set()
             missing = sorted(list(required_keys - present))
             if missing:
-                err = (
+                _fail(
                     "Отсутствуют обязательные материалы в current.graphics.materials: "
                     + ", ".join(missing)
                 )
-                if self.app_logger:
-                    self.app_logger.critical(err)
-                QMessageBox.critical(None, "Ошибка конфигурации", err)
-                raise ValueError(err)
         except Exception:
             raise
 
@@ -262,11 +256,7 @@ class ApplicationRunner:
                 tf.write("ok")
             tmp.unlink(missing_ok=True)
         except Exception as ex:
-            err = f"Нет прав на запись в каталог конфигурации: {cfg_path.parent}\n{ex}"
-            if self.app_logger:
-                self.app_logger.critical(err)
-            QMessageBox.critical(None, "Ошибка конфигурации", err)
-            raise
+            _fail(f"Нет прав на запись в каталог конфигурации: {cfg_path.parent}\n{ex}")
 
     def setup_test_mode(self, enabled: bool) -> None:
         """

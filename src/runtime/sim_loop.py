@@ -27,94 +27,23 @@ from .sync import (
     ThreadSafeCounter,
 )
 
-# ИСПРАВЛЕНО: Заменены импорты src. на относительные
-try:
-    from ..physics.odes import RigidBody3DOF, create_initial_conditions, f_rhs
-    from ..physics.integrator import (
-        step_dynamics,
-        PhysicsLoopConfig,
-        create_default_rigid_body,
-    )
-    from ..pneumo.enums import Wheel, Line, ThermoMode
-    from ..road.engine import RoadInput
-except ImportError:
-    # Fallback для случаев когда относительные импорты не работают
-    try:
-        # Попробуем прямые импорты (когда src в sys.path)
-        from physics.odes import RigidBody3DOF, create_initial_conditions, f_rhs
-        from physics.integrator import (
-            step_dynamics,
-            PhysicsLoopConfig,
-            create_default_rigid_body,
-        )
-        from pneumo.enums import Wheel, Line, ThermoMode
-        from road.engine import RoadInput
-    except ImportError:
-        # Создаем заглушки для тестирования
-        print("⚠️ Physics/Pneumo modules not available, using stubs")
-
-        class RigidBody3DOF:
-            def __init__(self, **kwargs):
-                for k, v in kwargs.items():
-                    setattr(self, k, v)
-
-        def create_initial_conditions(**kwargs):
-            return np.zeros(6)
-
-        def f_rhs(*args):
-            return np.zeros(6)
-
-        def step_dynamics(*args, **kwargs):
-            from types import SimpleNamespace
-
-            return SimpleNamespace(
-                success=True,
-                y_final=np.zeros(6),
-                t_final=0.0,
-                message="OK",
-                method_used="STUB",
-                n_evaluations=1,
-                solve_time=0.001,
-            )
-
-        def create_default_rigid_body():
-            return RigidBody3DOF(
-                M=1500,
-                Ix=2000,
-                Iz=3000,
-                g=9.81,
-                track=1.6,
-                wheelbase=3.2,
-                angle_limit=0.5,
-                damping_coefficient=0.1,
-            )
-
-        class PhysicsLoopConfig:
-            def __init__(self, **kwargs):
-                for k, v in kwargs.items():
-                    setattr(self, k, v)
-
-        # Enum заглушки
-        from enum import Enum
-
-        class Wheel(Enum):
-            LP = "LP"
-            PP = "PP"
-            LZ = "LZ"
-            PZ = "PZ"
-
-        class Line(Enum):
-            A1 = "A1"
-            B1 = "B1"
-            A2 = "A2"
-            B2 = "B2"
-
-        class ThermoMode(Enum):
-            ISOTHERMAL = "ISOTHERMAL"
-            ADIABATIC = "ADIABATIC"
-
-        RoadInput = None  # Заглушка
-
+# Измененные импорты на абсолютные пути
+from src.physics.odes import RigidBody3DOF, create_initial_conditions
+from src.physics.integrator import (
+    step_dynamics,
+    create_default_rigid_body,
+)
+from src.pneumo.enums import (
+    Wheel,
+    Line,
+    ThermoMode,
+)
+from src.pneumo.receiver import ReceiverState
+from src.pneumo.system import create_standard_diagonal_system
+from src.pneumo.gas_state import create_line_gas_state, create_tank_gas_state
+from src.pneumo.network import GasNetwork
+from src.road.engine import RoadInput
+from src.road.scenarios import get_preset_by_name
 
 # Settings manager (используем абсолютный импорт, т.к. общий модуль)
 from src.common.settings_manager import get_settings_manager
@@ -355,6 +284,36 @@ class PhysicsWorker(QObject):
             # For now, create minimal stub
             self.road_input = None
 
+            # NEW: Initialize road input with default scenario
+            road_scenario = "default_scenario"  # Заменить на нужный пресет
+            road_config = get_preset_by_name(road_scenario)
+            if road_config:
+                self.road_input = RoadInput(config=road_config)
+                self.logger.info(
+                    f"Road input initialized with scenario: {road_scenario}"
+                )
+            else:
+                self.logger.warning(f"Road scenario not found: {road_scenario}")
+                self.road_input = None  # Использовать заглушку
+
+            # NEW: Initialize pneumatic system with standard configuration
+            try:
+                self.pneumatic_system = create_standard_diagonal_system()
+                self.logger.info(
+                    "Pneumatic system initialized with standard configuration"
+                )
+            except Exception as e:
+                self.logger.warning(f"Failed to create standard pneumatic system: {e}")
+                self.pneumatic_system = None  # Использовать заглушку
+
+            # NEW: Initialize gas network with default parameters
+            try:
+                self.gas_network = GasNetwork()
+                self.logger.info("Gas network initialized with default parameters")
+            except Exception as e:
+                self.logger.warning(f"Failed to create gas network: {e}")
+                self.gas_network = None  # Использовать заглушку
+
             self.logger.info("Physics objects initialized successfully")
 
         except Exception as e:
@@ -587,13 +546,49 @@ class PhysicsWorker(QObject):
     def _execute_physics_step(self):
         """Execute single physics timestep"""
         # 1. Get road inputs
+        road_inputs = self._get_road_inputs()
 
         # 2. Update geometry/kinematics
-        # TODO: Update lever angles, piston positions, volumes
+        if self.rigid_body:
+            try:
+                # Update lever angles and piston positions from road inputs
+                if self.pneumatic_system:
+                    for wheel, input_value in road_inputs.items():
+                        if wheel in {Wheel.LP.value, Wheel.PP.value}:  # Левые колеса
+                            cylinder = self.pneumatic_system.left_cylinder
+                            if cylinder:
+                                # Применяем возбуждение к позиции поршня
+                                cylinder.piston_position += input_value
+
+                        elif wheel in {Wheel.LZ.value, Wheel.PZ.value}:  # Правые колеса
+                            cylinder = self.pneumatic_system.right_cylinder
+                            if cylinder:
+                                # Применяем возбуждение к позиции поршня
+                                cylinder.piston_position += input_value
+
+            except Exception as e:
+                self.logger.warning(f"Failed to update kinematics: {e}")
 
         # 3. Update gas system
-        # TODO: Update pressures due to volume changes
-        # TODO: Apply valve flows
+        if self.gas_network:
+            try:
+                # Получаем текущее состояние газа в трубопроводах и резервуарах
+                line_gas_states = create_line_gas_state(self.gas_network)
+                tank_gas_states = create_tank_gas_state(self.gas_network)
+
+                # Обновляем состояния резервуаров в системе
+                for state in tank_gas_states:
+                    if state.receiver_id == "default_receiver":
+                        # Применяем новое состояние газа к резервуару
+                        receiver_state = ReceiverState(
+                            pressure=state.pressure,
+                            temperature=state.temperature,
+                            volume=self.receiver_volume,
+                        )
+                        self.gas_network.update_receiver_state(receiver_state)
+
+            except Exception as e:
+                self.logger.warning(f"Failed to update gas network: {e}")
 
         # 4. Integrate 3-DOF dynamics
         if self.rigid_body:

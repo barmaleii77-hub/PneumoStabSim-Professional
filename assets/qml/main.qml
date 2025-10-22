@@ -7,7 +7,7 @@ import "effects"
 
 /*
  * PneumoStabSim - MAIN QML (v4.9.x)
- * 
+ *
  * View3D + ExtendedSceneEnvironment (HDR/IBL), IBL Probe Loader.
  * Реальная упрощённая схема (рама, рычаги, цилиндр). Без кнопок на канве.
  * Обновления приходят из панелей через apply*Updates и batched updates.
@@ -26,19 +26,19 @@ Item {
  property bool isRunning: false
  property real animationTime:0.0 // сек, накапливается Python-таймером
 
- // -------- Геометрия подвески (мм) --------
- property real userFrameLength:3200
- property real userFrameHeight:650
- property real userBeamSize:120
- property real userLeverLength:800
- property real userCylinderLength:500
- property real userTrackWidth:1600
- property real userFrameToPivot:600
+ // -------- Геометрия подвески (СИ) --------
+ property real userFrameLength:3.2
+ property real userFrameHeight:0.65
+ property real userBeamSize:0.12
+ property real userLeverLength:0.8
+ property real userCylinderLength:0.5
+ property real userTrackWidth:1.6
+ property real userFrameToPivot:0.6
  property real userRodPosition:0.6
- property real userBoreHead:80
- property real userRodDiameter:35
- property real userPistonThickness:25
- property real userPistonRodLength:200
+ property real userBoreHead:0.08
+ property real userRodDiameter:0.035
+ property real userPistonThickness:0.025
+ property real userPistonRodLength:0.2
 
  // Анимация рычагов (град)
  property real userAmplitude:8.0
@@ -147,6 +147,22 @@ Item {
  var r = params.eulerRotation;
  try { camera.eulerRotation = Qt.vector3d(Number(r.x||r[0]), Number(r.y||r[1]), Number(r.z||r[2])); } catch(e) {}
  }
+ // Обработка ошибок установки камеры
+ try {
+ if (params.fov !== undefined) camera.fieldOfView = Number(params.fov);
+ if (params.clipNear !== undefined) camera.clipNear = Number(params.clipNear);
+ if (params.clipFar !== undefined) camera.clipFar = Number(params.clipFar);
+ if (params.position) {
+ var p = params.position;
+ camera.position = Qt.vector3d(Number(p.x||p[0]), Number(p.y||p[1]), Number(p.z||p[2]));
+ }
+ if (params.eulerRotation) {
+ var r = params.eulerRotation;
+ camera.eulerRotation = Qt.vector3d(Number(r.x||r[0]), Number(r.y||r[1]), Number(r.z||r[2]));
+ }
+ } catch(e) {
+ console.warn("Camera update error:", e);
+ }
  }
 
  function applyLightingUpdates(params) {
@@ -156,6 +172,17 @@ Item {
  if (params.eulerRotation) {
  var r = params.eulerRotation;
  try { keyLight.eulerRotation = Qt.vector3d(Number(r.x||r[0]), Number(r.y||r[1]), Number(r.z||r[2])); } catch(e) {}
+ }
+ // Обработка ошибок установки освещения
+ try {
+ if (params.color) keyLight.color = params.color;
+ if (params.brightness !== undefined) keyLight.brightness = Number(params.brightness);
+ if (params.eulerRotation) {
+ var r = params.eulerRotation;
+ keyLight.eulerRotation = Qt.vector3d(Number(r.x||r[0]), Number(r.y||r[1]), Number(r.z||r[2]));
+ }
+ } catch(e) {
+ console.warn("Lighting update error:", e);
  }
  }
 

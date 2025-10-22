@@ -161,55 +161,6 @@ class MainWindow(QMainWindow):
         self._initial_full_sync()
         self.logger.info("✅ MainWindow initialized")
 
-    # ---------- QML callable slots ----------
-    @Slot(str)
-    def logIblEvent(self, message: str) -> None:
-        """Приём событий IBL из QML (IblProbeLoader.writeLog) и запись в файл.
-
-        Args:
-            message: Строка лога из QML (timestamp | level | IblProbeLoader | text)
-        """
-        try:
-            # Пишем напрямую через singleton-логгер
-            self.ibl_logger.logIblEvent(message)
-        except Exception as e:
-            self.logger.warning(f"IBL log bridge error: {e}")
-
-    @Slot(str)
-    def normalizeHdrPath(self, candidate: str) -> str:
-        """Нормализует путь HDR относительно каталога QML (POSIX путь для QML).
-
-        Args:
-            candidate: Строка пути (абсолютный/относительный, Windows/Unix)
-        Returns:
-            Нормализованный POSIX путь, предпочтительно относительный к assets/qml
-        """
-        try:
-            if not candidate:
-                return ""
-            p = Path(candidate.replace("\\", "/")).expanduser()
-            # Если абсолютный путь — попытаемся сделать относительным к qml_dir
-            if not self._qml_base_dir:
-                return p.as_posix()
-            try:
-                resolved = p.resolve(strict=False)
-            except Exception:
-                resolved = p
-            try:
-                rel = resolved.relative_to(self._qml_base_dir)
-                return rel.as_posix()
-            except Exception:
-                # Если файл лежит в assets/hdr, сделаем путь относительно assets/qml
-                hdr_dir = (self._qml_base_dir.parent / "hdr").resolve()
-                try:
-                    rel_hdr = resolved.relative_to(hdr_dir)
-                    return (Path("../hdr") / rel_hdr).as_posix()
-                except Exception:
-                    return resolved.as_posix()
-        except Exception as e:
-            self.logger.warning(f"normalizeHdrPath error: {e}")
-            return candidate
-
     # ---------- UI layout ----------
     def _setup_central(self) -> None:
         self.main_horizontal_splitter = QSplitter(Qt.Orientation.Horizontal)

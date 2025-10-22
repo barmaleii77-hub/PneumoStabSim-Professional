@@ -134,3 +134,13 @@ class MenuActions:
         except Exception:
             if hasattr(window, "queue_label") and window.queue_label:
                 window.queue_label.setText("Queue: -/-")
+
+        # Update snapshots
+        try:
+            if hasattr(window.simulation_manager, "get_snapshot_info"):
+                info = window.simulation_manager.get_snapshot_info()
+                if info and hasattr(window, "snapshot_label") and window.snapshot_label:
+                    window.snapshot_label.setText(info)
+        except Exception:
+            if hasattr(window, "snapshot_label") and window.snapshot_label:
+                window.snapshot_label.setText("Snapshot: None")

@@ -7,11 +7,11 @@ Item {
     anchors.fill: parent
 
     // --- Camera/control properties with fixed orbit around bottom beam center ---
-    property real cameraDistance: 3500
+    property real cameraDistance: 3200
     property real minDistance: 150
     property real maxDistance: 30000
-    property real yawDeg: 45            // === CHANGED: Better initial angle
-    property real pitchDeg: -15
+    property real yawDeg: 30            // === CHANGED: Better initial angle
+    property real pitchDeg: -10
     property vector3d pivot: Qt.vector3d(0, userBeamSize/2, userFrameLength/2)   // === FIXED: Center of bottom beam
     property real panX: 0               // === ADDED: Pan offset in rig's local X
     property real panY: 0               // === ADDED: Pan offset in rig's local Y
@@ -175,8 +175,8 @@ Item {
 
     function resetView() {
         pivot = computePivot()
-        yawDeg = 45       // Front-right view
-        pitchDeg = -15
+        yawDeg = 30       // Front-right view
+        pitchDeg = -10
         panX = 0          // Reset pan
         panY = 0
         autoFitFrame()

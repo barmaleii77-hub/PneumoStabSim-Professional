@@ -64,9 +64,12 @@ performance = [
 [project.scripts]
 pneumostabsim = "app:main"
 
+[tool.setuptools]
+package-dir = {"" = "src"}
+
 [tool.setuptools.packages.find]
-where = [""]
-include = ["src*", "config*"]
+where = ["src"]
+include = ["*", "config*"]
 exclude = ["tests*", "docs*"]
 
 [tool.setuptools.package-data]

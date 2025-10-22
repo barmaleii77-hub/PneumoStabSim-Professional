@@ -138,9 +138,9 @@ Item {
         viewHeight: controller.view3d ? controller.view3d.height : 600
         taaMotionAdaptive: controller.taaMotionAdaptive
 
-        onAutoFit: controller.autoFitFrame()
-        onResetView: controller.resetView()
-        onToggleAnimation: {
+        onAutoFit: function() { controller.autoFitFrame() }
+        onResetView: function() { controller.resetView() }
+        onToggleAnimation: function() {
             if (controller.onToggleAnimation) {
                 controller.onToggleAnimation()
             }

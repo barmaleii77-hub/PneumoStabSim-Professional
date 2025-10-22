@@ -5,10 +5,42 @@ PneumoStabSim-Professional Environment Setup Script
 Скрипт для автоматической настройки окружения разработки
 """
 
+import os
 import sys
 import subprocess
+from functools import lru_cache
 from pathlib import Path
+from typing import Dict
 import platform
+
+
+QT_ENV_DEFAULTS: Dict[str, str] = {
+    "QT_QPA_PLATFORM": "offscreen",
+    "QT_QUICK_BACKEND": "software",
+}
+
+
+@lru_cache(maxsize=1)
+def _detect_qt_environment() -> Dict[str, str]:
+    """Возвращает рекомендуемые переменные окружения Qt."""
+
+    environment = dict(QT_ENV_DEFAULTS)
+
+    try:
+        from PySide6.QtCore import QLibraryInfo, LibraryLocation  # type: ignore
+    except Exception as exc:  # pragma: no cover - диагностический вывод
+        print(f"⚠️ Не удалось автоматически определить пути Qt: {exc}")
+        return environment
+
+    plugin_path = QLibraryInfo.path(LibraryLocation.Plugins)
+    if plugin_path:
+        environment["QT_PLUGIN_PATH"] = plugin_path
+
+    qml_import_path = QLibraryInfo.path(LibraryLocation.QmlImports)
+    if qml_import_path:
+        environment["QML2_IMPORT_PATH"] = qml_import_path
+
+    return environment
 
 
 class EnvironmentSetup:
@@ -18,12 +50,18 @@ class EnvironmentSetup:
         self.project_root = Path(__file__).parent
         self.python_executable = self._find_python()
         self.platform = platform.system()
+        self.qt_environment = _detect_qt_environment()
+
+        os.environ.update(self.qt_environment)
 
         print("🚀 ИНИЦИАЛИЗАЦИЯ ОКРУЖЕНИЯ PNEUMOSTABSIM-PROFESSIONAL")
         print("=" * 60)
         print(f"📁 Корневая папка: {self.project_root}")
         print(f"🐍 Python executable: {self.python_executable}")
         print(f"💻 Платформа: {self.platform}")
+        print("🔧 Qt окружение:")
+        for key, value in self.qt_environment.items():
+            print(f" • {key}={value}")
         print("=" * 60)
 
     def _find_python(self):
@@ -58,11 +96,11 @@ class EnvironmentSetup:
             major, minor = int(version_parts[0]), int(version_parts[1])
 
             if major < 3 or (major == 3 and minor < 10):
-                print("❌ Требуется Python3.10-3.12!")
+                print("❌ Требуется Python 3.10-3.12!")
                 return False
             if major == 3 and minor >= 13:
-                print("⚠️ Python3.13+ обнаружен. Текущая версия не поддерживается.")
-                print("📝 Используйте Python3.10-3.12 для полной совместимости")
+                print("⚠️  Python 3.13+ обнаружен. Текущая версия не поддерживается.")
+                print("📝 Используйте Python 3.10-3.12 для полной совместимости")
                 return False
 
             if major == 3 and minor == 12:

@@ -590,6 +590,41 @@ class SettingsManager:
         metadata["units_version"] = "si_v2"
         return changed or metadata_changed
 
+    def _freeze_geometry_settings(self, section: Dict[str, Any]) -> None:
+        """Заморозка геометрических настроек (только чтение)."""
+        if not isinstance(section, dict):
+            return
+
+        geom = section.get("geometry")
+        if not isinstance(geom, dict):
+            return
+
+        # Замораживаем вложенные словари и списки рекурсивно
+        def freeze_recursively(obj: Any) -> None:
+            if isinstance(obj, dict):
+                for value in obj.values():
+                    freeze_recursively(value)
+                # Замораживаем словарь на уровне Python
+                dict.freeze(obj)  # type: ignore
+            elif isinstance(obj, list):
+                for item in obj:
+                    freeze_recursively(item)
+                # Замораживаем список на уровне Python
+                list.freeze(obj)  # type: ignore
+
+        freeze_recursively(geom)
+
+    def configure_immutable_settings(self) -> None:
+        """Конфигурация неизменяемых настроек геометрии."""
+        try:
+            # Замораживаем геометрию текущих и дефолтных настроек
+            self._freeze_geometry_settings(self._current)
+            self._freeze_geometry_settings(self._defaults_snapshot)
+
+            self.logger.info("Geometry settings are now immutable")
+        except Exception as e:
+            self.logger.warning(f"Failed to configure immutable settings: {e}")
+
 
 # Singleton instance
 _settings_manager: Optional[SettingsManager] = None

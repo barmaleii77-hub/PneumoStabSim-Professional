@@ -9,32 +9,8 @@ from typing import Dict
 import numpy as np
 from PySide6.QtCore import QObject, Signal, Qt
 
-# Import pneumatic enums - use absolute import when possible
-try:
-    from pneumo.enums import Line, Wheel, Port
-except ImportError:
-    # Fallback for relative import
-    try:
-        from ..pneumo.enums import Line, Wheel, Port
-    except ImportError:
-        # Create minimal enums for testing
-        from enum import Enum
-
-        class Line(Enum):
-            A1 = "A1"
-            B1 = "B1"
-            A2 = "A2"
-            B2 = "B2"
-
-        class Wheel(Enum):
-            LP = "LP"
-            PP = "PP"
-            LZ = "LZ"
-            PZ = "PZ"
-
-        class Port(Enum):
-            HEAD = "HEAD"
-            ROD = "ROD"
+# Updated imports to use absolute paths
+from src.pneumo.enums import Line, Wheel
 
 
 @dataclass

@@ -294,6 +294,11 @@ class SignalsRouter:
             # Update charts
             if window.chart_widget:
                 window.chart_widget.update_from_snapshot(snapshot)
+
+            # Push state to QML
+            from .qml_bridge import QMLBridge
+
+            QMLBridge.set_simulation_state(window, snapshot)
         except Exception as e:
             SignalsRouter.logger.error(f"State update error: {e}")
 
