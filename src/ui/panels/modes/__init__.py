@@ -1,9 +1,8 @@
 # -*- coding: utf-8 -*-
 """
-ModesPanel module -swith fallback mechanism
+ModesPanel module - switch fallback mechanism
 Модуль панели режимов симуляции с механизмом отката
 """
-from typing import Any
 
 # Попытка импорта refactored версии
 _USING_REFACTORED = False
@@ -20,7 +19,6 @@ except ImportError as e:
     print("   Откат на оригинальную версию...")
 
     try:
-        # Откат на оригинальную версию
         from ..panel_modes import ModesPanel
 
         _USING_REFACTORED = False
@@ -31,42 +29,4 @@ except ImportError as e:
         print(f"   Original error: {e2}")
         raise
 
-# Экспорт дополнительных компонентов (если доступны)
 __all__ = ["ModesPanel"]
-
-if _USING_REFACTORED:
-    try:
-        from .state_manager import ModesStateManager
-        from .defaults import (
-            DEFAULT_MODES_PARAMS,
-            DEFAULT_PHYSICS_OPTIONS,
-            MODE_PRESETS,
-            PARAMETER_RANGES,
-        )
-
-        __all__.extend(
-            [
-                "ModesStateManager",
-                "DEFAULT_MODES_PARAMS",
-                "DEFAULT_PHYSICS_OPTIONS",
-                "MODE_PRESETS",
-                "PARAMETER_RANGES",
-            ]
-        )
-    except ImportError:
-        pass
-
-
-def get_version_info() -> dict[str, Any]:
-    """Получить информацию о версии модуля"""
-    return {
-        "using_refactored": _USING_REFACTORED,
-        "import_error": _IMPORT_ERROR,
-        "available_exports": __all__,
-        "module_path": __file__,
-    }
-
-
-def is_refactored() -> bool:
-    """Проверить, используется ли refactored версия"""
-    return _USING_REFACTORED

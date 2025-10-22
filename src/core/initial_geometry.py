@@ -62,10 +62,7 @@ def calculate_initial_piston_position(params: CylinderParams) -> float:
     # From condition V_head = V_rod:
     # A_head * L_head = A_rod * L_rod
     # A_head * L_head = A_rod * (L_working - L_head)
-    # A_head * L_head = A_rod * L_working - A_rod * L_head
     # L_head * (A_head + A_rod) = A_rod * L_working
-    # L_head = (A_rod * L_working) / (A_head + A_rod)
-
     L_head_0 = (A_rod * L_working) / (A_head + A_rod)
 
     # Piston position is head chamber length
@@ -126,17 +123,7 @@ def calculate_initial_geometry(
         j_arm_right[2],  # z: same as pivot
     )
 
-    # 6. Calculate tail rod length from geometry
-    # Distance from j_tail to start of cylinder body
-    # At neutral: cylinder axis is from j_tail toward j_rod
-
-    # For left side:
-    dx = j_rod_left[0] - j_tail_left[0]
-    dy = j_rod_left[1] - j_tail_left[1]
-    total_length = math.sqrt(dx * dx + dy * dy)
-
-    # Tail rod length = total_length - cylinder_body - piston_rod
-    # For now, use default 100mm (will be refined)
+    # 6. Tail rod length placeholder (refined later by full geometry)
     L_tail = 0.100  # 100mm default
 
     return InitialGeometry(
@@ -151,37 +138,39 @@ def calculate_initial_geometry(
     )
 
 
-def print_initial_geometry_report(geom: InitialGeometry, params: CylinderParams):
+def print_initial_geometry_report(
+    geom: InitialGeometry, params: CylinderParams
+) -> None:
     """Print detailed report of initial geometry"""
     print("=" * 70)
     print("INITIAL GEOMETRY CALCULATION REPORT")
     print("=" * 70)
 
-    print("\n?? CYLINDER PARAMETERS:")
+    print("\n-- CYLINDER PARAMETERS:")
     print(f"  Cylinder bore:    {params.D_cylinder * 1000:.1f} mm")
     print(f"  Rod diameter:     {params.D_rod * 1000:.1f} mm")
     print(f"  Body length:      {params.L_body * 1000:.1f} mm")
     print(f"  Piston thickness: {params.L_piston * 1000:.1f} mm")
 
-    print("\n??  PISTON POSITION (EQUAL VOLUMES):")
+    print("\n-- PISTON POSITION (EQUAL VOLUMES):")
     print(f"  Piston position:  {geom.x_piston_0 * 1000:.2f} mm from cylinder start")
     print(f"  Head chamber:     {geom.L_head_0 * 1000:.2f} mm")
     print(f"  Rod chamber:      {geom.L_rod_0 * 1000:.2f} mm")
 
-    print("\n?? VOLUMES AT NEUTRAL:")
-    print(f"  V_head:           {geom.V_head_0 * 1e6:.2f} cm?")
-    print(f"  V_rod:            {geom.V_rod_0 * 1e6:.2f} cm?")
-    print(f"  Difference:       {abs(geom.V_head_0 - geom.V_rod_0) * 1e6:.6f} cm?")
+    print("\n-- VOLUMES AT NEUTRAL:")
+    print(f"  V_head:           {geom.V_head_0 * 1e6:.2f} cm3")
+    print(f"  V_rod:            {geom.V_rod_0 * 1e6:.2f} cm3")
+    print(f"  Difference:       {abs(geom.V_head_0 - geom.V_rod_0) * 1e6:.6f} cm3")
 
     volume_ratio = geom.V_head_0 / geom.V_rod_0 if geom.V_rod_0 > 0 else 0
     print(f"  Ratio V_head/V_rod: {volume_ratio:.6f}")
 
     if abs(volume_ratio - 1.0) < 0.001:
-        print("  ? VOLUMES ARE EQUAL!")
+        print(" ✓ VOLUMES ARE EQUAL!")
     else:
-        print("  ? VOLUMES NOT EQUAL!")
+        print(" ✗ VOLUMES NOT EQUAL!")
 
-    print("\n?? GEOMETRY POSITIONS:")
+    print("\n-- GEOMETRY POSITIONS:")
     print(f"  Tail rod length:  {geom.L_tail * 1000:.1f} mm")
     print(
         f"  Left j_rod:       ({geom.j_rod_left[0]:.3f}, {geom.j_rod_left[1]:.3f}, {geom.j_rod_left[2]:.3f}) m"
@@ -205,7 +194,7 @@ if __name__ == "__main__":
     print_initial_geometry_report(geom, params)
 
     # Export values for QML
-    print("\n?? QML PROPERTY VALUES:")
+    print("\n-- QML PROPERTY VALUES:")
     print(
         f"property real pistonPositionMm: {geom.x_piston_0 * 1000:.2f}  // mm from cylinder start"
     )

@@ -3,7 +3,7 @@
 Quality Tab - вкладка настроек качества рендеринга
 Part of modular GraphicsPanel restructuring
 
-СТРУКТУРА ТОЧНО ПОВТОРЯЕТ МОНОЛИТ panel_graphics.py (строки 1133-1300):
+СТРУКТУРА ТОЧНО ПОВТОРЯЕТ МОНОЛИТ panel_graphics.py (строки1133-1300):
 - _build_quality_preset_group() → Предустановки качества (ultra/high/medium/low/custom)
 - _build_shadow_group() → Тени (enabled, resolution, filter, bias, darkness)
 - _build_antialiasing_group() → Сглаживание (primary, quality, post, TAA, FXAA, specular AA)
@@ -593,7 +593,7 @@ class QualityTab(QWidget):
         for control in self._controls.values():
             try:
                 control.blockSignals(True)
-            except:
+            except Exception:
                 pass
 
         try:
@@ -694,7 +694,7 @@ class QualityTab(QWidget):
             for control in self._controls.values():
                 try:
                     control.blockSignals(False)
-                except:
+                except Exception:
                     pass
             self._updating_ui = False
 

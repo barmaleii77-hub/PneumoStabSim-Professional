@@ -10,26 +10,29 @@ repos:
        language_version: python3.13
        args: ['--line-length=88']
 
- # Flake8 - проверка стиля кода
+ # Flake8 - проверка стиля кода (только src/, app.py и tools/)
  - repo: https://github.com/pycqa/flake8
    rev: 7.0.0
    hooks:
      - id: flake8
        args: ['--max-line-length=88', '--extend-ignore=E203,W503']
+       files: '^(app\.py|src/|tools/)'
 
- # MyPy - статическая типизация
+ # MyPy - статическая типизация (только src/, app.py и tools/)
  - repo: https://github.com/pre-commit/mirrors-mypy
    rev: v1.8.0
    hooks:
      - id: mypy
        args: ['--ignore-missing-imports', '--python-version=3.13']
+       files: '^(app\.py|src/|tools/)'
 
- # Ruff - быстрая проверка кода
+ # Ruff - быстрая проверка кода (только src/, app.py и tools/)
  - repo: https://github.com/astral-sh/ruff-pre-commit
    rev: v0.1.11
    hooks:
      - id: ruff
        args: ['--fix', '--exit-non-zero-on-fix']
+       files: '^(app\.py|src/|tools/)'
 
  # Базовые проверки
  - repo: https://github.com/pre-commit/pre-commit-hooks

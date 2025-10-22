@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """Environment settings schema and validation utilities.
 
 Used by both the Python UI layer and the QML bridge to guarantee that every
@@ -7,7 +8,7 @@ and falls within the documented Qt6.10 ranges.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Any, Sequence
+from typing import Any, Sequence, Dict
 import re
 
 __all__ = [
@@ -21,6 +22,9 @@ __all__ = [
 
 _TRUE_SET = {"1", "true", "yes", "on"}
 _FALSE_SET = {"0", "false", "no", "off"}
+
+# Регулярка для HEX-цвета вида #RGB/#RRGGBB
+_HEX_COLOR_RE: re.Pattern[str] = re.compile(r"^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})$")
 
 
 class EnvironmentValidationError(ValueError):
@@ -53,10 +57,11 @@ def _coerce_bool(value: Any, key: str) -> bool:
     if isinstance(value, bool):
         return value
     if isinstance(value, (int, float)):
-        if value in (0, 1):
-            return bool(value)
+        iv = int(value)
+        if iv in (0, 1):
+            return bool(iv)
         raise EnvironmentValidationError(
-            f"'{key}' numeric boolean must be 0 or 1, got {value!r}"
+            f"'{key}' numeric boolean must be0 or1, got {value!r}"
         )
     if isinstance(value, str):
         lowered = value.strip().lower()
@@ -89,9 +94,8 @@ def _coerce_int(value: Any, key: str) -> int:
         )
     if isinstance(value, int):
         return value
-    if isinstance(value, float):
-        if value.is_integer():
-            return int(value)
+    if isinstance(value, float) and value.is_integer():
+        return int(value)
     if isinstance(value, str):
         try:
             return int(value.strip())
@@ -283,3 +287,90 @@ ENVIRONMENT_PARAMETERS: tuple[EnvironmentParameterDefinition, ...] = (
         max_value=4,
     ),
 )
+
+# Ключи обязательных параметров (в порядке объявления)
+ENVIRONMENT_REQUIRED_KEYS: tuple[str, ...] = tuple(
+    p.key for p in ENVIRONMENT_PARAMETERS
+)
+
+# Отображение ключей окружения → имена контекстных свойств QML
+# Используется при первоначальной инициализации контекстных свойств в MainWindow
+ENVIRONMENT_CONTEXT_PROPERTIES: Dict[str, str] = {
+    "background_mode": "startBackgroundMode",
+    "background_color": "startBackgroundColor",
+    "skybox_enabled": "startSkyboxEnabled",
+    "ibl_enabled": "startIblEnabled",
+    "ibl_intensity": "startIblIntensity",
+    "probe_brightness": "startProbeBrightness",
+    "probe_horizon": "startProbeHorizon",
+    "ibl_rotation": "startIblRotation",
+    "ibl_source": "startIblSource",
+    "ibl_fallback": "startIblFallback",
+    "skybox_blur": "startSkyboxBlur",
+    "ibl_offset_x": "startIblOffsetX",
+    "ibl_offset_y": "startIblOffsetY",
+    "ibl_bind_to_camera": "startIblBindToCamera",
+    "fog_enabled": "startFogEnabled",
+    "fog_color": "startFogColor",
+    "fog_density": "startFogDensity",
+    "fog_near": "startFogNear",
+    "fog_far": "startFogFar",
+    "fog_height_enabled": "startFogHeightEnabled",
+    "fog_least_intense_y": "startFogLeastY",
+    "fog_most_intense_y": "startFogMostY",
+    "fog_height_curve": "startFogHeightCurve",
+    "fog_transmit_enabled": "startFogTransmitEnabled",
+    "fog_transmit_curve": "startFogTransmitCurve",
+    "ao_enabled": "startAoEnabled",
+    "ao_strength": "startAoStrength",
+    "ao_radius": "startAoRadius",
+    "ao_softness": "startAoSoftness",
+    "ao_dither": "startAoDither",
+    "ao_sample_rate": "startAoSampleRate",
+}
+
+
+def validate_environment_settings(settings: Dict[str, Any]) -> Dict[str, Any]:
+    """Провалидировать и привести типы значений окружения.
+
+    Args:
+    settings: Сырые значения из JSON (graphics.environment)
+
+    Returns:
+    Новый словарь с приведенными типами значений.
+    """
+    if not isinstance(settings, dict):
+        raise EnvironmentValidationError("Environment settings must be a dict")
+
+    result: Dict[str, Any] = {}
+    for defn in ENVIRONMENT_PARAMETERS:
+        if defn.key not in settings:
+            raise EnvironmentValidationError(f"Missing environment key: {defn.key}")
+        raw = settings[defn.key]
+
+        if defn.value_type == "bool":
+            value = _coerce_bool(raw, defn.key)
+        elif defn.value_type == "float":
+            value = _coerce_float(raw, defn.key)
+        elif defn.value_type == "int":
+            value = _coerce_int(raw, defn.key)
+        elif defn.value_type == "string":
+            value = _coerce_string(defn, raw)
+        else:  # pragma: no cover - defensive
+            raise EnvironmentValidationError(
+                f"Unknown value_type for '{defn.key}': {defn.value_type}"
+            )
+
+        # Проверка диапазона/допустимых значений
+        if defn.allowed_values is not None:
+            lowered = str(value).lower()
+            if lowered not in defn._allowed_values_lower:
+                raise EnvironmentValidationError(
+                    f"'{defn.key}' must be one of {defn.allowed_values}, got {value!r}"
+                )
+        if defn.value_type in {"float", "int"}:
+            _validate_range(defn, value)  # type: ignore[arg-type]
+
+        result[defn.key] = value
+
+    return result

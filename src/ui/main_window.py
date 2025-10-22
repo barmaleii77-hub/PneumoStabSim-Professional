@@ -804,7 +804,7 @@ class MainWindow(QMainWindow):
                 value = converter(raw_val) if converter else raw_val
                 if value is None:
                     continue
-                _ctx(ctx_name, value)
+                self._ctx(ctx_name, value)
 
             missing_env_keys = [
                 key for key in env_ctx_map.keys() if key not in env_values
@@ -822,6 +822,17 @@ class MainWindow(QMainWindow):
 
         finally:
             self.logger.info("Завершена обработка параметров окружения.")
+
+    def _ctx(self, name: str, value: Any) -> None:
+        try:
+            if not self._qquick_widget:
+                raise RuntimeError("QQuickWidget not initialized")
+            context = self._qquick_widget.engine().rootContext()
+            context.setContextProperty(name, value)
+        except Exception as err:
+            raise RuntimeError(
+                f"Failed to expose context property {name}: {err}"
+            ) from err
 
 
 # Исправление отступов в функциях
@@ -849,11 +860,3 @@ def _as_int(value: Any) -> int:
         return int(value)
     except (ValueError, TypeError):
         raise ValueError(f"Невозможно преобразовать в int: {value}")
-
-
-def _ctx(name: str, value: Any) -> None:
-    try:
-        context = self._qquick_widget.engine().rootContext()
-        context.setContextProperty(name, value)
-    except Exception as err:
-        raise RuntimeError(f"Failed to expose context property {name}: {err}") from err

@@ -170,7 +170,7 @@ class UnifiedLogAnalyzer:
                     duration = (end - start).total_seconds()
                     result.add_metric("runtime_seconds", duration)
                     result.add_info(f"Время работы: {duration:.1f}s")
-                except:
+                except Exception:
                     pass
 
         except Exception as e:
@@ -587,7 +587,7 @@ class UnifiedLogAnalyzer:
     def print_results(self):
         """Выводит результаты анализа в консоль"""
         print("\n" + "=" * 70)
-        print("📊 КОМПЛЕКСНЫЙ АНАЛИЗ ЛОГОВ")
+        print("📊 КОМПЛЕКСНЫЙ АНАЛЗ ЛОГОВ")
         print("=" * 70)
 
         for category, result in self.results.items():

@@ -5,7 +5,7 @@ Automatically logs user interactions BEFORE handlers are called
 from __future__ import annotations
 
 
-from PySide6.QtCore import Signal
+from PySide6.QtCore import Signal, Qt
 from PySide6.QtWidgets import QCheckBox, QComboBox, QSlider, QDoubleSpinBox
 
 from src.common.event_logger import get_event_logger

@@ -1,5 +1,5 @@
 """
-Road profile generators: sine, sweep, step, pothole, speed bump, ISO 8608 stochastic
+Road profile generators: sine, sweep, step, pothole, speed bump, ISO8608 stochastic
 Implements deterministic and stochastic road excitation patterns
 """
 
@@ -34,11 +34,11 @@ def generate_sine_profile(
     t = np.linspace(0, duration, int(duration * resample_hz))
 
     # Convert spatial frequency to temporal: f_spatial = f_temporal / velocity
-    # For spatial wavelength ?: f_spatial = velocity / ?
+    # For spatial wavelength lambda: f_spatial = velocity / lambda
     # For temporal frequency f: spatial_frequency = f / velocity
 
-    # y(z) = A * sin(2? * z/? + ?) where z = v*t
-    # y(t) = A * sin(2? * v*t/? + ?) = A * sin(2? * f * t + ?)
+    # y(z) = A * sin(2*pi * z/lambda + phi) where z = v*t
+    # y(t) = A * sin(2*pi * v*t/lambda + phi) = A * sin(2*pi * f * t + phi)
     profile = amplitude * np.sin(2 * np.pi * frequency * t + phase)
 
     return t, profile
@@ -160,7 +160,7 @@ def generate_pothole_profile(
     mask = (t >= t_start) & (t <= t_end)
 
     if np.any(mask):
-        # Normalized time within pothole (0 to ?)
+        # Normalized time within pothole (0 to pi)
         t_norm = (t[mask] - t_start) / pothole_duration * np.pi
         # Negative sine lobe (pothole goes down)
         profile[mask] = -pothole_depth * np.sin(t_norm)
@@ -182,7 +182,7 @@ def generate_speed_bump_profile(
     Args:
         duration: Duration in seconds
         velocity: Vehicle velocity (m/s)
-        bump_height: Bump height (m, ? 0.1m per TRL recommendations)
+        bump_height: Bump height (m, ~0.1m per TRL recommendations)
         bump_length: Bump length (m, ~3.7m per TRL recommendations)
         bump_center_time: Time when bump center is reached (s)
         profile_type: 'sinusoidal' or 'circular'
@@ -214,7 +214,7 @@ def generate_speed_bump_profile(
             # Circular arc profile
             t_norm = (t[mask] - t_start) / bump_duration  # 0 to 1
             x_norm = 2 * t_norm - 1  # -1 to 1
-            # Circle equation: y = h * sqrt(1 - x?) for |x| ? 1
+            # Circle equation: y = h * sqrt(1 - x^2) for |x| <=1
             y_norm = np.sqrt(np.clip(1 - x_norm**2, 0, 1))
             profile[mask] = bump_height * y_norm
 
@@ -231,14 +231,14 @@ def generate_iso8608_profile(
     correlation: Optional[CorrelationSpec] = None,
     resample_hz: float = 1000.0,
 ) -> Tuple[np.ndarray, Dict[str, np.ndarray]]:
-    """Generate ISO 8608 stochastic road profile
+    """Generate ISO8608 stochastic road profile
 
-    Generates correlated left/right track profiles according to ISO 8608 PSD specification
+    Generates correlated left/right track profiles according to ISO8608 PSD specification
 
     Args:
         duration: Duration in seconds
         velocity: Vehicle velocity (m/s)
-        iso_class: ISO 8608 roughness class (A-H)
+        iso_class: ISO8608 roughness class (A-H)
         correlation: Left/right correlation specification
         resample_hz: Sampling frequency (Hz)
 
@@ -255,7 +255,6 @@ def generate_iso8608_profile(
     # Time and spatial parameters
     t = np.linspace(0, duration, int(duration * resample_hz))
     dt = t[1] - t[0]
-    distance = velocity * duration
 
     # Spatial sampling
     dz = velocity * dt  # spatial resolution (m)
@@ -265,13 +264,13 @@ def generate_iso8608_profile(
     freqs = np.fft.fftfreq(n_samples, dz)
     freqs = freqs[: n_samples // 2 + 1]  # One-sided spectrum
 
-    # ISO 8608 parameters
+    # ISO8608 parameters
     params = ISO8608_PARAMETERS[iso_class]
-    Gd = params["Gd"]  # roughness coefficient (m?/cycle)
+    Gd = params["Gd"]  # roughness coefficient (m^3/cycle)
     w = params["w"]  # waviness exponent (~2.0)
     n0 = 0.1  # reference spatial frequency (cycles/m)
 
-    # ISO 8608 PSD: Gd(n) = Gd * (n/n0)^(-w)
+    # ISO8608 PSD: Gd(n) = Gd * (n/n0)^(-w)
     # Avoid DC component and very low frequencies
     freqs_pos = freqs[1:]  # Skip DC
     psd = Gd * (freqs_pos / n0) ** (-w)
@@ -283,7 +282,7 @@ def generate_iso8608_profile(
     )
 
     # Scale by PSD to get colored noise
-    # Factor of 2 accounts for one-sided spectrum
+    # Factor of2 accounts for one-sided spectrum
     amplitude_spectrum = (
         np.sqrt(2 * psd * (freqs_pos[1] - freqs_pos[0])) * noise_complex
     )
@@ -310,7 +309,7 @@ def generate_iso8608_profile(
 
     # Generate correlated right track profile
     if correlation.method == "coherence":
-        # Method: right = rho * left + sqrt(1-rho?) * independent_noise
+        # Method: right = rho * left + sqrt(1-rho^2) * independent_noise
         rho = correlation.rho_LR
 
         # Generate independent noise for right track
@@ -367,7 +366,7 @@ def validate_iso8608_profile(
     resample_hz: float = 1000.0,
     tolerance: float = 0.5,
 ) -> Tuple[bool, Dict[str, Any]]:
-    """Validate generated ISO 8608 profile against target PSD
+    """Validate generated ISO8608 profile against target PSD
 
     Args:
         profile: Generated profile array
@@ -390,7 +389,7 @@ def validate_iso8608_profile(
     freqs = freqs[1:]  # Skip DC
     psd_estimated = psd_estimated[1:]
 
-    # Target ISO 8608 PSD
+    # Target ISO8608 PSD
     params = ISO8608_PARAMETERS[iso_class]
     Gd = params["Gd"]
     w = params["w"]
@@ -407,11 +406,11 @@ def validate_iso8608_profile(
     is_valid = np.mean(error) < tolerance
 
     validation_info = {
-        "mean_error_log10": np.mean(error),
-        "max_error_log10": np.max(error),
-        "frequency_range_hz": (freqs[0] / velocity, freqs[-1] / velocity),
-        "psd_target_range": (psd_target.min(), psd_target.max()),
-        "psd_estimated_range": (psd_estimated.min(), psd_estimated.max()),
+        "mean_error_log10": float(np.mean(error)),
+        "max_error_log10": float(np.max(error)),
+        "frequency_range_hz": (float(freqs[0] / velocity), float(freqs[-1] / velocity)),
+        "psd_target_range": (float(psd_target.min()), float(psd_target.max())),
+        "psd_estimated_range": (float(psd_estimated.min()), float(psd_estimated.max())),
         "tolerance": tolerance,
         "iso_class": iso_class.value,
     }

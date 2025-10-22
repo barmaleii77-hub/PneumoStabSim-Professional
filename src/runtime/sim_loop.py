@@ -403,7 +403,7 @@ class PhysicsWorker(QObject):
                 try:
                     # Отключаем все сигналы
                     self.physics_timer.timeout.disconnect()
-                except:
+                except Exception:
                     pass  # Может быть уже отключен
 
                 # Останавливаем таймер
@@ -437,7 +437,7 @@ class PhysicsWorker(QObject):
             if self.physics_timer:
                 try:
                     self.physics_timer.timeout.disconnect()
-                except:
+                except Exception:
                     pass
                 self.physics_timer.stop()
                 self.physics_timer.deleteLater()
@@ -458,7 +458,7 @@ class PhysicsWorker(QObject):
         """Деструктор - финальная очистка"""
         try:
             self.force_cleanup()
-        except:
+        except Exception:
             pass
 
     @Slot()
@@ -851,13 +851,13 @@ class SimulationManager(QObject):
                 if hasattr(self, "physics_thread") and self.physics_thread.isRunning():
                     self.physics_thread.terminate()
                     self.physics_thread.wait(500)
-            except:
+            except Exception:
                 pass
 
         # Финальная очистка ссылок
         try:
             self.physics_worker = None
-        except:
+        except Exception:
             pass
 
         self.logger.info("Simulation manager остановлен")

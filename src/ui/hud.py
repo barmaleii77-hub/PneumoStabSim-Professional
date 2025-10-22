@@ -41,9 +41,6 @@ except ImportError:
                 return np.array([101325.0, 101325.0, 101325.0, 101325.0])
 
 
-from src.runtime.state import StateSnapshot
-
-
 class PressureScaleWidget(QWidget):
     """Vertical pressure scale with gradient and markers"""
 
@@ -88,7 +85,7 @@ class PressureScaleWidget(QWidget):
             (1.0, QColor(255, 0, 0)),  # Red (high)
         ]
 
-    def set_range(self, p_min: float, p_max: float):
+    def set_range(self, p_min: float, p_max: float) -> None:
         """Set pressure range for scale
 
         Args:
@@ -109,7 +106,9 @@ class PressureScaleWidget(QWidget):
         self.range_changed.emit(p_min, p_max)
         self.update()
 
-    def set_markers(self, p_atm: float, p_min: float, p_stiff: float, p_safety: float):
+    def set_markers(
+        self, p_atm: float, p_min: float, p_stiff: float, p_safety: float
+    ) -> None:
         """Set reference pressure markers
 
         Args:
@@ -125,7 +124,7 @@ class PressureScaleWidget(QWidget):
         self.update()
 
     @Slot(object)
-    def update_from_snapshot(self, snapshot: StateSnapshot):
+    def update_from_snapshot(self, snapshot: "StateSnapshot") -> None:
         """Update from simulation snapshot
 
         Args:
@@ -180,12 +179,11 @@ class PressureScaleWidget(QWidget):
         y = margin + scale_height * (1.0 - norm)
         return y
 
-    def paintEvent(self, event):
+    def paintEvent(self, event) -> None:  # type: ignore[override]
         """Paint the pressure scale"""
         painter = QPainter(self)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
 
-        width = self.width()
         height = self.height()
 
         # Margins
@@ -268,7 +266,7 @@ class PressureScaleWidget(QWidget):
         color: QColor,
         x: int,
         width: int,
-    ):
+    ) -> None:
         """Draw a reference pressure marker
 
         Args:
@@ -299,7 +297,7 @@ class PressureScaleWidget(QWidget):
 class TankOverlayHUD:
     """HUD overlay for tank visualization in OpenGL"""
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize tank HUD"""
         # Tank parameters (in screen coordinates)
         self.x = 0
@@ -322,7 +320,7 @@ class TankOverlayHUD:
             "safety": (0, False, 0.0),
         }
 
-    def set_position(self, x: int, y: int):
+    def set_position(self, x: int, y: int) -> None:
         """Set HUD position on screen
 
         Args:
@@ -332,7 +330,7 @@ class TankOverlayHUD:
         self.x = x
         self.y = y
 
-    def update_from_snapshot(self, snapshot: StateSnapshot):
+    def update_from_snapshot(self, snapshot: "StateSnapshot") -> None:
         """Update from simulation snapshot
 
         Args:
@@ -364,7 +362,7 @@ class TankOverlayHUD:
 
         return norm * self.height
 
-    def render(self, painter: QPainter, screen_width: int, screen_height: int):
+    def render(self, painter: QPainter, screen_width: int, screen_height: int) -> None:
         """Render tank HUD using QPainter
 
         Args:

@@ -225,6 +225,21 @@ def p_from_mTV(mass: float, temperature: float, volume: float) -> float:
     return (mass * R_AIR * temperature) / volume
 
 
+def gas_mass_from_pVT(
+    pressure: float, volume: float, temperature: float, gas_constant: float = R_AIR
+) -> float:
+    """Расчёт массы по p, V, T для идеального газа (m = p*V/(R*T))."""
+    if volume <= 0:
+        raise ValueError("Volume must be positive to compute mass")
+    if temperature <= 0:
+        raise ValueError("Temperature must be positive to compute mass")
+    if gas_constant <= 0:
+        raise ValueError("Gas constant must be positive to compute mass")
+    if pressure < 0:
+        raise ValueError("Pressure must be non-negative to compute mass")
+    return (pressure * volume) / (gas_constant * temperature)
+
+
 def iso_update(
     state: LineGasState, new_volume: float, target_temperature: float
 ) -> None:
