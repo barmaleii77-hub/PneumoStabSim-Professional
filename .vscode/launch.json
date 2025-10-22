@@ -1,27 +1,27 @@
 {
-"version": "0.2.0",
-"configurations": [
-    {
-        "name": "F5: PneumoStabSim (Главный)",
-        "type": "debugpy",
-        "request": "launch",
-        "program": "${workspaceFolder}/app.py",
-        "args": [],
-        "console": "integratedTerminal",
-        "cwd": "${workspaceFolder}",
-        "envFile": "${workspaceFolder}/.env",
-        "env": {
-            "PYTHONPATH": "${workspaceFolder};${workspaceFolder}/src"
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "F5: PneumoStabSim (Главный)",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/app.py",
+            "args": [],
+            "console": "integratedTerminal",
+            "cwd": "${workspaceFolder}",
+            "envFile": "${workspaceFolder}/.env",
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}${pathSeparator}${workspaceFolder}/src"
+            },
+            "justMyCode": false,
+            "stopOnEntry": false,
+            "showReturnValue": true,
+            "redirectOutput": true,
+            "presentation": {
+                "group": "main",
+                "order": 1
+            }
         },
-        "justMyCode": false,
-        "stopOnEntry": false,
-        "showReturnValue": true,
-        "redirectOutput": true,
-        "presentation": {
-            "group": "main",
-            "order": 1
-        }
-    },
         {
             "name": "F5: Verbose (подробные логи)",
             "type": "debugpy",
@@ -32,9 +32,7 @@
             "cwd": "${workspaceFolder}",
             "envFile": "${workspaceFolder}/.env",
             "env": {
-                "PYTHONPATH": "${workspaceFolder};${workspaceFolder}/src",
-                "QSG_INFO": "1",
-                "QT_LOGGING_RULES": "qt.qml.connections=true;qt.quick.3d=true"
+                "PYTHONPATH": "${workspaceFolder}${pathSeparator}${workspaceFolder}/src"
             },
             "justMyCode": false,
             "stopOnEntry": false,
@@ -55,7 +53,7 @@
             "cwd": "${workspaceFolder}",
             "envFile": "${workspaceFolder}/.env",
             "env": {
-                "PYTHONPATH": "${workspaceFolder};${workspaceFolder}/src"
+                "PYTHONPATH": "${workspaceFolder}${pathSeparator}${workspaceFolder}/src"
             },
             "justMyCode": false,
             "stopOnEntry": false,
@@ -74,7 +72,7 @@
             "cwd": "${workspaceFolder}",
             "envFile": "${workspaceFolder}/.env",
             "env": {
-                "PYTHONPATH": "${workspaceFolder};${workspaceFolder}/src"
+                "PYTHONPATH": "${workspaceFolder}${pathSeparator}${workspaceFolder}/src"
             },
             "justMyCode": false,
             "stopOnEntry": false,
@@ -92,7 +90,7 @@
             "cwd": "${workspaceFolder}",
             "envFile": "${workspaceFolder}/.env",
             "env": {
-                "PYTHONPATH": "${workspaceFolder};${workspaceFolder}/src"
+                "PYTHONPATH": "${workspaceFolder}${pathSeparator}${workspaceFolder}/src"
             },
             "justMyCode": false,
             "presentation": {
@@ -115,7 +113,7 @@
             "cwd": "${workspaceFolder}",
             "envFile": "${workspaceFolder}/.env",
             "env": {
-                "PYTHONPATH": "${workspaceFolder};${workspaceFolder}/src"
+                "PYTHONPATH": "${workspaceFolder}${pathSeparator}${workspaceFolder}/src"
             },
             "justMyCode": false,
             "presentation": {
