@@ -70,6 +70,7 @@ QT_QUICK_CONTROLS_STYLE=Basic
   <!-- Основные файлы проекта -->
   <ItemGroup>
     <Compile Include="app.py" />
+    <Compile Include="config\constants.py" />
     <Compile Include="launch.py" />
     <Compile Include="quick_fix.py" />
     <Compile Include="quick_test.py" />
@@ -77,6 +78,7 @@ QT_QUICK_CONTROLS_STYLE=Basic
     <Compile Include="setup_vscode.py" />
     <Compile Include="setup.py" />
     <Compile Include="tests\quality\test_sample_vector.py" />
+    <Compile Include="tests\unit\test_configuration_constants.py" />
   </ItemGroup>
   <!-- Корневые модули src -->
   <ItemGroup>
@@ -106,6 +108,7 @@ QT_QUICK_CONTROLS_STYLE=Basic
   <ItemGroup>
     <Content Include=".ruff.toml" />
     <Content Include="assets\qml\quality\Check.qml" />
+    <Content Include="docs\DECISIONS_LOG.md" />
     <Content Include="mypy.ini" />
     <Content Include="mypy_targets.txt" />
     <Content Include="pytest_targets.txt" />
@@ -173,6 +176,7 @@ QT_QUICK_CONTROLS_STYLE=Basic
     <Folder Include=".github\" />
     <Folder Include=".vs\" />
     <Folder Include=".venv\" />
+    <Folder Include="tests\unit\" />
   </ItemGroup>
   <!-- Интерпретаторы Python -->
   <ItemGroup>
