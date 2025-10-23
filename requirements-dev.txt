@@ -9,10 +9,10 @@ pytest-xdist>=3.3.1
 
 # Code Quality
 flake8>=6.0.0
-black>=23.7.0
-mypy>=1.4.1
+black>=24.10.0
+mypy>=1.11.2
 pylint>=2.17.5
-ruff>=0.1.0  # Быстрая альтернатива flake8
+ruff>=0.6.9 # Быстрая альтернатива flake8
 
 # Type Stubs
 types-PyYAML
@@ -22,8 +22,8 @@ types-Pillow
 # Development Tools
 ipython>=8.0.0
 ipdb>=0.13.0
-rich>=13.0.0  # Beautiful terminal output
-pre-commit>=2.15
+rich>=13.0.0 # Beautiful terminal output
+pre-commit>=3.8
 
 # Documentation
 sphinx>=7.1.0

@@ -16,7 +16,7 @@
 ```
 
 Этот скрипт автоматически:
-- ✅ Проверит версию Python (требуется 3.11+, рекомендуется 3.13)
+- ✅ Проверит версию Python (поддержка 3.11–3.13, рекомендуем 3.13)
 - ✅ Создаст виртуальное окружение `venv`
 - ✅ Установит все зависимости из `requirements.txt`
 - ✅ Установит dev-зависимости (pytest, black, mypy)
@@ -47,9 +47,9 @@
 ### Шаг 1: Проверка Python
 
 ```powershell
-# Проверка версии (требуется 3.11+)
+# Проверка версии (поддержка 3.11–3.13)
 python --version
-# Должно быть: Python 3.13.x (рекомендуется) или 3.11+
+# Рекомендуемая версия: Python 3.13.x
 ```
 
 ### Шаг 2: Создание виртуального окружения
@@ -74,11 +74,11 @@ python -m pip install --upgrade pip setuptools wheel
 ### Шаг 4: Установка зависимостей
 
 ```powershell
-# Основные зависимости
-pip install -r requirements.txt
+# Основные зависимости (с учётом матрицы совместимости)
+pip install -r requirements.txt -c requirements-compatible.txt
 
 # Dev зависимости (для разработки)
-pip install pytest pytest-qt black mypy flake8
+pip install -r requirements-dev.txt
 ```
 
 ### Шаг 5: Проверка установки
@@ -86,7 +86,7 @@ pip install pytest pytest-qt black mypy flake8
 ```powershell
 # Проверка PySide6
 python -c "import PySide6.QtCore as QtCore; print(f'PySide6 {QtCore.__version__} (Qt {QtCore.qVersion()})')"
-# Должно быть: PySide6 6.10.x (Qt 6.10.x)
+# Должно быть: PySide6 6.10.x (Qt 6.10.x) в основной конфигурации
 
 # Проверка NumPy
 python -c "import numpy; print(f'NumPy {numpy.__version__}')"
@@ -204,7 +204,7 @@ PSS_DIAG=1                                 # Диагностика прилож
 ### Системные требования
 
 - **OS**: Windows 10/11, Ubuntu 22.04+, macOS 13+
-- **Python**: 3.11+ (рекомендуется **3.13**)
+- **Python**: 3.13 (рекомендуется **3.13.x**)
 - **RAM**: 4 GB минимум, 8 GB рекомендуется
 - **GPU**: DirectX 11 compatible (Windows) или OpenGL 4.1+ (Linux/Mac)
 
@@ -213,9 +213,9 @@ PSS_DIAG=1                                 # Диагностика прилож
 | Пакет | Версия | Назначение |
 |-------|--------|------------|
 | **PySide6** | ≥ 6.10.0 | Qt6 bindings + QtQuick3D |
-| **NumPy** | ≥ 1.24.0 | Численные вычисления |
-| **SciPy** | ≥ 1.10.0 | Научные расчеты, ODE solver |
-| **matplotlib** | ≥ 3.5.0 | Графики |
+| **NumPy** | ≥ 1.26.0 | Численные вычисления |
+| **SciPy** | ≥ 1.11.0 | Научные расчеты, ODE solver |
+| **matplotlib** | ≥ 3.7.0 | Графики |
 | **Pillow** | ≥ 9.0.0 | Обработка HDR текстур |
 | **pytest** | ≥ 7.0.0 | Тестирование |
 | **black** | ≥ 23.0 | Форматирование кода |
@@ -404,3 +404,5 @@ PneumoStabSim-Professional/
 **Версия**: 4.9.5
 **Последнее обновление**: 2024
 **Лицензия**: MIT
+
+# Дополнительные профили (PySide6 6.5–6.9) описаны в docs/environments.md

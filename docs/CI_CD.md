@@ -1,184 +1,84 @@
-# CI/CD Configuration for PneumoStabSim
+# Стратегия CI/CD PneumoStabSim Professional
 
-This document describes the Continuous Integration and Continuous Deployment (CI/CD) setup for the project.
+Новая система непрерывной интеграции объединяет линтеры, типизацию, тесты Python/QML и сбор артефактов в единый конвейер GitHub Actions. Настройка ориентирована на кроссплатформенную проверку (Windows, macOS, Linux) и повторяется локальными инструментами (`pre-commit`, задачи VS/VS Code).
 
-## ?? Automated Workflows
+## Обзор workflow `ci.yml`
 
-### GitHub Actions
+| Джоб | Описание | Ключевые технологии |
+| --- | --- | --- |
+| `lint` | Устанавливает dev-зависимости, выполняет `ruff check`, `ruff format --check`, `mypy` и сохраняет логи. | Python3.13, Ruff, mypy |
+| `tests` | Запускается в матрице ОС (Ubuntu, Windows, macOS). Устанавливает Qt6.6, прогоняет `pytest -m "not gui"`, QML/GUI тесты, объединяет покрытие и выгружает отчёты. | pytest, pytest-qt, PySide6, coverage |
+| `summarize` | Собирает все артефакты из матрицы и публикует единый архив `ci-bundle`. | actions/download-artifact |
 
-The project uses GitHub Actions for automated testing and quality checks.
+### Блок-схема пайплайна
 
-**Workflow File:** `.github/workflows/ci-cd.yml`
-
-## ?? Test Pipeline
-
-### On Every Push/PR
-
-1. **Unit Tests**
-   - Run on Ubuntu, Windows, macOS
-   - Python versions: 3.11, 3.12, 3.13
-   - Coverage reports uploaded to Codecov
-
-2. **Integration Tests**
-   - Test component interactions
-   - Verify Python?QML communication
-
-3. **Code Quality Checks**
-   - **flake8:** Code linting
-   - **black:** Code formatting
-   - **mypy:** Type checking
-
-### Test Matrix
-
-```
-OS: [Ubuntu, Windows, macOS]
-Python: [3.11, 3.12, 3.13]
-Total Combinations: 9
+```mermaid
+flowchart TD
+ A[Push / Pull Request / Dispatch] --> B[Lint job\nRuff + mypy]
+ B --> C{Матрица ОС}
+ C -->|Ubuntu| D1[Tests job\npytest non-GUI + GUI]
+ C -->|Windows| D2[Tests job\npytest non-GUI + GUI]
+ C -->|macOS| D3[Tests job\npytest non-GUI + GUI]
+ D1 --> E[Coverage combine]
+ D2 --> E
+ D3 --> E
+ E --> F[Артефакты тестов]
+ B --> G[Логи линтеров]
+ F --> H[Summarize job]
+ G --> H
+ H --> I[Архив ci-bundle]
 ```
 
-## ?? Coverage Reports
+### Триггеры
+- `push` и `pull_request` для веток `master`, `develop`.
+- `workflow_dispatch` для ручного запуска.
 
-- **Target Coverage:** 80%+
-- **Current Coverage:** Will be tracked via Codecov
-- **Reports:** Available in PR comments and workflow artifacts
+## Кеширование и артефакты
+- **Pip**: `actions/setup-python@v5` с `cache: 'pip'` + fallback-кеш для `~/.cache/pip` на Linux.
+- **Qt**: `jurplel/install-qt-action@v4` с встроенным кешем модулей (`qtbase`, `qtdeclarative`, `qtquick3d`).
+- **Тестовые артефакты**: лог pytest, JUnit XML, coverage XML/HTML сохраняются в `artifacts/test` и выгружаются как `test-results-${{ matrix.os }}`.
+- **Логи линтеров**: шаг `lint` складывает отчёты в `artifacts/lint` и всегда публикует их.
+- **Финальный архив**: job `summarize` подтягивает все артефакты и публикует сводный `ci-bundle`.
 
-## ?? Local Testing
+## Паритет локальных инструментов
+- `pre-commit` теперь использует Ruff (lint + формат), mypy и предоставляет ручные хуки `pytest-core` и `pytest-gui`, повторяющие команды CI.
+- `.vscode/tasks.json` добавляет задачи `🛠️ CI: подготовка окружения`, `🔍 Ruff lint (CI)`, `🎨 Ruff format --check`, `📊 Pytest (core, coverage)`, `🧭 Pytest (QML/GUI)`.
+- `.vs/launch.vs.json` содержит конфигурации запуска для Ruff, mypy и обоих pytest-прогонов.
+- `PneumoStabSim.code-workspace` включает настройки pytest (`-m "not gui"`) и авто-запуск Ruff при сохранении.
 
-### Run All Tests
-```bash
-pytest
-```
+## SLA по красным сборкам
+| Сценарий | Действие | Владелец | Максимальное время |
+| --- | --- | --- | --- |
+| Любая сборка в статусе `failure` | Анализ логов, определение ответственного | Автор коммита / дежурный | ≤2 часа с момента уведомления |
+| Подтверждённый дефект CI (инфраструктура) | Горячий фикс или откат | Дежурный по инфраструктуре | ≤4 часа |
+| Функциональный дефект в коде | Исправление, пуш в ветку, повторный прогон CI | Автор изменения | ≤24 часа |
 
-### Run with Coverage
-```bash
-pytest --cov=src --cov-report=html
-open htmlcov/index.html
-```
+Если SLA нарушается, фиксируется инцидент в трекере и назначается ретроспектива на ближайший синк.
 
-### Run Specific Test Suite
-```bash
-pytest tests/unit/           # Unit tests
-pytest tests/integration/    # Integration tests
-pytest tests/system/         # System tests
-```
+## Защита веток
+Чтобы предотвратить нестабильные изменения от попадания в основные ветки, в GitHub настроены защищённые ветки с обязательными статус-чеками.
 
-### Run Quality Checks
-```bash
-flake8 src/
-black --check src/
-mypy src/
-```
+### Основные правила
+- Включена защита веток `master` и `develop`.
+- Минимум один одобряющий ревью обязателен перед слиянием.
+- Ветку нельзя смержить, пока не пройдут все обязательные статус-чеки (`make verify` и дополнительные проверки из GitHub Actions).
+- Требуется обновление ветки перед слиянием, если в целевую ветку были добавлены новые коммиты.
+- Правила распространяются на администраторов репозитория.
 
-## ?? Deployment Pipeline
+### Обязательные статус-чеки
+- **CI: make verify** — агрегирует линтеры и тесты (flake8, black, mypy, pytest).
+- **Codecov** — отслеживание покрытия тестами (при наличии).
+- Дополнительные рабочие процессы могут быть добавлены, но их прохождение обязательно для слияния.
 
-### On Master Branch Push
+### Работа с защищёнными ветками
+- Используйте pull request'ы для всех изменений в `master` и `develop`.
+- Синхронизируйте ветку фича-branch с целевой веткой перед запросом ревью, чтобы избежать блокировок из-за устаревших коммитов.
+- Следите за статусом проверок в интерфейсе GitHub и дублируйте информацию в описании PR.
 
-1. ? All tests pass
-2. ? Code quality checks pass
-3. ? Documentation builds
-4. ??? Tag created (manual release)
+## Практические подсказки
+- Перед пушем запускайте `pre-commit run --all-files` и при необходимости `pre-commit run pytest-core --hook-stage manual`.
+- Для QML тестов в локальном окружении установите переменные `QT_QPA_PLATFORM=offscreen`, `QT_QUICK_BACKEND=software` (аналогично настройкам CI).
+- Покрытие объединяется командой `python -m coverage combine && python -m coverage html` (см. задачи VS/VS Code).
 
-### Release Process
-
-1. Merge to `master` branch
-2. CI/CD runs full test suite
-3. If all passes, create release tag
-4. Build distribution packages
-5. Update documentation
-
-## ?? Branch Protection
-
-### Master Branch
-
-- ? Require PR reviews
-- ? Require status checks to pass
-- ? Require up-to-date branches
-- ? Include administrators
-
-### Develop Branch
-
-- ? Require status checks to pass
-- ?? PR reviews recommended
-
-## ?? Troubleshooting CI/CD
-
-### Tests Failing Locally But Pass in CI
-
-- Check Python version
-- Verify all dependencies installed
-- Check environment variables
-
-### Tests Pass Locally But Fail in CI
-
-- Different OS/Python version
-- Missing test dependencies
-- Environment-specific issues
-
-### Coverage Below Target
-
-- Add more unit tests
-- Test edge cases
-- Remove unused code
-
-## ?? Dependencies Management
-
-### Production Dependencies
-```
-requirements.txt
-```
-
-### Development Dependencies
-```
-requirements-dev.txt
-```
-
-### Automatic Dependency Updates
-
-- Dependabot configured (future)
-- Weekly security checks
-- Auto-update minor versions
-
-## ?? Security Scanning
-
-### Planned Integrations
-
-- **Bandit:** Python security linting
-- **Safety:** Dependency vulnerability checking
-- **CodeQL:** Advanced code scanning
-
-## ?? Metrics Tracking
-
-### CI/CD Metrics
-
-- Build success rate
-- Average build time
-- Test pass rate
-- Coverage trends
-
-### Quality Metrics
-
-- Code complexity
-- Technical debt
-- Documentation coverage
-
-## ?? Future Improvements
-
-1. **Performance Benchmarks**
-   - Track simulation speed
-   - Monitor memory usage
-   - Regression detection
-
-2. **Visual Regression Testing**
-   - Screenshot comparison
-   - QML rendering tests
-
-3. **Automated Releases**
-   - Semantic versioning
-   - Changelog generation
-   - Package publishing
-
----
-
-**Last Updated:** 2025-01-05
-**CI/CD Platform:** GitHub Actions
-**Status:** ? Configured and Ready
+## История изменений
+- **2025-10-22** — переход на `ci.yml`, добавление кэширования, унификация локальных инструментов, введение SLA для красных сборок.

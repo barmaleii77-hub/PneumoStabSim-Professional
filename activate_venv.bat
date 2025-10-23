@@ -17,7 +17,7 @@ rem Prefer Python 3.13 if available via py launcher
 set "PYTHON_CMD="
 py -3.13 -c "import sys" >nul 2>&1 && set "PYTHON_CMD=py -3.13"
 
-rem Fallback chain
+rem Fallback chain (will emit a warning later)
 if not defined PYTHON_CMD (
     py -3.12 -c "import sys" >nul 2>&1 && set "PYTHON_CMD=py -3.12"
 )
@@ -42,12 +42,12 @@ if not defined PYTHON_CMD (
 
 rem Check if virtual environment exists
 if not exist "venv\Scripts\activate.bat" (
-    echo Creating virtual environment...
+echo Creating virtual environment...
 
-    rem Warn if version is outside supported range (3.8 - 3.13), continue anyway
-    %PYTHON_CMD% -c "import sys; major, minor = sys.version_info[:2]; print(f'Using Python {major}.{minor}'); exit(0 if (3, 8) <= (major, minor) <= (3, 13) else 1)"
+    rem Warn if version is not the target (3.13)
+    %PYTHON_CMD% -c "import sys; major, minor = sys.version_info[:2]; print(f'Using Python {major}.{minor}'); exit(0 if (major, minor) == (3, 13) else 1)"
     if errorlevel 1 (
-        echo WARNING: Python version may not be fully compatible (recommended 3.13). Continuing...
+        echo WARNING: Python version may not be fully compatible (project targets 3.13). Continuing...
     )
 
     %PYTHON_CMD% -m venv venv --clear
@@ -113,7 +113,7 @@ if exist "requirements.txt" (
     )
 ) else (
     echo WARNING: requirements.txt not found, installing basic packages...
-    pip install "numpy>=1.24.0,<3.0.0" "scipy>=1.10.0,<2.0.0" "PySide6>=6.10.0,<7.0.0" "matplotlib>=3.5.0" "pillow>=9.0.0" "psutil>=5.8.0" "python-dotenv>=1.0.0" --disable-pip-version-check
+    pip install "numpy>=1.26.0,<3.0.0" "scipy>=1.11.0,<2.0.0" "PySide6>=6.10.0,<7.0.0" "matplotlib>=3.7.0" "pillow>=9.0.0" "psutil>=5.8.0" "python-dotenv>=1.0.0" --disable-pip-version-check
 )
 
 rem Set environment variables for optimal operation

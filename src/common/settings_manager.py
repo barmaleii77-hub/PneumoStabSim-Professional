@@ -11,13 +11,111 @@ Unified Settings Manager
 """
 from __future__ import annotations
 
-import json
-import logging
-from pathlib import Path
-from typing import Any, Dict, Optional
-from datetime import datetime
 import copy
+import importlib.util
+import json
+import jsonschema
+import logging
 import re
+from dataclasses import dataclass
+from datetime import datetime
+from pathlib import Path
+from types import ModuleType
+from typing import Any, Dict, Iterable, List, Optional, Tuple, cast
+
+from .qt_compat import QObject, Signal
+
+# Добавление событий для Signal Trace
+try:
+    # Трассировка сигналов доступна опционально
+    from .signal_trace import SignalTraceService, get_signal_trace_service
+except Exception:  # pragma: no cover - при ранней загрузке в тестах
+    SignalTraceService = object  # type: ignore
+
+    def get_signal_trace_service():  # type: ignore
+        raise RuntimeError("SignalTraceService is not available")
+
+try:
+    from jsonschema import Draft202012Validator, ValidationError
+except Exception:  # pragma: no cover - библиотека может ставиться отдельно
+    Draft202012Validator = object  # type: ignore
+
+    class ValidationError(Exception):  # type: ignore
+        pass
+
+
+_MISSING = object()
+
+
+@dataclass(slots=True)
+class SettingsChange:
+    """Структура единичного изменения настроек для публикации в шину событий."""
+
+    path: str
+    category: str
+    change_type: str
+    old_value: Any
+    new_value: Any
+    timestamp: str
+
+    def to_payload(self) -> Dict[str, Any]:
+        return {
+            "path": self.path,
+            "category": self.category,
+            "changeType": self.change_type,
+            "oldValue": self.old_value,
+            "newValue": self.new_value,
+            "timestamp": self.timestamp,
+        }
+
+
+class SettingsEventBus(QObject):
+    """Qt-шина событий для доставки изменений в Python и QML."""
+
+    settingChanged = Signal(object)
+    settingsBatchUpdated = Signal(object)
+
+    def __init__(self, trace_service: Optional[SignalTraceService] = None) -> None:
+        super().__init__()
+        try:
+            self._trace_service: SignalTraceService = (
+                trace_service if trace_service is not None else get_signal_trace_service()  # type: ignore
+            )
+        except Exception:  # pragma: no cover - в headless окружении
+            self._trace_service = None  # type: ignore
+        self.logger = logging.getLogger("SettingsEventBus")
+
+    def emit_setting(self, change: SettingsChange) -> None:
+        payload = change.to_payload()
+        self.logger.debug("settingChanged: %s", payload)
+        self.settingChanged.emit(payload)
+        if getattr(self, "_trace_service", None):
+            try:
+                self._trace_service.record_signal(  # type: ignore[attr-defined]
+                    "settings.settingChanged", payload, source="python"
+                )
+            except Exception:
+                pass
+
+    def emit_batch(self, changes: Iterable[SettingsChange]) -> None:
+        change_list = [c.to_payload() for c in changes]
+        if not change_list:
+            return
+        summary = {
+            "total": len(change_list),
+            "categories": sorted({p["category"] for p in change_list}),
+            "timestamp": datetime.utcnow().isoformat(),
+        }
+        payload = {"changes": change_list, "summary": summary}
+        self.logger.debug("settingsBatchUpdated: %s", summary)
+        self.settingsBatchUpdated.emit(payload)
+        if getattr(self, "_trace_service", None):
+            try:
+                self._trace_service.record_signal(  # type: ignore[attr-defined]
+                    "settings.settingsBatchUpdated", payload, source="python"
+                )
+            except Exception:
+                pass
 
 
 class SettingsManager:
@@ -38,6 +136,19 @@ class SettingsManager:
         "metadata": { "version", "last_modified", ... }
     }
     """
+
+    # Версия формата настроек приложения
+    SETTINGS_VERSION = "4.9.6"
+
+    # Совместимость со старой легковесной схемой внутри менеджера (оставляем для обратной совместимости)
+    CURRENT_SCHEMA_VERSION = "1.0.0"
+    _SCHEMA_MIGRATIONS: Tuple[Tuple[str, str], ...] = (
+        ("1.0.0", "_migrate_to_1_0_0"),
+    )
+
+    # Пути к схеме и миграциям
+    _SCHEMA_PATH = Path(__file__).resolve().parents[2] / "config" / "app_settings.schema.json"
+    _MIGRATIONS_PATH = Path(__file__).resolve().parents[2] / "config" / "migrations"
 
     # Canonical geometry keys exposed in meters for UI/visualization modules
     _GEOMETRY_KEY_ALIASES = {
@@ -84,6 +195,163 @@ class SettingsManager:
         "tail_rod_length_m": 0.1,
     }
 
+    _DEFAULT_GRAPHICS_ANIMATION: Dict[str, Any] = {
+        "is_running": False,
+        "animation_time": 0.0,
+        "amplitude": 8.0,
+        "frequency": 1.0,
+        "phase_global": 0.0,
+        "phase_fl": 0.0,
+        "phase_fr": 0.0,
+        "phase_rl": 0.0,
+        "phase_rr": 0.0,
+    }
+
+    _DEFAULT_GRAPHICS_SCENE: Dict[str, Any] = {
+        "scale_factor": 1000.0,
+        "default_clear_color": "#1a1a2e",
+        "model_base_color": "#9ea4ab",
+        "model_roughness": 0.35,
+        "model_metalness": 0.9,
+    }
+
+    _DEFAULT_GRAPHICS_MATERIALS: Dict[str, Any] = {
+        "frame": {
+            "base_color": "#c53030",
+            "metalness": 0.85,
+            "roughness": 0.35,
+            "specular_amount": 1.0,
+            "specular_tint": 0.0,
+            "clearcoat": 0.22,
+            "clearcoat_roughness": 0.1,
+            "transmission": 0.0,
+            "opacity": 1.0,
+            "ior": 1.5,
+            "attenuation_distance": 10000.0,
+            "attenuation_color": "#ffffff",
+            "emissive_color": "#000000",
+            "emissive_intensity": 0.0,
+        },
+        "lever": {
+            "base_color": "#9ea4ab",
+            "metalness": 1.0,
+            "roughness": 0.28,
+            "specular_amount": 1.0,
+            "specular_tint": 0.0,
+            "clearcoat": 0.3,
+            "clearcoat_roughness": 0.08,
+            "transmission": 0.0,
+            "opacity": 1.0,
+            "ior": 1.5,
+            "attenuation_distance": 10000.0,
+            "attenuation_color": "#ffffff",
+            "emissive_color": "#000000",
+            "emissive_intensity": 0.0,
+        },
+        "tail_rod": {
+            "base_color": "#d5d9df",
+            "metalness": 1.0,
+            "roughness": 0.3,
+            "specular_amount": 1.0,
+            "specular_tint": 0.0,
+            "clearcoat": 0.0,
+            "clearcoat_roughness": 0.0,
+            "transmission": 0.0,
+            "opacity": 1.0,
+            "ior": 1.5,
+            "attenuation_distance": 10000.0,
+            "attenuation_color": "#ffffff",
+            "emissive_color": "#000000",
+            "emissive_intensity": 0.0,
+        },
+        "cylinder": {
+            "base_color": "#e1f5ff",
+            "metalness": 0.0,
+            "roughness": 0.05,
+            "specular_amount": 1.0,
+            "specular_tint": 0.0,
+            "clearcoat": 0.0,
+            "clearcoat_roughness": 0.0,
+            "transmission": 1.0,
+            "opacity": 1.0,
+            "ior": 1.52,
+            "attenuation_distance": 1800.0,
+            "attenuation_color": "#b7e7ff",
+            "emissive_color": "#000000",
+            "emissive_intensity": 0.0,
+        },
+        "piston_body": {
+            "base_color": "#ff3c6e",
+            "warning_color": "#ff5454",
+            "metalness": 1.0,
+            "roughness": 0.26,
+            "specular_amount": 1.0,
+            "specular_tint": 0.0,
+            "clearcoat": 0.18,
+            "clearcoat_roughness": 0.06,
+            "transmission": 0.0,
+            "opacity": 1.0,
+            "ior": 1.5,
+            "attenuation_distance": 10000.0,
+            "attenuation_color": "#ffffff",
+            "emissive_color": "#000000",
+            "emissive_intensity": 0.0,
+        },
+        "piston_rod": {
+            "base_color": "#ececec",
+            "warning_color": "#ff2a2a",
+            "metalness": 1.0,
+            "roughness": 0.18,
+            "specular_amount": 1.0,
+            "specular_tint": 0.0,
+            "clearcoat": 0.12,
+            "clearcoat_roughness": 0.05,
+            "transmission": 0.0,
+            "opacity": 1.0,
+            "ior": 1.5,
+            "attenuation_distance": 10000.0,
+            "attenuation_color": "#ffffff",
+            "emissive_color": "#000000",
+            "emissive_intensity": 0.0,
+        },
+        "joint_tail": {
+            "base_color": "#2a82ff",
+            "metalness": 0.9,
+            "roughness": 0.35,
+            "specular_amount": 1.0,
+            "specular_tint": 0.0,
+            "clearcoat": 0.1,
+            "clearcoat_roughness": 0.08,
+            "transmission": 0.0,
+            "opacity": 1.0,
+            "ior": 1.5,
+            "attenuation_distance": 10000.0,
+            "attenuation_color": "#ffffff",
+            "emissive_color": "#000000",
+            "emissive_intensity": 0.0,
+        },
+        "joint_arm": {
+            "base_color": "#ff9c3a",
+            "metalness": 0.9,
+            "roughness": 0.32,
+            "specular_amount": 1.0,
+            "specular_tint": 0.0,
+            "clearcoat": 0.12,
+            "clearcoat_roughness": 0.08,
+            "transmission": 0.0,
+            "opacity": 1.0,
+            "ior": 1.5,
+            "attenuation_distance": 10000.0,
+            "attenuation_color": "#ffffff",
+            "emissive_color": "#000000",
+            "emissive_intensity": 0.0,
+        },
+        "joint_rod": {
+            "ok_color": "#00ff55",
+            "error_color": "#ff0000",
+        },
+    }
+
     def __init__(self, settings_file: str | Path = "config/app_settings.json"):
         self.logger = logging.getLogger(__name__)
         # Разрешаем путь к файлу настроек более надёжно (CWD / корень проекта / env var)
@@ -93,15 +361,25 @@ class SettingsManager:
         self._current: Dict[str, Any] = {}
         self._defaults_snapshot: Dict[str, Any] = {}
         self._metadata: Dict[str, Any] = {}
+        self._schema_version: str = self.CURRENT_SCHEMA_VERSION
+        self._schema_validator: Draft202012Validator | None = None  # type: ignore[assignment]
+
+        # Diagnostics
+        self._event_bus = get_settings_event_bus()
+        try:
+            self._trace_service = get_signal_trace_service()
+        except Exception:  # pragma: no cover
+            self._trace_service = None
 
         # Загрузка настроек
         self.load()
+        self._sync_signal_trace_config()
 
     # ------------------------------------------------------------------
     # Geometry helpers
     # ------------------------------------------------------------------
     def get_geometry_snapshot(self) -> Dict[str, float]:
-        """Return geometry configuration in meters with sensible defaults."""
+        """Вернуть снимок геометрии в метрах с безопасными дефолтами."""
 
         geometry_raw = self.get_category("geometry") or {}
         snapshot: Dict[str, float] = {}
@@ -120,6 +398,145 @@ class SettingsManager:
                 snapshot[canonical_key] = float(value)
 
         return snapshot
+
+    # ------------------------------------------------------------------
+    # Diagnostics helpers
+    # ------------------------------------------------------------------
+    def _sync_signal_trace_config(self) -> None:
+        try:
+            diagnostics = self._current.get("diagnostics")
+            if getattr(self, "_trace_service", None) is not None and isinstance(
+                diagnostics, dict
+            ):
+                self._trace_service.update_from_settings(
+                    diagnostics.get("signalTrace")
+                )  # type: ignore[attr-defined]
+        except Exception as exc:
+            self.logger.debug("Failed to sync signal trace configuration: %s", exc)
+
+    def _get_nested_value(self, data: Dict[str, Any], keys: List[str]) -> Any:
+        current: Any = data
+        for key in keys:
+            if isinstance(current, dict) and key in current:
+                current = current[key]
+            else:
+                return _MISSING
+        return copy.deepcopy(current)
+
+    def _emit_setting_change(
+        self, path: str, category: str, old_value: Any, new_value: Any
+    ) -> None:
+        change_type = self._determine_change_type(old_value, new_value)
+        if change_type == "unchanged":
+            return
+        timestamp = datetime.utcnow().isoformat()
+        change = SettingsChange(
+            path=path,
+            category=category,
+            change_type=change_type,
+            old_value=self._make_json_safe(old_value),
+            new_value=self._make_json_safe(new_value),
+            timestamp=timestamp,
+        )
+        self._event_bus.emit_setting(change)
+
+    def _emit_batch_changes(self, changes: Iterable[SettingsChange]) -> None:
+        self._event_bus.emit_batch(changes)
+
+    @classmethod
+    def _determine_change_type(cls, old_value: Any, new_value: Any) -> str:
+        if old_value is _MISSING:
+            return "added"
+        if new_value is _MISSING:
+            return "removed"
+        if cls._values_equal(old_value, new_value):
+            return "unchanged"
+        return "updated"
+
+    @staticmethod
+    def _make_json_safe(value: Any) -> Any:
+        if value is _MISSING:
+            return None
+        try:
+            json.dumps(value)
+            return value
+        except TypeError:
+            if isinstance(value, dict):
+                return {str(k): SettingsManager._make_json_safe(v) for k, v in value.items()}
+            if isinstance(value, (list, tuple, set)):
+                return [SettingsManager._make_json_safe(item) for item in value]
+            return repr(value)
+
+    @staticmethod
+    def _values_equal(first: Any, second: Any) -> bool:
+        if first is _MISSING and second is _MISSING:
+            return True
+        return SettingsManager._make_json_safe(first) == SettingsManager._make_json_safe(second)
+
+    @classmethod
+    def _diff_dicts(
+        cls,
+        prefix: str,
+        old_value: Any,
+        new_value: Any,
+        category: str,
+    ) -> List[SettingsChange]:
+        changes: List[SettingsChange] = []
+
+        if isinstance(old_value, dict) and isinstance(new_value, dict):
+            keys = set(old_value.keys()) | set(new_value.keys())
+            for key in sorted(keys):
+                child_prefix = f"{prefix}.{key}" if prefix else key
+                child_old = old_value.get(key, _MISSING)
+                child_new = new_value.get(key, _MISSING)
+                changes.extend(
+                    cls._diff_dicts(child_prefix, child_old, child_new, category)
+                )
+            return changes
+
+        if old_value is _MISSING and new_value is _MISSING:
+            return changes
+
+        if old_value is _MISSING:
+            changes.append(
+                SettingsChange(
+                    path=prefix,
+                    category=category,
+                    change_type="added",
+                    old_value=None,
+                    new_value=cls._make_json_safe(new_value),
+                    timestamp=datetime.utcnow().isoformat(),
+                )
+            )
+            return changes
+
+        if new_value is _MISSING:
+            changes.append(
+                SettingsChange(
+                    path=prefix,
+                    category=category,
+                    change_type="removed",
+                    old_value=cls._make_json_safe(old_value),
+                    new_value=None,
+                    timestamp=datetime.utcnow().isoformat(),
+                )
+            )
+            return changes
+
+        if cls._values_equal(old_value, new_value):
+            return changes
+
+        changes.append(
+            SettingsChange(
+                path=prefix,
+                category=category,
+                change_type="updated",
+                old_value=cls._make_json_safe(old_value),
+                new_value=cls._make_json_safe(new_value),
+                timestamp=datetime.utcnow().isoformat(),
+            )
+        )
+        return changes
 
     def _resolve_settings_file(self, settings_file: str | Path) -> Path:
         """Определить корректный путь к файлу настроек.
@@ -207,6 +624,206 @@ class SettingsManager:
             self.logger.warning(f"Не удалось выполнить миграцию ключей: {e}")
         return data
 
+    @staticmethod
+    def _coerce_version_tuple(version: str) -> Tuple[int, int, int]:
+        padded = [0, 0, 0]
+        parts = version.split(".")
+        for idx, part in enumerate(parts[:3]):
+            try:
+                padded[idx] = int(part)
+            except ValueError:
+                padded[idx] = 0
+        return cast(Tuple[int, int, int], tuple(padded))
+
+    def _apply_schema_migrations(self, data: Dict[str, Any]) -> bool:
+        """Применить миграции внутренней схемы (не путать с версией настроек приложения)."""
+
+        raw_version = data.get("schemaVersion")
+        if not isinstance(raw_version, str) or not raw_version.strip():
+            raw_version = "0.0.0"
+
+        current_version = self._coerce_version_tuple(raw_version)
+        target_version = self._coerce_version_tuple(self.CURRENT_SCHEMA_VERSION)
+        changed = False
+
+        for target, handler_name in self._SCHEMA_MIGRATIONS:
+            handler = getattr(self, handler_name, None)
+            if handler is None:
+                continue
+            target_tuple = self._coerce_version_tuple(target)
+            if current_version < target_tuple:
+                try:
+                    handler(data)
+                    changed = True
+                except Exception as exc:
+                    self.logger.warning(
+                        f"Schema migration {handler_name} to {target} failed: {exc}"
+                    )
+            current_version = target_tuple
+
+        if current_version != target_version:
+            changed = True
+            data["schemaVersion"] = self.CURRENT_SCHEMA_VERSION
+        return changed
+
+    def _migrate_to_1_0_0(self, data: Dict[str, Any]) -> None:
+        """Ensure defaults snapshot and metadata exist for schema1.0.0."""
+
+        current = data.get("current")
+        defaults = data.get("defaults_snapshot")
+        if isinstance(current, dict):
+            if not isinstance(defaults, dict) or not defaults:
+                data["defaults_snapshot"] = copy.deepcopy(current)
+
+        metadata = data.get("metadata")
+        if not isinstance(metadata, dict):
+            metadata = {}
+        metadata.setdefault("schema_version", self.CURRENT_SCHEMA_VERSION)
+        data["metadata"] = metadata
+
+    # ------------------------------
+    # Версионирование файла настроек
+    # ------------------------------
+    @staticmethod
+    def _version_key(version: str) -> tuple[int, ...]:
+        parts: List[int] = []
+        for part in str(version).split("."):
+            if part.isdigit():
+                parts.append(int(part))
+                continue
+            digits = "".join(ch for ch in part if ch.isdigit())
+            parts.append(int(digits) if digits else 0)
+        return tuple(parts)
+
+    @classmethod
+    def _compare_versions(cls, left: str, right: str) -> int:
+        left_key = cls._version_key(left)
+        right_key = cls._version_key(right)
+        if left_key < right_key:
+            return -1
+        if left_key > right_key:
+            return 1
+        return 0
+
+    def _discover_migrations(self) -> List[tuple[str, Path]]:
+        migrations: List[tuple[str, Path]] = []
+        path = self._MIGRATIONS_PATH
+        try:
+            if not path.exists():
+                return migrations
+        except Exception as exc:
+            self.logger.warning(f"Failed to inspect migrations directory: {exc}")
+            return migrations
+
+        for file in path.glob("*.py"):
+            if file.name.startswith("__"):
+                continue
+            version = file.stem.replace("_", ".")
+            migrations.append((version, file))
+
+        migrations.sort(key=lambda item: self._version_key(item[0]))
+        return migrations
+
+    def _load_migration_module(self, file_path: Path) -> ModuleType | None:
+        module_name = f"pss_settings_migration_{file_path.stem}"
+        try:
+            spec = importlib.util.spec_from_file_location(module_name, file_path)
+            if spec is None or spec.loader is None:
+                raise ImportError(f"Unable to resolve module spec for {file_path}")
+            module = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(module)  # type: ignore[union-attr]
+            return module
+        except Exception as exc:
+            self.logger.error(f"Failed to load migration module {file_path}: {exc}")
+            return None
+
+    def _apply_version_migrations(self, data: Dict[str, Any]) -> tuple[Dict[str, Any], bool]:
+        metadata = data.setdefault("metadata", {})
+        file_version = str(metadata.get("version") or "0.0.0")
+        target_version = self.SETTINGS_VERSION
+        comparison = self._compare_versions(file_version, target_version)
+
+        migrations = self._discover_migrations()
+        if not migrations:
+            if file_version != target_version:
+                metadata["version"] = target_version
+                return data, True
+            return data, False
+
+        changed = False
+
+        # Обновление (upgrade)
+        if comparison < 0:
+            for version, path in migrations:
+                if self._compare_versions(file_version, version) < 0 and self._compare_versions(
+                    version, target_version
+                ) <= 0:
+                    module = self._load_migration_module(path)
+                    if module is None or not hasattr(module, "upgrade"):
+                        continue
+                    result = module.upgrade(data)  # type: ignore[attr-defined]
+                    if result is not None:
+                        data = result
+                    metadata = data.setdefault("metadata", {})
+                    new_version = getattr(module, "TARGET_VERSION", version)
+                    metadata["version"] = new_version
+                    file_version = new_version
+                    changed = True
+                    if metadata.get("version") != target_version:
+                        metadata["version"] = target_version
+                        changed = True
+        # Откат (downgrade)
+        elif comparison > 0:
+            for version, path in reversed(migrations):
+                if self._compare_versions(target_version, version) < 0 and self._compare_versions(
+                    version, file_version
+                ) <= 0:
+                    module = self._load_migration_module(path)
+                    if module is None or not hasattr(module, "downgrade"):
+                        continue
+                    result = module.downgrade(data)  # type: ignore[attr-defined]
+                    if result is not None:
+                        data = result
+                    metadata = data.setdefault("metadata", {})
+                    new_version = getattr(module, "PREVIOUS_VERSION", version)
+                    metadata["version"] = new_version
+                    file_version = new_version
+                    changed = True
+                    if metadata.get("version") != target_version:
+                        metadata["version"] = target_version
+                        changed = True
+
+        return data, changed
+
+    # ------------------------------
+    # JSON Schema валидация
+    # ------------------------------
+    def _load_schema_validator(self) -> Draft202012Validator:  # type: ignore[override]
+        if getattr(self, "_schema_validator", None) is not None:
+            return self._schema_validator  # type: ignore[return-value]
+
+        if not self._SCHEMA_PATH.exists():
+            raise FileNotFoundError(
+                f"Settings schema not found: {self._SCHEMA_PATH}"
+            )
+
+        with open(self._SCHEMA_PATH, "r", encoding="utf-8") as schema_file:
+            schema_data = json.load(schema_file)
+
+        # noinspection PyTypeChecker
+        self._schema_validator = Draft202012Validator(schema_data)  # type: ignore[assignment]
+        return self._schema_validator  # type: ignore[return-value]
+
+    def _validate_schema(self, data: Dict[str, Any]) -> None:
+        try:
+            validator = self._load_schema_validator()
+            validator.validate(data)  # type: ignore[attr-defined]
+        except ValidationError as exc:  # type: ignore[misc]
+            path = " -> ".join(str(p) for p in getattr(exc, "path", []))
+            message = f"Settings schema validation failed at {path or '<root>'}: {getattr(exc, 'message', str(exc))}"
+            self.logger.error(message)
+            raise
+
     def load(self) -> bool:
         """
         Загрузить настройки из JSON файла
@@ -229,6 +846,10 @@ class SettingsManager:
                     self.logger.error(msg)
                     raise
 
+            schema_migrated = False
+            if isinstance(data, dict):
+                schema_migrated = self._apply_schema_migrations(data)
+
             # Новая структура с разделением current/defaults
             if "current" in data:
                 # Мягкая миграция ключей
@@ -237,47 +858,70 @@ class SettingsManager:
                     data.get("defaults_snapshot", {})
                 )
 
+                # Версионные миграции и конверсия единиц
+                data, migration_changed = self._apply_version_migrations(data)
                 units_updated = self._maybe_upgrade_units(data)
+
+                # Валидация по JSON Schema (строгая)
+                try:
+                    self._validate_schema(data)
+                except Exception:
+                    # Ошибки схемы критичны — пробрасываем наверх
+                    raise
 
                 self._current = data["current"]
                 self._defaults_snapshot = data.get("defaults_snapshot", {})
-                # Если дефолтный снапшот отсутствует или пуст — делаем его равным current и сохраняем обратно
-                if (
+                structure_updated = False
+                if self._ensure_graphics_sections(self._current):
+                    structure_updated = True
+                if self._ensure_graphics_sections(self._defaults_snapshot):
+                    structure_updated = True
+                defaults_missing = (
                     not isinstance(self._defaults_snapshot, dict)
                     or not self._defaults_snapshot
-                ):
+                )
+                if defaults_missing:
                     self._defaults_snapshot = copy.deepcopy(self._current)
-                    # Немедленно сохраняем, чтобы файл содержал все дефолты (без скрытых значений)
-                    try:
-                        self.save()
-                    except Exception:
-                        # Если сохранение не удалось — пусть поднимется позже при явном save()
-                        pass
-                self._metadata = data.get("metadata", {})
-                if units_updated:
+
+                # Всегда синхронизируем метаданные и версии
+                self._metadata = data.get("metadata", {}) if isinstance(data, dict) else {}
+                self._schema_version = data.get("schemaVersion", self.CURRENT_SCHEMA_VERSION)
+
+                should_save = (
+                    schema_migrated or migration_changed or units_updated or structure_updated or defaults_missing
+                )
+                if should_save:
                     try:
                         self.save()
                     except Exception as exc:
                         self.logger.warning(
-                            f"Не удалось сохранить настройки после миграции единиц: {exc}"
+                            f"Не удалось сохранить настройки после миграции: {exc}"
                         )
             else:
                 # Старая структура - мигрируем
                 migrated = self._migrate_keys(data)
-                self._current = migrated
-                self._defaults_snapshot = copy.deepcopy(migrated)
-                self._metadata = {
-                    "version": data.get("version", "4.9.5"),
-                    "last_modified": datetime.now().isoformat(),
+                payload = {
+                    "current": migrated,
+                    "defaults_snapshot": copy.deepcopy(migrated),
+                    "metadata": {
+                        "version": self.SETTINGS_VERSION,
+                        "last_modified": datetime.now().isoformat(),
+                    },
                 }
-                self._maybe_upgrade_units(
-                    {
-                        "current": self._current,
-                        "defaults_snapshot": self._defaults_snapshot,
-                        "metadata": self._metadata,
-                    }
-                )
-                self.save()
+                payload, migration_changed = self._apply_version_migrations(payload)
+                units_updated = self._maybe_upgrade_units(payload)
+                self._validate_schema(payload)
+
+                self._current = payload["current"]
+                self._defaults_snapshot = payload["defaults_snapshot"]
+                self._metadata = payload["metadata"]
+
+                try:
+                    self.save()
+                except Exception as exc:
+                    self.logger.warning(
+                        f"Не удалось сохранить настройки после миграции структуры: {exc}"
+                    )
 
             # Диагностика наличия критичных секций
             mats_cnt = 0
@@ -316,10 +960,16 @@ class SettingsManager:
             self.settings_file.parent.mkdir(parents=True, exist_ok=True)
 
             # Обновляем metadata
+            if not isinstance(self._metadata, dict):
+                self._metadata = {}
             self._metadata["last_modified"] = datetime.now().isoformat()
+            self._metadata["version"] = self.SETTINGS_VERSION
+            self._metadata.setdefault("schema_version", self._schema_version)
+            self._schema_version = self.CURRENT_SCHEMA_VERSION
 
             # Структура файла
             data = {
+                "schemaVersion": self._schema_version,
                 "current": self._current,
                 "defaults_snapshot": self._defaults_snapshot,
                 "metadata": self._metadata,
@@ -395,6 +1045,7 @@ class SettingsManager:
         """
         keys = path.split(".")
         current = self._current
+        old_value = self._get_nested_value(self._current, keys)
 
         # Создаем промежуточные словари если нужно
         for key in keys[:-1]:
@@ -405,11 +1056,16 @@ class SettingsManager:
         # Устанавливаем значение
         current[keys[-1]] = value
 
-        # Автосохранение
+        saved = True
         if auto_save:
-            return self.save()
+            saved = self.save()
 
-        return True
+        if saved:
+            self._emit_setting_change(path, keys[0], old_value, copy.deepcopy(value))
+            if keys and keys[0] == "diagnostics":
+                self._sync_signal_trace_config()
+
+        return saved
 
     def get_category(self, category: str) -> Dict[str, Any]:
         """
@@ -438,12 +1094,23 @@ class SettingsManager:
         Returns:
             bool: True если успешно
         """
+        previous = self._current.get(category, _MISSING)
+        previous_copy = copy.deepcopy(previous) if previous is not _MISSING else _MISSING
+
         self._current[category] = data
 
+        saved = True
         if auto_save:
-            return self.save()
+            saved = self.save()
 
-        return True
+        if saved:
+            new_copy = copy.deepcopy(data)
+            changes = self._diff_dicts(category, previous_copy, new_copy, category)
+            self._emit_batch_changes(changes)
+            if category == "diagnostics":
+                self._sync_signal_trace_config()
+
+        return saved
 
     def reset_to_defaults(self, category: Optional[str] = None) -> bool:
         """
@@ -455,17 +1122,43 @@ class SettingsManager:
         Returns:
             bool: True если успешно
         """
-        if category is None:
-            # Сброс всех настроек
-            self._current = copy.deepcopy(self._defaults_snapshot)
-        else:
-            # Сброс конкретной категории
-            if category in self._defaults_snapshot:
-                self._current[category] = copy.deepcopy(
-                    self._defaults_snapshot[category]
-                )
+        changes: List[SettingsChange] = []
 
-        return self.save()
+        if category is None:
+            before = copy.deepcopy(self._current)
+            self._current = copy.deepcopy(self._defaults_snapshot)
+            saved = self.save()
+            if saved:
+                keys = set(before.keys()) | set(self._current.keys())
+                for key in sorted(keys):
+                    old_val = before.get(key, _MISSING)
+                    new_val = self._current.get(key, _MISSING)
+                    if new_val is not _MISSING:
+                        new_val = copy.deepcopy(new_val)
+                    changes.extend(self._diff_dicts(key, old_val, new_val, key))
+                self._emit_batch_changes(changes)
+                self._sync_signal_trace_config()
+            return saved
+
+        if category in self._defaults_snapshot:
+            before = self._current.get(category, _MISSING)
+            before_copy = copy.deepcopy(before) if before is not _MISSING else _MISSING
+            restored = copy.deepcopy(self._defaults_snapshot[category])
+            self._current[category] = restored
+            saved = self.save()
+            if saved:
+                changes = self._diff_dicts(
+                    category,
+                    before_copy,
+                    copy.deepcopy(restored),
+                    category,
+                )
+                self._emit_batch_changes(changes)
+                if category == "diagnostics":
+                    self._sync_signal_trace_config()
+            return saved
+
+        return True
 
     def save_current_as_defaults(self, category: Optional[str] = None) -> bool:
         """
@@ -479,19 +1172,47 @@ class SettingsManager:
             bool: True если успешно
         """
         if category is None:
-            # Сохраняем все текущие настройки как дефолты
+            before = copy.deepcopy(self._defaults_snapshot)
             self._defaults_snapshot = copy.deepcopy(self._current)
-        else:
-            # Сохраняем конкретную категорию
-            if category in self._current:
-                self._defaults_snapshot[category] = copy.deepcopy(
-                    self._current[category]
-                )
+            saved = self.save()
+            if saved:
+                keys = set(before.keys()) | set(self._defaults_snapshot.keys())
+                changes: List[SettingsChange] = []
+                for key in sorted(keys):
+                    old_val = before.get(key, _MISSING)
+                    new_val = self._defaults_snapshot.get(key, _MISSING)
+                    if new_val is not _MISSING:
+                        new_val = copy.deepcopy(new_val)
+                    changes.extend(
+                        self._diff_dicts(f"defaults.{key}", old_val, new_val, "defaults")
+                    )
+                self._emit_batch_changes(changes)
+                self._sync_signal_trace_config()
+                self.logger.info("Current settings saved as defaults (category=all)")
+            return saved
 
-        self.logger.info(
-            f"Current settings saved as defaults (category={category or 'all'})"
-        )
-        return self.save()
+        if category in self._current:
+            before = self._defaults_snapshot.get(category, _MISSING)
+            before_copy = copy.deepcopy(before) if before is not _MISSING else _MISSING
+            updated = copy.deepcopy(self._current[category])
+            self._defaults_snapshot[category] = updated
+            saved = self.save()
+            if saved:
+                changes = self._diff_dicts(
+                    f"defaults.{category}",
+                    before_copy,
+                    copy.deepcopy(updated),
+                    "defaults",
+                )
+                self._emit_batch_changes(changes)
+                if category == "diagnostics":
+                    self._sync_signal_trace_config()
+                self.logger.info(
+                    "Current settings saved as defaults (category=%s)", category
+                )
+            return saved
+
+        return True
 
     def get_all_current(self) -> Dict[str, Any]:
         """
@@ -521,7 +1242,9 @@ class SettingsManager:
                 "quality": {},
                 "camera": {},
                 "effects": {},
-                "materials": {},
+                "materials": copy.deepcopy(self._DEFAULT_GRAPHICS_MATERIALS),
+                "animation": copy.deepcopy(self._DEFAULT_GRAPHICS_ANIMATION),
+                "scene": copy.deepcopy(self._DEFAULT_GRAPHICS_SCENE),
             },
             "geometry": {},
             "simulation": {},
@@ -529,10 +1252,11 @@ class SettingsManager:
         }
 
         self._defaults_snapshot = copy.deepcopy(self._current)
+        now_iso = datetime.now().isoformat()
         self._metadata = {
-            "version": "4.9.5",
-            "created": datetime.now().isoformat(),
-            "last_modified": datetime.now().isoformat(),
+            "version": self.SETTINGS_VERSION,
+            "created": now_iso,
+            "last_modified": now_iso,
         }
 
         # Создаем директорию если нужно
@@ -819,9 +1543,104 @@ class SettingsManager:
         except Exception as e:
             self.logger.warning(f"Failed to configure immutable settings: {e}")
 
+    @classmethod
+    def get_graphics_default(cls, section: str) -> Dict[str, Any]:
+        mapping = {
+            "animation": cls._DEFAULT_GRAPHICS_ANIMATION,
+            "scene": cls._DEFAULT_GRAPHICS_SCENE,
+            "materials": cls._DEFAULT_GRAPHICS_MATERIALS,
+        }
+        return copy.deepcopy(mapping.get(section, {}))
 
-# Singleton instance
+    def _ensure_graphics_sections(self, section: Dict[str, Any]) -> bool:
+        if not isinstance(section, dict):
+            return False
+
+        graphics = section.setdefault("graphics", {})
+        changed = False
+
+        required_sections = {
+            "materials": self._DEFAULT_GRAPHICS_MATERIALS,
+            "animation": self._DEFAULT_GRAPHICS_ANIMATION,
+            "scene": self._DEFAULT_GRAPHICS_SCENE,
+        }
+
+        for key, defaults in required_sections.items():
+            existing = graphics.get(key)
+            if not isinstance(existing, dict):
+                graphics[key] = copy.deepcopy(defaults)
+                changed = True
+            else:
+                if key == "materials":
+                    if self._normalize_materials(existing):
+                        changed = True
+                if self._merge_missing_defaults(existing, defaults):
+                    changed = True
+
+        return changed
+
+    @classmethod
+    def _merge_missing_defaults(
+        cls, target: Dict[str, Any], defaults: Dict[str, Any]
+    ) -> bool:
+        changed = False
+        for key, value in defaults.items():
+            if key not in target:
+                target[key] = copy.deepcopy(value)
+                changed = True
+            else:
+                if isinstance(value, dict) and isinstance(target.get(key), dict):
+                    if cls._merge_missing_defaults(target[key], value):
+                        changed = True
+        return changed
+
+    @classmethod
+    def _normalize_materials(cls, materials: Dict[str, Any]) -> bool:
+        changed = False
+        if not isinstance(materials, dict):
+            return changed
+
+        if "tail" in materials and "tail_rod" not in materials:
+            materials["tail_rod"] = materials.pop("tail")
+            changed = True
+        elif "tail" in materials:
+            # Если оба ключа присутствуют, удаляем устаревший
+            materials.pop("tail", None)
+            changed = True
+
+        for _mat_name, params in list(materials.items()):
+            if not isinstance(params, dict):
+                continue
+            if "specular" in params:
+                if "specular_amount" not in params:
+                    try:
+                        params["specular_amount"] = float(params.get("specular", 0.0))
+                    except Exception:
+                        params["specular_amount"] = params.get("specular")
+                params.pop("specular", None)
+                changed = True
+
+        return changed
+
+    @property
+    def schema_version(self) -> str:
+        """Версия схемы конфигурации, с которой синхронизирован файл."""
+        return self._schema_version
+
+
+# Singleton instances
+_settings_event_bus: Optional[SettingsEventBus] = None
 _settings_manager: Optional[SettingsManager] = None
+
+
+def get_settings_event_bus() -> SettingsEventBus:
+    global _settings_event_bus
+    if _settings_event_bus is None:
+        try:
+            _settings_event_bus = SettingsEventBus()  # type: ignore[arg-type]
+        except Exception:
+            _settings_event_bus = SettingsEventBus()  # в headless всё равно сработает
+    return _settings_event_bus
 
 
 def get_settings_manager() -> SettingsManager:
@@ -837,3 +1656,10 @@ def get_settings_manager() -> SettingsManager:
         _settings_manager = SettingsManager()
 
     return _settings_manager
+
+
+def _reset_settings_singletons_for_tests() -> None:
+    """Сброс синглтонов для изолированных юнит-тестов."""
+    global _settings_manager, _settings_event_bus
+    _settings_manager = None
+    _settings_event_bus = None

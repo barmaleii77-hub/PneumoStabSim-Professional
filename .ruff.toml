@@ -1,0 +1,25 @@
+line-length = 88
+indent-width = 4
+target-version = "py313"
+respect-gitignore = true
+extend-exclude = [
+    "scripts/export_copilot_chat.py",
+    "src/ui/main_window/qml_bridge.py",
+    "tests/verify_p7.py",
+]
+
+[lint]
+select = [
+    "E9",
+]
+fixable = ["ALL"]
+
+[lint.isort]
+known-first-party = ["pneumostabsim"]
+combine-as-imports = true
+
+[format]
+quote-style = "double"
+indent-style = "space"
+skip-magic-trailing-comma = false
+line-ending = "lf"

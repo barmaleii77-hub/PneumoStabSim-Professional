@@ -10,6 +10,14 @@
 
 ## Установка за 5 минут
 
+### 0. Подготовка окружения
+```bash
+cp env.sample .env
+python setup_environment.py --python-version 3.13 --install-qt --qt-version 6.7.2
+```
+
+*Для Windows можно использовать:* `./activate_environment.ps1 -Setup -InstallQt -PythonVersion 3.13`.
+
 ### 1. Клонирование
 ```bash
 git clone https://github.com/barmaleii77-hub/PneumoStabSim-Professional.git
@@ -29,7 +37,7 @@ source .venv/bin/activate
 
 ### 3. Зависимости
 ```bash
-pip install -r requirements.txt
+pip install --require-hashes -r requirements.txt
 ```
 
 ### 4. Запуск
@@ -54,24 +62,3 @@ python --version  # Должно быть 3.13+
 
 # Проверьте зависимости
 pip list | grep PySide6  # Должно быть 6.9.3+
-```
-
-### 3D сцена не отображается
-- Обновите драйверы видеокарты
-- Проверьте поддержку OpenGL/DirectX
-- Попробуйте запустить с флагом: `python app.py --opengl-legacy`
-
-### Тесты не проходят
-```bash
-# Установите pytest если не установлен
-pip install pytest pytest-qt
-
-# Запустите тесты
-pytest tests/ -v
-```
-
-## Следующие шаги
-
-- Изучите [документацию пользователя](user/USER_GUIDE.md)
-- Ознакомьтесь с [примерами использования](user/EXAMPLES.md)
-- Посмотрите [API документацию](api/README.md)

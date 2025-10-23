@@ -83,6 +83,9 @@ def pytest_configure(config):
     config.addinivalue_line(
         "markers", "integration: Integration tests for component interactions"
     )
+    config.addinivalue_line(
+        "markers", "smoke: Lightweight application smoke scenarios"
+    )
     config.addinivalue_line("markers", "system: End-to-end system tests")
     config.addinivalue_line("markers", "slow: Tests that take significant time")
     config.addinivalue_line("markers", "gui: Tests requiring GUI/QML")

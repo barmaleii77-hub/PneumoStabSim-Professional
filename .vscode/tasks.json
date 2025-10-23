@@ -2,10 +2,42 @@
     "version": "2.0.0",
     "tasks": [
         {
+            "label": "🛠️ CI: подготовка окружения",
+            "type": "shell",
+            "command": "${config:python.defaultInterpreterPath}",
+            "args": [
+                "-m",
+                "pip",
+                "install",
+                "--upgrade",
+                "pip",
+                "-e",
+                ".[dev]",
+                "coverage",
+                "pytest-cov",
+                "pytest-xdist"
+            ],
+            "group": "build",
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared",
+                "group": "utility"
+            },
+            "problemMatcher": [],
+            "detail": "Установка dev-зависимостей как в CI конвейере"
+        },
+        {
             "label": "🚀 Запуск PneumoStabSim (Главный)",
             "type": "shell",
-            "command": "${workspaceFolder}/venv/Scripts/python.exe",
-            "args": ["app.py"],
+            "command": "${config:python.defaultInterpreterPath}",
+            "args": [
+                "app.py"
+            ],
             "group": {
                 "kind": "build",
                 "isDefault": true
@@ -13,9 +45,7 @@
             "options": {
                 "cwd": "${workspaceFolder}",
                 "env": {
-                    "PYTHONPATH": "${workspaceFolder};${workspaceFolder}/src",
-                    "QT_LOGGING_RULES": "qt.qml.debug=false",
-                    "QSG_INFO": "0"
+                    "PYTHONPATH": "${workspaceFolder}${pathSeparator}${workspaceFolder}/src"
                 }
             },
             "presentation": {
@@ -28,21 +58,21 @@
                 "group": "main"
             },
             "problemMatcher": [],
-            "detail": "Запуск основного приложения через venv Python 3.13"
+            "detail": "Запуск основного приложения через venv Python3.13"
         },
         {
             "label": "🐛 Verbose Mode (подробно)",
             "type": "shell",
-            "command": "${workspaceFolder}/venv/Scripts/python.exe",
-            "args": ["app.py", "--verbose"],
+            "command": "${config:python.defaultInterpreterPath}",
+            "args": [
+                "app.py",
+                "--verbose"
+            ],
             "group": "build",
             "options": {
                 "cwd": "${workspaceFolder}",
                 "env": {
-                    "PYTHONPATH": "${workspaceFolder};${workspaceFolder}/src",
-                    "QT_LOGGING_RULES": "*.debug=true",
-                    "QSG_INFO": "1",
-                    "QT_ASSUME_STDERR_HAS_CONSOLE": "1"
+                    "PYTHONPATH": "${workspaceFolder}${pathSeparator}${workspaceFolder}/src"
                 }
             },
             "presentation": {
@@ -56,15 +86,18 @@
             "detail": "Запуск с расширенной диагностикой и логированием"
         },
         {
-            "label": "🧪 Test Mode (Автозакрытие 5с)",
+            "label": "🧪 Test Mode (Автозакрытие5с)",
             "type": "shell",
-            "command": "${workspaceFolder}/venv/Scripts/python.exe",
-            "args": ["app.py", "--test-mode"],
+            "command": "${config:python.defaultInterpreterPath}",
+            "args": [
+                "app.py",
+                "--test-mode"
+            ],
             "group": "test",
             "options": {
                 "cwd": "${workspaceFolder}",
                 "env": {
-                    "PYTHONPATH": "${workspaceFolder};${workspaceFolder}/src"
+                    "PYTHONPATH": "${workspaceFolder}${pathSeparator}${workspaceFolder}/src"
                 }
             },
             "presentation": {
@@ -75,18 +108,21 @@
                 "group": "test"
             },
             "problemMatcher": [],
-            "detail": "Быстрый тест - приложение закроется через 5 секунд"
+            "detail": "Быстрый тест - приложение закроется через5 секунд"
         },
         {
             "label": "🔓 Non-blocking Mode (Терминал свободен)",
             "type": "shell",
-            "command": "${workspaceFolder}/venv/Scripts/python.exe",
-            "args": ["app.py", "--no-block"],
+            "command": "${config:python.defaultInterpreterPath}",
+            "args": [
+                "app.py",
+                "--no-block"
+            ],
             "group": "build",
             "options": {
                 "cwd": "${workspaceFolder}",
                 "env": {
-                    "PYTHONPATH": "${workspaceFolder};${workspaceFolder}/src"
+                    "PYTHONPATH": "${workspaceFolder}${pathSeparator}${workspaceFolder}/src"
                 }
             },
             "presentation": {
@@ -102,13 +138,16 @@
         {
             "label": "🛡️ Safe Mode (Совместимость)",
             "type": "shell",
-            "command": "${workspaceFolder}/venv/Scripts/python.exe",
-            "args": ["app.py", "--safe-mode"],
+            "command": "${config:python.defaultInterpreterPath}",
+            "args": [
+                "app.py",
+                "--safe-mode"
+            ],
             "group": "build",
             "options": {
                 "cwd": "${workspaceFolder}",
                 "env": {
-                    "PYTHONPATH": "${workspaceFolder};${workspaceFolder}/src"
+                    "PYTHONPATH": "${workspaceFolder}${pathSeparator}${workspaceFolder}/src"
                 }
             },
             "presentation": {
@@ -124,8 +163,14 @@
         {
             "label": "📦 Установка зависимостей",
             "type": "shell",
-            "command": "${workspaceFolder}/venv/Scripts/python.exe",
-            "args": ["-m", "pip", "install", "-r", "requirements.txt"],
+            "command": "${config:python.defaultInterpreterPath}",
+            "args": [
+                "-m",
+                "pip",
+                "install",
+                "-r",
+                "requirements.txt"
+            ],
             "group": "build",
             "options": {
                 "cwd": "${workspaceFolder}"
@@ -143,8 +188,15 @@
         {
             "label": "📦 Обновление зависимостей",
             "type": "shell",
-            "command": "${workspaceFolder}/venv/Scripts/python.exe",
-            "args": ["-m", "pip", "install", "--upgrade", "-r", "requirements.txt"],
+            "command": "${config:python.defaultInterpreterPath}",
+            "args": [
+                "-m",
+                "pip",
+                "install",
+                "--upgrade",
+                "-r",
+                "requirements.txt"
+            ],
             "group": "build",
             "options": {
                 "cwd": "${workspaceFolder}"
@@ -162,13 +214,20 @@
         {
             "label": "🧪 Запуск всех тестов",
             "type": "shell",
-            "command": "${workspaceFolder}/venv/Scripts/python.exe",
-            "args": ["-m", "pytest", "tests/", "-v", "--tb=short", "--color=yes"],
+            "command": "${config:python.defaultInterpreterPath}",
+            "args": [
+                "-m",
+                "pytest",
+                "tests/",
+                "-v",
+                "--tb=short",
+                "--color=yes"
+            ],
             "group": "test",
             "options": {
                 "cwd": "${workspaceFolder}",
                 "env": {
-                    "PYTHONPATH": "${workspaceFolder};${workspaceFolder}/src"
+                    "PYTHONPATH": "${workspaceFolder}${pathSeparator}${workspaceFolder}/src"
                 }
             },
             "presentation": {
@@ -184,35 +243,41 @@
         {
             "label": "🧪 Быстрые тесты (без UI)",
             "type": "shell",
-            "command": "${workspaceFolder}/venv/Scripts/python.exe",
-            "args": ["-m", "pytest", "tests/", "-v", "-x", "--tb=short", "-k", "not ui"],
+            "command": "${config:python.defaultInterpreterPath}",
+            "args": [
+                "-m",
+                "pytest",
+                "tests/",
+                "-v",
+                "-x",
+                "--tb=short",
+                "-k",
+                "not ui"
+            ],
             "group": "test",
             "options": {
                 "cwd": "${workspaceFolder}",
                 "env": {
-                    "PYTHONPATH": "${workspaceFolder};${workspaceFolder}/src"
+                    "PYTHONPATH": "${workspaceFolder}${pathSeparator}${workspaceFolder}/src"
                 }
-            },
-            "presentation": {
-                "echo": true,
-                "reveal": "always",
-                "focus": false,
-                "panel": "new",
-                "group": "test"
-            },
-            "problemMatcher": [],
-            "detail": "Быстрые тесты без пользовательского интерфейса"
+            }
         },
         {
             "label": "🧪 Тесты физики",
             "type": "shell",
-            "command": "${workspaceFolder}/venv/Scripts/python.exe",
-            "args": ["-m", "pytest", "tests/test_physics*.py", "tests/test_integration*.py", "-v"],
+            "command": "${config:python.defaultInterpreterPath}",
+            "args": [
+                "-m",
+                "pytest",
+                "tests/test_physics*.py",
+                "tests/test_integration*.py",
+                "-v"
+            ],
             "group": "test",
             "options": {
                 "cwd": "${workspaceFolder}",
                 "env": {
-                    "PYTHONPATH": "${workspaceFolder};${workspaceFolder}/src"
+                    "PYTHONPATH": "${workspaceFolder}${pathSeparator}${workspaceFolder}/src"
                 }
             },
             "presentation": {
@@ -228,13 +293,20 @@
         {
             "label": "🧪 Тесты UI",
             "type": "shell",
-            "command": "${workspaceFolder}/venv/Scripts/python.exe",
-            "args": ["-m", "pytest", "tests/ui/", "tests/graphics/", "-v", "--tb=short"],
+            "command": "${config:python.defaultInterpreterPath}",
+            "args": [
+                "-m",
+                "pytest",
+                "tests/ui/",
+                "tests/graphics/",
+                "-v",
+                "--tb=short"
+            ],
             "group": "test",
             "options": {
                 "cwd": "${workspaceFolder}",
                 "env": {
-                    "PYTHONPATH": "${workspaceFolder};${workspaceFolder}/src"
+                    "PYTHONPATH": "${workspaceFolder}${pathSeparator}${workspaceFolder}/src"
                 }
             },
             "presentation": {
@@ -250,13 +322,15 @@
         {
             "label": "🔍 QML Диагностика",
             "type": "shell",
-            "command": "${workspaceFolder}/venv/Scripts/python.exe",
-            "args": ["qml_diagnostic.py"],
+            "command": "${config:python.defaultInterpreterPath}",
+            "args": [
+                "qml_diagnostic.py"
+            ],
             "group": "build",
             "options": {
                 "cwd": "${workspaceFolder}",
                 "env": {
-                    "PYTHONPATH": "${workspaceFolder};${workspaceFolder}/src"
+                    "PYTHONPATH": "${workspaceFolder}${pathSeparator}${workspaceFolder}/src"
                 }
             },
             "presentation": {
@@ -272,13 +346,15 @@
         {
             "label": "🚑 Проверка состояния системы",
             "type": "shell",
-            "command": "${workspaceFolder}/venv/Scripts/python.exe",
-            "args": ["scripts/health_check.py"],
+            "command": "${config:python.defaultInterpreterPath}",
+            "args": [
+                "scripts/health_check.py"
+            ],
             "group": "build",
             "options": {
                 "cwd": "${workspaceFolder}",
                 "env": {
-                    "PYTHONPATH": "${workspaceFolder};${workspaceFolder}/src"
+                    "PYTHONPATH": "${workspaceFolder}${pathSeparator}${workspaceFolder}/src"
                 }
             },
             "presentation": {
@@ -294,13 +370,15 @@
         {
             "label": "📊 Комплексное тестирование",
             "type": "shell",
-            "command": "${workspaceFolder}/venv/Scripts/python.exe",
-            "args": ["scripts/comprehensive_test.py"],
+            "command": "${config:python.defaultInterpreterPath}",
+            "args": [
+                "scripts/comprehensive_test.py"
+            ],
             "group": "test",
             "options": {
                 "cwd": "${workspaceFolder}",
                 "env": {
-                    "PYTHONPATH": "${workspaceFolder};${workspaceFolder}/src"
+                    "PYTHONPATH": "${workspaceFolder}${pathSeparator}${workspaceFolder}/src"
                 }
             },
             "presentation": {
@@ -316,13 +394,15 @@
         {
             "label": "🔧 Быстрое исправление",
             "type": "shell",
-            "command": "${workspaceFolder}/venv/Scripts/python.exe",
-            "args": ["quick_fix.py"],
+            "command": "${config:python.defaultInterpreterPath}",
+            "args": [
+                "quick_fix.py"
+            ],
             "group": "build",
             "options": {
                 "cwd": "${workspaceFolder}",
                 "env": {
-                    "PYTHONPATH": "${workspaceFolder};${workspaceFolder}/src"
+                    "PYTHONPATH": "${workspaceFolder}${pathSeparator}${workspaceFolder}/src"
                 }
             },
             "presentation": {
@@ -341,7 +421,8 @@
             "command": "powershell",
             "args": [
                 "-NoProfile",
-                "-ExecutionPolicy", "Bypass",
+                "-ExecutionPolicy",
+                "Bypass",
                 "-Command",
                 "Get-ChildItem -Path . -Recurse -Filter '__pycache__' -Directory | ForEach-Object { Remove-Item -Path $_.FullName -Recurse -Force -Verbose }"
             ],
@@ -357,15 +438,16 @@
                 "group": "utility"
             },
             "problemMatcher": [],
-            "detail": "Удаление всех кэш-файлов Python"
+            "detail": "Удаление всех __pycache__ директорий"
         },
         {
-            "label": "📄 Генерация отчета зависимостей",
+            "label": "💾 Freeze Requirements",
             "type": "shell",
             "command": "powershell",
             "args": [
                 "-NoProfile",
-                "-ExecutionPolicy", "Bypass",
+                "-ExecutionPolicy",
+                "Bypass",
                 "-Command",
                 "$req = pip freeze; Set-Content -Path 'requirements-current.txt' -Value $req -Encoding UTF8"
             ],
@@ -384,53 +466,85 @@
             "detail": "Создание актуального списка установленных пакетов"
         },
         {
-            "label": "🔍 Проверка кода (Flake8)",
+            "label": "🔍 Ruff lint (CI)",
             "type": "shell",
-            "command": "${workspaceFolder}/venv/Scripts/python.exe",
-            "args": ["-m", "flake8", "src/", "--max-line-length=100", "--ignore=E203,W503,E501,F401"],
-            "group": "test",
-            "options": {
-                "cwd": "${workspaceFolder}"
-            },
-            "presentation": {
-                "echo": true,
-                "reveal": "always",
-                "focus": false,
-                "panel": "new",
-                "group": "quality"
-            },
-            "problemMatcher": [],
-            "detail": "Проверка качества кода с помощью Flake8"
-        },
-        {
-            "label": "🎨 Форматирование кода (Black)",
-            "type": "shell",
-            "command": "${workspaceFolder}/venv/Scripts/python.exe",
-            "args": ["-m", "black", "src/", "--line-length=100", "--target-version=py38"],
-            "group": "build",
-            "options": {
-                "cwd": "${workspaceFolder}"
-            },
-            "presentation": {
-                "echo": true,
-                "reveal": "always",
-                "focus": false,
-                "panel": "new",
-                "group": "quality"
-            },
-            "problemMatcher": [],
-            "detail": "Автоматическое форматирование кода Black"
-        },
-        {
-            "label": "📊 Покрытие тестами",
-            "type": "shell",
-            "command": "${workspaceFolder}/venv/Scripts/python.exe",
-            "args": ["-m", "pytest", "--cov=src", "--cov-report=html", "--cov-report=term", "tests/"],
+            "command": "${config:python.defaultInterpreterPath}",
+            "args": [
+                "-m",
+                "ruff",
+                "check",
+                "src",
+                "tests",
+                "app.py",
+                "tools"
+            ],
             "group": "test",
             "options": {
                 "cwd": "${workspaceFolder}",
                 "env": {
-                    "PYTHONPATH": "${workspaceFolder};${workspaceFolder}/src"
+                    "PYTHONPATH": "${workspaceFolder}${pathSeparator}${workspaceFolder}/src"
+                }
+            },
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "new",
+                "group": "quality"
+            },
+            "problemMatcher": [],
+            "detail": "Проверка качества кода с помощью Ruff (совпадает с шагом CI)"
+        },
+        {
+            "label": "🎨 Ruff format --check",
+            "type": "shell",
+            "command": "${config:python.defaultInterpreterPath}",
+            "args": [
+                "-m",
+                "ruff",
+                "format",
+                "--check",
+                "src",
+                "tests",
+                "app.py",
+                "tools"
+            ],
+            "group": "build",
+            "options": {
+                "cwd": "${workspaceFolder}",
+                "env": {
+                    "PYTHONPATH": "${workspaceFolder}${pathSeparator}${workspaceFolder}/src"
+                }
+            },
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "new",
+                "group": "quality"
+            },
+            "problemMatcher": [],
+            "detail": "Проверка форматирования Ruff (идентично шагу CI)"
+        },
+        {
+            "label": "📊 Pytest (core, coverage)",
+            "type": "shell",
+            "command": "${config:python.defaultInterpreterPath}",
+            "args": [
+                "-m",
+                "pytest",
+                "-m",
+                "not gui",
+                "--cov=src",
+                "--cov-report=term-missing",
+                "--junitxml=artifacts/vscode/junit-core.xml"
+            ],
+            "group": "test",
+            "options": {
+                "cwd": "${workspaceFolder}",
+                "env": {
+                    "PYTHONPATH": "${workspaceFolder}${pathSeparator}${workspaceFolder}/src",
+                    "QT_QPA_PLATFORM": "offscreen"
                 }
             },
             "presentation": {
@@ -441,36 +555,15 @@
                 "group": "test"
             },
             "problemMatcher": [],
-            "detail": "Анализ покрытия кода тестами с HTML отчетом"
+            "detail": "Основной прогон pytest с покрытием (как в CI)"
         },
         {
             "label": "🔄 Git Status",
             "type": "shell",
             "command": "git",
-            "args": ["status", "--porcelain"],
-            "group": "build",
-            "options": {
-                "cwd": "${workspaceFolder}"
-            },
-            "presentation": {
-                "echo": true,
-                "reveal": "always",
-                "focus": false,
-                "panel": "new",
-                "group": "git"
-            },
-            "problemMatcher": [],
-            "detail": "Проверка статуса Git репозитория"
-        },
-        {
-            "label": "🏷️ Git Info",
-            "type": "shell",
-            "command": "powershell",
             "args": [
-                "-NoProfile",
-                "-ExecutionPolicy", "Bypass",
-                "-Command",
-                "Write-Host 'Текущая ветка:' (git branch --show-current); Write-Host 'Последний коммит:' (git log -1 --oneline); Write-Host 'Файлов изменено:' (git status --porcelain | Measure-Object -Line).Lines"
+                "status",
+                "--porcelain"
             ],
             "group": "build",
             "options": {
@@ -481,34 +574,42 @@
                 "reveal": "always",
                 "focus": false,
                 "panel": "new",
-                "group": "git"
+                "group": "utility"
             },
-            "problemMatcher": [],
-            "detail": "Подробная информация о состоянии Git репозитория"
+            "problemMatcher": []
         },
         {
-            "label": "🔍 Полная проверка актуальности Git",
+            "label": "🧭 Pytest (QML/GUI)",
             "type": "shell",
-            "command": "powershell",
+            "command": "${config:python.defaultInterpreterPath}",
             "args": [
-                "-NoProfile",
-                "-ExecutionPolicy", "Bypass",
-                "-File",
-                "${workspaceFolder}/check_git_sync.ps1"
+                "-m",
+                "pytest",
+                "tests/ui",
+                "-m",
+                "gui",
+                "--cov=src",
+                "--cov-append",
+                "--cov-report=term-missing",
+                "--junitxml=artifacts/vscode/junit-qml.xml"
             ],
-            "group": "build",
+            "group": "test",
             "options": {
-                "cwd": "${workspaceFolder}"
+                "cwd": "${workspaceFolder}",
+                "env": {
+                    "PYTHONPATH": "${workspaceFolder}${pathSeparator}${workspaceFolder}/src",
+                    "QT_QPA_PLATFORM": "offscreen"
+                }
             },
             "presentation": {
                 "echo": true,
                 "reveal": "always",
-                "focus": true,
+                "focus": false,
                 "panel": "new",
-                "group": "git"
+                "group": "test"
             },
             "problemMatcher": [],
-            "detail": "Комплексная проверка актуальности репозитория с рекомендациями"
+            "detail": "GUI/QML тесты pytest с покрытием (как в CI)"
         }
     ]
 }

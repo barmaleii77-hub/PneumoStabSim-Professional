@@ -6,16 +6,16 @@
     <ProjectGuid>a2fe74e1-b743-11d0-ae1a-00a0c90fffc3</ProjectGuid>
     <ProjectHome>.</ProjectHome>
     <StartupFile>app.py</StartupFile>
-    <SearchPath>src\;.\</SearchPath>
+    <SearchPath>src\;.</SearchPath>
     <WorkingDirectory>.</WorkingDirectory>
     <OutputPath>.</OutputPath>
     <Name>PneumoStabSim</Name>
     <RootNamespace>PneumoStabSim</RootNamespace>
-    <InterpreterId>Global|PythonCore|3.11</InterpreterId>
+    <InterpreterId>Global|PythonCore|3.13</InterpreterId>
+    <InterpreterPath>$(MSBuildProjectDirectory)\.venv\Scripts\python.exe</InterpreterPath>
     <LaunchProvider>Standard Python launcher</LaunchProvider>
     <EnableNativeCodeDebugging>false</EnableNativeCodeDebugging>
   </PropertyGroup>
-
   <!-- DEBUG CONFIGURATION -->
   <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
     <DebugSymbols>true</DebugSymbols>
@@ -28,23 +28,32 @@ QT_LOGGING_RULES=*.debug=true;js.debug=true;qt.qml.debug=true
 PYTHONDEBUG=1
 QT_SCALE_FACTOR_ROUNDING_POLICY=PassThrough
 QT_AUTO_SCREEN_SCALE_FACTOR=1
+QML2_IMPORT_PATH=$(MSBuildProjectDirectory)\.venv\Lib\site-packages\PySide6\qml;$(MSBuildProjectDirectory)\assets\qml
+QML_IMPORT_PATH=$(MSBuildProjectDirectory)\.venv\Lib\site-packages\PySide6\qml;$(MSBuildProjectDirectory)\assets\qml
+QT_PLUGIN_PATH=$(MSBuildProjectDirectory)\.venv\Lib\site-packages\PySide6\plugins
+QT_QML_IMPORT_PATH=$(MSBuildProjectDirectory)\.venv\Lib\site-packages\PySide6\qml
+QT_QUICK_CONTROLS_STYLE=Basic
     </Environment>
   </PropertyGroup>
-
   <!-- RELEASE CONFIGURATION -->
   <PropertyGroup Condition=" '$(Configuration)' == 'Release' ">
     <DebugSymbols>false</DebugSymbols>
     <EnableUnmanagedDebugging>false</EnableUnmanagedDebugging>
-    <CommandLineArguments></CommandLineArguments>
+    <CommandLineArguments>
+    </CommandLineArguments>
     <Environment>
 PYTHONPATH=$(MSBuildProjectDirectory);$(MSBuildProjectDirectory)\src
 QT_DEBUG_PLUGINS=0
 QT_LOGGING_RULES=js.debug=false;qt.qml.debug=false
 QT_SCALE_FACTOR_ROUNDING_POLICY=PassThrough
 QT_AUTO_SCREEN_SCALE_FACTOR=1
+QML2_IMPORT_PATH=$(MSBuildProjectDirectory)\.venv\Lib\site-packages\PySide6\qml;$(MSBuildProjectDirectory)\assets\qml
+QML_IMPORT_PATH=$(MSBuildProjectDirectory)\.venv\Lib\site-packages\PySide6\qml;$(MSBuildProjectDirectory)\assets\qml
+QT_PLUGIN_PATH=$(MSBuildProjectDirectory)\.venv\Lib\site-packages\PySide6\plugins
+QT_QML_IMPORT_PATH=$(MSBuildProjectDirectory)\.venv\Lib\site-packages\PySide6\qml
+QT_QUICK_CONTROLS_STYLE=Basic
     </Environment>
   </PropertyGroup>
-
   <!-- SAFE MODE CONFIGURATION -->
   <PropertyGroup Condition=" '$(Configuration)' == 'SafeMode' ">
     <DebugSymbols>true</DebugSymbols>
@@ -53,9 +62,13 @@ QT_AUTO_SCREEN_SCALE_FACTOR=1
     <Environment>
 PYTHONPATH=$(MSBuildProjectDirectory);$(MSBuildProjectDirectory)\src
 QT_DEBUG_PLUGINS=0
+QML2_IMPORT_PATH=$(MSBuildProjectDirectory)\.venv\Lib\site-packages\PySide6\qml;$(MSBuildProjectDirectory)\assets\qml
+QML_IMPORT_PATH=$(MSBuildProjectDirectory)\.venv\Lib\site-packages\PySide6\qml;$(MSBuildProjectDirectory)\assets\qml
+QT_PLUGIN_PATH=$(MSBuildProjectDirectory)\.venv\Lib\site-packages\PySide6\plugins
+QT_QML_IMPORT_PATH=$(MSBuildProjectDirectory)\.venv\Lib\site-packages\PySide6\qml
+QT_QUICK_CONTROLS_STYLE=Basic
     </Environment>
   </PropertyGroup>
-
   <ItemGroup>
     <!-- MAIN APPLICATION FILES -->
     <Compile Include="app.py">
@@ -65,16 +78,13 @@ QT_DEBUG_PLUGINS=0
     <Compile Include="commit_script.py" />
     <Compile Include="performance_monitor.py" />
     <Compile Include="setup_dev.py" />
-
     <!-- CONFIGURATION -->
     <Compile Include="config\__init__.py" />
     <Compile Include="config\graphics_defaults.py" />
-
     <!-- SOURCE CODE -->
     <Compile Include="src\__init__.py" />
     <Compile Include="src\common\__init__.py" />
     <Compile Include="src\common\logging_setup.py" />
-
     <!-- UI MODULES -->
     <Compile Include="src\ui\__init__.py" />
     <Compile Include="src\ui\main_window.py" />
@@ -83,16 +93,13 @@ QT_DEBUG_PLUGINS=0
     <Compile Include="src\ui\panels\panel_graphics.py" />
     <Compile Include="src\ui\panels\panel_modes.py" />
     <Compile Include="src\ui\panels\panel_pneumo.py" />
-
     <!-- SIMULATION ENGINE -->
     <Compile Include="src\simulation\__init__.py" />
     <Compile Include="src\simulation\manager.py" />
     <Compile Include="src\simulation\physics.py" />
-
     <!-- UTILITY SCRIPTS -->
     <Compile Include="scripts\clean.py" />
   </ItemGroup>
-
   <ItemGroup>
     <!-- QML FILES -->
     <Content Include="assets\qml\main.qml">
@@ -100,38 +107,32 @@ QT_DEBUG_PLUGINS=0
     </Content>
     <Content Include="assets\qml\components\CameraController.qml" />
     <Content Include="assets\qml\components\MaterialEditor.qml" />
-
     <!-- ASSETS -->
     <Content Include="assets\hdr\studio_small_09_2k.hdr" />
     <Content Include="assets\images\icon.png" />
-
     <!-- DOCUMENTATION -->
     <Content Include="README.md" />
     <Content Include="DEVELOPER_GUIDE.md" />
     <Content Include="TROUBLESHOOTING.md" />
     <Content Include="LAUNCH_GUIDE.md" />
-
     <!-- CONFIGURATION FILES -->
     <Content Include="requirements.txt" />
     <Content Include="requirements-dev.txt" />
     <Content Include="pyproject.toml" />
     <Content Include=".gitignore" />
     <Content Include=".editorconfig" />
-
     <!-- PATCH FILES -->
     <Content Include="panel_graphics.patch" />
     <Content Include="src\ui\panels\panel_graphics.patch" />
     <Content Include="assets\qml\main.patch" />
-
     <!-- SCRIPTS -->
     <Content Include="run_pneumostabsim.bat" />
-
     <!-- VS CODE SETTINGS -->
     <Content Include=".vscode\launch.json" />
     <Content Include=".vscode\settings.json" />
     <Content Include=".vscode\tasks.json" />
+    <Content Include="Properties\launchSettings.json" />
   </ItemGroup>
-
   <ItemGroup>
     <!-- FOLDER STRUCTURE -->
     <Folder Include="assets\" />
@@ -151,26 +152,17 @@ QT_DEBUG_PLUGINS=0
     <Folder Include="scripts\" />
     <Folder Include=".vscode\" />
   </ItemGroup>
-
   <Import Project="$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\Python Tools\Microsoft.PythonTools.targets" />
-
   <!-- BUILD TARGETS -->
   <Target Name="BeforeBuild">
     <!-- Ensure virtual environment exists -->
-    <Exec Condition="!Exists('venv\Scripts\python.exe')"
-          Command="python -m venv venv"
-          ContinueOnError="false" />
-
+    <Exec Condition="!Exists('venv\Scripts\python.exe')" Command="python -m venv venv" ContinueOnError="false" />
     <!-- Install/update dependencies -->
-    <Exec Condition="Exists('venv\Scripts\python.exe')"
-          Command="venv\Scripts\pip install -r requirements.txt"
-          ContinueOnError="true" />
+    <Exec Condition="Exists('venv\Scripts\python.exe')" Command="venv\Scripts\pip install -r requirements.txt" ContinueOnError="true" />
   </Target>
-
   <Target Name="AfterBuild">
     <!-- Optional: Run tests after build -->
   </Target>
-
   <!-- CLEAN TARGET -->
   <Target Name="Clean">
     <Exec Command="python scripts\clean.py" ContinueOnError="true" />

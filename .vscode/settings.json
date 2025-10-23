@@ -1,5 +1,20 @@
 {
-  "python.defaultInterpreterPath": "${workspaceFolder}/.venv/Scripts/python.exe",
+  "python.defaultInterpreterPath": "${workspaceFolder}/.venv/bin/python",
+  "[linux]": {
+    "python.defaultInterpreterPath": "${workspaceFolder}/.venv/bin/python",
+    "qt.qmlls.path": "${workspaceFolder}/.venv/bin/qmlls"
+  },
+  "[mac]": {
+    "python.defaultInterpreterPath": "${workspaceFolder}/.venv/bin/python",
+    "qt.qmlls.path": "${workspaceFolder}/.venv/bin/qmlls"
+  },
+  "[windows]": {
+    "python.defaultInterpreterPath": "${workspaceFolder}\\.venv\\Scripts\\python.exe",
+    "qt.qmlls.path": "${workspaceFolder}\\.venv\\Scripts\\qmlls.exe"
+  },
+  "python.envsPaths": [
+    "${workspaceFolder}/.venv"
+  ],
   "python.terminal.activateEnvironment": true,
   "github.copilot.enable": {
     "*": true,
@@ -21,88 +36,10 @@
   "debug.console.fontSize": 14,
   "debug.console.wordWrap": true,
   "debug.internalConsoleOptions": "openOnSessionStart",
-  "debug.openDebug": "openOnDebugBreak",
-  "debug.showBreakpointsInOverviewRuler": true,
-  "debug.toolBarLocation": "floating",
-  "python.linting.enabled": true,
-  "python.linting.pylintEnabled": false,
-  "python.linting.flake8Enabled": true,
-  "python.linting.mypyEnabled": true,
-  "python.formatting.provider": "black",
-  "python.formatting.blackArgs": [
-    "--line-length=88"
-  ],
-  "python.sortImports.args": [
-    "--profile",
-    "black"
-  ],
-  "python.analysis.autoImportCompletions": true,
-  "python.analysis.typeCheckingMode": "basic",
-  "python.testing.pytestEnabled": true,
-  "python.testing.pytestArgs": [
-    "tests",
-    "-v",
-    "--tb=short"
-  ],
-  "python.testing.autoTestDiscoverOnSaveEnabled": true,
-  "files.associations": {
-    "*.qml": "qml",
-    "*.patch": "diff",
-    "*.pyproj": "xml",
-    "*.sln": "plaintext"
-  },
-  "files.exclude": {
-    "**/__pycache__": true,
-    "**/*.pyc": true,
-    "**/node_modules": true,
-    "**/.git": true,
-    "**/.svn": true,
-    "**/.hg": true,
-    "**/CVS": true,
-    "**/.DS_Store": true,
-    "**/Thumbs.db": true,
-    "**/*.egg-info": true,
-    "**/build": true,
-    "**/dist": true,
-    "**/.pytest_cache": true,
-    "**/.mypy_cache": true,
-    "**/.coverage": true,
-    "**/logs/*.log": true,
-    "**/*.rej": true,
-    "**/*.orig": true
-  },
-  "search.exclude": {
-    "**/node_modules": true,
-    "**/bower_components": true,
-    "**/*.code-search": true,
-    "**/pycache__": true,
-    "**/logs": true,
-    "**/build": true,
-    "**/dist": true,
-    "**/.git": true,
-    "**/venv": true,
-    "**/.venv": true
-  },
-  "files.watcherExclude": {
-    "**/logs/**": true,
-    "**/__pycache__/**": true,
-    "**/node_modules/**": true,
-    "**/.git/**": true,
-    "**/venv/**": true,
-    "**/.venv/**": true,
-    "**/build/**": true,
-    "**/dist/**": true
-  },
   "[python]": {
-    "editor.formatOnSave": true,
-    "editor.codeActionsOnSave": {
-      "source.organizeImports": "explicit"
-    },
     "editor.tabSize": 4,
     "editor.insertSpaces": true,
-    "editor.rulers": [
-      88
-    ],
+    "editor.formatOnSave": true,
     "editor.wordWrap": "bounded",
     "editor.wordWrapColumn": 88
   },
@@ -128,6 +65,11 @@
   "terminal.integrated.env.windows": {
     "PYTHONPATH": "${workspaceFolder};${workspaceFolder}\\src",
     "PYTHONIOENCODING": "utf-8",
+    "QML2_IMPORT_PATH": "${workspaceFolder}\\.venv\\Lib\\site-packages\\PySide6\\qml;${workspaceFolder}\\assets\\qml",
+    "QML_IMPORT_PATH": "${workspaceFolder}\\.venv\\Lib\\site-packages\\PySide6\\qml;${workspaceFolder}\\assets\\qml",
+    "QT_PLUGIN_PATH": "${workspaceFolder}\\.venv\\Lib\\site-packages\\PySide6\\plugins",
+    "QT_QML_IMPORT_PATH": "${workspaceFolder}\\.venv\\Lib\\site-packages\\PySide6\\qml",
+    "QT_QUICK_CONTROLS_STYLE": "Basic",
     "QT_SCALE_FACTOR_ROUNDING_POLICY": "PassThrough",
     "QT_AUTO_SCREEN_SCALE_FACTOR": "1",
     "QSG_RHI_BACKEND": "d3d11"
@@ -135,6 +77,11 @@
   "terminal.integrated.env.linux": {
     "PYTHONPATH": "${workspaceFolder}:${workspaceFolder}/src",
     "PYTHONIOENCODING": "utf-8",
+    "QML2_IMPORT_PATH": "${workspaceFolder}/.venv/lib/python3.13/site-packages/PySide6/qml:${workspaceFolder}/assets/qml",
+    "QML_IMPORT_PATH": "${workspaceFolder}/.venv/lib/python3.13/site-packages/PySide6/qml:${workspaceFolder}/assets/qml",
+    "QT_PLUGIN_PATH": "${workspaceFolder}/.venv/lib/python3.13/site-packages/PySide6/plugins",
+    "QT_QML_IMPORT_PATH": "${workspaceFolder}/.venv/lib/python3.13/site-packages/PySide6/qml",
+    "QT_QUICK_CONTROLS_STYLE": "Basic",
     "QT_SCALE_FACTOR_ROUNDING_POLICY": "PassThrough",
     "QT_AUTO_SCREEN_SCALE_FACTOR": "1",
     "QSG_RHI_BACKEND": "opengl"
@@ -174,7 +121,6 @@
     "qml": "html"
   },
   "qt.qmlls.enabled": true,
-  "qt.qmlls.path": "",
   "git.ignoreLimitWarning": true,
   "git.confirmSync": false,
   "git.enableSmartCommit": true,

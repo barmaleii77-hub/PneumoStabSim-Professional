@@ -1,30 +1,50 @@
-# PneumoStabSim Professional - Compatible Requirements
-# Support for Python 3.8 - 3.13+ with fallback versions
+# PneumoStabSim Professional - Compatibility Pins Matrix
+# Используйте как constraints файл: `pip install -r requirements.txt -c requirements-compatible.txt`
+# Матрица покрывает Python3.11–3.13 и PySide66.5–6.10 (см. docs/environments.md)
 
-# Core scientific libraries with version constraints
-numpy>=1.21.0,<2.0.0; python_version<"3.12"
-numpy>=1.24.0,<2.1.0; python_version>="3.12"
+# === Общие зависимости (все Python) ===
+PyOpenGL==3.1.7
+PyOpenGL-accelerate==3.1.7; platform_system!="Darwin"
+matplotlib==3.8.2
+pillow==10.3.0
+psutil==5.9.8
+python-dotenv==1.0.1
+PyYAML==6.0.2
 
-scipy>=1.7.0,<2.0.0; python_version<"3.11"
-scipy>=1.9.0,<2.0.0; python_version>="3.11"
+# === Python3.13 / PySide66.10.x (основной таргет) ===
+PySide6==6.10.0; python_version == "3.13"
+PySide6-QtQuick3D==6.10.0; python_version == "3.13"
+shiboken6==6.10.0; python_version == "3.13"
+numpy==2.0.1; python_version == "3.13"
+scipy==1.13.1; python_version == "3.13"
+pytest==8.3.2; python_version == "3.13"
+pytest-qt==4.4.0; python_version == "3.13"
 
-# Qt framework (most stable versions)
-PySide6>=6.4.0,<6.8.0; python_version<"3.11"
-PySide6>=6.6.0,<7.0.0; python_version>="3.11"
+# === Python3.12 / PySide66.8.x (LTS) ===
+PySide6==6.8.1; python_version == "3.12"
+PySide6-QtQuick3D==6.8.1; python_version == "3.12"
+shiboken6==6.8.1; python_version == "3.12"
+numpy==1.26.4; python_version == "3.12"
+scipy==1.12.0; python_version == "3.12"
+pytest==8.2.2; python_version == "3.12"
+pytest-qt==4.3.1; python_version == "3.12"
 
-# OpenGL support
-PyOpenGL>=3.1.0,<3.2.0
-PyOpenGL-accelerate>=3.1.0,<3.2.0; platform_system!="Darwin"
+# === Python3.11 / PySide66.5.x (LTS) ===
+PySide6==6.5.3; python_version == "3.11"
+PySide6-QtQuick3D==6.5.3; python_version == "3.11"
+shiboken6==6.5.3; python_version == "3.11"
+numpy==1.24.4; python_version == "3.11"
+scipy==1.11.4; python_version == "3.11"
+pytest==7.4.4; python_version == "3.11"
+pytest-qt==4.2.0; python_version == "3.11"
 
-# Plotting and visualization
-matplotlib>=3.5.0,<4.0.0; python_version<"3.11"
-matplotlib>=3.7.0; python_version>="3.11"
-
-# Optional: Additional scientific packages (commented out by default)
-# pandas>=1.3.0; python_version<"3.11"
-# pandas>=1.5.0; python_version>="3.11"
-# pillow>=8.0.0
-
-# Development tools (optional)
-# loguru>=0.6.0  # Better logging
-# pydantic>=1.8.0  # Data validation
+# === Дополнительные профили PySide6 (раскомментируйте при необходимости) ===
+# PySide6==6.6.3 # Python3.11+, стабильный релиз после6.5
+# PySide6-QtQuick3D==6.6.3 # Пакет QtQuick3D для6.6.x
+# shiboken6==6.6.3
+# PySide6==6.7.2 # Python3.11/3.12 (короткий релиз)
+# PySide6-QtQuick3D==6.7.2
+# shiboken6==6.7.2
+# PySide6==6.9.1 # Python3.12/3.13 (pre-6.10)
+# PySide6-QtQuick3D==6.9.1
+# shiboken6==6.9.1

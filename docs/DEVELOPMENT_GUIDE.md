@@ -6,10 +6,10 @@
 
 | Software | Version | Purpose |
 |----------|---------|---------|
-| Python | 3.11+ | Runtime |
-| Git | 2.x | Version control |
+| Python |3.13.x | Runtime |
+| Git |2.x | Version control |
 | Visual Studio Code | Latest | IDE (recommended) |
-| Qt Creator | 6.x | QML editing (optional) |
+| Qt Creator |6.x | QML editing (optional) |
 
 ---
 
@@ -17,14 +17,14 @@
 
 ### **1. Clone Repository**
 
-```bash
+```sh
 git clone https://github.com/barmaleii77-hub/PneumoStabSim-Professional.git
 cd PneumoStabSim-Professional
 ```
 
 ### **2. Create Virtual Environment**
 
-```bash
+```sh
 # Windows
 python -m venv venv
 venv\Scripts\activate
@@ -36,33 +36,58 @@ source venv/bin/activate
 
 ### **3. Install Dependencies**
 
-```bash
+```sh
 pip install --upgrade pip
 pip install -r requirements.txt
 ```
 
 **Core Dependencies:**
+
 ```
-PySide6==6.6.1          # Qt bindings
-PySide6-Addons==6.6.1   # Qt Quick 3D
-numpy==1.24.3           # Math operations
-scipy==1.11.3           # Physics integration
+PySide6==6.10.0 # Qt6.10 bindings
+PySide6-Addons==6.10.0 # Qt Quick3D tooling
+numpy==1.26.4 # Math operations
+scipy==1.11.4 # Physics integration
 ```
 
 ### **4. Verify Installation**
 
-```bash
+```sh
 # Check Python version
-python --version  # Should be 3.11+
+python --version # Should be3.13.x
 
 # Check PySide6
 python -c "from PySide6 import QtCore; print(QtCore.qVersion())"
-# Should print: 6.6.x
+# Should print:6.10.x
 
-# Check Qt Quick 3D
+# Check Qt Quick3D
 python -c "from PySide6.QtQuick3D import QQuick3DGeometry; print('OK')"
-# Should print: OK
+# Should print: OK (Qt6.10 runtime)
 ```
+
+---
+
+## 🎯 IDE Integration (Visual Studio Code & Visual Studio2022)
+
+### VS Code quick start
+
+1. **Open workspace** – launch `PneumoStabSim.code-workspace`. It pins the interpreter to `${workspaceFolder}/.venv` (Python3.13) and exports Qt6.10 paths for both Windows and Linux terminals.
+2. **Verify interpreter** – the status bar should show `.venv (3.13)`. If not, run the command palette (`Ctrl+Shift+P`) → *Python: Select Interpreter* → choose the `.venv` entry.
+3. **Qt tooling** – install recommended extensions when prompted (PySide6/Qt language server, Python tooling). `qt.qmlls` automatically resolves through the virtual environment once `PySide6`6.10 is installed.
+4. **Launch profiles** – use the updated `.vscode/launch.json` entries:
+ - *App: PneumoStabSim (Qt6.10)* – regular GUI start with Qt variables.
+ - *Tests: Smoke suite (pytest -k smoke)* – executes the reduced regression suite.
+ - *Diagnostics: QML asset scan* – runs `qml_diagnostic.py` for quick asset sanity checks.
+
+### Visual Studio2022 (Python workload)
+
+1. Open `PneumoStabSim.slnx`. The solution references both `.pyproj` files and the shared launch profiles in `Properties/launchSettings.json`.
+2. Visual Studio automatically binds to `.venv\Scripts\python.exe` (Python3.13). If the environment is missing, create it via the *Python Environments* panel using the3.13 base interpreter.
+3. Use the **Debug Targets** dropdown to select:
+ - *PneumoStabSim (App)* – launches `app.py` with Qt6.10 paths.
+ - *Smoke tests (pytest -k smoke)* – console smoke validations.
+ - *QML diagnostics* – runs the project level QML check.
+4. The `.pyproj` files export `QML*_PATH` and `QT_PLUGIN_PATH` so PySide66.10 assets resolve without manual tweaks.
 
 ---
 
@@ -72,37 +97,37 @@ python -c "from PySide6.QtQuick3D import QQuick3DGeometry; print('OK')"
 
 ```
 src/
-??? common/               # Shared utilities (NO business logic!)
-?   ??? logging.py       # Centralized logging setup
-?   ??? csv_export.py    # Data export utilities
-?   ??? config.py        # Configuration management
+??? common/ # Shared utilities (NO business logic!)
+? ??? logging.py # Centralized logging setup
+? ??? csv_export.py # Data export utilities
+? ??? config.py # Configuration management
 ?
-??? core/                # Domain primitives (pure Python, no Qt!)
-?   ??? geometry.py      # FrameConfig, basic types
+??? core/ # Domain primitives (pure Python, no Qt!)
+? ??? geometry.py # FrameConfig, basic types
 ?
-??? mechanics/           # Physics calculations (pure functions)
-?   ??? kinematics.py   # CylinderKinematics class
-?   ??? dynamics.py     # RigidBody3DOF (future)
+??? mechanics/ # Physics calculations (pure functions)
+? ??? kinematics.py # CylinderKinematics class
+? ??? dynamics.py # RigidBody3DOF (future)
 ?
-??? physics/            # ODE integration (SciPy-based)
-?   ??? odes.py        # Right-hand side functions (f_rhs)
-?   ??? integrator.py  # solve_ivp wrapper
+??? physics/ # ODE integration (SciPy-based)
+? ??? odes.py # Right-hand side functions (f_rhs)
+? ??? integrator.py # solve_ivp wrapper
 ?
-??? pneumo/            # Pneumatic gas system
-?   ??? enums.py       # Wheel, Line, ThermoMode enums
-?   ??? network.py     # GasNetwork class
-?   ??? system.py      # PneumaticSystem class
-?   ??? sim_time.py    # Time stepping utilities
+??? pneumo/ # Pneumatic gas system
+? ??? enums.py # Wheel, Line, ThermoMode enums
+? ??? network.py # GasNetwork class
+? ??? system.py # PneumaticSystem class
+? ??? sim_time.py # Time stepping utilities
 ?
-??? road/              # Road excitation generation
-?   ??? engine.py      # RoadInput class
+??? road/ # Road excitation generation
+? ??? engine.py # RoadInput class
 ?
-??? runtime/           # Simulation runtime (threading!)
-?   ??? state.py       # StateSnapshot, StateBus
-?   ??? sync.py        # LatestOnlyQueue, thread safety
-?   ??? sim_loop.py    # PhysicsWorker, SimulationManager
+??? runtime/ # Simulation runtime (threading!)
+? ??? state.py # StateSnapshot, StateBus
+? ??? sync.py # LatestOnlyQueue, thread safety
+? ??? sim_loop.py # PhysicsWorker, SimulationManager
 ?
-??? ui/                # User interface (Qt-dependent)
+??? ui/ # User interface (Qt-dependent)
     ??? main_window.py         # MainWindow (QMainWindow)
     ??? geometry_bridge.py     # 2D?3D coordinate converter
     ??? custom_geometry.py     # QQuick3DGeometry subclasses
@@ -119,96 +144,64 @@ src/
 
 ---
 
-## ?? Code Style Guide
+## Качество кода
 
-### **Python Style**
+### Основные инструменты
 
-**Follow PEP 8 with these additions:**
+- **Python 3.13** — целевая версия интерпретатора для всего проекта.
+- **Ruff** — единый инструмент для форматирования (`ruff format`) и линтинга (`ruff check`). Линтер настроен на соблюдение PEP 8, автоматическую сортировку импортов и правила по качеству (pyupgrade, bugbear, simplify и др.). Лимит длины строки — 88 символов.
+- **mypy** — строгая статическая типизация. Требуются аннотации типов для публичных API, `self`/`cls` допускаются без аннотаций.
+- **pytest** — обязательные юнит-, интеграционные и системные тесты.
+- **qmllint** (`qmllint` или `pyside6-qmllint`) — проверка QML-файлов из `src/` и `assets/`.
 
-```python
-# 1. Type hints everywhere (Python 3.11+)
-def calculate_piston_position(
-    lever_angle: float,
-    cylinder_length: float
-) -> float:
-    """Calculate piston position from lever angle
+### Правила для Python
 
-    Args:
-        lever_angle: Lever rotation in degrees
-        cylinder_length: Cylinder body length in mm
+1. Всегда используем аннотации типов и `from __future__ import annotations`, если нужно лениво ссылаться на типы.
+2. Импорты группируются в порядке: стандартная библиотека → сторонние пакеты → собственные модули (`known-first-party = pneumostabsim`).
+3. Публичные функции и классы сопровождаем докстрингами в стиле Google/Numpy, описываем единицы измерения и диапазоны значений.
+4. Не используем `print` для отладки — только `logging` с иерархией логгеров.
+5. Исключаем «грубые» подавления ошибок (`except Exception`) и `# type: ignore` без обоснования.
 
-    Returns:
-        Piston position from cylinder start (mm)
-    """
-    # Implementation...
-    return position
+### Правила для QML
 
-# 2. Explicit imports (no wildcards!)
-from PySide6.QtCore import Qt, QTimer, Slot
-# NOT: from PySide6.QtCore import *
+1. Один компонент в файле, имя файла совпадает с именем компонента (`MainWindow.qml`).
+2. Свойства объявляем перед функциями, используем осмысленные типы (`vector3d`, `color` и т.п.).
+3. Комплексные выражения сопровождаем комментариями, все константы выносим в `readonly property`.
+4. Стиль именования — camelCase для функций и свойств, PascalCase для компонентов.
 
-# 3. Docstrings for public methods
-class GeometryBridge:
-    """Convert 2D kinematics to 3D coordinates
+### Как запускать проверки локально
 
-    This class bridges the gap between 2D mechanical
-    calculations and 3D visualization coordinates.
-    """
+```bash
+# Автоматическое форматирование Python-кода
+make format
 
-    def get_corner_3d_coords(self, corner: str) -> dict:
-        """Get 3D coordinates for suspension corner
-
-        Args:
-            corner: Corner identifier ('fl', 'fr', 'rl', 'rr')
-
-        Returns:
-            Dictionary with 3D coordinate arrays
-        """
-        pass
-
-# 4. Constants in UPPER_CASE
-DEFAULT_CYLINDER_LENGTH = 0.25  # meters
-MAX_PISTON_RATIO = 0.9
-
-# 5. Private methods start with _
-def _internal_calculation(self):
-    """Internal helper method"""
-    pass
+# Полный набор проверок перед коммитом
+make verify
 ```
 
-### **QML Style**
+`make verify` выполняет `ruff check`, `mypy`, `qmllint` и `pytest` над целевыми файлами, перечисленными в служебных списках:
 
-```qml
-// 1. Components start with Capital letter
-component SuspensionCorner: Node {
-    // Properties BEFORE functions
-    property real leverAngle: 0.0
-    property vector3d position: Qt.vector3d(0, 0, 0)
+- `mypy_targets.txt` — относительные пути до каталогов/модулей для статической проверки (по умолчанию `src/pneumostabsim_typing`).
+- `qmllint_targets.txt` — QML-файлы или каталоги, которые гарантированно проходят `qmllint` (начинаем с `assets/qml/quality/Check.qml`).
+- `pytest_targets.txt` — тестовые модули, запускаемые в CI (включает минимальный sanity-check `tests/quality/test_sample_vector.py`).
 
-    // Functions use camelCase
-    function updatePosition(newPos) {
-        position = newPos
-    }
+Файлы можно расширять по мере наведения порядка в наследуемом коде. Команда должна завершаться без ошибок перед любым пушем или Pull Request.
 
-    // Models INSIDE component
-    Model {
-        source: "#Cube"
-        materials: PrincipledMaterial {
-            baseColor: "#ff0000"
-        }
-    }
-}
+Если в системе установлен нестандартный путь к `qmllint`, можно переопределить бинарь:
 
-// 2. Comments for complex calculations
-// Calculate piston position from lever angle
-// Formula: pos = center + delta
-// Where delta = (tail_to_rod - baseline_distance)
-property real pistonPos: calculatePistonPosition()
-
-// 3. Use Qt.vector3d() for vectors (not array!)
-property vector3d correct: Qt.vector3d(1.0, 2.0, 3.0)
-// NOT: property var wrong: [1.0, 2.0, 3.0]
+```bash
+QML_LINTER=/opt/Qt/6.7.2/gcc_64/bin/qmllint make verify
 ```
+
+Отчёты mypy и pytest автоматически выводятся в терминал. Для более детального анализа используйте `pytest -vv` и параметры `--cov`.
+
+### Применение в CI
+
+GitHub Actions запускает `make verify` на Ubuntu. В pipeline используется тот же набор переменных окружения, что и локально (`QT_QPA_PLATFORM=offscreen` и т.д.), поэтому ошибки сред запуска воспроизводимы.
+
+Соблюдение этих правил гарантирует единый стиль и предотвращает регрессии в Python/QML-части проекта.
+
+---
 
 ---
 
@@ -225,7 +218,7 @@ property vector3d correct: Qt.vector3d(1.0, 2.0, 3.0)
    /??????????\  - Module interactions
   /????????????\
  /??????????????\ Unit Tests (many)
-/????????????????\ - Individual functions
+ /????????????????\ - Individual functions
 ```
 
 ### **Unit Tests**
@@ -618,6 +611,48 @@ def set_amplitude(self, value: float):
 
 ---
 
-**Last Updated:** 2025-01-05
+## ?? Coordination & Rituals
+
+### **Weekly Block Readiness Sync**
+- **Cadence:** Every Tuesday,11:00?12:00 (UTC+3) with the core engineering, QA, and DevOps representatives.
+- **Agenda template:**
+1. Quick review of the Kanban board focus columns for the current sprint.
+2. Readiness check per block (compatibility, signal synchronization, configuration, CI, code style).
+3. Risk register & blockers ? highlight mitigation owners.
+4. Decision recap and action item confirmation.
+- **Readiness scoring:** Track each block on a0?3 scale (0 = not started,3 = ready for release) and record changes directly on the board card checklist before the sync.
+- **Shared notes:** Publish sync minutes in the sprint folder under `docs/REPORTS/` within24 hours.
+
+| Block | Representative | Definition of Ready | Operational Signal |
+|-------|----------------|---------------------|--------------------|
+| Compatibility | Platform engineering | Automated compatibility test suite for current sprint passes on target OS/GPU matrix. | Latest nightly run in CI green and linked to sprint summary. |
+| Signal synchronization | Realtime/QML bridge | Event order verified in logging traces, no dropped/duplicated signals. | Logging dashboard snapshot attached to sprint card. |
+| Configuration | Systems team | Baseline config schemas merged, migrations executed, docs updated. | `config` repo diff reviewed + schema validation report. |
+| CI | DevOps | Pipelines stable (<2% flaky jobs), recovery docs validated. | Pipeline health widget exported before sync. |
+| Code style | Tech leads | Linters & formatters clean, review checklist followed. | Latest lint report artifact attached to sprint milestone. |
+
+### **Kanban Board Workflow**
+- Use the GitHub **Projects/Boards** workspace `Stability Delivery` with the following epics:
+ - `EPIC: Compatibility Readiness`
+ - `EPIC: Signal Synchronization`
+ - `EPIC: Configuration Lifecycle`
+ - `EPIC: CI Excellence`
+ - `EPIC: Code Style & Reviews`
+- Each epic owns a swimlane with `Backlog`, `Sprint <N>`, `In Progress`, `Ready for Sync`, `Done` columns.
+- Sprint planning:
+1. Duplicate the `Sprint Template` iteration for the next two weeks.
+2. Pull prioritized tasks into the `Sprint <N>` column and assign owners with due dates.
+3. Attach acceptance criteria checklists covering readiness metrics.
+- During execution move cards across the board; blockers get a red label and are surfaced during the weekly sync.
+- After completion, archive the sprint iteration and export the board snapshot to `docs/REPORTS/sprint-<N>-board.md`.
+
+### **Decision Log Maintenance**
+- Record every architectural or infrastructure decision in `docs/DECISIONS_LOG.md` immediately after agreement.
+- Include: date, stakeholders, context/problem, decision, alternatives, and follow-up actions.
+- Reference the associated epic card ID and link to supporting documents or sync notes.
+- Review open follow-ups at the start of each weekly sync and mark them as completed when delivered.
+
+---
+**Last Updated:**2025-02-15
 **Maintainer:** Development Team
 **Status:** Living Document (update as needed!)

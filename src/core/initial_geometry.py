@@ -4,18 +4,25 @@ Ensures V_head = V_rod at neutral position
 """
 
 import math
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Tuple
+
+from config.constants import (
+    get_geometry_cylinder_constants,
+    get_geometry_initial_state_constants,
+)
 
 
 @dataclass
 class CylinderParams:
-    """Cylinder physical parameters"""
+    """Cylinder physical parameters sourced from configuration."""
 
-    D_cylinder: float = 0.080  # 80mm cylinder bore (m)
-    D_rod: float = 0.032  # 32mm rod diameter (m)
-    L_body: float = 0.250  # 250mm cylinder body (m)
-    L_piston: float = 0.020  # 20mm piston thickness (m)
+    D_cylinder: float = field(
+        default_factory=lambda: float(get_geometry_cylinder_constants()["inner_diameter_m"])
+    )
+    D_rod: float = field(default_factory=lambda: float(get_geometry_cylinder_constants()["rod_diameter_m"]))
+    L_body: float = field(default_factory=lambda: float(get_geometry_cylinder_constants()["body_length_m"]))
+    L_piston: float = field(default_factory=lambda: float(get_geometry_cylinder_constants()["piston_thickness_m"]))
 
 
 @dataclass
@@ -73,24 +80,37 @@ def calculate_initial_piston_position(params: CylinderParams) -> float:
 
 def calculate_initial_geometry(
     params: CylinderParams,
-    lever_length: float = 0.315,  # 315mm
-    j_arm_left: Tuple[float, float, float] = (-0.150, 0.060, -1.000),
-    j_arm_right: Tuple[float, float, float] = (0.150, 0.060, -1.000),
-    j_tail_left: Tuple[float, float, float] = (-0.100, 0.710, -1.000),
-    j_tail_right: Tuple[float, float, float] = (0.100, 0.710, -1.000),
+    lever_length: float | None = None,
+    j_arm_left: Tuple[float, float, float] | None = None,
+    j_arm_right: Tuple[float, float, float] | None = None,
+    j_tail_left: Tuple[float, float, float] | None = None,
+    j_tail_right: Tuple[float, float, float] | None = None,
 ) -> InitialGeometry:
     """
     Calculate complete initial geometry at neutral position
 
     Args:
         params: Cylinder parameters
-        lever_length: Lever length from pivot to rod joint (m)
-        j_arm_left/right: Lever pivot positions
+      lever_length: Lever length from pivot to rod joint (m)
+j_arm_left/right: Lever pivot positions
         j_tail_left/right: Cylinder tail positions
 
     Returns:
         InitialGeometry with all calculated values
     """
+    defaults = get_geometry_initial_state_constants()
+
+    if lever_length is None:
+        lever_length = float(defaults["lever_length_m"])
+    if j_arm_left is None:
+        j_arm_left = tuple(defaults["j_arm_left"])
+    if j_arm_right is None:
+        j_arm_right = tuple(defaults["j_arm_right"])
+    if j_tail_left is None:
+        j_tail_left = tuple(defaults["j_tail_left"])
+    if j_tail_right is None:
+        j_tail_right = tuple(defaults["j_tail_right"])
+
     # 1. Calculate piston position for equal volumes
     x_piston_0 = calculate_initial_piston_position(params)
 
@@ -124,7 +144,7 @@ def calculate_initial_geometry(
     )
 
     # 6. Tail rod length placeholder (refined later by full geometry)
-    L_tail = 0.100  # 100mm default
+    L_tail = float(defaults["tail_rod_length_m"])
 
     return InitialGeometry(
         x_piston_0=x_piston_0,

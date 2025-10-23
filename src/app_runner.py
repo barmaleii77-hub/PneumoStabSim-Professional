@@ -5,14 +5,19 @@
 Координирует запуск, выполнение и корректное завершение приложения,
 включая обработку сигналов, логирование и диагностику.
 """
+import asyncio
 import sys
 import os
 import signal
 import logging
+from datetime import datetime
 from pathlib import Path
 from typing import Any, Optional
 import argparse
 import json
+import subprocess
+
+from pneumostabsim.logging import ErrorHookManager, install_error_hooks
 
 
 class ApplicationRunner:
@@ -38,6 +43,7 @@ class ApplicationRunner:
         self.app_instance: Optional[Any] = None
         self.window_instance: Optional[Any] = None
         self.app_logger: Optional[logging.Logger] = None
+        self.error_hook_manager: Optional[ErrorHookManager] = None
 
         self.use_qml_3d_schema: bool = True
 
@@ -96,6 +102,24 @@ class ApplicationRunner:
             logger.info("=" * 60)
             logger.info(f"Python: {sys.version_info.major}.{sys.version_info.minor}")
 
+            # Глобальные хуки ошибок: sys.excepthook, asyncio и Qt
+            try:
+                loop = self._ensure_asyncio_loop()
+                error_log_json = (
+                    logs_dir
+                    / "errors"
+                    / f"errors_{datetime.now().strftime('%Y%m%d_%H%M%S')}.jsonl"
+                )
+                self.error_hook_manager = install_error_hooks(
+                    logger,
+                    error_log_json,
+                    loop=loop,
+                    qt_install_message_handler=self.qInstallMessageHandler,
+                )
+                logger.info(f"Global error hooks enabled (JSON log: {error_log_json})")
+            except Exception as hook_error:
+                logger.warning(f"Error hook installation failed: {hook_error}")
+
             from PySide6.QtCore import qVersion
 
             logger.info(f"Qt: {qVersion()}")
@@ -109,6 +133,15 @@ class ApplicationRunner:
         except Exception as e:
             print(f"WARNING: Logging setup failed: {e}")
             return None
+
+    def _ensure_asyncio_loop(self) -> asyncio.AbstractEventLoop:
+        """Гарантирует наличие активного asyncio event loop и возвращает его."""
+        try:
+            return asyncio.get_event_loop_policy().get_event_loop()
+        except RuntimeError:
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+            return loop
 
     def setup_high_dpi(self) -> None:
         """Настройка High DPI scaling."""
@@ -128,7 +161,10 @@ class ApplicationRunner:
         app = self.QApplication(sys.argv)
         self.app_instance = app
 
-        self.qInstallMessageHandler(self._qt_message_handler)
+        # Если глобальные хуки не установлены (например, ошибка на этапе логгирования),
+        # подключаем локальный перехватчик Qt сообщений как fallback.
+        if not self.error_hook_manager:
+            self.qInstallMessageHandler(self._qt_message_handler)
 
         app.setApplicationName("PneumoStabSim")
         app.setApplicationVersion("4.9.5")
@@ -166,6 +202,41 @@ class ApplicationRunner:
         if self.app_logger:
             self.app_logger.info("MainWindow created and shown")
 
+    def _run_schema_validation(self, cfg_path: Path) -> None:
+        """Запускает CLI-валидатор JSON схемы для файла настроек."""
+        # Определяем корень проекта (src/..)
+        project_root = Path(__file__).resolve().parents[1]
+        tools_dir = project_root / "tools"
+        validator = tools_dir / "validate_settings.py"
+        schema_path = project_root / "config" / "app_settings.schema.json"
+
+        if not validator.exists():
+            if self.app_logger:
+                self.app_logger.debug(
+                    "Settings validator script is missing; skipping schema check"
+                )
+            return
+
+        command = [
+            sys.executable,
+            str(validator),
+            "--settings-file",
+            str(cfg_path),
+            "--schema-file",
+            str(schema_path),
+            "--quiet",
+        ]
+
+        result = subprocess.run(command, capture_output=True, text=True)
+        if result.returncode != 0:
+            output = (result.stderr or result.stdout or "").strip()
+            raise RuntimeError(
+                f"Validation script failed with exit code {result.returncode}: {output}"
+            )
+
+        if self.app_logger:
+            self.app_logger.debug("Settings schema validation passed")
+
     def _validate_settings_file(self) -> None:
         """Строгая валидация конфигурации до создания MainWindow.
 
@@ -196,6 +267,12 @@ class ApplicationRunner:
             QMessageBox.critical(None, "Ошибка конфигурации", message)
             raise exc_type(message)
 
+        # Схемная валидация (если доступна)
+        try:
+            self._run_schema_validation(cfg_path)
+        except RuntimeError as exc:
+            _fail(str(exc))
+
         # Определяем источник пути
         src = "CWD"
         if os.environ.get("PSS_SETTINGS_FILE"):
@@ -204,7 +281,7 @@ class ApplicationRunner:
             # Попробуем угадать project path
             try:
                 project_candidate = (
-                    Path(__file__).resolve().parents[1].parent
+                    Path(__file__).resolve().parents[1]
                     / "config"
                     / "app_settings.json"
                 )

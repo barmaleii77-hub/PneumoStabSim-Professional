@@ -34,25 +34,24 @@ try {
     $PythonVersion = python --version 2>&1
     Write-Success "Найден: $PythonVersion"
 
-    # Проверка версии Python (требуется 3.11+)
+    # Проверка версии Python (поддержка 3.11–3.13)
     if ($PythonVersion -match "Python (\d+)\.(\d+)\.(\d+)") {
         $Major = [int]$Matches[1]
         $Minor = [int]$Matches[2]
 
-        if ($Major -lt 3 -or ($Major -eq 3 -and $Minor -lt 11)) {
-            Write-Error "Требуется Python 3.11 или выше! Текущая версия: $PythonVersion"
-            Write-Info "Рекомендуется Python 3.13"
+        if ($Major -ne 3 -or $Minor -lt 11 -or $Minor -gt 13) {
+            Write-Error "Требуется Python 3.11–3.13! Текущая версия: $PythonVersion"
             exit 1
         }
 
         if ($Major -eq 3 -and $Minor -eq 13) {
             Write-Success "Python 3.13 - отлично! (рекомендуемая версия)"
-        } elseif ($Major -eq 3 -and $Minor -ge 11) {
-            Write-Success "Python $Major.$Minor - поддерживается"
+        } else {
+            Write-Warning "Python $Major.$Minor - поддерживается, но рекомендуется обновиться до 3.13"
         }
     }
 } catch {
-    Write-Error "Python не найден! Установите Python 3.13 с python.org"
+    Write-Error "Python не найден! Установите Python 3.11–3.13 с python.org"
     Write-Info "Скачать: https://www.python.org/downloads/"
     exit 1
 }
@@ -104,18 +103,20 @@ Write-Step "Установка зависимостей проекта..."
 
 if (Test-Path "requirements.txt") {
     Write-Info "Установка из requirements.txt..."
-    python -m pip install -r requirements.txt
+    python -m pip install -r requirements.txt -c requirements-compatible.txt
     Write-Success "Основные зависимости установлены"
 } else {
     Write-Warning "Файл requirements.txt не найден!"
 }
 
-# Установка dev зависимостей
-$DevDeps = @("pytest", "pytest-qt", "black", "mypy", "flake8")
-Write-Info "Установка dev зависимостей: $($DevDeps -join ', ')"
-# В PowerShell массив корректно разворачивается в аргументы нативной команды
-python -m pip install $DevDeps
-Write-Success "Dev зависимости установлены"
+# Установка dev зависимостей (строго по requirements-dev.txt)
+if (Test-Path "requirements-dev.txt") {
+    Write-Info "Установка из requirements-dev.txt..."
+    python -m pip install -r requirements-dev.txt
+    Write-Success "Dev зависимости установлены"
+} else {
+    Write-Warning "Файл requirements-dev.txt не найден!"
+}
 
 # === ПРОВЕРКА УСТАНОВКИ ===
 Write-Step "Проверка установленных пакетов..."
@@ -165,8 +166,7 @@ if (Test-Path ".env") {
         Write-Host "  $_" -ForegroundColor Gray
     }
 } else {
-    Write-Warning "Файл .env не найден!"
-    Write-Info "Создайте .env файл с переменными окружения"
+    Write-Warning ".env не найден — выполните скрипт setup_environment.py или создайте файл вручную"
 }
 
 # === ПРОВЕРКА СТРУКТУРЫ ПРОЕКТА ===
@@ -217,41 +217,6 @@ if (Test-Path ".git") {
     Write-Warning "Git репозиторий не инициализирован"
 }
 
-# === ТЕСТОВЫЙ ЗАПУСК ===
-Write-Step "Тестовый запуск приложения..."
-
-Write-Info "Попытка импорта основных модулей..."
-$TestImport = python -c @"
-import sys
-sys.path.insert(0, 'src')
-
-try:
-    from src.diagnostics.warnings import log_warning, log_error
-    print('✅ diagnostics.warnings')
-
-    from src.bootstrap.environment import setup_qtquick3d_environment
-    print('✅ bootstrap.environment')
-
-    from src.bootstrap.terminal import configure_terminal_encoding
-    print('✅ bootstrap.terminal')
-
-    from src.bootstrap.version_check import check_python_compatibility
-    print('✅ bootstrap.version_check')
-
-    print('✅ Все модули импортированы успешно!')
-except Exception as e:
-    print(f'❌ Ошибка импорта: {e}')
-    sys.exit(1)
-"@ 2>&1
-
-if ($LASTEXITCODE -eq 0) {
-    Write-Host $TestImport
-    Write-Success "Импорт модулей прошел успешно!"
-} else {
-    Write-Error "Ошибка при импорте модулей:"
-    Write-Host $TestImport -ForegroundColor Red
-}
-
 # === ФИНАЛЬНЫЙ ОТЧЕТ ===
 Write-Host @"
 
@@ -266,13 +231,6 @@ Write-Host "  1. Активируйте venv:      .\\.venv\\Scripts\\Activate.p
 Write-Host "  2. Запустите приложение:  python app.py" -ForegroundColor Yellow
 Write-Host "  3. Или используйте F5 в VS Code для отладки" -ForegroundColor Yellow
 Write-Host ""
-Write-Host "📚 Полезные команды (после активации venv):" -ForegroundColor Cyan
-Write-Host "  python app.py              - Запуск приложения" -ForegroundColor White
-Write-Host "  python app.py --verbose    - Запуск с подробными логами" -ForegroundColor White
-Write-Host "  python app.py --test-mode  - Тестовый режим (5 сек)" -ForegroundColor White
-Write-Host "  pytest tests/              - Запуск тестов" -ForegroundColor White
-Write-Host "  black src/ tests/          - Форматирование кода" -ForegroundColor White
-Write-Host "  mypy src/                  - Проверка типов" -ForegroundColor White
-Write-Host ""
+Write-Host "📚 Подробнее о поддерживаемых конфигурациях: docs/environments.md" -ForegroundColor Cyan
 
 Write-Success "Готово к работе! 🚀"

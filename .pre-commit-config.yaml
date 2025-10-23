@@ -1,69 +1,75 @@
 # Pre-commit hooks для PneumoStabSim Professional
 # Установка: pip install pre-commit && pre-commit install
 
+default_language_version:
+  python: python3.13
+
 repos:
- # Black - форматирование Python кода
- - repo: https://github.com/psf/black
-   rev: 23.12.1
-   hooks:
-     - id: black
-       language_version: python3.12
-       args: ['--line-length=88']
+  # Ruff - линтер и автоформатирование
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.6.9
+    hooks:
+      - id: ruff
+        args: ["--fix", "--exit-non-zero-on-fix"]
+        files: '^(app\.py|src/|tests/|tools/)'
+      - id: ruff-format
+        files: '^(app\.py|src/|tests/|tools/)'
 
- # Flake8 - проверка стиля кода (только src/, app.py и tools/)
- - repo: https://github.com/pycqa/flake8
-   rev: 7.0.0
-   hooks:
-     - id: flake8
-       args: ['--max-line-length=88', '--extend-ignore=E203,W503']
-       files: '^(app\.py|src/|tools/)'
+  # MyPy - статическая типизация (только src/, app.py и tools/)
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.11.2
+    hooks:
+      - id: mypy
+        args: ['--config-file=pyproject.toml']
+        files: '^(app\.py|src/|tools/)'
 
- # MyPy - статическая типизация (только src/, app.py и tools/)
- - repo: https://github.com/pre-commit/mirrors-mypy
-   rev: v1.8.0
-   hooks:
-     - id: mypy
-       args: ['--ignore-missing-imports', '--python-version=3.12']
-       files: '^(app\.py|src/|tools/)'
+  # Базовые проверки
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.6.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-json
+      - id: check-added-large-files
+        args: ['--maxkb=5000']
+      - id: check-case-conflict
+      - id: check-merge-conflict
+      - id: detect-private-key
+      - id: mixed-line-ending
+        args: ['--fix=crlf']
 
- # Ruff - быстрая проверка кода (только src/, app.py и tools/)
- - repo: https://github.com/astral-sh/ruff-pre-commit
-   rev: v0.1.11
-   hooks:
-     - id: ruff
-       args: ['--fix', '--exit-non-zero-on-fix']
-       files: '^(app\.py|src/|tools/)'
+  # Проверка Python синтаксиса
+  - repo: https://github.com/pre-commit/pygrep-hooks
+    rev: v1.10.0
+    hooks:
+      - id: python-check-blanket-noqa
+      - id: python-check-blanket-type-ignore
+      - id: python-no-eval
+      - id: python-use-type-annotations
 
- # Базовые проверки
- - repo: https://github.com/pre-commit/pre-commit-hooks
-   rev: v4.5.0
-   hooks:
-     - id: trailing-whitespace
-     - id: end-of-file-fixer
-     - id: check-yaml
-     - id: check-json
-     - id: check-added-large-files
-       args: ['--maxkb=5000']
-     - id: check-case-conflict
-     - id: check-merge-conflict
-     - id: detect-private-key
-     - id: mixed-line-ending
-       args: ['--fix=crlf']
-
- # Проверка Python синтаксиса
- - repo: https://github.com/pre-commit/pygrep-hooks
-   rev: v1.10.0
-   hooks:
-     - id: python-check-blanket-noqa
-     - id: python-check-blanket-type-ignore
-     - id: python-no-eval
-     - id: python-use-type-annotations
-
- # Local hook: Check UTF-8 encoding for UI files
- - repo: local
-   hooks:
-     - id: check-ui-utf8
-       name: Check UI files for UTF-8 encoding
-       entry: python tools/check_ui_utf8.py
-       language: system
-       pass_filenames: false
+  # Local hook: утилиты и запуск тестов
+  - repo: local
+    hooks:
+      - id: check-ui-utf8
+        name: Check UI files for UTF-8 encoding
+        entry: python tools/check_ui_utf8.py
+        language: system
+        pass_filenames: false
+      - id: check-forbidden-artifacts
+        name: Check repository for forbidden artifacts
+        entry: python tools/check_forbidden_artifacts.py
+        language: system
+        pass_filenames: false
+      - id: pytest-core
+        name: Pytest (core suite)
+        entry: python -m pytest -m "not gui"
+        language: system
+        pass_filenames: false
+        stages: [manual]
+      - id: pytest-gui
+        name: Pytest (QML/GUI suite)
+        entry: python -m pytest tests/ui -m gui
+        language: system
+        pass_filenames: false
+        stages: [manual]

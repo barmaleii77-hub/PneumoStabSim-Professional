@@ -193,15 +193,23 @@ python test_correct_kinematics.py
 - [Status Reports](REPORTS/) - Progress tracking
 
 ### **Module Documentation**
-- [GeometryBridge](MODULES/GEOMETRY_BRIDGE.md) - 2D?3D conversion
+- [GeometryBridge](MODULES/GEOMETRY_BRIDGE.md) -2D?3D conversion
 - [SimulationManager](MODULES/SIMULATION_MANAGER.md) - Physics loop
 - [MainWindow](MODULES/MAIN_WINDOW.md) - UI controller
-- [QML Scene](MODULES/QML_SCENE.md) - 3D visualization
+- [QML Scene](MODULES/QML_SCENE.md) -3D visualization
 
 ### **Development Guides**
 - [Development Setup](DEV_SETUP.md) - Development environment
 - [Testing Guide](TESTING.md) - Test procedures
 - [Troubleshooting](TROUBLESHOOTING.md) - Common issues
+
+---
+
+## ?? Delivery Governance
+
+- **Weekly readiness sync:** Tuesdays11:00 (UTC+3). Track compatibility, signal synchronization, configuration, CI, and code-style readiness using the0?3 scoring matrix described in the [Development Guide](DEVELOPMENT_GUIDE.md#-coordination--rituals).
+- **Kanban board:** GitHub Projects workspace `Stability Delivery` with epics per readiness stream. Tasks must live in the active sprint column and link to their acceptance checklists.
+- **Decision history:** All architectural and infrastructure agreements are logged in [DECISIONS_LOG.md](DECISIONS_LOG.md) and reviewed during the weekly sync.
 
 ---
 
@@ -217,6 +225,6 @@ See [LICENSE](../LICENSE) for details.
 
 ---
 
-**Last Updated:** 2025-01-05
+**Last Updated:**2025-02-15
 **Project Status:** Active Development
-**Version:** 2.0.0 (Qt Quick 3D Release)
+**Version:**2.0.0 (Qt Quick3D Release)

@@ -6,6 +6,7 @@ from __future__ import annotations
 
 import json
 import logging
+import traceback
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, Optional
@@ -38,6 +39,7 @@ class EventType(Enum):
     # Errors
     PYTHON_ERROR = auto()  # Ошибка в Python
     QML_ERROR = auto()  # Ошибка в QML
+    QML_UPDATE_FAILURE = auto()  # Отказ при обновлении через QML мост
 
 
 class EventLogger:
@@ -92,7 +94,7 @@ class EventLogger:
             "action": action,
             "old_value": self._serialize_value(old_value),
             "new_value": self._serialize_value(new_value),
-            "metadata": metadata or {},
+            "metadata": self._serialize_value(metadata or {}),
         }
 
         self.events.append(event)
@@ -269,6 +271,34 @@ class EventLogger:
             new_value=error_msg,
             metadata=metadata,
             source=source,
+        )
+
+    def log_qml_update_failure(
+        self,
+        *,
+        component: str,
+        action: str,
+        payload: Dict[str, Any],
+        error: Exception,
+    ) -> None:
+        """Логирование отказа при обновлении QML."""
+
+        stacktrace = "".join(
+            traceback.format_exception(error.__class__, error, error.__traceback__)
+        )
+
+        metadata = {
+            "payload": self._serialize_value(payload),
+            "stacktrace": stacktrace,
+        }
+
+        self.log_event(
+            EventType.QML_UPDATE_FAILURE,
+            component=component,
+            action=action,
+            new_value=str(error),
+            metadata=metadata,
+            source="python",
         )
 
     def export_events(self, output_dir: Path | str = "logs") -> Path:

@@ -325,6 +325,19 @@ class MainWindow(QMainWindow):
         sm.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
         self.tab_widget.addTab(sm, "Режимы стабилизатора")
 
+        # Road profile
+        try:
+            self.road_panel = RoadPanel(self)
+            sr = QScrollArea()
+            sr.setWidgetResizable(True)
+            sr.setWidget(self.road_panel)
+            sr.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
+            self.tab_widget.addTab(sr, "Дорожный профиль")
+        except Exception as ex:
+            # Панель может быть недоступна в некоторых конфигурациях; продолжаем без неё
+            self.logger.warning(f"RoadPanel недоступна: {ex}")
+            self.road_panel = None
+
         # Graphics
         self.graphics_panel = GraphicsPanel(self)
         self.tab_widget.addTab(self.graphics_panel, "🎨 Графика")
