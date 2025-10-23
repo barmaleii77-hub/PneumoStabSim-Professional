@@ -249,6 +249,8 @@ class SignalsRouter:
         else:
             QMLBridge._log_graphics_change(window, "lighting", params, applied=True)
 
+        window._apply_settings_update("graphics.lighting", params)
+
     @staticmethod
     def handle_material_changed(window: MainWindow, params: Dict[str, Any]) -> None:
         """Handle material changes from GraphicsPanel"""
@@ -262,6 +264,8 @@ class SignalsRouter:
             QMLBridge._log_graphics_change(window, "materials", params, applied=False)
         else:
             QMLBridge._log_graphics_change(window, "materials", params, applied=True)
+
+        window._apply_settings_update("graphics.materials", params)
 
     @staticmethod
     def handle_environment_changed(window: MainWindow, params: Dict[str, Any]) -> None:
@@ -277,6 +281,8 @@ class SignalsRouter:
         else:
             QMLBridge._log_graphics_change(window, "environment", params, applied=True)
 
+        window._apply_settings_update("graphics.environment", params)
+
     @staticmethod
     def handle_quality_changed(window: MainWindow, params: Dict[str, Any]) -> None:
         """Handle quality changes from GraphicsPanel"""
@@ -290,6 +296,8 @@ class SignalsRouter:
             QMLBridge._log_graphics_change(window, "quality", params, applied=False)
         else:
             QMLBridge._log_graphics_change(window, "quality", params, applied=True)
+
+        window._apply_settings_update("graphics.quality", params)
 
     @staticmethod
     def handle_camera_changed(window: MainWindow, params: Dict[str, Any]) -> None:
@@ -305,6 +313,8 @@ class SignalsRouter:
         else:
             QMLBridge._log_graphics_change(window, "camera", params, applied=True)
 
+        window._apply_settings_update("graphics.camera", params)
+
     @staticmethod
     def handle_effects_changed(window: MainWindow, params: Dict[str, Any]) -> None:
         """Handle effects changes from GraphicsPanel"""
@@ -318,6 +328,8 @@ class SignalsRouter:
             QMLBridge._log_graphics_change(window, "effects", params, applied=False)
         else:
             QMLBridge._log_graphics_change(window, "effects", params, applied=True)
+
+        window._apply_settings_update("graphics.effects", params)
 
     @staticmethod
     def handle_preset_applied(window: MainWindow, full_state: Dict[str, Any]) -> None:
@@ -340,6 +352,8 @@ class SignalsRouter:
         QMLBridge.queue_update(window, "camera", full_state.get("camera", {}))
         QMLBridge.queue_update(window, "effects", full_state.get("effects", {}))
 
+        window._apply_settings_update("graphics", full_state)
+
     @staticmethod
     def handle_animation_changed(window: MainWindow, params: Dict[str, Any]) -> None:
         """Handle animation changes from ModesPanel"""
@@ -353,6 +367,8 @@ class SignalsRouter:
             QMLBridge._log_graphics_change(window, "animation", params, applied=False)
         else:
             QMLBridge._log_graphics_change(window, "animation", params, applied=True)
+
+        window._apply_settings_update("graphics.animation", params)
 
     # ------------------------------------------------------------------
     # Signal Handlers - Simulation

@@ -7,10 +7,11 @@ Russian UI / English code.
 """
 from __future__ import annotations
 
+import json
 import logging
 import os
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, Dict
 
 from PySide6.QtCore import Qt, QSettings, QUrl
 from PySide6.QtWidgets import (
@@ -45,6 +46,47 @@ class UISetup:
     }
     _SCENE_LOAD_ORDER: tuple[str, ...] = ("main", "realism", "fallback")
     _SCENE_ENV_VAR = "PSS_QML_SCENE"
+
+    @staticmethod
+    def build_qml_context_payload(
+        settings_manager: Any | None,
+    ) -> Dict[str, Dict[str, Any]]:
+        """Подготовить стартовые словари для QML контекста."""
+
+        from src.common.settings_manager import (
+            SettingsManager,
+            get_settings_manager,
+        )
+
+        manager = settings_manager
+        if manager is None:
+            try:
+                manager = get_settings_manager()
+            except Exception:
+                manager = None
+
+        def _section(name: str) -> Dict[str, Any]:
+            if manager is None:
+                return SettingsManager.get_graphics_default(name)
+            try:
+                data = manager.get(f"graphics.{name}", {}) or {}
+            except Exception:
+                data = {}
+            if not isinstance(data, dict) or not data:
+                data = SettingsManager.get_graphics_default(name)
+            return data
+
+        def _sanitize(payload: Dict[str, Any]) -> Dict[str, Any]:
+            try:
+                return json.loads(json.dumps(payload))
+            except Exception:
+                return payload
+
+        return {
+            "animation": _sanitize(_section("animation")),
+            "scene": _sanitize(_section("scene")),
+            "materials": _sanitize(_section("materials")),
+        }
 
     # ------------------------------------------------------------------
     # Central Widget Setup
@@ -120,6 +162,24 @@ class UISetup:
             context = engine.rootContext()
             context.setContextProperty("window", window)
             UISetup.logger.info("    ✅ Window context registered")
+
+            try:
+                payload = UISetup.build_qml_context_payload(
+                    getattr(window, "settings_manager", None)
+                )
+                context.setContextProperty(
+                    "initialAnimationSettings", payload["animation"]
+                )
+                context.setContextProperty("initialSceneSettings", payload["scene"])
+                context.setContextProperty(
+                    "initialSharedMaterials", payload["materials"]
+                )
+                UISetup.logger.info("    ✅ Initial graphics settings exposed to QML")
+            except Exception as ctx_exc:
+                UISetup.logger.warning(
+                    "    ⚠️ Failed to expose initial graphics settings: %s",
+                    ctx_exc,
+                )
 
             # Import paths
             from PySide6.QtCore import QLibraryInfo

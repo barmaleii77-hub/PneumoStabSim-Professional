@@ -27,6 +27,7 @@ if (Test-Path $envFile) {
     Write-Host "`n✅ Environment activated!" -ForegroundColor Green
     Write-Host "📦 PYTHONPATH: $env:PYTHONPATH" -ForegroundColor Gray
     Write-Host "🎨 QT Backend: $env:QSG_RHI_BACKEND" -ForegroundColor Gray
+    Write-Host "📚 Матрица совместимости: docs/environments.md" -ForegroundColor Gray
 
 } else {
     Write-Host "⚠️  .env file not found. Run setup_all_paths.ps1 first." -ForegroundColor Yellow

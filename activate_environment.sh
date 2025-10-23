@@ -33,6 +33,7 @@ if [ -f "$ENV_FILE" ]; then
     echo "✅ Environment activated!"
     echo "📦 PYTHONPATH: $PYTHONPATH"
     echo "🎨 QT Backend: $QSG_RHI_BACKEND"
+    echo "📚 Матрица совместимости: docs/environments.md"
 else
     echo "⚠️  .env file not found. Run ./setup_all_paths.sh first."
 fi

@@ -1,0 +1,35 @@
+"""QML Bridge Module - PythonтЖФQML communication
+
+╨Ь╨╛╨┤╤Г╨╗╤М ╤Г╨┐╤А╨░╨▓╨╗╨╡╨╜╨╕╤П ╨▓╨╖╨░╨╕╨╝╨╛╨┤╨╡╨╣╤Б╤В╨▓╨╕╨╡╨╝ ╨╝╨╡╨╢╨┤╤Г Python ╨╕ QML.
+╨Ю╤В╨▓╨╡╤З╨░╨╡╤В ╨╖╨░ ╨▓╤Л╨╖╨╛╨▓ QML ╤Д╤Г╨╜╨║╤Ж╨╕╨╣, ╨▒╨░╤В╤З-╨╛╨▒╨╜╨╛╨▓╨╗╨╡╨╜╨╕╤П ╨╕ ╤Б╨╕╨╜╤Е╤А╨╛╨╜╨╕╨╖╨░╤Ж╨╕╤О ╤Б╨╛╤Б╤В╨╛╤П╨╜╨╕╤П.
+
+Russian comments / English code.
+"""
+from __future__ import annotations
+
+import logging
+from pathlib import Path
+from typing import TYPE_CHECKING, Any, Dict, Optional
+
+from PySide6.QtCore import Q_ARG, QMetaObject, Qt
+
+from src.pneumo.enums import Line, Wheel
+from src.runtime.state import StateSnapshot
+
+if TYPE_CHECKING:
+    from .main_window import MainWindow
+
+
+class QMLBridge:
+    """╨Ь╨╛╤Б╤В ╨╝╨╡╨╢╨┤╤Г Python ╨╕ QML
+
+    ╨г╨┐╤А╨░╨▓╨╗╤П╨╡╤В:
+    - ╨Т╤Л╨╖╨╛╨▓╨░╨╝╨╕ QML ╤Д╤Г╨╜╨║╤Ж╨╕╨╣
+    - ╨С╨░╤В╤З-╨╛╨▒╨╜╨╛╨▓╨╗╨╡╨╜╨╕╤П╨╝╨╕
+    - ╨Ю╤З╨╡╤А╨╡╨┤╤М╤О ╨╕╨╖╨╝╨╡╨╜╨╡╨╜╨╕╨╣
+    - ACK ╤Б╨╕╨│╨╜╨░╨╗╨░╨╝╨╕
+
+    Static methods ╨┤╨╗╤П ╨┤╨╡╨╗╨╡╨│╨╕╤А╨╛╨▓╨░╨╜╨╕╤П ╨╕╨╖ MainWindow.
+    """
+
+    logger = logging.getLogger(__name__)

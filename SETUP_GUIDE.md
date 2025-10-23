@@ -16,7 +16,7 @@
 ```
 
 Этот скрипт автоматически:
-- ✅ Проверит версию Python (требуется 3.13)
+- ✅ Проверит версию Python (поддержка 3.11–3.13, рекомендуем 3.13)
 - ✅ Создаст виртуальное окружение `venv`
 - ✅ Установит все зависимости из `requirements.txt`
 - ✅ Установит dev-зависимости (pytest, black, mypy)
@@ -47,9 +47,9 @@
 ### Шаг 1: Проверка Python
 
 ```powershell
-# Проверка версии (требуется 3.13)
+# Проверка версии (поддержка 3.11–3.13)
 python --version
-# Должно быть: Python 3.13.x (рекомендуется)
+# Рекомендуемая версия: Python 3.13.x
 ```
 
 ### Шаг 2: Создание виртуального окружения
@@ -74,11 +74,11 @@ python -m pip install --upgrade pip setuptools wheel
 ### Шаг 4: Установка зависимостей
 
 ```powershell
-# Основные зависимости
-pip install -r requirements.txt
+# Основные зависимости (с учётом матрицы совместимости)
+pip install -r requirements.txt -c requirements-compatible.txt
 
 # Dev зависимости (для разработки)
-pip install pytest pytest-qt black mypy flake8
+pip install -r requirements-dev.txt
 ```
 
 ### Шаг 5: Проверка установки
@@ -86,7 +86,7 @@ pip install pytest pytest-qt black mypy flake8
 ```powershell
 # Проверка PySide6
 python -c "import PySide6.QtCore as QtCore; print(f'PySide6 {QtCore.__version__} (Qt {QtCore.qVersion()})')"
-# Должно быть: PySide6 6.10.x (Qt 6.10.x)
+# Должно быть: PySide6 6.10.x (Qt 6.10.x) в основной конфигурации
 
 # Проверка NumPy
 python -c "import numpy; print(f'NumPy {numpy.__version__}')"
@@ -404,3 +404,5 @@ PneumoStabSim-Professional/
 **Версия**: 4.9.5
 **Последнее обновление**: 2024
 **Лицензия**: MIT
+
+# Дополнительные профили (PySide6 6.5–6.9) описаны в docs/environments.md

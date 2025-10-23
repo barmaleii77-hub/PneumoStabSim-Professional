@@ -227,10 +227,17 @@ class GraphicsPanel(QWidget):
             materials_state = (
                 self.state.get("materials") if isinstance(self.state, dict) else None
             )
+            alias_map = {"tail": "tail_rod"}
+            if isinstance(materials_state, dict):
+                normalized: Dict[str, Any] = {}
+                for key, value in materials_state.items():
+                    normalized_key = alias_map.get(key, key)
+                    normalized[normalized_key] = value
+                materials_state = normalized
             expected_keys = {
                 "frame",
                 "lever",
-                "tail",
+                "tail_rod",
                 "cylinder",
                 "piston_body",
                 "piston_rod",

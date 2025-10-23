@@ -38,7 +38,7 @@ class MaterialsTab(QWidget):
         self._material_labels = {
             "frame": "Рама",
             "lever": "Рычаг",
-            "tail": "Хвостовик",
+            "tail_rod": "Хвостовик",
             "cylinder": "Цилиндр (стекло)",
             "piston_body": "Корпус поршня",
             "piston_rod": "Шток",
@@ -393,7 +393,7 @@ class MaterialsTab(QWidget):
             current_key: self.get_current_material_state(),
         }
 
-    def get_all_state(self) -> Dict[str, Dict[str, Any]]:
+    def get_all_state(self) → Dict[str, Dict[str, Any]]:
         """Вернуть состояние ВСЕХ материалов для сохранения/пресетов"""
         # Обновим кэш текущего
         cur_key = self.get_current_material_key()
@@ -428,15 +428,17 @@ class MaterialsTab(QWidget):
         # КРИТИЧНО: Сначала очищаем старый кэш
         self._materials_state.clear()
         # Заполняем кэш без трогания селектора
+        alias_map = {"tail": "tail_rod"}
+
         for material_key, material_state in state.items():
-            if material_key in self._material_labels and isinstance(
+            normalized_key = alias_map.get(material_key, material_key)
+            if normalized_key in self._material_labels and isinstance(
                 material_state, dict
             ):
                 # Принудительно сохраняем ВСЕ поля в кэш (даже если их нет в контролах)
-                self._materials_state[material_key] = self._coerce_material_state(
-                    material_state
-                )
-                print(f"  ✅ Loaded {material_key}: {len(material_state)} params")
+                coerced_state = self._coerce_material_state(material_state)
+                self._materials_state[normalized_key] = coerced_state
+                print(f"  ✅ Loaded {normalized_key}: {len(material_state)} params")
             else:
                 print(f"  ⚠️ Skipped {material_key}: not in labels or not dict")
         # Обновляем контролы для текущего выбранного

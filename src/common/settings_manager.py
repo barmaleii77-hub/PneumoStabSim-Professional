@@ -84,6 +84,163 @@ class SettingsManager:
         "tail_rod_length_m": 0.1,
     }
 
+    _DEFAULT_GRAPHICS_ANIMATION: Dict[str, Any] = {
+        "is_running": False,
+        "animation_time": 0.0,
+        "amplitude": 8.0,
+        "frequency": 1.0,
+        "phase_global": 0.0,
+        "phase_fl": 0.0,
+        "phase_fr": 0.0,
+        "phase_rl": 0.0,
+        "phase_rr": 0.0,
+    }
+
+    _DEFAULT_GRAPHICS_SCENE: Dict[str, Any] = {
+        "scale_factor": 1000.0,
+        "default_clear_color": "#1a1a2e",
+        "model_base_color": "#9ea4ab",
+        "model_roughness": 0.35,
+        "model_metalness": 0.9,
+    }
+
+    _DEFAULT_GRAPHICS_MATERIALS: Dict[str, Any] = {
+        "frame": {
+            "base_color": "#c53030",
+            "metalness": 0.85,
+            "roughness": 0.35,
+            "specular_amount": 1.0,
+            "specular_tint": 0.0,
+            "clearcoat": 0.22,
+            "clearcoat_roughness": 0.1,
+            "transmission": 0.0,
+            "opacity": 1.0,
+            "ior": 1.5,
+            "attenuation_distance": 10000.0,
+            "attenuation_color": "#ffffff",
+            "emissive_color": "#000000",
+            "emissive_intensity": 0.0,
+        },
+        "lever": {
+            "base_color": "#9ea4ab",
+            "metalness": 1.0,
+            "roughness": 0.28,
+            "specular_amount": 1.0,
+            "specular_tint": 0.0,
+            "clearcoat": 0.3,
+            "clearcoat_roughness": 0.08,
+            "transmission": 0.0,
+            "opacity": 1.0,
+            "ior": 1.5,
+            "attenuation_distance": 10000.0,
+            "attenuation_color": "#ffffff",
+            "emissive_color": "#000000",
+            "emissive_intensity": 0.0,
+        },
+        "tail_rod": {
+            "base_color": "#d5d9df",
+            "metalness": 1.0,
+            "roughness": 0.3,
+            "specular_amount": 1.0,
+            "specular_tint": 0.0,
+            "clearcoat": 0.0,
+            "clearcoat_roughness": 0.0,
+            "transmission": 0.0,
+            "opacity": 1.0,
+            "ior": 1.5,
+            "attenuation_distance": 10000.0,
+            "attenuation_color": "#ffffff",
+            "emissive_color": "#000000",
+            "emissive_intensity": 0.0,
+        },
+        "cylinder": {
+            "base_color": "#e1f5ff",
+            "metalness": 0.0,
+            "roughness": 0.05,
+            "specular_amount": 1.0,
+            "specular_tint": 0.0,
+            "clearcoat": 0.0,
+            "clearcoat_roughness": 0.0,
+            "transmission": 1.0,
+            "opacity": 1.0,
+            "ior": 1.52,
+            "attenuation_distance": 1800.0,
+            "attenuation_color": "#b7e7ff",
+            "emissive_color": "#000000",
+            "emissive_intensity": 0.0,
+        },
+        "piston_body": {
+            "base_color": "#ff3c6e",
+            "warning_color": "#ff5454",
+            "metalness": 1.0,
+            "roughness": 0.26,
+            "specular_amount": 1.0,
+            "specular_tint": 0.0,
+            "clearcoat": 0.18,
+            "clearcoat_roughness": 0.06,
+            "transmission": 0.0,
+            "opacity": 1.0,
+            "ior": 1.5,
+            "attenuation_distance": 10000.0,
+            "attenuation_color": "#ffffff",
+            "emissive_color": "#000000",
+            "emissive_intensity": 0.0,
+        },
+        "piston_rod": {
+            "base_color": "#ececec",
+            "warning_color": "#ff2a2a",
+            "metalness": 1.0,
+            "roughness": 0.18,
+            "specular_amount": 1.0,
+            "specular_tint": 0.0,
+            "clearcoat": 0.12,
+            "clearcoat_roughness": 0.05,
+            "transmission": 0.0,
+            "opacity": 1.0,
+            "ior": 1.5,
+            "attenuation_distance": 10000.0,
+            "attenuation_color": "#ffffff",
+            "emissive_color": "#000000",
+            "emissive_intensity": 0.0,
+        },
+        "joint_tail": {
+            "base_color": "#2a82ff",
+            "metalness": 0.9,
+            "roughness": 0.35,
+            "specular_amount": 1.0,
+            "specular_tint": 0.0,
+            "clearcoat": 0.1,
+            "clearcoat_roughness": 0.08,
+            "transmission": 0.0,
+            "opacity": 1.0,
+            "ior": 1.5,
+            "attenuation_distance": 10000.0,
+            "attenuation_color": "#ffffff",
+            "emissive_color": "#000000",
+            "emissive_intensity": 0.0,
+        },
+        "joint_arm": {
+            "base_color": "#ff9c3a",
+            "metalness": 0.9,
+            "roughness": 0.32,
+            "specular_amount": 1.0,
+            "specular_tint": 0.0,
+            "clearcoat": 0.12,
+            "clearcoat_roughness": 0.08,
+            "transmission": 0.0,
+            "opacity": 1.0,
+            "ior": 1.5,
+            "attenuation_distance": 10000.0,
+            "attenuation_color": "#ffffff",
+            "emissive_color": "#000000",
+            "emissive_intensity": 0.0,
+        },
+        "joint_rod": {
+            "ok_color": "#00ff55",
+            "error_color": "#ff0000",
+        },
+    }
+
     def __init__(self, settings_file: str | Path = "config/app_settings.json"):
         self.logger = logging.getLogger(__name__)
         # Разрешаем путь к файлу настроек более надёжно (CWD / корень проекта / env var)
@@ -241,6 +398,11 @@ class SettingsManager:
 
                 self._current = data["current"]
                 self._defaults_snapshot = data.get("defaults_snapshot", {})
+                structure_updated = False
+                if self._ensure_graphics_sections(self._current):
+                    structure_updated = True
+                if self._ensure_graphics_sections(self._defaults_snapshot):
+                    structure_updated = True
                 # Если дефолтный снапшот отсутствует или пуст — делаем его равным current и сохраняем обратно
                 if (
                     not isinstance(self._defaults_snapshot, dict)
@@ -254,7 +416,7 @@ class SettingsManager:
                         # Если сохранение не удалось — пусть поднимется позже при явном save()
                         pass
                 self._metadata = data.get("metadata", {})
-                if units_updated:
+                if units_updated or structure_updated:
                     try:
                         self.save()
                     except Exception as exc:
@@ -265,7 +427,8 @@ class SettingsManager:
                 # Старая структура - мигрируем
                 migrated = self._migrate_keys(data)
                 self._current = migrated
-                self._defaults_snapshot = copy.deepcopy(migrated)
+                self._ensure_graphics_sections(self._current)
+                self._defaults_snapshot = copy.deepcopy(self._current)
                 self._metadata = {
                     "version": data.get("version", "4.9.5"),
                     "last_modified": datetime.now().isoformat(),
@@ -521,7 +684,9 @@ class SettingsManager:
                 "quality": {},
                 "camera": {},
                 "effects": {},
-                "materials": {},
+                "materials": copy.deepcopy(self._DEFAULT_GRAPHICS_MATERIALS),
+                "animation": copy.deepcopy(self._DEFAULT_GRAPHICS_ANIMATION),
+                "scene": copy.deepcopy(self._DEFAULT_GRAPHICS_SCENE),
             },
             "geometry": {},
             "simulation": {},
@@ -818,6 +983,85 @@ class SettingsManager:
             self.logger.info("Geometry settings are now immutable")
         except Exception as e:
             self.logger.warning(f"Failed to configure immutable settings: {e}")
+
+    @classmethod
+    def get_graphics_default(cls, section: str) -> Dict[str, Any]:
+        mapping = {
+            "animation": cls._DEFAULT_GRAPHICS_ANIMATION,
+            "scene": cls._DEFAULT_GRAPHICS_SCENE,
+            "materials": cls._DEFAULT_GRAPHICS_MATERIALS,
+        }
+        return copy.deepcopy(mapping.get(section, {}))
+
+    def _ensure_graphics_sections(self, section: Dict[str, Any]) -> bool:
+        if not isinstance(section, dict):
+            return False
+
+        graphics = section.setdefault("graphics", {})
+        changed = False
+
+        required_sections = {
+            "materials": self._DEFAULT_GRAPHICS_MATERIALS,
+            "animation": self._DEFAULT_GRAPHICS_ANIMATION,
+            "scene": self._DEFAULT_GRAPHICS_SCENE,
+        }
+
+        for key, defaults in required_sections.items():
+            existing = graphics.get(key)
+            if not isinstance(existing, dict):
+                graphics[key] = copy.deepcopy(defaults)
+                changed = True
+            else:
+                if key == "materials":
+                    if self._normalize_materials(existing):
+                        changed = True
+                if self._merge_missing_defaults(existing, defaults):
+                    changed = True
+
+        return changed
+
+    @classmethod
+    def _merge_missing_defaults(
+        cls, target: Dict[str, Any], defaults: Dict[str, Any]
+    ) -> bool:
+        changed = False
+        for key, value in defaults.items():
+            if key not in target:
+                target[key] = copy.deepcopy(value)
+                changed = True
+            else:
+                if isinstance(value, dict) and isinstance(target.get(key), dict):
+                    if cls._merge_missing_defaults(target[key], value):
+                        changed = True
+        return changed
+
+    @classmethod
+    def _normalize_materials(cls, materials: Dict[str, Any]) -> bool:
+        changed = False
+        if not isinstance(materials, dict):
+            return changed
+
+        if "tail" in materials and "tail_rod" not in materials:
+            materials["tail_rod"] = materials.pop("tail")
+            changed = True
+        elif "tail" in materials:
+            # Если оба ключа присутствуют, удаляем устаревший
+            materials.pop("tail", None)
+            changed = True
+
+        for _mat_name, params in list(materials.items()):
+            if not isinstance(params, dict):
+                continue
+            if "specular" in params:
+                if "specular_amount" not in params:
+                    try:
+                        params["specular_amount"] = float(params.get("specular", 0.0))
+                    except Exception:
+                        params["specular_amount"] = params.get("specular")
+                params.pop("specular", None)
+                changed = True
+
+        return changed
 
 
 # Singleton instance

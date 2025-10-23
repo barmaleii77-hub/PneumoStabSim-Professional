@@ -19,6 +19,7 @@ Russian UI / English code.
 """
 from __future__ import annotations
 
+import copy
 import logging
 from typing import Optional, Dict, Any
 
@@ -33,6 +34,7 @@ from .qml_bridge import QMLBridge
 from .signals_router import SignalsRouter
 from .state_sync import StateSync
 from .menu_actions import MenuActions
+from src.common.settings_manager import get_settings_manager
 
 
 class MainWindow(QMainWindow):
@@ -105,6 +107,10 @@ class MainWindow(QMainWindow):
         self.logger = logging.getLogger(self.__class__.__name__)
         self.logger.info(f"MainWindow init: {backend_name}")
 
+        # Settings manager
+        self.settings_manager = get_settings_manager()
+        self.logger.info("SettingsManager initialized")
+
         # IBL Logger
         from ..ibl_logger import get_ibl_logger, log_ibl_event
 
@@ -128,6 +134,7 @@ class MainWindow(QMainWindow):
             raise
 
         # QML update system
+        self._suppress_qml_feedback = False
         self._qml_update_queue: Dict[str, Dict[str, Any]] = {}
         self._qml_method_support: Dict[tuple[str, bool], bool] = {}
         self._qml_flush_timer = QTimer()
@@ -214,7 +221,7 @@ class MainWindow(QMainWindow):
     # ------------------------------------------------------------------
     @Slot(str, str)
     def logQmlEvent(self, event_type: str, name: str) -> None:
-        """Слот для QML: регистрирует событие в EventLogger
+        """Логирование QML событий через EventLogger
 
         Args:
             event_type: Event type (signal_received, function_called, etc.)
@@ -241,6 +248,105 @@ class MainWindow(QMainWindow):
             )
         except Exception:
             pass
+
+    # ------------------------------------------------------------------
+    # Settings synchronization helpers
+    # ------------------------------------------------------------------
+    def _apply_settings_update(self, category_path: str, updates: Dict[str, Any]) -> None:
+        """Merge updates into SettingsManager and log diffs."""
+
+        if not updates:
+            return
+
+        sm = getattr(self, "settings_manager", None)
+        if sm is None or not isinstance(updates, dict):
+            return
+
+        try:
+            current_state = sm.get(category_path, {}) or {}
+        except Exception:
+            current_state = {}
+
+        if not isinstance(current_state, dict):
+            current_state = {}
+
+        before = copy.deepcopy(current_state)
+        merged = copy.deepcopy(before)
+        self._deep_merge_dicts(merged, updates)
+
+        if merged == before:
+            return
+
+        sm.set(category_path, merged, auto_save=False)
+
+        try:
+            for path, old_value, new_value in self._iter_diff(before, merged):
+                self.event_logger.log_state_change(
+                    category_path,
+                    path,
+                    old_value,
+                    new_value,
+                )
+        except Exception:
+            self.logger.debug(
+                "Failed to log state change for %s", category_path, exc_info=True
+            )
+
+        try:
+            sm.save()
+        except Exception as exc:  # pragma: no cover - disk errors
+            self.logger.error("Failed to save settings for %s: %s", category_path, exc)
+
+    @staticmethod
+    def _deep_merge_dicts(target: Dict[str, Any], updates: Dict[str, Any]) -> None:
+        for key, value in updates.items():
+            if isinstance(value, dict):
+                base = target.get(key)
+                if not isinstance(base, dict):
+                    base = {}
+                target[key] = base
+                MainWindow._deep_merge_dicts(base, value)
+            else:
+                target[key] = copy.deepcopy(value)
+
+    @staticmethod
+    def _iter_diff(
+        old: Any, new: Any, prefix: str = ""
+    ) -> "list[tuple[str, Any, Any]]":
+        diffs: list[tuple[str, Any, Any]] = []
+        if isinstance(old, dict) and isinstance(new, dict):
+            keys = set(old) | set(new)
+            for key in keys:
+                child_prefix = f"{prefix}.{key}" if prefix else str(key)
+                diffs.extend(MainWindow._iter_diff(old.get(key), new.get(key), child_prefix))
+            return diffs
+
+        if old != new:
+            diffs.append((prefix, old, new))
+        return diffs
+
+    @Slot(str, dict)
+    def applyQmlConfigChange(self, category: str, payload: Dict[str, Any]) -> None:
+        """Приём изменений конфигурации из QML."""
+
+        if not isinstance(payload, dict):
+            return
+
+        category_path = (category or "").strip()
+        if not category_path:
+            return
+
+        if not category_path.startswith("graphics"):
+            if category_path in {"animation", "scene", "materials"}:
+                category_path = f"graphics.{category_path}"
+
+        self._apply_settings_update(category_path, payload)
+
+    @Slot(result=bool)
+    def isQmlFeedbackSuppressed(self) -> bool:
+        """Expose suppression flag to QML side."""
+
+        return bool(getattr(self, "_suppress_qml_feedback", False))
 
     # ------------------------------------------------------------------
     # QML Update System (delegation to QMLBridge)

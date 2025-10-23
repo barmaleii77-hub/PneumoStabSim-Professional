@@ -13,129 +13,158 @@ import "effects"
  * Обновления приходят из панелей через apply*Updates и batched updates.
  */
 Item {
- id: root
+    id: root
  anchors.fill: parent
 
  // ---------------------------------------------
- // Свойства и сигнал для батч-обновлений из Python
- // ---------------------------------------------
- property var pendingPythonUpdates: null
- signal batchUpdatesApplied(var summary)
+    // Свойства и сигнал для батч-обновлений из Python
+    // ---------------------------------------------
+    property var pendingPythonUpdates: null
+    signal batchUpdatesApplied(var summary)
 
- // Состояние симуляции, управляется из Python (MainWindow)
- property bool isRunning: false
- property real animationTime:0.0 // сек, накапливается Python-таймером
+    // Состояние симуляции, управляется из Python (MainWindow)
+  property bool isRunning: false
+    property var animationDefaults: typeof initialAnimationSettings !== "undefined" ? initialAnimationSettings : null
+    property var sceneDefaults: typeof initialSceneSettings !== "undefined" ? initialSceneSettings : null
+    property bool feedbackReady: false
+    property real animationTime: animationDefaults && animationDefaults.animation_time !== undefined ? Number(animationDefaults.animation_time) : 0.0 // сек, накапливается Python-таймером
 
- // -------- Геометрия подвески (СИ) --------
- property real userFrameLength:3.2
- property real userFrameHeight:0.65
- property real userBeamSize:0.12
- property real userLeverLength:0.8
- property real userCylinderLength:0.5
- property real userTrackWidth:1.6
- property real userFrameToPivot:0.6
- property real userRodPosition:0.6
- property real userBoreHead:0.08
- property real userRodDiameter:0.035
- property real userPistonThickness:0.025
- property real userPistonRodLength:0.2
+    // -------- Геометрия подвески (СИ) --------
+    property real userFrameLength: 3.2
+  property real userFrameHeight: 0.65
+    property real userBeamSize: 0.12
+    property real userLeverLength: 0.8
+    property real userCylinderLength: 0.5
+    property real userTrackWidth: 1.6
+property real userFrameToPivot: 0.6
+    property real userRodPosition: 0.6
+  property real userBoreHead: 0.08
+    property real userRodDiameter: 0.035
+  property real userPistonThickness: 0.025
+    property real userPistonRodLength: 0.2
 
- // Масштаб перевода метров в сцену Qt Quick3D (исторически миллиметры)
- property real sceneScaleFactor:1000.0
+    // Масштаб перевода метров в сцену Qt Quick3D (исторически миллиметры)
+    property real sceneScaleFactor: sceneDefaults && sceneDefaults.scale_factor !== undefined ? Number(sceneDefaults.scale_factor) : 1000.0
 
- // Анимация рычагов (град)
- property real userAmplitude:8.0
- property real userFrequency:1.0
- property real userPhaseGlobal:0.0
- property real userPhaseFL:0.0
- property real userPhaseFR:0.0
- property real userPhaseRL:0.0
- property real userPhaseRR:0.0
+    // Анимация рычагов (град)
+    property real userAmplitude: animationDefaults && animationDefaults.amplitude !== undefined ? Number(animationDefaults.amplitude) : 8.0
+    property real userFrequency: animationDefaults && animationDefaults.frequency !== undefined ? Number(animationDefaults.frequency) : 1.0
+property real userPhaseGlobal: animationDefaults && animationDefaults.phase_global !== undefined ? Number(animationDefaults.phase_global) : 0.0
+  property real userPhaseFL: animationDefaults && animationDefaults.phase_fl !== undefined ? Number(animationDefaults.phase_fl) : 0.0
+    property real userPhaseFR: animationDefaults && animationDefaults.phase_fr !== undefined ? Number(animationDefaults.phase_fr) : 0.0
+    property real userPhaseRL: animationDefaults && animationDefaults.phase_rl !== undefined ? Number(animationDefaults.phase_rl) : 0.0
+    property real userPhaseRR: animationDefaults && animationDefaults.phase_rr !== undefined ? Number(animationDefaults.phase_rr) : 0.0
 
- // Данные симуляции в СИ
- property real flAngleRad:0.0
- property real frAngleRad:0.0
- property real rlAngleRad:0.0
- property real rrAngleRad:0.0
- property real fl_angle: flAngleRad *180 / Math.PI
- property real fr_angle: frAngleRad *180 / Math.PI
- property real rl_angle: rlAngleRad *180 / Math.PI
- property real rr_angle: rrAngleRad *180 / Math.PI
- property real frameHeave:0.0
- property real frameRollRad:0.0
- property real framePitchRad:0.0
- property real frameRollDeg: frameRollRad *180 / Math.PI
- property real framePitchDeg: framePitchRad *180 / Math.PI
- property var pistonPositions: ({ fl:0.0, fr:0.0, rl:0.0, rr:0.0 })
- property var linePressures: ({})
- property real tankPressure:0.0
+    // Данные симуляции в СИ
+    property real flAngleRad: 0.0
+    property real frAngleRad: 0.0
+    property real rlAngleRad: 0.0
+ property real rrAngleRad: 0.0
+  property real fl_angle: flAngleRad * 180 / Math.PI
+    property real fr_angle: frAngleRad * 180 / Math.PI
+    property real rl_angle: rlAngleRad * 180 / Math.PI
+    property real rr_angle: rrAngleRad * 180 / Math.PI
+    property real frameHeave: 0.0
+    property real frameRollRad: 0.0
+    property real framePitchRad: 0.0
+    property real frameRollDeg: frameRollRad * 180 / Math.PI
+    property real framePitchDeg: framePitchRad * 180 / Math.PI
+    property var pistonPositions: ({ fl: 0.0, fr: 0.0, rl: 0.0, rr: 0.0 })
+    property var linePressures: ({})
+ property real tankPressure: 0.0
 
- // -------- Материалы/вид --------
- property color defaultClearColor: "#1a1a2e"
- property color modelBaseColor: "#9ea4ab"
- property real modelRoughness:0.35
- property real modelMetalness:0.9
+  // -------- Материалы/вид --------
+    property color defaultClearColor: sceneDefaults && sceneDefaults.default_clear_color ? sceneDefaults.default_clear_color : "#1a1a2e"
+    property color modelBaseColor: sceneDefaults && sceneDefaults.model_base_color ? sceneDefaults.model_base_color : "#9ea4ab"
+ property real modelRoughness: sceneDefaults && sceneDefaults.model_roughness !== undefined ? Number(sceneDefaults.model_roughness) : 0.35
+    property real modelMetalness: sceneDefaults && sceneDefaults.model_metalness !== undefined ? Number(sceneDefaults.model_metalness) : 0.9
 
- // ---------------------------------------------
- // Утилиты
- // ---------------------------------------------
- function setIfExists(obj, prop, value) {
- try {
- if (obj && (prop in obj || typeof obj[prop] !== 'undefined')) {
- obj[prop] = value;
- }
+  onUserAmplitudeChanged: emitConfigChange("graphics.animation", { amplitude: Number(userAmplitude) })
+    onUserFrequencyChanged: emitConfigChange("graphics.animation", { frequency: Number(userFrequency) })
+    onUserPhaseGlobalChanged: emitConfigChange("graphics.animation", { phase_global: Number(userPhaseGlobal) })
+    onUserPhaseFLChanged: emitConfigChange("graphics.animation", { phase_fl: Number(userPhaseFL) })
+    onUserPhaseFRChanged: emitConfigChange("graphics.animation", { phase_fr: Number(userPhaseFR) })
+    onUserPhaseRLChanged: emitConfigChange("graphics.animation", { phase_rl: Number(userPhaseRL) })
+    onUserPhaseRRChanged: emitConfigChange("graphics.animation", { phase_rr: Number(userPhaseRR) })
+    onDefaultClearColorChanged: emitConfigChange("graphics.scene", { default_clear_color: String(defaultClearColor) })
+    onModelBaseColorChanged: emitConfigChange("graphics.scene", { model_base_color: String(modelBaseColor) })
+    onModelRoughnessChanged: emitConfigChange("graphics.scene", { model_roughness: Number(modelRoughness) })
+    onModelMetalnessChanged: emitConfigChange("graphics.scene", { model_metalness: Number(modelMetalness) })
+
+    // ---------------------------------------------
+  // Утилиты
+    // ---------------------------------------------
+    function setIfExists(obj, prop, value) {
+      try {
+     if (obj && (prop in obj || typeof obj[prop] !== 'undefined')) {
+         obj[prop] = value;
+            }
  } catch (e) {
- console.warn("setIfExists failed", prop, e);
- }
- }
+console.warn("setIfExists failed", prop, e);
+     }
+    }
 
- function clamp(value, minValue, maxValue) {
- if (typeof value !== 'number' || !isFinite(value))
- return minValue;
- return Math.max(minValue, Math.min(maxValue, value));
- }
+    function clamp(value, minValue, maxValue) {
+    if (typeof value !== 'number' || !isFinite(value))
+   return minValue;
+        return Math.max(minValue, Math.min(maxValue, value));
+    }
 
- function toSceneLength(meters) {
+    function toSceneLength(meters) {
  var numeric = Number(meters);
- if (!isFinite(numeric))
- return0;
- return numeric * sceneScaleFactor;
+        if (!isFinite(numeric))
+  return 0;
+return numeric * sceneScaleFactor;
+    }
+
+    function toSceneScale(meters) {
+      return toSceneLength(meters) / 100.0;
+    }
+
+    function normalizeLengthMeters(value) {
+        if (value === undefined || value === null)
+      return undefined;
+        var numeric = Number(value);
+    if (!isFinite(numeric))
+    return undefined;
+        if (Math.abs(numeric) > 10.0)
+      return numeric / 1000.0;
+      return numeric;
  }
 
- function toSceneScale(meters) {
- return toSceneLength(meters) /100.0;
- }
+  function emitConfigChange(category, payload) {
+        if (!feedbackReady)
+  return;
+  if (!window)
+    return;
+        try {
+            if (typeof window.isQmlFeedbackSuppressed === "function" && window.isQmlFeedbackSuppressed())
+         return;
+        } catch (err) {
+}
+ if (typeof window.applyQmlConfigChange === "function")
+   window.applyQmlConfigChange(category, payload);
+    }
 
- function normalizeLengthMeters(value) {
- if (value === undefined || value === null)
- return undefined;
- var numeric = Number(value);
- if (!isFinite(numeric))
- return undefined;
- if (Math.abs(numeric) >10.0)
- return numeric /1000.0;
- return numeric;
- }
+    function toSceneVector3(position) {
+        if (!position)
+   return null;
+      var x = position.x !== undefined ? position.x : position[0];
+        var y = position.y !== undefined ? position.y : position[1];
+    var z = position.z !== undefined ? position.z : position[2];
+        if (x === undefined || y === undefined || z === undefined)
+   return null;
+        return Qt.vector3d(
+     toSceneLength(Number(x)),
+            toSceneLength(Number(y)),
+  toSceneLength(Number(z))
+        );
+    }
 
- function toSceneVector3(position) {
- if (!position)
- return null;
- var x = position.x !== undefined ? position.x : position[0];
- var y = position.y !== undefined ? position.y : position[1];
- var z = position.z !== undefined ? position.z : position[2];
- if (x === undefined || y === undefined || z === undefined)
- return null;
- return Qt.vector3d(
- toSceneLength(Number(x)),
- toSceneLength(Number(y)),
- toSceneLength(Number(z))
- );
- }
-
- // ---------------------------------------------
- // Применение батч-обновлений из Python
- // ---------------------------------------------
- onPendingPythonUpdatesChanged: {
+    // ---------------------------------------------
+    // Применение батч-обновлений из Python
+    // ---------------------------------------------
+    onPendingPythonUpdatesChanged: {
  if (!pendingPythonUpdates)
  return;
  try {
@@ -533,17 +562,18 @@ Item {
 
  // Принудительное первичное применение категорий (без данных)
  Component.onCompleted: {
- applyBatchedUpdates({
- geometry: true,
- camera: true,
- lighting: true,
- environment: { backgroundColor: defaultClearColor },
- quality: true,
- materials: { baseColor: modelBaseColor, roughness: modelRoughness, metalness: modelMetalness },
+        applyBatchedUpdates({
+   geometry: true,
+         camera: true,
+         lighting: true,
+     environment: { backgroundColor: defaultClearColor },
+    quality: true,
+       materials: { baseColor: modelBaseColor, roughness: modelRoughness, metalness: modelMetalness },
  effects: true,
- animation: { isRunning: isRunning, amplitude: userAmplitude, frequency: userFrequency },
- threeD: true,
- render: true,
- });
- }
+            animation: { isRunning: isRunning, amplitude: userAmplitude, frequency: userFrequency },
+threeD: true,
+         render: true,
+        });
+  feedbackReady = true;
+    }
 }

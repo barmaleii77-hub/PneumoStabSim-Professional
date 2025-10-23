@@ -53,6 +53,7 @@ class EnvironmentSetup:
         self.python_executable = self._find_python()
         self.platform = platform.system()
         self.qt_environment = _detect_qt_environment()
+        self.python_version = self._detect_python_version()
 
         os.environ.update(self.qt_environment)
 
@@ -60,6 +61,10 @@ class EnvironmentSetup:
         print("=" * 60)
         print(f"📁 Корневая папка: {self.project_root}")
         print(f"🐍 Python executable: {self.python_executable}")
+        print(
+            "🐍 Обнаруженная версия Python: "
+            + ".".join(str(part) for part in self.python_version)
+        )
         print(f"💻 Платформа: {self.platform}")
         print("🔧 Qt окружение:")
         for key, value in self.qt_environment.items():
@@ -67,11 +72,15 @@ class EnvironmentSetup:
         print("=" * 60)
 
     def _find_python(self) -> List[str]:
-        """Находит предпочтительный интерпретатор Python 3.13."""
+        """Находит предпочтительный интерпретатор Python3.13 (fallback 3.12/3.11)."""
 
         python_candidates: List[List[str]] = [
             ["py", "-3.13"],
             ["python3.13"],
+            ["py", "-3.12"],
+            ["python3.12"],
+            ["py", "-3.11"],
+            ["python3.11"],
             ["python3"],
             ["python"],
         ]
@@ -90,8 +99,25 @@ class EnvironmentSetup:
             except FileNotFoundError:
                 continue
 
-        print("❌ Python 3.13 не найден!")
+        print("❌ Не удалось найти поддерживаемую версию Python (3.11–3.13)!")
         sys.exit(1)
+
+    def _detect_python_version(self) -> tuple[int, int, int]:
+        try:
+            result = subprocess.run(
+                self.python_executable
+                + [
+                    "-c",
+                    "import sys; print('.'.join(map(str, sys.version_info[:3])))",
+                ],
+                capture_output=True,
+                text=True,
+                check=True,
+            )
+            version_parts = tuple(int(part) for part in result.stdout.strip().split("."))
+            return version_parts  # type: ignore[return-value]
+        except Exception:
+            return sys.version_info[:3]
 
     def check_python_version(self):
         """Проверяет версию Python"""
@@ -108,12 +134,19 @@ class EnvironmentSetup:
             version_parts = version_str.split()[1].split(".")
             major, minor = int(version_parts[0]), int(version_parts[1])
 
-            if major != 3 or minor != 13:
-                print("❌ Требуется Python 3.13.x!")
-                print("📝 Установите актуальную версию Python 3.13 и повторите настройку")
+            if major != 3 or minor not in {11, 12, 13}:
+                print("❌ Требуется Python3.11–3.13!")
+                print("📝 Установите поддерживаемую версию Python и повторите настройку")
                 return False
 
-            print("✅ Оптимальная версия Python обнаружена")
+            if minor == 13:
+                print("✅ Обнаружена рекомендуемая версия Python3.13")
+            else:
+                print(
+                    "⚠️ Обнаружена поддерживаемая версия Python3."
+                    + str(minor)
+                    + ". Рекомендуем обновиться до 3.13 для основной конфигурации."
+                )
 
             return True
 
@@ -172,6 +205,8 @@ class EnvironmentSetup:
                 "install",
                 "-r",
                 str(requirements_file),
+                "-c",
+                str(self.project_root / "requirements-compatible.txt"),
             ]
             result = subprocess.run(cmd, check=True, capture_output=True, text=True)
 
@@ -179,7 +214,14 @@ class EnvironmentSetup:
 
             # Показываем установленные пакеты
             print("\n📋 Основные установленные пакеты:")
-            key_packages = ["PySide6", "numpy", "scipy", "matplotlib", "pytest"]
+            key_packages = [
+                "PySide6",
+                "PySide6-QtQuick3D",
+                "numpy",
+                "scipy",
+                "PyOpenGL",
+                "pytest",
+            ]
 
             for package in key_packages:
                 try:
@@ -204,7 +246,7 @@ class EnvironmentSetup:
                             print(f"  ✅ {package}: {version}")
                     else:
                         print(f"  ❌ {package}: не установлен")
-                except:
+                except Exception:
                     print(f"  ❓ {package}: ошибка проверки")
 
             return True
@@ -294,51 +336,6 @@ COPILOT_LANGUAGE=ru
             except subprocess.CalledProcessError:
                 print(f"  ❌ {display_name}")
 
-        # Тест 2: Запуск диагностики
-        print("\n🔍 Тестирование диагностических скриптов:")
-
-        # Тест qml_diagnostic.py
-        qml_diag = self.project_root / "qml_diagnostic.py"
-        if qml_diag.exists():
-            try:
-                result = subprocess.run(
-                    self.python_executable + [str(qml_diag)],
-                    capture_output=True,
-                    text=True,
-                    timeout=10,
-                )
-                if result.returncode == 0:
-                    print("  ✅ QML диагностика")
-                else:
-                    print("  ⚠️  QML диагностика (предупреждения)")
-            except Exception as e:
-                print(f"  ❌ QML диагностика: {e}")
-
-        # Тест 3: Простой тест приложения
-        print("\n🚀 Тестирование запуска приложения:")
-        app_file = self.project_root / "app.py"
-        if app_file.exists():
-            try:
-                # Запускаем в тестовом режиме
-                result = subprocess.run(
-                    self.python_executable + [str(app_file), "--test-mode"],
-                    capture_output=True,
-                    text=True,
-                    timeout=30,
-                )
-                if result.returncode == 0:
-                    print("  ✅ Приложение запускается корректно")
-                else:
-                    print("  ⚠️  Приложение запустилось с предупреждениями")
-                    if result.stderr:
-                        print(f"      Детали: {result.stderr[:200]}...")
-            except subprocess.TimeoutExpired:
-                print(
-                    "  ⚠️  Приложение запустилось (timeout - это нормально для тестового режима) "
-                )
-            except Exception as e:
-                print(f"  ❌ Ошибка запуска приложения: {e}")
-
         # Результат тестирования
         print("\n📊 РЕЗУЛЬТАТЫ ТЕСТИРОВАНИЯ:")
         print(f"  📦 Импорт модулей: {import_success}/{len(test_imports)}")
@@ -364,28 +361,13 @@ COPILOT_LANGUAGE=ru
 
         print("\n🧪 Команды для тестирования:")
         print(f"  {executable} -m pytest tests/ -v  # Запуск всех тестов")
-        print(f"  {executable} quick_test.py  # Быстрый тест")
-        print(f"  {executable} qml_diagnostic.py     # QML диагностика")
-
-        print("\n🔧 VS Code:")
-        print("  1. Откройте папку проекта в VS Code")
-        print(
-            "  2. Выберите интерпретатор Python (Ctrl+Shift+P > Python: Select Interpreter)"
-        )
-        print("  3. Используйте F5 для отладки или Ctrl+F5 для запуска")
-
-        print("\n💡 PowerShell (в VS Code):")
-        print("  Профиль PowerShell автоматически загрузится с алиасами:")
-        print("  app, debug, test, pytest, health, info")
 
         if self.platform == "Windows":
             venv_activate = self.project_root / "venv" / "Scripts" / "activate.ps1"
             print("\n📦 Активация виртуального окружения:")
             print(f"  {venv_activate}")
 
-        print("\n🎯 ВАЖНО: Используется ТОЛЬКО main_optimized.qml")
-        print("  ✅ Дублирование примитивов исправлено")
-        print("  ✅ Оптимизированная кинематика v4.2")
+        print("\n📚 Подробнее о профилях окружения: docs/environments.md")
 
     def run_setup(self):
         """Запускает полную настройку окружения"""
