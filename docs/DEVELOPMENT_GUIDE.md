@@ -66,7 +66,7 @@ python -c "from PySide6.QtQuick3D import QQuick3DGeometry; print('OK')"
 
 ---
 
-## ??? Project Structure Deep Dive
+## ?? Project Structure Deep Dive
 
 ### **Source Code Organization**
 
@@ -209,6 +209,15 @@ property real pistonPos: calculatePistonPosition()
 property vector3d correct: Qt.vector3d(1.0, 2.0, 3.0)
 // NOT: property var wrong: [1.0, 2.0, 3.0]
 ```
+
+## Python ↔ QML Binding Review Checklist
+
+- [ ] **Контексты:** новые `context.setContextProperty` добавлены до `setSource`, отражены в `docs/PYTHON_QML_API.md` и сопровождаются проверкой в QML. 【F:src/ui/main_window/ui_setup.py†L94-L144】【F:docs/PYTHON_QML_API.md†L11-L52】
+- [ ] **Карта обновлений:** категории и методы синхронизированы между `QMLBridge.QML_UPDATE_METHODS` и QML (`apply*Updates`). 【F:src/ui/main_window/qml_bridge.py†L60-L105】【F:assets/qml/main.qml†L90-L166】
+- [ ] **Batched payload:** `applyBatchedUpdates` умеет обрабатывать новые ключи, а `_prepare_for_qml` корректно сериализует Python-структуры. 【F:assets/qml/main.qml†L18-L166】【F:src/ui/main_window/qml_bridge.py†L279-L321】
+- [ ] **ACK и логирование:** `SignalsRouter` подключает QML-сигналы, `QMLBridge.handle_qml_ack` и `EventLogger` обновлены, если менялась структура ответов. 【F:src/ui/main_window/signals_router.py†L215-L233】【F:src/ui/main_window/qml_bridge.py†L360-L434】
+- [ ] **Симуляция:** изменения в `StateSnapshot` отражены в `_snapshot_to_payload` и QML-обработчиках (`apply3DUpdates`/`applySimulationUpdates`). 【F:src/ui/main_window/qml_bridge.py†L195-L279】【F:assets/qml/main.qml†L90-L166】
+- [ ] **Документация:** разделы `docs/PYTHON_QML_API.md` и `docs/python_qml_bridge.md` обновлены описанием новых точек привязки. 【F:docs/PYTHON_QML_API.md†L1-L121】【F:docs/python_qml_bridge.md†L1-L84】
 
 ---
 
