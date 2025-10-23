@@ -9,10 +9,15 @@ import os
 import platform
 import subprocess
 import sys
+import hashlib
+import shutil
+import argparse
+import glob
+import textwrap
 from functools import lru_cache
 from pathlib import Path
-from typing import Dict, List
-
+from typing import Dict, List, Optional
+from PySide6 import QtCore  # type: ignore
 
 QT_ENV_DEFAULTS: Dict[str, str] = {
     "QT_QPA_PLATFORM": "offscreen",
@@ -20,6 +25,14 @@ QT_ENV_DEFAULTS: Dict[str, str] = {
     "QT_PLUGIN_PATH": "",
     "QML2_IMPORT_PATH": "",
 }
+
+DEFAULT_SOURCES = [
+    "https://download.qt.io/official_releases/qt/5.15/5.15.2/",
+    "https://download.qt.io/archive/qt/5.15/5.15.2/",
+    "https://download.qt.io/official_releases/qt/6.2/6.2.4/",
+    "https://download.qt.io/archive/qt/6.2/6.2.4/",
+]
+QT_SOURCES_DIR = Path.home() / "qt_sources"
 
 
 @lru_cache(maxsize=1)
@@ -45,31 +58,45 @@ def _detect_qt_environment() -> Dict[str, str]:
     return environment
 
 
+class Logger:
+    """Простой логгер для вывода сообщений с таймстемпом"""
+
+    def __init__(self, prefix: str = ""):
+        self.prefix = prefix
+
+    def log(self, message: str):
+        timestamp = QtCore.QDateTime.currentDateTime().toString("yyyy-MM-dd hh:mm:ss")
+        print(f"{timestamp} {self.prefix}{message}")
+
+
 class EnvironmentSetup:
     """Класс для настройки окружения разработки"""
 
-    def __init__(self):
+    def __init__(self, qt_sdk_version: Optional[str] = None):
         self.project_root = Path(__file__).parent
         self.python_executable = self._find_python()
         self.platform = platform.system()
         self.qt_environment = _detect_qt_environment()
         self.python_version = self._detect_python_version()
+        self.qt_sdk_version = qt_sdk_version
 
         os.environ.update(self.qt_environment)
 
-        print("🚀 ИНИЦИАЛИЗАЦИЯ ОКРУЖЕНИЯ PNEUMOSTABSIM-PROFESSIONAL")
-        print("=" * 60)
-        print(f"📁 Корневая папка: {self.project_root}")
-        print(f"🐍 Python executable: {self.python_executable}")
-        print(
-            "🐍 Обнаруженная версия Python: "
+        self.logger = Logger("[Setup] ")
+
+        self.logger.log("ИНИЦИАЛИЗАЦИЯ ОКРУЖЕНИЯ PNEUMOSTABSIM-PROFESSIONAL")
+        self.logger.log("=" * 60)
+        self.logger.log(f"Корневая папка: {self.project_root}")
+        self.logger.log(f"Python executable: {self.python_executable}")
+        self.logger.log(
+            "Обнаруженная версия Python: "
             + ".".join(str(part) for part in self.python_version)
         )
-        print(f"💻 Платформа: {self.platform}")
-        print("🔧 Qt окружение:")
+        self.logger.log(f"Платформа: {self.platform}")
+        self.logger.log("Qt окружение:")
         for key, value in self.qt_environment.items():
-            print(f" • {key}={value}")
-        print("=" * 60)
+            self.logger.log(f" • {key}={value}")
+        self.logger.log("=" * 60)
 
     def _find_python(self) -> List[str]:
         """Находит предпочтительный интерпретатор Python3.13 (fallback 3.12/3.11)."""
@@ -92,14 +119,14 @@ class EnvironmentSetup:
                 )
                 if result.returncode == 0:
                     cmd_display = " ".join(candidate)
-                    print(
+                    self.logger.log(
                         f"✅ Найден Python: {cmd_display} ({result.stdout.strip()})"
                     )
                     return candidate
             except FileNotFoundError:
                 continue
 
-        print("❌ Не удалось найти поддерживаемую версию Python (3.11–3.13)!")
+        self.logger.log("❌ Не удалось найти поддерживаемую версию Python (3.11–3.13)!")
         sys.exit(1)
 
     def _detect_python_version(self) -> tuple[int, int, int]:
@@ -128,21 +155,21 @@ class EnvironmentSetup:
                 text=True,
             )
             version_str = result.stdout.strip()
-            print(f"🐍 Проверка версии Python: {version_str}")
+            self.logger.log(f"Проверка версии Python: {version_str}")
 
             # Извлекаем номер версии
             version_parts = version_str.split()[1].split(".")
             major, minor = int(version_parts[0]), int(version_parts[1])
 
             if major != 3 or minor not in {11, 12, 13}:
-                print("❌ Требуется Python3.11–3.13!")
-                print("📝 Установите поддерживаемую версию Python и повторите настройку")
+                self.logger.log("❌ Требуется Python3.11–3.13!")
+                self.logger.log("📝 Установите поддерживаемую версию Python и повторите настройку")
                 return False
 
             if minor == 13:
-                print("✅ Обнаружена рекомендуемая версия Python3.13")
+                self.logger.log("✅ Обнаружена рекомендуемая версия Python3.13")
             else:
-                print(
+                self.logger.log(
                     "⚠️ Обнаружена поддерживаемая версия Python3."
                     + str(minor)
                     + ". Рекомендуем обновиться до 3.13 для основной конфигурации."
@@ -151,7 +178,7 @@ class EnvironmentSetup:
             return True
 
         except Exception as e:
-            print(f"❌ Ошибка проверки версии Python: {e}")
+            self.logger.log(f"❌ Ошибка проверки версии Python: {e}")
             return False
 
     def setup_virtual_environment(self):
@@ -159,16 +186,16 @@ class EnvironmentSetup:
         venv_path = self.project_root / "venv"
 
         if venv_path.exists():
-            print(f"📦 Виртуальное окружение уже существует: {venv_path}")
+            self.logger.log(f"📦 Виртуальное окружение уже существует: {venv_path}")
             return True
 
-        print("📦 Создание виртуального окружения...")
+        self.logger.log("📦 Создание виртуального окружения...")
         try:
             subprocess.run(
                 self.python_executable + ["-m", "venv", str(venv_path)],
                 check=True,
             )
-            print("✅ Виртуальное окружение создано успешно")
+            self.logger.log("✅ Виртуальное окружение создано успешно")
 
             # Получаем путь к Python в виртуальном окружении
             if self.platform == "Windows":
@@ -178,13 +205,13 @@ class EnvironmentSetup:
                 venv_python = venv_path / "bin" / "python"
                 activate_script = venv_path / "bin" / "activate"
 
-            print(f"🔧 Python в venv: {venv_python}")
-            print(f"📜 Скрипт активации: {activate_script}")
+            self.logger.log(f"🔧 Python в venv: {venv_python}")
+            self.logger.log(f"📜 Скрипт активации: {activate_script}")
 
             return True
 
         except subprocess.CalledProcessError as e:
-            print(f"❌ Ошибка создания виртуального окружения: {e}")
+            self.logger.log(f"❌ Ошибка создания виртуального окружения: {e}")
             return False
 
     def install_dependencies(self):
@@ -192,11 +219,16 @@ class EnvironmentSetup:
         requirements_file = self.project_root / "requirements.txt"
 
         if not requirements_file.exists():
-            print("⚠️  Файл requirements.txt не найден")
+            self.logger.log("⚠️  Файл requirements.txt не найден")
             return False
 
-        print("📦 Установка зависимостей из requirements.txt...")
+        self.logger.log("📦 Установка зависимостей из requirements.txt...")
         try:
+            # Проверяем хеши файлов зависимостей
+            if not self._verify_dependencies_hashes(requirements_file):
+                self.logger.log("⚠️  Ошибки проверки целостности зависимостей!")
+                return False
+
             # Используем pip для установки зависимостей
             cmd = [
                 *self.python_executable,
@@ -210,56 +242,143 @@ class EnvironmentSetup:
             ]
             result = subprocess.run(cmd, check=True, capture_output=True, text=True)
 
-            print("✅ Зависимости установлены успешно")
+            self.logger.log("✅ Зависимости установлены успешно")
 
             # Показываем установленные пакеты
-            print("\n📋 Основные установленные пакеты:")
-            key_packages = [
-                "PySide6",
-                "PySide6-QtQuick3D",
-                "numpy",
-                "scipy",
-                "PyOpenGL",
-                "pytest",
-            ]
-
-            for package in key_packages:
-                try:
-                    check_cmd = [
-                        *self.python_executable,
-                        "-m",
-                        "pip",
-                        "show",
-                        package,
-                    ]
-                    check_result = subprocess.run(
-                        check_cmd, capture_output=True, text=True
-                    )
-                    if check_result.returncode == 0:
-                        lines = check_result.stdout.split("\n")
-                        version_line = next(
-                            (line for line in lines if line.startswith("Version:")),
-                            None,
-                        )
-                        if version_line:
-                            version = version_line.split(": ")[1]
-                            print(f"  ✅ {package}: {version}")
-                    else:
-                        print(f"  ❌ {package}: не установлен")
-                except Exception:
-                    print(f"  ❓ {package}: ошибка проверки")
+            self._show_installed_packages()
 
             return True
 
         except subprocess.CalledProcessError as e:
-            print(f"❌ Ошибка установки зависимостей: {e}")
+            self.logger.log(f"❌ Ошибка установки зависимостей: {e}")
             if e.stderr:
-                print(f"Детали ошибки: {e.stderr}")
+                self.logger.log(f"Детали ошибки: {e.stderr}")
             return False
+
+    def _verify_dependencies_hashes(self, requirements_file: Path) -> bool:
+        """Проверяет хеши файлов зависимостей для целостности"""
+        self.logger.log("🔍 Проверка целостности файлов зависимостей...")
+        try:
+            # Получаем список всех файлов в requirements.txt
+            with open(requirements_file, "r", encoding="utf-8") as f:
+                lines = f.readlines()
+
+            # Фильтруем только строки с зависимостями (без комментариев и пустых строк)
+            dependencies = [
+                line.split("#")[0].strip() for line in lines if line.strip() and not line.startswith("#")
+            ]
+
+            all_files_ok = True
+            for dep in dependencies:
+                if "@" in dep:
+                    # Обрабатываем зависимости с указанием URL-адреса (например, Git)
+                    package_name = dep.split("@")[0]
+                    url = dep.split("@")[1]
+                    if not self._check_url_hash(package_name, url):
+                        all_files_ok = False
+                else:
+                    # Обрабатываем обычные зависимости
+                    package_name = dep
+                    if not self._check_package_hash(package_name):
+                        all_files_ok = False
+
+            return all_files_ok
+        except Exception as e:
+            self.logger.log(f"❌ Ошибка проверки хешей зависимостей: {e}")
+            return False
+
+    def _check_url_hash(self, package_name: str, url: str) -> bool:
+        """Проверяет хеш зависимости, установленной по URL"""
+        try:
+            # Скачиваем файл и вычисляем его хеш
+            response = subprocess.run(
+                ["curl", "-sSL", url],
+                capture_output=True,
+                text=True,
+                check=True,
+            )
+            file_hash = hashlib.sha256(response.stdout.encode()).hexdigest()
+
+            # Сравниваем с хешем в requirements.txt
+            expected_hash = url.split("#")[-1]
+            if file_hash != expected_hash:
+                self.logger.log(f"❌ Хеш не совпадает для {package_name} (URL): ожидаемый {expected_hash}, найденный {file_hash}")
+                return False
+            else:
+                self.logger.log(f"✅ Хеш верифицирован для {package_name} (URL)")
+                return True
+        except Exception as e:
+            self.logger.log(f"❌ Ошибка проверки хеша для {package_name} (URL): {e}")
+            return False
+
+    def _check_package_hash(self, package_name: str) -> bool:
+        """Проверяет хеш установленного пакета"""
+        try:
+            # Получаем информацию о пакете
+            result = subprocess.run(
+                [*self.python_executable, "-m", "pip", "show", package_name],
+                capture_output=True,
+                text=True,
+                check=True,
+            )
+            # Ищем строку с хешем (SHA256)
+            for line in result.stdout.splitlines():
+                if line.startswith("Location:"):
+                    package_dir = line.split(":", 1)[1].strip()
+                    # Проверяем наличие файла .whl
+                    wheel_files = list(Path(package_dir).glob(f"*.whl"))
+                    if wheel_files:
+                        # Вычисляем хеш первого найденного файла .whl
+                        file_hash = hashlib.sha256(wheel_files[0].read_bytes()).hexdigest()
+                        self.logger.log(f"📦 Найден пакет {package_name}, хеш={file_hash}")
+                        return True
+            self.logger.log(f"⚠️ Пакет {package_name} не найден или не имеет .whl файла")
+            return False
+        except Exception as e:
+            self.logger.log(f"❌ Ошибка проверки хеша для {package_name}: {e}")
+            return False
+
+    def _show_installed_packages(self):
+        """Показывает установленные пакеты после установки зависимостей"""
+        self.logger.log("\n📋 Основные установленные пакеты:")
+        key_packages = [
+            "PySide6",
+            "PySide6-QtQuick3D",
+            "numpy",
+            "scipy",
+            "PyOpenGL",
+            "pytest",
+        ]
+
+        for package in key_packages:
+            try:
+                check_cmd = [
+                    *self.python_executable,
+                    "-m",
+                    "pip",
+                    "show",
+                    package,
+                ]
+                check_result = subprocess.run(
+                    check_cmd, capture_output=True, text=True
+                )
+                if check_result.returncode == 0:
+                    lines = check_result.stdout.split("\n")
+                    version_line = next(
+                        (line for line in lines if line.startswith("Version:")),
+                        None,
+                    )
+                    if version_line:
+                        version = version_line.split(": ")[1]
+                        self.logger.log(f"  ✅ {package}: {version}")
+                else:
+                    self.logger.log(f"  ❌ {package}: не установлен")
+            except Exception:
+                self.logger.log(f"  ❓ {package}: ошибка проверки")
 
     def setup_paths(self):
         """Настраивает переменные окружения и пути"""
-        print("🔧 Настройка путей проекта...")
+        self.logger.log("🔧 Настройка путей проекта...")
 
         # Обновляем .env файл с актуальными путями
         env_file = self.project_root / ".env"
@@ -293,9 +412,9 @@ COPILOT_LANGUAGE=ru
         try:
             with open(env_file, "w", encoding="utf-8") as f:
                 f.write(env_content)
-            print(f"✅ Файл .env обновлен: {env_file}")
+            self.logger.log(f"✅ Файл .env обновлен: {env_file}")
         except Exception as e:
-            print(f"❌ Ошибка обновления .env: {e}")
+            self.logger.log(f"❌ Ошибка обновления .env: {e}")
 
         # Создаем необходимые директории
         directories = ["logs", "reports", "temp", ".cache"]
@@ -303,14 +422,14 @@ COPILOT_LANGUAGE=ru
             dir_path = self.project_root / dir_name
             if not dir_path.exists():
                 dir_path.mkdir(exist_ok=True)
-                print(f"📁 Создана директория: {dir_path}")
+                self.logger.log(f"📁 Создана директория: {dir_path}")
 
         return True
 
     def test_installation(self):
         """Тестирует установку и конфигурацию"""
-        print("\n🧪 ТЕСТИРОВАНИЕ УСТАНОВКИ")
-        print("=" * 40)
+        self.logger.log("\n🧪 ТЕСТИРОВАНИЕ УСТАНОВКИ")
+        self.logger.log("=" * 40)
 
         # Тест 1: Импорт основных модулей
         test_imports = [
@@ -322,7 +441,7 @@ COPILOT_LANGUAGE=ru
             ("matplotlib", "Matplotlib"),
         ]
 
-        print("📦 Тестирование импорта модулей:")
+        self.logger.log("📦 Тестирование импорта модулей:")
         import_success = 0
         for module_name, display_name in test_imports:
             try:
@@ -331,43 +450,113 @@ COPILOT_LANGUAGE=ru
                     check=True,
                     capture_output=True,
                 )
-                print(f"  ✅ {display_name}")
+                self.logger.log(f"  ✅ {display_name}")
                 import_success += 1
             except subprocess.CalledProcessError:
-                print(f"  ❌ {display_name}")
+                self.logger.log(f"  ❌ {display_name}")
 
         # Результат тестирования
-        print("\n📊 РЕЗУЛЬТАТЫ ТЕСТИРОВАНИЯ:")
-        print(f"  📦 Импорт модулей: {import_success}/{len(test_imports)}")
+        self.logger.log("\n📊 РЕЗУЛЬТАТЫ ТЕСТИРОВАНИЯ:")
+        self.logger.log(f"  📦 Импорт модулей: {import_success}/{len(test_imports)}")
 
         if import_success >= len(test_imports) * 0.8:
-            print("✅ Установка прошла успешно! Окружение готово к работе.")
+            self.logger.log("✅ Установка прошла успешно! Окружение готово к работе.")
             return True
         else:
-            print("⚠️  Установка завершена с предупреждениями. Проверьте ошибки выше.")
+            self.logger.log("⚠️  Установка завершена с предупреждениями. Проверьте ошибки выше.")
             return False
 
     def print_usage_info(self):
         """Выводит информацию об использовании"""
-        print("\n🎯 ИНСТРУКЦИИ ПО ИСПОЛЬЗОВАНИЮ")
-        print("=" * 50)
+        self.logger.log("\n🎯 ИНСТРУКЦИИ ПО ИСПОЛЬЗОВАНИЮ")
+        self.logger.log("=" * 50)
 
-        print("📋 Основные команды для запуска:")
+        self.logger.log("📋 Основные команды для запуска:")
         executable = " ".join(self.python_executable)
-        print(f"  {executable} app.py        # Основной запуск")
-        print(f"  {executable} app.py --no-block     # Фоновый режим")
-        print(f"  {executable} app.py --test-mode    # Тестовый режим")
-        print(f"  {executable} app.py --debug        # Режим отладки")
+        self.logger.log(f"  {executable} app.py        # Основной запуск")
+        self.logger.log(f"  {executable} app.py --no-block     # Фоновый режим")
+        self.logger.log(f"  {executable} app.py --test-mode    # Тестовый режим")
+        self.logger.log(f"  {executable} app.py --debug        # Режим отладки")
 
-        print("\n🧪 Команды для тестирования:")
-        print(f"  {executable} -m pytest tests/ -v  # Запуск всех тестов")
+        self.logger.log("\n🧪 Команды для тестирования:")
+        self.logger.log(f"  {executable} -m pytest tests/ -v  # Запуск всех тестов")
 
         if self.platform == "Windows":
             venv_activate = self.project_root / "venv" / "Scripts" / "activate.ps1"
-            print("\n📦 Активация виртуального окружения:")
-            print(f"  {venv_activate}")
+            self.logger.log("\n📦 Активация виртуального окружения:")
+            self.logger.log(f"  {venv_activate}")
 
-        print("\n📚 Подробнее о профилях окружения: docs/environments.md")
+        self.logger.log("\n📚 Подробнее о профилях окружения: docs/environments.md")
+
+    def download_qt_sdk(self):
+        """Скачивает и устанавливает Qt SDK"""
+        if not self.qt_sdk_version:
+            self.logger.log("➕ Qt SDK не указана, пропуск загрузки.")
+            return True
+
+        # Устанавливаем необходимые зависимости для загрузки
+        self.logger.log("Установка зависимостей для загрузки Qt SDK...")
+        try:
+            if self.platform == "Windows":
+                arch = "win32" if platform.architecture()[0] == "32bit" else "win64"
+                url = f"https://download.qt.io/official_releases/qt/6.2/6.2.4/qt-installer-windows-{arch}.exe"
+                installer = "qt-installer.exe"
+            elif self.platform == "Linux":
+                url = "https://download.qt.io/official_releases/qt/6.2/6.2.4/qt-unified-linux-x64-online.run"
+                installer = "qt-installer.run"
+            else:
+                self.logger.log("❌ Поддержка установки Qt SDK доступна только для Windows и Linux")
+                return False
+
+            # Скачиваем установщик
+            response = subprocess.run(
+                ["curl", "-L", "-o", installer, url],
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+            if response.returncode != 0:
+                self.logger.log(f"❌ Ошибка скачивания Qt SDK: {response.stderr}")
+                return False
+
+            # Запускаем установщик
+            self.logger.log(f"📥 Запуск установщика Qt SDK: {installer}")
+            if self.platform == "Windows":
+                response = subprocess.run(
+                    ["cmd", "/c", installer, "--silent", "--skip-components", "qt.5.15.2.ansic", "--include-subdir"],
+                    check=True,
+                    capture_output=True,
+                    text=True,
+                )
+            else:
+                response = subprocess.run(
+                    [installer, "--silent", "--skip-components", "qt.5.15.2.ansic", "--include-subdir"],
+                    check=True,
+                    capture_output=True,
+                    text=True,
+                )
+
+            if response.returncode != 0:
+                self.logger.log(f"❌ Ошибка установки Qt SDK: {response.stderr}")
+                return False
+
+            self.logger.log("✅ Qt SDK установлена успешно")
+
+            return True
+        except Exception as e:
+            self.logger.log(f"❌ Ошибка установки Qt SDK: {e}")
+            return False
+        finally:
+            # Удаляем установщик после завершения
+            if Path(installer).exists():
+                self.logger.log(f"🗑️ Удаление установщика: {installer}")
+                try:
+                    if platform.system() == "Windows":
+                        subprocess.run(["cmd", "/c", "del", "/F", "/Q", installer], check=True)
+                    else:
+                        subprocess.run(["rm", "-f", installer], check=True)
+                except Exception as e:
+                    self.logger.log(f"⚠️ Ошибка удаления установщика: {e}")
 
     def run_setup(self):
         """Запускает полную настройку окружения"""
@@ -378,7 +567,7 @@ COPILOT_LANGUAGE=ru
 
             # Этап 2: Виртуальное окружение
             if not self.setup_virtual_environment():
-                print("⚠️  Продолжаем без виртуального окружения...")
+                self.logger.log("⚠️  Продолжаем без виртуального окружения...")
 
             # Этап 3: Установка зависимостей
             if not self.install_dependencies():
@@ -394,37 +583,91 @@ COPILOT_LANGUAGE=ru
             # Этап 6: Инструкции
             self.print_usage_info()
 
-            print("\n🎉 НАСТРОЙКА ОКРУЖЕНИЯ ЗАВЕРШЕНА!")
-            print("=" * 50)
+            self.logger.log("\n🎉 НАСТРОЙКА ОКРУЖЕНИЯ ЗАВЕРШЕНА!")
+            self.logger.log("=" * 50)
 
             if test_success:
-                print("✅ Все компоненты работают корректно")
-                print("🚀 Проект готов к разработке!")
+                self.logger.log("✅ Все компоненты работают корректно")
+                self.logger.log("🚀 Проект готов к разработке!")
             else:
-                print("⚠️  Настройка завершена с предупреждениями")
-                print("📝 Проверьте сообщения об ошибках выше")
+                self.logger.log("⚠️  Настройка завершена с предупреждениями")
+                self.logger.log("📝 Проверьте сообщения об ошибках выше")
 
             return test_success
 
         except KeyboardInterrupt:
-            print("\n⚠️  Настройка прервана пользователем")
+            self.logger.log("\n⚠️  Настройка прервана пользователем")
             return False
         except Exception as e:
-            print(f"\n❌ Критическая ошибка настройки: {e}")
+            self.logger.log(f"\n❌ Критическая ошибка настройки: {e}")
             import traceback
 
             traceback.print_exc()
             return False
 
 
+def parse_arguments():
+    parser = argparse.ArgumentParser(
+        description=textwrap.dedent(
+            """
+            PneumoStabSim-Professional Environment Setup Script
+            Скрипт для автоматической настройки окружения разработки
+
+            Примечание: Для успешного выполнения скрипта требуются права администратора/суперпользователя.
+            """
+        ),
+        formatter_class=argparse.TextWrapper,
+    )
+
+    parser.add_argument(
+        "--install-qt",
+        action="store_true",
+        help="Скачать и установить последнюю версию Qt SDK",
+    )
+    parser.add_argument(
+        "--qt-version",
+        type=str,
+        default=None,
+        help="Версия Qt SDK для установки (например, 6.2.4).",
+    )
+    parser.add_argument(
+        "--no-pip",
+        action="store_true",
+        help="Пропустить этап установки зависимостей с помощью pip",
+    )
+    parser.add_argument(
+        "--verbose",
+        action="store_true",
+        help="Подробный вывод информации о процессе установки",
+    )
+    parser.add_argument(
+        "--silent",
+        action="store_true",
+        help="Тихий режим, без дополнительного вывода",
+    )
+
+    return parser.parse_args()
+
+
 def main():
     """Главная функция"""
+    args = parse_arguments()
+
+    # Устанавливаем режимы вывода
+    if args.silent:
+        sys.stdout = open(os.devnull, "w")
+    elif not args.verbose:
+        sys.stdout = open(os.devnull, "w")
+
     print("🔧 PneumoStabSim-Professional Environment Setup")
     print("Скрипт автоматической настройки окружения разработки")
     print()
 
-    setup = EnvironmentSetup()
+    setup = EnvironmentSetup(qt_sdk_version=args.qt_version)
     success = setup.run_setup()
+
+    # Восстанавливаем стандартный вывод
+    sys.stdout = sys.__stdout__
 
     return 0 if success else 1
 
