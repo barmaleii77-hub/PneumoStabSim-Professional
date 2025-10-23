@@ -11,14 +11,16 @@ Unified Settings Manager
 """
 from __future__ import annotations
 
+import copy
+import importlib.util
 import json
 import logging
-from pathlib import Path
-from typing import Any, Dict, Optional, Tuple, cast, Iterable, List
-from datetime import datetime
-import copy
 import re
 from dataclasses import dataclass
+from datetime import datetime
+from pathlib import Path
+from types import ModuleType
+from typing import Any, Dict, Iterable, List, Optional, Tuple, cast
 
 from .qt_compat import QObject, Signal
 
@@ -31,6 +33,14 @@ except Exception:  # pragma: no cover - при ранней загрузке в 
 
     def get_signal_trace_service():  # type: ignore
         raise RuntimeError("SignalTraceService is not available")
+
+try:
+    from jsonschema import Draft202012Validator, ValidationError
+except Exception:  # pragma: no cover - библиотека может ставиться отдельно
+    Draft202012Validator = object  # type: ignore
+
+    class ValidationError(Exception):  # type: ignore
+        pass
 
 
 _MISSING = object()
@@ -126,10 +136,18 @@ class SettingsManager:
     }
     """
 
+    # Версия формата настроек приложения
+    SETTINGS_VERSION = "4.9.6"
+
+    # Совместимость со старой легковесной схемой внутри менеджера (оставляем для обратной совместимости)
     CURRENT_SCHEMA_VERSION = "1.0.0"
     _SCHEMA_MIGRATIONS: Tuple[Tuple[str, str], ...] = (
         ("1.0.0", "_migrate_to_1_0_0"),
     )
+
+    # Пути к схеме и миграциям
+    _SCHEMA_PATH = Path(__file__).resolve().parents[2] / "config" / "app_settings.schema.json"
+    _MIGRATIONS_PATH = Path(__file__).resolve().parents[2] / "config" / "migrations"
 
     # Canonical geometry keys exposed in meters for UI/visualization modules
     _GEOMETRY_KEY_ALIASES = {
@@ -343,6 +361,7 @@ class SettingsManager:
         self._defaults_snapshot: Dict[str, Any] = {}
         self._metadata: Dict[str, Any] = {}
         self._schema_version: str = self.CURRENT_SCHEMA_VERSION
+        self._schema_validator: Draft202012Validator | None = None  # type: ignore[assignment]
 
         # Diagnostics
         self._event_bus = get_settings_event_bus()
@@ -359,7 +378,7 @@ class SettingsManager:
     # Geometry helpers
     # ------------------------------------------------------------------
     def get_geometry_snapshot(self) -> Dict[str, float]:
-        """Return geometry configuration in meters with sensible defaults."""
+        """Вернуть снимок геометрии в метрах с безопасными дефолтами."""
 
         geometry_raw = self.get_category("geometry") or {}
         snapshot: Dict[str, float] = {}
@@ -616,7 +635,7 @@ class SettingsManager:
         return cast(Tuple[int, int, int], tuple(padded))
 
     def _apply_schema_migrations(self, data: Dict[str, Any]) -> bool:
-        """Применить миграции схемы к загруженному словарю настроек."""
+        """Применить миграции внутренней схемы (не путать с версией настроек приложения)."""
 
         raw_version = data.get("schemaVersion")
         if not isinstance(raw_version, str) or not raw_version.strip():
@@ -661,6 +680,149 @@ class SettingsManager:
         metadata.setdefault("schema_version", self.CURRENT_SCHEMA_VERSION)
         data["metadata"] = metadata
 
+    # ------------------------------
+    # Версионирование файла настроек
+    # ------------------------------
+    @staticmethod
+    def _version_key(version: str) -> tuple[int, ...]:
+        parts: List[int] = []
+        for part in str(version).split("."):
+            if part.isdigit():
+                parts.append(int(part))
+                continue
+            digits = "".join(ch for ch in part if ch.isdigit())
+            parts.append(int(digits) if digits else 0)
+        return tuple(parts)
+
+    @classmethod
+    def _compare_versions(cls, left: str, right: str) -> int:
+        left_key = cls._version_key(left)
+        right_key = cls._version_key(right)
+        if left_key < right_key:
+            return -1
+        if left_key > right_key:
+            return 1
+        return 0
+
+    def _discover_migrations(self) -> List[tuple[str, Path]]:
+        migrations: List[tuple[str, Path]] = []
+        path = self._MIGRATIONS_PATH
+        try:
+            if not path.exists():
+                return migrations
+        except Exception as exc:
+            self.logger.warning(f"Failed to inspect migrations directory: {exc}")
+            return migrations
+
+        for file in path.glob("*.py"):
+            if file.name.startswith("__"):
+                continue
+            version = file.stem.replace("_", ".")
+            migrations.append((version, file))
+
+        migrations.sort(key=lambda item: self._version_key(item[0]))
+        return migrations
+
+    def _load_migration_module(self, file_path: Path) -> ModuleType | None:
+        module_name = f"pss_settings_migration_{file_path.stem}"
+        try:
+            spec = importlib.util.spec_from_file_location(module_name, file_path)
+            if spec is None or spec.loader is None:
+                raise ImportError(f"Unable to resolve module spec for {file_path}")
+            module = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(module)  # type: ignore[union-attr]
+            return module
+        except Exception as exc:
+            self.logger.error(f"Failed to load migration module {file_path}: {exc}")
+            return None
+
+    def _apply_version_migrations(self, data: Dict[str, Any]) -> tuple[Dict[str, Any], bool]:
+        metadata = data.setdefault("metadata", {})
+        file_version = str(metadata.get("version") or "0.0.0")
+        target_version = self.SETTINGS_VERSION
+        comparison = self._compare_versions(file_version, target_version)
+
+        migrations = self._discover_migrations()
+        if not migrations:
+            if file_version != target_version:
+                metadata["version"] = target_version
+                return data, True
+            return data, False
+
+        changed = False
+
+        # Обновление (upgrade)
+        if comparison < 0:
+            for version, path in migrations:
+                if self._compare_versions(file_version, version) < 0 and self._compare_versions(
+                    version, target_version
+                ) <= 0:
+                    module = self._load_migration_module(path)
+                    if module is None or not hasattr(module, "upgrade"):
+                        continue
+                    result = module.upgrade(data)  # type: ignore[attr-defined]
+                    if result is not None:
+                        data = result
+                    metadata = data.setdefault("metadata", {})
+                    new_version = getattr(module, "TARGET_VERSION", version)
+                    metadata["version"] = new_version
+                    file_version = new_version
+                    changed = True
+                    if metadata.get("version") != target_version:
+                        metadata["version"] = target_version
+                        changed = True
+        # Откат (downgrade)
+        elif comparison > 0:
+            for version, path in reversed(migrations):
+                if self._compare_versions(target_version, version) < 0 and self._compare_versions(
+                    version, file_version
+                ) <= 0:
+                    module = self._load_migration_module(path)
+                    if module is None or not hasattr(module, "downgrade"):
+                        continue
+                    result = module.downgrade(data)  # type: ignore[attr-defined]
+                    if result is not None:
+                        data = result
+                    metadata = data.setdefault("metadata", {})
+                    new_version = getattr(module, "PREVIOUS_VERSION", version)
+                    metadata["version"] = new_version
+                    file_version = new_version
+                    changed = True
+                    if metadata.get("version") != target_version:
+                        metadata["version"] = target_version
+                        changed = True
+
+        return data, changed
+
+    # ------------------------------
+    # JSON Schema валидация
+    # ------------------------------
+    def _load_schema_validator(self) -> Draft202012Validator:  # type: ignore[override]
+        if getattr(self, "_schema_validator", None) is not None:
+            return self._schema_validator  # type: ignore[return-value]
+
+        if not self._SCHEMA_PATH.exists():
+            raise FileNotFoundError(
+                f"Settings schema not found: {self._SCHEMA_PATH}"
+            )
+
+        with open(self._SCHEMA_PATH, "r", encoding="utf-8") as schema_file:
+            schema_data = json.load(schema_file)
+
+        # noinspection PyTypeChecker
+        self._schema_validator = Draft202012Validator(schema_data)  # type: ignore[assignment]
+        return self._schema_validator  # type: ignore[return-value]
+
+    def _validate_schema(self, data: Dict[str, Any]) -> None:
+        try:
+            validator = self._load_schema_validator()
+            validator.validate(data)  # type: ignore[attr-defined]
+        except ValidationError as exc:  # type: ignore[misc]
+            path = " -> ".join(str(p) for p in getattr(exc, "path", []))
+            message = f"Settings schema validation failed at {path or '<root>'}: {getattr(exc, 'message', str(exc))}"
+            self.logger.error(message)
+            raise
+
     def load(self) -> bool:
         """
         Загрузить настройки из JSON файла
@@ -695,7 +857,16 @@ class SettingsManager:
                     data.get("defaults_snapshot", {})
                 )
 
+                # Версионные миграции и конверсия единиц
+                data, migration_changed = self._apply_version_migrations(data)
                 units_updated = self._maybe_upgrade_units(data)
+
+                # Валидация по JSON Schema (строгая)
+                try:
+                    self._validate_schema(data)
+                except Exception:
+                    # Ошибки схемы критичны — пробрасываем наверх
+                    raise
 
                 self._current = data["current"]
                 self._defaults_snapshot = data.get("defaults_snapshot", {})
@@ -710,11 +881,14 @@ class SettingsManager:
                 )
                 if defaults_missing:
                     self._defaults_snapshot = copy.deepcopy(self._current)
-                # Всегда синхронизируем метаданные и версию схемы
+
+                # Всегда синхронизируем метаданные и версии
                 self._metadata = data.get("metadata", {}) if isinstance(data, dict) else {}
                 self._schema_version = data.get("schemaVersion", self.CURRENT_SCHEMA_VERSION)
 
-                should_save = schema_migrated or units_updated or structure_updated or defaults_missing
+                should_save = (
+                    schema_migrated or migration_changed or units_updated or structure_updated or defaults_missing
+                )
                 if should_save:
                     try:
                         self.save()
@@ -725,22 +899,28 @@ class SettingsManager:
             else:
                 # Старая структура - мигрируем
                 migrated = self._migrate_keys(data)
-                self._current = migrated
-                self._ensure_graphics_sections(self._current)
-                self._defaults_snapshot = copy.deepcopy(self._current)
-                self._metadata = {
-                    "version": data.get("version", "4.9.5"),
-                    "last_modified": datetime.now().isoformat(),
+                payload = {
+                    "current": migrated,
+                    "defaults_snapshot": copy.deepcopy(migrated),
+                    "metadata": {
+                        "version": self.SETTINGS_VERSION,
+                        "last_modified": datetime.now().isoformat(),
+                    },
                 }
-                self._schema_version = self.CURRENT_SCHEMA_VERSION
-                self._maybe_upgrade_units(
-                    {
-                        "current": self._current,
-                        "defaults_snapshot": self._defaults_snapshot,
-                        "metadata": self._metadata,
-                    }
-                )
-                self.save()
+                payload, migration_changed = self._apply_version_migrations(payload)
+                units_updated = self._maybe_upgrade_units(payload)
+                self._validate_schema(payload)
+
+                self._current = payload["current"]
+                self._defaults_snapshot = payload["defaults_snapshot"]
+                self._metadata = payload["metadata"]
+
+                try:
+                    self.save()
+                except Exception as exc:
+                    self.logger.warning(
+                        f"Не удалось сохранить настройки после миграции структуры: {exc}"
+                    )
 
             # Диагностика наличия критичных секций
             mats_cnt = 0
@@ -782,6 +962,7 @@ class SettingsManager:
             if not isinstance(self._metadata, dict):
                 self._metadata = {}
             self._metadata["last_modified"] = datetime.now().isoformat()
+            self._metadata["version"] = self.SETTINGS_VERSION
             self._metadata.setdefault("schema_version", self._schema_version)
             self._schema_version = self.CURRENT_SCHEMA_VERSION
 
@@ -1070,10 +1251,11 @@ class SettingsManager:
         }
 
         self._defaults_snapshot = copy.deepcopy(self._current)
+        now_iso = datetime.now().isoformat()
         self._metadata = {
-            "version": "4.9.5",
-            "created": datetime.now().isoformat(),
-            "last_modified": datetime.now().isoformat(),
+            "version": self.SETTINGS_VERSION,
+            "created": now_iso,
+            "last_modified": now_iso,
         }
 
         # Создаем директорию если нужно

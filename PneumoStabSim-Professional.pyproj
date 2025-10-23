@@ -46,6 +46,8 @@
   <!-- Основные файлы проекта -->
   <ItemGroup>
     <Compile Include="app.py" />
+    <Compile Include="config\migrations\4_9_6.py" />
+    <Compile Include="config\migrations\__init__.py" />
     <Compile Include="fix_qml_bridge_indent.py" />
     <Compile Include="launch.py" />
     <Compile Include="quick_fix.py" />
@@ -347,6 +349,7 @@
   </ItemGroup>
   <!-- Папки -->
   <ItemGroup>
+    <Folder Include="config\migrations\" />
     <Folder Include="src\" />
     <Folder Include="src\pneumostabsim\" />
     <Folder Include="src\pneumostabsim\logging\" />
@@ -388,6 +391,8 @@
     <Folder Include=".github\" />
     <Folder Include=".vs\" />
     <Folder Include=".venv\" />
+    <Folder Include="tests\unit\" />
+    <Folder Include="tools\" />
   </ItemGroup>
   <!-- Интерпретаторы Python -->
   <ItemGroup>
