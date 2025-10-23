@@ -65,7 +65,7 @@ PneumoStabSim/
 **Modes Panel:**
 - **Amplitude**: 0-0.2m (lever swing)
 - **Frequency**: 0.1-10 Hz (oscillation speed)
-- **Phase**: 0-360° (timing offset)
+- **Phase**: 0-360Â° (timing offset)
 - **Per-Wheel Phase**: Individual corner control
 
 ---

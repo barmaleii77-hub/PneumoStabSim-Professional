@@ -1,139 +1,193 @@
 name: CI/CD Pipeline
 
 on:
- push:
- branches: [master, develop]
- pull_request:
- branches: [master, develop]
+  push:
+    branches: [master, develop]
+  pull_request:
+    branches: [master, develop]
 
 jobs:
- test:
- name: Test Suite
- runs-on: ${{ matrix.os }}
- strategy:
- fail-fast: false
- matrix:
- os: [windows-latest, ubuntu-22.04]
- python-version: ['3.12', '3.13']
- steps:
- - name: Checkout code
- uses: actions/checkout@v4
+  test:
+    name: Test Suite
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, ubuntu-22.04]
+        python-version: ['3.12', '3.13']
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
 
- - name: Set up Python
- uses: actions/setup-python@v5
- with:
- python-version: ${{ matrix.python-version }}
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
 
- - name: Install project and dependencies
- run: |
- python -m pip install --upgrade pip
- pip install .[dev]
- pip install "PySide6==6.10.*" "PySide6-Addons==6.10.*" "PySide6-Essentials==6.10.*"
+      - name: Install project and dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install .[dev]
+          pip install "PySide6==6.10.*" "PySide6-Addons==6.10.*" "PySide6-Essentials==6.10.*"
 
- - name: Configure Qt runtime paths
- shell: python
- run: |
- import os
- from pathlib import Path
+      - name: Configure Qt runtime paths
+        shell: python
+        run: |
+          import os
+          from pathlib import Path
 
- def write_env(key: str, value: str) -> None:
- if not value:
- return
- env_file = Path(os.environ["GITHUB_ENV"])
- with env_file.open("a", encoding="utf-8") as handle:
- handle.write(f"{key}={value}\n")
+          def write_env(key: str, value: str) -> None:
+              if not value:
+                  return
+              env_file = Path(os.environ["GITHUB_ENV"])
+              with env_file.open("a", encoding="utf-8") as handle:
+                  handle.write(f"{key}={value}\n")
 
- try:
- from PySide6.QtCore import QLibraryInfo, LibraryLocation
- except Exception as exc: # pragma: no cover - diagnostic output only
- print(f"Unable to configure Qt paths automatically: {exc}")
- else:
- write_env("QT_PLUGIN_PATH", QLibraryInfo.path(LibraryLocation.Plugins))
- write_env("QML2_IMPORT_PATH", QLibraryInfo.path(LibraryLocation.QmlImports))
+          try:
+              from PySide6.QtCore import QLibraryInfo, LibraryLocation
+          except Exception as exc:  # pragma: no cover - diagnostic output only
+              print(f"Unable to configure Qt paths automatically: {exc}")
+          else:
+              write_env("QT_PLUGIN_PATH", QLibraryInfo.path(LibraryLocation.Plugins))
+              write_env("QML2_IMPORT_PATH", QLibraryInfo.path(LibraryLocation.QmlImports))
 
- - name: Ensure GNU Make (Windows)
- if: matrix.os == 'windows-latest'
- shell: pwsh
- run: choco install make --yes
+      - name: Ensure GNU Make (Windows)
+        if: matrix.os == 'windows-latest'
+        shell: pwsh
+        run: choco install make --yes
 
- - name: Configure pytest command
- shell: bash
- run: |
- if [ "${{ matrix.os }}" = "ubuntu-22.04" ]; then
- echo "PYTEST_PREFIX=xvfb-run -a" >> "$GITHUB_ENV"
- else
- echo "PYTEST_PREFIX=" >> "$GITHUB_ENV"
- fi
+      - name: Configure pytest command
+        shell: bash
+        run: |
+          if [ "${{ matrix.os }}" = "ubuntu-22.04" ]; then
+            echo "PYTEST_PREFIX=xvfb-run -a" >> "$GITHUB_ENV"
+          else
+            echo "PYTEST_PREFIX=" >> "$GITHUB_ENV"
+          fi
 
- - name: Run smoke/integration verification
- shell: bash
- run: |
- if [ -n "${PYTEST_PREFIX:-}" ]; then
- make verify PYTEST="${PYTEST_PREFIX} pytest"
- else
- make verify
- fi
+      - name: Run smoke/integration verification
+        shell: bash
+        run: |
+          if [ -n "${PYTEST_PREFIX:-}" ]; then
+            make verify PYTEST="${PYTEST_PREFIX} pytest"
+          else
+            make verify
+          fi
 
- - name: Run unit tests
- shell: bash
- run: |
- if [ -n "${PYTEST_PREFIX:-}" ]; then
- ${PYTEST_PREFIX} pytest tests/unit/ -v --cov=src --cov-report=xml
- else
- pytest tests/unit/ -v --cov=src --cov-report=xml
- fi
+      - name: Run unit tests
+        shell: bash
+        run: |
+          if [ -n "${PYTEST_PREFIX:-}" ]; then
+            ${PYTEST_PREFIX} pytest tests/unit/ -v --cov=src --cov-report=xml
+          else
+            pytest tests/unit/ -v --cov=src --cov-report=xml
+          fi
 
- - name: Run integration tests
- shell: bash
- run: |
- if [ -n "${PYTEST_PREFIX:-}" ]; then
- ${PYTEST_PREFIX} pytest tests/integration/ -v --cov=src --cov-report=xml --cov-append
- else
- pytest tests/integration/ -v --cov=src --cov-report=xml --cov-append
- fi
+      - name: Run integration tests
+        shell: bash
+        run: |
+          if [ -n "${PYTEST_PREFIX:-}" ]; then
+            ${PYTEST_PREFIX} pytest tests/integration/ -v --cov=src --cov-report=xml --cov-append
+          else
+            pytest tests/integration/ -v --cov=src --cov-report=xml --cov-append
+          fi
 
- - name: Run system tests
- shell: bash
- run: |
- if [ -n "${PYTEST_PREFIX:-}" ]; then
- ${PYTEST_PREFIX} pytest tests/system/ -v --cov=src --cov-report=xml --cov-append
- else
- pytest tests/system/ -v --cov=src --cov-report=xml --cov-append
- fi
+      - name: Run system tests
+        shell: bash
+        run: |
+          if [ -n "${PYTEST_PREFIX:-}" ]; then
+            ${PYTEST_PREFIX} pytest tests/system/ -v --cov=src --cov-report=xml --cov-append
+          else
+            pytest tests/system/ -v --cov=src --cov-report=xml --cov-append
+          fi
 
- - name: Upload smoke/integration logs
- if: always()
- uses: actions/upload-artifact@v4
- with:
- name: qt-logs-${{ matrix.os }}-${{ matrix.python-version }}
- path: logs
- if-no-files-found: warn
+      - name: Upload smoke/integration logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: qt-logs-${{ matrix.os }}-${{ matrix.python-version }}
+          path: logs
+          if-no-files-found: warn
 
- - name: Upload coverage to Codecov
- uses: codecov/codecov-action@v4
- with:
- file: ./coverage.xml
- flags: unit,integration,system
- name: codecov-${{ matrix.os }}-${{ matrix.python-version }}
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          file: ./coverage.xml
+          flags: unit,integration,system
+          name: codecov-${{ matrix.os }}-${{ matrix.python-version }}
 
- lint:
- name: Code Quality
- runs-on: ubuntu-latest
- steps:
- - name: Checkout code
- uses: actions/checkout@v4
+  verify:
+    name: Code Quality
+    runs-on: ubuntu-latest
+    env:
+      QT_QPA_PLATFORM: offscreen
+      QT_QUICK_BACKEND: software
+      QT_PLUGIN_PATH: ''
+      QML2_IMPORT_PATH: ''
 
- - name: Set up Python
- uses: actions/setup-python@v5
- with:
- python-version: '3.13'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
 
- - name: Install lint dependencies
- run: |
- python -m pip install --upgrade pip
- pip install .[dev]
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
 
- - name: Audit configuration consistency
- run: |
- python tools/audit_config.py --update-report
- git diff --exit-code reports/config_audit_report.md
+      - name: Install development dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install .[dev]
+
+      - name: Configure Qt runtime paths
+        shell: python
+        run: |
+          import os
+          from pathlib import Path
+
+          def write_env(key: str, value: str) -> None:
+              if not value:
+                  return
+              env_file = Path(os.environ["GITHUB_ENV"])
+              with env_file.open("a", encoding="utf-8") as handle:
+                  handle.write(f"{key}={value}\n")
+
+          try:
+              from PySide6.QtCore import QLibraryInfo, LibraryLocation
+          except Exception as exc:  # pragma: no cover - diagnostic output only
+              print(f"Unable to configure Qt paths automatically: {exc}")
+          else:
+              write_env("QT_PLUGIN_PATH", QLibraryInfo.path(LibraryLocation.Plugins))
+              write_env("QML2_IMPORT_PATH", QLibraryInfo.path(LibraryLocation.QmlImports))
+
+      - name: Run make verify
+        run: make verify
+
+  build:
+    name: Build Documentation
+    runs-on: ubuntu-latest
+    needs: [test, verify]
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.13'
+
+    - name: Install project with documentation extras
+      run: |
+        python -m pip install --upgrade pip
+        pip install .[docs]
+
+    - name: Build documentation
+      run: |
+  sphinx-build -b html docs docs/_build/html
+
+    - name: Upload documentation artifact
+      uses: actions/upload-artifact@v4
+      with:
+      name: documentation-html
+   path: docs/_build/html

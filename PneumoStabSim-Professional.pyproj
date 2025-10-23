@@ -1,37 +1,37 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003" ToolsVersion="4.0">
- <PropertyGroup>
- <VisualStudioVersion Condition="'$(VisualStudioVersion)' == ''">10.0</VisualStudioVersion>
- <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
- <SchemaVersion>2.0</SchemaVersion>
- <ProjectGuid>{6D6D7E5C-8F5A-4B5E-A6F1-2C8E9B3D4A5F}</ProjectGuid>
- <ProjectHome>.</ProjectHome>
- <ProjectTypeGuids>{888888A0-9F3D-457C-B088-3A5042F75D52}</ProjectTypeGuids>
- <StartupFile>app.py</StartupFile>
- <SearchPath>src\;tests\;scripts\;</SearchPath>
- <WorkingDirectory>.</WorkingDirectory>
- <OutputPath>.</OutputPath>
- <ProjectName>PneumoStabSim-Professional</ProjectName>
- <Name>PneumoStabSim-Professional</Name>
- <RootNamespace>pneumostabsim</RootNamespace>
- <!-- Указываем интерпретатор проекта на локальный .venv -->
- <InterpreterPath>$(MSBuildProjectDirectory)\.venv\Scripts\python.exe</InterpreterPath>
- <SuppressConfigureTestFrameworkPrompt>true</SuppressConfigureTestFrameworkPrompt>
- <TestFramework>pytest</TestFramework>
- <UnitTestPattern>test_*.py</UnitTestPattern>
- <UnitTestRootDirectory>tests</UnitTestRootDirectory>
- <LaunchProvider>Standard Python launcher</LaunchProvider>
- <EnableNativeCodeDebugging>False</EnableNativeCodeDebugging>
- <!-- Включаем консольный режим для отображения логов/вывода -->
- <IsWindowsApplication>False</IsWindowsApplication>
- <InterpreterId>MSBuild|env1|$(MSBuildProjectFullPath)</InterpreterId>
- </PropertyGroup>
- <!-- Конфигурации сборки -->
- <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
-<DebugSymbols>true</DebugSymbols>
- <EnableUnmanagedDebugging>false</EnableUnmanagedDebugging>
- <CommandLineArguments>--verbose</CommandLineArguments>
- <Environment>
+  <PropertyGroup>
+    <VisualStudioVersion Condition="'$(VisualStudioVersion)' == ''">10.0</VisualStudioVersion>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <SchemaVersion>2.0</SchemaVersion>
+    <ProjectGuid>{6D6D7E5C-8F5A-4B5E-A6F1-2C8E9B3D4A5F}</ProjectGuid>
+    <ProjectHome>.</ProjectHome>
+    <ProjectTypeGuids>{888888A0-9F3D-457C-B088-3A5042F75D52}</ProjectTypeGuids>
+    <StartupFile>app.py</StartupFile>
+    <SearchPath>src\;tests\;scripts\</SearchPath>
+    <WorkingDirectory>.</WorkingDirectory>
+    <OutputPath>.</OutputPath>
+    <ProjectName>PneumoStabSim-Professional</ProjectName>
+    <Name>PneumoStabSim-Professional</Name>
+    <RootNamespace>pneumostabsim</RootNamespace>
+    <!-- Указываем интерпретатор проекта на локальный .venv -->
+    <InterpreterPath>$(MSBuildProjectDirectory)\.venv\Scripts\python.exe</InterpreterPath>
+    <SuppressConfigureTestFrameworkPrompt>true</SuppressConfigureTestFrameworkPrompt>
+    <TestFramework>pytest</TestFramework>
+    <UnitTestPattern>test_*.py</UnitTestPattern>
+    <UnitTestRootDirectory>tests</UnitTestRootDirectory>
+    <LaunchProvider>Standard Python launcher</LaunchProvider>
+    <EnableNativeCodeDebugging>False</EnableNativeCodeDebugging>
+    <!-- Включаем консольный режим для отображения логов/вывода -->
+    <IsWindowsApplication>False</IsWindowsApplication>
+    <InterpreterId>MSBuild|env2|$(MSBuildProjectFullPath)</InterpreterId>
+  </PropertyGroup>
+  <!-- Конфигурации сборки -->
+  <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
+    <DebugSymbols>true</DebugSymbols>
+    <EnableUnmanagedDebugging>false</EnableUnmanagedDebugging>
+    <CommandLineArguments>--verbose</CommandLineArguments>
+    <Environment>
 PYTHONPATH=$(MSBuildProjectDirectory);$(MSBuildProjectDirectory)\src;$(MSBuildProjectDirectory)\tests
 QML2_IMPORT_PATH=$(MSBuildProjectDirectory)\.venv\Lib\site-packages\PySide6\qml;$(MSBuildProjectDirectory)\assets\qml
 QML_IMPORT_PATH=$(MSBuildProjectDirectory)\.venv\Lib\site-packages\PySide6\qml;$(MSBuildProjectDirectory)\assets\qml
@@ -39,12 +39,13 @@ QT_PLUGIN_PATH=$(MSBuildProjectDirectory)\.venv\Lib\site-packages\PySide6\plugin
 QT_QML_IMPORT_PATH=$(MSBuildProjectDirectory)\.venv\Lib\site-packages\PySide6\qml
 QT_QUICK_CONTROLS_STYLE=Basic
  </Environment>
- </PropertyGroup>
- <PropertyGroup Condition=" '$(Configuration)' == 'Release' ">
-<DebugSymbols>false</DebugSymbols>
- <EnableUnmanagedDebugging>false</EnableUnmanagedDebugging>
- <CommandLineArguments></CommandLineArguments>
- <Environment>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)' == 'Release' ">
+    <DebugSymbols>false</DebugSymbols>
+    <EnableUnmanagedDebugging>false</EnableUnmanagedDebugging>
+    <CommandLineArguments>
+    </CommandLineArguments>
+    <Environment>
 PYTHONPATH=$(MSBuildProjectDirectory);$(MSBuildProjectDirectory)\src
 QML2_IMPORT_PATH=$(MSBuildProjectDirectory)\.venv\Lib\site-packages\PySide6\qml;$(MSBuildProjectDirectory)\assets\qml
 QML_IMPORT_PATH=$(MSBuildProjectDirectory)\.venv\Lib\site-packages\PySide6\qml;$(MSBuildProjectDirectory)\assets\qml
@@ -52,12 +53,12 @@ QT_PLUGIN_PATH=$(MSBuildProjectDirectory)\.venv\Lib\site-packages\PySide6\plugin
 QT_QML_IMPORT_PATH=$(MSBuildProjectDirectory)\.venv\Lib\site-packages\PySide6\qml
 QT_QUICK_CONTROLS_STYLE=Basic
  </Environment>
- </PropertyGroup>
- <PropertyGroup Condition=" '$(Configuration)' == 'Test' ">
- <DebugSymbols>true</DebugSymbols>
- <EnableUnmanagedDebugging>false</EnableUnmanagedDebugging>
- <CommandLineArguments>--test-mode</CommandLineArguments>
- <Environment>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)' == 'Test' ">
+    <DebugSymbols>true</DebugSymbols>
+    <EnableUnmanagedDebugging>false</EnableUnmanagedDebugging>
+    <CommandLineArguments>--test-mode</CommandLineArguments>
+    <Environment>
 PYTHONPATH=$(MSBuildProjectDirectory);$(MSBuildProjectDirectory)\src;$(MSBuildProjectDirectory)\tests
 QML2_IMPORT_PATH=$(MSBuildProjectDirectory)\.venv\Lib\site-packages\PySide6\qml;$(MSBuildProjectDirectory)\assets\qml
 QML_IMPORT_PATH=$(MSBuildProjectDirectory)\.venv\Lib\site-packages\PySide6\qml;$(MSBuildProjectDirectory)\assets\qml
@@ -65,118 +66,141 @@ QT_PLUGIN_PATH=$(MSBuildProjectDirectory)\.venv\Lib\site-packages\PySide6\plugin
 QT_QML_IMPORT_PATH=$(MSBuildProjectDirectory)\.venv\Lib\site-packages\PySide6\qml
 QT_QUICK_CONTROLS_STYLE=Basic
  </Environment>
- </PropertyGroup>
- <!-- Основные файлы проекта -->
- <ItemGroup>
- <Compile Include="app.py" />
- <Compile Include="launch.py" />
-<Compile Include="quick_fix.py" />
- <Compile Include="quick_test.py" />
-<Compile Include="qml_diagnostic.py" />
- <Compile Include="setup_vscode.py" />
- <Compile Include="setup.py" />
- </ItemGroup>
- <!-- Корневые модули src -->
- <ItemGroup>
- <Compile Include="src\__init__.py" />
- <Compile Include="src\app_runner.py" />
- </ItemGroup>
- <!-- Bootstrap система -->
- <ItemGroup>
- <Compile Include="src\bootstrap\__init__.py" />
- <Compile Include="src\bootstrap\environment.py" />
- <Compile Include="src\bootstrap\qt_imports.py" />
- <Compile Include="src\bootstrap\terminal.py" />
- <Compile Include="src\bootstrap\version_check.py" />
- </ItemGroup>
- <!-- CLI -->
- <ItemGroup>
- <Compile Include="src\cli\__init__.py" />
- <Compile Include="src\cli\arguments.py" />
- </ItemGroup>
- <!-- Diagnostics -->
- <ItemGroup>
- <Content Include=".gitignore" />
- <Content Include=".env" />
- </ItemGroup>
- <!-- Batch файлы -->
- <ItemGroup>
- <Content Include="run.bat" />
- <Content Include="run_app.bat" />
- <Content Include="run_py.bat" />
- <Content Include="status.bat" />
- <Content Include="quick_diagnostic.bat" />
- </ItemGroup>
- <!-- Документация -->
- <ItemGroup>
- <Content Include="README.md" />
- <Content Include="ROADMAP.md" />
- <Content Include="PROJECT_STATUS.md" />
- <Content Include="QUICK_DEPLOY.md" />
- <Content Include="BACKUP_CONFIG.md" />
- <Content Include="F5_QUICK_START.md" />
- <Content Include="TROUBLESHOOTING.md" />
- <Content Include="VSCODE_PY_SETUP.md" />
- <Content Include="VS_PROJECT_SETUP.md" />
- <Content Include="QTQUICK3D_REQUIREMENTS.md" />
- <Content Include="Properties\launchSettings.json" />
- </ItemGroup>
- <!-- Папки -->
- <ItemGroup>
- <Folder Include="src\" />
- <Folder Include="src\ui\" />
- <Folder Include="src\ui\main_window\" />
-<Folder Include="src\ui\panels\" />
-<Folder Include="src\ui\panels\geometry\" />
- <Folder Include="src\ui\panels\graphics\" />
- <Folder Include="src\ui\panels\graphics\tabs\" />
- <Folder Include="src\ui\panels\modes\" />
- <Folder Include="src\ui\widgets\" />
- <Folder Include="src\bootstrap\" />
- <Folder Include="src\cli\" />
- <Folder Include="src\diagnostics\" />
-<Folder Include="src\runtime\" />
- <Folder Include="src\physics\" />
- <Folder Include="src\mechanics\" />
- <Folder Include="src\pneumo\" />
- <Folder Include="src\road\" />
-<Folder Include="src\common\" />
- <Folder Include="src\core\" />
- <Folder Include="src\app\" />
- <Folder Include="tests\" />
- <Folder Include="tests\ui\" />
- <Folder Include="tests\graphics\" />
- <Folder Include="tests\system\" />
- <Folder Include="scripts\" />
- <Folder Include="assets\" />
-<Folder Include="assets\qml\" />
- <Folder Include="assets\qml\components\" />
- <Folder Include="assets\hdr\" />
- <Folder Include="docs\" />
- <Folder Include="logs\" />
- <Folder Include="reports\" />
- <Folder Include="config\" />
- <Folder Include=".vscode\" />
- <Folder Include=".github\" />
- <Folder Include=".vs\" />
- <Folder Include=".venv\" />
- </ItemGroup>
- <!-- Интерпретаторы Python -->
- <ItemGroup>
- <InterpreterReference Include="Global|PythonCore|3.13" />
- </ItemGroup>
- <!-- Внешние библиотеки -->
- <ItemGroup>
- <PackageReference Include="PySide6" Version="6.10.0" />
- <PackageReference Include="numpy" Version="1.26.4" />
- <PackageReference Include="scipy" Version="1.11.4" />
-<PackageReference Include="matplotlib" Version="3.8.0" />
- <PackageReference Include="pytest" Version="8.4.2" />
- <PackageReference Include="PyYAML" Version="6.0" />
- <PackageReference Include="pillow" Version="9.0.0" />
- <PackageReference Include="python-dotenv" Version="1.0.0" />
- <PackageReference Include="psutil" Version="5.8.0" />
- </ItemGroup>
- <!-- Python Tools для Visual Studio -->
- <Import Project="$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\Python Tools\Microsoft.PythonTools.targets" />
+  </PropertyGroup>
+  <!-- Основные файлы проекта -->
+  <ItemGroup>
+    <Compile Include="app.py" />
+    <Compile Include="launch.py" />
+    <Compile Include="quick_fix.py" />
+    <Compile Include="quick_test.py" />
+    <Compile Include="qml_diagnostic.py" />
+    <Compile Include="setup_vscode.py" />
+    <Compile Include="setup.py" />
+    <Compile Include="tests\quality\test_sample_vector.py" />
+  </ItemGroup>
+  <!-- Корневые модули src -->
+  <ItemGroup>
+    <Compile Include="src\pneumostabsim_typing\__init__.py" />
+    <Compile Include="src\__init__.py" />
+    <Compile Include="src\app_runner.py" />
+  </ItemGroup>
+  <!-- Bootstrap система -->
+  <ItemGroup>
+    <Compile Include="src\bootstrap\__init__.py" />
+    <Compile Include="src\bootstrap\environment.py" />
+    <Compile Include="src\bootstrap\qt_imports.py" />
+    <Compile Include="src\bootstrap\terminal.py" />
+    <Compile Include="src\bootstrap\version_check.py" />
+  </ItemGroup>
+  <!-- CLI -->
+  <ItemGroup>
+    <Compile Include="src\cli\__init__.py" />
+    <Compile Include="src\cli\arguments.py" />
+  </ItemGroup>
+  <!-- Diagnostics -->
+  <ItemGroup>
+    <Content Include=".gitignore" />
+    <Content Include=".env" />
+  </ItemGroup>
+  <!-- Batch файлы -->
+  <ItemGroup>
+    <Content Include=".ruff.toml" />
+    <Content Include="assets\qml\quality\Check.qml" />
+    <Content Include="mypy.ini" />
+    <Content Include="mypy_targets.txt" />
+    <Content Include="pytest_targets.txt" />
+    <Content Include="qmllint_targets.txt" />
+    <Content Include="run.bat" />
+    <Content Include="run_app.bat" />
+    <Content Include="run_py.bat" />
+    <Content Include="status.bat" />
+    <Content Include="quick_diagnostic.bat" />
+  </ItemGroup>
+  <!-- Документация -->
+  <ItemGroup>
+    <Content Include="README.md" />
+    <Content Include="ROADMAP.md" />
+    <Content Include="PROJECT_STATUS.md" />
+    <Content Include="QUICK_DEPLOY.md" />
+    <Content Include="BACKUP_CONFIG.md" />
+    <Content Include="F5_QUICK_START.md" />
+    <Content Include="TROUBLESHOOTING.md" />
+    <Content Include="VSCODE_PY_SETUP.md" />
+    <Content Include="VS_PROJECT_SETUP.md" />
+    <Content Include="QTQUICK3D_REQUIREMENTS.md" />
+    <Content Include="Properties\launchSettings.json" />
+  </ItemGroup>
+  <!-- Папки -->
+  <ItemGroup>
+    <Folder Include="assets\qml\quality\" />
+    <Folder Include="Properties\" />
+    <Folder Include="src\" />
+    <Folder Include="src\pneumostabsim_typing\" />
+    <Folder Include="src\ui\" />
+    <Folder Include="src\ui\main_window\" />
+    <Folder Include="src\ui\panels\" />
+    <Folder Include="src\ui\panels\geometry\" />
+    <Folder Include="src\ui\panels\graphics\" />
+    <Folder Include="src\ui\panels\graphics\tabs\" />
+    <Folder Include="src\ui\panels\modes\" />
+    <Folder Include="src\ui\widgets\" />
+    <Folder Include="src\bootstrap\" />
+    <Folder Include="src\cli\" />
+    <Folder Include="src\diagnostics\" />
+    <Folder Include="src\runtime\" />
+    <Folder Include="src\physics\" />
+    <Folder Include="src\mechanics\" />
+    <Folder Include="src\pneumo\" />
+    <Folder Include="src\road\" />
+    <Folder Include="src\common\" />
+    <Folder Include="src\core\" />
+    <Folder Include="src\app\" />
+    <Folder Include="tests\" />
+    <Folder Include="tests\quality\" />
+    <Folder Include="tests\ui\" />
+    <Folder Include="tests\graphics\" />
+    <Folder Include="tests\system\" />
+    <Folder Include="scripts\" />
+    <Folder Include="assets\" />
+    <Folder Include="assets\qml\" />
+    <Folder Include="assets\qml\components\" />
+    <Folder Include="assets\hdr\" />
+    <Folder Include="docs\" />
+    <Folder Include="logs\" />
+    <Folder Include="reports\" />
+    <Folder Include="config\" />
+    <Folder Include=".vscode\" />
+    <Folder Include=".github\" />
+    <Folder Include=".vs\" />
+    <Folder Include=".venv\" />
+  </ItemGroup>
+  <!-- Интерпретаторы Python -->
+  <ItemGroup>
+    <InterpreterReference Include="Global|PythonCore|3.13" />
+  </ItemGroup>
+  <!-- Внешние библиотеки -->
+  <ItemGroup>
+    <PackageReference Include="PySide6" Version="6.10.0" />
+    <PackageReference Include="numpy" Version="1.26.4" />
+    <PackageReference Include="scipy" Version="1.11.4" />
+    <PackageReference Include="matplotlib" Version="3.8.0" />
+    <PackageReference Include="pytest" Version="8.4.2" />
+    <PackageReference Include="PyYAML" Version="6.0" />
+    <PackageReference Include="pillow" Version="9.0.0" />
+    <PackageReference Include="python-dotenv" Version="1.0.0" />
+    <PackageReference Include="psutil" Version="5.8.0" />
+  </ItemGroup>
+  <!-- Python Tools для Visual Studio -->
+  <ItemGroup>
+    <Interpreter Include="env2\">
+      <Id>env2</Id>
+      <Version>3.13</Version>
+      <Description>env2 (Python 3.13 (64-bit))</Description>
+      <InterpreterPath>Scripts\python.exe</InterpreterPath>
+      <WindowsInterpreterPath>Scripts\pythonw.exe</WindowsInterpreterPath>
+      <PathEnvironmentVariable>PYTHONPATH</PathEnvironmentVariable>
+      <Architecture>X64</Architecture>
+    </Interpreter>
+  </ItemGroup>
+  <Import Project="$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\Python Tools\Microsoft.PythonTools.targets" />
 </Project>

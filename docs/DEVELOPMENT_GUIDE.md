@@ -144,105 +144,64 @@ src/
 
 ---
 
-## ?? Code Style Guide
+## Качество кода
 
-### **Python Style**
+### Основные инструменты
 
-**Follow PEP 8 with these additions:**
+- **Python 3.13** — целевая версия интерпретатора для всего проекта.
+- **Ruff** — единый инструмент для форматирования (`ruff format`) и линтинга (`ruff check`). Линтер настроен на соблюдение PEP 8, автоматическую сортировку импортов и правила по качеству (pyupgrade, bugbear, simplify и др.). Лимит длины строки — 88 символов.
+- **mypy** — строгая статическая типизация. Требуются аннотации типов для публичных API, `self`/`cls` допускаются без аннотаций.
+- **pytest** — обязательные юнит-, интеграционные и системные тесты.
+- **qmllint** (`qmllint` или `pyside6-qmllint`) — проверка QML-файлов из `src/` и `assets/`.
 
-```python
-# 1. Type hints everywhere (Python 3.11+)
-def calculate_piston_position(
-    lever_angle: float,
-    cylinder_length: float
-) -> float:
-    """Calculate piston position from lever angle
+### Правила для Python
 
-    Args:
-        lever_angle: Lever rotation in degrees
-        cylinder_length: Cylinder body length in mm
+1. Всегда используем аннотации типов и `from __future__ import annotations`, если нужно лениво ссылаться на типы.
+2. Импорты группируются в порядке: стандартная библиотека → сторонние пакеты → собственные модули (`known-first-party = pneumostabsim`).
+3. Публичные функции и классы сопровождаем докстрингами в стиле Google/Numpy, описываем единицы измерения и диапазоны значений.
+4. Не используем `print` для отладки — только `logging` с иерархией логгеров.
+5. Исключаем «грубые» подавления ошибок (`except Exception`) и `# type: ignore` без обоснования.
 
-    Returns:
-        Piston position from cylinder start (mm)
-    """
-    # Implementation...
-    return position
+### Правила для QML
 
-# 2. Explicit imports (no wildcards!)
-from PySide6.QtCore import Qt, QTimer, Slot
-# NOT: from PySide6.QtCore import *
+1. Один компонент в файле, имя файла совпадает с именем компонента (`MainWindow.qml`).
+2. Свойства объявляем перед функциями, используем осмысленные типы (`vector3d`, `color` и т.п.).
+3. Комплексные выражения сопровождаем комментариями, все константы выносим в `readonly property`.
+4. Стиль именования — camelCase для функций и свойств, PascalCase для компонентов.
 
-# 3. Docstrings for public methods
-class GeometryBridge:
-    """Convert 2D kinematics to 3D coordinates
+### Как запускать проверки локально
 
-    This class bridges the gap between 2D mechanical
-    calculations and 3D visualization coordinates.
-    """
+```bash
+# Автоматическое форматирование Python-кода
+make format
 
-    def get_corner_3d_coords(self, corner: str) -> dict:
-        """Get 3D coordinates for suspension corner
-
-        Args:
-            corner: Corner identifier ('fl', 'fr', 'rl', 'rr')
-
-        Returns:
-            Dictionary with 3D coordinate arrays
-        """
-        pass
-
-# 4. Constants in UPPER_CASE
-DEFAULT_CYLINDER_LENGTH = 0.25  # meters
-MAX_PISTON_RATIO = 0.9
-
-# 5. Private methods start with _
-def _internal_calculation(self):
-    """Internal helper method"""
-    pass
+# Полный набор проверок перед коммитом
+make verify
 ```
 
-### **QML Style**
+`make verify` выполняет `ruff check`, `mypy`, `qmllint` и `pytest` над целевыми файлами, перечисленными в служебных списках:
 
-```qml
-// 1. Components start with Capital letter
-component SuspensionCorner: Node {
-    // Properties BEFORE functions
-    property real leverAngle: 0.0
-    property vector3d position: Qt.vector3d(0, 0, 0)
+- `mypy_targets.txt` — относительные пути до каталогов/модулей для статической проверки (по умолчанию `src/pneumostabsim_typing`).
+- `qmllint_targets.txt` — QML-файлы или каталоги, которые гарантированно проходят `qmllint` (начинаем с `assets/qml/quality/Check.qml`).
+- `pytest_targets.txt` — тестовые модули, запускаемые в CI (включает минимальный sanity-check `tests/quality/test_sample_vector.py`).
 
-    // Functions use camelCase
-    function updatePosition(newPos) {
-        position = newPos
-    }
+Файлы можно расширять по мере наведения порядка в наследуемом коде. Команда должна завершаться без ошибок перед любым пушем или Pull Request.
 
-    // Models INSIDE component
-    Model {
-        source: "#Cube"
-        materials: PrincipledMaterial {
-            baseColor: "#ff0000"
-        }
-    }
-}
+Если в системе установлен нестандартный путь к `qmllint`, можно переопределить бинарь:
 
-// 2. Comments for complex calculations
-// Calculate piston position from lever angle
-// Formula: pos = center + delta
-// Where delta = (tail_to_rod - baseline_distance)
-property real pistonPos: calculatePistonPosition()
-
-// 3. Use Qt.vector3d() for vectors (not array!)
-property vector3d correct: Qt.vector3d(1.0, 2.0, 3.0)
-// NOT: property var wrong: [1.0, 2.0, 3.0]
+```bash
+QML_LINTER=/opt/Qt/6.7.2/gcc_64/bin/qmllint make verify
 ```
 
-## Python ↔ QML Binding Review Checklist
+Отчёты mypy и pytest автоматически выводятся в терминал. Для более детального анализа используйте `pytest -vv` и параметры `--cov`.
 
-- [ ] **Контексты:** новые `context.setContextProperty` добавлены до `setSource`, отражены в `docs/PYTHON_QML_API.md` и сопровождаются проверкой в QML. 【F:src/ui/main_window/ui_setup.py†L94-L144】【F:docs/PYTHON_QML_API.md†L11-L52】
-- [ ] **Карта обновлений:** категории и методы синхронизированы между `QMLBridge.QML_UPDATE_METHODS` и QML (`apply*Updates`). 【F:src/ui/main_window/qml_bridge.py†L60-L105】【F:assets/qml/main.qml†L90-L166】
-- [ ] **Batched payload:** `applyBatchedUpdates` умеет обрабатывать новые ключи, а `_prepare_for_qml` корректно сериализует Python-структуры. 【F:assets/qml/main.qml†L18-L166】【F:src/ui/main_window/qml_bridge.py†L279-L321】
-- [ ] **ACK и логирование:** `SignalsRouter` подключает QML-сигналы, `QMLBridge.handle_qml_ack` и `EventLogger` обновлены, если менялась структура ответов. 【F:src/ui/main_window/signals_router.py†L215-L233】【F:src/ui/main_window/qml_bridge.py†L360-L434】
-- [ ] **Симуляция:** изменения в `StateSnapshot` отражены в `_snapshot_to_payload` и QML-обработчиках (`apply3DUpdates`/`applySimulationUpdates`). 【F:src/ui/main_window/qml_bridge.py†L195-L279】【F:assets/qml/main.qml†L90-L166】
-- [ ] **Документация:** разделы `docs/PYTHON_QML_API.md` и `docs/python_qml_bridge.md` обновлены описанием новых точек привязки. 【F:docs/PYTHON_QML_API.md†L1-L121】【F:docs/python_qml_bridge.md†L1-L84】
+### Применение в CI
+
+GitHub Actions запускает `make verify` на Ubuntu. В pipeline используется тот же набор переменных окружения, что и локально (`QT_QPA_PLATFORM=offscreen` и т.д.), поэтому ошибки сред запуска воспроизводимы.
+
+Соблюдение этих правил гарантирует единый стиль и предотвращает регрессии в Python/QML-части проекта.
+
+---
 
 ---
 
