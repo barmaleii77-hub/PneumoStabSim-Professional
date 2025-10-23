@@ -6,41 +6,28 @@
         }
     ],
     "settings": {
-        "python.defaultInterpreterPath": "${workspaceFolder}/.venv/bin/python",
+        "python.defaultInterpreterPath": "python3.13",
         "[linux]": {
-            "python.defaultInterpreterPath": "${workspaceFolder}/.venv/bin/python",
-            "qt.qmlls.path": "${workspaceFolder}/.venv/bin/qmlls"
+            "python.defaultInterpreterPath": "${workspaceFolder}/.venv/bin/python"
         },
         "[mac]": {
-            "python.defaultInterpreterPath": "${workspaceFolder}/.venv/bin/python",
-            "qt.qmlls.path": "${workspaceFolder}/.venv/bin/qmlls"
+            "python.defaultInterpreterPath": "${workspaceFolder}/.venv/bin/python"
         },
         "[windows]": {
-            "python.defaultInterpreterPath": "${workspaceFolder}\\.venv\\Scripts\\python.exe",
-            "qt.qmlls.path": "${workspaceFolder}\\.venv\\Scripts\\qmlls.exe"
+            "python.defaultInterpreterPath": "${workspaceFolder}\\.venv\\Scripts\\python.exe"
         },
         "python.terminal.activateEnvironment": true,
-        "python.analysis.extraPaths": [
-            "${workspaceFolder}/src"
+        "python.testing.pytestArgs": [
+            "-m",
+            "not gui"
         ],
-        "terminal.integrated.env.windows": {
-            "PYTHONPATH": "${workspaceFolder};${workspaceFolder}\\src",
-            "QML2_IMPORT_PATH": "${workspaceFolder}\\.venv\\Lib\\site-packages\\PySide6\\qml;${workspaceFolder}\\assets\\qml",
-            "QML_IMPORT_PATH": "${workspaceFolder}\\.venv\\Lib\\site-packages\\PySide6\\qml;${workspaceFolder}\\assets\\qml",
-            "QT_PLUGIN_PATH": "${workspaceFolder}\\.venv\\Lib\\site-packages\\PySide6\\plugins",
-            "QT_QML_IMPORT_PATH": "${workspaceFolder}\\.venv\\Lib\\site-packages\\PySide6\\qml",
-            "QT_QUICK_CONTROLS_STYLE": "Basic"
-        },
-        "terminal.integrated.env.linux": {
-            "PYTHONPATH": "${workspaceFolder}:${workspaceFolder}/src",
-            "QML2_IMPORT_PATH": "${workspaceFolder}/.venv/lib/python3.13/site-packages/PySide6/qml:${workspaceFolder}/assets/qml",
-            "QML_IMPORT_PATH": "${workspaceFolder}/.venv/lib/python3.13/site-packages/PySide6/qml:${workspaceFolder}/assets/qml",
-            "QT_PLUGIN_PATH": "${workspaceFolder}/.venv/lib/python3.13/site-packages/PySide6/plugins",
-            "QT_QML_IMPORT_PATH": "${workspaceFolder}/.venv/lib/python3.13/site-packages/PySide6/qml",
-            "QT_QUICK_CONTROLS_STYLE": "Basic"
-        },
+        "python.testing.pytestEnabled": true,
+        "python.testing.pytestPath": "${config:python.defaultInterpreterPath}",
+        "python.testing.unittestEnabled": false,
         "files.autoSave": "afterDelay",
-        "editor.formatOnSave": true
+        "editor.formatOnSave": true,
+        "ruff.lint.run": "onSave",
+        "ruff.format.run": "onSave"
     },
     "extensions": {
         "recommendations": [
@@ -48,6 +35,7 @@
             "ms-python.debugpy",
             "ms-python.black-formatter",
             "ms-python.mypy-type-checker",
+            "charliermarsh.ruff",
             "github.copilot",
             "github.copilot-chat",
             "ms-qttools.qt-language-server",

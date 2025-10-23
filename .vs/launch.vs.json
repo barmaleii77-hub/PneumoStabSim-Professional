@@ -62,9 +62,85 @@
     },
     {
       "type": "python",
-      "name": "🧪 PyTest - all",
+      "name": "🧪 Pytest (core, coverage)",
       "module": "pytest",
-      "args": ["tests/", "-v", "--tb=short", "--color=yes"],
+      "args": [
+        "-m",
+        "not gui",
+        "--cov=src",
+        "--cov-report=term-missing",
+        "--junitxml",
+        "artifacts/vs/junit-core.xml"
+      ],
+      "currentDir": "${workspaceRoot}",
+      "env": {
+        "PYTHONPATH": "${workspaceRoot};${workspaceRoot}/src",
+        "QT_QPA_PLATFORM": "offscreen"
+      }
+    },
+    {
+      "type": "python",
+      "name": "🧭 Pytest (QML/GUI)",
+      "module": "pytest",
+      "args": [
+        "tests/ui",
+        "-m",
+        "gui",
+        "--cov=src",
+        "--cov-append",
+        "--cov-report=term-missing",
+        "--junitxml",
+        "artifacts/vs/junit-qml.xml"
+      ],
+      "currentDir": "${workspaceRoot}",
+      "env": {
+        "PYTHONPATH": "${workspaceRoot};${workspaceRoot}/src",
+        "QT_QPA_PLATFORM": "offscreen"
+      }
+    },
+    {
+      "type": "python",
+      "name": "🧹 Ruff lint (CI)",
+      "module": "ruff",
+      "args": [
+        "check",
+        "src",
+        "tests",
+        "app.py",
+        "tools"
+      ],
+      "currentDir": "${workspaceRoot}",
+      "env": {
+        "PYTHONPATH": "${workspaceRoot};${workspaceRoot}/src"
+      }
+    },
+    {
+      "type": "python",
+      "name": "🎨 Ruff format --check",
+      "module": "ruff",
+      "args": [
+        "format",
+        "--check",
+        "src",
+        "tests",
+        "app.py",
+        "tools"
+      ],
+      "currentDir": "${workspaceRoot}",
+      "env": {
+        "PYTHONPATH": "${workspaceRoot};${workspaceRoot}/src"
+      }
+    },
+    {
+      "type": "python",
+      "name": "🧠 Mypy (CI)",
+      "module": "mypy",
+      "args": [
+        "src",
+        "tools",
+        "app.py",
+        "--config-file=pyproject.toml"
+      ],
       "currentDir": "${workspaceRoot}",
       "env": {
         "PYTHONPATH": "${workspaceRoot};${workspaceRoot}/src"
