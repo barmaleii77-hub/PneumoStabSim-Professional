@@ -23,3 +23,26 @@
 - `event_logger.log_qml_invoke(name, params)` — Python→QML вызов
 - `event_logger.log_signal_emit(name, payload)` — отправка сигнала из Python
 - В `main_window.py` помечаем успешные обновления как `applied_to_qml`
+
+## События настроек
+
+- В QML-контекст прокидывается `settingsEvents` — `SettingsEventBus` из Python.
+- Доступные сигналы:
+ - `settingChanged(change)` — одиночное изменение. Payload содержит `path`, `category`, `changeType`, `oldValue`, `newValue`, `timestamp`.
+ - `settingsBatchUpdated(batch)` — батч-дифф (например, при `set_category()` или сбросе). Внутри `changes` и `summary` с количеством и категориями.
+- `SettingsManager` автоматически эмитит эти события для `set`, `set_category`, `reset_to_defaults`, `save_current_as_defaults`.
+- QML подписывается через `Connections { target: settingsEvents }` — теперь обновления параметров гарантированно достигают сцены.
+
+## Сервис трассировки сигналов
+
+- Новый контекст `signalTrace` (Singleton `SignalTraceService`).
+- Задачи:
+ - Регистрирует подписчиков (`registerSubscription(signal, name, source)`).
+ - Собирает последние значения (`latestValues`) и список подписок (`subscriptions`).
+ - Пишет журнал в `logs/signal_trace.jsonl` (можно отключать/фильтровать через `diagnostics.signalTrace` в `app_settings.json`).
+- В `main.qml` добавлена overlay-панель `Signal trace` (включается флагом `overlayEnabled`).
+- Для CLI-диагностики есть утилита `tools/trace_signals.py`:
+   ```bash
+   python tools/trace_signals.py --summary
+   python tools/trace_signals.py --signal settings.settingChanged --since 2025-01-01
+   ```

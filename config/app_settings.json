@@ -425,7 +425,11 @@
         "render_scale": 1.05,
         "render_policy": "always",
         "frame_rate_limit": 144.0,
-        "oit": "weighted"
+        "oit": "weighted",
+        "mesh": {
+          "cylinder_segments": 128,
+          "cylinder_rings": 32
+        }
       },
       "high": {
         "shadows": {
@@ -498,6 +502,17 @@
         "render_policy": "ondemand",
         "frame_rate_limit": 60.0,
         "oit": "none"
+      }
+    },
+    "diagnostics": {
+      "signalTrace": {
+        "enabled": false,
+        "overlayEnabled": false,
+        "include": [
+          "*"
+        ],
+        "exclude": [],
+        "historyLimit": 200
       }
     }
   },
@@ -927,7 +942,11 @@
         "render_scale": 1.05,
         "render_policy": "always",
         "frame_rate_limit": 144.0,
-        "oit": "weighted"
+        "oit": "weighted",
+        "mesh": {
+          "cylinder_segments": 128,
+          "cylinder_rings": 32
+        }
       },
       "high": {
         "shadows": {
@@ -1000,6 +1019,17 @@
         "render_policy": "ondemand",
         "frame_rate_limit": 60.0,
         "oit": "none"
+      }
+    },
+    "diagnostics": {
+      "signalTrace": {
+        "enabled": false,
+        "overlayEnabled": false,
+        "include": [
+          "*"
+        ],
+        "exclude": [],
+        "historyLimit": 200
       }
     }
   },

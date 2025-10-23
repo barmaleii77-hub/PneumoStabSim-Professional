@@ -161,6 +161,17 @@ class UISetup:
             # ✅ КРИТИЧЕСКОЕ: Устанавливаем контекст ДО загрузки QML
             context = engine.rootContext()
             context.setContextProperty("window", window)
+
+            # Новые контексты: события настроек и трассировка сигналов
+            try:
+                from src.common.settings_manager import get_settings_event_bus
+                from src.common.signal_trace import get_signal_trace_service
+
+                context.setContextProperty("settingsEvents", get_settings_event_bus())
+                context.setContextProperty("signalTrace", get_signal_trace_service())
+            except Exception as inject_exc:
+                UISetup.logger.warning("    ⚠️ Failed to inject diagnostics contexts: %s", inject_exc)
+
             UISetup.logger.info("    ✅ Window context registered")
 
             try:

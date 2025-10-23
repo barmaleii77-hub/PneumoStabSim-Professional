@@ -14,10 +14,97 @@ from __future__ import annotations
 import json
 import logging
 from pathlib import Path
-from typing import Any, Dict, Optional, Tuple, cast
+from typing import Any, Dict, Optional, Tuple, cast, Iterable, List
 from datetime import datetime
 import copy
 import re
+from dataclasses import dataclass
+
+from .qt_compat import QObject, Signal
+
+# Добавление событий для Signal Trace
+try:
+    # Трассировка сигналов доступна опционально
+    from .signal_trace import SignalTraceService, get_signal_trace_service
+except Exception:  # pragma: no cover - при ранней загрузке в тестах
+    SignalTraceService = object  # type: ignore
+
+    def get_signal_trace_service():  # type: ignore
+        raise RuntimeError("SignalTraceService is not available")
+
+
+_MISSING = object()
+
+
+@dataclass(slots=True)
+class SettingsChange:
+    """Структура единичного изменения настроек для публикации в шину событий."""
+
+    path: str
+    category: str
+    change_type: str
+    old_value: Any
+    new_value: Any
+    timestamp: str
+
+    def to_payload(self) -> Dict[str, Any]:
+        return {
+            "path": self.path,
+            "category": self.category,
+            "changeType": self.change_type,
+            "oldValue": self.old_value,
+            "newValue": self.new_value,
+            "timestamp": self.timestamp,
+        }
+
+
+class SettingsEventBus(QObject):
+    """Qt-шина событий для доставки изменений в Python и QML."""
+
+    settingChanged = Signal(object)
+    settingsBatchUpdated = Signal(object)
+
+    def __init__(self, trace_service: Optional[SignalTraceService] = None) -> None:
+        super().__init__()
+        try:
+            self._trace_service: SignalTraceService = (
+                trace_service if trace_service is not None else get_signal_trace_service()  # type: ignore
+            )
+        except Exception:  # pragma: no cover - в headless окружении
+            self._trace_service = None  # type: ignore
+        self.logger = logging.getLogger("SettingsEventBus")
+
+    def emit_setting(self, change: SettingsChange) -> None:
+        payload = change.to_payload()
+        self.logger.debug("settingChanged: %s", payload)
+        self.settingChanged.emit(payload)
+        if getattr(self, "_trace_service", None):
+            try:
+                self._trace_service.record_signal(  # type: ignore[attr-defined]
+                    "settings.settingChanged", payload, source="python"
+                )
+            except Exception:
+                pass
+
+    def emit_batch(self, changes: Iterable[SettingsChange]) -> None:
+        change_list = [c.to_payload() for c in changes]
+        if not change_list:
+            return
+        summary = {
+            "total": len(change_list),
+            "categories": sorted({p["category"] for p in change_list}),
+            "timestamp": datetime.utcnow().isoformat(),
+        }
+        payload = {"changes": change_list, "summary": summary}
+        self.logger.debug("settingsBatchUpdated: %s", summary)
+        self.settingsBatchUpdated.emit(payload)
+        if getattr(self, "_trace_service", None):
+            try:
+                self._trace_service.record_signal(  # type: ignore[attr-defined]
+                    "settings.settingsBatchUpdated", payload, source="python"
+                )
+            except Exception:
+                pass
 
 
 class SettingsManager:
@@ -257,8 +344,16 @@ class SettingsManager:
         self._metadata: Dict[str, Any] = {}
         self._schema_version: str = self.CURRENT_SCHEMA_VERSION
 
+        # Diagnostics
+        self._event_bus = get_settings_event_bus()
+        try:
+            self._trace_service = get_signal_trace_service()
+        except Exception:  # pragma: no cover
+            self._trace_service = None
+
         # Загрузка настроек
         self.load()
+        self._sync_signal_trace_config()
 
     # ------------------------------------------------------------------
     # Geometry helpers
@@ -283,6 +378,145 @@ class SettingsManager:
                 snapshot[canonical_key] = float(value)
 
         return snapshot
+
+    # ------------------------------------------------------------------
+    # Diagnostics helpers
+    # ------------------------------------------------------------------
+    def _sync_signal_trace_config(self) -> None:
+        try:
+            diagnostics = self._current.get("diagnostics")
+            if getattr(self, "_trace_service", None) is not None and isinstance(
+                diagnostics, dict
+            ):
+                self._trace_service.update_from_settings(
+                    diagnostics.get("signalTrace")
+                )  # type: ignore[attr-defined]
+        except Exception as exc:
+            self.logger.debug("Failed to sync signal trace configuration: %s", exc)
+
+    def _get_nested_value(self, data: Dict[str, Any], keys: List[str]) -> Any:
+        current: Any = data
+        for key in keys:
+            if isinstance(current, dict) and key in current:
+                current = current[key]
+            else:
+                return _MISSING
+        return copy.deepcopy(current)
+
+    def _emit_setting_change(
+        self, path: str, category: str, old_value: Any, new_value: Any
+    ) -> None:
+        change_type = self._determine_change_type(old_value, new_value)
+        if change_type == "unchanged":
+            return
+        timestamp = datetime.utcnow().isoformat()
+        change = SettingsChange(
+            path=path,
+            category=category,
+            change_type=change_type,
+            old_value=self._make_json_safe(old_value),
+            new_value=self._make_json_safe(new_value),
+            timestamp=timestamp,
+        )
+        self._event_bus.emit_setting(change)
+
+    def _emit_batch_changes(self, changes: Iterable[SettingsChange]) -> None:
+        self._event_bus.emit_batch(changes)
+
+    @classmethod
+    def _determine_change_type(cls, old_value: Any, new_value: Any) -> str:
+        if old_value is _MISSING:
+            return "added"
+        if new_value is _MISSING:
+            return "removed"
+        if cls._values_equal(old_value, new_value):
+            return "unchanged"
+        return "updated"
+
+    @staticmethod
+    def _make_json_safe(value: Any) -> Any:
+        if value is _MISSING:
+            return None
+        try:
+            json.dumps(value)
+            return value
+        except TypeError:
+            if isinstance(value, dict):
+                return {str(k): SettingsManager._make_json_safe(v) for k, v in value.items()}
+            if isinstance(value, (list, tuple, set)):
+                return [SettingsManager._make_json_safe(item) for item in value]
+            return repr(value)
+
+    @staticmethod
+    def _values_equal(first: Any, second: Any) -> bool:
+        if first is _MISSING and second is _MISSING:
+            return True
+        return SettingsManager._make_json_safe(first) == SettingsManager._make_json_safe(second)
+
+    @classmethod
+    def _diff_dicts(
+        cls,
+        prefix: str,
+        old_value: Any,
+        new_value: Any,
+        category: str,
+    ) -> List[SettingsChange]:
+        changes: List[SettingsChange] = []
+
+        if isinstance(old_value, dict) and isinstance(new_value, dict):
+            keys = set(old_value.keys()) | set(new_value.keys())
+            for key in sorted(keys):
+                child_prefix = f"{prefix}.{key}" if prefix else key
+                child_old = old_value.get(key, _MISSING)
+                child_new = new_value.get(key, _MISSING)
+                changes.extend(
+                    cls._diff_dicts(child_prefix, child_old, child_new, category)
+                )
+            return changes
+
+        if old_value is _MISSING and new_value is _MISSING:
+            return changes
+
+        if old_value is _MISSING:
+            changes.append(
+                SettingsChange(
+                    path=prefix,
+                    category=category,
+                    change_type="added",
+                    old_value=None,
+                    new_value=cls._make_json_safe(new_value),
+                    timestamp=datetime.utcnow().isoformat(),
+                )
+            )
+            return changes
+
+        if new_value is _MISSING:
+            changes.append(
+                SettingsChange(
+                    path=prefix,
+                    category=category,
+                    change_type="removed",
+                    old_value=cls._make_json_safe(old_value),
+                    new_value=None,
+                    timestamp=datetime.utcnow().isoformat(),
+                )
+            )
+            return changes
+
+        if cls._values_equal(old_value, new_value):
+            return changes
+
+        changes.append(
+            SettingsChange(
+                path=prefix,
+                category=category,
+                change_type="updated",
+                old_value=cls._make_json_safe(old_value),
+                new_value=cls._make_json_safe(new_value),
+                timestamp=datetime.utcnow().isoformat(),
+            )
+        )
+        return changes
 
     def _resolve_settings_file(self, settings_file: str | Path) -> Path:
         """Определить корректный путь к файлу настроек.
@@ -629,6 +863,7 @@ class SettingsManager:
         """
         keys = path.split(".")
         current = self._current
+        old_value = self._get_nested_value(self._current, keys)
 
         # Создаем промежуточные словари если нужно
         for key in keys[:-1]:
@@ -639,11 +874,16 @@ class SettingsManager:
         # Устанавливаем значение
         current[keys[-1]] = value
 
-        # Автосохранение
+        saved = True
         if auto_save:
-            return self.save()
+            saved = self.save()
 
-        return True
+        if saved:
+            self._emit_setting_change(path, keys[0], old_value, copy.deepcopy(value))
+            if keys and keys[0] == "diagnostics":
+                self._sync_signal_trace_config()
+
+        return saved
 
     def get_category(self, category: str) -> Dict[str, Any]:
         """
@@ -672,12 +912,23 @@ class SettingsManager:
         Returns:
             bool: True если успешно
         """
+        previous = self._current.get(category, _MISSING)
+        previous_copy = copy.deepcopy(previous) if previous is not _MISSING else _MISSING
+
         self._current[category] = data
 
+        saved = True
         if auto_save:
-            return self.save()
+            saved = self.save()
 
-        return True
+        if saved:
+            new_copy = copy.deepcopy(data)
+            changes = self._diff_dicts(category, previous_copy, new_copy, category)
+            self._emit_batch_changes(changes)
+            if category == "diagnostics":
+                self._sync_signal_trace_config()
+
+        return saved
 
     def reset_to_defaults(self, category: Optional[str] = None) -> bool:
         """
@@ -689,17 +940,43 @@ class SettingsManager:
         Returns:
             bool: True если успешно
         """
-        if category is None:
-            # Сброс всех настроек
-            self._current = copy.deepcopy(self._defaults_snapshot)
-        else:
-            # Сброс конкретной категории
-            if category in self._defaults_snapshot:
-                self._current[category] = copy.deepcopy(
-                    self._defaults_snapshot[category]
-                )
+        changes: List[SettingsChange] = []
 
-        return self.save()
+        if category is None:
+            before = copy.deepcopy(self._current)
+            self._current = copy.deepcopy(self._defaults_snapshot)
+            saved = self.save()
+            if saved:
+                keys = set(before.keys()) | set(self._current.keys())
+                for key in sorted(keys):
+                    old_val = before.get(key, _MISSING)
+                    new_val = self._current.get(key, _MISSING)
+                    if new_val is not _MISSING:
+                        new_val = copy.deepcopy(new_val)
+                    changes.extend(self._diff_dicts(key, old_val, new_val, key))
+                self._emit_batch_changes(changes)
+                self._sync_signal_trace_config()
+            return saved
+
+        if category in self._defaults_snapshot:
+            before = self._current.get(category, _MISSING)
+            before_copy = copy.deepcopy(before) if before is not _MISSING else _MISSING
+            restored = copy.deepcopy(self._defaults_snapshot[category])
+            self._current[category] = restored
+            saved = self.save()
+            if saved:
+                changes = self._diff_dicts(
+                    category,
+                    before_copy,
+                    copy.deepcopy(restored),
+                    category,
+                )
+                self._emit_batch_changes(changes)
+                if category == "diagnostics":
+                    self._sync_signal_trace_config()
+            return saved
+
+        return True
 
     def save_current_as_defaults(self, category: Optional[str] = None) -> bool:
         """
@@ -713,19 +990,47 @@ class SettingsManager:
             bool: True если успешно
         """
         if category is None:
-            # Сохраняем все текущие настройки как дефолты
+            before = copy.deepcopy(self._defaults_snapshot)
             self._defaults_snapshot = copy.deepcopy(self._current)
-        else:
-            # Сохраняем конкретную категорию
-            if category in self._current:
-                self._defaults_snapshot[category] = copy.deepcopy(
-                    self._current[category]
-                )
+            saved = self.save()
+            if saved:
+                keys = set(before.keys()) | set(self._defaults_snapshot.keys())
+                changes: List[SettingsChange] = []
+                for key in sorted(keys):
+                    old_val = before.get(key, _MISSING)
+                    new_val = self._defaults_snapshot.get(key, _MISSING)
+                    if new_val is not _MISSING:
+                        new_val = copy.deepcopy(new_val)
+                    changes.extend(
+                        self._diff_dicts(f"defaults.{key}", old_val, new_val, "defaults")
+                    )
+                self._emit_batch_changes(changes)
+                self._sync_signal_trace_config()
+                self.logger.info("Current settings saved as defaults (category=all)")
+            return saved
 
-        self.logger.info(
-            f"Current settings saved as defaults (category={category or 'all'})"
-        )
-        return self.save()
+        if category in self._current:
+            before = self._defaults_snapshot.get(category, _MISSING)
+            before_copy = copy.deepcopy(before) if before is not _MISSING else _MISSING
+            updated = copy.deepcopy(self._current[category])
+            self._defaults_snapshot[category] = updated
+            saved = self.save()
+            if saved:
+                changes = self._diff_dicts(
+                    f"defaults.{category}",
+                    before_copy,
+                    copy.deepcopy(updated),
+                    "defaults",
+                )
+                self._emit_batch_changes(changes)
+                if category == "diagnostics":
+                    self._sync_signal_trace_config()
+                self.logger.info(
+                    "Current settings saved as defaults (category=%s)", category
+                )
+            return saved
+
+        return True
 
     def get_all_current(self) -> Dict[str, Any]:
         """
@@ -1140,8 +1445,19 @@ class SettingsManager:
         return self._schema_version
 
 
-# Singleton instance
+# Singleton instances
+_settings_event_bus: Optional[SettingsEventBus] = None
 _settings_manager: Optional[SettingsManager] = None
+
+
+def get_settings_event_bus() -> SettingsEventBus:
+    global _settings_event_bus
+    if _settings_event_bus is None:
+        try:
+            _settings_event_bus = SettingsEventBus()  # type: ignore[arg-type]
+        except Exception:
+            _settings_event_bus = SettingsEventBus()  # в headless всё равно сработает
+    return _settings_event_bus
 
 
 def get_settings_manager() -> SettingsManager:
@@ -1157,3 +1473,10 @@ def get_settings_manager() -> SettingsManager:
         _settings_manager = SettingsManager()
 
     return _settings_manager
+
+
+def _reset_settings_singletons_for_tests() -> None:
+    """Сброс синглтонов для изолированных юнит-тестов."""
+    global _settings_manager, _settings_event_bus
+    _settings_manager = None
+    _settings_event_bus = None

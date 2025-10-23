@@ -79,7 +79,93 @@ property real userPhaseGlobal: animationDefaults && animationDefaults.phase_glob
  property real modelRoughness: sceneDefaults && sceneDefaults.model_roughness !== undefined ? Number(sceneDefaults.model_roughness) : 0.35
     property real modelMetalness: sceneDefaults && sceneDefaults.model_metalness !== undefined ? Number(sceneDefaults.model_metalness) : 0.9
 
-  onUserAmplitudeChanged: emitConfigChange("graphics.animation", { amplitude: Number(userAmplitude) })
+ Component.onCompleted: {
+ if (signalTrace && signalTrace.registerSubscription) {
+ signalTrace.registerSubscription("settings.settingChanged", "main.qml", "qml")
+ signalTrace.registerSubscription("settings.settingsBatchUpdated", "main.qml", "qml")
+ }
+ }
+
+ Connections {
+ target: settingsEvents
+ function onSettingChanged(change) {
+ if (signalTrace && signalTrace.recordObservation) {
+ signalTrace.recordObservation("settings.settingChanged", change, "qml")
+ }
+ }
+
+ function onSettingsBatchUpdated(payload) {
+ if (signalTrace && signalTrace.recordObservation) {
+ signalTrace.recordObservation("settings.settingsBatchUpdated", payload, "qml")
+ }
+ }
+ }
+
+ Rectangle {
+ id: signalTraceOverlay
+ anchors.top: parent.top
+ anchors.right: parent.right
+ anchors.margins:12
+ width: Math.min(parent.width,320)
+ color: "#B0202020"
+ radius:8
+ visible: signalTrace && signalTrace.overlayEnabled
+ border.color: "#40ffffff"
+ border.width:1
+ z:1000
+
+ Column {
+ anchors.fill: parent
+ anchors.margins:12
+ spacing:6
+
+ Text {
+ text: "Signal trace"
+ color: "#ffffff"
+ font.pixelSize:14
+ font.bold: true
+ }
+
+ Repeater {
+ id: signalTraceRepeater
+ model: signalTrace ? signalTrace.subscriptions : []
+ delegate: Column {
+ width: parent ? parent.width : signalTraceOverlay.width
+ spacing:2
+
+ Text {
+ text: modelData.signal + " (" + modelData.listenerCount + ")"
+ color: "#f0f0f0"
+ font.pixelSize:12
+ font.bold: true
+ elide: Text.ElideRight
+ }
+
+ Text {
+ text: modelData.lastTimestamp ? modelData.lastTimestamp : "–"
+ color: "#bbbbbb"
+ font.pixelSize:10
+ }
+
+ Text {
+ text: modelData.lastValue ? JSON.stringify(modelData.lastValue).slice(0,160) : "Нет данных"
+ color: "#d0d0d0"
+ font.pixelSize:11
+ wrapMode: Text.Wrap
+ }
+
+ Rectangle {
+ width: parent ? parent.width : signalTraceOverlay.width
+ height:1
+ color: "#30ffffff"
+ visible: index < signalTraceRepeater.count -1
+ }
+ }
+ }
+ }
+ }
+
+ onUserAmplitudeChanged: emitConfigChange("graphics.animation", { amplitude: Number(userAmplitude) })
     onUserFrequencyChanged: emitConfigChange("graphics.animation", { frequency: Number(userFrequency) })
     onUserPhaseGlobalChanged: emitConfigChange("graphics.animation", { phase_global: Number(userPhaseGlobal) })
     onUserPhaseFLChanged: emitConfigChange("graphics.animation", { phase_fl: Number(userPhaseFL) })
@@ -477,103 +563,3 @@ return numeric * sceneScaleFactor;
  pistonPositions = pist;
  }
  if (params.lines) {
- var lines = params.lines;
- var updated = Object.assign({}, linePressures || {});
- for (var name in lines) {
- if (!Object.prototype.hasOwnProperty.call(lines, name)) continue;
- var ln = lines[name];
- if (ln && ln.pressure !== undefined) updated[name] = Number(ln.pressure);
- }
- linePressures = updated;
- }
- if (params.tank && params.tank.pressure !== undefined) tankPressure = Number(params.tank.pressure);
- }
-
- function applySimulationUpdates(params) {
- if (!params) return;
- // pass-through convenience wrapper to update animation+3D in one call
- if (params.animation) applyAnimationUpdates(params.animation);
- if (params.threeD) apply3DUpdates(params.threeD);
- }
-
- function applyRenderSettings(params) {
- }
-
- // ---------------------------------------------
- // IBL Loader (загрузка HDR probe)
- // ---------------------------------------------
- IblProbeLoader {
- id: iblLoader
- }
-
- // ---------------------------------------------
- //3D сцена + ExtendedSceneEnvironment с IBL
- // ---------------------------------------------
- View3D {
- id: view3d
- anchors.fill: parent
-
- environment: SceneEnvironmentController {
- id: sceneEnvCtl
- iblProbe: iblLoader.probe
- backgroundColor: root.defaultClearColor
- }
-
- PerspectiveCamera {
- id: camera
- position: Qt.vector3d(0,0, toSceneLength(0.6))
- fieldOfView:60
- clipNear: toSceneLength(0.001)
- clipFar: toSceneLength(50)
- }
-
- DirectionalLight {
- id: keyLight
- eulerRotation.x: -30
- eulerRotation.y: -30
- brightness:1.6
- color: "#ffffff"
- }
-
- // === Рама (центральная балка) ===
- Model {
- id: mainFrame
- position: Qt.vector3d(0, toSceneLength(root.userBeamSize)/2, toSceneLength(root.userFrameLength)/2)
- source: "#Cube"
- scale: Qt.vector3d(toSceneScale(root.userTrackWidth), toSceneScale(root.userBeamSize), toSceneScale(root.userFrameLength))
- materials: PrincipledMaterial { baseColor: "#4a4a4a"; metalness:0.85; roughness:0.3 }
- }
-
- // === Рычаги ===
- Model { id: frontLeftLever; position: Qt.vector3d(-toSceneLength(root.userTrackWidth)/2, toSceneLength(root.userBeamSize), toSceneLength(root.userFrameToPivot)); source: "#Cube"; scale: Qt.vector3d(toSceneScale(root.userLeverLength),8,8); eulerRotation: Qt.vector3d(0,0, root.fl_angle); materials: PrincipledMaterial { baseColor: root.modelBaseColor; metalness: root.modelMetalness; roughness: root.modelRoughness } }
- Model { id: frontRightLever; position: Qt.vector3d( toSceneLength(root.userTrackWidth)/2, toSceneLength(root.userBeamSize), toSceneLength(root.userFrameToPivot)); source: "#Cube"; scale: Qt.vector3d(toSceneScale(root.userLeverLength),8,8); eulerRotation: Qt.vector3d(0,0, root.fr_angle); materials: PrincipledMaterial { baseColor: root.modelBaseColor; metalness: root.modelMetalness; roughness: root.modelRoughness } }
- Model { id: rearLeftLever; position: Qt.vector3d(-toSceneLength(root.userTrackWidth)/2, toSceneLength(root.userBeamSize), toSceneLength(root.userFrameLength - root.userFrameToPivot)); source: "#Cube"; scale: Qt.vector3d(toSceneScale(root.userLeverLength),8,8); eulerRotation: Qt.vector3d(0,0, root.rl_angle); materials: PrincipledMaterial { baseColor: root.modelBaseColor; metalness: root.modelMetalness; roughness: root.modelRoughness } }
- Model { id: rearRightLever; position: Qt.vector3d( toSceneLength(root.userTrackWidth)/2, toSceneLength(root.userBeamSize), toSceneLength(root.userFrameLength - root.userFrameToPivot)); source: "#Cube"; scale: Qt.vector3d(toSceneScale(root.userLeverLength),8,8); eulerRotation: Qt.vector3d(0,0, root.rr_angle); materials: PrincipledMaterial { baseColor: root.modelBaseColor; metalness: root.modelMetalness; roughness: root.modelRoughness } }
-
- // === Простой цилиндр (визуальная верификация) ===
- Model {
- id: cylinderFL
- position: Qt.vector3d(-toSceneLength(root.userTrackWidth)/4, toSceneLength(root.userBeamSize) + toSceneLength(root.userFrameHeight)/2, toSceneLength(root.userFrameToPivot))
- source: "#Cylinder"
- scale: Qt.vector3d(toSceneScale(root.userBoreHead), toSceneScale(root.userCylinderLength), toSceneScale(root.userBoreHead))
- materials: PrincipledMaterial { baseColor: "#bcd7ff"; metalness:0.0; roughness:0.08; transmissionFactor:0.6; opacity:0.8; indexOfRefraction:1.52; alphaMode: PrincipledMaterial.Blend }
- }
- }
-
- // Принудительное первичное применение категорий (без данных)
- Component.onCompleted: {
-        applyBatchedUpdates({
-   geometry: true,
-         camera: true,
-         lighting: true,
-     environment: { backgroundColor: defaultClearColor },
-    quality: true,
-       materials: { baseColor: modelBaseColor, roughness: modelRoughness, metalness: modelMetalness },
- effects: true,
-            animation: { isRunning: isRunning, amplitude: userAmplitude, frequency: userFrequency },
-threeD: true,
-         render: true,
-        });
-  feedbackReady = true;
-    }
-}
