@@ -6,10 +6,10 @@
 
 | Software | Version | Purpose |
 |----------|---------|---------|
-| Python | 3.11+ | Runtime |
-| Git | 2.x | Version control |
+| Python |3.13.x | Runtime |
+| Git |2.x | Version control |
 | Visual Studio Code | Latest | IDE (recommended) |
-| Qt Creator | 6.x | QML editing (optional) |
+| Qt Creator |6.x | QML editing (optional) |
 
 ---
 
@@ -17,14 +17,14 @@
 
 ### **1. Clone Repository**
 
-```bash
+```sh
 git clone https://github.com/barmaleii77-hub/PneumoStabSim-Professional.git
 cd PneumoStabSim-Professional
 ```
 
 ### **2. Create Virtual Environment**
 
-```bash
+```sh
 # Windows
 python -m venv venv
 venv\Scripts\activate
@@ -36,73 +36,98 @@ source venv/bin/activate
 
 ### **3. Install Dependencies**
 
-```bash
+```sh
 pip install --upgrade pip
 pip install -r requirements.txt
 ```
 
 **Core Dependencies:**
+
 ```
-PySide6==6.6.1          # Qt bindings
-PySide6-Addons==6.6.1   # Qt Quick 3D
-numpy==1.24.3           # Math operations
-scipy==1.11.3           # Physics integration
+PySide6==6.10.0 # Qt6.10 bindings
+PySide6-Addons==6.10.0 # Qt Quick3D tooling
+numpy==1.26.4 # Math operations
+scipy==1.11.4 # Physics integration
 ```
 
 ### **4. Verify Installation**
 
-```bash
+```sh
 # Check Python version
-python --version  # Should be 3.11+
+python --version # Should be3.13.x
 
 # Check PySide6
 python -c "from PySide6 import QtCore; print(QtCore.qVersion())"
-# Should print: 6.6.x
+# Should print:6.10.x
 
-# Check Qt Quick 3D
+# Check Qt Quick3D
 python -c "from PySide6.QtQuick3D import QQuick3DGeometry; print('OK')"
-# Should print: OK
+# Should print: OK (Qt6.10 runtime)
 ```
 
 ---
 
-## ?? Project Structure Deep Dive
+## 🎯 IDE Integration (Visual Studio Code & Visual Studio2022)
+
+### VS Code quick start
+
+1. **Open workspace** – launch `PneumoStabSim.code-workspace`. It pins the interpreter to `${workspaceFolder}/.venv` (Python3.13) and exports Qt6.10 paths for both Windows and Linux terminals.
+2. **Verify interpreter** – the status bar should show `.venv (3.13)`. If not, run the command palette (`Ctrl+Shift+P`) → *Python: Select Interpreter* → choose the `.venv` entry.
+3. **Qt tooling** – install recommended extensions when prompted (PySide6/Qt language server, Python tooling). `qt.qmlls` automatically resolves through the virtual environment once `PySide6`6.10 is installed.
+4. **Launch profiles** – use the updated `.vscode/launch.json` entries:
+ - *App: PneumoStabSim (Qt6.10)* – regular GUI start with Qt variables.
+ - *Tests: Smoke suite (pytest -k smoke)* – executes the reduced regression suite.
+ - *Diagnostics: QML asset scan* – runs `qml_diagnostic.py` for quick asset sanity checks.
+
+### Visual Studio2022 (Python workload)
+
+1. Open `PneumoStabSim.slnx`. The solution references both `.pyproj` files and the shared launch profiles in `Properties/launchSettings.json`.
+2. Visual Studio automatically binds to `.venv\Scripts\python.exe` (Python3.13). If the environment is missing, create it via the *Python Environments* panel using the3.13 base interpreter.
+3. Use the **Debug Targets** dropdown to select:
+ - *PneumoStabSim (App)* – launches `app.py` with Qt6.10 paths.
+ - *Smoke tests (pytest -k smoke)* – console smoke validations.
+ - *QML diagnostics* – runs the project level QML check.
+4. The `.pyproj` files export `QML*_PATH` and `QT_PLUGIN_PATH` so PySide66.10 assets resolve without manual tweaks.
+
+---
+
+## ??? Project Structure Deep Dive
 
 ### **Source Code Organization**
 
 ```
 src/
-??? common/               # Shared utilities (NO business logic!)
-?   ??? logging.py       # Centralized logging setup
-?   ??? csv_export.py    # Data export utilities
-?   ??? config.py        # Configuration management
+??? common/ # Shared utilities (NO business logic!)
+? ??? logging.py # Centralized logging setup
+? ??? csv_export.py # Data export utilities
+? ??? config.py # Configuration management
 ?
-??? core/                # Domain primitives (pure Python, no Qt!)
-?   ??? geometry.py      # FrameConfig, basic types
+??? core/ # Domain primitives (pure Python, no Qt!)
+? ??? geometry.py # FrameConfig, basic types
 ?
-??? mechanics/           # Physics calculations (pure functions)
-?   ??? kinematics.py   # CylinderKinematics class
-?   ??? dynamics.py     # RigidBody3DOF (future)
+??? mechanics/ # Physics calculations (pure functions)
+? ??? kinematics.py # CylinderKinematics class
+? ??? dynamics.py # RigidBody3DOF (future)
 ?
-??? physics/            # ODE integration (SciPy-based)
-?   ??? odes.py        # Right-hand side functions (f_rhs)
-?   ??? integrator.py  # solve_ivp wrapper
+??? physics/ # ODE integration (SciPy-based)
+? ??? odes.py # Right-hand side functions (f_rhs)
+? ??? integrator.py # solve_ivp wrapper
 ?
-??? pneumo/            # Pneumatic gas system
-?   ??? enums.py       # Wheel, Line, ThermoMode enums
-?   ??? network.py     # GasNetwork class
-?   ??? system.py      # PneumaticSystem class
-?   ??? sim_time.py    # Time stepping utilities
+??? pneumo/ # Pneumatic gas system
+? ??? enums.py # Wheel, Line, ThermoMode enums
+? ??? network.py # GasNetwork class
+? ??? system.py # PneumaticSystem class
+? ??? sim_time.py # Time stepping utilities
 ?
-??? road/              # Road excitation generation
-?   ??? engine.py      # RoadInput class
+??? road/ # Road excitation generation
+? ??? engine.py # RoadInput class
 ?
-??? runtime/           # Simulation runtime (threading!)
-?   ??? state.py       # StateSnapshot, StateBus
-?   ??? sync.py        # LatestOnlyQueue, thread safety
-?   ??? sim_loop.py    # PhysicsWorker, SimulationManager
+??? runtime/ # Simulation runtime (threading!)
+? ??? state.py # StateSnapshot, StateBus
+? ??? sync.py # LatestOnlyQueue, thread safety
+? ??? sim_loop.py # PhysicsWorker, SimulationManager
 ?
-??? ui/                # User interface (Qt-dependent)
+??? ui/ # User interface (Qt-dependent)
     ??? main_window.py         # MainWindow (QMainWindow)
     ??? geometry_bridge.py     # 2D?3D coordinate converter
     ??? custom_geometry.py     # QQuick3DGeometry subclasses
@@ -234,7 +259,7 @@ property vector3d correct: Qt.vector3d(1.0, 2.0, 3.0)
    /??????????\  - Module interactions
   /????????????\
  /??????????????\ Unit Tests (many)
-/????????????????\ - Individual functions
+ /????????????????\ - Individual functions
 ```
 
 ### **Unit Tests**

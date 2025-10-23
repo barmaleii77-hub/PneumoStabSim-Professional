@@ -2,7 +2,7 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "F5: PneumoStabSim (Главный)",
+            "name": "App: PneumoStabSim (Qt6.10)",
             "type": "debugpy",
             "request": "launch",
             "program": "${workspaceFolder}/app.py",
@@ -18,96 +18,21 @@
             "showReturnValue": true,
             "redirectOutput": true,
             "presentation": {
-                "group": "main",
+                "group": "application",
                 "order": 1
             }
         },
         {
-            "name": "F5: Verbose (подробные логи)",
-            "type": "debugpy",
-            "request": "launch",
-            "program": "${workspaceFolder}/app.py",
-            "args": ["--verbose"],
-            "console": "integratedTerminal",
-            "cwd": "${workspaceFolder}",
-            "envFile": "${workspaceFolder}/.env",
-            "env": {
-                "PYTHONPATH": "${workspaceFolder}${pathSeparator}${workspaceFolder}/src"
-            },
-            "justMyCode": false,
-            "stopOnEntry": false,
-            "showReturnValue": true,
-            "redirectOutput": true,
-            "presentation": {
-                "group": "main",
-                "order": 2
-            }
-        },
-        {
-            "name": "F5: Test Mode (автозакрытие 5с)",
-            "type": "debugpy",
-            "request": "launch",
-            "program": "${workspaceFolder}/app.py",
-            "args": ["--test-mode"],
-            "console": "integratedTerminal",
-            "cwd": "${workspaceFolder}",
-            "envFile": "${workspaceFolder}/.env",
-            "env": {
-                "PYTHONPATH": "${workspaceFolder}${pathSeparator}${workspaceFolder}/src"
-            },
-            "justMyCode": false,
-            "stopOnEntry": false,
-            "presentation": {
-                "group": "test",
-                "order": 1
-            }
-        },
-        {
-            "name": "F5: Verbose + Test (5с)",
-            "type": "debugpy",
-            "request": "launch",
-            "program": "${workspaceFolder}/app.py",
-            "args": ["--verbose", "--test-mode"],
-            "console": "integratedTerminal",
-            "cwd": "${workspaceFolder}",
-            "envFile": "${workspaceFolder}/.env",
-            "env": {
-                "PYTHONPATH": "${workspaceFolder}${pathSeparator}${workspaceFolder}/src"
-            },
-            "justMyCode": false,
-            "stopOnEntry": false,
-            "presentation": {
-                "group": "test",
-                "order": 2
-            }
-        },
-        {
-            "name": "F5: Current File (текущий .py)",
-            "type": "debugpy",
-            "request": "launch",
-            "program": "${file}",
-            "console": "integratedTerminal",
-            "cwd": "${workspaceFolder}",
-            "envFile": "${workspaceFolder}/.env",
-            "env": {
-                "PYTHONPATH": "${workspaceFolder}${pathSeparator}${workspaceFolder}/src"
-            },
-            "justMyCode": false,
-            "presentation": {
-                "group": "utility",
-                "order": 1
-            }
-        },
-        {
-            "name": "F5: Run Tests (pytest)",
+            "name": "Tests: Smoke suite (pytest -k smoke)",
             "type": "debugpy",
             "request": "launch",
             "module": "pytest",
             "args": [
-                "tests/",
+                "tests",
+                "-k",
+                "smoke",
                 "-v",
-                "--tb=short",
-                "--color=yes"
+                "--tb=short"
             ],
             "console": "integratedTerminal",
             "cwd": "${workspaceFolder}",
@@ -116,9 +41,29 @@
                 "PYTHONPATH": "${workspaceFolder}${pathSeparator}${workspaceFolder}/src"
             },
             "justMyCode": false,
+            "stopOnEntry": false,
             "presentation": {
-                "group": "test",
-                "order": 3
+                "group": "quality",
+                "order": 1
+            }
+        },
+        {
+            "name": "Diagnostics: QML asset scan",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/qml_diagnostic.py",
+            "args": [],
+            "console": "integratedTerminal",
+            "cwd": "${workspaceFolder}",
+            "envFile": "${workspaceFolder}/.env",
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}${pathSeparator}${workspaceFolder}/src"
+            },
+            "justMyCode": true,
+            "stopOnEntry": false,
+            "presentation": {
+                "group": "quality",
+                "order": 2
             }
         }
     ]
