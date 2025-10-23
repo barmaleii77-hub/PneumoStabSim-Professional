@@ -537,7 +537,7 @@
  "oit": "none"
  }
  }
- },
+},
  "defaults_snapshot": {
  "geometry": {
  "wheelbase":2.0,
@@ -1072,7 +1072,7 @@
  "oit": "none"
  }
  }
- },
+},
  "metadata": {
  "version": "4.9.5",
  "last_modified": "2025-10-22T14:29:45.674859",

@@ -1,1 +1,152 @@
-{...}
+{
+ "$schema": "http://json-schema.org/draft-07/schema#",
+ "title": "App Settings Schema",
+ "type": "object",
+ "properties": {
+ "current": {
+ "type": "object",
+ "properties": {
+ "geometry": {
+ "type": "object",
+ "properties": {
+ "wheelbase": { "type": "number" },
+ "track": { "type": "number" },
+ "frame_to_pivot": { "type": "number" },
+ "lever_length": { "type": "number" },
+ "rod_position": { "type": "number" },
+ "cylinder_length": { "type": "number" },
+ "cyl_diam_m": { "type": "number" },
+ "stroke_m": { "type": "number" },
+ "dead_gap_m": { "type": "number" },
+ "rod_diameter_m": { "type": "number" },
+ "piston_rod_length_m": { "type": "number" },
+ "piston_thickness_m": { "type": "number" },
+ "interference_check": { "type": "boolean" },
+ "link_rod_diameters": { "type": "boolean" },
+ "frame_height_m": { "type": "number" },
+ "frame_beam_size_m": { "type": "number" },
+ "tail_mount_offset_m": { "type": "number" },
+ "joint_tail_scale": { "type": "number" },
+ "joint_arm_scale": { "type": "number" },
+ "joint_rod_scale": { "type": "number" },
+ "frame_length_m": { "type": "number" },
+ "lever_length_m": { "type": "number" },
+ "cylinder_body_length_m": { "type": "number" },
+ "cylinder_cap_length_m": { "type": "number" }
+ },
+ "required": [
+ "wheelbase", "track", "frame_to_pivot", "lever_length", "rod_position", "cylinder_length", "cyl_diam_m", "stroke_m", "dead_gap_m", "rod_diameter_m", "piston_rod_length_m", "piston_thickness_m", "interference_check", "link_rod_diameters", "frame_height_m", "frame_beam_size_m", "tail_mount_offset_m", "joint_tail_scale", "joint_arm_scale", "joint_rod_scale", "frame_length_m", "lever_length_m", "cylinder_body_length_m", "cylinder_cap_length_m"
+ ],
+ "additionalProperties": false
+ },
+ "pneumatic": {
+ "type": "object",
+ "properties": {
+ "volume_mode": { "type": "string" },
+ "receiver_volume": { "type": "number" },
+ "receiver_diameter": { "type": "number" },
+ "receiver_length": { "type": "number" },
+ "cv_atmo_dp": { "type": "number" },
+ "cv_tank_dp": { "type": "number" },
+ "cv_atmo_dia": { "type": "number" },
+ "cv_tank_dia": { "type": "number" },
+ "relief_min_pressure": { "type": "number" },
+ "relief_stiff_pressure": { "type": "number" },
+ "relief_safety_pressure": { "type": "number" },
+ "throttle_min_dia": { "type": "number" },
+ "throttle_stiff_dia": { "type": "number" },
+ "atmo_temp": { "type": "number" },
+ "thermo_mode": { "type": "string" },
+ "master_isolation_open": { "type": "boolean" },
+ "link_rod_dia": { "type": "boolean" },
+ "pressure_units": { "type": "string" },
+ "receiver_volume_limits": {
+ "type": "object",
+ "properties": {
+ "min_m3": { "type": "number" },
+ "max_m3": { "type": "number" }
+ },
+ "required": ["min_m3", "max_m3"],
+ "additionalProperties": false
+ }
+ },
+ "required": [
+ "volume_mode", "receiver_volume", "receiver_diameter", "receiver_length", "cv_atmo_dp", "cv_tank_dp", "cv_atmo_dia", "cv_tank_dia", "relief_min_pressure", "relief_stiff_pressure", "relief_safety_pressure", "throttle_min_dia", "throttle_stiff_dia", "atmo_temp", "thermo_mode", "master_isolation_open", "link_rod_dia", "pressure_units", "receiver_volume_limits"
+ ],
+ "additionalProperties": false
+ },
+ "modes": {
+ "type": "object",
+ "properties": {
+ "sim_type": { "type": "string" },
+ "thermo_mode": { "type": "string" },
+ "mode_preset": { "type": "string" },
+ "amplitude": { "type": "number" },
+ "frequency": { "type": "number" },
+ "phase": { "type": "number" },
+ "lf_phase": { "type": "number" },
+ "rf_phase": { "type": "number" },
+ "lr_phase": { "type": "number" },
+ "rr_phase": { "type": "number" },
+ "physics": {
+ "type": "object",
+ "properties": {
+ "include_springs": { "type": "boolean" },
+ "include_dampers": { "type": "boolean" },
+ "include_pneumatics": { "type": "boolean" }
+ },
+ "required": ["include_springs", "include_dampers", "include_pneumatics"],
+ "additionalProperties": false
+ }
+ },
+ "required": ["sim_type", "thermo_mode", "mode_preset", "amplitude", "frequency", "phase", "lf_phase", "rf_phase", "lr_phase", "rr_phase", "physics"],
+ "additionalProperties": false
+ },
+ "graphics": {
+ "type": "object",
+ "properties": {
+ "lighting": { "type": "object" },
+ "environment": { "type": "object" },
+ "quality": { "type": "object" },
+ "camera": { "type": "object" },
+ "materials": { "type": "object" },
+ "effects": { "type": "object" }
+ },
+ "required": ["lighting", "environment", "quality", "camera", "materials", "effects"],
+ "additionalProperties": false
+ },
+ "simulation": {
+ "type": "object",
+ "properties": {
+ "physics_dt": { "type": "number" },
+ "render_vsync_hz": { "type": "number" },
+ "max_steps_per_frame": { "type": "number" },
+ "max_frame_time": { "type": "number" }
+ },
+ "required": ["physics_dt", "render_vsync_hz", "max_steps_per_frame", "max_frame_time"],
+ "additionalProperties": false
+ },
+ "quality_presets": { "type": "object" }
+ },
+ "required": ["geometry", "pneumatic", "modes", "graphics", "simulation", "quality_presets"],
+ "additionalProperties": false
+ },
+ "defaults_snapshot": { "type": "object" },
+ "metadata": {
+ "type": "object",
+ "properties": {
+ "version": { "type": "string" },
+ "last_modified": { "type": "string" },
+ "migrated_from": { "type": "string" },
+ "migration_date": { "type": "string" },
+ "total_parameters": { "type": "number" },
+ "description": { "type": "string" },
+ "units_version": { "type": "string" }
+ },
+ "required": ["version", "last_modified", "migrated_from", "migration_date", "total_parameters", "description", "units_version"],
+ "additionalProperties": false
+ }
+ },
+ "required": ["current", "defaults_snapshot", "metadata"],
+ "additionalProperties": false
+}

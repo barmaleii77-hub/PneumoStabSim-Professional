@@ -1,184 +1,67 @@
-# CI/CD Configuration for PneumoStabSim
+# CI/CD PneumoStabSim Professional
 
-This document describes the Continuous Integration and Continuous Deployment (CI/CD) setup for the project.
+Документ описывает актуальную конфигурацию GitHub Actions и локальные проверки качества.
 
-## ?? Automated Workflows
+##1. Общая схема
 
-### GitHub Actions
+- Файл воркфлоу: `.github/workflows/ci-cd.yml`
+- Триггеры: `push` и `pull_request` в ветки `master`, `develop`
+- Матрица тестов: `ubuntu-latest`, `windows-latest`, `macos-latest` × Python3.13
 
-The project uses GitHub Actions for automated testing and quality checks.
+##2. Этапы конвейера
 
-**Workflow File:** `.github/workflows/ci-cd.yml`
+###2.1 Test Suite
+- Устанавливает зависимости `pip install .[dev]`
+- Настраивает Qt переменные окружения (offscreen-рендеринг)
+- Запускает `pytest` для `tests/unit`, `tests/integration`, `tests/system`
+- Собирает и загружает покрытие в Codecov (coverage.xml)
 
-## ?? Test Pipeline
+###2.2 Lint
+- Проверка `flake8` (ошибки и статистика)
+- Контроль форматирования `black --check`
+- Статический анализ `mypy`
+- **Новый шаг**: `python tools/audit_config.py --update-report` с последующей проверкой `git diff` для `reports/config_audit_report.md`
 
-### On Every Push/PR
+###2.3 Build Documentation
+- Установка `pip install .[docs]`
+- Сборка Sphinx: `sphinx-build -b html docs docs/_build/html`
+- Публикация артефакта с HTML-документацией
 
-1. **Unit Tests**
-   - Run on Ubuntu, Windows, macOS
-   - Python versions: 3.11, 3.12, 3.13
-   - Coverage reports uploaded to Codecov
+###2.4 Release (только push в master)
+- Подготовка черновика релиза и тэга `v2.0.0`
 
-2. **Integration Tests**
-   - Test component interactions
-   - Verify Python?QML communication
+###2.5 Check Forbidden Artifacts
+- Запуск `python tools/check_forbidden_artifacts.py`
+- Гарантирует отсутствие случайных бинарников и временных файлов
 
-3. **Code Quality Checks**
-   - **flake8:** Code linting
-   - **black:** Code formatting
-   - **mypy:** Type checking
+##3. Локальные проверки перед коммитом
 
-### Test Matrix
+1. Установить зависимости:
+ ```bash
+ pip install -r requirements.txt
+ pip install -r requirements-dev.txt
+ ```
+2. Выполнить pre-commit (обновляет отчёт аудита автоматически):
+ ```bash
+ pre-commit run --all-files
+ ```
+3. Запустить тесты:
+ ```bash
+ pytest
+ ```
+4. Убедиться, что `reports/config_audit_report.md` не меняется при повторном запуске `python tools/audit_config.py --update-report`.
 
-```
-OS: [Ubuntu, Windows, macOS]
-Python: [3.11, 3.12, 3.13]
-Total Combinations: 9
-```
+##4. Отчёт аудита конфигурации в CI
 
-## ?? Coverage Reports
+- Если `audit_config` фиксирует расхождения, lint-джоба завершается ошибкой.
+- При обновлении конфигурации необходимо коммитить изменения в baseline, schema и hash файлах, иначе CI не пройдёт.
 
-- **Target Coverage:** 80%+
-- **Current Coverage:** Will be tracked via Codecov
-- **Reports:** Available in PR comments and workflow artifacts
+##5. Частые проблемы
 
-## ?? Local Testing
+| Симптом | Решение |
+| ------- | ------- |
+| CI падает на шаге `Audit configuration consistency` | Перезапустите `python tools/audit_config.py --update-report`, обновите baseline и SHA256, закоммитьте отчёт |
+| PySide6 не устанавливается локально | Используйте Python3.1364-bit и обновите pip (`pip install --upgrade pip`) |
+| Разный результат тестов локально и в CI | Проверьте, что активировано виртуальное окружение и установлены dev-зависимости |
 
-### Run All Tests
-```bash
-pytest
-```
-
-### Run with Coverage
-```bash
-pytest --cov=src --cov-report=html
-open htmlcov/index.html
-```
-
-### Run Specific Test Suite
-```bash
-pytest tests/unit/           # Unit tests
-pytest tests/integration/    # Integration tests
-pytest tests/system/         # System tests
-```
-
-### Run Quality Checks
-```bash
-flake8 src/
-black --check src/
-mypy src/
-```
-
-## ?? Deployment Pipeline
-
-### On Master Branch Push
-
-1. ? All tests pass
-2. ? Code quality checks pass
-3. ? Documentation builds
-4. ??? Tag created (manual release)
-
-### Release Process
-
-1. Merge to `master` branch
-2. CI/CD runs full test suite
-3. If all passes, create release tag
-4. Build distribution packages
-5. Update documentation
-
-## ?? Branch Protection
-
-### Master Branch
-
-- ? Require PR reviews
-- ? Require status checks to pass
-- ? Require up-to-date branches
-- ? Include administrators
-
-### Develop Branch
-
-- ? Require status checks to pass
-- ?? PR reviews recommended
-
-## ?? Troubleshooting CI/CD
-
-### Tests Failing Locally But Pass in CI
-
-- Check Python version
-- Verify all dependencies installed
-- Check environment variables
-
-### Tests Pass Locally But Fail in CI
-
-- Different OS/Python version
-- Missing test dependencies
-- Environment-specific issues
-
-### Coverage Below Target
-
-- Add more unit tests
-- Test edge cases
-- Remove unused code
-
-## ?? Dependencies Management
-
-### Production Dependencies
-```
-requirements.txt
-```
-
-### Development Dependencies
-```
-requirements-dev.txt
-```
-
-### Automatic Dependency Updates
-
-- Dependabot configured (future)
-- Weekly security checks
-- Auto-update minor versions
-
-## ?? Security Scanning
-
-### Planned Integrations
-
-- **Bandit:** Python security linting
-- **Safety:** Dependency vulnerability checking
-- **CodeQL:** Advanced code scanning
-
-## ?? Metrics Tracking
-
-### CI/CD Metrics
-
-- Build success rate
-- Average build time
-- Test pass rate
-- Coverage trends
-
-### Quality Metrics
-
-- Code complexity
-- Technical debt
-- Documentation coverage
-
-## ?? Future Improvements
-
-1. **Performance Benchmarks**
-   - Track simulation speed
-   - Monitor memory usage
-   - Regression detection
-
-2. **Visual Regression Testing**
-   - Screenshot comparison
-   - QML rendering tests
-
-3. **Automated Releases**
-   - Semantic versioning
-   - Changelog generation
-   - Package publishing
-
----
-
-**Last Updated:** 2025-01-05
-**CI/CD Platform:** GitHub Actions
-**Status:** ? Configured and Ready
+Документ актуален для конвейера января2025 года.
