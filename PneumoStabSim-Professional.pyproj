@@ -109,6 +109,7 @@ QT_QUICK_CONTROLS_STYLE=Basic
     <Content Include=".ruff.toml" />
     <Content Include="assets\qml\quality\Check.qml" />
     <Content Include="docs\DECISIONS_LOG.md" />
+    <Content Include="docs\RELEASE_READINESS_REPORT.md" />
     <Content Include="mypy.ini" />
     <Content Include="mypy_targets.txt" />
     <Content Include="pytest_targets.txt" />
