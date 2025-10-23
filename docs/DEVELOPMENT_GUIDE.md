@@ -611,6 +611,48 @@ def set_amplitude(self, value: float):
 
 ---
 
-**Last Updated:** 2025-01-05
+## ?? Coordination & Rituals
+
+### **Weekly Block Readiness Sync**
+- **Cadence:** Every Tuesday,11:00?12:00 (UTC+3) with the core engineering, QA, and DevOps representatives.
+- **Agenda template:**
+1. Quick review of the Kanban board focus columns for the current sprint.
+2. Readiness check per block (compatibility, signal synchronization, configuration, CI, code style).
+3. Risk register & blockers ? highlight mitigation owners.
+4. Decision recap and action item confirmation.
+- **Readiness scoring:** Track each block on a0?3 scale (0 = not started,3 = ready for release) and record changes directly on the board card checklist before the sync.
+- **Shared notes:** Publish sync minutes in the sprint folder under `docs/REPORTS/` within24 hours.
+
+| Block | Representative | Definition of Ready | Operational Signal |
+|-------|----------------|---------------------|--------------------|
+| Compatibility | Platform engineering | Automated compatibility test suite for current sprint passes on target OS/GPU matrix. | Latest nightly run in CI green and linked to sprint summary. |
+| Signal synchronization | Realtime/QML bridge | Event order verified in logging traces, no dropped/duplicated signals. | Logging dashboard snapshot attached to sprint card. |
+| Configuration | Systems team | Baseline config schemas merged, migrations executed, docs updated. | `config` repo diff reviewed + schema validation report. |
+| CI | DevOps | Pipelines stable (<2% flaky jobs), recovery docs validated. | Pipeline health widget exported before sync. |
+| Code style | Tech leads | Linters & formatters clean, review checklist followed. | Latest lint report artifact attached to sprint milestone. |
+
+### **Kanban Board Workflow**
+- Use the GitHub **Projects/Boards** workspace `Stability Delivery` with the following epics:
+ - `EPIC: Compatibility Readiness`
+ - `EPIC: Signal Synchronization`
+ - `EPIC: Configuration Lifecycle`
+ - `EPIC: CI Excellence`
+ - `EPIC: Code Style & Reviews`
+- Each epic owns a swimlane with `Backlog`, `Sprint <N>`, `In Progress`, `Ready for Sync`, `Done` columns.
+- Sprint planning:
+1. Duplicate the `Sprint Template` iteration for the next two weeks.
+2. Pull prioritized tasks into the `Sprint <N>` column and assign owners with due dates.
+3. Attach acceptance criteria checklists covering readiness metrics.
+- During execution move cards across the board; blockers get a red label and are surfaced during the weekly sync.
+- After completion, archive the sprint iteration and export the board snapshot to `docs/REPORTS/sprint-<N>-board.md`.
+
+### **Decision Log Maintenance**
+- Record every architectural or infrastructure decision in `docs/DECISIONS_LOG.md` immediately after agreement.
+- Include: date, stakeholders, context/problem, decision, alternatives, and follow-up actions.
+- Reference the associated epic card ID and link to supporting documents or sync notes.
+- Review open follow-ups at the start of each weekly sync and mark them as completed when delivered.
+
+---
+**Last Updated:**2025-02-15
 **Maintainer:** Development Team
 **Status:** Living Document (update as needed!)
