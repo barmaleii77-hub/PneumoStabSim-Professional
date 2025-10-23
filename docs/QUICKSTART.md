@@ -50,10 +50,10 @@ python app.py
 ### Приложение не запускается
 ```bash
 # Проверьте Python версию
-python --version # Должно быть3.13+
+python --version # Должно быть3.11–3.13 (рекомендуется3.13.x)
 
 # Проверьте зависимости
-pip list | grep PySide6 # Должно быть6.9.3+
+pip list | grep PySide6 # Основной профиль:6.10.x (см. docs/environments.md)
 ```
 
 ###3D сцена не отображается

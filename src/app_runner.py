@@ -5,14 +5,18 @@
 Координирует запуск, выполнение и корректное завершение приложения,
 включая обработку сигналов, логирование и диагностику.
 """
+import asyncio
 import sys
 import os
 import signal
 import logging
+from datetime import datetime
 from pathlib import Path
 from typing import Any, Optional
 import argparse
 import json
+
+from pneumostabsim.logging import ErrorHookManager, install_error_hooks
 
 
 class ApplicationRunner:
@@ -38,6 +42,7 @@ class ApplicationRunner:
         self.app_instance: Optional[Any] = None
         self.window_instance: Optional[Any] = None
         self.app_logger: Optional[logging.Logger] = None
+        self.error_hook_manager: Optional[ErrorHookManager] = None
 
         self.use_qml_3d_schema: bool = True
 
@@ -96,6 +101,24 @@ class ApplicationRunner:
             logger.info("=" * 60)
             logger.info(f"Python: {sys.version_info.major}.{sys.version_info.minor}")
 
+            # Глобальные хуки ошибок: sys.excepthook, asyncio и Qt
+            try:
+                loop = self._ensure_asyncio_loop()
+                error_log_json = (
+                    logs_dir
+                    / "errors"
+                    / f"errors_{datetime.now().strftime('%Y%m%d_%H%M%S')}.jsonl"
+                )
+                self.error_hook_manager = install_error_hooks(
+                    logger,
+                    error_log_json,
+                    loop=loop,
+                    qt_install_message_handler=self.qInstallMessageHandler,
+                )
+                logger.info(f"Global error hooks enabled (JSON log: {error_log_json})")
+            except Exception as hook_error:
+                logger.warning(f"Error hook installation failed: {hook_error}")
+
             from PySide6.QtCore import qVersion
 
             logger.info(f"Qt: {qVersion()}")
@@ -109,6 +132,15 @@ class ApplicationRunner:
         except Exception as e:
             print(f"WARNING: Logging setup failed: {e}")
             return None
+
+    def _ensure_asyncio_loop(self) -> asyncio.AbstractEventLoop:
+        """Гарантирует наличие активного asyncio event loop и возвращает его."""
+        try:
+            return asyncio.get_event_loop_policy().get_event_loop()
+        except RuntimeError:
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+            return loop
 
     def setup_high_dpi(self) -> None:
         """Настройка High DPI scaling."""
@@ -128,7 +160,10 @@ class ApplicationRunner:
         app = self.QApplication(sys.argv)
         self.app_instance = app
 
-        self.qInstallMessageHandler(self._qt_message_handler)
+        # Если глобальные хуки не установлены (например, ошибка на этапе логгирования),
+        # подключаем локальный перехватчик Qt сообщений как fallback.
+        if not self.error_hook_manager:
+            self.qInstallMessageHandler(self._qt_message_handler)
 
         app.setApplicationName("PneumoStabSim")
         app.setApplicationVersion("4.9.5")

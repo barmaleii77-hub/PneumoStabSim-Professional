@@ -240,7 +240,10 @@
   <!-- Тесты -->
   <ItemGroup>
     <Compile Include="tests\conftest.py" />
+    <Compile Include="tests\integration\test_main_window_qml.py" />
     <Compile Include="tests\integration\test_settings_scene_sync.py" />
+    <Compile Include="tests\smoke\test_qml_smoke.py" />
+    <Compile Include="tests\smoke\__init__.py" />
     <Compile Include="tests\test_integration_simple.py" />
     <Compile Include="tests\test_physics_simple.py" />
     <Compile Include="tests\test_gas_adiabatic_isothermal.py" />
@@ -303,6 +306,7 @@
   </ItemGroup>
   <!-- Конфигурационные файлы -->
   <ItemGroup>
+    <Content Include="Makefile" />
     <Content Include="requirements.txt" />
     <Content Include="requirements-dev.txt" />
     <Content Include="requirements-compatible.txt" />
@@ -356,6 +360,8 @@
     <Folder Include="src\core\" />
     <Folder Include="src\app\" />
     <Folder Include="tests\" />
+    <Folder Include="tests\integration\" />
+    <Folder Include="tests\smoke\" />
     <Folder Include="tests\ui\" />
     <Folder Include="tests\graphics\" />
     <Folder Include="tests\system\" />
