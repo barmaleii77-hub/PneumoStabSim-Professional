@@ -24,7 +24,9 @@
       "type": "python",
       "name": "🧪 Test Mode (auto-close 5s)",
       "program": "app.py",
-      "args": ["--test-mode"],
+      "args": [
+        "--test-mode"
+      ],
       "currentDir": "${workspaceRoot}",
       "env": {
         "PYTHONPATH": "${workspaceRoot};${workspaceRoot}/src"
@@ -34,7 +36,9 @@
       "type": "python",
       "name": "🐛 Verbose Mode",
       "program": "app.py",
-      "args": ["--verbose"],
+      "args": [
+        "--verbose"
+      ],
       "currentDir": "${workspaceRoot}",
       "env": {
         "PYTHONPATH": "${workspaceRoot};${workspaceRoot}/src"
@@ -44,7 +48,9 @@
       "type": "python",
       "name": "🔓 Non-blocking Mode",
       "program": "app.py",
-      "args": ["--no-block"],
+      "args": [
+        "--no-block"
+      ],
       "currentDir": "${workspaceRoot}",
       "env": {
         "PYTHONPATH": "${workspaceRoot};${workspaceRoot}/src"
@@ -54,7 +60,9 @@
       "type": "python",
       "name": "🛡️ Safe Mode",
       "program": "app.py",
-      "args": ["--safe-mode"],
+      "args": [
+        "--safe-mode"
+      ],
       "currentDir": "${workspaceRoot}",
       "env": {
         "PYTHONPATH": "${workspaceRoot};${workspaceRoot}/src"
