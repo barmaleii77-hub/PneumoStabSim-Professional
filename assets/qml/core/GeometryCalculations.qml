@@ -1,6 +1,5 @@
 pragma Singleton
 import QtQuick
-import "." as Core
 
 /*
  * GeometryCalculations.qml - Geometry Utilities (Singleton)

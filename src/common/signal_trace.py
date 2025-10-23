@@ -9,7 +9,7 @@ from datetime import datetime
 from fnmatch import fnmatch
 from pathlib import Path
 from threading import Lock
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
 from .qt_compat import Property, QObject, Signal, Slot
 
@@ -18,39 +18,73 @@ LOGGER = logging.getLogger(__name__)
 
 @dataclass(slots=True)
 class SignalTraceConfig:
- """Configuration parameters for :class:`SignalTraceService`."""
+    """Configuration parameters for :class:`SignalTraceService`."""
 
- def __init__(self):
- self.enabled = False
- self.overlay_enabled = False
- self.include = ("*",)
- self.exclude = ()
- self.history_limit =200
+    enabled: bool = False
+    overlay_enabled: bool = False
+    include: tuple[str, ...] = ("*",)
+    exclude: tuple[str, ...] = ()
+    history_limit: int = 200
 
- @classmethod
- def from_dict(cls, data: Dict[str, Any] | None) -> "SignalTraceConfig":
- if not isinstance(data, dict):
- return cls()
- include = tuple(str(item) for item in data.get("include", ("*",)))
- exclude = tuple(str(item) for item in data.get("exclude", ()))
- return cls(
- enabled=bool(data.get("enabled", False)),
- overlay_enabled=bool(
- data.get("overlayEnabled", data.get("overlay_enabled", False))
- ),
- include=include or ("*",),
- exclude=exclude,
- history_limit=int(data.get("historyLimit", data.get("history_limit",200))),
- )
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any] | None) -> "SignalTraceConfig":
+        """Build a configuration instance from a raw dictionary."""
 
- def to_dict(self) -> Dict[str, Any]:
- return {
- "enabled": self.enabled,
- "overlayEnabled": self.overlay_enabled,
- "include": list(self.include),
- "exclude": list(self.exclude),
- "historyLimit": self.history_limit,
- }
+        if not isinstance(data, dict):
+            return cls()
+
+        include = tuple(
+            str(item)
+            for item in data.get("include", ("*",))
+            if isinstance(item, str) and item
+        )
+        if not include:
+            include = ("*",)
+
+        raw_exclude = data.get("exclude", ())
+        exclude = tuple(
+            str(item) for item in raw_exclude if isinstance(item, str) and item
+        )
+
+        history_value = data.get("historyLimit", data.get("history_limit", 200))
+        history_limit = 200
+        if isinstance(history_value, bool):
+            history_candidate: int | float | str | None = int(history_value)
+        else:
+            history_candidate = (
+                history_value if isinstance(history_value, (int, float, str)) else None
+            )
+
+        if isinstance(history_candidate, (int, float)):
+            history_limit = int(history_candidate)
+        elif isinstance(history_candidate, str):
+            try:
+                history_limit = int(history_candidate)
+            except ValueError:
+                history_limit = 200
+
+        history_limit = max(1, history_limit)
+
+        overlay_value = data.get("overlayEnabled", data.get("overlay_enabled", False))
+
+        return cls(
+            enabled=bool(data.get("enabled", False)),
+            overlay_enabled=bool(overlay_value),
+            include=include,
+            exclude=exclude,
+            history_limit=history_limit,
+        )
+
+    def to_dict(self) -> Dict[str, Any]:
+        """Return a JSON-serialisable representation of the configuration."""
+
+        return {
+            "enabled": self.enabled,
+            "overlayEnabled": self.overlay_enabled,
+            "include": list(self.include),
+            "exclude": list(self.exclude),
+            "historyLimit": self.history_limit,
+        }
 
 class SignalTraceService(QObject):
  """Collects signal emissions and exposes them to QML for diagnostics."""

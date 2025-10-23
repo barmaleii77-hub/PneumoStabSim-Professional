@@ -1,1 +1,3 @@
 IblProbeLoader IblProbeLoader.qml
+SignalTraceIndicator SignalTraceIndicator.qml
+SignalTracePanel SignalTracePanel.qml

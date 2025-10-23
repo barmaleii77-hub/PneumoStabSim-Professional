@@ -393,7 +393,7 @@ class MaterialsTab(QWidget):
             current_key: self.get_current_material_state(),
         }
 
-    def get_all_state(self) → Dict[str, Dict[str, Any]]:
+    def get_all_state(self) -> Dict[str, Dict[str, Any]]:
         """Вернуть состояние ВСЕХ материалов для сохранения/пресетов"""
         # Обновим кэш текущего
         cur_key = self.get_current_material_key()

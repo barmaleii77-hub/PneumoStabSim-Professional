@@ -82,7 +82,8 @@ def validate_schema(data: JsonType, schema: JsonType) -> list[str]:
 def diff_dict(
  baseline: JsonType, current: JsonType, prefix: str = ""
 ) -> list[DiffEntry]:
- """Сравнивает словари и возвращает список отличий."""
+ """Recursively diff JSON-like structures and return ``DiffEntry`` objects."""
+
  if isinstance(baseline, dict) and isinstance(current, dict):
  diffs: list[DiffEntry] = []
  baseline_keys = set(baseline)
@@ -97,8 +98,26 @@ def diff_dict(
  continue
  diffs.extend(diff_dict(baseline[key], current[key], new_prefix))
  return diffs
+
+ if isinstance(baseline, list) and isinstance(current, list):
+ diffs = []
+ length = max(len(baseline), len(current))
+ for index in range(length):
+ base_item = baseline[index] if index < len(baseline) else _MISSING
+ current_item = current[index] if index < len(current) else _MISSING
+ new_prefix = f"{prefix}[{index}]" if prefix else f"[{index}]"
+ if base_item is _MISSING:
+ diffs.append(DiffEntry(new_prefix, "<missing>", current_item))
+ continue
+ if current_item is _MISSING:
+ diffs.append(DiffEntry(new_prefix, base_item, "<missing>"))
+ continue
+ diffs.extend(diff_dict(base_item, current_item, new_prefix))
+ return diffs
+
  if baseline != current:
  return [DiffEntry(prefix or "<root>", baseline, current)]
+
  return []
 
 def count_parameters(data: JsonType) -> int:

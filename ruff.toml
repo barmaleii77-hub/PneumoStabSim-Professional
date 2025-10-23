@@ -1,0 +1,40 @@
+line-length = 88
+target-version = "py313"
+
+[lint]
+select = [
+  "E",  # pycodestyle errors
+  "F",  # pyflakes
+  "I",  # isort
+  "B",  # bugbear
+  "UP", # pyupgrade
+  "N",  # pep8-naming
+  "S",  # bandit
+  "C4", # comprehensions
+  "RET",# returns
+  "ARG",# unused arguments
+  "RUF",# Ruff specific
+]
+ignore = [
+  "S101",  # allow assert in tests/utilities
+  "S105",  # allow hardcoded passwords in test assets
+  "S106",  # same for logging
+  "B008",  # allow function call in argument defaults when deliberate
+  "RET504",# allow multiple return statements with value
+  "RET505",# allow else after return when clearer
+]
+
+[lint.per-file-ignores]
+"tests/**" = ["S311", "S603", "S607", "ARG001", "N802", "N803", "N806", "S101"]
+"tools/**" = ["S603", "S607"]
+"app.py" = ["T201"]
+
+[format]
+quote-style = "double"
+indent-style = "space"
+skip-magic-trailing-comma = false
+line-ending = "lf"
+
+[lint.isort]
+known-first-party = ["common", "pneumostabsim_typing"]
+section-order = ["future", "standard-library", "third-party", "first-party", "local-folder"]
