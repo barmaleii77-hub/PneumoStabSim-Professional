@@ -1,1 +1,7 @@
+assets/qml/main_working_builtin.qml
+assets/qml/core
+assets/qml/components
+assets/qml/scene
 assets/qml/quality/Check.qml
+assets/qml/AnotherDir
+assets/qml/NewComponent.qml

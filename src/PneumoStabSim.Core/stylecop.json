@@ -1,0 +1,16 @@
+{
+  "settings": {
+    "documentationRules": {
+  "documentExposedElements": false,
+      "documentInternalElements": false,
+      "documentPrivateElements": false,
+      "companyName": "PneumoStabSim"
+    },
+    "orderingRules": {
+"usingDirectivesPlacement": "outsideNamespace"
+    },
+"namingRules": {
+"allowUnderscorePrefixedFieldNames": true
+}
+  }
+}

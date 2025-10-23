@@ -1,20 +1,20 @@
-name: Continuous Integration
+name: CI Workflow
 
 on:
  push:
- branches: [ master, develop ]
+ branches:
+ - master
+ - develop
  pull_request:
- branches: [ master, develop ]
- workflow_dispatch:
-
-env:
- QT_QPA_PLATFORM: offscreen
- QT_QUICK_BACKEND: software
+ branches:
+ - master
+ - develop
 
 jobs:
  lint:
  name: Lint & Type Check
  runs-on: ubuntu-latest
+
  steps:
  - name: Checkout repository
  uses: actions/checkout@v4
@@ -45,7 +45,19 @@ jobs:
  run: |
  set -o pipefail
  mkdir -p artifacts/lint
- mypy src tools app.py --config-file pyproject.toml 2>&1 | tee artifacts/lint/mypy.log
+ python -m mypy --config-file mypy.ini $(tr '\n' ' ' < mypy_targets.txt) 2>&1 | tee artifacts/lint/mypy.log
+
+ - name: QML lint
+ run: |
+ set -o pipefail
+ mkdir -p artifacts/lint
+ make qml-lint QML_LINTER=pyside6-qmllint 2>&1 | tee artifacts/lint/qmllint.log
+
+ - name: Restore .NET dependencies
+ run: dotnet restore PneumoStabSim-Professional.sln
+
+ - name: dotnet format (verify)
+ run: dotnet format src/PneumoStabSim.Core/PneumoStabSim.Core.csproj --verify-no-changes --severity error
 
  - name: Upload lint artifacts
  if: always()
@@ -110,68 +122,3 @@ jobs:
  if not value:
  return
  env_file = Path(os.environ["GITHUB_ENV"])
- with env_file.open("a", encoding="utf-8") as handle:
- handle.write(f"{key}={value}\n")
-
- append_env("QT_PLUGIN_PATH", QLibraryInfo.path(LibraryLocation.Plugins))
- append_env("QML2_IMPORT_PATH", QLibraryInfo.path(LibraryLocation.QmlImports))
-
- - name: Enable virtual display on Linux
- if: runner.os == 'Linux'
- run: echo "PYTEST_PREFIX=xvfb-run -a" >> "$GITHUB_ENV"
-
- - name: Run core pytest suite
- run: |
- set -o pipefail
- mkdir -p artifacts/test
- ${PYTEST_PREFIX:-} pytest -m "not gui" \
- --junitxml=artifacts/test/junit-core.xml \
- --cov=src --cov-report=term-missing \
- --cov-report=xml:artifacts/test/coverage-core.xml \
- tests 2>&1 | tee artifacts/test/pytest-core.log
-
- - name: Run QML/GUI tests
- run: |
- set -o pipefail
- mkdir -p artifacts/test
- ${PYTEST_PREFIX:-} pytest tests/ui -m gui \
- --junitxml=artifacts/test/junit-qml.xml \
- --cov=src --cov-append --cov-report=term-missing \
- 2>&1 | tee artifacts/test/pytest-qml.log
-
- - name: Combine coverage
- run: |
- python -m coverage combine
- python -m coverage xml -o artifacts/test/coverage.xml
- python -m coverage html -d artifacts/test/html
-
- - name: Upload test artifacts
- if: always()
- uses: actions/upload-artifact@v4
- with:
- name: test-results-${{ matrix.os }}
- path: artifacts/test
- if-no-files-found: warn
-
- summarize:
- name: Summary
- needs: tests
- runs-on: ubuntu-latest
- if: always()
- steps:
- - name: Download artifacts
- uses: actions/download-artifact@v4
- with:
- path: merged-artifacts
-
- - name: Display artifact tree
- run: |
- echo "📦 Collected artifacts:"
- ls -R merged-artifacts
-
- - name: Upload consolidated bundle
- uses: actions/upload-artifact@v4
- with:
- name: ci-bundle
- path: merged-artifacts
- if-no-files-found: warn
