@@ -15,6 +15,7 @@ from pathlib import Path
 from typing import Any, Optional
 import argparse
 import json
+import subprocess
 
 from pneumostabsim.logging import ErrorHookManager, install_error_hooks
 
@@ -201,6 +202,41 @@ class ApplicationRunner:
         if self.app_logger:
             self.app_logger.info("MainWindow created and shown")
 
+    def _run_schema_validation(self, cfg_path: Path) -> None:
+        """Запускает CLI-валидатор JSON схемы для файла настроек."""
+        # Определяем корень проекта (src/..)
+        project_root = Path(__file__).resolve().parents[1]
+        tools_dir = project_root / "tools"
+        validator = tools_dir / "validate_settings.py"
+        schema_path = project_root / "config" / "app_settings.schema.json"
+
+        if not validator.exists():
+            if self.app_logger:
+                self.app_logger.debug(
+                    "Settings validator script is missing; skipping schema check"
+                )
+            return
+
+        command = [
+            sys.executable,
+            str(validator),
+            "--settings-file",
+            str(cfg_path),
+            "--schema-file",
+            str(schema_path),
+            "--quiet",
+        ]
+
+        result = subprocess.run(command, capture_output=True, text=True)
+        if result.returncode != 0:
+            output = (result.stderr or result.stdout or "").strip()
+            raise RuntimeError(
+                f"Validation script failed with exit code {result.returncode}: {output}"
+            )
+
+        if self.app_logger:
+            self.app_logger.debug("Settings schema validation passed")
+
     def _validate_settings_file(self) -> None:
         """Строгая валидация конфигурации до создания MainWindow.
 
@@ -231,6 +267,12 @@ class ApplicationRunner:
             QMessageBox.critical(None, "Ошибка конфигурации", message)
             raise exc_type(message)
 
+        # Схемная валидация (если доступна)
+        try:
+            self._run_schema_validation(cfg_path)
+        except RuntimeError as exc:
+            _fail(str(exc))
+
         # Определяем источник пути
         src = "CWD"
         if os.environ.get("PSS_SETTINGS_FILE"):
@@ -239,7 +281,7 @@ class ApplicationRunner:
             # Попробуем угадать project path
             try:
                 project_candidate = (
-                    Path(__file__).resolve().parents[1].parent
+                    Path(__file__).resolve().parents[1]
                     / "config"
                     / "app_settings.json"
                 )

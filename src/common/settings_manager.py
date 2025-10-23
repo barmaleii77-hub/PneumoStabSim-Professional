@@ -14,7 +14,7 @@ from __future__ import annotations
 import json
 import logging
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, Tuple, cast
 from datetime import datetime
 import copy
 import re
@@ -38,6 +38,11 @@ class SettingsManager:
         "metadata": { "version", "last_modified", ... }
     }
     """
+
+    CURRENT_SCHEMA_VERSION = "1.0.0"
+    _SCHEMA_MIGRATIONS: Tuple[Tuple[str, str], ...] = (
+        ("1.0.0", "_migrate_to_1_0_0"),
+    )
 
     # Canonical geometry keys exposed in meters for UI/visualization modules
     _GEOMETRY_KEY_ALIASES = {
@@ -250,6 +255,7 @@ class SettingsManager:
         self._current: Dict[str, Any] = {}
         self._defaults_snapshot: Dict[str, Any] = {}
         self._metadata: Dict[str, Any] = {}
+        self._schema_version: str = self.CURRENT_SCHEMA_VERSION
 
         # Загрузка настроек
         self.load()
@@ -364,6 +370,63 @@ class SettingsManager:
             self.logger.warning(f"Не удалось выполнить миграцию ключей: {e}")
         return data
 
+    @staticmethod
+    def _coerce_version_tuple(version: str) -> Tuple[int, int, int]:
+        padded = [0, 0, 0]
+        parts = version.split(".")
+        for idx, part in enumerate(parts[:3]):
+            try:
+                padded[idx] = int(part)
+            except ValueError:
+                padded[idx] = 0
+        return cast(Tuple[int, int, int], tuple(padded))
+
+    def _apply_schema_migrations(self, data: Dict[str, Any]) -> bool:
+        """Применить миграции схемы к загруженному словарю настроек."""
+
+        raw_version = data.get("schemaVersion")
+        if not isinstance(raw_version, str) or not raw_version.strip():
+            raw_version = "0.0.0"
+
+        current_version = self._coerce_version_tuple(raw_version)
+        target_version = self._coerce_version_tuple(self.CURRENT_SCHEMA_VERSION)
+        changed = False
+
+        for target, handler_name in self._SCHEMA_MIGRATIONS:
+            handler = getattr(self, handler_name, None)
+            if handler is None:
+                continue
+            target_tuple = self._coerce_version_tuple(target)
+            if current_version < target_tuple:
+                try:
+                    handler(data)
+                    changed = True
+                except Exception as exc:
+                    self.logger.warning(
+                        f"Schema migration {handler_name} to {target} failed: {exc}"
+                    )
+            current_version = target_tuple
+
+        if current_version != target_version:
+            changed = True
+            data["schemaVersion"] = self.CURRENT_SCHEMA_VERSION
+        return changed
+
+    def _migrate_to_1_0_0(self, data: Dict[str, Any]) -> None:
+        """Ensure defaults snapshot and metadata exist for schema1.0.0."""
+
+        current = data.get("current")
+        defaults = data.get("defaults_snapshot")
+        if isinstance(current, dict):
+            if not isinstance(defaults, dict) or not defaults:
+                data["defaults_snapshot"] = copy.deepcopy(current)
+
+        metadata = data.get("metadata")
+        if not isinstance(metadata, dict):
+            metadata = {}
+        metadata.setdefault("schema_version", self.CURRENT_SCHEMA_VERSION)
+        data["metadata"] = metadata
+
     def load(self) -> bool:
         """
         Загрузить настройки из JSON файла
@@ -386,6 +449,10 @@ class SettingsManager:
                     self.logger.error(msg)
                     raise
 
+            schema_migrated = False
+            if isinstance(data, dict):
+                schema_migrated = self._apply_schema_migrations(data)
+
             # Новая структура с разделением current/defaults
             if "current" in data:
                 # Мягкая миграция ключей
@@ -403,25 +470,23 @@ class SettingsManager:
                     structure_updated = True
                 if self._ensure_graphics_sections(self._defaults_snapshot):
                     structure_updated = True
-                # Если дефолтный снапшот отсутствует или пуст — делаем его равным current и сохраняем обратно
-                if (
+                defaults_missing = (
                     not isinstance(self._defaults_snapshot, dict)
                     or not self._defaults_snapshot
-                ):
+                )
+                if defaults_missing:
                     self._defaults_snapshot = copy.deepcopy(self._current)
-                    # Немедленно сохраняем, чтобы файл содержал все дефолты (без скрытых значений)
-                    try:
-                        self.save()
-                    except Exception:
-                        # Если сохранение не удалось — пусть поднимется позже при явном save()
-                        pass
-                self._metadata = data.get("metadata", {})
-                if units_updated or structure_updated:
+                # Всегда синхронизируем метаданные и версию схемы
+                self._metadata = data.get("metadata", {}) if isinstance(data, dict) else {}
+                self._schema_version = data.get("schemaVersion", self.CURRENT_SCHEMA_VERSION)
+
+                should_save = schema_migrated or units_updated or structure_updated or defaults_missing
+                if should_save:
                     try:
                         self.save()
                     except Exception as exc:
                         self.logger.warning(
-                            f"Не удалось сохранить настройки после миграции единиц: {exc}"
+                            f"Не удалось сохранить настройки после миграции: {exc}"
                         )
             else:
                 # Старая структура - мигрируем
@@ -433,6 +498,7 @@ class SettingsManager:
                     "version": data.get("version", "4.9.5"),
                     "last_modified": datetime.now().isoformat(),
                 }
+                self._schema_version = self.CURRENT_SCHEMA_VERSION
                 self._maybe_upgrade_units(
                     {
                         "current": self._current,
@@ -479,10 +545,15 @@ class SettingsManager:
             self.settings_file.parent.mkdir(parents=True, exist_ok=True)
 
             # Обновляем metadata
+            if not isinstance(self._metadata, dict):
+                self._metadata = {}
             self._metadata["last_modified"] = datetime.now().isoformat()
+            self._metadata.setdefault("schema_version", self._schema_version)
+            self._schema_version = self.CURRENT_SCHEMA_VERSION
 
             # Структура файла
             data = {
+                "schemaVersion": self._schema_version,
                 "current": self._current,
                 "defaults_snapshot": self._defaults_snapshot,
                 "metadata": self._metadata,
@@ -1062,6 +1133,11 @@ class SettingsManager:
                 changed = True
 
         return changed
+
+    @property
+    def schema_version(self) -> str:
+        """Версия схемы конфигурации, с которой синхронизирован файл."""
+        return self._schema_version
 
 
 # Singleton instance

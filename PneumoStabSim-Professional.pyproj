@@ -53,9 +53,16 @@
     <Compile Include="qml_diagnostic.py" />
     <Compile Include="setup_vscode.py" />
     <Compile Include="setup.py" />
+    <Compile Include="src\pneumostabsim\logging\error_hooks.py" />
+    <Compile Include="tests\unit\test_error_hooks.py" />
+    <Compile Include="tests\unit\test_settings_schema.py" />
+    <Compile Include="tools\validate_settings.py" />
+    <Compile Include="tools\__init__.py" />
   </ItemGroup>
   <!-- Корневые модули src -->
   <ItemGroup>
+    <Compile Include="src\pneumostabsim\logging\__init__.py" />
+    <Compile Include="src\pneumostabsim\__init__.py" />
     <Compile Include="src\__init__.py" />
     <Compile Include="src\app_runner.py" />
   </ItemGroup>
@@ -306,6 +313,7 @@
   </ItemGroup>
   <!-- Конфигурационные файлы -->
   <ItemGroup>
+    <Content Include="config\app_settings.schema.json" />
     <Content Include="Makefile" />
     <Content Include="requirements.txt" />
     <Content Include="requirements-dev.txt" />
@@ -340,6 +348,8 @@
   <!-- Папки -->
   <ItemGroup>
     <Folder Include="src\" />
+    <Folder Include="src\pneumostabsim\" />
+    <Folder Include="src\pneumostabsim\logging\" />
     <Folder Include="src\ui\" />
     <Folder Include="src\ui\main_window\" />
     <Folder Include="src\ui\panels\" />

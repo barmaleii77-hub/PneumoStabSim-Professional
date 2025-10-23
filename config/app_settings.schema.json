@@ -1,0 +1,92 @@
+{
+ "$schema": "https://json-schema.org/draft/2020-12/schema",
+ "$id": "https://pneumostabsim.app/config/app_settings.schema.json",
+ "title": "PneumoStabSim Application Settings",
+ "type": "object",
+ "required": ["schemaVersion", "current", "defaults_snapshot", "metadata"],
+ "additionalProperties": true,
+ "properties": {
+ "schemaVersion": {"type": "string"},
+ "current": {
+ "type": "object",
+ "required": ["simulation", "pneumatic", "geometry", "graphics"],
+ "properties": {
+ "simulation": {
+ "type": "object",
+ "required": [
+ "physics_dt",
+ "render_vsync_hz",
+ "max_steps_per_frame",
+ "max_frame_time"
+ ],
+ "properties": {
+ "physics_dt": {"type": "number"},
+ "render_vsync_hz": {"type": "number"},
+ "max_steps_per_frame": {"type": "number"},
+ "max_frame_time": {"type": "number"}
+ }
+ },
+ "pneumatic": {
+ "type": "object",
+ "required": [
+ "receiver_volume_limits",
+ "receiver_volume",
+ "volume_mode",
+ "master_isolation_open",
+ "thermo_mode"
+ ],
+ "properties": {
+ "receiver_volume_limits": {
+ "type": "object",
+ "required": ["min_m3", "max_m3"],
+ "properties": {
+ "min_m3": {"type": "number"},
+ "max_m3": {"type": "number"}
+ }
+ },
+ "receiver_volume": {"type": "number"},
+ "volume_mode": {"type": "string"},
+ "master_isolation_open": {"type": "boolean"},
+ "thermo_mode": {"type": "string"}
+ }
+ },
+ "geometry": {
+ "type": "object",
+ "properties": {
+ "wheelbase": {"type": "number", "minimum": 0}
+ }
+ },
+ "graphics": {
+ "type": "object",
+ "properties": {
+ "materials": {
+ "type": "object",
+ "required": [
+ "frame",
+ "lever",
+ "tail",
+ "cylinder",
+ "piston_body",
+ "piston_rod",
+ "joint_tail",
+ "joint_arm",
+ "joint_rod"
+ ]
+ }
+ }
+ }
+ }
+ },
+ "defaults_snapshot": {"type": "object"},
+ "metadata": {
+ "type": "object",
+ "required": ["version", "last_modified", "units_version", "schema_version"],
+ "properties": {
+ "version": {"type": "string"},
+ "last_modified": {"type": "string"},
+ "units_version": {"type": "string"},
+ "schema_version": {"type": "string"}
+ }
+ }
+ }
+}
