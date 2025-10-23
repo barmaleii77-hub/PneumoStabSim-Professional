@@ -59,7 +59,7 @@ repos:
      - id: python-no-eval
      - id: python-use-type-annotations
 
- # Local hook: Check UTF-8 encoding for UI files
+ # Local hooks
  - repo: local
    hooks:
      - id: check-ui-utf8
@@ -70,5 +70,10 @@ repos:
      - id: check-forbidden-artifacts
        name: Check repository for forbidden artifacts
        entry: python tools/check_forbidden_artifacts.py
+       language: system
+       pass_filenames: false
+     - id: audit-config
+       name: Audit configuration consistency
+       entry: python tools/audit_config.py --update-report
        language: system
        pass_filenames: false
