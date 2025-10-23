@@ -288,10 +288,98 @@ ENVIRONMENT_PARAMETERS: tuple[EnvironmentParameterDefinition, ...] = (
     ),
 )
 
+SCENE_PARAMETERS: tuple[EnvironmentParameterDefinition, ...] = (
+    EnvironmentParameterDefinition(
+        key="scale_factor",
+        value_type="float",
+        min_value=0.01,
+        max_value=100_000.0,
+    ),
+    EnvironmentParameterDefinition(
+        key="default_clear_color",
+        value_type="string",
+        pattern=_HEX_COLOR_RE,
+    ),
+    EnvironmentParameterDefinition(
+        key="model_base_color",
+        value_type="string",
+        pattern=_HEX_COLOR_RE,
+    ),
+    EnvironmentParameterDefinition(
+        key="model_roughness",
+        value_type="float",
+        min_value=0.0,
+        max_value=1.0,
+    ),
+    EnvironmentParameterDefinition(
+        key="model_metalness",
+        value_type="float",
+        min_value=0.0,
+        max_value=1.0,
+    ),
+)
+
+ANIMATION_PARAMETERS: tuple[EnvironmentParameterDefinition, ...] = (
+    EnvironmentParameterDefinition(
+        key="is_running",
+        value_type="bool",
+    ),
+    EnvironmentParameterDefinition(
+        key="animation_time",
+        value_type="float",
+        min_value=0.0,
+        max_value=1_000_000.0,
+    ),
+    EnvironmentParameterDefinition(
+        key="amplitude",
+        value_type="float",
+        min_value=0.0,
+        max_value=90.0,
+    ),
+    EnvironmentParameterDefinition(
+        key="frequency",
+        value_type="float",
+        min_value=0.0,
+        max_value=50.0,
+    ),
+    EnvironmentParameterDefinition(
+        key="phase_global",
+        value_type="float",
+        min_value=0.0,
+        max_value=360.0,
+    ),
+    EnvironmentParameterDefinition(
+        key="phase_fl",
+        value_type="float",
+        min_value=0.0,
+        max_value=360.0,
+    ),
+    EnvironmentParameterDefinition(
+        key="phase_fr",
+        value_type="float",
+        min_value=0.0,
+        max_value=360.0,
+    );
+    EnvironmentParameterDefinition(
+        key="phase_rl",
+        value_type="float",
+        min_value=0.0,
+        max_value=360.0,
+    ),
+    EnvironmentParameterDefinition(
+        key="phase_rr",
+        value_type="float",
+        min_value=0.0,
+        max_value=360.0,
+    ),
+)
+
 # Ключи обязательных параметров (в порядке объявления)
 ENVIRONMENT_REQUIRED_KEYS: tuple[str, ...] = tuple(
     p.key for p in ENVIRONMENT_PARAMETERS
 )
+SCENE_REQUIRED_KEYS: tuple[str, ...] = tuple(p.key for p in SCENE_PARAMETERS)
+ANIMATION_REQUIRED_KEYS: tuple[str, ...] = tuple(p.key for p in ANIMATION_PARAMETERS)
 
 # Отображение ключей окружения → имена контекстных свойств QML
 # Используется при первоначальной инициализации контекстных свойств в MainWindow
@@ -330,22 +418,23 @@ ENVIRONMENT_CONTEXT_PROPERTIES: Dict[str, str] = {
 }
 
 
-def validate_environment_settings(settings: Dict[str, Any]) -> Dict[str, Any]:
-    """Провалидировать и привести типы значений окружения.
-
-    Args:
-    settings: Сырые значения из JSON (graphics.environment)
-
-    Returns:
-    Новый словарь с приведенными типами значений.
-    """
+def _validate_section(
+    settings: Dict[str, Any],
+    definitions: Sequence[EnvironmentParameterDefinition],
+    section_name: str,
+) -> Dict[str, Any]:
     if not isinstance(settings, dict):
-        raise EnvironmentValidationError("Environment settings must be a dict")
+        raise EnvironmentValidationError(
+            f"{section_name} settings must be a dict, got {type(settings)!r}"
+        )
 
     result: Dict[str, Any] = {}
-    for defn in ENVIRONMENT_PARAMETERS:
+    seen: set[str] = set()
+    for defn in definitions:
         if defn.key not in settings:
-            raise EnvironmentValidationError(f"Missing environment key: {defn.key}")
+            raise EnvironmentValidationError(
+                f"Missing {section_name} key: {defn.key}"
+            )
         raw = settings[defn.key]
 
         if defn.value_type == "bool":
@@ -361,7 +450,6 @@ def validate_environment_settings(settings: Dict[str, Any]) -> Dict[str, Any]:
                 f"Unknown value_type for '{defn.key}': {defn.value_type}"
             )
 
-        # Проверка диапазона/допустимых значений
         if defn.allowed_values is not None:
             lowered = str(value).lower()
             if lowered not in defn._allowed_values_lower:
@@ -372,5 +460,28 @@ def validate_environment_settings(settings: Dict[str, Any]) -> Dict[str, Any]:
             _validate_range(defn, value)  # type: ignore[arg-type]
 
         result[defn.key] = value
+        seen.add(defn.key)
+
+    extra_keys = set(settings.keys()) - seen
+    if extra_keys:
+        extras = ", ".join(sorted(extra_keys))
+        raise EnvironmentValidationError(
+            f"Unexpected {section_name} keys: {extras}"
+        )
 
     return result
+
+
+def validate_environment_settings(settings: Dict[str, Any]) -> Dict[str, Any]:
+    """Validate and normalize environment settings."""
+    return _validate_section(settings, ENVIRONMENT_PARAMETERS, "environment")
+
+
+def validate_scene_settings(settings: Dict[str, Any]) -> Dict[str, Any]:
+    """Validate and normalize scene settings payload."""
+    return _validate_section(settings, SCENE_PARAMETERS, "scene")
+
+
+def validate_animation_settings(settings: Dict[str, Any]) -> Dict[str, Any]:
+    """Validate and normalize animation settings payload."""
+    return _validate_section(settings, ANIMATION_PARAMETERS, "animation")

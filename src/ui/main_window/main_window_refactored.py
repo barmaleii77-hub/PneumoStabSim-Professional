@@ -35,6 +35,7 @@ from .signals_router import SignalsRouter
 from .state_sync import StateSync
 from .menu_actions import MenuActions
 from src.common.settings_manager import get_settings_manager
+from src.core.settings_manager import ProfileSettingsManager
 
 
 class MainWindow(QMainWindow):
@@ -85,7 +86,7 @@ class MainWindow(QMainWindow):
         "PZ": "rr",
     }
 
-    def __init__(self, use_qml_3d: bool = True):
+    def __init__(self, use_qml_3d: bool = True) -> None:
         """Инициализация главного окна
 
         Args:
@@ -110,6 +111,12 @@ class MainWindow(QMainWindow):
         # Settings manager
         self.settings_manager = get_settings_manager()
         self.logger.info("SettingsManager initialized")
+
+        self.profile_manager = ProfileSettingsManager(
+            self.settings_manager,
+            apply_callback=self._apply_settings_update,
+        )
+        self.logger.info("ProfileSettingsManager initialized")
 
         # IBL Logger
         from ..ibl_logger import get_ibl_logger, log_ibl_event

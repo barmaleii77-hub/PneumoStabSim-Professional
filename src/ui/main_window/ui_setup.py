@@ -192,6 +192,24 @@ class UISetup:
                     ctx_exc,
                 )
 
+            # Export profile manager
+            profile_service = getattr(window, "profile_manager", None)
+            try:
+                if profile_service is not None:
+                    context.setContextProperty("settingsProfiles", profile_service)
+            except Exception as profile_exc:
+                UISetup.logger.warning(
+                    "    ⚠️ Failed to expose profile manager: %s", profile_exc
+                )
+
+            try:
+                if profile_service is not None and hasattr(profile_service, "refresh"):
+                    profile_service.refresh()
+            except Exception as refresh_exc:
+                UISetup.logger.debug(
+                    "    ⚠️ Failed to refresh profile list: %s", refresh_exc
+                )
+
             # Import paths
             from PySide6.QtCore import QLibraryInfo
 

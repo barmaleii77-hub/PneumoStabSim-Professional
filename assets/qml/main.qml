@@ -563,3 +563,12 @@ return numeric * sceneScaleFactor;
  pistonPositions = pist;
  }
  if (params.lines) {
+
+ProfileManagerControls {
+ id: profileManagerPanel
+ anchors.top: parent.top
+ anchors.left: parent.left
+ anchors.margins:12
+ z:1000
+ profileService: typeof settingsProfiles !== "undefined" ? settingsProfiles : null
+ }

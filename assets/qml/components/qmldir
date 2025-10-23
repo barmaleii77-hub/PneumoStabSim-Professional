@@ -1,1 +1,4 @@
 IblProbeLoader IblProbeLoader.qml
+ProfileManagerControls ProfileManagerControls.qml
+SignalTraceIndicator SignalTraceIndicator.qml
+SignalTracePanel SignalTracePanel.qml

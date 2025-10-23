@@ -462,6 +462,7 @@ test_*.py
 check_*.py
 !tools/check_ui_utf8.py
 !tools/check_forbidden_artifacts.py
+!tests/unit/test_signal_tracing.py
 
 # Temporary batch files
 *.bat
@@ -845,5 +846,6 @@ assets/hdr/*.exr
 !tests/unit/test_qml_bridge_failures.py
 !tests/test_settings_smoke.py
 !tests/system/test_physics_integration.py
+!tests/unit/test_profile_settings_manager.py
 
 # END OF .GITIGNORE

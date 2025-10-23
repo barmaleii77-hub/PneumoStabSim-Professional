@@ -28,6 +28,8 @@ ENVIRONMENT_PARAMETERS = _env_schema.ENVIRONMENT_PARAMETERS
 ENVIRONMENT_REQUIRED_KEYS = _env_schema.ENVIRONMENT_REQUIRED_KEYS
 EnvironmentValidationError = _env_schema.EnvironmentValidationError
 validate_environment_settings = _env_schema.validate_environment_settings
+validate_scene_settings = _env_schema.validate_scene_settings
+validate_animation_settings = _env_schema.validate_animation_settings
 
 
 def _baseline_environment() -> dict:
@@ -146,3 +148,24 @@ def test_environment_validation_accepts_validations_payload():
     }
     sanitized = validate_environment_settings(payload)
     assert sanitized == payload
+
+
+def test_scene_validation_accepts_valid_payload():
+    payload = _build_payload(SCENE_PARAMETERS)
+    sanitized = validate_scene_settings(payload)
+    assert sanitized == payload
+
+
+def test_animation_validation_accepts_valid_payload():
+    payload = _build_payload(ANIMATION_PARAMETERS)
+    payload["is_running"] = "true"
+    sanitized = validate_animation_settings(payload)
+    assert sanitized["is_running"] is True
+    assert sanitized["amplitude"] == pytest.approx(payload["amplitude"])
+
+
+def test_animation_validation_rejects_out_of_range_value():
+    payload = _build_payload(ANIMATION_PARAMETERS)
+    payload["amplitude"] = 360.0
+    with pytest.raises(EnvironmentValidationError):
+        validate_animation_settings(payload)
