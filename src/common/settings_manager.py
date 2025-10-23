@@ -14,6 +14,7 @@ from __future__ import annotations
 import copy
 import importlib.util
 import json
+import jsonschema
 import logging
 import re
 from dataclasses import dataclass

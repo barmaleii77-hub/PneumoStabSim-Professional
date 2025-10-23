@@ -1,7 +1,7 @@
 # 📖 SETTINGS ARCHITECTURE - ПОЛНАЯ ДОКУМЕНТАЦИЯ
 
 **Дата:**2025-01-18
-**Версия:** PneumoStabSim Professional v4.9.5
+**Версия:** PneumoStabSim Professional v4.9.6
 **Статус:** ✅ **PRODUCTION READY**
 
 ---
@@ -154,8 +154,8 @@ settings_manager.save_settings(state)
 
 ```json
 {
- "version": "4.9.5",
- "last_modified": "2025-01-18T12:00:00Z",
+ "version": "4.9.6",
+ "last_modified": "2025-12-02T12:00:00Z",
  "description": "Unified settings - single source of truth",
 
  // ============================================================
@@ -194,13 +194,26 @@ settings_manager.save_settings(state)
  // METADATA
  // ============================================================
  "metadata": {
- "version": "4.9.5",
- "last_modified": "2025-01-18T12:00:00Z",
+ "version": "4.9.6",
+ "last_modified": "2025-12-02T12:00:00Z",
  "total_parameters":300,
  "description": "Unified settings file"
  }
 }
 ```
+
+---
+
+## ✅ ВАЛИДАЦИЯ И МИГРАЦИИ
+
+1. **SettingsManager.load() → `_apply_version_migrations()`**
+   - Сканирует `config/migrations/` и выполняет `upgrade()` для каждой версии между `metadata.version` и `SettingsManager.SETTINGS_VERSION`.
+   - После успешной миграции записывает `metadata.previous_version` и новую `metadata.version`.
+2. **Проверка схемы**
+   - Загружается `config/app_settings.schema.json` и выполняется валидация через `jsonschema`.
+   - Любая ошибка выводит путь до параметра и прерывает запуск, исключая «тихие» расхождения.
+3. **Автосохранение**
+   - Если миграция или конверсия единиц изменила данные, SettingsManager автоматически сохраняет файл с обновлённой версией.
 
 ---
 
@@ -500,6 +513,6 @@ defaults = self._settings_manager.get("geometry", {
 ---
 
 **Автор:** GitHub Copilot
-**Дата:** 2025-01-18
+**Дата:** 2025-12-02
 **Версия:** v1.0
 **Статус:** ✅ **COMPLETE**
