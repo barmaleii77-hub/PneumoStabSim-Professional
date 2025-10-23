@@ -58,6 +58,8 @@
     <Compile Include="src\pneumostabsim\logging\error_hooks.py" />
     <Compile Include="tests\unit\test_error_hooks.py" />
     <Compile Include="tests\unit\test_settings_schema.py" />
+    <Compile Include="tests\unit\tools\test_audit_config.py" />
+    <Compile Include="tools\audit_config.py" />
     <Compile Include="tools\validate_settings.py" />
     <Compile Include="tools\__init__.py" />
   </ItemGroup>
@@ -316,6 +318,9 @@
   <!-- Конфигурационные файлы -->
   <ItemGroup>
     <Content Include="config\app_settings.schema.json" />
+    <Content Include="config\baseline\app_settings.json" />
+    <Content Include="config\config_hashes.json" />
+    <Content Include="config\schemas\app_settings.schema.json" />
     <Content Include="Makefile" />
     <Content Include="requirements.txt" />
     <Content Include="requirements-dev.txt" />
@@ -349,7 +354,9 @@
   </ItemGroup>
   <!-- Папки -->
   <ItemGroup>
+    <Folder Include="config\baseline\" />
     <Folder Include="config\migrations\" />
+    <Folder Include="config\schemas\" />
     <Folder Include="src\" />
     <Folder Include="src\pneumostabsim\" />
     <Folder Include="src\pneumostabsim\logging\" />
@@ -392,6 +399,7 @@
     <Folder Include=".vs\" />
     <Folder Include=".venv\" />
     <Folder Include="tests\unit\" />
+    <Folder Include="tests\unit\tools\" />
     <Folder Include="tools\" />
   </ItemGroup>
   <!-- Интерпретаторы Python -->

@@ -33,12 +33,13 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = [
- "pytest==8.3.2",
- "pytest-qt==4.4.0",
- "black==24.10.0",
- "flake8==7.1.0",
- "mypy==1.11.2",
- "pre-commit==3.7.1",
+ "pytest>=7.0",
+ "pytest-qt>=4.0",
+ "black>=24.10.0",
+ "flake8>=6.0",
+ "mypy>=1.11.2",
+ "pre-commit>=2.15",
+ "jsonschema>=4.20.0",
 ]
 docs = [
  "sphinx==7.3.7",
