@@ -13,22 +13,16 @@ from config.constants import (
 )
 
 
-def _cylinder_value(key: str) -> float:
-    return float(get_geometry_cylinder_constants()[key])
-
-
 @dataclass
 class CylinderParams:
     """Cylinder physical parameters sourced from configuration."""
 
     D_cylinder: float = field(
-        default_factory=lambda: _cylinder_value("inner_diameter_m")
+        default_factory=lambda: float(get_geometry_cylinder_constants()["inner_diameter_m"])
     )
-    D_rod: float = field(default_factory=lambda: _cylinder_value("rod_diameter_m"))
-    L_body: float = field(default_factory=lambda: _cylinder_value("body_length_m"))
-    L_piston: float = field(
-        default_factory=lambda: _cylinder_value("piston_thickness_m")
-    )
+    D_rod: float = field(default_factory=lambda: float(get_geometry_cylinder_constants()["rod_diameter_m"]))
+    L_body: float = field(default_factory=lambda: float(get_geometry_cylinder_constants()["body_length_m"]))
+    L_piston: float = field(default_factory=lambda: float(get_geometry_cylinder_constants()["piston_thickness_m"]))
 
 
 @dataclass

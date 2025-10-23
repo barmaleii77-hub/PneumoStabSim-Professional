@@ -92,37 +92,29 @@ class GeometryParams:
         visual = get_geometry_visual_constants()
 
         # Wheelbase and lever geometry
-        self.track_width = float(kinematics["track_width_m"])  # m (track width)
-        self.lever_length = float(kinematics["lever_length_m"])  # m (arm length L)
-        self.pivot_offset_from_frame = float(
-            kinematics["pivot_offset_from_frame_m"]
-        )  # m (offset b)
+        self.track_width = float(kinematics["track_width_m"])
+        self.lever_length = float(kinematics["lever_length_m"])
+        self.pivot_offset_from_frame = float(kinematics["pivot_offset_from_frame_m"])
 
         # Cylinder geometry
-        self.cylinder_inner_diameter = float(
-            cylinder["inner_diameter_m"]
-        )  # m (D_in)
-        self.rod_diameter = float(cylinder["rod_diameter_m"])  # m (D_rod)
-        self.piston_thickness = float(cylinder["piston_thickness_m"])  # m (t_p)
-        self.cylinder_body_length = float(cylinder["body_length_m"])  # m (L_body)
+        self.cylinder_inner_diameter = float(cylinder["inner_diameter_m"])
+        self.rod_diameter = float(cylinder["rod_diameter_m"])
+        self.piston_thickness = float(cylinder["piston_thickness_m"])
+        self.cylinder_body_length = float(cylinder["body_length_m"])
 
         # Dead zones (minimum pocket volumes)
-        self.dead_zone_rod = float(cylinder["dead_zone_rod_m3"])  # m³ (rod side)
-        self.dead_zone_head = float(cylinder["dead_zone_head_m3"])  # m³ (head side)
+        self.dead_zone_rod = float(cylinder["dead_zone_rod_m3"])
+        self.dead_zone_head = float(cylinder["dead_zone_head_m3"])
 
         # Visualization radii
-        self.arm_vis_radius = float(visual["arm_radius_m"])  # m (arm thickness)
-        self.cylinder_vis_radius = float(
-            visual["cylinder_radius_m"]
-        )  # m (cylinder outer)
+        self.arm_vis_radius = float(visual["arm_radius_m"])
+        self.cylinder_vis_radius = float(visual["cylinder_radius_m"])
 
         # Attachment point on lever (fraction of length)
-        self.rod_attach_fraction = float(
-            kinematics["rod_attach_fraction"]
-        )  # – (fraction from pivot)
+        self.rod_attach_fraction = float(kinematics["rod_attach_fraction"])
 
     def validate_invariant_track(self) -> bool:
-        """Validate track = 2 * (arm_length + pivot_offset)"""
+        """Validate track =2 * (arm_length + pivot_offset)"""
         expected_track = 2.0 * (self.lever_length + self.pivot_offset_from_frame)
         return abs(self.track_width - expected_track) < 1e-6
 
