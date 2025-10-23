@@ -4,7 +4,7 @@ Core 2D geometry module for P13 kinematics
 Coordinate system (per wheel plane):
 - X axis: transverse from frame to wheel (right for right side, mirrored for left)
 - Y axis: vertical (up positive)
-- Lever angle ? measured from X (horizontal) counterclockwise
+- Lever angle θ measured from X (horizontal) counterclockwise
 
 References:
 - numpy.dot: https://numpy.org/doc/stable/reference/generated/numpy.dot.html
@@ -14,6 +14,12 @@ References:
 from dataclasses import dataclass
 import numpy as np
 from typing import Tuple
+
+from config.constants import (
+    get_geometry_cylinder_constants,
+    get_geometry_kinematics_constants,
+    get_geometry_visual_constants,
+)
 
 
 @dataclass
@@ -81,27 +87,39 @@ class GeometryParams:
     """Geometry parameters for kinematics"""
 
     def __init__(self):
+        kinematics = get_geometry_kinematics_constants()
+        cylinder = get_geometry_cylinder_constants()
+        visual = get_geometry_visual_constants()
+
         # Wheelbase and lever geometry
-        self.track_width = 2.5  # m (track width)
-        self.lever_length = 0.4  # m (arm length L)
-        self.pivot_offset_from_frame = 0.3  # m (offset b)
+        self.track_width = float(kinematics["track_width_m"])  # m (track width)
+        self.lever_length = float(kinematics["lever_length_m"])  # m (arm length L)
+        self.pivot_offset_from_frame = float(
+            kinematics["pivot_offset_from_frame_m"]
+        )  # m (offset b)
 
         # Cylinder geometry
-        self.cylinder_inner_diameter = 0.08  # m (D_in)
-        self.rod_diameter = 0.032  # m (D_rod)
-        self.piston_thickness = 0.02  # m (t_p)
-        self.cylinder_body_length = 0.25  # m (L_body)
+        self.cylinder_inner_diameter = float(
+            cylinder["inner_diameter_m"]
+        )  # m (D_in)
+        self.rod_diameter = float(cylinder["rod_diameter_m"])  # m (D_rod)
+        self.piston_thickness = float(cylinder["piston_thickness_m"])  # m (t_p)
+        self.cylinder_body_length = float(cylinder["body_length_m"])  # m (L_body)
 
         # Dead zones (minimum pocket volumes)
-        self.dead_zone_rod = 0.00005  # m? (rod side, 50 cm?)
-        self.dead_zone_head = 0.00005  # m? (head side, 50 cm?)
+        self.dead_zone_rod = float(cylinder["dead_zone_rod_m3"])  # m³ (rod side)
+        self.dead_zone_head = float(cylinder["dead_zone_head_m3"])  # m³ (head side)
 
         # Visualization radii
-        self.arm_vis_radius = 0.025  # m (25mm arm thickness)
-        self.cylinder_vis_radius = 0.045  # m (45mm cylinder outer)
+        self.arm_vis_radius = float(visual["arm_radius_m"])  # m (arm thickness)
+        self.cylinder_vis_radius = float(
+            visual["cylinder_radius_m"]
+        )  # m (cylinder outer)
 
         # Attachment point on lever (fraction of length)
-        self.rod_attach_fraction = 0.7  # ? (0.7 = 70% from pivot)
+        self.rod_attach_fraction = float(
+            kinematics["rod_attach_fraction"]
+        )  # – (fraction from pivot)
 
     def validate_invariant_track(self) -> bool:
         """Validate track = 2 * (arm_length + pivot_offset)"""

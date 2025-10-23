@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 # PneumoStabSim Professional - Production Dependencies
 # Проверено для Python3.13 (рекомендуется3.13.x)
 
@@ -39,5 +40,5 @@ jsonschema>=4.23.0 # Валидация config/app_settings.json по схеме
 #2. NumPy2.0+ совместим, но требует обновления других пакетов
 #3. Python3.13+ обязателен (зависимости протестированы)
 
-# Устанавливаем сам пакет вместе с доменными подпакетами physics/pneumo/road
+# Устанавливаем сам пакет (editable) из текущей директории
 -e .
