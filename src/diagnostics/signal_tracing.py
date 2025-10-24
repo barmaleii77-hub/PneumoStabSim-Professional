@@ -310,7 +310,7 @@ else:
 
         def dispose(self) -> None:
             """Совместимость с интерфейсом Qt-версии."""
-            
+
 
 __all__ = [
     "SignalTraceRecord",

@@ -450,9 +450,7 @@ class MaterialsTab(QWidget):
             # Если текущий материал не найден в кэше — инициализируем его из контролов
             if cur_key and cur_key not in self._materials_state:
                 self._materials_state[cur_key] = self.get_current_material_state()
-                print(
-                    f"  ⚠️ Initialized {cur_key} from controls (was missing in state)"
-                )
+                print(f"  ⚠️ Initialized {cur_key} from controls (was missing in state)")
         print(f"  📊 Total materials in cache: {len(self._materials_state)}")
 
     def get_controls(self) -> Dict[str, Any]:

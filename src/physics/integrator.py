@@ -285,9 +285,7 @@ class PhysicsLoop:
                 self.successful_steps += 1
             else:
                 self.failed_steps += 1
-                self.logger.warning(
-                    "Physics step failed: %s", result.message
-                )
+                self.logger.warning("Physics step failed: %s", result.message)
                 # Keep state but advance time to avoid stalls
                 self.time_physics += self.config.dt_physics
 
@@ -297,9 +295,7 @@ class PhysicsLoop:
             self.step_count += 1
 
         # Check if render update is due
-        render_due = (
-            self.time_physics - self.time_render
-        ) >= self.config.dt_render
+        render_due = (self.time_physics - self.time_render) >= self.config.dt_render
         if render_due:
             self.time_render = self.time_physics
 

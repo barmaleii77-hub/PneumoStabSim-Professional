@@ -68,7 +68,9 @@ class GeometryTo3DConverter(QObject):
         fallback_frame_height = float(initial_state.get("frame_height_m", 0.65))
         fallback_frame_length = float(initial_state.get("frame_length_m", 2.0))
         fallback_lever_length = float(initial_state.get("lever_length_m", 0.315))
-        fallback_cylinder_body_length = float(cylinder_constants.get("body_length_m", 0.25))
+        fallback_cylinder_body_length = float(
+            cylinder_constants.get("body_length_m", 0.25)
+        )
         fallback_tail_rod_length = float(initial_state.get("tail_rod_length_m", 0.1))
 
         # Visualization constants
@@ -79,9 +81,7 @@ class GeometryTo3DConverter(QObject):
         self._cylinder_body_length = _default(
             "cylinder_body_length_m", fallback_cylinder_body_length
         )
-        self._tail_rod_length = _default(
-            "tail_rod_length_m", fallback_tail_rod_length
-        )
+        self._tail_rod_length = _default("tail_rod_length_m", fallback_tail_rod_length)
 
         # Z coordinates for front/rear
         self._front_z = -self._frame_length / 2.0
@@ -330,18 +330,29 @@ class GeometryTo3DConverter(QObject):
             },
         }
 
-    def update_user_parameters(self, params: Dict[str, float], persist: bool = False) -> None:
+    def update_user_parameters(
+        self, params: Dict[str, float], persist: bool = False
+    ) -> None:
         if "frameLength" in params and params["frameLength"] != self._frame_length:
             self.frameLength = params["frameLength"]
         if "frameHeight" in params and params["frameHeight"] != self._frame_height:
             self.frameHeight = params["frameHeight"]
-        if "frameBeamSize" in params and params["frameBeamSize"] != self._frame_beam_size:
+        if (
+            "frameBeamSize" in params
+            and params["frameBeamSize"] != self._frame_beam_size
+        ):
             self.frameBeamSize = params["frameBeamSize"]
         if "leverLength" in params and params["leverLength"] != self._lever_length:
             self.leverLength = params["leverLength"]
-        if "cylinderBodyLength" in params and params["cylinderBodyLength"] != self._cylinder_body_length:
+        if (
+            "cylinderBodyLength" in params
+            and params["cylinderBodyLength"] != self._cylinder_body_length
+        ):
             self.cylinderBodyLength = params["cylinderBodyLength"]
-        if "tailRodLength" in params and params["tailRodLength"] != self._tail_rod_length:
+        if (
+            "tailRodLength" in params
+            and params["tailRodLength"] != self._tail_rod_length
+        ):
             self.tailRodLength = params["tailRodLength"]
         if persist:
             self.save_to_settings()
@@ -352,10 +363,18 @@ class GeometryTo3DConverter(QObject):
         manager = self._settings_manager
         manager.set("geometry.frame_length_m", self._frame_length, auto_save=False)
         manager.set("geometry.frame_height_m", self._frame_height, auto_save=False)
-        manager.set("geometry.frame_beam_size_m", self._frame_beam_size, auto_save=False)
+        manager.set(
+            "geometry.frame_beam_size_m", self._frame_beam_size, auto_save=False
+        )
         manager.set("geometry.lever_length_m", self._lever_length, auto_save=False)
-        manager.set("geometry.cylinder_body_length_m", self._cylinder_body_length, auto_save=False)
-        manager.set("geometry.tail_rod_length_m", self._tail_rod_length, auto_save=False)
+        manager.set(
+            "geometry.cylinder_body_length_m",
+            self._cylinder_body_length,
+            auto_save=False,
+        )
+        manager.set(
+            "geometry.tail_rod_length_m", self._tail_rod_length, auto_save=False
+        )
         manager.save()
 
     def export_geometry_params(self) -> Dict[str, Any]:

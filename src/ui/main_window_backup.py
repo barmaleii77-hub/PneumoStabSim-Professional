@@ -2,6 +2,7 @@
 Main window for PneumoStabSim application
 Qt Quick3D rendering with QQuickWidget (no createWindowContainer)
 """
+
 from PySide6.QtWidgets import (
     QMainWindow,
     QStatusBar,
@@ -858,7 +859,9 @@ class MainWindow(QMainWindow):
                 )
 
                 if success:
-                    print("✅ QML updateGeometry() called successfully via invokeMethod")
+                    print(
+                        "✅ QML updateGeometry() called successfully via invokeMethod"
+                    )
                     self.status_bar.showMessage("Geometry updated in QML scene")
                 else:
                     print("❌ QML updateGeometry() call failed")
@@ -1021,7 +1024,9 @@ class MainWindow(QMainWindow):
                     self._qml_root_object.setProperty(
                         "userPhaseGlobal", animation_params["phase"]
                     )
-                    print(f"   ✅ Set userPhaseGlobal = {animation_params['phase']} deg")
+                    print(
+                        f"   ✅ Set userPhaseGlobal = {animation_params['phase']} deg"
+                    )
 
                 if "lf_phase" in animation_params:
                     self._qml_root_object.setProperty(
@@ -1144,14 +1149,14 @@ class MainWindow(QMainWindow):
             return
         settings.setValue(self.SETTINGS_LAST_PRESET, str(Path(file_path).parent))
         preset = {
-            "geometry": self.geometry_panel.get_parameters()
-            if self.geometry_panel
-            else {},
+            "geometry": (
+                self.geometry_panel.get_parameters() if self.geometry_panel else {}
+            ),
             "pneumo": self.pneumo_panel.get_parameters() if self.pneumo_panel else {},
             "modes": self.modes_panel.get_parameters() if self.modes_panel else {},
-            "physics": self.modes_panel.get_physics_options()
-            if self.modes_panel
-            else {},
+            "physics": (
+                self.modes_panel.get_physics_options() if self.modes_panel else {}
+            ),
         }
         try:
             with open(file_path, "w", encoding="utf-8") as f:

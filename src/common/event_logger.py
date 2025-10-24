@@ -2,6 +2,7 @@
 Unified Event Logger for Python↔QML sync analysis
 Tracks ALL events that should affect scene rendering
 """
+
 from __future__ import annotations
 
 import json

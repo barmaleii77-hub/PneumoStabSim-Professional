@@ -1,6 +1,7 @@
 """
 Charts widget using QtCharts for real-time data visualization
 """
+
 from PySide6.QtWidgets import QWidget, QVBoxLayout, QTabWidget
 from PySide6.QtCharts import QChart, QChartView, QLineSeries, QValueAxis
 from PySide6.QtCore import Qt, QPointF

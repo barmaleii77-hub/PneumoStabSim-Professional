@@ -2,6 +2,7 @@
 Logging wrapper for LabeledSlider in panel_graphics.py
 Wraps existing LabeledSlider to add automatic event logging
 """
+
 from __future__ import annotations
 
 from typing import Optional
@@ -41,9 +42,9 @@ class LoggingLabeledSlider:
         # ✅ Логируем ИЗМЕНЕНИЕ СЛАЙДЕРА
         self.event_logger.log_user_slider(
             slider_name=self.widget_name,
-            old_value=self._previous_value
-            if self._previous_value is not None
-            else value,
+            old_value=(
+                self._previous_value if self._previous_value is not None else value
+            ),
             new_value=value,
             title=self._slider._title,
             unit=self._slider._unit,
@@ -99,9 +100,9 @@ class LoggingColorButton:
         # ✅ Логируем ВЫБОР ЦВЕТА
         self.event_logger.log_user_color(
             color_name=self.widget_name,
-            old_color=self._previous_color
-            if self._previous_color is not None
-            else color,
+            old_color=(
+                self._previous_color if self._previous_color is not None else color
+            ),
             new_color=color,
         )
 

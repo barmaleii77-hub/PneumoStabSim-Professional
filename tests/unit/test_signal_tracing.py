@@ -8,12 +8,12 @@ from typing import Any, List
 import pytest
 
 from src.diagnostics.signal_tracing import (
- HAS_QT,
- MissingSignalError,
- SignalTraceRecord,
- SignalTracer,
- SignalTracerBridge,
- SignalTracingError,
+    HAS_QT,
+    MissingSignalError,
+    SignalTraceRecord,
+    SignalTracer,
+    SignalTracerBridge,
+    SignalTracingError,
 )
 
 

@@ -126,9 +126,7 @@ def dummy_manager() -> DummySettingsManager:
     return DummySettingsManager()
 
 
-def test_save_profile_writes_file(
-    tmp_path: Path, dummy_manager: DummySettingsManager
-):
+def test_save_profile_writes_file(tmp_path: Path, dummy_manager: DummySettingsManager):
     manager = ProfileSettingsManager(dummy_manager, profile_dir=tmp_path)
     result = manager.save_profile("Demo Profile")
     assert result.success
@@ -151,7 +149,9 @@ def test_load_profile_updates_settings(
     manager.save_profile("Demo")
 
     # Mutate settings to ensure load overwrites them
-    dummy_manager.set("graphics.environment", _alternate_payload(ENVIRONMENT_PARAMETERS))
+    dummy_manager.set(
+        "graphics.environment", _alternate_payload(ENVIRONMENT_PARAMETERS)
+    )
     dummy_manager.set("graphics.scene", _alternate_payload(SCENE_PARAMETERS))
     dummy_manager.set("graphics.animation", _alternate_payload(ANIMATION_PARAMETERS))
 
@@ -161,7 +161,9 @@ def test_load_profile_updates_settings(
 
     profile_path = tmp_path / "demo.json"
     stored = json.loads(profile_path.read_text(encoding="utf-8"))
-    assert dummy_manager.get("graphics.environment") == stored["graphics"]["environment"]
+    assert (
+        dummy_manager.get("graphics.environment") == stored["graphics"]["environment"]
+    )
     assert dummy_manager.get("graphics.scene") == stored["graphics"]["scene"]
     assert dummy_manager.get("graphics.animation") == stored["graphics"]["animation"]
 

@@ -2,6 +2,7 @@
 Logging wrappers for all Qt UI widgets
 Automatically logs user interactions BEFORE handlers are called
 """
+
 from __future__ import annotations
 
 

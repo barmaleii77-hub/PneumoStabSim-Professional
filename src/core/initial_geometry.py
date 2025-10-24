@@ -18,11 +18,25 @@ class CylinderParams:
     """Cylinder physical parameters sourced from configuration."""
 
     D_cylinder: float = field(
-        default_factory=lambda: float(get_geometry_cylinder_constants()["inner_diameter_m"])
+        default_factory=lambda: float(
+            get_geometry_cylinder_constants()["inner_diameter_m"]
+        )
     )
-    D_rod: float = field(default_factory=lambda: float(get_geometry_cylinder_constants()["rod_diameter_m"]))
-    L_body: float = field(default_factory=lambda: float(get_geometry_cylinder_constants()["body_length_m"]))
-    L_piston: float = field(default_factory=lambda: float(get_geometry_cylinder_constants()["piston_thickness_m"]))
+    D_rod: float = field(
+        default_factory=lambda: float(
+            get_geometry_cylinder_constants()["rod_diameter_m"]
+        )
+    )
+    L_body: float = field(
+        default_factory=lambda: float(
+            get_geometry_cylinder_constants()["body_length_m"]
+        )
+    )
+    L_piston: float = field(
+        default_factory=lambda: float(
+            get_geometry_cylinder_constants()["piston_thickness_m"]
+        )
+    )
 
 
 @dataclass
@@ -87,16 +101,16 @@ def calculate_initial_geometry(
     j_tail_right: Tuple[float, float, float] | None = None,
 ) -> InitialGeometry:
     """
-    Calculate complete initial geometry at neutral position
+        Calculate complete initial geometry at neutral position
 
-    Args:
-        params: Cylinder parameters
-      lever_length: Lever length from pivot to rod joint (m)
-j_arm_left/right: Lever pivot positions
-        j_tail_left/right: Cylinder tail positions
+        Args:
+            params: Cylinder parameters
+          lever_length: Lever length from pivot to rod joint (m)
+    j_arm_left/right: Lever pivot positions
+            j_tail_left/right: Cylinder tail positions
 
-    Returns:
-        InitialGeometry with all calculated values
+        Returns:
+            InitialGeometry with all calculated values
     """
     defaults = get_geometry_initial_state_constants()
 

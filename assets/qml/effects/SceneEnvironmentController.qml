@@ -1,203 +1,362 @@
 import QtQuick
 import QtQuick3D
-import QtQuick3D.Helpers  // ✅ CRITICAL: Required for ExtendedSceneEnvironment
+import QtQuick3D.Helpers // ✅ CRITICAL: Required for ExtendedSceneEnvironment
 
 /*
  * SceneEnvironmentController - Полное управление ExtendedSceneEnvironment
  * Все эффекты, качество, IBL, туман в ОДНОМ компоненте
  */
 ExtendedSceneEnvironment {
-    id: root
+ id: root
 
-    // ===============================================================
-    // BACKGROUND & IBL
-    // ===============================================================
+ // ===============================================================
+ // BACKGROUND & IBL
+ // ===============================================================
 
-    property bool iblBackgroundEnabled: false
-    property bool iblLightingEnabled: false
-    property color backgroundColor: "#1f242c"
-    property Texture iblProbe: null
-    property real iblIntensity: 1.0
-    property real iblRotationDeg: 0.0
+ property bool iblBackgroundEnabled: false
+ property bool iblLightingEnabled: false
+ property color backgroundColor: "#1f242c"
+ property Texture iblProbe: null
+ property real iblIntensity:1.0
+ property real iblRotationDeg:0.0
 
-    backgroundMode: (iblBackgroundEnabled && iblProbe) ? SceneEnvironment.SkyBox : SceneEnvironment.Color
-    clearColor: backgroundColor
-    skyBoxCubeMap: (iblBackgroundEnabled && iblProbe) ? iblProbe : null
-    lightProbe: (iblLightingEnabled && iblProbe) ? iblProbe : null
-    probeExposure: iblIntensity
-    probeOrientation: Qt.vector3d(0, iblRotationDeg, 0)
+ /**
+ * Python SceneBridge instance injected via context property.
+ */
+ property var sceneBridge: null
 
-    // ===============================================================
-    // ANTIALIASING
-    // ===============================================================
+ backgroundMode: (iblBackgroundEnabled && iblProbe) ? SceneEnvironment.SkyBox : SceneEnvironment.Color
+ clearColor: backgroundColor
+ skyBoxCubeMap: (iblBackgroundEnabled && iblProbe) ? iblProbe : null
+ lightProbe: (iblLightingEnabled && iblProbe) ? iblProbe : null
+ probeExposure: iblIntensity
+ probeOrientation: Qt.vector3d(0, iblRotationDeg,0)
 
-    property string aaPrimaryMode: "ssaa"
-    property string aaQualityLevel: "high"
-    property string aaPostMode: "taa"
-    property bool taaEnabled: true
-    property real taaStrength: 0.4
-    property bool taaMotionAdaptive: true
-    property bool fxaaEnabled: false
-    property bool specularAAEnabled: false
-    property bool cameraIsMoving: false
+ // ===============================================================
+ // ANTIALIASING
+ // ===============================================================
 
-    antialiasingMode: {
-        if (aaPrimaryMode === "ssaa") return SceneEnvironment.SSAA
-        if (aaPrimaryMode === "msaa") return SceneEnvironment.MSAA
-        if (aaPrimaryMode === "progressive") return SceneEnvironment.ProgressiveAA
-        return SceneEnvironment.NoAA
-    }
+ property string aaPrimaryMode: "ssaa"
+ property string aaQualityLevel: "high"
+ property string aaPostMode: "taa"
+ property bool taaEnabled: true
+ property real taaStrength:0.4
+ property bool taaMotionAdaptive: true
+ property bool fxaaEnabled: false
+ property bool specularAAEnabled: false
+ property bool cameraIsMoving: false
 
-    antialiasingQuality: {
-        if (aaQualityLevel === "high") return SceneEnvironment.High
-        if (aaQualityLevel === "medium") return SceneEnvironment.Medium
-        if (aaQualityLevel === "low") return SceneEnvironment.Low
-        return SceneEnvironment.Medium
-    }
+ antialiasingMode: {
+ if (aaPrimaryMode === "ssaa") return SceneEnvironment.SSAA
+ if (aaPrimaryMode === "msaa") return SceneEnvironment.MSAA
+ if (aaPrimaryMode === "progressive") return SceneEnvironment.ProgressiveAA
+ return SceneEnvironment.NoAA
+ }
 
-    // ✅ ИСПРАВЛЕНО: fxaaEnabled и specularAAEnabled уже установлены выше
-    temporalAAEnabled: (aaPostMode === "taa" && taaEnabled && (!taaMotionAdaptive || cameraIsMoving))
-    temporalAAStrength: taaStrength
+ antialiasingQuality: {
+ if (aaQualityLevel === "high") return SceneEnvironment.High
+ if (aaQualityLevel === "medium") return SceneEnvironment.Medium
+ if (aaQualityLevel === "low") return SceneEnvironment.Low
+ return SceneEnvironment.Medium
+ }
 
-    // ===============================================================
-    // DITHERING (Qt 6.10+)
-    // ===============================================================
+ // ✅ ИСПРАВЛЕНО: fxaaEnabled и specularAAEnabled уже установлены выше
+ temporalAAEnabled: (aaPostMode === "taa" && taaEnabled && (!taaMotionAdaptive || cameraIsMoving))
+ temporalAAStrength: taaStrength
 
-    property bool ditheringEnabled: true
-    property bool canUseDithering: false
+ // ===============================================================
+ // DITHERING (Qt6.10+)
+ // ===============================================================
 
-    Component.onCompleted: {
-        if (canUseDithering) {
-            root.ditheringEnabled = Qt.binding(function() { return ditheringEnabled })
-        }
-    }
+ property bool ditheringEnabled: true
+ property bool canUseDithering: false
 
-    // ===============================================================
-    // FOG (Qt 6.10+)
-    // ===============================================================
+ function _applySceneBridgeState() {
+ if (!sceneBridge)
+ return
 
-    property bool fogEnabled: false
-    property color fogColor: "#808080"
-    property real fogDensity: 0.1
-    property real fogNear: 1200.0
-    property real fogFar: 12000.0
+ if (sceneBridge.environment && Object.keys(sceneBridge.environment).length)
+ _applyEnvironmentPayload(sceneBridge.environment)
 
-    fog: Fog {
-        enabled: root.fogEnabled
-        color: root.fogColor
-        depthEnabled: true
-        depthNear: root.fogNear
-        depthFar: root.fogFar
-        depthCurve: 1.0
-    }
+ if (sceneBridge.quality && Object.keys(sceneBridge.quality).length)
+ _applyQualityPayload(sceneBridge.quality)
 
-    // ===============================================================
-    // TONEMAP
-    // ===============================================================
+ if (sceneBridge.effects && Object.keys(sceneBridge.effects).length)
+ _applyEffectsPayload(sceneBridge.effects)
+ }
 
-    property bool tonemapEnabled: true
-    property string tonemapModeName: "filmic"
-    property real tonemapExposure: 1.0
-    property real tonemapWhitePoint: 2.0
+ function _applyEnvironmentPayload(payload) {
+ applyEnvironmentPayload(payload)
+ }
 
-    tonemapMode: tonemapEnabled ? (
-        tonemapModeName === "filmic" ? SceneEnvironment.TonemapModeFilmic :
-        tonemapModeName === "aces" ? SceneEnvironment.TonemapModeFilmic :
-        tonemapModeName === "reinhard" ? SceneEnvironment.TonemapModeReinhard :
-        tonemapModeName === "gamma" ? SceneEnvironment.TonemapModeLinear :
-        tonemapModeName === "linear" ? SceneEnvironment.TonemapModeLinear :
-        SceneEnvironment.TonemapModeNone
-    ) : SceneEnvironment.TonemapModeNone
+ function _applyQualityPayload(payload) {
+ applyQualityPayload(payload)
+ }
 
-    exposure: tonemapExposure
-    whitePoint: tonemapWhitePoint
+ function _applyEffectsPayload(payload) {
+ applyEffectsPayload(payload)
+ }
 
-    // ===============================================================
-    // BLOOM
-    // ===============================================================
+ onSceneBridgeChanged: _applySceneBridgeState()
 
-    property bool bloomEnabled: true
-    property real bloomIntensity: 0.5
-    property real bloomThreshold: 1.0
-    property real bloomSpread: 0.65
+ Connections {
+ target: sceneBridge
+ enabled: !!sceneBridge
 
-    glowEnabled: bloomEnabled
-    glowIntensity: bloomIntensity
-    glowHDRMinimumValue: bloomThreshold
-    glowBloom: bloomSpread
-    glowQualityHigh: true
-    glowUseBicubicUpscale: true
-    glowHDRMaximumValue: 8.0
-    glowHDRScale: 2.0
+ function onEnvironmentChanged(payload) {
+ if (payload)
+ _applyEnvironmentPayload(payload)
+ }
 
-    // ===============================================================
-    // SSAO
-    // ===============================================================
+ function onQualityChanged(payload) {
+ if (payload)
+ _applyQualityPayload(payload)
+ }
 
-    property bool ssaoEnabled: false
-    property real ssaoRadius: 8.0
-    property real ssaoIntensity: 1.0
+ function onEffectsChanged(payload) {
+ if (payload)
+ _applyEffectsPayload(payload)
+ }
+ }
 
-    aoEnabled: ssaoEnabled
-    aoDistance: ssaoRadius
-    aoStrength: ssaoIntensity * 100
-    aoSoftness: 20
-    aoDither: true
-    aoSampleRate: 3
+ Component.onCompleted: {
+ if (canUseDithering) {
+ root.ditheringEnabled = Qt.binding(function() { return ditheringEnabled })
+ }
 
-    // ===============================================================
-    // DEPTH OF FIELD
-    // ===============================================================
+ _applySceneBridgeState()
+ }
 
-    property bool internalDepthOfFieldEnabled: false
-    property real dofFocusDistance: 2200.0
-    property real dofBlurAmount: 4.0
+ function applyEnvironmentPayload(params) {
+ if (!params)
+ return
 
-    // ✅ ИСПРАВЛЕНО: используем внутреннее свойство для избежания конфликта
-    depthOfFieldEnabled: internalDepthOfFieldEnabled
-    depthOfFieldFocusDistance: dofFocusDistance
-    depthOfFieldBlurAmount: dofBlurAmount
+ if (params.backgroundColor)
+ backgroundColor = params.backgroundColor
+ if (params.clearColor)
+ backgroundColor = params.clearColor
+ if (params.iblBackgroundEnabled !== undefined)
+ iblBackgroundEnabled = !!params.iblBackgroundEnabled
+ if (params.iblLightingEnabled !== undefined)
+ iblLightingEnabled = !!params.iblLightingEnabled
+ if (params.iblIntensity !== undefined)
+ iblIntensity = Number(params.iblIntensity)
+ if (params.iblRotationDeg !== undefined)
+ iblRotationDeg = Number(params.iblRotationDeg)
+ if (params.tonemapEnabled !== undefined)
+ tonemapEnabled = !!params.tonemapEnabled
+ if (params.tonemapModeName)
+ tonemapModeName = String(params.tonemapModeName)
+ if (params.tonemapExposure !== undefined)
+ tonemapExposure = Number(params.tonemapExposure)
+ if (params.tonemapWhitePoint !== undefined)
+ tonemapWhitePoint = Number(params.tonemapWhitePoint)
+ if (params.fogEnabled !== undefined)
+ fogEnabled = !!params.fogEnabled
+ if (params.fogColor)
+ fogColor = params.fogColor
+ if (params.fogNear !== undefined)
+ fogNear = Number(params.fogNear)
+ if (params.fogFar !== undefined)
+ fogFar = Number(params.fogFar)
+ if (params.ssaoEnabled !== undefined)
+ ssaoEnabled = !!params.ssaoEnabled
+ if (params.ssaoRadius !== undefined)
+ ssaoRadius = Number(params.ssaoRadius)
+ if (params.ssaoIntensity !== undefined)
+ ssaoIntensity = Number(params.ssaoIntensity)
+ if (params.depthOfFieldEnabled !== undefined)
+ internalDepthOfFieldEnabled = !!params.depthOfFieldEnabled
+ if (params.dofFocusDistance !== undefined)
+ dofFocusDistance = Number(params.dofFocusDistance)
+ if (params.dofBlurAmount !== undefined)
+ dofBlurAmount = Number(params.dofBlurAmount)
+ if (params.vignetteEnabled !== undefined)
+ internalVignetteEnabled = !!params.vignetteEnabled
+ if (params.vignetteStrength !== undefined)
+ internalVignetteStrength = Number(params.vignetteStrength)
+ if (params.oitMode)
+ oitMode = String(params.oitMode)
+ if (params.ditheringEnabled !== undefined)
+ ditheringEnabled = !!params.ditheringEnabled
+ }
 
-    // ===============================================================
-    // VIGNETTE
-    // ===============================================================
+ function applyQualityPayload(params) {
+ if (!params)
+ return
 
-    property bool internalVignetteEnabled: false
-    property real internalVignetteStrength: 0.35
+ if (params.aaPrimaryMode)
+ aaPrimaryMode = String(params.aaPrimaryMode)
+ if (params.aaQualityLevel)
+ aaQualityLevel = String(params.aaQualityLevel)
+ if (params.aaPostMode)
+ aaPostMode = String(params.aaPostMode)
+ if (params.taaEnabled !== undefined)
+ taaEnabled = !!params.taaEnabled
+ if (params.taaStrength !== undefined)
+ taaStrength = Number(params.taaStrength)
+ if (params.taaMotionAdaptive !== undefined)
+ taaMotionAdaptive = !!params.taaMotionAdaptive
+ if (params.fxaaEnabled !== undefined)
+ fxaaEnabled = !!params.fxaaEnabled
+ if (params.specularAAEnabled !== undefined)
+ specularAAEnabled = !!params.specularAAEnabled
+ if (params.ditheringEnabled !== undefined)
+ ditheringEnabled = !!params.ditheringEnabled
+ }
 
-    // ✅ ИСПРАВЛЕНО: используем внутренние свойства
-    vignetteEnabled: internalVignetteEnabled
-    vignetteStrength: internalVignetteStrength
-    vignetteRadius: 0.4
+ function applyEffectsPayload(params) {
+ if (!params)
+ return
 
-    // ===============================================================
-    // LENS FLARE
-    // ===============================================================
+ if (params.bloomEnabled !== undefined)
+ bloomEnabled = !!params.bloomEnabled
+ if (params.bloomIntensity !== undefined)
+ bloomIntensity = Number(params.bloomIntensity)
+ if (params.bloomThreshold !== undefined)
+ bloomThreshold = Number(params.bloomThreshold)
+ if (params.bloomSpread !== undefined)
+ bloomSpread = Number(params.bloomSpread)
+ if (params.depthOfFieldEnabled !== undefined)
+ internalDepthOfFieldEnabled = !!params.depthOfFieldEnabled
+ if (params.dofFocusDistance !== undefined)
+ dofFocusDistance = Number(params.dofFocusDistance)
+ if (params.dofBlurAmount !== undefined)
+ dofBlurAmount = Number(params.dofBlurAmount)
+ if (params.vignetteEnabled !== undefined)
+ internalVignetteEnabled = !!params.vignetteEnabled
+ if (params.vignetteStrength !== undefined)
+ internalVignetteStrength = Number(params.vignetteStrength)
+ if (params.lensFlareEnabled !== undefined)
+ internalLensFlareEnabled = !!params.lensFlareEnabled
+ }
 
-    property bool internalLensFlareEnabled: false
+ // ===============================================================
+ // FOG (Qt6.10+)
+ // ===============================================================
 
-    // ✅ ИСПРАВЛЕНО: используем внутреннее свойство
-    lensFlareEnabled: internalLensFlareEnabled
-    lensFlareGhostCount: 3
-    lensFlareGhostDispersal: 0.6
-    lensFlareHaloWidth: 0.25
-    lensFlareBloomBias: 0.35
-    lensFlareStretchToAspect: 1.0
+ property bool fogEnabled: false
+ property color fogColor: "#808080"
+ property real fogDensity:0.1
+ property real fogNear:1200.0
+ property real fogFar:12000.0
 
-    // ===============================================================
-    // OIT (Order Independent Transparency)
-    // ===============================================================
+ fog: Fog {
+ enabled: root.fogEnabled
+ color: root.fogColor
+ depthEnabled: true
+ depthNear: root.fogNear
+ depthFar: root.fogFar
+ depthCurve:1.0
+ }
 
-    property string oitMode: "weighted"
+ // ===============================================================
+ // TONEMAP
+ // ===============================================================
 
-    oitMethod: oitMode === "weighted" ? SceneEnvironment.OITWeightedBlended : SceneEnvironment.OITNone
+ property bool tonemapEnabled: true
+ property string tonemapModeName: "filmic"
+ property real tonemapExposure:1.0
+ property real tonemapWhitePoint:2.0
 
-    // ===============================================================
-    // COLOR ADJUSTMENTS
-    // ===============================================================
+ tonemapMode: tonemapEnabled ? (
+ tonemapModeName === "filmic" ? SceneEnvironment.TonemapModeFilmic :
+ tonemapModeName === "aces" ? SceneEnvironment.TonemapModeFilmic :
+ tonemapModeName === "reinhard" ? SceneEnvironment.TonemapModeReinhard :
+ tonemapModeName === "gamma" ? SceneEnvironment.TonemapModeLinear :
+ tonemapModeName === "linear" ? SceneEnvironment.TonemapModeLinear :
+ SceneEnvironment.TonemapModeNone
+ ) : SceneEnvironment.TonemapModeNone
 
-    colorAdjustmentsEnabled: true
-    adjustmentBrightness: 1.0
-    adjustmentContrast: 1.05
-    adjustmentSaturation: 1.05
+ exposure: tonemapExposure
+ whitePoint: tonemapWhitePoint
+
+ // ===============================================================
+ // BLOOM
+ // ===============================================================
+
+ property bool bloomEnabled: true
+ property real bloomIntensity:0.5
+ property real bloomThreshold:1.0
+ property real bloomSpread:0.65
+
+ glowEnabled: bloomEnabled
+ glowIntensity: bloomIntensity
+ glowHDRMinimumValue: bloomThreshold
+ glowBloom: bloomSpread
+ glowQualityHigh: true
+ glowUseBicubicUpscale: true
+ glowHDRMaximumValue:8.0
+ glowHDRScale:2.0
+
+ // ===============================================================
+ // SSAO
+ // ===============================================================
+
+ property bool ssaoEnabled: false
+ property real ssaoRadius:8.0
+ property real ssaoIntensity:1.0
+
+ aoEnabled: ssaoEnabled
+ aoDistance: ssaoRadius
+ aoStrength: ssaoIntensity *100
+ aoSoftness:20
+ aoDither: true
+ aoSampleRate:3
+
+ // ===============================================================
+ // DEPTH OF FIELD
+ // ===============================================================
+
+ property bool internalDepthOfFieldEnabled: false
+ property real dofFocusDistance:2200.0
+ property real dofBlurAmount:4.0
+
+ // ✅ ИСПРАВЛЕНО: используем внутреннее свойство для избежания конфликта
+ depthOfFieldEnabled: internalDepthOfFieldEnabled
+ depthOfFieldFocusDistance: dofFocusDistance
+ depthOfFieldBlurAmount: dofBlurAmount
+
+ // ===============================================================
+ // VIGNETTE
+ // ===============================================================
+
+ property bool internalVignetteEnabled: false
+ property real internalVignetteStrength:0.35
+
+ // ✅ ИСПРАВЛЕНО: используем внутренние свойства
+ vignetteEnabled: internalVignetteEnabled
+ vignetteStrength: internalVignetteStrength
+ vignetteRadius:0.4
+
+ // ===============================================================
+ // LENS FLARE
+ // ===============================================================
+
+ property bool internalLensFlareEnabled: false
+
+ // ✅ ИСПРАВЛЕНО: используем внутреннее свойство
+ lensFlareEnabled: internalLensFlareEnabled
+ lensFlareGhostCount:3
+ lensFlareGhostDispersal:0.6
+ lensFlareHaloWidth:0.25
+ lensFlareBloomBias:0.35
+ lensFlareStretchToAspect:1.0
+
+ // ===============================================================
+ // OIT (Order Independent Transparency)
+ // ===============================================================
+
+ property string oitMode: "weighted"
+
+ oitMethod: oitMode === "weighted" ? SceneEnvironment.OITWeightedBlended : SceneEnvironment.OITNone
+
+ // ===============================================================
+ // COLOR ADJUSTMENTS
+ // ===============================================================
+
+ colorAdjustmentsEnabled: true
+ adjustmentBrightness:1.0
+ adjustmentContrast:1.05
+ adjustmentSaturation:1.05
 }

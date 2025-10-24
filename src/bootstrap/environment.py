@@ -5,13 +5,14 @@
 Отвечает за конфигурацию переменных среды для корректной работы
 Qt Quick 3D, включая пути к QML-модулям и плагинам.
 """
+
 import os
 import sys
 from typing import Callable
 
 
 def setup_qtquick3d_environment(
-    log_error: Callable[[str], None]
+    log_error: Callable[[str], None],
 ) -> tuple[bool, str | None]:
     """
     Настройка переменных окружения QtQuick3D перед импортом Qt.

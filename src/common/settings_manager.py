@@ -35,6 +35,7 @@ except Exception:  # pragma: no cover - при ранней загрузке в 
     def get_signal_trace_service():  # type: ignore
         raise RuntimeError("SignalTraceService is not available")
 
+
 try:
     from jsonschema import Draft202012Validator, ValidationError
 except Exception:  # pragma: no cover - библиотека может ставиться отдельно
@@ -142,12 +143,12 @@ class SettingsManager:
 
     # Совместимость со старой легковесной схемой внутри менеджера (оставляем для обратной совместимости)
     CURRENT_SCHEMA_VERSION = "1.0.0"
-    _SCHEMA_MIGRATIONS: Tuple[Tuple[str, str], ...] = (
-        ("1.0.0", "_migrate_to_1_0_0"),
-    )
+    _SCHEMA_MIGRATIONS: Tuple[Tuple[str, str], ...] = (("1.0.0", "_migrate_to_1_0_0"),)
 
     # Пути к схеме и миграциям
-    _SCHEMA_PATH = Path(__file__).resolve().parents[2] / "config" / "app_settings.schema.json"
+    _SCHEMA_PATH = (
+        Path(__file__).resolve().parents[2] / "config" / "app_settings.schema.json"
+    )
     _MIGRATIONS_PATH = Path(__file__).resolve().parents[2] / "config" / "migrations"
 
     # Canonical geometry keys exposed in meters for UI/visualization modules
@@ -462,7 +463,9 @@ class SettingsManager:
             return value
         except TypeError:
             if isinstance(value, dict):
-                return {str(k): SettingsManager._make_json_safe(v) for k, v in value.items()}
+                return {
+                    str(k): SettingsManager._make_json_safe(v) for k, v in value.items()
+                }
             if isinstance(value, (list, tuple, set)):
                 return [SettingsManager._make_json_safe(item) for item in value]
             return repr(value)
@@ -471,7 +474,9 @@ class SettingsManager:
     def _values_equal(first: Any, second: Any) -> bool:
         if first is _MISSING and second is _MISSING:
             return True
-        return SettingsManager._make_json_safe(first) == SettingsManager._make_json_safe(second)
+        return SettingsManager._make_json_safe(
+            first
+        ) == SettingsManager._make_json_safe(second)
 
     @classmethod
     def _diff_dicts(
@@ -737,7 +742,9 @@ class SettingsManager:
             self.logger.error(f"Failed to load migration module {file_path}: {exc}")
             return None
 
-    def _apply_version_migrations(self, data: Dict[str, Any]) -> tuple[Dict[str, Any], bool]:
+    def _apply_version_migrations(
+        self, data: Dict[str, Any]
+    ) -> tuple[Dict[str, Any], bool]:
         metadata = data.setdefault("metadata", {})
         file_version = str(metadata.get("version") or "0.0.0")
         target_version = self.SETTINGS_VERSION
@@ -755,9 +762,10 @@ class SettingsManager:
         # Обновление (upgrade)
         if comparison < 0:
             for version, path in migrations:
-                if self._compare_versions(file_version, version) < 0 and self._compare_versions(
-                    version, target_version
-                ) <= 0:
+                if (
+                    self._compare_versions(file_version, version) < 0
+                    and self._compare_versions(version, target_version) <= 0
+                ):
                     module = self._load_migration_module(path)
                     if module is None or not hasattr(module, "upgrade"):
                         continue
@@ -775,9 +783,10 @@ class SettingsManager:
         # Откат (downgrade)
         elif comparison > 0:
             for version, path in reversed(migrations):
-                if self._compare_versions(target_version, version) < 0 and self._compare_versions(
-                    version, file_version
-                ) <= 0:
+                if (
+                    self._compare_versions(target_version, version) < 0
+                    and self._compare_versions(version, file_version) <= 0
+                ):
                     module = self._load_migration_module(path)
                     if module is None or not hasattr(module, "downgrade"):
                         continue
@@ -803,9 +812,7 @@ class SettingsManager:
             return self._schema_validator  # type: ignore[return-value]
 
         if not self._SCHEMA_PATH.exists():
-            raise FileNotFoundError(
-                f"Settings schema not found: {self._SCHEMA_PATH}"
-            )
+            raise FileNotFoundError(f"Settings schema not found: {self._SCHEMA_PATH}")
 
         with open(self._SCHEMA_PATH, "r", encoding="utf-8") as schema_file:
             schema_data = json.load(schema_file)
@@ -884,11 +891,19 @@ class SettingsManager:
                     self._defaults_snapshot = copy.deepcopy(self._current)
 
                 # Всегда синхронизируем метаданные и версии
-                self._metadata = data.get("metadata", {}) if isinstance(data, dict) else {}
-                self._schema_version = data.get("schemaVersion", self.CURRENT_SCHEMA_VERSION)
+                self._metadata = (
+                    data.get("metadata", {}) if isinstance(data, dict) else {}
+                )
+                self._schema_version = data.get(
+                    "schemaVersion", self.CURRENT_SCHEMA_VERSION
+                )
 
                 should_save = (
-                    schema_migrated or migration_changed or units_updated or structure_updated or defaults_missing
+                    schema_migrated
+                    or migration_changed
+                    or units_updated
+                    or structure_updated
+                    or defaults_missing
                 )
                 if should_save:
                     try:
@@ -1095,7 +1110,9 @@ class SettingsManager:
             bool: True если успешно
         """
         previous = self._current.get(category, _MISSING)
-        previous_copy = copy.deepcopy(previous) if previous is not _MISSING else _MISSING
+        previous_copy = (
+            copy.deepcopy(previous) if previous is not _MISSING else _MISSING
+        )
 
         self._current[category] = data
 
@@ -1184,7 +1201,9 @@ class SettingsManager:
                     if new_val is not _MISSING:
                         new_val = copy.deepcopy(new_val)
                     changes.extend(
-                        self._diff_dicts(f"defaults.{key}", old_val, new_val, "defaults")
+                        self._diff_dicts(
+                            f"defaults.{key}", old_val, new_val, "defaults"
+                        )
                     )
                 self._emit_batch_changes(changes)
                 self._sync_signal_trace_config()
@@ -1423,7 +1442,9 @@ class SettingsManager:
             "world_pos_y": 20.0,
             "world_pos_z": 20.0,
         }
-        changed |= self._convert_values_with_threshold(camera, position_thresholds, 1000.0)
+        changed |= self._convert_values_with_threshold(
+            camera, position_thresholds, 1000.0
+        )
 
         return changed
 
@@ -1435,7 +1456,12 @@ class SettingsManager:
         changed = False
         changed |= self._convert_values_with_threshold(
             environment,
-            {"fog_near": 5.0, "fog_far": 5.0, "fog_least_intense_y": 5.0, "fog_most_intense_y": 5.0},
+            {
+                "fog_near": 5.0,
+                "fog_far": 5.0,
+                "fog_least_intense_y": 5.0,
+                "fog_most_intense_y": 5.0,
+            },
             1000.0,
         )
 
@@ -1456,10 +1482,14 @@ class SettingsManager:
         for light in lighting.values():
             if not isinstance(light, dict):
                 continue
-            position_keys = {k: 20.0 for k in ("position_x", "position_y", "position_z")}
+            position_keys = {
+                k: 20.0 for k in ("position_x", "position_y", "position_z")
+            }
             changed |= self._convert_values_with_threshold(light, position_keys, 1000.0)
             if "range" in light:
-                changed |= self._convert_values_with_threshold(light, {"range": 20.0}, 1000.0)
+                changed |= self._convert_values_with_threshold(
+                    light, {"range": 20.0}, 1000.0
+                )
         return changed
 
     def _convert_graphics_effects_to_si(self, graphics: Dict[str, Any]) -> bool:

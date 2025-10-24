@@ -124,9 +124,13 @@ def run_gas_simulation(
             system,
             net,
             thermo_mode,
-            log
-            if (log_interval is None or current_time - last_log_time >= log_interval)
-            else None,
+            (
+                log
+                if (
+                    log_interval is None or current_time - last_log_time >= log_interval
+                )
+                else None
+            ),
         )
 
         current_time += actual_dt

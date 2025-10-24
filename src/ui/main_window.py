@@ -3,6 +3,7 @@ Main window for PneumoStabSim application
 Qt Quick3D rendering with QQuickWidget (no createWindowContainer)
 РУССКИЙ ИНТЕРФЕЙС (Russian UI)
 """
+
 from PySide6.QtWidgets import (
     QMainWindow,
     QStatusBar,
@@ -780,7 +781,9 @@ class MainWindow(QMainWindow):
 
             # 3) Пишем на диск ОДИН РАЗ
             self.settings_manager.save()
-            self.logger.info("✅ All settings saved to config/app_settings.json on exit")
+            self.logger.info(
+                "✅ All settings saved to config/app_settings.json on exit"
+            )
 
             try:
                 self.simulation_manager.stop()

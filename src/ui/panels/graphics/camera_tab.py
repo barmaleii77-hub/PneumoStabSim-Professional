@@ -126,25 +126,19 @@ class CameraTab(QWidget):
         grid.addWidget(manual, r, 0, 1, 2)
         r += 1
 
-        camx = LabeledSlider(
-            "Камера X", -100.0, 100.0, 0.01, decimals=2, unit="м"
-        )
+        camx = LabeledSlider("Камера X", -100.0, 100.0, 0.01, decimals=2, unit="м")
         camx.valueChanged.connect(lambda v: self._emit())
         self._controls["camera_pos_x"] = camx
         grid.addWidget(camx, r, 0, 1, 2)
         r += 1
 
-        camy = LabeledSlider(
-            "Камера Y", -100.0, 100.0, 0.01, decimals=2, unit="м"
-        )
+        camy = LabeledSlider("Камера Y", -100.0, 100.0, 0.01, decimals=2, unit="м")
         camy.valueChanged.connect(lambda v: self._emit())
         self._controls["camera_pos_y"] = camy
         grid.addWidget(camy, r, 0, 1, 2)
         r += 1
 
-        camz = LabeledSlider(
-            "Камера Z", -100.0, 100.0, 0.01, decimals=2, unit="м"
-        )
+        camz = LabeledSlider("Камера Z", -100.0, 100.0, 0.01, decimals=2, unit="м")
         camz.valueChanged.connect(lambda v: self._emit())
         self._controls["camera_pos_z"] = camz
         grid.addWidget(camz, r, 0, 1, 2)
@@ -284,25 +278,19 @@ class CameraTab(QWidget):
         grid.setVerticalSpacing(8)
         r = 0
 
-        wx = LabeledSlider(
-            "Позиция X", -100.0, 100.0, 0.01, decimals=2, unit="м"
-        )
+        wx = LabeledSlider("Позиция X", -100.0, 100.0, 0.01, decimals=2, unit="м")
         wx.valueChanged.connect(lambda v: self._emit())
         self._controls["world_pos_x"] = wx
         grid.addWidget(wx, r, 0, 1, 2)
         r += 1
 
-        wy = LabeledSlider(
-            "Позиция Y", -100.0, 100.0, 0.01, decimals=2, unit="м"
-        )
+        wy = LabeledSlider("Позиция Y", -100.0, 100.0, 0.01, decimals=2, unit="м")
         wy.valueChanged.connect(lambda v: self._emit())
         self._controls["world_pos_y"] = wy
         grid.addWidget(wy, r, 0, 1, 2)
         r += 1
 
-        wz = LabeledSlider(
-            "Позиция Z", -100.0, 100.0, 0.01, decimals=2, unit="м"
-        )
+        wz = LabeledSlider("Позиция Z", -100.0, 100.0, 0.01, decimals=2, unit="м")
         wz.valueChanged.connect(lambda v: self._emit())
         self._controls["world_pos_z"] = wz
         grid.addWidget(wz, r, 0, 1, 2)

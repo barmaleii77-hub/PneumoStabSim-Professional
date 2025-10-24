@@ -5,6 +5,7 @@
 Координирует запуск, выполнение и корректное завершение приложения,
 включая обработку сигналов, логирование и диагностику.
 """
+
 import asyncio
 import sys
 import os
@@ -18,6 +19,8 @@ import json
 import subprocess
 
 from pneumostabsim.logging import ErrorHookManager, install_error_hooks
+
+from src.ui.qml_registration import register_qml_types
 
 
 class ApplicationRunner:
@@ -192,6 +195,8 @@ class ApplicationRunner:
                     "MainWindow: refactored import failed, using default import"
                 )
 
+        register_qml_types()
+
         window = MW(use_qml_3d=self.use_qml_3d_schema)
         self.window_instance = window
 
@@ -281,9 +286,7 @@ class ApplicationRunner:
             # Попробуем угадать project path
             try:
                 project_candidate = (
-                    Path(__file__).resolve().parents[1]
-                    / "config"
-                    / "app_settings.json"
+                    Path(__file__).resolve().parents[1] / "config" / "app_settings.json"
                 )
                 if cfg_path.samefile(project_candidate):
                     src = "PROJECT"

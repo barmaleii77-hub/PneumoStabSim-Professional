@@ -17,6 +17,7 @@
 
 Russian UI / English code.
 """
+
 from __future__ import annotations
 
 import copy
@@ -259,7 +260,9 @@ class MainWindow(QMainWindow):
     # ------------------------------------------------------------------
     # Settings synchronization helpers
     # ------------------------------------------------------------------
-    def _apply_settings_update(self, category_path: str, updates: Dict[str, Any]) -> None:
+    def _apply_settings_update(
+        self, category_path: str, updates: Dict[str, Any]
+    ) -> None:
         """Merge updates into SettingsManager and log diffs."""
 
         if not updates:
@@ -325,7 +328,9 @@ class MainWindow(QMainWindow):
             keys = set(old) | set(new)
             for key in keys:
                 child_prefix = f"{prefix}.{key}" if prefix else str(key)
-                diffs.extend(MainWindow._iter_diff(old.get(key), new.get(key), child_prefix))
+                diffs.extend(
+                    MainWindow._iter_diff(old.get(key), new.get(key), child_prefix)
+                )
             return diffs
 
         if old != new:

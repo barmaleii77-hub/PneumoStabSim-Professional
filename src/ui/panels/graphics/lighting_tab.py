@@ -111,9 +111,7 @@ class LightingTab(QWidget):
         grid.addWidget(angle_z, row, 0, 1, 2)
         row += 1
 
-        posx = LabeledSlider(
-            "Позиция X", -100.0, 100.0, 0.1, decimals=1, unit="м"
-        )
+        posx = LabeledSlider("Позиция X", -100.0, 100.0, 0.1, decimals=1, unit="м")
         posx.valueChanged.connect(
             lambda v: self._update_lighting("key", "position_x", v)
         )
@@ -121,9 +119,7 @@ class LightingTab(QWidget):
         grid.addWidget(posx, row, 0, 1, 2)
         row += 1
 
-        posy = LabeledSlider(
-            "Позиция Y", -100.0, 100.0, 0.1, decimals=1, unit="м"
-        )
+        posy = LabeledSlider("Позиция Y", -100.0, 100.0, 0.1, decimals=1, unit="м")
         posy.valueChanged.connect(
             lambda v: self._update_lighting("key", "position_y", v)
         )
@@ -131,9 +127,7 @@ class LightingTab(QWidget):
         grid.addWidget(posy, row, 0, 1, 2)
         row += 1
 
-        posz = LabeledSlider(
-            "Позиция Z", -100.0, 100.0, 0.1, decimals=1, unit="м"
-        )
+        posz = LabeledSlider("Позиция Z", -100.0, 100.0, 0.1, decimals=1, unit="м")
         posz.valueChanged.connect(
             lambda v: self._update_lighting("key", "position_z", v)
         )
@@ -208,27 +202,21 @@ class LightingTab(QWidget):
         grid.addWidget(angle_z, row, 0, 1, 2)
         row += 1
 
-        posx = LabeledSlider(
-            "Позиция X", -100.0, 100.0, 0.1, decimals=1, unit="м"
-        )
+        posx = LabeledSlider("Позиция X", -100.0, 100.0, 0.1, decimals=1, unit="м")
         posx.valueChanged.connect(
             lambda v: self._update_lighting("fill", "position_x", v)
         )
         self._controls["fill.position_x"] = posx
         grid.addWidget(posx, row, 0, 1, 2)
         row += 1
-        posy = LabeledSlider(
-            "Позиция Y", -100.0, 100.0, 0.1, decimals=1, unit="м"
-        )
+        posy = LabeledSlider("Позиция Y", -100.0, 100.0, 0.1, decimals=1, unit="м")
         posy.valueChanged.connect(
             lambda v: self._update_lighting("fill", "position_y", v)
         )
         self._controls["fill.position_y"] = posy
         grid.addWidget(posy, row, 0, 1, 2)
         row += 1
-        posz = LabeledSlider(
-            "Позиция Z", -100.0, 100.0, 0.1, decimals=1, unit="м"
-        )
+        posz = LabeledSlider("Позиция Z", -100.0, 100.0, 0.1, decimals=1, unit="м")
         posz.valueChanged.connect(
             lambda v: self._update_lighting("fill", "position_z", v)
         )
@@ -303,27 +291,21 @@ class LightingTab(QWidget):
         grid.addWidget(angle_z, row, 0, 1, 2)
         row += 1
 
-        posx = LabeledSlider(
-            "Позиция X", -100.0, 100.0, 0.1, decimals=1, unit="м"
-        )
+        posx = LabeledSlider("Позиция X", -100.0, 100.0, 0.1, decimals=1, unit="м")
         posx.valueChanged.connect(
             lambda v: self._update_lighting("rim", "position_x", v)
         )
         self._controls["rim.position_x"] = posx
         grid.addWidget(posx, row, 0, 1, 2)
         row += 1
-        posy = LabeledSlider(
-            "Позиция Y", -100.0, 100.0, 0.1, decimals=1, unit="м"
-        )
+        posy = LabeledSlider("Позиция Y", -100.0, 100.0, 0.1, decimals=1, unit="м")
         posy.valueChanged.connect(
             lambda v: self._update_lighting("rim", "position_y", v)
         )
         self._controls["rim.position_y"] = posy
         grid.addWidget(posy, row, 0, 1, 2)
         row += 1
-        posz = LabeledSlider(
-            "Позиция Z", -100.0, 100.0, 0.1, decimals=1, unit="м"
-        )
+        posz = LabeledSlider("Позиция Z", -100.0, 100.0, 0.1, decimals=1, unit="м")
         posz.valueChanged.connect(
             lambda v: self._update_lighting("rim", "position_z", v)
         )
@@ -376,27 +358,21 @@ class LightingTab(QWidget):
         grid.addLayout(color_row, row, 0, 1, 2)
         row += 1
 
-        posx = LabeledSlider(
-            "Позиция X", -100.0, 100.0, 0.1, decimals=1, unit="м"
-        )
+        posx = LabeledSlider("Позиция X", -100.0, 100.0, 0.1, decimals=1, unit="м")
         posx.valueChanged.connect(
             lambda v: self._update_lighting("point", "position_x", v)
         )
         self._controls["point.position_x"] = posx
         grid.addWidget(posx, row, 0, 1, 2)
         row += 1
-        posy = LabeledSlider(
-            "Позиция Y", -100.0, 100.0, 0.1, decimals=1, unit="м"
-        )
+        posy = LabeledSlider("Позиция Y", -100.0, 100.0, 0.1, decimals=1, unit="м")
         posy.valueChanged.connect(
             lambda v: self._update_lighting("point", "position_y", v)
         )
         self._controls["point.position_y"] = posy
         grid.addWidget(posy, row, 0, 1, 2)
         row += 1
-        posz = LabeledSlider(
-            "Позиция Z", -100.0, 100.0, 0.1, decimals=1, unit="м"
-        )
+        posz = LabeledSlider("Позиция Z", -100.0, 100.0, 0.1, decimals=1, unit="м")
         posz.valueChanged.connect(
             lambda v: self._update_lighting("point", "position_z", v)
         )
@@ -484,27 +460,21 @@ class LightingTab(QWidget):
         row += 1
 
         # Позиция
-        posx = LabeledSlider(
-            "Позиция X", -100.0, 100.0, 0.1, decimals=1, unit="м"
-        )
+        posx = LabeledSlider("Позиция X", -100.0, 100.0, 0.1, decimals=1, unit="м")
         posx.valueChanged.connect(
             lambda v: self._update_lighting("spot", "position_x", v)
         )
         self._controls["spot.position_x"] = posx
         grid.addWidget(posx, row, 0, 1, 2)
         row += 1
-        posy = LabeledSlider(
-            "Позиция Y", -100.0, 100.0, 0.1, decimals=1, unit="м"
-        )
+        posy = LabeledSlider("Позиция Y", -100.0, 100.0, 0.1, decimals=1, unit="м")
         posy.valueChanged.connect(
             lambda v: self._update_lighting("spot", "position_y", v)
         )
         self._controls["spot.position_y"] = posy
         grid.addWidget(posy, row, 0, 1, 2)
         row += 1
-        posz = LabeledSlider(
-            "Позиция Z", -100.0, 100.0, 0.1, decimals=1, unit="м"
-        )
+        posz = LabeledSlider("Позиция Z", -100.0, 100.0, 0.1, decimals=1, unit="м")
         posz.valueChanged.connect(
             lambda v: self._update_lighting("spot", "position_z", v)
         )

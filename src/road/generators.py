@@ -348,9 +348,7 @@ def generate_iso8608_profile(
         # Add uncorrelated component in frequency domain
         if correlation.rho_LR < 1.0:
             # Generate additional noise
-            noise_add = np.random.randn(n_samples) * np.sqrt(
-                1 - correlation.rho_LR**2
-            )
+            noise_add = np.random.randn(n_samples) * np.sqrt(1 - correlation.rho_LR**2)
             profile_right = correlation.rho_LR * profile_left + noise_add
 
     else:

@@ -291,9 +291,7 @@ class StateSnapshot:
                     return False
 
             # Check tank pressure
-            if not np.isfinite(self.tank.pressure) or not np.isfinite(
-                self.tank.volume
-            ):
+            if not np.isfinite(self.tank.pressure) or not np.isfinite(self.tank.volume):
                 return False
 
             if self.tank.pressure <= 0 or self.tank.volume <= 0:

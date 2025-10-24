@@ -221,7 +221,8 @@ class PhysicsWorker(QObject):
 
         try:
             sim_values = {
-                key: _require_number("simulation", key) for key in NUMERIC_SIMULATION_KEYS
+                key: _require_number("simulation", key)
+                for key in NUMERIC_SIMULATION_KEYS
             }
             self.dt_physics = sim_values["physics_dt"]
             self.vsync_render_hz = sim_values["render_vsync_hz"]
@@ -254,8 +255,7 @@ class PhysicsWorker(QObject):
                     )
 
             pneumatic_numbers = {
-                key: _require_number("pneumatic", key)
-                for key in NUMERIC_PNEUMATIC_KEYS
+                key: _require_number("pneumatic", key) for key in NUMERIC_PNEUMATIC_KEYS
             }
             self.receiver_volume = pneumatic_numbers["receiver_volume"]
             if not (
@@ -266,8 +266,7 @@ class PhysicsWorker(QObject):
                 )
 
             pneumatic_strings = {
-                key: _require_str("pneumatic", key)
-                for key in STRING_PNEUMATIC_KEYS
+                key: _require_str("pneumatic", key) for key in STRING_PNEUMATIC_KEYS
             }
 
             mode = pneumatic_strings["volume_mode"].upper()
@@ -276,8 +275,7 @@ class PhysicsWorker(QObject):
             self.receiver_volume_mode = mode
 
             pneumatic_bools = {
-                key: _require_bool("pneumatic", key)
-                for key in BOOL_PNEUMATIC_KEYS
+                key: _require_bool("pneumatic", key) for key in BOOL_PNEUMATIC_KEYS
             }
             self.master_isolation_open = pneumatic_bools["master_isolation_open"]
 
@@ -367,7 +365,10 @@ class PhysicsWorker(QObject):
             line_volumes = self.pneumatic_system.get_line_volumes()
             line_states: Dict[Line, Any] = {}
             for line_name, volume_info in line_volumes.items():
-                if not isinstance(volume_info, dict) or "total_volume" not in volume_info:
+                if (
+                    not isinstance(volume_info, dict)
+                    or "total_volume" not in volume_info
+                ):
                     raise RuntimeError(
                         f"Line volume information missing for {line_name.value}"
                     )
@@ -725,7 +726,9 @@ class PhysicsWorker(QObject):
             rod_pressure = self._get_line_pressure(wheel, Port.ROD)
             area_head = geom.area_head(cylinder.spec.is_front)
             area_rod = geom.area_rod(cylinder.spec.is_front)
-            wheel_state.force_pneumatic = head_pressure * area_head - rod_pressure * area_rod
+            wheel_state.force_pneumatic = (
+                head_pressure * area_head - rod_pressure * area_rod
+            )
 
         # 3. Update gas system
         line_volumes = self.pneumatic_system.get_line_volumes()
@@ -794,7 +797,9 @@ class PhysicsWorker(QObject):
                     self.physics_state = result.y_final
                     velocities = self.physics_state[3:6]
                     if self.dt_physics > 0:
-                        self._latest_frame_accel = (velocities - prev_vel) / self.dt_physics
+                        self._latest_frame_accel = (
+                            velocities - prev_vel
+                        ) / self.dt_physics
                     self._prev_frame_velocities = velocities.copy()
                 else:
                     self.performance.integration_failures += 1

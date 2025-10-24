@@ -32,9 +32,7 @@ def _suspension_displacements(
         yield y + x_pos * roll + z_pos * pitch
 
 
-def _total_mechanical_energy(
-    params: RigidBody3DOF, state: np.ndarray
-) -> float:
+def _total_mechanical_energy(params: RigidBody3DOF, state: np.ndarray) -> float:
     """Approximate total mechanical energy of the rigid body state."""
     y, roll, pitch, dy, droll, dpitch = state
 
@@ -86,9 +84,7 @@ def test_step_dynamics_stable_response(
             method="Radau",
         )
         assert result.success, result.message
-        assert np.all(np.isfinite(result.y_final)), (
-            "State vector must remain finite"
-        )
+        assert np.all(np.isfinite(result.y_final)), "State vector must remain finite"
         assert result.n_evaluations > 0
         assert result.t_final > t
 
@@ -109,17 +105,13 @@ def test_step_dynamics_stable_response(
     assert captured.err == ""
 
     assert math.isclose(t, 0.5, rel_tol=0.0, abs_tol=1e-12)
-    assert max_energy < 5_000.0, (
-        "Energy growth indicates unstable integration"
-    )
-    assert max_angle < math.radians(5.0), (
-        "Angular deviation should stay within 5 degrees"
-    )
+    assert max_energy < 5_000.0, "Energy growth indicates unstable integration"
+    assert max_angle < math.radians(
+        5.0
+    ), "Angular deviation should stay within 5 degrees"
 
     accelerations = f_rhs(t, y, default_params, None, None)[3:]
-    assert np.linalg.norm(accelerations) < 5.0, (
-        "Accelerations should remain bounded"
-    )
+    assert np.linalg.norm(accelerations) < 5.0, "Accelerations should remain bounded"
 
 
 def test_step_dynamics_invalid_method(

@@ -5,6 +5,7 @@
 
 Russian comments / English code.
 """
+
 from __future__ import annotations
 
 import logging
@@ -405,9 +406,7 @@ class SignalsRouter:
                 window.sim_time_label.setText(
                     f"Sim Time: {latest_snapshot.simulation_time:.3f}s"
                 )
-                window.step_count_label.setText(
-                    f"Steps: {latest_snapshot.step_number}"
-                )
+                window.step_count_label.setText(f"Steps: {latest_snapshot.step_number}")
 
                 if latest_snapshot.aggregates.physics_step_time > 0:
                     fps = 1.0 / latest_snapshot.aggregates.physics_step_time

@@ -1,4 +1,5 @@
 """Список обязательных секций и ключей для файла настроек."""
+
 from __future__ import annotations
 
 from typing import Iterable, Tuple
@@ -11,13 +12,9 @@ NUMERIC_SIMULATION_KEYS: Tuple[str, ...] = (
     "max_frame_time",
 )
 
-NUMERIC_PNEUMATIC_KEYS: Tuple[str, ...] = (
-    "receiver_volume",
-)
+NUMERIC_PNEUMATIC_KEYS: Tuple[str, ...] = ("receiver_volume",)
 
-BOOL_PNEUMATIC_KEYS: Tuple[str, ...] = (
-    "master_isolation_open",
-)
+BOOL_PNEUMATIC_KEYS: Tuple[str, ...] = ("master_isolation_open",)
 
 STRING_PNEUMATIC_KEYS: Tuple[str, ...] = (
     "volume_mode",

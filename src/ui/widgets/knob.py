@@ -22,13 +22,13 @@ SI_PREFIXES = {
     -18: "a",  # atto
     -15: "f",  # femto
     -12: "p",  # pico
-    -9:  "n",  # nano
-    -6:  "μ",  # micro
-    -3:  "m",  # milli
-     0:  "",   # no prefix
-     3:  "k",  # kilo
-     6:  "M",  # mega
-     9:  "G",  # giga
+    -9: "n",  # nano
+    -6: "μ",  # micro
+    -3: "m",  # milli
+    0: "",  # no prefix
+    3: "k",  # kilo
+    6: "M",  # mega
+    9: "G",  # giga
     12: "T",  # tera
     15: "P",  # peta
     18: "E",  # exa

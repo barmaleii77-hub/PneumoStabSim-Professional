@@ -3,5 +3,5 @@
 from __future__ import annotations
 
 __all__ = [
- "__doc__",
+    "__doc__",
 ]

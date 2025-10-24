@@ -1,0 +1,4 @@
+module PneumoStabSim
+SimulationRoot 1.0 SimulationRoot.qml
+CameraController 1.0 ../camera/CameraController.qml
+SceneEnvironmentController 1.0 ../effects/SceneEnvironmentController.qml

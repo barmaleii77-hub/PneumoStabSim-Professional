@@ -33,6 +33,11 @@ Item {
      */
     property var view3d: null
 
+    /**
+     * SceneBridge instance injected from Python.
+     */
+    property var sceneBridge: null
+
     // ===============================================================
     // GEOMETRY PROPERTIES (for auto-fit/reset)
     // ===============================================================
@@ -268,6 +273,37 @@ Item {
     }
 
     // ===============================================================
+    // BRIDGE INTEGRATION
+    // ===============================================================
+    function _applySceneBridgeState() {
+        if (!sceneBridge)
+            return
+
+        if (sceneBridge.geometry && Object.keys(sceneBridge.geometry).length)
+            updateGeometry(sceneBridge.geometry)
+
+        if (sceneBridge.camera && Object.keys(sceneBridge.camera).length)
+            applyCameraUpdates(sceneBridge.camera)
+    }
+
+    onSceneBridgeChanged: _applySceneBridgeState()
+
+    Connections {
+        target: sceneBridge
+        enabled: !!sceneBridge
+
+        function onGeometryChanged(payload) {
+            if (payload)
+                updateGeometry(payload)
+        }
+
+        function onCameraChanged(payload) {
+            if (payload)
+                applyCameraUpdates(payload)
+        }
+    }
+
+    // ===============================================================
     // INITIALIZATION
     // ===============================================================
 
@@ -287,5 +323,7 @@ Item {
 
         // Initial auto-fit
         autoFitFrame()
+
+        _applySceneBridgeState()
     }
 }

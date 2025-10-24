@@ -5,6 +5,7 @@
 
 Russian UI / English code.
 """
+
 from __future__ import annotations
 
 import json
@@ -170,7 +171,9 @@ class UISetup:
                 context.setContextProperty("settingsEvents", get_settings_event_bus())
                 context.setContextProperty("signalTrace", get_signal_trace_service())
             except Exception as inject_exc:
-                UISetup.logger.warning("    ⚠️ Failed to inject diagnostics contexts: %s", inject_exc)
+                UISetup.logger.warning(
+                    "    ⚠️ Failed to inject diagnostics contexts: %s", inject_exc
+                )
 
             UISetup.logger.info("    ✅ Window context registered")
 
@@ -245,9 +248,7 @@ class UISetup:
             # Store base directory
             window._qml_base_dir = qml_file.parent.resolve()
 
-            UISetup.logger.info(
-                "    ✅ %s loaded successfully", qml_file.name
-            )
+            UISetup.logger.info("    ✅ %s loaded successfully", qml_file.name)
 
         except Exception as e:
             UISetup.logger.exception(f"    ❌ QML load failed: {e}")
@@ -302,8 +303,7 @@ class UISetup:
                 )
             else:
                 UISetup.logger.warning(
-                    "    [QML] Unsupported scene '%s' requested via %s. "
-                    "Allowed: %s",
+                    "    [QML] Unsupported scene '%s' requested via %s. " "Allowed: %s",
                     requested,
                     UISetup._SCENE_ENV_VAR,
                     ", ".join(
@@ -315,9 +315,7 @@ class UISetup:
         for scene_key in load_order:
             scene_path = UISetup._SUPPORTED_SCENES[scene_key]
             if scene_path.exists():
-                UISetup.logger.info(
-                    "    [QML] Загрузка сцены: %s", scene_path.name
-                )
+                UISetup.logger.info("    [QML] Загрузка сцены: %s", scene_path.name)
                 return scene_path
             UISetup.logger.debug(
                 "    [QML] Scene %s not found at %s",
@@ -328,9 +326,7 @@ class UISetup:
         searched = ", ".join(
             str(UISetup._SUPPORTED_SCENES[key]) for key in UISetup._SCENE_LOAD_ORDER
         )
-        raise FileNotFoundError(
-            "No supported QML scenes found. Checked: " + searched
-        )
+        raise FileNotFoundError("No supported QML scenes found. Checked: " + searched)
 
     # ------------------------------------------------------------------
     # Tabs Setup

@@ -2,6 +2,7 @@
 
 Упрощённая и корректно отформатированная версия моста для тестирования.
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -13,6 +14,7 @@ from typing import TYPE_CHECKING, Any, Dict, Optional, Union
 try:
     from PySide6.QtCore import Q_ARG, QMetaObject, Qt
 except Exception:  # pragma: no cover - fallback for test env without PySide6
+
     class _DummyQt:
         class ConnectionType:
             DirectConnection = 0
@@ -150,13 +152,20 @@ class QMLBridge:
                 window._suppress_qml_feedback = False
             return QMLBridge._make_update_result(True, detailed)
         except Exception as exc:
-            QMLBridge.logger.error("Failed to push batched updates to QML: %s", exc, exc_info=True)
+            QMLBridge.logger.error(
+                "Failed to push batched updates to QML: %s", exc, exc_info=True
+            )
 
             # Record into EventLogger if available
             try:
-                QMLBridge._log_qml_update_failure(window, context="flush_updates", payload=updates, error=exc)
+                QMLBridge._log_qml_update_failure(
+                    window, context="flush_updates", payload=updates, error=exc
+                )
             except Exception:
-                QMLBridge.logger.debug("Failed to record qml update failure into event logger", exc_info=True)
+                QMLBridge.logger.debug(
+                    "Failed to record qml update failure into event logger",
+                    exc_info=True,
+                )
 
             if raise_on_error:
                 raise QMLUpdateError("QML rejected batched updates") from exc
@@ -189,9 +198,7 @@ class QMLBridge:
                 window._suppress_qml_feedback = False
             return True
         except Exception as exc:
-            QMLBridge.logger.debug(
-                f"Failed to push simulation state: {exc}"
-            )
+            QMLBridge.logger.debug(f"Failed to push simulation state: {exc}")
             return False
 
     @staticmethod
@@ -212,7 +219,9 @@ class QMLBridge:
         piston_positions: Dict[str, float] = {}
 
         for wheel_enum, corner_key in wheel_key_map.items():
-            wheel_state = getattr(snapshot, "wheels", {}).get(wheel_enum) if snapshot else None
+            wheel_state = (
+                getattr(snapshot, "wheels", {}).get(wheel_enum) if snapshot else None
+            )
             if not wheel_state:
                 continue
 
@@ -240,7 +249,9 @@ class QMLBridge:
 
         line_payload: Dict[str, Dict[str, Any]] = {}
         for line_enum in Line:
-            line_state = getattr(snapshot, "lines", {}).get(line_enum) if snapshot else None
+            line_state = (
+                getattr(snapshot, "lines", {}).get(line_enum) if snapshot else None
+            )
             if not line_state:
                 continue
 
@@ -258,22 +269,34 @@ class QMLBridge:
                 "heave": float(getattr(getattr(snapshot, "frame", {}), "heave", 0.0)),
                 "roll": float(getattr(getattr(snapshot, "frame", {}), "roll", 0.0)),
                 "pitch": float(getattr(getattr(snapshot, "frame", {}), "pitch", 0.0)),
-                "heaveRate": float(getattr(getattr(snapshot, "frame", {}), "heave_rate", 0.0)),
-                "rollRate": float(getattr(getattr(snapshot, "frame", {}), "roll_rate", 0.0)),
-                "pitchRate": float(getattr(getattr(snapshot, "frame", {}), "pitch_rate", 0.0)),
+                "heaveRate": float(
+                    getattr(getattr(snapshot, "frame", {}), "heave_rate", 0.0)
+                ),
+                "rollRate": float(
+                    getattr(getattr(snapshot, "frame", {}), "roll_rate", 0.0)
+                ),
+                "pitchRate": float(
+                    getattr(getattr(snapshot, "frame", {}), "pitch_rate", 0.0)
+                ),
             },
             "leverAngles": lever_angles,
             "pistonPositions": piston_positions,
             "linePressures": {k: v.get("pressure") for k, v in line_payload.items()},
-            "tankPressure": float(getattr(getattr(snapshot, "tank", {}), "pressure", 0.0)),
+            "tankPressure": float(
+                getattr(getattr(snapshot, "tank", {}), "pressure", 0.0)
+            ),
         }
 
         three_d_payload = {
             "wheels": wheels_payload,
             "lines": line_payload,
             "tank": {
-                "pressure": float(getattr(getattr(snapshot, "tank", {}), "pressure", 0.0)),
-                "temperature": float(getattr(getattr(snapshot, "tank", {}), "temperature", 0.0)),
+                "pressure": float(
+                    getattr(getattr(snapshot, "tank", {}), "pressure", 0.0)
+                ),
+                "temperature": float(
+                    getattr(getattr(snapshot, "tank", {}), "temperature", 0.0)
+                ),
             },
             "frame": {
                 "heave": float(getattr(getattr(snapshot, "frame", {}), "heave", 0.0)),
@@ -331,26 +354,37 @@ class QMLBridge:
     # ------------------------------------------------------------------
     @staticmethod
     def _make_update_result(
-        success: bool, detailed: bool, error: Optional[str] = None, exception: Optional[Exception] = None
+        success: bool,
+        detailed: bool,
+        error: Optional[str] = None,
+        exception: Optional[Exception] = None,
     ) -> Union[bool, QMLUpdateResult]:
         if detailed:
             return QMLUpdateResult(success=success, error=error, exception=exception)
         return success
 
     @staticmethod
-    def _log_qml_update_failure(window: "MainWindow", *, context: str, payload: Dict[str, Any], error: Exception) -> None:
+    def _log_qml_update_failure(
+        window: "MainWindow", *, context: str, payload: Dict[str, Any], error: Exception
+    ) -> None:
         """Записать событие отказа QML в EventLogger."""
         try:
             event_logger = getattr(window, "event_logger", None)
             if event_logger is None:
                 return
 
-            event_logger.log_qml_update_failure(component="qml_bridge", action=context, payload=payload, error=error)
+            event_logger.log_qml_update_failure(
+                component="qml_bridge", action=context, payload=payload, error=error
+            )
         except Exception:
-            QMLBridge.logger.debug("Failed to write QML update failure event", exc_info=True)
+            QMLBridge.logger.debug(
+                "Failed to write QML update failure event", exc_info=True
+            )
 
     @staticmethod
-    def _notify_qml_failure(window: "MainWindow", message: str, details: Optional[str]) -> None:
+    def _notify_qml_failure(
+        window: "MainWindow", message: str, details: Optional[str]
+    ) -> None:
         """Отобразить уведомление пользователю об ошибке обновления QML."""
         status_message = message if not details else f"{message}: {details}"
 
@@ -369,7 +403,9 @@ class QMLBridge:
                 window.show_qml_error_dialog(message, details)
                 return
             except Exception:
-                QMLBridge.logger.debug("Custom QML error dialog handler failed", exc_info=True)
+                QMLBridge.logger.debug(
+                    "Custom QML error dialog handler failed", exc_info=True
+                )
 
         try:
             from PySide6.QtWidgets import QMessageBox  # type: ignore
@@ -377,7 +413,9 @@ class QMLBridge:
             text = message if not details else f"{message}\n\n{details}"
             QMessageBox.critical(window, "QML Update Failure", text)
         except Exception:
-            QMLBridge.logger.debug("Failed to show QMessageBox for QML error", exc_info=True)
+            QMLBridge.logger.debug(
+                "Failed to show QMessageBox for QML error", exc_info=True
+            )
 
     @staticmethod
     def _prepare_for_qml(value: Any) -> Any:
@@ -426,14 +464,20 @@ class QMLBridge:
 
                     glog = get_graphics_logger()
 
-                    since_ts = summary.get("timestamp") if isinstance(summary, dict) else None
+                    since_ts = (
+                        summary.get("timestamp") if isinstance(summary, dict) else None
+                    )
 
                     for cat, payload in window._last_batched_updates.items():
                         if isinstance(payload, dict) and payload:
-                            QMLBridge._log_graphics_change(window, str(cat), payload, applied=True)
+                            QMLBridge._log_graphics_change(
+                                window, str(cat), payload, applied=True
+                            )
 
                             try:
-                                glog.mark_category_changes_applied(str(cat), since_timestamp=since_ts)
+                                glog.mark_category_changes_applied(
+                                    str(cat), since_timestamp=since_ts
+                                )
                             except Exception:
                                 pass
 
@@ -445,7 +489,9 @@ class QMLBridge:
             QMLBridge.logger.debug("handle_qml_ack failed", exc_info=True)
 
     @staticmethod
-    def _log_graphics_change(window: "MainWindow", category: str, payload: Dict[str, Any], applied: bool) -> None:
+    def _log_graphics_change(
+        window: "MainWindow", category: str, payload: Dict[str, Any], applied: bool
+    ) -> None:
         try:
             from ..panels.graphics_logger import get_graphics_logger
 

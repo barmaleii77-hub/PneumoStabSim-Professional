@@ -160,9 +160,11 @@ def setup_ide_config():
 
     # settings.json для VS Code
     vscode_settings = {
-        "python.defaultInterpreterPath": "./.venv/Scripts/python.exe"
-        if platform.system() == "Windows"
-        else "./.venv/bin/python",
+        "python.defaultInterpreterPath": (
+            "./.venv/Scripts/python.exe"
+            if platform.system() == "Windows"
+            else "./.venv/bin/python"
+        ),
         "python.formatting.provider": "black",
         "python.linting.enabled": True,
         "python.linting.flake8Enabled": True,

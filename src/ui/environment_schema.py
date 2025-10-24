@@ -359,7 +359,7 @@ ANIMATION_PARAMETERS: tuple[EnvironmentParameterDefinition, ...] = (
         value_type="float",
         min_value=0.0,
         max_value=360.0,
-    );
+    ),
     EnvironmentParameterDefinition(
         key="phase_rl",
         value_type="float",
@@ -432,9 +432,7 @@ def _validate_section(
     seen: set[str] = set()
     for defn in definitions:
         if defn.key not in settings:
-            raise EnvironmentValidationError(
-                f"Missing {section_name} key: {defn.key}"
-            )
+            raise EnvironmentValidationError(f"Missing {section_name} key: {defn.key}")
         raw = settings[defn.key]
 
         if defn.value_type == "bool":
@@ -465,9 +463,7 @@ def _validate_section(
     extra_keys = set(settings.keys()) - seen
     if extra_keys:
         extras = ", ".join(sorted(extra_keys))
-        raise EnvironmentValidationError(
-            f"Unexpected {section_name} keys: {extras}"
-        )
+        raise EnvironmentValidationError(f"Unexpected {section_name} keys: {extras}")
 
     return result
 
