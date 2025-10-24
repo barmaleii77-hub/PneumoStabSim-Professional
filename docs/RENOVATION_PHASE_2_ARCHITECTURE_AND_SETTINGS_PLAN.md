@@ -62,3 +62,10 @@ Log architectural decisions, ADR references, and schema revisions here.
   matrix from the schema, defaults snapshot, and UI bindings.
 - Generated the first revision of `docs/settings_control_matrix.md`, providing a
   single source of truth for module ownership and widget wiring.
+
+### 2025-05-12 – Service container foundation
+- Added `src/core/container.py` with a typed dependency injection container and
+  lightweight `EventBus` implementation.
+- Registered canonical factories for settings, logging, and profile management
+  via `build_default_container`, enabling Phase 2 modules to request shared
+  services deterministically.
