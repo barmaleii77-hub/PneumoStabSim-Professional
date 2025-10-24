@@ -46,3 +46,6 @@
 
 ## Execution Log
 Capture notable decisions, blockers, and timings here. Reference PR numbers and CI runs.
+
+- 2025-02-15 – Added `tools/ci_tasks.py` command runner and cleaned up the strict
+  mypy target list to unblock Phase 1 automation goals.

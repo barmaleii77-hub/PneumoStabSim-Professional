@@ -1,5 +1,3 @@
 src/pneumostabsim_typing
 src/common/signal_trace.py
 tools/audit_config.py
-src/new_module_one
-src/new_module_two
