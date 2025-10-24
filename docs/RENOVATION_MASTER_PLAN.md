@@ -113,18 +113,26 @@
 - Consolidate environment activation scripts to minimal cross-platform set to avoid drift.
 
 ## 10. Execution Roadmap
-1. **Phase 0 – Discovery (1 week)**
-   - Run diagnostics scripts, catalogue modules, identify duplicates, gather profiling baselines.
-2. **Phase 1 – Environment & CI (2 weeks)**
-   - Lock dependencies, refactor activation scripts, set up GitHub Actions + branch policy automation.
-3. **Phase 2 – Architecture & Settings (3 weeks)**
-   - Implement settings manager, restructure modules, align signal/slot wiring, integrate logging.
-4. **Phase 3 – UI & Graphics Enhancements (4 weeks)**
-   - Rebuild QML UI, enforce high-fidelity defaults, integrate new controls, refine camera orbit.
-5. **Phase 4 – Testing, Packaging & Cleanup (2 weeks)**
-   - Finalize automated tests, ensure packaging, remove legacy assets, documentation update.
-6. **Phase 5 – Stabilization (continuous)**
-   - Monitor nightly CI, collect user feedback, iterate on performance, maintain documentation.
+The roadmap is split into six phases with detailed implementation playbooks. Each phase has a dedicated plan file that captures prerequisites, sprint-level deliverables, and acceptance metrics. The links below point to the living documents that track daily progress and should be reviewed before kicking off the phase.
+
+1. **Phase 0 – Discovery (1 week)**  
+   [Detailed plan](RENOVATION_PHASE_0_DISCOVERY_PLAN.md)
+2. **Phase 1 – Environment & CI (2 weeks)**  
+   [Detailed plan](RENOVATION_PHASE_1_ENVIRONMENT_AND_CI_PLAN.md)
+3. **Phase 2 – Architecture & Settings (3 weeks)**  
+   [Detailed plan](RENOVATION_PHASE_2_ARCHITECTURE_AND_SETTINGS_PLAN.md)
+4. **Phase 3 – UI & Graphics Enhancements (4 weeks)**  
+   [Detailed plan](RENOVATION_PHASE_3_UI_AND_GRAPHICS_PLAN.md)
+5. **Phase 4 – Testing, Packaging & Cleanup (2 weeks)**  
+   [Detailed plan](RENOVATION_PHASE_4_TESTING_PACKAGING_CLEANUP_PLAN.md)
+6. **Phase 5 – Stabilization (continuous)**  
+   [Detailed plan](RENOVATION_PHASE_5_STABILIZATION_PLAN.md)
+
+### Phase Overview Refresh
+
+- **Milestone Gates** – Each phase now concludes with a structured review covering code readiness, documentation parity, and metrics captured in the corresponding detailed plan. Advancement requires explicit sign-off recorded in the phase document.
+- **Resource Planning** – The dedicated plans outline cross-functional roles (engineering, QA, design, DevOps) and expected weekly capacity. Adjustments should be logged inline to keep the modernization blueprint synchronized with staffing realities.
+- **Risk Tracking** – Major risks, mitigation strategies, and contingency actions are maintained directly within the detailed plan files to keep the high-level roadmap evergreen without overwhelming it with tactical noise.
 
 ## 11. Success Criteria
 - Application runs on Python 3.13 + Qt 6.10 across Windows/Linux without runtime warnings or missing plugins.
