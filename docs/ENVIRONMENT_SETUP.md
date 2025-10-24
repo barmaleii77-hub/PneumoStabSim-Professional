@@ -29,7 +29,7 @@
 ```powershell
 # Первая настройка
 ./activate_environment.ps1 -Setup -InstallQt -PythonVersion 3.13 `
-    -QtVersion 6.7.2 -QtModules "qtbase;qtdeclarative;qtshadertools" `
+    -QtVersion 6.10.0 -QtModules "qtbase;qtdeclarative;qtshadertools" `
     -HashFile requirements.txt
 
 # Повторная активация в текущей сессии
@@ -60,7 +60,7 @@ sudo apt update && sudo apt install build-essential ninja-build libgl1-mesa-dev
 ```bash
 cp env.sample .env
 source activate_environment.sh --setup --install-qt --python-version 3.13 \
-    --qt-version 6.7.2 --qt-modules qtbase,qtdeclarative,qtshadertools
+    --qt-version 6.10.0 --qt-modules qtbase,qtdeclarative,qtshadertools
 ```
 
 ### Использование в терминале
@@ -85,9 +85,9 @@ source activate_environment.sh --setup --install-qt --python-version 3.13 \
 3. Скрипт автоматически добавит `--require-hashes` к команде `pip install`. В лог установки (`logs/pip_hash_verification.log` или указанный файл) будут сохранены результаты проверки.
 
 ## Установка Qt SDK
-- По умолчанию загружается версия `6.7.2` в каталог `Qt` внутри проекта.
+- По умолчанию загружается версия `6.10.0` в каталог `Qt` внутри проекта.
 - Измените директорию `--qt-output-dir` для установки в общее расположение, например `C:\Qt` или `/opt/qt`.
-- Дополнительные модули передаются списком через `--qt-modules`. Для списка доступных модулей используйте `python -m aqt list-qt windows desktop 6.7.2`.
+- Дополнительные модули передаются списком через `--qt-modules`. Для списка доступных модулей используйте `python -m aqt list-qt windows desktop 6.10.0`.
 
 ## Полезные команды
 ```bash
@@ -112,3 +112,68 @@ python setup_environment.py --hash-file requirements.lock
 1. Запустите тесты: `python -m pytest`.
 2. Запустите линтер: `flake8 src tests`.
 3. Запустите приложение: `python app.py --test-mode`.
+
+# Настройка окружения (Python 3.13 + Qt 6.10)
+
+Этот проект нацелен на **Python 3.13.x** и **Qt/PySide6 6.10.x**. Следуйте приведённым ниже шагам, чтобы подготовить рабочую станцию.
+
+## 1. Создайте и активируйте виртуальное окружение
+
+```bash
+python3.13 -m venv .venv
+source .venv/bin/activate  # Windows: .\.venv\Scripts\Activate.ps1
+```
+
+## 2. Установите зафиксированные зависимости
+
+Все зависимости зафиксированы с хешами. Используйте сгенерированные файлы блокировки, чтобы гарантировать целостность.
+
+```bash
+python -m pip install --upgrade pip setuptools wheel
+python -m pip install --require-hashes -r requirements.txt -c requirements-compatible.txt
+python -m pip install --require-hashes -r requirements-dev.txt -c requirements-compatible.txt  # необязательно
+```
+
+## 3. Сгенерируйте файл окружения
+
+Запустите начальный скрипт для обнаружения путей плагинов Qt и генерации `.env` / `.env.example`.
+
+```bash
+python setup_environment.py --dev
+```
+
+Скрипт заполняет:
+
+- `QT_VERSION=6.10.0`
+- `PYTHON_VERSION=3.13`
+- `QT_PLUGIN_PATH`, `QML2_IMPORT_PATH`, `QML_IMPORT_PATH`
+
+## 4. Активируйте помощники окружения
+
+- Unix: `source activate_environment.sh`
+- Windows PowerShell: `./activate_environment.ps1`
+- Batch: `activate_venv.bat`
+
+Эти помощники загружают `.env`, активируют `.venv` и открывают переменные времени выполнения Qt.
+
+## 5. Интеграция с IDE
+
+- VS Code автоматически подбирает `.env` через `PneumoStabSim.code-workspace`.
+- Visual Studio `.pyproj` файлы нацелены на `.venv` и экспортируют пути Qt для сеансов отладки.
+
+## 6. Обновление зависимостей
+
+Используйте `pip-compile` (pip-tools 7.5+) для обновления блокировок:
+
+```bash
+pip-compile --generate-hashes --output-file=requirements.txt pyproject.toml
+pip-compile --generate-hashes --extra=dev --output-file=requirements-dev.txt pyproject.toml
+```
+
+После регенерации перезапустите `setup_environment.py`, чтобы синхронизировать `.env`.
+
+## 7. Контрольный список проверки
+
+- `python -c "import PySide6; print(PySide6.__version__)"` → `6.10.0`
+- `python -c "import numpy; print(numpy.__version__)"` → `2.3.4`
+- `pytest` выполняется с отключёнными маркерами Qt по умолчанию (`-m "not gui"`).

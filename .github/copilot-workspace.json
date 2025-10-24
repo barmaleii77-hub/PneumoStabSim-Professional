@@ -1,0 +1,9 @@
+{
+  "language": "python",
+  "style": {
+ "default_language": "ru",
+    "preferred_frameworks": ["PySide6", "QtQuick3D"],
+    "default_python_version": "3.13",
+    "default_qt_version": "6.10"
+  }
+}

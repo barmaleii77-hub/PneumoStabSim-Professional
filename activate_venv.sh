@@ -1,99 +1,40 @@
-#!/bin/bash
+#!/usr/bin/env bash
+set -euo pipefail
 
-echo "================================================================"
-echo " PneumoStabSim Professional - Virtual Environment Setup"
-echo "================================================================"
-echo
+echo "=============================================="
+echo " PneumoStabSim Professional - Python 3.13" 
+echo "=============================================="
 
-# Colors for output
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[0;33m'
-CYAN='\033[0;36m'
-NC='\033[0m' # No Color
-
-# Resolve preferred Python interpreter (3.13 by default)
-PYTHON_CMD=""
-if command -v python3.13 >/dev/null 2>&1; then
-    PYTHON_CMD="python3.13"
-elif command -v python3 >/dev/null 2>&1; then
-    PYTHON_CMD="python3"
-elif command -v python >/dev/null 2>&1; then
-    PYTHON_CMD="python"
+PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+VENV_PATH="$PROJECT_ROOT/.venv"
+PYTHON_BIN=""
+for candidate in python3.13 python3 python; do
+  if command -v "$candidate" >/dev/null 2>&1; then
+    PYTHON_BIN="$candidate"
+    break
+  fi
+done
+if [[ -z "$PYTHON_BIN" ]]; then
+  echo "Python 3.13 interpreter not found" >&2
+  exit 1
 fi
 
-if [ -z "$PYTHON_CMD" ]; then
-    echo -e "${RED}ERROR: Python 3.13 is not installed or not in PATH${NC}"
-    echo -e "${RED}Please install Python 3.13.x before continuing${NC}"
-    exit 1
+if [[ ! -d "$VENV_PATH" ]]; then
+  echo "Creating virtual environment at $VENV_PATH"
+  "$PYTHON_BIN" -m venv "$VENV_PATH"
 fi
 
-# Check interpreter version
-VERSION_OUTPUT=$($PYTHON_CMD --version 2>&1)
-PYTHON_VERSION=$(echo "$VERSION_OUTPUT" | awk '{print $2}')
-PY_MAJOR=$(echo "$PYTHON_VERSION" | cut -d. -f1)
-PY_MINOR=$(echo "$PYTHON_VERSION" | cut -d. -f2)
-if [ "$PY_MAJOR" -ne 3 ] || [ "$PY_MINOR" -ne 13 ]; then
-    echo -e "${YELLOW}WARNING: Detected $VERSION_OUTPUT${NC}"
-    echo -e "${YELLOW}This project now targets Python 3.13.x by default.${NC}"
+# shellcheck source=/dev/null
+source "$VENV_PATH/bin/activate"
+
+python -m pip install --upgrade pip setuptools wheel
+python -m pip install --require-hashes -r "$PROJECT_ROOT/requirements.txt" -c "$PROJECT_ROOT/requirements-compatible.txt"
+
+if [[ -f "$PROJECT_ROOT/requirements-dev.txt" ]]; then
+  python -m pip install --require-hashes -r "$PROJECT_ROOT/requirements-dev.txt" -c "$PROJECT_ROOT/requirements-compatible.txt"
 fi
 
-# Check if virtual environment exists
-if [ ! -f "venv/bin/activate" ]; then
-    echo -e "${YELLOW}Creating virtual environment with ${PYTHON_CMD}...${NC}"
-    "$PYTHON_CMD" -m venv venv
-    if [ $? -ne 0 ]; then
-        echo -e "${RED}ERROR: Failed to create virtual environment${NC}"
-        echo -e "${RED}Please ensure Python 3.13 is installed and accessible${NC}"
-        exit 1
-    fi
-    echo -e "${GREEN}Virtual environment created successfully.${NC}"
-    echo
-fi
+python "$PROJECT_ROOT/setup_environment.py"
 
-# Activate virtual environment
-echo -e "${YELLOW}Activating virtual environment...${NC}"
-source venv/bin/activate
-
-# Upgrade pip
-echo -e "${YELLOW}Upgrading pip...${NC}"
-python -m pip install --upgrade pip
-
-# Install requirements
-echo -e "${YELLOW}Installing project dependencies...${NC}"
-if [ -f "requirements.txt" ]; then
-    pip install -r requirements.txt
-else
-    echo -e "${YELLOW}WARNING: requirements.txt not found, installing basic packages...${NC}"
-    pip install numpy scipy pyside6 matplotlib PyOpenGL PyOpenGL-accelerate
-fi
-
-# Set environment variables
-echo -e "${YELLOW}Setting environment variables...${NC}"
-export PYTHONPATH="$(pwd):$(pwd)/src"
-export QSG_RHI_BACKEND="opengl"  # Use OpenGL on Linux/macOS
-export QT_LOGGING_RULES="js.debug=true;qt.qml.debug=true"
-export PYTHONOPTIMIZE="1"
-export PYTHONUNBUFFERED="1"
-
-echo
-echo -e "${GREEN}================================================================${NC}"
-echo -e "${GREEN} Virtual Environment Ready!${NC}"
-echo -e "${GREEN}================================================================${NC}"
-echo
-echo -e "${CYAN}Environment: $VIRTUAL_ENV${NC}"
-echo -e "${CYAN}Python Version:${NC}"
-python --version
-echo
-echo -e "${YELLOW}Available commands:${NC}"
-echo "  python app.py                    # Run main application"
-echo "  python app.py --test-mode        # Test mode (auto-close 5s)"
-echo "  python app.py --debug            # Debug mode"
-echo "  python scripts/check_environment.py    # Environment check"
-echo "  python scripts/comprehensive_test.py   # Full project test"
-echo "  deactivate                       # Exit virtual environment"
-echo
-echo -e "${GREEN}================================================================${NC}"
-
-# Keep the session active
+echo "Environment ready. Run 'deactivate' to exit."
 exec "$SHELL"

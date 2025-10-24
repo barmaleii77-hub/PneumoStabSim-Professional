@@ -16,58 +16,44 @@ format:
 	$(PYTHON) -m ruff format $(PYTHON_LINT_PATHS)
 
 lint:
-	$(PYTHON) -m ruff check $(PYTHON_LINT_PATHS)
+	$(PYTHON) -m tools.ci_tasks lint
 
 typecheck:
-	@targets="$(MYPY_TARGETS)"; \
-	if [ -z "$$targets" ]; then \
-	  echo "No mypy targets specified; skipping type checking."; \
-	else \
-	  $(PYTHON) -m mypy --config-file mypy.ini $$targets; \
-	fi
+	$(PYTHON) -m tools.ci_tasks typecheck
 
 qml-lint:
 	@echo "Running QML lint (qmllint)"
 	@LINTER="$(QML_LINTER)"; \
 	if [ -z "$$LINTER" ]; then \
-	  if command -v qmllint >/dev/null 2>&1; then \
-	    LINTER=qmllint; \
-	  elif command -v pyside6-qmllint >/dev/null 2>&1; then \
-	    LINTER=pyside6-qmllint; \
-	  else \
-	    echo "Error: qmllint or pyside6-qmllint is not installed. Set QML_LINTER to override." >&2; \
-	    exit 1; \
-	  fi; \
+	 if command -v qmllint >/dev/null 2>&1; then \
+	 LINTER=qmllint; \
+	 elif command -v pyside6-qmllint >/dev/null 2>&1; then \
+	 LINTER=pyside6-qmllint; \
+	 else \
+	 echo "Error: qmllint or pyside6-qmllint is not installed. Set QML_LINTER to override." >&2; \
+	 exit 1; \
+	 fi; \
 	fi; \
 	if [ -f "$(QML_LINT_TARGETS_FILE)" ]; then \
-	  mapfile -t qml_files < "$(QML_LINT_TARGETS_FILE)"; \
+	 mapfile -t qml_files < "$(QML_LINT_TARGETS_FILE)"; \
 	else \
-	  qml_files=(); \
+	 qml_files=(); \
 	fi; \
 	if [ $${#qml_files[@]} -eq 0 ]; then \
-	  echo "No QML lint targets specified; skipping."; \
-	  exit 0; \
+	 echo "No QML lint targets specified; skipping."; \
+	 exit 0; \
 	fi; \
 	for file in "$${qml_files[@]}"; do \
-	  if [ -n "$$file" ]; then \
-	    if [ -d "$$file" ]; then \
-	      find "$$file" -type f -name '*.qml' -print0 | while IFS= read -r -d '' nested; do "$$LINTER" "$$nested"; done; \
-	  else \
-	   "$$LINTER" "$$file"; \
-	    fi; \
-	  fi; \
+	 if [ -n "$$file" ]; then \
+	 if [ -d "$$file" ]; then \
+	 find "$$file" -type f -name '*.qml' -print0 | while IFS= read -r -d '' nested; do "$$LINTER" "$$nested"; done; \
+	 else \
+	 "$$LINTER" "$$file"; \
+	 fi; \
+	 fi; \
 	done
 
 test:
-	@if [ -f "$(PYTEST_TARGETS_FILE)" ]; then \
-	  mapfile -t pytest_targets < "$(PYTEST_TARGETS_FILE)"; \
-	else \
-	  pytest_targets=(tests); \
-	fi; \
-	if [ $${#pytest_targets[@]} -eq 0 ]; then \
-	  echo "No pytest targets specified; skipping."; \
-	else \
-	  $(PYTHON) -m pytest "$${pytest_targets[@]}"; \
-	fi
+	$(PYTHON) -m tools.ci_tasks test
 
 verify: lint typecheck qml-lint test smoke integration
