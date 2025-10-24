@@ -38,6 +38,8 @@ best practices for scientific visualisation software.
   with premium materials, correct IBL alignment, and ergonomic camera controls.
 - Repository already targets Python 3.13 / Qt 6.10 in `pyproject.toml`, yet
   supporting scripts have not been harmonised.
+- Stakeholder-facing «Engineering Charter» опубликован в README и отражает
+  пять опорных принципов проекта.
 
 **Action Plan**
 
