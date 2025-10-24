@@ -31,7 +31,11 @@ Node {
     property color pointLightColor: "#ffffff"
     property real pointLightX: 0.0
     property real pointLightY: 2200.0
+    property real pointLightZ: 1500.0
     property real pointLightRange: 3200.0
+    property real constantFade: 1.0
+    property real linearFade: 2.0 / Math.max(200.0, root.pointLightRange)
+    property real quadraticFade: 1.0 / Math.pow(Math.max(200.0, root.pointLightRange), 2)
     property bool pointLightCastsShadow: false
     property bool pointLightBindToCamera: false
 
@@ -43,7 +47,7 @@ Node {
         id: accentLight
         parent: root.pointLightBindToCamera ? root.cameraRig : root.worldRoot
 
-        position: Qt.vector3d(root.pointLightX, root.pointLightY, 1500)
+        position: Qt.vector3d(root.pointLightX, root.pointLightY, root.pointLightZ)
 
         brightness: root.pointLightBrightness
         color: root.pointLightColor
@@ -51,9 +55,9 @@ Node {
         castsShadow: root.pointLightCastsShadow
 
         // ✅ Атеняция (затухание света с расстоянием)
-        constantFade: 1.0
-        linearFade: 2.0 / Math.max(200.0, root.pointLightRange)
-        quadraticFade: 1.0 / Math.pow(Math.max(200.0, root.pointLightRange), 2)
+        constantFade: root.constantFade
+        linearFade: root.linearFade
+        quadraticFade: root.quadraticFade
     }
 
     // ===============================================================
@@ -63,8 +67,9 @@ Node {
     Component.onCompleted: {
         console.log("💡 PointLights initialized:")
         console.log("   Brightness:", pointLightBrightness)
-        console.log("   Position: (", pointLightX, ",", pointLightY, ", 1500 )")
+        console.log("   Position: (", pointLightX, ",", pointLightY, ",", pointLightZ, ")")
         console.log("   Range:", pointLightRange)
+        console.log("   Fade (const/lin/quad):", constantFade, linearFade, quadraticFade)
         console.log("   Casts shadow:", pointLightCastsShadow)
     }
 }

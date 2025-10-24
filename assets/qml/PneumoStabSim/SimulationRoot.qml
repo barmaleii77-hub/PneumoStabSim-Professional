@@ -1,10 +1,14 @@
 import QtQuick
 import QtQuick3D
 import QtQuick.Controls
+import QtQuick3D
 import QtQuick3D.Helpers
 import "../camera"
 import "../components"
 import "../effects"
+import "../geometry"
+import "../lighting"
+import "../scene"
 
 /*
  * PneumoStabSim - MAIN QML (v4.9.x)
@@ -42,9 +46,39 @@ Item {
  property real userFrameToPivot:0.6
  property real userRodPosition:0.6
  property real userBoreHead:0.08
- property real userRodDiameter:0.035
- property real userPistonThickness:0.025
- property real userPistonRodLength:0.2
+property real userRodDiameter:0.035
+property real userPistonThickness:0.025
+property real userPistonRodLength:0.2
+property real userTailRodLength:0.1
+property int userCylinderSegments:64
+property int userCylinderRings:8
+
+property var lightingState: ({
+    key: {},
+    fill: {},
+    rim: {},
+    point: {},
+    spot: {},
+    global: {}
+})
+
+property var geometryState: ({
+    frameLength: userFrameLength,
+    frameHeight: userFrameHeight,
+    beamSize: userBeamSize,
+    trackWidth: userTrackWidth,
+    frameToPivot: userFrameToPivot,
+    leverLength: userLeverLength,
+    rodPosition: userRodPosition,
+    cylinderLength: userCylinderLength,
+    boreHead: userBoreHead,
+    rodDiameter: userRodDiameter,
+    pistonThickness: userPistonThickness,
+    pistonRodLength: userPistonRodLength,
+    tailRodLength: userTailRodLength,
+    cylinderSegments: userCylinderSegments,
+    cylinderRings: userCylinderRings
+})
 
  // Масштаб перевода метров в сцену Qt Quick3D (исторически миллиметры)
  property real sceneScaleFactor: sceneDefaults && sceneDefaults.scale_factor !== undefined ? Number(sceneDefaults.scale_factor) :1000.0
@@ -104,22 +138,215 @@ Item {
  visible: false
  }
 
- View3D {
- id: sceneView
- anchors.fill: parent
- environment: sceneEnvCtl
+View3D {
+    id: sceneView
+    anchors.fill: parent
+    environment: sceneEnvCtl
 
- Node {
- id: worldRoot
+    SharedMaterials {
+        id: sharedMaterials
+    }
 
- DirectionalLight {
- id: keyLight
- brightness:500
- color: "#ffffff"
- eulerRotation: Qt.vector3d(-45,60,0)
- }
- }
- }
+    Node {
+        id: worldRoot
+        position: Qt.vector3d(0, frameHeave, 0)
+        eulerRotation: Qt.vector3d(framePitchDeg, 0, frameRollDeg)
+
+        DirectionalLights {
+            id: directionalLights
+            worldRoot: worldRoot
+            cameraRig: cameraController.rig
+            shadowsEnabled: !!lightingGlobal("shadows_enabled", lightingGlobal("shadowsEnabled", true))
+            shadowResolution: String(lightingGlobal("shadow_resolution", lightingGlobal("shadowResolution", "2048")))
+            shadowFilterSamples: Number(lightingGlobal("shadow_filter_samples", lightingGlobal("shadowFilterSamples", 16)))
+            shadowBias: Number(lightingGlobal("shadow_bias", lightingGlobal("shadowBias", 4.0)))
+            shadowFactor: Number(lightingGlobal("shadow_factor", lightingGlobal("shadowFactor", 75.0)))
+
+            keyLightBrightness: Number(lightingValue("key", "brightness", 1.2))
+            keyLightColor: lightingValue("key", "color", "#ffffff")
+            keyLightAngleX: Number(lightingValue("key", "angle_x", -35))
+            keyLightAngleY: Number(lightingValue("key", "angle_y", -40))
+            keyLightAngleZ: Number(lightingValue("key", "angle_z", 0))
+            keyLightCastsShadow: !!lightingValue("key", "cast_shadow", true)
+            keyLightBindToCamera: !!lightingValue("key", "bind_to_camera", false)
+            keyLightPosX: Number(lightingValue("key", "position_x", 0))
+            keyLightPosY: Number(lightingValue("key", "position_y", 0))
+            keyLightPosZ: Number(lightingValue("key", "position_z", 0))
+
+            fillLightBrightness: Number(lightingValue("fill", "brightness", 0.7))
+            fillLightColor: lightingValue("fill", "color", "#dfe7ff")
+            fillLightAngleX: Number(lightingValue("fill", "angle_x", -60))
+            fillLightAngleY: Number(lightingValue("fill", "angle_y", 135))
+            fillLightAngleZ: Number(lightingValue("fill", "angle_z", 0))
+            fillLightCastsShadow: !!lightingValue("fill", "cast_shadow", false)
+            fillLightBindToCamera: !!lightingValue("fill", "bind_to_camera", false)
+            fillLightPosX: Number(lightingValue("fill", "position_x", 0))
+            fillLightPosY: Number(lightingValue("fill", "position_y", 0))
+            fillLightPosZ: Number(lightingValue("fill", "position_z", 0))
+
+            rimLightBrightness: Number(lightingValue("rim", "brightness", 1.0))
+            rimLightColor: lightingValue("rim", "color", "#ffe2b0")
+            rimLightAngleX: Number(lightingValue("rim", "angle_x", 15))
+            rimLightAngleY: Number(lightingValue("rim", "angle_y", 180))
+            rimLightAngleZ: Number(lightingValue("rim", "angle_z", 0))
+            rimLightCastsShadow: !!lightingValue("rim", "cast_shadow", false)
+            rimLightBindToCamera: !!lightingValue("rim", "bind_to_camera", false)
+            rimLightPosX: Number(lightingValue("rim", "position_x", 0))
+            rimLightPosY: Number(lightingValue("rim", "position_y", 0))
+            rimLightPosZ: Number(lightingValue("rim", "position_z", 0))
+        }
+
+        PointLights {
+            id: pointLights
+            worldRoot: worldRoot
+            cameraRig: cameraController.rig
+            pointLightBrightness: Number(lightingValue("point", "brightness", 1000.0))
+            pointLightColor: lightingValue("point", "color", "#ffffff")
+            pointLightX: Number(lightingValue("point", "position_x", 0.0))
+            pointLightY: Number(lightingValue("point", "position_y", 2.2))
+            pointLightZ: Number(lightingValue("point", "position_z", 1.5))
+            pointLightRange: Number(lightingValue("point", "range", 3200.0))
+            constantFade: Number(lightingValue("point", "constant_fade", 1.0))
+            linearFade: Number(lightingValue("point", "linear_fade", 2.0 / Math.max(200.0, lightingValue("point", "range", 3200.0))))
+            quadraticFade: Number(lightingValue("point", "quadratic_fade", 1.0 / Math.pow(Math.max(200.0, lightingValue("point", "range", 3200.0)), 2)))
+            pointLightCastsShadow: !!lightingValue("point", "cast_shadow", false)
+            pointLightBindToCamera: !!lightingValue("point", "bind_to_camera", false)
+        }
+
+        Frame {
+            id: frameGeometry
+            worldRoot: worldRoot
+            beamSizeM: geometryValue("beamSize", userBeamSize)
+            frameHeightM: geometryValue("frameHeight", userFrameHeight)
+            frameLengthM: geometryValue("frameLength", userFrameLength)
+            frameMaterial: sharedMaterials.frameMaterial
+        }
+
+        SuspensionCorner {
+            id: flCorner
+            j_arm: cornerArmPosition("fl")
+            j_tail: cornerTailPosition("fl")
+            leverAngle: leverAngleFor("fl")
+            pistonPositionM: pistonPosition("fl")
+            leverLengthM: geometryValue("leverLength", userLeverLength)
+            rodPosition: geometryValue("rodPosition", userRodPosition)
+            cylinderLength: geometryValue("cylinderLength", userCylinderLength)
+            boreHead: geometryValue("boreHead", userBoreHead)
+            rodDiameter: geometryValue("rodDiameter", userRodDiameter)
+            pistonThickness: geometryValue("pistonThickness", userPistonThickness)
+            pistonRodLength: geometryValue("pistonRodLength", userPistonRodLength)
+            tailRodLength: geometryValue("tailRodLength", userTailRodLength)
+            cylinderSegments: geometryValue("cylinderSegments", userCylinderSegments)
+            cylinderRings: geometryValue("cylinderRings", userCylinderRings)
+            leverMaterial: sharedMaterials.leverMaterial
+            tailRodMaterial: sharedMaterials.tailRodMaterial
+            cylinderMaterial: sharedMaterials.cylinderMaterial
+            pistonBodyMaterial: sharedMaterials.pistonBodyMaterial
+            pistonRodMaterial: sharedMaterials.pistonRodMaterial
+            jointTailMaterial: sharedMaterials.jointTailMaterial
+            jointArmMaterial: sharedMaterials.jointArmMaterial
+            jointRodMaterial: PrincipledMaterial {
+                baseColor: flCorner.rodLengthError > 0.001 ? sharedMaterials.jointRodErrorColor : sharedMaterials.jointRodOkColor
+                metalness: 0.9
+                roughness: 0.35
+                specularAmount: 1.0
+            }
+        }
+
+        SuspensionCorner {
+            id: frCorner
+            j_arm: cornerArmPosition("fr")
+            j_tail: cornerTailPosition("fr")
+            leverAngle: leverAngleFor("fr")
+            pistonPositionM: pistonPosition("fr")
+            leverLengthM: geometryValue("leverLength", userLeverLength)
+            rodPosition: geometryValue("rodPosition", userRodPosition)
+            cylinderLength: geometryValue("cylinderLength", userCylinderLength)
+            boreHead: geometryValue("boreHead", userBoreHead)
+            rodDiameter: geometryValue("rodDiameter", userRodDiameter)
+            pistonThickness: geometryValue("pistonThickness", userPistonThickness)
+            pistonRodLength: geometryValue("pistonRodLength", userPistonRodLength)
+            tailRodLength: geometryValue("tailRodLength", userTailRodLength)
+            cylinderSegments: geometryValue("cylinderSegments", userCylinderSegments)
+            cylinderRings: geometryValue("cylinderRings", userCylinderRings)
+            leverMaterial: sharedMaterials.leverMaterial
+            tailRodMaterial: sharedMaterials.tailRodMaterial
+            cylinderMaterial: sharedMaterials.cylinderMaterial
+            pistonBodyMaterial: sharedMaterials.pistonBodyMaterial
+            pistonRodMaterial: sharedMaterials.pistonRodMaterial
+            jointTailMaterial: sharedMaterials.jointTailMaterial
+            jointArmMaterial: sharedMaterials.jointArmMaterial
+            jointRodMaterial: PrincipledMaterial {
+                baseColor: frCorner.rodLengthError > 0.001 ? sharedMaterials.jointRodErrorColor : sharedMaterials.jointRodOkColor
+                metalness: 0.9
+                roughness: 0.35
+                specularAmount: 1.0
+            }
+        }
+
+        SuspensionCorner {
+            id: rlCorner
+            j_arm: cornerArmPosition("rl")
+            j_tail: cornerTailPosition("rl")
+            leverAngle: leverAngleFor("rl")
+            pistonPositionM: pistonPosition("rl")
+            leverLengthM: geometryValue("leverLength", userLeverLength)
+            rodPosition: geometryValue("rodPosition", userRodPosition)
+            cylinderLength: geometryValue("cylinderLength", userCylinderLength)
+            boreHead: geometryValue("boreHead", userBoreHead)
+            rodDiameter: geometryValue("rodDiameter", userRodDiameter)
+            pistonThickness: geometryValue("pistonThickness", userPistonThickness)
+            pistonRodLength: geometryValue("pistonRodLength", userPistonRodLength)
+            tailRodLength: geometryValue("tailRodLength", userTailRodLength)
+            cylinderSegments: geometryValue("cylinderSegments", userCylinderSegments)
+            cylinderRings: geometryValue("cylinderRings", userCylinderRings)
+            leverMaterial: sharedMaterials.leverMaterial
+            tailRodMaterial: sharedMaterials.tailRodMaterial
+            cylinderMaterial: sharedMaterials.cylinderMaterial
+            pistonBodyMaterial: sharedMaterials.pistonBodyMaterial
+            pistonRodMaterial: sharedMaterials.pistonRodMaterial
+            jointTailMaterial: sharedMaterials.jointTailMaterial
+            jointArmMaterial: sharedMaterials.jointArmMaterial
+            jointRodMaterial: PrincipledMaterial {
+                baseColor: rlCorner.rodLengthError > 0.001 ? sharedMaterials.jointRodErrorColor : sharedMaterials.jointRodOkColor
+                metalness: 0.9
+                roughness: 0.35
+                specularAmount: 1.0
+            }
+        }
+
+        SuspensionCorner {
+            id: rrCorner
+            j_arm: cornerArmPosition("rr")
+            j_tail: cornerTailPosition("rr")
+            leverAngle: leverAngleFor("rr")
+            pistonPositionM: pistonPosition("rr")
+            leverLengthM: geometryValue("leverLength", userLeverLength)
+            rodPosition: geometryValue("rodPosition", userRodPosition)
+            cylinderLength: geometryValue("cylinderLength", userCylinderLength)
+            boreHead: geometryValue("boreHead", userBoreHead)
+            rodDiameter: geometryValue("rodDiameter", userRodDiameter)
+            pistonThickness: geometryValue("pistonThickness", userPistonThickness)
+            pistonRodLength: geometryValue("pistonRodLength", userPistonRodLength)
+            tailRodLength: geometryValue("tailRodLength", userTailRodLength)
+            cylinderSegments: geometryValue("cylinderSegments", userCylinderSegments)
+            cylinderRings: geometryValue("cylinderRings", userCylinderRings)
+            leverMaterial: sharedMaterials.leverMaterial
+            tailRodMaterial: sharedMaterials.tailRodMaterial
+            cylinderMaterial: sharedMaterials.cylinderMaterial
+            pistonBodyMaterial: sharedMaterials.pistonBodyMaterial
+            pistonRodMaterial: sharedMaterials.pistonRodMaterial
+            jointTailMaterial: sharedMaterials.jointTailMaterial
+            jointArmMaterial: sharedMaterials.jointArmMaterial
+            jointRodMaterial: PrincipledMaterial {
+                baseColor: rrCorner.rodLengthError > 0.001 ? sharedMaterials.jointRodErrorColor : sharedMaterials.jointRodOkColor
+                metalness: 0.9
+                roughness: 0.35
+                specularAmount: 1.0
+            }
+        }
+    }
+}
 
  CameraController {
  id: cameraController
@@ -305,20 +532,177 @@ Item {
  window.applyQmlConfigChange(category, payload);
  }
 
- function toSceneVector3(position) {
- if (!position)
- return null;
- var x = position.x !== undefined ? position.x : position[0];
- var y = position.y !== undefined ? position.y : position[1];
- var z = position.z !== undefined ? position.z : position[2];
- if (x === undefined || y === undefined || z === undefined)
- return null;
- return Qt.vector3d(
- toSceneLength(Number(x)),
- toSceneLength(Number(y)),
- toSceneLength(Number(z))
- );
- }
+    function toSceneVector3(position) {
+        if (!position)
+            return null;
+        var x = position.x !== undefined ? position.x : position[0];
+        var y = position.y !== undefined ? position.y : position[1];
+        var z = position.z !== undefined ? position.z : position[2];
+        if (x === undefined || y === undefined || z === undefined)
+            return null;
+        return Qt.vector3d(
+            toSceneLength(Number(x)),
+            toSceneLength(Number(y)),
+            toSceneLength(Number(z))
+        );
+    }
+
+    function cloneObject(source) {
+        if (!source)
+            return {};
+        var copy = {};
+        for (var key in source) {
+            if (source.hasOwnProperty(key))
+                copy[key] = source[key];
+        }
+        return copy;
+    }
+
+    function updateGeometryState(patch) {
+        if (!patch)
+            return;
+        var next = cloneObject(geometryState);
+        var changed = false;
+        for (var key in patch) {
+            if (!patch.hasOwnProperty(key))
+                continue;
+            if (next[key] !== patch[key]) {
+                next[key] = patch[key];
+                changed = true;
+            }
+        }
+        if (changed)
+            geometryState = next;
+    }
+
+    function geometryValue(key, fallback) {
+        var state = geometryState || {};
+        if (state[key] !== undefined)
+            return state[key];
+        return fallback;
+    }
+
+    function cornerIsRear(side) {
+        return String(side).toLowerCase().charAt(0) === "r";
+    }
+
+    function cornerIsLeft(side) {
+        return String(side).toLowerCase().charAt(1) === "l";
+    }
+
+    function cornerArmZ(side) {
+        var frameLengthVal = geometryValue("frameLength", userFrameLength);
+        var pivot = geometryValue("frameToPivot", userFrameToPivot);
+        return cornerIsRear(side) ? frameLengthVal - pivot : pivot;
+    }
+
+    function cornerArmPosition(side) {
+        var track = geometryValue("trackWidth", userTrackWidth);
+        var beam = geometryValue("beamSize", userBeamSize);
+        var x = (cornerIsLeft(side) ? -1 : 1) * track / 2;
+        return Qt.vector3d(x, beam, cornerArmZ(side));
+    }
+
+    function cornerTailPosition(side) {
+        var base = cornerArmPosition(side);
+        var beam = geometryValue("beamSize", userBeamSize);
+        var frameHeightVal = geometryValue("frameHeight", userFrameHeight);
+        return Qt.vector3d(base.x, beam + frameHeightVal, base.z);
+    }
+
+    function pistonPosition(side) {
+        var store = pistonPositions || {};
+        var key = String(side).toLowerCase();
+        var value = store[key];
+        var numeric = Number(value);
+        if (!isFinite(numeric))
+            return 0.0;
+        return numeric;
+    }
+
+    function leverAngleFor(side) {
+        var key = String(side).toLowerCase();
+        if (key === "fl")
+            return fl_angle;
+        if (key === "fr")
+            return fr_angle;
+        if (key === "rl")
+            return rl_angle;
+        if (key === "rr")
+            return rr_angle;
+        return 0.0;
+    }
+
+    function normalizeLightingValue(key, value) {
+        var numericKeys = {
+            brightness: true,
+            angle_x: true,
+            angle_y: true,
+            angle_z: true,
+            position_x: true,
+            position_y: true,
+            position_z: true,
+            range: true,
+            constant_fade: true,
+            linear_fade: true,
+            quadratic_fade: true,
+            shadow_factor: true,
+            shadow_bias: true,
+            shadow_filter_samples: true
+        };
+        if (numericKeys[key]) {
+            var num = Number(value);
+            return isFinite(num) ? num : value;
+        }
+        var booleanKeys = {
+            cast_shadow: true,
+            bind_to_camera: true,
+            shadows_enabled: true,
+            pointLightCastsShadow: true,
+            pointLightBindToCamera: true
+        };
+        if (booleanKeys[key])
+            return !!value;
+        return value;
+    }
+
+    function mergeLightingGroup(current, updates) {
+        if (!updates)
+            return current;
+        var merged = cloneObject(current);
+        var changed = false;
+        for (var key in updates) {
+            if (!updates.hasOwnProperty(key))
+                continue;
+            var normalized = normalizeLightingValue(key, updates[key]);
+            if (merged[key] !== normalized) {
+                merged[key] = normalized;
+                changed = true;
+            }
+        }
+        return changed ? merged : current;
+    }
+
+    function lightingValue(group, key, fallback) {
+        var state = lightingState && lightingState[group];
+        if (state && state[key] !== undefined)
+            return state[key];
+        return fallback;
+    }
+
+    function lightingGlobal(key, fallback) {
+        var state = lightingState && lightingState.global;
+        if (state) {
+            if (state[key] !== undefined)
+                return state[key];
+            var alt = key.indexOf("_") >= 0
+                ? key.replace(/_([a-z])/g, function(_, ch) { return ch.toUpperCase(); })
+                : key.replace(/[A-Z]/g, function(ch) { return "_" + ch.toLowerCase(); });
+            if (state[alt] !== undefined)
+                return state[alt];
+        }
+        return fallback;
+    }
 
  // ---------------------------------------------
  // Применение батч-обновлений из Python
@@ -355,38 +739,56 @@ Item {
  // ---------------------------------------------
  // Реализации apply*Updates (минимально: geometry, camera, lighting, environment, quality, materials, effects, animation,3d)
  // ---------------------------------------------
- function applyGeometryUpdates(params) {
- if (!params) return;
- function pick(obj, keys, def) {
- for (var i=0;i<keys.length;i++) if (obj[keys[i]] !== undefined) return obj[keys[i]];
- return def;
- }
- var v;
- v = pick(params, ['frameLength','frame_length','userFrameLength'], undefined);
- if (v !== undefined) { var frameLen = normalizeLengthMeters(v); if (frameLen !== undefined) userFrameLength = frameLen; }
- v = pick(params, ['frameHeight','frame_height','userFrameHeight'], undefined);
- if (v !== undefined) { var frameHeight = normalizeLengthMeters(v); if (frameHeight !== undefined) userFrameHeight = frameHeight; }
- v = pick(params, ['frameBeamSize','beamSize','userBeamSize'], undefined);
- if (v !== undefined) { var beamSize = normalizeLengthMeters(v); if (beamSize !== undefined) userBeamSize = beamSize; }
- v = pick(params, ['leverLength','userLeverLength'], undefined);
- if (v !== undefined) { var leverLen = normalizeLengthMeters(v); if (leverLen !== undefined) userLeverLength = leverLen; }
- v = pick(params, ['cylinderBodyLength','cylinderLength','userCylinderLength'], undefined);
- if (v !== undefined) { var cylLen = normalizeLengthMeters(v); if (cylLen !== undefined) userCylinderLength = cylLen; }
- v = pick(params, ['trackWidth','track','userTrackWidth'], undefined);
- if (v !== undefined) { var track = normalizeLengthMeters(v); if (track !== undefined) userTrackWidth = track; }
- v = pick(params, ['frameToPivot','frame_to_pivot','userFrameToPivot'], undefined);
- if (v !== undefined) { var pivot = normalizeLengthMeters(v); if (pivot !== undefined) userFrameToPivot = pivot; }
- v = pick(params, ['rodPosition','attachFrac','userRodPosition'], undefined);
- if (v !== undefined) { var rodPos = Number(v); if (isFinite(rodPos)) userRodPosition = rodPos; }
- v = pick(params, ['boreHead','bore','bore_d','userBoreHead'], undefined);
- if (v !== undefined) { var bore = normalizeLengthMeters(v); if (bore !== undefined) userBoreHead = bore; }
- v = pick(params, ['rod_d','rodDiameter','userRodDiameter'], undefined);
- if (v !== undefined) { var rodDia = normalizeLengthMeters(v); if (rodDia !== undefined) userRodDiameter = rodDia; }
- v = pick(params, ['pistonThickness','userPistonThickness'], undefined);
- if (v !== undefined) { var pistonThick = normalizeLengthMeters(v); if (pistonThick !== undefined) userPistonThickness = pistonThick; }
- v = pick(params, ['pistonRodLength','userPistonRodLength'], undefined);
- if (v !== undefined) { var rodLen = normalizeLengthMeters(v); if (rodLen !== undefined) userPistonRodLength = rodLen; }
- }
+function applyGeometryUpdates(params) {
+if (!params) return;
+function pick(obj, keys, def) {
+for (var i=0;i<keys.length;i++) if (obj[keys[i]] !== undefined) return obj[keys[i]];
+return def;
+}
+var v;
+v = pick(params, ['frameLength','frame_length','userFrameLength'], undefined);
+var geometryPatch = {};
+if (v !== undefined) { var frameLen = normalizeLengthMeters(v); if (frameLen !== undefined) { userFrameLength = frameLen; geometryPatch.frameLength = frameLen; } }
+v = pick(params, ['frameHeight','frame_height','userFrameHeight'], undefined);
+if (v !== undefined) { var frameHeight = normalizeLengthMeters(v); if (frameHeight !== undefined) { userFrameHeight = frameHeight; geometryPatch.frameHeight = frameHeight; } }
+v = pick(params, ['frameBeamSize','beamSize','userBeamSize'], undefined);
+if (v !== undefined) { var beamSize = normalizeLengthMeters(v); if (beamSize !== undefined) { userBeamSize = beamSize; geometryPatch.beamSize = beamSize; } }
+v = pick(params, ['leverLength','userLeverLength'], undefined);
+if (v !== undefined) { var leverLen = normalizeLengthMeters(v); if (leverLen !== undefined) { userLeverLength = leverLen; geometryPatch.leverLength = leverLen; } }
+v = pick(params, ['cylinderBodyLength','cylinderLength','userCylinderLength'], undefined);
+if (v !== undefined) { var cylLen = normalizeLengthMeters(v); if (cylLen !== undefined) { userCylinderLength = cylLen; geometryPatch.cylinderLength = cylLen; } }
+v = pick(params, ['trackWidth','track','userTrackWidth'], undefined);
+if (v !== undefined) { var track = normalizeLengthMeters(v); if (track !== undefined) { userTrackWidth = track; geometryPatch.trackWidth = track; } }
+v = pick(params, ['frameToPivot','frame_to_pivot','userFrameToPivot'], undefined);
+if (v !== undefined) { var pivot = normalizeLengthMeters(v); if (pivot !== undefined) { userFrameToPivot = pivot; geometryPatch.frameToPivot = pivot; } }
+v = pick(params, ['rodPosition','attachFrac','userRodPosition'], undefined);
+if (v !== undefined) { var rodPos = Number(v); if (isFinite(rodPos)) { userRodPosition = rodPos; geometryPatch.rodPosition = rodPos; } }
+v = pick(params, ['boreHead','bore','bore_d','userBoreHead'], undefined);
+if (v !== undefined) { var bore = normalizeLengthMeters(v); if (bore !== undefined) { userBoreHead = bore; geometryPatch.boreHead = bore; } }
+v = pick(params, ['rod_d','rodDiameter','userRodDiameter'], undefined);
+if (v !== undefined) { var rodDia = normalizeLengthMeters(v); if (rodDia !== undefined) { userRodDiameter = rodDia; geometryPatch.rodDiameter = rodDia; } }
+v = pick(params, ['pistonThickness','userPistonThickness'], undefined);
+if (v !== undefined) { var pistonThick = normalizeLengthMeters(v); if (pistonThick !== undefined) { userPistonThickness = pistonThick; geometryPatch.pistonThickness = pistonThick; } }
+v = pick(params, ['pistonRodLength','userPistonRodLength'], undefined);
+if (v !== undefined) { var rodLen = normalizeLengthMeters(v); if (rodLen !== undefined) { userPistonRodLength = rodLen; geometryPatch.pistonRodLength = rodLen; } }
+v = pick(params, ['tailRodLength','tail_rod_length','userTailRodLength'], undefined);
+if (v !== undefined) { var tailLen = normalizeLengthMeters(v); if (tailLen !== undefined) { userTailRodLength = tailLen; geometryPatch.tailRodLength = tailLen; } }
+if (params.cylinderSegments !== undefined) {
+    var seg = Number(params.cylinderSegments);
+    if (isFinite(seg)) {
+        userCylinderSegments = Math.max(3, Math.round(seg));
+        geometryPatch.cylinderSegments = userCylinderSegments;
+    }
+}
+if (params.cylinderRings !== undefined) {
+    var rings = Number(params.cylinderRings);
+    if (isFinite(rings)) {
+        userCylinderRings = Math.max(1, Math.round(rings));
+        geometryPatch.cylinderRings = userCylinderRings;
+    }
+}
+updateGeometryState(geometryPatch);
+}
 
  function applyCameraUpdates(params) {
  if (!params) return;
@@ -415,17 +817,212 @@ Item {
  }
  }
 
- function applyLightingUpdates(params) {
- if (!params) return;
- if (params.color) setIfExists(keyLight, 'color', params.color);
- if (params.brightness !== undefined) setIfExists(keyLight, 'brightness', Number(params.brightness));
- if (params.eulerRotation) { var r = params.eulerRotation; try { keyLight.eulerRotation = Qt.vector3d(Number(r.x||r[0]), Number(r.y||r[1]), Number(r.z||r[2])); } catch(e) { console.warn("Lighting rotation normalization failed:", e); } }
- try {
- if (params.color) keyLight.color = params.color;
- if (params.brightness !== undefined) keyLight.brightness = Number(params.brightness);
- if (params.eulerRotation) { var r2 = params.eulerRotation; keyLight.eulerRotation = Qt.vector3d(Number(r2.x||r2[0]), Number(r2.y||r2[1]), Number(r2.z||r2[2])); }
- } catch(e2) { console.warn("Lighting update error:", e2); }
- }
+function applyLightingUpdates(params) {
+    if (!params)
+        return;
+
+    function normalizeGroupPayload(payload) {
+        if (!payload)
+            return payload;
+        var normalized = {};
+        var mutated = false;
+        for (var key in payload) {
+            if (!payload.hasOwnProperty(key))
+                continue;
+            var value = payload[key];
+            if (key === "eulerRotation" && value) {
+                normalized.angle_x = Number(value.x !== undefined ? value.x : value[0]);
+                normalized.angle_y = Number(value.y !== undefined ? value.y : value[1]);
+                normalized.angle_z = Number(value.z !== undefined ? value.z : value[2]);
+                mutated = true;
+                continue;
+            }
+            if (key === "position" && value) {
+                normalized.position_x = Number(value.x !== undefined ? value.x : value[0]);
+                normalized.position_y = Number(value.y !== undefined ? value.y : value[1]);
+                normalized.position_z = Number(value.z !== undefined ? value.z : value[2]);
+                mutated = true;
+                continue;
+            }
+            if (key === "color" || key === "brightness") {
+                normalized[key] = value;
+                mutated = mutated || false;
+                continue;
+            }
+            if (key === "castsShadow") {
+                normalized.cast_shadow = !!value;
+                mutated = true;
+                continue;
+            }
+            if (key === "bindToCamera") {
+                normalized.bind_to_camera = !!value;
+                mutated = true;
+                continue;
+            }
+            if (key === "positionX" || key === "posX") {
+                normalized.position_x = Number(value);
+                mutated = true;
+                continue;
+            }
+            if (key === "positionY" || key === "posY") {
+                normalized.position_y = Number(value);
+                mutated = true;
+                continue;
+            }
+            if (key === "positionZ" || key === "posZ") {
+                normalized.position_z = Number(value);
+                mutated = true;
+                continue;
+            }
+            normalized[key] = value;
+        }
+        return mutated ? normalized : payload;
+    }
+
+    function mergeGroup(target, updates) {
+        if (!updates || typeof updates !== "object")
+            return target;
+        return mergeLightingGroup(target, normalizeGroupPayload(updates));
+    }
+
+    var next = {
+        key: cloneObject(lightingState.key),
+        fill: cloneObject(lightingState.fill),
+        rim: cloneObject(lightingState.rim),
+        point: cloneObject(lightingState.point),
+        spot: cloneObject(lightingState.spot),
+        global: cloneObject(lightingState.global)
+    };
+
+    function applyToGroup(groupName, payload) {
+        next[groupName] = mergeGroup(next[groupName], payload);
+    }
+
+    var consumed = { key: true, fill: true, rim: true, point: true, spot: true, global: true };
+    var aliasGroups = {
+        key_light: "key",
+        fill_light: "fill",
+        rim_light: "rim",
+        point_light: "point",
+        spot_light: "spot"
+    };
+
+    function handleGroup(key, group) {
+        if (params[key] !== undefined)
+            applyToGroup(group, params[key]);
+        consumed[key] = true;
+    }
+
+    handleGroup("key", "key");
+    handleGroup("fill", "fill");
+    handleGroup("rim", "rim");
+    handleGroup("point", "point");
+    handleGroup("spot", "spot");
+    handleGroup("global", "global");
+
+    for (var alias in aliasGroups) {
+        if (!aliasGroups.hasOwnProperty(alias))
+            continue;
+        if (params[alias] !== undefined)
+            applyToGroup(aliasGroups[alias], params[alias]);
+        consumed[alias] = true;
+    }
+
+    var legacyKeyPatch = {};
+    if (params.color !== undefined) {
+        legacyKeyPatch.color = params.color;
+        consumed.color = true;
+    }
+    if (params.brightness !== undefined) {
+        legacyKeyPatch.brightness = params.brightness;
+        consumed.brightness = true;
+    }
+    if (params.eulerRotation) {
+        var euler = params.eulerRotation;
+        legacyKeyPatch.angle_x = Number(euler.x !== undefined ? euler.x : euler[0]);
+        legacyKeyPatch.angle_y = Number(euler.y !== undefined ? euler.y : euler[1]);
+        legacyKeyPatch.angle_z = Number(euler.z !== undefined ? euler.z : euler[2]);
+        consumed.eulerRotation = true;
+    }
+    if (params.position) {
+        var position = params.position;
+        legacyKeyPatch.position_x = Number(position.x !== undefined ? position.x : position[0]);
+        legacyKeyPatch.position_y = Number(position.y !== undefined ? position.y : position[1]);
+        legacyKeyPatch.position_z = Number(position.z !== undefined ? position.z : position[2]);
+        consumed.position = true;
+    }
+    if (Object.keys(legacyKeyPatch).length)
+        applyToGroup("key", legacyKeyPatch);
+
+    var camelPropertyMap = {
+        Brightness: "brightness",
+        Color: "color",
+        AngleX: "angle_x",
+        AngleY: "angle_y",
+        AngleZ: "angle_z",
+        CastsShadow: "cast_shadow",
+        BindToCamera: "bind_to_camera",
+        PosX: "position_x",
+        PosY: "position_y",
+        PosZ: "position_z",
+        Range: "range",
+        ConstantFade: "constant_fade",
+        LinearFade: "linear_fade",
+        QuadraticFade: "quadratic_fade"
+    };
+
+    for (var rawKey in params) {
+        if (!params.hasOwnProperty(rawKey) || consumed[rawKey])
+            continue;
+
+        var camelMatch = /^([a-z]+)Light([A-Z].*)$/.exec(rawKey);
+        if (camelMatch) {
+            var groupName = camelMatch[1].toLowerCase();
+            var propertySuffix = camelMatch[2];
+            var normalizedKey = camelPropertyMap[propertySuffix];
+            if (normalizedKey && next[groupName] !== undefined) {
+                var patch = {};
+                patch[normalizedKey] = params[rawKey];
+                applyToGroup(groupName, patch);
+                consumed[rawKey] = true;
+                continue;
+            }
+        }
+
+        var normalizedGlobalKey = {
+            shadowsEnabled: "shadows_enabled",
+            shadowResolution: "shadow_resolution",
+            shadowFilterSamples: "shadow_filter_samples",
+            shadowBias: "shadow_bias",
+            shadowFactor: "shadow_factor"
+        }[rawKey];
+        if (normalizedGlobalKey) {
+            var globalPatchSingle = {};
+            globalPatchSingle[normalizedGlobalKey] = params[rawKey];
+            applyToGroup("global", globalPatchSingle);
+            consumed[rawKey] = true;
+            continue;
+        }
+    }
+
+    var globalPatch = {};
+    for (var remainingKey in params) {
+        if (!params.hasOwnProperty(remainingKey) || consumed[remainingKey])
+            continue;
+        var value = params[remainingKey];
+        if (typeof value === "object" && value !== null) {
+            var targetState = lightingState[remainingKey];
+            next[remainingKey] = mergeLightingGroup(cloneObject(targetState), normalizeGroupPayload(value));
+        } else {
+            globalPatch[remainingKey] = value;
+        }
+    }
+
+    if (Object.keys(globalPatch).length)
+        next.global = mergeLightingGroup(next.global, globalPatch);
+
+    lightingState = next;
+}
 
  function applyEnvironmentUpdates(params) {
  if (!params) return;
@@ -472,12 +1069,130 @@ Item {
  if (params.ditheringEnabled !== undefined) setIfExists(sceneEnvCtl, 'ditheringEnabled', !!params.ditheringEnabled);
  }
 
- function applyMaterialUpdates(params) {
- if (!params) return;
- if (params.baseColor) modelBaseColor = params.baseColor;
- if (params.roughness !== undefined) modelRoughness = clamp(Number(params.roughness),0.0,1.0);
- if (params.metalness !== undefined) modelMetalness = clamp(Number(params.metalness),0.0,1.0);
- }
+function applyMaterialUpdates(params) {
+    if (!params)
+        return;
+
+    var prefixMap = {
+        frame: "frame",
+        lever: "lever",
+        tail: "tailRod",
+        tail_rod: "tailRod",
+        cylinder: "cylinder",
+        piston_body: "pistonBody",
+        piston_rod: "pistonRod",
+        joint_tail: "jointTail",
+        joint_arm: "jointArm",
+        joint_rod: "jointRod"
+    };
+
+    var aliasMaterialKey = {
+        metal: "lever",
+        glass: "cylinder"
+    };
+
+    var propertySuffixMap = {
+        base_color: "BaseColor",
+        metalness: "Metalness",
+        roughness: "Roughness",
+        specular: "SpecularAmount",
+        specular_amount: "SpecularAmount",
+        specular_tint: "SpecularTint",
+        clearcoat: "Clearcoat",
+        clearcoat_roughness: "ClearcoatRoughness",
+        transmission: "Transmission",
+        opacity: "Opacity",
+        ior: "Ior",
+        attenuation_distance: "AttenuationDistance",
+        attenuation_color: "AttenuationColor",
+        emissive_color: "EmissiveColor",
+        emissive_intensity: "EmissiveIntensity",
+        warning_color: "WarningColor",
+        ok_color: "OkColor",
+        error_color: "ErrorColor"
+    };
+
+    function canonicalMaterialKey(key) {
+        var normalized = String(key || "").toLowerCase();
+        if (aliasMaterialKey[normalized] !== undefined)
+            return aliasMaterialKey[normalized];
+        return normalized;
+    }
+
+    function applyMaterialProperty(prefix, propertyKey, value) {
+        var suffix = propertySuffixMap[propertyKey];
+        if (!suffix)
+            return false;
+        setIfExists(sharedMaterials, prefix + suffix, value);
+        return true;
+    }
+
+    function applyMaterialGroup(materialKey, values) {
+        if (!values || typeof values !== "object")
+            return;
+        var prefix = prefixMap[materialKey];
+        if (!prefix)
+            return;
+
+        for (var key in values) {
+            if (!values.hasOwnProperty(key))
+                continue;
+            var normalizedKey = String(key).toLowerCase();
+            if (!applyMaterialProperty(prefix, normalizedKey, values[key]) && materialKey === "joint_tail") {
+                if (normalizedKey === "ok_color")
+                    setIfExists(sharedMaterials, "jointRodOkColor", values[key]);
+                if (normalizedKey === "error_color")
+                    setIfExists(sharedMaterials, "jointRodErrorColor", values[key]);
+            }
+        }
+
+        if (materialKey === "piston_body") {
+            if (values.warning_color !== undefined)
+                setIfExists(sharedMaterials, "pistonBodyWarningColor", values.warning_color);
+        }
+        if (materialKey === "piston_rod") {
+            if (values.warning_color !== undefined)
+                setIfExists(sharedMaterials, "pistonRodWarningColor", values.warning_color);
+        }
+        if (materialKey === "joint_rod") {
+            if (values.ok_color !== undefined)
+                setIfExists(sharedMaterials, "jointRodOkColor", values.ok_color);
+            if (values.error_color !== undefined)
+                setIfExists(sharedMaterials, "jointRodErrorColor", values.error_color);
+        }
+    }
+
+    var consumedKeys = {};
+
+    for (var materialKey in params) {
+        if (!params.hasOwnProperty(materialKey))
+            continue;
+        var canonicalKey = canonicalMaterialKey(materialKey);
+        if (prefixMap[canonicalKey] || canonicalKey === "joint_rod") {
+            applyMaterialGroup(canonicalKey, params[materialKey]);
+            consumedKeys[materialKey] = true;
+        }
+    }
+
+    for (var rawKey in params) {
+        if (!params.hasOwnProperty(rawKey) || consumedKeys[rawKey])
+            continue;
+        var directMatch = /^([a-z]+(?:_[a-z]+)*)_(.+)$/.exec(rawKey);
+        if (!directMatch)
+            continue;
+        var materialPart = canonicalMaterialKey(directMatch[1]);
+        var propertyPart = directMatch[2].toLowerCase();
+        var prefix = prefixMap[materialPart];
+        if (!prefix)
+            continue;
+        if (!applyMaterialProperty(prefix, propertyPart, params[rawKey]) && materialPart === "joint_rod") {
+            if (propertyPart === "ok_color")
+                setIfExists(sharedMaterials, "jointRodOkColor", params[rawKey]);
+            if (propertyPart === "error_color")
+                setIfExists(sharedMaterials, "jointRodErrorColor", params[rawKey]);
+        }
+    }
+}
 
  function applyEffectsUpdates(params) {
  if (!params) return;
