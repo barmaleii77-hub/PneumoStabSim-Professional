@@ -3,6 +3,7 @@
 Camera Tab - вкладка настроек камеры
 Расширено: ручной режим, позиция/углы камеры, орбита, цель орбиты, мировые трансформации модели
 """
+
 from __future__ import annotations
 
 from typing import Any, Dict

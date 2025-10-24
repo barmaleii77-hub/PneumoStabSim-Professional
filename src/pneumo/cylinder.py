@@ -42,7 +42,7 @@ class CylinderState:
         max_travel = self.spec.geometry.L_travel_max
         if abs(self.x) > max_travel / 2.0:
             raise GeometryError(
-                f"Initial position x={self.x} exceeds travel limit +/-{max_travel/2.0}"
+                f"Initial position x={self.x} exceeds travel limit +/-{max_travel / 2.0}"
             )
 
     def vol_head(self, x: float = None) -> float:
@@ -141,7 +141,7 @@ class CylinderState:
         max_travel = self.spec.geometry.L_travel_max
         if abs(self.x) > max_travel / 2.0:
             errors.append(
-                f"Position x={self.x} exceeds travel limit +/-{max_travel/2.0}"
+                f"Position x={self.x} exceeds travel limit +/-{max_travel / 2.0}"
             )
 
         # Check minimum volumes at current position

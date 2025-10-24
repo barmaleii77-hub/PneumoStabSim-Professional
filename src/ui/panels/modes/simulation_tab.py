@@ -3,6 +3,7 @@
 Simulation tab for ModesPanel
 Вкладка выбора режима симуляции и пресетов
 """
+
 from PySide6.QtWidgets import (
     QWidget,
     QVBoxLayout,
@@ -113,13 +114,12 @@ class SimulationTab(QWidget):
 
         self.kinematics_radio = QRadioButton("Кинематика")
         self.kinematics_radio.setToolTip(
-            "Упрощённый расчёт только геометрии.\n"
-            "Быстро, но без учёта физических сил."
+            "Упрощённый расчёт только геометрии.\nБыстро, но без учёта физических сил."
         )
 
         self.dynamics_radio = QRadioButton("Динамика")
         self.dynamics_radio.setToolTip(
-            "Полный физический расчёт с силами.\n" "Точно, но требует больше ресурсов."
+            "Полный физический расчёт с силами.\nТочно, но требует больше ресурсов."
         )
 
         self.kinematics_radio.setChecked(True)
@@ -154,12 +154,12 @@ class SimulationTab(QWidget):
 
         self.isothermal_radio = QRadioButton("Изотермический")
         self.isothermal_radio.setToolTip(
-            "Постоянная температура (T = const).\n" "Медленные процессы с теплообменом."
+            "Постоянная температура (T = const).\nМедленные процессы с теплообменом."
         )
 
         self.adiabatic_radio = QRadioButton("Адиабатический")
         self.adiabatic_radio.setToolTip(
-            "Без теплообмена (Q = 0).\n" "Быстрые процессы, изменение температуры."
+            "Без теплообмена (Q = 0).\nБыстрые процессы, изменение температуры."
         )
 
         self.isothermal_radio.setChecked(True)

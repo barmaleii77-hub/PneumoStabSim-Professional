@@ -5,6 +5,7 @@
 Проверяет наличие PySide6 и версию Qt, логирует предупреждения
 при использовании версий < 6.10.
 """
+
 import sys
 from typing import Any, Callable
 

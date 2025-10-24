@@ -328,7 +328,7 @@ class PhysicsWorker(QObject):
 
         self.is_configured = True
         self.logger.info(
-            f"Physics configured: dt={self.dt_physics*1000:.3f}ms, render={self.vsync_render_hz:.1f}Hz"
+            f"Physics configured: dt={self.dt_physics * 1000:.3f}ms, render={self.vsync_render_hz:.1f}Hz"
         )
 
     def _initialize_physics_objects(self):
@@ -627,7 +627,9 @@ class PhysicsWorker(QObject):
             timer_interval_ms = max(1, int(dt * 1000))
             self.physics_timer.start(timer_interval_ms)
 
-        self.logger.info(f"Physics dt changed: {old_dt*1000:.3f}ms ? {dt*1000:.3f}ms")
+        self.logger.info(
+            f"Physics dt changed: {old_dt * 1000:.3f}ms ? {dt * 1000:.3f}ms"
+        )
 
     @Slot()
     def _physics_step(self):

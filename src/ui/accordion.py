@@ -3,6 +3,7 @@
 Accordion Widget - Collapsible sections for parameters
 Replaces dock widgets with classic accordion layout
 """
+
 from PySide6.QtWidgets import (
     QWidget,
     QVBoxLayout,

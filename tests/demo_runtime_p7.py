@@ -175,8 +175,8 @@ class DemoMainWindow(QMainWindow):
 
             if snapshot.frame:
                 self.frame_label.setText(
-                    f"Frame: heave={snapshot.frame.heave*1000:.1f}mm, "
-                    f"roll={snapshot.frame.roll*1000:.2f}mrad"
+                    f"Frame: heave={snapshot.frame.heave * 1000:.1f}mm, "
+                    f"roll={snapshot.frame.roll * 1000:.2f}mrad"
                 )
 
             # Show queue stats

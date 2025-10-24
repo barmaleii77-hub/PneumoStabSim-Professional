@@ -3,6 +3,7 @@
 Graphics panel widgets - reusable UI components
 Виджеты панели графики - переиспользуемые компоненты UI
 """
+
 from __future__ import annotations
 
 

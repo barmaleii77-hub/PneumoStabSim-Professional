@@ -161,8 +161,8 @@ class GeometryStateManager:
         if rod_diameter_m >= cyl_diam_m * MAX_ROD_TO_CYLINDER_RATIO:
             errors.append(
                 f"Диаметр штока слишком велик: "
-                f"{rod_diameter_m*1000:.1f}мм >= {MAX_ROD_TO_CYLINDER_RATIO*100:.0f}% "
-                f"от {cyl_diam_m*1000:.1f}мм цилиндра"
+                f"{rod_diameter_m * 1000:.1f}мм >= {MAX_ROD_TO_CYLINDER_RATIO * 100:.0f}% "
+                f"от {cyl_diam_m * 1000:.1f}мм цилиндра"
             )
 
         return errors
@@ -185,7 +185,7 @@ class GeometryStateManager:
         ):
             warnings.append(
                 f"Диаметр штока близок к пределу: "
-                f"{rod_diameter_m*1000:.1f}мм vs {cyl_diam_m*1000:.1f}мм цилиндра"
+                f"{rod_diameter_m * 1000:.1f}мм vs {cyl_diam_m * 1000:.1f}мм цилиндра"
             )
 
         return warnings
@@ -243,8 +243,8 @@ class GeometryStateManager:
                 "critical": True,
                 "message": (
                     f"Диаметр штока слишком велик относительно цилиндра.\n"
-                    f"Шток: {rod_diameter_m*1000:.1f}мм\n"
-                    f"Цилиндр: {cyl_diam_m*1000:.1f}мм"
+                    f"Шток: {rod_diameter_m * 1000:.1f}мм\n"
+                    f"Цилиндр: {cyl_diam_m * 1000:.1f}мм"
                 ),
                 "options": [
                     (

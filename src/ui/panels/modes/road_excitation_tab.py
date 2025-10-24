@@ -3,6 +3,7 @@
 Road excitation tab for ModesPanel
 Вкладка дорожного воздействия (амплитуда, частота, фазы)
 """
+
 from PySide6.QtWidgets import (
     QWidget,
     QVBoxLayout,

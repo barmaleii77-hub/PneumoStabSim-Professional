@@ -5,6 +5,7 @@
 Проект таргетирует Python 3.13+. Позволяет обходить проверку
 через переменную окружения PSS_IGNORE_PYTHON_CHECK=1.
 """
+
 import sys
 import os
 from typing import Callable

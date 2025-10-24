@@ -9,6 +9,7 @@
 try:  # pragma: no cover - UI widgets unavailable in headless tests
     from .hud import PressureScaleWidget, TankOverlayHUD
 except Exception:  # pragma: no cover - PySide6 or OpenGL not installed
+
     class _HeadlessWidget:  # type: ignore[too-many-ancestors]
         """Minimal stub used when Qt widgets are unavailable."""
 
@@ -20,6 +21,7 @@ except Exception:  # pragma: no cover - PySide6 or OpenGL not installed
 
     class TankOverlayHUD(_HeadlessWidget):
         pass
+
 
 __all__ = ["PressureScaleWidget", "TankOverlayHUD"]
 

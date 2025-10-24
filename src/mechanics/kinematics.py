@@ -1,4 +1,4 @@
-﻿"""
+"""
 Precise kinematics for P13 geometric engine
 
 Implements:

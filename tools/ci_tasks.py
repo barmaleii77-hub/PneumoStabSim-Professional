@@ -122,7 +122,9 @@ def _resolve_qml_linter() -> str:
     candidates = _split_env_list(os.environ.get("QML_LINTER"))
     if candidates:
         for candidate in candidates:
-            path = shutil.which(candidate) if not os.path.isabs(candidate) else candidate
+            path = (
+                shutil.which(candidate) if not os.path.isabs(candidate) else candidate
+            )
             if path:
                 return path if os.path.isabs(candidate) else candidate
         raise TaskError(
@@ -212,9 +214,7 @@ def build_parser() -> argparse.ArgumentParser:
     subparsers.add_parser("lint", help="Run Ruff format check and lint")
     subparsers.add_parser("typecheck", help="Run mypy against configured targets")
     subparsers.add_parser("test", help="Run pytest with configured targets")
-    subparsers.add_parser(
-        "qml-lint", help="Run qmllint against configured targets"
-    )
+    subparsers.add_parser("qml-lint", help="Run qmllint against configured targets")
     subparsers.add_parser(
         "verify", help="Run lint, typecheck, qml-lint, and tests in sequence"
     )

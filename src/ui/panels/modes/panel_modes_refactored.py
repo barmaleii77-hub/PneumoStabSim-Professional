@@ -3,6 +3,7 @@
 ModesPanel refactored - Координатор вкладок
 Тонкий координатор для управления режимами симуляции
 """
+
 from PySide6.QtWidgets import QWidget, QVBoxLayout, QTabWidget, QSizePolicy
 from PySide6.QtCore import Signal
 

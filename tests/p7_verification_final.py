@@ -39,9 +39,9 @@ def test_p7_components():
 
         assert result == "frame_4", f"Expected frame_4, got {result}"
         assert next_result is None, f"Expected None, got {next_result}"
-        assert (
-            stats["dropped_count"] == 4
-        ), f"Expected 4 dropped, got {stats['dropped_count']}"
+        assert stats["dropped_count"] == 4, (
+            f"Expected 4 dropped, got {stats['dropped_count']}"
+        )
 
         print(
             f"   ? LatestOnlyQueue: Keeps latest frame, dropped {stats['dropped_count']}/5"
@@ -144,9 +144,9 @@ def test_p7_components():
 
         # Check signals exist
         assert hasattr(bus, "state_ready"), "StateBus should have state_ready signal"
-        assert hasattr(
-            bus, "start_simulation"
-        ), "StateBus should have start_simulation signal"
+        assert hasattr(bus, "start_simulation"), (
+            "StateBus should have start_simulation signal"
+        )
 
         print("   ? StateBus: Qt signals available")
         results["StateBus"] = True
@@ -243,7 +243,7 @@ def show_performance_characteristics():
     """Show P7 performance characteristics"""
 
     print("\nPERFORMANCE CHARACTERISTICS:")
-    print(f"{"="*30}")
+    print(f"{'=' * 30}")
 
     try:
         from runtime.sync import LatestOnlyQueue, TimingAccumulator
@@ -262,7 +262,7 @@ def show_performance_characteristics():
         stats = queue.get_stats()
 
         print("Queue Performance:")
-        print(f" • 1000 operations in {queue_time*1000:.2f}ms")
+        print(f" • 1000 operations in {queue_time * 1000:.2f}ms")
         print(f" • Efficiency: {stats['efficiency']:.1%}")
         print(" • Max latency: 1 frame (latest-only)")
 
@@ -280,7 +280,7 @@ def show_performance_characteristics():
 
         print("\nAccumulator Performance:")
         print(" • Target: 1000 Hz (1ms timestep)")
-        print(f" • Actual: {total_steps/acc_time:.0f} Hz")
+        print(f" • Actual: {total_steps / acc_time:.0f} Hz")
         print(f" • Realtime factor: {acc.get_realtime_factor():.2f}")
 
     except Exception as e:

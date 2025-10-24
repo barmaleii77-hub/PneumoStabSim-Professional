@@ -4,6 +4,7 @@ Geometry configuration panel - РУССКИЙ ИНТЕРФЕЙС
 Полная интеграция с SettingsManager без дефолтов в коде.
 Чтение при запуске, запись при выходе (централизованно в MainWindow).
 """
+
 from __future__ import annotations
 
 from PySide6.QtWidgets import (
@@ -548,11 +549,11 @@ class GeometryPanel(QWidget):
         if cyl_diam_m > 0:
             if rod_diameter_m >= cyl_diam_m * 0.8:
                 errors.append(
-                    f"Диаметр штока слишком велик: {rod_diameter_m*1000:.1f}мм >= 80% от {cyl_diam_m*1000:.1f}мм цилиндра"
+                    f"Диаметр штока слишком велик: {rod_diameter_m * 1000:.1f}мм >= 80% от {cyl_diam_m * 1000:.1f}мм цилиндра"
                 )
             elif rod_diameter_m >= cyl_diam_m * 0.7:
                 warnings.append(
-                    f"Диаметр штока близок к пределу: {rod_diameter_m*1000:.1f}мм vs {cyl_diam_m*1000:.1f}мм цилиндра"
+                    f"Диаметр штока близок к пределу: {rod_diameter_m * 1000:.1f}мм vs {cyl_diam_m * 1000:.1f}мм цилиндра"
                 )
 
         if errors:

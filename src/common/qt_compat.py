@@ -39,7 +39,9 @@ except Exception:  # pragma: no cover - fallback when PySide6 is not present
     def Signal(*_signature: Any, **_kwargs: Any) -> _FallbackSignal:  # type: ignore[misc]
         return _FallbackSignal()
 
-    def Slot(*_types: Any, **_kwargs: Any) -> Callable[[Callable[..., Any]], Callable[..., Any]]:  # type: ignore[misc]
+    def Slot(
+        *_types: Any, **_kwargs: Any
+    ) -> Callable[[Callable[..., Any]], Callable[..., Any]]:  # type: ignore[misc]
         def decorator(func: Callable[..., Any]) -> Callable[..., Any]:
             return func
 

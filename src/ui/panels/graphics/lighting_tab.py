@@ -3,6 +3,7 @@
 Graphics panel - lighting configuration tab
 Вкладка настройки освещения
 """
+
 import copy
 from typing import Any, Dict
 

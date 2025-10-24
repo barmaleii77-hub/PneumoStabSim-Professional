@@ -4,6 +4,7 @@ QML Host for full suspension 3D visualization
 Embeds UFrameScene.qml with all 4 corners (FL/FR/RL/RR) into PySide6 application
 Uses geometry_bridge.py for correct coordinate calculation
 """
+
 import logging
 from pathlib import Path
 from PySide6.QtCore import QUrl, Signal

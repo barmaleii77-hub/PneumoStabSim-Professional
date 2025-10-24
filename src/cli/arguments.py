@@ -5,6 +5,7 @@
 Определяет CLI интерфейс приложения с поддержкой
 test-mode, verbose logging и диагностики.
 """
+
 import argparse
 
 

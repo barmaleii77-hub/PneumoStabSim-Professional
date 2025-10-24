@@ -220,7 +220,7 @@ class PressureScaleWidget(QWidget):
             )
 
             # Label (in bar)
-            label = f"{p/100000:.1f}"
+            label = f"{p / 100000:.1f}"
             painter.setPen(Qt.GlobalColor.white)
             painter.drawText(scale_x + scale_width + 8, int(y) + 4, label)
 

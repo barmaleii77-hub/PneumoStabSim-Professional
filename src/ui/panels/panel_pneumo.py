@@ -4,6 +4,7 @@ Pneumatic system configuration panel - РУССКИЙ ИНТЕРФЕЙС
 Полная интеграция с SettingsManager без дефолтов в коде.
 Чтение при запуске, запись при выходе (централизованно в MainWindow).
 """
+
 from __future__ import annotations
 
 from PySide6.QtWidgets import (

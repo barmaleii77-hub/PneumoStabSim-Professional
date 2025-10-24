@@ -3,6 +3,7 @@
 """
 Direct geometry usage - bypassing Property system completely
 """
+
 import numpy as np
 from PySide6.QtQuick3D import QQuick3DGeometry
 from PySide6.QtCore import QByteArray
@@ -46,7 +47,7 @@ class DirectTriangle(QQuick3DGeometry):
             dtype=np.float32,
         )
 
-        print(f"Triangle: {len(vertices)} floats = {len(vertices)//3} vertices")
+        print(f"Triangle: {len(vertices)} floats = {len(vertices) // 3} vertices")
 
         # Clear first
         self.clear()

@@ -9,11 +9,17 @@ from datetime import datetime
 from fnmatch import fnmatch
 from pathlib import Path
 from threading import Lock
-from typing import Any, Dict, List, Optional
+from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
 from .qt_compat import Property, QObject, Signal, Slot
 
 LOGGER = logging.getLogger(__name__)
+
+
+if TYPE_CHECKING:
+    _QVARIANT_PROPERTY_TYPE: type[Any] = object
+else:
+    _QVARIANT_PROPERTY_TYPE = "QVariant"  # type: ignore[assignment]
 
 
 @dataclass(slots=True)
@@ -186,7 +192,7 @@ class SignalTraceService(QObject):
     def update_from_settings(self, data: Dict[str, Any] | None) -> None:
         self.update_config(SignalTraceConfig.from_dict(data))
 
-    @Property("QVariant", notify=traceUpdated)
+    @Property(_QVARIANT_PROPERTY_TYPE, notify=traceUpdated)
     def subscriptions(self) -> List[Dict[str, Any]]:
         with self._lock:
             return [
@@ -194,7 +200,7 @@ class SignalTraceService(QObject):
                 for signal, data in sorted(self._subscriptions.items())
             ]
 
-    @Property("QVariant", notify=traceUpdated)
+    @Property(_QVARIANT_PROPERTY_TYPE, notify=traceUpdated)
     def latestValues(self) -> Dict[str, Any]:
         with self._lock:
             return {

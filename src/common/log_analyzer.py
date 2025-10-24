@@ -513,7 +513,7 @@ class UnifiedLogAnalyzer:
                             result.add_error(f"MISSING_QML_SIGNAL {name}")
                         if len(missing_list) > 10:
                             result.add_warning(
-                                f"... ещё {len(missing_list)-10} пропущенных сигналов скрыто"
+                                f"... ещё {len(missing_list) - 10} пропущенных сигналов скрыто"
                             )
                     result.add_recommendation(
                         "Проверьте QML Connections или именование сигналов"

@@ -83,7 +83,9 @@ def run_complete_gas_smoke_test():
 
         logger.info("Applied angles:")
         for wheel, angle in roll_angles.items():
-            logger.info(f"  {wheel.value}: {angle:.4f}rad ({angle*180/math.pi:.2f}�)")
+            logger.info(
+                f"  {wheel.value}: {angle:.4f}rad ({angle * 180 / math.pi:.2f}�)"
+            )
 
         # Update system kinematics
         system.update_system_from_lever_angles(roll_angles)
@@ -183,10 +185,10 @@ def run_complete_gas_smoke_test():
         print(f"Physical checks: {'PASS' if all_ok else 'FAIL'}")
 
         success = validation["is_valid"] and all_ok
-        logger.info(f"\n{'='*60}")
+        logger.info(f"\n{'=' * 60}")
         logger.info(f"SMOKE TEST RESULT: {'SUCCESS' if success else 'FAILURE'}")
         logger.info(f"Completed at: {datetime.now()}")
-        logger.info(f"{'='*60}")
+        logger.info(f"{'=' * 60}")
 
         return success
 

@@ -1,4 +1,5 @@
 """Анализатор размеров файлов MainWindow модуля"""
+
 from pathlib import Path
 
 

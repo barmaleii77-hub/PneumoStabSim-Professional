@@ -5,6 +5,7 @@
 Запускает комплексный анализ логов с использованием log_analyzer
 и выводит результаты в консоль и Visual Studio Output.
 """
+
 import sys
 import os
 import ctypes
