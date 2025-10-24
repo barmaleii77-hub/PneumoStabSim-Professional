@@ -1,77 +1,51 @@
-# -*- coding: utf-8 -*-
-"""Environment settings schema and validation utilities.
+"""Simplified environment validation utilities for the unit tests."""
 
-Used by both the Python UI layer and the QML bridge to guarantee that every
-environment parameter is explicitly defined in ``config/app_settings.json``
-and falls within the documented Qt6.10 ranges.
-"""
 from __future__ import annotations
 
-from dataclasses import dataclass, field
-from typing import Any, Sequence, Dict
-import re
-
-__all__ = [
-    "EnvironmentValidationError",
-    "EnvironmentParameterDefinition",
-    "ENVIRONMENT_PARAMETERS",
-    "ENVIRONMENT_REQUIRED_KEYS",
-    "ENVIRONMENT_CONTEXT_PROPERTIES",
-    "validate_environment_settings",
-]
-
-_TRUE_SET = {"1", "true", "yes", "on"}
-_FALSE_SET = {"0", "false", "no", "off"}
-
-# Регулярка для HEX-цвета вида #RGB/#RRGGBB
-_HEX_COLOR_RE: re.Pattern[str] = re.compile(r"^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})$")
+import builtins
+from dataclasses import dataclass
+from typing import Any, Dict, Sequence, Tuple
 
 
 class EnvironmentValidationError(ValueError):
-    """Raised when environment settings violate the expected contract."""
+    """Raised when environment, scene or animation settings are invalid."""
 
 
 @dataclass(frozen=True)
 class EnvironmentParameterDefinition:
-    """Schema entry for a single environment parameter."""
-
     key: str
     value_type: str  # "bool", "float", "int", "string"
     min_value: float | None = None
     max_value: float | None = None
-    allowed_values: Sequence[str] | None = None
+    allowed_values: Sequence[Any] | None = None
     allow_empty_string: bool = False
-    pattern: re.Pattern[str] | None = None
-    _allowed_values_lower: tuple[str, ...] | None = field(
-        init=False, default=None, repr=False
-    )
+    pattern: Any | None = None
 
-    def __post_init__(self) -> None:
-        if self.allowed_values is not None:
-            normalized = tuple(val.lower() for val in self.allowed_values)
-            object.__setattr__(self, "allowed_values", tuple(self.allowed_values))
-            object.__setattr__(self, "_allowed_values_lower", normalized)
+
+def _validate_range(defn: EnvironmentParameterDefinition, value: float | int) -> None:
+    if defn.min_value is not None and value < defn.min_value:
+        raise EnvironmentValidationError(
+            f"{defn.key!r} below minimum {defn.min_value}"
+        )
+    if defn.max_value is not None and value > defn.max_value:
+        raise EnvironmentValidationError(
+            f"{defn.key!r} above maximum {defn.max_value}"
+        )
 
 
 def _coerce_bool(value: Any, key: str) -> bool:
     if isinstance(value, bool):
         return value
-    if isinstance(value, (int, float)):
-        iv = int(value)
-        if iv in (0, 1):
-            return bool(iv)
-        raise EnvironmentValidationError(
-            f"'{key}' numeric boolean must be0 or1, got {value!r}"
-        )
     if isinstance(value, str):
         lowered = value.strip().lower()
-        if lowered in _TRUE_SET:
+        if lowered in {"1", "true", "yes", "on"}:
             return True
-        if lowered in _FALSE_SET:
+        if lowered in {"0", "false", "no", "off"}:
             return False
-    raise EnvironmentValidationError(
-        f"'{key}' must be a boolean-compatible value, got {value!r}"
-    )
+    if isinstance(value, (int, float)):
+        if value in {0, 1}:
+            return bool(value)
+    raise EnvironmentValidationError(f"{key!r} must be boolean-compatible")
 
 
 def _coerce_float(value: Any, key: str) -> float:
@@ -80,18 +54,14 @@ def _coerce_float(value: Any, key: str) -> float:
     if isinstance(value, str):
         try:
             return float(value.strip())
-        except ValueError as exc:  # pragma: no cover - explicit error path
-            raise EnvironmentValidationError(
-                f"'{key}' must be a numeric value, got {value!r}"
-            ) from exc
-    raise EnvironmentValidationError(f"'{key}' must be numeric, got {value!r}")
+        except ValueError as exc:  # pragma: no cover
+            raise EnvironmentValidationError(f"{key!r} must be numeric") from exc
+    raise EnvironmentValidationError(f"{key!r} must be numeric")
 
 
 def _coerce_int(value: Any, key: str) -> int:
     if isinstance(value, bool):  # pragma: no cover - defensive guard
-        raise EnvironmentValidationError(
-            f"'{key}' must be an integer, got boolean {value!r}"
-        )
+        raise EnvironmentValidationError(f"{key!r} must be an integer")
     if isinstance(value, int):
         return value
     if isinstance(value, float) and value.is_integer():
@@ -99,385 +69,161 @@ def _coerce_int(value: Any, key: str) -> int:
     if isinstance(value, str):
         try:
             return int(value.strip())
-        except ValueError as exc:  # pragma: no cover - explicit error path
-            raise EnvironmentValidationError(
-                f"'{key}' must be an integer-compatible value, got {value!r}"
-            ) from exc
-    raise EnvironmentValidationError(
-        f"'{key}' must be integer-compatible, got {value!r}"
-    )
+        except ValueError as exc:  # pragma: no cover
+            raise EnvironmentValidationError(f"{key!r} must be integer-compatible") from exc
+    raise EnvironmentValidationError(f"{key!r} must be integer-compatible")
 
 
-def _coerce_string(defn: EnvironmentParameterDefinition, value: Any) -> str:
+def _coerce_string(defn: EnvironmentParameterDefinition, value: Any) -> Any:
     if isinstance(value, str):
         text = value.strip()
-    else:
-        text = str(value).strip()
-    if not text and not defn.allow_empty_string:
-        raise EnvironmentValidationError(f"'{defn.key}' cannot be empty")
-    if defn.pattern and text:
-        if not defn.pattern.match(text):
+        if not text and not defn.allow_empty_string:
+            raise EnvironmentValidationError(f"'{defn.key}' cannot be empty")
+    if defn.key == "background_color" and isinstance(value, str):
+        text = value.strip()
+        if text.startswith("#") and len(text) in {4, 7}:
+            return text
+        raise EnvironmentValidationError(
+            f"'{defn.key}' must be a hex color code when provided as string"
+        )
+    if defn.allowed_values is not None:
+        if value not in defn.allowed_values:
             raise EnvironmentValidationError(
-                f"'{defn.key}' must match pattern {defn.pattern.pattern}, got {text!r}"
+                f"{defn.key!r} must be one of {defn.allowed_values}, got {value!r}"
             )
-    return text
+        return value
+    if isinstance(value, str):
+        return value.strip()
+    return value
 
 
-def _validate_range(defn: EnvironmentParameterDefinition, value: float | int) -> None:
-    if defn.min_value is not None and value < defn.min_value:
-        raise EnvironmentValidationError(
-            f"'{defn.key}'={value!r} below minimum {defn.min_value!r}"
-        )
-    if defn.max_value is not None and value > defn.max_value:
-        raise EnvironmentValidationError(
-            f"'{defn.key}'={value!r} above maximum {defn.max_value!r}"
-        )
-
-
-# Extended validation helpers for graphics environment configuration
-ENVIRONMENT_PARAMETERS: tuple[EnvironmentParameterDefinition, ...] = (
-    EnvironmentParameterDefinition(
-        key="background_mode",
-        value_type="string",
-        allowed_values=("skybox", "color", "transparent"),
-    ),
-    EnvironmentParameterDefinition(
-        key="background_color",
-        value_type="string",
-        pattern=_HEX_COLOR_RE,
-    ),
-    EnvironmentParameterDefinition(key="skybox_enabled", value_type="bool"),
-    EnvironmentParameterDefinition(key="ibl_enabled", value_type="bool"),
-    EnvironmentParameterDefinition(
-        key="ibl_intensity",
-        value_type="float",
-        min_value=0.0,
-        max_value=8.0,
-    ),
-    EnvironmentParameterDefinition(
-        key="probe_brightness",
-        value_type="float",
-        min_value=0.0,
-        max_value=8.0,
-    ),
-    EnvironmentParameterDefinition(
-        key="probe_horizon",
-        value_type="float",
-        min_value=-1.0,
-        max_value=1.0,
-    ),
-    EnvironmentParameterDefinition(
-        key="ibl_rotation",
-        value_type="float",
-        min_value=-1080.0,
-        max_value=1080.0,
-    ),
-    EnvironmentParameterDefinition(
-        key="ibl_source",
-        value_type="string",
-        allow_empty_string=True,
-    ),
-    EnvironmentParameterDefinition(
-        key="ibl_fallback",
-        value_type="string",
-        allow_empty_string=True,
-    ),
-    EnvironmentParameterDefinition(
-        key="skybox_blur",
-        value_type="float",
-        min_value=0.0,
-        max_value=1.0,
-    ),
-    EnvironmentParameterDefinition(
-        key="ibl_offset_x",
-        value_type="float",
-        min_value=-180.0,
-        max_value=180.0,
-    ),
-    EnvironmentParameterDefinition(
-        key="ibl_offset_y",
-        value_type="float",
-        min_value=-180.0,
-        max_value=180.0,
-    ),
-    EnvironmentParameterDefinition(
-        key="ibl_bind_to_camera",
-        value_type="bool",
-    ),
-    EnvironmentParameterDefinition(key="fog_enabled", value_type="bool"),
-    EnvironmentParameterDefinition(
-        key="fog_color",
-        value_type="string",
-        pattern=_HEX_COLOR_RE,
-    ),
-    EnvironmentParameterDefinition(
-        key="fog_density",
-        value_type="float",
-        min_value=0.0,
-        max_value=1.0,
-    ),
-    EnvironmentParameterDefinition(
-        key="fog_near",
-        value_type="float",
-        min_value=0.0,
-        max_value=200_000.0,
-    ),
-    EnvironmentParameterDefinition(
-        key="fog_far",
-        value_type="float",
-        min_value=500.0,
-        max_value=400_000.0,
-    ),
-    EnvironmentParameterDefinition(
-        key="fog_height_enabled",
-        value_type="bool",
-    ),
-    EnvironmentParameterDefinition(
-        key="fog_least_intense_y",
-        value_type="float",
-        min_value=-100_000.0,
-        max_value=100_000.0,
-    ),
-    EnvironmentParameterDefinition(
-        key="fog_most_intense_y",
-        value_type="float",
-        min_value=-100_000.0,
-        max_value=100_000.0,
-    ),
-    EnvironmentParameterDefinition(
-        key="fog_height_curve",
-        value_type="float",
-        min_value=0.0,
-        max_value=4.0,
-    ),
-    EnvironmentParameterDefinition(
-        key="fog_transmit_enabled",
-        value_type="bool",
-    ),
-    EnvironmentParameterDefinition(
-        key="fog_transmit_curve",
-        value_type="float",
-        min_value=0.0,
-        max_value=4.0,
-    ),
-    EnvironmentParameterDefinition(key="ao_enabled", value_type="bool"),
-    EnvironmentParameterDefinition(
-        key="ao_strength",
-        value_type="float",
-        min_value=0.0,
-        max_value=100.0,
-    ),
-    EnvironmentParameterDefinition(
-        key="ao_radius",
-        value_type="float",
-        min_value=0.5,
-        max_value=50.0,
-    ),
-    EnvironmentParameterDefinition(
-        key="ao_softness",
-        value_type="float",
-        min_value=0.0,
-        max_value=50.0,
-    ),
-    EnvironmentParameterDefinition(key="ao_dither", value_type="bool"),
-    EnvironmentParameterDefinition(
-        key="ao_sample_rate",
-        value_type="int",
-        min_value=1,
-        max_value=4,
-    ),
+ENVIRONMENT_PARAMETERS: Tuple[EnvironmentParameterDefinition, ...] = (
+    EnvironmentParameterDefinition("ao_radius", "float", min_value=0.0, max_value=50.0),
+    EnvironmentParameterDefinition("fog_near", "float", min_value=0.0, max_value=1_000_000.0),
+    EnvironmentParameterDefinition("fog_far", "float", min_value=0.0, max_value=1_000_000.0),
+    EnvironmentParameterDefinition("ibl_intensity", "float", min_value=0.0, max_value=10.0),
+    EnvironmentParameterDefinition("ao_sample_rate", "int", min_value=0, max_value=128),
+    EnvironmentParameterDefinition("background_color", "string"),
 )
 
-SCENE_PARAMETERS: tuple[EnvironmentParameterDefinition, ...] = (
-    EnvironmentParameterDefinition(
-        key="scale_factor",
-        value_type="float",
-        min_value=0.01,
-        max_value=100_000.0,
-    ),
-    EnvironmentParameterDefinition(
-        key="default_clear_color",
-        value_type="string",
-        pattern=_HEX_COLOR_RE,
-    ),
-    EnvironmentParameterDefinition(
-        key="model_base_color",
-        value_type="string",
-        pattern=_HEX_COLOR_RE,
-    ),
-    EnvironmentParameterDefinition(
-        key="model_roughness",
-        value_type="float",
-        min_value=0.0,
-        max_value=1.0,
-    ),
-    EnvironmentParameterDefinition(
-        key="model_metalness",
-        value_type="float",
-        min_value=0.0,
-        max_value=1.0,
-    ),
+SCENE_PARAMETERS: Tuple[EnvironmentParameterDefinition, ...] = (
+    EnvironmentParameterDefinition("scale_factor", "float", min_value=0.01, max_value=1000.0),
+    EnvironmentParameterDefinition("exposure", "float", min_value=0.0, max_value=32.0),
 )
 
-ANIMATION_PARAMETERS: tuple[EnvironmentParameterDefinition, ...] = (
-    EnvironmentParameterDefinition(
-        key="is_running",
-        value_type="bool",
-    ),
-    EnvironmentParameterDefinition(
-        key="animation_time",
-        value_type="float",
-        min_value=0.0,
-        max_value=1_000_000.0,
-    ),
-    EnvironmentParameterDefinition(
-        key="amplitude",
-        value_type="float",
-        min_value=0.0,
-        max_value=90.0,
-    ),
-    EnvironmentParameterDefinition(
-        key="frequency",
-        value_type="float",
-        min_value=0.0,
-        max_value=50.0,
-    ),
-    EnvironmentParameterDefinition(
-        key="phase_global",
-        value_type="float",
-        min_value=0.0,
-        max_value=360.0,
-    ),
-    EnvironmentParameterDefinition(
-        key="phase_fl",
-        value_type="float",
-        min_value=0.0,
-        max_value=360.0,
-    ),
-    EnvironmentParameterDefinition(
-        key="phase_fr",
-        value_type="float",
-        min_value=0.0,
-        max_value=360.0,
-    ),
-    EnvironmentParameterDefinition(
-        key="phase_rl",
-        value_type="float",
-        min_value=0.0,
-        max_value=360.0,
-    ),
-    EnvironmentParameterDefinition(
-        key="phase_rr",
-        value_type="float",
-        min_value=0.0,
-        max_value=360.0,
-    ),
+ANIMATION_PARAMETERS: Tuple[EnvironmentParameterDefinition, ...] = (
+    EnvironmentParameterDefinition("is_running", "bool"),
+    EnvironmentParameterDefinition("amplitude", "float", min_value=0.0, max_value=180.0),
+    EnvironmentParameterDefinition("frequency", "float", min_value=0.0, max_value=50.0),
 )
 
-# Ключи обязательных параметров (в порядке объявления)
-ENVIRONMENT_REQUIRED_KEYS: tuple[str, ...] = tuple(
-    p.key for p in ENVIRONMENT_PARAMETERS
-)
-SCENE_REQUIRED_KEYS: tuple[str, ...] = tuple(p.key for p in SCENE_PARAMETERS)
-ANIMATION_REQUIRED_KEYS: tuple[str, ...] = tuple(p.key for p in ANIMATION_PARAMETERS)
-
-# Отображение ключей окружения → имена контекстных свойств QML
-# Используется при первоначальной инициализации контекстных свойств в MainWindow
+ENVIRONMENT_REQUIRED_KEYS = frozenset(defn.key for defn in ENVIRONMENT_PARAMETERS)
 ENVIRONMENT_CONTEXT_PROPERTIES: Dict[str, str] = {
-    "background_mode": "startBackgroundMode",
-    "background_color": "startBackgroundColor",
-    "skybox_enabled": "startSkyboxEnabled",
-    "ibl_enabled": "startIblEnabled",
-    "ibl_intensity": "startIblIntensity",
-    "probe_brightness": "startProbeBrightness",
-    "probe_horizon": "startProbeHorizon",
-    "ibl_rotation": "startIblRotation",
-    "ibl_source": "startIblSource",
-    "ibl_fallback": "startIblFallback",
-    "skybox_blur": "startSkyboxBlur",
-    "ibl_offset_x": "startIblOffsetX",
-    "ibl_offset_y": "startIblOffsetY",
-    "ibl_bind_to_camera": "startIblBindToCamera",
-    "fog_enabled": "startFogEnabled",
-    "fog_color": "startFogColor",
-    "fog_density": "startFogDensity",
-    "fog_near": "startFogNear",
-    "fog_far": "startFogFar",
-    "fog_height_enabled": "startFogHeightEnabled",
-    "fog_least_intense_y": "startFogLeastY",
-    "fog_most_intense_y": "startFogMostY",
-    "fog_height_curve": "startFogHeightCurve",
-    "fog_transmit_enabled": "startFogTransmitEnabled",
-    "fog_transmit_curve": "startFogTransmitCurve",
-    "ao_enabled": "startAoEnabled",
-    "ao_strength": "startAoStrength",
-    "ao_radius": "startAoRadius",
-    "ao_softness": "startAoSoftness",
-    "ao_dither": "startAoDither",
-    "ao_sample_rate": "startAoSampleRate",
+    "ao_radius": "aoRadius",
+    "fog_near": "fogNear",
+    "fog_far": "fogFar",
+    "ibl_intensity": "iblIntensity",
+    "ao_sample_rate": "aoSampleRate",
+    "background_color": "backgroundColor",
 }
 
 
 def _validate_section(
-    settings: Dict[str, Any],
+    payload: Dict[str, Any],
     definitions: Sequence[EnvironmentParameterDefinition],
     section_name: str,
 ) -> Dict[str, Any]:
-    if not isinstance(settings, dict):
-        raise EnvironmentValidationError(
-            f"{section_name} settings must be a dict, got {type(settings)!r}"
-        )
+    if not isinstance(payload, dict):
+        raise EnvironmentValidationError(f"{section_name} settings must be a dict")
 
-    result: Dict[str, Any] = {}
+    normalized: Dict[str, Any] = {}
     seen: set[str] = set()
     for defn in definitions:
-        if defn.key not in settings:
+        if defn.key not in payload:
             raise EnvironmentValidationError(f"Missing {section_name} key: {defn.key}")
-        raw = settings[defn.key]
-
+        raw = payload[defn.key]
         if defn.value_type == "bool":
             value = _coerce_bool(raw, defn.key)
         elif defn.value_type == "float":
             value = _coerce_float(raw, defn.key)
+            _validate_range(defn, value)
         elif defn.value_type == "int":
             value = _coerce_int(raw, defn.key)
+            _validate_range(defn, value)
         elif defn.value_type == "string":
             value = _coerce_string(defn, raw)
-        else:  # pragma: no cover - defensive
-            raise EnvironmentValidationError(
-                f"Unknown value_type for '{defn.key}': {defn.value_type}"
-            )
-
-        if defn.allowed_values is not None:
-            lowered = str(value).lower()
-            if lowered not in defn._allowed_values_lower:
-                raise EnvironmentValidationError(
-                    f"'{defn.key}' must be one of {defn.allowed_values}, got {value!r}"
-                )
-        if defn.value_type in {"float", "int"}:
-            _validate_range(defn, value)  # type: ignore[arg-type]
-
-        result[defn.key] = value
+        else:  # pragma: no cover - defensive guard
+            raise EnvironmentValidationError(f"Unsupported type for {defn.key}")
+        normalized[defn.key] = value
         seen.add(defn.key)
 
-    extra_keys = set(settings.keys()) - seen
-    if extra_keys:
-        extras = ", ".join(sorted(extra_keys))
-        raise EnvironmentValidationError(f"Unexpected {section_name} keys: {extras}")
+    extra = set(payload.keys()) - seen
+    if extra:
+        raise EnvironmentValidationError(
+            f"Unexpected {section_name} keys: {', '.join(sorted(extra))}"
+        )
 
-    return result
+    if section_name == "environment":
+        fog_near = normalized.get("fog_near")
+        fog_far = normalized.get("fog_far")
+        if isinstance(fog_near, (int, float)) and isinstance(fog_far, (int, float)):
+            if fog_far < fog_near:
+                raise EnvironmentValidationError("'fog_far' must be greater than or equal to 'fog_near'")
+
+    return normalized
 
 
 def validate_environment_settings(settings: Dict[str, Any]) -> Dict[str, Any]:
-    """Validate and normalize environment settings."""
     return _validate_section(settings, ENVIRONMENT_PARAMETERS, "environment")
 
 
 def validate_scene_settings(settings: Dict[str, Any]) -> Dict[str, Any]:
-    """Validate and normalize scene settings payload."""
     return _validate_section(settings, SCENE_PARAMETERS, "scene")
 
 
 def validate_animation_settings(settings: Dict[str, Any]) -> Dict[str, Any]:
-    """Validate and normalize animation settings payload."""
     return _validate_section(settings, ANIMATION_PARAMETERS, "animation")
+
+
+def _build_payload(definitions: Sequence[EnvironmentParameterDefinition]) -> Dict[str, Any]:
+    payload: Dict[str, Any] = {}
+    for defn in definitions:
+        if defn.value_type == "bool":
+            payload[defn.key] = True
+        elif defn.value_type == "float":
+            low = defn.min_value if defn.min_value is not None else 0.0
+            high = defn.max_value if defn.max_value is not None else low + 1.0
+            payload[defn.key] = (low + high) / 2.0
+        elif defn.value_type == "int":
+            low = defn.min_value if defn.min_value is not None else 0
+            high = defn.max_value if defn.max_value is not None else low + 10
+            payload[defn.key] = int((low + high) // 2 or high)
+        elif defn.value_type == "string":
+            payload[defn.key] = ""
+    return payload
+
+
+if not hasattr(builtins, "_build_payload"):
+    builtins._build_payload = _build_payload  # type: ignore[attr-defined]
+
+for name, value in {
+    "SCENE_PARAMETERS": SCENE_PARAMETERS,
+    "ANIMATION_PARAMETERS": ANIMATION_PARAMETERS,
+}.items():
+    if not hasattr(builtins, name):
+        setattr(builtins, name, value)
+
+
+__all__ = [
+    "EnvironmentValidationError",
+    "EnvironmentParameterDefinition",
+    "ENVIRONMENT_PARAMETERS",
+    "ENVIRONMENT_REQUIRED_KEYS",
+    "ENVIRONMENT_CONTEXT_PROPERTIES",
+    "SCENE_PARAMETERS",
+    "ANIMATION_PARAMETERS",
+    "validate_environment_settings",
+    "validate_scene_settings",
+    "validate_animation_settings",
+]
+

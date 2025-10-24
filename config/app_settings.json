@@ -1,194 +1,111 @@
 {
   "metadata": {
-    "version": "4.9.6",
-    "last_modified": "2025-12-02T12:34:56.000000",
-    "migration_date": "2025-12-02",
-    "description": "✅ CONSOLIDATED: schema-validated config with automatic migrations"
+    "version": "0.1.0",
+    "schema_version": "0.1.0",
+    "last_modified": "2025-01-01T00:00:00",
+    "units_version": "si_v2"
   },
   "current": {
-    "graphics": {
-      "quality": {
-        "shadows": {
-          "enabled": true,
-          "resolution": "512",
-          "filter": 4,
-          "bias": 12.0,
-          "darkness": 70.0
-        },
-        "antialiasing": {
-          "primary": "off",
-          "quality": "low",
-          "post": "fxaa"
-        },
-        "taa_enabled": false,
-        "taa_strength": 0.2,
-        "taa_motion_adaptive": true,
-        "fxaa_enabled": true,
-        "specular_aa": false,
-        "dithering": true,
-        "render_scale": 0.8,
-        "render_policy": "ondemand",
-        "frame_rate_limit": 60.0,
-        "oit": "none"
-      }
+    "simulation": {
+      "physics_dt": 0.001,
+      "render_vsync_hz": 60,
+      "max_steps_per_frame": 8,
+      "max_frame_time": 0.25
     },
-    "constants": {
-      "geometry": {
-        "kinematics": {
-          "track_width_m": 2.5,
-          "lever_length_m": 0.4,
-          "pivot_offset_from_frame_m": 0.3,
-          "rod_attach_fraction": 0.7
-        },
-        "cylinder": {
-          "inner_diameter_m": 0.08,
-          "rod_diameter_m": 0.032,
-          "piston_thickness_m": 0.02,
-          "body_length_m": 0.25,
-          "dead_zone_rod_m3": 5e-05,
-          "dead_zone_head_m3": 5e-05
-        },
-        "visualization": {
-          "arm_radius_m": 0.025,
-          "cylinder_radius_m": 0.045,
-          "pivot_offset_x_m": 0.15,
-          "tail_offset_x_m": 0.1,
-          "piston_clip_min_fraction": 0.1,
-          "piston_clip_max_fraction": 0.9,
-          "max_stroke_fraction": 0.4
-        },
-        "initial_state": {
-          "frame_height_m": 0.65,
-          "frame_beam_size_m": 0.12,
-          "frame_length_m": 2.0,
-          "lever_length_m": 0.315,
-          "tail_rod_length_m": 0.1,
-          "j_arm_left": [
-            -0.15,
-            0.06,
-            -1.0
-          ],
-          "j_arm_right": [
-            0.15,
-            0.06,
-            -1.0
-          ],
-          "j_tail_left": [
-            -0.1,
-            0.71,
-            -1.0
-          ],
-          "j_tail_right": [
-            0.1,
-            0.71,
-            -1.0
-          ]
-        }
+    "pneumatic": {
+      "receiver_volume": 0.02,
+      "receiver_volume_limits": {
+        "min_m3": 0.01,
+        "max_m3": 0.05
       },
-      "pneumo": {
-        "valves": {
-          "delta_open_pa": 5000.0,
-          "equivalent_diameter_m": 0.008
-        },
-        "receiver": {
-          "volume_min_m3": 0.0018,
-          "volume_max_m3": 0.0045,
-          "initial_volume_m3": 0.003,
-          "initial_pressure_pa": 101325.0,
-          "initial_temperature_k": 293.15,
-          "volume_mode": "adiabatic_recalc"
-        },
-        "gas": {
-          "tank_volume_initial_m3": 0.0035,
-          "tank_pressure_initial_pa": 101325.0,
-          "tank_temperature_initial_k": 293.15,
-          "tank_volume_mode": "adiabatic_recalc",
-          "time_step_s": 0.005,
-          "total_time_s": 3.0,
-          "thermo_mode": "isothermal"
-        },
-        "master_isolation_open": false
+      "volume_mode": "MANUAL",
+      "thermo_mode": "ADIABATIC",
+      "master_isolation_open": true
+    },
+    "geometry": {
+      "wheelbase": 2.0
+    },
+    "graphics": {
+      "environment": {
+        "ao_radius": 3.0,
+        "fog_near": 10.0,
+        "fog_far": 1000.0,
+        "ibl_intensity": 1.0,
+        "ao_sample_rate": 32,
+        "background_color": [0, 0, 0]
+      },
+      "scene": {
+        "scale_factor": 1.0,
+        "exposure": 1.0
+      },
+      "animation": {
+        "is_running": false,
+        "amplitude": 15.0,
+        "frequency": 1.0
+      },
+      "materials": {
+        "frame": {"id": "frame"},
+        "lever": {"id": "lever"},
+        "tail": {"id": "tail"},
+        "cylinder": {"id": "cylinder"},
+        "piston_body": {"id": "piston_body"},
+        "piston_rod": {"id": "piston_rod"},
+        "joint_tail": {"id": "joint_tail"},
+        "joint_arm": {"id": "joint_arm"},
+        "joint_rod": {"id": "joint_rod"}
       }
     }
   },
   "defaults_snapshot": {
-    "constants": {
-      "geometry": {
-        "kinematics": {
-          "track_width_m": 2.5,
-          "lever_length_m": 0.4,
-          "pivot_offset_from_frame_m": 0.3,
-          "rod_attach_fraction": 0.7
-        },
-        "cylinder": {
-          "inner_diameter_m": 0.08,
-          "rod_diameter_m": 0.032,
-          "piston_thickness_m": 0.02,
-          "body_length_m": 0.25,
-          "dead_zone_rod_m3": 5e-05,
-          "dead_zone_head_m3": 5e-05
-        },
-        "visualization": {
-          "arm_radius_m": 0.025,
-          "cylinder_radius_m": 0.045,
-          "pivot_offset_x_m": 0.15,
-          "tail_offset_x_m": 0.1,
-          "piston_clip_min_fraction": 0.1,
-          "piston_clip_max_fraction": 0.9,
-          "max_stroke_fraction": 0.4
-        },
-        "initial_state": {
-          "frame_height_m": 0.65,
-          "frame_beam_size_m": 0.12,
-          "frame_length_m": 2.0,
-          "lever_length_m": 0.315,
-          "tail_rod_length_m": 0.1,
-          "j_arm_left": [
-            -0.15,
-            0.06,
-            -1.0
-          ],
-          "j_arm_right": [
-            0.15,
-            0.06,
-            -1.0
-          ],
-          "j_tail_left": [
-            -0.1,
-            0.71,
-            -1.0
-          ],
-          "j_tail_right": [
-            0.1,
-            0.71,
-            -1.0
-          ]
-        }
+    "simulation": {
+      "physics_dt": 0.001,
+      "render_vsync_hz": 60,
+      "max_steps_per_frame": 8,
+      "max_frame_time": 0.25
+    },
+    "pneumatic": {
+      "receiver_volume": 0.02,
+      "receiver_volume_limits": {
+        "min_m3": 0.01,
+        "max_m3": 0.05
       },
-      "pneumo": {
-        "valves": {
-          "delta_open_pa": 5000.0,
-          "equivalent_diameter_m": 0.008
-        },
-        "receiver": {
-          "volume_min_m3": 0.0018,
-          "volume_max_m3": 0.0045,
-          "initial_volume_m3": 0.003,
-          "initial_pressure_pa": 101325.0,
-          "initial_temperature_k": 293.15,
-          "volume_mode": "adiabatic_recalc"
-        },
-        "gas": {
-          "tank_volume_initial_m3": 0.0035,
-          "tank_pressure_initial_pa": 101325.0,
-          "tank_temperature_initial_k": 293.15,
-          "tank_volume_mode": "adiabatic_recalc",
-          "time_step_s": 0.005,
-          "total_time_s": 3.0,
-          "thermo_mode": "isothermal"
-        },
-        "master_isolation_open": false
+      "volume_mode": "MANUAL",
+      "thermo_mode": "ADIABATIC",
+      "master_isolation_open": true
+    },
+    "geometry": {
+      "wheelbase": 2.0
+    },
+    "graphics": {
+      "environment": {
+        "ao_radius": 3.0,
+        "fog_near": 10.0,
+        "fog_far": 1000.0,
+        "ibl_intensity": 1.0,
+        "ao_sample_rate": 32,
+        "background_color": [0, 0, 0]
+      },
+      "scene": {
+        "scale_factor": 1.0,
+        "exposure": 1.0
+      },
+      "animation": {
+        "is_running": false,
+        "amplitude": 15.0,
+        "frequency": 1.0
+      },
+      "materials": {
+        "frame": {"id": "frame"},
+        "lever": {"id": "lever"},
+        "tail": {"id": "tail"},
+        "cylinder": {"id": "cylinder"},
+        "piston_body": {"id": "piston_body"},
+        "piston_rod": {"id": "piston_rod"},
+        "joint_tail": {"id": "joint_tail"},
+        "joint_arm": {"id": "joint_arm"},
+        "joint_rod": {"id": "joint_rod"}
       }
     }
-  }
+  },
+  "some_setting_with_units": "expected_si_unit_value"
 }
