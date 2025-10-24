@@ -84,6 +84,30 @@
             -1.0
           ]
         }
+      },
+      "pneumo": {
+        "valves": {
+          "delta_open_pa": 5000.0,
+          "equivalent_diameter_m": 0.008
+        },
+        "receiver": {
+          "volume_min_m3": 0.0018,
+          "volume_max_m3": 0.0045,
+          "initial_volume_m3": 0.003,
+          "initial_pressure_pa": 101325.0,
+          "initial_temperature_k": 293.15,
+          "volume_mode": "adiabatic_recalc"
+        },
+        "gas": {
+          "tank_volume_initial_m3": 0.0035,
+          "tank_pressure_initial_pa": 101325.0,
+          "tank_temperature_initial_k": 293.15,
+          "tank_volume_mode": "adiabatic_recalc",
+          "time_step_s": 0.005,
+          "total_time_s": 3.0,
+          "thermo_mode": "isothermal"
+        },
+        "master_isolation_open": false
       }
     }
   },
@@ -140,6 +164,30 @@
             -1.0
           ]
         }
+      },
+      "pneumo": {
+        "valves": {
+          "delta_open_pa": 5000.0,
+          "equivalent_diameter_m": 0.008
+        },
+        "receiver": {
+          "volume_min_m3": 0.0018,
+          "volume_max_m3": 0.0045,
+          "initial_volume_m3": 0.003,
+          "initial_pressure_pa": 101325.0,
+          "initial_temperature_k": 293.15,
+          "volume_mode": "adiabatic_recalc"
+        },
+        "gas": {
+          "tank_volume_initial_m3": 0.0035,
+          "tank_pressure_initial_pa": 101325.0,
+          "tank_temperature_initial_k": 293.15,
+          "tank_volume_mode": "adiabatic_recalc",
+          "time_step_s": 0.005,
+          "total_time_s": 3.0,
+          "thermo_mode": "isothermal"
+        },
+        "master_isolation_open": false
       }
     }
   }

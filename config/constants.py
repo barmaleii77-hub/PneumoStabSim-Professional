@@ -2,50 +2,28 @@
 
 from __future__ import annotations
 
-import json
-import os
-from functools import lru_cache
-from pathlib import Path
 from typing import Any, Dict, Mapping
 
-_SETTINGS_FILE_ENV = "PSS_SETTINGS_FILE"
-_SETTINGS_FILE_NAME = "app_settings.json"
+from src.core.settings_service import SettingsService, get_settings_service
 
 
-def _resolve_settings_file(custom_path: str | os.PathLike[str] | None = None) -> Path:
-    """Resolve the path to app_settings.json.
-
-    Lookup order matches SettingsManager to keep sources consistent:
-    1) Explicit custom_path (mainly for tests)
-    2) PSS_SETTINGS_FILE environment variable
-    3) app_settings.json located next to this module (config/)
-    """
+def _get_service(custom_path: str | None = None) -> SettingsService:
     if custom_path is not None:
-        path = Path(custom_path).expanduser().resolve()
-        if path.exists():
-            return path
-
-    env_path = os.environ.get(_SETTINGS_FILE_ENV)
-    if env_path:
-        path = Path(env_path).expanduser().resolve()
-        if path.exists():
-            return path
-
-    return Path(__file__).resolve().with_name(_SETTINGS_FILE_NAME)
+        return SettingsService(custom_path)
+    return get_settings_service()
 
 
-@lru_cache(maxsize=1)
-def _load_settings(custom_path: str | os.PathLike[str] | None = None) -> Dict[str, Any]:
-    """Load the JSON settings file and cache the parsed structure."""
-    settings_path = _resolve_settings_file(custom_path)
-    with settings_path.open("r", encoding="utf-8") as fp:
-        return json.load(fp)
+def _load_settings(custom_path: str | None = None) -> Dict[str, Any]:
+    """Load the JSON settings file using :class:`SettingsService`."""
+
+    service = _get_service(custom_path)
+    return service.load()
 
 
 def _get_constants_root(
     root_key: str = "current",
     *,
-    custom_path: str | os.PathLike[str] | None = None,
+    custom_path: str | None = None,
 ) -> Mapping[str, Any]:
     """Return the constants section for the requested root key (current/defaults_snapshot)."""
     data = _load_settings(custom_path)
@@ -62,7 +40,7 @@ def _get_constants_section(
     section: str,
     *,
     root_key: str = "current",
-    custom_path: str | os.PathLike[str] | None = None,
+    custom_path: str | None = None,
 ) -> Mapping[str, Any]:
     """Helper that returns a nested constants section by name."""
     constants = _get_constants_root(root_key, custom_path=custom_path)
@@ -76,20 +54,19 @@ def _get_constants_section(
 
 def refresh_cache() -> None:
     """Clear the cached JSON payload (useful for tests)."""
-    _load_settings.cache_clear()
+
+    get_settings_service().reload()
 
 
 def get_geometry_constants(
-    *,
-    custom_path: str | os.PathLike[str] | None = None,
+    *, custom_path: str | None = None,
 ) -> Mapping[str, Any]:
     """Return the entire geometry constants mapping."""
     return _get_constants_section("geometry", custom_path=custom_path)
 
 
 def get_geometry_kinematics_constants(
-    *,
-    custom_path: str | os.PathLike[str] | None = None,
+    *, custom_path: str | None = None,
 ) -> Mapping[str, Any]:
     """Return geometry constants for kinematic calculations."""
     geometry = get_geometry_constants(custom_path=custom_path)
@@ -97,8 +74,7 @@ def get_geometry_kinematics_constants(
 
 
 def get_geometry_cylinder_constants(
-    *,
-    custom_path: str | os.PathLike[str] | None = None,
+    *, custom_path: str | None = None,
 ) -> Mapping[str, Any]:
     """Return cylinder-related geometry constants."""
     geometry = get_geometry_constants(custom_path=custom_path)
@@ -106,8 +82,7 @@ def get_geometry_cylinder_constants(
 
 
 def get_geometry_visual_constants(
-    *,
-    custom_path: str | os.PathLike[str] | None = None,
+    *, custom_path: str | None = None,
 ) -> Mapping[str, Any]:
     """Return visualization-related geometry constants."""
     geometry = get_geometry_constants(custom_path=custom_path)
@@ -115,9 +90,52 @@ def get_geometry_visual_constants(
 
 
 def get_geometry_initial_state_constants(
-    *,
-    custom_path: str | os.PathLike[str] | None = None,
+    *, custom_path: str | None = None,
 ) -> Mapping[str, Any]:
     """Return constants that define the neutral geometry state."""
     geometry = get_geometry_constants(custom_path=custom_path)
     return geometry.get("initial_state", {})
+
+
+def get_pneumo_constants(
+    *, custom_path: str | None = None,
+) -> Mapping[str, Any]:
+    """Return pneumatic system constants."""
+
+    return _get_constants_section("pneumo", custom_path=custom_path)
+
+
+def get_pneumo_valve_constants(
+    *, custom_path: str | None = None,
+) -> Mapping[str, Any]:
+    """Return configuration for check valves."""
+
+    pneumo = get_pneumo_constants(custom_path=custom_path)
+    return pneumo.get("valves", {})
+
+
+def get_pneumo_receiver_constants(
+    *, custom_path: str | None = None,
+) -> Mapping[str, Any]:
+    """Return receiver specification defaults."""
+
+    pneumo = get_pneumo_constants(custom_path=custom_path)
+    return pneumo.get("receiver", {})
+
+
+def get_pneumo_gas_constants(
+    *, custom_path: str | None = None,
+) -> Mapping[str, Any]:
+    """Return gas network defaults (time step, thermo mode, etc.)."""
+
+    pneumo = get_pneumo_constants(custom_path=custom_path)
+    return pneumo.get("gas", {})
+
+
+def get_pneumo_master_isolation_default(
+    *, custom_path: str | None = None,
+) -> bool:
+    """Return default state of the master isolation valve."""
+
+    pneumo = get_pneumo_constants(custom_path=custom_path)
+    return bool(pneumo.get("master_isolation_open", False))

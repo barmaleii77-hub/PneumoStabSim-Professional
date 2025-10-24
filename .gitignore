@@ -213,12 +213,8 @@ _pkginfo.txt
 ClientBin/
 ~$*
 *~
-*.dbmdl
-*.dbproj.schemaview
-*.jfm
-*.pfx
-*.publishsettings
-orleans.codegen.cs
+
+
 
 # Including strong name files can present a security risk
 # (https://github.com/github/gitignore/pull/2483#issue-259490424)
@@ -847,5 +843,6 @@ assets/hdr/*.exr
 !tests/test_settings_smoke.py
 !tests/system/test_physics_integration.py
 !tests/unit/test_profile_settings_manager.py
+!tests/unit/core/test_settings_service.py
 
 # END OF .GITIGNORE

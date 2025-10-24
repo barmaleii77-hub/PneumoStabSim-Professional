@@ -20,8 +20,15 @@ stable while still producing realistic numbers for manual experiments.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Dict
+from enum import Enum
+from typing import Dict, Type, TypeVar
 
+from config.constants import (
+    get_pneumo_gas_constants,
+    get_pneumo_master_isolation_default,
+    get_pneumo_receiver_constants,
+    get_pneumo_valve_constants,
+)
 from src.common.units import PA_ATM, T_AMBIENT
 from src.pneumo.cylinder import CylinderSpec
 from src.pneumo.enums import (
@@ -37,6 +44,24 @@ from src.pneumo.gas_state import create_line_gas_state, create_tank_gas_state
 from src.pneumo.receiver import ReceiverSpec, ReceiverState
 from src.pneumo.system import create_standard_diagonal_system
 from src.pneumo.valves import CheckValve
+
+EnumType = TypeVar("EnumType", bound=Enum)
+
+
+def _enum_from_config(
+    enum_cls: Type[EnumType], value: object, default: EnumType
+) -> EnumType:
+    """Return an enum value using case-insensitive lookups."""
+
+    if isinstance(value, enum_cls):
+        return value
+    if isinstance(value, str):
+        key = value.upper()
+        try:
+            return enum_cls[key]
+        except KeyError:
+            return default
+    return default
 
 
 # ---------------------------------------------------------------------------
@@ -82,8 +107,12 @@ def _create_default_geometry() -> tuple[FrameGeom, LeverGeom, CylinderGeom]:
 def _create_line_valves() -> Dict[Line, dict]:
     """Create check valve configuration for every pneumatic line."""
 
+    valve_defaults = get_pneumo_valve_constants()
+    delta_open = float(valve_defaults.get("delta_open_pa", 5_000.0))
+    d_eq = float(valve_defaults.get("equivalent_diameter_m", 0.008))
+
     def _check_valve(kind: CheckValveKind) -> CheckValve:
-        return CheckValve(kind=kind, delta_open=5_000.0, d_eq=0.008)
+        return CheckValve(kind=kind, delta_open=delta_open, d_eq=d_eq)
 
     line_defaults: Dict[Line, dict] = {}
     for line in (Line.A1, Line.B1, Line.A2, Line.B2):
@@ -113,13 +142,21 @@ def create_default_system_configuration() -> dict:
         Wheel.PZ: CylinderSpec(cylinder_geom, False, lever_geom),
     }
 
-    receiver_spec = ReceiverSpec(V_min=0.0018, V_max=0.0045)
+    receiver_defaults = get_pneumo_receiver_constants()
+    receiver_spec = ReceiverSpec(
+        V_min=float(receiver_defaults.get("volume_min_m3", 0.0018)),
+        V_max=float(receiver_defaults.get("volume_max_m3", 0.0045)),
+    )
     receiver_state = ReceiverState(
         spec=receiver_spec,
-        V=0.003,
-        p=PA_ATM,
-        T=T_AMBIENT,
-        mode=ReceiverVolumeMode.ADIABATIC_RECALC,
+        V=float(receiver_defaults.get("initial_volume_m3", 0.003)),
+        p=float(receiver_defaults.get("initial_pressure_pa", PA_ATM)),
+        T=float(receiver_defaults.get("initial_temperature_k", T_AMBIENT)),
+        mode=_enum_from_config(
+            ReceiverVolumeMode,
+            receiver_defaults.get("volume_mode", ReceiverVolumeMode.ADIABATIC_RECALC),
+            ReceiverVolumeMode.ADIABATIC_RECALC,
+        ),
     )
 
     return {
@@ -129,7 +166,7 @@ def create_default_system_configuration() -> dict:
         "cylinder_specs": cylinder_specs,
         "line_configs": _create_line_valves(),
         "receiver": receiver_state,
-        "master_isolation_open": False,
+        "master_isolation_open": get_pneumo_master_isolation_default(),
     }
 
 
@@ -143,11 +180,16 @@ def create_default_gas_network(system) -> GasNetwork:
         for line, volume in line_volumes.items()
     }
 
+    gas_defaults = get_pneumo_gas_constants()
     tank_state = create_tank_gas_state(
-        V_initial=0.0035,
-        p_initial=PA_ATM,
-        T_initial=T_AMBIENT,
-        mode=ReceiverVolumeMode.ADIABATIC_RECALC,
+        V_initial=float(gas_defaults.get("tank_volume_initial_m3", 0.0035)),
+        p_initial=float(gas_defaults.get("tank_pressure_initial_pa", PA_ATM)),
+        T_initial=float(gas_defaults.get("tank_temperature_initial_k", T_AMBIENT)),
+        mode=_enum_from_config(
+            ReceiverVolumeMode,
+            gas_defaults.get("tank_volume_mode", ReceiverVolumeMode.ADIABATIC_RECALC),
+            ReceiverVolumeMode.ADIABATIC_RECALC,
+        ),
     )
 
     return GasNetwork(
@@ -167,10 +209,17 @@ def get_default_lever_angles() -> Dict[Wheel, float]:
 def get_default_gas_parameters() -> dict:
     """Return time-integration parameters for gas simulations."""
 
+    gas_defaults = get_pneumo_gas_constants()
+    thermo_mode_enum = _enum_from_config(
+        ThermoMode,
+        gas_defaults.get("thermo_mode", ThermoMode.ISOTHERMAL),
+        ThermoMode.ISOTHERMAL,
+    )
+
     return {
-        "dt": 0.005,
-        "thermo_mode": ThermoMode.ISOTHERMAL,
-        "total_time": 3.0,
+        "dt": float(gas_defaults.get("time_step_s", 0.005)),
+        "thermo_mode": thermo_mode_enum,
+        "total_time": float(gas_defaults.get("total_time_s", 3.0)),
     }
 
 
