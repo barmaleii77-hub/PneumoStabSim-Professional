@@ -1,142 +1,362 @@
 # PneumoStabSim Professional Modernization Blueprint
 
+The master plan is the authoritative roadmap for delivering a production-ready
+Python 3.13 + Qt 6.10 application with uncompromising visual fidelity and a
+predictable developer workflow. It reflects the current repository layout,
+identifies gaps, and prescribes step-by-step actions that align with industry
+best practices for scientific visualisation software.
+
+> **How to read this document**
+>
+> Each section is organised into a concise status summary followed by an
+> actionable checklist. The status entries reference concrete files and
+> directories in this repository. The action lists should be treated as living
+> backlogs – mark items complete in the phase-specific plans located in the
+> `docs/RENOVATION_PHASE_*.md` files and keep this master plan synchronised with
+> reality after every milestone.
+
+---
+
+## 0. Baseline Snapshot
+
+| Area | Current Baseline (January 2025 snapshot) | Observations |
+| --- | --- | --- |
+| Application entrypoints | `app.py`, `src/app_runner.py`, legacy launchers in `run*.ps1/.bat` | Multiple entrypoints drift; some scripts still target Qt 6.5 and Python 3.11. |
+| Settings | `config/app_settings.json` + helper `src/common/settings_manager.py` and lightweight cache `src/core/settings_service.py` | JSON schema exists but lacks exhaustive validation, and duplicate helper utilities cause divergence. |
+| UI/QML bridge | QML assets under `assets/qml` and Python helpers such as `src/ui/qml_host.py`, `src/ui/parameter_slider.py` | Bridge logic is fragmented; signal tracing is manual. |
+| Physics & simulation | Domain modules in `src/pneumo`, `src/mechanics`, and legacy namespaced packages `src/PneumoStabSim.*` | Namespaces mix snake_case and PascalCase packages; constant definitions reside in both Python and JSON. |
+| Tests & automation | `pytest.ini`, `tests/` folder (Qt smoke tests, settings tests), GitHub workflows missing | Local tooling defined but CI pipelines absent; lint configs (`ruff.toml`, `mypy.ini`) exist yet not wired into automation. |
+| Documentation | Extensive markdown reports at repo root, curated plans in `docs/` | Redundant reports clutter root; plans reference historical Qt 6.5 constraints. |
+
+---
+
 ## 1. Objectives and Guiding Principles
-- Deliver a production-grade Qt 6.10 + Python 3.13 application with predictable, debuggable behaviour and zero hidden fallbacks.
-- Remove legacy artefacts (unused scripts, configs, obsolete solutions) while preserving reproducibility through reproducible environment pinning and configuration-as-code.
-- Provide traceable, bi-directional signal/slot mapping between Python back-end and QML front-end, with exhaustive logging and validation.
-- Guarantee best visual fidelity: glass material correctness, HDR skybox alignment, animation smoothness, and ergonomic orbit controls without scale drift.
+
+**Status**
+
+- Primary objective remains delivery of a deterministic Qt Quick 3D application
+  with premium materials, correct IBL alignment, and ergonomic camera controls.
+- Repository already targets Python 3.13 / Qt 6.10 in `pyproject.toml`, yet
+  supporting scripts have not been harmonised.
+
+**Action Plan**
+
+1. Lock the definition of "release ready" to five non-negotiable pillars:
+   performance, rendering fidelity, configuration determinism, automated
+   quality gates, and documentation parity.
+2. Mirror these pillars in the phase plans; each deliverable must cite which
+   pillar(s) it advances.
+3. Publish an "Engineering Charter" excerpt in `README.md` summarising the
+   objectives for stakeholders.
+
+---
 
 ## 2. Repository Hygiene & Source Control
-1. **Branch Policy**
-- Archive or delete stale branches after verifying merged status; enforce `main` + `develop` (integration) + short-lived feature branches.
-   - Add `.github/workflows/branch-audit.yml` to detect long-lived branches (>30 days) and notify maintainers.
-2. **Git Attributes & Encoding**
-   - Extend `.gitattributes` to enforce UTF-8 w/ BOM prevention and normalized line endings for `.qml`, `.py`, `.ps1`, `.bat`, `.cs`, `.sln`.
-   - Configure `*.ps1` as text with PowerShell CRLF hints, `*.qml`/`*.py` as LF.
-3. **Large Binary/Asset Management**
-   - Audit `assets/` for outdated HDR/mesh duplicates via `scripts/cleanup_duplicates.py` and store reference snapshot in `docs/assets_inventory.md`.
-   - Introduce Git LFS only if assets exceed 100 MB; otherwise, compress and optimize textures.
-4. **Commit Standards**
-   - Adopt Conventional Commits; enforce through Husky-like pre-commit hook (Python-based) invoked cross-platform.
+
+**Status**
+
+- `.git` history contains numerous documentation-only commits; feature work
+  still happens directly on `main`.
+- Legacy Visual Studio projects (`PneumoStabSim*.sln`, `.csproj`) remain in the
+  root alongside Python packaging metadata.
+- Encoding drift persists across PowerShell scripts (BOM vs UTF-8) and QML
+  files (LF vs CRLF).
+
+**Action Plan**
+
+1. **Branch Governance**
+   - Enforce `main` (releases) and `develop` (integration) with short-lived
+     branches. Document the policy in `.github/CONTRIBUTING.md`.
+   - Add a scheduled workflow (`.github/workflows/branch-audit.yml`) that uses
+     the GitHub CLI container to flag branches older than 30 days.
+2. **Encoding & Attributes**
+   - Expand `.gitattributes` to normalise UTF-8 LF for `.py`, `.qml`, `.json`
+     and CRLF hints for `.ps1` while prohibiting BOM usage. Validate using
+     `git check-attr` during CI.
+   - Run the repository through `tools/encoding_normalizer.py` (to be created)
+     to rewrite problematic scripts; confirm Russian-language docs remain UTF-8
+     without BOM.
+3. **Legacy Asset Rationalisation**
+   - Relocate all historical markdown reports into `archive/<YYYY-MM>/` keeping
+     README breadcrumbs.
+   - Decide whether the .NET solution is still supported. If obsolete, remove
+     `.sln`, `.csproj`, `.pyproj`, and document the deprecation in
+     `docs/CHANGELOG_MODULAR.md`.
+4. **Commit Quality**
+   - Configure `pre-commit` with hooks for `ruff`, `mypy`, `qmllint`, and
+     Conventional Commits (`commitizen`).
+   - Introduce `tools/git/prepare_commit_msg.py` to auto-insert scope hints
+     (module derived from modified files).
+
+---
 
 ## 3. Environment & Dependency Strategy
-1. **Python Tooling**
-   - Adopt `uv` for virtual env management (fast Python 3.13 resolution) while keeping `venv` fallback for Windows.
-   - Maintain `requirements.lock` (hash-locked) generated via `pip-tools` to guarantee deterministic installs.
-   - Provide `pyproject.toml` `[tool.uv]` section for Python 3.13 constraint.
-2. **Qt 6.10 Toolchain**
-   - Use `aqtinstall` in `tools/setup_qt.py` to download PySide6 6.10 and Qt Quick 3D runtime packages with integrity verification.
-   - Configure `QT_PLUGIN_PATH` and `QML2_IMPORT_PATH` via cross-platform launcher scripts (`activate_environment.(ps1|sh)` updates) ensuring consistent runtime.
-3. **Node & Front-end Tooling**
-   - Only install Node (LTS) if QML build pipeline requires shader pre-processing; document optional dependency.
-4. **IDEs & Assistants**
-   - Provide settings for VS Code Insiders, Visual Studio with Qt Tools, GitHub Copilot, and GPT-based assistants via:
-     - `.vscode/settings.json` (per-workspace) + `PneumoStabSim.code-workspace` refresh
-     - `visualstudio/.vsconfig` for required workloads
-     - `docs/ai_assistants.md` summarizing instructions and privacy considerations.
-5. **Shell Compatibility**
- - Harmonize PowerShell scripts to use UTF-8 w/ BOM, set `Set-StrictMode -Version Latest`, and avoid double-escaping of quotes.
-   - For Bash, adopt `set -Eeuo pipefail` and ensure locale export `LC_ALL=C.UTF-8`.
+
+**Status**
+
+- `pyproject.toml` pins Python 3.13 and Qt 6.10, but lockfiles are absent.
+- Scripts `activate_environment.(sh|ps1)` export Qt-related env vars yet still
+  contain quoted paths tailored for Windows PowerShell 5.1.
+- `requirements*.txt` duplicates dependency declarations, risking divergence.
+
+**Action Plan**
+
+1. **Environment Provisioning**
+   - Adopt [`uv`](https://github.com/astral-sh/uv) as the canonical virtual
+     environment manager. Create `Makefile` targets (`make uv-sync`,
+     `make uv-run CMD=...`) and mirror instructions in `docs/ENVIRONMENT_SETUP.md`.
+   - Provide `scripts/bootstrap_uv.py` that installs uv if missing and seeds the
+     environment.
+2. **Dependency Locking**
+   - Generate a deterministic lockfile (`uv lock` or `pip-compile` producing
+     `requirements.lock`) and store it under version control.
+   - Consolidate `requirements.txt`, `requirements-dev.txt`, and
+     `requirements-compatible.txt` into autogenerated files, referencing the
+     lockfile in documentation.
+3. **Qt Installation**
+   - Rewrite `tools/setup_qt.py` to leverage `aqtinstall` with checksum
+     verification and caching under `.qt/`.
+   - Update launch scripts to source `QT_PLUGIN_PATH`, `QML2_IMPORT_PATH`, and
+     `QT_QUICK_CONTROLS_STYLE` without double-escaping quotes. Validate with
+     PowerShell Core 7.4 and Bash.
+4. **IDE & Assistant Integration**
+   - Refresh `PneumoStabSim.code-workspace` with tasks for `ruff`, `pytest`, and
+     `qmllint`. Add recommended extensions (Python, Qt Tools, GitHub Copilot).
+   - Commit `.vs/VSWorkspaceSettings.json` with Visual Studio Insiders
+     configuration enabling Qt plugin, clang-format, and Python workload.
+   - Extend `docs/ai_assistants.md` with prompts for GPT-based agents, Copilot,
+     and Visual Studio IntelliCode.
+
+---
 
 ## 4. Configuration & Settings Management
-1. **Unified Settings File**
-   - Implement `config/settings_schema.json` with JSON Schema; include defaults tuned for maximum quality.
-   - Develop `src/core/settings_manager.py` to load/save with validation, ensuring atomic writes and backup file (`.bak`).
-   - Integrate with QML through context properties + `Qt.labs.settings` for persistence.
-2. **Environment Variables**
-   - Provide `.env` template with Qt paths, logging levels, telemetry toggles; load via `python-dotenv` in `app.py`.
-3. **Multi-platform Paths**
-   - Standardize path resolution using `pathlib` + `QStandardPaths`; avoid hardcoded separators.
-4. **Logging & Diagnostics**
-   - Add structured logging (`structlog`) with JSON + human-friendly console outputs.
-   - Provide `logs/` rotation policy and integrate into Git ignore.
+
+**Status**
+
+- `config/app_settings.schema.json` defines a JSON Schema but is not enforced
+  automatically when saving settings.
+- Settings logic is split between `src/common/settings_manager.py` (schema
+  aware) and `src/core/settings_service.py` (lightweight cache), leading to
+  duplicated behaviour and inconsistent defaults.
+- Settings persistence lacks traceability between UI sliders and stored keys.
+
+**Action Plan**
+
+1. Consolidate settings logic into `src/core/settings_manager.py` that wraps the
+   schema-aware loader while exposing async-safe read/write for Qt threads.
+2. Implement a `config/migrations/` pipeline driven by migration descriptors
+   (YAML/JSON) executed by `python -m src.tools.settings_migrate`. Document the
+   workflow in `docs/SETTINGS_ARCHITECTURE.md`.
+3. Add end-to-end tests: `tests/settings/test_persistence.py` verifying
+   round-trips and schema validation errors.
+4. Provide instrumentation hooks – emit Qt signals whenever settings change,
+   enabling the UI diagnostics panel to display the last write timestamp and the
+   source of change.
+5. Ensure settings read/write uses atomic temp files with explicit UTF-8
+   encoding and newline normalisation.
+
+---
 
 ## 5. Application Architecture Refinement
-1. **Module Structure**
-   - Reorganize `src/` into domains: `core/`, `ui/`, `graphics/`, `simulation/`, `infrastructure/`.
- - Introduce `__all__` exports and typed interfaces; enforce mypy + pyright parity.
-2. **Dependency Injection**
-   - Create lightweight container to manage services (settings, event bus, physics engine) for clarity.
-3. **Signal/Slot Mapping**
-   - Centralize QML bridge within `src/ui/qml_bridge.py` with automatic registration from declarative metadata (`qml_bridge.yaml`).
-   - Provide instrumentation to trace signal direction, accessible via diagnostics overlay.
-4. **Simulation Core**
-   - Evaluate physics modules for "magic numbers"; replace with named constants in `src/simulation/constants.py` referencing docs.
-   - Implement deterministic update loop decoupled from render tick, with delta-time smoothing.
-5. **Error Handling**
-   - Replace blanket try/except with explicit failure handling; propagate errors to UI overlay + logs.
-   - Provide crash handler capturing Qt warnings via `QLoggingCategory` redirection.
 
-## 6. QML & UI Modernization
-1. **Scene Control**
-   - Ensure double-click auto-fit only; disable auto-fit on load.
-   - Configure camera orbit via `QtQuick3D.Helpers.OrbitCameraController` tuned for human ergonomics (target distance, acceleration, damping) without scale distortion.
+**Status**
+
+- Mixed namespace strategy: `src/pneumo`, `src/mechanics`, `src/runtime`, and
+  legacy `src/PneumoStabSim.*` packages co-exist.
+- Service wiring relies on module-level singletons (`get_settings_service`), and
+  UI integration uses ad-hoc imports from Python to QML.
+- Error handling still features broad `except Exception` clauses in certain
+  scripts within `src/bootstrap` and `src/diagnostics`.
+
+**Action Plan**
+
+1. **Modular Boundaries**
+   - Reorganise `src/` into first-class domains: `core/`, `ui/`, `graphics/`,
+     `simulation/`, `infrastructure/`. Migrate PascalCase packages into
+     idiomatic snake_case modules while maintaining import compatibility through
+     shim packages until consumers are updated.
+2. **Service Composition**
+   - Introduce `src/infrastructure/container.py` implementing a declarative
+     dependency container (e.g. using `attrs` or `pydantic` for config binding).
+   - Register services (settings, event bus, simulation engine, material cache)
+     and expose injection helpers for CLI tools and Qt bootstrap.
+3. **Signal/Slot Registry**
+   - Centralise the QML bridge in `src/ui/qml_bridge.py`. Auto-register signals
+     from metadata defined in `config/qml_bridge.yaml`. Provide introspection via
+     `qmlBridge.dump_routes()` accessible in the diagnostics overlay.
+4. **Simulation Loop**
+   - Extract deterministic update loop into `src/simulation/runner.py` with a
+     fixed timestep integrator (semi-implicit Euler + smoothing filter). Replace
+     ad-hoc timers with orchestrated `QTimer` + worker thread pipeline.
+5. **Error Transparency**
+   - Remove silent exception swallowing. Surface errors through a
+     `src/ui/overlays/error_toast.qml` component, while logging full tracebacks
+     via `structlog`. Ensure Qt message handler is wired to Python logging.
+
+---
+
+## 6. QML & UI Modernisation
+
+**Status**
+
+- QML controls are scattered across `assets/qml/panels`, with legacy versions in
+  `archive/` and prototypes under `src/ui/*.py` generating QML fragments.
+- Auto-fit on first render is still enabled in certain scenes; double-click
+  behaviour is inconsistent.
+- Material presets for glass and metals exist in JSON but are not exposed in the
+  UI.
+
+**Action Plan**
+
+1. **Unified Scene Controller**
+   - Configure `QtQuick3D.Helpers.OrbitCameraController` within
+     `assets/qml/SceneView.qml` using parameters tested against the baseline
+     scene. Ensure inertia, acceleration, and damping produce natural orbiting
+     without scaling artefacts. Double-click triggers auto-fit via an explicit
+     handler.
 2. **Material Fidelity**
-   - Validate glass materials: adjust `ior`, `transmittance`, `attenuationColor`, `specularAmount`.
-   - Ensure skybox + IBL share consistent coordinate system by aligning `TextureCube` orientation.
-3. **UI Panels**
-   - Build modular panel components (`ControlsPanel`, `LightingPanel`, `MaterialsPanel`, `AnimationPanel`, `DiagnosticsPanel`) exposing every available Qt 6.10 property relevant to scene.
-   - Provide tooltips, reset-to-default per control, and preset management.
-4. **Animation & Performance**
-   - Rebuild animations using `NumberAnimation` with easing curves and frame-sync, ensuring >120 FPS on reference hardware.
-   - Integrate GPU frame profiler overlay toggled via UI.
-5. **Accessibility & Localization**
-   - Adopt Qt Internationalization pipeline; maintain Russian + English translation `.ts` files.
+   - Audit material definitions in `config/baseline/materials.json`; update
+     glass to use physically-correct index of refraction and absorption.
+   - Validate skybox orientation and IBL rotation (`src/ui/ibl_logger.py`)
+     ensuring consistent coordinate frames for HDR files stored in `assets/hdr`.
+3. **UI Panel Architecture**
+   - Build modular panels under `assets/qml/panels/` with one-to-one mapping
+     between scene parameters and UI controls. Leverage reusable components such
+     as `ParameterSlider` and `ToggleButton` from `src/ui/parameter_slider.py`.
+   - Implement a `SettingsSyncController` that binds UI controls to
+     `SettingsService` changes with signal tracing for debugging.
+4. **Performance Tooling**
+   - Integrate the Qt Quick profiler overlay toggled via `DiagnosticsPanel`.
+   - Ensure animations use `NumberAnimation` and `Animator` elements with target
+     framerates logged to `reports/performance/`.
+5. **Accessibility & Localisation**
+   - Maintain translations in `assets/i18n/` with lrelease-generated `.qm`
+     files. Provide script `tools/i18n/update_translations.py` to regenerate.
+
+---
 
 ## 7. Testing & Quality Gates
-1. **Automated Tests**
-   - Expand `tests/` to cover: settings I/O, signal wiring, geometry calculations, CLI integration.
-   - Use `pytest-qt` for UI signal tests; integrate `pytest-xdist` for parallelism.
-2. **Static Analysis**
-   - Configure `ruff`, `mypy`, `pyright` (via `npx`) and `qmllint`; enforce via pre-commit and CI.
-   - Adopt `clang-format`/`clang-tidy` for C#/C++ interop if any.
-3. **Continuous Integration**
-   - GitHub Actions matrix: {Windows, Ubuntu} x {Python 3.13}; steps: setup Qt via `aqt`, install deps, run linters, run tests, build artifacts, publish release zip.
-   - Add scheduled workflow for nightly integration tests and branch pruning check.
-4. **Performance Baselines**
-   - Scripted scenario capturing camera orbit, UI toggles, recorded via `src/tools/perf_capture.py`.
-   - Compare frame time statistics against baseline using `pytest-benchmark`.
+
+**Status**
+
+- `pytest.ini` configures strict markers but tests do not cover UI extensively.
+- Static analysis tools (`ruff`, `mypy`, `qmllint`) are configured yet not wired
+  into automation or enforced via pre-commit.
+- No CI workflows in `.github/workflows/`.
+
+**Action Plan**
+
+1. **Test Coverage Expansion**
+   - Add behavioural tests in `tests/ui/` using `pytest-qt` to validate signal
+     propagation between UI controls and the Python backend.
+   - Implement regression tests for simulation math in `tests/simulation/` using
+     golden files stored under `tests/data/`.
+2. **Quality Gates Automation**
+   - Create `make check` aggregating `ruff`, `mypy`, `pytest`, and `qmllint`.
+   - Configure GitHub Actions workflows:
+     - `ci.yml`: matrix {Ubuntu, Windows} x Python 3.13 running make targets.
+     - `nightly.yml`: scheduled pipeline executing long-running simulations and
+       encoding audits.
+   - Ensure workflows install Qt 6.10 via the scripted setup and cache the
+     download.
+3. **Pre-Push Runner**
+   - Implement `.hooks/pre-push` script invoking `make check`. Document how to
+     opt-in on Windows (`.githooks/`) and include instructions in
+     `docs/DEVELOPMENT_GUIDE.md`.
+
+---
 
 ## 8. Deployment & Distribution
-1. **Packaging**
-   - Use `fbs` or `PyInstaller` with Qt plugin collection; maintain `scripts/build_release.py` for reproducible builds.
-   - Generate MSI (Windows) and AppImage (Linux) using GitHub Actions release job.
-2. **Configuration Export**
-   - Provide user settings export/import via single JSON file with schema validation.
-3. **Documentation**
-   - Maintain up-to-date docs with MkDocs; host via GitHub Pages with versioned docs.
+
+**Status**
+
+- Packaging scripts exist in `tools/` but rely on older PyInstaller versions.
+- No automated release pipeline; manual packaging documented in `QUICK_DEPLOY.md`.
+
+**Action Plan**
+
+1. Modernise packaging with `fbs` or `briefcase` depending on Qt Quick 3D
+   support. Prototype using `scripts/package_app.py`.
+2. Create GitHub Action `release.yml` triggered on tags: build installers (MSI,
+   AppImage), attach artifacts, publish changelog from `CHANGELOG_MODULAR.md`.
+3. Provide signed PowerShell scripts for enterprise environments and update
+   `docs/QUICK_DEPLOY.md` with new workflows.
+
+---
 
 ## 9. Cleanup & Legacy Removal
-- Inventory root directory reports; move archival markdowns to `archive/` with timestamped subfolders.
-- Remove outdated `.csproj`, `.sln`, `.pyproj` if .NET integration deprecated; otherwise, document cross-language build steps.
-- Delete redundant scripts (e.g., duplicates ending `_fix.py` superseded by new modules) after confirming coverage.
-- Consolidate environment activation scripts to minimal cross-platform set to avoid drift.
+
+**Status**
+
+- The repository root houses dozens of historical reports and quick-fix scripts
+  that are superseded by the modular architecture.
+- Duplicate geometry scripts exist in `src/ui` and `tools/`.
+
+**Action Plan**
+
+1. Perform a structured audit using `tools/audit/redundant_files.py` (to be
+   implemented). Generate an actionable report stored in `reports/cleanup/`.
+2. Delete superseded scripts (anything ending with `_fix.py` or `_final_report.md`
+   once documentation has been migrated). Preserve references in the archive.
+3. Ensure `.gitignore` excludes build outputs, logs, and Qt caches.
+4. Document removal decisions in `docs/CHANGELOG_MODULAR.md` and phase plans to
+   maintain traceability.
+
+---
 
 ## 10. Execution Roadmap
-The roadmap is split into six phases with detailed implementation playbooks. Each phase has a dedicated plan file that captures prerequisites, sprint-level deliverables, and acceptance metrics. The links below point to the living documents that track daily progress and should be reviewed before kicking off the phase.
 
-1. **Phase 0 – Discovery (1 week)**  
-   [Detailed plan](RENOVATION_PHASE_0_DISCOVERY_PLAN.md)
-2. **Phase 1 – Environment & CI (2 weeks)**  
-   [Detailed plan](RENOVATION_PHASE_1_ENVIRONMENT_AND_CI_PLAN.md)
-3. **Phase 2 – Architecture & Settings (3 weeks)**  
-   [Detailed plan](RENOVATION_PHASE_2_ARCHITECTURE_AND_SETTINGS_PLAN.md)
-4. **Phase 3 – UI & Graphics Enhancements (4 weeks)**  
-   [Detailed plan](RENOVATION_PHASE_3_UI_AND_GRAPHICS_PLAN.md)
-5. **Phase 4 – Testing, Packaging & Cleanup (2 weeks)**  
-   [Detailed plan](RENOVATION_PHASE_4_TESTING_PACKAGING_CLEANUP_PLAN.md)
-6. **Phase 5 – Stabilization (continuous)**  
-   [Detailed plan](RENOVATION_PHASE_5_STABILIZATION_PLAN.md)
+**Status**
 
-### Phase Overview Refresh
+- Phase plans (`docs/RENOVATION_PHASE_*.md`) exist but need alignment with the
+  updated objectives and timelines.
 
-- **Milestone Gates** – Each phase now concludes with a structured review covering code readiness, documentation parity, and metrics captured in the corresponding detailed plan. Advancement requires explicit sign-off recorded in the phase document.
-- **Resource Planning** – The dedicated plans outline cross-functional roles (engineering, QA, design, DevOps) and expected weekly capacity. Adjustments should be logged inline to keep the modernization blueprint synchronized with staffing realities.
-- **Risk Tracking** – Major risks, mitigation strategies, and contingency actions are maintained directly within the detailed plan files to keep the high-level roadmap evergreen without overwhelming it with tactical noise.
+**Action Plan**
+
+1. Refresh each phase document with:
+   - **Scope statement** referencing this master plan sections.
+   - **Entry criteria** (e.g., required documentation updates, baseline tests).
+   - **Exit criteria** with measurable deliverables and links to test evidence in
+     `reports/`.
+2. Introduce a Kanban-style tracker (`docs/operations/phase_burndown.md`) for
+   cross-functional visibility.
+3. After every sprint, append a changelog entry summarising progress and update
+   the "status" blocks in this master plan.
+
+---
 
 ## 11. Success Criteria
-- Application runs on Python 3.13 + Qt 6.10 across Windows/Linux without runtime warnings or missing plugins.
-- UI exposes complete scene configuration set; double-click auto-fit works exclusively as requested.
-- All tests + linters pass; CI pipelines green on all platforms.
-- Repository contains only active assets, scripts, and configurations with clear ownership and documentation.
-- Full parameter traceability from UI to simulation core validated through automated integration tests.
+
+To declare the renovation complete, every item below must be demonstrably true
+with evidence attached in the repository.
+
+1. **Deterministic Runtime** – Application launches via `python -m
+   src.app_runner` on Windows and Linux using Python 3.13 without warnings or
+   missing Qt plugins.
+2. **Complete UI Coverage** – Every scene parameter exposed in
+   `config/app_settings.json` has a dedicated UI control with bidirectional
+   binding and logging.
+3. **Visual Fidelity** – Glass materials, IBL alignment, and orbit camera
+   parameters validated using automated visual regression tests stored in
+   `tests/ui/screenshots/`.
+4. **Automation First** – `make check` and CI pipelines run green; pre-commit
+   hooks block non-conforming commits.
+5. **Repository Hygiene** – No redundant scripts or stale branches remain; all
+   documentation reflects Qt 6.10 / Python 3.13 workflows.
+
+---
+
+## 12. Cross-References & Living Documents
+
+- Detailed execution steps per phase:
+  - [`docs/RENOVATION_PHASE_0_DISCOVERY_PLAN.md`](RENOVATION_PHASE_0_DISCOVERY_PLAN.md)
+  - [`docs/RENOVATION_PHASE_1_ENVIRONMENT_AND_CI_PLAN.md`](RENOVATION_PHASE_1_ENVIRONMENT_AND_CI_PLAN.md)
+  - [`docs/RENOVATION_PHASE_2_ARCHITECTURE_AND_SETTINGS_PLAN.md`](RENOVATION_PHASE_2_ARCHITECTURE_AND_SETTINGS_PLAN.md)
+  - [`docs/RENOVATION_PHASE_3_UI_AND_GRAPHICS_PLAN.md`](RENOVATION_PHASE_3_UI_AND_GRAPHICS_PLAN.md)
+  - [`docs/RENOVATION_PHASE_4_TESTING_PACKAGING_CLEANUP_PLAN.md`](RENOVATION_PHASE_4_TESTING_PACKAGING_CLEANUP_PLAN.md)
+  - [`docs/RENOVATION_PHASE_5_STABILIZATION_PLAN.md`](RENOVATION_PHASE_5_STABILIZATION_PLAN.md)
+- Assistant onboarding and tooling guide: [`docs/ai_assistants.md`](ai_assistants.md)
+- Settings architecture primer: [`docs/SETTINGS_ARCHITECTURE.md`](SETTINGS_ARCHITECTURE.md)
+
+Keep this blueprint under version control discipline: update it whenever a
+significant architectural, tooling, or process change lands in the repository.
