@@ -54,3 +54,6 @@ Capture notable decisions, blockers, and timings here. Reference PR numbers and 
   wheels.
 - 2025-03-05 – Introduced scheduled branch audit workflow leveraging the GitHub
   CLI container to post weekly stale-branch reports.
+- 2025-04-06 – Published `docs/operations/onboarding_uv.md`, providing Windows,
+  Linux, and WSL onboarding transcript aligned with the uv-first environment
+  workflow and Phase 1 exit criteria.
