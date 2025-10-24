@@ -103,6 +103,7 @@ best practices for scientific visualisation software.
 - Scripts `activate_environment.(sh|ps1)` export Qt-related env vars yet still
   contain quoted paths tailored for Windows PowerShell 5.1.
 - `requirements*.txt` duplicates dependency declarations, risking divergence.
+- `scripts/bootstrap_uv.py` together with the `uv-sync`/`uv-run` make targets already accelerates local provisioning, but onboarding docs still reference legacy `python -m venv` flows and lack troubleshooting notes.
 
 **Action Plan**
 
@@ -112,6 +113,8 @@ best practices for scientific visualisation software.
      `make uv-run CMD=...`) and mirror instructions in `docs/ENVIRONMENT_SETUP.md`.
    - Provide `scripts/bootstrap_uv.py` that installs uv if missing and seeds the
      environment.
+   - Refresh `docs/ENVIRONMENT_SETUP.md` and `README.md` quick-start snippets to walk through the bootstrap helper and `make uv-sync`, removing stale venv advice.
+   - Produce a concise onboarding transcript in `docs/operations/onboarding_uv.md` covering Windows, Linux, and WSL runs so support teams can reuse the same playbook.
 2. **Dependency Locking**
    - Generate a deterministic lockfile (`uv lock` or `pip-compile` producing
      `requirements.lock`) and store it under version control.
@@ -124,6 +127,7 @@ best practices for scientific visualisation software.
    - Update launch scripts to source `QT_PLUGIN_PATH`, `QML2_IMPORT_PATH`, and
      `QT_QUICK_CONTROLS_STYLE` without double-escaping quotes. Validate with
      PowerShell Core 7.4 and Bash.
+   - Add a lightweight smoke check (extend `tools/check_ui_utf8.py` or create `tools/environment/verify_qt_setup.py`) that asserts Qt plugin discovery works on CI agents and link it into the `make check` pipeline once stable.
 4. **IDE & Assistant Integration**
    - Refresh `PneumoStabSim.code-workspace` with tasks for `ruff`, `pytest`, and
      `qmllint`. Add recommended extensions (Python, Qt Tools, GitHub Copilot).
@@ -268,6 +272,7 @@ best practices for scientific visualisation software.
 - Static analysis tools (`ruff`, `mypy`, `qmllint`) are configured yet not wired
   into automation or enforced via pre-commit.
 - No CI workflows in `.github/workflows/`.
+- `Makefile` already exposes `check`, `lint`, `typecheck`, and `qml-lint` targets backed by `tools/ci_tasks.py`, but adoption is ad-hoc and undocumented for contributors.
 
 **Action Plan**
 
@@ -284,6 +289,7 @@ best practices for scientific visualisation software.
        encoding audits.
    - Ensure workflows install Qt 6.10 via the scripted setup and cache the
      download.
+   - Document the local workflow in `docs/DEVELOPMENT_GUIDE.md`, clarifying that contributors must run `make check` (or `python -m tools.ci_tasks verify`) before submitting changes and offering troubleshooting steps for qmllint/Qt setup.
 3. **Pre-Push Runner**
    - Implement `.hooks/pre-push` script invoking `make check`. Document how to
      opt-in on Windows (`.githooks/`) and include instructions in
@@ -415,3 +421,13 @@ significant architectural, tooling, or process change lands in the repository.
    cross-references to relevant phase items.
 3. Archive decisions from architecture syncs into `docs/DECISIONS_LOG.md` within
    24 hours, tagging affected modules and linking pull requests for auditability.
+---
+
+## 14. Immediate Next Steps
+
+**Focus for the next sprint (March 2025)**
+
+1. Publish the refreshed uv onboarding materials and circulate them via `docs/operations/onboarding_uv.md` with links in `README.md`.
+2. Draft the Qt setup smoke-check utility (`tools/environment/verify_qt_setup.py`) and capture first-run notes in `reports/environment/qt-smoke.md`.
+3. Align contributor documentation by updating `docs/DEVELOPMENT_GUIDE.md` and `docs/RENOVATION_PHASE_1_ENVIRONMENT_AND_CI_PLAN.md` to reference `make check` as mandatory prior to pull requests.
+4. Prepare a status update for the governance sync summarising progress on dependency locking and CI workflow design, attaching action items to `docs/operations/governance.md`.
