@@ -139,6 +139,9 @@ best practices for scientific visualisation software.
   aware) and `src/core/settings_service.py` (lightweight cache), leading to
   duplicated behaviour and inconsistent defaults.
 - Settings persistence lacks traceability between UI sliders and stored keys.
+- JSON-based migration descriptors exist under `config/migrations/` with a
+  command-line runner in `src.tools.settings_migrate` keeping track of applied
+  upgrades.
 
 **Action Plan**
 

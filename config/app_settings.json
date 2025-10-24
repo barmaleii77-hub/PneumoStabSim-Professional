@@ -3,7 +3,11 @@
     "version": "0.1.0",
     "schema_version": "0.1.0",
     "last_modified": "2025-01-01T00:00:00",
-    "units_version": "si_v2"
+    "units_version": "si_v2",
+    "migrations": [
+      "0001_add_diagnostics_defaults"
+    ],
+    "last_migration": ""
   },
   "current": {
     "simulation": {
@@ -32,7 +36,11 @@
         "fog_far": 1000.0,
         "ibl_intensity": 1.0,
         "ao_sample_rate": 32,
-        "background_color": [0, 0, 0]
+        "background_color": [
+          0,
+          0,
+          0
+        ]
       },
       "scene": {
         "scale_factor": 1.0,
@@ -44,15 +52,42 @@
         "frequency": 1.0
       },
       "materials": {
-        "frame": {"id": "frame"},
-        "lever": {"id": "lever"},
-        "tail": {"id": "tail"},
-        "cylinder": {"id": "cylinder"},
-        "piston_body": {"id": "piston_body"},
-        "piston_rod": {"id": "piston_rod"},
-        "joint_tail": {"id": "joint_tail"},
-        "joint_arm": {"id": "joint_arm"},
-        "joint_rod": {"id": "joint_rod"}
+        "frame": {
+          "id": "frame"
+        },
+        "lever": {
+          "id": "lever"
+        },
+        "tail": {
+          "id": "tail"
+        },
+        "cylinder": {
+          "id": "cylinder"
+        },
+        "piston_body": {
+          "id": "piston_body"
+        },
+        "piston_rod": {
+          "id": "piston_rod"
+        },
+        "joint_tail": {
+          "id": "joint_tail"
+        },
+        "joint_arm": {
+          "id": "joint_arm"
+        },
+        "joint_rod": {
+          "id": "joint_rod"
+        }
+      }
+    },
+    "diagnostics": {
+      "signal_trace": {
+        "enabled": false,
+        "overlay_enabled": false,
+        "include": [],
+        "exclude": [],
+        "history_limit": 1000
       }
     }
   },
@@ -83,7 +118,11 @@
         "fog_far": 1000.0,
         "ibl_intensity": 1.0,
         "ao_sample_rate": 32,
-        "background_color": [0, 0, 0]
+        "background_color": [
+          0,
+          0,
+          0
+        ]
       },
       "scene": {
         "scale_factor": 1.0,
@@ -95,15 +134,42 @@
         "frequency": 1.0
       },
       "materials": {
-        "frame": {"id": "frame"},
-        "lever": {"id": "lever"},
-        "tail": {"id": "tail"},
-        "cylinder": {"id": "cylinder"},
-        "piston_body": {"id": "piston_body"},
-        "piston_rod": {"id": "piston_rod"},
-        "joint_tail": {"id": "joint_tail"},
-        "joint_arm": {"id": "joint_arm"},
-        "joint_rod": {"id": "joint_rod"}
+        "frame": {
+          "id": "frame"
+        },
+        "lever": {
+          "id": "lever"
+        },
+        "tail": {
+          "id": "tail"
+        },
+        "cylinder": {
+          "id": "cylinder"
+        },
+        "piston_body": {
+          "id": "piston_body"
+        },
+        "piston_rod": {
+          "id": "piston_rod"
+        },
+        "joint_tail": {
+          "id": "joint_tail"
+        },
+        "joint_arm": {
+          "id": "joint_arm"
+        },
+        "joint_rod": {
+          "id": "joint_rod"
+        }
+      }
+    },
+    "diagnostics": {
+      "signal_trace": {
+        "enabled": false,
+        "overlay_enabled": false,
+        "include": [],
+        "exclude": [],
+        "history_limit": 1000
       }
     }
   },

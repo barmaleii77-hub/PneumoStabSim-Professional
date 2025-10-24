@@ -1,0 +1,37 @@
+{
+  "id": "0001_add_diagnostics_defaults",
+  "description": "Ensure diagnostics signal tracing defaults exist in current and defaults_snapshot sections.",
+  "operations": [
+    {
+      "op": "ensure",
+      "path": "current.diagnostics",
+      "value": {
+        "signal_trace": {
+          "enabled": false,
+          "overlay_enabled": false,
+          "include": [],
+          "exclude": [],
+          "history_limit": 1000
+        }
+      }
+    },
+    {
+      "op": "ensure",
+      "path": "defaults_snapshot.diagnostics",
+      "value": {
+        "signal_trace": {
+          "enabled": false,
+          "overlay_enabled": false,
+          "include": [],
+          "exclude": [],
+          "history_limit": 1000
+        }
+      }
+    },
+    {
+      "op": "ensure",
+      "path": "metadata.last_migration",
+      "value": ""
+    }
+  ]
+}
