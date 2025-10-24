@@ -45,7 +45,7 @@ if TYPE_CHECKING:  # pragma: no cover - used for static analyzers only
 
 
 def __getattr__(name: str):
- if name in __all__:
- module = import_module("src.core.geometry")
- return getattr(module, name)
- raise AttributeError(f"module 'src.core' has no attribute '{name}'")
+    if name in __all__:
+        module = import_module("src.core.geometry")
+        return getattr(module, name)
+    raise AttributeError(f"module 'src.core' has no attribute '{name}'")

@@ -22,7 +22,7 @@
  "properties": {
  "version": {
  "type": "string",
- "pattern": "^\\d+\\\.\\d+\\\.\\d+$",
+ "pattern": "^\\d+\\.\\d+\\.\\d+$",
  "description": "Semantic version of the settings payload (major.minor.patch)."
  },
  "last_modified": {
@@ -39,7 +39,7 @@
  },
  "schema_version": {
  "type": "string",
- "pattern": "^\\d+\\\.\\d+\\\.\\d+$",
+ "pattern": "^\\d+\\.\\d+\\.\\d+$",
  "description": "Internal schema version for migration tracking."
  },
  "migrated_from": {
@@ -62,7 +62,7 @@
  },
  "previous_version": {
  "type": "string",
- "pattern": "^\\d+\\\.\\d+\\\.\\d+$",
+ "pattern": "^\\d+\\.\\d+\\.\\d+$",
  "description": "Version recorded prior to the last migration run."
  },
  "units_version_previous": {

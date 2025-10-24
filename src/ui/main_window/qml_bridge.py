@@ -181,6 +181,7 @@ class QMLBridge:
         if snapshot is None or not window._qml_root_object:
             return False
 
+        payload: Dict[str, Any] | None = None
         try:
             payload = QMLBridge._snapshot_to_payload(snapshot)
             payload.setdefault("animation", {})["isRunning"] = bool(
@@ -198,7 +199,27 @@ class QMLBridge:
                 window._suppress_qml_feedback = False
             return True
         except Exception as exc:
-            QMLBridge.logger.debug(f"Failed to push simulation state: {exc}")
+            QMLBridge.logger.error(
+                "Failed to push simulation state to QML: %s", exc, exc_info=True
+            )
+
+            try:
+                QMLBridge._log_qml_update_failure(
+                    window,
+                    context="set_simulation_state",
+                    payload=payload or {"snapshot": repr(snapshot)},
+                    error=exc,
+                )
+            except Exception:
+                QMLBridge.logger.debug(
+                    "Failed to record simulation state failure in event logger",
+                    exc_info=True,
+                )
+
+            QMLBridge._notify_qml_failure(
+                window, "QML не принял состояние симуляции", str(exc)
+            )
+
             return False
 
     @staticmethod
