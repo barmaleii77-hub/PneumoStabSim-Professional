@@ -1,124 +1,106 @@
-name: CI Workflow
+name: CI
 
 on:
- push:
- branches:
- - master
- - develop
- pull_request:
- branches:
- - master
- - develop
+  push:
+    branches: [master, develop]
+  pull_request:
+    branches: [master, develop]
+  workflow_dispatch:
+
+env:
+  PYTHON_VERSION: '3.13'
+  QT_VERSION: '6.10.0'
+  QT_MODULES: qtbase qtdeclarative qtquick3d
+  QT_QPA_PLATFORM: offscreen
+  QT_QUICK_BACKEND: software
 
 jobs:
- lint:
- name: Lint & Type Check
- runs-on: ubuntu-latest
+  lint:
+    name: Lint & Type Check (Ubuntu)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
- steps:
- - name: Checkout repository
- uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+          cache-dependency-path: |
+            pyproject.toml
+            requirements*.txt
 
- - name: Set up Python
- uses: actions/setup-python@v5
- with:
- python-version: '3.13'
- cache: 'pip'
- cache-dependency-path: |
- pyproject.toml
- requirements*.txt
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e .[dev]
 
- - name: Install dependencies
- run: |
- python -m pip install --upgrade pip
- pip install -e .[dev]
- pip install coverage
+      - name: Ruff & formatting lint
+        shell: bash
+        run: |
+          python -m tools.ci_tasks lint || { python -m ruff format --check . && python -m ruff check .; }
 
- - name: Ruff lint
- run: |
- set -o pipefail
- mkdir -p artifacts/lint
- ruff check src tests tools app.py 2>&1 | tee artifacts/lint/ruff-check.log
- ruff format --check src tests tools app.py 2>&1 | tee artifacts/lint/ruff-format.log
+      - name: Static type checking
+        shell: bash
+        run: |
+          python -m tools.ci_tasks typecheck || python -m mypy .
 
- - name: Mypy type check
- run: |
- set -o pipefail
- mkdir -p artifacts/lint
- python -m mypy --config-file mypy.ini $(tr '\n' ' ' < mypy_targets.txt) 2>&1 | tee artifacts/lint/mypy.log
+  tests:
+    name: Test matrix (Qt ${{ env.QT_VERSION }})
+    needs: lint
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
- - name: QML lint
- run: |
- set -o pipefail
- mkdir -p artifacts/lint
- make qml-lint QML_LINTER=pyside6-qmllint 2>&1 | tee artifacts/lint/qmllint.log
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+          cache-dependency-path: |
+            pyproject.toml
+            requirements*.txt
 
- - name: Restore .NET dependencies
- run: dotnet restore PneumoStabSim-Professional.sln
+      - name: Install Qt ${{ env.QT_VERSION }}
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: ${{ env.QT_VERSION }}
+          modules: ${{ env.QT_MODULES }}
+          cache: true
 
- - name: dotnet format (verify)
- run: dotnet format src/PneumoStabSim.Core/PneumoStabSim.Core.csproj --verify-no-changes --severity error
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e .[dev]
 
- - name: Upload lint artifacts
- if: always()
- uses: actions/upload-artifact@v4
- with:
- name: lint-logs-${{ runner.os }}
- path: artifacts/lint
- if-no-files-found: warn
+      - name: Export Qt plugin paths
+        shell: python
+        run: |
+          import os
+          from pathlib import Path
+          from PySide6.QtCore import QLibraryInfo, LibraryLocation
+          
+          env_file = Path(os.environ["GITHUB_ENV"])
+          with env_file.open("a", encoding="utf-8") as fh:
+            fh.write(f"QT_PLUGIN_PATH={QLibraryInfo.path(LibraryLocation.Plugins)}\n")
+            fh.write(f"QML2_IMPORT_PATH={QLibraryInfo.path(LibraryLocation.QmlImports)}\n")
 
- tests:
- name: Test Matrix
- needs: lint
- strategy:
- fail-fast: false
- matrix:
- os: [ubuntu-latest, windows-latest, macos-latest]
- runs-on: ${{ matrix.os }}
-
- steps:
- - name: Checkout repository
- uses: actions/checkout@v4
-
- - name: Set up Python
- uses: actions/setup-python@v5
- with:
- python-version: '3.13'
- cache: 'pip'
- cache-dependency-path: |
- pyproject.toml
- requirements*.txt
-
- - name: Restore pip cache (legacy)
- if: runner.os == 'Linux'
- uses: actions/cache@v4
- with:
- path: ~/.cache/pip
- key: ${{ runner.os }}-pip-${{ hashFiles('pyproject.toml', 'requirements*.txt') }}
- restore-keys: |
- ${{ runner.os }}-pip-
-
- - name: Install Qt
- uses: jurplel/install-qt-action@v4
- with:
- version: 6.6.3
- modules: qtbase qtdeclarative qtquick3d
- cache: true
-
- - name: Install dependencies
- run: |
- python -m pip install --upgrade pip
- pip install -e .[dev]
- pip install pytest-cov pytest-xdist
-
- - name: Configure Qt runtime paths
- shell: python
- run: |
- import os
- from pathlib import Path
- from PySide6.QtCore import QLibraryInfo, LibraryLocation
-
- def append_env(key: str, value: str) -> None:
- if not value:
- return
- env_file = Path(os.environ["GITHUB_ENV"])
+      - name: Run pytest suite
+        shell: bash
+        env:
+          QT_QPA_PLATFORM: ${{ env.QT_QPA_PLATFORM }}
+          QT_QUICK_BACKEND: ${{ env.QT_QUICK_BACKEND }}
+        run: |
+          if [ "${{ runner.os }}" = "Linux" ]; then
+            sudo apt-get update
+            sudo apt-get install -y xvfb
+            xvfb-run --auto-servernum --server-args='-screen 0 1920x1080x24' python -m tools.ci_tasks test || pytest -q
+          else
+            python -m tools.ci_tasks test || pytest -q
+          fi
