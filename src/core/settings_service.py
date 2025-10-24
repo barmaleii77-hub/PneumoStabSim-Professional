@@ -13,6 +13,14 @@ from pathlib import Path
 from typing import Any, Iterable, MutableMapping
 
 
+class SettingsValidationError(ValueError):
+    """Raised when the settings file does not conform to the JSON schema."""
+
+    def __init__(self, message: str, *, errors: list[str] | None = None) -> None:
+        super().__init__(message)
+        self.errors = errors or []
+
+
 class SettingsService:
     """Сервис доступа к настройкам с кэшем и простыми helper‑ами.
 
@@ -29,12 +37,22 @@ class SettingsService:
         settings_path: str | os.PathLike[str] | None = None,
         *,
         env_var: str = "PSS_SETTINGS_FILE",
+        schema_path: str | os.PathLike[str] | None = None,
+        schema_env_var: str = "PSS_SETTINGS_SCHEMA",
+        validate_schema: bool = True,
     ) -> None:
         self._explicit_path = (
             Path(settings_path).expanduser().resolve() if settings_path else None
         )
         self._env_var = env_var
+        self._explicit_schema_path = (
+            Path(schema_path).expanduser().resolve() if schema_path else None
+        )
+        self._schema_env_var = schema_env_var
+        self._validate_schema = validate_schema
         self._cache: dict[str, Any] | None = None
+        self._schema_cache: dict[str, Any] | None = None
+        self._validator: Any | None = None
 
     # ------------------------------------------------------------------
     # Path resolution & raw IO
@@ -57,7 +75,10 @@ class SettingsService:
     def _read_file(self) -> dict[str, Any]:
         path = self.resolve_path()
         with path.open("r", encoding="utf-8") as stream:
-            return json.load(stream)
+            payload: dict[str, Any] = json.load(stream)
+        if self._validate_schema:
+            self.validate(payload)
+        return payload
 
     def _write_file(self, payload: dict[str, Any]) -> None:
         path = self.resolve_path()
@@ -89,6 +110,8 @@ class SettingsService:
     def save(self, payload: dict[str, Any]) -> None:
         """Сохранить payload на диск и обновить кэш."""
 
+        if self._validate_schema:
+            self.validate(payload)
         self._write_file(payload)
         self._cache = payload
 
@@ -137,6 +160,76 @@ class SettingsService:
         data.update(patch)
         self.save(payload)
 
+    # ------------------------------------------------------------------
+    # Schema validation helpers
+    # ------------------------------------------------------------------
+    def resolve_schema_path(self) -> Path:
+        """Определить путь к JSON Schema."""
+
+        if self._explicit_schema_path is not None:
+            return self._explicit_schema_path
+
+        env_path = os.getenv(self._schema_env_var)
+        if env_path:
+            candidate = Path(env_path).expanduser().resolve()
+            if candidate.exists():
+                return candidate
+
+        return (
+            Path(__file__).resolve().parents[2] / "config" / "app_settings.schema.json"
+        )
+
+    def _read_schema(self) -> dict[str, Any]:
+        if self._schema_cache is None:
+            path = self.resolve_schema_path()
+            if not path.exists():
+                raise SettingsValidationError(f"Settings schema not found at '{path}'")
+            with path.open("r", encoding="utf-8") as stream:
+                self._schema_cache = json.load(stream)
+        return self._schema_cache
+
+    def _get_validator(self) -> Any:
+        if self._validator is not None:
+            return self._validator
+
+        try:
+            from jsonschema import Draft202012Validator
+            from jsonschema.exceptions import SchemaError
+        except ModuleNotFoundError as exc:  # pragma: no cover - import guard
+            raise SettingsValidationError(
+                "jsonschema package is required for settings validation"
+            ) from exc
+
+        schema = self._read_schema()
+
+        try:
+            self._validator = Draft202012Validator(schema)
+        except SchemaError as exc:
+            raise SettingsValidationError(
+                f"Settings schema at '{self.resolve_schema_path()}' is invalid: {exc.message}"
+            ) from exc
+
+        return self._validator
+
+    def validate(self, payload: dict[str, Any]) -> None:
+        """Проверить payload по JSON Schema и выбросить ошибку при несовпадении."""
+
+        validator = self._get_validator()
+        errors = sorted(validator.iter_errors(payload), key=lambda err: err.path)
+        if not errors:
+            return
+
+        formatted: list[str] = []
+        for error in errors:
+            location = ".".join(str(part) for part in error.path) or "<root>"
+            formatted.append(f"{location}: {error.message}")
+
+        joined = "; ".join(formatted)
+        raise SettingsValidationError(
+            f"Settings payload failed JSON Schema validation: {joined}",
+            errors=formatted,
+        ) from None
+
     def _ensure_mapping(
         self, payload: dict[str, Any], path: str
     ) -> MutableMapping[str, Any]:
@@ -166,4 +259,8 @@ def get_settings_service() -> SettingsService:
     return _service_singleton
 
 
-__all__ = ["SettingsService", "get_settings_service"]
+__all__ = [
+    "SettingsService",
+    "SettingsValidationError",
+    "get_settings_service",
+]
