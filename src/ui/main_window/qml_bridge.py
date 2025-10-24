@@ -198,7 +198,25 @@ class QMLBridge:
                 window._suppress_qml_feedback = False
             return True
         except Exception as exc:
-            QMLBridge.logger.debug(f"Failed to push simulation state: {exc}")
+            QMLBridge.logger.error(
+                "Failed to push simulation state to QML", exc_info=True
+            )
+            try:
+                QMLBridge._log_qml_update_failure(
+                    window,
+                    context="set_simulation_state",
+                    payload={"error": str(exc)},
+                    error=exc,
+                )
+            except Exception:
+                QMLBridge.logger.debug(
+                    "Failed to record simulation state failure", exc_info=True
+                )
+            QMLBridge._notify_qml_failure(
+                window,
+                "QML не принял состояние симуляции",
+                str(exc),
+            )
             return False
 
     @staticmethod
