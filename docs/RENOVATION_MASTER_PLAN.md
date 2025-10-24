@@ -113,7 +113,7 @@ best practices for scientific visualisation software.
      `make uv-run CMD=...`) and mirror instructions in `docs/ENVIRONMENT_SETUP.md`.
    - Provide `scripts/bootstrap_uv.py` that installs uv if missing and seeds the
      environment.
-   - Refresh `docs/ENVIRONMENT_SETUP.md` and `README.md` quick-start snippets to walk through the bootstrap helper and `make uv-sync`, removing stale venv advice.
+   - Refresh `docs/ENVIRONMENT_SETUP.md` and `README.md` quick-start snippets to walk through the bootstrap helper and `make uv-sync`, removing stale venv advice. *(Completed March 2025; both documents now describe the uv-first workflow. Onboarding transcript pending.)*
    - Produce a concise onboarding transcript in `docs/operations/onboarding_uv.md` covering Windows, Linux, and WSL runs so support teams can reuse the same playbook.
 2. **Dependency Locking**
    - Generate a deterministic lockfile (`uv lock` or `pip-compile` producing
