@@ -80,9 +80,10 @@ best practices for scientific visualisation software.
    - Expand `.gitattributes` to normalise UTF-8 LF for `.py`, `.qml`, `.json`
      and CRLF hints for `.ps1` while prohibiting BOM usage. Validate using
      `git check-attr` during CI.
-   - Run the repository through `tools/encoding_normalizer.py` (to be created)
-     to rewrite problematic scripts; confirm Russian-language docs remain UTF-8
-     without BOM.
+   - Run the repository through `tools/encoding_normalizer.py` to rewrite
+     problematic scripts; confirm Russian-language docs remain UTF-8 without
+     BOM. *Status: Completed May 2025 with the repository-wide normalisation
+     CLI enforcing UTF-8 and canonical newlines.*
 3. **Legacy Asset Rationalisation**
    - Relocate all historical markdown reports into `archive/<YYYY-MM>/` keeping
      README breadcrumbs.
