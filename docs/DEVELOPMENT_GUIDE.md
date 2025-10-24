@@ -100,6 +100,16 @@ uv-first environment strategy captured in the renovation master plan.
   first successful transcript in `reports/environment/qt-smoke.md`.
 - Enable `pre-commit` hooks (`pre-commit install --hook-type pre-commit --hook-type
   pre-push`) to mirror CI behaviour locally.
+- Opt into the repository-provided Git hooks so the pre-push quality gate runs
+  automatically:
+  - **Unix-like shells** – `git config core.hooksPath .hooks` (this makes Git
+    execute `.hooks/pre-push`, which delegates to `make check`).
+  - **Windows PowerShell** – copy `.hooks/pre-push` into `.git/hooks/` and use
+    `bash` from Git for Windows, or mirror the logic in a PowerShell script (see
+    below) and register it with `git config core.hooksPath .githooks`.
+  - A reference PowerShell implementation lives at `.githooks/pre-push.ps1` and
+    calls `python -m tools.ci_tasks verify` for environments where `make`
+    is unavailable.
 - Follow Conventional Commit messages (`type(scope): summary`) when committing.
 
 ## 5. Troubleshooting & support

@@ -297,7 +297,9 @@ best practices for scientific visualisation software.
 3. **Pre-Push Runner**
    - Implement `.hooks/pre-push` script invoking `make check`. Document how to
      opt-in on Windows (`.githooks/`) and include instructions in
-     `docs/DEVELOPMENT_GUIDE.md`.
+     `docs/DEVELOPMENT_GUIDE.md`. *Status: Completed June 2025 with cross-platform
+     hooks (`.hooks/pre-push`, `.githooks/pre-push.ps1`) documented in the
+     development guide.*
 4. **Quality Telemetry**
    - Feed code coverage, lint duration, and flaky-test metrics into
      `reports/quality/dashboard.csv`. Automate nightly aggregation via
