@@ -1,12 +1,18 @@
 #!/usr/bin/env bash
 # PneumoStabSim Professional - shell activation helper (Linux/macOS)
 
-set -euo pipefail
+set -Eeuo pipefail
+
+# Ensure predictable UTF-8 locale for Qt tooling and Python logging output.
+export LANG="${LANG:-C.UTF-8}"
+export LC_ALL="${LC_ALL:-C.UTF-8}"
 
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ENV_FILE="$PROJECT_ROOT/.env"
 
 function log() { printf '[env] %s\n' "$1"; }
+
+trap 'log "Environment activation failed (exit code $?)"' ERR
 
 if [[ ! -f "$ENV_FILE" ]]; then
   log ".env not found – run ./setup_environment.py first"
@@ -34,3 +40,5 @@ else
 fi
 
 log "Qt backend: ${QSG_RHI_BACKEND:-n/a} (Qt ${QT_VERSION:-unknown})"
+
+trap - ERR
