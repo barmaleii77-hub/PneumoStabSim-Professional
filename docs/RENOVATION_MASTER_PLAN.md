@@ -130,7 +130,7 @@ best practices for scientific visualisation software.
    - Update launch scripts to source `QT_PLUGIN_PATH`, `QML2_IMPORT_PATH`, and
      `QT_QUICK_CONTROLS_STYLE` without double-escaping quotes. Validate with
      PowerShell Core 7.4 and Bash.
-   - Add a lightweight smoke check (extend `tools/check_ui_utf8.py` or create `tools/environment/verify_qt_setup.py`) that asserts Qt plugin discovery works on CI agents and link it into the `make check` pipeline once stable.
+   - Add a lightweight smoke check (extend `tools/check_ui_utf8.py` or create `tools/environment/verify_qt_setup.py`) that asserts Qt plugin discovery works on CI agents and link it into the `make check` pipeline once stable. *Status: Qt smoke-check shipped April 2025 via `tools/environment/verify_qt_setup.py` with the initial transcript in `reports/environment/qt-smoke.md`; pipeline integration pending validation.*
 4. **IDE & Assistant Integration**
    - Refresh `PneumoStabSim.code-workspace` with tasks for `ruff`, `pytest`, and
      `qmllint`. Add recommended extensions (Python, Qt Tools, GitHub Copilot).
@@ -432,6 +432,6 @@ significant architectural, tooling, or process change lands in the repository.
 **Focus for the next sprint (March 2025)**
 
 1. Publish the refreshed uv onboarding materials and circulate them via `docs/operations/onboarding_uv.md` with links in `README.md`.
-2. Draft the Qt setup smoke-check utility (`tools/environment/verify_qt_setup.py`) and capture first-run notes in `reports/environment/qt-smoke.md`.
-3. Align contributor documentation by updating `docs/DEVELOPMENT_GUIDE.md` and `docs/RENOVATION_PHASE_1_ENVIRONMENT_AND_CI_PLAN.md` to reference `make check` as mandatory prior to pull requests.
+2. Draft the Qt setup smoke-check utility (`tools/environment/verify_qt_setup.py`) and capture first-run notes in `reports/environment/qt-smoke.md`. *Status: Completed April 2025; helper committed with accompanying report.*
+3. Align contributor documentation by updating `docs/DEVELOPMENT_GUIDE.md` and `docs/RENOVATION_PHASE_1_ENVIRONMENT_AND_CI_PLAN.md` to reference `make check` as mandatory prior to pull requests. *Status: Completed April 2025 with refreshed development guide and phase plan entry.*
 4. Prepare a status update for the governance sync summarising progress on dependency locking and CI workflow design, attaching action items to `docs/operations/governance.md`.

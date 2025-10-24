@@ -18,6 +18,8 @@
 2. **Qt Toolchain Automation**
    - Implement `tools/setup_qt.py` with checksum verification and caching strategy.
    - Update `activate_environment.*` scripts to set `QT_PLUGIN_PATH`, `QML2_IMPORT_PATH`, and telemetry toggles.
+   - Ship a smoke-check helper `tools/environment/verify_qt_setup.py` that validates PySide6 6.10 availability, Qt plugin paths,
+     and Quick 3D bindings for CI agents and developer workstations.
    - Produce quickstart guide `docs/setup/qt610_environment.md` summarizing usage.
 3. **CI/CD Infrastructure**
    - Add GitHub Actions workflows: `ci.yml` (build + tests), `nightly.yml` (scheduled smoke tests), `branch-audit.yml`.
@@ -27,6 +29,8 @@
    - Refresh `.vscode/` settings, ensuring linting tasks match CI commands.
    - Provide onboarding script `setup_dev.py` that bootstraps environment locally.
    - Document guidelines for AI assistants in `docs/ai_assistants.md`.
+   - Update `docs/DEVELOPMENT_GUIDE.md` to emphasise the uv-first workflow, the Qt smoke-check helper, and `make check` as the
+     non-negotiable pre-commit quality gate.
 
 ## Deliverables
 - Locked dependency files and environment automation scripts merged to `develop`.
@@ -57,3 +61,6 @@ Capture notable decisions, blockers, and timings here. Reference PR numbers and 
 - 2025-04-06 – Published `docs/operations/onboarding_uv.md`, providing Windows,
   Linux, and WSL onboarding transcript aligned with the uv-first environment
   workflow and Phase 1 exit criteria.
+- 2025-04-08 – Added `tools/environment/verify_qt_setup.py` plus the refreshed
+  development guide detailing the make/uv workflow and captured the first Qt
+  smoke-check transcript in `reports/environment/qt-smoke.md`.
