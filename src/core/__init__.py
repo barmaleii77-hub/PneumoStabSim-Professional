@@ -25,27 +25,27 @@ __all__ = [
 
 
 if TYPE_CHECKING:  # pragma: no cover - used for static analyzers only
- from .geometry import (  # noqa: F401 (re-exported via __getattr__)
- Capsule2,
- GeometryParams,
- Point2,
- Segment2,
- angle_between,
- angle_from_x_axis,
- capsule_capsule_clearance,
- capsule_capsule_intersect,
- closest_point_on_segment,
- dist_point_segment,
- dist_segment_segment,
- dot,
- norm,
- normalize,
- project,
- )
+    from .geometry import (  # noqa: F401 (re-exported via __getattr__)
+        Capsule2,
+        GeometryParams,
+        Point2,
+        Segment2,
+        angle_between,
+        angle_from_x_axis,
+        capsule_capsule_clearance,
+        capsule_capsule_intersect,
+        closest_point_on_segment,
+        dist_point_segment,
+        dist_segment_segment,
+        dot,
+        norm,
+        normalize,
+        project,
+    )
 
 
 def __getattr__(name: str):
- if name in __all__:
- module = import_module("src.core.geometry")
- return getattr(module, name)
- raise AttributeError(f"module 'src.core' has no attribute '{name}'")
+    if name in __all__:
+        module = import_module("src.core.geometry")
+        return getattr(module, name)
+    raise AttributeError(f"module 'src.core' has no attribute '{name}'")
