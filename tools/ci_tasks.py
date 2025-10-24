@@ -20,6 +20,7 @@ from __future__ import annotations
 import argparse
 import os
 import shlex
+import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -29,6 +30,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_LINT_TARGETS: tuple[str, ...] = ("app.py", "src", "tests", "tools")
 MYPY_TARGETS_FILE = "mypy_targets.txt"
 PYTEST_TARGETS_FILE = "pytest_targets.txt"
+QML_LINT_TARGETS_FILE = "qmllint_targets.txt"
 MYPY_CONFIG = "mypy.ini"
 
 
@@ -116,6 +118,56 @@ def task_typecheck() -> None:
     _run_command(command)
 
 
+def _resolve_qml_linter() -> str:
+    candidates = _split_env_list(os.environ.get("QML_LINTER"))
+    if candidates:
+        for candidate in candidates:
+            path = shutil.which(candidate) if not os.path.isabs(candidate) else candidate
+            if path:
+                return path if os.path.isabs(candidate) else candidate
+        raise TaskError(
+            "None of the QML linters specified in QML_LINTER are executable."
+        )
+
+    for name in ("qmllint", "pyside6-qmllint"):
+        if shutil.which(name):
+            return name
+
+    raise TaskError(
+        "qmllint or pyside6-qmllint is not installed. Set QML_LINTER to override."
+    )
+
+
+def _collect_qml_targets() -> list[Path]:
+    env_targets = _split_env_list(os.environ.get("QML_LINT_PATHS"))
+    if env_targets:
+        configured = env_targets
+    else:
+        configured = _read_targets_file(QML_LINT_TARGETS_FILE)
+
+    if not configured:
+        return []
+
+    collected: list[Path] = []
+    for relative in configured:
+        candidate = PROJECT_ROOT / relative
+        if candidate.is_dir():
+            collected.extend(sorted(candidate.rglob("*.qml")))
+        elif candidate.exists():
+            collected.append(candidate)
+        else:
+            raise TaskError(f"Configured QML lint target does not exist: {relative}")
+
+    # Remove duplicates while preserving order
+    unique: list[Path] = []
+    seen: set[Path] = set()
+    for path in collected:
+        if path not in seen:
+            unique.append(path)
+            seen.add(path)
+    return unique
+
+
 def task_test() -> None:
     env_flags = _split_env_list(os.environ.get("PYTEST_FLAGS"))
     env_targets = _split_env_list(os.environ.get("PYTEST_TARGETS"))
@@ -131,11 +183,23 @@ def task_test() -> None:
     _run_command(command)
 
 
+def task_qml_lint() -> None:
+    linter = _resolve_qml_linter()
+    targets = _collect_qml_targets()
+    if not targets:
+        print("[ci_tasks] No QML lint targets specified; skipping.")
+        return
+
+    for target in targets:
+        _run_command([linter, str(target)])
+
+
 def task_verify() -> None:
     """Run linting, type-checking and tests sequentially."""
 
     task_lint()
     task_typecheck()
+    task_qml_lint()
     task_test()
 
 
@@ -148,7 +212,12 @@ def build_parser() -> argparse.ArgumentParser:
     subparsers.add_parser("lint", help="Run Ruff format check and lint")
     subparsers.add_parser("typecheck", help="Run mypy against configured targets")
     subparsers.add_parser("test", help="Run pytest with configured targets")
-    subparsers.add_parser("verify", help="Run lint, typecheck, and tests in sequence")
+    subparsers.add_parser(
+        "qml-lint", help="Run qmllint against configured targets"
+    )
+    subparsers.add_parser(
+        "verify", help="Run lint, typecheck, qml-lint, and tests in sequence"
+    )
 
     return parser
 
@@ -161,6 +230,7 @@ def main(argv: Sequence[str] | None = None) -> None:
         "lint": task_lint,
         "typecheck": task_typecheck,
         "test": task_test,
+        "qml-lint": task_qml_lint,
         "verify": task_verify,
     }
 

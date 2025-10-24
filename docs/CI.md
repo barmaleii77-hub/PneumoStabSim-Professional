@@ -32,13 +32,15 @@ pre-commit install
 | --- | --- | --- | --- |
 | Линтеры | `make lint` | `python -m tools.ci_tasks lint` | `ruff format --check` + `ruff check` над `app.py`, `src/`, `tests/`, `tools/`. |
 | Типы | `make typecheck` | `python -m tools.ci_tasks typecheck` | `mypy` с конфигурацией из `pyproject.toml` и списком целей из `mypy_targets.txt`. |
+| QML | `make qml-lint` | `python -m tools.ci_tasks qml-lint` | `qmllint`/`pyside6-qmllint` по целям из `qmllint_targets.txt` или `QML_LINT_PATHS`. |
 | Тесты | `make test` | `python -m tools.ci_tasks test` | `pytest` над целями из `pytest_targets.txt` или каталога `tests`. |
+| Комплексная проверка | `make check` | `python -m tools.ci_tasks verify` | Последовательно выполняет lint, mypy, qmllint и pytest. |
 
 Для полного цикла перед пушем используйте:
 
 ```sh
 pre-commit run --all-files
-python -m tools.ci_tasks test
+make check
 ```
 
 ## Подсказки

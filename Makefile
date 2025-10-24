@@ -10,7 +10,7 @@ PYTEST_FLAGS ?= -vv --color=yes --maxfail=1
 SMOKE_TARGET ?= tests/smoke
 INTEGRATION_TARGET ?= tests/integration/test_main_window_qml.py
 
-.PHONY: format lint typecheck qml-lint test verify smoke integration
+.PHONY: format lint typecheck qml-lint test check verify smoke integration
 
 format:
 	$(PYTHON) -m ruff format $(PYTHON_LINT_PATHS)
@@ -55,5 +55,7 @@ qml-lint:
 
 test:
 	$(PYTHON) -m tools.ci_tasks test
+
+check: lint typecheck qml-lint test
 
 verify: lint typecheck qml-lint test smoke integration
