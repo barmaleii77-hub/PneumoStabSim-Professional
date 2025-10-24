@@ -63,12 +63,15 @@ best practices for scientific visualisation software.
   root alongside Python packaging metadata.
 - Encoding drift persists across PowerShell scripts (BOM vs UTF-8) and QML
   files (LF vs CRLF).
+- Branch governance rules are now documented in `.github/CONTRIBUTING.md`,
+  establishing `main` for releases, `develop` for integration, and short-lived
+  feature branches.
 
 **Action Plan**
 
 1. **Branch Governance**
    - Enforce `main` (releases) and `develop` (integration) with short-lived
-     branches. Document the policy in `.github/CONTRIBUTING.md`.
+     branches. *Status: completed February 2025 via `.github/CONTRIBUTING.md`.*
    - Add a scheduled workflow (`.github/workflows/branch-audit.yml`) that uses
      the GitHub CLI container to flag branches older than 30 days.
 2. **Encoding & Attributes**
