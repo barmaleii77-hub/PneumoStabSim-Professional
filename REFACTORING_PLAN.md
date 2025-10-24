@@ -24,7 +24,7 @@
 
 | Файл | Строк | Приоритет | Статус |
 |------|-------|-----------|--------|
-| `panels_accordion.py` | 876 | ⭐⭐ | 📋 Запланирован |
+| `panels_accordion.py` | 876 | ⭐⭐ | ✅ Завершено |
 | `panel_geometry.py` | 791 | ⭐⭐ | 📋 Запланирован |
 | `panel_pneumo.py` | 767 | ⭐⭐ | 📋 Запланирован |
 | `sim_loop.py` | 722 | ⭐⭐ | 📋 Запланирован |
@@ -71,19 +71,21 @@ src/ui/main_window/
 └── state_persistence.py     # Сохранение/восстановление состояния
 ```
 
-### Фаза 3: Panels Accordion
+### Фаза 3: Panels Accordion ✅
 
-**Цель**: Разделить `panels_accordion.py` (876 строк)
+**Статус**: Рефакторинг завершён. Монолит `panels_accordion.py` заменён на пакет `src/ui/panels/accordion/` с отдельными модулями.
 
 ```
 src/ui/panels/accordion/
-├── __init__.py
+├── __init__.py              # Реэкспорт панелей
 ├── geometry_panel.py        # GeometryPanelAccordion
 ├── pneumo_panel.py          # PneumoPanelAccordion
 ├── simulation_panel.py      # SimulationPanelAccordion
 ├── road_panel.py            # RoadPanelAccordion
 └── advanced_panel.py        # AdvancedPanelAccordion
 ```
+
+Файл `src/ui/panels_accordion.py` теперь служит совместимым шимом, реэкспортируя классы из нового пакета.
 
 ### Фаза 4: Geometry Panel
 
