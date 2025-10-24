@@ -6,21 +6,21 @@ from importlib import import_module
 from typing import TYPE_CHECKING
 
 __all__ = [
- "Point2",
- "Segment2",
- "Capsule2",
- "GeometryParams",
- "dot",
- "norm",
- "normalize",
- "project",
- "angle_between",
- "angle_from_x_axis",
- "dist_point_segment",
- "closest_point_on_segment",
- "dist_segment_segment",
- "capsule_capsule_intersect",
- "capsule_capsule_clearance",
+    "Point2",
+    "Segment2",
+    "Capsule2",
+    "GeometryParams",
+    "dot",
+    "norm",
+    "normalize",
+    "project",
+    "angle_between",
+    "angle_from_x_axis",
+    "dist_point_segment",
+    "closest_point_on_segment",
+    "dist_segment_segment",
+    "capsule_capsule_intersect",
+    "capsule_capsule_clearance",
 ]
 
 

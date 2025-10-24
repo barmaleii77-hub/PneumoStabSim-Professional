@@ -1,5 +1,7 @@
 SHELL := /bin/bash
 PYTHON ?= python3
+UV ?= uv
+UV_PROJECT_DIR ?= .
 QML_LINT_PATHS ?= src assets
 QML_LINT_TARGETS_FILE ?= qmllint_targets.txt
 PYTHON_LINT_PATHS ?= src tests tools
@@ -11,6 +13,26 @@ SMOKE_TARGET ?= tests/smoke
 INTEGRATION_TARGET ?= tests/integration/test_main_window_qml.py
 
 .PHONY: format lint typecheck qml-lint test check verify smoke integration
+
+.PHONY: uv-sync uv-run
+
+uv-sync:
+	@if ! command -v $(UV) >/dev/null 2>&1; then \
+	echo "Error: '$(UV)' is not installed. Run 'python scripts/bootstrap_uv.py' first." >&2; \
+	exit 1; \
+	fi
+	cd $(UV_PROJECT_DIR) && $(UV) sync
+
+uv-run:
+	@if [ -z "$(CMD)" ]; then \
+	echo "Error: CMD parameter is required. Example: make uv-run CMD=\"pytest\"" >&2; \
+	exit 2; \
+	fi
+	@if ! command -v $(UV) >/dev/null 2>&1; then \
+	echo "Error: '$(UV)' is not installed. Run 'python scripts/bootstrap_uv.py' first." >&2; \
+	exit 1; \
+	fi
+	cd $(UV_PROJECT_DIR) && $(UV) run -- $(CMD)
 
 format:
 	$(PYTHON) -m ruff format $(PYTHON_LINT_PATHS)

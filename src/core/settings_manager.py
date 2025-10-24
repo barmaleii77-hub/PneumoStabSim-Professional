@@ -101,7 +101,9 @@ class ProfileSettingsManager:
         path = self._path_for(name)
         payload = self._make_payload(name)
         try:
-            path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
+            path.write_text(
+                json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8"
+            )
         except OSError as exc:  # pragma: no cover - filesystem errors are rare in tests
             return ProfileOperationResult(False, f"Failed to save profile: {exc}")
         return ProfileOperationResult(True, str(path))
@@ -113,7 +115,10 @@ class ProfileSettingsManager:
 
         try:
             payload = json.loads(path.read_text(encoding="utf-8"))
-        except (OSError, json.JSONDecodeError) as exc:  # pragma: no cover - corrupt files are unlikely
+        except (
+            OSError,
+            json.JSONDecodeError,
+        ) as exc:  # pragma: no cover - corrupt files are unlikely
             return ProfileOperationResult(False, f"Failed to load profile: {exc}")
 
         graphics = payload.get("graphics", {})
@@ -136,7 +141,9 @@ class ProfileSettingsManager:
             display_name = _slugify(file.stem).replace("_", " ").title()
             try:
                 data = json.loads(file.read_text(encoding="utf-8"))
-                display_name = data.get("metadata", {}).get("profile_name", display_name)
+                display_name = data.get("metadata", {}).get(
+                    "profile_name", display_name
+                )
             except json.JSONDecodeError:  # pragma: no cover - ignore malformed payloads
                 pass
             names.append(display_name)
@@ -154,4 +161,3 @@ class ProfileSettingsManager:
 
 
 __all__ = ["ProfileSettingsManager", "ProfileOperationResult"]
-

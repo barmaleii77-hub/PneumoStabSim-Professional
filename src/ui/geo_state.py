@@ -144,11 +144,11 @@ class GeometryState:
 
         if self.cylinder_length < min_cylinder_length:
             self._validation_errors.append(
-                f"Cylinder too short: {self.cylinder_length*1000:.1f}mm < {min_cylinder_length*1000:.1f}mm required"
+                f"Cylinder too short: {self.cylinder_length * 1000:.1f}mm < {min_cylinder_length * 1000:.1f}mm required"
             )
         elif self.cylinder_length < min_cylinder_length + 0.010:
             self._validation_warnings.append(
-                f"Small cylinder clearance: {self.cylinder_length*1000:.1f}mm vs {min_cylinder_length*1000:.1f}mm required"
+                f"Small cylinder clearance: {self.cylinder_length * 1000:.1f}mm vs {min_cylinder_length * 1000:.1f}mm required"
             )
 
     def _validate_hydraulic_ratios(self):
@@ -157,11 +157,11 @@ class GeometryState:
 
         if rod_to_cylinder_ratio >= 0.8:
             self._validation_errors.append(
-                f"Rod too large: {self.rod_diam_m*1000:.1f}mm >= 80% of {self.cyl_diam_m*1000:.1f}mm cylinder"
+                f"Rod too large: {self.rod_diam_m * 1000:.1f}mm >= 80% of {self.cyl_diam_m * 1000:.1f}mm cylinder"
             )
         elif rod_to_cylinder_ratio >= 0.7:
             self._validation_warnings.append(
-                f"Rod close to limit: {self.rod_diam_m*1000:.1f}mm vs {self.cyl_diam_m*1000:.1f}mm cylinder"
+                f"Rod close to limit: {self.rod_diam_m * 1000:.1f}mm vs {self.cyl_diam_m * 1000:.1f}mm cylinder"
             )
 
     def _validate_kinematic_limits(self):
@@ -170,11 +170,11 @@ class GeometryState:
 
         if self.stroke_m > stroke_max_kinematic:
             self._validation_errors.append(
-                f"Stroke exceeds kinematic limit: {self.stroke_m*1000:.1f}mm > {stroke_max_kinematic*1000:.1f}mm"
+                f"Stroke exceeds kinematic limit: {self.stroke_m * 1000:.1f}mm > {stroke_max_kinematic * 1000:.1f}mm"
             )
         elif self.stroke_m > stroke_max_kinematic * 0.95:
             self._validation_warnings.append(
-                f"Stroke close to kinematic limit: {self.stroke_m*1000:.1f}mm vs {stroke_max_kinematic*1000:.1f}mm"
+                f"Stroke close to kinematic limit: {self.stroke_m * 1000:.1f}mm vs {stroke_max_kinematic * 1000:.1f}mm"
             )
 
     def normalize_parameter(
@@ -195,7 +195,7 @@ class GeometryState:
                 if value > stroke_max:
                     normalized_value = stroke_max
                     corrections.append(
-                        f"Stroke limited to kinematic maximum: {stroke_max*1000:.1f}mm"
+                        f"Stroke limited to kinematic maximum: {stroke_max * 1000:.1f}mm"
                     )
 
             elif param_name == "rod_diam_m":
@@ -203,7 +203,7 @@ class GeometryState:
                 if value > max_rod:
                     normalized_value = max_rod
                     corrections.append(
-                        f"Rod diameter limited to 75% of cylinder: {max_rod*1000:.1f}mm"
+                        f"Rod diameter limited to 75% of cylinder: {max_rod * 1000:.1f}mm"
                     )
 
             elif param_name == "lever_length":
@@ -270,8 +270,8 @@ class GeometryState:
             f"GeometryState [{status}]\n"
             f"  Wheelbase: {self.wheelbase:.3f}m, Track: {self.track:.3f}m\n"
             f"  Lever: {self.lever_length:.3f}m @ {self.frame_to_pivot:.3f}m offset\n"
-            f"  Cylinder: {self.cyl_diam_m*1000:.0f}mm x {self.cylinder_length*1000:.0f}mm\n"
-            f"  Stroke: {self.stroke_m*1000:.0f}mm (max: {computed['stroke_max_kinematic']*1000:.0f}mm)\n"
+            f"  Cylinder: {self.cyl_diam_m * 1000:.0f}mm x {self.cylinder_length * 1000:.0f}mm\n"
+            f"  Stroke: {self.stroke_m * 1000:.0f}mm (max: {computed['stroke_max_kinematic'] * 1000:.0f}mm)\n"
             f"  Max lever angle: {computed['max_lever_angle_deg']:.1f} deg"
         )
 

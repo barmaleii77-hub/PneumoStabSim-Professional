@@ -10,6 +10,25 @@
 | `activate_environment.sh` | Загрузка `.env` и запуск `setup_environment.py` в Linux/macOS | `--python-version`, `--install-qt`, `--qt-version`, `--qt-modules`, `--hash-file`, `--setup` |
 | `activate_environment.ps1` | Аналогичный сценарий для Windows PowerShell | `-PythonVersion`, `-InstallQt`, `-QtVersion`, `-QtModules`, `-HashFile`, `-Setup` |
 | `env.sample` | Шаблон переменных окружения, включая пути к Qt и журналы | Настройте `QT_SDK_ROOT`, `QT_INSTALL_LOG`, `DEPENDENCIES_FILE` |
+| `scripts/bootstrap_uv.py` | Проверка и установка [uv](https://github.com/astral-sh/uv), синхронизация зависимостей | `--sync`, `--project-dir`, `--force`, `--executable` |
+
+## Рекомендуемый процесс с uv
+
+`uv` является основным инструментом управления зависимостями в проекте. Он
+создаёт изолированное окружение на основе `pyproject.toml` и автоматически
+подтягивает зафиксированные версии пакетов.
+
+1. Выполните `python scripts/bootstrap_uv.py --sync`, чтобы установить `uv` (если
+   он ещё не доступен в `PATH`) и сразу синхронизировать зависимости из корня
+   репозитория.
+2. При обновлении зависимостей используйте `make uv-sync`. Команда выполнит
+   `uv sync` в каталоге проекта и обновит виртуальное окружение.
+3. Для запуска произвольных команд внутри окружения применяйте
+   `make uv-run CMD="pytest -k smoke"` или любое другое значение параметра
+   `CMD`. Переменная `UV_PROJECT_DIR` позволяет переопределить каталог проекта.
+4. Скрипты `activate_environment.*` и `setup_environment.py` остаются доступными
+   для совместимости со старыми процессами, но их рекомендуется запускать
+   только при необходимости повторной настройки Qt SDK.
 
 ## Подготовка `.env`
 1. Скопируйте шаблон: `cp env.sample .env` (PowerShell: `Copy-Item env.sample .env`).

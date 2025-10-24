@@ -3,6 +3,7 @@
 Parameter Slider Widget - Slider with range controls
 Combines slider, spinbox, and min/max range inputs
 """
+
 from PySide6.QtWidgets import (
     QWidget,
     QHBoxLayout,

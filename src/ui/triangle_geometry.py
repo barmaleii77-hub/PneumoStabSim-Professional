@@ -3,6 +3,7 @@
 """
 Ultra simple triangle geometry - if this doesn't work, nothing will
 """
+
 import numpy as np
 from PySide6.QtQuick3D import QQuick3DGeometry
 from PySide6.QtCore import QByteArray
@@ -60,7 +61,7 @@ class SimpleTriangle(QQuick3DGeometry):
             dtype=np.float32,
         )
 
-        print(f"SimpleTriangle: Generated {len(vertices)//8} vertices")
+        print(f"SimpleTriangle: Generated {len(vertices) // 8} vertices")
 
         # Clear and set data
         self.clear()

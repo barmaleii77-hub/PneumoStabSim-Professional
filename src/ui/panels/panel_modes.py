@@ -4,6 +4,7 @@ Simulation modes configuration panel - РУССКИЙ ИНТЕРФЕЙС
 Полная интеграция с SettingsManager: без дефолтов в коде, читаем при запуске,
 записываем при выходе (централизованно в MainWindow), дефолты обновляем по кнопке.
 """
+
 from __future__ import annotations
 
 from PySide6.QtWidgets import (

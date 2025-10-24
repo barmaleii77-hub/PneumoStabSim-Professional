@@ -156,7 +156,8 @@ def export_snapshot_csv(snapshot_rows: List[Dict[str, Any]], path: Path) -> None
 
 
 def export_state_snapshot_csv(
-    snapshots: List[Any], path: Path  # Forward reference
+    snapshots: List[Any],
+    path: Path,  # Forward reference
 ) -> None:
     """Export StateSnapshot objects to CSV
 

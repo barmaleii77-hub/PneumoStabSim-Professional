@@ -108,7 +108,9 @@ class SettingsManager:
         )
 
     # Dotted-path helpers -----------------------------------------------------
-    def _traverse(self, root: Dict[str, Any], path: Iterable[str], create: bool) -> Dict[str, Any]:
+    def _traverse(
+        self, root: Dict[str, Any], path: Iterable[str], create: bool
+    ) -> Dict[str, Any]:
         node = root
         for key in path:
             if key not in node:
@@ -208,4 +210,3 @@ def get_settings_manager(settings_file: Optional[Path | str] = None) -> Settings
 
 
 __all__ = ["SettingsManager", "get_settings_manager"]
-

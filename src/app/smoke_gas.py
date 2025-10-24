@@ -78,7 +78,7 @@ def simulate_kinematic_scenario(system, gas_network, logger):
         initial_angles = get_default_lever_angles()
         logger.info("Initial lever angles (all horizontal):")
         for wheel, angle in initial_angles.items():
-            logger.info(f"  {wheel.value}: {angle * 180/math.pi:.1f}°")
+            logger.info(f"  {wheel.value}: {angle * 180 / math.pi:.1f}°")
 
         # Apply initial angles
         system.update_system_from_lever_angles(initial_angles)
@@ -103,7 +103,7 @@ def simulate_kinematic_scenario(system, gas_network, logger):
 
         logger.info("Applying roll scenario (left up, right down):")
         for wheel, angle in roll_angles.items():
-            logger.info(f"  {wheel.value}: {angle * 180/math.pi:.1f}°")
+            logger.info(f"  {wheel.value}: {angle * 180 / math.pi:.1f}°")
 
         # Apply roll angles
         system.update_system_from_lever_angles(roll_angles)
@@ -146,7 +146,7 @@ def run_gas_time_simulation(system, gas_network, logger):
         logger.info(f"  Total time: {total_time}s")
         logger.info(f"  Time step: {dt}s")
         logger.info(f"  Thermo mode: {thermo_mode.value}")
-        logger.info(f"  Steps: {int(total_time/dt)}")
+        logger.info(f"  Steps: {int(total_time / dt)}")
 
         # Initial validation
         validation = gas_network.validate_invariants()
@@ -183,7 +183,7 @@ def run_gas_time_simulation(system, gas_network, logger):
             min_p = min(pressures)
             max_p = max(pressures)
             logger.info(
-                f"  {line_name.value}: {min_p:.0f} - {max_p:.0f}Pa (range: {max_p-min_p:.0f}Pa)"
+                f"  {line_name.value}: {min_p:.0f} - {max_p:.0f}Pa (range: {max_p - min_p:.0f}Pa)"
             )
 
         tank_pressures = history["tank_pressure"]

@@ -3,6 +3,7 @@
 Physics tab for ModesPanel
 Вкладка опций физических компонентов
 """
+
 from PySide6.QtWidgets import QWidget, QVBoxLayout, QGroupBox, QCheckBox, QLabel
 from PySide6.QtCore import Signal, Qt
 from PySide6.QtGui import QFont

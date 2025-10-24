@@ -2,6 +2,7 @@
 """
 Пред-аудит проекта перед микрошагами UI
 """
+
 import sys
 import json
 import time
@@ -222,7 +223,9 @@ def create_report(audit_data):
         env = audit_data["environment"]
         f.write(f"- **Версия Python:** {env['python_version']}\n")
         f.write(f"- **Платформа:** {env['platform']}\n")
-        f.write(f"- **PySide6 доступен:** {'✅' if env['pyside6_available'] else '❌'}\n")
+        f.write(
+            f"- **PySide6 доступен:** {'✅' if env['pyside6_available'] else '❌'}\n"
+        )
         if env.get("pyside6_version"):
             f.write(f"- **Версия PySide6:** {env['pyside6_version']}\n")
         f.write("\n")

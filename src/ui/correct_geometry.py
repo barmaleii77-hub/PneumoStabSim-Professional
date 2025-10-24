@@ -4,6 +4,7 @@
 CORRECT QQuick3DGeometry implementation based on DOCUMENTATION STUDY
 Using EXACT API discovered from documentation analysis
 """
+
 import numpy as np
 from PySide6.QtQuick3D import QQuick3DGeometry
 from PySide6.QtCore import QByteArray
@@ -48,7 +49,7 @@ class DocumentationBasedTriangle(QQuick3DGeometry):
         )
 
         print(
-            f"Triangle vertices: {len(vertices)} floats = {len(vertices)//3} vertices"
+            f"Triangle vertices: {len(vertices)} floats = {len(vertices) // 3} vertices"
         )
 
         # Step 1: Clear (as per API study)

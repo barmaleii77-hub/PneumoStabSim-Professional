@@ -3,6 +3,7 @@
 Control tab for ModesPanel
 Вкладка управления симуляцией (Play/Pause/Stop/Reset)
 """
+
 from PySide6.QtWidgets import (
     QWidget,
     QVBoxLayout,

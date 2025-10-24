@@ -4,6 +4,7 @@
 Custom 3D Sphere Geometry for Qt Quick 3D
 Generates procedural sphere mesh
 """
+
 import numpy as np
 from PySide6.QtQuick3D import QQuick3DGeometry
 from PySide6.QtCore import QByteArray
@@ -101,7 +102,7 @@ class SphereGeometry(QQuick3DGeometry):
 
         # Convert to numpy - WORKING PATTERN
         vertex_data = np.array(vertices, dtype=np.float32)
-        print(f"Sphere vertices: {len(vertices)} floats, {len(vertices)//6} vertices")
+        print(f"Sphere vertices: {len(vertices)} floats, {len(vertices) // 6} vertices")
 
         # Set vertex data - WORKING PATTERN
         self.setVertexData(QByteArray(vertex_data.tobytes()))

@@ -182,7 +182,7 @@ def load_csv_profile(
                             float_row.append(float(cell))
                         except ValueError:
                             warnings.warn(
-                                f"Invalid numeric value '{cell}' at row {row_num}, column {i+1}"
+                                f"Invalid numeric value '{cell}' at row {row_num}, column {i + 1}"
                             )
                             continue
 

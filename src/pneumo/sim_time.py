@@ -111,7 +111,7 @@ def run_gas_simulation(
 
     if log:
         log.info(
-            f"Starting gas simulation: T={total_time}s, dt={dt}s, steps={int(total_time/dt)}"
+            f"Starting gas simulation: T={total_time}s, dt={dt}s, steps={int(total_time / dt)}"
         )
 
     while current_time < total_time:

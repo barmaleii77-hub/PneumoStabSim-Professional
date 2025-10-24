@@ -3,6 +3,7 @@
 """
 Simple sphere without indices - direct triangle vertices
 """
+
 import numpy as np
 from PySide6.QtQuick3D import QQuick3DGeometry
 from PySide6.QtCore import QByteArray
@@ -66,7 +67,7 @@ class SimpleSphere(QQuick3DGeometry):
         vertex_data = np.array(vertices, dtype=np.float32)
 
         print(
-            f"SimpleSphere: Generated {len(vertices)//3} vertices, {len(vertices)} floats"
+            f"SimpleSphere: Generated {len(vertices) // 3} vertices, {len(vertices)} floats"
         )
 
         # Clear and set data

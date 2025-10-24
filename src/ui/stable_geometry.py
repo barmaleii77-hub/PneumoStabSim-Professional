@@ -3,6 +3,7 @@
 """
 Property-based geometry approach - ensuring proper lifetime management
 """
+
 import logging
 import numpy as np
 from PySide6.QtQuick3D import QQuick3DGeometry

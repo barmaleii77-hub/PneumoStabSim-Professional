@@ -4,6 +4,7 @@
 ФИНАЛЬНЫЙ ОТЧЕТ: Тест оптимизированной графической системы PneumoStabSim
 Complete performance and functionality analysis of optimized graphics system
 """
+
 import sys
 import time
 import json
@@ -156,8 +157,8 @@ def generate_final_report():
     fps_uncached = 1.0 / (uncached_time / iterations) if uncached_time > 0 else 0
     fps_cached = 1.0 / (cached_time / iterations) if cached_time > 0 else 0
 
-    print(f"⏱️ Без кэширования:  {uncached_time*1000:.2f}мс ({fps_uncached:.0f} FPS)")
-    print(f"⏱️ С кэшированием:   {cached_time*1000:.2f}мс ({fps_cached:.0f} FPS)")
+    print(f"⏱️ Без кэширования:  {uncached_time * 1000:.2f}мс ({fps_uncached:.0f} FPS)")
+    print(f"⏱️ С кэшированием:   {cached_time * 1000:.2f}мс ({fps_cached:.0f} FPS)")
     print(f"🚀 Прирост:         {performance_gain:.1f}%")
 
     # ==========================================

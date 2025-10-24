@@ -43,11 +43,7 @@ _NON_NEGATIVE_FIELDS = {"dead_gap_m"}
 
 _BOOLEAN_FIELDS = {"interference_check", "link_rod_diameters"}
 
-_ALL_FIELDS = (
-    set(_POSITIVE_FLOAT_FIELDS)
-    | _NON_NEGATIVE_FIELDS
-    | _BOOLEAN_FIELDS
-)
+_ALL_FIELDS = set(_POSITIVE_FLOAT_FIELDS) | _NON_NEGATIVE_FIELDS | _BOOLEAN_FIELDS
 
 
 @dataclass(slots=True)
@@ -100,4 +96,3 @@ def validate_geometry_settings(payload: Mapping[str, Any]) -> GeometrySettings:
 
 
 __all__ = ["validate_geometry_settings", "GeometryValidationError", "GeometrySettings"]
-

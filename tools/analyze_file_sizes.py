@@ -3,6 +3,7 @@
 Анализатор размеров файлов проекта
 Помогает выявить файлы, требующие рефакторинга
 """
+
 import os
 from pathlib import Path
 from dataclasses import dataclass

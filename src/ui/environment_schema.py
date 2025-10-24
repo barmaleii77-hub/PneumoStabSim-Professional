@@ -24,13 +24,9 @@ class EnvironmentParameterDefinition:
 
 def _validate_range(defn: EnvironmentParameterDefinition, value: float | int) -> None:
     if defn.min_value is not None and value < defn.min_value:
-        raise EnvironmentValidationError(
-            f"{defn.key!r} below minimum {defn.min_value}"
-        )
+        raise EnvironmentValidationError(f"{defn.key!r} below minimum {defn.min_value}")
     if defn.max_value is not None and value > defn.max_value:
-        raise EnvironmentValidationError(
-            f"{defn.key!r} above maximum {defn.max_value}"
-        )
+        raise EnvironmentValidationError(f"{defn.key!r} above maximum {defn.max_value}")
 
 
 def _coerce_bool(value: Any, key: str) -> bool:
@@ -70,7 +66,9 @@ def _coerce_int(value: Any, key: str) -> int:
         try:
             return int(value.strip())
         except ValueError as exc:  # pragma: no cover
-            raise EnvironmentValidationError(f"{key!r} must be integer-compatible") from exc
+            raise EnvironmentValidationError(
+                f"{key!r} must be integer-compatible"
+            ) from exc
     raise EnvironmentValidationError(f"{key!r} must be integer-compatible")
 
 
@@ -99,21 +97,31 @@ def _coerce_string(defn: EnvironmentParameterDefinition, value: Any) -> Any:
 
 ENVIRONMENT_PARAMETERS: Tuple[EnvironmentParameterDefinition, ...] = (
     EnvironmentParameterDefinition("ao_radius", "float", min_value=0.0, max_value=50.0),
-    EnvironmentParameterDefinition("fog_near", "float", min_value=0.0, max_value=1_000_000.0),
-    EnvironmentParameterDefinition("fog_far", "float", min_value=0.0, max_value=1_000_000.0),
-    EnvironmentParameterDefinition("ibl_intensity", "float", min_value=0.0, max_value=10.0),
+    EnvironmentParameterDefinition(
+        "fog_near", "float", min_value=0.0, max_value=1_000_000.0
+    ),
+    EnvironmentParameterDefinition(
+        "fog_far", "float", min_value=0.0, max_value=1_000_000.0
+    ),
+    EnvironmentParameterDefinition(
+        "ibl_intensity", "float", min_value=0.0, max_value=10.0
+    ),
     EnvironmentParameterDefinition("ao_sample_rate", "int", min_value=0, max_value=128),
     EnvironmentParameterDefinition("background_color", "string"),
 )
 
 SCENE_PARAMETERS: Tuple[EnvironmentParameterDefinition, ...] = (
-    EnvironmentParameterDefinition("scale_factor", "float", min_value=0.01, max_value=1000.0),
+    EnvironmentParameterDefinition(
+        "scale_factor", "float", min_value=0.01, max_value=1000.0
+    ),
     EnvironmentParameterDefinition("exposure", "float", min_value=0.0, max_value=32.0),
 )
 
 ANIMATION_PARAMETERS: Tuple[EnvironmentParameterDefinition, ...] = (
     EnvironmentParameterDefinition("is_running", "bool"),
-    EnvironmentParameterDefinition("amplitude", "float", min_value=0.0, max_value=180.0),
+    EnvironmentParameterDefinition(
+        "amplitude", "float", min_value=0.0, max_value=180.0
+    ),
     EnvironmentParameterDefinition("frequency", "float", min_value=0.0, max_value=50.0),
 )
 
@@ -168,7 +176,9 @@ def _validate_section(
         fog_far = normalized.get("fog_far")
         if isinstance(fog_near, (int, float)) and isinstance(fog_far, (int, float)):
             if fog_far < fog_near:
-                raise EnvironmentValidationError("'fog_far' must be greater than or equal to 'fog_near'")
+                raise EnvironmentValidationError(
+                    "'fog_far' must be greater than or equal to 'fog_near'"
+                )
 
     return normalized
 
@@ -185,7 +195,9 @@ def validate_animation_settings(settings: Dict[str, Any]) -> Dict[str, Any]:
     return _validate_section(settings, ANIMATION_PARAMETERS, "animation")
 
 
-def _build_payload(definitions: Sequence[EnvironmentParameterDefinition]) -> Dict[str, Any]:
+def _build_payload(
+    definitions: Sequence[EnvironmentParameterDefinition],
+) -> Dict[str, Any]:
     payload: Dict[str, Any] = {}
     for defn in definitions:
         if defn.value_type == "bool":
@@ -226,4 +238,3 @@ __all__ = [
     "validate_scene_settings",
     "validate_animation_settings",
 ]
-

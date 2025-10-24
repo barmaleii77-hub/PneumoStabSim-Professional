@@ -4,6 +4,7 @@
 Qt Quick 3D Custom Geometry - Following Qt Documentation Exactly
 Based on official Qt documentation and examples
 """
+
 import numpy as np
 from PySide6.QtQuick3D import QQuick3DGeometry
 from PySide6.QtCore import QByteArray, QObject, Property
@@ -63,7 +64,9 @@ class ExampleTriangleGeometry(QQuick3DGeometry):
             dtype=np.float32,
         )
 
-        print(f"Triangle vertices: {len(vertices)} floats, {len(vertices)//6} vertices")
+        print(
+            f"Triangle vertices: {len(vertices)} floats, {len(vertices) // 6} vertices"
+        )
 
         # Set vertex data
         self.setVertexData(QByteArray(vertices.tobytes()))

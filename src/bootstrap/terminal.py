@@ -5,6 +5,7 @@
 Обеспечивает корректную работу Unicode (UTF-8) в терминале
 на разных платформах (Windows, Linux, macOS).
 """
+
 import sys
 import os
 import locale

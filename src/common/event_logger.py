@@ -102,7 +102,7 @@ class EventLogger:
 
         # Логируем в файл
         self.logger.info(
-            f"[{event_type.name}] {component}.{action}: " f"{old_value} → {new_value}"
+            f"[{event_type.name}] {component}.{action}: {old_value} → {new_value}"
         )
 
     def log_user_click(

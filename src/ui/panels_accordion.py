@@ -3,6 +3,7 @@
 Accordion panels with ParameterSlider
 Replaces old dock widget panels
 """
+
 from PySide6.QtWidgets import (
     QWidget,
     QVBoxLayout,

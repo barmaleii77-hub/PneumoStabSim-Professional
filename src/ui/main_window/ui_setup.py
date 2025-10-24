@@ -261,8 +261,7 @@ class UISetup:
             )
             fallback.setAlignment(Qt.AlignmentFlag.AlignCenter)
             fallback.setStyleSheet(
-                "background: #1a1a2e; color: #ff6b6b; "
-                "font-size: 12px; padding: 20px;"
+                "background: #1a1a2e; color: #ff6b6b; font-size: 12px; padding: 20px;"
             )
             window._qquick_widget = fallback
 
@@ -303,7 +302,7 @@ class UISetup:
                 )
             else:
                 UISetup.logger.warning(
-                    "    [QML] Unsupported scene '%s' requested via %s. " "Allowed: %s",
+                    "    [QML] Unsupported scene '%s' requested via %s. Allowed: %s",
                     requested,
                     UISetup._SCENE_ENV_VAR,
                     ", ".join(

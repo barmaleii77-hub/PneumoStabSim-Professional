@@ -24,7 +24,7 @@ def demo_highway_scenario():
 
     info = road_input.get_info()
     print("Highway scenario:")
-    print(f"  Velocity: {info['velocity']*3.6:.0f} km/h")
+    print(f"  Velocity: {info['velocity'] * 3.6:.0f} km/h")
     print(f"  Wheelbase: {info['wheelbase']:.1f}m")
     print(f"  Axle delay: {info['axle_delay']:.3f}s")
 
@@ -47,7 +47,7 @@ def demo_highway_scenario():
     for wheel in ["LF", "RF", "LR", "RR"]:
         rms = np.sqrt(np.mean(profiles[wheel] ** 2))
         peak = np.max(np.abs(profiles[wheel]))
-        print(f"  {wheel}: RMS={rms*1000:.2f}mm, Peak={peak*1000:.2f}mm")
+        print(f"  {wheel}: RMS={rms * 1000:.2f}mm, Peak={peak * 1000:.2f}mm")
 
     # Verify axle delay using cross-correlation
     correlation = np.correlate(profiles["LF"], profiles["LR"], mode="full")
@@ -58,7 +58,7 @@ def demo_highway_scenario():
     print("\nDelay verification:")
     print(f"  Expected: {info['axle_delay']:.3f}s")
     print(f"  Measured: {measured_delay:.3f}s")
-    print(f"  Error: {abs(measured_delay - info['axle_delay'])*1000:.1f}ms")
+    print(f"  Error: {abs(measured_delay - info['axle_delay']) * 1000:.1f}ms")
 
     return profiles, times
 
@@ -73,7 +73,7 @@ def demo_urban_scenario():
 
     info = road_input.get_info()
     print("Urban scenario:")
-    print(f"  Velocity: {info['velocity']*3.6:.0f} km/h")
+    print(f"  Velocity: {info['velocity'] * 3.6:.0f} km/h")
     print(f"  Duration: {info['duration']:.0f}s")
 
     # Sample first 20 seconds
@@ -95,7 +95,7 @@ def demo_urban_scenario():
     for wheel in ["LF", "RF", "LR", "RR"]:
         rms = np.sqrt(np.mean(profiles[wheel] ** 2))
         peak = np.max(np.abs(profiles[wheel]))
-        print(f"  {wheel}: RMS={rms*1000:.2f}mm, Peak={peak*1000:.2f}mm")
+        print(f"  {wheel}: RMS={rms * 1000:.2f}mm, Peak={peak * 1000:.2f}mm")
 
     return profiles, times
 
@@ -114,13 +114,13 @@ def demo_test_scenarios():
 
         info = road_input.get_info()
         print(f"  Duration: {info['duration']:.0f}s")
-        print(f"  Velocity: {info['velocity']*3.6:.0f} km/h")
+        print(f"  Velocity: {info['velocity'] * 3.6:.0f} km/h")
 
         # Sample at feature center
         t_center = info["duration"] / 2
         excitation = road_input.get_wheel_excitation(t_center)
 
-        print(f"  Peak excitation: LF={excitation['LF']*1000:.2f}mm")
+        print(f"  Peak excitation: LF={excitation['LF'] * 1000:.2f}mm")
 
 
 def show_available_presets():
@@ -138,7 +138,7 @@ def show_available_presets():
                 preset = get_preset_by_name(name)
                 if preset:
                     print(
-                        f"  {name}: {preset.velocity*3.6:.0f}km/h, {preset.duration:.0f}s, {preset.source_kind.name}"
+                        f"  {name}: {preset.velocity * 3.6:.0f}km/h, {preset.duration:.0f}s, {preset.source_kind.name}"
                     )
 
 

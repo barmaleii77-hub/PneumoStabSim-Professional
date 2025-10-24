@@ -733,7 +733,9 @@ class MainWindow(QMainWindow):
                 # Use GeometryBridge to calculate CORRECT piston position from angle
                 if hasattr(self, "geometry_converter"):
                     corner_3d = self.geometry_converter.get_corner_3d_coords(
-                        corner, angle, None  # No physics state, pure geometry
+                        corner,
+                        angle,
+                        None,  # No physics state, pure geometry
                     )
                     piston_positions[corner] = corner_3d.get("pistonPosition", 0.125)
                 else:

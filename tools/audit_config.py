@@ -116,20 +116,20 @@ def diff_dict(
         return diffs
 
     if isinstance(baseline, list) and isinstance(current, list):
-        diffs: list[DiffEntry] = []
+        list_diffs: list[DiffEntry] = []
         length = max(len(baseline), len(current))
         for index in range(length):
             base_item = baseline[index] if index < len(baseline) else _MISSING
             current_item = current[index] if index < len(current) else _MISSING
             new_prefix = f"{prefix}[{index}]" if prefix else f"[{index}]"
             if base_item is _MISSING:
-                diffs.append(DiffEntry(new_prefix, "<missing>", current_item))
+                list_diffs.append(DiffEntry(new_prefix, "<missing>", current_item))
                 continue
             if current_item is _MISSING:
-                diffs.append(DiffEntry(new_prefix, base_item, "<missing>"))
+                list_diffs.append(DiffEntry(new_prefix, base_item, "<missing>"))
                 continue
-            diffs.extend(diff_dict(base_item, current_item, new_prefix))
-        return diffs
+            list_diffs.extend(diff_dict(base_item, current_item, new_prefix))
+        return list_diffs
 
     if baseline != current:
         return [DiffEntry(prefix or "<root>", baseline, current)]
@@ -190,9 +190,7 @@ def build_report(result: AuditResult, config_path: Path, baseline_path: Path) ->
 
     if result.baseline_schema_errors:
         schema_section.append("- ❌ Эталонный файл не соответствует схеме:")
-        schema_section.extend(
-            f" - {error}" for error in result.baseline_schema_errors
-        )
+        schema_section.extend(f" - {error}" for error in result.baseline_schema_errors)
     else:
         schema_section.append("- ✅ Эталонный файл соответствует JSON Schema")
 
@@ -208,9 +206,7 @@ def build_report(result: AuditResult, config_path: Path, baseline_path: Path) ->
                 )
             )
         if len(result.diffs) > 20:
-            diff_section.append(
-                f" - … ещё {len(result.diffs) - 20} расхождений"
-            )
+            diff_section.append(f" - … ещё {len(result.diffs) - 20} расхождений")
     else:
         diff_section.append("- ✅ Конфигурация совпадает с эталоном")
 
@@ -290,9 +286,7 @@ def run_audit(
 def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     """Разбирает аргументы командной строки."""
 
-    parser = argparse.ArgumentParser(
-        description="Аудит конфигурации приложения"
-    )
+    parser = argparse.ArgumentParser(description="Аудит конфигурации приложения")
     parser.add_argument(
         "--config",
         type=Path,
