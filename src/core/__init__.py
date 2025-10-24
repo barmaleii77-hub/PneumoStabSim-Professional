@@ -1,4 +1,4 @@
-"""Core geometry and data structures."""
+"""Core geometry, data structures, and service wiring utilities."""
 
 from __future__ import annotations
 
@@ -21,7 +21,21 @@ __all__ = [
     "dist_segment_segment",
     "capsule_capsule_intersect",
     "capsule_capsule_clearance",
+    "EventBus",
+    "ServiceContainer",
+    "ServiceRegistrationError",
+    "ServiceResolutionError",
+    "build_default_container",
 ]
+
+
+from .container import (  # noqa: E402  (re-exported for convenience)
+    EventBus,
+    ServiceContainer,
+    ServiceRegistrationError,
+    ServiceResolutionError,
+    build_default_container,
+)
 
 
 if TYPE_CHECKING:  # pragma: no cover - used for static analyzers only
@@ -45,7 +59,23 @@ if TYPE_CHECKING:  # pragma: no cover - used for static analyzers only
 
 
 def __getattr__(name: str):
-    if name in __all__:
+    if name in {
+        "Point2",
+        "Segment2",
+        "Capsule2",
+        "GeometryParams",
+        "dot",
+        "norm",
+        "normalize",
+        "project",
+        "angle_between",
+        "angle_from_x_axis",
+        "dist_point_segment",
+        "closest_point_on_segment",
+        "dist_segment_segment",
+        "capsule_capsule_intersect",
+        "capsule_capsule_clearance",
+    }:
         module = import_module("src.core.geometry")
         return getattr(module, name)
     raise AttributeError(f"module 'src.core' has no attribute '{name}'")
