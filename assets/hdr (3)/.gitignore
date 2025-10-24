@@ -1,9 +1,0 @@
-# Ignore heavy HDR/EXR/JPG/RAW files in hdr folder by default
-# They should be tracked via Git LFS only if needed
-*.hdr
-*.exr
-*.NEF
-*.jpg
-!.gitignore
-!README.md
-!*.placeholder
