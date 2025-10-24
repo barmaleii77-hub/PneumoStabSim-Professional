@@ -827,6 +827,7 @@ assets/hdr/*.exr
 !assets/hdr/README.md
 !assets/hdr/.gitignore
 !assets/hdr/studio.hdr.placeholder
+!docs/release/
 
 # Yandex Disk temporary download files
 *.yandex_disk_download
