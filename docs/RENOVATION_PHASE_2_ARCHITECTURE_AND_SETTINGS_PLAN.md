@@ -56,3 +56,9 @@ Log architectural decisions, ADR references, and schema revisions here.
   backed by `config/app_settings.schema.json`.
 - Extended unit tests to cover invalid payload handling via
   `SettingsValidationError`.
+
+### 2025-04-05 – Settings control matrix automation
+- Implemented `tools/settings/export_matrix.py` to derive a Markdown control
+  matrix from the schema, defaults snapshot, and UI bindings.
+- Generated the first revision of `docs/settings_control_matrix.md`, providing a
+  single source of truth for module ownership and widget wiring.

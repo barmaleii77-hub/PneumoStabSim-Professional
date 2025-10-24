@@ -171,7 +171,8 @@ best practices for scientific visualisation software.
 6. Publish a generated matrix `docs/settings_control_matrix.md` that maps each
    persisted key to its owning module, validation rules, and UI control. Build a
    helper `tools/settings/export_matrix.py` that derives the document from the
-   schema and QML metadata.
+   schema and QML metadata. *Status: completed April 2025 with the automated
+   exporter now generating the matrix from the schema and UI sources.*
 7. Ship a diagnostics CLI `python -m src.tools.settings_audit` producing
    human-readable diffs between the current runtime configuration and the
    baseline JSON shipped in `config/`. Capture exemplar reports under
