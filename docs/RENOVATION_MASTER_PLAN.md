@@ -162,6 +162,14 @@ best practices for scientific visualisation software.
    source of change.
 5. Ensure settings read/write uses atomic temp files with explicit UTF-8
    encoding and newline normalisation.
+6. Publish a generated matrix `docs/settings_control_matrix.md` that maps each
+   persisted key to its owning module, validation rules, and UI control. Build a
+   helper `tools/settings/export_matrix.py` that derives the document from the
+   schema and QML metadata.
+7. Ship a diagnostics CLI `python -m src.tools.settings_audit` producing
+   human-readable diffs between the current runtime configuration and the
+   baseline JSON shipped in `config/`. Capture exemplar reports under
+   `reports/settings/` to validate the workflow.
 
 ---
 
@@ -200,6 +208,10 @@ best practices for scientific visualisation software.
    - Remove silent exception swallowing. Surface errors through a
      `src/ui/overlays/error_toast.qml` component, while logging full tracebacks
      via `structlog`. Ensure Qt message handler is wired to Python logging.
+6. **Architecture Handbook**
+   - Maintain `docs/ARCHITECTURE_MAP.md` with diagrams exported from
+     `tools/architecture/derive_diagram.py`. Update it whenever module boundaries
+     or public interfaces change to keep onboarding friction low.
 
 ---
 
@@ -240,6 +252,11 @@ best practices for scientific visualisation software.
 5. **Accessibility & Localisation**
    - Maintain translations in `assets/i18n/` with lrelease-generated `.qm`
      files. Provide script `tools/i18n/update_translations.py` to regenerate.
+6. **Design Language Alignment**
+   - Establish a miniature design system documenting typography, spacing, and
+     colour tokens for engineering teams. Store guidelines in
+     `docs/ui/design_language.md` and enforce usage through shared QML style
+     primitives in `assets/qml/styles/`.
 
 ---
 
@@ -271,6 +288,11 @@ best practices for scientific visualisation software.
    - Implement `.hooks/pre-push` script invoking `make check`. Document how to
      opt-in on Windows (`.githooks/`) and include instructions in
      `docs/DEVELOPMENT_GUIDE.md`.
+4. **Quality Telemetry**
+   - Feed code coverage, lint duration, and flaky-test metrics into
+     `reports/quality/dashboard.csv`. Automate nightly aggregation via
+     `tools/quality/report_metrics.py` and visualise trends in
+     `docs/operations/quality_dashboard.md`.
 
 ---
 
@@ -330,6 +352,9 @@ best practices for scientific visualisation software.
    cross-functional visibility.
 3. After every sprint, append a changelog entry summarising progress and update
    the "status" blocks in this master plan.
+4. Maintain a rolling six-week milestone schedule in
+   `docs/operations/milestones.md`, including planned capacity, dependencies,
+   and review checkpoints with stakeholders.
 
 ---
 
@@ -368,3 +393,25 @@ with evidence attached in the repository.
 
 Keep this blueprint under version control discipline: update it whenever a
 significant architectural, tooling, or process change lands in the repository.
+
+---
+
+## 13. Review Cadence & Governance
+
+**Status**
+
+- Weekly architecture syncs are informal; meeting notes are scattered across
+  personal notebooks and ad-hoc chat transcripts.
+- Sprint reviews highlight risks, but there is no canonical risk register tied
+  to the renovation backlog.
+
+**Action Plan**
+
+1. Codify a governance calendar in `docs/operations/governance.md` outlining
+   weekly architecture syncs, bi-weekly sprint reviews, and monthly release
+   readiness checkpoints. Attach agendas and expected artefacts.
+2. Establish `docs/operations/risk_register.md` curated alongside this master
+   plan. Each risk entry must include impact, probability, mitigation owner, and
+   cross-references to relevant phase items.
+3. Archive decisions from architecture syncs into `docs/DECISIONS_LOG.md` within
+   24 hours, tagging affected modules and linking pull requests for auditability.
