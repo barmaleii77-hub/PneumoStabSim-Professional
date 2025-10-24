@@ -52,3 +52,5 @@ Capture notable decisions, blockers, and timings here. Reference PR numbers and 
 - 2025-02-18 – Generated `requirements.lock` with uv to cover base, dev, and docs
   dependencies; deferred performance extras until `numba` publishes Python 3.13
   wheels.
+- 2025-03-05 – Introduced scheduled branch audit workflow leveraging the GitHub
+  CLI container to post weekly stale-branch reports.

@@ -2,174 +2,260 @@ name: Branch Audit
 
 on:
   schedule:
-    - cron: '30 2 * * 1'
+    - cron: '0 4 * * 1'
   workflow_dispatch:
 
 permissions:
   contents: read
   issues: write
-  pull-requests: read
 
 jobs:
-  audit:
+  branch-audit:
     name: Detect stale branches
     runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/github/gh-cli:2.48.0
+    env:
+      THRESHOLD_DAYS: "30"
+      PROTECTED_BRANCHES: main,develop
+      ISSUE_LABEL: branch-audit
     steps:
-      - name: Audit repository branches
-        uses: actions/github-script@v7
+      - name: Install Python
+        run: |
+          apt-get update
+          DEBIAN_FRONTEND=noninteractive apt-get install -y python3
+      - name: Analyse branch freshness
         env:
-          THRESHOLD_DAYS: '30'
-          PROTECTED_BRANCHES: main,develop
-          ISSUE_LABEL: branch-audit
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          script: |
-            const core = require('@actions/core');
-            const protectedBranches = new Set((process.env.PROTECTED_BRANCHES || '')
-              .split(',')
-              .map(branch => branch.trim())
-              .filter(Boolean));
+          GITHUB_STEP_SUMMARY: ${{ github.step_summary }}
+          GH_TOKEN: ${{ github.token }}
+          GITHUB_API_URL: ${{ github.api_url }}
+          REPO: ${{ github.repository }}
+        run: |
+          python3 <<'PY'
+import json
+import os
+import sys
+import urllib.error
+import urllib.parse
+import urllib.request
+from datetime import datetime, timedelta, timezone
+from pathlib import Path
 
-            const thresholdDays = Number.parseInt(process.env.THRESHOLD_DAYS || '30', 10);
-            if (Number.isNaN(thresholdDays) || thresholdDays <= 0) {
-              throw new Error(`Invalid THRESHOLD_DAYS value: ${process.env.THRESHOLD_DAYS}`);
-            }
+def fail(message: str) -> None:
+    print(f"::error::{message}")
+    sys.exit(1)
 
-            const { owner, repo } = context.repo;
-            const defaultBranch = context.payload?.repository?.default_branch;
-            if (defaultBranch) {
-              protectedBranches.add(defaultBranch);
-            }
+api_url = os.environ.get("GITHUB_API_URL", "https://api.github.com").rstrip("/")
+token = os.environ.get("GH_TOKEN")
+repo = os.environ.get("REPO")
+if not token or not repo:
+    fail("Missing authentication context for branch audit.")
 
-            const now = new Date();
-            const staleBranches = [];
+try:
+    threshold_days = int(os.environ.get("THRESHOLD_DAYS", "30"))
+except ValueError as exc:
+    fail(f"Invalid THRESHOLD_DAYS value: {exc}")
 
-            const branches = await github.paginate(github.rest.repos.listBranches, {
-              owner,
-              repo,
-              per_page: 100,
-            });
+protected_branches = {
+    branch.strip()
+    for branch in os.environ.get("PROTECTED_BRANCHES", "").split(",")
+    if branch.strip()
+}
+issue_label = os.environ.get("ISSUE_LABEL", "branch-audit")
 
-            for (const branch of branches) {
-              if (protectedBranches.has(branch.name)) {
-                core.info(`Skipping protected branch: ${branch.name}`);
-                continue;
-              }
+headers = {
+    "Authorization": f"token {token}",
+    "Accept": "application/vnd.github+json",
+    "X-GitHub-Api-Version": "2022-11-28",
+}
 
-              const commitResponse = await github.rest.repos.getCommit({
-                owner,
-                repo,
-                ref: branch.commit.sha,
-              });
 
-              const commitData = commitResponse.data.commit;
-              const dateString = commitData.committer?.date || commitData.author?.date;
-              if (!dateString) {
-                core.warning(`No commit timestamp found for branch ${branch.name}`);
-                continue;
-              }
+def api_request(path: str, *, method: str = "GET", params=None, data=None):
+    url = f"{api_url}/{path.lstrip('/')}"
+    if params:
+        url = f"{url}?{urllib.parse.urlencode(params)}"
+    request = urllib.request.Request(url, method=method, headers=headers)
+    if data is not None:
+        payload = json.dumps(data).encode("utf-8")
+        request.data = payload
+        request.add_header("Content-Type", "application/json")
+    try:
+        with urllib.request.urlopen(request) as response:
+            body = response.read()
+            if not body:
+                return None
+            return json.loads(body.decode("utf-8"))
+    except urllib.error.HTTPError as exc:
+        if exc.code == 404:
+            return None
+        raise
 
-              const commitDate = new Date(dateString);
-              const ageMs = now.getTime() - commitDate.getTime();
-              const ageDays = ageMs / (1000 * 60 * 60 * 24);
 
-              if (ageDays >= thresholdDays) {
-                staleBranches.push({
-                  name: branch.name,
-                  ageDays,
-                  commitDate,
-                  sha: branch.commit.sha,
-                });
-              }
-            }
+def api_paginate(path: str, *, params=None):
+    per_page = int((params or {}).get("per_page", 100))
+    page = 1
+    results = []
+    while True:
+        page_params = dict(params or {})
+        page_params["per_page"] = per_page
+        page_params["page"] = page
+        data = api_request(path, params=page_params)
+        if not data:
+            break
+        results.extend(data)
+        if len(data) < per_page:
+            break
+        page += 1
+    return results
 
-            staleBranches.sort((a, b) => b.ageDays - a.ageDays);
 
-            const summary = core.summary;
-            summary.addHeading('Branch Audit Report');
-            summary.addRaw(`Threshold: ${thresholdDays} days\n\n`);
+branches = api_paginate(f"repos/{repo}/branches", params={"per_page": 100})
+repo_info = api_request(f"repos/{repo}") or {}
+default_branch = repo_info.get("default_branch", "main")
+protected_branches.update({"main", "develop", "gh-pages", default_branch})
 
-            if (staleBranches.length === 0) {
-              summary.addRaw('✅ No stale branches detected.');
-              await summary.write();
-              core.setOutput('stale-count', '0');
-              return;
-            }
+cutoff = datetime.now(timezone.utc) - timedelta(days=threshold_days)
+stale = []
 
-            summary.addTable([
-              [{ header: true, data: 'Branch' }, { header: true, data: 'Age (days)' }, { header: true, data: 'Last Commit' }, { header: true, data: 'Link' }],
-              ...staleBranches.map(branch => [
-                branch.name,
-                branch.ageDays.toFixed(1),
-                branch.commitDate.toISOString().split('T')[0],
-                `https://github.com/${owner}/${repo}/tree/${branch.name}`,
-              ]),
-            ]);
-            await summary.write();
+for branch in branches:
+    name = branch.get("name")
+    if not name or name in protected_branches or name.startswith("dependabot/"):
+        continue
+    sha = branch.get("commit", {}).get("sha")
+    if not sha:
+        continue
+    commit_data = api_request(f"repos/{repo}/commits/{sha}") or {}
+    commit_payload = commit_data.get("commit", {})
+    date_str = (
+        commit_payload.get("committer", {}).get("date")
+        or commit_payload.get("author", {}).get("date")
+    )
+    if not date_str:
+        continue
+    commit_date = datetime.fromisoformat(date_str.replace("Z", "+00:00"))
+    if commit_date < cutoff:
+        stale.append({
+            "name": name,
+            "commit_date": commit_date,
+            "sha": sha,
+        })
 
-            const labelName = process.env.ISSUE_LABEL || 'branch-audit';
+summary_lines = [
+    "## Branch Audit Report",
+    "",
+    f"Threshold: {threshold_days} days (cut-off {cutoff:%Y-%m-%d})",
+    "",
+]
 
-            async function ensureLabel() {
-              try {
-                await github.rest.issues.getLabel({ owner, repo, name: labelName });
-              } catch (error) {
-                if (error.status === 404) {
-                  await github.rest.issues.createLabel({
-                    owner,
-                    repo,
-                    name: labelName,
-                    color: '0E8A16',
-                    description: 'Automated branch audit notifications',
-                  });
-                } else {
-                  throw error;
-                }
-              }
-            }
+if not stale:
+    summary_lines.append("✅ No stale branches detected.")
+else:
+    summary_lines.append("The following branches have had no commits within the threshold:")
+    summary_lines.append("")
+    for item in sorted(stale, key=lambda entry: entry["commit_date"]):
+        summary_lines.append(
+            f"- `{item['name']}` — last commit on {item['commit_date']:%Y-%m-%d}"
+        )
+    summary_lines.append("")
+    summary_lines.append(
+        "> Consider archiving, rebasing, or merging these branches to keep the history tidy."
+    )
 
-            await ensureLabel();
+summary_path = Path(os.environ["GITHUB_STEP_SUMMARY"])
+summary_path.write_text("\n".join(summary_lines) + "\n", encoding="utf-8")
 
-            const { data: openIssues } = await github.rest.issues.listForRepo({
-              owner,
-              repo,
-              state: 'open',
-              labels: labelName,
-              per_page: 100,
-            });
+output_path = os.environ.get("GITHUB_OUTPUT")
+if output_path:
+    with open(output_path, "a", encoding="utf-8") as handle:
+        handle.write(f"stale-count={len(stale)}\n")
 
-            const reportLines = [
-              `Branch audit executed on ${now.toISOString()}.`,
-              `Threshold: ${thresholdDays} days.`,
-              '',
-              '| Branch | Age (days) | Last commit | Link |',
-              '| --- | --- | --- | --- |',
-              ...staleBranches.map(branch => `| ${branch.name} | ${branch.ageDays.toFixed(1)} | ${branch.commitDate.toISOString()} | https://github.com/${owner}/${repo}/tree/${branch.name} |`),
-            ];
+if not stale:
+    sys.exit(0)
 
-            const issueBody = reportLines.join('\n');
+for item in stale:
+    print(f"::warning::Branch '{item['name']}' stale since {item['commit_date']:%Y-%m-%d}")
 
-            if (openIssues.length === 0) {
-              await github.rest.issues.create({
-                owner,
-                repo,
-                title: 'Branch audit: stale branches detected',
-                body: issueBody,
-                labels: [labelName],
-              });
-            } else {
-              const issueNumber = openIssues[0].number;
-              await github.rest.issues.update({
-                owner,
-                repo,
-                issue_number: issueNumber,
-                body: issueBody,
-              });
-              await github.rest.issues.createComment({
-                owner,
-                repo,
-                issue_number: issueNumber,
-                body: `Branch audit refreshed on ${now.toISOString()}. Found ${staleBranches.length} stale branches.`,
-              });
-            }
 
-            core.setOutput('stale-count', String(staleBranches.length));
+def ensure_label(name: str) -> None:
+    label_path = f"repos/{repo}/labels/{urllib.parse.quote(name)}"
+    label = api_request(label_path)
+    if label is None:
+        api_request(
+            f"repos/{repo}/labels",
+            method="POST",
+            data={
+                "name": name,
+                "color": "0E8A16",
+                "description": "Automated branch audit notifications",
+            },
+        )
+
+
+def list_open_issues(label: str):
+    issues = api_paginate(
+        f"repos/{repo}/issues",
+        params={
+            "state": "open",
+            "labels": label,
+            "per_page": 100,
+        },
+    )
+    return [issue for issue in issues if "pull_request" not in issue]
+
+
+def upsert_issue(branches_info):
+    ensure_label(issue_label)
+    open_issues = list_open_issues(issue_label)
+    now_iso = datetime.now(timezone.utc).isoformat()
+    table_lines = [
+        "| Branch | Last commit | SHA | Link |",
+        "| --- | --- | --- | --- |",
+    ]
+    for entry in sorted(branches_info, key=lambda item: item["commit_date"], reverse=True):
+        table_lines.append(
+            "| {name} | {date} | {sha} | https://github.com/{repo}/tree/{name} |".format(
+                name=entry["name"],
+                date=entry["commit_date"].isoformat(),
+                sha=entry["sha"],
+                repo=repo,
+            )
+        )
+
+    issue_body = "\n".join(
+        [
+            f"Branch audit executed on {now_iso}.",
+            f"Threshold: {threshold_days} days.",
+            "",
+            *table_lines,
+        ]
+    )
+
+    if not open_issues:
+        api_request(
+            f"repos/{repo}/issues",
+            method="POST",
+            data={
+                "title": "Branch audit: stale branches detected",
+                "body": issue_body,
+                "labels": [issue_label],
+            },
+        )
+        return
+
+    issue_number = open_issues[0]["number"]
+    api_request(
+        f"repos/{repo}/issues/{issue_number}",
+        method="PATCH",
+        data={"body": issue_body},
+    )
+    api_request(
+        f"repos/{repo}/issues/{issue_number}/comments",
+        method="POST",
+        data={
+            "body": f"Branch audit refreshed on {now_iso}. Found {len(branches_info)} stale branches.",
+        },
+    )
+
+
+upsert_issue(stale)
+PY
