@@ -1,71 +1,74 @@
 # Настройка окружения PneumoStabSim-Professional
 
-Документ описывает полный процесс подготовки окружения разработки для Windows и Linux. Используйте его совместно с шаблоном `env.sample` и скриптом `setup_environment.py`.
+Документ описывает полный процесс подготовки окружения разработки для Windows и Linux. Используйте его совместно с шаблоном `env.sample` и скриптами автоматизации из репозитория.
 
 ## Обзор инструментов
 
 | Инструмент | Назначение | Основные опции |
 |------------|-----------|----------------|
-| `setup_environment.py` | Создание виртуального окружения, установка зависимостей, Qt SDK, тестовая проверка | `--python-version`, `--install-qt`, `--qt-version`, `--qt-modules`, `--hash-file`, `--qt-output-dir` |
-| `activate_environment.sh` | Загрузка `.env` и запуск `setup_environment.py` в Linux/macOS | `--python-version`, `--install-qt`, `--qt-version`, `--qt-modules`, `--hash-file`, `--setup` |
-| `activate_environment.ps1` | Аналогичный сценарий для Windows PowerShell | `-PythonVersion`, `-InstallQt`, `-QtVersion`, `-QtModules`, `-HashFile`, `-Setup` |
-| `env.sample` | Шаблон переменных окружения, включая пути к Qt и журналы | Настройте `QT_SDK_ROOT`, `QT_INSTALL_LOG`, `DEPENDENCIES_FILE` |
-| `scripts/bootstrap_uv.py` | Проверка и установка [uv](https://github.com/astral-sh/uv), синхронизация зависимостей | `--sync`, `--project-dir`, `--force`, `--executable` |
+| `scripts/bootstrap_uv.py` | Проверка и установка [uv](https://github.com/astral-sh/uv), быстрая синхронизация зависимостей | `--sync`, `--project-dir`, `--force`, `--executable` |
+| `make uv-sync` / `make uv-run` | Запуск `uv sync` и выполнение команд внутри окружения | `UV_PROJECT_DIR`, `CMD` |
+| `tools/setup_qt.py` | Установка Qt SDK с проверкой контрольных сумм | `--qt-version`, `--modules`, `--output-dir`, `--archives-dir` |
+| `activate_environment.(sh|ps1)` | Генерация `.env`, запуск установки Qt и вспомогательных проверок | `--setup`, `--install-qt`, `--qt-version`, `--qt-modules`, `--hash-file` |
+| `setup_environment.py` | Совместимость со старыми сценариями: заполнение `.env`, проверка зависимостей | `--python-version`, `--install-qt`, `--hash-file`, `--qt-output-dir` |
 
 ## Рекомендуемый процесс с uv
 
-`uv` является основным инструментом управления зависимостями в проекте. Он
-создаёт изолированное окружение на основе `pyproject.toml` и автоматически
-подтягивает зафиксированные версии пакетов.
+`uv` является основным инструментом управления зависимостями в проекте. Он создаёт изолированное окружение на основе `pyproject.toml`, учитывает `requirements.lock` и гарантирует повторяемость установки.
 
-1. Выполните `python scripts/bootstrap_uv.py --sync`, чтобы установить `uv` (если
-   он ещё не доступен в `PATH`) и сразу синхронизировать зависимости из корня
-   репозитория.
-2. При обновлении зависимостей используйте `make uv-sync`. Команда выполнит
-   `uv sync` в каталоге проекта и обновит виртуальное окружение.
-3. Для запуска произвольных команд внутри окружения применяйте
-   `make uv-run CMD="pytest -k smoke"` или любое другое значение параметра
-   `CMD`. Переменная `UV_PROJECT_DIR` позволяет переопределить каталог проекта.
-4. Скрипты `activate_environment.*` и `setup_environment.py` остаются доступными
-   для совместимости со старыми процессами, но их рекомендуется запускать
-   только при необходимости повторной настройки Qt SDK.
+1. Выполните `python scripts/bootstrap_uv.py --sync`, чтобы установить `uv` (если он ещё не доступен в `PATH`) и сразу синхронизировать зависимости в каталоге проекта.
+2. Для регулярного обновления окружения используйте `make uv-sync`. Команда выполняет `uv sync` и обновляет кэш виртуального окружения.
+3. Запускайте любые команды внутри окружения через `make uv-run CMD="pytest -k smoke"` или другой аргумент `CMD`. Переменная `UV_PROJECT_DIR` позволяет работать с вложенными проектами или форками.
+4. Перед коммитами выполняйте `make check` (эквивалентно последовательному запуску `ruff`, `mypy`, `qmllint` и `pytest` через `uv run`).
 
-## Подготовка `.env`
+### Поддержание зависимостей
+
+- Основной lock-файл: `requirements.lock`. При изменении `pyproject.toml` обновляйте его командой `uv lock` (или `make uv-run CMD="uv lock"`), затем фиксируйте изменения в Git.
+- Файлы `requirements.txt` и `requirements-dev.txt` генерируются из lock-файла и используются только для совместимости со старыми скриптами. Не редактируйте их вручную.
+- Если требуются альтернативные источники (например, корпоративные зеркала), укажите их через переменные окружения в `.env` и перезапустите `make uv-sync`.
+
+## Подготовка `.env` и Qt SDK
+
 1. Скопируйте шаблон: `cp env.sample .env` (PowerShell: `Copy-Item env.sample .env`).
-2. Укажите путь к установленному Qt SDK (`QT_SDK_ROOT`) и при необходимости имя файла зависимостей с хешами (`DEPENDENCIES_FILE`).
-3. Добавьте требуемые опции журналирования (`PNEUMOSTABSIM_LOG_LEVEL`, `QT_LOGGING_RULES`).
+2. Укажите путь к каталогу Qt в переменной `QT_SDK_ROOT` (по умолчанию Qt устанавливается в `<repo>/Qt`).
+3. Для первичной установки Qt выполните одну из команд:
+   - `python tools/setup_qt.py --qt-version 6.10.0 --modules qtbase,qtdeclarative,qtshadertools`
+   - `./activate_environment.ps1 -Setup -InstallQt -QtVersion 6.10.0` (Windows)
+   - `source activate_environment.sh --setup --install-qt --qt-version 6.10.0`
+4. После установки перезапустите `make uv-sync`, чтобы убедиться, что переменные из `.env` доступны в среде `uv`.
+
+### Зачем нужны `activate_environment.*`
+
+Скрипты активации отвечают за генерацию `.env`, настройку путей Qt и запуск `setup_environment.py` в режиме совместимости. Используйте их, если необходимо:
+
+- переустановить Qt или переключиться на другую версию SDK;
+- обновить `.env` на Windows с учётом PowerShell специфики;
+- восстановить окружение на машинах без `uv` (например, в CI до перехода).
 
 ## Windows
 
-### Установка инструментов Visual Studio
-1. Скачайте **Visual Studio 2022** (Community или Professional).
-2. Установите рабочую нагрузку **Desktop development with C++** с компонентами:
-   - Windows 10/11 SDK.
-   - MSVC v143 x64/x86 build tools.
-3. Перезагрузите систему после установки.
-
-### PowerShell сценарий
+### Быстрый старт (PowerShell 7+)
 ```powershell
-# Первая настройка
-./activate_environment.ps1 -Setup -InstallQt -PythonVersion 3.13 `
-    -QtVersion 6.10.0 -QtModules "qtbase;qtdeclarative;qtshadertools" `
-    -HashFile requirements.txt
-
-# Повторная активация в текущей сессии
-./activate_environment.ps1 -PythonVersion 3.13
+python scripts/bootstrap_uv.py --sync
+make uv-sync
+make uv-run CMD="python -m pytest -k smoke"
 ```
 
-### Интеграция с Visual Studio
-1. Откройте решение `PneumoStabSim-Professional.sln`.
-2. В меню **Project → Properties** настройте **Environment** для конфигураций Debug/Release, импортировав `.env` (через `VC++ Directories → Include Directories` для Qt).
-3. Убедитесь, что `QT_SDK_ROOT\bin` добавлен в `PATH`.
-4. Для запуска Python-части используйте **Python Environments** → **Add Environment** → *Existing environment* и укажите виртуальное окружение `venv`.
+### Дополнительные шаги
+1. При необходимости установите **Visual Studio 2022** с рабочей нагрузкой **Desktop development with C++** (для Qt инструментов и отладчиков).
+2. Для переустановки Qt выполните `./activate_environment.ps1 -Setup -InstallQt -QtVersion 6.10.0`.
+3. Для запуска приложения используйте `make uv-run CMD="python app.py"` — команда автоматически активирует окружение.
 
-### VS Code
-1. Откройте рабочее пространство `PneumoStabSim.code-workspace`.
-2. Выполните `./activate_environment.ps1 -Setup` из интегрированного терминала, чтобы обновить `.env` и установить Qt.
-3. Выберите интерпретатор `Python: Select Interpreter` → `<project>\venv\Scripts\python.exe`.
-4. Для запусков добавлены конфигурации `Run App` и `Run Tests`; они используют переменные из `.env`.
+### Интеграция с Visual Studio
+1. Откройте `PneumoStabSim-Professional.sln`.
+2. В свойствах конфигурации импортируйте переменные из `.env` и укажите путь к интерпретатору, созданному `uv` (см. `uv env`).
+3. Проверьте, что `QT_PLUGIN_PATH` и `QML2_IMPORT_PATH` включены в переменные среды конфигурации отладки.
+
+### Visual Studio Code
+1. Откройте `PneumoStabSim.code-workspace`.
+2. Выполните команды быстрого старта в интегрированном терминале.
+3. Используйте **Python: Select Interpreter** и выберите `uv` окружение.
+4. Задачи `Run App` и `Run Tests` вызывают `make uv-run`, поэтому дополнительных настроек не требуется.
 
 ## Linux (Ubuntu/Fedora)
 
@@ -75,124 +78,41 @@ sudo apt update && sudo apt install build-essential ninja-build libgl1-mesa-dev
 # Fedora: sudo dnf groupinstall "Development Tools" && sudo dnf install mesa-libGL-devel ninja-build
 ```
 
-### Скрипт установки
+### Быстрый старт
 ```bash
-cp env.sample .env
-source activate_environment.sh --setup --install-qt --python-version 3.13 \
-    --qt-version 6.10.0 --qt-modules qtbase,qtdeclarative,qtshadertools
+python3 scripts/bootstrap_uv.py --sync
+make uv-sync
+make uv-run CMD="pytest -m 'not gui'"
 ```
 
-### Использование в терминале
-- Активировать окружение: `source activate_environment.sh --python-version 3.13`.
-- Проверить Qt: `echo $QT_SDK_ROOT && ls "$QT_SDK_ROOT"`.
-- Запустить тесты: `python -m pytest` (пакеты устанавливаются в виртуальное окружение `venv`).
+### Qt и `.env`
+```bash
+cp env.sample .env
+source activate_environment.sh --setup --install-qt --qt-version 6.10.0 \
+    --qt-modules qtbase,qtdeclarative,qtshadertools
+make uv-sync
+```
 
 ### VS Code (Linux)
-1. Откройте рабочее пространство.
-2. В терминале выполните `source activate_environment.sh --setup`.
-3. Выберите интерпретатор `venv/bin/python`.
-4. Добавьте в `settings.json` (пользователь или рабочее пространство):
+1. Выполните шаги быстрого старта.
+2. В `settings.json` рабочего пространства добавьте
    ```json
    {
      "python.envFile": "${workspaceFolder}/.env"
    }
    ```
+3. Выберите интерпретатор `uv` через **Python: Select Interpreter**.
 
-## Проверка хешей зависимостей
-1. Добавьте в `requirements.txt` строки с хешами (`package==version --hash=sha256:...`).
-2. Запустите `setup_environment.py` с параметром `--hash-file requirements.txt` либо укажите файл через активационные скрипты.
-3. Скрипт автоматически добавит `--require-hashes` к команде `pip install`. В лог установки (`logs/pip_hash_verification.log` или указанный файл) будут сохранены результаты проверки.
+## Проверка окружения
 
-## Установка Qt SDK
-- По умолчанию загружается версия `6.10.0` в каталог `Qt` внутри проекта.
-- Измените директорию `--qt-output-dir` для установки в общее расположение, например `C:\Qt` или `/opt/qt`.
-- Дополнительные модули передаются списком через `--qt-modules`. Для списка доступных модулей используйте `python -m aqt list-qt windows desktop 6.10.0`.
+После первичной настройки выполните минимальный набор проверок:
 
-## Полезные команды
-```bash
-# Быстрая настройка без установки Qt (если уже установлен)
-python setup_environment.py --python-version 3.13
+1. `make check` — полный набор линтеров, типизации и тестов.
+2. `make uv-run CMD="python -c 'import PySide6, numpy; print(PySide6.__version__, numpy.__version__)'"` — убедиться, что Qt и научные библиотеки доступны.
+3. `make uv-run CMD="python app.py --test-mode"` — убедиться, что приложение запускается с корректными путями к Qt.
 
-# Установка Qt с локальным архивом
-python setup_environment.py --install-qt --qt-archives-dir ~/Downloads/qt-cache
+## Дополнительные сценарии (совместимость)
 
-# Проверка зависимостей из lock-файла
-python setup_environment.py --hash-file requirements.lock
-```
-
-## Отладка
-- Файл журнала установки Qt задаётся переменной `QT_INSTALL_LOG` (по умолчанию `logs/qt_install.log`).
-- Проверка версий Python и Qt выводится в консоль при запуске `setup_environment.py`.
-- Если установка Qt завершается с ошибкой, повторите запуск с флагом `--install-qt` и убедитесь, что доступен интернет или локальный архив.
-
-## После настройки
-Рекомендуется выполнить ручную проверку окружения:
-
-1. Запустите тесты: `python -m pytest`.
-2. Запустите линтер: `flake8 src tests`.
-3. Запустите приложение: `python app.py --test-mode`.
-
-# Настройка окружения (Python 3.13 + Qt 6.10)
-
-Этот проект нацелен на **Python 3.13.x** и **Qt/PySide6 6.10.x**. Следуйте приведённым ниже шагам, чтобы подготовить рабочую станцию.
-
-## 1. Создайте и активируйте виртуальное окружение
-
-```bash
-python3.13 -m venv .venv
-source .venv/bin/activate  # Windows: .\.venv\Scripts\Activate.ps1
-```
-
-## 2. Установите зафиксированные зависимости
-
-Все зависимости зафиксированы с хешами. Используйте сгенерированные файлы блокировки, чтобы гарантировать целостность.
-
-```bash
-python -m pip install --upgrade pip setuptools wheel
-python -m pip install --require-hashes -r requirements.txt -c requirements-compatible.txt
-python -m pip install --require-hashes -r requirements-dev.txt -c requirements-compatible.txt  # необязательно
-```
-
-## 3. Сгенерируйте файл окружения
-
-Запустите начальный скрипт для обнаружения путей плагинов Qt и генерации `.env` / `.env.example`.
-
-```bash
-python setup_environment.py --dev
-```
-
-Скрипт заполняет:
-
-- `QT_VERSION=6.10.0`
-- `PYTHON_VERSION=3.13`
-- `QT_PLUGIN_PATH`, `QML2_IMPORT_PATH`, `QML_IMPORT_PATH`
-
-## 4. Активируйте помощники окружения
-
-- Unix: `source activate_environment.sh`
-- Windows PowerShell: `./activate_environment.ps1`
-- Batch: `activate_venv.bat`
-
-Эти помощники загружают `.env`, активируют `.venv` и открывают переменные времени выполнения Qt.
-
-## 5. Интеграция с IDE
-
-- VS Code автоматически подбирает `.env` через `PneumoStabSim.code-workspace`.
-- Visual Studio `.pyproj` файлы нацелены на `.venv` и экспортируют пути Qt для сеансов отладки.
-
-## 6. Обновление зависимостей
-
-Используйте `pip-compile` (pip-tools 7.5+) для обновления блокировок:
-
-```bash
-pip-compile --generate-hashes --output-file=requirements.txt pyproject.toml
-pip-compile --generate-hashes --extra=dev --output-file=requirements-dev.txt pyproject.toml
-```
-
-После регенерации перезапустите `setup_environment.py`, чтобы синхронизировать `.env`.
-
-## 7. Контрольный список проверки
-
-- `python -c "import PySide6; print(PySide6.__version__)"` → `6.10.0`
-- `python -c "import numpy; print(numpy.__version__)"` → `2.3.4`
-- `pytest` выполняется с отключёнными маркерами Qt по умолчанию (`-m "not gui"`).
+- `setup_environment.py` и связанные с ним скрипты остаются для поддержания старых установок. Они читают lock-файлы и заполняют `.env`, но не должны использоваться в новых автоматизированных процессах.
+- Для ручной проверки хешей зависимостей можно вызвать `make uv-run CMD="pip check --require-hashes -r requirements.txt"`, однако предпочтительным способом остаётся `uv sync`.
+- Если необходимо полностью переинициализировать окружение, удалите каталог `.uv/` и выполните шаги быстрого старта заново.
