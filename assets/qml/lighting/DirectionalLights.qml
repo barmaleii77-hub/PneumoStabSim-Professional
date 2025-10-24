@@ -38,10 +38,12 @@ Node {
     property color keyLightColor: "#ffffff"
     property real keyLightAngleX: -35
     property real keyLightAngleY: -40
+    property real keyLightAngleZ: 0
     property bool keyLightCastsShadow: true
     property bool keyLightBindToCamera: false
     property real keyLightPosX: 0.0
     property real keyLightPosY: 0.0
+    property real keyLightPosZ: 0.0
 
     // ===============================================================
     // FILL LIGHT PROPERTIES
@@ -49,10 +51,14 @@ Node {
 
     property real fillLightBrightness: 0.7
     property color fillLightColor: "#dfe7ff"
+    property real fillLightAngleX: -60
+    property real fillLightAngleY: 135
+    property real fillLightAngleZ: 0
     property bool fillLightCastsShadow: false
     property bool fillLightBindToCamera: false
     property real fillLightPosX: 0.0
     property real fillLightPosY: 0.0
+    property real fillLightPosZ: 0.0
 
     // ===============================================================
     // RIM LIGHT PROPERTIES
@@ -60,10 +66,14 @@ Node {
 
     property real rimLightBrightness: 1.0
     property color rimLightColor: "#ffe2b0"
+    property real rimLightAngleX: 15
+    property real rimLightAngleY: 180
+    property real rimLightAngleZ: 0
     property bool rimLightCastsShadow: false
     property bool rimLightBindToCamera: false
     property real rimLightPosX: 0.0
     property real rimLightPosY: 0.0
+    property real rimLightPosZ: 0.0
 
     // ===============================================================
     // KEY LIGHT (основной источник освещения)
@@ -73,9 +83,12 @@ Node {
         id: keyLight
         parent: root.keyLightBindToCamera ? root.cameraRig : root.worldRoot
 
-        eulerRotation.x: root.keyLightAngleX
-        eulerRotation.y: root.keyLightAngleY
-        position: Qt.vector3d(root.keyLightPosX, root.keyLightPosY, 0)
+        eulerRotation: Qt.vector3d(
+            root.keyLightAngleX,
+            root.keyLightAngleY,
+            root.keyLightAngleZ
+        )
+        position: Qt.vector3d(root.keyLightPosX, root.keyLightPosY, root.keyLightPosZ)
 
         brightness: root.keyLightBrightness
         color: root.keyLightColor
@@ -111,9 +124,12 @@ Node {
         id: fillLight
         parent: root.fillLightBindToCamera ? root.cameraRig : root.worldRoot
 
-        eulerRotation.x: -60
-        eulerRotation.y: 135
-        position: Qt.vector3d(root.fillLightPosX, root.fillLightPosY, 0)
+        eulerRotation: Qt.vector3d(
+            root.fillLightAngleX,
+            root.fillLightAngleY,
+            root.fillLightAngleZ
+        )
+        position: Qt.vector3d(root.fillLightPosX, root.fillLightPosY, root.fillLightPosZ)
 
         brightness: root.fillLightBrightness
         color: root.fillLightColor
@@ -129,9 +145,12 @@ Node {
         id: rimLight
         parent: root.rimLightBindToCamera ? root.cameraRig : root.worldRoot
 
-        eulerRotation.x: 15
-        eulerRotation.y: 180
-        position: Qt.vector3d(root.rimLightPosX, root.rimLightPosY, 0)
+        eulerRotation: Qt.vector3d(
+            root.rimLightAngleX,
+            root.rimLightAngleY,
+            root.rimLightAngleZ
+        )
+        position: Qt.vector3d(root.rimLightPosX, root.rimLightPosY, root.rimLightPosZ)
 
         brightness: root.rimLightBrightness
         color: root.rimLightColor
@@ -145,9 +164,15 @@ Node {
 
     Component.onCompleted: {
         console.log("💡 DirectionalLights initialized:")
-        console.log("   Key:", keyLightBrightness, keyLightColor)
-        console.log("   Fill:", fillLightBrightness, fillLightColor)
-        console.log("   Rim:", rimLightBrightness, rimLightColor)
+        console.log("   Key:", keyLightBrightness, keyLightColor,
+                    "angles:", keyLightAngleX, keyLightAngleY, keyLightAngleZ,
+                    "pos:", keyLightPosX, keyLightPosY, keyLightPosZ)
+        console.log("   Fill:", fillLightBrightness, fillLightColor,
+                    "angles:", fillLightAngleX, fillLightAngleY, fillLightAngleZ,
+                    "pos:", fillLightPosX, fillLightPosY, fillLightPosZ)
+        console.log("   Rim:", rimLightBrightness, rimLightColor,
+                    "angles:", rimLightAngleX, rimLightAngleY, rimLightAngleZ,
+                    "pos:", rimLightPosX, rimLightPosY, rimLightPosZ)
         console.log("   Shadows:", shadowsEnabled, shadowResolution)
     }
 }

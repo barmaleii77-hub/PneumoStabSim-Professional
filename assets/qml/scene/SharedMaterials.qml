@@ -294,21 +294,53 @@ QtObject {
  emissiveFactor: root.emissiveVector(root.jointTailEmissiveColor, root.jointTailEmissiveIntensity)
  }
 
- readonly property PrincipledMaterial jointArmMaterial: PrincipledMaterial {
- baseColor: root.jointArmBaseColor
- metalness: root.jointArmMetalness
- roughness: root.jointArmRoughness
- specularAmount: root.jointArmSpecularAmount
- specularTint: root.jointArmSpecularTint
- clearcoatAmount: root.jointArmClearcoat
- clearcoatRoughnessAmount: root.jointArmClearcoatRoughness
- transmissionFactor: root.jointArmTransmission
- opacity: root.jointArmOpacity
- indexOfRefraction: root.jointArmIor
- attenuationDistance: root.jointArmAttenuationDistance
- attenuationColor: root.jointArmAttenuationColor
- emissiveFactor: root.emissiveVector(root.jointArmEmissiveColor, root.jointArmEmissiveIntensity)
- }
+readonly property PrincipledMaterial jointArmMaterial: PrincipledMaterial {
+    baseColor: root.jointArmBaseColor
+    metalness: root.jointArmMetalness
+    roughness: root.jointArmRoughness
+    specularAmount: root.jointArmSpecularAmount
+    specularTint: root.jointArmSpecularTint
+    clearcoatAmount: root.jointArmClearcoat
+    clearcoatRoughnessAmount: root.jointArmClearcoatRoughness
+    transmissionFactor: root.jointArmTransmission
+    opacity: root.jointArmOpacity
+    indexOfRefraction: root.jointArmIor
+    attenuationDistance: root.jointArmAttenuationDistance
+    attenuationColor: root.jointArmAttenuationColor
+    emissiveFactor: root.emissiveVector(root.jointArmEmissiveColor, root.jointArmEmissiveIntensity)
+}
+
+    readonly property PrincipledMaterial pistonBodyMaterial: PrincipledMaterial {
+        baseColor: root.pistonBodyBaseColor
+        metalness: root.pistonBodyMetalness
+        roughness: root.pistonBodyRoughness
+        specularAmount: root.pistonBodySpecularAmount
+        specularTint: root.pistonBodySpecularTint
+        clearcoatAmount: root.pistonBodyClearcoat
+        clearcoatRoughnessAmount: root.pistonBodyClearcoatRoughness
+        transmissionFactor: root.pistonBodyTransmission
+        opacity: root.pistonBodyOpacity
+        indexOfRefraction: root.pistonBodyIor
+        attenuationDistance: root.pistonBodyAttenuationDistance
+        attenuationColor: root.pistonBodyAttenuationColor
+        emissiveFactor: root.emissiveVector(root.pistonBodyEmissiveColor, root.pistonBodyEmissiveIntensity)
+    }
+
+    readonly property PrincipledMaterial pistonRodMaterial: PrincipledMaterial {
+        baseColor: root.pistonRodBaseColor
+        metalness: root.pistonRodMetalness
+        roughness: root.pistonRodRoughness
+        specularAmount: root.pistonRodSpecularAmount
+        specularTint: root.pistonRodSpecularTint
+        clearcoatAmount: root.pistonRodClearcoat
+        clearcoatRoughnessAmount: root.pistonRodClearcoatRoughness
+        transmissionFactor: root.pistonRodTransmission
+        opacity: root.pistonRodOpacity
+        indexOfRefraction: root.pistonRodIor
+        attenuationDistance: root.pistonRodAttenuationDistance
+        attenuationColor: root.pistonRodAttenuationColor
+        emissiveFactor: root.emissiveVector(root.pistonRodEmissiveColor, root.pistonRodEmissiveIntensity)
+    }
 
  // ===============================================================
  // DYNAMIC MATERIALS (для поршня и штока с warning colors)
