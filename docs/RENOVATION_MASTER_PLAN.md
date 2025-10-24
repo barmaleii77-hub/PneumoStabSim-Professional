@@ -74,6 +74,8 @@ best practices for scientific visualisation software.
      branches. *Status: completed February 2025 via `.github/CONTRIBUTING.md`.*
    - Add a scheduled workflow (`.github/workflows/branch-audit.yml`) that uses
      the GitHub CLI container to flag branches older than 30 days.
+     *Status: Implemented March 2025 via a weekly Monday 04:00 UTC run that
+     publishes a summary and warnings for stale branches.*
 2. **Encoding & Attributes**
    - Expand `.gitattributes` to normalise UTF-8 LF for `.py`, `.qml`, `.json`
      and CRLF hints for `.ps1` while prohibiting BOM usage. Validate using
