@@ -71,6 +71,18 @@ python -m src.tools.settings_migrate --settings config/app_settings.json \
 
 ---
 
+## ✅ Валидация JSON Schema
+
+- `src/core/settings_service.SettingsService` автоматически валидирует
+  `config/app_settings.json` по схеме
+  `config/app_settings.schema.json`.
+- Указать альтернативный путь к схеме можно через переменную окружения
+  `PSS_SETTINGS_SCHEMA` или аргумент ``schema_path`` конструктора.
+- При нарушении структуры выбрасывается `SettingsValidationError` с полным
+  списком ошибок.
+
+---
+
 ## 🔧 SETTINGSMANAGER API
 
 ### **Класс SettingsManager**
