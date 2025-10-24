@@ -46,7 +46,7 @@ docs = [
     "sphinx-rtd-theme==3.0.1",
 ]
 performance = [
-    "numba==0.60.0",
+    "numba==0.60.0; python_version < \"3.13\"",
     "cython==3.0.11",
 ]
 
