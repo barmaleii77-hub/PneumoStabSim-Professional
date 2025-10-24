@@ -1,0 +1,175 @@
+name: Branch Audit
+
+on:
+  schedule:
+    - cron: '30 2 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+  pull-requests: read
+
+jobs:
+  audit:
+    name: Detect stale branches
+    runs-on: ubuntu-latest
+    steps:
+      - name: Audit repository branches
+        uses: actions/github-script@v7
+        env:
+          THRESHOLD_DAYS: '30'
+          PROTECTED_BRANCHES: main,develop
+          ISSUE_LABEL: branch-audit
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const core = require('@actions/core');
+            const protectedBranches = new Set((process.env.PROTECTED_BRANCHES || '')
+              .split(',')
+              .map(branch => branch.trim())
+              .filter(Boolean));
+
+            const thresholdDays = Number.parseInt(process.env.THRESHOLD_DAYS || '30', 10);
+            if (Number.isNaN(thresholdDays) || thresholdDays <= 0) {
+              throw new Error(`Invalid THRESHOLD_DAYS value: ${process.env.THRESHOLD_DAYS}`);
+            }
+
+            const { owner, repo } = context.repo;
+            const defaultBranch = context.payload?.repository?.default_branch;
+            if (defaultBranch) {
+              protectedBranches.add(defaultBranch);
+            }
+
+            const now = new Date();
+            const staleBranches = [];
+
+            const branches = await github.paginate(github.rest.repos.listBranches, {
+              owner,
+              repo,
+              per_page: 100,
+            });
+
+            for (const branch of branches) {
+              if (protectedBranches.has(branch.name)) {
+                core.info(`Skipping protected branch: ${branch.name}`);
+                continue;
+              }
+
+              const commitResponse = await github.rest.repos.getCommit({
+                owner,
+                repo,
+                ref: branch.commit.sha,
+              });
+
+              const commitData = commitResponse.data.commit;
+              const dateString = commitData.committer?.date || commitData.author?.date;
+              if (!dateString) {
+                core.warning(`No commit timestamp found for branch ${branch.name}`);
+                continue;
+              }
+
+              const commitDate = new Date(dateString);
+              const ageMs = now.getTime() - commitDate.getTime();
+              const ageDays = ageMs / (1000 * 60 * 60 * 24);
+
+              if (ageDays >= thresholdDays) {
+                staleBranches.push({
+                  name: branch.name,
+                  ageDays,
+                  commitDate,
+                  sha: branch.commit.sha,
+                });
+              }
+            }
+
+            staleBranches.sort((a, b) => b.ageDays - a.ageDays);
+
+            const summary = core.summary;
+            summary.addHeading('Branch Audit Report');
+            summary.addRaw(`Threshold: ${thresholdDays} days\n\n`);
+
+            if (staleBranches.length === 0) {
+              summary.addRaw('✅ No stale branches detected.');
+              await summary.write();
+              core.setOutput('stale-count', '0');
+              return;
+            }
+
+            summary.addTable([
+              [{ header: true, data: 'Branch' }, { header: true, data: 'Age (days)' }, { header: true, data: 'Last Commit' }, { header: true, data: 'Link' }],
+              ...staleBranches.map(branch => [
+                branch.name,
+                branch.ageDays.toFixed(1),
+                branch.commitDate.toISOString().split('T')[0],
+                `https://github.com/${owner}/${repo}/tree/${branch.name}`,
+              ]),
+            ]);
+            await summary.write();
+
+            const labelName = process.env.ISSUE_LABEL || 'branch-audit';
+
+            async function ensureLabel() {
+              try {
+                await github.rest.issues.getLabel({ owner, repo, name: labelName });
+              } catch (error) {
+                if (error.status === 404) {
+                  await github.rest.issues.createLabel({
+                    owner,
+                    repo,
+                    name: labelName,
+                    color: '0E8A16',
+                    description: 'Automated branch audit notifications',
+                  });
+                } else {
+                  throw error;
+                }
+              }
+            }
+
+            await ensureLabel();
+
+            const { data: openIssues } = await github.rest.issues.listForRepo({
+              owner,
+              repo,
+              state: 'open',
+              labels: labelName,
+              per_page: 100,
+            });
+
+            const reportLines = [
+              `Branch audit executed on ${now.toISOString()}.`,
+              `Threshold: ${thresholdDays} days.`,
+              '',
+              '| Branch | Age (days) | Last commit | Link |',
+              '| --- | --- | --- | --- |',
+              ...staleBranches.map(branch => `| ${branch.name} | ${branch.ageDays.toFixed(1)} | ${branch.commitDate.toISOString()} | https://github.com/${owner}/${repo}/tree/${branch.name} |`),
+            ];
+
+            const issueBody = reportLines.join('\n');
+
+            if (openIssues.length === 0) {
+              await github.rest.issues.create({
+                owner,
+                repo,
+                title: 'Branch audit: stale branches detected',
+                body: issueBody,
+                labels: [labelName],
+              });
+            } else {
+              const issueNumber = openIssues[0].number;
+              await github.rest.issues.update({
+                owner,
+                repo,
+                issue_number: issueNumber,
+                body: issueBody,
+              });
+              await github.rest.issues.createComment({
+                owner,
+                repo,
+                issue_number: issueNumber,
+                body: `Branch audit refreshed on ${now.toISOString()}. Found ${staleBranches.length} stale branches.`,
+              });
+            }
+
+            core.setOutput('stale-count', String(staleBranches.length));
