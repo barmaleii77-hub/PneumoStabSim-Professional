@@ -12,7 +12,8 @@ PYTEST_FLAGS ?= -vv --color=yes --maxfail=1
 SMOKE_TARGET ?= tests/smoke
 INTEGRATION_TARGET ?= tests/integration/test_main_window_qml.py
 
-.PHONY: format lint typecheck qml-lint test check verify smoke integration
+.PHONY: format lint typecheck qml-lint test check verify smoke integration \
+autonomous-check trace-launch
 
 .PHONY: uv-sync uv-run
 
@@ -81,3 +82,9 @@ test:
 check: lint typecheck qml-lint test
 
 verify: lint typecheck qml-lint test smoke integration
+
+autonomous-check:
+	$(PYTHON) -m tools.autonomous_check
+
+trace-launch:
+	$(PYTHON) -m tools.trace_launch
