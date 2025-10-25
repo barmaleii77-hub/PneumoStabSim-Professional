@@ -91,6 +91,10 @@ QtObject {
      */
     property real speed: 1.0
 
+    readonly property int rotationDampingMs: 90
+    readonly property int distanceDampingMs: 90
+    readonly property int panDampingMs: 60
+
     // ===============================================================
     // MOUSE CONTROL SETTINGS
     // ===============================================================
@@ -129,35 +133,35 @@ QtObject {
 
     Behavior on yawDeg {
         NumberAnimation {
-            duration: 90
+            duration: rotationDampingMs
             easing.type: Easing.OutCubic
         }
     }
 
     Behavior on pitchDeg {
         NumberAnimation {
-            duration: 90
+            duration: rotationDampingMs
             easing.type: Easing.OutCubic
         }
     }
 
     Behavior on distance {
         NumberAnimation {
-            duration: 90
+            duration: distanceDampingMs
             easing.type: Easing.OutCubic
         }
     }
 
     Behavior on panX {
         NumberAnimation {
-            duration: 60
+            duration: panDampingMs
             easing.type: Easing.OutQuad
         }
     }
 
     Behavior on panY {
         NumberAnimation {
-            duration: 60
+            duration: panDampingMs
             easing.type: Easing.OutQuad
         }
     }

@@ -33,6 +33,9 @@ Item {
  property bool isRunning: false
  property var animationDefaults: typeof initialAnimationSettings !== "undefined" ? initialAnimationSettings : null
  property var sceneDefaults: typeof initialSceneSettings !== "undefined" ? initialSceneSettings : null
+ property var diagnosticsDefaults: typeof initialDiagnosticsSettings !== "undefined" ? initialDiagnosticsSettings : null
+ property var cameraHudSettings: ({})
+ property bool cameraHudEnabled: false
  property bool feedbackReady: false
  property real animationTime: animationDefaults && animationDefaults.animation_time !== undefined ? Number(animationDefaults.animation_time) :0.0 // сек, накапливается Python-таймером
 
@@ -125,6 +128,68 @@ property var geometryState: ({
  // ---------------------------------------------
  // Основные3D-компоненты сцены
  // ---------------------------------------------
+
+ function cloneMap(source) {
+ if (!source || typeof source !== "object")
+ return {}
+ var result = {}
+ for (var key in source) {
+ if (source.hasOwnProperty(key))
+ result[key] = source[key]
+ }
+ return result
+ }
+
+ function applyCameraHudSettings(payload) {
+ if (!payload)
+ return
+ var current = cloneMap(cameraHudSettings)
+ var updated = cloneMap(payload)
+ for (var key in current) {
+ if (current.hasOwnProperty(key) && updated[key] === undefined)
+ updated[key] = current[key]
+ }
+ if (payload.enabled !== undefined)
+ updated.enabled = !!payload.enabled
+ cameraHudSettings = updated
+ if (payload.enabled !== undefined)
+ cameraHudEnabled = !!payload.enabled
+ }
+
+ function setCameraHudEnabled(enabled) {
+ var flag = !!enabled
+ if (cameraHudEnabled !== flag)
+ cameraHudEnabled = flag
+ var current = cloneMap(cameraHudSettings)
+ if (current.enabled !== flag) {
+ current.enabled = flag
+ cameraHudSettings = current
+ }
+ }
+
+ function toggleCameraHud() {
+ setCameraHudEnabled(!cameraHudEnabled)
+ }
+
+ function handleDiagnosticsSettingChange(change) {
+ if (!change || !change.path)
+ return
+ var pathStr = String(change.path)
+ if (pathStr === "diagnostics.camera_hud") {
+ applyCameraHudSettings(change.newValue)
+ return
+ }
+ if (pathStr === "diagnostics.camera_hud.enabled") {
+ setCameraHudEnabled(change.newValue)
+ return
+ }
+ if (pathStr.indexOf("diagnostics.camera_hud.") === 0) {
+ var key = pathStr.substring("diagnostics.camera_hud.".length)
+ var patch = {}
+ patch[key] = change.newValue
+ applyCameraHudSettings(patch)
+ }
+ }
 
  SceneEnvironmentController {
  id: sceneEnvCtl
@@ -355,12 +420,16 @@ View3D {
  worldRoot: worldRoot
  view3d: sceneView
  sceneBridge: root.sceneBridge
+ sceneScaleFactor: root.sceneScaleFactor
+ hudSettings: root.cameraHudSettings
+ hudVisible: root.cameraHudEnabled
  taaMotionAdaptive: sceneEnvCtl.taaMotionAdaptive
  onToggleAnimation: function() {
  if (typeof root.toggleAnimation === "function") {
  root.toggleAnimation()
  }
  }
+ onHudToggleRequested: root.toggleCameraHud()
  }
 
  Binding {
@@ -459,6 +528,11 @@ View3D {
  signalTrace.registerSubscription("settings.settingChanged","main.qml","qml")
  signalTrace.registerSubscription("settings.settingsBatchUpdated","main.qml","qml")
  }
+ if (diagnosticsDefaults && diagnosticsDefaults.camera_hud) {
+ applyCameraHudSettings(diagnosticsDefaults.camera_hud)
+ } else {
+ setCameraHudEnabled(cameraHudEnabled)
+ }
  applySceneBridgeState()
  }
 
@@ -468,11 +542,17 @@ View3D {
  if (signalTrace && signalTrace.recordObservation) {
  signalTrace.recordObservation("settings.settingChanged", change, "qml")
  }
+ handleDiagnosticsSettingChange(change)
  }
 
  function onSettingsBatchUpdated(payload) {
  if (signalTrace && signalTrace.recordObservation) {
  signalTrace.recordObservation("settings.settingsBatchUpdated", payload, "qml")
+ }
+ if (payload && payload.changes && payload.changes.length) {
+ for (var i = 0; i < payload.changes.length; ++i) {
+ handleDiagnosticsSettingChange(payload.changes[i])
+ }
  }
  }
  }

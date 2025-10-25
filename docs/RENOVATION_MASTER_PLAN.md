@@ -254,6 +254,7 @@ best practices for scientific visualisation software.
      scene. Ensure inertia, acceleration, and damping produce natural orbiting
      without scaling artefacts. Double-click triggers auto-fit via an explicit
      handler.
+   - *Status: Completed September 2025 via the diagnostics-driven CameraStateHud overlay and Ctrl+H toggle tied to settings.*
 2. **Material Fidelity**
    - Audit material definitions in `config/baseline/materials.json`; update
      glass to use physically-correct index of refraction and absorption.
