@@ -84,10 +84,15 @@ PNEUMOSTABSIM_PROFILE=insiders
   <ItemGroup>
     <Content Include="PneumoStabSim-Professional.insiders.vsconfig" />
     <Content Include="tools\visualstudio\initialize_insiders_environment.ps1" />
+    <Content Include="tools\visualstudio\ensure_vs_components.ps1" />
+    <Content Include="tools\visualstudio\sync_copilot_profile.ps1" />
+    <Content Include="tools\visualstudio\copilot_insiders_profile.json" />
     <Content Include="tools\visualstudio\launch_insiders.ps1" />
+    <Content Include=".vs\insiders.environment.json" />
     <Content Include="Properties\launchSettings.json" />
     <Content Include="activate_environment.ps1" />
     <Content Include="activate_venv.ps1" />
+    <Content Include="VISUAL_STUDIO_INSIDERS_SETUP.md" />
   </ItemGroup>
   <ItemGroup>
     <InterpreterReference Include="Global|PythonCore|3.13" />

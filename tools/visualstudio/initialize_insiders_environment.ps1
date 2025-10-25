@@ -8,6 +8,22 @@ param(
 
 $ErrorActionPreference = 'Stop'
 
+[Console]::OutputEncoding = [System.Text.UTF8Encoding]::UTF8
+try {
+    chcp.com 65001 | Out-Null
+} catch {
+    Write-Warning "Unable to switch code page to UTF-8: $($_.Exception.Message)"
+}
+$PSDefaultParameterValues['Out-File:Encoding'] = 'utf8'
+$PSDefaultParameterValues['*:Encoding'] = 'utf8'
+
+Set-Item -Path env:PYTHONUTF8 -Value '1'
+Set-Item -Path env:PYTHONIOENCODING -Value 'utf-8'
+Set-Item -Path env:PIP_DISABLE_PIP_VERSION_CHECK -Value '1'
+Set-Item -Path env:PIP_NO_PYTHON_VERSION_WARNING -Value '1'
+Set-Item -Path env:LC_ALL -Value 'C.UTF-8'
+Set-Item -Path env:LANG -Value 'en_US.UTF-8'
+
 function Write-Section {
     param([string]$Message)
     Write-Host "[Insiders] $Message" -ForegroundColor Cyan
@@ -32,6 +48,13 @@ if (-not (Test-Path $ProjectRoot)) {
 $venvPath = Join-Path $ProjectRoot '.venv'
 $pythonExe = Join-Path $venvPath 'Scripts' 'python.exe'
 
+$ensureComponentsScript = Join-Path $ProjectRoot 'tools' 'visualstudio' 'ensure_vs_components.ps1'
+if (Test-Path $ensureComponentsScript) {
+    Invoke-Step 'Validating Visual Studio Insiders workloads and extensions' {
+        & $ensureComponentsScript -ProjectRoot $ProjectRoot
+    }
+}
+
 Invoke-Step 'Ensuring Python interpreter is available' {
     if (-not (Test-Path $pythonExe) -or $Force) {
         $pythonCommand = Get-Command python -ErrorAction SilentlyContinue
@@ -53,8 +76,8 @@ function Invoke-PipInstall {
     & $pythonExe '-m' 'pip' @Arguments
 }
 
-Invoke-Step 'Upgrading pip' {
-    Invoke-PipInstall @('install', '--upgrade', 'pip')
+Invoke-Step 'Upgrading pip toolchain' {
+    Invoke-PipInstall @('install', '--upgrade', 'pip', 'setuptools', 'wheel')
 }
 
 $requirementsFiles = @('requirements.txt', 'requirements-dev.txt', 'current_requirements.txt') | ForEach-Object {
@@ -78,13 +101,19 @@ if (Test-Path $qtSetupScript) {
 }
 
 $envConfig = [ordered]@{
-    QML2_IMPORT_PATH      = "$ProjectRoot\\.venv\\Lib\\site-packages\\PySide6\\qml;$ProjectRoot\\assets\\qml"
-    QML_IMPORT_PATH       = "$ProjectRoot\\.venv\\Lib\\site-packages\\PySide6\\qml;$ProjectRoot\\assets\\qml"
-    QT_PLUGIN_PATH        = "$ProjectRoot\\.venv\\Lib\\site-packages\\PySide6\\plugins"
-    QT_QML_IMPORT_PATH    = "$ProjectRoot\\.venv\\Lib\\site-packages\\PySide6\\qml"
-    QT_QUICK_CONTROLS_STYLE = 'Basic'
-    PYTHONPATH            = "$ProjectRoot;$ProjectRoot\\src;$ProjectRoot\\tests"
-    PNEUMOSTABSIM_PROFILE = 'insiders'
+    QML2_IMPORT_PATH         = "$ProjectRoot\\.venv\\Lib\\site-packages\\PySide6\\qml;$ProjectRoot\\assets\\qml"
+    QML_IMPORT_PATH          = "$ProjectRoot\\.venv\\Lib\\site-packages\\PySide6\\qml;$ProjectRoot\\assets\\qml"
+    QT_PLUGIN_PATH           = "$ProjectRoot\\.venv\\Lib\\site-packages\\PySide6\\plugins"
+    QT_QML_IMPORT_PATH       = "$ProjectRoot\\.venv\\Lib\\site-packages\\PySide6\\qml"
+    QT_QUICK_CONTROLS_STYLE  = 'Basic'
+    PYTHONPATH               = "$ProjectRoot;$ProjectRoot\\src;$ProjectRoot\\tests"
+    PYTHONUTF8               = '1'
+    PYTHONIOENCODING         = 'utf-8'
+    PIP_DISABLE_PIP_VERSION_CHECK = '1'
+    PIP_NO_PYTHON_VERSION_WARNING = '1'
+    LC_ALL                   = 'C.UTF-8'
+    LANG                     = 'en_US.UTF-8'
+    PNEUMOSTABSIM_PROFILE    = 'insiders'
 }
 
 $insidersEnvFile = Join-Path $ProjectRoot '.vs' 'insiders.environment.json'
@@ -104,6 +133,20 @@ Invoke-Step "Generating launch helper at '$launcherScript'" {
 param(
     [string]$ProjectRoot = (Resolve-Path (Join-Path $PSScriptRoot '..' '..')).Path
 )
+
+$ErrorActionPreference = 'Stop'
+[Console]::OutputEncoding = [System.Text.UTF8Encoding]::UTF8
+try {
+    chcp.com 65001 | Out-Null
+} catch {
+    Write-Warning "Unable to switch code page to UTF-8: $($_.Exception.Message)"
+}
+Set-Item -Path env:PYTHONUTF8 -Value '1'
+Set-Item -Path env:PYTHONIOENCODING -Value 'utf-8'
+Set-Item -Path env:PIP_DISABLE_PIP_VERSION_CHECK -Value '1'
+Set-Item -Path env:PIP_NO_PYTHON_VERSION_WARNING -Value '1'
+Set-Item -Path env:LC_ALL -Value 'C.UTF-8'
+Set-Item -Path env:LANG -Value 'en_US.UTF-8'
 
 $envFile = Join-Path $ProjectRoot '.vs' 'insiders.environment.json'
 if (-not (Test-Path $envFile)) {
@@ -129,3 +172,10 @@ Write-Host 'Launching PneumoStabSim using Visual Studio Insiders profile...' -Fo
 }
 
 Write-Section 'Visual Studio Insiders environment is ready.'
+
+$copilotSyncScript = Join-Path $ProjectRoot 'tools' 'visualstudio' 'sync_copilot_profile.ps1'
+if (Test-Path $copilotSyncScript) {
+    Invoke-Step 'Synchronising Copilot metadata profile' {
+        & $copilotSyncScript -ProjectRoot $ProjectRoot
+    }
+}

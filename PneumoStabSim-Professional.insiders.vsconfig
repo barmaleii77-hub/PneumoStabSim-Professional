@@ -1,19 +1,23 @@
 {
   "version": "1.0",
   "components": [
+    "Microsoft.VisualStudio.Component.CoreEditor",
     "Microsoft.VisualStudio.Workload.ManagedDesktop",
     "Microsoft.VisualStudio.Workload.Python",
     "Microsoft.VisualStudio.Workload.NativeDesktop",
     "Microsoft.VisualStudio.Component.VC.CoreBuildTools",
     "Microsoft.VisualStudio.Component.VC.Tools.x86.x64",
     "Microsoft.VisualStudio.Component.Windows10SDK.22621",
+    "Microsoft.VisualStudio.Component.Git",
+    "Microsoft.VisualStudio.Component.NuGet",
     "Component.GitHub.VisualStudio",
     "Microsoft.VisualStudio.Component.TestTools.Core",
     "Microsoft.VisualStudio.Component.VC.CMake.Project",
     "Microsoft.VisualStudio.Component.Vcpkg",
     "Microsoft.VisualStudio.ComponentGroup.NativeDesktop.Win81",
     "Microsoft.Component.PythonTools",
-    "Component.GitHub.Copilot"
+    "Component.GitHub.Copilot",
+    "Component.GitHub.CopilotChat"
   ],
   "extensions": [
     {
