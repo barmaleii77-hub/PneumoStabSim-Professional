@@ -41,6 +41,39 @@
 - Performance metrics meet or exceed baseline targets (frame time, memory usage).
 - No unresolved critical UI/graphics defects logged in issue tracker.
 
+## Milestones & Timeline
+- **Sprint 14:** Finalise orbit controller presets, land instrumentation for camera
+  HUD, and update settings schema bindings.
+- **Sprint 15:** Complete material/lighting audits with automated validation
+  scripts and baseline HDR comparisons stored under `reports/performance/`.
+- **Sprint 16:** Ship modular panel refactor with preset manager MVP and
+  regression tests.
+- **Sprint 17:** Integrate diagnostics overlays (profiler, performance HUD) and
+  run regression benchmarks vs Phase 0 baselines.
+- **Sprint 18:** Accessibility and localisation hardening, documentation pass,
+  and exit review readiness.
+
+## Dependencies
+- Stable service container APIs from Phase 2 to expose settings and diagnostics
+  hooks.
+- Updated settings control matrix and schema exports for binding validation.
+- Asset pipeline availability for HDR and material reference files.
+
+## Risk Register
+| Risk | Impact | Probability | Mitigation |
+| --- | --- | --- | --- |
+| Orbit controller tuning stalls due to missing device profiles | High | Medium | Capture per-device telemetry early, reuse engineering presets stored in `config/orbit_presets.json`. |
+| Material audits blocked by HDR asset licensing | Medium | Low | Coordinate with art pipeline lead; ensure legal review before importing new HDR files. |
+| Panel refactor introduces regression in settings sync | High | Medium | Leverage pytest-qt integration tests and trace logging before merging. |
+
+## Metrics & Evidence
+- Frame time (<16.7 ms target) recorded via Qt profiler exports in
+  `reports/performance/ui_phase3_*.json`.
+- UI regression screenshots stored under `tests/ui/screenshots/` with diff
+  approvals.
+- Accessibility checklist reviewed using `tools/accessibility/audit_qml.py` with
+  sign-off captured in `docs/ui/accessibility_log.md`.
+
 ## RACI Snapshot
 - **Responsible:** UI lead, graphics engineer.
 - **Accountable:** Design lead.
