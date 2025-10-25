@@ -380,6 +380,8 @@ best practices for scientific visualisation software.
 
 - Phase plans (`docs/RENOVATION_PHASE_*.md`) exist but need alignment with the
   updated objectives and timelines.
+- Канбан-доска фаз запущена в `docs/operations/phase_burndown.md`, обеспечивая
+  единый источник статуса для еженедельных синков.
 
 **Action Plan**
 
@@ -389,7 +391,8 @@ best practices for scientific visualisation software.
    - **Exit criteria** with measurable deliverables and links to test evidence in
      `reports/`.
 2. Introduce a Kanban-style tracker (`docs/operations/phase_burndown.md`) for
-   cross-functional visibility.
+   cross-functional visibility. *Status: Первая версия опубликована в октябре
+   2025 года и синхронизирована с отчётами по фазам.*
 3. After every sprint, append a changelog entry summarising progress and update
    the "status" blocks in this master plan.
 4. Maintain a rolling six-week milestone schedule in
