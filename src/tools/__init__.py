@@ -2,4 +2,9 @@
 
 from __future__ import annotations
 
-__all__ = ["__doc__"]
+from .visualstudio_insiders import build_insiders_environment, dumps_environment
+
+__all__ = [
+    "build_insiders_environment",
+    "dumps_environment",
+]
