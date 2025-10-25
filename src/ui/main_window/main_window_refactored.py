@@ -443,6 +443,17 @@ class MainWindow(QMainWindow):
         """Physics error → SignalsRouter"""
         SignalsRouter.handle_physics_error(self, message)
 
+    @Slot(str)
+    def logIblEvent(self, message: str) -> None:
+        """Expose QML logging hook for IBL loader components."""
+        try:
+            if hasattr(self, "ibl_logger") and self.ibl_logger:
+                self.ibl_logger.info(message)
+            else:
+                self.logger.info("IBL:%s", message)
+        except Exception:
+            self.logger.debug("Failed to log IBL event", exc_info=True)
+
     @Slot(dict)
     def _on_qml_batch_ack(self, summary: Dict[str, Any]) -> None:
         """QML batch ACK → QMLBridge"""

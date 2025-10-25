@@ -711,6 +711,17 @@ class MainWindow(QMainWindow):
         if hasattr(self, "status_bar") and self.status_bar:
             self.status_bar.showMessage(f"Physics error: {message}", 5000)
 
+    @Slot(str)
+    def logIblEvent(self, message: str) -> None:
+        """Receive IBL loader logs from QML components."""
+        try:
+            if hasattr(self, "ibl_logger") and self.ibl_logger:
+                self.ibl_logger.info(message)
+            else:
+                self.logger.info("IBL:%s", message)
+        except Exception:
+            self.logger.debug("Failed to log IBL event", exc_info=True)
+
     def _update_render(self) -> None:
         if not self._qml_root_object:
             return

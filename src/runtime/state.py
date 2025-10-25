@@ -1,15 +1,14 @@
-"""
-Runtime state management and signal bus
-Provides snapshot-based state sharing between physics and UI threads
-"""
+"""Runtime state dataclasses and Qt signal bus helpers."""
+
+from __future__ import annotations
 
 import time
 from dataclasses import dataclass, field
 from typing import Dict, Optional
+
 import numpy as np
 from PySide6.QtCore import QObject, Signal, Qt
 
-# Updated imports to use absolute paths
 from src.pneumo.enums import Line, Wheel
 
 
