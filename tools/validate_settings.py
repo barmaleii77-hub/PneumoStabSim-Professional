@@ -15,6 +15,7 @@ Exit codes
     Validation failed because of schema violations, unreadable files or an
     invalid schema definition.
 """
+
 from __future__ import annotations
 
 import argparse
