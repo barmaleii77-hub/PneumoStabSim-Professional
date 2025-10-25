@@ -15,6 +15,7 @@ from PySide6.QtCore import Qt
 
 from ...pneumo.enums import Line, Wheel
 from .qml_bridge import QMLBridge
+from ..qml_bridge import register_qml_signals
 
 if TYPE_CHECKING:
     from .main_window import MainWindow
@@ -220,13 +221,14 @@ class SignalsRouter:
         if not window._qml_root_object:
             return
 
-        try:
-            window._qml_root_object.batchUpdatesApplied.connect(
-                window._on_qml_batch_ack, Qt.QueuedConnection
-            )
-            SignalsRouter.logger.info("✅ QML signals connected")
-        except AttributeError:
-            SignalsRouter.logger.warning("⚠️ QML batchUpdatesApplied signal not found")
+        connected = register_qml_signals(window, window._qml_root_object)
+        if connected:
+            for spec in connected:
+                SignalsRouter.logger.info(
+                    "✅ QML signal %s connected to %s", spec.name, spec.handler
+                )
+        else:
+            SignalsRouter.logger.warning("⚠️ No QML signals connected")
 
     # ------------------------------------------------------------------
     # Signal Handlers - Graphics
