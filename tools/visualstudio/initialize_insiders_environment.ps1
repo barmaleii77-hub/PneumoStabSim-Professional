@@ -100,30 +100,25 @@ if (Test-Path $qtSetupScript) {
     }
 }
 
-$envConfig = [ordered]@{
-    QML2_IMPORT_PATH         = "$ProjectRoot\\.venv\\Lib\\site-packages\\PySide6\\qml;$ProjectRoot\\assets\\qml"
-    QML_IMPORT_PATH          = "$ProjectRoot\\.venv\\Lib\\site-packages\\PySide6\\qml;$ProjectRoot\\assets\\qml"
-    QT_PLUGIN_PATH           = "$ProjectRoot\\.venv\\Lib\\site-packages\\PySide6\\plugins"
-    QT_QML_IMPORT_PATH       = "$ProjectRoot\\.venv\\Lib\\site-packages\\PySide6\\qml"
-    QT_QUICK_CONTROLS_STYLE  = 'Basic'
-    PYTHONPATH               = "$ProjectRoot;$ProjectRoot\\src;$ProjectRoot\\tests"
-    PYTHONUTF8               = '1'
-    PYTHONIOENCODING         = 'utf-8'
-    PIP_DISABLE_PIP_VERSION_CHECK = '1'
-    PIP_NO_PYTHON_VERSION_WARNING = '1'
-    LC_ALL                   = 'C.UTF-8'
-    LANG                     = 'en_US.UTF-8'
-    PNEUMOSTABSIM_PROFILE    = 'insiders'
-}
-
+$envGenerator = Join-Path $ProjectRoot 'tools' 'visualstudio' 'generate_insiders_environment.py'
 $insidersEnvFile = Join-Path $ProjectRoot '.vs' 'insiders.environment.json'
 
 Invoke-Step "Persisting Insiders environment definition to '$insidersEnvFile'" {
+    if (-not (Test-Path $envGenerator)) {
+        throw "Environment generator '$envGenerator' was not found."
+    }
+
     $insidersDir = Split-Path $insidersEnvFile -Parent
     if (-not (Test-Path $insidersDir)) {
         New-Item -ItemType Directory -Path $insidersDir | Out-Null
     }
-    $envConfig | ConvertTo-Json -Depth 4 | Set-Content -Path $insidersEnvFile -Encoding UTF8
+
+    $jsonOutput = & $pythonExe $envGenerator '--project-root' $ProjectRoot '--indent' 2
+    if ($LASTEXITCODE -ne 0) {
+        throw "Environment generator failed with exit code $LASTEXITCODE."
+    }
+
+    $jsonOutput | Set-Content -Path $insidersEnvFile -Encoding UTF8
 }
 
 $launcherScript = Join-Path $ProjectRoot 'tools' 'visualstudio' 'launch_insiders.ps1'
