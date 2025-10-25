@@ -25,6 +25,7 @@ import datetime as _dt
 import json
 import subprocess
 import sys
+import time
 from pathlib import Path
 from typing import Iterable, Sequence
 
@@ -106,6 +107,7 @@ def _run_commands(
 ) -> list[dict[str, object]]:
     results: list[dict[str, object]] = []
     for label, command in commands:
+        start = time.perf_counter()
         completed = subprocess.run(
             list(command),
             stdout=subprocess.PIPE,
@@ -114,6 +116,7 @@ def _run_commands(
             cwd=PROJECT_ROOT,
             check=False,
         )
+        duration = time.perf_counter() - start
 
         results.append(
             {
@@ -121,10 +124,20 @@ def _run_commands(
                 "command": list(command),
                 "return_code": completed.returncode,
                 "stdout": completed.stdout or "",
+                "duration": duration,
             }
         )
 
     return results
+
+
+def _format_summary_line(result: dict[str, object]) -> str:
+    status_icon = "✅" if int(result["return_code"]) == 0 else "❌"
+    duration = float(result.get("duration", 0.0))
+    return (
+        f" {status_icon} {result['label']} "
+        f"(rc={int(result['return_code'])}, {duration:.2f}s)"
+    )
 
 
 def run_autonomous_check(
@@ -179,6 +192,7 @@ def run_autonomous_check(
                 "",
                 f"- Command: {' '.join(result['command'])}",
                 f"- Return code: {result['return_code']}",
+                f"- Duration: {result['duration']:.2f}s",
                 "",
                 "```",
                 str(result["stdout"]).rstrip(),
@@ -202,6 +216,7 @@ def run_autonomous_check(
                 "label": result["label"],
                 "command": result["command"],
                 "return_code": result["return_code"],
+                "duration": result["duration"],
             }
             for result in results
         ],
@@ -215,12 +230,13 @@ def run_autonomous_check(
 
     _prune_old_logs(history_limit)
 
-    print(
-        "Autonomous check completed with exit code",
-        f" {overall_return_code}. Log saved to",
-        f" {log_path.relative_to(PROJECT_ROOT)}",
-        file=sys.stdout,
+    summary_lines = ["Autonomous check summary:"]
+    summary_lines.extend(_format_summary_line(result) for result in results)
+    summary_lines.append(f" Log file: {log_path.relative_to(PROJECT_ROOT)}")
+    summary_lines.append(
+        f" Overall status: {'OK' if overall_return_code == 0 else 'FAILED'}"
     )
+    print("\n".join(summary_lines), file=sys.stdout)
 
     return int(overall_return_code)
 

@@ -62,6 +62,30 @@ PneumoStabSim-Professional/
 └── tests/                         # Unit & integration tests
 ```
 
+### Автономная проверка и трассировка
+- **Обязательный запуск**: перед любой разработкой запускай `make autonomous-check`.
+  - Используй параметры `--sanitize --launch-trace` для полной подготовки: `python -m tools.autonomous_check --sanitize --launch-trace`.
+  - Скрипт автоматически очищает временные артефакты, выполняет линтеры, mypy, pytest и qmllint, а также сохраняет краткий отчёт в консоль и лог-файлы в `reports/quality/`.
+- **Быстрый повтор**: для отдельных стадий можно выполнять `python -m tools.autonomous_check --task lint` или `--task test` с дополнительными аргументами.
+- **Трассировка запуска**: `python -m tools.trace_launch` создаёт OpenGL/Qt отчёт в `reports/quality/launch_traces/` и выводит краткую сводку по результатам.
+- **Контроль чистоты**: `python -m tools.project_sanitize --verbose` удаляет `__pycache__`, `*.pyc`, временные файлы решений и старые отчёты, чтобы репозиторий оставался чистым.
+
+### Visual Studio (Insiders) и F5
+- Используй `PneumoStabSim-Professional.Insiders.sln` для интеграции с Visual Studio Insiders.
+- Перед запуском F5 активируй среду: выполни `scripts\activate_environment.ps1` (Windows) или `source activate_environment.sh` (Linux/macOS).
+- Убедись, что переменные `QT_PLUGIN_PATH`, `QML2_IMPORT_PATH` и `QT_QUICK_CONTROLS_STYLE` экспортированы (скрипты активации делают это автоматически).
+- Для F5 настрой рабочий профиль на выполнение `python app.py --env-report reports/quality/f5_environment.md` — это позволит сохранять отчёты окружения после каждой сессии.
+- После завершения приложения изучи краткий рапорт в терминале; полный лог и трассировка лежат в `reports/quality/launch_traces/`.
+
+### Агент GitHub Copilot VS
+- При каждом открытии решения агент обязан:
+  1. Запустить `python -m tools.project_sanitize --report-history 5`.
+  2. Проверить готовность окружения командой `python -m tools.autonomous_check --task verify --launch-trace` и проанализировать свежие логи в `reports/quality/`.
+  3. Применить найденные предупреждения, сформировав TODO в исходниках или в `docs/RENOVATION_MASTER_PLAN.md`.
+- Перед генерацией кода агент сверяется с данным документом и файлами `docs/RENOVATION_PHASE_*.md`.
+- Все рекомендации по настройке графики, физики и тестов должны оформляться в `reports/` (подпапки `quality/`, `performance/`).
+- Если приложение завершилось аварийно, агент обязан повторно вызвать `python -m tools.trace_launch --history-limit 10` и приложить краткий вывод к отчёту.
+
 ### Coding Standards
 
 #### Python Code Style

@@ -13,6 +13,7 @@ import datetime as _dt
 import json
 import subprocess
 import sys
+import time
 from pathlib import Path
 from typing import Sequence
 
@@ -78,6 +79,7 @@ def run_launch_trace(passthrough: Sequence[str], history_limit: int) -> int:
     )
     command = _build_command(report_path, passthrough)
 
+    start = time.perf_counter()
     completed = subprocess.run(
         command,
         stdout=subprocess.PIPE,
@@ -86,6 +88,7 @@ def run_launch_trace(passthrough: Sequence[str], history_limit: int) -> int:
         cwd=PROJECT_ROOT,
         check=False,
     )
+    duration = time.perf_counter() - start
 
     log_body = completed.stdout or ""
     log_sections = [
@@ -114,6 +117,7 @@ def run_launch_trace(passthrough: Sequence[str], history_limit: int) -> int:
         "log_path": str(log_path.relative_to(PROJECT_ROOT)),
         "environment_report": str(report_path.relative_to(PROJECT_ROOT)),
         "success": completed.returncode == 0,
+        "duration": duration,
     }
     _status_path().write_text(
         json.dumps(status_payload, indent=2, ensure_ascii=False) + "\n",
@@ -122,12 +126,14 @@ def run_launch_trace(passthrough: Sequence[str], history_limit: int) -> int:
 
     _prune_old_traces(history_limit)
 
-    print(
-        "Launch trace completed with exit code"
-        f" {completed.returncode}. Log saved to"
-        f" {log_path.relative_to(PROJECT_ROOT)}",
-        file=sys.stdout,
-    )
+    summary_lines = [
+        "Launch trace summary:",
+        (" ✅ launch" if completed.returncode == 0 else " ❌ launch")
+        + f" (rc={completed.returncode}, {duration:.2f}s)",
+        f" Log file: {log_path.relative_to(PROJECT_ROOT)}",
+        f" Environment report: {report_path.relative_to(PROJECT_ROOT)}",
+    ]
+    print("\n".join(summary_lines), file=sys.stdout)
 
     return completed.returncode
 
