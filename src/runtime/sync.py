@@ -69,7 +69,7 @@ class LatestOnlyQueue:
             except queue.Empty:
                 return None
 
-    def get_stats(self) -> Dict[str, int]:
+    def get_stats(self) -> Dict[str, float]:
         """Get queue statistics
 
         Returns:
@@ -77,9 +77,9 @@ class LatestOnlyQueue:
         """
         with self._lock:
             return {
-                "put_count": self._put_count,
-                "get_count": self._get_count,
-                "dropped_count": self._dropped_count,
+                "put_count": float(self._put_count),
+                "get_count": float(self._get_count),
+                "dropped_count": float(self._dropped_count),
                 "efficiency": self._get_count / max(self._put_count, 1),
             }
 
@@ -184,10 +184,10 @@ class PerformanceMetrics:
 
 
 class TimingAccumulator:
-    """Fixed timestep accumulator for stable physics
+    """Fixed timestep accumulator for stable physics.
 
-    Implements the "Fix Your Timestep" pattern for decoupling
-    physics timestep from rendering framerate.
+    Implements the "Fix Your Timestep" pattern for decoupling the physics
+    timestep from the rendering framerate.
     """
 
     def __init__(
@@ -195,21 +195,79 @@ class TimingAccumulator:
         target_dt: float = 0.001,
         max_steps_per_frame: int = 10,
         max_frame_time: float = 0.05,
-    ):
-        self.target_dt = target_dt
+    ) -> None:
+        self.target_dt = float(target_dt)
         self.accumulator = 0.0
         self.last_time = time.perf_counter()
+        self.max_steps_per_frame = max(1, int(max_steps_per_frame))
+        self.max_frame_time = float(max_frame_time)
+
+        # Statistics
+        self.steps_taken = 0
+        self.frames_processed = 0
+        self.total_real_time = 0.0
+        self.total_sim_time = 0.0
+
+    def update(self) -> int:
+        """Update accumulator and return number of physics steps to take.
+
+        Returns:
+            Number of physics steps to execute (0 or more).
+        """
+
+        current_time = time.perf_counter()
+        real_dt = current_time - self.last_time
+        self.last_time = current_time
+
+        # Clamp maximum frame time to prevent spiral of death
+        if real_dt > self.max_frame_time:
+            real_dt = self.max_frame_time
+
+        self.accumulator += real_dt
+        self.total_real_time += real_dt
+        self.frames_processed += 1
+
+        steps_to_take = 0
+        while (
+            self.accumulator >= self.target_dt
+            and steps_to_take < self.max_steps_per_frame
+        ):
+            self.accumulator -= self.target_dt
+            self.total_sim_time += self.target_dt
+            steps_to_take += 1
+
+        self.steps_taken += steps_to_take
+        return steps_to_take
+
+    def get_interpolation_alpha(self) -> float:
+        """Return interpolation factor for smooth rendering."""
+
+        if self.target_dt <= 0:
+            return 0.0
+        return self.accumulator / self.target_dt
+
+    def get_realtime_factor(self) -> float:
+        """Return current real-time performance factor."""
+
+        if self.total_real_time > 0:
+            return self.total_sim_time / self.total_real_time
+        return 1.0
+
+    def reset(self) -> None:
+        """Reset accumulator and statistics."""
+
+        self.accumulator = 0.0
+        self.last_time = time.perf_counter()
+        self.steps_taken = 0
+        self.frames_processed = 0
+        self.total_real_time = 0.0
+        self.total_sim_time = 0.0
 
 
 class StateSnapshotBuffer:
-    """Thread-safe ring buffer storing the latest state snapshots.
+    """Thread-safe ring buffer storing the latest state snapshots."""
 
-    The buffer preserves insertion order and automatically drops the
-    oldest snapshots once the configured capacity is reached.  Accessors
-    return copies so callers cannot mutate the internal deque.
-    """
-
-    def __init__(self, maxlen: int = 2048):
+    def __init__(self, maxlen: int = 2048) -> None:
         if maxlen <= 0:
             raise ValueError("Snapshot buffer size must be positive")
 
@@ -259,71 +317,6 @@ class StateSnapshotBuffer:
     def __len__(self) -> int:  # pragma: no cover - trivial
         with self._lock:
             return len(self._buffer)
-        self.max_steps_per_frame = max(
-            1, int(max_steps_per_frame)
-        )  # Prevent spiral of death
-        self.max_frame_time = max_frame_time
-
-        # Statistics
-        self.steps_taken = 0
-        self.frames_processed = 0
-        self.total_real_time = 0.0
-        self.total_sim_time = 0.0
-
-    def update(self) -> int:
-        """Update accumulator and return number of physics steps to take
-
-        Returns:
-            Number of physics steps to execute (0 or more)
-        """
-        current_time = time.perf_counter()
-        real_dt = current_time - self.last_time
-        self.last_time = current_time
-
-        # Clamp maximum frame time to prevent spiral of death
-        if real_dt > self.max_frame_time:
-            real_dt = self.max_frame_time
-
-        self.accumulator += real_dt
-        self.total_real_time += real_dt
-        self.frames_processed += 1
-
-        # Calculate number of steps to take
-        steps_to_take = 0
-
-        while (
-            self.accumulator >= self.target_dt
-            and steps_to_take < self.max_steps_per_frame
-        ):
-            self.accumulator -= self.target_dt
-            self.total_sim_time += self.target_dt
-            steps_to_take += 1
-
-        self.steps_taken += steps_to_take
-        return steps_to_take
-
-    def get_interpolation_alpha(self) -> float:
-        """Get interpolation factor for smooth rendering
-
-        Returns:
-            Alpha value (0.0 to 1.0) for interpolating between physics states
-        """
-        return self.accumulator / self.target_dt
-
-    def get_realtime_factor(self) -> float:
-        """Get current real-time performance factor"""
-        if self.total_real_time > 0:
-            return self.total_sim_time / self.total_real_time
-        return 1.0
-
-    def reset(self):
-        """Reset accumulator and statistics"""
-        self.accumulator = 0.0
-        self.last_time = time.perf_counter()
-        self.steps_taken = 0
-        self.frames_processed = 0
-        self.total_real_time = 0.0
-        self.total_sim_time = 0.0
 
 
 class ThreadSafeCounter:
@@ -373,6 +366,7 @@ __all__ = [
     "LatestOnlyQueue",
     "PerformanceMetrics",
     "TimingAccumulator",
+    "StateSnapshotBuffer",
     "ThreadSafeCounter",
     "create_state_queue",
 ]
