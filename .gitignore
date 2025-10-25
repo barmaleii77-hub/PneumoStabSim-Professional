@@ -473,6 +473,7 @@ check_*.py
 !tests/unit/physics/test_physics_loop.py
 !tests/unit/physics/test_gas_network.py
 !tests/unit/bootstrap/test_qt_imports.py
+!tests/unit/bootstrap/test_dependency_config.py
 !tests/unit/ui/test_graphics_settings_service.py
 
 # Temporary batch files

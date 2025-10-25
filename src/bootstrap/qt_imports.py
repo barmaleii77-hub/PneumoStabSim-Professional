@@ -9,6 +9,8 @@
 import sys
 from typing import Any, Callable
 
+from src.bootstrap.dependency_config import match_dependency_error
+
 
 def safe_import_qt(
     log_warning: Callable[[str], None], log_error: Callable[[str], None]
@@ -45,18 +47,31 @@ def safe_import_qt(
     except ImportError as e:
         error_message = f"PySide6 import failed: {e}"
 
-        hint: str | None = None
         text = str(e)
-        if "libGL.so.1" in text:
-            hint = (
-                "Required OpenGL runtime (libGL.so.1) is missing. "
-                "Install a Mesa/OpenGL package (e.g. 'apt-get install -y libgl1')."
-            )
-        elif "libEGL.so" in text:
-            hint = "Missing libEGL runtime. Install an EGL package (e.g. 'apt-get install -y libegl1')."
+        details: list[str] = []
+        hints: list[str] = []
 
-        if hint:
-            error_message = f"{error_message}\nHint: {hint}"
+        variant = match_dependency_error("opengl_runtime", text)
+        if variant is not None:
+            missing = variant.missing_message
+            if missing:
+                details.append(missing)
+            hint = variant.install_hint
+            if hint:
+                hints.append(hint)
+
+        if "libEGL.so" in text:
+            hints.append(
+                "Missing libEGL runtime. Install an EGL package (e.g. 'apt-get install -y libegl1')."
+            )
+
+        if details:
+            error_message = "\n".join([error_message, *details])
+        if hints:
+            unique_hints = dict.fromkeys(hints)
+            hint_lines = [f"Hint: {value}" for value in unique_hints if value]
+            if hint_lines:
+                error_message = "\n".join([error_message, *hint_lines])
 
         log_error(error_message)
         sys.stderr.write(error_message + "\n")
