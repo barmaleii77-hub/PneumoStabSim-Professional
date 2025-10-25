@@ -2,7 +2,7 @@
   "metadata": {
     "version": "0.1.0",
     "schema_version": "0.1.0",
-    "last_modified": "2025-10-25T14:03:01Z",
+    "last_modified": "2025-10-25T16:25:30Z",
     "units_version": "si_v2",
     "migrations": [
       "0001_add_diagnostics_defaults"
@@ -98,7 +98,6 @@
         "showMotion": true
       }
     },
- codex/install-libgl.so.1-and-run-tests
     "system": {
       "dependencies": {
         "opengl_runtime": {
@@ -116,7 +115,11 @@
               "install_hint": "Install a Mesa/OpenGL package (e.g. 'apt-get install -y libgl1').",
               "error_markers": [
                 "libGL.so.1"
-              ]
+              ],
+              "packages": [
+                "libgl1"
+              ],
+              "install_command": "apt-get install -y libgl1"
             },
             {
               "id": "windows_default",
@@ -146,8 +149,55 @@
               ]
             }
           ]
+        },
+        "egl_runtime": {
+          "description": "EGL runtime required for Qt Quick OpenGL context creation.",
+          "missing_message": "Required EGL runtime ({human_name}) is missing.",
+          "variants": [
+            {
+              "id": "linux_mesa",
+              "platform_prefixes": [
+                "linux",
+                "linux2"
+              ],
+              "library_name": "EGL",
+              "human_name": "libEGL.so.1",
+              "install_hint": "Install an EGL runtime package (e.g. 'apt-get install -y libegl1').",
+              "error_markers": [
+                "libEGL.so.1",
+                "EGL"
+              ],
+              "packages": [
+                "libegl1"
+              ],
+              "install_command": "apt-get install -y libegl1"
+            }
+          ]
+        },
+        "xkb_runtime": {
+          "description": "XKB common library required for Qt input handling.",
+          "missing_message": "Required XKB runtime ({human_name}) is missing.",
+          "variants": [
+            {
+              "id": "linux_default",
+              "platform_prefixes": [
+                "linux",
+                "linux2"
+              ],
+              "library_name": "xkbcommon",
+              "human_name": "libxkbcommon.so.0",
+              "install_hint": "Install libxkbcommon (e.g. 'apt-get install -y libxkbcommon0').",
+              "error_markers": [
+                "libxkbcommon.so.0"
+              ],
+              "packages": [
+                "libxkbcommon0",
+                "xkb-data"
+              ],
+              "install_command": "apt-get install -y libxkbcommon0"
+            }
+          ]
         }
-
       }
     }
   },
@@ -257,7 +307,11 @@
               "install_hint": "Install a Mesa/OpenGL package (e.g. 'apt-get install -y libgl1').",
               "error_markers": [
                 "libGL.so.1"
-              ]
+              ],
+              "packages": [
+                "libgl1"
+              ],
+              "install_command": "apt-get install -y libgl1"
             },
             {
               "id": "windows_default",
@@ -285,6 +339,54 @@
                 "OpenGL.framework",
                 "OpenGL"
               ]
+            }
+          ]
+        },
+        "egl_runtime": {
+          "description": "EGL runtime required for Qt Quick OpenGL context creation.",
+          "missing_message": "Required EGL runtime ({human_name}) is missing.",
+          "variants": [
+            {
+              "id": "linux_mesa",
+              "platform_prefixes": [
+                "linux",
+                "linux2"
+              ],
+              "library_name": "EGL",
+              "human_name": "libEGL.so.1",
+              "install_hint": "Install an EGL runtime package (e.g. 'apt-get install -y libegl1').",
+              "error_markers": [
+                "libEGL.so.1",
+                "EGL"
+              ],
+              "packages": [
+                "libegl1"
+              ],
+              "install_command": "apt-get install -y libegl1"
+            }
+          ]
+        },
+        "xkb_runtime": {
+          "description": "XKB common library required for Qt input handling.",
+          "missing_message": "Required XKB runtime ({human_name}) is missing.",
+          "variants": [
+            {
+              "id": "linux_default",
+              "platform_prefixes": [
+                "linux",
+                "linux2"
+              ],
+              "library_name": "xkbcommon",
+              "human_name": "libxkbcommon.so.0",
+              "install_hint": "Install libxkbcommon (e.g. 'apt-get install -y libxkbcommon0').",
+              "error_markers": [
+                "libxkbcommon.so.0"
+              ],
+              "packages": [
+                "libxkbcommon0",
+                "xkb-data"
+              ],
+              "install_command": "apt-get install -y libxkbcommon0"
             }
           ]
         }
