@@ -1,0 +1,48 @@
+{
+  "project": "PneumoStabSim Professional",
+  "profile": "insiders",
+  "solution": "PneumoStabSim-Professional.Insiders.sln",
+  "entryPoint": "app.py",
+  "languages": [
+    "Python",
+    "QML",
+    "C#"
+  ],
+  "tooling": [
+    "Qt 6.10 / PySide6",
+    "uv virtual environments",
+    "pytest",
+    "ruff",
+    "mypy",
+    "qmllint"
+  ],
+  "launchScripts": [
+    "tools/visualstudio/initialize_insiders_environment.ps1",
+    "tools/visualstudio/launch_insiders.ps1"
+  ],
+  "environment": {
+    "PYTHONPATH": "src;tests",
+    "QT_PLUGIN_PATH": ".venv/Lib/site-packages/PySide6/plugins",
+    "QML_IMPORT_PATH": ".venv/Lib/site-packages/PySide6/qml;assets/qml",
+    "QT_QUICK_CONTROLS_STYLE": "Basic",
+    "PNEUMOSTABSIM_PROFILE": "insiders",
+    "LC_ALL": "ru-RU",
+    "LANG": "ru-RU",
+    "PYTHONUTF8": "1"
+  },
+  "codingGuidelines": [
+    "Prefer SettingsManager for configuration updates",
+    "Use structlog JSON logger for new diagnostics",
+    "Maintain Russian/English localisation parity in assets/i18n"
+  ],
+  "testCommands": [
+    "make check",
+    "pytest -k smoke",
+    "python qml_diagnostic.py"
+  ],
+  "documentationLinks": [
+    "docs/RENOVATION_MASTER_PLAN.md",
+    "docs/SETTINGS_ARCHITECTURE.md",
+    "README.md"
+  ]
+}
