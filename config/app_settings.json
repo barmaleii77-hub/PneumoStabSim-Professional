@@ -2,7 +2,7 @@
   "metadata": {
     "version": "0.1.0",
     "schema_version": "0.1.0",
-    "last_modified": "2025-01-01T00:00:00",
+    "last_modified": "2025-10-25T14:03:01Z",
     "units_version": "si_v2",
     "migrations": [
       "0001_add_diagnostics_defaults"
@@ -98,10 +98,56 @@
         "showMotion": true
       }
     },
-    "physics": {
-      "suspension": {
-        "spring_constant": 50000.0,
-        "damper_coefficient": 2000.0
+ codex/install-libgl.so.1-and-run-tests
+    "system": {
+      "dependencies": {
+        "opengl_runtime": {
+          "description": "OpenGL runtime required for Qt Quick rendering.",
+          "missing_message": "Required OpenGL runtime ({human_name}) is missing.",
+          "variants": [
+            {
+              "id": "linux_mesa",
+              "platform_prefixes": [
+                "linux",
+                "linux2"
+              ],
+              "library_name": "GL",
+              "human_name": "libGL.so.1",
+              "install_hint": "Install a Mesa/OpenGL package (e.g. 'apt-get install -y libgl1').",
+              "error_markers": [
+                "libGL.so.1"
+              ]
+            },
+            {
+              "id": "windows_default",
+              "platform_prefixes": [
+                "win32",
+                "cygwin"
+              ],
+              "library_name": "opengl32",
+              "human_name": "opengl32.dll",
+              "install_hint": "Install the latest GPU drivers or enable OpenGL compatibility components.",
+              "error_markers": [
+                "opengl32.dll",
+                "opengl32"
+              ]
+            },
+            {
+              "id": "macos_default",
+              "platform_prefixes": [
+                "darwin"
+              ],
+              "library_name": "OpenGL",
+              "human_name": "OpenGL.framework",
+              "install_hint": "Ensure the Xcode command line tools are installed for OpenGL support.",
+              "error_markers": [
+                "OpenGL.framework",
+                "OpenGL"
+              ]
+            }
+          ]
+        }
+
       }
     }
   },
@@ -194,10 +240,54 @@
         "showMotion": true
       }
     },
-    "physics": {
-      "suspension": {
-        "spring_constant": 50000.0,
-        "damper_coefficient": 2000.0
+    "system": {
+      "dependencies": {
+        "opengl_runtime": {
+          "description": "OpenGL runtime required for Qt Quick rendering.",
+          "missing_message": "Required OpenGL runtime ({human_name}) is missing.",
+          "variants": [
+            {
+              "id": "linux_mesa",
+              "platform_prefixes": [
+                "linux",
+                "linux2"
+              ],
+              "library_name": "GL",
+              "human_name": "libGL.so.1",
+              "install_hint": "Install a Mesa/OpenGL package (e.g. 'apt-get install -y libgl1').",
+              "error_markers": [
+                "libGL.so.1"
+              ]
+            },
+            {
+              "id": "windows_default",
+              "platform_prefixes": [
+                "win32",
+                "cygwin"
+              ],
+              "library_name": "opengl32",
+              "human_name": "opengl32.dll",
+              "install_hint": "Install the latest GPU drivers or enable OpenGL compatibility components.",
+              "error_markers": [
+                "opengl32.dll",
+                "opengl32"
+              ]
+            },
+            {
+              "id": "macos_default",
+              "platform_prefixes": [
+                "darwin"
+              ],
+              "library_name": "OpenGL",
+              "human_name": "OpenGL.framework",
+              "install_hint": "Ensure the Xcode command line tools are installed for OpenGL support.",
+              "error_markers": [
+                "OpenGL.framework",
+                "OpenGL"
+              ]
+            }
+          ]
+        }
       }
     }
   }

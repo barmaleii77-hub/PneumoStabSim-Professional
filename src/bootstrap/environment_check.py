@@ -10,6 +10,13 @@ from ctypes.util import find_library
 from dataclasses import dataclass, field
 from typing import Iterable, List
 
+from src.bootstrap.dependency_config import (
+    DependencyConfigError,
+    DependencyVariant,
+    match_dependency_error,
+    resolve_dependency_variant,
+)
+
 
 @dataclass
 class CheckResult:
@@ -85,24 +92,30 @@ def _check_python_version() -> CheckResult:
     )
 
 
-def _check_opengl_runtime() -> CheckResult:
-    if sys.platform.startswith("win"):
-        library_name = "opengl32"
-        human_name = "opengl32.dll"
-    elif sys.platform == "darwin":
-        library_name = "OpenGL"
-        human_name = "OpenGL.framework"
-    else:
-        library_name = "GL"
-        human_name = "libGL.so.1"
+def _opengl_missing_detail(variant: DependencyVariant) -> str:
+    message = variant.missing_message
+    if message:
+        return message
+    return f"System library '{variant.human_name}' not found."
 
-    resolved = find_library(library_name)
+
+def _check_opengl_runtime() -> CheckResult:
+    try:
+        variant = resolve_dependency_variant("opengl_runtime")
+    except DependencyConfigError as exc:
+        return CheckResult(
+            name="OpenGL runtime",
+            status="error",
+            detail=str(exc),
+        )
+
+    resolved = find_library(variant.library_name)
     if not resolved:
         return CheckResult(
             name="OpenGL runtime",
             status="error",
-            detail=f"System library '{human_name}' not found.",
-            hint=_opengl_hint(),
+            detail=_opengl_missing_detail(variant),
+            hint=variant.install_hint,
         )
 
     try:
@@ -112,7 +125,7 @@ def _check_opengl_runtime() -> CheckResult:
             name="OpenGL runtime",
             status="error",
             detail=f"Failed to load '{resolved}': {exc}",
-            hint=_opengl_hint(),
+            hint=variant.install_hint,
         )
 
     return CheckResult(
@@ -133,10 +146,12 @@ def _check_pyside6() -> CheckResult:
             detail=f"PySide6 {pyside_version} available",
         )
     except ImportError as exc:
-        hint = None
         message = str(exc)
-        if "libGL.so.1" in message or "opengl32" in message.lower():
-            hint = _opengl_hint()
+        hint = None
+
+        variant = match_dependency_error("opengl_runtime", message)
+        if variant is not None:
+            hint = variant.install_hint
         elif "libEGL" in message:
             hint = "Install system EGL runtime (e.g. 'apt-get install -y libegl1')."
         elif "PySide6" in message:
@@ -145,19 +160,9 @@ def _check_pyside6() -> CheckResult:
         return CheckResult(
             name="PySide6 import",
             status="error",
-            detail=f"{message}",
+            detail=message,
             hint=hint,
         )
-
-
-def _opengl_hint() -> str:
-    if sys.platform.startswith("win"):
-        return (
-            "Install the latest GPU drivers or enable OpenGL compatibility components."
-        )
-    if sys.platform == "darwin":
-        return "Ensure the Xcode command line tools are installed for OpenGL support."
-    return "Install a Mesa/OpenGL package, e.g. 'apt-get install -y libgl1'."
 
 
 def generate_environment_report() -> EnvironmentReport:
