@@ -21,6 +21,8 @@ _ENV_KEYS = (
     "LANG",
     "PNEUMOSTABSIM_PROFILE",
     "VIRTUAL_ENV",
+    "POWERSHELL_UPDATECHECK",
+    "POWERSHELL_TELEMETRY_OPTOUT",
 )
 
 
@@ -132,6 +134,8 @@ def build_insiders_environment(
         "LANG": "en_US.UTF-8",
         "PNEUMOSTABSIM_PROFILE": "insiders",
         "VIRTUAL_ENV": _as_windows_path(venv_root),
+        "POWERSHELL_UPDATECHECK": "Off",
+        "POWERSHELL_TELEMETRY_OPTOUT": "1",
     }
 
     missing_keys = [key for key in _ENV_KEYS if key not in env]

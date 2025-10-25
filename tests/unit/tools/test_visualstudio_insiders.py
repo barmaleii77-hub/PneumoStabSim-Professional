@@ -32,6 +32,12 @@ def test_environment_contains_expected_paths(project_root: Path) -> None:
         "PYTHONPATH",
         "PNEUMOSTABSIM_PROFILE",
         "VIRTUAL_ENV",
+        "POWERSHELL_UPDATECHECK",
+        "POWERSHELL_TELEMETRY_OPTOUT",
+        "PYTHONUTF8",
+        "PYTHONIOENCODING",
+        "LC_ALL",
+        "LANG",
     }
     assert expected_keys.issubset(environment.keys())
 
@@ -56,6 +62,12 @@ def test_environment_contains_expected_paths(project_root: Path) -> None:
 
     assert environment["PNEUMOSTABSIM_PROFILE"] == "insiders"
     assert environment["VIRTUAL_ENV"] == str(PureWindowsPath(project_root / ".venv"))
+    assert environment["POWERSHELL_UPDATECHECK"] == "Off"
+    assert environment["POWERSHELL_TELEMETRY_OPTOUT"] == "1"
+    assert environment["PYTHONUTF8"] == "1"
+    assert environment["PYTHONIOENCODING"] == "utf-8"
+    assert environment["LC_ALL"] == "C.UTF-8"
+    assert environment["LANG"] == "en_US.UTF-8"
 
 
 def _create_fake_project(tmp_path: Path) -> Path:

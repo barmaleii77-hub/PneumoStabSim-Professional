@@ -23,6 +23,8 @@ Set-Item -Path env:PIP_DISABLE_PIP_VERSION_CHECK -Value '1'
 Set-Item -Path env:PIP_NO_PYTHON_VERSION_WARNING -Value '1'
 Set-Item -Path env:LC_ALL -Value 'C.UTF-8'
 Set-Item -Path env:LANG -Value 'en_US.UTF-8'
+Set-Item -Path env:POWERSHELL_UPDATECHECK -Value 'Off'
+Set-Item -Path env:POWERSHELL_TELEMETRY_OPTOUT -Value '1'
 
 function Write-Section {
     param([string]$Message)
@@ -142,6 +144,8 @@ Set-Item -Path env:PIP_DISABLE_PIP_VERSION_CHECK -Value '1'
 Set-Item -Path env:PIP_NO_PYTHON_VERSION_WARNING -Value '1'
 Set-Item -Path env:LC_ALL -Value 'C.UTF-8'
 Set-Item -Path env:LANG -Value 'en_US.UTF-8'
+Set-Item -Path env:POWERSHELL_UPDATECHECK -Value 'Off'
+Set-Item -Path env:POWERSHELL_TELEMETRY_OPTOUT -Value '1'
 
 $envFile = Join-Path $ProjectRoot '.vs' 'insiders.environment.json'
 if (-not (Test-Path $envFile)) {

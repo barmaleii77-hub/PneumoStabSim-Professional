@@ -36,7 +36,9 @@ performs the following actions:
 Visual Studio reads `.vs/insiders.environment.json` and `Properties/launchSettings.json`
 when starting the simulator, tests, or tooling commands. The environment file now
 includes additional safeguards such as `PYTHONUTF8`, `PYTHONIOENCODING`, and
-`LC_ALL` to guarantee deterministic encoding behaviour.
+`LC_ALL` to guarantee deterministic encoding behaviour. PowerShell specific
+hardening (`POWERSHELL_UPDATECHECK=Off`, `POWERSHELL_TELEMETRY_OPTOUT=1`) prevents
+startup pauses or modal prompts in embedded terminals.
 
 ## Copilot Integration
 
