@@ -204,6 +204,9 @@ best practices for scientific visualisation software.
      dependency container (e.g. using `attrs` or `pydantic` for config binding).
    - Register services (settings, event bus, simulation engine, material cache)
      and expose injection helpers for CLI tools and Qt bootstrap.
+     *Status: Initial container landed July 2025 via
+     `src/infrastructure/container.py` with override-aware SettingsService
+     registration; remaining services will be onboarded in subsequent phases.*
 3. **Signal/Slot Registry**
    - Centralise the QML bridge in `src/ui/qml_bridge.py`. Auto-register signals
      from metadata defined in `config/qml_bridge.yaml`. Provide introspection via

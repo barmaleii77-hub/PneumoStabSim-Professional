@@ -5,9 +5,12 @@ import pytest
 
 from config import constants as constants_module
 from src.core.settings_service import (
+    SETTINGS_SERVICE_TOKEN,
     SettingsService,
     SettingsValidationError,
+    get_settings_service,
 )
+from src.infrastructure.container import get_default_container
 
 
 @pytest.fixture()
@@ -123,3 +126,17 @@ def test_settings_service_raises_on_schema_violation(tmp_path: Path) -> None:
         service.load()
 
     assert any("metadata.units_version" in error for error in exc.value.errors)
+
+
+def test_get_settings_service_respects_overrides(
+    settings_payload: Path,
+) -> None:
+    container = get_default_container()
+    container.reset(SETTINGS_SERVICE_TOKEN)
+
+    override = SettingsService(settings_path=settings_payload)
+    with container.override(SETTINGS_SERVICE_TOKEN, override):
+        resolved = get_settings_service()
+        assert resolved is override
+
+    container.reset(SETTINGS_SERVICE_TOKEN)

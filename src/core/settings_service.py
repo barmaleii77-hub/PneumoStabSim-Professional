@@ -12,6 +12,12 @@ import os
 from pathlib import Path
 from typing import Any, Iterable, MutableMapping
 
+from src.infrastructure.container import (
+    ServiceContainer,
+    ServiceToken,
+    get_default_container,
+)
+
 
 class SettingsValidationError(ValueError):
     """Raised when the settings file does not conform to the JSON schema."""
@@ -247,20 +253,33 @@ class SettingsService:
         return [segment for segment in path.split(".") if segment]
 
 
-_service_singleton: SettingsService | None = None
+SETTINGS_SERVICE_TOKEN = ServiceToken["SettingsService"](
+    "settings_service",
+    "Application-wide settings service bound to config/app_settings.json",
+)
 
 
-def get_settings_service() -> SettingsService:
-    """Глобальный singleton SettingsService для процесса."""
+def _ensure_default_registration() -> None:
+    container = get_default_container()
+    if not container.is_registered(SETTINGS_SERVICE_TOKEN):
+        container.register_factory(SETTINGS_SERVICE_TOKEN, lambda _: SettingsService())
 
-    global _service_singleton
-    if _service_singleton is None:
-        _service_singleton = SettingsService()
-    return _service_singleton
+
+_ensure_default_registration()
+
+
+def get_settings_service(
+    container: ServiceContainer | None = None,
+) -> SettingsService:
+    """Получить экземпляр SettingsService из контейнера зависимостей."""
+
+    target = container or get_default_container()
+    return target.resolve(SETTINGS_SERVICE_TOKEN)
 
 
 __all__ = [
     "SettingsService",
     "SettingsValidationError",
     "get_settings_service",
+    "SETTINGS_SERVICE_TOKEN",
 ]

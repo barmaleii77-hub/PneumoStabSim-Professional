@@ -16,7 +16,7 @@
    - Implement import maps and `__all__` exports to stabilize public APIs.
    - Update namespace package configuration in `pyproject.toml` and adjust tests.
 2. **Dependency Injection & Services**
-   - Introduce service container in `src/core/container.py` with typed registration.
+   - Introduce service container in `src/infrastructure/container.py` with typed registration.
    - Provide factory methods for settings, logging, event bus, simulation engine.
    - Document lifecycle hooks in `docs/architecture/service_container.md`.
 3. **Settings Platform**
@@ -63,9 +63,11 @@ Log architectural decisions, ADR references, and schema revisions here.
 - Generated the first revision of `docs/settings_control_matrix.md`, providing a
   single source of truth for module ownership and widget wiring.
 
-### 2025-05-12 – Service container foundation
-- Added `src/core/container.py` with a typed dependency injection container and
-  lightweight `EventBus` implementation.
-- Registered canonical factories for settings, logging, and profile management
-  via `build_default_container`, enabling Phase 2 modules to request shared
-  services deterministically.
+### 2025-07-02 – Service container foundation
+- Added `src/infrastructure/container.py` featuring a thread-safe dependency
+  injection container with override support for tests.
+- Registered the canonical `SettingsService` factory during module import so
+  CLI tools and runtime code resolve it through the shared container.
+- Drafted the first revision of `docs/architecture/service_container.md` to
+  describe lifecycle hooks and override patterns; logging and simulation
+  factories will be added in follow-up iterations.

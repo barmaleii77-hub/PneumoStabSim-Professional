@@ -846,6 +846,7 @@ assets/hdr/*.exr
 !tests/unit/test_profile_settings_manager.py
 !tests/unit/core/test_settings_service.py
 !tests/unit/core/test_service_container.py
+!tests/unit/infrastructure/test_container.py
 !tests/unit/tools/test_settings_migrate.py
 
 # END OF .GITIGNORE
