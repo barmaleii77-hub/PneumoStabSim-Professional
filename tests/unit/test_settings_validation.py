@@ -8,6 +8,11 @@ import pytest
 
 from src.app_runner import ApplicationRunner
 from src.common import settings_manager as settings_manager_module
+from src.core.settings_validation import (
+    SettingsValidationError,
+    determine_settings_source,
+    validate_settings_file,
+)
 
 
 REQUIRED_MATERIALS = {
@@ -66,6 +71,8 @@ def stub_qmessagebox(monkeypatch):
     monkeypatch.setitem(sys.modules, "PySide6", pyside)
     monkeypatch.setitem(sys.modules, "PySide6.QtWidgets", qtwidgets)
 
+    DummyMessageBox.calls = []
+
     return DummyMessageBox
 
 
@@ -108,7 +115,7 @@ def test_validate_settings_missing_simulation_section(
     settings["current"].pop("simulation")
     write_config(settings)
 
-    with pytest.raises(ValueError) as exc:
+    with pytest.raises(SettingsValidationError) as exc:
         runner._validate_settings_file()
 
     assert "обязательная секция current.simulation" in str(exc.value)
@@ -122,7 +129,7 @@ def test_validate_settings_missing_physics_dt(
     settings["current"]["simulation"].pop("physics_dt")
     write_config(settings)
 
-    with pytest.raises(ValueError) as exc:
+    with pytest.raises(SettingsValidationError) as exc:
         runner._validate_settings_file()
 
     assert "physics_dt" in str(exc.value)
@@ -136,7 +143,7 @@ def test_validate_settings_missing_receiver_limit(
     settings["current"]["pneumatic"]["receiver_volume_limits"].pop("min_m3")
     write_config(settings)
 
-    with pytest.raises(ValueError) as exc:
+    with pytest.raises(SettingsValidationError) as exc:
         runner._validate_settings_file()
 
     assert "receiver_volume_limits" in str(exc.value)
@@ -150,7 +157,7 @@ def test_validate_settings_missing_geometry_section(
     settings["current"].pop("geometry")
     write_config(settings)
 
-    with pytest.raises(ValueError) as exc:
+    with pytest.raises(SettingsValidationError) as exc:
         runner._validate_settings_file()
 
     assert "current.geometry" in str(exc.value)
@@ -164,8 +171,63 @@ def test_validate_settings_missing_volume_mode(
     settings["current"]["pneumatic"].pop("volume_mode")
     write_config(settings)
 
-    with pytest.raises(ValueError) as exc:
+    with pytest.raises(SettingsValidationError) as exc:
         runner._validate_settings_file()
 
     assert "volume_mode" in str(exc.value)
     assert "volume_mode" in _last_error(stub_qmessagebox)
+
+
+def test_validate_settings_success(
+    runner: ApplicationRunner, write_config, stub_qmessagebox
+):
+    write_config(_base_settings())
+
+    runner._validate_settings_file()
+
+    assert stub_qmessagebox.calls == []
+
+
+def test_validate_settings_invalid_bool(
+    runner: ApplicationRunner, write_config, stub_qmessagebox
+):
+    settings = _base_settings()
+    settings["current"]["pneumatic"]["master_isolation_open"] = "да"
+    write_config(settings)
+
+    with pytest.raises(SettingsValidationError) as exc:
+        runner._validate_settings_file()
+
+    message = str(exc.value)
+    assert "логическим" in message
+    assert "master_isolation_open" in _last_error(stub_qmessagebox)
+
+
+def test_validate_settings_file_helper(tmp_path: Path, monkeypatch):
+    path = tmp_path / "settings.json"
+    path.write_text(
+        json.dumps(_base_settings(), ensure_ascii=False, indent=2),
+        encoding="utf-8",
+    )
+    monkeypatch.delenv("PSS_SETTINGS_FILE", raising=False)
+
+    validate_settings_file(path)
+
+
+def test_determine_settings_source(monkeypatch, tmp_path: Path):
+    custom_path = tmp_path / "custom.json"
+    monkeypatch.setenv("PSS_SETTINGS_FILE", str(custom_path))
+    assert determine_settings_source(custom_path) == "ENV"
+
+    monkeypatch.delenv("PSS_SETTINGS_FILE", raising=False)
+    project_cfg = tmp_path / "project" / "app_settings.json"
+    project_cfg.parent.mkdir(parents=True, exist_ok=True)
+    project_cfg.write_text("{}", encoding="utf-8")
+    assert (
+        determine_settings_source(project_cfg, project_default=project_cfg)
+        == "PROJECT"
+    )
+
+    fallback_path = tmp_path / "other.json"
+    fallback_path.write_text("{}", encoding="utf-8")
+    assert determine_settings_source(fallback_path, project_default=project_cfg) == "CWD"
