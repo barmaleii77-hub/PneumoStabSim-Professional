@@ -461,6 +461,7 @@ check_*.py
 !tests/unit/test_signal_tracing.py
 !tests/unit/tools/test_settings_audit.py
 !tests/unit/tools/test_redundant_files.py
+!tests/settings/test_persistence.py
 
 # Temporary batch files
 *.bat
