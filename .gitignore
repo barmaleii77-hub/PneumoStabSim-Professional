@@ -368,6 +368,7 @@ logs/
 
 # CSV files
 *.csv
+!reports/quality/dashboard.csv
 
 # IDE
 .vscode/
@@ -461,6 +462,7 @@ check_*.py
 !tests/unit/test_signal_tracing.py
 !tests/unit/tools/test_settings_audit.py
 !tests/unit/tools/test_redundant_files.py
+!tests/unit/tools/test_report_metrics.py
 !tests/settings/test_persistence.py
 
 # Temporary batch files

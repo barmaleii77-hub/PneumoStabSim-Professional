@@ -329,7 +329,9 @@ best practices for scientific visualisation software.
    - Feed code coverage, lint duration, and flaky-test metrics into
      `reports/quality/dashboard.csv`. Automate nightly aggregation via
      `tools/quality/report_metrics.py` and visualise trends in
-     `docs/operations/quality_dashboard.md`.
+     `docs/operations/quality_dashboard.md`. *Status: November 2025 introduced
+     the metrics aggregator CLI, seeded the dashboard with the first snapshot,
+     and documented the pipeline in `docs/operations/quality_dashboard.md`.*
 
 ---
 
