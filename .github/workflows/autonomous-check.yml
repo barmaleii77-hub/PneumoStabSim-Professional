@@ -1,0 +1,81 @@
+name: Autonomous Quality Check
+
+on:
+  schedule:
+    - cron: '0 3 * * *'
+  push:
+    branches:
+      - develop
+  workflow_dispatch:
+
+env:
+  PYTHON_VERSION: '3.13'
+  QT_VERSION: '6.10.0'
+  QT_MODULES: qtbase qtdeclarative qtquick3d
+  QT_QPA_PLATFORM: offscreen
+  QT_QUICK_BACKEND: software
+
+jobs:
+  autonomous:
+    name: Autonomous verification
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+          cache-dependency-path: |
+            pyproject.toml
+            requirements*.txt
+
+      - name: Install Qt ${{ env.QT_VERSION }}
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: ${{ env.QT_VERSION }}
+          modules: ${{ env.QT_MODULES }}
+          cache: true
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e .[dev]
+
+      - name: Export Qt plugin paths
+        shell: python
+        run: |
+          import os
+          from pathlib import Path
+          from PySide6.QtCore import QLibraryInfo, LibraryLocation
+
+          env_file = Path(os.environ["GITHUB_ENV"])
+          with env_file.open("a", encoding="utf-8") as fh:
+            fh.write(f"QT_PLUGIN_PATH={QLibraryInfo.path(LibraryLocation.Plugins)}\n")
+            fh.write(f"QML2_IMPORT_PATH={QLibraryInfo.path(LibraryLocation.QmlImports)}\n")
+
+      - name: Install Xvfb
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y xvfb
+
+      - name: Run autonomous quality gate with launch trace
+        env:
+          QT_QPA_PLATFORM: ${{ env.QT_QPA_PLATFORM }}
+          QT_QUICK_BACKEND: ${{ env.QT_QUICK_BACKEND }}
+        run: |
+          xvfb-run --auto-servernum --server-args='-screen 0 1920x1080x24' \
+            python -m tools.autonomous_check --launch-trace --sanitize \
+              --history-limit 5 --trace-history-limit 5 --sanitize-history 5
+
+      - name: Upload autonomous check artefacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: autonomous-check-logs
+          path: |
+            reports/quality/
+          if-no-files-found: warn

@@ -6,10 +6,16 @@ QML linting, and tests) and persists timestamped logs under
 trigger a single command and later inspect a structured artefact describing
 what ran, when, and whether it succeeded.
 
-When requested, the runner also performs a launch trace using
-``tools.trace_launch`` so that OpenGL and Qt environment diagnostics are
-recorded alongside the quality gate results. This provides a single entry
-point for both static checks and runtime bootstrap validation.
+When requested, the runner can perform an optional repository sanitisation via
+``tools.project_sanitize`` before the checks start. This keeps transient
+artefacts such as ``__pycache__`` folders or stale Visual Studio workspace
+files from polluting the log output and mirrors the "sanitary cleanup" stage
+referenced in the modernisation playbooks.
+
+The runner can also perform a launch trace using ``tools.trace_launch`` so
+that OpenGL and Qt environment diagnostics are recorded alongside the quality
+gate results. This provides a single entry point for both static checks and
+runtime bootstrap validation.
 """
 
 from __future__ import annotations
@@ -26,6 +32,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 REPORT_DIR = PROJECT_ROOT / "reports" / "quality"
 DEFAULT_HISTORY_LIMIT = 7
 DEFAULT_TRACE_HISTORY_LIMIT = 5
+DEFAULT_SANITIZE_HISTORY = 3
 
 _TASK_COMMANDS: dict[str, Sequence[str]] = {
     "verify": ("-m", "tools.ci_tasks", "verify"),
@@ -127,13 +134,25 @@ def run_autonomous_check(
     launch_trace: bool,
     trace_args: Sequence[str],
     trace_history_limit: int,
+    sanitize: bool,
+    sanitize_history: int,
 ) -> int:
     _ensure_report_dir()
 
     timestamp = _utc_now()
-    commands: list[tuple[str, Sequence[str]]] = [
-        ("quality", _build_command(task, extra_args)),
-    ]
+    commands: list[tuple[str, Sequence[str]]] = []
+
+    if sanitize:
+        sanitize_command: Sequence[str] = (
+            sys.executable,
+            "-m",
+            "tools.project_sanitize",
+            "--report-history",
+            str(max(sanitize_history, 0)),
+        )
+        commands.append(("sanitize", sanitize_command))
+
+    commands.append(("quality", _build_command(task, extra_args)))
 
     if launch_trace:
         commands.append(
@@ -240,6 +259,23 @@ def build_parser() -> argparse.ArgumentParser:
         ),
     )
     parser.add_argument(
+        "--sanitize",
+        action="store_true",
+        help=(
+            "Run tools.project_sanitize before executing the selected task to "
+            "remove transient artefacts and prune historical logs."
+        ),
+    )
+    parser.add_argument(
+        "--sanitize-history",
+        type=int,
+        default=DEFAULT_SANITIZE_HISTORY,
+        help=(
+            "How many historical quality artefacts should be kept when the "
+            "sanitize step runs (default: %(default)s)."
+        ),
+    )
+    parser.add_argument(
         "--trace-arg",
         dest="trace_args",
         action="append",
@@ -279,6 +315,8 @@ def main(argv: Sequence[str] | None = None) -> None:
         args.launch_trace,
         trace_args,
         trace_history_limit,
+        args.sanitize,
+        args.sanitize_history,
     )
     raise SystemExit(exit_code)
 
