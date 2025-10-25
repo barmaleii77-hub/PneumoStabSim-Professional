@@ -97,3 +97,7 @@ Track panel completion status, performance runs, and localization updates here.
 - Introduced `SettingsSyncController` bindings to surface change telemetry in the diagnostics overlay and documented
   the workflow in `docs/ui/panel_modernization_report.md`.
 
+### 2025-10-20 – Static load equilibrium for suspension visuals
+- Normalised rigid-body static wheel loads so the scene holds a neutral pose without drift.
+- Added regression tests validating the equilibrium to keep render diagnostics reliable.
+
