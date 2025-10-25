@@ -1,5 +1,9 @@
-import QtQuick
-import QtQuick3D
+import QtQuick 2.15
+import QtQuick3D 6.5
+
+// qmllint disable missing-property
+
+pragma ComponentBehavior: Bound
 
 Item {
     id: controller
@@ -30,10 +34,11 @@ Item {
 
     // ✅ FILE LOGGING SYSTEM для анализа сигналов
     function writeLog(level, message) {
-        var timestamp = new Date().toISOString()
-        var logEntry = timestamp + " | " + level + " | IblProbeLoader | " + message
-        if (typeof window !== "undefined" && window !== null && window.logIblEvent) {
-            window.logIblEvent(logEntry)
+        const timestamp = new Date().toISOString()
+        const logEntry = `${timestamp} | ${level} | IblProbeLoader | ${message}`
+        const activeWindow = Qt.application ? Qt.application.activeWindow : null
+        if (activeWindow && typeof activeWindow.logIblEvent === "function") {
+            activeWindow.logIblEvent(logEntry)
         }
         if (level === "ERROR" || level === "WARN") {
             console.warn(logEntry)
@@ -42,33 +47,48 @@ Item {
         }
     }
 
-    // Отслеживание статуса через polling (Texture не шлет statusChanged)
+    // Отслеживание статуса с помощью Connections (Qt 6.10 сообщает statusChanged)
     property int _lastStatus: -1
 
     onProbeChanged: {
         if (probe && typeof probe.status !== "undefined") {
-            _lastStatus = probe.status
-            _checkStatus()
+            controller._lastStatus = probe.status
+            controller._checkStatus()
         }
     }
 
-    Timer {
-        interval: 100
-        running: true
-        repeat: true
-        onTriggered: {
-            if (typeof hdrProbe.status !== "undefined" && hdrProbe.status !== controller._lastStatus) {
-                controller._lastStatus = hdrProbe.status
-                controller._checkStatus()
+    Connections {
+        target: hdrProbe
+
+        function onStatusChanged() {
+            if (typeof hdrProbe.status === "undefined") {
+                return
             }
+            if (hdrProbe.status !== controller._lastStatus) {
+                controller._lastStatus = hdrProbe.status
+            }
+            controller._checkStatus()
+        }
+
+        function onSourceChanged() {
+            controller._lastStatus = -1
         }
     }
 
     function statusToString(s) {
-        return s === Texture.Null ? "Null" :
-               s === Texture.Ready ? "Ready" :
-               s === Texture.Loading ? "Loading" :
-               s === Texture.Error ? "Error" : ("Unknown(" + s + ")")
+        if (s === Texture.Null) {
+            return "Null"
+        }
+        if (s === Texture.Ready) {
+            return "Ready"
+        }
+        if (s === Texture.Loading) {
+            return "Loading"
+        }
+        if (s === Texture.Error) {
+            return "Error"
+        }
+        return `Unknown(${s})`
     }
 
     function _checkStatus() {
@@ -120,7 +140,10 @@ Item {
 
     // Готовность проба: считаем готовым только когда source валиден и статус Ready
     readonly property bool ready: (
-        hdrProbe && hdrProbe.source && String(hdrProbe.source) !== "" && hdrProbe.status === Texture.Ready
+        hdrProbe
+        && hdrProbe.source
+        && String(hdrProbe.source) !== ""
+        && hdrProbe.status === Texture.Ready
     )
 
     Component.onCompleted: {

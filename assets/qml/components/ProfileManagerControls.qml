@@ -1,6 +1,8 @@
 import QtQuick 2.15
 import QtQuick.Controls 2.15
 
+pragma ComponentBehavior: Bound
+
 Rectangle {
     id: root
     width: 280
@@ -8,24 +10,27 @@ Rectangle {
     color: "#B0202020"
     border.width: 1
     border.color: "#30ffffff"
-    visible: profileService !== null
+    visible: root.profileService !== null
 
     property var profileService: null
     property var profiles: []
     property string statusText: ""
 
     function refreshProfiles() {
-        if (!profileService || typeof profileService.listProfiles !== "function") {
-            profiles = []
+        if (
+            !root.profileService
+            || typeof root.profileService.listProfiles !== "function"
+        ) {
+            root.profiles = []
             profileCombo.currentIndex = -1
             nameField.text = ""
             return
         }
 
-        const names = profileService.listProfiles()
-        profiles = names ? names : []
+        const names = root.profileService.listProfiles()
+        root.profiles = names ? names : []
 
-        if (profiles.length === 0) {
+        if (root.profiles.length === 0) {
             profileCombo.currentIndex = -1
         } else if (profileCombo.currentIndex < 0) {
             profileCombo.currentIndex = 0
@@ -50,8 +55,8 @@ Rectangle {
 
         ComboBox {
             id: profileCombo
-            model: profiles
-            enabled: profiles.length > 0
+            model: root.profiles
+            enabled: root.profiles.length > 0
             onActivated: {
                 if (currentIndex >= 0) {
                     nameField.text = currentText
@@ -70,20 +75,20 @@ Rectangle {
 
             Button {
                 text: qsTr("Load")
-                enabled: profileService && profileCombo.currentIndex >= 0
+                enabled: root.profileService && profileCombo.currentIndex >= 0
                 onClicked: {
-                    if (profileService) {
-                        profileService.loadProfile(profileCombo.currentText)
+                    if (root.profileService) {
+                        root.profileService.loadProfile(profileCombo.currentText)
                     }
                 }
             }
 
             Button {
                 text: qsTr("Save")
-                enabled: profileService && nameField.text.length > 0
+                enabled: root.profileService && nameField.text.length > 0
                 onClicked: {
-                    if (profileService) {
-                        profileService.saveProfile(nameField.text)
+                    if (root.profileService) {
+                        root.profileService.saveProfile(nameField.text)
                     }
                 }
             }
@@ -91,18 +96,18 @@ Rectangle {
 
         Button {
             text: qsTr("Delete")
-            enabled: profileService && profileCombo.currentIndex >= 0
+            enabled: root.profileService && profileCombo.currentIndex >= 0
             onClicked: {
-                if (profileService) {
-                    profileService.deleteProfile(profileCombo.currentText)
+                if (root.profileService) {
+                    root.profileService.deleteProfile(profileCombo.currentText)
                 }
             }
         }
 
         Text {
             id: statusLabel
-            text: statusText
-            visible: statusText.length > 0
+            text: root.statusText
+            visible: root.statusText.length > 0
             color: "#dddddd"
             wrapMode: Text.Wrap
             font.pixelSize: 11
@@ -110,33 +115,33 @@ Rectangle {
     }
 
     Connections {
-        target: profileService
+        target: root.profileService
 
         function onProfilesChanged(names) {
-            profiles = names || []
-            if (profiles.length === 0) {
+            root.profiles = names || []
+            if (root.profiles.length === 0) {
                 profileCombo.currentIndex = -1
                 nameField.text = ""
             }
         }
 
         function onProfileSaved(name) {
-            statusText = qsTr("Profile '%1' saved").arg(name)
-            refreshProfiles()
+            root.statusText = qsTr("Profile '%1' saved").arg(name)
+            root.refreshProfiles()
         }
 
         function onProfileLoaded(name) {
-            statusText = qsTr("Profile '%1' loaded").arg(name)
-            refreshProfiles()
+            root.statusText = qsTr("Profile '%1' loaded").arg(name)
+            root.refreshProfiles()
         }
 
         function onProfileDeleted(name) {
-            statusText = qsTr("Profile '%1' deleted").arg(name)
-            refreshProfiles()
+            root.statusText = qsTr("Profile '%1' deleted").arg(name)
+            root.refreshProfiles()
         }
 
         function onProfileError(operation, message) {
-            statusText = qsTr("%1: %2").arg(operation).arg(message)
+            root.statusText = qsTr("%1: %2").arg(operation).arg(message)
         }
     }
 }

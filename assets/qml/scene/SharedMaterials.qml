@@ -23,18 +23,20 @@ import QtQuick3D
  * ```
  */
 QtObject {
- id: root
+    id: root
 
- property var materialsDefaults: typeof initialSharedMaterials !== "undefined" ? initialSharedMaterials : null
+    property var initialSharedMaterials: null
+    property var materialsDefaults: root.initialSharedMaterials
 
- function matValue(materialKey, propertyName, fallback) {
- if (materialsDefaults && materialsDefaults[materialKey] !== undefined) {
- var candidate = materialsDefaults[materialKey][propertyName]
- if (candidate !== undefined)
- return candidate
- }
- return fallback
- }
+    function matValue(materialKey, propertyName, fallback) {
+        if (root.materialsDefaults && root.materialsDefaults[materialKey] !== undefined) {
+            const candidate = root.materialsDefaults[materialKey][propertyName]
+            if (candidate !== undefined) {
+                return candidate
+            }
+        }
+        return fallback
+    }
 
  // ===============================================================
  // FRAME MATERIAL PROPERTIES
