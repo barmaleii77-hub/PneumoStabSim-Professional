@@ -119,3 +119,64 @@ def test_get_settings_manager_caches_instance(
     second = get_settings_manager()
 
     assert first is second
+
+
+def test_get_category_returns_copy(legacy_settings: Path) -> None:
+    manager = SettingsManager(settings_file=legacy_settings)
+
+    geometry = manager.get_category("geometry")
+    assert geometry is not None
+
+    geometry["wheelbase"] = 99.0
+
+    assert manager.get("current.geometry.wheelbase") != 99.0
+
+
+def test_set_category_updates_current_section(legacy_settings: Path) -> None:
+    manager = SettingsManager(settings_file=legacy_settings)
+
+    manager.set_category("geometry", {"wheelbase": 3.6}, auto_save=False)
+
+    assert manager.get("current.geometry.wheelbase") == 3.6
+
+    payload = json.loads(legacy_settings.read_text(encoding="utf-8"))
+    assert payload["current"]["geometry"]["wheelbase"] != 3.6
+
+    manager.save()
+    payload = json.loads(legacy_settings.read_text(encoding="utf-8"))
+    assert payload["current"]["geometry"]["wheelbase"] == 3.6
+
+
+def test_reset_to_defaults_category(legacy_settings: Path) -> None:
+    manager = SettingsManager(settings_file=legacy_settings)
+
+    manager.set("current.geometry.wheelbase", 4.2)
+    assert manager.get("current.geometry.wheelbase") == 4.2
+
+    manager.reset_to_defaults(category="geometry")
+
+    default_value = manager.get("defaults_snapshot.geometry.wheelbase")
+    assert manager.get("current.geometry.wheelbase") == default_value
+
+    payload = json.loads(legacy_settings.read_text(encoding="utf-8"))
+    assert payload["current"]["geometry"]["wheelbase"] == default_value
+
+
+def test_save_current_as_defaults_category(legacy_settings: Path) -> None:
+    manager = SettingsManager(settings_file=legacy_settings)
+
+    manager.set("current.geometry.wheelbase", 5.1)
+
+    manager.save_current_as_defaults(category="geometry")
+
+    assert manager.get("defaults_snapshot.geometry.wheelbase") == 5.1
+
+    payload = json.loads(legacy_settings.read_text(encoding="utf-8"))
+    assert payload["defaults_snapshot"]["geometry"]["wheelbase"] == 5.1
+
+
+def test_reset_to_defaults_unknown_category_raises(legacy_settings: Path) -> None:
+    manager = SettingsManager(settings_file=legacy_settings)
+
+    with pytest.raises(KeyError):
+        manager.reset_to_defaults(category="missing")

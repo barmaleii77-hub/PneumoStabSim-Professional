@@ -198,6 +198,66 @@ class SettingsManager:
     def get_all_defaults(self) -> Dict[str, Any]:
         return _deep_copy(self._defaults)
 
+    # Category helpers -------------------------------------------------------
+    def get_category(
+        self, category: str, default: Optional[Dict[str, Any]] = None
+    ) -> Optional[Dict[str, Any]]:
+        """Return a deep copy of a category from the ``current`` section."""
+
+        if not category:
+            raise ValueError("Category name must be non-empty")
+
+        if category in self._data:
+            return _deep_copy(self._data[category])
+
+        if default is None:
+            return None
+
+        return _deep_copy(default)
+
+    def set_category(
+        self, category: str, payload: Dict[str, Any], *, auto_save: bool = True
+    ) -> None:
+        """Replace a category inside the ``current`` section."""
+
+        if not category:
+            raise ValueError("Category name must be non-empty")
+
+        self._data[category] = _deep_copy(payload)
+
+        if auto_save:
+            self.save()
+
+    def reset_to_defaults(
+        self, *, category: Optional[str] = None, auto_save: bool = True
+    ) -> None:
+        """Reset ``current`` values to the defaults snapshot."""
+
+        if category is None:
+            self._data = _deep_copy(self._defaults)
+        else:
+            if category not in self._defaults:
+                raise KeyError(f"Unknown defaults category: {category}")
+            self._data[category] = _deep_copy(self._defaults[category])
+
+        if auto_save:
+            self.save()
+
+    def save_current_as_defaults(
+        self, *, category: Optional[str] = None, auto_save: bool = True
+    ) -> None:
+        """Persist the current values into the defaults snapshot."""
+
+        if category is None:
+            self._defaults = _deep_copy(self._data)
+        else:
+            if category not in self._data:
+                raise KeyError(f"Unknown current category: {category}")
+            self._defaults[category] = _deep_copy(self._data[category])
+
+        if auto_save:
+            self.save()
+
 
 _settings_manager: Optional[SettingsManager] = None
 
