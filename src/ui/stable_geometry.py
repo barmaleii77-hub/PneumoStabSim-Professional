@@ -7,7 +7,7 @@ Property-based geometry approach - ensuring proper lifetime management
 import logging
 import numpy as np
 from PySide6.QtQuick3D import QQuick3DGeometry
-from PySide6.QtCore import QByteArray, QObject, Property, Signal
+from PySide6.QtCore import QByteArray, QObject, Property, Signal, QVariant
 from PySide6.QtQml import QmlElement
 
 QML_IMPORT_NAME = "StableGeometry"
@@ -127,7 +127,7 @@ class GeometryProvider(QObject):
         _logger.debug("GeometryProvider.__init__: %s", self)
         self._geometry = StableTriangleGeometry(self)
 
-    @Property(QQuick3DGeometry, notify=geometryChanged)
+    @Property(QVariant, notify=geometryChanged)
     def geometry(self):
         _logger.debug("GeometryProvider.geometry getter called: %s", self._geometry)
         return self._geometry
