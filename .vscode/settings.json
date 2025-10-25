@@ -134,10 +134,6 @@
   "files.encoding": "utf8",
   "files.autoSave": "afterDelay",
   "files.autoSaveDelay": 1000,
-  "launch": {
-    "version": "0.2.0",
-    "configurations": []
-  },
   "github.copilot.editor.enableCodeActions": true,
   "github.copilot.renameSuggestions.triggerAutomatically": true,
   "github.copilot.chat.followUps": "always",
@@ -148,6 +144,16 @@
   "python.analysis.completeFunctionParens": true,
   "python.analysis.autoSearchPaths": true,
   "python.analysis.indexing": true,
+  "python.analysis.extraPaths": [
+    "${workspaceFolder}/src",
+    "${workspaceFolder}/tests",
+    "${workspaceFolder}/tools"
+  ],
+  "python.autoComplete.extraPaths": [
+    "${workspaceFolder}/src",
+    "${workspaceFolder}/tests",
+    "${workspaceFolder}/tools"
+  ],
   "python.analysis.inlayHints.functionReturnTypes": true,
   "python.analysis.inlayHints.variableTypes": true,
   "python.analysis.inlayHints.pytestParameters": true,

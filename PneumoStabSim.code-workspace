@@ -19,23 +19,43 @@
         },
         "python.terminal.activateEnvironment": true,
         "python.testing.pytestArgs": [
+            "tests",
             "-m",
             "not gui"
         ],
         "python.testing.pytestEnabled": true,
-        "python.testing.pytestPath": "${config:python.defaultInterpreterPath}",
+        "python.testing.pytestPath": "pytest",
         "python.testing.unittestEnabled": false,
         "files.autoSave": "afterDelay",
         "editor.formatOnSave": true,
         "ruff.lint.run": "onSave",
-        "ruff.format.run": "onSave"
+        "ruff.format.run": "onSave",
+        "python.testing.cwd": "${workspaceFolder}",
+        "python.analysis.extraPaths": [
+            "${workspaceFolder}/src",
+            "${workspaceFolder}/tests",
+            "${workspaceFolder}/tools"
+        ],
+        "python.autoComplete.extraPaths": [
+            "${workspaceFolder}/src",
+            "${workspaceFolder}/tests",
+            "${workspaceFolder}/tools"
+        ]
     },
     "extensions": {
         "recommendations": [
             "ms-python.python",
             "ms-python.vscode-pylance",
+            "ms-python.debugpy",
             "charliermarsh.ruff",
-            "ms-vscode.cpptools"
+            "ms-toolsai.jupyter",
+            "ms-vscode.cpptools",
+            "ms-vscode.cmake-tools",
+            "ms-vscode.powershell",
+            "qt.io.qt-vscode",
+            "tamasfe.even-better-toml",
+            "github.copilot",
+            "github.copilot-chat"
         ]
     }
 }

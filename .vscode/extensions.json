@@ -1,0 +1,16 @@
+{
+  "recommendations": [
+    "ms-python.python",
+    "ms-python.vscode-pylance",
+    "ms-python.debugpy",
+    "charliermarsh.ruff",
+    "ms-toolsai.jupyter",
+    "ms-vscode.cpptools",
+    "ms-vscode.cmake-tools",
+    "ms-vscode.powershell",
+    "qt.io.qt-vscode",
+    "tamasfe.even-better-toml",
+    "github.copilot",
+    "github.copilot-chat"
+  ]
+}
