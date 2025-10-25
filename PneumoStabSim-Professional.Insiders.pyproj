@@ -1,0 +1,111 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003" ToolsVersion="4.0">
+  <PropertyGroup>
+    <VisualStudioVersion Condition="'$(VisualStudioVersion)' == ''">17.10</VisualStudioVersion>
+    <Configuration Condition=" '$(Configuration)' == '' ">Insiders</Configuration>
+    <SchemaVersion>2.0</SchemaVersion>
+    <ProjectGuid>{8F86D2A3-3AF7-4CF3-9EC4-1DFD95C5DE7A}</ProjectGuid>
+    <ProjectHome>.</ProjectHome>
+    <ProjectTypeGuids>{888888A0-9F3D-457C-B088-3A5042F75D52}</ProjectTypeGuids>
+    <StartupFile>app.py</StartupFile>
+    <SearchPath>src\;tests\;scripts\</SearchPath>
+    <WorkingDirectory>.</WorkingDirectory>
+    <OutputPath>.</OutputPath>
+    <ProjectName>PneumoStabSim-Professional (Insiders)</ProjectName>
+    <Name>PneumoStabSim-Professional.Insiders</Name>
+    <RootNamespace>pneumostabsim</RootNamespace>
+    <InterpreterPath>$(MSBuildProjectDirectory)\.venv\Scripts\python.exe</InterpreterPath>
+    <SuppressConfigureTestFrameworkPrompt>true</SuppressConfigureTestFrameworkPrompt>
+    <TestFramework>pytest</TestFramework>
+    <UnitTestPattern>test_*.py</UnitTestPattern>
+    <UnitTestRootDirectory>tests</UnitTestRootDirectory>
+    <LaunchProvider>Standard Python launcher</LaunchProvider>
+    <EnableNativeCodeDebugging>False</EnableNativeCodeDebugging>
+    <IsWindowsApplication>False</IsWindowsApplication>
+    <InterpreterId>MSBuild|insiders|$(MSBuildProjectFullPath)</InterpreterId>
+    <SuppressPackageInstallationPrompt>True</SuppressPackageInstallationPrompt>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
+    <DebugSymbols>true</DebugSymbols>
+    <EnableUnmanagedDebugging>false</EnableUnmanagedDebugging>
+    <CommandLineArguments>--verbose</CommandLineArguments>
+    <Environment>
+PYTHONPATH=$(MSBuildProjectDirectory);$(MSBuildProjectDirectory)\src;$(MSBuildProjectDirectory)\tests
+QML2_IMPORT_PATH=$(MSBuildProjectDirectory)\.venv\Lib\site-packages\PySide6\qml;$(MSBuildProjectDirectory)\assets\qml
+QML_IMPORT_PATH=$(MSBuildProjectDirectory)\.venv\Lib\site-packages\PySide6\qml;$(MSBuildProjectDirectory)\assets\qml
+QT_PLUGIN_PATH=$(MSBuildProjectDirectory)\.venv\Lib\site-packages\PySide6\plugins
+QT_QML_IMPORT_PATH=$(MSBuildProjectDirectory)\.venv\Lib\site-packages\PySide6\qml
+QT_QUICK_CONTROLS_STYLE=Basic
+PNEUMOSTABSIM_PROFILE=debug
+    </Environment>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)' == 'Release' ">
+    <DebugSymbols>false</DebugSymbols>
+    <EnableUnmanagedDebugging>false</EnableUnmanagedDebugging>
+    <CommandLineArguments></CommandLineArguments>
+    <Environment>
+PYTHONPATH=$(MSBuildProjectDirectory);$(MSBuildProjectDirectory)\src
+QML2_IMPORT_PATH=$(MSBuildProjectDirectory)\.venv\Lib\site-packages\PySide6\qml;$(MSBuildProjectDirectory)\assets\qml
+QML_IMPORT_PATH=$(MSBuildProjectDirectory)\.venv\Lib\site-packages\PySide6\qml;$(MSBuildProjectDirectory)\assets\qml
+QT_PLUGIN_PATH=$(MSBuildProjectDirectory)\.venv\Lib\site-packages\PySide6\plugins
+QT_QML_IMPORT_PATH=$(MSBuildProjectDirectory)\.venv\Lib\site-packages\PySide6\qml
+QT_QUICK_CONTROLS_STYLE=Basic
+PNEUMOSTABSIM_PROFILE=release
+    </Environment>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)' == 'Test' ">
+    <DebugSymbols>true</DebugSymbols>
+    <EnableUnmanagedDebugging>false</EnableUnmanagedDebugging>
+    <CommandLineArguments>--test-mode</CommandLineArguments>
+    <Environment>
+PYTHONPATH=$(MSBuildProjectDirectory);$(MSBuildProjectDirectory)\src;$(MSBuildProjectDirectory)\tests
+QML2_IMPORT_PATH=$(MSBuildProjectDirectory)\.venv\Lib\site-packages\PySide6\qml;$(MSBuildProjectDirectory)\assets\qml
+QML_IMPORT_PATH=$(MSBuildProjectDirectory)\.venv\Lib\site-packages\PySide6\qml;$(MSBuildProjectDirectory)\assets\qml
+QT_PLUGIN_PATH=$(MSBuildProjectDirectory)\.venv\Lib\site-packages\PySide6\plugins
+QT_QML_IMPORT_PATH=$(MSBuildProjectDirectory)\.venv\Lib\site-packages\PySide6\qml
+QT_QUICK_CONTROLS_STYLE=Basic
+PNEUMOSTABSIM_PROFILE=test
+    </Environment>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)' == 'Insiders' ">
+    <DebugSymbols>true</DebugSymbols>
+    <EnableUnmanagedDebugging>false</EnableUnmanagedDebugging>
+    <CommandLineArguments>app.py --insiders</CommandLineArguments>
+    <Environment>
+PYTHONPATH=$(MSBuildProjectDirectory);$(MSBuildProjectDirectory)\src;$(MSBuildProjectDirectory)\tests
+QML2_IMPORT_PATH=$(MSBuildProjectDirectory)\.venv\Lib\site-packages\PySide6\qml;$(MSBuildProjectDirectory)\assets\qml
+QML_IMPORT_PATH=$(MSBuildProjectDirectory)\.venv\Lib\site-packages\PySide6\qml;$(MSBuildProjectDirectory)\assets\qml
+QT_PLUGIN_PATH=$(MSBuildProjectDirectory)\.venv\Lib\site-packages\PySide6\plugins
+QT_QML_IMPORT_PATH=$(MSBuildProjectDirectory)\.venv\Lib\site-packages\PySide6\qml
+QT_QUICK_CONTROLS_STYLE=Basic
+PNEUMOSTABSIM_PROFILE=insiders
+    </Environment>
+  </PropertyGroup>
+  <ItemGroup>
+    <Content Include="PneumoStabSim-Professional.insiders.vsconfig" />
+    <Content Include="tools\visualstudio\initialize_insiders_environment.ps1" />
+    <Content Include="tools\visualstudio\launch_insiders.ps1" />
+    <Content Include="Properties\launchSettings.json" />
+    <Content Include="activate_environment.ps1" />
+    <Content Include="activate_venv.ps1" />
+  </ItemGroup>
+  <ItemGroup>
+    <InterpreterReference Include="Global|PythonCore|3.13" />
+  </ItemGroup>
+  <ItemGroup>
+    <Interpreter Include="insiders\">
+      <Id>insiders</Id>
+      <Version>3.13</Version>
+      <Description>Insiders (Python 3.13 (64-bit))</Description>
+      <InterpreterPath>Scripts\python.exe</InterpreterPath>
+      <WindowsInterpreterPath>Scripts\pythonw.exe</WindowsInterpreterPath>
+      <PathEnvironmentVariable>PYTHONPATH</PathEnvironmentVariable>
+      <Architecture>X64</Architecture>
+    </Interpreter>
+  </ItemGroup>
+  <Target Name="PrepareVisualStudioInsidersEnvironment" BeforeTargets="PrepareForLaunch">
+    <Message Text="Preparing Visual Studio Insiders environment" Importance="high" />
+    <Exec Command="powershell -NoProfile -ExecutionPolicy Bypass -File &quot;$(MSBuildProjectDirectory)\tools\visualstudio\initialize_insiders_environment.ps1&quot; -ProjectRoot &quot;$(MSBuildProjectDirectory)&quot;" />
+  </Target>
+  <Import Project="$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\Python Tools\Microsoft.PythonTools.targets" />
+</Project>
