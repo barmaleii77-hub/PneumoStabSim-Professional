@@ -110,6 +110,11 @@ uv-first environment strategy captured in the renovation master plan.
   - A reference PowerShell implementation lives at `.githooks/pre-push.ps1` and
     calls `python -m tools.ci_tasks verify` for environments where `make`
     is unavailable.
+- Install the optional commit message helper to surface Conventional Commit
+  scopes automatically. The script inserts a `# Suggested scopes: ...` comment
+  derived from the staged files:
+  - **Unix-like shells** – `ln -s ../../tools/git/prepare_commit_msg.py .git/hooks/prepare-commit-msg`
+  - **Windows (PowerShell)** – `cmd /c mklink .git\\hooks\\prepare-commit-msg ..\\..\\tools\\git\\prepare_commit_msg.py`
 - Follow Conventional Commit messages (`type(scope): summary`) when committing.
 
 ## 5. Troubleshooting & support
