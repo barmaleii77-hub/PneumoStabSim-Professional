@@ -1,31 +1,72 @@
-"""
-Force calculation utilities for 3-DOF dynamics
-Handles projection of suspension forces and moment calculations
+"""Force calculation utilities for 3-DOF dynamics.
+
+Handles projection of suspension forces and moment calculations while remaining
+fully deterministic. The helpers in this module are intentionally lightweight –
+they operate purely on NumPy arrays and primitive containers so that they can be
+reused by the physics integrator, the diagnostics suite and smoke tests without
+pulling in the heavier simulation layers. Previous revisions relied on an
+implicit global ``numpy`` import which made the functions crash as soon as they
+were exercised; we now validate the inputs explicitly so that issues are caught
+in a controlled manner during automated test runs.
 """
 
+from __future__ import annotations
+
+from typing import Any, Dict, Iterable, Tuple
+
 import numpy as np
-from typing import Tuple, Dict, Any
+from numpy.typing import ArrayLike, NDArray
+
+
+def _to_vector3(value: ArrayLike, *, name: str) -> NDArray[np.float64]:
+    """Convert ``value`` into a 3D float vector.
+
+    The helper performs a strict shape check which keeps subtle mistakes (for
+    example passing a 2D array or a list of length other than three) from
+    propagating deeper into the physics calculations where they would cause
+    cryptic NumPy broadcasting errors.
+    """
+
+    array = np.asarray(value, dtype=float)
+    if array.shape != (3,):  # pragma: no cover - sanity guard
+        raise ValueError(f"{name} must be a 3-vector, got shape {array.shape!r}")
+    return array
+
+
+def _normalise_axis(axis: ArrayLike) -> NDArray[np.float64]:
+    """Return a unit vector for ``axis`` ensuring numerical stability."""
+
+    vector = _to_vector3(axis, name="axis")
+    norm = float(np.linalg.norm(vector))
+    if norm == 0.0:
+        raise ValueError("Axis vector must not be zero")
+    return vector / norm
 
 
 def compute_point_velocity_world(
-    r_local: np.ndarray, body_velocity: np.ndarray, body_angular_velocity: np.ndarray
-) -> np.ndarray:
-    """Compute velocity of a point on rigid body in world coordinates
+    r_local: ArrayLike,
+    body_velocity: ArrayLike,
+    body_angular_velocity: ArrayLike,
+) -> NDArray[np.float64]:
+    """Compute velocity of a point on a rigid body in world coordinates.
 
     Args:
-        r_local: Position vector in body frame (3,) -> (x, y, z)
-        body_velocity: Linear velocity of body center of mass (3,) -> (vx, vy, vz)
-        body_angular_velocity: Angular velocity vector (3,) -> (?x, ?y, ?z)
+        r_local: Position vector in body frame (``x``, ``y``, ``z``).
+        body_velocity: Linear velocity of body centre of mass.
+        body_angular_velocity: Angular velocity vector (``ωx``, ``ωy``, ``ωz``).
 
     Returns:
-        Point velocity in world frame (3,)
+        Point velocity in the world reference frame.
     """
-    # v_point = v_body + ? ? r
-    return body_velocity + np.cross(body_angular_velocity, r_local)
+
+    r_vec = _to_vector3(r_local, name="r_local")
+    v_body = _to_vector3(body_velocity, name="body_velocity")
+    w_body = _to_vector3(body_angular_velocity, name="body_angular_velocity")
+    return v_body + np.cross(w_body, r_vec)
 
 
 def compute_axis_velocity(
-    axis_unit_world: np.ndarray, point_velocity_world: np.ndarray
+    axis_unit_world: ArrayLike, point_velocity_world: ArrayLike
 ) -> float:
     """Compute velocity component along cylinder axis
 
@@ -36,11 +77,16 @@ def compute_axis_velocity(
     Returns:
         Axial velocity (scalar, positive = extension)
     """
-    return np.dot(axis_unit_world, point_velocity_world)
+    axis = _normalise_axis(axis_unit_world)
+    velocity = _to_vector3(point_velocity_world, name="point_velocity_world")
+    return float(np.dot(axis, velocity))
 
 
 def compute_suspension_point_kinematics(
-    wheel_name: str, y: np.ndarray, attachment_points: Dict[str, Tuple[float, float]]
+    wheel_name: str,
+    y: ArrayLike,
+    attachment_points: Dict[str, Tuple[float, float]],
+    axis_directions: Dict[str, Iterable[float]] | None = None,
 ) -> Dict[str, Any]:
     """Compute kinematic state for a suspension point
 
@@ -52,7 +98,13 @@ def compute_suspension_point_kinematics(
     Returns:
         Dictionary with kinematic information
     """
-    Y, phi_z, theta_x, dY, dphi_z, dtheta_x = y
+    state = np.asarray(y, dtype=float)
+    if state.shape != (6,):  # pragma: no cover - sanity guard
+        raise ValueError(
+            f"State vector must contain six values, got shape {state.shape!r}"
+        )
+
+    Y, phi_z, theta_x, dY, dphi_z, dtheta_x = state
 
     # Get attachment point coordinates
     if wheel_name not in attachment_points:
@@ -61,22 +113,24 @@ def compute_suspension_point_kinematics(
     x_attach, z_attach = attachment_points[wheel_name]
 
     # Position vector of attachment point in body frame
-    r_local = np.array([x_attach, 0.0, z_attach])  # y=0 in body frame
+    r_local = np.array([x_attach, 0.0, z_attach], dtype=float)
 
     # Body center velocity in world frame
-    body_velocity = np.array([0.0, dY, 0.0])  # Only heave motion for body center
+    body_velocity = np.array([0.0, dY, 0.0], dtype=float)
 
     # Angular velocity vector: ? = [d?x, 0, d?z] (small angle approximation)
-    body_angular_velocity = np.array([dtheta_x, 0.0, dphi_z])
+    body_angular_velocity = np.array([dtheta_x, 0.0, dphi_z], dtype=float)
 
     # Attachment point velocity in world frame
     point_velocity = compute_point_velocity_world(
         r_local, body_velocity, body_angular_velocity
     )
 
-    # TODO: Get actual cylinder axis from system geometry
-    # For now, assume vertical cylinders as placeholder
-    axis_unit_world = np.array([0.0, 1.0, 0.0])  # Vertical (down positive)
+    if axis_directions and wheel_name in axis_directions:
+        axis_unit_world = _normalise_axis(axis_directions[wheel_name])
+    else:
+        # Default assumption – vertical cylinders.
+        axis_unit_world = np.array([0.0, 1.0, 0.0], dtype=float)
 
     # Axial velocity
     v_axis = compute_axis_velocity(axis_unit_world, point_velocity)
