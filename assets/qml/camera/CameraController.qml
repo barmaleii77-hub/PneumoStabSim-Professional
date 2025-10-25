@@ -57,6 +57,21 @@ Item {
     property bool taaMotionAdaptive: false
 
     /**
+     * Controls visibility of the HUD overlay
+     */
+    property bool hudVisible: false
+
+    /**
+     * Arbitrary HUD configuration payload
+     */
+    property var hudSettings: ({})
+
+    /**
+     * Scene scale factor used for unit conversion (mm → m)
+     */
+    property real sceneScaleFactor: 1000.0
+
+    /**
      * External callbacks
      */
     property var onToggleAnimation: null
@@ -85,6 +100,8 @@ Item {
      */
     readonly property alias mouseControls: mouseInput
 
+    readonly property alias motionSettlingMs: mouseInput.motionSettlingMs
+
     // ===============================================================
     // PUBLIC API - CONVENIENCE PROPERTIES
     // ===============================================================
@@ -109,6 +126,8 @@ Item {
 
     // Motion tracking
     readonly property alias isMoving: cameraState.isMoving
+
+    signal hudToggleRequested()
 
     // ===============================================================
     // SIGNALS (forwarded from CameraState)
@@ -148,6 +167,29 @@ Item {
         onToggleAnimation: function() {
             if (controller.onToggleAnimation) {
                 controller.onToggleAnimation()
+            }
+        }
+        onToggleCameraHud: function() {
+            controller.hudToggleRequested()
+        }
+    }
+
+    CameraStateHud {
+        id: cameraHud
+        anchors.top: parent.top
+        anchors.right: parent.right
+        anchors.topMargin: 12
+        anchors.rightMargin: 12
+        width: implicitWidth
+        height: implicitHeight
+        cameraController: controller
+        settings: controller.hudSettings
+        visible: controller.hudVisible
+        opacity: controller.hudVisible ? 1 : 0
+        Behavior on opacity {
+            NumberAnimation {
+                duration: 120
+                easing.type: Easing.InOutQuad
             }
         }
     }

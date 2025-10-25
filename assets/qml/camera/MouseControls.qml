@@ -65,6 +65,16 @@ MouseArea {
      */
     property var onToggleAnimation: null
 
+    /**
+     * Callback for toggling the camera HUD (Ctrl+H)
+     */
+    property var onToggleCameraHud: null
+
+    /**
+     * Duration (ms) after which motion is considered settled
+     */
+    readonly property int motionSettlingMs: cameraMotionSettler.interval
+
     // ===============================================================
     // MOUSE STATE
     // ===============================================================
@@ -209,6 +219,14 @@ MouseArea {
             }
 
             event.accepted = true
+        } else if (event.key === Qt.Key_H && (event.modifiers & Qt.ControlModifier)) {
+            console.log("⌨️ Ctrl+H: toggle camera HUD")
+
+            if (onToggleCameraHud) {
+                onToggleCameraHud()
+            }
+
+            event.accepted = true
         }
     }
 
@@ -235,6 +253,6 @@ MouseArea {
         console.log("   🖱️ Right button: panning")
         console.log("   🖱️ Wheel: zoom")
         console.log("   🖱️ Double-click: reset view")
-        console.log("   ⌨️ Keys: R (reset), F (auto-fit), Space (animation)")
+        console.log("   ⌨️ Keys: R (reset), F (auto-fit), Space (animation), Ctrl+H (camera HUD)")
     }
 }

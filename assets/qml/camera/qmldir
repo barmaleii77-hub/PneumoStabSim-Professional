@@ -4,3 +4,4 @@ CameraState 1.0 CameraState.qml
 CameraRig 1.0 CameraRig.qml
 MouseControls 1.0 MouseControls.qml
 CameraController 1.0 CameraController.qml
+CameraStateHud 1.0 CameraStateHud.qml

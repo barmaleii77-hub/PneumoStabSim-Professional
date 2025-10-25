@@ -88,6 +88,14 @@
         "include": [],
         "exclude": [],
         "history_limit": 1000
+      },
+      "camera_hud": {
+        "enabled": false,
+        "precision": 2,
+        "showPivot": true,
+        "showPan": true,
+        "showAngles": true,
+        "showMotion": true
       }
     }
   },
@@ -170,6 +178,14 @@
         "include": [],
         "exclude": [],
         "history_limit": 1000
+      },
+      "camera_hud": {
+        "enabled": false,
+        "precision": 2,
+        "showPivot": true,
+        "showPan": true,
+        "showAngles": true,
+        "showMotion": true
       }
     }
   },

@@ -82,3 +82,8 @@
 
 ## Execution Log
 Track panel completion status, performance runs, and localization updates here.
+
+### 2025-09-06 – Camera HUD diagnostics overlay
+- Implemented `CameraStateHud.qml` overlay with live camera metrics toggled via Ctrl+H.
+- Bound the HUD visibility to `diagnostics.camera_hud` settings and exposed defaults through the QML context payload.
+

@@ -83,10 +83,22 @@ class UISetup:
             except Exception:
                 return payload
 
+        def _diagnostics() -> Dict[str, Any]:
+            if manager is None:
+                return {}
+            try:
+                payload = manager.get("diagnostics", {}) or {}
+            except Exception:
+                payload = {}
+            if not isinstance(payload, dict):
+                return {}
+            return payload
+
         return {
             "animation": _sanitize(_section("animation")),
             "scene": _sanitize(_section("scene")),
             "materials": _sanitize(_section("materials")),
+            "diagnostics": _sanitize(_diagnostics()),
         }
 
     # ------------------------------------------------------------------
@@ -187,6 +199,9 @@ class UISetup:
                 context.setContextProperty("initialSceneSettings", payload["scene"])
                 context.setContextProperty(
                     "initialSharedMaterials", payload["materials"]
+                )
+                context.setContextProperty(
+                    "initialDiagnosticsSettings", payload.get("diagnostics", {})
                 )
                 UISetup.logger.info("    ✅ Initial graphics settings exposed to QML")
             except Exception as ctx_exc:

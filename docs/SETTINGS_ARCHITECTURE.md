@@ -224,6 +224,13 @@ settings = settings_manager.load_settings()
 settings_manager.save_settings(state)
 ```
 
+#### **8. Camera HUD Overlay**
+
+- Блок `diagnostics.camera_hud` управляет отладочным HUD камеры в сцене Qt Quick 3D.
+- Поле `enabled` синхронизируется с QML (`SimulationRoot.qml` и `CameraStateHud.qml`) и может переключаться горячей клавишей Ctrl+H.
+- Дополнительные параметры (`precision`, `showPivot`, `showPan`, `showAngles`, `showMotion`) контролируют формат вывода и набор метрик.
+- Значения по умолчанию задаются в `config/app_settings.json`, доступны через `SettingsManager` и экспортируются в контекст QML (`initialDiagnosticsSettings`).
+
 ---
 
 ## 📋 СТРУКТУРА config/app_settings.json
