@@ -10,6 +10,8 @@ import logging
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Dict, Optional, Union
 
+from src.ui.qml_bridge import QMLBridgeRegistry
+
 # Try to import Qt pieces, but provide lightweight fallbacks for test environment
 try:
     from PySide6.QtCore import Q_ARG, QMetaObject, Qt
@@ -47,18 +49,30 @@ class QMLBridge:
     """
 
     logger = logging.getLogger(__name__)
+    BRIDGE_PROPERTY: str = "pendingPythonUpdates"
+    ACK_SIGNAL: Optional[str] = None
+    QML_UPDATE_METHODS: Dict[str, tuple[str, ...]] = {}
 
-    QML_UPDATE_METHODS: Dict[str, tuple[str, ...]] = {
-        "geometry": ("applyGeometryUpdates", "updateGeometry"),
-        "animation": ("applyAnimationUpdates", "updateAnimation"),
-        "lighting": ("applyLightingUpdates", "updateLighting"),
-        "materials": ("applyMaterialUpdates", "updateMaterials"),
-        "environment": ("applyEnvironmentUpdates", "updateEnvironment"),
-        "quality": ("applyQualityUpdates", "updateQuality"),
-        "camera": ("applyCameraUpdates", "updateCamera"),
-        "effects": ("applyEffectsUpdates", "updateEffects"),
-        "simulation": ("applySimulationUpdates",),
-    }
+    @classmethod
+    def reload_bridge_metadata(
+        cls, *, force: bool = False
+    ) -> Dict[str, tuple[str, ...]]:
+        """Refresh cached bridge metadata from ``config/qml_bridge.yaml``."""
+
+        metadata = QMLBridgeRegistry.load_metadata(force=force)
+        cls.BRIDGE_PROPERTY = metadata.qml_property
+        cls.ACK_SIGNAL = metadata.ack_signal
+        cls.QML_UPDATE_METHODS = {
+            name: tuple(category.methods)
+            for name, category in metadata.category_map().items()
+        }
+        return cls.QML_UPDATE_METHODS
+
+    @staticmethod
+    def dump_routes(*, include_descriptions: bool = True) -> str:
+        """Expose registry dump helper for diagnostics overlays."""
+
+        return QMLBridgeRegistry.dump_routes(include_descriptions=include_descriptions)
 
     # ------------------------------------------------------------------
     # Queue Management
@@ -147,7 +161,9 @@ class QMLBridge:
             sanitized = QMLBridge._prepare_for_qml(updates)
             window._suppress_qml_feedback = True
             try:
-                window._qml_root_object.setProperty("pendingPythonUpdates", sanitized)
+                window._qml_root_object.setProperty(
+                    QMLBridge.BRIDGE_PROPERTY, sanitized
+                )
             finally:
                 window._suppress_qml_feedback = False
             return QMLBridge._make_update_result(True, detailed)
@@ -191,7 +207,7 @@ class QMLBridge:
             window._suppress_qml_feedback = True
             try:
                 window._qml_root_object.setProperty(
-                    "pendingPythonUpdates",
+                    QMLBridge.BRIDGE_PROPERTY,
                     sanitized,
                 )
             finally:
@@ -454,7 +470,6 @@ class QMLBridge:
                 return QMLBridge._prepare_for_qml(value.tolist())
         except Exception:
             pass
-
         if isinstance(value, Path):
             return str(value)
 
@@ -525,3 +540,8 @@ class QMLBridge:
             )
         except Exception:
             pass
+
+
+# Load bridge metadata immediately so constants are available for import-time
+# consumers (e.g. MainWindow definitions and state sync helpers).
+QMLBridge.reload_bridge_metadata()

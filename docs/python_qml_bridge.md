@@ -19,21 +19,21 @@ graph TD
 
 ## Прямые вызовы QML-функций
 
-- Карта `QML_UPDATE_METHODS` описывает соответствие категорий (`geometry`, `lighting`, `quality`, `camera`, `effects`, `animation`, `materials`, `environment`, `simulation`) методам QML (`apply*Updates`, `update*`). 【F:src/ui/main_window/qml_bridge.py†L60-L105】 
- Правило: добавляя новую функцию в QML, зарегистрируйте её в карте и убедитесь, что QML реализует обработчик.
+- Карта `QML_UPDATE_METHODS` формируется из декларативного файла `config/qml_bridge.yaml` и загружается через `src/ui/qml_bridge.py`, после чего используется `QMLBridge.reload_bridge_metadata()` для обновления кэша. 【F:config/qml_bridge.yaml†L1-L46】【F:src/ui/qml_bridge.py†L18-L126】【F:src/ui/main_window/qml_bridge.py†L33-L70】
+  Правило: добавляя новую функцию в QML, расширьте YAML и перезагрузите мост; тесты `tests/ui/test_qml_bridge_metadata.py` контролируют синхронизацию. 【F:tests/ui/test_qml_bridge_metadata.py†L1-L55】
 - `QMLBridge.invoke_qml_function()` инкапсулирует `QMetaObject.invokeMethod`, добавляя логирование через `EventLogger`. 【F:src/ui/main_window/qml_bridge.py†L235-L276】 
  Правило: любые изменения сигнатуры должны оставаться совместимыми с `Qt.ConnectionType.DirectConnection` и существующими тестовыми стабами.
 
 ## Батч-обновления свойств
 
 - `QMLBridge.queue_update()` агрегирует частичные обновления и планирует немедленный сброс таймером. 【F:src/ui/main_window/qml_bridge.py†L107-L143】
-- `QMLBridge.flush_updates()` сначала пытается записать целый пакет в свойство `pendingPythonUpdates`; при отказе автоматически вызывает методы из `QML_UPDATE_METHODS`. 【F:src/ui/main_window/qml_bridge.py†L120-L193】
+- `QMLBridge.flush_updates()` сначала пытается записать целый пакет в свойство, заданное `QMLBridge.BRIDGE_PROPERTY`, после чего при отказе автоматически вызывает методы из `QML_UPDATE_METHODS`. 【F:src/ui/main_window/qml_bridge.py†L118-L204】
 - Корневой QML-элемент реагирует на изменение `pendingPythonUpdates` и делегирует обработку `applyBatchedUpdates`. 【F:assets/qml/main.qml†L18-L166】
  
 Правила изменений:
 1. Новый ключ в пакете должен поддерживаться в `applyBatchedUpdates` (иначе ACK вернёт частичное применение).
 2. Если структура данных не сериализуется в JSON, адаптируйте `_prepare_for_qml` для преобразования (`Path`, `numpy`). 【F:src/ui/main_window/qml_bridge.py†L279-L321】
-3. При изменении имени свойства `pendingPythonUpdates` обновите QML и все места, где проверяется `_qml_pending_property_supported`.
+3. При изменении имени свойства обновите `config/qml_bridge.yaml`, QML и все места, где проверяется `_qml_pending_property_supported`; затем вызовите `QMLBridge.reload_bridge_metadata()`.
 
 ## Синхронизация состояния симуляции
 

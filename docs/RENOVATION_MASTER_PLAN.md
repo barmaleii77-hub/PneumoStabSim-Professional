@@ -212,7 +212,10 @@ best practices for scientific visualisation software.
 3. **Signal/Slot Registry**
    - Centralise the QML bridge in `src/ui/qml_bridge.py`. Auto-register signals
      from metadata defined in `config/qml_bridge.yaml`. Provide introspection via
-     `qmlBridge.dump_routes()` accessible in the diagnostics overlay.
+     `qmlBridge.dump_routes()` accessible in the diagnostics overlay. *Status:
+     August 2025 introduces the shared metadata file and registry with
+     diagnostics dump helpers; wiring signal auto-registration remains in
+     progress.*
 4. **Simulation Loop**
    - Extract deterministic update loop into `src/simulation/runner.py` with a
      fixed timestep integrator (semi-implicit Euler + smoothing filter). Replace

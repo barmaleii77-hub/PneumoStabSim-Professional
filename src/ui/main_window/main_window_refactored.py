@@ -37,6 +37,7 @@ from .state_sync import StateSync
 from .menu_actions import MenuActions
 from src.common.settings_manager import get_settings_manager
 from src.core.settings_manager import ProfileSettingsManager
+from src.ui.qml_bridge import get_qml_update_methods
 
 
 class MainWindow(QMainWindow):
@@ -63,21 +64,7 @@ class MainWindow(QMainWindow):
     SETTINGS_LAST_PRESET = "Presets/LastPath"
 
     # QML update methods (for QMLBridge)
-    QML_UPDATE_METHODS: Dict[str, tuple[str, ...]] = {
-        "geometry": ("applyGeometryUpdates", "updateGeometry"),
-        "animation": (
-            "applyAnimationUpdates",
-            "updateAnimation",
-            "applyAnimParamsUpdates",
-            "updateAnimParams",
-        ),
-        "lighting": ("applyLightingUpdates", "updateLighting"),
-        "materials": ("applyMaterialUpdates", "updateMaterials"),
-        "environment": ("applyEnvironmentUpdates", "updateEnvironment"),
-        "quality": ("applyQualityUpdates", "updateQuality"),
-        "camera": ("applyCameraUpdates", "updateCamera"),
-        "effects": ("applyEffectsUpdates", "updateEffects"),
-    }
+    QML_UPDATE_METHODS: Dict[str, tuple[str, ...]] = get_qml_update_methods()
 
     # Wheel key mapping
     WHEEL_KEY_MAP = {

@@ -65,7 +65,7 @@ graph TD
 | Категория | Точка вызова | QML обработчик | Правила изменения |
 | --- | --- | --- | --- |
 | Батч-обновления | `QMLBridge.queue_update`/`flush_updates` → `setProperty("pendingPythonUpdates")` | `main.qml` → `onPendingPythonUpdatesChanged` + `applyBatchedUpdates` | При добавлении категории обновите `QMLBridge._prepare_for_qml` при необходимости сериализации и убедитесь, что QML обрабатывает ключ. 【F:src/ui/main_window/qml_bridge.py†L110-L193】【F:assets/qml/main.qml†L18-L74】
-| Индивидуальные методы | `QMLBridge.QML_UPDATE_METHODS` + `invoke_qml_function` | `apply*Updates` функции в QML | Поддерживайте список методов в соответствующих категориях; новые QML-функции должны добавляться и в карту. 【F:src/ui/main_window/qml_bridge.py†L60-L105】【F:assets/qml/main.qml†L90-L166】
+| Индивидуальные методы | `QMLBridge.QML_UPDATE_METHODS` + `invoke_qml_function` | `apply*Updates` функции в QML | Поддерживайте список методов в соответствующих категориях; новые QML-функции добавляются в `config/qml_bridge.yaml`, после чего вызывайте `QMLBridge.reload_bridge_metadata()` для обновления кэша. 【F:config/qml_bridge.yaml†L1-L46】【F:src/ui/qml_bridge.py†L18-L126】【F:assets/qml/main.qml†L90-L166】
 | Симуляция | `QMLBridge.set_simulation_state` | `applyBatchedUpdates` → `apply3DUpdates`/`applySimulationUpdates` | Изменяя структуру `StateSnapshot`, актуализируйте `_snapshot_to_payload` и QML обработчики. 【F:src/ui/main_window/qml_bridge.py†L195-L279】【F:assets/qml/main.qml†L90-L166】
 
 ---

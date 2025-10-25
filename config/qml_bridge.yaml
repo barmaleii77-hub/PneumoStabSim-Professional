@@ -1,0 +1,69 @@
+version: 1
+qml_property: pendingPythonUpdates
+ack_signal: batchUpdatesApplied
+categories:
+  geometry:
+    description: >-
+      Geometry updates for chassis, wheels, and rig dimensions displayed in the
+      3D scene. Drives `applyGeometryUpdates` fallback when `updateGeometry`
+      cannot be invoked directly.
+    methods:
+      - applyGeometryUpdates
+      - updateGeometry
+  animation:
+    description: >-
+      Animation controls covering suspension dynamics, procedural animations,
+      and playback toggles for diagnostic sequences.
+    methods:
+      - applyAnimationUpdates
+      - updateAnimation
+      - applyAnimParamsUpdates
+      - updateAnimParams
+  lighting:
+    description: >-
+      Environment and punctual light configuration such as key, fill, rim, and
+      auxiliary rigs that define the look of the 3D scene.
+    methods:
+      - applyLightingUpdates
+      - updateLighting
+  materials:
+    description: >-
+      Material overrides for car paint, glass, tyre compounds, and track
+      surfaces. Keeps shader parameters in sync with SettingsManager.
+    methods:
+      - applyMaterialUpdates
+      - updateMaterials
+  environment:
+    description: >-
+      Skybox, HDRI rotation, fog, and atmospheric controls synchronised with the
+      diagnostics overlay.
+    methods:
+      - applyEnvironmentUpdates
+      - updateEnvironment
+  quality:
+    description: >-
+      Render quality toggles (TAA, SSAO, shadow resolution, anisotropy) exposed
+      in the graphics panel.
+    methods:
+      - applyQualityUpdates
+      - updateQuality
+  camera:
+    description: >-
+      Orbit controller parameters, camera presets, and inertial dampening
+      applied to QtQuick3D camera rigs.
+    methods:
+      - applyCameraUpdates
+      - updateCamera
+  effects:
+    description: >-
+      Post-processing stack configuration (bloom, tone mapping, vignette,
+      exposure curves) managed by the effects panel.
+    methods:
+      - applyEffectsUpdates
+      - updateEffects
+  simulation:
+    description: >-
+      Bulk simulation payload containing kinematics, telemetry, and derived
+      aggregates for diagnostic overlays.
+    methods:
+      - applySimulationUpdates

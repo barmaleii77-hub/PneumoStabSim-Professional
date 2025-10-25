@@ -29,6 +29,7 @@ from pathlib import Path
 from typing import Optional, Dict, Any
 
 from src.ui.charts import ChartWidget
+from src.ui.qml_bridge import get_qml_update_methods
 from src.ui.panels import (
     GeometryPanel,
     PneumoPanel,
@@ -50,21 +51,7 @@ from src.common.settings_manager import get_settings_manager  # ✅ SettingsMana
 class MainWindow(QMainWindow):
     """Главное окно приложения с Qt Quick3D (RHI/Direct3D) + SettingsManager"""
 
-    QML_UPDATE_METHODS: Dict[str, tuple[str, ...]] = {
-        "geometry": ("applyGeometryUpdates", "updateGeometry"),
-        "animation": (
-            "applyAnimationUpdates",
-            "updateAnimation",
-            "applyAnimParamsUpdates",
-            "updateAnimParams",
-        ),
-        "lighting": ("applyLightingUpdates", "updateLighting"),
-        "materials": ("applyMaterialUpdates", "updateMaterials"),
-        "environment": ("applyEnvironmentUpdates", "updateEnvironment"),
-        "quality": ("applyQualityUpdates", "updateQuality"),
-        "camera": ("applyCameraUpdates", "updateCamera"),
-        "effects": ("applyEffectsUpdates", "updateEffects"),
-    }
+    QML_UPDATE_METHODS: Dict[str, tuple[str, ...]] = get_qml_update_methods()
 
     WHEEL_KEY_MAP = {
         "LP": "fl",
