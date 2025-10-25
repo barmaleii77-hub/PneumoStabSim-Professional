@@ -3,13 +3,17 @@
 from __future__ import annotations
 
 import json
+import shutil
 import subprocess
 import sys
 from pathlib import Path, PureWindowsPath
 
 import pytest
 
-from src.tools.visualstudio_insiders import build_insiders_environment
+from src.tools.visualstudio_insiders import (
+    build_insiders_environment,
+    validate_insiders_environment,
+)
 
 
 @pytest.fixture(scope="module")
@@ -34,7 +38,11 @@ def test_environment_contains_expected_paths(project_root: Path) -> None:
     qml_paths = environment["QML2_IMPORT_PATH"].split(";")
     expected_qml = {
         str(PureWindowsPath(project_root / "assets" / "qml")),
-        str(PureWindowsPath(project_root / ".venv" / "Lib" / "site-packages" / "PySide6" / "qml")),
+        str(
+            PureWindowsPath(
+                project_root / ".venv" / "Lib" / "site-packages" / "PySide6" / "qml"
+            )
+        ),
     }
     assert expected_qml.issubset(qml_paths)
 
@@ -50,12 +58,61 @@ def test_environment_contains_expected_paths(project_root: Path) -> None:
     assert environment["VIRTUAL_ENV"] == str(PureWindowsPath(project_root / ".venv"))
 
 
+def _create_fake_project(tmp_path: Path) -> Path:
+    project_root = tmp_path / "pneumo-insiders"
+    (project_root / "assets" / "qml").mkdir(parents=True)
+    (project_root / "src").mkdir(parents=True)
+    (project_root / "tests").mkdir(parents=True)
+
+    pyside_root = project_root / ".venv" / "Lib" / "site-packages" / "PySide6"
+    (pyside_root / "qml").mkdir(parents=True)
+    (pyside_root / "plugins").mkdir(parents=True)
+
+    return project_root
+
+
+def test_validation_requires_expected_directories(tmp_path: Path) -> None:
+    project_root = _create_fake_project(tmp_path)
+
+    environment = validate_insiders_environment(project_root)
+    assert environment["PNEUMOSTABSIM_PROFILE"] == "insiders"
+
+    shutil.rmtree(project_root / "assets")
+    with pytest.raises(FileNotFoundError):
+        validate_insiders_environment(project_root)
+
+
+def test_validation_supports_posix_layout(tmp_path: Path) -> None:
+    project_root = tmp_path / "pneumo-insiders-posix"
+    (project_root / "assets" / "qml").mkdir(parents=True)
+    (project_root / "src").mkdir(parents=True)
+    (project_root / "tests").mkdir(parents=True)
+
+    pyside_root = (
+        project_root / ".venv" / "lib" / "python3.13" / "site-packages" / "PySide6"
+    )
+    (pyside_root / "qml").mkdir(parents=True)
+    (pyside_root / "plugins").mkdir(parents=True)
+
+    environment = build_insiders_environment(project_root, ensure_paths=True)
+    qml_paths = environment["QML2_IMPORT_PATH"].split(";")
+    assert str(PureWindowsPath(pyside_root / "qml")) in qml_paths
+
+
 def test_cli_matches_python_builder(project_root: Path, tmp_path: Path) -> None:
-    script = project_root / "tools" / "visualstudio" / "generate_insiders_environment.py"
+    script = (
+        project_root / "tools" / "visualstudio" / "generate_insiders_environment.py"
+    )
     assert script.exists()
 
     output = subprocess.check_output(
-        [sys.executable, str(script), "--project-root", str(project_root)],
+        [
+            sys.executable,
+            str(script),
+            "--project-root",
+            str(project_root),
+            "--skip-validation",
+        ],
         text=True,
     )
     cli_payload = json.loads(output)
@@ -72,6 +129,24 @@ def test_cli_matches_python_builder(project_root: Path, tmp_path: Path) -> None:
             str(project_root),
             "--output",
             str(output_file),
+            "--skip-validation",
         ]
     )
     assert json.loads(output_file.read_text()) == builder_payload
+
+
+def test_cli_validation_detects_missing_dependencies(
+    tmp_path: Path, project_root: Path
+) -> None:
+    script = (
+        project_root / "tools" / "visualstudio" / "generate_insiders_environment.py"
+    )
+    with pytest.raises(subprocess.CalledProcessError):
+        subprocess.check_call(
+            [
+                sys.executable,
+                str(script),
+                "--project-root",
+                str(tmp_path / "missing-project"),
+            ]
+        )
