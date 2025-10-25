@@ -87,3 +87,13 @@ Track panel completion status, performance runs, and localization updates here.
 - Implemented `CameraStateHud.qml` overlay with live camera metrics toggled via Ctrl+H.
 - Bound the HUD visibility to `diagnostics.camera_hud` settings and exposed defaults through the QML context payload.
 
+### 2025-09-18 – Material calibration and HDR validation
+- Re-tuned glass and metal presets in `config/baseline/materials.json` using calibrated IOR and attenuation references.
+- Automated skybox alignment validation via `tools/graphics/validate_hdr_orientation.py`, exporting the inaugural
+  report to `reports/performance/hdr_orientation.md` for design review sign-off.
+
+### 2025-09-24 – Modular panel MVP landed
+- Delivered the first iteration of the preset-aware panel stack under `assets/qml/panels/` with shared layout primitives.
+- Introduced `SettingsSyncController` bindings to surface change telemetry in the diagnostics overlay and documented
+  the workflow in `docs/ui/panel_modernization_report.md`.
+
