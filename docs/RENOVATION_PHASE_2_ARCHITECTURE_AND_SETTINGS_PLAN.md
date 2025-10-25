@@ -71,3 +71,12 @@ Log architectural decisions, ADR references, and schema revisions here.
 - Drafted the first revision of `docs/architecture/service_container.md` to
   describe lifecycle hooks and override patterns; logging and simulation
   factories will be added in follow-up iterations.
+
+### 2025-07-15 – Event bus + logging integration
+- Introduced `src/infrastructure/event_bus.py` and
+  `src/infrastructure/logging.py`, registering both services in the global
+  container with dedicated tokens.
+- Updated `SettingsService` to publish `settings.updated` events with metadata,
+  enabling diagnostics panels to react to configuration changes in real time.
+- Added unit coverage ensuring subscribers receive instrumentation payloads and
+  refreshed the service container guide with usage samples.

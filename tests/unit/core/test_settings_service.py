@@ -1,5 +1,6 @@
 import json
 from pathlib import Path
+from typing import Any
 
 import pytest
 
@@ -11,6 +12,7 @@ from src.core.settings_service import (
     get_settings_service,
 )
 from src.infrastructure.container import get_default_container
+from src.infrastructure.event_bus import EVENT_BUS_TOKEN, get_event_bus
 
 
 @pytest.fixture()
@@ -86,6 +88,27 @@ def test_settings_service_update_merges(settings_payload: Path) -> None:
         payload["current"]["constants"]["geometry"]["kinematics"]["rod_attach_fraction"]
         == 0.55
     )
+
+
+def test_settings_service_emits_event_on_save(settings_payload: Path) -> None:
+    container = get_default_container()
+    container.reset(EVENT_BUS_TOKEN)
+    events: list[dict[str, Any]] = []
+
+    bus = get_event_bus()
+    unsubscribe = bus.subscribe("settings.updated", lambda payload: events.append(payload or {}))
+    try:
+        service = SettingsService(settings_path=settings_payload)
+        service.set("current.constants.geometry.kinematics.track_width_m", 3.14)
+    finally:
+        unsubscribe()
+        container.reset(EVENT_BUS_TOKEN)
+
+    assert events, "settings.updated event was not published"
+    last_event = events[-1]
+    assert last_event.get("action") == "set"
+    assert last_event.get("path") == "current.constants.geometry.kinematics.track_width_m"
+    assert "timestamp" in last_event
 
 
 def test_constants_accessors_use_settings_service(
