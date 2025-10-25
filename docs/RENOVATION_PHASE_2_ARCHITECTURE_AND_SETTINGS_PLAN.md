@@ -71,3 +71,11 @@ Log architectural decisions, ADR references, and schema revisions here.
 - Drafted the first revision of `docs/architecture/service_container.md` to
   describe lifecycle hooks and override patterns; logging and simulation
   factories will be added in follow-up iterations.
+
+### 2025-08-15 – Metadata-driven QML bridge registry
+- Introduced `config/qml_bridge.yaml` as the authoritative catalogue for
+  Python↔QML interactions.
+- Added `src/ui/qml_bridge.py` to parse metadata, expose diagnostics helpers,
+  and auto-register `MainWindow` signal handlers.
+- Updated the legacy bridge and `SignalsRouter` to consume the shared metadata
+  map, enabling consistent documentation and introspection.

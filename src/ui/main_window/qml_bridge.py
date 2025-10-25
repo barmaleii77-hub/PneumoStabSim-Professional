@@ -30,6 +30,12 @@ except Exception:  # pragma: no cover - fallback for test env without PySide6
     QMetaObject = _DummyQMetaObject  # type: ignore[assignment]
     Qt = _DummyQt()  # type: ignore[assignment]
 
+from ..qml_bridge import describe_routes as describe_metadata_routes
+from ..qml_bridge import get_bridge_metadata
+
+
+_BRIDGE_METADATA = get_bridge_metadata()
+
 
 @dataclass(slots=True)
 class QMLUpdateResult:
@@ -49,16 +55,14 @@ class QMLBridge:
     logger = logging.getLogger(__name__)
 
     QML_UPDATE_METHODS: Dict[str, tuple[str, ...]] = {
-        "geometry": ("applyGeometryUpdates", "updateGeometry"),
-        "animation": ("applyAnimationUpdates", "updateAnimation"),
-        "lighting": ("applyLightingUpdates", "updateLighting"),
-        "materials": ("applyMaterialUpdates", "updateMaterials"),
-        "environment": ("applyEnvironmentUpdates", "updateEnvironment"),
-        "quality": ("applyQualityUpdates", "updateQuality"),
-        "camera": ("applyCameraUpdates", "updateCamera"),
-        "effects": ("applyEffectsUpdates", "updateEffects"),
-        "simulation": ("applySimulationUpdates",),
+        key: tuple(methods) for key, methods in _BRIDGE_METADATA.update_methods.items()
     }
+
+    @staticmethod
+    def describe_routes() -> Dict[str, tuple[str, ...]]:
+        """Возвращает карту категорий обновлений → методов QML."""
+
+        return describe_metadata_routes()
 
     # ------------------------------------------------------------------
     # Queue Management

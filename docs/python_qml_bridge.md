@@ -19,8 +19,8 @@ graph TD
 
 ## Прямые вызовы QML-функций
 
-- Карта `QML_UPDATE_METHODS` описывает соответствие категорий (`geometry`, `lighting`, `quality`, `camera`, `effects`, `animation`, `materials`, `environment`, `simulation`) методам QML (`apply*Updates`, `update*`). 【F:src/ui/main_window/qml_bridge.py†L60-L105】 
- Правило: добавляя новую функцию в QML, зарегистрируйте её в карте и убедитесь, что QML реализует обработчик.
+- Карта `QML_UPDATE_METHODS` описывает соответствие категорий (`geometry`, `lighting`, `quality`, `camera`, `effects`, `animation`, `materials`, `environment`, `simulation`) методам QML (`apply*Updates`, `update*`). С 2025-08-15 соответствия берутся из метаданных `config/qml_bridge.yaml`, которые парсятся модулем `src/ui/qml_bridge.py` и реэкспортируются в класс `QMLBridge`. 【F:config/qml_bridge.yaml†L1-L35】【F:src/ui/qml_bridge.py†L1-L147】【F:src/ui/main_window/qml_bridge.py†L28-L61】
+  Правило: добавляя новую функцию в QML, зарегистрируйте её в YAML и убедитесь, что QML реализует обработчик.
 - `QMLBridge.invoke_qml_function()` инкапсулирует `QMetaObject.invokeMethod`, добавляя логирование через `EventLogger`. 【F:src/ui/main_window/qml_bridge.py†L235-L276】 
  Правило: любые изменения сигнатуры должны оставаться совместимыми с `Qt.ConnectionType.DirectConnection` и существующими тестовыми стабами.
 
@@ -44,7 +44,7 @@ graph TD
 
 ## Логирование и подтверждения
 
-- QML эмитит `batchUpdatesApplied(summary)`, а `SignalsRouter` подключает его к `MainWindow._on_qml_batch_ack`, далее `QMLBridge.handle_qml_ack` помечает пакеты применёнными и обновляет Graphics Logger. 【F:assets/qml/main.qml†L16-L166】【F:src/ui/main_window/signals_router.py†L215-L233】【F:src/ui/main_window/qml_bridge.py†L360-L434】
+- QML эмитит `batchUpdatesApplied(summary)`, а `SignalsRouter` подключает его к `MainWindow._on_qml_batch_ack`, далее `QMLBridge.handle_qml_ack` помечает пакеты применёнными и обновляет Graphics Logger. Подключение теперь осуществляется через `register_qml_signals`, читающий YAML-описание. 【F:assets/qml/main.qml†L16-L166】【F:config/qml_bridge.yaml†L37-L44】【F:src/ui/qml_bridge.py†L116-L147】【F:src/ui/main_window/signals_router.py†L187-L218】【F:src/ui/main_window/qml_bridge.py†L360-L434】
 - `MainWindow.logQmlEvent()` позволяет QML писать в `EventLogger` (диагностика вызовов). 【F:src/ui/main_window/main_window_refactored.py†L205-L244】
 - `IblProbeLoader.qml` вызывает `window.logIblEvent(message)`; сообщение проксируется в `IblSignalLogger.logIblEvent`. 【F:assets/qml/components/IblProbeLoader.qml†L1-L47】【F:src/ui/ibl_logger.py†L7-L75】
  
@@ -54,4 +54,4 @@ graph TD
 
 1. Требуется ли новый контекст в QML? Добавьте его до `setSource` и задокументируйте в `docs/PYTHON_QML_API.md`.
 2. Нужны ли тесты/стабы для `QMLBridge`? Обновите лёгкие паддинги (try/except блок в заголовке файла) для корректной работы без PySide6.
-3. Отражены ли изменения в `applyBatchedUpdates` и `QMLBridge.QML_UPDATE_METHODS`? Несогласованность приводит к «тихому» игнорированию параметров.
+3. Отражены ли изменения в `applyBatchedUpdates` и `QMLBridge.QML_UPDATE_METHODS`/`config/qml_bridge.yaml`? Несогласованность приводит к «тихому» игнорированию параметров.

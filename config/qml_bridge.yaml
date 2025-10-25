@@ -1,0 +1,42 @@
+# Auto-generated metadata describing Python↔QML bridge expectations.
+#
+# The master plan requires this file to serve as the single source of truth
+# for how Python code talks to QML components. Each section below is consumed
+# by `src/ui/qml_bridge.py` which provides introspection utilities for
+# diagnostics panels and automated wiring helpers.
+
+update_methods:
+  geometry:
+    - applyGeometryUpdates
+    - updateGeometry
+  animation:
+    - applyAnimationUpdates
+    - updateAnimation
+  lighting:
+    - applyLightingUpdates
+    - updateLighting
+  materials:
+    - applyMaterialUpdates
+    - updateMaterials
+  environment:
+    - applyEnvironmentUpdates
+    - updateEnvironment
+  quality:
+    - applyQualityUpdates
+    - updateQuality
+  camera:
+    - applyCameraUpdates
+    - updateCamera
+  effects:
+    - applyEffectsUpdates
+    - updateEffects
+  simulation:
+    - applySimulationUpdates
+
+qml_signals:
+  - signal: batchUpdatesApplied
+    handler: _on_qml_batch_ack
+    connection: queued
+    description: >-
+      QML acknowledgement that a batch pushed through
+      `pendingPythonUpdates` has been applied.
