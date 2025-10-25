@@ -5,7 +5,11 @@ Handles heave (Y), roll (phi_z), and pitch (theta_x) motion with suspension forc
 
 import numpy as np
 from dataclasses import dataclass
-from typing import Dict, Tuple, Any
+from typing import Any, Dict, Tuple
+
+from src.pneumo.enums import Port, Wheel
+
+from .forces import compute_cylinder_force
 
 # Coordinate system: X-lateral (left/right), Y-vertical (down positive), Z-longitudinal
 
@@ -89,6 +93,39 @@ def axis_vertical_projection(F_axis: float, axis_unit_world: np.ndarray) -> floa
     return np.dot(axis_unit_world, eY) * F_axis
 
 
+def _resolve_line_pressure(system: Any, gas: Any, wheel: Wheel, port: Port) -> float:
+    """Return pressure for the line connected to the specified port."""
+
+    if system is None or gas is None:
+        return 0.0
+
+    system_lines = getattr(system, "lines", None)
+    gas_lines = getattr(gas, "lines", None)
+
+    if system_lines is None or gas_lines is None:
+        tank = getattr(gas, "tank", None)
+        return float(getattr(tank, "p", 0.0))
+
+    try:
+        line_items = system_lines.items()
+    except AttributeError:
+        line_items = []
+
+    for line_name, line in line_items:
+        endpoints = getattr(line, "endpoints", ())
+        for endpoint_wheel, endpoint_port in endpoints:
+            if endpoint_wheel == wheel and endpoint_port == port:
+                try:
+                    gas_state = gas_lines[line_name]
+                except Exception:
+                    gas_state = None
+                if gas_state is not None and hasattr(gas_state, "p"):
+                    return float(gas_state.p)
+
+    tank = getattr(gas, "tank", None)
+    return float(getattr(tank, "p", 0.0))
+
+
 def assemble_forces(
     system: Any, gas: Any, y: np.ndarray, params: RigidBody3DOF
 ) -> Tuple[np.ndarray, float, float]:
@@ -152,9 +189,26 @@ def assemble_forces(
         wheel_velocity = dY + x_i * dphi_z + z_i * dtheta_x
         F_damper = -c_damper * wheel_velocity
 
-        # TODO: Get pneumatic cylinder force from gas network
-        # F_cyl = (p_head * A_head) - (p_rod * (A_head - A_rod))
-        F_pneumatic = 0.0  # Placeholder until gas network connected
+        F_pneumatic = 0.0
+        cylinder = None
+        try:
+            wheel_enum = Wheel[wheel_name]
+        except KeyError:
+            wheel_enum = None
+
+        if wheel_enum is not None and system is not None:
+            cylinders = getattr(system, "cylinders", {})
+            cylinder = cylinders.get(wheel_enum)
+
+        if cylinder is not None:
+            geom = cylinder.spec.geometry
+            area_head = geom.area_head(cylinder.spec.is_front)
+            area_rod = geom.area_rod(cylinder.spec.is_front)
+            head_pressure = _resolve_line_pressure(system, gas, wheel_enum, Port.HEAD)
+            rod_pressure = _resolve_line_pressure(system, gas, wheel_enum, Port.ROD)
+            F_pneumatic = compute_cylinder_force(
+                head_pressure, rod_pressure, area_head, area_rod
+            )
 
         # Total vertical force (positive downward)
         F_total = F_spring + F_damper + F_pneumatic

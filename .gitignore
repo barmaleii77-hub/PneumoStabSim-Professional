@@ -465,6 +465,7 @@ check_*.py
 !tests/unit/tools/test_report_metrics.py
 !tests/settings/test_persistence.py
 !tests/unit/runtime/test_state_snapshot_buffer.py
+!tests/unit/physics/test_assemble_forces.py
 
 # Temporary batch files
 *.bat
