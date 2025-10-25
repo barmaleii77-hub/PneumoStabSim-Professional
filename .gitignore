@@ -459,6 +459,7 @@ check_*.py
 !tools/check_ui_utf8.py
 !tools/check_forbidden_artifacts.py
 !tests/unit/test_signal_tracing.py
+!tests/unit/tools/test_settings_audit.py
 
 # Temporary batch files
 *.bat

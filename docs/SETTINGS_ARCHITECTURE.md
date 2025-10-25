@@ -71,6 +71,29 @@ python -m src.tools.settings_migrate --settings config/app_settings.json \
 
 ---
 
+## 🧪 АУДИТ КОНФИГУРАЦИИ / SETTINGS AUDIT
+
+- CLI `python -m src.tools.settings_audit --target runtime.json` сравнивает
+  произвольный JSON конфиг с базовым `config/app_settings.json`.
+- Поддерживаются форматы вывода: `--format text` (по умолчанию) и
+  `--format markdown` для публикации в отчётах.
+- Ключ `--fail-on-diff` завершает процесс кодом 1, если найдены отличия — удобно
+  для CI-пайплайнов.
+- Пример отчёта сохранён в `reports/settings/sample_audit.md`.
+
+### Базовый пример
+
+```bash
+python -m src.tools.settings_audit \
+    --target ~/.config/pneumostabsim/runtime.json \
+    --format markdown \
+    --output reports/settings/latest_audit.md
+```
+
+> Для сравнения с альтернативным эталоном используйте `--baseline path/to/base.json`.
+
+---
+
 ## 🗂 МАТРИЦА СИНХРОНИЗАЦИИ НАСТРОЕК
 
 - Используйте `tools/settings/export_matrix.py`, чтобы автоматически генерировать
