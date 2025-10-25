@@ -3,9 +3,10 @@
 Handles heave (Y), roll (phi_z), and pitch (theta_x) motion with suspension forces
 """
 
+import math
 import numpy as np
-from dataclasses import dataclass
-from typing import Any, Dict, Tuple
+from dataclasses import dataclass, field
+from typing import Any, Dict, Mapping, Tuple
 
 from src.pneumo.enums import Port, Wheel
 
@@ -16,7 +17,7 @@ from .forces import compute_cylinder_force
 
 @dataclass
 class RigidBody3DOF:
-    """3-DOF rigid body parameters and geometry"""
+    """3-DOF rigid body parameters, geometry, and static load state."""
 
     M: float  # Total mass (kg)
     Ix: float  # Moment of inertia around X-axis (pitch) (kg*m^2)
@@ -25,7 +26,7 @@ class RigidBody3DOF:
 
     # Suspension attachment points in body frame (x_i, z_i)
     # y-coordinate taken as current heave
-    attachment_points: Dict[str, Tuple[float, float]] = None  # wheel_name -> (x, z)
+    attachment_points: Dict[str, Tuple[float, float]] | None = None
 
     # Vehicle dimensions for reference
     track: float = 1.6  # Track width (m)
@@ -35,22 +36,104 @@ class RigidBody3DOF:
     angle_limit: float = 0.5  # Maximum angle in radians (~28.6 degrees)
     damping_coefficient: float = 0.1  # Viscous damping on angles
 
-    def __post_init__(self):
-        """Initialize default attachment points if not provided"""
+    # Static load distribution (reaction forces, positive downwards)
+    static_wheel_loads: Mapping[str | Wheel, float] | None = None
+    static_load_tolerance: float = 0.05
+
+    _static_wheel_loads: Dict[Wheel, float] = field(init=False, repr=False)
+    _static_total_load: float = field(init=False, repr=False)
+    _static_pitch_moment: float = field(init=False, repr=False)
+    _static_roll_moment: float = field(init=False, repr=False)
+
+    def __post_init__(self) -> None:
+        """Initialise geometry defaults and normalise static loads."""
         if self.attachment_points is None:
-            # Standard 4-wheel layout: front/rear x half track, +/- half wheelbase
             half_track = self.track / 2.0
             half_wheelbase = self.wheelbase / 2.0
-
             self.attachment_points = {
-                "LP": (
-                    -half_track,
-                    -half_wheelbase,
-                ),  # Left front (negative X, negative Z)
-                "PP": (+half_track, -half_wheelbase),  # Right front
-                "LZ": (-half_track, +half_wheelbase),  # Left rear
-                "PZ": (+half_track, +half_wheelbase),  # Right rear
+                "LP": (-half_track, -half_wheelbase),
+                "PP": (+half_track, -half_wheelbase),
+                "LZ": (-half_track, +half_wheelbase),
+                "PZ": (+half_track, +half_wheelbase),
             }
+        self._initialise_static_loads()
+
+    def _initialise_static_loads(self) -> None:
+        """Normalise provided static loads so they counteract gravity."""
+        target_sum = -self.M * self.g
+        provided = dict(self.static_wheel_loads or {})
+        resolved: Dict[Wheel, float] = {}
+
+        for wheel in Wheel:
+            load = None
+            if wheel in provided:
+                load = provided[wheel]
+            elif wheel.value in provided:
+                load = provided[wheel.value]
+            if load is not None:
+                resolved[wheel] = float(load)
+
+        if not resolved:
+            equal_share = target_sum / len(Wheel)
+            resolved = {wheel: equal_share for wheel in Wheel}
+        else:
+            missing = [wheel for wheel in Wheel if wheel not in resolved]
+            if missing:
+                remaining = target_sum - sum(resolved.values())
+                share = remaining / len(missing) if missing else 0.0
+                for wheel in missing:
+                    resolved[wheel] = share
+
+        sum_loads = sum(resolved.values())
+        tolerance = max(1.0, abs(target_sum)) * 1e-9
+        if abs(sum_loads) <= tolerance:
+            equal_share = target_sum / len(Wheel)
+            resolved = {wheel: equal_share for wheel in Wheel}
+            sum_loads = target_sum
+        elif not math.isclose(
+            sum_loads, target_sum, rel_tol=self.static_load_tolerance, abs_tol=tolerance
+        ):
+            scale = target_sum / sum_loads
+            for wheel in resolved:
+                resolved[wheel] *= scale
+
+        self._static_wheel_loads = resolved
+        self._static_total_load = target_sum
+        self._static_pitch_moment = sum(
+            resolved[wheel] * self.attachment_points[wheel.value][1] for wheel in Wheel
+        )
+        self._static_roll_moment = sum(
+            resolved[wheel] * self.attachment_points[wheel.value][0] for wheel in Wheel
+        )
+
+    def static_load_for(self, wheel: Wheel | str) -> float:
+        """Return static reaction force for ``wheel`` (positive downwards)."""
+        if isinstance(wheel, str):
+            try:
+                wheel = Wheel[wheel]
+            except KeyError as exc:
+                raise KeyError(f"Unknown wheel identifier {wheel!r}") from exc
+        return self._static_wheel_loads[wheel]
+
+    @property
+    def static_total_load(self) -> float:
+        """Sum of static suspension reactions (should equal ``-M*g``)."""
+        return self._static_total_load
+
+    @property
+    def static_pitch_moment(self) -> float:
+        """Pitch moment contributed by static suspension reactions."""
+        return self._static_pitch_moment
+
+    @property
+    def static_roll_moment(self) -> float:
+        """Roll moment contributed by static suspension reactions."""
+        return self._static_roll_moment
+
+    @property
+    def static_wheel_load_map(self) -> Dict[Wheel, float]:
+        """Expose a copy of the normalised static wheel loads."""
+        return dict(self._static_wheel_loads)
 
 
 @dataclass
@@ -211,7 +294,8 @@ def assemble_forces(
             )
 
         # Total vertical force (positive downward)
-        F_total = F_spring + F_damper + F_pneumatic
+        static_reaction = params.static_load_for(wheel_enum or wheel_name)
+        F_total = F_spring + F_damper + F_pneumatic + static_reaction
         vertical_forces[i] = F_total
 
     # Calculate moments about center of mass
@@ -259,8 +343,12 @@ def f_rhs(
     # Gravitational force (positive downward)
     F_gravity = params.M * params.g
 
-    # Sum of vertical forces from suspension
+    # Sum of vertical forces from suspension (includes static reactions)
     F_suspension_total = np.sum(vertical_forces)
+
+    # Remove static reaction moments so that neutral pose stays stable
+    tau_x -= params.static_pitch_moment
+    tau_z -= params.static_roll_moment
 
     # Equations of motion
     # Heave: vertical acceleration
