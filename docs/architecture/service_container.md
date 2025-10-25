@@ -33,6 +33,20 @@ Factories receive the container so they can resolve other dependencies on
 request. The helper `is_registered` prevents duplicate registrations when
 modules are imported multiple times across Qt/Python boundaries.
 
+Additional infrastructure services are registered in their respective modules.
+For example, the event bus and logging helpers expose tokens and convenience
+accessors:
+
+```python
+from src.infrastructure.event_bus import EVENT_BUS_TOKEN, get_event_bus
+from src.infrastructure.logging import LOGGER_TOKEN, get_logger
+
+bus = get_event_bus()
+logger = get_logger("ui.graphics")
+
+unsubscribe = bus.subscribe("settings.updated", lambda payload: logger.info("settings updated", extra=payload))
+```
+
 ## Resolving services
 
 ```python
@@ -71,7 +85,8 @@ cached singletons when tests need a clean slate.
 
 ## Next steps
 
-- Register logging, event bus, and simulation runner factories once their
-  refactors stabilise.
+- Register the simulation runner once its refactor stabilises. Logging and the
+  event bus are now wired via `src.infrastructure.logging` and
+  `src.infrastructure.event_bus` respectively.
 - Document production wiring diagrams in `docs/ARCHITECTURE_MAP.md` so new
   contributors can map tokens to runtime components quickly.

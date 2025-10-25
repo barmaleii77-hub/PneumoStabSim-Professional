@@ -72,6 +72,16 @@ Log architectural decisions, ADR references, and schema revisions here.
   describe lifecycle hooks and override patterns; logging and simulation
   factories will be added in follow-up iterations.
 
+
+### 2025-07-15 – Event bus + logging integration
+- Introduced `src/infrastructure/event_bus.py` and
+  `src/infrastructure/logging.py`, registering both services in the global
+  container with dedicated tokens.
+- Updated `SettingsService` to publish `settings.updated` events with metadata,
+  enabling diagnostics panels to react to configuration changes in real time.
+- Added unit coverage ensuring subscribers receive instrumentation payloads and
+  refreshed the service container guide with usage samples.
+
 ### 2025-08-15 – Metadata-driven QML bridge registry
 - Introduced `config/qml_bridge.yaml` as the authoritative catalogue for
   Python↔QML interactions.
@@ -79,3 +89,4 @@ Log architectural decisions, ADR references, and schema revisions here.
   and auto-register `MainWindow` signal handlers.
 - Updated the legacy bridge and `SignalsRouter` to consume the shared metadata
   map, enabling consistent documentation and introspection.
+

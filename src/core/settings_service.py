@@ -9,14 +9,17 @@ from __future__ import annotations
 
 import json
 import os
+from datetime import datetime
 from pathlib import Path
 from typing import Any, Iterable, MutableMapping
 
 from src.infrastructure.container import (
     ServiceContainer,
+    ServiceResolutionError,
     ServiceToken,
     get_default_container,
 )
+from src.infrastructure.event_bus import EVENT_BUS_TOKEN
 
 
 class SettingsValidationError(ValueError):
@@ -113,13 +116,19 @@ class SettingsService:
         self._cache = None
         return self.load(use_cache=True)
 
-    def save(self, payload: dict[str, Any]) -> None:
+    def save(
+        self,
+        payload: dict[str, Any],
+        *,
+        metadata: dict[str, Any] | None = None,
+    ) -> None:
         """Сохранить payload на диск и обновить кэш."""
 
         if self._validate_schema:
             self.validate(payload)
         self._write_file(payload)
         self._cache = payload
+        self._publish_update_event(metadata or {})
 
     # ------------------------------------------------------------------
     # Helper utilities
@@ -156,7 +165,13 @@ class SettingsService:
             data = next_value  # type: ignore[assignment]
 
         data[segments[-1]] = value
-        self.save(payload)
+        self.save(
+            payload,
+            metadata={
+                "path": path,
+                "action": "set",
+            },
+        )
 
     def update(self, path: str, patch: MutableMapping[str, Any]) -> None:
         """Слить (merge) словарь patch в целевой mapping по dot‑пути."""
@@ -164,7 +179,13 @@ class SettingsService:
         payload = self.load()
         data = self._ensure_mapping(payload, path)
         data.update(patch)
-        self.save(payload)
+        self.save(
+            payload,
+            metadata={
+                "path": path,
+                "action": "update",
+            },
+        )
 
     # ------------------------------------------------------------------
     # Schema validation helpers
@@ -251,6 +272,20 @@ class SettingsService:
     @staticmethod
     def _split_path(path: str) -> Iterable[str]:
         return [segment for segment in path.split(".") if segment]
+
+    def _publish_update_event(self, metadata: dict[str, Any]) -> None:
+        container = get_default_container()
+        try:
+            event_bus = container.resolve(EVENT_BUS_TOKEN)
+        except ServiceResolutionError:
+            return
+
+        payload = {
+            "timestamp": datetime.utcnow().isoformat(timespec="milliseconds"),
+            "source": "settings_service",
+            **metadata,
+        }
+        event_bus.publish("settings.updated", payload)
 
 
 SETTINGS_SERVICE_TOKEN = ServiceToken["SettingsService"](

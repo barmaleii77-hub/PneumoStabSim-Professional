@@ -10,8 +10,9 @@ container implemented here is intentionally minimal yet opinionated:
   is requested which keeps test environments fast while still allowing
   dependencies between services.
 * Circular dependencies are detected eagerly to aid debugging.
-* A tiny in-process :class:`EventBus` is provided to satisfy Phase 2 wiring
-  requirements without introducing additional infrastructure dependencies.
+* The canonical :class:`~src.infrastructure.event_bus.EventBus` wiring is
+  handled alongside other services so diagnostics can subscribe to lifecycle
+  notifications.
 
 In addition to the container itself, :func:`build_default_container` exposes the
 canonical wiring for settings management, logging, event logging, and the
@@ -24,11 +25,11 @@ from __future__ import annotations
 import logging
 from collections.abc import Callable
 from pathlib import Path
-from threading import RLock
 from typing import Any, Dict, TypeVar
 
 from src.common.event_logger import EventLogger
 from src.common.settings_manager import ProfileSettingsManager, SettingsManager
+from src.infrastructure.event_bus import EventBus
 from .settings_service import SettingsService
 
 __all__ = [
@@ -131,58 +132,6 @@ class ServiceContainer:
         """Check whether ``key`` is registered."""
 
         return key in self._instances or key in self._factories
-
-
-Listener = Callable[[Any], None]
-
-
-class EventBus:
-    """Thread-safe in-process publish/subscribe helper."""
-
-    def __init__(self) -> None:
-        self._subscribers: Dict[str, list[Listener]] = {}
-        self._lock = RLock()
-
-    def subscribe(self, topic: str, callback: Listener) -> Callable[[], None]:
-        """Subscribe ``callback`` to ``topic`` and return an unsubscribe handle."""
-
-        with self._lock:
-            callbacks = self._subscribers.setdefault(topic, [])
-            callbacks.append(callback)
-
-        def _unsubscribe() -> None:
-            self.unsubscribe(topic, callback)
-
-        return _unsubscribe
-
-    def unsubscribe(self, topic: str, callback: Listener) -> None:
-        """Remove ``callback`` from ``topic`` subscriptions."""
-
-        with self._lock:
-            callbacks = self._subscribers.get(topic)
-            if not callbacks:
-                return
-            try:
-                callbacks.remove(callback)
-            except ValueError:
-                return
-            if not callbacks:
-                self._subscribers.pop(topic, None)
-
-    def publish(self, topic: str, payload: Any | None = None) -> None:
-        """Broadcast ``payload`` to all subscribers of ``topic``."""
-
-        with self._lock:
-            callbacks = list(self._subscribers.get(topic, ()))
-
-        for callback in callbacks:
-            callback(payload)
-
-    def clear(self) -> None:
-        """Remove all subscriptions (useful for tests)."""
-
-        with self._lock:
-            self._subscribers.clear()
 
 
 def _configure_logger(name: str) -> logging.Logger:
