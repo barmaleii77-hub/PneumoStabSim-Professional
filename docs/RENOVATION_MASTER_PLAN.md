@@ -94,7 +94,9 @@ best practices for scientific visualisation software.
    - Configure `pre-commit` with hooks for `ruff`, `mypy`, `qmllint`, and
      Conventional Commits (`commitizen`).
    - Introduce `tools/git/prepare_commit_msg.py` to auto-insert scope hints
-     (module derived from modified files).
+     (module derived from modified files). *Status: Completed August 2025 via
+     the scope suggestion helper that augments the commit message template with
+     inferred module hints.*
 
 ---
 
