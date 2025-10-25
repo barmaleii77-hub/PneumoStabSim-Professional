@@ -77,3 +77,11 @@
 
 ## Execution Log
 Use this section to log coverage milestones, release candidate builds, and cleanup decisions.
+
+### 2025-09-28 – Coverage expansion dry run
+- Extended `tests/ui/` suites with new signal propagation cases and enabled provisional 75% coverage gate in `pyproject.toml`.
+- Captured the first aggregated coverage report under `reports/quality/coverage_phase4_dry_run.json` for stakeholder review.
+
+### 2025-10-03 – Packaging automation spike
+- Assembled the initial `scripts/build_release.py` workflow invoking PyInstaller with Qt plugin caching via `tools/setup_qt.py`.
+- Produced unsigned MSI/AppImage artifacts stored in `reports/release/candidate_manifests/2025-10-03/` pending security scan sign-off.

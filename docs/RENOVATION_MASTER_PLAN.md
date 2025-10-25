@@ -263,12 +263,18 @@ best practices for scientific visualisation software.
      glass to use physically-correct index of refraction and absorption.
    - Validate skybox orientation and IBL rotation (`src/ui/ibl_logger.py`)
      ensuring consistent coordinate frames for HDR files stored in `assets/hdr`.
+     *Status: October 2025 pass introduced calibrated glass presets and
+     automated HDR alignment checks captured in
+     `reports/performance/hdr_orientation.md`.*
 3. **UI Panel Architecture**
    - Build modular panels under `assets/qml/panels/` with one-to-one mapping
      between scene parameters and UI controls. Leverage reusable components such
      as `ParameterSlider` and `ToggleButton` from `src/ui/parameter_slider.py`.
    - Implement a `SettingsSyncController` that binds UI controls to
      `SettingsService` changes with signal tracing for debugging.
+     *Status: September 2025 milestone delivered the modular panel MVP with
+     preset manager wiring and diagnostics hooks documented in
+     `docs/ui/panel_modernization_report.md`.*
 4. **Performance Tooling**
    - Integrate the Qt Quick profiler overlay toggled via `DiagnosticsPanel`.
    - Ensure animations use `NumberAnimation` and `Animator` elements with target

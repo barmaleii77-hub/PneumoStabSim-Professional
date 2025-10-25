@@ -74,3 +74,9 @@
 
 ## Execution Log
 Use this log for incident summaries, release retrospectives, and KPI snapshots.
+
+### 2025-10-10 – Telemetry pilot and on-call readiness
+- Deployed telemetry collectors to staging, forwarding structured logs to the shared `reports/operations/stability_metrics.csv`
+  pipeline for MTTA/MTTR baselining.
+- Drafted the first revision of `docs/operations/oncall.md`, including escalation matrix and contact rotations approved by the
+  support lead.
