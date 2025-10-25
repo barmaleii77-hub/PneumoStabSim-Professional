@@ -24,6 +24,7 @@ from .state import (
 from .sync import (
     LatestOnlyQueue,
     PerformanceMetrics,
+    StateSnapshotBuffer,
     TimingAccumulator,
     ThreadSafeCounter,
 )
@@ -944,6 +945,9 @@ class PhysicsWorker(QObject):
         return float(self.gas_network.tank.p)
 
 
+SNAPSHOT_BUFFER_CAPACITY = 4096
+
+
 class SimulationManager(QObject):
     """High-level simulation manager
 
@@ -966,6 +970,9 @@ class SimulationManager(QObject):
 
         # Create state queue for latest-only semantics
         self.state_queue = LatestOnlyQueue()
+
+        # Snapshot history for CSV export and diagnostics
+        self._snapshot_buffer = StateSnapshotBuffer(maxlen=SNAPSHOT_BUFFER_CAPACITY)
 
         # Connect signals
         self._connect_signals()
@@ -997,6 +1004,11 @@ class SimulationManager(QObject):
             self.physics_worker.pause_simulation, Qt.QueuedConnection
         )
 
+        # Local housekeeping when reset is requested
+        self.state_bus.reset_simulation.connect(
+            self.clear_snapshot_buffer, Qt.QueuedConnection
+        )
+
         # Configuration signals
         self.state_bus.set_physics_dt.connect(
             self.physics_worker.set_physics_dt, Qt.QueuedConnection
@@ -1018,6 +1030,9 @@ class SimulationManager(QObject):
     def start(self):
         """Start simulation manager"""
         if not self.physics_thread.isRunning():
+            # Ensure previous history does not leak into a new run
+            self.clear_snapshot_buffer()
+
             # Configure physics worker
             self.physics_worker.configure()
 
@@ -1148,21 +1163,32 @@ class SimulationManager(QObject):
         return self.state_queue.get_stats()
 
     def get_snapshot_buffer(self):
-        """Получить буфер снимков для экспорта (заглушка)"""
-        # TODO: Реализовать буфер снимков
-        return []
+        """Получить копию буфера снимков для экспорта"""
+
+        return self._snapshot_buffer.to_list()
+
+    @Slot()
+    def clear_snapshot_buffer(self) -> None:
+        """Очистить буфер снимков (используется при сбросе симуляции)."""
+
+        self._snapshot_buffer.clear()
+        self.logger.debug("Snapshot buffer cleared")
 
     @Slot(object)
     def _on_state_ready(self, snapshot):
         """Handle state ready from physics worker"""
         try:
-            # Put in latest-only queue
             self.state_queue.put_nowait(snapshot)
+        except Exception as queue_error:
+            self.logger.error(f"Error handling state ready: {queue_error}")
+        else:
+            try:
+                self.state_bus.state_ready.emit(snapshot)
+            except Exception as emit_error:
+                self.logger.error(f"Error re-emitting state snapshot: {emit_error}")
 
-            # Re-emit through state bus
-            self.state_bus.state_ready.emit(snapshot)
-        except Exception as e:
-            self.logger.error(f"Error handling state ready: {e}")
+        # Always record the snapshot for export/diagnostics.
+        self._snapshot_buffer.append(snapshot)
 
     @Slot(str)
     def _on_physics_error(self, error_msg):
