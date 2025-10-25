@@ -147,7 +147,9 @@ def verify_checkboxes():
         return False
     else:
         print("✅ Все чекбоксы используют .toggled.connect")
-        print("✅ Исключение: auto_rotate (имеет специальный обработчик с логированием)")
+        print(
+            "✅ Исключение: auto_rotate (имеет специальный обработчик с логированием)"
+        )
         return True
 
 

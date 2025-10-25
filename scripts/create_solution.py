@@ -32,6 +32,8 @@ EndGlobal
 """.strip()
 
 if __name__ == "__main__":
-	with open("PneumoStabSim-Professional.sln", "w", encoding="utf-8", newline="\r\n") as f:
-		f.write(solution_content)
-	print("✅ Файл решения PneumoStabSim-Professional.sln успешно создан!")
+    with open(
+        "PneumoStabSim-Professional.sln", "w", encoding="utf-8", newline="\r\n"
+    ) as f:
+        f.write(solution_content)
+    print("✅ Файл решения PneumoStabSim-Professional.sln успешно создан!")

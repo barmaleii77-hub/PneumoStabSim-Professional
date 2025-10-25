@@ -4,6 +4,7 @@
 КРИТИЧЕСКИЙ ФИКС: Убираем z: 1000 из CameraController
 Это блокирует рендеринг View3D!
 """
+
 import re
 from pathlib import Path
 

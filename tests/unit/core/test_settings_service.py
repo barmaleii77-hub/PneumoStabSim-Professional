@@ -96,7 +96,9 @@ def test_settings_service_emits_event_on_save(settings_payload: Path) -> None:
     events: list[dict[str, Any]] = []
 
     bus = get_event_bus()
-    unsubscribe = bus.subscribe("settings.updated", lambda payload: events.append(payload or {}))
+    unsubscribe = bus.subscribe(
+        "settings.updated", lambda payload: events.append(payload or {})
+    )
     try:
         service = SettingsService(settings_path=settings_payload)
         service.set("current.constants.geometry.kinematics.track_width_m", 3.14)
@@ -107,7 +109,9 @@ def test_settings_service_emits_event_on_save(settings_payload: Path) -> None:
     assert events, "settings.updated event was not published"
     last_event = events[-1]
     assert last_event.get("action") == "set"
-    assert last_event.get("path") == "current.constants.geometry.kinematics.track_width_m"
+    assert (
+        last_event.get("path") == "current.constants.geometry.kinematics.track_width_m"
+    )
     assert "timestamp" in last_event
 
 

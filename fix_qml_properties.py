@@ -2,6 +2,7 @@
 """
 Fix QML property name mismatches
 """
+
 from pathlib import Path
 
 MAIN_QML = Path("assets/qml/main.qml")

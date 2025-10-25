@@ -4,6 +4,7 @@
 PneumoStabSim Professional - Быстрый системный тест
 Quick System Test - проверка готовности к запуску
 """
+
 import sys
 import time
 from pathlib import Path

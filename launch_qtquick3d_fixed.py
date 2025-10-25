@@ -4,6 +4,7 @@
 ПОСТОЯННЫЙ ЛАУНЧЕР PneumoStabSim с исправлением QtQuick3D
 Этот файл ГАРАНТИРУЕТ правильную работу QtQuick3D при каждом запуске
 """
+
 import os
 import sys
 from pathlib import Path

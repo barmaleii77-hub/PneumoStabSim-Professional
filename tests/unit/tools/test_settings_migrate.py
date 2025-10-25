@@ -51,7 +51,9 @@ def settings_payload(tmp_path: Path) -> Path:
     return path
 
 
-def test_apply_migrations_populates_defaults(settings_payload: Path, migrations_dir: Path) -> None:
+def test_apply_migrations_populates_defaults(
+    settings_payload: Path, migrations_dir: Path
+) -> None:
     payload = settings_migrate._load_settings(settings_payload)
     descriptors = settings_migrate.load_migrations(migrations_dir)
 
@@ -63,7 +65,9 @@ def test_apply_migrations_populates_defaults(settings_payload: Path, migrations_
     assert payload["metadata"]["migrations"] == ["0001_add_defaults"]
 
 
-def test_apply_migrations_is_idempotent(settings_payload: Path, migrations_dir: Path) -> None:
+def test_apply_migrations_is_idempotent(
+    settings_payload: Path, migrations_dir: Path
+) -> None:
     payload = settings_migrate._load_settings(settings_payload)
     descriptors = settings_migrate.load_migrations(migrations_dir)
 

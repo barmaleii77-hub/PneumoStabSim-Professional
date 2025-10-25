@@ -141,7 +141,9 @@ class EnvironmentSetup:
                 text=True,
                 check=True,
             )
-            version_parts = tuple(int(part) for part in result.stdout.strip().split("."))
+            version_parts = tuple(
+                int(part) for part in result.stdout.strip().split(".")
+            )
             return version_parts  # type: ignore[return-value]
         except Exception:
             return sys.version_info[:3]
@@ -163,7 +165,9 @@ class EnvironmentSetup:
 
             if major != 3 or minor not in {11, 12, 13}:
                 self.logger.log("❌ Требуется Python3.11–3.13!")
-                self.logger.log("📝 Установите поддерживаемую версию Python и повторите настройку")
+                self.logger.log(
+                    "📝 Установите поддерживаемую версию Python и повторите настройку"
+                )
                 return False
 
             if minor == 13:
@@ -265,7 +269,9 @@ class EnvironmentSetup:
 
             # Фильтруем только строки с зависимостями (без комментариев и пустых строк)
             dependencies = [
-                line.split("#")[0].strip() for line in lines if line.strip() and not line.startswith("#")
+                line.split("#")[0].strip()
+                for line in lines
+                if line.strip() and not line.startswith("#")
             ]
 
             all_files_ok = True
@@ -302,7 +308,9 @@ class EnvironmentSetup:
             # Сравниваем с хешем в requirements.txt
             expected_hash = url.split("#")[-1]
             if file_hash != expected_hash:
-                self.logger.log(f"❌ Хеш не совпадает для {package_name} (URL): ожидаемый {expected_hash}, найденный {file_hash}")
+                self.logger.log(
+                    f"❌ Хеш не совпадает для {package_name} (URL): ожидаемый {expected_hash}, найденный {file_hash}"
+                )
                 return False
             else:
                 self.logger.log(f"✅ Хеш верифицирован для {package_name} (URL)")
@@ -329,8 +337,12 @@ class EnvironmentSetup:
                     wheel_files = list(Path(package_dir).glob(f"*.whl"))
                     if wheel_files:
                         # Вычисляем хеш первого найденного файла .whl
-                        file_hash = hashlib.sha256(wheel_files[0].read_bytes()).hexdigest()
-                        self.logger.log(f"📦 Найден пакет {package_name}, хеш={file_hash}")
+                        file_hash = hashlib.sha256(
+                            wheel_files[0].read_bytes()
+                        ).hexdigest()
+                        self.logger.log(
+                            f"📦 Найден пакет {package_name}, хеш={file_hash}"
+                        )
                         return True
             self.logger.log(f"⚠️ Пакет {package_name} не найден или не имеет .whl файла")
             return False
@@ -359,9 +371,7 @@ class EnvironmentSetup:
                     "show",
                     package,
                 ]
-                check_result = subprocess.run(
-                    check_cmd, capture_output=True, text=True
-                )
+                check_result = subprocess.run(check_cmd, capture_output=True, text=True)
                 if check_result.returncode == 0:
                     lines = check_result.stdout.split("\n")
                     version_line = next(
@@ -463,7 +473,9 @@ COPILOT_LANGUAGE=ru
             self.logger.log("✅ Установка прошла успешно! Окружение готово к работе.")
             return True
         else:
-            self.logger.log("⚠️  Установка завершена с предупреждениями. Проверьте ошибки выше.")
+            self.logger.log(
+                "⚠️  Установка завершена с предупреждениями. Проверьте ошибки выше."
+            )
             return False
 
     def print_usage_info(self):
@@ -505,7 +517,9 @@ COPILOT_LANGUAGE=ru
                 url = "https://download.qt.io/official_releases/qt/6.2/6.2.4/qt-unified-linux-x64-online.run"
                 installer = "qt-installer.run"
             else:
-                self.logger.log("❌ Поддержка установки Qt SDK доступна только для Windows и Linux")
+                self.logger.log(
+                    "❌ Поддержка установки Qt SDK доступна только для Windows и Linux"
+                )
                 return False
 
             # Скачиваем установщик
@@ -523,14 +537,28 @@ COPILOT_LANGUAGE=ru
             self.logger.log(f"📥 Запуск установщика Qt SDK: {installer}")
             if self.platform == "Windows":
                 response = subprocess.run(
-                    ["cmd", "/c", installer, "--silent", "--skip-components", "qt.5.15.2.ansic", "--include-subdir"],
+                    [
+                        "cmd",
+                        "/c",
+                        installer,
+                        "--silent",
+                        "--skip-components",
+                        "qt.5.15.2.ansic",
+                        "--include-subdir",
+                    ],
                     check=True,
                     capture_output=True,
                     text=True,
                 )
             else:
                 response = subprocess.run(
-                    [installer, "--silent", "--skip-components", "qt.5.15.2.ansic", "--include-subdir"],
+                    [
+                        installer,
+                        "--silent",
+                        "--skip-components",
+                        "qt.5.15.2.ansic",
+                        "--include-subdir",
+                    ],
                     check=True,
                     capture_output=True,
                     text=True,
@@ -552,7 +580,9 @@ COPILOT_LANGUAGE=ru
                 self.logger.log(f"🗑️ Удаление установщика: {installer}")
                 try:
                     if platform.system() == "Windows":
-                        subprocess.run(["cmd", "/c", "del", "/F", "/Q", installer], check=True)
+                        subprocess.run(
+                            ["cmd", "/c", "del", "/F", "/Q", installer], check=True
+                        )
                     else:
                         subprocess.run(["rm", "-f", installer], check=True)
                 except Exception as e:

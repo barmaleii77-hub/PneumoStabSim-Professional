@@ -32,11 +32,11 @@ def remove_duplicate_uframe():
     for i, line in enumerate(lines):
         if "// U-FRAME (3 beams)" in line and "controlled materials" in line:
             start_idx = i
-            print(f"✅ Найден старый блок U-FRAME на строке {i+1}")
+            print(f"✅ Найден старый блок U-FRAME на строке {i + 1}")
 
         if start_idx is not None and "// ✅ Frame component" in line:
             end_idx = i
-            print(f"✅ Найдена граница на строке {i+1}")
+            print(f"✅ Найдена граница на строке {i + 1}")
             break
 
     if start_idx is None:
@@ -54,7 +54,7 @@ def remove_duplicate_uframe():
             models_count += 1
 
     print(f"📊 Найдено {models_count} Model блоков для удаления")
-    print(f"   Строки {start_idx+1} - {end_idx}")
+    print(f"   Строки {start_idx + 1} - {end_idx}")
 
     if models_count != 3:
         print(f"⚠️ Ожидалось 3 Model, найдено {models_count}")

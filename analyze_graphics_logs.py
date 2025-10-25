@@ -79,7 +79,7 @@ class LogAnalyzer:
         print(f"  Successful: {successful}")
         print(f"  Failed: {failed}")
         if len(self.events) > 0:
-            print(f"  Sync rate: {(successful/len(self.events)*100):.1f}%")
+            print(f"  Sync rate: {(successful / len(self.events) * 100):.1f}%")
 
         print("=" * 60 + "\n")
 

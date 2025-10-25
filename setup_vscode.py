@@ -101,7 +101,9 @@ class VSCodeBootstrap:
                     candidate.unlink()
                     removed.append(candidate)
                 except OSError as exc:
-                    self.report.log_warning(f"Cannot remove obsolete file {candidate.name}: {exc}")
+                    self.report.log_warning(
+                        f"Cannot remove obsolete file {candidate.name}: {exc}"
+                    )
         if removed:
             self.report.log_success(
                 "Removed obsolete files: " + ", ".join(item.name for item in removed)
@@ -138,11 +140,15 @@ class VSCodeBootstrap:
     def validate_json_files(self, paths: Iterable[Path]) -> None:
         for path in paths:
             if not path.exists():
-                self.report.log_error(f"Required configuration file is missing: {path.relative_to(PROJECT_ROOT)}")
+                self.report.log_error(
+                    f"Required configuration file is missing: {path.relative_to(PROJECT_ROOT)}"
+                )
                 continue
             try:
                 json.loads(path.read_text(encoding="utf-8"))
-                self.report.log_success(f"Validated JSON file: {path.relative_to(PROJECT_ROOT)}")
+                self.report.log_success(
+                    f"Validated JSON file: {path.relative_to(PROJECT_ROOT)}"
+                )
             except json.JSONDecodeError as exc:
                 self.report.log_error(
                     f"Invalid JSON in {path.relative_to(PROJECT_ROOT)} (line {exc.lineno}, col {exc.colno})"
@@ -159,12 +165,17 @@ class VSCodeBootstrap:
         recommendations = sorted(set(RECOMMENDED_EXTENSIONS))
         if existing.get("recommendations") != recommendations:
             extensions_file.write_text(
-                json.dumps({"recommendations": recommendations}, indent=2, ensure_ascii=False) + "\n",
+                json.dumps(
+                    {"recommendations": recommendations}, indent=2, ensure_ascii=False
+                )
+                + "\n",
                 encoding="utf-8",
             )
             self.report.log_success("Updated VS Code extension recommendations")
         else:
-            self.report.log_success("VS Code extension recommendations already up to date")
+            self.report.log_success(
+                "VS Code extension recommendations already up to date"
+            )
 
     def ensure_python_import_hints(self) -> None:
         """Keep VS Code aware of the src/tests/tools package roots."""
@@ -174,7 +185,9 @@ class VSCodeBootstrap:
             PROJECT_ROOT / "PneumoStabSim.code-workspace", nested_key="settings"
         )
 
-    def _update_settings_file(self, path: Path, *, nested_key: str | None = None) -> None:
+    def _update_settings_file(
+        self, path: Path, *, nested_key: str | None = None
+    ) -> None:
         if not path.exists():
             self.report.log_warning(
                 f"Cannot update Python paths; file missing: {path.relative_to(PROJECT_ROOT)}"
@@ -213,7 +226,9 @@ class VSCodeBootstrap:
 
         changed = self._ensure_python_paths(target)
         if changed:
-            path.write_text(json.dumps(data, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+            path.write_text(
+                json.dumps(data, indent=2, ensure_ascii=False) + "\n", encoding="utf-8"
+            )
             self.report.log_success(
                 f"Updated Python import paths in {path.relative_to(PROJECT_ROOT)}"
             )

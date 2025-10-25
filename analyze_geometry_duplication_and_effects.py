@@ -103,7 +103,7 @@ def analyze_qml_geometry_duplication():
                 continue
 
         if not in_component and 'source: "#Cylinder"' in line:
-            outside_cylinders.append(f"   Строка {i+1}: {line.strip()}")
+            outside_cylinders.append(f"   Строка {i + 1}: {line.strip()}")
 
     if outside_cylinders:
         print("   ⚠️ Найдены цилиндры ВНЕ OptimizedSuspensionCorner:")

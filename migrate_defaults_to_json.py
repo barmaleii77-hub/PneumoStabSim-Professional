@@ -91,7 +91,7 @@ def migrate_defaults_to_json():
     print("=" * 60)
     print("\n📊 Статистика:")
     print(f"   Параметров: {count_parameters(graphics_defaults)}")
-    print(f"   Размер файла: {file_size:,} байт ({file_size/1024:.1f} KB)")
+    print(f"   Размер файла: {file_size:,} байт ({file_size / 1024:.1f} KB)")
     print(f"   Файл: {settings_file.absolute()}")
 
     print("\n🎯 Следующие шаги:")

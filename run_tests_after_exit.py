@@ -121,7 +121,9 @@ class PostExitTestRunner:
         self.test_results.append(verification_result)
         return verification_result
 
-    def run_test_script(self, script_path: Path, timeout: int = 30) -> Dict[str, object]:
+    def run_test_script(
+        self, script_path: Path, timeout: int = 30
+    ) -> Dict[str, object]:
         """Запускает тестовый скрипт и возвращает результат."""
 
         test_name = script_path.stem
@@ -200,9 +202,8 @@ class PostExitTestRunner:
                 if any(excluded in script.parts for excluded in exclude_dirs):
                     continue
 
-                if (
-                    ("tests" in script.parts and "smoke" in script.parts)
-                    or ("tests" in script.parts and "integration" in script.parts)
+                if ("tests" in script.parts and "smoke" in script.parts) or (
+                    "tests" in script.parts and "integration" in script.parts
                 ):
                     continue
 

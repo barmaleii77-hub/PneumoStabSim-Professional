@@ -2,6 +2,7 @@
 Analyze Python↔QML event synchronization
 Reads events JSON and generates detailed sync report
 """
+
 from __future__ import annotations
 
 import json
@@ -328,14 +329,14 @@ def export_html_report(
         </div>
         <div class="metric">
             <strong>Sync Rate:</strong>
-            <span class="{'success' if sync_analysis['missing'] == 0 else 'warning'}">
-                {(sync_analysis['synced'] / max(sync_analysis['total'], 1) * 100):.1f}%
+            <span class="{"success" if sync_analysis["missing"] == 0 else "warning"}">
+                {(sync_analysis["synced"] / max(sync_analysis["total"], 1) * 100):.1f}%
             </span>
         </div>
         <div class="metric">
             <strong>Missing QML:</strong>
-            <span class="{'error' if sync_analysis['missing'] > 0 else 'success'}">
-                {sync_analysis['missing']}
+            <span class="{"error" if sync_analysis["missing"] > 0 else "success"}">
+                {sync_analysis["missing"]}
             </span>
         </div>
     </div>
@@ -353,11 +354,11 @@ def export_html_report(
 
     for event in events[:100]:  # Первые 100 событий
         html += f"""        <tr>
-            <td>{event['timestamp']}</td>
-            <td>{event['event_type']}</td>
-            <td>{event['component']}</td>
-            <td>{event['action']}</td>
-            <td>{str(event.get('new_value', ''))[:50]}</td>
+            <td>{event["timestamp"]}</td>
+            <td>{event["event_type"]}</td>
+            <td>{event["component"]}</td>
+            <td>{event["action"]}</td>
+            <td>{str(event.get("new_value", ""))[:50]}</td>
         </tr>
 """
 

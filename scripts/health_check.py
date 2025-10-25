@@ -2,6 +2,7 @@
 """
 Проверка состояния проекта и зависимостей
 """
+
 import sys
 import subprocess
 import importlib

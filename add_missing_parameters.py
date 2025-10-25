@@ -82,9 +82,9 @@ def main():
 
     # Генерируем отчёт для каждого таба
     for tab, params in sorted(by_tab.items()):
-        print(f"\n{'='*80}")
+        print(f"\n{'=' * 80}")
         print(f"📄 {tab} - добавить {len(params)} параметров")
-        print(f"{'='*80}\n")
+        print(f"{'=' * 80}\n")
 
         for param, line in params:
             print(f"▶ {param} (строка {line} в монолите)")

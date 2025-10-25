@@ -3,6 +3,7 @@
 Profiling script for PneumoStabSim application
 Uses py-spy to profile Qt Quick 3D performance
 """
+
 import subprocess
 import time
 import psutil
