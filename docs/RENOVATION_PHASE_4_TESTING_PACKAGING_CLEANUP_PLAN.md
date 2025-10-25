@@ -85,3 +85,9 @@ Use this section to log coverage milestones, release candidate builds, and clean
 ### 2025-10-03 – Packaging automation spike
 - Assembled the initial `scripts/build_release.py` workflow invoking PyInstaller with Qt plugin caching via `tools/setup_qt.py`.
 - Produced unsigned MSI/AppImage artifacts stored in `reports/release/candidate_manifests/2025-10-03/` pending security scan sign-off.
+
+### 2025-10-25 – Redundant file audit baseline
+- Executed `python -m tools.audit.redundant_files` to catalogue root-level reports and
+  quick-fix scripts for archival triage.
+- Published the resulting Markdown and JSON artefacts under
+  `reports/cleanup/2025-10-25/` for follow-up actions in the cleanup track.

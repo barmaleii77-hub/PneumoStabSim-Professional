@@ -364,8 +364,11 @@ best practices for scientific visualisation software.
 
 **Action Plan**
 
-1. Perform a structured audit using `tools/audit/redundant_files.py` (to be
-   implemented). Generate an actionable report stored in `reports/cleanup/`.
+1. Perform a structured audit using `tools/audit/redundant_files.py`.
+   Generate an actionable report stored in `reports/cleanup/`.
+   *Status: Baseline audit captured 25 Oct 2025 via
+   `python -m tools.audit.redundant_files`, report stored in
+   `reports/cleanup/2025-10-25/`.*
 2. Delete superseded scripts (anything ending with `_fix.py` or `_final_report.md`
    once documentation has been migrated). Preserve references in the archive.
 3. Ensure `.gitignore` excludes build outputs, logs, and Qt caches.
