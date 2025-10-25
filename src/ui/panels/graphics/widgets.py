@@ -7,6 +7,8 @@ Graphics panel widgets - reusable UI components
 from __future__ import annotations
 
 
+from dataclasses import dataclass
+
 from PySide6.QtCore import Qt, Signal, Slot
 from PySide6.QtGui import QColor
 from PySide6.QtWidgets import (
@@ -19,7 +21,35 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from ...core.units import Quantity, Unit
+
+@dataclass(frozen=True)
+class QuantityDefinition:
+    """Simple metadata describing how a quantity can vary."""
+
+    minimal: float
+    maximal: float
+    decimals: int = 2
+    unit: str = ""
+    small_step: float | None = None
+
+    def clamp(self, value: float) -> float:
+        """Clamp *value* into the allowed range."""
+
+        return max(self.minimal, min(self.maximal, value))
+
+
+@dataclass
+class Quantity:
+    """Scalar value bundled with presentation metadata."""
+
+    value: float
+    definition: QuantityDefinition
+
+    def __post_init__(self) -> None:
+        self.value = self.definition.clamp(float(self.value))
+
+
+Unit = str
 
 
 class ColorButton(QPushButton):
@@ -213,7 +243,7 @@ class LabeledSlider(QWidget):
 class QuantitySlider(LabeledSlider):
     """Слайдер для изменения Quantity."""
 
-    valueChanged = Signal(Quantity)
+    valueChanged = Signal(object)
 
     def __init__(
         self,
@@ -222,20 +252,22 @@ class QuantitySlider(LabeledSlider):
         *,
         parent: QWidget | None = None,
     ) -> None:
+        definition = quantity.definition
+        self._definition = definition
         super().__init__(
             title,
-            quantity.definition.minimal.value,
-            quantity.definition.maximal.value,
-            quantity.definition.small_step or 1.0,
-            decimals=quantity.definition.decimals,
-            unit=quantity.definition.unit,
+            definition.minimal,
+            definition.maximal,
+            definition.small_step or 1.0,
+            decimals=definition.decimals,
+            unit=definition.unit,
             parent=parent,
         )
         self.set_value(quantity.value)
 
     def value(self) -> Quantity:
         base_value = super().value()
-        return Quantity(base_value, self._unit)
+        return Quantity(base_value, self._definition)
 
     def set_value(self, value: Quantity | float) -> None:
         if isinstance(value, Quantity):
@@ -253,7 +285,7 @@ class QuantitySlider(LabeledSlider):
         self._update_label(value)
         self._updating = False
         if self._user_triggered:
-            self.valueChanged.emit(Quantity(value, self._unit))
+            self.valueChanged.emit(Quantity(value, self._definition))
 
     @Slot(float)
     def _handle_spin(self, value: float) -> None:
@@ -265,4 +297,4 @@ class QuantitySlider(LabeledSlider):
         self._update_label(value)
         self._updating = False
         if self._user_triggered:
-            self.valueChanged.emit(Quantity(value, self._unit))
+            self.valueChanged.emit(Quantity(value, self._definition))
