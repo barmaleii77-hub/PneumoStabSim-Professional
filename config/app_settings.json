@@ -36,11 +36,7 @@
         "fog_far": 1000.0,
         "ibl_intensity": 1.0,
         "ao_sample_rate": 32,
-        "background_color": [
-          0,
-          0,
-          0
-        ]
+        "background_color": "#000000"
       },
       "scene": {
         "scale_factor": 1.0,
