@@ -34,8 +34,11 @@ from .quality_tab import QualityTab
 from .camera_tab import CameraTab
 from .materials_tab import MaterialsTab
 from .lighting_tab import LightingTab
+from .panel_graphics_settings_manager import (
+    GraphicsSettingsError,
+    GraphicsSettingsService,
+)
 
-from src.common.settings_manager import get_settings_manager
 from src.ui.panels.graphics_logger import get_graphics_logger
 from src.common.event_logger import get_event_logger
 
@@ -63,14 +66,13 @@ class GraphicsPanel(QWidget):
         super().__init__(parent)
 
         self.logger = logging.getLogger(__name__)
-        self.settings_manager = get_settings_manager()
+        self.settings_service = GraphicsSettingsService()
+        self.settings_manager = self.settings_service.settings_manager
         self.graphics_logger = get_graphics_logger()
         self.event_logger = get_event_logger()
 
         # Загружаем текущее состояние из JSON (не дефолты)
-        self.state: Dict[str, Any] = (
-            self.settings_manager.get_category("graphics") or {}
-        )
+        self.state: Dict[str, Any] = {}
 
         # Таб-виджеты
         self.lighting_tab: LightingTab | None = None
@@ -208,74 +210,25 @@ class GraphicsPanel(QWidget):
     @Slot()
     def load_settings(self) -> None:
         try:
-            # Диагностика: где именно лежит файл настроек
-            try:
-                self.logger.info(
-                    f"Settings file path: {self.settings_manager.settings_file}"
-                )
-            except Exception:
-                pass
-            self.state = self.settings_manager.get_category("graphics") or {}
-            if "lighting" in self.state:
-                self.lighting_tab.set_state(self.state["lighting"])
-            if "environment" in self.state:
-                self.environment_tab.set_state(self.state["environment"])
-            if "quality" in self.state:
-                self.quality_tab.set_state(self.state["quality"])
-            if "camera" in self.state:
-                self.camera_tab.set_state(self.state["camera"])
-            # Материалы: строгая валидация (никаких скрытых автодополнений)
-            materials_state = (
-                self.state.get("materials") if isinstance(self.state, dict) else None
-            )
-            alias_map = {"tail": "tail_rod"}
-            if isinstance(materials_state, dict):
-                normalized: Dict[str, Any] = {}
-                for key, value in materials_state.items():
-                    normalized_key = alias_map.get(key, key)
-                    normalized[normalized_key] = value
-                materials_state = normalized
-            expected_keys = {
-                "frame",
-                "lever",
-                "tail_rod",
-                "cylinder",
-                "piston_body",
-                "piston_rod",
-                "joint_tail",
-                "joint_arm",
-                "joint_rod",
-            }
-            if not isinstance(materials_state, dict):
-                cfg_path = getattr(self.settings_manager, "settings_file", "<unknown>")
-                msg = (
-                    f"Некорректный формат graphics.materials (ожидался dict)\n"
-                    f"Путь: {cfg_path}\nТип: {type(materials_state).__name__}"
-                )
-                self.logger.critical(msg)
-                raise RuntimeError(msg)
-            found_keys = set(
-                k
-                for k in materials_state.keys()
-                if isinstance(materials_state.get(k), dict)
-            )
-            missing = sorted(list(expected_keys - found_keys))
-            if missing:
-                cfg_path = getattr(self.settings_manager, "settings_file", "<unknown>")
-                msg = (
-                    f"Отсутствуют обязательные материалы в graphics.materials: {', '.join(missing)}\n"
-                    f"Путь: {cfg_path}\nНайдено: {sorted(list(found_keys))}"
-                )
-                self.logger.critical(msg)
-                raise RuntimeError(msg)
-            # Передаём БЕЗ обёртки current_material — таб сам разберёт ключи
-            self.materials_tab.set_state(materials_state)
-            if "effects" in self.state:
-                self.effects_tab.set_state(self.state["effects"])
+            settings_path = self.settings_service.settings_file
+            if settings_path is not None:
+                self.logger.info(f"Settings file path: {settings_path}")
+
+            self.state = self.settings_service.load_current()
+
+            self.lighting_tab.set_state(self.state["lighting"])
+            self.environment_tab.set_state(self.state["environment"])
+            self.quality_tab.set_state(self.state["quality"])
+            self.camera_tab.set_state(self.state["camera"])
+            self.materials_tab.set_state(self.state["materials"])
+            self.effects_tab.set_state(self.state["effects"])
+
             self.logger.info("✅ Graphics settings loaded from app_settings.json")
-        except Exception as e:
-            # Эскалируем исключение — заглушки запрещены
-            self.logger.error(f"❌ Failed to load graphics settings: {e}")
+        except GraphicsSettingsError as exc:
+            self.logger.critical(f"❌ Invalid graphics settings: {exc}")
+            raise
+        except Exception as exc:  # pragma: no cover - unexpected failures
+            self.logger.error(f"❌ Failed to load graphics settings: {exc}")
             raise
 
     def _emit_all_initial(self) -> None:
@@ -296,25 +249,33 @@ class GraphicsPanel(QWidget):
     @Slot()
     def reset_to_defaults(self) -> None:
         try:
-            self.settings_manager.reset_to_defaults(category="graphics")
-            self.load_settings()
+            self.state = self.settings_service.reset_to_defaults()
+            self.lighting_tab.set_state(self.state["lighting"])
+            self.environment_tab.set_state(self.state["environment"])
+            self.quality_tab.set_state(self.state["quality"])
+            self.camera_tab.set_state(self.state["camera"])
+            self.materials_tab.set_state(self.state["materials"])
+            self.effects_tab.set_state(self.state["effects"])
+            self.logger.info("✅ Graphics reset to defaults completed")
             self._emit_all_initial()
             # передаём полный state для MainWindow
             self.preset_applied.emit(self.collect_state())
-            self.logger.info("✅ Graphics reset to defaults completed")
-        except Exception as e:
-            self.logger.error(f"❌ Failed to reset graphics defaults: {e}")
+        except GraphicsSettingsError as exc:
+            self.logger.error(f"❌ Failed to reset graphics defaults: {exc}")
+        except Exception as exc:  # pragma: no cover - unexpected failures
+            self.logger.error(f"❌ Failed to reset graphics defaults: {exc}")
 
     @Slot()
     def save_current_as_defaults(self) -> None:
         try:
             state = self.collect_state()
-            self.settings_manager.set_category("graphics", state, auto_save=False)
-            self.settings_manager.save_current_as_defaults(category="graphics")
-            self.preset_applied.emit(state)
+            self.settings_service.save_current_as_defaults(state)
+            self.preset_applied.emit(self.state)
             self.logger.info("✅ Graphics defaults snapshot updated")
-        except Exception as e:
-            self.logger.error(f"❌ Save graphics as defaults failed: {e}")
+        except GraphicsSettingsError as exc:
+            self.logger.error(f"❌ Save graphics as defaults failed: {exc}")
+        except Exception as exc:  # pragma: no cover - defensive
+            self.logger.error(f"❌ Save graphics as defaults failed: {exc}")
 
     # ------------------------------------------------------------------
     # Централизованный сбор состояния — для MainWindow.closeEvent()
@@ -330,9 +291,14 @@ class GraphicsPanel(QWidget):
                 "materials": self.materials_tab.get_all_state(),
                 "effects": self.effects_tab.get_state(),
             }
-            return state
-        except Exception as e:
-            self.logger.error(f"❌ Failed to collect graphics state: {e}")
+            validated = self.settings_service.ensure_valid_state(state)
+            self.state = validated
+            return validated
+        except GraphicsSettingsError as exc:
+            self.logger.error(f"❌ Failed to collect graphics state: {exc}")
+            return self.state or {}
+        except Exception as exc:  # pragma: no cover - defensive logging
+            self.logger.error(f"❌ Failed to collect graphics state: {exc}")
             return self.state or {}
 
     # ------------------------------------------------------------------

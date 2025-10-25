@@ -45,6 +45,10 @@ from .effects_tab import EffectsTab
 # Экспорт вспомогательных модулей
 from .widgets import ColorButton, LabeledSlider
 from .state_manager import GraphicsStateManager
+from .panel_graphics_settings_manager import (
+    GraphicsSettingsError,
+    GraphicsSettingsService,
+)
 
 # ✅ НОВОЕ: SettingsManager вместо defaults.py
 from src.common.settings_manager import get_settings_manager
@@ -64,6 +68,8 @@ __all__ = [
     "LabeledSlider",
     # Утилиты
     "GraphicsStateManager",
+    "GraphicsSettingsService",
+    "GraphicsSettingsError",
     "get_settings_manager",  # ✅ НОВОЕ: Экспорт SettingsManager
 ]
 
@@ -72,7 +78,9 @@ import logging
 
 _logger = logging.getLogger(__name__)
 if _USING_REFACTORED:
-    _logger.info("✅ GraphicsPanel: REFACTORED version v3.0 loaded (SettingsManager)")
+    _logger.info(
+        "✅ GraphicsPanel: REFACTORED version v3.0 loaded (SettingsManager + GraphicsSettingsService)"
+    )
 else:
     _logger.warning(
         "⚠️ GraphicsPanel: Using LEGACY version (~2600 lines) - migration incomplete"
