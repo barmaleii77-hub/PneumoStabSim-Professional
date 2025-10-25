@@ -6,8 +6,9 @@ Provides latest-only queue and performance monitoring
 import queue
 import threading
 import time
-from typing import Optional, Any, Dict
+from collections import deque
 from dataclasses import dataclass, field
+from typing import Any, Dict, Iterable, List, Optional
 
 
 class LatestOnlyQueue:
@@ -198,6 +199,66 @@ class TimingAccumulator:
         self.target_dt = target_dt
         self.accumulator = 0.0
         self.last_time = time.perf_counter()
+
+
+class StateSnapshotBuffer:
+    """Thread-safe ring buffer storing the latest state snapshots.
+
+    The buffer preserves insertion order and automatically drops the
+    oldest snapshots once the configured capacity is reached.  Accessors
+    return copies so callers cannot mutate the internal deque.
+    """
+
+    def __init__(self, maxlen: int = 2048):
+        if maxlen <= 0:
+            raise ValueError("Snapshot buffer size must be positive")
+
+        self._buffer: deque[Any] = deque(maxlen=maxlen)
+        self._lock = threading.Lock()
+
+    @property
+    def capacity(self) -> int:
+        """Return the maximum number of snapshots retained."""
+
+        # ``maxlen`` is never ``None`` because we validate in ``__init__``.
+        return int(self._buffer.maxlen or 0)
+
+    def append(self, snapshot: Any) -> None:
+        """Add a snapshot, discarding the oldest if capacity is exceeded."""
+
+        with self._lock:
+            self._buffer.append(snapshot)
+
+    def extend(self, snapshots: Iterable[Any]) -> None:
+        """Append multiple snapshots preserving order."""
+
+        with self._lock:
+            for snapshot in snapshots:
+                self._buffer.append(snapshot)
+
+    def clear(self) -> None:
+        """Remove all buffered snapshots."""
+
+        with self._lock:
+            self._buffer.clear()
+
+    def to_list(self) -> List[Any]:
+        """Return a copy of buffered snapshots in insertion order."""
+
+        with self._lock:
+            return list(self._buffer)
+
+    def latest(self) -> Optional[Any]:
+        """Return the most recent snapshot or ``None`` if empty."""
+
+        with self._lock:
+            if self._buffer:
+                return self._buffer[-1]
+            return None
+
+    def __len__(self) -> int:  # pragma: no cover - trivial
+        with self._lock:
+            return len(self._buffer)
         self.max_steps_per_frame = max(
             1, int(max_steps_per_frame)
         )  # Prevent spiral of death
