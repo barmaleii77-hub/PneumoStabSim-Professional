@@ -402,7 +402,9 @@ best practices for scientific visualisation software.
    the "status" blocks in this master plan.
 4. Maintain a rolling six-week milestone schedule in
    `docs/operations/milestones.md`, including planned capacity, dependencies,
-   and review checkpoints with stakeholders.
+   and review checkpoints with stakeholders. *Status: November 2025 refresh
+   introduces a published cadence covering Weeks 47–52 with cross-links to the
+   burndown tracker.*
 
 ---
 
@@ -476,3 +478,20 @@ significant architectural, tooling, or process change lands in the repository.
 2. Draft the Qt setup smoke-check utility (`tools/environment/verify_qt_setup.py`) and capture first-run notes in `reports/environment/qt-smoke.md`. *Status: Completed April 2025; helper committed with accompanying report.*
 3. Align contributor documentation by updating `docs/DEVELOPMENT_GUIDE.md` and `docs/RENOVATION_PHASE_1_ENVIRONMENT_AND_CI_PLAN.md` to reference `make check` as mandatory prior to pull requests. *Status: Completed April 2025 with refreshed development guide and phase plan entry.*
 4. Prepare a status update for the governance sync summarising progress on dependency locking and CI workflow design, attaching action items to `docs/operations/governance.md`.
+
+**Focus for the next sprint (November 2025)**
+
+1. Finalise service container onboarding by defining simulation runner and
+   logging factories in `src/infrastructure/container.py`, documenting the
+   wiring updates in `docs/architecture/service_container.md` (Phase 2 – Action
+   2/4 linkage).
+2. Stand up the GPU profiler overlay experiment and capture frame time baselines
+   in `reports/performance/ui_phase3_profiler.md`, feeding findings back into the
+   Phase 3 execution log (Phase 3 – Action 4 alignment).
+3. Expand Phase 4 coverage initiatives by piloting the stricter `make check`
+   gate on a staging branch, recording outcomes in
+   `reports/quality/coverage_phase4_pilot.json` and updating the Phase 4 plan
+   with mitigation steps.
+4. Launch the rolling milestone review cadence introduced in
+   `docs/operations/milestones.md`, ensuring status syncs cross-reference the
+   burndown tracker and governance calendar (Phase 10 – Action 4 follow-through).
