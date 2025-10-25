@@ -43,5 +43,22 @@ def safe_import_qt(
 
         return QApplication, qInstallMessageHandler, Qt, QTimer
     except ImportError as e:
-        log_error(f"PySide6 import failed: {e}")
+        error_message = f"PySide6 import failed: {e}"
+
+        hint: str | None = None
+        text = str(e)
+        if "libGL.so.1" in text:
+            hint = (
+                "Required OpenGL runtime (libGL.so.1) is missing. "
+                "Install a Mesa/OpenGL package (e.g. 'apt-get install -y libgl1')."
+            )
+        elif "libEGL.so" in text:
+            hint = "Missing libEGL runtime. Install an EGL package (e.g. 'apt-get install -y libegl1')."
+
+        if hint:
+            error_message = f"{error_message}\nHint: {hint}"
+
+        log_error(error_message)
+        sys.stderr.write(error_message + "\n")
+        sys.stderr.flush()
         sys.exit(1)
