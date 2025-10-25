@@ -177,7 +177,9 @@ best practices for scientific visualisation software.
 7. Ship a diagnostics CLI `python -m src.tools.settings_audit` producing
    human-readable diffs between the current runtime configuration and the
    baseline JSON shipped in `config/`. Capture exemplar reports under
-   `reports/settings/` to validate the workflow.
+   `reports/settings/` to validate the workflow. *Status: Completed July 2025
+   via the `settings_audit` CLI with a sample report stored under
+   `reports/settings/`.*
 
 ---
 
