@@ -28,7 +28,7 @@ import json
 import re
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Dict, Iterable, List, Optional
+from typing import Any, Callable, Dict, Iterable, List, Optional
 
 
 _GRAPHICS_PATHS: tuple[str, ...] = (
@@ -82,10 +82,12 @@ class ProfileSettingsManager:
         self,
         settings_manager: Any,
         profile_dir: Optional[Path] = None,
+        apply_callback: Optional[Callable[[str, Dict[str, Any]], None]] = None,
     ) -> None:
         self._settings_manager = settings_manager
         self._profile_dir = Path(profile_dir or Path.home() / ".pss" / "profiles")
         _ensure_directory(self._profile_dir)
+        self._apply_callback = apply_callback
 
     # ------------------------------------------------------------------ utils
     def _path_for(self, name: str) -> Path:
@@ -128,6 +130,11 @@ class ProfileSettingsManager:
                 continue
             path_key = f"graphics.{section_name}"
             self._settings_manager.set(path_key, value, auto_save=False)
+            if self._apply_callback is not None:
+                try:
+                    self._apply_callback(path_key, value)
+                except Exception:  # pragma: no cover - UI callbacks may fail in tests
+                    pass
 
         # Mimic auto-save behaviour expected by the tests
         if hasattr(self._settings_manager, "save"):

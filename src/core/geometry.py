@@ -22,6 +22,28 @@ from config.constants import (
 )
 
 
+_DEFAULT_KINEMATICS = {
+    "track_width_m": 1.2,
+    "lever_length_m": 0.35,
+    "pivot_offset_from_frame_m": 0.2,
+    "rod_attach_fraction": 0.5,
+}
+
+_DEFAULT_CYLINDER = {
+    "inner_diameter_m": 0.08,
+    "rod_diameter_m": 0.035,
+    "piston_thickness_m": 0.02,
+    "body_length_m": 0.25,
+    "dead_zone_rod_m3": 0.001,
+    "dead_zone_head_m3": 0.001,
+}
+
+_DEFAULT_VISUAL = {
+    "arm_radius_m": 0.05,
+    "cylinder_radius_m": 0.04,
+}
+
+
 @dataclass
 class Point2:
     """2D point in plane"""
@@ -87,9 +109,23 @@ class GeometryParams:
     """Geometry parameters for kinematics"""
 
     def __init__(self):
-        kinematics = get_geometry_kinematics_constants()
-        cylinder = get_geometry_cylinder_constants()
-        visual = get_geometry_visual_constants()
+        try:
+            kinematics_raw = get_geometry_kinematics_constants()
+        except KeyError:
+            kinematics_raw = {}
+        kinematics = {**_DEFAULT_KINEMATICS, **dict(kinematics_raw)}
+
+        try:
+            cylinder_raw = get_geometry_cylinder_constants()
+        except KeyError:
+            cylinder_raw = {}
+        cylinder = {**_DEFAULT_CYLINDER, **dict(cylinder_raw)}
+
+        try:
+            visual_raw = get_geometry_visual_constants()
+        except KeyError:
+            visual_raw = {}
+        visual = {**_DEFAULT_VISUAL, **dict(visual_raw)}
 
         # Wheelbase and lever geometry
         self.track_width = float(kinematics["track_width_m"])

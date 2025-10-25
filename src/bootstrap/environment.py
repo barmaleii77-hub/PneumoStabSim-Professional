@@ -94,6 +94,10 @@ def configure_qt_environment() -> None:
     os.environ.setdefault("QT_ENABLE_HIGHDPI_SCALING", "1")
     os.environ.setdefault("PSS_DIAG", "1")
 
+    if sys.platform.startswith("linux") and not os.environ.get("DISPLAY"):
+        os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
+        os.environ.setdefault("QT_QUICK_BACKEND", "software")
+
     # Если заданы стартовые параметры окружения для IBL/skybox через .env — передадим в QML через context props
     # Сохранение в окружении, а чтение/установка произойдёт в MainWindow при создании QML Engine
     for env_var in (

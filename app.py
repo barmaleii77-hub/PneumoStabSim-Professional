@@ -4,7 +4,52 @@ PneumoStabSim - Pneumatic Stabilizer Simulator
 Main application entry point - MODULAR VERSION v4.9.5
 """
 
+import argparse
 import sys
+from pathlib import Path
+
+
+def _parse_bootstrap_arguments(argv: list[str]) -> tuple[argparse.Namespace, list[str]]:
+    """Parse lightweight CLI arguments required before Qt import."""
+
+    bootstrap_parser = argparse.ArgumentParser(add_help=False)
+    bootstrap_parser.add_argument(
+        "--env-check",
+        action="store_true",
+        help="Run environment diagnostics without starting the Qt application.",
+    )
+    bootstrap_parser.add_argument(
+        "--env-report",
+        nargs="?",
+        const="ENVIRONMENT_SETUP_REPORT.md",
+        metavar="PATH",
+        help="Write environment diagnostics report to PATH and exit (default: ENVIRONMENT_SETUP_REPORT.md).",
+    )
+
+    parsed, remaining = bootstrap_parser.parse_known_args(argv[1:])
+    return parsed, remaining
+
+
+bootstrap_args, remaining_argv = _parse_bootstrap_arguments(sys.argv)
+
+if bootstrap_args.env_check or bootstrap_args.env_report:
+    from src.bootstrap.environment_check import (
+        generate_environment_report,
+        render_console_report,
+    )
+
+    report = generate_environment_report()
+
+    print(render_console_report(report))
+
+    if bootstrap_args.env_report:
+        report_path = Path(bootstrap_args.env_report)
+        report_path.write_text(report.to_markdown() + "\n", encoding="utf-8")
+        print(f"\n📝 Environment report written to {report_path.resolve()}")
+
+    sys.exit(0 if report.is_successful else 1)
+
+sys.argv = [sys.argv[0], *remaining_argv]
 
 # =============================================================================
 # Bootstrap Phase0: .env
