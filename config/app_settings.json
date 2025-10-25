@@ -98,6 +98,7 @@
         "showMotion": true
       }
     },
+ codex/install-libgl.so.1-and-run-tests
     "system": {
       "dependencies": {
         "opengl_runtime": {
@@ -146,6 +147,7 @@
             }
           ]
         }
+
       }
     }
   },

@@ -1,10 +1,16 @@
+import json
 import math
+from pathlib import Path
 from typing import Dict, Tuple
 
 import numpy as np
 import pytest
 
-from src.physics.odes import assemble_forces, RigidBody3DOF
+from src.physics.odes import (
+    assemble_forces,
+    RigidBody3DOF,
+    reset_suspension_settings_cache,
+)
 from src.physics.forces import compute_cylinder_force
 from src.pneumo.cylinder import CylinderSpec
 from src.pneumo.enums import CheckValveKind, Line, Port, ReceiverVolumeMode, Wheel
@@ -170,3 +176,35 @@ def test_assemble_forces_without_system() -> None:
     assert np.all(np.isfinite(vertical_forces))
     assert math.isfinite(tau_x)
     assert math.isfinite(tau_z)
+
+
+def test_assemble_forces_uses_settings_for_suspension(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    original_settings = json.loads(
+        Path("config/app_settings.json").read_text(encoding="utf-8")
+    )
+
+    # Configure distinctive suspension parameters to verify they are applied.
+    override = json.loads(json.dumps(original_settings))
+    override["current"]["physics"]["suspension"]["spring_constant"] = 1234.0
+    override["current"]["physics"]["suspension"]["damper_coefficient"] = 56.0
+
+    custom_settings = tmp_path / "settings.json"
+    custom_settings.write_text(
+        json.dumps(override, ensure_ascii=False, indent=2), encoding="utf-8"
+    )
+
+    monkeypatch.setenv("PSS_SETTINGS_FILE", str(custom_settings))
+    reset_suspension_settings_cache()
+
+    params = RigidBody3DOF(M=1800.0, Ix=2200.0, Iz=2400.0)
+    state = np.array([0.02, 0.0, 0.0, 0.1, 0.0, 0.0])
+
+    vertical_forces, _, _ = assemble_forces(None, None, state, params)
+
+    static_load = params.static_load_for("LP")
+    expected = static_load - 1234.0 * state[0] - 56.0 * state[3]
+
+    assert math.isclose(vertical_forces[0], expected, rel_tol=1e-9, abs_tol=1e-9)
+    reset_suspension_settings_cache()

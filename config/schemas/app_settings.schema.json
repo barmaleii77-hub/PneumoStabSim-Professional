@@ -115,20 +115,36 @@
  "required": ["lighting", "environment", "quality", "camera", "materials", "effects"],
  "additionalProperties": false
  },
- "simulation": {
- "type": "object",
- "properties": {
- "physics_dt": { "type": "number" },
- "render_vsync_hz": { "type": "number" },
- "max_steps_per_frame": { "type": "number" },
- "max_frame_time": { "type": "number" }
- },
- "required": ["physics_dt", "render_vsync_hz", "max_steps_per_frame", "max_frame_time"],
- "additionalProperties": false
- },
- "quality_presets": { "type": "object" }
- },
- "required": ["geometry", "pneumatic", "modes", "graphics", "simulation", "quality_presets"],
+        "simulation": {
+          "type": "object",
+          "properties": {
+            "physics_dt": { "type": "number" },
+            "render_vsync_hz": { "type": "number" },
+            "max_steps_per_frame": { "type": "number" },
+            "max_frame_time": { "type": "number" }
+          },
+          "required": ["physics_dt", "render_vsync_hz", "max_steps_per_frame", "max_frame_time"],
+          "additionalProperties": false
+        },
+        "physics": {
+          "type": "object",
+          "properties": {
+            "suspension": {
+              "type": "object",
+              "properties": {
+                "spring_constant": { "type": "number" },
+                "damper_coefficient": { "type": "number" }
+              },
+              "required": ["spring_constant", "damper_coefficient"],
+              "additionalProperties": false
+            }
+          },
+          "required": ["suspension"],
+          "additionalProperties": false
+        },
+        "quality_presets": { "type": "object" }
+      },
+      "required": ["geometry", "pneumatic", "modes", "graphics", "simulation", "physics", "quality_presets"],
  "additionalProperties": false
  },
  "defaults_snapshot": { "type": "object" },
