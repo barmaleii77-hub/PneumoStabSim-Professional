@@ -238,6 +238,9 @@ best practices for scientific visualisation software.
   behaviour is inconsistent.
 - Material presets for glass and metals exist in JSON but are not exposed in the
   UI.
+- Drafted a phased execution timeline (Sprint 14–18) with dependencies, risk
+  owners, and acceptance metrics captured in the refreshed Phase 3 plan to
+  unblock downstream tasks.
 
 **Action Plan**
 
@@ -270,6 +273,8 @@ best practices for scientific visualisation software.
      colour tokens for engineering teams. Store guidelines in
      `docs/ui/design_language.md` and enforce usage through shared QML style
      primitives in `assets/qml/styles/`.
+     *Status: Planning artefacts, milestone checkpoints, and risk ownership
+     recorded July 2025 in the Phase 3 execution tracker.*
 
 ---
 
@@ -282,6 +287,7 @@ best practices for scientific visualisation software.
   into automation or enforced via pre-commit.
 - No CI workflows in `.github/workflows/`.
 - `Makefile` already exposes `check`, `lint`, `typecheck`, and `qml-lint` targets backed by `tools/ci_tasks.py`, but adoption is ad-hoc and undocumented for contributors.
+- Phase 4 execution plan now documents milestone sequencing, risk treatments, and coverage KPIs to steer automation deliverables.
 
 **Action Plan**
 
@@ -319,6 +325,9 @@ best practices for scientific visualisation software.
 
 - Packaging scripts exist in `tools/` but rely on older PyInstaller versions.
 - No automated release pipeline; manual packaging documented in `QUICK_DEPLOY.md`.
+- Phase 4 roadmap now establishes packaging milestones, dependency checkpoints,
+  and smoke-test responsibilities for release candidates in the updated Phase 4
+  plan.
 
 **Action Plan**
 

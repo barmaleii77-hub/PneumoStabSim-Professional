@@ -40,6 +40,35 @@
 - Release artifacts validated via smoke test on each platform.
 - Stakeholders approve archive structure and documentation updates.
 
+## Milestones & Timeline
+- **Sprint 19:** Expand automated tests and stabilise coverage thresholds with
+  CI gating dry run.
+- **Sprint 20:** Integrate static analysis enforcement into pre-commit and CI;
+  publish baseline quality dashboard.
+- **Sprint 21:** Finalise packaging automation, produce signed installers, and
+  document release playbook.
+- **Sprint 22:** Execute repository cleanup, archive legacy artefacts, and run
+  documentation refresh.
+
+## Dependencies
+- Phase 3 UI deliverables to ensure stable surfaces for regression testing.
+- Access to signing certificates and secure storage for release credentials.
+- Operational agreement on archival taxonomy for legacy documents.
+
+## Risk Register
+| Risk | Impact | Probability | Mitigation |
+| --- | --- | --- | --- |
+| Coverage targets delay merges | High | Medium | Adopt staged thresholds with feature toggles; share dashboard for incremental adoption. |
+| Packaging automation blocked by Qt licensing | High | Low | Validate entitlements early with legal and procurement; cache installers to avoid repeated downloads. |
+| Cleanup removes needed historical docs | Medium | Medium | Mirror artefacts into `archive/YYYY-MM/` and secure sign-off from documentation lead before deletion. |
+
+## Metrics & Evidence
+- Coverage reports exported to `reports/quality/coverage_phase4.json` and linked
+  from the master plan.
+- Static analysis trend lines tracked in `reports/quality/dashboard.csv`.
+- Release artefact checksums stored alongside installers in
+  `reports/release/candidate_manifests/`.
+
 ## RACI Snapshot
 - **Responsible:** QA automation lead, release engineer.
 - **Accountable:** Engineering manager.
