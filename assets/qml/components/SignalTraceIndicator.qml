@@ -2,8 +2,11 @@ import QtQuick 2.15
 import QtQuick.Controls 2.15
 import QtQuick.Layouts 1.15
 
+pragma ComponentBehavior: Bound
+
 Control {
     id: root
+
     property string label: qsTr("Signals")
     property int count: 0
     property alias iconVisible: icon.visible
@@ -19,73 +22,80 @@ Control {
     background: Rectangle {
         color: root.backgroundColor
         radius: 18
-   border.width: 1
-        border.color: Qt.rgba(root.accentColor.r, root.accentColor.g, root.accentColor.b, 0.4)
+        border.width: 1
+        border.color: Qt.rgba(
+            root.accentColor.r,
+            root.accentColor.g,
+            root.accentColor.b,
+            0.4
+        )
     }
 
     contentItem: RowLayout {
         spacing: 8
         anchors.fill: parent
 
-  Rectangle {
-  id: icon
+        Rectangle {
+            id: icon
             visible: true
-  width: 16
-            height: 16
- radius: 8
-     color: root.accentColor
+            implicitWidth: 16
+            implicitHeight: 16
+            radius: 8
+            color: root.accentColor
+            Layout.preferredWidth: implicitWidth
+            Layout.preferredHeight: implicitHeight
             Layout.alignment: Qt.AlignVCenter
+            transformOrigin: Item.Center
         }
 
         ColumnLayout {
-      Layout.fillWidth: true
-spacing: 2
+            Layout.fillWidth: true
+            spacing: 2
 
             Label {
-        text: root.label
-         color: root.textColor
-    font.bold: true
-      Layout.fillWidth: true
- }
+                text: root.label
+                color: root.textColor
+                font.bold: true
+                Layout.fillWidth: true
+            }
 
-      Label {
-         id: counter
-      text: root.count.toString()
-        color: Qt.rgba(0.78, 0.86, 0.9, 1)
-        font.family: "Monospace"
-           font.pixelSize: 14
+            Label {
+                id: counter
+                text: root.count.toString()
+                color: Qt.rgba(0.78, 0.86, 0.9, 1)
+                font.family: "Monospace"
+                font.pixelSize: 14
             }
         }
     }
 
-    states: [
-    State {
-      name: "highlight"
-    when: root.pulseOnChange && root.count > 0
-  PropertyChanges {
-   target: icon
-scale: 1.25
-            }
+    onCountChanged: {
+        if (!root.pulseOnChange || root.count <= 0) {
+            return
         }
-    ]
+        pulseAnimation.restart()
+    }
 
-    transitions: [
-     Transition {
-   from: ""; to: "highlight"
     SequentialAnimation {
-          NumberAnimation { target: icon; property: "scale"; to: 1.25; duration: 120 }
-    NumberAnimation { target: icon; property: "scale"; to: 1.0; duration: 220; easing.type: Easing.InOutQuad }
-      }
-  }
-    ]
+        id: pulseAnimation
+        running: false
+        NumberAnimation { target: icon; property: "scale"; to: 1.25; duration: 120 }
+        NumberAnimation {
+            target: icon
+            property: "scale"
+            to: 1.0
+            duration: 220
+            easing.type: Easing.InOutQuad
+        }
+    }
 
     function increment(step) {
-        if (step === undefined)
-   step = 1
-        root.count += step
+        const delta = step === undefined ? 1 : step
+        root.count += delta
     }
 
     function reset() {
-      root.count = 0
+        icon.scale = 1.0
+        root.count = 0
     }
 }
