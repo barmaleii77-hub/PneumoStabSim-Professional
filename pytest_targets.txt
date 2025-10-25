@@ -1,2 +1,3 @@
 tests/quality/test_sample_vector.py
 tests/unit/physics/test_forces.py
+tests/unit/physics/test_physics_loop.py

@@ -467,6 +467,7 @@ check_*.py
 !tests/unit/runtime/test_state_snapshot_buffer.py
 !tests/unit/physics/test_assemble_forces.py
 !tests/unit/physics/test_forces.py
+!tests/unit/physics/test_physics_loop.py
 
 # Temporary batch files
 *.bat

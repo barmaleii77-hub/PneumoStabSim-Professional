@@ -3,12 +3,16 @@ ODE integration wrapper using scipy.solve_ivp
 Handles stepping, events, and fallback methods for 3-DOF dynamics
 """
 
-import numpy as np
-from scipy.integrate import solve_ivp
-from typing import Dict, Any, Optional
 import logging
+import math
 import time
 from dataclasses import dataclass
+from typing import Any, Dict, List, Optional
+
+import numpy as np
+from scipy.integrate import solve_ivp
+
+from src.pneumo.enums import ThermoMode, Wheel
 
 from .odes import RigidBody3DOF, f_rhs, validate_state
 
@@ -36,10 +40,17 @@ class PhysicsLoopConfig:
     rtol: float = 1e-6  # Relative tolerance
     atol: float = 1e-9  # Absolute tolerance
     max_step: Optional[float] = None  # Maximum step size (None = dt/4)
+    thermo_mode: ThermoMode = ThermoMode.ISOTHERMAL
+    master_isolation_open: bool = False
 
     def __post_init__(self):
         if self.max_step is None:
             self.max_step = self.dt_physics / 4.0
+        if isinstance(self.thermo_mode, str):
+            try:
+                self.thermo_mode = ThermoMode[self.thermo_mode.upper()]
+            except KeyError as exc:
+                raise ValueError(f"Unknown thermo_mode '{self.thermo_mode}'") from exc
 
 
 def step_dynamics(
@@ -216,6 +227,8 @@ class PhysicsLoop:
         self.params = params
         self.system = system
         self.gas = gas
+        self.thermo_mode = config.thermo_mode
+        self.master_isolation_open = config.master_isolation_open
 
         # State
         self.time_physics = 0.0
@@ -241,6 +254,11 @@ class PhysicsLoop:
         self.successful_steps = 0
         self.failed_steps = 0
         self.total_solve_time = 0.0
+        try:
+            self._update_pneumatics_from_state(self.y_current, apply_flows=False)
+        except Exception:
+            # Surface the error to caller to avoid masking configuration issues
+            raise
 
     def step_physics_fixed(self, dt_real: float) -> Dict[str, Any]:
         """Advance physics with fixed timestep, accumulating real time
@@ -253,15 +271,19 @@ class PhysicsLoop:
         """
         self.time_accumulator += dt_real
         steps_taken = 0
-        results = []
+        results: List[IntegrationResult] = []
+        gas_logs: List[Dict[str, Any]] = []
 
         # Take fixed physics steps
         while (
             self.time_accumulator >= self.config.dt_physics
             and steps_taken < self.config.max_steps_per_render
         ):
-            # Update gas system before physics step
-            # TODO: Integrate with actual gas network
+            flow_log = self._update_pneumatics_from_state(
+                self.y_current, apply_flows=True
+            )
+            if flow_log is not None:
+                gas_logs.append(flow_log)
 
             # Take physics step
             result = step_dynamics(
@@ -283,6 +305,8 @@ class PhysicsLoop:
                 self.y_current = result.y_final
                 self.time_physics = result.t_final
                 self.successful_steps += 1
+                # Synchronise pneumatic state with the new configuration
+                self._update_pneumatics_from_state(self.y_current, apply_flows=False)
             else:
                 self.failed_steps += 1
                 self.logger.warning("Physics step failed: %s", result.message)
@@ -305,8 +329,79 @@ class PhysicsLoop:
             "render_due": render_due,
             "y_current": self.y_current.copy(),
             "results": results,
+            "gas_flows": gas_logs,
             "stats": self.get_statistics(),
         }
+
+    def _update_pneumatics_from_state(
+        self, state: np.ndarray, *, apply_flows: bool
+    ) -> Dict[str, Any] | None:
+        """Project body state to pneumatic system and gas network."""
+
+        if self.system is None or self.gas is None:
+            return None
+
+        lever_angles = self._compute_lever_angles(state)
+        if lever_angles:
+            self.system.update_system_from_lever_angles(lever_angles)
+
+        line_volumes = self.system.get_line_volumes()
+        for line_name, volume_info in line_volumes.items():
+            total_volume = float(volume_info.get("total_volume", 0.0))
+            if total_volume <= 0:
+                raise ValueError(
+                    f"Computed non-positive volume for line {line_name}: {total_volume}"
+                )
+            gas_state = self.gas.lines.get(line_name)
+            if gas_state is None:
+                raise KeyError(f"Gas network missing state for line {line_name}")
+            gas_state.set_volume(total_volume)
+
+        self.gas.master_isolation_open = self.master_isolation_open
+        self.gas.update_pressures_due_to_volume(self.thermo_mode)
+
+        if not apply_flows:
+            return None
+
+        flow_log = self.gas.apply_valves_and_flows(self.config.dt_physics, self.logger)
+        self.gas.enforce_master_isolation(self.logger)
+        return flow_log
+
+    def _compute_lever_angles(self, state: np.ndarray) -> Dict[Wheel, float]:
+        """Derive lever angles for all wheels from the rigid-body state."""
+
+        if not hasattr(self.system, "cylinders"):
+            return {}
+
+        attachments = getattr(self.params, "attachment_points", {})
+        Y, phi_z, theta_x = state[:3]
+        angles: Dict[Wheel, float] = {}
+
+        for wheel_enum, cylinder in self.system.cylinders.items():
+            if not isinstance(wheel_enum, Wheel):
+                try:
+                    wheel_enum = Wheel[wheel_enum]
+                except Exception as exc:  # pragma: no cover - defensive
+                    raise TypeError(
+                        f"Unsupported wheel key type: {wheel_enum!r}"
+                    ) from exc
+
+            attach_key = wheel_enum.name
+            x_i, z_i = attachments.get(attach_key, (0.0, 0.0))
+            displacement = Y + x_i * phi_z + z_i * theta_x
+
+            lever = getattr(cylinder.spec, "lever_geom", None)
+            lever_length = getattr(lever, "L_lever", None)
+            if lever_length is None or lever_length <= 0:
+                raise ValueError(
+                    f"Cylinder for wheel {wheel_enum.value} has invalid lever geometry"
+                )
+
+            ratio = displacement / lever_length
+            ratio = float(np.clip(ratio, -0.999, 0.999))
+            angles[wheel_enum] = math.asin(ratio)
+
+        return angles
 
     def get_statistics(self) -> Dict[str, Any]:
         """Get performance statistics"""
