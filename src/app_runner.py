@@ -53,6 +53,8 @@ class ApplicationRunner:
         self.error_hook_manager: Optional[ErrorHookManager] = None
 
         self.use_qml_3d_schema: bool = True
+        self._is_headless: bool = False
+        self._headless_reason: Optional[str] = None
 
     def setup_signals(self) -> None:
         """Настройка обработчиков сигналов (Ctrl+C, SIGTERM)."""
@@ -127,9 +129,14 @@ class ApplicationRunner:
             except Exception as hook_error:
                 logger.warning(f"Error hook installation failed: {hook_error}")
 
-            from PySide6.QtCore import qVersion
+            try:
+                from PySide6.QtCore import qVersion
+            except Exception:  # pragma: no cover - headless environments
+                qt_version = "unavailable"
+            else:
+                qt_version = qVersion()
 
-            logger.info(f"Qt: {qVersion()}")
+            logger.info(f"Qt: {qt_version}")
             logger.info(f"Platform: {sys.platform}")
             logger.info(f"Backend: {os.environ.get('QSG_RHI_BACKEND', 'auto')}")
 
@@ -154,6 +161,10 @@ class ApplicationRunner:
         """Настройка High DPI scaling."""
         from src.diagnostics.warnings import log_warning
 
+        if not hasattr(self.QApplication, "setHighDpiScaleFactorRoundingPolicy"):
+            log_warning("High DPI setup: Qt runtime does not expose DPI controls")
+            return
+
         try:
             self.QApplication.setHighDpiScaleFactorRoundingPolicy(
                 self.Qt.HighDpiScaleFactorRoundingPolicy.PassThrough
@@ -168,6 +179,13 @@ class ApplicationRunner:
         app = self.QApplication(sys.argv)
         self.app_instance = app
 
+        self._is_headless = bool(
+            getattr(app, "is_headless", False) or getattr(self.Qt, "is_headless", False)
+        )
+        self._headless_reason = getattr(app, "headless_reason", None) or getattr(
+            self.Qt, "headless_reason", None
+        )
+
         # Если глобальные хуки не установлены (например, ошибка на этапе логгирования),
         # подключаем локальный перехватчик Qt сообщений как fallback.
         if not self.error_hook_manager:
@@ -179,9 +197,33 @@ class ApplicationRunner:
 
         if self.app_logger:
             self.app_logger.info("QApplication created and configured")
+            if self._is_headless:
+                reason = self._headless_reason or "PySide6 is unavailable"
+                self.app_logger.warning(
+                    "Running without a Qt GUI (headless diagnostics mode). Reason: %s",
+                    reason,
+                )
+        elif self._is_headless:
+            reason = self._headless_reason or "PySide6 is unavailable"
+            print(
+                "⚠️ Headless diagnostics mode enabled (Qt GUI unavailable)."
+                f" Reason: {reason}"
+            )
 
     def create_main_window(self) -> None:
         """Создание и отображение главного окна."""
+        if self._is_headless:
+            if self.app_logger:
+                self.app_logger.info(
+                    "Headless mode active — skipping MainWindow instantiation"
+                )
+            else:
+                print(
+                    "⚠️ Headless mode: skipping MainWindow creation; diagnostics only."
+                )
+            self.window_instance = None
+            return
+
         # Предпочитаем модульную рефакторенную версию, чтобы избежать конфликта имён
         try:
             MW = None
@@ -271,8 +313,12 @@ class ApplicationRunner:
 
     def _validate_settings_file(self) -> None:
         """Строгая валидация конфигурации до создания MainWindow."""
-        from PySide6.QtWidgets import QMessageBox
         from src.common.settings_manager import get_settings_manager
+
+        try:
+            from PySide6.QtWidgets import QMessageBox
+        except Exception:  # pragma: no cover - headless environments
+            QMessageBox = None
 
         sm = get_settings_manager()
         cfg_path = Path(sm.settings_file).absolute()
@@ -285,7 +331,10 @@ class ApplicationRunner:
         ) -> None:
             if self.app_logger:
                 self.app_logger.critical(message)
-            QMessageBox.critical(None, "Ошибка конфигурации", message)
+            if QMessageBox is not None:
+                QMessageBox.critical(None, "Ошибка конфигурации", message)
+            else:
+                print(f"❌ {message}")
             raise exc_type(message)
 
         src = determine_settings_source(cfg_path, project_default=project_cfg)
