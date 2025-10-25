@@ -4,10 +4,14 @@ Handles heave (Y), roll (phi_z), and pitch (theta_x) motion with suspension forc
 """
 
 import math
-import numpy as np
+from collections.abc import Mapping
 from dataclasses import dataclass, field
-from typing import Any, Dict, Mapping, Tuple
+from typing import Any, Dict, Tuple
 
+import numpy as np
+
+from src.core.settings_service import SettingsService
+from src.core.settings_validation import SettingsValidationError
 from src.pneumo.enums import Port, Wheel
 
 from .forces import compute_cylinder_force
@@ -136,6 +140,59 @@ class RigidBody3DOF:
         return dict(self._static_wheel_loads)
 
 
+_SUSPENSION_SETTINGS_CACHE: dict[str, float] | None = None
+
+
+def _load_suspension_settings() -> dict[str, float]:
+    """Fetch suspension configuration from the settings file."""
+
+    global _SUSPENSION_SETTINGS_CACHE
+    if _SUSPENSION_SETTINGS_CACHE is not None:
+        return _SUSPENSION_SETTINGS_CACHE
+
+    service = SettingsService()
+    raw_settings = service.get("current.physics.suspension")
+    if not isinstance(raw_settings, Mapping):
+        raise SettingsValidationError(
+            "Отсутствует секция current.physics.suspension в файле настроек"
+        )
+
+    try:
+        spring_constant = float(raw_settings["spring_constant"])
+    except KeyError as exc:
+        raise SettingsValidationError(
+            "В секции current.physics.suspension отсутствует параметр spring_constant"
+        ) from exc
+    except (TypeError, ValueError) as exc:
+        raise SettingsValidationError(
+            "Параметр spring_constant в current.physics.suspension должен быть числом"
+        ) from exc
+
+    try:
+        damper_coefficient = float(raw_settings["damper_coefficient"])
+    except KeyError as exc:
+        raise SettingsValidationError(
+            "В секции current.physics.suspension отсутствует параметр damper_coefficient"
+        ) from exc
+    except (TypeError, ValueError) as exc:
+        raise SettingsValidationError(
+            "Параметр damper_coefficient в current.physics.suspension должен быть числом"
+        ) from exc
+
+    _SUSPENSION_SETTINGS_CACHE = {
+        "spring_constant": spring_constant,
+        "damper_coefficient": damper_coefficient,
+    }
+    return _SUSPENSION_SETTINGS_CACHE
+
+
+def reset_suspension_settings_cache() -> None:
+    """Сбросить кэш параметров подвески (используется в тестах)."""
+
+    global _SUSPENSION_SETTINGS_CACHE
+    _SUSPENSION_SETTINGS_CACHE = None
+
+
 @dataclass
 class SuspensionPointState:
     """State of a single suspension point"""
@@ -236,10 +293,11 @@ def assemble_forces(
     ]  # Left Front, Right Front, Left Rear, Right Rear
     vertical_forces = np.zeros(4)
 
-    # TEMPORARY: Basic spring/damper until pneumatic system connected
-    # These values provide realistic suspension behavior
-    k_spring = 50000.0  # N/m (spring stiffness per wheel)
-    c_damper = 2000.0  # N*s/m (damping coefficient per wheel)
+    suspension_config = _load_suspension_settings()
+    k_spring = suspension_config["spring_constant"]  # N/m (spring stiffness per wheel)
+    c_damper = suspension_config[
+        "damper_coefficient"
+    ]  # N*s/m (damping coefficient per wheel)
 
     # Calculate forces at each wheel
     for i, wheel_name in enumerate(wheel_names):

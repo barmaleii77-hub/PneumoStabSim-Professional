@@ -433,6 +433,12 @@
  "adjustment_saturation":0.0
  }
  },
+ "physics": {
+ "suspension": {
+ "spring_constant":50000.0,
+ "damper_coefficient":2000.0
+ }
+ },
  "simulation": {
  "physics_dt":0.001,
  "render_vsync_hz":60.0,

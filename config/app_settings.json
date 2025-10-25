@@ -97,6 +97,12 @@
         "showAngles": true,
         "showMotion": true
       }
+    },
+    "physics": {
+      "suspension": {
+        "spring_constant": 50000.0,
+        "damper_coefficient": 2000.0
+      }
     }
   },
   "defaults_snapshot": {
@@ -186,6 +192,12 @@
         "showPan": true,
         "showAngles": true,
         "showMotion": true
+      }
+    },
+    "physics": {
+      "suspension": {
+        "spring_constant": 50000.0,
+        "damper_coefficient": 2000.0
       }
     }
   }
