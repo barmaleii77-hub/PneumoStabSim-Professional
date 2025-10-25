@@ -29,6 +29,11 @@ def parse_args(argv: Optional[list[str]] = None) -> argparse.Namespace:
         default=2,
         help="Pretty-print JSON with the given indentation (default: 2)",
     )
+    parser.add_argument(
+        "--skip-validation",
+        action="store_true",
+        help="Generate the environment without verifying on-disk prerequisites.",
+    )
     return parser.parse_args(argv)
 
 
@@ -49,7 +54,9 @@ def _load_builders(project_root: Path):
 def main(argv: Optional[list[str]] = None) -> int:
     args = parse_args(argv)
     build_environment, dump_environment = _load_builders(args.project_root)
-    environment = build_environment(args.project_root)
+    environment = build_environment(
+        args.project_root, ensure_paths=not args.skip_validation
+    )
     json_payload = dump_environment(environment, indent=args.indent)
 
     if args.output:

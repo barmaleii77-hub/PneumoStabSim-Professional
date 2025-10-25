@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path, PureWindowsPath
-from typing import Dict
+from typing import Dict, Iterable
 
 _ENV_KEYS = (
     "QML2_IMPORT_PATH",
@@ -35,24 +35,87 @@ def _as_windows_path(path: Path) -> str:
     return str(PureWindowsPath(path))
 
 
-def build_insiders_environment(project_root: Path) -> Dict[str, str]:
+def _candidate_site_packages_roots(venv_root: Path) -> Iterable[Path]:
+    """Yield possible site-packages directories for *venv_root*."""
+
+    # Prefer the Windows-style layout used by Visual Studio virtual
+    # environments.  Fall back to POSIX layouts to support validation during
+    # CI runs executed on Linux hosts.
+    yield venv_root / "Lib" / "site-packages"
+    for prefix in ("lib", "lib64"):
+        site_packages_root = venv_root / prefix
+        if not site_packages_root.exists():
+            continue
+        yield from site_packages_root.glob("python*/site-packages")
+    yield venv_root / "site-packages"
+
+
+def _resolve_pyside_root(venv_root: Path, *, ensure_exists: bool) -> Path:
+    """Return the path to the PySide6 installation inside *venv_root*."""
+
+    candidates = [
+        root / "PySide6" for root in _candidate_site_packages_roots(venv_root)
+    ]
+    for candidate in candidates:
+        if candidate.exists():
+            return candidate
+
+    if ensure_exists:
+        raise FileNotFoundError(
+            "PySide6 was not found in the virtual environment. Run "
+            "'initialize_insiders_environment.ps1' to provision dependencies."
+        )
+
+    # Fall back to the first candidate even if it does not exist.  This keeps
+    # generation idempotent when validation is intentionally skipped, e.g. in
+    # documentation builds that do not ship the virtual environment.
+    return (
+        candidates[0] if candidates else venv_root / "Lib" / "site-packages" / "PySide6"
+    )
+
+
+def _ensure_path(path: Path, description: str, *, ensure_exists: bool) -> Path:
+    if ensure_exists and not path.exists():
+        raise FileNotFoundError(f"{description} was not found at '{path}'.")
+    return path
+
+
+def build_insiders_environment(
+    project_root: Path, *, ensure_paths: bool = False
+) -> Dict[str, str]:
     """Build the environment map used by the Insiders configuration."""
 
     resolved_root = project_root.resolve()
-    venv_root = resolved_root / ".venv"
-    site_packages = venv_root / "Lib" / "site-packages"
-    pyside_root = site_packages / "PySide6"
+    venv_root = _ensure_path(
+        resolved_root / ".venv", "Virtual environment root", ensure_exists=ensure_paths
+    )
+    pyside_root = _ensure_path(
+        _resolve_pyside_root(venv_root, ensure_exists=ensure_paths),
+        "PySide6 root",
+        ensure_exists=ensure_paths,
+    )
+    qml_runtime_root = _ensure_path(
+        pyside_root / "qml", "PySide6 QML runtime", ensure_exists=ensure_paths
+    )
+    plugin_root = _ensure_path(
+        pyside_root / "plugins", "PySide6 plugin directory", ensure_exists=ensure_paths
+    )
+    assets_qml_root = _ensure_path(
+        resolved_root / "assets" / "qml",
+        "Project QML assets directory",
+        ensure_exists=ensure_paths,
+    )
 
     windows_root = _as_windows_path(resolved_root)
     env: Dict[str, str] = {
-        "QML2_IMPORT_PATH": _as_windows_path(pyside_root / "qml")
+        "QML2_IMPORT_PATH": _as_windows_path(qml_runtime_root)
         + ";"
-        + _as_windows_path(resolved_root / "assets" / "qml"),
-        "QML_IMPORT_PATH": _as_windows_path(pyside_root / "qml")
+        + _as_windows_path(assets_qml_root),
+        "QML_IMPORT_PATH": _as_windows_path(qml_runtime_root)
         + ";"
-        + _as_windows_path(resolved_root / "assets" / "qml"),
-        "QT_PLUGIN_PATH": _as_windows_path(pyside_root / "plugins"),
-        "QT_QML_IMPORT_PATH": _as_windows_path(pyside_root / "qml"),
+        + _as_windows_path(assets_qml_root),
+        "QT_PLUGIN_PATH": _as_windows_path(plugin_root),
+        "QT_QML_IMPORT_PATH": _as_windows_path(qml_runtime_root),
         "QT_QUICK_CONTROLS_STYLE": "Basic",
         "PYTHONPATH": ";".join(
             (
@@ -78,6 +141,12 @@ def build_insiders_environment(project_root: Path) -> Dict[str, str]:
     return env
 
 
+def validate_insiders_environment(project_root: Path) -> Dict[str, str]:
+    """Validate that the Insiders profile can be generated for *project_root*."""
+
+    return build_insiders_environment(project_root, ensure_paths=True)
+
+
 def dumps_environment(environment: Dict[str, str], *, indent: int | None = 2) -> str:
     """Serialise *environment* to JSON using UTF-8 ordering."""
 
@@ -86,5 +155,6 @@ def dumps_environment(environment: Dict[str, str], *, indent: int | None = 2) ->
 
 __all__ = [
     "build_insiders_environment",
+    "validate_insiders_environment",
     "dumps_environment",
 ]
