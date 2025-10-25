@@ -426,10 +426,13 @@ significant architectural, tooling, or process change lands in the repository.
 
 1. Codify a governance calendar in `docs/operations/governance.md` outlining
    weekly architecture syncs, bi-weekly sprint reviews, and monthly release
-   readiness checkpoints. Attach agendas and expected artefacts.
+   readiness checkpoints. Attach agendas and expected artefacts. *Status:
+   Completed July 2025 with escalation paths and artefact handling captured in
+   the governance guide.*
 2. Establish `docs/operations/risk_register.md` curated alongside this master
    plan. Each risk entry must include impact, probability, mitigation owner, and
-   cross-references to relevant phase items.
+   cross-references to relevant phase items. *Status: Completed July 2025 with
+   five initial risks seeded from master plan sections 3, 7, and 9.*
 3. Archive decisions from architecture syncs into `docs/DECISIONS_LOG.md` within
    24 hours, tagging affected modules and linking pull requests for auditability.
 ---
