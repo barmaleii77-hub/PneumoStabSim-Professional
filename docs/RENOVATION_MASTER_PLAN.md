@@ -161,6 +161,8 @@ best practices for scientific visualisation software.
 
 1. Consolidate settings logic into `src/core/settings_manager.py` that wraps the
    schema-aware loader while exposing async-safe read/write for Qt threads.
+   *Status: August 2025 update expanded the shared manager with category-level
+   helpers powering the modular panel save/reset workflow.*
 2. Implement a `config/migrations/` pipeline driven by migration descriptors
    (YAML/JSON) executed by `python -m src.tools.settings_migrate`. Document the
    workflow in `docs/SETTINGS_ARCHITECTURE.md`.
