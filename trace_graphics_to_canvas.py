@@ -12,9 +12,9 @@ from pathlib import Path
 def trace_parameter_to_canvas(param_name: str):
     """Трассировка параметра от Python до Canvas"""
 
-    print(f"\n{'='*80}")
+    print(f"\n{'=' * 80}")
     print(f"🔍 ТРАССИРОВКА ПАРАМЕТРА: {param_name}")
-    print(f"{'='*80}")
+    print(f"{'=' * 80}")
 
     # ШАГ 1: Проверка в GraphicsPanel
     graphics_panel = Path("src/ui/panels/panel_graphics.py")
@@ -206,7 +206,9 @@ def trace_parameter_to_canvas(param_name: str):
                     for line in mat_body.split("\n"):
                         if param_name in line and ":" in line:
                             prop_name = line.split(":")[0].strip()
-                            print(f"   📌 Привязка материала: {prop_name}: {param_name}")
+                            print(
+                                f"   📌 Привязка материала: {prop_name}: {param_name}"
+                            )
                     break
 
         # Проверка в DirectionalLight/PointLight
@@ -241,7 +243,7 @@ def trace_parameter_to_canvas(param_name: str):
         else:
             print("✅ ПОЛНАЯ ЦЕПОЧКА: Python → QML → Canvas РАБОТАЕТ!")
 
-    print(f"{'='*80}\n")
+    print(f"{'=' * 80}\n")
 
 
 def main():
@@ -324,7 +326,9 @@ def main():
         print(f"   ✅ {param}: {desc}")
 
     if broken_params:
-        print(f"\n❌ СЛОМАННЫЕ ПАРАМЕТРЫ ({len(broken_params)}/{len(critical_params)}):")
+        print(
+            f"\n❌ СЛОМАННЫЕ ПАРАМЕТРЫ ({len(broken_params)}/{len(critical_params)}):"
+        )
         for param, desc, reason in broken_params:
             print(f"   ❌ {param}: {desc}")
             print(f"      💥 ПРИЧИНА: {reason}")

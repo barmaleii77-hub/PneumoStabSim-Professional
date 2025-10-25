@@ -224,10 +224,11 @@ def test_determine_settings_source(monkeypatch, tmp_path: Path):
     project_cfg.parent.mkdir(parents=True, exist_ok=True)
     project_cfg.write_text("{}", encoding="utf-8")
     assert (
-        determine_settings_source(project_cfg, project_default=project_cfg)
-        == "PROJECT"
+        determine_settings_source(project_cfg, project_default=project_cfg) == "PROJECT"
     )
 
     fallback_path = tmp_path / "other.json"
     fallback_path.write_text("{}", encoding="utf-8")
-    assert determine_settings_source(fallback_path, project_default=project_cfg) == "CWD"
+    assert (
+        determine_settings_source(fallback_path, project_default=project_cfg) == "CWD"
+    )

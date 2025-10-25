@@ -4,6 +4,7 @@
 PneumoStabSim Professional - Комплексный интеграционный тест
 Comprehensive Integration Test Suite для всех систем проекта
 """
+
 import sys
 import os
 import time

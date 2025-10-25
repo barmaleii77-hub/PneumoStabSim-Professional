@@ -3,6 +3,7 @@
 Быстрое исправление импортов PneumoStabSim
 Quick fix for PneumoStabSim imports
 """
+
 import sys
 from pathlib import Path
 
@@ -15,4 +16,6 @@ try:
     main()
 except ImportError as e:
     print(f"❌ Ошибка импорта: {e}")
-    print("💡 Убедитесь, что файл fix_critical_imports.py находится в той же директории")
+    print(
+        "💡 Убедитесь, что файл fix_critical_imports.py находится в той же директории"
+    )

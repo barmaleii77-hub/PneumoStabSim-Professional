@@ -203,10 +203,10 @@ def calculate_optimal_scale():
     rod_scale_v2 = rod_length_mm / 10 / qt_cylinder_height * qt_cylinder_height
 
     print(
-        f"   Поршень: scale.y = {piston_thickness_mm}/10 = {piston_thickness_mm/10:.1f} (scale = {piston_scale_v2/100:.2f})"
+        f"   Поршень: scale.y = {piston_thickness_mm}/10 = {piston_thickness_mm / 10:.1f} (scale = {piston_scale_v2 / 100:.2f})"
     )
     print(
-        f"   Шток:    scale.y = {rod_length_mm}/10 = {rod_length_mm/10:.1f} (scale = {rod_scale_v2/100:.2f})"
+        f"   Шток:    scale.y = {rod_length_mm}/10 = {rod_length_mm / 10:.1f} (scale = {rod_scale_v2 / 100:.2f})"
     )
     print()
 

@@ -1,6 +1,7 @@
 """
 Детальный анализ запуска приложения
 """
+
 import subprocess
 import sys
 from pathlib import Path

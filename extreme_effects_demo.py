@@ -97,7 +97,9 @@ def extreme_fog_demo(window):
 
     graphics_panel.emit_environment_update()
 
-    QTimer.singleShot(3000, lambda: print("📢 Если сцена стала белой - туман работает!"))
+    QTimer.singleShot(
+        3000, lambda: print("📢 Если сцена стала белой - туман работает!")
+    )
 
 
 def extreme_fog_colors(window):

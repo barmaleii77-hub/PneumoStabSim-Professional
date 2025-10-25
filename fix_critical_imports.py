@@ -299,15 +299,18 @@ def run_corrected_tests():
             results[description] = "ERROR"
 
     # Сводка результатов
-    print(f"\n{'='*60}")
+    print(f"\n{'=' * 60}")
     print("📊 СВОДКА РЕЗУЛЬТАТОВ ТЕСТИРОВАНИЯ:")
     passed = 0
     total = len(results)
 
     for test_name, result in results.items():
-        status_icon = {"PASSED": "✅", "FAILED": "❌", "TIMEOUT": "⏱️", "ERROR": "💥"}.get(
-            result, "❓"
-        )
+        status_icon = {
+            "PASSED": "✅",
+            "FAILED": "❌",
+            "TIMEOUT": "⏱️",
+            "ERROR": "💥",
+        }.get(result, "❓")
 
         print(f"{status_icon} {test_name}: {result}")
         if result == "PASSED":
@@ -385,7 +388,7 @@ def main():
     create_run_fixes_script()
 
     # Финальный отчет
-    print(f"\n{'='*60}")
+    print(f"\n{'=' * 60}")
     print("🎯 ИТОГОВЫЙ ОТЧЕТ ИСПРАВЛЕНИЙ:")
     print("📁 Создано __init__.py файлов")
     print(f"📝 Исправлено импортов в {fixed_files} файлах")

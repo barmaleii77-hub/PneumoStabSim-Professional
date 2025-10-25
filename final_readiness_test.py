@@ -4,6 +4,7 @@
 PneumoStabSim Professional - Финальный тест готовности
 Final Readiness Test - окончательная проверка перед продакшеном
 """
+
 import sys
 import time
 from pathlib import Path

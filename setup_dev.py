@@ -3,6 +3,7 @@
 Setup script для PneumoStabSim Professional
 Автоматическая настройка окружения разработки
 """
+
 import sys
 import subprocess
 import platform

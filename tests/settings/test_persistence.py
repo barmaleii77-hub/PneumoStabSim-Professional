@@ -56,7 +56,10 @@ def test_load_uses_cache_until_explicit_reload(settings_file: Path) -> None:
     service = SettingsService(settings_path=settings_file, schema_path=SCHEMA_PATH)
 
     cached = service.load()
-    assert cached["metadata"]["units_version"] == _BASE_SETTINGS_PAYLOAD["metadata"]["units_version"]
+    assert (
+        cached["metadata"]["units_version"]
+        == _BASE_SETTINGS_PAYLOAD["metadata"]["units_version"]
+    )
 
     mutated = deepcopy(cached)
     mutated["metadata"]["version"] = "9.9.9"

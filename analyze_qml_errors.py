@@ -1,6 +1,7 @@
 """
 Анализ QML ошибок без эмодзи
 """
+
 import subprocess
 import sys
 import re

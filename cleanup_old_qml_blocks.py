@@ -176,7 +176,7 @@ def main():
     print("\n📊 Statistics:")
     print(f"  Original lines:    {original_lines}")
     print(f"  New lines:         {new_lines}")
-    print(f"  Lines reduced:     {reduction} ({reduction/original_lines*100:.1f}%)")
+    print(f"  Lines reduced:     {reduction} ({reduction / original_lines * 100:.1f}%)")
 
     print(f"\n💾 Backup saved at: {backup_path}")
     print(f"✅ {main_qml} successfully cleaned!")

@@ -4,6 +4,7 @@
 fix_camera_overlay.py
 КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Перемещает CameraController из View3D наружу как overlay
 """
+
 import re
 from pathlib import Path
 

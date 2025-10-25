@@ -444,7 +444,7 @@ import "scene"
             print(f"  Original lines:    {original_lines}")
             print(f"  New lines:         {new_lines}")
             print(
-                f"  Lines reduced:     {reduction} ({reduction/original_lines*100:.1f}%)"
+                f"  Lines reduced:     {reduction} ({reduction / original_lines * 100:.1f}%)"
             )
             print("\n🔧 Changes applied:")
             for i, change in enumerate(self.changes_made, 1):
