@@ -188,6 +188,5 @@
         "showMotion": true
       }
     }
-  },
-  "some_setting_with_units": "expected_si_unit_value"
+  }
 }

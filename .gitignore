@@ -459,10 +459,12 @@ test_*.py
 check_*.py
 !tools/check_ui_utf8.py
 !tools/check_forbidden_artifacts.py
+!tools/validate_settings.py
 !tests/unit/test_signal_tracing.py
 !tests/unit/tools/test_settings_audit.py
 !tests/unit/tools/test_redundant_files.py
 !tests/unit/tools/test_report_metrics.py
+!tests/unit/tools/test_validate_settings_cli.py
 !tests/settings/test_persistence.py
 !tests/unit/runtime/test_state_snapshot_buffer.py
 !tests/unit/physics/test_assemble_forces.py
@@ -709,6 +711,7 @@ debug_*.qml
 
 # Validation and analysis scripts
 validate_*.py
+!tools/validate_settings.py
 analysis_*.py
 study_*.py
 check_*.py.temp
