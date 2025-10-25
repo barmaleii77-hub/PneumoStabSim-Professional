@@ -6,7 +6,6 @@
 при использовании версий < 6.10.
 """
 
-import sys
 from typing import Any, Callable
 
 from src.bootstrap.dependency_config import match_dependency_error
@@ -24,9 +23,6 @@ def safe_import_qt(
 
     Returns:
         Кортеж (QApplication, qInstallMessageHandler, Qt, QTimer)
-
-    Raises:
-        SystemExit: Если PySide6 не установлен
     """
     try:
         from PySide6.QtWidgets import QApplication
@@ -74,6 +70,24 @@ def safe_import_qt(
                 error_message = "\n".join([error_message, *hint_lines])
 
         log_error(error_message)
-        sys.stderr.write(error_message + "\n")
-        sys.stderr.flush()
-        sys.exit(1)
+
+        from src.bootstrap.headless_qt import (
+            HeadlessApplication,
+            HeadlessQtNamespace,
+            HeadlessTimer,
+            headless_install_message_handler,
+        )
+
+        HeadlessApplication.headless_reason = error_message
+        qt_namespace = HeadlessQtNamespace(headless_reason=error_message)
+
+        log_warning(
+            "PySide6 is unavailable; using headless diagnostics mode without a Qt GUI."
+        )
+
+        return (
+            HeadlessApplication,
+            headless_install_message_handler,
+            qt_namespace,
+            HeadlessTimer,
+        )

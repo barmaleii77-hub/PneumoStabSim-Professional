@@ -1,9 +1,8 @@
 import sys
 import types
 
-import pytest
-
 from src.bootstrap.qt_imports import safe_import_qt
+from src.bootstrap.headless_qt import HeadlessApplication, HeadlessTimer
 
 
 def test_safe_import_qt_missing_libgl(monkeypatch, capsys):
@@ -12,8 +11,10 @@ def test_safe_import_qt_missing_libgl(monkeypatch, capsys):
     def log_error(message: str) -> None:
         recorded_errors.append(message)
 
-    def log_warning(message: str) -> None:  # noqa: ARG001
-        pass
+    recorded_warnings: list[str] = []
+
+    def log_warning(message: str) -> None:
+        recorded_warnings.append(message)
 
     fake_package = types.ModuleType("PySide6")
     fake_package.__path__ = []  # type: ignore[attr-defined]
@@ -29,11 +30,18 @@ def test_safe_import_qt_missing_libgl(monkeypatch, capsys):
     monkeypatch.setitem(sys.modules, "PySide6", fake_package, raising=False)
     monkeypatch.setitem(sys.modules, "PySide6.QtWidgets", widgets_module, raising=False)
 
-    with pytest.raises(SystemExit):
-        safe_import_qt(log_warning, log_error)
+    QApplication, message_handler, Qt, QTimer = safe_import_qt(log_warning, log_error)
 
     stderr = capsys.readouterr().err
-    assert "libGL.so.1" in stderr
-    assert "Install a Mesa/OpenGL package" in stderr
+    assert "libGL.so.1" not in stderr  # сообщение теперь уходит в логгер
+
     assert recorded_errors
     assert "libGL.so.1" in recorded_errors[0]
+
+    assert recorded_warnings
+    assert "headless diagnostics mode" in recorded_warnings[-1]
+
+    assert QApplication is HeadlessApplication
+    assert isinstance(Qt.headless_reason, str)
+    assert QTimer is HeadlessTimer
+    assert message_handler is not None
