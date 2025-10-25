@@ -183,25 +183,48 @@ class ApplicationRunner:
     def create_main_window(self) -> None:
         """Создание и отображение главного окна."""
         # Предпочитаем модульную рефакторенную версию, чтобы избежать конфликта имён
-        MW = None
         try:
-            from src.ui.main_window.main_window_refactored import MainWindow as MW
-
-            if self.app_logger:
-                self.app_logger.info(
-                    "MainWindow: using refactored version (package module)"
-                )
-        except Exception:
-            from src.ui.main_window import MainWindow as MW
-
-            if self.app_logger:
-                self.app_logger.warning(
-                    "MainWindow: refactored import failed, using default import"
+            MW = None
+            try:
+                from src.ui.main_window.main_window_refactored import (  # type: ignore
+                    MainWindow as MW,
                 )
 
-        register_qml_types()
+                if self.app_logger:
+                    self.app_logger.info(
+                        "MainWindow: using refactored version (package module)"
+                    )
+            except Exception:
+                from src.ui.main_window import MainWindow as MW  # type: ignore
 
-        window = MW(use_qml_3d=self.use_qml_3d_schema)
+                if self.app_logger:
+                    self.app_logger.warning(
+                        "MainWindow: refactored import failed, using default import"
+                    )
+
+            register_qml_types()
+
+            window = MW(use_qml_3d=self.use_qml_3d_schema)
+        except Exception as exc:
+            if self.app_logger:
+                self.app_logger.error(
+                    "MainWindow creation failed: %s", exc, exc_info=True
+                )
+            else:
+                print(f"⚠️ Fallback window due to startup error: {exc}")
+
+            from PySide6.QtWidgets import QLabel, QVBoxLayout, QWidget
+
+            window = QWidget()
+            window.setWindowTitle("PneumoStabSim (headless diagnostics mode)")
+            layout = QVBoxLayout(window)
+            label = QLabel(
+                "Main window could not be initialised.\n"
+                "Running in diagnostics mode without the full UI."
+            )
+            label.setWordWrap(True)
+            layout.addWidget(label)
+
         self.window_instance = window
 
         window.show()

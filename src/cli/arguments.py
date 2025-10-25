@@ -35,5 +35,17 @@ Examples:
     parser.add_argument(
         "--diag", action="store_true", help="Run post-run diagnostics to console"
     )
+    parser.add_argument(
+        "--env-check",
+        action="store_true",
+        help="Run environment diagnostics and exit (handled before Qt startup)",
+    )
+    parser.add_argument(
+        "--env-report",
+        nargs="?",
+        const="ENVIRONMENT_SETUP_REPORT.md",
+        metavar="PATH",
+        help="Write environment diagnostics to PATH and exit (handled before Qt startup)",
+    )
 
     return parser.parse_args()

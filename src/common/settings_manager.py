@@ -26,6 +26,10 @@ import os
 from pathlib import Path
 from typing import Any, Dict, Iterable, Optional
 
+from src.core.settings_manager import (
+    ProfileSettingsManager as _CoreProfileSettingsManager,
+)
+
 
 DEFAULT_SETTINGS_PATH = Path("config/app_settings.json")
 _DEFAULT_UNITS_VERSION = "si_v2"
@@ -44,6 +48,14 @@ def _resolve_settings_file(settings_file: Optional[Path | str]) -> Path:
 
 def _deep_copy(data: Any) -> Any:
     return json.loads(json.dumps(data))
+
+
+__all__ = [
+    "ProfileSettingsManager",
+    "SettingsManager",
+]
+
+ProfileSettingsManager = _CoreProfileSettingsManager
 
 
 class SettingsManager:

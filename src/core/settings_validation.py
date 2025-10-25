@@ -21,6 +21,7 @@ from src.common.settings_requirements import (
     NUMERIC_SIMULATION_KEYS,
     RECEIVER_VOLUME_LIMIT_KEYS,
     REQUIRED_CURRENT_SECTIONS,
+    STRING_PNEUMATIC_KEYS,
 )
 
 # The materials are defined by the art department and referenced by the QML

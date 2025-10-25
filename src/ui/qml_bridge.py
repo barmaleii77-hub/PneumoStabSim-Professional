@@ -27,7 +27,18 @@ from typing import Any, Dict, Iterable, List, Mapping, MutableMapping, Optional,
 import yaml
 
 _LOGGER = logging.getLogger(__name__)
-_METADATA_PATH = Path(__file__).resolve().parents[1] / "config" / "qml_bridge.yaml"
+
+_PROJECT_ROOT = Path(__file__).resolve().parents[2]
+_METADATA_CANDIDATES = (
+    _PROJECT_ROOT / "config" / "qml_bridge.yaml",
+    Path(__file__).resolve().parents[1] / "config" / "qml_bridge.yaml",
+)
+for _candidate in _METADATA_CANDIDATES:
+    if _candidate.exists():
+        _METADATA_PATH = _candidate
+        break
+else:  # pragma: no cover - exercised only when metadata is missing
+    _METADATA_PATH = _METADATA_CANDIDATES[0]
 
 
 @dataclass(frozen=True)
