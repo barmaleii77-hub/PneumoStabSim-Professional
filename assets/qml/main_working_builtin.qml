@@ -1,5 +1,5 @@
-import QtQuick
-import QtQuick3D
+import QtQuick 2.15
+import QtQuick3D 1.15
 
 /*
  * WORKING SOLUTION: Using built-in Qt Quick 3D primitives
@@ -10,7 +10,6 @@ Item {
     anchors.fill: parent
 
     View3D {
-        id: view3d
         anchors.fill: parent
 
         environment: SceneEnvironment {
@@ -50,7 +49,9 @@ Item {
             }
 
             // Smooth rotation animation
-            NumberAnimation on eulerRotation.y {
+            NumberAnimation {
+                target: mainSphere
+                property: "eulerRotation.y"
                 from: 0
                 to: 360
                 duration: 3000
