@@ -463,6 +463,7 @@ check_*.py
 !tests/unit/test_signal_tracing.py
 !tests/unit/tools/test_settings_audit.py
 !tests/unit/tools/test_redundant_files.py
+!tests/unit/tools/test_project_sanitize.py
 !tests/unit/tools/test_report_metrics.py
 !tests/unit/tools/test_validate_settings_cli.py
 !tests/settings/test_persistence.py

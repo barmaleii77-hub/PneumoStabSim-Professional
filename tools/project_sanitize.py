@@ -24,6 +24,9 @@ import sys
 from pathlib import Path
 from typing import Iterable, Sequence
 
+
+COMPACT_REPORT_HISTORY_FLAG = "--report-history"
+
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 QUALITY_ROOT = PROJECT_ROOT / "reports" / "quality"
 TRACE_ROOT = QUALITY_ROOT / "launch_traces"
@@ -35,6 +38,29 @@ REPORT_PATTERNS: Sequence[tuple[Path, str]] = (
     (TRACE_ROOT, "launch_trace_*.log"),
     (TRACE_ROOT, "environment_report_*.md"),
 )
+
+
+def _normalise_argv(argv: Sequence[str] | None) -> list[str]:
+    """Expand compact ``--report-history`` flags into a separate value token."""
+
+    if argv is None:
+        return []
+
+    normalised: list[str] = []
+    for token in argv:
+        if token.startswith(COMPACT_REPORT_HISTORY_FLAG):
+            if token == COMPACT_REPORT_HISTORY_FLAG:
+                normalised.append(token)
+                continue
+
+            remainder = token[len(COMPACT_REPORT_HISTORY_FLAG) :]
+            if remainder and remainder.lstrip("-").isdigit():
+                normalised.extend([COMPACT_REPORT_HISTORY_FLAG, remainder])
+                continue
+
+        normalised.append(token)
+
+    return normalised
 
 
 def _is_within_git(path: Path) -> bool:
@@ -160,7 +186,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 def main(argv: Sequence[str] | None = None) -> None:
     parser = build_parser()
-    args = parser.parse_args(argv)
+    args = parser.parse_args(_normalise_argv(argv))
 
     sanitize_repository(
         dry_run=args.dry_run,
