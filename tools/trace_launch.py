@@ -137,6 +137,20 @@ def _status_icon(success: bool, stream: TextIO | None = None) -> str:
     target_stream = stream if stream is not None else sys.stdout
     encoding = getattr(target_stream, "encoding", None) or sys.getdefaultencoding()
 
+    if os.name == "nt":
+        normalized = (encoding or "").lower()
+        if normalized not in {
+            "utf-8",
+            "utf8",
+            "utf-16",
+            "utf16",
+            "utf-32",
+            "utf32",
+            "utf_8_sig",
+            "cp65001",
+        }:
+            return fallback
+
     try:
         icon.encode(encoding, errors="strict")
     except (UnicodeEncodeError, LookupError):
@@ -210,9 +224,11 @@ def run_launch_trace(passthrough: Sequence[str], history_limit: int) -> int:
     _prune_old_traces(history_limit)
 
     success = completed.returncode == 0
+    status_marker = _status_icon(success, stream=sys.stdout)
+
     summary_lines = [
         "Launch trace summary:",
-        f"{_status_icon(success)} launch (rc={completed.returncode}, {duration:.2f}s)",
+        f"{status_marker} launch (rc={completed.returncode}, {duration:.2f}s)",
         f" Log file: {log_path.relative_to(PROJECT_ROOT)}",
         f" Environment report: {report_path.relative_to(PROJECT_ROOT)}",
     ]
