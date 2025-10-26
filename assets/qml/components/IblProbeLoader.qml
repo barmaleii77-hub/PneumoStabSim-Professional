@@ -1,5 +1,5 @@
-import QtQuick 6.5
-import QtQuick3D 6.5
+import QtQuick
+import QtQuick3D
 
 // qmllint disable missing-property
 

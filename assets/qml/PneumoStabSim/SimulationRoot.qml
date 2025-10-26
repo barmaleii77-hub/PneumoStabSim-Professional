@@ -1,7 +1,6 @@
 import QtQuick
 import QtQuick3D
 import QtQuick.Controls
-import QtQuick3D
 import QtQuick3D.Helpers
 import "../camera"
 import "../components"
@@ -579,7 +578,7 @@ View3D {
  function toSceneLength(meters) {
  var numeric = Number(meters);
  if (!isFinite(numeric))
- return0;
+        return 0;
  return numeric * sceneScaleFactor;
  }
 

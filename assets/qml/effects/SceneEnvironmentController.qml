@@ -261,7 +261,7 @@ ExtendedSceneEnvironment {
 
  tonemapMode: tonemapEnabled ? (
  tonemapModeName === "filmic" ? SceneEnvironment.TonemapModeFilmic :
- tonemapModeName === "aces" ? SceneEnvironment.TonemapModeFilmic :
+ tonemapModeName === "aces" ? SceneEnvironment.TonemapModeAces :
  tonemapModeName === "reinhard" ? SceneEnvironment.TonemapModeReinhard :
  tonemapModeName === "gamma" ? SceneEnvironment.TonemapModeLinear :
  tonemapModeName === "linear" ? SceneEnvironment.TonemapModeLinear :
