@@ -387,6 +387,8 @@ class MainWindow(QMainWindow):
             if not self._qml_root_object:
                 raise RuntimeError("Не удалось получить корневой объект QML")
 
+            self._verify_qml_contract()
+
             if self._scene_bridge is not None:
                 try:
                     self._qml_root_object.setProperty("sceneBridge", self._scene_bridge)
@@ -419,6 +421,40 @@ class MainWindow(QMainWindow):
                 "background: #1a1a2e; color: #ff6b6b; font-size:12px; padding:20px;"
             )
             self._qquick_widget = fallback
+
+    def _verify_qml_contract(self) -> None:
+        """Validate that the loaded QML root exposes the bridge contract."""
+
+        if not self._qml_root_object:
+            return
+
+        try:
+            meta_object = self._qml_root_object.metaObject()
+        except Exception as exc:  # pragma: no cover - Qt meta-object failures
+            self.logger.debug(
+                "Не удалось получить metaObject у корневого QML: %s", exc, exc_info=True
+            )
+            return
+
+        if meta_object is None:
+            self.logger.warning(
+                "QML корневой объект не предоставляет metaObject(); проверка контракта невозможна"
+            )
+            return
+
+        try:
+            if meta_object.indexOfProperty("pendingPythonUpdates") < 0:
+                self.logger.warning(
+                    "QML корень не содержит свойство 'pendingPythonUpdates' — батч-очередь Python отключится"
+                )
+
+            signal_signature = QByteArray(b"batchUpdatesApplied(QVariant)")
+            if meta_object.indexOfSignal(signal_signature) < 0:
+                self.logger.warning(
+                    "QML корень не публикует сигнал batchUpdatesApplied(QVariant); ACK обновлений потеряется"
+                )
+        except Exception as exc:  # pragma: no cover - introspection edge cases
+            self.logger.debug("Ошибка проверки QML контракта: %s", exc, exc_info=True)
 
     def _setup_tabs(self) -> None:
         self.tab_widget = QTabWidget(self)

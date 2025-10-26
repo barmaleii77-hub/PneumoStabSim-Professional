@@ -70,6 +70,17 @@ ExtendedSceneEnvironment {
 
  property bool ditheringEnabled: true
  property bool canUseDithering: false
+ property real sceneScaleFactor: 1.0
+
+ function _toSceneLength(value) {
+ var numeric = Number(value)
+ if (!isFinite(numeric))
+ return 0
+ var scale = Number(sceneScaleFactor)
+ if (!isFinite(scale) || scale <= 0)
+ return numeric
+ return numeric * scale
+ }
 
  function _applySceneBridgeState() {
  if (!sceneBridge)
@@ -156,9 +167,9 @@ ExtendedSceneEnvironment {
  if (params.fogColor)
  fogColor = params.fogColor
  if (params.fogNear !== undefined)
- fogNear = Number(params.fogNear)
+ fogNear = _toSceneLength(params.fogNear)
  if (params.fogFar !== undefined)
- fogFar = Number(params.fogFar)
+ fogFar = _toSceneLength(params.fogFar)
  if (params.ssaoEnabled !== undefined)
  ssaoEnabled = !!params.ssaoEnabled
  if (params.ssaoRadius !== undefined)
@@ -168,7 +179,7 @@ ExtendedSceneEnvironment {
  if (params.depthOfFieldEnabled !== undefined)
  internalDepthOfFieldEnabled = !!params.depthOfFieldEnabled
  if (params.dofFocusDistance !== undefined)
- dofFocusDistance = Number(params.dofFocusDistance)
+ dofFocusDistance = _toSceneLength(params.dofFocusDistance)
  if (params.dofBlurAmount !== undefined)
  dofBlurAmount = Number(params.dofBlurAmount)
  if (params.vignetteEnabled !== undefined)
@@ -220,7 +231,7 @@ ExtendedSceneEnvironment {
  if (params.depthOfFieldEnabled !== undefined)
  internalDepthOfFieldEnabled = !!params.depthOfFieldEnabled
  if (params.dofFocusDistance !== undefined)
- dofFocusDistance = Number(params.dofFocusDistance)
+ dofFocusDistance = _toSceneLength(params.dofFocusDistance)
  if (params.dofBlurAmount !== undefined)
  dofBlurAmount = Number(params.dofBlurAmount)
  if (params.vignetteEnabled !== undefined)

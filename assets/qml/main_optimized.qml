@@ -8,4 +8,11 @@ SimulationRoot {
     id: root
     anchors.fill: parent
     sceneBridge: pythonSceneBridge
+    Component.onCompleted: {
+        if (typeof sceneBridge === "undefined" || sceneBridge === null) {
+            console.error(
+                "SimulationRoot (optimized) ожидает pythonSceneBridge, но контекст его не предоставил."
+            )
+        }
+    }
 }

@@ -195,6 +195,7 @@ property var geometryState: ({
  id: sceneEnvCtl
  objectName: "sceneEnvironmentController"
  sceneBridge: root.sceneBridge
+ sceneScaleFactor: root.sceneScaleFactor
  }
 
  IblProbeLoader {
