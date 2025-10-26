@@ -274,6 +274,12 @@
           "total_time_s": 3.0
         }
       }
+    },
+    "physics": {
+      "suspension": {
+        "spring_constant": 50000.0,
+        "damper_coefficient": 2000.0
+      }
     }
   },
   "defaults_snapshot": {

@@ -1,11 +1,35 @@
-"""
-Pytest configuration and shared fixtures
-"""
+"""Pytest configuration and shared fixtures."""
 
+import inspect
 import os
-import pytest
 import sys
 from pathlib import Path
+from typing import Mapping
+
+import pytest
+from _pytest.monkeypatch import notset
+from pytest import MonkeyPatch
+
+if "raising" not in inspect.signature(MonkeyPatch.setitem).parameters:
+
+    def _compat_setitem(
+        self: MonkeyPatch,
+        dic: Mapping[str, object] | dict[str, object],
+        name: str,
+        value: object,
+        *,
+        raising: bool = True,
+    ) -> None:
+        getter = getattr(dic, "get", None)
+        if callable(getter):
+            previous = getter(name, notset)
+        else:
+            previous = dic[name] if name in dic else notset  # type: ignore[index]
+
+        self._setitem.append((dic, name, previous))
+        dic[name] = value  # type: ignore[index]
+
+    MonkeyPatch.setitem = _compat_setitem  # type: ignore[assignment]
 
 # Add project root to path
 project_root = Path(__file__).parent.parent

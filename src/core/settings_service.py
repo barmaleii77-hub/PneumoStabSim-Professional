@@ -248,8 +248,16 @@ class SettingsService:
 
         formatted: list[str] = []
         for error in errors:
-            location = ".".join(str(part) for part in error.path) or "<root>"
-            formatted.append(f"{location}: {error.message}")
+            path_parts = [str(part) for part in error.path]
+            message = error.message
+
+            if error.validator == "required":
+                missing = error.message.split("'")[1] if "'" in error.message else "?"
+                path_parts.append(str(missing))
+                message = "обязательный параметр отсутствует"
+
+            location = ".".join(path_parts) or "<root>"
+            formatted.append(f"{location}: {message}")
 
         joined = "; ".join(formatted)
         raise SettingsValidationError(
