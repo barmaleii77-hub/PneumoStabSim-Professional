@@ -152,6 +152,7 @@ class MainWindow(QMainWindow):
         self._qml_flush_timer.setSingleShot(True)
         self._qml_flush_timer.timeout.connect(self._flush_qml_updates)
         self._qml_pending_property_supported: Optional[bool] = None
+        self._qml_batch_ack_supported: Optional[bool] = None
         self._last_batched_updates: Optional[Dict[str, Any]] = None
 
         # UI
@@ -391,11 +392,21 @@ class MainWindow(QMainWindow):
 
             if self._scene_bridge is not None:
                 try:
-                    self._qml_root_object.setProperty("sceneBridge", self._scene_bridge)
-                except Exception as exc:
+                    current_bridge = self._qml_root_object.property("sceneBridge")
+                except Exception as exc:  # pragma: no cover - Qt binding failure
                     self.logger.warning(
-                        "Не удалось передать SceneBridge в QML: %s", exc
+                        "Не удалось прочитать свойство sceneBridge у QML: %s",
+                        exc,
                     )
+                else:
+                    if current_bridge is None:
+                        self.logger.warning(
+                            "QML корень не получил pythonSceneBridge через контекст — проверьте биндинг sceneBridge"
+                        )
+                    elif current_bridge is not self._scene_bridge:
+                        self.logger.debug(
+                            "QML sceneBridge отличается от Python SceneBridge; биндинг может быть переопределён"
+                        )
 
             try:
                 connected = register_qml_signals(self, self._qml_root_object)
@@ -443,13 +454,17 @@ class MainWindow(QMainWindow):
             return
 
         try:
-            if meta_object.indexOfProperty("pendingPythonUpdates") < 0:
+            pending_index = meta_object.indexOfProperty("pendingPythonUpdates")
+            self._qml_pending_property_supported = pending_index >= 0
+            if pending_index < 0:
                 self.logger.warning(
                     "QML корень не содержит свойство 'pendingPythonUpdates' — батч-очередь Python отключится"
                 )
 
             signal_signature = QByteArray(b"batchUpdatesApplied(QVariant)")
-            if meta_object.indexOfSignal(signal_signature) < 0:
+            ack_index = meta_object.indexOfSignal(signal_signature)
+            self._qml_batch_ack_supported = ack_index >= 0
+            if ack_index < 0:
                 self.logger.warning(
                     "QML корень не публикует сигнал batchUpdatesApplied(QVariant); ACK обновлений потеряется"
                 )
@@ -706,6 +721,8 @@ class MainWindow(QMainWindow):
     def _push_batched_updates(self, updates: Dict[str, Any]) -> bool:
         if not updates or not self._qml_root_object:
             return False
+        if self._qml_pending_property_supported is False:
+            return False
         try:
             self._qml_root_object.setProperty("pendingPythonUpdates", updates)
             if self._scene_bridge is not None:
@@ -715,8 +732,15 @@ class MainWindow(QMainWindow):
                     self.logger.debug(
                         "SceneBridge rejected batched payload", exc_info=True
                     )
+            self._qml_pending_property_supported = True
             return True
         except Exception:
+            if self._qml_pending_property_supported is not False:
+                self.logger.debug(
+                    "Не удалось передать batched updates через pendingPythonUpdates",
+                    exc_info=True,
+                )
+            self._qml_pending_property_supported = False
             return False
 
     def _invoke_qml_function(
@@ -768,6 +792,7 @@ class MainWindow(QMainWindow):
 
     @Slot(dict)
     def _on_qml_batch_ack(self, summary: Dict[str, Any]) -> None:
+        self._qml_batch_ack_supported = True
         try:
             if hasattr(self, "status_bar"):
                 self.status_bar.showMessage("Обновления применены в сцене", 1500)
