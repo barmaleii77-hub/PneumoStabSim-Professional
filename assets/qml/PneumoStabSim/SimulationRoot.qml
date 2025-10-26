@@ -84,6 +84,12 @@ property var geometryState: ({
 
  // Масштаб перевода метров в сцену Qt Quick3D (исторически миллиметры)
  property real sceneScaleFactor: sceneDefaults && sceneDefaults.scale_factor !== undefined ? Number(sceneDefaults.scale_factor) :1000.0
+ readonly property real effectiveSceneScaleFactor: (function() {
+     var numeric = Number(sceneScaleFactor);
+     if (!isFinite(numeric) || numeric <= 0)
+         return 1.0;
+     return numeric;
+ })()
 
  // Анимация рычагов (град)
  property real userAmplitude: animationDefaults && animationDefaults.amplitude !== undefined ? Number(animationDefaults.amplitude) :8.0
@@ -580,9 +586,7 @@ function toSceneLength(meters) {
     var numeric = Number(meters);
     if (!isFinite(numeric))
         return 0;
-    if (!isFinite(sceneScaleFactor) || sceneScaleFactor <= 0)
-        return numeric;
-    return numeric * sceneScaleFactor;
+    return numeric * effectiveSceneScaleFactor;
 }
 
  function toSceneScale(meters) {

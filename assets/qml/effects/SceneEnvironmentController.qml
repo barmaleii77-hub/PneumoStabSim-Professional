@@ -69,6 +69,12 @@ ExtendedSceneEnvironment {
  // ===============================================================
 
  property real sceneScaleFactor: 1000.0
+ readonly property real effectiveSceneScaleFactor: (function() {
+     var numeric = Number(sceneScaleFactor);
+     if (!isFinite(numeric) || numeric <= 0)
+         return 1.0;
+     return numeric;
+ })()
  property bool ditheringEnabledSetting: true
  property bool canUseDithering: typeof root.ditheringEnabled !== "undefined"
 
@@ -102,9 +108,7 @@ ExtendedSceneEnvironment {
         var numeric = Number(value)
         if (!isFinite(numeric))
             return 0
-        if (!isFinite(sceneScaleFactor) || sceneScaleFactor <= 0)
-            return numeric
-        return numeric * sceneScaleFactor
+        return numeric * effectiveSceneScaleFactor
     }
 
     onSceneBridgeChanged: _applySceneBridgeState()
