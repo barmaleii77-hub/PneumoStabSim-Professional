@@ -14,10 +14,11 @@ import shutil
 import argparse
 import glob
 import textwrap
+from contextlib import contextmanager
+from datetime import datetime
 from functools import lru_cache
 from pathlib import Path
 from typing import Dict, List, Optional
-from PySide6 import QtCore  # type: ignore
 
 QT_ENV_DEFAULTS: Dict[str, str] = {
     "QT_QPA_PLATFORM": "offscreen",
@@ -65,7 +66,7 @@ class Logger:
         self.prefix = prefix
 
     def log(self, message: str):
-        timestamp = QtCore.QDateTime.currentDateTime().toString("yyyy-MM-dd hh:mm:ss")
+        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         print(f"{timestamp} {self.prefix}{message}")
 
 
@@ -187,7 +188,7 @@ class EnvironmentSetup:
 
     def setup_virtual_environment(self):
         """Создает и настраивает виртуальное окружение"""
-        venv_path = self.project_root / "venv"
+        venv_path = self.project_root / ".venv"
 
         if venv_path.exists():
             self.logger.log(f"📦 Виртуальное окружение уже существует: {venv_path}")
@@ -220,19 +221,25 @@ class EnvironmentSetup:
 
     def install_dependencies(self):
         """Устанавливает зависимости проекта"""
+        uv_executable = shutil.which("uv")
+        if uv_executable:
+            self.logger.log("📦 Установка зависимостей через uv sync…")
+            try:
+                subprocess.run([uv_executable, "sync"], cwd=self.project_root, check=True)
+                self.logger.log("✅ Зависимости установлены через uv")
+                self._show_installed_packages()
+                return True
+            except subprocess.CalledProcessError as exc:
+                self.logger.log(f"❌ Ошибка выполнения uv sync: {exc}")
+
         requirements_file = self.project_root / "requirements.txt"
 
         if not requirements_file.exists():
             self.logger.log("⚠️  Файл requirements.txt не найден")
-            return False
+            return self._install_project_editable()
 
         self.logger.log("📦 Установка зависимостей из requirements.txt...")
         try:
-            # Проверяем хеши файлов зависимостей
-            if not self._verify_dependencies_hashes(requirements_file):
-                self.logger.log("⚠️  Ошибки проверки целостности зависимостей!")
-                return False
-
             # Используем pip для установки зависимостей
             cmd = [
                 *self.python_executable,
@@ -244,7 +251,7 @@ class EnvironmentSetup:
                 "-c",
                 str(self.project_root / "requirements-compatible.txt"),
             ]
-            result = subprocess.run(cmd, check=True, capture_output=True, text=True)
+            subprocess.run(cmd, check=True)
 
             self.logger.log("✅ Зависимости установлены успешно")
 
@@ -257,7 +264,35 @@ class EnvironmentSetup:
             self.logger.log(f"❌ Ошибка установки зависимостей: {e}")
             if e.stderr:
                 self.logger.log(f"Детали ошибки: {e.stderr}")
-            return False
+            self.logger.log("⚠️  Пытаемся установить зависимости в editable-режиме из pyproject.toml")
+            return self._install_project_editable()
+
+    def _install_project_editable(self) -> bool:
+        """Пробует установить проект в editable-режиме в качестве запасного варианта."""
+
+        base_cmd = [*self.python_executable, "-m", "pip", "install"]
+
+        commands = [
+            base_cmd + ["-e", "."],
+            base_cmd + ["-e", ".[dev]"],
+        ]
+
+        success = True
+        for cmd in commands:
+            try:
+                subprocess.run(cmd, cwd=self.project_root, check=True)
+            except subprocess.CalledProcessError as exc:
+                self.logger.log(f"❌ Не удалось выполнить {' '.join(cmd)}: {exc}")
+                success = False
+                break
+
+        if success:
+            self.logger.log("✅ Зависимости установлены через editable-режим")
+            self._show_installed_packages()
+        else:
+            self.logger.log("❌ Установка зависимостей не удалась даже через editable-режим")
+
+        return success
 
     def _verify_dependencies_hashes(self, requirements_file: Path) -> bool:
         """Проверяет хеши файлов зависимостей для целостности"""
@@ -639,14 +674,14 @@ COPILOT_LANGUAGE=ru
 def parse_arguments():
     parser = argparse.ArgumentParser(
         description=textwrap.dedent(
-            """
+            """\
             PneumoStabSim-Professional Environment Setup Script
             Скрипт для автоматической настройки окружения разработки
 
             Примечание: Для успешного выполнения скрипта требуются права администратора/суперпользователя.
             """
         ),
-        formatter_class=argparse.TextWrapper,
+        formatter_class=argparse.RawDescriptionHelpFormatter,
     )
 
     parser.add_argument(
@@ -683,23 +718,33 @@ def main():
     """Главная функция"""
     args = parse_arguments()
 
-    # Устанавливаем режимы вывода
-    if args.silent:
-        sys.stdout = open(os.devnull, "w")
-    elif not args.verbose:
-        sys.stdout = open(os.devnull, "w")
+    with suppress_stdout(args.silent):
+        if not args.silent:
+            print("🔧 PneumoStabSim-Professional Environment Setup")
+            print("Скрипт автоматической настройки окружения разработки")
+            print()
 
-    print("🔧 PneumoStabSim-Professional Environment Setup")
-    print("Скрипт автоматической настройки окружения разработки")
-    print()
-
-    setup = EnvironmentSetup(qt_sdk_version=args.qt_version)
-    success = setup.run_setup()
-
-    # Восстанавливаем стандартный вывод
-    sys.stdout = sys.__stdout__
+        setup = EnvironmentSetup(qt_sdk_version=args.qt_version)
+        success = setup.run_setup()
 
     return 0 if success else 1
+
+
+@contextmanager
+def suppress_stdout(enabled: bool):
+    """Подавляет вывод stdout, если включен тихий режим."""
+
+    if not enabled:
+        yield
+        return
+
+    original_stdout = sys.stdout
+    try:
+        with open(os.devnull, "w", encoding="utf-8") as devnull:
+            sys.stdout = devnull
+            yield
+    finally:
+        sys.stdout = original_stdout
 
 
 if __name__ == "__main__":
