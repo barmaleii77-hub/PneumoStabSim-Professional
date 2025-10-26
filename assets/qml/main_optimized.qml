@@ -1,5 +1,5 @@
-import QtQuick 6.5
-import QtQuick.Controls 6.5
+import QtQuick 6.10
+import QtQuick.Controls 6.10
 import PneumoStabSim 1.0
 import "./"
 

@@ -23,6 +23,7 @@ from PySide6.QtCore import (
 from PySide6.QtGui import QAction, QKeySequence
 from PySide6.QtQuickWidgets import QQuickWidget
 import logging
+import os
 import time
 import json
 from pathlib import Path
@@ -109,6 +110,10 @@ class MainWindow(QMainWindow):
         # Event logger
         self.event_logger = get_event_logger()
 
+        # Diagnostics services exposed to QML
+        self._settings_event_bus = get_settings_event_bus()
+        self._signal_trace = get_signal_trace_service()
+
         # State tracking
         self.current_snapshot: Optional[StateSnapshot] = None
         self.is_simulation_running = False
@@ -153,6 +158,7 @@ class MainWindow(QMainWindow):
         self._qml_flush_timer.setSingleShot(True)
         self._qml_flush_timer.timeout.connect(self._flush_qml_updates)
         self._qml_pending_property_supported: Optional[bool] = None
+        self._qml_batch_ack_supported: Optional[bool] = None
         self._last_batched_updates: Optional[Dict[str, Any]] = None
 
         # UI
@@ -197,10 +203,83 @@ class MainWindow(QMainWindow):
         self.main_horizontal_splitter.addWidget(self.main_splitter)
         self.setCentralWidget(self.main_horizontal_splitter)
 
-    def _setup_qml_3d_view(self) -> None:
-        """Setup Qt Quick3D full suspension scene - единый main.qml"""
-        self.logger.info("[QML] Загрузка QML: assets/qml/main.qml")
+    def _select_qml_entrypoint(self) -> Path:
+        """Determine which QML file should be loaded for the 3D scene."""
+        candidates: list[Path] = []
+
+        override = os.environ.get("PSS_QML_SCENE")
+        if override:
+            candidate = Path(override)
+            if not candidate.is_absolute():
+                candidate = Path("assets/qml") / candidate
+            candidates.append(candidate)
+
+        candidates.extend(
+            [
+                Path("assets/qml/main_optimized.qml"),
+                Path("assets/qml/main.qml"),
+                Path("assets/qml/SimulationFallbackRoot.qml"),
+            ]
+        )
+
+        seen: set[str] = set()
+        for candidate in candidates:
+            key = str(candidate.resolve() if candidate.exists() else candidate)
+            if key in seen:
+                continue
+            seen.add(key)
+            if candidate.exists():
+                return candidate
+
+        raise FileNotFoundError("Не удалось найти подходящий QML-файл для загрузки")
+
+    def _build_initial_qml_payload(self) -> Dict[str, Dict[str, Any]]:
+        """Collect initial settings payloads for the QML context."""
+
+        payload: Dict[str, Dict[str, Any]] = {
+            "animation": {},
+            "scene": {},
+            "materials": {},
+            "diagnostics": {},
+        }
+
+        manager = getattr(self, "settings_manager", None)
+        if manager is None:
+            return payload
+
+        def _sanitise(data: Dict[str, Any]) -> Dict[str, Any]:
+            try:
+                return json.loads(json.dumps(data))
+            except Exception:
+                return data
+
         try:
+            animation = manager.get("graphics.animation", {}) or {}
+            scene = manager.get("graphics.scene", {}) or {}
+            materials = manager.get("graphics.materials", {}) or {}
+            diagnostics = manager.get("diagnostics", {}) or {}
+
+            if isinstance(animation, dict):
+                payload["animation"] = _sanitise(animation)
+            if isinstance(scene, dict):
+                payload["scene"] = _sanitise(scene)
+            if isinstance(materials, dict):
+                payload["materials"] = _sanitise(materials)
+            if isinstance(diagnostics, dict):
+                payload["diagnostics"] = _sanitise(diagnostics)
+        except Exception as exc:  # pragma: no cover - defensive fallback
+            self.logger.debug(
+                "Failed to build initial QML payload: %s", exc, exc_info=True
+            )
+
+        return payload
+
+    def _setup_qml_3d_view(self) -> None:
+        """Setup Qt Quick 3D scene backed by the modular SimulationRoot."""
+        qml_file: Optional[Path] = None
+        try:
+            qml_file = self._select_qml_entrypoint()
+            self.logger.info("[QML] Загрузка QML: %s", qml_file)
             self._qquick_widget = QQuickWidget(self)
             self._qquick_widget.setResizeMode(
                 QQuickWidget.ResizeMode.SizeRootObjectToView
@@ -218,17 +297,16 @@ class MainWindow(QMainWindow):
                 "IBL Logger registered in QML context (BEFORE QML load)",
             )
 
-            # Установим стартовые параметры окружения строго из SettingsManager
+            def _ctx(name: str, value: Any) -> None:
+                try:
+                    context.setContextProperty(name, value)
+                except Exception as err:  # pragma: no cover - Qt binding failure
+                    raise RuntimeError(
+                        f"Failed to expose context property {name}: {err}"
+                    ) from err
+
             try:
                 env_raw = self.settings_manager.get("graphics.environment", {}) or {}
-
-                def _ctx(name: str, value: Any) -> None:
-                    try:
-                        context.setContextProperty(name, value)
-                    except Exception as err:  # pragma: no cover - Qt binding failure
-                        raise RuntimeError(
-                            f"Failed to expose context property {name}: {err}"
-                        ) from err
 
                 def _prepare(payload: Any) -> Any:
                     return QMLBridge._prepare_for_qml(payload)
@@ -249,7 +327,6 @@ class MainWindow(QMainWindow):
                 )
                 raise
 
-            # Пробрасываем стартовые словари состояния графики (lighting/quality/camera/materials/effects)
             try:
                 graphics_state = self.settings_manager.get("graphics", {}) or {}
 
@@ -317,10 +394,6 @@ class MainWindow(QMainWindow):
             if local_qml_path.exists():
                 engine.addImportPath(str(local_qml_path.absolute()))
 
-            qml_file = Path("assets/qml/main.qml")
-            if not qml_file.exists():
-                raise FileNotFoundError(f"QML файл не найден: {qml_file}")
-
             self._qml_base_dir = qml_file.parent.resolve()
             self._qquick_widget.setSource(QUrl.fromLocalFile(str(qml_file.absolute())))
 
@@ -337,11 +410,12 @@ class MainWindow(QMainWindow):
             self._register_qml_signals()
 
         except Exception as e:
-            self.logger.exception(f"[CRITICAL] Ошибка загрузки main.qml: {e}")
+            target = qml_file if qml_file is not None else Path("assets/qml/main.qml")
+            self.logger.exception(f"[CRITICAL] Ошибка загрузки {target}: {e}")
             fallback = QLabel(
                 "КРИТИЧЕСКАЯ ОШИБКА ЗАГРУЗКИ3D СЦЕНЫ\n\n"
                 f"Ошибка: {e}\n\n"
-                "Проверьте файл assets/qml/main.qml\n"
+                f"Проверьте файл {target}\n"
                 "и убедитесь, что QtQuick3D установлен правильно"
             )
             fallback.setAlignment(Qt.AlignmentFlag.AlignCenter)
@@ -630,17 +704,37 @@ class MainWindow(QMainWindow):
                     _Qt.ConnectionType.DirectConnection,
                 )
             else:
-                return QMetaObject.invokeMethod(
+                result = QMetaObject.invokeMethod(
                     self._qml_root_object,
                     method_name,
                     _Qt.ConnectionType.DirectConnection,
                     Q_ARG("QVariant", payload),
                 )
+                if result and isinstance(payload, dict):
+                    try:
+                        category = next(
+                            (
+                                cat
+                                for cat, methods in self.QML_UPDATE_METHODS.items()
+                                if method_name in methods
+                            ),
+                            None,
+                        )
+                        if category and self.scene_bridge:
+                            self.scene_bridge.dispatch_updates({category: payload})
+                    except Exception:
+                        self.logger.debug(
+                            "SceneBridge failed to mirror %s",
+                            method_name,
+                            exc_info=True,
+                        )
+                return result
         except Exception:
             return False
 
     @Slot(dict)
     def _on_qml_batch_ack(self, summary: Dict[str, Any]) -> None:
+        self._qml_batch_ack_supported = True
         try:
             QMLBridge.handle_qml_ack(self, summary)
         except Exception:
@@ -776,6 +870,16 @@ class MainWindow(QMainWindow):
                 self.chart_widget.update_from_snapshot(snapshot)
         except Exception:
             pass
+        try:
+            if hasattr(self.simulation_manager, "get_queue_stats"):
+                stats = self.simulation_manager.get_queue_stats()
+                get_c = stats.get("get_count", 0)
+                put_c = stats.get("put_count", 0)
+                if hasattr(self, "queue_label") and self.queue_label:
+                    self.queue_label.setText(f"Queue: {get_c}/{put_c}")
+        except Exception:
+            if hasattr(self, "queue_label") and self.queue_label:
+                self.queue_label.setText("Queue: -/-")
 
     @Slot(str)
     def _on_physics_error(self, message: str) -> None:
@@ -876,86 +980,3 @@ class MainWindow(QMainWindow):
             self.logger.error(f"Failed to save settings on exit: {e}")
         finally:
             super().closeEvent(event)
-
-    def apply_environment_settings(self, env_values: dict):
-        try:
-            env_ctx_map = {
-                "fog_near": ("startFogNear", _as_float),
-                "fog_far": ("startFogFar", _as_float),
-                "fog_height_enabled": ("startFogHeightEnabled", _as_bool),
-                "fog_least_intense_y": ("startFogLeastY", _as_float),
-                "fog_most_intense_y": ("startFogMostY", _as_float),
-                "fog_height_curve": ("startFogHeightCurve", _as_float),
-                "fog_transmit_enabled": ("startFogTransmitEnabled", _as_bool),
-                "fog_transmit_curve": ("startFogTransmitCurve", _as_float),
-                "ao_enabled": ("startAoEnabled", _as_bool),
-                "ao_strength": ("startAoStrength", _as_float),
-                "ao_radius": ("startAoRadius", _as_float),
-                "ao_softness": ("startAoSoftness", _as_float),
-                "ao_dither": ("startAoDither", _as_bool),
-                "ao_sample_rate": ("startAoSampleRate", _as_int),
-            }
-
-            for key, (ctx_name, converter) in env_ctx_map.items():
-                raw_val = env_values.get(key)
-                if raw_val is None:
-                    continue
-                value = converter(raw_val) if converter else raw_val
-                if value is None:
-                    continue
-                self._ctx(ctx_name, value)
-
-            missing_env_keys = [
-                key for key in env_ctx_map.keys() if key not in env_values
-            ]
-            if missing_env_keys:
-                raise KeyError(
-                    f"Отсутствуют обязательные параметры окружения: {missing_env_keys}"
-                )
-
-        except Exception as ex:
-            self.logger.error(
-                f"Не удалось применить стартовые параметры окружения: {ex}"
-            )
-            raise
-
-        finally:
-            self.logger.info("Завершена обработка параметров окружения.")
-
-    def _ctx(self, name: str, value: Any) -> None:
-        try:
-            if not self._qquick_widget:
-                raise RuntimeError("QQuickWidget not initialized")
-            context = self._qquick_widget.engine().rootContext()
-            context.setContextProperty(name, value)
-        except Exception as err:
-            raise RuntimeError(
-                f"Failed to expose context property {name}: {err}"
-            ) from err
-
-
-# Исправление отступов в функциях
-
-
-def _as_float(value: Any) -> float:
-    try:
-        return float(value)
-    except (ValueError, TypeError):
-        raise ValueError(f"Невозможно преобразовать в float: {value}")
-
-
-def _as_bool(value: Any) -> bool:
-    if isinstance(value, bool):
-        return value
-    if isinstance(value, str):
-        return value.lower() in ("true", "1", "yes")
-    if isinstance(value, (int, float)):
-        return value != 0
-    raise ValueError(f"Невозможно преобразовать в bool: {value}")
-
-
-def _as_int(value: Any) -> int:
-    try:
-        return int(value)
-    except (ValueError, TypeError):
-        raise ValueError(f"Невозможно преобразовать в int: {value}")
