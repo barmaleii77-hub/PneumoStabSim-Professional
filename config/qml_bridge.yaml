@@ -32,6 +32,10 @@ update_methods:
     - updateEffects
   simulation:
     - applySimulationUpdates
+  threeD:
+    - apply3DUpdates
+  render:
+    - applyRenderSettings
 
 qml_signals:
   - signal: batchUpdatesApplied

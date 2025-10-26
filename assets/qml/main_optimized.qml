@@ -1,18 +1,35 @@
 import QtQuick 6.10
-import QtQuick3D 6.10
+import QtQuick.Controls 6.10
 import PneumoStabSim 1.0
+import "./"
 
-// Optimised entry point that mirrors the primary SimulationRoot but allows
-// Python to request this file explicitly when forcing the optimised layout.
-SimulationRoot {
+Item {
     id: root
     anchors.fill: parent
-    sceneBridge: pythonSceneBridge
-    Component.onCompleted: {
-        if (typeof sceneBridge === "undefined" || sceneBridge === null) {
-            console.error(
-                "SimulationRoot (optimized) ожидает pythonSceneBridge, но контекст его не предоставил."
-            )
+
+    readonly property bool hasSceneBridge: typeof pythonSceneBridge !== "undefined" && pythonSceneBridge !== null
+
+    Loader {
+        id: simulationLoader
+        anchors.fill: parent
+        active: root.hasSceneBridge
+        sourceComponent: SimulationRoot {
+            id: simulationRoot
+            sceneBridge: pythonSceneBridge
         }
+
+        onStatusChanged: {
+            if (status === Loader.Error) {
+                console.error("Failed to load SimulationRoot (optimized):", errorString())
+                fallbackLoader.active = true
+            }
+        }
+    }
+
+    Loader {
+        id: fallbackLoader
+        anchors.fill: parent
+        active: !root.hasSceneBridge
+        sourceComponent: SimulationFallbackRoot {}
     }
 }

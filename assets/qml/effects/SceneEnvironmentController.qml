@@ -1,6 +1,6 @@
-import QtQuick 6.10
-import QtQuick3D 6.10
-import QtQuick3D.Helpers 6.10 // ✅ CRITICAL: Required for ExtendedSceneEnvironment
+import QtQuick6.10
+import QtQuick3D6.10
+import QtQuick3D.Helpers6.10 // ✅ CRITICAL: Required for ExtendedSceneEnvironment
 
 /*
  * SceneEnvironmentController - Полное управление ExtendedSceneEnvironment
@@ -70,14 +70,34 @@ ExtendedSceneEnvironment {
 
  property bool ditheringEnabled: true
  property bool canUseDithering: false
- property real sceneScaleFactor: 1.0
+ property real sceneScaleFactor:1.0
 
- function _toSceneLength(value) {
+ function qtVersionAtLeast(requiredMajor, requiredMinor) {
+ var versionString = "";
+ if (Qt.application && Qt.application.qtVersion)
+ versionString = String(Qt.application.qtVersion);
+ else if (Qt.version)
+ versionString = String(Qt.version);
+ var parts = versionString.split(".");
+ if (parts.length <2)
+ return false;
+ var major = Number(parts[0]);
+ var minor = Number(parts[1]);
+ if (!isFinite(major) || !isFinite(minor))
+ return false;
+ if (major > requiredMajor)
+ return true;
+ if (major < requiredMajor)
+ return false;
+ return minor >= requiredMinor;
+ }
+
+ function toSceneLength(value) {
  var numeric = Number(value)
  if (!isFinite(numeric))
- return 0
+ return0
  var scale = Number(sceneScaleFactor)
- if (!isFinite(scale) || scale <= 0)
+ if (!isFinite(scale) || scale <=0)
  return numeric
  return numeric * scale
  }
@@ -131,10 +151,10 @@ ExtendedSceneEnvironment {
  }
 
  Component.onCompleted: {
+ root.canUseDithering = qtVersionAtLeast(6,10)
  if (canUseDithering) {
  root.ditheringEnabled = Qt.binding(function() { return ditheringEnabled })
  }
-
  _applySceneBridgeState()
  }
 
@@ -166,10 +186,16 @@ ExtendedSceneEnvironment {
  fogEnabled = !!params.fogEnabled
  if (params.fogColor)
  fogColor = params.fogColor
- if (params.fogNear !== undefined)
- fogNear = _toSceneLength(params.fogNear)
- if (params.fogFar !== undefined)
- fogFar = _toSceneLength(params.fogFar)
+ if (params.fogNear !== undefined) {
+ var fogNearValue = Number(params.fogNear)
+ if (isFinite(fogNearValue))
+ fogNear = toSceneLength(fogNearValue)
+ }
+ if (params.fogFar !== undefined) {
+ var fogFarValue = Number(params.fogFar)
+ if (isFinite(fogFarValue))
+ fogFar = toSceneLength(fogFarValue)
+ }
  if (params.ssaoEnabled !== undefined)
  ssaoEnabled = !!params.ssaoEnabled
  if (params.ssaoRadius !== undefined)
@@ -178,8 +204,11 @@ ExtendedSceneEnvironment {
  ssaoIntensity = Number(params.ssaoIntensity)
  if (params.depthOfFieldEnabled !== undefined)
  internalDepthOfFieldEnabled = !!params.depthOfFieldEnabled
- if (params.dofFocusDistance !== undefined)
- dofFocusDistance = _toSceneLength(params.dofFocusDistance)
+ if (params.dofFocusDistance !== undefined) {
+ var dofDistance = Number(params.dofFocusDistance)
+ if (isFinite(dofDistance))
+ dofFocusDistance = toSceneLength(dofDistance)
+ }
  if (params.dofBlurAmount !== undefined)
  dofBlurAmount = Number(params.dofBlurAmount)
  if (params.vignetteEnabled !== undefined)
@@ -188,8 +217,11 @@ ExtendedSceneEnvironment {
  internalVignetteStrength = Number(params.vignetteStrength)
  if (params.oitMode)
  oitMode = String(params.oitMode)
- if (params.ditheringEnabled !== undefined)
- ditheringEnabled = !!params.ditheringEnabled
+ if (params.ditheringEnabled !== undefined) {
+ var dith = !!params.ditheringEnabled
+ if (canUseDithering)
+ root.ditheringEnabled = dith
+ }
  }
 
  function applyQualityPayload(params) {
@@ -212,8 +244,11 @@ ExtendedSceneEnvironment {
  fxaaEnabled = !!params.fxaaEnabled
  if (params.specularAAEnabled !== undefined)
  specularAAEnabled = !!params.specularAAEnabled
- if (params.ditheringEnabled !== undefined)
- ditheringEnabled = !!params.ditheringEnabled
+ if (params.ditheringEnabled !== undefined) {
+ var dithQ = !!params.ditheringEnabled
+ if (canUseDithering)
+ root.ditheringEnabled = dithQ
+ }
  }
 
  function applyEffectsPayload(params) {
@@ -230,8 +265,11 @@ ExtendedSceneEnvironment {
  bloomSpread = Number(params.bloomSpread)
  if (params.depthOfFieldEnabled !== undefined)
  internalDepthOfFieldEnabled = !!params.depthOfFieldEnabled
- if (params.dofFocusDistance !== undefined)
- dofFocusDistance = _toSceneLength(params.dofFocusDistance)
+ if (params.dofFocusDistance !== undefined) {
+ var effectsFocusDistance = Number(params.dofFocusDistance)
+ if (isFinite(effectsFocusDistance))
+ dofFocusDistance = toSceneLength(effectsFocusDistance)
+ }
  if (params.dofBlurAmount !== undefined)
  dofBlurAmount = Number(params.dofBlurAmount)
  if (params.vignetteEnabled !== undefined)
@@ -271,8 +309,8 @@ ExtendedSceneEnvironment {
  property real tonemapWhitePoint:2.0
 
  tonemapMode: tonemapEnabled ? (
-    tonemapModeName === "filmic" ? SceneEnvironment.TonemapModeFilmic :
-    tonemapModeName === "aces" ? SceneEnvironment.TonemapModeAces :
+ tonemapModeName === "filmic" ? SceneEnvironment.TonemapModeFilmic :
+ tonemapModeName === "aces" ? SceneEnvironment.TonemapModeAces :
  tonemapModeName === "reinhard" ? SceneEnvironment.TonemapModeReinhard :
  tonemapModeName === "gamma" ? SceneEnvironment.TonemapModeLinear :
  tonemapModeName === "linear" ? SceneEnvironment.TonemapModeLinear :
