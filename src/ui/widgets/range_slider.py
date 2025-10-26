@@ -1,8 +1,16 @@
 # -*- coding: utf-8 -*-
-"""
-Range slider widget with editable min/max bounds
-Combines QSlider with QDoubleSpinBox controls for precise range control
-ОБНОВЛЕНО: Более мелкие деления шкалы, ширина диапазона без скобок
+"""Rich range slider widget used throughout the geometry panel.
+
+The widget exposes both live updates (``valueChanged``) and debounced updates
+(``valueEdited``) to mirror the behaviour of the historical implementation.
+
+Key refinements introduced during the refactor:
+
+* Более мелкие деления шкалы для более точной подстройки параметров.
+* Индикатор ширины диапазона выводится без скобок для наглядности.
+* Поля «Мин», «Значение», «Макс» выровнены по горизонтали.
+* Шкала слайдера растягивается на всю ширину доступной области.
+* Добавлены цветовые подсказки и всплывающие подсказки.
 """
 
 import math

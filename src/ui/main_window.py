@@ -1,7 +1,9 @@
-"""Main window coordinating the Qt Quick 3D user interface.
+# -*- coding: utf-8 -*-
+"""Main application window hosting the Qt Quick 3D scene and control panels.
 
-Qt Quick3D rendering with QQuickWidget (no createWindowContainer).
-РУССКИЙ ИНТЕРФЕЙС (Russian UI).
+Qt Quick3D rendering with :class:`~PySide6.QtQuickWidgets.QQuickWidget`
+(без использования ``createWindowContainer``). Интерфейс полностью
+локализован на русский язык.
 """
 
 from PySide6.QtWidgets import (
@@ -51,8 +53,7 @@ from src.common.settings_manager import (
 )
 from src.common.signal_trace import get_signal_trace_service
 from src.ui.scene_bridge import SceneBridge
-from src.ui.main_window_pkg.qml_bridge import QMLBridge
-from src.ui.qml_bridge import register_qml_signals
+from src.ui.qml_bridge import QMLBridge, register_qml_signals
 
 
 class MainWindow(QMainWindow):
