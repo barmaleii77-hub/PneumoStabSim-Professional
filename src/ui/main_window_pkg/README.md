@@ -1,5 +1,10 @@
 # MainWindow Module - Refactored Structure
 
+> **Note:** The refactored modules now live under `src/ui/main_window_pkg/`.
+> The compatibility shim at `src/ui/main_window.py` re-exports the coordinator
+> and helper modules so historical imports such as
+> `from src.ui.main_window import MainWindow` continue to work without changes.
+
 Модульная структура главного окна приложения PneumoStabSim.
 
 ## Архитектура

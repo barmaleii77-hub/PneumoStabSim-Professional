@@ -28,7 +28,7 @@ from PySide6.QtQuickWidgets import QQuickWidget
 from PySide6.QtGui import QAction, QKeySequence
 
 if TYPE_CHECKING:
-    from .main_window import MainWindow
+    from .main_window_refactored import MainWindow
 
 
 class UISetup:
@@ -175,6 +175,18 @@ class UISetup:
             context = engine.rootContext()
             context.setContextProperty("window", window)
 
+            try:
+                from src.ui.scene_bridge import SceneBridge
+
+                window._scene_bridge = SceneBridge(window)
+                context.setContextProperty("pythonSceneBridge", window._scene_bridge)
+                UISetup.logger.info("    ✅ SceneBridge exposed to QML context")
+            except Exception as bridge_exc:
+                window._scene_bridge = None
+                UISetup.logger.error(
+                    "    ❌ Failed to initialise SceneBridge: %s", bridge_exc
+                )
+
             # Новые контексты: события настроек и трассировка сигналов
             try:
                 from src.common.settings_manager import get_settings_event_bus
@@ -259,6 +271,19 @@ class UISetup:
             window._qml_root_object = window._qquick_widget.rootObject()
             if not window._qml_root_object:
                 raise RuntimeError("Failed to get QML root object")
+
+            try:
+                if getattr(window, "_scene_bridge", None) is not None:
+                    window._qml_root_object.setProperty(
+                        "sceneBridge", window._scene_bridge
+                    )
+                    UISetup.logger.info(
+                        "    ✅ SceneBridge assigned to QML root property"
+                    )
+            except Exception as assign_exc:
+                UISetup.logger.warning(
+                    "    ⚠️ Failed to assign SceneBridge to QML root: %s", assign_exc
+                )
 
             # Store base directory
             window._qml_base_dir = qml_file.parent.resolve()

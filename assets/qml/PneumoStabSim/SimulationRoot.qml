@@ -585,7 +585,7 @@ Item {
  function toSceneLength(meters) {
  var numeric = Number(meters);
  if (!isFinite(numeric))
- return0;
+        return 0;
  return numeric * sceneScaleFactor;
  }
 

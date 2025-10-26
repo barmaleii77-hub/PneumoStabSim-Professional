@@ -26,6 +26,8 @@ import sys
 from pathlib import Path
 from typing import Iterable, Sequence
 
+from tools import merge_conflict_scan
+
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_LINT_TARGETS: tuple[str, ...] = ("app.py", "src", "tests", "tools")
 MYPY_TARGETS_FILE = "mypy_targets.txt"
@@ -36,6 +38,24 @@ MYPY_CONFIG = "mypy.ini"
 
 class TaskError(RuntimeError):
     """Raised when a task cannot be executed successfully."""
+
+
+def _ensure_no_merge_conflicts() -> None:
+    conflicted = merge_conflict_scan.find_conflicted_files(
+        PROJECT_ROOT, merge_conflict_scan.DEFAULT_EXCLUDES
+    )
+    if not conflicted:
+        return
+
+    for path in conflicted:
+        try:
+            display = path.relative_to(PROJECT_ROOT)
+        except ValueError:
+            display = path
+        print(f"[ci_tasks] merge conflict marker detected: {display}")
+    raise TaskError(
+        "Git merge conflict markers detected; resolve them before running CI tasks."
+    )
 
 
 def _split_env_list(value: str | None) -> list[str]:
@@ -236,6 +256,7 @@ def main(argv: Sequence[str] | None = None) -> None:
 
     task = task_map[args.command]
     try:
+        _ensure_no_merge_conflicts()
         task()
     except TaskError as exc:
         print(f"[ci_tasks] ERROR: {exc}", file=sys.stderr)

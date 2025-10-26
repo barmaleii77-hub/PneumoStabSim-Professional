@@ -18,7 +18,7 @@ from .qml_bridge import QMLBridge
 from ..qml_bridge import register_qml_signals
 
 if TYPE_CHECKING:
-    from .main_window import MainWindow
+    from .main_window_refactored import MainWindow
     from ...runtime import StateSnapshot
 
 
@@ -459,3 +459,24 @@ class SignalsRouter:
             from .qml_bridge import QMLBridge
 
             QMLBridge.invoke_qml_function(window, "fullResetView")
+        else:
+            SignalsRouter.logger.warning("Unknown simulation command: %s", command)
+            return
+
+        try:
+            bus = window.simulation_manager.state_bus
+        except Exception as exc:
+            SignalsRouter.logger.error("Failed to access simulation bus: %s", exc)
+            return
+
+        try:
+            if cmd == "start":
+                bus.start_simulation.emit()
+            elif cmd == "pause":
+                bus.pause_simulation.emit()
+            elif cmd == "stop":
+                bus.stop_simulation.emit()
+            elif cmd == "reset":
+                bus.reset_simulation.emit()
+        except Exception as exc:
+            SignalsRouter.logger.error("Simulation control emit failed: %s", exc)

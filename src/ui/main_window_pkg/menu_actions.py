@@ -15,7 +15,7 @@ from typing import TYPE_CHECKING
 from PySide6.QtCore import Slot
 
 if TYPE_CHECKING:
-    from .main_window import MainWindow
+    from .main_window_refactored import MainWindow
 
 from .signals_router import SignalsRouter
 
