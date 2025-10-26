@@ -7,13 +7,13 @@
     "Microsoft.VisualStudio.Component.VC.CoreBuildTools",
     "Microsoft.VisualStudio.Component.VC.Tools.x86.x64",
     "Microsoft.VisualStudio.Component.Windows10SDK.22621",
-    "Component.GitHub.VisualStudio",
     "Microsoft.VisualStudio.Component.TestTools.Core",
     "Microsoft.VisualStudio.Component.VC.CMake.Project",
     "Microsoft.VisualStudio.Component.Vcpkg",
     "Microsoft.VisualStudio.Component.PowerShellTools",
     "Microsoft.VisualStudio.ComponentGroup.NativeDesktop.Win81",
     "Microsoft.Component.PythonTools",
+    "Component.GitHub.VisualStudio",
     "Component.GitHub.Copilot",
     "Component.GitHub.CopilotChat"
   ],
@@ -34,7 +34,7 @@
     "postInstall": [
       {
         "command": "powershell",
-        "arguments": "-NoProfile -ExecutionPolicy Bypass -File tools/visualstudio/initialize_insiders_environment.ps1"
+        "arguments": "-NoProfile -ExecutionPolicy Bypass -File tools/visualstudio/initialize_insiders_environment.ps1 -SkipVisualStudio"
       }
     ]
   }

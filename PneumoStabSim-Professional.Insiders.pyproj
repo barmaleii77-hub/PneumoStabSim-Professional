@@ -134,7 +134,7 @@ COPILOT_PROJECT_MANIFEST=$(MSBuildProjectDirectory)\tools\visualstudio\copilot_i
   </ItemGroup>
   <Target Name="PrepareVisualStudioInsidersEnvironment" BeforeTargets="PrepareForLaunch">
     <Message Text="Preparing Visual Studio Insiders environment" Importance="high" />
-    <Exec Command="powershell -NoProfile -ExecutionPolicy Bypass -File &quot;$(MSBuildProjectDirectory)\tools\visualstudio\initialize_insiders_environment.ps1&quot; -ProjectRoot &quot;$(MSBuildProjectDirectory)&quot;" />
+    <Exec Command="powershell -NoProfile -ExecutionPolicy Bypass -File &quot;$(MSBuildProjectDirectory)\tools\visualstudio\initialize_insiders_environment.ps1&quot; -ProjectRoot &quot;$(MSBuildProjectDirectory)&quot; -SkipVisualStudio" />
   </Target>
   <Import Project="$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\Python Tools\Microsoft.PythonTools.targets" />
 </Project>
