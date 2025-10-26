@@ -316,11 +316,11 @@ Item {
  pistonRodMaterial: sharedMaterials.pistonRodMaterial
  jointTailMaterial: sharedMaterials.jointTailMaterial
  jointArmMaterial: sharedMaterials.jointArmMaterial
-        jointRodMaterial: PrincipledMaterial {
-            baseColor: flCorner.rodLengthError >0.001 ? sharedMaterials.jointRodErrorColor : sharedMaterials.jointRodOkColor
-            metalness:0.9
-            roughness:0.35
-        }
+ jointRodMaterial: PrincipledMaterial {
+ baseColor: flCorner.rodLengthError >0.001 ? sharedMaterials.jointRodErrorColor : sharedMaterials.jointRodOkColor
+ metalness:0.9
+ roughness:0.35
+ }
  }
 
  SuspensionCorner {
@@ -346,11 +346,11 @@ Item {
  pistonRodMaterial: sharedMaterials.pistonRodMaterial
  jointTailMaterial: sharedMaterials.jointTailMaterial
  jointArmMaterial: sharedMaterials.jointArmMaterial
-        jointRodMaterial: PrincipledMaterial {
-            baseColor: frCorner.rodLengthError >0.001 ? sharedMaterials.jointRodErrorColor : sharedMaterials.jointRodOkColor
-            metalness:0.9
-            roughness:0.35
-        }
+ jointRodMaterial: PrincipledMaterial {
+ baseColor: frCorner.rodLengthError >0.001 ? sharedMaterials.jointRodErrorColor : sharedMaterials.jointRodOkColor
+ metalness:0.9
+ roughness:0.35
+ }
  }
 
  SuspensionCorner {
@@ -376,11 +376,11 @@ Item {
  pistonRodMaterial: sharedMaterials.pistonRodMaterial
  jointTailMaterial: sharedMaterials.jointTailMaterial
  jointArmMaterial: sharedMaterials.jointArmMaterial
-        jointRodMaterial: PrincipledMaterial {
-            baseColor: rlCorner.rodLengthError >0.001 ? sharedMaterials.jointRodErrorColor : sharedMaterials.jointRodOkColor
-            metalness:0.9
-            roughness:0.35
-        }
+ jointRodMaterial: PrincipledMaterial {
+ baseColor: rlCorner.rodLengthError >0.001 ? sharedMaterials.jointRodErrorColor : sharedMaterials.jointRodOkColor
+ metalness:0.9
+ roughness:0.35
+ }
  }
 
  SuspensionCorner {
@@ -406,11 +406,11 @@ Item {
  pistonRodMaterial: sharedMaterials.pistonRodMaterial
  jointTailMaterial: sharedMaterials.jointTailMaterial
  jointArmMaterial: sharedMaterials.jointArmMaterial
-        jointRodMaterial: PrincipledMaterial {
-            baseColor: rrCorner.rodLengthError >0.001 ? sharedMaterials.jointRodErrorColor : sharedMaterials.jointRodOkColor
-            metalness:0.9
-            roughness:0.35
-        }
+ jointRodMaterial: PrincipledMaterial {
+ baseColor: rrCorner.rodLengthError >0.001 ? sharedMaterials.jointRodErrorColor : sharedMaterials.jointRodOkColor
+ metalness:0.9
+ roughness:0.35
+ }
  }
  }
  }

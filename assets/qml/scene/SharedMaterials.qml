@@ -215,11 +215,11 @@ QtObject {
  // MATERIAL INSTANCES
  // ===============================================================
 
-    readonly property PrincipledMaterial frameMaterial: PrincipledMaterial {
-        baseColor: root.frameBaseColor
-        metalness: root.frameMetalness
-        roughness: root.frameRoughness
-        clearcoatAmount: root.frameClearcoat
+ readonly property PrincipledMaterial frameMaterial: PrincipledMaterial {
+ baseColor: root.frameBaseColor
+ metalness: root.frameMetalness
+ roughness: root.frameRoughness
+ clearcoatAmount: root.frameClearcoat
  clearcoatRoughnessAmount: root.frameClearcoatRoughness
  transmissionFactor: root.frameTransmission
  opacity: root.frameOpacity
@@ -229,11 +229,11 @@ QtObject {
  emissiveFactor: root.emissiveVector(root.frameEmissiveColor, root.frameEmissiveIntensity)
  }
 
-    readonly property PrincipledMaterial leverMaterial: PrincipledMaterial {
-        baseColor: root.leverBaseColor
-        metalness: root.leverMetalness
-        roughness: root.leverRoughness
-        clearcoatAmount: root.leverClearcoat
+ readonly property PrincipledMaterial leverMaterial: PrincipledMaterial {
+ baseColor: root.leverBaseColor
+ metalness: root.leverMetalness
+ roughness: root.leverRoughness
+ clearcoatAmount: root.leverClearcoat
  clearcoatRoughnessAmount: root.leverClearcoatRoughness
  transmissionFactor: root.leverTransmission
  opacity: root.leverOpacity
@@ -243,11 +243,11 @@ QtObject {
  emissiveFactor: root.emissiveVector(root.leverEmissiveColor, root.leverEmissiveIntensity)
  }
 
-    readonly property PrincipledMaterial tailRodMaterial: PrincipledMaterial {
-        baseColor: root.tailRodBaseColor
-        metalness: root.tailRodMetalness
-        roughness: root.tailRodRoughness
-        clearcoatAmount: root.tailRodClearcoat
+ readonly property PrincipledMaterial tailRodMaterial: PrincipledMaterial {
+ baseColor: root.tailRodBaseColor
+ metalness: root.tailRodMetalness
+ roughness: root.tailRodRoughness
+ clearcoatAmount: root.tailRodClearcoat
  clearcoatRoughnessAmount: root.tailRodClearcoatRoughness
  transmissionFactor: root.tailRodTransmission
  opacity: root.tailRodOpacity
@@ -257,11 +257,11 @@ QtObject {
  emissiveFactor: root.emissiveVector(root.tailRodEmissiveColor, root.tailRodEmissiveIntensity)
  }
 
-    readonly property PrincipledMaterial cylinderMaterial: PrincipledMaterial {
-        baseColor: root.cylinderBaseColor
-        metalness: root.cylinderMetalness
-        roughness: root.cylinderRoughness
-        clearcoatAmount: root.cylinderClearcoat
+ readonly property PrincipledMaterial cylinderMaterial: PrincipledMaterial {
+ baseColor: root.cylinderBaseColor
+ metalness: root.cylinderMetalness
+ roughness: root.cylinderRoughness
+ clearcoatAmount: root.cylinderClearcoat
  clearcoatRoughnessAmount: root.cylinderClearcoatRoughness
  transmissionFactor: root.cylinderTransmission
  opacity: root.cylinderOpacity
@@ -272,11 +272,11 @@ QtObject {
  alphaMode: PrincipledMaterial.Blend
  }
 
-    readonly property PrincipledMaterial jointTailMaterial: PrincipledMaterial {
-        baseColor: root.jointTailBaseColor
-        metalness: root.jointTailMetalness
-        roughness: root.jointTailRoughness
-        clearcoatAmount: root.jointTailClearcoat
+ readonly property PrincipledMaterial jointTailMaterial: PrincipledMaterial {
+ baseColor: root.jointTailBaseColor
+ metalness: root.jointTailMetalness
+ roughness: root.jointTailRoughness
+ clearcoatAmount: root.jointTailClearcoat
  clearcoatRoughnessAmount: root.jointTailClearcoatRoughness
  transmissionFactor: root.jointTailTransmission
  opacity: root.jointTailOpacity
