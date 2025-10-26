@@ -1,7 +1,6 @@
 import QtQuick
 import QtQuick3D
 import QtQuick.Controls
-import QtQuick3D
 import QtQuick3D.Helpers
 import "../camera"
 import "../components"
@@ -191,11 +190,12 @@ property var geometryState: ({
  }
  }
 
- SceneEnvironmentController {
- id: sceneEnvCtl
- objectName: "sceneEnvironmentController"
- sceneBridge: root.sceneBridge
- }
+    SceneEnvironmentController {
+        id: sceneEnvCtl
+        objectName: "sceneEnvironmentController"
+        sceneBridge: root.sceneBridge
+        sceneScaleFactor: root.sceneScaleFactor
+    }
 
  IblProbeLoader {
  id: iblLoader
@@ -523,32 +523,32 @@ View3D {
  }
  }
 
- Component.onCompleted: {
- if (signalTrace && signalTrace.registerSubscription) {
- signalTrace.registerSubscription("settings.settingChanged","main.qml","qml")
- signalTrace.registerSubscription("settings.settingsBatchUpdated","main.qml","qml")
- }
- if (diagnosticsDefaults && diagnosticsDefaults.camera_hud) {
- applyCameraHudSettings(diagnosticsDefaults.camera_hud)
- } else {
+    Component.onCompleted: {
+        if (typeof signalTrace !== "undefined" && signalTrace && typeof signalTrace.registerSubscription === "function") {
+            signalTrace.registerSubscription("settings.settingChanged", "main.qml", "qml")
+            signalTrace.registerSubscription("settings.settingsBatchUpdated", "main.qml", "qml")
+        }
+        if (diagnosticsDefaults && diagnosticsDefaults.camera_hud) {
+            applyCameraHudSettings(diagnosticsDefaults.camera_hud)
+        } else {
  setCameraHudEnabled(cameraHudEnabled)
  }
  applySceneBridgeState()
  }
 
- Connections {
- target: settingsEvents
- function onSettingChanged(change) {
- if (signalTrace && signalTrace.recordObservation) {
- signalTrace.recordObservation("settings.settingChanged", change, "qml")
- }
- handleDiagnosticsSettingChange(change)
- }
+    Connections {
+        target: typeof settingsEvents !== "undefined" ? settingsEvents : null
+        function onSettingChanged(change) {
+            if (typeof signalTrace !== "undefined" && signalTrace && typeof signalTrace.recordObservation === "function") {
+                signalTrace.recordObservation("settings.settingChanged", change, "qml")
+            }
+            handleDiagnosticsSettingChange(change)
+        }
 
- function onSettingsBatchUpdated(payload) {
- if (signalTrace && signalTrace.recordObservation) {
- signalTrace.recordObservation("settings.settingsBatchUpdated", payload, "qml")
- }
+        function onSettingsBatchUpdated(payload) {
+            if (typeof signalTrace !== "undefined" && signalTrace && typeof signalTrace.recordObservation === "function") {
+                signalTrace.recordObservation("settings.settingsBatchUpdated", payload, "qml")
+            }
  if (payload && payload.changes && payload.changes.length) {
  for (var i = 0; i < payload.changes.length; ++i) {
  handleDiagnosticsSettingChange(payload.changes[i])
@@ -576,12 +576,12 @@ View3D {
  return Math.max(minValue, Math.min(maxValue, value));
  }
 
- function toSceneLength(meters) {
- var numeric = Number(meters);
- if (!isFinite(numeric))
- return0;
- return numeric * sceneScaleFactor;
- }
+function toSceneLength(meters) {
+    var numeric = Number(meters);
+    if (!isFinite(numeric))
+        return 0;
+    return numeric * sceneScaleFactor;
+}
 
  function toSceneScale(meters) {
  return toSceneLength(meters) /100.0;
@@ -598,16 +598,16 @@ View3D {
  return numeric;
  }
 
- function emitConfigChange(category, payload) {
- if (!feedbackReady)
- return;
- if (!window)
- return;
- try {
- if (typeof window.isQmlFeedbackSuppressed === "function" && window.isQmlFeedbackSuppressed())
- return;
- } catch (err) {
- }
+    function emitConfigChange(category, payload) {
+        if (!feedbackReady)
+            return;
+        if (typeof window === "undefined" || !window)
+            return;
+        try {
+            if (typeof window.isQmlFeedbackSuppressed === "function" && window.isQmlFeedbackSuppressed())
+                return;
+        } catch (err) {
+        }
  if (typeof window.applyQmlConfigChange === "function")
  window.applyQmlConfigChange(category, payload);
  }
@@ -1275,8 +1275,9 @@ function applyMaterialUpdates(params) {
 }
 
  function applyEffectsUpdates(params) {
- if (!params) return;
- // Эффекты уже настраиваются через applyEnvironmentUpdates
+ if (!params)
+     return;
+ sceneEnvCtl.applyEffectsPayload(params);
  }
 
  function applyAnimationUpdates(params) {

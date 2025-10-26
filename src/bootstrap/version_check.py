@@ -22,12 +22,23 @@ def check_python_compatibility(
     if version < _MIN_VERSION:
         log_error(
             "Python %d.%d+ required. Current interpreter: %d.%d.%d"
-            % (_MIN_VERSION[0], _MIN_VERSION[1], version.major, version.minor, version.micro)
+            % (
+                _MIN_VERSION[0],
+                _MIN_VERSION[1],
+                version.major,
+                version.minor,
+                version.micro,
+            )
         )
         sys.exit(1)
 
     if version < _RECOMMENDED_VERSION:
         log_warning(
             "Python %d.%d+ detected; Python %d.%d+ is recommended for full support."
-            % (version.major, version.minor, _RECOMMENDED_VERSION[0], _RECOMMENDED_VERSION[1])
+            % (
+                version.major,
+                version.minor,
+                _RECOMMENDED_VERSION[0],
+                _RECOMMENDED_VERSION[1],
+            )
         )
