@@ -122,6 +122,7 @@ class SettingsService:
         payload: dict[str, Any],
         *,
         metadata: dict[str, Any] | None = None,
+        pending_unknown_paths: Iterable[str] | None = None,
     ) -> None:
         """Сохранить payload на диск и обновить кэш."""
 
@@ -129,6 +130,9 @@ class SettingsService:
             self.validate(payload)
         self._write_file(payload)
         self._cache = payload
+        if pending_unknown_paths:
+            for candidate in pending_unknown_paths:
+                self._record_unknown_path(candidate)
         self._publish_update_event(metadata or {})
 
     # ------------------------------------------------------------------
@@ -159,8 +163,9 @@ class SettingsService:
 
         parent = self._resolve_existing_parent(payload, segments)
         final_key = segments[-1]
+        pending_unknown_paths: list[str] = []
         if final_key not in parent:
-            self._record_unknown_path(path)
+            pending_unknown_paths.append(path)
 
         parent[final_key] = value
         self.save(
@@ -169,6 +174,7 @@ class SettingsService:
                 "path": path,
                 "action": "set",
             },
+            pending_unknown_paths=pending_unknown_paths,
         )
 
     def update(self, path: str, patch: MutableMapping[str, Any]) -> None:
@@ -176,9 +182,10 @@ class SettingsService:
 
         payload = self.load()
         data = self._get_existing_mapping(payload, path)
+        pending_unknown_paths: list[str] = []
         for key in patch:
             if key not in data:
-                self._record_unknown_path(f"{path}.{key}")
+                pending_unknown_paths.append(f"{path}.{key}")
 
         data.update(patch)
         self.save(
@@ -187,6 +194,7 @@ class SettingsService:
                 "path": path,
                 "action": "update",
             },
+            pending_unknown_paths=pending_unknown_paths,
         )
 
     # ------------------------------------------------------------------

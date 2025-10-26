@@ -647,7 +647,17 @@ class QMLBridge:
         """Normalise Python objects so they can be passed into QML."""
 
         if isinstance(value, dict):
-            return {str(k): QMLBridge._prepare_for_qml(v) for k, v in value.items()}
+            result: Dict[str, Any] = {}
+            for key, raw in value.items():
+                prepared = QMLBridge._prepare_for_qml(raw)
+                str_key = str(key)
+                result[str_key] = prepared
+
+                camel_key = QMLBridge._snake_to_camel(str_key)
+                if camel_key != str_key and camel_key not in result:
+                    result[camel_key] = prepared
+
+            return result
 
         if isinstance(value, (list, tuple)):
             return [QMLBridge._prepare_for_qml(i) for i in value]
@@ -666,6 +676,18 @@ class QMLBridge:
             return str(value)
 
         return value
+
+    @staticmethod
+    def _snake_to_camel(key: str) -> str:
+        if "_" not in key:
+            return key
+
+        parts = [segment for segment in key.split("_") if segment]
+        if not parts:
+            return key
+
+        head, *tail = parts
+        return head + "".join(part[:1].upper() + part[1:] for part in tail)
 
     @staticmethod
     def _deep_merge_dicts(target: Dict[str, Any], source: Dict[str, Any]) -> None:
