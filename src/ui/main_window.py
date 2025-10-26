@@ -1,4 +1,4 @@
-"""Main window for PneumoStabSim application.
+"""Main window coordinating the Qt Quick 3D user interface.
 
 Qt Quick3D rendering with QQuickWidget (no createWindowContainer).
 РУССКИЙ ИНТЕРФЕЙС (Russian UI).

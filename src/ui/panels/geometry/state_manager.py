@@ -6,7 +6,8 @@ Geometry panel state manager
 
 import logging
 from typing import Dict, List, Optional, Any
-from PySide6.QtCore import QSettings
+
+from src.common.settings_manager import SettingsManager
 
 from .defaults import (
     DEFAULT_GEOMETRY,
@@ -26,20 +27,29 @@ class GeometryStateManager:
     - Save/load settings
     """
 
-    def __init__(self, settings: Optional[QSettings] = None):
-        """Initialize state manager
+    def __init__(
+        self,
+        settings_manager: Optional[SettingsManager] = None,
+        *,
+        settings_path: str = "current.geometry",
+    ):
+        """Initialize state manager bound to the JSON-backed settings service.
 
         Args:
-            settings: QSettings instance for persistence (optional)
+            settings_manager: Shared :class:`SettingsManager` instance. When
+                omitted the state manager operates in-memory only.
+            settings_path: Dotted path in :mod:`config/app_settings.json` where
+                geometry preferences should be stored.
         """
         self.logger = logging.getLogger(__name__)
-        self.settings = settings
+        self.settings_manager = settings_manager
+        self._settings_path = settings_path
 
         # Current state (mutable)
         self.state: Dict[str, Any] = DEFAULT_GEOMETRY.copy()
 
         # Load saved state if available
-        if settings:
+        if self.settings_manager:
             self.load_state()
 
     # =========================================================================
@@ -321,47 +331,37 @@ class GeometryStateManager:
     # =========================================================================
 
     def save_state(self) -> None:
-        """Save current state to QSettings"""
-        if not self.settings:
-            self.logger.warning("No QSettings instance - cannot save")
+        """Persist the current state using :class:`SettingsManager`."""
+        if not self.settings_manager:
+            self.logger.warning("No SettingsManager instance - cannot save")
             return
 
-        self.settings.beginGroup("GeometryPanel")
-
-        for param_name, value in self.state.items():
-            if isinstance(value, bool):
-                self.settings.setValue(param_name, value)
-            elif isinstance(value, (int, float)):
-                self.settings.setValue(param_name, float(value))
-            else:
-                self.settings.setValue(param_name, str(value))
-
-        self.settings.endGroup()
-        self.logger.info("State saved to settings")
+        try:
+            self.settings_manager.set(self._settings_path, self.state, auto_save=True)
+            self.logger.info("State saved to settings manager")
+        except Exception as exc:
+            self.logger.error("Failed to save geometry state: %s", exc)
 
     def load_state(self) -> None:
-        """Load state from QSettings"""
-        if not self.settings:
-            self.logger.warning("No QSettings instance - cannot load")
+        """Load state from the JSON settings file if available."""
+        if not self.settings_manager:
+            self.logger.warning("No SettingsManager instance - cannot load")
             return
 
-        self.settings.beginGroup("GeometryPanel")
+        try:
+            stored = self.settings_manager.get(self._settings_path, default=None)
+        except Exception as exc:
+            self.logger.error("Failed to load geometry state: %s", exc)
+            return
 
-        for param_name in self.state.keys():
-            if self.settings.contains(param_name):
-                value = self.settings.value(param_name)
+        if not isinstance(stored, dict):
+            self.logger.info("No persisted geometry state found; using defaults")
+            return
 
-                # Convert to correct type
-                if isinstance(self.state[param_name], bool):
-                    self.state[param_name] = bool(value)
-                elif isinstance(self.state[param_name], float):
-                    try:
-                        self.state[param_name] = float(value)
-                    except (ValueError, TypeError):
-                        pass
-
-        self.settings.endGroup()
-        self.logger.info("State loaded from settings")
+        restored = DEFAULT_GEOMETRY.copy()
+        restored.update(stored)
+        self.state = restored
+        self.logger.info("State loaded from settings manager")
 
     # =========================================================================
     # HELPER METHODS

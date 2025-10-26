@@ -1,10 +1,16 @@
-"""
-Core 2D geometry module for P13 kinematics
+"""Core 2D geometry utilities used by the suspension kinematics.
 
 Coordinate system (per wheel plane):
 - X axis: transverse from frame to wheel (right for right side, mirrored for left)
 - Y axis: vertical (up positive)
-- Lever angle θ measured from X (horizontal) counterclockwise
+
+The helpers defined here provide 2D geometry primitives used throughout the
+simulation when validating linkage lengths and rod clearances. They also serve
+as a small math toolbox with projection and angle helpers that are frequently
+consumed by the Python↔QML bridge.
+
+Notes:
+- Lever angle θ measured from X (horizontal) counterclockwise.
 
 References:
 - numpy.dot: https://numpy.org/doc/stable/reference/generated/numpy.dot.html

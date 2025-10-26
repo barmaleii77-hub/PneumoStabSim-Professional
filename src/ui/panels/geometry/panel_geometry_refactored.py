@@ -6,7 +6,7 @@ Geometry Panel - Refactored Coordinator (v1.0.0)
 
 import logging
 from PySide6.QtWidgets import QWidget, QVBoxLayout, QTabWidget, QLabel, QSizePolicy
-from PySide6.QtCore import Signal, Slot, QSettings, QTimer, Qt
+from PySide6.QtCore import Signal, Slot, QTimer, Qt
 from PySide6.QtGui import QFont
 
 from .state_manager import GeometryStateManager
@@ -14,6 +14,7 @@ from .frame_tab import FrameTab
 from .suspension_tab import SuspensionTab
 from .cylinder_tab import CylinderTab
 from .options_tab import OptionsTab
+from src.common.settings_manager import get_settings_manager
 
 
 class GeometryPanel(QWidget):
@@ -45,11 +46,11 @@ class GeometryPanel(QWidget):
         self.logger = logging.getLogger(__name__)
         self.logger.info("GeometryPanel (refactored) initializing...")
 
-        # QSettings for persistence
-        self.settings = QSettings("PneumoStabSim", "GeometryPanel")
+        # Shared JSON settings manager
+        self.settings_manager = get_settings_manager()
 
         # State manager (shared by all tabs)
-        self.state_manager = GeometryStateManager(self.settings)
+        self.state_manager = GeometryStateManager(self.settings_manager)
 
         # Conflict resolution state
         self._resolving_conflict = False
