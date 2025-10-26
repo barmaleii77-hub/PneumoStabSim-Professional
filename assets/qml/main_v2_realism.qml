@@ -51,8 +51,22 @@ Item {
     property bool ssaoEnabled: true
     property real ssaoRadius: 200        // === CHANGED: Scene units for better visibility
     property real ssaoIntensity: 70      // === CHANGED: Proper strength value
-    property bool tonemapEnabled: true
-    property int tonemapMode: 3          // 0=None, 1=Linear, 2=Reinhard, 3=Filmic
+    property bool tonemapActive: true
+    property int tonemapModeIndex: 3     // 0=None, 1=Linear, 2=Reinhard, 3=Filmic
+    readonly property var tonemapModeTable: [
+        SceneEnvironment.TonemapModeNone,
+        SceneEnvironment.TonemapModeLinear,
+        SceneEnvironment.TonemapModeReinhard,
+        SceneEnvironment.TonemapModeFilmic
+    ]
+
+    function resolveTonemapMode(index) {
+        var numericIndex = Number(index)
+        if (!Number.isFinite(numericIndex))
+            numericIndex = tonemapModeIndex
+        numericIndex = Math.max(0, Math.min(tonemapModeTable.length - 1, Math.round(numericIndex)))
+        return tonemapModeTable[numericIndex]
+    }
 
     property bool depthOfFieldEnabled: false
     property real dofFocusDistance: 2000
@@ -157,6 +171,13 @@ property real tankPressure: 0.0
         if (params.skybox_enabled !== undefined) skyboxEnabled = params.skybox_enabled
         if (params.ibl_enabled !== undefined) iblEnabled = params.ibl_enabled
         if (params.ibl_intensity !== undefined) iblIntensity = params.ibl_intensity
+        if (params.tonemap_enabled !== undefined) tonemapActive = !!params.tonemap_enabled
+        if (params.tonemap_active !== undefined) tonemapActive = !!params.tonemap_active
+        if (params.tonemap_mode !== undefined) {
+            var requestedMode = Number(params.tonemap_mode)
+            if (Number.isFinite(requestedMode))
+                tonemapModeIndex = Math.max(0, Math.min(tonemapModeTable.length - 1, Math.round(requestedMode)))
+        }
     }
 
     function updateQuality(params) {
@@ -208,11 +229,8 @@ property real tankPressure: 0.0
             probeHorizon: 0.08
 
             // Tone mapping and quality (Fixed enum names)
-            tonemapMode: root.tonemapEnabled
-                          ? (root.tonemapMode === 3 ? SceneEnvironment.TonemapModeFilmic
-                             : root.tonemapMode === 2 ? SceneEnvironment.TonemapModeReinhard
-                             : root.tonemapMode === 1 ? SceneEnvironment.TonemapModeLinear
-                             : SceneEnvironment.TonemapModeNone)
+            tonemapMode: root.tonemapActive
+                          ? root.resolveTonemapMode(root.tonemapModeIndex)
                           : SceneEnvironment.TonemapModeNone
             exposure: 1.0
             whitePoint: 2.0

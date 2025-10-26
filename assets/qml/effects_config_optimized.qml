@@ -14,13 +14,13 @@
             },
             TonemappingEffect {
                 id: tonemap
-                enabled: root.tonemapEnabled
+                enabled: root.tonemapActive
                 mode: [
                     TonemappingEffect.Mode.None,
                     TonemappingEffect.Mode.Linear,
                     TonemappingEffect.Mode.Reinhard,
                     TonemappingEffect.Mode.Filmic
-                ][root.tonemapMode || 2]
+                ][Math.max(0, Math.min(3, root.tonemapModeIndex || 0))]
             },
             DepthOfFieldEffect {
                 id: dof

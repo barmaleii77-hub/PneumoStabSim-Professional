@@ -57,7 +57,7 @@ def generate_final_report():
         "bloomThreshold": ("✨ Порог Bloom", "glowHDRMinimumValue:", "bloomThreshold"),
         "ssaoRadius": ("🌑 Радиус SSAO", "aoDistance:", "ssaoRadius"),
         "shadowSoftness": ("🌫️ Мягкость теней", "shadowBias:", "shadowSoftness"),
-        "tonemapEnabled": ("🎨 Тонемаппинг", "tonemapMode:", "TonemapModeFilmic"),
+        "tonemapActive": ("🎨 Тонемаппинг", "tonemapMode:", "TonemapModeFilmic"),
         "vignetteEnabled": (
             "🖼️ Виньетирование",
             "vignetteEnabled:",
