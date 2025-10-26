@@ -18,6 +18,15 @@ MARKERS: tuple[bytes, ...] = (b"<<<<<<< ", b">>>>>>> ", b"||||||| ")
 DEFAULT_EXCLUDES: tuple[str, ...] = (".git", "__pycache__", ".vs")
 
 
+def _resolve_excludes(user_excludes: Iterable[str]) -> tuple[str, ...]:
+    """Return the effective exclude list, enforcing CI defaults."""
+
+    normalized = {entry for entry in user_excludes if entry}
+    # CI requires `.vs` to stay excluded so IDE artefacts do not trigger noise.
+    normalized.update(DEFAULT_EXCLUDES)
+    return tuple(sorted(normalized))
+
+
 def _should_exclude(path: Path, excludes: Iterable[str]) -> bool:
     return any(part in excludes for part in path.parts)
 
@@ -64,7 +73,8 @@ def main() -> None:
     )
     args = parser.parse_args()
 
-    conflicted = find_conflicted_files(args.root, args.exclude)
+    excludes = _resolve_excludes(args.exclude)
+    conflicted = find_conflicted_files(args.root, excludes)
     if conflicted:
         for path in conflicted:
             print(path)
