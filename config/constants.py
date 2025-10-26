@@ -20,6 +20,29 @@ def _load_settings(custom_path: str | None = None) -> Dict[str, Any]:
     return service.load()
 
 
+def _ensure_mapping(value: Any, context: str) -> Mapping[str, Any]:
+    if not isinstance(value, Mapping):
+        raise TypeError(
+            f"Expected '{context}' to be a JSON object in app_settings.json, "
+            f"got {type(value).__name__}"
+        )
+    return value
+
+
+def _require_mapping_key(
+    container: Mapping[str, Any], key: str, context: str
+) -> Mapping[str, Any]:
+    if key not in container:
+        raise KeyError(f"Missing '{context}.{key}' section in app_settings.json")
+    return _ensure_mapping(container[key], f"{context}.{key}")
+
+
+def _require_scalar_key(container: Mapping[str, Any], key: str, context: str) -> Any:
+    if key not in container:
+        raise KeyError(f"Missing '{context}.{key}' value in app_settings.json")
+    return container[key]
+
+
 def _get_constants_root(
     root_key: str = "current",
     *,
@@ -27,12 +50,14 @@ def _get_constants_root(
 ) -> Mapping[str, Any]:
     """Return the constants section for the requested root key (current/defaults_snapshot)."""
     data = _load_settings(custom_path)
-    root = data.get(root_key, {})
-    constants = root.get("constants")
-    if constants is None:
+    try:
+        root = data[root_key]
+    except KeyError as exc:
         raise KeyError(
-            f"Missing 'constants' section under '{root_key}' in app_settings.json"
-        )
+            f"Missing '{root_key}' section in app_settings.json"
+        ) from exc
+    root_mapping = _ensure_mapping(root, root_key)
+    constants = _require_mapping_key(root_mapping, "constants", root_key)
     return constants
 
 
@@ -44,12 +69,9 @@ def _get_constants_section(
 ) -> Mapping[str, Any]:
     """Helper that returns a nested constants section by name."""
     constants = _get_constants_root(root_key, custom_path=custom_path)
-    try:
-        return constants[section]
-    except KeyError as exc:  # pragma: no cover - defensive branch
-        raise KeyError(
-            f"Missing constants section '{section}' under '{root_key}'"
-        ) from exc
+    return _require_mapping_key(
+        constants, section, f"{root_key}.constants"
+    )
 
 
 def refresh_cache() -> None:
@@ -72,7 +94,7 @@ def get_geometry_kinematics_constants(
 ) -> Mapping[str, Any]:
     """Return geometry constants for kinematic calculations."""
     geometry = get_geometry_constants(custom_path=custom_path)
-    return geometry.get("kinematics", {})
+    return _require_mapping_key(geometry, "kinematics", "constants.geometry")
 
 
 def get_geometry_cylinder_constants(
@@ -81,7 +103,7 @@ def get_geometry_cylinder_constants(
 ) -> Mapping[str, Any]:
     """Return cylinder-related geometry constants."""
     geometry = get_geometry_constants(custom_path=custom_path)
-    return geometry.get("cylinder", {})
+    return _require_mapping_key(geometry, "cylinder", "constants.geometry")
 
 
 def get_geometry_visual_constants(
@@ -90,7 +112,7 @@ def get_geometry_visual_constants(
 ) -> Mapping[str, Any]:
     """Return visualization-related geometry constants."""
     geometry = get_geometry_constants(custom_path=custom_path)
-    return geometry.get("visualization", {})
+    return _require_mapping_key(geometry, "visualization", "constants.geometry")
 
 
 def get_geometry_initial_state_constants(
@@ -99,7 +121,7 @@ def get_geometry_initial_state_constants(
 ) -> Mapping[str, Any]:
     """Return constants that define the neutral geometry state."""
     geometry = get_geometry_constants(custom_path=custom_path)
-    return geometry.get("initial_state", {})
+    return _require_mapping_key(geometry, "initial_state", "constants.geometry")
 
 
 def get_pneumo_constants(
@@ -118,7 +140,7 @@ def get_pneumo_valve_constants(
     """Return configuration for check valves."""
 
     pneumo = get_pneumo_constants(custom_path=custom_path)
-    return pneumo.get("valves", {})
+    return _require_mapping_key(pneumo, "valves", "constants.pneumo")
 
 
 def get_pneumo_receiver_constants(
@@ -128,7 +150,7 @@ def get_pneumo_receiver_constants(
     """Return receiver specification defaults."""
 
     pneumo = get_pneumo_constants(custom_path=custom_path)
-    return pneumo.get("receiver", {})
+    return _require_mapping_key(pneumo, "receiver", "constants.pneumo")
 
 
 def get_pneumo_gas_constants(
@@ -138,7 +160,7 @@ def get_pneumo_gas_constants(
     """Return gas network defaults (time step, thermo mode, etc.)."""
 
     pneumo = get_pneumo_constants(custom_path=custom_path)
-    return pneumo.get("gas", {})
+    return _require_mapping_key(pneumo, "gas", "constants.pneumo")
 
 
 def get_pneumo_master_isolation_default(
@@ -148,4 +170,11 @@ def get_pneumo_master_isolation_default(
     """Return default state of the master isolation valve."""
 
     pneumo = get_pneumo_constants(custom_path=custom_path)
-    return bool(pneumo.get("master_isolation_open", False))
+    value = _require_scalar_key(
+        pneumo, "master_isolation_open", "constants.pneumo"
+    )
+    if not isinstance(value, bool):
+        raise TypeError(
+            "'constants.pneumo.master_isolation_open' must be a boolean value"
+        )
+    return value
