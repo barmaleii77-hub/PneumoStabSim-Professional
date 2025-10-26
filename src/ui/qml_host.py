@@ -7,13 +7,14 @@ Uses geometry_bridge.py for correct coordinate calculation
 
 import logging
 from pathlib import Path
+from typing import Dict, Optional
+
 from PySide6.QtCore import QUrl, Signal
 from PySide6.QtQuickWidgets import QQuickWidget
 
 # Import geometry bridge for correct coordinate calculation
 from ..core.geometry import GeometryParams
 from src.ui.geometry_bridge import GeometryTo3DConverter
-from src.core.settings_manager import SettingsManager
 
 _logger = logging.getLogger(__name__)
 
@@ -24,21 +25,10 @@ class SuspensionSceneHost(QQuickWidget):
     # Signals for user interaction
     view_reset_requested = Signal()
 
-    def __init__(self, parent=None):
+    def __init__(self, parent=None, geometry_overrides: Optional[Dict[str, float]] = None):
         super().__init__(parent)
 
-        # Load geometry settings from SettingsManager
-        settings = SettingsManager().geometry_settings
-        _logger.debug("Loaded geometry settings: %s", settings)
-
-        # Create geometry converter with settings values
-        geometry_params = GeometryParams()
-        geometry_params.lever_length = settings.lever_length  # mm
-        geometry_params.cylinder_inner_diameter = settings.cylinder_inner_diameter  # mm
-        geometry_params.rod_diameter = settings.rod_diameter  # mm
-        geometry_params.cylinder_body_length = settings.cylinder_body_length  # mm
-        geometry_params.piston_thickness = settings.piston_thickness  # mm
-
+        geometry_params = self._build_geometry_params(geometry_overrides or {})
         self.geometry_converter = GeometryTo3DConverter(geometry_params)
 
         # Get calculated coordinates for all corners
@@ -89,26 +79,17 @@ class SuspensionSceneHost(QQuickWidget):
         # Setup QML
         self.setResizeMode(QQuickWidget.SizeRootObjectToView)
 
-        # Load QML scene
-        qml_path = (
-            Path(__file__).parent.parent.parent / "assets" / "qml" / "UFrameScene.qml"
-        )
-        _logger.info(
-            "SuspensionSceneHost: Loading QML from: %s (exists=%s)",
-            qml_path,
-            qml_path.exists(),
-        )
-
-        self.setSource(QUrl.fromLocalFile(str(qml_path)))
+        self._qml_path = self._resolve_qml_path()
+        self.setSource(QUrl.fromLocalFile(str(self._qml_path)))
 
         # Check for QML errors
         if self.status() == QQuickWidget.Status.Error:
             errors = self.errors()
             error_msg = "\n".join(str(e) for e in errors)
-            _logger.error("QML ERRORS in UFrameScene.qml:\n%s", error_msg)
+            _logger.error("QML errors in %s:\n%s", self._qml_path.name, error_msg)
             raise RuntimeError(f"QML errors:\n{error_msg}")
 
-        _logger.info("UFrameScene.qml loaded, status: %s", self.status())
+        _logger.info("%s loaded, status: %s", self._qml_path.name, self.status())
 
         # Wait for QML to be fully ready, then apply parameters
         if self.status() == QQuickWidget.Status.Ready:
@@ -125,6 +106,44 @@ class SuspensionSceneHost(QQuickWidget):
                     QTimer.singleShot(100, delayed_apply)
 
             QTimer.singleShot(50, delayed_apply)
+
+    @staticmethod
+    def _build_geometry_params(overrides: Dict[str, float]) -> GeometryParams:
+        """Create :class:`GeometryParams` applying numeric overrides when possible."""
+
+        params = GeometryParams()
+
+        for key, value in overrides.items():
+            if not hasattr(params, key):
+                continue
+            try:
+                setattr(params, key, float(value))
+            except (TypeError, ValueError):
+                _logger.debug(
+                    "Skipping geometry override %s=%r (unable to coerce to float)",
+                    key,
+                    value,
+                )
+
+        return params
+
+    def _resolve_qml_path(self) -> Path:
+        """Return the QML path, falling back to the 2D scene if legacy assets are absent."""
+
+        base = Path(__file__).parent.parent.parent / "assets" / "qml"
+        legacy = base / "UFrameScene.qml"
+        if legacy.exists():
+            _logger.info("Loading legacy UFrameScene.qml: %s", legacy)
+            return legacy
+
+        fallback = base / "SimulationFallbackRoot.qml"
+        if fallback.exists():
+            _logger.warning(
+                "Legacy UFrameScene.qml missing; using SimulationFallbackRoot.qml instead"
+            )
+            return fallback
+
+        raise FileNotFoundError("Neither UFrameScene.qml nor SimulationFallbackRoot.qml found")
 
     def _apply_all_parameters(self):
         """Apply all parameters to QML root object"""
