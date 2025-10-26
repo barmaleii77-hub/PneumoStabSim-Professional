@@ -341,7 +341,7 @@ class EnvironmentTab(QWidget):
         row += 1
 
         far_slider = LabeledSlider(
-            "Конец (Far)", 500.0, 400.0, 100.0, decimals=0, unit="мм"
+            "Конец (Far)", 400.0, 5000.0, 100.0, decimals=0, unit="мм"
         )
         far_slider.valueChanged.connect(
             lambda v: self._on_control_changed("fog_far", v)
