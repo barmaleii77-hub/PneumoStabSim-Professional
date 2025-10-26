@@ -25,11 +25,15 @@ performs the following actions:
 4. **Provision Qt paths and simulator variables** into
    `.vs/insiders.environment.json` so every launch configuration inherits the
    same runtime environment.
-5. **Synchronise GitHub Copilot metadata** via
+5. **Regenerate launcher helpers** ensuring that manual execution through
+   PowerShell uses the same environment variables and encoding safeguards.
+6. **Run the PneumoStabSim quality gate** by invoking
+   `python -m tools.ci_tasks verify` inside the freshly provisioned virtual
+   environment. This mirrors `make check` (ruff, mypy, qmllint, pytest) so that
+   any environment drift is caught as soon as the solution opens.
+7. **Synchronise GitHub Copilot metadata** via
    `tools/visualstudio/sync_copilot_profile.ps1`, exposing a rich project
    description to Copilot for Visual Studio.
-6. **Regenerate launcher helpers** ensuring that manual execution through
-   PowerShell uses the same environment variables and encoding safeguards.
 
 ## Launch Profiles
 
