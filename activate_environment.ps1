@@ -89,11 +89,17 @@ if (-not (Test-Path $venvPath)) {
 
         Push-Location $projectRoot
         try {
-            & $uv.Source sync
+            $uvExecutable = if ($uv.Path) { $uv.Path } else { $uv.Source }
+            & $uvExecutable 'sync'
+        } catch {
+            Write-Host "[env] uv sync failed: $_" -ForegroundColor Red
+            $uv = $null
         } finally {
             Pop-Location
         }
-    } else {
+    }
+
+    if (-not $uv) {
         Write-Host "[env] uv is not available, falling back to python -m venv" -ForegroundColor Yellow
         $pythonExecutable = if ($preferredPython) { $preferredPython.Path } else { 'python' }
         & $pythonExecutable '-m' 'venv' $venvPath
