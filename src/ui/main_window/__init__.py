@@ -3,7 +3,7 @@
 Модульная структура главного окна с автоматическим fallback.
 
 **Структура:**
-- `main_window.py` - Coordinator (~300 строк)
+- `main_window_refactored.py` - Coordinator (~300 строк)
 - `ui_setup.py` - UI construction (~400 строк)
 - `qml_bridge.py` - Python↔QML (~300 строк)
 - `signals_router.py` - Signal routing (~200 строк)
@@ -20,7 +20,7 @@ window.show()
 
 **Fallback:**
 При ошибке загрузки рефакторенной версии автоматически
-откатывается к оригинальному файлу `../main_window.py`.
+откатывается к оригинальному файлу `../main_window_legacy.py`.
 """
 
 # Попытка импортировать рефакторенную версию
@@ -34,7 +34,7 @@ try:
 except ImportError as e:
     print(f"⚠️ MainWindow: Refactored version failed ({e}), using LEGACY")
     try:
-        from ..main_window import MainWindow
+        from ..main_window_legacy import MainWindow
 
         print("✅ MainWindow: LEGACY version loaded (1053 lines)")
     except ImportError:
@@ -58,6 +58,6 @@ def get_version_info() -> dict:
     return {
         "version": __version__,
         "using_refactored": _USING_REFACTORED,
-        "coordinator_lines": ~300 if _USING_REFACTORED else 1053,
+        "coordinator_lines": 300 if _USING_REFACTORED else 1053,
         "modules": 6 if _USING_REFACTORED else 1,
     }
