@@ -1400,8 +1400,56 @@ Item {
         }
     }
 
- function applySimulationUpdates(params) {
- if (!params) return;
- applyAnimationUpdates(params);
- }
+    function applySimulationUpdates(params) {
+        if (!params)
+            return;
+
+        if (params.animation)
+            applyAnimationUpdates(params.animation);
+
+        var directAnimationPatch = {};
+        var animationKeys = [
+            "isRunning",
+            "simulationTime",
+            "amplitude",
+            "frequency",
+            "phase_global",
+            "phase_fl",
+            "phase_fr",
+            "phase_rl",
+            "phase_rr",
+            "frame",
+            "leverAngles",
+            "pistonPositions",
+            "linePressures",
+            "tankPressure",
+        ];
+
+        for (var i = 0; i < animationKeys.length; ++i) {
+            var key = animationKeys[i];
+            if (params[key] !== undefined)
+                directAnimationPatch[key] = params[key];
+        }
+
+        if (Object.keys(directAnimationPatch).length)
+            applyAnimationUpdates(directAnimationPatch);
+
+        if (params.threeD)
+            apply3DUpdates(params.threeD);
+
+        if (params.environment)
+            applyEnvironmentUpdates(params.environment);
+
+        if (params.effects)
+            applyEffectsUpdates(params.effects);
+
+        if (params.quality)
+            applyQualityUpdates(params.quality);
+
+        if (params.camera)
+            applyCameraUpdates(params.camera);
+
+        if (params.render)
+            applyRenderSettings(params.render);
+    }
 }
