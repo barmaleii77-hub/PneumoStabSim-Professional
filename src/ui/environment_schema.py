@@ -166,8 +166,8 @@ ENVIRONMENT_PARAMETERS: Tuple[EnvironmentParameterDefinition, ...] = (
         "ao_sample_rate",
         "int",
         min_value=2,
-        max_value=4,
-        allowed_values=(2, 3, 4),
+        max_value=8,
+        allowed_values=(2, 3, 4, 6, 8),
     ),
 )
 

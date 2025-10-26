@@ -207,10 +207,18 @@ def test_environment_validation_accepts_validations_payload():
         "ao_radius": 3.0,
         "ao_softness": 10.0,
         "ao_dither": True,
-        "ao_sample_rate": 4,
+        "ao_sample_rate": 8,
     }
     sanitized = validate_environment_settings(payload)
     assert sanitized == payload
+
+
+def test_environment_validation_rejects_sample_rate_above_max():
+    baseline = _baseline_environment()
+    mutated = baseline.copy()
+    mutated["ao_sample_rate"] = 12
+    with pytest.raises(EnvironmentValidationError):
+        validate_environment_settings(mutated)
 
 
 def test_scene_validation_accepts_valid_payload():
