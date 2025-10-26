@@ -56,7 +56,7 @@ CRITICAL_PARAMS = {
         "env_property": "probeExposure",
     },
     # Тонемаппинг (КРИТИЧНО для цвета)
-    "tonemapMode": {
+    "tonemapModeIndex": {
         "description": "🎨 Режим тонемаппинга",
         "expect_in_qml_property": True,
         "expect_in_environment": True,

@@ -62,7 +62,7 @@ def check_main_qml():
         "bloomEnabled": "✨ Bloom эффект",
         "ssaoEnabled": "🌑 SSAO затенение",
         "shadowSoftness": "🌫️ Мягкость теней",
-        "tonemapEnabled": "🎨 Тонемаппинг",
+        "tonemapActive": "🎨 Тонемаппинг",
         "vignetteEnabled": "🖼️ Виньетирование",
         "depthOfFieldEnabled": "🔍 Глубина резкости",
     }

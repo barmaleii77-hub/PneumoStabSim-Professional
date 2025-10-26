@@ -69,8 +69,8 @@ Item {
     property bool ssaoEnabled: true
     property real ssaoRadius: 8.0
     property real ssaoIntensity: 0.6
-    property bool tonemapEnabled: true
-    property int tonemapMode: 3
+    property bool tonemapActive: true
+    property int tonemapModeIndex: 3
     property bool depthOfFieldEnabled: false
     property real dofFocusDistance: 2000
     property real dofFocusRange: 900
@@ -148,6 +148,13 @@ Item {
         console.log("🌍 Simple fallback: Environment update")
         if (params.ibl_enabled !== undefined) iblEnabled = params.ibl_enabled
         if (params.fog_enabled !== undefined) fogEnabled = params.fog_enabled
+        if (params.tonemap_enabled !== undefined) tonemapActive = !!params.tonemap_enabled
+        if (params.tonemap_active !== undefined) tonemapActive = !!params.tonemap_active
+        if (params.tonemap_mode !== undefined) {
+            var requestedMode = Number(params.tonemap_mode)
+            if (Number.isFinite(requestedMode))
+                tonemapModeIndex = Math.max(0, Math.min(3, Math.round(requestedMode)))
+        }
     }
 
     function applyQualityUpdates(params) {

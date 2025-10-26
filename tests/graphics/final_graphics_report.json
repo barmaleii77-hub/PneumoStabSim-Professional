@@ -12,7 +12,7 @@
     "bloomThreshold": true,
     "ssaoRadius": true,
     "shadowSoftness": true,
-    "tonemapEnabled": true,
+    "tonemapActive": true,
     "vignetteEnabled": true,
     "dofFocusDistance": true,
     "applyBatchedUpdates": true
