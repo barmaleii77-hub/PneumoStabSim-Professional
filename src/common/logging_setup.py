@@ -12,24 +12,24 @@ import sys
 import os
 import platform
 from pathlib import Path
-from typing import Optional, Dict, Any
+from typing import Any, Mapping, Optional
 from datetime import datetime
 import traceback
 
 
 # Global queue listener for cleanup
 _queue_listener: Optional[logging.handlers.QueueListener] = None
-_logger_registry: Dict[str, logging.Logger] = {}
+_logger_registry: dict[str, logging.Logger] = {}
 
 
 class ContextualFilter(logging.Filter):
     """Добавляет контекстную информацию к логам"""
 
-    def __init__(self, context: Dict[str, Any] = None):
+    def __init__(self, context: Optional[Mapping[str, Any]] = None) -> None:
         super().__init__()
-        self.context = context or {}
+        self.context: dict[str, Any] = dict(context or {})
 
-    def filter(self, record):
+    def filter(self, record: logging.LogRecord) -> bool:
         # Добавляем контекст к каждому record
         for key, value in self.context.items():
             setattr(record, key, value)
@@ -48,7 +48,7 @@ class ColoredFormatter(logging.Formatter):
         "RESET": "\033[0m",
     }
 
-    def format(self, record):
+    def format(self, record: logging.LogRecord) -> str:
         if hasattr(sys.stdout, "isatty") and sys.stdout.isatty():
             levelname = record.levelname
             if levelname in self.COLORS:
@@ -107,7 +107,7 @@ def init_logging(
     run_log = log_dir / "run.log"
 
     # Create log queue for non-blocking writes
-    log_queue = queue.Queue(-1)  # Unlimited size
+    log_queue: "queue.Queue[logging.LogRecord]" = queue.Queue(-1)  # Unlimited size
 
     # Get root logger (or app-specific root)
     root_logger = logging.getLogger(app_name)
@@ -123,7 +123,9 @@ def init_logging(
 
         converter = datetime.fromtimestamp
 
-        def formatTime(self, record, datefmt=None):
+        def formatTime(
+            self, record: logging.LogRecord, datefmt: Optional[str] = None
+        ) -> str:
             ct = self.converter(record.created)
             if datefmt:
                 s = ct.strftime(datefmt)
@@ -217,7 +219,7 @@ def init_logging(
     return root_logger
 
 
-def _cleanup_logging(app_name: str):
+def _cleanup_logging(app_name: str) -> None:
     """Cleanup logging on application exit
 
     Stops QueueListener and flushes all handlers
@@ -249,7 +251,7 @@ def _cleanup_logging(app_name: str):
 
 
 def get_category_logger(
-    category: str, context: Dict[str, Any] = None
+    category: str, context: Optional[Mapping[str, Any]] = None
 ) -> logging.Logger:
     """Get logger for specific category with optional context
 
@@ -306,7 +308,7 @@ def get_category_logger(
 
 def log_valve_event(
     time: float, line: str, kind: str, state: bool, dp: float, mdot: float
-):
+) -> None:
     """Log valve event with structured fields
 
     Args:
@@ -327,7 +329,7 @@ def log_valve_event(
 
 def log_pressure_update(
     time: float, location: str, pressure: float, temperature: float, mass: float
-):
+) -> None:
     """Log pressure update with structured fields
 
     Args:
@@ -344,7 +346,9 @@ def log_pressure_update(
     )
 
 
-def log_ode_step(time: float, step_num: int, dt: float, error: Optional[float] = None):
+def log_ode_step(
+    time: float, step_num: int, dt: float, error: Optional[float] = None
+) -> None:
     """Log ODE integration step
 
     Args:
@@ -360,7 +364,7 @@ def log_ode_step(time: float, step_num: int, dt: float, error: Optional[float] =
     logger.debug(msg)
 
 
-def log_export(operation: str, path: Path, rows: int):
+def log_export(operation: str, path: Path, rows: int) -> None:
     """Log export operation
 
     Args:
@@ -372,7 +376,7 @@ def log_export(operation: str, path: Path, rows: int):
     logger.info(f"operation={operation} | file={path.name} | rows={rows}")
 
 
-def log_ui_event(event: str, details: str = "", **kwargs):
+def log_ui_event(event: str, details: str = "", **kwargs: Any) -> None:
     """Log UI event with optional context
 
     Args:
@@ -393,7 +397,9 @@ def log_ui_event(event: str, details: str = "", **kwargs):
     logger.info(msg)
 
 
-def log_geometry_change(param_name: str, old_value: float, new_value: float, **kwargs):
+def log_geometry_change(
+    param_name: str, old_value: float, new_value: float, **kwargs: Any
+) -> None:
     """Log geometry parameter change
 
     Args:
@@ -412,7 +418,7 @@ def log_geometry_change(param_name: str, old_value: float, new_value: float, **k
     logger.info(msg)
 
 
-def log_simulation_step(step_num: int, sim_time: float, dt: float):
+def log_simulation_step(step_num: int, sim_time: float, dt: float) -> None:
     """Log simulation step
 
     Args:
@@ -424,7 +430,7 @@ def log_simulation_step(step_num: int, sim_time: float, dt: float):
     logger.debug(f"step={step_num} | t={sim_time:.6f}s | dt={dt:.6e}s")
 
 
-def log_performance_metric(metric_name: str, value: float, unit: str = ""):
+def log_performance_metric(metric_name: str, value: float, unit: str = "") -> None:
     """Log performance metric
 
     Args:
@@ -444,7 +450,7 @@ def log_performance_metric(metric_name: str, value: float, unit: str = ""):
 # ============================================================================
 
 
-def log_exception(exc: Exception, context: str = "", **kwargs):
+def log_exception(exc: Exception, context: str = "", **kwargs: Any) -> None:
     """Log exception with full traceback and context
 
     Args:
@@ -471,7 +477,7 @@ def log_exception(exc: Exception, context: str = "", **kwargs):
 # ============================================================================
 
 
-def rotate_old_logs(log_dir: Path, keep_count: int = 10):
+def rotate_old_logs(log_dir: Path, keep_count: int = 10) -> None:
     """Удаляет старые лог-файлы, оставляя только последние N
 
     Args:
