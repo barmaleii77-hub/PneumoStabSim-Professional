@@ -6,12 +6,16 @@ Supports timeseries and snapshot export with optional gzip compression
 import csv
 import gzip
 from pathlib import Path
-from typing import Dict, List, Any
+from typing import Any, Iterable, Mapping, Sequence
+
 import numpy as np
 
 
 def export_timeseries_csv(
-    time: np.ndarray, series: Dict[str, np.ndarray], path: Path, header: List[str]
+    time: np.ndarray,
+    series: Mapping[str, np.ndarray],
+    path: Path,
+    header: Sequence[str],
 ) -> None:
     """Export timeseries data to CSV
 
@@ -55,7 +59,7 @@ def export_timeseries_csv(
         _export_with_csv_writer(time, series, path, header, use_gzip)
 
 
-def _can_use_numpy_savetxt(series: Dict[str, np.ndarray]) -> bool:
+def _can_use_numpy_savetxt(series: Mapping[str, np.ndarray]) -> bool:
     """Check if all series are numeric (suitable for numpy.savetxt)"""
     for data in series.values():
         if not np.issubdtype(data.dtype, np.number):
@@ -65,11 +69,11 @@ def _can_use_numpy_savetxt(series: Dict[str, np.ndarray]) -> bool:
 
 def _export_with_numpy(
     time: np.ndarray,
-    series: Dict[str, np.ndarray],
+    series: Mapping[str, np.ndarray],
     path: Path,
-    header: List[str],
+    header: Sequence[str],
     use_gzip: bool,
-):
+) -> None:
     """Export using numpy.savetxt (efficient for numeric data)"""
     # Stack columns
     columns = [time] + [series[name] for name in header[1:]]
@@ -92,11 +96,11 @@ def _export_with_numpy(
 
 def _export_with_csv_writer(
     time: np.ndarray,
-    series: Dict[str, np.ndarray],
+    series: Mapping[str, np.ndarray],
     path: Path,
-    header: List[str],
+    header: Sequence[str],
     use_gzip: bool,
-):
+) -> None:
     """Export using csv.writer (fallback for mixed types)"""
     open_func = gzip.open if use_gzip else open
 
@@ -113,7 +117,7 @@ def _export_with_csv_writer(
             writer.writerow(row)
 
 
-def export_snapshot_csv(snapshot_rows: List[Dict[str, Any]], path: Path) -> None:
+def export_snapshot_csv(snapshot_rows: Sequence[Mapping[str, Any]], path: Path) -> None:
     """Export snapshot data to CSV
 
     Exports list of snapshot dictionaries to CSV. Fields are sorted
@@ -156,8 +160,8 @@ def export_snapshot_csv(snapshot_rows: List[Dict[str, Any]], path: Path) -> None
 
 
 def export_state_snapshot_csv(
-    snapshots: List[Any],
-    path: Path,  # Forward reference
+    snapshots: Iterable[Any],
+    path: Path,
 ) -> None:
     """Export StateSnapshot objects to CSV
 
@@ -171,7 +175,7 @@ def export_state_snapshot_csv(
         raise ValueError("No snapshots to export")
 
     # Convert snapshots to dictionaries
-    rows = []
+    rows: list[dict[str, Any]] = []
     for snap in snapshots:
         row = {
             "time": snap.simulation_time,
