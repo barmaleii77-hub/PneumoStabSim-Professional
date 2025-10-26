@@ -41,7 +41,23 @@ function Invoke-Step {
     & $Action
 }
 
-Write-Section 'Bootstrapping Visual Studio Insiders environment'
+$pythonHelper = Join-Path $ProjectRoot 'tools' 'powershell' 'python_environment.ps1'
+if (-not (Test-Path $pythonHelper)) {
+    throw "Python helper '$pythonHelper' is required to select the preferred interpreter."
+}
+
+. $pythonHelper
+
+$preferredPython = $null
+if (Get-Command Get-PreferredPython -ErrorAction SilentlyContinue) {
+    $preferredPython = Get-PreferredPython
+}
+
+if (-not $preferredPython) {
+    throw 'Unable to locate a supported Python 3.12+ interpreter. Install Python 3.13 or adjust PATH.'
+}
+
+Write-Section "Bootstrapping Visual Studio Insiders environment with Python $($preferredPython.Version)"
 
 if (-not (Test-Path $ProjectRoot)) {
     throw "Project root '$ProjectRoot' was not found."
@@ -57,15 +73,30 @@ if (Test-Path $ensureComponentsScript) {
     }
 }
 
+Set-Item -Path env:UV_PYTHON -Value $preferredPython.Path
+
 Invoke-Step 'Ensuring Python interpreter is available' {
-    if (-not (Test-Path $pythonExe) -or $Force) {
-        $pythonCommand = Get-Command python -ErrorAction SilentlyContinue
-        if (-not $pythonCommand) {
-            throw 'Python interpreter was not found on PATH. Install Python 3.13 or update PATH before continuing.'
+    if (Test-Path $pythonExe -and -not $Force) {
+        $venvVersion = Get-PythonVersionFromExecutable -Executable $pythonExe
+        if ($venvVersion -and $venvVersion -ge $preferredPython.Version) {
+            Write-Section "Existing virtual environment already uses Python $venvVersion"
+            return
         }
 
+        if ($venvVersion) {
+            Write-Section "Recreating virtual environment with Python $($preferredPython.Version) (previous: $venvVersion)"
+        } else {
+            Write-Section "Recreating virtual environment with Python $($preferredPython.Version)"
+        }
+
+        if (Test-Path $venvPath) {
+            Remove-Item -Recurse -Force $venvPath
+        }
+    }
+
+    if (-not (Test-Path $pythonExe) -or $Force) {
         Write-Section "Creating virtual environment at '$venvPath'"
-        & $pythonCommand.Source '-m' 'venv' $venvPath
+        & $preferredPython.Path '-m' 'venv' $venvPath
     }
 }
 
@@ -91,6 +122,16 @@ if ($requirementsFiles.Count -gt 0) {
     Invoke-Step "Installing dependencies from: $($requirementsFiles -join ', ')" {
         foreach ($req in $requirementsFiles) {
             Invoke-PipInstall @('install', '-r', $req)
+        }
+    }
+}
+
+$pathSetupScript = Join-Path $ProjectRoot 'setup_all_paths.ps1'
+if (Test-Path $pathSetupScript) {
+    Invoke-Step 'Configuring project paths for Visual Studio' {
+        & $pathSetupScript | Out-Null
+        if ($LASTEXITCODE -ne 0) {
+            throw "setup_all_paths.ps1 failed with exit code $LASTEXITCODE"
         }
     }
 }
