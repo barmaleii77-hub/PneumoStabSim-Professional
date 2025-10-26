@@ -9,7 +9,7 @@ import subprocess
 import sys
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Iterable, Optional, Sequence
+from typing import Any, Iterable, Optional, Sequence
 
 RECOMMENDED_MAJOR = 3
 RECOMMENDED_MINOR = 13
@@ -27,6 +27,12 @@ REQUIRED_IMPORTS = (
     "scipy",
     "structlog",
 )
+
+SUPPORTED_SYSTEMS: dict[str, dict[str, tuple[int, ...]]] = {
+    "Windows": {"min_release": (10,)},
+    "Linux": {"min_release": ()},
+    "Darwin": {"min_release": (20,)},
+}
 
 
 @dataclass(frozen=True)
@@ -120,6 +126,50 @@ def select_interpreter() -> Interpreter:
     return interpreters[0]
 
 
+def ensure_supported_platform() -> dict[str, object]:
+    system = platform.system()
+    release = platform.release()
+    version = platform.version()
+
+    if system not in SUPPORTED_SYSTEMS:
+        raise EnvironmentError(
+            "Обнаружена неподдерживаемая операционная система: {system}. "
+            "Поддерживаются Windows, Linux и macOS.".format(system=system)
+        )
+
+    requirements = SUPPORTED_SYSTEMS[system]
+    min_release = requirements.get("min_release", ())
+    release_tuple = _parse_release(release)
+
+    if min_release and release_tuple and release_tuple < min_release:
+        raise EnvironmentError(
+            "Требуется версия {system} {required}+ (обнаружено {release}).".format(
+                system=system,
+                required=".".join(str(part) for part in min_release),
+                release=release,
+            )
+        )
+
+    return {
+        "system": system,
+        "release": release,
+        "version": version,
+        "minimum_release": ".".join(str(part) for part in min_release)
+        if min_release
+        else "",
+    }
+
+
+def _parse_release(raw: str) -> tuple[int, ...]:
+    parts: list[int] = []
+    for token in raw.replace("-", ".").split("."):
+        if token.isdigit():
+            parts.append(int(token))
+        else:
+            break
+    return tuple(parts)
+
+
 def ensure_virtual_environment(interpreter: Interpreter, project_root: Path) -> Path:
     venv_dir = project_root / ".venv"
     scripts_dir = "Scripts" if os.name == "nt" else "bin"
@@ -145,34 +195,49 @@ def compute_requirements_digest(files: Iterable[Path]) -> str:
     return hasher.hexdigest()
 
 
-def ensure_required_imports(python_path: Path) -> None:
+def detect_missing_imports(python_path: Path) -> list[str]:
     script_lines = [
-        "import importlib",
-        "missing = []",
-        f"for name in {list(REQUIRED_IMPORTS)!r}:",
-        "    try:",
-        "        importlib.import_module(name)",
-        "    except Exception:",
-        "        missing.append(name)",
-        "if missing:",
-        "    raise SystemExit('missing:' + ','.join(missing))",
+        "import importlib.util",
+        "import json",
+        f"modules = {list(REQUIRED_IMPORTS)!r}",
+        "missing = [name for name in modules if importlib.util.find_spec(name) is None]",
+        "print(json.dumps(missing))",
+        "raise SystemExit(0 if not missing else 1)",
     ]
     result = subprocess.run(
         [str(python_path), "-c", "\n".join(script_lines)],
         capture_output=True,
         text=True,
+        check=False,
     )
-    if result.returncode != 0:
-        _, _, packages = result.stdout.partition(":")
-        for package in packages.split(","):
-            name = package.strip()
-            if name:
-                subprocess.run(
-                    [str(python_path), "-m", "pip", "install", name], check=True
-                )
+    output = result.stdout.strip() or "[]"
+    try:
+        payload = json.loads(output)
+    except json.JSONDecodeError:
+        payload = []
+    return [str(name) for name in payload]
 
 
-def ensure_dependencies(python_path: Path, project_root: Path) -> None:
+def ensure_required_imports(python_path: Path) -> list[str]:
+    missing = detect_missing_imports(python_path)
+    if not missing:
+        return []
+
+    for package in missing:
+        subprocess.run([str(python_path), "-m", "pip", "install", package], check=True)
+
+    remaining = detect_missing_imports(python_path)
+    if remaining:
+        raise EnvironmentError(
+            "Не удалось установить обязательные пакеты: {packages}".format(
+                packages=", ".join(remaining)
+            )
+        )
+
+    return missing
+
+
+def ensure_dependencies(python_path: Path, project_root: Path) -> dict[str, Any]:
     requirement_paths = [project_root / name for name in REQUIREMENTS_FILES]
     digest = compute_requirements_digest(requirement_paths)
     marker = project_root / ".venv" / ".requirements.hash"
@@ -183,6 +248,7 @@ def ensure_dependencies(python_path: Path, project_root: Path) -> None:
         if previous == digest:
             needs_install = False
 
+    applied_requirements: list[str] = []
     if needs_install:
         subprocess.run(
             [str(python_path), "-m", "pip", "install", "--upgrade", "pip"], check=True
@@ -193,9 +259,18 @@ def ensure_dependencies(python_path: Path, project_root: Path) -> None:
                     [str(python_path), "-m", "pip", "install", "-r", str(req)],
                     check=True,
                 )
+                applied_requirements.append(str(req))
         marker.write_text(digest, encoding="utf-8")
 
-    ensure_required_imports(python_path)
+    installed_missing_imports = ensure_required_imports(python_path)
+    remaining_missing_imports = detect_missing_imports(python_path)
+
+    return {
+        "requirements_updated": needs_install,
+        "applied_requirement_files": applied_requirements,
+        "installed_missing_imports": installed_missing_imports,
+        "remaining_missing_imports": remaining_missing_imports,
+    }
 
 
 def describe_virtual_envs(project_root: Path) -> list[str]:
@@ -213,37 +288,47 @@ def describe_virtual_envs(project_root: Path) -> list[str]:
 
 
 def collect_status(
-    python_path: Path, interpreter: Interpreter, project_root: Path
+    python_path: Path,
+    interpreter: Interpreter,
+    project_root: Path,
+    platform_info: dict[str, object],
+    dependency_report: dict[str, Any],
 ) -> dict[str, object]:
     venv_active = os.environ.get("VIRTUAL_ENV")
-    dependencies_ok = (
-        subprocess.run(
-            [
-                str(python_path),
-                "-c",
-                "import importlib.util, sys; "
-                "sys.exit(0 if all(importlib.util.find_spec(name) for name in %r) else 1)"
-                % (list(REQUIRED_IMPORTS),),
-            ]
-        ).returncode
-        == 0
-    )
+    expected_venv = python_path.parent.parent
+    active_matches_expected = False
+    if venv_active:
+        try:
+            active_matches_expected = (
+                Path(venv_active).resolve() == expected_venv.resolve()
+            )
+        except OSError:
+            active_matches_expected = False
 
     return {
-        "platform": platform.platform(),
+        "platform": platform_info,
         "python": {
             "executable": str(interpreter.executable),
             "version": ".".join(str(part) for part in interpreter.version),
             "meets_recommendation": interpreter.version[0] == RECOMMENDED_MAJOR
             and interpreter.version[1] >= RECOMMENDED_MINOR,
+            "meets_minimum": interpreter.version[0] == RECOMMENDED_MAJOR
+            and interpreter.version[1] >= MINIMUM_MINOR,
         },
         "virtual_environment": {
-            "path": str(python_path.parent.parent),
+            "path": str(expected_venv),
             "active": bool(venv_active),
             "active_path": venv_active or "",
             "available": describe_virtual_envs(project_root),
+            "active_matches_expected": active_matches_expected,
         },
-        "dependencies_ok": dependencies_ok,
+        "dependencies": {
+            "ok": not dependency_report["remaining_missing_imports"],
+            "remaining_missing": dependency_report["remaining_missing_imports"],
+            "installed_missing": dependency_report["installed_missing_imports"],
+            "requirements_updated": dependency_report["requirements_updated"],
+            "applied_requirement_files": dependency_report["applied_requirement_files"],
+        },
     }
 
 
@@ -269,25 +354,47 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     args = parse_args(argv)
     project_root: Path = args.project_root.resolve()
 
+    platform_info = ensure_supported_platform()
     interpreter = select_interpreter()
     python_path = ensure_virtual_environment(interpreter, project_root)
-    ensure_dependencies(python_path, project_root)
-    status = collect_status(python_path, interpreter, project_root)
+    dependency_report = ensure_dependencies(python_path, project_root)
+    status = collect_status(
+        python_path, interpreter, project_root, platform_info, dependency_report
+    )
 
     message_lines = [
         "=== PneumoStabSim Environment Summary ===",
-        f"Platform: {status['platform']}",
+        "Platform: {system} {release}".format(
+            system=status["platform"]["system"], release=status["platform"]["release"]
+        ),
+        "Platform version: {version}".format(version=status["platform"]["version"]),
         f"Python executable: {status['python']['executable']}",
         f"Python version: {status['python']['version']}",
         "Recommended version installed: "
         + ("yes" if status["python"]["meets_recommendation"] else "no"),
+        "Minimum supported version satisfied: "
+        + ("yes" if status["python"]["meets_minimum"] else "no"),
         f"Virtual env path: {status['virtual_environment']['path']}",
         "Active virtual env: "
         + ("yes" if status["virtual_environment"]["active"] else "no"),
+        "Active environment matches expected: "
+        + ("yes" if status["virtual_environment"]["active_matches_expected"] else "no"),
         "Available virtual envs: "
         + ", ".join(status["virtual_environment"]["available"]),
-        "Dependencies OK: " + ("yes" if status["dependencies_ok"] else "no"),
+        "Dependencies OK: " + ("yes" if status["dependencies"]["ok"] else "no"),
     ]
+
+    installed_missing = status["dependencies"]["installed_missing"]
+    if installed_missing:
+        message_lines.append(
+            "Installed missing packages: " + ", ".join(sorted(installed_missing))
+        )
+
+    if status["dependencies"]["remaining_missing"]:
+        message_lines.append(
+            "Remaining missing packages: "
+            + ", ".join(status["dependencies"]["remaining_missing"])
+        )
 
     print("\n".join(message_lines))
 

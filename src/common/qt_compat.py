@@ -11,7 +11,7 @@ dispatching used by the settings event bus and the signal trace service.
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Callable, Optional
+from typing import TYPE_CHECKING, Any, Callable, Optional, Protocol, TypeVar
 
 if TYPE_CHECKING:  # pragma: no cover - typing support only
     from PySide6.QtCore import Property, QObject, Signal, Slot
@@ -20,13 +20,21 @@ else:
         from PySide6.QtCore import Property, QObject, Signal, Slot
     except ImportError:  # pragma: no cover - fallback when PySide6 is not present
 
-        class QObject:  # type: ignore[override]
+        class _SupportsConnect(Protocol):
+            def connect(self, callback: Callable[..., Any]) -> None: ...
+
+        class _SupportsEmit(Protocol):
+            def emit(self, *args: Any, **kwargs: Any) -> None: ...
+
+        class QObject:
             """Lightweight stand-in for :class:`PySide6.QtCore.QObject`."""
 
             def __init__(self, *_args: Any, **_kwargs: Any) -> None:
-                pass
+                super().__init__()
 
-        class _FallbackSignal:
+        _CallbackT = TypeVar("_CallbackT", bound=Callable[..., Any])
+
+        class _FallbackSignal(_SupportsConnect, _SupportsEmit):
             """Very small signal implementation for non-Qt environments."""
 
             def __init__(self) -> None:
@@ -45,7 +53,7 @@ else:
         def Slot(
             *_types: Any, **_kwargs: Any
         ) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
-            def decorator(func: Callable[..., Any]) -> Callable[..., Any]:
+            def decorator(func: _CallbackT) -> _CallbackT:
                 return func
 
             return decorator

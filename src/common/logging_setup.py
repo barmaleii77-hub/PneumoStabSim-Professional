@@ -121,18 +121,14 @@ def init_logging(
     class MicrosecondFormatter(logging.Formatter):
         """Форматтер с микросекундами"""
 
-        converter = datetime.fromtimestamp
-
         def formatTime(
             self, record: logging.LogRecord, datefmt: Optional[str] = None
         ) -> str:
-            ct = self.converter(record.created)
+            timestamp = datetime.fromtimestamp(record.created)
             if datefmt:
-                s = ct.strftime(datefmt)
-            else:
-                s = ct.strftime("%Y-%m-%dT%H:%M:%S")
-                s = f"{s}.{int(record.msecs):03d}"
-            return s
+                return timestamp.strftime(datefmt)
+            base = timestamp.strftime("%Y-%m-%dT%H:%M:%S")
+            return f"{base}.{int(record.msecs):03d}"
 
     formatter = MicrosecondFormatter(
         fmt="%(asctime)s | PID:%(process)d TID:%(thread)d | %(levelname)-8s | %(name)s | %(message)s",
@@ -155,7 +151,7 @@ def init_logging(
     run_handler.setLevel(logging.DEBUG)
     run_handler.setFormatter(formatter)
 
-    handlers = [rotating_handler, run_handler]
+    handlers: list[logging.Handler] = [rotating_handler, run_handler]
 
     # ✅ ОПЦИОНАЛЬНЫЙ CONSOLE HANDLER
     if console_output:
