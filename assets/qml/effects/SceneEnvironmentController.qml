@@ -1,6 +1,6 @@
-import QtQuick
-import QtQuick3D
-import QtQuick3D.Helpers // ✅ CRITICAL: Required for ExtendedSceneEnvironment
+import QtQuick 6.10
+import QtQuick3D 6.10
+import QtQuick3D.Helpers 6.10 // ✅ CRITICAL: Required for ExtendedSceneEnvironment
 
 /*
  * SceneEnvironmentController - Полное управление ExtendedSceneEnvironment

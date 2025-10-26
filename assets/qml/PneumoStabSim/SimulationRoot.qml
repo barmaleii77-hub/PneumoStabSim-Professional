@@ -1,8 +1,7 @@
-import QtQuick
-import QtQuick3D
-import QtQuick.Controls
-import QtQuick3D
-import QtQuick3D.Helpers
+import QtQuick 6.10
+import QtQuick.Controls 6.10
+import QtQuick3D 6.10
+import QtQuick3D.Helpers 6.10
 import "../camera"
 import "../components"
 import "../effects"
