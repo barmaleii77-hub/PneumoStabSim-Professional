@@ -491,7 +491,11 @@
         "render_scale": 1.05,
         "render_policy": "always",
         "frame_rate_limit": 144.0,
-        "oit": "weighted"
+        "oit": "weighted",
+        "mesh": {
+          "cylinder_segments": 128,
+          "cylinder_rings": 32
+        }
       },
       "high": {
         "shadows": {
@@ -940,7 +944,11 @@
         "render_scale": 1.05,
         "render_policy": "always",
         "frame_rate_limit": 144.0,
-        "oit": "weighted"
+        "oit": "weighted",
+        "mesh": {
+          "cylinder_segments": 128,
+          "cylinder_rings": 32
+        }
       },
       "camera": {
         "fov": 44.5,
@@ -997,7 +1005,8 @@
           "normal_strength": 0.0,
           "occlusion_amount": 0.0,
           "alpha_mode": "default",
-          "alpha_cutoff": 0.0
+          "alpha_cutoff": 0.0,
+          "id": "frame"
         },
         "lever": {
           "base_color": "#ff2e66",
@@ -1018,7 +1027,8 @@
           "normal_strength": 0.0,
           "occlusion_amount": 0.0,
           "alpha_mode": "default",
-          "alpha_cutoff": 0.0
+          "alpha_cutoff": 0.0,
+          "id": "lever"
         },
         "tail": {
           "base_color": "#ff0004",
@@ -1039,7 +1049,8 @@
           "normal_strength": 0.0,
           "occlusion_amount": 0.0,
           "alpha_mode": "default",
-          "alpha_cutoff": 0.0
+          "alpha_cutoff": 0.0,
+          "id": "tail"
         },
         "cylinder": {
           "base_color": "#5bff3e",
@@ -1060,7 +1071,8 @@
           "normal_strength": 0.0,
           "occlusion_amount": 0.0,
           "alpha_mode": "default",
-          "alpha_cutoff": 0.0
+          "alpha_cutoff": 0.0,
+          "id": "cylinder"
         },
         "piston_body": {
           "base_color": "#2f44ff",
@@ -1081,7 +1093,8 @@
           "normal_strength": 0.0,
           "occlusion_amount": 0.0,
           "alpha_mode": "default",
-          "alpha_cutoff": 0.0
+          "alpha_cutoff": 0.0,
+          "id": "piston_body"
         },
         "piston_rod": {
           "base_color": "#5bff3e",
@@ -1102,7 +1115,8 @@
           "normal_strength": 0.0,
           "occlusion_amount": 0.0,
           "alpha_mode": "default",
-          "alpha_cutoff": 0.0
+          "alpha_cutoff": 0.0,
+          "id": "piston_rod"
         },
         "joint_tail": {
           "base_color": "#ff0004",
@@ -1123,7 +1137,8 @@
           "normal_strength": 0.0,
           "occlusion_amount": 0.0,
           "alpha_mode": "default",
-          "alpha_cutoff": 0.0
+          "alpha_cutoff": 0.0,
+          "id": "joint_tail"
         },
         "joint_arm": {
           "base_color": "#1eff5e",
@@ -1144,7 +1159,8 @@
           "normal_strength": 0.0,
           "occlusion_amount": 0.0,
           "alpha_mode": "default",
-          "alpha_cutoff": 0.0
+          "alpha_cutoff": 0.0,
+          "id": "joint_arm"
         },
         "joint_rod": {
           "base_color": "#00ff55",
@@ -1165,7 +1181,8 @@
           "normal_strength": 1.0,
           "occlusion_amount": 0.5,
           "alpha_mode": "default",
-          "alpha_cutoff": 0.0
+          "alpha_cutoff": 0.0,
+          "id": "joint_rod"
         }
       },
       "effects": {
