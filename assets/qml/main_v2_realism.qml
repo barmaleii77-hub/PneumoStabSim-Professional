@@ -6,6 +6,30 @@ Item {
     id: root
     anchors.fill: parent
 
+    signal batchUpdatesApplied(var summary)
+
+    property var pendingPythonUpdates: ({})
+    onPendingPythonUpdatesChanged: {
+        if (!pendingPythonUpdates || typeof pendingPythonUpdates !== "object") {
+            return
+        }
+        applyBatchedUpdates(pendingPythonUpdates)
+    }
+
+    readonly property var _updateHandlers: ({
+        "geometry": applyGeometryUpdates,
+        "animation": applyAnimationUpdates,
+        "lighting": applyLightingUpdates,
+        "materials": applyMaterialUpdates,
+        "environment": applyEnvironmentUpdates,
+        "quality": applyQualityUpdates,
+        "camera": applyCameraUpdates,
+        "effects": applyEffectsUpdates,
+        "simulation": applySimulationUpdates,
+        "threeD": applyThreeDUpdates,
+        "render": applyRenderSettings
+    })
+
     // --- Camera/control properties with fixed orbit around bottom beam center ---
     property real cameraDistance: 3200
     property real minDistance: 150
@@ -123,6 +147,139 @@ property real tankPressure: 0.0
     Behavior on cameraDistance { NumberAnimation { duration: 90; easing.type: Easing.OutCubic } }
     Behavior on panX           { NumberAnimation { duration: 120; easing.type: Easing.OutCubic } }
     Behavior on panY           { NumberAnimation { duration: 120; easing.type: Easing.OutCubic } }
+
+    function _normalizePayload(payload) {
+        if (!payload || typeof payload !== "object")
+            return {}
+        return payload
+    }
+
+    function _logUnsupported(category, payload) {
+        console.warn("Realism scene received unsupported update", category, payload)
+    }
+
+    function applyBatchedUpdates(updates) {
+        var normalized = _normalizePayload(updates)
+        var categories = []
+        for (var key in normalized) {
+            if (!normalized.hasOwnProperty(key))
+                continue
+            var handler = _updateHandlers[key]
+            var payload = normalized[key]
+            if (typeof handler === "function") {
+                try {
+                    handler(payload)
+                } catch (err) {
+                    console.warn("Realism scene failed to process", key, err)
+                }
+            } else {
+                _logUnsupported(key, payload)
+            }
+            categories.push(key)
+        }
+        batchUpdatesApplied({
+            timestamp: Date.now(),
+            categories: categories
+        })
+    }
+
+    function applyGeometryUpdates(params) {
+        updateGeometry(_normalizePayload(params))
+    }
+
+    function applyLightingUpdates(params) {
+        updateLighting(_normalizePayload(params))
+    }
+
+    function applyMaterialUpdates(params) {
+        _logUnsupported("materials", params)
+    }
+
+    function applyEnvironmentUpdates(params) {
+        updateEnvironment(_normalizePayload(params))
+    }
+
+    function applyQualityUpdates(params) {
+        updateQuality(_normalizePayload(params))
+    }
+
+    function applyCameraUpdates(params) {
+        var payload = _normalizePayload(params)
+        if (payload.distance !== undefined)
+            cameraDistance = Number(payload.distance)
+        if (payload.minDistance !== undefined)
+            minDistance = Number(payload.minDistance)
+        if (payload.maxDistance !== undefined)
+            maxDistance = Number(payload.maxDistance)
+        if (payload.yaw !== undefined)
+            yawDeg = Number(payload.yaw)
+        if (payload.pitch !== undefined)
+            pitchDeg = Number(payload.pitch)
+        if (payload.panX !== undefined)
+            panX = Number(payload.panX)
+        if (payload.panY !== undefined)
+            panY = Number(payload.panY)
+        if (payload.autoRotate !== undefined)
+            autoRotate = !!payload.autoRotate
+        if (payload.autoRotateSpeed !== undefined)
+            autoRotateSpeed = Number(payload.autoRotateSpeed)
+        if (payload.fov !== undefined)
+            cameraFov = Number(payload.fov)
+        if (payload.near !== undefined)
+            cameraNear = Number(payload.near)
+        if (payload.far !== undefined)
+            cameraFar = Number(payload.far)
+    }
+
+    function applyEffectsUpdates(params) {
+        var payload = _normalizePayload(params)
+        if (payload.bloomEnabled !== undefined)
+            bloomEnabled = !!payload.bloomEnabled
+        if (payload.bloomIntensity !== undefined)
+            bloomIntensity = Number(payload.bloomIntensity)
+        if (payload.bloomThreshold !== undefined)
+            bloomThreshold = Number(payload.bloomThreshold)
+        if (payload.ssaoEnabled !== undefined)
+            ssaoEnabled = !!payload.ssaoEnabled
+        if (payload.ssaoRadius !== undefined)
+            ssaoRadius = Number(payload.ssaoRadius)
+        if (payload.ssaoIntensity !== undefined)
+            ssaoIntensity = Number(payload.ssaoIntensity)
+        if (payload.tonemapActive !== undefined)
+            tonemapActive = !!payload.tonemapActive
+        if (payload.tonemapMode !== undefined)
+            tonemapModeIndex = Number(payload.tonemapMode)
+        if (payload.depthOfFieldEnabled !== undefined)
+            depthOfFieldEnabled = !!payload.depthOfFieldEnabled
+        if (payload.dofFocusDistance !== undefined)
+            dofFocusDistance = Number(payload.dofFocusDistance)
+        if (payload.dofFocusRange !== undefined)
+            dofFocusRange = Number(payload.dofFocusRange)
+    }
+
+    function applySimulationUpdates(params) {
+        _logUnsupported("simulation", params)
+    }
+
+    function applyThreeDUpdates(params) {
+        _logUnsupported("threeD", params)
+    }
+
+    function applyRenderSettings(params) {
+        var payload = _normalizePayload(params)
+        if (payload.environment)
+            applyEnvironmentUpdates(payload.environment)
+        if (payload.effects)
+            applyEffectsUpdates(payload.effects)
+        if (payload.quality)
+            applyQualityUpdates(payload.quality)
+        if (payload.camera)
+            applyCameraUpdates(payload.camera)
+        if (payload.animation)
+            applyAnimationUpdates(payload.animation)
+        if (payload.geometry)
+            applyGeometryUpdates(payload.geometry)
+    }
 
     // === Python integration functions ===
     function updateGeometry(params) {
