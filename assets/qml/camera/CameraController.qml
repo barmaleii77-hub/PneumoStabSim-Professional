@@ -150,6 +150,7 @@ Item {
         id: cameraRig
         parent: controller.worldRoot
         cameraState: cameraState
+        sceneScaleFactor: controller.sceneScaleFactor
     }
 
     // 3. Mouse & Keyboard Controls

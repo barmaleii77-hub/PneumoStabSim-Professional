@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import json
 import os
-from datetime import datetime
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any, Iterable, MutableMapping
 
@@ -325,7 +325,9 @@ class SettingsService:
             return
 
         payload = {
-            "timestamp": datetime.utcnow().isoformat(timespec="milliseconds"),
+            "timestamp": datetime.now(UTC)
+            .replace(tzinfo=None)
+            .isoformat(timespec="milliseconds"),
             "source": "settings_service",
             **metadata,
         }

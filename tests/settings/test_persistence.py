@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import json
 from copy import deepcopy
-from datetime import datetime
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -84,7 +84,7 @@ def test_save_persists_changes_and_emits_event(
     )
 
     payload = service.load()
-    timestamp = datetime.utcnow().isoformat(timespec="seconds")
+    timestamp = datetime.now(UTC).replace(tzinfo=None).isoformat(timespec="seconds")
     payload["metadata"]["last_modified"] = timestamp
 
     service.save(payload, metadata={"reason": "unit-test"})
