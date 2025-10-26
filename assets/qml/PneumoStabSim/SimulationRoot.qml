@@ -1120,7 +1120,26 @@ Item {
  if (params.iblRotationDeg !== undefined) setIfExists(sceneEnvCtl, 'iblRotationDeg', Number(params.iblRotationDeg));
  if (params.iblPrimary || params.hdrSource || params.iblSource) { var src = params.iblPrimary || params.hdrSource || params.iblSource; if (typeof window !== 'undefined' && window && typeof window.normalizeHdrPath === 'function') { try { src = window.normalizeHdrPath(String(src)); } catch(e) { console.warn("HDR path normalization failed:", e); } } setIfExists(iblLoader, 'primarySource', src); }
  if (params.iblFallback) setIfExists(iblLoader, 'fallbackSource', params.iblFallback);
- if (params.tonemapEnabled !== undefined) setIfExists(sceneEnvCtl, 'tonemapActive', !!params.tonemapEnabled);
+ if (params.tonemapEnabled !== undefined) {
+     var tonemapEnabledFlag = !!params.tonemapEnabled;
+     setIfExists(sceneEnvCtl, 'tonemapActive', tonemapEnabledFlag);
+     if (!tonemapEnabledFlag) {
+         setIfExists(sceneEnvCtl, 'tonemapModeName', 'none');
+     } else if (!params.tonemapModeName && !params.tonemap_mode) {
+         var storedMode = sceneEnvCtl.tonemapStoredModeName || sceneEnvCtl.tonemapModeName || 'filmic';
+         setIfExists(sceneEnvCtl, 'tonemapModeName', storedMode);
+     }
+ }
+ if (params.tonemapActive !== undefined) {
+     var tonemapActiveFlag = !!params.tonemapActive;
+     setIfExists(sceneEnvCtl, 'tonemapActive', tonemapActiveFlag);
+     if (!tonemapActiveFlag) {
+         setIfExists(sceneEnvCtl, 'tonemapModeName', 'none');
+     } else if (!params.tonemapModeName && !params.tonemap_mode) {
+         var activeStored = sceneEnvCtl.tonemapStoredModeName || sceneEnvCtl.tonemapModeName || 'filmic';
+         setIfExists(sceneEnvCtl, 'tonemapModeName', activeStored);
+     }
+ }
  if (params.tonemapModeName) setIfExists(sceneEnvCtl, 'tonemapModeName', String(params.tonemapModeName));
  if (params.tonemapExposure !== undefined) setIfExists(sceneEnvCtl, 'tonemapExposure', Number(params.tonemapExposure));
  if (params.tonemapWhitePoint !== undefined) setIfExists(sceneEnvCtl, 'tonemapWhitePoint', Number(params.tonemapWhitePoint));
@@ -1335,10 +1354,24 @@ Item {
         var environmentPatch = {};
         if (params.backgroundColor !== undefined)
             environmentPatch.backgroundColor = params.backgroundColor;
-        if (params.tonemapModeName)
-            environmentPatch.tonemapModeName = String(params.tonemapModeName);
+        var requestedTonemapMode = params.tonemapModeName || params.tonemap_mode;
+        if (requestedTonemapMode !== undefined)
+            environmentPatch.tonemapModeName = String(requestedTonemapMode);
+
+        var tonemapToggle = null;
         if (params.tonemapEnabled !== undefined)
-            environmentPatch.tonemapEnabled = !!params.tonemapEnabled;
+            tonemapToggle = !!params.tonemapEnabled;
+        if (params.tonemapActive !== undefined)
+            tonemapToggle = !!params.tonemapActive;
+        if (tonemapToggle !== null) {
+            environmentPatch.tonemapActive = tonemapToggle;
+            if (!tonemapToggle) {
+                environmentPatch.tonemapModeName = 'none';
+            } else if (environmentPatch.tonemapModeName === undefined) {
+                var restoredMode = sceneEnvCtl.tonemapStoredModeName || sceneEnvCtl.tonemapModeName || 'filmic';
+                environmentPatch.tonemapModeName = restoredMode;
+            }
+        }
         if (params.tonemapExposure !== undefined)
             environmentPatch.tonemapExposure = Number(params.tonemapExposure);
         if (params.tonemapWhitePoint !== undefined)

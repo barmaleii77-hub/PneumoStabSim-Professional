@@ -202,7 +202,9 @@ ExtendedSceneEnvironment {
  }
 
  if (params.tonemapEnabled !== undefined)
- tonemapActive = !!params.tonemapEnabled
+ setTonemapEnabledFlag(params.tonemapEnabled)
+ if (params.tonemapActive !== undefined)
+ setTonemapEnabledFlag(params.tonemapActive)
  if (params.tonemapModeName)
  tonemapModeName = String(params.tonemapModeName)
  if (params.tonemap_mode)
@@ -215,7 +217,7 @@ ExtendedSceneEnvironment {
  if (params.tonemap) {
  var tonemap = params.tonemap
  if (tonemap.enabled !== undefined)
- tonemapActive = !!tonemap.enabled
+ setTonemapEnabledFlag(tonemap.enabled)
  if (tonemap.mode)
  tonemapModeName = String(tonemap.mode)
  if (tonemap.exposure !== undefined)
@@ -403,7 +405,6 @@ return
  // ===============================================================
 
     property bool tonemapActive: true
-    property alias tonemapEnabled: tonemapActive
     property string tonemapModeName: "filmic"
     property string tonemapStoredModeName: "filmic"
     property real tonemapExposure:1.0
@@ -421,6 +422,24 @@ return
         if (value === undefined || value === null)
             return ""
         return String(value).trim().toLowerCase()
+    }
+
+    function setTonemapEnabledFlag(value) {
+        var enabled = !!value
+        if (enabled) {
+            if (!tonemapActive)
+                tonemapActive = true
+            if (normalizeTonemapModeName(tonemapModeName) === "none") {
+                var restored = tonemapStoredModeName || "filmic"
+                if (normalizeTonemapModeName(restored) !== "none")
+                    tonemapModeName = restored
+            }
+        } else {
+            if (normalizeTonemapModeName(tonemapModeName) !== "none")
+                tonemapStoredModeName = tonemapModeName
+            tonemapActive = false
+            tonemapModeName = "none"
+        }
     }
 
     function effectiveTonemapModeKey() {
