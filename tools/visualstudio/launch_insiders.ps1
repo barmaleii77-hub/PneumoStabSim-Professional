@@ -48,7 +48,7 @@ function Ensure-Environment {
     $envFile = Join-Path $ProjectRoot '.vs' 'insiders.environment.json'
     if ($Force -or -not (Test-Path $envFile)) {
         Write-Host '[Insiders] Refreshing environment descriptor...' -ForegroundColor Cyan
-        & $initializer -ProjectRoot $ProjectRoot -Force:$Force.IsPresent | Out-Null
+        & $initializer -ProjectRoot $ProjectRoot -Force:$Force.IsPresent -SkipVisualStudio | Out-Null
         if (-not (Test-Path $envFile)) {
             throw "Initialization did not produce environment file '$envFile'."
         }
@@ -57,13 +57,30 @@ function Ensure-Environment {
     return $envFile
 }
 
-$envFile = Ensure-Environment -ProjectRoot $ProjectRoot -Force:$ForceBootstrap
-$envData = Get-Content $envFile -Encoding UTF8 | ConvertFrom-Json
+    $envFile = Ensure-Environment -ProjectRoot $ProjectRoot -Force:$ForceBootstrap
+    $envData = Get-Content $envFile -Encoding UTF8 | ConvertFrom-Json
 
-foreach ($property in $envData.PSObject.Properties) {
-    [Environment]::SetEnvironmentVariable($property.Name, $property.Value)
-    Set-Item -Path env:$($property.Name) -Value $property.Value -Force
-}
+    foreach ($property in $envData.PSObject.Properties) {
+        [Environment]::SetEnvironmentVariable($property.Name, $property.Value)
+        Set-Item -Path env:$($property.Name) -Value $property.Value -Force
+    }
+
+    if ($envData.PSObject.Properties.Name -contains 'PYTHONHOME') {
+        $scriptsPath = Join-Path $envData.PYTHONHOME 'Scripts'
+        if (Test-Path $scriptsPath) {
+            $currentPath = [Environment]::GetEnvironmentVariable('PATH')
+            if (-not [string]::IsNullOrWhiteSpace($currentPath)) {
+                if (-not $currentPath.Split([System.IO.Path]::PathSeparator) -contains $scriptsPath) {
+                    $updatedPath = $scriptsPath + [System.IO.Path]::PathSeparator + $currentPath
+                    [Environment]::SetEnvironmentVariable('PATH', $updatedPath)
+                    Set-Item -Path env:PATH -Value $updatedPath -Force
+                }
+            } else {
+                [Environment]::SetEnvironmentVariable('PATH', $scriptsPath)
+                Set-Item -Path env:PATH -Value $scriptsPath -Force
+            }
+        }
+    }
 
 $pythonExe = Join-Path $ProjectRoot '.venv' 'Scripts' 'python.exe'
 if (-not (Test-Path $pythonExe)) {

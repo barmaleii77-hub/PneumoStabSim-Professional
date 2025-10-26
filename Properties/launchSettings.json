@@ -41,6 +41,21 @@
         "QT_QML_IMPORT_PATH": "$(MSBuildProjectDirectory)\\.venv\\Lib\\site-packages\\PySide6\\qml",
         "QT_QUICK_CONTROLS_STYLE": "Basic"
       }
+    },
+    "Visual Studio Insiders (bootstrap)": {
+      "commandName": "Executable",
+      "executablePath": "powershell",
+      "commandLineArgs": "-NoProfile -ExecutionPolicy Bypass -File tools/visualstudio/launch_insiders.ps1",
+      "workingDirectory": ".",
+      "environmentVariables": {
+        "PYTHONUTF8": "1",
+        "PYTHONIOENCODING": "utf-8",
+        "LC_ALL": "ru-RU",
+        "LANG": "ru-RU",
+        "DOTNET_SYSTEM_GLOBALIZATION_INVARIANT": "0",
+        "PIP_DISABLE_PIP_VERSION_CHECK": "1",
+        "COPILOT_PROJECT_MANIFEST": "$(MSBuildProjectDirectory)\\tools\\visualstudio\\copilot_insiders_manifest.json"
+      }
     }
   }
 }
