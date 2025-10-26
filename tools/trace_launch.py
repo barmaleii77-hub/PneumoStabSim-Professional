@@ -54,7 +54,11 @@ def _prune_old_traces(limit: int) -> None:
     if limit <= 0:
         return
 
-    traces = sorted(TRACE_ROOT.glob("launch_trace_*.log"))
+    traces = sorted(
+        path
+        for path in TRACE_ROOT.glob("launch_trace_*.log")
+        if path.name != "launch_trace_latest.log"
+    )
     excess = len(traces) - limit
     if excess <= 0:
         return
@@ -93,9 +97,27 @@ def _parse_env_file(path: Path) -> dict[str, str]:
     return env
 
 
+def _default_qpa_platform() -> str | None:
+    """Return a sensible Qt platform plugin default for the current OS."""
+
+    if sys.platform.startswith("win"):
+        # Let Qt decide on Windows so that developer machines respect the
+        # system default and any per-shell customisation.
+        return None
+    if sys.platform == "darwin":
+        # macOS ships the Cocoa plugin by default; no override is required.
+        return None
+    # For Linux containers we prefer the offscreen backend to keep headless
+    # automation stable.
+    return "offscreen"
+
+
 def _ensure_qt_defaults(environment: dict[str, str]) -> None:
     environment.setdefault("QT_API", "PySide6")
-    environment.setdefault("QT_QPA_PLATFORM", "offscreen")
+    if "QT_QPA_PLATFORM" not in environment:
+        default_platform = _default_qpa_platform()
+        if default_platform is not None:
+            environment["QT_QPA_PLATFORM"] = default_platform
     environment.setdefault("QT_QUICK_CONTROLS_STYLE", "Basic")
 
 
