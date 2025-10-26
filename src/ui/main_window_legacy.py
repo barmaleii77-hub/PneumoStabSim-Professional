@@ -1,8 +1,6 @@
-"""
-Main window for PneumoStabSim application
+"""Main window for PneumoStabSim application
 Qt Quick3D rendering with QQuickWidget (no createWindowContainer)
-РУССКИЙ ИНТЕРФЕЙС (Russian UI)
-"""
+РУССКИЙ ИНТЕРФЕЙС (Russian UI)."""
 
 from PySide6.QtWidgets import (
     QMainWindow,

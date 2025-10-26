@@ -228,7 +228,7 @@ class ApplicationRunner:
         try:
             MW = None
             try:
-                from src.ui.main_window.main_window_refactored import (  # type: ignore
+                from src.ui.main_window_pkg.main_window_refactored import (  # type: ignore
                     MainWindow as MW,
                 )
 
