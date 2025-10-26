@@ -166,8 +166,6 @@ MATERIAL_PARAMS = [
     ("baseColor", "ColorButton", None),
     ("metalness", "Slider", (0.0, 1.0, 0.01)),
     ("roughness", "Slider", (0.0, 1.0, 0.01)),
-    ("specularAmount", "Slider", (0.0, 1.0, 0.01)),
-    ("specularTint", "Slider", (0.0, 1.0, 0.01)),
     ("clearcoatAmount", "Slider", (0.0, 1.0, 0.01)),
     ("clearcoatRoughnessAmount", "Slider", (0.0, 1.0, 0.01)),
     ("transmissionFactor", "Slider", (0.0, 1.0, 0.01)),
