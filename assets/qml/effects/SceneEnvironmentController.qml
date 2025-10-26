@@ -166,6 +166,15 @@ ExtendedSceneEnvironment {
  backgroundColor = params.backgroundColor
  if (params.clearColor)
  backgroundColor = params.clearColor
+
+ if (params.background && params.background.color)
+ backgroundColor = params.background.color
+
+ if (params.iblEnabled !== undefined) {
+ var iblFlag = !!params.iblEnabled
+ iblBackgroundEnabled = iblFlag
+ iblLightingEnabled = iblFlag
+ }
  if (params.iblBackgroundEnabled !== undefined)
  iblBackgroundEnabled = !!params.iblBackgroundEnabled
  if (params.iblLightingEnabled !== undefined)
@@ -174,34 +183,101 @@ ExtendedSceneEnvironment {
  iblIntensity = Number(params.iblIntensity)
  if (params.iblRotationDeg !== undefined)
  iblRotationDeg = Number(params.iblRotationDeg)
-    if (params.tonemapEnabled !== undefined)
-        tonemapActive = !!params.tonemapEnabled
-    if (params.tonemapModeName)
-        tonemapModeName = String(params.tonemapModeName)
+
+ if (params.ibl) {
+ var ibl = params.ibl
+ if (ibl.enabled !== undefined) {
+ var iblNested = !!ibl.enabled
+ iblBackgroundEnabled = iblNested
+ iblLightingEnabled = iblNested
+ }
+ if (ibl.background_enabled !== undefined)
+ iblBackgroundEnabled = !!ibl.background_enabled
+ if (ibl.lighting_enabled !== undefined)
+ iblLightingEnabled = !!ibl.lighting_enabled
+ if (ibl.intensity !== undefined)
+ iblIntensity = Number(ibl.intensity)
+ if (ibl.rotation !== undefined)
+ iblRotationDeg = Number(ibl.rotation)
+ }
+
+ if (params.tonemapEnabled !== undefined)
+ tonemapActive = !!params.tonemapEnabled
+ if (params.tonemapModeName)
+ tonemapModeName = String(params.tonemapModeName)
+ if (params.tonemap_mode)
+ tonemapModeName = String(params.tonemap_mode)
  if (params.tonemapExposure !== undefined)
  tonemapExposure = Number(params.tonemapExposure)
  if (params.tonemapWhitePoint !== undefined)
  tonemapWhitePoint = Number(params.tonemapWhitePoint)
- if (params.fogEnabled !== undefined)
- fogEnabled = !!params.fogEnabled
- if (params.fogColor)
- fogColor = params.fogColor
- if (params.fogNear !== undefined) {
- var fogNearValue = Number(params.fogNear)
- if (isFinite(fogNearValue))
- fogNear = toSceneLength(fogNearValue)
+
+ if (params.tonemap) {
+ var tonemap = params.tonemap
+ if (tonemap.enabled !== undefined)
+ tonemapActive = !!tonemap.enabled
+ if (tonemap.mode)
+ tonemapModeName = String(tonemap.mode)
+ if (tonemap.exposure !== undefined)
+ tonemapExposure = Number(tonemap.exposure)
+ if (tonemap.white_point !== undefined)
+ tonemapWhitePoint = Number(tonemap.white_point)
  }
+
+if (params.fogEnabled !== undefined)
+fogEnabled = !!params.fogEnabled
+if (params.fogColor)
+fogColor = params.fogColor
+ if (params.fogDensity !== undefined)
+ fogDensity = Number(params.fogDensity)
+if (params.fogNear !== undefined) {
+var fogNearValue = Number(params.fogNear)
+if (isFinite(fogNearValue))
+fogNear = toSceneLength(fogNearValue)
+}
  if (params.fogFar !== undefined) {
  var fogFarValue = Number(params.fogFar)
  if (isFinite(fogFarValue))
  fogFar = toSceneLength(fogFarValue)
  }
+
+ if (params.fog) {
+ var fog = params.fog
+ if (fog.enabled !== undefined)
+ fogEnabled = !!fog.enabled
+ if (fog.color)
+ fogColor = fog.color
+ if (fog.near !== undefined) {
+ var fogNestedNear = Number(fog.near)
+ if (isFinite(fogNestedNear))
+ fogNear = toSceneLength(fogNestedNear)
+ }
+ if (fog.far !== undefined) {
+ var fogNestedFar = Number(fog.far)
+ if (isFinite(fogNestedFar))
+ fogFar = toSceneLength(fogNestedFar)
+ }
+ if (fog.density !== undefined)
+ fogDensity = Number(fog.density)
+ }
+
  if (params.ssaoEnabled !== undefined)
  ssaoEnabled = !!params.ssaoEnabled
  if (params.ssaoRadius !== undefined)
  ssaoRadius = Number(params.ssaoRadius)
  if (params.ssaoIntensity !== undefined)
  ssaoIntensity = Number(params.ssaoIntensity)
+
+ if (params.ssao) {
+ var ssao = params.ssao
+ if (ssao.enabled !== undefined)
+ ssaoEnabled = !!ssao.enabled
+ if (ssao.radius !== undefined)
+ ssaoRadius = Number(ssao.radius)
+ if (ssao.intensity !== undefined)
+ ssaoIntensity = Number(ssao.intensity)
+ }
+
  if (params.depthOfFieldEnabled !== undefined)
  internalDepthOfFieldEnabled = !!params.depthOfFieldEnabled
  if (params.dofFocusDistance !== undefined) {
@@ -211,10 +287,33 @@ ExtendedSceneEnvironment {
  }
  if (params.dofBlurAmount !== undefined)
  dofBlurAmount = Number(params.dofBlurAmount)
+
+ if (params.depthOfField) {
+ var dof = params.depthOfField
+ if (dof.enabled !== undefined)
+ internalDepthOfFieldEnabled = !!dof.enabled
+ if (dof.focus_distance !== undefined) {
+ var dofNestedDistance = Number(dof.focus_distance)
+ if (isFinite(dofNestedDistance))
+ dofFocusDistance = toSceneLength(dofNestedDistance)
+ }
+ if (dof.blur_amount !== undefined)
+ dofBlurAmount = Number(dof.blur_amount)
+ }
+
  if (params.vignetteEnabled !== undefined)
  internalVignetteEnabled = !!params.vignetteEnabled
  if (params.vignetteStrength !== undefined)
  internalVignetteStrength = Number(params.vignetteStrength)
+
+ if (params.vignette) {
+ var vignette = params.vignette
+ if (vignette.enabled !== undefined)
+ internalVignetteEnabled = !!vignette.enabled
+ if (vignette.strength !== undefined)
+ internalVignetteStrength = Number(vignette.strength)
+ }
+
  if (params.oitMode)
  oitMode = String(params.oitMode)
  if (params.ditheringEnabled !== undefined) {
@@ -251,9 +350,9 @@ ExtendedSceneEnvironment {
  }
  }
 
- function applyEffectsPayload(params) {
- if (!params)
- return
+function applyEffectsPayload(params) {
+if (!params)
+return
 
  if (params.bloomEnabled !== undefined)
  bloomEnabled = !!params.bloomEnabled
@@ -469,4 +568,16 @@ ExtendedSceneEnvironment {
  adjustmentBrightness:1.0
  adjustmentContrast:1.05
  adjustmentSaturation:1.05
+
+    function applyEnvironmentUpdates(params) {
+        applyEnvironmentPayload(params)
+    }
+
+    function applyQualityUpdates(params) {
+        applyQualityPayload(params)
+    }
+
+    function applyEffectsUpdates(params) {
+        applyEffectsPayload(params)
+    }
 }
