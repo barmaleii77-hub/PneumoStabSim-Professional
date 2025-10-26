@@ -128,7 +128,7 @@ def resolve_dependency_variant(
         )
         if variant.matches_platform(target_platform):
             return variant
-        if variant.is_default():
+        if variant.is_default:
             default_variant = variant
 
     if default_variant is not None:

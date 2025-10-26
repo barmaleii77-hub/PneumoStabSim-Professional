@@ -27,35 +27,21 @@
     <InterpreterId>MSBuild|env2|$(MSBuildProjectFullPath)</InterpreterId>
     <SuppressPackageInstallationPrompt>True</SuppressPackageInstallationPrompt>
   </PropertyGroup>
-
   <!-- Visual Studio Insiders automation -->
   <PropertyGroup>
     <VisualStudioInsidersBootstrapScript>$(MSBuildProjectDirectory)\tools\visualstudio\initialize_insiders_environment.ps1</VisualStudioInsidersBootstrapScript>
     <VisualStudioInsidersEnvironmentFile>$(MSBuildProjectDirectory)\.vs\insiders.environment.json</VisualStudioInsidersEnvironmentFile>
   </PropertyGroup>
-
   <ItemGroup>
-    <VisualStudioInsidersInputs Include="$(VisualStudioInsidersBootstrapScript)"
-                                 Condition="Exists('$(VisualStudioInsidersBootstrapScript)')" />
-    <VisualStudioInsidersInputs Include="$(MSBuildProjectDirectory)\tools\visualstudio\generate_insiders_environment.py"
-                                 Condition="Exists('$(MSBuildProjectDirectory)\tools\visualstudio\generate_insiders_environment.py')" />
-    <VisualStudioInsidersInputs Include="$(MSBuildProjectDirectory)\tools\setup_qt.py"
-                                 Condition="Exists('$(MSBuildProjectDirectory)\tools\setup_qt.py')" />
-    <VisualStudioInsidersInputs Include="$(MSBuildProjectDirectory)\requirements.txt"
-                                 Condition="Exists('$(MSBuildProjectDirectory)\requirements.txt')" />
-    <VisualStudioInsidersInputs Include="$(MSBuildProjectDirectory)\requirements-dev.txt"
-                                 Condition="Exists('$(MSBuildProjectDirectory)\requirements-dev.txt')" />
-    <VisualStudioInsidersInputs Include="$(MSBuildProjectDirectory)\current_requirements.txt"
-                                 Condition="Exists('$(MSBuildProjectDirectory)\current_requirements.txt')" />
+    <VisualStudioInsidersInputs Include="$(VisualStudioInsidersBootstrapScript)" Condition="Exists('$(VisualStudioInsidersBootstrapScript)')" />
+    <VisualStudioInsidersInputs Include="$(MSBuildProjectDirectory)\tools\visualstudio\generate_insiders_environment.py" Condition="Exists('$(MSBuildProjectDirectory)\tools\visualstudio\generate_insiders_environment.py')" />
+    <VisualStudioInsidersInputs Include="$(MSBuildProjectDirectory)\tools\setup_qt.py" Condition="Exists('$(MSBuildProjectDirectory)\tools\setup_qt.py')" />
+    <VisualStudioInsidersInputs Include="$(MSBuildProjectDirectory)\requirements.txt" Condition="Exists('$(MSBuildProjectDirectory)\requirements.txt')" />
+    <VisualStudioInsidersInputs Include="$(MSBuildProjectDirectory)\requirements-dev.txt" Condition="Exists('$(MSBuildProjectDirectory)\requirements-dev.txt')" />
+    <VisualStudioInsidersInputs Include="$(MSBuildProjectDirectory)\current_requirements.txt" Condition="Exists('$(MSBuildProjectDirectory)\current_requirements.txt')" />
   </ItemGroup>
-
-  <Target Name="PrepareVisualStudioInsidersEnvironment"
-          BeforeTargets="PrepareForBuild;PrepareForRun"
-          Inputs="@(VisualStudioInsidersInputs)"
-          Outputs="$(VisualStudioInsidersEnvironmentFile)"
-          Condition="'$(OS)' == 'Windows_NT' and Exists('$(VisualStudioInsidersBootstrapScript)')">
-    <Message Importance="High"
-             Text="Preparing Visual Studio Insiders environment via $(VisualStudioInsidersBootstrapScript)" />
+  <Target Name="PrepareVisualStudioInsidersEnvironment" BeforeTargets="PrepareForBuild;PrepareForRun" Inputs="@(VisualStudioInsidersInputs)" Outputs="$(VisualStudioInsidersEnvironmentFile)" Condition="'$(OS)' == 'Windows_NT' and Exists('$(VisualStudioInsidersBootstrapScript)')">
+    <Message Importance="High" Text="Preparing Visual Studio Insiders environment via $(VisualStudioInsidersBootstrapScript)" />
     <Exec Command="&quot;powershell.exe&quot; -NoProfile -ExecutionPolicy Bypass -File &quot;$(VisualStudioInsidersBootstrapScript)&quot;" />
   </Target>
   <!-- Конфигурации сборки -->
@@ -212,6 +198,8 @@ QT_QUICK_CONTROLS_STYLE=Basic
     <Folder Include=".vs\" />
     <Folder Include=".venv\" />
     <Folder Include="tests\unit\" />
+    <Folder Include="tools\" />
+    <Folder Include="tools\visualstudio\" />
   </ItemGroup>
   <!-- Интерпретаторы Python -->
   <ItemGroup>
