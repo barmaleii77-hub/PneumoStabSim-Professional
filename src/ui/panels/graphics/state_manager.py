@@ -19,7 +19,14 @@ class GraphicsStateManager:
     in-memory cache for panels to reuse.
     """
 
-    STATE_KEYS = {"lighting", "environment", "quality", "camera", "materials", "effects"}
+    STATE_KEYS = {
+        "lighting",
+        "environment",
+        "quality",
+        "camera",
+        "materials",
+        "effects",
+    }
 
     def __init__(self, settings_manager: Optional[SettingsManager] = None) -> None:
         self.logger = logging.getLogger(self.__class__.__name__)
@@ -69,7 +76,9 @@ class GraphicsStateManager:
             return None
 
         if not isinstance(payload, dict):
-            self.logger.warning("Ignoring non-dict payload for %s: %r", category, payload)
+            self.logger.warning(
+                "Ignoring non-dict payload for %s: %r", category, payload
+            )
             return None
 
         self._state_cache[category] = copy.deepcopy(payload)
@@ -81,7 +90,9 @@ class GraphicsStateManager:
             try:
                 self.save_state(category, payload)
             except ValueError:
-                self.logger.debug("Skipping unknown category %s during save_all", category)
+                self.logger.debug(
+                    "Skipping unknown category %s during save_all", category
+                )
         try:
             self._settings.save()
             self.logger.info(

@@ -260,8 +260,8 @@ ExtendedSceneEnvironment {
  property real tonemapWhitePoint:2.0
 
  tonemapMode: tonemapEnabled ? (
- tonemapModeName === "filmic" ? SceneEnvironment.TonemapModeFilmic :
- tonemapModeName === "aces" ? SceneEnvironment.TonemapModeFilmic :
+    tonemapModeName === "filmic" ? SceneEnvironment.TonemapModeFilmic :
+    tonemapModeName === "aces" ? SceneEnvironment.TonemapModeAces :
  tonemapModeName === "reinhard" ? SceneEnvironment.TonemapModeReinhard :
  tonemapModeName === "gamma" ? SceneEnvironment.TonemapModeLinear :
  tonemapModeName === "linear" ? SceneEnvironment.TonemapModeLinear :
