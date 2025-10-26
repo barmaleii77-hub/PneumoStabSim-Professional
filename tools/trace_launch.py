@@ -216,7 +216,7 @@ def _normalise_argv(argv: Sequence[str]) -> list[str]:
     normalised: list[str] = []
     flag = "--history-limit"
     for token in argv:
-        if token.startswith(flag) and token not in {flag, f"{flag}="}:
+        if token.startswith(flag) and token not in {flag, f"{flag}=", f"{flag}="}:
             suffix = token[len(flag) :]
             # Accept PowerShell style ``--history-limit5`` while leaving
             # ``--history-limit=5`` untouched for the default argparse behaviour.
