@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 import logging
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import UTC, datetime
 from fnmatch import fnmatch
 from pathlib import Path
 from threading import Lock
@@ -14,6 +14,12 @@ from typing import TYPE_CHECKING, Any, Dict, List, Optional
 from .qt_compat import Property, QObject, Signal, Slot
 
 LOGGER = logging.getLogger(__name__)
+
+
+def _iso_utc_now() -> str:
+    """Return an ISO-8601 timestamp in UTC with ``Z`` suffix."""
+
+    return datetime.now(UTC).isoformat().replace("+00:00", "Z")
 
 
 if TYPE_CHECKING:
@@ -124,7 +130,7 @@ class SignalTraceService(QObject):
             listeners = entry["listeners"]
             listeners[subscriber] = {
                 "source": source,
-                "updated_at": datetime.utcnow().isoformat(),
+                "updated_at": _iso_utc_now(),
             }
         self._notify_listeners()
         return True
@@ -144,7 +150,7 @@ class SignalTraceService(QObject):
         """Record a signal emission and optionally persist to the trace log."""
 
         sanitized_payload = self._sanitize(payload)
-        timestamp = datetime.utcnow().isoformat()
+        timestamp = _iso_utc_now()
         with self._lock:
             entry = self._subscriptions.setdefault(
                 signal_name,
