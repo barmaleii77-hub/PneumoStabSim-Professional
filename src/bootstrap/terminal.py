@@ -21,15 +21,20 @@ def configure_terminal_encoding(log_warning: Callable[[str], None]) -> None:
         log_warning: Функция для логирования предупреждений
     """
     if sys.platform == "win32":
+        chcp_command = [os.environ.get("COMSPEC", "cmd"), "/c", "chcp", "65001"]
         try:
-            subprocess.run(
-                ["cmd", "/c", "chcp", "65001"],
+            result = subprocess.run(
+                chcp_command,
                 capture_output=True,
                 check=False,
                 text=True,
             )
-        except Exception:
-            pass
+            if result.returncode != 0:
+                log_warning(
+                    "Failed to switch Windows code page to UTF-8 via chcp 65001"
+                )
+        except Exception as exc:
+            log_warning(f"Unable to adjust Windows code page: {exc}")
 
         # На Windows используем UTF-8 writers
         try:
@@ -50,10 +55,12 @@ def configure_terminal_encoding(log_warning: Callable[[str], None]) -> None:
 
     # На Unix-системах пытаемся установить UTF-8 локаль
     if sys.platform != "win32":
-        try:
-            locale.setlocale(locale.LC_ALL, "en_US.UTF-8")
-        except locale.Error:
+        for candidate_locale in ("en_US.UTF-8", "C.UTF-8"):
             try:
-                locale.setlocale(locale.LC_ALL, "C.UTF-8")
+                locale.setlocale(locale.LC_ALL, candidate_locale)
             except locale.Error:
-                pass  # Остаёмся на системной локали
+                continue
+            else:
+                os.environ.setdefault("LC_ALL", candidate_locale)
+                os.environ.setdefault("LANG", candidate_locale)
+                break
