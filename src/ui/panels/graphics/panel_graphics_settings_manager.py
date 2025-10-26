@@ -84,6 +84,15 @@ class GraphicsSettingsService:
         "tail_rod": "tail_rod",
     }
 
+    #: Mapping of canonical material keys to aliases that must also be persisted in
+    #: ``config/app_settings.json``.  The external tooling that consumes the
+    #: configuration still expects ``tail`` in addition to the modern
+    #: ``tail_rod`` key, so we duplicate the normalised payload before writing it
+    #: to disk.
+    PERSISTENT_MATERIAL_ALIASES: dict[str, tuple[str, ...]] = {
+        "tail_rod": ("tail",),
+    }
+
     DEFAULT_BASELINE_PATH = Path("config/baseline/app_settings.json")
 
     def __init__(
@@ -248,6 +257,24 @@ class GraphicsSettingsService:
         return state
 
     # -------------------------------------------------------------------- API
+    def _apply_persistence_aliases(
+        self, state: Dict[str, Dict[str, Any]]
+    ) -> Dict[str, Dict[str, Any]]:
+        """Return a copy of *state* with persistence aliases hydrated."""
+
+        result = _deep_copy(state)
+        materials = result.get("materials")
+        if not isinstance(materials, dict):
+            return result
+
+        for canonical, aliases in self.PERSISTENT_MATERIAL_ALIASES.items():
+            if canonical not in materials:
+                continue
+            for alias in aliases:
+                materials[alias] = _deep_copy(materials[canonical])
+
+        return result
+
     def load_current(self) -> Dict[str, Dict[str, Any]]:
         """Load and normalise the current graphics configuration."""
 
@@ -289,13 +316,15 @@ class GraphicsSettingsService:
         """Persist the provided state into the ``current`` section."""
 
         normalised = self.ensure_valid_state(state)
-        self._settings_manager.set_category("graphics", normalised, auto_save=True)
+        persistable = self._apply_persistence_aliases(normalised)
+        self._settings_manager.set_category("graphics", persistable, auto_save=True)
 
     def save_current_as_defaults(self, state: Dict[str, Any]) -> None:
         """Persist the provided state as both current values and defaults."""
 
         normalised = self.ensure_valid_state(state)
-        self._settings_manager.set_category("graphics", normalised, auto_save=False)
+        persistable = self._apply_persistence_aliases(normalised)
+        self._settings_manager.set_category("graphics", persistable, auto_save=False)
         self._settings_manager.save_current_as_defaults(
             category="graphics", auto_save=True
         )
