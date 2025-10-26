@@ -174,10 +174,10 @@ ExtendedSceneEnvironment {
  iblIntensity = Number(params.iblIntensity)
  if (params.iblRotationDeg !== undefined)
  iblRotationDeg = Number(params.iblRotationDeg)
- if (params.tonemapEnabled !== undefined)
- tonemapEnabled = !!params.tonemapEnabled
- if (params.tonemapModeName)
- tonemapModeName = String(params.tonemapModeName)
+    if (params.tonemapEnabled !== undefined)
+        tonemapActive = !!params.tonemapEnabled
+    if (params.tonemapModeName)
+        tonemapModeName = String(params.tonemapModeName)
  if (params.tonemapExposure !== undefined)
  tonemapExposure = Number(params.tonemapExposure)
  if (params.tonemapWhitePoint !== undefined)
@@ -303,22 +303,83 @@ ExtendedSceneEnvironment {
  // TONEMAP
  // ===============================================================
 
- property bool tonemapEnabled: true
- property string tonemapModeName: "filmic"
- property real tonemapExposure:1.0
- property real tonemapWhitePoint:2.0
+    property bool tonemapActive: true
+    property alias tonemapEnabled: tonemapActive
+    property string tonemapModeName: "filmic"
+    property string tonemapStoredModeName: "filmic"
+    property real tonemapExposure:1.0
+    property real tonemapWhitePoint:2.0
+    readonly property var tonemapModeLookup: ({
+        "filmic": SceneEnvironment.TonemapModeFilmic,
+        "aces": SceneEnvironment.TonemapModeAces,
+        "reinhard": SceneEnvironment.TonemapModeReinhard,
+        "gamma": SceneEnvironment.TonemapModeLinear,
+        "linear": SceneEnvironment.TonemapModeLinear,
+        "none": SceneEnvironment.TonemapModeNone
+    })
 
- tonemapMode: tonemapEnabled ? (
- tonemapModeName === "filmic" ? SceneEnvironment.TonemapModeFilmic :
- tonemapModeName === "aces" ? SceneEnvironment.TonemapModeAces :
- tonemapModeName === "reinhard" ? SceneEnvironment.TonemapModeReinhard :
- tonemapModeName === "gamma" ? SceneEnvironment.TonemapModeLinear :
- tonemapModeName === "linear" ? SceneEnvironment.TonemapModeLinear :
- SceneEnvironment.TonemapModeNone
- ) : SceneEnvironment.TonemapModeNone
+    function normalizeTonemapModeName(value) {
+        if (value === undefined || value === null)
+            return ""
+        return String(value).trim().toLowerCase()
+    }
 
- exposure: tonemapExposure
- whitePoint: tonemapWhitePoint
+    function effectiveTonemapModeKey() {
+        if (!tonemapActive)
+            return "none"
+        var normalized = normalizeTonemapModeName(tonemapModeName)
+        if (!normalized || normalized === "none") {
+            normalized = tonemapStoredModeName || "filmic"
+        }
+        if (!tonemapModeLookup.hasOwnProperty(normalized))
+            return "filmic"
+        return normalized
+    }
+
+    onTonemapModeNameChanged: {
+        var normalized = normalizeTonemapModeName(tonemapModeName)
+        if (!normalized)
+            normalized = tonemapStoredModeName || "filmic"
+        if (!tonemapModeLookup.hasOwnProperty(normalized)) {
+            console.warn("SceneEnvironmentController: unsupported tonemap mode", tonemapModeName)
+            normalized = tonemapStoredModeName || "filmic"
+        }
+        if (normalized !== tonemapModeName) {
+            tonemapModeName = normalized
+            return
+        }
+        if (normalized === "none") {
+            if (tonemapActive)
+                tonemapActive = false
+        } else {
+            tonemapStoredModeName = normalized
+            if (!tonemapActive)
+                tonemapActive = true
+        }
+    }
+
+    onTonemapActiveChanged: {
+        var normalized = normalizeTonemapModeName(tonemapModeName)
+        if (tonemapActive) {
+            if (normalized === "none")
+                tonemapModeName = tonemapStoredModeName || "filmic"
+        } else {
+            if (normalized && normalized !== "none")
+                tonemapStoredModeName = normalized
+            if (normalized !== "none")
+                tonemapModeName = "none"
+        }
+    }
+
+    tonemapMode: {
+        var key = effectiveTonemapModeKey()
+        if (tonemapModeLookup.hasOwnProperty(key))
+            return tonemapModeLookup[key]
+        return SceneEnvironment.TonemapModeNone
+    }
+
+    exposure: tonemapExposure
+    whitePoint: tonemapWhitePoint
 
  // ===============================================================
  // BLOOM

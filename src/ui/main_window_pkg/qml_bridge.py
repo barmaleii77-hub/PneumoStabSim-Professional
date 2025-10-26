@@ -1,9 +1,8 @@
 """QML Bridge Module - Python↔QML communication.
 
-Упрощённая и корректно отформатированная версия моста для тестирования.
-
-This module provides a trimmed yet fully-functional implementation of the
-Python↔QML bridge used by the refactored main window coordinator.
+Упрощённая версия моста для тестирования. This module provides a trimmed yet
+fully functional implementation of the Python↔QML bridge used by the
+refactored main window coordinator.
 """
 
 from __future__ import annotations
