@@ -466,6 +466,8 @@ class EnvironmentTab(QWidget):
         sample_rate.addItem("2x", 2)
         sample_rate.addItem("3x", 3)
         sample_rate.addItem("4x", 4)
+        sample_rate.addItem("6x", 6)
+        sample_rate.addItem("8x", 8)
         sample_rate.currentIndexChanged.connect(
             lambda _: self._on_control_changed(
                 "ao_sample_rate", sample_rate.currentData()
@@ -635,6 +637,8 @@ class EnvironmentTab(QWidget):
             idx = combo.findData(validated["ao_sample_rate"])
             if idx >= 0:
                 combo.setCurrentIndex(idx)
+            elif combo.count():
+                combo.setCurrentIndex(combo.count() - 1)
         finally:
             for control in self._controls.values():
                 try:
