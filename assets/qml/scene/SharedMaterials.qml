@@ -215,13 +215,11 @@ QtObject {
  // MATERIAL INSTANCES
  // ===============================================================
 
- readonly property PrincipledMaterial frameMaterial: PrincipledMaterial {
- baseColor: root.frameBaseColor
- metalness: root.frameMetalness
- roughness: root.frameRoughness
- specularAmount: root.frameSpecularAmount
- specularTint: root.frameSpecularTint
- clearcoatAmount: root.frameClearcoat
+    readonly property PrincipledMaterial frameMaterial: PrincipledMaterial {
+        baseColor: root.frameBaseColor
+        metalness: root.frameMetalness
+        roughness: root.frameRoughness
+        clearcoatAmount: root.frameClearcoat
  clearcoatRoughnessAmount: root.frameClearcoatRoughness
  transmissionFactor: root.frameTransmission
  opacity: root.frameOpacity
@@ -231,13 +229,11 @@ QtObject {
  emissiveFactor: root.emissiveVector(root.frameEmissiveColor, root.frameEmissiveIntensity)
  }
 
- readonly property PrincipledMaterial leverMaterial: PrincipledMaterial {
- baseColor: root.leverBaseColor
- metalness: root.leverMetalness
- roughness: root.leverRoughness
- specularAmount: root.leverSpecularAmount
- specularTint: root.leverSpecularTint
- clearcoatAmount: root.leverClearcoat
+    readonly property PrincipledMaterial leverMaterial: PrincipledMaterial {
+        baseColor: root.leverBaseColor
+        metalness: root.leverMetalness
+        roughness: root.leverRoughness
+        clearcoatAmount: root.leverClearcoat
  clearcoatRoughnessAmount: root.leverClearcoatRoughness
  transmissionFactor: root.leverTransmission
  opacity: root.leverOpacity
@@ -247,13 +243,11 @@ QtObject {
  emissiveFactor: root.emissiveVector(root.leverEmissiveColor, root.leverEmissiveIntensity)
  }
 
- readonly property PrincipledMaterial tailRodMaterial: PrincipledMaterial {
- baseColor: root.tailRodBaseColor
- metalness: root.tailRodMetalness
- roughness: root.tailRodRoughness
- specularAmount: root.tailRodSpecularAmount
- specularTint: root.tailRodSpecularTint
- clearcoatAmount: root.tailRodClearcoat
+    readonly property PrincipledMaterial tailRodMaterial: PrincipledMaterial {
+        baseColor: root.tailRodBaseColor
+        metalness: root.tailRodMetalness
+        roughness: root.tailRodRoughness
+        clearcoatAmount: root.tailRodClearcoat
  clearcoatRoughnessAmount: root.tailRodClearcoatRoughness
  transmissionFactor: root.tailRodTransmission
  opacity: root.tailRodOpacity
@@ -263,13 +257,11 @@ QtObject {
  emissiveFactor: root.emissiveVector(root.tailRodEmissiveColor, root.tailRodEmissiveIntensity)
  }
 
- readonly property PrincipledMaterial cylinderMaterial: PrincipledMaterial {
- baseColor: root.cylinderBaseColor
- metalness: root.cylinderMetalness
- roughness: root.cylinderRoughness
- specularAmount: root.cylinderSpecularAmount
- specularTint: root.cylinderSpecularTint
- clearcoatAmount: root.cylinderClearcoat
+    readonly property PrincipledMaterial cylinderMaterial: PrincipledMaterial {
+        baseColor: root.cylinderBaseColor
+        metalness: root.cylinderMetalness
+        roughness: root.cylinderRoughness
+        clearcoatAmount: root.cylinderClearcoat
  clearcoatRoughnessAmount: root.cylinderClearcoatRoughness
  transmissionFactor: root.cylinderTransmission
  opacity: root.cylinderOpacity
@@ -280,13 +272,11 @@ QtObject {
  alphaMode: PrincipledMaterial.Blend
  }
 
- readonly property PrincipledMaterial jointTailMaterial: PrincipledMaterial {
- baseColor: root.jointTailBaseColor
- metalness: root.jointTailMetalness
- roughness: root.jointTailRoughness
- specularAmount: root.jointTailSpecularAmount
- specularTint: root.jointTailSpecularTint
- clearcoatAmount: root.jointTailClearcoat
+    readonly property PrincipledMaterial jointTailMaterial: PrincipledMaterial {
+        baseColor: root.jointTailBaseColor
+        metalness: root.jointTailMetalness
+        roughness: root.jointTailRoughness
+        clearcoatAmount: root.jointTailClearcoat
  clearcoatRoughnessAmount: root.jointTailClearcoatRoughness
  transmissionFactor: root.jointTailTransmission
  opacity: root.jointTailOpacity
@@ -300,8 +290,6 @@ readonly property PrincipledMaterial jointArmMaterial: PrincipledMaterial {
     baseColor: root.jointArmBaseColor
     metalness: root.jointArmMetalness
     roughness: root.jointArmRoughness
-    specularAmount: root.jointArmSpecularAmount
-    specularTint: root.jointArmSpecularTint
     clearcoatAmount: root.jointArmClearcoat
     clearcoatRoughnessAmount: root.jointArmClearcoatRoughness
     transmissionFactor: root.jointArmTransmission
@@ -316,8 +304,6 @@ readonly property PrincipledMaterial jointArmMaterial: PrincipledMaterial {
         baseColor: root.pistonBodyBaseColor
         metalness: root.pistonBodyMetalness
         roughness: root.pistonBodyRoughness
-        specularAmount: root.pistonBodySpecularAmount
-        specularTint: root.pistonBodySpecularTint
         clearcoatAmount: root.pistonBodyClearcoat
         clearcoatRoughnessAmount: root.pistonBodyClearcoatRoughness
         transmissionFactor: root.pistonBodyTransmission
@@ -332,8 +318,6 @@ readonly property PrincipledMaterial jointArmMaterial: PrincipledMaterial {
         baseColor: root.pistonRodBaseColor
         metalness: root.pistonRodMetalness
         roughness: root.pistonRodRoughness
-        specularAmount: root.pistonRodSpecularAmount
-        specularTint: root.pistonRodSpecularTint
         clearcoatAmount: root.pistonRodClearcoat
         clearcoatRoughnessAmount: root.pistonRodClearcoatRoughness
         transmissionFactor: root.pistonRodTransmission

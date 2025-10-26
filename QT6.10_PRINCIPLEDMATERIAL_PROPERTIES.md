@@ -58,10 +58,13 @@
 
 | Свойство | Тип | Описание | Диапазон | По умолчанию |
 |----------|-----|----------|----------|--------------|
-| `specularAmount` | real | Множитель specular отражений | `0.0 - 1.0` | `0.5` |
 | `specularMap` | Texture | Карта specular | - | `null` |
 | `specularReflectionMap` | Texture | Карта отражений | - | `null` |
-| `specularTint` | color | Оттенок specular отражений | - | `#ffffff` |
+
+> ℹ️ **Qt 6.10** удалил свойства `specularAmount` и `specularTint` у `PrincipledMaterial`.
+> Попытка назначить их приводит к ошибке компиляции шейдера
+> `qt_specularAmount undeclared`. Управляйте силой бликов через `metalness`
+> и `roughness`.
 
 ### **7. LIGHTING MODEL**
 
@@ -95,7 +98,6 @@ PrincipledMaterial {
     alphaMode: PrincipledMaterial.Blend
     metalness: 0.0
     roughness: 0.1
-    specularAmount: 1.0
 }
 ```
 
@@ -109,7 +111,6 @@ PrincipledMaterial {
     baseColor: "#c53030"
     metalness: 0.85
     roughness: 0.35
-    specularAmount: 0.8
     // Опционально:
     normalMap: Texture { source: "metal_normal.png" }
     occlusionMap: Texture { source: "metal_ao.png" }
@@ -122,7 +123,6 @@ PrincipledMaterial {
     baseColor: "#ececec"
     metalness: 1.0
     roughness: 0.18
-    specularAmount: 1.0
 }
 ```
 
@@ -134,7 +134,6 @@ PrincipledMaterial {
     alphaMode: PrincipledMaterial.Blend
     metalness: 0.0
     roughness: 0.2
-    specularAmount: 0.6
 }
 ```
 
@@ -144,7 +143,6 @@ PrincipledMaterial {
     baseColor: "#2a82ff"  // Синий
     metalness: 0.9
     roughness: 0.35
-    specularAmount: 0.7
 }
 ```
 
@@ -175,26 +173,25 @@ roughness: ✅
 
 | Материал | Доп. свойства | Улучшение |
 |----------|---------------|-----------|
-| **leverMat** | `specularAmount: 0.8` | Более яркие блики на металле |
+| **leverMat** | `clearcoatAmount: 0.3` | Более заметные блики без `specularAmount` |
 | **leverMat** | `normalMap` | Текстура поверхности |
-| **cylinderMat** | `specularAmount: 0.6` | Блики на прозрачном пластике |
 | **cylinderMat** | `roughness: 0.2` | Полуматовая поверхность |
-| **pistonBodyMat** | `specularAmount: 0.9` | Яркие блики на окрашенном металле |
-| **jointTailMat** | `specularAmount: 0.7` | Блики на цветных шарнирах |
+| **pistonBodyMat** | `clearcoatAmount: 0.2` | Усиление отражений |
 | **frameMat** | `occlusionMap` | Затенение в углах рамы |
 
 ---
 
 ## 🚀 ПЛАН РАСШИРЕНИЯ МАТЕРИАЛОВ
 
-### **ШАГ 1: Добавить specularAmount ко всем металлам**
+### **ШАГ 1: Очистить устаревшие specular-свойства**
 ```qml
 PrincipledMaterial {
     id: leverMat
     baseColor: root.leverBaseColor
     metalness: root.leverMetalness
     roughness: root.leverRoughness
-    specularAmount: root.leverSpecular  // НОВОЕ
+    // Qt 6.10: specularAmount/specularTint больше недоступны
+    // Используйте комбинацию roughness + clearcoat для бликов
 }
 ```
 
@@ -206,7 +203,6 @@ PrincipledMaterial {
     opacity: root.cylinderOpacity
     alphaMode: PrincipledMaterial.Blend
     roughness: root.cylinderRoughness  // НОВОЕ
-    specularAmount: root.cylinderSpecular  // НОВОЕ
 }
 ```
 
@@ -276,7 +272,7 @@ PrincipledMaterial {
 - baseColor ✅
 - metalness ✅
 - roughness ✅
-- specularAmount ⏳ ДОБАВИТЬ
+- specularAmount ❌ УДАЛЕНО В Qt 6.10
 - normalMap ⏳ ДОБАВИТЬ
 - normalStrength ⏳ ДОБАВИТЬ
 - occlusionMap ⏳ ДОБАВИТЬ
@@ -285,7 +281,7 @@ PrincipledMaterial {
 - baseColor ✅
 - metalness ✅
 - roughness ✅
-- specularAmount ⏳ ДОБАВИТЬ
+- specularAmount ❌ УДАЛЕНО В Qt 6.10
 - normalMap ⏳ ДОБАВИТЬ
 
 ### **Cylinder Material:**
@@ -293,20 +289,20 @@ PrincipledMaterial {
 - opacity ✅
 - alphaMode ✅
 - roughness ⏳ ДОБАВИТЬ
-- specularAmount ⏳ ДОБАВИТЬ
+- specularAmount ❌ УДАЛЕНО В Qt 6.10
 
 ### **Piston Body Material:**
 - baseColor ✅
 - metalness ✅
 - roughness ✅
-- specularAmount ⏳ ДОБАВИТЬ
+- specularAmount ❌ УДАЛЕНО В Qt 6.10
 - emissiveFactor ⏳ ДОБАВИТЬ (для "горячего" поршня)
 
 ### **Joint Materials (Tail, Arm, Rod):**
 - baseColor ✅
 - metalness ✅
 - roughness ✅
-- specularAmount ⏳ ДОБАВИТЬ
+- specularAmount ❌ УДАЛЕНО В Qt 6.10
 - emissiveFactor ⏳ ДОБАВИТЬ (для подсветки)
 
 ---
