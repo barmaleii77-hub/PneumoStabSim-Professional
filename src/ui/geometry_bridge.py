@@ -314,8 +314,20 @@ class GeometryTo3DConverter(QObject):
         for corner in ["fl", "fr", "rl", "rr"]:
             angle = lever_angles.get(corner, 0.0)
             cyl_state = cylinder_states.get(corner)
-            corners[corner] = self.get_corner_3d_coords(corner, angle, cyl_state)
+            corners[corner] = self.convert_to_3d(corner, angle, cyl_state)
         return corners
+
+    # Backwards compatibility alias -------------------------------------------------
+
+    def get_corner_3d_coords(
+        self,
+        corner: str,
+        lever_angle_rad: float,
+        cylinder_state: Optional[Any] = None,
+    ) -> Dict[str, Any]:
+        """Alias maintained for legacy callers expecting the old API name."""
+
+        return self.convert_to_3d(corner, lever_angle_rad, cylinder_state)
 
     def update_from_simulation(self, sim_state: Dict[str, Any]) -> Dict[str, Any]:
         lever_angles = sim_state.get("lever_angles", {})
