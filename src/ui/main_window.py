@@ -44,7 +44,13 @@ from .environment_schema import (
     validate_environment_settings,
 )
 from src.common.event_logger import get_event_logger  # ✅ EventLogger
-from src.common.settings_manager import get_settings_manager  # ✅ SettingsManager
+from src.common.settings_manager import (
+    get_settings_event_bus,
+    get_settings_manager,
+)
+from src.common.signal_trace import get_signal_trace_service
+from src.ui.scene_bridge import SceneBridge
+from src.ui.qml_bridge import register_qml_signals
 
 
 class MainWindow(QMainWindow):
@@ -95,6 +101,11 @@ class MainWindow(QMainWindow):
         log_ibl_event("INFO", "MainWindow", "IBL Logger initialized")
         # Event logger
         self.event_logger = get_event_logger()
+
+        # Diagnostics services exposed to QML
+        self._settings_event_bus = get_settings_event_bus()
+        self._signal_trace = get_signal_trace_service()
+        self._scene_bridge: Optional[SceneBridge] = None
 
         # State tracking
         self.current_snapshot: Optional[StateSnapshot] = None
@@ -196,6 +207,11 @@ class MainWindow(QMainWindow):
             engine = self._qquick_widget.engine()
             context = engine.rootContext()
             context.setContextProperty("window", self)
+            if self._scene_bridge is None:
+                self._scene_bridge = SceneBridge(self)
+            context.setContextProperty("pythonSceneBridge", self._scene_bridge)
+            context.setContextProperty("settingsEvents", self._settings_event_bus)
+            context.setContextProperty("signalTrace", self._signal_trace)
             log_ibl_event(
                 "INFO",
                 "MainWindow",
@@ -250,6 +266,21 @@ class MainWindow(QMainWindow):
                 _ctx_dict("startCameraState", graphics_state.get("camera"))
                 _ctx_dict("startMaterialsState", graphics_state.get("materials"))
                 _ctx_dict("startEffectsState", graphics_state.get("effects"))
+                if self._scene_bridge is not None:
+                    bridge_payload = {
+                        key: value
+                        for key, value in graphics_state.items()
+                        if isinstance(value, dict)
+                    }
+                    if bridge_payload:
+                        try:
+                            self._scene_bridge.dispatch_updates(bridge_payload)
+                        except Exception as exc:
+                            self.logger.debug(
+                                "SceneBridge initial dispatch failed: %s",
+                                exc,
+                                exc_info=True,
+                            )
             except Exception as ex:
                 self.logger.warning(
                     f"Не удалось подготовить стартовые состояния графики: {ex}"
@@ -281,6 +312,24 @@ class MainWindow(QMainWindow):
             self._qml_root_object = self._qquick_widget.rootObject()
             if not self._qml_root_object:
                 raise RuntimeError("Не удалось получить корневой объект QML")
+
+            if self._scene_bridge is not None:
+                try:
+                    self._qml_root_object.setProperty("sceneBridge", self._scene_bridge)
+                except Exception as exc:
+                    self.logger.warning(
+                        "Не удалось передать SceneBridge в QML: %s", exc
+                    )
+
+            try:
+                connected = register_qml_signals(self, self._qml_root_object)
+                if connected:
+                    for spec in connected:
+                        self.logger.debug(
+                            "Подключен сигнал QML %s → %s", spec.name, spec.handler
+                        )
+            except Exception as exc:
+                self.logger.warning("Не удалось зарегистрировать сигналы QML: %s", exc)
 
         except Exception as e:
             self.logger.exception(f"[CRITICAL] Ошибка загрузки main.qml: {e}")
@@ -548,6 +597,13 @@ class MainWindow(QMainWindow):
             return False
         try:
             self._qml_root_object.setProperty("pendingPythonUpdates", updates)
+            if self._scene_bridge is not None:
+                try:
+                    self._scene_bridge.dispatch_updates(updates)
+                except Exception:
+                    self.logger.debug(
+                        "SceneBridge rejected batched payload", exc_info=True
+                    )
             return True
         except Exception:
             return False
@@ -567,12 +623,35 @@ class MainWindow(QMainWindow):
                     _Qt.ConnectionType.DirectConnection,
                 )
             else:
-                return QMetaObject.invokeMethod(
+                result = QMetaObject.invokeMethod(
                     self._qml_root_object,
                     method_name,
                     _Qt.ConnectionType.DirectConnection,
                     Q_ARG("QVariant", payload),
                 )
+                if (
+                    result
+                    and self._scene_bridge is not None
+                    and isinstance(payload, dict)
+                ):
+                    try:
+                        category = next(
+                            (
+                                cat
+                                for cat, methods in self.QML_UPDATE_METHODS.items()
+                                if method_name in methods
+                            ),
+                            None,
+                        )
+                        if category:
+                            self._scene_bridge.dispatch_updates({category: payload})
+                    except Exception:
+                        self.logger.debug(
+                            "SceneBridge failed to mirror %s",
+                            method_name,
+                            exc_info=True,
+                        )
+                return result
         except Exception:
             return False
 
