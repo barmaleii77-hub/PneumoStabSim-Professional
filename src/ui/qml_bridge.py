@@ -8,7 +8,8 @@ The module provides several layers of functionality:
   defined in the metadata to Python handlers on the main window.
 * :func:`describe_routes` – lightweight introspection structure for
   diagnostics overlays and CLI tools.
-* :class:`QMLBridge` – batching helpers used by :class:`~src.ui.main_window.MainWindow`.
+* :class:`QMLBridge` – batching helpers used by
+  :class:`~src.ui.main_window.MainWindow`.
 
 The implementation avoids importing Qt types at module load time so that unit
 tests can exercise the metadata layer without PySide6 installed. Qt classes
