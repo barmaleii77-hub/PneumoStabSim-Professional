@@ -6,7 +6,7 @@ from __future__ import annotations
 import logging
 from collections import deque
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import UTC, datetime
 from threading import RLock
 from typing import Any, Callable, Deque, Iterable, Iterator, List, Optional, Tuple
 
@@ -138,7 +138,7 @@ class SignalTracer:
                 processed_args = tuple(args)
 
             record = SignalTraceRecord(
-                timestamp=datetime.utcnow(),
+                timestamp=datetime.now(UTC),
                 sender=sender_name,
                 signal=alias_name,
                 args=processed_args,

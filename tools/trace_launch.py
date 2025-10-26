@@ -144,6 +144,25 @@ def _status_icon(success: bool, stream: TextIO | None = None) -> str:
     return icon
 
 
+def _safe_print(text: str, *, stream: TextIO | None = None) -> None:
+    """Print text while gracefully degrading unsupported Unicode characters."""
+
+    target = stream if stream is not None else sys.stdout
+    try:
+        print(text, file=target)
+    except UnicodeEncodeError:
+        substitutions = {
+            "✅": "[OK]",
+            "❌": "[FAIL]",
+            "⚠️": "[WARN]",
+            "🔧": "[INFO]",
+        }
+        sanitized = text
+        for symbol, replacement in substitutions.items():
+            sanitized = sanitized.replace(symbol, replacement)
+        print(sanitized, file=target)
+
+
 def run_launch_trace(passthrough: Sequence[str], history_limit: int) -> int:
     _ensure_trace_dir()
 
@@ -219,7 +238,7 @@ def run_launch_trace(passthrough: Sequence[str], history_limit: int) -> int:
     missing_qt = [var for var in QT_REQUIRED_VARS if not environment.get(var)]
     if missing_qt:
         summary_lines.append(" Missing Qt variables: " + ", ".join(sorted(missing_qt)))
-    print("\n".join(summary_lines), file=sys.stdout)
+    _safe_print("\n".join(summary_lines))
 
     return completed.returncode
 

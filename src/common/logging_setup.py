@@ -13,7 +13,7 @@ import os
 import platform
 from pathlib import Path
 from typing import Any, Mapping, Optional
-from datetime import datetime
+from datetime import UTC, datetime
 import traceback
 
 
@@ -186,7 +186,9 @@ def init_logging(
     root_logger.info(f"Run log: {run_log.absolute()}")
     root_logger.info(f"Max log size: {max_bytes / 1024 / 1024:.1f} MB")
     root_logger.info(f"Backup count: {backup_count}")
-    root_logger.info(f"Timestamp: {datetime.utcnow().isoformat()}Z")
+    root_logger.info(
+        f"Timestamp: {datetime.now(UTC).isoformat().replace('+00:00', 'Z')}"
+    )
 
     # Log package versions
     try:
@@ -227,7 +229,9 @@ def _cleanup_logging(app_name: str) -> None:
         logger = logging.getLogger(app_name)
         logger.info("=" * 70)
         logger.info("=== END RUN ===")
-        logger.info(f"Shutdown at: {datetime.utcnow().isoformat()}Z")
+        logger.info(
+            f"Shutdown at: {datetime.now(UTC).isoformat().replace('+00:00', 'Z')}"
+        )
         logger.info("=" * 70)
 
         # Stop listener (waits for queue to empty)
