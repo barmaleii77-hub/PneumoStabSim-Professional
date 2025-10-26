@@ -110,6 +110,8 @@ class ServiceContainer:
         self._resolution_stack.append(key)
         try:
             instance = factory(self)
+        except ServiceResolutionError:
+            raise
         except Exception as exc:  # pragma: no cover - surface contextual error
             raise ServiceResolutionError(
                 f"Failed to build service '{key.__qualname__}'"

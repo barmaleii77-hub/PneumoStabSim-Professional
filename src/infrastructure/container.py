@@ -62,7 +62,9 @@ class ServiceContainer:
         """Register a lazy factory for the given service token."""
 
         with self._lock:
-            if not replace and token.name in self._factories:
+            if not replace and (
+                token.name in self._factories or token.name in self._instances
+            ):
                 raise ServiceRegistrationError(
                     f"Service '{token.name}' is already registered",
                 )

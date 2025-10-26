@@ -197,22 +197,22 @@ def _render_text(entries: list[DiffEntry]) -> str:
         "Settings audit report",
         "---------------------",
         "Summary:",
-        f"  Added:   {summary['added']}",
-        f"  Removed: {summary['removed']}",
-        f"  Changed: {summary['changed']}",
-        f"  Type:    {summary['type']}",
+        f"  ➕ добавлено: {summary['added']}",
+        f"  ➖ удалено:   {summary['removed']}",
+        f"  ~ изменено:  {summary['changed']}",
+        f"  ❗ тип:       {summary['type']}",
         "",
         "Details:",
     ]
 
     for entry in entries:
         if entry.change == "added":
-            lines.append(f"  + {entry.path} = {_format_value(entry.target)}")
+            lines.append(f"  ➕ {entry.path} = {_format_value(entry.target)}")
         elif entry.change == "removed":
-            lines.append(f"  - {entry.path} (was {_format_value(entry.baseline)})")
+            lines.append(f"  ➖ {entry.path} (было {_format_value(entry.baseline)})")
         elif entry.change == "type":
             lines.append(
-                f"  ! {entry.path} type changed: {entry.baseline} -> {entry.target}"
+                f"  ❗ {entry.path} тип изменён: {entry.baseline} -> {entry.target}"
             )
         else:
             lines.append(

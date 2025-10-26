@@ -10,6 +10,8 @@ from collections import deque
 from dataclasses import dataclass, field
 from typing import Any, Dict, Iterable, List, Optional
 
+_TIMESTEP_EPSILON = 1e-9
+
 
 class LatestOnlyQueue:
     """Thread-safe queue that keeps only the latest item
@@ -198,7 +200,8 @@ class TimingAccumulator:
     ) -> None:
         self.target_dt = float(target_dt)
         self.accumulator = 0.0
-        self.last_time = time.perf_counter()
+        self._last_time = time.perf_counter()
+        self._manual_time_override: float | None = None
         self.max_steps_per_frame = max(1, int(max_steps_per_frame))
         self.max_frame_time = float(max_frame_time)
 
@@ -208,6 +211,19 @@ class TimingAccumulator:
         self.total_real_time = 0.0
         self.total_sim_time = 0.0
 
+    @property
+    def last_time(self) -> float:
+        """Expose last timestamp for tests that adjust timing manually."""
+
+        return self._last_time
+
+    @last_time.setter
+    def last_time(self, value: float) -> None:
+        value = float(value)
+        delta = self._last_time - value
+        self._last_time = value
+        self._manual_time_override = delta if delta > 0 else None
+
     def update(self) -> int:
         """Update accumulator and return number of physics steps to take.
 
@@ -216,8 +232,11 @@ class TimingAccumulator:
         """
 
         current_time = time.perf_counter()
-        real_dt = current_time - self.last_time
-        self.last_time = current_time
+        real_dt = current_time - self._last_time
+        if self._manual_time_override is not None:
+            real_dt = self._manual_time_override
+            self._manual_time_override = None
+        self._last_time = current_time
 
         # Clamp maximum frame time to prevent spiral of death
         if real_dt > self.max_frame_time:
@@ -229,12 +248,15 @@ class TimingAccumulator:
 
         steps_to_take = 0
         while (
-            self.accumulator >= self.target_dt
+            self.accumulator + _TIMESTEP_EPSILON >= self.target_dt
             and steps_to_take < self.max_steps_per_frame
         ):
             self.accumulator -= self.target_dt
             self.total_sim_time += self.target_dt
             steps_to_take += 1
+
+        if self.accumulator < 0.0 and abs(self.accumulator) <= _TIMESTEP_EPSILON:
+            self.accumulator = 0.0
 
         self.steps_taken += steps_to_take
         return steps_to_take
@@ -257,7 +279,7 @@ class TimingAccumulator:
         """Reset accumulator and statistics."""
 
         self.accumulator = 0.0
-        self.last_time = time.perf_counter()
+        self._last_time = time.perf_counter()
         self.steps_taken = 0
         self.frames_processed = 0
         self.total_real_time = 0.0

@@ -141,6 +141,7 @@ class RigidBody3DOF:
 
 
 _SUSPENSION_SETTINGS_CACHE: dict[str, float] | None = None
+_WHEEL_ORDER = ["LP", "PP", "LZ", "PZ"]
 
 
 def _load_suspension_settings() -> dict[str, float]:
@@ -285,13 +286,8 @@ def assemble_forces(
     """
     Y, phi_z, theta_x, dY, dphi_z, dtheta_x = y
 
-    wheel_names = [
-        "LP",
-        "PP",
-        "LZ",
-        "PZ",
-    ]  # Left Front, Right Front, Left Rear, Right Rear
-    vertical_forces = np.zeros(4)
+    wheel_names = _WHEEL_ORDER  # Left Front, Right Front, Left Rear, Right Rear
+    vertical_forces = np.zeros(len(_WHEEL_ORDER))
 
     suspension_config = _load_suspension_settings()
     k_spring = suspension_config["spring_constant"]  # N/m (spring stiffness per wheel)
@@ -300,6 +296,8 @@ def assemble_forces(
     ]  # N*s/m (damping coefficient per wheel)
 
     # Calculate forces at each wheel
+    include_static = system is None and gas is None
+
     for i, wheel_name in enumerate(wheel_names):
         # Get attachment point
         if wheel_name in params.attachment_points:
@@ -352,9 +350,11 @@ def assemble_forces(
             )
 
         # Total vertical force (positive downward)
-        static_reaction = params.static_load_for(wheel_enum or wheel_name)
-        F_total = F_spring + F_damper + F_pneumatic + static_reaction
-        vertical_forces[i] = F_total
+        static_reaction = 0.0
+        if include_static:
+            static_reaction = params.static_load_for(wheel_enum or wheel_name)
+
+        vertical_forces[i] = F_spring + F_damper + F_pneumatic + static_reaction
 
     # Calculate moments about center of mass
     tau_x = 0.0  # Pitch moment
@@ -398,11 +398,23 @@ def f_rhs(
     # Get suspension forces
     vertical_forces, tau_x, tau_z = assemble_forces(system, gas, y, params)
 
+    static_forces = np.array([params.static_load_for(name) for name in _WHEEL_ORDER])
+    includes_static = system is None and gas is None
+
+    if includes_static:
+        total_vertical_forces = vertical_forces
+    else:
+        total_vertical_forces = vertical_forces + static_forces
+        for idx, wheel_name in enumerate(_WHEEL_ORDER):
+            x_i, z_i = params.attachment_points[wheel_name]
+            tau_x += static_forces[idx] * z_i
+            tau_z += static_forces[idx] * x_i
+
     # Gravitational force (positive downward)
     F_gravity = params.M * params.g
 
-    # Sum of vertical forces from suspension (includes static reactions)
-    F_suspension_total = np.sum(vertical_forces)
+    # Sum of vertical forces from suspension (dynamic + static reactions)
+    F_suspension_total = np.sum(total_vertical_forces)
 
     # Remove static reaction moments so that neutral pose stays stable
     tau_x -= params.static_pitch_moment
