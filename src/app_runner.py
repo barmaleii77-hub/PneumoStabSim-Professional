@@ -6,18 +6,24 @@
 включая обработку сигналов, логирование и диагностику.
 """
 
+import argparse
 import asyncio
-import sys
+import logging
 import os
 import signal
-import logging
+import subprocess
+import sys
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Optional
-import argparse
-import subprocess
 
-from pneumostabsim.logging import ErrorHookManager, install_error_hooks
+try:  # Prefer the installed package when available
+    from pneumostabsim.logging import ErrorHookManager, install_error_hooks
+except ModuleNotFoundError:  # pragma: no cover - fallback for source checkouts
+    from src.pneumostabsim.logging import (  # type: ignore[import-not-found]
+        ErrorHookManager,
+        install_error_hooks,
+    )
 
 from src.core.settings_validation import (
     SettingsValidationError,
@@ -436,9 +442,15 @@ class ApplicationRunner:
         print("🚀 PNEUMOSTABSIM v4.9.5")
         print("=" * 60)
 
-        from PySide6.QtCore import qVersion
-
-        qt_version = qVersion()
+        try:
+            from PySide6.QtCore import qVersion
+        except Exception:  # pragma: no cover - headless or PySide6 missing
+            qt_version = "unavailable"
+        else:
+            try:
+                qt_version = qVersion()
+            except Exception:  # pragma: no cover - defensive branch
+                qt_version = "unavailable"
 
         print(
             f"📊 Python {sys.version_info.major}.{sys.version_info.minor} | Qt {qt_version}"

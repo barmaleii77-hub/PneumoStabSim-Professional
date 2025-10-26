@@ -22,7 +22,12 @@ def configure_terminal_encoding(log_warning: Callable[[str], None]) -> None:
     """
     if sys.platform == "win32":
         try:
-            subprocess.run(["chcp", "65001"], capture_output=True, check=False)
+            subprocess.run(
+                ["cmd", "/c", "chcp", "65001"],
+                capture_output=True,
+                check=False,
+                text=True,
+            )
         except Exception:
             pass
 

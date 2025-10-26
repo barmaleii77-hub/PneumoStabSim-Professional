@@ -48,13 +48,35 @@ except Exception:  # pragma: no cover - fallback when PySide6 is not present
         return decorator
 
     class _FallbackProperty:
-        def __init__(self, fget: Callable[[Any], Any]) -> None:
+        def __init__(
+            self,
+            fget: Callable[[Any], Any],
+            fset: Optional[Callable[[Any, Any], None]] = None,
+            freset: Optional[Callable[[Any], None]] = None,
+            notify: Optional[Any] = None,
+        ) -> None:
             self.fget = fget
+            self.fset = fset
+            self.freset = freset
+            self.notify = notify
 
         def __get__(self, instance: Any, owner: Optional[type[Any]]) -> Any:
             if instance is None:
                 return self
             return self.fget(instance)
+
+        def __set__(self, instance: Any, value: Any) -> None:
+            if self.fset is None:
+                raise AttributeError("can't set attribute")
+            self.fset(instance, value)
+
+        def setter(self, func: Callable[[Any, Any], None]) -> "_FallbackProperty":
+            self.fset = func
+            return self
+
+        def reset(self, func: Callable[[Any], None]) -> "_FallbackProperty":
+            self.freset = func
+            return self
 
     def Property(  # type: ignore[misc,override]
         _type: Any,
@@ -63,9 +85,12 @@ except Exception:  # pragma: no cover - fallback when PySide6 is not present
         freset: Optional[Callable[[Any], None]] = None,
         notify: Optional[Any] = None,
     ) -> Any:
+        def _wrap(getter: Callable[[Any], Any]) -> _FallbackProperty:
+            return _FallbackProperty(getter, fset=fset, freset=freset, notify=notify)
+
         if fget is None:
-            raise TypeError("Fallback Property requires a getter")
-        return _FallbackProperty(fget)
+            return _wrap
+        return _wrap(fget)
 
 
 __all__ = ["Property", "QObject", "Signal", "Slot"]

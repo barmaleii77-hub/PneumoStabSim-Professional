@@ -8,6 +8,7 @@ Qt Quick 3D, включая пути к QML-модулям и плагинам.
 
 import os
 import sys
+from pathlib import Path
 from typing import Callable
 
 
@@ -59,18 +60,22 @@ def setup_qtquick3d_environment(
             os.environ.setdefault(var, value)
 
         # Дополнительные import path для локальных QML (assets/qml)
-        local_qml = os.path.abspath(os.path.join(os.getcwd(), "assets", "qml"))
-        if os.path.isdir(local_qml):
+        project_root = Path(__file__).resolve().parents[2]
+        local_qml = project_root / "assets" / "qml"
+        if local_qml.is_dir():
+            local_qml_str = str(local_qml)
+
             existing = os.environ.get("QML2_IMPORT_PATH", "")
-            if local_qml not in existing:
-                os.environ["QML2_IMPORT_PATH"] = (
-                    (existing + os.pathsep + local_qml) if existing else local_qml
-                )
+            existing_paths = existing.split(os.pathsep) if existing else []
+            if local_qml_str not in existing_paths:
+                values = [path for path in (existing, local_qml_str) if path]
+                os.environ["QML2_IMPORT_PATH"] = os.pathsep.join(values)
+
             existing2 = os.environ.get("QML_IMPORT_PATH", "")
-            if local_qml not in existing2:
-                os.environ["QML_IMPORT_PATH"] = (
-                    (existing2 + os.pathsep + local_qml) if existing2 else local_qml
-                )
+            existing_paths2 = existing2.split(os.pathsep) if existing2 else []
+            if local_qml_str not in existing_paths2:
+                values = [path for path in (existing2, local_qml_str) if path]
+                os.environ["QML_IMPORT_PATH"] = os.pathsep.join(values)
 
         return True, None
 
