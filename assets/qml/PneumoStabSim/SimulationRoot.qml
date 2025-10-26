@@ -320,7 +320,6 @@ Item {
  baseColor: flCorner.rodLengthError >0.001 ? sharedMaterials.jointRodErrorColor : sharedMaterials.jointRodOkColor
  metalness:0.9
  roughness:0.35
- specularAmount:1.0
  }
  }
 
@@ -351,7 +350,6 @@ Item {
  baseColor: frCorner.rodLengthError >0.001 ? sharedMaterials.jointRodErrorColor : sharedMaterials.jointRodOkColor
  metalness:0.9
  roughness:0.35
- specularAmount:1.0
  }
  }
 
@@ -382,7 +380,6 @@ Item {
  baseColor: rlCorner.rodLengthError >0.001 ? sharedMaterials.jointRodErrorColor : sharedMaterials.jointRodOkColor
  metalness:0.9
  roughness:0.35
- specularAmount:1.0
  }
  }
 
@@ -413,7 +410,6 @@ Item {
  baseColor: rrCorner.rodLengthError >0.001 ? sharedMaterials.jointRodErrorColor : sharedMaterials.jointRodOkColor
  metalness:0.9
  roughness:0.35
- specularAmount:1.0
  }
  }
  }
