@@ -77,7 +77,7 @@ def _coerce_string(defn: EnvironmentParameterDefinition, value: Any) -> Any:
         text = value.strip()
         if not text and not defn.allow_empty_string:
             raise EnvironmentValidationError(f"'{defn.key}' cannot be empty")
-    if defn.key == "background_color" and isinstance(value, str):
+    if defn.key in {"background_color", "fog_color"} and isinstance(value, str):
         text = value.strip()
         if text.startswith("#") and len(text) in {4, 7}:
             return text
@@ -105,10 +105,10 @@ ENVIRONMENT_PARAMETERS: Tuple[EnvironmentParameterDefinition, ...] = (
     EnvironmentParameterDefinition("skybox_enabled", "bool"),
     EnvironmentParameterDefinition("ibl_enabled", "bool"),
     EnvironmentParameterDefinition(
-        "ibl_intensity", "float", min_value=0.0, max_value=10.0
+        "ibl_intensity", "float", min_value=0.0, max_value=8.0
     ),
     EnvironmentParameterDefinition(
-        "probe_brightness", "float", min_value=0.0, max_value=10.0
+        "probe_brightness", "float", min_value=0.0, max_value=8.0
     ),
     EnvironmentParameterDefinition(
         "probe_horizon", "float", min_value=-1.0, max_value=1.0
@@ -122,10 +122,10 @@ ENVIRONMENT_PARAMETERS: Tuple[EnvironmentParameterDefinition, ...] = (
         "skybox_blur", "float", min_value=0.0, max_value=1.0
     ),
     EnvironmentParameterDefinition(
-        "ibl_offset_x", "float", min_value=-360.0, max_value=360.0
+        "ibl_offset_x", "float", min_value=-180.0, max_value=180.0
     ),
     EnvironmentParameterDefinition(
-        "ibl_offset_y", "float", min_value=-360.0, max_value=360.0
+        "ibl_offset_y", "float", min_value=-180.0, max_value=180.0
     ),
     EnvironmentParameterDefinition("ibl_bind_to_camera", "bool"),
     EnvironmentParameterDefinition("fog_enabled", "bool"),
@@ -162,7 +162,13 @@ ENVIRONMENT_PARAMETERS: Tuple[EnvironmentParameterDefinition, ...] = (
         "ao_softness", "float", min_value=0.0, max_value=50.0
     ),
     EnvironmentParameterDefinition("ao_dither", "bool"),
-    EnvironmentParameterDefinition("ao_sample_rate", "int", min_value=1, max_value=512),
+    EnvironmentParameterDefinition(
+        "ao_sample_rate",
+        "int",
+        min_value=2,
+        max_value=4,
+        allowed_values=(2, 3, 4),
+    ),
 )
 
 SCENE_PARAMETERS: Tuple[EnvironmentParameterDefinition, ...] = (

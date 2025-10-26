@@ -1,6 +1,7 @@
 import importlib.util
 import sys
 from pathlib import Path
+from typing import Any, Dict
 
 import pytest
 
@@ -39,31 +40,39 @@ def _baseline_environment() -> dict:
     return validate_environment_settings(env)
 
 
-def _minimal_environment_payload() -> dict:
-    payload: dict = {}
+def _build_minimal_environment_payload() -> Dict[str, Any]:
+    payload: Dict[str, Any] = {}
     for definition in ENVIRONMENT_PARAMETERS:
         if definition.value_type == "bool":
             payload[definition.key] = False
         elif definition.value_type == "float":
-            payload[definition.key] = (
-                definition.min_value if definition.min_value is not None else 0.0
+            assert definition.min_value is not None, (
+                f"Missing min value for {definition.key}"
             )
+            payload[definition.key] = float(definition.min_value)
         elif definition.value_type == "int":
-            min_value = definition.min_value if definition.min_value is not None else 0
-            payload[definition.key] = int(min_value)
+            if definition.allowed_values:
+                payload[definition.key] = int(sorted(definition.allowed_values)[0])
+            else:
+                assert definition.min_value is not None, (
+                    f"Missing min value for {definition.key}"
+                )
+                payload[definition.key] = int(definition.min_value)
         elif definition.value_type == "string":
             if definition.allowed_values:
-                payload[definition.key] = definition.allowed_values[0]
+                payload[definition.key] = next(iter(definition.allowed_values))
             elif definition.allow_empty_string:
                 payload[definition.key] = ""
-            elif definition.key == "background_color":
-                payload[definition.key] = "#000000"
+            elif "color" in definition.key:
+                payload[definition.key] = "#000"
             else:
-                payload[definition.key] = definition.key
-        else:  # pragma: no cover - defensive guard
-            raise AssertionError(
-                f"Unsupported definition type: {definition.value_type}"
-            )
+                payload[definition.key] = "value"
+        else:  # pragma: no cover - safety guard for future types
+            raise AssertionError(f"Unsupported value type: {definition.value_type}")
+
+    if payload.get("fog_far", 0) < payload.get("fog_near", 0):
+        payload["fog_far"] = payload["fog_near"]
+
     return payload
 
 
@@ -131,13 +140,13 @@ def test_environment_parameters_metadata_ranges_match():
 
 # Additional test cases
 def test_environment_validation_accepts_minimal_valid_payload():
-    payload = _minimal_environment_payload()
+    payload = _build_minimal_environment_payload()
     sanitized = validate_environment_settings(payload)
     assert sanitized == payload
 
 
 def test_environment_validation_rejects_payload_missing_required_key():
-    payload = _minimal_environment_payload()
+    payload = _build_minimal_environment_payload()
     payload.pop("ao_radius")
     with pytest.raises(EnvironmentValidationError):
         validate_environment_settings(payload)
@@ -166,19 +175,40 @@ def test_environment_validation_rejects_empty_payload():
         validate_environment_settings({})
 
 
-def test_environment_validation_accepts_sample_payload():
-    payload = _minimal_environment_payload()
-    payload.update(
-        {
-            "ao_enabled": True,
-            "background_mode": "color",
-            "background_color": "#112233",
-            "ibl_source": "../hdr/test.exr",
-            "ibl_fallback": "",
-            "ao_sample_rate": 4,
-            "probe_brightness": 2.5,
-        }
-    )
+def test_environment_validation_accepts_validations_payload():
+    payload = {
+        "background_mode": "skybox",
+        "background_color": "#123456",
+        "skybox_enabled": True,
+        "ibl_enabled": False,
+        "ibl_intensity": 2.5,
+        "probe_brightness": 1.0,
+        "probe_horizon": 0.0,
+        "ibl_rotation": 45.0,
+        "ibl_source": "hdr/example.exr",
+        "ibl_fallback": "",
+        "skybox_blur": 0.5,
+        "ibl_offset_x": 5.0,
+        "ibl_offset_y": -5.0,
+        "ibl_bind_to_camera": True,
+        "fog_enabled": True,
+        "fog_color": "#abcdef",
+        "fog_density": 0.1,
+        "fog_near": 10.0,
+        "fog_far": 200.0,
+        "fog_height_enabled": False,
+        "fog_least_intense_y": -10.0,
+        "fog_most_intense_y": 20.0,
+        "fog_height_curve": 1.0,
+        "fog_transmit_enabled": True,
+        "fog_transmit_curve": 1.5,
+        "ao_enabled": True,
+        "ao_strength": 50.0,
+        "ao_radius": 3.0,
+        "ao_softness": 10.0,
+        "ao_dither": True,
+        "ao_sample_rate": 4,
+    }
     sanitized = validate_environment_settings(payload)
     assert sanitized == payload
 
