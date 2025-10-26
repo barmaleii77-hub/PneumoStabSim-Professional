@@ -53,6 +53,17 @@ def _deep_copy(data: Any) -> Any:
     return json.loads(json.dumps(data))
 
 
+def _deep_update(target: Dict[str, Any], source: Dict[str, Any]) -> None:
+    """Recursively merge ``source`` into ``target``."""
+
+    for key, value in source.items():
+        existing = target.get(key)
+        if isinstance(existing, dict) and isinstance(value, dict):
+            _deep_update(existing, value)
+        else:
+            target[key] = _deep_copy(value)
+
+
 def _load_qt_core():
     spec = util.find_spec("PySide6.QtCore")
     if spec is None:
@@ -170,6 +181,7 @@ class SettingsManager:
             for key, value in payload.items()
             if key not in {"metadata", "current", "defaults_snapshot"}
         }
+        self._migrate_known_extras()
         self._ensure_units_version()
 
     # ------------------------------------------------------------------- public
@@ -292,7 +304,6 @@ class SettingsManager:
         parts = dotted_path.split(".")
         # Determine which root dictionary to update
         head = parts[0]
-
         if head == "current":
             root = self._data
             parts = parts[1:]
@@ -301,6 +312,9 @@ class SettingsManager:
             parts = parts[1:]
         elif head == "metadata":
             root = self._metadata
+            parts = parts[1:]
+        elif head in self._data:
+            root = self._data
             parts = parts[1:]
         elif head in self._extra:
             root = self._extra[head]
@@ -353,6 +367,17 @@ class SettingsManager:
             )
         )
         return True
+
+    def _migrate_known_extras(self) -> None:
+        """Merge legacy top-level sections back into ``current``."""
+
+        graphics_extra = self._extra.pop("graphics", None)
+        if isinstance(graphics_extra, dict):
+            graphics_section = self._data.setdefault("graphics", {})
+            if isinstance(graphics_section, dict):
+                _deep_update(graphics_section, graphics_extra)
+            else:
+                self._data["graphics"] = _deep_copy(graphics_extra)
 
     # Defaults ---------------------------------------------------------------
     def get_all_defaults(self) -> Dict[str, Any]:

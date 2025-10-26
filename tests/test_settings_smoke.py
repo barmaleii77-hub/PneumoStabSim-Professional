@@ -1,4 +1,5 @@
 import json
+from copy import deepcopy
 from pathlib import Path
 
 import pytest
@@ -161,6 +162,27 @@ def test_set_category_updates_current_section(legacy_settings: Path) -> None:
     assert payload["current"]["geometry"]["wheelbase"] == 3.6
 
 
+def test_settings_manager_set_graphics_updates_current_section(
+    legacy_settings: Path,
+) -> None:
+    manager = SettingsManager(settings_file=legacy_settings)
+
+    graphics_state = manager.get("graphics")
+    assert isinstance(graphics_state, dict)
+
+    graphics_state = deepcopy(graphics_state)
+    graphics_state.setdefault("environment", {})["ibl_intensity"] = 2.5
+
+    manager.set("graphics", graphics_state, auto_save=False)
+
+    assert manager.get("current.graphics.environment.ibl_intensity") == 2.5
+
+    manager.save()
+    payload = json.loads(legacy_settings.read_text(encoding="utf-8"))
+    assert "graphics" not in payload
+    assert payload["current"]["graphics"]["environment"]["ibl_intensity"] == 2.5
+
+
 def test_reset_to_defaults_category(legacy_settings: Path) -> None:
     manager = SettingsManager(settings_file=legacy_settings)
 
@@ -194,3 +216,27 @@ def test_reset_to_defaults_unknown_category_raises(legacy_settings: Path) -> Non
 
     with pytest.raises(KeyError):
         manager.reset_to_defaults(category="missing")
+
+
+def test_settings_manager_migrates_root_graphics_section(tmp_path: Path) -> None:
+    payload = {
+        "metadata": {"units_version": "si_v2"},
+        "current": {"graphics": {"environment": {"ibl_intensity": 1.3}}},
+        "defaults_snapshot": {},
+        "graphics": {"environment": {"ibl_intensity": 2.0, "fog_density": 0.1}},
+    }
+    settings_path = tmp_path / "app_settings.json"
+    settings_path.write_text(
+        json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8"
+    )
+
+    manager = SettingsManager(settings_file=settings_path)
+
+    assert manager.get("current.graphics.environment.ibl_intensity") == 2.0
+    assert manager.get("current.graphics.environment.fog_density") == 0.1
+
+    manager.save()
+    stored = json.loads(settings_path.read_text(encoding="utf-8"))
+    assert "graphics" not in stored
+    assert stored["current"]["graphics"]["environment"]["ibl_intensity"] == 2.0
+    assert stored["current"]["graphics"]["environment"]["fog_density"] == 0.1
