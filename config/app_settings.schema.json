@@ -1,35 +1,65 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "PneumoStabSim Application Settings",
-  "description": "Simplified schema used for test validation in headless environments.",
+  "description": "Generated schema capturing the canonical structure of config/app_settings.json.",
   "type": "object",
   "required": [
+    "metadata",
     "current",
-    "defaults_snapshot",
-    "metadata"
+    "defaults_snapshot"
   ],
   "additionalProperties": false,
   "properties": {
     "metadata": {
       "type": "object",
-      "required": [
-        "units_version"
-      ],
-      "additionalProperties": true,
       "properties": {
+        "description": {
+          "type": "string"
+        },
+        "last_migration": {
+          "type": "string"
+        },
+        "last_modified": {
+          "type": "string"
+        },
+        "migrated_from": {
+          "type": "string"
+        },
+        "migration_date": {
+          "type": "string"
+        },
+        "migrations": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "schema_version": {
+          "type": "string"
+        },
+        "total_parameters": {
+          "type": "number"
+        },
         "units_version": {
           "type": "string"
         },
         "version": {
           "type": "string"
-        },
-        "schema_version": {
-          "type": "string"
-        },
-        "last_modified": {
-          "type": "string"
         }
-      }
+      },
+      "required": [
+        "description",
+        "last_migration",
+        "last_modified",
+        "migrated_from",
+        "migration_date",
+        "migrations",
+        "schema_version",
+        "total_parameters",
+        "units_version",
+        "version"
+      ],
+      "additionalProperties": false
     },
     "current": {
       "$ref": "#/$defs/settingsPayload"
@@ -41,70 +71,2879 @@
   "$defs": {
     "settingsPayload": {
       "type": "object",
-      "additionalProperties": true,
       "properties": {
-        "simulation": {
-          "type": "object"
-        },
-        "pneumatic": {
-          "type": "object"
-        },
-        "geometry": {
-          "type": "object"
-        },
-        "graphics": {
-          "type": "object"
-        },
         "constants": {
           "type": "object",
-          "additionalProperties": true,
           "properties": {
             "geometry": {
               "type": "object",
-              "additionalProperties": true,
               "properties": {
-                "kinematics": {
-                  "type": "object",
-                  "additionalProperties": true
-                },
                 "cylinder": {
                   "type": "object",
-                  "additionalProperties": true
-                },
-                "visualization": {
-                  "type": "object",
-                  "additionalProperties": true
+                  "properties": {
+                    "body_length_m": {
+                      "type": "number"
+                    },
+                    "dead_zone_head_m3": {
+                      "type": "number"
+                    },
+                    "dead_zone_rod_m3": {
+                      "type": "number"
+                    },
+                    "inner_diameter_m": {
+                      "type": "number"
+                    },
+                    "piston_thickness_m": {
+                      "type": "number"
+                    },
+                    "rod_diameter_m": {
+                      "type": "number"
+                    }
+                  },
+                  "required": [
+                    "body_length_m",
+                    "dead_zone_head_m3",
+                    "dead_zone_rod_m3",
+                    "inner_diameter_m",
+                    "piston_thickness_m",
+                    "rod_diameter_m"
+                  ],
+                  "additionalProperties": false
                 },
                 "initial_state": {
                   "type": "object",
-                  "additionalProperties": true
+                  "properties": {
+                    "cylinder_body_length_m": {
+                      "type": "number"
+                    },
+                    "frame_beam_size_m": {
+                      "type": "number"
+                    },
+                    "frame_height_m": {
+                      "type": "number"
+                    },
+                    "frame_length_m": {
+                      "type": "number"
+                    },
+                    "j_arm_left": {
+                      "type": "array",
+                      "items": {
+                        "type": "number"
+                      }
+                    },
+                    "j_arm_right": {
+                      "type": "array",
+                      "items": {
+                        "type": "number"
+                      }
+                    },
+                    "j_tail_left": {
+                      "type": "array",
+                      "items": {
+                        "type": "number"
+                      }
+                    },
+                    "j_tail_right": {
+                      "type": "array",
+                      "items": {
+                        "type": "number"
+                      }
+                    },
+                    "lever_length_m": {
+                      "type": "number"
+                    },
+                    "tail_rod_length_m": {
+                      "type": "number"
+                    }
+                  },
+                  "required": [
+                    "cylinder_body_length_m",
+                    "frame_beam_size_m",
+                    "frame_height_m",
+                    "frame_length_m",
+                    "j_arm_left",
+                    "j_arm_right",
+                    "j_tail_left",
+                    "j_tail_right",
+                    "lever_length_m",
+                    "tail_rod_length_m"
+                  ],
+                  "additionalProperties": false
+                },
+                "kinematics": {
+                  "type": "object",
+                  "properties": {
+                    "lever_length_m": {
+                      "type": "number"
+                    },
+                    "pivot_offset_from_frame_m": {
+                      "type": "number"
+                    },
+                    "rod_attach_fraction": {
+                      "type": "number"
+                    },
+                    "track_width_m": {
+                      "type": "number"
+                    }
+                  },
+                  "required": [
+                    "lever_length_m",
+                    "pivot_offset_from_frame_m",
+                    "rod_attach_fraction",
+                    "track_width_m"
+                  ],
+                  "additionalProperties": false
+                },
+                "visualization": {
+                  "type": "object",
+                  "properties": {
+                    "arm_radius_m": {
+                      "type": "number"
+                    },
+                    "cylinder_radius_m": {
+                      "type": "number"
+                    },
+                    "max_stroke_fraction": {
+                      "type": "number"
+                    },
+                    "piston_clip_max_fraction": {
+                      "type": "number"
+                    },
+                    "piston_clip_min_fraction": {
+                      "type": "number"
+                    },
+                    "pivot_offset_x_m": {
+                      "type": "number"
+                    },
+                    "tail_offset_x_m": {
+                      "type": "number"
+                    }
+                  },
+                  "required": [
+                    "arm_radius_m",
+                    "cylinder_radius_m",
+                    "max_stroke_fraction",
+                    "piston_clip_max_fraction",
+                    "piston_clip_min_fraction",
+                    "pivot_offset_x_m",
+                    "tail_offset_x_m"
+                  ],
+                  "additionalProperties": false
                 }
-              }
+              },
+              "required": [
+                "cylinder",
+                "initial_state",
+                "kinematics",
+                "visualization"
+              ],
+              "additionalProperties": false
             },
             "pneumo": {
               "type": "object",
-              "additionalProperties": true,
               "properties": {
-                "valves": {
-                  "type": "object",
-                  "additionalProperties": true
-                },
-                "receiver": {
-                  "type": "object",
-                  "additionalProperties": true
-                },
                 "gas": {
                   "type": "object",
-                  "additionalProperties": true
+                  "properties": {
+                    "tank_pressure_initial_pa": {
+                      "type": "number"
+                    },
+                    "tank_temperature_initial_k": {
+                      "type": "number"
+                    },
+                    "tank_volume_initial_m3": {
+                      "type": "number"
+                    },
+                    "tank_volume_mode": {
+                      "type": "string"
+                    },
+                    "thermo_mode": {
+                      "type": "string"
+                    },
+                    "time_step_s": {
+                      "type": "number"
+                    },
+                    "total_time_s": {
+                      "type": "number"
+                    }
+                  },
+                  "required": [
+                    "tank_pressure_initial_pa",
+                    "tank_temperature_initial_k",
+                    "tank_volume_initial_m3",
+                    "tank_volume_mode",
+                    "thermo_mode",
+                    "time_step_s",
+                    "total_time_s"
+                  ],
+                  "additionalProperties": false
                 },
                 "master_isolation_open": {
                   "type": "boolean"
+                },
+                "receiver": {
+                  "type": "object",
+                  "properties": {
+                    "initial_pressure_pa": {
+                      "type": "number"
+                    },
+                    "initial_temperature_k": {
+                      "type": "number"
+                    },
+                    "initial_volume_m3": {
+                      "type": "number"
+                    },
+                    "volume_max_m3": {
+                      "type": "number"
+                    },
+                    "volume_min_m3": {
+                      "type": "number"
+                    },
+                    "volume_mode": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "initial_pressure_pa",
+                    "initial_temperature_k",
+                    "initial_volume_m3",
+                    "volume_max_m3",
+                    "volume_min_m3",
+                    "volume_mode"
+                  ],
+                  "additionalProperties": false
+                },
+                "valves": {
+                  "type": "object",
+                  "properties": {
+                    "delta_open_pa": {
+                      "type": "number"
+                    },
+                    "equivalent_diameter_m": {
+                      "type": "number"
+                    }
+                  },
+                  "required": [
+                    "delta_open_pa",
+                    "equivalent_diameter_m"
+                  ],
+                  "additionalProperties": false
                 }
-              }
+              },
+              "required": [
+                "gas",
+                "master_isolation_open",
+                "receiver",
+                "valves"
+              ],
+              "additionalProperties": false
             }
-          }
+          },
+          "required": [
+            "geometry",
+            "pneumo"
+          ],
+          "additionalProperties": false
+        },
+        "diagnostics": {
+          "type": "object",
+          "properties": {
+            "camera_hud": {
+              "type": "object",
+              "properties": {
+                "enabled": {
+                  "type": "boolean"
+                },
+                "precision": {
+                  "type": "number"
+                },
+                "showAngles": {
+                  "type": "boolean"
+                },
+                "showMotion": {
+                  "type": "boolean"
+                },
+                "showPan": {
+                  "type": "boolean"
+                },
+                "showPivot": {
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "enabled",
+                "precision",
+                "showAngles",
+                "showMotion",
+                "showPan",
+                "showPivot"
+              ],
+              "additionalProperties": false
+            },
+            "signal_trace": {
+              "type": "object",
+              "properties": {
+                "enabled": {
+                  "type": "boolean"
+                },
+                "exclude": {
+                  "type": "array"
+                },
+                "history_limit": {
+                  "type": "number"
+                },
+                "include": {
+                  "type": "array"
+                },
+                "overlay_enabled": {
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "enabled",
+                "exclude",
+                "history_limit",
+                "include",
+                "overlay_enabled"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "required": [
+            "camera_hud",
+            "signal_trace"
+          ],
+          "additionalProperties": false
+        },
+        "geometry": {
+          "type": "object",
+          "properties": {
+            "cyl_diam_m": {
+              "type": "number"
+            },
+            "cylinder_body_length_m": {
+              "type": "number"
+            },
+            "cylinder_cap_length_m": {
+              "type": "number"
+            },
+            "cylinder_length": {
+              "type": "number"
+            },
+            "dead_gap_m": {
+              "type": "number"
+            },
+            "frame_beam_size_m": {
+              "type": "number"
+            },
+            "frame_height_m": {
+              "type": "number"
+            },
+            "frame_length_m": {
+              "type": "number"
+            },
+            "frame_to_pivot": {
+              "type": "number"
+            },
+            "interference_check": {
+              "type": "boolean"
+            },
+            "joint_arm_scale": {
+              "type": "number"
+            },
+            "joint_rod_scale": {
+              "type": "number"
+            },
+            "joint_tail_scale": {
+              "type": "number"
+            },
+            "lever_length": {
+              "type": "number"
+            },
+            "lever_length_m": {
+              "type": "number"
+            },
+            "link_rod_diameters": {
+              "type": "boolean"
+            },
+            "piston_rod_length_m": {
+              "type": "number"
+            },
+            "piston_thickness_m": {
+              "type": "number"
+            },
+            "rod_diameter_m": {
+              "type": "number"
+            },
+            "rod_position": {
+              "type": "number"
+            },
+            "stroke_m": {
+              "type": "number"
+            },
+            "tail_mount_offset_m": {
+              "type": "number"
+            },
+            "track": {
+              "type": "number"
+            },
+            "wheelbase": {
+              "type": "number"
+            }
+          },
+          "required": [
+            "cyl_diam_m",
+            "cylinder_body_length_m",
+            "cylinder_cap_length_m",
+            "cylinder_length",
+            "dead_gap_m",
+            "frame_beam_size_m",
+            "frame_height_m",
+            "frame_length_m",
+            "frame_to_pivot",
+            "interference_check",
+            "joint_arm_scale",
+            "joint_rod_scale",
+            "joint_tail_scale",
+            "lever_length",
+            "lever_length_m",
+            "link_rod_diameters",
+            "piston_rod_length_m",
+            "piston_thickness_m",
+            "rod_diameter_m",
+            "rod_position",
+            "stroke_m",
+            "tail_mount_offset_m",
+            "track",
+            "wheelbase"
+          ],
+          "additionalProperties": false
+        },
+        "graphics": {
+          "type": "object",
+          "properties": {
+            "camera": {
+              "type": "object",
+              "properties": {
+                "auto_fit": {
+                  "type": "boolean"
+                },
+                "auto_rotate": {
+                  "type": "boolean"
+                },
+                "auto_rotate_speed": {
+                  "type": "number"
+                },
+                "camera_pos_x": {
+                  "type": "number"
+                },
+                "camera_pos_y": {
+                  "type": "number"
+                },
+                "camera_pos_z": {
+                  "type": "number"
+                },
+                "camera_rot_x": {
+                  "type": "number"
+                },
+                "camera_rot_y": {
+                  "type": "number"
+                },
+                "camera_rot_z": {
+                  "type": "number"
+                },
+                "far": {
+                  "type": "number"
+                },
+                "fov": {
+                  "type": "number"
+                },
+                "manual_camera": {
+                  "type": "boolean"
+                },
+                "near": {
+                  "type": "number"
+                },
+                "orbit_distance": {
+                  "type": "number"
+                },
+                "orbit_friction": {
+                  "type": "number"
+                },
+                "orbit_inertia": {
+                  "type": "number"
+                },
+                "orbit_inertia_enabled": {
+                  "type": "boolean"
+                },
+                "orbit_pan_smoothing": {
+                  "type": "number"
+                },
+                "orbit_pitch": {
+                  "type": "number"
+                },
+                "orbit_rotate_smoothing": {
+                  "type": "number"
+                },
+                "orbit_target_x": {
+                  "type": "number"
+                },
+                "orbit_target_y": {
+                  "type": "number"
+                },
+                "orbit_target_z": {
+                  "type": "number"
+                },
+                "orbit_yaw": {
+                  "type": "number"
+                },
+                "orbit_zoom_smoothing": {
+                  "type": "number"
+                },
+                "speed": {
+                  "type": "number"
+                },
+                "world_pos_x": {
+                  "type": "number"
+                },
+                "world_pos_y": {
+                  "type": "number"
+                },
+                "world_pos_z": {
+                  "type": "number"
+                },
+                "world_rot_x": {
+                  "type": "number"
+                },
+                "world_rot_y": {
+                  "type": "number"
+                },
+                "world_rot_z": {
+                  "type": "number"
+                },
+                "world_scale": {
+                  "type": "number"
+                }
+              },
+              "required": [
+                "auto_fit",
+                "auto_rotate",
+                "auto_rotate_speed",
+                "camera_pos_x",
+                "camera_pos_y",
+                "camera_pos_z",
+                "camera_rot_x",
+                "camera_rot_y",
+                "camera_rot_z",
+                "far",
+                "fov",
+                "manual_camera",
+                "near",
+                "orbit_distance",
+                "orbit_friction",
+                "orbit_inertia",
+                "orbit_inertia_enabled",
+                "orbit_pan_smoothing",
+                "orbit_pitch",
+                "orbit_rotate_smoothing",
+                "orbit_target_x",
+                "orbit_target_y",
+                "orbit_target_z",
+                "orbit_yaw",
+                "orbit_zoom_smoothing",
+                "speed",
+                "world_pos_x",
+                "world_pos_y",
+                "world_pos_z",
+                "world_rot_x",
+                "world_rot_y",
+                "world_rot_z",
+                "world_scale"
+              ],
+              "additionalProperties": false
+            },
+            "effects": {
+              "type": "object",
+              "properties": {
+                "adjustment_brightness": {
+                  "type": "number"
+                },
+                "adjustment_contrast": {
+                  "type": "number"
+                },
+                "adjustment_saturation": {
+                  "type": "number"
+                },
+                "bloom_bicubic_upscale": {
+                  "type": "boolean"
+                },
+                "bloom_enabled": {
+                  "type": "boolean"
+                },
+                "bloom_glow_strength": {
+                  "type": "number"
+                },
+                "bloom_hdr_max": {
+                  "type": "number"
+                },
+                "bloom_hdr_scale": {
+                  "type": "number"
+                },
+                "bloom_intensity": {
+                  "type": "number"
+                },
+                "bloom_quality_high": {
+                  "type": "boolean"
+                },
+                "bloom_spread": {
+                  "type": "number"
+                },
+                "bloom_threshold": {
+                  "type": "number"
+                },
+                "depth_of_field": {
+                  "type": "boolean"
+                },
+                "dof_blur": {
+                  "type": "number"
+                },
+                "dof_focus_distance": {
+                  "type": "number"
+                },
+                "lens_flare": {
+                  "type": "boolean"
+                },
+                "lens_flare_bloom_bias": {
+                  "type": "number"
+                },
+                "lens_flare_ghost_count": {
+                  "type": "number"
+                },
+                "lens_flare_ghost_dispersal": {
+                  "type": "number"
+                },
+                "lens_flare_halo_width": {
+                  "type": "number"
+                },
+                "lens_flare_stretch_to_aspect": {
+                  "type": "boolean"
+                },
+                "motion_blur": {
+                  "type": "boolean"
+                },
+                "motion_blur_amount": {
+                  "type": "number"
+                },
+                "tonemap_enabled": {
+                  "type": "boolean"
+                },
+                "tonemap_exposure": {
+                  "type": "number"
+                },
+                "tonemap_mode": {
+                  "type": "string"
+                },
+                "tonemap_white_point": {
+                  "type": "number"
+                },
+                "vignette": {
+                  "type": "boolean"
+                },
+                "vignette_radius": {
+                  "type": "number"
+                },
+                "vignette_strength": {
+                  "type": "number"
+                }
+              },
+              "required": [
+                "adjustment_brightness",
+                "adjustment_contrast",
+                "adjustment_saturation",
+                "bloom_bicubic_upscale",
+                "bloom_enabled",
+                "bloom_glow_strength",
+                "bloom_hdr_max",
+                "bloom_hdr_scale",
+                "bloom_intensity",
+                "bloom_quality_high",
+                "bloom_spread",
+                "bloom_threshold",
+                "depth_of_field",
+                "dof_blur",
+                "dof_focus_distance",
+                "lens_flare",
+                "lens_flare_bloom_bias",
+                "lens_flare_ghost_count",
+                "lens_flare_ghost_dispersal",
+                "lens_flare_halo_width",
+                "lens_flare_stretch_to_aspect",
+                "motion_blur",
+                "motion_blur_amount",
+                "tonemap_enabled",
+                "tonemap_exposure",
+                "tonemap_mode",
+                "tonemap_white_point",
+                "vignette",
+                "vignette_radius",
+                "vignette_strength"
+              ],
+              "additionalProperties": false
+            },
+            "environment": {
+              "type": "object",
+              "properties": {
+                "ao_dither": {
+                  "type": "boolean"
+                },
+                "ao_enabled": {
+                  "type": "boolean"
+                },
+                "ao_radius": {
+                  "type": "number"
+                },
+                "ao_sample_rate": {
+                  "type": "number"
+                },
+                "ao_softness": {
+                  "type": "number"
+                },
+                "ao_strength": {
+                  "type": "number"
+                },
+                "background_color": {
+                  "type": "string"
+                },
+                "background_mode": {
+                  "type": "string"
+                },
+                "fog_color": {
+                  "type": "string"
+                },
+                "fog_density": {
+                  "type": "number"
+                },
+                "fog_enabled": {
+                  "type": "boolean"
+                },
+                "fog_far": {
+                  "type": "number"
+                },
+                "fog_height_curve": {
+                  "type": "number"
+                },
+                "fog_height_enabled": {
+                  "type": "boolean"
+                },
+                "fog_least_intense_y": {
+                  "type": "number"
+                },
+                "fog_most_intense_y": {
+                  "type": "number"
+                },
+                "fog_near": {
+                  "type": "number"
+                },
+                "fog_transmit_curve": {
+                  "type": "number"
+                },
+                "fog_transmit_enabled": {
+                  "type": "boolean"
+                },
+                "ibl_bind_to_camera": {
+                  "type": "boolean"
+                },
+                "ibl_enabled": {
+                  "type": "boolean"
+                },
+                "ibl_fallback": {
+                  "type": "string"
+                },
+                "ibl_intensity": {
+                  "type": "number"
+                },
+                "ibl_offset_x": {
+                  "type": "number"
+                },
+                "ibl_offset_y": {
+                  "type": "number"
+                },
+                "ibl_rotation": {
+                  "type": "number"
+                },
+                "ibl_source": {
+                  "type": "string"
+                },
+                "probe_brightness": {
+                  "type": "number"
+                },
+                "probe_horizon": {
+                  "type": "number"
+                },
+                "skybox_blur": {
+                  "type": "number"
+                },
+                "skybox_enabled": {
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "ao_dither",
+                "ao_enabled",
+                "ao_radius",
+                "ao_sample_rate",
+                "ao_softness",
+                "ao_strength",
+                "background_color",
+                "background_mode",
+                "fog_color",
+                "fog_density",
+                "fog_enabled",
+                "fog_far",
+                "fog_height_curve",
+                "fog_height_enabled",
+                "fog_least_intense_y",
+                "fog_most_intense_y",
+                "fog_near",
+                "fog_transmit_curve",
+                "fog_transmit_enabled",
+                "ibl_bind_to_camera",
+                "ibl_enabled",
+                "ibl_fallback",
+                "ibl_intensity",
+                "ibl_offset_x",
+                "ibl_offset_y",
+                "ibl_rotation",
+                "ibl_source",
+                "probe_brightness",
+                "probe_horizon",
+                "skybox_blur",
+                "skybox_enabled"
+              ],
+              "additionalProperties": false
+            },
+            "lighting": {
+              "type": "object",
+              "properties": {
+                "fill": {
+                  "type": "object",
+                  "properties": {
+                    "angle_x": {
+                      "type": "number"
+                    },
+                    "angle_y": {
+                      "type": "number"
+                    },
+                    "angle_z": {
+                      "type": "number"
+                    },
+                    "brightness": {
+                      "type": "number"
+                    },
+                    "color": {
+                      "type": "string"
+                    },
+                    "position_x": {
+                      "type": "number"
+                    }
+                  },
+                  "required": [
+                    "angle_x",
+                    "angle_y",
+                    "angle_z",
+                    "brightness",
+                    "color",
+                    "position_x"
+                  ],
+                  "additionalProperties": false
+                },
+                "key": {
+                  "type": "object",
+                  "properties": {
+                    "angle_x": {
+                      "type": "number"
+                    },
+                    "angle_y": {
+                      "type": "number"
+                    },
+                    "angle_z": {
+                      "type": "number"
+                    },
+                    "brightness": {
+                      "type": "number"
+                    },
+                    "color": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "angle_x",
+                    "angle_y",
+                    "angle_z",
+                    "brightness",
+                    "color"
+                  ],
+                  "additionalProperties": false
+                },
+                "point": {
+                  "type": "object",
+                  "properties": {
+                    "brightness": {
+                      "type": "number"
+                    },
+                    "color": {
+                      "type": "string"
+                    },
+                    "position_y": {
+                      "type": "number"
+                    },
+                    "quadratic_fade": {
+                      "type": "number"
+                    },
+                    "range": {
+                      "type": "number"
+                    }
+                  },
+                  "required": [
+                    "brightness",
+                    "color",
+                    "position_y",
+                    "quadratic_fade",
+                    "range"
+                  ],
+                  "additionalProperties": false
+                },
+                "rim": {
+                  "type": "object",
+                  "properties": {
+                    "angle_x": {
+                      "type": "number"
+                    },
+                    "angle_y": {
+                      "type": "number"
+                    },
+                    "angle_z": {
+                      "type": "number"
+                    },
+                    "brightness": {
+                      "type": "number"
+                    },
+                    "color": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "angle_x",
+                    "angle_y",
+                    "angle_z",
+                    "brightness",
+                    "color"
+                  ],
+                  "additionalProperties": false
+                },
+                "spot": {
+                  "type": "object",
+                  "properties": {
+                    "angle_x": {
+                      "type": "number"
+                    },
+                    "angle_y": {
+                      "type": "number"
+                    },
+                    "angle_z": {
+                      "type": "number"
+                    },
+                    "brightness": {
+                      "type": "number"
+                    },
+                    "color": {
+                      "type": "string"
+                    },
+                    "cone_angle": {
+                      "type": "number"
+                    },
+                    "inner_cone_angle": {
+                      "type": "number"
+                    },
+                    "position_x": {
+                      "type": "number"
+                    },
+                    "position_y": {
+                      "type": "number"
+                    },
+                    "position_z": {
+                      "type": "number"
+                    },
+                    "range": {
+                      "type": "number"
+                    }
+                  },
+                  "required": [
+                    "angle_x",
+                    "angle_y",
+                    "angle_z",
+                    "brightness",
+                    "color",
+                    "cone_angle",
+                    "inner_cone_angle",
+                    "position_x",
+                    "position_y",
+                    "position_z",
+                    "range"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "required": [
+                "fill",
+                "key",
+                "point",
+                "rim",
+                "spot"
+              ],
+              "additionalProperties": false
+            },
+            "materials": {
+              "type": "object",
+              "properties": {
+                "cylinder": {
+                  "type": "object",
+                  "properties": {
+                    "alpha_cutoff": {
+                      "type": "number"
+                    },
+                    "alpha_mode": {
+                      "type": "string"
+                    },
+                    "attenuation_color": {
+                      "type": "string"
+                    },
+                    "attenuation_distance": {
+                      "type": "number"
+                    },
+                    "base_color": {
+                      "type": "string"
+                    },
+                    "clearcoat": {
+                      "type": "number"
+                    },
+                    "clearcoat_roughness": {
+                      "type": "number"
+                    },
+                    "emissive_color": {
+                      "type": "string"
+                    },
+                    "emissive_intensity": {
+                      "type": "number"
+                    },
+                    "id": {
+                      "type": "string"
+                    },
+                    "ior": {
+                      "type": "number"
+                    },
+                    "metalness": {
+                      "type": "number"
+                    },
+                    "normal_strength": {
+                      "type": "number"
+                    },
+                    "occlusion_amount": {
+                      "type": "number"
+                    },
+                    "opacity": {
+                      "type": "number"
+                    },
+                    "roughness": {
+                      "type": "number"
+                    },
+                    "specular": {
+                      "type": "number"
+                    },
+                    "specular_tint": {
+                      "type": "string"
+                    },
+                    "thickness": {
+                      "type": "number"
+                    },
+                    "transmission": {
+                      "type": "number"
+                    }
+                  },
+                  "required": [
+                    "alpha_cutoff",
+                    "alpha_mode",
+                    "attenuation_color",
+                    "attenuation_distance",
+                    "base_color",
+                    "clearcoat",
+                    "clearcoat_roughness",
+                    "emissive_color",
+                    "emissive_intensity",
+                    "id",
+                    "ior",
+                    "metalness",
+                    "normal_strength",
+                    "occlusion_amount",
+                    "opacity",
+                    "roughness",
+                    "specular",
+                    "specular_tint",
+                    "thickness",
+                    "transmission"
+                  ],
+                  "additionalProperties": false
+                },
+                "frame": {
+                  "type": "object",
+                  "properties": {
+                    "alpha_cutoff": {
+                      "type": "number"
+                    },
+                    "alpha_mode": {
+                      "type": "string"
+                    },
+                    "attenuation_color": {
+                      "type": "string"
+                    },
+                    "attenuation_distance": {
+                      "type": "number"
+                    },
+                    "base_color": {
+                      "type": "string"
+                    },
+                    "clearcoat": {
+                      "type": "number"
+                    },
+                    "clearcoat_roughness": {
+                      "type": "number"
+                    },
+                    "emissive_color": {
+                      "type": "string"
+                    },
+                    "emissive_intensity": {
+                      "type": "number"
+                    },
+                    "id": {
+                      "type": "string"
+                    },
+                    "ior": {
+                      "type": "number"
+                    },
+                    "metalness": {
+                      "type": "number"
+                    },
+                    "normal_strength": {
+                      "type": "number"
+                    },
+                    "occlusion_amount": {
+                      "type": "number"
+                    },
+                    "opacity": {
+                      "type": "number"
+                    },
+                    "roughness": {
+                      "type": "number"
+                    },
+                    "specular": {
+                      "type": "number"
+                    },
+                    "specular_tint": {
+                      "type": "string"
+                    },
+                    "thickness": {
+                      "type": "number"
+                    },
+                    "transmission": {
+                      "type": "number"
+                    }
+                  },
+                  "required": [
+                    "alpha_cutoff",
+                    "alpha_mode",
+                    "attenuation_color",
+                    "attenuation_distance",
+                    "base_color",
+                    "clearcoat",
+                    "clearcoat_roughness",
+                    "emissive_color",
+                    "emissive_intensity",
+                    "id",
+                    "ior",
+                    "metalness",
+                    "normal_strength",
+                    "occlusion_amount",
+                    "opacity",
+                    "roughness",
+                    "specular",
+                    "specular_tint",
+                    "thickness",
+                    "transmission"
+                  ],
+                  "additionalProperties": false
+                },
+                "joint_arm": {
+                  "type": "object",
+                  "properties": {
+                    "alpha_cutoff": {
+                      "type": "number"
+                    },
+                    "alpha_mode": {
+                      "type": "string"
+                    },
+                    "attenuation_color": {
+                      "type": "string"
+                    },
+                    "attenuation_distance": {
+                      "type": "number"
+                    },
+                    "base_color": {
+                      "type": "string"
+                    },
+                    "clearcoat": {
+                      "type": "number"
+                    },
+                    "clearcoat_roughness": {
+                      "type": "number"
+                    },
+                    "emissive_color": {
+                      "type": "string"
+                    },
+                    "emissive_intensity": {
+                      "type": "number"
+                    },
+                    "id": {
+                      "type": "string"
+                    },
+                    "ior": {
+                      "type": "number"
+                    },
+                    "metalness": {
+                      "type": "number"
+                    },
+                    "normal_strength": {
+                      "type": "number"
+                    },
+                    "occlusion_amount": {
+                      "type": "number"
+                    },
+                    "opacity": {
+                      "type": "number"
+                    },
+                    "roughness": {
+                      "type": "number"
+                    },
+                    "specular": {
+                      "type": "number"
+                    },
+                    "specular_tint": {
+                      "type": "string"
+                    },
+                    "thickness": {
+                      "type": "number"
+                    },
+                    "transmission": {
+                      "type": "number"
+                    }
+                  },
+                  "required": [
+                    "alpha_cutoff",
+                    "alpha_mode",
+                    "attenuation_color",
+                    "attenuation_distance",
+                    "base_color",
+                    "clearcoat",
+                    "clearcoat_roughness",
+                    "emissive_color",
+                    "emissive_intensity",
+                    "id",
+                    "ior",
+                    "metalness",
+                    "normal_strength",
+                    "occlusion_amount",
+                    "opacity",
+                    "roughness",
+                    "specular",
+                    "specular_tint",
+                    "thickness",
+                    "transmission"
+                  ],
+                  "additionalProperties": false
+                },
+                "joint_rod": {
+                  "type": "object",
+                  "properties": {
+                    "alpha_cutoff": {
+                      "type": "number"
+                    },
+                    "alpha_mode": {
+                      "type": "string"
+                    },
+                    "attenuation_color": {
+                      "type": "string"
+                    },
+                    "attenuation_distance": {
+                      "type": "number"
+                    },
+                    "base_color": {
+                      "type": "string"
+                    },
+                    "clearcoat": {
+                      "type": "number"
+                    },
+                    "clearcoat_roughness": {
+                      "type": "number"
+                    },
+                    "emissive_color": {
+                      "type": "string"
+                    },
+                    "emissive_intensity": {
+                      "type": "number"
+                    },
+                    "id": {
+                      "type": "string"
+                    },
+                    "ior": {
+                      "type": "number"
+                    },
+                    "metalness": {
+                      "type": "number"
+                    },
+                    "normal_strength": {
+                      "type": "number"
+                    },
+                    "occlusion_amount": {
+                      "type": "number"
+                    },
+                    "opacity": {
+                      "type": "number"
+                    },
+                    "roughness": {
+                      "type": "number"
+                    },
+                    "specular": {
+                      "type": "number"
+                    },
+                    "specular_tint": {
+                      "type": "string"
+                    },
+                    "thickness": {
+                      "type": "number"
+                    },
+                    "transmission": {
+                      "type": "number"
+                    }
+                  },
+                  "required": [
+                    "alpha_cutoff",
+                    "alpha_mode",
+                    "attenuation_color",
+                    "attenuation_distance",
+                    "base_color",
+                    "clearcoat",
+                    "clearcoat_roughness",
+                    "emissive_color",
+                    "emissive_intensity",
+                    "id",
+                    "ior",
+                    "metalness",
+                    "normal_strength",
+                    "occlusion_amount",
+                    "opacity",
+                    "roughness",
+                    "specular",
+                    "specular_tint",
+                    "thickness",
+                    "transmission"
+                  ],
+                  "additionalProperties": false
+                },
+                "joint_tail": {
+                  "type": "object",
+                  "properties": {
+                    "alpha_cutoff": {
+                      "type": "number"
+                    },
+                    "alpha_mode": {
+                      "type": "string"
+                    },
+                    "attenuation_color": {
+                      "type": "string"
+                    },
+                    "attenuation_distance": {
+                      "type": "number"
+                    },
+                    "base_color": {
+                      "type": "string"
+                    },
+                    "clearcoat": {
+                      "type": "number"
+                    },
+                    "clearcoat_roughness": {
+                      "type": "number"
+                    },
+                    "emissive_color": {
+                      "type": "string"
+                    },
+                    "emissive_intensity": {
+                      "type": "number"
+                    },
+                    "id": {
+                      "type": "string"
+                    },
+                    "ior": {
+                      "type": "number"
+                    },
+                    "metalness": {
+                      "type": "number"
+                    },
+                    "normal_strength": {
+                      "type": "number"
+                    },
+                    "occlusion_amount": {
+                      "type": "number"
+                    },
+                    "opacity": {
+                      "type": "number"
+                    },
+                    "roughness": {
+                      "type": "number"
+                    },
+                    "specular": {
+                      "type": "number"
+                    },
+                    "specular_tint": {
+                      "type": "string"
+                    },
+                    "thickness": {
+                      "type": "number"
+                    },
+                    "transmission": {
+                      "type": "number"
+                    }
+                  },
+                  "required": [
+                    "alpha_cutoff",
+                    "alpha_mode",
+                    "attenuation_color",
+                    "attenuation_distance",
+                    "base_color",
+                    "clearcoat",
+                    "clearcoat_roughness",
+                    "emissive_color",
+                    "emissive_intensity",
+                    "id",
+                    "ior",
+                    "metalness",
+                    "normal_strength",
+                    "occlusion_amount",
+                    "opacity",
+                    "roughness",
+                    "specular",
+                    "specular_tint",
+                    "thickness",
+                    "transmission"
+                  ],
+                  "additionalProperties": false
+                },
+                "lever": {
+                  "type": "object",
+                  "properties": {
+                    "alpha_cutoff": {
+                      "type": "number"
+                    },
+                    "alpha_mode": {
+                      "type": "string"
+                    },
+                    "attenuation_color": {
+                      "type": "string"
+                    },
+                    "attenuation_distance": {
+                      "type": "number"
+                    },
+                    "base_color": {
+                      "type": "string"
+                    },
+                    "clearcoat": {
+                      "type": "number"
+                    },
+                    "clearcoat_roughness": {
+                      "type": "number"
+                    },
+                    "emissive_color": {
+                      "type": "string"
+                    },
+                    "emissive_intensity": {
+                      "type": "number"
+                    },
+                    "id": {
+                      "type": "string"
+                    },
+                    "ior": {
+                      "type": "number"
+                    },
+                    "metalness": {
+                      "type": "number"
+                    },
+                    "normal_strength": {
+                      "type": "number"
+                    },
+                    "occlusion_amount": {
+                      "type": "number"
+                    },
+                    "opacity": {
+                      "type": "number"
+                    },
+                    "roughness": {
+                      "type": "number"
+                    },
+                    "specular": {
+                      "type": "number"
+                    },
+                    "specular_tint": {
+                      "type": "string"
+                    },
+                    "thickness": {
+                      "type": "number"
+                    },
+                    "transmission": {
+                      "type": "number"
+                    }
+                  },
+                  "required": [
+                    "alpha_cutoff",
+                    "alpha_mode",
+                    "attenuation_color",
+                    "attenuation_distance",
+                    "base_color",
+                    "clearcoat",
+                    "clearcoat_roughness",
+                    "emissive_color",
+                    "emissive_intensity",
+                    "id",
+                    "ior",
+                    "metalness",
+                    "normal_strength",
+                    "occlusion_amount",
+                    "opacity",
+                    "roughness",
+                    "specular",
+                    "specular_tint",
+                    "thickness",
+                    "transmission"
+                  ],
+                  "additionalProperties": false
+                },
+                "piston_body": {
+                  "type": "object",
+                  "properties": {
+                    "alpha_cutoff": {
+                      "type": "number"
+                    },
+                    "alpha_mode": {
+                      "type": "string"
+                    },
+                    "attenuation_color": {
+                      "type": "string"
+                    },
+                    "attenuation_distance": {
+                      "type": "number"
+                    },
+                    "base_color": {
+                      "type": "string"
+                    },
+                    "clearcoat": {
+                      "type": "number"
+                    },
+                    "clearcoat_roughness": {
+                      "type": "number"
+                    },
+                    "emissive_color": {
+                      "type": "string"
+                    },
+                    "emissive_intensity": {
+                      "type": "number"
+                    },
+                    "id": {
+                      "type": "string"
+                    },
+                    "ior": {
+                      "type": "number"
+                    },
+                    "metalness": {
+                      "type": "number"
+                    },
+                    "normal_strength": {
+                      "type": "number"
+                    },
+                    "occlusion_amount": {
+                      "type": "number"
+                    },
+                    "opacity": {
+                      "type": "number"
+                    },
+                    "roughness": {
+                      "type": "number"
+                    },
+                    "specular": {
+                      "type": "number"
+                    },
+                    "specular_tint": {
+                      "type": "string"
+                    },
+                    "thickness": {
+                      "type": "number"
+                    },
+                    "transmission": {
+                      "type": "number"
+                    }
+                  },
+                  "required": [
+                    "alpha_cutoff",
+                    "alpha_mode",
+                    "attenuation_color",
+                    "attenuation_distance",
+                    "base_color",
+                    "clearcoat",
+                    "clearcoat_roughness",
+                    "emissive_color",
+                    "emissive_intensity",
+                    "id",
+                    "ior",
+                    "metalness",
+                    "normal_strength",
+                    "occlusion_amount",
+                    "opacity",
+                    "roughness",
+                    "specular",
+                    "specular_tint",
+                    "thickness",
+                    "transmission"
+                  ],
+                  "additionalProperties": false
+                },
+                "piston_rod": {
+                  "type": "object",
+                  "properties": {
+                    "alpha_cutoff": {
+                      "type": "number"
+                    },
+                    "alpha_mode": {
+                      "type": "string"
+                    },
+                    "attenuation_color": {
+                      "type": "string"
+                    },
+                    "attenuation_distance": {
+                      "type": "number"
+                    },
+                    "base_color": {
+                      "type": "string"
+                    },
+                    "clearcoat": {
+                      "type": "number"
+                    },
+                    "clearcoat_roughness": {
+                      "type": "number"
+                    },
+                    "emissive_color": {
+                      "type": "string"
+                    },
+                    "emissive_intensity": {
+                      "type": "number"
+                    },
+                    "id": {
+                      "type": "string"
+                    },
+                    "ior": {
+                      "type": "number"
+                    },
+                    "metalness": {
+                      "type": "number"
+                    },
+                    "normal_strength": {
+                      "type": "number"
+                    },
+                    "occlusion_amount": {
+                      "type": "number"
+                    },
+                    "opacity": {
+                      "type": "number"
+                    },
+                    "roughness": {
+                      "type": "number"
+                    },
+                    "specular": {
+                      "type": "number"
+                    },
+                    "specular_tint": {
+                      "type": "string"
+                    },
+                    "thickness": {
+                      "type": "number"
+                    },
+                    "transmission": {
+                      "type": "number"
+                    }
+                  },
+                  "required": [
+                    "alpha_cutoff",
+                    "alpha_mode",
+                    "attenuation_color",
+                    "attenuation_distance",
+                    "base_color",
+                    "clearcoat",
+                    "clearcoat_roughness",
+                    "emissive_color",
+                    "emissive_intensity",
+                    "id",
+                    "ior",
+                    "metalness",
+                    "normal_strength",
+                    "occlusion_amount",
+                    "opacity",
+                    "roughness",
+                    "specular",
+                    "specular_tint",
+                    "thickness",
+                    "transmission"
+                  ],
+                  "additionalProperties": false
+                },
+                "tail": {
+                  "type": "object",
+                  "properties": {
+                    "alpha_cutoff": {
+                      "type": "number"
+                    },
+                    "alpha_mode": {
+                      "type": "string"
+                    },
+                    "attenuation_color": {
+                      "type": "string"
+                    },
+                    "attenuation_distance": {
+                      "type": "number"
+                    },
+                    "base_color": {
+                      "type": "string"
+                    },
+                    "clearcoat": {
+                      "type": "number"
+                    },
+                    "clearcoat_roughness": {
+                      "type": "number"
+                    },
+                    "emissive_color": {
+                      "type": "string"
+                    },
+                    "emissive_intensity": {
+                      "type": "number"
+                    },
+                    "id": {
+                      "type": "string"
+                    },
+                    "ior": {
+                      "type": "number"
+                    },
+                    "metalness": {
+                      "type": "number"
+                    },
+                    "normal_strength": {
+                      "type": "number"
+                    },
+                    "occlusion_amount": {
+                      "type": "number"
+                    },
+                    "opacity": {
+                      "type": "number"
+                    },
+                    "roughness": {
+                      "type": "number"
+                    },
+                    "specular": {
+                      "type": "number"
+                    },
+                    "specular_tint": {
+                      "type": "string"
+                    },
+                    "thickness": {
+                      "type": "number"
+                    },
+                    "transmission": {
+                      "type": "number"
+                    }
+                  },
+                  "required": [
+                    "alpha_cutoff",
+                    "alpha_mode",
+                    "attenuation_color",
+                    "attenuation_distance",
+                    "base_color",
+                    "clearcoat",
+                    "clearcoat_roughness",
+                    "emissive_color",
+                    "emissive_intensity",
+                    "id",
+                    "ior",
+                    "metalness",
+                    "normal_strength",
+                    "occlusion_amount",
+                    "opacity",
+                    "roughness",
+                    "specular",
+                    "specular_tint",
+                    "thickness",
+                    "transmission"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "required": [
+                "cylinder",
+                "frame",
+                "joint_arm",
+                "joint_rod",
+                "joint_tail",
+                "lever",
+                "piston_body",
+                "piston_rod",
+                "tail"
+              ],
+              "additionalProperties": false
+            },
+            "quality": {
+              "type": "object",
+              "properties": {
+                "antialiasing": {
+                  "type": "object",
+                  "properties": {
+                    "post": {
+                      "type": "string"
+                    },
+                    "primary": {
+                      "type": "string"
+                    },
+                    "quality": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "post",
+                    "primary",
+                    "quality"
+                  ],
+                  "additionalProperties": false
+                },
+                "dithering": {
+                  "type": "boolean"
+                },
+                "frame_rate_limit": {
+                  "type": "number"
+                },
+                "fxaa_enabled": {
+                  "type": "boolean"
+                },
+                "mesh": {
+                  "type": "object",
+                  "properties": {
+                    "cylinder_rings": {
+                      "type": "number"
+                    },
+                    "cylinder_segments": {
+                      "type": "number"
+                    }
+                  },
+                  "required": [
+                    "cylinder_rings",
+                    "cylinder_segments"
+                  ],
+                  "additionalProperties": false
+                },
+                "oit": {
+                  "type": "string"
+                },
+                "preset": {
+                  "type": "string"
+                },
+                "render_policy": {
+                  "type": "string"
+                },
+                "render_scale": {
+                  "type": "number"
+                },
+                "shadows": {
+                  "type": "object",
+                  "properties": {
+                    "bias": {
+                      "type": "number"
+                    },
+                    "darkness": {
+                      "type": "number"
+                    },
+                    "enabled": {
+                      "type": "boolean"
+                    },
+                    "filter": {
+                      "type": "number"
+                    },
+                    "resolution": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "bias",
+                    "darkness",
+                    "enabled",
+                    "filter",
+                    "resolution"
+                  ],
+                  "additionalProperties": false
+                },
+                "specular_aa": {
+                  "type": "boolean"
+                },
+                "taa_enabled": {
+                  "type": "boolean"
+                },
+                "taa_motion_adaptive": {
+                  "type": "boolean"
+                },
+                "taa_strength": {
+                  "type": "number"
+                }
+              },
+              "required": [
+                "antialiasing",
+                "dithering",
+                "frame_rate_limit",
+                "fxaa_enabled",
+                "mesh",
+                "oit",
+                "preset",
+                "render_policy",
+                "render_scale",
+                "shadows",
+                "specular_aa",
+                "taa_enabled",
+                "taa_motion_adaptive",
+                "taa_strength"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "required": [
+            "camera",
+            "effects",
+            "environment",
+            "lighting",
+            "materials",
+            "quality"
+          ],
+          "additionalProperties": false
+        },
+        "modes": {
+          "type": "object",
+          "properties": {
+            "amplitude": {
+              "type": "number"
+            },
+            "frequency": {
+              "type": "number"
+            },
+            "lf_phase": {
+              "type": "number"
+            },
+            "lr_phase": {
+              "type": "number"
+            },
+            "mode_preset": {
+              "type": "string"
+            },
+            "phase": {
+              "type": "number"
+            },
+            "physics": {
+              "type": "object",
+              "properties": {
+                "include_dampers": {
+                  "type": "boolean"
+                },
+                "include_pneumatics": {
+                  "type": "boolean"
+                },
+                "include_springs": {
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "include_dampers",
+                "include_pneumatics",
+                "include_springs"
+              ],
+              "additionalProperties": false
+            },
+            "rf_phase": {
+              "type": "number"
+            },
+            "rr_phase": {
+              "type": "number"
+            },
+            "sim_type": {
+              "type": "string"
+            },
+            "thermo_mode": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "amplitude",
+            "frequency",
+            "lf_phase",
+            "lr_phase",
+            "mode_preset",
+            "phase",
+            "physics",
+            "rf_phase",
+            "rr_phase",
+            "sim_type",
+            "thermo_mode"
+          ],
+          "additionalProperties": false
+        },
+        "physics": {
+          "type": "object",
+          "properties": {
+            "suspension": {
+              "type": "object",
+              "properties": {
+                "damper_coefficient": {
+                  "type": "number"
+                },
+                "spring_constant": {
+                  "type": "number"
+                }
+              },
+              "required": [
+                "damper_coefficient",
+                "spring_constant"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "required": [
+            "suspension"
+          ],
+          "additionalProperties": false
+        },
+        "pneumatic": {
+          "type": "object",
+          "properties": {
+            "atmo_temp": {
+              "type": "number"
+            },
+            "cv_atmo_dia": {
+              "type": "number"
+            },
+            "cv_atmo_dp": {
+              "type": "number"
+            },
+            "cv_tank_dia": {
+              "type": "number"
+            },
+            "cv_tank_dp": {
+              "type": "number"
+            },
+            "link_rod_dia": {
+              "type": "boolean"
+            },
+            "master_isolation_open": {
+              "type": "boolean"
+            },
+            "pressure_units": {
+              "type": "string"
+            },
+            "receiver_diameter": {
+              "type": "number"
+            },
+            "receiver_length": {
+              "type": "number"
+            },
+            "receiver_volume": {
+              "type": "number"
+            },
+            "receiver_volume_limits": {
+              "type": "object",
+              "properties": {
+                "max_m3": {
+                  "type": "number"
+                },
+                "min_m3": {
+                  "type": "number"
+                }
+              },
+              "required": [
+                "max_m3",
+                "min_m3"
+              ],
+              "additionalProperties": false
+            },
+            "relief_min_pressure": {
+              "type": "number"
+            },
+            "relief_safety_pressure": {
+              "type": "number"
+            },
+            "relief_stiff_pressure": {
+              "type": "number"
+            },
+            "thermo_mode": {
+              "type": "string"
+            },
+            "throttle_min_dia": {
+              "type": "number"
+            },
+            "throttle_stiff_dia": {
+              "type": "number"
+            },
+            "volume_mode": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "atmo_temp",
+            "cv_atmo_dia",
+            "cv_atmo_dp",
+            "cv_tank_dia",
+            "cv_tank_dp",
+            "link_rod_dia",
+            "master_isolation_open",
+            "pressure_units",
+            "receiver_diameter",
+            "receiver_length",
+            "receiver_volume",
+            "receiver_volume_limits",
+            "relief_min_pressure",
+            "relief_safety_pressure",
+            "relief_stiff_pressure",
+            "thermo_mode",
+            "throttle_min_dia",
+            "throttle_stiff_dia",
+            "volume_mode"
+          ],
+          "additionalProperties": false
+        },
+        "quality_presets": {
+          "type": "object",
+          "properties": {
+            "high": {
+              "type": "object",
+              "properties": {
+                "antialiasing": {
+                  "type": "object",
+                  "properties": {
+                    "post": {
+                      "type": "string"
+                    },
+                    "primary": {
+                      "type": "string"
+                    },
+                    "quality": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "post",
+                    "primary",
+                    "quality"
+                  ],
+                  "additionalProperties": false
+                },
+                "dithering": {
+                  "type": "boolean"
+                },
+                "frame_rate_limit": {
+                  "type": "number"
+                },
+                "fxaa_enabled": {
+                  "type": "boolean"
+                },
+                "oit": {
+                  "type": "string"
+                },
+                "render_policy": {
+                  "type": "string"
+                },
+                "render_scale": {
+                  "type": "number"
+                },
+                "shadows": {
+                  "type": "object",
+                  "properties": {
+                    "bias": {
+                      "type": "number"
+                    },
+                    "darkness": {
+                      "type": "number"
+                    },
+                    "enabled": {
+                      "type": "boolean"
+                    },
+                    "filter": {
+                      "type": "number"
+                    },
+                    "resolution": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "bias",
+                    "darkness",
+                    "enabled",
+                    "filter",
+                    "resolution"
+                  ],
+                  "additionalProperties": false
+                },
+                "specular_aa": {
+                  "type": "boolean"
+                },
+                "taa_enabled": {
+                  "type": "boolean"
+                },
+                "taa_motion_adaptive": {
+                  "type": "boolean"
+                },
+                "taa_strength": {
+                  "type": "number"
+                }
+              },
+              "required": [
+                "antialiasing",
+                "dithering",
+                "frame_rate_limit",
+                "fxaa_enabled",
+                "oit",
+                "render_policy",
+                "render_scale",
+                "shadows",
+                "specular_aa",
+                "taa_enabled",
+                "taa_motion_adaptive",
+                "taa_strength"
+              ],
+              "additionalProperties": false
+            },
+            "low": {
+              "type": "object",
+              "properties": {
+                "antialiasing": {
+                  "type": "object",
+                  "properties": {
+                    "post": {
+                      "type": "string"
+                    },
+                    "primary": {
+                      "type": "string"
+                    },
+                    "quality": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "post",
+                    "primary",
+                    "quality"
+                  ],
+                  "additionalProperties": false
+                },
+                "dithering": {
+                  "type": "boolean"
+                },
+                "frame_rate_limit": {
+                  "type": "number"
+                },
+                "fxaa_enabled": {
+                  "type": "boolean"
+                },
+                "oit": {
+                  "type": "string"
+                },
+                "render_policy": {
+                  "type": "string"
+                },
+                "render_scale": {
+                  "type": "number"
+                },
+                "shadows": {
+                  "type": "object",
+                  "properties": {
+                    "bias": {
+                      "type": "number"
+                    },
+                    "darkness": {
+                      "type": "number"
+                    },
+                    "enabled": {
+                      "type": "boolean"
+                    },
+                    "filter": {
+                      "type": "number"
+                    },
+                    "resolution": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "bias",
+                    "darkness",
+                    "enabled",
+                    "filter",
+                    "resolution"
+                  ],
+                  "additionalProperties": false
+                },
+                "specular_aa": {
+                  "type": "boolean"
+                },
+                "taa_enabled": {
+                  "type": "boolean"
+                },
+                "taa_motion_adaptive": {
+                  "type": "boolean"
+                },
+                "taa_strength": {
+                  "type": "number"
+                }
+              },
+              "required": [
+                "antialiasing",
+                "dithering",
+                "frame_rate_limit",
+                "fxaa_enabled",
+                "oit",
+                "render_policy",
+                "render_scale",
+                "shadows",
+                "specular_aa",
+                "taa_enabled",
+                "taa_motion_adaptive",
+                "taa_strength"
+              ],
+              "additionalProperties": false
+            },
+            "medium": {
+              "type": "object",
+              "properties": {
+                "antialiasing": {
+                  "type": "object",
+                  "properties": {
+                    "post": {
+                      "type": "string"
+                    },
+                    "primary": {
+                      "type": "string"
+                    },
+                    "quality": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "post",
+                    "primary",
+                    "quality"
+                  ],
+                  "additionalProperties": false
+                },
+                "dithering": {
+                  "type": "boolean"
+                },
+                "frame_rate_limit": {
+                  "type": "number"
+                },
+                "fxaa_enabled": {
+                  "type": "boolean"
+                },
+                "oit": {
+                  "type": "string"
+                },
+                "render_policy": {
+                  "type": "string"
+                },
+                "render_scale": {
+                  "type": "number"
+                },
+                "shadows": {
+                  "type": "object",
+                  "properties": {
+                    "bias": {
+                      "type": "number"
+                    },
+                    "darkness": {
+                      "type": "number"
+                    },
+                    "enabled": {
+                      "type": "boolean"
+                    },
+                    "filter": {
+                      "type": "number"
+                    },
+                    "resolution": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "bias",
+                    "darkness",
+                    "enabled",
+                    "filter",
+                    "resolution"
+                  ],
+                  "additionalProperties": false
+                },
+                "specular_aa": {
+                  "type": "boolean"
+                },
+                "taa_enabled": {
+                  "type": "boolean"
+                },
+                "taa_motion_adaptive": {
+                  "type": "boolean"
+                },
+                "taa_strength": {
+                  "type": "number"
+                }
+              },
+              "required": [
+                "antialiasing",
+                "dithering",
+                "frame_rate_limit",
+                "fxaa_enabled",
+                "oit",
+                "render_policy",
+                "render_scale",
+                "shadows",
+                "specular_aa",
+                "taa_enabled",
+                "taa_motion_adaptive",
+                "taa_strength"
+              ],
+              "additionalProperties": false
+            },
+            "ultra": {
+              "type": "object",
+              "properties": {
+                "antialiasing": {
+                  "type": "object",
+                  "properties": {
+                    "post": {
+                      "type": "string"
+                    },
+                    "primary": {
+                      "type": "string"
+                    },
+                    "quality": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "post",
+                    "primary",
+                    "quality"
+                  ],
+                  "additionalProperties": false
+                },
+                "dithering": {
+                  "type": "boolean"
+                },
+                "frame_rate_limit": {
+                  "type": "number"
+                },
+                "fxaa_enabled": {
+                  "type": "boolean"
+                },
+                "oit": {
+                  "type": "string"
+                },
+                "render_policy": {
+                  "type": "string"
+                },
+                "render_scale": {
+                  "type": "number"
+                },
+                "shadows": {
+                  "type": "object",
+                  "properties": {
+                    "bias": {
+                      "type": "number"
+                    },
+                    "darkness": {
+                      "type": "number"
+                    },
+                    "enabled": {
+                      "type": "boolean"
+                    },
+                    "filter": {
+                      "type": "number"
+                    },
+                    "resolution": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "bias",
+                    "darkness",
+                    "enabled",
+                    "filter",
+                    "resolution"
+                  ],
+                  "additionalProperties": false
+                },
+                "specular_aa": {
+                  "type": "boolean"
+                },
+                "taa_enabled": {
+                  "type": "boolean"
+                },
+                "taa_motion_adaptive": {
+                  "type": "boolean"
+                },
+                "taa_strength": {
+                  "type": "number"
+                }
+              },
+              "required": [
+                "antialiasing",
+                "dithering",
+                "frame_rate_limit",
+                "fxaa_enabled",
+                "oit",
+                "render_policy",
+                "render_scale",
+                "shadows",
+                "specular_aa",
+                "taa_enabled",
+                "taa_motion_adaptive",
+                "taa_strength"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "required": [
+            "high",
+            "low",
+            "medium",
+            "ultra"
+          ],
+          "additionalProperties": false
+        },
+        "simulation": {
+          "type": "object",
+          "properties": {
+            "max_frame_time": {
+              "type": "number"
+            },
+            "max_steps_per_frame": {
+              "type": "number"
+            },
+            "physics_dt": {
+              "type": "number"
+            },
+            "render_vsync_hz": {
+              "type": "number"
+            }
+          },
+          "required": [
+            "max_frame_time",
+            "max_steps_per_frame",
+            "physics_dt",
+            "render_vsync_hz"
+          ],
+          "additionalProperties": false
+        },
+        "system": {
+          "type": "object",
+          "properties": {
+            "dependencies": {
+              "type": "object",
+              "properties": {
+                "egl_runtime": {
+                  "type": "object",
+                  "properties": {
+                    "description": {
+                      "type": "string"
+                    },
+                    "missing_message": {
+                      "type": "string"
+                    },
+                    "variants": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "error_markers": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          },
+                          "human_name": {
+                            "type": "string"
+                          },
+                          "id": {
+                            "type": "string"
+                          },
+                          "install_command": {
+                            "type": "string"
+                          },
+                          "install_hint": {
+                            "type": "string"
+                          },
+                          "library_name": {
+                            "type": "string"
+                          },
+                          "packages": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          },
+                          "platform_prefixes": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          }
+                        },
+                        "required": [
+                          "error_markers",
+                          "human_name",
+                          "id",
+                          "install_command",
+                          "install_hint",
+                          "library_name",
+                          "packages",
+                          "platform_prefixes"
+                        ],
+                        "additionalProperties": false
+                      }
+                    }
+                  },
+                  "required": [
+                    "description",
+                    "missing_message",
+                    "variants"
+                  ],
+                  "additionalProperties": false
+                },
+                "opengl_runtime": {
+                  "type": "object",
+                  "properties": {
+                    "description": {
+                      "type": "string"
+                    },
+                    "missing_message": {
+                      "type": "string"
+                    },
+                    "variants": {
+                      "type": "array",
+                      "items": {
+                        "anyOf": [
+                          {
+                            "type": "object",
+                            "properties": {
+                              "error_markers": {
+                                "type": "array",
+                                "items": {
+                                  "type": "string"
+                                }
+                              },
+                              "human_name": {
+                                "type": "string"
+                              },
+                              "id": {
+                                "type": "string"
+                              },
+                              "install_command": {
+                                "type": "string"
+                              },
+                              "install_hint": {
+                                "type": "string"
+                              },
+                              "library_name": {
+                                "type": "string"
+                              },
+                              "packages": {
+                                "type": "array",
+                                "items": {
+                                  "type": "string"
+                                }
+                              },
+                              "platform_prefixes": {
+                                "type": "array",
+                                "items": {
+                                  "type": "string"
+                                }
+                              }
+                            },
+                            "required": [
+                              "error_markers",
+                              "human_name",
+                              "id",
+                              "install_command",
+                              "install_hint",
+                              "library_name",
+                              "packages",
+                              "platform_prefixes"
+                            ],
+                            "additionalProperties": false
+                          },
+                          {
+                            "type": "object",
+                            "properties": {
+                              "error_markers": {
+                                "type": "array",
+                                "items": {
+                                  "type": "string"
+                                }
+                              },
+                              "human_name": {
+                                "type": "string"
+                              },
+                              "id": {
+                                "type": "string"
+                              },
+                              "install_hint": {
+                                "type": "string"
+                              },
+                              "library_name": {
+                                "type": "string"
+                              },
+                              "platform_prefixes": {
+                                "type": "array",
+                                "items": {
+                                  "type": "string"
+                                }
+                              }
+                            },
+                            "required": [
+                              "error_markers",
+                              "human_name",
+                              "id",
+                              "install_hint",
+                              "library_name",
+                              "platform_prefixes"
+                            ],
+                            "additionalProperties": false
+                          }
+                        ]
+                      }
+                    }
+                  },
+                  "required": [
+                    "description",
+                    "missing_message",
+                    "variants"
+                  ],
+                  "additionalProperties": false
+                },
+                "xkb_runtime": {
+                  "type": "object",
+                  "properties": {
+                    "description": {
+                      "type": "string"
+                    },
+                    "missing_message": {
+                      "type": "string"
+                    },
+                    "variants": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "error_markers": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          },
+                          "human_name": {
+                            "type": "string"
+                          },
+                          "id": {
+                            "type": "string"
+                          },
+                          "install_command": {
+                            "type": "string"
+                          },
+                          "install_hint": {
+                            "type": "string"
+                          },
+                          "library_name": {
+                            "type": "string"
+                          },
+                          "packages": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          },
+                          "platform_prefixes": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          }
+                        },
+                        "required": [
+                          "error_markers",
+                          "human_name",
+                          "id",
+                          "install_command",
+                          "install_hint",
+                          "library_name",
+                          "packages",
+                          "platform_prefixes"
+                        ],
+                        "additionalProperties": false
+                      }
+                    }
+                  },
+                  "required": [
+                    "description",
+                    "missing_message",
+                    "variants"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "required": [
+                "egl_runtime",
+                "opengl_runtime",
+                "xkb_runtime"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "required": [
+            "dependencies"
+          ],
+          "additionalProperties": false
         }
-      }
+      },
+      "required": [
+        "constants",
+        "diagnostics",
+        "geometry",
+        "graphics",
+        "modes",
+        "physics",
+        "pneumatic",
+        "quality_presets",
+        "simulation",
+        "system"
+      ],
+      "additionalProperties": false
     }
   }
 }
