@@ -224,25 +224,8 @@ class ApplicationRunner:
             self.window_instance = None
             return
 
-        # Предпочитаем модульную рефакторенную версию, чтобы избежать конфликта имён
         try:
-            MW = None
-            try:
-                from src.ui.main_window_pkg.main_window_refactored import (  # type: ignore
-                    MainWindow as MW,
-                )
-
-                if self.app_logger:
-                    self.app_logger.info(
-                        "MainWindow: using refactored version (package module)"
-                    )
-            except Exception:
-                from src.ui.main_window import MainWindow as MW  # type: ignore
-
-                if self.app_logger:
-                    self.app_logger.warning(
-                        "MainWindow: refactored import failed, using default import"
-                    )
+            from src.ui.main_window import MainWindow as MW  # type: ignore
 
             register_qml_types()
 
