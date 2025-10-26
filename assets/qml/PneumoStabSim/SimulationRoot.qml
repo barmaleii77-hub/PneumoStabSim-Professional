@@ -1120,7 +1120,7 @@ Item {
  if (params.iblRotationDeg !== undefined) setIfExists(sceneEnvCtl, 'iblRotationDeg', Number(params.iblRotationDeg));
  if (params.iblPrimary || params.hdrSource || params.iblSource) { var src = params.iblPrimary || params.hdrSource || params.iblSource; if (typeof window !== 'undefined' && window && typeof window.normalizeHdrPath === 'function') { try { src = window.normalizeHdrPath(String(src)); } catch(e) { console.warn("HDR path normalization failed:", e); } } setIfExists(iblLoader, 'primarySource', src); }
  if (params.iblFallback) setIfExists(iblLoader, 'fallbackSource', params.iblFallback);
- if (params.tonemapEnabled !== undefined) setIfExists(sceneEnvCtl, 'tonemapEnabled', !!params.tonemapEnabled);
+ if (params.tonemapEnabled !== undefined) setIfExists(sceneEnvCtl, 'tonemapActive', !!params.tonemapEnabled);
  if (params.tonemapModeName) setIfExists(sceneEnvCtl, 'tonemapModeName', String(params.tonemapModeName));
  if (params.tonemapExposure !== undefined) setIfExists(sceneEnvCtl, 'tonemapExposure', Number(params.tonemapExposure));
  if (params.tonemapWhitePoint !== undefined) setIfExists(sceneEnvCtl, 'tonemapWhitePoint', Number(params.tonemapWhitePoint));
@@ -1315,9 +1315,90 @@ Item {
  pistonPositions = pist; }
  }
 
- function applyRenderSettings(params) {
- if (!params) return;
- }
+    function applyRenderSettings(params) {
+        if (!params)
+            return;
+
+        if (params.environment)
+            sceneEnvCtl.applyEnvironmentPayload(params.environment);
+        if (params.effects)
+            sceneEnvCtl.applyEffectsPayload(params.effects);
+        if (params.quality)
+            applyQualityUpdates(params.quality);
+        if (params.camera)
+            applyCameraUpdates(params.camera);
+        if (params.animation)
+            applyAnimationUpdates(params.animation);
+        if (params.threeD)
+            apply3DUpdates(params.threeD);
+
+        var environmentPatch = {};
+        if (params.backgroundColor !== undefined)
+            environmentPatch.backgroundColor = params.backgroundColor;
+        if (params.tonemapModeName)
+            environmentPatch.tonemapModeName = String(params.tonemapModeName);
+        if (params.tonemapEnabled !== undefined)
+            environmentPatch.tonemapEnabled = !!params.tonemapEnabled;
+        if (params.tonemapExposure !== undefined)
+            environmentPatch.tonemapExposure = Number(params.tonemapExposure);
+        if (params.tonemapWhitePoint !== undefined)
+            environmentPatch.tonemapWhitePoint = Number(params.tonemapWhitePoint);
+        if (params.fogEnabled !== undefined)
+            environmentPatch.fogEnabled = !!params.fogEnabled;
+        if (params.fogColor)
+            environmentPatch.fogColor = params.fogColor;
+        if (params.fogNear !== undefined)
+            environmentPatch.fogNear = Number(params.fogNear);
+        if (params.fogFar !== undefined)
+            environmentPatch.fogFar = Number(params.fogFar);
+
+        if (Object.keys(environmentPatch).length)
+            sceneEnvCtl.applyEnvironmentPayload(environmentPatch);
+
+        var qualityPatch = {};
+        if (params.aaPrimaryMode)
+            qualityPatch.aaPrimaryMode = String(params.aaPrimaryMode);
+        if (params.aaQualityLevel)
+            qualityPatch.aaQualityLevel = String(params.aaQualityLevel);
+        if (params.aaPostMode)
+            qualityPatch.aaPostMode = String(params.aaPostMode);
+        if (params.taaEnabled !== undefined)
+            qualityPatch.taaEnabled = !!params.taaEnabled;
+        if (params.taaStrength !== undefined)
+            qualityPatch.taaStrength = Number(params.taaStrength);
+        if (params.taaMotionAdaptive !== undefined)
+            qualityPatch.taaMotionAdaptive = !!params.taaMotionAdaptive;
+        if (params.fxaaEnabled !== undefined)
+            qualityPatch.fxaaEnabled = !!params.fxaaEnabled;
+        if (params.specularAAEnabled !== undefined)
+            qualityPatch.specularAAEnabled = !!params.specularAAEnabled;
+        if (params.ditheringEnabled !== undefined)
+            qualityPatch.ditheringEnabled = !!params.ditheringEnabled;
+
+        if (Object.keys(qualityPatch).length)
+            applyQualityUpdates(qualityPatch);
+
+        if (params.cameraIsMoving !== undefined)
+            sceneEnvCtl.cameraIsMoving = !!params.cameraIsMoving;
+
+        var viewTargets = params.view3D || params.view3d || params.view;
+        if (viewTargets) {
+            for (var key in viewTargets) {
+                if (!viewTargets.hasOwnProperty(key))
+                    continue;
+                setIfExists(sceneView, key, viewTargets[key]);
+            }
+        }
+
+        if (params.environmentController) {
+            var envDirect = params.environmentController;
+            for (var envKey in envDirect) {
+                if (!envDirect.hasOwnProperty(envKey))
+                    continue;
+                setIfExists(sceneEnvCtl, envKey, envDirect[envKey]);
+            }
+        }
+    }
 
  function applySimulationUpdates(params) {
  if (!params) return;

@@ -37,7 +37,7 @@ def register_qml_types() -> None:
     for module_name in _QML_ELEMENT_MODULES:
         import_module(module_name)
 
-    from src.ui.main_window import qml_bridge as _qml_bridge
+    from src.ui.main_window_pkg import qml_bridge as _qml_bridge
 
     if not getattr(_qml_bridge.QMLBridge, "_scene_bridge_patched", False):
         original_push = _qml_bridge.QMLBridge._push_batched_updates

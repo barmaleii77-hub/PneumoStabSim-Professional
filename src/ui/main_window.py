@@ -1,7 +1,7 @@
-"""
-Main window for PneumoStabSim application
-Qt Quick3D rendering with QQuickWidget (no createWindowContainer)
-РУССКИЙ ИНТЕРФЕЙС (Russian UI)
+"""Main window for PneumoStabSim application.
+
+Qt Quick3D rendering with QQuickWidget (no createWindowContainer).
+РУССКИЙ ИНТЕРФЕЙС (Russian UI).
 """
 
 from PySide6.QtWidgets import (
@@ -51,7 +51,7 @@ from src.common.settings_manager import (
 )
 from src.common.signal_trace import get_signal_trace_service
 from src.ui.scene_bridge import SceneBridge
-from src.ui.main_window.qml_bridge import QMLBridge
+from src.ui.main_window_pkg.qml_bridge import QMLBridge
 from src.ui.qml_bridge import register_qml_signals
 
 

@@ -41,6 +41,7 @@ Item {
     property var lastEffects: ({})
     property var lastSimulation: ({})
     property var lastThreeD: ({})
+    property var lastRender: ({})
 
     // ------------------------------------------------------------------
     // Helper utilities
@@ -133,6 +134,10 @@ Item {
             categories.push("effects")
             applyEffectsUpdates(updates.effects)
         }
+        if (updates.render) {
+            categories.push("render")
+            applyRenderSettings(updates.render)
+        }
         if (updates.simulation) {
             categories.push("simulation")
             applySimulationUpdates(updates.simulation)
@@ -194,6 +199,23 @@ Item {
         logQmlEvent("function_called", "applyEffectsUpdates")
     }
 
+    function applyRenderSettings(params) {
+        lastRender = merge({}, params || {})
+        if (params && params.environment) {
+            applyEnvironmentUpdates(params.environment)
+        }
+        if (params && params.quality) {
+            applyQualityUpdates(params.quality)
+        }
+        if (params && params.effects) {
+            applyEffectsUpdates(params.effects)
+        }
+        if (params && params.camera) {
+            applyCameraUpdates(params.camera)
+        }
+        logQmlEvent("function_called", "applyRenderSettings")
+    }
+
     function applySimulationUpdates(params) {
         lastSimulation = merge({}, params || {})
         if (params && params.animation) {
@@ -219,6 +241,7 @@ Item {
     function updateQuality(params) { applyQualityUpdates(params) }
     function updateCamera(params) { applyCameraUpdates(params) }
     function updateEffects(params) { applyEffectsUpdates(params) }
+    function updateRender(params) { applyRenderSettings(params) }
 
     function updatePistonPositions(positions) {
         if (!positions) {

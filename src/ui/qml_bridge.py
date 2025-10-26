@@ -2,7 +2,7 @@
 
 This module is responsible for turning the declarative metadata stored in
 ``config/qml_bridge.yaml`` into runtime helpers that the rest of the
-application can consume.  It exposes three primary capabilities:
+application can consume. It exposes three primary capabilities:
 
 * ``get_bridge_metadata`` – cached access to the parsed metadata.
 * ``register_qml_signals`` – convenience helper that hooks QML signals
@@ -10,10 +10,10 @@ application can consume.  It exposes three primary capabilities:
 * ``describe_routes`` – lightweight introspection structure for diagnostics
   overlays and CLI tools.
 
-The implementation is intentionally free of Qt specific imports at module load
-so that unit tests can exercise the metadata layer without PySide6 installed.
-Qt types are only imported when ``register_qml_signals`` is executed at
-runtime.
+The implementation is intentionally free of Qt specific imports at module
+load so that unit tests can exercise the metadata layer without PySide6
+installed. Qt types are only imported when ``register_qml_signals`` is
+executed at runtime.
 """
 
 from __future__ import annotations
