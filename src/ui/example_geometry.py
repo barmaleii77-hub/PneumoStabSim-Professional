@@ -7,7 +7,7 @@ Based on official Qt documentation and examples
 
 import numpy as np
 from PySide6.QtQuick3D import QQuick3DGeometry
-from PySide6.QtCore import QByteArray, QObject, Property, QVariant
+from PySide6.QtCore import QByteArray, QObject, Property
 from PySide6.QtQml import QmlElement
 
 QML_IMPORT_NAME = "GeometryExample"
@@ -109,6 +109,6 @@ class ExampleGeometryModel(QObject):
         super().__init__(parent)
         self._geometry = ExampleTriangleGeometry()
 
-    @Property(QVariant, constant=True)
+    @Property(QQuick3DGeometry, constant=True)
     def geometry(self):
         return self._geometry
