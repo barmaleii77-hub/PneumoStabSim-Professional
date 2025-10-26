@@ -3,12 +3,13 @@
 
 from __future__ import annotations
 
+import os
 import platform
 import sys
 from ctypes import CDLL
 from ctypes.util import find_library
 from dataclasses import dataclass, field
-from typing import Iterable, List
+from typing import Iterable, List, Literal
 
 from src.bootstrap.dependency_config import (
     DependencyConfigError,
@@ -18,18 +19,27 @@ from src.bootstrap.dependency_config import (
 )
 
 
+STATUS_ICON: dict[str, str] = {"ok": "✅", "warning": "⚠️", "error": "❌"}
+STATUS_LABEL: dict[str, str] = {"ok": "OK", "warning": "WARN", "error": "ERROR"}
+
+
 @dataclass
 class CheckResult:
     """Represents a single environment check outcome."""
 
     name: str
-    status: str
+    status: Literal["ok", "warning", "error"]
     detail: str | None = None
     hint: str | None = None
 
+    def _icon(self) -> str:
+        return STATUS_ICON.get(self.status, "❔")
+
+    def _label(self) -> str:
+        return STATUS_LABEL.get(self.status, self.status.upper())
+
     def as_markdown(self) -> str:
-        icon = "✅" if self.status == "ok" else "❌"
-        lines = [f"- {icon} **{self.name}**"]
+        lines = [f"- {self._icon()} **{self.name}**"]
         if self.detail:
             lines.append(f"  - {self.detail}")
         if self.hint:
@@ -47,7 +57,7 @@ class EnvironmentReport:
 
     @property
     def is_successful(self) -> bool:
-        return all(check.status == "ok" for check in self.checks)
+        return all(check.status != "error" for check in self.checks)
 
     def to_markdown(self) -> str:
         lines = [
@@ -99,6 +109,19 @@ def _opengl_missing_detail(variant: DependencyVariant) -> str:
     return f"System library '{variant.human_name}' not found."
 
 
+def _is_headless_environment() -> bool:
+    """Return ``True`` when running without a graphical display server."""
+
+    platform_hint = os.environ.get("QT_QPA_PLATFORM", "").lower()
+    if platform_hint in {"offscreen", "minimal", "minimalgl"}:
+        return True
+
+    if os.environ.get("DISPLAY") or os.environ.get("WAYLAND_DISPLAY"):
+        return False
+
+    return sys.platform.startswith(("linux", "freebsd", "openbsd"))
+
+
 def _check_opengl_runtime() -> CheckResult:
     try:
         variant = resolve_dependency_variant("opengl_runtime")
@@ -111,20 +134,35 @@ def _check_opengl_runtime() -> CheckResult:
 
     resolved = find_library(variant.library_name)
     if not resolved:
+        severity: Literal["warning", "error"]
+        severity = "warning" if _is_headless_environment() else "error"
+        detail = _opengl_missing_detail(variant)
+        if severity == "warning":
+            detail = (
+                f"{detail} Headless environment detected; skipping strict requirement."
+            )
+        hint = (
+            variant.install_hint
+            or "Install a system OpenGL runtime (e.g. 'apt-get install -y libgl1') when running with a display server."
+        )
         return CheckResult(
             name="OpenGL runtime",
-            status="error",
-            detail=_opengl_missing_detail(variant),
-            hint=variant.install_hint,
+            status=severity,
+            detail=detail,
+            hint=hint,
         )
 
     try:
         CDLL(resolved)
     except OSError as exc:
+        severity = "warning" if _is_headless_environment() else "error"
+        detail = f"Failed to load '{resolved}': {exc}"
+        if severity == "warning":
+            detail += " (headless environment detected)"
         return CheckResult(
             name="OpenGL runtime",
-            status="error",
-            detail=f"Failed to load '{resolved}': {exc}",
+            status=severity,
+            detail=detail,
             hint=variant.install_hint,
         )
 
@@ -192,7 +230,7 @@ def render_console_report(report: EnvironmentReport) -> str:
     ]
 
     for check in report.checks:
-        status = "OK" if check.status == "ok" else "ERROR"
+        status = check._label()
         lines.append(f"[{status}] {check.name}")
         if check.detail:
             lines.append(f"    {check.detail}")
