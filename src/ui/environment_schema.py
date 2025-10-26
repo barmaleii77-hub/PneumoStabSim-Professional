@@ -77,7 +77,7 @@ def _coerce_string(defn: EnvironmentParameterDefinition, value: Any) -> Any:
         text = value.strip()
         if not text and not defn.allow_empty_string:
             raise EnvironmentValidationError(f"'{defn.key}' cannot be empty")
-    if defn.key == "background_color" and isinstance(value, str):
+    if defn.key in {"background_color", "fog_color"} and isinstance(value, str):
         text = value.strip()
         if text.startswith("#") and len(text) in {4, 7}:
             return text
@@ -96,18 +96,79 @@ def _coerce_string(defn: EnvironmentParameterDefinition, value: Any) -> Any:
 
 
 ENVIRONMENT_PARAMETERS: Tuple[EnvironmentParameterDefinition, ...] = (
-    EnvironmentParameterDefinition("ao_radius", "float", min_value=0.0, max_value=50.0),
+    EnvironmentParameterDefinition(
+        "background_mode",
+        "string",
+        allowed_values=("skybox", "color", "transparent"),
+    ),
+    EnvironmentParameterDefinition("background_color", "string"),
+    EnvironmentParameterDefinition("skybox_enabled", "bool"),
+    EnvironmentParameterDefinition("ibl_enabled", "bool"),
+    EnvironmentParameterDefinition(
+        "ibl_intensity", "float", min_value=0.0, max_value=8.0
+    ),
+    EnvironmentParameterDefinition(
+        "probe_brightness", "float", min_value=0.0, max_value=8.0
+    ),
+    EnvironmentParameterDefinition(
+        "probe_horizon", "float", min_value=-1.0, max_value=1.0
+    ),
+    EnvironmentParameterDefinition(
+        "ibl_rotation", "float", min_value=-1080.0, max_value=1080.0
+    ),
+    EnvironmentParameterDefinition("ibl_source", "string", allow_empty_string=True),
+    EnvironmentParameterDefinition("ibl_fallback", "string", allow_empty_string=True),
+    EnvironmentParameterDefinition(
+        "skybox_blur", "float", min_value=0.0, max_value=1.0
+    ),
+    EnvironmentParameterDefinition(
+        "ibl_offset_x", "float", min_value=-180.0, max_value=180.0
+    ),
+    EnvironmentParameterDefinition(
+        "ibl_offset_y", "float", min_value=-180.0, max_value=180.0
+    ),
+    EnvironmentParameterDefinition("ibl_bind_to_camera", "bool"),
+    EnvironmentParameterDefinition("fog_enabled", "bool"),
+    EnvironmentParameterDefinition("fog_color", "string"),
+    EnvironmentParameterDefinition(
+        "fog_density", "float", min_value=0.0, max_value=1.0
+    ),
     EnvironmentParameterDefinition(
         "fog_near", "float", min_value=0.0, max_value=1_000_000.0
     ),
     EnvironmentParameterDefinition(
         "fog_far", "float", min_value=0.0, max_value=1_000_000.0
     ),
+    EnvironmentParameterDefinition("fog_height_enabled", "bool"),
     EnvironmentParameterDefinition(
-        "ibl_intensity", "float", min_value=0.0, max_value=10.0
+        "fog_least_intense_y", "float", min_value=-100_000.0, max_value=100_000.0
     ),
-    EnvironmentParameterDefinition("ao_sample_rate", "int", min_value=0, max_value=128),
-    EnvironmentParameterDefinition("background_color", "string"),
+    EnvironmentParameterDefinition(
+        "fog_most_intense_y", "float", min_value=-100_000.0, max_value=100_000.0
+    ),
+    EnvironmentParameterDefinition(
+        "fog_height_curve", "float", min_value=0.0, max_value=4.0
+    ),
+    EnvironmentParameterDefinition("fog_transmit_enabled", "bool"),
+    EnvironmentParameterDefinition(
+        "fog_transmit_curve", "float", min_value=0.0, max_value=4.0
+    ),
+    EnvironmentParameterDefinition("ao_enabled", "bool"),
+    EnvironmentParameterDefinition(
+        "ao_strength", "float", min_value=0.0, max_value=100.0
+    ),
+    EnvironmentParameterDefinition("ao_radius", "float", min_value=0.0, max_value=50.0),
+    EnvironmentParameterDefinition(
+        "ao_softness", "float", min_value=0.0, max_value=50.0
+    ),
+    EnvironmentParameterDefinition("ao_dither", "bool"),
+    EnvironmentParameterDefinition(
+        "ao_sample_rate",
+        "int",
+        min_value=2,
+        max_value=4,
+        allowed_values=(2, 3, 4),
+    ),
 )
 
 SCENE_PARAMETERS: Tuple[EnvironmentParameterDefinition, ...] = (
@@ -127,12 +188,37 @@ ANIMATION_PARAMETERS: Tuple[EnvironmentParameterDefinition, ...] = (
 
 ENVIRONMENT_REQUIRED_KEYS = frozenset(defn.key for defn in ENVIRONMENT_PARAMETERS)
 ENVIRONMENT_CONTEXT_PROPERTIES: Dict[str, str] = {
-    "ao_radius": "aoRadius",
-    "fog_near": "fogNear",
-    "fog_far": "fogFar",
-    "ibl_intensity": "iblIntensity",
-    "ao_sample_rate": "aoSampleRate",
-    "background_color": "backgroundColor",
+    "background_mode": "startBackgroundMode",
+    "background_color": "startBackgroundColor",
+    "skybox_enabled": "startSkyboxEnabled",
+    "ibl_enabled": "startIblEnabled",
+    "ibl_intensity": "startIblIntensity",
+    "probe_brightness": "startProbeBrightness",
+    "probe_horizon": "startProbeHorizon",
+    "ibl_rotation": "startIblRotation",
+    "ibl_source": "startIblSource",
+    "ibl_fallback": "startIblFallback",
+    "skybox_blur": "startSkyboxBlur",
+    "ibl_offset_x": "startIblOffsetX",
+    "ibl_offset_y": "startIblOffsetY",
+    "ibl_bind_to_camera": "startIblBindToCamera",
+    "fog_enabled": "startFogEnabled",
+    "fog_color": "startFogColor",
+    "fog_density": "startFogDensity",
+    "fog_near": "startFogNear",
+    "fog_far": "startFogFar",
+    "fog_height_enabled": "startFogHeightEnabled",
+    "fog_least_intense_y": "startFogLeastY",
+    "fog_most_intense_y": "startFogMostY",
+    "fog_height_curve": "startFogHeightCurve",
+    "fog_transmit_enabled": "startFogTransmitEnabled",
+    "fog_transmit_curve": "startFogTransmitCurve",
+    "ao_enabled": "startAoEnabled",
+    "ao_strength": "startAoStrength",
+    "ao_radius": "startAoRadius",
+    "ao_softness": "startAoSoftness",
+    "ao_dither": "startAoDither",
+    "ao_sample_rate": "startAoSampleRate",
 }
 
 
