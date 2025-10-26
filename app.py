@@ -4,7 +4,6 @@ PneumoStabSim - Pneumatic Stabilizer Simulator
 Main application entry point - MODULAR VERSION v4.9.5
 """
 
-import argparse
 import sys
 from pathlib import Path
 
@@ -18,28 +17,11 @@ for candidate in _PATH_CANDIDATES:
         sys.path.insert(0, candidate)
 
 
-def _parse_bootstrap_arguments(argv: list[str]) -> tuple[argparse.Namespace, list[str]]:
-    """Parse lightweight CLI arguments required before Qt import."""
-
-    bootstrap_parser = argparse.ArgumentParser(add_help=False)
-    bootstrap_parser.add_argument(
-        "--env-check",
-        action="store_true",
-        help="Run environment diagnostics without starting the Qt application.",
-    )
-    bootstrap_parser.add_argument(
-        "--env-report",
-        nargs="?",
-        const="ENVIRONMENT_SETUP_REPORT.md",
-        metavar="PATH",
-        help="Write environment diagnostics report to PATH and exit (default: ENVIRONMENT_SETUP_REPORT.md).",
-    )
-
-    parsed, remaining = bootstrap_parser.parse_known_args(argv[1:])
-    return parsed, remaining
+from src.cli.arguments import create_bootstrap_parser
 
 
-bootstrap_args, remaining_argv = _parse_bootstrap_arguments(sys.argv)
+bootstrap_parser = create_bootstrap_parser()
+bootstrap_args, remaining_argv = bootstrap_parser.parse_known_args(sys.argv[1:])
 
 if bootstrap_args.env_check or bootstrap_args.env_report:
     from src.bootstrap.environment_check import (
