@@ -1,4 +1,4 @@
-import QtQuick 2.15
+import QtQuick 6.5
 import QtQuick3D 6.5
 
 // qmllint disable missing-property
@@ -36,9 +36,11 @@ Item {
     function writeLog(level, message) {
         const timestamp = new Date().toISOString()
         const logEntry = `${timestamp} | ${level} | IblProbeLoader | ${message}`
-        const activeWindow = Qt.application ? Qt.application.activeWindow : null
-        if (activeWindow && typeof activeWindow.logIblEvent === "function") {
-            activeWindow.logIblEvent(logEntry)
+        const handler = (typeof window !== "undefined" && window)
+            ? window
+            : (Qt.application ? Qt.application.activeWindow : null)
+        if (handler && typeof handler.logIblEvent === "function") {
+            handler.logIblEvent(logEntry)
         }
         if (level === "ERROR" || level === "WARN") {
             console.warn(logEntry)

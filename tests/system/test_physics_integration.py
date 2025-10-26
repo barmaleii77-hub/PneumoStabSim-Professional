@@ -106,9 +106,9 @@ def test_step_dynamics_stable_response(
 
     assert math.isclose(t, 0.5, rel_tol=0.0, abs_tol=1e-12)
     assert max_energy < 5_000.0, "Energy growth indicates unstable integration"
-    assert max_angle < math.radians(
-        5.0
-    ), "Angular deviation should stay within 5 degrees"
+    assert max_angle < math.radians(5.0), (
+        "Angular deviation should stay within 5 degrees"
+    )
 
     accelerations = f_rhs(t, y, default_params, None, None)[3:]
     assert np.linalg.norm(accelerations) < 5.0, "Accelerations should remain bounded"

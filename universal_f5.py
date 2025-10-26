@@ -3,6 +3,7 @@
 Universal F5 Launcher для PneumoStabSim Professional
 Работает из любой IDE с поддержкой F5
 """
+
 import sys
 import os
 from pathlib import Path

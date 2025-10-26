@@ -161,7 +161,7 @@ def integrate_modules_step_by_step():
     print("\n📊 РЕЗУЛЬТАТ:")
     print(f"   Было: {lines} строк")
     print(f"   Стало: {new_lines} строк")
-    print(f"   Сэкономлено: {saved} строк ({saved/lines*100:.1f}%)")
+    print(f"   Сэкономлено: {saved} строк ({saved / lines * 100:.1f}%)")
 
     print("\n✅ ЧТО СДЕЛАНО:")
     print("   ✅ FL suspension → SuspensionCorner модуль")

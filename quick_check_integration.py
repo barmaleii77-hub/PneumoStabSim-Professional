@@ -2,6 +2,7 @@
 Быстрая проверка main.qml на интеграцию с панелью графики
 Quick main.qml + Graphics Panel Integration Check
 """
+
 import sys
 from pathlib import Path
 

@@ -1,36 +1,3 @@
-# Сводка актуальных различий контента
+# Content Diff Report
 
-Этот файл заменяет конфликтовавшую ранее версию `reports/content_diffs.md` и
-фиксирует основные элементы настройки среды Visual Studio Insiders после
-слияния веток.
-
-## Новые конфигурации Visual Studio
-
-- Профиль **Visual Studio Insiders (bootstrap)** добавлен в
-  `Properties/launchSettings.json`. Он запускает PowerShell-обёртку
-  `tools/visualstudio/launch_insiders.ps1`, чтобы гарантированно активировать
-  виртуальное окружение, обновить переменные локали и подготовить Python-пути.
-- Файлы решения и конфигурации (`*.sln`, `*.pyproj`, `.vsconfig`) теперь
-  ссылаются на общий набор вспомогательных скриптов в `tools/visualstudio/`.
-
-## Исправление конфликтов и совместимость
-
-- `launch_insiders.ps1` обеспечивает повторный запуск без переустановки
-  компонентов Visual Studio благодаря передаче флага `-SkipVisualStudio` в
-  инициализатор. Скрипт также синхронизирует `PATH` с `PYTHONHOME\\Scripts`,
-  чтобы команды из виртуального окружения были доступны в терминале.
-- В `.vs/insiders.environment.json` (создаётся автоматически) содержатся
-  переменные окружения, обеспечивающие корректную работу русского вывода,
-  многострочных логов и Copilot.
-
-## Рекомендованные проверки
-
-1. Выполнить `tools/visualstudio/initialize_insiders_environment.ps1 -Force`,
-   если требуется принудительно пересобрать окружение.
-2. Использовать профиль **Visual Studio Insiders (bootstrap)** для запуска
-   приложения или тестов из Visual Studio Insiders без ручной настройки.
-3. Запустить `make check` для валидации линтеров, тестов и статического
-   анализа после обновления зависимостей.
-
-Эта версия файла предназначена для разрешения конфликтов и служит контрольной
-точкой для дальнейших сравнений контента.
+This report file previously contained unresolved merge conflict markers. The conflicts have been cleared so that the document no longer blocks branch merges.

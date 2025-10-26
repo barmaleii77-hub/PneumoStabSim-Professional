@@ -3,32 +3,107 @@
   "title": "PneumoStabSim Application Settings",
   "description": "Simplified schema used for test validation in headless environments.",
   "type": "object",
-  "required": ["current", "defaults_snapshot", "metadata"],
+  "required": [
+    "current",
+    "defaults_snapshot",
+    "metadata"
+  ],
   "additionalProperties": false,
   "properties": {
     "metadata": {
       "type": "object",
-      "required": ["units_version"],
+      "required": [
+        "units_version"
+      ],
       "additionalProperties": true,
       "properties": {
-        "units_version": {"type": "string"},
-        "version": {"type": "string"},
-        "schema_version": {"type": "string"},
-        "last_modified": {"type": "string"}
+        "units_version": {
+          "type": "string"
+        },
+        "version": {
+          "type": "string"
+        },
+        "schema_version": {
+          "type": "string"
+        },
+        "last_modified": {
+          "type": "string"
+        }
       }
     },
-    "current": {"$ref": "#/$defs/settingsPayload"},
-    "defaults_snapshot": {"$ref": "#/$defs/settingsPayload"}
+    "current": {
+      "$ref": "#/$defs/settingsPayload"
+    },
+    "defaults_snapshot": {
+      "$ref": "#/$defs/settingsPayload"
+    }
   },
   "$defs": {
     "settingsPayload": {
       "type": "object",
       "additionalProperties": true,
       "properties": {
-        "simulation": {"type": "object"},
-        "pneumatic": {"type": "object"},
-        "geometry": {"type": "object"},
-        "graphics": {"type": "object"}
+        "simulation": {
+          "type": "object"
+        },
+        "pneumatic": {
+          "type": "object"
+        },
+        "geometry": {
+          "type": "object"
+        },
+        "graphics": {
+          "type": "object"
+        },
+        "constants": {
+          "type": "object",
+          "additionalProperties": true,
+          "properties": {
+            "geometry": {
+              "type": "object",
+              "additionalProperties": true,
+              "properties": {
+                "kinematics": {
+                  "type": "object",
+                  "additionalProperties": true
+                },
+                "cylinder": {
+                  "type": "object",
+                  "additionalProperties": true
+                },
+                "visualization": {
+                  "type": "object",
+                  "additionalProperties": true
+                },
+                "initial_state": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            },
+            "pneumo": {
+              "type": "object",
+              "additionalProperties": true,
+              "properties": {
+                "valves": {
+                  "type": "object",
+                  "additionalProperties": true
+                },
+                "receiver": {
+                  "type": "object",
+                  "additionalProperties": true
+                },
+                "gas": {
+                  "type": "object",
+                  "additionalProperties": true
+                },
+                "master_isolation_open": {
+                  "type": "boolean"
+                }
+              }
+            }
+          }
+        }
       }
     }
   }

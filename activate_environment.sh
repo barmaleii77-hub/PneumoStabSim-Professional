@@ -25,18 +25,31 @@ export $(grep -E '^[A-Za-z_][A-Za-z0-9_]*=' "$ENV_FILE" | tr -d '\r')
 log "Environment variables loaded from .env"
 log "PROJECT_ROOT=$PROJECT_ROOT"
 
+if [[ ! -d "$PROJECT_ROOT/.venv" ]]; then
+  log "Virtual environment missing – bootstrapping via uv"
+  if command -v uv >/dev/null 2>&1; then
+    (cd "$PROJECT_ROOT" && uv sync)
+  else
+    log "uv is not available, falling back to python -m venv"
+    python3 -m venv "$PROJECT_ROOT/.venv"
+    if [[ -f "$PROJECT_ROOT/requirements.txt" ]]; then
+      "$PROJECT_ROOT/.venv/bin/python" -m pip install -r "$PROJECT_ROOT/requirements.txt"
+    fi
+  fi
+fi
+
 if [[ -d "$PROJECT_ROOT/.venv" ]]; then
   if [[ -n "${VIRTUAL_ENV:-}" ]]; then
     log "Virtual environment already active: $VIRTUAL_ENV"
+  elif [[ -f "$PROJECT_ROOT/.venv/bin/activate" ]]; then
+    # shellcheck source=/dev/null
+    source "$PROJECT_ROOT/.venv/bin/activate"
+    log "Activated virtual environment (.venv)"
   else
-    if [[ -f "$PROJECT_ROOT/.venv/bin/activate" ]]; then
-      # shellcheck source=/dev/null
-      source "$PROJECT_ROOT/.venv/bin/activate"
-      log "Activated virtual environment (.venv)"
-    fi
+    log "Virtual environment found but activate script is missing"
   fi
 else
-  log "Virtual environment missing – run ./setup_environment.py"
+  log "Virtual environment setup failed"
 fi
 
 log "Qt backend: ${QSG_RHI_BACKEND:-n/a} (Qt ${QT_VERSION:-unknown})"

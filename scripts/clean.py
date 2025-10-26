@@ -2,6 +2,7 @@
 """
 Скрипт очистки временных файлов для PneumoStabSim Professional
 """
+
 import shutil
 from pathlib import Path
 

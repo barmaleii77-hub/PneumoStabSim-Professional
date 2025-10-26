@@ -3,6 +3,7 @@
 Скрипт для сравнения обработчиков между QML и panel_graphics.py
 Находит недостающие свойства и обработчики
 """
+
 import re
 from pathlib import Path
 

@@ -171,7 +171,7 @@ def main():
     total = len(results)
 
     print(f"Пройдено тестов: {passed}/{total}")
-    print(f"Процент успеха: {passed/total*100:.1f}%")
+    print(f"Процент успеха: {passed / total * 100:.1f}%")
 
     if passed == total:
         print("🎉 ВСЕ ТЕСТЫ ПРОЙДЕНЫ!")

@@ -420,7 +420,7 @@ except Exception as e:
         overall_success = True
 
         for test_name, test_func in tests:
-            print(f"{'='*20} {test_name} {'='*20}")
+            print(f"{'=' * 20} {test_name} {'=' * 20}")
             try:
                 success = test_func()
                 if not success:

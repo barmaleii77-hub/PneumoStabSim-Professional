@@ -6,8 +6,9 @@
 при использовании версий < 6.10.
 """
 
-import sys
 from typing import Any, Callable
+
+from src.bootstrap.dependency_config import match_dependency_error
 
 
 def safe_import_qt(
@@ -22,9 +23,6 @@ def safe_import_qt(
 
     Returns:
         Кортеж (QApplication, qInstallMessageHandler, Qt, QTimer)
-
-    Raises:
-        SystemExit: Если PySide6 не установлен
     """
     try:
         from PySide6.QtWidgets import QApplication
@@ -43,5 +41,53 @@ def safe_import_qt(
 
         return QApplication, qInstallMessageHandler, Qt, QTimer
     except ImportError as e:
-        log_error(f"PySide6 import failed: {e}")
-        sys.exit(1)
+        error_message = f"PySide6 import failed: {e}"
+
+        text = str(e)
+        details: list[str] = []
+        hints: list[str] = []
+
+        variant = match_dependency_error("opengl_runtime", text)
+        if variant is not None:
+            missing = variant.missing_message
+            if missing:
+                details.append(missing)
+            hint = variant.install_hint
+            if hint:
+                hints.append(hint)
+
+        if "libEGL.so" in text:
+            hints.append(
+                "Missing libEGL runtime. Install an EGL package (e.g. 'apt-get install -y libegl1')."
+            )
+
+        if details:
+            error_message = "\n".join([error_message, *details])
+        if hints:
+            unique_hints = dict.fromkeys(hints)
+            hint_lines = [f"Hint: {value}" for value in unique_hints if value]
+            if hint_lines:
+                error_message = "\n".join([error_message, *hint_lines])
+
+        log_error(error_message)
+
+        from src.bootstrap.headless_qt import (
+            HeadlessApplication,
+            HeadlessQtNamespace,
+            HeadlessTimer,
+            headless_install_message_handler,
+        )
+
+        HeadlessApplication.headless_reason = error_message
+        qt_namespace = HeadlessQtNamespace(headless_reason=error_message)
+
+        log_warning(
+            "PySide6 is unavailable; using headless diagnostics mode without a Qt GUI."
+        )
+
+        return (
+            HeadlessApplication,
+            headless_install_message_handler,
+            qt_namespace,
+            HeadlessTimer,
+        )

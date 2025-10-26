@@ -3,6 +3,7 @@
 """
 Диагностический тест QML - проверяем какой файл загружается и работают ли эффекты
 """
+
 from pathlib import Path
 from PySide6.QtWidgets import QApplication
 from PySide6.QtQuickWidgets import QQuickWidget

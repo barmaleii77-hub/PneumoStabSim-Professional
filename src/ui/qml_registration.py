@@ -5,7 +5,11 @@ from __future__ import annotations
 from importlib import import_module
 from typing import Iterable
 
-from PySide6.QtQml import qmlRegisterModule, qmlRegisterType
+try:
+    from PySide6.QtQml import qmlRegisterModule, qmlRegisterType
+except Exception:  # pragma: no cover - headless environments
+    qmlRegisterModule = None
+    qmlRegisterType = None
 
 _QML_ELEMENT_MODULES: Iterable[str] = (
     "src.ui.example_geometry",
@@ -20,6 +24,9 @@ _QML_ELEMENT_MODULES: Iterable[str] = (
 
 def register_qml_types() -> None:
     """Register QML modules and load Python QML elements."""
+
+    if qmlRegisterModule is None or qmlRegisterType is None:
+        return
 
     qmlRegisterModule("PneumoStabSim", 1, 0)
 

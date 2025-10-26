@@ -18,9 +18,17 @@ def settings_path() -> Path:
     return Path("config/app_settings.json").resolve()
 
 
-def test_validate_settings_cli_success(capsys, schema_path: Path, settings_path: Path) -> None:
+def test_validate_settings_cli_success(
+    capsys, schema_path: Path, settings_path: Path
+) -> None:
     exit_code = validate_settings.main(
-        ["--settings-file", str(settings_path), "--schema-file", str(schema_path), "--quiet"]
+        [
+            "--settings-file",
+            str(settings_path),
+            "--schema-file",
+            str(schema_path),
+            "--quiet",
+        ]
     )
 
     assert exit_code == 0
@@ -29,7 +37,9 @@ def test_validate_settings_cli_success(capsys, schema_path: Path, settings_path:
     assert captured.err == ""
 
 
-def test_validate_settings_cli_reports_schema_errors(tmp_path: Path, capsys, schema_path: Path) -> None:
+def test_validate_settings_cli_reports_schema_errors(
+    tmp_path: Path, capsys, schema_path: Path
+) -> None:
     broken_settings = tmp_path / "broken.json"
     broken_settings.write_text(json.dumps({"metadata": {}}), encoding="utf-8")
 
@@ -43,7 +53,9 @@ def test_validate_settings_cli_reports_schema_errors(tmp_path: Path, capsys, sch
     assert "current" in captured.err
 
 
-def test_validate_settings_cli_handles_invalid_json(tmp_path: Path, capsys, schema_path: Path) -> None:
+def test_validate_settings_cli_handles_invalid_json(
+    tmp_path: Path, capsys, schema_path: Path
+) -> None:
     invalid_json = tmp_path / "invalid.json"
     invalid_json.write_text("{ invalid", encoding="utf-8")
 

@@ -1,35 +1,44 @@
 # -*- coding: utf-8 -*-
-"""
-Модуль проверки совместимости версии Python.
-
-Проект таргетирует Python 3.13+. Позволяет обходить проверку
-через переменную окружения PSS_IGNORE_PYTHON_CHECK=1.
-"""
+"""Runtime Python version guard with sensible minimum and warnings."""
 
 import sys
 import os
 from typing import Callable
 
+_MIN_VERSION = (3, 10)
+_RECOMMENDED_VERSION = (3, 13)
+
 
 def check_python_compatibility(
     log_warning: Callable[[str], None], log_error: Callable[[str], None]
 ) -> None:
-    """
-    Проверка версии Python: проект требует Python 3.13+
-
-    Args:
-        log_warning: Функция для логирования предупреждений
-        log_error: Функция для логирования ошибок
-
-    Raises:
-        SystemExit: Если версия Python < 3.13 и проверка не обойдена
-    """
+    """Validate that the interpreter matches the supported range."""
     # Позволяем обходить проверку при явном запросе
     if os.environ.get("PSS_IGNORE_PYTHON_CHECK") == "1":
         log_warning("Python version check bypassed via PSS_IGNORE_PYTHON_CHECK=1")
         return
 
     version = sys.version_info
-    if version < (3, 13):
-        log_error("Python 3.13+ required. Please upgrade Python.")
+    if version < _MIN_VERSION:
+        log_error(
+            "Python %d.%d+ required. Current interpreter: %d.%d.%d"
+            % (
+                _MIN_VERSION[0],
+                _MIN_VERSION[1],
+                version.major,
+                version.minor,
+                version.micro,
+            )
+        )
         sys.exit(1)
+
+    if version < _RECOMMENDED_VERSION:
+        log_warning(
+            "Python %d.%d+ detected; Python %d.%d+ is recommended for full support."
+            % (
+                version.major,
+                version.minor,
+                _RECOMMENDED_VERSION[0],
+                _RECOMMENDED_VERSION[1],
+            )
+        )

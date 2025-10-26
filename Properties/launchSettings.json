@@ -42,19 +42,20 @@
         "QT_QUICK_CONTROLS_STYLE": "Basic"
       }
     },
-    "Visual Studio Insiders (bootstrap)": {
+    "Visual Studio Insiders (App)": {
       "commandName": "Executable",
-      "executablePath": "powershell",
-      "commandLineArgs": "-NoProfile -ExecutionPolicy Bypass -File tools/visualstudio/launch_insiders.ps1",
+      "executablePath": ".\\.venv\\Scripts\\python.exe",
+      "commandLineArgs": "app.py",
       "workingDirectory": ".",
       "environmentVariables": {
-        "PYTHONUTF8": "1",
-        "PYTHONIOENCODING": "utf-8",
-        "LC_ALL": "ru-RU",
-        "LANG": "ru-RU",
-        "DOTNET_SYSTEM_GLOBALIZATION_INVARIANT": "0",
-        "PIP_DISABLE_PIP_VERSION_CHECK": "1",
-        "COPILOT_PROJECT_MANIFEST": "$(MSBuildProjectDirectory)\\tools\\visualstudio\\copilot_insiders_manifest.json"
+        "PYTHONPATH": "$(MSBuildProjectDirectory);$(MSBuildProjectDirectory)\\src;$(MSBuildProjectDirectory)\\tests",
+        "QML2_IMPORT_PATH": "$(MSBuildProjectDirectory)\\.venv\\Lib\\site-packages\\PySide6\\qml;$(MSBuildProjectDirectory)\\assets\\qml",
+        "QML_IMPORT_PATH": "$(MSBuildProjectDirectory)\\.venv\\Lib\\site-packages\\PySide6\\qml;$(MSBuildProjectDirectory)\\assets\\qml",
+        "QT_PLUGIN_PATH": "$(MSBuildProjectDirectory)\\.venv\\Lib\\site-packages\\PySide6\\plugins",
+        "QT_QML_IMPORT_PATH": "$(MSBuildProjectDirectory)\\.venv\\Lib\\site-packages\\PySide6\\qml",
+        "QT_QUICK_CONTROLS_STYLE": "Basic",
+        "PNEUMOSTABSIM_PROFILE": "insiders",
+        "INSIDERS_BOOTSTRAP_SCRIPT": "tools/visualstudio/initialize_insiders_environment.ps1"
       }
     }
   }

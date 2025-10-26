@@ -120,15 +120,19 @@ Node {
     // ===============================================================
 
     // 1. LEVER (rotating arm)
+    function degreesToRadians(degrees) {
+        return degrees * Math.PI / 180;
+    }
+
     Model {
         source: "#Cube"
         position: Qt.vector3d(
-            j_arm.x + (leverLengthM /2) * Math.cos(totalAngle),
-            j_arm.y + (leverLengthM /2) * Math.sin(totalAngle),
+            j_arm.x + (leverLengthM / 2) * Math.cos(degreesToRadians(totalAngle)),
+            j_arm.y + (leverLengthM / 2) * Math.sin(degreesToRadians(totalAngle)),
             j_arm.z
         )
-        scale: Qt.vector3d(leverLengthM,0.008,0.008)
-        eulerRotation: Qt.vector3d(0,0, totalAngle *180 / Math.PI)
+        scale: Qt.vector3d(leverLengthM, 0.008, 0.008)
+        eulerRotation: Qt.vector3d(0, 0, totalAngle)
         materials: [leverMaterial]
     }
 
@@ -240,7 +244,7 @@ Node {
         console.log("   j_tail:", j_tail.x, j_tail.y, j_tail.z)
         console.log("   j_rod:", j_rod.x, j_rod.y, j_rod.z)
         console.log("   leverAngle:", leverAngle, "deg")
-        console.log("   pistonPosition:", pistonPositionM, "mm")
-        console.log("   rodLengthError:", rodLengthError.toFixed(2), "mm")
+        console.log("   pistonPosition:", pistonPositionM, "m")
+        console.log("   rodLengthError:", rodLengthError.toFixed(4), "m")
     }
 }

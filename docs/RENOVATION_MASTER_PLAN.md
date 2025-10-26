@@ -312,13 +312,20 @@ best practices for scientific visualisation software.
      golden files stored under `tests/data/`.
 2. **Quality Gates Automation**
    - Create `make check` aggregating `ruff`, `mypy`, `pytest`, and `qmllint`.
-   - Configure GitHub Actions workflows:
-     - `ci.yml`: matrix {Ubuntu, Windows} x Python 3.13 running make targets.
-     - `nightly.yml`: scheduled pipeline executing long-running simulations and
-       encoding audits.
+    - Configure GitHub Actions workflows:
+        - `ci.yml`: matrix {Ubuntu, Windows} x Python 3.13 running make targets.
+        - `nightly.yml`: scheduled pipeline executing long-running simulations and
+          encoding audits.
+        - `autonomous-check.yml`: scheduled autonomous verification that runs
+          `python -m tools.autonomous_check --launch-trace --sanitize` under
+          Xvfb, pruning historical artefacts and uploading the resulting logs
+          for traceability.
    - Ensure workflows install Qt 6.10 via the scripted setup and cache the
      download.
    - Document the local workflow in `docs/DEVELOPMENT_GUIDE.md`, clarifying that contributors must run `make check` (or `python -m tools.ci_tasks verify`) before submitting changes and offering troubleshooting steps for qmllint/Qt setup.
+   - Provide one-click wrappers (`make autonomous-check`, `make trace-launch`) powered by
+     `python -m tools.autonomous_check` and `python -m tools.trace_launch` to persist
+     CI-grade logs and launch environment traces under `reports/quality/`.
 3. **Pre-Push Runner**
    - Implement `.hooks/pre-push` script invoking `make check`. Document how to
      opt-in on Windows (`.githooks/`) and include instructions in

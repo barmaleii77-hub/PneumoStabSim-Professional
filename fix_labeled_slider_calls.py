@@ -274,9 +274,9 @@ def generate_migration_plan(report: ComparisonReport, monolith_path: Path):
     # Выводим план
     for tab, params in tab_assignments.items():
         if params:
-            print(f"\n{'='*80}")
+            print(f"\n{'=' * 80}")
             print(f"📄 {tab} - добавить {len(params)} параметров:")
-            print(f"{'='*80}")
+            print(f"{'=' * 80}")
 
             for item in params:
                 print(f"\n   ▶ {item['param']} (исходная строка: {item['line']})")
@@ -335,9 +335,9 @@ def main():
     all_reports: List[ComparisonReport] = []
 
     for panel_config in panels:
-        print(f"\n{'='*80}")
+        print(f"\n{'=' * 80}")
         print(f"📋 Анализ: {panel_config['name']}")
-        print(f"{'='*80}")
+        print(f"{'=' * 80}")
 
         if not panel_config["monolith"].exists():
             print(f"⚠️  Монолит не найден: {panel_config['monolith']}")

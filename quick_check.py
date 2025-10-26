@@ -3,6 +3,7 @@
 """
 Быстрая проверка работоспособности PneumoStabSim
 """
+
 import sys
 
 print("=" * 60)

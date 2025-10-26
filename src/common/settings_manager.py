@@ -23,8 +23,15 @@ from __future__ import annotations
 
 import json
 import os
+from dataclasses import dataclass
+from datetime import datetime, timezone
+from importlib import import_module, util
 from pathlib import Path
-from typing import Any, Dict, Iterable, Optional
+from typing import Any, Dict, Iterable, List, Optional
+
+from src.core.settings_manager import (
+    ProfileSettingsManager as _CoreProfileSettingsManager,
+)
 
 
 DEFAULT_SETTINGS_PATH = Path("config/app_settings.json")
@@ -44,6 +51,93 @@ def _resolve_settings_file(settings_file: Optional[Path | str]) -> Path:
 
 def _deep_copy(data: Any) -> Any:
     return json.loads(json.dumps(data))
+
+
+def _load_qt_core():
+    spec = util.find_spec("PySide6.QtCore")
+    if spec is None:
+        return None
+    return import_module("PySide6.QtCore")
+
+
+_qt_core = _load_qt_core()
+
+if _qt_core is not None:
+    QObject = _qt_core.QObject
+    Signal = _qt_core.Signal
+else:
+
+    class QObject:  # type: ignore[override]
+        """Minimal QObject stand-in for headless environments."""
+
+        def __init__(self, *args: Any, **kwargs: Any) -> None:  # noqa: D401 - Qt compatibility
+            super().__init__()
+
+    class _SignalInstance:
+        def __init__(self) -> None:
+            self._subscribers: List[Any] = []
+
+        def connect(self, callback: Any) -> None:
+            if callback not in self._subscribers:
+                self._subscribers.append(callback)
+
+        def disconnect(self, callback: Any) -> None:
+            if callback in self._subscribers:
+                self._subscribers.remove(callback)
+
+        def emit(self, *args: Any, **kwargs: Any) -> None:
+            for callback in list(self._subscribers):
+                callback(*args, **kwargs)
+
+    class _Signal:
+        def __init__(self) -> None:
+            self._name: Optional[str] = None
+
+        def __set_name__(self, owner: type, name: str) -> None:
+            self._name = f"__signal_{name}"
+
+        def __get__(self, instance: Any, owner: type | None = None) -> Any:
+            if instance is None:
+                return self
+            assert self._name is not None
+            signal = instance.__dict__.get(self._name)
+            if signal is None:
+                signal = _SignalInstance()
+                instance.__dict__[self._name] = signal
+            return signal
+
+    def Signal(*_args: Any, **_kwargs: Any) -> Any:  # noqa: N802 - mirror Qt API
+        return _Signal()
+
+
+def _utc_now() -> str:
+    return datetime.now(timezone.utc).isoformat()
+
+
+@dataclass
+class _SettingsChange:
+    path: str
+    category: str
+    changeType: str
+    newValue: Any
+    oldValue: Any
+    timestamp: str
+
+
+class SettingsEventBus(QObject):
+    """Event bus mirroring the project's Qt-based settings notifications."""
+
+    settingChanged = Signal(dict)
+    settingsBatchUpdated = Signal(dict)
+
+    def emit_setting_changed(self, payload: Dict[str, Any]) -> None:
+        self.settingChanged.emit(payload)
+
+    def emit_settings_batch(self, payload: Dict[str, Any]) -> None:
+        self.settingsBatchUpdated.emit(payload)
+
+
+ProfileSettingsManager = _CoreProfileSettingsManager
 
 
 class SettingsManager:
@@ -106,6 +200,40 @@ class SettingsManager:
             json.dumps(payload, ensure_ascii=False, indent=2),
             encoding="utf-8",
         )
+
+    def _notify_change(self, change: _SettingsChange) -> None:
+        if _settings_event_bus is None:
+            return
+        payload = {
+            "path": change.path,
+            "category": change.category,
+            "changeType": change.changeType,
+            "newValue": _deep_copy(change.newValue),
+            "oldValue": _deep_copy(change.oldValue),
+            "timestamp": change.timestamp,
+        }
+        _settings_event_bus.emit_setting_changed(payload)
+
+    def _notify_batch(
+        self, changes: List[_SettingsChange], summary: Dict[str, Any]
+    ) -> None:
+        if _settings_event_bus is None or not changes:
+            return
+        payload = {
+            "changes": [
+                {
+                    "path": change.path,
+                    "category": change.category,
+                    "changeType": change.changeType,
+                    "newValue": _deep_copy(change.newValue),
+                    "oldValue": _deep_copy(change.oldValue),
+                    "timestamp": change.timestamp,
+                }
+                for change in changes
+            ],
+            "summary": summary,
+        }
+        _settings_event_bus.emit_settings_batch(payload)
 
     # Dotted-path helpers -----------------------------------------------------
     def _traverse(
@@ -180,18 +308,45 @@ class SettingsManager:
         else:
             root = self._data
 
+        timestamp = _utc_now()
         if not parts:
+            previous = (
+                _deep_copy(root.get(dotted_path)) if dotted_path in root else None
+            )
             root[dotted_path] = _deep_copy(value)
             if auto_save:
                 self.save()
+            category = dotted_path.split(".", 1)[0]
+            self._notify_change(
+                _SettingsChange(
+                    path=dotted_path,
+                    category=category,
+                    changeType="set",
+                    newValue=value,
+                    oldValue=previous,
+                    timestamp=timestamp,
+                )
+            )
             return True
 
         *parents, leaf = parts
         node = self._traverse(root, parents, create=True) if parents else root
+        previous = _deep_copy(node.get(leaf)) if leaf in node else None
         node[leaf] = _deep_copy(value)
 
         if auto_save:
             self.save()
+        category = dotted_path.split(".", 1)[0]
+        self._notify_change(
+            _SettingsChange(
+                path=dotted_path,
+                category=category,
+                changeType="set",
+                newValue=value,
+                oldValue=previous,
+                timestamp=timestamp,
+            )
+        )
         return True
 
     # Defaults ---------------------------------------------------------------
@@ -222,44 +377,129 @@ class SettingsManager:
 
         if not category:
             raise ValueError("Category name must be non-empty")
+        previous = _deep_copy(self._data.get(category))
 
         self._data[category] = _deep_copy(payload)
 
         if auto_save:
             self.save()
 
+        self._notify_change(
+            _SettingsChange(
+                path=f"current.{category}",
+                category=category,
+                changeType="set_category",
+                newValue=payload,
+                oldValue=previous,
+                timestamp=_utc_now(),
+            )
+        )
+
     def reset_to_defaults(
         self, *, category: Optional[str] = None, auto_save: bool = True
     ) -> None:
         """Reset ``current`` values to the defaults snapshot."""
 
+        timestamp = _utc_now()
+        changes: List[_SettingsChange] = []
+
         if category is None:
+            before = _deep_copy(self._data)
             self._data = _deep_copy(self._defaults)
+            changes.append(
+                _SettingsChange(
+                    path="current",
+                    category="*",
+                    changeType="reset_all",
+                    newValue=self._data,
+                    oldValue=before,
+                    timestamp=timestamp,
+                )
+            )
         else:
             if category not in self._defaults:
                 raise KeyError(f"Unknown defaults category: {category}")
+            before = _deep_copy(self._data.get(category))
             self._data[category] = _deep_copy(self._defaults[category])
+            changes.append(
+                _SettingsChange(
+                    path=f"current.{category}",
+                    category=category,
+                    changeType="reset",
+                    newValue=self._defaults[category],
+                    oldValue=before,
+                    timestamp=timestamp,
+                )
+            )
 
         if auto_save:
             self.save()
+
+        if changes:
+            summary = {
+                "count": len(changes),
+                "categories": sorted({change.category for change in changes}),
+                "operation": "reset",
+            }
+            if len(changes) == 1:
+                self._notify_change(changes[0])
+            else:
+                self._notify_batch(changes, summary)
 
     def save_current_as_defaults(
         self, *, category: Optional[str] = None, auto_save: bool = True
     ) -> None:
         """Persist the current values into the defaults snapshot."""
 
+        timestamp = _utc_now()
+        changes: List[_SettingsChange] = []
+
         if category is None:
+            before = _deep_copy(self._defaults)
             self._defaults = _deep_copy(self._data)
+            changes.append(
+                _SettingsChange(
+                    path="defaults_snapshot",
+                    category="*",
+                    changeType="save_defaults_all",
+                    newValue=self._defaults,
+                    oldValue=before,
+                    timestamp=timestamp,
+                )
+            )
         else:
             if category not in self._data:
                 raise KeyError(f"Unknown current category: {category}")
+            before = _deep_copy(self._defaults.get(category))
             self._defaults[category] = _deep_copy(self._data[category])
+            changes.append(
+                _SettingsChange(
+                    path=f"defaults_snapshot.{category}",
+                    category=category,
+                    changeType="save_defaults",
+                    newValue=self._defaults[category],
+                    oldValue=before,
+                    timestamp=timestamp,
+                )
+            )
 
         if auto_save:
             self.save()
 
+        if changes:
+            summary = {
+                "count": len(changes),
+                "categories": sorted({change.category for change in changes}),
+                "operation": "save_defaults",
+            }
+            if len(changes) == 1:
+                self._notify_change(changes[0])
+            else:
+                self._notify_batch(changes, summary)
+
 
 _settings_manager: Optional[SettingsManager] = None
+_settings_event_bus: Optional[SettingsEventBus] = None
 
 
 def get_settings_manager(settings_file: Optional[Path | str] = None) -> SettingsManager:
@@ -269,4 +509,17 @@ def get_settings_manager(settings_file: Optional[Path | str] = None) -> Settings
     return _settings_manager
 
 
-__all__ = ["SettingsManager", "get_settings_manager"]
+def get_settings_event_bus() -> SettingsEventBus:
+    global _settings_event_bus
+    if _settings_event_bus is None:
+        _settings_event_bus = SettingsEventBus()
+    return _settings_event_bus
+
+
+__all__ = [
+    "ProfileSettingsManager",
+    "SettingsEventBus",
+    "SettingsManager",
+    "get_settings_event_bus",
+    "get_settings_manager",
+]

@@ -30,8 +30,10 @@ except Exception:  # pragma: no cover - fallback for test env without PySide6
     QMetaObject = _DummyQMetaObject  # type: ignore[assignment]
     Qt = _DummyQt()  # type: ignore[assignment]
 
-from ..qml_bridge import describe_routes as describe_metadata_routes
-from ..qml_bridge import get_bridge_metadata
+from src.pneumo.enums import Line, Wheel
+from src.runtime.state import StateSnapshot
+from src.ui.qml_bridge import describe_routes as describe_metadata_routes
+from src.ui.qml_bridge import get_bridge_metadata
 
 
 _BRIDGE_METADATA = get_bridge_metadata()

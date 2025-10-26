@@ -3,6 +3,7 @@
 F5 Quick Launch Configuration для PneumoStabSim Professional
 Автоматическая настройка окружения для отладки
 """
+
 import os
 import sys
 import subprocess

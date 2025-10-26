@@ -28,7 +28,9 @@ def sample_payloads() -> tuple[dict[str, object], dict[str, object]]:
     return baseline, target
 
 
-def test_diff_settings_reports_structural_changes(sample_payloads: tuple[dict[str, object], dict[str, object]]) -> None:
+def test_diff_settings_reports_structural_changes(
+    sample_payloads: tuple[dict[str, object], dict[str, object]],
+) -> None:
     baseline, target = sample_payloads
 
     entries = settings_audit.diff_settings(baseline, target)
@@ -40,7 +42,9 @@ def test_diff_settings_reports_structural_changes(sample_payloads: tuple[dict[st
     assert paths["current.pneumatic"] == "added"
 
 
-def test_render_report_text_format(sample_payloads: tuple[dict[str, object], dict[str, object]]) -> None:
+def test_render_report_text_format(
+    sample_payloads: tuple[dict[str, object], dict[str, object]],
+) -> None:
     baseline, target = sample_payloads
     entries = settings_audit.diff_settings(baseline, target)
 
@@ -52,7 +56,9 @@ def test_render_report_text_format(sample_payloads: tuple[dict[str, object], dic
     assert "~ current.graphics.exposure" in report
 
 
-def test_generate_report_to_file(tmp_path: Path, sample_payloads: tuple[dict[str, object], dict[str, object]]) -> None:
+def test_generate_report_to_file(
+    tmp_path: Path, sample_payloads: tuple[dict[str, object], dict[str, object]]
+) -> None:
     baseline, target = sample_payloads
     baseline_path = tmp_path / "baseline.json"
     target_path = tmp_path / "target.json"
@@ -69,7 +75,9 @@ def test_generate_report_to_file(tmp_path: Path, sample_payloads: tuple[dict[str
     assert report.startswith("# Settings audit")
 
 
-def test_cli_fail_on_diff(tmp_path: Path, sample_payloads: tuple[dict[str, object], dict[str, object]]) -> None:
+def test_cli_fail_on_diff(
+    tmp_path: Path, sample_payloads: tuple[dict[str, object], dict[str, object]]
+) -> None:
     baseline, target = sample_payloads
     baseline_path = tmp_path / "baseline.json"
     target_path = tmp_path / "target.json"

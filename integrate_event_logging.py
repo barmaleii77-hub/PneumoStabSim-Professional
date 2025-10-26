@@ -2,6 +2,7 @@
 Автоматическая интеграция event logging в panel_graphics.py
 Заменяет слайдеры, чекбоксы и комбобоксы на версии с логированием
 """
+
 import re
 import sys
 from pathlib import Path

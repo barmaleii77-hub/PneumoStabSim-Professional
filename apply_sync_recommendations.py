@@ -12,7 +12,7 @@ from datetime import datetime
 def backup_file(file_path):
     """Создать резервную копию файла"""
     backup_path = file_path.with_suffix(
-        file_path.suffix + f'.backup_{datetime.now().strftime("%Y%m%d_%H%M%S")}'
+        file_path.suffix + f".backup_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
     )
     with open(file_path, "r", encoding="utf-8") as src:
         with open(backup_path, "w", encoding="utf-8") as dst:

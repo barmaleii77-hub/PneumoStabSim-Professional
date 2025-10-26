@@ -1,0 +1,313 @@
+"""Utilities for validating and persisting graphics panel settings.
+
+The refactored graphics panel expects a rich configuration structure with six
+independent categories (lighting, environment, quality, camera, materials and
+effects).  Historical versions of :mod:`config/app_settings.json` only expose a
+subset of these categories, so loading them directly would trigger run-time
+exceptions inside :class:`GraphicsPanel`.  The goal of this module is to bridge
+that gap:
+
+* hydrate missing categories from the canonical baseline payload under
+  ``config/baseline/app_settings.json``;
+* normalise legacy material keys (e.g. ``tail`` → ``tail_rod``) and guarantee
+  that every required material dictionary is present;
+* provide explicit validation helpers so the panel can fail fast instead of
+  masking exceptions deep inside Qt signal handlers; and
+* centralise persistence logic for both the ``current`` and
+  ``defaults_snapshot`` sections managed by :class:`SettingsManager`.
+
+By funnelling all read/write operations through this service we make the panel
+resilient to configuration drift while keeping the validation rules easy to
+exercise in unit tests.
+"""
+
+from __future__ import annotations
+
+import json
+import logging
+from pathlib import Path
+from typing import Any, Dict
+
+from src.common.settings_manager import SettingsManager, get_settings_manager
+
+
+class GraphicsSettingsError(RuntimeError):
+    """Raised when the graphics configuration is invalid."""
+
+
+def _deep_copy(payload: Any) -> Any:
+    """Return a JSON-based deep copy to avoid accidental mutations."""
+
+    return json.loads(json.dumps(payload))
+
+
+def _deep_merge(base: Dict[str, Any], override: Dict[str, Any]) -> Dict[str, Any]:
+    """Recursively merge two dictionaries without modifying the inputs."""
+
+    result: Dict[str, Any] = {key: _deep_copy(value) for key, value in base.items()}
+
+    for key, value in override.items():
+        if key in result and isinstance(result[key], dict) and isinstance(value, dict):
+            result[key] = _deep_merge(result[key], value)
+        else:
+            result[key] = _deep_copy(value)
+
+    return result
+
+
+class GraphicsSettingsService:
+    """Validate and persist the graphics configuration for the panel."""
+
+    REQUIRED_CATEGORIES: tuple[str, ...] = (
+        "lighting",
+        "environment",
+        "quality",
+        "camera",
+        "materials",
+        "effects",
+    )
+
+    REQUIRED_MATERIAL_KEYS: tuple[str, ...] = (
+        "frame",
+        "lever",
+        "tail_rod",
+        "cylinder",
+        "piston_body",
+        "piston_rod",
+        "joint_tail",
+        "joint_arm",
+        "joint_rod",
+    )
+
+    MATERIAL_ALIASES: dict[str, str] = {
+        "tail": "tail_rod",
+        "tail_rod": "tail_rod",
+    }
+
+    DEFAULT_BASELINE_PATH = Path("config/baseline/app_settings.json")
+
+    def __init__(
+        self,
+        settings_manager: SettingsManager | None = None,
+        baseline_path: Path | str | None = None,
+    ) -> None:
+        self._logger = logging.getLogger(self.__class__.__name__)
+        self._settings_manager = settings_manager or get_settings_manager()
+        self._baseline_path = (
+            Path(baseline_path)
+            if baseline_path is not None
+            else self.DEFAULT_BASELINE_PATH
+        )
+
+        baseline_payload = self._load_json(self._baseline_path)
+        self._baseline_current = self._extract_graphics_section(
+            baseline_payload, "current"
+        )
+        self._baseline_defaults = self._extract_graphics_section(
+            baseline_payload, "defaults_snapshot"
+        )
+
+    # ------------------------------------------------------------------ helpers
+    @property
+    def settings_manager(self) -> SettingsManager:
+        return self._settings_manager
+
+    @property
+    def settings_file(self) -> Path | None:
+        path = getattr(self._settings_manager, "settings_file", None)
+        return Path(path) if path is not None else None
+
+    def _load_json(self, path: Path) -> Dict[str, Any]:
+        try:
+            return json.loads(path.read_text(encoding="utf-8"))
+        except FileNotFoundError as exc:  # pragma: no cover - defensive branch
+            raise GraphicsSettingsError(f"Baseline settings not found: {path}") from exc
+        except json.JSONDecodeError as exc:
+            raise GraphicsSettingsError(
+                f"Baseline settings are not valid JSON: {path}: {exc}"
+            ) from exc
+
+    def _extract_graphics_section(
+        self, payload: Dict[str, Any], section: str
+    ) -> Dict[str, Any]:
+        container = payload.get(section)
+        if not isinstance(container, dict):
+            raise GraphicsSettingsError(f"Baseline payload missing '{section}' object")
+
+        graphics = container.get("graphics")
+        if not isinstance(graphics, dict):
+            raise GraphicsSettingsError(
+                f"Baseline payload missing graphics section under '{section}'"
+            )
+        return _deep_copy(graphics)
+
+    def _normalise_materials(
+        self,
+        materials: Dict[str, Any],
+        *,
+        baseline: Dict[str, Any],
+        allow_missing: bool,
+        provided_aliases: set[str] | None,
+    ) -> Dict[str, Any]:
+        normalised: Dict[str, Any] = {}
+
+        for key, value in materials.items():
+            alias = self.MATERIAL_ALIASES.get(key, key)
+
+            if not isinstance(value, dict):
+                raise GraphicsSettingsError(
+                    f"graphics.materials['{key}'] must be an object, got {type(value).__name__}"
+                )
+
+            base_value = normalised.get(alias) or baseline.get(alias, {})
+            normalised[alias] = _deep_merge(base_value, value)
+
+        missing = [key for key in self.REQUIRED_MATERIAL_KEYS if key not in normalised]
+        if missing:
+            if allow_missing:
+                for key in missing:
+                    if key in baseline:
+                        normalised[key] = _deep_copy(baseline[key])
+                still_missing = [
+                    key for key in self.REQUIRED_MATERIAL_KEYS if key not in normalised
+                ]
+                if still_missing:
+                    raise GraphicsSettingsError(
+                        "graphics.materials is missing required entries: "
+                        + ", ".join(sorted(still_missing))
+                    )
+            else:
+                raise GraphicsSettingsError(
+                    "graphics.materials is missing required entries: "
+                    + ", ".join(sorted(missing))
+                )
+
+        if not allow_missing and provided_aliases is not None:
+            missing_payload = [
+                key
+                for key in self.REQUIRED_MATERIAL_KEYS
+                if key not in provided_aliases
+            ]
+            if missing_payload:
+                raise GraphicsSettingsError(
+                    "graphics.materials payload is missing required entries: "
+                    + ", ".join(sorted(missing_payload))
+                )
+
+        return normalised
+
+    def _coerce_state(
+        self,
+        raw_state: Dict[str, Any] | None,
+        *,
+        baseline: Dict[str, Any],
+        allow_missing: bool,
+        source: str,
+    ) -> Dict[str, Dict[str, Any]]:
+        if raw_state is None:
+            raw_state = {}
+        if not isinstance(raw_state, dict):
+            raise GraphicsSettingsError(
+                f"graphics state from {source} must be an object, got {type(raw_state).__name__}"
+            )
+
+        state: Dict[str, Dict[str, Any]] = {}
+
+        for category in self.REQUIRED_CATEGORIES:
+            payload = raw_state.get(category)
+            baseline_section = baseline.get(category, {})
+
+            if payload is None:
+                if allow_missing and baseline_section:
+                    state[category] = _deep_copy(baseline_section)
+                    continue
+                raise GraphicsSettingsError(
+                    f"graphics.{category} missing in {source} settings"
+                )
+
+            if not isinstance(payload, dict):
+                raise GraphicsSettingsError(
+                    f"graphics.{category} must be an object, got {type(payload).__name__}"
+                )
+
+            merged = _deep_merge(baseline_section, payload)
+
+            if category == "materials":
+                provided_aliases = {
+                    self.MATERIAL_ALIASES.get(key, key) for key in payload.keys()
+                }
+                merged = self._normalise_materials(
+                    merged,
+                    baseline=baseline_section,
+                    allow_missing=allow_missing,
+                    provided_aliases=provided_aliases if not allow_missing else None,
+                )
+
+            state[category] = merged
+
+        return state
+
+    # -------------------------------------------------------------------- API
+    def load_current(self) -> Dict[str, Dict[str, Any]]:
+        """Load and normalise the current graphics configuration."""
+
+        raw_state = self._settings_manager.get_category("graphics")
+        state = self._coerce_state(
+            raw_state,
+            baseline=self._baseline_current,
+            allow_missing=True,
+            source="current",
+        )
+        self._logger.debug(
+            "Loaded graphics configuration with categories: %s",
+            ", ".join(sorted(state.keys())),
+        )
+        return state
+
+    def load_defaults(self) -> Dict[str, Dict[str, Any]]:
+        """Load and normalise the defaults snapshot."""
+
+        raw_state = self._settings_manager.get("defaults_snapshot.graphics")
+        return self._coerce_state(
+            raw_state,
+            baseline=self._baseline_defaults,
+            allow_missing=True,
+            source="defaults_snapshot",
+        )
+
+    def ensure_valid_state(self, state: Dict[str, Any]) -> Dict[str, Dict[str, Any]]:
+        """Validate a state payload originating from the UI before persisting."""
+
+        return self._coerce_state(
+            state,
+            baseline=self._baseline_current,
+            allow_missing=False,
+            source="UI",
+        )
+
+    def save_current(self, state: Dict[str, Any]) -> None:
+        """Persist the provided state into the ``current`` section."""
+
+        normalised = self.ensure_valid_state(state)
+        self._settings_manager.set_category("graphics", normalised, auto_save=True)
+
+    def save_current_as_defaults(self, state: Dict[str, Any]) -> None:
+        """Persist the provided state as both current values and defaults."""
+
+        normalised = self.ensure_valid_state(state)
+        self._settings_manager.set_category("graphics", normalised, auto_save=False)
+        self._settings_manager.save_current_as_defaults(
+            category="graphics", auto_save=True
+        )
+
+    def reset_to_defaults(self) -> Dict[str, Dict[str, Any]]:
+        """Reset the ``current`` settings and return the refreshed state."""
+
+        self._settings_manager.reset_to_defaults(category="graphics", auto_save=True)
+        return self.load_current()
+
+
+__all__ = [
+    "GraphicsSettingsError",
+    "GraphicsSettingsService",
+]

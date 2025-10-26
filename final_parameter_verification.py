@@ -2,6 +2,7 @@
 Финальная проверка исправлений параметров Python ↔ QML
 FINAL CHECK: Подтверждение всех исправлений
 """
+
 import json
 
 
@@ -238,7 +239,9 @@ def generate_success_summary():
     )
     print(f"  🔧 Исправлено проблем: {summary_stats['critical_issues_fixed']}")
     print(f"  ✨ Добавлено новых функций: {summary_stats['new_features_added']}")
-    print(f"  🔄 Улучшений совместимости: {summary_stats['compatibility_improvements']}")
+    print(
+        f"  🔄 Улучшений совместимости: {summary_stats['compatibility_improvements']}"
+    )
     print(f"  ⚙️ Обновлено QML функций: {summary_stats['qml_functions_updated']}")
     print(f"  🎯 Успешность исправлений: {summary_stats['success_rate']}%")
 

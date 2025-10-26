@@ -72,7 +72,9 @@ def check_cylinder_duplication():
             in_suspension_corner = False
         elif not in_suspension_corner and "#Cylinder" in line:
             standalone_cylinders += 1
-            print(f"⚠️ ОТДЕЛЬНЫЙ ЦИЛИНДР вне компонента (строка {i+1}): {line.strip()}")
+            print(
+                f"⚠️ ОТДЕЛЬНЫЙ ЦИЛИНДР вне компонента (строка {i + 1}): {line.strip()}"
+            )
 
     print(f"📊 Отдельных цилиндров вне компонентов: {standalone_cylinders}")
 

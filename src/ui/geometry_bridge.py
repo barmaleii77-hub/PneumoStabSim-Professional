@@ -44,9 +44,22 @@ class GeometryTo3DConverter(QObject):
         self._settings_manager = settings_manager or get_settings_manager()
 
         defaults = self._load_geometry_defaults()
-        initial_state = get_geometry_initial_state_constants()
-        cylinder_constants = get_geometry_cylinder_constants()
-        visual_constants = get_geometry_visual_constants()
+
+        try:
+            initial_state = get_geometry_initial_state_constants()
+        except KeyError:
+            initial_state = {}
+
+        try:
+            cylinder_constants = get_geometry_cylinder_constants()
+        except KeyError:
+            cylinder_constants = {}
+
+        try:
+            visual_raw = get_geometry_visual_constants()
+        except KeyError:
+            visual_raw = {}
+        visual_constants = {**_VISUAL_FALLBACKS, **dict(visual_raw)}
 
         def _default(key: str, fallback: float) -> float:
             value = defaults.get(key, fallback)
@@ -56,11 +69,17 @@ class GeometryTo3DConverter(QObject):
                 return float(fallback)
 
         # VISUALIZATION PARAMETERS (from constants)
-        self._pivot_offset_x = float(visual_constants["pivot_offset_x_m"])
-        self._tail_offset_x = float(visual_constants["tail_offset_x_m"])
-        self._piston_clip_min = float(visual_constants["piston_clip_min_fraction"])
-        self._piston_clip_max = float(visual_constants["piston_clip_max_fraction"])
-        self._max_stroke_fraction = float(visual_constants["max_stroke_fraction"])
+        self._pivot_offset_x = float(visual_constants.get("pivot_offset_x_m", 0.0))
+        self._tail_offset_x = float(visual_constants.get("tail_offset_x_m", 0.0))
+        self._piston_clip_min = float(
+            visual_constants.get("piston_clip_min_fraction", 0.05)
+        )
+        self._piston_clip_max = float(
+            visual_constants.get("piston_clip_max_fraction", 0.95)
+        )
+        self._max_stroke_fraction = float(
+            visual_constants.get("max_stroke_fraction", 0.9)
+        )
 
         # USER-CONTROLLABLE PARAMETERS (connected to UI)
         # Fallbacks from constants
@@ -386,3 +405,52 @@ class GeometryTo3DConverter(QObject):
             "cylinderBodyLength": self._cylinder_body_length,
             "tailRodLength": self._tail_rod_length,
         }
+
+
+def create_geometry_converter(
+    *,
+    geometry: GeometryParams | None = None,
+    settings_manager: Optional[Any] = None,
+    wheelbase: Optional[float] = None,
+    lever_length: Optional[float] = None,
+    cylinder_diameter: Optional[float] = None,
+) -> GeometryTo3DConverter:
+    """Return a ready-to-use :class:`GeometryTo3DConverter` instance."""
+
+    params = geometry or GeometryParams()
+
+    if lever_length is not None:
+        try:
+            params.lever_length = float(lever_length)
+        except Exception:
+            pass
+
+    if wheelbase is not None:
+        if hasattr(params, "wheelbase"):
+            try:
+                params.wheelbase = float(wheelbase)
+            except Exception:
+                pass
+        elif hasattr(params, "track_width"):
+            try:
+                params.track_width = float(wheelbase)
+            except Exception:
+                pass
+
+    if cylinder_diameter is not None and hasattr(params, "cylinder_inner_diameter"):
+        try:
+            params.cylinder_inner_diameter = float(cylinder_diameter)
+        except Exception:
+            pass
+
+    manager = settings_manager or get_settings_manager()
+    return GeometryTo3DConverter(params, settings_manager=manager)
+
+
+_VISUAL_FALLBACKS = {
+    "pivot_offset_x_m": 0.0,
+    "tail_offset_x_m": 0.0,
+    "piston_clip_min_fraction": 0.05,
+    "piston_clip_max_fraction": 0.95,
+    "max_stroke_fraction": 0.9,
+}

@@ -9,7 +9,6 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
         PneumoStabSim-Professional.insiders.vsconfig = PneumoStabSim-Professional.insiders.vsconfig
         tools\visualstudio\initialize_insiders_environment.ps1 = tools\visualstudio\initialize_insiders_environment.ps1
         tools\visualstudio\launch_insiders.ps1 = tools\visualstudio\launch_insiders.ps1
-        tools\visualstudio\copilot_insiders_manifest.json = tools\visualstudio\copilot_insiders_manifest.json
         Properties\launchSettings.json = Properties\launchSettings.json
     EndProjectSection
 EndProject

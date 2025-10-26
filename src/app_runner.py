@@ -15,11 +15,15 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Optional
 import argparse
-import json
 import subprocess
 
 from pneumostabsim.logging import ErrorHookManager, install_error_hooks
 
+from src.core.settings_validation import (
+    SettingsValidationError,
+    determine_settings_source,
+    validate_settings_file,
+)
 from src.ui.qml_registration import register_qml_types
 
 
@@ -49,6 +53,8 @@ class ApplicationRunner:
         self.error_hook_manager: Optional[ErrorHookManager] = None
 
         self.use_qml_3d_schema: bool = True
+        self._is_headless: bool = False
+        self._headless_reason: Optional[str] = None
 
     def setup_signals(self) -> None:
         """Настройка обработчиков сигналов (Ctrl+C, SIGTERM)."""
@@ -123,9 +129,14 @@ class ApplicationRunner:
             except Exception as hook_error:
                 logger.warning(f"Error hook installation failed: {hook_error}")
 
-            from PySide6.QtCore import qVersion
+            try:
+                from PySide6.QtCore import qVersion
+            except Exception:  # pragma: no cover - headless environments
+                qt_version = "unavailable"
+            else:
+                qt_version = qVersion()
 
-            logger.info(f"Qt: {qVersion()}")
+            logger.info(f"Qt: {qt_version}")
             logger.info(f"Platform: {sys.platform}")
             logger.info(f"Backend: {os.environ.get('QSG_RHI_BACKEND', 'auto')}")
 
@@ -150,6 +161,10 @@ class ApplicationRunner:
         """Настройка High DPI scaling."""
         from src.diagnostics.warnings import log_warning
 
+        if not hasattr(self.QApplication, "setHighDpiScaleFactorRoundingPolicy"):
+            log_warning("High DPI setup: Qt runtime does not expose DPI controls")
+            return
+
         try:
             self.QApplication.setHighDpiScaleFactorRoundingPolicy(
                 self.Qt.HighDpiScaleFactorRoundingPolicy.PassThrough
@@ -164,6 +179,13 @@ class ApplicationRunner:
         app = self.QApplication(sys.argv)
         self.app_instance = app
 
+        self._is_headless = bool(
+            getattr(app, "is_headless", False) or getattr(self.Qt, "is_headless", False)
+        )
+        self._headless_reason = getattr(app, "headless_reason", None) or getattr(
+            self.Qt, "headless_reason", None
+        )
+
         # Если глобальные хуки не установлены (например, ошибка на этапе логгирования),
         # подключаем локальный перехватчик Qt сообщений как fallback.
         if not self.error_hook_manager:
@@ -175,29 +197,76 @@ class ApplicationRunner:
 
         if self.app_logger:
             self.app_logger.info("QApplication created and configured")
+            if self._is_headless:
+                reason = self._headless_reason or "PySide6 is unavailable"
+                self.app_logger.warning(
+                    "Running without a Qt GUI (headless diagnostics mode). Reason: %s",
+                    reason,
+                )
+        elif self._is_headless:
+            reason = self._headless_reason or "PySide6 is unavailable"
+            print(
+                "⚠️ Headless diagnostics mode enabled (Qt GUI unavailable)."
+                f" Reason: {reason}"
+            )
 
     def create_main_window(self) -> None:
         """Создание и отображение главного окна."""
-        # Предпочитаем модульную рефакторенную версию, чтобы избежать конфликта имён
-        MW = None
-        try:
-            from src.ui.main_window.main_window_refactored import MainWindow as MW
-
+        if self._is_headless:
             if self.app_logger:
                 self.app_logger.info(
-                    "MainWindow: using refactored version (package module)"
+                    "Headless mode active — skipping MainWindow instantiation"
                 )
-        except Exception:
-            from src.ui.main_window import MainWindow as MW
+            else:
+                print(
+                    "⚠️ Headless mode: skipping MainWindow creation; diagnostics only."
+                )
+            self.window_instance = None
+            return
 
+        # Предпочитаем модульную рефакторенную версию, чтобы избежать конфликта имён
+        try:
+            MW = None
+            try:
+                from src.ui.main_window.main_window_refactored import (  # type: ignore
+                    MainWindow as MW,
+                )
+
+                if self.app_logger:
+                    self.app_logger.info(
+                        "MainWindow: using refactored version (package module)"
+                    )
+            except Exception:
+                from src.ui.main_window import MainWindow as MW  # type: ignore
+
+                if self.app_logger:
+                    self.app_logger.warning(
+                        "MainWindow: refactored import failed, using default import"
+                    )
+
+            register_qml_types()
+
+            window = MW(use_qml_3d=self.use_qml_3d_schema)
+        except Exception as exc:
             if self.app_logger:
-                self.app_logger.warning(
-                    "MainWindow: refactored import failed, using default import"
+                self.app_logger.error(
+                    "MainWindow creation failed: %s", exc, exc_info=True
                 )
+            else:
+                print(f"⚠️ Fallback window due to startup error: {exc}")
 
-        register_qml_types()
+            from PySide6.QtWidgets import QLabel, QVBoxLayout, QWidget
 
-        window = MW(use_qml_3d=self.use_qml_3d_schema)
+            window = QWidget()
+            window.setWindowTitle("PneumoStabSim (headless diagnostics mode)")
+            layout = QVBoxLayout(window)
+            label = QLabel(
+                "Main window could not be initialised.\n"
+                "Running in diagnostics mode without the full UI."
+            )
+            label.setWordWrap(True)
+            layout.addWidget(label)
+
         self.window_instance = window
 
         window.show()
@@ -243,182 +312,49 @@ class ApplicationRunner:
             self.app_logger.debug("Settings schema validation passed")
 
     def _validate_settings_file(self) -> None:
-        """Строгая валидация конфигурации до создания MainWindow.
-
-        Проверяем:
-        - Путь к файлу и источник (ENV/CWD/PROJECT)
-        - Наличие файла и корректность JSON
-        - Обязательные ключи graphics.materials
-        - Права на запись в каталог config (создание temp-файла)
-        """
-        from PySide6.QtWidgets import QMessageBox
+        """Строгая валидация конфигурации до создания MainWindow."""
         from src.common.settings_manager import get_settings_manager
-        from src.common.settings_requirements import (
-            BOOL_PNEUMATIC_KEYS,
-            NUMERIC_PNEUMATIC_KEYS,
-            NUMERIC_SIMULATION_KEYS,
-            RECEIVER_VOLUME_LIMIT_KEYS,
-            REQUIRED_CURRENT_SECTIONS,
-            STRING_PNEUMATIC_KEYS,
-        )
-        import os
+
+        try:
+            from PySide6.QtWidgets import QMessageBox
+        except Exception:  # pragma: no cover - headless environments
+            QMessageBox = None
 
         sm = get_settings_manager()
         cfg_path = Path(sm.settings_file).absolute()
+        project_root = Path(__file__).resolve().parents[1]
+        project_cfg = project_root / "config" / "app_settings.json"
 
-        def _fail(message: str, exc_type: type[Exception] = ValueError) -> None:
+        def _fail(
+            message: str,
+            exc_type: type[Exception] = SettingsValidationError,
+        ) -> None:
             if self.app_logger:
                 self.app_logger.critical(message)
-            QMessageBox.critical(None, "Ошибка конфигурации", message)
+            if QMessageBox is not None:
+                QMessageBox.critical(None, "Ошибка конфигурации", message)
+            else:
+                print(f"❌ {message}")
             raise exc_type(message)
 
-        # Схемная валидация (если доступна)
-        try:
-            self._run_schema_validation(cfg_path)
-        except RuntimeError as exc:
-            _fail(str(exc))
-
-        # Определяем источник пути
-        src = "CWD"
-        if os.environ.get("PSS_SETTINGS_FILE"):
-            src = "ENV"
-        else:
-            # Попробуем угадать project path
-            try:
-                project_candidate = (
-                    Path(__file__).resolve().parents[1] / "config" / "app_settings.json"
-                )
-                if cfg_path.samefile(project_candidate):
-                    src = "PROJECT"
-            except Exception:
-                pass
-
+        src = determine_settings_source(cfg_path, project_default=project_cfg)
         msg_base = f"Settings file: {cfg_path} [source={src}]"
         print(msg_base)
         if self.app_logger:
             self.app_logger.info(msg_base)
 
-        # 1) Существование
-        if not cfg_path.exists():
-            _fail(f"Файл настроек не найден: {cfg_path}")
-
-        # 2) Чтение и JSON
         try:
-            with open(cfg_path, "r", encoding="utf-8") as f:
-                data = json.load(f)
-        except Exception as ex:
-            _fail(f"Некорректный JSON в файле настроек: {cfg_path}\n{ex}")
+            self._run_schema_validation(cfg_path)
+        except RuntimeError as exc:
+            _fail(str(exc), SettingsValidationError)
 
-        if not isinstance(data, dict):
-            _fail("Файл настроек должен содержать JSON-объект на верхнем уровне")
-
-        current = data.get("current")
-        if not isinstance(current, dict):
-            _fail("Отсутствует секция current с текущими настройками")
-
-        def _get_path(payload: dict, path: str) -> Any:
-            node: Any = payload
-            for part in path.split("."):
-                if not isinstance(node, dict) or part not in node:
-                    raise KeyError(path)
-                node = node[part]
-            return node
-
-        def _require_dict(path: str) -> dict:
-            try:
-                value = _get_path(data, path)
-            except KeyError:
-                _fail(f"Отсутствует обязательная секция {path}")
-            if not isinstance(value, dict):
-                _fail(f"Секция {path} должна быть объектом")
-            return value
-
-        def _require_number(path: str) -> float:
-            try:
-                value = _get_path(data, path)
-            except KeyError:
-                _fail(f"Отсутствует обязательный числовой параметр {path}")
-            if isinstance(value, bool) or not isinstance(value, (int, float)):
-                _fail(f"Параметр {path} должен быть числом")
-            return float(value)
-
-        def _require_string(path: str) -> str:
-            try:
-                value = _get_path(data, path)
-            except KeyError:
-                _fail(f"Отсутствует обязательный текстовый параметр {path}")
-            if not isinstance(value, str) or not value.strip():
-                _fail(f"Параметр {path} должен быть непустой строкой")
-            return value
-
-        def _require_bool(path: str) -> bool:
-            try:
-                value = _get_path(data, path)
-            except KeyError:
-                _fail(f"Отсутствует обязательный логический параметр {path}")
-            if isinstance(value, bool):
-                return value
-            if isinstance(value, (int, float)) and not isinstance(value, bool):
-                return bool(value)
-            _fail(f"Параметр {path} должен быть логическим значением (true/false)")
-
-        # 3) Обязательные секции current.*
-        for section in REQUIRED_CURRENT_SECTIONS:
-            _require_dict(section)
-
-        # 4) Обязательные числовые параметры
-        for key in NUMERIC_SIMULATION_KEYS:
-            _require_number(f"current.simulation.{key}")
-
-        for key in NUMERIC_PNEUMATIC_KEYS:
-            _require_number(f"current.pneumatic.{key}")
-
-        for key in RECEIVER_VOLUME_LIMIT_KEYS:
-            _require_number(f"current.pneumatic.receiver_volume_limits.{key}")
-
-        # 5) Обязательные текстовые и логические параметры
-        for key in STRING_PNEUMATIC_KEYS:
-            _require_string(f"current.pneumatic.{key}")
-
-        for key in BOOL_PNEUMATIC_KEYS:
-            _require_bool(f"current.pneumatic.{key}")
-
-        # 6) Обязательные ключи материалов
         try:
-            current = data.get("current", {}) if isinstance(data, dict) else {}
-            graphics = current.get("graphics", {}) if isinstance(current, dict) else {}
-            materials = (
-                graphics.get("materials", {}) if isinstance(graphics, dict) else {}
-            )
-            required_keys = {
-                "frame",
-                "lever",
-                "tail",
-                "cylinder",
-                "piston_body",
-                "piston_rod",
-                "joint_tail",
-                "joint_arm",
-                "joint_rod",
-            }
-            present = set(materials.keys()) if isinstance(materials, dict) else set()
-            missing = sorted(list(required_keys - present))
-            if missing:
-                _fail(
-                    "Отсутствуют обязательные материалы в current.graphics.materials: "
-                    + ", ".join(missing)
-                )
-        except Exception:
-            raise
+            validate_settings_file(cfg_path)
+        except SettingsValidationError as exc:
+            _fail(str(exc), SettingsValidationError)
 
-        # 4) Проверка записи в каталог
-        try:
-            tmp = cfg_path.parent / "~pss_write_test.tmp"
-            with open(tmp, "w", encoding="utf-8") as tf:
-                tf.write("ok")
-            tmp.unlink(missing_ok=True)
-        except Exception as ex:
-            _fail(f"Нет прав на запись в каталог конфигурации: {cfg_path.parent}\n{ex}")
+        if self.app_logger:
+            self.app_logger.debug("Settings schema and structure validated")
 
     def setup_test_mode(self, enabled: bool) -> None:
         """

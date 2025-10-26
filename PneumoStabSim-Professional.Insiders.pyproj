@@ -36,14 +36,15 @@ QML_IMPORT_PATH=$(MSBuildProjectDirectory)\.venv\Lib\site-packages\PySide6\qml;$
 QT_PLUGIN_PATH=$(MSBuildProjectDirectory)\.venv\Lib\site-packages\PySide6\plugins
 QT_QML_IMPORT_PATH=$(MSBuildProjectDirectory)\.venv\Lib\site-packages\PySide6\qml
 QT_QUICK_CONTROLS_STYLE=Basic
-PNEUMOSTABSIM_PROFILE=debug
-PYTHONIOENCODING=utf-8
 PYTHONUTF8=1
-LC_ALL=ru-RU
-LANG=ru-RU
+PYTHONIOENCODING=utf-8
 PIP_DISABLE_PIP_VERSION_CHECK=1
-DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=0
-COPILOT_PROJECT_MANIFEST=$(MSBuildProjectDirectory)\tools\visualstudio\copilot_insiders_manifest.json
+PIP_NO_PYTHON_VERSION_WARNING=1
+LC_ALL=C.UTF-8
+LANG=en_US.UTF-8
+POWERSHELL_UPDATECHECK=Off
+POWERSHELL_TELEMETRY_OPTOUT=1
+PNEUMOSTABSIM_PROFILE=debug
     </Environment>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)' == 'Release' ">
@@ -57,14 +58,15 @@ QML_IMPORT_PATH=$(MSBuildProjectDirectory)\.venv\Lib\site-packages\PySide6\qml;$
 QT_PLUGIN_PATH=$(MSBuildProjectDirectory)\.venv\Lib\site-packages\PySide6\plugins
 QT_QML_IMPORT_PATH=$(MSBuildProjectDirectory)\.venv\Lib\site-packages\PySide6\qml
 QT_QUICK_CONTROLS_STYLE=Basic
-PNEUMOSTABSIM_PROFILE=release
-PYTHONIOENCODING=utf-8
 PYTHONUTF8=1
-LC_ALL=ru-RU
-LANG=ru-RU
+PYTHONIOENCODING=utf-8
 PIP_DISABLE_PIP_VERSION_CHECK=1
-DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=0
-COPILOT_PROJECT_MANIFEST=$(MSBuildProjectDirectory)\tools\visualstudio\copilot_insiders_manifest.json
+PIP_NO_PYTHON_VERSION_WARNING=1
+LC_ALL=C.UTF-8
+LANG=en_US.UTF-8
+POWERSHELL_UPDATECHECK=Off
+POWERSHELL_TELEMETRY_OPTOUT=1
+PNEUMOSTABSIM_PROFILE=release
     </Environment>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)' == 'Test' ">
@@ -78,14 +80,15 @@ QML_IMPORT_PATH=$(MSBuildProjectDirectory)\.venv\Lib\site-packages\PySide6\qml;$
 QT_PLUGIN_PATH=$(MSBuildProjectDirectory)\.venv\Lib\site-packages\PySide6\plugins
 QT_QML_IMPORT_PATH=$(MSBuildProjectDirectory)\.venv\Lib\site-packages\PySide6\qml
 QT_QUICK_CONTROLS_STYLE=Basic
-PNEUMOSTABSIM_PROFILE=test
-PYTHONIOENCODING=utf-8
 PYTHONUTF8=1
-LC_ALL=ru-RU
-LANG=ru-RU
+PYTHONIOENCODING=utf-8
 PIP_DISABLE_PIP_VERSION_CHECK=1
-DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=0
-COPILOT_PROJECT_MANIFEST=$(MSBuildProjectDirectory)\tools\visualstudio\copilot_insiders_manifest.json
+PIP_NO_PYTHON_VERSION_WARNING=1
+LC_ALL=C.UTF-8
+LANG=en_US.UTF-8
+POWERSHELL_UPDATECHECK=Off
+POWERSHELL_TELEMETRY_OPTOUT=1
+PNEUMOSTABSIM_PROFILE=test
     </Environment>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)' == 'Insiders' ">
@@ -99,24 +102,29 @@ QML_IMPORT_PATH=$(MSBuildProjectDirectory)\.venv\Lib\site-packages\PySide6\qml;$
 QT_PLUGIN_PATH=$(MSBuildProjectDirectory)\.venv\Lib\site-packages\PySide6\plugins
 QT_QML_IMPORT_PATH=$(MSBuildProjectDirectory)\.venv\Lib\site-packages\PySide6\qml
 QT_QUICK_CONTROLS_STYLE=Basic
-PNEUMOSTABSIM_PROFILE=insiders
-PYTHONIOENCODING=utf-8
 PYTHONUTF8=1
-LC_ALL=ru-RU
-LANG=ru-RU
+PYTHONIOENCODING=utf-8
 PIP_DISABLE_PIP_VERSION_CHECK=1
-DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=0
-COPILOT_PROJECT_MANIFEST=$(MSBuildProjectDirectory)\tools\visualstudio\copilot_insiders_manifest.json
+PIP_NO_PYTHON_VERSION_WARNING=1
+LC_ALL=C.UTF-8
+LANG=en_US.UTF-8
+POWERSHELL_UPDATECHECK=Off
+POWERSHELL_TELEMETRY_OPTOUT=1
+PNEUMOSTABSIM_PROFILE=insiders
     </Environment>
   </PropertyGroup>
   <ItemGroup>
     <Content Include="PneumoStabSim-Professional.insiders.vsconfig" />
     <Content Include="tools\visualstudio\initialize_insiders_environment.ps1" />
+    <Content Include="tools\visualstudio\ensure_vs_components.ps1" />
+    <Content Include="tools\visualstudio\sync_copilot_profile.ps1" />
+    <Content Include="tools\visualstudio\copilot_insiders_profile.json" />
     <Content Include="tools\visualstudio\launch_insiders.ps1" />
-    <Content Include="tools\visualstudio\copilot_insiders_manifest.json" />
+    <Content Include=".vs\insiders.environment.json" />
     <Content Include="Properties\launchSettings.json" />
     <Content Include="activate_environment.ps1" />
     <Content Include="activate_venv.ps1" />
+    <Content Include="VISUAL_STUDIO_INSIDERS_SETUP.md" />
   </ItemGroup>
   <ItemGroup>
     <InterpreterReference Include="Global|PythonCore|3.13" />
@@ -134,7 +142,7 @@ COPILOT_PROJECT_MANIFEST=$(MSBuildProjectDirectory)\tools\visualstudio\copilot_i
   </ItemGroup>
   <Target Name="PrepareVisualStudioInsidersEnvironment" BeforeTargets="PrepareForLaunch">
     <Message Text="Preparing Visual Studio Insiders environment" Importance="high" />
-    <Exec Command="powershell -NoProfile -ExecutionPolicy Bypass -File &quot;$(MSBuildProjectDirectory)\tools\visualstudio\initialize_insiders_environment.ps1&quot; -ProjectRoot &quot;$(MSBuildProjectDirectory)&quot; -SkipVisualStudio" />
+    <Exec Command="powershell -NoProfile -ExecutionPolicy Bypass -File &quot;$(MSBuildProjectDirectory)\tools\visualstudio\initialize_insiders_environment.ps1&quot; -ProjectRoot &quot;$(MSBuildProjectDirectory)&quot;" />
   </Target>
   <Import Project="$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\Python Tools\Microsoft.PythonTools.targets" />
 </Project>

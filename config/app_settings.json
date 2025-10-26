@@ -2,7 +2,7 @@
   "metadata": {
     "version": "0.1.0",
     "schema_version": "0.1.0",
-    "last_modified": "2025-01-01T00:00:00",
+    "last_modified": "2025-10-25T16:25:30Z",
     "units_version": "si_v2",
     "migrations": [
       "0001_add_diagnostics_defaults"
@@ -36,11 +36,7 @@
         "fog_far": 1000.0,
         "ibl_intensity": 1.0,
         "ao_sample_rate": 32,
-        "background_color": [
-          0,
-          0,
-          0
-        ]
+        "background_color": "#000000"
       },
       "scene": {
         "scale_factor": 1.0,
@@ -96,6 +92,187 @@
         "showPan": true,
         "showAngles": true,
         "showMotion": true
+      }
+    },
+    "system": {
+      "dependencies": {
+        "opengl_runtime": {
+          "description": "OpenGL runtime required for Qt Quick rendering.",
+          "missing_message": "Required OpenGL runtime ({human_name}) is missing.",
+          "variants": [
+            {
+              "id": "linux_mesa",
+              "platform_prefixes": [
+                "linux",
+                "linux2"
+              ],
+              "library_name": "GL",
+              "human_name": "libGL.so.1",
+              "install_hint": "Install a Mesa/OpenGL package (e.g. 'apt-get install -y libgl1').",
+              "error_markers": [
+                "libGL.so.1"
+              ],
+              "packages": [
+                "libgl1"
+              ],
+              "install_command": "apt-get install -y libgl1"
+            },
+            {
+              "id": "windows_default",
+              "platform_prefixes": [
+                "win32",
+                "cygwin"
+              ],
+              "library_name": "opengl32",
+              "human_name": "opengl32.dll",
+              "install_hint": "Install the latest GPU drivers or enable OpenGL compatibility components.",
+              "error_markers": [
+                "opengl32.dll",
+                "opengl32"
+              ]
+            },
+            {
+              "id": "macos_default",
+              "platform_prefixes": [
+                "darwin"
+              ],
+              "library_name": "OpenGL",
+              "human_name": "OpenGL.framework",
+              "install_hint": "Ensure the Xcode command line tools are installed for OpenGL support.",
+              "error_markers": [
+                "OpenGL.framework",
+                "OpenGL"
+              ]
+            }
+          ]
+        },
+        "egl_runtime": {
+          "description": "EGL runtime required for Qt Quick OpenGL context creation.",
+          "missing_message": "Required EGL runtime ({human_name}) is missing.",
+          "variants": [
+            {
+              "id": "linux_mesa",
+              "platform_prefixes": [
+                "linux",
+                "linux2"
+              ],
+              "library_name": "EGL",
+              "human_name": "libEGL.so.1",
+              "install_hint": "Install an EGL runtime package (e.g. 'apt-get install -y libegl1').",
+              "error_markers": [
+                "libEGL.so.1",
+                "EGL"
+              ],
+              "packages": [
+                "libegl1"
+              ],
+              "install_command": "apt-get install -y libegl1"
+            }
+          ]
+        },
+        "xkb_runtime": {
+          "description": "XKB common library required for Qt input handling.",
+          "missing_message": "Required XKB runtime ({human_name}) is missing.",
+          "variants": [
+            {
+              "id": "linux_default",
+              "platform_prefixes": [
+                "linux",
+                "linux2"
+              ],
+              "library_name": "xkbcommon",
+              "human_name": "libxkbcommon.so.0",
+              "install_hint": "Install libxkbcommon (e.g. 'apt-get install -y libxkbcommon0').",
+              "error_markers": [
+                "libxkbcommon.so.0"
+              ],
+              "packages": [
+                "libxkbcommon0",
+                "xkb-data"
+              ],
+              "install_command": "apt-get install -y libxkbcommon0"
+            }
+          ]
+        }
+      }
+    },
+    "constants": {
+      "geometry": {
+        "kinematics": {
+          "track_width_m": 1.2,
+          "lever_length_m": 0.35,
+          "pivot_offset_from_frame_m": 0.2,
+          "rod_attach_fraction": 0.5
+        },
+        "cylinder": {
+          "inner_diameter_m": 0.08,
+          "rod_diameter_m": 0.035,
+          "piston_thickness_m": 0.02,
+          "body_length_m": 0.25,
+          "dead_zone_rod_m3": 0.001,
+          "dead_zone_head_m3": 0.001
+        },
+        "visualization": {
+          "arm_radius_m": 0.05,
+          "cylinder_radius_m": 0.04,
+          "pivot_offset_x_m": 0.0,
+          "tail_offset_x_m": 0.0,
+          "piston_clip_min_fraction": 0.05,
+          "piston_clip_max_fraction": 0.95,
+          "max_stroke_fraction": 0.9
+        },
+        "initial_state": {
+          "lever_length_m": 0.35,
+          "tail_rod_length_m": 0.18,
+          "frame_beam_size_m": 0.12,
+          "frame_height_m": 0.65,
+          "frame_length_m": 2.0,
+          "cylinder_body_length_m": 0.25,
+          "j_arm_left": [
+            -0.35,
+            0.65,
+            -0.5
+          ],
+          "j_arm_right": [
+            0.35,
+            0.65,
+            -0.5
+          ],
+          "j_tail_left": [
+            -0.4,
+            0.35,
+            -0.5
+          ],
+          "j_tail_right": [
+            0.4,
+            0.35,
+            -0.5
+          ]
+        }
+      },
+      "pneumo": {
+        "master_isolation_open": true,
+        "valves": {
+          "delta_open_pa": 5000.0,
+          "equivalent_diameter_m": 0.008
+        },
+        "receiver": {
+          "volume_min_m3": 0.0018,
+          "volume_max_m3": 0.0045,
+          "initial_volume_m3": 0.003,
+          "initial_pressure_pa": 101325.0,
+          "initial_temperature_k": 293.15,
+          "volume_mode": "ADIABATIC_RECALC"
+        },
+        "gas": {
+          "tank_volume_initial_m3": 0.0035,
+          "tank_pressure_initial_pa": 101325.0,
+          "tank_temperature_initial_k": 293.15,
+          "tank_volume_mode": "ADIABATIC_RECALC",
+          "time_step_s": 0.005,
+          "thermo_mode": "ISOTHERMAL",
+          "total_time_s": 3.0
+        }
       }
     }
   },
@@ -186,6 +363,187 @@
         "showPan": true,
         "showAngles": true,
         "showMotion": true
+      }
+    },
+    "system": {
+      "dependencies": {
+        "opengl_runtime": {
+          "description": "OpenGL runtime required for Qt Quick rendering.",
+          "missing_message": "Required OpenGL runtime ({human_name}) is missing.",
+          "variants": [
+            {
+              "id": "linux_mesa",
+              "platform_prefixes": [
+                "linux",
+                "linux2"
+              ],
+              "library_name": "GL",
+              "human_name": "libGL.so.1",
+              "install_hint": "Install a Mesa/OpenGL package (e.g. 'apt-get install -y libgl1').",
+              "error_markers": [
+                "libGL.so.1"
+              ],
+              "packages": [
+                "libgl1"
+              ],
+              "install_command": "apt-get install -y libgl1"
+            },
+            {
+              "id": "windows_default",
+              "platform_prefixes": [
+                "win32",
+                "cygwin"
+              ],
+              "library_name": "opengl32",
+              "human_name": "opengl32.dll",
+              "install_hint": "Install the latest GPU drivers or enable OpenGL compatibility components.",
+              "error_markers": [
+                "opengl32.dll",
+                "opengl32"
+              ]
+            },
+            {
+              "id": "macos_default",
+              "platform_prefixes": [
+                "darwin"
+              ],
+              "library_name": "OpenGL",
+              "human_name": "OpenGL.framework",
+              "install_hint": "Ensure the Xcode command line tools are installed for OpenGL support.",
+              "error_markers": [
+                "OpenGL.framework",
+                "OpenGL"
+              ]
+            }
+          ]
+        },
+        "egl_runtime": {
+          "description": "EGL runtime required for Qt Quick OpenGL context creation.",
+          "missing_message": "Required EGL runtime ({human_name}) is missing.",
+          "variants": [
+            {
+              "id": "linux_mesa",
+              "platform_prefixes": [
+                "linux",
+                "linux2"
+              ],
+              "library_name": "EGL",
+              "human_name": "libEGL.so.1",
+              "install_hint": "Install an EGL runtime package (e.g. 'apt-get install -y libegl1').",
+              "error_markers": [
+                "libEGL.so.1",
+                "EGL"
+              ],
+              "packages": [
+                "libegl1"
+              ],
+              "install_command": "apt-get install -y libegl1"
+            }
+          ]
+        },
+        "xkb_runtime": {
+          "description": "XKB common library required for Qt input handling.",
+          "missing_message": "Required XKB runtime ({human_name}) is missing.",
+          "variants": [
+            {
+              "id": "linux_default",
+              "platform_prefixes": [
+                "linux",
+                "linux2"
+              ],
+              "library_name": "xkbcommon",
+              "human_name": "libxkbcommon.so.0",
+              "install_hint": "Install libxkbcommon (e.g. 'apt-get install -y libxkbcommon0').",
+              "error_markers": [
+                "libxkbcommon.so.0"
+              ],
+              "packages": [
+                "libxkbcommon0",
+                "xkb-data"
+              ],
+              "install_command": "apt-get install -y libxkbcommon0"
+            }
+          ]
+        }
+      }
+    },
+    "constants": {
+      "geometry": {
+        "kinematics": {
+          "track_width_m": 1.2,
+          "lever_length_m": 0.35,
+          "pivot_offset_from_frame_m": 0.2,
+          "rod_attach_fraction": 0.5
+        },
+        "cylinder": {
+          "inner_diameter_m": 0.08,
+          "rod_diameter_m": 0.035,
+          "piston_thickness_m": 0.02,
+          "body_length_m": 0.25,
+          "dead_zone_rod_m3": 0.001,
+          "dead_zone_head_m3": 0.001
+        },
+        "visualization": {
+          "arm_radius_m": 0.05,
+          "cylinder_radius_m": 0.04,
+          "pivot_offset_x_m": 0.0,
+          "tail_offset_x_m": 0.0,
+          "piston_clip_min_fraction": 0.05,
+          "piston_clip_max_fraction": 0.95,
+          "max_stroke_fraction": 0.9
+        },
+        "initial_state": {
+          "lever_length_m": 0.35,
+          "tail_rod_length_m": 0.18,
+          "frame_beam_size_m": 0.12,
+          "frame_height_m": 0.65,
+          "frame_length_m": 2.0,
+          "cylinder_body_length_m": 0.25,
+          "j_arm_left": [
+            -0.35,
+            0.65,
+            -0.5
+          ],
+          "j_arm_right": [
+            0.35,
+            0.65,
+            -0.5
+          ],
+          "j_tail_left": [
+            -0.4,
+            0.35,
+            -0.5
+          ],
+          "j_tail_right": [
+            0.4,
+            0.35,
+            -0.5
+          ]
+        }
+      },
+      "pneumo": {
+        "master_isolation_open": true,
+        "valves": {
+          "delta_open_pa": 5000.0,
+          "equivalent_diameter_m": 0.008
+        },
+        "receiver": {
+          "volume_min_m3": 0.0018,
+          "volume_max_m3": 0.0045,
+          "initial_volume_m3": 0.003,
+          "initial_pressure_pa": 101325.0,
+          "initial_temperature_k": 293.15,
+          "volume_mode": "ADIABATIC_RECALC"
+        },
+        "gas": {
+          "tank_volume_initial_m3": 0.0035,
+          "tank_pressure_initial_pa": 101325.0,
+          "tank_temperature_initial_k": 293.15,
+          "tank_volume_mode": "ADIABATIC_RECALC",
+          "time_step_s": 0.005,
+          "thermo_mode": "ISOTHERMAL",
+          "total_time_s": 3.0
+        }
       }
     }
   }

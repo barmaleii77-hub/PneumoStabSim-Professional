@@ -1,96 +1,37 @@
 param(
-    [string]$ProjectRoot = (Resolve-Path (Join-Path $PSScriptRoot '..' '..')).Path,
-    [switch]$ForceBootstrap,
-    [string]$Script = 'app.py',
-    [string[]]$ScriptArguments
+    [string]$ProjectRoot = (Resolve-Path (Join-Path $PSScriptRoot '..' '..')).Path
 )
 
 $ErrorActionPreference = 'Stop'
-Set-StrictMode -Version Latest
-
-$utf8 = [System.Text.UTF8Encoding]::new($false)
+[Console]::OutputEncoding = [System.Text.UTF8Encoding]::UTF8
 try {
-    [Console]::OutputEncoding = $utf8
-    [Console]::InputEncoding = $utf8
-    $global:OutputEncoding = $utf8
+    chcp.com 65001 | Out-Null
 } catch {
-    Write-Verbose 'Unable to update console encodings; continuing with defaults.'
+    Write-Warning "Unable to switch code page to UTF-8: $($_.Exception.Message)"
+}
+Set-Item -Path env:PYTHONUTF8 -Value '1'
+Set-Item -Path env:PYTHONIOENCODING -Value 'utf-8'
+Set-Item -Path env:PIP_DISABLE_PIP_VERSION_CHECK -Value '1'
+Set-Item -Path env:PIP_NO_PYTHON_VERSION_WARNING -Value '1'
+Set-Item -Path env:LC_ALL -Value 'C.UTF-8'
+Set-Item -Path env:LANG -Value 'en_US.UTF-8'
+
+$envFile = Join-Path $ProjectRoot '.vs' 'insiders.environment.json'
+if (-not (Test-Path $envFile)) {
+    throw "Environment description '$envFile' was not found. Run initialize_insiders_environment.ps1 first."
 }
 
-if ($Host -and $Host.UI -and $Host.UI.SupportsVirtualTerminal) {
-    $PSStyle.OutputRendering = 'Host'
+$envData = Get-Content $envFile | ConvertFrom-Json
+
+foreach ($entry in $envData.PSObject.Properties) {
+    [System.Environment]::SetEnvironmentVariable($entry.Name, $entry.Value)
+    Set-Item -Path env:$($entry.Name) -Value $entry.Value
 }
-
-if (Get-Module -ListAvailable -Name PSReadLine) {
-    try {
-        Set-PSReadLineOption -PredictionSource HistoryAndPlugin -PredictionViewStyle ListView -ErrorAction Stop
-        Set-PSReadLineOption -BellStyle None -ErrorAction Stop
-    } catch {
-        Write-Verbose 'PSReadLine tuning failed; continuing with defaults.'
-    }
-}
-
-if (Get-Command chcp -ErrorAction SilentlyContinue) {
-    try { chcp 65001 | Out-Null } catch { Write-Verbose 'Unable to switch console codepage to UTF-8.' }
-}
-
-function Ensure-Environment {
-    param(
-        [string]$ProjectRoot,
-        [switch]$Force
-    )
-
-    $initializer = Join-Path $ProjectRoot 'tools' 'visualstudio' 'initialize_insiders_environment.ps1'
-    if (-not (Test-Path $initializer)) {
-        throw "Initializer script '$initializer' is missing."
-    }
-
-    $envFile = Join-Path $ProjectRoot '.vs' 'insiders.environment.json'
-    if ($Force -or -not (Test-Path $envFile)) {
-        Write-Host '[Insiders] Refreshing environment descriptor...' -ForegroundColor Cyan
-        & $initializer -ProjectRoot $ProjectRoot -Force:$Force.IsPresent -SkipVisualStudio | Out-Null
-        if (-not (Test-Path $envFile)) {
-            throw "Initialization did not produce environment file '$envFile'."
-        }
-    }
-
-    return $envFile
-}
-
-    $envFile = Ensure-Environment -ProjectRoot $ProjectRoot -Force:$ForceBootstrap
-    $envData = Get-Content $envFile -Encoding UTF8 | ConvertFrom-Json
-
-    foreach ($property in $envData.PSObject.Properties) {
-        [Environment]::SetEnvironmentVariable($property.Name, $property.Value)
-        Set-Item -Path env:$($property.Name) -Value $property.Value -Force
-    }
-
-    if ($envData.PSObject.Properties.Name -contains 'PYTHONHOME') {
-        $scriptsPath = Join-Path $envData.PYTHONHOME 'Scripts'
-        if (Test-Path $scriptsPath) {
-            $currentPath = [Environment]::GetEnvironmentVariable('PATH')
-            if (-not [string]::IsNullOrWhiteSpace($currentPath)) {
-                if (-not $currentPath.Split([System.IO.Path]::PathSeparator) -contains $scriptsPath) {
-                    $updatedPath = $scriptsPath + [System.IO.Path]::PathSeparator + $currentPath
-                    [Environment]::SetEnvironmentVariable('PATH', $updatedPath)
-                    Set-Item -Path env:PATH -Value $updatedPath -Force
-                }
-            } else {
-                [Environment]::SetEnvironmentVariable('PATH', $scriptsPath)
-                Set-Item -Path env:PATH -Value $scriptsPath -Force
-            }
-        }
-    }
 
 $pythonExe = Join-Path $ProjectRoot '.venv' 'Scripts' 'python.exe'
 if (-not (Test-Path $pythonExe)) {
-    throw "Python interpreter '$pythonExe' was not found. Run the initializer to materialise the virtual environment."
+    throw "Python interpreter '$pythonExe' was not found."
 }
 
-$scriptPath = Join-Path $ProjectRoot $Script
-if (-not (Test-Path $scriptPath)) {
-    throw "Launch script '$scriptPath' was not found."
-}
-
-Write-Host '[Insiders] Launching PneumoStabSim...' -ForegroundColor Cyan
-& $pythonExe $scriptPath @ScriptArguments
+Write-Host 'Launching PneumoStabSim using Visual Studio Insiders profile...' -ForegroundColor Cyan
+& $pythonExe (Join-Path $ProjectRoot 'app.py') @args

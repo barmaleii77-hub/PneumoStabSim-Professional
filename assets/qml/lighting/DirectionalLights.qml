@@ -97,7 +97,7 @@ Node {
 
         // ✅ Shadow quality mapping
         shadowMapQuality: root.shadowResolution === "4096" ? Light.ShadowMapQualityVeryHigh :
-                          root.shadowResolution === "2048" ? Light.ShadowMapQualityVeryHigh :
+                          root.shadowResolution === "2048" ? Light.ShadowMapQualityHigh :
                           root.shadowResolution === "1024" ? Light.ShadowMapQualityHigh :
                           root.shadowResolution === "512"  ? Light.ShadowMapQualityMedium :
                                                                Light.ShadowMapQualityLow

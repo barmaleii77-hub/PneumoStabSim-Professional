@@ -1,6 +1,7 @@
 """
 Поиск ВСЕХ оставшихся ошибок QML
 """
+
 import subprocess
 import sys
 import re

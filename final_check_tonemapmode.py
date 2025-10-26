@@ -1,6 +1,7 @@
 """
 ФИНАЛЬНАЯ ПРОВЕРКА: ВСЕ 10 ПАРАМЕТРОВ ДОХОДЯТ ДО CANVAS (улучшенная версия)
 """
+
 import re
 from pathlib import Path
 

@@ -2,6 +2,7 @@
 """
 F5 IDE Setup - Настройка F5 запуска для всех популярных IDE
 """
+
 import json
 from pathlib import Path
 
