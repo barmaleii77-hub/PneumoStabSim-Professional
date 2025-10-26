@@ -14,7 +14,7 @@ from typing import TYPE_CHECKING, Any, Dict
 from PySide6.QtCore import QByteArray, QSettings
 
 if TYPE_CHECKING:
-    from .main_window import MainWindow
+    from .main_window_refactored import MainWindow
 
 
 class StateSync:

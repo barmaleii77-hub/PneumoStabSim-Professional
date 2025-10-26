@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Dict
+from typing import Any, Dict
 
 __all__ = [
     "MainWindow",
@@ -24,7 +24,7 @@ except ImportError as refactored_error:
     try:
         from ..main_window_legacy import MainWindow  # type: ignore[misc]
     except (
-        ImportError
+        ImportError,
     ) as legacy_error:  # pragma: no cover - catastrophic import failure
         raise ImportError("Cannot load main-window implementation") from legacy_error
     else:

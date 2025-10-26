@@ -28,7 +28,7 @@ from PySide6.QtQuickWidgets import QQuickWidget
 from PySide6.QtGui import QAction, QKeySequence
 
 if TYPE_CHECKING:
-    from .main_window import MainWindow
+    from .main_window_refactored import MainWindow
 
 
 class UISetup:

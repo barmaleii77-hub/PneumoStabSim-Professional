@@ -18,7 +18,7 @@ from .qml_bridge import QMLBridge
 from ..qml_bridge import register_qml_signals
 
 if TYPE_CHECKING:
-    from .main_window import MainWindow
+    from .main_window_refactored import MainWindow
     from ...runtime import StateSnapshot
 
 
