@@ -466,6 +466,7 @@ check_*.py
 !tests/unit/tools/test_project_sanitize.py
 !tests/unit/tools/test_report_metrics.py
 !tests/unit/tools/test_validate_settings_cli.py
+!tests/unit/tools/test_ci_tasks.py
 !tests/settings/test_persistence.py
 !tests/unit/runtime/test_state_snapshot_buffer.py
 !tests/unit/runtime/test_sync.py
