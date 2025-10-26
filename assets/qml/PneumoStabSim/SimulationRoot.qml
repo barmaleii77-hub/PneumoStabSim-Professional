@@ -1485,4 +1485,39 @@ Item {
         if (params.render)
             applyRenderSettings(params.render);
     }
+
+    // -----------------------------------------------------------------
+    // Legacy compatibility shims (update* aliases)
+    // -----------------------------------------------------------------
+    function updateGeometry(params) {
+        applyGeometryUpdates(params);
+    }
+
+    function updateAnimation(params) {
+        applyAnimationUpdates(params);
+    }
+
+    function updateLighting(params) {
+        applyLightingUpdates(params);
+    }
+
+    function updateMaterials(params) {
+        applyMaterialUpdates(params);
+    }
+
+    function updateEnvironment(params) {
+        applyEnvironmentUpdates(params);
+    }
+
+    function updateQuality(params) {
+        applyQualityUpdates(params);
+    }
+
+    function updateCamera(params) {
+        applyCameraUpdates(params);
+    }
+
+    function updateEffects(params) {
+        applyEffectsUpdates(params);
+    }
 }
