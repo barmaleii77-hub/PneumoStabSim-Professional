@@ -11,6 +11,7 @@ from __future__ import annotations
 import argparse
 import datetime as _dt
 import json
+import os
 import subprocess
 import sys
 import time
@@ -20,6 +21,12 @@ from typing import Sequence
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 TRACE_ROOT = PROJECT_ROOT / "reports" / "quality" / "launch_traces"
 DEFAULT_HISTORY_LIMIT = 5
+DOTENV_PATH = PROJECT_ROOT / ".env"
+QT_REQUIRED_VARS: tuple[str, ...] = (
+    "QT_PLUGIN_PATH",
+    "QML2_IMPORT_PATH",
+    "QT_QUICK_CONTROLS_STYLE",
+)
 
 
 def _ensure_trace_dir() -> None:
@@ -70,6 +77,35 @@ def _build_command(env_report: Path, passthrough: Sequence[str]) -> list[str]:
     return command
 
 
+def _parse_env_file(path: Path) -> dict[str, str]:
+    if not path.exists():
+        return {}
+
+    env: dict[str, str] = {}
+    for line in path.read_text(encoding="utf-8").splitlines():
+        stripped = line.strip()
+        if not stripped or stripped.startswith("#"):
+            continue
+        if "=" not in stripped:
+            continue
+        key, value = stripped.split("=", 1)
+        env[key.strip()] = value
+    return env
+
+
+def _ensure_qt_defaults(environment: dict[str, str]) -> None:
+    environment.setdefault("QT_API", "PySide6")
+    environment.setdefault("QT_QPA_PLATFORM", "offscreen")
+    environment.setdefault("QT_QUICK_CONTROLS_STYLE", "Basic")
+
+
+def _compose_environment() -> dict[str, str]:
+    env = os.environ.copy()
+    env.update(_parse_env_file(DOTENV_PATH))
+    _ensure_qt_defaults(env)
+    return env
+
+
 def run_launch_trace(passthrough: Sequence[str], history_limit: int) -> int:
     _ensure_trace_dir()
 
@@ -78,6 +114,7 @@ def run_launch_trace(passthrough: Sequence[str], history_limit: int) -> int:
         TRACE_ROOT / f"environment_report_{timestamp.isoformat().replace(':', '-')}.md"
     )
     command = _build_command(report_path, passthrough)
+    environment = _compose_environment()
 
     start = time.perf_counter()
     completed = subprocess.run(
@@ -86,6 +123,7 @@ def run_launch_trace(passthrough: Sequence[str], history_limit: int) -> int:
         stderr=subprocess.STDOUT,
         text=True,
         cwd=PROJECT_ROOT,
+        env=environment,
         check=False,
     )
     duration = time.perf_counter() - start
@@ -98,12 +136,19 @@ def run_launch_trace(passthrough: Sequence[str], history_limit: int) -> int:
         f"- Command: {' '.join(command)}",
         f"- Return code: {completed.returncode}",
         f"- Environment report: {report_path.relative_to(PROJECT_ROOT)}",
-        "",
-        "```",
-        log_body.rstrip(),
-        "```",
-        "",
+        "- Qt environment:",
     ]
+    for var in QT_REQUIRED_VARS:
+        log_sections.append(f"  - {var}={environment.get(var, '')}")
+    log_sections.extend(
+        [
+            "",
+            "```",
+            log_body.rstrip(),
+            "```",
+            "",
+        ]
+    )
     log_text = "\n".join(log_sections)
 
     log_path = _trace_log_path(timestamp)
@@ -133,6 +178,9 @@ def run_launch_trace(passthrough: Sequence[str], history_limit: int) -> int:
         f" Log file: {log_path.relative_to(PROJECT_ROOT)}",
         f" Environment report: {report_path.relative_to(PROJECT_ROOT)}",
     ]
+    missing_qt = [var for var in QT_REQUIRED_VARS if not environment.get(var)]
+    if missing_qt:
+        summary_lines.append(" Missing Qt variables: " + ", ".join(sorted(missing_qt)))
     print("\n".join(summary_lines), file=sys.stdout)
 
     return completed.returncode
@@ -159,9 +207,30 @@ def build_parser() -> argparse.ArgumentParser:
     return parser
 
 
+def _normalise_argv(argv: Sequence[str]) -> list[str]:
+    """Return an argv list compatible with ``argparse`` expectations."""
+
+    if not argv:
+        return []
+
+    normalised: list[str] = []
+    flag = "--history-limit"
+    for token in argv:
+        if token.startswith(flag) and token not in {flag, f"{flag}=", f"{flag}="}:
+            suffix = token[len(flag) :]
+            # Accept PowerShell style ``--history-limit5`` while leaving
+            # ``--history-limit=5`` untouched for the default argparse behaviour.
+            if suffix.isdigit():
+                normalised.extend([flag, suffix])
+                continue
+        normalised.append(token)
+    return normalised
+
+
 def main(argv: Sequence[str] | None = None) -> None:
     parser = build_parser()
-    args = parser.parse_args(argv)
+    parsed_argv = _normalise_argv(list(argv) if argv is not None else sys.argv[1:])
+    args = parser.parse_args(parsed_argv)
     passthrough = tuple(arg for arg in args.passthrough or [] if arg)
 
     exit_code = run_launch_trace(passthrough, args.history_limit)

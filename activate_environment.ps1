@@ -15,6 +15,23 @@ try {
 $projectRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
 $envFile = Join-Path $projectRoot ".env"
 
+$pythonHelper = Join-Path $projectRoot 'tools' 'powershell' 'python_environment.ps1'
+if (Test-Path $pythonHelper) {
+    . $pythonHelper
+} else {
+    Write-Verbose "[env] Python helper '$pythonHelper' not found; falling back to default interpreter discovery."
+}
+
+$preferredPython = $null
+if (Get-Command Get-PreferredPython -ErrorAction SilentlyContinue) {
+    $preferredPython = Get-PreferredPython
+    if ($preferredPython) {
+        Write-Host "[env] Preferred Python: $($preferredPython.Version) ($($preferredPython.Path))" -ForegroundColor Cyan
+    } else {
+        Write-Host "[env] Could not determine preferred Python interpreter" -ForegroundColor Yellow
+    }
+}
+
 if (-not (Test-Path $envFile)) {
     Write-Host "[env] .env not found – run setup_environment.py" -ForegroundColor Yellow
     return
@@ -45,10 +62,31 @@ Write-Host "[env] Variables loaded from .env" -ForegroundColor Cyan
 $venvPath = Join-Path $projectRoot ".venv"
 $venvActivate = Join-Path $venvPath "Scripts/Activate.ps1"
 
+if ($preferredPython -and (Get-Command Get-PythonVersionFromExecutable -ErrorAction SilentlyContinue)) {
+    $venvPython = Join-Path $venvPath 'Scripts' 'python.exe'
+    if (Test-Path $venvPython) {
+        $venvVersion = Get-PythonVersionFromExecutable -Executable $venvPython
+        if ($venvVersion -and $venvVersion -lt $preferredPython.Version) {
+            Write-Host "[env] Existing .venv uses Python $venvVersion – recreating with $($preferredPython.Version)" -ForegroundColor Yellow
+            try {
+                Remove-Item -Recurse -Force $venvPath
+            } catch {
+                Write-Error "[env] Failed to remove outdated .venv: $_"
+                return
+            }
+        }
+    }
+}
+
 if (-not (Test-Path $venvPath)) {
     Write-Host "[env] .venv not found – bootstrapping via uv" -ForegroundColor Yellow
     $uv = Get-Command uv -ErrorAction SilentlyContinue
     if ($uv) {
+        if ($preferredPython) {
+            $env:UV_PYTHON = $preferredPython.Path
+            Write-Host "[env] Using UV_PYTHON=$($preferredPython.Path)" -ForegroundColor Cyan
+        }
+
         Push-Location $projectRoot
         try {
             & $uv.Source sync
@@ -57,7 +95,8 @@ if (-not (Test-Path $venvPath)) {
         }
     } else {
         Write-Host "[env] uv is not available, falling back to python -m venv" -ForegroundColor Yellow
-        python -m venv $venvPath
+        $pythonExecutable = if ($preferredPython) { $preferredPython.Path } else { 'python' }
+        & $pythonExecutable '-m' 'venv' $venvPath
         $requirements = Join-Path $projectRoot "requirements.txt"
         if (Test-Path $requirements) {
             & (Join-Path $venvPath "Scripts/python.exe") -m pip install -r $requirements
