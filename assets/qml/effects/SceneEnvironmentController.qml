@@ -113,11 +113,18 @@ function qtVersionAtLeast(requiredMajor, requiredMinor) {
  applyQualityPayload(payload)
  }
 
- function _applyEffectsPayload(payload) {
- applyEffectsPayload(payload)
- }
+    function _applyEffectsPayload(payload) {
+        applyEffectsPayload(payload)
+    }
 
- onSceneBridgeChanged: _applySceneBridgeState()
+    function toSceneLength(value) {
+        var numeric = Number(value)
+        if (!isFinite(numeric))
+            return 0
+        return numeric * effectiveSceneScaleFactor
+    }
+
+    onSceneBridgeChanged: _applySceneBridgeState()
 
  Connections {
  target: sceneBridge
@@ -145,8 +152,8 @@ Component.onCompleted: {
         root.ditheringEnabled = Qt.binding(function() { return ditheringEnabled })
     }
 
- _applySceneBridgeState()
- }
+        _applySceneBridgeState()
+    }
 
  function applyEnvironmentPayload(params) {
  if (!params)
@@ -176,10 +183,16 @@ Component.onCompleted: {
  fogEnabled = !!params.fogEnabled
  if (params.fogColor)
  fogColor = params.fogColor
- if (params.fogNear !== undefined)
- fogNear = Number(params.fogNear)
- if (params.fogFar !== undefined)
- fogFar = Number(params.fogFar)
+    if (params.fogNear !== undefined) {
+        var fogNearValue = Number(params.fogNear)
+        if (isFinite(fogNearValue))
+            fogNear = toSceneLength(fogNearValue)
+    }
+    if (params.fogFar !== undefined) {
+        var fogFarValue = Number(params.fogFar)
+        if (isFinite(fogFarValue))
+            fogFar = toSceneLength(fogFarValue)
+    }
  if (params.ssaoEnabled !== undefined)
  ssaoEnabled = !!params.ssaoEnabled
  if (params.ssaoRadius !== undefined)
@@ -188,8 +201,11 @@ Component.onCompleted: {
  ssaoIntensity = Number(params.ssaoIntensity)
  if (params.depthOfFieldEnabled !== undefined)
  internalDepthOfFieldEnabled = !!params.depthOfFieldEnabled
- if (params.dofFocusDistance !== undefined)
- dofFocusDistance = Number(params.dofFocusDistance)
+    if (params.dofFocusDistance !== undefined) {
+        var dofDistance = Number(params.dofFocusDistance)
+        if (isFinite(dofDistance))
+            dofFocusDistance = toSceneLength(dofDistance)
+    }
  if (params.dofBlurAmount !== undefined)
  dofBlurAmount = Number(params.dofBlurAmount)
  if (params.vignetteEnabled !== undefined)
@@ -198,8 +214,11 @@ Component.onCompleted: {
  internalVignetteStrength = Number(params.vignetteStrength)
  if (params.oitMode)
  oitMode = String(params.oitMode)
- if (params.ditheringEnabled !== undefined)
- ditheringEnabled = !!params.ditheringEnabled
+    if (params.ditheringEnabled !== undefined) {
+        ditheringEnabledSetting = !!params.ditheringEnabled
+        if (canUseDithering)
+            root.ditheringEnabled = ditheringEnabledSetting
+    }
  }
 
  function applyQualityPayload(params) {
@@ -222,8 +241,11 @@ Component.onCompleted: {
  fxaaEnabled = !!params.fxaaEnabled
  if (params.specularAAEnabled !== undefined)
  specularAAEnabled = !!params.specularAAEnabled
- if (params.ditheringEnabled !== undefined)
- ditheringEnabled = !!params.ditheringEnabled
+    if (params.ditheringEnabled !== undefined) {
+        ditheringEnabledSetting = !!params.ditheringEnabled
+        if (canUseDithering)
+            root.ditheringEnabled = ditheringEnabledSetting
+    }
  }
 
  function applyEffectsPayload(params) {
@@ -240,8 +262,11 @@ Component.onCompleted: {
  bloomSpread = Number(params.bloomSpread)
  if (params.depthOfFieldEnabled !== undefined)
  internalDepthOfFieldEnabled = !!params.depthOfFieldEnabled
- if (params.dofFocusDistance !== undefined)
- dofFocusDistance = Number(params.dofFocusDistance)
+    if (params.dofFocusDistance !== undefined) {
+        var effectsFocusDistance = Number(params.dofFocusDistance)
+        if (isFinite(effectsFocusDistance))
+            dofFocusDistance = toSceneLength(effectsFocusDistance)
+    }
  if (params.dofBlurAmount !== undefined)
  dofBlurAmount = Number(params.dofBlurAmount)
  if (params.vignetteEnabled !== undefined)
