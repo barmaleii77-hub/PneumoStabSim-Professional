@@ -1,7 +1,7 @@
-import QtQuick6.10
-import QtQuick.Controls6.10
-import QtQuick3D6.10
-import QtQuick3D.Helpers6.10
+import QtQuick 6.10
+import QtQuick.Controls 6.10
+import QtQuick3D 6.10
+import QtQuick3D.Helpers 6.10
 import "../camera"
 import "../components"
 import "../effects"
@@ -83,11 +83,11 @@ Item {
  })
 
  // Масштаб перевода метров в сцену Qt Quick3D (исторически миллиметры)
- property real sceneScaleFactor: sceneDefaults && sceneDefaults.scale_factor !== undefined ? Number(sceneDefaults.scale_factor) :1000.0
+ property real sceneScaleFactor: sceneDefaults && sceneDefaults.scale_factor !== undefined ? Number(sceneDefaults.scale_factor) : 1000.0
  readonly property real effectiveSceneScaleFactor: (function() {
  var numeric = Number(sceneScaleFactor);
- if (!isFinite(numeric) || numeric <=0)
- return1.0;
+ if (!isFinite(numeric) || numeric <= 0)
+ return 1.0;
  return numeric;
  })()
 
@@ -585,8 +585,8 @@ Item {
  function toSceneLength(meters) {
  var numeric = Number(meters);
  if (!isFinite(numeric))
-        return 0;
- return numeric * sceneScaleFactor;
+ return 0.0;
+ return numeric * effectiveSceneScaleFactor;
  }
 
  function toSceneScale(meters) {
@@ -702,7 +702,7 @@ Item {
  var value = store[key];
  var numeric = Number(value);
  if (!isFinite(numeric))
- return0.0;
+ return 0.0;
  return numeric;
  }
 
@@ -716,7 +716,7 @@ Item {
  return rl_angle;
  if (key === "rr")
  return rr_angle;
- return0.0;
+ return 0.0;
  }
 
  function normalizeLightingValue(key, value) {

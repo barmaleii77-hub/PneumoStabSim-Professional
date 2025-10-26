@@ -1,6 +1,6 @@
-import QtQuick6.10
-import QtQuick.Controls6.10
-import PneumoStabSim1.0
+import QtQuick 6.10
+import QtQuick.Controls 6.10
+import PneumoStabSim 1.0
 import "./"
 
 Item {
