@@ -137,6 +137,8 @@ def test_set_unknown_path_fails_schema_validation(settings_file: Path) -> None:
     with pytest.raises(SettingsValidationError):
         service.set("current.geometry.unknown_field", 123)
 
+    assert service.get_unknown_paths() == []
+
 
 def test_update_unknown_key_records_audit(settings_file: Path) -> None:
     service = SettingsService(
@@ -148,3 +150,14 @@ def test_update_unknown_key_records_audit(settings_file: Path) -> None:
     payload = json.loads(settings_file.read_text(encoding="utf-8"))
     assert payload["current"]["geometry"]["unknown_field"] == 1
     assert service.get_unknown_paths() == ["current.geometry.unknown_field"]
+
+
+def test_update_unknown_key_validation_failure_does_not_record(
+    settings_file: Path,
+) -> None:
+    service = SettingsService(settings_path=settings_file, schema_path=SCHEMA_PATH)
+
+    with pytest.raises(SettingsValidationError):
+        service.update("current.geometry", {"unknown_field": 1})
+
+    assert service.get_unknown_paths() == []
