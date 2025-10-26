@@ -151,4 +151,29 @@ def test_save_current_persists_normalised_copy(
     saved = manager.get_category("graphics")
     assert saved["environment"]["ibl_intensity"] == 2.2
     assert saved["materials"]["tail_rod"]["base_color"] == "#ff0000"
+    # The persistence layer must keep compatibility with external tooling that
+    # still expects the legacy ``tail`` material entry.
+    assert saved["materials"]["tail"]["base_color"] == "#ff0000"
     assert "lighting" in saved
+
+
+def test_save_current_as_defaults_persists_aliases(
+    tmp_path: Path, baseline_file: Path
+) -> None:
+    settings_path = tmp_path / "settings.json"
+    payload = _make_legacy_payload(_make_materials())
+    _write_json(settings_path, payload)
+
+    manager = SettingsManager(settings_file=settings_path)
+    service = GraphicsSettingsService(manager, baseline_path=baseline_file)
+
+    state = service.load_current()
+    state["materials"]["tail_rod"]["base_color"] = "#00ff00"
+
+    service.save_current_as_defaults(state)
+
+    current = manager.get_category("graphics")
+    defaults = manager.get("defaults_snapshot.graphics")
+
+    assert current["materials"]["tail"]["base_color"] == "#00ff00"
+    assert defaults["materials"]["tail"]["base_color"] == "#00ff00"
