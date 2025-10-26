@@ -138,26 +138,43 @@ def task_typecheck() -> None:
     _run_command(command)
 
 
-def _resolve_qml_linter() -> str:
+def _resolve_qml_linter() -> tuple[str, ...]:
+    """Return the command tuple that should be used to invoke ``qmllint``."""
+
+    def _command_from_candidate(candidate: str) -> tuple[str, ...] | None:
+        path_candidate = Path(candidate)
+        if path_candidate.is_absolute():
+            return (str(path_candidate),) if path_candidate.exists() else None
+
+        resolved = shutil.which(candidate)
+        if resolved:
+            return (resolved,)
+        return None
+
     candidates = _split_env_list(os.environ.get("QML_LINTER"))
     if candidates:
         for candidate in candidates:
-            path = (
-                shutil.which(candidate) if not os.path.isabs(candidate) else candidate
-            )
-            if path:
-                return path if os.path.isabs(candidate) else candidate
+            command = _command_from_candidate(candidate)
+            if command is not None:
+                return command
         raise TaskError(
             "None of the QML linters specified in QML_LINTER are executable."
         )
 
     for name in ("qmllint", "pyside6-qmllint"):
-        if shutil.which(name):
-            return name
+        command = _command_from_candidate(name)
+        if command is not None:
+            return command
 
-    raise TaskError(
-        "qmllint or pyside6-qmllint is not installed. Set QML_LINTER to override."
-    )
+    try:
+        import PySide6.scripts.qmllint  # type: ignore[import-not-found]  # noqa: F401
+    except ModuleNotFoundError as exc:
+        raise TaskError(
+            "qmllint or pyside6-qmllint is not installed and PySide6 is unavailable. "
+            "Install Qt tooling (e.g. run 'python tools/setup_qt.py') or set QML_LINTER."
+        ) from exc
+
+    return (sys.executable, "-m", "PySide6.scripts.qmllint")
 
 
 def _collect_qml_targets() -> list[Path]:
@@ -206,14 +223,14 @@ def task_test() -> None:
 
 
 def task_qml_lint() -> None:
-    linter = _resolve_qml_linter()
+    linter_command = _resolve_qml_linter()
     targets = _collect_qml_targets()
     if not targets:
         print("[ci_tasks] No QML lint targets specified; skipping.")
         return
 
     for target in targets:
-        _run_command([linter, str(target)])
+        _run_command([*linter_command, str(target)])
 
 
 def task_verify() -> None:
