@@ -921,34 +921,19 @@
         "ao_dither": true,
         "ao_sample_rate": 4
       },
-        "quality": {
-          "preset": "ultra",
-          "shadows": {
-            "enabled": true,
-            "resolution": "4096",
-            "filter": 32,
-            "bias": 8.0,
-            "darkness": 80.0
-          },
-          "antialiasing": {
-            "primary": "ssaa",
-            "quality": "high",
-            "post": "taa"
-          },
-          "taa_enabled": true,
-          "taa_strength": 0.4,
-          "taa_motion_adaptive": true,
-          "fxaa_enabled": false,
-          "specular_aa": true,
-          "dithering": true,
-          "render_scale": 1.05,
-          "render_policy": "always",
-          "frame_rate_limit": 144.0,
-          "oit": "weighted",
-          "mesh": {
-            "cylinder_segments": 128,
-            "cylinder_rings": 32
-          }
+      "quality": {
+        "preset": "ultra",
+        "shadows": {
+          "enabled": true,
+          "resolution": "4096",
+          "filter": 32,
+          "bias": 8.0,
+          "darkness": 80.0
+        },
+        "antialiasing": {
+          "primary": "ssaa",
+          "quality": "high",
+          "post": "taa"
         },
         "taa_enabled": true,
         "taa_strength": 0.4,
