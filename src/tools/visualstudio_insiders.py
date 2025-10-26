@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections import OrderedDict
 import json
 from pathlib import Path, PureWindowsPath
 from typing import Dict, Iterable
@@ -142,7 +143,8 @@ def build_insiders_environment(
     if missing_keys:
         raise ValueError(f"Missing expected keys: {', '.join(missing_keys)}")
 
-    return env
+    ordered = OrderedDict((key, env[key]) for key in _ENV_KEYS)
+    return dict(ordered)
 
 
 def validate_insiders_environment(project_root: Path) -> Dict[str, str]:

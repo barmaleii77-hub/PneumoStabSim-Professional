@@ -6,9 +6,32 @@
 при использовании версий < 6.10.
 """
 
+from __future__ import annotations
+
+import sys
 from typing import Any, Callable
 
 from src.bootstrap.dependency_config import match_dependency_error
+
+
+def _normalise_logger(
+    candidate: Callable[[str], None] | Any, *, prefix: str
+) -> Callable[[str], None]:
+    """Вернуть вызываемый логгер для *candidate*.
+
+    Некоторые тестовые окружения передают булевы флаги вместо функций
+    логирования. Ранее это приводило к ``TypeError`` внутри fallback-блока
+    ``safe_import_qt``. Чтобы bootstrap оставался устойчивым, мы приводим
+    такие значения к простому обработчику, печатающему сообщение в ``stderr``.
+    """
+
+    if callable(candidate):
+        return candidate
+
+    def _fallback(message: str) -> None:
+        sys.stderr.write(f"[safe_import_qt:{prefix}] {message}\n")
+
+    return _fallback
 
 
 def safe_import_qt(
@@ -24,6 +47,9 @@ def safe_import_qt(
     Returns:
         Кортеж (QApplication, qInstallMessageHandler, Qt, QTimer)
     """
+    warn = _normalise_logger(log_warning, prefix="warning")
+    err = _normalise_logger(log_error, prefix="error")
+
     try:
         from PySide6.QtWidgets import QApplication
         from PySide6.QtCore import qInstallMessageHandler, Qt, QTimer, qVersion
@@ -33,11 +59,11 @@ def safe_import_qt(
         try:
             major, minor = qt_version.split(".")[:2]
             if int(major) == 6 and int(minor) < 10:
-                log_warning(
+                warn(
                     f"Qt {qt_version} detected. Some 6.10+ features may be unavailable"
                 )
         except (ValueError, IndexError):
-            log_warning(f"Could not parse Qt version: {qt_version}")
+            warn(f"Could not parse Qt version: {qt_version}")
 
         return QApplication, qInstallMessageHandler, Qt, QTimer
     except ImportError as e:
@@ -69,7 +95,7 @@ def safe_import_qt(
             if hint_lines:
                 error_message = "\n".join([error_message, *hint_lines])
 
-        log_error(error_message)
+        err(error_message)
 
         from src.bootstrap.headless_qt import (
             HeadlessApplication,
@@ -81,7 +107,7 @@ def safe_import_qt(
         HeadlessApplication.headless_reason = error_message
         qt_namespace = HeadlessQtNamespace(headless_reason=error_message)
 
-        log_warning(
+        warn(
             "PySide6 is unavailable; using headless diagnostics mode without a Qt GUI."
         )
 
