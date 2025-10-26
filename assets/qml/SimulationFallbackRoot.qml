@@ -232,6 +232,10 @@ Item {
         logQmlEvent("function_called", "applyThreeDUpdates")
     }
 
+    function apply3DUpdates(params) {
+        applyThreeDUpdates(params)
+    }
+
     // Legacy function names expected by Python diagnostics
     function updateGeometry(params) { applyGeometryUpdates(params) }
     function updateAnimation(params) { applyAnimationUpdates(params) }
@@ -242,6 +246,7 @@ Item {
     function updateCamera(params) { applyCameraUpdates(params) }
     function updateEffects(params) { applyEffectsUpdates(params) }
     function updateRender(params) { applyRenderSettings(params) }
+    function updateThreeD(params) { apply3DUpdates(params) }
 
     function updatePistonPositions(positions) {
         if (!positions) {

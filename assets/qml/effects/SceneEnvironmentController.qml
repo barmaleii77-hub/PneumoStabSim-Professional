@@ -214,54 +214,54 @@ ExtendedSceneEnvironment {
  if (params.tonemapWhitePoint !== undefined)
  tonemapWhitePoint = Number(params.tonemapWhitePoint)
 
- if (params.tonemap) {
- var tonemap = params.tonemap
- if (tonemap.enabled !== undefined)
- setTonemapEnabledFlag(tonemap.enabled)
- if (tonemap.mode)
- tonemapModeName = String(tonemap.mode)
- if (tonemap.exposure !== undefined)
- tonemapExposure = Number(tonemap.exposure)
- if (tonemap.white_point !== undefined)
- tonemapWhitePoint = Number(tonemap.white_point)
- }
+    if (params.tonemap) {
+        var tonemap = params.tonemap
+        if (tonemap.enabled !== undefined)
+            setTonemapEnabledFlag(tonemap.enabled)
+        if (tonemap.mode)
+            tonemapModeName = String(tonemap.mode)
+        if (tonemap.exposure !== undefined)
+            tonemapExposure = Number(tonemap.exposure)
+        if (tonemap.white_point !== undefined)
+            tonemapWhitePoint = Number(tonemap.white_point)
+    }
 
-if (params.fogEnabled !== undefined)
-fogEnabled = !!params.fogEnabled
-if (params.fogColor)
-fogColor = params.fogColor
- if (params.fogDensity !== undefined)
- fogDensity = Number(params.fogDensity)
-if (params.fogNear !== undefined) {
-var fogNearValue = Number(params.fogNear)
-if (isFinite(fogNearValue))
-fogNear = toSceneLength(fogNearValue)
-}
- if (params.fogFar !== undefined) {
- var fogFarValue = Number(params.fogFar)
- if (isFinite(fogFarValue))
- fogFar = toSceneLength(fogFarValue)
- }
+    if (params.fogEnabled !== undefined)
+        fogEnabled = !!params.fogEnabled
+    if (params.fogColor)
+        fogColor = params.fogColor
+    if (params.fogDensity !== undefined)
+        fogDensity = Number(params.fogDensity)
+    if (params.fogNear !== undefined) {
+        var fogNearValue = Number(params.fogNear)
+        if (isFinite(fogNearValue))
+            fogNear = toSceneLength(fogNearValue)
+    }
+    if (params.fogFar !== undefined) {
+        var fogFarValue = Number(params.fogFar)
+        if (isFinite(fogFarValue))
+            fogFar = toSceneLength(fogFarValue)
+    }
 
- if (params.fog) {
- var fog = params.fog
- if (fog.enabled !== undefined)
- fogEnabled = !!fog.enabled
- if (fog.color)
- fogColor = fog.color
- if (fog.near !== undefined) {
- var fogNestedNear = Number(fog.near)
- if (isFinite(fogNestedNear))
- fogNear = toSceneLength(fogNestedNear)
- }
- if (fog.far !== undefined) {
- var fogNestedFar = Number(fog.far)
- if (isFinite(fogNestedFar))
- fogFar = toSceneLength(fogNestedFar)
- }
- if (fog.density !== undefined)
- fogDensity = Number(fog.density)
- }
+    if (params.fog) {
+        var fog = params.fog
+        if (fog.enabled !== undefined)
+            fogEnabled = !!fog.enabled
+        if (fog.color)
+            fogColor = fog.color
+        if (fog.near !== undefined) {
+            var fogNestedNear = Number(fog.near)
+            if (isFinite(fogNestedNear))
+                fogNear = toSceneLength(fogNestedNear)
+        }
+        if (fog.far !== undefined) {
+            var fogNestedFar = Number(fog.far)
+            if (isFinite(fogNestedFar))
+                fogFar = toSceneLength(fogNestedFar)
+        }
+        if (fog.density !== undefined)
+            fogDensity = Number(fog.density)
+    }
 
  if (params.ssaoEnabled !== undefined)
  ssaoEnabled = !!params.ssaoEnabled
@@ -405,10 +405,11 @@ return
  // ===============================================================
 
     property bool tonemapActive: true
+    property alias tonemapEnabled: root.tonemapActive
     property string tonemapModeName: "filmic"
     property string tonemapStoredModeName: "filmic"
-    property real tonemapExposure:1.0
-    property real tonemapWhitePoint:2.0
+    property real tonemapExposure: 1.0
+    property real tonemapWhitePoint: 2.0
     readonly property var tonemapModeLookup: ({
         "filmic": SceneEnvironment.TonemapModeFilmic,
         "aces": SceneEnvironment.TonemapModeAces,
