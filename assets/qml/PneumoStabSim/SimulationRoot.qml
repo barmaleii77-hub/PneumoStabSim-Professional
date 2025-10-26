@@ -870,7 +870,22 @@ Item {
  }
  }
  updateGeometryState(geometryPatch);
+
+ if (cameraController) {
+ var cameraGeometryUpdate = {};
+ if (geometryPatch.frameLength !== undefined)
+ cameraGeometryUpdate.frameLength = toSceneLength(geometryPatch.frameLength);
+ if (geometryPatch.frameHeight !== undefined)
+ cameraGeometryUpdate.frameHeight = toSceneLength(geometryPatch.frameHeight);
+ if (geometryPatch.trackWidth !== undefined)
+ cameraGeometryUpdate.trackWidth = toSceneLength(geometryPatch.trackWidth);
+ if (geometryPatch.beamSize !== undefined)
+ cameraGeometryUpdate.beamSize = toSceneLength(geometryPatch.beamSize);
+
+ if (Object.keys(cameraGeometryUpdate).length)
+ cameraController.updateGeometry(cameraGeometryUpdate);
  }
+}
 
  function applyCameraUpdates(params) {
  if (!params) return;
