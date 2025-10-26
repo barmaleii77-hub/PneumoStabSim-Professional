@@ -297,7 +297,14 @@ def _build_payload(
             high = defn.max_value if defn.max_value is not None else low + 10
             payload[defn.key] = int((low + high) // 2 or high)
         elif defn.value_type == "string":
-            payload[defn.key] = ""
+            if defn.allowed_values:
+                payload[defn.key] = defn.allowed_values[0]
+            elif defn.allow_empty_string:
+                payload[defn.key] = ""
+            elif defn.key == "background_color":
+                payload[defn.key] = "#000000"
+            else:
+                payload[defn.key] = defn.key
     return payload
 
 
