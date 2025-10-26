@@ -16,7 +16,7 @@ import subprocess
 import sys
 import time
 from pathlib import Path
-from typing import Sequence
+from typing import Sequence, TextIO
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 TRACE_ROOT = PROJECT_ROOT / "reports" / "quality" / "launch_traces"
@@ -128,6 +128,22 @@ def _compose_environment() -> dict[str, str]:
     return env
 
 
+def _status_icon(success: bool, stream: TextIO | None = None) -> str:
+    """Return a status icon compatible with the active stdout encoding."""
+
+    icon = "✅" if success else "❌"
+    fallback = "OK" if success else "FAIL"
+
+    target_stream = stream if stream is not None else sys.stdout
+    encoding = getattr(target_stream, "encoding", None) or sys.getdefaultencoding()
+
+    try:
+        icon.encode(encoding, errors="strict")
+    except (UnicodeEncodeError, LookupError):
+        return fallback
+    return icon
+
+
 def run_launch_trace(passthrough: Sequence[str], history_limit: int) -> int:
     _ensure_trace_dir()
 
@@ -193,10 +209,10 @@ def run_launch_trace(passthrough: Sequence[str], history_limit: int) -> int:
 
     _prune_old_traces(history_limit)
 
+    success = completed.returncode == 0
     summary_lines = [
         "Launch trace summary:",
-        (" ✅ launch" if completed.returncode == 0 else " ❌ launch")
-        + f" (rc={completed.returncode}, {duration:.2f}s)",
+        f"{_status_icon(success)} launch (rc={completed.returncode}, {duration:.2f}s)",
         f" Log file: {log_path.relative_to(PROJECT_ROOT)}",
         f" Environment report: {report_path.relative_to(PROJECT_ROOT)}",
     ]

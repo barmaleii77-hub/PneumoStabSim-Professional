@@ -291,20 +291,25 @@ class SettingsManager:
 
         parts = dotted_path.split(".")
         # Determine which root dictionary to update
-        if parts[0] == "current":
+        head = parts[0]
+
+        if head == "current":
             root = self._data
             parts = parts[1:]
-        elif parts[0] == "defaults_snapshot":
+        elif head == "defaults_snapshot":
             root = self._defaults
             parts = parts[1:]
-        elif parts[0] == "metadata":
+        elif head == "metadata":
             root = self._metadata
             parts = parts[1:]
-        elif parts[0] in self._extra:
-            root = self._extra[parts[0]]
+        elif head in self._extra:
+            root = self._extra[head]
             parts = parts[1:]
         elif len(parts) == 1:
-            root = self._extra
+            if head in self._data or head in self._defaults:
+                root = self._data
+            else:
+                root = self._extra
         else:
             root = self._data
 
