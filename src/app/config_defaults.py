@@ -21,7 +21,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from enum import Enum
-from typing import Dict, Type, TypeVar
+from typing import Any, Dict, Mapping, Type, TypeVar
 
 from config.constants import (
     get_pneumo_gas_constants,
@@ -48,8 +48,16 @@ from src.pneumo.valves import CheckValve
 EnumType = TypeVar("EnumType", bound=Enum)
 
 
+def _require_value(payload: Mapping[str, Any], key: str, path: str) -> Any:
+    """Return a value from ``payload`` or raise an informative error."""
+
+    if key not in payload:
+        raise KeyError(f"Missing '{path}.{key}' in config/app_settings.json")
+    return payload[key]
+
+
 def _enum_from_config(
-    enum_cls: Type[EnumType], value: object, default: EnumType
+    enum_cls: Type[EnumType], value: object, *, path: str
 ) -> EnumType:
     """Return an enum value using case-insensitive lookups."""
 
@@ -59,9 +67,13 @@ def _enum_from_config(
         key = value.upper()
         try:
             return enum_cls[key]
-        except KeyError:
-            return default
-    return default
+        except KeyError as exc:
+            raise ValueError(
+                f"Invalid value '{value}' for {path} in config/app_settings.json"
+            ) from exc
+    raise TypeError(
+        f"{path} must be a string or {enum_cls.__name__}, got {type(value).__name__}"
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -108,8 +120,10 @@ def _create_line_valves() -> Dict[Line, dict]:
     """Create check valve configuration for every pneumatic line."""
 
     valve_defaults = get_pneumo_valve_constants()
-    delta_open = float(valve_defaults.get("delta_open_pa", 5_000.0))
-    d_eq = float(valve_defaults.get("equivalent_diameter_m", 0.008))
+    delta_open = float(_require_value(valve_defaults, "delta_open_pa", "pneumo.valves"))
+    d_eq = float(
+        _require_value(valve_defaults, "equivalent_diameter_m", "pneumo.valves")
+    )
 
     def _check_valve(kind: CheckValveKind) -> CheckValve:
         return CheckValve(kind=kind, delta_open=delta_open, d_eq=d_eq)
@@ -144,18 +158,30 @@ def create_default_system_configuration() -> dict:
 
     receiver_defaults = get_pneumo_receiver_constants()
     receiver_spec = ReceiverSpec(
-        V_min=float(receiver_defaults.get("volume_min_m3", 0.0018)),
-        V_max=float(receiver_defaults.get("volume_max_m3", 0.0045)),
+        V_min=float(
+            _require_value(receiver_defaults, "volume_min_m3", "pneumo.receiver")
+        ),
+        V_max=float(
+            _require_value(receiver_defaults, "volume_max_m3", "pneumo.receiver")
+        ),
     )
     receiver_state = ReceiverState(
         spec=receiver_spec,
-        V=float(receiver_defaults.get("initial_volume_m3", 0.003)),
-        p=float(receiver_defaults.get("initial_pressure_pa", PA_ATM)),
-        T=float(receiver_defaults.get("initial_temperature_k", T_AMBIENT)),
+        V=float(
+            _require_value(receiver_defaults, "initial_volume_m3", "pneumo.receiver")
+        ),
+        p=float(
+            _require_value(receiver_defaults, "initial_pressure_pa", "pneumo.receiver")
+        ),
+        T=float(
+            _require_value(
+                receiver_defaults, "initial_temperature_k", "pneumo.receiver"
+            )
+        ),
         mode=_enum_from_config(
             ReceiverVolumeMode,
-            receiver_defaults.get("volume_mode", ReceiverVolumeMode.ADIABATIC_RECALC),
-            ReceiverVolumeMode.ADIABATIC_RECALC,
+            _require_value(receiver_defaults, "volume_mode", "pneumo.receiver"),
+            path="pneumo.receiver.volume_mode",
         ),
     )
 
@@ -182,13 +208,19 @@ def create_default_gas_network(system) -> GasNetwork:
 
     gas_defaults = get_pneumo_gas_constants()
     tank_state = create_tank_gas_state(
-        V_initial=float(gas_defaults.get("tank_volume_initial_m3", 0.0035)),
-        p_initial=float(gas_defaults.get("tank_pressure_initial_pa", PA_ATM)),
-        T_initial=float(gas_defaults.get("tank_temperature_initial_k", T_AMBIENT)),
+        V_initial=float(
+            _require_value(gas_defaults, "tank_volume_initial_m3", "pneumo.gas")
+        ),
+        p_initial=float(
+            _require_value(gas_defaults, "tank_pressure_initial_pa", "pneumo.gas")
+        ),
+        T_initial=float(
+            _require_value(gas_defaults, "tank_temperature_initial_k", "pneumo.gas")
+        ),
         mode=_enum_from_config(
             ReceiverVolumeMode,
-            gas_defaults.get("tank_volume_mode", ReceiverVolumeMode.ADIABATIC_RECALC),
-            ReceiverVolumeMode.ADIABATIC_RECALC,
+            _require_value(gas_defaults, "tank_volume_mode", "pneumo.gas"),
+            path="pneumo.gas.tank_volume_mode",
         ),
     )
 
@@ -212,14 +244,14 @@ def get_default_gas_parameters() -> dict:
     gas_defaults = get_pneumo_gas_constants()
     thermo_mode_enum = _enum_from_config(
         ThermoMode,
-        gas_defaults.get("thermo_mode", ThermoMode.ISOTHERMAL),
-        ThermoMode.ISOTHERMAL,
+        _require_value(gas_defaults, "thermo_mode", "pneumo.gas"),
+        path="pneumo.gas.thermo_mode",
     )
 
     return {
-        "dt": float(gas_defaults.get("time_step_s", 0.005)),
+        "dt": float(_require_value(gas_defaults, "time_step_s", "pneumo.gas")),
         "thermo_mode": thermo_mode_enum,
-        "total_time": float(gas_defaults.get("total_time_s", 3.0)),
+        "total_time": float(_require_value(gas_defaults, "total_time_s", "pneumo.gas")),
     }
 
 

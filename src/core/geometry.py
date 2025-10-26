@@ -19,7 +19,7 @@ References:
 
 from dataclasses import dataclass
 import numpy as np
-from typing import Tuple
+from typing import Any, Mapping, Tuple
 
 from config.constants import (
     get_geometry_cylinder_constants,
@@ -28,26 +28,20 @@ from config.constants import (
 )
 
 
-_DEFAULT_KINEMATICS = {
-    "track_width_m": 1.2,
-    "lever_length_m": 0.35,
-    "pivot_offset_from_frame_m": 0.2,
-    "rod_attach_fraction": 0.5,
-}
+def _require_value(payload: Mapping[str, Any], key: str, context: str) -> Any:
+    if key not in payload:
+        raise KeyError(f"Missing '{context}.{key}' in config/app_settings.json")
+    return payload[key]
 
-_DEFAULT_CYLINDER = {
-    "inner_diameter_m": 0.08,
-    "rod_diameter_m": 0.035,
-    "piston_thickness_m": 0.02,
-    "body_length_m": 0.25,
-    "dead_zone_rod_m3": 0.001,
-    "dead_zone_head_m3": 0.001,
-}
 
-_DEFAULT_VISUAL = {
-    "arm_radius_m": 0.05,
-    "cylinder_radius_m": 0.04,
-}
+def _require_float(payload: Mapping[str, Any], key: str, context: str) -> float:
+    value = _require_value(payload, key, context)
+    try:
+        return float(value)
+    except (TypeError, ValueError) as exc:
+        raise TypeError(
+            f"'{context}.{key}' must be a number in config/app_settings.json"
+        ) from exc
 
 
 @dataclass
@@ -115,45 +109,46 @@ class GeometryParams:
     """Geometry parameters for kinematics"""
 
     def __init__(self):
-        try:
-            kinematics_raw = get_geometry_kinematics_constants()
-        except KeyError:
-            kinematics_raw = {}
-        kinematics = {**_DEFAULT_KINEMATICS, **dict(kinematics_raw)}
-
-        try:
-            cylinder_raw = get_geometry_cylinder_constants()
-        except KeyError:
-            cylinder_raw = {}
-        cylinder = {**_DEFAULT_CYLINDER, **dict(cylinder_raw)}
-
-        try:
-            visual_raw = get_geometry_visual_constants()
-        except KeyError:
-            visual_raw = {}
-        visual = {**_DEFAULT_VISUAL, **dict(visual_raw)}
+        kinematics = get_geometry_kinematics_constants()
+        cylinder = get_geometry_cylinder_constants()
+        visual = get_geometry_visual_constants()
 
         # Wheelbase and lever geometry
-        self.track_width = float(kinematics["track_width_m"])
-        self.lever_length = float(kinematics["lever_length_m"])
-        self.pivot_offset_from_frame = float(kinematics["pivot_offset_from_frame_m"])
+        context_kin = "constants.geometry.kinematics"
+        self.track_width = _require_float(kinematics, "track_width_m", context_kin)
+        self.lever_length = _require_float(kinematics, "lever_length_m", context_kin)
+        self.pivot_offset_from_frame = _require_float(
+            kinematics, "pivot_offset_from_frame_m", context_kin
+        )
 
         # Cylinder geometry
-        self.cylinder_inner_diameter = float(cylinder["inner_diameter_m"])
-        self.rod_diameter = float(cylinder["rod_diameter_m"])
-        self.piston_thickness = float(cylinder["piston_thickness_m"])
-        self.cylinder_body_length = float(cylinder["body_length_m"])
+        context_cyl = "constants.geometry.cylinder"
+        self.cylinder_inner_diameter = _require_float(
+            cylinder, "inner_diameter_m", context_cyl
+        )
+        self.rod_diameter = _require_float(cylinder, "rod_diameter_m", context_cyl)
+        self.piston_thickness = _require_float(
+            cylinder, "piston_thickness_m", context_cyl
+        )
+        self.cylinder_body_length = _require_float(
+            cylinder, "body_length_m", context_cyl
+        )
 
         # Dead zones (minimum pocket volumes)
-        self.dead_zone_rod = float(cylinder["dead_zone_rod_m3"])
-        self.dead_zone_head = float(cylinder["dead_zone_head_m3"])
+        self.dead_zone_rod = _require_float(cylinder, "dead_zone_rod_m3", context_cyl)
+        self.dead_zone_head = _require_float(cylinder, "dead_zone_head_m3", context_cyl)
 
         # Visualization radii
-        self.arm_vis_radius = float(visual["arm_radius_m"])
-        self.cylinder_vis_radius = float(visual["cylinder_radius_m"])
+        context_vis = "constants.geometry.visualization"
+        self.arm_vis_radius = _require_float(visual, "arm_radius_m", context_vis)
+        self.cylinder_vis_radius = _require_float(
+            visual, "cylinder_radius_m", context_vis
+        )
 
         # Attachment point on lever (fraction of length)
-        self.rod_attach_fraction = float(kinematics["rod_attach_fraction"])
+        self.rod_attach_fraction = _require_float(
+            kinematics, "rod_attach_fraction", context_kin
+        )
 
     def validate_invariant_track(self) -> bool:
         """Validate track =2 * (arm_length + pivot_offset)"""

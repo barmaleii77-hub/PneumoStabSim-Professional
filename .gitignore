@@ -859,6 +859,7 @@ assets/hdr/*.exr
 # Allow targeted unit tests for schema validation
 !tests/unit/test_environment_schema.py
 !tests/unit/test_geometry_schema.py
+!tests/unit/test_geometry_settings_flow.py
 !tests/unit/test_settings_validation.py
 !tests/unit/test_qml_bridge_failures.py
 !tests/test_settings_smoke.py
@@ -870,5 +871,6 @@ assets/hdr/*.exr
 !tests/unit/infrastructure/test_container.py
 !tests/unit/tools/test_settings_migrate.py
 !tests/unit/tools/test_visualstudio_insiders.py
+!tests/ui/test_qml_signals.py
 
 # END OF .GITIGNORE
