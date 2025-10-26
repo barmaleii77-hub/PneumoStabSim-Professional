@@ -11,6 +11,20 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Iterable, Optional, Sequence
 
+
+def build_pip_command(python_path: Path, *args: str) -> list[str]:
+    command = [str(python_path), "-m", "pip"]
+    geteuid = getattr(os, "geteuid", None)
+    if callable(geteuid):
+        try:
+            if geteuid() == 0:
+                command.append("--root-user-action=ignore")
+        except OSError:
+            pass
+    command.extend(args)
+    return command
+
+
 RECOMMENDED_MAJOR = 3
 RECOMMENDED_MINOR = 13
 MINIMUM_MINOR = 11
@@ -224,7 +238,7 @@ def ensure_required_imports(python_path: Path) -> list[str]:
         return []
 
     for package in missing:
-        subprocess.run([str(python_path), "-m", "pip", "install", package], check=True)
+        subprocess.run(build_pip_command(python_path, "install", package), check=True)
 
     remaining = detect_missing_imports(python_path)
     if remaining:
@@ -251,12 +265,13 @@ def ensure_dependencies(python_path: Path, project_root: Path) -> dict[str, Any]
     applied_requirements: list[str] = []
     if needs_install:
         subprocess.run(
-            [str(python_path), "-m", "pip", "install", "--upgrade", "pip"], check=True
+            build_pip_command(python_path, "install", "--upgrade", "pip"),
+            check=True,
         )
         for req in requirement_paths:
             if req.exists():
                 subprocess.run(
-                    [str(python_path), "-m", "pip", "install", "-r", str(req)],
+                    build_pip_command(python_path, "install", "-r", str(req)),
                     check=True,
                 )
                 applied_requirements.append(str(req))

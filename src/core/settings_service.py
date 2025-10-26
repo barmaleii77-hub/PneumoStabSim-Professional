@@ -62,6 +62,7 @@ class SettingsService:
         self._cache: dict[str, Any] | None = None
         self._schema_cache: dict[str, Any] | None = None
         self._validator: Any | None = None
+        self._unknown_paths: set[str] = set()
 
     # ------------------------------------------------------------------
     # Path resolution & raw IO
@@ -152,19 +153,16 @@ class SettingsService:
         """Установить значение по dot‑пути и сохранить изменения."""
 
         payload = self.load()
-        data: MutableMapping[str, Any] = payload
         segments = list(self._split_path(path))
         if not segments:
             raise ValueError("path must not be empty")
 
-        for key in segments[:-1]:
-            next_value = data.get(key)
-            if not isinstance(next_value, MutableMapping):
-                next_value = {}
-            data[key] = next_value
-            data = next_value  # type: ignore[assignment]
+        parent = self._resolve_existing_parent(payload, segments)
+        final_key = segments[-1]
+        if final_key not in parent:
+            self._record_unknown_path(path)
 
-        data[segments[-1]] = value
+        parent[final_key] = value
         self.save(
             payload,
             metadata={
@@ -177,7 +175,11 @@ class SettingsService:
         """Слить (merge) словарь patch в целевой mapping по dot‑пути."""
 
         payload = self.load()
-        data = self._ensure_mapping(payload, path)
+        data = self._get_existing_mapping(payload, path)
+        for key in patch:
+            if key not in data:
+                self._record_unknown_path(f"{path}.{key}")
+
         data.update(patch)
         self.save(
             payload,
@@ -265,21 +267,47 @@ class SettingsService:
             errors=formatted,
         ) from None
 
-    def _ensure_mapping(
-        self, payload: dict[str, Any], path: str
+    def _resolve_existing_parent(
+        self, payload: dict[str, Any], segments: list[str]
     ) -> MutableMapping[str, Any]:
         data: MutableMapping[str, Any] = payload
-        for key in self._split_path(path):
+        for index, key in enumerate(segments[:-1]):
             next_value = data.get(key)
             if not isinstance(next_value, MutableMapping):
-                next_value = {}
-            data[key] = next_value
+                raise KeyError(
+                    f"Unknown settings path '{'.'.join(segments[: index + 1])}'"
+                )
+            data = next_value  # type: ignore[assignment]
+        return data
+
+    def _get_existing_mapping(
+        self, payload: dict[str, Any], path: str
+    ) -> MutableMapping[str, Any]:
+        if not path:
+            raise ValueError("path must not be empty")
+
+        segments = list(self._split_path(path))
+        data: MutableMapping[str, Any] = payload
+        for index, key in enumerate(segments):
+            next_value = data.get(key)
+            if not isinstance(next_value, MutableMapping):
+                raise KeyError(
+                    f"Unknown settings path '{'.'.join(segments[: index + 1])}'"
+                )
             data = next_value  # type: ignore[assignment]
         return data
 
     @staticmethod
     def _split_path(path: str) -> Iterable[str]:
         return [segment for segment in path.split(".") if segment]
+
+    def get_unknown_paths(self) -> list[str]:
+        """Return a sorted list of settings paths that were not pre-defined."""
+
+        return sorted(self._unknown_paths)
+
+    def _record_unknown_path(self, path: str) -> None:
+        self._unknown_paths.add(path)
 
     def _publish_update_event(self, metadata: dict[str, Any]) -> None:
         container = get_default_container()
