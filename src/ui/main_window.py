@@ -23,6 +23,7 @@ from PySide6.QtCore import (
 from PySide6.QtGui import QAction, QKeySequence
 from PySide6.QtQuickWidgets import QQuickWidget
 import logging
+import os
 import time
 import json
 from pathlib import Path
@@ -195,10 +196,83 @@ class MainWindow(QMainWindow):
         self.main_horizontal_splitter.addWidget(self.main_splitter)
         self.setCentralWidget(self.main_horizontal_splitter)
 
-    def _setup_qml_3d_view(self) -> None:
-        """Setup Qt Quick3D full suspension scene - единый main.qml"""
-        self.logger.info("[QML] Загрузка QML: assets/qml/main.qml")
+    def _select_qml_entrypoint(self) -> Path:
+        """Determine which QML file should be loaded for the 3D scene."""
+        candidates: list[Path] = []
+
+        override = os.environ.get("PSS_QML_SCENE")
+        if override:
+            candidate = Path(override)
+            if not candidate.is_absolute():
+                candidate = Path("assets/qml") / candidate
+            candidates.append(candidate)
+
+        candidates.extend(
+            [
+                Path("assets/qml/main_optimized.qml"),
+                Path("assets/qml/main.qml"),
+                Path("assets/qml/SimulationFallbackRoot.qml"),
+            ]
+        )
+
+        seen: set[str] = set()
+        for candidate in candidates:
+            key = str(candidate.resolve() if candidate.exists() else candidate)
+            if key in seen:
+                continue
+            seen.add(key)
+            if candidate.exists():
+                return candidate
+
+        raise FileNotFoundError("Не удалось найти подходящий QML-файл для загрузки")
+
+    def _build_initial_qml_payload(self) -> Dict[str, Dict[str, Any]]:
+        """Collect initial settings payloads for the QML context."""
+
+        payload: Dict[str, Dict[str, Any]] = {
+            "animation": {},
+            "scene": {},
+            "materials": {},
+            "diagnostics": {},
+        }
+
+        manager = getattr(self, "settings_manager", None)
+        if manager is None:
+            return payload
+
+        def _sanitise(data: Dict[str, Any]) -> Dict[str, Any]:
+            try:
+                return json.loads(json.dumps(data))
+            except Exception:
+                return data
+
         try:
+            animation = manager.get("graphics.animation", {}) or {}
+            scene = manager.get("graphics.scene", {}) or {}
+            materials = manager.get("graphics.materials", {}) or {}
+            diagnostics = manager.get("diagnostics", {}) or {}
+
+            if isinstance(animation, dict):
+                payload["animation"] = _sanitise(animation)
+            if isinstance(scene, dict):
+                payload["scene"] = _sanitise(scene)
+            if isinstance(materials, dict):
+                payload["materials"] = _sanitise(materials)
+            if isinstance(diagnostics, dict):
+                payload["diagnostics"] = _sanitise(diagnostics)
+        except Exception as exc:  # pragma: no cover - defensive fallback
+            self.logger.debug(
+                "Failed to build initial QML payload: %s", exc, exc_info=True
+            )
+
+        return payload
+
+    def _setup_qml_3d_view(self) -> None:
+        """Setup Qt Quick 3D scene backed by the modular SimulationRoot."""
+        qml_file: Optional[Path] = None
+        try:
+            qml_file = self._select_qml_entrypoint()
+            self.logger.info("[QML] Загрузка QML: %s", qml_file)
             self._qquick_widget = QQuickWidget(self)
             self._qquick_widget.setResizeMode(
                 QQuickWidget.ResizeMode.SizeRootObjectToView
@@ -212,24 +286,33 @@ class MainWindow(QMainWindow):
             context.setContextProperty("pythonSceneBridge", self._scene_bridge)
             context.setContextProperty("settingsEvents", self._settings_event_bus)
             context.setContextProperty("signalTrace", self._signal_trace)
+            initial_payload = self._build_initial_qml_payload()
+            context.setContextProperty(
+                "initialAnimationSettings", initial_payload["animation"]
+            )
+            context.setContextProperty("initialSceneSettings", initial_payload["scene"])
+            context.setContextProperty(
+                "initialDiagnosticsSettings", initial_payload["diagnostics"]
+            )
+            context.setContextProperty(
+                "initialMaterialsSettings", initial_payload["materials"]
+            )
             log_ibl_event(
                 "INFO",
                 "MainWindow",
                 "IBL Logger registered in QML context (BEFORE QML load)",
             )
 
-            # Установим стартовые параметры окружения строго из SettingsManager
+            def _ctx(name: str, value: Any) -> None:
+                try:
+                    context.setContextProperty(name, value)
+                except Exception as err:  # pragma: no cover - Qt binding failure
+                    raise RuntimeError(
+                        f"Failed to expose context property {name}: {err}"
+                    ) from err
+
             try:
                 env_raw = self.settings_manager.get("graphics.environment", {}) or {}
-
-                def _ctx(name: str, value: Any) -> None:
-                    try:
-                        context.setContextProperty(name, value)
-                    except Exception as err:  # pragma: no cover - Qt binding failure
-                        raise RuntimeError(
-                            f"Failed to expose context property {name}: {err}"
-                        ) from err
-
                 env_values = validate_environment_settings(env_raw)
                 for key, ctx_name in ENVIRONMENT_CONTEXT_PROPERTIES.items():
                     _ctx(ctx_name, env_values[key])
@@ -246,19 +329,15 @@ class MainWindow(QMainWindow):
                 )
                 raise
 
-            # Пробрасываем стартовые словари состояния графики (lighting/quality/camera/materials/effects)
             try:
                 graphics_state = self.settings_manager.get("graphics", {}) or {}
 
                 def _ctx_dict(name: str, payload: Any) -> None:
-                    """Пробрасывает словарь в контекст, с безопасной нормализацией JSON"""
-                    if not isinstance(payload, dict) or not payload:
-                        return
+                    data = payload if isinstance(payload, dict) else {}
                     try:
-                        # Нормализуем JSON-совместимые структуры
-                        normalized = json.loads(json.dumps(payload))
+                        normalized = json.loads(json.dumps(data))
                     except TypeError:
-                        normalized = payload
+                        normalized = data or {}
                     _ctx(name, normalized)
 
                 _ctx_dict("startLightingState", graphics_state.get("lighting"))
@@ -286,7 +365,6 @@ class MainWindow(QMainWindow):
                     f"Не удалось подготовить стартовые состояния графики: {ex}"
                 )
 
-            # Путь импорта Qt
             from PySide6.QtCore import QLibraryInfo
 
             qml_path = QLibraryInfo.path(QLibraryInfo.LibraryPath.Qml2ImportsPath)
@@ -295,10 +373,6 @@ class MainWindow(QMainWindow):
             local_qml_path = Path("assets/qml")
             if local_qml_path.exists():
                 engine.addImportPath(str(local_qml_path.absolute()))
-
-            qml_file = Path("assets/qml/main.qml")
-            if not qml_file.exists():
-                raise FileNotFoundError(f"QML файл не найден: {qml_file}")
 
             self._qml_base_dir = qml_file.parent.resolve()
             self._qquick_widget.setSource(QUrl.fromLocalFile(str(qml_file.absolute())))
@@ -332,11 +406,12 @@ class MainWindow(QMainWindow):
                 self.logger.warning("Не удалось зарегистрировать сигналы QML: %s", exc)
 
         except Exception as e:
-            self.logger.exception(f"[CRITICAL] Ошибка загрузки main.qml: {e}")
+            target = qml_file if qml_file is not None else Path("assets/qml/main.qml")
+            self.logger.exception(f"[CRITICAL] Ошибка загрузки {target}: {e}")
             fallback = QLabel(
                 "КРИТИЧЕСКАЯ ОШИБКА ЗАГРУЗКИ3D СЦЕНЫ\n\n"
                 f"Ошибка: {e}\n\n"
-                "Проверьте файл assets/qml/main.qml\n"
+                f"Проверьте файл {target}\n"
                 "и убедитесь, что QtQuick3D установлен правильно"
             )
             fallback.setAlignment(Qt.AlignmentFlag.AlignCenter)
