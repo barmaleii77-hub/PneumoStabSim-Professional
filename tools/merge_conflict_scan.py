@@ -15,7 +15,7 @@ from typing import Iterable
 # appears legitimately in ASCII art banners throughout the repository; we only
 # flag it when paired with the directional markers below.
 MARKERS: tuple[bytes, ...] = (b"<<<<<<< ", b">>>>>>> ", b"||||||| ")
-DEFAULT_EXCLUDES: tuple[str, ...] = (".git", "__pycache__")
+DEFAULT_EXCLUDES: tuple[str, ...] = (".git", "__pycache__", ".vs")
 
 
 def _should_exclude(path: Path, excludes: Iterable[str]) -> bool:
