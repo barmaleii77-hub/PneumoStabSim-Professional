@@ -748,8 +748,43 @@ class MainWindow(QMainWindow):
                 self.ibl_logger.logIblEvent(entry)
             else:
                 log_ibl_event("INFO", "IblProbeLoader", entry)
+            self.logger.info("IBL: %s", entry)
         except Exception:
             self.logger.debug("Failed to persist IBL event", exc_info=True)
+
+    @Slot(str, result=str)
+    def normalizeHdrPath(self, raw_path: str) -> str:
+        """Normalize HDR paths requested from QML helpers."""
+        try:
+            text = str(raw_path)
+        except Exception:
+            return ""
+
+        candidate = text.strip()
+        if not candidate:
+            return ""
+
+        path_obj = Path(candidate)
+        if not path_obj.is_absolute():
+            search_roots = []
+            if self._qml_base_dir:
+                search_roots.append(self._qml_base_dir)
+            search_roots.append(Path.cwd())
+
+            for root_path in search_roots:
+                resolved = (root_path / path_obj).resolve()
+                if resolved.exists():
+                    path_obj = resolved
+                    break
+            else:
+                # Fall back to resolving relative to the first available root.
+                base = search_roots[0] if search_roots else Path.cwd()
+                path_obj = (base / path_obj).resolve()
+
+        try:
+            return str(path_obj).replace("\\", "/")
+        except Exception:
+            return ""
 
     # ---------- Panel signals → QML ----------
     @Slot(dict)
@@ -886,17 +921,6 @@ class MainWindow(QMainWindow):
         self.logger.error(f"Physics engine error: {message}")
         if hasattr(self, "status_bar") and self.status_bar:
             self.status_bar.showMessage(f"Physics error: {message}", 5000)
-
-    @Slot(str)
-    def logIblEvent(self, message: str) -> None:
-        """Receive IBL loader logs from QML components."""
-        try:
-            if hasattr(self, "ibl_logger") and self.ibl_logger:
-                self.ibl_logger.info(message)
-            else:
-                self.logger.info("IBL:%s", message)
-        except Exception:
-            self.logger.debug("Failed to log IBL event", exc_info=True)
 
     def _update_render(self) -> None:
         if not self._qml_root_object:

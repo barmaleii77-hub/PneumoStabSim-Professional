@@ -1,6 +1,6 @@
-import QtQuick6.10
-import QtQuick3D6.10
-import QtQuick3D.Helpers6.10 // ✅ CRITICAL: Required for ExtendedSceneEnvironment
+import QtQuick 6.10
+import QtQuick3D 6.10
+import QtQuick3D.Helpers 6.10 // ✅ CRITICAL: Required for ExtendedSceneEnvironment
 
 /*
  * SceneEnvironmentController - Полное управление ExtendedSceneEnvironment
@@ -95,9 +95,9 @@ ExtendedSceneEnvironment {
  function toSceneLength(value) {
  var numeric = Number(value)
  if (!isFinite(numeric))
- return0
+ return 0.0
  var scale = Number(sceneScaleFactor)
- if (!isFinite(scale) || scale <=0)
+ if (!isFinite(scale) || scale <= 0)
  return numeric
  return numeric * scale
  }
