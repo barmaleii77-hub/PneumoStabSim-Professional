@@ -112,10 +112,7 @@ QT_QUICK_CONTROLS_STYLE=Basic
     <Content Include="assets\qml\quality\Check.qml" />
     <Content Include="docs\DECISIONS_LOG.md" />
     <Content Include="docs\RELEASE_READINESS_REPORT.md" />
-<<<<<<< HEAD
     <Content Include="docs\REVIEW_GUIDE.md" />
-=======
->>>>>>> 1b346eba3a9036fac50cf88f8db8d2f387a92433
     <Content Include="mypy.ini" />
     <Content Include="mypy_targets.txt" />
     <Content Include="pytest_targets.txt" />

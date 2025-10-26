@@ -68,8 +68,9 @@ ExtendedSceneEnvironment {
  // DITHERING (Qt6.10+)
  // ===============================================================
 
- property bool ditheringEnabled: true
- property bool canUseDithering: false
+ property real sceneScaleFactor: 1000.0
+ property bool ditheringEnabledSetting: true
+ property bool canUseDithering: typeof root.ditheringEnabled !== "undefined"
 
  function _applySceneBridgeState() {
  if (!sceneBridge)
@@ -93,11 +94,20 @@ ExtendedSceneEnvironment {
  applyQualityPayload(payload)
  }
 
- function _applyEffectsPayload(payload) {
- applyEffectsPayload(payload)
- }
+    function _applyEffectsPayload(payload) {
+        applyEffectsPayload(payload)
+    }
 
- onSceneBridgeChanged: _applySceneBridgeState()
+    function toSceneLength(value) {
+        var numeric = Number(value)
+        if (!isFinite(numeric))
+            return 0
+        if (!isFinite(sceneScaleFactor) || sceneScaleFactor <= 0)
+            return numeric
+        return numeric * sceneScaleFactor
+    }
+
+    onSceneBridgeChanged: _applySceneBridgeState()
 
  Connections {
  target: sceneBridge
@@ -119,13 +129,15 @@ ExtendedSceneEnvironment {
  }
  }
 
- Component.onCompleted: {
- if (canUseDithering) {
- root.ditheringEnabled = Qt.binding(function() { return ditheringEnabled })
- }
+    Component.onCompleted: {
+        if (canUseDithering) {
+            if (typeof root.ditheringEnabled === "boolean")
+                ditheringEnabledSetting = root.ditheringEnabled
+            root.ditheringEnabled = Qt.binding(function() { return ditheringEnabledSetting })
+        }
 
- _applySceneBridgeState()
- }
+        _applySceneBridgeState()
+    }
 
  function applyEnvironmentPayload(params) {
  if (!params)
@@ -155,10 +167,16 @@ ExtendedSceneEnvironment {
  fogEnabled = !!params.fogEnabled
  if (params.fogColor)
  fogColor = params.fogColor
- if (params.fogNear !== undefined)
- fogNear = Number(params.fogNear)
- if (params.fogFar !== undefined)
- fogFar = Number(params.fogFar)
+    if (params.fogNear !== undefined) {
+        var fogNearValue = Number(params.fogNear)
+        if (isFinite(fogNearValue))
+            fogNear = toSceneLength(fogNearValue)
+    }
+    if (params.fogFar !== undefined) {
+        var fogFarValue = Number(params.fogFar)
+        if (isFinite(fogFarValue))
+            fogFar = toSceneLength(fogFarValue)
+    }
  if (params.ssaoEnabled !== undefined)
  ssaoEnabled = !!params.ssaoEnabled
  if (params.ssaoRadius !== undefined)
@@ -167,8 +185,11 @@ ExtendedSceneEnvironment {
  ssaoIntensity = Number(params.ssaoIntensity)
  if (params.depthOfFieldEnabled !== undefined)
  internalDepthOfFieldEnabled = !!params.depthOfFieldEnabled
- if (params.dofFocusDistance !== undefined)
- dofFocusDistance = Number(params.dofFocusDistance)
+    if (params.dofFocusDistance !== undefined) {
+        var dofDistance = Number(params.dofFocusDistance)
+        if (isFinite(dofDistance))
+            dofFocusDistance = toSceneLength(dofDistance)
+    }
  if (params.dofBlurAmount !== undefined)
  dofBlurAmount = Number(params.dofBlurAmount)
  if (params.vignetteEnabled !== undefined)
@@ -177,8 +198,11 @@ ExtendedSceneEnvironment {
  internalVignetteStrength = Number(params.vignetteStrength)
  if (params.oitMode)
  oitMode = String(params.oitMode)
- if (params.ditheringEnabled !== undefined)
- ditheringEnabled = !!params.ditheringEnabled
+    if (params.ditheringEnabled !== undefined) {
+        ditheringEnabledSetting = !!params.ditheringEnabled
+        if (canUseDithering)
+            root.ditheringEnabled = ditheringEnabledSetting
+    }
  }
 
  function applyQualityPayload(params) {
@@ -201,8 +225,11 @@ ExtendedSceneEnvironment {
  fxaaEnabled = !!params.fxaaEnabled
  if (params.specularAAEnabled !== undefined)
  specularAAEnabled = !!params.specularAAEnabled
- if (params.ditheringEnabled !== undefined)
- ditheringEnabled = !!params.ditheringEnabled
+    if (params.ditheringEnabled !== undefined) {
+        ditheringEnabledSetting = !!params.ditheringEnabled
+        if (canUseDithering)
+            root.ditheringEnabled = ditheringEnabledSetting
+    }
  }
 
  function applyEffectsPayload(params) {
@@ -259,14 +286,14 @@ ExtendedSceneEnvironment {
  property real tonemapExposure:1.0
  property real tonemapWhitePoint:2.0
 
- tonemapMode: tonemapEnabled ? (
- tonemapModeName === "filmic" ? SceneEnvironment.TonemapModeFilmic :
- tonemapModeName === "aces" ? SceneEnvironment.TonemapModeFilmic :
- tonemapModeName === "reinhard" ? SceneEnvironment.TonemapModeReinhard :
- tonemapModeName === "gamma" ? SceneEnvironment.TonemapModeLinear :
- tonemapModeName === "linear" ? SceneEnvironment.TonemapModeLinear :
- SceneEnvironment.TonemapModeNone
- ) : SceneEnvironment.TonemapModeNone
+    tonemapMode: tonemapEnabled ? (
+        tonemapModeName === "filmic" ? SceneEnvironment.TonemapModeFilmic :
+        tonemapModeName === "aces" ? SceneEnvironment.TonemapModeAces :
+        tonemapModeName === "reinhard" ? SceneEnvironment.TonemapModeReinhard :
+        tonemapModeName === "gamma" ? SceneEnvironment.TonemapModeLinear :
+        tonemapModeName === "linear" ? SceneEnvironment.TonemapModeLinear :
+        SceneEnvironment.TonemapModeNone
+    ) : SceneEnvironment.TonemapModeNone
 
  exposure: tonemapExposure
  whitePoint: tonemapWhitePoint
