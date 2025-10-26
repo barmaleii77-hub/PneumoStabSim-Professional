@@ -39,6 +39,34 @@ def _baseline_environment() -> dict:
     return validate_environment_settings(env)
 
 
+def _minimal_environment_payload() -> dict:
+    payload: dict = {}
+    for definition in ENVIRONMENT_PARAMETERS:
+        if definition.value_type == "bool":
+            payload[definition.key] = False
+        elif definition.value_type == "float":
+            payload[definition.key] = (
+                definition.min_value if definition.min_value is not None else 0.0
+            )
+        elif definition.value_type == "int":
+            min_value = definition.min_value if definition.min_value is not None else 0
+            payload[definition.key] = int(min_value)
+        elif definition.value_type == "string":
+            if definition.allowed_values:
+                payload[definition.key] = definition.allowed_values[0]
+            elif definition.allow_empty_string:
+                payload[definition.key] = ""
+            elif definition.key == "background_color":
+                payload[definition.key] = "#000000"
+            else:
+                payload[definition.key] = definition.key
+        else:  # pragma: no cover - defensive guard
+            raise AssertionError(
+                f"Unsupported definition type: {definition.value_type}"
+            )
+    return payload
+
+
 def test_environment_current_matches_schema():
     sanitized = _baseline_environment()
     assert set(sanitized.keys()) == set(ENVIRONMENT_REQUIRED_KEYS)
@@ -103,13 +131,14 @@ def test_environment_parameters_metadata_ranges_match():
 
 # Additional test cases
 def test_environment_validation_accepts_minimal_valid_payload():
-    payload = {key: 0 for key in ENVIRONMENT_REQUIRED_KEYS}
+    payload = _minimal_environment_payload()
     sanitized = validate_environment_settings(payload)
     assert sanitized == payload
 
 
 def test_environment_validation_rejects_payload_missing_required_key():
-    payload = {key: 0 for key in ENVIRONMENT_REQUIRED_KEYS - {"ao_radius"}}
+    payload = _minimal_environment_payload()
+    payload.pop("ao_radius")
     with pytest.raises(EnvironmentValidationError):
         validate_environment_settings(payload)
 
@@ -137,15 +166,19 @@ def test_environment_validation_rejects_empty_payload():
         validate_environment_settings({})
 
 
-def test_environment_validation_accepts_validations_payload():
-    payload = {
-        "ao_radius": 3.0,
-        "fog_near": 10.0,
-        "fog_far": 1000.0,
-        "ibl_intensity": 1.0,
-        "ao_sample_rate": 64,
-        "background_color": [0, 0, 0],
-    }
+def test_environment_validation_accepts_sample_payload():
+    payload = _minimal_environment_payload()
+    payload.update(
+        {
+            "ao_enabled": True,
+            "background_mode": "color",
+            "background_color": "#112233",
+            "ibl_source": "../hdr/test.exr",
+            "ibl_fallback": "",
+            "ao_sample_rate": 4,
+            "probe_brightness": 2.5,
+        }
+    )
     sanitized = validate_environment_settings(payload)
     assert sanitized == payload
 
