@@ -211,6 +211,20 @@ Write-Host 'Launching PneumoStabSim using Visual Studio Insiders profile...' -Fo
     $launcherContent | Set-Content -Path $launcherScript -Encoding UTF8
 }
 
+Invoke-Step 'Running PneumoStabSim quality gate (ci_tasks verify)' {
+    $ciTasksModule = Join-Path $ProjectRoot 'tools' 'ci_tasks.py'
+    if (-not (Test-Path $ciTasksModule)) {
+        throw "ci_tasks module '$ciTasksModule' was not found."
+    }
+
+    Push-Location $ProjectRoot
+    try {
+        & $pythonExe '-m' 'tools.ci_tasks' 'verify'
+    } finally {
+        Pop-Location
+    }
+}
+
 Write-Section 'Visual Studio Insiders environment is ready.'
 
 $copilotSyncScript = Join-Path $ProjectRoot 'tools' 'visualstudio' 'sync_copilot_profile.ps1'
