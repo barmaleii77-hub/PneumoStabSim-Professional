@@ -37,6 +37,13 @@ from src.runtime.state import StateSnapshot
 from src.ui.qml_bridge import describe_routes as describe_metadata_routes
 from src.ui.qml_bridge import get_bridge_metadata
 
+if TYPE_CHECKING:  # pragma: no cover - import used only for typing
+    from ..main_window import MainWindow
+
+
+class QMLUpdateError(RuntimeError):
+    """Raised when a batched QML update fails fatally."""
+
 
 _BRIDGE_METADATA = get_bridge_metadata()
 
