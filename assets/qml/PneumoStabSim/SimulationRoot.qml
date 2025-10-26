@@ -580,6 +580,8 @@ function toSceneLength(meters) {
     var numeric = Number(meters);
     if (!isFinite(numeric))
         return 0;
+    if (!isFinite(sceneScaleFactor) || sceneScaleFactor <= 0)
+        return numeric;
     return numeric * sceneScaleFactor;
 }
 

@@ -246,8 +246,11 @@ ExtendedSceneEnvironment {
  bloomSpread = Number(params.bloomSpread)
  if (params.depthOfFieldEnabled !== undefined)
  internalDepthOfFieldEnabled = !!params.depthOfFieldEnabled
- if (params.dofFocusDistance !== undefined)
- dofFocusDistance = Number(params.dofFocusDistance)
+    if (params.dofFocusDistance !== undefined) {
+        var effectsFocusDistance = Number(params.dofFocusDistance)
+        if (isFinite(effectsFocusDistance))
+            dofFocusDistance = toSceneLength(effectsFocusDistance)
+    }
  if (params.dofBlurAmount !== undefined)
  dofBlurAmount = Number(params.dofBlurAmount)
  if (params.vignetteEnabled !== undefined)
