@@ -2,9 +2,8 @@
 
 from __future__ import annotations
 
-from collections.abc import Callable
 from threading import RLock
-from typing import Any
+from typing import Any, Callable
 
 from .container import (
     ServiceContainer,

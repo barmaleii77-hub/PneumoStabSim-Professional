@@ -54,11 +54,13 @@ except Exception:  # pragma: no cover - fallback when PySide6 is not present
             fset: Optional[Callable[[Any, Any], None]] = None,
             freset: Optional[Callable[[Any], None]] = None,
             notify: Optional[Any] = None,
+            **extra: Any,
         ) -> None:
             self.fget = fget
             self.fset = fset
             self.freset = freset
             self.notify = notify
+            self.extra = extra
 
         def __get__(self, instance: Any, owner: Optional[type[Any]]) -> Any:
             if instance is None:
@@ -84,9 +86,16 @@ except Exception:  # pragma: no cover - fallback when PySide6 is not present
         fset: Optional[Callable[[Any, Any], None]] = None,
         freset: Optional[Callable[[Any], None]] = None,
         notify: Optional[Any] = None,
+        **extra: Any,
     ) -> Any:
         def _wrap(getter: Callable[[Any], Any]) -> _FallbackProperty:
-            return _FallbackProperty(getter, fset=fset, freset=freset, notify=notify)
+            return _FallbackProperty(
+                getter,
+                fset=fset,
+                freset=freset,
+                notify=notify,
+                **extra,
+            )
 
         if fget is None:
             return _wrap
