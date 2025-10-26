@@ -25,7 +25,9 @@ class SuspensionSceneHost(QQuickWidget):
     # Signals for user interaction
     view_reset_requested = Signal()
 
-    def __init__(self, parent=None, geometry_overrides: Optional[Dict[str, float]] = None):
+    def __init__(
+        self, parent=None, geometry_overrides: Optional[Dict[str, float]] = None
+    ):
         super().__init__(parent)
 
         geometry_params = self._build_geometry_params(geometry_overrides or {})
@@ -143,7 +145,9 @@ class SuspensionSceneHost(QQuickWidget):
             )
             return fallback
 
-        raise FileNotFoundError("Neither UFrameScene.qml nor SimulationFallbackRoot.qml found")
+        raise FileNotFoundError(
+            "Neither UFrameScene.qml nor SimulationFallbackRoot.qml found"
+        )
 
     def _apply_all_parameters(self):
         """Apply all parameters to QML root object"""
