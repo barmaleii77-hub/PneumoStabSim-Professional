@@ -68,15 +68,28 @@ ExtendedSceneEnvironment {
  // DITHERING (Qt6.10+)
  // ===============================================================
 
- property real sceneScaleFactor: 1000.0
- readonly property real effectiveSceneScaleFactor: (function() {
-     var numeric = Number(sceneScaleFactor);
-     if (!isFinite(numeric) || numeric <= 0)
-         return 1.0;
-     return numeric;
- })()
- property bool ditheringEnabledSetting: true
- property bool canUseDithering: typeof root.ditheringEnabled !== "undefined"
+property bool ditheringEnabled: true
+property bool canUseDithering: false
+
+function qtVersionAtLeast(requiredMajor, requiredMinor) {
+    var versionString = "";
+    if (Qt.application && Qt.application.qtVersion)
+        versionString = String(Qt.application.qtVersion);
+    else if (Qt.version)
+        versionString = String(Qt.version);
+    var parts = versionString.split(".");
+    if (parts.length < 2)
+        return false;
+    var major = Number(parts[0]);
+    var minor = Number(parts[1]);
+    if (!isFinite(major) || !isFinite(minor))
+        return false;
+    if (major > requiredMajor)
+        return true;
+    if (major < requiredMajor)
+        return false;
+    return minor >= requiredMinor;
+}
 
  function _applySceneBridgeState() {
  if (!sceneBridge)
@@ -133,12 +146,11 @@ ExtendedSceneEnvironment {
  }
  }
 
-    Component.onCompleted: {
-        if (canUseDithering) {
-            if (typeof root.ditheringEnabled === "boolean")
-                ditheringEnabledSetting = root.ditheringEnabled
-            root.ditheringEnabled = Qt.binding(function() { return ditheringEnabledSetting })
-        }
+Component.onCompleted: {
+    root.canUseDithering = qtVersionAtLeast(6, 10)
+    if (canUseDithering) {
+        root.ditheringEnabled = Qt.binding(function() { return ditheringEnabled })
+    }
 
         _applySceneBridgeState()
     }
@@ -293,14 +305,14 @@ ExtendedSceneEnvironment {
  property real tonemapExposure:1.0
  property real tonemapWhitePoint:2.0
 
-    tonemapMode: tonemapEnabled ? (
-        tonemapModeName === "filmic" ? SceneEnvironment.TonemapModeFilmic :
-        tonemapModeName === "aces" ? SceneEnvironment.TonemapModeAces :
-        tonemapModeName === "reinhard" ? SceneEnvironment.TonemapModeReinhard :
-        tonemapModeName === "gamma" ? SceneEnvironment.TonemapModeLinear :
-        tonemapModeName === "linear" ? SceneEnvironment.TonemapModeLinear :
-        SceneEnvironment.TonemapModeNone
-    ) : SceneEnvironment.TonemapModeNone
+ tonemapMode: tonemapEnabled ? (
+ tonemapModeName === "filmic" ? SceneEnvironment.TonemapModeFilmic :
+    tonemapModeName === "aces" ? SceneEnvironment.TonemapModeAces :
+ tonemapModeName === "reinhard" ? SceneEnvironment.TonemapModeReinhard :
+ tonemapModeName === "gamma" ? SceneEnvironment.TonemapModeLinear :
+ tonemapModeName === "linear" ? SceneEnvironment.TonemapModeLinear :
+ SceneEnvironment.TonemapModeNone
+ ) : SceneEnvironment.TonemapModeNone
 
  exposure: tonemapExposure
  whitePoint: tonemapWhitePoint

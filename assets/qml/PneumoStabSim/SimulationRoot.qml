@@ -582,12 +582,12 @@ View3D {
  return Math.max(minValue, Math.min(maxValue, value));
  }
 
-function toSceneLength(meters) {
-    var numeric = Number(meters);
-    if (!isFinite(numeric))
-        return 0;
-    return numeric * effectiveSceneScaleFactor;
-}
+ function toSceneLength(meters) {
+ var numeric = Number(meters);
+ if (!isFinite(numeric))
+ return 0;
+ return numeric * sceneScaleFactor;
+ }
 
  function toSceneScale(meters) {
  return toSceneLength(meters) /100.0;
