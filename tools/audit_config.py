@@ -296,7 +296,7 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     parser.add_argument(
         "--schema",
         type=Path,
-        default=Path("config/schemas/app_settings.schema.json"),
+        default=Path("config/app_settings.schema.json"),
         help="Путь до JSON Schema",
     )
     parser.add_argument(

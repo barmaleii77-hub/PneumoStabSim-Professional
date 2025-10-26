@@ -9,7 +9,31 @@ Qt Quick 3D, включая пути к QML-модулям и плагинам.
 import os
 import sys
 from pathlib import Path
-from typing import Callable
+from typing import Callable, Iterable
+
+
+def _split_paths(value: str) -> list[str]:
+    """Split environment-style paths into a list while dropping empties."""
+
+    if not value:
+        return []
+    return [segment for segment in value.split(os.pathsep) if segment]
+
+
+def _ensure_paths(env_var: str, candidates: Iterable[str]) -> None:
+    """Append missing paths to an environment variable preserving order."""
+
+    existing_segments = _split_paths(os.environ.get(env_var, ""))
+    updated = list(existing_segments)
+
+    for candidate in candidates:
+        if not candidate:
+            continue
+        if candidate not in updated:
+            updated.append(candidate)
+
+    if updated:
+        os.environ[env_var] = os.pathsep.join(updated)
 
 
 def setup_qtquick3d_environment(
@@ -24,16 +48,6 @@ def setup_qtquick3d_environment(
     Returns:
         Кортеж (успех, причина ошибки). При успехе причина равна None.
     """
-    # Если пользователь явно настроил переменные через .env — не трогаем
-    required_vars = [
-        "QML2_IMPORT_PATH",
-        "QML_IMPORT_PATH",
-        "QT_PLUGIN_PATH",
-        "QT_QML_IMPORT_PATH",
-    ]
-    if all(var in os.environ and os.environ.get(var) for var in required_vars):
-        return True, None
-
     try:
         import importlib.util
 
@@ -48,34 +62,30 @@ def setup_qtquick3d_environment(
         qml_path = QLibraryInfo.path(QLibraryInfo.LibraryPath.Qml2ImportsPath)
         plugins_path = QLibraryInfo.path(QLibraryInfo.LibraryPath.PluginsPath)
 
-        qtquick3d_env = {
-            "QML2_IMPORT_PATH": str(qml_path),
-            "QML_IMPORT_PATH": str(qml_path),
-            "QT_PLUGIN_PATH": str(plugins_path),
-            "QT_QML_IMPORT_PATH": str(qml_path),
-        }
+        qml_path_str = str(qml_path)
+        plugins_path_str = str(plugins_path)
 
-        # Разрешаем переопределить через .env стартовые пути, если заданы
-        for var, value in qtquick3d_env.items():
-            os.environ.setdefault(var, value)
+        # Всегда включаем системные пути Qt вне зависимости от пользовательских настроек
+        _ensure_paths("QML2_IMPORT_PATH", [qml_path_str])
+        _ensure_paths("QML_IMPORT_PATH", [qml_path_str])
+        _ensure_paths("QT_QML_IMPORT_PATH", [qml_path_str])
+        _ensure_paths("QT_PLUGIN_PATH", [plugins_path_str])
 
-        # Дополнительные import path для локальных QML (assets/qml)
+        # Дополнительные import path для локальных QML (assets/qml и components)
         project_root = Path(__file__).resolve().parents[2]
         local_qml = project_root / "assets" / "qml"
+        local_components = local_qml / "components"
+
+        local_candidates = []
         if local_qml.is_dir():
-            local_qml_str = str(local_qml)
+            local_candidates.append(str(local_qml))
+        if local_components.is_dir():
+            local_candidates.append(str(local_components))
 
-            existing = os.environ.get("QML2_IMPORT_PATH", "")
-            existing_paths = existing.split(os.pathsep) if existing else []
-            if local_qml_str not in existing_paths:
-                values = [path for path in (existing, local_qml_str) if path]
-                os.environ["QML2_IMPORT_PATH"] = os.pathsep.join(values)
-
-            existing2 = os.environ.get("QML_IMPORT_PATH", "")
-            existing_paths2 = existing2.split(os.pathsep) if existing2 else []
-            if local_qml_str not in existing_paths2:
-                values = [path for path in (existing2, local_qml_str) if path]
-                os.environ["QML_IMPORT_PATH"] = os.pathsep.join(values)
+        if local_candidates:
+            _ensure_paths("QML2_IMPORT_PATH", local_candidates)
+            _ensure_paths("QML_IMPORT_PATH", local_candidates)
+            _ensure_paths("QT_QML_IMPORT_PATH", local_candidates)
 
         return True, None
 
@@ -91,6 +101,7 @@ def configure_qt_environment() -> None:
     os.environ.setdefault(
         "QSG_RHI_BACKEND", "d3d11" if sys.platform == "win32" else "opengl"
     )
+    os.environ.setdefault("QT_QUICK_CONTROLS_STYLE", "Fusion")
     os.environ.setdefault("QSG_INFO", "0")
     os.environ.setdefault("QT_LOGGING_RULES", "*.debug=false;*.info=false")
     os.environ.setdefault("QT_ASSUME_STDERR_HAS_CONSOLE", "1")

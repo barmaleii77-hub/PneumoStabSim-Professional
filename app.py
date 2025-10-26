@@ -9,6 +9,15 @@ import sys
 from pathlib import Path
 
 
+# Ensure the project sources are importable before any local modules execute.
+_PROJECT_ROOT = Path(__file__).resolve().parent
+_SRC_PATH = _PROJECT_ROOT / "src"
+_PATH_CANDIDATES = [str(_PROJECT_ROOT), str(_SRC_PATH)]
+for candidate in _PATH_CANDIDATES:
+    if candidate and candidate not in sys.path:
+        sys.path.insert(0, candidate)
+
+
 def _parse_bootstrap_arguments(argv: list[str]) -> tuple[argparse.Namespace, list[str]]:
     """Parse lightweight CLI arguments required before Qt import."""
 
