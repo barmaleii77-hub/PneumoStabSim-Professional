@@ -1,5 +1,5 @@
-import QtQuick
-import QtQuick3D
+import QtQuick 6.5
+import QtQuick3D 6.5
 
 /*
  * WORKING SOLUTION: Using built-in Qt Quick 3D primitives

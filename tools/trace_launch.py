@@ -137,6 +137,10 @@ def _status_icon(success: bool, stream: TextIO | None = None) -> str:
     target_stream = stream if stream is not None else sys.stdout
     encoding = getattr(target_stream, "encoding", None) or sys.getdefaultencoding()
 
+    normalized = encoding.lower().replace("_", "-") if encoding else ""
+    if not normalized.startswith("utf"):
+        return fallback
+
     try:
         icon.encode(encoding, errors="strict")
     except (UnicodeEncodeError, LookupError):
