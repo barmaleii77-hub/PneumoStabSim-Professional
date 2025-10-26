@@ -320,7 +320,10 @@ class SettingsManager:
             root = self._extra[head]
             parts = parts[1:]
         elif len(parts) == 1:
-            root = self._extra
+            if head in self._data or head in self._defaults:
+                root = self._data
+            else:
+                root = self._extra
         else:
             root = self._data
 

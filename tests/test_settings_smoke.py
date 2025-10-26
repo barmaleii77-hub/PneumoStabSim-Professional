@@ -110,6 +110,20 @@ def test_settings_manager_sets_extra_sections(legacy_settings: Path) -> None:
     assert payload["telemetry"]["interval_seconds"] == 2
 
 
+def test_settings_manager_preserves_current_structure(legacy_settings: Path) -> None:
+    manager = SettingsManager(settings_file=legacy_settings)
+
+    new_graphics = {"scene": {"exposure": 2.0}}
+    manager.set("graphics", new_graphics)
+
+    assert manager.get("current.graphics.scene.exposure") == 2.0
+
+    payload = json.loads(legacy_settings.read_text(encoding="utf-8"))
+    assert payload["current"]["graphics"]["scene"]["exposure"] == 2.0
+    extra_keys = set(payload) - {"metadata", "current", "defaults_snapshot"}
+    assert "graphics" not in extra_keys
+
+
 def test_get_settings_manager_caches_instance(
     legacy_settings: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
