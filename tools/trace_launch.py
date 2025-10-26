@@ -159,9 +159,30 @@ def build_parser() -> argparse.ArgumentParser:
     return parser
 
 
+def _normalise_argv(argv: Sequence[str]) -> list[str]:
+    """Return an argv list compatible with ``argparse`` expectations."""
+
+    if not argv:
+        return []
+
+    normalised: list[str] = []
+    flag = "--history-limit"
+    for token in argv:
+        if token.startswith(flag) and token not in {flag, f"{flag}=", f"{flag}="}:
+            suffix = token[len(flag) :]
+            # Accept PowerShell style ``--history-limit5`` while leaving
+            # ``--history-limit=5`` untouched for the default argparse behaviour.
+            if suffix.isdigit():
+                normalised.extend([flag, suffix])
+                continue
+        normalised.append(token)
+    return normalised
+
+
 def main(argv: Sequence[str] | None = None) -> None:
     parser = build_parser()
-    args = parser.parse_args(argv)
+    parsed_argv = _normalise_argv(list(argv) if argv is not None else sys.argv[1:])
+    args = parser.parse_args(parsed_argv)
     passthrough = tuple(arg for arg in args.passthrough or [] if arg)
 
     exit_code = run_launch_trace(passthrough, args.history_limit)
