@@ -60,15 +60,21 @@ uv-first environment strategy captured in the renovation master plan.
 
 ### Visual Studio Code
 
-1. Open `PneumoStabSim.code-workspace`. The workspace pins the interpreter to the
-   uv-managed `.venv` and wires tasks for `ruff`, `pytest`, and `qmllint`.
-2. Accept the recommended extensions (Python, Qt Tools, GitHub Copilot, YAML).
-3. Launch configurations:
+1. Run `python setup_vscode.py` from the project root. The bootstrapper ensures
+   the `.vscode/` directory exists, validates JSON configuration, refreshes the
+   recommended extensions list, and wires Python import paths so IntelliSense
+   resolves modules under `src/`, `tests/`, and `tools/` without manual tweaks.
+2. Open `PneumoStabSim.code-workspace`. The workspace pins the interpreter to
+   the uv-managed `.venv` and exposes tasks for `ruff`, `pytest`, and `qmllint`.
+3. Accept the recommended extensions when prompted (Python, Qt Tools, GitHub
+   Copilot, Ruff, Jupyter, PowerShell, etc.). The list mirrors the
+   `setup_vscode.py` bootstrap to keep all developers aligned.
+4. Launch configurations:
    - **App: PneumoStabSim (Qt 6.10)** – invokes `python -m src.app_runner` with
      Qt environment variables.
    - **Tests: Smoke suite** – runs `pytest -k smoke` using uv.
    - **Diagnostics: QML asset scan** – runs `python tools/ci_tasks.py qml-lint`.
-4. Format on save delegates to `ruff`; ensure "Python › Formatting: Provider"
+5. Format on save delegates to `ruff`; ensure "Python › Formatting: Provider"
    is set to "None" so the Ruff extension owns formatting.
 
 ### Visual Studio 2022 (Python workload)
@@ -129,3 +135,22 @@ uv-first environment strategy captured in the renovation master plan.
 - Post blockers and environment anomalies in the `#dev-environment` Slack
   channel; link the relevant section of this guide or the renovation master plan
   when requesting assistance.
+
+## 6. Development readiness checklist
+
+Follow this checklist whenever preparing a new workstation or CI runner:
+
+1. **Bootstrap the IDE** – execute `python setup_vscode.py` and reopen
+   Visual Studio Code to pick up refreshed launch/tasks configuration and the
+   latest extension recommendations.
+2. **Verify the Qt toolchain** – run `python -m tools.environment.verify_qt_setup`
+   (via `make uv-run`) to confirm PySide6 6.10, plugin paths, and Quick 3D
+   bindings resolve correctly.
+3. **Run the quality gate** – execute `make check` (or `python -m tools.ci_tasks
+   verify`) to ensure Ruff, mypy, pytest, and qmllint all pass locally before
+   starting feature work.
+4. **Capture the transcript** – stash the first successful command outputs under
+   `reports/environment/` for auditability and future troubleshooting.
+
+Completion of these steps signals the workstation is fully ready for active
+development, matching the expectations outlined in the renovation master plan.
