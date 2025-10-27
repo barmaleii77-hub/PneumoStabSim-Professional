@@ -1,5 +1,6 @@
 import QtQuick 6.10
 import QtQuick.Controls 6.10
+import QtQuick.Layouts 6.10
 import QtQuick3D 6.10
 import QtQuick3D.Helpers 6.10
 import QtQuick.Timeline 1.0
@@ -57,6 +58,13 @@ Item {
  property int reflectionProbeQualityValue: ReflectionProbe.VeryHigh
  property int reflectionProbeRefreshModeValue: ReflectionProbe.EveryFrame
  property int reflectionProbeTimeSlicingValue: ReflectionProbe.IndividualFaces
+
+ property bool signalTraceOverlayVisible: false
+ property bool signalTraceRecordingEnabled: false
+ property int signalTraceHistoryLimit: 200
+ property bool signalTracePanelExpanded: false
+ property var signalTraceHistory: []
+ property bool _signalTraceSyncing: false
 
  // -------- Геометрия подвески (СИ) --------
  property real userFrameLength:3.2
@@ -280,27 +288,75 @@ Item {
  }
 
  function toggleCameraHud() {
- setCameraHudEnabled(!cameraHudEnabled)
+  setCameraHudEnabled(!cameraHudEnabled)
+ }
+
+ function applySignalTraceSettings(payload) {
+  if (!payload)
+   return
+  _signalTraceSyncing = true
+  try {
+   if (payload.overlay_enabled !== undefined || payload.overlayEnabled !== undefined) {
+    const overlayValue = payload.overlay_enabled !== undefined ? payload.overlay_enabled : payload.overlayEnabled
+    signalTraceOverlayVisible = Boolean(overlayValue)
+    if (!signalTraceOverlayVisible)
+     signalTracePanelExpanded = false
+   }
+   if (payload.enabled !== undefined) {
+    signalTraceRecordingEnabled = Boolean(payload.enabled)
+   }
+   if (payload.history_limit !== undefined || payload.historyLimit !== undefined) {
+    const rawLimit = payload.history_limit !== undefined ? payload.history_limit : payload.historyLimit
+    const limitNumber = Number(rawLimit)
+    if (!isNaN(limitNumber) && isFinite(limitNumber)) {
+     signalTraceHistoryLimit = Math.max(1, Math.floor(limitNumber))
+    }
+   }
+  } finally {
+   _signalTraceSyncing = false
+  }
  }
 
  function handleDiagnosticsSettingChange(change) {
- if (!change || !change.path)
- return
- var pathStr = String(change.path)
- if (pathStr === "diagnostics.camera_hud") {
- applyCameraHudSettings(change.newValue)
- return
- }
- if (pathStr === "diagnostics.camera_hud.enabled") {
- setCameraHudEnabled(change.newValue)
- return
- }
- if (pathStr.indexOf("diagnostics.camera_hud.") ===0) {
- var key = pathStr.substring("diagnostics.camera_hud.".length)
- var patch = {}
- patch[key] = change.newValue
- applyCameraHudSettings(patch)
- }
+  if (!change || !change.path)
+   return
+  var pathStr = String(change.path)
+  if (pathStr === "diagnostics.camera_hud") {
+   applyCameraHudSettings(change.newValue)
+   return
+  }
+  if (pathStr === "diagnostics.camera_hud.enabled") {
+   setCameraHudEnabled(change.newValue)
+   return
+  }
+  if (pathStr.indexOf("diagnostics.camera_hud.") ===0) {
+   var key = pathStr.substring("diagnostics.camera_hud.".length)
+   var patch = {}
+   patch[key] = change.newValue
+   applyCameraHudSettings(patch)
+   return
+  }
+  if (pathStr === "diagnostics.signal_trace") {
+   applySignalTraceSettings(change.newValue)
+   return
+  }
+  if (
+   pathStr === "diagnostics.signal_trace.overlay_enabled"
+   || pathStr === "diagnostics.signal_trace.overlayEnabled"
+  ) {
+   applySignalTraceSettings({ overlay_enabled: change.newValue })
+   return
+  }
+  if (pathStr === "diagnostics.signal_trace.enabled") {
+   applySignalTraceSettings({ enabled: change.newValue })
+   return
+  }
+  if (
+   pathStr === "diagnostics.signal_trace.history_limit"
+   || pathStr === "diagnostics.signal_trace.historyLimit"
+  ) {
+   applySignalTraceSettings({ history_limit: change.newValue })
+  }
  }
 
  SceneEnvironmentController {
@@ -757,18 +813,169 @@ Connections {
  }
 
  Component.onCompleted: {
- if (typeof signalTrace !== "undefined" && signalTrace && typeof signalTrace.registerSubscription === "function") {
- signalTrace.registerSubscription("settings.settingChanged","main.qml","qml")
- signalTrace.registerSubscription("settings.settingsBatchUpdated","main.qml","qml")
+  if (typeof signalTrace !== "undefined" && signalTrace && typeof signalTrace.registerSubscription === "function") {
+   signalTrace.registerSubscription("settings.settingChanged","main.qml","qml")
+   signalTrace.registerSubscription("settings.settingsBatchUpdated","main.qml","qml")
+  }
+  if (diagnosticsDefaults && diagnosticsDefaults.camera_hud) {
+   applyCameraHudSettings(diagnosticsDefaults.camera_hud)
+  } else {
+   setCameraHudEnabled(cameraHudEnabled)
+  }
+  if (diagnosticsDefaults && diagnosticsDefaults.signal_trace) {
+   applySignalTraceSettings(diagnosticsDefaults.signal_trace)
+  }
+  applySceneBridgeState()
  }
- if (diagnosticsDefaults && diagnosticsDefaults.camera_hud) {
- applyCameraHudSettings(diagnosticsDefaults.camera_hud)
- } else {
- setCameraHudEnabled(cameraHudEnabled)
+
+ Connections {
+  target: typeof signalTrace !== "undefined" ? signalTrace : null
+
+  function onTraceUpdated(snapshot) {
+   if (snapshot && snapshot.config) {
+    applySignalTraceSettings(snapshot.config)
+   }
+   if (typeof signalTrace !== "undefined" && signalTrace) {
+    var history = signalTrace.historyEntries
+    signalTraceHistory = history ? history : []
+   } else {
+    signalTraceHistory = []
+   }
+   if (tracePanel) {
+    tracePanel.maxEntries = signalTraceHistoryLimit
+    tracePanel.reset(signalTraceHistory)
+   }
+  }
  }
- applySceneBridgeState()
- updateFallbackAngles()
-}
+
+ Item {
+  id: diagnosticsOverlay
+  anchors.fill: parent
+  visible: signalTraceOverlayVisible || profileControls.visible
+  enabled: visible
+  z: 1000
+
+  MouseArea {
+   anchors.fill: parent
+   acceptedButtons: Qt.NoButton
+   hoverEnabled: true
+  }
+
+  ProfileManagerControls {
+   id: profileControls
+   anchors.left: parent.left
+   anchors.top: parent.top
+   anchors.margins: 12
+   profileService: typeof settingsProfiles !== "undefined" ? settingsProfiles : null
+   visible: profileService !== null
+  }
+
+  Rectangle {
+   id: signalTraceContainer
+   anchors.top: parent.top
+   anchors.right: parent.right
+   anchors.margins: 12
+   width: 360
+   visible: signalTraceOverlayVisible
+   radius: 10
+   color: Qt.rgba(0.08, 0.1, 0.14, 0.92)
+   border.width: 1
+   border.color: Qt.rgba(0.25, 0.65, 0.95, 0.4)
+
+   ColumnLayout {
+    anchors.fill: parent
+    anchors.margins: 12
+    spacing: 8
+
+    SignalTraceIndicator {
+     id: traceIndicator
+     Layout.fillWidth: true
+     label: qsTr("Сигналы")
+     count: signalTraceHistory.length
+     pulseOnChange: signalTraceRecordingEnabled
+     backgroundColor: Qt.rgba(0.05, 0.07, 0.11, 0.95)
+     accentColor: signalTraceRecordingEnabled ? Qt.rgba(0.2, 0.75, 0.5, 1) : Qt.rgba(0.5, 0.5, 0.5, 1)
+    }
+
+    RowLayout {
+     Layout.fillWidth: true
+     spacing: 8
+
+     Switch {
+      id: overlaySwitch
+      text: qsTr("Оверлей")
+      checked: signalTraceOverlayVisible
+      Layout.alignment: Qt.AlignLeft
+      onToggled: {
+       if (_signalTraceSyncing)
+        return
+       signalTraceOverlayVisible = checked
+       if (!checked)
+        signalTracePanelExpanded = false
+       if (typeof window !== "undefined" && window && window.applyQmlConfigChange) {
+        window.applyQmlConfigChange("diagnostics.signal_trace", { overlay_enabled: checked })
+       }
+      }
+     }
+
+     Switch {
+      id: recordingSwitch
+      text: qsTr("Запись")
+      checked: signalTraceRecordingEnabled
+      Layout.alignment: Qt.AlignLeft
+      onToggled: {
+       if (_signalTraceSyncing)
+        return
+       signalTraceRecordingEnabled = checked
+       if (typeof window !== "undefined" && window && window.applyQmlConfigChange) {
+        window.applyQmlConfigChange("diagnostics.signal_trace", { enabled: checked })
+       }
+      }
+     }
+
+     ToolButton {
+      text: signalTracePanelExpanded ? qsTr("Скрыть") : qsTr("Показать")
+      enabled: signalTraceOverlayVisible
+      Layout.alignment: Qt.AlignRight
+      onClicked: signalTracePanelExpanded = !signalTracePanelExpanded
+     }
+
+     ToolButton {
+      text: qsTr("Очистить")
+      enabled: signalTraceHistory.length > 0 && typeof signalTrace !== "undefined" && signalTrace && signalTrace.clearHistory
+      Layout.alignment: Qt.AlignRight
+      onClicked: {
+       if (typeof signalTrace !== "undefined" && signalTrace && signalTrace.clearHistory) {
+        signalTrace.clearHistory()
+       }
+      }
+     }
+    }
+
+    Label {
+      Layout.fillWidth: true
+      wrapMode: Text.WordWrap
+      color: signalTraceRecordingEnabled ? "#a5e6c8" : "#c0c0c0"
+      text: signalTraceRecordingEnabled
+        ? qsTr("Запись сигналов активна")
+        : qsTr("Запись сигналов отключена")
+     }
+
+    SignalTracePanel {
+     id: tracePanel
+     Layout.fillWidth: true
+     Layout.preferredHeight: signalTracePanelExpanded ? 240 : 0
+     visible: signalTracePanelExpanded
+     maxEntries: signalTraceHistoryLimit
+     onClearRequested: {
+      if (typeof signalTrace !== "undefined" && signalTrace && signalTrace.clearHistory) {
+       signalTrace.clearHistory()
+      }
+     }
+    }
+   }
+  }
+ }
 
  Connections {
  target: typeof settingsEvents !== "undefined" ? settingsEvents : null

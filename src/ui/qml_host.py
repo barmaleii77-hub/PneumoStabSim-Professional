@@ -15,6 +15,7 @@ from PySide6.QtQuickWidgets import QQuickWidget
 # Import geometry bridge for correct coordinate calculation
 from ..core.geometry import GeometryParams
 from src.ui.geometry_bridge import GeometryTo3DConverter
+from src.ui.scene_bridge import SceneBridge
 
 _logger = logging.getLogger(__name__)
 
@@ -30,53 +31,37 @@ class SuspensionSceneHost(QQuickWidget):
     ):
         super().__init__(parent)
 
-        geometry_params = self._build_geometry_params(geometry_overrides or {})
-        self.geometry_converter = GeometryTo3DConverter(geometry_params)
+        self._geometry_params = self._build_geometry_params(geometry_overrides or {})
+        self.geometry_converter = GeometryTo3DConverter(self._geometry_params)
+        self._scene_bridge = SceneBridge(self)
+        self.rootContext().setContextProperty("pythonSceneBridge", self._scene_bridge)
 
         # Get calculated coordinates for all corners
-        all_corners = self.geometry_converter.get_all_corners_3d()
+        self._corner_data = self.geometry_converter.get_all_corners_3d()
         frame_params = self.geometry_converter.get_frame_params()
 
-        # Build parameters dictionary from geometry_bridge calculations
+        # Build parameters dictionary exposed via get_parameters for diagnostics
         self._params = {
-            # Frame (from geometry_bridge)
             "beamSize": frame_params["beamSize"],
             "frameHeight": frame_params["frameHeight"],
             "frameLength": frame_params["frameLength"],
         }
 
-        # Add all corner parameters from geometry_bridge
-        for corner_key in ["fl", "fr", "rl", "rr"]:
-            corner_data = all_corners[corner_key]
-
-            # Convert to QML property names (use correct keys from geometry_bridge)
+        for corner_key, corner_values in self._corner_data.items():
             self._params.update(
                 {
-                    f"{corner_key}_j_arm": corner_data["j_arm"],
-                    f"{corner_key}_leverLength": corner_data[
-                        "leverLength"
-                    ],  # ? Correct key
-                    f"{corner_key}_leverAngle": corner_data["leverAngle"],  # ? New key
-                    f"{corner_key}_totalAngle": corner_data["totalAngle"],  # ? New key
-                    f"{corner_key}_baseAngle": corner_data["baseAngle"],  # ? New key
-                    f"{corner_key}_j_tail": corner_data["j_tail"],
-                    f"{corner_key}_j_rod": corner_data["j_rod"],
-                    f"{corner_key}_cylinderBodyLength": corner_data[
-                        "cylinderBodyLength"
-                    ],  # ? Correct key
-                    f"{corner_key}_tailRodLength": corner_data[
-                        "tailRodLength"
-                    ],  # ? Correct key
-                    # Additional properties for compatibility
-                    f"{corner_key}_corner": corner_data["corner"],
-                    f"{corner_key}_side": corner_data["side"],
-                    f"{corner_key}_position": corner_data["position"],
+                    f"{corner_key}_leverAngleRad": corner_values.get(
+                        "leverAngleRad", 0.0
+                    ),
+                    f"{corner_key}_pistonPosition": corner_values.get(
+                        "pistonPosition", 0.0
+                    ),
                 }
             )
 
         _logger.debug("Loaded coordinates from geometry_bridge: Frame=%s", frame_params)
-        _logger.debug("FL j_arm: %s", all_corners["fl"]["j_arm"])
-        _logger.debug("FR j_arm: %s", all_corners["fr"]["j_arm"])
+        _logger.debug("FL lever angle (rad): %s", self._params["fl_leverAngleRad"])
+        _logger.debug("FR lever angle (rad): %s", self._params["fr_leverAngleRad"])
 
         # Setup QML
         self.setResizeMode(QQuickWidget.SizeRootObjectToView)
@@ -133,6 +118,11 @@ class SuspensionSceneHost(QQuickWidget):
         """Return the QML path, falling back to the 2D scene if legacy assets are absent."""
 
         base = Path(__file__).parent.parent.parent / "assets" / "qml"
+        modular = base / "main.qml"
+        if modular.exists():
+            _logger.info("Loading modular main.qml: %s", modular)
+            return modular
+
         legacy = base / "UFrameScene.qml"
         if legacy.exists():
             _logger.info("Loading legacy UFrameScene.qml: %s", legacy)
@@ -151,51 +141,8 @@ class SuspensionSceneHost(QQuickWidget):
 
     def _apply_all_parameters(self):
         """Apply all parameters to QML root object"""
-        root = self.rootObject()
-        if not root:
-            _logger.warning("QML root object is None!")
-            return
-
-        applied_count = 0
-        failed_count = 0
-
-        _logger.debug("Applying %d parameters to QML", len(self._params))
-
-        for key, value in self._params.items():
-            try:
-                root.setProperty(key, value)
-                applied_count += 1
-
-                # Debug key coordinates and lever lengths
-                if key in ["fl_j_arm", "fr_j_arm", "fl_leverLength", "fr_leverLength"]:
-                    _logger.debug("Set %s = %s", key, value)
-                elif "cylinderBodyLength" in key or "tailRodLength" in key:
-                    _logger.debug("Set %s = %s", key, value)
-
-            except Exception as e:
-                _logger.warning("Failed to set %s = %s: %s", key, value, e)
-                failed_count += 1
-
-        _logger.info(
-            "Applied %d/%d parameters to QML (failed=%d)",
-            applied_count,
-            len(self._params),
-            failed_count,
-        )
-
-        # Debug: Try to read some values back
-        try:
-            beamSize = root.property("beamSize")
-            frameLength = root.property("frameLength")
-            fl_leverLength = root.property("fl_leverLength")
-            _logger.debug(
-                "Read-back beamSize=%s frameLength=%s fl_leverLength=%s",
-                beamSize,
-                frameLength,
-                fl_leverLength,
-            )
-        except Exception as e:
-            _logger.debug("Failed to read back values: %s", e)
+        updates = self._build_initial_updates()
+        self._dispatch_updates(updates)
 
     def update_corner(self, corner: str, **kwargs):
         """Update parameters for specific corner (FL/FR/RL/RR)
@@ -204,15 +151,55 @@ class SuspensionSceneHost(QQuickWidget):
             corner: "FL", "FR", "RL", or "RR"
             **kwargs: Parameter updates (e.g., armAngleDeg=5.0, j_rod=QVector3D(...))
         """
-        root = self.rootObject()
-        if not root:
+        if self.rootObject() is None:
             return
 
+        normalized_corner = corner.strip().lower()
+        if normalized_corner not in {"fl", "fr", "rl", "rr"}:
+            _logger.warning("Unknown corner key: %s", corner)
+            return
+
+        animation_patch = {}
+        wheel_patch = {}
+
         for key, value in kwargs.items():
-            prop_name = f"{corner}_{key}"
-            if prop_name in self._params:
-                self._params[prop_name] = value
-                root.setProperty(prop_name, value)
+            if key.lower() in {"leverangle", "lever_angle", "leveranglerad"}:
+                try:
+                    rad = float(value)
+                except (TypeError, ValueError):
+                    _logger.debug(
+                        "Skipping non-numeric lever angle for %s: %r", corner, value
+                    )
+                    continue
+                animation_patch.setdefault("leverAngles", {})[normalized_corner] = rad
+                wheel_patch.setdefault(normalized_corner, {})["leverAngle"] = rad
+                self._params[f"{normalized_corner}_leverAngleRad"] = rad
+            elif key.lower() in {"pistonposition", "piston_position"}:
+                try:
+                    position = float(value)
+                except (TypeError, ValueError):
+                    _logger.debug(
+                        "Skipping non-numeric piston position for %s: %r", corner, value
+                    )
+                    continue
+                animation_patch.setdefault("pistonPositions", {})[normalized_corner] = (
+                    position
+                )
+                wheel_patch.setdefault(normalized_corner, {})["pistonPosition"] = (
+                    position
+                )
+                self._params[f"{normalized_corner}_pistonPosition"] = position
+            else:
+                self._params[f"{normalized_corner}_{key}"] = value
+
+        updates = {}
+        if animation_patch:
+            updates["animation"] = animation_patch
+        if wheel_patch:
+            updates["threeD"] = {"wheels": wheel_patch}
+
+        if updates:
+            self._dispatch_updates(updates)
 
     def update_frame(self, **kwargs):
         """Update frame parameters
@@ -220,14 +207,20 @@ class SuspensionSceneHost(QQuickWidget):
         Args:
             **kwargs: beamSize, frameHeight, frameLength
         """
-        root = self.rootObject()
-        if not root:
-            return
-
+        payload = {}
         for key in ["beamSize", "frameHeight", "frameLength"]:
             if key in kwargs:
-                self._params[key] = kwargs[key]
-                root.setProperty(key, kwargs[key])
+                try:
+                    payload[key] = float(kwargs[key])
+                except (TypeError, ValueError):
+                    _logger.debug(
+                        "Skipping non-numeric frame value %s=%r", key, kwargs[key]
+                    )
+                    continue
+                self._params[key] = payload[key]
+
+        if payload:
+            self._dispatch_updates({"geometry": payload})
 
     def reset_view(self):
         """Reset camera to default view"""
@@ -244,6 +237,82 @@ class SuspensionSceneHost(QQuickWidget):
     def get_parameters(self):
         """Get current parameters dictionary"""
         return self._params.copy()
+
+    # ------------------------------------------------------------------
+    # Helpers for modular QML bridge
+    # ------------------------------------------------------------------
+
+    def _build_initial_updates(self) -> Dict[str, Dict[str, object]]:
+        """Prepare the initial payload dispatched to the modular QML scene."""
+
+        geometry_payload = {
+            "beamSize": float(self._params.get("beamSize", 0.0)),
+            "frameHeight": float(self._params.get("frameHeight", 0.0)),
+            "frameLength": float(self._params.get("frameLength", 0.0)),
+            "leverLength": float(self.geometry_converter.leverLength),
+            "cylinderLength": float(self.geometry_converter.cylinderBodyLength),
+            "tailRodLength": float(self.geometry_converter.tailRodLength),
+            "trackWidth": float(self._geometry_params.track_width),
+            "frameToPivot": float(self._geometry_params.pivot_offset_from_frame),
+            "rodPosition": float(self._geometry_params.rod_attach_fraction),
+            "boreHead": float(self._geometry_params.cylinder_inner_diameter),
+            "rodDiameter": float(self._geometry_params.rod_diameter),
+            "pistonThickness": float(self._geometry_params.piston_thickness),
+        }
+
+        lever_angles = {}
+        piston_positions = {}
+        wheels: Dict[str, Dict[str, float]] = {}
+        for corner, data in self._corner_data.items():
+            rad = float(data.get("leverAngleRad", 0.0))
+            piston = float(data.get("pistonPosition", 0.0))
+            lever_angles[corner] = rad
+            piston_positions[corner] = piston
+            wheels[corner] = {"leverAngle": rad, "pistonPosition": piston}
+
+        animation_payload = {
+            "leverAngles": lever_angles,
+            "pistonPositions": piston_positions,
+        }
+
+        three_d_payload = {
+            "frame": {"heave": 0.0, "roll": 0.0, "pitch": 0.0},
+            "wheels": wheels,
+        }
+
+        return {
+            "geometry": geometry_payload,
+            "animation": animation_payload,
+            "threeD": three_d_payload,
+        }
+
+    def _dispatch_updates(self, updates: Dict[str, Dict[str, object]]) -> None:
+        """Send updates to the active QML scene, falling back to legacy properties."""
+
+        if not updates:
+            return
+
+        dispatched = False
+        try:
+            dispatched = self._scene_bridge.dispatch_updates(updates)
+        except Exception as exc:  # pragma: no cover - Qt runtime failure
+            _logger.error("SceneBridge dispatch failed: %s", exc, exc_info=True)
+
+        if dispatched:
+            categories = ", ".join(sorted(updates.keys()))
+            _logger.debug("SceneBridge dispatched categories: %s", categories)
+            return
+
+        root = self.rootObject()
+        if root is None:
+            _logger.debug("Root object not ready; pending updates deferred")
+            return
+
+        try:
+            root.setProperty("pendingPythonUpdates", updates)
+            _logger.debug("Applied pendingPythonUpdates fallback: %s", updates.keys())
+        except Exception as exc:  # pragma: no cover - QML specific failure
+            _logger.warning("Failed to apply fallback updates: %s", exc)
 
 
 # Backward compatibility alias

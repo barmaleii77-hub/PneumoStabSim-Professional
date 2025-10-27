@@ -36,6 +36,7 @@ from .signals_router import SignalsRouter
 from .state_sync import StateSync
 from .menu_actions import MenuActions
 from src.common.settings_manager import get_settings_manager
+from src.common.signal_trace import get_signal_trace_service
 from src.core.settings_manager import ProfileSettingsManager
 
 
@@ -118,6 +119,21 @@ class MainWindow(QMainWindow):
             apply_callback=self._apply_settings_update,
         )
         self.logger.info("ProfileSettingsManager initialized")
+
+        self.signal_trace_service = None
+        try:
+            self.signal_trace_service = get_signal_trace_service()
+            try:
+                initial_signal_trace = (
+                    self.settings_manager.get("diagnostics.signal_trace", {}) or {}
+                )
+            except Exception:
+                initial_signal_trace = {}
+            self.signal_trace_service.update_from_settings(initial_signal_trace)
+            self.logger.debug("SignalTraceService configured from settings")
+        except Exception as exc:
+            self.signal_trace_service = None
+            self.logger.debug("SignalTraceService unavailable: %s", exc, exc_info=exc)
 
         # IBL Logger
         from ..ibl_logger import get_ibl_logger, log_ibl_event
@@ -288,6 +304,18 @@ class MainWindow(QMainWindow):
             return
 
         sm.set(category_path, merged, auto_save=False)
+
+        if self.signal_trace_service is not None and category_path.startswith(
+            "diagnostics"
+        ):
+            try:
+                config_payload = sm.get("diagnostics.signal_trace", {}) or {}
+                self.signal_trace_service.update_from_settings(config_payload)
+            except Exception as exc:
+                self.logger.debug(
+                    "Failed to push diagnostics settings to SignalTraceService: %s",
+                    exc,
+                )
 
         try:
             for path, old_value, new_value in self._iter_diff(before, merged):

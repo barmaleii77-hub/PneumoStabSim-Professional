@@ -1353,7 +1353,11 @@
         "render_scale": 1.05,
         "render_policy": "always",
         "frame_rate_limit": 144.0,
-        "oit": "weighted"
+        "oit": "weighted",
+        "mesh": {
+          "cylinder_segments": 128,
+          "cylinder_rings": 32
+        }
       },
       "high": {
         "shadows": {
