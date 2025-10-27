@@ -470,6 +470,25 @@
         "adjustment_brightness": 0.0,
         "adjustment_contrast": 0.0,
         "adjustment_saturation": 0.0
+      },
+      "scene": {
+        "scale_factor": 1000.0,
+        "exposure": 1.0,
+        "default_clear_color": "#1a1a2e",
+        "model_base_color": "#9ea4ab",
+        "model_roughness": 0.35,
+        "model_metalness": 0.9
+      },
+      "animation": {
+        "is_running": false,
+        "animation_time": 0.0,
+        "amplitude": 8.0,
+        "frequency": 1.0,
+        "phase_global": 0.0,
+        "phase_fl": 0.0,
+        "phase_fr": 0.0,
+        "phase_rl": 0.0,
+        "phase_rr": 0.0
       }
     },
     "physics": {
@@ -1343,6 +1362,25 @@
         "adjustment_brightness": 0.0,
         "adjustment_contrast": 0.0,
         "adjustment_saturation": 0.0
+      },
+      "scene": {
+        "scale_factor": 1000.0,
+        "exposure": 1.0,
+        "default_clear_color": "#1a1a2e",
+        "model_base_color": "#9ea4ab",
+        "model_roughness": 0.35,
+        "model_metalness": 0.9
+      },
+      "animation": {
+        "is_running": false,
+        "animation_time": 0.0,
+        "amplitude": 8.0,
+        "frequency": 1.0,
+        "phase_global": 0.0,
+        "phase_fl": 0.0,
+        "phase_fr": 0.0,
+        "phase_rl": 0.0,
+        "phase_rr": 0.0
       }
     },
     "constants": {

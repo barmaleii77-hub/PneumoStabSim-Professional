@@ -550,7 +550,7 @@ View3D {
  ReflectionProbe {
   id: mainReflectionProbe
   parent: worldRoot
-  enabled: root.reflectionProbeEnabled
+  visible: root.reflectionProbeEnabled
   parallaxCorrection: true
   quality: root.reflectionProbeQualityValue
   refreshMode: root.reflectionProbeRefreshModeValue
@@ -855,7 +855,6 @@ Connections {
   id: diagnosticsOverlay
   anchors.fill: parent
   visible: signalTraceOverlayVisible || profileControls.visible
-  enabled: visible
   z: 1000
 
   MouseArea {
