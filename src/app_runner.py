@@ -8,6 +8,7 @@
 
 import argparse
 import asyncio
+import json
 import logging
 import os
 import signal
@@ -265,13 +266,37 @@ class ApplicationRunner:
         if self.app_logger:
             self.app_logger.info("MainWindow created and shown")
 
+    def _resolve_schema_path(self) -> Path:
+        return (
+            Path(__file__).resolve().parents[1]
+            / "config"
+            / "schemas"
+            / "app_settings.schema.json"
+        )
+
+    def _ensure_schema_integrity(self, schema_path: Path) -> None:
+        try:
+            with schema_path.open("r", encoding="utf-8") as stream:
+                json.load(stream)
+        except FileNotFoundError as exc:
+            raise SettingsValidationError(
+                f"Схема настроек не найдена: {schema_path}"
+            ) from exc
+        except json.JSONDecodeError as exc:
+            raise SettingsValidationError(
+                f"Схема настроек повреждена: {schema_path} — {exc}"
+            ) from exc
+
+        if self.app_logger:
+            self.app_logger.debug("Settings schema JSON parsed successfully")
+
     def _run_schema_validation(self, cfg_path: Path) -> None:
         """Запускает CLI-валидатор JSON схемы для файла настроек."""
         # Определяем корень проекта (src/..)
         project_root = Path(__file__).resolve().parents[1]
         tools_dir = project_root / "tools"
         validator = tools_dir / "validate_settings.py"
-        schema_path = project_root / "config" / "app_settings.schema.json"
+        schema_path = self._resolve_schema_path()
 
         if not validator.exists():
             if self.app_logger:
@@ -309,11 +334,6 @@ class ApplicationRunner:
         except Exception:  # pragma: no cover - headless environments
             QMessageBox = None
 
-        sm = get_settings_manager()
-        cfg_path = Path(sm.settings_file).absolute()
-        project_root = Path(__file__).resolve().parents[1]
-        project_cfg = project_root / "config" / "app_settings.json"
-
         def _fail(
             message: str,
             exc_type: type[Exception] = SettingsValidationError,
@@ -325,6 +345,17 @@ class ApplicationRunner:
             else:
                 print(f"❌ {message}")
             raise exc_type(message)
+
+        schema_path = self._resolve_schema_path()
+        try:
+            self._ensure_schema_integrity(schema_path)
+        except SettingsValidationError as exc:
+            _fail(str(exc))
+
+        sm = get_settings_manager()
+        cfg_path = Path(sm.settings_file).absolute()
+        project_root = Path(__file__).resolve().parents[1]
+        project_cfg = project_root / "config" / "app_settings.json"
 
         src = determine_settings_source(cfg_path, project_default=project_cfg)
         msg_base = f"Settings file: {cfg_path} [source={src}]"

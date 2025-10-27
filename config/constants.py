@@ -53,9 +53,7 @@ def _get_constants_root(
     try:
         root = data[root_key]
     except KeyError as exc:
-        raise KeyError(
-            f"Missing '{root_key}' section in app_settings.json"
-        ) from exc
+        raise KeyError(f"Missing '{root_key}' section in app_settings.json") from exc
     root_mapping = _ensure_mapping(root, root_key)
     constants = _require_mapping_key(root_mapping, "constants", root_key)
     return constants
@@ -69,9 +67,7 @@ def _get_constants_section(
 ) -> Mapping[str, Any]:
     """Helper that returns a nested constants section by name."""
     constants = _get_constants_root(root_key, custom_path=custom_path)
-    return _require_mapping_key(
-        constants, section, f"{root_key}.constants"
-    )
+    return _require_mapping_key(constants, section, f"{root_key}.constants")
 
 
 def refresh_cache() -> None:
@@ -133,6 +129,86 @@ def get_pneumo_constants(
     return _get_constants_section("pneumo", custom_path=custom_path)
 
 
+def get_physics_constants(
+    *,
+    custom_path: str | None = None,
+) -> Mapping[str, Any]:
+    """Return physics constants root mapping."""
+
+    return _get_constants_section("physics", custom_path=custom_path)
+
+
+def get_physics_suspension_constants(
+    *,
+    custom_path: str | None = None,
+) -> Mapping[str, Any]:
+    """Return suspension-related physics constants."""
+
+    physics = get_physics_constants(custom_path=custom_path)
+    return _require_mapping_key(physics, "suspension", "constants.physics")
+
+
+def get_physics_reference_axes(
+    *,
+    custom_path: str | None = None,
+) -> Mapping[str, Any]:
+    """Return reference axis definitions used by physics helpers."""
+
+    physics = get_physics_constants(custom_path=custom_path)
+    return _require_mapping_key(physics, "reference_axes", "constants.physics")
+
+
+def get_physics_validation_constants(
+    *,
+    custom_path: str | None = None,
+) -> Mapping[str, Any]:
+    """Return validation thresholds for physics calculations."""
+
+    physics = get_physics_constants(custom_path=custom_path)
+    return _require_mapping_key(physics, "validation", "constants.physics")
+
+
+def get_physics_rigid_body_constants(
+    *,
+    custom_path: str | None = None,
+) -> Mapping[str, Any]:
+    """Return rigid-body defaults for physics integrators."""
+
+    physics = get_physics_constants(custom_path=custom_path)
+    return _require_mapping_key(physics, "rigid_body", "constants.physics")
+
+
+def get_physics_integrator_constants(
+    *,
+    custom_path: str | None = None,
+) -> Mapping[str, Any]:
+    """Return solver and loop defaults for physics integration."""
+
+    physics = get_physics_constants(custom_path=custom_path)
+    return _require_mapping_key(physics, "integrator", "constants.physics")
+
+
+def get_current_section(
+    section: str,
+    *,
+    custom_path: str | None = None,
+) -> Mapping[str, Any]:
+    """Return an arbitrary section from the ``current`` settings root."""
+
+    data = _load_settings(custom_path)
+    current = _ensure_mapping(data.get("current", {}), "current")
+    return _require_mapping_key(current, section, "current")
+
+
+def get_simulation_settings(
+    *,
+    custom_path: str | None = None,
+) -> Mapping[str, Any]:
+    """Return current simulation loop settings."""
+
+    return get_current_section("simulation", custom_path=custom_path)
+
+
 def get_pneumo_valve_constants(
     *,
     custom_path: str | None = None,
@@ -170,9 +246,7 @@ def get_pneumo_master_isolation_default(
     """Return default state of the master isolation valve."""
 
     pneumo = get_pneumo_constants(custom_path=custom_path)
-    value = _require_scalar_key(
-        pneumo, "master_isolation_open", "constants.pneumo"
-    )
+    value = _require_scalar_key(pneumo, "master_isolation_open", "constants.pneumo")
     if not isinstance(value, bool):
         raise TypeError(
             "'constants.pneumo.master_isolation_open' must be a boolean value"

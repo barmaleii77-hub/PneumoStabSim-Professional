@@ -29,7 +29,7 @@ from jsonschema.exceptions import SchemaError
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_SETTINGS_PATH = PROJECT_ROOT / "config" / "app_settings.json"
-DEFAULT_SCHEMA_PATH = PROJECT_ROOT / "config" / "app_settings.schema.json"
+DEFAULT_SCHEMA_PATH = PROJECT_ROOT / "config" / "schemas" / "app_settings.schema.json"
 
 
 def _load_json(path: Path) -> Any:
@@ -73,7 +73,7 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
         "--schema-file",
         type=Path,
         default=DEFAULT_SCHEMA_PATH,
-        help="Path to the JSON schema file (default: config/app_settings.schema.json)",
+        help="Path to the JSON schema file (default: config/schemas/app_settings.schema.json)",
     )
     parser.add_argument(
         "--quiet",

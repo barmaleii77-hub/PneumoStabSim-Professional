@@ -147,7 +147,7 @@ best practices for scientific visualisation software.
 
 **Status**
 
-- `config/app_settings.schema.json` defines a JSON Schema but is not enforced
+- `config/schemas/app_settings.schema.json` defines a JSON Schema but is not enforced
   automatically when saving settings.
 - Settings logic is split between `src/common/settings_manager.py` (schema
   aware) and `src/core/settings_service.py` (lightweight cache), leading to

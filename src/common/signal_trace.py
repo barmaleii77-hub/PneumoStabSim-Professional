@@ -271,6 +271,14 @@ class SignalTraceService(QObject):
         _QVARIANT_PROPERTY_TYPE, notify=traceUpdated
     )(_get_latest_values)
 
+    def _get_history_entries(self) -> List[Dict[str, Any]]:
+        with self._lock:
+            return [entry.copy() for entry in self._history]
+
+    historyEntries: ClassVar[_QmlProperty[List[Dict[str, Any]]]] = qml_property(
+        list, notify=traceUpdated
+    )(_get_history_entries)
+
     def _get_overlay_enabled(self) -> bool:
         return self._config.overlay_enabled
 

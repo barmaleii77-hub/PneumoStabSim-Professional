@@ -53,7 +53,7 @@ Log architectural decisions, ADR references, and schema revisions here.
 
 ### 2025-03-01 – Settings schema validation uplift
 - Added JSON Schema enforcement to `src/core/settings_service.SettingsService`
-  backed by `config/app_settings.schema.json`.
+  backed by `config/schemas/app_settings.schema.json`.
 - Extended unit tests to cover invalid payload handling via
   `SettingsValidationError`.
 

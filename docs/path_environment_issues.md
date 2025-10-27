@@ -15,7 +15,7 @@ This document captures known problems related to Python path configuration, Qt/Q
 - ✅ **Resolved** — POSIX locale configuration attempts `en_US.UTF-8` before `C.UTF-8`, exporting the successful locale through `LC_ALL`/`LANG` when available.
 
 ## Configuration Schema Path Inconsistencies
-- ✅ **Resolved** — `tools/audit_config.py` now defaults to the canonical schema path `config/app_settings.schema.json`, matching runtime usage.
+- ✅ **Resolved** — `tools/audit_config.py` now defaults to the canonical schema path `config/schemas/app_settings.schema.json`, matching runtime usage.
 - `config/app_settings.json` and the associated schema files are present; ensure future changes keep both locations synchronized if multiple copies remain necessary.
 
 ## QML Resource Paths and Compatibility

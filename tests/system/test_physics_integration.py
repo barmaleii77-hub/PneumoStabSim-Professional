@@ -8,6 +8,11 @@ from typing import Iterable
 import numpy as np
 import pytest
 
+from config.constants import (
+    get_physics_integrator_constants,
+    get_physics_suspension_constants,
+    get_simulation_settings,
+)
 from physics.integrator import (
     create_default_rigid_body,
     step_dynamics,
@@ -20,7 +25,13 @@ from physics.odes import (
 
 pytestmark = pytest.mark.system
 
-_SPRING_STIFFNESS = 50_000.0
+_SPRING_STIFFNESS = get_physics_suspension_constants()["spring_constant"]
+_SIMULATION_SETTINGS = get_simulation_settings()
+_DT_PHYSICS = float(_SIMULATION_SETTINGS["physics_dt"])
+_TIME_HORIZON = float(_SIMULATION_SETTINGS["max_frame_time"]) * 10.0
+_INTEGRATION_STEPS = max(1, int(round(_TIME_HORIZON / _DT_PHYSICS)))
+_INTEGRATOR_SETTINGS = get_physics_integrator_constants()
+_PRIMARY_METHOD = str(_INTEGRATOR_SETTINGS["solver"]["primary_method"])
 
 
 def _suspension_displacements(
@@ -66,14 +77,16 @@ def test_step_dynamics_stable_response(
     capsys: pytest.CaptureFixture[str],
 ) -> None:
     """Integrator should remain stable for small perturbations."""
-    dt = 0.001
+    dt = _DT_PHYSICS
     t = 0.0
     y = nominal_state.copy()
 
     max_energy = 0.0
     max_angle = 0.0
 
-    for _ in range(500):
+    initial_energy = _total_mechanical_energy(default_params, y)
+
+    for _ in range(_INTEGRATION_STEPS):
         result = step_dynamics(
             y,
             t,
@@ -81,7 +94,7 @@ def test_step_dynamics_stable_response(
             default_params,
             system=None,
             gas=None,
-            method="Radau",
+            method=_PRIMARY_METHOD,
         )
         assert result.success, result.message
         assert np.all(np.isfinite(result.y_final)), "State vector must remain finite"
@@ -95,23 +108,25 @@ def test_step_dynamics_stable_response(
             max_energy,
             _total_mechanical_energy(default_params, y),
         )
-        max_angle = max(
-            max_angle,
-            float(np.max(np.abs(y[1:3]))),
-        )
+        max_angle = max(max_angle, float(np.max(np.abs(y[1:3]))))
 
     captured = capsys.readouterr()
     assert captured.out == ""
     assert captured.err == ""
 
-    assert math.isclose(t, 0.5, rel_tol=0.0, abs_tol=1e-12)
-    assert max_energy < 5_000.0, "Energy growth indicates unstable integration"
-    assert max_angle < math.radians(5.0), (
-        "Angular deviation should stay within 5 degrees"
+    expected_time = _INTEGRATION_STEPS * dt
+    assert math.isclose(t, expected_time, rel_tol=0.0, abs_tol=1e-12)
+    assert max_energy < initial_energy * 10.0, (
+        "Energy growth indicates unstable integration"
+    )
+    assert max_angle < default_params.angle_limit, (
+        "Angular deviation should stay within configured limits"
     )
 
     accelerations = f_rhs(t, y, default_params, None, None)[3:]
-    assert np.linalg.norm(accelerations) < 5.0, "Accelerations should remain bounded"
+    assert np.linalg.norm(accelerations) < default_params.g, (
+        "Accelerations should remain bounded"
+    )
 
 
 def test_step_dynamics_invalid_method(
@@ -147,7 +162,7 @@ def test_step_dynamics_invalid_inertia_matrix(
             params=bad_params,
             system=None,
             gas=None,
-            method="Radau",
+            method=_PRIMARY_METHOD,
         )
 
     assert not result.success

@@ -12,10 +12,16 @@ in a controlled manner during automated test runs.
 
 from __future__ import annotations
 
-from typing import Any, Dict, Iterable, Tuple
+from typing import Any, Dict, Iterable, Mapping, Tuple
 
 import numpy as np
 from numpy.typing import ArrayLike, NDArray
+
+from config.constants import (
+    get_physics_reference_axes,
+    get_physics_suspension_constants,
+    get_physics_validation_constants,
+)
 
 
 def _to_vector3(value: ArrayLike, *, name: str) -> NDArray[np.float64]:
@@ -41,6 +47,65 @@ def _normalise_axis(axis: ArrayLike) -> NDArray[np.float64]:
     if norm == 0.0:
         raise ValueError("Axis vector must not be zero")
     return vector / norm
+
+
+def _load_vertical_axis() -> NDArray[np.float64]:
+    axes = get_physics_reference_axes()
+    vertical = axes.get("vertical_world")
+    if vertical is None:
+        raise KeyError(
+            "Missing constants.physics.reference_axes.vertical_world in settings"
+        )
+    return _normalise_axis(vertical)
+
+
+def _load_suspension_defaults() -> Dict[str, Any]:
+    mapping = get_physics_suspension_constants()
+    required_scalars: Mapping[str, str] = {
+        "spring_constant": "k_spring",
+        "damper_coefficient": "c_damper",
+        "damper_force_threshold_n": "F_damper_min",
+        "spring_rest_position_m": "x_spring_rest",
+        "cylinder_head_area_m2": "A_head",
+        "cylinder_rod_area_m2": "A_rod",
+    }
+
+    result: Dict[str, Any] = {}
+    for source_key, target_key in required_scalars.items():
+        value = mapping.get(source_key)
+        if not isinstance(value, (int, float)):
+            raise TypeError(
+                "Invalid type for constants.physics.suspension"
+                f".{source_key}: expected number, got {type(value).__name__}"
+            )
+        result[target_key] = float(value)
+
+    axis_value = mapping.get("axis_unit_world")
+    if axis_value is None:
+        raise KeyError(
+            "Missing constants.physics.suspension.axis_unit_world in settings"
+        )
+    result["axis_unit_world"] = _normalise_axis(axis_value)
+    return result
+
+
+def _load_validation_limits() -> Dict[str, float]:
+    mapping = get_physics_validation_constants()
+    limits: Dict[str, float] = {}
+    for key in ("max_force_n", "max_moment_n_m"):
+        value = mapping.get(key)
+        if not isinstance(value, (int, float)):
+            raise TypeError(
+                "Invalid type for constants.physics.validation"
+                f".{key}: expected number, got {type(value).__name__}"
+            )
+        limits[key] = float(value)
+    return limits
+
+
+VERTICAL_AXIS = _load_vertical_axis()
+_SUSPENSION_DEFAULTS = _load_suspension_defaults()
+_VALIDATION_LIMITS = _load_validation_limits()
 
 
 def compute_point_velocity_world(
@@ -86,7 +151,7 @@ def compute_suspension_point_kinematics(
     wheel_name: str,
     y: ArrayLike,
     attachment_points: Dict[str, Tuple[float, float]],
-    axis_directions: Dict[str, Iterable[float]] | None = None,
+    axis_directions: Mapping[str, Iterable[float]],
 ) -> Dict[str, Any]:
     """Compute kinematic state for a suspension point
 
@@ -126,11 +191,14 @@ def compute_suspension_point_kinematics(
         r_local, body_velocity, body_angular_velocity
     )
 
-    if axis_directions and wheel_name in axis_directions:
-        axis_unit_world = _normalise_axis(axis_directions[wheel_name])
-    else:
-        # Default assumption – vertical cylinders.
-        axis_unit_world = np.array([0.0, 1.0, 0.0], dtype=float)
+    if wheel_name not in axis_directions:
+        raise KeyError(
+            f"Missing axis direction for wheel '{wheel_name}'."
+            " Ensure settings.physics.suspension.axis_unit_world is"
+            " exposed in the UI and provided here."
+        )
+
+    axis_unit_world = _normalise_axis(axis_directions[wheel_name])
 
     # Axial velocity
     v_axis = compute_axis_velocity(axis_unit_world, point_velocity)
@@ -181,7 +249,7 @@ def compute_spring_force(x_current: float, x_rest: float, k_spring: float) -> fl
         return 0.0
 
 
-def compute_damper_force(v_axis: float, c_damper: float, F_min: float = 0.0) -> float:
+def compute_damper_force(v_axis: float, c_damper: float, F_min: float) -> float:
     """Compute linear damper force with minimum threshold
 
     Args:
@@ -222,8 +290,6 @@ def project_forces_to_vertical_and_moments(
     tau_x = 0.0  # Pitch moment
     tau_z = 0.0  # Roll moment
 
-    eY = np.array([0.0, 1.0, 0.0])  # Vertical unit vector (down positive)
-
     for i, wheel_name in enumerate(wheel_names):
         if wheel_name not in suspension_states:
             continue
@@ -231,11 +297,20 @@ def project_forces_to_vertical_and_moments(
         state = suspension_states[wheel_name]
 
         # Get total axial force
-        F_total_axis = state.get("F_total_axis", 0.0)
-        axis_unit = state.get("axis_unit_world", eY)
+        if "F_total_axis" not in state:
+            raise KeyError(
+                f"Missing F_total_axis for wheel '{wheel_name}' in suspension state"
+            )
+        if "axis_unit_world" not in state:
+            raise KeyError(
+                f"Missing axis_unit_world for wheel '{wheel_name}' in suspension state"
+            )
+
+        F_total_axis = float(state["F_total_axis"])
+        axis_unit = _normalise_axis(state["axis_unit_world"])
 
         # Project to vertical component
-        F_vertical = np.dot(axis_unit, eY) * F_total_axis
+        F_vertical = float(np.dot(axis_unit, VERTICAL_AXIS)) * F_total_axis
         vertical_forces[i] = F_vertical
 
         # Get attachment point for moment calculation
@@ -294,16 +369,14 @@ def validate_force_calculation(
     if not (np.isfinite(tau_x) and np.isfinite(tau_z)):
         return False, "Moments contain NaN or infinite values"
 
-    # Check reasonable force magnitudes (up to 100 kN per wheel)
-    max_force = 100000.0  # 100 kN
+    max_force = _VALIDATION_LIMITS["max_force_n"]
     if np.any(np.abs(forces) > max_force):
         return (
             False,
             f"Forces exceed reasonable limit: max={np.max(np.abs(forces)):.1f}N",
         )
 
-    # Check reasonable moment magnitudes (up to 1000 kN?m)
-    max_moment = 1000000.0  # 1000 kN?m
+    max_moment = _VALIDATION_LIMITS["max_moment_n_m"]
     if abs(tau_x) > max_moment or abs(tau_z) > max_moment:
         return (
             False,
@@ -315,12 +388,15 @@ def validate_force_calculation(
 
 # Default suspension parameters for testing
 DEFAULT_SUSPENSION_PARAMS = {
-    "k_spring": 50000.0,  # Spring constant (N/m)
-    "c_damper": 2000.0,  # Damping coefficient (N?s/m)
-    "F_damper_min": 50.0,  # Minimum damper force (N)
-    "x_spring_rest": 0.0,  # Spring rest position (m)
-    "A_head": 0.005,  # Cylinder head area (m?) - 80mm bore
-    "A_rod": 0.004,  # Cylinder rod area (m?)
+    key: _SUSPENSION_DEFAULTS[key]
+    for key in (
+        "k_spring",
+        "c_damper",
+        "F_damper_min",
+        "x_spring_rest",
+        "A_head",
+        "A_rod",
+    )
 }
 
 
@@ -338,14 +414,12 @@ def create_test_suspension_state(
     Returns:
         Suspension state dictionary
     """
-    eY = np.array([0.0, 1.0, 0.0])  # Vertical axis
-
     return {
         "wheel_name": wheel_name,
         "F_cyl_axis": F_cyl,
         "F_spring_axis": F_spring,
         "F_damper_axis": F_damper,
         "F_total_axis": F_cyl + F_spring + F_damper,
-        "axis_unit_world": eY,
+        "axis_unit_world": _SUSPENSION_DEFAULTS["axis_unit_world"].copy(),
         "axial_velocity": 0.0,
     }
