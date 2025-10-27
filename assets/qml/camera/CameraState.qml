@@ -184,15 +184,33 @@ QtObject {
      * @param trackWidth - колея (мм)
      * @param frameHeight - высота рамы (мм)
      * @param margin - запас (1.0 = без запаса, 1.5 = +50%)
+     * @param frameToPivot - расстояние от передней опоры до поворотного центра (мм)
      */
-    function calculateOptimalDistance(frameLength, trackWidth, frameHeight, margin) {
+    function calculateOptimalDistance(frameLength, trackWidth, frameHeight, margin, frameToPivot) {
         if (margin === undefined) {
             margin = 1.15
         }
 
+        var effectiveLength = frameLength
+
+        if (frameToPivot !== undefined && frameToPivot !== null) {
+            var pivotValue = Number(frameToPivot)
+            if (isFinite(pivotValue)) {
+                var clampedPivot = Math.max(0, Math.min(frameLength, pivotValue))
+                var frontExtent = clampedPivot
+                var rearExtent = frameLength - clampedPivot
+                var minZ = -frontExtent
+                var maxZ = rearExtent
+                var span = maxZ - minZ
+                if (isFinite(span) && span > 0) {
+                    effectiveLength = Math.max(frameLength, span)
+                }
+            }
+        }
+
         // Используем GeometryCalculations для расчета
         var optimalDist = Core.GeometryCalculations.calculateOptimalCameraDistance(
-            frameLength, frameHeight, trackWidth, fov, margin
+            effectiveLength, frameHeight, trackWidth, fov, margin
         )
 
         // Применяем с ограничениями
@@ -205,10 +223,23 @@ QtObject {
      * @param beamSize - размер балки (мм)
      * @param frameHeight - высота рамы (мм)
      * @param frameLength - длина рамы (мм)
+     * @param frameToPivot - расстояние от передней опоры до pivot (мм)
      */
-    function calculatePivot(beamSize, frameHeight, frameLength) {
-        return Core.GeometryCalculations.calculateCameraPivot(
-            beamSize, frameHeight, frameLength
+    function calculatePivot(beamSize, frameHeight, frameLength, frameToPivot) {
+        var centerZ = frameLength / 2
+
+        if (frameToPivot !== undefined && frameToPivot !== null) {
+            var pivotValue = Number(frameToPivot)
+            if (isFinite(pivotValue)) {
+                var clampedPivot = Math.max(0, Math.min(frameLength, pivotValue))
+                centerZ = clampedPivot
+            }
+        }
+
+        return Qt.vector3d(
+            0,
+            beamSize + frameHeight / 2,
+            centerZ
         )
     }
 
@@ -220,15 +251,16 @@ QtObject {
      * @param frameHeight - высота рамы (мм)
      * @param beamSize - размер балки (мм)
      * @param marginFactor - коэффициент запаса (default: 1.15)
+     * @param frameToPivot - расстояние от передней опоры до pivot (мм)
      */
-    function autoFitFrame(frameLength, trackWidth, frameHeight, beamSize, marginFactor) {
+    function autoFitFrame(frameLength, trackWidth, frameHeight, beamSize, marginFactor, frameToPivot) {
         console.log("📷 CameraState: auto-fitting to frame...")
 
         // Обновляем pivot
-        pivot = calculatePivot(beamSize, frameHeight, frameLength)
+        pivot = calculatePivot(beamSize, frameHeight, frameLength, frameToPivot)
 
         // Обновляем distance
-        distance = calculateOptimalDistance(frameLength, trackWidth, frameHeight, marginFactor)
+        distance = calculateOptimalDistance(frameLength, trackWidth, frameHeight, marginFactor, frameToPivot)
 
         console.log("   Pivot:", pivot)
         console.log("   Distance:", distance.toFixed(0), "mm")
@@ -242,8 +274,9 @@ QtObject {
      * @param beamSize - размер балки (мм)
      * @param frameHeight - высота рамы (мм)
      * @param frameLength - длина рамы (мм)
+     * @param frameToPivot - расстояние от передней опоры до pivot (мм)
      */
-    function resetView(beamSize, frameHeight, frameLength) {
+    function resetView(beamSize, frameHeight, frameLength, frameToPivot) {
         console.log("🔄 CameraState: soft reset view...")
 
         // Проверяем что камера в разумных пределах
@@ -256,10 +289,10 @@ QtObject {
 
         if (preserveCamera) {
             console.log("   Preserving camera position, updating only pivot")
-            pivot = calculatePivot(beamSize, frameHeight, frameLength)
+            pivot = calculatePivot(beamSize, frameHeight, frameLength, frameToPivot)
         } else {
             console.log("   Full reset: camera out of bounds")
-            fullResetView(beamSize, frameHeight, frameLength, frameLength, 1600)
+            fullResetView(beamSize, frameHeight, frameLength, frameLength, 1600, frameToPivot)
         }
 
         viewReset()
@@ -274,12 +307,13 @@ QtObject {
      * @param frameLength - длина рамы (мм)
      * @param trackWidth - колея (мм) для расчета distance
      * @param defaultTrackWidth - default значение колеи
+     * @param frameToPivot - расстояние от передней опоры до pivot (мм)
      */
-    function fullResetView(beamSize, frameHeight, frameLength, trackWidth, defaultTrackWidth) {
+    function fullResetView(beamSize, frameHeight, frameLength, trackWidth, defaultTrackWidth, frameToPivot) {
         console.log("🔄 CameraState: FULL reset view to defaults...")
 
         // Reset pivot
-        pivot = calculatePivot(beamSize, frameHeight, frameLength)
+        pivot = calculatePivot(beamSize, frameHeight, frameLength, frameToPivot)
 
         // Reset rotation to defaults
         yawDeg = 225
@@ -291,7 +325,7 @@ QtObject {
 
         // Calculate optimal distance
         var tw = trackWidth !== undefined ? trackWidth : defaultTrackWidth
-        distance = calculateOptimalDistance(frameLength, tw, frameHeight, 1.15)
+        distance = calculateOptimalDistance(frameLength, tw, frameHeight, 1.15, frameToPivot)
 
         console.log("   Reset to defaults:")
         console.log("     Pivot:", pivot)

@@ -65,16 +65,21 @@ property bool isMoving: false
 
 **Key Functions:**
 ```qml
-function calculateOptimalDistance(frameLength, trackWidth, frameHeight, margin)
-function calculatePivot(beamSize, frameHeight, frameLength)
-function autoFitFrame(frameLength, trackWidth, frameHeight, beamSize, marginFactor)
-function resetView(beamSize, frameHeight, frameLength)
-function fullResetView(beamSize, frameHeight, frameLength, trackWidth, defaultTrackWidth)
+function calculateOptimalDistance(frameLength, trackWidth, frameHeight, margin, frameToPivot)
+function calculatePivot(beamSize, frameHeight, frameLength, frameToPivot)
+function autoFitFrame(frameLength, trackWidth, frameHeight, beamSize, marginFactor, frameToPivot)
+function resetView(beamSize, frameHeight, frameLength, frameToPivot)
+function fullResetView(beamSize, frameHeight, frameLength, trackWidth, defaultTrackWidth, frameToPivot)
 function flagMotion()
 function clearMotion()
 function clampPitch(pitch)
 function clampDistance(dist)
 ```
+
+> ℹ️ `frameToPivot` (мм) передаёт расстояние от переднего торца рамы до желаемого pivot.
+> Значение опционально: контроллер камеры при инициализации подставляет `frameLength / 2`,
+> а все расчёты ограничивают его диапазоном `[0, frameLength]`, чтобы авто-подгонка и сброс
+> оставались центрированными даже при обновлениях геометрии.
 
 ---
 

@@ -1386,6 +1386,8 @@ Connections {
  cameraGeometryUpdate.trackWidth = toSceneLength(geometryPatch.trackWidth);
  if (geometryPatch.beamSize !== undefined)
  cameraGeometryUpdate.beamSize = toSceneLength(geometryPatch.beamSize);
+ if (geometryPatch.frameToPivot !== undefined)
+ cameraGeometryUpdate.frameToPivot = toSceneLength(geometryPatch.frameToPivot);
 
  if (Object.keys(cameraGeometryUpdate).length)
  cameraController.updateGeometry(cameraGeometryUpdate);
