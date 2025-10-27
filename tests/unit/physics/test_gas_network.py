@@ -172,6 +172,38 @@ def test_apply_valves_transfers_mass_to_tank(default_network, excess_pressure):
     assert flows["lines"][line]["flow_tank"] > 0.0
 
 
+def test_apply_valves_allow_line_to_empty(default_network, monkeypatch):
+    """Mass transfer to the tank must deplete a line when sufficient flow occurs."""
+
+    _system, gas_network = default_network
+    dt = 1.0
+
+    line = Line.A1
+    line_state = gas_network.lines[line]
+
+    monkeypatch.setattr(
+        gas_network,
+        "_apply_receiver_relief_valves",
+        lambda dt, log=None: {"flow_min": 0.0, "flow_stiff": 0.0, "flow_safety": 0.0},
+    )
+
+    gas_network.tank.p = PA_ATM - 3_000.0
+    gas_network.tank.m = _recompute_mass(
+        gas_network.tank.p, gas_network.tank.T, gas_network.tank.V
+    )
+
+    line_state.p = PA_ATM + 50_000.0
+    line_state.m = _recompute_mass(line_state.p, line_state.T, line_state.V_curr)
+    tank_mass_before = gas_network.tank.m
+
+    flows = gas_network.apply_valves_and_flows(dt)
+
+    assert flows["lines"][line]["flow_tank"] > 0.0
+    assert line_state.m == pytest.approx(0.0, abs=1e-12)
+    assert line_state.p == pytest.approx(0.0, abs=1e-6)
+    assert gas_network.tank.m > tank_mass_before
+
+
 @pytest.mark.parametrize("tank_multiplier", [1.6, 2.1])
 def test_relief_valves_protect_tank_overpressure(default_network, tank_multiplier):
     """Receiver relief valves must vent mass when the tank is over pressurised."""

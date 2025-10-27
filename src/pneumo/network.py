@@ -126,10 +126,9 @@ class GasNetwork:
                     line_state.p, line_state.T, self.tank.p, self.tank.T, cv_tank.d_eq
                 )
 
-                # Transfer mass from line to tank
-                mass_transferred = min(
-                    m_dot_tank * dt, line_state.m * 0.99
-                )  # Prevent complete depletion
+                # Transfer mass from line to tank without leaving artificial residue
+                mass_requested = m_dot_tank * dt
+                mass_transferred = min(mass_requested, line_state.m)
                 self._transfer_mass_line_to_tank(line_state, mass_transferred)
                 line_flows[line_name]["flow_tank"] = float(m_dot_tank)
 
@@ -172,37 +171,37 @@ class GasNetwork:
 
     def _transfer_mass_line_to_tank(
         self, line_state: LineGasState, mass_transferred: float
-    ):
-        """Transfer mass from line to tank with temperature mixing
+    ) -> None:
+        """Transfer mass from line to tank with temperature mixing."""
 
-        Args:
-            line_state: Source line
-            mass_transferred: Mass to transfer (kg)
-        """
-        if mass_transferred <= 0 or mass_transferred > line_state.m:
+        if mass_transferred <= 0:
             return
 
-        # Remove mass from line
-        line_state.m -= mass_transferred
+        if line_state.m <= 0:
+            return
 
-        # Add mass to tank with temperature mixing
+        actual_transfer = min(mass_transferred, line_state.m)
+        line_state.m = max(line_state.m - actual_transfer, 0.0)
+
         old_tank_mass = self.tank.m
-        new_tank_mass = old_tank_mass + mass_transferred
+        new_tank_mass = old_tank_mass + actual_transfer
 
-        if new_tank_mass > 0:
+        if new_tank_mass > 0.0:
             self.tank.T = (
-                old_tank_mass * self.tank.T + mass_transferred * line_state.T
+                old_tank_mass * self.tank.T + actual_transfer * line_state.T
             ) / new_tank_mass
 
         self.tank.m = new_tank_mass
 
-        # Recalculate pressures
-        if line_state.m > 0:
+        if line_state.m > 0.0:
             line_state.p = p_from_mTV(line_state.m, line_state.T, line_state.V_curr)
         else:
-            line_state.p = 0.0  # No mass left
+            line_state.p = 0.0
 
-        self.tank.p = p_from_mTV(self.tank.m, self.tank.T, self.tank.V)
+        if self.tank.m > 0.0:
+            self.tank.p = p_from_mTV(self.tank.m, self.tank.T, self.tank.V)
+        else:
+            self.tank.p = 0.0
 
     def _apply_receiver_relief_valves(
         self, dt: float, log: Optional[logging.Logger] = None
