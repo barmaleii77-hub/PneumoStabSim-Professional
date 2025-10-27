@@ -264,35 +264,130 @@ Item {
      * @param params - camera parameters object
      */
     function applyCameraUpdates(params) {
+        if (!params)
+            return
+
         console.log("📷 CameraController: applying camera updates...")
 
-        if (params.fov !== undefined) {
-            cameraState.fov = Number(params.fov)
+        var numeric = Number(controller.sceneScaleFactor)
+        var sceneScale = isFinite(numeric) && numeric > 0 ? numeric : 1000.0
+
+        function toMillimeters(value) {
+            if (value === undefined || value === null)
+                return null
+            var num = Number(value)
+            if (!isFinite(num))
+                return null
+            return num * sceneScale
         }
 
-        if (params.near !== undefined) {
-            cameraState.nearPlane = Number(params.near)
+        function coerceNumber(value) {
+            var num = Number(value)
+            return isFinite(num) ? num : null
         }
 
-        if (params.far !== undefined) {
-            cameraState.farPlane = Number(params.far)
+        var changed = false
+
+        var fovValue = params.fov !== undefined ? params.fov : params.fieldOfView
+        var fovNumeric = coerceNumber(fovValue)
+        if (fovNumeric !== null) {
+            cameraState.fov = fovNumeric
+            changed = true
         }
 
-        if (params.speed !== undefined) {
-            cameraState.speed = Number(params.speed)
+        var nearSource = params.near !== undefined ? params.near : params.clipNear
+        var nearMillimeters = toMillimeters(nearSource)
+        if (nearMillimeters !== null) {
+            cameraState.nearPlane = Math.max(0.1, nearMillimeters)
+            changed = true
+        }
+
+        var farSource = params.far !== undefined ? params.far : params.clipFar
+        var farMillimeters = toMillimeters(farSource)
+        if (farMillimeters !== null) {
+            cameraState.farPlane = Math.max(cameraState.nearPlane + 0.1, farMillimeters)
+            changed = true
+        }
+
+        var speedNumeric = coerceNumber(params.speed)
+        if (speedNumeric !== null) {
+            cameraState.speed = Math.max(0.0, speedNumeric)
+            changed = true
         }
 
         if (params.auto_rotate !== undefined) {
             cameraState.autoRotate = !!params.auto_rotate
+            changed = true
         }
 
-        if (params.auto_rotate_speed !== undefined) {
-            cameraState.autoRotateSpeed = Number(params.auto_rotate_speed)
+        var autoRotateSpeed = coerceNumber(params.auto_rotate_speed)
+        if (autoRotateSpeed !== null) {
+            cameraState.autoRotateSpeed = autoRotateSpeed
+            changed = true
+        }
+
+        var yawSource = params.orbit_yaw !== undefined ? params.orbit_yaw : params.yaw
+        var yawNumeric = coerceNumber(yawSource)
+        if (yawNumeric !== null) {
+            cameraState.yawDeg = yawNumeric
+            changed = true
+        }
+
+        var pitchSource = params.orbit_pitch !== undefined ? params.orbit_pitch : params.pitch
+        var pitchNumeric = coerceNumber(pitchSource)
+        if (pitchNumeric !== null) {
+            cameraState.pitchDeg = cameraState.clampPitch(pitchNumeric)
+            changed = true
+        }
+
+        var distanceSource = params.orbit_distance !== undefined ? params.orbit_distance : params.distance
+        var distanceMillimeters = toMillimeters(distanceSource)
+        if (distanceMillimeters !== null) {
+            cameraState.distance = cameraState.clampDistance(distanceMillimeters)
+            changed = true
+        }
+
+        var pivotVector = params.orbit_target
+        var pivotX = params.orbit_target_x
+        var pivotY = params.orbit_target_y
+        var pivotZ = params.orbit_target_z
+        if (pivotVector && pivotX === undefined && pivotY === undefined && pivotZ === undefined) {
+            pivotX = pivotVector.x !== undefined ? pivotVector.x : pivotVector[0]
+            pivotY = pivotVector.y !== undefined ? pivotVector.y : pivotVector[1]
+            pivotZ = pivotVector.z !== undefined ? pivotVector.z : pivotVector[2]
+        }
+        if (pivotX !== undefined || pivotY !== undefined || pivotZ !== undefined) {
+            var currentPivot = cameraState.pivot
+            var px = toMillimeters(pivotX)
+            var py = toMillimeters(pivotY)
+            var pz = toMillimeters(pivotZ)
+            cameraState.pivot = Qt.vector3d(
+                px !== null ? px : currentPivot.x,
+                py !== null ? py : currentPivot.y,
+                pz !== null ? pz : currentPivot.z
+            )
+            changed = true
+        }
+
+        var autoFitTriggered = false
+        if (params.center_camera === true) {
+            cameraState.autoFitFrame(
+                frameLength,
+                trackWidth,
+                frameHeight,
+                beamSize,
+                1.15,
+                _effectiveFrameToPivot()
+            )
+            autoFitTriggered = true
+            changed = true
+        }
+
+        if (changed && !autoFitTriggered) {
+            cameraState.cameraChanged()
         }
 
         console.log("   ✅ Camera updated successfully")
-        // ✅ Вызываем сигнал из cameraState
-        cameraState.cameraChanged()
     }
 
     function _effectiveFrameToPivot() {

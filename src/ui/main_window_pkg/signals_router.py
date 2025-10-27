@@ -42,6 +42,7 @@ class SignalsRouter:
         Wheel.PZ: "rr",
     }
     _CAMERA_FLOAT_TOLERANCE = 1e-5
+    _CAMERA_COMMAND_KEYS = {"center_camera"}
 
     @staticmethod
     def _sanitize_camera_payload(payload: Mapping[str, Any]) -> Dict[str, Any]:
@@ -73,6 +74,33 @@ class SignalsRouter:
             else:
                 normalized[key] = value
         return normalized
+
+    @staticmethod
+    def _strip_camera_commands(payload: Mapping[str, Any]) -> Dict[str, Any]:
+        """Remove command-style keys that should not be persisted."""
+
+        cleaned: Dict[str, Any] = {}
+        for key, value in payload.items():
+            if key in SignalsRouter._CAMERA_COMMAND_KEYS:
+                continue
+            if isinstance(value, Mapping):
+                nested = SignalsRouter._strip_camera_commands(value)
+                if nested:
+                    cleaned[key] = nested
+                continue
+            cleaned[key] = value
+        return cleaned
+
+    @staticmethod
+    def _contains_camera_commands(payload: Mapping[str, Any]) -> bool:
+        for key, value in payload.items():
+            if key in SignalsRouter._CAMERA_COMMAND_KEYS:
+                return True
+            if isinstance(value, Mapping) and SignalsRouter._contains_camera_commands(
+                value
+            ):
+                return True
+        return False
 
     @staticmethod
     def _camera_payloads_equal(
@@ -422,10 +450,14 @@ class SignalsRouter:
         if not sanitized:
             return
 
-        normalized = SignalsRouter._normalize_camera_payload(sanitized)
+        stripped = SignalsRouter._strip_camera_commands(sanitized)
+        normalized = SignalsRouter._normalize_camera_payload(stripped)
         last_payload = getattr(window, "_last_camera_payload", {})
-        if last_payload and SignalsRouter._camera_payloads_equal(
-            last_payload, normalized
+        has_commands = SignalsRouter._contains_camera_commands(sanitized)
+        if (
+            not has_commands
+            and last_payload
+            and SignalsRouter._camera_payloads_equal(last_payload, normalized)
         ):
             SignalsRouter.logger.debug("⏭️ Skipping redundant camera update")
             return
@@ -438,7 +470,8 @@ class SignalsRouter:
 
         window._last_camera_payload = normalized
 
-        window._apply_settings_update("graphics.camera", sanitized)
+        if stripped:
+            window._apply_settings_update("graphics.camera", stripped)
 
     @staticmethod
     def handle_effects_changed(window: MainWindow, params: Dict[str, Any]) -> None:

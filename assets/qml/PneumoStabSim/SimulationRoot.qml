@@ -1395,29 +1395,44 @@ Connections {
 }
 
  function applyCameraUpdates(params) {
- if (!params) return;
+ if (!params)
+  return;
+
+ var controllerHandled = false;
+ if (cameraController && cameraController.applyCameraUpdates) {
+  try {
+   cameraController.applyCameraUpdates(params);
+   controllerHandled = true;
+  } catch (err) {
+   console.warn("CameraController.applyCameraUpdates failed:", err);
+  }
+ }
+
+ if (controllerHandled)
+  return;
+
  if (params.fov !== undefined)
- setIfExists(camera, 'fieldOfView', Number(params.fov));
+  setIfExists(camera, 'fieldOfView', Number(params.fov));
  var clipNearMeters = params.clipNear !== undefined ? Number(params.clipNear) : undefined;
  if (clipNearMeters !== undefined && isFinite(clipNearMeters)) {
- var clipNearScene = Math.max(0.0001, toSceneLength(clipNearMeters));
- setIfExists(camera, 'clipNear', clipNearScene);
- try { camera.clipNear = clipNearScene; } catch (e) { console.warn("Camera near clip update failed:", e); }
+  var clipNearScene = Math.max(0.0001, toSceneLength(clipNearMeters));
+  setIfExists(camera, 'clipNear', clipNearScene);
+  try { camera.clipNear = clipNearScene; } catch (e) { console.warn("Camera near clip update failed:", e); }
  }
  var clipFarMeters = params.clipFar !== undefined ? Number(params.clipFar) : undefined;
  if (clipFarMeters !== undefined && isFinite(clipFarMeters)) {
- var clipFarScene = toSceneLength(clipFarMeters);
- setIfExists(camera, 'clipFar', clipFarScene);
- try { camera.clipFar = clipFarScene; } catch (e) { console.warn("Camera far clip update failed:", e); }
+  var clipFarScene = toSceneLength(clipFarMeters);
+  setIfExists(camera, 'clipFar', clipFarScene);
+  try { camera.clipFar = clipFarScene; } catch (e) { console.warn("Camera far clip update failed:", e); }
  }
  var positionVector = params.position ? toSceneVector3(params.position) : null;
  if (positionVector) {
- setIfExists(camera, 'position', positionVector);
- try { camera.position = positionVector; } catch (e) { console.warn("Camera position update failed:", e); }
+  setIfExists(camera, 'position', positionVector);
+  try { camera.position = positionVector; } catch (e) { console.warn("Camera position update failed:", e); }
  }
  if (params.eulerRotation) {
- var r = params.eulerRotation;
- try { camera.eulerRotation = Qt.vector3d(Number(r.x||r[0]), Number(r.y||r[1]), Number(r.z||r[2])); } catch(e) { console.warn("Camera rotation normalization failed:", e); }
+  var r = params.eulerRotation;
+  try { camera.eulerRotation = Qt.vector3d(Number(r.x||r[0]), Number(r.y||r[1]), Number(r.z||r[2])); } catch(e) { console.warn("Camera rotation normalization failed:", e); }
  }
  }
 
