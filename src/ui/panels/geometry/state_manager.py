@@ -368,33 +368,56 @@ class GeometryStateManager:
     # =========================================================================
 
     def get_3d_geometry_update(self) -> Dict[str, float]:
-        """Get geometry update for 3D scene
+        """Get geometry update for 3D scene.
 
         Returns:
-            Dictionary with 3D geometry parameters (in mm)
+            Dictionary with 3D geometry parameters expressed in meters.
         """
+
+        def _value(name: str, default: float) -> float:
+            try:
+                return float(self.state.get(name, default))
+            except (TypeError, ValueError):
+                return float(default)
+
+        frame_length = _value("wheelbase", 3.2)
+        frame_height = _value("frame_height_m", 0.65)
+        frame_beam_size = _value("frame_beam_size_m", 0.12)
+        lever_length = _value("lever_length", 0.8)
+        cylinder_body_length = _value("cylinder_length", 0.5)
+        tail_rod_length = _value("tail_rod_length_m", 0.1)
+        track_width = _value("track", 1.6)
+        frame_to_pivot = _value("frame_to_pivot", 0.6)
+        rod_position = _value("rod_position", 0.6)
+        cyl_diameter = _value("cyl_diam_m", 0.080)
+        stroke = _value("stroke_m", 0.300)
+        dead_gap = _value("dead_gap_m", 0.005)
+        rod_diameter = _value("rod_diameter_m", 0.035)
+        piston_rod_length = _value("piston_rod_length_m", 0.200)
+        piston_thickness = _value("piston_thickness_m", 0.025)
+
         return {
-            # Основные размеры (м → мм)
-            "frameLength": self.state.get("wheelbase", 3.2) * 1000,
-            "frameHeight": 650.0,  # Fixed
-            "frameBeamSize": 120.0,  # Fixed
-            "leverLength": self.state.get("lever_length", 0.8) * 1000,
-            "cylinderBodyLength": self.state.get("cylinder_length", 0.5) * 1000,
-            "tailRodLength": 100.0,  # Fixed
-            # Дополнительные параметры (м → мм)
-            "trackWidth": self.state.get("track", 1.6) * 1000,
-            "frameToPivot": self.state.get("frame_to_pivot", 0.6) * 1000,
-            "rodPosition": self.state.get("rod_position", 0.6),
-            # Параметры цилиндра и штока (м → мм)
-            "cylDiamM": self.state.get("cyl_diam_m", 0.080) * 1000,
-            "strokeM": self.state.get("stroke_m", 0.300) * 1000,
-            "deadGapM": self.state.get("dead_gap_m", 0.005) * 1000,
-            "rodDiameterM": self.state.get("rod_diameter_m", 0.035) * 1000,
-            "pistonRodLengthM": self.state.get("piston_rod_length_m", 0.200) * 1000,
-            "pistonThicknessM": self.state.get("piston_thickness_m", 0.025) * 1000,
+            # Основные размеры (м)
+            "frameLength": frame_length,
+            "frameHeight": frame_height,
+            "frameBeamSize": frame_beam_size,
+            "leverLength": lever_length,
+            "cylinderBodyLength": cylinder_body_length,
+            "tailRodLength": tail_rod_length,
+            # Дополнительные параметры (м)
+            "trackWidth": track_width,
+            "frameToPivot": frame_to_pivot,
+            "rodPosition": rod_position,
+            # Параметры цилиндра и штока (м)
+            "cylDiamM": cyl_diameter,
+            "strokeM": stroke,
+            "deadGapM": dead_gap,
+            "rodDiameterM": rod_diameter,
+            "pistonRodLengthM": piston_rod_length,
+            "pistonThicknessM": piston_thickness,
             # Дублирующие ключи для обратной совместимости
-            "boreHead": self.state.get("cyl_diam_m", 0.080) * 1000,
-            "rodDiameter": self.state.get("rod_diameter_m", 0.035) * 1000,
-            "pistonRodLength": self.state.get("piston_rod_length_m", 0.200) * 1000,
-            "pistonThickness": self.state.get("piston_thickness_m", 0.025) * 1000,
+            "boreHead": cyl_diameter,
+            "rodDiameter": rod_diameter,
+            "pistonRodLength": piston_rod_length,
+            "pistonThickness": piston_thickness,
         }

@@ -14,6 +14,8 @@ DEFAULT_GEOMETRY: Dict[str, Any] = {
     # Frame dimensions (м)
     "wheelbase": 3.2,  # База (колёсная база)
     "track": 1.6,  # Колея (расстояние между колёсами)
+    "frame_height_m": 0.65,  # Высота рамы
+    "frame_beam_size_m": 0.12,  # Толщина балки рамы
     # Suspension geometry (м)
     "frame_to_pivot": 0.6,  # Расстояние рама → ось рычага
     "lever_length": 0.8,  # Длина рычага
@@ -27,6 +29,7 @@ DEFAULT_GEOMETRY: Dict[str, Any] = {
     "rod_diameter_m": 0.035,  # Диаметр штока
     "piston_rod_length_m": 0.200,  # Длина штока поршня
     "piston_thickness_m": 0.025,  # Толщина поршня
+    "tail_rod_length_m": 0.100,  # Длина заднего штока
     # Options (bool)
     "interference_check": True,  # Проверять пересечения
     "link_rod_diameters": False,  # Связать диаметры штоков
