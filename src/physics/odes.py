@@ -10,7 +10,12 @@ from typing import Any, Dict, Tuple
 
 import numpy as np
 
-from src.core.settings_service import SettingsService
+from config.constants import (
+    get_physics_reference_axes,
+    get_physics_rigid_body_constants,
+    get_physics_suspension_constants,
+    refresh_cache as refresh_settings_cache,
+)
 from src.core.settings_validation import SettingsValidationError
 from src.pneumo.enums import Port, Wheel
 
@@ -19,30 +24,188 @@ from .forces import compute_cylinder_force
 # Coordinate system: X-lateral (left/right), Y-vertical (down positive), Z-longitudinal
 
 
+_WHEEL_ORDER = ["LP", "PP", "LZ", "PZ"]
+
+
+def _require_float(mapping: Mapping[str, Any], key: str, context: str) -> float:
+    if key not in mapping:
+        raise SettingsValidationError(f"В секции {context} отсутствует параметр {key}")
+
+    value = mapping[key]
+    if not isinstance(value, (int, float)):
+        raise SettingsValidationError(f"Параметр {key} в {context} должен быть числом")
+    return float(value)
+
+
+def _load_vertical_axis() -> np.ndarray:
+    axes = get_physics_reference_axes()
+    context = "constants.physics.reference_axes"
+    vertical = axes.get("vertical_world")
+    if vertical is None:
+        raise SettingsValidationError(f"Отсутствует вектор vertical_world в {context}")
+
+    vector = np.asarray(vertical, dtype=float)
+    if vector.shape != (3,):
+        raise SettingsValidationError(
+            f"Вектор vertical_world в {context} должен содержать 3 компоненты"
+        )
+    norm = float(np.linalg.norm(vector))
+    if norm == 0.0:
+        raise SettingsValidationError(
+            f"Вектор vertical_world в {context} не может быть нулевым"
+        )
+    return vector / norm
+
+
+def _load_attachment_points(
+    mapping: Mapping[str, Any],
+    *,
+    context: str,
+) -> Dict[str, Tuple[float, float]]:
+    if not isinstance(mapping, Mapping):
+        raise SettingsValidationError(f"Секция {context} должна быть объектом")
+
+    result: Dict[str, Tuple[float, float]] = {}
+    for wheel in _WHEEL_ORDER:
+        entry = mapping.get(wheel)
+        if not isinstance(entry, Mapping):
+            raise SettingsValidationError(
+                f"Секция {context}.{wheel} должна быть объектом с координатами"
+            )
+        x = entry.get("x_m")
+        z = entry.get("z_m")
+        if not isinstance(x, (int, float)) or not isinstance(z, (int, float)):
+            raise SettingsValidationError(
+                f"Координаты {context}.{wheel} должны быть числами"
+            )
+        result[wheel] = (float(x), float(z))
+    return result
+
+
+def _rigid_body_defaults() -> Dict[str, Any]:
+    context = "constants.physics.rigid_body"
+    raw = get_physics_rigid_body_constants()
+    attachment_map = _load_attachment_points(
+        raw.get("attachment_points_m", {}), context=context + ".attachment_points_m"
+    )
+    return {
+        "mass": _require_float(raw, "default_mass_kg", context),
+        "inertia_pitch": _require_float(raw, "default_inertia_pitch_kg_m2", context),
+        "inertia_roll": _require_float(raw, "default_inertia_roll_kg_m2", context),
+        "gravity": _require_float(raw, "gravity_m_s2", context),
+        "track": _require_float(raw, "track_width_m", context),
+        "wheelbase": _require_float(raw, "wheelbase_m", context),
+        "angle_limit": _require_float(raw, "angle_limit_rad", context),
+        "damping": _require_float(raw, "damping_coefficient", context),
+        "static_tolerance": _require_float(raw, "static_load_tolerance", context),
+        "load_sum_scale": _require_float(raw, "load_sum_tolerance_scale", context),
+        "load_sum_reference": _require_float(raw, "load_sum_min_reference", context),
+        "attachment_points": attachment_map,
+    }
+
+
+def _suspension_defaults() -> Dict[str, float]:
+    context = "constants.physics.suspension"
+    raw = get_physics_suspension_constants()
+    return {
+        "spring_constant": _require_float(raw, "spring_constant", context),
+        "damper_coefficient": _require_float(raw, "damper_coefficient", context),
+    }
+
+
+_VERTICAL_AXIS: np.ndarray
+_RIGID_BODY_DEFAULTS: Dict[str, Any]
+_SUSPENSION_SETTINGS: Dict[str, float]
+
+
+def _refresh_cached_defaults() -> None:
+    global _VERTICAL_AXIS, _RIGID_BODY_DEFAULTS, _SUSPENSION_SETTINGS
+    _VERTICAL_AXIS = _load_vertical_axis()
+    _RIGID_BODY_DEFAULTS = _rigid_body_defaults()
+    _SUSPENSION_SETTINGS = _suspension_defaults()
+
+
+_refresh_cached_defaults()
+
+
+def _default_mass() -> float:
+    return float(_RIGID_BODY_DEFAULTS["mass"])
+
+
+def _default_inertia_pitch() -> float:
+    return float(_RIGID_BODY_DEFAULTS["inertia_pitch"])
+
+
+def _default_inertia_roll() -> float:
+    return float(_RIGID_BODY_DEFAULTS["inertia_roll"])
+
+
+def _default_gravity() -> float:
+    return float(_RIGID_BODY_DEFAULTS["gravity"])
+
+
+def _default_track() -> float:
+    return float(_RIGID_BODY_DEFAULTS["track"])
+
+
+def _default_wheelbase() -> float:
+    return float(_RIGID_BODY_DEFAULTS["wheelbase"])
+
+
+def _default_angle_limit() -> float:
+    return float(_RIGID_BODY_DEFAULTS["angle_limit"])
+
+
+def _default_damping() -> float:
+    return float(_RIGID_BODY_DEFAULTS["damping"])
+
+
+def _default_static_tolerance() -> float:
+    return float(_RIGID_BODY_DEFAULTS["static_tolerance"])
+
+
+def _default_load_sum_scale() -> float:
+    return float(_RIGID_BODY_DEFAULTS["load_sum_scale"])
+
+
+def _default_load_sum_reference() -> float:
+    return float(_RIGID_BODY_DEFAULTS["load_sum_reference"])
+
+
+def _default_attachment_points() -> Dict[str, Tuple[float, float]]:
+    attachments = _RIGID_BODY_DEFAULTS["attachment_points"]
+    return {wheel: (float(x), float(z)) for wheel, (x, z) in attachments.items()}
+
+
 @dataclass
 class RigidBody3DOF:
     """3-DOF rigid body parameters, geometry, and static load state."""
 
-    M: float  # Total mass (kg)
-    Ix: float  # Moment of inertia around X-axis (pitch) (kg*m^2)
-    Iz: float  # Moment of inertia around Z-axis (roll) (kg*m^2)
-    g: float = 9.81  # Gravitational acceleration (m/s^2)
+    M: float = field(default_factory=_default_mass)  # Total mass (kg)
+    Ix: float = field(default_factory=_default_inertia_pitch)  # Pitch inertia (kg*m^2)
+    Iz: float = field(default_factory=_default_inertia_roll)  # Roll inertia (kg*m^2)
+    g: float = field(
+        default_factory=_default_gravity
+    )  # Gravitational acceleration (m/s^2)
 
     # Suspension attachment points in body frame (x_i, z_i)
-    # y-coordinate taken as current heave
-    attachment_points: Dict[str, Tuple[float, float]] | None = None
+    attachment_points: Dict[str, Tuple[float, float]] = field(
+        default_factory=_default_attachment_points
+    )
 
     # Vehicle dimensions for reference
-    track: float = 1.6  # Track width (m)
-    wheelbase: float = 3.2  # Wheelbase (m)
+    track: float = field(default_factory=_default_track)  # Track width (m)
+    wheelbase: float = field(default_factory=_default_wheelbase)  # Wheelbase (m)
 
     # Numerical stability
-    angle_limit: float = 0.5  # Maximum angle in radians (~28.6 degrees)
-    damping_coefficient: float = 0.1  # Viscous damping on angles
+    angle_limit: float = field(default_factory=_default_angle_limit)
+    damping_coefficient: float = field(default_factory=_default_damping)
 
     # Static load distribution (reaction forces, positive downwards)
     static_wheel_loads: Mapping[str | Wheel, float] | None = None
-    static_load_tolerance: float = 0.05
+    static_load_tolerance: float = field(default_factory=_default_static_tolerance)
+    load_sum_tolerance_scale: float = field(default_factory=_default_load_sum_scale)
+    load_sum_min_reference: float = field(default_factory=_default_load_sum_reference)
 
     _static_wheel_loads: Dict[Wheel, float] = field(init=False, repr=False)
     _static_total_load: float = field(init=False, repr=False)
@@ -51,19 +214,30 @@ class RigidBody3DOF:
 
     def __post_init__(self) -> None:
         """Initialise geometry defaults and normalise static loads."""
-        if self.attachment_points is None:
-            half_track = self.track / 2.0
-            half_wheelbase = self.wheelbase / 2.0
-            self.attachment_points = {
-                "LP": (-half_track, -half_wheelbase),
-                "PP": (+half_track, -half_wheelbase),
-                "LZ": (-half_track, +half_wheelbase),
-                "PZ": (+half_track, +half_wheelbase),
-            }
+
+        points: Dict[str, Tuple[float, float]] = {}
+        for name, coords in self.attachment_points.items():
+            if not isinstance(coords, (tuple, list)) or len(coords) != 2:
+                raise ValueError(f"Attachment point '{name}' must be a pair (x, z)")
+            x_val, z_val = coords
+            points[name] = (float(x_val), float(z_val))
+
+        for wheel in _WHEEL_ORDER:
+            if wheel not in points:
+                raise SettingsValidationError(
+                    "Отсутствует точка крепления для колеса"
+                    f" {wheel} в constants.physics.rigid_body.attachment_points_m"
+                )
+
+        if self.load_sum_tolerance_scale < 0.0:
+            raise ValueError("load_sum_tolerance_scale must be non-negative")
+
+        self.attachment_points = points
         self._initialise_static_loads()
 
     def _initialise_static_loads(self) -> None:
         """Normalise provided static loads so they counteract gravity."""
+
         target_sum = -self.M * self.g
         provided = dict(self.static_wheel_loads or {})
         resolved: Dict[Wheel, float] = {}
@@ -89,7 +263,8 @@ class RigidBody3DOF:
                     resolved[wheel] = share
 
         sum_loads = sum(resolved.values())
-        tolerance = max(1.0, abs(target_sum)) * 1e-9
+        reference = max(self.load_sum_min_reference, abs(target_sum))
+        tolerance = reference * self.load_sum_tolerance_scale
         if abs(sum_loads) <= tolerance:
             equal_share = target_sum / len(Wheel)
             resolved = {wheel: equal_share for wheel in Wheel}
@@ -112,6 +287,7 @@ class RigidBody3DOF:
 
     def static_load_for(self, wheel: Wheel | str) -> float:
         """Return static reaction force for ``wheel`` (positive downwards)."""
+
         if isinstance(wheel, str):
             try:
                 wheel = Wheel[wheel]
@@ -122,76 +298,33 @@ class RigidBody3DOF:
     @property
     def static_total_load(self) -> float:
         """Sum of static suspension reactions (should equal ``-M*g``)."""
+
         return self._static_total_load
 
     @property
     def static_pitch_moment(self) -> float:
         """Pitch moment contributed by static suspension reactions."""
+
         return self._static_pitch_moment
 
     @property
     def static_roll_moment(self) -> float:
         """Roll moment contributed by static suspension reactions."""
+
         return self._static_roll_moment
 
     @property
     def static_wheel_load_map(self) -> Dict[Wheel, float]:
         """Expose a copy of the normalised static wheel loads."""
+
         return dict(self._static_wheel_loads)
-
-
-_SUSPENSION_SETTINGS_CACHE: dict[str, float] | None = None
-_WHEEL_ORDER = ["LP", "PP", "LZ", "PZ"]
-
-
-def _load_suspension_settings() -> dict[str, float]:
-    """Fetch suspension configuration from the settings file."""
-
-    global _SUSPENSION_SETTINGS_CACHE
-    if _SUSPENSION_SETTINGS_CACHE is not None:
-        return _SUSPENSION_SETTINGS_CACHE
-
-    service = SettingsService(validate_schema=False)
-    raw_settings = service.get("current.physics.suspension")
-    if not isinstance(raw_settings, Mapping):
-        raise SettingsValidationError(
-            "Отсутствует секция current.physics.suspension в файле настроек"
-        )
-
-    try:
-        spring_constant = float(raw_settings["spring_constant"])
-    except KeyError as exc:
-        raise SettingsValidationError(
-            "В секции current.physics.suspension отсутствует параметр spring_constant"
-        ) from exc
-    except (TypeError, ValueError) as exc:
-        raise SettingsValidationError(
-            "Параметр spring_constant в current.physics.suspension должен быть числом"
-        ) from exc
-
-    try:
-        damper_coefficient = float(raw_settings["damper_coefficient"])
-    except KeyError as exc:
-        raise SettingsValidationError(
-            "В секции current.physics.suspension отсутствует параметр damper_coefficient"
-        ) from exc
-    except (TypeError, ValueError) as exc:
-        raise SettingsValidationError(
-            "Параметр damper_coefficient в current.physics.suspension должен быть числом"
-        ) from exc
-
-    _SUSPENSION_SETTINGS_CACHE = {
-        "spring_constant": spring_constant,
-        "damper_coefficient": damper_coefficient,
-    }
-    return _SUSPENSION_SETTINGS_CACHE
 
 
 def reset_suspension_settings_cache() -> None:
     """Сбросить кэш параметров подвески (используется в тестах)."""
 
-    global _SUSPENSION_SETTINGS_CACHE
-    _SUSPENSION_SETTINGS_CACHE = None
+    refresh_settings_cache()
+    _refresh_cached_defaults()
 
 
 @dataclass
@@ -230,8 +363,10 @@ def axis_vertical_projection(F_axis: float, axis_unit_world: np.ndarray) -> floa
     Returns:
         Vertical force component (N, positive downward)
     """
-    eY = np.array([0.0, 1.0, 0.0])  # Vertical axis (down positive)
-    return np.dot(axis_unit_world, eY) * F_axis
+    axis = np.asarray(axis_unit_world, dtype=float)
+    if axis.shape != (3,):
+        raise ValueError(f"axis_unit_world must be shape (3,), got {axis.shape}")
+    return float(np.dot(axis, _VERTICAL_AXIS)) * F_axis
 
 
 def _resolve_line_pressure(system: Any, gas: Any, wheel: Wheel, port: Port) -> float:
@@ -289,7 +424,7 @@ def assemble_forces(
     wheel_names = _WHEEL_ORDER  # Left Front, Right Front, Left Rear, Right Rear
     vertical_forces = np.zeros(len(_WHEEL_ORDER))
 
-    suspension_config = _load_suspension_settings()
+    suspension_config = _SUSPENSION_SETTINGS
     k_spring = suspension_config["spring_constant"]  # N/m (spring stiffness per wheel)
     c_damper = suspension_config[
         "damper_coefficient"
@@ -300,12 +435,13 @@ def assemble_forces(
 
     for i, wheel_name in enumerate(wheel_names):
         # Get attachment point
-        if wheel_name in params.attachment_points:
+        try:
             x_i, z_i = params.attachment_points[wheel_name]
-        else:
-            # Default positions if not specified
-            x_i = (-1.0 if "L" in wheel_name else 1.0) * params.track / 2.0
-            z_i = (-1.0 if "P" in wheel_name else 1.0) * params.wheelbase / 2.0
+        except KeyError as exc:
+            raise SettingsValidationError(
+                "Отсутствует точка крепления для колеса"
+                f" {wheel_name} в параметрах подвески"
+            ) from exc
 
         # Calculate wheel vertical displacement accounting for frame angles
         # Simplified: assume small angles, so wheel displacement ? Y

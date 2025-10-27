@@ -7,6 +7,7 @@ import math
 import numpy as np
 import pytest
 
+from config.constants import get_physics_suspension_constants
 from src.physics.forces import (
     compute_axis_velocity,
     compute_cylinder_force,
@@ -67,9 +68,19 @@ def test_compute_suspension_point_kinematics_supports_custom_axis() -> None:
     )
 
 
+def test_compute_suspension_point_kinematics_requires_axis_mapping() -> None:
+    state = np.zeros(6)
+    attachment_points = {"LP": (0.0, 0.0)}
+
+    with pytest.raises(KeyError):
+        compute_suspension_point_kinematics(
+            "LP", state, attachment_points, axis_directions={}
+        )
+
+
 def test_compute_suspension_point_kinematics_unknown_wheel_raises() -> None:
     with pytest.raises(ValueError):
-        compute_suspension_point_kinematics("XX", np.zeros(6), {})
+        compute_suspension_point_kinematics("XX", np.zeros(6), {}, axis_directions={})
 
 
 def test_compute_cylinder_force_uses_pressures_and_areas() -> None:
@@ -128,6 +139,10 @@ def test_validate_force_calculation_detects_invalid_inputs() -> None:
 def test_create_test_suspension_state_constructs_consistent_payload() -> None:
     state = create_test_suspension_state("LP", F_cyl=10.0, F_spring=5.0, F_damper=-3.0)
 
+    suspension_constants = get_physics_suspension_constants()
+    axis = np.asarray(suspension_constants["axis_unit_world"], dtype=float)
+    axis = axis / np.linalg.norm(axis)
+
     assert state["wheel_name"] == "LP"
     assert math.isclose(state["F_total_axis"], 12.0)
-    assert np.allclose(state["axis_unit_world"], np.array([0.0, 1.0, 0.0]))
+    assert np.allclose(state["axis_unit_world"], axis)

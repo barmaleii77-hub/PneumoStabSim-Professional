@@ -132,6 +132,16 @@ def test_constants_accessors_use_settings_service(
     assert constants_module.get_pneumo_master_isolation_default() is True
 
 
+def test_settings_service_load_does_not_modify_file(settings_payload: Path) -> None:
+    service = SettingsService(settings_path=settings_payload)
+
+    before = settings_payload.read_bytes()
+    service.load()
+    after = settings_payload.read_bytes()
+
+    assert after == before
+
+
 def test_settings_service_raises_on_schema_violation(tmp_path: Path) -> None:
     payload = {
         "metadata": {"version": "1.0.0"},  # missing units_version

@@ -38,7 +38,7 @@ ensure the master plan accurately reflects the intended scope.
 - **Testing**: `pytest` (with `pytest-qt`) and scenario runners under `tests/`.
 - **Logging**: Use `structlog` JSON logger configured in `src/diagnostics`.
 - **Configuration**: `config/app_settings.json` validated against
-  `config/app_settings.schema.json`; prefer using `src/core/settings_service.py`
+  `config/schemas/app_settings.schema.json`; prefer using `src/core/settings_service.py`
   or `SettingsManager` abstractions instead of raw file IO.
 
 ---
@@ -110,3 +110,20 @@ ensure the master plan accurately reflects the intended scope.
 
 Keep this manual up-to-date. Every time the master plan evolves, verify that
 the references and tooling defaults here remain accurate.
+
+---
+
+## 8. Operational Imperatives
+
+The following mandates are encoded in `config/app_settings.json` metadata and
+apply to all contributors without exception:
+
+- **No hard-coded defaults**: application code must load every tunable value
+  from `config/app_settings.json`. If a new parameter is required, extend the
+  settings file and schema first.
+- **Graphics transparency**: every parameter that influences rendering quality
+  or aesthetics must surface in the UI as a dedicated control. Avoid hidden
+  coupling between parameters—one setting, one widget.
+- **Settings integrity**: reading the settings file must never mutate it. The
+  runtime may only persist changes in direct response to an explicit user
+  action.

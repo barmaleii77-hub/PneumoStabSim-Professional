@@ -213,7 +213,10 @@ class SettingsService:
                 return candidate
 
         return (
-            Path(__file__).resolve().parents[2] / "config" / "app_settings.schema.json"
+            Path(__file__).resolve().parents[2]
+            / "config"
+            / "schemas"
+            / "app_settings.schema.json"
         )
 
     def _read_schema(self) -> dict[str, Any]:

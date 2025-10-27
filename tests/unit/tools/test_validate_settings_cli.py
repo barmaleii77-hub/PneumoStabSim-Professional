@@ -10,7 +10,7 @@ from tools import validate_settings
 
 @pytest.fixture()
 def schema_path() -> Path:
-    return Path("config/app_settings.schema.json").resolve()
+    return Path("config/schemas/app_settings.schema.json").resolve()
 
 
 @pytest.fixture()

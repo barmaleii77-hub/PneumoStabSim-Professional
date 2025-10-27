@@ -16,7 +16,7 @@ from src.infrastructure.event_bus import EVENT_BUS_TOKEN, EventBus
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 SETTINGS_PATH = REPO_ROOT / "config" / "app_settings.json"
-SCHEMA_PATH = REPO_ROOT / "config" / "app_settings.schema.json"
+SCHEMA_PATH = REPO_ROOT / "config" / "schemas" / "app_settings.schema.json"
 
 with SETTINGS_PATH.open("r", encoding="utf-8") as stream:
     _BASE_SETTINGS_PAYLOAD: dict[str, Any] = json.load(stream)
