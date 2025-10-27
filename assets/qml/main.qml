@@ -44,7 +44,14 @@ property real userFrameToPivot: 0.6
     property real userPistonRodLength: 0.2
 
     // Масштаб перевода метров в сцену Qt Quick3D (исторически миллиметры)
-    property real sceneScaleFactor: sceneDefaults && sceneDefaults.scale_factor !== undefined ? Number(sceneDefaults.scale_factor) : 1000.0
+    property real sceneScaleFactor: {
+        var raw = sceneDefaults && sceneDefaults.scale_factor !== undefined
+                ? Number(sceneDefaults.scale_factor)
+                : 1.0;
+        if (!isFinite(raw) || raw <= 0.0)
+            return 1.0;
+        return raw >= 100.0 ? raw / 1000.0 : raw;
+    }
 
     // Анимация рычагов (град)
     property real userAmplitude: animationDefaults && animationDefaults.amplitude !== undefined ? Number(animationDefaults.amplitude) : 8.0
@@ -197,10 +204,10 @@ console.warn("setIfExists failed", prop, e);
     }
 
     function toSceneLength(meters) {
- var numeric = Number(meters);
+        var numeric = Number(meters);
         if (!isFinite(numeric))
-  return 0;
-return numeric * sceneScaleFactor;
+            return 0;
+        return numeric * sceneScaleFactor;
     }
 
     function toSceneScale(meters) {
