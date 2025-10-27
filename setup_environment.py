@@ -100,13 +100,11 @@ class EnvironmentSetup:
         self.logger.log("=" * 60)
 
     def _find_python(self) -> List[str]:
-        """Находит предпочтительный интерпретатор Python3.13 (fallback 3.12 → 3.11)."""
+        """Находит предпочтительный интерпретатор Python3.13 (fallback 3.11)."""
 
         python_candidates: List[List[str]] = [
             ["py", "-3.13"],
             ["python3.13"],
-            ["py", "-3.12"],
-            ["python3.12"],
             ["py", "-3.11"],
             ["python3.11"],
             ["python3"],
