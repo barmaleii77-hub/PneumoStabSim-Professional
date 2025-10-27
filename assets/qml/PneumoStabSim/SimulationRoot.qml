@@ -1,9 +1,9 @@
 import QtQuick 6.10
 import QtQuick.Controls 6.10
 import QtQuick.Layouts 6.10
+import QtQuick.Timeline 1.0
 import QtQuick3D 6.10
 import QtQuick3D.Helpers 6.10
-import QtQuick.Timeline 1.0
 import "../camera"
 import "../components"
 import "../effects"
@@ -397,30 +397,33 @@ IblProbeLoader {
  }
  }
 
- Timeline {
-  id: fallbackTimeline
-  enabled: fallbackEnabled
-  running: fallbackEnabled
-  loops: Animation.Infinite
-  startFrame: 0
-  endFrame: framesPerSecond
+// Таймлайн нужен только для непрерывности визуализации, когда Python временно
+// перестает публиковать кадры. Он запускается строго при fallbackEnabled и не
+// скрывает ошибки загрузки данных: при сбоях isRunning тоже выключается.
+Timeline {
+ id: fallbackTimeline
+ enabled: fallbackEnabled
+ running: fallbackEnabled
+ loops: Animation.Infinite
+ startFrame: 0
+ endFrame: framesPerSecond
  property int framesPerSecond: 120
  duration: Math.max(16, fallbackCycleSeconds * 1000)
  onRunningChanged: {
- if (running) {
- fallbackPhase = 0.0
- lastFallbackPhase = 0.0
- fallbackBaseTime = animationTime
- }
+  if (running) {
+   fallbackPhase = 0.0
+   lastFallbackPhase = 0.0
+   fallbackBaseTime = animationTime
+  }
  }
 
  KeyframeGroup {
- target: root
- property: "fallbackPhase"
- Keyframe { frame: fallbackTimeline.startFrame; value: 0.0 }
- Keyframe { frame: fallbackTimeline.endFrame; value: 1.0 }
+  target: root
+  property: "fallbackPhase"
+  Keyframe { frame: fallbackTimeline.startFrame; value: 0.0 }
+  Keyframe { frame: fallbackTimeline.endFrame; value: 1.0 }
  }
- }
+}
 
  Timer {
  id: pythonAnimationTimeout
