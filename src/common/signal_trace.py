@@ -9,7 +9,7 @@ from datetime import UTC, datetime
 from fnmatch import fnmatch
 from pathlib import Path
 from threading import Lock
-from typing import TYPE_CHECKING, Any, Dict, List, Optional
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Sequence
 
 from .qt_compat import Property, QObject, Signal, Slot
 
@@ -136,21 +136,32 @@ class SignalTraceService(QObject):
         return True
 
     @Slot(str, object, str, result=bool)
+    @Slot(str, object, str, str, result=bool)
     def recordObservation(
-        self, signal_name: str, payload: Any, source: str = "qml"
+        self,
+        signal_name: str,
+        payload: Any,
+        source: str = "qml",
+        sender: str | None = None,
     ) -> bool:
         """Record an observation from QML subscribers."""
 
-        self.record_signal(signal_name, payload, source=source)
+        self.record_signal(signal_name, payload, source=source, sender=sender)
         return True
 
     def record_signal(
-        self, signal_name: str, payload: Any, *, source: str = "python"
+        self,
+        signal_name: str,
+        payload: Any,
+        *,
+        source: str = "python",
+        sender: str | None = None,
     ) -> None:
         """Record a signal emission and optionally persist to the trace log."""
 
         sanitized_payload = self._sanitize(payload)
         timestamp = _iso_utc_now()
+        origin = sender or source
         with self._lock:
             entry = self._subscriptions.setdefault(
                 signal_name,
@@ -169,6 +180,7 @@ class SignalTraceService(QObject):
                     "signal": signal_name,
                     "payload": sanitized_payload,
                     "source": source,
+                    "sender": origin,
                 }
             )
             if len(self._history) > self._config.history_limit:
@@ -198,6 +210,31 @@ class SignalTraceService(QObject):
     def update_from_settings(self, data: Dict[str, Any] | None) -> None:
         self.update_config(SignalTraceConfig.from_dict(data))
 
+    # ----------------------------------------------------------------- helpers
+    def _format_args(self, payload: Any) -> List[Any]:
+        if payload is None:
+            return []
+        if isinstance(payload, Sequence) and not isinstance(payload, (str, bytes)):
+            return list(payload)
+        if isinstance(payload, dict):
+            return [f"{key}={value}" for key, value in payload.items()]
+        return [payload]
+
+    def _history_entries(self) -> List[Dict[str, Any]]:
+        with self._lock:
+            snapshot = list(self._history)
+        entries: List[Dict[str, Any]] = []
+        for entry in snapshot:
+            entries.append(
+                {
+                    "timestamp": entry.get("timestamp", ""),
+                    "signal": entry.get("signal", ""),
+                    "sender": entry.get("sender") or entry.get("source", "python"),
+                    "args": self._format_args(entry.get("payload")),
+                }
+            )
+        return entries
+
     @Property(_QVARIANT_PROPERTY_TYPE, notify=traceUpdated)
     def subscriptions(self) -> List[Dict[str, Any]]:
         with self._lock:
@@ -223,11 +260,33 @@ class SignalTraceService(QObject):
     def tracingEnabled(self) -> bool:
         return self._config.enabled
 
+    @Property(_QVARIANT_PROPERTY_TYPE, notify=traceUpdated)
+    def historyEntries(self) -> List[Dict[str, Any]]:
+        return self._history_entries()
+
+    @Slot(result=bool)
+    def clearHistory(self) -> bool:
+        with self._lock:
+            if not self._history:
+                self.traceUpdated.emit(
+                    {
+                        "subscriptions": self.subscriptions,
+                        "latestValues": self.latestValues,
+                        "config": self._config.to_dict(),
+                        "history": [],
+                    }
+                )
+                return False
+            self._history.clear()
+        self._notify_listeners()
+        return True
+
     def _notify_listeners(self) -> None:
         snapshot = {
             "subscriptions": self.subscriptions,
             "latestValues": self.latestValues,
             "config": self._config.to_dict(),
+            "history": self.historyEntries,
         }
         self.traceUpdated.emit(snapshot)
 
