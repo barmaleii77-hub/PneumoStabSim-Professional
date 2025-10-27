@@ -387,6 +387,24 @@
           ],
           "additionalProperties": false
         },
+        "lighting": {
+          "type": "object"
+        },
+        "environment": {
+          "type": "object"
+        },
+        "quality": {
+          "type": "object"
+        },
+        "camera": {
+          "type": "object"
+        },
+        "materials": {
+          "type": "object"
+        },
+        "effects": {
+          "type": "object"
+        },
         "simulation": {
           "type": "object",
           "properties": {
