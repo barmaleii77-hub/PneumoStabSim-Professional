@@ -9,9 +9,47 @@ from datetime import UTC, datetime
 from fnmatch import fnmatch
 from pathlib import Path
 from threading import Lock
-from typing import TYPE_CHECKING, Any, Dict, List, Optional
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Callable,
+    ClassVar,
+    Dict,
+    List,
+    Optional,
+    Protocol,
+    TypeVar,
+    cast,
+)
 
 from .qt_compat import Property, QObject, Signal, Slot
+
+_T_co = TypeVar("_T_co", covariant=True)
+
+
+class _QmlProperty(Protocol[_T_co]):
+    """Protocol representing the descriptor produced by Qt ``Property``."""
+
+    def __get__(self, instance: Any, owner: Any) -> _T_co: ...
+
+
+def qml_property(
+    property_type: Any,
+    *,
+    notify: Any,
+) -> Callable[[Callable[["SignalTraceService"], _T_co]], _QmlProperty[_T_co]]:
+    """Typed wrapper around :func:`QtCore.Property` for mypy."""
+
+    def decorator(
+        getter: Callable[["SignalTraceService"], _T_co],
+    ) -> _QmlProperty[_T_co]:
+        return cast(
+            _QmlProperty[_T_co],
+            Property(property_type, notify=notify)(getter),
+        )
+
+    return decorator
+
 
 LOGGER = logging.getLogger(__name__)
 
@@ -102,7 +140,7 @@ class SignalTraceConfig:
 class SignalTraceService(QObject):
     """Collects signal emissions and exposes them to QML for diagnostics."""
 
-    traceUpdated = Signal(object)
+    traceUpdated: ClassVar[Any] = Signal(object)
 
     def __init__(self) -> None:
         super().__init__()
@@ -198,16 +236,18 @@ class SignalTraceService(QObject):
     def update_from_settings(self, data: Dict[str, Any] | None) -> None:
         self.update_config(SignalTraceConfig.from_dict(data))
 
-    @Property(_QVARIANT_PROPERTY_TYPE, notify=traceUpdated)
-    def subscriptions(self) -> List[Dict[str, Any]]:
+    def _get_subscriptions(self) -> List[Dict[str, Any]]:
         with self._lock:
             return [
                 self._subscription_summary(signal, data)
                 for signal, data in sorted(self._subscriptions.items())
             ]
 
-    @Property(_QVARIANT_PROPERTY_TYPE, notify=traceUpdated)
-    def latestValues(self) -> Dict[str, Any]:
+    subscriptions: ClassVar[_QmlProperty[List[Dict[str, Any]]]] = qml_property(
+        _QVARIANT_PROPERTY_TYPE, notify=traceUpdated
+    )(_get_subscriptions)
+
+    def _get_latest_values(self) -> Dict[str, Any]:
         with self._lock:
             return {
                 signal: data.get("last_value")
@@ -215,13 +255,23 @@ class SignalTraceService(QObject):
                 if data.get("last_value") is not None
             }
 
-    @Property(bool, notify=traceUpdated)
-    def overlayEnabled(self) -> bool:
+    latestValues: ClassVar[_QmlProperty[Dict[str, Any]]] = qml_property(
+        _QVARIANT_PROPERTY_TYPE, notify=traceUpdated
+    )(_get_latest_values)
+
+    def _get_overlay_enabled(self) -> bool:
         return self._config.overlay_enabled
 
-    @Property(bool, notify=traceUpdated)
-    def tracingEnabled(self) -> bool:
+    overlayEnabled: ClassVar[_QmlProperty[bool]] = qml_property(
+        bool, notify=traceUpdated
+    )(_get_overlay_enabled)
+
+    def _get_tracing_enabled(self) -> bool:
         return self._config.enabled
+
+    tracingEnabled: ClassVar[_QmlProperty[bool]] = qml_property(
+        bool, notify=traceUpdated
+    )(_get_tracing_enabled)
 
     def _notify_listeners(self) -> None:
         snapshot = {
