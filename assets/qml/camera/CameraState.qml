@@ -196,11 +196,12 @@ QtObject {
         if (frameToPivot !== undefined && frameToPivot !== null) {
             var pivotValue = Number(frameToPivot)
             if (isFinite(pivotValue)) {
+                var halfLength = frameLength / 2
                 var clampedPivot = Math.max(0, Math.min(frameLength, pivotValue))
                 var frontExtent = clampedPivot
                 var rearExtent = frameLength - clampedPivot
-                var minZ = -frontExtent
-                var maxZ = rearExtent
+                var minZ = Math.min(-halfLength, frontExtent)
+                var maxZ = Math.max(halfLength, rearExtent)
                 var span = maxZ - minZ
                 if (isFinite(span) && span > 0) {
                     effectiveLength = Math.max(frameLength, span)
@@ -226,13 +227,21 @@ QtObject {
      * @param frameToPivot - расстояние от передней опоры до pivot (мм)
      */
     function calculatePivot(beamSize, frameHeight, frameLength, frameToPivot) {
-        var centerZ = frameLength / 2
+        var halfLength = frameLength / 2
+        var centerZ = halfLength
 
         if (frameToPivot !== undefined && frameToPivot !== null) {
             var pivotValue = Number(frameToPivot)
             if (isFinite(pivotValue)) {
                 var clampedPivot = Math.max(0, Math.min(frameLength, pivotValue))
-                centerZ = clampedPivot
+                var frontExtent = clampedPivot
+                var rearExtent = frameLength - clampedPivot
+                var minZ = Math.min(-halfLength, frontExtent)
+                var maxZ = Math.max(halfLength, rearExtent)
+                var spanCenter = (minZ + maxZ) / 2
+                if (isFinite(spanCenter)) {
+                    centerZ = spanCenter
+                }
             }
         }
 

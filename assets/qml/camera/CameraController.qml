@@ -46,7 +46,7 @@ Item {
     property real trackWidth: 1600
     property real frameHeight: 650
     property real beamSize: 120
-    property real frameToPivot: Number.NaN
+    property real frameToPivot: frameLength / 2
 
     // ===============================================================
     // OPTIONAL PROPERTIES
@@ -300,7 +300,7 @@ Item {
         if (!isFinite(numeric)) {
             numeric = frameLength / 2
         }
-        return Math.max(0, Math.min(frameLength, numeric))
+        return numeric
     }
 
     /**
