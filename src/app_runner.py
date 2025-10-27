@@ -411,6 +411,7 @@ class ApplicationRunner:
         from src.diagnostics.warnings import print_warnings_errors
         from src.diagnostics.logs import run_log_diagnostics
 
+        diagnostics_context: list[str] = []
         try:
             # ✅ Печать заголовка
             self._print_header()
@@ -447,10 +448,6 @@ class ApplicationRunner:
 
             print(f"\n✅ Application closed (code: {result})\n")
 
-            # ✅ Диагностика логов по запросу
-            if args.diag or args.verbose or os.environ.get("PSS_DIAG") == "1":
-                run_log_diagnostics()
-
             return int(result)
 
         except Exception as e:
@@ -465,7 +462,23 @@ class ApplicationRunner:
 
             print_warnings_errors()
 
+            diagnostics_context.append("fatal-error")
+
             return 1
+
+        finally:
+            try:
+                diagnostics_context.append("exit")
+                reasons_raw = os.environ.get("PSS_POST_DIAG_TRACE", "")
+                reasons = [item for item in reasons_raw.split("|") if item]
+                if reasons:
+                    print("📄 Причины запуска пост-диагностики:")
+                    for entry in reasons:
+                        print(f"   • {entry}")
+                print("\n🔁 Запуск обязательной пост-диагностики логов...\n")
+                run_log_diagnostics()
+            except Exception as diag_exc:
+                print(f"⚠️  Не удалось выполнить пост-диагностику логов: {diag_exc}")
 
     def _print_header(self) -> None:
         """Печать заголовка приложения в консоль."""

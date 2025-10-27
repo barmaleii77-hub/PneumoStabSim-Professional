@@ -47,6 +47,26 @@ class UISetup:
     }
     _SCENE_LOAD_ORDER: tuple[str, ...] = ("main", "realism", "fallback")
     _SCENE_ENV_VAR = "PSS_QML_SCENE"
+    _POST_DIAG_ENV = "PSS_POST_DIAG_TRACE"
+
+    @staticmethod
+    def _register_postmortem_reason(reason: str) -> None:
+        """Зафиксировать причину обязательного пост-анализа логов."""
+
+        try:
+            normalized = (reason or "").strip()
+            if not normalized:
+                return
+
+            existing = os.environ.get(UISetup._POST_DIAG_ENV, "")
+            parts = [item for item in existing.split("|") if item]
+            if normalized not in parts:
+                parts.append(normalized)
+            os.environ[UISetup._POST_DIAG_ENV] = "|".join(parts)
+        except Exception as exc:  # pragma: no cover - логируем, но не прерываем
+            UISetup.logger.debug(
+                "    ⚠️ Не удалось зафиксировать причину пост-анализа: %s", exc
+            )
 
     @staticmethod
     def build_qml_context_payload(
@@ -64,11 +84,13 @@ class UISetup:
                 UISetup.logger.exception(
                     "    ❌ Не удалось получить SettingsManager: %s", exc
                 )
+                UISetup._register_postmortem_reason("settings-manager-unavailable")
                 raise RuntimeError(
                     "SettingsManager недоступен. Проверьте загрузку конфигурации."
                 ) from exc
 
         if manager is None:
+            UISetup._register_postmortem_reason("settings-manager-not-initialized")
             raise RuntimeError(
                 "SettingsManager не был инициализирован. Остановлена загрузка QML."
             )
@@ -82,6 +104,9 @@ class UISetup:
                     section,
                     exc,
                 )
+                UISetup._register_postmortem_reason(
+                    f"settings-serialization-failed:{section}"
+                )
                 raise RuntimeError(
                     f"Настройки {section} содержат неподдерживаемые данные"
                 ) from exc
@@ -93,10 +118,14 @@ class UISetup:
                 UISetup.logger.exception(
                     "    ❌ Ошибка чтения graphics.%s: %s", name, exc
                 )
+                UISetup._register_postmortem_reason(
+                    f"settings-read-error:graphics.{name}"
+                )
                 raise RuntimeError(
                     f"Не удалось прочитать настройки graphics.{name}"
                 ) from exc
             if not isinstance(data, dict) or not data:
+                UISetup._register_postmortem_reason(f"settings-missing:graphics.{name}")
                 raise RuntimeError(
                     f"Настройки graphics.{name} отсутствуют или повреждены"
                 )
@@ -107,8 +136,10 @@ class UISetup:
                 payload = manager.get("diagnostics", {}) or {}
             except Exception as exc:
                 UISetup.logger.exception("    ❌ Ошибка чтения diagnostics: %s", exc)
+                UISetup._register_postmortem_reason("settings-read-error:diagnostics")
                 raise RuntimeError("Не удалось прочитать diagnostics") from exc
             if not isinstance(payload, dict):
+                UISetup._register_postmortem_reason("settings-missing:diagnostics")
                 raise RuntimeError("Секция diagnostics повреждена")
             return _serialize("diagnostics", payload)
 
@@ -239,6 +270,9 @@ class UISetup:
                     "    ⚠️ Failed to expose initial graphics settings: %s",
                     ctx_exc,
                 )
+                UISetup._register_postmortem_reason(
+                    f"initial-settings-export-failed:{ctx_exc}"
+                )
 
             # Export profile manager
             profile_service = getattr(window, "profile_manager", None)
@@ -273,6 +307,7 @@ class UISetup:
             # Load QML file
             qml_file = UISetup._resolve_supported_qml_scene()
             if not qml_file.exists():
+                UISetup._register_postmortem_reason(f"qml-file-missing:{qml_file}")
                 raise FileNotFoundError(f"QML file not found: {qml_file}")
 
             qml_url = QUrl.fromLocalFile(str(qml_file.absolute()))
@@ -283,6 +318,7 @@ class UISetup:
             if status == QQuickWidget.Status.Error:
                 errors = window._qquick_widget.errors()
                 error_msg = "\n".join(str(e) for e in errors)
+                UISetup._register_postmortem_reason(f"qml-engine-error:{error_msg}")
                 raise RuntimeError(f"QML load errors:\n{error_msg}")
 
             # Get root object
@@ -309,6 +345,7 @@ class UISetup:
             UISetup.logger.info("    ✅ %s loaded successfully", qml_file.name)
 
         except Exception as e:
+            UISetup._register_postmortem_reason(f"qml-load-failed:{e}")
             UISetup.logger.exception(f"    ❌ QML load failed: {e}")
 
             # Fallback: error label

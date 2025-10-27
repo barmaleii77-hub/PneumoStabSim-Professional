@@ -403,20 +403,25 @@ IblProbeLoader {
 // Таймлайн нужен только для непрерывности визуализации, когда Python временно
 // перестает публиковать кадры. Он запускается строго при fallbackEnabled и не
 // скрывает ошибки загрузки данных: при сбоях isRunning тоже выключается.
-Timeline {
+SequentialAnimation {
  id: fallbackTimeline
- enabled: fallbackEnabled
  running: fallbackEnabled
  loops: Animation.Infinite
- startFrame: 0
- endFrame: framesPerSecond
- property int framesPerSecond: 120
- duration: Math.max(16, fallbackCycleSeconds * 1000)
- KeyframeGroup {
+ alwaysRunToEnd: false
+
+ onRunningChanged: {
+  if (!running) {
+   root.fallbackPhase = 0.0
+  }
+ }
+
+ NumberAnimation {
   target: root
   property: "fallbackPhase"
-  Keyframe { frame: fallbackTimeline.startFrame; value: 0.0 }
-  Keyframe { frame: fallbackTimeline.endFrame; value: 1.0 }
+  from: 0.0
+  to: 1.0
+  duration: Math.max(16, fallbackCycleSeconds * 1000)
+  easing.type: Easing.Linear
  }
 }
 
