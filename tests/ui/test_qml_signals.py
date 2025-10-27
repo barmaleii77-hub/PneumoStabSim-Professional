@@ -1,6 +1,13 @@
 from pathlib import Path
 
 import pytest
+
+pytest.importorskip(
+    "PySide6.QtTest",
+    reason="PySide6 QtTest module is required for UI signal tests",
+    exc_type=ImportError,
+)
+
 from PySide6.QtCore import QObject, QUrl
 from PySide6.QtQml import QQmlApplicationEngine
 from PySide6.QtTest import QSignalSpy

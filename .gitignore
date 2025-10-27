@@ -863,6 +863,7 @@ assets/hdr/*.exr
 !tests/unit/test_settings_validation.py
 !tests/unit/test_qml_bridge_failures.py
 !tests/ui/test_qml_bridge.py
+!tests/ui/test_main_qml_structure.py
 !tests/test_settings_smoke.py
 !tests/system/test_physics_integration.py
 !tests/system/test_visualstudio_insiders.py

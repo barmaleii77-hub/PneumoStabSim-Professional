@@ -78,6 +78,11 @@ def sample_cylinder_params():
 @pytest.fixture(scope="session")
 def qapp():
     """Create QApplication for Qt tests"""
+    pytest.importorskip(
+        "PySide6.QtWidgets",
+        reason="PySide6 QtWidgets module is required for QApplication fixture",
+        exc_type=ImportError,
+    )
     from PySide6.QtWidgets import QApplication
 
     app = QApplication.instance()
@@ -92,6 +97,11 @@ def qapp():
 @pytest.fixture
 def geometry_bridge(sample_geometry_params):
     """Create GeometryBridge instance"""
+    pytest.importorskip(
+        "PySide6.QtGui",
+        reason="PySide6 QtGui module is required for geometry bridge conversion",
+        exc_type=ImportError,
+    )
     from src.ui.geometry_bridge import create_geometry_converter
 
     return create_geometry_converter(

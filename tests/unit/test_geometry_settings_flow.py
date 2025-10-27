@@ -3,6 +3,12 @@ from pathlib import Path
 
 import pytest
 
+pytest.importorskip(
+    "PySide6.QtGui",
+    reason="PySide6 QtGui module is required for geometry bridge tests",
+    exc_type=ImportError,
+)
+
 from config import constants as constants_module
 from src.core.settings_service import SettingsService
 from src.core.geometry import GeometryParams

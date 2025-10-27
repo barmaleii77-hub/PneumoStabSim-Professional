@@ -2268,6 +2268,22 @@
                 "fxaa_enabled": {
                   "type": "boolean"
                 },
+                "mesh": {
+                  "type": "object",
+                  "properties": {
+                    "cylinder_segments": {
+                      "type": "number"
+                    },
+                    "cylinder_rings": {
+                      "type": "number"
+                    }
+                  },
+                  "required": [
+                    "cylinder_segments",
+                    "cylinder_rings"
+                  ],
+                  "additionalProperties": false
+                },
                 "oit": {
                   "type": "string"
                 },
@@ -2323,6 +2339,7 @@
                 "dithering",
                 "frame_rate_limit",
                 "fxaa_enabled",
+                "mesh",
                 "oit",
                 "render_policy",
                 "render_scale",
@@ -2366,6 +2383,22 @@
                 "fxaa_enabled": {
                   "type": "boolean"
                 },
+                "mesh": {
+                  "type": "object",
+                  "properties": {
+                    "cylinder_segments": {
+                      "type": "number"
+                    },
+                    "cylinder_rings": {
+                      "type": "number"
+                    }
+                  },
+                  "required": [
+                    "cylinder_segments",
+                    "cylinder_rings"
+                  ],
+                  "additionalProperties": false
+                },
                 "oit": {
                   "type": "string"
                 },
@@ -2421,6 +2454,7 @@
                 "dithering",
                 "frame_rate_limit",
                 "fxaa_enabled",
+                "mesh",
                 "oit",
                 "render_policy",
                 "render_scale",
@@ -2464,6 +2498,22 @@
                 "fxaa_enabled": {
                   "type": "boolean"
                 },
+                "mesh": {
+                  "type": "object",
+                  "properties": {
+                    "cylinder_segments": {
+                      "type": "number"
+                    },
+                    "cylinder_rings": {
+                      "type": "number"
+                    }
+                  },
+                  "required": [
+                    "cylinder_segments",
+                    "cylinder_rings"
+                  ],
+                  "additionalProperties": false
+                },
                 "oit": {
                   "type": "string"
                 },
@@ -2519,6 +2569,7 @@
                 "dithering",
                 "frame_rate_limit",
                 "fxaa_enabled",
+                "mesh",
                 "oit",
                 "render_policy",
                 "render_scale",
@@ -2562,6 +2613,22 @@
                 "fxaa_enabled": {
                   "type": "boolean"
                 },
+                "mesh": {
+                  "type": "object",
+                  "properties": {
+                    "cylinder_segments": {
+                      "type": "number"
+                    },
+                    "cylinder_rings": {
+                      "type": "number"
+                    }
+                  },
+                  "required": [
+                    "cylinder_segments",
+                    "cylinder_rings"
+                  ],
+                  "additionalProperties": false
+                },
                 "oit": {
                   "type": "string"
                 },
@@ -2617,6 +2684,7 @@
                 "dithering",
                 "frame_rate_limit",
                 "fxaa_enabled",
+                "mesh",
                 "oit",
                 "render_policy",
                 "render_scale",

@@ -1,7 +1,6 @@
 import json
 import sys
 import types
-import copy
 from pathlib import Path
 
 import pytest
@@ -15,43 +14,13 @@ from src.core.settings_validation import (
 )
 
 
-REQUIRED_MATERIALS = {
-    "frame",
-    "lever",
-    "tail",
-    "cylinder",
-    "piston_body",
-    "piston_rod",
-    "joint_tail",
-    "joint_arm",
-    "joint_rod",
-}
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+PROJECT_SETTINGS = PROJECT_ROOT / "config" / "app_settings.json"
 
 
 # Base settings for tests
 def _base_settings() -> dict:
-    current = {
-        "simulation": {
-            "physics_dt": 0.001,
-            "render_vsync_hz": 60,
-            "max_steps_per_frame": 8,
-            "max_frame_time": 0.25,
-        },
-        "pneumatic": {
-            "receiver_volume_limits": {"min_m3": 0.01, "max_m3": 0.05},
-            "receiver_volume": 0.02,
-            "volume_mode": "MANUAL",
-            "master_isolation_open": True,
-            "thermo_mode": "ADIABATIC",
-        },
-        "geometry": {"wheelbase": 2.0},
-        "graphics": {"materials": {name: {"id": name} for name in REQUIRED_MATERIALS}},
-    }
-    return {
-        "current": current,
-        "defaults_snapshot": copy.deepcopy(current),
-        "metadata": {"units_version": "si_v2"},
-    }
+    return json.loads(PROJECT_SETTINGS.read_text(encoding="utf-8"))
 
 
 @pytest.fixture(autouse=True)
@@ -118,8 +87,9 @@ def test_validate_settings_missing_simulation_section(
     with pytest.raises(SettingsValidationError) as exc:
         runner._validate_settings_file()
 
-    assert "обязательная секция current.simulation" in str(exc.value)
-    assert "current.simulation" in _last_error(stub_qmessagebox)
+    error_text = str(exc.value)
+    assert "current: 'simulation' is a required property" in error_text
+    assert "'simulation' is a required property" in _last_error(stub_qmessagebox)
 
 
 def test_validate_settings_missing_physics_dt(
@@ -160,8 +130,9 @@ def test_validate_settings_missing_geometry_section(
     with pytest.raises(SettingsValidationError) as exc:
         runner._validate_settings_file()
 
-    assert "current.geometry" in str(exc.value)
-    assert "geometry" in _last_error(stub_qmessagebox)
+    error_text = str(exc.value)
+    assert "current: 'geometry' is a required property" in error_text
+    assert "'geometry' is a required property" in _last_error(stub_qmessagebox)
 
 
 def test_validate_settings_missing_volume_mode(
@@ -199,7 +170,7 @@ def test_validate_settings_invalid_bool(
         runner._validate_settings_file()
 
     message = str(exc.value)
-    assert "логическим" in message
+    assert "is not of type 'boolean'" in message
     assert "master_isolation_open" in _last_error(stub_qmessagebox)
 
 

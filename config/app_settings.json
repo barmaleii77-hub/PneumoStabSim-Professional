@@ -519,7 +519,11 @@
         "render_scale": 1.0,
         "render_policy": "always",
         "frame_rate_limit": 120.0,
-        "oit": "weighted"
+        "oit": "weighted",
+        "mesh": {
+          "cylinder_segments": 40,
+          "cylinder_rings": 5
+        }
       },
       "medium": {
         "shadows": {
@@ -543,7 +547,11 @@
         "render_scale": 0.9,
         "render_policy": "always",
         "frame_rate_limit": 90.0,
-        "oit": "weighted"
+        "oit": "weighted",
+        "mesh": {
+          "cylinder_segments": 28,
+          "cylinder_rings": 4
+        }
       },
       "low": {
         "shadows": {
@@ -567,7 +575,11 @@
         "render_scale": 0.8,
         "render_policy": "ondemand",
         "frame_rate_limit": 60.0,
-        "oit": "none"
+        "oit": "none",
+        "mesh": {
+          "cylinder_segments": 20,
+          "cylinder_rings": 3
+        }
       }
     },
     "diagnostics": {
@@ -802,7 +814,7 @@
     },
     "geometry": {
       "wheelbase": 2.0,
-      "track": 0.391,
+      "track": 1.0,
       "frame_to_pivot": 0.351,
       "lever_length": 0.609,
       "rod_position": 0.754,
@@ -921,34 +933,19 @@
         "ao_dither": true,
         "ao_sample_rate": 4
       },
-        "quality": {
-          "preset": "ultra",
-          "shadows": {
-            "enabled": true,
-            "resolution": "4096",
-            "filter": 32,
-            "bias": 8.0,
-            "darkness": 80.0
-          },
-          "antialiasing": {
-            "primary": "ssaa",
-            "quality": "high",
-            "post": "taa"
-          },
-          "taa_enabled": true,
-          "taa_strength": 0.4,
-          "taa_motion_adaptive": true,
-          "fxaa_enabled": false,
-          "specular_aa": true,
-          "dithering": true,
-          "render_scale": 1.05,
-          "render_policy": "always",
-          "frame_rate_limit": 144.0,
-          "oit": "weighted",
-          "mesh": {
-            "cylinder_segments": 128,
-            "cylinder_rings": 32
-          }
+      "quality": {
+        "preset": "ultra",
+        "shadows": {
+          "enabled": true,
+          "resolution": "4096",
+          "filter": 32,
+          "bias": 8.0,
+          "darkness": 80.0
+        },
+        "antialiasing": {
+          "primary": "ssaa",
+          "quality": "high",
+          "post": "taa"
         },
         "taa_enabled": true,
         "taa_strength": 0.4,
@@ -1020,9 +1017,9 @@
           "normal_strength": 0.0,
           "occlusion_amount": 0.0,
           "alpha_mode": "default",
-        "alpha_cutoff": 0.0,
-        "id": "frame"
-      },
+          "alpha_cutoff": 0.0,
+          "id": "frame"
+        },
         "lever": {
           "base_color": "#ff2e66",
           "metalness": 0.0,
@@ -1042,9 +1039,9 @@
           "normal_strength": 0.0,
           "occlusion_amount": 0.0,
           "alpha_mode": "default",
-        "alpha_cutoff": 0.0,
-        "id": "lever"
-      },
+          "alpha_cutoff": 0.0,
+          "id": "lever"
+        },
         "tail": {
           "base_color": "#ff0004",
           "metalness": 0.0,
@@ -1064,9 +1061,9 @@
           "normal_strength": 0.0,
           "occlusion_amount": 0.0,
           "alpha_mode": "default",
-        "alpha_cutoff": 0.0,
-        "id": "tail"
-      },
+          "alpha_cutoff": 0.0,
+          "id": "tail"
+        },
         "cylinder": {
           "base_color": "#5bff3e",
           "metalness": 0.0,
@@ -1086,9 +1083,9 @@
           "normal_strength": 0.0,
           "occlusion_amount": 0.0,
           "alpha_mode": "default",
-        "alpha_cutoff": 0.0,
-        "id": "cylinder"
-      },
+          "alpha_cutoff": 0.0,
+          "id": "cylinder"
+        },
         "piston_body": {
           "base_color": "#2f44ff",
           "metalness": 1.0,
@@ -1108,9 +1105,9 @@
           "normal_strength": 0.0,
           "occlusion_amount": 0.0,
           "alpha_mode": "default",
-        "alpha_cutoff": 0.0,
-        "id": "piston_body"
-      },
+          "alpha_cutoff": 0.0,
+          "id": "piston_body"
+        },
         "piston_rod": {
           "base_color": "#5bff3e",
           "metalness": 1.0,
@@ -1130,9 +1127,9 @@
           "normal_strength": 0.0,
           "occlusion_amount": 0.0,
           "alpha_mode": "default",
-        "alpha_cutoff": 0.0,
-        "id": "piston_rod"
-      },
+          "alpha_cutoff": 0.0,
+          "id": "piston_rod"
+        },
         "joint_tail": {
           "base_color": "#ff0004",
           "metalness": 1.0,
@@ -1152,9 +1149,9 @@
           "normal_strength": 0.0,
           "occlusion_amount": 0.0,
           "alpha_mode": "default",
-        "alpha_cutoff": 0.0,
-        "id": "joint_tail"
-      },
+          "alpha_cutoff": 0.0,
+          "id": "joint_tail"
+        },
         "joint_arm": {
           "base_color": "#1eff5e",
           "metalness": 1.0,
@@ -1174,9 +1171,9 @@
           "normal_strength": 0.0,
           "occlusion_amount": 0.0,
           "alpha_mode": "default",
-        "alpha_cutoff": 0.0,
-        "id": "joint_arm"
-      },
+          "alpha_cutoff": 0.0,
+          "id": "joint_arm"
+        },
         "joint_rod": {
           "base_color": "#00ff55",
           "metalness": 0.9,
@@ -1196,9 +1193,9 @@
           "normal_strength": 1.0,
           "occlusion_amount": 0.5,
           "alpha_mode": "default",
-        "alpha_cutoff": 0.0,
-        "id": "joint_rod"
-      }
+          "alpha_cutoff": 0.0,
+          "id": "joint_rod"
+        }
       },
       "effects": {
         "bloom_enabled": true,
@@ -1262,7 +1259,11 @@
         "render_scale": 1.05,
         "render_policy": "always",
         "frame_rate_limit": 144.0,
-        "oit": "weighted"
+        "oit": "weighted",
+        "mesh": {
+          "cylinder_segments": 128,
+          "cylinder_rings": 32
+        }
       },
       "high": {
         "shadows": {
@@ -1286,7 +1287,11 @@
         "render_scale": 1.0,
         "render_policy": "always",
         "frame_rate_limit": 120.0,
-        "oit": "weighted"
+        "oit": "weighted",
+        "mesh": {
+          "cylinder_segments": 40,
+          "cylinder_rings": 5
+        }
       },
       "medium": {
         "shadows": {
@@ -1310,7 +1315,11 @@
         "render_scale": 0.9,
         "render_policy": "always",
         "frame_rate_limit": 90.0,
-        "oit": "weighted"
+        "oit": "weighted",
+        "mesh": {
+          "cylinder_segments": 28,
+          "cylinder_rings": 4
+        }
       },
       "low": {
         "shadows": {
@@ -1334,7 +1343,11 @@
         "render_scale": 0.8,
         "render_policy": "ondemand",
         "frame_rate_limit": 60.0,
-        "oit": "none"
+        "oit": "none",
+        "mesh": {
+          "cylinder_segments": 20,
+          "cylinder_rings": 3
+        }
       }
     },
     "diagnostics": {

@@ -151,7 +151,7 @@ def _load_suspension_settings() -> dict[str, float]:
     if _SUSPENSION_SETTINGS_CACHE is not None:
         return _SUSPENSION_SETTINGS_CACHE
 
-    service = SettingsService()
+    service = SettingsService(validate_schema=False)
     raw_settings = service.get("current.physics.suspension")
     if not isinstance(raw_settings, Mapping):
         raise SettingsValidationError(
