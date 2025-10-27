@@ -10,7 +10,7 @@ import json
 from pathlib import Path
 from datetime import datetime
 from collections import defaultdict
-from typing import Dict, List, Tuple, Optional
+from typing import Dict, List, Tuple, Optional, Any
 import re
 
 # ============================================================================
@@ -311,6 +311,132 @@ class RunLogAnalyzer:
 
 
 # ============================================================================
+# АНАЛИЗАТОР JSON ЛОГОВ ОШИБОК
+# ============================================================================
+
+
+class ErrorLogAnalyzer:
+    """Парсит jsonl логи глобального обработчика ошибок."""
+
+    def __init__(self, log_file: Path):
+        self.log_file = log_file
+        self.entries: List[Dict[str, Any]] = []
+        self.stats = {
+            "total": 0,
+            "by_type": defaultdict(int),
+            "by_source": defaultdict(int),
+            "with_stack": 0,
+        }
+
+    def load(self) -> bool:
+        """Загружает jsonl и нормализует записи."""
+
+        if not self.log_file.exists():
+            return False
+
+        try:
+            with open(self.log_file, "r", encoding="utf-8") as fh:
+                for line in fh:
+                    payload = line.strip()
+                    if not payload:
+                        continue
+                    try:
+                        raw = json.loads(payload)
+                    except json.JSONDecodeError:
+                        continue
+                    normalized = self._normalize_entry(raw)
+                    self.entries.append(normalized)
+        except Exception as exc:
+            safe_print(f"❌ Ошибка загрузки лога ошибок: {exc}")
+            return False
+
+        self._recalculate_stats()
+        return True
+
+    def _normalize_entry(self, raw: Dict[str, Any]) -> Dict[str, Any]:
+        """Приводит запись к универсальному виду для отображения."""
+
+        entry: Dict[str, Any] = {
+            "timestamp": raw.get("timestamp")
+            or raw.get("time")
+            or raw.get("ts"),
+            "type": None,
+            "message": None,
+            "source": raw.get("logger")
+            or raw.get("component")
+            or raw.get("module"),
+            "context": raw.get("context") or raw.get("details"),
+            "stack": None,
+            "raw": raw,
+        }
+
+        error_block: Any = raw.get("error") or raw.get("exception")
+
+        if isinstance(error_block, dict):
+            entry["type"] = (
+                error_block.get("type")
+                or error_block.get("name")
+                or error_block.get("exception_type")
+            )
+            entry["message"] = error_block.get("message") or error_block.get(
+                "value"
+            )
+            entry["stack"] = error_block.get("stack") or error_block.get(
+                "traceback"
+            )
+        elif isinstance(error_block, str):
+            entry["message"] = error_block
+
+        if not entry["type"]:
+            entry["type"] = (
+                raw.get("type")
+                or raw.get("error_type")
+                or raw.get("level")
+                or "Ошибка"
+            )
+
+        if not entry["message"]:
+            entry["message"] = (
+                raw.get("message")
+                or raw.get("msg")
+                or raw.get("description")
+                or "(сообщение отсутствует)"
+            )
+
+        stack = raw.get("stack") or raw.get("traceback")
+        if stack and not entry["stack"]:
+            entry["stack"] = stack
+
+        return entry
+
+    def _recalculate_stats(self) -> None:
+        stats = self.stats
+        stats["total"] = len(self.entries)
+        stats["by_type"].clear()
+        stats["by_source"].clear()
+        stats["with_stack"] = 0
+
+        for entry in self.entries:
+            stats["by_type"][entry["type"]] += 1
+            if entry.get("source"):
+                stats["by_source"][entry["source"]] += 1
+            if entry.get("stack"):
+                stats["with_stack"] += 1
+
+    def get_recent(self, limit: int = 5) -> List[Dict[str, Any]]:
+        return self.entries[-limit:]
+
+    def get_top_types(self, limit: int = 5) -> List[Tuple[str, int]]:
+        return sorted(
+            self.stats["by_type"].items(), key=lambda item: item[1], reverse=True
+        )[:limit]
+
+    def get_top_sources(self, limit: int = 5) -> List[Tuple[str, int]]:
+        return sorted(
+            self.stats["by_source"].items(), key=lambda item: item[1], reverse=True
+        )[:limit]
+
+# ============================================================================
 # ГЛАВНЫЙ АНАЛИЗАТОР
 # ============================================================================
 
@@ -323,6 +449,7 @@ class LogAnalyzer:
         self.graphics_analyzer = None
         self.ibl_analyzer = None
         self.run_analyzer = None
+        self.error_analyzer = None
 
     def run(self):
         """Запускает полный анализ"""
@@ -344,6 +471,9 @@ class LogAnalyzer:
 
         # Анализ Run.log
         self._analyze_run()
+
+        # Анализ JSON лога ошибок
+        self._analyze_error_logs()
 
         # Итоговый отчёт
         self._generate_summary()
@@ -494,6 +624,84 @@ class LogAnalyzer:
             for warning in stats["warnings"][:3]:
                 safe_print(f"   {colored(warning['message'][:70], Colors.YELLOW)}")
 
+    def _analyze_error_logs(self):
+        """Отображает детальный список ошибок из JSON лога."""
+
+        safe_print(colored("\nАНАЛИЗ ЛОГА ОШИБОК", Colors.BLUE, bold=True))
+        safe_print("-" * 80)
+
+        errors_dir = self.logs_dir / "errors"
+        if not errors_dir.exists():
+            safe_print(colored("⚠️  Директория logs/errors не найдена", Colors.YELLOW))
+            return
+
+        latest = find_latest_log(errors_dir, "errors_*.jsonl")
+        if not latest:
+            safe_print(colored("⚠️  Файлы errors_*.jsonl не найдены", Colors.YELLOW))
+            return
+
+        safe_print(f"Файл: {colored(latest.name, Colors.CYAN)}")
+        safe_print(
+            f"Размер: {colored(format_size(latest.stat().st_size), Colors.CYAN)}"
+        )
+
+        analyzer = ErrorLogAnalyzer(latest)
+        if not analyzer.load():
+            return
+
+        self.error_analyzer = analyzer
+        stats = analyzer.stats
+
+        total_color = Colors.RED if stats["total"] else Colors.GREEN
+        safe_print("\nСТАТИСТИКА:")
+        safe_print(
+            f"   Всего ошибок: {colored(str(stats['total']), total_color, bold=True)}"
+        )
+        safe_print(
+            f"   Со стеком вызовов: {colored(str(stats['with_stack']), Colors.MAGENTA)}"
+        )
+
+        top_types = analyzer.get_top_types()
+        if top_types:
+            safe_print("\nПО ТИПАМ:")
+            for err_type, count in top_types:
+                safe_print(
+                    f"   {err_type:25} {colored(str(count), Colors.RED):>6}"
+                )
+
+        top_sources = analyzer.get_top_sources()
+        if top_sources:
+            safe_print("\nИСТОЧНИКИ:")
+            for source, count in top_sources:
+                safe_print(
+                    f"   {source:25} {colored(str(count), Colors.CYAN):>6}"
+                )
+
+        recent = analyzer.get_recent()
+        if recent:
+            safe_print("\nПОСЛЕДНИЕ ОШИБКИ:")
+            for entry in recent:
+                time_str = (
+                    colored(f"[{format_timestamp(entry['timestamp'])}]", Colors.CYAN)
+                    if entry.get("timestamp")
+                    else ""
+                )
+                type_str = colored(entry.get("type", "Ошибка"), Colors.RED, bold=True)
+                message = entry.get("message", "")
+                safe_print(f"   {time_str} {type_str}: {message}")
+                if entry.get("source"):
+                    safe_print(
+                        f"      Источник: {colored(entry['source'], Colors.YELLOW)}"
+                    )
+                if entry.get("context"):
+                    safe_print(f"      Контекст: {entry['context']}")
+                stack = entry.get("stack")
+                if stack:
+                    first_line = stack.strip().splitlines()[0]
+                    safe_print(
+                        f"      Stack: {colored(first_line[:120], Colors.MAGENTA)}"
+                    )
+
     def _analyze_run(self):
         """Анализирует run.log"""
         safe_print(colored("\nАНАЛИЗ СИСТЕМНОГО ЛОГА", Colors.BLUE, bold=True))
@@ -592,6 +800,24 @@ class LogAnalyzer:
                 f"   Предупреждения: {colored(str(warnings), Colors.YELLOW if warnings > 0 else Colors.GREEN)}"
             )
 
+        if self.error_analyzer:
+            total = self.error_analyzer.stats["total"]
+            safe_print("\nГЛОБАЛЬНЫЕ ОШИБКИ:")
+            safe_print(
+                f"   Записей: {colored(str(total), Colors.RED if total else Colors.GREEN, bold=True)}"
+            )
+            top_types = self.error_analyzer.get_top_types(limit=3)
+            if top_types:
+                formatted = ", ".join(
+                    f"{err_type}×{count}" for err_type, count in top_types
+                )
+                safe_print(f"   Топ типы: {colored(formatted, Colors.MAGENTA)}")
+            recent = self.error_analyzer.get_recent(limit=1)
+            if recent:
+                preview = recent[-1]
+                message = preview.get("message", "")
+                safe_print(f"   Последняя: {colored(message[:120], Colors.RED)}")
+
     def _generate_recommendations(self):
         """Генерирует рекомендации"""
         safe_print(colored("\nРЕКОМЕНДАЦИИ:", Colors.MAGENTA, bold=True))
@@ -632,6 +858,15 @@ class LogAnalyzer:
             if len(warnings) > 10:
                 recommendations.append(
                     f"{len(warnings)} предупреждений: Рассмотрите возможные проблемы"
+                )
+
+        if self.error_analyzer:
+            total = self.error_analyzer.stats["total"]
+            if total:
+                last_error = self.error_analyzer.get_recent(limit=1)[-1]
+                err_type = last_error.get("type", "Ошибка")
+                recommendations.append(
+                    f"{total} критических событий ({err_type}): изучите {self.error_analyzer.log_file.name}"
                 )
 
         if not recommendations:
@@ -676,6 +911,10 @@ def analyze_all_logs() -> bool:
         if analyzer.run_analyzer:
             errors = len(analyzer.run_analyzer.stats["errors"])
             if errors > 10:
+                has_critical_issues = True
+
+        if analyzer.error_analyzer:
+            if analyzer.error_analyzer.stats["total"] > 0:
                 has_critical_issues = True
 
         return not has_critical_issues
