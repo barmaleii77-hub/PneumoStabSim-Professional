@@ -183,6 +183,60 @@ def test_settings_manager_set_graphics_updates_current_section(
     assert payload["current"]["graphics"]["environment"]["ibl_intensity"] == 2.5
 
 
+def test_settings_manager_migrates_legacy_graphics_categories(
+    legacy_settings: Path,
+) -> None:
+    payload = json.loads(legacy_settings.read_text(encoding="utf-8"))
+    graphics = payload["current"]["graphics"]
+
+    stray_categories = {
+        "camera": deepcopy(graphics["camera"]),
+        "effects": deepcopy(graphics["effects"]),
+        "environment": deepcopy(graphics["environment"]),
+        "materials": deepcopy(graphics["materials"]),
+    }
+
+    stray_categories["camera"]["fov"] = stray_categories["camera"]["fov"] + 5.0
+    stray_categories["effects"]["bloom_intensity"] = (
+        stray_categories["effects"]["bloom_intensity"] + 0.1
+    )
+    stray_categories["environment"]["ibl_intensity"] = (
+        stray_categories["environment"]["ibl_intensity"] + 0.2
+    )
+    stray_categories["materials"]["frame"]["base_color"] = "#abcdef"
+
+    for key, value in stray_categories.items():
+        payload[key] = value
+
+    legacy_settings.write_text(
+        json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8"
+    )
+
+    manager = SettingsManager(settings_file=legacy_settings)
+
+    assert manager.get("current.graphics.camera.fov") == stray_categories["camera"]["fov"]
+    assert (
+        manager.get("current.graphics.effects.bloom_intensity")
+        == stray_categories["effects"]["bloom_intensity"]
+    )
+    assert (
+        manager.get("current.graphics.environment.ibl_intensity")
+        == stray_categories["environment"]["ibl_intensity"]
+    )
+    assert (
+        manager.get("current.graphics.materials.frame.base_color")
+        == stray_categories["materials"]["frame"]["base_color"]
+    )
+
+    manager.save()
+    persisted = json.loads(legacy_settings.read_text(encoding="utf-8"))
+    extra_keys = set(persisted) - {"metadata", "current", "defaults_snapshot"}
+    assert not extra_keys & stray_categories.keys()
+
+    for key, expected in stray_categories.items():
+        assert persisted["current"]["graphics"][key] == expected
+
+
 def test_reset_to_defaults_category(legacy_settings: Path) -> None:
     manager = SettingsManager(settings_file=legacy_settings)
 
