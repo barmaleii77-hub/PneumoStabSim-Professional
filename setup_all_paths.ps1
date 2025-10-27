@@ -1,7 +1,8 @@
-# ============================================================================
+﻿# ============================================================================
 # PneumoStabSim Professional - Complete PATH Setup Script
 # Скрипт для настройки всех путей проекта (Python, Qt, System)
 # ============================================================================
+# NOTE: This file intentionally includes a UTF-8 BOM so legacy Windows PowerShell versions interpret the Unicode characters below correctly.
 
 param(
     [switch]$Force,
