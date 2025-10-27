@@ -113,6 +113,8 @@ def _run_commands(
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
             text=True,
+            encoding="utf-8",
+            errors="replace",
             cwd=PROJECT_ROOT,
             check=False,
         )
