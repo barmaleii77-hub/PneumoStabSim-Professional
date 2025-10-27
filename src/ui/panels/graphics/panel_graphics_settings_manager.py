@@ -1,8 +1,9 @@
 """Utilities for validating and persisting graphics panel settings.
 
-The refactored graphics panel expects a rich configuration structure with six
-independent categories (lighting, environment, quality, camera, materials and
-effects).  Historical versions of :mod:`config/app_settings.json` only expose a
+The refactored graphics panel expects a rich configuration structure with eight
+independent categories (lighting, environment, quality, camera, materials,
+effects, scene and animation).  Historical versions of
+:mod:`config/app_settings.json` only expose a
 subset of these categories, so loading them directly would trigger run-time
 exceptions inside :class:`GraphicsPanel`.  The goal of this module is to bridge
 that gap:
@@ -65,6 +66,8 @@ class GraphicsSettingsService:
         "camera",
         "materials",
         "effects",
+        "scene",
+        "animation",
     )
 
     REQUIRED_MATERIAL_KEYS: tuple[str, ...] = (
