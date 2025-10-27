@@ -193,6 +193,8 @@ def run_launch_trace(passthrough: Sequence[str], history_limit: int) -> int:
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
         text=True,
+        encoding="utf-8",
+        errors="replace",
         cwd=PROJECT_ROOT,
         env=environment,
         check=False,

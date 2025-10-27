@@ -214,7 +214,9 @@ def test_settings_manager_migrates_legacy_graphics_categories(
 
     manager = SettingsManager(settings_file=legacy_settings)
 
-    assert manager.get("current.graphics.camera.fov") == stray_categories["camera"]["fov"]
+    assert (
+        manager.get("current.graphics.camera.fov") == stray_categories["camera"]["fov"]
+    )
     assert (
         manager.get("current.graphics.effects.bloom_intensity")
         == stray_categories["effects"]["bloom_intensity"]
