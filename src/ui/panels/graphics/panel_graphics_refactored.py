@@ -15,6 +15,7 @@ Russian UI / English code.
 from __future__ import annotations
 
 import logging
+from copy import deepcopy
 from typing import Any, Dict
 
 from PySide6.QtCore import QTimer, Signal, Slot
@@ -290,6 +291,8 @@ class GraphicsPanel(QWidget):
                 # Для сохранения берём ВСЕ материалы из кэша таба
                 "materials": self.materials_tab.get_all_state(),
                 "effects": self.effects_tab.get_state(),
+                "scene": deepcopy(self.state.get("scene", {})),
+                "animation": deepcopy(self.state.get("animation", {})),
             }
             validated = self.settings_service.ensure_valid_state(state)
             self.state = validated
