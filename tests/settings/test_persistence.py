@@ -161,3 +161,22 @@ def test_update_unknown_key_validation_failure_does_not_record(
         service.update("current.geometry", {"unknown_field": 1})
 
     assert service.get_unknown_paths() == []
+
+
+def test_defaults_snapshot_materials_include_ids() -> None:
+    defaults_graphics = _BASE_SETTINGS_PAYLOAD["defaults_snapshot"]["graphics"]
+    current_graphics = _BASE_SETTINGS_PAYLOAD["current"]["graphics"]
+
+    defaults_materials = defaults_graphics["materials"]
+    current_materials = current_graphics["materials"]
+
+    assert set(defaults_materials) == set(current_materials)
+
+    for material_id, material_payload in defaults_materials.items():
+        assert material_payload["id"] == material_id
+        assert current_materials[material_id]["id"] == material_id
+
+    assert (
+        defaults_graphics["quality"]["mesh"]
+        == current_graphics["quality"]["mesh"]
+    )
