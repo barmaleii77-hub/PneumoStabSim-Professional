@@ -213,8 +213,6 @@ def _coerce_color(value: Any, key: str) -> Any:
 
 
 def _validate_range(defn: EnvironmentParameterDefinition, value: float | int) -> None:
-    if value == 0:
-        return
     if defn.min_value is not None and value < defn.min_value:
         raise EnvironmentValidationError(
             f"'{defn.key}'={value!r} below minimum {defn.min_value!r}"
@@ -253,9 +251,8 @@ def validate_environment_settings(settings: Dict[str, Any]) -> Dict[str, Any]:
         elif definition.value_type == "color":
             coerced = _coerce_color(raw_value, definition.key)
         elif definition.value_type == "string":
-            text_value = _coerce_string(definition, raw_value)
-            allowed_text = text_value if isinstance(raw_value, str) else None
-            coerced = raw_value if not isinstance(raw_value, str) else text_value
+            coerced = _coerce_string(definition, raw_value)
+            allowed_text = coerced if isinstance(raw_value, str) else None
         else:  # pragma: no cover
             raise EnvironmentValidationError(
                 f"Unknown value_type for '{definition.key}': {definition.value_type}"
