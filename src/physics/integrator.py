@@ -305,6 +305,7 @@ def step_dynamics(
 
     # Set default max_step
     method_to_use = method or _LOOP_DEFAULTS["solver_primary"]
+    explicit_method_requested = method is not None
     rtol_value = rtol if rtol is not None else _LOOP_DEFAULTS["solver_rtol"]
     atol_value = atol if atol is not None else _LOOP_DEFAULTS["solver_atol"]
 
@@ -320,9 +321,10 @@ def step_dynamics(
 
     # Try integration with specified method
     methods_to_try = [method_to_use]
-    for fallback in _LOOP_DEFAULTS["solver_fallbacks"]:
-        if fallback not in methods_to_try:
-            methods_to_try.append(fallback)
+    if not explicit_method_requested:
+        for fallback in _LOOP_DEFAULTS["solver_fallbacks"]:
+            if fallback not in methods_to_try:
+                methods_to_try.append(fallback)
 
     last_error = ""
 

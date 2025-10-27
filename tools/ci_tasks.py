@@ -18,12 +18,12 @@ local developer shells and headless CI agents.
 from __future__ import annotations
 
 import argparse
+import importlib
 import os
 import shlex
 import shutil
 import subprocess
 import sys
-import sysconfig
 from pathlib import Path
 from typing import Iterable, Sequence
 
@@ -167,41 +167,9 @@ def _resolve_qml_linter() -> tuple[str, ...]:
         if command is not None:
             return command
 
-    # Fall back to scripts installed alongside the active interpreter. This
-    # mirrors the layout of python.org installers on Windows (``Scripts``) and
-    # POSIX environments (``bin``) without hard-coding versioned directories
-    # such as ``Python312``.
-    script_candidates: list[Path] = []
-    scripts_dir = sysconfig.get_path("scripts")
-    if scripts_dir:
-        base = Path(scripts_dir)
-        script_candidates.extend(
-            [
-                base / "pyside6-qmllint.exe",
-                base / "pyside6-qmllint",
-                base / "qmllint.exe",
-                base / "qmllint",
-            ]
-        )
-
-    python_dir = Path(sys.executable).resolve().parent
-    script_candidates.extend(
-        [
-            python_dir / "Scripts" / "pyside6-qmllint.exe",
-            python_dir / "Scripts" / "pyside6-qmllint",
-            python_dir / "Scripts" / "qmllint.exe",
-            python_dir / "bin" / "pyside6-qmllint",
-            python_dir / "bin" / "qmllint",
-        ]
-    )
-
-    for candidate_path in script_candidates:
-        if candidate_path and candidate_path.exists():
-            return (str(candidate_path),)
-
     try:
-        import PySide6.scripts.qmllint  # type: ignore[import-not-found]  # noqa: F401
-    except ModuleNotFoundError as exc:
+        importlib.import_module("PySide6.scripts.qmllint")
+    except ImportError as exc:
         raise TaskError(
             "qmllint or pyside6-qmllint is not installed and PySide6 is unavailable. "
             "Install Qt tooling (e.g. run 'python tools/setup_qt.py') or set QML_LINTER."
