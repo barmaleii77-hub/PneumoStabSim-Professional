@@ -371,13 +371,37 @@ class SettingsManager:
     def _migrate_known_extras(self) -> None:
         """Merge legacy top-level sections back into ``current``."""
 
+        def _ensure_graphics_section() -> Dict[str, Any]:
+            section = self._data.setdefault("graphics", {})
+            if not isinstance(section, dict):
+                section = {}
+                self._data["graphics"] = section
+            return section
+
         graphics_extra = self._extra.pop("graphics", None)
         if isinstance(graphics_extra, dict):
-            graphics_section = self._data.setdefault("graphics", {})
-            if isinstance(graphics_section, dict):
-                _deep_update(graphics_section, graphics_extra)
+            graphics_section = _ensure_graphics_section()
+            _deep_update(graphics_section, graphics_extra)
+
+        for category in (
+            "camera",
+            "environment",
+            "materials",
+            "effects",
+            "lighting",
+            "quality",
+            "scene",
+            "animation",
+        ):
+            payload = self._extra.pop(category, None)
+            if not isinstance(payload, dict):
+                continue
+            graphics_section = _ensure_graphics_section()
+            existing = graphics_section.get(category)
+            if isinstance(existing, dict):
+                _deep_update(existing, payload)
             else:
-                self._data["graphics"] = _deep_copy(graphics_extra)
+                graphics_section[category] = _deep_copy(payload)
 
     # Defaults ---------------------------------------------------------------
     def get_all_defaults(self) -> Dict[str, Any]:
