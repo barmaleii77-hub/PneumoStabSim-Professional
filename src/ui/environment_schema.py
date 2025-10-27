@@ -113,6 +113,25 @@ ENVIRONMENT_PARAMETERS: Tuple[EnvironmentParameterDefinition, ...] = (
     EnvironmentParameterDefinition(
         "probe_horizon", "float", min_value=-1.0, max_value=1.0
     ),
+    EnvironmentParameterDefinition("reflection_enabled", "bool"),
+    EnvironmentParameterDefinition(
+        "reflection_padding_m", "float", min_value=0.0, max_value=1.0
+    ),
+    EnvironmentParameterDefinition(
+        "reflection_quality",
+        "string",
+        allowed_values=("veryhigh", "high", "medium", "low"),
+    ),
+    EnvironmentParameterDefinition(
+        "reflection_refresh_mode",
+        "string",
+        allowed_values=("everyframe", "firstframe", "never"),
+    ),
+    EnvironmentParameterDefinition(
+        "reflection_time_slicing",
+        "string",
+        allowed_values=("individualfaces", "allfacesatonce", "notimeslicing"),
+    ),
     EnvironmentParameterDefinition(
         "ibl_rotation", "float", min_value=-1080.0, max_value=1080.0
     ),
@@ -195,6 +214,11 @@ ENVIRONMENT_CONTEXT_PROPERTIES: Dict[str, str] = {
     "ibl_intensity": "startIblIntensity",
     "probe_brightness": "startProbeBrightness",
     "probe_horizon": "startProbeHorizon",
+    "reflection_enabled": "startReflectionEnabled",
+    "reflection_padding_m": "startReflectionPadding",
+    "reflection_quality": "startReflectionQuality",
+    "reflection_refresh_mode": "startReflectionRefreshMode",
+    "reflection_time_slicing": "startReflectionTimeSlicing",
     "ibl_rotation": "startIblRotation",
     "ibl_source": "startIblSource",
     "ibl_fallback": "startIblFallback",
