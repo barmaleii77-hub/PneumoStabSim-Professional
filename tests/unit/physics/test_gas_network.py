@@ -223,6 +223,32 @@ def test_relief_valves_protect_tank_overpressure(default_network, tank_multiplie
     assert any(value > 0.0 for value in flows["relief"].values())
 
 
+def test_line_to_tank_flow_log_reflects_actual_transfer(default_network):
+    """Logged line-to-tank flow must honour the available mass in the line."""
+
+    _system, gas_network = default_network
+    dt = 1.0
+
+    line = Line.A1
+    line_state = gas_network.lines[line]
+
+    gas_network.tank.p = PA_ATM - 15_000.0
+    gas_network.tank.m = _recompute_mass(
+        gas_network.tank.p, gas_network.tank.T, gas_network.tank.V
+    )
+
+    target_pressure = PA_ATM + 80_000.0
+    line_state.p = target_pressure
+    line_state.m = _recompute_mass(target_pressure, line_state.T, line_state.V_curr)
+    mass_before = line_state.m
+
+    flows = gas_network.apply_valves_and_flows(dt)
+
+    actual_transfer = mass_before - line_state.m
+    assert actual_transfer > 0.0
+    assert flows["lines"][line]["flow_tank"] == pytest.approx(actual_transfer / dt)
+
+
 def test_master_isolation_equalises_pressures(default_network):
     """When enabled the master isolation valve must equalise all line states."""
 
