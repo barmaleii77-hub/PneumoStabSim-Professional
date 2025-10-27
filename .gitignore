@@ -845,6 +845,7 @@ assets/hdr/*.exr
 !tests/unit/test_settings_validation.py
 !tests/unit/test_qml_bridge_failures.py
 !tests/test_settings_smoke.py
+!tests/test_geometry_bridge_units.py
 !tests/system/test_physics_integration.py
 
 # END OF .GITIGNORE

@@ -8,6 +8,7 @@ SI units (meters and radians).
 
 from __future__ import annotations
 
+import logging
 import math
 from typing import Any, Dict, Optional
 
@@ -22,6 +23,8 @@ from config.constants import (
 )
 from ..common.settings_manager import get_settings_manager
 from ..core.geometry import GeometryParams
+
+_logger = logging.getLogger(__name__)
 
 
 class GeometryTo3DConverter(QObject):
@@ -41,7 +44,14 @@ class GeometryTo3DConverter(QObject):
         """Initialize geometry bridge converter."""
         super().__init__()
         self.geometry = geometry
-        self._settings_manager = settings_manager or get_settings_manager()
+        if settings_manager is not None:
+            self._settings_manager = settings_manager
+        else:
+            try:
+                self._settings_manager = get_settings_manager()
+            except Exception as exc:  # pragma: no cover - optional dependency path
+                _logger.debug("SettingsManager unavailable: %s", exc)
+                self._settings_manager = None
 
         defaults = self._load_geometry_defaults()
         initial_state = get_geometry_initial_state_constants()
@@ -367,3 +377,134 @@ class GeometryTo3DConverter(QObject):
             "cylinderBodyLength": self._cylinder_body_length,
             "tailRodLength": self._tail_rod_length,
         }
+
+
+def _lookup_length_value(settings: Dict[str, Any], path: tuple[str, ...]) -> Optional[float]:
+    """Safely extract a numeric value from nested settings data."""
+
+    current: Any = settings
+    for key in path[:-1]:
+        if not isinstance(current, dict):
+            return None
+        current = current.get(key)
+    if not isinstance(current, dict):
+        return None
+    raw_value = current.get(path[-1])
+    if raw_value is None:
+        return None
+    try:
+        numeric = float(raw_value)
+    except (TypeError, ValueError):
+        return None
+    if path[-1].endswith("_mm"):
+        numeric /= 1000.0
+    return numeric
+
+
+_GEOMETRY_LENGTH_PATHS: Dict[str, tuple[tuple[str, ...], ...]] = {
+    "frameLength": (
+        ("initial_state", "frame_length_m"),
+        ("initial_state", "frame_length_mm"),
+        ("frame_length_m",),
+        ("frame_length_mm",),
+    ),
+    "frameHeight": (
+        ("initial_state", "frame_height_m"),
+        ("initial_state", "frame_height_mm"),
+        ("frame_height_m",),
+        ("frame_height_mm",),
+    ),
+    "frameBeamSize": (
+        ("initial_state", "frame_beam_size_m"),
+        ("initial_state", "frame_beam_size_mm"),
+        ("frame_beam_size_m",),
+        ("frame_beam_size_mm",),
+    ),
+    "leverLength": (
+        ("initial_state", "lever_length_m"),
+        ("initial_state", "lever_length_mm"),
+        ("lever_length_m",),
+        ("lever_length_mm",),
+    ),
+    "cylinderBodyLength": (
+        ("initial_state", "cylinder_body_length_m"),
+        ("initial_state", "cylinder_body_length_mm"),
+        ("cylinder_body_length_m",),
+        ("cylinder_body_length_mm",),
+    ),
+    "tailRodLength": (
+        ("initial_state", "tail_rod_length_m"),
+        ("initial_state", "tail_rod_length_mm"),
+        ("tail_rod_length_m",),
+        ("tail_rod_length_mm",),
+    ),
+}
+
+
+def _collect_length_updates(settings_manager: Any) -> Dict[str, float]:
+    """Extract meter-based geometry values from settings manager."""
+
+    try:
+        settings = settings_manager.get_category("geometry")
+    except Exception as exc:  # pragma: no cover - defensive fallback
+        _logger.debug("Unable to load geometry settings: %s", exc)
+        return {}
+
+    if not isinstance(settings, dict):
+        return {}
+
+    updates: Dict[str, float] = {}
+    for target, paths in _GEOMETRY_LENGTH_PATHS.items():
+        for path in paths:
+            value = _lookup_length_value(settings, path)
+            if value is not None:
+                updates[target] = value
+                break
+    return updates
+
+
+class _EmptySettingsManager:
+    """Fallback settings provider returning empty categories."""
+
+    def get_category(self, _category: str) -> Dict[str, Any]:
+        return {}
+
+
+def create_geometry_converter(
+    settings_manager: Optional[Any] = None,
+    *,
+    wheelbase: Optional[float] = None,
+    lever_length: Optional[float] = None,
+    cylinder_diameter: Optional[float] = None,
+) -> GeometryTo3DConverter:
+    """Create a configured :class:`GeometryTo3DConverter` instance.
+
+    The helper normalizes geometry parameters to meters and hydrates the
+    converter with values retrieved from ``SettingsManager`` if available.
+    """
+
+    geometry = GeometryParams()
+
+    if lever_length is not None:
+        geometry.lever_length = float(lever_length)
+    if wheelbase is not None:
+        geometry.track_width = float(wheelbase)
+    if wheelbase is not None and lever_length is not None:
+        geometry.enforce_pivot_offset_from_track()
+    elif wheelbase is not None:
+        geometry.enforce_arm_length_from_track()
+    else:
+        geometry.enforce_track_from_geometry()
+
+    if cylinder_diameter is not None:
+        geometry.cylinder_inner_diameter = float(cylinder_diameter)
+
+    manager_for_converter = settings_manager or _EmptySettingsManager()
+    converter = GeometryTo3DConverter(geometry, settings_manager=manager_for_converter)
+
+    if settings_manager is not None:
+        updates = _collect_length_updates(settings_manager)
+        if updates:
+            converter.update_user_parameters(updates, persist=False)
+
+    return converter
