@@ -403,38 +403,61 @@ Item {
      *
      * @param params - geometry parameters object
      */
+    function _normalizeLengthToControllerUnits(value) {
+        if (value === undefined || value === null)
+            return null
+
+        var numeric = Number(value)
+        if (!isFinite(numeric))
+            return null
+
+        var scale = Number(sceneScaleFactor)
+        if (!isFinite(scale) || scale <= 0)
+            scale = 1.0
+
+        var absNumeric = Math.abs(numeric)
+
+        if (absNumeric === 0)
+            return 0
+
+        if (absNumeric <= 20.0)
+            return numeric * scale
+
+        return numeric
+    }
+
     function updateGeometry(params) {
         if (params.frameLength !== undefined) {
-            var lengthValue = Number(params.frameLength)
-            if (isFinite(lengthValue)) {
+            var lengthValue = _normalizeLengthToControllerUnits(params.frameLength)
+            if (lengthValue !== null) {
                 frameLength = lengthValue
             }
         }
 
         if (params.frameHeight !== undefined) {
-            var heightValue = Number(params.frameHeight)
-            if (isFinite(heightValue)) {
+            var heightValue = _normalizeLengthToControllerUnits(params.frameHeight)
+            if (heightValue !== null) {
                 frameHeight = heightValue
             }
         }
 
         if (params.trackWidth !== undefined) {
-            var trackValue = Number(params.trackWidth)
-            if (isFinite(trackValue)) {
+            var trackValue = _normalizeLengthToControllerUnits(params.trackWidth)
+            if (trackValue !== null) {
                 trackWidth = trackValue
             }
         }
 
         if (params.beamSize !== undefined) {
-            var beamValue = Number(params.beamSize)
-            if (isFinite(beamValue)) {
+            var beamValue = _normalizeLengthToControllerUnits(params.beamSize)
+            if (beamValue !== null) {
                 beamSize = beamValue
             }
         }
 
         if (params.frameToPivot !== undefined) {
-            var pivotValue = Number(params.frameToPivot)
-            if (isFinite(pivotValue)) {
+            var pivotValue = _normalizeLengthToControllerUnits(params.frameToPivot)
+            if (pivotValue !== null) {
                 frameToPivot = pivotValue
             }
         }
