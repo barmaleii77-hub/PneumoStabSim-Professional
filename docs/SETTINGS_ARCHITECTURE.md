@@ -244,7 +244,7 @@ settings_manager.save_settings(state)
    - Сканирует `config/migrations/` и выполняет `upgrade()` для каждой версии между `metadata.version` и `SettingsManager.SETTINGS_VERSION`.
    - После успешной миграции записывает `metadata.previous_version` и новую `metadata.version`.
 2. **Проверка схемы**
-   - Загружается `config/app_settings.schema.json` и выполняется валидация через `jsonschema`.
+   - Загружается `config/schemas/app_settings.schema.json` и выполняется валидация через `jsonschema`.
    - Любая ошибка выводит путь до параметра и прерывает запуск, исключая «тихие» расхождения.
 3. **Автосохранение**
    - Если миграция или конверсия единиц изменила данные, SettingsManager автоматически сохраняет файл с обновлённой версией.

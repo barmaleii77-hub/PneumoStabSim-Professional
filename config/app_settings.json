@@ -237,61 +237,31 @@
     }
   },
   "defaults_snapshot": {
-    "constants": {
-      "geometry": {
-        "kinematics": {
-          "track_width_m": 2.5,
-          "lever_length_m": 0.4,
-          "pivot_offset_from_frame_m": 0.3,
-          "rod_attach_fraction": 0.7
-        },
-        "cylinder": {
-          "inner_diameter_m": 0.08,
-          "rod_diameter_m": 0.032,
-          "piston_thickness_m": 0.02,
-          "body_length_m": 0.25,
-          "dead_zone_rod_m3": 5e-05,
-          "dead_zone_head_m3": 5e-05
-        },
-        "visualization": {
-          "arm_radius_m": 0.025,
-          "cylinder_radius_m": 0.045,
-          "pivot_offset_x_m": 0.15,
-          "tail_offset_x_m": 0.1,
-          "piston_clip_min_fraction": 0.1,
-          "piston_clip_max_fraction": 0.9,
-          "max_stroke_fraction": 0.4
-        },
-        "initial_state": {
-          "frame_height_m": 0.65,
-          "frame_beam_size_m": 0.12,
-          "frame_length_m": 2.0,
-          "lever_length_m": 0.315,
-          "tail_rod_length_m": 0.1,
-          "j_arm_left": [
-            -0.15,
-            0.06,
-            -1.0
-          ],
-          "j_arm_right": [
-            0.15,
-            0.06,
-            -1.0
-          ],
-          "j_tail_left": [
-            -0.1,
-            0.71,
-            -1.0
-          ],
-          "j_tail_right": [
-            0.1,
-            0.71,
-            -1.0
-          ]
-        }
-      }
-    },
     "graphics": {
+      "quality": {
+        "shadows": {
+          "enabled": true,
+          "resolution": "512",
+          "filter": 4,
+          "bias": 12.0,
+          "darkness": 70.0
+        },
+        "antialiasing": {
+          "primary": "off",
+          "quality": "low",
+          "post": "fxaa"
+        },
+        "taa_enabled": false,
+        "taa_strength": 0.2,
+        "taa_motion_adaptive": true,
+        "fxaa_enabled": true,
+        "specular_aa": false,
+        "dithering": true,
+        "render_scale": 0.8,
+        "render_policy": "ondemand",
+        "frame_rate_limit": 60.0,
+        "oit": "none"
+      },
       "materials": {
         "frame": {
           "base_color": "#c53030",
@@ -446,6 +416,60 @@
         "model_roughness": 0.35,
         "model_metalness": 0.9
       }
+    },
+    "constants": {
+      "geometry": {
+        "kinematics": {
+          "track_width_m": 2.5,
+          "lever_length_m": 0.4,
+          "pivot_offset_from_frame_m": 0.3,
+          "rod_attach_fraction": 0.7
+        },
+        "cylinder": {
+          "inner_diameter_m": 0.08,
+          "rod_diameter_m": 0.032,
+          "piston_thickness_m": 0.02,
+          "body_length_m": 0.25,
+          "dead_zone_rod_m3": 5e-05,
+          "dead_zone_head_m3": 5e-05
+        },
+        "visualization": {
+          "arm_radius_m": 0.025,
+          "cylinder_radius_m": 0.045,
+          "pivot_offset_x_m": 0.15,
+          "tail_offset_x_m": 0.1,
+          "piston_clip_min_fraction": 0.1,
+          "piston_clip_max_fraction": 0.9,
+          "max_stroke_fraction": 0.4
+        },
+        "initial_state": {
+          "frame_height_m": 0.65,
+          "frame_beam_size_m": 0.12,
+          "frame_length_m": 2.0,
+          "lever_length_m": 0.315,
+          "tail_rod_length_m": 0.1,
+          "j_arm_left": [
+            -0.15,
+            0.06,
+            -1.0
+          ],
+          "j_arm_right": [
+            0.15,
+            0.06,
+            -1.0
+          ],
+          "j_tail_left": [
+            -0.1,
+            0.71,
+            -1.0
+          ],
+          "j_tail_right": [
+            0.1,
+            0.71,
+            -1.0
+          ]
+        }
+      }
     }
   },
   "metadata": {
@@ -457,4 +481,3 @@
     "schema_version": "1.0.0"
   }
 }
-

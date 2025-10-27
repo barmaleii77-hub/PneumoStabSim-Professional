@@ -52,7 +52,7 @@ class PostExitTestRunner:
     """Менеджер запуска тестов после выхода из приложения."""
 
     def __init__(self) -> None:
-        self.project_root = Path(__file__).parent
+        self.project_root = Path(__file__).resolve().parent
         self.test_results: List[Dict[str, object]] = []
         self.test_environment = os.environ.copy()
         self.test_environment.update(_detect_qt_environment())
@@ -95,7 +95,19 @@ class PostExitTestRunner:
                     continue
                 if script.name == Path(__file__).name:
                     continue
-                discovered.append(script)
+
+                resolved = script.resolve()
+                if not resolved.is_file():
+                    continue
+                try:
+                    resolved.relative_to(self.project_root.resolve())
+                except ValueError:
+                    print(
+                        f"⚠️ Пропуск потенциально небезопасного скрипта вне репозитория: {resolved}"
+                    )
+                    continue
+
+                discovered.append(resolved)
 
         return sorted(discovered)
 
@@ -162,6 +174,15 @@ class PostExitTestRunner:
 
     def run_test_script(self, script_path: Path, timeout: int = 30) -> Dict[str, object]:
         """Запустить одиночный скрипт и вернуть результат."""
+
+        script_path = script_path.resolve()
+
+        try:
+            script_path.relative_to(self.project_root.resolve())
+        except ValueError:
+            raise ValueError(
+                f"Скрипт {script_path} находится вне каталога проекта и не будет выполнен"
+            ) from None
 
         test_name = script_path.stem
         print(f"\n{'=' * 60}")

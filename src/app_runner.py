@@ -208,7 +208,7 @@ class ApplicationRunner:
         project_root = Path(__file__).resolve().parents[1]
         tools_dir = project_root / "tools"
         validator = tools_dir / "validate_settings.py"
-        schema_path = project_root / "config" / "app_settings.schema.json"
+        schema_path = project_root / "config" / "schemas" / "app_settings.schema.json"
 
         if not validator.exists():
             if self.app_logger:
