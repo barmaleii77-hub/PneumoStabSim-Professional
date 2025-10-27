@@ -231,6 +231,9 @@ Item {
  function restartFallbackTimeline() {
  if (!fallbackEnabled)
  return
+ fallbackPhase = 0.0
+ lastFallbackPhase = 0.0
+ fallbackBaseTime = animationTime
  fallbackTimeline.running = false
  fallbackTimeline.running = true
  }
@@ -409,14 +412,6 @@ Timeline {
  endFrame: framesPerSecond
  property int framesPerSecond: 120
  duration: Math.max(16, fallbackCycleSeconds * 1000)
- onRunningChanged: {
-  if (running) {
-   fallbackPhase = 0.0
-   lastFallbackPhase = 0.0
-   fallbackBaseTime = animationTime
-  }
- }
-
  KeyframeGroup {
   target: root
   property: "fallbackPhase"
