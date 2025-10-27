@@ -1,172 +1,111 @@
-# VS Code Extensions - Installation Guide
+# VS Code Extensions – Installation Guide
 
-## ✅ Status: VS Code Not Found
+## ✅ Repository-provided configuration
 
-VS Code не обнаружен в системе. Необходимо установить VS Code перед установкой расширений.
+- Запустите `python setup_vscode.py`, чтобы автоматически создать каталог
+  `.vscode/`, проверить JSON-файлы и обновить список рекомендуемых расширений.
+- Скрипт одновременно выполняет `uv sync`, поэтому рабочее окружение и
+  интерпретатор `.venv` всегда готовы к использованию из VS Code.
+- После запуска откройте `PneumoStabSim.code-workspace` — все настройки
+  (интерпретатор, задачи, конфигурации F5) уже подключены.
 
-## 📥 Install VS Code
+## 📥 Установка VS Code (если ещё не установлен)
 
 **Download:** https://code.visualstudio.com/download
 
 **Windows Installation:**
-1. Скачайте User Installer (64-bit)
-2. Запустите установщик
-3. ✅ Отметьте "Add to PATH"
-4. ✅ Отметьте "Register Code as an editor for supported file types"
-5. Установите
+1. Скачайте User Installer (64-bit).
+2. Запустите установщик.
+3. ✅ Отметьте «Add to PATH».
+4. ✅ Отметьте «Register Code as an editor for supported file types».
+5. Завершите установку и перезапустите терминал.
 
-## 📦 Required Extensions
+## 📦 Рекомендуемые расширения
 
-### Critical (Must Have)
+Эти 12 расширений зафиксированы в `.vscode/extensions.json` и синхронизируются
+скриптом `setup_vscode.py`.
 
 ```bash
-# Python Development
 code --install-extension ms-python.python
 code --install-extension ms-python.vscode-pylance
-
-# GitHub Copilot (REQUIRED for development)
+code --install-extension ms-python.debugpy
+code --install-extension charliermarsh.ruff
+code --install-extension ms-toolsai.jupyter
+code --install-extension ms-vscode.cpptools
+code --install-extension ms-vscode.cmake-tools
+code --install-extension ms-vscode.powershell
+code --install-extension qt.io.qt-vscode
+code --install-extension tamasfe.even-better-toml
 code --install-extension github.copilot
 code --install-extension github.copilot-chat
 ```
 
-### Recommended
+## 🚀 Быстрый старт после установки VS Code
 
-```bash
-# Python Tools
-code --install-extension ms-python.black-formatter
-code --install-extension ms-python.mypy-type-checker
-code --install-extension ms-python.flake8
+1. Выполните `python setup_vscode.py` (повторно, если уже запускали до установки
+   VS Code) — файл `extensions.json` гарантированно актуален.
+2. Запустите `.\install_extensions.ps1` для пакетной установки расширений или
+   выполните приведённые выше команды `code --install-extension`.
+3. Перезапустите VS Code и откройте рабочую область `PneumoStabSim.code-workspace`.
 
-# Qt/QML Development
-code --install-extension bbenoist.qml
-code --install-extension seanwu.vscode-qt-for-python
+## ⚙️ Настройка после установки расширений
 
-# Version Control
-code --install-extension eamodio.gitlens
-code --install-extension github.vscode-pull-request-github
+### 1. GitHub Copilot
+- `Ctrl+Shift+P` → `GitHub Copilot: Sign In` и выполните вход.
+- Убедитесь, что иконка Copilot отображается в статус-баре.
 
-# Utilities
-code --install-extension ms-vscode.powershell
-code --install-extension visualstudioexptteam.vscodeintellicode
-code --install-extension christian-kohler.path-intellisense
+### 2. Интерпретатор Python
+- `Ctrl+Shift+P` → `Python: Select Interpreter`.
+- Выберите `${workspaceFolder}/.venv/bin/python`
+  (или `${workspaceFolder}\\.venv\\Scripts\\python.exe` на Windows).
 
-# Testing
-code --install-extension littlefoxteam.vscode-python-test-adapter
+### 3. Проверка ключевых настроек
+Файл `.vscode/settings.json` уже включает необходимые параметры, в том числе
+привязку интерпретатора и Python path:
 
-# Documentation
-code --install-extension yzhang.markdown-all-in-one
-code --install-extension davidanson.vscode-markdownlint
-```
-
-## 🚀 Quick Install (After VS Code is installed)
-
-**Option 1: Use our script**
-```powershell
-.\install_extensions.ps1
-```
-
-**Option 2: Manual installation**
-1. Open VS Code
-2. Press `Ctrl+Shift+X` (Extensions panel)
-3. Search and install each extension:
-   - `Python` (ms-python.python)
-   - `Pylance` (ms-python.vscode-pylance)
-   - `GitHub Copilot` (github.copilot)
-- `GitHub Copilot Chat` (github.copilot-chat)
-   - etc.
-
-**Option 3: Install all at once**
-```powershell
-# Copy all extension IDs from extensions.json
-code --install-extension ms-python.python
-code --install-extension ms-python.vscode-pylance
-code --install-extension ms-python.black-formatter
-code --install-extension ms-python.mypy-type-checker
-code --install-extension ms-python.flake8
-code --install-extension github.copilot
-code --install-extension github.copilot-chat
-code --install-extension bbenoist.qml
-code --install-extension seanwu.vscode-qt-for-python
-code --install-extension eamodio.gitlens
-code --install-extension github.vscode-pull-request-github
-code --install-extension littlefoxteam.vscode-python-test-adapter
-code --install-extension christian-kohler.path-intellisense
-code --install-extension visualstudioexptteam.vscodeintellicode
-code --install-extension ms-vscode.powershell
-code --install-extension yzhang.markdown-all-in-one
-code --install-extension davidanson.vscode-markdownlint
-```
-
-## ⚙️ Post-Installation Configuration
-
-### 1. GitHub Copilot Setup
-- Sign in to GitHub: `Ctrl+Shift+P` -> `GitHub Copilot: Sign In`
-- Verify subscription is active
-- Test: Open any Python file and start typing
-
-### 2. Python Interpreter
-- `Ctrl+Shift+P` -> `Python: Select Interpreter`
-- Choose: `Python 3.14.0` (or your installed version)
-- Verify in status bar (bottom right)
-
-### 3. Settings
-Check `.vscode/settings.json` is properly configured:
 ```json
 {
-    "python.defaultInterpreterPath": "py",
-    "python.languageServer": "Pylance",
-    "python.analysis.typeCheckingMode": "basic",
-    "python.formatting.provider": "black",
-    "python.linting.enabled": true,
-    "python.linting.flake8Enabled": true,
-    "editor.formatOnSave": true,
+  "python.defaultInterpreterPath": "${workspaceFolder}/.venv/bin/python",
+  "python.analysis.extraPaths": [
+    "${workspaceFolder}/src",
+    "${workspaceFolder}/tests",
+    "${workspaceFolder}/tools"
+  ],
+  "editor.formatOnSave": true,
   "files.encoding": "utf8"
 }
 ```
 
-## 📋 Verification Checklist
+Дополнительно терминал в VS Code автоматически активирует `.venv`, подставляет
+Qt-переменные (`QT_PLUGIN_PATH`, `QML2_IMPORT_PATH`) и включает UTF-8.
 
-After installation, verify:
+## 📋 Чек-лист проверки
 
-- [ ] VS Code opens correctly
-- [ ] Extensions panel shows all installed (`Ctrl+Shift+X`)
-- [ ] Python extension activated (Python icon in left sidebar)
-- [ ] GitHub Copilot shows in status bar (bottom right)
-- [ ] Can open `.py` files with syntax highlighting
-- [ ] Can open `.qml` files with syntax highlighting
-- [ ] Copilot suggestions appear when typing
+- [ ] Запускается VS Code и открывается рабочая область.
+- [ ] Все 12 расширений установлены (`Ctrl+Shift+X`).
+- [ ] При открытии `.py` и `.qml` файлов активна подсветка синтаксиса.
+- [ ] Copilot предлагает подсказки и доступен чат.
+- [ ] Команда `Tasks: Run Task` показывает задачи Ruff, pytest и qmllint.
+- [ ] Форматирование на сохранение (`ruff`) работает из коробки.
 
-## 🔍 Troubleshooting
+## 🔍 Если возникли проблемы
 
-### VS Code not in PATH
-```powershell
-# Add VS Code to PATH manually
-$vscodePath = "${env:LOCALAPPDATA}\Programs\Microsoft VS Code\bin"
-[Environment]::SetEnvironmentVariable("Path", $env:Path + ";$vscodePath", "User")
+- **VS Code не в PATH:** выполните установку с опцией «Add to PATH» и перезапустите
+  терминал.
+- **Расширения не устанавливаются:** убедитесь в наличии сети, затем перезапустите
+  VS Code и повторите команды `code --install-extension`.
+- **Copilot неактивен:** выполните повторный вход через палитру команд, проверьте
+  наличие действующей подписки на GitHub Copilot.
 
-# Restart terminal
-```
+## 📚 Связанные файлы
 
-### Extensions not installing
-- Check internet connection
-- Try manual installation through Extensions panel
-- Check VS Code version (must be recent)
-- Clear extension cache: Delete `%USERPROFILE%\.vscode\extensions`
-
-### GitHub Copilot not working
-- Verify GitHub account has active Copilot subscription
-- Sign out and sign in again
-- Check VS Code settings for Copilot configuration
-
-## 📚 Related Files
-
-- `.vscode/extensions.json` - Recommended extensions list
-- `.vscode/settings.json` - VS Code settings
-- `.vscode/launch.json` - Debug configurations
-- `install_extensions.ps1` - Automated installation script
+- `.vscode/extensions.json` — список рекомендаций, обновляемый скриптом.
+- `.vscode/settings.json` — фиксация интерпретатора, Qt-переменных и форматирования.
+- `.vscode/launch.json` — конфигурации F5 для запуска приложения и тестов.
+- `setup_vscode.py` и `install_extensions.ps1` — автоматизация настройки IDE.
 
 ---
 
-**Status**: ⚠️ **VS Code must be installed first**
-**Last Updated**: 2025-01-24
-**Action Required**: Install VS Code from https://code.visualstudio.com/
+**Status:** ✅ Конфигурация подготовлена. Установите VS Code, выполните
+`python setup_vscode.py`, затем установите рекомендованные расширения.
+**Last Updated:** 2025-02-15

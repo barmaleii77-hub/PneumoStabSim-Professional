@@ -1,16 +1,16 @@
 {
   "recommendations": [
+    "charliermarsh.ruff",
+    "github.copilot",
+    "github.copilot-chat",
+    "ms-python.debugpy",
     "ms-python.python",
     "ms-python.vscode-pylance",
-    "ms-python.debugpy",
-    "charliermarsh.ruff",
     "ms-toolsai.jupyter",
-    "ms-vscode.cpptools",
     "ms-vscode.cmake-tools",
+    "ms-vscode.cpptools",
     "ms-vscode.powershell",
     "qt.io.qt-vscode",
-    "tamasfe.even-better-toml",
-    "github.copilot",
-    "github.copilot-chat"
+    "tamasfe.even-better-toml"
   ]
 }
