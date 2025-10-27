@@ -12,20 +12,16 @@ param(
 $ErrorActionPreference = "Stop"
 
 # Цвета для вывода
-function Write-Success { param($Message) Write-Host "✅ $Message" -ForegroundColor Green }
-function Write-Info { param($Message) Write-Host "ℹ️  $Message" -ForegroundColor Cyan }
-function Write-Warning { param($Message) Write-Host "⚠️  $Message" -ForegroundColor Yellow }
-function Write-Error { param($Message) Write-Host "❌ $Message" -ForegroundColor Red }
-function Write-Step { param($Message) Write-Host "`n🔧 $Message" -ForegroundColor Magenta }
+function Write-Success { param($Message) Write-Host "[OK] $Message" -ForegroundColor Green }
+function Write-Info { param($Message) Write-Host "[INFO] $Message" -ForegroundColor Cyan }
+function Write-Warning { param($Message) Write-Host "[WARN] $Message" -ForegroundColor Yellow }
+function Write-Error { param($Message) Write-Host "[ERROR] $Message" -ForegroundColor Red }
+function Write-Step { param($Message) Write-Host "`n[STEP] $Message" -ForegroundColor Magenta }
 
-Write-Host @"
-
-╔════════════════════════════════════════════════════════════╗
-║  PneumoStabSim Professional - Setup Script                 ║
-║  Автоматическая настройка окружения разработки             ║
-╚════════════════════════════════════════════════════════════╝
-
-"@ -ForegroundColor Cyan
+Write-Host "============================================================" -ForegroundColor Cyan
+Write-Host "PneumoStabSim Professional - Setup Script" -ForegroundColor Cyan
+Write-Host "Автоматическая настройка окружения разработки" -ForegroundColor Cyan
+Write-Host "============================================================" -ForegroundColor Cyan
 
 # === ПРОВЕРКА PYTHON ===
 Write-Step "Проверка Python..."
@@ -231,6 +227,6 @@ Write-Host "  1. Активируйте venv:      .\\.venv\\Scripts\\Activate.p
 Write-Host "  2. Запустите приложение:  python app.py" -ForegroundColor Yellow
 Write-Host "  3. Или используйте F5 в VS Code для отладки" -ForegroundColor Yellow
 Write-Host ""
-Write-Host "📚 Подробнее о поддерживаемых конфигурациях: docs/environments.md" -ForegroundColor Cyan
+Write-Host "Подробнее о поддерживаемых конфигурациях: docs/environments.md" -ForegroundColor Cyan
 
-Write-Success "Готово к работе! 🚀"
+Write-Success "Готово к работе!"
