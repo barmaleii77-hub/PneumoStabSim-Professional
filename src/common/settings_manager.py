@@ -1478,7 +1478,7 @@ class SettingsManager:
         """Переход на систему СИ (метры/Паскали)."""
         metadata = data.setdefault("metadata", {})
         units_version = metadata.get("units_version")
-        if units_version == "si_v3":
+        if units_version == "si_v2":
             return False
 
         changed = False
@@ -1504,8 +1504,8 @@ class SettingsManager:
                 if self._convert_graphics_effects_to_si(graphics):
                     changed = True
 
-        metadata_changed = metadata.get("units_version") != "si_v3"
-        metadata["units_version"] = "si_v3"
+        metadata_changed = metadata.get("units_version") != "si_v2"
+        metadata["units_version"] = "si_v2"
         return changed or metadata_changed
 
     def _freeze_geometry_settings(self, section: Dict[str, Any]) -> None:
