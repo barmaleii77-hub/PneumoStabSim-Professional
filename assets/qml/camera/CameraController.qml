@@ -381,6 +381,10 @@ Item {
     // ===============================================================
 
     Component.onCompleted: {
+        if (!isFinite(frameToPivot)) {
+            frameToPivot = frameLength / 2
+        }
+
         console.log("═══════════════════════════════════════════")
         console.log("✅ CameraController initialized (v" + version + ")")
         console.log("═══════════════════════════════════════════")
