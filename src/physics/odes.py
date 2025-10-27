@@ -11,6 +11,7 @@ from typing import Any, Dict, Tuple
 import numpy as np
 
 from config.constants import (
+    get_current_section,
     get_physics_reference_axes,
     get_physics_rigid_body_constants,
     get_physics_suspension_constants,
@@ -105,12 +106,40 @@ def _rigid_body_defaults() -> Dict[str, Any]:
 
 
 def _suspension_defaults() -> Dict[str, float]:
-    context = "constants.physics.suspension"
-    raw = get_physics_suspension_constants()
-    return {
-        "spring_constant": _require_float(raw, "spring_constant", context),
-        "damper_coefficient": _require_float(raw, "damper_coefficient", context),
+    const_context = "constants.physics.suspension"
+    raw_constants = get_physics_suspension_constants()
+    values = {
+        "spring_constant": _require_float(
+            raw_constants, "spring_constant", const_context
+        ),
+        "damper_coefficient": _require_float(
+            raw_constants, "damper_coefficient", const_context
+        ),
     }
+
+    try:
+        physics_section = get_current_section("physics")
+    except Exception:
+        return values
+
+    current_context = "current.physics.suspension"
+    suspension_section = physics_section.get("suspension")
+    if suspension_section is None:
+        return values
+    if not isinstance(suspension_section, Mapping):
+        raise SettingsValidationError(f"Секция {current_context} должна быть объектом")
+
+    for key in ("spring_constant", "damper_coefficient"):
+        if key not in suspension_section:
+            continue
+        override_value = suspension_section[key]
+        if not isinstance(override_value, (int, float)):
+            raise SettingsValidationError(
+                f"Параметр {key} в {current_context} должен быть числом"
+            )
+        values[key] = float(override_value)
+
+    return values
 
 
 _VERTICAL_AXIS: np.ndarray
