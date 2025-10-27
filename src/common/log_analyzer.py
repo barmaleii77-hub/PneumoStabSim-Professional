@@ -12,6 +12,13 @@ import re
 from collections import defaultdict, Counter
 
 
+ERROR_MARKER = re.compile(
+    r"(\b(error|critical|fatal|exception|traceback)\b|runtimeerror|qml load failed|qml load errors|❌)",
+    re.IGNORECASE,
+)
+WARNING_MARKER = re.compile(r"\bwarning\b", re.IGNORECASE)
+
+
 class LogAnalysisResult:
     """Результат анализа логов"""
 
@@ -99,8 +106,8 @@ class UnifiedLogAnalyzer:
             with open(run_log, "r", encoding="utf-8") as f:
                 lines = f.readlines()
 
-            errors = [line for line in lines if "ERROR" in line or "CRITICAL" in line]
-            warnings = [line for line in lines if "WARNING" in line]
+            errors = [line for line in lines if ERROR_MARKER.search(line)]
+            warnings = [line for line in lines if WARNING_MARKER.search(line)]
 
             result.add_metric("total_lines", len(lines))
             result.add_metric("errors", len(errors))
@@ -129,8 +136,11 @@ class UnifiedLogAnalyzer:
                     norm_errors.items(), key=lambda x: len(x[1]), reverse=True
                 ):
                     count = len(lines_same)
+                    msg_upper = msg.upper()
                     prefix = (
-                        "CRITICAL" if "CRITICAL" in msg or "FATAL" in msg else "ERROR"
+                        "CRITICAL"
+                        if any(tag in msg_upper for tag in ("CRITICAL", "FATAL"))
+                        else "ERROR"
                     )
                     result.add_error(f"[{prefix}] {count}× {msg}")
                 # Добавляем короткий совет если много разных типов

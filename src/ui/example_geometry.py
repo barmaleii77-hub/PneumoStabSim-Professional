@@ -109,6 +109,6 @@ class ExampleGeometryModel(QObject):
         super().__init__(parent)
         self._geometry = ExampleTriangleGeometry()
 
-    @Property(QQuick3DGeometry, constant=True)
+    @Property(QObject, constant=True)
     def geometry(self):
         return self._geometry

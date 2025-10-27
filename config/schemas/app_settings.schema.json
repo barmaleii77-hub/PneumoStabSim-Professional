@@ -296,6 +296,12 @@
             },
             "effects": {
               "type": "object"
+            },
+            "scene": {
+              "type": "object"
+            },
+            "animation": {
+              "type": "object"
             }
           },
           "required": [
@@ -304,7 +310,9 @@
             "quality",
             "camera",
             "materials",
-            "effects"
+            "effects",
+            "scene",
+            "animation"
           ],
           "additionalProperties": false
         },
