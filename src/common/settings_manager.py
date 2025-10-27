@@ -147,7 +147,12 @@ class SettingsManager:
     )
 
     # Пути к схеме и миграциям
-    _SCHEMA_PATH = Path(__file__).resolve().parents[2] / "config" / "app_settings.schema.json"
+    _SCHEMA_PATH = (
+        Path(__file__).resolve().parents[2]
+        / "config"
+        / "schemas"
+        / "app_settings.schema.json"
+    )
     _MIGRATIONS_PATH = Path(__file__).resolve().parents[2] / "config" / "migrations"
 
     # Canonical geometry keys exposed in meters for UI/visualization modules
