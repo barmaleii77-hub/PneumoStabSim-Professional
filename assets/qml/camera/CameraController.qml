@@ -73,6 +73,11 @@ Item {
     property real sceneScaleFactor: 1000.0
 
     /**
+     * Fixed metres → millimetres conversion multiplier for bridge payloads
+     */
+    readonly property real metersToMillimeters: 1000.0
+
+    /**
      * External callbacks
      */
     property var onToggleAnimation: null
@@ -411,10 +416,6 @@ Item {
         if (!isFinite(numeric))
             return null
 
-        var scale = Number(sceneScaleFactor)
-        if (!isFinite(scale) || scale <= 0)
-            scale = 1.0
-
         var absNumeric = Math.abs(numeric)
 
         if (absNumeric === 0)
@@ -423,10 +424,10 @@ Item {
         // Values coming from the scene bridge that are 20 units or smaller are
         // emitted in metres (the CAD payload keeps human-friendly metre inputs).
         // Larger magnitudes already represent millimetres in controller space,
-        // so only the small-magnitude metre inputs are scaled by the scene
-        // factor.
+        // so only the small-magnitude metre inputs are scaled by the fixed metre
+        // multiplier, keeping camera geometry independent from the scene scale.
         if (absNumeric <= 20.0)
-            return numeric * scale
+            return numeric * metersToMillimeters
 
         return numeric
     }
