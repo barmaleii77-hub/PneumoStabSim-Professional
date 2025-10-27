@@ -420,6 +420,11 @@ Item {
         if (absNumeric === 0)
             return 0
 
+        // Values coming from the scene bridge that are 20 units or smaller are
+        // emitted in metres (the CAD payload keeps human-friendly metre inputs).
+        // Larger magnitudes already represent millimetres in controller space,
+        // so only the small-magnitude metre inputs are scaled by the scene
+        // factor.
         if (absNumeric <= 20.0)
             return numeric * scale
 
