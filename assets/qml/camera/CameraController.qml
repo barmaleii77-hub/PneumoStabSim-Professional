@@ -46,6 +46,7 @@ Item {
     property real trackWidth: 1600
     property real frameHeight: 650
     property real beamSize: 120
+    property real frameToPivot: frameLength / 2
 
     // ===============================================================
     // OPTIONAL PROPERTIES
@@ -227,7 +228,8 @@ Item {
             trackWidth,
             frameHeight,
             beamSize,
-            marginFactor
+            marginFactor,
+            _effectiveFrameToPivot()
         )
     }
 
@@ -237,7 +239,7 @@ Item {
     function resetView() {
         console.log("📷 CameraController: reset view...")
 
-        cameraState.resetView(beamSize, frameHeight, frameLength)
+        cameraState.resetView(beamSize, frameHeight, frameLength, _effectiveFrameToPivot())
     }
 
     /**
@@ -251,7 +253,8 @@ Item {
             frameHeight,
             frameLength,
             trackWidth,
-            1600  // default trackWidth
+            1600,  // default trackWidth
+            _effectiveFrameToPivot()
         )
     }
 
@@ -292,6 +295,14 @@ Item {
         cameraState.cameraChanged()
     }
 
+    function _effectiveFrameToPivot() {
+        var numeric = Number(frameToPivot)
+        if (!isFinite(numeric)) {
+            numeric = frameLength / 2
+        }
+        return numeric
+    }
+
     /**
      * Update geometry parameters (for auto-fit/reset)
      *
@@ -299,19 +310,38 @@ Item {
      */
     function updateGeometry(params) {
         if (params.frameLength !== undefined) {
-            frameLength = params.frameLength
+            var lengthValue = Number(params.frameLength)
+            if (isFinite(lengthValue)) {
+                frameLength = lengthValue
+            }
         }
 
         if (params.frameHeight !== undefined) {
-            frameHeight = params.frameHeight
+            var heightValue = Number(params.frameHeight)
+            if (isFinite(heightValue)) {
+                frameHeight = heightValue
+            }
         }
 
         if (params.trackWidth !== undefined) {
-            trackWidth = params.trackWidth
+            var trackValue = Number(params.trackWidth)
+            if (isFinite(trackValue)) {
+                trackWidth = trackValue
+            }
         }
 
         if (params.beamSize !== undefined) {
-            beamSize = params.beamSize
+            var beamValue = Number(params.beamSize)
+            if (isFinite(beamValue)) {
+                beamSize = beamValue
+            }
+        }
+
+        if (params.frameToPivot !== undefined) {
+            var pivotValue = Number(params.frameToPivot)
+            if (isFinite(pivotValue)) {
+                frameToPivot = pivotValue
+            }
         }
     }
 
