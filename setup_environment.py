@@ -100,16 +100,15 @@ class EnvironmentSetup:
         self.logger.log("=" * 60)
 
     def _find_python(self) -> List[str]:
-        """Находит предпочтительный интерпретатор Python3.13 (fallback 3.12/3.11)."""
+        """Находит предпочтительный интерпретатор Python3.13 (fallback 3.11)."""
 
         python_candidates: List[List[str]] = [
             ["py", "-3.13"],
             ["python3.13"],
-            ["py", "-3.12"],
-            ["python3.12"],
             ["py", "-3.11"],
             ["python3.11"],
             ["python3"],
+            ["py", "-3"],
             ["python"],
         ]
 
@@ -225,7 +224,9 @@ class EnvironmentSetup:
         if uv_executable:
             self.logger.log("📦 Установка зависимостей через uv sync…")
             try:
-                subprocess.run([uv_executable, "sync"], cwd=self.project_root, check=True)
+                subprocess.run(
+                    [uv_executable, "sync"], cwd=self.project_root, check=True
+                )
                 self.logger.log("✅ Зависимости установлены через uv")
                 self._show_installed_packages()
                 return True
@@ -264,7 +265,9 @@ class EnvironmentSetup:
             self.logger.log(f"❌ Ошибка установки зависимостей: {e}")
             if e.stderr:
                 self.logger.log(f"Детали ошибки: {e.stderr}")
-            self.logger.log("⚠️  Пытаемся установить зависимости в editable-режиме из pyproject.toml")
+            self.logger.log(
+                "⚠️  Пытаемся установить зависимости в editable-режиме из pyproject.toml"
+            )
             return self._install_project_editable()
 
     def _install_project_editable(self) -> bool:
@@ -290,7 +293,9 @@ class EnvironmentSetup:
             self.logger.log("✅ Зависимости установлены через editable-режим")
             self._show_installed_packages()
         else:
-            self.logger.log("❌ Установка зависимостей не удалась даже через editable-режим")
+            self.logger.log(
+                "❌ Установка зависимостей не удалась даже через editable-режим"
+            )
 
         return success
 
