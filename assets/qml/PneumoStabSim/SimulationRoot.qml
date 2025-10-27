@@ -3,6 +3,7 @@ import QtQuick.Controls 6.10
 import QtQuick.Layouts 6.10
 import QtQuick3D 6.10
 import QtQuick3D.Helpers 6.10
+import QtQuick.Timeline 1.0
 import "../camera"
 import "../components"
 import "../effects"
@@ -13,8 +14,10 @@ import "../scene"
 /*
  * PneumoStabSim - MAIN QML (v4.9.x)
  *
- * View3D + ExtendedSceneEnvironment (HDR/IBL), IBL Probe Loader.
- * Реальная упрощённая схема (рама, рычаги, цилиндр). Без кнопок на канве.
+ * View3D + ExtendedSceneEnvironment (HDR/IBL), IBL Probe Loader,
+ * ReflectionProbe для локальных отражений.
+ * Полноценная анимированная схема (рама, рычаги, шарниры, цилиндры,
+ * штоки, хвостовики, поршни). Без кнопок на канве.
  * Обновления приходят из панелей через apply*Updates и batched updates.
  */
 Item {
@@ -38,6 +41,23 @@ Item {
  property bool cameraHudEnabled: false
  property bool feedbackReady: false
  property real animationTime: animationDefaults && animationDefaults.animation_time !== undefined ? Number(animationDefaults.animation_time) :0.0 // сек, накапливается Python-таймером
+ property bool pythonAnimationActive: false
+ property bool pythonLeverAnglesActive: false
+ property bool pythonPistonsActive: false
+ property bool pythonFrameActive: false
+ property bool pythonPressureActive: false
+ property bool fallbackEnabled: isRunning && !pythonAnimationActive
+ property real fallbackPhase: 0.0
+ property real lastFallbackPhase: 0.0
+ property real fallbackBaseTime: animationTime
+ readonly property real fallbackCycleSeconds: Math.max(0.2, 1.0 / Math.max(userFrequency, 0.01))
+ property real batchFlashOpacity: 0.0
+
+ property bool reflectionProbeEnabled: true
+ property real reflectionProbePadding: 0.15 // м, доп. зазор вокруг геометрии
+ property int reflectionProbeQualityValue: ReflectionProbe.VeryHigh
+ property int reflectionProbeRefreshModeValue: ReflectionProbe.EveryFrame
+ property int reflectionProbeTimeSlicingValue: ReflectionProbe.IndividualFaces
 
  property bool signalTraceOverlayVisible: false
  property bool signalTraceRecordingEnabled: false
@@ -89,6 +109,61 @@ Item {
  cylinderSegments: userCylinderSegments,
  cylinderRings: userCylinderRings
  })
+
+ onIsRunningChanged: updateFallbackAngles()
+
+ onFallbackEnabledChanged: {
+  if (fallbackEnabled) {
+   fallbackBaseTime = animationTime
+   lastFallbackPhase = fallbackPhase
+   restartFallbackTimeline()
+   updateFallbackAngles()
+  } else {
+   fallbackTimeline.running = false
+  }
+ }
+
+ onPythonAnimationActiveChanged: {
+  if (pythonAnimationActive) {
+   fallbackTimeline.running = false
+  } else if (fallbackEnabled) {
+   fallbackBaseTime = animationTime
+   lastFallbackPhase = fallbackPhase
+   restartFallbackTimeline()
+   updateFallbackAngles()
+  }
+ }
+
+ onFallbackPhaseChanged: {
+  if (!fallbackEnabled)
+   return
+  if (fallbackPhase < lastFallbackPhase)
+   fallbackBaseTime += fallbackCycleSeconds
+  animationTime = fallbackBaseTime + fallbackPhase * fallbackCycleSeconds
+  lastFallbackPhase = fallbackPhase
+  updateFallbackAngles()
+ }
+
+ onUserFrequencyChanged: {
+  if (fallbackEnabled) {
+   fallbackBaseTime = animationTime
+   lastFallbackPhase = fallbackPhase
+   restartFallbackTimeline()
+  }
+  updateFallbackAngles()
+ }
+
+ onUserAmplitudeChanged: updateFallbackAngles()
+ onUserPhaseGlobalChanged: updateFallbackAngles()
+ onUserPhaseFLChanged: updateFallbackAngles()
+ onUserPhaseFRChanged: updateFallbackAngles()
+ onUserPhaseRLChanged: updateFallbackAngles()
+ onUserPhaseRRChanged: updateFallbackAngles()
+
+ onBatchUpdatesApplied: {
+ feedbackReady = true
+ batchFlash.restart()
+ }
 
  // Масштаб перевода метров в сцену Qt Quick3D (исторически миллиметры)
  property real sceneScaleFactor: sceneDefaults && sceneDefaults.scale_factor !== undefined ? Number(sceneDefaults.scale_factor) : 1000.0
@@ -151,6 +226,38 @@ Item {
  result[key] = source[key]
  }
  return result
+ }
+
+ function restartFallbackTimeline() {
+ if (!fallbackEnabled)
+ return
+ fallbackTimeline.running = false
+ fallbackTimeline.running = true
+ }
+
+ function updateFallbackAngles() {
+ if (pythonLeverAnglesActive)
+ return
+ if (!isRunning) {
+ flAngleRad = 0.0
+ frAngleRad = 0.0
+ rlAngleRad = 0.0
+ rrAngleRad = 0.0
+ return
+ }
+ var globalPhaseRad = userPhaseGlobal * Math.PI / 180.0
+ var amplitudeRad = userAmplitude * Math.PI / 180.0
+ var base = animationTime * userFrequency * 2.0 * Math.PI
+
+ function angleFor(offsetDeg) {
+ var offsetRad = offsetDeg * Math.PI / 180.0
+ return amplitudeRad * Math.sin(base + globalPhaseRad + offsetRad)
+ }
+
+ flAngleRad = angleFor(userPhaseFL)
+ frAngleRad = angleFor(userPhaseFR)
+ rlAngleRad = angleFor(userPhaseRL)
+ rrAngleRad = angleFor(userPhaseRR)
  }
 
  function applyCameraHudSettings(payload) {
@@ -259,13 +366,101 @@ Item {
  sceneScaleFactor: root.sceneScaleFactor
  }
 
- IblProbeLoader {
+IblProbeLoader {
  id: iblLoader
  objectName: "iblProbeLoader"
  visible: false
+}
+
+ SequentialAnimation {
+ id: batchFlash
+ running: false
+ onStopped: batchFlashOpacity = 0.0
+
+ PropertyAnimation {
+ target: root
+ property: "batchFlashOpacity"
+ from: 0.0
+ to: 0.6
+ duration: 140
+ easing.type: Easing.OutCubic
  }
 
- View3D {
+ PauseAnimation { duration: 180 }
+
+ PropertyAnimation {
+ target: root
+ property: "batchFlashOpacity"
+ to: 0.0
+ duration: 320
+ easing.type: Easing.InOutQuad
+ }
+ }
+
+ Timeline {
+  id: fallbackTimeline
+  enabled: fallbackEnabled
+  running: fallbackEnabled
+  loops: Animation.Infinite
+  startFrame: 0
+  endFrame: framesPerSecond
+ property int framesPerSecond: 120
+ duration: Math.max(16, fallbackCycleSeconds * 1000)
+ onRunningChanged: {
+ if (running) {
+ fallbackPhase = 0.0
+ lastFallbackPhase = 0.0
+ fallbackBaseTime = animationTime
+ }
+ }
+
+ KeyframeGroup {
+ target: root
+ property: "fallbackPhase"
+ Keyframe { frame: fallbackTimeline.startFrame; value: 0.0 }
+ Keyframe { frame: fallbackTimeline.endFrame; value: 1.0 }
+ }
+ }
+
+ Timer {
+ id: pythonAnimationTimeout
+ interval: 800
+ repeat: false
+ onTriggered: pythonAnimationActive = false
+ }
+
+ Timer {
+ id: pythonLeverAnglesTimeout
+ interval: 800
+ repeat: false
+ onTriggered: {
+ pythonLeverAnglesActive = false
+ updateFallbackAngles()
+ }
+ }
+
+ Timer {
+ id: pythonPistonsTimeout
+ interval: 800
+ repeat: false
+ onTriggered: pythonPistonsActive = false
+ }
+
+ Timer {
+ id: pythonFrameTimeout
+ interval: 800
+ repeat: false
+ onTriggered: pythonFrameActive = false
+ }
+
+ Timer {
+ id: pythonPressureTimeout
+ interval: 800
+ repeat: false
+ onTriggered: pythonPressureActive = false
+ }
+
+View3D {
  id: sceneView
  anchors.fill: parent
  environment: sceneEnvCtl
@@ -341,16 +536,43 @@ Item {
  }
 
  Frame {
- id: frameGeometry
- worldRoot: worldRoot
- beamSizeM: geometryValue("beamSize", userBeamSize)
- frameHeightM: geometryValue("frameHeight", userFrameHeight)
- frameLengthM: geometryValue("frameLength", userFrameLength)
- frameMaterial: sharedMaterials.frameMaterial
+  id: frameGeometry
+  worldRoot: worldRoot
+  beamSizeM: geometryValue("beamSize", userBeamSize)
+  frameHeightM: geometryValue("frameHeight", userFrameHeight)
+  frameLengthM: geometryValue("frameLength", userFrameLength)
+  frameMaterial: sharedMaterials.frameMaterial
+ }
+
+ ReflectionProbe {
+  id: mainReflectionProbe
+  parent: worldRoot
+  enabled: root.reflectionProbeEnabled
+  parallaxCorrection: true
+  quality: root.reflectionProbeQualityValue
+  refreshMode: root.reflectionProbeRefreshModeValue
+  timeSlicing: root.reflectionProbeTimeSlicingValue
+  position: {
+   var beamVal = Math.max(geometryValue("beamSize", userBeamSize), 0);
+   var frameHeightVal = Math.max(geometryValue("frameHeight", userFrameHeight), 0);
+   return Qt.vector3d(0, toSceneLength((beamVal / 2) + (frameHeightVal / 2)), 0);
+  }
+  boxSize: {
+   var track = Math.max(geometryValue("trackWidth", userTrackWidth), 0);
+   var frameHeightVal = Math.max(geometryValue("frameHeight", userFrameHeight), 0);
+   var beamVal = Math.max(geometryValue("beamSize", userBeamSize), 0);
+   var frameLengthVal = Math.max(geometryValue("frameLength", userFrameLength), 0);
+   var padding = Math.max(0, root.reflectionProbePadding) * 2;
+   return Qt.vector3d(
+    Math.max(1.0, toSceneLength(track + padding)),
+    Math.max(1.0, toSceneLength(frameHeightVal + beamVal + padding)),
+    Math.max(1.0, toSceneLength(frameLengthVal + padding))
+   );
+  }
  }
 
  SuspensionCorner {
- id: flCorner
+  id: flCorner
  j_arm: cornerArmPosition("fl")
  j_tail: cornerTailPosition("fl")
  leverAngle: leverAngleFor("fl")
@@ -546,11 +768,20 @@ Item {
  }
  batchUpdatesApplied(summary)
  }
+}
+
+onSceneBridgeChanged: applySceneBridgeState()
+
+ Rectangle {
+ anchors.fill: parent
+ color: "#66b1ff"
+ opacity: batchFlashOpacity
+ visible: opacity > 0.0
+ z: 900
+ border.width: 0
  }
 
- onSceneBridgeChanged: applySceneBridgeState()
-
- Connections {
+Connections {
  id: sceneBridgeConnections
  target: sceneBridge
  enabled: !!sceneBridge
@@ -799,13 +1030,77 @@ Item {
 
  function normalizeLengthMeters(value) {
  if (value === undefined || value === null)
- return undefined;
+  return undefined;
  var numeric = Number(value);
  if (!isFinite(numeric))
- return undefined;
+  return undefined;
  if (Math.abs(numeric) >10.0)
- return numeric /1000.0;
+  return numeric /1000.0;
  return numeric;
+}
+
+ function parseReflectionProbeEnum(value, mapping, fallback) {
+  if (value === undefined || value === null)
+   return fallback;
+  if (typeof value === "number" && isFinite(value)) {
+   var numeric = Number(value);
+   for (var key in mapping) {
+    if (mapping.hasOwnProperty(key) && mapping[key] === numeric)
+     return numeric;
+   }
+   return numeric;
+  }
+  var token = String(value).toLowerCase();
+  token = token.replace(/\s+/g, "");
+  token = token.replace(/[-_]/g, "");
+  if (mapping[token] !== undefined)
+   return mapping[token];
+  return fallback;
+ }
+
+ function reflectionProbeQualityFrom(value) {
+  return parseReflectionProbeEnum(value, {
+   veryhigh: ReflectionProbe.VeryHigh,
+   ultra: ReflectionProbe.VeryHigh,
+   high: ReflectionProbe.High,
+   medium: ReflectionProbe.Medium,
+   low: ReflectionProbe.Low
+  }, ReflectionProbe.VeryHigh);
+ }
+
+ function reflectionProbeRefreshModeFrom(value) {
+  return parseReflectionProbeEnum(value, {
+   never: ReflectionProbe.Never,
+   disabled: ReflectionProbe.Never,
+   off: ReflectionProbe.Never,
+   firstframe: ReflectionProbe.FirstFrame,
+   first: ReflectionProbe.FirstFrame,
+   startup: ReflectionProbe.FirstFrame,
+   everyframe: ReflectionProbe.EveryFrame,
+   always: ReflectionProbe.EveryFrame,
+   realtime: ReflectionProbe.EveryFrame
+  }, ReflectionProbe.EveryFrame);
+ }
+
+ function reflectionProbeTimeSlicingFrom(value) {
+  return parseReflectionProbeEnum(value, {
+   notimeslicing: ReflectionProbe.NoTimeSlicing,
+   none: ReflectionProbe.NoTimeSlicing,
+   allfacesatonce: ReflectionProbe.AllFacesAtOnce,
+   allfaces: ReflectionProbe.AllFacesAtOnce,
+   together: ReflectionProbe.AllFacesAtOnce,
+   individualfaces: ReflectionProbe.IndividualFaces,
+   perface: ReflectionProbe.IndividualFaces
+  }, ReflectionProbe.IndividualFaces);
+ }
+
+ function sanitizeReflectionProbePadding(value) {
+  if (value === undefined || value === null)
+   return reflectionProbePadding;
+  var numeric = Number(value);
+  if (!isFinite(numeric))
+   return reflectionProbePadding;
+  return Math.max(0, numeric);
  }
 
  function emitConfigChange(category, payload) {
@@ -1528,7 +1823,11 @@ Item {
  function applyAnimationUpdates(params) {
  if (!params) return;
  if (params.isRunning !== undefined) isRunning = !!params.isRunning;
- if (params.simulationTime !== undefined) animationTime = Number(params.simulationTime);
+ if (params.simulationTime !== undefined) {
+ animationTime = Number(params.simulationTime);
+ pythonAnimationActive = true;
+ pythonAnimationTimeout.restart();
+ }
  if (params.amplitude !== undefined) userAmplitude = Number(params.amplitude);
  if (params.frequency !== undefined) userFrequency = Number(params.frequency);
  if (params.phase_global !== undefined) userPhaseGlobal = Number(params.phase_global);
@@ -1536,22 +1835,105 @@ Item {
  if (params.phase_fr !== undefined) userPhaseFR = Number(params.phase_fr);
  if (params.phase_rl !== undefined) userPhaseRL = Number(params.phase_rl);
  if (params.phase_rr !== undefined) userPhaseRR = Number(params.phase_rr);
- if (params.frame) { var frame = params.frame; if (frame.heave !== undefined) frameHeave = Number(frame.heave); if (frame.roll !== undefined) frameRollRad = Number(frame.roll); if (frame.pitch !== undefined) framePitchRad = Number(frame.pitch); }
- if (params.leverAngles) { var angles = params.leverAngles; if (angles.fl !== undefined) flAngleRad = Number(angles.fl); if (angles.fr !== undefined) frAngleRad = Number(angles.fr); if (angles.rl !== undefined) rlAngleRad = Number(angles.rl); if (angles.rr !== undefined) rrAngleRad = Number(angles.rr); }
- if (params.pistonPositions) { var pist = params.pistonPositions; var updatedPistons = Object.assign({}, pistonPositions || {}); if (pist.fl !== undefined) updatedPistons.fl = Number(pist.fl); if (pist.fr !== undefined) updatedPistons.fr = Number(pist.fr); if (pist.rl !== undefined) updatedPistons.rl = Number(pist.rl); if (pist.rr !== undefined) updatedPistons.rr = Number(pist.rr); pistonPositions = updatedPistons; }
- if (params.linePressures) { var lp = params.linePressures; var updatedPressures = Object.assign({}, linePressures || {}); if (lp.a1 !== undefined) updatedPressures.a1 = Number(lp.a1); if (lp.b1 !== undefined) updatedPressures.b1 = Number(lp.b1); if (lp.a2 !== undefined) updatedPressures.a2 = Number(lp.a2); if (lp.b2 !== undefined) updatedPressures.b2 = Number(lp.b2); linePressures = updatedPressures; }
- if (params.tankPressure !== undefined) tankPressure = Number(params.tankPressure);
+ if (params.frame) {
+ var frame = params.frame;
+ if (frame.heave !== undefined) frameHeave = Number(frame.heave);
+ if (frame.roll !== undefined) frameRollRad = Number(frame.roll);
+ if (frame.pitch !== undefined) framePitchRad = Number(frame.pitch);
+ pythonFrameActive = true;
+ pythonFrameTimeout.restart();
  }
+ if (params.leverAngles) {
+ var angles = params.leverAngles;
+ if (angles.fl !== undefined) flAngleRad = Number(angles.fl);
+ if (angles.fr !== undefined) frAngleRad = Number(angles.fr);
+ if (angles.rl !== undefined) rlAngleRad = Number(angles.rl);
+ if (angles.rr !== undefined) rrAngleRad = Number(angles.rr);
+ pythonLeverAnglesActive = true;
+ pythonLeverAnglesTimeout.restart();
+ }
+ if (params.pistonPositions) {
+ var pist = params.pistonPositions;
+ var updatedPistons = Object.assign({}, pistonPositions || {});
+ if (pist.fl !== undefined) updatedPistons.fl = Number(pist.fl);
+ if (pist.fr !== undefined) updatedPistons.fr = Number(pist.fr);
+ if (pist.rl !== undefined) updatedPistons.rl = Number(pist.rl);
+ if (pist.rr !== undefined) updatedPistons.rr = Number(pist.rr);
+ pistonPositions = updatedPistons;
+ pythonPistonsActive = true;
+ pythonPistonsTimeout.restart();
+ }
+ if (params.linePressures) {
+ var lp = params.linePressures;
+ var updatedPressures = Object.assign({}, linePressures || {});
+ if (lp.a1 !== undefined) updatedPressures.a1 = Number(lp.a1);
+ if (lp.b1 !== undefined) updatedPressures.b1 = Number(lp.b1);
+ if (lp.a2 !== undefined) updatedPressures.a2 = Number(lp.a2);
+ if (lp.b2 !== undefined) updatedPressures.b2 = Number(lp.b2);
+ linePressures = updatedPressures;
+ pythonPressureActive = true;
+ pythonPressureTimeout.restart();
+ }
+ if (params.tankPressure !== undefined) {
+ tankPressure = Number(params.tankPressure);
+ pythonPressureActive = true;
+ pythonPressureTimeout.restart();
+ }
+ if (!pythonLeverAnglesActive)
+ updateFallbackAngles();
+}
 
  function apply3DUpdates(params) {
  if (!params) return;
- if (params.frame) { var f = params.frame; if (f.heave !== undefined) frameHeave = Number(f.heave); if (f.roll !== undefined) frameRollRad = Number(f.roll); if (f.pitch !== undefined) framePitchRad = Number(f.pitch); }
- if (params.wheels) { var wheelData = params.wheels; var pist = Object.assign({}, pistonPositions || {}); if (wheelData.fl) { if (wheelData.fl.leverAngle !== undefined) flAngleRad = Number(wheelData.fl.leverAngle); if (wheelData.fl.pistonPosition !== undefined) pist.fl = Number(wheelData.fl.pistonPosition); }
- if (wheelData.fr) { if (wheelData.fr.leverAngle !== undefined) frAngleRad = Number(wheelData.fr.leverAngle); if (wheelData.fr.pistonPosition !== undefined) pist.fr = Number(wheelData.fr.pistonPosition); }
- if (wheelData.rl) { if (wheelData.rl.leverAngle !== undefined) rlAngleRad = Number(wheelData.rl.leverAngle); if (wheelData.rl.pistonPosition !== undefined) pist.rl = Number(wheelData.rl.pistonPosition); }
- if (wheelData.rr) { if (wheelData.rr.leverAngle !== undefined) rrAngleRad = Number(wheelData.rr.leverAngle); if (wheelData.rr.pistonPosition !== undefined) pist.rr = Number(wheelData.rr.pistonPosition); }
- pistonPositions = pist; }
+ if (params.frame) {
+ var f = params.frame;
+ if (f.heave !== undefined) frameHeave = Number(f.heave);
+ if (f.roll !== undefined) frameRollRad = Number(f.roll);
+ if (f.pitch !== undefined) framePitchRad = Number(f.pitch);
+ pythonFrameActive = true;
+ pythonFrameTimeout.restart();
  }
+ if (params.wheels) {
+  var wheelData = params.wheels;
+  var pist = Object.assign({}, pistonPositions || {});
+  if (wheelData.fl) {
+   if (wheelData.fl.leverAngle !== undefined) flAngleRad = Number(wheelData.fl.leverAngle);
+   if (wheelData.fl.pistonPosition !== undefined) pist.fl = Number(wheelData.fl.pistonPosition);
+  }
+  if (wheelData.fr) {
+   if (wheelData.fr.leverAngle !== undefined) frAngleRad = Number(wheelData.fr.leverAngle);
+   if (wheelData.fr.pistonPosition !== undefined) pist.fr = Number(wheelData.fr.pistonPosition);
+  }
+  if (wheelData.rl) {
+   if (wheelData.rl.leverAngle !== undefined) rlAngleRad = Number(wheelData.rl.leverAngle);
+   if (wheelData.rl.pistonPosition !== undefined) pist.rl = Number(wheelData.rl.pistonPosition);
+  }
+  if (wheelData.rr) {
+   if (wheelData.rr.leverAngle !== undefined) rrAngleRad = Number(wheelData.rr.leverAngle);
+   if (wheelData.rr.pistonPosition !== undefined) pist.rr = Number(wheelData.rr.pistonPosition);
+  }
+  pistonPositions = pist;
+  pythonLeverAnglesActive = true;
+  pythonLeverAnglesTimeout.restart();
+  pythonPistonsActive = true;
+  pythonPistonsTimeout.restart();
+ }
+ if (params.reflectionProbe) {
+  var rp = params.reflectionProbe;
+  if (rp.enabled !== undefined)
+   reflectionProbeEnabled = !!rp.enabled;
+  if (rp.padding !== undefined)
+   reflectionProbePadding = sanitizeReflectionProbePadding(rp.padding);
+  if (rp.quality !== undefined)
+   reflectionProbeQualityValue = reflectionProbeQualityFrom(rp.quality);
+  if (rp.refreshMode !== undefined)
+   reflectionProbeRefreshModeValue = reflectionProbeRefreshModeFrom(rp.refreshMode);
+  if (rp.timeSlicing !== undefined)
+   reflectionProbeTimeSlicingValue = reflectionProbeTimeSlicingFrom(rp.timeSlicing);
+ }
+ if (!pythonLeverAnglesActive)
+  updateFallbackAngles();
+}
 
     function applyRenderSettings(params) {
         if (!params)
