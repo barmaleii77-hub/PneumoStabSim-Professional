@@ -682,6 +682,7 @@
                 "frame": {"$ref": "#/definitions/material"},
                 "lever": {"$ref": "#/definitions/material"},
                 "tail": {"$ref": "#/definitions/material"},
+                "tail_rod": {"$ref": "#/definitions/material"},
                 "cylinder": {"$ref": "#/definitions/material"},
                 "piston_body": {"$ref": "#/definitions/material"},
                 "piston_rod": {"$ref": "#/definitions/material"},
