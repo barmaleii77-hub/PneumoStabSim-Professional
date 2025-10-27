@@ -215,6 +215,8 @@ class MainWindow(QMainWindow):
 
                 env_values = validate_environment_settings(env_raw)
                 for key, ctx_name in ENVIRONMENT_CONTEXT_PROPERTIES.items():
+                    if key not in env_values:
+                        continue
                     _ctx(ctx_name, env_values[key])
 
             except EnvironmentValidationError as ex:

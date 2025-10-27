@@ -25,21 +25,29 @@ def _load_environment_schema():
 _env_schema = _load_environment_schema()
 ENVIRONMENT_CONTEXT_PROPERTIES = _env_schema.ENVIRONMENT_CONTEXT_PROPERTIES
 ENVIRONMENT_PARAMETERS = _env_schema.ENVIRONMENT_PARAMETERS
+ENVIRONMENT_OPTIONAL_KEYS = _env_schema.ENVIRONMENT_OPTIONAL_KEYS
 ENVIRONMENT_REQUIRED_KEYS = _env_schema.ENVIRONMENT_REQUIRED_KEYS
 EnvironmentValidationError = _env_schema.EnvironmentValidationError
 validate_environment_settings = _env_schema.validate_environment_settings
 
 
-def _baseline_environment() -> dict:
+def _raw_environment() -> dict:
     manager = get_settings_manager()
     env = manager.get("graphics.environment")
     assert env, "Expected environment settings in current profile"
-    return validate_environment_settings(env)
+    return env
+
+
+def _baseline_environment() -> dict:
+    return validate_environment_settings(_raw_environment())
 
 
 def test_environment_current_matches_schema():
-    sanitized = _baseline_environment()
-    assert set(sanitized.keys()) == set(ENVIRONMENT_REQUIRED_KEYS)
+    raw_env = _raw_environment()
+    sanitized = validate_environment_settings(raw_env)
+    assert set(sanitized.keys()) == set(raw_env.keys())
+    allowed_keys = ENVIRONMENT_REQUIRED_KEYS | ENVIRONMENT_OPTIONAL_KEYS
+    assert set(sanitized.keys()).issubset(allowed_keys)
 
 
 def test_environment_defaults_match_schema():
@@ -48,11 +56,14 @@ def test_environment_defaults_match_schema():
     env_defaults = defaults.get("graphics", {}).get("environment")
     assert env_defaults, "Defaults snapshot must contain environment section"
     sanitized = validate_environment_settings(env_defaults)
-    assert set(sanitized.keys()) == set(ENVIRONMENT_REQUIRED_KEYS)
+    assert set(sanitized.keys()) == set(env_defaults.keys())
+    allowed_keys = ENVIRONMENT_REQUIRED_KEYS | ENVIRONMENT_OPTIONAL_KEYS
+    assert set(sanitized.keys()).issubset(allowed_keys)
 
 
 def test_environment_context_mapping_complete():
-    assert set(ENVIRONMENT_CONTEXT_PROPERTIES.keys()) == set(ENVIRONMENT_REQUIRED_KEYS)
+    expected = ENVIRONMENT_REQUIRED_KEYS | ENVIRONMENT_OPTIONAL_KEYS
+    assert set(ENVIRONMENT_CONTEXT_PROPERTIES.keys()) == set(expected)
 
 
 def test_environment_validation_rejects_missing_key():

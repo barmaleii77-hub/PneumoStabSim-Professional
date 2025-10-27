@@ -10,6 +10,7 @@ __all__ = [
     "EnvironmentValidationError",
     "EnvironmentParameterDefinition",
     "ENVIRONMENT_PARAMETERS",
+    "ENVIRONMENT_OPTIONAL_PARAMETERS",
     "ENVIRONMENT_REQUIRED_KEYS",
     "ENVIRONMENT_CONTEXT_PROPERTIES",
     "ENVIRONMENT_OPTIONAL_KEYS",
@@ -78,45 +79,176 @@ ENVIRONMENT_PARAMETERS: tuple[EnvironmentParameterDefinition, ...] = (
     ),
 )
 
+ENVIRONMENT_OPTIONAL_PARAMETERS: tuple[EnvironmentParameterDefinition, ...] = (
+    EnvironmentParameterDefinition(
+        key="background_mode",
+        value_type="string",
+        allowed_values=("skybox", "color", "transparent"),
+    ),
+    EnvironmentParameterDefinition(
+        key="skybox_enabled",
+        value_type="bool",
+    ),
+    EnvironmentParameterDefinition(
+        key="ibl_enabled",
+        value_type="bool",
+    ),
+    EnvironmentParameterDefinition(
+        key="probe_brightness",
+        value_type="float",
+        min_value=0.0,
+        max_value=8.0,
+    ),
+    EnvironmentParameterDefinition(
+        key="probe_horizon",
+        value_type="float",
+        min_value=-1.0,
+        max_value=1.0,
+    ),
+    EnvironmentParameterDefinition(
+        key="ibl_rotation",
+        value_type="float",
+        min_value=-1080.0,
+        max_value=1080.0,
+    ),
+    EnvironmentParameterDefinition(
+        key="ibl_source",
+        value_type="string",
+        allow_empty_string=True,
+    ),
+    EnvironmentParameterDefinition(
+        key="ibl_fallback",
+        value_type="string",
+        allow_empty_string=True,
+    ),
+    EnvironmentParameterDefinition(
+        key="skybox_blur",
+        value_type="float",
+        min_value=0.0,
+        max_value=1.0,
+    ),
+    EnvironmentParameterDefinition(
+        key="ibl_offset_x",
+        value_type="float",
+        min_value=-180.0,
+        max_value=180.0,
+    ),
+    EnvironmentParameterDefinition(
+        key="ibl_offset_y",
+        value_type="float",
+        min_value=-180.0,
+        max_value=180.0,
+    ),
+    EnvironmentParameterDefinition(
+        key="ibl_bind_to_camera",
+        value_type="bool",
+    ),
+    EnvironmentParameterDefinition(
+        key="fog_enabled",
+        value_type="bool",
+    ),
+    EnvironmentParameterDefinition(
+        key="fog_color",
+        value_type="color",
+    ),
+    EnvironmentParameterDefinition(
+        key="fog_density",
+        value_type="float",
+        min_value=0.0,
+        max_value=1.0,
+    ),
+    EnvironmentParameterDefinition(
+        key="fog_height_enabled",
+        value_type="bool",
+    ),
+    EnvironmentParameterDefinition(
+        key="fog_least_intense_y",
+        value_type="float",
+        min_value=-100_000.0,
+        max_value=100_000.0,
+    ),
+    EnvironmentParameterDefinition(
+        key="fog_most_intense_y",
+        value_type="float",
+        min_value=-100_000.0,
+        max_value=100_000.0,
+    ),
+    EnvironmentParameterDefinition(
+        key="fog_height_curve",
+        value_type="float",
+        min_value=0.0,
+        max_value=4.0,
+    ),
+    EnvironmentParameterDefinition(
+        key="fog_transmit_enabled",
+        value_type="bool",
+    ),
+    EnvironmentParameterDefinition(
+        key="fog_transmit_curve",
+        value_type="float",
+        min_value=0.0,
+        max_value=4.0,
+    ),
+    EnvironmentParameterDefinition(
+        key="ao_enabled",
+        value_type="bool",
+    ),
+    EnvironmentParameterDefinition(
+        key="ao_strength",
+        value_type="float",
+        min_value=0.0,
+        max_value=100.0,
+    ),
+    EnvironmentParameterDefinition(
+        key="ao_softness",
+        value_type="float",
+        min_value=0.0,
+        max_value=50.0,
+    ),
+    EnvironmentParameterDefinition(
+        key="ao_dither",
+        value_type="bool",
+    ),
+)
+
 ENVIRONMENT_REQUIRED_KEYS = frozenset(param.key for param in ENVIRONMENT_PARAMETERS)
 
 ENVIRONMENT_OPTIONAL_KEYS = frozenset(
-    {
-        "background_mode",
-        "skybox_enabled",
-        "ibl_enabled",
-        "probe_brightness",
-        "probe_horizon",
-        "ibl_rotation",
-        "ibl_source",
-        "ibl_fallback",
-        "skybox_blur",
-        "ibl_offset_x",
-        "ibl_offset_y",
-        "ibl_bind_to_camera",
-        "fog_enabled",
-        "fog_color",
-        "fog_density",
-        "fog_height_enabled",
-        "fog_least_intense_y",
-        "fog_most_intense_y",
-        "fog_height_curve",
-        "fog_transmit_enabled",
-        "fog_transmit_curve",
-        "ao_enabled",
-        "ao_strength",
-        "ao_softness",
-        "ao_dither",
-    }
+    param.key for param in ENVIRONMENT_OPTIONAL_PARAMETERS
 )
 
 ENVIRONMENT_CONTEXT_PROPERTIES: Dict[str, str] = {
+    "background_mode": "startBackgroundMode",
     "background_color": "startBackgroundColor",
+    "skybox_enabled": "startSkyboxEnabled",
+    "ibl_enabled": "startIblEnabled",
     "ibl_intensity": "startIblIntensity",
-    "ao_radius": "startAoRadius",
-    "ao_sample_rate": "startAoSampleRate",
+    "probe_brightness": "startProbeBrightness",
+    "probe_horizon": "startProbeHorizon",
+    "ibl_rotation": "startIblRotation",
+    "ibl_source": "startIblSource",
+    "ibl_fallback": "startIblFallback",
+    "skybox_blur": "startSkyboxBlur",
+    "ibl_offset_x": "startIblOffsetX",
+    "ibl_offset_y": "startIblOffsetY",
+    "ibl_bind_to_camera": "startIblBindToCamera",
+    "fog_enabled": "startFogEnabled",
+    "fog_color": "startFogColor",
+    "fog_density": "startFogDensity",
     "fog_near": "startFogNear",
     "fog_far": "startFogFar",
+    "fog_height_enabled": "startFogHeightEnabled",
+    "fog_least_intense_y": "startFogLeastY",
+    "fog_most_intense_y": "startFogMostY",
+    "fog_height_curve": "startFogHeightCurve",
+    "fog_transmit_enabled": "startFogTransmitEnabled",
+    "fog_transmit_curve": "startFogTransmitCurve",
+    "ao_enabled": "startAoEnabled",
+    "ao_strength": "startAoStrength",
+    "ao_radius": "startAoRadius",
+    "ao_softness": "startAoSoftness",
+    "ao_dither": "startAoDither",
+    "ao_sample_rate": "startAoSampleRate",
 }
 
 
@@ -223,6 +355,46 @@ def _validate_range(defn: EnvironmentParameterDefinition, value: float | int) ->
         )
 
 
+def _coerce_parameter(
+    definition: EnvironmentParameterDefinition, raw_value: Any
+) -> Any:
+    allowed_text: str | None = None
+
+    if definition.value_type == "bool":
+        coerced: Any = _coerce_bool(raw_value, definition.key)
+    elif definition.value_type == "float":
+        coerced = _coerce_float(raw_value, definition.key)
+    elif definition.value_type == "int":
+        coerced = _coerce_int(raw_value, definition.key)
+    elif definition.value_type == "color":
+        coerced = _coerce_color(raw_value, definition.key)
+    elif definition.value_type == "string":
+        text_value = _coerce_string(definition, raw_value)
+        coerced = text_value
+        allowed_text = text_value if isinstance(raw_value, str) else None
+    else:  # pragma: no cover - defensive guard
+        raise EnvironmentValidationError(
+            f"Unknown value_type for '{definition.key}': {definition.value_type}"
+        )
+
+    if definition.allowed_values and allowed_text is not None:
+        lowered = allowed_text.lower()
+        normalized_choice = next(
+            (choice for choice in definition.choices() if choice.lower() == lowered),
+            None,
+        )
+        if normalized_choice is None:
+            raise EnvironmentValidationError(
+                f"'{definition.key}' must be one of {definition.allowed_values}, got {coerced!r}"
+            )
+        coerced = normalized_choice
+
+    if definition.value_type in {"float", "int"}:
+        _validate_range(definition, coerced)  # type: ignore[arg-type]
+
+    return coerced
+
+
 def validate_environment_settings(settings: Dict[str, Any]) -> Dict[str, Any]:
     if not isinstance(settings, dict):
         raise EnvironmentValidationError("Environment settings must be a dict")
@@ -239,35 +411,15 @@ def validate_environment_settings(settings: Dict[str, Any]) -> Dict[str, Any]:
         if definition.key not in settings:
             raise EnvironmentValidationError(f"Missing environment key: {definition.key}")
 
-        raw_value = settings[definition.key]
-        allowed_text: str | None = None
+        result[definition.key] = _coerce_parameter(
+            definition, settings[definition.key]
+        )
 
-        if definition.value_type == "bool":
-            coerced: Any = _coerce_bool(raw_value, definition.key)
-        elif definition.value_type == "float":
-            coerced = _coerce_float(raw_value, definition.key)
-        elif definition.value_type == "int":
-            coerced = _coerce_int(raw_value, definition.key)
-        elif definition.value_type == "color":
-            coerced = _coerce_color(raw_value, definition.key)
-        elif definition.value_type == "string":
-            coerced = _coerce_string(definition, raw_value)
-            allowed_text = coerced if isinstance(raw_value, str) else None
-        else:  # pragma: no cover
-            raise EnvironmentValidationError(
-                f"Unknown value_type for '{definition.key}': {definition.value_type}"
-            )
-
-        if definition.allowed_values and allowed_text is not None:
-            lowered = allowed_text.lower()
-            if lowered not in {choice.lower() for choice in definition.choices()}:
-                raise EnvironmentValidationError(
-                    f"'{definition.key}' must be one of {definition.allowed_values}, got {coerced!r}"
-                )
-
-        if definition.value_type in {"float", "int"}:
-            _validate_range(definition, coerced)  # type: ignore[arg-type]
-
-        result[definition.key] = coerced
+    for definition in ENVIRONMENT_OPTIONAL_PARAMETERS:
+        if definition.key not in settings:
+            continue
+        result[definition.key] = _coerce_parameter(
+            definition, settings[definition.key]
+        )
 
     return result
