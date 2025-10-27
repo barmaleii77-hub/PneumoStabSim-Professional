@@ -174,21 +174,32 @@ class SignalTraceService(QObject):
         return True
 
     @Slot(str, object, str, result=bool)
+    @Slot(str, object, str, str, result=bool)
     def recordObservation(
-        self, signal_name: str, payload: Any, source: str = "qml"
+        self,
+        signal_name: str,
+        payload: Any,
+        source: str = "qml",
+        sender: str | None = None,
     ) -> bool:
         """Record an observation from QML subscribers."""
 
-        self.record_signal(signal_name, payload, source=source)
+        self.record_signal(signal_name, payload, source=source, sender=sender)
         return True
 
     def record_signal(
-        self, signal_name: str, payload: Any, *, source: str = "python"
+        self,
+        signal_name: str,
+        payload: Any,
+        *,
+        source: str = "python",
+        sender: str | None = None,
     ) -> None:
         """Record a signal emission and optionally persist to the trace log."""
 
         sanitized_payload = self._sanitize(payload)
         timestamp = _iso_utc_now()
+        origin = sender or source
         with self._lock:
             entry = self._subscriptions.setdefault(
                 signal_name,
@@ -207,6 +218,7 @@ class SignalTraceService(QObject):
                     "signal": signal_name,
                     "payload": sanitized_payload,
                     "source": source,
+                    "sender": origin,
                 }
             )
             if len(self._history) > self._config.history_limit:
@@ -278,6 +290,7 @@ class SignalTraceService(QObject):
             "subscriptions": self.subscriptions,
             "latestValues": self.latestValues,
             "config": self._config.to_dict(),
+            "history": self.historyEntries,
         }
         self.traceUpdated.emit(snapshot)
 
