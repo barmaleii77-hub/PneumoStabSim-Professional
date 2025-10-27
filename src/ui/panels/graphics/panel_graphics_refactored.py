@@ -17,6 +17,7 @@ from __future__ import annotations
 import logging
 from copy import deepcopy
 from typing import Any, Dict
+from collections.abc import Mapping
 
 from PySide6.QtCore import QTimer, Signal, Slot
 from PySide6.QtWidgets import (
@@ -160,23 +161,52 @@ class GraphicsPanel(QWidget):
     # ------------------------------------------------------------------
     # Handlers — только эмитим, без записи в файл
     # ------------------------------------------------------------------
+    def _log_state_changes(self, category: str, new_state: Dict[str, Any]) -> None:
+        if not isinstance(new_state, dict):
+            return
+
+        raw_previous = self.state.get(category)
+        if isinstance(raw_previous, Mapping):
+            previous_state = dict(raw_previous)
+        elif isinstance(raw_previous, dict):
+            previous_state = raw_previous
+        else:
+            previous_state = {}
+
+        updated_state: Dict[str, Any] = deepcopy(previous_state)
+
+        for key, new_value in new_state.items():
+            old_value = previous_state.get(key)
+            if old_value != new_value:
+                self.event_logger.log_state_change(category, key, old_value, new_value)
+            updated_state[key] = deepcopy(new_value)
+
+        self.state[category] = updated_state
+
+    def _emit_with_logging(
+        self, signal_name: str, payload: Dict[str, Any], category: str
+    ) -> None:
+        self._log_state_changes(category, payload)
+        getattr(self, signal_name).emit(payload)
+        self.event_logger.log_signal_emit(signal_name, payload)
+
     def _on_lighting_changed(self, data: Dict[str, Any]) -> None:
-        self.lighting_changed.emit(data)
+        self._emit_with_logging("lighting_changed", data, "lighting")
 
     def _on_environment_changed(self, data: Dict[str, Any]) -> None:
-        self.environment_changed.emit(data)
+        self._emit_with_logging("environment_changed", data, "environment")
 
     def _on_quality_changed(self, data: Dict[str, Any]) -> None:
-        self.quality_changed.emit(data)
+        self._emit_with_logging("quality_changed", data, "quality")
 
     def _on_camera_changed(self, data: Dict[str, Any]) -> None:
-        self.camera_changed.emit(data)
+        self._emit_with_logging("camera_changed", data, "camera")
 
     def _on_material_changed(self, data: Dict[str, Any]) -> None:
-        self.material_changed.emit(data)
+        self._emit_with_logging("material_changed", data, "materials")
 
     def _on_effects_changed(self, data: Dict[str, Any]) -> None:
-        self.effects_changed.emit(data)
+        self._emit_with_logging("effects_changed", data, "effects")
 
     def _create_control_buttons(self) -> QHBoxLayout:
         row = QHBoxLayout()
@@ -260,7 +290,9 @@ class GraphicsPanel(QWidget):
             self.logger.info("✅ Graphics reset to defaults completed")
             self._emit_all_initial()
             # передаём полный state для MainWindow
-            self.preset_applied.emit(self.collect_state())
+            payload = self.collect_state()
+            self.preset_applied.emit(payload)
+            self.event_logger.log_signal_emit("preset_applied", payload)
         except GraphicsSettingsError as exc:
             self.logger.error(f"❌ Failed to reset graphics defaults: {exc}")
         except Exception as exc:  # pragma: no cover - unexpected failures
@@ -271,7 +303,8 @@ class GraphicsPanel(QWidget):
         try:
             state = self.collect_state()
             self.settings_service.save_current_as_defaults(state)
-            self.preset_applied.emit(self.state)
+            self.preset_applied.emit(state)
+            self.event_logger.log_signal_emit("preset_applied", state)
             self.logger.info("✅ Graphics defaults snapshot updated")
         except GraphicsSettingsError as exc:
             self.logger.error(f"❌ Save graphics as defaults failed: {exc}")

@@ -21,6 +21,7 @@ from PySide6.QtWidgets import (
 )
 
 from .widgets import LabeledSlider
+from src.common.logging_widgets import LoggingCheckBox
 
 
 class CameraTab(QWidget):
@@ -91,7 +92,7 @@ class CameraTab(QWidget):
         r += 1
 
         # Автоповорот / автофит
-        auto_rotate = QCheckBox("Автоповорот", self)
+        auto_rotate = LoggingCheckBox("Автоповорот", "camera.auto_rotate", self)
         auto_rotate.clicked.connect(
             lambda checked: (self._update_enabled_states(), self._emit())
         )
@@ -107,7 +108,11 @@ class CameraTab(QWidget):
         grid.addWidget(rotate_speed, r, 0, 1, 2)
         r += 1
 
-        auto_fit = QCheckBox("Автоподгон камеры при изменении геометрии", self)
+        auto_fit = LoggingCheckBox(
+            "Автоподгон камеры при изменении геометрии",
+            "camera.auto_fit",
+            self,
+        )
         auto_fit.clicked.connect(lambda checked: self._emit())
         self._controls["auto_fit"] = auto_fit
         grid.addWidget(auto_fit, r, 0, 1, 2)
@@ -119,7 +124,11 @@ class CameraTab(QWidget):
         r += 1
 
         # Ручной режим камеры
-        manual = QCheckBox("Ручной режим камеры (позиция/углы ниже)", self)
+        manual = LoggingCheckBox(
+            "Ручной режим камеры (позиция/углы ниже)",
+            "camera.manual_mode",
+            self,
+        )
         manual.clicked.connect(
             lambda checked: (self._update_enabled_states(), self._emit())
         )
@@ -210,7 +219,11 @@ class CameraTab(QWidget):
         r += 1
 
         # Плавность и инерция
-        inertia_enabled = QCheckBox("Инерция (мягкий старт/стоп)", self)
+        inertia_enabled = LoggingCheckBox(
+            "Инерция (мягкий старт/стоп)",
+            "camera.orbit_inertia_enabled",
+            self,
+        )
         inertia_enabled.clicked.connect(
             lambda checked: (self._update_enabled_states(), self._emit())
         )

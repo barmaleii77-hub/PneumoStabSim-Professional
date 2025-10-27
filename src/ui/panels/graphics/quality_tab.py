@@ -26,6 +26,7 @@ from typing import Dict, Any
 import copy
 
 from .widgets import LabeledSlider
+from src.common.logging_widgets import LoggingCheckBox
 
 
 class QualityTab(QWidget):
@@ -206,7 +207,7 @@ class QualityTab(QWidget):
         grid.setVerticalSpacing(8)
 
         # Shadows enabled checkbox
-        enabled = QCheckBox("Включить тени", self)
+        enabled = LoggingCheckBox("Включить тени", "quality.shadows.enabled", self)
         enabled.clicked.connect(
             lambda checked: self._on_control_changed("shadows.enabled", checked)
         )
@@ -317,7 +318,7 @@ class QualityTab(QWidget):
         grid.addWidget(post_combo, 2, 1)
 
         # TAA enabled checkbox
-        taa_check = QCheckBox("Включить TAA", self)
+        taa_check = LoggingCheckBox("Включить TAA", "quality.taa.enabled", self)
         taa_check.clicked.connect(
             lambda checked: self._on_control_changed("taa_enabled", checked)
         )
@@ -333,7 +334,9 @@ class QualityTab(QWidget):
         grid.addWidget(taa_strength, 4, 0, 1, 2)
 
         # TAA motion adaptive checkbox
-        taa_motion = QCheckBox("Отключать TAA при движении камеры", self)
+        taa_motion = LoggingCheckBox(
+            "Отключать TAA при движении камеры", "quality.taa.motion_adaptive", self
+        )
         taa_motion.clicked.connect(
             lambda checked: self._on_control_changed("taa_motion_adaptive", checked)
         )
@@ -341,7 +344,7 @@ class QualityTab(QWidget):
         grid.addWidget(taa_motion, 5, 0, 1, 2)
 
         # FXAA enabled checkbox
-        fxaa_check = QCheckBox("Включить FXAA", self)
+        fxaa_check = LoggingCheckBox("Включить FXAA", "quality.fxaa.enabled", self)
         fxaa_check.clicked.connect(
             lambda checked: self._on_control_changed("fxaa_enabled", checked)
         )
@@ -349,7 +352,9 @@ class QualityTab(QWidget):
         grid.addWidget(fxaa_check, 6, 0, 1, 2)
 
         # Specular AA checkbox
-        specular_check = QCheckBox("Specular AA", self)
+        specular_check = LoggingCheckBox(
+            "Specular AA", "quality.specular_aa.enabled", self
+        )
         specular_check.clicked.connect(
             lambda checked: self._on_control_changed("specular_aa", checked)
         )
@@ -396,7 +401,9 @@ class QualityTab(QWidget):
         grid.addWidget(frame_slider, 2, 0, 1, 2)
 
         # Dithering checkbox (Qt 6.10+)
-        dithering_check = QCheckBox("Dithering (Qt 6.10+)", self)
+        dithering_check = LoggingCheckBox(
+            "Dithering (Qt 6.10+)", "quality.dithering.enabled", self
+        )
         dithering_check.clicked.connect(
             lambda checked: self._on_control_changed("dithering", checked)
         )
@@ -404,7 +411,7 @@ class QualityTab(QWidget):
         grid.addWidget(dithering_check, 3, 0, 1, 2)
 
         # Weighted OIT checkbox
-        oit_check = QCheckBox("Weighted OIT", self)
+        oit_check = LoggingCheckBox("Weighted OIT", "quality.oit.enabled", self)
         oit_check.clicked.connect(
             lambda checked: self._on_control_changed(
                 "oit", "weighted" if checked else "none"

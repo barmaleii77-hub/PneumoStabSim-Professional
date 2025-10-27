@@ -23,6 +23,7 @@ from .widgets import ColorButton, LabeledSlider
 
 # ✅ ИСПРАВЛЕНО: SettingsManager вместо defaults.py
 from src.common.settings_manager import get_settings_manager
+from src.common.logging_widgets import LoggingCheckBox
 
 
 class LightingTab(QWidget):
@@ -136,7 +137,9 @@ class LightingTab(QWidget):
         grid.addWidget(posz, row, 0, 1, 2)
         row += 1
 
-        key_shadow = QCheckBox("Тени от ключевого света", self)
+        key_shadow = LoggingCheckBox(
+            "Тени от ключевого света", "lighting.key.cast_shadow", self
+        )
         key_shadow.clicked.connect(
             lambda checked: self._update_lighting("key", "cast_shadow", checked)
         )
@@ -144,7 +147,9 @@ class LightingTab(QWidget):
         grid.addWidget(key_shadow, row, 0, 1, 2)
         row += 1
 
-        key_bind = QCheckBox("Привязать к камере", self)
+        key_bind = LoggingCheckBox(
+            "Привязать к камере", "lighting.key.bind_to_camera", self
+        )
         key_bind.clicked.connect(
             lambda checked: self._update_lighting("key", "bind_to_camera", checked)
         )
@@ -225,7 +230,9 @@ class LightingTab(QWidget):
         grid.addWidget(posz, row, 0, 1, 2)
         row += 1
 
-        fill_shadow = QCheckBox("Тени от заполняющего света", self)
+        fill_shadow = LoggingCheckBox(
+            "Тени от заполняющего света", "lighting.fill.cast_shadow", self
+        )
         fill_shadow.clicked.connect(
             lambda checked: self._update_lighting("fill", "cast_shadow", checked)
         )
@@ -233,7 +240,9 @@ class LightingTab(QWidget):
         grid.addWidget(fill_shadow, row, 0, 1, 2)
         row += 1
 
-        fill_bind = QCheckBox("Привязать к камере", self)
+        fill_bind = LoggingCheckBox(
+            "Привязать к камере", "lighting.fill.bind_to_camera", self
+        )
         fill_bind.clicked.connect(
             lambda checked: self._update_lighting("fill", "bind_to_camera", checked)
         )
@@ -314,7 +323,9 @@ class LightingTab(QWidget):
         grid.addWidget(posz, row, 0, 1, 2)
         row += 1
 
-        rim_shadow = QCheckBox("Тени от контрового света", self)
+        rim_shadow = LoggingCheckBox(
+            "Тени от контрового света", "lighting.rim.cast_shadow", self
+        )
         rim_shadow.clicked.connect(
             lambda checked: self._update_lighting("rim", "cast_shadow", checked)
         )
@@ -322,7 +333,9 @@ class LightingTab(QWidget):
         grid.addWidget(rim_shadow, row, 0, 1, 2)
         row += 1
 
-        rim_bind = QCheckBox("Привязать к камере", self)
+        rim_bind = LoggingCheckBox(
+            "Привязать к камере", "lighting.rim.bind_to_camera", self
+        )
         rim_bind.clicked.connect(
             lambda checked: self._update_lighting("rim", "bind_to_camera", checked)
         )
@@ -415,7 +428,9 @@ class LightingTab(QWidget):
         grid.addWidget(qfade, row, 0, 1, 2)
         row += 1
 
-        point_shadows = QCheckBox("Тени от точечного света", self)
+        point_shadows = LoggingCheckBox(
+            "Тени от точечного света", "lighting.point.cast_shadow", self
+        )
         point_shadows.clicked.connect(
             lambda checked: self._update_lighting("point", "cast_shadow", checked)
         )
@@ -423,7 +438,9 @@ class LightingTab(QWidget):
         grid.addWidget(point_shadows, row, 0, 1, 2)
         row += 1
 
-        point_bind = QCheckBox("Привязать к камере", self)
+        point_bind = LoggingCheckBox(
+            "Привязать к камере", "lighting.point.bind_to_camera", self
+        )
         point_bind.clicked.connect(
             lambda checked: self._update_lighting("point", "bind_to_camera", checked)
         )
@@ -533,7 +550,9 @@ class LightingTab(QWidget):
         grid.addWidget(inner, row, 0, 1, 2)
         row += 1
 
-        spot_shadows = QCheckBox("Тени от прожектора", self)
+        spot_shadows = LoggingCheckBox(
+            "Тени от прожектора", "lighting.spot.cast_shadow", self
+        )
         spot_shadows.clicked.connect(
             lambda checked: self._update_lighting("spot", "cast_shadow", checked)
         )
@@ -541,7 +560,9 @@ class LightingTab(QWidget):
         grid.addWidget(spot_shadows, row, 0, 1, 2)
         row += 1
 
-        spot_bind = QCheckBox("Привязать к камере", self)
+        spot_bind = LoggingCheckBox(
+            "Привязать к камере", "lighting.spot.bind_to_camera", self
+        )
         spot_bind.clicked.connect(
             lambda checked: self._update_lighting("spot", "bind_to_camera", checked)
         )
