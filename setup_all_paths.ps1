@@ -143,7 +143,7 @@ function Set-PythonPath {
 }
 
 function Set-QtEnvironment {
- param([hashtable]$QtPaths)
+    param($QtPaths)
 
  Write-Section "Qt Environment Setup"
 
