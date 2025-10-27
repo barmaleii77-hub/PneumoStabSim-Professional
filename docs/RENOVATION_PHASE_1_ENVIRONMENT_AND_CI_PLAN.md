@@ -54,8 +54,8 @@ Capture notable decisions, blockers, and timings here. Reference PR numbers and 
 - 2025-02-15 – Added `tools/ci_tasks.py` command runner and cleaned up the strict
   mypy target list to unblock Phase 1 automation goals.
 - 2025-02-18 – Generated `requirements.lock` with uv to cover base, dev, and docs
-  dependencies; deferred performance extras until `numba` publishes Python 3.13
-  wheels.
+  dependencies; performance extras now track `numba 0.62.1`, which ships Python
+  3.13-compatible wheels.
 - 2025-03-05 – Introduced scheduled branch audit workflow leveraging the GitHub
   CLI container to post weekly stale-branch reports.
 - 2025-04-06 – Published `docs/operations/onboarding_uv.md`, providing Windows,

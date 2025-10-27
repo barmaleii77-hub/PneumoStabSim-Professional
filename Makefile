@@ -33,7 +33,7 @@ uv-run:
 	echo "Error: '$(UV)' is not installed. Run 'python scripts/bootstrap_uv.py' first." >&2; \
 	exit 1; \
 	fi
-	cd $(UV_PROJECT_DIR) && $(UV) run -- $(CMD)
+	cd $(UV_PROJECT_DIR) && PYTEST_DISABLE_PLUGIN_AUTOLOAD=$${PYTEST_DISABLE_PLUGIN_AUTOLOAD-1} $(UV) run -- $(CMD)
 
 format:
 	$(PYTHON) -m ruff format $(PYTHON_LINT_PATHS)

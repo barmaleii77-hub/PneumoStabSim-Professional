@@ -15,44 +15,38 @@ from src.infrastructure.container import get_default_container
 from src.infrastructure.event_bus import EVENT_BUS_TOKEN, get_event_bus
 
 
+PROJECT_ROOT = Path(__file__).resolve().parents[3]
+PROJECT_SETTINGS = PROJECT_ROOT / "config" / "app_settings.json"
+
+
 @pytest.fixture()
 def settings_payload(tmp_path: Path) -> Path:
-    data = {
-        "metadata": {
-            "version": "1.0.0",
-            "last_modified": "2025-01-01T00:00:00",
-            "units_version": "si_v2",
-        },
-        "current": {
-            "constants": {
-                "geometry": {"kinematics": {"track_width_m": 2.0}},
-                "pneumo": {
-                    "valves": {
-                        "delta_open_pa": 123.0,
-                        "equivalent_diameter_m": 0.01,
-                    },
-                    "receiver": {
-                        "volume_min_m3": 0.1,
-                        "volume_max_m3": 0.2,
-                        "initial_volume_m3": 0.15,
-                        "initial_pressure_pa": 150_000.0,
-                        "initial_temperature_k": 280.0,
-                        "volume_mode": "ADIABATIC_RECALC",
-                    },
-                    "gas": {
-                        "tank_volume_initial_m3": 0.42,
-                        "tank_pressure_initial_pa": 200_000.0,
-                        "tank_temperature_initial_k": 285.0,
-                        "tank_volume_mode": "NO_RECALC",
-                        "time_step_s": 0.01,
-                        "total_time_s": 10.0,
-                        "thermo_mode": "ISOTHERMAL",
-                    },
-                    "master_isolation_open": True,
-                },
-            }
-        },
-    }
+    data = json.loads(PROJECT_SETTINGS.read_text(encoding="utf-8"))
+
+    # Normalise key values used in assertions
+    constants = data["current"]["constants"]
+    constants["geometry"]["kinematics"]["track_width_m"] = 2.0
+    pneumo = constants["pneumo"]
+    pneumo["valves"]["delta_open_pa"] = 123.0
+    pneumo["receiver"].update(
+        {
+            "volume_min_m3": 0.1,
+            "volume_max_m3": 0.2,
+            "initial_volume_m3": 0.15,
+        }
+    )
+    pneumo["gas"].update(
+        {
+            "tank_volume_initial_m3": 0.42,
+            "tank_pressure_initial_pa": 200_000.0,
+            "tank_temperature_initial_k": 285.0,
+            "tank_volume_mode": "NO_RECALC",
+            "time_step_s": 0.01,
+            "total_time_s": 10.0,
+        }
+    )
+    pneumo["master_isolation_open"] = True
+
     data["defaults_snapshot"] = json.loads(json.dumps(data["current"]))
 
     settings_file = tmp_path / "app_settings.json"

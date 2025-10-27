@@ -524,7 +524,11 @@
         "render_scale": 1.0,
         "render_policy": "always",
         "frame_rate_limit": 120.0,
-        "oit": "weighted"
+        "oit": "weighted",
+        "mesh": {
+          "cylinder_segments": 40,
+          "cylinder_rings": 5
+        }
       },
       "medium": {
         "shadows": {
@@ -548,7 +552,11 @@
         "render_scale": 0.9,
         "render_policy": "always",
         "frame_rate_limit": 90.0,
-        "oit": "weighted"
+        "oit": "weighted",
+        "mesh": {
+          "cylinder_segments": 28,
+          "cylinder_rings": 4
+        }
       },
       "low": {
         "shadows": {
@@ -572,7 +580,11 @@
         "render_scale": 0.8,
         "render_policy": "ondemand",
         "frame_rate_limit": 60.0,
-        "oit": "none"
+        "oit": "none",
+        "mesh": {
+          "cylinder_segments": 20,
+          "cylinder_rings": 3
+        }
       }
     },
     "diagnostics": {
@@ -807,7 +819,7 @@
     },
     "geometry": {
       "wheelbase": 2.0,
-      "track": 0.391,
+      "track": 1.0,
       "frame_to_pivot": 0.351,
       "lever_length": 0.609,
       "rod_position": 0.754,
@@ -1381,7 +1393,11 @@
         "render_scale": 1.0,
         "render_policy": "always",
         "frame_rate_limit": 120.0,
-        "oit": "weighted"
+        "oit": "weighted",
+        "mesh": {
+          "cylinder_segments": 40,
+          "cylinder_rings": 5
+        }
       },
       "medium": {
         "shadows": {
@@ -1405,7 +1421,11 @@
         "render_scale": 0.9,
         "render_policy": "always",
         "frame_rate_limit": 90.0,
-        "oit": "weighted"
+        "oit": "weighted",
+        "mesh": {
+          "cylinder_segments": 28,
+          "cylinder_rings": 4
+        }
       },
       "low": {
         "shadows": {
@@ -1429,7 +1449,11 @@
         "render_scale": 0.8,
         "render_policy": "ondemand",
         "frame_rate_limit": 60.0,
-        "oit": "none"
+        "oit": "none",
+        "mesh": {
+          "cylinder_segments": 20,
+          "cylinder_rings": 3
+        }
       }
     },
     "system": {

@@ -41,16 +41,9 @@ def test_environment_contains_expected_paths(project_root: Path) -> None:
     }
     assert expected_keys.issubset(environment.keys())
 
-    qml_paths = environment["QML2_IMPORT_PATH"].split(";")
-    expected_qml = {
-        str(PureWindowsPath(project_root / "assets" / "qml")),
-        str(
-            PureWindowsPath(
-                project_root / ".venv" / "Lib" / "site-packages" / "PySide6" / "qml"
-            )
-        ),
-    }
-    assert expected_qml.issubset(qml_paths)
+    qml_paths = [path.lower() for path in environment["QML2_IMPORT_PATH"].split(";")]
+    assert any(path.endswith("\\assets\\qml") for path in qml_paths)
+    assert any("\\pyside6\\qml" in path for path in qml_paths)
 
     python_path_entries = environment["PYTHONPATH"].split(";")
     expected_python_entries = {

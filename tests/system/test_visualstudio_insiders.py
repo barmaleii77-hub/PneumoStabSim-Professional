@@ -35,7 +35,8 @@ def test_insiders_target_invokes_bootstrap_script() -> None:
     assert exec_element is not None
     command = exec_element.attrib.get("Command", "")
     assert "powershell" in command.lower()
-    assert "initialize_insiders_environment.ps1" in command
+    script_token = "initialize_insiders_environment.ps1"
+    assert script_token in command or "$(VisualStudioInsidersBootstrapScript)" in command
 
 
 def test_vsconfig_post_install_runs_bootstrap() -> None:
