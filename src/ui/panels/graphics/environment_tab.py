@@ -95,7 +95,9 @@ class EnvironmentTab(QWidget):
         row += 1
 
         # Skybox enabled
-        skybox_toggle = QCheckBox("Показывать Skybox (фон)", self)
+        skybox_toggle = LoggingCheckBox(
+            "Показывать Skybox (фон)", "environment.skybox_enabled", self
+        )
         skybox_toggle.clicked.connect(
             lambda checked: self._on_skybox_enabled_clicked(checked)
         )
@@ -104,7 +106,7 @@ class EnvironmentTab(QWidget):
         row += 1
 
         # IBL enabled
-        ibl_check = QCheckBox("Включить IBL", self)
+        ibl_check = LoggingCheckBox("Включить IBL", "environment.ibl_enabled", self)
         ibl_check.clicked.connect(lambda checked: self._on_ibl_enabled_clicked(checked))
         self._controls["ibl.enabled"] = ibl_check
         grid.addWidget(ibl_check, row, 0, 1, 2)
@@ -217,7 +219,11 @@ class EnvironmentTab(QWidget):
         row += 1
 
         # IBL bind
-        env_bind = QCheckBox("Привязать окружение к камере", self)
+        env_bind = LoggingCheckBox(
+            "Привязать окружение к камере",
+            "environment.ibl_bind_to_camera",
+            self,
+        )
         env_bind.clicked.connect(
             lambda checked: self._on_control_changed("ibl_bind_to_camera", checked)
         )
@@ -236,7 +242,11 @@ class EnvironmentTab(QWidget):
         grid.setVerticalSpacing(8)
         row = 0
 
-        enabled = QCheckBox("Включить локальную reflection probe", self)
+        enabled = LoggingCheckBox(
+            "Включить локальную reflection probe",
+            "environment.reflection_enabled",
+            self,
+        )
         enabled.clicked.connect(
             lambda checked: self._on_control_changed("reflection_enabled", checked)
         )
@@ -380,7 +390,7 @@ class EnvironmentTab(QWidget):
         grid.setVerticalSpacing(8)
         row = 0
 
-        enabled = QCheckBox("Включить туман", self)
+        enabled = LoggingCheckBox("Включить туман", "environment.fog_enabled", self)
         enabled.clicked.connect(lambda checked: self._on_fog_enabled_clicked(checked))
         self._controls["fog.enabled"] = enabled
         grid.addWidget(enabled, row, 0, 1, 2)
@@ -427,7 +437,9 @@ class EnvironmentTab(QWidget):
         row += 1
 
         # Высотный туман
-        h_enabled = QCheckBox("Высотный туман (height)", self)
+        h_enabled = LoggingCheckBox(
+            "Высотный туман (height)", "environment.fog_height_enabled", self
+        )
         h_enabled.clicked.connect(
             lambda checked: self._on_control_changed("fog_height_enabled", checked)
         )
@@ -474,7 +486,11 @@ class EnvironmentTab(QWidget):
         row += 1
 
         # Transmit
-        t_enabled = QCheckBox("Учитывать передачу света (transmit)", self)
+        t_enabled = LoggingCheckBox(
+            "Учитывать передачу света (transmit)",
+            "environment.fog_transmit_enabled",
+            self,
+        )
         t_enabled.clicked.connect(
             lambda checked: self._on_control_changed("fog_transmit_enabled", checked)
         )
@@ -500,7 +516,7 @@ class EnvironmentTab(QWidget):
         grid.setVerticalSpacing(8)
         row = 0
 
-        enabled = QCheckBox("Включить SSAO", self)
+        enabled = LoggingCheckBox("Включить SSAO", "environment.ao_enabled", self)
         enabled.clicked.connect(
             lambda checked: self._on_control_changed("ao_enabled", checked)
         )
@@ -530,7 +546,7 @@ class EnvironmentTab(QWidget):
         grid.addWidget(softness, row, 0, 1, 2)
         row += 1
 
-        dither = QCheckBox("Dither для AO", self)
+        dither = LoggingCheckBox("Dither для AO", "environment.ao_dither", self)
         dither.clicked.connect(
             lambda checked: self._on_control_changed("ao_dither", checked)
         )

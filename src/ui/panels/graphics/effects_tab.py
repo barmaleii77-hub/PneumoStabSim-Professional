@@ -17,6 +17,7 @@ from PySide6.QtWidgets import (
 )
 
 from .widgets import LabeledSlider
+from src.common.logging_widgets import LoggingCheckBox
 
 
 class EffectsTab(QWidget):
@@ -333,7 +334,9 @@ class EffectsTab(QWidget):
     def _add_checkbox(
         self, grid: QGridLayout, row: int, text: str, control_key: str
     ) -> int:
-        checkbox = QCheckBox(text, self)
+        state_key = self._state_key_map.get(control_key, control_key)
+        widget_name = f"effects.{state_key}".replace("..", ".")
+        checkbox = LoggingCheckBox(text, widget_name, self)
         checkbox.toggled.connect(
             lambda checked: self._on_control_changed(control_key, checked)
         )
