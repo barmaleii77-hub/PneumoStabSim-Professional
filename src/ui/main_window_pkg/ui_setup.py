@@ -54,51 +54,69 @@ class UISetup:
     ) -> Dict[str, Dict[str, Any]]:
         """Подготовить стартовые словари для QML контекста."""
 
-        from src.common.settings_manager import (
-            SettingsManager,
-            get_settings_manager,
-        )
+        from src.common.settings_manager import get_settings_manager
 
         manager = settings_manager
         if manager is None:
             try:
                 manager = get_settings_manager()
-            except Exception:
-                manager = None
+            except Exception as exc:
+                UISetup.logger.exception(
+                    "    ❌ Не удалось получить SettingsManager: %s", exc
+                )
+                raise RuntimeError(
+                    "SettingsManager недоступен. Проверьте загрузку конфигурации."
+                ) from exc
 
-        def _section(name: str) -> Dict[str, Any]:
-            if manager is None:
-                return SettingsManager.get_graphics_default(name)
-            try:
-                data = manager.get(f"graphics.{name}", {}) or {}
-            except Exception:
-                data = {}
-            if not isinstance(data, dict) or not data:
-                data = SettingsManager.get_graphics_default(name)
-            return data
+        if manager is None:
+            raise RuntimeError(
+                "SettingsManager не был инициализирован. Остановлена загрузка QML."
+            )
 
-        def _sanitize(payload: Dict[str, Any]) -> Dict[str, Any]:
+        def _serialize(section: str, payload: Dict[str, Any]) -> Dict[str, Any]:
             try:
                 return json.loads(json.dumps(payload))
-            except Exception:
-                return payload
+            except (TypeError, ValueError) as exc:
+                UISetup.logger.error(
+                    "    ❌ Настройки %s содержат несериализуемые значения: %s",
+                    section,
+                    exc,
+                )
+                raise RuntimeError(
+                    f"Настройки {section} содержат неподдерживаемые данные"
+                ) from exc
 
-        def _diagnostics() -> Dict[str, Any]:
-            if manager is None:
-                return {}
+        def _read_section(name: str) -> Dict[str, Any]:
+            try:
+                data = manager.get(f"graphics.{name}", None)
+            except Exception as exc:
+                UISetup.logger.exception(
+                    "    ❌ Ошибка чтения graphics.%s: %s", name, exc
+                )
+                raise RuntimeError(
+                    f"Не удалось прочитать настройки graphics.{name}"
+                ) from exc
+            if not isinstance(data, dict) or not data:
+                raise RuntimeError(
+                    f"Настройки graphics.{name} отсутствуют или повреждены"
+                )
+            return _serialize(f"graphics.{name}", data)
+
+        def _read_diagnostics() -> Dict[str, Any]:
             try:
                 payload = manager.get("diagnostics", {}) or {}
-            except Exception:
-                payload = {}
+            except Exception as exc:
+                UISetup.logger.exception("    ❌ Ошибка чтения diagnostics: %s", exc)
+                raise RuntimeError("Не удалось прочитать diagnostics") from exc
             if not isinstance(payload, dict):
-                return {}
-            return payload
+                raise RuntimeError("Секция diagnostics повреждена")
+            return _serialize("diagnostics", payload)
 
         return {
-            "animation": _sanitize(_section("animation")),
-            "scene": _sanitize(_section("scene")),
-            "materials": _sanitize(_section("materials")),
-            "diagnostics": _sanitize(_diagnostics()),
+            "animation": _read_section("animation"),
+            "scene": _read_section("scene"),
+            "materials": _read_section("materials"),
+            "diagnostics": _read_diagnostics(),
         }
 
     # ------------------------------------------------------------------
