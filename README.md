@@ -133,6 +133,9 @@
 ```sh
 # Используйте хеши, если включили проверку
 pip install --require-hashes -r requirements.txt
+
+# Для среды разработки (линтеры, тесты и т.д.)
+pip install --require-hashes -r requirements-dev.lock
 ```
  
 ### 3. Проверка готовности
