@@ -147,6 +147,11 @@
         "ibl_offset_x": 0.0,
         "ibl_offset_y": 0.0,
         "ibl_bind_to_camera": false,
+        "reflection_enabled": true,
+        "reflection_padding_m": 0.15,
+        "reflection_quality": "veryhigh",
+        "reflection_refresh_mode": "everyframe",
+        "reflection_time_slicing": "individualfaces",
         "fog_enabled": true,
         "fog_color": "#aab9cf",
         "fog_density": 0.06,
@@ -915,6 +920,11 @@
         "ibl_offset_x": 0.0,
         "ibl_offset_y": 0.0,
         "ibl_bind_to_camera": false,
+        "reflection_enabled": true,
+        "reflection_padding_m": 0.15,
+        "reflection_quality": "veryhigh",
+        "reflection_refresh_mode": "everyframe",
+        "reflection_time_slicing": "individualfaces",
         "fog_enabled": true,
         "fog_color": "#aab9cf",
         "fog_density": 0.06,
@@ -1230,6 +1240,102 @@
         "adjustment_saturation": 0.0
       }
     },
+    "constants": {
+      "geometry": {
+        "kinematics": {
+          "track_width_m": 1.2,
+          "lever_length_m": 0.35,
+          "pivot_offset_from_frame_m": 0.2,
+          "rod_attach_fraction": 0.5
+        },
+        "cylinder": {
+          "inner_diameter_m": 0.08,
+          "rod_diameter_m": 0.035,
+          "piston_thickness_m": 0.02,
+          "body_length_m": 0.25,
+          "dead_zone_rod_m3": 0.001,
+          "dead_zone_head_m3": 0.001
+        },
+        "visualization": {
+          "arm_radius_m": 0.05,
+          "cylinder_radius_m": 0.04,
+          "pivot_offset_x_m": 0.0,
+          "tail_offset_x_m": 0.0,
+          "piston_clip_min_fraction": 0.05,
+          "piston_clip_max_fraction": 0.95,
+          "max_stroke_fraction": 0.9
+        },
+        "initial_state": {
+          "lever_length_m": 0.35,
+          "tail_rod_length_m": 0.18,
+          "frame_beam_size_m": 0.12,
+          "frame_height_m": 0.65,
+          "frame_length_m": 2.0,
+          "cylinder_body_length_m": 0.25,
+          "j_arm_left": [
+            -0.35,
+            0.65,
+            -0.5
+          ],
+          "j_arm_right": [
+            0.35,
+            0.65,
+            -0.5
+          ],
+          "j_tail_left": [
+            -0.4,
+            0.35,
+            -0.5
+          ],
+          "j_tail_right": [
+            0.4,
+            0.35,
+            -0.5
+          ]
+        }
+      },
+      "pneumo": {
+        "master_isolation_open": true,
+        "valves": {
+          "delta_open_pa": 5000.0,
+          "equivalent_diameter_m": 0.008
+        },
+        "receiver": {
+          "volume_min_m3": 0.0018,
+          "volume_max_m3": 0.0045,
+          "initial_volume_m3": 0.003,
+          "initial_pressure_pa": 101325.0,
+          "initial_temperature_k": 293.15,
+          "volume_mode": "ADIABATIC_RECALC"
+        },
+        "gas": {
+          "tank_volume_initial_m3": 0.0035,
+          "tank_pressure_initial_pa": 101325.0,
+          "tank_temperature_initial_k": 293.15,
+          "tank_volume_mode": "ADIABATIC_RECALC",
+          "time_step_s": 0.005,
+          "thermo_mode": "ISOTHERMAL",
+          "total_time_s": 3.0
+        }
+      }
+    },
+    "diagnostics": {
+      "signal_trace": {
+        "enabled": false,
+        "overlay_enabled": false,
+        "include": [],
+        "exclude": [],
+        "history_limit": 1000
+      },
+      "camera_hud": {
+        "enabled": false,
+        "precision": 2,
+        "showPivot": true,
+        "showPan": true,
+        "showAngles": true,
+        "showMotion": true
+      }
+    },
     "physics": {
       "suspension": {
         "spring_constant": 50000.0,
@@ -1350,23 +1456,6 @@
         }
       }
     },
-    "diagnostics": {
-      "signal_trace": {
-        "enabled": false,
-        "overlay_enabled": false,
-        "include": [],
-        "exclude": [],
-        "history_limit": 1000
-      },
-      "camera_hud": {
-        "enabled": false,
-        "precision": 2,
-        "showPivot": true,
-        "showPan": true,
-        "showAngles": true,
-        "showMotion": true
-      }
-    },
     "system": {
       "dependencies": {
         "opengl_runtime": {
@@ -1466,85 +1555,6 @@
               "install_command": "apt-get install -y libxkbcommon0"
             }
           ]
-        }
-      }
-    },
-    "constants": {
-      "geometry": {
-        "kinematics": {
-          "track_width_m": 1.2,
-          "lever_length_m": 0.35,
-          "pivot_offset_from_frame_m": 0.2,
-          "rod_attach_fraction": 0.5
-        },
-        "cylinder": {
-          "inner_diameter_m": 0.08,
-          "rod_diameter_m": 0.035,
-          "piston_thickness_m": 0.02,
-          "body_length_m": 0.25,
-          "dead_zone_rod_m3": 0.001,
-          "dead_zone_head_m3": 0.001
-        },
-        "visualization": {
-          "arm_radius_m": 0.05,
-          "cylinder_radius_m": 0.04,
-          "pivot_offset_x_m": 0.0,
-          "tail_offset_x_m": 0.0,
-          "piston_clip_min_fraction": 0.05,
-          "piston_clip_max_fraction": 0.95,
-          "max_stroke_fraction": 0.9
-        },
-        "initial_state": {
-          "lever_length_m": 0.35,
-          "tail_rod_length_m": 0.18,
-          "frame_beam_size_m": 0.12,
-          "frame_height_m": 0.65,
-          "frame_length_m": 2.0,
-          "cylinder_body_length_m": 0.25,
-          "j_arm_left": [
-            -0.35,
-            0.65,
-            -0.5
-          ],
-          "j_arm_right": [
-            0.35,
-            0.65,
-            -0.5
-          ],
-          "j_tail_left": [
-            -0.4,
-            0.35,
-            -0.5
-          ],
-          "j_tail_right": [
-            0.4,
-            0.35,
-            -0.5
-          ]
-        }
-      },
-      "pneumo": {
-        "master_isolation_open": true,
-        "valves": {
-          "delta_open_pa": 5000.0,
-          "equivalent_diameter_m": 0.008
-        },
-        "receiver": {
-          "volume_min_m3": 0.0018,
-          "volume_max_m3": 0.0045,
-          "initial_volume_m3": 0.003,
-          "initial_pressure_pa": 101325.0,
-          "initial_temperature_k": 293.15,
-          "volume_mode": "ADIABATIC_RECALC"
-        },
-        "gas": {
-          "tank_volume_initial_m3": 0.0035,
-          "tank_pressure_initial_pa": 101325.0,
-          "tank_temperature_initial_k": 293.15,
-          "tank_volume_mode": "ADIABATIC_RECALC",
-          "time_step_s": 0.005,
-          "thermo_mode": "ISOTHERMAL",
-          "total_time_s": 3.0
         }
       }
     }

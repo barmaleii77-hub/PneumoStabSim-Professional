@@ -278,11 +278,55 @@ class SignalsRouter:
 
         from .qml_bridge import QMLBridge
 
-        if not QMLBridge.invoke_qml_function(window, "applyEnvironmentUpdates", params):
-            QMLBridge.queue_update(window, "environment", params)
-            QMLBridge._log_graphics_change(window, "environment", params, applied=False)
+        reflection_keys = {
+            "reflection_enabled",
+            "reflection_padding_m",
+            "reflection_quality",
+            "reflection_refresh_mode",
+            "reflection_time_slicing",
+        }
+
+        env_payload = {k: v for k, v in params.items() if k not in reflection_keys}
+        if not env_payload:
+            env_payload = dict(params)
+
+        if not QMLBridge.invoke_qml_function(
+            window, "applyEnvironmentUpdates", env_payload
+        ):
+            QMLBridge.queue_update(window, "environment", env_payload)
+            QMLBridge._log_graphics_change(
+                window, "environment", env_payload, applied=False
+            )
         else:
-            QMLBridge._log_graphics_change(window, "environment", params, applied=True)
+            QMLBridge._log_graphics_change(
+                window, "environment", env_payload, applied=True
+            )
+
+        reflection_updates = {}
+        if params.get("reflection_enabled") is not None:
+            reflection_updates["enabled"] = bool(params["reflection_enabled"])
+        if params.get("reflection_padding_m") is not None:
+            reflection_updates["padding"] = float(params["reflection_padding_m"])
+        if params.get("reflection_quality"):
+            reflection_updates["quality"] = str(params["reflection_quality"])
+        if params.get("reflection_refresh_mode"):
+            reflection_updates["refreshMode"] = str(params["reflection_refresh_mode"])
+        if params.get("reflection_time_slicing"):
+            reflection_updates["timeSlicing"] = str(params["reflection_time_slicing"])
+
+        if reflection_updates:
+            three_d_payload = {"reflectionProbe": reflection_updates}
+            if not QMLBridge.invoke_qml_function(
+                window, "apply3DUpdates", three_d_payload
+            ):
+                QMLBridge.queue_update(window, "threeD", three_d_payload)
+                QMLBridge._log_graphics_change(
+                    window, "threeD", three_d_payload, applied=False
+                )
+            else:
+                QMLBridge._log_graphics_change(
+                    window, "threeD", three_d_payload, applied=True
+                )
 
         window._apply_settings_update("graphics.environment", params)
 

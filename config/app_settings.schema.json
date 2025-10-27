@@ -853,6 +853,21 @@
                 "ibl_bind_to_camera": {
                   "type": "boolean"
                 },
+                "reflection_enabled": {
+                  "type": "boolean"
+                },
+                "reflection_padding_m": {
+                  "type": "number"
+                },
+                "reflection_quality": {
+                  "type": "string"
+                },
+                "reflection_refresh_mode": {
+                  "type": "string"
+                },
+                "reflection_time_slicing": {
+                  "type": "string"
+                },
                 "ibl_enabled": {
                   "type": "boolean"
                 },
@@ -908,6 +923,11 @@
                 "fog_transmit_curve",
                 "fog_transmit_enabled",
                 "ibl_bind_to_camera",
+                "reflection_enabled",
+                "reflection_padding_m",
+                "reflection_quality",
+                "reflection_refresh_mode",
+                "reflection_time_slicing",
                 "ibl_enabled",
                 "ibl_fallback",
                 "ibl_intensity",
@@ -2271,16 +2291,16 @@
                 "mesh": {
                   "type": "object",
                   "properties": {
-                    "cylinder_segments": {
+                    "cylinder_rings": {
                       "type": "number"
                     },
-                    "cylinder_rings": {
+                    "cylinder_segments": {
                       "type": "number"
                     }
                   },
                   "required": [
-                    "cylinder_segments",
-                    "cylinder_rings"
+                    "cylinder_rings",
+                    "cylinder_segments"
                   ],
                   "additionalProperties": false
                 },
@@ -2386,16 +2406,16 @@
                 "mesh": {
                   "type": "object",
                   "properties": {
-                    "cylinder_segments": {
+                    "cylinder_rings": {
                       "type": "number"
                     },
-                    "cylinder_rings": {
+                    "cylinder_segments": {
                       "type": "number"
                     }
                   },
                   "required": [
-                    "cylinder_segments",
-                    "cylinder_rings"
+                    "cylinder_rings",
+                    "cylinder_segments"
                   ],
                   "additionalProperties": false
                 },
@@ -2616,16 +2636,16 @@
                 "mesh": {
                   "type": "object",
                   "properties": {
-                    "cylinder_segments": {
+                    "cylinder_rings": {
                       "type": "number"
                     },
-                    "cylinder_rings": {
+                    "cylinder_segments": {
                       "type": "number"
                     }
                   },
                   "required": [
-                    "cylinder_segments",
-                    "cylinder_rings"
+                    "cylinder_rings",
+                    "cylinder_segments"
                   ],
                   "additionalProperties": false
                 },

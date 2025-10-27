@@ -53,6 +53,7 @@ class EnvironmentTab(QWidget):
         layout.setSpacing(12)
 
         layout.addWidget(self._build_background_group())
+        layout.addWidget(self._build_reflection_group())
         layout.addWidget(self._build_fog_group())
         layout.addWidget(self._build_ao_group())
 
@@ -222,6 +223,81 @@ class EnvironmentTab(QWidget):
         )
         self._controls["ibl.bind"] = env_bind
         grid.addWidget(env_bind, row, 0, 1, 2)
+
+        return group
+
+    def _build_reflection_group(self) -> QGroupBox:
+        """Создать группу настроек локальной Reflection Probe"""
+
+        group = QGroupBox("Reflection Probe", self)
+        grid = QGridLayout(group)
+        grid.setContentsMargins(8, 8, 8, 8)
+        grid.setHorizontalSpacing(12)
+        grid.setVerticalSpacing(8)
+        row = 0
+
+        enabled = QCheckBox("Включить локальную reflection probe", self)
+        enabled.clicked.connect(
+            lambda checked: self._on_control_changed("reflection_enabled", checked)
+        )
+        self._controls["reflection.enabled"] = enabled
+        grid.addWidget(enabled, row, 0, 1, 2)
+        row += 1
+
+        padding = LabeledSlider(
+            "Отступ от геометрии", 0.0, 1.0, 0.01, decimals=2, unit="м"
+        )
+        padding.valueChanged.connect(
+            lambda v: self._on_control_changed("reflection_padding_m", v)
+        )
+        padding.setToolTip(
+            "Дополнительная оболочка вокруг подвески для захвата отражений"
+        )
+        self._controls["reflection.padding"] = padding
+        grid.addWidget(padding, row, 0, 1, 2)
+        row += 1
+
+        quality_combo = QComboBox(self)
+        quality_combo.addItem("Очень высокое", "veryhigh")
+        quality_combo.addItem("Высокое", "high")
+        quality_combo.addItem("Среднее", "medium")
+        quality_combo.addItem("Низкое", "low")
+        quality_combo.currentIndexChanged.connect(
+            lambda _: self._on_control_changed(
+                "reflection_quality", quality_combo.currentData()
+            )
+        )
+        self._controls["reflection.quality"] = quality_combo
+        grid.addWidget(QLabel("Качество", self), row, 0)
+        grid.addWidget(quality_combo, row, 1)
+        row += 1
+
+        refresh_combo = QComboBox(self)
+        refresh_combo.addItem("Каждый кадр", "everyframe")
+        refresh_combo.addItem("Только первый кадр", "firstframe")
+        refresh_combo.addItem("Отключено", "never")
+        refresh_combo.currentIndexChanged.connect(
+            lambda _: self._on_control_changed(
+                "reflection_refresh_mode", refresh_combo.currentData()
+            )
+        )
+        self._controls["reflection.refresh_mode"] = refresh_combo
+        grid.addWidget(QLabel("Обновление карты", self), row, 0)
+        grid.addWidget(refresh_combo, row, 1)
+        row += 1
+
+        slicing_combo = QComboBox(self)
+        slicing_combo.addItem("Отдельно для каждой грани", "individualfaces")
+        slicing_combo.addItem("Все грани одновременно", "allfacesatonce")
+        slicing_combo.addItem("Без разделения по времени", "notimeslicing")
+        slicing_combo.currentIndexChanged.connect(
+            lambda _: self._on_control_changed(
+                "reflection_time_slicing", slicing_combo.currentData()
+            )
+        )
+        self._controls["reflection.time_slicing"] = slicing_combo
+        grid.addWidget(QLabel("Распределение по кадрам", self), row, 0)
+        grid.addWidget(slicing_combo, row, 1)
 
         return group
 
@@ -537,6 +613,19 @@ class EnvironmentTab(QWidget):
             "ibl_offset_x": self._require_control("ibl.offset_x").value(),
             "ibl_offset_y": self._require_control("ibl.offset_y").value(),
             "ibl_bind_to_camera": self._require_control("ibl.bind").isChecked(),
+            "reflection_enabled": self._require_control(
+                "reflection.enabled"
+            ).isChecked(),
+            "reflection_padding_m": self._require_control("reflection.padding").value(),
+            "reflection_quality": self._require_control(
+                "reflection.quality"
+            ).currentData(),
+            "reflection_refresh_mode": self._require_control(
+                "reflection.refresh_mode"
+            ).currentData(),
+            "reflection_time_slicing": self._require_control(
+                "reflection.time_slicing"
+            ).currentData(),
             "fog_enabled": self._require_control("fog.enabled").isChecked(),
             "fog_color": self._require_control("fog.color").color().name(),
             "fog_density": self._require_control("fog.density").value(),
@@ -603,6 +692,27 @@ class EnvironmentTab(QWidget):
             self._require_control("ibl.bind").setChecked(
                 validated["ibl_bind_to_camera"]
             )
+
+            self._require_control("reflection.enabled").setChecked(
+                validated["reflection_enabled"]
+            )
+            self._require_control("reflection.padding").set_value(
+                validated["reflection_padding_m"]
+            )
+            quality_combo = self._require_control("reflection.quality")
+            idx_quality = quality_combo.findData(validated["reflection_quality"])
+            if idx_quality >= 0:
+                quality_combo.setCurrentIndex(idx_quality)
+
+            refresh_combo = self._require_control("reflection.refresh_mode")
+            idx_refresh = refresh_combo.findData(validated["reflection_refresh_mode"])
+            if idx_refresh >= 0:
+                refresh_combo.setCurrentIndex(idx_refresh)
+
+            slicing_combo = self._require_control("reflection.time_slicing")
+            idx_slicing = slicing_combo.findData(validated["reflection_time_slicing"])
+            if idx_slicing >= 0:
+                slicing_combo.setCurrentIndex(idx_slicing)
 
             self._require_control("fog.enabled").setChecked(validated["fog_enabled"])
             self._require_control("fog.color").set_color(validated["fog_color"])
