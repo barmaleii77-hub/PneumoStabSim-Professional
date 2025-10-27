@@ -9,7 +9,8 @@ Russian comments / English code.
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING, Any, Dict, Optional
+import math
+from typing import TYPE_CHECKING, Any, Dict, Mapping, Optional
 
 from PySide6.QtCore import Qt
 
@@ -40,6 +41,69 @@ class SignalsRouter:
         Wheel.LZ: "rl",
         Wheel.PZ: "rr",
     }
+    _CAMERA_FLOAT_TOLERANCE = 1e-5
+
+    @staticmethod
+    def _sanitize_camera_payload(payload: Mapping[str, Any]) -> Dict[str, Any]:
+        cleaned: Dict[str, Any] = {}
+        for key, value in payload.items():
+            if value is None:
+                continue
+            if isinstance(value, Mapping):
+                nested = SignalsRouter._sanitize_camera_payload(value)
+                if nested:
+                    cleaned[key] = nested
+                continue
+            cleaned[key] = value
+        return cleaned
+
+    @staticmethod
+    def _normalize_camera_payload(payload: Mapping[str, Any]) -> Dict[str, Any]:
+        normalized: Dict[str, Any] = {}
+        for key, value in payload.items():
+            if isinstance(value, Mapping):
+                nested = SignalsRouter._normalize_camera_payload(value)
+                if nested:
+                    normalized[key] = nested
+                continue
+            if isinstance(value, bool):
+                normalized[key] = bool(value)
+            elif isinstance(value, (int, float)):
+                normalized[key] = float(value)
+            else:
+                normalized[key] = value
+        return normalized
+
+    @staticmethod
+    def _camera_payloads_equal(
+        first: Mapping[str, Any], second: Mapping[str, Any]
+    ) -> bool:
+        if first.keys() != second.keys():
+            return False
+
+        for key in first.keys():
+            left = first[key]
+            right = second[key]
+
+            if isinstance(left, Mapping) and isinstance(right, Mapping):
+                if not SignalsRouter._camera_payloads_equal(left, right):
+                    return False
+                continue
+
+            if isinstance(left, float) and isinstance(right, float):
+                if not math.isclose(
+                    left,
+                    right,
+                    rel_tol=SignalsRouter._CAMERA_FLOAT_TOLERANCE,
+                    abs_tol=SignalsRouter._CAMERA_FLOAT_TOLERANCE,
+                ):
+                    return False
+                continue
+
+            if left != right:
+                return False
+
+        return True
 
     @staticmethod
     def _build_simulation_payload(snapshot: "StateSnapshot") -> Dict[str, Any]:
@@ -354,13 +418,27 @@ class SignalsRouter:
 
         from .qml_bridge import QMLBridge
 
-        if not QMLBridge.invoke_qml_function(window, "applyCameraUpdates", params):
-            QMLBridge.queue_update(window, "camera", params)
-            QMLBridge._log_graphics_change(window, "camera", params, applied=False)
-        else:
-            QMLBridge._log_graphics_change(window, "camera", params, applied=True)
+        sanitized = SignalsRouter._sanitize_camera_payload(params)
+        if not sanitized:
+            return
 
-        window._apply_settings_update("graphics.camera", params)
+        normalized = SignalsRouter._normalize_camera_payload(sanitized)
+        last_payload = getattr(window, "_last_camera_payload", {})
+        if last_payload and SignalsRouter._camera_payloads_equal(
+            last_payload, normalized
+        ):
+            SignalsRouter.logger.debug("⏭️ Skipping redundant camera update")
+            return
+
+        if not QMLBridge.invoke_qml_function(window, "applyCameraUpdates", sanitized):
+            QMLBridge.queue_update(window, "camera", sanitized)
+            QMLBridge._log_graphics_change(window, "camera", sanitized, applied=False)
+        else:
+            QMLBridge._log_graphics_change(window, "camera", sanitized, applied=True)
+
+        window._last_camera_payload = normalized
+
+        window._apply_settings_update("graphics.camera", sanitized)
 
     @staticmethod
     def handle_effects_changed(window: MainWindow, params: Dict[str, Any]) -> None:
@@ -396,7 +474,14 @@ class SignalsRouter:
         QMLBridge.queue_update(window, "lighting", full_state.get("lighting", {}))
         QMLBridge.queue_update(window, "materials", full_state.get("materials", {}))
         QMLBridge.queue_update(window, "quality", full_state.get("quality", {}))
-        QMLBridge.queue_update(window, "camera", full_state.get("camera", {}))
+        camera_state = SignalsRouter._sanitize_camera_payload(
+            full_state.get("camera", {})
+        )
+        if camera_state:
+            QMLBridge.queue_update(window, "camera", camera_state)
+            window._last_camera_payload = SignalsRouter._normalize_camera_payload(
+                camera_state
+            )
         QMLBridge.queue_update(window, "effects", full_state.get("effects", {}))
 
         window._apply_settings_update("graphics", full_state)

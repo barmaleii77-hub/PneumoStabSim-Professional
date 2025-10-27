@@ -166,6 +166,7 @@ class MainWindow(QMainWindow):
         self._qml_flush_timer.timeout.connect(self._flush_qml_updates)
         self._qml_pending_property_supported: Optional[bool] = None
         self._last_batched_updates: Optional[Dict[str, Any]] = None
+        self._last_camera_payload: Dict[str, Any] = {}
 
         # State tracking
         from ...runtime import StateSnapshot
