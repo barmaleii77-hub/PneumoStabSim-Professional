@@ -52,7 +52,7 @@ from src.pneumo.gas_state import (
 from src.pneumo.network import GasNetwork
 from src.road.engine import RoadInput, create_road_input_from_preset
 from src.road.scenarios import get_preset_by_name
-from src.common.units import PA_ATM, T_AMBIENT
+from src.common.units import KELVIN_0C, PA_ATM, T_AMBIENT
 from src.app.config_defaults import create_default_system_configuration
 
 # Settings manager (используем абсолютный импорт, т.к. общий модуль)
@@ -348,11 +348,48 @@ class PhysicsWorker(QObject):
                 V_max=self._volume_limits[1],
             )
             receiver_mode = self._resolve_receiver_mode(self.receiver_volume_mode)
+            pneumatic_cfg = self.settings_manager.get("pneumatic", {}) or {}
+            pneumatic_defaults = (
+                self.settings_manager.get("defaults_snapshot.pneumatic", {}) or {}
+            )
+
+            def _resolve_numeric(data: Dict[str, Any], key: str) -> Optional[float]:
+                value = data.get(key)
+                if isinstance(value, bool) or not isinstance(value, (int, float)):
+                    return None
+                return float(value)
+
+            def _get_pressure_setting(key: str, fallback: float) -> float:
+                value = _resolve_numeric(pneumatic_cfg, key)
+                if value is None:
+                    value = _resolve_numeric(pneumatic_defaults, key)
+                if value is None:
+                    return fallback
+                return value
+
+            default_temp_c = 20.0
+            atmo_temp_c = _resolve_numeric(pneumatic_cfg, "atmo_temp")
+            if atmo_temp_c is None:
+                atmo_temp_c = _resolve_numeric(pneumatic_defaults, "atmo_temp")
+            if atmo_temp_c is None:
+                atmo_temp_c = default_temp_c
+            ambient_temperature = max(atmo_temp_c + KELVIN_0C, 1.0)
+
+            relief_min_threshold = _get_pressure_setting(
+                "relief_min_pressure", 1.05 * PA_ATM
+            )
+            relief_stiff_threshold = _get_pressure_setting(
+                "relief_stiff_pressure", 1.5 * PA_ATM
+            )
+            relief_safety_threshold = _get_pressure_setting(
+                "relief_safety_pressure", 2.0 * PA_ATM
+            )
+
             receiver_state = ReceiverState(
                 spec=receiver_spec,
                 V=self.receiver_volume,
                 p=PA_ATM,
-                T=T_AMBIENT,
+                T=ambient_temperature,
                 mode=receiver_mode,
             )
 
@@ -381,14 +418,14 @@ class PhysicsWorker(QObject):
                 line_states[line_name] = create_line_gas_state(
                     line_name,
                     PA_ATM,
-                    T_AMBIENT,
+                    ambient_temperature,
                     total_volume,
                 )
 
             tank_state = create_tank_gas_state(
                 V_initial=self.receiver_volume,
                 p_initial=PA_ATM,
-                T_initial=T_AMBIENT,
+                T_initial=ambient_temperature,
                 mode=receiver_mode,
             )
 
@@ -397,6 +434,10 @@ class PhysicsWorker(QObject):
                 tank=tank_state,
                 system_ref=self.pneumatic_system,
                 master_isolation_open=self.master_isolation_open,
+                ambient_temperature=ambient_temperature,
+                relief_min_threshold=relief_min_threshold,
+                relief_stiff_threshold=relief_stiff_threshold,
+                relief_safety_threshold=relief_safety_threshold,
             )
 
             self._latest_tank_state = TankState(

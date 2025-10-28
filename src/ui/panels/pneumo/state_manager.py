@@ -18,8 +18,8 @@ from .defaults import (
     THROTTLE_DIAMETER_LIMITS,
     VALVE_DIAMETER_LIMITS,
     clamp,
-    PA_PER_BAR,
     MM_PER_M,
+    get_pressure_factor,
 )
 
 LOGGER = logging.getLogger(__name__)
@@ -41,9 +41,14 @@ class PneumoStateManager:
     @staticmethod
     def _convert_from_storage(payload: Dict[str, Any]) -> Dict[str, Any]:
         converted = deepcopy(payload)
+        units = str(
+            converted.get("pressure_units", DEFAULT_PNEUMATIC["pressure_units"])
+        )
+        factor = get_pressure_factor(units)
+        converted["pressure_units"] = units
         for key in STORAGE_PRESSURE_KEYS:
             if key in converted:
-                converted[key] = float(converted[key]) / PA_PER_BAR
+                converted[key] = float(converted[key]) / factor
         for key in STORAGE_DIAMETER_KEYS_MM:
             if key in converted:
                 converted[key] = float(converted[key]) * MM_PER_M
@@ -52,9 +57,14 @@ class PneumoStateManager:
     @staticmethod
     def _convert_to_storage(payload: Dict[str, Any]) -> Dict[str, Any]:
         converted = deepcopy(payload)
+        units = str(
+            converted.get("pressure_units", DEFAULT_PNEUMATIC["pressure_units"])
+        )
+        factor = get_pressure_factor(units)
+        converted["pressure_units"] = units
         for key in STORAGE_PRESSURE_KEYS:
             if key in converted:
-                converted[key] = float(converted[key]) * PA_PER_BAR
+                converted[key] = float(converted[key]) * factor
         for key in STORAGE_DIAMETER_KEYS_MM:
             if key in converted:
                 converted[key] = float(converted[key]) / MM_PER_M
@@ -203,7 +213,23 @@ class PneumoStateManager:
         )
 
     def set_pressure_units(self, units: str) -> None:
-        self._state["pressure_units"] = units
+        new_units = str(units)
+        old_units = self.get_pressure_units()
+        if new_units == old_units:
+            return
+
+        old_factor = get_pressure_factor(old_units)
+        new_factor = get_pressure_factor(new_units)
+
+        def _convert_pressure_payload(payload: Dict[str, Any]) -> None:
+            for key in STORAGE_PRESSURE_KEYS:
+                if key in payload:
+                    value_pa = float(payload[key]) * old_factor
+                    payload[key] = value_pa / new_factor
+            payload["pressure_units"] = new_units
+
+        _convert_pressure_payload(self._state)
+        _convert_pressure_payload(self._defaults)
 
     def get_thermo_mode(self) -> str:
         return str(self._state.get("thermo_mode", DEFAULT_PNEUMATIC["thermo_mode"]))

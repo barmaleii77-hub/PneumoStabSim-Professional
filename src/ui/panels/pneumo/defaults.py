@@ -8,6 +8,13 @@ from typing import Any, Dict
 PA_PER_BAR = 100_000.0
 MM_PER_M = 1000.0
 
+PRESSURE_UNIT_FACTORS = {
+    "бар": PA_PER_BAR,
+    "Па": 1.0,
+    "кПа": 1_000.0,
+    "МПа": 1_000_000.0,
+}
+
 DEFAULT_PNEUMATIC: Dict[str, Any] = {
     "pressure_units": "бар",
     "volume_mode": "MANUAL",
@@ -66,3 +73,19 @@ def clamp(value: float, minimum: float, maximum: float) -> float:
     """Clamp *value* into the inclusive range [minimum, maximum]."""
 
     return max(minimum, min(maximum, value))
+
+
+def get_pressure_factor(units: str) -> float:
+    """Return conversion factor from *units* to Паскали."""
+
+    units_key = (units or "").strip()
+    return PRESSURE_UNIT_FACTORS.get(units_key, PA_PER_BAR)
+
+
+def convert_pressure_value(value: float, from_units: str, to_units: str) -> float:
+    """Convert ``value`` between two pressure unit systems."""
+
+    from_factor = get_pressure_factor(from_units)
+    to_factor = get_pressure_factor(to_units)
+    value_pa = float(value) * from_factor
+    return value_pa / to_factor
