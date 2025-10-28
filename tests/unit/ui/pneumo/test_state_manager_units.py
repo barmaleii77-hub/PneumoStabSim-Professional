@@ -12,15 +12,40 @@ class DummySettings:
     """Minimal settings stub used to isolate conversion logic."""
 
     def __init__(self, values=None, *, units_version: str = "si_v2") -> None:
-        self._values = values or {}
+        self._values = {}
         self._units_version = units_version
+        if values:
+            for path, value in values.items():
+                self.set(path, value, auto_save=False)
+
+    def _resolve(self, path: str, create: bool = False):
+        parts = path.split(".")
+        node = self._values
+        for index, part in enumerate(parts[:-1]):
+            next_node = node.get(part)
+            if next_node is None:
+                if not create:
+                    return None, parts[-1]
+                next_node = {}
+                node[part] = next_node
+            if not isinstance(next_node, dict):
+                if not create:
+                    return None, parts[-1]
+                next_node = {}
+                node[part] = next_node
+            node = next_node
+        return node, parts[-1]
 
     def get(self, path: str, default=None):
-        return self._values.get(path, default)
+        container, leaf = self._resolve(path)
+        if container is None:
+            return default
+        return container.get(leaf, default)
 
-    def set(self, path: str, value):
-        self._values[path] = value
-        return None
+    def set(self, path: str, value, auto_save: bool = True):
+        container, leaf = self._resolve(path, create=True)
+        container[leaf] = value
+        return True
 
     def get_units_version(self, *, normalised: bool = True) -> str:
         if normalised:
@@ -110,6 +135,32 @@ def test_load_converts_si_units_to_ui_defaults():
 
     assert pytest.approx(0.02, rel=1e-9) == manager.get_pressure_drop("cv_atmo_dp")
     assert pytest.approx(3.0, rel=1e-9) == manager.get_valve_diameter("cv_atmo_dia")
+
+
+def test_legacy_payload_normalised_before_save():
+    settings = DummySettings(
+        {
+            "metadata.units_version": "legacy",
+            "current.pneumatic": {
+                "cv_atmo_dp": "0.02",
+                "cv_atmo_dia": "3.0",
+                "pressure_units": "бар",
+            },
+            "defaults_snapshot.pneumatic": {},
+        },
+        units_version="legacy",
+    )
+
+    manager = PneumoStateManager(settings_manager=settings)
+
+    storage = manager.export_storage_payload()
+    assert pytest.approx(0.02 * 100_000.0, rel=1e-9) == storage["cv_atmo_dp"]
+    assert pytest.approx(3.0 / 1000.0, rel=1e-9) == storage["cv_atmo_dia"]
+
+    assert settings.get("metadata.pneumo_units_normalised") is True
+
+    storage_again = manager.export_storage_payload()
+    assert storage_again == storage
 
 
 def test_set_pressure_units_rescales_pressures():

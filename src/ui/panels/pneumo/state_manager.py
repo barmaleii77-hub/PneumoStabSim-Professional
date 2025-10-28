@@ -25,6 +25,12 @@ from .defaults import (
 
 LOGGER = logging.getLogger(__name__)
 
+# ``_UNITS_MIGRATION_FLAG`` marks payloads that have been normalised from
+# legacy unit representations.  The flag lives under ``metadata`` in the
+# settings file so repeated loads stay idempotent and avoid re-scaling values
+# that are already in SI form.
+_UNITS_MIGRATION_FLAG = "pneumo_units_normalised"
+
 
 class PneumoStateManager:
     """Manage pneumatic state, validation and persistence."""
@@ -149,6 +155,41 @@ class PneumoStateManager:
             )
         )
         self._state = merged
+        self._normalise_if_legacy()
+
+    # ------------------------------------------------------------------- utils
+    def _normalise_payload(self, payload: Dict[str, Any]) -> Dict[str, Any]:
+        canonical = self._convert_to_storage(payload)
+        # Treat the canonical snapshot as si_v2 storage to coerce types and
+        # rescale values consistently (e.g. legacy mm -> m conversions).
+        return self._convert_from_storage(canonical, units_version="si_v2")
+
+    def _normalise_if_legacy(self) -> None:
+        if self._storage_units_version == "si_v2":
+            return
+
+        already_migrated = False
+        try:
+            already_migrated = bool(
+                self._settings.get(f"metadata.{_UNITS_MIGRATION_FLAG}", False)
+            )
+        except Exception:  # pragma: no cover - defensive guard for custom managers
+            already_migrated = False
+
+        if already_migrated:
+            return
+
+        LOGGER.info("Normalising legacy pneumatic payload to SI units")
+        self._defaults = self._normalise_payload(self._defaults)
+        self._state = self._normalise_payload(self._state)
+        self._storage_units_version = "si_v2"
+
+        try:
+            self._settings.set(
+                f"metadata.{_UNITS_MIGRATION_FLAG}", True, auto_save=False
+            )
+        except Exception:  # pragma: no cover - tolerate simplified stubs
+            pass
 
     def _detect_units_version(self) -> str:
         """Return the raw units version recorded in the settings manager."""
