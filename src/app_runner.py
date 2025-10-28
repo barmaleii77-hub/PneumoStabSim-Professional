@@ -411,7 +411,12 @@ class ApplicationRunner:
         from src.diagnostics.warnings import print_warnings_errors
         from src.diagnostics.logs import run_log_diagnostics
 
-        diagnostics_context: list[str] = []
+        env_trace_raw = os.environ.get("PSS_POST_DIAG_TRACE", "")
+        env_reasons = [item for item in env_trace_raw.split("|") if item]
+        run_post_diagnostics = bool(args.diag or env_reasons)
+        diagnostics_context: list[str] = [*env_reasons]
+        if args.diag:
+            diagnostics_context.append("cli-flag")
         try:
             # ✅ Печать заголовка
             self._print_header()
@@ -463,20 +468,28 @@ class ApplicationRunner:
             print_warnings_errors()
 
             diagnostics_context.append("fatal-error")
+            run_post_diagnostics = True
 
             return 1
 
         finally:
             try:
                 diagnostics_context.append("exit")
-                reasons_raw = os.environ.get("PSS_POST_DIAG_TRACE", "")
-                reasons = [item for item in reasons_raw.split("|") if item]
-                if reasons:
-                    print("📄 Причины запуска пост-диагностики:")
-                    for entry in reasons:
-                        print(f"   • {entry}")
-                print("\n🔁 Запуск обязательной пост-диагностики логов...\n")
-                run_log_diagnostics()
+                if run_post_diagnostics:
+                    printable_reasons = [
+                        reason for reason in diagnostics_context if reason != "exit"
+                    ]
+                    if printable_reasons:
+                        print("📄 Причины запуска пост-диагностики:")
+                        for entry in printable_reasons:
+                            print(f"   • {entry}")
+                    print("\n🔁 Запуск обязательной пост-диагностики логов...\n")
+                    run_log_diagnostics()
+                elif args.diag:
+                    # diag flag requested but no diagnostics executed (should not happen)
+                    print(
+                        "⚠️  Пост-диагностика не выполнена из-за внутреннего ограничения."
+                    )
             except Exception as diag_exc:
                 print(f"⚠️  Не удалось выполнить пост-диагностику логов: {diag_exc}")
 
