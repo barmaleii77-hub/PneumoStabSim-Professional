@@ -24,6 +24,7 @@ from pathlib import Path
 from typing import Dict, Any, List, Tuple
 
 from .widgets import ColorButton, LabeledSlider
+from .hdr_discovery import discover_hdr_files
 from src.common.logging_widgets import LoggingCheckBox
 from src.ui.environment_schema import validate_environment_settings
 
@@ -313,40 +314,13 @@ class EnvironmentTab(QWidget):
         return group
 
     def _discover_hdr_files(self) -> List[Tuple[str, str]]:
-        results: List[Tuple[str, str]] = []
         search_dirs = [
             Path("assets/hdr"),
             Path("assets/hdri"),
             Path("assets/qml/assets"),
         ]
-        qml_dir = Path("assets/qml").resolve()
-
-        def to_qml_relative(p: Path) -> str:
-            try:
-                abs_p = p.resolve()
-                rel = abs_p.relative_to(qml_dir)
-                return rel.as_posix()
-            except Exception:
-                try:
-                    import os
-
-                    relpath = os.path.relpath(p.resolve(), start=qml_dir)
-                    return Path(relpath).as_posix()
-                except Exception:
-                    return p.resolve().as_posix()
-
-        seen: set[str] = set()
-        for base in search_dirs:
-            if not base.exists():
-                continue
-            for ext in ("*.hdr", "*.exr"):
-                for p in sorted(base.glob(ext)):
-                    key = p.name.lower()
-                    if key in seen:
-                        continue
-                    seen.add(key)
-                    results.append((p.name, to_qml_relative(p)))
-        return results
+        qml_root = Path("assets/qml")
+        return discover_hdr_files(search_dirs, qml_root=qml_root)
 
     def _normalize_ibl_path(self, value: Any) -> str:
         """Нормализовать путь для IBL (привести к POSIX и убрать None)."""
