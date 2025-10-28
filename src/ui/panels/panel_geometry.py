@@ -412,6 +412,7 @@ class GeometryPanel(QWidget):
             front = float(self.parameters.get("rod_diameter_m", 0.035))
             rear = float(self.parameters.get("rod_diameter_rear_m", front))
             self._rod_link_snapshot = (front, rear)
+            self.parameters["rod_diameter_m"] = front
             self.parameters["rod_diameter_rear_m"] = front
             self._syncing_rods = True
             try:
@@ -421,16 +422,7 @@ class GeometryPanel(QWidget):
             self.rod_diameter_rear_slider.setEnabled(False)
         else:
             self.rod_diameter_rear_slider.setEnabled(True)
-            if self._rod_link_snapshot:
-                front, rear = self._rod_link_snapshot
-                self._syncing_rods = True
-                try:
-                    self.rod_diameter_front_slider.setValue(front)
-                    self.rod_diameter_rear_slider.setValue(rear)
-                finally:
-                    self._syncing_rods = False
-                self.parameters["rod_diameter_m"] = front
-                self.parameters["rod_diameter_rear_m"] = rear
+            # Preserve the current synced values; users can now adjust sliders independently.
             self._rod_link_snapshot = None
 
         self.geometry_updated.emit(self.parameters.copy())

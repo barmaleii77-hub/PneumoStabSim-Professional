@@ -13,6 +13,8 @@ Key refinements introduced during the refactor:
 * Добавлены цветовые подсказки и всплывающие подсказки.
 """
 
+from __future__ import annotations
+
 import math
 from PySide6.QtWidgets import (
     QWidget,
@@ -93,7 +95,7 @@ class RangeSlider(QWidget):
             self.title_label.setFont(font)
             layout.addWidget(self.title_label)
 
-        # ✨ ОБНОВЛЕНО: Индикатор диапазона с шириной диапазона без скобок
+        # ✨ ОБНОВЛЕНО: Индикатор диапазона с ширной диапазона без скобок
         self.range_indicator_label = QLabel(
             "Диапазон: 0.0 — 100.0 ширина диапазона 100.0"
         )
@@ -162,31 +164,18 @@ class RangeSlider(QWidget):
         value_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         font = QFont()
         font.setPointSize(7)
-        font.setBold(True)  # ✨ Выделяем текущее значение жирным
         value_label.setFont(font)
         value_layout.addWidget(value_label)
 
         self.value_spinbox = QDoubleSpinBox()
         self.value_spinbox.setDecimals(self._decimals)
+        self.value_spinbox.setRange(-1e6, 1e6)
         self.value_spinbox.setMinimumWidth(100)
-        self.value_spinbox.setMaximumWidth(120)
         self.value_spinbox.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        # ✨ Выделяем поле значения
-        self.value_spinbox.setStyleSheet("QDoubleSpinBox { font-weight: bold; }")
+        # ✨ Tooltip для value
+        self.value_spinbox.setToolTip("Текущее значение параметра")
         value_layout.addWidget(self.value_spinbox)
         controls_layout.addLayout(value_layout)
-
-        # Units label рядом с полем значения
-        if self._units:
-            self.units_label = QLabel(self._units)
-            font = QFont()
-            font.setPointSize(9)
-            font.setBold(True)
-            self.units_label.setFont(font)
-            self.units_label.setAlignment(
-                Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter
-            )
-            controls_layout.addWidget(self.units_label)
 
         # Растягивающееся пространство между значением и макс
         controls_layout.addStretch()
@@ -214,328 +203,219 @@ class RangeSlider(QWidget):
 
         layout.addLayout(controls_layout)
 
-    def _connect_signals(self):
-        self.slider.valueChanged.connect(self._on_slider_changed)
-        self.value_spinbox.valueChanged.connect(self._on_value_spinbox_changed)
-        self.min_spinbox.valueChanged.connect(self._on_min_changed)
-        self.max_spinbox.valueChanged.connect(self._on_max_changed)
+        # ✨ Дополнительный индикатор единиц измерения
+        self.units_label = QLabel()
+        self.units_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        font = QFont()
+        font.setPointSize(7)
+        font.setItalic(True)
+        self.units_label.setFont(font)
+        layout.addWidget(self.units_label)
 
+    def _connect_signals(self):
+        self.slider.valueChanged.connect(self._on_slider_value_changed)
+        self.slider.sliderPressed.connect(self._on_slider_pressed)
+        self.slider.sliderReleased.connect(self._on_slider_released)
+
+        self.value_spinbox.valueChanged.connect(self._on_value_spinbox_changed)
+        self.value_spinbox.editingFinished.connect(self._on_value_spinbox_finished)
+
+        self.min_spinbox.valueChanged.connect(self._on_min_spinbox_changed)
+        self.max_spinbox.valueChanged.connect(self._on_max_spinbox_changed)
+
+    # =========================================================================
+    # CONFIGURATION
+    # =========================================================================
+    def setDecimals(self, decimals):
+        self._decimals = decimals
+        self.value_spinbox.setDecimals(decimals)
+        self.min_spinbox.setDecimals(decimals)
+        self.max_spinbox.setDecimals(decimals)
+
+    def setRange(self, minimum, maximum):
+        if minimum >= maximum:
+            maximum = minimum + abs(self._step) if self._step else minimum + 0.001
+
+        self._minimum = minimum
+        self._maximum = maximum
+        self.min_spinbox.blockSignals(True)
+        self.max_spinbox.blockSignals(True)
+        try:
+            self.min_spinbox.setValue(minimum)
+            self.max_spinbox.setValue(maximum)
+        finally:
+            self.min_spinbox.blockSignals(False)
+            self.max_spinbox.blockSignals(False)
+        self._update_range_indicator()
+        self.rangeChanged.emit(minimum, maximum)
+
+    def setUnits(self, units: str):
+        self._units = units
+        if units:
+            self.units_label.setText(f"Единицы: {units}")
+        else:
+            self.units_label.clear()
+
+    def setTitle(self, title: str):
+        if hasattr(self, "title_label"):
+            self.title_label.setText(title)
+        else:
+            self.title_label = QLabel(title)
+
+    # =========================================================================
+    # STATE MANAGEMENT
+    # =========================================================================
     def setValue(self, value):
-        value = max(self.minimum(), min(self.maximum(), value))
-        slider_pos = self._value_to_slider(value)
-        self._updating_internally = True
-        self.slider.setValue(slider_pos)
-        self.value_spinbox.setValue(value)
-        self._updating_internally = False
-        # ✨ Обновить индикаторы
-        self._update_indicators()
+        value = float(value)
+        value = max(self._minimum, min(self._maximum, value))
+        if math.isclose(value, self.value_spinbox.value(), rel_tol=1e-9, abs_tol=1e-9):
+            self._update_slider_position(value)
+            return
+
+        self.value_spinbox.blockSignals(True)
+        try:
+            self.value_spinbox.setValue(value)
+        finally:
+            self.value_spinbox.blockSignals(False)
+        self._update_slider_position(value)
 
     def value(self):
         return self.value_spinbox.value()
 
-    def setRange(self, minimum, maximum):
-        if maximum <= minimum:
-            raise ValueError("Maximum must be greater than minimum")
-
-        current_value = (
-            self.value_spinbox.value() if hasattr(self, "value_spinbox") else minimum
-        )
-        self._updating_internally = True
-
-        if hasattr(self, "min_spinbox"):
-            self.min_spinbox.blockSignals(True)
-            self.max_spinbox.blockSignals(True)
-            self.min_spinbox.setValue(minimum)
-            self.max_spinbox.setValue(maximum)
-            self.min_spinbox.blockSignals(False)
-            self.max_spinbox.blockSignals(False)
-
-        self._update_spinbox_ranges()
-        self._updating_internally = False
-
-        if hasattr(self, "value_spinbox"):
-            self.setValue(current_value)
-
-        # ✨ Обновить индикаторы диапазона
-        self._update_indicators()
-
     def minimum(self):
-        return self.min_spinbox.value() if hasattr(self, "min_spinbox") else 0.0
+        return self._minimum
 
     def maximum(self):
-        return self.max_spinbox.value() if hasattr(self, "max_spinbox") else 100.0
+        return self._maximum
 
-    def _value_to_slider(self, value):
-        min_val = self.minimum()
-        max_val = self.maximum()
-        if max_val <= min_val:
-            return 0
-        value = max(min_val, min(max_val, value))
-        ratio = (value - min_val) / (max_val - min_val)
-        return int(ratio * self._slider_resolution)
+    def setEnabled(self, enabled):  # noqa: D401 - Qt signature compatibility
+        """Enable or disable the slider and its inputs."""
 
-    def _slider_to_value(self, slider_pos):
-        min_val = self.minimum()
-        max_val = self.maximum()
-        ratio = slider_pos / self._slider_resolution
-        value = min_val + ratio * (max_val - min_val)
+        super().setEnabled(enabled)
+        for widget in (
+            self.slider,
+            self.min_spinbox,
+            self.value_spinbox,
+            self.max_spinbox,
+        ):
+            widget.setEnabled(enabled)
 
-        # УЛУЧШЕННОЕ округление для дискретности 0.001м
-        if self._step > 0:
-            # Вычисляем количество шагов от минимума
-            steps = round((value - min_val) / self._step)
-            value = min_val + steps * self._step
-
-            # Дополнительное округление для устранения погрешностей float
-            # Для шага 0.001 округляем до 3 знаков после запятой
-            if self._step == 0.001:
-                value = round(value, 3)
-            elif self._step == 0.01:
-                value = round(value, 2)
-            elif self._step == 0.1:
-                value = round(value, 1)
-            else:
-                # Автоматическое определение точности на основе шага
-                decimal_places = max(0, -int(round(math.log10(abs(self._step)))))
-                value = round(value, decimal_places)
-
-        return max(min_val, min(max_val, value))
-
-    # ✨ ОБНОВЛЕННЫЙ МЕТОД для индикаторов с шириной диапазона БЕЗ СКОБОК
-    def _update_indicators(self):
-        """Обновить индикаторы диапазона, ширины диапазона и позиции"""
-        if not hasattr(self, "range_indicator_label"):
-            return
-
-        min_val = self.minimum()
-        max_val = self.maximum()
-        current_val = self.value()
-
-        # ✨ ОБНОВЛЕНО: Вычисляем ширину диапазона (абсолютное значение)
-        range_width = abs(max_val - min_val)
-
-        # ОБНОВЛЕНО: Индикатор диапазона с шириной диапазона БЕЗ СКБОК
-        range_text = f"Диапазон: {min_val:.{self._decimals}f} — {max_val:.{self._decimals}f} ширина диапазона {range_width:.{self._decimals}f}"
-        if self._units:
-            range_text += f" {self._units}"
-        self.range_indicator_label.setText(range_text)
-
-        # Обновить индикатор позиции и цвет
-        if max_val > min_val:
-            position_ratio = (current_val - min_val) / (max_val - min_val)
-            position_percent = position_ratio * 100
-
-            position_text = f"Позиция: {position_percent:.1f}% от диапазона"
-            self.position_indicator_label.setText(position_text)
-
-            # ✨ Цветовое кодирование позиции
-            color = self._get_position_color(position_ratio)
-            palette = self.position_indicator_label.palette()
-            palette.setColor(QPalette.ColorRole.WindowText, color)
-            self.position_indicator_label.setPalette(palette)
-
-            # ✨ Обновить tooltip с подробной информацией включая ширину диапазона
-            tooltip = (
-                f"Текущее значение: {current_val:.{self._decimals}f} {self._units}\n"
-                f"Диапазон: {min_val:.{self._decimals}f} до {max_val:.{self._decimals}f}\n"
-                f"Ширина диапазона: {range_width:.{self._decimals}f} {self._units}\n"
-                f"Позиция: {position_percent:.1f}% от диапазона\n"
-                f"Шаг: {self._step:.{self._decimals}f}"
+    # =========================================================================
+    # INTERNAL UPDATES
+    # =========================================================================
+    def _update_slider_position(self, value):
+        if self._maximum == self._minimum:
+            position = 0
+        else:
+            position = int(
+                (value - self._minimum)
+                / (self._maximum - self._minimum)
+                * self._slider_resolution
             )
-            self.value_spinbox.setToolTip(tooltip)
-
-    def _get_position_color(self, ratio):
-        """Получить цвет в зависимости от позиции в диапазоне"""
-        if ratio < 0.1 or ratio > 0.9:
-            # Красный - близко к краям диапазона
-            return QColor(200, 50, 50)
-        elif ratio < 0.2 or ratio > 0.8:
-            # Оранжевый - довольно близко к краям
-            return QColor(200, 120, 50)
-        else:
-            # Зеленый - в нормальной части диапазона
-            return QColor(50, 150, 50)
-
-    @Slot(int)
-    def _on_slider_changed(self, slider_value):
-        if self._updating_internally:
-            return
-
-        real_value = self._slider_to_value(slider_value)
 
         self._updating_internally = True
-        self.value_spinbox.setValue(real_value)
-        self._updating_internally = False
-
-        # ✨ Обновить индикаторы
-        self._update_indicators()
-
-        # МГНОВЕННОЕ обновление через valueChanged (без задержки)
-        self.valueChanged.emit(real_value)
-
-        # Задерженное обновление через valueEdited (для финальных изменений)
-        self._debounce_timer.start(self._debounce_delay)
-
-    @Slot(float)
-    def _on_value_spinbox_changed(self, spinbox_value):
-        if self._updating_internally:
-            return
-        spinbox_value = max(self.minimum(), min(self.maximum(), spinbox_value))
-        slider_pos = self._value_to_slider(spinbox_value)
-        self._updating_internally = True
-        self.slider.setValue(slider_pos)
-        self._updating_internally = False
-
-        # ✨ Обновить индикаторы
-        self._update_indicators()
-
-        # МГНОВЕННОЕ обновление через valueChanged (без задержки)
-        self.valueChanged.emit(spinbox_value)
-
-        # Задерженное обновление через valueEdited (для финальных изменений)
-        self._debounce_timer.start(self._debounce_delay)
-
-    @Slot(float)
-    def _on_min_changed(self, new_min):
-        if self._updating_internally:
-            return
-        current_max = self.maximum()
-        current_value = self.value()
-        if new_min >= current_max:
-            new_max = new_min + max(self._step, 0.01)
-            self._updating_internally = True
-            self.max_spinbox.setValue(new_max)
+        try:
+            self.slider.setValue(position)
+        finally:
             self._updating_internally = False
-            current_max = new_max
-        self._update_spinbox_ranges()
-        if current_value < new_min:
-            self.setValue(new_min)
+        self._update_position_indicator(position)
+
+    def _update_range_indicator(self):
+        width = self._maximum - self._minimum
+        self.range_indicator_label.setText(
+            f"Диапазон: {self._minimum:.{self._decimals}f} — {self._maximum:.{self._decimals}f} "
+            f"ширина диапазона {width:.{self._decimals}f}"
+            + (f" {self._units}" if self._units else "")
+        )
+
+    def _update_position_indicator(self, position):
+        if self._slider_resolution == 0:
+            percentage = 0
         else:
-            self._update_slider_position()
+            percentage = position / self._slider_resolution * 100
+        self.position_indicator_label.setText(
+            f"Позиция: {percentage:.1f}% от диапазона"
+        )
 
-        # ✨ Обновить индикаторы при изменении диапазона
-        self._update_indicators()
-        self.rangeChanged.emit(new_min, current_max)
-
-    @Slot(float)
-    def _on_max_changed(self, new_max):
-        if self._updating_internally:
-            return
-        current_min = self.minimum()
-        current_value = self.value()
-        if new_max <= current_min:
-            new_min = new_max - max(self._step, 0.01)
-            self._updating_internally = True
-            self.min_spinbox.setValue(new_min)
-            self._updating_internally = False
-            current_min = new_min
-        self._update_spinbox_ranges()
-        if current_value > new_max:
-            self.setValue(new_max)
-        else:
-            self._update_slider_position()
-
-        # ✨ Обновить индикаторы при изменении диапазона
-        self._update_indicators()
-        self.rangeChanged.emit(current_min, new_max)
-
-    def _update_spinbox_ranges(self):
-        if not hasattr(self, "min_spinbox"):
-            return
-        min_val = self.min_spinbox.value()
-        max_val = self.max_spinbox.value()
-        self.min_spinbox.blockSignals(True)
-        self.max_spinbox.blockSignals(True)
-        self.min_spinbox.setRange(-1e6, 1e6)
-        self.max_spinbox.setRange(-1e6, 1e6)
-        self.value_spinbox.setMinimum(min_val)
-        self.value_spinbox.setMaximum(max_val)
-        self.value_spinbox.setSingleStep(self._step)
-        self.min_spinbox.blockSignals(False)
-        self.max_spinbox.blockSignals(False)
-
-    def _update_slider_position(self):
-        current_value = self.value_spinbox.value()
-        slider_pos = self._value_to_slider(current_value)
-        self._updating_internally = True
-        self.slider.setValue(slider_pos)
-        self._updating_internally = False
-        # ✨ Обновить индикаторы
-        self._update_indicators()
+    # =========================================================================
+    # SIGNAL HANDLERS
+    # =========================================================================
+    @Slot()
+    def _on_slider_pressed(self):
+        self._debounce_timer.stop()
 
     @Slot()
+    def _on_slider_released(self):
+        self._debounce_timer.start(self._debounce_delay)
+
+    @Slot(int)
+    def _on_slider_value_changed(self, position):
+        if self._updating_internally:
+            return
+
+        value = self._minimum + (
+            (self._maximum - self._minimum) * position / self._slider_resolution
+        )
+        value = round(value / self._step) * self._step if self._step else value
+        value = max(self._minimum, min(self._maximum, value))
+
+        self.value_spinbox.blockSignals(True)
+        try:
+            self.value_spinbox.setValue(value)
+        finally:
+            self.value_spinbox.blockSignals(False)
+
+        self.valueChanged.emit(value)
+        self._debounce_timer.start(self._debounce_delay)
+        self._update_position_indicator(position)
+
+    @Slot(float)
+    def _on_value_spinbox_changed(self, value):
+        self._update_slider_position(value)
+        self.valueChanged.emit(value)
+        self._debounce_timer.start(self._debounce_delay)
+
+    @Slot()
+    def _on_value_spinbox_finished(self):
+        self._debounce_timer.start(self._debounce_delay)
+
+    @Slot(float)
+    def _on_min_spinbox_changed(self, value):
+        if value >= self._maximum:
+            value = (
+                self._maximum - abs(self._step) if self._step else self._maximum - 0.001
+            )
+            self.min_spinbox.blockSignals(True)
+            try:
+                self.min_spinbox.setValue(value)
+            finally:
+                self.min_spinbox.blockSignals(False)
+
+        self._minimum = value
+        self._update_range_indicator()
+        self._update_slider_position(self.value_spinbox.value())
+        self.rangeChanged.emit(self._minimum, self._maximum)
+
+    @Slot(float)
+    def _on_max_spinbox_changed(self, value):
+        if value <= self._minimum:
+            value = (
+                self._minimum + abs(self._step) if self._step else self._minimum + 0.001
+            )
+            self.max_spinbox.blockSignals(True)
+            try:
+                self.max_spinbox.setValue(value)
+            finally:
+                self.max_spinbox.blockSignals(False)
+
+        self._maximum = value
+        self._update_range_indicator()
+        self._update_slider_position(self.value_spinbox.value())
+        self.rangeChanged.emit(self._minimum, self._maximum)
+
     def _emit_value_edited(self):
-        self.valueEdited.emit(self.value())
+        value = self.value_spinbox.value()
+        self.valueEdited.emit(value)
 
-    def setDecimals(self, decimals):
-        self._decimals = decimals
-        if hasattr(self, "min_spinbox"):
-            self.min_spinbox.setDecimals(decimals)
-            self.value_spinbox.setDecimals(decimals)
-            self.max_spinbox.setDecimals(decimals)
-            # ✨ Обновить индикаторы с новой точностью
-            self._update_indicators()
 
-    def setStep(self, step):
-        self._step = step
-        if hasattr(self, "value_spinbox"):
-            self.value_spinbox.setSingleStep(step)
-            # ✨ Обновить tooltip
-            self._update_indicators()
-
-    def setEnabled(self, enabled):
-        super().setEnabled(enabled)
-        if hasattr(self, "slider"):
-            self.slider.setEnabled(enabled)
-            self.min_spinbox.setEnabled(enabled)
-            self.value_spinbox.setEnabled(enabled)
-            self.max_spinbox.setEnabled(enabled)
-
-    def __del__(self):
-        """Очистка ресурсов при уничтожении виджета"""
-        try:
-            if hasattr(self, "_debounce_timer") and self._debounce_timer is not None:
-                # Проверяем, что объект еще существует в C++
-                if hasattr(self._debounce_timer, "stop"):
-                    self._debounce_timer.stop()
-                self._debounce_timer = None
-        except (RuntimeError, AttributeError):
-            # Объект уже удален в C++ или атрибут отсутствует
-            pass
-
-    def cleanup(self):
-        """Явная очистка ресурсов"""
-        try:
-            if hasattr(self, "_debounce_timer") and self._debounce_timer is not None:
-                self._debounce_timer.stop()
-                self._debounce_timer.deleteLater()
-                self._debounce_timer = None
-        except (RuntimeError, AttributeError):
-            # Объект уже удален или недоступен
-            pass
-
-    ### УСТАРЕВШИЙ АПИ ДЛЯ КОМПАТИБЕЛЬНОСТИ ###
-
-    def setLimits(self, minimum, maximum):
-        """Устаревший метод, используйте setRange вместо этого"""
-        self.setRange(minimum, maximum)
-
-    def getLimits(self):
-        """Устаревший метод, используйте minimum() и maximum() вместо этого"""
-        return (self.minimum(), self.maximum())
-
-    def setInterval(self, value):
-        """Устаревший метод, используйте setStep вместо этого"""
-        self.setStep(value)
-
-    def setValueInterval(self, value):
-        """Устаревший метод, используйте setValue вместо этого"""
-        self.setValue(value)
-
-    def onValueChanged(self, slot):
-        """Устаревший метод, используйте valueChanged.connect(slot) вместо этого"""
-        self.valueChanged.connect(slot)
-
-    def onRangeChanged(self, slot):
-        """Устаревший метод, используйте rangeChanged.connect(slot) вместо этого"""
-        self.rangeChanged.connect(slot)
+__all__ = ["RangeSlider"]

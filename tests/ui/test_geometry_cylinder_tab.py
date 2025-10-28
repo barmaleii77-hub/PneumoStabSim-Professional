@@ -48,11 +48,20 @@ def test_cylinder_tab_link_toggle_syncs_sliders(qtbot):
         == pytest.approx(tab.rod_diameter_front_m_slider.value())
     )
 
-    # Disabling the link restores the original independent values.
+    # Disabling the link keeps the synced value but allows independent editing.
     state_manager.set_parameter("link_rod_diameters", False)
     tab.update_from_state()
     tab.update_link_state(False)
 
     assert tab.rod_diameter_rear_m_slider.isEnabled()
-    assert tab.rod_diameter_front_m_slider.value() == pytest.approx(0.039)
-    assert tab.rod_diameter_rear_m_slider.value() == pytest.approx(0.043)
+    assert tab.rod_diameter_front_m_slider.value() == pytest.approx(0.041)
+    assert tab.rod_diameter_rear_m_slider.value() == pytest.approx(0.041)
+
+    # Changing the rear slider now affects only the rear value.
+    tab.rod_diameter_rear_m_slider.value_spinbox.setValue(0.044)
+    qtbot.wait(250)
+
+    assert state_manager.get_parameter("rod_diameter_m") == pytest.approx(0.041)
+    assert state_manager.get_parameter("rod_diameter_rear_m") == pytest.approx(0.044)
+    assert tab.rod_diameter_front_m_slider.value() == pytest.approx(0.041)
+    assert tab.rod_diameter_rear_m_slider.value() == pytest.approx(0.044)

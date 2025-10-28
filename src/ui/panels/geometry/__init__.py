@@ -1,8 +1,4 @@
-# -*- coding: utf-8 -*-
-"""
-Geometry Panel Module
-Модуль панели геометрии с fallback на старую версию
-"""
+"""Geometry panels package with optional Qt dependency."""
 
 import logging
 

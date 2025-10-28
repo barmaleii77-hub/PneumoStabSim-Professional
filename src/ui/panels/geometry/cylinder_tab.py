@@ -298,7 +298,7 @@ class CylinderTab(QWidget):
             finally:
                 self.rod_diameter_rear_m_slider.blockSignals(False)
         else:
-            self._sync_rod_sliders_from_state("rod_diameter_m")
+            self._update_rod_sliders_from_state()
 
     def set_enabled(self, enabled: bool):
         """Enable/disable all controls"""
@@ -336,3 +336,23 @@ class CylinderTab(QWidget):
             target_slider.setValue(target_value)
         finally:
             target_slider.blockSignals(False)
+
+    def _update_rod_sliders_from_state(self) -> None:
+        """Apply independent rod values from the state manager."""
+
+        for param_name, slider in (
+            ("rod_diameter_m", self.rod_diameter_front_m_slider),
+            ("rod_diameter_rear_m", self.rod_diameter_rear_m_slider),
+        ):
+            value = self.state_manager.get_parameter(param_name)
+            if value is None:
+                continue
+
+            slider.blockSignals(True)
+            try:
+                slider.setValue(value)
+            finally:
+                slider.blockSignals(False)
+
+
+__all__ = ["CylinderTab"]
