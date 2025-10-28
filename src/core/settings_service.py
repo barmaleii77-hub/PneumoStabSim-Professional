@@ -21,6 +21,8 @@ from src.infrastructure.container import (
 )
 from src.infrastructure.event_bus import EVENT_BUS_TOKEN
 
+_MISSING = object()
+
 
 class SettingsValidationError(ValueError):
     """Raised when the settings file does not conform to the JSON schema."""
@@ -148,9 +150,10 @@ class SettingsService:
         for key in self._split_path(path):
             if not isinstance(data, MutableMapping):
                 return default
-            data = data.get(key, default)
-            if data is default:
+            next_value = data.get(key, _MISSING)
+            if next_value is _MISSING:
                 return default
+            data = next_value
         return data
 
     def set(self, path: str, value: Any) -> None:
