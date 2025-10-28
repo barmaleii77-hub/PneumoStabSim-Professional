@@ -85,6 +85,12 @@ class EnvironmentSetup:
 
         self.logger = Logger("[Setup] ")
 
+        self._pip_extra_args = self._detect_pip_extra_args()
+        if self._pip_extra_args:
+            self.logger.log(
+                "⚠️ Запуск pip от имени root; добавляем '--root-user-action=ignore' для подавления предупреждений"
+            )
+
         self.logger.log("ИНИЦИАЛИЗАЦИЯ ОКРУЖЕНИЯ PNEUMOSTABSIM-PROFESSIONAL")
         self.logger.log("=" * 60)
         self.logger.log(f"Корневая папка: {self.project_root}")
@@ -147,6 +153,25 @@ class EnvironmentSetup:
             return version_parts  # type: ignore[return-value]
         except Exception:
             return sys.version_info[:3]
+
+    def _detect_pip_extra_args(self) -> List[str]:
+        """Возвращает дополнительные флаги pip для безопасного запуска от root."""
+
+        geteuid = getattr(os, "geteuid", None)
+        if callable(geteuid):
+            try:
+                if geteuid() == 0:
+                    return ["--root-user-action=ignore"]
+            except OSError:
+                return []
+        return []
+
+    def _pip_command(self, *args: str) -> List[str]:
+        """Формирует команду pip с учётом дополнительных флагов."""
+
+        command = [*self.python_executable, "-m", "pip", *self._pip_extra_args]
+        command.extend(args)
+        return command
 
     def check_python_version(self):
         """Проверяет версию Python"""
@@ -242,16 +267,13 @@ class EnvironmentSetup:
         self.logger.log("📦 Установка зависимостей из requirements.txt...")
         try:
             # Используем pip для установки зависимостей
-            cmd = [
-                *self.python_executable,
-                "-m",
-                "pip",
+            cmd = self._pip_command(
                 "install",
                 "-r",
                 str(requirements_file),
                 "-c",
                 str(self.project_root / "requirements-compatible.txt"),
-            ]
+            )
             subprocess.run(cmd, check=True)
 
             self.logger.log("✅ Зависимости установлены успешно")
@@ -273,11 +295,9 @@ class EnvironmentSetup:
     def _install_project_editable(self) -> bool:
         """Пробует установить проект в editable-режиме в качестве запасного варианта."""
 
-        base_cmd = [*self.python_executable, "-m", "pip", "install"]
-
         commands = [
-            base_cmd + ["-e", "."],
-            base_cmd + ["-e", ".[dev]"],
+            self._pip_command("install", "-e", "."),
+            self._pip_command("install", "-e", ".[dev]"),
         ]
 
         success = True
@@ -364,7 +384,7 @@ class EnvironmentSetup:
         try:
             # Получаем информацию о пакете
             result = subprocess.run(
-                [*self.python_executable, "-m", "pip", "show", package_name],
+                self._pip_command("show", package_name),
                 capture_output=True,
                 text=True,
                 check=True,
@@ -404,13 +424,7 @@ class EnvironmentSetup:
 
         for package in key_packages:
             try:
-                check_cmd = [
-                    *self.python_executable,
-                    "-m",
-                    "pip",
-                    "show",
-                    package,
-                ]
+                check_cmd = self._pip_command("show", package)
                 check_result = subprocess.run(check_cmd, capture_output=True, text=True)
                 if check_result.returncode == 0:
                     lines = check_result.stdout.split("\n")
