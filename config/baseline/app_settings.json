@@ -17,14 +17,10 @@
       "link_rod_diameters": false,
       "frame_height_m": 0.65,
       "frame_beam_size_m": 0.12,
-      "tail_mount_offset_m": 0.12,
-      "joint_tail_scale": 1.0,
-      "joint_arm_scale": 1.0,
-      "joint_rod_scale": 1.0,
       "frame_length_m": 3.4,
       "lever_length_m": 0.75,
       "cylinder_body_length_m": 0.46,
-      "cylinder_cap_length_m": 0.05
+      "tail_rod_length_m": 0.18
     },
     "pneumatic": {
       "volume_mode": "MANUAL",
@@ -890,14 +886,10 @@
       "link_rod_diameters": false,
       "frame_height_m": 0.65,
       "frame_beam_size_m": 0.12,
-      "tail_mount_offset_m": 0.12,
-      "joint_tail_scale": 1.0,
-      "joint_arm_scale": 1.0,
-      "joint_rod_scale": 1.0,
       "frame_length_m": 3.4,
       "lever_length_m": 0.75,
       "cylinder_body_length_m": 0.46,
-      "cylinder_cap_length_m": 0.05
+      "tail_rod_length_m": 0.18
     },
     "pneumatic": {
       "volume_mode": "MANUAL",
@@ -1772,7 +1764,7 @@
     "last_migration": "0001_add_diagnostics_defaults",
     "migrated_from": "src/ui/panels/graphics/defaults.py",
     "migration_date": "2025-10-18",
-    "total_parameters": 297,
+    "total_parameters": 293,
     "description": "✅ FIXED: tonemap_enabled=false, depth_of_field=false, vignette=false по умолчанию",
     "operational_imperatives": [
       "Запрещены дефолты и магические константы в коде — все значения настраиваются через config/app_settings.json.",

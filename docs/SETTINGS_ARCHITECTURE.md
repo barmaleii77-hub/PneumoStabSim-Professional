@@ -280,7 +280,7 @@ settings_manager.save_settings(state)
  "metadata": {
     "version": "4.9.5",
     "last_modified": "2025-01-18T12:00:00Z",
-   "total_parameters": 300,
+   "total_parameters": 293,
   "description": "Unified settings file"
   }
 }

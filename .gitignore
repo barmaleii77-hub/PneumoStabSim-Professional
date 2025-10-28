@@ -481,6 +481,7 @@ check_*.py
 !tests/unit/bootstrap/test_dependency_config.py
 !tests/unit/bootstrap/test_environment_check.py
 !tests/unit/ui/test_graphics_settings_service.py
+!tests/unit/ui/test_geometry_state_manager.py
 !tests/unit/ui/test_materials_tab.py
 !tests/unit/ui/test_hdr_discovery.py
 !tests/ui/test_graphics_scene_quality_tabs.py
