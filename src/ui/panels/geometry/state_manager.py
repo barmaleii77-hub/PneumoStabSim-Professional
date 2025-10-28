@@ -370,18 +370,40 @@ class GeometryStateManager:
             self.logger.warning("No SettingsManager instance - cannot load")
             return
 
-        try:
-            stored = self.settings_manager.get(self._settings_path, default=None)
-        except Exception as exc:
-            self.logger.error("Failed to load geometry state: %s", exc)
-            return
+        def _load_section(path: str) -> Dict[str, Any]:
+            try:
+                payload = self.settings_manager.get(path, default={})
+            except Exception as exc:  # pragma: no cover - defensive
+                self.logger.error("Failed to access geometry section %s: %s", path, exc)
+                return {}
 
-        if not isinstance(stored, dict):
-            self.logger.info("No persisted geometry state found; using defaults")
-            return
+            if isinstance(payload, dict):
+                return self._filter_known_parameters(payload)
+
+            if payload not in (None, {}):
+                self.logger.warning(
+                    "Ignoring malformed geometry payload at %s (type=%s)",
+                    path,
+                    type(payload).__name__,
+                )
+            return {}
 
         restored = DEFAULT_GEOMETRY.copy()
-        restored.update(self._filter_known_parameters(stored))
+
+        defaults_path = self._settings_path.replace("current.", "defaults_snapshot.", 1)
+        defaults_payload = _load_section(defaults_path)
+        if defaults_payload:
+            restored.update(defaults_payload)
+
+        current_payload = _load_section(self._settings_path)
+        if current_payload:
+            restored.update(current_payload)
+        else:
+            self.logger.info(
+                "Geometry settings missing in %s; falling back to defaults snapshot",
+                self._settings_path,
+            )
+
         self.state = restored
         self.logger.info("State loaded from settings manager")
 
