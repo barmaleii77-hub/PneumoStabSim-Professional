@@ -290,10 +290,25 @@ ExtendedSceneEnvironment {
 
     _syncSkyboxBackground()
 
+    var directProbeBrightnessProvided = valueFromKeys(
+        params,
+        "probeBrightness",
+        "probe_brightness"
+    ) !== undefined
+    var nestedProbeBrightnessProvided = false
+    if (params.ibl && typeof params.ibl === "object")
+        nestedProbeBrightnessProvided = valueFromKeys(
+            params.ibl,
+            "probeBrightness",
+            "probe_brightness"
+        ) !== undefined
+    var shouldMirrorIntensity = !(directProbeBrightnessProvided || nestedProbeBrightnessProvided)
+
     var intensityValue = numberFromKeys(params, "iblIntensity", "ibl_intensity")
     if (intensityValue !== undefined) {
         iblIntensity = intensityValue
-        probeBrightnessValue = intensityValue
+        if (shouldMirrorIntensity)
+            probeBrightnessValue = intensityValue
     }
 
     var probeBrightness = numberFromKeys(params, "probeBrightness", "probe_brightness")
@@ -340,7 +355,8 @@ ExtendedSceneEnvironment {
         var nestedIntensity = numberFromKeys(ibl, "intensity", "intensity")
         if (nestedIntensity !== undefined) {
             iblIntensity = nestedIntensity
-            probeBrightnessValue = nestedIntensity
+            if (shouldMirrorIntensity)
+                probeBrightnessValue = nestedIntensity
         }
         var nestedBrightness = numberFromKeys(ibl, "probeBrightness", "probe_brightness")
         if (nestedBrightness !== undefined)
