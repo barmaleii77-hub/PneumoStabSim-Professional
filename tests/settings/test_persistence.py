@@ -176,7 +176,47 @@ def test_defaults_snapshot_materials_include_ids() -> None:
         assert material_payload["id"] == material_id
         assert current_materials[material_id]["id"] == material_id
 
-    assert (
-        defaults_graphics["quality"]["mesh"]
-        == current_graphics["quality"]["mesh"]
-    )
+    assert defaults_graphics["quality"]["mesh"] == current_graphics["quality"]["mesh"]
+
+
+def test_validate_detects_material_key_mismatch(
+    settings_payload: dict[str, Any],
+) -> None:
+    defaults = settings_payload["defaults_snapshot"]["graphics"]["materials"]
+    defaults.pop("tail_rod")
+
+    service = SettingsService(schema_path=SCHEMA_PATH)
+
+    with pytest.raises(SettingsValidationError) as exc:
+        service.validate(settings_payload)
+
+    assert "missing in defaults_snapshot" in str(exc.value)
+
+
+def test_validate_rejects_legacy_tail_alias(settings_payload: dict[str, Any]) -> None:
+    defaults = settings_payload["defaults_snapshot"]["graphics"]["materials"]
+    current = settings_payload["current"]["graphics"]["materials"]
+
+    defaults["tail"] = defaults.pop("tail_rod")
+    current["tail"] = current.pop("tail_rod")
+
+    service = SettingsService(schema_path=SCHEMA_PATH)
+
+    with pytest.raises(SettingsValidationError) as exc:
+        service.validate(settings_payload)
+
+    assert "legacy graphics material keys" in str(exc.value)
+
+
+def test_validate_rejects_material_id_mismatch(
+    settings_payload: dict[str, Any],
+) -> None:
+    materials = settings_payload["current"]["graphics"]["materials"]
+    materials["frame"]["id"] = "FRAME"
+
+    service = SettingsService(schema_path=SCHEMA_PATH)
+
+    with pytest.raises(SettingsValidationError) as exc:
+        service.validate(settings_payload)
+
+    assert "frame has id 'FRAME'" in str(exc.value)

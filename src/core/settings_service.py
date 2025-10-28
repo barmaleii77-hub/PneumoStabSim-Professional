@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import json
 import os
+from collections.abc import Mapping as MappingABC
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any, Iterable, MutableMapping
@@ -20,6 +21,10 @@ from src.infrastructure.container import (
     get_default_container,
 )
 from src.infrastructure.event_bus import EVENT_BUS_TOKEN
+from src.core.settings_validation import (
+    DEFAULT_REQUIRED_MATERIALS,
+    FORBIDDEN_MATERIAL_ALIASES,
+)
 
 _MISSING = object()
 
@@ -260,6 +265,7 @@ class SettingsService:
         validator = self._get_validator()
         errors = sorted(validator.iter_errors(payload), key=lambda err: err.path)
         if not errors:
+            self._validate_graphics_materials(payload)
             return
 
         formatted: list[str] = []
@@ -280,6 +286,111 @@ class SettingsService:
             f"Settings payload failed JSON Schema validation: {joined}",
             errors=formatted,
         ) from None
+
+    def _validate_graphics_materials(self, payload: MappingABC[str, Any]) -> None:
+        """Ensure graphics materials are synchronised between current/defaults."""
+
+        current_materials = self._require_mapping(
+            payload, ("current", "graphics", "materials")
+        )
+        defaults_materials = self._require_mapping(
+            payload, ("defaults_snapshot", "graphics", "materials")
+        )
+
+        # Reject legacy aliases early.
+        alias_keys = (
+            set(current_materials) | set(defaults_materials)
+        ) & FORBIDDEN_MATERIAL_ALIASES.keys()
+        if alias_keys:
+            alias_list = ", ".join(
+                f"{alias}->{FORBIDDEN_MATERIAL_ALIASES[alias]}"
+                for alias in sorted(alias_keys)
+            )
+            raise SettingsValidationError(
+                f"Settings payload uses legacy graphics material keys: {alias_list}"
+            )
+
+        current_keys = set(current_materials)
+        defaults_keys = set(defaults_materials)
+
+        missing_required = DEFAULT_REQUIRED_MATERIALS - current_keys
+        if missing_required:
+            required_list = ", ".join(sorted(missing_required))
+            raise SettingsValidationError(
+                "Settings payload is missing required graphics materials in current: "
+                f"{required_list}"
+            )
+
+        missing_in_defaults = current_keys - defaults_keys
+        missing_in_current = defaults_keys - current_keys
+        if missing_in_defaults or missing_in_current:
+            problems: list[str] = []
+            if missing_in_defaults:
+                problems.append(
+                    "missing in defaults_snapshot: "
+                    + ", ".join(sorted(missing_in_defaults))
+                )
+            if missing_in_current:
+                problems.append(
+                    "missing in current: " + ", ".join(sorted(missing_in_current))
+                )
+            raise SettingsValidationError(
+                "Graphics materials mismatch between current and defaults_snapshot: "
+                + "; ".join(problems)
+            )
+
+        mismatched_ids = self._collect_material_id_mismatches(
+            current_materials, "current.graphics.materials"
+        )
+        mismatched_ids.extend(
+            self._collect_material_id_mismatches(
+                defaults_materials, "defaults_snapshot.graphics.materials"
+            )
+        )
+        if mismatched_ids:
+            raise SettingsValidationError(
+                "Graphics materials contain inconsistent identifiers: "
+                + "; ".join(mismatched_ids)
+            )
+
+    def _require_mapping(
+        self, payload: MappingABC[str, Any], path: tuple[str, ...]
+    ) -> MappingABC[str, Any]:
+        node: MappingABC[str, Any] | Any = payload
+        traversed: list[str] = []
+        for segment in path:
+            traversed.append(segment)
+            if not isinstance(node, MappingABC):
+                joined = ".".join(traversed[:-1]) or "<root>"
+                raise SettingsValidationError(
+                    f"Expected object at {joined}, found {type(node).__name__}"
+                )
+            if segment not in node:
+                raise SettingsValidationError(
+                    "Settings payload missing section " + ".".join(traversed)
+                )
+            node = node[segment]
+
+        if not isinstance(node, MappingABC):
+            raise SettingsValidationError(
+                "Expected object at " + (".".join(traversed) or "<root>")
+            )
+
+        return node
+
+    @staticmethod
+    def _collect_material_id_mismatches(
+        materials: MappingABC[str, Any], section: str
+    ) -> list[str]:
+        problems: list[str] = []
+        for key, material in materials.items():
+            if not isinstance(material, MappingABC):
+                problems.append(f"{section}.{key} is not an object")
+                continue
+            material_id = material.get("id")
+            if material_id != key:
+                problems.append(f"{section}.{key} has id '{material_id}'")
+        return problems
 
     def _resolve_existing_parent(
         self, payload: dict[str, Any], segments: list[str]
