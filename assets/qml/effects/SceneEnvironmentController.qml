@@ -17,6 +17,15 @@ ExtendedSceneEnvironment {
     property bool iblLightingEnabled: false
     property color backgroundColor: "#1f242c"
     property string backgroundModeKey: "skybox"
+    readonly property bool backgroundIsTransparent: backgroundModeForKey(backgroundModeKey) === SceneEnvironment.Transparent
+    property color resolvedClearColor: {
+        var base = backgroundColor
+        if (backgroundIsTransparent)
+            return Qt.rgba(base.r, base.g, base.b, 0.0)
+        if (backgroundModeForKey(backgroundModeKey) === SceneEnvironment.Color)
+            return Qt.rgba(base.r, base.g, base.b, 1.0)
+        return base
+    }
     property Texture iblProbe: null
     property real iblIntensity:1.0
     property real probeBrightnessValue:1.0
@@ -38,7 +47,7 @@ ExtendedSceneEnvironment {
             return (iblBackgroundEnabled && iblProbe) ? SceneEnvironment.SkyBox : SceneEnvironment.Color
         return targetMode
     }
-    clearColor: backgroundColor
+    clearColor: resolvedClearColor
     skyBoxCubeMap: (iblBackgroundEnabled && iblProbe) ? iblProbe : null
     lightProbe: (iblLightingEnabled && iblProbe) ? iblProbe : null
     probeExposure: probeBrightnessValue

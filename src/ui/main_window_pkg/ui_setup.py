@@ -216,6 +216,10 @@ class UISetup:
             window._qquick_widget.setResizeMode(
                 QQuickWidget.ResizeMode.SizeRootObjectToView
             )
+            window._qquick_widget.setClearColor(Qt.transparent)
+            window._qquick_widget.setAttribute(
+                Qt.WidgetAttribute.WA_TranslucentBackground
+            )
 
             # Get QML engine
             engine = window._qquick_widget.engine()
@@ -325,6 +329,14 @@ class UISetup:
             window._qml_root_object = window._qquick_widget.rootObject()
             if not window._qml_root_object:
                 raise RuntimeError("Failed to get QML root object")
+
+            quick_window = window._qquick_widget.quickWindow()
+            if quick_window is not None:
+                try:
+                    quick_window.setColor(Qt.transparent)
+                    quick_window.setClearColor(Qt.transparent)
+                except Exception:
+                    pass
 
             try:
                 if getattr(window, "_scene_bridge", None) is not None:

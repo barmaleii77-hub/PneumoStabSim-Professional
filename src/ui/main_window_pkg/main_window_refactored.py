@@ -447,6 +447,11 @@ class MainWindow(QMainWindow):
         """Effects changed → SignalsRouter"""
         SignalsRouter.handle_effects_changed(self, params)
 
+    @Slot(bool)
+    def _on_animation_toggled(self, running: bool) -> None:
+        """Animation toggled in QML → persist settings"""
+        SignalsRouter.handle_animation_toggled(self, bool(running))
+
     @Slot(dict)
     def _on_preset_applied(self, full_state: Dict[str, Any]) -> None:
         """Preset applied → SignalsRouter"""
