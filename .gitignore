@@ -480,6 +480,7 @@ check_*.py
 !tests/unit/bootstrap/test_environment_check.py
 !tests/unit/ui/test_graphics_settings_service.py
 !tests/unit/ui/test_materials_tab.py
+!tests/unit/app/test_app_runner.py
 
 # Temporary batch files
 *.bat
