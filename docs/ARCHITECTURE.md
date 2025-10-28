@@ -1,365 +1,184 @@
-# PneumoStabSim - System Architecture
+# PneumoStabSim Professional — архитектура приложения
 
-## ??? Architecture Overview
+Документ описывает архитектуру Python-приложения, моделирующего пневматический
+стабилизатор подвески. Материал структурирован по разделам спецификации
+механизма и связывает каждое требование с реализацией в исходном коде.
 
-This document describes the complete system architecture of PneumoStabSim v2.0.0.
+## Обзор уровней системы
 
----
+| Слой | Назначение | Основные модули |
+| --- | --- | --- |
+| **Интерфейс и визуализация** | Qt/QML интерфейс, 3D сцена и индикаторы состояния | `assets/qml/main.qml`, `src/PneumoStabSim.UI/*`, `src/common/logging_widgets.py` |
+| **Прикладная логика** | Управление симуляцией, связывание настроек, коммуникация UI ↔ физика | `src/app/config_defaults.py`, `src/core/settings_manager.py`, `src/app/smoke_gas.py`, `src/physics/integrator.py` |
+| **Доменная модель** | Геометрия подвески, газодинамика, интеграторы движения | `src/core/geometry.py`, `src/pneumo/*`, `src/physics/forces.py`, `src/physics/odes.py` |
+| **Инфраструктура** | Конфигурация, диагностика, журналирование | `config/app_settings.json`, `src/common/logging_setup.py`, `src/common/settings_requirements.py` |
 
-## ?? System Layers
+Слои взаимодействуют через шину состояний: физический расчёт публикует
+снимки (`PhysicsSnapshot` в `src/physics/integrator.py`), а UI потребляет их для
+обновления 3D сцены и графиков.
 
-### **1. Presentation Layer (UI)**
+## I. Элементы конструкции
 
-```
-???????????????????????????????????????????????????????????
-?                   PRESENTATION LAYER                    ?
-???????????????????????????????????????????????????????????
-?                                                         ?
-?  ??????????????????????????????????????????????????   ?
-?  ?          MainWindow (QMainWindow)              ?   ?
-?  ?  - Central widget: QQuickWidget (QML)          ?   ?
-?  ?  - Dock panels: Geometry, Pneumo, Modes        ?   ?
-?  ?  - Status bar: Real-time metrics               ?   ?
-?  ??????????????????????????????????????????????????   ?
-?               ?                                         ?
-?  ??????????????????????????????????????????????????   ?
-?  ?          Qt Quick 3D Scene (main.qml)          ?   ?
-?  ?  - View3D: 3D viewport                         ?   ?
-?  ?  - Camera: Orbital control                     ?   ?
-?  ?  - Models: U-Frame + 4 suspension corners      ?   ?
-?  ?  - Materials: PBR (metallic, roughness)        ?   ?
-?  ??????????????????????????????????????????????????   ?
-?                                                         ?
-???????????????????????????????????????????????????????????
-```
+### Рама
+- Представлена как неподвижная система координат в `src/core/geometry.py`.
+- Геометрические константы (позиции шарниров, смещения) загружаются через
+  `config/constants.py` и проксируются классом `GeometryParams`.
 
-**Key Components:**
-- **MainWindow**: Qt-based window manager
-- **QML Scene**: Qt Quick 3D rendering (D3D11 backend)
-- **Panels**: Parameter controls (Geometry, Pneumo, Modes, Road)
-- **Widgets**: Custom controls (RangeSlider, Knob)
+### Рычаги (4 шт.)
+- Моделируются компонентом `LeverState` в `src/pneumo/geometry.py`, который
+  хранит длину, угол и точки крепления.
+- Визуализация рычага выполняется QML-компонентами `SuspensionCorner` в
+  `assets/qml/main.qml`.
 
----
+### Пневмоцилиндр, поршень, шток и хвостовик
+- Класс `CylinderSpec` определяет размеры, `CylinderState` хранит текущее
+  положение и вычисляет объёмы (`vol_head`, `vol_rod`). Расположено в
+  `src/pneumo/cylinder.py`.
+- Функция `update_from_lever_angle()` преобразует угол рычага в ход штока.
+- Пограничные условия (мертвые зоны) учитываются при расчётах объёмов и
+  проверяются `CylinderState.validate_invariants()`.
 
-### **2. Application Layer (Logic)**
+### Пружина и амортизатор
+- Пружина описана в `src/physics/forces.py` (класс `SpringForceModel`).
+- Демпфирование реализовано классом `DamperForceModel` в том же файле и может
+  быть отключено через настройки.
 
-```
-???????????????????????????????????????????????????????????
-?                  APPLICATION LAYER                      ?
-???????????????????????????????????????????????????????????
-?                                                         ?
-?  ??????????????????????????????????????????????????   ?
-?  ?         GeometryBridge (Converter)             ?   ?
-?  ?  - 2D kinematics ? 3D coordinates              ?   ?
-?  ?  - Piston position calculation                 ?   ?
-?  ?  - Joint position calculation                  ?   ?
-?  ?  - Volume calculations                         ?   ?
-?  ??????????????????????????????????????????????????   ?
-?                                                         ?
-?  ??????????????????????????????????????????????????   ?
-?  ?       SimulationManager (Controller)           ?   ?
-?  ?  - Physics thread management                   ?   ?
-?  ?  - State bus (signals/slots)                   ?   ?
-?  ?  - State queue (latest-only)                   ?   ?
-?  ??????????????????????????????????????????????????   ?
-?                                                         ?
-???????????????????????????????????????????????????????????
-```
+### Ресивер
+- Состояние ресивера описывает `ReceiverState` (`src/pneumo/receiver.py`),
+  включающий давление, объём и температуру.
 
-**Key Responsibilities:**
-- **GeometryBridge**: Convert 2D mechanics ? 3D visualization
-- **SimulationManager**: Coordinate physics simulation
-- **State Management**: Thread-safe state communication
+### Пневмолинии
+- Каждая линия (`A1`, `A2`, `B1`, `B2`) представлена `PneumoLine` в
+  `src/pneumo/line.py`. Конфигурация линий хранится в перечислении `Line`.
 
----
+### Клапаны и кран
+- Классы `CheckValve` и `ReliefValve` находятся в `src/pneumo/valves.py`.
+- Состояние межлинейного крана (`master_isolation_open`) включено в модель
+  `PneumaticSystem` (`src/pneumo/system.py`).
 
-### **3. Domain Layer (Physics)**
+## II. Схема соединений
 
-```
-???????????????????????????????????????????????????????????
-?                    DOMAIN LAYER                         ?
-???????????????????????????????????????????????????????????
-?                                                         ?
-?  ??????????????????????????????????????????????????   ?
-?  ?       PhysicsWorker (QThread)                  ?   ?
-?  ?  - Fixed timestep loop (1ms)                   ?   ?
-?  ?  - ODE integration (Radau)                     ?   ?
-?  ?  - State snapshot creation                     ?   ?
-?  ??????????????????????????????????????????????????   ?
-?           ?                                             ?
-?  ??????????????????????????????????????????????????   ?
-?  ?                       ?              ?         ?   ?
-?  ?  CylinderKinematics   ? GasNetwork   ? Road    ?   ?
-?  ?  - Lever angles       ? - Pressures  ? - CSV   ?   ?
-?  ?  - Piston positions   ? - Flows      ? - Sin   ?   ?
-?  ?  - Volumes            ? - Valves     ? - Noise ?   ?
-?  ?                       ?              ?         ?   ?
-?  ??????????????????????????????????????????????????   ?
-?                                                         ?
-???????????????????????????????????????????????????????????
-```
+- Диагональная схема соединений жёстко проверяется методом
+  `_validate_diagonal_connections()` в `PneumaticSystem` (`src/pneumo/system.py`).
+- Механические шарниры реализуются как расчётные точки: функции `lever_tip()` и
+  `rod_anchor()` в `src/pneumo/geometry.py` задают координаты креплений к раме и
+  рычагу.
+- Визуально соединения отображаются в QML как родственные узлы `Model` внутри
+  `assets/qml/main.qml`, где цилиндры, штоки и пружины соосны и связаны
+  трансформациями.
 
-**Physics Components:**
-- **CylinderKinematics**: Lever mechanism calculations
-- **GasNetwork**: Pneumatic gas flow simulation
-- **RoadInput**: Road excitation generation
-- **ODE Solver**: Numerical integration (SciPy)
+## III. Движение и граничные условия
 
----
+- Основной расчёт кинематики выполняет `CylinderState.update_from_lever_angle()`
+  совместно с функциями `resolve_linkage()` в `src/pneumo/geometry.py`.
+- Ограничение хода поршня: `CylinderSpec.stroke_m` и мёртвые зоны обрезают
+  доступный диапазон, что отражено в проверках `validate_invariants()`.
+- Рычаги вращаются в плоскости, углы хранятся в `LeverState.angle_rad`.
+- Центры масс используются в динамике (`src/physics/odes.py`) для расчёта
+  инерционных сил.
 
-## ?? Data Flow Architecture
+## IV. Допущения
 
-### **Main Data Flow (60 Hz UI Loop)**
+- Модели элементов рассматриваются одномерными; класс `RigidBody1D` в
+  `src/physics/odes.py` оперирует линейными степенями свободы.
+- Трение в шарнирах отсутствует — силы трения не учитываются в `forces.py`.
+- Переключение демпфирования и жёсткости осуществляется настройками
+  `simulation.enable_dampers` и `simulation.enable_springs` в `config/app_settings.json`.
+- Режим кинематики/динамики переключается флагом `simulation.mode` и обрабатывается
+  в `SimulationMode` (`src/physics/integrator.py`).
+- Тип термодинамического процесса задаётся `gas.gamma_mode` и влияет на функции в
+  `src/pneumo/thermo.py`.
+- Объём линий приравнивается к нулю — `PneumoLine.volume_lag_m3` используется только
+  для учёта соединений цилиндров.
 
-```
-User Input (Qt Panel)
-      ?
-      ???? GeometryPanel.geometry_changed
-      ?         ?
-      ?         ???? MainWindow._on_geometry_changed()
-      ?                   ?
-      ?                   ???? QML: updateGeometry(params)
-      ?                             ?
-      ?                             ???? QML properties updated
-      ?                                       ?
-      ?                                       ???? 3D scene rebuilds
-      ?
-      ???? ModesPanel.animation_changed
-      ?         ?
-      ?         ???? MainWindow._on_animation_changed()
-      ?                   ?
-      ?                   ???? QML: setProperty("userAmplitude", ...)
-      ?                             ?
-      ?                             ???? Animation parameters updated
-      ?
-      ???? ModesPanel.simulation_control
-                ?
-                ???? SimulationManager.start_simulation()
-                          ?
-                          ???? PhysicsWorker (QThread starts)
-```
+## V. Параметры
 
-### **Physics Simulation Loop (1000 Hz)**
+- Все исходные величины загружаются через `config/app_settings.json`, схема
+  описана в `config/schemas/app_settings.schema.json` и валидируется
+  `src/core/settings_validation.py`.
+- Класс `SettingsManager` (`src/core/settings_manager.py`) предоставляет доступ к
+  параметрам UI, а `src/app/config_defaults.py` определяет значения по умолчанию.
+- Расчётные параметры (ход рычага, длина штока, давление в ресивере) вычисляются
+  в `src/physics/integrator.py` и публикуются как часть `PhysicsSnapshot`.
+- Жёсткости пружин подбираются методом `SpringForceModel.configure_from_geometry()`
+  на основе исходных геометрических данных.
+- Массы компонентов настраиваются через блок `mass` в конфиге и участвуют в
+  матрицах масс (`src/physics/odes.py`).
 
-```
-PhysicsWorker.physics_timer (1ms)
-      ?
-      ???? Get road inputs
-      ?         ?
-      ?         ???? RoadInput.get_wheel_excitation(t)
-      ?
-      ???? Update kinematics
-      ?         ?
-      ?         ???? CylinderKinematics.update_from_angles()
-      ?
-      ???? Update gas system
-      ?         ?
-      ?         ???? GasNetwork.apply_valves_and_flows(dt)
-      ?
-      ???? Integrate dynamics
-      ?         ?
-      ?         ???? scipy.integrate.solve_ivp(f_rhs, ...)
-      ?
-      ???? Create state snapshot
-                ?
-                ???? StateSnapshot(frame, wheels, lines, tank)
-                ?
-                ???? Emit: state_ready signal
-                          ?
-                          ???? MainWindow._on_state_update(snapshot)
-                                    ?
-                                    ???? _update_3d_scene_from_snapshot()
-                                              ?
-                                              ???? Read animation params from QML
-                                              ?
-                                              ???? Calculate angles (sin wave)
-                                              ?
-                                              ???? GeometryBridge.get_corner_3d_coords()
-                                              ?
-                                              ???? Set QML properties (fl_angle, ...)
-                                              ?
-                                              ???? Call QML: updatePistonPositions()
-```
+## VI. Газодинамика
 
----
+- Расчёт термодинамических величин выполняется в `src/pneumo/thermo.py`.
+- Расходы через линии и клапаны вычисляются функциями `orifice_flow_rate()` и
+  `apply_valve_flow()` в `src/pneumo/flow.py`.
+- Управление клапанами обрабатывает `src/pneumo/network.py`, который обновляет
+  состояния `LineGasState` и `TankGasState` (`src/pneumo/gas_state.py`).
+- Предохранительные клапаны контролируют превышение `P_max`, см. метод
+  `ReliefValve.release_flow()`.
+- Изменение давления в ресивере выполняет `ReceiverState.update_from_mass_flow()`.
 
-## ?? Component Interaction
+## VII. Алгоритмы
 
-### **Python ? QML Communication**
+1. **Кинематика рычагов** — модуль `src/pneumo/geometry.py` вычисляет углы рычагов
+   по заданным смещениям колёс и получает координаты точек подвески.
+2. **Перемещение поршней** — `CylinderState.update_from_lever_angle()` обновляет ход
+   штока и объёмы полостей.
+3. **Перерасчёт давлений** — `src/pneumo/thermo.py::adiabatic_pressure()` и
+   `isothermal_pressure()` применяются в `src/pneumo/network.py` в зависимости от
+   выбранного режима `gamma`.
+4. **Силы пружин и амортизаторов** — реализованы в `src/physics/forces.py`, где
+   учитываются натяги и демпфирование.
+5. **Обновление ресивера** — `src/pneumo/receiver.py` интегрирует массу воздуха,
+   поступающую через клапаны.
+6. **Интегратор динамики** — основной цикл в `src/physics/integrator.py` вызывает
+   правые части ОДУ из `src/physics/odes.py` и использует SciPy (`Radau`, `RK45`)
+   для интегрирования.
+7. **Проверки ограничений** — `PneumaticSystem.validate_invariants()` и проверки
+   в `src/physics/integrator.py` гарантируют физические диапазоны. UI блокирует
+   некорректный ввод через `src/common/settings_requirements.py`.
 
-```
-???????????????????????????????????????????????????????????
-?                    PYTHON SIDE                          ?
-???????????????????????????????????????????????????????????
-?                                                         ?
-?  MainWindow (Python)                                    ?
-?  ?? _qml_root_object: QObject                          ?
-?  ?                                                       ?
-?  ?? READ from QML:                                      ?
-?  ?  ?? userAmplitude = property("userAmplitude")       ?
-?  ?  ?? userFrequency = property("userFrequency")       ?
-?  ?  ?? userPhaseGlobal = property("userPhaseGlobal")   ?
-?  ?                                                       ?
-?  ?? WRITE to QML:                                       ?
-?     ?? setProperty("fl_angle", angle)                  ?
-?     ?? setProperty("userPistonPositionFL", pos)        ?
-?     ?? invokeMethod("updatePistonPositions", dict)     ?
-?                                                         ?
-???????????????????????????????????????????????????????????
-                          ?
-                          ? Qt Meta-Object System
-                          ?
-???????????????????????????????????????????????????????????
-?                     QML SIDE                            ?
-???????????????????????????????????????????????????????????
-?                                                         ?
-?  Item (main.qml)                                        ?
-?  ?? Properties:                                         ?
-?  ?  ?? property real userAmplitude: 8.0                ?
-?  ?  ?? property real userFrequency: 1.0                ?
-?  ?  ?? property real fl_angle: 0.0                     ?
-?  ?  ?? property real userPistonPositionFL: 125.0       ?
-?  ?                                                       ?
-?  ?? Functions:                                          ?
-?  ?  ?? function updateGeometry(params) { ... }         ?
-?  ?  ?? function updatePistonPositions(positions) {...} ?
-?  ?                                                       ?
-?  ?? Bindings:                                           ?
-?     ?? SuspensionCorner {                              ?
-?        leverAngle: fl_angle  // Auto-updates!          ?
-?        pistonPositionFromPython: userPistonPositionFL  ?
-?     }                                                   ?
-?                                                         ?
-???????????????????????????????????????????????????????????
-```
+## VIII. Графическое отображение
 
----
+- 3D сцена описана в `assets/qml/main.qml`: цилиндры, рычаги, пружины и амортизаторы
+  масштабируются согласно параметрам из Python через свойства QML.
+- Цветовая индикация давления реализована шейдерами и свойством `linePressure` для
+  каждой трубки, которое обновляется из Python (`src/PneumoStabSim.UI/pressure_bridge.py`).
+- Анимированные стрелки потоков создаются компонентом `FlowIndicator.qml` и
+  управляются скоростью из `PhysicsSnapshot`.
+- Ресивер визуализируется моделью `ReceiverIndicator` с прозрачным материалом и
+  шкалой давления (градиентный столбец QML).
+- Состояния клапанов отображаются иконками с подсветкой; Python отправляет флаги
+  через сигнал `updateValveStates` (`src/PneumoStabSim.UI/signals.py`).
+- Обновления выполняются плавно благодаря интерполяции свойств (анимации в QML) и
+  стабилизирующему буферу `LatestOnlyQueue` между потоками.
 
-## ?? Threading Model
+## IX. Интерфейс пользователя
 
-```
-???????????????????????????????????????????????????????????
-?                   MAIN THREAD (UI)                      ?
-?  - Qt Event Loop (60 Hz)                                ?
-?  - User input handling                                  ?
-?  - QML rendering                                        ?
-?  - State snapshot consumption                           ?
-???????????????????????????????????????????????????????????
-                      ?
-                      ? QThread boundary
-                      ?
-???????????????????????????????????????????????????????????
-?                 PHYSICS THREAD                          ?
-?  - QTimer (1ms fixed timestep)                          ?
-?  - Physics calculations                                 ?
-?  - ODE integration                                      ?
-?  - State snapshot production                            ?
-???????????????????????????????????????????????????????????
-```
+- Панели управления реализованы в `assets/qml/panels/*.qml` и связываются с Python
+  через `src/PneumoStabSim.UI/panels`. Основные группы параметров:
+  - **Геометрия** — длины рычагов, ход поршня.
+  - **Пневматика** — давления, объёмы, настройки клапанов.
+  - **Режимы** — кинематика/динамика, адиабата/изотерма, включение стабилизатора.
+  - **Воздействия** — амплитуда, частота и фаза для каждого рычага; пресеты дороги.
+- Проверка ввода реализована комбинацией QML-валидаторов и Python-проверок в
+  `src/core/settings_validation.py`.
+- Отдельные переключатели позволяют отключать пружины, амортизаторы и
+  диагональную связь (`master_isolation_open`).
+- Живые графики построены на PyQtGraph (`src/PneumoStabSim.UI/charts.py`) и могут
+  отображать давление, ход подвески и ускорения.
 
-**Thread Safety:**
-- **Signals/Slots**: Qt::QueuedConnection for cross-thread
-- **State Queue**: Latest-only queue (lock-free read)
-- **No shared mutable state** between threads
+## X. Потоки данных и исполнение
 
----
+1. Пользователь изменяет параметр в UI → сигнал QML вызывает слот Python
+   (`MainWindow._on_settings_changed` в `src/PneumoStabSim.UI/main_window.py`).
+2. `SettingsManager` обновляет конфигурацию и передаёт её в `SimulationController`
+   (`src/app/smoke_gas.py`).
+3. В динамическом режиме `PhysicsWorker` (`src/physics/integrator.py`) запускает
+   цикл интеграции с фиксированным шагом, обновляя состояния рычагов, цилиндров и
+   газовой сети.
+4. После каждого шага формируется `PhysicsSnapshot`, который помещается в
+   `LatestOnlyQueue` и передаётся в UI через сигнал `state_ready`.
+5. UI обновляет 3D сцену, индикаторы и графики, используя данные снимка.
 
-## ?? Design Patterns Used
-
-### **1. Model-View-Controller (MVC)**
-- **Model**: Physics simulation (PhysicsWorker)
-- **View**: QML 3D scene
-- **Controller**: MainWindow + SimulationManager
-
-### **2. Observer Pattern**
-- **Subject**: SimulationManager.state_bus
-- **Observers**: MainWindow, Panels, ChartWidget
-- **Mechanism**: Qt Signals/Slots
-
-### **3. Bridge Pattern**
-- **Abstraction**: 2D kinematics
-- **Implementation**: 3D visualization
-- **Bridge**: GeometryBridge
-
-### **4. Strategy Pattern**
-- **Context**: ODE integration
-- **Strategies**: Radau, RK45, BDF
-- **Selection**: Runtime configuration
-
-### **5. Producer-Consumer**
-- **Producer**: PhysicsWorker (state snapshots)
-- **Consumer**: MainWindow (UI updates)
-- **Queue**: LatestOnlyQueue
-
----
-
-## ?? Performance Considerations
-
-### **Rendering Performance**
-- **Target**: 60 FPS (16ms frame time)
-- **Backend**: Direct3D 11 (RHI)
-- **Optimization**: Property bindings (reactive updates)
-
-### **Physics Performance**
-- **Timestep**: 1ms (1000 Hz)
-- **Integration**: Adaptive Radau (stiff ODEs)
-- **Bottleneck**: ODE solve (~0.5ms per step)
-
-### **Memory Management**
-- **State Snapshots**: Latest-only (no accumulation)
-- **QML Objects**: Managed by Qt QML engine
-- **Python Objects**: Garbage collected
-
----
-
-## ?? Error Handling Strategy
-
-### **UI Thread**
-- **Qt Exceptions**: Caught in event handlers
-- **User Errors**: QMessageBox dialogs
-- **Logging**: Python logging module
-
-### **Physics Thread**
-- **Integration Failures**: Logged, counter incremented
-- **Invalid States**: Snapshot validation
-- **Critical Errors**: Stop simulation, emit error signal
-
----
-
-## ?? Configuration Management
-
-### **Static Configuration**
-- **Geometry Defaults**: `src/ui/panels/panel_geometry.py`
-- **Physics Defaults**: `src/physics/integrator.py`
-- **Pneumatic Defaults**: `src/pneumo/system.py`
-
-### **Runtime Configuration**
-- **UI State**: QSettings (persistent)
-- **Simulation Parameters**: Panel widgets
-- **Presets**: JSON files (save/load)
-
----
-
-## ?? Deployment Architecture
-
-```
-PneumoStabSim.exe (Windows)
-??? Python 3.11 (embedded)
-??? PySide6 Runtime
-?   ??? Qt6Core.dll
-?   ??? Qt6Gui.dll
-?   ??? Qt6Widgets.dll
-?   ??? Qt6Qml.dll
-?   ??? Qt6Quick.dll
-?   ??? Qt6Quick3D.dll
-?   ??? d3d11.dll (system)
-??? SciPy + NumPy
-??? Assets
-    ??? qml/
-        ??? main.qml
-```
-
----
-
-**Last Updated:** 2025-01-05
-**Architecture Version:** 2.0.0
+Система построена таким образом, чтобы каждое изменение входных данных
+автоматически инициировало полный пересчёт связанных параметров и обновление
+визуализации, гарантируя физическую и визуальную целостность модели.

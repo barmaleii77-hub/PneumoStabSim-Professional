@@ -170,9 +170,9 @@ class PneumoPanel(QWidget):
         self.receiver_tab.update_from_state()
 
     def collect_state(self) -> Dict[str, Any]:
-        """Return a copy of the current pneumatic parameters."""
+        """Return parameters converted to storage (SI) units."""
 
-        return self.state_manager.get_state()
+        return self.state_manager.export_storage_payload()
 
     def reset_to_defaults(self) -> None:
         """Public helper mirroring button action."""

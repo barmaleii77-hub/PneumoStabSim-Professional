@@ -483,6 +483,7 @@ check_*.py
 !tests/unit/ui/test_graphics_settings_service.py
 !tests/unit/ui/test_materials_tab.py
 !tests/unit/ui/test_hdr_discovery.py
+!tests/unit/ui/pneumo/test_state_manager_units.py
 !tests/unit/app/test_app_runner.py
 
 # Temporary batch files

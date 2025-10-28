@@ -48,10 +48,22 @@ class PneumoStateManager:
         converted["pressure_units"] = units
         for key in STORAGE_PRESSURE_KEYS:
             if key in converted:
-                converted[key] = float(converted[key]) / factor
+                value = float(converted[key])
+                if value <= 0.0:
+                    converted[key] = value
+                elif value < 10.0:
+                    converted[key] = value
+                else:
+                    converted[key] = value / PA_PER_BAR
         for key in STORAGE_DIAMETER_KEYS_MM:
             if key in converted:
-                converted[key] = float(converted[key]) * MM_PER_M
+                value = float(converted[key])
+                if value <= 0.0:
+                    converted[key] = value
+                elif value >= 0.1:
+                    converted[key] = value
+                else:
+                    converted[key] = value * MM_PER_M
         return converted
 
     @staticmethod
@@ -69,6 +81,11 @@ class PneumoStateManager:
             if key in converted:
                 converted[key] = float(converted[key]) / MM_PER_M
         return converted
+
+    def export_storage_payload(self) -> Dict[str, Any]:
+        """Return a snapshot ready to persist in settings storage."""
+
+        return self._convert_to_storage(self._state)
 
     def _load_from_settings(self) -> None:
         try:

@@ -25,6 +25,7 @@ from PySide6.QtCore import Signal, Slot, Qt
 from PySide6.QtGui import QFont
 
 from ..widgets import Knob
+from .state_manager import PneumoStateManager
 from src.common.settings_manager import get_settings_manager
 
 
@@ -597,7 +598,9 @@ class PneumoPanel(QWidget):
         self._settings_manager.save_current_as_defaults(category="pneumatic")
 
     def collect_state(self) -> dict:
-        return self.parameters.copy()
+        """Return pneumatic parameters converted to storage units."""
+
+        return PneumoStateManager._convert_to_storage(self.parameters)
 
     # --- Validation ---
     @Slot()
