@@ -70,7 +70,7 @@ Item {
     /**
      * Scene scale factor used for unit conversion (mm → m)
      */
-    property real sceneScaleFactor: 1000.0
+    property real sceneScaleFactor: 1.0
 
     /**
      * Fixed metres → controller-unit (millimetre) multiplier for bridge payloads.
@@ -158,6 +158,7 @@ Item {
         parent: controller.worldRoot
         cameraState: cameraState
         sceneScaleFactor: controller.sceneScaleFactor
+        controllerUnitsPerMeter: controller.metersToControllerUnits
     }
 
     // 3. Mouse & Keyboard Controls

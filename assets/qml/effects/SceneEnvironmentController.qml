@@ -277,17 +277,23 @@ ExtendedSceneEnvironment {
     if (backgroundFlag !== undefined)
         skyboxFlag = backgroundFlag
     if (skyboxFlag !== undefined)
-        skyboxToggleFlag = skyboxFlag
+        skyboxToggleFlag = !!skyboxFlag
+
+    var resolvedSkybox = !!skyboxToggleFlag
+    if (skyboxFlag !== undefined)
+        resolvedSkybox = !!skyboxFlag
 
     var iblEnabledFlag = boolFromKeys(params, "iblEnabled", "ibl_enabled")
-    if (iblEnabledFlag !== undefined) {
-        iblMasterEnabled = iblEnabledFlag
-        iblLightingEnabled = iblEnabledFlag
-    }
-
     var lightingFlag = boolFromKeys(params, "iblLightingEnabled", "ibl_lighting_enabled")
+
+    var resolvedLighting = !!iblLightingEnabled
+    if (iblEnabledFlag !== undefined)
+        resolvedLighting = !!iblEnabledFlag
     if (lightingFlag !== undefined)
-        iblLightingEnabled = lightingFlag
+        resolvedLighting = !!lightingFlag
+
+    iblLightingEnabled = resolvedLighting
+    iblMasterEnabled = resolvedLighting || resolvedSkybox
 
     _syncSkyboxBackground()
 

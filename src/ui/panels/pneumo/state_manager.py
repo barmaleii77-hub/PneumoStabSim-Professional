@@ -36,12 +36,17 @@ class PneumoStateManager:
         self._settings = settings_manager or get_settings_manager()
         self._state: Dict[str, Any] = deepcopy(DEFAULT_PNEUMATIC)
         self._defaults: Dict[str, Any] = deepcopy(DEFAULT_PNEUMATIC)
+        self._storage_units_version: str = "si_v2"
         self._load_from_settings()
 
     # ------------------------------------------------------------------ helpers
     @staticmethod
-    def _convert_from_storage(payload: Dict[str, Any]) -> Dict[str, Any]:
+    def _convert_from_storage(
+        payload: Dict[str, Any], *, units_version: str = "si_v2"
+    ) -> Dict[str, Any]:
         converted = deepcopy(payload)
+        version_token = (units_version or "").strip().lower() or "legacy"
+        uses_si_units = version_token == "si_v2"
         units = str(
             converted.get("pressure_units", DEFAULT_PNEUMATIC["pressure_units"])
         )
@@ -53,19 +58,26 @@ class PneumoStateManager:
         for key in STORAGE_PRESSURE_KEYS:
             if key in converted:
                 try:
-                    value_pa = float(converted[key])
+                    raw_value = float(converted[key])
                 except (TypeError, ValueError):
                     continue
-                converted[key] = convert_pressure_value(value_pa, "Па", units)
+                if uses_si_units:
+                    converted[key] = convert_pressure_value(raw_value, "Па", units)
+                else:
+                    converted[key] = raw_value
         for key in STORAGE_DIAMETER_KEYS_MM:
             if key in converted:
-                value = float(converted[key])
+                try:
+                    value = float(converted[key])
+                except (TypeError, ValueError):
+                    continue
+                if not uses_si_units:
+                    converted[key] = value
+                    continue
                 if value <= 0.0:
                     converted[key] = value
-                elif value >= 0.1:
-                    converted[key] = value
-                else:
-                    converted[key] = value * MM_PER_M
+                    continue
+                converted[key] = value * MM_PER_M
         return converted
 
     @staticmethod
@@ -118,15 +130,41 @@ class PneumoStateManager:
             LOGGER.warning("Failed to load pneumatic settings", exc_info=exc)
             current, defaults = {}, {}
 
+        self._storage_units_version = self._detect_units_version()
+
         if isinstance(defaults, dict):
             defaults.pop("link_rod_dia", None)
         if defaults:
-            self._defaults.update(self._convert_from_storage(defaults))
+            self._defaults.update(
+                self._convert_from_storage(
+                    defaults, units_version=self._storage_units_version
+                )
+            )
         if isinstance(current, dict):
             current.pop("link_rod_dia", None)
         merged = deepcopy(self._defaults)
-        merged.update(self._convert_from_storage(current))
+        merged.update(
+            self._convert_from_storage(
+                current, units_version=self._storage_units_version
+            )
+        )
         self._state = merged
+
+    def _detect_units_version(self) -> str:
+        """Return the raw units version recorded in the settings manager."""
+
+        getter = getattr(self._settings, "get_units_version", None)
+        if callable(getter):
+            try:
+                version = getter(normalised=False)
+            except TypeError:
+                version = getter()  # type: ignore[misc]
+            except Exception:  # pragma: no cover - defensive guard
+                version = ""
+        else:
+            version = ""
+        token = str(version).strip().lower()
+        return token or "legacy"
 
     # ------------------------------------------------------------------- access
     def get_state(self) -> Dict[str, Any]:
