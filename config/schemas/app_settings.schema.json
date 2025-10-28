@@ -211,9 +211,6 @@
             "master_isolation_open": {
               "type": "boolean"
             },
-            "link_rod_dia": {
-              "type": "boolean"
-            },
             "pressure_units": {
               "type": "string"
             },
@@ -251,7 +248,6 @@
             "atmo_temp",
             "thermo_mode",
             "master_isolation_open",
-            "link_rod_dia",
             "pressure_units",
             "receiver_volume_limits"
           ],
@@ -261,9 +257,6 @@
           "type": "object",
           "properties": {
             "sim_type": {
-              "type": "string"
-            },
-            "thermo_mode": {
               "type": "string"
             },
             "mode_preset": {
@@ -313,7 +306,6 @@
           },
           "required": [
             "sim_type",
-            "thermo_mode",
             "mode_preset",
             "amplitude",
             "frequency",

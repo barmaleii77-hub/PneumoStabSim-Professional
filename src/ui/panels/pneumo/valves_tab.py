@@ -94,8 +94,6 @@ class ValvesTab(QWidget):
         options_layout.setSpacing(4)
         self.master_isolation_check = QCheckBox("Главная изоляция открыта")
         options_layout.addWidget(self.master_isolation_check)
-        self.link_rod_dia_check = QCheckBox("Связать диаметры штоков")
-        options_layout.addWidget(self.link_rod_dia_check)
         layout.addWidget(options_group)
 
         layout.addStretch()
@@ -103,9 +101,6 @@ class ValvesTab(QWidget):
     def _load_from_state(self) -> None:
         self.master_isolation_check.setChecked(
             self.state_manager.get_option("master_isolation_open")
-        )
-        self.link_rod_dia_check.setChecked(
-            self.state_manager.get_option("link_rod_dia")
         )
 
     def update_from_state(self) -> None:
@@ -138,9 +133,6 @@ class ValvesTab(QWidget):
         )
         self.master_isolation_check.toggled.connect(
             lambda checked: self._on_option_changed("master_isolation_open", checked)
-        )
-        self.link_rod_dia_check.toggled.connect(
-            lambda checked: self._on_option_changed("link_rod_dia", checked)
         )
 
     def _on_valve_changed(self, name: str, value: float) -> None:

@@ -193,9 +193,6 @@ class PneumoPanel(QWidget):
                 "master_isolation_open", bool(checked)
             )
         )
-        self.link_rod_dia_check.toggled.connect(
-            lambda checked: self._on_parameter_changed("link_rod_dia", bool(checked))
-        )
 
     # --- UI helpers ---
     def _apply_volume_mode_widgets(self, mode: str) -> None:
@@ -440,13 +437,7 @@ class PneumoPanel(QWidget):
             bool(self.parameters.get("master_isolation_open", False))
         )
         layout.addWidget(self.master_isolation_check)
-        self.link_rod_dia_check = QCheckBox(
-            "Связать диаметры штоков передних/задних колёс"
-        )
-        self.link_rod_dia_check.setChecked(
-            bool(self.parameters.get("link_rod_dia", False))
-        )
-        layout.addWidget(self.link_rod_dia_check)
+        # Параметр связи диаметров теперь управляется из панели геометрии
         return group
 
     # --- Logic ---
@@ -580,9 +571,6 @@ class PneumoPanel(QWidget):
         )
         self.master_isolation_check.setChecked(
             bool(self.parameters.get("master_isolation_open", False))
-        )
-        self.link_rod_dia_check.setChecked(
-            bool(self.parameters.get("link_rod_dia", False))
         )
         units_index = {"бар": 0, "Па": 1, "кПа": 2, "МПа": 3}.get(
             str(self.parameters.get("pressure_units", "бар")).split()[0], 0
