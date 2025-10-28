@@ -1339,9 +1339,9 @@ return Math.max(minValue, Math.min(maxValue, value));
  if (geometryPatch.frameToPivot !== undefined)
  cameraGeometryUpdate.frameToPivot = toSceneLength(geometryPatch.frameToPivot);
 
- if (Object.keys(cameraGeometryUpdate).length)
- cameraController.updateGeometry(cameraGeometryUpdate);
- }
+        if (Object.keys(cameraGeometryUpdate).length)
+            cameraController.updateGeometry(cameraGeometryUpdate, { assumeSceneUnits: true });
+    }
 }
 
  function applyCameraUpdates(params) {
