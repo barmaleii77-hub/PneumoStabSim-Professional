@@ -29,17 +29,17 @@ Node {
     // GEOMETRY PARAMETERS (from root or defaults)
     // ===============================================================
 
-    property real leverLengthM:0.8        // м
-    property real rodPosition: 0.6        // Fraction (0.0 - 1.0)
-    property real cylinderLength: 500E-3  // м
-    property real boreHead: 80E-3         // м
+    property real leverLengthM: 0.75      // м
+    property real rodPosition: 0.34       // Fraction (0.0 - 1.0)
+    property real cylinderLength: 460E-3  // м
+    property real boreHead: 110E-3        // м
     property real rodDiameter: 35E-3      // м
     property real pistonThickness: 25E-3  // м
-    property real pistonRodLength: 200E-3 // м
+    property real pistonRodLength: 320E-3 // м
     property int cylinderSegments: 64
     property int cylinderRings: 8
     // Новый параметр длины хвостовика цилиндра (отрезок от j_tail до начала цилиндра)
-    property real tailRodLength: 100E-3   // м
+    property real tailRodLength: 180E-3   // м
 
     // Масштабы шарниров (радиус/высота) как множители базовых значений
     property real jointTailScale: 1.0

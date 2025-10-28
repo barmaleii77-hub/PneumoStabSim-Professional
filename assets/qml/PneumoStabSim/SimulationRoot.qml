@@ -1157,32 +1157,32 @@ return Math.max(minValue, Math.min(maxValue, value));
  return def;
  }
  var v;
- v = pick(params, ['frameLength','frame_length','userFrameLength'], undefined);
+ v = pick(params, ['frameLength','frame_length','frame_length_m','wheelbase','userFrameLength'], undefined);
  var geometryPatch = {};
  if (v !== undefined) { var frameLen = normalizeLengthMeters(v); if (frameLen !== undefined) { userFrameLength = frameLen; geometryPatch.frameLength = frameLen; } }
- v = pick(params, ['frameHeight','frame_height','userFrameHeight'], undefined);
+ v = pick(params, ['frameHeight','frame_height','frame_height_m','userFrameHeight'], undefined);
  if (v !== undefined) { var frameHeight = normalizeLengthMeters(v); if (frameHeight !== undefined) { userFrameHeight = frameHeight; geometryPatch.frameHeight = frameHeight; } }
- v = pick(params, ['frameBeamSize','beamSize','userBeamSize'], undefined);
+ v = pick(params, ['frameBeamSize','beamSize','frame_beam_size','frame_beam_size_m','userBeamSize'], undefined);
  if (v !== undefined) { var beamSize = normalizeLengthMeters(v); if (beamSize !== undefined) { userBeamSize = beamSize; geometryPatch.beamSize = beamSize; } }
- v = pick(params, ['leverLength','userLeverLength'], undefined);
+ v = pick(params, ['leverLength','lever_length','lever_length_m','userLeverLength'], undefined);
  if (v !== undefined) { var leverLen = normalizeLengthMeters(v); if (leverLen !== undefined) { userLeverLength = leverLen; geometryPatch.leverLength = leverLen; } }
- v = pick(params, ['cylinderBodyLength','cylinderLength','userCylinderLength'], undefined);
+ v = pick(params, ['cylinderBodyLength','cylinderLength','cylinder_length','cylinder_body_length','cylinder_body_length_m','userCylinderLength'], undefined);
  if (v !== undefined) { var cylLen = normalizeLengthMeters(v); if (cylLen !== undefined) { userCylinderLength = cylLen; geometryPatch.cylinderLength = cylLen; } }
- v = pick(params, ['trackWidth','track','userTrackWidth'], undefined);
+ v = pick(params, ['trackWidth','track','track_width','track_width_m','userTrackWidth'], undefined);
  if (v !== undefined) { var track = normalizeLengthMeters(v); if (track !== undefined) { userTrackWidth = track; geometryPatch.trackWidth = track; } }
- v = pick(params, ['frameToPivot','frame_to_pivot','userFrameToPivot'], undefined);
+ v = pick(params, ['frameToPivot','frame_to_pivot','frame_to_pivot_m','userFrameToPivot'], undefined);
  if (v !== undefined) { var pivot = normalizeLengthMeters(v); if (pivot !== undefined) { userFrameToPivot = pivot; geometryPatch.frameToPivot = pivot; } }
- v = pick(params, ['rodPosition','attachFrac','userRodPosition'], undefined);
+ v = pick(params, ['rodPosition','rod_position','attachFrac','userRodPosition'], undefined);
  if (v !== undefined) { var rodPos = Number(v); if (isFinite(rodPos)) { userRodPosition = rodPos; geometryPatch.rodPosition = rodPos; } }
- v = pick(params, ['boreHead','bore','bore_d','userBoreHead'], undefined);
+ v = pick(params, ['boreHead','bore','bore_d','bore_head','cyl_diam','cyl_diam_m','userBoreHead'], undefined);
  if (v !== undefined) { var bore = normalizeLengthMeters(v); if (bore !== undefined) { userBoreHead = bore; geometryPatch.boreHead = bore; } }
- v = pick(params, ['rod_d','rodDiameter','userRodDiameter'], undefined);
+ v = pick(params, ['rod_d','rodDiameter','rod_diameter','rod_diameter_m','rod_diameter_rear_m','userRodDiameter'], undefined);
  if (v !== undefined) { var rodDia = normalizeLengthMeters(v); if (rodDia !== undefined) { userRodDiameter = rodDia; geometryPatch.rodDiameter = rodDia; } }
- v = pick(params, ['pistonThickness','userPistonThickness'], undefined);
+ v = pick(params, ['pistonThickness','piston_thickness','piston_thickness_m','userPistonThickness'], undefined);
  if (v !== undefined) { var pistonThick = normalizeLengthMeters(v); if (pistonThick !== undefined) { userPistonThickness = pistonThick; geometryPatch.pistonThickness = pistonThick; } }
- v = pick(params, ['pistonRodLength','userPistonRodLength'], undefined);
+ v = pick(params, ['pistonRodLength','piston_rod_length','piston_rod_length_m','userPistonRodLength'], undefined);
  if (v !== undefined) { var rodLen = normalizeLengthMeters(v); if (rodLen !== undefined) { userPistonRodLength = rodLen; geometryPatch.pistonRodLength = rodLen; } }
- v = pick(params, ['tailRodLength','tail_rod_length','userTailRodLength'], undefined);
+ v = pick(params, ['tailRodLength','tail_rod_length','tail_rod_length_m','userTailRodLength'], undefined);
  if (v !== undefined) { var tailLen = normalizeLengthMeters(v); if (tailLen !== undefined) { userTailRodLength = tailLen; geometryPatch.tailRodLength = tailLen; } }
  if (params.cylinderSegments !== undefined) {
  var seg = Number(params.cylinderSegments);
@@ -1203,18 +1203,18 @@ return Math.max(minValue, Math.min(maxValue, value));
  if (cameraController) {
  var cameraGeometryUpdate = {};
  if (geometryPatch.frameLength !== undefined)
- cameraGeometryUpdate.frameLength = toSceneLength(geometryPatch.frameLength);
+     cameraGeometryUpdate.frameLength = geometryPatch.frameLength;
  if (geometryPatch.frameHeight !== undefined)
- cameraGeometryUpdate.frameHeight = toSceneLength(geometryPatch.frameHeight);
+     cameraGeometryUpdate.frameHeight = geometryPatch.frameHeight;
  if (geometryPatch.trackWidth !== undefined)
- cameraGeometryUpdate.trackWidth = toSceneLength(geometryPatch.trackWidth);
+     cameraGeometryUpdate.trackWidth = geometryPatch.trackWidth;
  if (geometryPatch.beamSize !== undefined)
- cameraGeometryUpdate.beamSize = toSceneLength(geometryPatch.beamSize);
+     cameraGeometryUpdate.beamSize = geometryPatch.beamSize;
  if (geometryPatch.frameToPivot !== undefined)
- cameraGeometryUpdate.frameToPivot = toSceneLength(geometryPatch.frameToPivot);
+     cameraGeometryUpdate.frameToPivot = geometryPatch.frameToPivot;
 
-        if (Object.keys(cameraGeometryUpdate).length)
-            cameraController.updateGeometry(cameraGeometryUpdate, { assumeSceneUnits: true });
+ if (Object.keys(cameraGeometryUpdate).length)
+     cameraController.updateGeometry(cameraGeometryUpdate);
     }
 }
 

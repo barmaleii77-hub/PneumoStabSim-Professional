@@ -84,6 +84,53 @@ class ApplicationRunner:
 
             log_warning(f"Shutdown error: {e}")
 
+    def _persist_settings_on_exit(self) -> None:
+        """Persist runtime settings when the Qt event loop is about to exit."""
+
+        logger = self.app_logger
+
+        # Flush SettingsManager (used by the UI panels) to disk first.
+        try:
+            from src.common.settings_manager import get_settings_manager
+        except Exception as exc:  # pragma: no cover - defensive import guard
+            if logger:
+                logger.debug("SettingsManager import failed: %s", exc, exc_info=True)
+        else:
+            try:
+                manager = get_settings_manager()
+                if hasattr(manager, "save"):
+                    manager.save()
+                    if logger:
+                        logger.info("SettingsManager state saved on exit")
+            except Exception as exc:  # pragma: no cover - persistence issues are rare
+                if logger:
+                    logger.error(
+                        "Failed to persist settings via SettingsManager: %s",
+                        exc,
+                        exc_info=True,
+                    )
+
+        # Ensure the lightweight SettingsService cache mirrors the latest file.
+        try:
+            from src.core.settings_service import get_settings_service
+        except Exception as exc:  # pragma: no cover - optional dependency at runtime
+            if logger:
+                logger.debug("SettingsService import failed: %s", exc, exc_info=True)
+            return
+
+        try:
+            service = get_settings_service()
+            payload = service.load(use_cache=False)
+            if isinstance(payload, dict):
+                service.save(payload)
+                if logger:
+                    logger.info("SettingsService payload persisted on exit")
+        except Exception as exc:  # pragma: no cover - avoid raising during shutdown
+            if logger:
+                logger.error(
+                    "Failed to flush SettingsService cache: %s", exc, exc_info=True
+                )
+
     def _qt_message_handler(self, mode: Any, context: Any, message: str) -> None:
         """Перенаправление Qt логов в logger."""
         if self.app_logger:
@@ -197,6 +244,15 @@ class ApplicationRunner:
         # подключаем локальный перехватчик Qt сообщений как fallback.
         if not self.error_hook_manager:
             self.qInstallMessageHandler(self._qt_message_handler)
+
+        if hasattr(app, "aboutToQuit"):
+            try:
+                app.aboutToQuit.connect(self._persist_settings_on_exit)
+            except Exception as exc:  # pragma: no cover - Qt connection errors are rare
+                if self.app_logger:
+                    self.app_logger.debug(
+                        "Failed to connect aboutToQuit handler: %s", exc, exc_info=True
+                    )
 
         app.setApplicationName("PneumoStabSim")
         app.setApplicationVersion("4.9.5")
