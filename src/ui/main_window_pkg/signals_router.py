@@ -527,13 +527,81 @@ class SignalsRouter:
 
         from .qml_bridge import QMLBridge
 
-        if not QMLBridge.invoke_qml_function(window, "applyAnimationUpdates", params):
-            QMLBridge.queue_update(window, "animation", params)
-            QMLBridge._log_graphics_change(window, "animation", params, applied=False)
-        else:
-            QMLBridge._log_graphics_change(window, "animation", params, applied=True)
+        qml_payload: Dict[str, Any] = {}
+        settings_payload: Dict[str, Any] = {}
 
-        window._apply_settings_update("graphics.animation", params)
+        def _assign_numeric(source_key: str, settings_key: str, qml_key: str) -> None:
+            if settings_key in settings_payload and qml_key in qml_payload:
+                return
+            value = params.get(source_key)
+            if value is None:
+                return
+            try:
+                numeric = float(value)
+            except (TypeError, ValueError):
+                return
+            settings_payload[settings_key] = numeric
+            qml_payload[qml_key] = numeric
+
+        _assign_numeric("amplitude", "amplitude", "amplitude")
+        _assign_numeric("frequency", "frequency", "frequency")
+        _assign_numeric("animation_time", "animation_time", "simulationTime")
+        _assign_numeric("simulationTime", "animation_time", "simulationTime")
+
+        # Global phase aliases
+        if "phase_global" not in settings_payload:
+            _assign_numeric("phase_global", "phase_global", "phase_global")
+        if "phase_global" not in settings_payload:
+            _assign_numeric("phase", "phase_global", "phase_global")
+
+        phase_aliases = {
+            "phase_fl": ("phase_fl", "phase_fl"),
+            "lf_phase": ("phase_fl", "phase_fl"),
+            "phase_fr": ("phase_fr", "phase_fr"),
+            "rf_phase": ("phase_fr", "phase_fr"),
+            "phase_rl": ("phase_rl", "phase_rl"),
+            "lr_phase": ("phase_rl", "phase_rl"),
+            "phase_rr": ("phase_rr", "phase_rr"),
+            "rr_phase": ("phase_rr", "phase_rr"),
+        }
+        for source_key, (settings_key, qml_key) in phase_aliases.items():
+            if settings_key in settings_payload and qml_key in qml_payload:
+                continue
+            _assign_numeric(source_key, settings_key, qml_key)
+
+        running_value = None
+        if "is_running" in params:
+            running_value = params["is_running"]
+        elif "isRunning" in params:
+            running_value = params["isRunning"]
+        if running_value is not None:
+            running_flag = bool(running_value)
+            settings_payload["is_running"] = running_flag
+            qml_payload["isRunning"] = running_flag
+
+        if qml_payload:
+            applied = QMLBridge.invoke_qml_function(
+                window, "applyAnimationUpdates", qml_payload
+            )
+            if not applied:
+                QMLBridge.queue_update(window, "animation", qml_payload)
+            QMLBridge._log_graphics_change(
+                window,
+                "animation",
+                settings_payload if settings_payload else qml_payload,
+                applied=applied,
+            )
+
+        if settings_payload:
+            window._apply_settings_update("graphics.animation", settings_payload)
+
+    @staticmethod
+    def handle_animation_toggled(window: MainWindow, running: bool) -> None:
+        """Persist animation toggle coming from QML."""
+
+        window._apply_settings_update(
+            "graphics.animation", {"is_running": bool(running)}
+        )
 
     # ------------------------------------------------------------------
     # Signal Handlers - Simulation
@@ -611,12 +679,17 @@ class SignalsRouter:
         """
         cmd = (command or "").lower()
 
+        animation_toggle: Optional[bool] = None
+
         if cmd == "start":
             window.is_simulation_running = True
+            animation_toggle = True
         elif cmd == "pause":
             window.is_simulation_running = False
+            animation_toggle = False
         elif cmd == "stop":
             window.is_simulation_running = False
+            animation_toggle = False
         elif cmd == "reset":
             from .qml_bridge import QMLBridge
 
@@ -642,3 +715,14 @@ class SignalsRouter:
                 bus.reset_simulation.emit()
         except Exception as exc:
             SignalsRouter.logger.error("Simulation control emit failed: %s", exc)
+
+        if animation_toggle is not None:
+            from .qml_bridge import QMLBridge
+
+            payload = {"isRunning": animation_toggle}
+            applied = QMLBridge.invoke_qml_function(
+                window, "applyAnimationUpdates", payload
+            )
+            if not applied:
+                QMLBridge.queue_update(window, "animation", payload)
+            SignalsRouter.handle_animation_toggled(window, animation_toggle)

@@ -44,3 +44,8 @@ qml_signals:
     description: >-
       QML acknowledgement that a batch pushed through
       `pendingPythonUpdates` has been applied.
+  - signal: animationToggled
+    handler: _on_animation_toggled
+    connection: queued
+    description: >-
+      Fired when the user toggles the demo animation from the 3D view.

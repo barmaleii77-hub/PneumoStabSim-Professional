@@ -30,10 +30,11 @@ Item {
  // Свойства и сигнал для батч-обновлений из Python
  // ---------------------------------------------
  property var pendingPythonUpdates: null
- signal batchUpdatesApplied(var summary)
+signal batchUpdatesApplied(var summary)
+signal animationToggled(bool running)
 
  // Состояние симуляции, управляется из Python (MainWindow)
- property bool isRunning: false
+ property bool isRunning: animationDefaults && animationDefaults.is_running !== undefined ? Boolean(animationDefaults.is_running) : false
  property var animationDefaults: typeof initialAnimationSettings !== "undefined" ? initialAnimationSettings : null
  property var sceneDefaults: typeof initialSceneSettings !== "undefined" ? initialSceneSettings : null
  property var diagnosticsDefaults: typeof initialDiagnosticsSettings !== "undefined" ? initialDiagnosticsSettings : null
@@ -110,7 +111,15 @@ Item {
  cylinderRings: userCylinderRings
  })
 
- onIsRunningChanged: updateFallbackAngles()
+onIsRunningChanged: {
+ if (isRunning) {
+  fallbackBaseTime = animationTime
+  restartFallbackTimeline()
+ } else {
+  fallbackTimeline.running = false
+  updateFallbackAngles()
+ }
+}
 
  onFallbackEnabledChanged: {
   if (fallbackEnabled) {
@@ -290,9 +299,23 @@ Item {
  }
  }
 
- function toggleCameraHud() {
-  setCameraHudEnabled(!cameraHudEnabled)
+function toggleCameraHud() {
+ setCameraHudEnabled(!cameraHudEnabled)
+}
+
+function toggleAnimation() {
+ var next = !isRunning
+ isRunning = next
+ pythonAnimationActive = false
+ if (next) {
+  fallbackBaseTime = animationTime
+  restartFallbackTimeline()
+ } else {
+  fallbackTimeline.running = false
+  updateFallbackAngles()
  }
+ animationToggled(next)
+}
 
  function applySignalTraceSettings(payload) {
   if (!payload)
@@ -715,11 +738,17 @@ View3D {
  onHudToggleRequested: root.toggleCameraHud()
  }
 
- Binding {
- target: sceneView
- property: "camera"
- value: cameraController.camera
- }
+Binding {
+    target: sceneView
+    property: "camera"
+    value: cameraController.camera
+}
+
+Binding {
+    target: sceneView
+    property: "color"
+    value: sceneEnvCtl.resolvedClearColor
+}
 
  Binding {
  target: sceneEnvCtl

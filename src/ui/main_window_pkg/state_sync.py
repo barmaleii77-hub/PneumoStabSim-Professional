@@ -111,31 +111,56 @@ class StateSync:
 
             sm = get_settings_manager()
 
-            # Собираем состояния панелей при наличии публичного API
+            categories_written = False
+
             if getattr(window, "graphics_panel", None) and hasattr(
                 window.graphics_panel, "collect_state"
             ):
                 g = window.graphics_panel.collect_state()
-                sm.set_category("graphics", g, auto_save=False)
+                existing = None
+                try:
+                    existing = window.graphics_panel.settings_service.load_current()
+                except Exception:
+                    existing = None
+                if existing is None or g != existing:
+                    sm.set_category("graphics", g, auto_save=False)
+                    categories_written = True
+
             if getattr(window, "geometry_panel", None) and hasattr(
                 window.geometry_panel, "collect_state"
             ):
                 geo = window.geometry_panel.collect_state()
-                sm.set_category("geometry", geo, auto_save=False)
+                if isinstance(geo, dict):
+                    stored_geo = sm.get_category("geometry") or {}
+                    if geo != (stored_geo or {}):
+                        sm.set_category("geometry", geo, auto_save=False)
+                        categories_written = True
+
             if getattr(window, "pneumo_panel", None) and hasattr(
                 window.pneumo_panel, "collect_state"
             ):
                 pneu = window.pneumo_panel.collect_state()
-                sm.set_category("pneumatic", pneu, auto_save=False)
+                if isinstance(pneu, dict):
+                    stored_pneu = sm.get_category("pneumatic") or {}
+                    if pneu != (stored_pneu or {}):
+                        sm.set_category("pneumatic", pneu, auto_save=False)
+                        categories_written = True
+
             if getattr(window, "modes_panel", None) and hasattr(
                 window.modes_panel, "collect_state"
             ):
                 modes = window.modes_panel.collect_state()
-                sm.set_category("modes", modes, auto_save=False)
+                if isinstance(modes, dict):
+                    stored_modes = sm.get_category("modes") or {}
+                    if modes != (stored_modes or {}):
+                        sm.set_category("modes", modes, auto_save=False)
+                        categories_written = True
 
-            # Пишем один раз
-            sm.save()
-            StateSync.logger.info("✅ app_settings.json saved on exit")
+            if categories_written:
+                sm.save()
+                StateSync.logger.info("✅ app_settings.json saved on exit")
+            else:
+                StateSync.logger.info("ℹ️ No settings changes detected; skipping save")
         except Exception as e:
             # Не скрываем ошибку — поднимаем дальше
             StateSync.logger.critical(f"❌ Failed to save app_settings.json: {e}")
