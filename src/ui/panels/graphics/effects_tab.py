@@ -48,7 +48,8 @@ class EffectsTab(QWidget):
                 "tonemap.exposure",
                 "tonemap.white_point",
             ),
-            "dof.enabled": ("dof.focus_distance", "dof.blur"),
+            "dof.enabled": ("dof.focus_distance", "dof.blur", "dof.auto_focus"),
+            "dof.auto_focus": ("dof.focus_distance",),
             "motion.enabled": ("motion.amount",),
             "lens_flare.enabled": (
                 "lens_flare.ghost_count",
@@ -77,6 +78,7 @@ class EffectsTab(QWidget):
             "dof.enabled": "depth_of_field",
             "dof.focus_distance": "dof_focus_distance",
             "dof.blur": "dof_blur",
+            "dof.auto_focus": "dof_auto_focus",
             "motion.enabled": "motion_blur",
             "motion.amount": "motion_blur_amount",
             "lens_flare.enabled": "lens_flare",
@@ -207,6 +209,13 @@ class EffectsTab(QWidget):
 
         row = 0
         row = self._add_checkbox(grid, row, "Включить DoF", "dof.enabled")
+        auto_focus_row = self._add_checkbox(
+            grid, row, "Автофокус (по дистанции камеры)", "dof.auto_focus"
+        )
+        self._controls["dof.auto_focus"].setToolTip(
+            "При включении расстояние до объекта вычисляется автоматически на основе текущей дистанции камеры."
+        )
+        row = auto_focus_row
         row = self._add_slider(
             grid,
             row,

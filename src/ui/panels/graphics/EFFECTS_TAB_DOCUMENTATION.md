@@ -151,6 +151,12 @@ Effects Tab содержит **ВСЕ доступные параметры** в
 - **QML Property:** `depthOfFieldEnabled`
 - **Описание:** Включает эффект размытия вне фокуса
 
+#### `dof_auto_focus` (bool) ✨ NEW
+- **UI:** Checkbox "Автофокус (по дистанции камеры)"
+- **По умолчанию:** `True`
+- **QML Property:** `depthOfFieldAutoFocus`
+- **Описание:** При включении расстояние до фокуса вычисляется автоматически в QML на основе текущей дистанции орбитальной камеры.
+
 #### `dof_focus_distance` (float)
 - **UI:** Slider "Фокусное расстояние"
 - **Диапазон:** 200.0 - 20000.0 мм
@@ -331,6 +337,7 @@ qml.setProperty("whitePoint", effects_params.get("tonemap_white_point", 2.0))
 
 # Depth of Field
 qml.setProperty("depthOfFieldEnabled", effects_params.get("depth_of_field", False))
+qml.setProperty("depthOfFieldAutoFocus", effects_params.get("dof_auto_focus", True))
 qml.setProperty("depthOfFieldFocusDistance", effects_params.get("dof_focus_distance", 2200.0))
 qml.setProperty("depthOfFieldBlurAmount", effects_params.get("dof_blur", 4.0))
 
@@ -382,6 +389,7 @@ EFFECTS_DEFAULTS = {
 
     # Depth of Field
     "depth_of_field": False,
+    "dof_auto_focus": True,
     "dof_focus_distance": 2200.0,
     "dof_blur": 4.0,
 
