@@ -19,10 +19,6 @@ def test_validate_geometry_settings():
         "frame_height_m": 0.65,
         "frame_beam_size_m": 0.12,
         "tail_rod_length_m": 0.1,
-        "tail_mount_offset_m": 0.1,
-        "joint_tail_scale": 1.0,
-        "joint_arm_scale": 1.0,
-        "joint_rod_scale": 1.0,
         "interference_check": True,
         "link_rod_diameters": False,
     }

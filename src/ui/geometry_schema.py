@@ -33,10 +33,6 @@ _POSITIVE_FLOAT_FIELDS: Dict[str, float] = {
     "frame_height_m": 1e-6,
     "frame_beam_size_m": 1e-6,
     "tail_rod_length_m": 1e-6,
-    "tail_mount_offset_m": 1e-6,
-    "joint_tail_scale": 1e-6,
-    "joint_arm_scale": 1e-6,
-    "joint_rod_scale": 1e-6,
 }
 
 _NON_NEGATIVE_FIELDS = {"dead_gap_m"}

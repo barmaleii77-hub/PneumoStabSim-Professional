@@ -95,6 +95,9 @@
             "piston_thickness_m": {
               "type": "number"
             },
+            "tail_rod_length_m": {
+              "type": "number"
+            },
             "interference_check": {
               "type": "boolean"
             },
@@ -107,18 +110,6 @@
             "frame_beam_size_m": {
               "type": "number"
             },
-            "tail_mount_offset_m": {
-              "type": "number"
-            },
-            "joint_tail_scale": {
-              "type": "number"
-            },
-            "joint_arm_scale": {
-              "type": "number"
-            },
-            "joint_rod_scale": {
-              "type": "number"
-            },
             "frame_length_m": {
               "type": "number"
             },
@@ -126,9 +117,6 @@
               "type": "number"
             },
             "cylinder_body_length_m": {
-              "type": "number"
-            },
-            "cylinder_cap_length_m": {
               "type": "number"
             }
           },
@@ -145,18 +133,14 @@
             "rod_diameter_m",
             "piston_rod_length_m",
             "piston_thickness_m",
+            "tail_rod_length_m",
             "interference_check",
             "link_rod_diameters",
             "frame_height_m",
             "frame_beam_size_m",
-            "tail_mount_offset_m",
-            "joint_tail_scale",
-            "joint_arm_scale",
-            "joint_rod_scale",
             "frame_length_m",
             "lever_length_m",
-            "cylinder_body_length_m",
-            "cylinder_cap_length_m"
+            "cylinder_body_length_m"
           ],
           "additionalProperties": false
         },
