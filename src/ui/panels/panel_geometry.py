@@ -7,6 +7,8 @@ Geometry configuration panel - РУССКИЙ ИНТЕРФЕЙС
 
 from __future__ import annotations
 
+from typing import Optional
+
 from PySide6.QtWidgets import (
     QWidget,
     QVBoxLayout,
@@ -478,31 +480,47 @@ class GeometryPanel(QWidget):
             )
 
     def _get_fast_geometry_update(self, param_name: str, value: float) -> dict:
-        # Читаем дополнительные параметры из SettingsManager.geometry (в мм в QML)
+        """Подготовить пакет обновления геометрии для QML.
+
+        Все значения передаются в метрах. Ранее часть параметров пересчитывалась
+        в миллиметры, что приводило к неверной интерпретации в QML для малых
+        величин (например, зазоры порядка миллиметров). Теперь используем
+        единый формат в метрах, соответствующий текущим настройкам.
+        """
+
         geom_cfg = self._settings_manager.get_category("geometry") or {}
         payload: dict[str, float] = {
-            "frameLength": (self.parameters.get("wheelbase", 0) or 0) * 1000.0,
-            "leverLength": (self.parameters.get("lever_length", 0) or 0) * 1000.0,
-            "cylinderBodyLength": (self.parameters.get("cylinder_length", 0) or 0)
-            * 1000.0,
-            "trackWidth": (self.parameters.get("track", 0) or 0) * 1000.0,
-            "frameToPivot": (self.parameters.get("frame_to_pivot", 0) or 0) * 1000.0,
-            "rodPosition": float(self.parameters.get("rod_position", 0) or 0),
-            "boreHead": (self.parameters.get("cyl_diam_m", 0) or 0) * 1000.0,
-            "rodDiameter": (self.parameters.get("rod_diameter_m", 0) or 0) * 1000.0,
-            "pistonRodLength": (self.parameters.get("piston_rod_length_m", 0) or 0)
-            * 1000.0,
-            "pistonThickness": (self.parameters.get("piston_thickness_m", 0) or 0)
-            * 1000.0,
+            "frameLength": float(self.parameters.get("wheelbase", 0) or 0.0),
+            "leverLength": float(self.parameters.get("lever_length", 0) or 0.0),
+            "cylinderBodyLength": float(
+                self.parameters.get("cylinder_length", 0) or 0.0
+            ),
+            "trackWidth": float(self.parameters.get("track", 0) or 0.0),
+            "frameToPivot": float(self.parameters.get("frame_to_pivot", 0) or 0.0),
+            "rodPosition": float(self.parameters.get("rod_position", 0) or 0.0),
+            "boreHead": float(self.parameters.get("cyl_diam_m", 0) or 0.0),
+            "rodDiameter": float(self.parameters.get("rod_diameter_m", 0) or 0.0),
+            "pistonRodLength": float(
+                self.parameters.get("piston_rod_length_m", 0) or 0.0
+            ),
+            "pistonThickness": float(
+                self.parameters.get("piston_thickness_m", 0) or 0.0
+            ),
         }
-        # Опциональные: не задаем дефолты в коде, если нет в настройках — пропускаем
-        if isinstance(geom_cfg.get("frame_height_mm"), (int, float)):
-            payload["frameHeight"] = float(geom_cfg["frame_height_mm"])
-        if isinstance(geom_cfg.get("frame_beam_size_mm"), (int, float)):
-            payload["frameBeamSize"] = float(geom_cfg["frame_beam_size_mm"])
-        if isinstance(geom_cfg.get("tail_rod_length_mm"), (int, float)):
-            # ПЕРЕИМЕНОВАНО: используем snake_case ключ, как в QML ожидается
-            payload["tail_rod_length"] = float(geom_cfg["tail_rod_length_mm"])
+
+        def _cfg_value(key: str) -> Optional[float]:
+            raw = geom_cfg.get(key)
+            if isinstance(raw, (int, float)):
+                return float(raw)
+            return None
+
+        if (frame_height := _cfg_value("frame_height_m")) is not None:
+            payload["frameHeight"] = frame_height
+        if (frame_beam := _cfg_value("frame_beam_size_m")) is not None:
+            payload["frameBeamSize"] = frame_beam
+        if (tail_rod := _cfg_value("tail_rod_length_m")) is not None:
+            payload["tailRodLength"] = tail_rod
+
         return payload
 
     def _set_parameter_value(self, param_name: str, value: float) -> None:
