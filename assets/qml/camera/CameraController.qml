@@ -274,16 +274,10 @@ Item {
 
         console.log("📷 CameraController: applying camera updates...")
 
-        var numeric = Number(controller.sceneScaleFactor)
-        var sceneScale = isFinite(numeric) && numeric > 0 ? numeric : 1000.0
-
         function toMillimeters(value) {
             if (value === undefined || value === null)
                 return null
-            var num = Number(value)
-            if (!isFinite(num))
-                return null
-            return num * sceneScale
+            return _normalizeLengthToControllerUnits(value, true)
         }
 
         function coerceNumber(value) {
@@ -404,11 +398,13 @@ Item {
     }
 
     /**
-     * Update geometry parameters (for auto-fit/reset)
+     * Normalize length payloads coming from the Python bridge.
      *
-     * @param params - geometry parameters object
+     * @param value - numeric value provided by the bridge
+     * @param assumeMeters - when true, the payload is treated as metres and
+     *                       converted using the fixed metre→millimetre factor
      */
-    function _normalizeLengthToControllerUnits(value) {
+    function _normalizeLengthToControllerUnits(value, assumeMeters) {
         if (value === undefined || value === null)
             return null
 
@@ -421,6 +417,9 @@ Item {
         if (absNumeric === 0)
             return 0
 
+        if (assumeMeters === true)
+            return numeric * metersToMillimeters
+
         // Values coming from the scene bridge that are 20 units or smaller are
         // emitted in metres (the CAD payload keeps human-friendly metre inputs).
         // Larger magnitudes already represent millimetres in controller space,
@@ -432,6 +431,11 @@ Item {
         return numeric
     }
 
+    /**
+     * Update geometry parameters (for auto-fit/reset)
+     *
+     * @param params - geometry parameters object
+     */
     function updateGeometry(params) {
         if (params.frameLength !== undefined) {
             var lengthValue = _normalizeLengthToControllerUnits(params.frameLength)
