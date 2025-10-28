@@ -45,3 +45,10 @@ def test_save_state_persists_only_allowed_keys():
     _, persisted, _ = dummy.saved
     assert "unknown" not in persisted
     assert "wheelbase" in persisted
+
+
+def test_load_state_uses_persisted_values():
+    dummy = DummySettingsManager({"wheelbase": 2.0, "track": 1.1})
+    manager = GeometryStateManager(settings_manager=dummy)
+    assert manager.get_parameter("wheelbase") == pytest.approx(2.0)
+    assert manager.get_parameter("track") == pytest.approx(1.1)

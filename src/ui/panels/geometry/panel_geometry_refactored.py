@@ -61,6 +61,9 @@ class GeometryPanel(QWidget):
         # Connect signals
         self._connect_signals()
 
+        # Ensure widgets reflect persisted state before emitting updates
+        self._apply_persisted_state()
+
         # Size policy
         self.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Expanding)
 
@@ -396,3 +399,20 @@ class GeometryPanel(QWidget):
         """
         self.state_manager.save_state()
         super().closeEvent(event)
+
+    # =========================================================================
+    # INTERNAL UTILITIES
+    # =========================================================================
+
+    def _apply_persisted_state(self) -> None:
+        """Reload geometry from settings and refresh all tabs."""
+
+        if self.settings_manager:
+            try:
+                self.state_manager.load_state()
+            except Exception as exc:  # pragma: no cover - defensive
+                self.logger.warning("Failed to reload geometry state: %s", exc)
+
+        self.frame_tab.update_from_state()
+        self.suspension_tab.update_from_state()
+        self.cylinder_tab.update_from_state()

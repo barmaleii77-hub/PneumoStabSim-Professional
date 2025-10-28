@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import logging
 from copy import deepcopy
+from decimal import Decimal, InvalidOperation
 from typing import Any, Dict, Iterable, Optional, Tuple
 
 from src.common.settings_manager import SettingsManager, get_settings_manager
@@ -25,6 +26,14 @@ from .defaults import (
 LOGGER = logging.getLogger(__name__)
 
 
+_PRESSURE_UNIT_FACTORS = {
+    "бар": PA_PER_BAR,
+    "Па": 1.0,
+    "кПа": 1_000.0,
+    "МПа": 1_000_000.0,
+}
+
+
 class PneumoStateManager:
     """Manage pneumatic state, validation and persistence."""
 
@@ -39,26 +48,120 @@ class PneumoStateManager:
 
     # ------------------------------------------------------------------ helpers
     @staticmethod
-    def _convert_from_storage(payload: Dict[str, Any]) -> Dict[str, Any]:
+    def _convert_from_storage(payload: Dict[str, Any], units: str) -> Dict[str, Any]:
         converted = deepcopy(payload)
+        factor = PneumoStateManager._pressure_factor(units)
         for key in STORAGE_PRESSURE_KEYS:
             if key in converted:
-                converted[key] = float(converted[key]) / PA_PER_BAR
+                try:
+                    value = float(converted[key])
+                except (TypeError, ValueError):
+                    continue
+                converted[key] = value / factor
         for key in STORAGE_DIAMETER_KEYS_MM:
             if key in converted:
-                converted[key] = float(converted[key]) * MM_PER_M
+                try:
+                    value = float(converted[key])
+                except (TypeError, ValueError):
+                    continue
+                converted[key] = value * MM_PER_M
+        converted["pressure_units"] = units
         return converted
 
     @staticmethod
-    def _convert_to_storage(payload: Dict[str, Any]) -> Dict[str, Any]:
+    def _convert_to_storage(payload: Dict[str, Any], units: str) -> Dict[str, Any]:
         converted = deepcopy(payload)
+        factor = PneumoStateManager._pressure_factor(units)
         for key in STORAGE_PRESSURE_KEYS:
             if key in converted:
-                converted[key] = float(converted[key]) * PA_PER_BAR
+                try:
+                    value = float(converted[key])
+                except (TypeError, ValueError):
+                    continue
+                converted[key] = value * factor
         for key in STORAGE_DIAMETER_KEYS_MM:
             if key in converted:
-                converted[key] = float(converted[key]) / MM_PER_M
+                try:
+                    value = float(converted[key])
+                except (TypeError, ValueError):
+                    continue
+                converted[key] = value / MM_PER_M
+        converted["pressure_units"] = units
         return converted
+
+    @staticmethod
+    def _normalize_units(units: str) -> str:
+        if units in _PRESSURE_UNIT_FACTORS:
+            return units
+        LOGGER.warning("Unknown pressure units '%s', falling back to defaults", units)
+        return DEFAULT_PNEUMATIC["pressure_units"]
+
+    @staticmethod
+    def _pressure_factor(units: str) -> float:
+        normalized = PneumoStateManager._normalize_units(units)
+        return _PRESSURE_UNIT_FACTORS.get(normalized, PA_PER_BAR)
+
+    @staticmethod
+    def _convert_pressures_between_units(
+        payload: Dict[str, Any], source_units: str, target_units: str
+    ) -> Dict[str, Any]:
+        if source_units == target_units:
+            payload["pressure_units"] = target_units
+            return payload
+
+        factor_from = PneumoStateManager._pressure_factor(source_units)
+        factor_to = PneumoStateManager._pressure_factor(target_units)
+        if factor_to == 0:
+            return payload
+
+        for key in STORAGE_PRESSURE_KEYS:
+            if key not in payload:
+                continue
+            try:
+                value = float(payload[key])
+            except (TypeError, ValueError):
+                continue
+            value_pa = value * factor_from
+            payload[key] = value_pa / factor_to
+
+        payload["pressure_units"] = target_units
+        return payload
+
+    @staticmethod
+    def _count_decimals(value: Decimal) -> int:
+        try:
+            normalized = value.normalize()
+        except InvalidOperation:
+            return 0
+        exponent = normalized.as_tuple().exponent
+        if exponent >= 0:
+            return 0
+        return min(6, -exponent)
+
+    @staticmethod
+    def _convert_pressure_limits(
+        limits: Dict[str, float], units: str
+    ) -> Dict[str, float]:
+        factor = Decimal(str(PA_PER_BAR)) / Decimal(
+            str(PneumoStateManager._pressure_factor(units))
+        )
+
+        def _convert(value: float) -> Decimal:
+            try:
+                return Decimal(str(value)) * factor
+            except InvalidOperation:
+                return Decimal(str(value))
+
+        min_val = _convert(limits["min"])
+        max_val = _convert(limits["max"])
+        step_val = _convert(limits["step"])
+
+        return {
+            "min": float(min_val),
+            "max": float(max_val),
+            "step": float(step_val),
+            "decimals": PneumoStateManager._count_decimals(step_val),
+        }
 
     def _load_from_settings(self) -> None:
         try:
@@ -68,11 +171,36 @@ class PneumoStateManager:
             LOGGER.warning("Failed to load pneumatic settings", exc_info=exc)
             current, defaults = {}, {}
 
+        defaults_units = self._normalize_units(
+            str(
+                (defaults or {}).get(
+                    "pressure_units",
+                    self._defaults.get(
+                        "pressure_units", DEFAULT_PNEUMATIC["pressure_units"]
+                    ),
+                )
+            )
+        )
+
         if defaults:
-            self._defaults.update(self._convert_from_storage(defaults))
-        merged = deepcopy(self._defaults)
-        merged.update(self._convert_from_storage(current))
-        self._state = merged
+            converted_defaults = self._convert_from_storage(defaults, defaults_units)
+            self._defaults.update(converted_defaults)
+        else:
+            self._defaults["pressure_units"] = defaults_units
+
+        current_units = self._normalize_units(
+            str(current.get("pressure_units", defaults_units))
+        )
+
+        base_state = deepcopy(self._defaults)
+        base_state = self._convert_pressures_between_units(
+            base_state, base_state.get("pressure_units", defaults_units), current_units
+        )
+
+        converted_current = self._convert_from_storage(current, current_units)
+        base_state.update(converted_current)
+        base_state["pressure_units"] = current_units
+        self._state = base_state
 
     # ------------------------------------------------------------------- access
     def get_state(self) -> Dict[str, Any]:
@@ -160,19 +288,27 @@ class PneumoStateManager:
         return float(self._state.get(name, DEFAULT_PNEUMATIC.get(name, 0.0)))
 
     def set_pressure_drop(self, name: str, value_bar: float) -> None:
-        value = clamp(
-            value_bar, PRESSURE_DROP_LIMITS["min"], PRESSURE_DROP_LIMITS["max"]
-        )
+        limits = self.get_pressure_drop_limits()
+        value = clamp(value_bar, limits["min"], limits["max"])
         self._state[name] = value
 
     def get_relief_pressure(self, name: str) -> float:
         return float(self._state.get(name, DEFAULT_PNEUMATIC.get(name, 0.0)))
 
     def set_relief_pressure(self, name: str, value_bar: float) -> None:
-        value = clamp(
-            value_bar, RELIEF_PRESSURE_LIMITS["min"], RELIEF_PRESSURE_LIMITS["max"]
-        )
+        limits = self.get_relief_pressure_limits()
+        value = clamp(value_bar, limits["min"], limits["max"])
         self._state[name] = value
+
+    def get_pressure_drop_limits(self) -> Dict[str, float]:
+        return self._convert_pressure_limits(
+            PRESSURE_DROP_LIMITS, self.get_pressure_units()
+        )
+
+    def get_relief_pressure_limits(self) -> Dict[str, float]:
+        return self._convert_pressure_limits(
+            RELIEF_PRESSURE_LIMITS, self.get_pressure_units()
+        )
 
     # Diameters ---------------------------------------------------------
     def get_valve_diameter(self, name: str) -> float:
@@ -203,7 +339,10 @@ class PneumoStateManager:
         )
 
     def set_pressure_units(self, units: str) -> None:
-        self._state["pressure_units"] = units
+        normalized = self._normalize_units(units)
+        current_units = self.get_pressure_units()
+        self._convert_pressures_between_units(self._state, current_units, normalized)
+        self._state["pressure_units"] = normalized
 
     def get_thermo_mode(self) -> str:
         return str(self._state.get("thermo_mode", DEFAULT_PNEUMATIC["thermo_mode"]))
@@ -263,11 +402,14 @@ class PneumoStateManager:
         self._state = deepcopy(self._defaults)
 
     def save_current_as_defaults(self) -> None:
-        payload = self._convert_to_storage(self._state)
+        units = self.get_pressure_units()
+        payload = self._convert_to_storage(self._state, units)
         self._settings.set("defaults_snapshot.pneumatic", payload)
+        self._defaults = deepcopy(self._state)
 
     def save_state(self) -> None:
-        payload = self._convert_to_storage(self._state)
+        units = self.get_pressure_units()
+        payload = self._convert_to_storage(self._state, units)
         self._settings.set("current.pneumatic", payload)
 
     # Utilities ---------------------------------------------------------
