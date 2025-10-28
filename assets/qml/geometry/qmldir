@@ -7,6 +7,7 @@ module geometry
 Frame 1.0 Frame.qml
 SuspensionCorner 1.0 SuspensionCorner.qml
 CylinderGeometry 1.0 CylinderGeometry.qml
+LinearCylinder 1.0 LinearCylinder.qml
 
 # Component descriptions
 typeinfo geometry.qmltypes

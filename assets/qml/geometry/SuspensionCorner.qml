@@ -119,13 +119,10 @@ Node {
 
     // Derived radii and half-lengths (metres)
     readonly property real cylinderRadius: Math.max(boreHead / 2, 0.001)
-    readonly property real cylinderHalfLength: Math.max(cylinderLength, 1e-4) / 2
     readonly property real pistonRadius: Math.max(cylinderRadius * 0.92, 0.001)
     readonly property real pistonHalfThickness: Math.max(pistonThickness, 1e-4) / 2
     readonly property real pistonRodRadius: Math.max(rodDiameter / 2, 0.001)
-    readonly property real pistonRodHalfLength: Math.max(pistonRodLength, 1e-4) / 2
     readonly property real tailRodRadius: Math.max(pistonRodRadius * 0.8, 0.001)
-    readonly property real tailRodHalfLength: Math.max(tailRodLength, 1e-4) / 2
     readonly property real leverThickness: Math.max(pistonRodRadius * 1.2, 0.008)
     readonly property real jointBaseRadius: Math.max(cylinderRadius * 0.6, 0.01)
     readonly property real jointBaseHalfHeight: Math.max(cylinderRadius * 0.6, 0.01)
@@ -135,6 +132,22 @@ Node {
     readonly property real jointTailHalfHeight: jointBaseHalfHeight * jointTailScale
     readonly property real jointArmHalfHeight: jointBaseHalfHeight * jointArmScale
     readonly property real jointRodHalfHeight: Math.max(pistonRodRadius, 0.005) * jointRodScale
+
+    // Pre-computed rod direction to keep rendering logic clean
+    readonly property vector3d pistonRodDirection: {
+        const dx = j_rod.x - pistonCenter.x
+        const dy = j_rod.y - pistonCenter.y
+        const length = Math.hypot(dx, dy)
+        if (length < 1e-6)
+            return Qt.vector3d(0, 1, 0)
+        return Qt.vector3d(dx / length, dy / length, 0)
+    }
+
+    readonly property vector3d pistonRodEnd: Qt.vector3d(
+        pistonCenter.x + pistonRodDirection.x * pistonRodLength,
+        pistonCenter.y + pistonRodDirection.y * pistonRodLength,
+        pistonCenter.z
+    )
 
     // ===============================================================
     // ERROR CHECKING - Rod length consistency
@@ -164,29 +177,21 @@ Node {
     }
 
     // 2. TAIL ROD (from j_tail to cylinder start)
-    Model {
-        source: "#Cylinder"
-        position: Qt.vector3d(
-            (j_tail.x + tailRodEnd.x) / 2,
-            (j_tail.y + tailRodEnd.y) / 2,
-            j_tail.z
-        )
-        scale: Qt.vector3d(tailRodRadius, tailRodHalfLength, tailRodRadius)
-        eulerRotation: Qt.vector3d(0, 0, cylinderAngleDeg + 90)
-        materials: [tailRodMaterial]
+    LinearCylinder {
+        startPoint: j_tail
+        endPoint: tailRodEnd
+        radius: tailRodRadius
+        material: tailRodMaterial
+        minimumLength: 1e-5
     }
 
     // 3. CYLINDER BODY (transparent, fixed)
-    Model {
-        source: "#Cylinder"
-        position: Qt.vector3d(
-            (cylStart.x + cylEnd.x) / 2,
-            (cylStart.y + cylEnd.y) / 2,
-            cylStart.z
-        )
-        scale: Qt.vector3d(cylinderRadius * 1.05, cylinderHalfLength, cylinderRadius * 1.05)
-        eulerRotation: Qt.vector3d(0, 0, cylinderAngleDeg + 90)
-        materials: [cylinderMaterial]
+    LinearCylinder {
+        startPoint: cylStart
+        endPoint: cylEnd
+        radius: cylinderRadius * 1.05
+        material: cylinderMaterial
+        warnOnTinyLength: false
     }
 
     // 4. PISTON (moving, position from Python)
@@ -199,34 +204,12 @@ Node {
     }
 
     // 5. PISTON ROD (from piston to j_rod, CONSTANT length)
-    Model {
-        source: "#Cylinder"
-
-        // Direction from piston to j_rod
-        property real rodDirX: j_rod.x - pistonCenter.x
-        property real rodDirY: j_rod.y - pistonCenter.y
-        property real rodDirLen: Math.hypot(rodDirX, rodDirY)
-        property real rodDirSafe: Math.max(rodDirLen, 1e-6)
-
-        // Normalized direction
-        property real rodDirNormX: rodDirX / rodDirSafe
-        property real rodDirNormY: rodDirY / rodDirSafe
-
-        // Rod end position (piston + rodLength in direction of j_rod)
-        property vector3d rodEnd: Qt.vector3d(
-            pistonCenter.x + rodDirNormX * pistonRodLength,
-            pistonCenter.y + rodDirNormY * pistonRodLength,
-            pistonCenter.z
-        )
-
-        position: Qt.vector3d(
-            (pistonCenter.x + rodEnd.x) / 2,
-            (pistonCenter.y + rodEnd.y) / 2,
-            pistonCenter.z
-        )
-        scale: Qt.vector3d(pistonRodRadius, pistonRodHalfLength, pistonRodRadius)
-        eulerRotation: Qt.vector3d(0, 0, Math.atan2(rodEnd.y - pistonCenter.y, rodEnd.x - pistonCenter.x) * 180 / Math.PI + 90)
-        materials: [pistonRodMaterial]
+    LinearCylinder {
+        startPoint: pistonCenter
+        endPoint: pistonRodEnd
+        radius: pistonRodRadius
+        material: pistonRodMaterial
+        minimumLength: 1e-5
     }
 
     // ===============================================================
