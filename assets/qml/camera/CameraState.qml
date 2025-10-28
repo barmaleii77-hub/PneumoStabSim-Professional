@@ -81,10 +81,10 @@ QtObject {
     property real fov: 60.0
 
     /**
-     * Near/Far clipping planes (в мм)
+     * Near/Far clipping planes (в мм). Defaults target ~0.1–20 м для лучшей точности глубины.
      */
-    property real nearPlane: 10.0
-    property real farPlane: 50000.0
+    property real nearPlane: 100.0
+    property real farPlane: 20000.0
 
     /**
      * Camera movement speed multiplier

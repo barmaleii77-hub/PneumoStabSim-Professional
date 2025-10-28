@@ -42,13 +42,14 @@ QtObject {
  // FRAME MATERIAL PROPERTIES
  // ===============================================================
 
- property color frameBaseColor: matValue("frame", "base_color", "#c53030")
- property real frameMetalness: Number(matValue("frame", "metalness",0.85))
- property real frameRoughness: Number(matValue("frame", "roughness",0.35))
- property real frameSpecularAmount: Number(matValue("frame", "specular_amount",1.0))
+ // Painted steel chassis (dielectric with satin clearcoat)
+ property color frameBaseColor: matValue("frame", "base_color", "#2d323c")
+ property real frameMetalness: Number(matValue("frame", "metalness",0.0))
+ property real frameRoughness: Number(matValue("frame", "roughness",0.58))
+ property real frameSpecularAmount: Number(matValue("frame", "specular_amount",0.55))
  property real frameSpecularTint: Number(matValue("frame", "specular_tint",0.0))
- property real frameClearcoat: Number(matValue("frame", "clearcoat",0.22))
- property real frameClearcoatRoughness: Number(matValue("frame", "clearcoat_roughness",0.1))
+ property real frameClearcoat: Number(matValue("frame", "clearcoat",0.35))
+ property real frameClearcoatRoughness: Number(matValue("frame", "clearcoat_roughness",0.12))
  property real frameTransmission: Number(matValue("frame", "transmission",0.0))
  property real frameOpacity: Number(matValue("frame", "opacity",1.0))
  property real frameIor: Number(matValue("frame", "ior",1.5))
@@ -61,13 +62,14 @@ QtObject {
  // LEVER MATERIAL PROPERTIES
  // ===============================================================
 
- property color leverBaseColor: matValue("lever", "base_color", "#9ea4ab")
+ // Machined steel lever with brushed finish
+ property color leverBaseColor: matValue("lever", "base_color", "#a7adb4")
  property real leverMetalness: Number(matValue("lever", "metalness",1.0))
- property real leverRoughness: Number(matValue("lever", "roughness",0.28))
+ property real leverRoughness: Number(matValue("lever", "roughness",0.38))
  property real leverSpecularAmount: Number(matValue("lever", "specular_amount",1.0))
  property real leverSpecularTint: Number(matValue("lever", "specular_tint",0.0))
- property real leverClearcoat: Number(matValue("lever", "clearcoat",0.3))
- property real leverClearcoatRoughness: Number(matValue("lever", "clearcoat_roughness",0.08))
+ property real leverClearcoat: Number(matValue("lever", "clearcoat",0.05))
+ property real leverClearcoatRoughness: Number(matValue("lever", "clearcoat_roughness",0.05))
  property real leverTransmission: Number(matValue("lever", "transmission",0.0))
  property real leverOpacity: Number(matValue("lever", "opacity",1.0))
  property real leverIor: Number(matValue("lever", "ior",1.5))
@@ -80,13 +82,14 @@ QtObject {
  // TAIL ROD MATERIAL PROPERTIES
  // ===============================================================
 
+ // Tail rod inherits mild roughness to catch highlights
  property color tailRodBaseColor: matValue("tail_rod", "base_color", "#d5d9df")
  property real tailRodMetalness: Number(matValue("tail_rod", "metalness",1.0))
- property real tailRodRoughness: Number(matValue("tail_rod", "roughness",0.3))
+ property real tailRodRoughness: Number(matValue("tail_rod", "roughness",0.32))
  property real tailRodSpecularAmount: Number(matValue("tail_rod", "specular_amount",1.0))
  property real tailRodSpecularTint: Number(matValue("tail_rod", "specular_tint",0.0))
- property real tailRodClearcoat: Number(matValue("tail_rod", "clearcoat",0.0))
- property real tailRodClearcoatRoughness: Number(matValue("tail_rod", "clearcoat_roughness",0.0))
+ property real tailRodClearcoat: Number(matValue("tail_rod", "clearcoat",0.08))
+ property real tailRodClearcoatRoughness: Number(matValue("tail_rod", "clearcoat_roughness",0.05))
  property real tailRodTransmission: Number(matValue("tail_rod", "transmission",0.0))
  property real tailRodOpacity: Number(matValue("tail_rod", "opacity",1.0))
  property real tailRodIor: Number(matValue("tail_rod", "ior",1.5))
@@ -118,14 +121,15 @@ QtObject {
  // PISTON BODY MATERIAL PROPERTIES
  // ===============================================================
 
+ // Painted safety cap with strong clearcoat for highlights
  property color pistonBodyBaseColor: matValue("piston_body", "base_color", "#ff3c6e")
  property color pistonBodyWarningColor: matValue("piston_body", "warning_color", "#ff5454")
- property real pistonBodyMetalness: Number(matValue("piston_body", "metalness",1.0))
- property real pistonBodyRoughness: Number(matValue("piston_body", "roughness",0.26))
- property real pistonBodySpecularAmount: Number(matValue("piston_body", "specular_amount",1.0))
+ property real pistonBodyMetalness: Number(matValue("piston_body", "metalness",0.0))
+ property real pistonBodyRoughness: Number(matValue("piston_body", "roughness",0.45))
+ property real pistonBodySpecularAmount: Number(matValue("piston_body", "specular_amount",0.6))
  property real pistonBodySpecularTint: Number(matValue("piston_body", "specular_tint",0.0))
- property real pistonBodyClearcoat: Number(matValue("piston_body", "clearcoat",0.18))
- property real pistonBodyClearcoatRoughness: Number(matValue("piston_body", "clearcoat_roughness",0.06))
+ property real pistonBodyClearcoat: Number(matValue("piston_body", "clearcoat",0.42))
+ property real pistonBodyClearcoatRoughness: Number(matValue("piston_body", "clearcoat_roughness",0.18))
  property real pistonBodyTransmission: Number(matValue("piston_body", "transmission",0.0))
  property real pistonBodyOpacity: Number(matValue("piston_body", "opacity",1.0))
  property real pistonBodyIor: Number(matValue("piston_body", "ior",1.5))
@@ -138,14 +142,15 @@ QtObject {
  // PISTON ROD MATERIAL PROPERTIES
  // ===============================================================
 
- property color pistonRodBaseColor: matValue("piston_rod", "base_color", "#ececec")
+ // Highly polished chrome piston rod
+ property color pistonRodBaseColor: matValue("piston_rod", "base_color", "#f0f0f0")
  property color pistonRodWarningColor: matValue("piston_rod", "warning_color", "#ff2a2a")
  property real pistonRodMetalness: Number(matValue("piston_rod", "metalness",1.0))
- property real pistonRodRoughness: Number(matValue("piston_rod", "roughness",0.18))
+ property real pistonRodRoughness: Number(matValue("piston_rod", "roughness",0.12))
  property real pistonRodSpecularAmount: Number(matValue("piston_rod", "specular_amount",1.0))
  property real pistonRodSpecularTint: Number(matValue("piston_rod", "specular_tint",0.0))
- property real pistonRodClearcoat: Number(matValue("piston_rod", "clearcoat",0.12))
- property real pistonRodClearcoatRoughness: Number(matValue("piston_rod", "clearcoat_roughness",0.05))
+ property real pistonRodClearcoat: Number(matValue("piston_rod", "clearcoat",0.05))
+ property real pistonRodClearcoatRoughness: Number(matValue("piston_rod", "clearcoat_roughness",0.02))
  property real pistonRodTransmission: Number(matValue("piston_rod", "transmission",0.0))
  property real pistonRodOpacity: Number(matValue("piston_rod", "opacity",1.0))
  property real pistonRodIor: Number(matValue("piston_rod", "ior",1.5))
@@ -158,13 +163,14 @@ QtObject {
  // JOINT TAIL MATERIAL PROPERTIES
  // ===============================================================
 
+ // Painted joint caps mimic powder-coated hardware
  property color jointTailBaseColor: matValue("joint_tail", "base_color", "#2a82ff")
- property real jointTailMetalness: Number(matValue("joint_tail", "metalness",0.9))
- property real jointTailRoughness: Number(matValue("joint_tail", "roughness",0.35))
- property real jointTailSpecularAmount: Number(matValue("joint_tail", "specular_amount",1.0))
+ property real jointTailMetalness: Number(matValue("joint_tail", "metalness",0.0))
+ property real jointTailRoughness: Number(matValue("joint_tail", "roughness",0.42))
+ property real jointTailSpecularAmount: Number(matValue("joint_tail", "specular_amount",0.6))
  property real jointTailSpecularTint: Number(matValue("joint_tail", "specular_tint",0.0))
- property real jointTailClearcoat: Number(matValue("joint_tail", "clearcoat",0.1))
- property real jointTailClearcoatRoughness: Number(matValue("joint_tail", "clearcoat_roughness",0.08))
+ property real jointTailClearcoat: Number(matValue("joint_tail", "clearcoat",0.28))
+ property real jointTailClearcoatRoughness: Number(matValue("joint_tail", "clearcoat_roughness",0.16))
  property real jointTailTransmission: Number(matValue("joint_tail", "transmission",0.0))
  property real jointTailOpacity: Number(matValue("joint_tail", "opacity",1.0))
  property real jointTailIor: Number(matValue("joint_tail", "ior",1.5))
@@ -178,12 +184,12 @@ QtObject {
  // ===============================================================
 
  property color jointArmBaseColor: matValue("joint_arm", "base_color", "#ff9c3a")
- property real jointArmMetalness: Number(matValue("joint_arm", "metalness",0.9))
- property real jointArmRoughness: Number(matValue("joint_arm", "roughness",0.32))
- property real jointArmSpecularAmount: Number(matValue("joint_arm", "specular_amount",1.0))
+ property real jointArmMetalness: Number(matValue("joint_arm", "metalness",0.0))
+ property real jointArmRoughness: Number(matValue("joint_arm", "roughness",0.4))
+ property real jointArmSpecularAmount: Number(matValue("joint_arm", "specular_amount",0.65))
  property real jointArmSpecularTint: Number(matValue("joint_arm", "specular_tint",0.0))
- property real jointArmClearcoat: Number(matValue("joint_arm", "clearcoat",0.12))
- property real jointArmClearcoatRoughness: Number(matValue("joint_arm", "clearcoat_roughness",0.08))
+ property real jointArmClearcoat: Number(matValue("joint_arm", "clearcoat",0.3))
+ property real jointArmClearcoatRoughness: Number(matValue("joint_arm", "clearcoat_roughness",0.14))
  property real jointArmTransmission: Number(matValue("joint_arm", "transmission",0.0))
  property real jointArmOpacity: Number(matValue("joint_arm", "opacity",1.0))
  property real jointArmIor: Number(matValue("joint_arm", "ior",1.5))
