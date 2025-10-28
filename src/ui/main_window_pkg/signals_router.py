@@ -13,6 +13,7 @@ import math
 from typing import TYPE_CHECKING, Any, Dict, Mapping, Optional
 
 from PySide6.QtCore import Qt
+from PySide6.QtGui import QColor
 
 from ...pneumo.enums import Line, Wheel
 from .qml_bridge import QMLBridge
@@ -421,6 +422,60 @@ class SignalsRouter:
                 )
 
         window._apply_settings_update("graphics.environment", params)
+        SignalsRouter._sync_background_transparency(window, params)
+
+    @staticmethod
+    def _sync_background_transparency(
+        window: "MainWindow", params: Mapping[str, Any]
+    ) -> None:
+        """Adjust QQuickWidget transparency flags based on environment mode."""
+
+        widget = getattr(window, "_qquick_widget", None)
+        if widget is None:
+            return
+
+        mode_value = params.get("background_mode")
+        color_value = params.get("background_color")
+        last_mode = getattr(window, "_last_background_mode", None)
+        if not mode_value:
+            mode_value = last_mode
+        else:
+            try:
+                window._last_background_mode = str(mode_value)
+            except Exception:
+                window._last_background_mode = str(mode_value)
+
+        mode = str(mode_value).strip().lower() if mode_value is not None else ""
+
+        if not color_value and hasattr(window, "settings_manager"):
+            try:
+                if not mode:
+                    mode = str(window._last_background_mode or "")
+                color_value = window.settings_manager.get(
+                    "graphics.environment.background_color", "#000000"
+                )
+            except Exception:
+                color_value = "#000000"
+
+        if mode == "transparent":
+            widget.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, True)
+            widget.setAttribute(Qt.WidgetAttribute.WA_OpaquePaintEvent, False)
+            widget.setAttribute(Qt.WidgetAttribute.WA_NoSystemBackground, True)
+            widget.setClearColor(QColor(0, 0, 0, 0))
+            return
+
+        widget.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, False)
+        widget.setAttribute(Qt.WidgetAttribute.WA_NoSystemBackground, False)
+        widget.setAttribute(Qt.WidgetAttribute.WA_OpaquePaintEvent, True)
+
+        try:
+            qcolor = QColor(color_value) if color_value else QColor("#000000")
+            if not qcolor.isValid():
+                qcolor = QColor("#000000")
+        except Exception:
+            qcolor = QColor("#000000")
+
+        widget.setClearColor(qcolor)
 
     @staticmethod
     def handle_quality_changed(window: MainWindow, params: Dict[str, Any]) -> None:

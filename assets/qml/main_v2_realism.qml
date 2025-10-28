@@ -57,10 +57,16 @@ Item {
     property real pointLightY: 2000
 
     // --- Environment/quality properties ---
-    property string backgroundColor: "#2a2a2a"
+    property string backgroundMode: "skybox"
+    property color backgroundColor: "#2a2a2a"
     property bool skyboxEnabled: true
     property bool iblEnabled: true
     property real iblIntensity: 1.3     // === CHANGED: Better exposure
+    readonly property bool isSkyboxBackground: backgroundMode === "skybox" && skyboxEnabled
+    readonly property bool backgroundTransparent: backgroundMode === "transparent"
+    readonly property color environmentClearColor: backgroundTransparent
+                                               ? Qt.rgba(backgroundColor.r, backgroundColor.g, backgroundColor.b, 0.0)
+                                               : backgroundColor
 
     property int antialiasingMode: 2     // 0 NoAA, 1 SSAA, 2 MSAA
     property int antialiasingQuality: 2  // 0 Low, 1 Medium, 2 High
@@ -324,7 +330,20 @@ property real tankPressure: 0.0
     function updateEnvironment(params) {
         console.log("QML: updateEnvironment called with", JSON.stringify(params))
 
-        if (params.background_color !== undefined) backgroundColor = params.background_color
+        if (params.background_mode !== undefined) {
+            var modeText = String(params.background_mode).toLowerCase()
+            if (modeText === "skybox" || modeText === "color" || modeText === "transparent")
+                backgroundMode = modeText
+        }
+        if (params.background_color !== undefined) {
+            var bg = params.background_color
+            if (bg && typeof bg === "object" && bg.r !== undefined) {
+                var alpha = bg.a !== undefined ? Number(bg.a) : 1.0
+                backgroundColor = Qt.rgba(Number(bg.r), Number(bg.g), Number(bg.b), alpha)
+            } else {
+                backgroundColor = bg
+            }
+        }
         if (params.skybox_enabled !== undefined) skyboxEnabled = params.skybox_enabled
         if (params.ibl_enabled !== undefined) iblEnabled = params.ibl_enabled
         if (params.ibl_intensity !== undefined) iblIntensity = params.ibl_intensity
@@ -379,8 +398,8 @@ property real tankPressure: 0.0
         // === FIXED: Proper ExtendedSceneEnvironment implementation for Qt 6.9.3 ===
         environment: ExtendedSceneEnvironment {
             // Background and IBL
-            backgroundMode: root.skyboxEnabled ? SceneEnvironment.SkyBox : SceneEnvironment.Color
-            clearColor: root.backgroundColor
+            backgroundMode: root.isSkyboxBackground ? SceneEnvironment.SkyBox : SceneEnvironment.Color
+            clearColor: root.environmentClearColor
             lightProbe: root.iblEnabled ? hdrProbe : null
             probeExposure: root.iblIntensity
             probeHorizon: 0.08
