@@ -29,6 +29,23 @@ def test_latest_only_queue_retains_only_latest_item() -> None:
     assert stats["efficiency"] == pytest.approx(0.5)
 
 
+def test_latest_only_queue_does_not_leak_unfinished_tasks() -> None:
+    queue = LatestOnlyQueue()
+
+    for value in range(5):
+        queue.put_nowait({"value": value})
+
+    # ``LatestOnlyQueue`` owns the lifecycle of the underlying queue, so it
+    # should keep the unfinished task counter aligned with the actual number of
+    # buffered items (0 or 1). Accessing the protected attribute keeps the test
+    # narrowly focused on the regression we are guarding against.
+    assert queue._queue.unfinished_tasks == 1  # type: ignore[attr-defined]
+
+    queue.get_nowait()
+
+    assert queue._queue.unfinished_tasks == 0  # type: ignore[attr-defined]
+
+
 def test_timing_accumulator_respects_limits_and_updates_metrics() -> None:
     accumulator = TimingAccumulator(
         target_dt=0.01, max_steps_per_frame=5, max_frame_time=0.05
