@@ -94,9 +94,8 @@ def test_load_current_hydrates_legacy_shape(
     tmp_path: Path, baseline_file: Path
 ) -> None:
     legacy_materials = _make_materials()
-    # Simulate legacy key and missing material to exercise baseline hydration.
+    # Simulate missing material to exercise baseline hydration.
     legacy_materials.pop("joint_rod")
-    legacy_materials["tail"] = legacy_materials.pop("tail_rod")
 
     settings_path = tmp_path / "settings.json"
     _write_json(settings_path, _make_legacy_payload(legacy_materials))
@@ -110,9 +109,25 @@ def test_load_current_hydrates_legacy_shape(
     assert state["environment"]["ibl_intensity"] == 0.5
     # Hydrated from baseline
     assert state["lighting"]["key"]["brightness"] == 1.0
-    # tail alias normalised and missing joint restored
+    # Missing joint restored from baseline
     assert "tail_rod" in state["materials"]
     assert "joint_rod" in state["materials"]
+
+
+def test_load_current_rejects_legacy_tail_alias(
+    tmp_path: Path, baseline_file: Path
+) -> None:
+    legacy_materials = _make_materials()
+    legacy_materials["tail"] = legacy_materials.pop("tail_rod")
+
+    settings_path = tmp_path / "settings.json"
+    _write_json(settings_path, _make_legacy_payload(legacy_materials))
+
+    manager = SettingsManager(settings_file=settings_path)
+    service = GraphicsSettingsService(manager, baseline_path=baseline_file)
+
+    with pytest.raises(GraphicsSettingsError):
+        service.load_current()
 
 
 def test_ensure_valid_state_requires_all_materials(
@@ -151,13 +166,11 @@ def test_save_current_persists_normalised_copy(
     saved = manager.get_category("graphics")
     assert saved["environment"]["ibl_intensity"] == 2.2
     assert saved["materials"]["tail_rod"]["base_color"] == "#ff0000"
-    # The persistence layer must keep compatibility with external tooling that
-    # still expects the legacy ``tail`` material entry.
-    assert saved["materials"]["tail"]["base_color"] == "#ff0000"
+    assert "tail" not in saved["materials"]
     assert "lighting" in saved
 
 
-def test_save_current_as_defaults_persists_aliases(
+def test_save_current_as_defaults_does_not_add_aliases(
     tmp_path: Path, baseline_file: Path
 ) -> None:
     settings_path = tmp_path / "settings.json"
@@ -175,5 +188,5 @@ def test_save_current_as_defaults_persists_aliases(
     current = manager.get_category("graphics")
     defaults = manager.get("defaults_snapshot.graphics")
 
-    assert current["materials"]["tail"]["base_color"] == "#00ff00"
-    assert defaults["materials"]["tail"]["base_color"] == "#00ff00"
+    assert "tail" not in current["materials"]
+    assert "tail" not in defaults["materials"]

@@ -1003,21 +1003,32 @@ Connections {
  // ---------------------------------------------
  // Утилиты
  // ---------------------------------------------
- function setIfExists(obj, prop, value) {
- try {
- if (obj && (prop in obj || typeof obj[prop] !== 'undefined')) {
- obj[prop] = value;
- }
- } catch (e) {
- console.warn("setIfExists failed", prop, e);
- }
- }
+function setIfExists(obj, prop, value) {
+try {
+if (obj && (prop in obj || typeof obj[prop] !== 'undefined')) {
+obj[prop] = value;
+}
+} catch (e) {
+console.warn("setIfExists failed", prop, e);
+}
+}
 
- function clamp(value, minValue, maxValue) {
- if (typeof value !== 'number' || !isFinite(value))
- return minValue;
- return Math.max(minValue, Math.min(maxValue, value));
- }
+function valueForKeys(map, keys) {
+    if (!map)
+        return undefined;
+    for (var i = 0; i < keys.length; ++i) {
+        var key = keys[i];
+        if (map.hasOwnProperty(key) && map[key] !== undefined)
+            return map[key];
+    }
+    return undefined;
+}
+
+function clamp(value, minValue, maxValue) {
+if (typeof value !== 'number' || !isFinite(value))
+return minValue;
+return Math.max(minValue, Math.min(maxValue, value));
+}
 
  function toSceneLength(meters) {
  var numeric = Number(meters);
@@ -1645,54 +1656,73 @@ Connections {
 
  function applyEnvironmentUpdates(params) {
  if (!params) return;
+ var bgColorVal = valueForKeys(params, ['backgroundColor', 'background_color']);
+ if (bgColorVal !== undefined) setIfExists(sceneEnvCtl, 'backgroundColor', bgColorVal);
+ if (params.clearColor) setIfExists(sceneEnvCtl, 'backgroundColor', params.clearColor);
+ if (params.background && params.background.color) setIfExists(sceneEnvCtl, 'backgroundColor', params.background.color);
 
- var backgroundPayload = (params.background && typeof params.background === "object") ? params.background : null;
+ var backgroundModeVal = valueForKeys(params, ['backgroundMode', 'background_mode']);
+ if (backgroundModeVal !== undefined) setIfExists(sceneEnvCtl, 'backgroundModeKey', String(backgroundModeVal));
 
- var backgroundModeValue = undefined;
- if (params.background_mode !== undefined) backgroundModeValue = params.background_mode;
- else if (params.backgroundMode !== undefined) backgroundModeValue = params.backgroundMode;
- if (backgroundPayload && backgroundPayload.mode !== undefined) backgroundModeValue = backgroundPayload.mode;
- if (backgroundModeValue !== undefined && typeof sceneEnvCtl.setBackgroundMode === "function")
-     sceneEnvCtl.setBackgroundMode(backgroundModeValue);
+ var skyboxFlag = valueForKeys(params, ['iblBackgroundEnabled', 'ibl_background_enabled', 'skyboxEnabled', 'skybox_enabled']);
+ if (skyboxFlag !== undefined) setIfExists(sceneEnvCtl, 'iblBackgroundEnabled', !!skyboxFlag);
 
- var skyboxValue = undefined;
- if (params.skybox_enabled !== undefined) skyboxValue = params.skybox_enabled;
- else if (params.skyboxEnabled !== undefined) skyboxValue = params.skyboxEnabled;
- if (backgroundPayload && backgroundPayload.skybox_enabled !== undefined) skyboxValue = backgroundPayload.skybox_enabled;
- if (skyboxValue !== undefined) {
-     if (typeof sceneEnvCtl.setSkyboxEnabled === "function")
-         sceneEnvCtl.setSkyboxEnabled(skyboxValue);
-     else
-         setIfExists(sceneEnvCtl, 'iblBackgroundEnabled', !!skyboxValue);
+ var iblEnabledFlag = valueForKeys(params, ['iblEnabled', 'ibl_enabled']);
+ if (iblEnabledFlag !== undefined) {
+     setIfExists(sceneEnvCtl, 'iblLightingEnabled', !!iblEnabledFlag);
+     setIfExists(sceneEnvCtl, 'iblBackgroundEnabled', !!iblEnabledFlag);
  }
 
- var colorValue = undefined;
- if (params.clearColor !== undefined) colorValue = params.clearColor;
- if (params.backgroundColor !== undefined) colorValue = params.backgroundColor;
- if (params.background_color !== undefined) colorValue = params.background_color;
- if (backgroundPayload && backgroundPayload.color !== undefined) colorValue = backgroundPayload.color;
- if (colorValue !== undefined) setIfExists(sceneEnvCtl, 'backgroundColor', colorValue);
+ var iblLightingVal = valueForKeys(params, ['iblLightingEnabled', 'ibl_lighting_enabled']);
+ if (iblLightingVal !== undefined) setIfExists(sceneEnvCtl, 'iblLightingEnabled', !!iblLightingVal);
 
- var iblEnabledValue = undefined;
- if (params.ibl_enabled !== undefined) iblEnabledValue = params.ibl_enabled;
- else if (params.iblEnabled !== undefined) iblEnabledValue = params.iblEnabled;
- if (iblEnabledValue !== undefined) setIfExists(sceneEnvCtl, 'iblLightingEnabled', !!iblEnabledValue);
-
- if (params.iblBackgroundEnabled !== undefined) {
-     if (typeof sceneEnvCtl.setSkyboxEnabled === "function")
-         sceneEnvCtl.setSkyboxEnabled(params.iblBackgroundEnabled);
-     else
-         setIfExists(sceneEnvCtl, 'iblBackgroundEnabled', !!params.iblBackgroundEnabled);
+ var intensityVal = valueForKeys(params, ['iblIntensity', 'ibl_intensity']);
+ if (intensityVal !== undefined) {
+     var numericIntensity = Number(intensityVal);
+     if (isFinite(numericIntensity)) {
+         setIfExists(sceneEnvCtl, 'iblIntensity', numericIntensity);
+         setIfExists(sceneEnvCtl, 'probeBrightnessValue', numericIntensity);
+     }
  }
- if (params.iblLightingEnabled !== undefined) setIfExists(sceneEnvCtl, 'iblLightingEnabled', !!params.iblLightingEnabled);
 
- var iblIntensityValue = params.iblIntensity;
- if (iblIntensityValue === undefined && params.ibl_intensity !== undefined) iblIntensityValue = params.ibl_intensity;
- if (iblIntensityValue !== undefined) setIfExists(sceneEnvCtl, 'iblIntensity', Number(iblIntensityValue));
+ var probeBrightnessVal = valueForKeys(params, ['probeBrightness', 'probe_brightness']);
+ if (probeBrightnessVal !== undefined) {
+     var numericBrightness = Number(probeBrightnessVal);
+     if (isFinite(numericBrightness)) setIfExists(sceneEnvCtl, 'probeBrightnessValue', numericBrightness);
+ }
 
- var iblRotationValue = params.iblRotationDeg;
- if (iblRotationValue === undefined && params.ibl_rotation !== undefined) iblRotationValue = params.ibl_rotation;
- if (iblRotationValue !== undefined) setIfExists(sceneEnvCtl, 'iblRotationDeg', Number(iblRotationValue));
+ var probeHorizonVal = valueForKeys(params, ['probeHorizon', 'probe_horizon']);
+ if (probeHorizonVal !== undefined) {
+     var numericHorizon = Number(probeHorizonVal);
+     if (isFinite(numericHorizon)) setIfExists(sceneEnvCtl, 'probeHorizonValue', numericHorizon);
+ }
+
+ var rotationYawVal = valueForKeys(params, ['iblRotationDeg', 'ibl_rotation']);
+ if (rotationYawVal !== undefined) {
+     var numericYaw = Number(rotationYawVal);
+     if (isFinite(numericYaw)) setIfExists(sceneEnvCtl, 'iblRotationDeg', numericYaw);
+ }
+
+ var rotationPitchVal = valueForKeys(params, ['iblRotationPitchDeg', 'ibl_offset_x']);
+ if (rotationPitchVal !== undefined) {
+     var numericPitch = Number(rotationPitchVal);
+     if (isFinite(numericPitch)) setIfExists(sceneEnvCtl, 'iblRotationPitchDeg', numericPitch);
+ }
+
+ var rotationRollVal = valueForKeys(params, ['iblRotationRollDeg', 'ibl_offset_y']);
+ if (rotationRollVal !== undefined) {
+     var numericRoll = Number(rotationRollVal);
+     if (isFinite(numericRoll)) setIfExists(sceneEnvCtl, 'iblRotationRollDeg', numericRoll);
+ }
+
+ var bindCameraVal = valueForKeys(params, ['iblBindToCamera', 'ibl_bind_to_camera']);
+ if (bindCameraVal !== undefined) setIfExists(sceneEnvCtl, 'iblBindToCamera', !!bindCameraVal);
+
+ var skyboxBlurVal = valueForKeys(params, ['skyboxBlur', 'skybox_blur']);
+ if (skyboxBlurVal !== undefined) {
+     var numericBlur = Number(skyboxBlurVal);
+     if (isFinite(numericBlur)) setIfExists(sceneEnvCtl, 'skyboxBlurValue', numericBlur);
+ }
  if (params.iblPrimary || params.hdrSource || params.iblSource) { var src = params.iblPrimary || params.hdrSource || params.iblSource; if (typeof window !== 'undefined' && window && typeof window.normalizeHdrPath === 'function') { try { src = window.normalizeHdrPath(String(src)); } catch(e) { console.warn("HDR path normalization failed:", e); } } setIfExists(iblLoader, 'primarySource', src); }
  if (params.iblFallback) setIfExists(iblLoader, 'fallbackSource', params.iblFallback);
  if (params.tonemapEnabled !== undefined) {
