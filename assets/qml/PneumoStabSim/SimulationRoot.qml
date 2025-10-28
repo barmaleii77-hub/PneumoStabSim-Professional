@@ -809,8 +809,10 @@ Connections {
  handleDiagnosticsSettingChange(payload.changes[i])
  }
  }
- }
- }
+   }
+   }
+
+   }
 
  // ---------------------------------------------
  // Утилиты
