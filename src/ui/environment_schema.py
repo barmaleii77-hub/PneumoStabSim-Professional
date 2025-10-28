@@ -152,18 +152,14 @@ ENVIRONMENT_PARAMETERS: Tuple[EnvironmentParameterDefinition, ...] = (
     EnvironmentParameterDefinition(
         "fog_density", "float", min_value=0.0, max_value=1.0
     ),
-    EnvironmentParameterDefinition(
-        "fog_near", "float", min_value=0.0, max_value=1_000_000.0
-    ),
-    EnvironmentParameterDefinition(
-        "fog_far", "float", min_value=0.0, max_value=1_000_000.0
-    ),
+    EnvironmentParameterDefinition("fog_near", "float", min_value=0.0, max_value=20.0),
+    EnvironmentParameterDefinition("fog_far", "float", min_value=0.0, max_value=20.0),
     EnvironmentParameterDefinition("fog_height_enabled", "bool"),
     EnvironmentParameterDefinition(
-        "fog_least_intense_y", "float", min_value=-100_000.0, max_value=100_000.0
+        "fog_least_intense_y", "float", min_value=-100.0, max_value=100.0
     ),
     EnvironmentParameterDefinition(
-        "fog_most_intense_y", "float", min_value=-100_000.0, max_value=100_000.0
+        "fog_most_intense_y", "float", min_value=-100.0, max_value=100.0
     ),
     EnvironmentParameterDefinition(
         "fog_height_curve", "float", min_value=0.0, max_value=4.0

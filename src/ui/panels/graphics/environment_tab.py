@@ -392,7 +392,7 @@ class EnvironmentTab(QWidget):
         row += 1
 
         near_slider = LabeledSlider(
-            "Начало (Near)", 0.0, 200.0, 50.0, decimals=0, unit="мм"
+            "Начало (Near)", 0.0, 20.0, 0.01, decimals=2, unit="м"
         )
         near_slider.valueChanged.connect(
             lambda v: self._on_control_changed("fog_near", v)
@@ -401,9 +401,7 @@ class EnvironmentTab(QWidget):
         grid.addWidget(near_slider, row, 0, 1, 2)
         row += 1
 
-        far_slider = LabeledSlider(
-            "Конец (Far)", 400.0, 5000.0, 100.0, decimals=0, unit="мм"
-        )
+        far_slider = LabeledSlider("Конец (Far)", 0.0, 20.0, 0.01, decimals=2, unit="м")
         far_slider.valueChanged.connect(
             lambda v: self._on_control_changed("fog_far", v)
         )
@@ -424,11 +422,11 @@ class EnvironmentTab(QWidget):
 
         least_y = LabeledSlider(
             "Наименее интенсивная высота Y",
-            -100000.0,
-            100000.0,
-            50.0,
-            decimals=0,
-            unit="мм",
+            -100.0,
+            100.0,
+            0.1,
+            decimals=2,
+            unit="м",
         )
         least_y.valueChanged.connect(
             lambda v: self._on_control_changed("fog_least_intense_y", v)
@@ -439,11 +437,11 @@ class EnvironmentTab(QWidget):
 
         most_y = LabeledSlider(
             "Наиболее интенсивная высота Y",
-            -100000.0,
-            100000.0,
-            50.0,
-            decimals=0,
-            unit="мм",
+            -100.0,
+            100.0,
+            0.1,
+            decimals=2,
+            unit="м",
         )
         most_y.valueChanged.connect(
             lambda v: self._on_control_changed("fog_most_intense_y", v)
