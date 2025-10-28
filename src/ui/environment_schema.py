@@ -172,7 +172,9 @@ ENVIRONMENT_PARAMETERS: Tuple[EnvironmentParameterDefinition, ...] = (
     EnvironmentParameterDefinition(
         "ao_strength", "float", min_value=0.0, max_value=100.0
     ),
-    EnvironmentParameterDefinition("ao_radius", "float", min_value=0.0, max_value=50.0),
+    EnvironmentParameterDefinition(
+        "ao_radius", "float", min_value=0.001, max_value=0.05
+    ),
     EnvironmentParameterDefinition(
         "ao_softness", "float", min_value=0.0, max_value=50.0
     ),

@@ -317,8 +317,82 @@ class EnvironmentSetup:
             self.logger.log(f"❌ Ошибка создания виртуального окружения: {e}")
             return False
 
+    def _ensure_qt_runtime_dependencies(self) -> bool:
+        """Проверяет и устанавливает системные пакеты PySide6 на Linux."""
+
+        if self.platform != "Linux":
+            return True
+
+        required_packages = ["libegl1", "libgl1", "libxkbcommon0"]
+        missing: list[str] = []
+
+        for package in required_packages:
+            try:
+                result = subprocess.run(
+                    ["dpkg-query", "-W", "-f=${Status}", package],
+                    capture_output=True,
+                    text=True,
+                    check=False,
+                )
+            except FileNotFoundError:
+                self.logger.log(
+                    "⚠️ dpkg-query не найден. Установите зависимости вручную: "
+                    + ", ".join(required_packages)
+                )
+                return False
+
+            status = result.stdout.strip()
+            if "install ok installed" not in status:
+                missing.append(package)
+
+        if not missing:
+            self.logger.log(
+                "✅ Системные библиотеки Qt уже установлены: "
+                + ", ".join(required_packages)
+            )
+            return True
+
+        apt_get = shutil.which("apt-get")
+        if not apt_get:
+            self.logger.log(
+                "❌ apt-get не найден. Установите пакеты вручную: "
+                + ", ".join(missing)
+            )
+            return False
+
+        install_cmd = [apt_get, "install", "-y", *sorted(set(missing))]
+        update_cmd = [apt_get, "update"]
+
+        if os.geteuid() != 0:
+            sudo = shutil.which("sudo")
+            if not sudo:
+                self.logger.log(
+                    "❌ Недостаточно прав для установки системных пакетов. "
+                    "Запустите скрипт с sudo или установите вручную: "
+                    + ", ".join(missing)
+                )
+                return False
+            update_cmd.insert(0, sudo)
+            install_cmd.insert(0, sudo)
+
+        try:
+            self.logger.log(
+                "🔧 Установка системных библиотек Qt: " + ", ".join(missing)
+            )
+            subprocess.run(update_cmd, check=True)
+            subprocess.run(install_cmd, check=True)
+        except subprocess.CalledProcessError as exc:
+            self.logger.log(f"❌ Не удалось установить системные пакеты: {exc}")
+            return False
+
+        self.logger.log("✅ Qt зависимости для PySide6 установлены")
+        return True
+
     def install_dependencies(self):
         """Устанавливает зависимости проекта"""
+        if not self._ensure_qt_runtime_dependencies():
+            return False
+
         uv_executable = shutil.which("uv")
         if uv_executable:
             self.logger.log("📦 Установка зависимостей через uv sync…")

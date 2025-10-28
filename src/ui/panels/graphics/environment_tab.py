@@ -505,7 +505,8 @@ class EnvironmentTab(QWidget):
         grid.addWidget(strength, row, 0, 1, 2)
         row += 1
 
-        radius = LabeledSlider("Радиус", 0.5, 50.0, 0.1, decimals=1, unit="мм")
+        radius = LabeledSlider("Радиус", 0.001, 0.05, 0.001, decimals=3, unit="м")
+        radius.set_value(0.008)
         radius.valueChanged.connect(lambda v: self._on_control_changed("ao_radius", v))
         self._controls["ao.radius"] = radius
         grid.addWidget(radius, row, 0, 1, 2)
