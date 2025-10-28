@@ -627,11 +627,32 @@ Binding {
  value: iblLoader.probe
  }
 
- Binding {
- target: sceneEnvCtl
- property: "cameraIsMoving"
- value: cameraController ? cameraController.isMoving : false
- }
+Binding {
+    target: sceneEnvCtl
+    property: "cameraIsMoving"
+    value: cameraController ? cameraController.isMoving : false
+}
+
+Binding {
+    target: sceneEnvCtl
+    property: "autoFocusDistanceHint"
+    value: {
+        if (!cameraController)
+            return 2.2
+        var distanceMm = Number(cameraController.distance)
+        if (!isFinite(distanceMm) || distanceMm <= 0)
+            distanceMm = 2200
+        var unitsPerMeter = Number(cameraController.metersToControllerUnits)
+        if (!isFinite(unitsPerMeter) || unitsPerMeter <= 0)
+            unitsPerMeter = 1000
+        var scale = Number(root.effectiveSceneScaleFactor)
+        if (!isFinite(scale) || scale <= 0)
+            scale = 1.0
+        var meters = distanceMm / unitsPerMeter
+        var focusMeters = Math.max(0.05, meters) * scale
+        return focusMeters
+    }
+}
 
  // ---------------------------------------------
  // Python bridge helpers

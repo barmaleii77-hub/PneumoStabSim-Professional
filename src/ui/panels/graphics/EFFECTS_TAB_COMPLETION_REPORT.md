@@ -65,8 +65,9 @@ Effects Tab (31 параметр)
 │       ├── tonemap_exposure
 │       └── tonemap_white_point
 │
-├── 3. Depth of Field (3 параметра) - без изменений
+├── 3. Depth of Field (4 параметра)
 │   ├── depth_of_field
+│   ├── dof_auto_focus ✨ НОВОЕ
 │   ├── dof_focus_distance
 │   └── dof_blur
 │

@@ -525,45 +525,78 @@ ExtendedSceneEnvironment {
         }
     }
 
- if (params.ssaoEnabled !== undefined)
- ssaoEnabled = !!params.ssaoEnabled
- if (params.ssaoRadius !== undefined)
- ssaoRadius = Number(params.ssaoRadius)
- if (params.ssaoIntensity !== undefined)
- ssaoIntensity = Number(params.ssaoIntensity)
+    var aoEnabledValue = boolFromKeys(params, "ssaoEnabled", "ao_enabled")
+    if (aoEnabledValue !== undefined)
+        ssaoEnabled = aoEnabledValue
 
- if (params.ssao) {
- var ssao = params.ssao
- if (ssao.enabled !== undefined)
- ssaoEnabled = !!ssao.enabled
- if (ssao.radius !== undefined)
- ssaoRadius = Number(ssao.radius)
- if (ssao.intensity !== undefined)
- ssaoIntensity = Number(ssao.intensity)
- }
+    var aoRadiusValue = numberFromKeys(params, "ssaoRadius", "ao_radius")
+    if (aoRadiusValue !== undefined && isFinite(aoRadiusValue))
+        ssaoRadius = Math.max(0.0001, toSceneLength(aoRadiusValue))
 
- if (params.depthOfFieldEnabled !== undefined)
- internalDepthOfFieldEnabled = !!params.depthOfFieldEnabled
- if (params.dofFocusDistance !== undefined) {
- var dofDistance = Number(params.dofFocusDistance)
+    var aoIntensityValue = numberFromKeys(params, "ssaoIntensity", "ao_strength")
+    if (aoIntensityValue !== undefined)
+        ssaoIntensity = aoIntensityValue
+
+    var aoSoftnessValue = numberFromKeys(params, "ssaoSoftness", "ao_softness")
+    if (aoSoftnessValue !== undefined)
+        ssaoSoftness = aoSoftnessValue
+
+    var aoDitherValue = boolFromKeys(params, "ssaoDither", "ao_dither")
+    if (aoDitherValue !== undefined)
+        ssaoDither = aoDitherValue
+
+    var aoSampleRateValue = numberFromKeys(params, "ssaoSampleRate", "ao_sample_rate")
+    if (aoSampleRateValue !== undefined) {
+        var roundedRate = Math.max(1, Math.round(aoSampleRateValue))
+        ssaoSampleRate = roundedRate
+    }
+
+    if (params.ssao) {
+        var ssao = params.ssao
+        if (ssao.enabled !== undefined)
+            ssaoEnabled = !!ssao.enabled
+        if (ssao.radius !== undefined) {
+            var nestedRadius = Number(ssao.radius)
+            if (isFinite(nestedRadius))
+                ssaoRadius = Math.max(0.0001, toSceneLength(nestedRadius))
+        }
+        if (ssao.intensity !== undefined)
+            ssaoIntensity = Number(ssao.intensity)
+        if (ssao.softness !== undefined)
+            ssaoSoftness = Number(ssao.softness)
+        if (ssao.dither !== undefined)
+            ssaoDither = !!ssao.dither
+        if (ssao.sample_rate !== undefined) {
+            var nestedRate = Number(ssao.sample_rate)
+            if (isFinite(nestedRate))
+                ssaoSampleRate = Math.max(1, Math.round(nestedRate))
+        }
+    }
+
+    if (params.depthOfFieldEnabled !== undefined)
+        internalDepthOfFieldEnabled = !!params.depthOfFieldEnabled
+    if (params.dofFocusDistance !== undefined) {
+        var dofDistance = Number(params.dofFocusDistance)
  if (isFinite(dofDistance))
  dofFocusDistance = toSceneLength(dofDistance)
  }
  if (params.dofBlurAmount !== undefined)
  dofBlurAmount = Number(params.dofBlurAmount)
 
- if (params.depthOfField) {
- var dof = params.depthOfField
- if (dof.enabled !== undefined)
- internalDepthOfFieldEnabled = !!dof.enabled
- if (dof.focus_distance !== undefined) {
- var dofNestedDistance = Number(dof.focus_distance)
- if (isFinite(dofNestedDistance))
- dofFocusDistance = toSceneLength(dofNestedDistance)
- }
- if (dof.blur_amount !== undefined)
- dofBlurAmount = Number(dof.blur_amount)
- }
+    if (params.depthOfField) {
+        var dof = params.depthOfField
+        if (dof.enabled !== undefined)
+            internalDepthOfFieldEnabled = !!dof.enabled
+        if (dof.focus_distance !== undefined) {
+            var dofNestedDistance = Number(dof.focus_distance)
+            if (isFinite(dofNestedDistance))
+                dofFocusDistance = toSceneLength(dofNestedDistance)
+        }
+        if (dof.blur_amount !== undefined)
+            dofBlurAmount = Number(dof.blur_amount)
+        if (dof.auto_focus !== undefined)
+            depthOfFieldAutoFocus = !!dof.auto_focus
+    }
 
  if (params.vignetteEnabled !== undefined)
  internalVignetteEnabled = !!params.vignetteEnabled
@@ -668,6 +701,10 @@ return
     var dofBlurValue = numberFromKeys(params, "dofBlurAmount", "dof_blur")
     if (dofBlurValue !== undefined)
         dofBlurAmount = dofBlurValue
+
+    var dofAutoFocusValue = boolFromKeys(params, "dofAutoFocus", "dof_auto_focus")
+    if (dofAutoFocusValue !== undefined)
+        depthOfFieldAutoFocus = dofAutoFocusValue
 
     var vignetteEnabledValue = boolFromKeys(params, "vignetteEnabled", "vignette")
     if (vignetteEnabledValue !== undefined)
@@ -891,13 +928,16 @@ return
  property bool ssaoEnabled: false
  property real ssaoRadius:8.0
  property real ssaoIntensity:1.0
+ property real ssaoSoftness:20.0
+ property bool ssaoDither: true
+ property int ssaoSampleRate:3
 
  aoEnabled: ssaoEnabled
  aoDistance: ssaoRadius
  aoStrength: ssaoIntensity *100
- aoSoftness:20
- aoDither: true
- aoSampleRate:3
+ aoSoftness: ssaoSoftness
+ aoDither: ssaoDither
+ aoSampleRate: ssaoSampleRate
 
  // ===============================================================
  // DEPTH OF FIELD
@@ -906,6 +946,19 @@ return
  property bool internalDepthOfFieldEnabled: false
  property real dofFocusDistance:2200.0
  property real dofBlurAmount:4.0
+ property bool depthOfFieldAutoFocus: true
+ property real autoFocusDistanceHint: dofFocusDistance
+
+ onDepthOfFieldAutoFocusChanged: _applyAutoFocusDistance()
+ onAutoFocusDistanceHintChanged: _applyAutoFocusDistance()
+
+ function _applyAutoFocusDistance() {
+     if (!depthOfFieldAutoFocus)
+         return
+     var numeric = Number(autoFocusDistanceHint)
+     if (isFinite(numeric))
+         dofFocusDistance = numeric
+ }
 
  // ✅ ИСПРАВЛЕНО: используем внутреннее свойство для избежания конфликта
  depthOfFieldEnabled: internalDepthOfFieldEnabled
