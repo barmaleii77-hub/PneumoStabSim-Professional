@@ -13,6 +13,7 @@ import math
 from typing import TYPE_CHECKING, Any, Dict, Mapping, Optional
 
 from PySide6.QtCore import Qt
+from PySide6.QtGui import QColor
 
 from ...pneumo.enums import Line, Wheel
 from .qml_bridge import QMLBridge
@@ -57,6 +58,33 @@ class SignalsRouter:
                 continue
             cleaned[key] = value
         return cleaned
+
+    @staticmethod
+    def _apply_view_background(window: "MainWindow", params: Mapping[str, Any]) -> None:
+        widget = getattr(window, "_qquick_widget", None)
+        if widget is None:
+            return
+
+        mode_value = params.get("background_mode")
+        normalized_mode = (
+            str(mode_value).strip().lower() if mode_value is not None else ""
+        )
+        if not normalized_mode:
+            normalized_mode = (
+                "transparent"
+                if widget.testAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
+                else ""
+            )
+
+        color_value = params.get("background_color")
+        color = QColor(str(color_value)) if color_value is not None else QColor()
+        if not color.isValid():
+            color = QColor("#000000")
+
+        is_transparent = normalized_mode == "transparent"
+        widget.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, is_transparent)
+        widget.setAutoFillBackground(not is_transparent)
+        widget.setClearColor(QColor(0, 0, 0, 0) if is_transparent else color)
 
     @staticmethod
     def _normalize_camera_payload(payload: Mapping[str, Any]) -> Dict[str, Any]:
@@ -367,6 +395,8 @@ class SignalsRouter:
         """Handle environment changes from GraphicsPanel"""
         if not isinstance(params, dict):
             return
+
+        SignalsRouter._apply_view_background(window, params)
 
         from .qml_bridge import QMLBridge
 

@@ -57,7 +57,12 @@ Item {
     property real pointLightY: 2000
 
     // --- Environment/quality properties ---
-    property string backgroundColor: "#2a2a2a"
+    property color backgroundColor: "#2a2a2a"
+    property string backgroundModeKey: "skybox"
+    property bool transparentBackground: (String(backgroundModeKey || "skybox").trim().toLowerCase() === "transparent")
+    readonly property color effectiveBackgroundColor: transparentBackground
+        ? Qt.rgba(backgroundColor.r, backgroundColor.g, backgroundColor.b, 0)
+        : backgroundColor
     property bool skyboxEnabled: true
     property bool iblEnabled: true
     property real iblIntensity: 1.3     // === CHANGED: Better exposure
@@ -152,6 +157,15 @@ property real tankPressure: 0.0
         if (!payload || typeof payload !== "object")
             return {}
         return payload
+    }
+
+    function _normalizeBackgroundMode(value) {
+        if (value === undefined || value === null)
+            return backgroundModeKey
+        var mode = String(value).trim().toLowerCase()
+        if (mode === "skybox" || mode === "color" || mode === "transparent")
+            return mode
+        return backgroundModeKey
     }
 
     function _logUnsupported(category, payload) {
@@ -324,8 +338,24 @@ property real tankPressure: 0.0
     function updateEnvironment(params) {
         console.log("QML: updateEnvironment called with", JSON.stringify(params))
 
+        var backgroundModeParam = params.background_mode
+        if (params.backgroundMode !== undefined)
+            backgroundModeParam = params.backgroundMode
+
+        if (backgroundModeParam !== undefined) {
+            var mode = _normalizeBackgroundMode(backgroundModeParam)
+            backgroundModeKey = mode
+            if (mode !== "skybox")
+                skyboxEnabled = false
+        }
+
         if (params.background_color !== undefined) backgroundColor = params.background_color
-        if (params.skybox_enabled !== undefined) skyboxEnabled = params.skybox_enabled
+        if (params.backgroundColor !== undefined) backgroundColor = params.backgroundColor
+        var normalizedMode = String(backgroundModeKey || "skybox").trim().toLowerCase()
+        if (params.skybox_enabled !== undefined)
+            skyboxEnabled = normalizedMode === "skybox" ? params.skybox_enabled : false
+        if (params.skyboxEnabled !== undefined)
+            skyboxEnabled = normalizedMode === "skybox" ? params.skyboxEnabled : false
         if (params.ibl_enabled !== undefined) iblEnabled = params.ibl_enabled
         if (params.ibl_intensity !== undefined) iblIntensity = params.ibl_intensity
         if (params.tonemap_enabled !== undefined) tonemapActive = !!params.tonemap_enabled
@@ -379,8 +409,15 @@ property real tankPressure: 0.0
         // === FIXED: Proper ExtendedSceneEnvironment implementation for Qt 6.9.3 ===
         environment: ExtendedSceneEnvironment {
             // Background and IBL
-            backgroundMode: root.skyboxEnabled ? SceneEnvironment.SkyBox : SceneEnvironment.Color
-            clearColor: root.backgroundColor
+            backgroundMode: {
+                var normalized = String(root.backgroundModeKey || "skybox").trim().toLowerCase()
+                if (normalized === "transparent" && SceneEnvironment.Transparent !== undefined)
+                    return SceneEnvironment.Transparent
+                if (normalized === "skybox" && root.skyboxEnabled)
+                    return SceneEnvironment.SkyBox
+                return SceneEnvironment.Color
+            }
+            clearColor: root.effectiveBackgroundColor
             lightProbe: root.iblEnabled ? hdrProbe : null
             probeExposure: root.iblIntensity
             probeHorizon: 0.08
