@@ -112,17 +112,6 @@ class PneumoStateManager:
                 converted[key] = float(converted[key]) / MM_PER_M
         return converted
 
-    @staticmethod
-    def _pressure_limit_bounds(
-        limits: Dict[str, float], units: str
-    ) -> tuple[float, float]:
-        base_units = DEFAULT_PNEUMATIC["pressure_units"]
-        minimum = convert_pressure_value(limits["min"], base_units, units)
-        maximum = convert_pressure_value(limits["max"], base_units, units)
-        if minimum > maximum:
-            minimum, maximum = maximum, minimum
-        return minimum, maximum
-
     def export_storage_payload(self) -> Dict[str, Any]:
         """Return a snapshot ready to persist in settings storage."""
 
@@ -292,10 +281,23 @@ class PneumoStateManager:
     def get_pressure_drop(self, name: str) -> float:
         return float(self._state.get(name, DEFAULT_PNEUMATIC.get(name, 0.0)))
 
+    def _clamp_pressure_value(
+        self, value: float, limits: Dict[str, float], units: str
+    ) -> float:
+        """Clamp *value* against *limits* respecting the active pressure units."""
+
+        base_units = DEFAULT_PNEUMATIC["pressure_units"]
+        try:
+            value_base = convert_pressure_value(value, units, base_units)
+        except Exception:
+            value_base = float(value)
+
+        clamped_base = clamp(value_base, limits["min"], limits["max"])
+        return convert_pressure_value(clamped_base, base_units, units)
+
     def set_pressure_drop(self, name: str, value_bar: float) -> None:
         units = self.get_pressure_units()
-        minimum, maximum = self._pressure_limit_bounds(PRESSURE_DROP_LIMITS, units)
-        value = clamp(value_bar, minimum, maximum)
+        value = self._clamp_pressure_value(value_bar, PRESSURE_DROP_LIMITS, units)
         self._state[name] = value
 
     def get_relief_pressure(self, name: str) -> float:
@@ -303,8 +305,7 @@ class PneumoStateManager:
 
     def set_relief_pressure(self, name: str, value_bar: float) -> None:
         units = self.get_pressure_units()
-        minimum, maximum = self._pressure_limit_bounds(RELIEF_PRESSURE_LIMITS, units)
-        value = clamp(value_bar, minimum, maximum)
+        value = self._clamp_pressure_value(value_bar, RELIEF_PRESSURE_LIMITS, units)
         self._state[name] = value
 
     # Diameters ---------------------------------------------------------

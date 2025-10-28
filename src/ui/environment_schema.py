@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import builtins
 from dataclasses import dataclass
+import re
 from typing import Any, Dict, Sequence, Tuple
 
 
@@ -252,6 +253,47 @@ ENVIRONMENT_CONTEXT_PROPERTIES: Dict[str, str] = {
 }
 
 
+_CAMEL_BOUNDARY = re.compile(r"(?<!^)(?=[A-Z])")
+_ENVIRONMENT_KEY_ALIASES: Dict[str, str] = {
+    "ibl_background_enabled": "skybox_enabled",
+    "iblbackgroundenabled": "skybox_enabled",
+}
+
+
+def _camel_to_snake(name: str) -> str:
+    if not isinstance(name, str):
+        return name
+    token = name.strip()
+    if not token:
+        return token
+    token = token.replace("-", "_")
+    converted = _CAMEL_BOUNDARY.sub("_", token)
+    return converted.lower()
+
+
+def _normalise_environment_key(key: str) -> str:
+    if not isinstance(key, str):
+        return key
+    trimmed = key.strip()
+    if not trimmed:
+        return trimmed
+
+    direct_alias = _ENVIRONMENT_KEY_ALIASES.get(trimmed)
+    if direct_alias:
+        return direct_alias
+
+    snake = _camel_to_snake(trimmed)
+    alias = _ENVIRONMENT_KEY_ALIASES.get(snake)
+    if alias:
+        return alias
+
+    if trimmed in ENVIRONMENT_REQUIRED_KEYS:
+        return trimmed
+    if snake in ENVIRONMENT_REQUIRED_KEYS:
+        return snake
+    return snake
+
+
 def _validate_section(
     payload: Dict[str, Any],
     definitions: Sequence[EnvironmentParameterDefinition],
@@ -303,7 +345,17 @@ def _prepare_environment_payload(settings: Dict[str, Any]) -> Dict[str, Any]:
     if not isinstance(settings, dict):
         raise EnvironmentValidationError("environment settings must be a dict")
 
-    payload = dict(settings)
+    normalised: Dict[str, Any] = {}
+    for raw_key, value in dict(settings).items():
+        key = _normalise_environment_key(raw_key)
+        if key in normalised and key != raw_key:
+            continue
+        normalised[key] = value
+
+    payload = normalised
+
+    if "skybox_enabled" not in payload and "ibl_enabled" in payload:
+        payload["skybox_enabled"] = payload["ibl_enabled"]
 
     if "skybox_brightness" not in payload:
         if "probe_brightness" in payload:

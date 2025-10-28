@@ -533,6 +533,7 @@ class GeometryPanel(QWidget):
             "stroke_m",
             "dead_gap_m",
             "rod_diameter_m",
+            "rod_diameter_rear_m",
             "piston_rod_length_m",
             "piston_thickness_m",
         ]:

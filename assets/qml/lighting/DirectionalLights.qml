@@ -95,11 +95,11 @@ Node {
 
         castsShadow: (root.shadowsEnabled && root.keyLightCastsShadow)
 
-        // ✅ Shadow quality mapping
-        shadowMapQuality: root.shadowResolution >= 4096 ? Light.ShadowMapQualityVeryHigh :
-                          root.shadowResolution >= 2048 ? Light.ShadowMapQualityHigh :
-                          root.shadowResolution >= 1024 ? Light.ShadowMapQualityMedium :
-                                                           Light.ShadowMapQualityLow
+        // ✅ Shadow quality mapping (preserve legacy preset semantics)
+        shadowMapQuality: root.shadowResolution >= 2048 ? Light.ShadowMapQualityVeryHigh :
+                          root.shadowResolution >= 1024 ? Light.ShadowMapQualityHigh :
+                          root.shadowResolution >= 512 ? Light.ShadowMapQualityMedium :
+                                                          Light.ShadowMapQualityLow
 
         shadowFactor: root.shadowFactor
         shadowBias: root.shadowBias

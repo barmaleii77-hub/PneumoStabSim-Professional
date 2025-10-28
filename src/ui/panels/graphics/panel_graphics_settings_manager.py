@@ -26,8 +26,9 @@ from __future__ import annotations
 
 import json
 import logging
+import math
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 
 from src.common.settings_manager import SettingsManager, get_settings_manager
 
@@ -201,6 +202,37 @@ class GraphicsSettingsService:
 
         return normalised
 
+    @staticmethod
+    def _coerce_quality_int(value: Any) -> Optional[int]:
+        if isinstance(value, bool):
+            return int(value)
+        if isinstance(value, int):
+            return value
+        if isinstance(value, float):
+            if math.isfinite(value):
+                return int(round(value))
+            return None
+        if isinstance(value, str):
+            token = value.strip()
+            if not token:
+                return None
+            try:
+                numeric = float(token)
+            except ValueError:
+                return None
+            if not math.isfinite(numeric):
+                return None
+            return int(round(numeric))
+        return None
+
+    def _normalise_quality_payload(self, payload: Dict[str, Any]) -> Dict[str, Any]:
+        shadows = payload.get("shadows")
+        if isinstance(shadows, dict):
+            resolution = self._coerce_quality_int(shadows.get("resolution"))
+            if resolution is not None:
+                shadows["resolution"] = resolution
+        return payload
+
     def _coerce_state(
         self,
         raw_state: Dict[str, Any] | None,
@@ -268,6 +300,8 @@ class GraphicsSettingsService:
                     allow_missing=allow_missing,
                     provided_keys=provided_keys if not allow_missing else None,
                 )
+            elif category == "quality":
+                merged = self._normalise_quality_payload(merged)
 
             state[category] = merged
 

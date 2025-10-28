@@ -46,6 +46,7 @@ class GeometryStateManager:
         self._settings_path = settings_path
         self._allowed_keys = frozenset(DEFAULT_GEOMETRY.keys())
         self._legacy_metadata_path = "metadata.legacy"
+        self._pending_cleanup: bool = False
 
         # Current state (mutable)
         self.state: Dict[str, Any] = DEFAULT_GEOMETRY.copy()
@@ -193,6 +194,7 @@ class GeometryStateManager:
     def reset_to_defaults(self) -> None:
         """Reset all parameters to default values"""
         self.state = DEFAULT_GEOMETRY.copy()
+        self._pending_cleanup = False
         self.logger.info("State reset to defaults")
 
     # =========================================================================
@@ -465,6 +467,7 @@ class GeometryStateManager:
             }
             self.settings_manager.set(self._settings_path, persistable, auto_save=True)
             self.logger.info("State saved to settings manager")
+            self._pending_cleanup = False
         except Exception as exc:
             self.logger.error("Failed to save geometry state: %s", exc)
 
@@ -474,10 +477,10 @@ class GeometryStateManager:
             self.logger.warning("No SettingsManager instance - cannot load")
             return
 
-        needs_save = False
+        needs_cleanup = False
 
         def _load_section(path: str) -> Dict[str, Any]:
-            nonlocal needs_save
+            nonlocal needs_cleanup
             try:
                 payload = self.settings_manager.get(path, default={})
             except Exception as exc:  # pragma: no cover - defensive
@@ -489,10 +492,10 @@ class GeometryStateManager:
                 if legacy:
                     self._record_legacy_parameters(path, legacy)
                     self._apply_sanitised_payload(path, known)
-                    needs_save = True
+                    needs_cleanup = True
                 elif len(known) != len(payload):
                     self._apply_sanitised_payload(path, known)
-                    needs_save = True
+                    needs_cleanup = True
                 return known
 
             if payload not in (None, {}):
@@ -502,7 +505,7 @@ class GeometryStateManager:
                     type(payload).__name__,
                 )
                 self._apply_sanitised_payload(path, {})
-                needs_save = True
+                needs_cleanup = True
             return {}
 
         restored = DEFAULT_GEOMETRY.copy()
@@ -523,12 +526,16 @@ class GeometryStateManager:
 
         self.state = restored
         self.logger.info("State loaded from settings manager")
+        self._pending_cleanup = needs_cleanup
+        if needs_cleanup:
+            self.logger.info(
+                "Geometry settings contain legacy keys; deferring cleanup save until explicit action"
+            )
 
-        if needs_save and self.settings_manager:
-            try:
-                self.settings_manager.save()
-            except Exception as exc:  # pragma: no cover - defensive
-                self.logger.error("Failed to save geometry settings cleanup: %s", exc)
+    def has_pending_cleanup(self) -> bool:
+        """Return ``True`` when load_state normalised legacy keys that should be saved."""
+
+        return self._pending_cleanup
 
     # =========================================================================
     # HELPER METHODS
