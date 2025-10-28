@@ -505,7 +505,14 @@ View3D {
  worldRoot: worldRoot
  cameraRig: cameraController.rig
  shadowsEnabled: !!lightingGlobal("shadows_enabled", lightingGlobal("shadowsEnabled", true))
- shadowResolution: String(lightingGlobal("shadow_resolution", lightingGlobal("shadowResolution", "2048")))
+    shadowResolution: {
+        var raw = lightingGlobal(
+                    "shadow_resolution",
+                    lightingGlobal("shadowResolution", 2048)
+                )
+        var numeric = Number(raw)
+        return isFinite(numeric) ? Math.round(numeric) : 2048
+    }
  shadowFilterSamples: Number(lightingGlobal("shadow_filter_samples", lightingGlobal("shadowFilterSamples",16)))
  shadowBias: Number(lightingGlobal("shadow_bias", lightingGlobal("shadowBias",4.0)))
  shadowFactor: Number(lightingGlobal("shadow_factor", lightingGlobal("shadowFactor",75.0)))
@@ -1047,7 +1054,8 @@ return Math.max(minValue, Math.min(maxValue, value));
  constant_fade: true,
  linear_fade: true,
  quadratic_fade: true,
- shadow_factor: true,
+    shadow_factor: true,
+    shadow_resolution: true,
  shadow_bias: true,
  shadow_filter_samples: true
  };
@@ -1630,10 +1638,114 @@ return Math.max(minValue, Math.min(maxValue, value));
  }
 
  function applyQualityUpdates(params) {
- if (!params) return;
- if (params.aaPrimaryMode) setIfExists(sceneEnvCtl, 'aaPrimaryMode', String(params.aaPrimaryMode));
- if (params.aaQualityLevel) setIfExists(sceneEnvCtl, 'aaQualityLevel', String(params.aaQualityLevel));
- if (params.ditheringEnabled !== undefined) setIfExists(sceneEnvCtl, 'ditheringEnabled', !!params.ditheringEnabled);
+ if (!params)
+  return;
+
+ function assignString(targetKey, value) {
+  if (value === undefined || value === null)
+   return;
+  qualityPatch[targetKey] = String(value);
+ }
+
+ function assignBool(targetKey, value) {
+  if (value === undefined || value === null)
+   return;
+  qualityPatch[targetKey] = !!value;
+ }
+
+ function assignNumber(targetKey, value) {
+  if (value === undefined || value === null)
+   return;
+  var numeric = Number(value);
+  if (isFinite(numeric))
+   qualityPatch[targetKey] = numeric;
+ }
+
+ var shadowSource = null;
+ if (params.shadowSettings && typeof params.shadowSettings === "object")
+  shadowSource = params.shadowSettings;
+ else if (params.shadows && typeof params.shadows === "object")
+  shadowSource = params.shadows;
+
+ if (shadowSource) {
+  var lightingPatch = {};
+  if (shadowSource.enabled !== undefined)
+   lightingPatch.shadows_enabled = !!shadowSource.enabled;
+  var resolutionValue = shadowSource.resolution;
+  if (resolutionValue === undefined && shadowSource.shadowResolution !== undefined)
+   resolutionValue = shadowSource.shadowResolution;
+  var resolutionNumeric = Number(resolutionValue);
+  if (resolutionValue !== undefined && isFinite(resolutionNumeric))
+   lightingPatch.shadow_resolution = Math.round(resolutionNumeric);
+  var filterValue = shadowSource.filterSamples;
+  if (filterValue === undefined && shadowSource.filter !== undefined)
+   filterValue = shadowSource.filter;
+  var filterNumeric = Number(filterValue);
+  if (filterValue !== undefined && isFinite(filterNumeric))
+   lightingPatch.shadow_filter_samples = Math.round(filterNumeric);
+  var biasValue = shadowSource.bias;
+  if (biasValue === undefined && shadowSource.shadowBias !== undefined)
+   biasValue = shadowSource.shadowBias;
+  var biasNumeric = Number(biasValue);
+  if (biasValue !== undefined && isFinite(biasNumeric))
+   lightingPatch.shadow_bias = biasNumeric;
+  var factorValue = shadowSource.factor;
+  if (factorValue === undefined && shadowSource.darkness !== undefined)
+   factorValue = shadowSource.darkness;
+  if (factorValue === undefined && shadowSource.shadowFactor !== undefined)
+   factorValue = shadowSource.shadowFactor;
+  var factorNumeric = Number(factorValue);
+  if (factorValue !== undefined && isFinite(factorNumeric))
+   lightingPatch.shadow_factor = factorNumeric;
+  if (Object.keys(lightingPatch).length)
+   applyLightingUpdates({ global: lightingPatch });
+ }
+
+ var qualityPatch = {};
+ var aaSource = (params.antialiasing && typeof params.antialiasing === "object") ? params.antialiasing : null;
+
+ assignString("aaPrimaryMode", params.aaPrimaryMode !== undefined ? params.aaPrimaryMode : aaSource && aaSource.primary);
+ assignString("aaQualityLevel", params.aaQualityLevel !== undefined ? params.aaQualityLevel : aaSource && aaSource.quality);
+ assignString("aaPostMode", params.aaPostMode !== undefined ? params.aaPostMode : aaSource && aaSource.post);
+
+ var taaEnabledValue = params.taaEnabled;
+ if (taaEnabledValue === undefined)
+  taaEnabledValue = params.taa_enabled;
+ assignBool("taaEnabled", taaEnabledValue);
+
+ var taaStrengthValue = params.taaStrength;
+ if (taaStrengthValue === undefined)
+  taaStrengthValue = params.taa_strength;
+ assignNumber("taaStrength", taaStrengthValue);
+
+ var taaMotionValue = params.taaMotionAdaptive;
+ if (taaMotionValue === undefined)
+  taaMotionValue = params.taa_motion_adaptive;
+ assignBool("taaMotionAdaptive", taaMotionValue);
+
+ var fxaaValue = params.fxaaEnabled;
+ if (fxaaValue === undefined)
+  fxaaValue = params.fxaa_enabled;
+ assignBool("fxaaEnabled", fxaaValue);
+
+ var specularValue = params.specularAAEnabled;
+ if (specularValue === undefined)
+  specularValue = params.specular_aa;
+ assignBool("specularAAEnabled", specularValue);
+
+ var ditheringValue = params.ditheringEnabled;
+ if (ditheringValue === undefined)
+  ditheringValue = params.dithering;
+ assignBool("ditheringEnabled", ditheringValue);
+
+ var oitValue = params.oitMode;
+ if (oitValue === undefined)
+  oitValue = params.oit;
+ if (oitValue !== undefined && oitValue !== null)
+  qualityPatch.oitMode = String(oitValue);
+
+ if (Object.keys(qualityPatch).length)
+  sceneEnvCtl.applyQualityPayload(qualityPatch);
  }
 
  function applyMaterialUpdates(params) {
