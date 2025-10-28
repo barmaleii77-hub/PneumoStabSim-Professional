@@ -15,8 +15,10 @@ ExtendedSceneEnvironment {
 
     property bool iblBackgroundEnabled: false
     property bool iblLightingEnabled: false
+    property bool iblMasterEnabled: true
     property color backgroundColor: "#1f242c"
     property string backgroundModeKey: "skybox"
+    property bool skyboxToggleFlag: true
     readonly property bool backgroundIsTransparent: backgroundModeForKey(backgroundModeKey) === SceneEnvironment.Transparent
     property color resolvedClearColor: {
         var base = backgroundColor
@@ -40,6 +42,23 @@ ExtendedSceneEnvironment {
  * Python SceneBridge instance injected via context property.
  */
  property var sceneBridge: null
+
+    function _syncSkyboxBackground() {
+        var targetMode = backgroundModeForKey(backgroundModeKey)
+        var wantsSkybox = targetMode === SceneEnvironment.SkyBox
+        if (!wantsSkybox) {
+            if (iblBackgroundEnabled)
+                iblBackgroundEnabled = false
+            return
+        }
+        var enableBackground = skyboxToggleFlag && iblMasterEnabled
+        if (iblBackgroundEnabled !== enableBackground)
+            iblBackgroundEnabled = enableBackground
+    }
+
+    onBackgroundModeKeyChanged: _syncSkyboxBackground()
+    onSkyboxToggleFlagChanged: _syncSkyboxBackground()
+    onIblMasterEnabledChanged: _syncSkyboxBackground()
 
     backgroundMode: {
         var targetMode = backgroundModeForKey(backgroundModeKey)
@@ -178,42 +197,11 @@ ExtendedSceneEnvironment {
         return SceneEnvironment.SkyBox
     }
 
- function _normalizeBackgroundMode(value) {
- if (value === undefined || value === null)
- return backgroundModeSetting;
- var text = String(value).trim().toLowerCase();
- if (text === "transparent")
- return "transparent";
- if (text === "color" || text === "colour")
- return "color";
- if (text === "skybox")
- return "skybox";
- return backgroundModeSetting;
- }
+    function _applySceneBridgeState() {
+        if (!sceneBridge)
+            return
 
- function setBackgroundMode(value) {
- var normalized = _normalizeBackgroundMode(value);
- if (backgroundModeSetting !== normalized)
- backgroundModeSetting = normalized;
- if (normalized !== "skybox")
- iblBackgroundEnabled = false;
- else
- iblBackgroundEnabled = skyboxToggleFlag;
- }
-
- function setSkyboxEnabled(value) {
- var enabled = !!value;
- if (skyboxToggleFlag !== enabled)
- skyboxToggleFlag = enabled;
- if (backgroundModeSetting === "skybox")
- iblBackgroundEnabled = enabled;
- }
-
- function _applySceneBridgeState() {
- if (!sceneBridge)
- return
-
- if (sceneBridge.environment && Object.keys(sceneBridge.environment).length)
+        if (sceneBridge.environment && Object.keys(sceneBridge.environment).length)
  _applyEnvironmentPayload(sceneBridge.environment)
 
  if (sceneBridge.quality && Object.keys(sceneBridge.quality).length)
@@ -257,17 +245,18 @@ ExtendedSceneEnvironment {
  }
  }
 
- Component.onCompleted: {
- root.canUseDithering = qtVersionAtLeast(6,10)
- if (canUseDithering) {
- root.ditheringEnabled = Qt.binding(function() { return ditheringEnabled })
- }
- _applySceneBridgeState()
- }
+    Component.onCompleted: {
+        root.canUseDithering = qtVersionAtLeast(6,10)
+        if (canUseDithering) {
+            root.ditheringEnabled = Qt.binding(function() { return ditheringEnabled })
+        }
+        _applySceneBridgeState()
+        _syncSkyboxBackground()
+    }
 
- function applyEnvironmentPayload(params) {
- if (!params)
- return
+    function applyEnvironmentPayload(params) {
+        if (!params)
+            return
 
     var bgColor = stringFromKeys(params, "backgroundColor", "background_color")
     if (bgColor !== undefined)
@@ -283,22 +272,23 @@ ExtendedSceneEnvironment {
         backgroundModeKey = modeValue
 
     var skyboxFlag = boolFromKeys(params, "skyboxEnabled", "skybox_enabled")
+    var backgroundFlag = boolFromKeys(params, "iblBackgroundEnabled", "ibl_background_enabled")
+    if (backgroundFlag !== undefined)
+        skyboxFlag = backgroundFlag
     if (skyboxFlag !== undefined)
-        iblBackgroundEnabled = skyboxFlag
+        skyboxToggleFlag = skyboxFlag
 
     var iblEnabledFlag = boolFromKeys(params, "iblEnabled", "ibl_enabled")
     if (iblEnabledFlag !== undefined) {
+        iblMasterEnabled = iblEnabledFlag
         iblLightingEnabled = iblEnabledFlag
-        iblBackgroundEnabled = iblEnabledFlag
     }
-
-    var backgroundFlag = boolFromKeys(params, "iblBackgroundEnabled", "ibl_background_enabled")
-    if (backgroundFlag !== undefined)
-        iblBackgroundEnabled = backgroundFlag
 
     var lightingFlag = boolFromKeys(params, "iblLightingEnabled", "ibl_lighting_enabled")
     if (lightingFlag !== undefined)
         iblLightingEnabled = lightingFlag
+
+    _syncSkyboxBackground()
 
     var intensityValue = numberFromKeys(params, "iblIntensity", "ibl_intensity")
     if (intensityValue !== undefined) {

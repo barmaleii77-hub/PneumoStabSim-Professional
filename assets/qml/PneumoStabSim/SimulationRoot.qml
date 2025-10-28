@@ -1602,20 +1602,20 @@ return Math.max(minValue, Math.min(maxValue, value));
  if (params.clearColor) setIfExists(sceneEnvCtl, 'backgroundColor', params.clearColor);
  if (params.background && params.background.color) setIfExists(sceneEnvCtl, 'backgroundColor', params.background.color);
 
- var backgroundModeVal = valueForKeys(params, ['backgroundMode', 'background_mode']);
- if (backgroundModeVal !== undefined) setIfExists(sceneEnvCtl, 'backgroundModeKey', String(backgroundModeVal));
+    var backgroundModeVal = valueForKeys(params, ['backgroundMode', 'background_mode']);
+    if (backgroundModeVal !== undefined) setIfExists(sceneEnvCtl, 'backgroundModeKey', String(backgroundModeVal));
 
- var skyboxFlag = valueForKeys(params, ['iblBackgroundEnabled', 'ibl_background_enabled', 'skyboxEnabled', 'skybox_enabled']);
- if (skyboxFlag !== undefined) setIfExists(sceneEnvCtl, 'iblBackgroundEnabled', !!skyboxFlag);
+    var skyboxFlag = valueForKeys(params, ['iblBackgroundEnabled', 'ibl_background_enabled', 'skyboxEnabled', 'skybox_enabled']);
+    if (skyboxFlag !== undefined) setIfExists(sceneEnvCtl, 'skyboxToggleFlag', !!skyboxFlag);
 
- var iblEnabledFlag = valueForKeys(params, ['iblEnabled', 'ibl_enabled']);
- if (iblEnabledFlag !== undefined) {
-     setIfExists(sceneEnvCtl, 'iblLightingEnabled', !!iblEnabledFlag);
-     setIfExists(sceneEnvCtl, 'iblBackgroundEnabled', !!iblEnabledFlag);
- }
+    var iblEnabledFlag = valueForKeys(params, ['iblEnabled', 'ibl_enabled']);
+    if (iblEnabledFlag !== undefined) {
+        setIfExists(sceneEnvCtl, 'iblMasterEnabled', !!iblEnabledFlag);
+        setIfExists(sceneEnvCtl, 'iblLightingEnabled', !!iblEnabledFlag);
+    }
 
- var iblLightingVal = valueForKeys(params, ['iblLightingEnabled', 'ibl_lighting_enabled']);
- if (iblLightingVal !== undefined) setIfExists(sceneEnvCtl, 'iblLightingEnabled', !!iblLightingVal);
+    var iblLightingVal = valueForKeys(params, ['iblLightingEnabled', 'ibl_lighting_enabled']);
+    if (iblLightingVal !== undefined) setIfExists(sceneEnvCtl, 'iblLightingEnabled', !!iblLightingVal);
 
  var intensityVal = valueForKeys(params, ['iblIntensity', 'ibl_intensity']);
  if (intensityVal !== undefined) {
