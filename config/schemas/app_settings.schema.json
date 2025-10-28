@@ -525,7 +525,7 @@
                   "type": "object",
                   "properties": {
                     "enabled": {"type": "boolean"},
-                    "resolution": {"type": "string"},
+                    "resolution": {"type": "integer", "minimum": 1},
                     "filter": {"type": "number"},
                     "bias": {"type": "number"},
                     "darkness": {"type": "number"}
