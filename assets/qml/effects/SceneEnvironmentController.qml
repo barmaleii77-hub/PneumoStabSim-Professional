@@ -462,6 +462,24 @@ ExtendedSceneEnvironment {
         if (isFinite(fogFarValue))
             fogFar = toSceneLength(fogFarValue)
     }
+    var fogHeightFlag = boolFromKeys(params, "fogHeightEnabled", "fog_height_enabled")
+    if (fogHeightFlag !== undefined)
+        fogHeightEnabled = !!fogHeightFlag
+    var fogLeastValue = numberFromKeys(params, "fogLeastIntenseY", "fog_least_intense_y")
+    if (fogLeastValue !== undefined && isFinite(fogLeastValue))
+        fogLeastIntenseY = toSceneLength(fogLeastValue)
+    var fogMostValue = numberFromKeys(params, "fogMostIntenseY", "fog_most_intense_y")
+    if (fogMostValue !== undefined && isFinite(fogMostValue))
+        fogMostIntenseY = toSceneLength(fogMostValue)
+    var fogHeightCurveValue = numberFromKeys(params, "fogHeightCurve", "fog_height_curve")
+    if (fogHeightCurveValue !== undefined && isFinite(fogHeightCurveValue))
+        fogHeightCurve = fogHeightCurveValue
+    var fogTransmitFlag = boolFromKeys(params, "fogTransmitEnabled", "fog_transmit_enabled")
+    if (fogTransmitFlag !== undefined)
+        fogTransmitEnabled = !!fogTransmitFlag
+    var fogTransmitCurveValue = numberFromKeys(params, "fogTransmitCurve", "fog_transmit_curve")
+    if (fogTransmitCurveValue !== undefined && isFinite(fogTransmitCurveValue))
+        fogTransmitCurve = fogTransmitCurveValue
 
     if (params.fog) {
         var fog = params.fog
@@ -481,6 +499,30 @@ ExtendedSceneEnvironment {
         }
         if (fog.density !== undefined)
             fogDensity = Number(fog.density)
+        if (fog.height_enabled !== undefined)
+            fogHeightEnabled = !!fog.height_enabled
+        if (fog.least_intense_y !== undefined) {
+            var fogLeastNested = Number(fog.least_intense_y)
+            if (isFinite(fogLeastNested))
+                fogLeastIntenseY = toSceneLength(fogLeastNested)
+        }
+        if (fog.most_intense_y !== undefined) {
+            var fogMostNested = Number(fog.most_intense_y)
+            if (isFinite(fogMostNested))
+                fogMostIntenseY = toSceneLength(fogMostNested)
+        }
+        if (fog.height_curve !== undefined) {
+            var fogHeightCurveNested = Number(fog.height_curve)
+            if (isFinite(fogHeightCurveNested))
+                fogHeightCurve = fogHeightCurveNested
+        }
+        if (fog.transmit_enabled !== undefined)
+            fogTransmitEnabled = !!fog.transmit_enabled
+        if (fog.transmit_curve !== undefined) {
+            var fogTransmitCurveNested = Number(fog.transmit_curve)
+            if (isFinite(fogTransmitCurveNested))
+                fogTransmitCurve = fogTransmitCurveNested
+        }
     }
 
  if (params.ssaoEnabled !== undefined)
@@ -684,15 +726,39 @@ return
  property real fogDensity:0.1
  property real fogNear:1200.0
  property real fogFar:12000.0
+ property bool fogHeightEnabled: false
+ property real fogLeastIntenseY:0.0
+ property real fogMostIntenseY:3.0
+ property real fogHeightCurve:1.0
+ property bool fogTransmitEnabled: true
+ property real fogTransmitCurve:1.0
 
  fog: Fog {
- enabled: root.fogEnabled
+ enabled: false
  color: root.fogColor
+ density: root.fogDensity
  depthEnabled: true
  depthNear: root.fogNear
  depthFar: root.fogFar
  depthCurve:1.0
  }
+
+ readonly property FogEffect _customFogEffect: FogEffect {
+ fogDensity: root.fogDensity
+ fogColor: root.fogColor
+ fogStartDistance: root.fogNear
+ fogEndDistance: root.fogFar
+ fogLeastIntenseY: root.fogLeastIntenseY
+ fogMostIntenseY: root.fogMostIntenseY
+ fogHeightCurve: root.fogHeightCurve
+ heightBasedFog: root.fogHeightEnabled
+ fogTransmitEnabled: root.fogTransmitEnabled
+ fogTransmitCurve: root.fogTransmitCurve
+ fogScattering: 0.5
+ animatedFog: false
+ }
+
+ effects: fogEnabled ? [_customFogEffect] : []
 
  // ===============================================================
  // TONEMAP

@@ -158,7 +158,6 @@ class EnvironmentTab(QWidget):
         for label, path in hdr_files:
             hdr_combo.addItem(label, path)
         hdr_combo.insertItem(0, "— не выбран —", "")
-        hdr_combo.setCurrentIndex(0)
 
         def on_hdr_changed() -> None:
             data = hdr_combo.currentData()
@@ -166,6 +165,10 @@ class EnvironmentTab(QWidget):
             self._on_control_changed("ibl_source", path)
 
         hdr_combo.currentIndexChanged.connect(lambda _: on_hdr_changed())
+        hdr_combo.setCurrentIndex(1 if hdr_files else 0)
+
+        if hdr_files:
+            on_hdr_changed()
         self._controls["ibl.file"] = hdr_combo
         grid.addWidget(QLabel("HDR файл (primary)", self), row, 0)
         grid.addWidget(hdr_combo, row, 1)

@@ -60,24 +60,48 @@ _GEOMETRY_LINEAR_KEYS: Dict[str, None] = {
     "tail_rod_length_m": None,
 }
 
-_GEOMETRY_MM_ALIASES: Dict[str, str] = {
+_GEOMETRY_KEY_ALIASES: Dict[str, str] = {
+    # Legacy millimetre keys promoted to explicit metre suffixes
     "frame_length_mm": "frame_length_m",
+    "frame_length": "frame_length_m",
     "frame_height_mm": "frame_height_m",
+    "frame_height": "frame_height_m",
     "frame_beam_size_mm": "frame_beam_size_m",
-    "lever_length_mm": "lever_length",
+    "frame_beam_size": "frame_beam_size_m",
+    "lever_length_mm": "lever_length_m",
     "lever_length_visual_mm": "lever_length_m",
+    "lever_length_visual": "lever_length_m",
     "cylinder_body_length_mm": "cylinder_body_length_m",
+    "cylinder_body_length": "cylinder_body_length_m",
     "tail_rod_length_mm": "tail_rod_length_m",
+    "tail_rod_length": "tail_rod_length_m",
     "track_width_mm": "track",
+    "track_width": "track",
     "frame_to_pivot_mm": "frame_to_pivot",
     "cyl_diam_mm": "cyl_diam_m",
+    "cyl_diam": "cyl_diam_m",
     "stroke_mm": "stroke_m",
+    "stroke": "stroke_m",
     "dead_gap_mm": "dead_gap_m",
+    "dead_gap": "dead_gap_m",
     "rod_diameter_front_mm": "rod_diameter_m",
     "rod_diameter_rear_mm": "rod_diameter_rear_m",
+    "rod_diameter_rear": "rod_diameter_rear_m",
     "rod_diameter_mm": "rod_diameter_m",
+    "rod_diameter": "rod_diameter_m",
     "piston_rod_length_mm": "piston_rod_length_m",
+    "piston_rod_length": "piston_rod_length_m",
     "piston_thickness_mm": "piston_thickness_m",
+    "piston_thickness": "piston_thickness_m",
+    "wheelbase_mm": "wheelbase",
+    "wheel_base_mm": "wheelbase",
+    "wheel_base": "wheelbase",
+}
+
+_GEOMETRY_MIRROR_KEYS: Dict[str, str] = {
+    # Maintain both the UI-facing ``lever_length`` and the visualisation
+    # ``lever_length_m`` entries so that legacy payloads hydrate both code paths.
+    "lever_length": "lever_length_m",
 }
 
 _CAMEL_BOUNDARY = re.compile(r"(?<!^)(?=[A-Z])")
@@ -304,28 +328,24 @@ class SettingsManager:
             self._metadata["units_version"] = self._original_units_version
 
     # ----------------------------------------------------------------- migration
-    def _convert_geometry_section(self, section: Dict[str, Any]) -> bool:
-        converted_targets: set[str] = set()
-        changed = False
 
-        for alias, target in list(_GEOMETRY_MM_ALIASES.items()):
-            if alias not in section:
-                continue
-            value = section.pop(alias)
-            converted, did_convert = _scale_mm_value(value)
-            if not did_convert:
-                converted = value
-            if target not in section or did_convert:
-                section[target] = converted
-            converted_targets.add(target)
-            changed = True
+    def _convert_geometry_section(self, section: Dict[str, Any]) -> bool:
+        changed = _normalise_dict_keys(section, _GEOMETRY_KEY_ALIASES)
 
         for key in _GEOMETRY_LINEAR_KEYS:
-            if key not in section or key in converted_targets:
+            if key not in section:
                 continue
             value, did_convert = _scale_mm_value(section[key])
             if did_convert:
                 section[key] = value
+                changed = True
+
+        for source, mirror in _GEOMETRY_MIRROR_KEYS.items():
+            if source in section and mirror not in section:
+                section[mirror] = section[source]
+                changed = True
+            elif mirror in section and source not in section:
+                section[source] = section[mirror]
                 changed = True
 
         return changed

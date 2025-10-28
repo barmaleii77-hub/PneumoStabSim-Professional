@@ -16,6 +16,11 @@ Effect {
     property real fogEndDistance: 5000.0    // Расстояние конца тумана
     property real fogHeight: 2000.0         // Высота слоя тумана
     property bool heightBasedFog: false     // Туман на основе высоты
+    property real fogLeastIntenseY: 0.0     // Нижняя граница высоты
+    property real fogMostIntenseY: 3.0      // Верхняя граница высоты
+    property real fogHeightCurve: 1.0       // Кривая распределения по высоте
+    property bool fogTransmitEnabled: false // Включить просвечивание
+    property real fogTransmitCurve: 1.0     // Кривая просвечивания
     property real fogScattering: 0.5        // Рассеивание света в тумане
 
     // Анимация тумана
@@ -24,6 +29,22 @@ Effect {
     property real time: 0.0                 // Время для анимации
 
     // Шейдер тумана
+    parameters: [
+        Parameter { name: "userFogDensity"; value: fogEffect.fogDensity }
+        Parameter { name: "userFogColor"; value: fogEffect.fogColor }
+        Parameter { name: "userFogStart"; value: fogEffect.fogStartDistance }
+        Parameter { name: "userFogEnd"; value: fogEffect.fogEndDistance }
+        Parameter { name: "userFogLeast"; value: fogEffect.fogLeastIntenseY }
+        Parameter { name: "userFogMost"; value: fogEffect.fogMostIntenseY }
+        Parameter { name: "userFogHeightCurve"; value: fogEffect.fogHeightCurve }
+        Parameter { name: "userFogHeightEnabled"; value: fogEffect.heightBasedFog ? 1.0 : 0.0 }
+        Parameter { name: "userFogScattering"; value: fogEffect.fogScattering }
+        Parameter { name: "userFogTransmitEnabled"; value: fogEffect.fogTransmitEnabled ? 1.0 : 0.0 }
+        Parameter { name: "userFogTransmitCurve"; value: fogEffect.fogTransmitCurve }
+        Parameter { name: "userFogAnimated"; value: fogEffect.animatedFog ? 1.0 : 0.0 }
+        Parameter { name: "userFogAnimationSpeed"; value: fogEffect.animationSpeed }
+        Parameter { name: "userFogTime"; value: fogEffect.time }
+    ]
     passes: [
         Pass {
             shaders: [
@@ -56,7 +77,6 @@ Effect {
                         }
                     "
                 },
-
                 Shader {
                     id: fogFragmentShader
                     stage: Shader.Fragment
@@ -74,117 +94,79 @@ Effect {
                             mat4 qt_ViewMatrix;
                             vec3 qt_CameraPosition;
                             float qt_Opacity;
-
-                            // Fog parameters
-                            float fogDensity;
-                            vec3 fogColor;
-                            float fogStartDistance;
-                            float fogEndDistance;
-                            float fogHeight;
-                            bool heightBasedFog;
-                            float fogScattering;
-                            bool animatedFog;
-                            float animationSpeed;
-                            float time;
                         } ubuf;
 
                         layout(binding = 1) uniform sampler2D qt_Texture0;
 
-                        // Функция расчета тумана
-                        float calculateFogFactor(vec3 worldPos, vec3 cameraPos) {
-                            float distance = length(worldPos - cameraPos);
+                        uniform float userFogDensity;
+                        uniform vec4 userFogColor;
+                        uniform float userFogStart;
+                        uniform float userFogEnd;
+                        uniform float userFogLeast;
+                        uniform float userFogMost;
+                        uniform float userFogHeightCurve;
+                        uniform float userFogHeightEnabled;
+                        uniform float userFogScattering;
+                        uniform float userFogTransmitEnabled;
+                        uniform float userFogTransmitCurve;
+                        uniform float userFogAnimated;
+                        uniform float userFogAnimationSpeed;
+                        uniform float userFogTime;
 
-                            // Линейный туман по расстоянию
-                            float linearFog = clamp(
-                                (distance - ubuf.fogStartDistance) /
-                                (ubuf.fogEndDistance - ubuf.fogStartDistance),
-                                0.0, 1.0
-                            );
+                        float calculateFogFactor(vec3 worldPosition, vec3 cameraPosition) {
+                            float distance = length(worldPosition - cameraPosition);
 
-                            // Экспоненциальный туман по плотности
-                            float expFog = 1.0 - exp(-ubuf.fogDensity * distance * 0.0001);
+                            float span = max(0.001, userFogEnd - userFogStart);
+                            float linearFog = clamp((distance - userFogStart) / span, 0.0, 1.0);
 
-                            // Туман на основе высоты
+                            float expFog = 1.0 - exp(-userFogDensity * distance * 0.0001);
+
                             float heightFog = 1.0;
-                            if (ubuf.heightBasedFog) {
-                                float heightFactor = clamp(
-                                    (ubuf.fogHeight - worldPos.y) / ubuf.fogHeight,
-                                    0.0, 1.0
-                                );
-                                heightFog = heightFactor;
+                            if (userFogHeightEnabled > 0.5) {
+                                float bottom = min(userFogLeast, userFogMost);
+                                float top = max(userFogLeast, userFogMost);
+                                float heightSpan = max(0.001, top - bottom);
+                                float relative = clamp((top - worldPosition.y) / heightSpan, 0.0, 1.0);
+                                float curve = max(0.0001, userFogHeightCurve);
+                                heightFog = pow(relative, curve);
                             }
 
-                            // Анимированное возмущение
                             float animationFactor = 1.0;
-                            if (ubuf.animatedFog) {
-                                vec3 noisePos = worldPos * 0.001 + vec3(ubuf.time * ubuf.animationSpeed);
-
-                                // Простой 3D шум (псевдослучайная функция)
+                            if (userFogAnimated > 0.5) {
+                                vec3 noisePos = worldPosition * 0.001 + vec3(userFogTime * userFogAnimationSpeed);
                                 float noise = sin(noisePos.x * 12.9898 + noisePos.y * 78.233 + noisePos.z * 37.719) * 43758.5453;
                                 noise = (sin(noise) + 1.0) * 0.5;
-
                                 animationFactor = 0.8 + 0.4 * noise;
                             }
 
-                            // Комбинация эффектов
                             return clamp(linearFog * expFog * heightFog * animationFactor, 0.0, 1.0);
                         }
 
                         void main() {
-                            // Исходный цвет из текстуры
                             vec4 originalColor = texture(qt_Texture0, coord);
 
-                            // Расчет фактора тумана
                             float fogFactor = calculateFogFactor(worldPos, ubuf.qt_CameraPosition);
 
-                            // Рассеивание света в тумане
-                            vec3 scatteredColor = ubuf.fogColor.rgb * ubuf.fogScattering;
-
-                            // Смешивание с туманом
-                            vec3 finalColor = mix(
+                            vec3 scatteredColor = userFogColor.rgb * userFogScattering;
+                            vec3 foggedColor = mix(
                                 originalColor.rgb,
-                                ubuf.fogColor.rgb + scatteredColor,
+                                userFogColor.rgb + scatteredColor,
                                 fogFactor
                             );
 
-                            fragColor = vec4(finalColor, originalColor.a) * ubuf.qt_Opacity;
+                            if (userFogTransmitEnabled > 0.5) {
+                                float transmitCurve = max(0.0001, userFogTransmitCurve);
+                                float transmission = pow(1.0 - fogFactor, transmitCurve);
+                                foggedColor = mix(foggedColor, originalColor.rgb, transmission);
+                            }
+
+                            fragColor = vec4(foggedColor, originalColor.a) * ubuf.qt_Opacity;
                         }
                     "
                 }
             ]
-
-            // Передача параметров в шейдер
-            Buffer {
-                id: fogUniformBuffer
-                type: Buffer.UniformBuffer
-                data: {
-                    var buf = new ArrayBuffer(128);
-                    var view = new Float32Array(buf);
-                    var offset = 0;
-
-                    // Матрицы (уже в базовом буфере)
-                    offset += 16 * 4; // 4 матрицы по 16 float
-
-                    // Fog parameters
-                    view[offset++] = fogEffect.fogDensity;
-                    view[offset++] = fogEffect.fogColor.r;
-                    view[offset++] = fogEffect.fogColor.g;
-                    view[offset++] = fogEffect.fogColor.b;
-                    view[offset++] = fogEffect.fogStartDistance;
-                    view[offset++] = fogEffect.fogEndDistance;
-                    view[offset++] = fogEffect.fogHeight;
-                    view[offset++] = fogEffect.heightBasedFog ? 1.0 : 0.0;
-                    view[offset++] = fogEffect.fogScattering;
-                    view[offset++] = fogEffect.animatedFog ? 1.0 : 0.0;
-                    view[offset++] = fogEffect.animationSpeed;
-                    view[offset++] = fogEffect.time;
-
-                    return buf;
-                }
-            }
         }
     ]
-
     // Таймер для анимации тумана
     Timer {
         id: animationTimer
