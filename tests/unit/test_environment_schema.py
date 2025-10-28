@@ -164,10 +164,28 @@ def test_environment_validation_handles_edge_case_values():
     baseline = _baseline_environment()
     mutated = baseline.copy()
     mutated["fog_near"] = 0
-    mutated["fog_far"] = 1e6
+    mutated["fog_far"] = 20.0
     sanitized = validate_environment_settings(mutated)
     assert sanitized["fog_near"] == 0
-    assert sanitized["fog_far"] == 1e6
+    assert sanitized["fog_far"] == 20.0
+
+
+def test_environment_validation_accepts_slider_extremes():
+    baseline = _baseline_environment()
+    mutated = baseline.copy()
+    mutated.update(
+        {
+            "fog_near": 0.0,
+            "fog_far": 20.0,
+            "fog_least_intense_y": -100.0,
+            "fog_most_intense_y": 100.0,
+        }
+    )
+    sanitized = validate_environment_settings(mutated)
+    assert sanitized["fog_near"] == pytest.approx(0.0)
+    assert sanitized["fog_far"] == pytest.approx(20.0)
+    assert sanitized["fog_least_intense_y"] == pytest.approx(-100.0)
+    assert sanitized["fog_most_intense_y"] == pytest.approx(100.0)
 
 
 def test_environment_validation_rejects_empty_payload():
@@ -199,8 +217,8 @@ def test_environment_validation_accepts_validations_payload():
         "fog_enabled": True,
         "fog_color": "#abcdef",
         "fog_density": 0.1,
-        "fog_near": 10.0,
-        "fog_far": 200.0,
+        "fog_near": 1.5,
+        "fog_far": 18.0,
         "fog_height_enabled": False,
         "fog_least_intense_y": -10.0,
         "fog_most_intense_y": 20.0,
