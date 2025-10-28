@@ -33,7 +33,12 @@ if [[ ! -d "$PROJECT_ROOT/.venv" ]]; then
     log "uv is not available, falling back to python -m venv"
     python3 -m venv "$PROJECT_ROOT/.venv"
     if [[ -f "$PROJECT_ROOT/requirements.txt" ]]; then
-      "$PROJECT_ROOT/.venv/bin/python" -m pip install -r "$PROJECT_ROOT/requirements.txt"
+      pip_args=("install")
+      if [[ $(id -u) -eq 0 ]]; then
+        pip_args+=("--root-user-action=ignore")
+      fi
+      pip_args+=("-r" "$PROJECT_ROOT/requirements.txt")
+      "$PROJECT_ROOT/.venv/bin/python" -m pip "${pip_args[@]}"
     fi
   fi
 fi
