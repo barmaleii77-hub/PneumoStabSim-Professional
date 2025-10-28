@@ -107,16 +107,16 @@ class EnvironmentSetup:
         self.qt_environment = _detect_qt_environment()
         self.python_version = self._detect_python_version()
         self.qt_sdk_version = qt_sdk_version
+        self.venv_path = self.project_root / ".venv"
+        self._venv_python_cmd: Optional[List[str]] = None
+        self._venv_python_announced = False
+        self._root_warning_shown = False
 
         os.environ.update(self.qt_environment)
 
         self.logger = Logger("[Setup] ")
 
         self._pip_extra_args = self._detect_pip_extra_args()
-        if self._pip_extra_args:
-            self.logger.log(
-                "⚠️ Запуск pip от имени root; добавляем '--root-user-action=ignore' для подавления предупреждений"
-            )
 
         self.logger.log("ИНИЦИАЛИЗАЦИЯ ОКРУЖЕНИЯ PNEUMOSTABSIM-PROFESSIONAL")
         self.logger.log("=" * 60)
@@ -193,12 +193,56 @@ class EnvironmentSetup:
                 return []
         return []
 
+    def _venv_executables(self) -> tuple[Path, Path]:
+        if self.platform == "Windows":
+            return (
+                self.venv_path / "Scripts" / "python.exe",
+                self.venv_path / "Scripts" / "activate.ps1",
+            )
+        return (
+            self.venv_path / "bin" / "python",
+            self.venv_path / "bin" / "activate",
+        )
+
+    def _register_venv_python(self, python_path: Path) -> bool:
+        if not python_path.exists():
+            self.logger.log(
+                "⚠️ Не удалось найти интерпретатор виртуального окружения: "
+                f"{python_path}"
+            )
+            return False
+
+        self._venv_python_cmd = [str(python_path)]
+        if not self._venv_python_announced:
+            self.logger.log(
+                "🛡️ pip команды будут выполняться в изолированном виртуальном окружении"
+            )
+            self._venv_python_announced = True
+        return True
+
     def _pip_command(self, *args: str) -> List[str]:
         """Формирует команду pip с учётом дополнительных флагов."""
 
-        command = [*self.python_executable, "-m", "pip", *self._pip_extra_args]
-        command.extend(args)
+        launcher = self._resolve_pip_launcher()
+        command = [*launcher, *args]
         return command
+
+    def _resolve_pip_launcher(self) -> List[str]:
+        if self._venv_python_cmd is None and self.venv_path.exists():
+            venv_python, _ = self._venv_executables()
+            if venv_python.exists():
+                self._register_venv_python(venv_python)
+
+        if self._venv_python_cmd is not None:
+            return [*self._venv_python_cmd, "-m", "pip"]
+
+        if self._pip_extra_args and not self._root_warning_shown:
+            self.logger.log(
+                "⚠️ Запуск pip от имени root без активного виртуального окружения"
+            )
+            self._root_warning_shown = True
+
+        return [*self.python_executable, "-m", "pip", *self._pip_extra_args]
 
     def check_python_version(self):
         """Проверяет версию Python"""
@@ -239,10 +283,20 @@ class EnvironmentSetup:
 
     def setup_virtual_environment(self):
         """Создает и настраивает виртуальное окружение"""
-        venv_path = self.project_root / ".venv"
+        venv_path = self.venv_path
+        venv_python, activate_script = self._venv_executables()
 
         if venv_path.exists():
             self.logger.log(f"📦 Виртуальное окружение уже существует: {venv_path}")
+            self.logger.log(f"🔧 Python в venv: {venv_python}")
+            self._register_venv_python(venv_python)
+            if activate_script.exists():
+                self.logger.log(f"📜 Скрипт активации: {activate_script}")
+            else:
+                self.logger.log(
+                    "⚠️ Скрипт активации виртуального окружения не найден: "
+                    f"{activate_script}"
+                )
             return True
 
         self.logger.log("📦 Создание виртуального окружения...")
@@ -253,16 +307,9 @@ class EnvironmentSetup:
             )
             self.logger.log("✅ Виртуальное окружение создано успешно")
 
-            # Получаем путь к Python в виртуальном окружении
-            if self.platform == "Windows":
-                venv_python = venv_path / "Scripts" / "python.exe"
-                activate_script = venv_path / "Scripts" / "activate.ps1"
-            else:
-                venv_python = venv_path / "bin" / "python"
-                activate_script = venv_path / "bin" / "activate"
-
             self.logger.log(f"🔧 Python в venv: {venv_python}")
             self.logger.log(f"📜 Скрипт активации: {activate_script}")
+            self._register_venv_python(venv_python)
 
             return True
 
