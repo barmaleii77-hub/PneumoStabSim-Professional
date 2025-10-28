@@ -73,9 +73,10 @@ Item {
     property real sceneScaleFactor: 1000.0
 
     /**
-     * Fixed metres → millimetres conversion multiplier for bridge payloads
+     * Fixed metres → controller-unit (millimetre) multiplier for bridge payloads.
+     * Remains constant so geometry normalisation never depends on sceneScaleFactor.
      */
-    readonly property real metersToMillimeters: 1000.0
+    readonly property real metersToControllerUnits: 1000.0
 
     /**
      * External callbacks
@@ -426,7 +427,7 @@ Item {
         // so only the small-magnitude metre inputs are scaled by the fixed metre
         // multiplier, keeping camera geometry independent from the scene scale.
         if (absNumeric <= 20.0)
-            return numeric * metersToMillimeters
+            return numeric * metersToControllerUnits
 
         return numeric
     }
