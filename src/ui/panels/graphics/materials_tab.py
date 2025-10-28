@@ -472,10 +472,15 @@ class MaterialsTab(QWidget):
         # КРИТИЧНО: Сначала очищаем старый кэш
         self._materials_state.clear()
         # Заполняем кэш без трогания селектора
-        alias_map = {"tail": "tail_rod"}
-
         for material_key, material_state in state.items():
-            normalized_key = alias_map.get(material_key, material_key)
+            if material_key == "tail":
+                self._logger.error(
+                    "Получены устаревшие параметры материала 'tail'. "
+                    "Используйте ключ 'tail_rod'"
+                )
+                continue
+
+            normalized_key = material_key
             if normalized_key in self._material_labels and isinstance(
                 material_state, dict
             ):

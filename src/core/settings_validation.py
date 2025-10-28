@@ -41,10 +41,8 @@ DEFAULT_REQUIRED_MATERIALS = frozenset(
     }
 )
 
-# ``tail`` was renamed to ``tail_rod`` but older payloads may still provide the
-# legacy key.  Validation accepts those aliases so users can load historical
-# configurations without manual edits.
-LEGACY_MATERIAL_ALIASES = {"tail": "tail_rod"}
+# Legacy material keys that are no longer accepted.
+FORBIDDEN_MATERIAL_ALIASES = {"tail": "tail_rod"}
 
 
 class SettingsValidationError(ValueError):
@@ -210,8 +208,18 @@ def _validate_materials(
         )
 
     present = {str(name) for name in materials_node.keys()}
-    canonical_present = {LEGACY_MATERIAL_ALIASES.get(name, name) for name in present}
-    missing = sorted(set(required_materials) - canonical_present)
+
+    forbidden = sorted(name for name in present if name in FORBIDDEN_MATERIAL_ALIASES)
+    if forbidden:
+        details = ", ".join(
+            f"'{name}' → '{FORBIDDEN_MATERIAL_ALIASES[name]}'" for name in forbidden
+        )
+        raise SettingsValidationError(
+            "Обнаружены устаревшие ключи материалов в current.graphics.materials: "
+            + details
+        )
+
+    missing = sorted(set(required_materials) - present)
     if missing:
         raise SettingsValidationError(
             "Отсутствуют обязательные материалы в current.graphics.materials: "

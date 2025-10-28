@@ -681,7 +681,6 @@
               "properties": {
                 "frame": {"$ref": "#/definitions/material"},
                 "lever": {"$ref": "#/definitions/material"},
-                "tail": {"$ref": "#/definitions/material"},
                 "tail_rod": {"$ref": "#/definitions/material"},
                 "cylinder": {"$ref": "#/definitions/material"},
                 "piston_body": {"$ref": "#/definitions/material"},
@@ -693,20 +692,13 @@
               "required": [
                 "frame",
                 "lever",
+                "tail_rod",
                 "cylinder",
                 "piston_body",
                 "piston_rod",
                 "joint_tail",
                 "joint_arm",
                 "joint_rod"
-              ],
-              "allOf": [
-                {
-                  "anyOf": [
-                    {"required": ["tail_rod"]},
-                    {"required": ["tail"]}
-                  ]
-                }
               ],
               "additionalProperties": false
             },
