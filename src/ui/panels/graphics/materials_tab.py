@@ -205,7 +205,9 @@ class MaterialsTab(QWidget):
                         is_normalized = False
                 if components:
                     if is_normalized:
-                        converted = [int(round(max(0.0, min(1.0, c)) * 255)) for c in components]
+                        converted = [
+                            int(round(max(0.0, min(1.0, c)) * 255)) for c in components
+                        ]
                     else:
                         converted = [int(round(c)) for c in components]
                     r, g, b = (max(0, min(255, comp)) for comp in converted)
