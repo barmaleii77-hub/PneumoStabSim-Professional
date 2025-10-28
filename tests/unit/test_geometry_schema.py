@@ -14,6 +14,7 @@ def test_validate_geometry_settings():
         "stroke_m": 0.3,
         "dead_gap_m": 0.005,
         "rod_diameter_m": 0.118,
+        "rod_diameter_rear_m": 0.117,
         "piston_rod_length_m": 0.5,
         "piston_thickness_m": 0.1,
         "frame_height_m": 0.65,

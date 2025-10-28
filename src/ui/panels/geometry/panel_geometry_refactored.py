@@ -197,6 +197,12 @@ class GeometryPanel(QWidget):
         self.frame_tab.update_from_state()
         self.suspension_tab.update_from_state()
         self.cylinder_tab.update_from_state()
+        self.cylinder_tab.update_link_state(
+            bool(self.state_manager.get_parameter("link_rod_diameters"))
+        )
+        self.cylinder_tab.update_link_state(
+            bool(self.state_manager.get_parameter("link_rod_diameters"))
+        )
 
         # Emit update signals
         self.geometry_updated.emit(self.state_manager.get_all_parameters())
@@ -213,6 +219,10 @@ class GeometryPanel(QWidget):
         """
         self.logger.info(f"Option changed: {option_name} = {value}")
         self.parameter_changed.emit(option_name, float(value))
+        self.geometry_updated.emit(self.state_manager.get_all_parameters())
+        if option_name == "link_rod_diameters":
+            self.cylinder_tab.update_from_state()
+            self.cylinder_tab.update_link_state(value)
 
     @Slot()
     def _on_reset_requested(self):

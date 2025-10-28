@@ -48,6 +48,7 @@ class GeometryStateManager:
 
         # Current state (mutable)
         self.state: Dict[str, Any] = DEFAULT_GEOMETRY.copy()
+        self._rod_link_snapshot: Optional[tuple[float, float]] = None
 
         # Load saved state if available
         if self.settings_manager:
@@ -89,7 +90,51 @@ class GeometryStateManager:
             value: New value
         """
         self._ensure_known_parameter(param_name)
+
+        if param_name in {"rod_diameter_m", "rod_diameter_rear_m"}:
+            self._apply_rod_diameter_update(param_name, value)
+            return
+
+        if param_name == "link_rod_diameters":
+            self._update_link_state(bool(value))
+            return
+
         self.state[param_name] = value
+
+    def _apply_rod_diameter_update(self, param_name: str, value: Any) -> None:
+        """Update rod diameters respecting the link option."""
+
+        try:
+            numeric = float(value)
+        except (TypeError, ValueError):
+            numeric = float(DEFAULT_GEOMETRY["rod_diameter_m"])
+
+        self.state[param_name] = numeric
+
+        if bool(self.state.get("link_rod_diameters")):
+            other_key = (
+                "rod_diameter_rear_m"
+                if param_name == "rod_diameter_m"
+                else "rod_diameter_m"
+            )
+            self.state[other_key] = numeric
+
+    def _update_link_state(self, enabled: bool) -> None:
+        """Handle toggling of the rod diameter link option."""
+
+        self.state["link_rod_diameters"] = enabled
+
+        if enabled:
+            front = float(self.state.get("rod_diameter_m", 0.035))
+            rear = float(self.state.get("rod_diameter_rear_m", front))
+            self._rod_link_snapshot = (front, rear)
+            self.state["rod_diameter_rear_m"] = front
+        else:
+            if self._rod_link_snapshot:
+                front, rear = self._rod_link_snapshot
+                self.state["rod_diameter_m"] = front
+                self.state["rod_diameter_rear_m"] = rear
+            self._rod_link_snapshot = None
 
     def get_all_parameters(self) -> Dict[str, Any]:
         """Get all parameters
@@ -182,16 +227,24 @@ class GeometryStateManager:
         """
         errors = []
 
-        rod_diameter_m = self.state.get("rod_diameter_m", 0.035)
+        front_rod = self.state.get("rod_diameter_m", 0.035)
+        rear_rod = self.state.get("rod_diameter_rear_m", front_rod)
         cyl_diam_m = self.state.get("cyl_diam_m", 0.080)
 
         # Critical: Rod too large
-        if rod_diameter_m >= cyl_diam_m * MAX_ROD_TO_CYLINDER_RATIO:
-            errors.append(
-                f"Диаметр штока слишком велик: "
-                f"{rod_diameter_m * 1000:.1f}мм >= {MAX_ROD_TO_CYLINDER_RATIO * 100:.0f}% "
-                f"от {cyl_diam_m * 1000:.1f}мм цилиндра"
-            )
+        for label, rod_value in (
+            ("переднего", front_rod),
+            ("заднего", rear_rod),
+        ):
+            if rod_value >= cyl_diam_m * MAX_ROD_TO_CYLINDER_RATIO:
+                errors.append(
+                    "Диаметр {} штока слишком велик: {:.1f}мм >= {}% от {:.1f}мм цилиндра".format(
+                        label,
+                        rod_value * 1000,
+                        int(MAX_ROD_TO_CYLINDER_RATIO * 100),
+                        cyl_diam_m * 1000,
+                    )
+                )
 
         return errors
 
@@ -203,18 +256,22 @@ class GeometryStateManager:
         """
         warnings = []
 
-        rod_diameter_m = self.state.get("rod_diameter_m", 0.035)
         cyl_diam_m = self.state.get("cyl_diam_m", 0.080)
 
         # Warning: Rod close to limit
-        if (
-            rod_diameter_m >= cyl_diam_m * WARNING_ROD_TO_CYLINDER_RATIO
-            and rod_diameter_m < cyl_diam_m * MAX_ROD_TO_CYLINDER_RATIO
+        for label, rod_value in (
+            ("переднего", self.state.get("rod_diameter_m", 0.035)),
+            ("заднего", self.state.get("rod_diameter_rear_m", 0.035)),
         ):
-            warnings.append(
-                f"Диаметр штока близок к пределу: "
-                f"{rod_diameter_m * 1000:.1f}мм vs {cyl_diam_m * 1000:.1f}мм цилиндра"
-            )
+            if (
+                rod_value >= cyl_diam_m * WARNING_ROD_TO_CYLINDER_RATIO
+                and rod_value < cyl_diam_m * MAX_ROD_TO_CYLINDER_RATIO
+            ):
+                warnings.append(
+                    "Диаметр {} штока близок к пределу: {:.1f}мм vs {:.1f}мм цилиндра".format(
+                        label, rod_value * 1000, cyl_diam_m * 1000
+                    )
+                )
 
         return warnings
 
@@ -236,7 +293,11 @@ class GeometryStateManager:
             Conflict info dictionary (or None if no conflict)
         """
         # Check hydraulic constraints
-        if param_name in ["rod_diameter_m", "cyl_diam_m"]:
+        if param_name in [
+            "rod_diameter_m",
+            "rod_diameter_rear_m",
+            "cyl_diam_m",
+        ]:
             return self._check_hydraulic_dependency(param_name, new_value)
 
         # Check geometric constraints
@@ -261,33 +322,41 @@ class GeometryStateManager:
         temp_state = self.state.copy()
         temp_state[param_name] = new_value
 
-        rod_diameter_m = temp_state.get("rod_diameter_m", 0.035)
+        front_rod = temp_state.get("rod_diameter_m", 0.035)
+        rear_rod = temp_state.get("rod_diameter_rear_m", front_rod)
         cyl_diam_m = temp_state.get("cyl_diam_m", 0.080)
 
         # Critical conflict
-        if rod_diameter_m >= cyl_diam_m * MAX_ROD_TO_CYLINDER_RATIO:
-            return {
-                "type": "hydraulic_constraint",
-                "critical": True,
-                "message": (
-                    f"Диаметр штока слишком велик относительно цилиндра.\n"
-                    f"Шток: {rod_diameter_m * 1000:.1f}мм\n"
-                    f"Цилиндр: {cyl_diam_m * 1000:.1f}мм"
-                ),
-                "options": [
-                    (
-                        "Уменьшить диаметр штока",
-                        "rod_diameter_m",
-                        cyl_diam_m * WARNING_ROD_TO_CYLINDER_RATIO,
+        for key, rod_value in (
+            ("rod_diameter_m", front_rod),
+            ("rod_diameter_rear_m", rear_rod),
+        ):
+            if rod_value >= cyl_diam_m * MAX_ROD_TO_CYLINDER_RATIO:
+                return {
+                    "type": "hydraulic_constraint",
+                    "critical": True,
+                    "message": (
+                        "Диаметр {} штока слишком велик относительно цилиндра.\n"
+                        "Шток: {:.1f}мм\nЦилиндр: {:.1f}мм".format(
+                            "переднего" if key == "rod_diameter_m" else "заднего",
+                            rod_value * 1000,
+                            cyl_diam_m * 1000,
+                        )
                     ),
-                    (
-                        "Увеличить диаметр цилиндра",
-                        "cyl_diam_m",
-                        rod_diameter_m / WARNING_ROD_TO_CYLINDER_RATIO,
-                    ),
-                ],
-                "changed_param": param_name,
-            }
+                    "options": [
+                        (
+                            "Уменьшить диаметр штока",
+                            key,
+                            cyl_diam_m * WARNING_ROD_TO_CYLINDER_RATIO,
+                        ),
+                        (
+                            "Увеличить диаметр цилиндра",
+                            "cyl_diam_m",
+                            rod_value / WARNING_ROD_TO_CYLINDER_RATIO,
+                        ),
+                    ],
+                    "changed_param": param_name,
+                }
 
         return None
 
@@ -436,7 +505,8 @@ class GeometryStateManager:
         cyl_diameter = _value("cyl_diam_m", 0.080)
         stroke = _value("stroke_m", 0.300)
         dead_gap = _value("dead_gap_m", 0.005)
-        rod_diameter = _value("rod_diameter_m", 0.035)
+        rod_diameter_front = _value("rod_diameter_m", 0.035)
+        rod_diameter_rear = _value("rod_diameter_rear_m", rod_diameter_front)
         piston_rod_length = _value("piston_rod_length_m", 0.200)
         piston_thickness = _value("piston_thickness_m", 0.025)
 
@@ -456,12 +526,13 @@ class GeometryStateManager:
             "cylDiamM": cyl_diameter,
             "strokeM": stroke,
             "deadGapM": dead_gap,
-            "rodDiameterM": rod_diameter,
+            "rodDiameterFrontM": rod_diameter_front,
+            "rodDiameterRearM": rod_diameter_rear,
             "pistonRodLengthM": piston_rod_length,
             "pistonThicknessM": piston_thickness,
             # Дублирующие ключи для обратной совместимости
             "boreHead": cyl_diameter,
-            "rodDiameter": rod_diameter,
+            "rodDiameter": rod_diameter_front,
             "pistonRodLength": piston_rod_length,
             "pistonThickness": piston_thickness,
         }
@@ -479,10 +550,16 @@ class GeometryStateManager:
             "cyl_diam_mm": cyl_diameter * 1000.0,
             "stroke_mm": stroke * 1000.0,
             "dead_gap_mm": dead_gap * 1000.0,
-            "rod_diameter_mm": rod_diameter * 1000.0,
+            "rod_diameter_front_mm": rod_diameter_front * 1000.0,
+            "rod_diameter_rear_mm": rod_diameter_rear * 1000.0,
+            "rod_diameter_mm": rod_diameter_front * 1000.0,
             "piston_rod_length_mm": piston_rod_length * 1000.0,
             "piston_thickness_mm": piston_thickness * 1000.0,
         }
+
+        payload["rodDiameterM"] = rod_diameter_front
+        payload["rodDiameterRear"] = rod_diameter_rear
+        payload["rodDiameterFront"] = rod_diameter_front
 
         payload.update(mm_payload)
         return payload

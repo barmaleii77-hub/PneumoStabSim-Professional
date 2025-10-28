@@ -84,3 +84,23 @@ def test_load_state_falls_back_to_defaults_snapshot(tmp_path: Path) -> None:
     manager = GeometryStateManager(settings)
 
     assert pytest.approx(2.9) == manager.get_parameter("wheelbase")
+
+
+def test_rod_diameter_linking_roundtrip():
+    manager = GeometryStateManager()
+
+    manager.set_parameter("rod_diameter_m", 0.04)
+    manager.set_parameter("rod_diameter_rear_m", 0.05)
+
+    manager.set_parameter("link_rod_diameters", True)
+    assert manager.get_parameter("rod_diameter_rear_m") == pytest.approx(0.04)
+
+    manager.set_parameter("rod_diameter_m", 0.045)
+    assert manager.get_parameter("rod_diameter_rear_m") == pytest.approx(0.045)
+
+    manager.set_parameter("rod_diameter_rear_m", 0.046)
+    assert manager.get_parameter("rod_diameter_m") == pytest.approx(0.046)
+
+    manager.set_parameter("link_rod_diameters", False)
+    assert manager.get_parameter("rod_diameter_m") == pytest.approx(0.04)
+    assert manager.get_parameter("rod_diameter_rear_m") == pytest.approx(0.05)
