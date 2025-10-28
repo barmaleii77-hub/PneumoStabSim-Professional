@@ -70,6 +70,33 @@ class Logger:
         print(f"{timestamp} {self.prefix}{message}")
 
 
+def _runtime_version_blocker(version: tuple[int, int]) -> Optional[str]:
+    """Return a human readable error if the runtime Python is unsupported.
+
+    The setup utilities intentionally target Python 3.11–3.13 because Qt 6.10 /
+    PySide6 6.10.0 is not yet available for Python 3.14.  When the bootstrap
+    script itself is executed with an unsupported interpreter the dependency
+    installation stage will fail with a misleading pip resolution error.  By
+    detecting the situation upfront we can provide an actionable explanation to
+    the developer.
+    """
+
+    major, minor = version
+    if major != 3:
+        return (
+            "Поддерживается только Python 3.x. "
+            "Установите Python 3.13 и повторите настройку."
+        )
+
+    if minor >= 14:
+        return (
+            "Обнаружен Python 3.%d. Qt/PySide6 6.10.0 пока не выпускается "
+            "для этой версии. Установите Python 3.13 и перезапустите скрипт." % minor
+        )
+
+    return None
+
+
 class EnvironmentSetup:
     """Класс для настройки окружения разработки"""
 
@@ -736,6 +763,17 @@ def parse_arguments():
 def main():
     """Главная функция"""
     args = parse_arguments()
+
+    blocker_message = _runtime_version_blocker(sys.version_info[:2])
+    if blocker_message is not None:
+        if not args.silent:
+            print("❌ Неподдерживаемая версия Python")
+            print(blocker_message)
+            print(
+                "PySide6 6.10.0 поддерживает только Python 3.11–3.13. "
+                "Подробнее см. SETUP_GUIDE.md."
+            )
+        return 1
 
     with suppress_stdout(args.silent):
         if not args.silent:
