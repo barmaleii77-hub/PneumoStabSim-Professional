@@ -24,6 +24,7 @@ from pathlib import Path
 from typing import Dict, Any, List, Tuple
 
 from .widgets import ColorButton, LabeledSlider
+from src.common.logging_widgets import LoggingCheckBox
 from src.ui.environment_schema import validate_environment_settings
 
 
