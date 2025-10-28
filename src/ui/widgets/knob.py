@@ -15,27 +15,6 @@ from PySide6.QtWidgets import (
 from PySide6.QtCore import Signal, Slot, Qt
 from PySide6.QtGui import QFont
 
-# SI Prefixes for unit scaling
-SI_PREFIXES = {
-    -24: "y",  # yocto
-    -21: "z",  # zepto
-    -18: "a",  # atto
-    -15: "f",  # femto
-    -12: "p",  # pico
-    -9: "n",  # nano
-    -6: "μ",  # micro
-    -3: "m",  # milli
-    0: "",  # no prefix
-    3: "k",  # kilo
-    6: "M",  # mega
-    9: "G",  # giga
-    12: "T",  # tera
-    15: "P",  # peta
-    18: "E",  # exa
-    21: "Z",  # zetta
-    24: "Y",  # yotta
-}
-
 
 class Knob(QWidget):
     """Universal rotary knob with value display and units
@@ -119,8 +98,8 @@ class Knob(QWidget):
         layout.addWidget(self.dial)
 
         # Value display and input
-        value_layout = QHBoxLayout()
-        value_layout.setSpacing(2)
+        self._value_layout = QHBoxLayout()
+        self._value_layout.setSpacing(2)
 
         self.spinbox = QDoubleSpinBox()
         self.spinbox.setMinimum(self._minimum)
@@ -130,20 +109,13 @@ class Knob(QWidget):
         self.spinbox.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.spinbox.setMaximumWidth(80)
 
-        value_layout.addWidget(self.spinbox)
+        self._value_layout.addWidget(self.spinbox)
 
-        # Units label
+        # Units label (created lazily if units are provided)
         if self._units:
-            self.units_label = QLabel(self._units)
-            font = QFont()
-            font.setPointSize(8)
-            self.units_label.setFont(font)
-            self.units_label.setAlignment(
-                Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter
-            )
-            value_layout.addWidget(self.units_label)
+            self._create_or_update_units_label(self._units)
 
-        layout.addLayout(value_layout)
+        layout.addLayout(self._value_layout)
 
     def _connect_signals(self):
         """Connect internal signals"""
@@ -265,51 +237,33 @@ class Knob(QWidget):
         self._decimals = decimals
         self.spinbox.setDecimals(decimals)
 
-    def setUnits(self, units: str):
-        """Set units label
-
-        Args:
-            units: Units string
-        """
-        # Special handling for SI units: scale factor and prefix
-        if units.startswith("SI"):
-            try:
-                # Extract scale factor and unit from string
-                _, scale_str, unit = units.split()
-                scale = float(scale_str)
-            except ValueError:
-                # Handle invalid format
-                super().setUnits(units)
-                return
-
-            # Adjust value range and step
-            min_scaled = self._minimum * scale
-            max_scaled = self._maximum * scale
-            step_scaled = self._step * scale
-
-            # Find appropriate SI prefix
-            prefix = ""
-            for exp, pre in sorted(SI_PREFIXES.items()):
-                if min_scaled >= 10**exp:
-                    prefix = pre
-                    break
-
-            # Update parameters
-            self._minimum = min_scaled / scale
-            self._maximum = max_scaled / scale
-            self._step = step_scaled / scale
-            self._decimals = max(0, decimals - (3 + exp))  # Adjust decimals for scaling
-            self._units = f"{prefix}{unit}"  # Combine prefix and unit
-
-            # Update spinbox and dial ranges
-            self.spinbox.setMinimum(self._minimum)
-            self.spinbox.setMaximum(self._maximum)
-            self.spinbox.setSingleStep(self._step)
-        else:
-            self._units = units
+    def _create_or_update_units_label(self, units: str) -> None:
+        """Ensure the units label exists and reflects *units*."""
 
         if hasattr(self, "units_label"):
             self.units_label.setText(units)
+            self.units_label.setVisible(bool(units))
+            return
+
+        if not units:
+            return
+
+        font = QFont()
+        font.setPointSize(8)
+
+        self.units_label = QLabel(units)
+        self.units_label.setFont(font)
+        self.units_label.setAlignment(
+            Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter
+        )
+        self._value_layout.addWidget(self.units_label)
+
+    def setUnits(self, units: str):
+        """Set units label text and visibility."""
+
+        units = units or ""
+        self._units = units
+        self._create_or_update_units_label(units)
 
     def setEnabled(self, enabled: bool):
         """Enable/disable the knob
