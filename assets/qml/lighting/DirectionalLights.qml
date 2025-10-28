@@ -25,7 +25,7 @@ Node {
 
     // OPTIONAL PROPERTIES (default values are provided)
     property bool shadowsEnabled: true
-    property string shadowResolution: "2048"
+    property int shadowResolution: 2048
     property int shadowFilterSamples: 16
     property real shadowBias: 0.05
     property real shadowFactor: 75.0
@@ -96,10 +96,10 @@ Node {
         castsShadow: (root.shadowsEnabled && root.keyLightCastsShadow)
 
         // ✅ Shadow quality mapping
-        shadowMapQuality: root.shadowResolution === "2048" ? Light.ShadowMapQualityVeryHigh :
-                          root.shadowResolution === "1024" ? Light.ShadowMapQualityHigh :
-                          root.shadowResolution === "512"  ? Light.ShadowMapQualityMedium :
-                                                               Light.ShadowMapQualityLow
+        shadowMapQuality: root.shadowResolution >= 4096 ? Light.ShadowMapQualityVeryHigh :
+                          root.shadowResolution >= 2048 ? Light.ShadowMapQualityHigh :
+                          root.shadowResolution >= 1024 ? Light.ShadowMapQualityMedium :
+                                                           Light.ShadowMapQualityLow
 
         shadowFactor: root.shadowFactor
         shadowBias: root.shadowBias

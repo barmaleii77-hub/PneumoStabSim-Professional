@@ -76,6 +76,178 @@ class SignalsRouter:
         return normalized
 
     @staticmethod
+    def _normalize_quality_payload(params: Mapping[str, Any]) -> Dict[str, Any]:
+        """Convert graphics quality payload into QML-friendly types."""
+
+        def coerce_bool(value: Any) -> Optional[bool]:
+            if value is None:
+                return None
+            if isinstance(value, bool):
+                return value
+            if isinstance(value, (int, float)):
+                return bool(value)
+            if isinstance(value, str):
+                lowered = value.strip().lower()
+                if lowered in {"true", "1", "yes", "on"}:
+                    return True
+                if lowered in {"false", "0", "no", "off"}:
+                    return False
+            return bool(value)
+
+        def coerce_int(value: Any) -> Optional[int]:
+            if value is None:
+                return None
+            if isinstance(value, bool):
+                return int(value)
+            try:
+                numeric = float(value)
+            except (TypeError, ValueError):
+                return None
+            if not math.isfinite(numeric):
+                return None
+            return int(round(numeric))
+
+        def coerce_float(value: Any) -> Optional[float]:
+            if value is None:
+                return None
+            if isinstance(value, bool):
+                return float(int(value))
+            try:
+                numeric = float(value)
+            except (TypeError, ValueError):
+                return None
+            if not math.isfinite(numeric):
+                return None
+            return numeric
+
+        def coerce_str(value: Any) -> Optional[str]:
+            if value is None:
+                return None
+            return str(value)
+
+        normalized: Dict[str, Any] = {}
+
+        antialiasing = (
+            params.get("antialiasing") if isinstance(params, Mapping) else None
+        )
+        if isinstance(antialiasing, Mapping):
+            aa_primary = antialiasing.get("primary")
+            aa_quality = antialiasing.get("quality")
+            aa_post = antialiasing.get("post")
+        else:
+            aa_primary = aa_quality = aa_post = None
+
+        primary_value = params.get("aaPrimaryMode", aa_primary)
+        primary_value = coerce_str(primary_value)
+        if primary_value is not None:
+            normalized["aaPrimaryMode"] = primary_value
+
+        quality_value = params.get("aaQualityLevel", aa_quality)
+        quality_value = coerce_str(quality_value)
+        if quality_value is not None:
+            normalized["aaQualityLevel"] = quality_value
+
+        post_value = params.get("aaPostMode", aa_post)
+        post_value = coerce_str(post_value)
+        if post_value is not None:
+            normalized["aaPostMode"] = post_value
+
+        taa_enabled = params.get("taaEnabled", params.get("taa_enabled"))
+        taa_enabled = coerce_bool(taa_enabled)
+        if taa_enabled is not None:
+            normalized["taaEnabled"] = taa_enabled
+
+        taa_strength = params.get("taaStrength", params.get("taa_strength"))
+        taa_strength = coerce_float(taa_strength)
+        if taa_strength is not None:
+            normalized["taaStrength"] = taa_strength
+
+        taa_motion = params.get("taaMotionAdaptive", params.get("taa_motion_adaptive"))
+        taa_motion = coerce_bool(taa_motion)
+        if taa_motion is not None:
+            normalized["taaMotionAdaptive"] = taa_motion
+
+        fxaa_enabled = params.get("fxaaEnabled", params.get("fxaa_enabled"))
+        fxaa_enabled = coerce_bool(fxaa_enabled)
+        if fxaa_enabled is not None:
+            normalized["fxaaEnabled"] = fxaa_enabled
+
+        specular_enabled = params.get("specularAAEnabled", params.get("specular_aa"))
+        specular_enabled = coerce_bool(specular_enabled)
+        if specular_enabled is not None:
+            normalized["specularAAEnabled"] = specular_enabled
+
+        dithering_enabled = params.get("ditheringEnabled", params.get("dithering"))
+        dithering_enabled = coerce_bool(dithering_enabled)
+        if dithering_enabled is not None:
+            normalized["ditheringEnabled"] = dithering_enabled
+
+        oit_mode = params.get("oitMode", params.get("oit"))
+        oit_mode = coerce_str(oit_mode)
+        if oit_mode is not None:
+            normalized["oitMode"] = oit_mode
+
+        render_scale = params.get("renderScale", params.get("render_scale"))
+        render_scale = coerce_float(render_scale)
+        if render_scale is not None:
+            normalized["renderScale"] = render_scale
+
+        render_policy = params.get("renderPolicy", params.get("render_policy"))
+        render_policy = coerce_str(render_policy)
+        if render_policy is not None:
+            normalized["renderPolicy"] = render_policy
+
+        frame_limit = params.get("frameRateLimit", params.get("frame_rate_limit"))
+        frame_limit = coerce_float(frame_limit)
+        if frame_limit is not None:
+            normalized["frameRateLimit"] = frame_limit
+
+        mesh = params.get("mesh")
+        if isinstance(mesh, Mapping):
+            mesh_payload: Dict[str, Any] = {}
+            segments = coerce_int(
+                mesh.get("cylinderSegments", mesh.get("cylinder_segments"))
+            )
+            rings = coerce_int(mesh.get("cylinderRings", mesh.get("cylinder_rings")))
+            if segments is not None:
+                mesh_payload["cylinderSegments"] = segments
+            if rings is not None:
+                mesh_payload["cylinderRings"] = rings
+            if mesh_payload:
+                normalized["meshQuality"] = mesh_payload
+
+        shadows = params.get("shadowSettings", params.get("shadows"))
+        if isinstance(shadows, Mapping):
+            shadow_payload: Dict[str, Any] = {}
+            enabled = coerce_bool(shadows.get("enabled"))
+            if enabled is not None:
+                shadow_payload["enabled"] = enabled
+            resolution = coerce_int(
+                shadows.get("resolution", shadows.get("shadowResolution"))
+            )
+            if resolution is not None:
+                shadow_payload["resolution"] = resolution
+            filter_samples = coerce_int(
+                shadows.get("filterSamples", shadows.get("filter"))
+            )
+            if filter_samples is not None:
+                shadow_payload["filterSamples"] = filter_samples
+            bias = coerce_float(shadows.get("bias", shadows.get("shadowBias")))
+            if bias is not None:
+                shadow_payload["bias"] = bias
+            factor = coerce_float(
+                shadows.get(
+                    "factor", shadows.get("darkness", shadows.get("shadowFactor"))
+                )
+            )
+            if factor is not None:
+                shadow_payload["factor"] = factor
+            if shadow_payload:
+                normalized["shadowSettings"] = shadow_payload
+
+        return normalized
+
+    @staticmethod
     def _strip_camera_commands(payload: Mapping[str, Any]) -> Dict[str, Any]:
         """Remove command-style keys that should not be persisted."""
 
@@ -430,11 +602,13 @@ class SignalsRouter:
 
         from .qml_bridge import QMLBridge
 
-        if not QMLBridge.invoke_qml_function(window, "applyQualityUpdates", params):
-            QMLBridge.queue_update(window, "quality", params)
-            QMLBridge._log_graphics_change(window, "quality", params, applied=False)
+        normalized = SignalsRouter._normalize_quality_payload(params)
+
+        if not QMLBridge.invoke_qml_function(window, "applyQualityUpdates", normalized):
+            QMLBridge.queue_update(window, "quality", normalized)
+            QMLBridge._log_graphics_change(window, "quality", normalized, applied=False)
         else:
-            QMLBridge._log_graphics_change(window, "quality", params, applied=True)
+            QMLBridge._log_graphics_change(window, "quality", normalized, applied=True)
 
         window._apply_settings_update("graphics.quality", params)
 
@@ -506,7 +680,10 @@ class SignalsRouter:
         QMLBridge.queue_update(window, "environment", full_state.get("environment", {}))
         QMLBridge.queue_update(window, "lighting", full_state.get("lighting", {}))
         QMLBridge.queue_update(window, "materials", full_state.get("materials", {}))
-        QMLBridge.queue_update(window, "quality", full_state.get("quality", {}))
+        quality_payload = SignalsRouter._normalize_quality_payload(
+            full_state.get("quality", {})
+        )
+        QMLBridge.queue_update(window, "quality", quality_payload)
         camera_state = SignalsRouter._sanitize_camera_payload(
             full_state.get("camera", {})
         )
