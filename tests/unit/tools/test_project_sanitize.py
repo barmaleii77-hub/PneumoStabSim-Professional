@@ -11,6 +11,12 @@ def test_normalise_argv_supports_compact_report_history_flag() -> None:
     assert result == ["--report-history", "5", "--dry-run"]
 
 
+def test_normalise_argv_supports_equals_syntax() -> None:
+    result = project_sanitize._normalise_argv(["--report-history=7"])
+
+    assert result == ["--report-history", "7"]
+
+
 def test_main_parses_compact_report_history_flag(monkeypatch) -> None:
     captured: dict[str, object] = {}
 

@@ -54,9 +54,15 @@ def _normalise_argv(argv: Sequence[str] | None) -> list[str]:
                 continue
 
             remainder = token[len(COMPACT_REPORT_HISTORY_FLAG) :]
-            if remainder and remainder.lstrip("-").isdigit():
+            if remainder and remainder.lstrip("-+").isdigit():
                 normalised.extend([COMPACT_REPORT_HISTORY_FLAG, remainder])
                 continue
+
+            if remainder.startswith("="):
+                value = remainder[1:]
+                if value and value.lstrip("-+").isdigit():
+                    normalised.extend([COMPACT_REPORT_HISTORY_FLAG, value])
+                    continue
 
         normalised.append(token)
 
