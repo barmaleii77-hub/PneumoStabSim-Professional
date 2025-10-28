@@ -396,7 +396,7 @@ class GeometryStateManager:
         piston_rod_length = _value("piston_rod_length_m", 0.200)
         piston_thickness = _value("piston_thickness_m", 0.025)
 
-        return {
+        payload = {
             # Основные размеры (м)
             "frameLength": frame_length,
             "frameHeight": frame_height,
@@ -421,3 +421,24 @@ class GeometryStateManager:
             "pistonRodLength": piston_rod_length,
             "pistonThickness": piston_thickness,
         }
+
+        # Дополнительные значения в миллиметрах для устаревших потребителей
+        mm_payload = {
+            "frame_length_mm": frame_length * 1000.0,
+            "frame_height_mm": frame_height * 1000.0,
+            "frame_beam_size_mm": frame_beam_size * 1000.0,
+            "lever_length_mm": lever_length * 1000.0,
+            "cylinder_body_length_mm": cylinder_body_length * 1000.0,
+            "tail_rod_length_mm": tail_rod_length * 1000.0,
+            "track_width_mm": track_width * 1000.0,
+            "frame_to_pivot_mm": frame_to_pivot * 1000.0,
+            "cyl_diam_mm": cyl_diameter * 1000.0,
+            "stroke_mm": stroke * 1000.0,
+            "dead_gap_mm": dead_gap * 1000.0,
+            "rod_diameter_mm": rod_diameter * 1000.0,
+            "piston_rod_length_mm": piston_rod_length * 1000.0,
+            "piston_thickness_mm": piston_thickness * 1000.0,
+        }
+
+        payload.update(mm_payload)
+        return payload
