@@ -44,6 +44,10 @@ class LatestOnlyQueue:
                 if self._queue.full():
                     try:
                         self._queue.get_nowait()
+                        # Mirror the consumer acknowledging the dropped item so
+                        # the underlying queue does not accumulate unfinished
+                        # tasks when we evict entries eagerly.
+                        self._queue.task_done()
                         self._dropped_count += 1
                     except queue.Empty:
                         pass  # Race condition, queue became empty
@@ -66,6 +70,11 @@ class LatestOnlyQueue:
         with self._lock:
             try:
                 item = self._queue.get_nowait()
+                # Mark the task as done immediately because the LatestOnlyQueue
+                # abstraction takes ownership of the queue lifecycle. This keeps
+                # ``unfinished_tasks`` in sync even if callers never invoke
+                # ``task_done`` on the internal queue.
+                self._queue.task_done()
                 self._get_count += 1
                 return item
             except queue.Empty:
