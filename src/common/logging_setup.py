@@ -96,8 +96,14 @@ def init_logging(
     """
     global _queue_listener
 
-    # Create log directory
+    # Create log directory and ensure structured subdirectories exist
     log_dir.mkdir(parents=True, exist_ok=True)
+
+    # Dedicated error logs are written by the global hook manager
+    # (see ``install_error_hooks``). Keep the directory ready even if hooks
+    # are disabled so diagnostics scripts stop warning about the missing
+    # folder.
+    (log_dir / "errors").mkdir(parents=True, exist_ok=True)
 
     # Log file path with timestamp
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
