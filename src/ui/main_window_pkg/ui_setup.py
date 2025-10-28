@@ -220,6 +220,12 @@ class UISetup:
             window._qquick_widget.setAttribute(
                 Qt.WidgetAttribute.WA_TranslucentBackground
             )
+            window._qquick_widget.setAttribute(Qt.WidgetAttribute.WA_NoSystemBackground)
+            window._qquick_widget.setAttribute(
+                Qt.WidgetAttribute.WA_OpaquePaintEvent,
+                False,
+            )
+            window._qquick_widget.setAutoFillBackground(False)
 
             # Get QML engine
             engine = window._qquick_widget.engine()
