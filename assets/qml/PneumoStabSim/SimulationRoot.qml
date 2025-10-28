@@ -174,8 +174,8 @@ onIsRunningChanged: {
  batchFlash.restart()
  }
 
- // Масштаб перевода метров в сцену Qt Quick3D (исторически миллиметры)
- property real sceneScaleFactor: sceneDefaults && sceneDefaults.scale_factor !== undefined ? Number(sceneDefaults.scale_factor) : 1000.0
+// Масштаб перевода метров в сцену Qt Quick3D (значение 1.0 = метры в сцене)
+property real sceneScaleFactor: sceneDefaults && sceneDefaults.scale_factor !== undefined ? Number(sceneDefaults.scale_factor) : 1.0
  readonly property real effectiveSceneScaleFactor: (function() {
  var numeric = Number(sceneScaleFactor);
  if (!isFinite(numeric) || numeric <= 0)
@@ -988,10 +988,8 @@ return Math.max(minValue, Math.min(maxValue, value));
  var numeric = Number(value);
  if (!isFinite(numeric))
   return undefined;
- if (Math.abs(numeric) >10.0)
-  return numeric /1000.0;
  return numeric;
-}
+ }
 
  function parseReflectionProbeEnum(value, mapping, fallback) {
   if (value === undefined || value === null)
@@ -1605,17 +1603,37 @@ return Math.max(minValue, Math.min(maxValue, value));
     var backgroundModeVal = valueForKeys(params, ['backgroundMode', 'background_mode']);
     if (backgroundModeVal !== undefined) setIfExists(sceneEnvCtl, 'backgroundModeKey', String(backgroundModeVal));
 
-    var skyboxFlag = valueForKeys(params, ['iblBackgroundEnabled', 'ibl_background_enabled', 'skyboxEnabled', 'skybox_enabled']);
-    if (skyboxFlag !== undefined) setIfExists(sceneEnvCtl, 'skyboxToggleFlag', !!skyboxFlag);
+    var skyboxFlagRaw = valueForKeys(
+        params,
+        ['iblBackgroundEnabled', 'ibl_background_enabled', 'skyboxEnabled', 'skybox_enabled']
+    );
+    if (skyboxFlagRaw !== undefined)
+        setIfExists(sceneEnvCtl, 'skyboxToggleFlag', !!skyboxFlagRaw);
 
-    var iblEnabledFlag = valueForKeys(params, ['iblEnabled', 'ibl_enabled']);
-    if (iblEnabledFlag !== undefined) {
-        setIfExists(sceneEnvCtl, 'iblMasterEnabled', !!iblEnabledFlag);
-        setIfExists(sceneEnvCtl, 'iblLightingEnabled', !!iblEnabledFlag);
+    var currentSkyboxState = false;
+    if (sceneEnvCtl && sceneEnvCtl.skyboxToggleFlag !== undefined)
+        currentSkyboxState = !!sceneEnvCtl.skyboxToggleFlag;
+    var resolvedSkybox = skyboxFlagRaw !== undefined ? !!skyboxFlagRaw : currentSkyboxState;
+
+    var iblEnabledRaw = valueForKeys(params, ['iblEnabled', 'ibl_enabled']);
+    var iblLightingRaw = valueForKeys(params, ['iblLightingEnabled', 'ibl_lighting_enabled']);
+
+    var resolvedLighting = false;
+    if (sceneEnvCtl && sceneEnvCtl.iblLightingEnabled !== undefined)
+        resolvedLighting = !!sceneEnvCtl.iblLightingEnabled;
+
+    if (iblEnabledRaw !== undefined) {
+        resolvedLighting = !!iblEnabledRaw;
+        setIfExists(sceneEnvCtl, 'iblLightingEnabled', resolvedLighting);
     }
 
-    var iblLightingVal = valueForKeys(params, ['iblLightingEnabled', 'ibl_lighting_enabled']);
-    if (iblLightingVal !== undefined) setIfExists(sceneEnvCtl, 'iblLightingEnabled', !!iblLightingVal);
+    if (iblLightingRaw !== undefined) {
+        resolvedLighting = !!iblLightingRaw;
+        setIfExists(sceneEnvCtl, 'iblLightingEnabled', resolvedLighting);
+    }
+
+    var masterEnabled = resolvedLighting || resolvedSkybox;
+    setIfExists(sceneEnvCtl, 'iblMasterEnabled', masterEnabled);
 
     var directSkyboxBrightnessProvided = valueForKeys(
         params,

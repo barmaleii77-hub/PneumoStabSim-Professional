@@ -445,7 +445,7 @@
         "adjustment_saturation": 0.0
       },
       "scene": {
-        "scale_factor": 1000.0,
+        "scale_factor": 1.0,
         "exposure": 1.0,
         "default_clear_color": "#1b1f27",
         "model_base_color": "#9da3aa",
@@ -1318,7 +1318,7 @@
         "adjustment_saturation": 0.0
       },
       "scene": {
-        "scale_factor": 1000.0,
+        "scale_factor": 1.0,
         "exposure": 1.0,
         "default_clear_color": "#1b1f27",
         "model_base_color": "#9da3aa",

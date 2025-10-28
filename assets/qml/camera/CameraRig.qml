@@ -32,12 +32,19 @@ Node {
     // ===============================================================
 
     /**
-     * Scene scale factor (mm ↔ scene units).
+     * Scene scale factor (метры ↔ сцена).
      * Значение передаётся из контроллера камеры и соответствует
-     * `sceneScaleFactor` в SimulationRoot. Для совместимости
-     * используем 1000 (мм в метры) по умолчанию.
+     * `sceneScaleFactor` в SimulationRoot. При значении 1.0
+     * координаты сцены трактуются как метры.
      */
-    property real sceneScaleFactor: 1000.0
+    property real sceneScaleFactor: 1.0
+
+    /**
+     * Количество «контроллерных» единиц (исторически миллиметры)
+     * в одном метре. Используется для перевода данных камеры
+     * в масштабе сцены.
+     */
+    property real controllerUnitsPerMeter: 1000.0
 
     /**
      * Access to camera object
@@ -49,9 +56,14 @@ Node {
      */
     readonly property alias panNode: localPanNode
 
-    readonly property real _effectiveScale: {
+    readonly property real _effectiveSceneScale: {
         var numeric = Number(sceneScaleFactor)
         return numeric > 0 && isFinite(numeric) ? numeric : 1.0
+    }
+
+    readonly property real _controllerUnitsPerMeter: {
+        var numeric = Number(controllerUnitsPerMeter)
+        return numeric > 0 && isFinite(numeric) ? numeric : 1000.0
     }
 
     function toSceneLength(mmValue) {
@@ -59,7 +71,7 @@ Node {
         if (!isFinite(numeric)) {
             return 0.0
         }
-        return numeric / _effectiveScale
+        return (numeric / _controllerUnitsPerMeter) * _effectiveSceneScale
     }
 
     function toSceneVector(vector) {

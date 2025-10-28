@@ -160,6 +160,7 @@ class SettingsManager:
         self._defaults: Dict[str, Any] = {}
         self._metadata: Dict[str, Any] = {}
         self._extra: Dict[str, Any] = {}
+        self._original_units_version: str = _DEFAULT_UNITS_VERSION
         self.load()
 
     # ------------------------------------------------------------------ helpers
@@ -168,9 +169,19 @@ class SettingsManager:
         return self._settings_path
 
     def _ensure_units_version(self) -> None:
-        units_version = self._metadata.get("units_version")
-        if units_version != _DEFAULT_UNITS_VERSION:
+        raw_units_version = self._metadata.get("units_version")
+        if isinstance(raw_units_version, str):
+            normalized = raw_units_version.strip()
+            self._original_units_version = normalized or "legacy"
+        elif raw_units_version is None:
+            self._original_units_version = "legacy"
+        else:
+            self._original_units_version = str(raw_units_version).strip() or "legacy"
+
+        if self._original_units_version != _DEFAULT_UNITS_VERSION:
             self._metadata["units_version"] = _DEFAULT_UNITS_VERSION
+        else:
+            self._metadata["units_version"] = self._original_units_version
 
     def _assign_sections(self, payload: Dict[str, Any]) -> None:
         self._metadata = _deep_copy(payload.get("metadata", {}))
@@ -183,6 +194,22 @@ class SettingsManager:
         }
         self._migrate_known_extras()
         self._ensure_units_version()
+
+    # ------------------------------------------------------------------- units
+    def get_units_version(self, *, normalised: bool = True) -> str:
+        """Return the settings units version.
+
+        Args:
+            normalised: When ``True`` (default) the coerced ``si_v2`` value is
+                returned. When ``False`` the original value found in the
+                settings payload is returned, allowing callers to detect
+                legacy files and perform migrations safely.
+        """
+
+        if normalised:
+            return str(self._metadata.get("units_version", _DEFAULT_UNITS_VERSION))
+
+        return self._original_units_version or _DEFAULT_UNITS_VERSION
 
     # ------------------------------------------------------------------- public
     def load(self) -> None:
