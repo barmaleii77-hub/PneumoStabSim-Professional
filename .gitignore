@@ -339,6 +339,10 @@ MigrationBackup/
 FodyWeavers.xsd
 
 # Python virtual environment
+# Copilot environment artefacts
+.env.cipilot
+reports/quality/cipilot_environment.json
+
 .venv/
 venv/
 
@@ -467,6 +471,7 @@ check_*.py
 !tests/unit/tools/test_report_metrics.py
 !tests/unit/tools/test_validate_settings_cli.py
 !tests/unit/tools/test_ci_tasks.py
+!tests/unit/tools/test_cipilot_environment.py
 !tests/settings/test_persistence.py
 !tests/ui/test_geometry_cylinder_tab.py
 !tests/unit/ui/test_knob.py
