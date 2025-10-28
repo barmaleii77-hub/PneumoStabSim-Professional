@@ -2,3 +2,5 @@ IblProbeLoader IblProbeLoader.qml
 ProfileManagerControls ProfileManagerControls.qml
 SignalTraceIndicator SignalTraceIndicator.qml
 SignalTracePanel SignalTracePanel.qml
+DiagnosticsOverlay DiagnosticsOverlay.qml
+AnimatedRodMaterial AnimatedRodMaterial.qml

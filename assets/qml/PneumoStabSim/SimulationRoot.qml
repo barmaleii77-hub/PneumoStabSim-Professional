@@ -597,10 +597,10 @@ View3D {
  pistonRodMaterial: sharedMaterials.pistonRodMaterial
  jointTailMaterial: sharedMaterials.jointTailMaterial
  jointArmMaterial: sharedMaterials.jointArmMaterial
- jointRodMaterial: PrincipledMaterial {
- baseColor: flCorner.rodLengthError >0.001 ? sharedMaterials.jointRodErrorColor : sharedMaterials.jointRodOkColor
- metalness:0.9
- roughness:0.35
+ jointRodMaterial: AnimatedRodMaterial {
+ okColor: sharedMaterials.jointRodOkColor
+ warningColor: sharedMaterials.jointRodErrorColor
+ warning: flCorner.rodLengthError > 0.001
  }
  }
 
@@ -627,10 +627,10 @@ View3D {
  pistonRodMaterial: sharedMaterials.pistonRodMaterial
  jointTailMaterial: sharedMaterials.jointTailMaterial
  jointArmMaterial: sharedMaterials.jointArmMaterial
- jointRodMaterial: PrincipledMaterial {
- baseColor: frCorner.rodLengthError >0.001 ? sharedMaterials.jointRodErrorColor : sharedMaterials.jointRodOkColor
- metalness:0.9
- roughness:0.35
+ jointRodMaterial: AnimatedRodMaterial {
+ okColor: sharedMaterials.jointRodOkColor
+ warningColor: sharedMaterials.jointRodErrorColor
+ warning: frCorner.rodLengthError > 0.001
  }
  }
 
@@ -657,10 +657,10 @@ View3D {
  pistonRodMaterial: sharedMaterials.pistonRodMaterial
  jointTailMaterial: sharedMaterials.jointTailMaterial
  jointArmMaterial: sharedMaterials.jointArmMaterial
- jointRodMaterial: PrincipledMaterial {
- baseColor: rlCorner.rodLengthError >0.001 ? sharedMaterials.jointRodErrorColor : sharedMaterials.jointRodOkColor
- metalness:0.9
- roughness:0.35
+ jointRodMaterial: AnimatedRodMaterial {
+ okColor: sharedMaterials.jointRodOkColor
+ warningColor: sharedMaterials.jointRodErrorColor
+ warning: rlCorner.rodLengthError > 0.001
  }
  }
 
@@ -687,10 +687,10 @@ View3D {
  pistonRodMaterial: sharedMaterials.pistonRodMaterial
  jointTailMaterial: sharedMaterials.jointTailMaterial
  jointArmMaterial: sharedMaterials.jointArmMaterial
- jointRodMaterial: PrincipledMaterial {
- baseColor: rrCorner.rodLengthError >0.001 ? sharedMaterials.jointRodErrorColor : sharedMaterials.jointRodOkColor
- metalness:0.9
- roughness:0.35
+ jointRodMaterial: AnimatedRodMaterial {
+ okColor: sharedMaterials.jointRodOkColor
+ warningColor: sharedMaterials.jointRodErrorColor
+ warning: rrCorner.rodLengthError > 0.001
  }
  }
  }
@@ -844,137 +844,49 @@ Connections {
    } else {
     signalTraceHistory = []
    }
-   if (tracePanel) {
-    tracePanel.maxEntries = signalTraceHistoryLimit
-    tracePanel.reset(signalTraceHistory)
-   }
   }
  }
 
- Item {
+ DiagnosticsOverlay {
   id: diagnosticsOverlay
   anchors.fill: parent
-  visible: signalTraceOverlayVisible || profileControls.visible
   z: 1000
+  traceOverlayVisible: signalTraceOverlayVisible
+  recordingEnabled: signalTraceRecordingEnabled
+  panelExpanded: signalTracePanelExpanded
+  historyLimit: signalTraceHistoryLimit
+  historyEntries: signalTraceHistory
+  clearEnabled: signalTraceHistory.length > 0 && typeof signalTrace !== "undefined" && signalTrace && signalTrace.clearHistory
+  profileService: typeof settingsProfiles !== "undefined" ? settingsProfiles : null
+  overlayLabel: qsTr("Сигналы")
 
-  MouseArea {
-   anchors.fill: parent
-   acceptedButtons: Qt.NoButton
-   hoverEnabled: true
+  onOverlayToggled: function(enabled) {
+   if (_signalTraceSyncing)
+    return
+   signalTraceOverlayVisible = enabled
+   if (!enabled)
+    signalTracePanelExpanded = false
+   if (typeof window !== "undefined" && window && window.applyQmlConfigChange) {
+    window.applyQmlConfigChange("diagnostics.signal_trace", { overlay_enabled: enabled })
+   }
   }
 
-  ProfileManagerControls {
-   id: profileControls
-   anchors.left: parent.left
-   anchors.top: parent.top
-   anchors.margins: 12
-   profileService: typeof settingsProfiles !== "undefined" ? settingsProfiles : null
-   visible: profileService !== null
+  onRecordingToggled: function(enabled) {
+   if (_signalTraceSyncing)
+    return
+   signalTraceRecordingEnabled = enabled
+   if (typeof window !== "undefined" && window && window.applyQmlConfigChange) {
+    window.applyQmlConfigChange("diagnostics.signal_trace", { enabled: enabled })
+   }
   }
 
-  Rectangle {
-   id: signalTraceContainer
-   anchors.top: parent.top
-   anchors.right: parent.right
-   anchors.margins: 12
-   width: 360
-   visible: signalTraceOverlayVisible
-   radius: 10
-   color: Qt.rgba(0.08, 0.1, 0.14, 0.92)
-   border.width: 1
-   border.color: Qt.rgba(0.25, 0.65, 0.95, 0.4)
+  onPanelVisibilityToggled: function(expanded) {
+   signalTracePanelExpanded = expanded
+  }
 
-   ColumnLayout {
-    anchors.fill: parent
-    anchors.margins: 12
-    spacing: 8
-
-    SignalTraceIndicator {
-     id: traceIndicator
-     Layout.fillWidth: true
-     label: qsTr("Сигналы")
-     count: signalTraceHistory.length
-     pulseOnChange: signalTraceRecordingEnabled
-     backgroundColor: Qt.rgba(0.05, 0.07, 0.11, 0.95)
-     accentColor: signalTraceRecordingEnabled ? Qt.rgba(0.2, 0.75, 0.5, 1) : Qt.rgba(0.5, 0.5, 0.5, 1)
-    }
-
-    RowLayout {
-     Layout.fillWidth: true
-     spacing: 8
-
-     Switch {
-      id: overlaySwitch
-      text: qsTr("Оверлей")
-      checked: signalTraceOverlayVisible
-      Layout.alignment: Qt.AlignLeft
-      onToggled: {
-       if (_signalTraceSyncing)
-        return
-       signalTraceOverlayVisible = checked
-       if (!checked)
-        signalTracePanelExpanded = false
-       if (typeof window !== "undefined" && window && window.applyQmlConfigChange) {
-        window.applyQmlConfigChange("diagnostics.signal_trace", { overlay_enabled: checked })
-       }
-      }
-     }
-
-     Switch {
-      id: recordingSwitch
-      text: qsTr("Запись")
-      checked: signalTraceRecordingEnabled
-      Layout.alignment: Qt.AlignLeft
-      onToggled: {
-       if (_signalTraceSyncing)
-        return
-       signalTraceRecordingEnabled = checked
-       if (typeof window !== "undefined" && window && window.applyQmlConfigChange) {
-        window.applyQmlConfigChange("diagnostics.signal_trace", { enabled: checked })
-       }
-      }
-     }
-
-     ToolButton {
-      text: signalTracePanelExpanded ? qsTr("Скрыть") : qsTr("Показать")
-      enabled: signalTraceOverlayVisible
-      Layout.alignment: Qt.AlignRight
-      onClicked: signalTracePanelExpanded = !signalTracePanelExpanded
-     }
-
-     ToolButton {
-      text: qsTr("Очистить")
-      enabled: signalTraceHistory.length > 0 && typeof signalTrace !== "undefined" && signalTrace && signalTrace.clearHistory
-      Layout.alignment: Qt.AlignRight
-      onClicked: {
-       if (typeof signalTrace !== "undefined" && signalTrace && signalTrace.clearHistory) {
-        signalTrace.clearHistory()
-       }
-      }
-     }
-    }
-
-    Label {
-      Layout.fillWidth: true
-      wrapMode: Text.WordWrap
-      color: signalTraceRecordingEnabled ? "#a5e6c8" : "#c0c0c0"
-      text: signalTraceRecordingEnabled
-        ? qsTr("Запись сигналов активна")
-        : qsTr("Запись сигналов отключена")
-     }
-
-    SignalTracePanel {
-     id: tracePanel
-     Layout.fillWidth: true
-     Layout.preferredHeight: signalTracePanelExpanded ? 240 : 0
-     visible: signalTracePanelExpanded
-     maxEntries: signalTraceHistoryLimit
-     onClearRequested: {
-      if (typeof signalTrace !== "undefined" && signalTrace && signalTrace.clearHistory) {
-       signalTrace.clearHistory()
-      }
-     }
-    }
+  onClearHistoryRequested: {
+   if (typeof signalTrace !== "undefined" && signalTrace && signalTrace.clearHistory) {
+    signalTrace.clearHistory()
    }
   }
  }
