@@ -33,11 +33,11 @@ QtObject {
     property real userAmplitude: 8.0
 
     // Geometry parameters
-    property real userLeverLength: 800.0
-    property real userRodPosition: 0.6
-    property real userCylinderLength: 500.0
-    property real userTrackWidth: 1600.0
-    property real userFrameLength: 3200.0
+    property real userLeverLength: 0.75
+    property real userRodPosition: 0.34
+    property real userCylinderLength: 0.46
+    property real userTrackWidth: 2.34
+    property real userFrameLength: 3.4
 
     // Camera parameters
     property real cameraFov: 60.0
