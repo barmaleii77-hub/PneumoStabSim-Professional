@@ -31,7 +31,7 @@ DEFAULT_REQUIRED_MATERIALS = frozenset(
     {
         "frame",
         "lever",
-        "tail",
+        "tail_rod",
         "cylinder",
         "piston_body",
         "piston_rod",
@@ -40,6 +40,11 @@ DEFAULT_REQUIRED_MATERIALS = frozenset(
         "joint_rod",
     }
 )
+
+# ``tail`` was renamed to ``tail_rod`` but older payloads may still provide the
+# legacy key.  Validation accepts those aliases so users can load historical
+# configurations without manual edits.
+LEGACY_MATERIAL_ALIASES = {"tail": "tail_rod"}
 
 
 class SettingsValidationError(ValueError):
@@ -205,7 +210,8 @@ def _validate_materials(
         )
 
     present = {str(name) for name in materials_node.keys()}
-    missing = sorted(set(required_materials) - present)
+    canonical_present = {LEGACY_MATERIAL_ALIASES.get(name, name) for name in present}
+    missing = sorted(set(required_materials) - canonical_present)
     if missing:
         raise SettingsValidationError(
             "Отсутствуют обязательные материалы в current.graphics.materials: "

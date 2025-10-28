@@ -693,13 +693,20 @@
               "required": [
                 "frame",
                 "lever",
-                "tail",
                 "cylinder",
                 "piston_body",
                 "piston_rod",
                 "joint_tail",
                 "joint_arm",
                 "joint_rod"
+              ],
+              "allOf": [
+                {
+                  "anyOf": [
+                    {"required": ["tail_rod"]},
+                    {"required": ["tail"]}
+                  ]
+                }
               ],
               "additionalProperties": false
             },
