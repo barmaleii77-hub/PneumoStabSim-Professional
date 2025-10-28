@@ -1,0 +1,29 @@
+# Graphics Parameter Audit — February 2025
+
+## Scope
+- Reviewed all QML scene controllers and effect modules under `assets/qml/` with a focus on `SimulationRoot.qml` and `SceneEnvironmentController.qml`.
+- Reviewed the refactored graphics panel implementation under `src/ui/panels/graphics/` and the signal routing in `src/ui/main_window_pkg/` to confirm how UI changes propagate to QML.
+- Cross-referenced current configuration defaults in `config/app_settings.json` and validation helpers in `src/ui/environment_schema.py`.
+
+## UI coverage summary
+- **Lighting tab** – exposes brightness, colour, orientation, optional positioning, shadow toggles, camera bindings, and attenuation controls for key, fill, rim, point, and spot lights. 【F:src/ui/panels/graphics/lighting_tab.py†L53-L566】
+- **Environment tab** – provides controls for background modes, IBL sources and offsets, reflection probe quality, fog (including optional height parameters), and ambient occlusion settings. 【F:src/ui/panels/graphics/environment_tab.py†L51-L521】
+- **Quality tab** – covers preset profiles plus detailed controls for shadow resolution/filter/bias, antialiasing (primary/post), temporal AA, FXAA, specular AA, render scale & policy, frame-rate cap, dithering, weighted OIT, and mesh density. 【F:src/ui/panels/graphics/quality_tab.py†L43-L480】
+- **Camera tab** – exposes FOV, clipping planes, navigation speed, autorotation, manual camera transforms, orbit target & inertia tuning, and world transforms. 【F:src/ui/panels/graphics/camera_tab.py†L43-L312】
+- **Materials tab** – allows full PrincipledMaterial tuning (base colour, opacity, metalness, roughness, specular, clearcoat, transmission, IOR, thickness, attenuation, emissive, normals, occlusion, alpha mode) for all nine model sub-components. 【F:src/ui/panels/graphics/materials_tab.py†L40-L212】
+- **Effects tab** – surfaces bloom, tone mapping, depth of field, motion blur, lens flare, vignette, and colour adjustments with dependency-aware enablement. 【F:src/ui/panels/graphics/effects_tab.py†L31-L340】
+- **Data flow** – the graphics panel aggregates category payloads, which `SignalsRouter` forwards to QML update functions. `SimulationRoot.qml` and `SceneEnvironmentController.qml` then apply the payloads, converting length inputs to scene units. 【F:src/ui/panels/graphics/panel_graphics_refactored.py†L120-L209】【F:src/ui/panels/graphics/panel_graphics_refactored.py†L320-L338】【F:src/ui/main_window_pkg/signals_router.py†L366-L520】【F:assets/qml/PneumoStabSim/SimulationRoot.qml†L1646-L1701】
+
+## Findings
+1. **Ambient occlusion radius clamps to 0.5 mm** – the slider enforces a 0.5–50 mm range, but defaults in `app_settings.json` store `ao_radius` as 0.008 (metres). The slider clamps to its minimum and sends the truncated value back to QML, while the scene controller multiplies inputs by the scene scale (expects metres). 【F:src/ui/panels/graphics/environment_tab.py†L485-L514】【F:config/app_settings.json†L160-L176】【F:src/ui/panels/graphics/widgets.py†L178-L204】【F:assets/qml/effects/SceneEnvironmentController.qml†L229-L243】
+2. **Fog near/far sliders limited to sub-metre ranges** – UI limits near/far to 0–200 mm and 400–5000 mm, whereas defaults are 2 m / 20 m and QML converts metres via `toSceneLength`. Users cannot represent larger fog volumes or match defaults after interaction. 【F:src/ui/panels/graphics/environment_tab.py†L360-L412】【F:config/app_settings.json†L160-L165】【F:assets/qml/effects/SceneEnvironmentController.qml†L229-L260】【F:src/ui/panels/graphics/widgets.py†L178-L204】
+3. **Point and spot light ranges cannot cover sub-10 m scenes** – sliders start at 10 m even though defaults are 3.6 m (point) and 0.2 m (spot). The clamping logic forces much larger ranges than intended. 【F:src/ui/panels/graphics/lighting_tab.py†L397-L405】【F:src/ui/panels/graphics/lighting_tab.py†L526-L534】【F:config/app_settings.json†L120-L131】【F:src/ui/panels/graphics/widgets.py†L178-L204】
+4. **DoF focus distance slider minimum is 200 units** – config default is 2.5 (metres). Because the slider clamps to 200 and QML again calls `toSceneLength`, the UI cannot express shallow depth-of-field values. 【F:src/ui/panels/graphics/effects_tab.py†L208-L221】【F:config/app_settings.json†L464-L480】【F:assets/qml/effects/SceneEnvironmentController.qml†L283-L304】【F:src/ui/panels/graphics/widgets.py†L178-L204】
+5. **Point light attenuation sliders initialise to zero** – `constant_fade` and `linear_fade` controls default to zero because the settings payload lacks those keys. QML falls back to physically reasonable defaults (1.0 and `2/range`), so the UI shows misleading values until the user moves the sliders. Hydrating defaults from QML (or baseline config) would avoid the discrepancy. 【F:src/ui/panels/graphics/lighting_tab.py†L407-L420】【F:src/ui/panels/graphics/widgets.py†L178-L204】【F:assets/qml/PneumoStabSim/SimulationRoot.qml†L524-L536】【F:config/app_settings.json†L120-L124】
+6. **Scene & animation graphics settings lack UI** – the panel only creates tabs for lighting, environment, quality, camera, materials, and effects. Nevertheless it still persists `scene` (exposure, clear colour, model materials) and `animation` parameters from the state cache, so users cannot edit these graphics-affecting values. 【F:src/ui/panels/graphics/panel_graphics_refactored.py†L127-L140】【F:src/ui/panels/graphics/panel_graphics_refactored.py†L320-L332】【F:config/app_settings.json†L496-L514】
+
+## Recommendations
+- Align slider ranges/units with metre-based payloads before applying `toSceneLength` in QML.
+- Pre-populate attenuation controls from defaults to reflect the actual scene values on load.
+- Introduce UI for `scene` (exposure, clear colour, base material) and `animation` sections or document why they remain hidden.
+- Update validation schemas/tests once ranges are corrected to prevent regressions.
