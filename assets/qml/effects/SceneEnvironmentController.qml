@@ -19,18 +19,24 @@ ExtendedSceneEnvironment {
  property Texture iblProbe: null
  property real iblIntensity:1.0
  property real iblRotationDeg:0.0
+ property real iblPitchDeg:0.0
+ property real iblRollDeg:0.0
+ property string backgroundModeToken: "skybox"
 
  /**
  * Python SceneBridge instance injected via context property.
  */
  property var sceneBridge: null
 
- backgroundMode: (iblBackgroundEnabled && iblProbe) ? SceneEnvironment.SkyBox : SceneEnvironment.Color
- clearColor: backgroundColor
- skyBoxCubeMap: (iblBackgroundEnabled && iblProbe) ? iblProbe : null
+ readonly property bool wantsTransparentBackground: backgroundModeToken === "transparent"
+ readonly property bool wantsSkyboxBackground: backgroundModeToken === "skybox" && iblBackgroundEnabled && !!iblProbe
+
+ backgroundMode: wantsTransparentBackground ? SceneEnvironment.Transparent : (wantsSkyboxBackground ? SceneEnvironment.SkyBox : SceneEnvironment.Color)
+ clearColor: wantsTransparentBackground ? Qt.rgba(0, 0, 0, 0) : backgroundColor
+ skyBoxCubeMap: wantsSkyboxBackground ? iblProbe : null
  lightProbe: (iblLightingEnabled && iblProbe) ? iblProbe : null
  probeExposure: iblIntensity
- probeOrientation: Qt.vector3d(0, iblRotationDeg,0)
+ probeOrientation: Qt.vector3d(iblPitchDeg, iblRotationDeg, iblRollDeg)
 
  // ===============================================================
  // ANTIALIASING
@@ -99,8 +105,21 @@ ExtendedSceneEnvironment {
  var scale = Number(sceneScaleFactor)
  if (!isFinite(scale) || scale <= 0)
  return numeric
- return numeric * scale
+ return scale > 0 ? numeric / scale : numeric
  }
+
+ function canonicalBackgroundMode(value) {
+ var token = String(value || "").toLowerCase().trim()
+ if (!token)
+  return backgroundModeToken
+ if (token === "transparent" || token === "alpha" || token === "clear")
+  return "transparent"
+ if (token === "skybox" || token === "ibl" || token === "hdr")
+  return "skybox"
+ if (token === "color" || token === "solid")
+  return "color"
+ return backgroundModeToken
+}
 
  function _applySceneBridgeState() {
  if (!sceneBridge)
@@ -167,6 +186,13 @@ ExtendedSceneEnvironment {
  if (params.clearColor)
  backgroundColor = params.clearColor
 
+ if (params.background_mode !== undefined)
+ backgroundModeToken = canonicalBackgroundMode(params.background_mode)
+ if (params.backgroundMode !== undefined)
+ backgroundModeToken = canonicalBackgroundMode(params.backgroundMode)
+ if (params.background && params.background.mode !== undefined)
+ backgroundModeToken = canonicalBackgroundMode(params.background.mode)
+
  if (params.background && params.background.color)
  backgroundColor = params.background.color
 
@@ -181,8 +207,26 @@ ExtendedSceneEnvironment {
  iblLightingEnabled = !!params.iblLightingEnabled
  if (params.iblIntensity !== undefined)
  iblIntensity = Number(params.iblIntensity)
+ if (params.probeBrightness !== undefined)
+ iblIntensity = Number(params.probeBrightness)
+ if (params.probe_brightness !== undefined)
+ iblIntensity = Number(params.probe_brightness)
  if (params.iblRotationDeg !== undefined)
  iblRotationDeg = Number(params.iblRotationDeg)
+ if (params.ibl_rotation !== undefined)
+ iblRotationDeg = Number(params.ibl_rotation)
+ if (params.probeHorizon !== undefined)
+ iblPitchDeg = Number(params.probeHorizon)
+ if (params.probe_horizon !== undefined)
+ iblPitchDeg = Number(params.probe_horizon)
+ if (params.iblOffsetX !== undefined)
+ iblPitchDeg = Number(params.iblOffsetX)
+ if (params.ibl_offset_x !== undefined)
+ iblPitchDeg = Number(params.ibl_offset_x)
+ if (params.iblOffsetY !== undefined)
+ iblRollDeg = Number(params.iblOffsetY)
+ if (params.ibl_offset_y !== undefined)
+ iblRollDeg = Number(params.ibl_offset_y)
 
  if (params.ibl) {
  var ibl = params.ibl
@@ -197,8 +241,14 @@ ExtendedSceneEnvironment {
  iblLightingEnabled = !!ibl.lighting_enabled
  if (ibl.intensity !== undefined)
  iblIntensity = Number(ibl.intensity)
+ if (ibl.brightness !== undefined)
+ iblIntensity = Number(ibl.brightness)
  if (ibl.rotation !== undefined)
  iblRotationDeg = Number(ibl.rotation)
+ if (ibl.offset_x !== undefined)
+ iblPitchDeg = Number(ibl.offset_x)
+ if (ibl.offset_y !== undefined)
+ iblRollDeg = Number(ibl.offset_y)
  }
 
  if (params.tonemapEnabled !== undefined)

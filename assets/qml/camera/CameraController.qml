@@ -419,7 +419,7 @@ Item {
             return 0
 
         if (assumeMeters === true)
-            return numeric * metersToMillimeters
+            return numeric * metersToControllerUnits
 
         // Values coming from the scene bridge that are 20 units or smaller are
         // emitted in metres (the CAD payload keeps human-friendly metre inputs).

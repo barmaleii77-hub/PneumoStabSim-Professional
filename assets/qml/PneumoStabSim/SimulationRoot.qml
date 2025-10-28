@@ -576,6 +576,7 @@ View3D {
 
  SuspensionCorner {
   id: flCorner
+ parent: worldRoot
  j_arm: cornerArmPosition("fl")
  j_tail: cornerTailPosition("fl")
  leverAngle: leverAngleFor("fl")
@@ -606,6 +607,7 @@ View3D {
 
  SuspensionCorner {
  id: frCorner
+ parent: worldRoot
  j_arm: cornerArmPosition("fr")
  j_tail: cornerTailPosition("fr")
  leverAngle: leverAngleFor("fr")
@@ -636,6 +638,7 @@ View3D {
 
  SuspensionCorner {
  id: rlCorner
+ parent: worldRoot
  j_arm: cornerArmPosition("rl")
  j_tail: cornerTailPosition("rl")
  leverAngle: leverAngleFor("rl")
@@ -666,6 +669,7 @@ View3D {
 
  SuspensionCorner {
  id: rrCorner
+ parent: worldRoot
  j_arm: cornerArmPosition("rr")
  j_tail: cornerTailPosition("rr")
  leverAngle: leverAngleFor("rr")
@@ -1180,7 +1184,10 @@ Connections {
  function cornerArmZ(side) {
  var frameLengthVal = geometryValue("frameLength", userFrameLength);
  var pivot = geometryValue("frameToPivot", userFrameToPivot);
- return cornerIsRear(side) ? frameLengthVal - pivot : pivot;
+ var halfLength = frameLengthVal / 2;
+ if (!isFinite(halfLength))
+  halfLength = 0;
+ return cornerIsRear(side) ? halfLength - pivot : -halfLength + pivot;
  }
 
  function cornerArmPosition(side) {
@@ -1647,10 +1654,23 @@ Connections {
  if (!params) return;
  if (params.clearColor) setIfExists(sceneEnvCtl, 'backgroundColor', params.clearColor);
  if (params.backgroundColor) setIfExists(sceneEnvCtl, 'backgroundColor', params.backgroundColor);
+ if (params.background_mode !== undefined)
+  setIfExists(sceneEnvCtl, 'backgroundModeToken', sceneEnvCtl.canonicalBackgroundMode(params.background_mode));
+ if (params.backgroundMode !== undefined)
+  setIfExists(sceneEnvCtl, 'backgroundModeToken', sceneEnvCtl.canonicalBackgroundMode(params.backgroundMode));
  if (params.iblBackgroundEnabled !== undefined) setIfExists(sceneEnvCtl, 'iblBackgroundEnabled', !!params.iblBackgroundEnabled);
  if (params.iblLightingEnabled !== undefined) setIfExists(sceneEnvCtl, 'iblLightingEnabled', !!params.iblLightingEnabled);
  if (params.iblIntensity !== undefined) setIfExists(sceneEnvCtl, 'iblIntensity', Number(params.iblIntensity));
+ if (params.probeBrightness !== undefined) setIfExists(sceneEnvCtl, 'iblIntensity', Number(params.probeBrightness));
+ if (params.probe_brightness !== undefined) setIfExists(sceneEnvCtl, 'iblIntensity', Number(params.probe_brightness));
  if (params.iblRotationDeg !== undefined) setIfExists(sceneEnvCtl, 'iblRotationDeg', Number(params.iblRotationDeg));
+ if (params.ibl_rotation !== undefined) setIfExists(sceneEnvCtl, 'iblRotationDeg', Number(params.ibl_rotation));
+ if (params.probeHorizon !== undefined) setIfExists(sceneEnvCtl, 'iblPitchDeg', Number(params.probeHorizon));
+ if (params.probe_horizon !== undefined) setIfExists(sceneEnvCtl, 'iblPitchDeg', Number(params.probe_horizon));
+ if (params.iblOffsetX !== undefined) setIfExists(sceneEnvCtl, 'iblPitchDeg', Number(params.iblOffsetX));
+ if (params.ibl_offset_x !== undefined) setIfExists(sceneEnvCtl, 'iblPitchDeg', Number(params.ibl_offset_x));
+ if (params.iblOffsetY !== undefined) setIfExists(sceneEnvCtl, 'iblRollDeg', Number(params.iblOffsetY));
+ if (params.ibl_offset_y !== undefined) setIfExists(sceneEnvCtl, 'iblRollDeg', Number(params.ibl_offset_y));
  if (params.iblPrimary || params.hdrSource || params.iblSource) { var src = params.iblPrimary || params.hdrSource || params.iblSource; if (typeof window !== 'undefined' && window && typeof window.normalizeHdrPath === 'function') { try { src = window.normalizeHdrPath(String(src)); } catch(e) { console.warn("HDR path normalization failed:", e); } } setIfExists(iblLoader, 'primarySource', src); }
  if (params.iblFallback) setIfExists(iblLoader, 'fallbackSource', params.iblFallback);
  if (params.tonemapEnabled !== undefined) {

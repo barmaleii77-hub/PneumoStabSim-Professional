@@ -38,6 +38,7 @@ from .menu_actions import MenuActions
 from src.common.settings_manager import get_settings_manager
 from src.common.signal_trace import get_signal_trace_service
 from src.core.settings_manager import ProfileSettingsManager
+from src.ui.environment_schema import ENVIRONMENT_REQUIRED_KEYS
 
 
 class MainWindow(QMainWindow):
@@ -297,9 +298,13 @@ class MainWindow(QMainWindow):
         if not isinstance(current_state, dict):
             current_state = {}
 
+        filtered_updates = self._filter_settings_payload(category_path, updates)
+        if not filtered_updates:
+            return
+
         before = copy.deepcopy(current_state)
         merged = copy.deepcopy(before)
-        self._deep_merge_dicts(merged, updates)
+        self._deep_merge_dicts(merged, filtered_updates)
 
         if merged == before:
             return
@@ -347,6 +352,22 @@ class MainWindow(QMainWindow):
                 MainWindow._deep_merge_dicts(base, value)
             else:
                 target[key] = copy.deepcopy(value)
+
+    @staticmethod
+    def _filter_settings_payload(
+        category_path: str, updates: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        if not isinstance(updates, dict):
+            return {}
+
+        if category_path == "graphics.environment":
+            return {
+                key: copy.deepcopy(value)
+                for key, value in updates.items()
+                if key in ENVIRONMENT_REQUIRED_KEYS
+            }
+
+        return copy.deepcopy(updates)
 
     @staticmethod
     def _iter_diff(
