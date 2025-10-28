@@ -1617,18 +1617,32 @@ return Math.max(minValue, Math.min(maxValue, value));
     var iblLightingVal = valueForKeys(params, ['iblLightingEnabled', 'ibl_lighting_enabled']);
     if (iblLightingVal !== undefined) setIfExists(sceneEnvCtl, 'iblLightingEnabled', !!iblLightingVal);
 
+    var directSkyboxBrightnessProvided = valueForKeys(
+        params,
+        ['skyboxBrightness', 'skybox_brightness']
+    ) !== undefined;
     var directProbeBrightnessProvided = valueForKeys(
         params,
         ['probeBrightness', 'probe_brightness']
     ) !== undefined;
+    var nestedSkyboxBrightnessProvided = false;
     var nestedProbeBrightnessProvided = false;
     if (params.ibl && typeof params.ibl === 'object') {
+        nestedSkyboxBrightnessProvided = valueForKeys(
+            params.ibl,
+            ['skyboxBrightness', 'skybox_brightness']
+        ) !== undefined;
         nestedProbeBrightnessProvided = valueForKeys(
             params.ibl,
             ['probeBrightness', 'probe_brightness']
         ) !== undefined;
     }
-    var shouldMirrorIntensity = !(directProbeBrightnessProvided || nestedProbeBrightnessProvided);
+    var shouldMirrorIntensity = !(
+        directSkyboxBrightnessProvided ||
+        directProbeBrightnessProvided ||
+        nestedSkyboxBrightnessProvided ||
+        nestedProbeBrightnessProvided
+    );
 
     var intensityVal = valueForKeys(params, ['iblIntensity', 'ibl_intensity']);
     if (intensityVal !== undefined) {
@@ -1636,16 +1650,21 @@ return Math.max(minValue, Math.min(maxValue, value));
         if (isFinite(numericIntensity)) {
             setIfExists(sceneEnvCtl, 'iblIntensity', numericIntensity);
             if (shouldMirrorIntensity) {
-                setIfExists(sceneEnvCtl, 'probeBrightnessValue', numericIntensity);
+                setIfExists(sceneEnvCtl, 'skyboxBrightnessValue', numericIntensity);
             }
         }
     }
 
-    var probeBrightnessVal = valueForKeys(params, ['probeBrightness', 'probe_brightness']);
-    if (probeBrightnessVal !== undefined) {
-     var numericBrightness = Number(probeBrightnessVal);
-     if (isFinite(numericBrightness)) setIfExists(sceneEnvCtl, 'probeBrightnessValue', numericBrightness);
- }
+    var skyboxBrightnessVal = valueForKeys(
+        params,
+        ['skyboxBrightness', 'skybox_brightness', 'probeBrightness', 'probe_brightness']
+    );
+    if (skyboxBrightnessVal !== undefined) {
+        var numericSkyboxBrightness = Number(skyboxBrightnessVal);
+        if (isFinite(numericSkyboxBrightness)) {
+            setIfExists(sceneEnvCtl, 'skyboxBrightnessValue', numericSkyboxBrightness);
+        }
+    }
 
  var probeHorizonVal = valueForKeys(params, ['probeHorizon', 'probe_horizon']);
  if (probeHorizonVal !== undefined) {

@@ -114,8 +114,8 @@ class EnvironmentTab(QWidget):
         grid.addWidget(ibl_check, row, 0, 1, 2)
         row += 1
 
-        # IBL intensity
-        intensity = LabeledSlider("Интенсивность IBL", 0.0, 8.0, 0.05, decimals=2)
+        # IBL intensity (освещение)
+        intensity = LabeledSlider("Яркость освещения IBL", 0.0, 8.0, 0.05, decimals=2)
         intensity.valueChanged.connect(
             lambda v: self._on_control_changed("ibl_intensity", v)
         )
@@ -123,15 +123,15 @@ class EnvironmentTab(QWidget):
         grid.addWidget(intensity, row, 0, 1, 2)
         row += 1
 
-        # IBL extra: probe brightness (если поддерживается движком)
-        probe_brightness = LabeledSlider(
-            "Яркость пробы (probeBrightness)", 0.0, 8.0, 0.05, decimals=2
+        # Skybox brightness (фон)
+        skybox_brightness = LabeledSlider(
+            "Яркость фона (Skybox)", 0.0, 8.0, 0.05, decimals=2
         )
-        probe_brightness.valueChanged.connect(
-            lambda v: self._on_control_changed("probe_brightness", v)
+        skybox_brightness.valueChanged.connect(
+            lambda v: self._on_control_changed("skybox_brightness", v)
         )
-        self._controls["ibl.probe_brightness"] = probe_brightness
-        grid.addWidget(probe_brightness, row, 0, 1, 2)
+        self._controls["ibl.skybox_brightness"] = skybox_brightness
+        grid.addWidget(skybox_brightness, row, 0, 1, 2)
         row += 1
 
         # IBL extra: probe horizon cutoff (-1..1)
@@ -591,7 +591,7 @@ class EnvironmentTab(QWidget):
             ).isChecked(),
             "ibl_enabled": self._require_control("ibl.enabled").isChecked(),
             "ibl_intensity": self._require_control("ibl.intensity").value(),
-            "probe_brightness": self._require_control("ibl.probe_brightness").value(),
+            "skybox_brightness": self._require_control("ibl.skybox_brightness").value(),
             "probe_horizon": self._require_control("ibl.probe_horizon").value(),
             "ibl_rotation": self._require_control("ibl.rotation").value(),
             "ibl_source": self._normalize_ibl_path(
@@ -664,8 +664,8 @@ class EnvironmentTab(QWidget):
 
             self._require_control("ibl.enabled").setChecked(validated["ibl_enabled"])
             self._require_control("ibl.intensity").set_value(validated["ibl_intensity"])
-            self._require_control("ibl.probe_brightness").set_value(
-                validated["probe_brightness"]
+            self._require_control("ibl.skybox_brightness").set_value(
+                validated["skybox_brightness"]
             )
             self._require_control("ibl.probe_horizon").set_value(
                 validated["probe_horizon"]
