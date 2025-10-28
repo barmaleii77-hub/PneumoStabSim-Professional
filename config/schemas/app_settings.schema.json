@@ -967,6 +967,14 @@
           "items": {
             "type": "string"
           }
+        },
+        "legacy": {
+          "type": "object",
+          "description": "Preserved legacy values trimmed from current/defaults sections.",
+          "additionalProperties": {
+            "type": "object",
+            "additionalProperties": true
+          }
         }
       },
       "required": [

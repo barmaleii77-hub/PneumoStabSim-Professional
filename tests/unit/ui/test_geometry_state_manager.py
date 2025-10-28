@@ -63,3 +63,28 @@ def test_save_state_strips_legacy_geometry_keys(tmp_path: Path) -> None:
     assert legacy_keys.isdisjoint(saved["defaults_snapshot"]["geometry"])  # type: ignore[index]
     assert "tail_rod_length_m" in saved["current"]["geometry"]  # type: ignore[index]
     assert "tail_rod_length_m" in saved["defaults_snapshot"]["geometry"]  # type: ignore[index]
+
+
+def test_load_state_records_legacy_geometry(tmp_path: Path) -> None:
+    settings_path = tmp_path / "app_settings.json"
+    _write_settings_file(settings_path)
+
+    payload = json.loads(settings_path.read_text(encoding="utf-8"))
+    payload["current"]["geometry"]["tail_mount_offset_m"] = 0.25
+    payload["defaults_snapshot"]["geometry"]["joint_tail_scale"] = 1.5
+    settings_path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
+
+    manager = SettingsManager(settings_file=settings_path)
+    GeometryStateManager(manager)
+
+    saved = json.loads(settings_path.read_text(encoding="utf-8"))
+
+    assert "tail_mount_offset_m" not in saved["current"]["geometry"]  # type: ignore[index]
+    assert "joint_tail_scale" not in saved["defaults_snapshot"]["geometry"]  # type: ignore[index]
+
+    metadata_legacy = saved["metadata"].get("legacy", {})
+    current_legacy = metadata_legacy.get("current", {}).get("geometry", {})
+    defaults_legacy = metadata_legacy.get("defaults_snapshot", {}).get("geometry", {})
+
+    assert current_legacy["tail_mount_offset_m"] == 0.25
+    assert defaults_legacy["joint_tail_scale"] == 1.5

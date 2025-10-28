@@ -45,6 +45,7 @@ class GeometryStateManager:
         self.settings_manager = settings_manager
         self._settings_path = settings_path
         self._allowed_keys = frozenset(DEFAULT_GEOMETRY.keys())
+        self._legacy_metadata_path = "metadata.legacy"
 
         # Current state (mutable)
         self.state: Dict[str, Any] = DEFAULT_GEOMETRY.copy()
@@ -73,14 +74,51 @@ class GeometryStateManager:
         if param_name not in self._allowed_keys:
             raise KeyError(f"Unknown geometry parameter: {param_name}")
 
-    def _filter_known_parameters(self, payload: Dict[str, Any]) -> Dict[str, Any]:
-        unknown = sorted(set(payload) - self._allowed_keys)
-        if unknown:
+    def _partition_parameters(
+        self, payload: Dict[str, Any]
+    ) -> tuple[Dict[str, Any], Dict[str, Any]]:
+        """Split payload into known geometry keys and legacy values."""
+
+        known: Dict[str, Any] = {}
+        legacy: Dict[str, Any] = {}
+
+        for key, value in payload.items():
+            if key in self._allowed_keys:
+                known[key] = value
+            else:
+                legacy[key] = value
+
+        if legacy:
             self.logger.warning(
                 "Dropping unknown geometry parameters: %s",
-                ", ".join(unknown),
+                ", ".join(sorted(legacy)),
             )
-        return {key: payload[key] for key in payload if key in self._allowed_keys}
+
+        return known, legacy
+
+    def _record_legacy_parameters(self, path: str, legacy: Dict[str, Any]) -> None:
+        """Persist legacy parameters under the metadata."""
+
+        if not legacy or not self.settings_manager:
+            return
+
+        meta_path = f"{self._legacy_metadata_path}.{path}"
+
+        try:
+            existing = self.settings_manager.get(meta_path, default={}) or {}
+            merged = {**existing, **legacy}
+            self.settings_manager.set(meta_path, merged, auto_save=False)
+        except Exception as exc:  # pragma: no cover - defensive
+            self.logger.error("Failed to record legacy geometry parameters: %s", exc)
+
+    def _apply_sanitised_payload(self, path: str, payload: Dict[str, Any]) -> None:
+        if not self.settings_manager:
+            return
+
+        try:
+            self.settings_manager.set(path, payload, auto_save=False)
+        except Exception as exc:  # pragma: no cover - defensive
+            self.logger.error("Failed to persist sanitised geometry payload: %s", exc)
 
     def set_parameter(self, param_name: str, value: Any) -> None:
         """Set parameter value
@@ -439,7 +477,10 @@ class GeometryStateManager:
             self.logger.warning("No SettingsManager instance - cannot load")
             return
 
+        needs_save = False
+
         def _load_section(path: str) -> Dict[str, Any]:
+            nonlocal needs_save
             try:
                 payload = self.settings_manager.get(path, default={})
             except Exception as exc:  # pragma: no cover - defensive
@@ -447,7 +488,15 @@ class GeometryStateManager:
                 return {}
 
             if isinstance(payload, dict):
-                return self._filter_known_parameters(payload)
+                known, legacy = self._partition_parameters(payload)
+                if legacy:
+                    self._record_legacy_parameters(path, legacy)
+                    self._apply_sanitised_payload(path, known)
+                    needs_save = True
+                elif len(known) != len(payload):
+                    self._apply_sanitised_payload(path, known)
+                    needs_save = True
+                return known
 
             if payload not in (None, {}):
                 self.logger.warning(
@@ -455,6 +504,8 @@ class GeometryStateManager:
                     path,
                     type(payload).__name__,
                 )
+                self._apply_sanitised_payload(path, {})
+                needs_save = True
             return {}
 
         restored = DEFAULT_GEOMETRY.copy()
@@ -475,6 +526,12 @@ class GeometryStateManager:
 
         self.state = restored
         self.logger.info("State loaded from settings manager")
+
+        if needs_save and self.settings_manager:
+            try:
+                self.settings_manager.save()
+            except Exception as exc:  # pragma: no cover - defensive
+                self.logger.error("Failed to save geometry settings cleanup: %s", exc)
 
     # =========================================================================
     # HELPER METHODS
