@@ -80,3 +80,17 @@ def test_switching_materials_preserves_cached_values(qapp, materials_payload):
     assert cached["lever"]["roughness"] == pytest.approx(
         materials_payload["lever"]["roughness"]
     )
+
+
+def test_coerce_color_accepts_normalised_tuple(qapp):
+    tab = MaterialsTab()
+
+    rgb = (0.25, 0.5, 1.0)
+    coerced = tab._coerce_color(rgb)  # noqa: SLF001 - test helper
+
+    assert coerced == "#3f80ff"
+
+    rgb_255 = (64, 128, 255)
+    coerced_255 = tab._coerce_color(rgb_255)  # noqa: SLF001 - test helper
+
+    assert coerced_255 == "#4080ff"

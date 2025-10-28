@@ -194,10 +194,22 @@ class MaterialsTab(QWidget):
             if isinstance(value, str) and value:
                 return value
             if isinstance(value, (tuple, list)) and len(value) >= 3:
-                r = max(0, min(255, int(value[0])))
-                g = max(0, min(255, int(value[1])))
-                b = max(0, min(255, int(value[2])))
-                return f"#{r:02x}{g:02x}{b:02x}"
+                components = []
+                is_normalized = True
+                for channel in value[:3]:
+                    if not isinstance(channel, (int, float)):
+                        is_normalized = False
+                        break
+                    components.append(float(channel))
+                    if channel < 0 or channel > 1:
+                        is_normalized = False
+                if components:
+                    if is_normalized:
+                        converted = [int(round(max(0.0, min(1.0, c)) * 255)) for c in components]
+                    else:
+                        converted = [int(round(c)) for c in components]
+                    r, g, b = (max(0, min(255, comp)) for comp in converted)
+                    return f"#{r:02x}{g:02x}{b:02x}"
             if isinstance(value, (int, float)):
                 v = max(0.0, min(1.0, float(value)))
                 c = int(round(v * 255))
