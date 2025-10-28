@@ -19,6 +19,7 @@ from .defaults import (
     VALVE_DIAMETER_LIMITS,
     clamp,
     MM_PER_M,
+    convert_pressure_value,
     get_pressure_factor,
 )
 
@@ -45,16 +46,17 @@ class PneumoStateManager:
             converted.get("pressure_units", DEFAULT_PNEUMATIC["pressure_units"])
         )
         factor = get_pressure_factor(units)
+        if factor <= 0:
+            units = DEFAULT_PNEUMATIC["pressure_units"]
+            factor = get_pressure_factor(units)
         converted["pressure_units"] = units
         for key in STORAGE_PRESSURE_KEYS:
             if key in converted:
-                value = float(converted[key])
-                if value <= 0.0:
-                    converted[key] = value
-                elif value < 10.0:
-                    converted[key] = value
-                else:
-                    converted[key] = value / PA_PER_BAR
+                try:
+                    value_pa = float(converted[key])
+                except (TypeError, ValueError):
+                    continue
+                converted[key] = convert_pressure_value(value_pa, "Па", units)
         for key in STORAGE_DIAMETER_KEYS_MM:
             if key in converted:
                 value = float(converted[key])
@@ -73,10 +75,20 @@ class PneumoStateManager:
             converted.get("pressure_units", DEFAULT_PNEUMATIC["pressure_units"])
         )
         factor = get_pressure_factor(units)
-        converted["pressure_units"] = units
+        if factor <= 0:
+            units = DEFAULT_PNEUMATIC["pressure_units"]
+            factor = get_pressure_factor(units)
+            converted["pressure_units"] = units
+        else:
+            converted["pressure_units"] = units
         for key in STORAGE_PRESSURE_KEYS:
             if key in converted:
-                converted[key] = float(converted[key]) * factor
+                try:
+                    converted[key] = convert_pressure_value(
+                        float(converted[key]), units, "Па"
+                    )
+                except (TypeError, ValueError):
+                    continue
         for key in STORAGE_DIAMETER_KEYS_MM:
             if key in converted:
                 converted[key] = float(converted[key]) / MM_PER_M
@@ -239,14 +251,31 @@ class PneumoStateManager:
         if new_units == old_units:
             return
 
-        old_factor = get_pressure_factor(old_units)
         new_factor = get_pressure_factor(new_units)
+        if new_factor <= 0:
+            return
 
         def _convert_pressure_payload(payload: Dict[str, Any]) -> None:
+            payload_units = str(
+                payload.get("pressure_units", DEFAULT_PNEUMATIC["pressure_units"])
+            )
+            payload_factor = get_pressure_factor(payload_units)
+            if payload_factor <= 0:
+                payload_factor = get_pressure_factor(
+                    DEFAULT_PNEUMATIC["pressure_units"]
+                )
+                payload_units = DEFAULT_PNEUMATIC["pressure_units"]
+
             for key in STORAGE_PRESSURE_KEYS:
-                if key in payload:
-                    value_pa = float(payload[key]) * old_factor
-                    payload[key] = value_pa / new_factor
+                if key not in payload:
+                    continue
+                try:
+                    value = float(payload[key])
+                except (TypeError, ValueError):
+                    continue
+                value_pa = convert_pressure_value(value, payload_units, "Па")
+                payload[key] = convert_pressure_value(value_pa, "Па", new_units)
+
             payload["pressure_units"] = new_units
 
         _convert_pressure_payload(self._state)
