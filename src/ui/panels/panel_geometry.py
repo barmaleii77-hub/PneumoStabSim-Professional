@@ -39,6 +39,8 @@ class GeometryPanel(QWidget):
         self._settings_manager = get_settings_manager()
         self.parameters: dict[str, float | bool] = {}
         self._resolving_conflict = False
+        self._syncing_rods = False
+        self._rod_link_snapshot: tuple[float, float] | None = None
 
         from src.common import get_category_logger
 
@@ -69,6 +71,10 @@ class GeometryPanel(QWidget):
     def _load_from_settings(self) -> None:
         data = self._settings_manager.get_category("geometry") or {}
         self.parameters.update(data)
+        if "rod_diameter_rear_m" not in self.parameters:
+            self.parameters["rod_diameter_rear_m"] = float(
+                self.parameters.get("rod_diameter_m", 0.035) or 0.035
+            )
         self.logger.info("✅ Geometry loaded from app_settings.json (no code defaults)")
 
     # UI из параметров
@@ -104,6 +110,10 @@ class GeometryPanel(QWidget):
         layout.addWidget(self._create_suspension_group())
         layout.addWidget(self._create_cylinder_group())
         layout.addWidget(self._create_options_group())
+
+        self.rod_diameter_rear_slider.setEnabled(
+            not self.link_rod_diameters.isChecked()
+        )
 
         btns = QHBoxLayout()
         reset_btn = QPushButton("↩︎ Сбросить (defaults)")
@@ -240,16 +250,26 @@ class GeometryPanel(QWidget):
             title="Мёртвый зазор",
         )
         v.addWidget(self.dead_gap_m_slider)
-        self.rod_diameter_m_slider = RangeSlider(
+        self.rod_diameter_front_slider = RangeSlider(
             minimum=0.020,
             maximum=0.060,
             value=float(self.parameters.get("rod_diameter_m", 0) or 0),
             step=0.001,
             decimals=3,
             units="м",
-            title="Диаметр штока",
+            title="Диаметр штока (передняя ось)",
         )
-        v.addWidget(self.rod_diameter_m_slider)
+        v.addWidget(self.rod_diameter_front_slider)
+        self.rod_diameter_rear_slider = RangeSlider(
+            minimum=0.020,
+            maximum=0.060,
+            value=float(self.parameters.get("rod_diameter_rear_m", 0) or 0),
+            step=0.001,
+            decimals=3,
+            units="м",
+            title="Диаметр штока (задняя ось)",
+        )
+        v.addWidget(self.rod_diameter_rear_slider)
         self.piston_rod_length_m_slider = RangeSlider(
             minimum=0.100,
             maximum=0.500,
@@ -344,11 +364,17 @@ class GeometryPanel(QWidget):
         self.dead_gap_m_slider.valueChanged.connect(
             lambda v: self._on_parameter_live_change("dead_gap_m", v)
         )
-        self.rod_diameter_m_slider.valueEdited.connect(
+        self.rod_diameter_front_slider.valueEdited.connect(
             lambda v: self._on_parameter_changed("rod_diameter_m", v)
         )
-        self.rod_diameter_m_slider.valueChanged.connect(
+        self.rod_diameter_front_slider.valueChanged.connect(
             lambda v: self._on_parameter_live_change("rod_diameter_m", v)
+        )
+        self.rod_diameter_rear_slider.valueEdited.connect(
+            lambda v: self._on_parameter_changed("rod_diameter_rear_m", v)
+        )
+        self.rod_diameter_rear_slider.valueChanged.connect(
+            lambda v: self._on_parameter_live_change("rod_diameter_rear_m", v)
         )
         self.piston_rod_length_m_slider.valueEdited.connect(
             lambda v: self._on_parameter_changed("piston_rod_length_m", v)
@@ -373,6 +399,7 @@ class GeometryPanel(QWidget):
             return
         self.parameters["interference_check"] = bool(checked)
         self.geometry_updated.emit(self.parameters.copy())
+        self._show_interference_toggle_feedback(bool(checked))
 
     @Slot(bool)
     def _on_link_rod_diameters_toggled(self, checked: bool) -> None:
@@ -380,7 +407,43 @@ class GeometryPanel(QWidget):
         if self._resolving_conflict:
             return
         self.parameters["link_rod_diameters"] = bool(checked)
+
+        if checked:
+            front = float(self.parameters.get("rod_diameter_m", 0.035))
+            rear = float(self.parameters.get("rod_diameter_rear_m", front))
+            self._rod_link_snapshot = (front, rear)
+            self.parameters["rod_diameter_rear_m"] = front
+            self._syncing_rods = True
+            try:
+                self.rod_diameter_rear_slider.setValue(front)
+            finally:
+                self._syncing_rods = False
+            self.rod_diameter_rear_slider.setEnabled(False)
+        else:
+            self.rod_diameter_rear_slider.setEnabled(True)
+            if self._rod_link_snapshot:
+                front, rear = self._rod_link_snapshot
+                self._syncing_rods = True
+                try:
+                    self.rod_diameter_front_slider.setValue(front)
+                    self.rod_diameter_rear_slider.setValue(rear)
+                finally:
+                    self._syncing_rods = False
+                self.parameters["rod_diameter_m"] = front
+                self.parameters["rod_diameter_rear_m"] = rear
+            self._rod_link_snapshot = None
+
         self.geometry_updated.emit(self.parameters.copy())
+
+    def _show_interference_toggle_feedback(self, enabled: bool) -> None:
+        message = (
+            "Проверка пересечений геометрии включена."
+            if enabled
+            else "Проверка пересечений геометрии отключена."
+        )
+        QMessageBox.information(self, "Проверка пересечений", message)
+        if enabled:
+            self._validate_geometry()
 
     @Slot(int)
     def _on_preset_changed(self, index: int):
@@ -450,6 +513,9 @@ class GeometryPanel(QWidget):
     def _on_parameter_live_change(self, param_name: str, value: float):
         if self._resolving_conflict:
             return
+        if param_name in ("rod_diameter_m", "rod_diameter_rear_m"):
+            self._handle_rod_diameter_update(param_name, value, live=True)
+            return
         self.parameters[param_name] = value
         geometry_3d = self._get_fast_geometry_update(param_name, value)
         self.geometry_changed.emit(geometry_3d)
@@ -457,6 +523,9 @@ class GeometryPanel(QWidget):
     @Slot(str, float)
     def _on_parameter_changed(self, param_name: str, value: float):
         if self._resolving_conflict:
+            return
+        if param_name in ("rod_diameter_m", "rod_diameter_rear_m"):
+            self._handle_rod_diameter_update(param_name, value, live=False)
             return
         self.parameters[param_name] = value
         self.parameter_changed.emit(param_name, value)
@@ -479,6 +548,38 @@ class GeometryPanel(QWidget):
                 self._get_fast_geometry_update(param_name, value)
             )
 
+    def _handle_rod_diameter_update(
+        self, param_name: str, value: float, *, live: bool
+    ) -> None:
+        self.parameters[param_name] = value
+        if self.link_rod_diameters.isChecked() and not self._syncing_rods:
+            counterpart = (
+                "rod_diameter_rear_m"
+                if param_name == "rod_diameter_m"
+                else "rod_diameter_m"
+            )
+            target_slider = (
+                self.rod_diameter_rear_slider
+                if counterpart == "rod_diameter_rear_m"
+                else self.rod_diameter_front_slider
+            )
+            self.parameters[counterpart] = value
+            self._syncing_rods = True
+            try:
+                target_slider.setValue(value)
+            finally:
+                self._syncing_rods = False
+
+        if live:
+            geometry_3d = self._get_fast_geometry_update(param_name, value)
+            self.geometry_changed.emit(geometry_3d)
+        else:
+            self.parameter_changed.emit(param_name, value)
+            self.geometry_updated.emit(self.parameters.copy())
+            self.geometry_changed.emit(
+                self._get_fast_geometry_update(param_name, value)
+            )
+
     def _get_fast_geometry_update(self, param_name: str, value: float) -> dict:
         """Подготовить пакет обновления геометрии для QML.
 
@@ -489,6 +590,11 @@ class GeometryPanel(QWidget):
         """
 
         geom_cfg = self._settings_manager.get_category("geometry") or {}
+        rod_diameter_front = float(self.parameters.get("rod_diameter_m", 0) or 0.0)
+        rod_diameter_rear = float(
+            self.parameters.get("rod_diameter_rear_m", rod_diameter_front) or 0.0
+        )
+
         payload: dict[str, float] = {
             "frameLength": float(self.parameters.get("wheelbase", 0) or 0.0),
             "leverLength": float(self.parameters.get("lever_length", 0) or 0.0),
@@ -499,7 +605,8 @@ class GeometryPanel(QWidget):
             "frameToPivot": float(self.parameters.get("frame_to_pivot", 0) or 0.0),
             "rodPosition": float(self.parameters.get("rod_position", 0) or 0.0),
             "boreHead": float(self.parameters.get("cyl_diam_m", 0) or 0.0),
-            "rodDiameter": float(self.parameters.get("rod_diameter_m", 0) or 0.0),
+            "rodDiameter": rod_diameter_front,
+            "rodDiameterRear": rod_diameter_rear,
             "pistonRodLength": float(
                 self.parameters.get("piston_rod_length_m", 0) or 0.0
             ),
@@ -521,6 +628,13 @@ class GeometryPanel(QWidget):
         if (tail_rod := _cfg_value("tail_rod_length_m")) is not None:
             payload["tailRodLength"] = tail_rod
 
+        payload["rodDiameterM"] = rod_diameter_front
+        payload["rodDiameterFrontM"] = rod_diameter_front
+        payload["rodDiameterRearM"] = rod_diameter_rear
+        payload["rod_diameter_front_mm"] = rod_diameter_front * 1000.0
+        payload["rod_diameter_rear_mm"] = rod_diameter_rear * 1000.0
+        payload["rod_diameter_mm"] = rod_diameter_front * 1000.0
+
         return payload
 
     def _set_parameter_value(self, param_name: str, value: float) -> None:
@@ -534,7 +648,8 @@ class GeometryPanel(QWidget):
             "cyl_diam_m": self.cyl_diam_m_slider,
             "stroke_m": self.stroke_m_slider,
             "dead_gap_m": self.dead_gap_m_slider,
-            "rod_diameter_m": self.rod_diameter_m_slider,
+            "rod_diameter_m": self.rod_diameter_front_slider,
+            "rod_diameter_rear_m": self.rod_diameter_rear_slider,
             "piston_rod_length_m": self.piston_rod_length_m_slider,
             "piston_thickness_m": self.piston_thickness_m_slider,
         }
@@ -562,17 +677,25 @@ class GeometryPanel(QWidget):
                 f"Геометрия рычага превышает доступное пространство: {frame_to_pivot + lever_length:.2f} > {max_lever_reach:.2f}м"
             )
 
-        rod_diameter_m = float(self.parameters.get("rod_diameter_m", 0) or 0)
+        rod_diameter_front = float(self.parameters.get("rod_diameter_m", 0) or 0)
+        rod_diameter_rear = float(
+            self.parameters.get("rod_diameter_rear_m", rod_diameter_front) or 0
+        )
         cyl_diam_m = float(self.parameters.get("cyl_diam_m", 0) or 0)
         if cyl_diam_m > 0:
-            if rod_diameter_m >= cyl_diam_m * 0.8:
-                errors.append(
-                    f"Диаметр штока слишком велик: {rod_diameter_m * 1000:.1f}мм >= 80% от {cyl_diam_m * 1000:.1f}мм цилиндра"
-                )
-            elif rod_diameter_m >= cyl_diam_m * 0.7:
-                warnings.append(
-                    f"Диаметр штока близок к пределу: {rod_diameter_m * 1000:.1f}мм vs {cyl_diam_m * 1000:.1f}мм цилиндра"
-                )
+            thresholds = {
+                "переднего": rod_diameter_front,
+                "заднего": rod_diameter_rear,
+            }
+            for label, rod_value in thresholds.items():
+                if rod_value >= cyl_diam_m * 0.8:
+                    errors.append(
+                        f"Диаметр {label} штока слишком велик: {rod_value * 1000:.1f}мм >= 80% от {cyl_diam_m * 1000:.1f}мм цилиндра"
+                    )
+                elif rod_value >= cyl_diam_m * 0.7:
+                    warnings.append(
+                        f"Диаметр {label} штока близок к пределу: {rod_value * 1000:.1f}мм vs {cyl_diam_m * 1000:.1f}мм цилиндра"
+                    )
 
         if errors:
             QMessageBox.critical(

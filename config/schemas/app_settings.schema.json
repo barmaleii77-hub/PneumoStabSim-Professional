@@ -89,6 +89,9 @@
             "rod_diameter_m": {
               "type": "number"
             },
+            "rod_diameter_rear_m": {
+              "type": "number"
+            },
             "piston_rod_length_m": {
               "type": "number"
             },
@@ -131,6 +134,7 @@
             "stroke_m",
             "dead_gap_m",
             "rod_diameter_m",
+            "rod_diameter_rear_m",
             "piston_rod_length_m",
             "piston_thickness_m",
             "tail_rod_length_m",

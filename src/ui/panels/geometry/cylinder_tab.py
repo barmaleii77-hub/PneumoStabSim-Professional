@@ -45,6 +45,9 @@ class CylinderTab(QWidget):
         self._setup_ui()
         self._load_from_state()
         self._connect_signals()
+        self.update_link_state(
+            bool(self.state_manager.get_parameter("link_rod_diameters"))
+        )
 
     def _setup_ui(self):
         """Setup user interface"""
@@ -124,17 +127,29 @@ class CylinderTab(QWidget):
         limits = get_parameter_limits("rod_diameter_m")
         metadata = get_parameter_metadata("rod_diameter_m")
 
-        self.rod_diameter_m_slider = RangeSlider(
+        self.rod_diameter_front_m_slider = RangeSlider(
             minimum=limits["min"],
             maximum=limits["max"],
             value=self.state_manager.get_parameter("rod_diameter_m"),
             step=limits["step"],
             decimals=limits["decimals"],
             units=metadata["units"],
-            title=metadata["title"],
+            title=f"{metadata['title']} (передняя ось)",
         )
-        self.rod_diameter_m_slider.setToolTip(metadata["description"])
-        group_layout.addWidget(self.rod_diameter_m_slider)
+        self.rod_diameter_front_m_slider.setToolTip(metadata["description"])
+        group_layout.addWidget(self.rod_diameter_front_m_slider)
+
+        self.rod_diameter_rear_m_slider = RangeSlider(
+            minimum=limits["min"],
+            maximum=limits["max"],
+            value=self.state_manager.get_parameter("rod_diameter_rear_m"),
+            step=limits["step"],
+            decimals=limits["decimals"],
+            units=metadata["units"],
+            title=f"{metadata['title']} (задняя ось)",
+        )
+        self.rod_diameter_rear_m_slider.setToolTip(metadata["description"])
+        group_layout.addWidget(self.rod_diameter_rear_m_slider)
 
         # Piston rod length
         limits = get_parameter_limits("piston_rod_length_m")
@@ -206,11 +221,17 @@ class CylinderTab(QWidget):
         )
 
         # Rod diameter
-        self.rod_diameter_m_slider.valueEdited.connect(
+        self.rod_diameter_front_m_slider.valueEdited.connect(
             lambda v: self._on_parameter_changed("rod_diameter_m", v)
         )
-        self.rod_diameter_m_slider.valueChanged.connect(
+        self.rod_diameter_front_m_slider.valueChanged.connect(
             lambda v: self._on_parameter_live_changed("rod_diameter_m", v)
+        )
+        self.rod_diameter_rear_m_slider.valueEdited.connect(
+            lambda v: self._on_parameter_changed("rod_diameter_rear_m", v)
+        )
+        self.rod_diameter_rear_m_slider.valueChanged.connect(
+            lambda v: self._on_parameter_live_changed("rod_diameter_rear_m", v)
         )
 
         # Piston rod length
@@ -232,11 +253,15 @@ class CylinderTab(QWidget):
     def _on_parameter_changed(self, param_name: str, value: float):
         """Handle parameter change (final)"""
         self.state_manager.set_parameter(param_name, value)
+        if param_name in {"rod_diameter_m", "rod_diameter_rear_m"}:
+            self._sync_rod_sliders_from_state(param_name)
         self.parameter_changed.emit(param_name, value)
 
     def _on_parameter_live_changed(self, param_name: str, value: float):
         """Handle parameter change (real-time)"""
         self.state_manager.set_parameter(param_name, value)
+        if param_name in {"rod_diameter_m", "rod_diameter_rear_m"}:
+            self._sync_rod_sliders_from_state(param_name)
         self.parameter_live_changed.emit(param_name, value)
 
     def _load_from_state(self):
@@ -246,7 +271,8 @@ class CylinderTab(QWidget):
             ("cyl_diam_m", self.cyl_diam_m_slider),
             ("stroke_m", self.stroke_m_slider),
             ("dead_gap_m", self.dead_gap_m_slider),
-            ("rod_diameter_m", self.rod_diameter_m_slider),
+            ("rod_diameter_m", self.rod_diameter_front_m_slider),
+            ("rod_diameter_rear_m", self.rod_diameter_rear_m_slider),
             ("piston_rod_length_m", self.piston_rod_length_m_slider),
             ("piston_thickness_m", self.piston_thickness_m_slider),
         ]
@@ -260,12 +286,53 @@ class CylinderTab(QWidget):
         """Update widgets from current state"""
         self._load_from_state()
 
+    def update_link_state(self, linked: bool):
+        """Enable or disable rear rod diameter editing based on link option."""
+
+        self.rod_diameter_rear_m_slider.setEnabled(not linked)
+        if linked:
+            value = self.state_manager.get_parameter("rod_diameter_m")
+            self.rod_diameter_rear_m_slider.blockSignals(True)
+            try:
+                self.rod_diameter_rear_m_slider.setValue(value)
+            finally:
+                self.rod_diameter_rear_m_slider.blockSignals(False)
+        else:
+            self._sync_rod_sliders_from_state("rod_diameter_m")
+
     def set_enabled(self, enabled: bool):
         """Enable/disable all controls"""
         self.cylinder_length_slider.setEnabled(enabled)
         self.cyl_diam_m_slider.setEnabled(enabled)
         self.stroke_m_slider.setEnabled(enabled)
         self.dead_gap_m_slider.setEnabled(enabled)
-        self.rod_diameter_m_slider.setEnabled(enabled)
+        self.rod_diameter_front_m_slider.setEnabled(enabled)
+        self.rod_diameter_rear_m_slider.setEnabled(enabled)
         self.piston_rod_length_m_slider.setEnabled(enabled)
         self.piston_thickness_m_slider.setEnabled(enabled)
+
+    def _sync_rod_sliders_from_state(self, source_param: str) -> None:
+        """Mirror linked rod diameter values between sliders."""
+
+        if not self.state_manager.get_parameter("link_rod_diameters"):
+            return
+
+        target_param = (
+            "rod_diameter_rear_m"
+            if source_param == "rod_diameter_m"
+            else "rod_diameter_m"
+        )
+        target_slider = (
+            self.rod_diameter_rear_m_slider
+            if target_param == "rod_diameter_rear_m"
+            else self.rod_diameter_front_m_slider
+        )
+        target_value = self.state_manager.get_parameter(target_param)
+        if target_value is None:
+            return
+
+        target_slider.blockSignals(True)
+        try:
+            target_slider.setValue(target_value)
+        finally:
+            target_slider.blockSignals(False)

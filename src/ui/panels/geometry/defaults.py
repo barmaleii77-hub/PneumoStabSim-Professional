@@ -30,6 +30,7 @@ DEFAULT_GEOMETRY: Dict[str, Any] = {
     "cylinder_body_length_m": 0.30,  # Длина корпуса цилиндра в сцене
     # Rod and piston dimensions (м)
     "rod_diameter_m": 0.035,  # Диаметр штока
+    "rod_diameter_rear_m": 0.035,  # Диаметр штока (задний контур)
     "piston_rod_length_m": 0.200,  # Длина штока поршня
     "piston_thickness_m": 0.025,  # Толщина поршня
     "tail_rod_length_m": 0.100,  # Длина заднего штока
@@ -51,6 +52,7 @@ GEOMETRY_PRESETS: Dict[str, Dict[str, Any]] = {
         "lever_length": 0.8,
         "cyl_diam_m": 0.080,
         "rod_diameter_m": 0.035,
+        "rod_diameter_rear_m": 0.035,
     },
     "light_commercial": {
         "name": "Лёгкий коммерческий",
@@ -59,6 +61,7 @@ GEOMETRY_PRESETS: Dict[str, Dict[str, Any]] = {
         "lever_length": 0.7,
         "cyl_diam_m": 0.065,
         "rod_diameter_m": 0.028,
+        "rod_diameter_rear_m": 0.028,
     },
     "heavy_truck": {
         "name": "Тяжёлый грузовик",
@@ -67,6 +70,7 @@ GEOMETRY_PRESETS: Dict[str, Dict[str, Any]] = {
         "lever_length": 0.95,
         "cyl_diam_m": 0.100,
         "rod_diameter_m": 0.045,
+        "rod_diameter_rear_m": 0.045,
     },
     "custom": {
         "name": "Пользовательский",
@@ -105,6 +109,7 @@ PARAMETER_LIMITS: Dict[str, Dict[str, float]] = {
     "stroke_m": {"min": 0.100, "max": 0.500, "step": 0.001, "decimals": 3},
     "dead_gap_m": {"min": 0.000, "max": 0.020, "step": 0.001, "decimals": 3},
     "rod_diameter_m": {"min": 0.020, "max": 0.060, "step": 0.001, "decimals": 3},
+    "rod_diameter_rear_m": {"min": 0.020, "max": 0.060, "step": 0.001, "decimals": 3},
     "piston_rod_length_m": {"min": 0.100, "max": 0.500, "step": 0.001, "decimals": 3},
     "piston_thickness_m": {"min": 0.010, "max": 0.050, "step": 0.001, "decimals": 3},
 }
@@ -172,6 +177,12 @@ PARAMETER_METADATA: Dict[str, Dict[str, str]] = {
         "title": "Диаметр штока",
         "units": "м",
         "description": "Диаметр штока поршня",
+        "group": "cylinder",
+    },
+    "rod_diameter_rear_m": {
+        "title": "Диаметр штока (задняя ось)",
+        "units": "м",
+        "description": "Диаметр штока поршня для заднего контура",
         "group": "cylinder",
     },
     "piston_rod_length_m": {

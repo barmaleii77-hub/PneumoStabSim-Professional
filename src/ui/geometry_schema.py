@@ -28,6 +28,7 @@ _POSITIVE_FLOAT_FIELDS: Dict[str, float] = {
     "cyl_diam_m": 1e-6,
     "stroke_m": 1e-6,
     "rod_diameter_m": 1e-6,
+    "rod_diameter_rear_m": 1e-6,
     "piston_rod_length_m": 1e-6,
     "piston_thickness_m": 1e-6,
     "frame_height_m": 1e-6,

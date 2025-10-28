@@ -182,6 +182,9 @@ class OptionsTab(QWidget):
         # Emit signal
         self.option_changed.emit(option_name, value)
 
+        if option_name == "interference_check":
+            self._show_interference_toggle_feedback(bool(value))
+
     @Slot()
     def _on_reset_clicked(self):
         """Handle reset button click"""
@@ -216,6 +219,26 @@ class OptionsTab(QWidget):
         warnings = self.state_manager.get_warnings()
 
         # Show results
+        self._present_validation_results(errors, warnings)
+
+        # Emit validate signal
+        self.validate_requested.emit()
+
+    def _show_interference_toggle_feedback(self, enabled: bool) -> None:
+        message = (
+            "Проверка пересечений геометрии включена."
+            if enabled
+            else "Проверка пересечений геометрии отключена."
+        )
+        QMessageBox.information(self, "Проверка пересечений", message)
+        if enabled:
+            errors = self.state_manager.validate_geometry()
+            warnings = self.state_manager.get_warnings()
+            self._present_validation_results(errors, warnings)
+
+    def _present_validation_results(
+        self, errors: list[str], warnings: list[str]
+    ) -> None:
         if errors:
             QMessageBox.critical(
                 self, "Ошибки геометрии", "Обнаружены ошибки:\n\n" + "\n".join(errors)
@@ -230,9 +253,6 @@ class OptionsTab(QWidget):
             QMessageBox.information(
                 self, "Проверка геометрии", "Все параметры геометрии корректны."
             )
-
-        # Emit validate signal
-        self.validate_requested.emit()
 
     def set_preset_index(self, index: int):
         """Set preset combo index programmatically
