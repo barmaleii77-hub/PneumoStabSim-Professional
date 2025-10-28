@@ -60,10 +60,14 @@ Item {
     property color backgroundColor: "#2a2a2a"
     property string backgroundModeSetting: "skybox"
     property bool skyboxEnabled: true
+    readonly property bool sceneEnvSupportsTransparent: SceneEnvironment.Transparent !== undefined
     readonly property bool backgroundIsTransparent: backgroundModeSetting === "transparent"
     readonly property bool backgroundUsesSkybox: backgroundModeSetting === "skybox" && skyboxEnabled
+    readonly property bool backgroundUsesTransparent: backgroundIsTransparent && sceneEnvSupportsTransparent
     property color effectiveClearColor: {
         const base = Qt.color(backgroundColor)
+        if (backgroundUsesTransparent)
+            return Qt.rgba(base.r, base.g, base.b, 0.0)
         if (backgroundIsTransparent)
             return Qt.rgba(base.r, base.g, base.b, 0.0)
         if (backgroundModeSetting === "color")
@@ -362,6 +366,14 @@ property real tankPressure: 0.0
         }
     }
 
+    function resolvedBackgroundMode() {
+        if (backgroundUsesSkybox)
+            return SceneEnvironment.SkyBox
+        if (backgroundUsesTransparent)
+            return SceneEnvironment.Transparent
+        return SceneEnvironment.Color
+    }
+
     function updateQuality(params) {
         console.log("QML: updateQuality called with", JSON.stringify(params))
 
@@ -404,7 +416,7 @@ property real tankPressure: 0.0
         // === FIXED: Proper ExtendedSceneEnvironment implementation for Qt 6.9.3 ===
         environment: ExtendedSceneEnvironment {
             // Background and IBL
-            backgroundMode: root.backgroundUsesSkybox ? SceneEnvironment.SkyBox : SceneEnvironment.Color
+            backgroundMode: root.resolvedBackgroundMode()
             clearColor: root.effectiveClearColor
             skyBoxCubeMap: root.backgroundUsesSkybox ? hdrProbe : null
             lightProbe: root.iblEnabled ? hdrProbe : null
