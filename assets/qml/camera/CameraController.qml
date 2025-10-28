@@ -42,11 +42,11 @@ Item {
     // GEOMETRY PROPERTIES (for auto-fit/reset)
     // ===============================================================
 
-    property real frameLength: 3200
-    property real trackWidth: 1600
-    property real frameHeight: 650
-    property real beamSize: 120
-    property real frameToPivot: frameLength / 2
+    property real frameLength: 0
+    property real trackWidth: 0
+    property real frameHeight: 0
+    property real beamSize: 0
+    property real frameToPivot: frameLength > 0 ? frameLength / 2 : 0
 
     // ===============================================================
     // OPTIONAL PROPERTIES
@@ -82,6 +82,10 @@ Item {
      * External callbacks
      */
     property var onToggleAnimation: null
+
+    // Track whether the initial auto-fit needs to be performed once real
+    // geometry dimensions arrive from the SceneBridge.
+    property bool _initialAutoFitPending: true
 
     // ===============================================================
     // PUBLIC API - STATE ACCESS
@@ -479,6 +483,8 @@ Item {
                 frameToPivot = pivotValue
             }
         }
+
+        _attemptInitialAutoFit()
     }
 
     // ===============================================================
@@ -516,9 +522,21 @@ Item {
     // INITIALIZATION
     // ===============================================================
 
+    function _attemptInitialAutoFit() {
+        if (!_initialAutoFitPending)
+            return
+
+        if (frameLength > 0 && trackWidth > 0) {
+            _initialAutoFitPending = false
+            autoFitFrame()
+        }
+    }
+
     Component.onCompleted: {
+        _applySceneBridgeState()
+
         if (!isFinite(frameToPivot)) {
-            frameToPivot = frameLength / 2
+            frameToPivot = frameLength > 0 ? frameLength / 2 : 0
         }
 
         console.log("═══════════════════════════════════════════")
@@ -534,9 +552,6 @@ Item {
         console.log("🎯 Camera Controller ready!")
         console.log("═══════════════════════════════════════════")
 
-        // Initial auto-fit
-        autoFitFrame()
-
-        _applySceneBridgeState()
+        Qt.callLater(_attemptInitialAutoFit)
     }
 }
