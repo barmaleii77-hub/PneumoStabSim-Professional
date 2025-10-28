@@ -13,24 +13,37 @@ ExtendedSceneEnvironment {
  // BACKGROUND & IBL
  // ===============================================================
 
- property bool iblBackgroundEnabled: false
- property bool iblLightingEnabled: false
- property color backgroundColor: "#1f242c"
- property Texture iblProbe: null
- property real iblIntensity:1.0
- property real iblRotationDeg:0.0
+    property bool iblBackgroundEnabled: false
+    property bool iblLightingEnabled: false
+    property color backgroundColor: "#1f242c"
+    property string backgroundModeKey: "skybox"
+    property Texture iblProbe: null
+    property real iblIntensity:1.0
+    property real probeBrightnessValue:1.0
+    property real probeHorizonValue:0.0
+    property real iblRotationPitchDeg:0.0
+    property real iblRotationDeg:0.0
+    property real iblRotationRollDeg:0.0
+    property bool iblBindToCamera: false
+    property real skyboxBlurValue:0.0
 
  /**
  * Python SceneBridge instance injected via context property.
  */
  property var sceneBridge: null
 
- backgroundMode: (iblBackgroundEnabled && iblProbe) ? SceneEnvironment.SkyBox : SceneEnvironment.Color
- clearColor: backgroundColor
- skyBoxCubeMap: (iblBackgroundEnabled && iblProbe) ? iblProbe : null
- lightProbe: (iblLightingEnabled && iblProbe) ? iblProbe : null
- probeExposure: iblIntensity
- probeOrientation: Qt.vector3d(0, iblRotationDeg,0)
+    backgroundMode: {
+        var targetMode = backgroundModeForKey(backgroundModeKey)
+        if (targetMode === SceneEnvironment.SkyBox)
+            return (iblBackgroundEnabled && iblProbe) ? SceneEnvironment.SkyBox : SceneEnvironment.Color
+        return targetMode
+    }
+    clearColor: backgroundColor
+    skyBoxCubeMap: (iblBackgroundEnabled && iblProbe) ? iblProbe : null
+    lightProbe: (iblLightingEnabled && iblProbe) ? iblProbe : null
+    probeExposure: probeBrightnessValue
+    probeOrientation: Qt.vector3d(iblRotationPitchDeg, iblRotationDeg, iblRotationRollDeg)
+    probeHorizon: probeHorizonValue
 
  // ===============================================================
  // ANTIALIASING
@@ -72,12 +85,12 @@ ExtendedSceneEnvironment {
  property bool canUseDithering: false
  property real sceneScaleFactor:1.0
 
- function qtVersionAtLeast(requiredMajor, requiredMinor) {
- var versionString = "";
- if (Qt.application && Qt.application.qtVersion)
- versionString = String(Qt.application.qtVersion);
- else if (Qt.version)
- versionString = String(Qt.version);
+    function qtVersionAtLeast(requiredMajor, requiredMinor) {
+        var versionString = "";
+        if (Qt.application && Qt.application.qtVersion)
+            versionString = String(Qt.application.qtVersion);
+        else if (Qt.version)
+            versionString = String(Qt.version);
  var parts = versionString.split(".");
  if (parts.length <2)
  return false;
@@ -96,11 +109,65 @@ ExtendedSceneEnvironment {
  var numeric = Number(value)
  if (!isFinite(numeric))
  return 0.0
- var scale = Number(sceneScaleFactor)
- if (!isFinite(scale) || scale <= 0)
- return numeric
- return numeric * scale
- }
+        var scale = Number(sceneScaleFactor)
+        if (!isFinite(scale) || scale <= 0)
+            return numeric
+        return numeric * scale
+    }
+
+    function valueFromKeys(params, primaryKey, secondaryKey) {
+        if (!params)
+            return undefined
+        if (primaryKey && params.hasOwnProperty(primaryKey))
+            return params[primaryKey]
+        if (secondaryKey && params.hasOwnProperty(secondaryKey))
+            return params[secondaryKey]
+        return undefined
+    }
+
+    function boolFromKeys(params, primaryKey, secondaryKey) {
+        var raw = valueFromKeys(params, primaryKey, secondaryKey)
+        if (raw === undefined)
+            return undefined
+        if (typeof raw === "boolean")
+            return raw
+        if (typeof raw === "number")
+            return raw !== 0
+        if (typeof raw === "string") {
+            var lowered = raw.trim().toLowerCase()
+            if (lowered === "true" || lowered === "1" || lowered === "yes" || lowered === "on")
+                return true
+            if (lowered === "false" || lowered === "0" || lowered === "no" || lowered === "off")
+                return false
+        }
+        return !!raw
+    }
+
+    function numberFromKeys(params, primaryKey, secondaryKey) {
+        var raw = valueFromKeys(params, primaryKey, secondaryKey)
+        if (raw === undefined)
+            return undefined
+        var numeric = Number(raw)
+        return isFinite(numeric) ? numeric : undefined
+    }
+
+    function stringFromKeys(params, primaryKey, secondaryKey) {
+        var raw = valueFromKeys(params, primaryKey, secondaryKey)
+        if (raw === undefined)
+            return undefined
+        return String(raw)
+    }
+
+    function backgroundModeForKey(key) {
+        var normalized = String(key || "skybox").trim().toLowerCase()
+        if (normalized === "color")
+            return SceneEnvironment.Color
+        if (normalized === "transparent")
+            return (SceneEnvironment.Transparent !== undefined)
+                    ? SceneEnvironment.Transparent
+                    : SceneEnvironment.Color
+        return SceneEnvironment.SkyBox
+    }
 
  function _applySceneBridgeState() {
  if (!sceneBridge)
@@ -162,57 +229,124 @@ ExtendedSceneEnvironment {
  if (!params)
  return
 
- if (params.backgroundColor)
- backgroundColor = params.backgroundColor
- if (params.clearColor)
- backgroundColor = params.clearColor
+    var bgColor = stringFromKeys(params, "backgroundColor", "background_color")
+    if (bgColor !== undefined)
+        backgroundColor = bgColor
+    if (params.clearColor)
+        backgroundColor = params.clearColor
 
- if (params.background && params.background.color)
- backgroundColor = params.background.color
+    if (params.background && params.background.color)
+        backgroundColor = params.background.color
 
- if (params.iblEnabled !== undefined) {
- var iblFlag = !!params.iblEnabled
- iblBackgroundEnabled = iblFlag
- iblLightingEnabled = iblFlag
- }
- if (params.iblBackgroundEnabled !== undefined)
- iblBackgroundEnabled = !!params.iblBackgroundEnabled
- if (params.iblLightingEnabled !== undefined)
- iblLightingEnabled = !!params.iblLightingEnabled
- if (params.iblIntensity !== undefined)
- iblIntensity = Number(params.iblIntensity)
- if (params.iblRotationDeg !== undefined)
- iblRotationDeg = Number(params.iblRotationDeg)
+    var modeValue = stringFromKeys(params, "backgroundMode", "background_mode")
+    if (modeValue !== undefined)
+        backgroundModeKey = modeValue
 
- if (params.ibl) {
- var ibl = params.ibl
- if (ibl.enabled !== undefined) {
- var iblNested = !!ibl.enabled
- iblBackgroundEnabled = iblNested
- iblLightingEnabled = iblNested
- }
- if (ibl.background_enabled !== undefined)
- iblBackgroundEnabled = !!ibl.background_enabled
- if (ibl.lighting_enabled !== undefined)
- iblLightingEnabled = !!ibl.lighting_enabled
- if (ibl.intensity !== undefined)
- iblIntensity = Number(ibl.intensity)
- if (ibl.rotation !== undefined)
- iblRotationDeg = Number(ibl.rotation)
- }
+    var skyboxFlag = boolFromKeys(params, "skyboxEnabled", "skybox_enabled")
+    if (skyboxFlag !== undefined)
+        iblBackgroundEnabled = skyboxFlag
 
- if (params.tonemapEnabled !== undefined)
- setTonemapEnabledFlag(params.tonemapEnabled)
- if (params.tonemapActive !== undefined)
- setTonemapEnabledFlag(params.tonemapActive)
- if (params.tonemapModeName)
- tonemapModeName = String(params.tonemapModeName)
- if (params.tonemap_mode)
- tonemapModeName = String(params.tonemap_mode)
- if (params.tonemapExposure !== undefined)
- tonemapExposure = Number(params.tonemapExposure)
- if (params.tonemapWhitePoint !== undefined)
- tonemapWhitePoint = Number(params.tonemapWhitePoint)
+    var iblEnabledFlag = boolFromKeys(params, "iblEnabled", "ibl_enabled")
+    if (iblEnabledFlag !== undefined) {
+        iblLightingEnabled = iblEnabledFlag
+        iblBackgroundEnabled = iblEnabledFlag
+    }
+
+    var backgroundFlag = boolFromKeys(params, "iblBackgroundEnabled", "ibl_background_enabled")
+    if (backgroundFlag !== undefined)
+        iblBackgroundEnabled = backgroundFlag
+
+    var lightingFlag = boolFromKeys(params, "iblLightingEnabled", "ibl_lighting_enabled")
+    if (lightingFlag !== undefined)
+        iblLightingEnabled = lightingFlag
+
+    var intensityValue = numberFromKeys(params, "iblIntensity", "ibl_intensity")
+    if (intensityValue !== undefined) {
+        iblIntensity = intensityValue
+        probeBrightnessValue = intensityValue
+    }
+
+    var probeBrightness = numberFromKeys(params, "probeBrightness", "probe_brightness")
+    if (probeBrightness !== undefined)
+        probeBrightnessValue = probeBrightness
+
+    var probeHorizon = numberFromKeys(params, "probeHorizon", "probe_horizon")
+    if (probeHorizon !== undefined)
+        probeHorizonValue = probeHorizon
+
+    var rotationYaw = numberFromKeys(params, "iblRotationDeg", "ibl_rotation")
+    if (rotationYaw !== undefined)
+        iblRotationDeg = rotationYaw
+
+    var rotationPitch = numberFromKeys(params, "iblRotationPitchDeg", "ibl_offset_x")
+    if (rotationPitch !== undefined)
+        iblRotationPitchDeg = rotationPitch
+
+    var rotationRoll = numberFromKeys(params, "iblRotationRollDeg", "ibl_offset_y")
+    if (rotationRoll !== undefined)
+        iblRotationRollDeg = rotationRoll
+
+    var bindFlag = boolFromKeys(params, "iblBindToCamera", "ibl_bind_to_camera")
+    if (bindFlag !== undefined)
+        iblBindToCamera = bindFlag
+
+    var blurValue = numberFromKeys(params, "skyboxBlur", "skybox_blur")
+    if (blurValue !== undefined)
+        skyboxBlurValue = blurValue
+
+    if (params.ibl) {
+        var ibl = params.ibl
+        var nestedEnabled = boolFromKeys(ibl, "enabled", "enabled")
+        if (nestedEnabled !== undefined) {
+            iblBackgroundEnabled = nestedEnabled
+            iblLightingEnabled = nestedEnabled
+        }
+        var nestedBackground = boolFromKeys(ibl, "backgroundEnabled", "background_enabled")
+        if (nestedBackground !== undefined)
+            iblBackgroundEnabled = nestedBackground
+        var nestedLighting = boolFromKeys(ibl, "lightingEnabled", "lighting_enabled")
+        if (nestedLighting !== undefined)
+            iblLightingEnabled = nestedLighting
+        var nestedIntensity = numberFromKeys(ibl, "intensity", "intensity")
+        if (nestedIntensity !== undefined) {
+            iblIntensity = nestedIntensity
+            probeBrightnessValue = nestedIntensity
+        }
+        var nestedBrightness = numberFromKeys(ibl, "probeBrightness", "probe_brightness")
+        if (nestedBrightness !== undefined)
+            probeBrightnessValue = nestedBrightness
+        var nestedHorizon = numberFromKeys(ibl, "probeHorizon", "probe_horizon")
+        if (nestedHorizon !== undefined)
+            probeHorizonValue = nestedHorizon
+        var nestedRotation = numberFromKeys(ibl, "rotation", "rotation")
+        if (nestedRotation !== undefined)
+            iblRotationDeg = nestedRotation
+        var nestedPitch = numberFromKeys(ibl, "rotationX", "rotation_x")
+        if (nestedPitch !== undefined)
+            iblRotationPitchDeg = nestedPitch
+        var nestedRoll = numberFromKeys(ibl, "rotationZ", "rotation_z")
+        if (nestedRoll !== undefined)
+            iblRotationRollDeg = nestedRoll
+        var nestedBind = boolFromKeys(ibl, "bindToCamera", "bind_to_camera")
+        if (nestedBind !== undefined)
+            iblBindToCamera = nestedBind
+    }
+
+    var tonemapEnabledKey = boolFromKeys(params, "tonemapEnabled", "tonemap_enabled")
+    if (tonemapEnabledKey !== undefined)
+        setTonemapEnabledFlag(tonemapEnabledKey)
+    var tonemapActiveKey = boolFromKeys(params, "tonemapActive", "tonemap_active")
+    if (tonemapActiveKey !== undefined)
+        setTonemapEnabledFlag(tonemapActiveKey)
+    var tonemapModeKey = stringFromKeys(params, "tonemapModeName", "tonemap_mode")
+    if (tonemapModeKey !== undefined)
+        tonemapModeName = tonemapModeKey
+    var tonemapExposureKey = numberFromKeys(params, "tonemapExposure", "tonemap_exposure")
+    if (tonemapExposureKey !== undefined)
+        tonemapExposure = tonemapExposureKey
+    var tonemapWhitePointKey = numberFromKeys(params, "tonemapWhitePoint", "tonemap_white_point")
+    if (tonemapWhitePointKey !== undefined)
+        tonemapWhitePoint = tonemapWhitePointKey
 
     if (params.tonemap) {
         var tonemap = params.tonemap
@@ -356,30 +490,104 @@ function applyEffectsPayload(params) {
 if (!params)
 return
 
- if (params.bloomEnabled !== undefined)
- bloomEnabled = !!params.bloomEnabled
- if (params.bloomIntensity !== undefined)
- bloomIntensity = Number(params.bloomIntensity)
- if (params.bloomThreshold !== undefined)
- bloomThreshold = Number(params.bloomThreshold)
- if (params.bloomSpread !== undefined)
- bloomSpread = Number(params.bloomSpread)
- if (params.depthOfFieldEnabled !== undefined)
- internalDepthOfFieldEnabled = !!params.depthOfFieldEnabled
- if (params.dofFocusDistance !== undefined) {
- var effectsFocusDistance = Number(params.dofFocusDistance)
- if (isFinite(effectsFocusDistance))
- dofFocusDistance = toSceneLength(effectsFocusDistance)
- }
- if (params.dofBlurAmount !== undefined)
- dofBlurAmount = Number(params.dofBlurAmount)
- if (params.vignetteEnabled !== undefined)
- internalVignetteEnabled = !!params.vignetteEnabled
- if (params.vignetteStrength !== undefined)
- internalVignetteStrength = Number(params.vignetteStrength)
- if (params.lensFlareEnabled !== undefined)
- internalLensFlareEnabled = !!params.lensFlareEnabled
- }
+    var bloomEnabledValue = boolFromKeys(params, "bloomEnabled", "bloom_enabled")
+    if (bloomEnabledValue !== undefined)
+        bloomEnabled = bloomEnabledValue
+    var bloomIntensityValue = numberFromKeys(params, "bloomIntensity", "bloom_intensity")
+    if (bloomIntensityValue !== undefined)
+        bloomIntensity = bloomIntensityValue
+    var bloomThresholdValue = numberFromKeys(params, "bloomThreshold", "bloom_threshold")
+    if (bloomThresholdValue !== undefined)
+        bloomThreshold = bloomThresholdValue
+    var bloomSpreadValue = numberFromKeys(params, "bloomSpread", "bloom_spread")
+    if (bloomSpreadValue !== undefined)
+        bloomSpread = bloomSpreadValue
+    var bloomStrengthValue = numberFromKeys(params, "bloomGlowStrength", "bloom_glow_strength")
+    if (bloomStrengthValue !== undefined)
+        bloomGlowStrength = bloomStrengthValue
+    var bloomHdrMaxValue = numberFromKeys(params, "bloomHdrMax", "bloom_hdr_max")
+    if (bloomHdrMaxValue !== undefined)
+        bloomHdrMaximum = bloomHdrMaxValue
+    var bloomHdrScaleValue = numberFromKeys(params, "bloomHdrScale", "bloom_hdr_scale")
+    if (bloomHdrScaleValue !== undefined)
+        bloomHdrScale = bloomHdrScaleValue
+    var bloomQualityValue = boolFromKeys(params, "bloomQualityHigh", "bloom_quality_high")
+    if (bloomQualityValue !== undefined)
+        bloomQualityHigh = bloomQualityValue
+    var bloomBicubicValue = boolFromKeys(params, "bloomBicubicUpscale", "bloom_bicubic_upscale")
+    if (bloomBicubicValue !== undefined)
+        bloomUseBicubicUpscale = bloomBicubicValue
+
+    var tonemapEnabledValue = boolFromKeys(params, "tonemapEnabled", "tonemap_enabled")
+    if (tonemapEnabledValue !== undefined)
+        setTonemapEnabledFlag(tonemapEnabledValue)
+    var tonemapModeValue = stringFromKeys(params, "tonemapModeName", "tonemap_mode")
+    if (tonemapModeValue !== undefined)
+        tonemapModeName = tonemapModeValue
+    var tonemapExposureValue = numberFromKeys(params, "tonemapExposure", "tonemap_exposure")
+    if (tonemapExposureValue !== undefined)
+        tonemapExposure = tonemapExposureValue
+    var tonemapWhitePointValue = numberFromKeys(params, "tonemapWhitePoint", "tonemap_white_point")
+    if (tonemapWhitePointValue !== undefined)
+        tonemapWhitePoint = tonemapWhitePointValue
+
+    var dofEnabledValue = boolFromKeys(params, "depthOfFieldEnabled", "depth_of_field")
+    if (dofEnabledValue !== undefined)
+        internalDepthOfFieldEnabled = dofEnabledValue
+    var dofFocusValue = numberFromKeys(params, "dofFocusDistance", "dof_focus_distance")
+    if (dofFocusValue !== undefined && isFinite(dofFocusValue))
+        dofFocusDistance = toSceneLength(dofFocusValue)
+    var dofBlurValue = numberFromKeys(params, "dofBlurAmount", "dof_blur")
+    if (dofBlurValue !== undefined)
+        dofBlurAmount = dofBlurValue
+
+    var vignetteEnabledValue = boolFromKeys(params, "vignetteEnabled", "vignette")
+    if (vignetteEnabledValue !== undefined)
+        internalVignetteEnabled = vignetteEnabledValue
+    var vignetteStrengthValue = numberFromKeys(params, "vignetteStrength", "vignette_strength")
+    if (vignetteStrengthValue !== undefined)
+        internalVignetteStrength = vignetteStrengthValue
+    var vignetteRadiusUpdate = numberFromKeys(params, "vignetteRadius", "vignette_radius")
+    if (vignetteRadiusUpdate !== undefined)
+        vignetteRadiusValue = vignetteRadiusUpdate
+
+    var lensFlareEnabledValue = boolFromKeys(params, "lensFlareEnabled", "lens_flare")
+    if (lensFlareEnabledValue !== undefined)
+        internalLensFlareEnabled = lensFlareEnabledValue
+    var lensGhostCount = numberFromKeys(params, "lensFlareGhostCount", "lens_flare_ghost_count")
+    if (lensGhostCount !== undefined)
+        lensFlareGhostCountValue = Math.max(0, Math.round(lensGhostCount))
+    var lensGhostDispersal = numberFromKeys(params, "lensFlareGhostDispersal", "lens_flare_ghost_dispersal")
+    if (lensGhostDispersal !== undefined)
+        lensFlareGhostDispersalValue = lensGhostDispersal
+    var lensHaloWidth = numberFromKeys(params, "lensFlareHaloWidth", "lens_flare_halo_width")
+    if (lensHaloWidth !== undefined)
+        lensFlareHaloWidthValue = lensHaloWidth
+    var lensBloomBias = numberFromKeys(params, "lensFlareBloomBias", "lens_flare_bloom_bias")
+    if (lensBloomBias !== undefined)
+        lensFlareBloomBiasValue = lensBloomBias
+    var lensStretch = numberFromKeys(params, "lensFlareStretchToAspect", "lens_flare_stretch_to_aspect")
+    if (lensStretch !== undefined)
+        lensFlareStretchValue = lensStretch
+    else {
+        var lensStretchBool = boolFromKeys(params, "lensFlareStretchToAspect", "lens_flare_stretch_to_aspect")
+        if (lensStretchBool !== undefined)
+            lensFlareStretchValue = lensStretchBool ? 1.0 : 0.0
+    }
+
+    var brightnessAdjust = numberFromKeys(params, "adjustmentBrightness", "adjustment_brightness")
+    if (brightnessAdjust !== undefined)
+        adjustmentBrightnessValue = brightnessAdjust
+    var contrastAdjust = numberFromKeys(params, "adjustmentContrast", "adjustment_contrast")
+    if (contrastAdjust !== undefined)
+        adjustmentContrastValue = contrastAdjust
+    var saturationAdjust = numberFromKeys(params, "adjustmentSaturation", "adjustment_saturation")
+    if (saturationAdjust !== undefined)
+        adjustmentSaturationValue = saturationAdjust
+
+    var adjustmentsMagnitude = Math.abs(adjustmentBrightnessValue) + Math.abs(adjustmentContrastValue) + Math.abs(adjustmentSaturationValue)
+    colorAdjustmentsActive = adjustmentsMagnitude > 0.0001
+}
 
  // ===============================================================
  // FOG (Qt6.10+)
@@ -504,19 +712,25 @@ return
  // BLOOM
  // ===============================================================
 
- property bool bloomEnabled: true
- property real bloomIntensity:0.5
- property real bloomThreshold:1.0
- property real bloomSpread:0.65
+    property bool bloomEnabled: true
+    property real bloomIntensity:0.5
+    property real bloomThreshold:1.0
+    property real bloomSpread:0.65
+    property real bloomGlowStrength:1.0
+    property bool bloomQualityHigh: true
+    property bool bloomUseBicubicUpscale: true
+    property real bloomHdrMaximum:8.0
+    property real bloomHdrScale:2.0
 
- glowEnabled: bloomEnabled
- glowIntensity: bloomIntensity
- glowHDRMinimumValue: bloomThreshold
- glowBloom: bloomSpread
- glowQualityHigh: true
- glowUseBicubicUpscale: true
- glowHDRMaximumValue:8.0
- glowHDRScale:2.0
+    glowEnabled: bloomEnabled
+    glowIntensity: bloomIntensity
+    glowStrength: bloomGlowStrength
+    glowHDRMinimumValue: bloomThreshold
+    glowBloom: bloomSpread
+    glowQualityHigh: bloomQualityHigh
+    glowUseBicubicUpscale: bloomUseBicubicUpscale
+    glowHDRMaximumValue: bloomHdrMaximum
+    glowHDRScale: bloomHdrScale
 
  // ===============================================================
  // SSAO
@@ -552,25 +766,31 @@ return
 
  property bool internalVignetteEnabled: false
  property real internalVignetteStrength:0.35
+ property real vignetteRadiusValue:0.5
 
  // ✅ ИСПРАВЛЕНО: используем внутренние свойства
  vignetteEnabled: internalVignetteEnabled
  vignetteStrength: internalVignetteStrength
- vignetteRadius:0.4
+ vignetteRadius: vignetteRadiusValue
 
  // ===============================================================
  // LENS FLARE
  // ===============================================================
 
  property bool internalLensFlareEnabled: false
+ property int lensFlareGhostCountValue:3
+ property real lensFlareGhostDispersalValue:0.6
+ property real lensFlareHaloWidthValue:0.25
+ property real lensFlareBloomBiasValue:0.35
+ property real lensFlareStretchValue:1.0
 
  // ✅ ИСПРАВЛЕНО: используем внутреннее свойство
  lensFlareEnabled: internalLensFlareEnabled
- lensFlareGhostCount:3
- lensFlareGhostDispersal:0.6
- lensFlareHaloWidth:0.25
- lensFlareBloomBias:0.35
- lensFlareStretchToAspect:1.0
+ lensFlareGhostCount: lensFlareGhostCountValue
+ lensFlareGhostDispersal: lensFlareGhostDispersalValue
+ lensFlareHaloWidth: lensFlareHaloWidthValue
+ lensFlareBloomBias: lensFlareBloomBiasValue
+ lensFlareStretchToAspect: lensFlareStretchValue
 
  // ===============================================================
  // OIT (Order Independent Transparency)
@@ -584,10 +804,15 @@ return
  // COLOR ADJUSTMENTS
  // ===============================================================
 
- colorAdjustmentsEnabled: true
- adjustmentBrightness:1.0
- adjustmentContrast:1.05
- adjustmentSaturation:1.05
+ property bool colorAdjustmentsActive: false
+ property real adjustmentBrightnessValue:0.0
+ property real adjustmentContrastValue:0.0
+ property real adjustmentSaturationValue:0.0
+
+ colorAdjustmentsEnabled: colorAdjustmentsActive
+ adjustmentBrightness: adjustmentBrightnessValue
+ adjustmentContrast: adjustmentContrastValue
+ adjustmentSaturation: adjustmentSaturationValue
 
     function applyEnvironmentUpdates(params) {
         applyEnvironmentPayload(params)
