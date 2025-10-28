@@ -335,14 +335,20 @@ class EnvironmentTab(QWidget):
             return ""
         return text.replace("\\", "/")
 
-    def _select_combo_path(self, combo: QComboBox, raw_path: Any) -> None:
+    def _select_combo_path(
+        self, combo: QComboBox, raw_path: Any, *, auto_select_first: bool = False
+    ) -> str:
         """Выбрать элемент в комбобоксе по пути, добавляя при необходимости."""
         if combo is None:
-            return
+            return ""
         path = self._normalize_ibl_path(raw_path)
         if not path:
+            if auto_select_first and combo.count() > 1:
+                combo.setCurrentIndex(1)
+                data = combo.itemData(1)
+                return self._normalize_ibl_path(data)
             combo.setCurrentIndex(0)
-            return
+            return ""
         target_index = -1
         for i in range(combo.count()):
             data = combo.itemData(i)
@@ -355,6 +361,7 @@ class EnvironmentTab(QWidget):
             combo.addItem(label, path)
             target_index = combo.count() - 1
         combo.setCurrentIndex(target_index if target_index >= 0 else 0)
+        return path if target_index >= 0 else ""
 
     def _build_fog_group(self) -> QGroupBox:
         """Создать группу Туман - расширенная (Fog Qt 6.10)"""
@@ -670,12 +677,18 @@ class EnvironmentTab(QWidget):
                 validated["probe_horizon"]
             )
             self._require_control("ibl.rotation").set_value(validated["ibl_rotation"])
-            self._select_combo_path(
-                self._require_control("ibl.file"), validated["ibl_source"]
+            selected_primary = self._select_combo_path(
+                self._require_control("ibl.file"),
+                validated["ibl_source"],
+                auto_select_first=True,
             )
-            self._select_combo_path(
+            if selected_primary and selected_primary != validated["ibl_source"]:
+                validated["ibl_source"] = selected_primary
+            selected_fallback = self._select_combo_path(
                 self._require_control("ibl.fallback"), validated["ibl_fallback"]
             )
+            if selected_fallback != validated["ibl_fallback"]:
+                validated["ibl_fallback"] = selected_fallback
             self._require_control("skybox.blur").set_value(validated["skybox_blur"])
             self._require_control("ibl.offset_x").set_value(validated["ibl_offset_x"])
             self._require_control("ibl.offset_y").set_value(validated["ibl_offset_y"])

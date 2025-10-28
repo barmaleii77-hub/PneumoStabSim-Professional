@@ -296,3 +296,97 @@ def test_settings_manager_migrates_root_graphics_section(tmp_path: Path) -> None
     assert "graphics" not in stored
     assert stored["current"]["graphics"]["environment"]["ibl_intensity"] == 2.0
     assert stored["current"]["graphics"]["environment"]["fog_density"] == 0.1
+
+
+def test_legacy_geometry_values_are_scaled(tmp_path: Path) -> None:
+    payload = {
+        "metadata": {"units_version": "legacy"},
+        "current": {
+            "geometry": {
+                "wheelbase": 3200.0,
+                "track": 1600.0,
+                "frame_height_m": 650.0,
+                "frame_length_mm": 3400.0,
+                "lever_length_mm": 800.0,
+                "rod_diameter_mm": 35.0,
+            }
+        },
+        "defaults_snapshot": {
+            "geometry": {
+                "wheelbase": 3000.0,
+                "frame_height_m": 600.0,
+                "frame_length_mm": 3200.0,
+            }
+        },
+    }
+    settings_dir = tmp_path / "config"
+    settings_dir.mkdir(parents=True)
+    settings_path = settings_dir / "app_settings.json"
+    settings_path.write_text(
+        json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8"
+    )
+
+    manager = SettingsManager(settings_file=settings_path)
+
+    geometry = manager.get("current.geometry")
+    defaults = manager.get("defaults_snapshot.geometry")
+
+    assert pytest.approx(3.2, rel=1e-9) == geometry["wheelbase"]
+    assert pytest.approx(1.6, rel=1e-9) == geometry["track"]
+    assert pytest.approx(0.65, rel=1e-9) == geometry["frame_height_m"]
+    assert pytest.approx(3.4, rel=1e-9) == geometry["frame_length_m"]
+    assert pytest.approx(0.8, rel=1e-9) == geometry["lever_length"]
+    assert pytest.approx(0.035, rel=1e-9) == geometry["rod_diameter_m"]
+
+    assert pytest.approx(3.0, rel=1e-9) == defaults["wheelbase"]
+    assert pytest.approx(0.6, rel=1e-9) == defaults["frame_height_m"]
+    assert pytest.approx(3.2, rel=1e-9) == defaults["frame_length_m"]
+
+
+def test_graphics_key_aliases_are_normalised(tmp_path: Path) -> None:
+    payload = {
+        "metadata": {"units_version": "si_v2"},
+        "current": {
+            "graphics": {
+                "effects": {
+                    "tonemapActive": True,
+                    "tonemapModeName": "reinhard",
+                    "colorBrightness": 0.5,
+                    "vignetteEnabled": True,
+                },
+                "environment": {
+                    "iblBackgroundEnabled": True,
+                    "probeBrightness": 1.2,
+                },
+                "camera": {"manual_mode": True},
+            }
+        },
+        "defaults_snapshot": {
+            "graphics": {"effects": {}, "environment": {}, "camera": {}}
+        },
+    }
+    settings_dir = tmp_path / "config"
+    settings_dir.mkdir(parents=True)
+    settings_path = settings_dir / "app_settings.json"
+    settings_path.write_text(
+        json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8"
+    )
+
+    manager = SettingsManager(settings_file=settings_path)
+
+    effects = manager.get("current.graphics.effects")
+    environment = manager.get("current.graphics.environment")
+    camera = manager.get("current.graphics.camera")
+
+    assert effects["tonemap_enabled"] is True
+    assert effects["tonemap_mode"] == "reinhard"
+    assert effects["adjustment_brightness"] == 0.5
+    assert effects["vignette"] is True
+    assert "tonemapActive" not in effects
+
+    assert environment["skybox_enabled"] is True
+    assert pytest.approx(1.2, rel=1e-9) == environment["skybox_brightness"]
+    assert "probe_brightness" not in environment
+
+    assert camera["manual_camera"] is True
+    assert "manual_mode" not in camera

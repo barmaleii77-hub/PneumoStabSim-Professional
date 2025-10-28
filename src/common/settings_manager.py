@@ -23,6 +23,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from importlib import import_module, util
@@ -36,6 +37,79 @@ from src.core.settings_manager import (
 
 DEFAULT_SETTINGS_PATH = Path("config/app_settings.json")
 _DEFAULT_UNITS_VERSION = "si_v2"
+_MM_PER_M = 1000.0
+
+_GEOMETRY_LINEAR_KEYS: Dict[str, None] = {
+    "wheelbase": None,
+    "track": None,
+    "frame_to_pivot": None,
+    "lever_length": None,
+    "cylinder_length": None,
+    "frame_height_m": None,
+    "frame_beam_size_m": None,
+    "frame_length_m": None,
+    "lever_length_m": None,
+    "cyl_diam_m": None,
+    "stroke_m": None,
+    "dead_gap_m": None,
+    "rod_diameter_m": None,
+    "rod_diameter_rear_m": None,
+    "piston_rod_length_m": None,
+    "piston_thickness_m": None,
+    "cylinder_body_length_m": None,
+    "tail_rod_length_m": None,
+}
+
+_GEOMETRY_MM_ALIASES: Dict[str, str] = {
+    "frame_length_mm": "frame_length_m",
+    "frame_height_mm": "frame_height_m",
+    "frame_beam_size_mm": "frame_beam_size_m",
+    "lever_length_mm": "lever_length",
+    "lever_length_visual_mm": "lever_length_m",
+    "cylinder_body_length_mm": "cylinder_body_length_m",
+    "tail_rod_length_mm": "tail_rod_length_m",
+    "track_width_mm": "track",
+    "frame_to_pivot_mm": "frame_to_pivot",
+    "cyl_diam_mm": "cyl_diam_m",
+    "stroke_mm": "stroke_m",
+    "dead_gap_mm": "dead_gap_m",
+    "rod_diameter_front_mm": "rod_diameter_m",
+    "rod_diameter_rear_mm": "rod_diameter_rear_m",
+    "rod_diameter_mm": "rod_diameter_m",
+    "piston_rod_length_mm": "piston_rod_length_m",
+    "piston_thickness_mm": "piston_thickness_m",
+}
+
+_CAMEL_BOUNDARY = re.compile(r"(?<!^)(?=[A-Z])")
+
+_ENVIRONMENT_KEY_ALIASES: Dict[str, str] = {
+    "ibl_background_enabled": "skybox_enabled",
+    "iblbackgroundenabled": "skybox_enabled",
+    "ibl_lighting_enabled": "ibl_enabled",
+    "ibllightingenabled": "ibl_enabled",
+    "probe_brightness": "skybox_brightness",
+}
+
+_EFFECTS_KEY_ALIASES: Dict[str, str] = {
+    "tonemap_active": "tonemap_enabled",
+    "tonemapenabled": "tonemap_enabled",
+    "tonemap_mode_name": "tonemap_mode",
+    "tonemapmodename": "tonemap_mode",
+    "depth_of_field_enabled": "depth_of_field",
+    "depthoffieldenabled": "depth_of_field",
+    "vignette_enabled": "vignette",
+    "vignetteenabled": "vignette",
+    "lens_flare_enabled": "lens_flare",
+    "lensflareenabled": "lens_flare",
+    "motion_blur_enabled": "motion_blur",
+    "motionblur_enabled": "motion_blur",
+    "color_brightness": "adjustment_brightness",
+    "color_contrast": "adjustment_contrast",
+    "color_saturation": "adjustment_saturation",
+    "bloom_hdr_maximum": "bloom_hdr_max",
+}
+
+_CAMERA_KEY_ALIASES: Dict[str, str] = {"manual_mode": "manual_camera"}
 
 
 def _resolve_settings_file(settings_file: Optional[Path | str]) -> Path:
@@ -62,6 +136,52 @@ def _deep_update(target: Dict[str, Any], source: Dict[str, Any]) -> None:
             _deep_update(existing, value)
         else:
             target[key] = _deep_copy(value)
+
+
+def _camel_to_snake(name: Any) -> Any:
+    if not isinstance(name, str):
+        return name
+    token = name.strip()
+    if not token:
+        return token
+    token = token.replace("-", "_")
+    snake = _CAMEL_BOUNDARY.sub("_", token)
+    while "__" in snake:
+        snake = snake.replace("__", "_")
+    return snake.lower()
+
+
+def _scale_mm_value(value: Any) -> tuple[Any, bool]:
+    try:
+        numeric = float(value)
+    except (TypeError, ValueError):
+        return value, False
+    converted = numeric / _MM_PER_M
+    return converted, True
+
+
+def _normalise_dict_keys(
+    payload: Dict[str, Any],
+    aliases: Dict[str, str],
+) -> bool:
+    changed = False
+    normalised: Dict[str, Any] = {}
+
+    for raw_key, value in list(payload.items()):
+        canonical = _camel_to_snake(raw_key)
+        mapped = aliases.get(canonical, canonical)
+        if mapped != raw_key or mapped != canonical:
+            changed = True
+        if mapped in normalised:
+            continue
+        normalised[mapped] = value
+
+    if normalised != payload:
+        payload.clear()
+        payload.update(normalised)
+        changed = True
+
+    return changed
 
 
 def _load_qt_core():
@@ -183,6 +303,80 @@ class SettingsManager:
         else:
             self._metadata["units_version"] = self._original_units_version
 
+    # ----------------------------------------------------------------- migration
+    def _convert_geometry_section(self, section: Dict[str, Any]) -> bool:
+        converted_targets: set[str] = set()
+        changed = False
+
+        for alias, target in list(_GEOMETRY_MM_ALIASES.items()):
+            if alias not in section:
+                continue
+            value = section.pop(alias)
+            converted, did_convert = _scale_mm_value(value)
+            if not did_convert:
+                converted = value
+            if target not in section or did_convert:
+                section[target] = converted
+            converted_targets.add(target)
+            changed = True
+
+        for key in _GEOMETRY_LINEAR_KEYS:
+            if key not in section or key in converted_targets:
+                continue
+            value, did_convert = _scale_mm_value(section[key])
+            if did_convert:
+                section[key] = value
+                changed = True
+
+        return changed
+
+    def _normalise_units(self) -> None:
+        if self._original_units_version == _DEFAULT_UNITS_VERSION:
+            return
+
+        for container in (self._data, self._defaults):
+            geometry = (
+                container.get("geometry") if isinstance(container, dict) else None
+            )
+            if isinstance(geometry, dict):
+                self._convert_geometry_section(geometry)
+
+    def _normalise_environment_section(self, section: Dict[str, Any]) -> None:
+        if not isinstance(section, dict):
+            return
+        _normalise_dict_keys(section, _ENVIRONMENT_KEY_ALIASES)
+        if "skybox_brightness" not in section and "probe_brightness" in section:
+            section["skybox_brightness"] = section.pop("probe_brightness")
+        else:
+            section.pop("probe_brightness", None)
+
+    def _normalise_effects_section(self, section: Dict[str, Any]) -> None:
+        if not isinstance(section, dict):
+            return
+        _normalise_dict_keys(section, _EFFECTS_KEY_ALIASES)
+
+    def _normalise_camera_section(self, section: Dict[str, Any]) -> None:
+        if not isinstance(section, dict):
+            return
+        _normalise_dict_keys(section, _CAMERA_KEY_ALIASES)
+
+    def _normalise_graphics_sections(self) -> None:
+        for container in (self._data, self._defaults):
+            graphics = (
+                container.get("graphics") if isinstance(container, dict) else None
+            )
+            if not isinstance(graphics, dict):
+                continue
+            environment = graphics.get("environment")
+            if isinstance(environment, dict):
+                self._normalise_environment_section(environment)
+            effects = graphics.get("effects")
+            if isinstance(effects, dict):
+                self._normalise_effects_section(effects)
+            camera = graphics.get("camera")
+            if isinstance(camera, dict):
+                self._normalise_camera_section(camera)
+
     def _assign_sections(self, payload: Dict[str, Any]) -> None:
         self._metadata = _deep_copy(payload.get("metadata", {}))
         self._data = _deep_copy(payload.get("current", {}))
@@ -194,6 +388,8 @@ class SettingsManager:
         }
         self._migrate_known_extras()
         self._ensure_units_version()
+        self._normalise_units()
+        self._normalise_graphics_sections()
 
     # ------------------------------------------------------------------- units
     def get_units_version(self, *, normalised: bool = True) -> str:
