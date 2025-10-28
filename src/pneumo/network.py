@@ -27,6 +27,10 @@ class GasNetwork:
     tank: TankGasState  # Receiver tank
     system_ref: PneumaticSystem  # Reference to pneumatic system
     master_isolation_open: bool = False  # Master isolation valve state
+    ambient_temperature: float = T_AMBIENT  # Ambient temperature in Kelvin
+    relief_min_threshold: float = 1.05 * PA_ATM
+    relief_stiff_threshold: float = 1.5 * PA_ATM
+    relief_safety_threshold: float = 2.0 * PA_ATM
 
     def __post_init__(self):
         """Validate network configuration"""
@@ -76,7 +80,7 @@ class GasNetwork:
             line_state = self.lines[line_name]
 
             if thermo_mode == ThermoMode.ISOTHERMAL:
-                iso_update(line_state, new_volume, T_AMBIENT)
+                iso_update(line_state, new_volume, self.ambient_temperature)
             elif thermo_mode == ThermoMode.ADIABATIC:
                 adiabatic_update(line_state, new_volume)
             else:
@@ -106,12 +110,16 @@ class GasNetwork:
             cv_atmo = pneumo_line.cv_atmo
             if cv_atmo.is_open(PA_ATM, line_state.p):
                 m_dot_atmo = mass_flow_orifice(
-                    PA_ATM, T_AMBIENT, line_state.p, line_state.T, cv_atmo.d_eq
+                    PA_ATM,
+                    self.ambient_temperature,
+                    line_state.p,
+                    line_state.T,
+                    cv_atmo.d_eq,
                 )
 
                 # Add mass to line
                 mass_added = m_dot_atmo * dt
-                self._add_mass_to_line(line_state, mass_added, T_AMBIENT)
+                self._add_mass_to_line(line_state, mass_added, self.ambient_temperature)
                 line_flows[line_name]["flow_atmo"] = float(m_dot_atmo)
 
                 if log:
@@ -227,9 +235,9 @@ class GasNetwork:
         # Get relief valves from system (we'll need to add these to the system)
         # For now, use default thresholds
 
-        p_min_threshold = 1.05 * PA_ATM  # 5% above atmospheric
-        p_stiff_threshold = 1.5 * PA_ATM  # 50% above atmospheric
-        p_safety_threshold = 2.0 * PA_ATM  # 100% above atmospheric
+        p_min_threshold = self.relief_min_threshold
+        p_stiff_threshold = self.relief_stiff_threshold
+        p_safety_threshold = self.relief_safety_threshold
 
         d_eq_min_bleed = 1.0e-3  # 1mm throttle
         d_eq_stiff_bleed = 1.0e-3  # 1mm throttle
@@ -240,7 +248,11 @@ class GasNetwork:
         # MIN_PRESS relief (maintain minimum pressure)
         if self.tank.p > p_min_threshold:
             m_dot_min = mass_flow_orifice(
-                self.tank.p, self.tank.T, PA_ATM, T_AMBIENT, d_eq_min_bleed
+                self.tank.p,
+                self.tank.T,
+                PA_ATM,
+                self.ambient_temperature,
+                d_eq_min_bleed,
             )
             mass_out_min = m_dot_min * dt
             total_mass_out += mass_out_min
@@ -254,7 +266,11 @@ class GasNetwork:
         # STIFFNESS relief
         if self.tank.p > p_stiff_threshold:
             m_dot_stiff = mass_flow_orifice(
-                self.tank.p, self.tank.T, PA_ATM, T_AMBIENT, d_eq_stiff_bleed
+                self.tank.p,
+                self.tank.T,
+                PA_ATM,
+                self.ambient_temperature,
+                d_eq_stiff_bleed,
             )
             mass_out_stiff = m_dot_stiff * dt
             total_mass_out += mass_out_stiff
@@ -309,7 +325,9 @@ class GasNetwork:
 
         # Calculate mass-weighted average temperature
         total_enthalpy = sum(line.m * line.T for line in self.lines.values())
-        avg_temperature = total_enthalpy / total_mass if total_mass > 0 else T_AMBIENT
+        avg_temperature = (
+            total_enthalpy / total_mass if total_mass > 0 else self.ambient_temperature
+        )
 
         # Calculate equalized pressure
         equalized_pressure = p_from_mTV(total_mass, avg_temperature, total_volume)
