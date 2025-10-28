@@ -561,163 +561,27 @@ View3D {
  pointLightBindToCamera: !!lightingValue("point", "bind_to_camera", false)
  }
 
- Frame {
-  id: frameGeometry
+ SuspensionAssembly {
+  id: suspensionAssembly
   worldRoot: worldRoot
-  beamSizeM: geometryValue("beamSize", userBeamSize)
-  frameHeightM: geometryValue("frameHeight", userFrameHeight)
-  frameLengthM: geometryValue("frameLength", userFrameLength)
-  frameMaterial: sharedMaterials.frameMaterial
+  geometryState: geometryState
+  sharedMaterials: sharedMaterials
+  sceneScaleFactor: root.effectiveSceneScaleFactor
+  leverAngles: ({
+   fl: fl_angle,
+   fr: fr_angle,
+   rl: rl_angle,
+   rr: rr_angle
+  })
+  pistonPositions: pistonPositions
+  reflectionProbeEnabled: root.reflectionProbeEnabled
+  reflectionProbePadding: root.reflectionProbePadding
+  reflectionProbeQualityValue: root.reflectionProbeQualityValue
+  reflectionProbeRefreshModeValue: root.reflectionProbeRefreshModeValue
+  reflectionProbeTimeSlicingValue: root.reflectionProbeTimeSlicingValue
+  rodWarningThreshold: 0.001
  }
 
- ReflectionProbe {
-  id: mainReflectionProbe
-  parent: worldRoot
-  visible: root.reflectionProbeEnabled
-  parallaxCorrection: true
-  quality: root.reflectionProbeQualityValue
-  refreshMode: root.reflectionProbeRefreshModeValue
-  timeSlicing: root.reflectionProbeTimeSlicingValue
-  position: {
-   var beamVal = Math.max(geometryValue("beamSize", userBeamSize), 0);
-   var frameHeightVal = Math.max(geometryValue("frameHeight", userFrameHeight), 0);
-   return Qt.vector3d(0, toSceneLength((beamVal / 2) + (frameHeightVal / 2)), 0);
-  }
-  boxSize: {
-   var track = Math.max(geometryValue("trackWidth", userTrackWidth), 0);
-   var frameHeightVal = Math.max(geometryValue("frameHeight", userFrameHeight), 0);
-   var beamVal = Math.max(geometryValue("beamSize", userBeamSize), 0);
-   var frameLengthVal = Math.max(geometryValue("frameLength", userFrameLength), 0);
-   var padding = Math.max(0, root.reflectionProbePadding) * 2;
-   return Qt.vector3d(
-    Math.max(1.0, toSceneLength(track + padding)),
-    Math.max(1.0, toSceneLength(frameHeightVal + beamVal + padding)),
-    Math.max(1.0, toSceneLength(frameLengthVal + padding))
-   );
-  }
- }
-
- SuspensionCorner {
-  id: flCorner
- j_arm: cornerArmPosition("fl")
- j_tail: cornerTailPosition("fl")
- leverAngle: leverAngleFor("fl")
- pistonPositionM: pistonPosition("fl")
- leverLengthM: geometryValue("leverLength", userLeverLength)
- rodPosition: geometryValue("rodPosition", userRodPosition)
- cylinderLength: geometryValue("cylinderLength", userCylinderLength)
- boreHead: geometryValue("boreHead", userBoreHead)
- rodDiameter: geometryValue("rodDiameter", userRodDiameter)
- pistonThickness: geometryValue("pistonThickness", userPistonThickness)
- pistonRodLength: geometryValue("pistonRodLength", userPistonRodLength)
- tailRodLength: geometryValue("tailRodLength", userTailRodLength)
- cylinderSegments: geometryValue("cylinderSegments", userCylinderSegments)
- cylinderRings: geometryValue("cylinderRings", userCylinderRings)
- leverMaterial: sharedMaterials.leverMaterial
- tailRodMaterial: sharedMaterials.tailRodMaterial
- cylinderMaterial: sharedMaterials.cylinderMaterial
- pistonBodyMaterial: sharedMaterials.pistonBodyMaterial
- pistonRodMaterial: sharedMaterials.pistonRodMaterial
- jointTailMaterial: sharedMaterials.jointTailMaterial
- jointArmMaterial: sharedMaterials.jointArmMaterial
- jointRodMaterial: AnimatedRodMaterial {
- okColor: sharedMaterials.jointRodOkColor
- warningColor: sharedMaterials.jointRodErrorColor
- warning: flCorner.rodLengthError > 0.001
- }
- }
-
- SuspensionCorner {
- id: frCorner
- j_arm: cornerArmPosition("fr")
- j_tail: cornerTailPosition("fr")
- leverAngle: leverAngleFor("fr")
- pistonPositionM: pistonPosition("fr")
- leverLengthM: geometryValue("leverLength", userLeverLength)
- rodPosition: geometryValue("rodPosition", userRodPosition)
- cylinderLength: geometryValue("cylinderLength", userCylinderLength)
- boreHead: geometryValue("boreHead", userBoreHead)
- rodDiameter: geometryValue("rodDiameter", userRodDiameter)
- pistonThickness: geometryValue("pistonThickness", userPistonThickness)
- pistonRodLength: geometryValue("pistonRodLength", userPistonRodLength)
- tailRodLength: geometryValue("tailRodLength", userTailRodLength)
- cylinderSegments: geometryValue("cylinderSegments", userCylinderSegments)
- cylinderRings: geometryValue("cylinderRings", userCylinderRings)
- leverMaterial: sharedMaterials.leverMaterial
- tailRodMaterial: sharedMaterials.tailRodMaterial
- cylinderMaterial: sharedMaterials.cylinderMaterial
- pistonBodyMaterial: sharedMaterials.pistonBodyMaterial
- pistonRodMaterial: sharedMaterials.pistonRodMaterial
- jointTailMaterial: sharedMaterials.jointTailMaterial
- jointArmMaterial: sharedMaterials.jointArmMaterial
- jointRodMaterial: AnimatedRodMaterial {
- okColor: sharedMaterials.jointRodOkColor
- warningColor: sharedMaterials.jointRodErrorColor
- warning: frCorner.rodLengthError > 0.001
- }
- }
-
- SuspensionCorner {
- id: rlCorner
- j_arm: cornerArmPosition("rl")
- j_tail: cornerTailPosition("rl")
- leverAngle: leverAngleFor("rl")
- pistonPositionM: pistonPosition("rl")
- leverLengthM: geometryValue("leverLength", userLeverLength)
- rodPosition: geometryValue("rodPosition", userRodPosition)
- cylinderLength: geometryValue("cylinderLength", userCylinderLength)
- boreHead: geometryValue("boreHead", userBoreHead)
- rodDiameter: geometryValue("rodDiameter", userRodDiameter)
- pistonThickness: geometryValue("pistonThickness", userPistonThickness)
- pistonRodLength: geometryValue("pistonRodLength", userPistonRodLength)
- tailRodLength: geometryValue("tailRodLength", userTailRodLength)
- cylinderSegments: geometryValue("cylinderSegments", userCylinderSegments)
- cylinderRings: geometryValue("cylinderRings", userCylinderRings)
- leverMaterial: sharedMaterials.leverMaterial
- tailRodMaterial: sharedMaterials.tailRodMaterial
- cylinderMaterial: sharedMaterials.cylinderMaterial
- pistonBodyMaterial: sharedMaterials.pistonBodyMaterial
- pistonRodMaterial: sharedMaterials.pistonRodMaterial
- jointTailMaterial: sharedMaterials.jointTailMaterial
- jointArmMaterial: sharedMaterials.jointArmMaterial
- jointRodMaterial: AnimatedRodMaterial {
- okColor: sharedMaterials.jointRodOkColor
- warningColor: sharedMaterials.jointRodErrorColor
- warning: rlCorner.rodLengthError > 0.001
- }
- }
-
- SuspensionCorner {
- id: rrCorner
- j_arm: cornerArmPosition("rr")
- j_tail: cornerTailPosition("rr")
- leverAngle: leverAngleFor("rr")
- pistonPositionM: pistonPosition("rr")
- leverLengthM: geometryValue("leverLength", userLeverLength)
- rodPosition: geometryValue("rodPosition", userRodPosition)
- cylinderLength: geometryValue("cylinderLength", userCylinderLength)
- boreHead: geometryValue("boreHead", userBoreHead)
- rodDiameter: geometryValue("rodDiameter", userRodDiameter)
- pistonThickness: geometryValue("pistonThickness", userPistonThickness)
- pistonRodLength: geometryValue("pistonRodLength", userPistonRodLength)
- tailRodLength: geometryValue("tailRodLength", userTailRodLength)
- cylinderSegments: geometryValue("cylinderSegments", userCylinderSegments)
- cylinderRings: geometryValue("cylinderRings", userCylinderRings)
- leverMaterial: sharedMaterials.leverMaterial
- tailRodMaterial: sharedMaterials.tailRodMaterial
- cylinderMaterial: sharedMaterials.cylinderMaterial
- pistonBodyMaterial: sharedMaterials.pistonBodyMaterial
- pistonRodMaterial: sharedMaterials.pistonRodMaterial
- jointTailMaterial: sharedMaterials.jointTailMaterial
- jointArmMaterial: sharedMaterials.jointArmMaterial
- jointRodMaterial: AnimatedRodMaterial {
- okColor: sharedMaterials.jointRodOkColor
- warningColor: sharedMaterials.jointRodErrorColor
- warning: rrCorner.rodLengthError > 0.001
- }
- }
- }
- }
 
  CameraController {
  id: cameraController
@@ -1113,34 +977,30 @@ return Math.max(minValue, Math.min(maxValue, value));
  }
 
  function geometryValue(key, fallback) {
+ if (suspensionAssembly)
+ return suspensionAssembly.geometryValue(key, fallback);
  var state = geometryState || {};
  if (state[key] !== undefined)
  return state[key];
  return fallback;
  }
 
- function cornerIsRear(side) {
- return String(side).toLowerCase().charAt(0) === "r";
- }
-
- function cornerIsLeft(side) {
- return String(side).toLowerCase().charAt(1) === "l";
- }
-
- function cornerArmZ(side) {
- var frameLengthVal = geometryValue("frameLength", userFrameLength);
- var pivot = geometryValue("frameToPivot", userFrameToPivot);
- return cornerIsRear(side) ? frameLengthVal - pivot : pivot;
- }
-
  function cornerArmPosition(side) {
+ if (suspensionAssembly)
+ return suspensionAssembly.cornerArmPosition(side);
  var track = geometryValue("trackWidth", userTrackWidth);
  var beam = geometryValue("beamSize", userBeamSize);
- var x = (cornerIsLeft(side) ? -1 :1) * track /2;
- return Qt.vector3d(x, beam, cornerArmZ(side));
+ var isLeft = String(side).toLowerCase().charAt(1) === "l";
+ var pivot = geometryValue("frameToPivot", userFrameToPivot);
+ var frameLengthVal = geometryValue("frameLength", userFrameLength);
+ var z = (String(side).toLowerCase().charAt(0) === "r") ? frameLengthVal - pivot : pivot;
+ var x = (isLeft ? -1 :1) * track /2;
+ return Qt.vector3d(x, beam, z);
  }
 
  function cornerTailPosition(side) {
+ if (suspensionAssembly)
+ return suspensionAssembly.cornerTailPosition(side);
  var base = cornerArmPosition(side);
  var beam = geometryValue("beamSize", userBeamSize);
  var frameHeightVal = geometryValue("frameHeight", userFrameHeight);
@@ -1148,6 +1008,8 @@ return Math.max(minValue, Math.min(maxValue, value));
  }
 
  function pistonPosition(side) {
+ if (suspensionAssembly)
+ return suspensionAssembly.pistonPositionFor(side);
  var store = pistonPositions || {};
  var key = String(side).toLowerCase();
  var value = store[key];
@@ -1158,6 +1020,8 @@ return Math.max(minValue, Math.min(maxValue, value));
  }
 
  function leverAngleFor(side) {
+ if (suspensionAssembly)
+ return suspensionAssembly.leverAngleFor(side);
  var key = String(side).toLowerCase();
  if (key === "fl")
  return fl_angle;

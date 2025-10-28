@@ -8,6 +8,8 @@ import QtQuick3D
  * - Единый источник всех PBR материалов для3D сцены
  * - Избежание дублирования материалов
  * - Централизованное управление через Python bindings
+ * - Исключительно параметрические материалы (без внешних текстур),
+ *   чтобы репозиторий оставался текстовым и предсказуемым для CI
  *
  * USAGE:
  * ```qml
@@ -221,47 +223,48 @@ QtObject {
  // MATERIAL INSTANCES
  // ===============================================================
 
- readonly property PrincipledMaterial frameMaterial: PrincipledMaterial {
- baseColor: root.frameBaseColor
- metalness: root.frameMetalness
- roughness: root.frameRoughness
- clearcoatAmount: root.frameClearcoat
- clearcoatRoughnessAmount: root.frameClearcoatRoughness
- transmissionFactor: root.frameTransmission
- opacity: root.frameOpacity
- indexOfRefraction: root.frameIor
- attenuationDistance: root.frameAttenuationDistance
- attenuationColor: root.frameAttenuationColor
- emissiveFactor: root.emissiveVector(root.frameEmissiveColor, root.frameEmissiveIntensity)
- }
+readonly property PrincipledMaterial frameMaterial: PrincipledMaterial {
+    baseColor: root.frameBaseColor
+    metalness: root.frameMetalness
+    roughness: root.frameRoughness
+    clearcoatAmount: root.frameClearcoat
+    clearcoatRoughnessAmount: root.frameClearcoatRoughness
+    transmissionFactor: root.frameTransmission
+    opacity: root.frameOpacity
+    indexOfRefraction: root.frameIor
+    attenuationDistance: root.frameAttenuationDistance
+    attenuationColor: root.frameAttenuationColor
+    emissiveFactor: root.emissiveVector(root.frameEmissiveColor, root.frameEmissiveIntensity)
+    occlusionAmount: 0.35
+}
 
- readonly property PrincipledMaterial leverMaterial: PrincipledMaterial {
- baseColor: root.leverBaseColor
- metalness: root.leverMetalness
- roughness: root.leverRoughness
- clearcoatAmount: root.leverClearcoat
- clearcoatRoughnessAmount: root.leverClearcoatRoughness
- transmissionFactor: root.leverTransmission
- opacity: root.leverOpacity
- indexOfRefraction: root.leverIor
- attenuationDistance: root.leverAttenuationDistance
- attenuationColor: root.leverAttenuationColor
- emissiveFactor: root.emissiveVector(root.leverEmissiveColor, root.leverEmissiveIntensity)
- }
+readonly property PrincipledMaterial leverMaterial: PrincipledMaterial {
+    baseColor: root.leverBaseColor
+    metalness: root.leverMetalness
+    roughness: root.leverRoughness
+    clearcoatAmount: root.leverClearcoat
+    clearcoatRoughnessAmount: root.leverClearcoatRoughness
+    transmissionFactor: root.leverTransmission
+    opacity: root.leverOpacity
+    indexOfRefraction: root.leverIor
+    attenuationDistance: root.leverAttenuationDistance
+    attenuationColor: root.leverAttenuationColor
+    emissiveFactor: root.emissiveVector(root.leverEmissiveColor, root.leverEmissiveIntensity)
+}
 
- readonly property PrincipledMaterial tailRodMaterial: PrincipledMaterial {
- baseColor: root.tailRodBaseColor
- metalness: root.tailRodMetalness
- roughness: root.tailRodRoughness
- clearcoatAmount: root.tailRodClearcoat
- clearcoatRoughnessAmount: root.tailRodClearcoatRoughness
- transmissionFactor: root.tailRodTransmission
- opacity: root.tailRodOpacity
- indexOfRefraction: root.tailRodIor
- attenuationDistance: root.tailRodAttenuationDistance
- attenuationColor: root.tailRodAttenuationColor
- emissiveFactor: root.emissiveVector(root.tailRodEmissiveColor, root.tailRodEmissiveIntensity)
- }
+readonly property PrincipledMaterial tailRodMaterial: PrincipledMaterial {
+    baseColor: root.tailRodBaseColor
+    metalness: root.tailRodMetalness
+    roughness: root.tailRodRoughness
+    clearcoatAmount: root.tailRodClearcoat
+    clearcoatRoughnessAmount: root.tailRodClearcoatRoughness
+    transmissionFactor: root.tailRodTransmission
+    opacity: root.tailRodOpacity
+    indexOfRefraction: root.tailRodIor
+    attenuationDistance: root.tailRodAttenuationDistance
+    attenuationColor: root.tailRodAttenuationColor
+    emissiveFactor: root.emissiveVector(root.tailRodEmissiveColor, root.tailRodEmissiveIntensity)
+}
 
  readonly property PrincipledMaterial cylinderMaterial: PrincipledMaterial {
  baseColor: root.cylinderBaseColor
@@ -278,19 +281,19 @@ QtObject {
  alphaMode: PrincipledMaterial.Blend
  }
 
- readonly property PrincipledMaterial jointTailMaterial: PrincipledMaterial {
- baseColor: root.jointTailBaseColor
- metalness: root.jointTailMetalness
- roughness: root.jointTailRoughness
- clearcoatAmount: root.jointTailClearcoat
- clearcoatRoughnessAmount: root.jointTailClearcoatRoughness
- transmissionFactor: root.jointTailTransmission
- opacity: root.jointTailOpacity
- indexOfRefraction: root.jointTailIor
- attenuationDistance: root.jointTailAttenuationDistance
- attenuationColor: root.jointTailAttenuationColor
- emissiveFactor: root.emissiveVector(root.jointTailEmissiveColor, root.jointTailEmissiveIntensity)
- }
+readonly property PrincipledMaterial jointTailMaterial: PrincipledMaterial {
+    baseColor: root.jointTailBaseColor
+    metalness: root.jointTailMetalness
+    roughness: root.jointTailRoughness
+    clearcoatAmount: root.jointTailClearcoat
+    clearcoatRoughnessAmount: root.jointTailClearcoatRoughness
+    transmissionFactor: root.jointTailTransmission
+    opacity: root.jointTailOpacity
+    indexOfRefraction: root.jointTailIor
+    attenuationDistance: root.jointTailAttenuationDistance
+    attenuationColor: root.jointTailAttenuationColor
+    emissiveFactor: root.emissiveVector(root.jointTailEmissiveColor, root.jointTailEmissiveIntensity)
+}
 
 readonly property PrincipledMaterial jointArmMaterial: PrincipledMaterial {
     baseColor: root.jointArmBaseColor

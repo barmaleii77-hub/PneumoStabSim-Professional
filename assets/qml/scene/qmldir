@@ -1,2 +1,3 @@
 module scene
 SharedMaterials 1.0 SharedMaterials.qml
+SuspensionAssembly 1.0 SuspensionAssembly.qml
