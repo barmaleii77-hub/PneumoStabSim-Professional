@@ -45,25 +45,29 @@ class PneumoStateManager:
             converted.get("pressure_units", DEFAULT_PNEUMATIC["pressure_units"])
         )
         factor = get_pressure_factor(units)
+        if factor <= 0:
+            factor = get_pressure_factor(DEFAULT_PNEUMATIC["pressure_units"])
+
         converted["pressure_units"] = units
+
         for key in STORAGE_PRESSURE_KEYS:
-            if key in converted:
-                value = float(converted[key])
-                if value <= 0.0:
-                    converted[key] = value
-                elif value < 10.0:
-                    converted[key] = value
-                else:
-                    converted[key] = value / PA_PER_BAR
+            if key not in converted:
+                continue
+            try:
+                value_pa = float(converted[key])
+            except (TypeError, ValueError):
+                continue
+            converted[key] = value_pa / factor
+
         for key in STORAGE_DIAMETER_KEYS_MM:
-            if key in converted:
-                value = float(converted[key])
-                if value <= 0.0:
-                    converted[key] = value
-                elif value >= 0.1:
-                    converted[key] = value
-                else:
-                    converted[key] = value * MM_PER_M
+            if key not in converted:
+                continue
+            try:
+                value_m = float(converted[key])
+            except (TypeError, ValueError):
+                continue
+            converted[key] = value_m * MM_PER_M
+
         return converted
 
     @staticmethod
@@ -73,13 +77,29 @@ class PneumoStateManager:
             converted.get("pressure_units", DEFAULT_PNEUMATIC["pressure_units"])
         )
         factor = get_pressure_factor(units)
+        if factor <= 0:
+            factor = get_pressure_factor(DEFAULT_PNEUMATIC["pressure_units"])
+
         converted["pressure_units"] = units
+
         for key in STORAGE_PRESSURE_KEYS:
-            if key in converted:
-                converted[key] = float(converted[key]) * factor
+            if key not in converted:
+                continue
+            try:
+                value = float(converted[key])
+            except (TypeError, ValueError):
+                continue
+            converted[key] = value * factor
+
         for key in STORAGE_DIAMETER_KEYS_MM:
-            if key in converted:
-                converted[key] = float(converted[key]) / MM_PER_M
+            if key not in converted:
+                continue
+            try:
+                value_mm = float(converted[key])
+            except (TypeError, ValueError):
+                continue
+            converted[key] = value_mm / MM_PER_M
+
         return converted
 
     def export_storage_payload(self) -> Dict[str, Any]:

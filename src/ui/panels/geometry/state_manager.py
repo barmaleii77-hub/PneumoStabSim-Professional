@@ -376,6 +376,22 @@ class GeometryStateManager:
             self.logger.error("Failed to load geometry state: %s", exc)
             return
 
+        source_path = self._settings_path
+        if not isinstance(stored, dict) or not stored:
+            for fallback_path in (
+                "defaults_snapshot.geometry",
+                "current.geometryPanel",
+                "defaults_snapshot.geometryPanel",
+            ):
+                try:
+                    candidate = self.settings_manager.get(fallback_path, default=None)
+                except Exception:
+                    continue
+                if isinstance(candidate, dict) and candidate:
+                    stored = candidate
+                    source_path = fallback_path
+                    break
+
         if not isinstance(stored, dict):
             self.logger.info("No persisted geometry state found; using defaults")
             return
@@ -383,7 +399,13 @@ class GeometryStateManager:
         restored = DEFAULT_GEOMETRY.copy()
         restored.update(self._filter_known_parameters(stored))
         self.state = restored
-        self.logger.info("State loaded from settings manager")
+
+        if source_path != self._settings_path:
+            self.logger.info(
+                "Geometry state restored from fallback path '%s'", source_path
+            )
+        else:
+            self.logger.info("State loaded from settings manager")
 
     # =========================================================================
     # HELPER METHODS
