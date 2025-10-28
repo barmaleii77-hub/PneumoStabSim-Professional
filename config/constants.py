@@ -243,12 +243,12 @@ def get_pneumo_master_isolation_default(
     *,
     custom_path: str | None = None,
 ) -> bool:
-    """Return default state of the master isolation valve."""
+    """Return default state of the master isolation valve from current settings."""
 
-    pneumo = get_pneumo_constants(custom_path=custom_path)
-    value = _require_scalar_key(pneumo, "master_isolation_open", "constants.pneumo")
+    pneumo = get_current_section("pneumatic", custom_path=custom_path)
+    value = _require_scalar_key(pneumo, "master_isolation_open", "current.pneumatic")
     if not isinstance(value, bool):
         raise TypeError(
-            "'constants.pneumo.master_isolation_open' must be a boolean value"
+            "'current.pneumatic.master_isolation_open' must be a boolean value"
         )
     return value

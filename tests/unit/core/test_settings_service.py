@@ -26,16 +26,16 @@ def settings_payload(tmp_path: Path) -> Path:
     # Normalise key values used in assertions
     constants = data["current"]["constants"]
     constants["geometry"]["kinematics"]["track_width_m"] = 2.0
-    pneumo = constants["pneumo"]
-    pneumo["valves"]["delta_open_pa"] = 123.0
-    pneumo["receiver"].update(
+    pneumo_constants = constants["pneumo"]
+    pneumo_constants["valves"]["delta_open_pa"] = 123.0
+    pneumo_constants["receiver"].update(
         {
             "volume_min_m3": 0.1,
             "volume_max_m3": 0.2,
             "initial_volume_m3": 0.15,
         }
     )
-    pneumo["gas"].update(
+    pneumo_constants["gas"].update(
         {
             "tank_volume_initial_m3": 0.42,
             "tank_pressure_initial_pa": 200_000.0,
@@ -45,7 +45,8 @@ def settings_payload(tmp_path: Path) -> Path:
             "total_time_s": 10.0,
         }
     )
-    pneumo["master_isolation_open"] = True
+
+    data["current"]["pneumatic"]["master_isolation_open"] = True
 
     data["defaults_snapshot"] = json.loads(json.dumps(data["current"]))
 

@@ -16,7 +16,7 @@ PRESSURE_UNIT_FACTORS = {
 }
 
 DEFAULT_PNEUMATIC: Dict[str, Any] = {
-    "pressure_units": "бар",
+    "pressure_units": "Па",
     "volume_mode": "MANUAL",
     "receiver_volume": 0.02,  # м³
     "receiver_diameter": 0.200,  # м
@@ -33,7 +33,6 @@ DEFAULT_PNEUMATIC: Dict[str, Any] = {
     "atmo_temp": 20.0,  # °C
     "thermo_mode": "ISOTHERMAL",
     "master_isolation_open": False,
-    "link_rod_dia": False,
     "receiver_volume_limits": {"min_m3": 0.001, "max_m3": 1.0},
 }
 

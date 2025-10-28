@@ -95,8 +95,12 @@ class PneumoStateManager:
             LOGGER.warning("Failed to load pneumatic settings", exc_info=exc)
             current, defaults = {}, {}
 
+        if isinstance(defaults, dict):
+            defaults.pop("link_rod_dia", None)
         if defaults:
             self._defaults.update(self._convert_from_storage(defaults))
+        if isinstance(current, dict):
+            current.pop("link_rod_dia", None)
         merged = deepcopy(self._defaults)
         merged.update(self._convert_from_storage(current))
         self._state = merged
