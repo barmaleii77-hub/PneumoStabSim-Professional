@@ -77,10 +77,10 @@ def _coerce_string(defn: EnvironmentParameterDefinition, value: Any) -> Any:
         text = value.strip()
         if not text and not defn.allow_empty_string:
             raise EnvironmentValidationError(f"'{defn.key}' cannot be empty")
-    if defn.key in {"background_color", "fog_color"} and isinstance(value, str):
+    if defn.key.endswith("_color") and isinstance(value, str):
         text = value.strip()
         if text.startswith("#") and len(text) in {4, 7}:
-            return text
+            return text.lower()
         raise EnvironmentValidationError(
             f"'{defn.key}' must be a hex color code when provided as string"
         )
@@ -195,6 +195,14 @@ SCENE_PARAMETERS: Tuple[EnvironmentParameterDefinition, ...] = (
         "scale_factor", "float", min_value=0.01, max_value=1000.0
     ),
     EnvironmentParameterDefinition("exposure", "float", min_value=0.0, max_value=32.0),
+    EnvironmentParameterDefinition("default_clear_color", "string"),
+    EnvironmentParameterDefinition("model_base_color", "string"),
+    EnvironmentParameterDefinition(
+        "model_roughness", "float", min_value=0.0, max_value=1.0
+    ),
+    EnvironmentParameterDefinition(
+        "model_metalness", "float", min_value=0.0, max_value=1.0
+    ),
 )
 
 ANIMATION_PARAMETERS: Tuple[EnvironmentParameterDefinition, ...] = (
@@ -343,7 +351,7 @@ def _build_payload(
                 payload[defn.key] = defn.allowed_values[0]
             elif defn.allow_empty_string:
                 payload[defn.key] = ""
-            elif defn.key == "background_color":
+            elif defn.key.endswith("_color"):
                 payload[defn.key] = "#000000"
             else:
                 payload[defn.key] = defn.key

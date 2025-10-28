@@ -70,7 +70,7 @@ class QualityTab(QWidget):
             "ultra": {
                 "shadows": {
                     "enabled": True,
-                    "resolution": "4096",
+                    "resolution": 4096,
                     "filter": 32,
                     "bias": 8.0,
                     "darkness": 80.0,
@@ -91,7 +91,7 @@ class QualityTab(QWidget):
             "high": {
                 "shadows": {
                     "enabled": True,
-                    "resolution": "2048",
+                    "resolution": 2048,
                     "filter": 16,
                     "bias": 9.5,
                     "darkness": 78.0,
@@ -112,7 +112,7 @@ class QualityTab(QWidget):
             "medium": {
                 "shadows": {
                     "enabled": True,
-                    "resolution": "1024",
+                    "resolution": 1024,
                     "filter": 8,
                     "bias": 10.0,
                     "darkness": 75.0,
@@ -137,7 +137,7 @@ class QualityTab(QWidget):
             "low": {
                 "shadows": {
                     "enabled": True,
-                    "resolution": "512",
+                    "resolution": 512,
                     "filter": 4,
                     "bias": 12.0,
                     "darkness": 70.0,
@@ -217,11 +217,11 @@ class QualityTab(QWidget):
         # Shadow resolution ComboBox
         resolution = QComboBox(self)
         for label, value in [
-            ("256 (Низкое)", "256"),
-            ("512 (Среднее)", "512"),
-            ("1024 (Высокое)", "1024"),
-            ("2048 (Очень высокое)", "2048"),
-            ("4096 (Ультра)", "4096"),
+            ("256 (Низкое)", 256),
+            ("512 (Среднее)", 512),
+            ("1024 (Высокое)", 1024),
+            ("2048 (Очень высокое)", 2048),
+            ("4096 (Ультра)", 4096),
         ]:
             resolution.addItem(label, value)
         resolution.currentIndexChanged.connect(

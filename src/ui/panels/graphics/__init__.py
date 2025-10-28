@@ -41,6 +41,7 @@ from .quality_tab import QualityTab
 from .camera_tab import CameraTab
 from .materials_tab import MaterialsTab
 from .effects_tab import EffectsTab
+from .scene_tab import SceneTab
 
 # Экспорт вспомогательных модулей
 from .widgets import ColorButton, LabeledSlider
@@ -63,6 +64,7 @@ __all__ = [
     "CameraTab",
     "MaterialsTab",
     "EffectsTab",
+    "SceneTab",
     # Виджеты
     "ColorButton",
     "LabeledSlider",

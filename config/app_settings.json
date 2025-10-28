@@ -177,7 +177,7 @@
         "preset": "ultra",
         "shadows": {
           "enabled": true,
-          "resolution": "4096",
+          "resolution": 4096,
           "filter": 32,
           "bias": 8.0,
           "darkness": 80.0
@@ -519,7 +519,7 @@
       "ultra": {
         "shadows": {
           "enabled": true,
-          "resolution": "4096",
+          "resolution": 4096,
           "filter": 32,
           "bias": 8.0,
           "darkness": 80.0
@@ -547,7 +547,7 @@
       "high": {
         "shadows": {
           "enabled": true,
-          "resolution": "2048",
+          "resolution": 2048,
           "filter": 16,
           "bias": 9.5,
           "darkness": 78.0
@@ -575,7 +575,7 @@
       "medium": {
         "shadows": {
           "enabled": true,
-          "resolution": "1024",
+          "resolution": 1024,
           "filter": 8,
           "bias": 10.0,
           "darkness": 75.0
@@ -603,7 +603,7 @@
       "low": {
         "shadows": {
           "enabled": true,
-          "resolution": "512",
+          "resolution": 512,
           "filter": 4,
           "bias": 12.0,
           "darkness": 70.0
@@ -1066,7 +1066,7 @@
         "preset": "ultra",
         "shadows": {
           "enabled": true,
-          "resolution": "4096",
+          "resolution": 4096,
           "filter": 32,
           "bias": 8.0,
           "darkness": 80.0
@@ -1583,7 +1583,7 @@
       "ultra": {
         "shadows": {
           "enabled": true,
-          "resolution": "4096",
+          "resolution": 4096,
           "filter": 32,
           "bias": 8.0,
           "darkness": 80.0
@@ -1611,7 +1611,7 @@
       "high": {
         "shadows": {
           "enabled": true,
-          "resolution": "2048",
+          "resolution": 2048,
           "filter": 16,
           "bias": 9.5,
           "darkness": 78.0
@@ -1639,7 +1639,7 @@
       "medium": {
         "shadows": {
           "enabled": true,
-          "resolution": "1024",
+          "resolution": 1024,
           "filter": 8,
           "bias": 10.0,
           "darkness": 75.0
@@ -1667,7 +1667,7 @@
       "low": {
         "shadows": {
           "enabled": true,
-          "resolution": "512",
+          "resolution": 512,
           "filter": 4,
           "bias": 12.0,
           "darkness": 70.0
