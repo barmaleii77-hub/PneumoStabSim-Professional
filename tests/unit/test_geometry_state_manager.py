@@ -1,3 +1,5 @@
+"""Geometry state manager tests."""
+
 from __future__ import annotations
 
 import json
@@ -6,6 +8,7 @@ from pathlib import Path
 import pytest
 
 from src.common.settings_manager import SettingsManager
+
 from src.ui.panels.geometry.state_manager import GeometryStateManager
 
 
@@ -102,5 +105,47 @@ def test_rod_diameter_linking_roundtrip():
     assert manager.get_parameter("rod_diameter_m") == pytest.approx(0.046)
 
     manager.set_parameter("link_rod_diameters", False)
-    assert manager.get_parameter("rod_diameter_m") == pytest.approx(0.04)
-    assert manager.get_parameter("rod_diameter_rear_m") == pytest.approx(0.05)
+    assert manager.get_parameter("rod_diameter_m") == pytest.approx(0.046)
+    assert manager.get_parameter("rod_diameter_rear_m") == pytest.approx(0.046)
+
+    manager.set_parameter("rod_diameter_rear_m", 0.048)
+    assert manager.get_parameter("rod_diameter_m") == pytest.approx(0.046)
+    assert manager.get_parameter("rod_diameter_rear_m") == pytest.approx(0.048)
+
+
+def test_link_toggle_persists_synced_state(tmp_path: Path) -> None:
+    """Link toggle keeps synced values persisted in the settings file."""
+
+    settings_copy = tmp_path / "app_settings.json"
+    settings_copy.write_text(
+        Path("config/app_settings.json").read_text(encoding="utf-8"),
+        encoding="utf-8",
+    )
+
+    settings = SettingsManager(settings_file=settings_copy)
+    manager = GeometryStateManager(settings)
+
+    manager.set_parameter("rod_diameter_m", 0.039)
+    manager.set_parameter("rod_diameter_rear_m", 0.043)
+    manager.set_parameter("link_rod_diameters", True)
+    manager.set_parameter("rod_diameter_m", 0.041)
+
+    manager.save_state()
+    payload = json.loads(settings_copy.read_text(encoding="utf-8"))
+    current = payload["current"]["geometry"]
+    assert current["link_rod_diameters"] is True
+    assert current["rod_diameter_m"] == pytest.approx(0.041)
+    assert current["rod_diameter_rear_m"] == pytest.approx(0.041)
+
+    manager.set_parameter("link_rod_diameters", False)
+    manager.save_state()
+
+    payload = json.loads(settings_copy.read_text(encoding="utf-8"))
+    current = payload["current"]["geometry"]
+    assert current["link_rod_diameters"] is False
+    assert current["rod_diameter_m"] == pytest.approx(0.041)
+    assert current["rod_diameter_rear_m"] == pytest.approx(0.041)
+
+    manager.set_parameter("rod_diameter_rear_m", 0.045)
+    assert manager.get_parameter("rod_diameter_m") == pytest.approx(0.041)
+    assert manager.get_parameter("rod_diameter_rear_m") == pytest.approx(0.045)

@@ -166,12 +166,9 @@ class GeometryStateManager:
             front = float(self.state.get("rod_diameter_m", 0.035))
             rear = float(self.state.get("rod_diameter_rear_m", front))
             self._rod_link_snapshot = (front, rear)
+            self.state["rod_diameter_m"] = front
             self.state["rod_diameter_rear_m"] = front
         else:
-            if self._rod_link_snapshot:
-                front, rear = self._rod_link_snapshot
-                self.state["rod_diameter_m"] = front
-                self.state["rod_diameter_rear_m"] = rear
             self._rod_link_snapshot = None
 
     def get_all_parameters(self) -> Dict[str, Any]:
