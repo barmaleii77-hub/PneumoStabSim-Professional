@@ -159,24 +159,7 @@ def test_validate_settings_success(
     assert stub_qmessagebox.calls == []
 
 
-def test_validate_settings_allows_tail_rod_without_legacy_alias(
-    runner: ApplicationRunner, write_config, stub_qmessagebox
-):
-    settings = _base_settings()
-    settings["current"]["graphics"]["materials"].pop("tail", None)
-    defaults = settings.get("defaults_snapshot", {})
-    if isinstance(defaults, dict):
-        graphics_defaults = defaults.get("graphics")
-        if isinstance(graphics_defaults, dict):
-            graphics_defaults.get("materials", {}).pop("tail", None)
-    write_config(settings)
-
-    runner._validate_settings_file()
-
-    assert stub_qmessagebox.calls == []
-
-
-def test_validate_settings_accepts_legacy_tail_without_tail_rod(
+def test_validate_settings_missing_tail_rod_material(
     runner: ApplicationRunner, write_config, stub_qmessagebox
 ):
     settings = _base_settings()
@@ -188,9 +171,32 @@ def test_validate_settings_accepts_legacy_tail_without_tail_rod(
             graphics_defaults.get("materials", {}).pop("tail_rod", None)
     write_config(settings)
 
-    runner._validate_settings_file()
+    with pytest.raises(SettingsValidationError) as exc:
+        runner._validate_settings_file()
 
-    assert stub_qmessagebox.calls == []
+    assert "tail_rod" in str(exc.value)
+    assert "tail_rod" in _last_error(stub_qmessagebox)
+
+
+def test_validate_settings_rejects_legacy_tail_alias(
+    runner: ApplicationRunner, write_config, stub_qmessagebox
+):
+    settings = _base_settings()
+    materials = settings["current"]["graphics"]["materials"]
+    materials["tail"] = materials.pop("tail_rod")
+    defaults = settings.get("defaults_snapshot", {})
+    if isinstance(defaults, dict):
+        graphics_defaults = defaults.get("graphics")
+        if isinstance(graphics_defaults, dict):
+            default_materials = graphics_defaults.get("materials", {})
+            default_materials["tail"] = default_materials.pop("tail_rod")
+    write_config(settings)
+
+    with pytest.raises(SettingsValidationError) as exc:
+        runner._validate_settings_file()
+
+    assert "устаревшие ключи" in str(exc.value)
+    assert "tail" in _last_error(stub_qmessagebox)
 
 
 def test_validate_settings_invalid_bool(

@@ -10,8 +10,8 @@ that gap:
 
 * hydrate missing categories from the canonical baseline payload under
   ``config/baseline/app_settings.json``;
-* normalise legacy material keys (e.g. ``tail`` → ``tail_rod``) and guarantee
-  that every required material dictionary is present;
+* guarantee that every required material dictionary is present and flag
+  unsupported keys explicitly;
 * provide explicit validation helpers so the panel can fail fast instead of
   masking exceptions deep inside Qt signal handlers; and
 * centralise persistence logic for both the ``current`` and
@@ -82,18 +82,8 @@ class GraphicsSettingsService:
         "joint_rod",
     )
 
-    MATERIAL_ALIASES: dict[str, str] = {
+    FORBIDDEN_MATERIAL_ALIASES: dict[str, str] = {
         "tail": "tail_rod",
-        "tail_rod": "tail_rod",
-    }
-
-    #: Mapping of canonical material keys to aliases that must also be persisted in
-    #: ``config/app_settings.json``.  The external tooling that consumes the
-    #: configuration still expects ``tail`` in addition to the modern
-    #: ``tail_rod`` key, so we duplicate the normalised payload before writing it
-    #: to disk.
-    PERSISTENT_MATERIAL_ALIASES: dict[str, tuple[str, ...]] = {
-        "tail_rod": ("tail",),
     }
 
     DEFAULT_BASELINE_PATH = Path("config/baseline/app_settings.json")
@@ -159,20 +149,25 @@ class GraphicsSettingsService:
         *,
         baseline: Dict[str, Any],
         allow_missing: bool,
-        provided_aliases: set[str] | None,
+        provided_keys: set[str] | None,
     ) -> Dict[str, Any]:
         normalised: Dict[str, Any] = {}
 
         for key, value in materials.items():
-            alias = self.MATERIAL_ALIASES.get(key, key)
+            if key in self.FORBIDDEN_MATERIAL_ALIASES:
+                target = self.FORBIDDEN_MATERIAL_ALIASES[key]
+                raise GraphicsSettingsError(
+                    "graphics.materials содержит устаревший ключ "
+                    f"'{key}' (используйте '{target}')"
+                )
 
             if not isinstance(value, dict):
                 raise GraphicsSettingsError(
                     f"graphics.materials['{key}'] must be an object, got {type(value).__name__}"
                 )
 
-            base_value = normalised.get(alias) or baseline.get(alias, {})
-            normalised[alias] = _deep_merge(base_value, value)
+            base_value = normalised.get(key) or baseline.get(key, {})
+            normalised[key] = _deep_merge(base_value, value)
 
         missing = [key for key in self.REQUIRED_MATERIAL_KEYS if key not in normalised]
         if missing:
@@ -194,11 +189,9 @@ class GraphicsSettingsService:
                     + ", ".join(sorted(missing))
                 )
 
-        if not allow_missing and provided_aliases is not None:
+        if not allow_missing and provided_keys is not None:
             missing_payload = [
-                key
-                for key in self.REQUIRED_MATERIAL_KEYS
-                if key not in provided_aliases
+                key for key in self.REQUIRED_MATERIAL_KEYS if key not in provided_keys
             ]
             if missing_payload:
                 raise GraphicsSettingsError(
@@ -245,14 +238,12 @@ class GraphicsSettingsService:
             merged = _deep_merge(baseline_section, payload)
 
             if category == "materials":
-                provided_aliases = {
-                    self.MATERIAL_ALIASES.get(key, key) for key in payload.keys()
-                }
+                provided_keys = set(payload.keys())
                 merged = self._normalise_materials(
                     merged,
                     baseline=baseline_section,
                     allow_missing=allow_missing,
-                    provided_aliases=provided_aliases if not allow_missing else None,
+                    provided_keys=provided_keys if not allow_missing else None,
                 )
 
             state[category] = merged
@@ -263,20 +254,9 @@ class GraphicsSettingsService:
     def _apply_persistence_aliases(
         self, state: Dict[str, Dict[str, Any]]
     ) -> Dict[str, Dict[str, Any]]:
-        """Return a copy of *state* with persistence aliases hydrated."""
+        """Return a deep copy of *state* for persistence."""
 
-        result = _deep_copy(state)
-        materials = result.get("materials")
-        if not isinstance(materials, dict):
-            return result
-
-        for canonical, aliases in self.PERSISTENT_MATERIAL_ALIASES.items():
-            if canonical not in materials:
-                continue
-            for alias in aliases:
-                materials[alias] = _deep_copy(materials[canonical])
-
-        return result
+        return _deep_copy(state)
 
     def load_current(self) -> Dict[str, Dict[str, Any]]:
         """Load and normalise the current graphics configuration."""
