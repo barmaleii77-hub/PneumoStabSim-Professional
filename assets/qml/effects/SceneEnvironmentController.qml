@@ -15,7 +15,9 @@ ExtendedSceneEnvironment {
 
  property bool iblBackgroundEnabled: false
  property bool iblLightingEnabled: false
+ property bool skyboxToggleFlag: true
  property color backgroundColor: "#1f242c"
+ property string backgroundModeSetting: "skybox"
  property Texture iblProbe: null
  property real iblIntensity:1.0
  property real iblRotationDeg:0.0
@@ -25,8 +27,18 @@ ExtendedSceneEnvironment {
  */
  property var sceneBridge: null
 
- backgroundMode: (iblBackgroundEnabled && iblProbe) ? SceneEnvironment.SkyBox : SceneEnvironment.Color
- clearColor: backgroundColor
+ backgroundMode: {
+     if (backgroundModeSetting === "transparent") {
+         return SceneEnvironment.Transparent
+     }
+     if (backgroundModeSetting === "color") {
+         return SceneEnvironment.Color
+     }
+     return (iblBackgroundEnabled && iblProbe) ? SceneEnvironment.SkyBox : SceneEnvironment.Color
+ }
+ clearColor: backgroundModeSetting === "transparent"
+             ? Qt.rgba(backgroundColor.r, backgroundColor.g, backgroundColor.b, 0)
+             : backgroundColor
  skyBoxCubeMap: (iblBackgroundEnabled && iblProbe) ? iblProbe : null
  lightProbe: (iblLightingEnabled && iblProbe) ? iblProbe : null
  probeExposure: iblIntensity
@@ -102,6 +114,37 @@ ExtendedSceneEnvironment {
  return numeric * scale
  }
 
+ function _normalizeBackgroundMode(value) {
+ if (value === undefined || value === null)
+ return backgroundModeSetting;
+ var text = String(value).trim().toLowerCase();
+ if (text === "transparent")
+ return "transparent";
+ if (text === "color" || text === "colour")
+ return "color";
+ if (text === "skybox")
+ return "skybox";
+ return backgroundModeSetting;
+ }
+
+ function setBackgroundMode(value) {
+ var normalized = _normalizeBackgroundMode(value);
+ if (backgroundModeSetting !== normalized)
+ backgroundModeSetting = normalized;
+ if (normalized !== "skybox")
+ iblBackgroundEnabled = false;
+ else
+ iblBackgroundEnabled = skyboxToggleFlag;
+ }
+
+ function setSkyboxEnabled(value) {
+ var enabled = !!value;
+ if (skyboxToggleFlag !== enabled)
+ skyboxToggleFlag = enabled;
+ if (backgroundModeSetting === "skybox")
+ iblBackgroundEnabled = enabled;
+ }
+
  function _applySceneBridgeState() {
  if (!sceneBridge)
  return
@@ -162,43 +205,80 @@ ExtendedSceneEnvironment {
  if (!params)
  return
 
- if (params.backgroundColor)
- backgroundColor = params.backgroundColor
- if (params.clearColor)
- backgroundColor = params.clearColor
+ var backgroundPayload = (
+     params.background && typeof params.background === "object"
+ ) ? params.background : null
 
- if (params.background && params.background.color)
- backgroundColor = params.background.color
+ var backgroundModeValue = undefined
+ if (params.background_mode !== undefined)
+ backgroundModeValue = params.background_mode
+ else if (params.backgroundMode !== undefined)
+ backgroundModeValue = params.backgroundMode
+ if (backgroundPayload && backgroundPayload.mode !== undefined)
+ backgroundModeValue = backgroundPayload.mode
+ if (backgroundModeValue !== undefined)
+ setBackgroundMode(backgroundModeValue)
 
- if (params.iblEnabled !== undefined) {
- var iblFlag = !!params.iblEnabled
- iblBackgroundEnabled = iblFlag
- iblLightingEnabled = iblFlag
- }
+ var skyboxValue = undefined
+ if (params.skybox_enabled !== undefined)
+ skyboxValue = params.skybox_enabled
+ else if (params.skyboxEnabled !== undefined)
+ skyboxValue = params.skyboxEnabled
+ if (backgroundPayload && backgroundPayload.skybox_enabled !== undefined)
+ skyboxValue = backgroundPayload.skybox_enabled
+ if (skyboxValue !== undefined)
+ setSkyboxEnabled(skyboxValue)
+
+ var colorValue = undefined
+ if (params.clearColor !== undefined)
+ colorValue = params.clearColor
+ if (params.backgroundColor !== undefined)
+ colorValue = params.backgroundColor
+ if (params.background_color !== undefined)
+ colorValue = params.background_color
+ if (backgroundPayload && backgroundPayload.color !== undefined)
+ colorValue = backgroundPayload.color
+ if (colorValue !== undefined)
+ backgroundColor = colorValue
+
+ var iblEnabledValue = undefined
+ if (params.ibl_enabled !== undefined)
+ iblEnabledValue = params.ibl_enabled
+ else if (params.iblEnabled !== undefined)
+ iblEnabledValue = params.iblEnabled
+ if (iblEnabledValue !== undefined)
+ iblLightingEnabled = !!iblEnabledValue
+
  if (params.iblBackgroundEnabled !== undefined)
- iblBackgroundEnabled = !!params.iblBackgroundEnabled
+ setSkyboxEnabled(params.iblBackgroundEnabled)
  if (params.iblLightingEnabled !== undefined)
  iblLightingEnabled = !!params.iblLightingEnabled
- if (params.iblIntensity !== undefined)
- iblIntensity = Number(params.iblIntensity)
- if (params.iblRotationDeg !== undefined)
- iblRotationDeg = Number(params.iblRotationDeg)
+
+ var iblIntensityValue = params.iblIntensity
+ if (iblIntensityValue === undefined && params.ibl_intensity !== undefined)
+ iblIntensityValue = params.ibl_intensity
+ if (iblIntensityValue !== undefined)
+ iblIntensity = Number(iblIntensityValue)
+
+ var iblRotationValue = params.iblRotationDeg
+ if (iblRotationValue === undefined && params.ibl_rotation !== undefined)
+ iblRotationValue = params.ibl_rotation
+ if (iblRotationValue !== undefined)
+ iblRotationDeg = Number(iblRotationValue)
 
  if (params.ibl) {
  var ibl = params.ibl
  if (ibl.enabled !== undefined) {
- var iblNested = !!ibl.enabled
- iblBackgroundEnabled = iblNested
- iblLightingEnabled = iblNested
+ iblLightingEnabled = !!ibl.enabled
  }
  if (ibl.background_enabled !== undefined)
- iblBackgroundEnabled = !!ibl.background_enabled
+ setSkyboxEnabled(ibl.background_enabled)
  if (ibl.lighting_enabled !== undefined)
  iblLightingEnabled = !!ibl.lighting_enabled
  if (ibl.intensity !== undefined)
  iblIntensity = Number(ibl.intensity)
  if (ibl.rotation !== undefined)
- iblRotationDeg = Number(ibl.rotation)
+  iblRotationDeg = Number(ibl.rotation)
  }
 
  if (params.tonemapEnabled !== undefined)

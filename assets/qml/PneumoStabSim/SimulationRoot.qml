@@ -1645,12 +1645,54 @@ Connections {
 
  function applyEnvironmentUpdates(params) {
  if (!params) return;
- if (params.clearColor) setIfExists(sceneEnvCtl, 'backgroundColor', params.clearColor);
- if (params.backgroundColor) setIfExists(sceneEnvCtl, 'backgroundColor', params.backgroundColor);
- if (params.iblBackgroundEnabled !== undefined) setIfExists(sceneEnvCtl, 'iblBackgroundEnabled', !!params.iblBackgroundEnabled);
+
+ var backgroundPayload = (params.background && typeof params.background === "object") ? params.background : null;
+
+ var backgroundModeValue = undefined;
+ if (params.background_mode !== undefined) backgroundModeValue = params.background_mode;
+ else if (params.backgroundMode !== undefined) backgroundModeValue = params.backgroundMode;
+ if (backgroundPayload && backgroundPayload.mode !== undefined) backgroundModeValue = backgroundPayload.mode;
+ if (backgroundModeValue !== undefined && typeof sceneEnvCtl.setBackgroundMode === "function")
+     sceneEnvCtl.setBackgroundMode(backgroundModeValue);
+
+ var skyboxValue = undefined;
+ if (params.skybox_enabled !== undefined) skyboxValue = params.skybox_enabled;
+ else if (params.skyboxEnabled !== undefined) skyboxValue = params.skyboxEnabled;
+ if (backgroundPayload && backgroundPayload.skybox_enabled !== undefined) skyboxValue = backgroundPayload.skybox_enabled;
+ if (skyboxValue !== undefined) {
+     if (typeof sceneEnvCtl.setSkyboxEnabled === "function")
+         sceneEnvCtl.setSkyboxEnabled(skyboxValue);
+     else
+         setIfExists(sceneEnvCtl, 'iblBackgroundEnabled', !!skyboxValue);
+ }
+
+ var colorValue = undefined;
+ if (params.clearColor !== undefined) colorValue = params.clearColor;
+ if (params.backgroundColor !== undefined) colorValue = params.backgroundColor;
+ if (params.background_color !== undefined) colorValue = params.background_color;
+ if (backgroundPayload && backgroundPayload.color !== undefined) colorValue = backgroundPayload.color;
+ if (colorValue !== undefined) setIfExists(sceneEnvCtl, 'backgroundColor', colorValue);
+
+ var iblEnabledValue = undefined;
+ if (params.ibl_enabled !== undefined) iblEnabledValue = params.ibl_enabled;
+ else if (params.iblEnabled !== undefined) iblEnabledValue = params.iblEnabled;
+ if (iblEnabledValue !== undefined) setIfExists(sceneEnvCtl, 'iblLightingEnabled', !!iblEnabledValue);
+
+ if (params.iblBackgroundEnabled !== undefined) {
+     if (typeof sceneEnvCtl.setSkyboxEnabled === "function")
+         sceneEnvCtl.setSkyboxEnabled(params.iblBackgroundEnabled);
+     else
+         setIfExists(sceneEnvCtl, 'iblBackgroundEnabled', !!params.iblBackgroundEnabled);
+ }
  if (params.iblLightingEnabled !== undefined) setIfExists(sceneEnvCtl, 'iblLightingEnabled', !!params.iblLightingEnabled);
- if (params.iblIntensity !== undefined) setIfExists(sceneEnvCtl, 'iblIntensity', Number(params.iblIntensity));
- if (params.iblRotationDeg !== undefined) setIfExists(sceneEnvCtl, 'iblRotationDeg', Number(params.iblRotationDeg));
+
+ var iblIntensityValue = params.iblIntensity;
+ if (iblIntensityValue === undefined && params.ibl_intensity !== undefined) iblIntensityValue = params.ibl_intensity;
+ if (iblIntensityValue !== undefined) setIfExists(sceneEnvCtl, 'iblIntensity', Number(iblIntensityValue));
+
+ var iblRotationValue = params.iblRotationDeg;
+ if (iblRotationValue === undefined && params.ibl_rotation !== undefined) iblRotationValue = params.ibl_rotation;
+ if (iblRotationValue !== undefined) setIfExists(sceneEnvCtl, 'iblRotationDeg', Number(iblRotationValue));
  if (params.iblPrimary || params.hdrSource || params.iblSource) { var src = params.iblPrimary || params.hdrSource || params.iblSource; if (typeof window !== 'undefined' && window && typeof window.normalizeHdrPath === 'function') { try { src = window.normalizeHdrPath(String(src)); } catch(e) { console.warn("HDR path normalization failed:", e); } } setIfExists(iblLoader, 'primarySource', src); }
  if (params.iblFallback) setIfExists(iblLoader, 'fallbackSource', params.iblFallback);
  if (params.tonemapEnabled !== undefined) {

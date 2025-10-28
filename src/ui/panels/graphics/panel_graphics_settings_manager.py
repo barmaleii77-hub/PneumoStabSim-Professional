@@ -242,11 +242,35 @@ class GraphicsSettingsService:
                     f"graphics.{category} must be an object, got {type(payload).__name__}"
                 )
 
-            merged = _deep_merge(baseline_section, payload)
+            allowed_keys = set(baseline_section.keys())
+            unknown_keys = [key for key in payload.keys() if key not in allowed_keys]
+
+            if unknown_keys:
+                details = ", ".join(sorted(unknown_keys))
+                if allow_missing:
+                    self._logger.warning(
+                        "Dropping unknown graphics.%s keys from %s payload: %s",
+                        category,
+                        source,
+                        details,
+                    )
+                    filtered_payload = {
+                        key: payload[key] for key in payload if key in allowed_keys
+                    }
+                else:
+                    raise GraphicsSettingsError(
+                        "graphics.%s contains unknown keys in %s settings: %s"
+                        % (category, source, details)
+                    )
+            else:
+                filtered_payload = payload
+
+            merged = _deep_merge(baseline_section, filtered_payload)
 
             if category == "materials":
                 provided_aliases = {
-                    self.MATERIAL_ALIASES.get(key, key) for key in payload.keys()
+                    self.MATERIAL_ALIASES.get(key, key)
+                    for key in filtered_payload.keys()
                 }
                 merged = self._normalise_materials(
                     merged,

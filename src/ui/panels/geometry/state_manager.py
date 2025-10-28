@@ -44,6 +44,7 @@ class GeometryStateManager:
         self.logger = logging.getLogger(__name__)
         self.settings_manager = settings_manager
         self._settings_path = settings_path
+        self._allowed_keys = frozenset(DEFAULT_GEOMETRY.keys())
 
         # Current state (mutable)
         self.state: Dict[str, Any] = DEFAULT_GEOMETRY.copy()
@@ -67,6 +68,19 @@ class GeometryStateManager:
         """
         return self.state.get(param_name)
 
+    def _ensure_known_parameter(self, param_name: str) -> None:
+        if param_name not in self._allowed_keys:
+            raise KeyError(f"Unknown geometry parameter: {param_name}")
+
+    def _filter_known_parameters(self, payload: Dict[str, Any]) -> Dict[str, Any]:
+        unknown = sorted(set(payload) - self._allowed_keys)
+        if unknown:
+            self.logger.warning(
+                "Dropping unknown geometry parameters: %s",
+                ", ".join(unknown),
+            )
+        return {key: payload[key] for key in payload if key in self._allowed_keys}
+
     def set_parameter(self, param_name: str, value: Any) -> None:
         """Set parameter value
 
@@ -74,6 +88,7 @@ class GeometryStateManager:
             param_name: Parameter name
             value: New value
         """
+        self._ensure_known_parameter(param_name)
         self.state[param_name] = value
 
     def get_all_parameters(self) -> Dict[str, Any]:
@@ -90,6 +105,9 @@ class GeometryStateManager:
         Args:
             params: Dictionary of parameter updates
         """
+        unknown = sorted(set(params) - self._allowed_keys)
+        if unknown:
+            raise KeyError("Unknown geometry parameters: " + ", ".join(unknown))
         self.state.update(params)
 
     def reset_to_defaults(self) -> None:
@@ -337,7 +355,11 @@ class GeometryStateManager:
             return
 
         try:
-            self.settings_manager.set(self._settings_path, self.state, auto_save=True)
+            persistable = {
+                key: self.state.get(key, DEFAULT_GEOMETRY[key])
+                for key in self._allowed_keys
+            }
+            self.settings_manager.set(self._settings_path, persistable, auto_save=True)
             self.logger.info("State saved to settings manager")
         except Exception as exc:
             self.logger.error("Failed to save geometry state: %s", exc)
@@ -359,7 +381,7 @@ class GeometryStateManager:
             return
 
         restored = DEFAULT_GEOMETRY.copy()
-        restored.update(stored)
+        restored.update(self._filter_known_parameters(stored))
         self.state = restored
         self.logger.info("State loaded from settings manager")
 
