@@ -171,3 +171,20 @@ def test_get_settings_service_respects_overrides(
         assert resolved is override
 
     container.reset(SETTINGS_SERVICE_TOKEN)
+
+
+def test_settings_service_get_returns_explicit_null(tmp_path: Path) -> None:
+    payload = {
+        "metadata": {"version": "test", "units_version": "test"},
+        "current": {"custom": {"value": None}},
+        "defaults_snapshot": {"custom": {"value": None}},
+    }
+    settings_file = tmp_path / "app_settings.json"
+    settings_file.write_text(json.dumps(payload), encoding="utf-8")
+
+    service = SettingsService(settings_path=settings_file, validate_schema=False)
+
+    assert service.get("current.custom.value") is None
+    sentinel = object()
+    assert service.get("current.custom.value", default=sentinel) is None
+    assert service.get("current.custom.missing", default=sentinel) is sentinel
