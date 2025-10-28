@@ -1,5 +1,11 @@
+from __future__ import annotations
+
+import json
+from pathlib import Path
+
 import pytest
 
+from src.common.settings_manager import SettingsManager
 from src.ui.panels.geometry.state_manager import GeometryStateManager
 
 
@@ -45,3 +51,36 @@ def test_save_state_persists_only_allowed_keys():
     _, persisted, _ = dummy.saved
     assert "unknown" not in persisted
     assert "wheelbase" in persisted
+
+
+def test_load_state_uses_persisted_geometry(tmp_path: Path) -> None:
+    source = Path("config/app_settings.json")
+    data = json.loads(source.read_text(encoding="utf-8"))
+    data.setdefault("current", {}).setdefault("geometry", {})["wheelbase"] = 3.45
+
+    target_dir = tmp_path / "config"
+    target_dir.mkdir(parents=True, exist_ok=True)
+    target_file = target_dir / "app_settings.json"
+    target_file.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
+
+    settings = SettingsManager(settings_file=target_file)
+    manager = GeometryStateManager(settings)
+
+    assert pytest.approx(3.45) == manager.get_parameter("wheelbase")
+
+
+def test_load_state_falls_back_to_defaults_snapshot(tmp_path: Path) -> None:
+    source = Path("config/app_settings.json")
+    data = json.loads(source.read_text(encoding="utf-8"))
+    data.setdefault("defaults_snapshot", {}).setdefault("geometry", {})["wheelbase"] = 2.9
+    data.setdefault("current", {}).pop("geometry", None)
+
+    target_dir = tmp_path / "config"
+    target_dir.mkdir(parents=True, exist_ok=True)
+    target_file = target_dir / "app_settings.json"
+    target_file.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
+
+    settings = SettingsManager(settings_file=target_file)
+    manager = GeometryStateManager(settings)
+
+    assert pytest.approx(2.9) == manager.get_parameter("wheelbase")

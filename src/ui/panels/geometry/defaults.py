@@ -16,20 +16,29 @@ DEFAULT_GEOMETRY: Dict[str, Any] = {
     "track": 1.6,  # Колея (расстояние между колёсами)
     "frame_height_m": 0.65,  # Высота рамы
     "frame_beam_size_m": 0.12,  # Толщина балки рамы
+    "frame_length_m": 0.80,  # Визуальная длина рамы для 3D-сцены
     # Suspension geometry (м)
     "frame_to_pivot": 0.6,  # Расстояние рама → ось рычага
     "lever_length": 0.8,  # Длина рычага
+    "lever_length_m": 0.15,  # Длина рычага в визуализаторе
     "rod_position": 0.6,  # Положение крепления штока (доля 0..1)
+    "tail_mount_offset_m": 0.10,  # Смещение крепления хвостовика
     # Cylinder dimensions (м)
     "cylinder_length": 0.5,  # Длина цилиндра
     "cyl_diam_m": 0.080,  # Диаметр цилиндра
     "stroke_m": 0.300,  # Ход поршня
     "dead_gap_m": 0.005,  # Мёртвый зазор
+    "cylinder_body_length_m": 0.30,  # Длина корпуса цилиндра в сцене
+    "cylinder_cap_length_m": 0.05,  # Длина крышки цилиндра
     # Rod and piston dimensions (м)
     "rod_diameter_m": 0.035,  # Диаметр штока
     "piston_rod_length_m": 0.200,  # Длина штока поршня
     "piston_thickness_m": 0.025,  # Толщина поршня
     "tail_rod_length_m": 0.100,  # Длина заднего штока
+    # Visual joint scale factors (dimensionless)
+    "joint_tail_scale": 1.0,
+    "joint_arm_scale": 1.0,
+    "joint_rod_scale": 1.0,
     # Options (bool)
     "interference_check": True,  # Проверять пересечения
     "link_rod_diameters": False,  # Связать диаметры штоков
