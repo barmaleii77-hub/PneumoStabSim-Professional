@@ -13,7 +13,7 @@ SMOKE_TARGET ?= tests/smoke
 INTEGRATION_TARGET ?= tests/integration/test_main_window_qml.py
 
 .PHONY: format lint typecheck qml-lint test check verify smoke integration \
-autonomous-check autonomous-check-trace trace-launch sanitize
+autonomous-check autonomous-check-trace trace-launch sanitize cipilot-env
 
 .PHONY: uv-sync uv-run
 
@@ -94,3 +94,12 @@ trace-launch:
 
 sanitize:
 	$(PYTHON) -m tools.project_sanitize
+
+cipilot-env:
+	@if ! command -v $(UV) >/dev/null 2>&1; then \
+		echo "Error: '$(UV)' is not installed. Run 'python scripts/bootstrap_uv.py' first." >&2; \
+		exit 1; \
+	fi
+	cd $(UV_PROJECT_DIR) && $(UV) sync
+	cd $(UV_PROJECT_DIR) && $(UV) run -- python -m tools.cipilot_environment --skip-uv-sync --probe-mode=python
+

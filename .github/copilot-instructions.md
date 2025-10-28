@@ -78,14 +78,18 @@ PneumoStabSim-Professional/
 - После завершения приложения изучи краткий рапорт в терминале; полный лог и трассировка лежат в `reports/quality/launch_traces/`.
 
 ### Агент GitHub Copilot VS
+- Перед запуском Copilot GPT обязательно подготовь Qt окружение:
+  - Выполни `make cipilot-env` (генерирует `.env.cipilot` и отчёт `reports/quality/cipilot_environment.json`).
+  - Подгрузи переменные окружения командой `source ./.env.cipilot` (PowerShell: `Get-Content .env.cipilot | ForEach-Object { $_ -replace '^export ', 'set ' }`).
 - При каждом открытии решения агент обязан:
   1. Запустить `python -m tools.project_sanitize --report-history 5`.
-  2. Проверить готовность окружения командой `python -m tools.autonomous_check --task verify --launch-trace` и проанализировать свежие логи в `reports/quality/`.
+  2. Проверить готовность окружения командой `python -m tools.autonomous_check --task verify --launch-trace` и проанализировать
+свежие логи в `reports/quality/`.
   3. Применить найденные предупреждения, сформировав TODO в исходниках или в `docs/RENOVATION_MASTER_PLAN.md`.
 - Перед генерацией кода агент сверяется с данным документом и файлами `docs/RENOVATION_PHASE_*.md`.
 - Все рекомендации по настройке графики, физики и тестов должны оформляться в `reports/` (подпапки `quality/`, `performance/`).
-- Если приложение завершилось аварийно, агент обязан повторно вызвать `python -m tools.trace_launch --history-limit 10` и приложить краткий вывод к отчёту.
-
+- Если приложение завершилось аварийно, агент обязан повторно вызвать `python -m tools.trace_launch --history-limit 10` и прилож
+ить краткий вывод к отчёту.
 ### Coding Standards
 
 #### Python Code Style
