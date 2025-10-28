@@ -864,6 +864,7 @@ assets/hdr/*.exr
 !tests/unit/test_environment_schema.py
 !tests/unit/test_geometry_schema.py
 !tests/unit/test_geometry_settings_flow.py
+!tests/unit/test_setup_environment_runtime.py
 !tests/unit/test_settings_validation.py
 !tests/unit/test_qml_bridge_failures.py
 !tests/ui/test_qml_bridge.py
