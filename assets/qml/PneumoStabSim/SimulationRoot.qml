@@ -68,19 +68,19 @@ signal animationToggled(bool running)
  property bool _signalTraceSyncing: false
 
  // -------- Геометрия подвески (СИ) --------
- property real userFrameLength:3.2
+ property real userFrameLength:3.4
  property real userFrameHeight:0.65
  property real userBeamSize:0.12
- property real userLeverLength:0.8
- property real userCylinderLength:0.5
- property real userTrackWidth:1.6
- property real userFrameToPivot:0.6
- property real userRodPosition:0.6
- property real userBoreHead:0.08
+ property real userLeverLength:0.75
+ property real userCylinderLength:0.46
+ property real userTrackWidth:2.34
+ property real userFrameToPivot:0.42
+ property real userRodPosition:0.34
+ property real userBoreHead:0.11
  property real userRodDiameter:0.035
  property real userPistonThickness:0.025
- property real userPistonRodLength:0.2
- property real userTailRodLength:0.1
+ property real userPistonRodLength:0.32
+ property real userTailRodLength:0.18
  property int userCylinderSegments:64
  property int userCylinderRings:8
 
