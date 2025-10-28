@@ -7,12 +7,15 @@ Python backend in PneumoStabSim after the unified plugin refactor.
 
 * **QML plugin** – the `assets/qml/PneumoStabSim` directory exposes a
  self-contained module with a `qmldir`. `SimulationRoot.qml` is the
- entry point and now wires up the reusable controllers hosted in the
- same module: `CameraController.qml` and
- `SceneEnvironmentController.qml`. Both controllers accept the
- `sceneBridge` property and listen to the bridge signals, so every
- camera/environment change flows through Qt properties instead of
- imperative lookups. The top level `assets/qml/main.qml` simply
+ entry point and now wires up both the reusable controllers hosted in
+ the same module (`CameraController.qml`,
+ `SceneEnvironmentController.qml`) and the scene graph assembly from
+ `scene/SuspensionAssembly.qml`. The assembly encapsulates the frame,
+ four suspension corners and the reflection probe so that all
+ kinematics math lives in a single helper object. Both controllers and
+ the assembly accept the `sceneBridge` payload, so every
+ camera/environment/geometry change flows through Qt properties instead
+ of imperative lookups. The top level `assets/qml/main.qml` simply
  instantiates `SimulationRoot` and passes the Python bridge object.
 * **Python bridge** – `src/ui/scene_bridge.py` defines `SceneBridge`, a
  `QObject` with a `QVariantMap` property for every update category and a
