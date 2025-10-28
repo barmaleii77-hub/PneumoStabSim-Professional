@@ -619,7 +619,15 @@ class QualityTab(QWidget):
                     self._controls["shadows.enabled"].setChecked(shadows["enabled"])
                 if "resolution" in shadows:
                     combo = self._controls["shadows.resolution"]
-                    index = combo.findData(shadows["resolution"])
+                    value = shadows["resolution"]
+                    if isinstance(value, str):
+                        try:
+                            value = int(float(value.strip()))
+                        except ValueError:
+                            pass
+                    if isinstance(value, float):
+                        value = int(round(value))
+                    index = combo.findData(value)
                     if index >= 0:
                         combo.setCurrentIndex(index)
                 if "filter" in shadows:

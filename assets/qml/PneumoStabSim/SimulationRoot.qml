@@ -514,7 +514,7 @@ View3D {
         return isFinite(numeric) ? Math.round(numeric) : 2048
     }
  shadowFilterSamples: Number(lightingGlobal("shadow_filter_samples", lightingGlobal("shadowFilterSamples",16)))
- shadowBias: Number(lightingGlobal("shadow_bias", lightingGlobal("shadowBias",4.0)))
+ shadowBias: Number(lightingGlobal("shadow_bias", lightingGlobal("shadowBias",0.05)))
  shadowFactor: Number(lightingGlobal("shadow_factor", lightingGlobal("shadowFactor",75.0)))
 
  keyLightBrightness: Number(lightingValue("key", "brightness",1.2))
