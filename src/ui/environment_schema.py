@@ -108,7 +108,7 @@ ENVIRONMENT_PARAMETERS: Tuple[EnvironmentParameterDefinition, ...] = (
         "ibl_intensity", "float", min_value=0.0, max_value=8.0
     ),
     EnvironmentParameterDefinition(
-        "probe_brightness", "float", min_value=0.0, max_value=8.0
+        "skybox_brightness", "float", min_value=0.0, max_value=8.0
     ),
     EnvironmentParameterDefinition(
         "probe_horizon", "float", min_value=-1.0, max_value=1.0
@@ -212,7 +212,7 @@ ENVIRONMENT_CONTEXT_PROPERTIES: Dict[str, str] = {
     "skybox_enabled": "startSkyboxEnabled",
     "ibl_enabled": "startIblEnabled",
     "ibl_intensity": "startIblIntensity",
-    "probe_brightness": "startProbeBrightness",
+    "skybox_brightness": "startSkyboxBrightness",
     "probe_horizon": "startProbeHorizon",
     "reflection_enabled": "startReflectionEnabled",
     "reflection_padding_m": "startReflectionPadding",
@@ -293,8 +293,26 @@ def _validate_section(
     return normalized
 
 
+def _prepare_environment_payload(settings: Dict[str, Any]) -> Dict[str, Any]:
+    if not isinstance(settings, dict):
+        raise EnvironmentValidationError("environment settings must be a dict")
+
+    payload = dict(settings)
+
+    if "skybox_brightness" not in payload:
+        if "probe_brightness" in payload:
+            payload["skybox_brightness"] = payload["probe_brightness"]
+        else:
+            payload["skybox_brightness"] = 1.0
+
+    payload.pop("probe_brightness", None)
+
+    return payload
+
+
 def validate_environment_settings(settings: Dict[str, Any]) -> Dict[str, Any]:
-    return _validate_section(settings, ENVIRONMENT_PARAMETERS, "environment")
+    payload = _prepare_environment_payload(settings)
+    return _validate_section(payload, ENVIRONMENT_PARAMETERS, "environment")
 
 
 def validate_scene_settings(settings: Dict[str, Any]) -> Dict[str, Any]:

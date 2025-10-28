@@ -182,7 +182,7 @@ def test_environment_validation_accepts_validations_payload():
         "skybox_enabled": True,
         "ibl_enabled": False,
         "ibl_intensity": 2.5,
-        "probe_brightness": 1.0,
+        "skybox_brightness": 1.0,
         "probe_horizon": 0.0,
         "ibl_rotation": 45.0,
         "ibl_source": "hdr/example.exr",
@@ -216,6 +216,19 @@ def test_environment_validation_accepts_validations_payload():
     }
     sanitized = validate_environment_settings(payload)
     assert sanitized == payload
+
+
+def test_environment_validation_maps_legacy_probe_brightness():
+    baseline = _baseline_environment()
+    legacy_payload = baseline.copy()
+    legacy_payload.pop("skybox_brightness", None)
+    legacy_payload["probe_brightness"] = 2.75
+
+    sanitized = validate_environment_settings(legacy_payload)
+
+    assert "skybox_brightness" in sanitized
+    assert pytest.approx(sanitized["skybox_brightness"]) == 2.75
+    assert "probe_brightness" not in sanitized
 
 
 def test_environment_validation_rejects_sample_rate_above_max():

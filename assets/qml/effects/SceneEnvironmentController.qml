@@ -30,7 +30,8 @@ ExtendedSceneEnvironment {
     }
     property Texture iblProbe: null
     property real iblIntensity:1.0
-    property real probeBrightnessValue:1.0
+    property real skyboxBrightnessValue:1.0
+    property alias probeBrightnessValue: root.skyboxBrightnessValue
     property real probeHorizonValue:0.0
     property real iblRotationPitchDeg:0.0
     property real iblRotationDeg:0.0
@@ -69,7 +70,7 @@ ExtendedSceneEnvironment {
     clearColor: resolvedClearColor
     skyBoxCubeMap: (iblBackgroundEnabled && iblProbe) ? iblProbe : null
     lightProbe: (iblLightingEnabled && iblProbe) ? iblProbe : null
-    probeExposure: probeBrightnessValue
+    probeExposure: skyboxBrightnessValue
     probeOrientation: Qt.vector3d(iblRotationPitchDeg, iblRotationDeg, iblRotationRollDeg)
     probeHorizon: probeHorizonValue
 
@@ -290,30 +291,53 @@ ExtendedSceneEnvironment {
 
     _syncSkyboxBackground()
 
+    var directSkyboxBrightnessProvided = valueFromKeys(
+        params,
+        "skyboxBrightness",
+        "skybox_brightness"
+    ) !== undefined
     var directProbeBrightnessProvided = valueFromKeys(
         params,
         "probeBrightness",
         "probe_brightness"
     ) !== undefined
+    var nestedSkyboxBrightnessProvided = false
     var nestedProbeBrightnessProvided = false
-    if (params.ibl && typeof params.ibl === "object")
+    if (params.ibl && typeof params.ibl === "object") {
+        nestedSkyboxBrightnessProvided = valueFromKeys(
+            params.ibl,
+            "skyboxBrightness",
+            "skybox_brightness"
+        ) !== undefined
         nestedProbeBrightnessProvided = valueFromKeys(
             params.ibl,
             "probeBrightness",
             "probe_brightness"
         ) !== undefined
-    var shouldMirrorIntensity = !(directProbeBrightnessProvided || nestedProbeBrightnessProvided)
+    }
+    var shouldMirrorIntensity = !(
+        directSkyboxBrightnessProvided ||
+        directProbeBrightnessProvided ||
+        nestedSkyboxBrightnessProvided ||
+        nestedProbeBrightnessProvided
+    )
 
     var intensityValue = numberFromKeys(params, "iblIntensity", "ibl_intensity")
     if (intensityValue !== undefined) {
         iblIntensity = intensityValue
         if (shouldMirrorIntensity)
-            probeBrightnessValue = intensityValue
+            skyboxBrightnessValue = intensityValue
     }
 
-    var probeBrightness = numberFromKeys(params, "probeBrightness", "probe_brightness")
-    if (probeBrightness !== undefined)
-        probeBrightnessValue = probeBrightness
+    var skyboxBrightness = numberFromKeys(
+        params,
+        "skyboxBrightness",
+        "skybox_brightness"
+    )
+    if (skyboxBrightness === undefined)
+        skyboxBrightness = numberFromKeys(params, "probeBrightness", "probe_brightness")
+    if (skyboxBrightness !== undefined)
+        skyboxBrightnessValue = skyboxBrightness
 
     var probeHorizon = numberFromKeys(params, "probeHorizon", "probe_horizon")
     if (probeHorizon !== undefined)
@@ -356,11 +380,21 @@ ExtendedSceneEnvironment {
         if (nestedIntensity !== undefined) {
             iblIntensity = nestedIntensity
             if (shouldMirrorIntensity)
-                probeBrightnessValue = nestedIntensity
+                skyboxBrightnessValue = nestedIntensity
         }
-        var nestedBrightness = numberFromKeys(ibl, "probeBrightness", "probe_brightness")
-        if (nestedBrightness !== undefined)
-            probeBrightnessValue = nestedBrightness
+        var nestedSkyboxBrightness = numberFromKeys(
+            ibl,
+            "skyboxBrightness",
+            "skybox_brightness"
+        )
+        if (nestedSkyboxBrightness === undefined)
+            nestedSkyboxBrightness = numberFromKeys(
+                ibl,
+                "probeBrightness",
+                "probe_brightness"
+            )
+        if (nestedSkyboxBrightness !== undefined)
+            skyboxBrightnessValue = nestedSkyboxBrightness
         var nestedHorizon = numberFromKeys(ibl, "probeHorizon", "probe_horizon")
         if (nestedHorizon !== undefined)
             probeHorizonValue = nestedHorizon
