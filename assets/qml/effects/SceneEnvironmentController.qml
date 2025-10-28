@@ -169,6 +169,37 @@ ExtendedSceneEnvironment {
         return SceneEnvironment.SkyBox
     }
 
+ function _normalizeBackgroundMode(value) {
+ if (value === undefined || value === null)
+ return backgroundModeSetting;
+ var text = String(value).trim().toLowerCase();
+ if (text === "transparent")
+ return "transparent";
+ if (text === "color" || text === "colour")
+ return "color";
+ if (text === "skybox")
+ return "skybox";
+ return backgroundModeSetting;
+ }
+
+ function setBackgroundMode(value) {
+ var normalized = _normalizeBackgroundMode(value);
+ if (backgroundModeSetting !== normalized)
+ backgroundModeSetting = normalized;
+ if (normalized !== "skybox")
+ iblBackgroundEnabled = false;
+ else
+ iblBackgroundEnabled = skyboxToggleFlag;
+ }
+
+ function setSkyboxEnabled(value) {
+ var enabled = !!value;
+ if (skyboxToggleFlag !== enabled)
+ skyboxToggleFlag = enabled;
+ if (backgroundModeSetting === "skybox")
+ iblBackgroundEnabled = enabled;
+ }
+
  function _applySceneBridgeState() {
  if (!sceneBridge)
  return
