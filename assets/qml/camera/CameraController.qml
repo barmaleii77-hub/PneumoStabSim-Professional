@@ -406,7 +406,7 @@ Item {
      * @param assumeMeters - when true, the payload is treated as metres and
      *                       converted using the fixed metre→millimetre factor
      */
-    function _normalizeLengthToControllerUnits(value, assumeMeters) {
+    function _normalizeLengthToControllerUnits(value, assumeMeters, assumeSceneUnits) {
         if (value === undefined || value === null)
             return null
 
@@ -419,8 +419,11 @@ Item {
         if (absNumeric === 0)
             return 0
 
+        if (assumeSceneUnits === true)
+            return numeric
+
         if (assumeMeters === true)
-            return numeric * metersToMillimeters
+            return numeric * metersToControllerUnits
 
         // Values coming from the scene bridge that are 20 units or smaller are
         // emitted in metres (the CAD payload keeps human-friendly metre inputs).
@@ -437,38 +440,41 @@ Item {
      * Update geometry parameters (for auto-fit/reset)
      *
      * @param params - geometry parameters object
+     * @param options - optional configuration ({ assumeSceneUnits: true })
      */
-    function updateGeometry(params) {
+    function updateGeometry(params, options) {
+        var assumeSceneUnits = options === true || (options && options.assumeSceneUnits === true)
+
         if (params.frameLength !== undefined) {
-            var lengthValue = _normalizeLengthToControllerUnits(params.frameLength)
+            var lengthValue = _normalizeLengthToControllerUnits(params.frameLength, false, assumeSceneUnits)
             if (lengthValue !== null) {
                 frameLength = lengthValue
             }
         }
 
         if (params.frameHeight !== undefined) {
-            var heightValue = _normalizeLengthToControllerUnits(params.frameHeight)
+            var heightValue = _normalizeLengthToControllerUnits(params.frameHeight, false, assumeSceneUnits)
             if (heightValue !== null) {
                 frameHeight = heightValue
             }
         }
 
         if (params.trackWidth !== undefined) {
-            var trackValue = _normalizeLengthToControllerUnits(params.trackWidth)
+            var trackValue = _normalizeLengthToControllerUnits(params.trackWidth, false, assumeSceneUnits)
             if (trackValue !== null) {
                 trackWidth = trackValue
             }
         }
 
         if (params.beamSize !== undefined) {
-            var beamValue = _normalizeLengthToControllerUnits(params.beamSize)
+            var beamValue = _normalizeLengthToControllerUnits(params.beamSize, false, assumeSceneUnits)
             if (beamValue !== null) {
                 beamSize = beamValue
             }
         }
 
         if (params.frameToPivot !== undefined) {
-            var pivotValue = _normalizeLengthToControllerUnits(params.frameToPivot)
+            var pivotValue = _normalizeLengthToControllerUnits(params.frameToPivot, false, assumeSceneUnits)
             if (pivotValue !== null) {
                 frameToPivot = pivotValue
             }
