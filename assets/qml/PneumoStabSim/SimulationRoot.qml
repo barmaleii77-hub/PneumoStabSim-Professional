@@ -1617,17 +1617,32 @@ return Math.max(minValue, Math.min(maxValue, value));
     var iblLightingVal = valueForKeys(params, ['iblLightingEnabled', 'ibl_lighting_enabled']);
     if (iblLightingVal !== undefined) setIfExists(sceneEnvCtl, 'iblLightingEnabled', !!iblLightingVal);
 
- var intensityVal = valueForKeys(params, ['iblIntensity', 'ibl_intensity']);
- if (intensityVal !== undefined) {
-     var numericIntensity = Number(intensityVal);
-     if (isFinite(numericIntensity)) {
-         setIfExists(sceneEnvCtl, 'iblIntensity', numericIntensity);
-         setIfExists(sceneEnvCtl, 'probeBrightnessValue', numericIntensity);
-     }
- }
+    var directProbeBrightnessProvided = valueForKeys(
+        params,
+        ['probeBrightness', 'probe_brightness']
+    ) !== undefined;
+    var nestedProbeBrightnessProvided = false;
+    if (params.ibl && typeof params.ibl === 'object') {
+        nestedProbeBrightnessProvided = valueForKeys(
+            params.ibl,
+            ['probeBrightness', 'probe_brightness']
+        ) !== undefined;
+    }
+    var shouldMirrorIntensity = !(directProbeBrightnessProvided || nestedProbeBrightnessProvided);
 
- var probeBrightnessVal = valueForKeys(params, ['probeBrightness', 'probe_brightness']);
- if (probeBrightnessVal !== undefined) {
+    var intensityVal = valueForKeys(params, ['iblIntensity', 'ibl_intensity']);
+    if (intensityVal !== undefined) {
+        var numericIntensity = Number(intensityVal);
+        if (isFinite(numericIntensity)) {
+            setIfExists(sceneEnvCtl, 'iblIntensity', numericIntensity);
+            if (shouldMirrorIntensity) {
+                setIfExists(sceneEnvCtl, 'probeBrightnessValue', numericIntensity);
+            }
+        }
+    }
+
+    var probeBrightnessVal = valueForKeys(params, ['probeBrightness', 'probe_brightness']);
+    if (probeBrightnessVal !== undefined) {
      var numericBrightness = Number(probeBrightnessVal);
      if (isFinite(numericBrightness)) setIfExists(sceneEnvCtl, 'probeBrightnessValue', numericBrightness);
  }
