@@ -1,4 +1,5 @@
 import math
+from pathlib import Path
 
 import pytest
 
@@ -8,6 +9,8 @@ pytest.importorskip(
     exc_type=ImportError,
 )
 
+from src.ui.panels.graphics import environment_tab as environment_tab_module
+from src.ui.panels.graphics.environment_tab import EnvironmentTab
 from src.ui.panels.graphics.panel_graphics_refactored import GraphicsPanel
 from src.ui.panels.graphics.quality_tab import QualityTab
 from src.ui.panels.graphics.scene_tab import SceneTab
@@ -25,6 +28,34 @@ def test_quality_tab_shadow_resolution_numeric(qapp):
     updated_state = tab.get_state()
     assert updated_state["shadows"]["resolution"] == 2048
     assert isinstance(updated_state["shadows"]["resolution"], int)
+
+
+@pytest.mark.gui
+def test_environment_tab_discovers_hdr_relative_to_project_root(monkeypatch, qapp):
+    captured: dict[str, object] = {}
+
+    def fake_discover(search_dirs, *, qml_root):
+        captured["search_dirs"] = list(search_dirs)
+        captured["qml_root"] = qml_root
+        return []
+
+    monkeypatch.setattr(
+        environment_tab_module, "discover_hdr_files", fake_discover
+    )
+
+    tab = EnvironmentTab()
+    try:
+        project_root = Path(environment_tab_module.__file__).resolve().parents[4]
+        expected_dirs = [
+            project_root / "assets" / "hdr",
+            project_root / "assets" / "hdri",
+            project_root / "assets" / "qml" / "assets",
+        ]
+
+        assert captured["search_dirs"] == expected_dirs
+        assert captured["qml_root"] == project_root / "assets" / "qml"
+    finally:
+        tab.deleteLater()
 
 
 @pytest.mark.gui
