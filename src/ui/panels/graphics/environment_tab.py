@@ -322,12 +322,15 @@ class EnvironmentTab(QWidget):
         return group
 
     def _discover_hdr_files(self) -> List[Tuple[str, str]]:
+        """Discover HDR assets relative to the project root."""
+
+        project_root = Path(__file__).resolve().parents[4]
         search_dirs = [
-            Path("assets/hdr"),
-            Path("assets/hdri"),
-            Path("assets/qml/assets"),
+            project_root / "assets" / "hdr",
+            project_root / "assets" / "hdri",
+            project_root / "assets" / "qml" / "assets",
         ]
-        qml_root = Path("assets/qml")
+        qml_root = project_root / "assets" / "qml"
         return discover_hdr_files(search_dirs, qml_root=qml_root)
 
     def _normalize_ibl_path(self, value: Any) -> str:
