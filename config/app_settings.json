@@ -479,22 +479,22 @@
           "model_metalness": 0.82
         }
       },
-      "animation": {
-        "is_running": false,
-        "animation_time": 0.0,
-        "amplitude": 8.0,
-        "frequency": 1.0,
-        "phase_global": 0.0,
-        "phase_fl": 0.0,
-        "phase_fr": 0.0,
-        "phase_rl": 0.0,
-        "phase_rr": 0.0,
-        "smoothing_enabled": true,
-        "smoothing_duration_ms": 120,
-        "smoothing_angle_snap_deg": 65.0,
-        "smoothing_piston_snap_m": 0.05,
-        "smoothing_easing": "OutCubic"
-      },
+    "animation": {
+      "is_running": false,
+      "animation_time": 0.0,
+      "amplitude": 8.0,
+      "frequency": 1.0,
+      "phase_global": 0.0,
+      "phase_fl": 0.0,
+      "phase_fr": 0.0,
+      "phase_rl": 0.0,
+      "phase_rr": 0.0,
+      "smoothing_enabled": true,
+      "smoothing_duration_ms": 120,
+      "smoothing_angle_snap_deg": 65.0,
+      "smoothing_piston_snap_m": 0.05,
+      "smoothing_easing": "OutCubic"
+    },
       "physics": {
         "suspension": {
           "spring_constant": 50000.0,
