@@ -484,6 +484,7 @@ check_*.py
 !tests/unit/physics/test_physics_loop.py
 !tests/unit/physics/test_gas_network.py
 !tests/unit/physics/test_integrator.py
+!tests/unit/mechanics/test_linkage_geometry.py
 !tests/unit/bootstrap/test_qt_imports.py
 !tests/unit/bootstrap/test_dependency_config.py
 !tests/unit/bootstrap/test_environment_check.py
