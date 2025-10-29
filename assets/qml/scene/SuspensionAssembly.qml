@@ -125,7 +125,9 @@ Node {
         function armZ(side) {
             const frameLength = geometryValue("frameLength")
             const pivot = geometryValue("frameToPivot")
-            return isRear(side) ? frameLength - pivot : pivot
+            const halfLength = frameLength / 2
+            const offset = halfLength - pivot
+            return isRear(side) ? offset : -offset
         }
 
         function armPosition(side) {

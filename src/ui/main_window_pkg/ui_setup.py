@@ -188,6 +188,7 @@ class UISetup:
 
         if window._qquick_widget:
             window.main_splitter.addWidget(window._qquick_widget)
+            window._qquick_widget.setFocus(Qt.FocusReason.ActiveWindowFocusReason)
 
         # Bottom section: Charts
         from src.ui.charts import ChartWidget
@@ -234,6 +235,7 @@ class UISetup:
                 False,
             )
             window._qquick_widget.setAutoFillBackground(False)
+            window._qquick_widget.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
 
             # Get QML engine
             engine = window._qquick_widget.engine()
