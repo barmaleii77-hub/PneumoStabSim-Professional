@@ -56,6 +56,12 @@ Item {
     property real pointLightBrightness: 1.5
     property real pointLightY: 2000
 
+    property bool reflectionProbeEnabled: true
+    property string reflectionProbeQualitySetting: "veryhigh"
+    property string reflectionProbeRefreshMode: "everyframe"
+    property string reflectionProbeTimeSlicing: "individualfaces"
+    property real reflectionPaddingScene: 0.0
+
     // --- Environment/quality properties ---
     property color backgroundColor: "#2a2a2a"
     property string backgroundModeSetting: "skybox"
@@ -173,6 +179,97 @@ property real tankPressure: 0.0
         console.warn("Realism scene received unsupported update", category, payload)
     }
 
+    const SCENE_UNITS_PER_METER = 1000.0
+
+    function toScene(value) {
+        const numeric = Number(value)
+        if (!Number.isFinite(numeric))
+            return 0
+        return numeric
+    }
+
+    function metersToScene(value) {
+        if (value === undefined || value === null)
+            return null
+        const numeric = Number(value)
+        if (!Number.isFinite(numeric))
+            return null
+        return numeric * SCENE_UNITS_PER_METER
+    }
+
+    function _readFirstDefined(object, keys) {
+        for (var idx = 0; idx < keys.length; ++idx) {
+            const key = keys[idx]
+            if (object[key] !== undefined)
+                return object[key]
+        }
+        return undefined
+    }
+
+    function resolveReflectionQuality(setting) {
+        const normalized = String(setting || "").toLowerCase()
+        switch (normalized) {
+        case "low":
+            return ReflectionProbe.Low
+        case "medium":
+            return ReflectionProbe.Medium
+        case "high":
+            return ReflectionProbe.High
+        case "veryhigh":
+        case "very_high":
+            return ReflectionProbe.VeryHigh
+        default:
+            return ReflectionProbe.VeryHigh
+        }
+    }
+
+    function resolveReflectionRefreshMode(setting) {
+        const normalized = String(setting || "").toLowerCase()
+        switch (normalized) {
+        case "firstframe":
+        case "first_frame":
+            return ReflectionProbe.FirstFrame
+        case "never":
+            return ReflectionProbe.Never
+        case "everyframe":
+        default:
+            return ReflectionProbe.EveryFrame
+        }
+    }
+
+    function resolveReflectionTimeSlicing(setting) {
+        const normalized = String(setting || "").toLowerCase()
+        switch (normalized) {
+        case "allfacesatonce":
+        case "all_faces_at_once":
+            return ReflectionProbe.AllFacesAtOnce
+        case "notimeslicing":
+        case "no_time_slicing":
+            return ReflectionProbe.NoTimeSlicing
+        case "individualfaces":
+        default:
+            return ReflectionProbe.IndividualFaces
+        }
+    }
+
+    function _applyReflectionProbeUpdates(payload) {
+        if (!payload)
+            return
+        if (payload.enabled !== undefined)
+            reflectionProbeEnabled = !!payload.enabled
+        if (payload.quality !== undefined)
+            reflectionProbeQualitySetting = String(payload.quality)
+        if (payload.refreshMode !== undefined)
+            reflectionProbeRefreshMode = String(payload.refreshMode)
+        if (payload.timeSlicing !== undefined)
+            reflectionProbeTimeSlicing = String(payload.timeSlicing)
+        if (payload.padding !== undefined) {
+            const scenePadding = metersToScene(payload.padding)
+            if (scenePadding !== null)
+                reflectionPaddingScene = Math.max(0, scenePadding)
+        }
+    }
+
     function applyBatchedUpdates(updates) {
         var normalized = _normalizePayload(updates)
         var categories = []
@@ -220,30 +317,61 @@ property real tankPressure: 0.0
 
     function applyCameraUpdates(params) {
         var payload = _normalizePayload(params)
-        if (payload.distance !== undefined)
-            cameraDistance = Number(payload.distance)
-        if (payload.minDistance !== undefined)
-            minDistance = Number(payload.minDistance)
-        if (payload.maxDistance !== undefined)
-            maxDistance = Number(payload.maxDistance)
-        if (payload.yaw !== undefined)
-            yawDeg = Number(payload.yaw)
-        if (payload.pitch !== undefined)
-            pitchDeg = Number(payload.pitch)
-        if (payload.panX !== undefined)
-            panX = Number(payload.panX)
-        if (payload.panY !== undefined)
-            panY = Number(payload.panY)
-        if (payload.autoRotate !== undefined)
-            autoRotate = !!payload.autoRotate
-        if (payload.autoRotateSpeed !== undefined)
-            autoRotateSpeed = Number(payload.autoRotateSpeed)
-        if (payload.fov !== undefined)
-            cameraFov = Number(payload.fov)
-        if (payload.near !== undefined)
-            cameraNear = Number(payload.near)
-        if (payload.far !== undefined)
-            cameraFar = Number(payload.far)
+
+        var distanceValue = _readFirstDefined(payload, ["distance", "orbit_distance"])
+        var minDistanceValue = _readFirstDefined(payload, ["minDistance", "min_distance"])
+        var maxDistanceValue = _readFirstDefined(payload, ["maxDistance", "max_distance"])
+        var nearValue = _readFirstDefined(payload, ["near", "clip_near"])
+        var farValue = _readFirstDefined(payload, ["far", "clip_far"])
+        var yawValue = _readFirstDefined(payload, ["yaw", "orbit_yaw"])
+        var pitchValue = _readFirstDefined(payload, ["pitch", "orbit_pitch"])
+        var panXValue = _readFirstDefined(payload, ["panX", "pan_x"])
+        var panYValue = _readFirstDefined(payload, ["panY", "pan_y"])
+        var autoRotateValue = _readFirstDefined(payload, ["autoRotate", "auto_rotate"])
+        var autoRotateSpeedValue = _readFirstDefined(payload, ["autoRotateSpeed", "auto_rotate_speed"])
+        var fovValue = _readFirstDefined(payload, ["fov", "fieldOfView"])
+
+        var sceneDistance = metersToScene(distanceValue)
+        if (sceneDistance !== null)
+            cameraDistance = sceneDistance
+
+        var sceneMinDistance = metersToScene(minDistanceValue)
+        if (sceneMinDistance !== null)
+            minDistance = Math.max(0, sceneMinDistance)
+
+        var sceneMaxDistance = metersToScene(maxDistanceValue)
+        if (sceneMaxDistance !== null)
+            maxDistance = Math.max(minDistance, sceneMaxDistance)
+
+        var sceneNear = metersToScene(nearValue)
+        if (sceneNear !== null)
+            cameraNear = Math.max(0.001, sceneNear)
+
+        var sceneFar = metersToScene(farValue)
+        if (sceneFar !== null)
+            cameraFar = Math.max(cameraNear + 1, sceneFar)
+
+        if (yawValue !== undefined)
+            yawDeg = Number(yawValue)
+        if (pitchValue !== undefined)
+            pitchDeg = Number(pitchValue)
+
+        var scenePanX = metersToScene(panXValue)
+        if (scenePanX !== null)
+            panX = scenePanX
+
+        var scenePanY = metersToScene(panYValue)
+        if (scenePanY !== null)
+            panY = scenePanY
+
+        if (autoRotateValue !== undefined)
+            autoRotate = !!autoRotateValue
+        if (autoRotateSpeedValue !== undefined)
+            autoRotateSpeed = Number(autoRotateSpeedValue)
+        if (fovValue !== undefined)
+            cameraFov = Number(fovValue)
+        if (payload.speed !== undefined)
+            cameraSpeed = Number(payload.speed)
     }
 
     function applyEffectsUpdates(params) {
@@ -277,7 +405,11 @@ property real tankPressure: 0.0
     }
 
     function applyThreeDUpdates(params) {
-        _logUnsupported("threeD", params)
+        var payload = _normalizePayload(params)
+        if (payload.reflectionProbe !== undefined)
+            _applyReflectionProbeUpdates(_normalizePayload(payload.reflectionProbe))
+        else
+            _logUnsupported("threeD", params)
     }
 
     function applyRenderSettings(params) {
@@ -332,7 +464,11 @@ property real tankPressure: 0.0
         if (params.point_light) {
             var pl = params.point_light
             if (pl.brightness !== undefined) pointLightBrightness = pl.brightness
-            if (pl.position_y !== undefined) pointLightY = pl.position_y
+            if (pl.position_y !== undefined) {
+                var pointYScene = metersToScene(pl.position_y)
+                if (pointYScene !== null)
+                    pointLightY = pointYScene
+            }
         }
     }
 
@@ -507,11 +643,16 @@ property real tankPressure: 0.0
         ReflectionProbe {
             id: probeMain
             position: root.pivot
-            boxSize: Qt.vector3d(toScene(root.userTrackWidth), toScene(root.userFrameHeight), toScene(root.userFrameLength))
+            enabled: root.reflectionProbeEnabled
+            boxSize: Qt.vector3d(
+                toScene(Math.max(1, root.userTrackWidth + 2 * root.reflectionPaddingScene)),
+                toScene(Math.max(1, root.userFrameHeight + 2 * root.reflectionPaddingScene)),
+                toScene(Math.max(1, root.userFrameLength + 2 * root.reflectionPaddingScene))
+            )
             parallaxCorrection: true
-            quality: ReflectionProbe.VeryHigh
-            refreshMode: ReflectionProbe.EveryFrame
-            timeSlicing: ReflectionProbe.IndividualFaces
+            quality: root.resolveReflectionQuality(root.reflectionProbeQualitySetting)
+            refreshMode: root.resolveReflectionRefreshMode(root.reflectionProbeRefreshMode)
+            timeSlicing: root.resolveReflectionTimeSlicing(root.reflectionProbeTimeSlicing)
         }
 
         // === Lighting setup ===
