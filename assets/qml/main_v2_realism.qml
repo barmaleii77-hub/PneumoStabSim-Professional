@@ -1,6 +1,8 @@
 import QtQuick
 import QtQuick3D
 import QtQuick3D.Helpers   // === FIXED: Remove version number for Qt 6.9.3 compatibility
+import environment 1.0
+import lighting 1.0
 
 Item {
     id: root
@@ -116,6 +118,41 @@ Item {
     property bool depthOfFieldEnabled: false
     property real dofFocusDistance: 2000
     property real dofFocusRange: 900
+    property real dofBlurAmount: 3.0
+
+    property bool fxaaEnabled: true
+    property bool specularAAEnabled: true
+    property bool temporalAAEnabled: true
+    property real hdrExposure: 1.0
+    property real hdrWhitePoint: 2.0
+
+    property bool fogEnabled: false
+    property color fogColor: "#d0d8e8"
+    property real fogDensity: 0.0008
+    property real fogDepthNear: 0.0
+    property real fogDepthFar: 20000.0
+
+    property real bloomStrength: 0.8
+    property real bloomSecondaryBloom: 0.5
+    property bool glowQualityHigh: true
+    property bool glowUseBicubic: true
+    property real glowHdrMax: 8.0
+    property real glowHdrScale: 2.0
+    property int glowBlendMode: 0
+
+    property bool lensFlareEnabled: true
+    property int lensFlareGhostCount: 3
+    property real lensFlareGhostDispersal: 0.6
+    property real lensFlareHaloWidth: 0.25
+    property real lensFlareBloomBias: 0.35
+    property real lensFlareStretchToAspect: 1.0
+
+    property bool vignetteEnabled: true
+    property real vignetteRadius: 0.4
+    property real vignetteStrength: 0.7
+    property real colorAdjustmentBrightness: 1.0
+    property real colorAdjustmentContrast: 1.05
+    property real colorAdjustmentSaturation: 1.05
 
     // --- Geometry/animation properties (unchanged) ---
     property real userFrameLength: 3200
@@ -204,52 +241,6 @@ property real tankPressure: 0.0
                 return object[key]
         }
         return undefined
-    }
-
-    function resolveReflectionQuality(setting) {
-        const normalized = String(setting || "").toLowerCase()
-        switch (normalized) {
-        case "low":
-            return ReflectionProbe.Low
-        case "medium":
-            return ReflectionProbe.Medium
-        case "high":
-            return ReflectionProbe.High
-        case "veryhigh":
-        case "very_high":
-            return ReflectionProbe.VeryHigh
-        default:
-            return ReflectionProbe.VeryHigh
-        }
-    }
-
-    function resolveReflectionRefreshMode(setting) {
-        const normalized = String(setting || "").toLowerCase()
-        switch (normalized) {
-        case "firstframe":
-        case "first_frame":
-            return ReflectionProbe.FirstFrame
-        case "never":
-            return ReflectionProbe.Never
-        case "everyframe":
-        default:
-            return ReflectionProbe.EveryFrame
-        }
-    }
-
-    function resolveReflectionTimeSlicing(setting) {
-        const normalized = String(setting || "").toLowerCase()
-        switch (normalized) {
-        case "allfacesatonce":
-        case "all_faces_at_once":
-            return ReflectionProbe.AllFacesAtOnce
-        case "notimeslicing":
-        case "no_time_slicing":
-            return ReflectionProbe.NoTimeSlicing
-        case "individualfaces":
-        default:
-            return ReflectionProbe.IndividualFaces
-        }
     }
 
     function _applyReflectionProbeUpdates(payload) {
@@ -382,6 +373,10 @@ property real tankPressure: 0.0
             bloomIntensity = Number(payload.bloomIntensity)
         if (payload.bloomThreshold !== undefined)
             bloomThreshold = Number(payload.bloomThreshold)
+        if (payload.bloomStrength !== undefined)
+            bloomStrength = Number(payload.bloomStrength)
+        if (payload.bloomSecondaryBloom !== undefined)
+            bloomSecondaryBloom = Number(payload.bloomSecondaryBloom)
         if (payload.ssaoEnabled !== undefined)
             ssaoEnabled = !!payload.ssaoEnabled
         if (payload.ssaoRadius !== undefined)
@@ -398,6 +393,63 @@ property real tankPressure: 0.0
             dofFocusDistance = Number(payload.dofFocusDistance)
         if (payload.dofFocusRange !== undefined)
             dofFocusRange = Number(payload.dofFocusRange)
+        var blurValue = _readFirstDefined(payload, ["dofBlurAmount", "depthOfFieldBlurAmount"])
+        if (blurValue !== undefined)
+            dofBlurAmount = Number(blurValue)
+        if (payload.fogEnabled !== undefined)
+            fogEnabled = !!payload.fogEnabled
+        if (payload.fogColor !== undefined)
+            fogColor = payload.fogColor
+        if (payload.fogDensity !== undefined)
+            fogDensity = Number(payload.fogDensity)
+        if (payload.fogDepthNear !== undefined)
+            fogDepthNear = Number(payload.fogDepthNear)
+        if (payload.fogDepthFar !== undefined)
+            fogDepthFar = Number(payload.fogDepthFar)
+        if (payload.fxaaEnabled !== undefined)
+            fxaaEnabled = !!payload.fxaaEnabled
+        if (payload.specularAAEnabled !== undefined)
+            specularAAEnabled = !!payload.specularAAEnabled
+        if (payload.temporalAAEnabled !== undefined)
+            temporalAAEnabled = !!payload.temporalAAEnabled
+        if (payload.exposure !== undefined)
+            hdrExposure = Number(payload.exposure)
+        if (payload.whitePoint !== undefined)
+            hdrWhitePoint = Number(payload.whitePoint)
+        if (payload.lensFlareEnabled !== undefined)
+            lensFlareEnabled = !!payload.lensFlareEnabled
+        if (payload.lensFlareGhostCount !== undefined)
+            lensFlareGhostCount = Number(payload.lensFlareGhostCount)
+        if (payload.lensFlareGhostDispersal !== undefined)
+            lensFlareGhostDispersal = Number(payload.lensFlareGhostDispersal)
+        if (payload.lensFlareHaloWidth !== undefined)
+            lensFlareHaloWidth = Number(payload.lensFlareHaloWidth)
+        if (payload.lensFlareBloomBias !== undefined)
+            lensFlareBloomBias = Number(payload.lensFlareBloomBias)
+        if (payload.lensFlareStretchToAspect !== undefined)
+            lensFlareStretchToAspect = Number(payload.lensFlareStretchToAspect)
+        if (payload.vignetteEnabled !== undefined)
+            vignetteEnabled = !!payload.vignetteEnabled
+        if (payload.vignetteRadius !== undefined)
+            vignetteRadius = Number(payload.vignetteRadius)
+        if (payload.vignetteStrength !== undefined)
+            vignetteStrength = Number(payload.vignetteStrength)
+        if (payload.adjustmentBrightness !== undefined)
+            colorAdjustmentBrightness = Number(payload.adjustmentBrightness)
+        if (payload.adjustmentContrast !== undefined)
+            colorAdjustmentContrast = Number(payload.adjustmentContrast)
+        if (payload.adjustmentSaturation !== undefined)
+            colorAdjustmentSaturation = Number(payload.adjustmentSaturation)
+        if (payload.glowQualityHigh !== undefined)
+            glowQualityHigh = !!payload.glowQualityHigh
+        if (payload.glowUseBicubic !== undefined)
+            glowUseBicubic = !!payload.glowUseBicubic
+        if (payload.glowHdrMax !== undefined)
+            glowHdrMax = Number(payload.glowHdrMax)
+        if (payload.glowHdrScale !== undefined)
+            glowHdrScale = Number(payload.glowHdrScale)
+        if (payload.glowBlendMode !== undefined)
+            glowBlendMode = Number(payload.glowBlendMode)
     }
 
     function applySimulationUpdates(params) {
@@ -500,6 +552,21 @@ property real tankPressure: 0.0
             if (Number.isFinite(requestedMode))
                 tonemapModeIndex = Math.max(0, Math.min(tonemapModeTable.length - 1, Math.round(requestedMode)))
         }
+        if (params.exposure !== undefined) hdrExposure = Number(params.exposure)
+        if (params.whitePoint !== undefined) hdrWhitePoint = Number(params.whitePoint)
+        if (params.white_point !== undefined) hdrWhitePoint = Number(params.white_point)
+        if (params.fog_enabled !== undefined) fogEnabled = !!params.fog_enabled
+        if (params.fogColor !== undefined) fogColor = params.fogColor
+        if (params.fog_color !== undefined) fogColor = params.fog_color
+        if (params.fogDensity !== undefined) fogDensity = Number(params.fogDensity)
+        if (params.fog_density !== undefined) fogDensity = Number(params.fog_density)
+        if (params.fogDepthNear !== undefined) fogDepthNear = Number(params.fogDepthNear)
+        if (params.fog_depth_near !== undefined) fogDepthNear = Number(params.fog_depth_near)
+        if (params.fogDepthFar !== undefined) fogDepthFar = Number(params.fogDepthFar)
+        if (params.fog_depth_far !== undefined) fogDepthFar = Number(params.fog_depth_far)
+        if (params.fxaa_enabled !== undefined) fxaaEnabled = !!params.fxaa_enabled
+        if (params.specular_aa_enabled !== undefined) specularAAEnabled = !!params.specular_aa_enabled
+        if (params.temporal_aa_enabled !== undefined) temporalAAEnabled = !!params.temporal_aa_enabled
     }
 
     function resolvedBackgroundMode() {
@@ -550,73 +617,55 @@ property real tankPressure: 0.0
         anchors.fill: parent
 
         // === FIXED: Proper ExtendedSceneEnvironment implementation for Qt 6.9.3 ===
-        environment: ExtendedSceneEnvironment {
-            // Background and IBL
-            backgroundMode: root.resolvedBackgroundMode()
-            clearColor: root.effectiveClearColor
-            skyBoxCubeMap: root.backgroundUsesSkybox ? hdrProbe : null
-            lightProbe: root.iblEnabled ? hdrProbe : null
-            probeExposure: root.iblIntensity
-            probeHorizon: 0.08
-
-            // Tone mapping and quality (Fixed enum names)
-            tonemapMode: root.tonemapActive
-                          ? root.resolveTonemapMode(root.tonemapModeIndex)
-                          : SceneEnvironment.TonemapModeNone
-            exposure: 1.0
-            whitePoint: 2.0
-            ditheringEnabled: true
-            fxaaEnabled: true                         // Additional smoothing from Extended
-            specularAAEnabled: true                   // Specular antialiasing (SceneEnv)
-            temporalAAEnabled: true                   // TAA for animations
-            antialiasingMode: SceneEnvironment.ProgressiveAA  // Better than MSAA for most cases
-
-            // SSAO (part of SceneEnvironment, works with Extended)
-            aoEnabled: root.ssaoEnabled
-            aoSampleRate: 3
-            aoStrength: root.ssaoIntensity
-            aoDistance: root.ssaoRadius
-            aoSoftness: 20
-            aoDither: true
-
-            // OIT for proper transparency sorting (Qt 6.9+)
-            oitMethod: SceneEnvironment.OITWeightedBlended
-
-            // Bloom/Glow (Extended properties)
-            glowEnabled: root.bloomEnabled
-            glowIntensity: root.bloomIntensity
-            glowBloom: 0.5
-            glowStrength: 0.8
-            glowQualityHigh: true
-            glowUseBicubicUpscale: true
-            glowHDRMinimumValue: root.bloomThreshold
-            glowHDRMaximumValue: 8.0
-            glowHDRScale: 2.0
-            glowBlendMode: 0  // Add
-
-            // Lens flare (Extended)
-            lensFlareEnabled: true
-            lensFlareGhostCount: 3
-            lensFlareGhostDispersal: 0.6
-            lensFlareHaloWidth: 0.25
-            lensFlareBloomBias: 0.35
-            lensFlareStretchToAspect: 1.0
-
-            // Depth of Field (Extended)
-            depthOfFieldEnabled: root.depthOfFieldEnabled
-            depthOfFieldFocusDistance: root.dofFocusDistance
-            depthOfFieldFocusRange: root.dofFocusRange
-            depthOfFieldBlurAmount: 3.0
-
-            // Vignette and color correction
-            vignetteEnabled: true
-            vignetteRadius: 0.4
-            vignetteStrength: 0.7
-
-            colorAdjustmentsEnabled: true
-            adjustmentBrightness: 1.0
-            adjustmentContrast: 1.05
-            adjustmentSaturation: 1.05
+        environment: RealismEnvironment {
+            id: realismEnvironment
+            resolvedBackgroundMode: root.resolvedBackgroundMode()
+            sceneClearColor: root.effectiveClearColor
+            useSkybox: root.backgroundUsesSkybox
+            useLightProbe: root.iblEnabled
+            hdrTexture: hdrProbe
+            iblExposure: root.iblIntensity
+            tonemapEnabled: root.tonemapActive
+            tonemapModeSetting: root.resolveTonemapMode(root.tonemapModeIndex)
+            sceneExposure: root.hdrExposure
+            sceneWhitePoint: root.hdrWhitePoint
+            enableFxaa: root.fxaaEnabled
+            specularAntialiasingEnabled: root.specularAAEnabled
+            temporalAntialiasingEnabled: root.temporalAAEnabled
+            bloomEnabled: root.bloomEnabled
+            bloomIntensity: root.bloomIntensity
+            bloomThreshold: root.bloomThreshold
+            bloomStrength: root.bloomStrength
+            bloomSecondaryBloom: root.bloomSecondaryBloom
+            glowQualityHighEnabled: root.glowQualityHigh
+            glowUseBicubic: root.glowUseBicubic
+            glowHdrMaximumValue: root.glowHdrMax
+            glowHdrScale: root.glowHdrScale
+            glowBlendModeValue: root.glowBlendMode
+            ssaoEnabled: root.ssaoEnabled
+            ssaoRadius: root.ssaoRadius
+            ssaoIntensity: root.ssaoIntensity
+            depthOfFieldActive: root.depthOfFieldEnabled
+            depthOfFieldFocusDistanceValue: root.dofFocusDistance
+            depthOfFieldFocusRangeValue: root.dofFocusRange
+            depthOfFieldBlurAmountValue: root.dofBlurAmount
+            fogEnabled: root.fogEnabled
+            fogColor: root.fogColor
+            fogDensity: root.fogDensity
+            fogDepthNear: root.fogDepthNear
+            fogDepthFar: root.fogDepthFar
+            lensFlareActive: root.lensFlareEnabled
+            lensFlareGhosts: root.lensFlareGhostCount
+            lensFlareGhostDispersalValue: root.lensFlareGhostDispersal
+            lensFlareHaloWidthValue: root.lensFlareHaloWidth
+            lensFlareBloomBiasValue: root.lensFlareBloomBias
+            lensFlareStretchValue: root.lensFlareStretchToAspect
+            vignetteActive: root.vignetteEnabled
+            vignetteRadiusValue: root.vignetteRadius
+            vignetteStrengthValue: root.vignetteStrength
+            adjustmentBrightnessValue: root.colorAdjustmentBrightness
+            adjustmentContrastValue: root.colorAdjustmentContrast
+            adjustmentSaturationValue: root.colorAdjustmentSaturation
         }
 
         // === FIXED: Orbital camera rig - rotation strictly around bottom beam center ===
@@ -640,49 +689,34 @@ property real tankPressure: 0.0
         }
 
         // === ReflectionProbe for local reflections ===
-        ReflectionProbe {
+        ReflectionProbeVolume {
             id: probeMain
-            position: root.pivot
-            enabled: root.reflectionProbeEnabled
-            boxSize: Qt.vector3d(
-                toScene(Math.max(1, root.userTrackWidth + 2 * root.reflectionPaddingScene)),
-                toScene(Math.max(1, root.userFrameHeight + 2 * root.reflectionPaddingScene)),
-                toScene(Math.max(1, root.userFrameLength + 2 * root.reflectionPaddingScene))
-            )
-            parallaxCorrection: true
-            quality: root.resolveReflectionQuality(root.reflectionProbeQualitySetting)
-            refreshMode: root.resolveReflectionRefreshMode(root.reflectionProbeRefreshMode)
-            timeSlicing: root.resolveReflectionTimeSlicing(root.reflectionProbeTimeSlicing)
+            pivot: root.pivot
+            probeEnabled: root.reflectionProbeEnabled
+            trackWidth: toScene(Math.max(1, root.userTrackWidth))
+            frameHeight: toScene(Math.max(1, root.userFrameHeight))
+            frameLength: toScene(Math.max(1, root.userFrameLength))
+            padding: root.reflectionPaddingScene
+            qualitySetting: root.reflectionProbeQualitySetting
+            refreshModeSetting: root.reflectionProbeRefreshMode
+            timeSlicingSetting: root.reflectionProbeTimeSlicing
         }
 
         // === Lighting setup ===
-        DirectionalLight {
-            id: keyLight
-            eulerRotation.x: root.keyLightAngleX
-            eulerRotation.y: root.keyLightAngleY
-            brightness: root.keyLightBrightness
-            color: root.keyLightColor
-            castsShadow: root.shadowsEnabled
-            shadowMapQuality: [Light.ShadowMapQualityLow, Light.ShadowMapQualityMedium, Light.ShadowMapQualityHigh][root.shadowQuality]
-            shadowFactor: 75
-            shadowBias: root.shadowSoftness * 0.001
-        }
-
-        DirectionalLight {
-            id: fillLight
-            eulerRotation.x: -60
-            eulerRotation.y: 135
-            brightness: root.fillLightBrightness
-            color: root.fillLightColor
-            castsShadow: false
-        }
-
-        PointLight {
-            id: pointLight
-            position: Qt.vector3d(0, toScene(root.pointLightY), toScene(1.5))
-            brightness: root.pointLightBrightness
-            color: "#ffffff"
-            quadraticFade: 0.00008
+        RealismLightingRig {
+            id: lightingRig
+            keyLightAngleX: root.keyLightAngleX
+            keyLightAngleY: root.keyLightAngleY
+            keyLightBrightness: root.keyLightBrightness
+            keyLightColor: root.keyLightColor
+            shadowsEnabled: root.shadowsEnabled
+            shadowQualityIndex: root.shadowQuality
+            shadowSoftness: root.shadowSoftness
+            fillLightBrightness: root.fillLightBrightness
+            fillLightColor: root.fillLightColor
+            pointLightBrightness: root.pointLightBrightness
+            pointLightHeight: toScene(root.pointLightY)
+            pointLightZOffset: toScene(1.5)
         }
 
         // === Suspension geometry (basic for testing) ===

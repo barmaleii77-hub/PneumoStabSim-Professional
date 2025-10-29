@@ -1,0 +1,4 @@
+module environment
+
+RealismEnvironment 1.0 RealismEnvironment.qml
+ReflectionProbeVolume 1.0 ReflectionProbeVolume.qml
