@@ -53,7 +53,7 @@ Effect {
                             float qt_Opacity;
                         } ubuf;
 
-                        void main() {
+                        void MAIN() {
                             coord = qt_MultiTexCoord0;
                             worldPos = qt_Vertex;
                             viewPos = (ubuf.qt_ViewMatrix * vec4(qt_Vertex, 1.0)).xyz;
@@ -126,8 +126,8 @@ Effect {
                             return clamp(linearFog * expFog * heightFog * animationFactor, 0.0, 1.0);
                         }
 
-                        void main() {
-                            vec4 originalColor = texture(qt_Texture0, coord);
+                        void qt_customMain(inout vec4 color) {
+                            vec4 originalColor = color;
 
                             float fogFactor = calculateFogFactor(worldPos, ubuf.qt_CameraPosition);
 
@@ -144,11 +144,76 @@ Effect {
                                 foggedColor = mix(foggedColor, originalColor.rgb, transmission);
                             }
 
-                            fragColor = vec4(foggedColor, originalColor.a) * ubuf.qt_Opacity;
+                            color = vec4(foggedColor, originalColor.a) * ubuf.qt_Opacity;
+                        }
+
+                        void MAIN() {
+                            vec4 color = texture(qt_Texture0, coord);
+                            qt_customMain(color);
+                            fragColor = color;
                         }
                     "
                 }
             ]
+        }
+    ]
+
+    parameters: [
+        Parameter {
+            name: "userFogDensity"
+            value: fogEffect.fogDensity
+        },
+        Parameter {
+            name: "userFogColor"
+            value: fogEffect.fogColor
+        },
+        Parameter {
+            name: "userFogStart"
+            value: fogEffect.fogStartDistance
+        },
+        Parameter {
+            name: "userFogEnd"
+            value: fogEffect.fogEndDistance
+        },
+        Parameter {
+            name: "userFogLeast"
+            value: fogEffect.fogLeastIntenseY
+        },
+        Parameter {
+            name: "userFogMost"
+            value: fogEffect.fogMostIntenseY
+        },
+        Parameter {
+            name: "userFogHeightCurve"
+            value: fogEffect.fogHeightCurve
+        },
+        Parameter {
+            name: "userFogHeightEnabled"
+            value: fogEffect.heightBasedFog ? 1.0 : 0.0
+        },
+        Parameter {
+            name: "userFogScattering"
+            value: fogEffect.fogScattering
+        },
+        Parameter {
+            name: "userFogTransmitEnabled"
+            value: fogEffect.fogTransmitEnabled ? 1.0 : 0.0
+        },
+        Parameter {
+            name: "userFogTransmitCurve"
+            value: fogEffect.fogTransmitCurve
+        },
+        Parameter {
+            name: "userFogAnimated"
+            value: fogEffect.animatedFog ? 1.0 : 0.0
+        },
+        Parameter {
+            name: "userFogAnimationSpeed"
+            value: fogEffect.animationSpeed
+        },
+        Parameter {
+            name: "userFogTime"
+            value: fogEffect.time
         }
     ]
     // Таймер для анимации тумана
