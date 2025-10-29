@@ -2107,8 +2107,9 @@ function applyAnimationUpdates(params) {
   pythonPressureTimeout.restart();
  }
 
- if (!pythonLeverAnglesActive)
+ if (!pythonLeverAnglesActive) {
   updateFallbackAngles();
+ }
 }
 
 function apply3DUpdates(params) {
@@ -2185,8 +2186,9 @@ function apply3DUpdates(params) {
   if (rp.timeSlicing !== undefined)
    reflectionProbeTimeSlicingValue = reflectionProbeTimeSlicingFrom(rp.timeSlicing);
  }
- if (!pythonLeverAnglesActive)
-  updateFallbackAngles();
+  if (!pythonLeverAnglesActive) {
+   updateFallbackAngles();
+  }
 }
 
     function applyRenderSettings(params) {
