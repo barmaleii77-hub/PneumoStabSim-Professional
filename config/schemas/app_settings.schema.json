@@ -756,7 +756,24 @@
               "type": "object"
             },
             "animation": {
-              "type": "object"
+              "type": "object",
+              "properties": {
+                "is_running": {"type": "boolean"},
+                "animation_time": {"type": "number"},
+                "amplitude": {"type": "number"},
+                "frequency": {"type": "number"},
+                "phase_global": {"type": "number"},
+                "phase_fl": {"type": "number"},
+                "phase_fr": {"type": "number"},
+                "phase_rl": {"type": "number"},
+                "phase_rr": {"type": "number"},
+                "smoothing_enabled": {"type": "boolean"},
+                "smoothing_duration_ms": {"type": "number"},
+                "smoothing_angle_snap_deg": {"type": "number"},
+                "smoothing_piston_snap_m": {"type": "number"},
+                "smoothing_easing": {"type": "string"}
+              },
+              "additionalProperties": false
             }
           },
           "required": [

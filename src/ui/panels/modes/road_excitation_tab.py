@@ -13,12 +13,22 @@ from PySide6.QtWidgets import (
     QSlider,
     QDoubleSpinBox,
     QSpinBox,
+    QCheckBox,
+    QComboBox,
 )
 from PySide6.QtCore import Signal, Slot, Qt
 from PySide6.QtGui import QFont
 
 from .state_manager import ModesStateManager
 from .defaults import PARAMETER_RANGES
+
+
+SMOOTHING_EASING_OPTIONS = [
+    ("OutCubic", "OutCubic"),
+    ("OutQuad", "OutQuad"),
+    ("Linear", "Linear"),
+    ("InOutSine", "InOutSine"),
+]
 
 
 class StandardSlider(QWidget):
@@ -172,6 +182,7 @@ class RoadExcitationTab(QWidget):
     def __init__(self, state_manager: ModesStateManager, parent=None):
         super().__init__(parent)
         self.state_manager = state_manager
+        self._smoothing_controls = []
         self._setup_ui()
         self._apply_current_state()
 
@@ -197,6 +208,10 @@ class RoadExcitationTab(QWidget):
         # Per-wheel phases
         wheels_group = self._create_wheels_group()
         layout.addWidget(wheels_group)
+
+        # Animation smoothing controls
+        smoothing_group = self._create_smoothing_group()
+        layout.addWidget(smoothing_group)
 
         layout.addStretch()
 
@@ -339,6 +354,79 @@ class RoadExcitationTab(QWidget):
         )
         return slider
 
+    def _create_smoothing_group(self) -> QGroupBox:
+        group = QGroupBox("Сглаживание анимации")
+        layout = QVBoxLayout(group)
+        layout.setSpacing(6)
+
+        self.smoothing_checkbox = QCheckBox("Включить сглаживание")
+        self.smoothing_checkbox.toggled.connect(self._on_smoothing_toggled)
+        layout.addWidget(self.smoothing_checkbox)
+
+        duration_range = PARAMETER_RANGES["smoothing_duration_ms"]
+        self.smoothing_duration_slider = StandardSlider(
+            minimum=duration_range["min"],
+            maximum=duration_range["max"],
+            value=duration_range["default"],
+            step=duration_range["step"],
+            decimals=duration_range["decimals"],
+            units=duration_range["unit"],
+            title="Время сглаживания",
+        )
+        self.smoothing_duration_slider.valueEdited.connect(
+            lambda v: self._on_parameter_changed("smoothing_duration_ms", v)
+        )
+        layout.addWidget(self.smoothing_duration_slider)
+
+        angle_range = PARAMETER_RANGES["smoothing_angle_snap_deg"]
+        self.smoothing_angle_slider = StandardSlider(
+            minimum=angle_range["min"],
+            maximum=angle_range["max"],
+            value=angle_range["default"],
+            step=angle_range["step"],
+            decimals=angle_range["decimals"],
+            units=angle_range["unit"],
+            title="Порог снапинга угла",
+        )
+        self.smoothing_angle_slider.valueEdited.connect(
+            lambda v: self._on_parameter_changed("smoothing_angle_snap_deg", v)
+        )
+        layout.addWidget(self.smoothing_angle_slider)
+
+        piston_range = PARAMETER_RANGES["smoothing_piston_snap_m"]
+        self.smoothing_piston_slider = StandardSlider(
+            minimum=piston_range["min"],
+            maximum=piston_range["max"],
+            value=piston_range["default"],
+            step=piston_range["step"],
+            decimals=piston_range["decimals"],
+            units=piston_range["unit"],
+            title="Порог снапинга поршня",
+        )
+        self.smoothing_piston_slider.valueEdited.connect(
+            lambda v: self._on_parameter_changed("smoothing_piston_snap_m", v)
+        )
+        layout.addWidget(self.smoothing_piston_slider)
+
+        self.smoothing_easing_combo = QComboBox()
+        for label, key in SMOOTHING_EASING_OPTIONS:
+            self.smoothing_easing_combo.addItem(label, key)
+        self.smoothing_easing_combo.currentIndexChanged.connect(
+            self._on_smoothing_easing_changed
+        )
+        layout.addWidget(self.smoothing_easing_combo)
+
+        self._smoothing_controls.extend(
+            [
+                self.smoothing_duration_slider,
+                self.smoothing_angle_slider,
+                self.smoothing_piston_slider,
+                self.smoothing_easing_combo,
+            ]
+        )
+
+        return group
+
     def _on_parameter_changed(self, param_name: str, value: float):
         """Обработать изменение параметра"""
         print(f"🛣️ RoadExcitationTab: '{param_name}' = {value}")
@@ -350,8 +438,30 @@ class RoadExcitationTab(QWidget):
         self.parameter_changed.emit(param_name, value)
 
         # Emit animation update
+        self._emit_animation_update()
+
+    def _emit_animation_update(self):
         animation_params = self.state_manager.get_animation_parameters()
         self.animation_changed.emit(animation_params)
+
+    def _set_smoothing_controls_enabled(self, enabled: bool):
+        for widget in self._smoothing_controls:
+            widget.setEnabled(enabled)
+
+    def _on_smoothing_toggled(self, enabled: bool):
+        print(f"🎚️ Animation smoothing enabled: {enabled}")
+        self.state_manager.update_parameter("smoothing_enabled", bool(enabled))
+        self._set_smoothing_controls_enabled(bool(enabled))
+        self.parameter_changed.emit("smoothing_enabled", 1.0 if enabled else 0.0)
+        self._emit_animation_update()
+
+    def _on_smoothing_easing_changed(self, index: int):
+        value = self.smoothing_easing_combo.itemData(index)
+        if value is None:
+            return
+        self.state_manager.update_parameter("smoothing_easing", value)
+        self.parameter_changed.emit("smoothing_easing", float(index))
+        self._emit_animation_update()
 
     def _apply_current_state(self):
         """Применить текущее состояние к UI"""
@@ -364,6 +474,17 @@ class RoadExcitationTab(QWidget):
         for slider in self.wheel_sliders.values():
             slider.blockSignals(True)
 
+        self.smoothing_checkbox.blockSignals(True)
+        smoothing_enabled = bool(params.get("smoothing_enabled", True))
+        self.smoothing_checkbox.setChecked(smoothing_enabled)
+        self.smoothing_checkbox.blockSignals(False)
+        self._set_smoothing_controls_enabled(smoothing_enabled)
+
+        self.smoothing_duration_slider.blockSignals(True)
+        self.smoothing_angle_slider.blockSignals(True)
+        self.smoothing_piston_slider.blockSignals(True)
+        self.smoothing_easing_combo.blockSignals(True)
+
         # Update sliders
         self.amplitude_slider.setValue(params.get("amplitude", 0.05))
         self.frequency_slider.setValue(params.get("frequency", 1.0))
@@ -374,9 +495,38 @@ class RoadExcitationTab(QWidget):
         self.wheel_sliders["lr"].setValue(params.get("lr_phase", 0.0))
         self.wheel_sliders["rr"].setValue(params.get("rr_phase", 0.0))
 
+        self.smoothing_duration_slider.setValue(
+            params.get(
+                "smoothing_duration_ms",
+                PARAMETER_RANGES["smoothing_duration_ms"]["default"],
+            )
+        )
+        self.smoothing_angle_slider.setValue(
+            params.get(
+                "smoothing_angle_snap_deg",
+                PARAMETER_RANGES["smoothing_angle_snap_deg"]["default"],
+            )
+        )
+        self.smoothing_piston_slider.setValue(
+            params.get(
+                "smoothing_piston_snap_m",
+                PARAMETER_RANGES["smoothing_piston_snap_m"]["default"],
+            )
+        )
+
+        easing_value = params.get("smoothing_easing", "OutCubic")
+        easing_index = self.smoothing_easing_combo.findData(easing_value)
+        if easing_index < 0:
+            easing_index = 0
+        self.smoothing_easing_combo.setCurrentIndex(easing_index)
+
         # Unblock signals
         self.amplitude_slider.blockSignals(False)
         self.frequency_slider.blockSignals(False)
         self.phase_slider.blockSignals(False)
         for slider in self.wheel_sliders.values():
             slider.blockSignals(False)
+        self.smoothing_duration_slider.blockSignals(False)
+        self.smoothing_angle_slider.blockSignals(False)
+        self.smoothing_piston_slider.blockSignals(False)
+        self.smoothing_easing_combo.blockSignals(False)

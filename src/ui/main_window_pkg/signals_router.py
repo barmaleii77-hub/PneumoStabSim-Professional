@@ -720,6 +720,14 @@ class SignalsRouter:
             settings_payload[settings_key] = numeric
             qml_payload[qml_key] = numeric
 
+        def _assign_bool(source_keys, settings_key: str, qml_key: str) -> None:
+            for key in source_keys:
+                if key in params:
+                    value = bool(params.get(key))
+                    settings_payload[settings_key] = value
+                    qml_payload[qml_key] = value
+                    return
+
         _assign_numeric("amplitude", "amplitude", "amplitude")
         _assign_numeric("frequency", "frequency", "frequency")
         _assign_numeric("animation_time", "animation_time", "simulationTime")
@@ -745,6 +753,44 @@ class SignalsRouter:
             if settings_key in settings_payload and qml_key in qml_payload:
                 continue
             _assign_numeric(source_key, settings_key, qml_key)
+
+        _assign_bool(
+            ["smoothing_enabled", "smoothingEnabled"],
+            "smoothing_enabled",
+            "smoothingEnabled",
+        )
+        _assign_numeric(
+            "smoothing_duration_ms", "smoothing_duration_ms", "smoothingDurationMs"
+        )
+        _assign_numeric(
+            "smoothingDurationMs", "smoothing_duration_ms", "smoothingDurationMs"
+        )
+        _assign_numeric(
+            "smoothing_angle_snap_deg",
+            "smoothing_angle_snap_deg",
+            "angleSnapThresholdDeg",
+        )
+        _assign_numeric(
+            "smoothingAngleSnapDeg", "smoothing_angle_snap_deg", "angleSnapThresholdDeg"
+        )
+        _assign_numeric(
+            "smoothing_piston_snap_m", "smoothing_piston_snap_m", "pistonSnapThresholdM"
+        )
+        _assign_numeric(
+            "smoothingPistonSnapM", "smoothing_piston_snap_m", "pistonSnapThresholdM"
+        )
+
+        easing_value = (
+            params.get("smoothing_easing")
+            if params.get("smoothing_easing") is not None
+            else params.get("smoothingEasing")
+        )
+        if easing_value is None and params.get("smoothingEasingName") is not None:
+            easing_value = params.get("smoothingEasingName")
+        if easing_value is not None:
+            text = str(easing_value)
+            settings_payload["smoothing_easing"] = text
+            qml_payload["smoothingEasingName"] = text
 
         running_value = None
         if "is_running" in params:

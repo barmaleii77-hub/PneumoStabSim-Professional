@@ -126,6 +126,18 @@ class ModesStateManager:
                     f"Фаза {phase_key} вне диапазона: {phase}° (должна быть 0-360°)"
                 )
 
+        duration_ms = self.parameters.get("smoothing_duration_ms", 120.0)
+        if not (0.0 <= float(duration_ms) <= 600.0):
+            errors.append(f"Время сглаживания вне диапазона: {duration_ms} мс (0-600)")
+
+        snap_deg = self.parameters.get("smoothing_angle_snap_deg", 65.0)
+        if not (0.0 <= float(snap_deg) <= 180.0):
+            errors.append(f"Порог снапинга угла вне диапазона: {snap_deg}° (0-180°)")
+
+        snap_m = self.parameters.get("smoothing_piston_snap_m", 0.05)
+        if not (0.0 <= float(snap_m) <= 0.3):
+            errors.append(f"Порог снапинга поршня вне диапазона: {snap_m} м (0-0.3)")
+
         return errors
 
     def get_animation_parameters(self) -> Dict[str, Any]:
