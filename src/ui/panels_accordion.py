@@ -678,15 +678,14 @@ class RoadPanelAccordion(QWidget):
         layout.addWidget(self.profile_label)
 
         self.profile_type_combo = QComboBox()
-        self.profile_type_combo.addItems(
-            [
-                "Smooth Highway",
-                "City Streets",
-                "Off-Road",
-                "Mountain Serpentine",
-                "Custom",
-            ]
+        profile_options = (
+            "Smooth Highway",
+            "City Streets",
+            "Off-Road",
+            "Mountain Serpentine",
+            "Custom",
         )
+        self.profile_type_combo.addItems(list(profile_options))
         self.profile_type_combo.setStyleSheet(
             """
             QComboBox {

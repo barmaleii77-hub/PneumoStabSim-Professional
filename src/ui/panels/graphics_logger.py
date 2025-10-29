@@ -304,13 +304,12 @@ class GraphicsLogger:
                 if panel_value == qml_value:
                     differences["matching"].append(key)
                 else:
-                    differences["mismatched"].append(
-                        {
-                            "parameter": key,
-                            "panel_value": panel_value,
-                            "qml_value": qml_value,
-                        }
-                    )
+                    mismatch = {
+                        "parameter": key,
+                        "panel_value": panel_value,
+                        "qml_value": qml_value,
+                    }
+                    differences["mismatched"].append(mismatch)
             else:
                 differences["only_in_panel"].append(key)
 

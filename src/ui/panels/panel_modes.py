@@ -197,15 +197,14 @@ class ModesPanel(QWidget):
         preset_layout = QHBoxLayout()
         preset_label = QLabel("Пресет режима:")
         self.mode_preset_combo = QComboBox()
-        self.mode_preset_combo.addItems(
-            [
-                "Стандартный",
-                "Только кинематика",
-                "Полная динамика",
-                "Тест пневматики",
-                "Пользовательский",
-            ]
+        preset_names = (
+            "Стандартный",
+            "Только кинематика",
+            "Полная динамика",
+            "Тест пневматики",
+            "Пользовательский",
         )
+        self.mode_preset_combo.addItems(list(preset_names))
         self.mode_preset_combo.currentIndexChanged.connect(self._on_mode_preset_changed)
         preset_layout.addWidget(preset_label)
         preset_layout.addWidget(self.mode_preset_combo, stretch=1)

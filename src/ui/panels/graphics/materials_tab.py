@@ -207,9 +207,13 @@ class MaterialsTab(QWidget):
                         is_normalized = False
                 if components:
                     if is_normalized:
-                        converted = [
-                            int(round(max(0.0, min(1.0, c)) * 255)) for c in components
-                        ]
+                        converted: list[int] = []
+                        for component in components:
+                            channel = max(0.0, min(1.0, component))
+                            if channel >= 0.5:
+                                converted.append(int(round(channel * 255)))
+                            else:
+                                converted.append(int(channel * 255))
                     else:
                         converted = [int(round(c)) for c in components]
                     r, g, b = (max(0, min(255, comp)) for comp in converted)
@@ -391,9 +395,11 @@ class MaterialsTab(QWidget):
             # Потом обновляем полное состояние
             self._materials_state[cur_key] = self.get_current_material_state()
         # Эмитим payload ТОЛЬКО для текущего материала
-        self.material_changed.emit(
-            {"current_material": cur_key, cur_key: self.get_current_material_state()}
-        )
+        payload = {
+            "current_material": cur_key,
+            cur_key: self.get_current_material_state(),
+        }
+        self.material_changed.emit(payload)
 
     # ========== STATE API ==========
     def get_current_material_key(self) -> str:

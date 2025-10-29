@@ -319,6 +319,27 @@ class EventLogger:
         """Найти пары Python→QML событий для анализа синхронизации"""
         pairs = []
 
+        def _build_sync_pair(
+            python_event: dict[str, Any],
+            qml_event: dict[str, Any],
+            emitted_at: datetime,
+            received_at: datetime,
+        ) -> dict[str, Any]:
+            return {
+                "python_event": python_event,
+                "qml_event": qml_event,
+                "latency_ms": (received_at - emitted_at).total_seconds() * 1000,
+                "status": "synced",
+            }
+
+        def _build_missing_pair(python_event: dict[str, Any]) -> dict[str, Any]:
+            return {
+                "python_event": python_event,
+                "qml_event": None,
+                "latency_ms": None,
+                "status": "missing_qml",
+            }
+
         # Сопоставление signal → QML функции (apply*Updates)
         signal_to_qml = {
             "lighting_changed": "applyLightingUpdates",
@@ -352,13 +373,7 @@ class EventLogger:
                         and signal_name in next_event["action"]
                     ):
                         pairs.append(
-                            {
-                                "python_event": event,
-                                "qml_event": next_event,
-                                "latency_ms": (recv_time - emit_time).total_seconds()
-                                * 1000,
-                                "status": "synced",
-                            }
+                            _build_sync_pair(event, next_event, emit_time, recv_time)
                         )
                         break
 
@@ -369,13 +384,7 @@ class EventLogger:
                         and next_event["action"] == expected_qml_func
                     ):
                         pairs.append(
-                            {
-                                "python_event": event,
-                                "qml_event": next_event,
-                                "latency_ms": (recv_time - emit_time).total_seconds()
-                                * 1000,
-                                "status": "synced",
-                            }
+                            _build_sync_pair(event, next_event, emit_time, recv_time)
                         )
                         break
 
@@ -386,25 +395,12 @@ class EventLogger:
                         and next_event["action"] == expected_qml_func
                     ):
                         pairs.append(
-                            {
-                                "python_event": event,
-                                "qml_event": next_event,
-                                "latency_ms": (recv_time - emit_time).total_seconds()
-                                * 1000,
-                                "status": "synced",
-                            }
+                            _build_sync_pair(event, next_event, emit_time, recv_time)
                         )
                         break
                 else:
                     # Не нашли соответствующий QML event
-                    pairs.append(
-                        {
-                            "python_event": event,
-                            "qml_event": None,
-                            "latency_ms": None,
-                            "status": "missing_qml",
-                        }
-                    )
+                    pairs.append(_build_missing_pair(event))
 
         return pairs
 

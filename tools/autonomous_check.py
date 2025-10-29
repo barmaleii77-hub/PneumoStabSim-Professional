@@ -102,6 +102,37 @@ def _build_trace_command(history_limit: int, trace_args: Sequence[str]) -> list[
     return command
 
 
+def _format_command_result(
+    label: str,
+    command: Sequence[str],
+    completed: subprocess.CompletedProcess[str],
+    duration: float,
+) -> dict[str, object]:
+    return {
+        "label": label,
+        "command": list(command),
+        "return_code": completed.returncode,
+        "stdout": completed.stdout or "",
+        "duration": duration,
+    }
+
+
+def _render_step(result: dict[str, object]) -> list[str]:
+    command_line = " ".join(result["command"]) if result.get("command") else ""
+    return [
+        f"## Step: {result['label']}",
+        "",
+        f"- Command: {command_line}",
+        f"- Return code: {result['return_code']}",
+        f"- Duration: {float(result.get('duration', 0.0)):.2f}s",
+        "",
+        "```",
+        str(result.get("stdout", "")).rstrip(),
+        "```",
+        "",
+    ]
+
+
 def _run_commands(
     commands: Iterable[tuple[str, Sequence[str]]],
 ) -> list[dict[str, object]]:
@@ -120,15 +151,7 @@ def _run_commands(
         )
         duration = time.perf_counter() - start
 
-        results.append(
-            {
-                "label": label,
-                "command": list(command),
-                "return_code": completed.returncode,
-                "stdout": completed.stdout or "",
-                "duration": duration,
-            }
-        )
+        results.append(_format_command_result(label, command, completed, duration))
 
     return results
 
@@ -170,12 +193,11 @@ def run_autonomous_check(
     commands.append(("quality", _build_command(task, extra_args)))
 
     if launch_trace:
-        commands.append(
-            (
-                "launch_trace",
-                _build_trace_command(trace_history_limit, trace_args),
-            )
+        trace_command = (
+            "launch_trace",
+            _build_trace_command(trace_history_limit, trace_args),
         )
+        commands.append(trace_command)
 
     results = _run_commands(commands)
 
@@ -188,20 +210,7 @@ def run_autonomous_check(
     ]
 
     for result in results:
-        log_sections.extend(
-            [
-                f"## Step: {result['label']}",
-                "",
-                f"- Command: {' '.join(result['command'])}",
-                f"- Return code: {result['return_code']}",
-                f"- Duration: {result['duration']:.2f}s",
-                "",
-                "```",
-                str(result["stdout"]).rstrip(),
-                "```",
-                "",
-            ]
-        )
+        log_sections.extend(_render_step(result))
 
     log_text = "\n".join(log_sections)
     log_path = _log_path(timestamp)

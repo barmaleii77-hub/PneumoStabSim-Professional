@@ -267,6 +267,20 @@ class GraphicsSettingsService:
                     f"graphics.{category} must be an object, got {type(payload).__name__}"
                 )
 
+            if category == "materials":
+                alias_candidates = [
+                    key for key in payload if key in self.FORBIDDEN_MATERIAL_ALIASES
+                ]
+                alias_conflicts = sorted(alias_candidates)
+                if alias_conflicts:
+                    details = ", ".join(
+                        f"{alias}->{self.FORBIDDEN_MATERIAL_ALIASES[alias]}"
+                        for alias in alias_conflicts
+                    )
+                    raise GraphicsSettingsError(
+                        f"graphics.materials contains legacy keys in {source} settings: {details}"
+                    )
+
             allowed_keys = set(baseline_section.keys())
             unknown_keys = [key for key in payload.keys() if key not in allowed_keys]
 

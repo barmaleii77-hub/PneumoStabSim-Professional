@@ -1,6 +1,6 @@
 import QtQuick
-import QtQuick3D
-import QtQuick3D.Effects
+import QtQuick3D 6.10
+import QtQuick3D.Effects 6.10
 
 /*
  * Улучшенный эффект тумана с расширенными настройками
@@ -28,23 +28,7 @@ Effect {
     property real animationSpeed: 0.1       // Скорость анимации
     property real time: 0.0                 // Время для анимации
 
-    // Шейдер тумана
-    parameters: [
-        Parameter { name: "userFogDensity"; value: fogEffect.fogDensity }
-        Parameter { name: "userFogColor"; value: fogEffect.fogColor }
-        Parameter { name: "userFogStart"; value: fogEffect.fogStartDistance }
-        Parameter { name: "userFogEnd"; value: fogEffect.fogEndDistance }
-        Parameter { name: "userFogLeast"; value: fogEffect.fogLeastIntenseY }
-        Parameter { name: "userFogMost"; value: fogEffect.fogMostIntenseY }
-        Parameter { name: "userFogHeightCurve"; value: fogEffect.fogHeightCurve }
-        Parameter { name: "userFogHeightEnabled"; value: fogEffect.heightBasedFog ? 1.0 : 0.0 }
-        Parameter { name: "userFogScattering"; value: fogEffect.fogScattering }
-        Parameter { name: "userFogTransmitEnabled"; value: fogEffect.fogTransmitEnabled ? 1.0 : 0.0 }
-        Parameter { name: "userFogTransmitCurve"; value: fogEffect.fogTransmitCurve }
-        Parameter { name: "userFogAnimated"; value: fogEffect.animatedFog ? 1.0 : 0.0 }
-        Parameter { name: "userFogAnimationSpeed"; value: fogEffect.animationSpeed }
-        Parameter { name: "userFogTime"; value: fogEffect.time }
-    ]
+    // Шейдер тумана (uniform parameters configured directly inside shader for Qt 6.10 runtime)
     passes: [
         Pass {
             shaders: [

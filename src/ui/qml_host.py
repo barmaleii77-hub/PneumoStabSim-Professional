@@ -48,16 +48,12 @@ class SuspensionSceneHost(QQuickWidget):
         }
 
         for corner_key, corner_values in self._corner_data.items():
-            self._params.update(
-                {
-                    f"{corner_key}_leverAngleRad": corner_values.get(
-                        "leverAngleRad", 0.0
-                    ),
-                    f"{corner_key}_pistonPosition": corner_values.get(
-                        "pistonPosition", 0.0
-                    ),
-                }
-            )
+            piston_position = corner_values.get("pistonPosition", 0.0)
+            corner_payload = {
+                f"{corner_key}_leverAngleRad": corner_values.get("leverAngleRad", 0.0),
+                f"{corner_key}_pistonPosition": piston_position,
+            }
+            self._params.update(corner_payload)
 
         _logger.debug("Loaded coordinates from geometry_bridge: Frame=%s", frame_params)
         _logger.debug("FL lever angle (rad): %s", self._params["fl_leverAngleRad"])

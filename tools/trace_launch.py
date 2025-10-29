@@ -42,6 +42,11 @@ def _trace_log_path(timestamp: _dt.datetime) -> Path:
     return TRACE_ROOT / f"launch_trace_{safe_stamp}.log"
 
 
+def _render_log_block(body: str) -> list[str]:
+    stripped = body.rstrip()
+    return ["", "```", stripped, "```", ""]
+
+
 def _latest_trace_path() -> Path:
     return TRACE_ROOT / "launch_trace_latest.log"
 
@@ -213,15 +218,7 @@ def run_launch_trace(passthrough: Sequence[str], history_limit: int) -> int:
     ]
     for var in QT_REQUIRED_VARS:
         log_sections.append(f"  - {var}={environment.get(var, '')}")
-    log_sections.extend(
-        [
-            "",
-            "```",
-            log_body.rstrip(),
-            "```",
-            "",
-        ]
-    )
+    log_sections.extend(_render_log_block(log_body))
     log_text = "\n".join(log_sections)
 
     log_path = _trace_log_path(timestamp)

@@ -97,29 +97,33 @@ class GeometryStateManager:
 
         return known, legacy
 
-    def _record_legacy_parameters(self, path: str, legacy: Dict[str, Any]) -> None:
+    def _record_legacy_parameters(self, path: str, legacy: Dict[str, Any]) -> bool:
         """Persist legacy parameters under the metadata."""
 
         if not legacy or not self.settings_manager:
-            return
+            return False
 
         meta_path = f"{self._legacy_metadata_path}.{path}"
 
         try:
             existing = self.settings_manager.get(meta_path, default={}) or {}
             merged = {**existing, **legacy}
-            self.settings_manager.set(meta_path, merged, auto_save=False)
+            self.settings_manager.set(meta_path, merged, auto_save=True)
+            return True
         except Exception as exc:  # pragma: no cover - defensive
             self.logger.error("Failed to record legacy geometry parameters: %s", exc)
+        return False
 
-    def _apply_sanitised_payload(self, path: str, payload: Dict[str, Any]) -> None:
+    def _apply_sanitised_payload(self, path: str, payload: Dict[str, Any]) -> bool:
         if not self.settings_manager:
-            return
+            return False
 
         try:
-            self.settings_manager.set(path, payload, auto_save=False)
+            self.settings_manager.set(path, payload, auto_save=True)
+            return True
         except Exception as exc:  # pragma: no cover - defensive
             self.logger.error("Failed to persist sanitised geometry payload: %s", exc)
+        return False
 
     def set_parameter(self, param_name: str, value: Any) -> None:
         """Set parameter value
@@ -490,12 +494,12 @@ class GeometryStateManager:
             if isinstance(payload, dict):
                 known, legacy = self._partition_parameters(payload)
                 if legacy:
-                    self._record_legacy_parameters(path, legacy)
-                    self._apply_sanitised_payload(path, known)
-                    needs_cleanup = True
+                    recorded = self._record_legacy_parameters(path, legacy)
+                    saved = self._apply_sanitised_payload(path, known)
+                    needs_cleanup = needs_cleanup or not (recorded and saved)
                 elif len(known) != len(payload):
-                    self._apply_sanitised_payload(path, known)
-                    needs_cleanup = True
+                    saved = self._apply_sanitised_payload(path, known)
+                    needs_cleanup = needs_cleanup or not saved
                 return known
 
             if payload not in (None, {}):
@@ -504,8 +508,8 @@ class GeometryStateManager:
                     path,
                     type(payload).__name__,
                 )
-                self._apply_sanitised_payload(path, {})
-                needs_cleanup = True
+                saved = self._apply_sanitised_payload(path, {})
+                needs_cleanup = needs_cleanup or not saved
             return {}
 
         restored = DEFAULT_GEOMETRY.copy()
