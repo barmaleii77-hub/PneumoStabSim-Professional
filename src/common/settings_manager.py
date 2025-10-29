@@ -141,15 +141,23 @@ _EFFECTS_KEY_ALIASES: Dict[str, str] = {
 _CAMERA_KEY_ALIASES: Dict[str, str] = {"manual_mode": "manual_camera"}
 
 
+def _expand_path(path: Path | str) -> Path:
+    """Expand environment variables and ``~`` in a path-like value."""
+
+    raw = str(path)
+    expanded = os.path.expandvars(raw)
+    return Path(expanded).expanduser()
+
+
 def _resolve_settings_file(settings_file: Optional[Path | str]) -> Path:
     if settings_file is not None:
-        return Path(settings_file)
+        return _expand_path(settings_file)
 
     env_path = os.environ.get("PSS_SETTINGS_FILE")
     if env_path:
-        return Path(env_path)
+        return _expand_path(env_path)
 
-    return DEFAULT_SETTINGS_PATH
+    return _expand_path(DEFAULT_SETTINGS_PATH)
 
 
 def _deep_copy(data: Any) -> Any:

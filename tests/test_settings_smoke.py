@@ -56,6 +56,19 @@ def test_get_settings_manager_si_units(
     assert manager.get("metadata.units_version") == "si_v2"
 
 
+def test_settings_manager_expands_environment_settings_path(
+    legacy_settings: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setenv("PSS_CONFIG_ROOT", str(legacy_settings.parent))
+    monkeypatch.setenv("PSS_SETTINGS_FILE", "${PSS_CONFIG_ROOT}/app_settings.json")
+    monkeypatch.setattr(settings_manager_module, "_settings_manager", None)
+
+    manager = SettingsManager()
+
+    assert manager.settings_file == legacy_settings
+    assert manager.get("metadata.units_version") == "si_v2"
+
+
 def test_settings_manager_round_trip_updates_file(legacy_settings: Path) -> None:
     manager = SettingsManager(settings_file=legacy_settings)
 
