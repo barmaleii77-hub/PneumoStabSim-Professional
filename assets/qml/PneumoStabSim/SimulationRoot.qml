@@ -546,46 +546,46 @@ View3D {
  id: directionalLights
  worldRoot: worldRoot
  cameraRig: cameraController.rig
- shadowsEnabled: !!lightingGlobal("shadows_enabled", lightingGlobal("shadowsEnabled", true))
+    shadowsEnabled: !!lightingGlobal("shadows_enabled", lightingGlobal("shadowsEnabled", true))
     shadowResolution: {
         var raw = lightingGlobal(
                     "shadow_resolution",
-                    lightingGlobal("shadowResolution", 2048)
+                    lightingGlobal("shadowResolution", 4096)
                 )
         var numeric = Number(raw)
-        return isFinite(numeric) ? Math.round(numeric) : 2048
+        return isFinite(numeric) ? Math.round(numeric) : 4096
     }
- shadowFilterSamples: Number(lightingGlobal("shadow_filter_samples", lightingGlobal("shadowFilterSamples",16)))
- shadowBias: Number(lightingGlobal("shadow_bias", lightingGlobal("shadowBias",0.05)))
- shadowFactor: Number(lightingGlobal("shadow_factor", lightingGlobal("shadowFactor",75.0)))
+ shadowFilterSamples: Number(lightingGlobal("shadow_filter_samples", lightingGlobal("shadowFilterSamples",32)))
+ shadowBias: Number(lightingGlobal("shadow_bias", lightingGlobal("shadowBias",8.0)))
+ shadowFactor: Number(lightingGlobal("shadow_factor", lightingGlobal("shadowFactor",80.0)))
 
- keyLightBrightness: Number(lightingValue("key", "brightness",1.2))
+ keyLightBrightness: Number(lightingValue("key", "brightness",1.0))
  keyLightColor: lightingValue("key", "color", "#ffffff")
- keyLightAngleX: Number(lightingValue("key", "angle_x", -35))
- keyLightAngleY: Number(lightingValue("key", "angle_y", -40))
- keyLightAngleZ: Number(lightingValue("key", "angle_z",0))
+ keyLightAngleX: Number(lightingValue("key", "angle_x", 25.0))
+ keyLightAngleY: Number(lightingValue("key", "angle_y", 23.5))
+ keyLightAngleZ: Number(lightingValue("key", "angle_z",0.0))
  keyLightCastsShadow: !!lightingValue("key", "cast_shadow", true)
  keyLightBindToCamera: !!lightingValue("key", "bind_to_camera", false)
  keyLightPosX: Number(lightingValue("key", "position_x",0))
  keyLightPosY: Number(lightingValue("key", "position_y",0))
  keyLightPosZ: Number(lightingValue("key", "position_z",0))
 
- fillLightBrightness: Number(lightingValue("fill", "brightness",0.7))
- fillLightColor: lightingValue("fill", "color", "#dfe7ff")
- fillLightAngleX: Number(lightingValue("fill", "angle_x", -60))
- fillLightAngleY: Number(lightingValue("fill", "angle_y",135))
- fillLightAngleZ: Number(lightingValue("fill", "angle_z",0))
+ fillLightBrightness: Number(lightingValue("fill", "brightness",1.0))
+ fillLightColor: lightingValue("fill", "color", "#f1f4ff")
+ fillLightAngleX: Number(lightingValue("fill", "angle_x", 0.0))
+ fillLightAngleY: Number(lightingValue("fill", "angle_y", -45.0))
+ fillLightAngleZ: Number(lightingValue("fill", "angle_z",0.0))
  fillLightCastsShadow: !!lightingValue("fill", "cast_shadow", false)
  fillLightBindToCamera: !!lightingValue("fill", "bind_to_camera", false)
  fillLightPosX: Number(lightingValue("fill", "position_x",0))
  fillLightPosY: Number(lightingValue("fill", "position_y",0))
  fillLightPosZ: Number(lightingValue("fill", "position_z",0))
 
- rimLightBrightness: Number(lightingValue("rim", "brightness",1.0))
- rimLightColor: lightingValue("rim", "color", "#ffe2b0")
- rimLightAngleX: Number(lightingValue("rim", "angle_x",15))
- rimLightAngleY: Number(lightingValue("rim", "angle_y",180))
- rimLightAngleZ: Number(lightingValue("rim", "angle_z",0))
+ rimLightBrightness: Number(lightingValue("rim", "brightness",1.1))
+ rimLightColor: lightingValue("rim", "color", "#ffe1bd")
+ rimLightAngleX: Number(lightingValue("rim", "angle_x",30.0))
+ rimLightAngleY: Number(lightingValue("rim", "angle_y",-135.0))
+ rimLightAngleZ: Number(lightingValue("rim", "angle_z",0.0))
  rimLightCastsShadow: !!lightingValue("rim", "cast_shadow", false)
  rimLightBindToCamera: !!lightingValue("rim", "bind_to_camera", false)
  rimLightPosX: Number(lightingValue("rim", "position_x",0))
@@ -597,15 +597,15 @@ View3D {
  id: pointLights
  worldRoot: worldRoot
  cameraRig: cameraController.rig
- pointLightBrightness: Number(lightingValue("point", "brightness",1000.0))
- pointLightColor: lightingValue("point", "color", "#ffffff")
+ pointLightBrightness: Number(lightingValue("point", "brightness",50.0))
+ pointLightColor: lightingValue("point", "color", "#fff7e0")
  pointLightX: Number(lightingValue("point", "position_x",0.0))
- pointLightY: Number(lightingValue("point", "position_y",2.2))
+ pointLightY: Number(lightingValue("point", "position_y",2.6))
  pointLightZ: Number(lightingValue("point", "position_z",1.5))
- pointLightRange: Number(lightingValue("point", "range",3200.0))
+ pointLightRange: Number(lightingValue("point", "range",3.6))
  constantFade: Number(lightingValue("point", "constant_fade",1.0))
- linearFade: Number(lightingValue("point", "linear_fade",2.0 / Math.max(200.0, lightingValue("point", "range",3200.0))))
- quadraticFade: Number(lightingValue("point", "quadratic_fade",1.0 / Math.pow(Math.max(200.0, lightingValue("point", "range",3200.0)),2)))
+ linearFade: Number(lightingValue("point", "linear_fade",0.01))
+ quadraticFade: Number(lightingValue("point", "quadratic_fade",1.0))
  pointLightCastsShadow: !!lightingValue("point", "cast_shadow", false)
  pointLightBindToCamera: !!lightingValue("point", "bind_to_camera", false)
  }

@@ -221,10 +221,10 @@ class EffectsTab(QWidget):
             row,
             "Фокусное расстояние",
             "dof.focus_distance",
-            200.0,
-            20000.0,
+            0.1,
             50.0,
-            decimals=0,
+            0.1,
+            decimals=2,
         )
         row = self._add_slider(grid, row, "Размытие", "dof.blur", 0.0, 10.0, 0.1)
         return group

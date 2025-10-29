@@ -25,20 +25,20 @@ Node {
 
     // OPTIONAL PROPERTIES (default values are provided)
     property bool shadowsEnabled: true
-    property int shadowResolution: 2048
-    property int shadowFilterSamples: 16
-    property real shadowBias: 0.05
-    property real shadowFactor: 75.0
+    property int shadowResolution: 4096
+    property int shadowFilterSamples: 32
+    property real shadowBias: 8.0
+    property real shadowFactor: 80.0
 
     // ===============================================================
     // KEY LIGHT PROPERTIES
     // ===============================================================
 
-    property real keyLightBrightness: 1.2
+    property real keyLightBrightness: 1.0
     property color keyLightColor: "#ffffff"
-    property real keyLightAngleX: -35
-    property real keyLightAngleY: -40
-    property real keyLightAngleZ: 0
+    property real keyLightAngleX: 25.0
+    property real keyLightAngleY: 23.5
+    property real keyLightAngleZ: 0.0
     property bool keyLightCastsShadow: true
     property bool keyLightBindToCamera: false
     property real keyLightPosX: 0.0
@@ -49,11 +49,11 @@ Node {
     // FILL LIGHT PROPERTIES
     // ===============================================================
 
-    property real fillLightBrightness: 0.7
-    property color fillLightColor: "#dfe7ff"
-    property real fillLightAngleX: -60
-    property real fillLightAngleY: 135
-    property real fillLightAngleZ: 0
+    property real fillLightBrightness: 1.0
+    property color fillLightColor: "#f1f4ff"
+    property real fillLightAngleX: 0.0
+    property real fillLightAngleY: -45.0
+    property real fillLightAngleZ: 0.0
     property bool fillLightCastsShadow: false
     property bool fillLightBindToCamera: false
     property real fillLightPosX: 0.0
@@ -64,11 +64,11 @@ Node {
     // RIM LIGHT PROPERTIES
     // ===============================================================
 
-    property real rimLightBrightness: 1.0
-    property color rimLightColor: "#ffe2b0"
-    property real rimLightAngleX: 15
-    property real rimLightAngleY: 180
-    property real rimLightAngleZ: 0
+    property real rimLightBrightness: 1.1
+    property color rimLightColor: "#ffe1bd"
+    property real rimLightAngleX: 30.0
+    property real rimLightAngleY: -135.0
+    property real rimLightAngleZ: 0.0
     property bool rimLightCastsShadow: false
     property bool rimLightBindToCamera: false
     property real rimLightPosX: 0.0

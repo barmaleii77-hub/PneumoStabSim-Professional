@@ -402,7 +402,7 @@ class EnvironmentTab(QWidget):
         row += 1
 
         near_slider = LabeledSlider(
-            "Начало (Near)", 0.0, 20.0, 0.01, decimals=2, unit="м"
+            "Начало (Near)", 0.0, 50.0, 0.1, decimals=2, unit="м"
         )
         near_slider.valueChanged.connect(
             lambda v: self._on_control_changed("fog_near", v)
@@ -411,7 +411,7 @@ class EnvironmentTab(QWidget):
         grid.addWidget(near_slider, row, 0, 1, 2)
         row += 1
 
-        far_slider = LabeledSlider("Конец (Far)", 0.0, 20.0, 0.01, decimals=2, unit="м")
+        far_slider = LabeledSlider("Конец (Far)", 0.0, 150.0, 0.1, decimals=2, unit="м")
         far_slider.valueChanged.connect(
             lambda v: self._on_control_changed("fog_far", v)
         )

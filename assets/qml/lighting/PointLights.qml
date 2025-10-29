@@ -27,15 +27,15 @@ Node {
     // POINT LIGHT PROPERTIES
     // ===============================================================
 
-    property real pointLightBrightness: 1000.0
-    property color pointLightColor: "#ffffff"
+    property real pointLightBrightness: 50.0
+    property color pointLightColor: "#fff7e0"
     property real pointLightX: 0.0
-    property real pointLightY: 2200.0
-    property real pointLightZ: 1500.0
-    property real pointLightRange: 3200.0
+    property real pointLightY: 2.6
+    property real pointLightZ: 1.5
+    property real pointLightRange: 3.6
     property real constantFade: 1.0
-    property real linearFade: 2.0 / Math.max(200.0, root.pointLightRange)
-    property real quadraticFade: 1.0 / Math.pow(Math.max(200.0, root.pointLightRange), 2)
+    property real linearFade: 0.01
+    property real quadraticFade: 1.0
     property bool pointLightCastsShadow: false
     property bool pointLightBindToCamera: false
 
