@@ -25,7 +25,7 @@ import logging
 from typing import Optional, Dict, Any
 
 from PySide6.QtWidgets import QMainWindow, QLabel
-from PySide6.QtCore import Qt, QTimer, Slot
+from PySide6.QtCore import Qt, QTimer, Slot, QUrl
 from PySide6.QtQuickWidgets import QQuickWidget
 from pathlib import Path
 
@@ -487,6 +487,66 @@ class MainWindow(QMainWindow):
                 self.logger.info("IBL:%s", message)
         except Exception:
             self.logger.debug("Failed to log IBL event", exc_info=True)
+
+    @Slot(str, result=str)
+    def normalizeHdrPath(self, value: str) -> str:
+        """Normalise HDR paths received from QML into absolute file URLs."""
+
+        raw_value = (value or "").strip()
+        if not raw_value:
+            return ""
+
+        try:
+            url_candidate = QUrl(raw_value)
+            if url_candidate.isValid():
+                scheme = url_candidate.scheme()
+                if scheme and scheme not in ("file", ""):
+                    return url_candidate.toString()
+                if url_candidate.isLocalFile():
+                    return url_candidate.toString()
+        except Exception:
+            self.logger.debug("normalizeHdrPath: invalid URL candidate", exc_info=True)
+
+        try:
+            path_input = Path(raw_value)
+            candidates: list[Path] = []
+
+            if path_input.is_absolute():
+                candidates.append(path_input)
+            else:
+                base_dirs: list[Path] = []
+                if self._qml_base_dir is not None:
+                    base_dirs.append(self._qml_base_dir)
+
+                project_root = Path(__file__).resolve().parents[3]
+                base_dirs.extend(
+                    [
+                        project_root / "assets" / "qml",
+                        project_root / "assets",
+                        project_root,
+                    ]
+                )
+
+                for base in base_dirs:
+                    candidates.append((base / path_input).resolve())
+
+            if not candidates:
+                candidates.append(path_input)
+
+            for candidate in candidates:
+                if candidate.exists():
+                    return QUrl.fromLocalFile(str(candidate)).toString()
+
+            # Fall back to the first candidate even if it does not exist
+            return QUrl.fromLocalFile(str(candidates[0])).toString()
+        except Exception:
+            self.logger.debug(
+                "normalizeHdrPath: failed to normalise path %s",
+                raw_value,
+                exc_info=True,
+            )
+
+        return raw_value
 
     @Slot(dict)
     def _on_qml_batch_ack(self, summary: Dict[str, Any]) -> None:
