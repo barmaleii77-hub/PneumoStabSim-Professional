@@ -17,6 +17,13 @@ Python backend in PneumoStabSim after the unified plugin refactor.
   camera/environment/geometry change flows through Qt properties instead
   of imperative lookups. The top level `assets/qml/main.qml` simply
   instantiates `SimulationRoot` and passes the Python bridge object.
+  `SceneEnvironmentController` now consumes `effects/QualityPresets.qml`
+  to bundle antialiasing, IBL, and post-processing defaults into the
+  `performance`, `balanced`, and `cinematic` presets. QML exposes the
+  selected preset through `qualityPreset` / `activeQualityPreset` and the
+  available list via `availableQualityPresets`; Python can switch
+  profiles by including `preset` (or `qualityPreset`) in the quality
+  payload.
   The animation directory adds `RigAnimationController.qml`, providing
   declarative smoothing and snap thresholds for lever angles, pistons
   and frame motion so that SimulationRoot stays lean while exposing the
