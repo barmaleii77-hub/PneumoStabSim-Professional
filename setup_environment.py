@@ -323,7 +323,14 @@ class EnvironmentSetup:
         if self.platform != "Linux":
             return True
 
-        required_packages = ["libegl1", "libgl1", "libxkbcommon0"]
+        required_packages = [
+            "libegl1",
+            "libgl1",
+            "libxkbcommon0",
+            "libxcb-cursor0",
+            "libnss3",
+            "libdbus-1-3",
+        ]
         missing: list[str] = []
 
         for package in required_packages:
