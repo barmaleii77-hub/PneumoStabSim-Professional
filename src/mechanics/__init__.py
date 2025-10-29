@@ -3,6 +3,7 @@ Mechanical components for suspension system and kinematics
 """
 
 from .components import Lever, Spring, Damper, PneumaticCylinder
+from .linkage_geometry import SuspensionLinkage
 from .constraints import (
     ConstraintMode,
     GeometricBounds,
@@ -25,6 +26,7 @@ __all__ = [
     "Spring",
     "Damper",
     "PneumaticCylinder",
+    "SuspensionLinkage",
     "ConstraintMode",
     "GeometricBounds",
     "ConstraintValidator",
