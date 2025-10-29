@@ -53,7 +53,7 @@ Effect {
                             float qt_Opacity;
                         } ubuf;
 
-                        void main() {
+                        void qt_customMain() {
                             coord = qt_MultiTexCoord0;
                             worldPos = qt_Vertex;
                             viewPos = (ubuf.qt_ViewMatrix * vec4(qt_Vertex, 1.0)).xyz;
@@ -126,7 +126,7 @@ Effect {
                             return clamp(linearFog * expFog * heightFog * animationFactor, 0.0, 1.0);
                         }
 
-                        void main() {
+                        void qt_customMain() {
                             vec4 originalColor = texture(qt_Texture0, coord);
 
                             float fogFactor = calculateFogFactor(worldPos, ubuf.qt_CameraPosition);

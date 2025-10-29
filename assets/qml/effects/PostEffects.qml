@@ -88,7 +88,7 @@ Item {
                                 return color;
                             }
 
-                            void main() {
+                            void qt_customMain() {
                                 vec4 original = texture(qt_Texture0, coord);
 
                                 // Извлечение ярких областей
@@ -164,7 +164,7 @@ Item {
                                 );
                             }
 
-                            void main() {
+                            void qt_customMain() {
                                 vec4 original = texture(qt_Texture0, coord);
                                 vec3 normal = normalize(texture(normalTexture, coord).xyz * 2.0 - 1.0);
                                 float depth = texture(depthTexture, coord).r;
@@ -267,7 +267,7 @@ Item {
                                 return color / float(samples);
                             }
 
-                            void main() {
+                            void qt_customMain() {
                                 vec4 original = texture(qt_Texture0, coord);
                                 float depth = texture(depthTexture, coord).r;
                                 float linearDepth = linearizeDepth(depth);
@@ -323,7 +323,7 @@ Item {
                             layout(binding = 1) uniform sampler2D qt_Texture0;
                             layout(binding = 2) uniform sampler2D velocityTexture;
 
-                            void main() {
+                            void qt_customMain() {
                                 vec4 original = texture(qt_Texture0, coord);
                                 vec2 velocity = texture(velocityTexture, coord).xy;
 
