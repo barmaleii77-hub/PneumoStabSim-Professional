@@ -49,7 +49,6 @@ class EffectsTab(QWidget):
                 "tonemap.white_point",
             ),
             "dof.enabled": ("dof.focus_distance", "dof.blur", "dof.auto_focus"),
-            "dof.auto_focus": ("dof.focus_distance",),
             "motion.enabled": ("motion.amount",),
             "lens_flare.enabled": (
                 "lens_flare.ghost_count",
@@ -384,12 +383,22 @@ class EffectsTab(QWidget):
             controller = self._controls.get(controller_key)
             if isinstance(controller, QCheckBox):
                 self._set_dependents_enabled(dependent_keys, controller.isChecked())
+        self._update_dof_focus_enabled()
 
     def _set_dependents_enabled(self, keys: tuple[str, ...], enabled: bool) -> None:
         for key in keys:
             widget = self._controls.get(key)
             if widget is not None:
                 widget.setEnabled(enabled)
+
+    def _update_dof_focus_enabled(self) -> None:
+        focus_control = self._controls.get("dof.focus_distance")
+        auto_focus_control = self._controls.get("dof.auto_focus")
+        if isinstance(focus_control, LabeledSlider):
+            enabled = True
+            if isinstance(auto_focus_control, QCheckBox):
+                enabled = not auto_focus_control.isChecked()
+            focus_control.setEnabled(enabled)
 
     def _normalise_value(self, state_key: str, value: Any) -> Any:
         if state_key in self._integer_keys:
@@ -407,6 +416,8 @@ class EffectsTab(QWidget):
 
         if key in self._dependencies and isinstance(self._controls.get(key), QCheckBox):
             self._set_dependents_enabled(self._dependencies[key], bool(value))
+        if key == "dof.auto_focus":
+            self._update_dof_focus_enabled()
 
         payload = self.get_state()
         self._state = payload
@@ -458,4 +469,5 @@ class EffectsTab(QWidget):
                     pass
             self._updating_ui = False
             self._refresh_dependencies()
+            self._update_dof_focus_enabled()
             self._state = self.get_state()

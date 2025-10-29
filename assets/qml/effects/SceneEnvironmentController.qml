@@ -275,8 +275,8 @@ ExtendedSceneEnvironment {
         if (canUseDithering) {
             root.ditheringEnabled = Qt.binding(function() { return ditheringEnabled })
         }
-        applyQualityPresetInternal(qualityPreset)
         _applySceneBridgeState()
+        applyQualityPresetInternal(qualityPreset)
         _syncSkyboxBackground()
     }
 
@@ -650,7 +650,7 @@ ExtendedSceneEnvironment {
             return
 
         var presetValue = stringFromKeys(params, "qualityPreset", "preset")
-        if (presetValue !== undefined)
+        if (presetValue !== undefined && presetValue !== "")
             applyQualityPresetInternal(presetValue)
 
         if (params.aaPrimaryMode)
@@ -975,7 +975,7 @@ return
  property bool internalDepthOfFieldEnabled: false
  property real dofFocusDistance:2200.0
  property real dofBlurAmount:4.0
- property bool depthOfFieldAutoFocus: true
+ property bool depthOfFieldAutoFocus: false
  property real autoFocusDistanceHint: dofFocusDistance
 
  onDepthOfFieldAutoFocusChanged: _applyAutoFocusDistance()
@@ -1065,21 +1065,24 @@ return
         }
 
         _applyingQualityPreset = true
-        if (qualityPreset !== canonical)
-            qualityPreset = canonical
-        _applyingQualityPreset = false
+        try {
+            if (qualityPreset !== canonical)
+                qualityPreset = canonical
 
-        activeQualityPreset = canonical
-        console.log("SceneEnvironmentController: applying quality preset", canonical)
+            activeQualityPreset = canonical
+            console.log("SceneEnvironmentController: applying quality preset", canonical)
 
-        if (preset.environment)
-            applyEnvironmentPayload(preset.environment)
-        if (preset.antialiasing)
-            applyQualityPayload(preset.antialiasing)
-        if (preset.effects)
-            applyEffectsPayload(preset.effects)
+            if (preset.environment)
+                applyEnvironmentPayload(preset.environment)
+            if (preset.antialiasing)
+                applyQualityPayload(preset.antialiasing)
+            if (preset.effects)
+                applyEffectsPayload(preset.effects)
 
-        return true
+            return true
+        } finally {
+            _applyingQualityPreset = false
+        }
     }
 
     function applyEnvironmentUpdates(params) {

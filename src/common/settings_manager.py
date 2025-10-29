@@ -22,6 +22,7 @@ tests drive the requirements.
 from __future__ import annotations
 
 import json
+import logging
 import os
 import re
 from dataclasses import dataclass
@@ -33,6 +34,9 @@ from typing import Any, Dict, Iterable, List, Optional
 from src.core.settings_manager import (
     ProfileSettingsManager as _CoreProfileSettingsManager,
 )
+
+
+logger = logging.getLogger(__name__)
 
 
 DEFAULT_SETTINGS_PATH = Path("config/app_settings.json")
@@ -398,9 +402,25 @@ class SettingsManager:
                 self._normalise_camera_section(camera)
 
     def _assign_sections(self, payload: Dict[str, Any]) -> None:
-        self._metadata = _deep_copy(payload.get("metadata", {}))
-        self._data = _deep_copy(payload.get("current", {}))
-        self._defaults = _deep_copy(payload.get("defaults_snapshot", {}))
+        def _section_payload(name: str) -> Dict[str, Any]:
+            raw = payload.get(name)
+            if isinstance(raw, dict):
+                return raw
+            if raw is None:
+                logger.warning(
+                    "Settings payload missing '%s' section; using empty defaults.", name
+                )
+            else:
+                logger.warning(
+                    "Settings payload has invalid '%s' section (%s); using empty defaults.",
+                    name,
+                    type(raw).__name__,
+                )
+            return {}
+
+        self._metadata = _deep_copy(_section_payload("metadata"))
+        self._data = _deep_copy(_section_payload("current"))
+        self._defaults = _deep_copy(_section_payload("defaults_snapshot"))
         self._extra = {
             key: _deep_copy(value)
             for key, value in payload.items()
@@ -434,13 +454,30 @@ class SettingsManager:
                 f"Settings file does not exist: {self._settings_path}"
             )
 
-        payload = json.loads(self._settings_path.read_text(encoding="utf-8"))
+        raw_payload = self._settings_path.read_text(encoding="utf-8")
+        try:
+            payload = json.loads(raw_payload)
+        except json.JSONDecodeError as exc:
+            logger.warning(
+                "Failed to parse settings file %s: %s", self._settings_path, exc
+            )
+            raise
         if not isinstance(payload, dict):
+            logger.warning(
+                "Settings file %s does not contain a JSON object; received %s",
+                self._settings_path,
+                type(payload).__name__,
+            )
             raise ValueError("Settings file must contain a JSON object")
 
         for key in ("current", "defaults_snapshot", "metadata"):
             if key not in payload:
-                raise ValueError(f"Missing required section: {key}")
+                logger.warning(
+                    "Settings file %s missing required section '%s'; falling back to defaults.",
+                    self._settings_path,
+                    key,
+                )
+                payload[key] = {}
 
         self._assign_sections(payload)
 
