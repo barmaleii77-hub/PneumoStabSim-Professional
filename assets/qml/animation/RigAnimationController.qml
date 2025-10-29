@@ -10,9 +10,12 @@ QtObject {
     property real smoothingDurationMs: 0.0
     property real angleSnapThresholdDeg: 0.0
     property real pistonSnapThresholdM: 0.0
-    property string smoothingEasingName: ""
+    readonly property string defaultEasingName: "OutCubic"
+    readonly property int defaultEasingType: Easing.OutCubic
 
-    property int smoothingEasingType: Easing.OutCubic
+    property string smoothingEasingName: defaultEasingName
+
+    property int smoothingEasingType: defaultEasingType
     onSmoothingEasingNameChanged: smoothingEasingType = easingTypeForName(smoothingEasingName)
     Component.onCompleted: smoothingEasingType = easingTypeForName(smoothingEasingName)
 
@@ -179,7 +182,7 @@ QtObject {
         case "outsine": return Easing.OutSine
         case "inoutsine": return Easing.InOutSine
         default:
-            return Easing.OutCubic
+            return root.defaultEasingType
         }
     }
 
