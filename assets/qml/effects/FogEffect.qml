@@ -72,6 +72,20 @@ Effect {
                 Shader {
                     id: fogFragmentShader
                     stage: Shader.Fragment
+                    property real userFogDensity: fogEffect.fogDensity
+                    property real userFogStart: fogEffect.fogStartDistance
+                    property real userFogEnd: fogEffect.fogEndDistance
+                    property real userFogLeast: fogEffect.fogLeastIntenseY
+                    property real userFogMost: fogEffect.fogMostIntenseY
+                    property real userFogHeightCurve: fogEffect.fogHeightCurve
+                    property real userFogHeightEnabled: fogEffect.heightBasedFog ? 1.0 : 0.0
+                    property real userFogScattering: fogEffect.fogScattering
+                    property real userFogTransmitEnabled: fogEffect.fogTransmitEnabled ? 1.0 : 0.0
+                    property real userFogTransmitCurve: fogEffect.fogTransmitCurve
+                    property real userFogAnimated: fogEffect.animatedFog ? 1.0 : 0.0
+                    property real userFogAnimationSpeed: fogEffect.animationSpeed
+                    property real userFogTime: fogEffect.time
+                    property color userFogColor: fogEffect.fogColor
                     shader: "
                         #version 440
 
@@ -100,46 +114,27 @@ Effect {
                             float qt_Opacity;
                         } ubuf;
 
-                        layout(binding = 2) uniform sampler2D qt_Texture0;
-
-                        layout(std140, binding = 1) uniform FogParams {
-                            float userFogDensity;
-                            float userFogStart;
-                            float userFogEnd;
-                            float userFogLeast;
-                            float userFogMost;
-                            float userFogHeightCurve;
-                            float userFogHeightEnabled;
-                            float userFogScattering;
-                            float userFogTransmitEnabled;
-                            float userFogTransmitCurve;
-                            float userFogAnimated;
-                            float userFogAnimationSpeed;
-                            float userFogTime;
-                            vec4 userFogColor;
-                        } fogParams;
-
                         float calculateFogFactor(vec3 worldPosition, vec3 cameraPosition) {
                             float distance = length(worldPosition - cameraPosition);
 
-                            float span = max(0.001, fogParams.userFogEnd - fogParams.userFogStart);
-                            float linearFog = clamp((distance - fogParams.userFogStart) / span, 0.0, 1.0);
+                            float span = max(0.001, userFogEnd - userFogStart);
+                            float linearFog = clamp((distance - userFogStart) / span, 0.0, 1.0);
 
-                            float expFog = 1.0 - exp(-fogParams.userFogDensity * distance * 0.0001);
+                            float expFog = 1.0 - exp(-userFogDensity * distance * 0.0001);
 
                             float heightFog = 1.0;
-                            if (fogParams.userFogHeightEnabled > 0.5) {
-                                float bottom = min(fogParams.userFogLeast, fogParams.userFogMost);
-                                float top = max(fogParams.userFogLeast, fogParams.userFogMost);
+                            if (userFogHeightEnabled > 0.5) {
+                                float bottom = min(userFogLeast, userFogMost);
+                                float top = max(userFogLeast, userFogMost);
                                 float heightSpan = max(0.001, top - bottom);
                                 float relative = clamp((top - worldPosition.y) / heightSpan, 0.0, 1.0);
-                                float curve = max(0.0001, fogParams.userFogHeightCurve);
+                                float curve = max(0.0001, userFogHeightCurve);
                                 heightFog = pow(relative, curve);
                             }
 
                             float animationFactor = 1.0;
-                            if (fogParams.userFogAnimated > 0.5) {
-                                vec3 noisePos = worldPosition * 0.001 + vec3(fogParams.userFogTime * fogParams.userFogAnimationSpeed);
+                            if (userFogAnimated > 0.5) {
+                                vec3 noisePos = worldPosition * 0.001 + vec3(userFogTime * userFogAnimationSpeed);
                                 float noise = sin(noisePos.x * 12.9898 + noisePos.y * 78.233 + noisePos.z * 37.719) * 43758.5453;
                                 noise = (sin(noise) + 1.0) * 0.5;
                                 animationFactor = 0.8 + 0.4 * noise;
@@ -153,15 +148,15 @@ Effect {
 
                             float fogFactor = calculateFogFactor(v_worldPos, CAMERA_POSITION);
 
-                            vec3 scatteredColor = fogParams.userFogColor.rgb * fogParams.userFogScattering;
+                            vec3 scatteredColor = userFogColor.rgb * userFogScattering;
                             vec3 foggedColor = mix(
                                 originalColor.rgb,
-                                fogParams.userFogColor.rgb + scatteredColor,
+                                userFogColor.rgb + scatteredColor,
                                 fogFactor
                             );
 
-                            if (fogParams.userFogTransmitEnabled > 0.5) {
-                                float transmitCurve = max(0.0001, fogParams.userFogTransmitCurve);
+                            if (userFogTransmitEnabled > 0.5) {
+                                float transmitCurve = max(0.0001, userFogTransmitCurve);
                                 float transmission = pow(1.0 - fogFactor, transmitCurve);
                                 foggedColor = mix(foggedColor, originalColor.rgb, transmission);
                             }
@@ -171,65 +166,6 @@ Effect {
                     "
                 }
             ]
-        }
-    ]
-
-    parameters: [
-        Parameter {
-            name: "userFogDensity"
-            value: fogEffect.fogDensity
-        },
-        Parameter {
-            name: "userFogColor"
-            value: fogEffect.fogColor
-        },
-        Parameter {
-            name: "userFogStart"
-            value: fogEffect.fogStartDistance
-        },
-        Parameter {
-            name: "userFogEnd"
-            value: fogEffect.fogEndDistance
-        },
-        Parameter {
-            name: "userFogLeast"
-            value: fogEffect.fogLeastIntenseY
-        },
-        Parameter {
-            name: "userFogMost"
-            value: fogEffect.fogMostIntenseY
-        },
-        Parameter {
-            name: "userFogHeightCurve"
-            value: fogEffect.fogHeightCurve
-        },
-        Parameter {
-            name: "userFogHeightEnabled"
-            value: fogEffect.heightBasedFog ? 1.0 : 0.0
-        },
-        Parameter {
-            name: "userFogScattering"
-            value: fogEffect.fogScattering
-        },
-        Parameter {
-            name: "userFogTransmitEnabled"
-            value: fogEffect.fogTransmitEnabled ? 1.0 : 0.0
-        },
-        Parameter {
-            name: "userFogTransmitCurve"
-            value: fogEffect.fogTransmitCurve
-        },
-        Parameter {
-            name: "userFogAnimated"
-            value: fogEffect.animatedFog ? 1.0 : 0.0
-        },
-        Parameter {
-            name: "userFogAnimationSpeed"
-            value: fogEffect.animationSpeed
-        },
-        Parameter {
-            name: "userFogTime"
-            value: fogEffect.time
         }
     ]
     // Таймер для анимации тумана
