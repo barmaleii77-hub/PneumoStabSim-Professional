@@ -660,7 +660,7 @@ Binding {
 
 Binding {
     target: sceneView
-    property: "color"
+    property: "clearColor"
     value: sceneEnvCtl.resolvedClearColor
 }
 
