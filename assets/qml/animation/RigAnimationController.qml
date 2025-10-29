@@ -6,11 +6,11 @@ QtObject {
     // ------------------------------------------------------------------
     // Configuration (injected from SimulationRoot)
     // ------------------------------------------------------------------
-    property bool smoothingEnabled: true
-    property real smoothingDurationMs: 120.0
-    property real angleSnapThresholdDeg: 65.0
-    property real pistonSnapThresholdM: 0.05
-    property string smoothingEasingName: "OutCubic"
+    property bool smoothingEnabled: false
+    property real smoothingDurationMs: 0.0
+    property real angleSnapThresholdDeg: 0.0
+    property real pistonSnapThresholdM: 0.0
+    property string smoothingEasingName: ""
 
     property int smoothingEasingType: Easing.OutCubic
     onSmoothingEasingNameChanged: smoothingEasingType = easingTypeForName(smoothingEasingName)
@@ -163,7 +163,7 @@ QtObject {
     })
 
     function easingTypeForName(name) {
-        var key = String(name || "OutCubic").toLowerCase()
+        var key = String(name || "").toLowerCase()
         switch (key) {
         case "linear": return Easing.Linear
         case "inquad": return Easing.InQuad

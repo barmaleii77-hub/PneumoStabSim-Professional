@@ -22,6 +22,7 @@ Node {
     required property Node worldRoot
     required property var geometryState
     required property SharedMaterials sharedMaterials
+    property var geometryDefaults: ({})
 
     // ------------------------------------------------------------------
     // Animation inputs (degrees for lever angles, metres for pistons)
@@ -59,6 +60,43 @@ Node {
     QtObject {
         id: kinematics
 
+        readonly property var aliasMap: ({
+            frameLength: ["frame_length", "frame_length_m", "wheelbase"],
+            frameHeight: ["frame_height", "frame_height_m"],
+            beamSize: ["beam_size", "frame_beam_size", "frame_beam_size_m"],
+            trackWidth: ["track", "track_width", "track_width_m"],
+            frameToPivot: ["frame_to_pivot", "frame_to_pivot_m"],
+            leverLength: ["lever_length", "lever_length_m"],
+            rodPosition: ["rod_position", "attachFrac"],
+            cylinderLength: ["cylinder_length", "cylinder_body_length", "cylinder_body_length_m"],
+            boreHead: ["bore_head", "bore", "bore_d", "cyl_diam", "cyl_diam_m"],
+            rodDiameter: ["rod_diameter", "rod_diameter_m", "rod_diameter_rear_m"],
+            pistonThickness: ["piston_thickness", "piston_thickness_m"],
+            pistonRodLength: ["piston_rod_length", "piston_rod_length_m"],
+            tailRodLength: ["tail_rod_length", "tail_rod_length_m"],
+            cylinderSegments: ["cylinder_segments"],
+            cylinderRings: ["cylinder_rings"]
+        })
+
+        function _lookup(source, key) {
+            if (!source || typeof source !== "object")
+                return undefined
+            if (source[key] !== undefined)
+                return source[key]
+            var aliases = aliasMap[key] || []
+            for (var i = 0; i < aliases.length; ++i) {
+                var alias = aliases[i]
+                if (source[alias] !== undefined)
+                    return source[alias]
+            }
+            return undefined
+        }
+
+        function _numeric(value) {
+            var numeric = Number(value)
+            return isFinite(numeric) ? numeric : undefined
+        }
+
         function _normalisedSide(side) {
             return String(side).toLowerCase()
         }
@@ -72,29 +110,35 @@ Node {
         }
 
         function geometryValue(key, fallback) {
-            const state = assembly.geometryState || {}
-            if (state[key] !== undefined)
-                return state[key]
-            return fallback
+            var stateValue = _numeric(_lookup(assembly.geometryState, key))
+            if (stateValue !== undefined)
+                return stateValue
+            var defaultValue = _numeric(_lookup(assembly.geometryDefaults, key))
+            if (defaultValue !== undefined)
+                return defaultValue
+            var fallbackValue = _numeric(fallback)
+            if (fallbackValue !== undefined)
+                return fallbackValue
+            return 0.0
         }
 
         function armZ(side) {
-            const frameLength = geometryValue("frameLength", 3.4)
-            const pivot = geometryValue("frameToPivot", 0.42)
+            const frameLength = geometryValue("frameLength")
+            const pivot = geometryValue("frameToPivot")
             return isRear(side) ? frameLength - pivot : pivot
         }
 
         function armPosition(side) {
-            const trackWidth = geometryValue("trackWidth", 2.34)
-            const beamSize = geometryValue("beamSize", 0.12)
+            const trackWidth = geometryValue("trackWidth")
+            const beamSize = geometryValue("beamSize")
             const x = (isLeft(side) ? -1 : 1) * trackWidth / 2
             return Qt.vector3d(x, beamSize, armZ(side))
         }
 
         function tailPosition(side) {
             const arm = armPosition(side)
-            const beamSize = geometryValue("beamSize", 0.12)
-            const frameHeight = geometryValue("frameHeight", 0.65)
+            const beamSize = geometryValue("beamSize")
+            const frameHeight = geometryValue("frameHeight")
             return Qt.vector3d(arm.x, beamSize + frameHeight, arm.z)
         }
 
@@ -134,9 +178,9 @@ Node {
     Frame {
         id: frame
         worldRoot: assembly
-        beamSizeM: assembly.geometryValue("beamSize", 0.12)
-        frameHeightM: assembly.geometryValue("frameHeight", 0.65)
-        frameLengthM: assembly.geometryValue("frameLength", 3.4)
+        beamSizeM: assembly.geometryValue("beamSize")
+        frameHeightM: assembly.geometryValue("frameHeight")
+        frameLengthM: assembly.geometryValue("frameLength")
         frameMaterial: assembly.sharedMaterials.frameMaterial
     }
 
@@ -149,15 +193,15 @@ Node {
         refreshMode: assembly.reflectionProbeRefreshModeValue
         timeSlicing: assembly.reflectionProbeTimeSlicingValue
         position: {
-            const beam = Math.max(assembly.geometryValue("beamSize", 0.0), 0)
-            const frameHeight = Math.max(assembly.geometryValue("frameHeight", 0.0), 0)
+            const beam = Math.max(assembly.geometryValue("beamSize"), 0)
+            const frameHeight = Math.max(assembly.geometryValue("frameHeight"), 0)
             return Qt.vector3d(0, assembly.toSceneLength((beam / 2) + (frameHeight / 2)), 0)
         }
         boxSize: {
-            const track = Math.max(assembly.geometryValue("trackWidth", 0.0), 0)
-            const frameHeight = Math.max(assembly.geometryValue("frameHeight", 0.0), 0)
-            const beam = Math.max(assembly.geometryValue("beamSize", 0.0), 0)
-            const frameLength = Math.max(assembly.geometryValue("frameLength", 0.0), 0)
+            const track = Math.max(assembly.geometryValue("trackWidth"), 0)
+            const frameHeight = Math.max(assembly.geometryValue("frameHeight"), 0)
+            const beam = Math.max(assembly.geometryValue("beamSize"), 0)
+            const frameLength = Math.max(assembly.geometryValue("frameLength"), 0)
             const padding = Math.max(0, assembly.reflectionProbePadding) * 2
             return Qt.vector3d(
                         Math.max(1.0, assembly.toSceneLength(track + padding)),
@@ -172,16 +216,16 @@ Node {
         j_tail: assembly.cornerTailPosition("fl")
         leverAngle: assembly.leverAngleFor("fl")
         pistonPositionM: assembly.pistonPositionFor("fl")
-        leverLengthM: assembly.geometryValue("leverLength", 0.75)
-        rodPosition: assembly.geometryValue("rodPosition", 0.34)
-        cylinderLength: assembly.geometryValue("cylinderLength", 0.46)
-        boreHead: assembly.geometryValue("boreHead", 0.11)
-        rodDiameter: assembly.geometryValue("rodDiameter", 0.035)
-        pistonThickness: assembly.geometryValue("pistonThickness", 0.025)
-        pistonRodLength: assembly.geometryValue("pistonRodLength", 0.32)
-        tailRodLength: assembly.geometryValue("tailRodLength", 0.18)
-        cylinderSegments: assembly.geometryValue("cylinderSegments", 64)
-        cylinderRings: assembly.geometryValue("cylinderRings", 8)
+        leverLengthM: assembly.geometryValue("leverLength")
+        rodPosition: assembly.geometryValue("rodPosition")
+        cylinderLength: assembly.geometryValue("cylinderLength")
+        boreHead: assembly.geometryValue("boreHead")
+        rodDiameter: assembly.geometryValue("rodDiameter")
+        pistonThickness: assembly.geometryValue("pistonThickness")
+        pistonRodLength: assembly.geometryValue("pistonRodLength")
+        tailRodLength: assembly.geometryValue("tailRodLength")
+        cylinderSegments: Math.max(3, Math.round(assembly.geometryValue("cylinderSegments")))
+        cylinderRings: Math.max(1, Math.round(assembly.geometryValue("cylinderRings")))
         leverMaterial: assembly.sharedMaterials.leverMaterial
         tailRodMaterial: assembly.sharedMaterials.tailRodMaterial
         cylinderMaterial: assembly.sharedMaterials.cylinderMaterial
@@ -202,16 +246,16 @@ Node {
         j_tail: assembly.cornerTailPosition("fr")
         leverAngle: assembly.leverAngleFor("fr")
         pistonPositionM: assembly.pistonPositionFor("fr")
-        leverLengthM: assembly.geometryValue("leverLength", 0.75)
-        rodPosition: assembly.geometryValue("rodPosition", 0.34)
-        cylinderLength: assembly.geometryValue("cylinderLength", 0.46)
-        boreHead: assembly.geometryValue("boreHead", 0.11)
-        rodDiameter: assembly.geometryValue("rodDiameter", 0.035)
-        pistonThickness: assembly.geometryValue("pistonThickness", 0.025)
-        pistonRodLength: assembly.geometryValue("pistonRodLength", 0.32)
-        tailRodLength: assembly.geometryValue("tailRodLength", 0.18)
-        cylinderSegments: assembly.geometryValue("cylinderSegments", 64)
-        cylinderRings: assembly.geometryValue("cylinderRings", 8)
+        leverLengthM: assembly.geometryValue("leverLength")
+        rodPosition: assembly.geometryValue("rodPosition")
+        cylinderLength: assembly.geometryValue("cylinderLength")
+        boreHead: assembly.geometryValue("boreHead")
+        rodDiameter: assembly.geometryValue("rodDiameter")
+        pistonThickness: assembly.geometryValue("pistonThickness")
+        pistonRodLength: assembly.geometryValue("pistonRodLength")
+        tailRodLength: assembly.geometryValue("tailRodLength")
+        cylinderSegments: Math.max(3, Math.round(assembly.geometryValue("cylinderSegments")))
+        cylinderRings: Math.max(1, Math.round(assembly.geometryValue("cylinderRings")))
         leverMaterial: assembly.sharedMaterials.leverMaterial
         tailRodMaterial: assembly.sharedMaterials.tailRodMaterial
         cylinderMaterial: assembly.sharedMaterials.cylinderMaterial
@@ -232,16 +276,16 @@ Node {
         j_tail: assembly.cornerTailPosition("rl")
         leverAngle: assembly.leverAngleFor("rl")
         pistonPositionM: assembly.pistonPositionFor("rl")
-        leverLengthM: assembly.geometryValue("leverLength", 0.75)
-        rodPosition: assembly.geometryValue("rodPosition", 0.34)
-        cylinderLength: assembly.geometryValue("cylinderLength", 0.46)
-        boreHead: assembly.geometryValue("boreHead", 0.11)
-        rodDiameter: assembly.geometryValue("rodDiameter", 0.035)
-        pistonThickness: assembly.geometryValue("pistonThickness", 0.025)
-        pistonRodLength: assembly.geometryValue("pistonRodLength", 0.32)
-        tailRodLength: assembly.geometryValue("tailRodLength", 0.18)
-        cylinderSegments: assembly.geometryValue("cylinderSegments", 64)
-        cylinderRings: assembly.geometryValue("cylinderRings", 8)
+        leverLengthM: assembly.geometryValue("leverLength")
+        rodPosition: assembly.geometryValue("rodPosition")
+        cylinderLength: assembly.geometryValue("cylinderLength")
+        boreHead: assembly.geometryValue("boreHead")
+        rodDiameter: assembly.geometryValue("rodDiameter")
+        pistonThickness: assembly.geometryValue("pistonThickness")
+        pistonRodLength: assembly.geometryValue("pistonRodLength")
+        tailRodLength: assembly.geometryValue("tailRodLength")
+        cylinderSegments: Math.max(3, Math.round(assembly.geometryValue("cylinderSegments")))
+        cylinderRings: Math.max(1, Math.round(assembly.geometryValue("cylinderRings")))
         leverMaterial: assembly.sharedMaterials.leverMaterial
         tailRodMaterial: assembly.sharedMaterials.tailRodMaterial
         cylinderMaterial: assembly.sharedMaterials.cylinderMaterial
@@ -262,16 +306,16 @@ Node {
         j_tail: assembly.cornerTailPosition("rr")
         leverAngle: assembly.leverAngleFor("rr")
         pistonPositionM: assembly.pistonPositionFor("rr")
-        leverLengthM: assembly.geometryValue("leverLength", 0.75)
-        rodPosition: assembly.geometryValue("rodPosition", 0.34)
-        cylinderLength: assembly.geometryValue("cylinderLength", 0.46)
-        boreHead: assembly.geometryValue("boreHead", 0.11)
-        rodDiameter: assembly.geometryValue("rodDiameter", 0.035)
-        pistonThickness: assembly.geometryValue("pistonThickness", 0.025)
-        pistonRodLength: assembly.geometryValue("pistonRodLength", 0.32)
-        tailRodLength: assembly.geometryValue("tailRodLength", 0.18)
-        cylinderSegments: assembly.geometryValue("cylinderSegments", 64)
-        cylinderRings: assembly.geometryValue("cylinderRings", 8)
+        leverLengthM: assembly.geometryValue("leverLength")
+        rodPosition: assembly.geometryValue("rodPosition")
+        cylinderLength: assembly.geometryValue("cylinderLength")
+        boreHead: assembly.geometryValue("boreHead")
+        rodDiameter: assembly.geometryValue("rodDiameter")
+        pistonThickness: assembly.geometryValue("pistonThickness")
+        pistonRodLength: assembly.geometryValue("pistonRodLength")
+        tailRodLength: assembly.geometryValue("tailRodLength")
+        cylinderSegments: Math.max(3, Math.round(assembly.geometryValue("cylinderSegments")))
+        cylinderRings: Math.max(1, Math.round(assembly.geometryValue("cylinderRings")))
         leverMaterial: assembly.sharedMaterials.leverMaterial
         tailRodMaterial: assembly.sharedMaterials.tailRodMaterial
         cylinderMaterial: assembly.sharedMaterials.cylinderMaterial

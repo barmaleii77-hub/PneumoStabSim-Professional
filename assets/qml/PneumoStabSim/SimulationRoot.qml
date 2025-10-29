@@ -38,6 +38,7 @@ signal animationToggled(bool running)
  property bool isRunning: animationDefaults && animationDefaults.is_running !== undefined ? Boolean(animationDefaults.is_running) : false
  property var animationDefaults: typeof initialAnimationSettings !== "undefined" ? initialAnimationSettings : null
  property var sceneDefaults: typeof initialSceneSettings !== "undefined" ? initialSceneSettings : null
+ property var geometryDefaults: typeof initialGeometrySettings !== "undefined" ? initialGeometrySettings : null
  property var diagnosticsDefaults: typeof initialDiagnosticsSettings !== "undefined" ? initialDiagnosticsSettings : null
  property var cameraHudSettings: ({})
  property bool cameraHudEnabled: false
@@ -69,21 +70,21 @@ signal animationToggled(bool running)
  property bool _signalTraceSyncing: false
 
  // -------- Геометрия подвески (СИ) --------
- property real userFrameLength:3.4
- property real userFrameHeight:0.65
- property real userBeamSize:0.12
- property real userLeverLength:0.75
- property real userCylinderLength:0.46
- property real userTrackWidth:2.34
- property real userFrameToPivot:0.42
- property real userRodPosition:0.34
- property real userBoreHead:0.11
- property real userRodDiameter:0.035
- property real userPistonThickness:0.025
- property real userPistonRodLength:0.32
- property real userTailRodLength:0.18
- property int userCylinderSegments:64
- property int userCylinderRings:8
+ property real userFrameLength: geometryDefaultNumber(["frameLength", "frame_length", "frame_length_m", "wheelbase"], 0.0)
+ property real userFrameHeight: geometryDefaultNumber(["frameHeight", "frame_height", "frame_height_m"], 0.0)
+ property real userBeamSize: geometryDefaultNumber(["beamSize", "frame_beam_size", "frame_beam_size_m"], 0.0)
+ property real userLeverLength: geometryDefaultNumber(["leverLength", "lever_length", "lever_length_m"], 0.0)
+ property real userCylinderLength: geometryDefaultNumber(["cylinderLength", "cylinder_length", "cylinder_body_length", "cylinder_body_length_m"], 0.0)
+ property real userTrackWidth: geometryDefaultNumber(["trackWidth", "track", "track_width", "track_width_m"], 0.0)
+ property real userFrameToPivot: geometryDefaultNumber(["frameToPivot", "frame_to_pivot", "frame_to_pivot_m"], 0.0)
+ property real userRodPosition: geometryDefaultNumber(["rodPosition", "rod_position", "attachFrac"], 0.0)
+ property real userBoreHead: geometryDefaultNumber(["boreHead", "bore", "bore_d", "cyl_diam", "cyl_diam_m"], 0.0)
+ property real userRodDiameter: geometryDefaultNumber(["rodDiameter", "rod_diameter", "rod_diameter_m", "rod_diameter_rear_m"], 0.0)
+ property real userPistonThickness: geometryDefaultNumber(["pistonThickness", "piston_thickness", "piston_thickness_m"], 0.0)
+ property real userPistonRodLength: geometryDefaultNumber(["pistonRodLength", "piston_rod_length", "piston_rod_length_m"], 0.0)
+ property real userTailRodLength: geometryDefaultNumber(["tailRodLength", "tail_rod_length", "tail_rod_length_m"], 0.0)
+ property int userCylinderSegments: Math.max(3, Math.round(geometryDefaultNumber(["cylinderSegments"], 64)))
+ property int userCylinderRings: Math.max(1, Math.round(geometryDefaultNumber(["cylinderRings"], 8)))
 
  property var lightingState: ({
  key: {},
@@ -185,20 +186,28 @@ property real sceneScaleFactor: sceneDefaults && sceneDefaults.scale_factor !== 
  })()
 
  // Анимация рычагов (град)
- property real userAmplitude: animationDefaults && animationDefaults.amplitude !== undefined ? Number(animationDefaults.amplitude) :8.0
- property real userFrequency: animationDefaults && animationDefaults.frequency !== undefined ? Number(animationDefaults.frequency) :1.0
- property real userPhaseGlobal: animationDefaults && animationDefaults.phase_global !== undefined ? Number(animationDefaults.phase_global) :0.0
- property real userPhaseFL: animationDefaults && animationDefaults.phase_fl !== undefined ? Number(animationDefaults.phase_fl) :0.0
- property real userPhaseFR: animationDefaults && animationDefaults.phase_fr !== undefined ? Number(animationDefaults.phase_fr) :0.0
- property real userPhaseRL: animationDefaults && animationDefaults.phase_rl !== undefined ? Number(animationDefaults.phase_rl) :0.0
- property real userPhaseRR: animationDefaults && animationDefaults.phase_rr !== undefined ? Number(animationDefaults.phase_rr) :0.0
+ property real userAmplitude: animationDefaults && animationDefaults.amplitude !== undefined ? Number(animationDefaults.amplitude) : 0.0
+ property real userFrequency: animationDefaults && animationDefaults.frequency !== undefined ? Number(animationDefaults.frequency) : 0.0
+ property real userPhaseGlobal: animationDefaults && animationDefaults.phase_global !== undefined ? Number(animationDefaults.phase_global) : 0.0
+ property real userPhaseFL: animationDefaults && animationDefaults.phase_fl !== undefined ? Number(animationDefaults.phase_fl) : 0.0
+ property real userPhaseFR: animationDefaults && animationDefaults.phase_fr !== undefined ? Number(animationDefaults.phase_fr) : 0.0
+ property real userPhaseRL: animationDefaults && animationDefaults.phase_rl !== undefined ? Number(animationDefaults.phase_rl) : 0.0
+ property real userPhaseRR: animationDefaults && animationDefaults.phase_rr !== undefined ? Number(animationDefaults.phase_rr) : 0.0
 
 // Настройки сглаживания анимации
- property bool animationSmoothingEnabled: animationDefaults && animationDefaults.smoothing_enabled !== undefined ? Boolean(animationDefaults.smoothing_enabled) : true
- property real animationSmoothingDurationMs: animationDefaults && animationDefaults.smoothing_duration_ms !== undefined ? Number(animationDefaults.smoothing_duration_ms) : 120.0
- property real animationSmoothingAngleSnapDeg: animationDefaults && animationDefaults.smoothing_angle_snap_deg !== undefined ? Number(animationDefaults.smoothing_angle_snap_deg) : 65.0
- property real animationSmoothingPistonSnapM: animationDefaults && animationDefaults.smoothing_piston_snap_m !== undefined ? Number(animationDefaults.smoothing_piston_snap_m) : 0.05
- property string animationSmoothingEasing: animationDefaults && animationDefaults.smoothing_easing ? String(animationDefaults.smoothing_easing) : "OutCubic"
+ property bool animationSmoothingEnabled: animationDefaults && animationDefaults.smoothing_enabled !== undefined ? Boolean(animationDefaults.smoothing_enabled) : false
+ property real animationSmoothingDurationMs: animationDefaults && animationDefaults.smoothing_duration_ms !== undefined ? Number(animationDefaults.smoothing_duration_ms) : 0.0
+ property real animationSmoothingAngleSnapDeg: animationDefaults && animationDefaults.smoothing_angle_snap_deg !== undefined ? Number(animationDefaults.smoothing_angle_snap_deg) : 0.0
+ property real animationSmoothingPistonSnapM: animationDefaults && animationDefaults.smoothing_piston_snap_m !== undefined ? Number(animationDefaults.smoothing_piston_snap_m) : 0.0
+ property string animationSmoothingEasing: (function() {
+     if (!animationDefaults)
+         return "";
+     if (animationDefaults.smoothing_easing !== undefined && animationDefaults.smoothing_easing !== null)
+         return String(animationDefaults.smoothing_easing);
+     if (animationDefaults.smoothingEasing !== undefined && animationDefaults.smoothingEasing !== null)
+         return String(animationDefaults.smoothingEasing);
+     return "";
+ })()
 
  RigAnimationController {
   id: rigAnimation
@@ -252,6 +261,23 @@ property real sceneScaleFactor: sceneDefaults && sceneDefaults.scale_factor !== 
  result[key] = source[key]
  }
  return result
+ }
+
+ function geometryDefaultNumber(keys, fallback) {
+     var defaults = geometryDefaults || {}
+     var list = Array.isArray(keys) ? keys : [keys]
+     for (var i = 0; i < list.length; ++i) {
+         var candidate = defaults[list[i]]
+         if (candidate !== undefined && candidate !== null) {
+             var numeric = Number(candidate)
+             if (isFinite(numeric))
+                 return numeric
+         }
+     }
+     var fallbackNumeric = Number(fallback)
+     if (isFinite(fallbackNumeric))
+         return fallbackNumeric
+     return 0.0
  }
 
  function restartFallbackTimeline() {
@@ -588,6 +614,7 @@ View3D {
   id: suspensionAssembly
   worldRoot: worldRoot
   geometryState: geometryState
+  geometryDefaults: geometryDefaults || ({})
   sharedMaterials: sharedMaterials
   sceneScaleFactor: root.effectiveSceneScaleFactor
   leverAngles: ({
@@ -764,6 +791,9 @@ Connections {
   }
   if (diagnosticsDefaults && diagnosticsDefaults.signal_trace) {
    applySignalTraceSettings(diagnosticsDefaults.signal_trace)
+  }
+  if (geometryDefaults && Object.keys(geometryDefaults).length) {
+   applyGeometryUpdates(geometryDefaults)
   }
   applySceneBridgeState()
  }
