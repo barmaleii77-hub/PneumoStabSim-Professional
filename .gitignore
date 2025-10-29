@@ -892,5 +892,6 @@ assets/hdr/*.exr
 !tests/unit/tools/test_settings_migrate.py
 !tests/unit/tools/test_visualstudio_insiders.py
 !tests/ui/test_qml_signals.py
+!tests/test_analyze_logs.py
 
 # END OF .GITIGNORE

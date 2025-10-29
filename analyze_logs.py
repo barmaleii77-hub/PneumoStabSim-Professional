@@ -5,12 +5,13 @@
 Комплексный анализ всех типов логов с детальной статистикой и рекомендациями
 """
 
+import os
 import sys
 import json
 from pathlib import Path
 from datetime import datetime
 from collections import defaultdict
-from typing import Dict, List, Tuple, Optional, Any
+from typing import Dict, List, Tuple, Optional, Any, Union
 import re
 
 # ============================================================================
@@ -444,8 +445,27 @@ class ErrorLogAnalyzer:
 class LogAnalyzer:
     """Главный класс анализатора всех логов"""
 
-    def __init__(self):
-        self.logs_dir = Path("logs")
+    DEFAULT_SUBDIRS = ("graphics", "ibl", "errors")
+
+    def __init__(self, logs_dir: Optional[Union[str, Path]] = None):
+        """Инициализирует анализатор и подготавливает структуру логов.
+
+        Args:
+            logs_dir: Пользовательский путь к директории логов. Может быть
+                строкой или `Path`. Если не указан, используется переменная
+                окружения ``PNEUMOSTABSIM_LOGS_DIR`` или ``./logs``.
+        """
+
+        env_override = os.getenv("PNEUMOSTABSIM_LOGS_DIR")
+        base_dir: Union[str, Path]
+        if logs_dir is not None:
+            base_dir = logs_dir
+        elif env_override:
+            base_dir = env_override
+        else:
+            base_dir = "logs"
+
+        self.logs_dir = Path(base_dir)
         self.graphics_analyzer = None
         self.ibl_analyzer = None
         self.run_analyzer = None
@@ -457,11 +477,17 @@ class LogAnalyzer:
         safe_print(colored("АНАЛИЗАТОР ЛОГОВ PneumoStabSim", Colors.CYAN, bold=True))
         safe_print(colored("=" * 80 + "\n", Colors.CYAN, bold=True))
 
-        if not self.logs_dir.exists():
+        created = self._ensure_logs_structure()
+        if created:
             safe_print(
-                colored("ERROR: Директория logs/ не найдена!", Colors.RED, bold=True)
+                colored(
+                    "⚠️  Директория логов отсутствовала. Создана минимальная "
+                    "структура в "
+                    f"{self.logs_dir.resolve()}",
+                    Colors.YELLOW,
+                    bold=True,
+                )
             )
-            return
 
         # Анализ Graphics логов
         self._analyze_graphics()
@@ -480,6 +506,32 @@ class LogAnalyzer:
 
         # Рекомендации
         self._generate_recommendations()
+
+    def _ensure_logs_structure(self) -> bool:
+        """Создаёт минимальную структуру директорий логов при отсутствии.
+
+        Returns:
+            bool: True, если структура была создана или дополнена.
+        """
+
+        created_any = False
+
+        if not self.logs_dir.exists():
+            self.logs_dir.mkdir(parents=True, exist_ok=True)
+            created_any = True
+
+        for subdir in self.DEFAULT_SUBDIRS:
+            target = self.logs_dir / subdir
+            if not target.exists():
+                target.mkdir(parents=True, exist_ok=True)
+                created_any = True
+
+        run_log = self.logs_dir / "run.log"
+        if not run_log.exists():
+            run_log.touch()
+            created_any = True
+
+        return created_any
 
     def _analyze_graphics(self):
         """Анализирует Graphics логи"""

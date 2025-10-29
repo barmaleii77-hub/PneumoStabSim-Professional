@@ -25,6 +25,7 @@ import json
 import logging
 import os
 import re
+from collections.abc import Mapping
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from importlib import import_module, util
@@ -581,71 +582,119 @@ class SettingsManager:
         if not dotted_path:
             raise ValueError("Path must be non-empty")
 
-        parts = dotted_path.split(".")
-        # Determine which root dictionary to update
-        head = parts[0]
-        if head == "current":
-            root = self._data
-            parts = parts[1:]
-        elif head == "defaults_snapshot":
-            root = self._defaults
-            parts = parts[1:]
-        elif head == "metadata":
-            root = self._metadata
-            parts = parts[1:]
-        elif head in self._data:
-            root = self._data
-            parts = parts[1:]
-        elif head in self._extra:
-            root = self._extra[head]
-            parts = parts[1:]
-        elif len(parts) == 1:
-            if head in self._data or head in self._defaults:
-                root = self._data
-            else:
-                root = self._extra
-        else:
-            root = self._data
-
+        segments = dotted_path.split(".")
+        head = segments[0]
+        tail = segments[1:]
         timestamp = _utc_now()
-        if not parts:
-            previous = (
-                _deep_copy(root.get(dotted_path)) if dotted_path in root else None
-            )
-            root[dotted_path] = _deep_copy(value)
-            if auto_save:
-                self.save()
-            category = dotted_path.split(".", 1)[0]
+        category = dotted_path.split(".", 1)[0]
+
+        def _emit_change(
+            path: str, category_name: str, new_value: Any, previous: Any
+        ) -> None:
             self._notify_change(
                 _SettingsChange(
-                    path=dotted_path,
-                    category=category,
+                    path=path,
+                    category=category_name,
                     changeType="set",
-                    newValue=value,
+                    newValue=new_value,
                     oldValue=previous,
                     timestamp=timestamp,
                 )
             )
+
+        if head == "current" and not tail:
+            if not isinstance(value, Mapping):
+                raise TypeError("The 'current' section must be a mapping")
+            previous = _deep_copy(self._data)
+            new_payload = _deep_copy(value)
+            self._data = new_payload
+            if auto_save:
+                self.save()
+            _emit_change("current", "current", new_payload, previous)
             return True
 
-        *parents, leaf = parts
-        node = self._traverse(root, parents, create=True) if parents else root
-        previous = _deep_copy(node.get(leaf)) if leaf in node else None
+        if head == "defaults_snapshot" and not tail:
+            if not isinstance(value, Mapping):
+                raise TypeError("The 'defaults_snapshot' section must be a mapping")
+            previous = _deep_copy(self._defaults)
+            new_payload = _deep_copy(value)
+            self._defaults = new_payload
+            if auto_save:
+                self.save()
+            _emit_change(
+                "defaults_snapshot", "defaults_snapshot", new_payload, previous
+            )
+            return True
+
+        if head == "metadata" and not tail:
+            if not isinstance(value, Mapping):
+                raise TypeError("The 'metadata' section must be a mapping")
+            previous = _deep_copy(self._metadata)
+            self._metadata = _deep_copy(value)
+            self._ensure_units_version()
+            normalised = _deep_copy(self._metadata)
+            if auto_save:
+                self.save()
+            _emit_change("metadata", "metadata", normalised, previous)
+            return True
+
+        if head in self._extra and not tail:
+            previous = _deep_copy(self._extra[head])
+            new_payload = _deep_copy(value)
+            self._extra[head] = new_payload
+            if auto_save:
+                self.save()
+            _emit_change(head, head, new_payload, previous)
+            return True
+
+        if head == "current":
+            root = self._data
+            target_segments = tail
+        elif head == "defaults_snapshot":
+            root = self._defaults
+            target_segments = tail
+        elif head == "metadata":
+            root = self._metadata
+            target_segments = tail
+        elif head in self._extra:
+            section = self._extra.get(head)
+            if not isinstance(section, dict):
+                section = {}
+                self._extra[head] = section
+            root = section
+            target_segments = tail
+        elif len(segments) == 1:
+            if head in self._data or head in self._defaults:
+                root = self._data
+            else:
+                root = self._extra
+            target_segments = segments
+        else:
+            root = self._data
+            target_segments = segments
+
+        if not target_segments:
+            leaf = head
+            node = root
+        else:
+            *parents, leaf = target_segments
+            node = self._traverse(root, parents, create=True) if parents else root
+
+        previous = (
+            _deep_copy(node.get(leaf))
+            if isinstance(node, dict) and leaf in node
+            else None
+        )
+        if not isinstance(node, dict):
+            raise TypeError(f"Cannot set value on non-mapping node at '{dotted_path}'")
         node[leaf] = _deep_copy(value)
 
         if auto_save:
             self.save()
-        category = dotted_path.split(".", 1)[0]
-        self._notify_change(
-            _SettingsChange(
-                path=dotted_path,
-                category=category,
-                changeType="set",
-                newValue=value,
-                oldValue=previous,
-                timestamp=timestamp,
-            )
+        stored_value = (
+            _deep_copy(node[leaf]) if isinstance(node, dict) else _deep_copy(value)
         )
+        _emit_change(dotted_path, category, stored_value, previous)
         return True
 
     def _migrate_known_extras(self) -> None:

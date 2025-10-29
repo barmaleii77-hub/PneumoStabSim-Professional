@@ -110,6 +110,22 @@ def test_settings_manager_sets_extra_sections(legacy_settings: Path) -> None:
     assert payload["telemetry"]["interval_seconds"] == 2
 
 
+def test_settings_manager_overwrites_existing_extra_section(
+    legacy_settings: Path,
+) -> None:
+    manager = SettingsManager(settings_file=legacy_settings)
+
+    manager.set("telemetry", {"interval_seconds": 2})
+    manager.set("telemetry", {"interval_seconds": 5, "enabled": True})
+
+    assert manager.get("telemetry.interval_seconds") == 5
+    assert manager.get("telemetry.enabled") is True
+
+    payload = json.loads(legacy_settings.read_text(encoding="utf-8"))
+    assert payload["telemetry"] == {"interval_seconds": 5, "enabled": True}
+    assert "telemetry" not in payload["telemetry"]
+
+
 def test_settings_manager_preserves_current_structure(legacy_settings: Path) -> None:
     manager = SettingsManager(settings_file=legacy_settings)
 
@@ -122,6 +138,38 @@ def test_settings_manager_preserves_current_structure(legacy_settings: Path) -> 
     assert payload["current"]["graphics"]["scene"]["exposure"] == 2.0
     extra_keys = set(payload) - {"metadata", "current", "defaults_snapshot"}
     assert "graphics" not in extra_keys
+
+
+def test_settings_manager_replaces_root_sections(legacy_settings: Path) -> None:
+    manager = SettingsManager(settings_file=legacy_settings)
+
+    new_metadata = {"units_version": "legacy", "profile": "debug"}
+    manager.set("metadata", new_metadata)
+
+    assert manager.get("metadata.profile") == "debug"
+    assert manager.get("metadata.units_version") == "si_v2"
+
+    payload = json.loads(legacy_settings.read_text(encoding="utf-8"))
+    assert payload["metadata"]["profile"] == "debug"
+    assert payload["metadata"]["units_version"] == "si_v2"
+
+    new_current = {"simulation": {"physics_dt": 0.01}}
+    manager.set("current", new_current)
+
+    assert manager.get("current.simulation.physics_dt") == 0.01
+
+    payload = json.loads(legacy_settings.read_text(encoding="utf-8"))
+    assert payload["current"] == new_current
+    assert "current" not in payload["current"]
+
+    new_defaults = {"simulation": {"physics_dt": 0.02}}
+    manager.set("defaults_snapshot", new_defaults)
+
+    assert manager.get("defaults_snapshot.simulation.physics_dt") == 0.02
+
+    payload = json.loads(legacy_settings.read_text(encoding="utf-8"))
+    assert payload["defaults_snapshot"] == new_defaults
+    assert "defaults_snapshot" not in payload["defaults_snapshot"]
 
 
 def test_get_settings_manager_caches_instance(
