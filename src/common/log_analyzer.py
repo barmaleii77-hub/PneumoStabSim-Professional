@@ -234,13 +234,11 @@ class UnifiedLogAnalyzer:
             total_events = len(change_events)
             # Количество успешных применений не может превышать количество изменений
             synced_events = min(len(update_success), total_events)
-            failed_events = len(
-                [
-                    e
-                    for e in events
-                    if e.get("event_type") == "parameter_update" and e.get("error")
-                ]
-            )
+            failed_events = len([
+                e
+                for e in events
+                if e.get("event_type") == "parameter_update" and e.get("error")
+            ])
 
             result.add_metric("graphics_total_events", total_events)
             result.add_metric("graphics_synced", synced_events)
@@ -442,9 +440,10 @@ class UnifiedLogAnalyzer:
                     pass
 
             # Сигналы о небезопасных дефолтах/несоответствиях
-            if init_primary and init_primary.endswith(
-                ("studio.hdr", "studio_small_09_2k.hdr")
-            ):
+            if init_primary and init_primary.endswith((
+                "studio.hdr",
+                "studio_small_09_2k.hdr",
+            )):
                 result.add_warning(
                     "IBL: обнаружен возможный дефолтный HDR при старте — проверьте синхронизацию UI настроек"
                 )
@@ -556,9 +555,9 @@ class UnifiedLogAnalyzer:
 
             all_errors.extend(result.errors)
             all_warnings.extend(result.warnings)
-            all_metrics.update(
-                {f"{category}_{k}": v for k, v in result.metrics.items()}
-            )
+            all_metrics.update({
+                f"{category}_{k}": v for k, v in result.metrics.items()
+            })
             all_recommendations.extend(result.recommendations)
 
         # Общая статистика

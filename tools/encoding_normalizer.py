@@ -32,70 +32,62 @@ UTF8_BOM = b"\xef\xbb\xbf"
 
 
 # Canonical newline expectations mirror the rules in ``.gitattributes``.
-LF_SUFFIXES: frozenset[str] = frozenset(
-    {
-        ".cfg",
-        ".cmake",
-        ".ini",
-        ".json",
-        ".md",
-        ".py",
-        ".pyi",
-        ".qml",
-        ".qmltypes",
-        ".qrc",
-        ".qsci",
-        ".sh",
-        ".toml",
-        ".txt",
-        ".yaml",
-        ".yml",
-    }
-)
+LF_SUFFIXES: frozenset[str] = frozenset({
+    ".cfg",
+    ".cmake",
+    ".ini",
+    ".json",
+    ".md",
+    ".py",
+    ".pyi",
+    ".qml",
+    ".qmltypes",
+    ".qrc",
+    ".qsci",
+    ".sh",
+    ".toml",
+    ".txt",
+    ".yaml",
+    ".yml",
+})
 
-CRLF_SUFFIXES: frozenset[str] = frozenset(
-    {
-        ".bat",
-        ".cmd",
-        ".cs",
-        ".csproj",
-        ".ps1",
-        ".psd1",
-        ".psm1",
-        ".pyproj",
-        ".sln",
-        ".slnx",
-        ".vbproj",
-        ".vcxproj",
-    }
-)
+CRLF_SUFFIXES: frozenset[str] = frozenset({
+    ".bat",
+    ".cmd",
+    ".cs",
+    ".csproj",
+    ".ps1",
+    ".psd1",
+    ".psm1",
+    ".pyproj",
+    ".sln",
+    ".slnx",
+    ".vbproj",
+    ".vcxproj",
+})
 
-LF_FILENAMES: frozenset[str] = frozenset(
-    {
-        ".editorconfig",
-        ".gitattributes",
-        ".gitignore",
-        ".gitmodules",
-        "CMakeLists.txt",
-        "Dockerfile",
-        "Makefile",
-    }
-)
+LF_FILENAMES: frozenset[str] = frozenset({
+    ".editorconfig",
+    ".gitattributes",
+    ".gitignore",
+    ".gitmodules",
+    "CMakeLists.txt",
+    "Dockerfile",
+    "Makefile",
+})
 
-EXCLUDED_DIRS: frozenset[str] = frozenset(
-    {
-        ".git",
-        "__pycache__",
-        ".mypy_cache",
-        ".pytest_cache",
-        ".ruff_cache",
-        ".venv",
-        "build",
-        "dist",
-        "node_modules",
-        "venv",
-    }
-)
+EXCLUDED_DIRS: frozenset[str] = frozenset({
+    ".git",
+    "__pycache__",
+    ".mypy_cache",
+    ".pytest_cache",
+    ".ruff_cache",
+    ".venv",
+    "build",
+    "dist",
+    "node_modules",
+    "venv",
+})
 
 
 @dataclass(slots=True)

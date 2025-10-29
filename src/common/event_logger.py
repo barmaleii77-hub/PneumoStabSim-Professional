@@ -351,15 +351,13 @@ class EventLogger:
                         next_event["event_type"] == "SIGNAL_RECEIVED"
                         and signal_name in next_event["action"]
                     ):
-                        pairs.append(
-                            {
-                                "python_event": event,
-                                "qml_event": next_event,
-                                "latency_ms": (recv_time - emit_time).total_seconds()
-                                * 1000,
-                                "status": "synced",
-                            }
-                        )
+                        pairs.append({
+                            "python_event": event,
+                            "qml_event": next_event,
+                            "latency_ms": (recv_time - emit_time).total_seconds()
+                            * 1000,
+                            "status": "synced",
+                        })
                         break
 
                     # ✅ Вариант 2: Python вызывает QML функцию напрямую (invokeMethod)
@@ -368,15 +366,13 @@ class EventLogger:
                         and expected_qml_func is not None
                         and next_event["action"] == expected_qml_func
                     ):
-                        pairs.append(
-                            {
-                                "python_event": event,
-                                "qml_event": next_event,
-                                "latency_ms": (recv_time - emit_time).total_seconds()
-                                * 1000,
-                                "status": "synced",
-                            }
-                        )
+                        pairs.append({
+                            "python_event": event,
+                            "qml_event": next_event,
+                            "latency_ms": (recv_time - emit_time).total_seconds()
+                            * 1000,
+                            "status": "synced",
+                        })
                         break
 
                     # ✅ Вариант 3: QML-хук зафиксировал вход в функцию applyXxxUpdates
@@ -385,26 +381,22 @@ class EventLogger:
                         and expected_qml_func is not None
                         and next_event["action"] == expected_qml_func
                     ):
-                        pairs.append(
-                            {
-                                "python_event": event,
-                                "qml_event": next_event,
-                                "latency_ms": (recv_time - emit_time).total_seconds()
-                                * 1000,
-                                "status": "synced",
-                            }
-                        )
+                        pairs.append({
+                            "python_event": event,
+                            "qml_event": next_event,
+                            "latency_ms": (recv_time - emit_time).total_seconds()
+                            * 1000,
+                            "status": "synced",
+                        })
                         break
                 else:
                     # Не нашли соответствующий QML event
-                    pairs.append(
-                        {
-                            "python_event": event,
-                            "qml_event": None,
-                            "latency_ms": None,
-                            "status": "missing_qml",
-                        }
-                    )
+                    pairs.append({
+                        "python_event": event,
+                        "qml_event": None,
+                        "latency_ms": None,
+                        "status": "missing_qml",
+                    })
 
         return pairs
 

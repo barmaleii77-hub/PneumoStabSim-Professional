@@ -169,9 +169,14 @@ def _probe_via_uv() -> EnvironmentSnapshot:
     if not uv_executable:
         raise RuntimeError("uv executable not found; cannot probe environment via uv")
 
-    result = _run_command(
-        [uv_executable, "run", "--", "python", "-c", _UV_PROBE_SCRIPT]
-    )
+    result = _run_command([
+        uv_executable,
+        "run",
+        "--",
+        "python",
+        "-c",
+        _UV_PROBE_SCRIPT,
+    ])
     if result.returncode != 0:
         raise RuntimeError("uv run failed to import PySide6\n" + result.stdout)
     output = result.stdout.strip().splitlines()

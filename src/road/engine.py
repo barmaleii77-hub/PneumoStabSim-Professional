@@ -403,14 +403,12 @@ class RoadInput:
         }
 
         if self.time_base is not None:
-            info.update(
-                {
-                    "time_range": (self.time_base[0], self.time_base[-1]),
-                    "sample_count": len(self.time_base),
-                    "sample_rate": len(self.time_base)
-                    / (self.time_base[-1] - self.time_base[0]),
-                }
-            )
+            info.update({
+                "time_range": (self.time_base[0], self.time_base[-1]),
+                "sample_count": len(self.time_base),
+                "sample_rate": len(self.time_base)
+                / (self.time_base[-1] - self.time_base[0]),
+            })
 
         if self.wheel_profiles is not None:
             # Profile statistics

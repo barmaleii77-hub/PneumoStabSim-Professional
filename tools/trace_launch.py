@@ -213,15 +213,13 @@ def run_launch_trace(passthrough: Sequence[str], history_limit: int) -> int:
     ]
     for var in QT_REQUIRED_VARS:
         log_sections.append(f"  - {var}={environment.get(var, '')}")
-    log_sections.extend(
-        [
-            "",
-            "```",
-            log_body.rstrip(),
-            "```",
-            "",
-        ]
-    )
+    log_sections.extend([
+        "",
+        "```",
+        log_body.rstrip(),
+        "```",
+        "",
+    ])
     log_text = "\n".join(log_sections)
 
     log_path = _trace_log_path(timestamp)

@@ -212,27 +212,23 @@ class SignalTraceService(QObject):
             entry["last_value"] = sanitized_payload
             entry["last_timestamp"] = timestamp
 
-            self._history.append(
-                {
-                    "timestamp": timestamp,
-                    "signal": signal_name,
-                    "payload": sanitized_payload,
-                    "source": source,
-                    "sender": origin,
-                }
-            )
+            self._history.append({
+                "timestamp": timestamp,
+                "signal": signal_name,
+                "payload": sanitized_payload,
+                "source": source,
+                "sender": origin,
+            })
             if len(self._history) > self._config.history_limit:
                 del self._history[: -self._config.history_limit]
 
         if self._config.enabled and self._passes_filters(signal_name):
-            self._append_to_log(
-                {
-                    "timestamp": timestamp,
-                    "signal": signal_name,
-                    "payload": sanitized_payload,
-                    "source": source,
-                }
-            )
+            self._append_to_log({
+                "timestamp": timestamp,
+                "signal": signal_name,
+                "payload": sanitized_payload,
+                "source": source,
+            })
 
         self._notify_listeners()
 

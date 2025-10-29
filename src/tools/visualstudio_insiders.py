@@ -120,13 +120,11 @@ def build_insiders_environment(
         "QT_PLUGIN_PATH": _as_windows_path(plugin_root),
         "QT_QML_IMPORT_PATH": _as_windows_path(qml_runtime_root),
         "QT_QUICK_CONTROLS_STYLE": "Basic",
-        "PYTHONPATH": ";".join(
-            (
-                windows_root,
-                _as_windows_path(resolved_root / "src"),
-                _as_windows_path(resolved_root / "tests"),
-            )
-        ),
+        "PYTHONPATH": ";".join((
+            windows_root,
+            _as_windows_path(resolved_root / "src"),
+            _as_windows_path(resolved_root / "tests"),
+        )),
         "PYTHONUTF8": "1",
         "PYTHONIOENCODING": "utf-8",
         "PIP_DISABLE_PIP_VERSION_CHECK": "1",

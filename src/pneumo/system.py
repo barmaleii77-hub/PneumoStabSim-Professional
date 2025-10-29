@@ -133,9 +133,11 @@ class PneumaticSystem:
                     volume = cylinder.vol_rod()
 
                 volumes["total_volume"] += volume
-                volumes["endpoints"].append(
-                    {"wheel": wheel.value, "port": port.value, "volume": volume}
-                )
+                volumes["endpoints"].append({
+                    "wheel": wheel.value,
+                    "port": port.value,
+                    "volume": volume,
+                })
 
             line_volumes[line_name] = volumes
 
@@ -157,23 +159,23 @@ class PneumaticSystem:
         for wheel, cylinder in self.cylinders.items():
             cyl_result = cylinder.validate_invariants()
             if not cyl_result["is_valid"]:
-                errors.extend(
-                    [f"Cylinder {wheel.value}: {err}" for err in cyl_result["errors"]]
-                )
-            warnings.extend(
-                [f"Cylinder {wheel.value}: {warn}" for warn in cyl_result["warnings"]]
-            )
+                errors.extend([
+                    f"Cylinder {wheel.value}: {err}" for err in cyl_result["errors"]
+                ])
+            warnings.extend([
+                f"Cylinder {wheel.value}: {warn}" for warn in cyl_result["warnings"]
+            ])
 
         # Validate each line
         for line_name, line in self.lines.items():
             line_result = line.validate_invariants()
             if not line_result["is_valid"]:
-                errors.extend(
-                    [f"Line {line_name.value}: {err}" for err in line_result["errors"]]
-                )
-            warnings.extend(
-                [f"Line {line_name.value}: {warn}" for warn in line_result["warnings"]]
-            )
+                errors.extend([
+                    f"Line {line_name.value}: {err}" for err in line_result["errors"]
+                ])
+            warnings.extend([
+                f"Line {line_name.value}: {warn}" for warn in line_result["warnings"]
+            ])
 
         # Validate receiver
         receiver_result = self.receiver.validate_invariants()

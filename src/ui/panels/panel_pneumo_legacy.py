@@ -67,9 +67,12 @@ class PneumoPanel(QWidget):
         units_layout = QHBoxLayout()
         units_layout.addWidget(QLabel("Единицы давления:"))
         self.pressure_units_combo = QComboBox()
-        self.pressure_units_combo.addItems(
-            ["бар (bar)", "Па (Pa)", "кПа (kPa)", "МПа (MPa)"]
-        )
+        self.pressure_units_combo.addItems([
+            "бар (bar)",
+            "Па (Pa)",
+            "кПа (kPa)",
+            "МПа (MPa)",
+        ])
         # Индекс из параметров (если есть)
         units_index = {"бар": 0, "Па": 1, "кПа": 2, "МПа": 3}.get(
             str(self.parameters.get("pressure_units", "бар")).split()[0], 0
