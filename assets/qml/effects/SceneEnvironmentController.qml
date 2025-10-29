@@ -1,6 +1,7 @@
 import QtQuick 6.10
 import QtQuick3D 6.10
 import QtQuick3D.Helpers 6.10 // ✅ CRITICAL: Required for ExtendedSceneEnvironment
+import "." // Local helpers (QualityPresets)
 
 /*
  * SceneEnvironmentController - Полное управление ExtendedSceneEnvironment
@@ -8,6 +9,29 @@ import QtQuick3D.Helpers 6.10 // ✅ CRITICAL: Required for ExtendedSceneEnviron
  */
 ExtendedSceneEnvironment {
  id: root
+
+    QualityPresets {
+        id: qualityProfiles
+    }
+
+    // ===============================================================
+    // QUALITY PRESET MANAGEMENT
+    // ===============================================================
+
+    readonly property var availableQualityPresets: qualityProfiles.availablePresets
+    property string qualityPreset: qualityProfiles.defaultKey
+    property string activeQualityPreset: qualityProfiles.defaultKey
+    property bool _applyingQualityPreset: false
+
+    onQualityPresetChanged: {
+        if (_applyingQualityPreset)
+            return
+        if (!applyQualityPresetInternal(qualityPreset)) {
+            var fallback = qualityProfiles.fallbackKey()
+            if (fallback && fallback !== qualityPreset)
+                applyQualityPresetInternal(fallback)
+        }
+    }
 
  // ===============================================================
  // BACKGROUND & IBL
@@ -251,6 +275,7 @@ ExtendedSceneEnvironment {
         if (canUseDithering) {
             root.ditheringEnabled = Qt.binding(function() { return ditheringEnabled })
         }
+        applyQualityPresetInternal(qualityPreset)
         _applySceneBridgeState()
         _syncSkyboxBackground()
     }
@@ -620,32 +645,36 @@ ExtendedSceneEnvironment {
  }
  }
 
- function applyQualityPayload(params) {
- if (!params)
- return
+    function applyQualityPayload(params) {
+        if (!params)
+            return
 
- if (params.aaPrimaryMode)
- aaPrimaryMode = String(params.aaPrimaryMode)
- if (params.aaQualityLevel)
- aaQualityLevel = String(params.aaQualityLevel)
- if (params.aaPostMode)
- aaPostMode = String(params.aaPostMode)
- if (params.taaEnabled !== undefined)
- taaEnabled = !!params.taaEnabled
- if (params.taaStrength !== undefined)
- taaStrength = Number(params.taaStrength)
- if (params.taaMotionAdaptive !== undefined)
- taaMotionAdaptive = !!params.taaMotionAdaptive
- if (params.fxaaEnabled !== undefined)
- fxaaEnabled = !!params.fxaaEnabled
- if (params.specularAAEnabled !== undefined)
- specularAAEnabled = !!params.specularAAEnabled
- if (params.ditheringEnabled !== undefined) {
- var dithQ = !!params.ditheringEnabled
- if (canUseDithering)
- root.ditheringEnabled = dithQ
- }
- }
+        var presetValue = stringFromKeys(params, "qualityPreset", "preset")
+        if (presetValue !== undefined)
+            applyQualityPresetInternal(presetValue)
+
+        if (params.aaPrimaryMode)
+            aaPrimaryMode = String(params.aaPrimaryMode)
+        if (params.aaQualityLevel)
+            aaQualityLevel = String(params.aaQualityLevel)
+        if (params.aaPostMode)
+            aaPostMode = String(params.aaPostMode)
+        if (params.taaEnabled !== undefined)
+            taaEnabled = !!params.taaEnabled
+        if (params.taaStrength !== undefined)
+            taaStrength = Number(params.taaStrength)
+        if (params.taaMotionAdaptive !== undefined)
+            taaMotionAdaptive = !!params.taaMotionAdaptive
+        if (params.fxaaEnabled !== undefined)
+            fxaaEnabled = !!params.fxaaEnabled
+        if (params.specularAAEnabled !== undefined)
+            specularAAEnabled = !!params.specularAAEnabled
+        if (params.ditheringEnabled !== undefined) {
+            var dithQ = !!params.ditheringEnabled
+            if (canUseDithering)
+                root.ditheringEnabled = dithQ
+        }
+    }
 
 function applyEffectsPayload(params) {
 if (!params)
@@ -1018,6 +1047,40 @@ return
  adjustmentBrightness: adjustmentBrightnessValue
  adjustmentContrast: adjustmentContrastValue
  adjustmentSaturation: adjustmentSaturationValue
+
+    function applyQualityPreset(name) {
+        return applyQualityPresetInternal(name)
+    }
+
+    function applyQualityPresetInternal(requestedName) {
+        var canonical = qualityProfiles.canonicalKey(requestedName)
+        if (!canonical) {
+            console.warn("SceneEnvironmentController: unknown quality preset", requestedName)
+            return false
+        }
+        var preset = qualityProfiles.presetFor(canonical)
+        if (!preset) {
+            console.warn("SceneEnvironmentController: missing definition for preset", canonical)
+            return false
+        }
+
+        _applyingQualityPreset = true
+        if (qualityPreset !== canonical)
+            qualityPreset = canonical
+        _applyingQualityPreset = false
+
+        activeQualityPreset = canonical
+        console.log("SceneEnvironmentController: applying quality preset", canonical)
+
+        if (preset.environment)
+            applyEnvironmentPayload(preset.environment)
+        if (preset.antialiasing)
+            applyQualityPayload(preset.antialiasing)
+        if (preset.effects)
+            applyEffectsPayload(preset.effects)
+
+        return true
+    }
 
     function applyEnvironmentUpdates(params) {
         applyEnvironmentPayload(params)
