@@ -1,6 +1,9 @@
 from __future__ import annotations
 
 import argparse
+import enum
+import os
+import types
 from dataclasses import dataclass
 
 import pytest
@@ -41,6 +44,32 @@ class _DummyQtModule:
 
     is_headless = False
     headless_reason = None
+
+
+class _DummyLogger:
+    def __init__(self) -> None:
+        self.messages: list[str] = []
+
+    def error(self, message: str, *args, **kwargs) -> None:  # pragma: no cover - formatting not required
+        self.messages.append(message)
+
+
+class _DummyQQuickWidget:
+    class Status(enum.IntEnum):
+        Null = 0
+        Ready = 1
+        Loading = 2
+        Error = 3
+
+    def __init__(self, status: Status, errors: list[str] | None = None) -> None:
+        self._status = status
+        self._errors = errors or []
+
+    def status(self):  # pragma: no cover - simple proxy
+        return self._status
+
+    def errors(self):  # pragma: no cover - simple proxy
+        return list(self._errors)
 
 
 def _build_runner(
@@ -130,3 +159,53 @@ def test_run_executes_diagnostics_when_env_requests(
 
     assert exit_code == 0
     assert calls == ["called"]
+
+
+def test_check_qml_initialization_logs_engine_errors(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.delenv("PSS_POST_DIAG_TRACE", raising=False)
+    runner = ApplicationRunner(object, lambda *args, **kwargs: None, _DummyQtModule, object)
+    logger = _DummyLogger()
+    runner.app_logger = logger
+
+    widget = _DummyQQuickWidget(
+        _DummyQQuickWidget.Status.Error,
+        ["file:///assets/qml/main.qml:12 Type Foo unavailable"],
+    )
+    window = types.SimpleNamespace(_qquick_widget=widget, _qml_root_object=None)
+
+    runner._check_qml_initialization(window)
+
+    env_value = os.environ.get("PSS_POST_DIAG_TRACE", "")
+    assert "qml-check:qml-engine-error" in env_value.split("|")
+    assert logger.messages
+    assert "Foo unavailable" in logger.messages[0]
+
+
+def test_check_qml_initialization_detects_missing_status(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.delenv("PSS_POST_DIAG_TRACE", raising=False)
+    runner = ApplicationRunner(object, lambda *args, **kwargs: None, _DummyQtModule, object)
+    logger = _DummyLogger()
+    runner.app_logger = logger
+
+    window = types.SimpleNamespace(_qquick_widget=object(), _qml_root_object=None)
+
+    runner._check_qml_initialization(window)
+
+    env_value = os.environ.get("PSS_POST_DIAG_TRACE", "")
+    assert "qml-check:status-missing" in env_value.split("|")
+    assert any("status()" in message for message in logger.messages)
+
+
+def test_check_qml_initialization_passes_when_ready(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.delenv("PSS_POST_DIAG_TRACE", raising=False)
+    runner = ApplicationRunner(object, lambda *args, **kwargs: None, _DummyQtModule, object)
+    logger = _DummyLogger()
+    runner.app_logger = logger
+
+    widget = _DummyQQuickWidget(_DummyQQuickWidget.Status.Ready)
+    window = types.SimpleNamespace(_qquick_widget=widget, _qml_root_object=object())
+
+    runner._check_qml_initialization(window)
+
+    assert os.environ.get("PSS_POST_DIAG_TRACE") in (None, "")
+    assert logger.messages == []

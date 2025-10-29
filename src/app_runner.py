@@ -304,6 +304,7 @@ class ApplicationRunner:
             register_qml_types()
 
             window = MW(use_qml_3d=self.use_qml_3d_schema)
+            self._check_qml_initialization(window)
         except Exception as exc:
             if self.app_logger:
                 self.app_logger.error(
@@ -583,3 +584,133 @@ class ApplicationRunner:
             f"🎨 Graphics: Qt Quick 3D | Backend: {os.environ.get('QSG_RHI_BACKEND', 'auto')}"
         )
         print("⏳ Initializing...")
+
+    # ------------------------------------------------------------------
+    # QML startup diagnostics
+    # ------------------------------------------------------------------
+    def _append_post_diag_trace(self, reason: str) -> None:
+        """Добавить причину в переменную окружения пост-диагностики."""
+
+        normalized = (reason or "").strip()
+        if not normalized:
+            return
+
+        existing = os.environ.get("PSS_POST_DIAG_TRACE", "")
+        entries = [item for item in existing.split("|") if item]
+        if normalized not in entries:
+            entries.append(normalized)
+            os.environ["PSS_POST_DIAG_TRACE"] = "|".join(entries)
+
+    def _report_qml_issue(self, reason: str, details: str) -> None:
+        """Зафиксировать проблему и инициировать пост-диагностику."""
+
+        message = f"QML initialisation issue ({reason}): {details}"
+        if self.app_logger:
+            self.app_logger.error(message)
+        else:
+            print(f"⚠️ {message}")
+
+        self._append_post_diag_trace(f"qml-check:{reason}")
+
+    @staticmethod
+    def _status_matches(widget: Any, status: Any, member: str) -> bool:
+        """Сопоставить значение статуса с именованным элементом перечисления."""
+
+        if status is None:
+            return False
+
+        member_lower = member.lower()
+        name = getattr(status, "name", None)
+        if isinstance(name, str) and name.lower() == member_lower:
+            return True
+
+        enum_type = getattr(widget, "Status", None)
+        if enum_type is not None:
+            candidate = getattr(enum_type, member, None)
+            if candidate is not None:
+                try:
+                    if status == candidate:
+                        return True
+                except Exception:
+                    pass
+                try:
+                    if int(status) == int(candidate):
+                        return True
+                except Exception:
+                    pass
+
+        try:
+            status_text = str(status)
+        except Exception:
+            status_text = None
+
+        if isinstance(status_text, str) and member_lower in status_text.lower():
+            return True
+
+        return False
+
+    @staticmethod
+    def _format_qml_errors(widget: Any) -> str:
+        """Возвращает человеко-читаемое описание ошибок QML."""
+
+        errors_fn = getattr(widget, "errors", None)
+        if callable(errors_fn):
+            try:
+                errors = errors_fn()
+            except Exception as exc:  # pragma: no cover - защитный путь
+                return f"unable to retrieve errors ({exc})"
+
+            if errors:
+                return "; ".join(str(err) for err in errors)
+
+        return "QML engine reported an error without details."
+
+    def _check_qml_initialization(self, window: Any) -> None:
+        """Проверяет корректность инициализации QML сцены."""
+
+        widget = getattr(window, "_qquick_widget", None)
+        if widget is None:
+            self._report_qml_issue(
+                "missing-widget",
+                "MainWindow does not expose _qquick_widget; QML scene is unavailable.",
+            )
+            return
+
+        status_fn = getattr(widget, "status", None)
+        if not callable(status_fn):
+            self._report_qml_issue(
+                "status-missing",
+                f"_qquick_widget of type {type(widget).__name__} does not expose status(); a fallback widget is active.",
+            )
+            return
+
+        try:
+            status_value = status_fn()
+        except Exception as exc:  # pragma: no cover - защитный путь
+            self._report_qml_issue(
+                "status-query-failed",
+                f"Unable to query QML widget status: {exc}",
+            )
+            return
+
+        if self._status_matches(widget, status_value, "Error"):
+            self._report_qml_issue("qml-engine-error", self._format_qml_errors(widget))
+            return
+
+        if self._status_matches(widget, status_value, "Null"):
+            self._report_qml_issue(
+                "qml-null-status",
+                "QQuickWidget returned a Null status after initialisation.",
+            )
+            return
+
+        if not self._status_matches(widget, status_value, "Ready"):
+            # Для статусов Loading/Nullish ждём финальное состояние без предупреждений.
+            return
+
+        root_object = getattr(window, "_qml_root_object", None)
+        if root_object is None:
+            self._report_qml_issue(
+                "root-missing",
+                "QML root object was not created; interactive scene is unavailable.",
+            )
