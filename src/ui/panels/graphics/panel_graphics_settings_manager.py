@@ -116,6 +116,14 @@ class GraphicsSettingsService:
         self._baseline_animation_defaults = self._extract_animation_section(
             baseline_payload, "defaults_snapshot"
         )
+        self._baseline_current = _deep_copy(self._baseline_graphics_current)
+        self._baseline_current[self.ANIMATION_CATEGORY] = _deep_copy(
+            self._baseline_animation_current
+        )
+        self._baseline_defaults = _deep_copy(self._baseline_graphics_defaults)
+        self._baseline_defaults[self.ANIMATION_CATEGORY] = _deep_copy(
+            self._baseline_animation_defaults
+        )
 
     # ------------------------------------------------------------------ helpers
     @property

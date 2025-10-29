@@ -12,7 +12,18 @@ import logging
 import math
 from typing import TYPE_CHECKING, Any, Dict, Mapping, Optional
 
-from PySide6.QtCore import Qt
+from importlib import import_module, util
+
+if util.find_spec("PySide6.QtCore") is not None:
+    Qt = import_module("PySide6.QtCore").Qt
+else:  # pragma: no cover - executed only on headless environments
+
+    class _QtStub:
+        """Minimal stub providing the attribute used in tests."""
+
+        QueuedConnection = "queued"
+
+    Qt = _QtStub()
 
 from ...pneumo.enums import Line, Wheel
 from .qml_bridge import QMLBridge
