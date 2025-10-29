@@ -23,6 +23,12 @@ DEFAULT_MODES_PARAMS: Dict[str, Any] = {
     "rf_phase": 0.0,  # degrees (Right Front)
     "lr_phase": 0.0,  # degrees (Left Rear)
     "rr_phase": 0.0,  # degrees (Right Rear)
+    # Animation smoothing
+    "smoothing_enabled": True,
+    "smoothing_duration_ms": 120.0,
+    "smoothing_angle_snap_deg": 65.0,
+    "smoothing_piston_snap_m": 0.05,
+    "smoothing_easing": "OutCubic",
 }
 
 DEFAULT_PHYSICS_OPTIONS: Dict[str, bool] = {
@@ -118,6 +124,30 @@ PARAMETER_RANGES: Dict[str, Dict[str, float]] = {
         "default": 0.0,
         "unit": "°",
     },
+    "smoothing_duration_ms": {
+        "min": 0.0,
+        "max": 600.0,
+        "step": 10.0,
+        "decimals": 0,
+        "default": 120.0,
+        "unit": "мс",
+    },
+    "smoothing_angle_snap_deg": {
+        "min": 0.0,
+        "max": 180.0,
+        "step": 5.0,
+        "decimals": 0,
+        "default": 65.0,
+        "unit": "°",
+    },
+    "smoothing_piston_snap_m": {
+        "min": 0.0,
+        "max": 0.3,
+        "step": 0.005,
+        "decimals": 3,
+        "default": 0.05,
+        "unit": "м",
+    },
 }
 
 # ===============================================================
@@ -174,4 +204,9 @@ def get_animation_params(parameters: Dict[str, Any]) -> Dict[str, Any]:
         "rf_phase": parameters.get("rf_phase", 0.0),
         "lr_phase": parameters.get("lr_phase", 0.0),
         "rr_phase": parameters.get("rr_phase", 0.0),
+        "smoothing_enabled": parameters.get("smoothing_enabled", True),
+        "smoothing_duration_ms": parameters.get("smoothing_duration_ms", 120.0),
+        "smoothing_angle_snap_deg": parameters.get("smoothing_angle_snap_deg", 65.0),
+        "smoothing_piston_snap_m": parameters.get("smoothing_piston_snap_m", 0.05),
+        "smoothing_easing": parameters.get("smoothing_easing", "OutCubic"),
     }

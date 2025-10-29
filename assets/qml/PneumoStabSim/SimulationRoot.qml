@@ -10,6 +10,7 @@ import "../effects"
 import "../geometry"
 import "../lighting"
 import "../scene"
+import "../animation"
 
 /*
  * PneumoStabSim - MAIN QML (v4.9.x)
@@ -192,21 +193,37 @@ property real sceneScaleFactor: sceneDefaults && sceneDefaults.scale_factor !== 
  property real userPhaseRL: animationDefaults && animationDefaults.phase_rl !== undefined ? Number(animationDefaults.phase_rl) :0.0
  property real userPhaseRR: animationDefaults && animationDefaults.phase_rr !== undefined ? Number(animationDefaults.phase_rr) :0.0
 
+// Настройки сглаживания анимации
+ property bool animationSmoothingEnabled: animationDefaults && animationDefaults.smoothing_enabled !== undefined ? Boolean(animationDefaults.smoothing_enabled) : true
+ property real animationSmoothingDurationMs: animationDefaults && animationDefaults.smoothing_duration_ms !== undefined ? Number(animationDefaults.smoothing_duration_ms) : 120.0
+ property real animationSmoothingAngleSnapDeg: animationDefaults && animationDefaults.smoothing_angle_snap_deg !== undefined ? Number(animationDefaults.smoothing_angle_snap_deg) : 65.0
+ property real animationSmoothingPistonSnapM: animationDefaults && animationDefaults.smoothing_piston_snap_m !== undefined ? Number(animationDefaults.smoothing_piston_snap_m) : 0.05
+ property string animationSmoothingEasing: animationDefaults && animationDefaults.smoothing_easing ? String(animationDefaults.smoothing_easing) : "OutCubic"
+
+ RigAnimationController {
+  id: rigAnimation
+  smoothingEnabled: root.animationSmoothingEnabled
+  smoothingDurationMs: root.animationSmoothingDurationMs
+  angleSnapThresholdDeg: root.animationSmoothingAngleSnapDeg
+  pistonSnapThresholdM: root.animationSmoothingPistonSnapM
+  smoothingEasingName: root.animationSmoothingEasing
+ }
+
  // Данные симуляции в СИ
- property real flAngleRad:0.0
- property real frAngleRad:0.0
- property real rlAngleRad:0.0
- property real rrAngleRad:0.0
- property real fl_angle: flAngleRad *180 / Math.PI
- property real fr_angle: frAngleRad *180 / Math.PI
- property real rl_angle: rlAngleRad *180 / Math.PI
- property real rr_angle: rrAngleRad *180 / Math.PI
- property real frameHeave:0.0
- property real frameRollRad:0.0
- property real framePitchRad:0.0
- property real frameRollDeg: frameRollRad *180 / Math.PI
- property real framePitchDeg: framePitchRad *180 / Math.PI
- property var pistonPositions: ({ fl:0.0, fr:0.0, rl:0.0, rr:0.0 })
+ property alias flAngleRad: rigAnimation.flAngleRad
+ property alias frAngleRad: rigAnimation.frAngleRad
+ property alias rlAngleRad: rigAnimation.rlAngleRad
+ property alias rrAngleRad: rigAnimation.rrAngleRad
+ property alias fl_angle: rigAnimation.flAngleDeg
+ property alias fr_angle: rigAnimation.frAngleDeg
+ property alias rl_angle: rigAnimation.rlAngleDeg
+ property alias rr_angle: rigAnimation.rrAngleDeg
+ property alias frameHeave: rigAnimation.frameHeave
+ property alias frameRollRad: rigAnimation.frameRollRad
+ property alias framePitchRad: rigAnimation.framePitchRad
+ property alias frameRollDeg: rigAnimation.frameRollDeg
+ property alias framePitchDeg: rigAnimation.framePitchDeg
+ property alias pistonPositions: rigAnimation.pistonPositions
  property var linePressures: ({})
  property real tankPressure:0.0
 
@@ -249,27 +266,26 @@ property real sceneScaleFactor: sceneDefaults && sceneDefaults.scale_factor !== 
 
  function updateFallbackAngles() {
  if (pythonLeverAnglesActive)
- return
+  return
  if (!isRunning) {
- flAngleRad = 0.0
- frAngleRad = 0.0
- rlAngleRad = 0.0
- rrAngleRad = 0.0
- return
+  rigAnimation.applyLeverAnglesRadians({ fl: 0.0, fr: 0.0, rl: 0.0, rr: 0.0 }, { immediate: true })
+  return
  }
  var globalPhaseRad = userPhaseGlobal * Math.PI / 180.0
  var amplitudeRad = userAmplitude * Math.PI / 180.0
  var base = animationTime * userFrequency * 2.0 * Math.PI
 
  function angleFor(offsetDeg) {
- var offsetRad = offsetDeg * Math.PI / 180.0
- return amplitudeRad * Math.sin(base + globalPhaseRad + offsetRad)
+  var offsetRad = offsetDeg * Math.PI / 180.0
+  return amplitudeRad * Math.sin(base + globalPhaseRad + offsetRad)
  }
 
- flAngleRad = angleFor(userPhaseFL)
- frAngleRad = angleFor(userPhaseFR)
- rlAngleRad = angleFor(userPhaseRL)
- rrAngleRad = angleFor(userPhaseRR)
+ rigAnimation.applyLeverAnglesRadians({
+  fl: angleFor(userPhaseFL),
+  fr: angleFor(userPhaseFR),
+  rl: angleFor(userPhaseRL),
+  rr: angleFor(userPhaseRR)
+ })
  }
 
  function applyCameraHudSettings(payload) {
@@ -1903,103 +1919,216 @@ return Math.max(minValue, Math.min(maxValue, value));
  sceneEnvCtl.applyEffectsPayload(params);
  }
 
- function applyAnimationUpdates(params) {
- if (!params) return;
- if (params.isRunning !== undefined) isRunning = !!params.isRunning;
+function applyAnimationUpdates(params) {
+ if (!params)
+  return;
+
+ if (params.isRunning !== undefined)
+  isRunning = !!params.isRunning;
+
  if (params.simulationTime !== undefined) {
- animationTime = Number(params.simulationTime);
- pythonAnimationActive = true;
- pythonAnimationTimeout.restart();
+  animationTime = Number(params.simulationTime);
+  pythonAnimationActive = true;
+  pythonAnimationTimeout.restart();
  }
- if (params.amplitude !== undefined) userAmplitude = Number(params.amplitude);
- if (params.frequency !== undefined) userFrequency = Number(params.frequency);
- if (params.phase_global !== undefined) userPhaseGlobal = Number(params.phase_global);
- if (params.phase_fl !== undefined) userPhaseFL = Number(params.phase_fl);
- if (params.phase_fr !== undefined) userPhaseFR = Number(params.phase_fr);
- if (params.phase_rl !== undefined) userPhaseRL = Number(params.phase_rl);
- if (params.phase_rr !== undefined) userPhaseRR = Number(params.phase_rr);
+
+ if (params.smoothingEnabled !== undefined)
+  animationSmoothingEnabled = !!params.smoothingEnabled;
+ else if (params.smoothing_enabled !== undefined)
+  animationSmoothingEnabled = !!params.smoothing_enabled;
+
+ if (params.smoothingDurationMs !== undefined)
+  animationSmoothingDurationMs = Number(params.smoothingDurationMs);
+ else if (params.smoothing_duration_ms !== undefined)
+  animationSmoothingDurationMs = Number(params.smoothing_duration_ms);
+
+ if (params.smoothingAngleSnapDeg !== undefined)
+  animationSmoothingAngleSnapDeg = Number(params.smoothingAngleSnapDeg);
+ else if (params.smoothing_angle_snap_deg !== undefined)
+  animationSmoothingAngleSnapDeg = Number(params.smoothing_angle_snap_deg);
+
+ if (params.smoothingPistonSnapM !== undefined)
+  animationSmoothingPistonSnapM = Number(params.smoothingPistonSnapM);
+ else if (params.smoothing_piston_snap_m !== undefined)
+  animationSmoothingPistonSnapM = Number(params.smoothing_piston_snap_m);
+
+ var easingValue = params.smoothingEasingName;
+ if (easingValue === undefined && params.smoothingEasing !== undefined)
+  easingValue = params.smoothingEasing;
+ if (easingValue === undefined && params.smoothing_easing !== undefined)
+  easingValue = params.smoothing_easing;
+ if (easingValue !== undefined)
+  animationSmoothingEasing = String(easingValue);
+
+ if (params.amplitude !== undefined)
+  userAmplitude = Number(params.amplitude);
+ if (params.frequency !== undefined)
+  userFrequency = Number(params.frequency);
+ if (params.phase_global !== undefined)
+  userPhaseGlobal = Number(params.phase_global);
+ if (params.phase_fl !== undefined)
+  userPhaseFL = Number(params.phase_fl);
+ if (params.phase_fr !== undefined)
+  userPhaseFR = Number(params.phase_fr);
+ if (params.phase_rl !== undefined)
+  userPhaseRL = Number(params.phase_rl);
+ if (params.phase_rr !== undefined)
+  userPhaseRR = Number(params.phase_rr);
+
+ var globalImmediate = params.instant === true || params.immediate === true;
+
  if (params.frame) {
- var frame = params.frame;
- if (frame.heave !== undefined) frameHeave = Number(frame.heave);
- if (frame.roll !== undefined) frameRollRad = Number(frame.roll);
- if (frame.pitch !== undefined) framePitchRad = Number(frame.pitch);
- pythonFrameActive = true;
- pythonFrameTimeout.restart();
+  var frame = params.frame;
+  var framePayload = {};
+  if (frame.heave !== undefined)
+   framePayload.heave = Number(frame.heave);
+  if (frame.roll !== undefined)
+   framePayload.roll = Number(frame.roll);
+  if (frame.pitch !== undefined)
+   framePayload.pitch = Number(frame.pitch);
+  if (Object.keys(framePayload).length) {
+   rigAnimation.applyFrameMotion(framePayload, {
+    immediate: globalImmediate || params.frameImmediate === true || frame.immediate === true
+   });
+   pythonFrameActive = true;
+   pythonFrameTimeout.restart();
+  }
  }
- if (params.leverAngles) {
- var angles = params.leverAngles;
- if (angles.fl !== undefined) flAngleRad = Number(angles.fl);
- if (angles.fr !== undefined) frAngleRad = Number(angles.fr);
- if (angles.rl !== undefined) rlAngleRad = Number(angles.rl);
- if (angles.rr !== undefined) rrAngleRad = Number(angles.rr);
- pythonLeverAnglesActive = true;
- pythonLeverAnglesTimeout.restart();
+
+ var leverAnglesPayload = null;
+ if (params.leverAngles)
+  leverAnglesPayload = params.leverAngles;
+ else if (params.lever_angles)
+  leverAnglesPayload = params.lever_angles;
+ if (leverAnglesPayload) {
+  var anglesPayload = {};
+  if (leverAnglesPayload.fl !== undefined)
+   anglesPayload.fl = Number(leverAnglesPayload.fl);
+  if (leverAnglesPayload.fr !== undefined)
+   anglesPayload.fr = Number(leverAnglesPayload.fr);
+  if (leverAnglesPayload.rl !== undefined)
+   anglesPayload.rl = Number(leverAnglesPayload.rl);
+  if (leverAnglesPayload.rr !== undefined)
+   anglesPayload.rr = Number(leverAnglesPayload.rr);
+  if (Object.keys(anglesPayload).length) {
+   rigAnimation.applyLeverAnglesRadians(anglesPayload, {
+    immediate: globalImmediate || params.leverAnglesImmediate === true || leverAnglesPayload.immediate === true
+   });
+   pythonLeverAnglesActive = true;
+   pythonLeverAnglesTimeout.restart();
+  }
  }
- if (params.pistonPositions) {
- var pist = params.pistonPositions;
- var updatedPistons = Object.assign({}, pistonPositions || {});
- if (pist.fl !== undefined) updatedPistons.fl = Number(pist.fl);
- if (pist.fr !== undefined) updatedPistons.fr = Number(pist.fr);
- if (pist.rl !== undefined) updatedPistons.rl = Number(pist.rl);
- if (pist.rr !== undefined) updatedPistons.rr = Number(pist.rr);
- pistonPositions = updatedPistons;
- pythonPistonsActive = true;
- pythonPistonsTimeout.restart();
+
+ var pistonPayloadSource = null;
+ if (params.pistonPositions)
+  pistonPayloadSource = params.pistonPositions;
+ else if (params.piston_positions)
+  pistonPayloadSource = params.piston_positions;
+ if (pistonPayloadSource) {
+  var pistonPayload = {};
+  if (pistonPayloadSource.fl !== undefined)
+   pistonPayload.fl = Number(pistonPayloadSource.fl);
+  if (pistonPayloadSource.fr !== undefined)
+   pistonPayload.fr = Number(pistonPayloadSource.fr);
+  if (pistonPayloadSource.rl !== undefined)
+   pistonPayload.rl = Number(pistonPayloadSource.rl);
+  if (pistonPayloadSource.rr !== undefined)
+   pistonPayload.rr = Number(pistonPayloadSource.rr);
+  if (Object.keys(pistonPayload).length) {
+   rigAnimation.applyPistonPositions(pistonPayload, {
+    immediate: globalImmediate || params.pistonImmediate === true || pistonPayloadSource.immediate === true
+   });
+   pythonPistonsActive = true;
+   pythonPistonsTimeout.restart();
+  }
  }
+
  if (params.linePressures) {
- var lp = params.linePressures;
- var updatedPressures = Object.assign({}, linePressures || {});
- if (lp.a1 !== undefined) updatedPressures.a1 = Number(lp.a1);
- if (lp.b1 !== undefined) updatedPressures.b1 = Number(lp.b1);
- if (lp.a2 !== undefined) updatedPressures.a2 = Number(lp.a2);
- if (lp.b2 !== undefined) updatedPressures.b2 = Number(lp.b2);
- linePressures = updatedPressures;
- pythonPressureActive = true;
- pythonPressureTimeout.restart();
+  var lp = params.linePressures;
+  var updatedPressures = Object.assign({}, linePressures || {});
+  if (lp.a1 !== undefined)
+   updatedPressures.a1 = Number(lp.a1);
+  if (lp.b1 !== undefined)
+   updatedPressures.b1 = Number(lp.b1);
+  if (lp.a2 !== undefined)
+   updatedPressures.a2 = Number(lp.a2);
+  if (lp.b2 !== undefined)
+   updatedPressures.b2 = Number(lp.b2);
+  linePressures = updatedPressures;
+  pythonPressureActive = true;
+  pythonPressureTimeout.restart();
  }
+
  if (params.tankPressure !== undefined) {
- tankPressure = Number(params.tankPressure);
- pythonPressureActive = true;
- pythonPressureTimeout.restart();
+  tankPressure = Number(params.tankPressure);
+  pythonPressureActive = true;
+  pythonPressureTimeout.restart();
  }
+
  if (!pythonLeverAnglesActive)
- updateFallbackAngles();
+  updateFallbackAngles();
 }
 
- function apply3DUpdates(params) {
+function apply3DUpdates(params) {
  if (!params) return;
+ var globalImmediate = params.instant === true || params.immediate === true;
  if (params.frame) {
- var f = params.frame;
- if (f.heave !== undefined) frameHeave = Number(f.heave);
- if (f.roll !== undefined) frameRollRad = Number(f.roll);
- if (f.pitch !== undefined) framePitchRad = Number(f.pitch);
- pythonFrameActive = true;
- pythonFrameTimeout.restart();
+  var f = params.frame;
+  var framePayload = {};
+  if (f.heave !== undefined)
+   framePayload.heave = Number(f.heave);
+  if (f.roll !== undefined)
+   framePayload.roll = Number(f.roll);
+  if (f.pitch !== undefined)
+   framePayload.pitch = Number(f.pitch);
+  if (Object.keys(framePayload).length) {
+   rigAnimation.applyFrameMotion(framePayload, {
+    immediate: globalImmediate || params.frameImmediate === true || f.immediate === true
+   });
+   pythonFrameActive = true;
+   pythonFrameTimeout.restart();
+  }
  }
  if (params.wheels) {
   var wheelData = params.wheels;
-  var pist = Object.assign({}, pistonPositions || {});
-  if (wheelData.fl) {
-   if (wheelData.fl.leverAngle !== undefined) flAngleRad = Number(wheelData.fl.leverAngle);
-   if (wheelData.fl.pistonPosition !== undefined) pist.fl = Number(wheelData.fl.pistonPosition);
+  var leverPatch = {};
+  var pistonPatch = {};
+  var leverImmediate = globalImmediate;
+  var pistonImmediate = globalImmediate;
+
+  function applyWheel(key, source) {
+   if (!source)
+    return;
+   if (source.leverAngle !== undefined)
+    leverPatch[key] = Number(source.leverAngle);
+   if (source.pistonPosition !== undefined)
+    pistonPatch[key] = Number(source.pistonPosition);
+   if (source.immediate === true) {
+    leverImmediate = true;
+    pistonImmediate = true;
+   }
   }
-  if (wheelData.fr) {
-   if (wheelData.fr.leverAngle !== undefined) frAngleRad = Number(wheelData.fr.leverAngle);
-   if (wheelData.fr.pistonPosition !== undefined) pist.fr = Number(wheelData.fr.pistonPosition);
+
+  applyWheel("fl", wheelData.fl);
+  applyWheel("fr", wheelData.fr);
+  applyWheel("rl", wheelData.rl);
+  applyWheel("rr", wheelData.rr);
+
+  if (Object.keys(leverPatch).length) {
+   rigAnimation.applyLeverAnglesRadians(leverPatch, {
+    immediate: leverImmediate || params.leverAnglesImmediate === true || params.wheelsImmediate === true
+   });
+   pythonLeverAnglesActive = true;
+   pythonLeverAnglesTimeout.restart();
   }
-  if (wheelData.rl) {
-   if (wheelData.rl.leverAngle !== undefined) rlAngleRad = Number(wheelData.rl.leverAngle);
-   if (wheelData.rl.pistonPosition !== undefined) pist.rl = Number(wheelData.rl.pistonPosition);
+
+  if (Object.keys(pistonPatch).length) {
+   rigAnimation.applyPistonPositions(pistonPatch, {
+    immediate: pistonImmediate || params.pistonImmediate === true || params.wheelsImmediate === true
+   });
+   pythonPistonsActive = true;
+   pythonPistonsTimeout.restart();
   }
-  if (wheelData.rr) {
-   if (wheelData.rr.leverAngle !== undefined) rrAngleRad = Number(wheelData.rr.leverAngle);
-   if (wheelData.rr.pistonPosition !== undefined) pist.rr = Number(wheelData.rr.pistonPosition);
-  }
-  pistonPositions = pist;
-  pythonLeverAnglesActive = true;
-  pythonLeverAnglesTimeout.restart();
-  pythonPistonsActive = true;
-  pythonPistonsTimeout.restart();
  }
  if (params.reflectionProbe) {
   var rp = params.reflectionProbe;
