@@ -800,10 +800,10 @@ return
  property real fogTransmitCurve:1.0
 
  fog: Fog {
- enabled: false
+ enabled: root.fogEnabled
  color: root.fogColor
  density: root.fogDensity
- depthEnabled: true
+ depthEnabled: root.fogEnabled
  depthNear: root.fogNear
  depthFar: root.fogFar
  depthCurve:1.0
