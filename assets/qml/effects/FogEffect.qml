@@ -38,26 +38,34 @@ Effect {
                     shader: "
                         #version 440
 
-                        layout(location = 0) in vec3 qt_Vertex;
-                        layout(location = 1) in vec2 qt_MultiTexCoord0;
+                        #ifndef INPUT_POSITION
+                        #define INPUT_POSITION qt_Vertex
+                        #endif
 
-                        layout(location = 0) out vec2 coord;
-                        layout(location = 1) out vec3 worldPos;
-                        layout(location = 2) out vec3 viewPos;
+                        #ifndef INPUT_UV
+                        #define INPUT_UV qt_MultiTexCoord0
+                        #endif
 
-                        layout(std140, binding = 0) uniform buf {
-                            mat4 qt_Matrix;
+                        #ifndef POSITION
+                        #define POSITION gl_Position
+                        #endif
+
+                        layout(location = 0) out vec2 v_uv;
+                        layout(location = 1) out vec3 v_worldPos;
+
+                        layout(std140, binding = 0) uniform qt_effectUniforms {
+                            mat4 qt_ModelMatrix;
                             mat4 qt_ModelViewProjectionMatrix;
                             mat4 qt_ViewMatrix;
                             vec3 qt_CameraPosition;
                             float qt_Opacity;
                         } ubuf;
 
-                        void MAIN() {
-                            coord = qt_MultiTexCoord0;
-                            worldPos = qt_Vertex;
-                            viewPos = (ubuf.qt_ViewMatrix * vec4(qt_Vertex, 1.0)).xyz;
-                            gl_Position = ubuf.qt_ModelViewProjectionMatrix * vec4(qt_Vertex, 1.0);
+                        void qt_customMain() {
+                            vec4 localPosition = vec4(INPUT_POSITION, 1.0);
+                            v_uv = INPUT_UV;
+                            v_worldPos = (ubuf.qt_ModelMatrix * localPosition).xyz;
+                            POSITION = ubuf.qt_ModelViewProjectionMatrix * localPosition;
                         }
                     "
                 },
@@ -67,13 +75,25 @@ Effect {
                     shader: "
                         #version 440
 
-                        layout(location = 0) in vec2 coord;
-                        layout(location = 1) in vec3 worldPos;
-                        layout(location = 2) in vec3 viewPos;
-                        layout(location = 0) out vec4 fragColor;
+                        layout(location = 0) in vec2 v_uv;
+                        layout(location = 1) in vec3 v_worldPos;
 
-                        layout(std140, binding = 0) uniform buf {
-                            mat4 qt_Matrix;
+                        #ifndef INPUT_UV
+                        #define INPUT_UV v_uv
+                        #endif
+
+                        #ifndef FRAGCOLOR
+                        layout(location = 0) out vec4 qt_FragColor;
+                        #define FRAGCOLOR qt_FragColor
+                        #endif
+
+                        #ifndef INPUT
+                        layout(binding = 1) uniform sampler2D qt_Texture0;
+                        #define INPUT texture(qt_Texture0, INPUT_UV)
+                        #endif
+
+                        layout(std140, binding = 0) uniform qt_effectUniforms {
+                            mat4 qt_ModelMatrix;
                             mat4 qt_ModelViewProjectionMatrix;
                             mat4 qt_ViewMatrix;
                             vec3 qt_CameraPosition;
@@ -128,10 +148,10 @@ Effect {
                             return clamp(linearFog * expFog * heightFog * animationFactor, 0.0, 1.0);
                         }
 
-                        void qt_customMain(inout vec4 color) {
-                            vec4 originalColor = color;
+                        void qt_customMain() {
+                            vec4 originalColor = INPUT;
 
-                            float fogFactor = calculateFogFactor(worldPos, ubuf.qt_CameraPosition);
+                            float fogFactor = calculateFogFactor(v_worldPos, CAMERA_POSITION);
 
                             vec3 scatteredColor = fogParams.userFogColor.rgb * fogParams.userFogScattering;
                             vec3 foggedColor = mix(
@@ -146,13 +166,7 @@ Effect {
                                 foggedColor = mix(foggedColor, originalColor.rgb, transmission);
                             }
 
-                            color = vec4(foggedColor, originalColor.a) * ubuf.qt_Opacity;
-                        }
-
-                        void MAIN() {
-                            vec4 color = texture(qt_Texture0, coord);
-                            qt_customMain(color);
-                            fragColor = color;
+                            FRAGCOLOR = vec4(foggedColor, originalColor.a) * EFFECT_OPACITY;
                         }
                     "
                 }
