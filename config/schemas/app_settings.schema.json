@@ -50,6 +50,26 @@
         "id"
       ],
       "additionalProperties": false
+    },
+    "animation_settings": {
+      "type": "object",
+      "properties": {
+        "is_running": {"type": "boolean"},
+        "animation_time": {"type": "number"},
+        "amplitude": {"type": "number"},
+        "frequency": {"type": "number"},
+        "phase_global": {"type": "number"},
+        "phase_fl": {"type": "number"},
+        "phase_fr": {"type": "number"},
+        "phase_rl": {"type": "number"},
+        "phase_rr": {"type": "number"},
+        "smoothing_enabled": {"type": "boolean"},
+        "smoothing_duration_ms": {"type": "number"},
+        "smoothing_angle_snap_deg": {"type": "number"},
+        "smoothing_piston_snap_m": {"type": "number"},
+        "smoothing_easing": {"type": "string"}
+      },
+      "additionalProperties": false
     }
   },
   "properties": {
@@ -756,41 +776,22 @@
               ],
               "additionalProperties": false
             },
-              "scene": {
-                "type": "object"
-              }
+            "scene": {
+              "type": "object"
             },
-            "required": [
-              "lighting",
-              "environment",
-              "quality",
-              "camera",
-              "materials",
-              "effects",
-              "scene"
-            ],
-            "additionalProperties": false
+            "animation": {"$ref": "#/definitions/animation_settings"}
           },
-          "animation": {
-            "type": "object",
-            "properties": {
-              "is_running": {"type": "boolean"},
-              "animation_time": {"type": "number"},
-              "amplitude": {"type": "number"},
-              "frequency": {"type": "number"},
-              "phase_global": {"type": "number"},
-              "phase_fl": {"type": "number"},
-              "phase_fr": {"type": "number"},
-              "phase_rl": {"type": "number"},
-              "phase_rr": {"type": "number"},
-              "smoothing_enabled": {"type": "boolean"},
-              "smoothing_duration_ms": {"type": "number"},
-              "smoothing_angle_snap_deg": {"type": "number"},
-              "smoothing_piston_snap_m": {"type": "number"},
-              "smoothing_easing": {"type": "string"}
-            },
-            "additionalProperties": false
-          },
+          "required": [
+            "lighting",
+            "environment",
+            "quality",
+            "camera",
+            "materials",
+            "effects",
+            "scene"
+          ],
+          "additionalProperties": false
+        },
           "lighting": {
             "type": "object"
           },
@@ -809,6 +810,7 @@
         "effects": {
           "type": "object"
         },
+        "animation": {"$ref": "#/definitions/animation_settings"},
         "simulation": {
           "type": "object",
           "properties": {
@@ -932,7 +934,6 @@
         }
       },
         "required": [
-          "animation",
           "constants",
           "diagnostics",
           "geometry",
