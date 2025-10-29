@@ -131,6 +131,20 @@ class UISetup:
                 )
             return _serialize(f"graphics.{name}", data)
 
+        def _read_geometry() -> Dict[str, Any]:
+            try:
+                payload = manager.get_category("geometry") or {}
+            except Exception as exc:
+                UISetup.logger.exception("    ❌ Ошибка чтения geometry: %s", exc)
+                UISetup._register_postmortem_reason("settings-read-error:geometry")
+                raise RuntimeError("Не удалось прочитать настройки geometry") from exc
+
+            if not isinstance(payload, dict) or not payload:
+                UISetup._register_postmortem_reason("settings-missing:geometry")
+                raise RuntimeError("Секция geometry отсутствует или повреждена")
+
+            return _serialize("geometry", payload)
+
         def _read_diagnostics() -> Dict[str, Any]:
             try:
                 payload = manager.get("diagnostics", {}) or {}
@@ -147,6 +161,7 @@ class UISetup:
             "animation": _read_section("animation"),
             "scene": _read_section("scene"),
             "materials": _read_section("materials"),
+            "geometry": _read_geometry(),
             "diagnostics": _read_diagnostics(),
         }
 
@@ -270,6 +285,9 @@ class UISetup:
                 context.setContextProperty("initialSceneSettings", payload["scene"])
                 context.setContextProperty(
                     "initialSharedMaterials", payload["materials"]
+                )
+                context.setContextProperty(
+                    "initialGeometrySettings", payload["geometry"]
                 )
                 context.setContextProperty(
                     "initialDiagnosticsSettings", payload.get("diagnostics", {})

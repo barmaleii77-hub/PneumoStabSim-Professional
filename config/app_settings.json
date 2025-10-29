@@ -755,16 +755,16 @@
     "constants": {
       "geometry": {
         "kinematics": {
-          "track_width_m": 1.1,
-          "lever_length_m": 0.35,
-          "pivot_offset_from_frame_m": 0.2,
-          "rod_attach_fraction": 0.5
+          "track_width_m": 2.34,
+          "lever_length_m": 0.75,
+          "pivot_offset_from_frame_m": 0.42,
+          "rod_attach_fraction": 0.34
         },
         "cylinder": {
-          "inner_diameter_m": 0.08,
+          "inner_diameter_m": 0.11,
           "rod_diameter_m": 0.035,
-          "piston_thickness_m": 0.02,
-          "body_length_m": 0.25,
+          "piston_thickness_m": 0.025,
+          "body_length_m": 0.46,
           "dead_zone_rod_m3": 0.001,
           "dead_zone_head_m3": 0.001
         },
@@ -778,12 +778,12 @@
           "max_stroke_fraction": 0.9
         },
         "initial_state": {
-          "lever_length_m": 0.35,
+          "lever_length_m": 0.75,
           "tail_rod_length_m": 0.18,
           "frame_beam_size_m": 0.12,
           "frame_height_m": 0.65,
-          "frame_length_m": 2.0,
-          "cylinder_body_length_m": 0.25,
+          "frame_length_m": 3.4,
+          "cylinder_body_length_m": 0.46,
           "j_arm_left": [
             -0.35,
             0.65,
@@ -1388,16 +1388,16 @@
     "constants": {
       "geometry": {
         "kinematics": {
-          "track_width_m": 1.1,
-          "lever_length_m": 0.35,
-          "pivot_offset_from_frame_m": 0.2,
-          "rod_attach_fraction": 0.5
+          "track_width_m": 2.34,
+          "lever_length_m": 0.75,
+          "pivot_offset_from_frame_m": 0.42,
+          "rod_attach_fraction": 0.34
         },
         "cylinder": {
-          "inner_diameter_m": 0.08,
+          "inner_diameter_m": 0.11,
           "rod_diameter_m": 0.035,
-          "piston_thickness_m": 0.02,
-          "body_length_m": 0.25,
+          "piston_thickness_m": 0.025,
+          "body_length_m": 0.46,
           "dead_zone_rod_m3": 0.001,
           "dead_zone_head_m3": 0.001
         },
@@ -1411,12 +1411,12 @@
           "max_stroke_fraction": 0.9
         },
         "initial_state": {
-          "lever_length_m": 0.35,
+          "lever_length_m": 0.75,
           "tail_rod_length_m": 0.18,
           "frame_beam_size_m": 0.12,
           "frame_height_m": 0.65,
-          "frame_length_m": 2.0,
-          "cylinder_body_length_m": 0.25,
+          "frame_length_m": 3.4,
+          "cylinder_body_length_m": 0.46,
           "j_arm_left": [
             -0.35,
             0.65,

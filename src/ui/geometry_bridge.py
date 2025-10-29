@@ -85,12 +85,12 @@ class GeometryTo3DConverter(QObject):
         # Fallbacks from constants
         fallback_frame_beam_size = float(initial_state.get("frame_beam_size_m", 0.12))
         fallback_frame_height = float(initial_state.get("frame_height_m", 0.65))
-        fallback_frame_length = float(initial_state.get("frame_length_m", 2.0))
-        fallback_lever_length = float(initial_state.get("lever_length_m", 0.315))
+        fallback_frame_length = float(initial_state.get("frame_length_m", 3.4))
+        fallback_lever_length = float(initial_state.get("lever_length_m", 0.75))
         fallback_cylinder_body_length = float(
-            cylinder_constants.get("body_length_m", 0.25)
+            cylinder_constants.get("body_length_m", 0.46)
         )
-        fallback_tail_rod_length = float(initial_state.get("tail_rod_length_m", 0.1))
+        fallback_tail_rod_length = float(initial_state.get("tail_rod_length_m", 0.18))
 
         # Visualization constants
         self._frame_beam_size = _default("frame_beam_size_m", fallback_frame_beam_size)

@@ -4,6 +4,8 @@ Road excitation tab for ModesPanel
 Вкладка дорожного воздействия (амплитуда, частота, фазы)
 """
 
+import logging
+
 from PySide6.QtWidgets import (
     QWidget,
     QVBoxLayout,
@@ -29,6 +31,9 @@ SMOOTHING_EASING_OPTIONS = [
     ("Linear", "Linear"),
     ("InOutSine", "InOutSine"),
 ]
+
+
+LOGGER = logging.getLogger(__name__)
 
 
 class StandardSlider(QWidget):
@@ -429,7 +434,10 @@ class RoadExcitationTab(QWidget):
 
     def _on_parameter_changed(self, param_name: str, value: float):
         """Обработать изменение параметра"""
-        print(f"🛣️ RoadExcitationTab: '{param_name}' = {value}")
+        LOGGER.debug(
+            "RoadExcitationTab parameter changed",
+            extra={"param": param_name, "value": value},
+        )
 
         # Update state
         self.state_manager.update_parameter(param_name, value)
@@ -449,7 +457,9 @@ class RoadExcitationTab(QWidget):
             widget.setEnabled(enabled)
 
     def _on_smoothing_toggled(self, enabled: bool):
-        print(f"🎚️ Animation smoothing enabled: {enabled}")
+        LOGGER.debug(
+            "RoadExcitationTab smoothing toggled", extra={"enabled": bool(enabled)}
+        )
         self.state_manager.update_parameter("smoothing_enabled", bool(enabled))
         self._set_smoothing_controls_enabled(bool(enabled))
         self.parameter_changed.emit("smoothing_enabled", 1.0 if enabled else 0.0)
