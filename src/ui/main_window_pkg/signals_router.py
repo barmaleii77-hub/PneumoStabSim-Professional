@@ -816,15 +816,13 @@ class SignalsRouter:
             )
 
         if settings_payload:
-            window._apply_settings_update("graphics.animation", settings_payload)
+            window._apply_settings_update("animation", settings_payload)
 
     @staticmethod
     def handle_animation_toggled(window: MainWindow, running: bool) -> None:
         """Persist animation toggle coming from QML."""
 
-        window._apply_settings_update(
-            "graphics.animation", {"is_running": bool(running)}
-        )
+        window._apply_settings_update("animation", {"is_running": bool(running)})
 
     # ------------------------------------------------------------------
     # Signal Handlers - Simulation
