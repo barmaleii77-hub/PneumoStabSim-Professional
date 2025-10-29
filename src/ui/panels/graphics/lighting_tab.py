@@ -395,7 +395,7 @@ class LightingTab(QWidget):
         row += 1
 
         range_slider = LabeledSlider(
-            "Радиус действия", 10.0, 200000.0, 10.0, decimals=0, unit="м"
+            "Радиус действия", 0.1, 200.0, 0.1, decimals=2, unit="м"
         )
         range_slider.valueChanged.connect(
             lambda v: self._update_lighting("point", "range", v)
@@ -525,7 +525,7 @@ class LightingTab(QWidget):
 
         # Диапазон и конусы
         range_slider = LabeledSlider(
-            "Радиус действия", 10.0, 200000.0, 10.0, decimals=0, unit="м"
+            "Радиус действия", 0.05, 50.0, 0.05, decimals=2, unit="м"
         )
         range_slider.valueChanged.connect(
             lambda v: self._update_lighting("spot", "range", v)

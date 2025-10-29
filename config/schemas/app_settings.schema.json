@@ -374,6 +374,8 @@
                     "color": {"type": "string"},
                     "position_y": {"type": "number"},
                     "range": {"type": "number"},
+                    "constant_fade": {"type": "number"},
+                    "linear_fade": {"type": "number"},
                     "quadratic_fade": {"type": "number"}
                   },
                   "required": [
@@ -381,6 +383,8 @@
                     "color",
                     "position_y",
                     "range",
+                    "constant_fade",
+                    "linear_fade",
                     "quadratic_fade"
                   ],
                   "additionalProperties": false

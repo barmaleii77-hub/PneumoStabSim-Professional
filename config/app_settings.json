@@ -112,13 +112,15 @@
           "angle_y": -135.0,
           "angle_z": 0.0
         },
-        "point": {
-          "brightness": 50.0,
-          "color": "#fff7e0",
-          "position_y": 2.6,
-          "range": 3.6,
-          "quadratic_fade": 1.0
-        },
+      "point": {
+        "brightness": 50.0,
+        "color": "#fff7e0",
+        "position_y": 2.6,
+        "range": 3.6,
+        "constant_fade": 1.0,
+        "linear_fade": 0.01,
+        "quadratic_fade": 1.0
+      },
         "spot": {
           "brightness": 4900.0,
           "color": "#ffffff",
@@ -1009,6 +1011,8 @@
           "color": "#fff7e0",
           "position_y": 2.6,
           "range": 3.6,
+          "constant_fade": 1.0,
+          "linear_fade": 0.01,
           "quadratic_fade": 1.0
         },
         "spot": {

@@ -35,17 +35,17 @@ Item {
     // Geometry parameters
     property real userBeamSize: 120
     property real userFrameHeight: 650
-    property real userFrameLength: 3200
-    property real userLeverLength: 800
-    property real userCylinderLength: 500
-    property real userTrackWidth: 1600
-    property real userFrameToPivot: 600
-    property real userRodPosition: 0.6
-    property real userBoreHead: 80
-    property real userBoreRod: 80
+    property real userFrameLength: 3400
+    property real userLeverLength: 750
+    property real userCylinderLength: 460
+    property real userTrackWidth: 2340
+    property real userFrameToPivot: 420
+    property real userRodPosition: 0.34
+    property real userBoreHead: 110
+    property real userBoreRod: 110
     property real userRodDiameter: 35
     property real userPistonThickness: 25
-    property real userPistonRodLength: 200
+    property real userPistonRodLength: 320
 
     // ===============================================================
     // GRAPHICS PROPERTIES (заглушки)
@@ -78,14 +78,14 @@ Item {
     property bool vignetteEnabled: true
     property real vignetteStrength: 0.45
     property bool motionBlurEnabled: false
-    property real keyLightBrightness: 2.8
+    property real keyLightBrightness: 1.0
     property string keyLightColor: "#ffffff"
-    property real keyLightAngleX: -30
-    property real keyLightAngleY: -45
-    property real fillLightBrightness: 1.2
-    property string fillLightColor: "#f0f0ff"
-    property real pointLightBrightness: 20000
-    property real pointLightY: 1800
+    property real keyLightAngleX: 25
+    property real keyLightAngleY: 23.5
+    property real fillLightBrightness: 1.0
+    property string fillLightColor: "#f1f4ff"
+    property real pointLightBrightness: 50
+    property real pointLightY: 2600
     property real metalRoughness: 0.28
     property real metalMetalness: 1.0
     property real metalClearcoat: 0.25
