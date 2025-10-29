@@ -634,7 +634,6 @@ class SettingsManager:
             "lighting",
             "quality",
             "scene",
-            "animation",
         ):
             payload = self._extra.pop(category, None)
             if not isinstance(payload, dict):
@@ -645,6 +644,10 @@ class SettingsManager:
                 _deep_update(existing, payload)
             else:
                 graphics_section[category] = _deep_copy(payload)
+
+        animation_extra = self._extra.pop("animation", None)
+        if isinstance(animation_extra, dict):
+            self._data["animation"] = _deep_copy(animation_extra)
 
     # Defaults ---------------------------------------------------------------
     def get_all_defaults(self) -> Dict[str, Any]:

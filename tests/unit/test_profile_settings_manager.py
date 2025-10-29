@@ -91,8 +91,8 @@ class DummySettingsManager:
             "graphics": {
                 "environment": _build_payload(ENVIRONMENT_PARAMETERS),
                 "scene": _build_payload(SCENE_PARAMETERS),
-                "animation": _build_payload(ANIMATION_PARAMETERS),
-            }
+            },
+            "animation": _build_payload(ANIMATION_PARAMETERS),
         }
         self.saved = 0
 
@@ -139,7 +139,7 @@ def test_save_profile_writes_file(tmp_path: Path, dummy_manager: DummySettingsMa
         "graphics.environment"
     )
     assert payload["graphics"]["scene"] == dummy_manager.get("graphics.scene")
-    assert payload["graphics"]["animation"] == dummy_manager.get("graphics.animation")
+    assert payload["animation"] == dummy_manager.get("animation")
 
 
 def test_load_profile_updates_settings(
@@ -153,7 +153,7 @@ def test_load_profile_updates_settings(
         "graphics.environment", _alternate_payload(ENVIRONMENT_PARAMETERS)
     )
     dummy_manager.set("graphics.scene", _alternate_payload(SCENE_PARAMETERS))
-    dummy_manager.set("graphics.animation", _alternate_payload(ANIMATION_PARAMETERS))
+    dummy_manager.set("animation", _alternate_payload(ANIMATION_PARAMETERS))
 
     result = manager.load_profile("Demo")
     assert result.success
@@ -165,7 +165,7 @@ def test_load_profile_updates_settings(
         dummy_manager.get("graphics.environment") == stored["graphics"]["environment"]
     )
     assert dummy_manager.get("graphics.scene") == stored["graphics"]["scene"]
-    assert dummy_manager.get("graphics.animation") == stored["graphics"]["animation"]
+    assert dummy_manager.get("animation") == stored["animation"]
 
 
 def test_list_profiles_returns_sorted_names(

@@ -469,55 +469,55 @@
         "adjustment_brightness": 0.0,
         "adjustment_contrast": 0.0,
         "adjustment_saturation": 0.0
-      },
-      "scene": {
-        "scale_factor": 1.0,
-        "exposure": 1.0,
-        "default_clear_color": "#1b1f27",
-        "model_base_color": "#9da3aa",
-        "model_roughness": 0.42,
-        "model_metalness": 0.82
+        },
+        "scene": {
+          "scale_factor": 1.0,
+          "exposure": 1.0,
+          "default_clear_color": "#1b1f27",
+          "model_base_color": "#9da3aa",
+          "model_roughness": 0.42,
+          "model_metalness": 0.82
+        }
       },
       "animation": {
         "is_running": false,
         "animation_time": 0.0,
         "amplitude": 8.0,
         "frequency": 1.0,
-      "phase_global": 0.0,
-      "phase_fl": 0.0,
-      "phase_fr": 0.0,
-      "phase_rl": 0.0,
-      "phase_rr": 0.0,
-      "smoothing_enabled": true,
-      "smoothing_duration_ms": 120,
-      "smoothing_angle_snap_deg": 65.0,
-      "smoothing_piston_snap_m": 0.05,
-      "smoothing_easing": "OutCubic"
-    }
-    },
-    "physics": {
-      "suspension": {
-        "spring_constant": 50000.0,
-        "damper_coefficient": 2000.0,
-        "damper_force_threshold_n": 50.0,
-        "spring_rest_position_m": 0.0,
-        "cylinder_head_area_m2": 0.005,
-        "cylinder_rod_area_m2": 0.004,
-        "axis_unit_world": [
-          0.0,
-          1.0,
-          0.0
-        ]
+        "phase_global": 0.0,
+        "phase_fl": 0.0,
+        "phase_fr": 0.0,
+        "phase_rl": 0.0,
+        "phase_rr": 0.0,
+        "smoothing_enabled": true,
+        "smoothing_duration_ms": 120,
+        "smoothing_angle_snap_deg": 65.0,
+        "smoothing_piston_snap_m": 0.05,
+        "smoothing_easing": "OutCubic"
       },
-      "reference_axes": {
-        "vertical_world": [
-          0.0,
-          1.0,
-          0.0
-        ]
-      },
-      "validation": {
-        "max_force_n": 100000.0,
+      "physics": {
+        "suspension": {
+          "spring_constant": 50000.0,
+          "damper_coefficient": 2000.0,
+          "damper_force_threshold_n": 50.0,
+          "spring_rest_position_m": 0.0,
+          "cylinder_head_area_m2": 0.005,
+          "cylinder_rod_area_m2": 0.004,
+          "axis_unit_world": [
+            0.0,
+            1.0,
+            0.0
+          ]
+        },
+        "reference_axes": {
+          "vertical_world": [
+            0.0,
+            1.0,
+            0.0
+          ]
+        },
+        "validation": {
+          "max_force_n": 100000.0,
         "max_moment_n_m": 1000000.0
       }
     },
@@ -1371,23 +1371,23 @@
         "model_base_color": "#9da3aa",
         "model_roughness": 0.42,
         "model_metalness": 0.82
-      },
-      "animation": {
-        "is_running": false,
-        "animation_time": 0.0,
-        "amplitude": 8.0,
-        "frequency": 1.0,
-        "phase_global": 0.0,
-        "phase_fl": 0.0,
-        "phase_fr": 0.0,
-        "phase_rl": 0.0,
-        "phase_rr": 0.0,
-        "smoothing_enabled": true,
-        "smoothing_duration_ms": 120,
-        "smoothing_angle_snap_deg": 65.0,
-        "smoothing_piston_snap_m": 0.05,
-        "smoothing_easing": "OutCubic"
       }
+    },
+    "animation": {
+      "is_running": false,
+      "animation_time": 0.0,
+      "amplitude": 8.0,
+      "frequency": 1.0,
+      "phase_global": 0.0,
+      "phase_fl": 0.0,
+      "phase_fr": 0.0,
+      "phase_rl": 0.0,
+      "phase_rr": 0.0,
+      "smoothing_enabled": true,
+      "smoothing_duration_ms": 120,
+      "smoothing_angle_snap_deg": 65.0,
+      "smoothing_piston_snap_m": 0.05,
+      "smoothing_easing": "OutCubic"
     },
     "constants": {
       "geometry": {

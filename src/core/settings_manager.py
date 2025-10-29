@@ -31,10 +31,10 @@ from pathlib import Path
 from typing import Any, Callable, Dict, Iterable, List, Optional
 
 
-_GRAPHICS_PATHS: tuple[str, ...] = (
+_PROFILE_PATHS: tuple[str, ...] = (
     "graphics.environment",
     "graphics.scene",
-    "graphics.animation",
+    "animation",
 )
 
 
@@ -94,7 +94,7 @@ class ProfileSettingsManager:
         return self._profile_dir / f"{_slugify(name)}.json"
 
     def _make_payload(self, name: str) -> Dict[str, Any]:
-        payload = _collect_sections(self._settings_manager, _GRAPHICS_PATHS)
+        payload = _collect_sections(self._settings_manager, _PROFILE_PATHS)
         payload.setdefault("metadata", {})["profile_name"] = name
         return payload
 
@@ -124,15 +124,29 @@ class ProfileSettingsManager:
             return ProfileOperationResult(False, f"Failed to load profile: {exc}")
 
         graphics = payload.get("graphics", {})
-        for section_name in ("environment", "scene", "animation"):
+        section_map = {
+            "environment": "graphics.environment",
+            "scene": "graphics.scene",
+        }
+        for section_name, path_key in section_map.items():
             value = graphics.get(section_name)
             if value is None:
                 continue
-            path_key = f"graphics.{section_name}"
             self._settings_manager.set(path_key, value, auto_save=False)
             if self._apply_callback is not None:
                 try:
                     self._apply_callback(path_key, value)
+                except Exception:  # pragma: no cover - UI callbacks may fail in tests
+                    pass
+
+        animation_payload = payload.get("animation")
+        if animation_payload is None:
+            animation_payload = graphics.get("animation")  # legacy profiles
+        if isinstance(animation_payload, dict):
+            self._settings_manager.set("animation", animation_payload, auto_save=False)
+            if self._apply_callback is not None:
+                try:
+                    self._apply_callback("animation", animation_payload)
                 except Exception:  # pragma: no cover - UI callbacks may fail in tests
                     pass
 

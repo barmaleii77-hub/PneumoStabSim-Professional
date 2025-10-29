@@ -112,24 +112,17 @@ class UISetup:
                 ) from exc
 
         def _read_section(name: str) -> Dict[str, Any]:
+            path = name if name == "animation" else f"graphics.{name}"
             try:
-                data = manager.get(f"graphics.{name}", None)
+                data = manager.get(path, None)
             except Exception as exc:
-                UISetup.logger.exception(
-                    "    ❌ Ошибка чтения graphics.%s: %s", name, exc
-                )
-                UISetup._register_postmortem_reason(
-                    f"settings-read-error:graphics.{name}"
-                )
-                raise RuntimeError(
-                    f"Не удалось прочитать настройки graphics.{name}"
-                ) from exc
+                UISetup.logger.exception("    ❌ Ошибка чтения %s: %s", path, exc)
+                UISetup._register_postmortem_reason(f"settings-read-error:{path}")
+                raise RuntimeError(f"Не удалось прочитать настройки {path}") from exc
             if not isinstance(data, dict) or not data:
-                UISetup._register_postmortem_reason(f"settings-missing:graphics.{name}")
-                raise RuntimeError(
-                    f"Настройки graphics.{name} отсутствуют или повреждены"
-                )
-            return _serialize(f"graphics.{name}", data)
+                UISetup._register_postmortem_reason(f"settings-missing:{path}")
+                raise RuntimeError(f"Настройки {path} отсутствуют или повреждены")
+            return _serialize(path, data)
 
         def _read_geometry() -> Dict[str, Any]:
             try:
