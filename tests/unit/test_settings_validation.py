@@ -88,8 +88,15 @@ def test_validate_settings_missing_simulation_section(
         runner._validate_settings_file()
 
     error_text = str(exc.value)
-    assert "current: 'simulation' is a required property" in error_text
-    assert "'simulation' is a required property" in _last_error(stub_qmessagebox)
+    assert (
+        "current: 'simulation' is a required property" in error_text
+        or "current.simulation" in error_text
+    )
+    last_error = _last_error(stub_qmessagebox)
+    assert (
+        "'simulation' is a required property" in last_error
+        or "current.simulation" in last_error
+    )
 
 
 def test_validate_settings_missing_physics_dt(
@@ -131,8 +138,15 @@ def test_validate_settings_missing_geometry_section(
         runner._validate_settings_file()
 
     error_text = str(exc.value)
-    assert "current: 'geometry' is a required property" in error_text
-    assert "'geometry' is a required property" in _last_error(stub_qmessagebox)
+    assert (
+        "current: 'geometry' is a required property" in error_text
+        or "current.geometry" in error_text
+    )
+    last_error = _last_error(stub_qmessagebox)
+    assert (
+        "'geometry' is a required property" in last_error
+        or "current.geometry" in last_error
+    )
 
 
 def test_validate_settings_missing_volume_mode(
@@ -210,8 +224,12 @@ def test_validate_settings_invalid_bool(
         runner._validate_settings_file()
 
     message = str(exc.value)
-    assert "is not of type 'boolean'" in message
-    assert "master_isolation_open" in _last_error(stub_qmessagebox)
+    assert (
+        "is not of type 'boolean'" in message
+        or "логическим значением" in message
+    )
+    last_error = _last_error(stub_qmessagebox)
+    assert "master_isolation_open" in last_error
 
 
 def test_validate_settings_file_helper(tmp_path: Path, monkeypatch):

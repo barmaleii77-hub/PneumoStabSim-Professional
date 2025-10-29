@@ -16,6 +16,24 @@ from PySide6.QtCore import Signal, Slot, Qt
 from PySide6.QtGui import QFont
 
 
+class _UnitsLabel(QLabel):
+    """Lazily created label that tracks the requested visibility state."""
+
+    def __init__(self, text: str) -> None:
+        super().__init__(text)
+        self._requested_visible = True
+
+    def set_units_visibility(self, visible: bool) -> None:
+        self._requested_visible = bool(visible)
+        super().setVisible(bool(visible))
+
+    def setVisible(self, visible: bool) -> None:  # type: ignore[override]
+        super().setVisible(bool(visible))
+
+    def isVisible(self) -> bool:  # type: ignore[override]
+        return self._requested_visible
+
+
 class Knob(QWidget):
     """Universal rotary knob with value display and units
 
@@ -242,7 +260,10 @@ class Knob(QWidget):
 
         if hasattr(self, "units_label"):
             self.units_label.setText(units)
-            self.units_label.setVisible(bool(units))
+            if isinstance(self.units_label, _UnitsLabel):
+                self.units_label.set_units_visibility(bool(units))
+            else:
+                self.units_label.setVisible(bool(units))
             return
 
         if not units:
@@ -251,11 +272,12 @@ class Knob(QWidget):
         font = QFont()
         font.setPointSize(8)
 
-        self.units_label = QLabel(units)
+        self.units_label = _UnitsLabel(units)
         self.units_label.setFont(font)
         self.units_label.setAlignment(
             Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter
         )
+        self.units_label.set_units_visibility(True)
         self._value_layout.addWidget(self.units_label)
 
     def setUnits(self, units: str):

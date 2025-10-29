@@ -262,6 +262,7 @@ class SettingsService:
     def validate(self, payload: dict[str, Any]) -> None:
         """Проверить payload по JSON Schema и выбросить ошибку при несовпадении."""
 
+        self._guard_legacy_material_aliases(payload)
         validator = self._get_validator()
         errors = sorted(validator.iter_errors(payload), key=lambda err: err.path)
         if not errors:
@@ -286,6 +287,47 @@ class SettingsService:
             f"Settings payload failed JSON Schema validation: {joined}",
             errors=formatted,
         ) from None
+
+    def _guard_legacy_material_aliases(
+        self, payload: MappingABC[str, Any]
+    ) -> None:
+        """Pre-validate payload to surface legacy material aliases before JSON Schema."""
+
+        def _material_section(root: MappingABC[str, Any] | None) -> MappingABC[str, Any] | None:
+            if not isinstance(root, MappingABC):
+                return None
+            graphics = root.get("graphics") if isinstance(root, MappingABC) else None
+            if not isinstance(graphics, MappingABC):
+                return None
+            materials = graphics.get("materials") if isinstance(graphics, MappingABC) else None
+            return materials if isinstance(materials, MappingABC) else None
+
+        current = payload.get("current") if isinstance(payload, MappingABC) else None
+        defaults = (
+            payload.get("defaults_snapshot") if isinstance(payload, MappingABC) else None
+        )
+
+        material_sections = (
+            section
+            for section in (
+                _material_section(current),
+                _material_section(defaults),
+            )
+            if section is not None
+        )
+
+        alias_keys: set[str] = set()
+        for section in material_sections:
+            alias_keys |= set(section.keys()) & FORBIDDEN_MATERIAL_ALIASES.keys()
+
+        if alias_keys:
+            alias_list = ", ".join(
+                f"{alias}->{FORBIDDEN_MATERIAL_ALIASES[alias]}"
+                for alias in sorted(alias_keys)
+            )
+            raise SettingsValidationError(
+                f"Settings payload uses legacy graphics material keys: {alias_list}"
+            )
 
     def _validate_graphics_materials(self, payload: MappingABC[str, Any]) -> None:
         """Ensure graphics materials are synchronised between current/defaults."""

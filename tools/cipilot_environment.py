@@ -32,7 +32,7 @@ import subprocess
 import sys
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Iterable, Mapping
+from typing import Any, Iterable, Mapping
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_ENV_FILE = PROJECT_ROOT / ".env.cipilot"
@@ -107,11 +107,8 @@ def run_uv_sync() -> bool:
 def _probe_via_python() -> EnvironmentSnapshot:
     try:
         import PySide6  # type: ignore
-        from PySide6.QtCore import (  # type: ignore
-            QLibraryInfo,
-            LibraryLocation,
-            qVersion,
-        )
+        from PySide6 import QtCore  # type: ignore
+        from PySide6.QtCore import QLibraryInfo, qVersion  # type: ignore
     except Exception as exc:  # pragma: no cover - depends on runtime deps
         raise RuntimeError(
             "PySide6 is not available. Run 'uv sync' or install project dependencies."
@@ -119,7 +116,19 @@ def _probe_via_python() -> EnvironmentSnapshot:
 
     env_vars = dict(DEFAULTS)
 
-    def _record(location: LibraryLocation, key: str) -> None:
+    library_enum: Any = getattr(QtCore, "LibraryLocation", None)
+    if library_enum is None:
+        library_enum = QLibraryInfo.LibraryPath
+
+    def _enum_member(*names: str) -> Any:
+        for name in names:
+            if hasattr(library_enum, name):
+                return getattr(library_enum, name)
+        raise AttributeError(
+            f"PySide6 QLibraryInfo does not expose any of: {', '.join(names)}"
+        )
+
+    def _record(location: Any, key: str) -> None:
         try:
             value = QLibraryInfo.path(location)
         except Exception:  # pragma: no cover - defensive fallback
@@ -127,9 +136,12 @@ def _probe_via_python() -> EnvironmentSnapshot:
         if value:
             env_vars[key] = value
 
-    _record(LibraryLocation.Plugins, "QT_PLUGIN_PATH")
-    _record(LibraryLocation.QmlImports, "QML2_IMPORT_PATH")
-    _record(LibraryLocation.Translations, "QT_TRANSLATIONS_PATH")
+    _record(_enum_member("PluginsPath", "Plugins"), "QT_PLUGIN_PATH")
+    _record(_enum_member("QmlImportsPath", "ImportsPath", "QmlImports"), "QML2_IMPORT_PATH")
+    _record(
+        _enum_member("TranslationsPath", "Translations"),
+        "QT_TRANSLATIONS_PATH",
+    )
 
     metadata = QtMetadata(qt_version=qVersion(), pyside6_version=PySide6.__version__)
     return EnvironmentSnapshot(env_vars=env_vars, metadata=metadata)
@@ -138,10 +150,21 @@ def _probe_via_python() -> EnvironmentSnapshot:
 _UV_PROBE_SCRIPT = """
 import json
 import os
-from PySide6.QtCore import QLibraryInfo, LibraryLocation, qVersion
+from PySide6 import QtCore
+from PySide6.QtCore import QLibraryInfo, qVersion
 import PySide6
 
-def _path(location: LibraryLocation) -> str:
+library_enum = getattr(QtCore, "LibraryLocation", None)
+if library_enum is None:
+    library_enum = QLibraryInfo.LibraryPath
+
+def _member(*names: str):
+    for name in names:
+        if hasattr(library_enum, name):
+            return getattr(library_enum, name)
+    raise AttributeError(f"Library enum missing candidates: {', '.join(names)}")
+
+def _path(location) -> str:
     try:
         candidate = QLibraryInfo.path(location)
     except Exception:  # pragma: no cover - PySide6 handles fallbacks
@@ -152,9 +175,9 @@ env = {
     "QT_QPA_PLATFORM": os.environ.get("QT_QPA_PLATFORM", "offscreen"),
     "QT_QUICK_BACKEND": os.environ.get("QT_QUICK_BACKEND", "software"),
     "QT_QUICK_CONTROLS_STYLE": os.environ.get("QT_QUICK_CONTROLS_STYLE", "Basic"),
-    "QT_PLUGIN_PATH": _path(LibraryLocation.Plugins),
-    "QML2_IMPORT_PATH": _path(LibraryLocation.QmlImports),
-    "QT_TRANSLATIONS_PATH": _path(LibraryLocation.Translations),
+    "QT_PLUGIN_PATH": _path(_member("PluginsPath", "Plugins")),
+    "QML2_IMPORT_PATH": _path(_member("QmlImportsPath", "ImportsPath", "QmlImports")),
+    "QT_TRANSLATIONS_PATH": _path(_member("TranslationsPath", "Translations")),
 }
 metadata = {
     "qt_version": qVersion(),

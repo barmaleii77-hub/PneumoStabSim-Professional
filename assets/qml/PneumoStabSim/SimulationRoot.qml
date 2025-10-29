@@ -25,7 +25,7 @@ Item {
  id: root
  anchors.fill: parent
 
- required property var sceneBridge
+    property var sceneBridge: null
 
  // ---------------------------------------------
  // Свойства и сигнал для батч-обновлений из Python
@@ -737,7 +737,14 @@ Binding {
  }
 }
 
-onSceneBridgeChanged: applySceneBridgeState()
+Connections {
+ id: sceneBridgeLifecycle
+ target: root
+
+ function onSceneBridgeChanged() {
+  applySceneBridgeState()
+ }
+}
 
  Rectangle {
  anchors.fill: parent
@@ -748,8 +755,8 @@ onSceneBridgeChanged: applySceneBridgeState()
  border.width: 0
  }
 
-Connections {
- id: sceneBridgeConnections
+ Connections {
+  id: sceneBridgeConnections
  target: sceneBridge
  enabled: !!sceneBridge
 
@@ -1182,18 +1189,21 @@ return Math.max(minValue, Math.min(maxValue, value));
  return fallback;
  }
 
- // ---------------------------------------------
- // Применение батч-обновлений из Python
- // ---------------------------------------------
- onPendingPythonUpdatesChanged: {
- if (!pendingPythonUpdates)
- return;
- try {
- applyBatchedUpdates(pendingPythonUpdates);
- } finally {
- pendingPythonUpdates = null; // очистка после применения
- }
- }
+    // ---------------------------------------------
+    // Применение батч-обновлений из Python
+    // ---------------------------------------------
+    Connections {
+        target: root
+        function onPendingPythonUpdatesChanged() {
+            if (!root.pendingPythonUpdates)
+                return;
+            try {
+                root.applyBatchedUpdates(root.pendingPythonUpdates);
+            } finally {
+                root.pendingPythonUpdates = null; // очистка после применения
+            }
+        }
+    }
 
  function applyBatchedUpdates(updates) {
  if (!updates)
@@ -1706,15 +1716,17 @@ return Math.max(minValue, Math.min(maxValue, value));
  if (params.ditheringEnabled !== undefined) setIfExists(sceneEnvCtl, 'ditheringEnabled', !!params.ditheringEnabled);
  }
 
- function applyQualityUpdates(params) {
- if (!params)
-  return;
+    function applyQualityUpdates(params) {
+        if (!params)
+            return;
 
- function assignString(targetKey, value) {
-  if (value === undefined || value === null)
-   return;
-  qualityPatch[targetKey] = String(value);
- }
+        var qualityPatch = {};
+
+        function assignString(targetKey, value) {
+            if (value === undefined || value === null)
+                return;
+            qualityPatch[targetKey] = String(value);
+        }
 
  function assignBool(targetKey, value) {
   if (value === undefined || value === null)
@@ -2363,4 +2375,6 @@ function apply3DUpdates(params) {
     function updateEffects(params) {
         applyEffectsUpdates(params);
     }
+}
+
 }

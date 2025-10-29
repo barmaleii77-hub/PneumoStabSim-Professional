@@ -420,13 +420,13 @@ class ApplicationRunner:
             self.app_logger.info(msg_base)
 
         try:
-            self._run_schema_validation(cfg_path)
-        except RuntimeError as exc:
+            validate_settings_file(cfg_path)
+        except SettingsValidationError as exc:
             _fail(str(exc), SettingsValidationError)
 
         try:
-            validate_settings_file(cfg_path)
-        except SettingsValidationError as exc:
+            self._run_schema_validation(cfg_path)
+        except RuntimeError as exc:
             _fail(str(exc), SettingsValidationError)
 
         if self.app_logger:
