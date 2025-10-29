@@ -38,6 +38,13 @@ def _as_windows_path(path: Path) -> str:
     return str(PureWindowsPath(path))
 
 
+def _compose_pythonpath(*parts: Path | str) -> Iterable[str]:
+    formatted: list[str] = []
+    for part in parts:
+        formatted.append(_as_windows_path(part) if isinstance(part, Path) else part)
+    return formatted
+
+
 def _candidate_site_packages_roots(venv_root: Path) -> Iterable[Path]:
     """Yield possible site-packages directories for *venv_root*."""
 
@@ -110,6 +117,10 @@ def build_insiders_environment(
     )
 
     windows_root = _as_windows_path(resolved_root)
+    pythonpath_entries = _compose_pythonpath(
+        windows_root, resolved_root / "src", resolved_root / "tests"
+    )
+
     env: Dict[str, str] = {
         "QML2_IMPORT_PATH": _as_windows_path(qml_runtime_root)
         + ";"
@@ -120,11 +131,7 @@ def build_insiders_environment(
         "QT_PLUGIN_PATH": _as_windows_path(plugin_root),
         "QT_QML_IMPORT_PATH": _as_windows_path(qml_runtime_root),
         "QT_QUICK_CONTROLS_STYLE": "Basic",
-        "PYTHONPATH": ";".join((
-            windows_root,
-            _as_windows_path(resolved_root / "src"),
-            _as_windows_path(resolved_root / "tests"),
-        )),
+        "PYTHONPATH": ";".join(pythonpath_entries),
         "PYTHONUTF8": "1",
         "PYTHONIOENCODING": "utf-8",
         "PIP_DISABLE_PIP_VERSION_CHECK": "1",

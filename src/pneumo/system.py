@@ -133,11 +133,12 @@ class PneumaticSystem:
                     volume = cylinder.vol_rod()
 
                 volumes["total_volume"] += volume
-                volumes["endpoints"].append({
+                endpoint = {
                     "wheel": wheel.value,
                     "port": port.value,
                     "volume": volume,
-                })
+                }
+                volumes["endpoints"].append(endpoint)
 
             line_volumes[line_name] = volumes
 
@@ -159,23 +160,27 @@ class PneumaticSystem:
         for wheel, cylinder in self.cylinders.items():
             cyl_result = cylinder.validate_invariants()
             if not cyl_result["is_valid"]:
-                errors.extend([
+                cylinder_errors = [
                     f"Cylinder {wheel.value}: {err}" for err in cyl_result["errors"]
-                ])
-            warnings.extend([
+                ]
+                errors.extend(cylinder_errors)
+            cylinder_warnings = [
                 f"Cylinder {wheel.value}: {warn}" for warn in cyl_result["warnings"]
-            ])
+            ]
+            warnings.extend(cylinder_warnings)
 
         # Validate each line
         for line_name, line in self.lines.items():
             line_result = line.validate_invariants()
             if not line_result["is_valid"]:
-                errors.extend([
+                line_errors = [
                     f"Line {line_name.value}: {err}" for err in line_result["errors"]
-                ])
-            warnings.extend([
+                ]
+                errors.extend(line_errors)
+            line_warnings = [
                 f"Line {line_name.value}: {warn}" for warn in line_result["warnings"]
-            ])
+            ]
+            warnings.extend(line_warnings)
 
         # Validate receiver
         receiver_result = self.receiver.validate_invariants()

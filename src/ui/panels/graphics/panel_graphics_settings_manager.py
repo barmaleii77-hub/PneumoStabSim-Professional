@@ -268,11 +268,10 @@ class GraphicsSettingsService:
                 )
 
             if category == "materials":
-                alias_conflicts = sorted(
-                    key
-                    for key in payload
-                    if key in self.FORBIDDEN_MATERIAL_ALIASES
-                )
+                alias_candidates = [
+                    key for key in payload if key in self.FORBIDDEN_MATERIAL_ALIASES
+                ]
+                alias_conflicts = sorted(alias_candidates)
                 if alias_conflicts:
                     details = ", ".join(
                         f"{alias}->{self.FORBIDDEN_MATERIAL_ALIASES[alias]}"

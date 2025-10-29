@@ -27,7 +27,7 @@ from src.common.settings_requirements import (
 # The materials are defined by the art department and referenced by the QML
 # scene.  The list lives here so both the application and the tests use the same
 # canonical set.
-DEFAULT_REQUIRED_MATERIALS = frozenset({
+_DEFAULT_MATERIAL_NAMES = {
     "frame",
     "lever",
     "tail_rod",
@@ -37,7 +37,8 @@ DEFAULT_REQUIRED_MATERIALS = frozenset({
     "joint_tail",
     "joint_arm",
     "joint_rod",
-})
+}
+DEFAULT_REQUIRED_MATERIALS = frozenset(_DEFAULT_MATERIAL_NAMES)
 
 # Legacy material keys that are no longer accepted.
 FORBIDDEN_MATERIAL_ALIASES = {"tail": "tail_rod"}

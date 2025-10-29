@@ -191,11 +191,8 @@ class StateSnapshot:
         for wheel, state in self.wheels.items():
             # Convert to string keys for easier access
             wheel_name = wheel.value  # LP, PP, LZ, PZ
-            positions[wheel_name] = np.array([
-                state.joint_x,
-                state.joint_y,
-                state.joint_z,
-            ])
+            joint_position = [state.joint_x, state.joint_y, state.joint_z]
+            positions[wheel_name] = np.array(joint_position)
 
         return positions
 
@@ -205,12 +202,13 @@ class StateSnapshot:
         Returns:
         Array of pressures [A1, B1, A2, B2] in Pa
         """
-        return np.array([
+        line_pressures = [
             self.lines[Line.A1].pressure,
             self.lines[Line.B1].pressure,
             self.lines[Line.A2].pressure,
             self.lines[Line.B2].pressure,
-        ])
+        ]
+        return np.array(line_pressures)
 
     def get_flow_array(self) -> np.ndarray:
         """Get total flows as array for plotting

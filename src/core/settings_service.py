@@ -288,24 +288,31 @@ class SettingsService:
             errors=formatted,
         ) from None
 
-    def _guard_legacy_material_aliases(
-        self, payload: MappingABC[str, Any]
-    ) -> None:
+    def _guard_legacy_material_aliases(self, payload: MappingABC[str, Any]) -> None:
         """Pre-validate payload to surface legacy material aliases before JSON Schema."""
 
-        def _material_section(root: MappingABC[str, Any] | None) -> MappingABC[str, Any] | None:
+        def _material_section(
+            root: MappingABC[str, Any] | None,
+        ) -> MappingABC[str, Any] | None:
             if not isinstance(root, MappingABC):
                 return None
-            graphics = root.get("graphics") if isinstance(root, MappingABC) else None
+            graphics = root.get("graphics")
             if not isinstance(graphics, MappingABC):
                 return None
-            materials = graphics.get("materials") if isinstance(graphics, MappingABC) else None
-            return materials if isinstance(materials, MappingABC) else None
+            materials = graphics.get("materials")
+            if not isinstance(materials, MappingABC):
+                return None
+            return materials
 
-        current = payload.get("current") if isinstance(payload, MappingABC) else None
-        defaults = (
-            payload.get("defaults_snapshot") if isinstance(payload, MappingABC) else None
-        )
+        current: MappingABC[str, Any] | None = None
+        defaults: MappingABC[str, Any] | None = None
+        if isinstance(payload, MappingABC):
+            maybe_current = payload.get("current")
+            if isinstance(maybe_current, MappingABC):
+                current = maybe_current
+            maybe_defaults = payload.get("defaults_snapshot")
+            if isinstance(maybe_defaults, MappingABC):
+                defaults = maybe_defaults
 
         material_sections = (
             section

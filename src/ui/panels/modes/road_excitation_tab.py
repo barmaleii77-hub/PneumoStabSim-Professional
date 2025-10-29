@@ -421,12 +421,13 @@ class RoadExcitationTab(QWidget):
         )
         layout.addWidget(self.smoothing_easing_combo)
 
-        self._smoothing_controls.extend([
+        smoothing_widgets = (
             self.smoothing_duration_slider,
             self.smoothing_angle_slider,
             self.smoothing_piston_slider,
             self.smoothing_easing_combo,
-        ])
+        )
+        self._smoothing_controls.extend(smoothing_widgets)
 
         return group
 

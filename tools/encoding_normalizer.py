@@ -32,7 +32,7 @@ UTF8_BOM = b"\xef\xbb\xbf"
 
 
 # Canonical newline expectations mirror the rules in ``.gitattributes``.
-LF_SUFFIXES: frozenset[str] = frozenset({
+_LF_SUFFIX_NAMES = {
     ".cfg",
     ".cmake",
     ".ini",
@@ -49,9 +49,10 @@ LF_SUFFIXES: frozenset[str] = frozenset({
     ".txt",
     ".yaml",
     ".yml",
-})
+}
+LF_SUFFIXES: frozenset[str] = frozenset(_LF_SUFFIX_NAMES)
 
-CRLF_SUFFIXES: frozenset[str] = frozenset({
+_CRLF_SUFFIX_NAMES = {
     ".bat",
     ".cmd",
     ".cs",
@@ -64,9 +65,10 @@ CRLF_SUFFIXES: frozenset[str] = frozenset({
     ".slnx",
     ".vbproj",
     ".vcxproj",
-})
+}
+CRLF_SUFFIXES: frozenset[str] = frozenset(_CRLF_SUFFIX_NAMES)
 
-LF_FILENAMES: frozenset[str] = frozenset({
+_LF_FILENAME_NAMES = {
     ".editorconfig",
     ".gitattributes",
     ".gitignore",
@@ -74,9 +76,10 @@ LF_FILENAMES: frozenset[str] = frozenset({
     "CMakeLists.txt",
     "Dockerfile",
     "Makefile",
-})
+}
+LF_FILENAMES: frozenset[str] = frozenset(_LF_FILENAME_NAMES)
 
-EXCLUDED_DIRS: frozenset[str] = frozenset({
+_EXCLUDED_DIR_NAMES = {
     ".git",
     "__pycache__",
     ".mypy_cache",
@@ -87,7 +90,8 @@ EXCLUDED_DIRS: frozenset[str] = frozenset({
     "dist",
     "node_modules",
     "venv",
-})
+}
+EXCLUDED_DIRS: frozenset[str] = frozenset(_EXCLUDED_DIR_NAMES)
 
 
 @dataclass(slots=True)

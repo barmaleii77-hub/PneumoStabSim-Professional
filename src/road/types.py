@@ -119,7 +119,7 @@ class RoadConfig:
         params = {}
 
         if self.preset is not None:
-            params.update({
+            preset_params = {
                 "velocity": self.preset.velocity,
                 "duration": self.preset.duration,
                 "amplitude": self.preset.amplitude,
@@ -127,10 +127,11 @@ class RoadConfig:
                 "phase": self.preset.phase,
                 "correlation": self.preset.correlation,
                 "resample_hz": self.preset.resample_hz,
-            })
+            }
+            params.update(preset_params)
         else:
             # Default values when no preset
-            params.update({
+            default_params = {
                 "velocity": 25.0,
                 "duration": 60.0,
                 "amplitude": 0.01,
@@ -138,7 +139,8 @@ class RoadConfig:
                 "phase": 0.0,
                 "correlation": CorrelationSpec(),
                 "resample_hz": 1000.0,
-            })
+            }
+            params.update(default_params)
 
         # Override with manual parameters
         if self.velocity is not None:
@@ -154,13 +156,14 @@ class RoadConfig:
         if self.correlation is not None:
             params["correlation"] = self.correlation
 
-        params.update({
+        base_params = {
             "wheelbase": self.wheelbase,
             "track": self.track,
             "resample_hz": self.resample_hz,
             "csv_path": self.csv_path,
             "csv_format": self.csv_format,
-        })
+        }
+        params.update(base_params)
 
         return params
 

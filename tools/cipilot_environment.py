@@ -137,11 +137,10 @@ def _probe_via_python() -> EnvironmentSnapshot:
             env_vars[key] = value
 
     _record(_enum_member("PluginsPath", "Plugins"), "QT_PLUGIN_PATH")
-    _record(_enum_member("QmlImportsPath", "ImportsPath", "QmlImports"), "QML2_IMPORT_PATH")
-    _record(
-        _enum_member("TranslationsPath", "Translations"),
-        "QT_TRANSLATIONS_PATH",
-    )
+    qml_import_path = _enum_member("QmlImportsPath", "ImportsPath", "QmlImports")
+    _record(qml_import_path, "QML2_IMPORT_PATH")
+    translations_path = _enum_member("TranslationsPath", "Translations")
+    _record(translations_path, "QT_TRANSLATIONS_PATH")
 
     metadata = QtMetadata(qt_version=qVersion(), pyside6_version=PySide6.__version__)
     return EnvironmentSnapshot(env_vars=env_vars, metadata=metadata)
@@ -192,14 +191,15 @@ def _probe_via_uv() -> EnvironmentSnapshot:
     if not uv_executable:
         raise RuntimeError("uv executable not found; cannot probe environment via uv")
 
-    result = _run_command([
+    command = [
         uv_executable,
         "run",
         "--",
         "python",
         "-c",
         _UV_PROBE_SCRIPT,
-    ])
+    ]
+    result = _run_command(command)
     if result.returncode != 0:
         raise RuntimeError("uv run failed to import PySide6\n" + result.stdout)
     output = result.stdout.strip().splitlines()

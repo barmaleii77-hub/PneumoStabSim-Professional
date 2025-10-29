@@ -395,10 +395,11 @@ class MaterialsTab(QWidget):
             # Потом обновляем полное состояние
             self._materials_state[cur_key] = self.get_current_material_state()
         # Эмитим payload ТОЛЬКО для текущего материала
-        self.material_changed.emit({
+        payload = {
             "current_material": cur_key,
             cur_key: self.get_current_material_state(),
-        })
+        }
+        self.material_changed.emit(payload)
 
     # ========== STATE API ==========
     def get_current_material_key(self) -> str:

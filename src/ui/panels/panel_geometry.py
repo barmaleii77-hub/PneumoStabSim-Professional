@@ -94,12 +94,13 @@ class GeometryPanel(QWidget):
         preset_row = QHBoxLayout()
         preset_row.addWidget(QLabel("Пресет:"))
         self.preset_combo = QComboBox()
-        self.preset_combo.addItems([
+        preset_labels = (
             "Стандартный грузовик",
             "Лёгкий коммерческий",
             "Тяжёлый грузовик",
             "Пользовательский",
-        ])
+        )
+        self.preset_combo.addItems(list(preset_labels))
         self.preset_combo.currentIndexChanged.connect(self._on_preset_changed)
         preset_row.addWidget(self.preset_combo, 1)
         layout.addLayout(preset_row)
