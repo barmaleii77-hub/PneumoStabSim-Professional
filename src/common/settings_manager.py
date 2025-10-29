@@ -310,6 +310,7 @@ class SettingsManager:
         self._metadata: Dict[str, Any] = {}
         self._extra: Dict[str, Any] = {}
         self._original_units_version: str = _DEFAULT_UNITS_VERSION
+        self._dirty: bool = False
         self.load()
 
     # ------------------------------------------------------------------ helpers
@@ -317,7 +318,8 @@ class SettingsManager:
     def settings_file(self) -> Path:
         return self._settings_path
 
-    def _ensure_units_version(self) -> None:
+    def _ensure_units_version(self) -> bool:
+        changed = False
         raw_units_version = self._metadata.get("units_version")
         if isinstance(raw_units_version, str):
             normalized = raw_units_version.strip()
@@ -327,10 +329,16 @@ class SettingsManager:
         else:
             self._original_units_version = str(raw_units_version).strip() or "legacy"
 
-        if self._original_units_version != _DEFAULT_UNITS_VERSION:
-            self._metadata["units_version"] = _DEFAULT_UNITS_VERSION
-        else:
-            self._metadata["units_version"] = self._original_units_version
+        target = (
+            _DEFAULT_UNITS_VERSION
+            if self._original_units_version != _DEFAULT_UNITS_VERSION
+            else self._original_units_version
+        )
+        if self._metadata.get("units_version") != target:
+            self._metadata["units_version"] = target
+            changed = True
+
+        return changed
 
     # ----------------------------------------------------------------- migration
 
@@ -355,37 +363,46 @@ class SettingsManager:
 
         return changed
 
-    def _normalise_units(self) -> None:
+    def _normalise_units(self) -> bool:
         if self._original_units_version == _DEFAULT_UNITS_VERSION:
-            return
+            return False
+
+        changed = False
 
         for container in (self._data, self._defaults):
             geometry = (
                 container.get("geometry") if isinstance(container, dict) else None
             )
-            if isinstance(geometry, dict):
-                self._convert_geometry_section(geometry)
+            if isinstance(geometry, dict) and self._convert_geometry_section(geometry):
+                changed = True
 
-    def _normalise_environment_section(self, section: Dict[str, Any]) -> None:
+        return changed
+
+    def _normalise_environment_section(self, section: Dict[str, Any]) -> bool:
         if not isinstance(section, dict):
-            return
-        _normalise_dict_keys(section, _ENVIRONMENT_KEY_ALIASES)
+            return False
+        changed = _normalise_dict_keys(section, _ENVIRONMENT_KEY_ALIASES)
         if "skybox_brightness" not in section and "probe_brightness" in section:
             section["skybox_brightness"] = section.pop("probe_brightness")
+            changed = True
         else:
-            section.pop("probe_brightness", None)
+            removed = section.pop("probe_brightness", None)
+            if removed is not None:
+                changed = True
+        return changed
 
-    def _normalise_effects_section(self, section: Dict[str, Any]) -> None:
+    def _normalise_effects_section(self, section: Dict[str, Any]) -> bool:
         if not isinstance(section, dict):
-            return
-        _normalise_dict_keys(section, _EFFECTS_KEY_ALIASES)
+            return False
+        return _normalise_dict_keys(section, _EFFECTS_KEY_ALIASES)
 
-    def _normalise_camera_section(self, section: Dict[str, Any]) -> None:
+    def _normalise_camera_section(self, section: Dict[str, Any]) -> bool:
         if not isinstance(section, dict):
-            return
-        _normalise_dict_keys(section, _CAMERA_KEY_ALIASES)
+            return False
+        return _normalise_dict_keys(section, _CAMERA_KEY_ALIASES)
 
-    def _normalise_graphics_sections(self) -> None:
+    def _normalise_graphics_sections(self) -> bool:
+        changed = False
         for container in (self._data, self._defaults):
             graphics = (
                 container.get("graphics") if isinstance(container, dict) else None
@@ -393,14 +410,17 @@ class SettingsManager:
             if not isinstance(graphics, dict):
                 continue
             environment = graphics.get("environment")
-            if isinstance(environment, dict):
-                self._normalise_environment_section(environment)
+            if isinstance(environment, dict) and self._normalise_environment_section(
+                environment
+            ):
+                changed = True
             effects = graphics.get("effects")
-            if isinstance(effects, dict):
-                self._normalise_effects_section(effects)
+            if isinstance(effects, dict) and self._normalise_effects_section(effects):
+                changed = True
             camera = graphics.get("camera")
-            if isinstance(camera, dict):
-                self._normalise_camera_section(camera)
+            if isinstance(camera, dict) and self._normalise_camera_section(camera):
+                changed = True
+        return changed
 
     def _assign_sections(self, payload: Dict[str, Any]) -> None:
         def _section_payload(name: str) -> Dict[str, Any]:
@@ -427,10 +447,102 @@ class SettingsManager:
             for key, value in payload.items()
             if key not in {"metadata", "current", "defaults_snapshot"}
         }
-        self._migrate_known_extras()
-        self._ensure_units_version()
-        self._normalise_units()
-        self._normalise_graphics_sections()
+        dirty = False
+        if self._migrate_known_extras():
+            dirty = True
+        if self._ensure_units_version():
+            dirty = True
+        if self._normalise_units():
+            dirty = True
+        if self._normalise_graphics_sections():
+            dirty = True
+        self._dirty = dirty
+        self._warn_missing_required_paths()
+
+    def _warn_missing_required_paths(self) -> None:
+        try:
+            from src.common import settings_requirements as req
+        except Exception as exc:  # pragma: no cover - optional dependency at runtime
+            logger.debug("Settings requirements unavailable: %s", exc, exc_info=True)
+            return
+
+        sentinel = object()
+
+        def _value(path: str) -> Any:
+            return self.get(path, sentinel)
+
+        for section_path in getattr(req, "REQUIRED_CURRENT_SECTIONS", ()):  # type: ignore[attr-defined]
+            value = _value(section_path)
+            if value is sentinel or not isinstance(value, dict):
+                logger.warning(
+                    "Settings payload missing required section '%s'; defaults may be used.",
+                    section_path,
+                )
+
+        numeric_paths: set[str] = set()
+        numeric_paths.update(
+            f"current.simulation.{key}"
+            for key in getattr(req, "NUMERIC_SIMULATION_KEYS", ())
+        )
+        numeric_paths.update(
+            f"current.pneumatic.{key}"
+            for key in getattr(req, "NUMERIC_PNEUMATIC_KEYS", ())
+        )
+        numeric_paths.update(
+            f"current.pneumatic.receiver_volume_limits.{key}"
+            for key in getattr(req, "RECEIVER_VOLUME_LIMIT_KEYS", ())
+        )
+
+        string_paths: set[str] = {
+            f"current.pneumatic.{key}"
+            for key in getattr(req, "STRING_PNEUMATIC_KEYS", ())
+        }
+        bool_paths: set[str] = {
+            f"current.pneumatic.{key}"
+            for key in getattr(req, "BOOL_PNEUMATIC_KEYS", ())
+        }
+
+        for numeric_path in numeric_paths:
+            value = _value(numeric_path)
+            if value is sentinel:
+                logger.warning(
+                    "Settings payload missing required numeric value '%s'; using defaults.",
+                    numeric_path,
+                )
+            elif isinstance(value, bool) or not isinstance(value, (int, float)):
+                logger.warning(
+                    "Settings value '%s' expected to be numeric but received %r; coerced defaults may apply.",
+                    numeric_path,
+                    type(value).__name__,
+                )
+
+        for string_path in string_paths:
+            value = _value(string_path)
+            if value is sentinel:
+                logger.warning(
+                    "Settings payload missing required string value '%s'; using defaults.",
+                    string_path,
+                )
+            elif not isinstance(value, str) or not value.strip():
+                logger.warning(
+                    "Settings value '%s' expected to be a non-empty string but received %r; defaults will be applied.",
+                    string_path,
+                    type(value).__name__,
+                )
+
+        for bool_path in bool_paths:
+            value = _value(bool_path)
+            if value is sentinel:
+                logger.warning(
+                    "Settings payload missing required boolean value '%s'; using defaults.",
+                    bool_path,
+                )
+            elif not isinstance(value, bool):
+                logger.warning(
+                    "Settings value '%s' expected to be boolean but received %r; coercion may apply.",
+                    bool_path,
+                    type(value).__name__,
+                )
 
     # ------------------------------------------------------------------- units
     def get_units_version(self, *, normalised: bool = True) -> str:
@@ -493,6 +605,15 @@ class SettingsManager:
             json.dumps(payload, ensure_ascii=False, indent=2),
             encoding="utf-8",
         )
+        self._dirty = False
+
+    def save_if_dirty(self) -> None:
+        if self._dirty:
+            self.save()
+
+    @property
+    def is_dirty(self) -> bool:
+        return self._dirty
 
     def _notify_change(self, change: _SettingsChange) -> None:
         if _settings_event_bus is None:
@@ -608,6 +729,7 @@ class SettingsManager:
             previous = _deep_copy(self._data)
             new_payload = _deep_copy(value)
             self._data = new_payload
+            self._dirty = True
             if auto_save:
                 self.save()
             _emit_change("current", "current", new_payload, previous)
@@ -619,6 +741,7 @@ class SettingsManager:
             previous = _deep_copy(self._defaults)
             new_payload = _deep_copy(value)
             self._defaults = new_payload
+            self._dirty = True
             if auto_save:
                 self.save()
             _emit_change(
@@ -632,6 +755,7 @@ class SettingsManager:
             previous = _deep_copy(self._metadata)
             self._metadata = _deep_copy(value)
             self._ensure_units_version()
+            self._dirty = True
             normalised = _deep_copy(self._metadata)
             if auto_save:
                 self.save()
@@ -642,6 +766,7 @@ class SettingsManager:
             previous = _deep_copy(self._extra[head])
             new_payload = _deep_copy(value)
             self._extra[head] = new_payload
+            self._dirty = True
             if auto_save:
                 self.save()
             _emit_change(head, head, new_payload, previous)
@@ -689,6 +814,7 @@ class SettingsManager:
             raise TypeError(f"Cannot set value on non-mapping node at '{dotted_path}'")
         node[leaf] = _deep_copy(value)
 
+        self._dirty = True
         if auto_save:
             self.save()
         stored_value = (
@@ -697,8 +823,10 @@ class SettingsManager:
         _emit_change(dotted_path, category, stored_value, previous)
         return True
 
-    def _migrate_known_extras(self) -> None:
+    def _migrate_known_extras(self) -> bool:
         """Merge legacy top-level sections back into ``current``."""
+
+        changed = False
 
         def _ensure_graphics_section() -> Dict[str, Any]:
             section = self._data.setdefault("graphics", {})
@@ -711,6 +839,7 @@ class SettingsManager:
         if isinstance(graphics_extra, dict):
             graphics_section = _ensure_graphics_section()
             _deep_update(graphics_section, graphics_extra)
+            changed = True
 
         for category in (
             "camera",
@@ -730,10 +859,14 @@ class SettingsManager:
                 _deep_update(existing, payload)
             else:
                 graphics_section[category] = _deep_copy(payload)
+            changed = True
 
         animation_extra = self._extra.pop("animation", None)
         if isinstance(animation_extra, dict):
             self._data["animation"] = _deep_copy(animation_extra)
+            changed = True
+
+        return changed
 
     # Defaults ---------------------------------------------------------------
     def get_all_defaults(self) -> Dict[str, Any]:
@@ -767,6 +900,7 @@ class SettingsManager:
 
         self._data[category] = _deep_copy(payload)
 
+        self._dirty = True
         if auto_save:
             self.save()
 
@@ -818,6 +952,7 @@ class SettingsManager:
                 )
             )
 
+        self._dirty = True
         if auto_save:
             self.save()
 
@@ -869,6 +1004,7 @@ class SettingsManager:
                 )
             )
 
+        self._dirty = True
         if auto_save:
             self.save()
 
