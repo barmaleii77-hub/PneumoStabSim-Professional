@@ -1,5 +1,6 @@
 import QtQuick 6.10
 import QtQuick3D 6.10
+import QtQuick3D.Effects 6.10
 import QtQuick3D.Helpers 6.10 // ✅ CRITICAL: Required for ExtendedSceneEnvironment
 import "." // Local helpers (QualityPresets)
 
@@ -602,11 +603,19 @@ ExtendedSceneEnvironment {
         internalDepthOfFieldEnabled = !!params.depthOfFieldEnabled
     if (params.dofFocusDistance !== undefined) {
         var dofDistance = Number(params.dofFocusDistance)
- if (isFinite(dofDistance))
- dofFocusDistance = toSceneLength(dofDistance)
- }
- if (params.dofBlurAmount !== undefined)
- dofBlurAmount = Number(params.dofBlurAmount)
+        if (isFinite(dofDistance))
+            dofFocusDistance = toSceneLength(dofDistance)
+    }
+    if (params.dofFocusRange !== undefined) {
+        var dofRange = Number(params.dofFocusRange)
+        if (isFinite(dofRange))
+            dofFocusRange = toSceneLength(dofRange)
+    }
+    if (params.dofBlurAmount !== undefined) {
+        var blurAmount = Number(params.dofBlurAmount)
+        if (isFinite(blurAmount))
+            dofBlurAmount = Math.max(0.0, blurAmount)
+    }
 
     if (params.depthOfField) {
         var dof = params.depthOfField
@@ -617,8 +626,16 @@ ExtendedSceneEnvironment {
             if (isFinite(dofNestedDistance))
                 dofFocusDistance = toSceneLength(dofNestedDistance)
         }
-        if (dof.blur_amount !== undefined)
-            dofBlurAmount = Number(dof.blur_amount)
+        if (dof.focus_range !== undefined) {
+            var dofNestedRange = Number(dof.focus_range)
+            if (isFinite(dofNestedRange))
+                dofFocusRange = toSceneLength(dofNestedRange)
+        }
+        if (dof.blur_amount !== undefined) {
+            var dofNestedBlur = Number(dof.blur_amount)
+            if (isFinite(dofNestedBlur))
+                dofBlurAmount = Math.max(0.0, dofNestedBlur)
+        }
         if (dof.auto_focus !== undefined)
             depthOfFieldAutoFocus = !!dof.auto_focus
     }
@@ -727,9 +744,12 @@ return
     var dofFocusValue = numberFromKeys(params, "dofFocusDistance", "dof_focus_distance")
     if (dofFocusValue !== undefined && isFinite(dofFocusValue))
         dofFocusDistance = toSceneLength(dofFocusValue)
+    var dofRangeValue = numberFromKeys(params, "dofFocusRange", "dof_focus_range")
+    if (dofRangeValue !== undefined && isFinite(dofRangeValue))
+        dofFocusRange = toSceneLength(dofRangeValue)
     var dofBlurValue = numberFromKeys(params, "dofBlurAmount", "dof_blur")
-    if (dofBlurValue !== undefined)
-        dofBlurAmount = dofBlurValue
+    if (dofBlurValue !== undefined && isFinite(dofBlurValue))
+        dofBlurAmount = Math.max(0.0, dofBlurValue)
 
     var dofAutoFocusValue = boolFromKeys(params, "dofAutoFocus", "dof_auto_focus")
     if (dofAutoFocusValue !== undefined)
@@ -972,27 +992,42 @@ return
  // DEPTH OF FIELD
  // ===============================================================
 
- property bool internalDepthOfFieldEnabled: false
- property real dofFocusDistance:2200.0
- property real dofBlurAmount:4.0
- property bool depthOfFieldAutoFocus: false
- property real autoFocusDistanceHint: dofFocusDistance
+    property bool internalDepthOfFieldEnabled: false
+    property real dofFocusDistance: 2200.0
+    property real dofFocusRange: 900.0
+    property real dofBlurAmount: 4.0
+    property bool depthOfFieldAutoFocus: false
+    property real autoFocusDistanceHint: dofFocusDistance
+    property real autoFocusRangeHint: dofFocusRange
 
- onDepthOfFieldAutoFocusChanged: _applyAutoFocusDistance()
- onAutoFocusDistanceHintChanged: _applyAutoFocusDistance()
+    onDepthOfFieldAutoFocusChanged: {
+        _applyAutoFocusDistance()
+        _applyAutoFocusRange()
+    }
+    onAutoFocusDistanceHintChanged: _applyAutoFocusDistance()
+    onAutoFocusRangeHintChanged: _applyAutoFocusRange()
 
- function _applyAutoFocusDistance() {
-     if (!depthOfFieldAutoFocus)
-         return
-     var numeric = Number(autoFocusDistanceHint)
-     if (isFinite(numeric))
-         dofFocusDistance = numeric
- }
+    function _applyAutoFocusDistance() {
+        if (!depthOfFieldAutoFocus)
+            return
+        var numeric = Number(autoFocusDistanceHint)
+        if (isFinite(numeric))
+            dofFocusDistance = Math.max(0.0, numeric)
+    }
 
- // ✅ ИСПРАВЛЕНО: используем внутреннее свойство для избежания конфликта
- depthOfFieldEnabled: internalDepthOfFieldEnabled
- depthOfFieldFocusDistance: dofFocusDistance
- depthOfFieldBlurAmount: dofBlurAmount
+    function _applyAutoFocusRange() {
+        if (!depthOfFieldAutoFocus)
+            return
+        var numeric = Number(autoFocusRangeHint)
+        if (isFinite(numeric))
+            dofFocusRange = Math.max(0.0, numeric)
+    }
+
+    // ✅ ИСПРАВЛЕНО: используем внутреннее свойство для избежания конфликта
+    depthOfFieldEnabled: internalDepthOfFieldEnabled
+    depthOfFieldFocusDistance: dofFocusDistance
+    depthOfFieldFocusRange: dofFocusRange
+    depthOfFieldBlurAmount: dofBlurAmount
 
  // ===============================================================
  // VIGNETTE
