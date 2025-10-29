@@ -1,63 +1,13 @@
-# -*- coding: utf-8 -*-
-"""
-Graphics Panel - модульная реструктуризация
-Модуль управления настройками графики и визуализации
+"""Graphics panel package with lazy imports to support headless environments."""
 
-СТРУКТУРА МОДУЛЯ:
-- widgets.py: Переиспользуемые UI компоненты (ColorButton, LabeledSlider)
-- lighting_tab.py: Вкладка освещения
-- environment_tab.py: Вкладка окружения (фон, IBL, туман)
-- quality_tab.py: Вкладка качества (тени, AA)
-- camera_tab.py: Вкладка камеры (FOV, clipping)
-- materials_tab.py: Вкладка материалов (PBR)
-- effects_tab.py: Вкладка эффектов (Bloom, SSAO, DoF)
-- state_manager.py: Управление состоянием
-- panel_graphics_refactored.py: ✅ НОВЫЙ рефакторенный координатор v3.0 (SettingsManager)
-- panel_graphics.py: ⚠️ LEGACY монолитная версия (~2600 строк)
+from __future__ import annotations
 
-MIGRATION STATUS: ✅ Рефакторинг завершён! v3.0 - SettingsManager integrated
-"""
-
-# ✅ REFACTORED VERSION: Используем новый модульный координатор
-try:
-    from .panel_graphics_refactored import GraphicsPanel
-
-    _USING_REFACTORED = True
-except ImportError as e:
-    # Fallback к старой монолитной версии (если что-то сломалось)
-    import logging
-
-    logging.getLogger(__name__).warning(
-        f"Failed to load refactored version: {e}, falling back to legacy"
-    )
-    from ..panel_graphics import GraphicsPanel
-
-    _USING_REFACTORED = False
-
-# Экспорт вкладок (для прямого импорта если нужно)
-from .lighting_tab import LightingTab
-from .environment_tab import EnvironmentTab
-from .quality_tab import QualityTab
-from .camera_tab import CameraTab
-from .materials_tab import MaterialsTab
-from .effects_tab import EffectsTab
-from .scene_tab import SceneTab
-
-# Экспорт вспомогательных модулей
-from .widgets import ColorButton, LabeledSlider
-from .state_manager import GraphicsStateManager
-from .panel_graphics_settings_manager import (
-    GraphicsSettingsError,
-    GraphicsSettingsService,
-)
-
-# ✅ НОВОЕ: SettingsManager вместо defaults.py
-from src.common.settings_manager import get_settings_manager
+import logging
+from importlib import import_module
+from typing import Any
 
 __all__ = [
-    # ✅ Главный класс (REFACTORED v3.0!)
     "GraphicsPanel",
-    # Вкладки
     "LightingTab",
     "EnvironmentTab",
     "QualityTab",
@@ -65,25 +15,108 @@ __all__ = [
     "MaterialsTab",
     "EffectsTab",
     "SceneTab",
-    # Виджеты
     "ColorButton",
     "LabeledSlider",
-    # Утилиты
     "GraphicsStateManager",
     "GraphicsSettingsService",
     "GraphicsSettingsError",
-    "get_settings_manager",  # ✅ НОВОЕ: Экспорт SettingsManager
+    "get_settings_manager",
 ]
 
-# Вывод статуса загрузки
-import logging
-
 _logger = logging.getLogger(__name__)
-if _USING_REFACTORED:
-    _logger.info(
-        "✅ GraphicsPanel: REFACTORED version v3.0 loaded (SettingsManager + GraphicsSettingsService)"
+
+_GRAPHICS_CLASS: type[Any] | None = None
+_GRAPHICS_ERROR: ImportError | None = None
+_USING_REFACTORED = False
+
+_MODULE_EXPORTS = {
+    "LightingTab": ("lighting_tab", "LightingTab"),
+    "EnvironmentTab": ("environment_tab", "EnvironmentTab"),
+    "QualityTab": ("quality_tab", "QualityTab"),
+    "CameraTab": ("camera_tab", "CameraTab"),
+    "MaterialsTab": ("materials_tab", "MaterialsTab"),
+    "EffectsTab": ("effects_tab", "EffectsTab"),
+    "SceneTab": ("scene_tab", "SceneTab"),
+    "ColorButton": ("widgets", "ColorButton"),
+    "LabeledSlider": ("widgets", "LabeledSlider"),
+    "GraphicsStateManager": ("state_manager", "GraphicsStateManager"),
+    "GraphicsSettingsService": (
+        "panel_graphics_settings_manager",
+        "GraphicsSettingsService",
+    ),
+    "GraphicsSettingsError": (
+        "panel_graphics_settings_manager",
+        "GraphicsSettingsError",
+    ),
+}
+
+
+def _load_graphics_panel() -> type[Any]:
+    """Load the graphics panel implementation on demand."""
+
+    global _GRAPHICS_CLASS, _GRAPHICS_ERROR, _USING_REFACTORED
+
+    if _GRAPHICS_CLASS is not None:
+        return _GRAPHICS_CLASS
+    if _GRAPHICS_ERROR is not None:
+        raise _GRAPHICS_ERROR
+
+    last_error: ImportError | None = None
+    for module_name, refactored in (
+        (".panel_graphics_refactored", True),
+        ("..panel_graphics", False),
+    ):
+        try:
+            module = import_module(module_name, __name__)
+        except ImportError as exc:
+            last_error = exc
+            if refactored:
+                _logger.warning(
+                    "⚠️ GraphicsPanel: failed to load refactored version: %s", exc
+                )
+            else:
+                _logger.error(
+                    "❌ GraphicsPanel: failed to load legacy version: %s", exc
+                )
+            continue
+
+        _GRAPHICS_CLASS = module.GraphicsPanel
+        _USING_REFACTORED = refactored
+        if refactored:
+            _logger.info(
+                "✅ GraphicsPanel: REFACTORED version v3.0 loaded (SettingsManager + GraphicsSettingsService)"
+            )
+        else:
+            _logger.warning(
+                "⚠️ GraphicsPanel: Using LEGACY version (~2600 lines) - migration incomplete"
+            )
+        return _GRAPHICS_CLASS
+
+    _GRAPHICS_ERROR = ImportError(
+        "GraphicsPanel: Neither refactored nor legacy version available!"
     )
-else:
-    _logger.warning(
-        "⚠️ GraphicsPanel: Using LEGACY version (~2600 lines) - migration incomplete"
-    )
+    if last_error is not None:
+        _GRAPHICS_ERROR.__cause__ = last_error
+    raise _GRAPHICS_ERROR
+
+
+def __getattr__(name: str) -> Any:
+    """Provide lazy access to graphics panel exports."""
+
+    if name == "GraphicsPanel":
+        return _load_graphics_panel()
+    if name == "get_settings_manager":
+        module = import_module("src.common.settings_manager")
+        value = getattr(module, name)
+        globals()[name] = value
+        return value
+
+    try:
+        module_name, attribute = _MODULE_EXPORTS[name]
+    except KeyError as exc:  # pragma: no cover - default behaviour
+        raise AttributeError(f"module {__name__!r} has no attribute {name!r}") from exc
+
+    module = import_module(f"{__name__}.{module_name}")
+    value = getattr(module, attribute)
+    globals()[name] = value
+    return value
