@@ -1,5 +1,6 @@
 import importlib.util
 import json
+from copy import deepcopy
 from pathlib import Path
 
 import pytest
@@ -52,11 +53,16 @@ def _make_baseline_payload() -> dict[str, object]:
         "camera": {"fov": 60.0},
         "materials": _make_materials(),
         "effects": {"bloom_enabled": True},
+        "scene": {"exposure": 1.2},
     }
+    animation = {"is_running": False, "frequency": 1.0}
     return {
         "metadata": {"units_version": "si_v2"},
-        "current": {"graphics": graphics},
-        "defaults_snapshot": {"graphics": graphics},
+        "current": {"graphics": deepcopy(graphics), "animation": deepcopy(animation)},
+        "defaults_snapshot": {
+            "graphics": deepcopy(graphics),
+            "animation": deepcopy(animation),
+        },
     }
 
 
@@ -74,6 +80,7 @@ def baseline_file(tmp_path: Path) -> Path:
 def _make_legacy_payload(
     material_override: dict[str, dict[str, str]],
 ) -> dict[str, object]:
+    baseline = _make_baseline_payload()
     return {
         "metadata": {"units_version": "si_v1"},
         "current": {
@@ -85,7 +92,8 @@ def _make_legacy_payload(
             }
         },
         "defaults_snapshot": {
-            "graphics": _make_baseline_payload()["current"]["graphics"]
+            "graphics": deepcopy(baseline["current"]["graphics"]),
+            "animation": deepcopy(baseline["current"]["animation"]),
         },
     }
 
@@ -112,6 +120,8 @@ def test_load_current_hydrates_legacy_shape(
     # Missing joint restored from baseline
     assert "tail_rod" in state["materials"]
     assert "joint_rod" in state["materials"]
+    assert state["animation"]["is_running"] is False
+    assert state["animation"]["frequency"] == 1.0
 
 
 def test_load_current_rejects_legacy_tail_alias(
@@ -160,14 +170,20 @@ def test_save_current_persists_normalised_copy(
     state = service.load_current()
     state["environment"]["ibl_intensity"] = 2.2
     state["materials"]["tail_rod"]["base_color"] = "#ff0000"
+    state["animation"]["is_running"] = True
+    state["animation"]["frequency"] = 2.5
 
     service.save_current(state)
 
     saved = manager.get_category("graphics")
+    animation = manager.get_category("animation")
     assert saved["environment"]["ibl_intensity"] == 2.2
     assert saved["materials"]["tail_rod"]["base_color"] == "#ff0000"
     assert "tail" not in saved["materials"]
     assert "lighting" in saved
+    assert "animation" not in saved
+    assert animation["is_running"] is True
+    assert animation["frequency"] == 2.5
 
 
 def test_save_current_as_defaults_does_not_add_aliases(
@@ -182,11 +198,17 @@ def test_save_current_as_defaults_does_not_add_aliases(
 
     state = service.load_current()
     state["materials"]["tail_rod"]["base_color"] = "#00ff00"
+    state["animation"]["frequency"] = 3.3
 
     service.save_current_as_defaults(state)
 
     current = manager.get_category("graphics")
     defaults = manager.get("defaults_snapshot.graphics")
+    animation_current = manager.get_category("animation")
+    animation_defaults = manager.get("defaults_snapshot.animation")
 
     assert "tail" not in current["materials"]
     assert "tail" not in defaults["materials"]
+    assert "animation" not in current
+    assert animation_current["frequency"] == 3.3
+    assert animation_defaults["frequency"] == 3.3

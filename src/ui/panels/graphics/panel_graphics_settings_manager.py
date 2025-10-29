@@ -1,9 +1,9 @@
 """Utilities for validating and persisting graphics panel settings.
 
-The refactored graphics panel expects a rich configuration structure with eight
-independent categories (lighting, environment, quality, camera, materials,
-effects, scene and animation).  Historical versions of
-:mod:`config/app_settings.json` only expose a
+The refactored graphics panel expects a rich configuration structure with seven
+independent graphics categories (lighting, environment, quality, camera, materials,
+effects and scene) plus the top-level ``current.animation`` container.  Historical
+versions of :mod:`config/app_settings.json` only expose a
 subset of these categories, so loading them directly would trigger run-time
 exceptions inside :class:`GraphicsPanel`.  The goal of this module is to bridge
 that gap:
@@ -60,7 +60,7 @@ def _deep_merge(base: Dict[str, Any], override: Dict[str, Any]) -> Dict[str, Any
 class GraphicsSettingsService:
     """Validate and persist the graphics configuration for the panel."""
 
-    REQUIRED_CATEGORIES: tuple[str, ...] = (
+    GRAPHICS_CATEGORIES: tuple[str, ...] = (
         "lighting",
         "environment",
         "quality",
@@ -68,8 +68,9 @@ class GraphicsSettingsService:
         "materials",
         "effects",
         "scene",
-        "animation",
     )
+    ANIMATION_CATEGORY: str = "animation"
+    REQUIRED_CATEGORIES: tuple[str, ...] = GRAPHICS_CATEGORIES + (ANIMATION_CATEGORY,)
 
     REQUIRED_MATERIAL_KEYS: tuple[str, ...] = (
         "frame",
@@ -103,10 +104,16 @@ class GraphicsSettingsService:
         )
 
         baseline_payload = self._load_json(self._baseline_path)
-        self._baseline_current = self._extract_graphics_section(
+        self._baseline_graphics_current = self._extract_graphics_section(
             baseline_payload, "current"
         )
-        self._baseline_defaults = self._extract_graphics_section(
+        self._baseline_graphics_defaults = self._extract_graphics_section(
+            baseline_payload, "defaults_snapshot"
+        )
+        self._baseline_animation_current = self._extract_animation_section(
+            baseline_payload, "current"
+        )
+        self._baseline_animation_defaults = self._extract_animation_section(
             baseline_payload, "defaults_snapshot"
         )
 
@@ -143,6 +150,62 @@ class GraphicsSettingsService:
                 f"Baseline payload missing graphics section under '{section}'"
             )
         return _deep_copy(graphics)
+
+    def _extract_animation_section(
+        self, payload: Dict[str, Any], section: str
+    ) -> Dict[str, Any]:
+        container = payload.get(section)
+        if not isinstance(container, dict):
+            raise GraphicsSettingsError(f"Baseline payload missing '{section}' object")
+
+        animation = container.get(self.ANIMATION_CATEGORY)
+        if animation is None:
+            return {}
+        if not isinstance(animation, dict):
+            raise GraphicsSettingsError(
+                f"Baseline payload has invalid animation section under '{section}'"
+            )
+        return _deep_copy(animation)
+
+    def _split_legacy_animation(
+        self,
+        payload: Dict[str, Any] | None,
+        *,
+        source: str,
+    ) -> tuple[Dict[str, Any], Dict[str, Any] | None]:
+        if payload is None:
+            return {}, None
+        if not isinstance(payload, dict):
+            raise GraphicsSettingsError(
+                f"graphics state from {source} must be an object, got {type(payload).__name__}"
+            )
+
+        sanitized = _deep_copy(payload)
+        legacy = sanitized.pop(self.ANIMATION_CATEGORY, None)
+        if legacy is not None:
+            self._logger.info(
+                "Detected legacy graphics.animation in %s settings; migrating to current.animation",
+                source,
+            )
+        return sanitized, legacy
+
+    def _resolve_animation_payload(
+        self,
+        *,
+        top_level: Dict[str, Any] | None,
+        legacy: Dict[str, Any] | None,
+        source: str,
+    ) -> Dict[str, Any] | None:
+        if top_level is not None:
+            if legacy is not None:
+                self._logger.warning(
+                    "Ignoring legacy graphics.animation in %s settings because current.animation is present",
+                    source,
+                )
+            return top_level
+        if legacy is not None:
+            return legacy
+        return None
 
     def _normalise_materials(
         self,
@@ -250,7 +313,7 @@ class GraphicsSettingsService:
 
         state: Dict[str, Dict[str, Any]] = {}
 
-        for category in self.REQUIRED_CATEGORIES:
+        for category in self.GRAPHICS_CATEGORIES:
             payload = raw_state.get(category)
             baseline_section = baseline.get(category, {})
 
@@ -321,6 +384,59 @@ class GraphicsSettingsService:
 
         return state
 
+    def _coerce_animation(
+        self,
+        payload: Dict[str, Any] | None,
+        *,
+        baseline: Dict[str, Any],
+        allow_missing: bool,
+        source: str,
+    ) -> Dict[str, Any]:
+        if payload is None:
+            if allow_missing and baseline:
+                return _deep_copy(baseline)
+            if allow_missing:
+                return {}
+            raise GraphicsSettingsError(
+                f"current.animation missing in {source} settings"
+            )
+
+        if not isinstance(payload, dict):
+            raise GraphicsSettingsError(
+                f"current.animation must be an object, got {type(payload).__name__}"
+            )
+
+        allowed_keys = set(baseline.keys())
+        if allowed_keys:
+            unknown_keys = [key for key in payload if key not in allowed_keys]
+        else:
+            unknown_keys = []
+
+        if unknown_keys:
+            details = ", ".join(sorted(unknown_keys))
+            if allow_missing:
+                self._logger.warning(
+                    "Dropping unknown current.animation keys from %s payload: %s",
+                    source,
+                    details,
+                )
+                filtered_payload = {
+                    key: payload[key] for key in payload if key in allowed_keys
+                }
+            else:
+                raise GraphicsSettingsError(
+                    "current.animation contains unknown keys in %s settings: %s"
+                    % (source, details)
+                )
+        else:
+            filtered_payload = payload
+
+        return (
+            _deep_merge(baseline, filtered_payload)
+            if baseline
+            else _deep_copy(filtered_payload)
+        )
+
     # -------------------------------------------------------------------- API
     def _apply_persistence_aliases(
         self, state: Dict[str, Dict[str, Any]]
@@ -332,13 +448,32 @@ class GraphicsSettingsService:
     def load_current(self) -> Dict[str, Dict[str, Any]]:
         """Load and normalise the current graphics configuration."""
 
-        raw_state = self._settings_manager.get_category("graphics")
+        raw_graphics = self._settings_manager.get_category("graphics")
+        graphics_payload, legacy_animation = self._split_legacy_animation(
+            raw_graphics, source="current"
+        )
         state = self._coerce_state(
-            raw_state,
-            baseline=self._baseline_current,
+            graphics_payload,
+            baseline=self._baseline_graphics_current,
             allow_missing=True,
             source="current",
         )
+
+        top_level_animation = self._settings_manager.get_category(
+            self.ANIMATION_CATEGORY
+        )
+        animation_payload = self._resolve_animation_payload(
+            top_level=top_level_animation,
+            legacy=legacy_animation,
+            source="current",
+        )
+        state[self.ANIMATION_CATEGORY] = self._coerce_animation(
+            animation_payload,
+            baseline=self._baseline_animation_current,
+            allow_missing=True,
+            source="current",
+        )
+
         self._logger.debug(
             "Loaded graphics configuration with categories: %s",
             ", ".join(sorted(state.keys())),
@@ -348,45 +483,105 @@ class GraphicsSettingsService:
     def load_defaults(self) -> Dict[str, Dict[str, Any]]:
         """Load and normalise the defaults snapshot."""
 
-        raw_state = self._settings_manager.get("defaults_snapshot.graphics")
-        return self._coerce_state(
-            raw_state,
-            baseline=self._baseline_defaults,
+        raw_graphics = self._settings_manager.get("defaults_snapshot.graphics")
+        graphics_payload, legacy_animation = self._split_legacy_animation(
+            raw_graphics, source="defaults_snapshot"
+        )
+        state = self._coerce_state(
+            graphics_payload,
+            baseline=self._baseline_graphics_defaults,
             allow_missing=True,
             source="defaults_snapshot",
         )
 
+        top_level_animation = self._settings_manager.get("defaults_snapshot.animation")
+        animation_payload = self._resolve_animation_payload(
+            top_level=top_level_animation,
+            legacy=legacy_animation,
+            source="defaults_snapshot",
+        )
+        state[self.ANIMATION_CATEGORY] = self._coerce_animation(
+            animation_payload,
+            baseline=self._baseline_animation_defaults,
+            allow_missing=True,
+            source="defaults_snapshot",
+        )
+
+        return state
+
     def ensure_valid_state(self, state: Dict[str, Any]) -> Dict[str, Dict[str, Any]]:
         """Validate a state payload originating from the UI before persisting."""
 
-        return self._coerce_state(
-            state,
-            baseline=self._baseline_current,
+        if not isinstance(state, dict):
+            raise GraphicsSettingsError("UI state must be an object")
+
+        unknown_categories = [
+            key for key in state if key not in self.REQUIRED_CATEGORIES
+        ]
+        if unknown_categories:
+            details = ", ".join(sorted(unknown_categories))
+            raise GraphicsSettingsError(
+                f"graphics state contains unknown categories: {details}"
+            )
+
+        graphics_payload = {
+            category: state.get(category) for category in self.GRAPHICS_CATEGORIES
+        }
+        validated = self._coerce_state(
+            graphics_payload,
+            baseline=self._baseline_graphics_current,
             allow_missing=False,
             source="UI",
         )
+        validated[self.ANIMATION_CATEGORY] = self._coerce_animation(
+            state.get(self.ANIMATION_CATEGORY),
+            baseline=self._baseline_animation_current,
+            allow_missing=False,
+            source="UI",
+        )
+        return validated
 
     def save_current(self, state: Dict[str, Any]) -> None:
         """Persist the provided state into the ``current`` section."""
 
         normalised = self.ensure_valid_state(state)
-        persistable = self._apply_persistence_aliases(normalised)
-        self._settings_manager.set_category("graphics", persistable, auto_save=True)
+        animation_state = _deep_copy(normalised[self.ANIMATION_CATEGORY])
+        graphics_payload = {
+            category: normalised[category] for category in self.GRAPHICS_CATEGORIES
+        }
+        persistable = self._apply_persistence_aliases(graphics_payload)
+        self._settings_manager.set_category("graphics", persistable, auto_save=False)
+        self._settings_manager.set_category(
+            self.ANIMATION_CATEGORY, animation_state, auto_save=True
+        )
 
     def save_current_as_defaults(self, state: Dict[str, Any]) -> None:
         """Persist the provided state as both current values and defaults."""
 
         normalised = self.ensure_valid_state(state)
-        persistable = self._apply_persistence_aliases(normalised)
+        animation_state = _deep_copy(normalised[self.ANIMATION_CATEGORY])
+        graphics_payload = {
+            category: normalised[category] for category in self.GRAPHICS_CATEGORIES
+        }
+        persistable = self._apply_persistence_aliases(graphics_payload)
         self._settings_manager.set_category("graphics", persistable, auto_save=False)
+        self._settings_manager.set_category(
+            self.ANIMATION_CATEGORY, animation_state, auto_save=False
+        )
         self._settings_manager.save_current_as_defaults(
-            category="graphics", auto_save=True
+            category="graphics", auto_save=False
+        )
+        self._settings_manager.save_current_as_defaults(
+            category=self.ANIMATION_CATEGORY, auto_save=True
         )
 
     def reset_to_defaults(self) -> Dict[str, Dict[str, Any]]:
         """Reset the ``current`` settings and return the refreshed state."""
 
-        self._settings_manager.reset_to_defaults(category="graphics", auto_save=True)
+        self._settings_manager.reset_to_defaults(category="graphics", auto_save=False)
+        self._settings_manager.reset_to_defaults(
+            category=self.ANIMATION_CATEGORY, auto_save=True
+        )
         return self.load_current()
 
 
