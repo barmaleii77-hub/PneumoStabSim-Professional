@@ -738,6 +738,33 @@ Binding {
     }
 }
 
+Binding {
+    target: sceneEnvCtl
+    property: "autoFocusRangeHint"
+    value: {
+        if (!cameraController)
+            return sceneEnvCtl.dofFocusRange
+        var distanceMm = Number(cameraController.distance)
+        if (!isFinite(distanceMm) || distanceMm <= 0)
+            distanceMm = 2200
+        var unitsPerMeter = Number(cameraController.metersToControllerUnits)
+        if (!isFinite(unitsPerMeter) || unitsPerMeter <= 0)
+            unitsPerMeter = 1000
+        var scale = Number(root.effectiveSceneScaleFactor)
+        if (!isFinite(scale) || scale <= 0)
+            scale = 1.0
+        var meters = distanceMm / unitsPerMeter
+        var focusMeters = Math.max(0.05, meters) * scale
+        var fovDeg = Number(cameraController.fov)
+        if (!isFinite(fovDeg) || fovDeg <= 0)
+            fovDeg = 50
+        var fovRad = fovDeg * Math.PI / 180.0
+        var halfSpan = Math.tan(fovRad / 2) * focusMeters
+        var rangeMeters = Math.max(focusMeters * 0.25, Math.abs(halfSpan))
+        return Math.max(0.01, rangeMeters)
+    }
+}
+
  // ---------------------------------------------
  // Python bridge helpers
  // ---------------------------------------------
