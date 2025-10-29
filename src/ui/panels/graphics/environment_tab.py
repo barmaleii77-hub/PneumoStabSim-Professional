@@ -54,10 +54,15 @@ class EnvironmentTab(QWidget):
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(12)
 
-        layout.addWidget(self._build_background_group())
-        layout.addWidget(self._build_reflection_group())
-        layout.addWidget(self._build_fog_group())
-        layout.addWidget(self._build_ao_group())
+        previous_flag = self._updating_ui
+        self._updating_ui = True
+        try:
+            layout.addWidget(self._build_background_group())
+            layout.addWidget(self._build_reflection_group())
+            layout.addWidget(self._build_fog_group())
+            layout.addWidget(self._build_ao_group())
+        finally:
+            self._updating_ui = previous_flag
 
         layout.addStretch(1)
 
