@@ -47,6 +47,34 @@ Item {
         property real threshold: 0.7      // Порог яркости для свечения
         property real blurAmount: 1.0     // Размытие свечения
 
+        Buffer {
+            id: bloomUniformBuffer
+            // Инициализируем корректным типом, значения обновляются ниже
+            content: new Float32Array([0, 0, 0, 0])
+        }
+
+        parameters: [
+            Parameter {
+                name: "ubuf"
+                value: bloomUniformBuffer
+            }
+        ]
+
+        function updateUniformBuffer() {
+            const data = new Float32Array([
+                bloomEffect.intensity,
+                bloomEffect.threshold,
+                bloomEffect.blurAmount,
+                0.0
+            ])
+            bloomUniformBuffer.content = data
+        }
+
+        onIntensityChanged: updateUniformBuffer()
+        onThresholdChanged: updateUniformBuffer()
+        onBlurAmountChanged: updateUniformBuffer()
+        Component.onCompleted: updateUniformBuffer()
+
         passes: [
             Pass {
                 shaders: [
@@ -127,6 +155,64 @@ Item {
         property real radius: 2.0         // Радиус сэмплинга
         property real bias: 0.025         // Смещение для избежания самозатенения
         property int samples: 16          // Количество сэмплов
+
+        property var projectionMatrixElements: identityMatrix()
+        property var viewMatrixElements: identityMatrix()
+
+        Buffer {
+            id: ssaoUniformBuffer
+            content: new ArrayBuffer(4 * 36)
+        }
+
+        parameters: [
+            Parameter {
+                name: "ubuf"
+                value: ssaoUniformBuffer
+            }
+        ]
+
+        function identityMatrix() {
+            return [
+                1, 0, 0, 0,
+                0, 1, 0, 0,
+                0, 0, 1, 0,
+                0, 0, 0, 1
+            ]
+        }
+
+        function updateUniformBuffer() {
+            const buffer = new ArrayBuffer(4 * 36)
+            const view = new DataView(buffer)
+
+            let offset = 0
+            view.setFloat32(offset, ssaoEffect.intensity, true)
+            offset += 4
+            view.setFloat32(offset, ssaoEffect.radius, true)
+            offset += 4
+            view.setFloat32(offset, ssaoEffect.bias, true)
+            offset += 4
+            view.setInt32(offset, ssaoEffect.samples, true)
+            offset = 16
+
+            const matrices = [projectionMatrixElements, viewMatrixElements]
+            for (let m = 0; m < matrices.length; m++) {
+                const matrix = matrices[m] || identityMatrix()
+                for (let i = 0; i < 16; i++) {
+                    view.setFloat32(offset, Number(matrix[i] || 0), true)
+                    offset += 4
+                }
+            }
+
+            ssaoUniformBuffer.content = buffer
+        }
+
+        onIntensityChanged: updateUniformBuffer()
+        onRadiusChanged: updateUniformBuffer()
+        onBiasChanged: updateUniformBuffer()
+        onSamplesChanged: updateUniformBuffer()
+        onProjectionMatrixElementsChanged: updateUniformBuffer()
+        onViewMatrixElementsChanged: updateUniformBuffer()
+        Component.onCompleted: updateUniformBuffer()
 
         passes: [
             Pass {
@@ -224,6 +310,42 @@ Item {
         property real focusRange: 1000.0     // Диапазон фокуса (мм)
         property real blurAmount: 1.0        // Сила размытия
 
+        property real cameraNear: 0.1
+        property real cameraFar: 10000.0
+
+        Buffer {
+            id: dofUniformBuffer
+            content: new Float32Array(8)
+        }
+
+        parameters: [
+            Parameter {
+                name: "ubuf"
+                value: dofUniformBuffer
+            }
+        ]
+
+        function updateUniformBuffer() {
+            const data = new Float32Array([
+                dofEffect.focusDistance,
+                dofEffect.focusRange,
+                dofEffect.blurAmount,
+                dofEffect.cameraNear,
+                dofEffect.cameraFar,
+                0.0,
+                0.0,
+                0.0
+            ])
+            dofUniformBuffer.content = data
+        }
+
+        onFocusDistanceChanged: updateUniformBuffer()
+        onFocusRangeChanged: updateUniformBuffer()
+        onBlurAmountChanged: updateUniformBuffer()
+        onCameraNearChanged: updateUniformBuffer()
+        onCameraFarChanged: updateUniformBuffer()
+        Component.onCompleted: updateUniformBuffer()
+
         passes: [
             Pass {
                 shaders: [
@@ -301,6 +423,62 @@ Item {
 
         property real strength: 0.5          // Сила размытия движения
         property int samples: 8              // Количество сэмплов
+
+        property var previousViewProjectionElements: identityMatrix()
+        property var currentViewProjectionElements: identityMatrix()
+
+        Buffer {
+            id: motionBlurUniformBuffer
+            content: new ArrayBuffer(4 * 36)
+        }
+
+        parameters: [
+            Parameter {
+                name: "ubuf"
+                value: motionBlurUniformBuffer
+            }
+        ]
+
+        function identityMatrix() {
+            return [
+                1, 0, 0, 0,
+                0, 1, 0, 0,
+                0, 0, 1, 0,
+                0, 0, 0, 1
+            ]
+        }
+
+        function updateUniformBuffer() {
+            const buffer = new ArrayBuffer(4 * 36)
+            const view = new DataView(buffer)
+
+            let offset = 0
+            view.setFloat32(offset, motionBlurEffect.strength, true)
+            offset += 4
+            view.setInt32(offset, motionBlurEffect.samples, true)
+            offset += 4
+            view.setFloat32(offset, 0.0, true)
+            offset += 4
+            view.setFloat32(offset, 0.0, true)
+            offset = 16
+
+            const matrices = [previousViewProjectionElements, currentViewProjectionElements]
+            for (let m = 0; m < matrices.length; m++) {
+                const matrix = matrices[m] || identityMatrix()
+                for (let i = 0; i < 16; i++) {
+                    view.setFloat32(offset, Number(matrix[i] || 0), true)
+                    offset += 4
+                }
+            }
+
+            motionBlurUniformBuffer.content = buffer
+        }
+
+        onStrengthChanged: updateUniformBuffer()
+        onSamplesChanged: updateUniformBuffer()
+        onPreviousViewProjectionElementsChanged: updateUniformBuffer()
+        onCurrentViewProjectionElementsChanged: updateUniformBuffer()
+        Component.onCompleted: updateUniformBuffer()
 
         passes: [
             Pass {
