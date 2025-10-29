@@ -100,45 +100,46 @@ Effect {
                             float qt_Opacity;
                         } ubuf;
 
-                        #define CAMERA_POSITION ubuf.qt_CameraPosition
-                        #define EFFECT_OPACITY ubuf.qt_Opacity
+                        layout(binding = 2) uniform sampler2D qt_Texture0;
 
-                        uniform float userFogDensity;
-                        uniform vec4 userFogColor;
-                        uniform float userFogStart;
-                        uniform float userFogEnd;
-                        uniform float userFogLeast;
-                        uniform float userFogMost;
-                        uniform float userFogHeightCurve;
-                        uniform float userFogHeightEnabled;
-                        uniform float userFogScattering;
-                        uniform float userFogTransmitEnabled;
-                        uniform float userFogTransmitCurve;
-                        uniform float userFogAnimated;
-                        uniform float userFogAnimationSpeed;
-                        uniform float userFogTime;
+                        layout(std140, binding = 1) uniform FogParams {
+                            float userFogDensity;
+                            float userFogStart;
+                            float userFogEnd;
+                            float userFogLeast;
+                            float userFogMost;
+                            float userFogHeightCurve;
+                            float userFogHeightEnabled;
+                            float userFogScattering;
+                            float userFogTransmitEnabled;
+                            float userFogTransmitCurve;
+                            float userFogAnimated;
+                            float userFogAnimationSpeed;
+                            float userFogTime;
+                            vec4 userFogColor;
+                        } fogParams;
 
                         float calculateFogFactor(vec3 worldPosition, vec3 cameraPosition) {
                             float distance = length(worldPosition - cameraPosition);
 
-                            float span = max(0.001, userFogEnd - userFogStart);
-                            float linearFog = clamp((distance - userFogStart) / span, 0.0, 1.0);
+                            float span = max(0.001, fogParams.userFogEnd - fogParams.userFogStart);
+                            float linearFog = clamp((distance - fogParams.userFogStart) / span, 0.0, 1.0);
 
-                            float expFog = 1.0 - exp(-userFogDensity * distance * 0.0001);
+                            float expFog = 1.0 - exp(-fogParams.userFogDensity * distance * 0.0001);
 
                             float heightFog = 1.0;
-                            if (userFogHeightEnabled > 0.5) {
-                                float bottom = min(userFogLeast, userFogMost);
-                                float top = max(userFogLeast, userFogMost);
+                            if (fogParams.userFogHeightEnabled > 0.5) {
+                                float bottom = min(fogParams.userFogLeast, fogParams.userFogMost);
+                                float top = max(fogParams.userFogLeast, fogParams.userFogMost);
                                 float heightSpan = max(0.001, top - bottom);
                                 float relative = clamp((top - worldPosition.y) / heightSpan, 0.0, 1.0);
-                                float curve = max(0.0001, userFogHeightCurve);
+                                float curve = max(0.0001, fogParams.userFogHeightCurve);
                                 heightFog = pow(relative, curve);
                             }
 
                             float animationFactor = 1.0;
-                            if (userFogAnimated > 0.5) {
-                                vec3 noisePos = worldPosition * 0.001 + vec3(userFogTime * userFogAnimationSpeed);
+                            if (fogParams.userFogAnimated > 0.5) {
+                                vec3 noisePos = worldPosition * 0.001 + vec3(fogParams.userFogTime * fogParams.userFogAnimationSpeed);
                                 float noise = sin(noisePos.x * 12.9898 + noisePos.y * 78.233 + noisePos.z * 37.719) * 43758.5453;
                                 noise = (sin(noise) + 1.0) * 0.5;
                                 animationFactor = 0.8 + 0.4 * noise;
@@ -152,15 +153,15 @@ Effect {
 
                             float fogFactor = calculateFogFactor(v_worldPos, CAMERA_POSITION);
 
-                            vec3 scatteredColor = userFogColor.rgb * userFogScattering;
+                            vec3 scatteredColor = fogParams.userFogColor.rgb * fogParams.userFogScattering;
                             vec3 foggedColor = mix(
                                 originalColor.rgb,
-                                userFogColor.rgb + scatteredColor,
+                                fogParams.userFogColor.rgb + scatteredColor,
                                 fogFactor
                             );
 
-                            if (userFogTransmitEnabled > 0.5) {
-                                float transmitCurve = max(0.0001, userFogTransmitCurve);
+                            if (fogParams.userFogTransmitEnabled > 0.5) {
+                                float transmitCurve = max(0.0001, fogParams.userFogTransmitCurve);
                                 float transmission = pow(1.0 - fogFactor, transmitCurve);
                                 foggedColor = mix(foggedColor, originalColor.rgb, transmission);
                             }
