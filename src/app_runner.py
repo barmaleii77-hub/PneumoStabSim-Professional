@@ -98,7 +98,18 @@ class ApplicationRunner:
         else:
             try:
                 manager = get_settings_manager()
-                if hasattr(manager, "save"):
+                save_if_dirty = getattr(manager, "save_if_dirty", None)
+                if callable(save_if_dirty):
+                    pending = bool(getattr(manager, "is_dirty", False))
+                    save_if_dirty()
+                    if logger:
+                        if pending:
+                            logger.info("SettingsManager state saved on exit")
+                        else:
+                            logger.debug(
+                                "SettingsManager had no pending changes on exit"
+                            )
+                elif hasattr(manager, "save"):
                     manager.save()
                     if logger:
                         logger.info("SettingsManager state saved on exit")

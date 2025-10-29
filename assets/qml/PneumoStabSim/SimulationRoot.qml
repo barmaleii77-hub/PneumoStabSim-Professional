@@ -185,29 +185,26 @@ property real sceneScaleFactor: sceneDefaults && sceneDefaults.scale_factor !== 
  return numeric;
  })()
 
- // Анимация рычагов (град)
- property real userAmplitude: animationDefaults && animationDefaults.amplitude !== undefined ? Number(animationDefaults.amplitude) : 0.0
- property real userFrequency: animationDefaults && animationDefaults.frequency !== undefined ? Number(animationDefaults.frequency) : 0.0
- property real userPhaseGlobal: animationDefaults && animationDefaults.phase_global !== undefined ? Number(animationDefaults.phase_global) : 0.0
- property real userPhaseFL: animationDefaults && animationDefaults.phase_fl !== undefined ? Number(animationDefaults.phase_fl) : 0.0
- property real userPhaseFR: animationDefaults && animationDefaults.phase_fr !== undefined ? Number(animationDefaults.phase_fr) : 0.0
- property real userPhaseRL: animationDefaults && animationDefaults.phase_rl !== undefined ? Number(animationDefaults.phase_rl) : 0.0
- property real userPhaseRR: animationDefaults && animationDefaults.phase_rr !== undefined ? Number(animationDefaults.phase_rr) : 0.0
+// Анимация рычагов (град)
+ // Значения по умолчанию соответствуют current.animation секции (8°, 1 Гц, 0° фазовые сдвиги)
+ property real userAmplitude: animationDefaultNumber(["amplitude"], 8.0)
+ property real userFrequency: animationDefaultNumber(["frequency"], 1.0)
+ property real userPhaseGlobal: animationDefaultNumber(["phase_global"], 0.0)
+ property real userPhaseFL: animationDefaultNumber(["phase_fl"], 0.0)
+ property real userPhaseFR: animationDefaultNumber(["phase_fr"], 0.0)
+ property real userPhaseRL: animationDefaultNumber(["phase_rl"], 0.0)
+ property real userPhaseRR: animationDefaultNumber(["phase_rr"], 0.0)
 
 // Настройки сглаживания анимации
- property bool animationSmoothingEnabled: animationDefaults && animationDefaults.smoothing_enabled !== undefined ? Boolean(animationDefaults.smoothing_enabled) : false
- property real animationSmoothingDurationMs: animationDefaults && animationDefaults.smoothing_duration_ms !== undefined ? Number(animationDefaults.smoothing_duration_ms) : 0.0
- property real animationSmoothingAngleSnapDeg: animationDefaults && animationDefaults.smoothing_angle_snap_deg !== undefined ? Number(animationDefaults.smoothing_angle_snap_deg) : 0.0
- property real animationSmoothingPistonSnapM: animationDefaults && animationDefaults.smoothing_piston_snap_m !== undefined ? Number(animationDefaults.smoothing_piston_snap_m) : 0.0
- property string animationSmoothingEasing: (function() {
-     if (!animationDefaults)
-         return "";
-     if (animationDefaults.smoothing_easing !== undefined && animationDefaults.smoothing_easing !== null)
-         return String(animationDefaults.smoothing_easing);
-     if (animationDefaults.smoothingEasing !== undefined && animationDefaults.smoothingEasing !== null)
-         return String(animationDefaults.smoothingEasing);
-     return "";
- })()
+ readonly property string defaultSmoothingEasing: "OutCubic" // соответствует animation.smoothing_easing
+ property bool animationSmoothingEnabled: animationDefaultBool(["smoothing_enabled"], true)
+ property real animationSmoothingDurationMs: animationDefaultNumber(["smoothing_duration_ms"], 120.0)
+ property real animationSmoothingAngleSnapDeg: animationDefaultNumber(["smoothing_angle_snap_deg"], 65.0)
+ property real animationSmoothingPistonSnapM: animationDefaultNumber(["smoothing_piston_snap_m"], 0.05)
+ property string animationSmoothingEasing: animationDefaultString([
+     "smoothing_easing",
+     "smoothingEasing"
+ ], defaultSmoothingEasing)
 
  RigAnimationController {
   id: rigAnimation
@@ -263,22 +260,66 @@ property real sceneScaleFactor: sceneDefaults && sceneDefaults.scale_factor !== 
  return result
  }
 
- function geometryDefaultNumber(keys, fallback) {
-     var defaults = geometryDefaults || {}
-     var list = Array.isArray(keys) ? keys : [keys]
-     for (var i = 0; i < list.length; ++i) {
-         var candidate = defaults[list[i]]
-         if (candidate !== undefined && candidate !== null) {
-             var numeric = Number(candidate)
-             if (isFinite(numeric))
-                 return numeric
-         }
-     }
-     var fallbackNumeric = Number(fallback)
-     if (isFinite(fallbackNumeric))
-         return fallbackNumeric
-     return 0.0
- }
+function geometryDefaultNumber(keys, fallback) {
+    var defaults = geometryDefaults || {}
+    var list = Array.isArray(keys) ? keys : [keys]
+    for (var i = 0; i < list.length; ++i) {
+        var candidate = defaults[list[i]]
+        if (candidate !== undefined && candidate !== null) {
+            var numeric = Number(candidate)
+            if (isFinite(numeric))
+                return numeric
+        }
+    }
+    var fallbackNumeric = Number(fallback)
+    if (isFinite(fallbackNumeric))
+        return fallbackNumeric
+    return 0.0
+}
+
+function animationDefaultNumber(keys, fallback) {
+    var defaults = animationDefaults || {}
+    var list = Array.isArray(keys) ? keys : [keys]
+    for (var i = 0; i < list.length; ++i) {
+        var candidate = defaults[list[i]]
+        if (candidate !== undefined && candidate !== null) {
+            var numeric = Number(candidate)
+            if (isFinite(numeric))
+                return numeric
+        }
+    }
+    var fallbackNumeric = Number(fallback)
+    if (isFinite(fallbackNumeric))
+        return fallbackNumeric
+    return 0.0
+}
+
+function animationDefaultBool(keys, fallback) {
+    var defaults = animationDefaults || {}
+    var list = Array.isArray(keys) ? keys : [keys]
+    for (var i = 0; i < list.length; ++i) {
+        var candidate = defaults[list[i]]
+        if (candidate !== undefined && candidate !== null)
+            return !!candidate
+    }
+    return !!fallback
+}
+
+function animationDefaultString(keys, fallback) {
+    var defaults = animationDefaults || {}
+    var list = Array.isArray(keys) ? keys : [keys]
+    for (var i = 0; i < list.length; ++i) {
+        var candidate = defaults[list[i]]
+        if (candidate !== undefined && candidate !== null) {
+            var text = String(candidate)
+            if (text.length)
+                return text
+        }
+    }
+    if (fallback === undefined || fallback === null)
+        return ""
+    return String(fallback)
+}
 
  function restartFallbackTimeline() {
  if (!fallbackEnabled)
