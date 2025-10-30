@@ -102,6 +102,7 @@ class EnvironmentSetup:
 
     def __init__(self, qt_sdk_version: Optional[str] = None):
         self.project_root = Path(__file__).parent
+        self.logger = Logger("[Setup] ")
         self.python_executable = self._find_python()
         self.platform = platform.system()
         self.qt_environment = _detect_qt_environment()
@@ -113,8 +114,6 @@ class EnvironmentSetup:
         self._root_warning_shown = False
 
         os.environ.update(self.qt_environment)
-
-        self.logger = Logger("[Setup] ")
 
         self._pip_extra_args = self._detect_pip_extra_args()
 
