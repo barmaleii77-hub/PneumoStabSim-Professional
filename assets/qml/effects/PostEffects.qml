@@ -626,45 +626,61 @@ Item {
             ? env.toSceneLength
             : null
 
+        // Хелпер для безопасного преобразования числовых значений из payload
+        function numberFromPayload(value) {
+            var num = Number(value)
+            return isFinite(num) ? num : undefined
+        }
+
         function convertLength(value) {
-            if (!isFinite(value))
+            var num = numberFromPayload(value)
+            if (num === undefined)
                 return undefined
-            return toSceneLength ? toSceneLength(value) : value
+            return toSceneLength ? toSceneLength(num) : num
         }
 
         if (env) {
             if (env.bloomEnabled !== undefined)
                 bloomEffect.enabled = !!env.bloomEnabled
-            if (env.bloomIntensity !== undefined && isFinite(Number(env.bloomIntensity)))
-                bloomEffect.intensity = Number(env.bloomIntensity)
-            if (env.bloomThreshold !== undefined && isFinite(Number(env.bloomThreshold)))
-                bloomEffect.threshold = Number(env.bloomThreshold)
-            if (env.bloomSpread !== undefined && isFinite(Number(env.bloomSpread)))
-                bloomEffect.blurAmount = Math.max(0.0, Number(env.bloomSpread))
+            var bloomIntensity = numberFromPayload(env.bloomIntensity)
+            if (bloomIntensity !== undefined)
+                bloomEffect.intensity = bloomIntensity
+            var bloomThreshold = numberFromPayload(env.bloomThreshold)
+            if (bloomThreshold !== undefined)
+                bloomEffect.threshold = bloomThreshold
+            var bloomSpread = numberFromPayload(env.bloomSpread)
+            if (bloomSpread !== undefined)
+                bloomEffect.blurAmount = Math.max(0.0, bloomSpread)
 
             if (env.ssaoEnabled !== undefined)
                 ssaoEffect.enabled = !!env.ssaoEnabled
-            if (env.ssaoIntensity !== undefined && isFinite(Number(env.ssaoIntensity)))
-                ssaoEffect.intensity = Number(env.ssaoIntensity)
-            if (env.ssaoRadius !== undefined && isFinite(Number(env.ssaoRadius))) {
-                var envRadius = Number(env.ssaoRadius)
+            var ssaoIntensity = numberFromPayload(env.ssaoIntensity)
+            if (ssaoIntensity !== undefined)
+                ssaoEffect.intensity = ssaoIntensity
+            var ssaoRadius = numberFromPayload(env.ssaoRadius)
+            if (ssaoRadius !== undefined) {
+                var envRadius = ssaoRadius
                 if (envRadius < 0.1)
                     envRadius *= 1000.0
                 ssaoEffect.radius = Math.max(0.01, envRadius)
             }
-            if (env.ssaoSampleRate !== undefined && isFinite(Number(env.ssaoSampleRate)))
-                ssaoEffect.samples = Math.max(1, Math.round(Number(env.ssaoSampleRate)))
+            var ssaoSampleRate = numberFromPayload(env.ssaoSampleRate)
+            if (ssaoSampleRate !== undefined)
+                ssaoEffect.samples = Math.max(1, Math.round(ssaoSampleRate))
 
             if (env.internalDepthOfFieldEnabled !== undefined)
                 dofEffect.enabled = !!env.internalDepthOfFieldEnabled
             else if (env.depthOfFieldEnabled !== undefined)
                 dofEffect.enabled = !!env.depthOfFieldEnabled
-            if (env.dofFocusDistance !== undefined && isFinite(Number(env.dofFocusDistance)))
-                dofEffect.focusDistance = Math.max(0.0, Number(env.dofFocusDistance))
-            if (env.dofFocusRange !== undefined && isFinite(Number(env.dofFocusRange)))
-                dofEffect.focusRange = Math.max(0.0, Number(env.dofFocusRange))
-            if (env.dofBlurAmount !== undefined && isFinite(Number(env.dofBlurAmount)))
-                dofEffect.blurAmount = Math.max(0.0, Number(env.dofBlurAmount))
+            var dofFocusDistance = numberFromPayload(env.dofFocusDistance)
+            if (dofFocusDistance !== undefined)
+                dofEffect.focusDistance = Math.max(0.0, dofFocusDistance)
+            var dofFocusRange = numberFromPayload(env.dofFocusRange)
+            if (dofFocusRange !== undefined)
+                dofEffect.focusRange = Math.max(0.0, dofFocusRange)
+            var dofBlurAmount = numberFromPayload(env.dofBlurAmount)
+            if (dofBlurAmount !== undefined)
+                dofEffect.blurAmount = Math.max(0.0, dofBlurAmount)
         }
 
         if (params) {
