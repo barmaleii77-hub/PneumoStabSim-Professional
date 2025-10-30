@@ -282,6 +282,16 @@ def _utc_now() -> str:
     return datetime.now(timezone.utc).isoformat()
 
 
+def _last_modified_timestamp() -> str:
+    """Return an ISO-8601 timestamp suitable for ``metadata.last_modified``."""
+
+    return (
+        datetime.now(timezone.utc)
+        .isoformat(timespec="milliseconds")
+        .replace("+00:00", "Z")
+    )
+
+
 @dataclass
 class _SettingsChange:
     path: str
@@ -609,6 +619,11 @@ class SettingsManager:
         self._assign_sections(payload)
 
     def save(self) -> None:
+        if not isinstance(self._metadata, dict):
+            self._metadata = {}
+
+        self._metadata["last_modified"] = _last_modified_timestamp()
+
         payload: Dict[str, Any] = {
             "metadata": _deep_copy(self._metadata),
             "current": _deep_copy(self._data),
