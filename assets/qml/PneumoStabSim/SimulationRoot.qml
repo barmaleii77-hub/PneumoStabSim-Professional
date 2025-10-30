@@ -199,7 +199,7 @@ property real sceneScaleFactor: sceneDefaults && sceneDefaults.scale_factor !== 
  property real userPhaseRR: animationDefaultNumber(["phase_rr"], 0.0)
 
 // Настройки сглаживания анимации
- readonly property string defaultSmoothingEasing: rigAnimation ? rigAnimation.DEFAULT_EASING : "OutCubic" // соответствует animation.smoothing_easing
+ readonly property string defaultSmoothingEasing: rigAnimation ? rigAnimation.defaultEasingName : "OutCubic" // соответствует animation.smoothing_easing
  property bool animationSmoothingEnabled: animationDefaultBool(["smoothing_enabled"], true)
  property real animationSmoothingDurationMs: animationDefaultNumber(["smoothing_duration_ms"], 120.0)
  property real animationSmoothingAngleSnapDeg: animationDefaultNumber(["smoothing_angle_snap_deg"], 65.0)

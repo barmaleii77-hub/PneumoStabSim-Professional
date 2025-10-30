@@ -54,6 +54,9 @@
         "normal_strength": {
           "type": "number"
         },
+        "texture_path": {
+          "type": "string"
+        },
         "occlusion_amount": {
           "type": "number"
         },
