@@ -1,16 +1,19 @@
-# QML HDR Fallback
+# QML HDR Assets
 
-QML scenes reference `assets/studio_small_09_2k.hdr` as the default fallback
-image-based lighting probe. The canonical copy of this HDRI lives in
-`assets/hdr/`; replicate it here (or create a symlink) so that relative
-imports from QML continue to resolve during development builds.
+The modern rendering pipeline no longer ships with a hard-coded HDR fallback.
+Qt Quick 3D scenes load image-based lighting (IBL) assets through
+`components/IblProbeLoader.qml`, which reads the active file from the
+application settings or the graphics UI. If no EXR/HDR file is configured,
+the loader leaves the probe empty and the UI displays `—` to reflect the
+absence of lighting data.
 
-## Refresh checklist
+## Asset handling checklist
 
-- Pull the latest lighting assets into `assets/hdr/`.
-- Copy `assets/hdr/studio_small_09_2k.hdr` to this directory.
-- Confirm that the file size matches the source download (≈4 MiB).
-- Re-run the rendering smoke tests to validate lighting presets.
-If the HDRI is not yet available, leave a tiny placeholder file with the same
-name so that module imports do not fail. Replace the placeholder as soon as
-the real asset ships.
+- Place candidate HDR/EXR files under `assets/hdr/` or another configured
+  search path.
+- Use the graphics settings panel to cycle through the available files and
+  persist the chosen path back to `config/app_settings.json`.
+- Do **not** copy placeholder files into this directory. Missing files should
+  surface as warnings so users can address the configuration explicitly.
+- Re-run the rendering smoke tests after updating HDR assets to confirm the
+  lighting profile loads correctly.
