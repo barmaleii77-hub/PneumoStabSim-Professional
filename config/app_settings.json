@@ -2,7 +2,7 @@
   "metadata": {
     "version": "4.9.6",
     "schema_version": "0.2.1",
-    "last_modified": "2025-10-26T16:25:30Z",
+    "last_modified": "2025-10-30T07:42:57.015Z",
     "units_version": "si_v2",
     "migrations": [
       "0001_add_diagnostics_defaults"
@@ -259,7 +259,8 @@
           "occlusion_amount": 0.0,
           "alpha_mode": "default",
           "alpha_cutoff": 0.0,
-          "id": "frame"
+          "id": "frame",
+          "texture_path": ""
         },
         "lever": {
           "base_color": "#7d6b53",
@@ -1282,7 +1283,8 @@
           "occlusion_amount": 0.0,
           "alpha_mode": "default",
           "alpha_cutoff": 0.0,
-          "id": "frame"
+          "id": "frame",
+          "texture_path": ""
         },
         "lever": {
           "base_color": "#7d6b53",
