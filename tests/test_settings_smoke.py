@@ -1,5 +1,6 @@
 import json
 from copy import deepcopy
+from datetime import datetime, timezone
 from pathlib import Path
 
 import pytest
@@ -80,6 +81,26 @@ def test_settings_manager_round_trip_updates_file(legacy_settings: Path) -> None
 
     payload = json.loads(legacy_settings.read_text(encoding="utf-8"))
     assert payload["current"]["simulation"]["physics_dt"] == 0.004
+
+
+def test_settings_manager_updates_last_modified_on_save(
+    legacy_settings: Path,
+) -> None:
+    manager = SettingsManager(settings_file=legacy_settings)
+
+    before = manager.get("metadata.last_modified")
+    manager.set("current.simulation.physics_dt", 0.006)
+
+    after = manager.get("metadata.last_modified")
+    assert isinstance(after, str)
+    assert after != before
+
+    payload = json.loads(legacy_settings.read_text(encoding="utf-8"))
+    persisted = payload["metadata"].get("last_modified")
+    assert persisted == after
+
+    parsed = datetime.fromisoformat(persisted.replace("Z", "+00:00"))
+    assert parsed.tzinfo == timezone.utc
 
 
 def test_settings_manager_updates_defaults_snapshot(legacy_settings: Path) -> None:
