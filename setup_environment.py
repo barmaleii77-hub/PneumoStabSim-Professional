@@ -102,19 +102,19 @@ class EnvironmentSetup:
 
     def __init__(self, qt_sdk_version: Optional[str] = None):
         self.project_root = Path(__file__).parent
-        self.python_executable = self._find_python()
         self.platform = platform.system()
+        self.logger = Logger("[Setup] ")
+
         self.qt_environment = _detect_qt_environment()
+        os.environ.update(self.qt_environment)
+
+        self.python_executable = self._find_python()
         self.python_version = self._detect_python_version()
         self.qt_sdk_version = qt_sdk_version
         self.venv_path = self.project_root / ".venv"
         self._venv_python_cmd: Optional[List[str]] = None
         self._venv_python_announced = False
         self._root_warning_shown = False
-
-        os.environ.update(self.qt_environment)
-
-        self.logger = Logger("[Setup] ")
 
         self._pip_extra_args = self._detect_pip_extra_args()
 
