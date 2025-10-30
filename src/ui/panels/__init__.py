@@ -45,9 +45,8 @@ def _called_from_inspect_unwrap() -> bool:
     frame = inspect.currentframe()
     try:
         while frame is not None:
-            code = frame.f_code
-            # Проверяем, что это функция unwrap из любого файла, содержащего 'inspect' в имени
-            if code.co_name == "unwrap" and "inspect" in code.co_filename:
+            module = inspect.getmodule(frame)
+            if module is inspect and frame.f_code.co_name == "unwrap":
                 return True
             frame = frame.f_back
     finally:
