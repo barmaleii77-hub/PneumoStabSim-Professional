@@ -256,6 +256,15 @@ Item {
             name: "normalTexture"
             value: Effect.NormalTexture
         }
+        // Явное связывание текстур глубины и нормалей для SSAO
+        Parameter {
+            name: "depthTexture"
+            value: Effect.DepthTexture
+        }
+        Parameter {
+            name: "normalTexture"
+            value: Effect.NormalTexture
+        }
         property bool fallbackActive: false
         property string lastErrorLog: ""
 
