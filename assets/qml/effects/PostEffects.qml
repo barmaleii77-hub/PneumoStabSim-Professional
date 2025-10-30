@@ -74,21 +74,6 @@ Item {
         return effectItem.fallbackActive ? [fallbackShader] : [activeShader]
     }
 
-    function ensureEffectRequirement(effectItem, propertyName, value, successLog, failureLog) {
-        try {
-            effectItem[propertyName] = value
-            if (successLog && successLog.length > 0)
-                console.log("✅", successLog)
-            return true
-        } catch (error) {
-            const message = failureLog && failureLog.length > 0
-                    ? failureLog
-                    : `Effect requirement '${propertyName}' is not supported`
-            console.warn("⚠️", message, error)
-            return false
-        }
-    }
-
     Component.onCompleted: {
         console.log("🎨 Post Effects Collection loaded")
         console.log("   Available effects: Bloom, SSAO, DOF, Motion Blur")
@@ -155,6 +140,8 @@ Item {
 
         property bool fallbackActive: false
         property string lastErrorLog: ""
+        property bool requiresDepthTexture: true
+        property bool requiresNormalTexture: true
 
         property real intensity: 0.3      // Интенсивность свечения
         property real threshold: 0.7      // Порог яркости для свечения
@@ -278,23 +265,8 @@ Item {
         property bool normalTextureAvailable: false
 
         Component.onCompleted: {
-            depthTextureAvailable = root.ensureEffectRequirement(
-                        ssaoEffect,
-                        "requiresDepthTexture",
-                        true,
-                        "SSAO: depth texture support enabled",
-                        "SSAO: depth texture buffer is not supported; disabling advanced SSAO")
-            normalTextureAvailable = root.ensureEffectRequirement(
-                        ssaoEffect,
-                        "requiresNormalTexture",
-                        true,
-                        "SSAO: normal texture support enabled",
-                        "SSAO: normal texture buffer is not supported; disabling advanced SSAO")
-
-            if (!depthTextureAvailable || !normalTextureAvailable) {
-                fallbackActive = true
-                console.warn("⚠️ SSAO: switching to passthrough fallback due to missing textures")
-            }
+            depthTextureAvailable = true
+            normalTextureAvailable = true
         }
 
         property real intensity: 0.5      // Интенсивность затенения
@@ -314,82 +286,63 @@ Item {
             property real uRadius: ssaoEffect.radius
             property real uBias: ssaoEffect.bias
             property int uSamples: ssaoEffect.samples
+            property real uCameraNear: root.cameraClipNear
+            property real uCameraFar: root.cameraClipFar
             shader: "
                             #version 440
 
-                            
-                            #ifndef INPUT_UV
-                            #define INPUT_UV v_uv
-                            #endif
+                            layout(location = 0) out vec4 fragColor;
+                            #define FRAGCOLOR fragColor
 
-                            #ifndef FRAGCOLOR
-                            layout(location = 0) out vec4 qt_FragColor;
-                            #define FRAGCOLOR qt_FragColor
-                            #endif
-
-                            layout(binding = 1) uniform sampler2D qt_Texture0;
-                            layout(binding = 2) uniform sampler2D qt_DepthTexture;
-                            layout(binding = 3) uniform sampler2D qt_NormalTexture;
-
-                            #ifndef INPUT
-                            #define INPUT texture(qt_Texture0, INPUT_UV)
-                            #endif
+                            uniform sampler2D INPUT;
+                            uniform sampler2D DEPTH_TEXTURE;
 
                             uniform float uIntensity;
                             uniform float uRadius;
                             uniform float uBias;
                             uniform int uSamples;
+                            uniform float uCameraNear;
+                            uniform float uCameraFar;
 
-                            // Генерация случайных векторов для сэмплинга
-                            vec3 generateSampleVector(int index) {
-                                float angle = float(index) * 0.39269908; // 2π/16
-                                float radius = float(index + 1) / max(1.0, float(uSamples));
-
-                                return vec3(
-                                    cos(angle) * radius,
-                                    sin(angle) * radius,
-                                    radius * 0.5 + 0.5
-                                );
+                            float random(vec2 co) {
+                                return fract(sin(dot(co, vec2(12.9898, 78.233))) * 43758.5453);
                             }
 
-                            void qt_customMain() {
-                                vec4 original = INPUT;
-                                vec3 normal = normalize(texture(qt_NormalTexture, INPUT_UV).xyz * 2.0 - 1.0);
-                                float depth = texture(qt_DepthTexture, INPUT_UV).r;
+                            float linearizeDepth(float depth) {
+                                float z = depth * 2.0 - 1.0;
+                                return (2.0 * uCameraNear * uCameraFar)
+                                       / (uCameraFar + uCameraNear - z * (uCameraFar - uCameraNear));
+                            }
 
-                                if (depth >= 1.0) {
+                            void MAIN() {
+                                vec4 original = texture(INPUT, INPUT_UV);
+                                float depthSample = texture(DEPTH_TEXTURE, INPUT_UV).r;
+
+                                if (depthSample >= 1.0) {
                                     FRAGCOLOR = original;
                                     return;
                                 }
 
+                                float centerDepth = linearizeDepth(depthSample);
+                                vec2 texelSize = 1.0 / vec2(textureSize(INPUT, 0));
                                 float occlusion = 0.0;
-                                vec2 texelSize = 1.0 / vec2(textureSize(qt_Texture0, 0));
                                 int sampleCount = max(uSamples, 1);
 
-                                // SSAO сэмплинг
-                                for (int i = 0; i < sampleCount; i++) {
-                                    vec3 sampleVec = generateSampleVector(i);
+                                for (int i = 0; i < sampleCount; ++i) {
+                                    float progress = (float(i) + random(INPUT_UV + float(i))) / float(sampleCount);
+                                    float angle = progress * 6.2831853;
+                                    vec2 direction = vec2(cos(angle), sin(angle));
+                                    vec2 sampleUV = clamp(INPUT_UV + direction * texelSize * uRadius, 0.0, 1.0);
 
-                                    // Ориентация сэмплов по нормали
-                                    sampleVec = normalize(sampleVec);
-                                    if (dot(sampleVec, normal) < 0.0) {
-                                        sampleVec = -sampleVec;
-                                    }
-
-                                    vec2 sampleCoord = INPUT_UV + sampleVec.xy * uRadius * texelSize;
-                                    float sampleDepth = texture(qt_DepthTexture, sampleCoord).r;
-
-                                    // Проверка окклюзии
-                                    float depthDiff = depth - sampleDepth;
-                                    if (depthDiff > uBias) {
-                                        occlusion += 1.0;
-                                    }
+                                    float sampleDepthRaw = texture(DEPTH_TEXTURE, sampleUV).r;
+                                    float sampleDepth = linearizeDepth(sampleDepthRaw);
+                                    float depthDiff = sampleDepth - centerDepth;
+                                    float rangeCheck = smoothstep(0.0, 1.0, uRadius - abs(depthDiff));
+                                    occlusion += depthDiff > uBias ? rangeCheck : 0.0;
                                 }
 
-                                occlusion /= max(1.0, float(sampleCount));
-                                occlusion = 1.0 - (occlusion * uIntensity);
-
-                                FRAGCOLOR = vec4(original.rgb * occlusion, original.a);
+                                float aoFactor = 1.0 - clamp(occlusion / float(sampleCount), 0.0, 1.0) * uIntensity;
+                                FRAGCOLOR = vec4(original.rgb * aoFactor, original.a);
                             }
                         "
         }
@@ -400,19 +353,13 @@ Item {
             shader: "
                             #version 440
 
-                            #ifndef INPUT_UV
-                            #define INPUT_UV v_uv
-                            #endif
+                            layout(location = 0) out vec4 fragColor;
+                            #define FRAGCOLOR fragColor
 
-                            #ifndef FRAGCOLOR
-                            layout(location = 0) out vec4 qt_FragColor;
-                            #define FRAGCOLOR qt_FragColor
-                            #endif
+                            uniform sampler2D INPUT;
 
-                            layout(binding = 1) uniform sampler2D qt_Texture0;
-
-                            void qt_customMain() {
-                                FRAGCOLOR = texture(qt_Texture0, INPUT_UV);
+                            void MAIN() {
+                                FRAGCOLOR = texture(INPUT, INPUT_UV);
                             }
                         "
         }
@@ -434,6 +381,7 @@ Item {
         property bool fallbackActive: false
         property string lastErrorLog: ""
         property bool depthTextureAvailable: false
+        property bool requiresDepthTexture: true
 
         property real focusDistance: 2000.0  // Расстояние фокуса (мм)
         property real focusRange: 1000.0     // Диапазон фокуса (мм)
@@ -449,17 +397,7 @@ Item {
         }
 
         Component.onCompleted: {
-            depthTextureAvailable = root.ensureEffectRequirement(
-                        dofEffect,
-                        "requiresDepthTexture",
-                        true,
-                        "Depth of Field: depth texture support enabled",
-                        "Depth of Field: depth texture unavailable; using fallback shader")
-
-            if (!depthTextureAvailable) {
-                fallbackActive = true
-                console.warn("⚠️ Depth of Field: switching to passthrough fallback due to missing depth texture")
-            }
+            depthTextureAvailable = true
         }
 
         Shader {
@@ -473,22 +411,11 @@ Item {
             shader: "
                             #version 440
 
-                            
-                            #ifndef INPUT_UV
-                            #define INPUT_UV v_uv
-                            #endif
+                            layout(location = 0) out vec4 fragColor;
+                            #define FRAGCOLOR fragColor
 
-                            #ifndef FRAGCOLOR
-                            layout(location = 0) out vec4 qt_FragColor;
-                            #define FRAGCOLOR qt_FragColor
-                            #endif
-
-                            layout(binding = 1) uniform sampler2D qt_Texture0;
-                            layout(binding = 2) uniform sampler2D qt_DepthTexture;
-
-                            #ifndef INPUT
-                            #define INPUT texture(qt_Texture0, INPUT_UV)
-                            #endif
+                            uniform sampler2D INPUT;
+                            uniform sampler2D DEPTH_TEXTURE;
 
                             uniform float uFocusDistance;
                             uniform float uFocusRange;
@@ -496,33 +423,35 @@ Item {
                             uniform float uCameraNear;
                             uniform float uCameraFar;
 
-                            // Преобразование depth buffer в линейную глубину
                             float linearizeDepth(float depth) {
                                 float z = depth * 2.0 - 1.0;
-                                return (2.0 * uCameraNear * uCameraFar) /
-                                       (uCameraFar + uCameraNear - z * (uCameraFar - uCameraNear));
+                                return (2.0 * uCameraNear * uCameraFar)
+                                       / (uCameraFar + uCameraNear - z * (uCameraFar - uCameraNear));
                             }
 
-                            // Размытие по кругу (bokeh)
                             vec3 circularBlur(vec2 uv, float radius) {
                                 vec3 color = vec3(0.0);
                                 int samples = 16;
 
-                                for (int i = 0; i < samples; i++) {
-                                    float angle = float(i) * 6.28318 / float(samples);
+                                for (int i = 0; i < samples; ++i) {
+                                    float angle = float(i) * 6.2831853 / float(samples);
                                     vec2 offset = vec2(cos(angle), sin(angle)) * radius;
-                                    color += texture(qt_Texture0, uv + offset).rgb;
+                                    color += texture(INPUT, uv + offset).rgb;
                                 }
 
                                 return color / float(samples);
                             }
 
-                            void qt_customMain() {
-                                vec4 original = INPUT;
-                                float depth = texture(qt_DepthTexture, INPUT_UV).r;
-                                float linearDepth = linearizeDepth(depth);
+                            void MAIN() {
+                                vec4 original = texture(INPUT, INPUT_UV);
+                                float depth = texture(DEPTH_TEXTURE, INPUT_UV).r;
 
-                                // Расчет blur радиуса на основе расстояния от фокуса
+                                if (depth >= 1.0) {
+                                    FRAGCOLOR = original;
+                                    return;
+                                }
+
+                                float linearDepth = linearizeDepth(depth);
                                 float focusFactor = abs(linearDepth - uFocusDistance) / max(0.0001, uFocusRange);
                                 float blurRadius = clamp(focusFactor, 0.0, 1.0) * uBlurAmount * 0.01;
 
@@ -540,20 +469,13 @@ Item {
             shader: "
                             #version 440
 
+                            layout(location = 0) out vec4 fragColor;
+                            #define FRAGCOLOR fragColor
 
-                            #ifndef INPUT_UV
-                            #define INPUT_UV v_uv
-                            #endif
+                            uniform sampler2D INPUT;
 
-                            #ifndef FRAGCOLOR
-                            layout(location = 0) out vec4 qt_FragColor;
-                            #define FRAGCOLOR qt_FragColor
-                            #endif
-
-                            layout(binding = 1) uniform sampler2D qt_Texture0;
-
-                            void qt_customMain() {
-                                FRAGCOLOR = texture(qt_Texture0, INPUT_UV);
+                            void MAIN() {
+                                FRAGCOLOR = texture(INPUT, INPUT_UV);
                             }
                         "
         }
@@ -570,11 +492,11 @@ Item {
     // Motion Blur Effect
     Effect {
         id: motionBlurEffect
-
         // Эффект размытия движения читает текстуру скоростей
         property bool fallbackActive: false
         property string lastErrorLog: ""
         property bool velocityTextureAvailable: false
+        property bool requiresVelocityTexture: false
 
         property real strength: 0.5          // Сила размытия движения
         property int samples: 8              // Количество сэмплов
@@ -583,99 +505,92 @@ Item {
                 samples = 1
         }
 
-        Component.onCompleted: {
-            velocityTextureAvailable = root.ensureEffectRequirement(
-                        motionBlurEffect,
-                        "requiresVelocityTexture",
-                        true,
-                        "Motion Blur: velocity texture support enabled",
-                        "Motion Blur: velocity texture unavailable; using fallback shader")
+         Component.onCompleted: {
+            velocityTextureAvailable = true
+        }
 
-            if (!velocityTextureAvailable) {
-                fallbackActive = true
-                console.warn("⚠️ Motion Blur: switching to passthrough fallback due to missing velocity texture")
-            }
+        readonly property real feedbackAmount: Math.min(0.95, Math.max(0.0, 1.0 - 1.0 / Math.max(1, samples)))
+        readonly property real enabledFactor: (root.motionBlurEnabled && strength > 0.0 ? 1.0 : 0.0)
+
+        Buffer {
+            id: motionBlurHistory
+            name: "motionBlurHistory"
+            bufferFlags: Buffer.SceneLifetime
         }
 
         Shader {
-            id: motionBlurFragmentShader
+            id: motionBlurHistoryShader
             stage: Shader.Fragment
-            property real uStrength: motionBlurEffect.strength
-            property int uSamples: motionBlurEffect.samples
+            property real uFeedback: motionBlurEffect.feedbackAmount
+            property real uEnabled: motionBlurEffect.enabledFactor
             shader: "
                             #version 440
 
-                            
-                            #ifndef INPUT_UV
-                            #define INPUT_UV v_uv
-                            #endif
+                            layout(location = 0) out vec4 fragColor;
+                            #define FRAGCOLOR fragColor
 
-                            #ifndef FRAGCOLOR
-                            layout(location = 0) out vec4 qt_FragColor;
-                            #define FRAGCOLOR qt_FragColor
-                            #endif
+                            uniform sampler2D INPUT;
+                            uniform sampler2D uPrevious;
+                            uniform float uFeedback;
+                            uniform float uEnabled;
 
-                            layout(binding = 1) uniform sampler2D qt_Texture0;
-                            layout(binding = 2) uniform sampler2D qt_VelocityTexture;
-
-                            #ifndef INPUT
-                            #define INPUT texture(qt_Texture0, INPUT_UV)
-                            #endif
-
-                            uniform float uStrength;
-                            uniform int uSamples;
-
-                            void qt_customMain() {
-                                vec4 original = INPUT;
-                                vec2 velocity = texture(qt_VelocityTexture, INPUT_UV).xy;
-
-                                vec3 color = original.rgb;
-                                int sampleCount = max(uSamples, 1);
-                                vec2 step = velocity * uStrength / max(1.0, float(sampleCount));
-
-                                // Сэмплирование вдоль вектора движения
-                                for (int i = 1; i < sampleCount; i++) {
-                                    vec2 sampleCoord = INPUT_UV + step * float(i);
-                                    color += texture(qt_Texture0, sampleCoord).rgb;
-                                }
-
-                                color /= max(1.0, float(sampleCount));
-                                FRAGCOLOR = vec4(color, original.a);
+                            void MAIN() {
+                                vec4 current = texture(INPUT, INPUT_UV);
+                                vec4 previous = texture(uPrevious, INPUT_UV);
+                                float active = clamp(uEnabled, 0.0, 1.0);
+                                float feedback = clamp(uFeedback, 0.0, 0.95) * active;
+                                FRAGCOLOR = mix(current, previous, feedback);
                             }
                         "
         }
 
         Shader {
-            id: motionBlurFallbackShader
+            id: motionBlurCompositeShader
             stage: Shader.Fragment
+            property real uStrength: motionBlurEffect.strength
+            property real uEnabled: motionBlurEffect.enabledFactor
             shader: "
                             #version 440
 
+                            layout(location = 0) out vec4 fragColor;
+                            #define FRAGCOLOR fragColor
 
-                            #ifndef INPUT_UV
-                            #define INPUT_UV v_uv
-                            #endif
+                            uniform sampler2D INPUT;
+                            uniform sampler2D uHistory;
+                            uniform float uStrength;
+                            uniform float uEnabled;
 
-                            #ifndef FRAGCOLOR
-                            layout(location = 0) out vec4 qt_FragColor;
-                            #define FRAGCOLOR qt_FragColor
-                            #endif
-
-                            layout(binding = 1) uniform sampler2D qt_Texture0;
-
-                            void qt_customMain() {
-                                FRAGCOLOR = texture(qt_Texture0, INPUT_UV);
+                            void MAIN() {
+                                vec4 current = texture(INPUT, INPUT_UV);
+                                vec4 history = texture(uHistory, INPUT_UV);
+                                float active = clamp(uEnabled, 0.0, 1.0);
+                                float blend = clamp(uStrength, 0.0, 1.0) * active;
+                                FRAGCOLOR = mix(current, history, blend);
                             }
                         "
         }
 
         passes: [
             Pass {
-                shaders: resolveShaders(root.motionBlurEnabled, motionBlurEffect, motionBlurFragmentShader, motionBlurFallbackShader)
+                output: motionBlurHistory
+                shaders: [motionBlurHistoryShader]
+                commands: [
+                    BufferInput {
+                        buffer: motionBlurHistory
+                        sampler: "uPrevious"
+                    }
+                ]
+            },
+            Pass {
+                shaders: [motionBlurCompositeShader]
+                commands: [
+                    BufferInput {
+                        buffer: motionBlurHistory
+                        sampler: "uHistory"
+                    }
+                ]
             }
         ]
-
-        // Effect.enabled is controlled externally via root.motionBlurEnabled
     }
 
     function applyPayload(params, environment) {
