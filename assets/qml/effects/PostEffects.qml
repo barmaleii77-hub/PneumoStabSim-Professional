@@ -284,12 +284,8 @@ Item {
                         true,
                         "SSAO: depth texture support enabled",
                         "SSAO: depth texture buffer is not supported; disabling advanced SSAO")
-            normalTextureAvailable = root.ensureEffectRequirement(
-                        ssaoEffect,
-                        "requiresNormalTexture",
-                        true,
-                        "SSAO: normal texture support enabled",
-                        "SSAO: normal texture buffer is not supported; disabling advanced SSAO")
+            // fixed: removed deprecated 'requiresNormalTexture' requirement (Qt 6)
+            normalTextureAvailable = false
 
             if (!depthTextureAvailable || !normalTextureAvailable) {
                 fallbackActive = true

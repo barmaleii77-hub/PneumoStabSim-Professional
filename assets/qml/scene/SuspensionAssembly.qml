@@ -22,6 +22,7 @@ Node {
     required property Node worldRoot
     required property var geometryState
     required property SharedMaterials sharedMaterials
+    required property var materialsDefaults
     property var geometryDefaults: ({})
 
     // ------------------------------------------------------------------
@@ -237,6 +238,7 @@ Node {
         jointTailMaterial: assembly.sharedMaterials.jointTailMaterial
         jointArmMaterial: assembly.sharedMaterials.jointArmMaterial
         jointRodMaterial: AnimatedRodMaterial {
+            materialsDefaults: assembly.materialsDefaults
             okColor: assembly.sharedMaterials.jointRodOkColor
             warningColor: assembly.sharedMaterials.jointRodErrorColor
             warning: flCorner.rodLengthError > assembly.rodWarningThreshold
@@ -267,6 +269,7 @@ Node {
         jointTailMaterial: assembly.sharedMaterials.jointTailMaterial
         jointArmMaterial: assembly.sharedMaterials.jointArmMaterial
         jointRodMaterial: AnimatedRodMaterial {
+            materialsDefaults: assembly.materialsDefaults
             okColor: assembly.sharedMaterials.jointRodOkColor
             warningColor: assembly.sharedMaterials.jointRodErrorColor
             warning: frCorner.rodLengthError > assembly.rodWarningThreshold
@@ -297,6 +300,7 @@ Node {
         jointTailMaterial: assembly.sharedMaterials.jointTailMaterial
         jointArmMaterial: assembly.sharedMaterials.jointArmMaterial
         jointRodMaterial: AnimatedRodMaterial {
+            materialsDefaults: assembly.materialsDefaults
             okColor: assembly.sharedMaterials.jointRodOkColor
             warningColor: assembly.sharedMaterials.jointRodErrorColor
             warning: rlCorner.rodLengthError > assembly.rodWarningThreshold
@@ -327,9 +331,14 @@ Node {
         jointTailMaterial: assembly.sharedMaterials.jointTailMaterial
         jointArmMaterial: assembly.sharedMaterials.jointArmMaterial
         jointRodMaterial: AnimatedRodMaterial {
+            materialsDefaults: assembly.materialsDefaults
             okColor: assembly.sharedMaterials.jointRodOkColor
             warningColor: assembly.sharedMaterials.jointRodErrorColor
             warning: rrCorner.rodLengthError > assembly.rodWarningThreshold
         }
+    }
+
+    Component.onCompleted: {
+        console.log("✅ SuspensionAssembly loaded (all components initialized)")
     }
 }

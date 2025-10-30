@@ -46,10 +46,7 @@ Effect {
                         #define INPUT_UV qt_MultiTexCoord0
                         #endif
 
-                        #ifndef POSITION
-                        #define POSITION gl_Position
-                        #endif
-
+                        // fixed: rely on QtQuick3D-provided POSITION instead of defining gl_Position
                         layout(location = 0) out vec2 v_uv;
                         layout(location = 1) out vec3 v_worldPos;
 

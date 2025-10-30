@@ -743,6 +743,7 @@ SequentialAnimation {
   worldRoot: worldRoot
   geometryState: geometryState
   geometryDefaults: geometryDefaults || ({})
+  materialsDefaults: sceneDefaults && sceneDefaults.materials ? sceneDefaults.materials : ({})
   sharedMaterials: sharedMaterials
   sceneScaleFactor: root.effectiveSceneScaleFactor
   leverAngles: ({
@@ -1016,6 +1017,7 @@ Rectangle {
  }
 
  Component.onCompleted: {
+  console.log("✅ SimulationRoot initialized successfully")
   if (typeof signalTrace !== "undefined" && signalTrace && typeof signalTrace.registerSubscription === "function") {
    signalTrace.registerSubscription("settings.settingChanged","main.qml","qml")
    signalTrace.registerSubscription("settings.settingsBatchUpdated","main.qml","qml")
@@ -1450,6 +1452,7 @@ function sanitizeReflectionProbePadding(value) {
     Connections {
         target: root
         function onPendingPythonUpdatesChanged() {
+            // fixed: apply incoming UI updates immediately for instant redraw
             if (!root.pendingPythonUpdates)
                 return;
             try {
