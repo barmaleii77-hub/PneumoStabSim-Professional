@@ -66,6 +66,15 @@
         "alpha_cutoff": {
           "type": "number"
         },
+        "warning_color": {
+          "type": "string"
+        },
+        "ok_color": {
+          "type": "string"
+        },
+        "error_color": {
+          "type": "string"
+        },
         "id": {
           "type": "string"
         }
