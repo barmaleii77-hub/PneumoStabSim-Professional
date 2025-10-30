@@ -359,6 +359,12 @@ Item {
 
         requiresDepthTexture: true
 
+        // Явное связывание depthTexture для шейдера (binding=2)
+        Parameter {
+            name: "depthTexture"
+            value: Effect.DepthTexture
+            binding: 2
+        }
         onBlurAmountChanged: {
             if (blurAmount < 0.0)
                 blurAmount = 0.0
