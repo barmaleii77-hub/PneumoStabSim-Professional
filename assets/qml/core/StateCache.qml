@@ -24,20 +24,20 @@ QtObject {
 
     // Animation parameters
     property real animationTime: 0.0
-    property real userFrequency: 1.0
+    property real userFrequency: 0.0
     property real userPhaseGlobal: 0.0
     property real userPhaseFL: 0.0
     property real userPhaseFR: 0.0
     property real userPhaseRL: 0.0
     property real userPhaseRR: 0.0
-    property real userAmplitude: 8.0
+    property real userAmplitude: 0.0
 
     // Geometry parameters
-    property real userLeverLength: 0.75
-    property real userRodPosition: 0.34
-    property real userCylinderLength: 0.46
-    property real userTrackWidth: 2.34
-    property real userFrameLength: 3.4
+    property real userLeverLength: 0.0
+    property real userRodPosition: 0.0
+    property real userCylinderLength: 0.0
+    property real userTrackWidth: 0.0
+    property real userFrameLength: 0.0
 
     // Camera parameters
     property real cameraFov: 60.0

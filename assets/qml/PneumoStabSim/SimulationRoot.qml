@@ -263,6 +263,34 @@ property real sceneScaleFactor: sceneDefaults && sceneDefaults.scale_factor !== 
  return result
  }
 
+property var _defaultFallbackRegistry: ({})
+
+function defaultDebugValue(value) {
+    if (value === undefined)
+        return "undefined"
+    if (value === null)
+        return "null"
+    if (typeof value === "number" && !isFinite(value))
+        return String(value)
+    try {
+        var text = JSON.stringify(value)
+        if (text !== undefined)
+            return text
+    } catch (err) {
+    }
+    return String(value)
+}
+
+function recordDefaultFallback(scope, keyList, fallbackValue, reason) {
+    var list = Array.isArray(keyList) ? keyList : [keyList]
+    var token = scope + ":" + list.join("|")
+    if (_defaultFallbackRegistry[token])
+        return
+    _defaultFallbackRegistry[token] = true
+    var reasonText = reason ? " (" + reason + ")" : ""
+    console.warn("[SimulationRoot] ⚠️ " + scope + " default for " + list.join(" | ") + " unavailable" + reasonText + "; using fallback " + defaultDebugValue(fallbackValue))
+}
+
 function geometryDefaultNumber(keys, fallback) {
     var defaults = geometryDefaults || {}
     var list = Array.isArray(keys) ? keys : [keys]
@@ -272,12 +300,15 @@ function geometryDefaultNumber(keys, fallback) {
             var numeric = Number(candidate)
             if (isFinite(numeric))
                 return numeric
+            recordDefaultFallback("geometry", [list[i]], fallback, "invalid value " + defaultDebugValue(candidate))
         }
     }
     var fallbackNumeric = Number(fallback)
-    if (isFinite(fallbackNumeric))
-        return fallbackNumeric
-    return 0.0
+    if (!isFinite(fallbackNumeric))
+        fallbackNumeric = 0.0
+    var reason = defaults && Object.keys(defaults).length ? "missing key" : "defaults unavailable"
+    recordDefaultFallback("geometry", list, fallbackNumeric, reason)
+    return fallbackNumeric
 }
 
 function animationDefaultNumber(keys, fallback) {
@@ -289,12 +320,15 @@ function animationDefaultNumber(keys, fallback) {
             var numeric = Number(candidate)
             if (isFinite(numeric))
                 return numeric
+            recordDefaultFallback("animation", [list[i]], fallback, "invalid value " + defaultDebugValue(candidate))
         }
     }
     var fallbackNumeric = Number(fallback)
-    if (isFinite(fallbackNumeric))
-        return fallbackNumeric
-    return 0.0
+    if (!isFinite(fallbackNumeric))
+        fallbackNumeric = 0.0
+    var reason = defaults && Object.keys(defaults).length ? "missing key" : "defaults unavailable"
+    recordDefaultFallback("animation", list, fallbackNumeric, reason)
+    return fallbackNumeric
 }
 
 function animationDefaultBool(keys, fallback) {
@@ -305,6 +339,10 @@ function animationDefaultBool(keys, fallback) {
         if (candidate !== undefined && candidate !== null)
             return !!candidate
     }
+    if (!defaults || !Object.keys(defaults).length)
+        recordDefaultFallback("animation", list, !!fallback, "defaults unavailable")
+    else
+        recordDefaultFallback("animation", list, !!fallback, "missing key")
     return !!fallback
 }
 
@@ -317,11 +355,15 @@ function animationDefaultString(keys, fallback) {
             var text = String(candidate)
             if (text.length)
                 return text
+            recordDefaultFallback("animation", [list[i]], fallback, "empty string value")
         }
     }
     if (fallback === undefined || fallback === null)
         return ""
-    return String(fallback)
+    var fallbackText = String(fallback)
+    var reason = defaults && Object.keys(defaults).length ? "missing key" : "defaults unavailable"
+    recordDefaultFallback("animation", list, fallbackText, reason)
+    return fallbackText
 }
 
 function effectsDefaults() {
@@ -345,12 +387,15 @@ function effectsDefaultNumber(keys, fallback) {
             var numeric = Number(candidate)
             if (isFinite(numeric))
                 return numeric
+            recordDefaultFallback("effects", [list[i]], fallback, "invalid value " + defaultDebugValue(candidate))
         }
     }
     var fallbackNumeric = Number(fallback)
-    if (isFinite(fallbackNumeric))
-        return fallbackNumeric
-    return 0.0
+    if (!isFinite(fallbackNumeric))
+        fallbackNumeric = 0.0
+    var reason = defaults && Object.keys(defaults).length ? "missing key" : "defaults unavailable"
+    recordDefaultFallback("effects", list, fallbackNumeric, reason)
+    return fallbackNumeric
 }
 
  function restartFallbackTimeline() {

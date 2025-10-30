@@ -10,6 +10,100 @@ Item {
     id: root
     anchors.fill: parent
 
+    // Injected defaults from SettingsManager
+    property var animationDefaults: typeof initialAnimationSettings !== "undefined" ? initialAnimationSettings : null
+    property var geometryDefaults: typeof initialGeometrySettings !== "undefined" ? initialGeometrySettings : null
+
+    property var _fallbackWarnings: ({})
+
+    function debugValue(value) {
+        if (value === undefined)
+            return "undefined"
+        if (value === null)
+            return "null"
+        if (typeof value === "number" && !isFinite(value))
+            return String(value)
+        try {
+            var text = JSON.stringify(value)
+            if (text !== undefined)
+                return text
+        } catch (err) {
+        }
+        return String(value)
+    }
+
+    function warnFallback(scope, keyToken, fallbackValue, reason) {
+        var token = scope + ":" + keyToken
+        if (_fallbackWarnings[token])
+            return
+        _fallbackWarnings[token] = true
+        var reasonText = reason ? " (" + reason + ")" : ""
+        console.warn("[main_simple] ⚠️ " + scope + " default for " + keyToken + " unavailable" + reasonText + "; using fallback " + debugValue(fallbackValue))
+    }
+
+    function geometryDefaultMeters(keys, fallback) {
+        var defaults = geometryDefaults || {}
+        var list = Array.isArray(keys) ? keys : [keys]
+        for (var i = 0; i < list.length; ++i) {
+            var candidate = defaults[list[i]]
+            if (candidate !== undefined && candidate !== null) {
+                var numeric = Number(candidate)
+                if (isFinite(numeric))
+                    return numeric
+                warnFallback("geometry", list[i], fallback, "invalid value " + debugValue(candidate))
+            }
+        }
+        var fallbackNumeric = Number(fallback)
+        if (!isFinite(fallbackNumeric))
+            fallbackNumeric = 0.0
+        var reason = defaults && Object.keys(defaults).length ? "missing key" : "defaults unavailable"
+        warnFallback("geometry", list.join("|"), fallbackNumeric, reason)
+        return fallbackNumeric
+    }
+
+    function geometryDefaultMillimetres(keys, fallbackMm) {
+        var fallbackMeters = Number(fallbackMm) / 1000.0
+        var meters = geometryDefaultMeters(keys, fallbackMeters)
+        return meters * 1000.0
+    }
+
+    function geometryDefaultNumber(keys, fallback) {
+        return geometryDefaultMeters(keys, fallback)
+    }
+
+    function animationDefaultNumber(keys, fallback) {
+        var defaults = animationDefaults || {}
+        var list = Array.isArray(keys) ? keys : [keys]
+        for (var i = 0; i < list.length; ++i) {
+            var candidate = defaults[list[i]]
+            if (candidate !== undefined && candidate !== null) {
+                var numeric = Number(candidate)
+                if (isFinite(numeric))
+                    return numeric
+                warnFallback("animation", list[i], fallback, "invalid value " + debugValue(candidate))
+            }
+        }
+        var fallbackNumeric = Number(fallback)
+        if (!isFinite(fallbackNumeric))
+            fallbackNumeric = 0.0
+        var reason = defaults && Object.keys(defaults).length ? "missing key" : "defaults unavailable"
+        warnFallback("animation", list.join("|"), fallbackNumeric, reason)
+        return fallbackNumeric
+    }
+
+    function animationDefaultBool(keys, fallback) {
+        var defaults = animationDefaults || {}
+        var list = Array.isArray(keys) ? keys : [keys]
+        for (var i = 0; i < list.length; ++i) {
+            var candidate = defaults[list[i]]
+            if (candidate !== undefined && candidate !== null)
+                return Boolean(candidate)
+        }
+        var reason = defaults && Object.keys(defaults).length ? "missing key" : "defaults unavailable"
+        warnFallback("animation", list.join("|"), Boolean(fallback), reason)
+        return Boolean(fallback)
+    }
+
     // ===============================================================
     // ANIMATION AND GEOMETRY PROPERTIES
     // ===============================================================
@@ -18,34 +112,34 @@ Item {
     property bool isRunning: false
 
     // User-controlled animation parameters
-    property real userAmplitude: 8.0
-    property real userFrequency: 1.0
-    property real userPhaseGlobal: 0.0
-    property real userPhaseFL: 0.0
-    property real userPhaseFR: 0.0
-    property real userPhaseRL: 0.0
-    property real userPhaseRR: 0.0
+    property real userAmplitude: animationDefaultNumber(["amplitude"], 0.0)
+    property real userFrequency: animationDefaultNumber(["frequency"], 0.0)
+    property real userPhaseGlobal: animationDefaultNumber(["phase_global", "phase"], 0.0)
+    property real userPhaseFL: animationDefaultNumber(["phase_fl", "lf_phase"], 0.0)
+    property real userPhaseFR: animationDefaultNumber(["phase_fr", "rf_phase"], 0.0)
+    property real userPhaseRL: animationDefaultNumber(["phase_rl", "lr_phase"], 0.0)
+    property real userPhaseRR: animationDefaultNumber(["phase_rr", "rr_phase"], 0.0)
 
     // Piston positions from Python
-    property real userPistonPositionFL: 250.0
-    property real userPistonPositionFR: 250.0
-    property real userPistonPositionRL: 250.0
-    property real userPistonPositionRR: 250.0
+    property real userPistonPositionFL: 0.0
+    property real userPistonPositionFR: 0.0
+    property real userPistonPositionRL: 0.0
+    property real userPistonPositionRR: 0.0
 
     // Geometry parameters
-    property real userBeamSize: 120
-    property real userFrameHeight: 650
-    property real userFrameLength: 3400
-    property real userLeverLength: 750
-    property real userCylinderLength: 460
-    property real userTrackWidth: 2340
-    property real userFrameToPivot: 420
-    property real userRodPosition: 0.34
-    property real userBoreHead: 110
-    property real userBoreRod: 110
-    property real userRodDiameter: 35
-    property real userPistonThickness: 25
-    property real userPistonRodLength: 320
+    property real userBeamSize: geometryDefaultMillimetres(["frame_beam_size_m", "frame_beam_size"], 0.0)
+    property real userFrameHeight: geometryDefaultMillimetres(["frame_height_m", "frame_height"], 0.0)
+    property real userFrameLength: geometryDefaultMillimetres(["frame_length_m", "frameLength", "wheelbase"], 0.0)
+    property real userLeverLength: geometryDefaultMillimetres(["lever_length", "lever_length_m"], 0.0)
+    property real userCylinderLength: geometryDefaultMillimetres(["cylinder_body_length_m", "cylinder_length"], 0.0)
+    property real userTrackWidth: geometryDefaultMillimetres(["track", "track_width", "track_width_m"], 0.0)
+    property real userFrameToPivot: geometryDefaultMillimetres(["frame_to_pivot", "frameToPivot"], 0.0)
+    property real userRodPosition: geometryDefaultNumber(["rod_position", "rodPosition"], 0.0)
+    property real userBoreHead: geometryDefaultMillimetres(["cyl_diam_m", "bore", "bore_d"], 0.0)
+    property real userRodDiameter: geometryDefaultMillimetres(["rod_diameter_m", "rodDiameter"], 0.0)
+    property real userBoreRod: userRodDiameter
+    property real userPistonThickness: geometryDefaultMillimetres(["piston_thickness_m", "pistonThickness"], 0.0)
+    property real userPistonRodLength: geometryDefaultMillimetres(["piston_rod_length_m", "pistonRodLength"], 0.0)
 
     // ===============================================================
     // GRAPHICS PROPERTIES (заглушки)
