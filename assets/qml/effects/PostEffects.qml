@@ -249,7 +249,8 @@ Item {
             }
         ]
 
-        // Effect.enabled is controlled externally via root.bloomEnabled
+        // Включение свечения контролируется через выбор шейдера (resolveShaders) по root.bloomEnabled,
+        // а не через свойство Effect.enabled — эффект всегда активен, но визуализация зависит от выбранного шейдера.
     }
 
     // SSAO Effect (Screen Space Ambient Occlusion)
