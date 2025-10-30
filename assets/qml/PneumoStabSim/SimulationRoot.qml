@@ -2216,7 +2216,7 @@ function sanitizeReflectionProbePadding(value) {
  // Делегируем контроллеру окружения для консистентности
  sceneEnvCtl.applyEffectsPayload(params);
  if (postEffects && typeof postEffects.applyPayload === "function")
-  postEffects.applyPayload(params, sceneEnvCtl);
+ postEffects.applyPayload(params, sceneEnvCtl);
  }
 
 function applyAnimationUpdates(params) {
