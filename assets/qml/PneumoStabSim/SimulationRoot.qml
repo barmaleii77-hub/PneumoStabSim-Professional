@@ -642,18 +642,18 @@ SequentialAnimation {
  }
 
  Timer {
-  id: pythonPressureTimeout
-  interval: 800
-  repeat: false
-  onTriggered: pythonPressureActive = false
+ id: pythonPressureTimeout
+ interval: 800
+ repeat: false
+ onTriggered: pythonPressureActive = false
  }
 
  PostEffects {
-  id: postEffects
-  anchors.fill: parent
-  visible: false
-  onEffectCompilationError: registerShaderWarning(effectId, errorLog)
-  onEffectCompilationRecovered: clearShaderWarning(effectId)
+ id: postEffects
+ anchors.fill: parent
+ visible: false
+ onEffectCompilationError: registerShaderWarning(effectId, errorLog)
+ onEffectCompilationRecovered: clearShaderWarning(effectId)
  }
 
  View3D {
