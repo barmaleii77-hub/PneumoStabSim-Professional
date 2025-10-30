@@ -46,7 +46,8 @@ def _called_from_inspect_unwrap() -> bool:
     try:
         while frame is not None:
             code = frame.f_code
-            if code.co_name == "unwrap" and code.co_filename.endswith("inspect.py"):
+            # Проверяем, что это функция unwrap из любого файла, содержащего 'inspect' в имени
+            if code.co_name == "unwrap" and "inspect" in code.co_filename:
                 return True
             frame = frame.f_back
     finally:
