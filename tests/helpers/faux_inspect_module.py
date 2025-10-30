@@ -1,4 +1,4 @@
-"""Helpers mimicking an ``inspect``-like module calling ``unwrap``."""
+"""Хелперы, имитирующие модуль типа ``inspect`` с вызовом ``unwrap``."""
 
 from __future__ import annotations
 
