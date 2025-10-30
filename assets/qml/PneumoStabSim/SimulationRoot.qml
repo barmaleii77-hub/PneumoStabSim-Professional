@@ -2023,12 +2023,18 @@ function sanitizeReflectionProbePadding(value) {
  ior: "Ior",
  attenuation_distance: "AttenuationDistance",
  attenuation_color: "AttenuationColor",
- emissive_color: "EmissiveColor",
- emissive_intensity: "EmissiveIntensity",
- warning_color: "WarningColor",
- ok_color: "OkColor",
- error_color: "ErrorColor"
- };
+    emissive_color: "EmissiveColor",
+    emissive_intensity: "EmissiveIntensity",
+    normal_strength: "NormalStrength",
+    occlusion_amount: "OcclusionAmount",
+    thickness: "Thickness",
+    alpha_mode: "AlphaMode",
+    alpha_cutoff: "AlphaCutoff",
+    texture_path: "TexturePath",
+    warning_color: "WarningColor",
+    ok_color: "OkColor",
+    error_color: "ErrorColor"
+};
 
  function canonicalMaterialKey(key) {
  var normalized = String(key || "").toLowerCase();
