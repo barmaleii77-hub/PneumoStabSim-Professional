@@ -1,4 +1,5 @@
 import json
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -108,6 +109,23 @@ def test_settings_service_emits_event_on_save(settings_payload: Path) -> None:
         last_event.get("path") == "current.constants.geometry.kinematics.track_width_m"
     )
     assert "timestamp" in last_event
+
+
+def test_settings_service_set_updates_last_modified(settings_payload: Path) -> None:
+    service = SettingsService(settings_path=settings_payload)
+
+    before = service.get("metadata.last_modified")
+    assert isinstance(before, str)
+
+    service.set("current.constants.geometry.kinematics.track_width_m", 3.21)
+
+    persisted = json.loads(settings_payload.read_text(encoding="utf-8"))
+    after = persisted["metadata"].get("last_modified")
+    assert isinstance(after, str)
+    assert after != before
+
+    parsed = datetime.fromisoformat(after.replace("Z", "+00:00"))
+    assert parsed.tzinfo == timezone.utc
 
 
 def test_constants_accessors_use_settings_service(
