@@ -477,6 +477,7 @@ check_*.py
 !tests/unit/ui/test_knob.py
 !tests/unit/ui/test_signals_router_quality.py
 !tests/unit/test_graphics_settings_service.py
+!tests/unit/test_lazy_module_wrapped.py
 !tests/unit/runtime/test_state_snapshot_buffer.py
 !tests/unit/runtime/test_sync.py
 !tests/unit/physics/test_assemble_forces.py

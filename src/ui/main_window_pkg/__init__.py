@@ -15,6 +15,8 @@ Qt bindings.
 
 from __future__ import annotations
 
+import inspect
+import sys
 from importlib import import_module, util
 from typing import Any, Dict
 
@@ -28,16 +30,6 @@ __all__ = [
     "state_sync",
     "menu_actions",
 ]
-
-# ``inspect.unwrap`` (and the PySide6 signature loader that builds upon it)
-# performs a direct attribute lookup for ``__wrapped__``.  The lazy module
-# proxy implemented below intentionally raises ``AttributeError`` for unknown
-# names, but older versions of the signature loader do not guard the lookup in
-# a ``try``/``except`` block.  Providing an explicit ``None`` sentinel keeps the
-# lookup side-effect free and signals that the module is not a wrapper around a
-# different object.  The attribute is deliberately omitted from ``__all__`` so
-# it does not leak into ``from module import *``.
-__wrapped__ = None
 
 __version__ = "4.9.5"
 
@@ -123,8 +115,32 @@ def get_version_info() -> Dict[str, Any]:
     return info
 
 
+def _called_from_inspect_unwrap() -> bool:
+    """Return ``True`` when the caller is :func:`inspect.unwrap`."""
+
+    frame = inspect.currentframe()
+    try:
+        # Walk a few frames up the stack—``inspect.unwrap`` sits only a couple
+        # of levels above the module attribute access.
+        while frame is not None:
+            code = frame.f_code
+            if code.co_name == "unwrap" and code.co_filename.endswith("inspect.py"):
+                return True
+            frame = frame.f_back
+    finally:
+        # Break reference cycles to avoid leaking frames.
+        del frame
+
+    return False
+
+
 def __getattr__(name: str) -> Any:
     """Provide lazy attribute access for window and helper modules."""
+
+    if name == "__wrapped__":
+        if _called_from_inspect_unwrap():
+            raise AttributeError(name)
+        return sys.modules[__name__]
 
     if name == "MainWindow":
         return _load_main_window()
