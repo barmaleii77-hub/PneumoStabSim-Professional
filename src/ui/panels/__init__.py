@@ -16,16 +16,12 @@ the original ImportError with full context.
 
 from __future__ import annotations
 
+import inspect
+import sys
 from importlib import import_module
 from typing import TYPE_CHECKING, Any
 
 __all__ = ["GeometryPanel", "PneumoPanel", "ModesPanel", "RoadPanel", "GraphicsPanel"]
-
-# See ``src.ui.main_window_pkg`` for context: the PySide6 signature loader may
-# perform a bare ``module.__wrapped__`` lookup without handling
-# ``AttributeError``.  Supplying ``None`` avoids spurious crashes while keeping
-# the lazy-import proxy transparent to callers.
-__wrapped__ = None
 
 _EXPORTS = {
     "GeometryPanel": ("panel_geometry", "GeometryPanel"),
@@ -43,8 +39,30 @@ if TYPE_CHECKING:  # pragma: no cover - typing helpers only
     from .graphics.panel_graphics_refactored import GraphicsPanel
 
 
+def _called_from_inspect_unwrap() -> bool:
+    """Return ``True`` when :func:`inspect.unwrap` triggered the lookup."""
+
+    frame = inspect.currentframe()
+    try:
+        while frame is not None:
+            code = frame.f_code
+            # Проверяем, что это функция unwrap из любого файла, содержащего 'inspect' в имени
+            if code.co_name == "unwrap" and "inspect" in code.co_filename:
+                return True
+            frame = frame.f_back
+    finally:
+        del frame
+
+    return False
+
+
 def __getattr__(name: str) -> Any:
     """Lazily import panel classes on first access."""
+
+    if name == "__wrapped__":
+        if _called_from_inspect_unwrap():
+            raise AttributeError(name)
+        return sys.modules[__name__]
 
     try:
         module_name, attribute = _EXPORTS[name]
