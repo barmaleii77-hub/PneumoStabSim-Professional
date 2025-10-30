@@ -615,6 +615,17 @@ Item {
             value: Effect.VelocityTexture
             binding: 3
         }
+        // Явное связывание depth и velocity текстур через Parameter
+        Parameter {
+            name: "qt_DepthTexture"
+            value: Effect.DepthTexture
+            binding: 2
+        }
+        Parameter {
+            name: "qt_VelocityTexture"
+            value: Effect.VelocityTexture
+            binding: 3
+        }
         onSamplesChanged: {
             if (samples < 1)
                 samples = 1
