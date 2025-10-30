@@ -29,16 +29,6 @@ __all__ = [
     "menu_actions",
 ]
 
-# ``inspect.unwrap`` (and the PySide6 signature loader that builds upon it)
-# performs a direct attribute lookup for ``__wrapped__``.  The lazy module
-# proxy implemented below intentionally raises ``AttributeError`` for unknown
-# names, but older versions of the signature loader do not guard the lookup in
-# a ``try``/``except`` block.  Providing an explicit ``None`` sentinel keeps the
-# lookup side-effect free and signals that the module is not a wrapper around a
-# different object.  The attribute is deliberately omitted from ``__all__`` so
-# it does not leak into ``from module import *``.
-__wrapped__ = None
-
 __version__ = "4.9.5"
 
 _MODULE_EXPORTS = {

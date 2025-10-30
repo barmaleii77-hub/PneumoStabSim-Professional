@@ -21,12 +21,6 @@ from typing import TYPE_CHECKING, Any
 
 __all__ = ["GeometryPanel", "PneumoPanel", "ModesPanel", "RoadPanel", "GraphicsPanel"]
 
-# See ``src.ui.main_window_pkg`` for context: the PySide6 signature loader may
-# perform a bare ``module.__wrapped__`` lookup without handling
-# ``AttributeError``.  Supplying ``None`` avoids spurious crashes while keeping
-# the lazy-import proxy transparent to callers.
-__wrapped__ = None
-
 _EXPORTS = {
     "GeometryPanel": ("panel_geometry", "GeometryPanel"),
     "PneumoPanel": ("panel_pneumo", "PneumoPanel"),
