@@ -554,28 +554,40 @@ class GeometryStateManager:
             Dictionary with 3D geometry parameters expressed in meters.
         """
 
-        def _value(name: str, default: float) -> float:
+        def _value(name: str, *, fallback: float | None = None) -> float:
+            raw = self.state.get(name, DEFAULT_GEOMETRY.get(name, fallback))
+            if raw is None:
+                return float(fallback or 0.0)
             try:
-                return float(self.state.get(name, default))
+                return float(raw)
             except (TypeError, ValueError):
-                return float(default)
+                base = DEFAULT_GEOMETRY.get(name, fallback)
+                if base is not None:
+                    try:
+                        return float(base)
+                    except (TypeError, ValueError):
+                        pass
+                if fallback is not None:
+                    return float(fallback)
+                return 0.0
 
-        frame_length = _value("wheelbase", 3.2)
-        frame_height = _value("frame_height_m", 0.65)
-        frame_beam_size = _value("frame_beam_size_m", 0.12)
-        lever_length = _value("lever_length", 0.8)
-        cylinder_body_length = _value("cylinder_length", 0.5)
-        tail_rod_length = _value("tail_rod_length_m", 0.1)
-        track_width = _value("track", 1.6)
-        frame_to_pivot = _value("frame_to_pivot", 0.6)
-        rod_position = _value("rod_position", 0.6)
-        cyl_diameter = _value("cyl_diam_m", 0.080)
-        stroke = _value("stroke_m", 0.300)
-        dead_gap = _value("dead_gap_m", 0.005)
-        rod_diameter_front = _value("rod_diameter_m", 0.035)
-        rod_diameter_rear = _value("rod_diameter_rear_m", rod_diameter_front)
-        piston_rod_length = _value("piston_rod_length_m", 0.200)
-        piston_thickness = _value("piston_thickness_m", 0.025)
+        frame_length = _value("wheelbase")
+        frame_height = _value("frame_height_m")
+        frame_beam_size = _value("frame_beam_size_m")
+        lever_length = _value("lever_length")
+        cylinder_body_length = _value("cylinder_body_length_m")
+        tail_rod_length = _value("tail_rod_length_m")
+        track_width = _value("track")
+        frame_to_pivot = _value("frame_to_pivot")
+        rod_position = _value("rod_position")
+        cyl_diameter = _value("cyl_diam_m")
+        stroke = _value("stroke_m")
+        dead_gap = _value("dead_gap_m")
+        rod_diameter_front = _value("rod_diameter_m")
+        rod_diameter_rear = _value("rod_diameter_rear_m", fallback=rod_diameter_front)
+        piston_rod_length = _value("piston_rod_length_m")
+        piston_thickness = _value("piston_thickness_m")
+        cylinder_length = _value("cylinder_length", fallback=cylinder_body_length)
 
         payload = {
             # Основные размеры (м)
@@ -584,6 +596,7 @@ class GeometryStateManager:
             "frameBeamSize": frame_beam_size,
             "leverLength": lever_length,
             "cylinderBodyLength": cylinder_body_length,
+            "cylinderLength": cylinder_length,
             "tailRodLength": tail_rod_length,
             # Дополнительные параметры (м)
             "trackWidth": track_width,
@@ -621,12 +634,32 @@ class GeometryStateManager:
             "rod_diameter_rear_mm": rod_diameter_rear * 1000.0,
             "rod_diameter_mm": rod_diameter_front * 1000.0,
             "piston_rod_length_mm": piston_rod_length * 1000.0,
+            "cylinder_length_mm": cylinder_length * 1000.0,
             "piston_thickness_mm": piston_thickness * 1000.0,
         }
 
         payload["rodDiameterM"] = rod_diameter_front
         payload["rodDiameterRear"] = rod_diameter_rear
         payload["rodDiameterFront"] = rod_diameter_front
+
+        payload["wheelbase"] = frame_length
+        payload["track"] = track_width
+        payload["frame_to_pivot"] = frame_to_pivot
+        payload["rod_position"] = rod_position
+        payload["frame_length_m"] = frame_length
+        payload["frame_height_m"] = frame_height
+        payload["frame_beam_size_m"] = frame_beam_size
+        payload["lever_length_m"] = lever_length
+        payload["tail_rod_length_m"] = tail_rod_length
+        payload["cylinder_length"] = cylinder_length
+        payload["cyl_diam_m"] = cyl_diameter
+        payload["stroke_m"] = stroke
+        payload["dead_gap_m"] = dead_gap
+        payload["rod_diameter_m"] = rod_diameter_front
+        payload["rod_diameter_rear_m"] = rod_diameter_rear
+        payload["piston_rod_length_m"] = piston_rod_length
+        payload["piston_thickness_m"] = piston_thickness
+        payload["cylinder_body_length_m"] = cylinder_body_length
 
         payload.update(mm_payload)
         return payload
