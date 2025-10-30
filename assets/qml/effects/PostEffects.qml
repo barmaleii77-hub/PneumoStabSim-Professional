@@ -64,8 +64,13 @@ Item {
     property alias motionBlurSamples: motionBlurEffect.samples
 
     function resolveShaders(isEnabled, effectItem, activeShader, fallbackShader) {
-        if (!isEnabled)
-            return [fallbackShader]
+        // Если эффект выключен, отключаем его полностью
+        if (!isEnabled) {
+            effectItem.enabled = false
+            return []
+        }
+        // Включаем эффект и выбираем нужный шейдер
+        effectItem.enabled = true
         return effectItem.fallbackActive ? [fallbackShader] : [activeShader]
     }
 
