@@ -201,88 +201,6 @@ Item {
 
         requiresDepthTexture: true
         requiresNormalTexture: true
-
-        // Явное связывание текстур глубины и нормалей для SSAO
-        Parameter {
-            name: "depthTexture"
-            value: Effect.DepthTexture
-        }
-        Parameter {
-            name: "normalTexture"
-            value: Effect.NormalTexture
-        }
-        // Явное связывание текстур глубины и нормалей для SSAO
-        Parameter {
-            name: "depthTexture"
-            value: Effect.DepthTexture
-        }
-        Parameter {
-            name: "normalTexture"
-            value: Effect.NormalTexture
-        }
-        // Явное связывание текстур глубины и нормалей для SSAO
-        Parameter {
-            name: "depthTexture"
-            value: Effect.DepthTexture
-        }
-        Parameter {
-            name: "normalTexture"
-            value: Effect.NormalTexture
-        }
-        // Явное связывание текстур глубины и нормалей для SSAO
-        Parameter {
-            name: "depthTexture"
-            value: Effect.DepthTexture
-        }
-        Parameter {
-            name: "normalTexture"
-            value: Effect.NormalTexture
-        }
-        // Явное связывание текстур глубины и нормалей для SSAO
-        Parameter {
-            name: "depthTexture"
-            value: Effect.DepthTexture
-        }
-        Parameter {
-            name: "normalTexture"
-            value: Effect.NormalTexture
-        }
-        // Явное связывание текстур глубины и нормалей для SSAO
-        Parameter {
-            name: "depthTexture"
-            value: Effect.DepthTexture
-        }
-        Parameter {
-            name: "normalTexture"
-            value: Effect.NormalTexture
-        }
-        // Явное связывание текстур глубины и нормалей для SSAO
-        Parameter {
-            name: "depthTexture"
-            value: Effect.DepthTexture
-        }
-        Parameter {
-            name: "normalTexture"
-            value: Effect.NormalTexture
-        }
-        // Явное связывание текстур глубины и нормалей для SSAO
-        Parameter {
-            name: "depthTexture"
-            value: Effect.DepthTexture
-        }
-        Parameter {
-            name: "normalTexture"
-            value: Effect.NormalTexture
-        }
-        // Явное связывание текстур глубины и нормалей для SSAO
-        Parameter {
-            name: "depthTexture"
-            value: Effect.DepthTexture
-        }
-        Parameter {
-            name: "normalTexture"
-            value: Effect.NormalTexture
-        }
         property bool fallbackActive: false
         property string lastErrorLog: ""
 
@@ -318,8 +236,8 @@ Item {
                             #endif
 
                             layout(binding = 1) uniform sampler2D qt_Texture0;
-                            layout(binding = 2) uniform sampler2D depthTexture;
-                            layout(binding = 3) uniform sampler2D normalTexture;
+                            layout(binding = 2) uniform sampler2D qt_DepthTexture;
+                            layout(binding = 3) uniform sampler2D qt_NormalTexture;
 
                             #ifndef INPUT
                             #define INPUT texture(qt_Texture0, INPUT_UV)
@@ -344,8 +262,8 @@ Item {
 
                             void qt_customMain() {
                                 vec4 original = INPUT;
-                                vec3 normal = normalize(texture(normalTexture, INPUT_UV).xyz * 2.0 - 1.0);
-                                float depth = texture(depthTexture, INPUT_UV).r;
+                                vec3 normal = normalize(texture(qt_NormalTexture, INPUT_UV).xyz * 2.0 - 1.0);
+                                float depth = texture(qt_DepthTexture, INPUT_UV).r;
 
                                 if (depth >= 1.0) {
                                     FRAGCOLOR = original;
@@ -367,7 +285,7 @@ Item {
                                     }
 
                                     vec2 sampleCoord = INPUT_UV + sampleVec.xy * uRadius * texelSize;
-                                    float sampleDepth = texture(depthTexture, sampleCoord).r;
+                                    float sampleDepth = texture(qt_DepthTexture, sampleCoord).r;
 
                                     // Проверка окклюзии
                                     float depthDiff = depth - sampleDepth;
@@ -440,42 +358,6 @@ Item {
 
         requiresDepthTexture: true
 
-        // Явное связывание depthTexture для шейдера (binding=2)
-        Parameter {
-            name: "depthTexture"
-            value: Effect.DepthTexture
-            binding: 2
-        }
-        // Явное связывание depthTexture для шейдера (binding=2)
-        Parameter {
-            name: "depthTexture"
-            value: Effect.DepthTexture
-            binding: 2
-        }
-        // Явное связывание depthTexture для шейдера (binding=2)
-        Parameter {
-            name: "depthTexture"
-            value: Effect.DepthTexture
-            binding: 2
-        }
-        // Явное связывание depthTexture для шейдера (binding=2)
-        Parameter {
-            name: "depthTexture"
-            value: Effect.DepthTexture
-            binding: 2
-        }
-        // Явное связывание depthTexture для шейдера (binding=2)
-        Parameter {
-            name: "depthTexture"
-            value: Effect.DepthTexture
-            binding: 2
-        }
-        // Явное связывание depthTexture для шейдера (binding=2)
-        Parameter {
-            name: "depthTexture"
-            value: Effect.DepthTexture
-            binding: 2
-        }
         onBlurAmountChanged: {
             if (blurAmount < 0.0)
                 blurAmount = 0.0
@@ -504,7 +386,7 @@ Item {
                             #endif
 
                             layout(binding = 1) uniform sampler2D qt_Texture0;
-                            layout(binding = 2) uniform sampler2D depthTexture;
+                            layout(binding = 2) uniform sampler2D qt_DepthTexture;
 
                             #ifndef INPUT
                             #define INPUT texture(qt_Texture0, INPUT_UV)
@@ -539,7 +421,7 @@ Item {
 
                             void qt_customMain() {
                                 vec4 original = INPUT;
-                                float depth = texture(depthTexture, INPUT_UV).r;
+                                float depth = texture(qt_DepthTexture, INPUT_UV).r;
                                 float linearDepth = linearizeDepth(depth);
 
                                 // Расчет blur радиуса на основе расстояния от фокуса
@@ -603,119 +485,7 @@ Item {
 
         property real strength: 0.5          // Сила размытия движения
         property int samples: 8              // Количество сэмплов
-        requiresDepthTexture: true
         requiresVelocityTexture: true
-
-        // Явное связывание depth и velocity текстур через Parameter
-        Parameter {
-            name: "qt_DepthTexture"
-            value: Effect.DepthTexture
-            binding: 2
-        }
-        Parameter {
-            name: "qt_VelocityTexture"
-            value: Effect.VelocityTexture
-            binding: 3
-        }
-        // Явное связывание depth и velocity текстур через Parameter
-        Parameter {
-            name: "qt_DepthTexture"
-            value: Effect.DepthTexture
-            binding: 2
-        }
-        Parameter {
-            name: "qt_VelocityTexture"
-            value: Effect.VelocityTexture
-            binding: 3
-        }
-        // Явное связывание depth и velocity текстур через Parameter
-        Parameter {
-            name: "qt_DepthTexture"
-            value: Effect.DepthTexture
-            binding: 2
-        }
-        Parameter {
-            name: "qt_VelocityTexture"
-            value: Effect.VelocityTexture
-            binding: 3
-        }
-        // Явное связывание depth и velocity текстур через Parameter
-        Parameter {
-            name: "qt_DepthTexture"
-            value: Effect.DepthTexture
-            binding: 2
-        }
-        Parameter {
-            name: "qt_VelocityTexture"
-            value: Effect.VelocityTexture
-            binding: 3
-        }
-        // Явное связывание depth и velocity текстур через Parameter
-        Parameter {
-            name: "qt_DepthTexture"
-            value: Effect.DepthTexture
-            binding: 2
-        }
-        Parameter {
-            name: "qt_VelocityTexture"
-            value: Effect.VelocityTexture
-            binding: 3
-        }
-        // Явное связывание depth и velocity текстур через Parameter
-        Parameter {
-            name: "qt_DepthTexture"
-            value: Effect.DepthTexture
-            binding: 2
-        }
-        Parameter {
-            name: "qt_VelocityTexture"
-            value: Effect.VelocityTexture
-            binding: 3
-        }
-        // Явное связывание depth и velocity текстур через Parameter
-        Parameter {
-            name: "qt_DepthTexture"
-            value: Effect.DepthTexture
-            binding: 2
-        }
-        Parameter {
-            name: "qt_VelocityTexture"
-            value: Effect.VelocityTexture
-            binding: 3
-        }
-        // Явное связывание depth и velocity текстур через Parameter
-        Parameter {
-            name: "qt_DepthTexture"
-            value: Effect.DepthTexture
-            binding: 2
-        }
-        Parameter {
-            name: "qt_VelocityTexture"
-            value: Effect.VelocityTexture
-            binding: 3
-        }
-        // Явное связывание depth и velocity текстур через Parameter
-        Parameter {
-            name: "qt_DepthTexture"
-            value: Effect.DepthTexture
-            binding: 2
-        }
-        Parameter {
-            name: "qt_VelocityTexture"
-            value: Effect.VelocityTexture
-            binding: 3
-        }
-        // Явное связывание depth и velocity текстур через Parameter
-        Parameter {
-            name: "qt_DepthTexture"
-            value: Effect.DepthTexture
-            binding: 2
-        }
-        Parameter {
-            name: "qt_VelocityTexture"
-            value: Effect.VelocityTexture
-            binding: 3
-        }
         onSamplesChanged: {
             if (samples < 1)
                 samples = 1
@@ -741,7 +511,7 @@ Item {
                             #endif
 
                             layout(binding = 1) uniform sampler2D qt_Texture0;
-                            layout(binding = 2) uniform sampler2D velocityTexture;
+                            layout(binding = 2) uniform sampler2D qt_VelocityTexture;
 
                             #ifndef INPUT
                             #define INPUT texture(qt_Texture0, INPUT_UV)
@@ -752,7 +522,7 @@ Item {
 
                             void qt_customMain() {
                                 vec4 original = INPUT;
-                                vec2 velocity = texture(velocityTexture, INPUT_UV).xy;
+                                vec2 velocity = texture(qt_VelocityTexture, INPUT_UV).xy;
 
                                 vec3 color = original.rgb;
                                 int sampleCount = max(uSamples, 1);
