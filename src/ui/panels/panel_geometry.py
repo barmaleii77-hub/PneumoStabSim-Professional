@@ -7,7 +7,8 @@ Geometry configuration panel - РУССКИЙ ИНТЕРФЕЙС
 
 from __future__ import annotations
 
-from typing import Optional
+from dataclasses import dataclass
+from typing import Mapping, Optional
 
 from PySide6.QtWidgets import (
     QWidget,
@@ -25,7 +26,24 @@ from PySide6.QtCore import Signal, Slot, Qt
 from PySide6.QtGui import QFont
 
 from ..widgets import RangeSlider
+from config.constants import get_geometry_presets, get_geometry_ui_ranges
 from src.common.settings_manager import get_settings_manager
+
+
+@dataclass(frozen=True)
+class _RangeSpec:
+    minimum: float
+    maximum: float
+    step: float
+    decimals: int
+    units: str
+
+
+@dataclass(frozen=True)
+class GeometryPreset:
+    key: str
+    label: str
+    values: dict[str, float]
 
 
 class GeometryPanel(QWidget):
@@ -41,6 +59,11 @@ class GeometryPanel(QWidget):
         self._resolving_conflict = False
         self._syncing_rods = False
         self._rod_link_snapshot: tuple[float, float] | None = None
+        self._ui_ranges: dict[str, "_RangeSpec"] = {}
+        self._preset_map: dict[str, GeometryPreset] = {}
+        self._active_preset: str = "custom"
+        self._block_preset_signal = False
+        self._applying_preset = False
 
         from src.common import get_category_logger
 
@@ -48,6 +71,8 @@ class GeometryPanel(QWidget):
 
         # 1) Загружаем состояние из JSON СНАЧАЛА
         self._load_from_settings()
+        self._load_ui_ranges()
+        self._load_presets()
 
         # 2) Строим UI на основе загруженных значений (никаких дефолтов в коде)
         self._setup_ui()
@@ -70,7 +95,7 @@ class GeometryPanel(QWidget):
     # Чтение только из JSON
     def _load_from_settings(self) -> None:
         data = self._settings_manager.get_category("geometry") or {}
-        self.parameters.update(data)
+        self._apply_settings_payload(data)
         if "rod_diameter_rear_m" not in self.parameters:
             self.parameters["rod_diameter_rear_m"] = float(
                 self.parameters.get("rod_diameter_m", 0.035) or 0.035
@@ -94,16 +119,13 @@ class GeometryPanel(QWidget):
         preset_row = QHBoxLayout()
         preset_row.addWidget(QLabel("Пресет:"))
         self.preset_combo = QComboBox()
-        preset_labels = (
-            "Стандартный грузовик",
-            "Лёгкий коммерческий",
-            "Тяжёлый грузовик",
-            "Пользовательский",
-        )
-        self.preset_combo.addItems(list(preset_labels))
+        for preset in self._preset_map.values():
+            self.preset_combo.addItem(preset.label, preset.key)
+        self.preset_combo.addItem("Пользовательский", "custom")
         self.preset_combo.currentIndexChanged.connect(self._on_preset_changed)
         preset_row.addWidget(self.preset_combo, 1)
         layout.addLayout(preset_row)
+        self._select_preset(self._active_preset)
 
         layout.addWidget(self._create_frame_group())
         layout.addWidget(self._create_suspension_group())
@@ -140,26 +162,28 @@ class GeometryPanel(QWidget):
     def _create_frame_group(self) -> QGroupBox:
         group = QGroupBox("Размеры рамы")
         v = QVBoxLayout(group)
+        wheelbase_spec = self._get_range("wheelbase", 2.0, 4.0, 0.001, 3, "м")
         self.wheelbase_slider = RangeSlider(
-            minimum=2.0,
-            maximum=4.0,
-            value=float(self.parameters.get("wheelbase", 0) or 0),
-            step=0.001,
-            decimals=3,
-            units="м",
+            minimum=wheelbase_spec.minimum,
+            maximum=wheelbase_spec.maximum,
+            value=self._clamp_value("wheelbase", wheelbase_spec),
+            step=wheelbase_spec.step,
+            decimals=wheelbase_spec.decimals,
+            units=wheelbase_spec.units,
             title="База (колёсная)",
         )
         self.wheelbase_slider.setToolTip(
             "Длина рамы по оси Z. Определяет положение передних/задних рогов."
         )
         v.addWidget(self.wheelbase_slider)
+        track_spec = self._get_range("track", 1.0, 2.5, 0.001, 3, "м")
         self.track_slider = RangeSlider(
-            minimum=1.0,
-            maximum=2.5,
-            value=float(self.parameters.get("track", 0) or 0),
-            step=0.001,
-            decimals=3,
-            units="м",
+            minimum=track_spec.minimum,
+            maximum=track_spec.maximum,
+            value=self._clamp_value("track", track_spec),
+            step=track_spec.step,
+            decimals=track_spec.decimals,
+            units=track_spec.units,
             title="Колея",
         )
         self.track_slider.setToolTip(
@@ -171,36 +195,39 @@ class GeometryPanel(QWidget):
     def _create_suspension_group(self) -> QGroupBox:
         group = QGroupBox("Геометрия подвески")
         v = QVBoxLayout(group)
+        frame_to_pivot_spec = self._get_range("frame_to_pivot", 0.3, 1.0, 0.001, 3, "м")
         self.frame_to_pivot_slider = RangeSlider(
-            minimum=0.3,
-            maximum=1.0,
-            value=float(self.parameters.get("frame_to_pivot", 0) or 0),
-            step=0.001,
-            decimals=3,
-            units="м",
+            minimum=frame_to_pivot_spec.minimum,
+            maximum=frame_to_pivot_spec.maximum,
+            value=self._clamp_value("frame_to_pivot", frame_to_pivot_spec),
+            step=frame_to_pivot_spec.step,
+            decimals=frame_to_pivot_spec.decimals,
+            units=frame_to_pivot_spec.units,
             title="Рама → ось рычага",
         )
         self.frame_to_pivot_slider.setToolTip(
             "Абсолютное поперечное расстояние от центра рамы до оси рычага. НЕ зависит от ‘Колея’."
         )
         v.addWidget(self.frame_to_pivot_slider)
+        lever_length_spec = self._get_range("lever_length", 0.5, 1.5, 0.001, 3, "м")
         self.lever_length_slider = RangeSlider(
-            minimum=0.5,
-            maximum=1.5,
-            value=float(self.parameters.get("lever_length", 0) or 0),
-            step=0.001,
-            decimals=3,
-            units="м",
+            minimum=lever_length_spec.minimum,
+            maximum=lever_length_spec.maximum,
+            value=self._clamp_value("lever_length", lever_length_spec),
+            step=lever_length_spec.step,
+            decimals=lever_length_spec.decimals,
+            units=lever_length_spec.units,
             title="Длина рычага",
         )
         v.addWidget(self.lever_length_slider)
+        rod_position_spec = self._get_range("rod_position", 0.3, 0.9, 0.001, 3, "")
         self.rod_position_slider = RangeSlider(
-            minimum=0.3,
-            maximum=0.9,
-            value=float(self.parameters.get("rod_position", 0) or 0),
-            step=0.001,
-            decimals=3,
-            units="",
+            minimum=rod_position_spec.minimum,
+            maximum=rod_position_spec.maximum,
+            value=self._clamp_value("rod_position", rod_position_spec),
+            step=rod_position_spec.step,
+            decimals=rod_position_spec.decimals,
+            units=rod_position_spec.units,
             title="Положение крепления штока (доля)",
         )
         v.addWidget(self.rod_position_slider)
@@ -209,83 +236,99 @@ class GeometryPanel(QWidget):
     def _create_cylinder_group(self) -> QGroupBox:
         group = QGroupBox("Размеры цилиндра")
         v = QVBoxLayout(group)
+        cylinder_length_spec = self._get_range(
+            "cylinder_length", 0.3, 0.8, 0.001, 3, "м"
+        )
         self.cylinder_length_slider = RangeSlider(
-            minimum=0.3,
-            maximum=0.8,
-            value=float(self.parameters.get("cylinder_length", 0) or 0),
-            step=0.001,
-            decimals=3,
-            units="м",
+            minimum=cylinder_length_spec.minimum,
+            maximum=cylinder_length_spec.maximum,
+            value=self._clamp_value("cylinder_length", cylinder_length_spec),
+            step=cylinder_length_spec.step,
+            decimals=cylinder_length_spec.decimals,
+            units=cylinder_length_spec.units,
             title="Длина цилиндра",
         )
         v.addWidget(self.cylinder_length_slider)
+        cyl_diam_spec = self._get_range("cyl_diam_m", 0.03, 0.15, 0.001, 3, "м")
         self.cyl_diam_m_slider = RangeSlider(
-            minimum=0.030,
-            maximum=0.150,
-            value=float(self.parameters.get("cyl_diam_m", 0) or 0),
-            step=0.001,
-            decimals=3,
-            units="м",
+            minimum=cyl_diam_spec.minimum,
+            maximum=cyl_diam_spec.maximum,
+            value=self._clamp_value("cyl_diam_m", cyl_diam_spec),
+            step=cyl_diam_spec.step,
+            decimals=cyl_diam_spec.decimals,
+            units=cyl_diam_spec.units,
             title="Диаметр цилиндра",
         )
         v.addWidget(self.cyl_diam_m_slider)
+        stroke_spec = self._get_range("stroke_m", 0.1, 0.5, 0.001, 3, "м")
         self.stroke_m_slider = RangeSlider(
-            minimum=0.100,
-            maximum=0.500,
-            value=float(self.parameters.get("stroke_m", 0) or 0),
-            step=0.001,
-            decimals=3,
-            units="м",
+            minimum=stroke_spec.minimum,
+            maximum=stroke_spec.maximum,
+            value=self._clamp_value("stroke_m", stroke_spec),
+            step=stroke_spec.step,
+            decimals=stroke_spec.decimals,
+            units=stroke_spec.units,
             title="Ход поршня",
         )
         v.addWidget(self.stroke_m_slider)
+        dead_gap_spec = self._get_range("dead_gap_m", 0.0, 0.02, 0.001, 3, "м")
         self.dead_gap_m_slider = RangeSlider(
-            minimum=0.000,
-            maximum=0.020,
-            value=float(self.parameters.get("dead_gap_m", 0) or 0),
-            step=0.001,
-            decimals=3,
-            units="м",
+            minimum=dead_gap_spec.minimum,
+            maximum=dead_gap_spec.maximum,
+            value=self._clamp_value("dead_gap_m", dead_gap_spec),
+            step=dead_gap_spec.step,
+            decimals=dead_gap_spec.decimals,
+            units=dead_gap_spec.units,
             title="Мёртвый зазор",
         )
         v.addWidget(self.dead_gap_m_slider)
+        rod_front_spec = self._get_range("rod_diameter_m", 0.02, 0.06, 0.001, 3, "м")
         self.rod_diameter_front_slider = RangeSlider(
-            minimum=0.020,
-            maximum=0.060,
-            value=float(self.parameters.get("rod_diameter_m", 0) or 0),
-            step=0.001,
-            decimals=3,
-            units="м",
+            minimum=rod_front_spec.minimum,
+            maximum=rod_front_spec.maximum,
+            value=self._clamp_value("rod_diameter_m", rod_front_spec),
+            step=rod_front_spec.step,
+            decimals=rod_front_spec.decimals,
+            units=rod_front_spec.units,
             title="Диаметр штока (передняя ось)",
         )
         v.addWidget(self.rod_diameter_front_slider)
+        rod_rear_spec = self._get_range(
+            "rod_diameter_rear_m", 0.02, 0.06, 0.001, 3, "м"
+        )
         self.rod_diameter_rear_slider = RangeSlider(
-            minimum=0.020,
-            maximum=0.060,
-            value=float(self.parameters.get("rod_diameter_rear_m", 0) or 0),
-            step=0.001,
-            decimals=3,
-            units="м",
+            minimum=rod_rear_spec.minimum,
+            maximum=rod_rear_spec.maximum,
+            value=self._clamp_value("rod_diameter_rear_m", rod_rear_spec),
+            step=rod_rear_spec.step,
+            decimals=rod_rear_spec.decimals,
+            units=rod_rear_spec.units,
             title="Диаметр штока (задняя ось)",
         )
         v.addWidget(self.rod_diameter_rear_slider)
+        piston_rod_spec = self._get_range(
+            "piston_rod_length_m", 0.1, 0.5, 0.001, 3, "м"
+        )
         self.piston_rod_length_m_slider = RangeSlider(
-            minimum=0.100,
-            maximum=0.500,
-            value=float(self.parameters.get("piston_rod_length_m", 0) or 0),
-            step=0.001,
-            decimals=3,
-            units="м",
+            minimum=piston_rod_spec.minimum,
+            maximum=piston_rod_spec.maximum,
+            value=self._clamp_value("piston_rod_length_m", piston_rod_spec),
+            step=piston_rod_spec.step,
+            decimals=piston_rod_spec.decimals,
+            units=piston_rod_spec.units,
             title="Длина штока поршня",
         )
         v.addWidget(self.piston_rod_length_m_slider)
+        piston_thickness_spec = self._get_range(
+            "piston_thickness_m", 0.01, 0.05, 0.001, 3, "м"
+        )
         self.piston_thickness_m_slider = RangeSlider(
-            minimum=0.010,
-            maximum=0.050,
-            value=float(self.parameters.get("piston_thickness_m", 0) or 0),
-            step=0.001,
-            decimals=3,
-            units="м",
+            minimum=piston_thickness_spec.minimum,
+            maximum=piston_thickness_spec.maximum,
+            value=self._clamp_value("piston_thickness_m", piston_thickness_spec),
+            step=piston_thickness_spec.step,
+            decimals=piston_thickness_spec.decimals,
+            units=piston_thickness_spec.units,
             title="Толщина поршня",
         )
         v.addWidget(self.piston_thickness_m_slider)
@@ -397,7 +440,11 @@ class GeometryPanel(QWidget):
         if self._resolving_conflict:
             return
         self.parameters["interference_check"] = bool(checked)
+        self._persist_parameter(
+            "interference_check", self.parameters["interference_check"]
+        )
         self.geometry_updated.emit(self.parameters.copy())
+        self._mark_custom_on_user_change()
         self._show_interference_toggle_feedback(bool(checked))
 
     @Slot(bool)
@@ -406,7 +453,9 @@ class GeometryPanel(QWidget):
         if self._resolving_conflict:
             return
         self.parameters["link_rod_diameters"] = bool(checked)
-
+        self._persist_parameter(
+            "link_rod_diameters", self.parameters["link_rod_diameters"]
+        )
         if checked:
             front = float(self.parameters.get("rod_diameter_m", 0.035))
             rear = float(self.parameters.get("rod_diameter_rear_m", front))
@@ -419,12 +468,15 @@ class GeometryPanel(QWidget):
             finally:
                 self._syncing_rods = False
             self.rod_diameter_rear_slider.setEnabled(False)
+            self._persist_parameter("rod_diameter_m", front)
+            self._persist_parameter("rod_diameter_rear_m", front)
         else:
             self.rod_diameter_rear_slider.setEnabled(True)
             # Preserve the current synced values; users can now adjust sliders independently.
             self._rod_link_snapshot = None
 
         self.geometry_updated.emit(self.parameters.copy())
+        self._mark_custom_on_user_change()
 
     def _show_interference_toggle_feedback(self, enabled: bool) -> None:
         message = (
@@ -438,53 +490,54 @@ class GeometryPanel(QWidget):
 
     @Slot(int)
     def _on_preset_changed(self, index: int):
-        presets = {
-            0: {
-                "wheelbase": 3.2,
-                "track": 1.6,
-                "lever_length": 0.8,
-                "cyl_diam_m": 0.080,
-                "rod_diameter_m": 0.035,
-            },
-            1: {
-                "wheelbase": 2.8,
-                "track": 1.4,
-                "lever_length": 0.7,
-                "cyl_diam_m": 0.065,
-                "rod_diameter_m": 0.028,
-            },
-            2: {
-                "wheelbase": 3.8,
-                "track": 1.9,
-                "lever_length": 0.95,
-                "cyl_diam_m": 0.100,
-                "rod_diameter_m": 0.045,
-            },
-            3: {},
-        }
-        if index in (0, 1, 2):
-            params = presets[index]
-            self.set_parameters(params)
-            self.geometry_updated.emit(self.parameters.copy())
-
-    def set_parameters(self, params: dict) -> None:
-        self._resolving_conflict = True
+        if self._block_preset_signal:
+            return
+        key = self.preset_combo.itemData(index)
+        if not isinstance(key, str):
+            return
+        if key == "custom":
+            self._update_active_preset("custom", update_combo=False)
+            return
+        preset = self._preset_map.get(key)
+        if preset is None:
+            self.logger.warning("Неизвестный ключ пресета геометрии: %s", key)
+            self._update_active_preset("custom", update_combo=True)
+            return
+        self._applying_preset = True
         try:
-            self.parameters.update(params)
+            self.set_parameters(preset.values, from_preset=True)
+            self._update_active_preset(key, update_combo=False)
+        finally:
+            self._applying_preset = False
+        self.geometry_updated.emit(self.parameters.copy())
+
+    def set_parameters(
+        self, params: Mapping[str, float], *, from_preset: bool = False
+    ) -> None:
+        self._resolving_conflict = True
+        previous_applying_state = self._applying_preset
+        self._applying_preset = self._applying_preset or from_preset
+        try:
             for k, v in params.items():
-                self._set_parameter_value(k, v)
+                numeric = float(v)
+                self.parameters[k] = numeric
+                self._set_parameter_value(k, numeric)
+                self._persist_parameter(k, numeric)
         finally:
             self._resolving_conflict = False
+            self._applying_preset = previous_applying_state
 
     @Slot()
     def _reset_to_defaults(self):
         try:
             self._settings_manager.reset_to_defaults(category="geometry")
             self._settings_manager.save()
-            self.parameters = self._settings_manager.get_category("geometry") or {}
+            payload = self._settings_manager.get_category("geometry") or {}
+            self._apply_settings_payload(payload)
             # Применяем к виджетам
             for k, v in self.parameters.items():
                 self._set_parameter_value(k, v)
+            self._select_preset(self._active_preset)
             self.geometry_updated.emit(self.parameters.copy())
         except Exception as e:
             self.logger.error(f"Reset to geometry defaults failed: {e}")
@@ -500,7 +553,9 @@ class GeometryPanel(QWidget):
             self.logger.error(f"Save geometry as defaults failed: {e}")
 
     def collect_state(self) -> dict:
-        return self.parameters.copy()
+        state = self.parameters.copy()
+        state["active_preset"] = self._active_preset
+        return state
 
     @Slot(str, float)
     def _on_parameter_live_change(self, param_name: str, value: float):
@@ -521,6 +576,7 @@ class GeometryPanel(QWidget):
             self._handle_rod_diameter_update(param_name, value, live=False)
             return
         self.parameters[param_name] = value
+        self._persist_parameter(param_name, value)
         self.parameter_changed.emit(param_name, value)
         self.geometry_updated.emit(self.parameters.copy())
         if param_name in [
@@ -541,6 +597,7 @@ class GeometryPanel(QWidget):
             self.geometry_changed.emit(
                 self._get_fast_geometry_update(param_name, value)
             )
+        self._mark_custom_on_user_change()
 
     def _handle_rod_diameter_update(
         self, param_name: str, value: float, *, live: bool
@@ -563,16 +620,19 @@ class GeometryPanel(QWidget):
                 target_slider.setValue(value)
             finally:
                 self._syncing_rods = False
+            self._persist_parameter(counterpart, value)
 
         if live:
             geometry_3d = self._get_fast_geometry_update(param_name, value)
             self.geometry_changed.emit(geometry_3d)
         else:
+            self._persist_parameter(param_name, value)
             self.parameter_changed.emit(param_name, value)
             self.geometry_updated.emit(self.parameters.copy())
             self.geometry_changed.emit(
                 self._get_fast_geometry_update(param_name, value)
             )
+            self._mark_custom_on_user_change()
 
     def _get_fast_geometry_update(self, param_name: str, value: float) -> dict:
         """Подготовить пакет обновления геометрии для QML.
@@ -656,6 +716,232 @@ class GeometryPanel(QWidget):
             self.parameters[param_name] = float(value)
         except Exception as e:
             self.logger.warning(f"Не удалось установить {param_name}={value}: {e}")
+
+    def _apply_settings_payload(self, payload: Mapping[str, object]) -> None:
+        self.parameters.clear()
+        active = payload.get("active_preset") if isinstance(payload, Mapping) else None
+        if isinstance(active, str) and active.strip():
+            self._active_preset = active.strip()
+        else:
+            self._active_preset = "custom"
+        for key, value in payload.items():
+            if key == "active_preset":
+                continue
+            self.parameters[key] = value  # type: ignore[assignment]
+
+    def _load_ui_ranges(self) -> None:
+        specs: dict[str, _RangeSpec] = {}
+        try:
+            raw_ranges = get_geometry_ui_ranges()
+        except Exception as exc:
+            self.logger.warning(
+                "Не удалось загрузить диапазоны геометрии из настроек: %s", exc
+            )
+            self._ui_ranges = {}
+            return
+        if not isinstance(raw_ranges, Mapping):
+            self.logger.warning(
+                "Диапазоны геометрии имеют некорректный тип: %s",
+                type(raw_ranges).__name__,
+            )
+            self._ui_ranges = {}
+            return
+        for key, entry in raw_ranges.items():
+            if not isinstance(entry, Mapping):
+                self.logger.warning(
+                    "Диапазон параметра '%s' должен быть объектом, получено %s",
+                    key,
+                    type(entry).__name__,
+                )
+                continue
+            try:
+                minimum = float(entry["min"])
+                maximum = float(entry["max"])
+            except (KeyError, TypeError, ValueError) as exc:
+                self.logger.warning(
+                    "Диапазон параметра '%s' некорректен (min/max): %s", key, exc
+                )
+                continue
+            if minimum >= maximum:
+                self.logger.warning(
+                    "Диапазон параметра '%s' имеет min >= max (%.3f >= %.3f)",
+                    key,
+                    minimum,
+                    maximum,
+                )
+                continue
+            try:
+                step = float(entry.get("step", 0.001))
+            except (TypeError, ValueError):
+                step = 0.001
+            if step <= 0:
+                self.logger.warning(
+                    "Шаг для параметра '%s' <= 0 (%.4f), используем 0.001",
+                    key,
+                    step,
+                )
+                step = 0.001
+            try:
+                decimals = int(entry.get("decimals", 3))
+            except (TypeError, ValueError):
+                decimals = 3
+            units_value = entry.get("units")
+            units = str(units_value) if units_value is not None else ""
+            specs[key] = _RangeSpec(minimum, maximum, step, decimals, units)
+        self._ui_ranges = specs
+
+    def _load_presets(self) -> None:
+        presets: dict[str, GeometryPreset] = {}
+        try:
+            raw_presets = get_geometry_presets()
+        except Exception as exc:
+            self.logger.warning(
+                "Не удалось загрузить пресеты геометрии из настроек: %s", exc
+            )
+            self._preset_map = {}
+            if self._active_preset != "custom":
+                self._active_preset = "custom"
+            return
+        for item in raw_presets:
+            if not isinstance(item, Mapping):
+                self.logger.warning(
+                    "Пропускаем некорректный пресет геометрии: %s",
+                    type(item).__name__,
+                )
+                continue
+            key = item.get("key")
+            label = item.get("label")
+            values = item.get("values")
+            if not isinstance(key, str) or not key.strip():
+                self.logger.warning("Пресет без корректного ключа пропущен")
+                continue
+            if not isinstance(label, str) or not label.strip():
+                label = key
+            if not isinstance(values, Mapping):
+                self.logger.warning(
+                    "Пресет '%s' имеет некорректное поле 'values' (%s)",
+                    key,
+                    type(values).__name__,
+                )
+                continue
+            numeric_values: dict[str, float] = {}
+            for param, raw_value in values.items():
+                try:
+                    numeric_values[param] = float(raw_value)
+                except (TypeError, ValueError):
+                    self.logger.warning(
+                        "Пресет '%s': параметр '%s' не является числом (%r)",
+                        key,
+                        param,
+                        raw_value,
+                    )
+            presets[key] = GeometryPreset(
+                key=key, label=label.strip(), values=numeric_values
+            )
+        self._preset_map = presets
+        if self._active_preset not in self._preset_map:
+            if self._active_preset != "custom":
+                self.logger.warning(
+                    "Активный пресет '%s' отсутствует в конфигурации, переключаемся на 'custom'",
+                    self._active_preset,
+                )
+            self._active_preset = "custom"
+
+    def _get_range(
+        self,
+        key: str,
+        fallback_min: float,
+        fallback_max: float,
+        fallback_step: float,
+        fallback_decimals: int,
+        fallback_units: str,
+    ) -> _RangeSpec:
+        spec = self._ui_ranges.get(key)
+        if spec is None:
+            self.logger.warning(
+                "Диапазон для параметра '%s' отсутствует в конфигурации; используем запасной диапазон",  # noqa: E501
+                key,
+            )
+            return _RangeSpec(
+                fallback_min,
+                fallback_max,
+                fallback_step,
+                fallback_decimals,
+                fallback_units,
+            )
+        return spec
+
+    def _clamp_value(self, key: str, spec: _RangeSpec) -> float:
+        raw = self.parameters.get(key)
+        try:
+            value = float(raw)
+        except (TypeError, ValueError):
+            value = spec.minimum
+        if value < spec.minimum:
+            self.logger.debug(
+                "Параметр '%s' ниже минимума (%.3f < %.3f); выполняем клэмп",
+                key,
+                value,
+                spec.minimum,
+            )
+            value = spec.minimum
+        elif value > spec.maximum:
+            self.logger.debug(
+                "Параметр '%s' выше максимума (%.3f > %.3f); выполняем клэмп",
+                key,
+                value,
+                spec.maximum,
+            )
+            value = spec.maximum
+        self.parameters[key] = value
+        return value
+
+    def _select_preset(self, key: str) -> None:
+        target = key if key in self._preset_map else "custom"
+        index = self.preset_combo.findData(target)
+        if index < 0:
+            index = self.preset_combo.findData("custom")
+        if index < 0:
+            return
+        if self.preset_combo.currentIndex() == index:
+            return
+        self._block_preset_signal = True
+        try:
+            self.preset_combo.setCurrentIndex(index)
+        finally:
+            self._block_preset_signal = False
+
+    def _update_active_preset(self, key: str, *, update_combo: bool = True) -> None:
+        if self._active_preset == key:
+            return
+        self._active_preset = key
+        if update_combo:
+            self._select_preset(key)
+        try:
+            self._settings_manager.set(
+                "current.geometry.active_preset", key, auto_save=False
+            )
+        except Exception as exc:
+            self.logger.error("Не удалось сохранить активный пресет '%s': %s", key, exc)
+
+    def _persist_parameter(self, param_name: str, value: float | bool) -> None:
+        try:
+            self._settings_manager.set(
+                f"current.geometry.{param_name}", value, auto_save=False
+            )
+        except Exception as exc:
+            self.logger.error(
+                "Не удалось сохранить параметр '%s' (%s): %s",
+                param_name,
+                value,
+                exc,
+            )
+
+    def _mark_custom_on_user_change(self) -> None:
+        if self._applying_preset:
+            return
+        if self._active_preset != "custom":
+            self._update_active_preset("custom", update_combo=True)
 
     def _validate_geometry(self):
         errors = []

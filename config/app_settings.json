@@ -70,7 +70,8 @@
       "frame_length_m": 3.4,
       "lever_length_m": 0.75,
       "cylinder_body_length_m": 0.46,
-      "tail_rod_length_m": 0.18
+      "tail_rod_length_m": 0.18,
+      "active_preset": "standard_truck"
     },
     "modes": {
       "sim_type": "KINEMATICS",
@@ -112,15 +113,15 @@
           "angle_y": -135.0,
           "angle_z": 0.0
         },
-      "point": {
-        "brightness": 50.0,
-        "color": "#fff7e0",
-        "position_y": 2.6,
-        "range": 3.6,
-        "constant_fade": 1.0,
-        "linear_fade": 0.01,
-        "quadratic_fade": 1.0
-      },
+        "point": {
+          "brightness": 50.0,
+          "color": "#fff7e0",
+          "position_y": 2.6,
+          "range": 3.6,
+          "constant_fade": 1.0,
+          "linear_fade": 0.01,
+          "quadratic_fade": 1.0
+        },
         "spot": {
           "brightness": 4900.0,
           "color": "#ffffff",
@@ -469,16 +470,16 @@
         "adjustment_brightness": 0.0,
         "adjustment_contrast": 0.0,
         "adjustment_saturation": 0.0
-        },
-        "scene": {
-          "scale_factor": 1.0,
-          "exposure": 1.0,
-          "default_clear_color": "#1b1f27",
-          "model_base_color": "#9da3aa",
-          "model_roughness": 0.42,
-          "model_metalness": 0.82
-        }
       },
+      "scene": {
+        "scale_factor": 1.0,
+        "exposure": 1.0,
+        "default_clear_color": "#1b1f27",
+        "model_base_color": "#9da3aa",
+        "model_roughness": 0.42,
+        "model_metalness": 0.82
+      }
+    },
     "animation": {
       "is_running": false,
       "animation_time": 0.0,
@@ -495,29 +496,29 @@
       "smoothing_piston_snap_m": 0.05,
       "smoothing_easing": "OutCubic"
     },
-      "physics": {
-        "suspension": {
-          "spring_constant": 50000.0,
-          "damper_coefficient": 2000.0,
-          "damper_force_threshold_n": 50.0,
-          "spring_rest_position_m": 0.0,
-          "cylinder_head_area_m2": 0.005,
-          "cylinder_rod_area_m2": 0.004,
-          "axis_unit_world": [
-            0.0,
-            1.0,
-            0.0
-          ]
-        },
-        "reference_axes": {
-          "vertical_world": [
-            0.0,
-            1.0,
-            0.0
-          ]
-        },
-        "validation": {
-          "max_force_n": 100000.0,
+    "physics": {
+      "suspension": {
+        "spring_constant": 50000.0,
+        "damper_coefficient": 2000.0,
+        "damper_force_threshold_n": 50.0,
+        "spring_rest_position_m": 0.0,
+        "cylinder_head_area_m2": 0.005,
+        "cylinder_rod_area_m2": 0.004,
+        "axis_unit_world": [
+          0.0,
+          1.0,
+          0.0
+        ]
+      },
+      "reference_axes": {
+        "vertical_world": [
+          0.0,
+          1.0,
+          0.0
+        ]
+      },
+      "validation": {
+        "max_force_n": 100000.0,
         "max_moment_n_m": 1000000.0
       }
     },
@@ -806,7 +807,135 @@
             0.35,
             -0.5
           ]
-        }
+        },
+        "ui_ranges": {
+          "wheelbase": {
+            "min": 2.0,
+            "max": 4.0,
+            "step": 0.001,
+            "decimals": 3,
+            "units": "м"
+          },
+          "track": {
+            "min": 1.0,
+            "max": 2.5,
+            "step": 0.001,
+            "decimals": 3,
+            "units": "м"
+          },
+          "frame_to_pivot": {
+            "min": 0.3,
+            "max": 1.0,
+            "step": 0.001,
+            "decimals": 3,
+            "units": "м"
+          },
+          "lever_length": {
+            "min": 0.5,
+            "max": 1.5,
+            "step": 0.001,
+            "decimals": 3,
+            "units": "м"
+          },
+          "rod_position": {
+            "min": 0.3,
+            "max": 0.9,
+            "step": 0.001,
+            "decimals": 3,
+            "units": "доля"
+          },
+          "cylinder_length": {
+            "min": 0.3,
+            "max": 0.8,
+            "step": 0.001,
+            "decimals": 3,
+            "units": "м"
+          },
+          "cyl_diam_m": {
+            "min": 0.03,
+            "max": 0.15,
+            "step": 0.001,
+            "decimals": 3,
+            "units": "м"
+          },
+          "stroke_m": {
+            "min": 0.1,
+            "max": 0.5,
+            "step": 0.001,
+            "decimals": 3,
+            "units": "м"
+          },
+          "dead_gap_m": {
+            "min": 0.0,
+            "max": 0.02,
+            "step": 0.001,
+            "decimals": 3,
+            "units": "м"
+          },
+          "rod_diameter_m": {
+            "min": 0.02,
+            "max": 0.06,
+            "step": 0.001,
+            "decimals": 3,
+            "units": "м"
+          },
+          "rod_diameter_rear_m": {
+            "min": 0.02,
+            "max": 0.06,
+            "step": 0.001,
+            "decimals": 3,
+            "units": "м"
+          },
+          "piston_rod_length_m": {
+            "min": 0.1,
+            "max": 0.5,
+            "step": 0.001,
+            "decimals": 3,
+            "units": "м"
+          },
+          "piston_thickness_m": {
+            "min": 0.01,
+            "max": 0.05,
+            "step": 0.001,
+            "decimals": 3,
+            "units": "м"
+          }
+        },
+        "presets": [
+          {
+            "key": "standard_truck",
+            "label": "Стандартный грузовик",
+            "values": {
+              "wheelbase": 3.2,
+              "track": 1.6,
+              "lever_length": 0.8,
+              "cyl_diam_m": 0.08,
+              "rod_diameter_m": 0.035
+            }
+          },
+          {
+            "key": "light_commercial",
+            "label": "Лёгкий коммерческий",
+            "values": {
+              "wheelbase": 2.8,
+              "track": 1.4,
+              "lever_length": 0.7,
+              "cyl_diam_m": 0.065,
+              "rod_diameter_m": 0.028
+            }
+          },
+          {
+            "key": "heavy_truck",
+            "label": "Тяжёлый грузовик",
+            "values": {
+              "wheelbase": 3.8,
+              "track": 1.9,
+              "lever_length": 0.95,
+              "cyl_diam_m": 0.1,
+              "rod_diameter_m": 0.045
+            }
+          }
+        ]
       },
       "pneumo": {
         "valves": {
@@ -964,7 +1093,8 @@
       "frame_length_m": 3.4,
       "lever_length_m": 0.75,
       "cylinder_body_length_m": 0.46,
-      "tail_rod_length_m": 0.18
+      "tail_rod_length_m": 0.18,
+      "active_preset": "standard_truck"
     },
     "modes": {
       "sim_type": "KINEMATICS",
@@ -1441,7 +1571,135 @@
             0.35,
             -0.5
           ]
-        }
+        },
+        "ui_ranges": {
+          "wheelbase": {
+            "min": 2.0,
+            "max": 4.0,
+            "step": 0.001,
+            "decimals": 3,
+            "units": "м"
+          },
+          "track": {
+            "min": 1.0,
+            "max": 2.5,
+            "step": 0.001,
+            "decimals": 3,
+            "units": "м"
+          },
+          "frame_to_pivot": {
+            "min": 0.3,
+            "max": 1.0,
+            "step": 0.001,
+            "decimals": 3,
+            "units": "м"
+          },
+          "lever_length": {
+            "min": 0.5,
+            "max": 1.5,
+            "step": 0.001,
+            "decimals": 3,
+            "units": "м"
+          },
+          "rod_position": {
+            "min": 0.3,
+            "max": 0.9,
+            "step": 0.001,
+            "decimals": 3,
+            "units": "доля"
+          },
+          "cylinder_length": {
+            "min": 0.3,
+            "max": 0.8,
+            "step": 0.001,
+            "decimals": 3,
+            "units": "м"
+          },
+          "cyl_diam_m": {
+            "min": 0.03,
+            "max": 0.15,
+            "step": 0.001,
+            "decimals": 3,
+            "units": "м"
+          },
+          "stroke_m": {
+            "min": 0.1,
+            "max": 0.5,
+            "step": 0.001,
+            "decimals": 3,
+            "units": "м"
+          },
+          "dead_gap_m": {
+            "min": 0.0,
+            "max": 0.02,
+            "step": 0.001,
+            "decimals": 3,
+            "units": "м"
+          },
+          "rod_diameter_m": {
+            "min": 0.02,
+            "max": 0.06,
+            "step": 0.001,
+            "decimals": 3,
+            "units": "м"
+          },
+          "rod_diameter_rear_m": {
+            "min": 0.02,
+            "max": 0.06,
+            "step": 0.001,
+            "decimals": 3,
+            "units": "м"
+          },
+          "piston_rod_length_m": {
+            "min": 0.1,
+            "max": 0.5,
+            "step": 0.001,
+            "decimals": 3,
+            "units": "м"
+          },
+          "piston_thickness_m": {
+            "min": 0.01,
+            "max": 0.05,
+            "step": 0.001,
+            "decimals": 3,
+            "units": "м"
+          }
+        },
+        "presets": [
+          {
+            "key": "standard_truck",
+            "label": "Стандартный грузовик",
+            "values": {
+              "wheelbase": 3.2,
+              "track": 1.6,
+              "lever_length": 0.8,
+              "cyl_diam_m": 0.08,
+              "rod_diameter_m": 0.035
+            }
+          },
+          {
+            "key": "light_commercial",
+            "label": "Лёгкий коммерческий",
+            "values": {
+              "wheelbase": 2.8,
+              "track": 1.4,
+              "lever_length": 0.7,
+              "cyl_diam_m": 0.065,
+              "rod_diameter_m": 0.028
+            }
+          },
+          {
+            "key": "heavy_truck",
+            "label": "Тяжёлый грузовик",
+            "values": {
+              "wheelbase": 3.8,
+              "track": 1.9,
+              "lever_length": 0.95,
+              "cyl_diam_m": 0.1,
+              "rod_diameter_m": 0.045
+            }
+          }
+        ]
       },
       "pneumo": {
         "valves": {

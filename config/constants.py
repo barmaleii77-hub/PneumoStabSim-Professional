@@ -110,6 +110,33 @@ def get_geometry_visual_constants(
     geometry = get_geometry_constants(custom_path=custom_path)
     return _require_mapping_key(geometry, "visualization", "constants.geometry")
 
+def get_geometry_ui_ranges(
+    *,
+    custom_path: str | None = None,
+) -> Mapping[str, Any]:
+    """Return slider range definitions for geometry controls."""
+
+    geometry = get_geometry_constants(custom_path=custom_path)
+    return _require_mapping_key(geometry, "ui_ranges", "constants.geometry")
+
+
+def get_geometry_presets(
+    *,
+    custom_path: str | None = None,
+) -> list[Any]:
+    """Return geometry presets payload."""
+
+    geometry = get_geometry_constants(custom_path=custom_path)
+    presets = geometry.get("presets")
+    if presets is None:
+        raise KeyError("Missing 'constants.geometry.presets' section in app_settings.json")
+    if not isinstance(presets, list):
+        raise TypeError(
+            "Expected 'constants.geometry.presets' to be a list in app_settings.json"
+        )
+    return presets
+
+
 
 def get_geometry_initial_state_constants(
     *,

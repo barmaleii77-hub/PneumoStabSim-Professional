@@ -8,8 +8,9 @@ SI units (meters and radians).
 
 from __future__ import annotations
 
+import logging
 import math
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Mapping, Optional
 
 import numpy as np
 from PySide6.QtCore import QObject, Property, Signal
@@ -42,6 +43,8 @@ class GeometryTo3DConverter(QObject):
         super().__init__()
         self.geometry = geometry
         self._settings_manager = settings_manager or get_settings_manager()
+        self._logger = logging.getLogger(f"{__name__}.{self.__class__.__name__}")
+        self._visual_constants: Dict[str, Any] = {}
 
         defaults = self._load_geometry_defaults()
 
@@ -56,10 +59,13 @@ class GeometryTo3DConverter(QObject):
             cylinder_constants = {}
 
         try:
-            visual_raw = get_geometry_visual_constants()
+            visual_raw: Mapping[str, Any] = get_geometry_visual_constants()
         except KeyError:
+            self._logger.warning(
+                "Секция constants.geometry.visualization отсутствует; будут использованы резервные значения."
+            )
             visual_raw = {}
-        visual_constants = {**_VISUAL_FALLBACKS, **dict(visual_raw)}
+        self._visual_constants = dict(visual_raw)
 
         def _default(key: str, fallback: float) -> float:
             value = defaults.get(key, fallback)
@@ -69,17 +75,11 @@ class GeometryTo3DConverter(QObject):
                 return float(fallback)
 
         # VISUALIZATION PARAMETERS (from constants)
-        self._pivot_offset_x = float(visual_constants.get("pivot_offset_x_m", 0.0))
-        self._tail_offset_x = float(visual_constants.get("tail_offset_x_m", 0.0))
-        self._piston_clip_min = float(
-            visual_constants.get("piston_clip_min_fraction", 0.05)
-        )
-        self._piston_clip_max = float(
-            visual_constants.get("piston_clip_max_fraction", 0.95)
-        )
-        self._max_stroke_fraction = float(
-            visual_constants.get("max_stroke_fraction", 0.9)
-        )
+        self._pivot_offset_x = self._visual_value("pivot_offset_x_m")
+        self._tail_offset_x = self._visual_value("tail_offset_x_m")
+        self._piston_clip_min = self._visual_value("piston_clip_min_fraction")
+        self._piston_clip_max = self._visual_value("piston_clip_max_fraction")
+        self._max_stroke_fraction = self._visual_value("max_stroke_fraction")
 
         # USER-CONTROLLABLE PARAMETERS (connected to UI)
         # Fallbacks from constants
@@ -118,6 +118,27 @@ class GeometryTo3DConverter(QObject):
             return self._settings_manager.get_category("geometry")
         except Exception:
             return {}
+
+    def _visual_value(self, key: str) -> float:
+        fallback = _VISUAL_DEFAULTS.get(key, 0.0)
+        raw = self._visual_constants.get(key)
+        if raw is None:
+            self._logger.warning(
+                "Параметр визуализации '%s' отсутствует; используется %.3f",
+                key,
+                fallback,
+            )
+            return fallback
+        try:
+            return float(raw)
+        except (TypeError, ValueError):
+            self._logger.warning(
+                "Параметр визуализации '%s' имеет некорректное значение (%r); используется %.3f",
+                key,
+                raw,
+                fallback,
+            )
+            return fallback
 
     # USER-CONTROLLABLE PROPERTIES (connected to UI sliders/spinboxes)
 
@@ -459,7 +480,7 @@ def create_geometry_converter(
     return GeometryTo3DConverter(params, settings_manager=manager)
 
 
-_VISUAL_FALLBACKS = {
+_VISUAL_DEFAULTS = {
     "pivot_offset_x_m": 0.0,
     "tail_offset_x_m": 0.0,
     "piston_clip_min_fraction": 0.05,
