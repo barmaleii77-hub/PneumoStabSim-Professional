@@ -108,7 +108,7 @@ class GeometryStateManager:
         try:
             existing = self.settings_manager.get(meta_path, default={}) or {}
             merged = {**existing, **legacy}
-            self.settings_manager.set(meta_path, merged, auto_save=True)
+            self.settings_manager.set(meta_path, merged, auto_save=False)
             return True
         except Exception as exc:  # pragma: no cover - defensive
             self.logger.error("Failed to record legacy geometry parameters: %s", exc)
@@ -119,7 +119,7 @@ class GeometryStateManager:
             return False
 
         try:
-            self.settings_manager.set(path, payload, auto_save=True)
+            self.settings_manager.set(path, payload, auto_save=False)
             return True
         except Exception as exc:  # pragma: no cover - defensive
             self.logger.error("Failed to persist sanitised geometry payload: %s", exc)
@@ -469,7 +469,8 @@ class GeometryStateManager:
                 key: self.state.get(key, DEFAULT_GEOMETRY[key])
                 for key in self._allowed_keys
             }
-            self.settings_manager.set(self._settings_path, persistable, auto_save=True)
+            self.settings_manager.set(self._settings_path, persistable, auto_save=False)
+            self.settings_manager.save()
             self.logger.info("State saved to settings manager")
             self._pending_cleanup = False
         except Exception as exc:
