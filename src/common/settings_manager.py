@@ -713,7 +713,7 @@ class SettingsManager:
             node = node[part]
         return _deep_copy(node)
 
-    def set(self, dotted_path: str, value: Any, auto_save: bool = False) -> bool:
+    def set(self, dotted_path: str, value: Any, auto_save: bool = True) -> bool:
         if not dotted_path:
             raise ValueError("Path must be non-empty")
 
@@ -904,7 +904,7 @@ class SettingsManager:
         return _deep_copy(default)
 
     def set_category(
-        self, category: str, payload: Dict[str, Any], *, auto_save: bool = False
+        self, category: str, payload: Dict[str, Any], *, auto_save: bool = True
     ) -> None:
         """Replace a category inside the ``current`` section."""
 
@@ -930,7 +930,7 @@ class SettingsManager:
         )
 
     def reset_to_defaults(
-        self, *, category: Optional[str] = None, auto_save: bool = False
+        self, *, category: Optional[str] = None, auto_save: bool = True
     ) -> None:
         """Reset ``current`` values to the defaults snapshot."""
 
@@ -982,7 +982,7 @@ class SettingsManager:
                 self._notify_batch(changes, summary)
 
     def save_current_as_defaults(
-        self, *, category: Optional[str] = None, auto_save: bool = False
+        self, *, category: Optional[str] = None, auto_save: bool = True
     ) -> None:
         """Persist the current values into the defaults snapshot."""
 

@@ -120,6 +120,7 @@ class GeometryStateManager:
 
         try:
             self.settings_manager.set(path, payload, auto_save=False)
+            self.settings_manager.save()
             return True
         except Exception as exc:  # pragma: no cover - defensive
             self.logger.error("Failed to persist sanitised geometry payload: %s", exc)
