@@ -7,8 +7,14 @@ PrincipledMaterial {
     // ===========================================================
     // CONFIGURATION
     // ===========================================================
-    property color okColor: "#00ff55"
-    property color warningColor: "#ff3333"
+    required property var materialsDefaults
+
+    property color okColor: (materialsDefaults && materialsDefaults.rod_ok_color !== undefined
+                             ? materialsDefaults.rod_ok_color
+                             : "#00ff55")
+    property color warningColor: (materialsDefaults && materialsDefaults.rod_warning_color !== undefined
+                                  ? materialsDefaults.rod_warning_color
+                                  : "#ff3333")
     property bool warning: false
 
     baseColor: warning ? warningColor : okColor

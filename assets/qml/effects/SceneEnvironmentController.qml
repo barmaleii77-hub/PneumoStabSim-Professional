@@ -276,6 +276,8 @@ ExtendedSceneEnvironment {
         if (canUseDithering) {
             root.ditheringEnabled = Qt.binding(function() { return ditheringEnabled })
         }
+        console.log("✅ SceneEnvironmentController loaded (dithering "
+                    + (root.canUseDithering ? "enabled" : "disabled") + ")")
         _applySceneBridgeState()
         applyQualityPresetInternal(qualityPreset)
         _syncSkyboxBackground()
