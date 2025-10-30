@@ -576,20 +576,26 @@ class SettingsManager:
             )
 
         raw_payload = self._settings_path.read_text(encoding="utf-8")
+        payload: Dict[str, Any]
         try:
             payload = json.loads(raw_payload)
         except json.JSONDecodeError as exc:
-            logger.warning(
-                "Failed to parse settings file %s: %s", self._settings_path, exc
-            )
-            raise
-        if not isinstance(payload, dict):
-            logger.warning(
-                "Settings file %s does not contain a JSON object; received %s",
+            logger.error(
+                "Failed to parse settings file %s: %s. Falling back to defaults.",
                 self._settings_path,
-                type(payload).__name__,
+                exc,
+                exc_info=True,
             )
-            raise ValueError("Settings file must contain a JSON object")
+            payload = {"metadata": {}, "current": {}, "defaults_snapshot": {}}
+        else:
+            if not isinstance(payload, dict):
+                logger.error(
+                    "Settings file %s does not contain a JSON object (found %s). "
+                    "Using empty defaults.",
+                    self._settings_path,
+                    type(payload).__name__,
+                )
+                payload = {"metadata": {}, "current": {}, "defaults_snapshot": {}}
 
         for key in ("current", "defaults_snapshot", "metadata"):
             if key not in payload:
