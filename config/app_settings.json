@@ -2,7 +2,7 @@
   "metadata": {
     "version": "4.9.6",
     "schema_version": "0.2.1",
-    "last_modified": "2025-10-30T07:42:57.015Z",
+    "last_modified": "2025-10-30T08:10:26Z",
     "units_version": "si_v2",
     "migrations": [
       "0001_add_diagnostics_defaults"
@@ -50,17 +50,17 @@
       }
     },
     "geometry": {
-      "wheelbase": 3.4,
-      "track": 2.34,
-      "frame_to_pivot": 0.42,
+      "wheelbase": 3.22,
+      "track": 2.12,
+      "frame_to_pivot": 0.51,
       "lever_length": 0.75,
-      "rod_position": 0.34,
-      "cylinder_length": 0.46,
+      "rod_position": 0.33,
+      "cylinder_length": 0.5,
       "cyl_diam_m": 0.11,
       "stroke_m": 0.38,
       "dead_gap_m": 0.02,
-      "rod_diameter_m": 0.035,
-      "rod_diameter_rear_m": 0.035,
+      "rod_diameter_m": 0.041,
+      "rod_diameter_rear_m": 0.041,
       "piston_rod_length_m": 0.32,
       "piston_thickness_m": 0.025,
       "interference_check": true,
