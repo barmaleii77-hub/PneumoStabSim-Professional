@@ -3,16 +3,6 @@ name: Branch Audit
 on:
   schedule:
     - cron: '0 4 * * 1'
-  push:
-    branches:
-      - main
-      - develop
-      - feature/**
-  pull_request:
-    branches:
-      - main
-      - develop
-      - feature/**
   workflow_dispatch:
 
 permissions:

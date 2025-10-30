@@ -5,14 +5,7 @@ on:
     - cron: '0 3 * * *'
   push:
     branches:
-      - main
       - develop
-      - feature/**
-  pull_request:
-    branches:
-      - main
-      - develop
-      - feature/**
   workflow_dispatch:
 
 env:
