@@ -39,18 +39,18 @@ Item {
     }
 
     // Свойства управления эффектами
-    property alias bloomEnabled: bloomEffect.enabled
+    property bool bloomEnabled: false
     property alias bloomIntensity: bloomEffect.intensity
     property alias bloomThreshold: bloomEffect.threshold
     property alias bloomBlurAmount: bloomEffect.blurAmount
 
-    property alias ssaoEnabled: ssaoEffect.enabled
+    property bool ssaoEnabled: false
     property alias ssaoIntensity: ssaoEffect.intensity
     property alias ssaoRadius: ssaoEffect.radius
     property alias ssaoBias: ssaoEffect.bias
     property alias ssaoSamples: ssaoEffect.samples
 
-    property alias depthOfFieldEnabled: dofEffect.enabled
+    property bool depthOfFieldEnabled: false
     property alias dofFocusDistance: dofEffect.focusDistance
     property alias dofFocusRange: dofEffect.focusRange
     property alias dofBlurAmount: dofEffect.blurAmount
@@ -59,9 +59,25 @@ Item {
     property real cameraClipNear: 0.1
     property real cameraClipFar: 10000.0
 
-    property alias motionBlurEnabled: motionBlurEffect.enabled
+    property bool motionBlurEnabled: false
     property alias motionBlurStrength: motionBlurEffect.strength
     property alias motionBlurSamples: motionBlurEffect.samples
+
+    function resolveShaders(isEnabled, effectItem, activeShader, fallbackShader) {
+        // Если эффект выключен, отключаем его полностью
+        if (!isEnabled) {
+            effectItem.enabled = false
+            return []
+        }
+        // Включаем эффект и выбираем нужный шейдер
+        effectItem.enabled = true
+        return effectItem.fallbackActive ? [fallbackShader] : [activeShader]
+    }
+
+    Component.onCompleted: {
+        console.log("🎨 Post Effects Collection loaded")
+        console.log("   Available effects: Bloom, SSAO, DOF, Motion Blur")
+    }
 
     function valueFromKeys(container, keys) {
         if (!container || typeof container !== "object")
@@ -111,7 +127,7 @@ Item {
     }
 
     // Эффекты для добавления в View3D
-    property list<Effect> effects: [
+    property list<Effect> effectList: [
         bloomEffect,
         ssaoEffect,
         dofEffect,
@@ -121,7 +137,6 @@ Item {
     // Bloom Effect (эффект свечения)
     Effect {
         id: bloomEffect
-        enabled: false
 
         property bool fallbackActive: false
         property string lastErrorLog: ""
@@ -202,7 +217,6 @@ Item {
                                 FRAGCOLOR = vec4(result, original.a);
                             }
                         "
-            onStatusChanged: root.handleShaderStatus("Bloom", bloomFragmentShader, bloomEffect)
         }
 
         Shader {
@@ -231,24 +245,18 @@ Item {
 
         passes: [
             Pass {
-                shaders: bloomEffect.fallbackActive ? [bloomFallbackShader] : [bloomFragmentShader]
+                shaders: resolveShaders(root.bloomEnabled, bloomEffect, bloomFragmentShader, bloomFallbackShader)
             }
         ]
 
-        onEnabledChanged: {
-            if (enabled) {
-                console.log("✨ Bloom effect enabled - intensity:", intensity);
-            }
-        }
+        // Включение свечения контролируется через выбор шейдера (resolveShaders) по root.bloomEnabled,
+        // а не через свойство Effect.enabled — эффект всегда активен, но визуализация зависит от выбранного шейдера.
     }
 
     // SSAO Effect (Screen Space Ambient Occlusion)
     Effect {
         id: ssaoEffect
-        enabled: false
 
-        requiresDepthTexture: true
-        requiresNormalTexture: true
         property bool fallbackActive: false
         property string lastErrorLog: ""
 
@@ -347,7 +355,6 @@ Item {
                                 FRAGCOLOR = vec4(original.rgb * occlusion, original.a);
                             }
                         "
-            onStatusChanged: root.handleShaderStatus("SSAO", ssaoFragmentShader, ssaoEffect)
         }
 
         Shader {
@@ -375,21 +382,16 @@ Item {
 
         passes: [
             Pass {
-                shaders: ssaoEffect.fallbackActive ? [ssaoFallbackShader] : [ssaoFragmentShader]
+                shaders: resolveShaders(root.ssaoEnabled, ssaoEffect, ssaoFragmentShader, ssaoFallbackShader)
             }
         ]
 
-        onEnabledChanged: {
-            if (enabled) {
-                console.log("🌑 SSAO effect enabled - intensity:", intensity);
-            }
-        }
+        // Effect.enabled is controlled externally via root.ssaoEnabled
     }
 
     // Depth of Field Effect
     Effect {
         id: dofEffect
-        enabled: false
 
         property bool fallbackActive: false
         property string lastErrorLog: ""
@@ -401,7 +403,6 @@ Item {
         property real cameraNear: root.cameraClipNear
         property real cameraFar: root.cameraClipFar
 
-        requiresDepthTexture: true
 
         onBlurAmountChanged: {
             if (blurAmount < 0.0)
@@ -478,7 +479,6 @@ Item {
                                 FRAGCOLOR = vec4(result, original.a);
                             }
                         "
-            onStatusChanged: root.handleShaderStatus("DepthOfField", dofFragmentShader, dofEffect)
         }
 
         Shader {
@@ -507,28 +507,22 @@ Item {
 
         passes: [
             Pass {
-                shaders: dofEffect.fallbackActive ? [dofFallbackShader] : [dofFragmentShader]
+                shaders: resolveShaders(root.depthOfFieldEnabled, dofEffect, dofFragmentShader, dofFallbackShader)
             }
         ]
 
-        onEnabledChanged: {
-            if (enabled) {
-                console.log("📷 Depth of Field enabled - focus:", focusDistance);
-            }
-        }
+        // Effect.enabled is controlled externally via root.depthOfFieldEnabled
     }
 
     // Motion Blur Effect
     Effect {
         id: motionBlurEffect
-        enabled: false
 
         property bool fallbackActive: false
         property string lastErrorLog: ""
 
         property real strength: 0.5          // Сила размытия движения
         property int samples: 8              // Количество сэмплов
-        requiresVelocityTexture: true
         onSamplesChanged: {
             if (samples < 1)
                 samples = 1
@@ -580,7 +574,6 @@ Item {
                                 FRAGCOLOR = vec4(color, original.a);
                             }
                         "
-            onStatusChanged: root.handleShaderStatus("MotionBlur", motionBlurFragmentShader, motionBlurEffect)
         }
 
         Shader {
@@ -609,15 +602,11 @@ Item {
 
         passes: [
             Pass {
-                shaders: motionBlurEffect.fallbackActive ? [motionBlurFallbackShader] : [motionBlurFragmentShader]
+                shaders: resolveShaders(root.motionBlurEnabled, motionBlurEffect, motionBlurFragmentShader, motionBlurFallbackShader)
             }
         ]
 
-        onEnabledChanged: {
-            if (enabled) {
-                console.log("💨 Motion Blur enabled - strength:", strength);
-            }
-        }
+        // Effect.enabled is controlled externally via root.motionBlurEnabled
     }
 
     function applyPayload(params, environment) {
@@ -641,7 +630,7 @@ Item {
 
         if (env) {
             if (env.bloomEnabled !== undefined)
-                bloomEffect.enabled = !!env.bloomEnabled
+                root.bloomEnabled = !!env.bloomEnabled
             var bloomIntensity = numberFromPayload(env.bloomIntensity)
             if (bloomIntensity !== undefined)
                 bloomEffect.intensity = bloomIntensity
@@ -653,7 +642,7 @@ Item {
                 bloomEffect.blurAmount = Math.max(0.0, bloomSpread)
 
             if (env.ssaoEnabled !== undefined)
-                ssaoEffect.enabled = !!env.ssaoEnabled
+                root.ssaoEnabled = !!env.ssaoEnabled
             var ssaoIntensity = numberFromPayload(env.ssaoIntensity)
             if (ssaoIntensity !== undefined)
                 ssaoEffect.intensity = ssaoIntensity
@@ -669,9 +658,9 @@ Item {
                 ssaoEffect.samples = Math.max(1, Math.round(ssaoSampleRate))
 
             if (env.internalDepthOfFieldEnabled !== undefined)
-                dofEffect.enabled = !!env.internalDepthOfFieldEnabled
+                root.depthOfFieldEnabled = !!env.internalDepthOfFieldEnabled
             else if (env.depthOfFieldEnabled !== undefined)
-                dofEffect.enabled = !!env.depthOfFieldEnabled
+                root.depthOfFieldEnabled = !!env.depthOfFieldEnabled
             var dofFocusDistance = numberFromPayload(env.dofFocusDistance)
             if (dofFocusDistance !== undefined)
                 dofEffect.focusDistance = Math.max(0.0, dofFocusDistance)
@@ -686,7 +675,7 @@ Item {
         if (params) {
             var bloomEnabledValue = boolFromPayload(params, ["bloomEnabled", "bloom_enabled"], "bloom")
             if (bloomEnabledValue !== undefined)
-                bloomEffect.enabled = bloomEnabledValue
+                root.bloomEnabled = bloomEnabledValue
             var bloomIntensityValue = numberFromPayload(params, ["bloomIntensity", "bloom_intensity"], "bloom")
             if (bloomIntensityValue !== undefined)
                 bloomEffect.intensity = bloomIntensityValue
@@ -699,7 +688,7 @@ Item {
 
             var ssaoEnabledValue = boolFromPayload(params, ["ssaoEnabled", "ao_enabled"], "ssao")
             if (ssaoEnabledValue !== undefined)
-                ssaoEffect.enabled = ssaoEnabledValue
+                root.ssaoEnabled = ssaoEnabledValue
             var ssaoIntensityValue = numberFromPayload(params, ["ssaoIntensity", "ao_strength"], "ssao")
             if (ssaoIntensityValue !== undefined)
                 ssaoEffect.intensity = ssaoIntensityValue
@@ -719,7 +708,7 @@ Item {
 
             var dofEnabledValue = boolFromPayload(params, ["depthOfFieldEnabled", "depth_of_field"], "depthOfField")
             if (dofEnabledValue !== undefined)
-                dofEffect.enabled = dofEnabledValue
+                root.depthOfFieldEnabled = dofEnabledValue
             var dofFocusValue = numberFromPayload(params, ["dofFocusDistance", "dof_focus_distance"], "depthOfField")
             if (dofFocusValue !== undefined) {
                 var convertedFocus = convertLength(dofFocusValue)
@@ -738,7 +727,7 @@ Item {
 
             var motionEnabledValue = boolFromPayload(params, ["motionBlurEnabled", "motion_blur"], "motion")
             if (motionEnabledValue !== undefined)
-                motionBlurEffect.enabled = motionEnabledValue
+                root.motionBlurEnabled = motionEnabledValue
             var motionStrengthValue = numberFromPayload(params, ["motionBlurStrength", "motion_blur_amount"], "motion")
             if (motionStrengthValue !== undefined)
                 motionBlurEffect.strength = Math.max(0.0, motionStrengthValue)
@@ -752,40 +741,36 @@ Item {
     function enableBloom(intensity: real, threshold: real) {
         bloomEffect.intensity = intensity;
         bloomEffect.threshold = threshold;
-        bloomEffect.enabled = true;
+        root.bloomEnabled = true;
         console.log("✨ Bloom enabled:", intensity, threshold);
     }
 
     function enableSSAO(intensity: real, radius: real) {
         ssaoEffect.intensity = intensity;
         ssaoEffect.radius = radius;
-        ssaoEffect.enabled = true;
+        root.ssaoEnabled = true;
         console.log("🌑 SSAO enabled:", intensity, radius);
     }
 
     function enableDepthOfField(focusDistance: real, focusRange: real) {
         dofEffect.focusDistance = focusDistance;
         dofEffect.focusRange = focusRange;
-        dofEffect.enabled = true;
+        root.depthOfFieldEnabled = true;
         console.log("📷 DOF enabled:", focusDistance, focusRange);
     }
 
     function enableMotionBlur(strength: real) {
         motionBlurEffect.strength = strength;
-        motionBlurEffect.enabled = true;
+        root.motionBlurEnabled = true;
         console.log("💨 Motion Blur enabled:", strength);
     }
 
     function disableAllEffects() {
-        bloomEffect.enabled = false;
-        ssaoEffect.enabled = false;
-        dofEffect.enabled = false;
-        motionBlurEffect.enabled = false;
+        root.bloomEnabled = false;
+        root.ssaoEnabled = false;
+        root.depthOfFieldEnabled = false;
+        root.motionBlurEnabled = false;
         console.log("🚫 All post-effects disabled");
     }
 
-    Component.onCompleted: {
-        console.log("🎨 Post Effects Collection loaded");
-        console.log("   Available effects: Bloom, SSAO, DOF, Motion Blur");
-    }
 }

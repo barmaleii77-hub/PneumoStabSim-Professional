@@ -817,17 +817,20 @@ return
  property real fogMostIntenseY:3.0
  property real fogHeightCurve:1.0
  property bool fogTransmitEnabled: true
- property real fogTransmitCurve:1.0
+    property real fogTransmitCurve:1.0
 
- fog: Fog {
- enabled: root.fogEnabled
- color: root.fogColor
- density: root.fogDensity
- depthEnabled: root.fogEnabled
- depthNear: root.fogNear
- depthFar: root.fogFar
- depthCurve:1.0
- }
+    // Дополнительные эффекты (например, постобработка View3D)
+    property list<Effect> externalEffects: []
+
+    fog: Fog {
+        enabled: root.fogEnabled
+        color: root.fogColor
+        density: root.fogDensity
+        depthEnabled: root.fogEnabled
+        depthNear: root.fogNear
+        depthFar: root.fogFar
+        depthCurve:1.0
+    }
 
  readonly property FogEffect _customFogEffect: FogEffect {
  fogDensity: root.fogDensity
@@ -844,7 +847,14 @@ return
  animatedFog: false
  }
 
- effects: fogEnabled ? [_customFogEffect] : []
+    effects: {
+        var stack = []
+        if (externalEffects && externalEffects.length)
+            stack = stack.concat(externalEffects)
+        if (fogEnabled)
+            stack.push(_customFogEffect)
+        return stack
+    }
 
  // ===============================================================
  // TONEMAP
