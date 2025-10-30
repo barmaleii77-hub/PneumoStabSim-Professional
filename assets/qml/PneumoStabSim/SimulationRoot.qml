@@ -71,6 +71,8 @@ signal animationToggled(bool running)
  property bool signalTracePanelExpanded: false
  property var signalTraceHistory: []
  property bool _signalTraceSyncing: false
+ property var shaderWarningMap: ({})
+ property var shaderWarningList: []
 
  // -------- Геометрия подвески (СИ) --------
  property real userFrameLength: geometryDefaultNumber(["frameLength", "frame_length", "frame_length_m", "wheelbase"], 0.0)
@@ -640,16 +642,25 @@ SequentialAnimation {
  }
 
  Timer {
- id: pythonPressureTimeout
- interval: 800
- repeat: false
- onTriggered: pythonPressureActive = false
+  id: pythonPressureTimeout
+  interval: 800
+  repeat: false
+  onTriggered: pythonPressureActive = false
  }
 
-View3D {
+ PostEffects {
+  id: postEffects
+  anchors.fill: parent
+  visible: false
+  onEffectCompilationError: registerShaderWarning(effectId, errorLog)
+  onEffectCompilationRecovered: clearShaderWarning(effectId)
+ }
+
+ View3D {
  id: sceneView
  anchors.fill: parent
  environment: sceneEnvCtl
+ effects: postEffects.effects
 
  SharedMaterials {
  id: sharedMaterials
@@ -904,7 +915,50 @@ Connections {
  }
 }
 
- Rectangle {
+ Column {
+  id: shaderWarningOverlay
+  anchors.top: parent.top
+  anchors.right: parent.right
+  anchors.margins: 16
+  spacing: 8
+  visible: shaderWarningList.length > 0
+  z: 910
+
+  Repeater {
+   model: shaderWarningList
+   delegate: Rectangle {
+    width: 360
+    radius: 8
+    color: Qt.rgba(0.3, 0.05, 0.05, 0.92)
+    border.width: 1
+    border.color: Qt.rgba(0.9, 0.35, 0.35, 1)
+    implicitHeight: warningLayout.implicitHeight + 16
+
+    Column {
+     id: warningLayout
+     anchors.fill: parent
+     anchors.margins: 8
+     spacing: 4
+
+     Text {
+      text: qsTr("Shader fallback: %1").arg(modelData.id)
+      color: "#ffd7d7"
+      font.bold: true
+      wrapMode: Text.WordWrap
+     }
+
+     Text {
+      text: modelData.message
+      color: "#ffbcbc"
+      wrapMode: Text.WordWrap
+      font.pixelSize: 12
+     }
+    }
+   }
+  }
+ }
+
+Rectangle {
  anchors.fill: parent
  color: "#66b1ff"
  opacity: batchFlashOpacity
@@ -1046,9 +1100,35 @@ Connections {
 
    }
 
- // ---------------------------------------------
- // Утилиты
- // ---------------------------------------------
+// ---------------------------------------------
+// Утилиты
+// ---------------------------------------------
+
+function registerShaderWarning(effectId, errorLog) {
+ var normalizedId = effectId !== undefined && effectId !== null ? String(effectId) : "unknown"
+ var message = errorLog !== undefined && errorLog !== null ? String(errorLog) : qsTr("Shader compilation failed")
+ var nextMap = Object.assign({}, shaderWarningMap)
+ nextMap[normalizedId] = {
+  id: normalizedId,
+  message: message,
+  timestamp: Date.now()
+ }
+ shaderWarningMap = nextMap
+ shaderWarningList = Object.values(nextMap).sort(function(a, b) { return a.timestamp - b.timestamp })
+ console.warn("⚠️ Shader fallback activated for", normalizedId, "-", message)
+}
+
+function clearShaderWarning(effectId) {
+ var normalizedId = effectId !== undefined && effectId !== null ? String(effectId) : "unknown"
+ if (!shaderWarningMap.hasOwnProperty(normalizedId))
+  return
+ var nextMap = Object.assign({}, shaderWarningMap)
+ delete nextMap[normalizedId]
+ shaderWarningMap = nextMap
+ shaderWarningList = Object.values(nextMap).sort(function(a, b) { return a.timestamp - b.timestamp })
+ console.log("✅ Shader restored for", normalizedId)
+}
+
 function setIfExists(obj, prop, value) {
 try {
 if (obj && (prop in obj || typeof obj[prop] !== 'undefined')) {

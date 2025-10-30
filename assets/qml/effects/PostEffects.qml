@@ -9,6 +9,35 @@ import QtQuick3D.Effects
 Item {
     id: root
 
+    signal effectCompilationError(string effectId, string errorLog)
+    signal effectCompilationRecovered(string effectId)
+
+    function handleShaderStatus(effectId, shaderItem, effectItem) {
+        if (!shaderItem)
+            return
+
+        switch (shaderItem.status) {
+        case Shader.Error:
+            if (!effectItem.fallbackActive) {
+                effectItem.fallbackActive = true
+                effectItem.lastErrorLog = shaderItem.log || ""
+                console.error("⚠️", effectId, "shader compilation failed:", effectItem.lastErrorLog)
+                root.effectCompilationError(effectId, effectItem.lastErrorLog)
+            }
+            break
+        case Shader.Ready:
+            if (effectItem.fallbackActive) {
+                effectItem.fallbackActive = false
+                effectItem.lastErrorLog = ""
+                console.log("✅", effectId, "shader compiled successfully, restoring effect")
+                root.effectCompilationRecovered(effectId)
+            }
+            break
+        default:
+            break
+        }
+    }
+
     // Свойства управления эффектами
     property alias bloomEnabled: bloomEffect.enabled
     property alias bloomIntensity: bloomEffect.intensity
@@ -43,6 +72,9 @@ Item {
         id: bloomEffect
         enabled: false
 
+        property bool fallbackActive: false
+        property string lastErrorLog: ""
+
         property real intensity: 0.3      // Интенсивность свечения
         property real threshold: 0.7      // Порог яркости для свечения
         property real blurAmount: 1.0     // Размытие свечения
@@ -75,12 +107,10 @@ Item {
         onBlurAmountChanged: updateUniformBuffer()
         Component.onCompleted: updateUniformBuffer()
 
-        passes: [
-            Pass {
-                shaders: [
-                    Shader {
-                        stage: Shader.Fragment
-                        shader: "
+        Shader {
+            id: bloomFragmentShader
+            stage: Shader.Fragment
+            shader: "
                             #version 440
 
                             layout(location = 0) in vec2 coord;
@@ -134,8 +164,29 @@ Item {
                                 fragColor = vec4(result, original.a);
                             }
                         "
-                    }
-                ]
+            onStatusChanged: root.handleShaderStatus("Bloom", bloomFragmentShader, bloomEffect)
+        }
+
+        Shader {
+            id: bloomFallbackShader
+            stage: Shader.Fragment
+            shader: "
+                            #version 440
+
+                            layout(location = 0) in vec2 coord;
+                            layout(location = 0) out vec4 fragColor;
+
+                            layout(binding = 1) uniform sampler2D qt_Texture0;
+
+                            void qt_customMain() {
+                                fragColor = texture(qt_Texture0, coord);
+                            }
+                        "
+        }
+
+        passes: [
+            Pass {
+                shaders: bloomEffect.fallbackActive ? [bloomFallbackShader] : [bloomFragmentShader]
             }
         ]
 
@@ -150,6 +201,9 @@ Item {
     Effect {
         id: ssaoEffect
         enabled: false
+
+        property bool fallbackActive: false
+        property string lastErrorLog: ""
 
         property real intensity: 0.5      // Интенсивность затенения
         property real radius: 2.0         // Радиус сэмплинга
@@ -214,12 +268,10 @@ Item {
         onViewMatrixElementsChanged: updateUniformBuffer()
         Component.onCompleted: updateUniformBuffer()
 
-        passes: [
-            Pass {
-                shaders: [
-                    Shader {
-                        stage: Shader.Fragment
-                        shader: "
+        Shader {
+            id: ssaoFragmentShader
+            stage: Shader.Fragment
+            shader: "
                             #version 440
 
                             layout(location = 0) in vec2 coord;
@@ -289,8 +341,29 @@ Item {
                                 fragColor = vec4(original.rgb * occlusion, original.a);
                             }
                         "
-                    }
-                ]
+            onStatusChanged: root.handleShaderStatus("SSAO", ssaoFragmentShader, ssaoEffect)
+        }
+
+        Shader {
+            id: ssaoFallbackShader
+            stage: Shader.Fragment
+            shader: "
+                            #version 440
+
+                            layout(location = 0) in vec2 coord;
+                            layout(location = 0) out vec4 fragColor;
+
+                            layout(binding = 1) uniform sampler2D qt_Texture0;
+
+                            void qt_customMain() {
+                                fragColor = texture(qt_Texture0, coord);
+                            }
+                        "
+        }
+
+        passes: [
+            Pass {
+                shaders: ssaoEffect.fallbackActive ? [ssaoFallbackShader] : [ssaoFragmentShader]
             }
         ]
 
@@ -305,6 +378,9 @@ Item {
     Effect {
         id: dofEffect
         enabled: false
+
+        property bool fallbackActive: false
+        property string lastErrorLog: ""
 
         property real focusDistance: 2000.0  // Расстояние фокуса (мм)
         property real focusRange: 1000.0     // Диапазон фокуса (мм)
@@ -346,12 +422,10 @@ Item {
         onCameraFarChanged: updateUniformBuffer()
         Component.onCompleted: updateUniformBuffer()
 
-        passes: [
-            Pass {
-                shaders: [
-                    Shader {
-                        stage: Shader.Fragment
-                        shader: "
+        Shader {
+            id: dofFragmentShader
+            stage: Shader.Fragment
+            shader: "
                             #version 440
 
                             layout(location = 0) in vec2 coord;
@@ -404,8 +478,29 @@ Item {
                                 fragColor = vec4(result, original.a);
                             }
                         "
-                    }
-                ]
+            onStatusChanged: root.handleShaderStatus("DepthOfField", dofFragmentShader, dofEffect)
+        }
+
+        Shader {
+            id: dofFallbackShader
+            stage: Shader.Fragment
+            shader: "
+                            #version 440
+
+                            layout(location = 0) in vec2 coord;
+                            layout(location = 0) out vec4 fragColor;
+
+                            layout(binding = 1) uniform sampler2D qt_Texture0;
+
+                            void qt_customMain() {
+                                fragColor = texture(qt_Texture0, coord);
+                            }
+                        "
+        }
+
+        passes: [
+            Pass {
+                shaders: dofEffect.fallbackActive ? [dofFallbackShader] : [dofFragmentShader]
             }
         ]
 
@@ -420,6 +515,9 @@ Item {
     Effect {
         id: motionBlurEffect
         enabled: false
+
+        property bool fallbackActive: false
+        property string lastErrorLog: ""
 
         property real strength: 0.5          // Сила размытия движения
         property int samples: 8              // Количество сэмплов
@@ -480,12 +578,10 @@ Item {
         onCurrentViewProjectionElementsChanged: updateUniformBuffer()
         Component.onCompleted: updateUniformBuffer()
 
-        passes: [
-            Pass {
-                shaders: [
-                    Shader {
-                        stage: Shader.Fragment
-                        shader: "
+        Shader {
+            id: motionBlurFragmentShader
+            stage: Shader.Fragment
+            shader: "
                             #version 440
 
                             layout(location = 0) in vec2 coord;
@@ -518,8 +614,29 @@ Item {
                                 fragColor = vec4(color, original.a);
                             }
                         "
-                    }
-                ]
+            onStatusChanged: root.handleShaderStatus("MotionBlur", motionBlurFragmentShader, motionBlurEffect)
+        }
+
+        Shader {
+            id: motionBlurFallbackShader
+            stage: Shader.Fragment
+            shader: "
+                            #version 440
+
+                            layout(location = 0) in vec2 coord;
+                            layout(location = 0) out vec4 fragColor;
+
+                            layout(binding = 1) uniform sampler2D qt_Texture0;
+
+                            void qt_customMain() {
+                                fragColor = texture(qt_Texture0, coord);
+                            }
+                        "
+        }
+
+        passes: [
+            Pass {
+                shaders: motionBlurEffect.fallbackActive ? [motionBlurFallbackShader] : [motionBlurFragmentShader]
             }
         ]
 
