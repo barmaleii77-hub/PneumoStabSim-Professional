@@ -47,6 +47,7 @@ class GeometryStateManager:
         self._allowed_keys = frozenset(DEFAULT_GEOMETRY.keys())
         self._legacy_metadata_path = "metadata.legacy"
         self._pending_cleanup: bool = False
+        self._fallback_warnings: set[str] = set()
 
         # Current state (mutable)
         self.state: Dict[str, Any] = DEFAULT_GEOMETRY.copy()
@@ -554,21 +555,57 @@ class GeometryStateManager:
             Dictionary with 3D geometry parameters expressed in meters.
         """
 
+        def _log_fallback(name: str, reason: str, value: float | None) -> None:
+            if name in self._fallback_warnings:
+                return
+            pretty = "0.0" if value is None else f"{value}"
+            self.logger.warning(
+                "Geometry parameter '%s' fallback activated (%s); using %s",
+                name,
+                reason,
+                pretty,
+            )
+            self._fallback_warnings.add(name)
+
         def _value(name: str, *, fallback: float | None = None) -> float:
-            raw = self.state.get(name, DEFAULT_GEOMETRY.get(name, fallback))
+            value_source = "state"
+            if name in self.state:
+                raw = self.state[name]
+            else:
+                value_source = "missing"
+                raw = None
             if raw is None:
-                return float(fallback or 0.0)
-            try:
-                return float(raw)
-            except (TypeError, ValueError):
                 base = DEFAULT_GEOMETRY.get(name, fallback)
+                if value_source == "missing":
+                    _log_fallback(name, "missing", base)
+                else:
+                    _log_fallback(name, "null", base)
                 if base is not None:
                     try:
                         return float(base)
                     except (TypeError, ValueError):
-                        pass
+                        _log_fallback(name, "invalid default", None)
                 if fallback is not None:
-                    return float(fallback)
+                    try:
+                        return float(fallback)
+                    except (TypeError, ValueError):
+                        _log_fallback(name, "invalid explicit fallback", None)
+                return 0.0
+            try:
+                return float(raw)
+            except (TypeError, ValueError):
+                base = DEFAULT_GEOMETRY.get(name, fallback)
+                _log_fallback(name, f"invalid value {raw!r}", base)
+                if base is not None:
+                    try:
+                        return float(base)
+                    except (TypeError, ValueError):
+                        _log_fallback(name, "invalid default", None)
+                if fallback is not None:
+                    try:
+                        return float(fallback)
+                    except (TypeError, ValueError):
+                        _log_fallback(name, "invalid explicit fallback", None)
                 return 0.0
 
         frame_length = _value("wheelbase")
