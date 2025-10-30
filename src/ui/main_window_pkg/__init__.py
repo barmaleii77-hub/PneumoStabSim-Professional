@@ -124,7 +124,8 @@ def _called_from_inspect_unwrap() -> bool:
         # of levels above the module attribute access.
         while frame is not None:
             code = frame.f_code
-            if code.co_name == "unwrap" and code.co_filename.endswith("inspect.py"):
+            # Проверяем, что функция называется "unwrap" и файл содержит "inspect"
+            if code.co_name == "unwrap" and "inspect" in code.co_filename:
                 return True
             frame = frame.f_back
     finally:
