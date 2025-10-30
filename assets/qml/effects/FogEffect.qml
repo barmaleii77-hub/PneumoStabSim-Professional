@@ -60,6 +60,12 @@ Effect {
                             vec3 qt_CameraPosition;
                             float qt_Opacity;
                         } ubuf;
+                        #ifndef CAMERA_POSITION
+                        #define CAMERA_POSITION ubuf.qt_CameraPosition
+                        #endif
+                        #ifndef EFFECT_OPACITY
+                        #define EFFECT_OPACITY ubuf.qt_Opacity
+                        #endif
 
                         void qt_customMain() {
                             vec4 localPosition = vec4(INPUT_POSITION, 1.0);
@@ -113,6 +119,12 @@ Effect {
                             vec3 qt_CameraPosition;
                             float qt_Opacity;
                         } ubuf;
+                        #ifndef CAMERA_POSITION
+                        #define CAMERA_POSITION ubuf.qt_CameraPosition
+                        #endif
+                        #ifndef EFFECT_OPACITY
+                        #define EFFECT_OPACITY ubuf.qt_Opacity
+                        #endif
 
                         float calculateFogFactor(vec3 worldPosition, vec3 cameraPosition) {
                             float distance = length(worldPosition - cameraPosition);
