@@ -63,9 +63,14 @@ Item {
     property alias motionBlurStrength: motionBlurEffect.strength
     property alias motionBlurSamples: motionBlurEffect.samples
 
+    /*
+     * Возвращает активный или fallback шейдер для эффекта.
+     * Если эффект отключён, функция не должна возвращать шейдеры —
+     * обработка полностью пропускается через Effect.enabled = false.
+     */
     function resolveShaders(isEnabled, effectItem, activeShader, fallbackShader) {
         if (!isEnabled)
-            return [fallbackShader]
+            return []
         return effectItem.fallbackActive ? [fallbackShader] : [activeShader]
     }
 
