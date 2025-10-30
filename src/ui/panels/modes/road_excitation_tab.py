@@ -469,7 +469,7 @@ class RoadExcitationTab(QWidget):
         if value is None:
             return
         self.state_manager.update_parameter("smoothing_easing", value)
-        self.parameter_changed.emit("smoothing_easing", float(index))
+        self.parameter_changed.emit("smoothing_easing", value)
         self._emit_animation_update()
 
     def _apply_current_state(self):

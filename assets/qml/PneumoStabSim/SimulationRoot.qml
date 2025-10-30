@@ -721,17 +721,29 @@ Binding {
     target: sceneEnvCtl
     property: "autoFocusDistanceHint"
     value: {
-        if (!cameraController)
-            return 2.2
+        var scale = Number(root.effectiveSceneScaleFactor)
+        if (!isFinite(scale) || scale <= 0)
+            scale = 1.0
+        if (!cameraController) {
+            var storedDistance = Number(sceneEnvCtl.dofFocusDistance)
+            if (!isFinite(storedDistance) || storedDistance <= 0) {
+                var defaultDistance = undefined
+                if (root.sceneDefaults && root.sceneDefaults.graphics && root.sceneDefaults.graphics.effects && root.sceneDefaults.graphics.effects.dof_focus_distance !== undefined)
+                    defaultDistance = Number(root.sceneDefaults.graphics.effects.dof_focus_distance)
+                if (!isFinite(defaultDistance) || defaultDistance <= 0)
+                    defaultDistance = 2.2
+                storedDistance = defaultDistance * scale
+            }
+            if (storedDistance > 50 * scale)
+                storedDistance = (storedDistance / 1000.0) * scale
+            return Math.max(0.05, storedDistance)
+        }
         var distanceMm = Number(cameraController.distance)
         if (!isFinite(distanceMm) || distanceMm <= 0)
             distanceMm = 2200
         var unitsPerMeter = Number(cameraController.metersToControllerUnits)
         if (!isFinite(unitsPerMeter) || unitsPerMeter <= 0)
             unitsPerMeter = 1000
-        var scale = Number(root.effectiveSceneScaleFactor)
-        if (!isFinite(scale) || scale <= 0)
-            scale = 1.0
         var meters = distanceMm / unitsPerMeter
         var focusMeters = Math.max(0.05, meters) * scale
         return focusMeters
