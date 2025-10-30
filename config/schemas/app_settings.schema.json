@@ -6,26 +6,66 @@
     "material": {
       "type": "object",
       "properties": {
-        "base_color": {"type": "string"},
-        "metalness": {"type": "number"},
-        "roughness": {"type": "number"},
-        "specular": {"type": "number"},
-        "specular_tint": {"type": "string"},
-        "opacity": {"type": "number"},
-        "clearcoat": {"type": "number"},
-        "clearcoat_roughness": {"type": "number"},
-        "transmission": {"type": "number"},
-        "ior": {"type": "number"},
-        "thickness": {"type": "number"},
-        "attenuation_distance": {"type": "number"},
-        "attenuation_color": {"type": "string"},
-        "emissive_color": {"type": "string"},
-        "emissive_intensity": {"type": "number"},
-        "normal_strength": {"type": "number"},
-        "occlusion_amount": {"type": "number"},
-        "alpha_mode": {"type": "string"},
-        "alpha_cutoff": {"type": "number"},
-        "id": {"type": "string"}
+        "base_color": {
+          "type": "string"
+        },
+        "metalness": {
+          "type": "number"
+        },
+        "roughness": {
+          "type": "number"
+        },
+        "specular": {
+          "type": "number"
+        },
+        "specular_tint": {
+          "type": "string"
+        },
+        "opacity": {
+          "type": "number"
+        },
+        "clearcoat": {
+          "type": "number"
+        },
+        "clearcoat_roughness": {
+          "type": "number"
+        },
+        "transmission": {
+          "type": "number"
+        },
+        "ior": {
+          "type": "number"
+        },
+        "thickness": {
+          "type": "number"
+        },
+        "attenuation_distance": {
+          "type": "number"
+        },
+        "attenuation_color": {
+          "type": "string"
+        },
+        "emissive_color": {
+          "type": "string"
+        },
+        "emissive_intensity": {
+          "type": "number"
+        },
+        "normal_strength": {
+          "type": "number"
+        },
+        "occlusion_amount": {
+          "type": "number"
+        },
+        "alpha_mode": {
+          "type": "string"
+        },
+        "alpha_cutoff": {
+          "type": "number"
+        },
+        "id": {
+          "type": "string"
+        }
       },
       "required": [
         "base_color",
@@ -54,20 +94,48 @@
     "animation_settings": {
       "type": "object",
       "properties": {
-        "is_running": {"type": "boolean"},
-        "animation_time": {"type": "number"},
-        "amplitude": {"type": "number"},
-        "frequency": {"type": "number"},
-        "phase_global": {"type": "number"},
-        "phase_fl": {"type": "number"},
-        "phase_fr": {"type": "number"},
-        "phase_rl": {"type": "number"},
-        "phase_rr": {"type": "number"},
-        "smoothing_enabled": {"type": "boolean"},
-        "smoothing_duration_ms": {"type": "number"},
-        "smoothing_angle_snap_deg": {"type": "number"},
-        "smoothing_piston_snap_m": {"type": "number"},
-        "smoothing_easing": {"type": "string"}
+        "is_running": {
+          "type": "boolean"
+        },
+        "animation_time": {
+          "type": "number"
+        },
+        "amplitude": {
+          "type": "number"
+        },
+        "frequency": {
+          "type": "number"
+        },
+        "phase_global": {
+          "type": "number"
+        },
+        "phase_fl": {
+          "type": "number"
+        },
+        "phase_fr": {
+          "type": "number"
+        },
+        "phase_rl": {
+          "type": "number"
+        },
+        "phase_rr": {
+          "type": "number"
+        },
+        "smoothing_enabled": {
+          "type": "boolean"
+        },
+        "smoothing_duration_ms": {
+          "type": "number"
+        },
+        "smoothing_angle_snap_deg": {
+          "type": "number"
+        },
+        "smoothing_piston_snap_m": {
+          "type": "number"
+        },
+        "smoothing_easing": {
+          "type": "string"
+        }
       },
       "additionalProperties": false
     }
@@ -141,6 +209,9 @@
             },
             "cylinder_body_length_m": {
               "type": "number"
+            },
+            "active_preset": {
+              "type": "string"
             }
           },
           "required": [
@@ -164,7 +235,8 @@
             "frame_beam_size_m",
             "frame_length_m",
             "lever_length_m",
-            "cylinder_body_length_m"
+            "cylinder_body_length_m",
+            "active_preset"
           ],
           "additionalProperties": false
         },
@@ -326,20 +398,30 @@
           ],
           "additionalProperties": false
         },
-          "graphics": {
-            "type": "object",
-            "properties": {
+        "graphics": {
+          "type": "object",
+          "properties": {
             "lighting": {
               "type": "object",
               "properties": {
                 "key": {
                   "type": "object",
                   "properties": {
-                    "brightness": {"type": "number"},
-                    "color": {"type": "string"},
-                    "angle_x": {"type": "number"},
-                    "angle_y": {"type": "number"},
-                    "angle_z": {"type": "number"}
+                    "brightness": {
+                      "type": "number"
+                    },
+                    "color": {
+                      "type": "string"
+                    },
+                    "angle_x": {
+                      "type": "number"
+                    },
+                    "angle_y": {
+                      "type": "number"
+                    },
+                    "angle_z": {
+                      "type": "number"
+                    }
                   },
                   "required": [
                     "brightness",
@@ -348,17 +430,29 @@
                     "angle_y",
                     "angle_z"
                   ],
-            "additionalProperties": false
-          },
+                  "additionalProperties": false
+                },
                 "fill": {
                   "type": "object",
                   "properties": {
-                    "brightness": {"type": "number"},
-                    "color": {"type": "string"},
-                    "angle_x": {"type": "number"},
-                    "angle_y": {"type": "number"},
-                    "angle_z": {"type": "number"},
-                    "position_x": {"type": "number"}
+                    "brightness": {
+                      "type": "number"
+                    },
+                    "color": {
+                      "type": "string"
+                    },
+                    "angle_x": {
+                      "type": "number"
+                    },
+                    "angle_y": {
+                      "type": "number"
+                    },
+                    "angle_z": {
+                      "type": "number"
+                    },
+                    "position_x": {
+                      "type": "number"
+                    }
                   },
                   "required": [
                     "brightness",
@@ -372,11 +466,21 @@
                 "rim": {
                   "type": "object",
                   "properties": {
-                    "brightness": {"type": "number"},
-                    "color": {"type": "string"},
-                    "angle_x": {"type": "number"},
-                    "angle_y": {"type": "number"},
-                    "angle_z": {"type": "number"}
+                    "brightness": {
+                      "type": "number"
+                    },
+                    "color": {
+                      "type": "string"
+                    },
+                    "angle_x": {
+                      "type": "number"
+                    },
+                    "angle_y": {
+                      "type": "number"
+                    },
+                    "angle_z": {
+                      "type": "number"
+                    }
                   },
                   "required": [
                     "brightness",
@@ -390,13 +494,27 @@
                 "point": {
                   "type": "object",
                   "properties": {
-                    "brightness": {"type": "number"},
-                    "color": {"type": "string"},
-                    "position_y": {"type": "number"},
-                    "range": {"type": "number"},
-                    "constant_fade": {"type": "number"},
-                    "linear_fade": {"type": "number"},
-                    "quadratic_fade": {"type": "number"}
+                    "brightness": {
+                      "type": "number"
+                    },
+                    "color": {
+                      "type": "string"
+                    },
+                    "position_y": {
+                      "type": "number"
+                    },
+                    "range": {
+                      "type": "number"
+                    },
+                    "constant_fade": {
+                      "type": "number"
+                    },
+                    "linear_fade": {
+                      "type": "number"
+                    },
+                    "quadratic_fade": {
+                      "type": "number"
+                    }
                   },
                   "required": [
                     "brightness",
@@ -412,17 +530,39 @@
                 "spot": {
                   "type": "object",
                   "properties": {
-                    "brightness": {"type": "number"},
-                    "color": {"type": "string"},
-                    "position_y": {"type": "number"},
-                    "range": {"type": "number"},
-                    "cone_angle": {"type": "number"},
-                    "inner_cone_angle": {"type": "number"},
-                    "angle_x": {"type": "number"},
-                    "angle_y": {"type": "number"},
-                    "position_x": {"type": "number"},
-                    "position_z": {"type": "number"},
-                    "angle_z": {"type": "number"}
+                    "brightness": {
+                      "type": "number"
+                    },
+                    "color": {
+                      "type": "string"
+                    },
+                    "position_y": {
+                      "type": "number"
+                    },
+                    "range": {
+                      "type": "number"
+                    },
+                    "cone_angle": {
+                      "type": "number"
+                    },
+                    "inner_cone_angle": {
+                      "type": "number"
+                    },
+                    "angle_x": {
+                      "type": "number"
+                    },
+                    "angle_y": {
+                      "type": "number"
+                    },
+                    "position_x": {
+                      "type": "number"
+                    },
+                    "position_z": {
+                      "type": "number"
+                    },
+                    "angle_z": {
+                      "type": "number"
+                    }
                   },
                   "required": [
                     "brightness",
@@ -452,42 +592,114 @@
             "environment": {
               "type": "object",
               "properties": {
-                "background_mode": {"type": "string"},
-                "background_color": {"type": "string"},
-                "skybox_enabled": {"type": "boolean"},
-                "ibl_enabled": {"type": "boolean"},
-                "ibl_intensity": {"type": "number"},
-                "skybox_brightness": {"type": "number"},
-                "probe_horizon": {"type": "number"},
-                "ibl_rotation": {"type": "number"},
-                "ibl_source": {"type": "string"},
-                "ibl_fallback": {"type": "string"},
-                "skybox_blur": {"type": "number"},
-                "ibl_offset_x": {"type": "number"},
-                "ibl_offset_y": {"type": "number"},
-                "ibl_bind_to_camera": {"type": "boolean"},
-                "reflection_enabled": {"type": "boolean"},
-                "reflection_padding_m": {"type": "number"},
-                "reflection_quality": {"type": "string"},
-                "reflection_refresh_mode": {"type": "string"},
-                "reflection_time_slicing": {"type": "string"},
-                "fog_enabled": {"type": "boolean"},
-                "fog_color": {"type": "string"},
-                "fog_density": {"type": "number"},
-                "fog_near": {"type": "number"},
-                "fog_far": {"type": "number"},
-                "fog_height_enabled": {"type": "boolean"},
-                "fog_least_intense_y": {"type": "number"},
-                "fog_most_intense_y": {"type": "number"},
-                "fog_height_curve": {"type": "number"},
-                "fog_transmit_enabled": {"type": "boolean"},
-                "fog_transmit_curve": {"type": "number"},
-                "ao_enabled": {"type": "boolean"},
-                "ao_strength": {"type": "number"},
-                "ao_radius": {"type": "number"},
-                "ao_softness": {"type": "number"},
-                "ao_dither": {"type": "boolean"},
-                "ao_sample_rate": {"type": "integer"}
+                "background_mode": {
+                  "type": "string"
+                },
+                "background_color": {
+                  "type": "string"
+                },
+                "skybox_enabled": {
+                  "type": "boolean"
+                },
+                "ibl_enabled": {
+                  "type": "boolean"
+                },
+                "ibl_intensity": {
+                  "type": "number"
+                },
+                "skybox_brightness": {
+                  "type": "number"
+                },
+                "probe_horizon": {
+                  "type": "number"
+                },
+                "ibl_rotation": {
+                  "type": "number"
+                },
+                "ibl_source": {
+                  "type": "string"
+                },
+                "ibl_fallback": {
+                  "type": "string"
+                },
+                "skybox_blur": {
+                  "type": "number"
+                },
+                "ibl_offset_x": {
+                  "type": "number"
+                },
+                "ibl_offset_y": {
+                  "type": "number"
+                },
+                "ibl_bind_to_camera": {
+                  "type": "boolean"
+                },
+                "reflection_enabled": {
+                  "type": "boolean"
+                },
+                "reflection_padding_m": {
+                  "type": "number"
+                },
+                "reflection_quality": {
+                  "type": "string"
+                },
+                "reflection_refresh_mode": {
+                  "type": "string"
+                },
+                "reflection_time_slicing": {
+                  "type": "string"
+                },
+                "fog_enabled": {
+                  "type": "boolean"
+                },
+                "fog_color": {
+                  "type": "string"
+                },
+                "fog_density": {
+                  "type": "number"
+                },
+                "fog_near": {
+                  "type": "number"
+                },
+                "fog_far": {
+                  "type": "number"
+                },
+                "fog_height_enabled": {
+                  "type": "boolean"
+                },
+                "fog_least_intense_y": {
+                  "type": "number"
+                },
+                "fog_most_intense_y": {
+                  "type": "number"
+                },
+                "fog_height_curve": {
+                  "type": "number"
+                },
+                "fog_transmit_enabled": {
+                  "type": "boolean"
+                },
+                "fog_transmit_curve": {
+                  "type": "number"
+                },
+                "ao_enabled": {
+                  "type": "boolean"
+                },
+                "ao_strength": {
+                  "type": "number"
+                },
+                "ao_radius": {
+                  "type": "number"
+                },
+                "ao_softness": {
+                  "type": "number"
+                },
+                "ao_dither": {
+                  "type": "boolean"
+                },
+                "ao_sample_rate": {
+                  "type": "integer"
+                }
               },
               "required": [
                 "background_mode",
@@ -532,15 +744,28 @@
             "quality": {
               "type": "object",
               "properties": {
-                "preset": {"type": "string"},
+                "preset": {
+                  "type": "string"
+                },
                 "shadows": {
                   "type": "object",
                   "properties": {
-                    "enabled": {"type": "boolean"},
-                    "resolution": {"type": "integer", "minimum": 1},
-                    "filter": {"type": "number"},
-                    "bias": {"type": "number"},
-                    "darkness": {"type": "number"}
+                    "enabled": {
+                      "type": "boolean"
+                    },
+                    "resolution": {
+                      "type": "integer",
+                      "minimum": 1
+                    },
+                    "filter": {
+                      "type": "number"
+                    },
+                    "bias": {
+                      "type": "number"
+                    },
+                    "darkness": {
+                      "type": "number"
+                    }
                   },
                   "required": [
                     "enabled",
@@ -554,9 +779,15 @@
                 "antialiasing": {
                   "type": "object",
                   "properties": {
-                    "primary": {"type": "string"},
-                    "quality": {"type": "string"},
-                    "post": {"type": "string"}
+                    "primary": {
+                      "type": "string"
+                    },
+                    "quality": {
+                      "type": "string"
+                    },
+                    "post": {
+                      "type": "string"
+                    }
                   },
                   "required": [
                     "primary",
@@ -565,21 +796,45 @@
                   ],
                   "additionalProperties": false
                 },
-                "taa_enabled": {"type": "boolean"},
-                "taa_strength": {"type": "number"},
-                "taa_motion_adaptive": {"type": "boolean"},
-                "fxaa_enabled": {"type": "boolean"},
-                "specular_aa": {"type": "boolean"},
-                "dithering": {"type": "boolean"},
-                "render_scale": {"type": "number"},
-                "render_policy": {"type": "string"},
-                "frame_rate_limit": {"type": "number"},
-                "oit": {"type": "string"},
+                "taa_enabled": {
+                  "type": "boolean"
+                },
+                "taa_strength": {
+                  "type": "number"
+                },
+                "taa_motion_adaptive": {
+                  "type": "boolean"
+                },
+                "fxaa_enabled": {
+                  "type": "boolean"
+                },
+                "specular_aa": {
+                  "type": "boolean"
+                },
+                "dithering": {
+                  "type": "boolean"
+                },
+                "render_scale": {
+                  "type": "number"
+                },
+                "render_policy": {
+                  "type": "string"
+                },
+                "frame_rate_limit": {
+                  "type": "number"
+                },
+                "oit": {
+                  "type": "string"
+                },
                 "mesh": {
                   "type": "object",
                   "properties": {
-                    "cylinder_segments": {"type": "integer"},
-                    "cylinder_rings": {"type": "integer"}
+                    "cylinder_segments": {
+                      "type": "integer"
+                    },
+                    "cylinder_rings": {
+                      "type": "integer"
+                    }
                   },
                   "required": [
                     "cylinder_segments",
@@ -609,39 +864,105 @@
             "camera": {
               "type": "object",
               "properties": {
-                "fov": {"type": "number"},
-                "near": {"type": "number"},
-                "far": {"type": "number"},
-                "speed": {"type": "number"},
-                "auto_rotate": {"type": "boolean"},
-                "auto_rotate_speed": {"type": "number"},
-                "auto_fit": {"type": "boolean"},
-                "manual_camera": {"type": "boolean"},
-                "camera_pos_x": {"type": "number"},
-                "camera_pos_y": {"type": "number"},
-                "camera_pos_z": {"type": "number"},
-                "camera_rot_x": {"type": "number"},
-                "camera_rot_y": {"type": "number"},
-                "camera_rot_z": {"type": "number"},
-                "orbit_target_x": {"type": "number"},
-                "orbit_target_y": {"type": "number"},
-                "orbit_target_z": {"type": "number"},
-                "orbit_yaw": {"type": "number"},
-                "orbit_pitch": {"type": "number"},
-                "orbit_distance": {"type": "number"},
-                "orbit_inertia_enabled": {"type": "boolean"},
-                "orbit_inertia": {"type": "number"},
-                "orbit_rotate_smoothing": {"type": "number"},
-                "orbit_pan_smoothing": {"type": "number"},
-                "orbit_zoom_smoothing": {"type": "number"},
-                "orbit_friction": {"type": "number"},
-                "world_pos_x": {"type": "number"},
-                "world_pos_y": {"type": "number"},
-                "world_pos_z": {"type": "number"},
-                "world_rot_x": {"type": "number"},
-                "world_rot_y": {"type": "number"},
-                "world_rot_z": {"type": "number"},
-                "world_scale": {"type": "number"}
+                "fov": {
+                  "type": "number"
+                },
+                "near": {
+                  "type": "number"
+                },
+                "far": {
+                  "type": "number"
+                },
+                "speed": {
+                  "type": "number"
+                },
+                "auto_rotate": {
+                  "type": "boolean"
+                },
+                "auto_rotate_speed": {
+                  "type": "number"
+                },
+                "auto_fit": {
+                  "type": "boolean"
+                },
+                "manual_camera": {
+                  "type": "boolean"
+                },
+                "camera_pos_x": {
+                  "type": "number"
+                },
+                "camera_pos_y": {
+                  "type": "number"
+                },
+                "camera_pos_z": {
+                  "type": "number"
+                },
+                "camera_rot_x": {
+                  "type": "number"
+                },
+                "camera_rot_y": {
+                  "type": "number"
+                },
+                "camera_rot_z": {
+                  "type": "number"
+                },
+                "orbit_target_x": {
+                  "type": "number"
+                },
+                "orbit_target_y": {
+                  "type": "number"
+                },
+                "orbit_target_z": {
+                  "type": "number"
+                },
+                "orbit_yaw": {
+                  "type": "number"
+                },
+                "orbit_pitch": {
+                  "type": "number"
+                },
+                "orbit_distance": {
+                  "type": "number"
+                },
+                "orbit_inertia_enabled": {
+                  "type": "boolean"
+                },
+                "orbit_inertia": {
+                  "type": "number"
+                },
+                "orbit_rotate_smoothing": {
+                  "type": "number"
+                },
+                "orbit_pan_smoothing": {
+                  "type": "number"
+                },
+                "orbit_zoom_smoothing": {
+                  "type": "number"
+                },
+                "orbit_friction": {
+                  "type": "number"
+                },
+                "world_pos_x": {
+                  "type": "number"
+                },
+                "world_pos_y": {
+                  "type": "number"
+                },
+                "world_pos_z": {
+                  "type": "number"
+                },
+                "world_rot_x": {
+                  "type": "number"
+                },
+                "world_rot_y": {
+                  "type": "number"
+                },
+                "world_rot_z": {
+                  "type": "number"
+                },
+                "world_scale": {
+                  "type": "number"
+                }
               },
               "required": [
                 "fov",
@@ -683,15 +1004,33 @@
             "materials": {
               "type": "object",
               "properties": {
-                "frame": {"$ref": "#/definitions/material"},
-                "lever": {"$ref": "#/definitions/material"},
-                "tail_rod": {"$ref": "#/definitions/material"},
-                "cylinder": {"$ref": "#/definitions/material"},
-                "piston_body": {"$ref": "#/definitions/material"},
-                "piston_rod": {"$ref": "#/definitions/material"},
-                "joint_tail": {"$ref": "#/definitions/material"},
-                "joint_arm": {"$ref": "#/definitions/material"},
-                "joint_rod": {"$ref": "#/definitions/material"}
+                "frame": {
+                  "$ref": "#/definitions/material"
+                },
+                "lever": {
+                  "$ref": "#/definitions/material"
+                },
+                "tail_rod": {
+                  "$ref": "#/definitions/material"
+                },
+                "cylinder": {
+                  "$ref": "#/definitions/material"
+                },
+                "piston_body": {
+                  "$ref": "#/definitions/material"
+                },
+                "piston_rod": {
+                  "$ref": "#/definitions/material"
+                },
+                "joint_tail": {
+                  "$ref": "#/definitions/material"
+                },
+                "joint_arm": {
+                  "$ref": "#/definitions/material"
+                },
+                "joint_rod": {
+                  "$ref": "#/definitions/material"
+                }
               },
               "required": [
                 "frame",
@@ -709,37 +1048,99 @@
             "effects": {
               "type": "object",
               "properties": {
-                "bloom_enabled": {"type": "boolean"},
-                "bloom_intensity": {"type": "number"},
-                "bloom_threshold": {"type": "number"},
-                "bloom_spread": {"type": "number"},
-                "bloom_glow_strength": {"type": "number"},
-                "bloom_hdr_max": {"type": "number"},
-                "bloom_hdr_scale": {"type": "number"},
-                "bloom_quality_high": {"type": "boolean"},
-                "bloom_bicubic_upscale": {"type": "boolean"},
-                "tonemap_enabled": {"type": "boolean"},
-                "tonemap_mode": {"type": "string"},
-                "tonemap_exposure": {"type": "number"},
-                "tonemap_white_point": {"type": "number"},
-                "depth_of_field": {"type": "boolean"},
-                "dof_auto_focus": {"type": "boolean"},
-                "dof_focus_distance": {"type": "number"},
-                "dof_blur": {"type": "number"},
-                "motion_blur": {"type": "boolean"},
-                "motion_blur_amount": {"type": "number"},
-                "lens_flare": {"type": "boolean"},
-                "lens_flare_ghost_count": {"type": "integer"},
-                "lens_flare_ghost_dispersal": {"type": "number"},
-                "lens_flare_halo_width": {"type": "number"},
-                "lens_flare_bloom_bias": {"type": "number"},
-                "lens_flare_stretch_to_aspect": {"type": "boolean"},
-                "vignette": {"type": "boolean"},
-                "vignette_strength": {"type": "number"},
-                "vignette_radius": {"type": "number"},
-                "adjustment_brightness": {"type": "number"},
-                "adjustment_contrast": {"type": "number"},
-                "adjustment_saturation": {"type": "number"}
+                "bloom_enabled": {
+                  "type": "boolean"
+                },
+                "bloom_intensity": {
+                  "type": "number"
+                },
+                "bloom_threshold": {
+                  "type": "number"
+                },
+                "bloom_spread": {
+                  "type": "number"
+                },
+                "bloom_glow_strength": {
+                  "type": "number"
+                },
+                "bloom_hdr_max": {
+                  "type": "number"
+                },
+                "bloom_hdr_scale": {
+                  "type": "number"
+                },
+                "bloom_quality_high": {
+                  "type": "boolean"
+                },
+                "bloom_bicubic_upscale": {
+                  "type": "boolean"
+                },
+                "tonemap_enabled": {
+                  "type": "boolean"
+                },
+                "tonemap_mode": {
+                  "type": "string"
+                },
+                "tonemap_exposure": {
+                  "type": "number"
+                },
+                "tonemap_white_point": {
+                  "type": "number"
+                },
+                "depth_of_field": {
+                  "type": "boolean"
+                },
+                "dof_auto_focus": {
+                  "type": "boolean"
+                },
+                "dof_focus_distance": {
+                  "type": "number"
+                },
+                "dof_blur": {
+                  "type": "number"
+                },
+                "motion_blur": {
+                  "type": "boolean"
+                },
+                "motion_blur_amount": {
+                  "type": "number"
+                },
+                "lens_flare": {
+                  "type": "boolean"
+                },
+                "lens_flare_ghost_count": {
+                  "type": "integer"
+                },
+                "lens_flare_ghost_dispersal": {
+                  "type": "number"
+                },
+                "lens_flare_halo_width": {
+                  "type": "number"
+                },
+                "lens_flare_bloom_bias": {
+                  "type": "number"
+                },
+                "lens_flare_stretch_to_aspect": {
+                  "type": "boolean"
+                },
+                "vignette": {
+                  "type": "boolean"
+                },
+                "vignette_strength": {
+                  "type": "number"
+                },
+                "vignette_radius": {
+                  "type": "number"
+                },
+                "adjustment_brightness": {
+                  "type": "number"
+                },
+                "adjustment_contrast": {
+                  "type": "number"
+                },
+                "adjustment_saturation": {
+                  "type": "number"
+                }
               },
               "required": [
                 "bloom_enabled",
@@ -779,7 +1180,9 @@
             "scene": {
               "type": "object"
             },
-            "animation": {"$ref": "#/definitions/animation_settings"}
+            "animation": {
+              "$ref": "#/definitions/animation_settings"
+            }
           },
           "required": [
             "lighting",
@@ -792,9 +1195,9 @@
           ],
           "additionalProperties": false
         },
-          "lighting": {
-            "type": "object"
-          },
+        "lighting": {
+          "type": "object"
+        },
         "environment": {
           "type": "object"
         },
@@ -810,7 +1213,9 @@
         "effects": {
           "type": "object"
         },
-        "animation": {"$ref": "#/definitions/animation_settings"},
+        "animation": {
+          "$ref": "#/definitions/animation_settings"
+        },
         "simulation": {
           "type": "object",
           "properties": {
@@ -924,7 +1329,74 @@
           "type": "object"
         },
         "constants": {
-          "type": "object"
+          "type": "object",
+          "properties": {
+            "geometry": {
+              "type": "object",
+              "properties": {
+                "ui_ranges": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "type": "object",
+                    "properties": {
+                      "min": {
+                        "type": "number"
+                      },
+                      "max": {
+                        "type": "number"
+                      },
+                      "step": {
+                        "type": "number"
+                      },
+                      "decimals": {
+                        "type": "number"
+                      },
+                      "units": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "min",
+                      "max"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "presets": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "key": {
+                        "type": "string"
+                      },
+                      "label": {
+                        "type": "string"
+                      },
+                      "values": {
+                        "type": "object",
+                        "additionalProperties": {
+                          "type": [
+                            "number",
+                            "boolean",
+                            "string"
+                          ]
+                        }
+                      }
+                    },
+                    "required": [
+                      "key",
+                      "label",
+                      "values"
+                    ],
+                    "additionalProperties": false
+                  }
+                }
+              },
+              "additionalProperties": true
+            }
+          },
+          "additionalProperties": true
         },
         "diagnostics": {
           "type": "object"
@@ -933,18 +1405,18 @@
           "type": "object"
         }
       },
-        "required": [
-          "constants",
-          "diagnostics",
-          "geometry",
-          "graphics",
-          "modes",
-          "physics",
-          "pneumatic",
-          "quality_presets",
-          "simulation",
-          "system"
-        ],
+      "required": [
+        "constants",
+        "diagnostics",
+        "geometry",
+        "graphics",
+        "modes",
+        "physics",
+        "pneumatic",
+        "quality_presets",
+        "simulation",
+        "system"
+      ],
       "additionalProperties": false
     },
     "defaults_snapshot": {
