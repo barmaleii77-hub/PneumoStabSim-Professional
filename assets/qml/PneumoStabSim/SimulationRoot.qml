@@ -806,6 +806,18 @@ Binding {
 }
 
 Binding {
+    target: postEffects
+    property: "cameraClipNear"
+    value: cameraController && cameraController.camera ? cameraController.camera.clipNear : postEffects.cameraClipNear
+}
+
+Binding {
+    target: postEffects
+    property: "cameraClipFar"
+    value: cameraController && cameraController.camera ? cameraController.camera.clipFar : postEffects.cameraClipFar
+}
+
+Binding {
     target: sceneEnvCtl
     property: "autoFocusDistanceHint"
     value: {
@@ -2203,6 +2215,8 @@ function sanitizeReflectionProbePadding(value) {
  return;
  // Делегируем контроллеру окружения для консистентности
  sceneEnvCtl.applyEffectsPayload(params);
+ if (postEffects && typeof postEffects.applyPayload === "function")
+ postEffects.applyPayload(params, sceneEnvCtl);
  }
 
 function applyAnimationUpdates(params) {

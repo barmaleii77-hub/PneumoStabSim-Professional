@@ -55,9 +55,60 @@ Item {
     property alias dofFocusRange: dofEffect.focusRange
     property alias dofBlurAmount: dofEffect.blurAmount
 
+    // Параметры камеры View3D, необходимые для корректного расчёта глубины
+    property real cameraClipNear: 0.1
+    property real cameraClipFar: 10000.0
+
     property alias motionBlurEnabled: motionBlurEffect.enabled
     property alias motionBlurStrength: motionBlurEffect.strength
     property alias motionBlurSamples: motionBlurEffect.samples
+
+    function valueFromKeys(container, keys) {
+        if (!container || typeof container !== "object")
+            return undefined
+        var list = Array.isArray(keys) ? keys : [keys]
+        for (var i = 0; i < list.length; ++i) {
+            var key = list[i]
+            if (container.hasOwnProperty(key))
+                return container[key]
+        }
+        return undefined
+    }
+
+    function valueFromPayload(params, keys, nestedKey) {
+        var direct = valueFromKeys(params, keys)
+        if (direct !== undefined)
+            return direct
+        if (nestedKey && params && typeof params[nestedKey] === "object")
+            return valueFromKeys(params[nestedKey], keys)
+        return undefined
+    }
+
+    function boolFromPayload(params, keys, nestedKey) {
+        var raw = valueFromPayload(params, keys, nestedKey)
+        if (raw === undefined)
+            return undefined
+        if (typeof raw === "boolean")
+            return raw
+        if (typeof raw === "number")
+            return raw !== 0
+        if (typeof raw === "string") {
+            var lowered = raw.trim().toLowerCase()
+            if (["true", "1", "yes", "on"].indexOf(lowered) !== -1)
+                return true
+            if (["false", "0", "no", "off"].indexOf(lowered) !== -1)
+                return false
+        }
+        return !!raw
+    }
+
+    function numberFromPayload(params, keys, nestedKey) {
+        var raw = valueFromPayload(params, keys, nestedKey)
+        if (raw === undefined)
+            return undefined
+        var numeric = Number(raw)
+        return isFinite(numeric) ? numeric : undefined
+    }
 
     // Эффекты для добавления в View3D
     property list<Effect> effects: [
@@ -92,11 +143,9 @@ Item {
             property real uBlurAmount: bloomEffect.blurAmount
             shader: "
                             #version 440
-
-                            layout(location = 0) in vec2 coord;
                             
                             #ifndef INPUT_UV
-                            #define INPUT_UV coord
+                            #define INPUT_UV v_uv
                             #endif
 
                             #ifndef FRAGCOLOR
@@ -162,10 +211,9 @@ Item {
             shader: "
                             #version 440
 
-                            layout(location = 0) in vec2 coord;
                             
                             #ifndef INPUT_UV
-                            #define INPUT_UV coord
+                            #define INPUT_UV v_uv
                             #endif
 
                             #ifndef FRAGCOLOR
@@ -224,10 +272,9 @@ Item {
             shader: "
                             #version 440
 
-                            layout(location = 0) in vec2 coord;
                             
                             #ifndef INPUT_UV
-                            #define INPUT_UV coord
+                            #define INPUT_UV v_uv
                             #endif
 
                             #ifndef FRAGCOLOR
@@ -309,10 +356,8 @@ Item {
             shader: "
                             #version 440
 
-                            layout(location = 0) in vec2 coord;
-
                             #ifndef INPUT_UV
-                            #define INPUT_UV coord
+                            #define INPUT_UV v_uv
                             #endif
 
                             #ifndef FRAGCOLOR
@@ -353,8 +398,8 @@ Item {
         property real focusRange: 1000.0     // Диапазон фокуса (мм)
         property real blurAmount: 1.0        // Сила размытия
 
-        property real cameraNear: 0.1
-        property real cameraFar: 10000.0
+        property real cameraNear: root.cameraClipNear
+        property real cameraFar: root.cameraClipFar
 
         requiresDepthTexture: true
 
@@ -374,10 +419,9 @@ Item {
             shader: "
                             #version 440
 
-                            layout(location = 0) in vec2 coord;
                             
                             #ifndef INPUT_UV
-                            #define INPUT_UV coord
+                            #define INPUT_UV v_uv
                             #endif
 
                             #ifndef FRAGCOLOR
@@ -443,10 +487,9 @@ Item {
             shader: "
                             #version 440
 
-                            layout(location = 0) in vec2 coord;
 
                             #ifndef INPUT_UV
-                            #define INPUT_UV coord
+                            #define INPUT_UV v_uv
                             #endif
 
                             #ifndef FRAGCOLOR
@@ -499,10 +542,9 @@ Item {
             shader: "
                             #version 440
 
-                            layout(location = 0) in vec2 coord;
                             
                             #ifndef INPUT_UV
-                            #define INPUT_UV coord
+                            #define INPUT_UV v_uv
                             #endif
 
                             #ifndef FRAGCOLOR
@@ -547,10 +589,9 @@ Item {
             shader: "
                             #version 440
 
-                            layout(location = 0) in vec2 coord;
 
                             #ifndef INPUT_UV
-                            #define INPUT_UV coord
+                            #define INPUT_UV v_uv
                             #endif
 
                             #ifndef FRAGCOLOR
@@ -576,6 +617,134 @@ Item {
             if (enabled) {
                 console.log("💨 Motion Blur enabled - strength:", strength);
             }
+        }
+    }
+
+    function applyPayload(params, environment) {
+        var env = environment || null
+        var toSceneLength = env && typeof env.toSceneLength === "function"
+            ? env.toSceneLength
+            : null
+
+        // Хелпер для безопасного преобразования числовых значений из payload
+        function numberFromPayload(value) {
+            var num = Number(value)
+            return isFinite(num) ? num : undefined
+        }
+
+        function convertLength(value) {
+            var num = numberFromPayload(value)
+            if (num === undefined)
+                return undefined
+            return toSceneLength ? toSceneLength(num) : num
+        }
+
+        if (env) {
+            if (env.bloomEnabled !== undefined)
+                bloomEffect.enabled = !!env.bloomEnabled
+            var bloomIntensity = numberFromPayload(env.bloomIntensity)
+            if (bloomIntensity !== undefined)
+                bloomEffect.intensity = bloomIntensity
+            var bloomThreshold = numberFromPayload(env.bloomThreshold)
+            if (bloomThreshold !== undefined)
+                bloomEffect.threshold = bloomThreshold
+            var bloomSpread = numberFromPayload(env.bloomSpread)
+            if (bloomSpread !== undefined)
+                bloomEffect.blurAmount = Math.max(0.0, bloomSpread)
+
+            if (env.ssaoEnabled !== undefined)
+                ssaoEffect.enabled = !!env.ssaoEnabled
+            var ssaoIntensity = numberFromPayload(env.ssaoIntensity)
+            if (ssaoIntensity !== undefined)
+                ssaoEffect.intensity = ssaoIntensity
+            var ssaoRadius = numberFromPayload(env.ssaoRadius)
+            if (ssaoRadius !== undefined) {
+                var envRadius = ssaoRadius
+                if (envRadius < 0.1)
+                    envRadius *= 1000.0
+                ssaoEffect.radius = Math.max(0.01, envRadius)
+            }
+            var ssaoSampleRate = numberFromPayload(env.ssaoSampleRate)
+            if (ssaoSampleRate !== undefined)
+                ssaoEffect.samples = Math.max(1, Math.round(ssaoSampleRate))
+
+            if (env.internalDepthOfFieldEnabled !== undefined)
+                dofEffect.enabled = !!env.internalDepthOfFieldEnabled
+            else if (env.depthOfFieldEnabled !== undefined)
+                dofEffect.enabled = !!env.depthOfFieldEnabled
+            var dofFocusDistance = numberFromPayload(env.dofFocusDistance)
+            if (dofFocusDistance !== undefined)
+                dofEffect.focusDistance = Math.max(0.0, dofFocusDistance)
+            var dofFocusRange = numberFromPayload(env.dofFocusRange)
+            if (dofFocusRange !== undefined)
+                dofEffect.focusRange = Math.max(0.0, dofFocusRange)
+            var dofBlurAmount = numberFromPayload(env.dofBlurAmount)
+            if (dofBlurAmount !== undefined)
+                dofEffect.blurAmount = Math.max(0.0, dofBlurAmount)
+        }
+
+        if (params) {
+            var bloomEnabledValue = boolFromPayload(params, ["bloomEnabled", "bloom_enabled"], "bloom")
+            if (bloomEnabledValue !== undefined)
+                bloomEffect.enabled = bloomEnabledValue
+            var bloomIntensityValue = numberFromPayload(params, ["bloomIntensity", "bloom_intensity"], "bloom")
+            if (bloomIntensityValue !== undefined)
+                bloomEffect.intensity = bloomIntensityValue
+            var bloomThresholdValue = numberFromPayload(params, ["bloomThreshold", "bloom_threshold"], "bloom")
+            if (bloomThresholdValue !== undefined)
+                bloomEffect.threshold = bloomThresholdValue
+            var bloomBlurValue = numberFromPayload(params, ["bloomBlurAmount", "bloom_spread"], "bloom")
+            if (bloomBlurValue !== undefined)
+                bloomEffect.blurAmount = Math.max(0.0, bloomBlurValue)
+
+            var ssaoEnabledValue = boolFromPayload(params, ["ssaoEnabled", "ao_enabled"], "ssao")
+            if (ssaoEnabledValue !== undefined)
+                ssaoEffect.enabled = ssaoEnabledValue
+            var ssaoIntensityValue = numberFromPayload(params, ["ssaoIntensity", "ao_strength"], "ssao")
+            if (ssaoIntensityValue !== undefined)
+                ssaoEffect.intensity = ssaoIntensityValue
+            var ssaoRadiusValue = numberFromPayload(params, ["ssaoRadius", "ao_radius"], "ssao")
+            if (ssaoRadiusValue !== undefined) {
+                var radius = ssaoRadiusValue
+                if (radius < 0.1)
+                    radius *= 1000.0
+                ssaoEffect.radius = Math.max(0.01, radius)
+            }
+            var ssaoBiasValue = numberFromPayload(params, ["ssaoBias", "ao_bias"], "ssao")
+            if (ssaoBiasValue !== undefined)
+                ssaoEffect.bias = Math.max(0.0, ssaoBiasValue)
+            var ssaoSamplesValue = numberFromPayload(params, ["ssaoSamples", "ao_sample_rate"], "ssao")
+            if (ssaoSamplesValue !== undefined)
+                ssaoEffect.samples = Math.max(1, Math.round(ssaoSamplesValue))
+
+            var dofEnabledValue = boolFromPayload(params, ["depthOfFieldEnabled", "depth_of_field"], "depthOfField")
+            if (dofEnabledValue !== undefined)
+                dofEffect.enabled = dofEnabledValue
+            var dofFocusValue = numberFromPayload(params, ["dofFocusDistance", "dof_focus_distance"], "depthOfField")
+            if (dofFocusValue !== undefined) {
+                var convertedFocus = convertLength(dofFocusValue)
+                if (convertedFocus !== undefined)
+                    dofEffect.focusDistance = Math.max(0.0, convertedFocus)
+            }
+            var dofRangeValue = numberFromPayload(params, ["dofFocusRange", "dof_focus_range"], "depthOfField")
+            if (dofRangeValue !== undefined) {
+                var convertedRange = convertLength(dofRangeValue)
+                if (convertedRange !== undefined)
+                    dofEffect.focusRange = Math.max(0.0, convertedRange)
+            }
+            var dofBlurValue = numberFromPayload(params, ["dofBlurAmount", "dof_blur"], "depthOfField")
+            if (dofBlurValue !== undefined)
+                dofEffect.blurAmount = Math.max(0.0, dofBlurValue)
+
+            var motionEnabledValue = boolFromPayload(params, ["motionBlurEnabled", "motion_blur"], "motion")
+            if (motionEnabledValue !== undefined)
+                motionBlurEffect.enabled = motionEnabledValue
+            var motionStrengthValue = numberFromPayload(params, ["motionBlurStrength", "motion_blur_amount"], "motion")
+            if (motionStrengthValue !== undefined)
+                motionBlurEffect.strength = Math.max(0.0, motionStrengthValue)
+            var motionSamplesValue = numberFromPayload(params, ["motionBlurSamples", "motion_blur_samples"], "motion")
+            if (motionSamplesValue !== undefined)
+                motionBlurEffect.samples = Math.max(1, Math.round(motionSamplesValue))
         }
     }
 
