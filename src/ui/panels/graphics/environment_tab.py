@@ -23,7 +23,7 @@ from PySide6.QtCore import Signal
 from pathlib import Path
 from typing import Dict, Any, List, Tuple
 
-from .widgets import ColorButton, LabeledSlider
+from .widgets import ColorButton, LabeledSlider, FileCyclerWidget
 from .hdr_discovery import discover_hdr_files
 from src.common.logging_widgets import LoggingCheckBox
 from src.ui.environment_schema import validate_environment_settings
@@ -44,6 +44,7 @@ class EnvironmentTab(QWidget):
         # Current state - храним ссылки на контролы
         self._controls: Dict[str, Any] = {}
         self._updating_ui = False
+        self._hdr_items: List[Tuple[str, str]] = self._discover_hdr_files()
 
         # Setup UI
         self._setup_ui()
@@ -158,43 +159,26 @@ class EnvironmentTab(QWidget):
         row += 1
 
         # HDR file (primary)
-        hdr_combo = QComboBox(self)
-        hdr_files = self._discover_hdr_files()
-        for label, path in hdr_files:
-            hdr_combo.addItem(label, path)
-        hdr_combo.insertItem(0, "— не выбран —", "")
-
-        def on_hdr_changed() -> None:
-            data = hdr_combo.currentData()
-            path = self._normalize_ibl_path(data)
-            self._on_control_changed("ibl_source", path)
-
-        hdr_combo.currentIndexChanged.connect(lambda _: on_hdr_changed())
-        hdr_combo.setCurrentIndex(1 if hdr_files else 0)
-
-        if hdr_files:
-            on_hdr_changed()
-        self._controls["ibl.file"] = hdr_combo
-        grid.addWidget(QLabel("HDR файл (primary)", self), row, 0)
-        grid.addWidget(hdr_combo, row, 1)
+        grid.addWidget(QLabel("HDR окружение", self), row, 0)
+        hdr_selector = FileCyclerWidget(self)
+        hdr_selector.set_items(self._hdr_items)
+        hdr_selector.currentChanged.connect(
+            lambda path: self._on_hdr_source_changed(path)
+        )
+        self._controls["ibl.file"] = hdr_selector
+        grid.addWidget(hdr_selector, row, 1)
         row += 1
 
         # HDR fallback file
-        fallback_combo = QComboBox(self)
-        for label, path in hdr_files:
-            fallback_combo.addItem(label, path)
-        fallback_combo.insertItem(0, "— не выбран —", "")
-        fallback_combo.setCurrentIndex(0)
-
-        def on_fallback_changed() -> None:
-            data = fallback_combo.currentData()
-            path = self._normalize_ibl_path(data)
-            self._on_control_changed("ibl_fallback", path)
-
-        fallback_combo.currentIndexChanged.connect(lambda _: on_fallback_changed())
-        self._controls["ibl.fallback"] = fallback_combo
         grid.addWidget(QLabel("HDR fallback", self), row, 0)
-        grid.addWidget(fallback_combo, row, 1)
+        fallback_selector = FileCyclerWidget(self)
+        fallback_selector.set_items(self._hdr_items)
+        fallback_selector.set_current_data(None, emit=False)
+        fallback_selector.currentChanged.connect(
+            lambda path: self._on_hdr_fallback_changed(path)
+        )
+        self._controls["ibl.fallback"] = fallback_selector
+        grid.addWidget(fallback_selector, row, 1)
         row += 1
 
         # IBL rotation
@@ -346,33 +330,13 @@ class EnvironmentTab(QWidget):
             return ""
         return text.replace("\\", "/")
 
-    def _select_combo_path(
-        self, combo: QComboBox, raw_path: Any, *, auto_select_first: bool = False
-    ) -> str:
-        """Выбрать элемент в комбобоксе по пути, добавляя при необходимости."""
-        if combo is None:
-            return ""
+    def _on_hdr_source_changed(self, raw_path: str) -> None:
         path = self._normalize_ibl_path(raw_path)
-        if not path:
-            if auto_select_first and combo.count() > 1:
-                combo.setCurrentIndex(1)
-                data = combo.itemData(1)
-                return self._normalize_ibl_path(data)
-            combo.setCurrentIndex(0)
-            return ""
-        target_index = -1
-        for i in range(combo.count()):
-            data = combo.itemData(i)
-            if self._normalize_ibl_path(data) == path:
-                target_index = i
-                break
-        if target_index < 0:
-            # Добавляем элемент, чтобы пользователь видел фактический путь из настроек
-            label = f"{Path(path).name} (config)"
-            combo.addItem(label, path)
-            target_index = combo.count() - 1
-        combo.setCurrentIndex(target_index if target_index >= 0 else 0)
-        return path if target_index >= 0 else ""
+        self._on_control_changed("ibl_source", path)
+
+    def _on_hdr_fallback_changed(self, raw_path: str) -> None:
+        path = self._normalize_ibl_path(raw_path)
+        self._on_control_changed("ibl_fallback", path)
 
     def _build_fog_group(self) -> QGroupBox:
         """Создать группу Туман - расширенная (Fog Qt 6.10)"""
@@ -612,10 +576,10 @@ class EnvironmentTab(QWidget):
             "probe_horizon": self._require_control("ibl.probe_horizon").value(),
             "ibl_rotation": self._require_control("ibl.rotation").value(),
             "ibl_source": self._normalize_ibl_path(
-                self._require_control("ibl.file").currentData()
+                self._require_control("ibl.file").current_path()
             ),
             "ibl_fallback": self._normalize_ibl_path(
-                self._require_control("ibl.fallback").currentData()
+                self._require_control("ibl.fallback").current_path()
             ),
             "skybox_blur": self._require_control("skybox.blur").value(),
             "ibl_offset_x": self._require_control("ibl.offset_x").value(),
@@ -688,18 +652,17 @@ class EnvironmentTab(QWidget):
                 validated["probe_horizon"]
             )
             self._require_control("ibl.rotation").set_value(validated["ibl_rotation"])
-            selected_primary = self._select_combo_path(
-                self._require_control("ibl.file"),
-                validated["ibl_source"],
-                auto_select_first=True,
-            )
-            if selected_primary and selected_primary != validated["ibl_source"]:
-                validated["ibl_source"] = selected_primary
-            selected_fallback = self._select_combo_path(
-                self._require_control("ibl.fallback"), validated["ibl_fallback"]
-            )
-            if selected_fallback != validated["ibl_fallback"]:
-                validated["ibl_fallback"] = selected_fallback
+            hdr_widget: FileCyclerWidget = self._require_control("ibl.file")
+            hdr_widget.set_current_data(validated["ibl_source"], emit=False)
+            if not hdr_widget.current_path() and hdr_widget.first_path():
+                hdr_widget.set_current_data(hdr_widget.first_path(), emit=False)
+                validated["ibl_source"] = hdr_widget.current_path()
+            else:
+                validated["ibl_source"] = hdr_widget.current_path()
+
+            fallback_widget: FileCyclerWidget = self._require_control("ibl.fallback")
+            fallback_widget.set_current_data(validated["ibl_fallback"], emit=False)
+            validated["ibl_fallback"] = fallback_widget.current_path()
             self._require_control("skybox.blur").set_value(validated["skybox_blur"])
             self._require_control("ibl.offset_x").set_value(validated["ibl_offset_x"])
             self._require_control("ibl.offset_y").set_value(validated["ibl_offset_y"])

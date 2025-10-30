@@ -8,6 +8,7 @@ from __future__ import annotations
 
 
 from dataclasses import dataclass
+from pathlib import Path
 
 from PySide6.QtCore import Qt, Signal, Slot
 from PySide6.QtGui import QColor
@@ -238,6 +239,191 @@ class LabeledSlider(QWidget):
         self._updating = False
         if self._user_triggered:
             self.valueChanged.emit(round(value, self._decimals))
+
+
+class FileCyclerWidget(QWidget):
+    """Минималистичный селектор файлов с кнопками «предыдущий/следующий».
+
+    Элемент предназначен для перебора заранее обнаруженных файлов без
+    диалогов выбора. Отображает имя текущего файла и эмитит ``currentChanged``
+    при смене выбора. Если список пуст, показывает прочерк и отключает кнопки.
+    """
+
+    currentChanged = Signal(str)
+
+    def __init__(
+        self,
+        parent: QWidget | None = None,
+        *,
+        placeholder: str = "—",
+    ) -> None:
+        super().__init__(parent)
+
+        self._placeholder = placeholder
+        self._items: list[tuple[str, str]] = []
+        self._index: int = -1
+        self._custom_entry: tuple[str, str] | None = None
+
+        layout = QHBoxLayout(self)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(6)
+
+        self._prev_btn = QPushButton("◀", self)
+        self._prev_btn.setFixedWidth(28)
+        self._prev_btn.clicked.connect(self._show_previous)
+        layout.addWidget(self._prev_btn)
+
+        self._label = QLabel(self)
+        self._label.setTextInteractionFlags(Qt.TextSelectableByMouse)
+        self._label.setMinimumWidth(80)
+        self._label.setAlignment(
+            Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignLeft
+        )
+        layout.addWidget(self._label, 1)
+
+        self._next_btn = QPushButton("▶", self)
+        self._next_btn.setFixedWidth(28)
+        self._next_btn.clicked.connect(self._show_next)
+        layout.addWidget(self._next_btn)
+
+        self._update_ui(emit=False)
+
+    # ------------------------------------------------------------------
+    # Public API
+    # ------------------------------------------------------------------
+    def set_items(self, items: list[tuple[str, str]]) -> None:
+        """Задать коллекцию доступных файлов.
+
+        ``items`` — список пар ``(label, path)``. Пути нормализуются в POSIX
+        представление. При повторном вызове сохраняется текущий выбор, если
+        соответствующий путь присутствует в новом списке.
+        """
+
+        normalised: list[tuple[str, str]] = []
+        seen: set[str] = set()
+        for label, path in items:
+            try:
+                text = (Path(path).as_posix()).strip()
+            except Exception:
+                text = str(path).strip().replace("\\", "/")
+            if not text or text in seen:
+                continue
+            seen.add(text)
+            name = str(label).strip() or Path(text).name or text
+            normalised.append((name, text))
+
+        previous_path = self.current_path()
+        self._items = normalised
+
+        if previous_path:
+            self.set_current_data(previous_path, emit=False)
+        elif self._items:
+            self._index = 0
+            self._custom_entry = None
+            self._update_ui(emit=False)
+        else:
+            self._index = -1
+            if self._custom_entry and self._custom_entry[1] not in seen:
+                self._custom_entry = None
+            self._update_ui(emit=False)
+
+    def set_current_data(self, path: str | None, *, emit: bool = True) -> None:
+        """Установить текущий путь. Допускает значения вне списка items."""
+
+        normalised = str(path).strip().replace("\\", "/") if path else ""
+        if not normalised:
+            changed = self._index != -1 or self._custom_entry is not None
+            self._index = -1
+            self._custom_entry = None
+            self._update_ui(emit=emit and changed)
+            return
+
+        for idx, (_, candidate) in enumerate(self._items):
+            if candidate == normalised:
+                changed = self._index != idx or self._custom_entry is not None
+                self._index = idx
+                self._custom_entry = None
+                self._update_ui(emit=emit and changed)
+                return
+
+        label = Path(normalised).name or normalised
+        custom_label = f"{label} (config)"
+        changed = (
+            self._index != -1
+            or self._custom_entry is None
+            or self._custom_entry[1] != normalised
+        )
+        self._index = -1
+        self._custom_entry = (custom_label, normalised)
+        self._update_ui(emit=emit and changed)
+
+    def current_path(self) -> str:
+        entry = self._current_entry()
+        return entry[1] if entry else ""
+
+    def current_label(self) -> str:
+        entry = self._current_entry()
+        return entry[0] if entry else self._placeholder
+
+    def is_empty(self) -> bool:
+        return not self._items and self._custom_entry is None
+
+    def first_path(self) -> str:
+        return self._items[0][1] if self._items else ""
+
+    def setEnabled(self, enabled: bool) -> None:  # noqa: D401 - override QWidget
+        super().setEnabled(enabled)
+        self._update_ui(emit=False)
+
+    # ------------------------------------------------------------------
+    # Internal helpers
+    # ------------------------------------------------------------------
+    def _current_entry(self) -> tuple[str, str] | None:
+        if 0 <= self._index < len(self._items):
+            return self._items[self._index]
+        if self._custom_entry is not None:
+            return self._custom_entry
+        return None
+
+    def _update_ui(self, *, emit: bool) -> None:
+        entry = self._current_entry()
+        if entry:
+            label, path = entry
+            self._label.setText(label)
+        else:
+            path = ""
+            self._label.setText(self._placeholder)
+
+        multi = len(self._items) > 1
+        any_items = bool(self._items)
+        enable_buttons = self.isEnabled() and (
+            multi or (any_items and self._custom_entry is not None)
+        )
+        self._prev_btn.setEnabled(enable_buttons)
+        self._next_btn.setEnabled(enable_buttons)
+
+        if emit:
+            self.currentChanged.emit(path)
+
+    def _show_previous(self) -> None:
+        if not self._items:
+            return
+        if self._custom_entry is not None:
+            self._index = len(self._items) - 1
+            self._custom_entry = None
+        else:
+            self._index = (self._index - 1) % len(self._items)
+        self._update_ui(emit=True)
+
+    def _show_next(self) -> None:
+        if not self._items:
+            return
+        if self._custom_entry is not None:
+            self._index = 0
+            self._custom_entry = None
+        else:
+            self._index = (self._index + 1) % len(self._items)
+        self._update_ui(emit=True)
 
 
 class QuantitySlider(LabeledSlider):

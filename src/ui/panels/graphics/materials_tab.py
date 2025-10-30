@@ -4,7 +4,8 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, Dict, Optional
+from pathlib import Path
+from typing import Any, Dict, List, Optional, Tuple
 
 from PySide6.QtCore import Signal
 from PySide6.QtWidgets import (
@@ -17,7 +18,8 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from .widgets import ColorButton, LabeledSlider
+from .widgets import ColorButton, LabeledSlider, FileCyclerWidget
+from .texture_discovery import discover_texture_files
 
 
 class MaterialsTab(QWidget):
@@ -48,6 +50,7 @@ class MaterialsTab(QWidget):
             "joint_arm": "Шарнир рычага",
             "joint_rod": "Шарнир штока",
         }
+        self._texture_items = self._discover_texture_files()
         self._setup_ui()
         # Инициализируем текущий ключ после создания селектора
         self._current_key = self.get_current_material_key()
@@ -78,6 +81,17 @@ class MaterialsTab(QWidget):
 
         # Base
         r = self._add_color_control(grid, r, "Базовый цвет", "base_color")
+        grid.addWidget(QLabel("Текстура", self), r, 0)
+        texture_widget = FileCyclerWidget(self)
+        texture_widget.set_items(self._texture_items)
+        if self._texture_items:
+            texture_widget.set_current_data(self._texture_items[0][1], emit=False)
+        texture_widget.currentChanged.connect(
+            lambda path: self._on_texture_changed(path)
+        )
+        self._controls["texture_path"] = texture_widget
+        grid.addWidget(texture_widget, r, 1)
+        r += 1
         r = self._add_slider_control(
             grid, r, "Непрозрачность", "opacity", 0.0, 1.0, 0.01
         )
@@ -229,6 +243,10 @@ class MaterialsTab(QWidget):
     def _coerce_material_state(self, state: Dict[str, Any]) -> Dict[str, Any]:
         """Нормализовать типы значений для совместимости со старыми пресетами"""
         normalized = dict(state) if isinstance(state, dict) else {}
+        if "texture_path" in normalized:
+            normalized["texture_path"] = self._normalize_texture_path(
+                normalized.get("texture_path")
+            )
         # Цвета
         for ckey in (
             "base_color",
@@ -283,6 +301,14 @@ class MaterialsTab(QWidget):
                         )
                         ctrl.set_value(v)
                         applied_count += 1
+                    elif isinstance(ctrl, FileCyclerWidget):
+                        self._logger.debug(
+                            "Updated file cycler '%s' to %s",
+                            k,
+                            v,
+                        )
+                        ctrl.set_current_data(v, emit=False)
+                        applied_count += 1
                     elif hasattr(ctrl, "findData"):
                         old_idx = ctrl.currentIndex()
                         idx = ctrl.findData(v)
@@ -299,6 +325,7 @@ class MaterialsTab(QWidget):
 
             for k in (
                 "base_color",
+                "texture_path",
                 "metalness",
                 "roughness",
                 "specular",
@@ -322,6 +349,10 @@ class MaterialsTab(QWidget):
             self._logger.debug(
                 "Applied %d/%d material controls", applied_count, len(st)
             )
+            texture_ctrl = self._controls.get("texture_path")
+            if isinstance(texture_ctrl, FileCyclerWidget):
+                if not texture_ctrl.current_path() and texture_ctrl.first_path():
+                    texture_ctrl.set_current_data(texture_ctrl.first_path(), emit=False)
         finally:
             for control in self._controls.values():
                 try:
@@ -338,6 +369,10 @@ class MaterialsTab(QWidget):
         self._materials_state[key] = self.get_current_material_state()
 
     # ========== EVENTS ==========
+    def _on_texture_changed(self, raw_path: str) -> None:
+        normalized = self._normalize_texture_path(raw_path)
+        self._on_control_changed("texture_path", normalized)
+
     def _on_material_selection_changed(self, index: int) -> None:
         # Смена выбранного материала: загружаем новый из кэша
         if self._updating_ui:
@@ -408,6 +443,9 @@ class MaterialsTab(QWidget):
     def get_current_material_state(self) -> Dict[str, Any]:
         return {
             "base_color": self._controls["base_color"].color().name(),
+            "texture_path": self._normalize_texture_path(
+                self._controls["texture_path"].current_path()
+            ),
             "metalness": self._controls["metalness"].value(),
             "roughness": self._controls["roughness"].value(),
             "specular": self._controls["specular"].value(),
@@ -524,3 +562,32 @@ class MaterialsTab(QWidget):
 
     def set_updating_ui(self, updating: bool) -> None:
         self._updating_ui = updating
+
+    # ========== DISCOVERY & NORMALIZATION ==========
+    def _discover_texture_files(self) -> List[Tuple[str, str]]:
+        project_root = Path(__file__).resolve().parents[4]
+        search_dirs = [
+            project_root / "assets" / "textures",
+            project_root / "assets" / "materials",
+            project_root / "assets" / "qml" / "textures",
+        ]
+        qml_root = project_root / "assets" / "qml"
+        try:
+            textures = discover_texture_files(search_dirs, qml_root=qml_root)
+        except Exception:
+            self._logger.exception("Не удалось обнаружить текстуры для материалов")
+            return []
+        self._logger.debug("Discovered %d texture candidates", len(textures))
+        return textures
+
+    def _normalize_texture_path(self, value: Any) -> str:
+        if value is None:
+            return ""
+        try:
+            text = str(value)
+        except Exception:
+            return ""
+        text = text.strip()
+        if not text:
+            return ""
+        return text.replace("\\", "/")
