@@ -480,6 +480,7 @@ class GeometryPanel(QWidget):
     def _reset_to_defaults(self):
         try:
             self._settings_manager.reset_to_defaults(category="geometry")
+            self._settings_manager.save()
             self.parameters = self._settings_manager.get_category("geometry") or {}
             # Применяем к виджетам
             for k, v in self.parameters.items():
@@ -494,6 +495,7 @@ class GeometryPanel(QWidget):
             current = self.collect_state()
             self._settings_manager.set_category("geometry", current, auto_save=False)
             self._settings_manager.save_current_as_defaults(category="geometry")
+            self._settings_manager.save()
         except Exception as e:
             self.logger.error(f"Save geometry as defaults failed: {e}")
 

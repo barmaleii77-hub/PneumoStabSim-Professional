@@ -522,6 +522,7 @@ class PneumoPanel(QWidget):
     @Slot()
     def _reset_to_defaults(self):
         self._settings_manager.reset_to_defaults(category="pneumatic")
+        self._settings_manager.save()
         self.parameters = self._settings_manager.get_category("pneumatic") or {}
         # Отразить в UI
         self.volume_mode_combo.setCurrentIndex(
@@ -583,6 +584,7 @@ class PneumoPanel(QWidget):
         current = self.collect_state()
         self._settings_manager.set_category("pneumatic", current, auto_save=False)
         self._settings_manager.save_current_as_defaults(category="pneumatic")
+        self._settings_manager.save()
 
     def collect_state(self) -> dict:
         """Return pneumatic parameters converted to storage units."""

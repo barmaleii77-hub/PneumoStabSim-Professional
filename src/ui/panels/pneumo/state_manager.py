@@ -431,11 +431,13 @@ class PneumoStateManager:
 
     def save_current_as_defaults(self) -> None:
         payload = self._convert_to_storage(self._state)
-        self._settings.set("defaults_snapshot.pneumatic", payload)
+        self._settings.set("defaults_snapshot.pneumatic", payload, auto_save=False)
+        self._settings.save()
 
     def save_state(self) -> None:
         payload = self._convert_to_storage(self._state)
-        self._settings.set("current.pneumatic", payload)
+        self._settings.set("current.pneumatic", payload, auto_save=False)
+        self._settings.save()
 
     # Utilities ---------------------------------------------------------
     def update_from(self, updates: Dict[str, Any]) -> None:

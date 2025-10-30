@@ -633,6 +633,7 @@ class ModesPanel(QWidget):
     @Slot()
     def _reset_to_defaults(self):
         self._settings_manager.reset_to_defaults(category="modes")
+        self._settings_manager.save()
         self._load_from_settings()
         self._apply_state_to_widgets()
 
@@ -641,3 +642,4 @@ class ModesPanel(QWidget):
         state = self.collect_state()
         self._settings_manager.set_category("modes", state, auto_save=False)
         self._settings_manager.save_current_as_defaults(category="modes")
+        self._settings_manager.save()

@@ -560,8 +560,9 @@ class GraphicsSettingsService:
         persistable = self._apply_persistence_aliases(graphics_payload)
         self._settings_manager.set_category("graphics", persistable, auto_save=False)
         self._settings_manager.set_category(
-            self.ANIMATION_CATEGORY, animation_state, auto_save=True
+            self.ANIMATION_CATEGORY, animation_state, auto_save=False
         )
+        self._settings_manager.save()
 
     def save_current_as_defaults(self, state: Dict[str, Any]) -> None:
         """Persist the provided state as both current values and defaults."""
@@ -580,16 +581,18 @@ class GraphicsSettingsService:
             category="graphics", auto_save=False
         )
         self._settings_manager.save_current_as_defaults(
-            category=self.ANIMATION_CATEGORY, auto_save=True
+            category=self.ANIMATION_CATEGORY, auto_save=False
         )
+        self._settings_manager.save()
 
     def reset_to_defaults(self) -> Dict[str, Dict[str, Any]]:
         """Reset the ``current`` settings and return the refreshed state."""
 
         self._settings_manager.reset_to_defaults(category="graphics", auto_save=False)
         self._settings_manager.reset_to_defaults(
-            category=self.ANIMATION_CATEGORY, auto_save=True
+            category=self.ANIMATION_CATEGORY, auto_save=False
         )
+        self._settings_manager.save()
         return self.load_current()
 
 
