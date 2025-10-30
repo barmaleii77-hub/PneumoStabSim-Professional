@@ -79,50 +79,40 @@ Item {
         property real threshold: 0.7      // Порог яркости для свечения
         property real blurAmount: 1.0     // Размытие свечения
 
-        Buffer {
-            id: bloomUniformBuffer
-            // Инициализируем корректным типом, значения обновляются ниже
-            content: new Float32Array([0, 0, 0, 0])
+        onBlurAmountChanged: {
+            if (blurAmount < 0.0)
+                blurAmount = 0.0
         }
-
-        parameters: [
-            Parameter {
-                name: "ubuf"
-                value: bloomUniformBuffer
-            }
-        ]
-
-        function updateUniformBuffer() {
-            const data = new Float32Array([
-                bloomEffect.intensity,
-                bloomEffect.threshold,
-                bloomEffect.blurAmount,
-                0.0
-            ])
-            bloomUniformBuffer.content = data
-        }
-
-        onIntensityChanged: updateUniformBuffer()
-        onThresholdChanged: updateUniformBuffer()
-        onBlurAmountChanged: updateUniformBuffer()
-        Component.onCompleted: updateUniformBuffer()
 
         Shader {
             id: bloomFragmentShader
             stage: Shader.Fragment
+            property real uIntensity: bloomEffect.intensity
+            property real uThreshold: bloomEffect.threshold
+            property real uBlurAmount: bloomEffect.blurAmount
             shader: "
                             #version 440
 
                             layout(location = 0) in vec2 coord;
-                            layout(location = 0) out vec4 fragColor;
+                            
+                            #ifndef INPUT_UV
+                            #define INPUT_UV coord
+                            #endif
 
-                            layout(std140, binding = 0) uniform buf {
-                                float intensity;
-                                float threshold;
-                                float blurAmount;
-                            } ubuf;
+                            #ifndef FRAGCOLOR
+                            layout(location = 0) out vec4 qt_FragColor;
+                            #define FRAGCOLOR qt_FragColor
+                            #endif
 
                             layout(binding = 1) uniform sampler2D qt_Texture0;
+
+                            #ifndef INPUT
+                            #define INPUT texture(qt_Texture0, INPUT_UV)
+                            #endif
+
+                            uniform float uIntensity;
+                            uniform float uThreshold;
+                            uniform float uBlurAmount;
 
                             // Функция luminance
                             float luminance(vec3 color) {
@@ -130,7 +120,7 @@ Item {
                             }
 
                             // Gaussian blur
-                            vec3 gaussianBlur(sampler2D tex, vec2 uv, vec2 direction, float blurSize) {
+                            vec3 gaussianBlur(vec2 uv, vec2 texelStep, float blurSize) {
                                 vec3 color = vec3(0.0);
 
                                 // 9-точечный Gaussian kernel
@@ -139,29 +129,28 @@ Item {
                                 );
 
                                 for (int i = -4; i <= 4; i++) {
-                                    vec2 offset = direction * float(i) * blurSize * 0.01;
-                                    color += texture(tex, uv + offset).rgb * weights[i + 4];
+                                    vec2 offset = texelStep * float(i) * blurSize * 0.01;
+                                    color += texture(qt_Texture0, uv + offset).rgb * weights[i + 4];
                                 }
 
                                 return color;
                             }
 
                             void qt_customMain() {
-                                vec4 original = texture(qt_Texture0, coord);
+                                vec4 original = INPUT;
 
                                 // Извлечение ярких областей
                                 float lum = luminance(original.rgb);
-                                vec3 bright = original.rgb * max(0.0, lum - ubuf.threshold);
 
                                 // Размытие ярких областей
-                                vec2 texelSize = 1.0 / textureSize(qt_Texture0, 0);
-                                vec3 blurredBright = gaussianBlur(qt_Texture0, coord, texelSize, ubuf.blurAmount);
+                                vec2 texelSize = 1.0 / vec2(textureSize(qt_Texture0, 0));
+                                vec3 blurredBright = gaussianBlur(INPUT_UV, texelSize, uBlurAmount);
 
                                 // Комбинирование
-                                vec3 bloom = blurredBright * ubuf.intensity;
+                                vec3 bloom = blurredBright * uIntensity;
                                 vec3 result = original.rgb + bloom;
 
-                                fragColor = vec4(result, original.a);
+                                FRAGCOLOR = vec4(result, original.a);
                             }
                         "
             onStatusChanged: root.handleShaderStatus("Bloom", bloomFragmentShader, bloomEffect)
@@ -174,12 +163,20 @@ Item {
                             #version 440
 
                             layout(location = 0) in vec2 coord;
-                            layout(location = 0) out vec4 fragColor;
+                            
+                            #ifndef INPUT_UV
+                            #define INPUT_UV coord
+                            #endif
+
+                            #ifndef FRAGCOLOR
+                            layout(location = 0) out vec4 qt_FragColor;
+                            #define FRAGCOLOR qt_FragColor
+                            #endif
 
                             layout(binding = 1) uniform sampler2D qt_Texture0;
 
                             void qt_customMain() {
-                                fragColor = texture(qt_Texture0, coord);
+                                FRAGCOLOR = texture(qt_Texture0, INPUT_UV);
                             }
                         "
         }
@@ -202,6 +199,9 @@ Item {
         id: ssaoEffect
         enabled: false
 
+        requiresDepthTexture: true
+        requiresNormalTexture: true
+
         property bool fallbackActive: false
         property string lastErrorLog: ""
 
@@ -210,90 +210,49 @@ Item {
         property real bias: 0.025         // Смещение для избежания самозатенения
         property int samples: 16          // Количество сэмплов
 
-        property var projectionMatrixElements: identityMatrix()
-        property var viewMatrixElements: identityMatrix()
-
-        Buffer {
-            id: ssaoUniformBuffer
-            content: new ArrayBuffer(4 * 36)
+        onSamplesChanged: {
+            if (samples < 1)
+                samples = 1
         }
-
-        parameters: [
-            Parameter {
-                name: "ubuf"
-                value: ssaoUniformBuffer
-            }
-        ]
-
-        function identityMatrix() {
-            return [
-                1, 0, 0, 0,
-                0, 1, 0, 0,
-                0, 0, 1, 0,
-                0, 0, 0, 1
-            ]
-        }
-
-        function updateUniformBuffer() {
-            const buffer = new ArrayBuffer(4 * 36)
-            const view = new DataView(buffer)
-
-            let offset = 0
-            view.setFloat32(offset, ssaoEffect.intensity, true)
-            offset += 4
-            view.setFloat32(offset, ssaoEffect.radius, true)
-            offset += 4
-            view.setFloat32(offset, ssaoEffect.bias, true)
-            offset += 4
-            view.setInt32(offset, ssaoEffect.samples, true)
-            offset = 16
-
-            const matrices = [projectionMatrixElements, viewMatrixElements]
-            for (let m = 0; m < matrices.length; m++) {
-                const matrix = matrices[m] || identityMatrix()
-                for (let i = 0; i < 16; i++) {
-                    view.setFloat32(offset, Number(matrix[i] || 0), true)
-                    offset += 4
-                }
-            }
-
-            ssaoUniformBuffer.content = buffer
-        }
-
-        onIntensityChanged: updateUniformBuffer()
-        onRadiusChanged: updateUniformBuffer()
-        onBiasChanged: updateUniformBuffer()
-        onSamplesChanged: updateUniformBuffer()
-        onProjectionMatrixElementsChanged: updateUniformBuffer()
-        onViewMatrixElementsChanged: updateUniformBuffer()
-        Component.onCompleted: updateUniformBuffer()
 
         Shader {
             id: ssaoFragmentShader
             stage: Shader.Fragment
+            property real uIntensity: ssaoEffect.intensity
+            property real uRadius: ssaoEffect.radius
+            property real uBias: ssaoEffect.bias
+            property int uSamples: ssaoEffect.samples
             shader: "
                             #version 440
 
                             layout(location = 0) in vec2 coord;
-                            layout(location = 0) out vec4 fragColor;
+                            
+                            #ifndef INPUT_UV
+                            #define INPUT_UV coord
+                            #endif
 
-                            layout(std140, binding = 0) uniform buf {
-                                float intensity;
-                                float radius;
-                                float bias;
-                                int samples;
-                                mat4 projectionMatrix;
-                                mat4 viewMatrix;
-                            } ubuf;
+                            #ifndef FRAGCOLOR
+                            layout(location = 0) out vec4 qt_FragColor;
+                            #define FRAGCOLOR qt_FragColor
+                            #endif
 
                             layout(binding = 1) uniform sampler2D qt_Texture0;
                             layout(binding = 2) uniform sampler2D depthTexture;
                             layout(binding = 3) uniform sampler2D normalTexture;
 
+                            #ifndef INPUT
+                            #define INPUT texture(qt_Texture0, INPUT_UV)
+                            #endif
+
+                            uniform float uIntensity;
+                            uniform float uRadius;
+                            uniform float uBias;
+                            uniform int uSamples;
+
                             // Генерация случайных векторов для сэмплинга
-                            vec3 generateSampleVector(int index, vec2 screenCoord) {
+                            vec3 generateSampleVector(int index) {
                                 float angle = float(index) * 0.39269908; // 2π/16
-                                float radius = float(index + 1) / float(ubuf.samples);
+                                float radius = float(index + 1) / max(1.0, float(uSamples));
 
                                 return vec3(
                                     cos(angle) * radius,
@@ -303,21 +262,22 @@ Item {
                             }
 
                             void qt_customMain() {
-                                vec4 original = texture(qt_Texture0, coord);
-                                vec3 normal = normalize(texture(normalTexture, coord).xyz * 2.0 - 1.0);
-                                float depth = texture(depthTexture, coord).r;
+                                vec4 original = INPUT;
+                                vec3 normal = normalize(texture(normalTexture, INPUT_UV).xyz * 2.0 - 1.0);
+                                float depth = texture(depthTexture, INPUT_UV).r;
 
                                 if (depth >= 1.0) {
-                                    fragColor = original;
+                                    FRAGCOLOR = original;
                                     return;
                                 }
 
                                 float occlusion = 0.0;
-                                vec2 texelSize = 1.0 / textureSize(qt_Texture0, 0);
+                                vec2 texelSize = 1.0 / vec2(textureSize(qt_Texture0, 0));
+                                int sampleCount = max(uSamples, 1);
 
                                 // SSAO сэмплинг
-                                for (int i = 0; i < ubuf.samples; i++) {
-                                    vec3 sampleVec = generateSampleVector(i, coord);
+                                for (int i = 0; i < sampleCount; i++) {
+                                    vec3 sampleVec = generateSampleVector(i);
 
                                     // Ориентация сэмплов по нормали
                                     sampleVec = normalize(sampleVec);
@@ -325,20 +285,20 @@ Item {
                                         sampleVec = -sampleVec;
                                     }
 
-                                    vec2 sampleCoord = coord + sampleVec.xy * ubuf.radius * texelSize;
+                                    vec2 sampleCoord = INPUT_UV + sampleVec.xy * uRadius * texelSize;
                                     float sampleDepth = texture(depthTexture, sampleCoord).r;
 
                                     // Проверка окклюзии
                                     float depthDiff = depth - sampleDepth;
-                                    if (depthDiff > ubuf.bias) {
+                                    if (depthDiff > uBias) {
                                         occlusion += 1.0;
                                     }
                                 }
 
-                                occlusion /= float(ubuf.samples);
-                                occlusion = 1.0 - (occlusion * ubuf.intensity);
+                                occlusion /= max(1.0, float(sampleCount));
+                                occlusion = 1.0 - (occlusion * uIntensity);
 
-                                fragColor = vec4(original.rgb * occlusion, original.a);
+                                FRAGCOLOR = vec4(original.rgb * occlusion, original.a);
                             }
                         "
             onStatusChanged: root.handleShaderStatus("SSAO", ssaoFragmentShader, ssaoEffect)
@@ -351,12 +311,20 @@ Item {
                             #version 440
 
                             layout(location = 0) in vec2 coord;
-                            layout(location = 0) out vec4 fragColor;
+
+                            #ifndef INPUT_UV
+                            #define INPUT_UV coord
+                            #endif
+
+                            #ifndef FRAGCOLOR
+                            layout(location = 0) out vec4 qt_FragColor;
+                            #define FRAGCOLOR qt_FragColor
+                            #endif
 
                             layout(binding = 1) uniform sampler2D qt_Texture0;
 
                             void qt_customMain() {
-                                fragColor = texture(qt_Texture0, coord);
+                                FRAGCOLOR = texture(qt_Texture0, INPUT_UV);
                             }
                         "
         }
@@ -389,93 +357,82 @@ Item {
         property real cameraNear: 0.1
         property real cameraFar: 10000.0
 
-        Buffer {
-            id: dofUniformBuffer
-            content: new Float32Array(8)
+        requiresDepthTexture: true
+
+        onBlurAmountChanged: {
+            if (blurAmount < 0.0)
+                blurAmount = 0.0
         }
-
-        parameters: [
-            Parameter {
-                name: "ubuf"
-                value: dofUniformBuffer
-            }
-        ]
-
-        function updateUniformBuffer() {
-            const data = new Float32Array([
-                dofEffect.focusDistance,
-                dofEffect.focusRange,
-                dofEffect.blurAmount,
-                dofEffect.cameraNear,
-                dofEffect.cameraFar,
-                0.0,
-                0.0,
-                0.0
-            ])
-            dofUniformBuffer.content = data
-        }
-
-        onFocusDistanceChanged: updateUniformBuffer()
-        onFocusRangeChanged: updateUniformBuffer()
-        onBlurAmountChanged: updateUniformBuffer()
-        onCameraNearChanged: updateUniformBuffer()
-        onCameraFarChanged: updateUniformBuffer()
-        Component.onCompleted: updateUniformBuffer()
 
         Shader {
             id: dofFragmentShader
             stage: Shader.Fragment
+            property real uFocusDistance: dofEffect.focusDistance
+            property real uFocusRange: dofEffect.focusRange
+            property real uBlurAmount: dofEffect.blurAmount
+            property real uCameraNear: dofEffect.cameraNear
+            property real uCameraFar: dofEffect.cameraFar
             shader: "
                             #version 440
 
                             layout(location = 0) in vec2 coord;
-                            layout(location = 0) out vec4 fragColor;
+                            
+                            #ifndef INPUT_UV
+                            #define INPUT_UV coord
+                            #endif
 
-                            layout(std140, binding = 0) uniform buf {
-                                float focusDistance;
-                                float focusRange;
-                                float blurAmount;
-                                float cameraNear;
-                                float cameraFar;
-                            } ubuf;
+                            #ifndef FRAGCOLOR
+                            layout(location = 0) out vec4 qt_FragColor;
+                            #define FRAGCOLOR qt_FragColor
+                            #endif
 
                             layout(binding = 1) uniform sampler2D qt_Texture0;
                             layout(binding = 2) uniform sampler2D depthTexture;
 
+                            #ifndef INPUT
+                            #define INPUT texture(qt_Texture0, INPUT_UV)
+                            #endif
+
+                            uniform float uFocusDistance;
+                            uniform float uFocusRange;
+                            uniform float uBlurAmount;
+                            uniform float uCameraNear;
+                            uniform float uCameraFar;
+
                             // Преобразование depth buffer в линейную глубину
                             float linearizeDepth(float depth) {
                                 float z = depth * 2.0 - 1.0;
-                                return (2.0 * ubuf.cameraNear * ubuf.cameraFar) /
-                                       (ubuf.cameraFar + ubuf.cameraNear - z * (ubuf.cameraFar - ubuf.cameraNear));
+                                return (2.0 * uCameraNear * uCameraFar) /
+                                       (uCameraFar + uCameraNear - z * (uCameraFar - uCameraNear));
                             }
 
                             // Размытие по кругу (bokeh)
-                            vec3 circularBlur(sampler2D tex, vec2 uv, float radius) {
+                            vec3 circularBlur(vec2 uv, float radius) {
                                 vec3 color = vec3(0.0);
                                 int samples = 16;
 
                                 for (int i = 0; i < samples; i++) {
                                     float angle = float(i) * 6.28318 / float(samples);
                                     vec2 offset = vec2(cos(angle), sin(angle)) * radius;
-                                    color += texture(tex, uv + offset).rgb;
+                                    color += texture(qt_Texture0, uv + offset).rgb;
                                 }
 
                                 return color / float(samples);
                             }
 
                             void qt_customMain() {
-                                vec4 original = texture(qt_Texture0, coord);
-                                float depth = texture(depthTexture, coord).r;
+                                vec4 original = INPUT;
+                                float depth = texture(depthTexture, INPUT_UV).r;
                                 float linearDepth = linearizeDepth(depth);
 
                                 // Расчет blur радиуса на основе расстояния от фокуса
-                                float focusFactor = abs(linearDepth - ubuf.focusDistance) / ubuf.focusRange;
-                                float blurRadius = clamp(focusFactor, 0.0, 1.0) * ubuf.blurAmount * 0.01;
+                                float focusFactor = abs(linearDepth - uFocusDistance) / max(0.0001, uFocusRange);
+                                float blurRadius = clamp(focusFactor, 0.0, 1.0) * uBlurAmount * 0.01;
 
-                                vec3 blurred = circularBlur(qt_Texture0, coord, blurRadius);
+                                vec3 blurred = circularBlur(INPUT_UV, blurRadius);
                                 vec3 result = mix(original.rgb, blurred, clamp(focusFactor, 0.0, 1.0));
 
-                                fragColor = vec4(result, original.a);
+                                FRAGCOLOR = vec4(result, original.a);
                             }
                         "
             onStatusChanged: root.handleShaderStatus("DepthOfField", dofFragmentShader, dofEffect)
@@ -488,12 +445,20 @@ Item {
                             #version 440
 
                             layout(location = 0) in vec2 coord;
-                            layout(location = 0) out vec4 fragColor;
+
+                            #ifndef INPUT_UV
+                            #define INPUT_UV coord
+                            #endif
+
+                            #ifndef FRAGCOLOR
+                            layout(location = 0) out vec4 qt_FragColor;
+                            #define FRAGCOLOR qt_FragColor
+                            #endif
 
                             layout(binding = 1) uniform sampler2D qt_Texture0;
 
                             void qt_customMain() {
-                                fragColor = texture(qt_Texture0, coord);
+                                FRAGCOLOR = texture(qt_Texture0, INPUT_UV);
                             }
                         "
         }
@@ -521,97 +486,59 @@ Item {
 
         property real strength: 0.5          // Сила размытия движения
         property int samples: 8              // Количество сэмплов
+        requiresDepthTexture: true
+        requiresVelocityTexture: true
 
-        property var previousViewProjectionElements: identityMatrix()
-        property var currentViewProjectionElements: identityMatrix()
-
-        Buffer {
-            id: motionBlurUniformBuffer
-            content: new ArrayBuffer(4 * 36)
+        onSamplesChanged: {
+            if (samples < 1)
+                samples = 1
         }
-
-        parameters: [
-            Parameter {
-                name: "ubuf"
-                value: motionBlurUniformBuffer
-            }
-        ]
-
-        function identityMatrix() {
-            return [
-                1, 0, 0, 0,
-                0, 1, 0, 0,
-                0, 0, 1, 0,
-                0, 0, 0, 1
-            ]
-        }
-
-        function updateUniformBuffer() {
-            const buffer = new ArrayBuffer(4 * 36)
-            const view = new DataView(buffer)
-
-            let offset = 0
-            view.setFloat32(offset, motionBlurEffect.strength, true)
-            offset += 4
-            view.setInt32(offset, motionBlurEffect.samples, true)
-            offset += 4
-            view.setFloat32(offset, 0.0, true)
-            offset += 4
-            view.setFloat32(offset, 0.0, true)
-            offset = 16
-
-            const matrices = [previousViewProjectionElements, currentViewProjectionElements]
-            for (let m = 0; m < matrices.length; m++) {
-                const matrix = matrices[m] || identityMatrix()
-                for (let i = 0; i < 16; i++) {
-                    view.setFloat32(offset, Number(matrix[i] || 0), true)
-                    offset += 4
-                }
-            }
-
-            motionBlurUniformBuffer.content = buffer
-        }
-
-        onStrengthChanged: updateUniformBuffer()
-        onSamplesChanged: updateUniformBuffer()
-        onPreviousViewProjectionElementsChanged: updateUniformBuffer()
-        onCurrentViewProjectionElementsChanged: updateUniformBuffer()
-        Component.onCompleted: updateUniformBuffer()
 
         Shader {
             id: motionBlurFragmentShader
             stage: Shader.Fragment
+            property real uStrength: motionBlurEffect.strength
+            property int uSamples: motionBlurEffect.samples
             shader: "
                             #version 440
 
                             layout(location = 0) in vec2 coord;
-                            layout(location = 0) out vec4 fragColor;
+                            
+                            #ifndef INPUT_UV
+                            #define INPUT_UV coord
+                            #endif
 
-                            layout(std140, binding = 0) uniform buf {
-                                float strength;
-                                int samples;
-                                mat4 previousViewProjection;
-                                mat4 currentViewProjection;
-                            } ubuf;
+                            #ifndef FRAGCOLOR
+                            layout(location = 0) out vec4 qt_FragColor;
+                            #define FRAGCOLOR qt_FragColor
+                            #endif
 
                             layout(binding = 1) uniform sampler2D qt_Texture0;
                             layout(binding = 2) uniform sampler2D velocityTexture;
 
+                            #ifndef INPUT
+                            #define INPUT texture(qt_Texture0, INPUT_UV)
+                            #endif
+
+                            uniform float uStrength;
+                            uniform int uSamples;
+
                             void qt_customMain() {
-                                vec4 original = texture(qt_Texture0, coord);
-                                vec2 velocity = texture(velocityTexture, coord).xy;
+                                vec4 original = INPUT;
+                                vec2 velocity = texture(velocityTexture, INPUT_UV).xy;
 
                                 vec3 color = original.rgb;
-                                vec2 step = velocity * ubuf.strength / float(ubuf.samples);
+                                int sampleCount = max(uSamples, 1);
+                                vec2 step = velocity * uStrength / max(1.0, float(sampleCount));
 
                                 // Сэмплирование вдоль вектора движения
-                                for (int i = 1; i < ubuf.samples; i++) {
-                                    vec2 sampleCoord = coord + step * float(i);
+                                for (int i = 1; i < sampleCount; i++) {
+                                    vec2 sampleCoord = INPUT_UV + step * float(i);
                                     color += texture(qt_Texture0, sampleCoord).rgb;
                                 }
 
-                                color /= float(ubuf.samples);
-                                fragColor = vec4(color, original.a);
+                                color /= max(1.0, float(sampleCount));
+                                FRAGCOLOR = vec4(color, original.a);
                             }
                         "
             onStatusChanged: root.handleShaderStatus("MotionBlur", motionBlurFragmentShader, motionBlurEffect)
@@ -624,12 +551,20 @@ Item {
                             #version 440
 
                             layout(location = 0) in vec2 coord;
-                            layout(location = 0) out vec4 fragColor;
+
+                            #ifndef INPUT_UV
+                            #define INPUT_UV coord
+                            #endif
+
+                            #ifndef FRAGCOLOR
+                            layout(location = 0) out vec4 qt_FragColor;
+                            #define FRAGCOLOR qt_FragColor
+                            #endif
 
                             layout(binding = 1) uniform sampler2D qt_Texture0;
 
                             void qt_customMain() {
-                                fragColor = texture(qt_Texture0, coord);
+                                FRAGCOLOR = texture(qt_Texture0, INPUT_UV);
                             }
                         "
         }
