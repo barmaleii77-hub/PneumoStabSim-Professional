@@ -257,6 +257,10 @@ Item {
     Effect {
         id: ssaoEffect
 
+        // Требуем доступ к буферам глубины и нормалей для расчета SSAO
+        requiresDepthTexture: true
+        requiresNormalTexture: true
+
         property bool fallbackActive: false
         property string lastErrorLog: ""
 
@@ -393,6 +397,9 @@ Item {
     Effect {
         id: dofEffect
 
+        // Эффект глубины резкости использует буфер глубины сцены
+        requiresDepthTexture: true
+
         property bool fallbackActive: false
         property string lastErrorLog: ""
 
@@ -517,6 +524,9 @@ Item {
     // Motion Blur Effect
     Effect {
         id: motionBlurEffect
+
+        // Эффект размытия движения читает текстуру скоростей
+        requiresVelocityTexture: true
 
         property bool fallbackActive: false
         property string lastErrorLog: ""
