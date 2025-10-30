@@ -74,6 +74,21 @@ Item {
         return effectItem.fallbackActive ? [fallbackShader] : [activeShader]
     }
 
+    function ensureEffectRequirement(effectItem, propertyName, value, successLog, failureLog) {
+        try {
+            effectItem[propertyName] = value
+            if (successLog && successLog.length > 0)
+                console.log("✅", successLog)
+            return true
+        } catch (error) {
+            const message = failureLog && failureLog.length > 0
+                    ? failureLog
+                    : `Effect requirement '${propertyName}' is not supported`
+            console.warn("⚠️", message, error)
+            return false
+        }
+    }
+
     Component.onCompleted: {
         console.log("🎨 Post Effects Collection loaded")
         console.log("   Available effects: Bloom, SSAO, DOF, Motion Blur")
@@ -257,12 +272,30 @@ Item {
     Effect {
         id: ssaoEffect
 
-        // Требуем доступ к буферам глубины и нормалей для расчета SSAO
-        requiresDepthTexture: true
-        requiresNormalTexture: true
-
         property bool fallbackActive: false
         property string lastErrorLog: ""
+        property bool depthTextureAvailable: false
+        property bool normalTextureAvailable: false
+
+        Component.onCompleted: {
+            depthTextureAvailable = root.ensureEffectRequirement(
+                        ssaoEffect,
+                        "requiresDepthTexture",
+                        true,
+                        "SSAO: depth texture support enabled",
+                        "SSAO: depth texture buffer is not supported; disabling advanced SSAO")
+            normalTextureAvailable = root.ensureEffectRequirement(
+                        ssaoEffect,
+                        "requiresNormalTexture",
+                        true,
+                        "SSAO: normal texture support enabled",
+                        "SSAO: normal texture buffer is not supported; disabling advanced SSAO")
+
+            if (!depthTextureAvailable || !normalTextureAvailable) {
+                fallbackActive = true
+                console.warn("⚠️ SSAO: switching to passthrough fallback due to missing textures")
+            }
+        }
 
         property real intensity: 0.5      // Интенсивность затенения
         property real radius: 2.0         // Радиус сэмплинга
@@ -398,10 +431,9 @@ Item {
         id: dofEffect
 
         // Эффект глубины резкости использует буфер глубины сцены
-        requiresDepthTexture: true
-
         property bool fallbackActive: false
         property string lastErrorLog: ""
+        property bool depthTextureAvailable: false
 
         property real focusDistance: 2000.0  // Расстояние фокуса (мм)
         property real focusRange: 1000.0     // Диапазон фокуса (мм)
@@ -414,6 +446,20 @@ Item {
         onBlurAmountChanged: {
             if (blurAmount < 0.0)
                 blurAmount = 0.0
+        }
+
+        Component.onCompleted: {
+            depthTextureAvailable = root.ensureEffectRequirement(
+                        dofEffect,
+                        "requiresDepthTexture",
+                        true,
+                        "Depth of Field: depth texture support enabled",
+                        "Depth of Field: depth texture unavailable; using fallback shader")
+
+            if (!depthTextureAvailable) {
+                fallbackActive = true
+                console.warn("⚠️ Depth of Field: switching to passthrough fallback due to missing depth texture")
+            }
         }
 
         Shader {
@@ -526,16 +572,29 @@ Item {
         id: motionBlurEffect
 
         // Эффект размытия движения читает текстуру скоростей
-        requiresVelocityTexture: true
-
         property bool fallbackActive: false
         property string lastErrorLog: ""
+        property bool velocityTextureAvailable: false
 
         property real strength: 0.5          // Сила размытия движения
         property int samples: 8              // Количество сэмплов
         onSamplesChanged: {
             if (samples < 1)
                 samples = 1
+        }
+
+        Component.onCompleted: {
+            velocityTextureAvailable = root.ensureEffectRequirement(
+                        motionBlurEffect,
+                        "requiresVelocityTexture",
+                        true,
+                        "Motion Blur: velocity texture support enabled",
+                        "Motion Blur: velocity texture unavailable; using fallback shader")
+
+            if (!velocityTextureAvailable) {
+                fallbackActive = true
+                console.warn("⚠️ Motion Blur: switching to passthrough fallback due to missing velocity texture")
+            }
         }
 
         Shader {
