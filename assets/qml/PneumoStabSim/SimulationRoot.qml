@@ -56,8 +56,11 @@ signal animationToggled(bool running)
  readonly property real fallbackCycleSeconds: Math.max(0.2, 1.0 / Math.max(userFrequency, 0.01))
  property real batchFlashOpacity: 0.0
 
+ readonly property real defaultDofFocusDistanceM: effectsDefaultNumber(["dof_focus_distance"], 2.5)
+
  property bool reflectionProbeEnabled: true
- property real reflectionProbePadding: 0.15 // м, доп. зазор вокруг геометрии
+ // Padding stored in metres; converted to scene units where required
+ property real reflectionProbePaddingM: 0.15
  property int reflectionProbeQualityValue: ReflectionProbe.VeryHigh
  property int reflectionProbeRefreshModeValue: ReflectionProbe.EveryFrame
  property int reflectionProbeTimeSlicingValue: ReflectionProbe.IndividualFaces
@@ -196,7 +199,7 @@ property real sceneScaleFactor: sceneDefaults && sceneDefaults.scale_factor !== 
  property real userPhaseRR: animationDefaultNumber(["phase_rr"], 0.0)
 
 // Настройки сглаживания анимации
- readonly property string defaultSmoothingEasing: "OutCubic" // соответствует animation.smoothing_easing
+ readonly property string defaultSmoothingEasing: rigAnimation ? rigAnimation.DEFAULT_EASING : "OutCubic" // соответствует animation.smoothing_easing
  property bool animationSmoothingEnabled: animationDefaultBool(["smoothing_enabled"], true)
  property real animationSmoothingDurationMs: animationDefaultNumber(["smoothing_duration_ms"], 120.0)
  property real animationSmoothingAngleSnapDeg: animationDefaultNumber(["smoothing_angle_snap_deg"], 65.0)
@@ -213,7 +216,7 @@ property real sceneScaleFactor: sceneDefaults && sceneDefaults.scale_factor !== 
   angleSnapThresholdDeg: root.animationSmoothingAngleSnapDeg
   pistonSnapThresholdM: root.animationSmoothingPistonSnapM
   smoothingEasingName: root.animationSmoothingEasing
- }
+}
 
  // Данные симуляции в СИ
  property alias flAngleRad: rigAnimation.flAngleRad
@@ -319,6 +322,35 @@ function animationDefaultString(keys, fallback) {
     if (fallback === undefined || fallback === null)
         return ""
     return String(fallback)
+}
+
+function effectsDefaults() {
+    if (!sceneDefaults || !sceneDefaults.graphics)
+        return {}
+    var graphics = sceneDefaults.graphics
+    if (!graphics || typeof graphics !== "object")
+        return {}
+    var effects = graphics.effects
+    if (!effects || typeof effects !== "object")
+        return {}
+    return effects
+}
+
+function effectsDefaultNumber(keys, fallback) {
+    var defaults = effectsDefaults()
+    var list = Array.isArray(keys) ? keys : [keys]
+    for (var i = 0; i < list.length; ++i) {
+        var candidate = defaults[list[i]]
+        if (candidate !== undefined && candidate !== null) {
+            var numeric = Number(candidate)
+            if (isFinite(numeric))
+                return numeric
+        }
+    }
+    var fallbackNumeric = Number(fallback)
+    if (isFinite(fallbackNumeric))
+        return fallbackNumeric
+    return 0.0
 }
 
  function restartFallbackTimeline() {
@@ -666,7 +698,7 @@ View3D {
   })
   pistonPositions: pistonPositions
   reflectionProbeEnabled: root.reflectionProbeEnabled
-  reflectionProbePadding: root.reflectionProbePadding
+  reflectionProbePaddingM: root.reflectionProbePaddingM
   reflectionProbeQualityValue: root.reflectionProbeQualityValue
   reflectionProbeRefreshModeValue: root.reflectionProbeRefreshModeValue
   reflectionProbeTimeSlicingValue: root.reflectionProbeTimeSlicingValue
@@ -724,27 +756,25 @@ Binding {
         var scale = Number(root.effectiveSceneScaleFactor)
         if (!isFinite(scale) || scale <= 0)
             scale = 1.0
+        var defaultDistanceM = Number(root.defaultDofFocusDistanceM)
+        if (!isFinite(defaultDistanceM) || defaultDistanceM <= 0)
+            defaultDistanceM = 2.5
         if (!cameraController) {
             var storedDistance = Number(sceneEnvCtl.dofFocusDistance)
             if (!isFinite(storedDistance) || storedDistance <= 0) {
-                var defaultDistance = undefined
-                if (root.sceneDefaults && root.sceneDefaults.graphics && root.sceneDefaults.graphics.effects && root.sceneDefaults.graphics.effects.dof_focus_distance !== undefined)
-                    defaultDistance = Number(root.sceneDefaults.graphics.effects.dof_focus_distance)
-                if (!isFinite(defaultDistance) || defaultDistance <= 0)
-                    defaultDistance = 2.2
-                storedDistance = defaultDistance * scale
+                storedDistance = defaultDistanceM * scale
             }
             if (storedDistance > 50 * scale)
                 storedDistance = (storedDistance / 1000.0) * scale
             return Math.max(0.05, storedDistance)
         }
-        var distanceMm = Number(cameraController.distance)
-        if (!isFinite(distanceMm) || distanceMm <= 0)
-            distanceMm = 2200
         var unitsPerMeter = Number(cameraController.metersToControllerUnits)
         if (!isFinite(unitsPerMeter) || unitsPerMeter <= 0)
             unitsPerMeter = 1000
-        var meters = distanceMm / unitsPerMeter
+        var distanceUnits = Number(cameraController.distance)
+        if (!isFinite(distanceUnits) || distanceUnits <= 0)
+            distanceUnits = defaultDistanceM * unitsPerMeter
+        var meters = distanceUnits / unitsPerMeter
         var focusMeters = Math.max(0.05, meters) * scale
         return focusMeters
     }
@@ -756,16 +786,19 @@ Binding {
     value: {
         if (!cameraController)
             return sceneEnvCtl.dofFocusRange
-        var distanceMm = Number(cameraController.distance)
-        if (!isFinite(distanceMm) || distanceMm <= 0)
-            distanceMm = 2200
         var unitsPerMeter = Number(cameraController.metersToControllerUnits)
         if (!isFinite(unitsPerMeter) || unitsPerMeter <= 0)
             unitsPerMeter = 1000
         var scale = Number(root.effectiveSceneScaleFactor)
         if (!isFinite(scale) || scale <= 0)
             scale = 1.0
-        var meters = distanceMm / unitsPerMeter
+        var defaultDistanceM = Number(root.defaultDofFocusDistanceM)
+        if (!isFinite(defaultDistanceM) || defaultDistanceM <= 0)
+            defaultDistanceM = 2.5
+        var distanceUnits = Number(cameraController.distance)
+        if (!isFinite(distanceUnits) || distanceUnits <= 0)
+            distanceUnits = defaultDistanceM * unitsPerMeter
+        var meters = distanceUnits / unitsPerMeter
         var focusMeters = Math.max(0.05, meters) * scale
         var fovDeg = Number(cameraController.fov)
         if (!isFinite(fovDeg) || fovDeg <= 0)
@@ -1073,14 +1106,14 @@ return Math.max(minValue, Math.min(maxValue, value));
   }, ReflectionProbe.IndividualFaces);
  }
 
- function sanitizeReflectionProbePadding(value) {
-  if (value === undefined || value === null)
-   return reflectionProbePadding;
-  var numeric = Number(value);
-  if (!isFinite(numeric))
-   return reflectionProbePadding;
-  return Math.max(0, numeric);
- }
+function sanitizeReflectionProbePadding(value) {
+ if (value === undefined || value === null)
+  return reflectionProbePaddingM;
+ var numeric = Number(value);
+ if (!isFinite(numeric))
+  return reflectionProbePaddingM;
+ return Math.max(0, numeric);
+}
 
  function emitConfigChange(category, payload) {
  if (!feedbackReady)
@@ -2258,7 +2291,7 @@ function apply3DUpdates(params) {
   if (rp.enabled !== undefined)
    reflectionProbeEnabled = !!rp.enabled;
   if (rp.padding !== undefined)
-   reflectionProbePadding = sanitizeReflectionProbePadding(rp.padding);
+   reflectionProbePaddingM = sanitizeReflectionProbePadding(rp.padding);
   if (rp.quality !== undefined)
    reflectionProbeQualityValue = reflectionProbeQualityFrom(rp.quality);
   if (rp.refreshMode !== undefined)

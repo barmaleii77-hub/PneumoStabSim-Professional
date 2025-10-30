@@ -40,7 +40,8 @@ Node {
     // Reflection probe configuration
     // ------------------------------------------------------------------
     property bool reflectionProbeEnabled: true
-    property real reflectionProbePadding: 0.15
+    // Padding stored in metres; SimulationRoot provides SI values.
+    property real reflectionProbePaddingM: 0.15
     property int reflectionProbeQualityValue: ReflectionProbe.VeryHigh
     property int reflectionProbeRefreshModeValue: ReflectionProbe.EveryFrame
     property int reflectionProbeTimeSlicingValue: ReflectionProbe.IndividualFaces
@@ -204,7 +205,7 @@ Node {
             const frameHeight = Math.max(assembly.geometryValue("frameHeight"), 0)
             const beam = Math.max(assembly.geometryValue("beamSize"), 0)
             const frameLength = Math.max(assembly.geometryValue("frameLength"), 0)
-            const padding = Math.max(0, assembly.reflectionProbePadding) * 2
+            const padding = Math.max(0, assembly.reflectionProbePaddingM) * 2
             return Qt.vector3d(
                         Math.max(1.0, assembly.toSceneLength(track + padding)),
                         Math.max(1.0, assembly.toSceneLength(frameHeight + beam + padding)),
