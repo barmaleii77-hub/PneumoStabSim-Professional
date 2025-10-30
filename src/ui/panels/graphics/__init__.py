@@ -17,6 +17,7 @@ __all__ = [
     "SceneTab",
     "ColorButton",
     "LabeledSlider",
+    "FileCyclerWidget",
     "GraphicsStateManager",
     "GraphicsSettingsService",
     "GraphicsSettingsError",
@@ -39,6 +40,7 @@ _MODULE_EXPORTS = {
     "SceneTab": ("scene_tab", "SceneTab"),
     "ColorButton": ("widgets", "ColorButton"),
     "LabeledSlider": ("widgets", "LabeledSlider"),
+    "FileCyclerWidget": ("widgets", "FileCyclerWidget"),
     "GraphicsStateManager": ("state_manager", "GraphicsStateManager"),
     "GraphicsSettingsService": (
         "panel_graphics_settings_manager",
