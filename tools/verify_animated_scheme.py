@@ -11,6 +11,7 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 CONFIG_PATH = REPO_ROOT / "config" / "app_settings.json"
 SHARED_MATERIALS_PATH = REPO_ROOT / "assets" / "qml" / "scene" / "SharedMaterials.qml"
 SIM_ROOT_PATH = REPO_ROOT / "assets" / "qml" / "PneumoStabSim" / "SimulationRoot.qml"
+MAIN_REALISM_PATH = REPO_ROOT / "assets" / "qml" / "main_v2_realism.qml"
 
 REQUIRED_WARNING_FIELDS = {
     "piston_body": ["warning_color"],
@@ -126,10 +127,23 @@ def ensure_property_suffix_map() -> None:
             )
 
 
+def ensure_main_scene_has_dynamic_ibl() -> None:
+    text = MAIN_REALISM_PATH.read_text(encoding="utf-8")
+    if "IblProbeLoader" not in text:
+        raise SystemExit(
+            "main_v2_realism.qml missing IblProbeLoader; dynamic IBL loading required"
+        )
+    if re.search(r'source:\s*"[^"]+\.(?:hdr|exr)"', text):
+        raise SystemExit(
+            "main_v2_realism.qml contains hard-coded HDR/EXR source; must be dynamic"
+        )
+
+
 def main() -> None:
     load_config()
     ensure_shared_materials_textures()
     ensure_property_suffix_map()
+    ensure_main_scene_has_dynamic_ibl()
     print("verify_animated_scheme: OK")
 
 

@@ -2,6 +2,7 @@ import QtQuick
 import QtQuick3D
 import QtQuick3D.Helpers   // === FIXED: Remove version number for Qt 6.9.3 compatibility
 import environment 1.0
+import components 1.0
 import lighting 1.0
 
 Item {
@@ -84,6 +85,16 @@ Item {
     }
     property bool iblEnabled: true
     property real iblIntensity: 1.3     // === CHANGED: Better exposure
+
+    property alias iblPrimarySource: iblLoader.primarySource
+    property alias iblFallbackSource: iblLoader.fallbackSource
+    readonly property Texture iblProbeTexture: iblLoader.probe
+    readonly property bool iblProbeReady: iblLoader.ready
+
+    IblProbeLoader {
+        id: iblLoader
+        visible: false
+    }
 
     property int antialiasingMode: 2     // 0 NoAA, 1 SSAA, 2 MSAA
     property int antialiasingQuality: 2  // 0 Low, 1 Medium, 2 High
@@ -193,12 +204,6 @@ property var pistonPositions: ({ fl: 0.0, fr: 0.0, rl: 0.0, rr: 0.0 })
 property var linePressures: ({})
 property real tankPressure: 0.0
 
-    // === HDR probe with fallback ===
-    Texture {
-        id: hdrProbe
-        source: "assets/studio_small_09_2k.hdr"  // === FIXED: Relative path
-    }
-
     // === Smooth camera animations ===
     Behavior on yawDeg         { NumberAnimation { duration: 90; easing.type: Easing.OutCubic } }
     Behavior on pitchDeg       { NumberAnimation { duration: 90; easing.type: Easing.OutCubic } }
@@ -241,6 +246,20 @@ property real tankPressure: 0.0
                 return object[key]
         }
         return undefined
+    }
+
+    function resolveIblUrl(path) {
+        if (path === undefined || path === null)
+            return ""
+        const asString = String(path).trim()
+        if (!asString)
+            return ""
+        try {
+            return Qt.resolvedUrl(asString)
+        } catch (err) {
+            console.warn("Realism scene failed to resolve IBL url", asString, err)
+            return asString
+        }
     }
 
     function _applyReflectionProbeUpdates(payload) {
@@ -567,6 +586,45 @@ property real tankPressure: 0.0
         if (params.fxaa_enabled !== undefined) fxaaEnabled = !!params.fxaa_enabled
         if (params.specular_aa_enabled !== undefined) specularAAEnabled = !!params.specular_aa_enabled
         if (params.temporal_aa_enabled !== undefined) temporalAAEnabled = !!params.temporal_aa_enabled
+
+        var primarySource = _readFirstDefined(params, [
+            "ibl_source",
+            "iblSource",
+            "ibl_primary",
+            "iblPrimary",
+            "hdr_source",
+            "hdrSource"
+        ])
+        if (params.ibl && typeof params.ibl === "object") {
+            var nestedPrimary = _readFirstDefined(params.ibl, [
+                "source",
+                "primary",
+                "path"
+            ])
+            if (nestedPrimary !== undefined)
+                primarySource = nestedPrimary
+        }
+        if (primarySource !== undefined)
+            iblPrimarySource = resolveIblUrl(primarySource)
+
+        var fallbackSource = _readFirstDefined(params, [
+            "ibl_fallback",
+            "iblFallback",
+            "ibl_secondary",
+            "iblSecondary",
+            "hdr_fallback",
+            "hdrFallback"
+        ])
+        if (params.ibl && typeof params.ibl === "object") {
+            var nestedFallback = _readFirstDefined(params.ibl, [
+                "fallback",
+                "secondary"
+            ])
+            if (nestedFallback !== undefined)
+                fallbackSource = nestedFallback
+        }
+        if (fallbackSource !== undefined)
+            iblFallbackSource = resolveIblUrl(fallbackSource)
     }
 
     function resolvedBackgroundMode() {
@@ -621,9 +679,9 @@ property real tankPressure: 0.0
             id: realismEnvironment
             resolvedBackgroundMode: root.resolvedBackgroundMode()
             sceneClearColor: root.effectiveClearColor
-            useSkybox: root.backgroundUsesSkybox
-            useLightProbe: root.iblEnabled
-            hdrTexture: hdrProbe
+            useSkybox: root.backgroundUsesSkybox && root.iblProbeReady
+            useLightProbe: root.iblEnabled && root.iblProbeReady
+            hdrTexture: root.iblProbeReady ? root.iblProbeTexture : null
             iblExposure: root.iblIntensity
             tonemapEnabled: root.tonemapActive
             tonemapModeSetting: root.resolveTonemapMode(root.tonemapModeIndex)
