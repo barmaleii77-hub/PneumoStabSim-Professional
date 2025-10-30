@@ -70,6 +70,7 @@ class SettingsService:
         self._schema_cache: dict[str, Any] | None = None
         self._validator: Any | None = None
         self._unknown_paths: set[str] = set()
+        self._last_modified_snapshot: str | None = None
 
     # ------------------------------------------------------------------
     # Path resolution & raw IO
@@ -95,6 +96,7 @@ class SettingsService:
             payload: dict[str, Any] = json.load(stream)
         if self._validate_schema:
             self.validate(payload)
+        self._capture_last_modified(payload)
         return payload
 
     def _write_file(self, payload: dict[str, Any]) -> None:
@@ -133,10 +135,13 @@ class SettingsService:
     ) -> None:
         """Сохранить payload на диск и обновить кэш."""
 
+        last_modified = self._ensure_last_modified(payload)
         if self._validate_schema:
             self.validate(payload)
         self._write_file(payload)
         self._cache = payload
+        if last_modified is not None:
+            self._last_modified_snapshot = last_modified
         if pending_unknown_paths:
             for candidate in pending_unknown_paths:
                 self._record_unknown_path(candidate)
@@ -482,6 +487,34 @@ class SettingsService:
 
     def _record_unknown_path(self, path: str) -> None:
         self._unknown_paths.add(path)
+
+    def _capture_last_modified(self, payload: MappingABC[str, Any]) -> None:
+        metadata = payload.get("metadata") if isinstance(payload, MappingABC) else None
+        if isinstance(metadata, MappingABC):
+            value = metadata.get("last_modified")
+            self._last_modified_snapshot = value if isinstance(value, str) else None
+        else:
+            self._last_modified_snapshot = None
+
+    def _ensure_last_modified(self, payload: dict[str, Any]) -> str | None:
+        metadata = payload.get("metadata")
+        if not isinstance(metadata, MutableMapping):
+            metadata = {}
+            payload["metadata"] = metadata
+
+        current = metadata.get("last_modified")
+        if isinstance(current, str):
+            if (
+                self._last_modified_snapshot is None
+                or current != self._last_modified_snapshot
+            ):
+                return current
+
+        timestamp = (
+            datetime.now(UTC).isoformat(timespec="milliseconds").replace("+00:00", "Z")
+        )
+        metadata["last_modified"] = timestamp
+        return timestamp
 
     def _publish_update_event(self, metadata: dict[str, Any]) -> None:
         container = get_default_container()
