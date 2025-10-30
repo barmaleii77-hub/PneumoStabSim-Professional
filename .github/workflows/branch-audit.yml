@@ -22,6 +22,7 @@ permissions:
 jobs:
   branch-audit:
     name: Detect stale branches
+    if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     container:
       image: ghcr.io/github/gh-cli:2.48.0
