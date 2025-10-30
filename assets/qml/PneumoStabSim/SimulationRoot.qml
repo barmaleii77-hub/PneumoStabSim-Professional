@@ -648,23 +648,22 @@ SequentialAnimation {
  onTriggered: pythonPressureActive = false
  }
 
- PostEffects {
- id: postEffects
- anchors.fill: parent
- visible: false
- onEffectCompilationError: registerShaderWarning(effectId, errorLog)
- onEffectCompilationRecovered: clearShaderWarning(effectId)
- }
+    PostEffects {
+        id: postEffects
+        anchors.fill: parent
+        visible: false
+        onEffectCompilationError: registerShaderWarning(effectId, errorLog)
+        onEffectCompilationRecovered: clearShaderWarning(effectId)
+    }
 
- View3D {
- id: sceneView
- anchors.fill: parent
- environment: sceneEnvCtl
- effects: postEffects.effects
+    View3D {
+        id: sceneView
+        anchors.fill: parent
+        environment: sceneEnvCtl
 
- SharedMaterials {
- id: sharedMaterials
- }
+        SharedMaterials {
+            id: sharedMaterials
+        }
 
  Node {
  id: worldRoot
@@ -815,6 +814,12 @@ Binding {
     target: postEffects
     property: "cameraClipFar"
     value: cameraController && cameraController.camera ? cameraController.camera.clipFar : postEffects.cameraClipFar
+}
+
+Binding {
+    target: sceneEnvCtl
+    property: "externalEffects"
+    value: postEffects.effectList
 }
 
 Binding {
