@@ -2,9 +2,17 @@ name: CI/CD Pipeline
 
 on:
   push:
-    branches: [master, develop]
+    branches:
+      - main
+      - develop
+      - master
+      - feature/**
   pull_request:
-    branches: [master, develop]
+    branches:
+      - main
+      - develop
+      - master
+      - feature/**
 
 jobs:
   test:
@@ -169,25 +177,25 @@ jobs:
     needs: [test, verify]
 
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-    - name: Set up Python
-      uses: actions/setup-python@v5
-      with:
-        python-version: '3.13'
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
 
-    - name: Install project with documentation extras
-      run: |
-        python -m pip install --upgrade pip
-        pip install .[docs]
+      - name: Install project with documentation extras
+        run: |
+          python -m pip install --upgrade pip
+          pip install .[docs]
 
-    - name: Build documentation
-      run: |
-  sphinx-build -b html docs docs/_build/html
+      - name: Build documentation
+        run: |
+          sphinx-build -b html docs docs/_build/html
 
-    - name: Upload documentation artifact
-      uses: actions/upload-artifact@v4
-      with:
-      name: documentation-html
-   path: docs/_build/html
+      - name: Upload documentation artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: documentation-html
+          path: docs/_build/html
