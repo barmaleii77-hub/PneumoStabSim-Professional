@@ -1,44 +1,105 @@
 # -*- coding: utf-8 -*-
+"""Geometry panel default values and presets.
+
+This module must not introduce hard-coded geometry defaults. Instead we source
+them from :mod:`config/app_settings.json` so the UI, the Python bridge and the
+QtQuick scene always share a single canonical baseline.
 """
-Geometry panel default values and presets
-Константы и пресеты для панели геометрии
-"""
 
-from typing import Dict, Any
+from __future__ import annotations
 
-# =============================================================================
-# DEFAULT GEOMETRY VALUES
-# =============================================================================
+import json
+import logging
+from pathlib import Path
+from typing import Any, Dict
 
-DEFAULT_GEOMETRY: Dict[str, Any] = {
-    # Frame dimensions (м)
-    "wheelbase": 3.2,  # База (колёсная база)
-    "track": 1.6,  # Колея (расстояние между колёсами)
-    "frame_height_m": 0.65,  # Высота рамы
-    "frame_beam_size_m": 0.12,  # Толщина балки рамы
-    "frame_length_m": 0.80,  # Визуальная длина рамы для 3D-сцены
-    # Suspension geometry (м)
-    "frame_to_pivot": 0.6,  # Расстояние рама → ось рычага
-    "lever_length": 0.8,  # Длина рычага
-    "lever_length_m": 0.15,  # Длина рычага в визуализаторе
-    "rod_position": 0.6,  # Положение крепления штока (доля 0..1)
-    # Cylinder dimensions (м)
-    "cylinder_length": 0.5,  # Длина цилиндра
-    "cyl_diam_m": 0.080,  # Диаметр цилиндра
-    "stroke_m": 0.300,  # Ход поршня
-    "dead_gap_m": 0.005,  # Мёртвый зазор
-    "cylinder_body_length_m": 0.30,  # Длина корпуса цилиндра в сцене
-    # Rod and piston dimensions (м)
-    "rod_diameter_m": 0.035,  # Диаметр штока
-    "rod_diameter_rear_m": 0.035,  # Диаметр штока (задний контур)
-    "piston_rod_length_m": 0.200,  # Длина штока поршня
-    "piston_thickness_m": 0.025,  # Толщина поршня
-    "tail_rod_length_m": 0.100,  # Длина заднего штока
-    # Visual joint scale factors (dimensionless)
-    # Options (bool)
-    "interference_check": True,  # Проверять пересечения
-    "link_rod_diameters": False,  # Связать диаметры штоков
+
+logger = logging.getLogger(__name__)
+
+
+_REPO_ROOT = Path(__file__).resolve().parents[4]
+_SETTINGS_FILE = _REPO_ROOT / "config" / "app_settings.json"
+
+
+def _load_geometry_defaults() -> Dict[str, Any]:
+    """Load geometry defaults from the application settings file.
+
+    If the configuration is unavailable or malformed we fall back to the
+    previous constants to keep the UI usable while still emitting a warning so
+    the issue can be diagnosed quickly.
+    """
+
+    try:
+        with _SETTINGS_FILE.open("r", encoding="utf-8") as handle:
+            payload = json.load(handle)
+    except FileNotFoundError:
+        logger.error("Geometry defaults file is missing: %%s", _SETTINGS_FILE)
+        return _LEGACY_DEFAULT_GEOMETRY.copy()
+    except json.JSONDecodeError as exc:
+        logger.error(
+            "Failed to parse geometry defaults from %%s: %%s",
+            _SETTINGS_FILE,
+            exc,
+        )
+        return _LEGACY_DEFAULT_GEOMETRY.copy()
+
+    defaults_snapshot = payload.get("defaults_snapshot", {})
+    geometry_defaults = defaults_snapshot.get("geometry")
+    if not isinstance(geometry_defaults, dict) or not geometry_defaults:
+        logger.error(
+            "defaults_snapshot.geometry section is missing or empty in %%s",
+            _SETTINGS_FILE,
+        )
+        return _LEGACY_DEFAULT_GEOMETRY.copy()
+
+    result: Dict[str, Any] = dict(geometry_defaults)
+
+    mesh_defaults = (
+        defaults_snapshot.get("graphics", {}).get("quality", {}).get("mesh", {})
+    )
+    if isinstance(mesh_defaults, dict):
+        for key in ("cylinder_segments", "cylinder_rings"):
+            if mesh_defaults.get(key) is not None and key not in result:
+                result[key] = mesh_defaults[key]
+
+    for key, value in _LEGACY_DEFAULT_GEOMETRY.items():
+        result.setdefault(key, value)
+
+    return result
+
+
+# Legacy defaults retained solely as a safety net when the JSON configuration
+# cannot be read. Keeping them private ensures call sites only use
+# ``DEFAULT_GEOMETRY`` which is populated from the live configuration whenever
+# possible.
+_LEGACY_DEFAULT_GEOMETRY: Dict[str, Any] = {
+    "wheelbase": 3.2,
+    "track": 1.6,
+    "frame_height_m": 0.65,
+    "frame_beam_size_m": 0.12,
+    "frame_length_m": 0.80,
+    "frame_to_pivot": 0.6,
+    "lever_length": 0.8,
+    "lever_length_m": 0.15,
+    "rod_position": 0.6,
+    "cylinder_length": 0.5,
+    "cyl_diam_m": 0.080,
+    "stroke_m": 0.300,
+    "dead_gap_m": 0.005,
+    "cylinder_body_length_m": 0.30,
+    "rod_diameter_m": 0.035,
+    "rod_diameter_rear_m": 0.035,
+    "piston_rod_length_m": 0.200,
+    "piston_thickness_m": 0.025,
+    "tail_rod_length_m": 0.100,
+    "interference_check": True,
+    "link_rod_diameters": False,
+    "cylinder_segments": 64,
+    "cylinder_rings": 8,
 }
+
+
+DEFAULT_GEOMETRY: Dict[str, Any] = _load_geometry_defaults()
 
 # =============================================================================
 # GEOMETRY PRESETS
