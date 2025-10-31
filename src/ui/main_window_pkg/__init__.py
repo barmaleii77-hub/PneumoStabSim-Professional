@@ -18,6 +18,7 @@ from __future__ import annotations
 import inspect
 import sys
 from importlib import import_module, util
+from types import ModuleType
 from typing import Any, Dict
 
 __all__ = [
