@@ -45,32 +45,56 @@ _MODULE_EXPORTS = {
 _MAIN_WINDOW_CLASS: type[Any] | None = None
 _MAIN_WINDOW_ERROR: ImportError | None = None
 _USING_REFACTORED = False
+_INSPECT_UNWRAP_CACHE_ID: int | None = None
+_INSPECT_UNWRAP_CACHE_CODES: set[CodeType] = set()
 
 
-def _collect_inspect_unwrap_codes() -> set[CodeType]:
-    """Return code objects for :func:`inspect.unwrap` if available."""
+def _collect_inspect_unwrap_codes(func: Any) -> set[CodeType]:
+    """Return code objects for ``inspect.unwrap`` and its wrappers."""
+
+    codes: set[CodeType] = set()
+    seen: set[int] = set()
+    current = func
+    while callable(current) and id(current) not in seen:
+        seen.add(id(current))
+        code = getattr(current, "__code__", None)
+        if code is not None:
+            codes.add(code)
+        current = getattr(current, "__wrapped__", None)
+    return codes
+
+
+def _inspect_unwrap_codes() -> set[CodeType]:
+    """Return cached code objects for the active :func:`inspect.unwrap`."""
 
     unwrap = getattr(inspect, "unwrap", None)
-    code = getattr(unwrap, "__code__", None)
-    if code is not None:
-        return {code}
-    return set()
+    if unwrap is None:
+        return set()
 
-
-_INSPECT_UNWRAP_CODES = _collect_inspect_unwrap_codes()
+    global _INSPECT_UNWRAP_CACHE_ID, _INSPECT_UNWRAP_CACHE_CODES
+    unwrap_id = id(unwrap)
+    if unwrap_id != _INSPECT_UNWRAP_CACHE_ID:
+        _INSPECT_UNWRAP_CACHE_CODES = _collect_inspect_unwrap_codes(unwrap)
+        _INSPECT_UNWRAP_CACHE_ID = unwrap_id
+    return _INSPECT_UNWRAP_CACHE_CODES
 
 
 def _called_from_inspect_unwrap() -> bool:
-    """Return ``True`` when the caller is :func:`inspect.unwrap`."""
+    """Return ``True`` when :func:`inspect.unwrap` appears in the stack."""
 
-    if not _INSPECT_UNWRAP_CODES:
+    codes = _inspect_unwrap_codes()
+    if not codes:
         return False
 
     frame = inspect.currentframe()
     try:
         frame = frame.f_back
         while frame is not None:
-            if frame.f_code in _INSPECT_UNWRAP_CODES:
+            code = frame.f_code
+            if code in codes:
+                return True
+            module_name = frame.f_globals.get("__name__")
+            if module_name == "inspect" and code.co_name == "unwrap":
                 return True
             frame = frame.f_back
     finally:
@@ -155,7 +179,6 @@ def __getattr__(name: str) -> Any:
         if _called_from_inspect_unwrap():
             raise AttributeError(name)
         module = sys.modules[__name__]
-        globals()[name] = module
         return module
 
     if name == "MainWindow":

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import importlib
 import inspect
+import sys
 
 from tests.helpers.faux_inspect_module import fake_unwrap
 
@@ -31,3 +32,34 @@ def test_main_window_pkg_unwrap_returns_module() -> None:
 
 def test_panels_unwrap_returns_module() -> None:
     _assert_module_identity("src.ui.panels")
+
+
+def test_unwrap_handles_rebound_inspect(monkeypatch) -> None:
+    modules = ["src.ui.panels", "src.ui.main_window_pkg"]
+
+    original_unwrap = inspect.unwrap
+
+    def custom_unwrap(func, *, stop=None):
+        f = func
+        memo = {id(f): f}
+        recursion_limit = sys.getrecursionlimit()
+        while not isinstance(func, type) and hasattr(func, "__wrapped__"):
+            if stop is not None and stop(func):
+                break
+            func = func.__wrapped__
+            identifier = id(func)
+            if identifier in memo or len(memo) >= recursion_limit:
+                raise ValueError(f"wrapper loop when unwrapping {f!r}")
+            memo[identifier] = func
+        return func
+
+    monkeypatch.setattr(inspect, "unwrap", custom_unwrap)
+    try:
+        for module_name in modules:
+            module = importlib.import_module(module_name)
+            assert inspect.unwrap(module) is module
+            assert getattr(module, "__wrapped__") is module
+            if hasattr(module, "__dict__") and "__wrapped__" in module.__dict__:
+                del module.__dict__["__wrapped__"]
+    finally:
+        monkeypatch.setattr(inspect, "unwrap", original_unwrap)
