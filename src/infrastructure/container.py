@@ -137,11 +137,10 @@ class ServiceContainer:
         finally:
             with self._lock:
                 stack = self._override_stack.get(token.name)
-                if not stack:
-                    return
-                stack.pop()
-                if not stack:
-                    self._override_stack.pop(token.name, None)
+                if stack:
+                    stack.pop()
+                    if not stack:
+                        self._override_stack.pop(token.name, None)
 
     def reset(self, token: ServiceToken[Any] | None = None) -> None:
         """Clear cached instances for ``token`` or for the entire container."""
