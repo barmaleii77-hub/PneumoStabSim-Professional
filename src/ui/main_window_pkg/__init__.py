@@ -117,21 +117,16 @@ def get_version_info() -> Dict[str, Any]:
 
 
 def _collect_inspect_unwrap_codes() -> set[CodeType]:
-    """Return the ``inspect.unwrap`` implementation code objects."""
+    """Возвращает множество code-объектов функции ``inspect.unwrap``.
 
-    codes: set[CodeType] = set()
+    В стандартной библиотеке функция ``inspect.unwrap`` не декорирована,
+    поэтому возвращается только её code-объект.
+    """
     unwrap = getattr(inspect, "unwrap", None)
-
-    while callable(unwrap):
-        code = getattr(unwrap, "__code__", None)
-        if code is None or code in codes:
-            break
-        codes.add(code)
-        unwrap = getattr(unwrap, "__wrapped__", None)
-
-    return codes
-
-
+    code = getattr(unwrap, "__code__", None)
+    if code is not None:
+        return {code}
+    return set()
 _INSPECT_UNWRAP_CODES = _collect_inspect_unwrap_codes()
 
 
