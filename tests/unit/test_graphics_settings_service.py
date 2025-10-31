@@ -40,3 +40,41 @@ def test_coerce_state_drops_unknown_keys_when_allow_missing(
         source="unit-test",
     )
     assert "mystery" not in normalized["environment"]
+
+
+def test_load_current_ignores_legacy_animation_when_current_missing(
+    graphics_service: GraphicsSettingsService,
+) -> None:
+    legacy_payload = {"amplitude": 123.0, "frequency": 9.9}
+    manager = graphics_service.settings_manager
+
+    manager.set(
+        "current.graphics.animation",
+        legacy_payload,
+        auto_save=False,
+    )
+    manager.set("current.animation", None, auto_save=False)
+
+    state = graphics_service.load_current()
+
+    assert state["animation"] == graphics_service._baseline_animation_current
+    assert state["animation"] != legacy_payload
+
+
+def test_load_defaults_ignores_legacy_animation_when_snapshot_missing(
+    graphics_service: GraphicsSettingsService,
+) -> None:
+    legacy_payload = {"amplitude": 321.0, "frequency": 1.1}
+    manager = graphics_service.settings_manager
+
+    manager.set(
+        "defaults_snapshot.graphics.animation",
+        legacy_payload,
+        auto_save=False,
+    )
+    manager.set("defaults_snapshot.animation", None, auto_save=False)
+
+    state = graphics_service.load_defaults()
+
+    assert state["animation"] == graphics_service._baseline_animation_defaults
+    assert state["animation"] != legacy_payload
