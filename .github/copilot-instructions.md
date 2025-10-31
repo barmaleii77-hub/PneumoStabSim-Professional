@@ -1,4 +1,41 @@
+---
+applicable_to: "**/*"
+version: "1.1"
+last_updated: "2025-10-31"
+---
+
 # GitHub Copilot Instructions for PneumoStabSim Professional
+
+## Overview
+
+PneumoStabSim Professional is a professional pneumatic suspension simulator built with Python 3.13, PySide6 6.10, and Qt Quick 3D. This document provides comprehensive guidance for GitHub Copilot coding agent to work effectively with this codebase.
+
+## Quick Reference
+
+### Essential Commands
+```bash
+# Quality checks
+make check                    # Run all checks (lint, typecheck, qml-lint, test)
+make autonomous-check         # Full autonomous quality check
+make verify                   # Extended verification including smoke tests
+
+# Individual checks
+make lint                     # Run Python linters (ruff)
+make typecheck               # Run mypy type checking
+make qml-lint                # Run QML linters
+make test                    # Run pytest suite
+
+# Utilities
+make sanitize                # Clean temporary files
+make cipilot-env             # Prepare environment for Copilot
+python app.py                # Launch the application
+```
+
+### Build and Test Workflow
+1. **Before starting work**: Run `make autonomous-check` or `make sanitize && make check`
+2. **During development**: Run specific checks (`make lint`, `make test`)
+3. **Before committing**: Run `make verify` (full validation)
+4. **Environment issues**: Run `python app.py --env-check` for diagnostics
 
 ## Project Configuration
 
@@ -366,6 +403,169 @@ When generating code for this project:
 
 ---
 
-**Last Updated**: 2024
+## Architecture Overview
+
+### System Layers
+```
+┌─────────────────────────────────────┐
+│   UI Layer (Qt/QML)                 │
+│   - MainWindow (Python)             │
+│   - Control Panels (Python)         │
+│   - 3D Scene (QML)                  │
+└──────────────┬──────────────────────┘
+               │
+┌──────────────▼──────────────────────┐
+│   Business Logic (Python)           │
+│   - Kinematics                      │
+│   - Physics Simulation              │
+│   - Settings Management             │
+└──────────────┬──────────────────────┘
+               │
+┌──────────────▼──────────────────────┐
+│   Data Layer                        │
+│   - JSON Configuration              │
+│   - State Persistence               │
+│   - Event Logging                   │
+└─────────────────────────────────────┘
+```
+
+### Key Components
+- **MainWindow**: Central Qt/QML bridge, manages panels and 3D scene
+- **Panels**: Geometry, Graphics, Animation control panels
+- **SettingsManager**: Centralized configuration (config/app_settings.json)
+- **PneumaticCylinder**: Physics model for suspension simulation
+- **Kinematics**: Geometric calculations for suspension movement
+- **Custom Geometries**: 3D models for visualization
+
+### Data Flow
+1. User interacts with control panels (Qt widgets)
+2. Panels emit signals with parameter changes
+3. MainWindow collects updates and batches them
+4. Updates sent to QML via `QMetaObject.invokeMethod`
+5. QML 3D scene updates geometry and materials
+6. Settings persisted via SettingsManager on close
+
+## Contributing Workflow
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for detailed guidelines.
+
+### Quick Checklist
+- [ ] Create feature branch from `develop`
+- [ ] Run `make autonomous-check` before starting
+- [ ] Write tests for new functionality
+- [ ] Run `make verify` before committing
+- [ ] Follow commit conventions (Conventional Commits)
+- [ ] Update documentation if needed
+- [ ] Create PR targeting `develop`
+
+### Branch Strategy
+- `main`: Production releases only
+- `develop`: Integration branch
+- `feature/*`: New features
+- `fix/*`: Bug fixes
+- `hotfix/*`: Critical production fixes
+
+## Troubleshooting
+
+### Common Issues
+
+#### 1. Qt Plugin/QML Import Errors
+```bash
+# Verify environment
+python app.py --env-check
+
+# Setup paths
+source activate_environment.sh  # Linux/macOS
+.\activate_environment.ps1      # Windows
+```
+
+#### 2. Black Screen or Rendering Issues
+- Check Qt version: `python -c "from PySide6 import QtCore; print(QtCore.qVersion())"`
+- Must be >= 6.10.0 for ExtendedSceneEnvironment features
+- Verify HDR files exist in `assets/hdr/`
+- Check QML console for errors
+
+#### 3. Test Failures
+```bash
+# Run specific test
+pytest tests/smoke/test_import.py -v
+
+# Debug mode
+pytest tests/ -vv --log-cli-level=DEBUG
+
+# Skip slow tests
+pytest -m "not slow"
+```
+
+#### 4. Type Checking Errors
+```bash
+# Run mypy on specific file
+mypy src/ui/main_window.py
+
+# Update type stubs
+pip install --upgrade types-PySide6
+```
+
+#### 5. Build/Lint Failures
+```bash
+# Auto-fix formatting
+make format
+
+# Clean and retry
+make sanitize
+make check
+```
+
+### Getting Help
+- Check `docs/RENOVATION_MASTER_PLAN.md` for architecture decisions
+- Review `reports/quality/` for recent quality reports
+- See phase documents in `docs/RENOVATION_PHASE_*.md`
+- Consult `DEVELOPER_GUIDE.md` for development workflows
+
+## Task Assignment Guidelines
+
+### Ideal Tasks for Copilot Agent
+- ✅ Bug fixes with clear reproduction steps
+- ✅ Adding tests for existing functionality
+- ✅ Code refactoring with defined scope
+- ✅ Documentation updates
+- ✅ Configuration changes
+- ✅ Performance optimizations with benchmarks
+- ✅ Accessibility improvements
+
+### Tasks Requiring Human Oversight
+- ⚠️ Architecture changes affecting multiple components
+- ⚠️ Security-sensitive modifications
+- ⚠️ Qt/QML rendering pipeline changes
+- ⚠️ Physics simulation algorithm changes
+- ⚠️ Breaking API changes
+- ⚠️ Database schema migrations
+
+### Out of Scope
+- ❌ Business logic without domain expert input
+- ❌ Major UI/UX redesigns
+- ❌ Performance-critical real-time code without profiling
+- ❌ Changes to CI/CD pipelines without testing
+
+## Security Considerations
+
+### Sensitive Files
+- **Never commit**: API keys, credentials, production configs
+- **Use environment variables**: For sensitive configuration
+- **Validate inputs**: All user-provided data, especially file paths
+- **Sanitize paths**: Use `Path.resolve()` and validate with `.is_relative_to()` to prevent directory traversal attacks
+
+### Code Review Checklist
+- [ ] No hardcoded credentials or secrets
+- [ ] Input validation for all external data
+- [ ] Proper error handling (no exposed stack traces)
+- [ ] Safe file operations (check paths, permissions)
+- [ ] Qt object lifecycle managed correctly
+- [ ] Dependencies reviewed for vulnerabilities
+
+---
+
+**Last Updated**: 2025-10-31
 **Project Version**: v4.9.4
-**Copilot Instructions Version**: 1.0
+**Copilot Instructions Version**: 1.1
+**Maintainer**: barmaleii77-hub
