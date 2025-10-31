@@ -256,10 +256,10 @@ namespace PneumoStabSim.Core
                 return;
             }
 
-            var lines = output.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
+            var lines = output.Split(new[] { Environment.NewLine }, StringSplitOptions.RemoveEmptyEntries);
             foreach (var line in lines)
             {
-                _logger.Log(level, "[env-helper] {Line}", line.Trim());
+                _logger.Log(level, "[env-helper] {Line}", line);
             }
         }
 
