@@ -70,3 +70,22 @@ powershell -NoProfile -ExecutionPolicy Bypass -File tools/visualstudio/launch_in
 
 Both scripts enforce UTF-8 encoding, apply the QML/Qt runtime paths, and ensure
 Copilot metadata is in sync.
+
+## Runtime Guardrails
+
+The WPF host now invokes `EnvironmentPreparationService` during startup. The service ensures
+that the Insiders toolchain is provisioned even when the solution is launched outside the
+PowerShell bootstrap scripts. It performs the following steps before the application window
+appears:
+
+1. Creates (or refreshes) the `.venv` interpreter using the most recent Python 3.13 installation.
+2. Installs dependencies from `requirements.txt`, `requirements-dev.txt`, and `current_requirements.txt`
+   only when their contents change.
+3. Generates `.vs/insiders.environment.json` through `tools/visualstudio/generate_insiders_environment.py`
+   and applies the resulting variables to the current process (including `QT_PLUGIN_PATH`,
+   `QML2_IMPORT_PATH`, and `PNEUMOSTABSIM_PYTHON`).
+4. Emits structured warnings or blocking errors to the Visual Studio Output window and an on-screen
+   dialog if provisioning fails.
+
+These checks make it safe to run the simulator from Visual Studio Insiders without manually running
+the provisioning scripts beforehand.
