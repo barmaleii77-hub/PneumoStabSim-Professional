@@ -895,6 +895,7 @@ assets/hdr/*.exr
 !tests/unit/infrastructure/test_container.py
 !tests/unit/tools/test_settings_migrate.py
 !tests/unit/tools/test_visualstudio_insiders.py
+!tests/unit/environment/test_verify_qt_setup.py
 !tests/ui/test_qml_signals.py
 !tests/test_analyze_logs.py
 

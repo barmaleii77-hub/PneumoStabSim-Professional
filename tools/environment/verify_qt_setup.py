@@ -17,11 +17,18 @@ fails.
 from __future__ import annotations
 
 import argparse
+import ctypes
 import os
 import sys
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Iterable, Sequence
+
+from src.bootstrap.dependency_config import (
+    DependencyConfigError,
+    DependencyVariant,
+    resolve_dependency_variant,
+)
 
 
 @dataclass
@@ -124,6 +131,58 @@ def _probe_qt_runtime(expected_platform: str | None = None) -> str:
         app.quit()
 
 
+def _build_library_candidates(variant: DependencyVariant) -> list[str]:
+    candidates: list[str] = []
+    seen: set[str] = set()
+
+    def _push(name: str | None) -> None:
+        if not name:
+            return
+        if name not in seen:
+            seen.add(name)
+            candidates.append(name)
+
+    _push(getattr(variant, "human_name", None))
+    library_name = getattr(variant, "library_name", None)
+    _push(library_name)
+    if library_name and not library_name.startswith("lib"):
+        _push(f"lib{library_name}.so.1")
+
+    return candidates or ["libGL.so.1"]
+
+
+def _check_opengl_runtime() -> ProbeResult:
+    if not sys.platform.startswith("linux"):
+        return ProbeResult(
+            True, f"OpenGL runtime check skipped on platform {sys.platform}."
+        )
+
+    try:
+        variant = resolve_dependency_variant("opengl_runtime")
+    except DependencyConfigError as exc:
+        return ProbeResult(False, f"Unable to read OpenGL dependency metadata: {exc}")
+
+    candidates = _build_library_candidates(variant)
+    for candidate in candidates:
+        try:
+            ctypes.CDLL(candidate)
+        except OSError:
+            continue
+        else:
+            return ProbeResult(True, f"OpenGL runtime '{candidate}' is loadable.")
+
+    install_hint = (
+        variant.install_hint
+        or "Install the system OpenGL runtime (e.g. 'apt-get install -y libgl1')."
+    )
+    return ProbeResult(
+        False,
+        "OpenGL runtime libraries are missing: "
+        + ", ".join(candidates)
+        + f". {install_hint}",
+    )
+
+
 def _format_results(results: Iterable[ProbeResult]) -> tuple[list[str], list[str]]:
     successes: list[str] = []
     failures: list[str] = []
@@ -182,6 +241,8 @@ def run_smoke_check(expected_version: str, expected_platform: str | None) -> int
         results.append(
             ProbeResult(True, f"Qt platform plugin '{platform_name}' initialised.")
         )
+
+    results.append(_check_opengl_runtime())
 
     successes, failures = _format_results(results)
     for line in successes + failures:
