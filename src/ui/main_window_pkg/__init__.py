@@ -54,10 +54,14 @@ class _ModuleAlias(ModuleType):
     def __init__(self, module: ModuleType) -> None:
         super().__init__(module.__name__, module.__doc__)
         object.__setattr__(self, "_module", module)
+        object.__setattr__(self, "_wrapped", module)
 
     def __getattribute__(self, name: str) -> Any:
+        if name == "__wrapped__":
+            return object.__getattribute__(self, "_wrapped")
         if name in {
             "_module",
+            "_wrapped",
             "__class__",
             "__dict__",
             "__doc__",
@@ -81,7 +85,10 @@ class _ModuleAlias(ModuleType):
 
     def __dir__(self) -> list[str]:
         module = object.__getattribute__(self, "_module")
-        return dir(module)
+        module_dir = dir(module)
+        if "__wrapped__" not in module_dir:
+            module_dir.append("__wrapped__")
+        return module_dir
 
     def __repr__(self) -> str:
         module = object.__getattribute__(self, "_module")
