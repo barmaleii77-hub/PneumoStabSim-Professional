@@ -127,7 +127,10 @@ def _collect_inspect_unwrap_codes() -> set[CodeType]:
     if code is not None:
         return {code}
     return set()
+
+
 _INSPECT_UNWRAP_CODES = _collect_inspect_unwrap_codes()
+_INSPECT_UNWRAP_ACTIVE = False
 
 
 def _called_from_inspect_unwrap() -> bool:
@@ -154,8 +157,15 @@ def __getattr__(name: str) -> Any:
     """Provide lazy attribute access for window and helper modules."""
 
     if name == "__wrapped__":
+        global _INSPECT_UNWRAP_ACTIVE
         if _called_from_inspect_unwrap():
-            raise AttributeError(name)
+            if _INSPECT_UNWRAP_ACTIVE:
+                raise AttributeError(name)
+            _INSPECT_UNWRAP_ACTIVE = True
+            try:
+                return sys.modules[__name__]
+            finally:
+                _INSPECT_UNWRAP_ACTIVE = False
         return sys.modules[__name__]
 
     if name == "MainWindow":
