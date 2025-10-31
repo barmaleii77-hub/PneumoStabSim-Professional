@@ -41,14 +41,12 @@ if TYPE_CHECKING:  # pragma: no cover - typing helpers only
 
 
 def _collect_inspect_unwrap_codes() -> set[CodeType]:
-    """Возвращает множество code objects для функции ``inspect.unwrap``.
+    """Return code objects for :func:`inspect.unwrap` if available."""
 
-    В стандартной библиотеке ``inspect.unwrap`` не является декорированной функцией,
-    поэтому у неё нет цепочки ``__wrapped__``. Собираем только её собственный code object.
-    """
     unwrap = getattr(inspect, "unwrap", None)
-    if unwrap is not None and hasattr(unwrap, "__code__"):
-        return {unwrap.__code__}
+    code = getattr(unwrap, "__code__", None)
+    if code is not None:
+        return {code}
     return set()
 
 
@@ -56,7 +54,7 @@ _INSPECT_UNWRAP_CODES = _collect_inspect_unwrap_codes()
 
 
 def _called_from_inspect_unwrap() -> bool:
-    """Return ``True`` when :func:`inspect.unwrap` triggered the lookup."""
+    """Return ``True`` when the caller is :func:`inspect.unwrap`."""
 
     if not _INSPECT_UNWRAP_CODES:
         return False

@@ -47,6 +47,38 @@ _MAIN_WINDOW_ERROR: ImportError | None = None
 _USING_REFACTORED = False
 
 
+def _collect_inspect_unwrap_codes() -> set[CodeType]:
+    """Return code objects for :func:`inspect.unwrap` if available."""
+
+    unwrap = getattr(inspect, "unwrap", None)
+    code = getattr(unwrap, "__code__", None)
+    if code is not None:
+        return {code}
+    return set()
+
+
+_INSPECT_UNWRAP_CODES = _collect_inspect_unwrap_codes()
+
+
+def _called_from_inspect_unwrap() -> bool:
+    """Return ``True`` when the caller is :func:`inspect.unwrap`."""
+
+    if not _INSPECT_UNWRAP_CODES:
+        return False
+
+    frame = inspect.currentframe()
+    try:
+        frame = frame.f_back
+        while frame is not None:
+            if frame.f_code in _INSPECT_UNWRAP_CODES:
+                return True
+            frame = frame.f_back
+    finally:
+        del frame
+
+    return False
+
+
 def _qt_available() -> bool:
     """Return ``True`` when PySide6 can be imported."""
 
@@ -114,42 +146,6 @@ def get_version_info() -> Dict[str, Any]:
             }
         )
     return info
-
-
-def _collect_inspect_unwrap_codes() -> set[CodeType]:
-    """Возвращает множество code-объектов функции ``inspect.unwrap``.
-
-    В стандартной библиотеке функция ``inspect.unwrap`` не декорирована,
-    поэтому возвращается только её code-объект.
-    """
-    unwrap = getattr(inspect, "unwrap", None)
-    code = getattr(unwrap, "__code__", None)
-    if code is not None:
-        return {code}
-    return set()
-
-
-_INSPECT_UNWRAP_CODES = _collect_inspect_unwrap_codes()
-
-
-def _called_from_inspect_unwrap() -> bool:
-    """Return ``True`` when the caller is :func:`inspect.unwrap`."""
-
-    if not _INSPECT_UNWRAP_CODES:
-        return False
-
-    frame = inspect.currentframe()
-    try:
-        frame = frame.f_back
-        while frame is not None:
-            if frame.f_code in _INSPECT_UNWRAP_CODES:
-                return True
-            frame = frame.f_back
-    finally:
-        # Break reference cycles to avoid leaking frames.
-        del frame
-
-    return False
 
 
 def __getattr__(name: str) -> Any:
