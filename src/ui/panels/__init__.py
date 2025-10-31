@@ -121,7 +121,11 @@ def __getattr__(name: str) -> Any:
     if name == "__wrapped__":
         if _called_from_inspect_unwrap():
             raise AttributeError(name)
-        return sys.modules[__name__]
+
+        global _SELF_ALIAS
+        if _SELF_ALIAS is None:
+            _SELF_ALIAS = _ModuleAlias(sys.modules[__name__])
+        return _SELF_ALIAS
 
     try:
         module_name, attribute = _EXPORTS[name]
