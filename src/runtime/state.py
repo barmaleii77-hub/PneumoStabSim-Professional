@@ -10,7 +10,7 @@ import numpy as np
 
 try:
     from PySide6.QtCore import QObject, Signal, Qt
-except Exception:  # pragma: no cover - headless environments
+except ImportError:  # pragma: no cover - headless environments
     QObject = None  # type: ignore[assignment]
     Signal = None  # type: ignore[assignment]
     Qt = None  # type: ignore[assignment]
