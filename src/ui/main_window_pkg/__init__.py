@@ -15,8 +15,10 @@ Qt bindings.
 
 from __future__ import annotations
 
+import inspect
 import sys
 from importlib import import_module, util
+from types import CodeType
 from typing import Any, Dict
 
 __all__ = [
@@ -43,6 +45,38 @@ _MODULE_EXPORTS = {
 _MAIN_WINDOW_CLASS: type[Any] | None = None
 _MAIN_WINDOW_ERROR: ImportError | None = None
 _USING_REFACTORED = False
+
+
+def _collect_inspect_unwrap_codes() -> set[CodeType]:
+    """Return code objects for :func:`inspect.unwrap` if available."""
+
+    unwrap = getattr(inspect, "unwrap", None)
+    code = getattr(unwrap, "__code__", None)
+    if code is not None:
+        return {code}
+    return set()
+
+
+_INSPECT_UNWRAP_CODES = _collect_inspect_unwrap_codes()
+
+
+def _called_from_inspect_unwrap() -> bool:
+    """Return ``True`` when the caller is :func:`inspect.unwrap`."""
+
+    if not _INSPECT_UNWRAP_CODES:
+        return False
+
+    frame = inspect.currentframe()
+    try:
+        frame = frame.f_back
+        while frame is not None:
+            if frame.f_code in _INSPECT_UNWRAP_CODES:
+                return True
+            frame = frame.f_back
+    finally:
+        del frame
+
+    return False
 
 
 def _qt_available() -> bool:
@@ -118,9 +152,9 @@ def __getattr__(name: str) -> Any:
     """Provide lazy attribute access for window and helper modules."""
 
     if name == "__wrapped__":
-        module = sys.modules[__name__]
-        globals()[name] = module
-        return module
+        if _called_from_inspect_unwrap():
+            raise AttributeError(name)
+        return sys.modules[__name__]
 
     if name == "MainWindow":
         return _load_main_window()

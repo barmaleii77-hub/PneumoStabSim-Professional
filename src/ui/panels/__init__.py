@@ -16,8 +16,10 @@ the original ImportError with full context.
 
 from __future__ import annotations
 
+import inspect
 import sys
 from importlib import import_module
+from types import CodeType
 from typing import TYPE_CHECKING, Any
 
 __all__ = ["GeometryPanel", "PneumoPanel", "ModesPanel", "RoadPanel", "GraphicsPanel"]
@@ -38,13 +40,45 @@ if TYPE_CHECKING:  # pragma: no cover - typing helpers only
     from .graphics.panel_graphics_refactored import GraphicsPanel
 
 
+def _collect_inspect_unwrap_codes() -> set[CodeType]:
+    """Return code objects for :func:`inspect.unwrap` if available."""
+
+    unwrap = getattr(inspect, "unwrap", None)
+    code = getattr(unwrap, "__code__", None)
+    if code is not None:
+        return {code}
+    return set()
+
+
+_INSPECT_UNWRAP_CODES = _collect_inspect_unwrap_codes()
+
+
+def _called_from_inspect_unwrap() -> bool:
+    """Return ``True`` when the caller is :func:`inspect.unwrap`."""
+
+    if not _INSPECT_UNWRAP_CODES:
+        return False
+
+    frame = inspect.currentframe()
+    try:
+        frame = frame.f_back
+        while frame is not None:
+            if frame.f_code in _INSPECT_UNWRAP_CODES:
+                return True
+            frame = frame.f_back
+    finally:
+        del frame
+
+    return False
+
+
 def __getattr__(name: str) -> Any:
     """Lazily import panel classes on first access."""
 
     if name == "__wrapped__":
-        module = sys.modules[__name__]
-        globals()[name] = module
-        return module
+        if _called_from_inspect_unwrap():
+            raise AttributeError(name)
+        return sys.modules[__name__]
 
     try:
         module_name, attribute = _EXPORTS[name]
