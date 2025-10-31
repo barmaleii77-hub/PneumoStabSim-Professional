@@ -298,7 +298,9 @@ class UISetup:
                 )
 
             # Export profile manager
-            profile_service = getattr(window, "profile_manager", None)
+            profile_service = getattr(window, "profile_service", None)
+            if profile_service is None:
+                profile_service = getattr(window, "profile_manager", None)
             try:
                 if profile_service is not None:
                     context.setContextProperty("settingsProfiles", profile_service)
