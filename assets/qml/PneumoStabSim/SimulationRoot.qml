@@ -76,6 +76,10 @@ signal animationToggled(bool running)
  property var shaderWarningMap: ({})
  property var shaderWarningList: []
 
+ property real renderScale: 1.0
+ property real frameRateLimit: 144.0
+ property string renderPolicyKey: "always"
+
  // -------- Геометрия подвески (СИ) --------
  property real userFrameLength: geometryDefaultNumber(["frameLength", "frame_length", "frame_length_m", "wheelbase"], 0.0)
  property real userFrameHeight: geometryDefaultNumber(["frameHeight", "frame_height", "frame_height_m"], 0.0)
@@ -686,6 +690,22 @@ SequentialAnimation {
         anchors.fill: parent
         environment: sceneEnvCtl
 
+        renderSettings: RenderSettings {
+            id: sceneRenderSettings
+            renderScale: Math.max(0.1, root.renderScale)
+            maximumFrameRate: root.frameRateLimit > 0 ? root.frameRateLimit : 0
+            renderPolicy: {
+                var key = root.renderPolicyKey || "always"
+                if (key === "ondemand")
+                    return RenderSettings.OnDemand
+                if (key === "automatic" && RenderSettings.Automatic !== undefined)
+                    return RenderSettings.Automatic
+                if (key === "manual" && RenderSettings.Manual !== undefined)
+                    return RenderSettings.Manual
+                return RenderSettings.Always
+            }
+        }
+
         Scene.SharedMaterials {
             id: sharedMaterials
         }
@@ -1273,10 +1293,12 @@ function setIfExists(obj, prop, value) {
     try {
         if (obj && (prop in obj || typeof obj[prop] !== "undefined")) {
             obj[prop] = value;
+            return true;
         }
     } catch (e) {
         console.warn("setIfExists failed", prop, e);
     }
+    return false;
 }
 
 function isPlainObject(value) {
@@ -1325,6 +1347,31 @@ function clamp(value, minValue, maxValue) {
 if (typeof value !== 'number' || !isFinite(value))
 return minValue;
 return Math.max(minValue, Math.min(maxValue, value));
+}
+
+function normalizeRenderPolicyKey(value) {
+    var normalized = "";
+    if (value !== undefined && value !== null)
+        normalized = String(value).trim().toLowerCase();
+
+    if (!normalized)
+        return "always";
+
+    if (normalized === "on demand" || normalized === "on-demand" || normalized === "on_demand")
+        normalized = "ondemand";
+    if (normalized === "auto")
+        normalized = "automatic";
+
+    var allowed = { always: true, ondemand: true };
+    if (typeof RenderSettings !== "undefined" && RenderSettings.Automatic !== undefined)
+        allowed.automatic = true;
+    if (typeof RenderSettings !== "undefined" && RenderSettings.Manual !== undefined)
+        allowed.manual = true;
+
+    if (allowed[normalized])
+        return normalized;
+
+    return "always";
 }
 
  function toSceneLength(meters) {
@@ -2122,10 +2169,25 @@ function applyEnvironmentUpdates(params) {
  if (params.tonemapModeName) setIfExists(sceneEnvCtl, 'tonemapModeName', String(params.tonemapModeName));
  if (params.tonemapExposure !== undefined) setIfExists(sceneEnvCtl, 'tonemapExposure', Number(params.tonemapExposure));
  if (params.tonemapWhitePoint !== undefined) setIfExists(sceneEnvCtl, 'tonemapWhitePoint', Number(params.tonemapWhitePoint));
- if (params.fogEnabled !== undefined) setIfExists(sceneEnvCtl, 'fogEnabled', !!params.fogEnabled);
- if (params.fogColor) setIfExists(sceneEnvCtl, 'fogColor', params.fogColor);
- if (params.fogNear !== undefined) { var fogNearVal = Number(params.fogNear); if (isFinite(fogNearVal)) setIfExists(sceneEnvCtl, 'fogNear', toSceneLength(fogNearVal)); }
- if (params.fogFar !== undefined) { var fogFarVal = Number(params.fogFar); if (isFinite(fogFarVal)) setIfExists(sceneEnvCtl, 'fogFar', toSceneLength(fogFarVal)); }
+ var fogEnabledVal = valueForKeys(params, ['fogEnabled', 'fog_enabled']);
+ if (fogEnabledVal !== undefined) setIfExists(sceneEnvCtl, 'fogEnabled', !!fogEnabledVal);
+ var fogColorVal = valueForKeys(params, ['fogColor', 'fog_color']);
+ if (fogColorVal !== undefined) setIfExists(sceneEnvCtl, 'fogColor', fogColorVal);
+ var fogDensityVal = valueForKeys(params, ['fogDensity', 'fog_density']);
+ if (fogDensityVal !== undefined) {
+     var fogDensityNum = Number(fogDensityVal);
+     if (isFinite(fogDensityNum)) setIfExists(sceneEnvCtl, 'fogDensity', fogDensityNum);
+ }
+ var fogNearSource = valueForKeys(params, ['fogNear', 'fog_near']);
+ if (fogNearSource !== undefined) {
+     var fogNearVal = Number(fogNearSource);
+     if (isFinite(fogNearVal)) setIfExists(sceneEnvCtl, 'fogNear', toSceneLength(fogNearVal));
+ }
+ var fogFarSource = valueForKeys(params, ['fogFar', 'fog_far']);
+ if (fogFarSource !== undefined) {
+     var fogFarVal = Number(fogFarSource);
+     if (isFinite(fogFarVal)) setIfExists(sceneEnvCtl, 'fogFar', toSceneLength(fogFarVal));
+ }
  if (params.ssaoEnabled !== undefined) setIfExists(sceneEnvCtl, 'ssaoEnabled', !!params.ssaoEnabled);
  if (params.ssaoRadius !== undefined) setIfExists(sceneEnvCtl, 'ssaoRadius', Number(params.ssaoRadius));
  if (params.ssaoIntensity !== undefined) setIfExists(sceneEnvCtl, 'ssaoIntensity', Number(params.ssaoIntensity));
@@ -2169,15 +2231,53 @@ function applyEnvironmentUpdates(params) {
   if (value === undefined || value === null)
    return;
   var numeric = Number(value);
-  if (isFinite(numeric))
-   qualityPatch[targetKey] = numeric;
+ if (isFinite(numeric))
+  qualityPatch[targetKey] = numeric;
+}
+
+ var renderScaleValue = valueForKeys(params, ['renderScale', 'render_scale']);
+ if (renderScaleValue !== undefined) {
+  var renderScaleNumeric = Number(renderScaleValue);
+  if (isFinite(renderScaleNumeric))
+   renderScale = Math.max(0.1, renderScaleNumeric);
  }
 
- var shadowSource = null;
- if (isPlainObject(params.shadowSettings))
-  shadowSource = params.shadowSettings;
- else if (isPlainObject(params.shadows))
-  shadowSource = params.shadows;
+ var frameLimitValue = valueForKeys(params, ['frameRateLimit', 'frame_rate_limit']);
+ if (frameLimitValue !== undefined) {
+  var frameLimitNumeric = Number(frameLimitValue);
+  if (isFinite(frameLimitNumeric))
+   frameRateLimit = Math.max(0, frameLimitNumeric);
+ }
+
+  var renderPolicyValue = valueForKeys(params, ['renderPolicy', 'render_policy']);
+  if (renderPolicyValue !== undefined)
+   renderPolicyKey = normalizeRenderPolicyKey(renderPolicyValue);
+
+ var meshQualitySource = null;
+ if (isPlainObject(params.meshQuality))
+  meshQualitySource = params.meshQuality;
+ else if (isPlainObject(params.mesh))
+  meshQualitySource = params.mesh;
+
+ if (meshQualitySource) {
+  var meshPatch = {};
+  if (meshQualitySource.cylinderSegments !== undefined)
+   meshPatch.cylinderSegments = meshQualitySource.cylinderSegments;
+  else if (meshQualitySource.cylinder_segments !== undefined)
+   meshPatch.cylinderSegments = meshQualitySource.cylinder_segments;
+  if (meshQualitySource.cylinderRings !== undefined)
+   meshPatch.cylinderRings = meshQualitySource.cylinderRings;
+  else if (meshQualitySource.cylinder_rings !== undefined)
+   meshPatch.cylinderRings = meshQualitySource.cylinder_rings;
+  if (Object.keys(meshPatch).length)
+   applyGeometryUpdatesInternal(meshPatch);
+ }
+
+var shadowSource = null;
+if (isPlainObject(params.shadowSettings))
+ shadowSource = params.shadowSettings;
+else if (isPlainObject(params.shadows))
+ shadowSource = params.shadows;
 
  if (shadowSource) {
   var lightingPatch = {};
@@ -2754,6 +2854,24 @@ function apply3DUpdates(params) {
                 setIfExists(sceneEnvCtl, envKey, envDirect[envKey]);
             }
         }
+
+        var directRenderScale = valueForKeys(params, ['renderScale', 'render_scale']);
+        if (directRenderScale !== undefined) {
+            var directScaleNumeric = Number(directRenderScale);
+            if (isFinite(directScaleNumeric))
+                renderScale = Math.max(0.1, directScaleNumeric);
+        }
+
+        var directFrameLimit = valueForKeys(params, ['frameRateLimit', 'frame_rate_limit']);
+        if (directFrameLimit !== undefined) {
+            var directFrameNumeric = Number(directFrameLimit);
+            if (isFinite(directFrameNumeric))
+                frameRateLimit = Math.max(0, directFrameNumeric);
+        }
+
+        var directRenderPolicy = valueForKeys(params, ['renderPolicy', 'render_policy']);
+        if (directRenderPolicy !== undefined)
+            renderPolicyKey = normalizeRenderPolicyKey(directRenderPolicy);
     }
 
     function applySimulationUpdates(params) {
