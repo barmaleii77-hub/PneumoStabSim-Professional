@@ -7,7 +7,13 @@ from dataclasses import dataclass, field
 from typing import Dict, Optional
 
 import numpy as np
-from PySide6.QtCore import QObject, Signal, Qt
+
+try:
+    from PySide6.QtCore import QObject, Signal, Qt
+except Exception:  # pragma: no cover - headless environments
+    QObject = None  # type: ignore[assignment]
+    Signal = None  # type: ignore[assignment]
+    Qt = None  # type: ignore[assignment]
 
 from src.pneumo.enums import Line, Wheel
 
@@ -361,48 +367,86 @@ class StateSnapshot:
             return False
 
 
-class StateBus(QObject):
-    """Signal bus for thread-safe state communication
+if QObject is not None and Signal is not None and Qt is not None:
 
-    Provides Qt signals for communicating between physics and UI threads.
-    All signals use queued connections for thread safety.
-    """
+    class StateBus(QObject):
+        """Signal bus for thread-safe state communication
 
-    # Main state signal - emitted from physics thread
-    state_ready = Signal(object)  # StateSnapshot
+        Provides Qt signals for communicating between physics and UI threads.
+        All signals use queued connections for thread safety.
+        """
 
-    # Control signals - emitted from UI thread
-    start_simulation = Signal()
-    stop_simulation = Signal()
-    reset_simulation = Signal()
-    pause_simulation = Signal()
+        # Main state signal - emitted from physics thread
+        state_ready = Signal(object)  # StateSnapshot
 
-    # Configuration signals
-    set_physics_dt = Signal(float)  # Change physics timestep
-    set_thermo_mode = Signal(str)  # "ISOTHERMAL" or "ADIABATIC"
-    set_master_isolation = Signal(bool)  # Master isolation valve
-    set_receiver_volume = Signal(
-        float, str
-    )  # NEW: Set receiver volume (m3) and mode ('MANUAL'/'GEOMETRIC')
+        # Control signals - emitted from UI thread
+        start_simulation = Signal()
+        stop_simulation = Signal()
+        reset_simulation = Signal()
+        pause_simulation = Signal()
 
-    # Road input signals
-    load_road_profile = Signal(str)  # Load CSV road profile
-    set_road_preset = Signal(str)  # Set road preset by name
+        # Configuration signals
+        set_physics_dt = Signal(float)  # Change physics timestep
+        set_thermo_mode = Signal(str)  # "ISOTHERMAL" or "ADIABATIC"
+        set_master_isolation = Signal(bool)  # Master isolation valve
+        set_receiver_volume = Signal(
+            float, str
+        )  # NEW: Set receiver volume (m3) and mode ('MANUAL'/'GEOMETRIC')
 
-    # Diagnostic signals
-    physics_error = Signal(str)  # Physics thread error
-    performance_update = Signal(object)  # Performance metrics
+        # Road input signals
+        load_road_profile = Signal(str)  # Load CSV road profile
+        set_road_preset = Signal(str)  # Set road preset by name
 
-    def __init__(self, parent=None):
-        super().__init__(parent)
+        # Diagnostic signals
+        physics_error = Signal(str)  # Physics thread error
+        performance_update = Signal(object)  # Performance metrics
 
-        # Connect all signals to use queued connections for thread safety
-        self.state_ready.connect(self._on_state_ready, Qt.QueuedConnection)
+        def __init__(self, parent=None):
+            super().__init__(parent)
 
-    def _on_state_ready(self, snapshot: StateSnapshot) -> None:
-        """Internal handler for state updates (for debugging/logging)"""
-        # This runs in UI thread due to queued connection
-        pass  # Override in subclasses if needed
+            # Connect all signals to use queued connections for thread safety
+            self.state_ready.connect(self._on_state_ready, Qt.QueuedConnection)
+
+        def _on_state_ready(self, snapshot: StateSnapshot) -> None:
+            """Internal handler for state updates (for debugging/logging)"""
+            # This runs in UI thread due to queued connection
+            pass  # Override in subclasses if needed
+
+else:
+
+    class _UnavailableSignal:
+        """Placeholder that mirrors ``PySide6.Signal`` for headless tests."""
+
+        def __init__(self, *_signature: object) -> None:
+            self.signature = _signature
+
+        def connect(self, *_args: object, **_kwargs: object) -> None:
+            raise RuntimeError("PySide6 is required to use Qt signals.")
+
+        def emit(self, *_args: object, **_kwargs: object) -> None:
+            raise RuntimeError("PySide6 is required to use Qt signals.")
+
+    class StateBus:  # type: ignore[override]
+        """Fallback placeholder when Qt bindings are unavailable."""
+
+        state_ready = _UnavailableSignal(object)
+        start_simulation = _UnavailableSignal()
+        stop_simulation = _UnavailableSignal()
+        reset_simulation = _UnavailableSignal()
+        pause_simulation = _UnavailableSignal()
+        set_physics_dt = _UnavailableSignal(float)
+        set_thermo_mode = _UnavailableSignal(str)
+        set_master_isolation = _UnavailableSignal(bool)
+        set_receiver_volume = _UnavailableSignal(float, str)
+        load_road_profile = _UnavailableSignal(str)
+        set_road_preset = _UnavailableSignal(str)
+        physics_error = _UnavailableSignal(str)
+        performance_update = _UnavailableSignal(object)
+
+        def __init__(self, *_args: object, **_kwargs: object) -> None:
+            raise ImportError(
+                "PySide6 is not installed; StateBus is unavailable in this environment."
+            )
 
 
 # Export main classes
