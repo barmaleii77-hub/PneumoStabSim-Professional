@@ -9,7 +9,6 @@ from importlib import util
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Iterable, Mapping, Sequence
 
-np: Any
 _NUMPY_AVAILABLE = util.find_spec("numpy") is not None
 
 if TYPE_CHECKING:
@@ -63,7 +62,7 @@ def export_timeseries_csv(
 
     # Method 1: Using numpy.savetxt (preferred for numeric data)
     if _can_use_numpy_savetxt(series):
-        _export_with_numpy(time, series, path, header)
+        _export_with_numpy(time, series, path, header, use_gzip)
     else:
         # Method 2: Using csv.writer (fallback)
         _export_with_csv_writer(time, series, path, header, use_gzip)
@@ -72,7 +71,7 @@ def export_timeseries_csv(
 def _can_use_numpy_savetxt(series: Mapping[str, Sequence[float]]) -> bool:
     """Check if all series are numeric (suitable for numpy.savetxt)."""
 
-    if not _NUMPY_AVAILABLE or np is None:
+    if not _NUMPY_AVAILABLE:
         return False
 
     for data in series.values():
@@ -88,9 +87,10 @@ def _export_with_numpy(
     series: Mapping[str, Sequence[float]],
     path: Path,
     header: Sequence[str],
+    use_gzip: bool,
 ) -> None:
     """Export using numpy.savetxt (efficient for numeric data)"""
-    if not _NUMPY_AVAILABLE or np is None:
+    if not _NUMPY_AVAILABLE:
         raise RuntimeError("NumPy is required for numpy-based CSV export")
 
     # Stack columns
