@@ -195,7 +195,10 @@ def __getattr__(name: str) -> Any:
     """Provide lazy attribute access for window and helper modules."""
 
     if name == "__wrapped__":
-        raise AttributeError(name)
+        global _SELF_ALIAS
+        if _SELF_ALIAS is None:
+            _SELF_ALIAS = _ModuleAlias(sys.modules[__name__])
+        return _SELF_ALIAS
 
     if name == "MainWindow":
         return _load_main_window()
