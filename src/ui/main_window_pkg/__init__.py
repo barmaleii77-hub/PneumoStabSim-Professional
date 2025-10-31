@@ -18,7 +18,8 @@ from __future__ import annotations
 import inspect
 import sys
 from importlib import import_module, util
-from typing import Any, Dict
+from types import ModuleType
+from typing import Any
 
 __all__ = [
     "MainWindow",
