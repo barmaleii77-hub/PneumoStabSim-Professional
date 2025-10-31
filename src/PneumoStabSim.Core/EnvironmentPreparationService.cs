@@ -124,7 +124,7 @@ namespace PneumoStabSim.Core
                 return null;
             }
 
-            var scriptPath = Path.Combine(new[] { _projectRoot }.Concat(EnsureProjectEnvironmentScriptSegments).ToArray());
+            var scriptPath = Path.Combine(EnsureProjectEnvironmentScriptSegments.Prepend(_projectRoot).ToArray());
             if (!File.Exists(scriptPath))
             {
                 var message = $"Visual Studio environment provisioning script не найден: {scriptPath}";
