@@ -90,7 +90,7 @@ def _export_with_numpy(
     header: Sequence[str],
 ) -> None:
     """Export using numpy.savetxt (efficient for numeric data)"""
-    if not _NUMPY_AVAILABLE or np is None:
+    if not _NUMPY_AVAILABLE:
         raise RuntimeError("NumPy is required for numpy-based CSV export")
 
     # Stack columns
