@@ -9,7 +9,6 @@ from importlib import util
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Iterable, Mapping, Sequence
 
-np: Any
 _NUMPY_AVAILABLE = util.find_spec("numpy") is not None
 
 if TYPE_CHECKING:
