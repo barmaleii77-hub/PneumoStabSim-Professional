@@ -115,10 +115,6 @@ def _called_from_inspect_unwrap() -> bool:
 
         if module_name == "inspect" and function_name in {"unwrap", "_unwrap_partial"}:
             return True
-
-        if function_name.endswith("unwrap") and "hasattr" in caller.f_code.co_names:
-            if module_name != "tests.helpers.faux_inspect_module":
-                return True
     finally:
         # Break reference cycles created by ``inspect.currentframe``
         del frame
