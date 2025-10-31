@@ -480,22 +480,21 @@ ExtendedSceneEnvironment {
             tonemapWhitePoint = Number(tonemap.white_point)
     }
 
-    if (params.fogEnabled !== undefined)
-        fogEnabled = !!params.fogEnabled
-    if (params.fogColor)
-        fogColor = params.fogColor
-    if (params.fogDensity !== undefined)
-        fogDensity = Number(params.fogDensity)
-    if (params.fogNear !== undefined) {
-        var fogNearValue = Number(params.fogNear)
-        if (isFinite(fogNearValue))
-            fogNear = toSceneLength(fogNearValue)
-    }
-    if (params.fogFar !== undefined) {
-        var fogFarValue = Number(params.fogFar)
-        if (isFinite(fogFarValue))
-            fogFar = toSceneLength(fogFarValue)
-    }
+    var fogEnabledValue = boolFromKeys(params, "fogEnabled", "fog_enabled")
+    if (fogEnabledValue !== undefined)
+        fogEnabled = fogEnabledValue
+    var fogColorValue = valueFromKeys(params, "fogColor", "fog_color")
+    if (fogColorValue !== undefined)
+        fogColor = fogColorValue
+    var fogDensityValue = numberFromKeys(params, "fogDensity", "fog_density")
+    if (fogDensityValue !== undefined)
+        fogDensity = fogDensityValue
+    var fogNearValue = numberFromKeys(params, "fogNear", "fog_near")
+    if (fogNearValue !== undefined && isFinite(fogNearValue))
+        fogNear = toSceneLength(fogNearValue)
+    var fogFarValue = numberFromKeys(params, "fogFar", "fog_far")
+    if (fogFarValue !== undefined && isFinite(fogFarValue))
+        fogFar = toSceneLength(fogFarValue)
     var fogHeightFlag = boolFromKeys(params, "fogHeightEnabled", "fog_height_enabled")
     if (fogHeightFlag !== undefined)
         fogHeightEnabled = !!fogHeightFlag
