@@ -5,7 +5,6 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
-using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 
@@ -17,14 +16,11 @@ namespace PneumoStabSim.Core
     /// </summary>
     public class EnvironmentPreparationService : IEnvironmentPreparationService
     {
-        private const string VirtualEnvironmentFolder = ".venv";
-        private const string RequirementsFingerprintFile = ".pneumostabsim_requirements.hash";
-
-        private static readonly string[] RequirementFiles = new[]
+        private static readonly string[] EnsureProjectEnvironmentScriptSegments = new[]
         {
-            "requirements.txt",
-            "requirements-dev.txt",
-            "current_requirements.txt",
+            "tools",
+            "visualstudio",
+            "ensure_project_environment.py",
         };
 
         private readonly ILogger<EnvironmentPreparationService> _logger;
@@ -53,25 +49,30 @@ namespace PneumoStabSim.Core
 
             try
             {
-                var pythonPath = EnsureVirtualEnvironment(result);
-                if (string.IsNullOrWhiteSpace(pythonPath))
+                var ensureStatus = RunEnvironmentProvisioning(result);
+                if (ensureStatus is null)
                 {
+                    return result;
+                }
+
+                var pythonPath = ensureStatus.ResolveVirtualEnvironmentPythonPath();
+                if (string.IsNullOrWhiteSpace(pythonPath) || !File.Exists(pythonPath))
+                {
+                    var message = "The Visual Studio Insiders virtual environment does not provide a Python executable.";
+                    result.AddError(message);
+                    _logger.LogError(message);
                     return result;
                 }
 
                 result.SetPythonExecutable(pythonPath);
 
-                if (!EnsurePythonDependencies(pythonPath!, result))
+                ApplyEnvironmentStatusInsights(ensureStatus, result);
+                if (!result.Success)
                 {
                     return result;
                 }
 
-                if (!VerifyPythonDependencies(pythonPath!, result))
-                {
-                    return result;
-                }
-
-                if (!SynchroniseEnvironmentVariables(pythonPath!, result))
+                if (!SynchroniseEnvironmentVariables(pythonPath, result))
                 {
                     return result;
                 }
@@ -112,51 +113,154 @@ namespace PneumoStabSim.Core
             return AppContext.BaseDirectory;
         }
 
-        private string? EnsureVirtualEnvironment(EnvironmentPreparationResult result)
+        private EnvironmentStatus? RunEnvironmentProvisioning(EnvironmentPreparationResult result)
         {
-            var venvRoot = Path.Combine(_projectRoot, VirtualEnvironmentFolder);
-            var scriptsFolder = "Scripts";
-            var pythonExecutable = "python.exe";
-            var pythonPath = Path.Combine(venvRoot, scriptsFolder, pythonExecutable);
-
-            try
+            var pythonInterpreter = LocateSystemPython();
+            if (string.IsNullOrWhiteSpace(pythonInterpreter))
             {
-                if (!File.Exists(pythonPath))
-                {
-                    Directory.CreateDirectory(venvRoot);
-
-                    var systemPython = LocateSystemPython();
-                    if (string.IsNullOrWhiteSpace(systemPython))
-                    {
-                        const string message = "Не удалось найти установленный Python 3.11–3.13 для подготовки виртуального окружения.";
-                        result.AddError(message);
-                        _logger.LogError(message);
-                        return null;
-                    }
-
-                    _logger.LogInformation("Creating virtual environment in {VenvRoot} using interpreter {Python}", venvRoot, systemPython);
-                    var process = RunProcess(systemPython!, new[] { "-m", "venv", venvRoot }, _projectRoot, timeout: TimeSpan.FromMinutes(5));
-                    if (!process.IsSuccess)
-                    {
-                        var message = $"Failed to create virtual environment (exit code {process.ExitCode}). {process.Error}".Trim();
-                        result.AddError(message);
-                        _logger.LogError("Failed to create virtual environment. Output: {Output}. Error: {Error}", process.Output, process.Error);
-                        return null;
-                    }
-                }
-                else
-                {
-                    _logger.LogInformation("Using existing virtual environment at {PythonPath}", pythonPath);
-                }
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Failed to prepare the virtual environment.");
-                result.AddError($"Failed to prepare the virtual environment: {ex.Message}");
+                const string message = "Не удалось найти установленный Python 3.11–3.13 для подготовки виртуального окружения.";
+                result.AddError(message);
+                _logger.LogError(message);
                 return null;
             }
 
-            return pythonPath;
+            var scriptPath = Path.Combine(EnsureProjectEnvironmentScriptSegments.Prepend(_projectRoot).ToArray());
+            if (!File.Exists(scriptPath))
+            {
+                var message = $"Visual Studio environment provisioning script не найден: {scriptPath}";
+                _logger.LogError(message);
+                result.AddError(message);
+                return null;
+            }
+
+            var statusPath = Path.Combine(Path.GetTempPath(), $"pneumostabsim_env_status_{Guid.NewGuid():N}.json");
+
+            try
+            {
+                var arguments = new List<string>
+                {
+                    scriptPath,
+                    "--project-root",
+                    _projectRoot,
+                    "--status-json",
+                    statusPath,
+                };
+
+                var environmentOverrides = new Dictionary<string, string>
+                {
+                    ["PYTHONUTF8"] = "1",
+                    ["PYTHONIOENCODING"] = "utf-8",
+                    ["PIP_DISABLE_PIP_VERSION_CHECK"] = "1",
+                    ["PIP_NO_PYTHON_VERSION_WARNING"] = "1",
+                    ["LC_ALL"] = "C.UTF-8",
+                    ["LANG"] = "en_US.UTF-8",
+                };
+
+                var process = RunProcess(pythonInterpreter!, arguments, _projectRoot, environmentOverrides, timeout: TimeSpan.FromMinutes(8));
+                if (!process.IsSuccess)
+                {
+                    var message = $"Environment provisioning script failed (exit code {process.ExitCode}). {process.Error}".Trim();
+                    result.AddError(message);
+                    _logger.LogError("Environment provisioning script failed. Output: {Output}. Error: {Error}", process.Output, process.Error);
+                    return null;
+                }
+
+                LogHelperOutput(process.Output, LogLevel.Information);
+                LogHelperOutput(process.Error, LogLevel.Warning);
+
+                if (!File.Exists(statusPath))
+                {
+                    const string message = "Environment provisioning script did not produce a status report.";
+                    result.AddError(message);
+                    _logger.LogError(message);
+                    return null;
+                }
+
+                var statusJson = File.ReadAllText(statusPath);
+                var status = EnvironmentStatus.FromJson(statusJson, _logger, result);
+                return status;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to execute environment provisioning script.");
+                result.AddError($"Failed to execute environment provisioning script: {ex.Message}");
+                return null;
+            }
+            finally
+            {
+                SafeDeleteFile(statusPath);
+            }
+        }
+
+        private void ApplyEnvironmentStatusInsights(EnvironmentStatus status, EnvironmentPreparationResult result)
+        {
+            if (!status.MeetsMinimumRequirement)
+            {
+                var message = "Обнаруженный интерпретатор Python не соответствует минимальным требованиям (3.11+).";
+                result.AddError(message);
+                _logger.LogError(message + " Version detected: {Version}", status.InterpreterVersion);
+                return;
+            }
+
+            if (!status.MeetsRecommendation)
+            {
+                var warning = "Обнаруженный Python соответствует минимальной версии, но рекомендуется Python 3.13.";
+                result.AddWarning(warning);
+                _logger.LogWarning(warning + " Version detected: {Version}", status.InterpreterVersion);
+            }
+
+            if (!status.DependenciesOk)
+            {
+                var message = "Некоторые обязательные пакеты Python отсутствуют после автоматической установки.";
+                if (status.RemainingMissingDependencies.Any())
+                {
+                    message += " Missing: " + string.Join(", ", status.RemainingMissingDependencies);
+                }
+
+                result.AddError(message);
+                _logger.LogError(message);
+                return;
+            }
+
+            if (status.RequirementsUpdated)
+            {
+                _logger.LogInformation("Python requirements were refreshed for the Visual Studio Insiders profile.");
+            }
+
+            if (status.InstalledMissingDependencies.Any())
+            {
+                _logger.LogInformation(
+                    "Additional Python packages were installed automatically: {Packages}",
+                    string.Join(", ", status.InstalledMissingDependencies));
+            }
+
+            if (!status.VirtualEnvironmentMatchesExpectation)
+            {
+                var warning = "Активированное виртуальное окружение не совпадает с ожидаемым .venv. Текущий сеанс Visual Studio может требовать перезапуска.";
+                result.AddWarning(warning);
+                _logger.LogWarning(warning);
+            }
+
+            _logger.LogInformation(
+                "Environment provisioning summary: System={System} {Release}, Python={Python} ({Version})",
+                status.SystemName,
+                status.SystemRelease,
+                status.InterpreterPath,
+                status.InterpreterVersion);
+        }
+
+        private void LogHelperOutput(string? output, LogLevel level)
+        {
+            if (string.IsNullOrWhiteSpace(output))
+            {
+                return;
+            }
+
+            var lines = output.Split(new[] { Environment.NewLine }, StringSplitOptions.RemoveEmptyEntries);
+            foreach (var line in lines)
+            {
+                _logger.Log(level, "[env-helper] {Line}", line);
+            }
         }
 
         private string? LocateSystemPython()
@@ -200,108 +304,6 @@ namespace PneumoStabSim.Core
             }
 
             return null;
-        }
-
-        private bool EnsurePythonDependencies(string pythonPath, EnvironmentPreparationResult result)
-        {
-            try
-            {
-                var fingerprint = ComputeRequirementsFingerprint();
-                var sentinelPath = Path.Combine(_projectRoot, VirtualEnvironmentFolder, RequirementsFingerprintFile);
-                var existingFingerprint = File.Exists(sentinelPath) ? File.ReadAllText(sentinelPath).Trim() : string.Empty;
-
-                if (string.Equals(existingFingerprint, fingerprint, StringComparison.Ordinal))
-                {
-                    _logger.LogInformation("Python dependencies are up to date – skipping installation.");
-                    return true;
-                }
-
-                _logger.LogInformation("Installing Python dependencies for Visual Studio Insiders profile...");
-
-                var upgradeResult = RunProcess(pythonPath, new[] { "-m", "pip", "install", "--upgrade", "pip", "setuptools", "wheel" }, _projectRoot, timeout: TimeSpan.FromMinutes(3));
-                if (!upgradeResult.IsSuccess)
-                {
-                    var message = $"Failed to upgrade pip/setuptools (exit code {upgradeResult.ExitCode}). {upgradeResult.Error}".Trim();
-                    result.AddError(message);
-                    _logger.LogError("pip upgrade failed. Output: {Output}. Error: {Error}", upgradeResult.Output, upgradeResult.Error);
-                    return false;
-                }
-
-                foreach (var requirements in RequirementFiles)
-                {
-                    var requirementsPath = Path.Combine(_projectRoot, requirements);
-                    if (!File.Exists(requirementsPath))
-                    {
-                        continue;
-                    }
-
-                    var installResult = RunProcess(pythonPath, new[] { "-m", "pip", "install", "-r", requirements }, _projectRoot, timeout: TimeSpan.FromMinutes(5));
-                    if (!installResult.IsSuccess)
-                    {
-                        var message = $"Failed to install dependencies from {requirements} (exit code {installResult.ExitCode}). {installResult.Error}".Trim();
-                        result.AddError(message);
-                        _logger.LogError("pip install failed for {Requirements}. Output: {Output}. Error: {Error}", requirements, installResult.Output, installResult.Error);
-                        return false;
-                    }
-                }
-
-                Directory.CreateDirectory(Path.GetDirectoryName(sentinelPath)!);
-                File.WriteAllText(sentinelPath, fingerprint, Encoding.UTF8);
-                _logger.LogInformation("Dependency installation finished successfully.");
-                return true;
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Failed to install Python dependencies.");
-                result.AddError($"Failed to install Python dependencies: {ex.Message}");
-                return false;
-            }
-        }
-
-        private bool VerifyPythonDependencies(string pythonPath, EnvironmentPreparationResult result)
-        {
-            const string verificationScript = "import importlib.util, json, os;"
-                + "modules = ['PySide6','numpy','scipy','structlog'];"
-                + "missing = [name for name in modules if importlib.util.find_spec(name) is None];"
-                + "payload = {'missing': missing, 'warnings': []};"
-                + "print(json.dumps(payload))";
-
-            var verificationResult = RunProcess(pythonPath, new[] { "-c", verificationScript }, _projectRoot, timeout: TimeSpan.FromSeconds(30));
-            if (!verificationResult.IsSuccess)
-            {
-                var message = $"Failed to verify Python dependencies (exit code {verificationResult.ExitCode}). {verificationResult.Error}".Trim();
-                result.AddError(message);
-                _logger.LogError("Dependency verification failed. Output: {Output}. Error: {Error}", verificationResult.Output, verificationResult.Error);
-                return false;
-            }
-
-            try
-            {
-                using var document = JsonDocument.Parse(verificationResult.Output);
-                if (document.RootElement.TryGetProperty("missing", out var missingElement))
-                {
-                    var missing = missingElement.EnumerateArray()
-                        .Select(x => x.GetString())
-                        .Where(x => !string.IsNullOrWhiteSpace(x))
-                        .ToList();
-
-                    if (missing.Count > 0)
-                    {
-                        var message = $"Missing Python modules: {string.Join(", ", missing)}";
-                        result.AddError(message);
-                        _logger.LogError(message);
-                        return false;
-                    }
-                }
-            }
-            catch (JsonException ex)
-            {
-                _logger.LogWarning(ex, "Failed to parse dependency verification response.");
-                result.AddWarning($"Failed to parse dependency verification response: {ex.Message}");
-            }
-
-            _logger.LogInformation("Python dependencies validated successfully.");
-            return true;
         }
 
         private bool SynchroniseEnvironmentVariables(string pythonPath, EnvironmentPreparationResult result)
@@ -383,26 +385,6 @@ namespace PneumoStabSim.Core
             {
                 SafeDeleteFile(tempFile);
             }
-        }
-
-        private string ComputeRequirementsFingerprint()
-        {
-            var builder = new StringBuilder();
-            foreach (var requirements in RequirementFiles)
-            {
-                var requirementsPath = Path.Combine(_projectRoot, requirements);
-                if (!File.Exists(requirementsPath))
-                {
-                    continue;
-                }
-
-                builder.AppendLine(requirements);
-                builder.AppendLine(File.ReadAllText(requirementsPath));
-            }
-
-            var data = Encoding.UTF8.GetBytes(builder.ToString());
-            var hash = SHA256.HashData(data);
-            return Convert.ToHexString(hash);
         }
 
         private static string AppendPath(string? existing, string addition)
@@ -544,6 +526,105 @@ namespace PneumoStabSim.Core
             public static ProcessResult TimedOut(string output, string error) => new(false, -1, output, error, true);
 
             public static ProcessResult Failed(string error) => new(false, -1, string.Empty, error, false);
+        }
+
+        private sealed class EnvironmentStatus
+        {
+            private EnvironmentStatus()
+            {
+            }
+
+            public string SystemName { get; init; } = string.Empty;
+            public string SystemRelease { get; init; } = string.Empty;
+            public string InterpreterPath { get; init; } = string.Empty;
+            public string InterpreterVersion { get; init; } = string.Empty;
+            public bool MeetsRecommendation { get; init; }
+            public bool MeetsMinimumRequirement { get; init; }
+            public string VirtualEnvironmentPath { get; init; } = string.Empty;
+            public bool DependenciesOk { get; init; }
+            public IReadOnlyList<string> InstalledMissingDependencies { get; init; } = Array.Empty<string>();
+            public IReadOnlyList<string> RemainingMissingDependencies { get; init; } = Array.Empty<string>();
+            public bool RequirementsUpdated { get; init; }
+            public bool VirtualEnvironmentMatchesExpectation { get; init; }
+
+            public string? ResolveVirtualEnvironmentPythonPath()
+            {
+                if (string.IsNullOrWhiteSpace(VirtualEnvironmentPath))
+                {
+                    return null;
+                }
+
+                var scriptsFolder = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? "Scripts" : "bin";
+                var executableName = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? "python.exe" : "python";
+                // Преобразуем путь к POSIX формату для совместимости с Python/QML
+                var combinedPath = Path.Combine(VirtualEnvironmentPath, scriptsFolder, executableName);
+                return combinedPath.Replace('\\', '/');
+            }
+
+            public static EnvironmentStatus? FromJson(string json, ILogger logger, EnvironmentPreparationResult result)
+            {
+                try
+                {
+                    using var document = JsonDocument.Parse(json);
+                    var root = document.RootElement;
+
+                    var platform = root.GetProperty("platform");
+                    var python = root.GetProperty("python");
+                    var virtualEnv = root.GetProperty("virtual_environment");
+                    var dependencies = root.GetProperty("dependencies");
+
+                    var installed = ExtractStringList(dependencies, "installed_missing");
+                    var remaining = ExtractStringList(dependencies, "remaining_missing");
+
+                    return new EnvironmentStatus
+                    {
+                        SystemName = platform.GetProperty("system").GetString() ?? string.Empty,
+                        SystemRelease = platform.GetProperty("release").GetString() ?? string.Empty,
+                        InterpreterPath = python.GetProperty("executable").GetString() ?? string.Empty,
+                        InterpreterVersion = python.GetProperty("version").GetString() ?? string.Empty,
+                        MeetsRecommendation = python.GetProperty("meets_recommendation").GetBoolean(),
+                        MeetsMinimumRequirement = python.GetProperty("meets_minimum").GetBoolean(),
+                        VirtualEnvironmentPath = virtualEnv.GetProperty("path").GetString() ?? string.Empty,
+                        DependenciesOk = dependencies.GetProperty("ok").GetBoolean(),
+                        InstalledMissingDependencies = installed,
+                        RemainingMissingDependencies = remaining,
+                        RequirementsUpdated = dependencies.GetProperty("requirements_updated").GetBoolean(),
+                        VirtualEnvironmentMatchesExpectation = virtualEnv.GetProperty("active_matches_expected").GetBoolean(),
+                    };
+                }
+                catch (JsonException ex)
+                {
+                    logger.LogError(ex, "Ошибка парсинга JSON при обработке статуса окружения.");
+                    result.AddError($"Ошибка парсинга JSON статуса окружения: {ex.Message}");
+                    return null;
+                }
+                catch (InvalidOperationException ex)
+                {
+                    logger.LogError(ex, "Ошибка доступа к свойствам JSON при обработке статуса окружения.");
+                    result.AddError($"Ошибка доступа к свойствам JSON статуса окружения: {ex.Message}");
+                    return null;
+                }
+                catch (ArgumentException ex)
+                {
+                    logger.LogError(ex, "Ошибка аргументов при обработке статуса окружения.");
+                    result.AddError($"Ошибка аргументов статуса окружения: {ex.Message}");
+                    return null;
+                }
+            }
+
+            private static List<string> ExtractStringList(JsonElement container, string property)
+            {
+                if (!container.TryGetProperty(property, out var element) || element.ValueKind != JsonValueKind.Array)
+                {
+                    return new List<string>();
+                }
+
+                // Используем LINQ для фильтрации и сбора строк из массива JSON
+                return element.EnumerateArray()
+                    .Select(item => item.GetString())
+                    .Where(value => !string.IsNullOrWhiteSpace(value))
+                    .ToList();
+            }
         }
     }
 }
