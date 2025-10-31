@@ -62,7 +62,7 @@ def export_timeseries_csv(
 
     # Method 1: Using numpy.savetxt (preferred for numeric data)
     if _can_use_numpy_savetxt(series):
-        _export_with_numpy(time, series, path, header)
+        _export_with_numpy(time, series, path, header, use_gzip)
     else:
         # Method 2: Using csv.writer (fallback)
         _export_with_csv_writer(time, series, path, header, use_gzip)
@@ -87,6 +87,7 @@ def _export_with_numpy(
     series: Mapping[str, Sequence[float]],
     path: Path,
     header: Sequence[str],
+    use_gzip: bool,
 ) -> None:
     """Export using numpy.savetxt (efficient for numeric data)"""
     if not _NUMPY_AVAILABLE:
