@@ -590,10 +590,22 @@ namespace PneumoStabSim.Core
                         VirtualEnvironmentMatchesExpectation = virtualEnv.GetProperty("active_matches_expected").GetBoolean(),
                     };
                 }
-                catch (Exception ex)
+                catch (JsonException ex)
                 {
-                    logger.LogError(ex, "Failed to parse environment provisioning status.");
-                    result.AddError($"Failed to parse environment provisioning status: {ex.Message}");
+                    logger.LogError(ex, "Ошибка парсинга JSON при обработке статуса окружения.");
+                    result.AddError($"Ошибка парсинга JSON статуса окружения: {ex.Message}");
+                    return null;
+                }
+                catch (InvalidOperationException ex)
+                {
+                    logger.LogError(ex, "Ошибка доступа к свойствам JSON при обработке статуса окружения.");
+                    result.AddError($"Ошибка доступа к свойствам JSON статуса окружения: {ex.Message}");
+                    return null;
+                }
+                catch (ArgumentException ex)
+                {
+                    logger.LogError(ex, "Ошибка аргументов при обработке статуса окружения.");
+                    result.AddError($"Ошибка аргументов статуса окружения: {ex.Message}");
                     return null;
                 }
             }
