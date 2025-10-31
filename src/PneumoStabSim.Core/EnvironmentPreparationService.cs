@@ -605,17 +605,11 @@ namespace PneumoStabSim.Core
                     return new List<string>();
                 }
 
-                var values = new List<string>();
-                foreach (var item in element.EnumerateArray())
-                {
-                    var value = item.GetString();
-                    if (!string.IsNullOrWhiteSpace(value))
-                    {
-                        values.Add(value);
-                    }
-                }
-
-                return values;
+                // Используем LINQ для фильтрации и сбора строк из массива JSON
+                return element.EnumerateArray()
+                    .Select(item => item.GetString())
+                    .Where(value => !string.IsNullOrWhiteSpace(value))
+                    .ToList();
             }
         }
     }
