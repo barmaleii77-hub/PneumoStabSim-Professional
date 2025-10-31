@@ -15,25 +15,36 @@ Rectangle {
     property var profileService: null
     property var profiles: []
     property string statusText: ""
+    property bool _refreshingProfiles: false
 
     function refreshProfiles() {
-        if (
-            !root.profileService
-            || typeof root.profileService.listProfiles !== "function"
-        ) {
-            root.profiles = []
-            profileCombo.currentIndex = -1
-            nameField.text = ""
+        if (root._refreshingProfiles)
             return
-        }
 
-        const names = root.profileService.listProfiles()
-        root.profiles = names ? names : []
+        root._refreshingProfiles = true
+        try {
+            if (
+                !root.profileService
+                || typeof root.profileService.listProfiles !== "function"
+            ) {
+                root.profiles = []
+                profileCombo.currentIndex = -1
+                nameField.text = ""
+                return
+            }
 
-        if (root.profiles.length === 0) {
-            profileCombo.currentIndex = -1
-        } else if (profileCombo.currentIndex < 0) {
-            profileCombo.currentIndex = 0
+            const names = root.profileService.listProfiles()
+            root.profiles = names ? names : []
+
+            if (root.profiles.length === 0) {
+                profileCombo.currentIndex = -1
+                nameField.text = ""
+            } else if (profileCombo.currentIndex < 0 || profileCombo.currentIndex >= root.profiles.length) {
+                profileCombo.currentIndex = 0
+                nameField.text = root.profiles[0]
+            }
+        } finally {
+            root._refreshingProfiles = false
         }
     }
 

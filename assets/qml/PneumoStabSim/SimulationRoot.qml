@@ -944,42 +944,33 @@ Binding {
  // ---------------------------------------------
  // Python bridge helpers
  // ---------------------------------------------
- function applySceneBridgeState() {
- if (!sceneBridge)
- return
+    function applySceneBridgeState() {
+        if (!sceneBridge)
+            return
 
- if (sceneBridge.geometry && Object.keys(sceneBridge.geometry).length)
-            applyGeometryUpdatesInternal(sceneBridge.geometry)
- if (sceneBridge.camera && Object.keys(sceneBridge.camera).length)
- root.applyCameraUpdates(sceneBridge.camera)
- if (sceneBridge.lighting && Object.keys(sceneBridge.lighting).length)
- root.applyLightingUpdates(sceneBridge.lighting)
- if (sceneBridge.environment && Object.keys(sceneBridge.environment).length)
- root.applyEnvironmentUpdates(sceneBridge.environment)
- if (sceneBridge.quality && Object.keys(sceneBridge.quality).length)
- root.applyQualityUpdates(sceneBridge.quality)
- if (sceneBridge.materials && Object.keys(sceneBridge.materials).length)
- root.applyMaterialUpdates(sceneBridge.materials)
- if (sceneBridge.effects && Object.keys(sceneBridge.effects).length)
- root.applyEffectsUpdates(sceneBridge.effects)
- if (sceneBridge.animation && Object.keys(sceneBridge.animation).length)
- root.applyAnimationUpdates(sceneBridge.animation)
- if (sceneBridge.threeD && Object.keys(sceneBridge.threeD).length)
- root.apply3DUpdates(sceneBridge.threeD)
- if (sceneBridge.render && Object.keys(sceneBridge.render).length)
- root.applyRenderSettings(sceneBridge.render)
- if (sceneBridge.simulation && Object.keys(sceneBridge.simulation).length)
- root.applySimulationUpdates(sceneBridge.simulation)
+        var handlers = batchHandlerMap()
+        var payload = {}
 
- if (sceneBridge.latestUpdates && Object.keys(sceneBridge.latestUpdates).length) {
- var summary = {}
- for (var key in sceneBridge.latestUpdates) {
- if (sceneBridge.latestUpdates.hasOwnProperty(key))
- summary[key] = true
- }
- batchUpdatesApplied(summary)
- }
-}
+        for (var category in handlers) {
+            if (!handlers.hasOwnProperty(category))
+                continue
+            var segment = sceneBridge[category]
+            if (isPlainObject(segment) && Object.keys(segment).length)
+                payload[category] = segment
+        }
+
+        var summary = applyBatchPayload(payload)
+        var ackSummary = Object.assign({}, summary)
+
+        if (sceneBridge.latestUpdates && isPlainObject(sceneBridge.latestUpdates)) {
+            for (var key in sceneBridge.latestUpdates) {
+                if (sceneBridge.latestUpdates.hasOwnProperty(key))
+                    ackSummary[key] = true
+            }
+        }
+
+        emitBatchApplied(ackSummary)
+    }
 
 Connections {
  id: sceneBridgeLifecycle
@@ -1301,6 +1292,118 @@ function warnInvalidBatch(category, reason, payload) {
     }
 }
 
+function logUnknownBatchKey(category, payload) {
+    try {
+        console.debug("[SimulationRoot] Unknown batch key", category, payload !== undefined ? payload : "");
+    } catch (err) {
+        console.debug("[SimulationRoot] Unknown batch key", category);
+    }
+}
+
+function invokeBatchHandler(category, payload, handler) {
+    if (!handler)
+        return false;
+
+    try {
+        var result = handler(payload);
+        return result === undefined ? true : !!result;
+    } catch (error) {
+        warnInvalidBatch(category, "handler threw: " + error, payload);
+        return false;
+    }
+}
+
+function batchHandlerMap() {
+    return {
+        geometry: applyGeometryUpdates,
+        camera: applyCameraUpdates,
+        lighting: applyLightingUpdates,
+        environment: applyEnvironmentUpdates,
+        quality: applyQualityUpdates,
+        materials: applyMaterialUpdates,
+        effects: applyEffectsUpdates,
+        animation: applyAnimationUpdates,
+        threeD: apply3DUpdates,
+        render: applyRenderSettings,
+        simulation: applySimulationUpdates
+    };
+}
+
+function batchPayloadRequiresObject() {
+    return {
+        geometry: true,
+        camera: true,
+        lighting: true,
+        environment: true,
+        quality: true,
+        materials: true,
+        effects: true,
+        animation: true,
+        threeD: true,
+        render: true,
+        simulation: true
+    };
+}
+
+function applyBatchPayload(updates) {
+    if (!isPlainObject(updates)) {
+        if (updates !== null && updates !== undefined)
+            warnInvalidBatch("batch", "payload must be an object", updates);
+        return {};
+    }
+
+    var handlers = batchHandlerMap();
+    var expectsObject = batchPayloadRequiresObject();
+    var summary = {};
+
+    for (var category in handlers) {
+        if (!handlers.hasOwnProperty(category))
+            continue;
+        if (!updates.hasOwnProperty(category))
+            continue;
+
+        var payload = updates[category];
+        if (payload === undefined || payload === null)
+            continue;
+
+        if (expectsObject[category]) {
+            if (!isPlainObject(payload)) {
+                warnInvalidBatch(category, "payload must be an object", payload);
+                continue;
+            }
+            if (Object.keys(payload).length === 0)
+                continue;
+        }
+
+        if (invokeBatchHandler(category, payload, handlers[category]))
+            summary[category] = true;
+    }
+
+    for (var key in updates) {
+        if (!updates.hasOwnProperty(key))
+            continue;
+        if (!handlers.hasOwnProperty(key))
+            logUnknownBatchKey(key, updates[key]);
+    }
+
+    return summary;
+}
+
+function emitBatchApplied(summary) {
+    if (!summary)
+        return;
+
+    var keys = Object.keys(summary);
+    if (!keys.length)
+        return;
+
+    try {
+        batchUpdatesApplied(summary);
+    } catch (error) {
+        console.warn("[SimulationRoot] Failed to emit batchUpdatesApplied", error);
+    }
+}
+
 function valueForKeys(map, keys) {
     if (!isPlainObject(map))
         return undefined;
@@ -1593,33 +1696,18 @@ function sanitizeReflectionProbePadding(value) {
         }
     }
 
- function applyBatchedUpdates(updates) {
- if (!updates)
- return;
- var applied = {};
-    if (updates.geometry) {
-        applyGeometryUpdatesInternal(updates.geometry)
-        applied.geometry = true
+    function applyBatchedUpdates(updates) {
+        var summary = applyBatchPayload(updates)
+        emitBatchApplied(summary)
+        return summary
     }
- if (updates.camera) { root.applyCameraUpdates(updates.camera); applied.camera = true; }
- if (updates.lighting) { root.applyLightingUpdates(updates.lighting); applied.lighting = true; }
- if (updates.environment){ root.applyEnvironmentUpdates(updates.environment); applied.environment = true; }
- if (updates.quality) { root.applyQualityUpdates(updates.quality); applied.quality = true; }
- if (updates.materials) { root.applyMaterialUpdates(updates.materials); applied.materials = true; }
- if (updates.effects) { root.applyEffectsUpdates(updates.effects); applied.effects = true; }
- if (updates.animation) { root.applyAnimationUpdates(updates.animation); applied.animation = true; }
- if (updates.threeD) { root.apply3DUpdates(updates.threeD); applied.threeD = true; }
- if (updates.render) { root.applyRenderSettings(updates.render); applied.render = true; }
- if (updates.simulation) { root.applySimulationUpdates(updates.simulation); applied.simulation = true; }
-
- batchUpdatesApplied(applied);
- }
 
  // ---------------------------------------------
  // Реализации apply*Updates (минимально: geometry, camera, lighting, environment, quality, materials, effects, animation,3d)
  // ---------------------------------------------
- function applyGeometryUpdatesInternal(params) {
- if (!params) return;
+    function applyGeometryUpdatesInternal(params) {
+        if (!isPlainObject(params))
+            return false;
  function pick(obj, keys, def) {
  for (var i =0; i < keys.length; i++) if (obj[keys[i]] !== undefined) return obj[keys[i]];
  return def;
@@ -1666,12 +1754,16 @@ function sanitizeReflectionProbePadding(value) {
  geometryPatch.cylinderRings = userCylinderRings;
  }
  }
- updateGeometryState(geometryPatch);
+ var hasGeometryPatch = Object.keys(geometryPatch).length > 0;
+ var cameraPatchApplied = false;
+
+ if (hasGeometryPatch)
+     updateGeometryState(geometryPatch);
 
  if (cameraController) {
- var cameraGeometryUpdate = {};
- if (geometryPatch.frameLength !== undefined)
-     cameraGeometryUpdate.frameLength = geometryPatch.frameLength;
+var cameraGeometryUpdate = {};
+if (geometryPatch.frameLength !== undefined)
+    cameraGeometryUpdate.frameLength = geometryPatch.frameLength;
  if (geometryPatch.frameHeight !== undefined)
      cameraGeometryUpdate.frameHeight = geometryPatch.frameHeight;
  if (geometryPatch.trackWidth !== undefined)
@@ -1681,17 +1773,20 @@ function sanitizeReflectionProbePadding(value) {
  if (geometryPatch.frameToPivot !== undefined)
      cameraGeometryUpdate.frameToPivot = geometryPatch.frameToPivot;
 
- if (Object.keys(cameraGeometryUpdate).length)
-     cameraController.updateGeometry(cameraGeometryUpdate);
-    }
-}
+ cameraPatchApplied = Object.keys(cameraGeometryUpdate).length > 0;
+ if (cameraPatchApplied)
+    cameraController.updateGeometry(cameraGeometryUpdate);
+   }
 
- function applyGeometryUpdates(params) {
-  return applyGeometryUpdatesInternal(params);
- }
- function applyCameraUpdates(params) {
- if (!params)
-  return;
+        return hasGeometryPatch || cameraPatchApplied;
+    }
+
+    function applyGeometryUpdates(params) {
+        return applyGeometryUpdatesInternal(params);
+    }
+    function applyCameraUpdates(params) {
+        if (!isPlainObject(params))
+            return false;
 
  var controllerHandled = false;
  if (cameraController && cameraController.applyCameraUpdates) {
@@ -1704,7 +1799,7 @@ function sanitizeReflectionProbePadding(value) {
  }
 
  if (controllerHandled)
-  return;
+  return true;
 
  if (params.fov !== undefined)
   setIfExists(camera, 'fieldOfView', Number(params.fov));
@@ -1729,7 +1824,8 @@ function sanitizeReflectionProbePadding(value) {
   var r = params.eulerRotation;
   try { camera.eulerRotation = Qt.vector3d(Number(r.x||r[0]), Number(r.y||r[1]), Number(r.z||r[2])); } catch(e) { console.warn("Camera rotation normalization failed:", e); }
  }
- }
+        return true;
+    }
 
 function applyLightingUpdates(params) {
  if (!isPlainObject(params)) {

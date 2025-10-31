@@ -9,7 +9,7 @@ import os
 import sys
 import json
 from pathlib import Path
-from datetime import datetime
+from datetime import UTC, datetime
 from collections import defaultdict
 from typing import Dict, List, Tuple, Optional, Any, Union
 import re
@@ -774,7 +774,7 @@ class LogAnalyzer:
         report_path = report_root / "unsynced_events.json"
 
         payload = {
-            "generated_at": datetime.utcnow().isoformat() + "Z",
+            "generated_at": datetime.now(UTC).isoformat().replace("+00:00", "Z"),
             "source_log": str(analyzer.log_file),
             "sync_rate": analyzer.get_sync_rate(),
             "unsynced_total": len(analyzer.unsynced_events),

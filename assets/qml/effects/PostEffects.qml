@@ -64,17 +64,35 @@ Item {
     property alias motionBlurSamples: motionBlurEffect.samples
 
     function resolveShaders(isEnabled, effectItem, activeShader, fallbackShader) {
-        // Если эффект выключен, отключаем его полностью
-        if (!isEnabled) {
-            effectItem.enabled = false
+        if (!isEnabled)
             return []
-        }
-        // Включаем эффект и выбираем нужный шейдер
-        effectItem.enabled = true
-        return effectItem.fallbackActive ? [fallbackShader] : [activeShader]
+        if (effectItem && effectItem.fallbackActive)
+            return [fallbackShader]
+        return [activeShader]
     }
 
     function ensureEffectRequirement(effectItem, propertyName, value, successLog, failureLog) {
+        if (!effectItem || typeof effectItem !== "object")
+            return false
+
+        var hasProperty = false
+        try {
+            if (typeof effectItem.hasOwnProperty === "function")
+                hasProperty = effectItem.hasOwnProperty(propertyName)
+            else
+                hasProperty = propertyName in effectItem
+        } catch (error) {
+            hasProperty = false
+        }
+
+        if (!hasProperty) {
+            const message = failureLog && failureLog.length > 0
+                    ? failureLog
+                    : `Effect requirement '${propertyName}' is not supported`
+            console.warn("⚠️", message)
+            return false
+        }
+
         try {
             effectItem[propertyName] = value
             if (successLog && successLog.length > 0)
@@ -83,7 +101,7 @@ Item {
         } catch (error) {
             const message = failureLog && failureLog.length > 0
                     ? failureLog
-                    : `Effect requirement '${propertyName}' is not supported`
+                    : `Effect requirement '${propertyName}' assignment failed`
             console.warn("⚠️", message, error)
             return false
         }
@@ -275,7 +293,6 @@ Item {
         property bool fallbackActive: false
         property string lastErrorLog: ""
         property bool depthTextureAvailable: false
-        property bool normalTextureAvailable: false
 
         Component.onCompleted: {
             depthTextureAvailable = root.ensureEffectRequirement(
@@ -284,10 +301,8 @@ Item {
                         true,
                         "SSAO: depth texture support enabled",
                         "SSAO: depth texture buffer is not supported; disabling advanced SSAO")
-            // fixed: removed deprecated 'requiresNormalTexture' requirement (Qt 6)
-            normalTextureAvailable = false
 
-            if (!depthTextureAvailable || !normalTextureAvailable) {
+            if (!depthTextureAvailable) {
                 fallbackActive = true
                 console.warn("⚠️ SSAO: switching to passthrough fallback due to missing textures")
             }
