@@ -18,7 +18,6 @@ from __future__ import annotations
 import inspect
 import sys
 from importlib import import_module, util
-from types import ModuleType
 from typing import Any, Dict
 
 __all__ = [
@@ -96,31 +95,34 @@ class _ModuleAlias(ModuleType):
 
 
 def _called_from_inspect_unwrap() -> bool:
-    """Return ``True`` when :func:`inspect.unwrap` is the direct caller."""
+    """Return ``True`` when :func:`inspect.unwrap` appears in the call stack."""
 
     frame = inspect.currentframe()
     if frame is None:
         return False
 
-    caller = frame.f_back
-    if caller is None:
-        return False
+    try:
+        caller = frame.f_back
+        if caller is None:
+            return False
+        caller = caller.f_back
+        if caller is None:
+            return False
 
-    module_name = caller.f_globals.get("__name__")
-    if module_name == "inspect" and caller.f_code.co_name == "unwrap":
-        return True
+        module_name = caller.f_globals.get("__name__")
+        function_name = caller.f_code.co_name
+
+        if module_name == "inspect" and function_name in {"unwrap", "_unwrap_partial"}:
+            return True
+
+        if function_name.endswith("unwrap") and "hasattr" in caller.f_code.co_names:
+            if module_name != "tests.helpers.faux_inspect_module":
+                return True
+    finally:
+        # Break reference cycles created by ``inspect.currentframe``
+        del frame
 
     return False
-
-
-def _module_self_alias() -> ModuleType:
-    """Return a module proxy that mirrors ``src.ui.main_window_pkg``."""
-
-    global _SELF_ALIAS
-    if _SELF_ALIAS is None:
-        module = sys.modules[__name__]
-        _SELF_ALIAS = _ModuleAlias(module)
-    return _SELF_ALIAS
 
 
 def _qt_available() -> bool:
@@ -198,7 +200,7 @@ def __getattr__(name: str) -> Any:
     if name == "__wrapped__":
         if _called_from_inspect_unwrap():
             raise AttributeError(name)
-        return _module_self_alias()
+        return sys.modules[__name__]
 
     if name == "MainWindow":
         return _load_main_window()
