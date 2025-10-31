@@ -480,7 +480,7 @@ source activate_environment.sh  # Linux/macOS
 ```
 
 #### 2. Black Screen or Rendering Issues
-- Check Qt version: `python -c "from PySide6 import QtCore; print(QtCore.__version__)"`
+- Check Qt version: `python -c "from PySide6 import QtCore; print(QtCore.qVersion())"`
 - Must be >= 6.10.0 for ExtendedSceneEnvironment features
 - Verify HDR files exist in `assets/hdr/`
 - Check QML console for errors
@@ -553,7 +553,7 @@ make check
 - **Never commit**: API keys, credentials, production configs
 - **Use environment variables**: For sensitive configuration
 - **Validate inputs**: All user-provided data, especially file paths
-- **Sanitize paths**: Use Path.resolve() for HDR/resource paths
+- **Sanitize paths**: Use `Path.resolve()` and validate with `.is_relative_to()` to prevent directory traversal attacks
 
 ### Code Review Checklist
 - [ ] No hardcoded credentials or secrets
@@ -561,7 +561,6 @@ make check
 - [ ] Proper error handling (no exposed stack traces)
 - [ ] Safe file operations (check paths, permissions)
 - [ ] Qt object lifecycle managed correctly
-- [ ] No SQL injection vectors (N/A for this project)
 - [ ] Dependencies reviewed for vulnerabilities
 
 ---
