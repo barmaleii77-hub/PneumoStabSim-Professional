@@ -7,7 +7,7 @@ import csv
 import gzip
 from importlib import util
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Iterable, Mapping, Sequence
+from typing import TYPE_CHECKING, Any, Iterable, Mapping, Sequence, cast
 
 _NUMPY_AVAILABLE = util.find_spec("numpy") is not None
 
@@ -17,7 +17,7 @@ if TYPE_CHECKING:
 if _NUMPY_AVAILABLE:  # pragma: no branch - executed only when numpy is installed
     import numpy as np
 else:  # pragma: no cover - behaviour depends on optional dependency
-    np = None
+    np = cast(Any, None)
 
 
 def export_timeseries_csv(
