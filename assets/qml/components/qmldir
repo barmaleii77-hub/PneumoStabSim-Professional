@@ -1,6 +1,8 @@
-IblProbeLoader IblProbeLoader.qml
-ProfileManagerControls ProfileManagerControls.qml
-SignalTraceIndicator SignalTraceIndicator.qml
-SignalTracePanel SignalTracePanel.qml
-DiagnosticsOverlay DiagnosticsOverlay.qml
-AnimatedRodMaterial AnimatedRodMaterial.qml
+module components
+
+IblProbeLoader 1.0 IblProbeLoader.qml
+ProfileManagerControls 1.0 ProfileManagerControls.qml
+SignalTraceIndicator 1.0 SignalTraceIndicator.qml
+SignalTracePanel 1.0 SignalTracePanel.qml
+DiagnosticsOverlay 1.0 DiagnosticsOverlay.qml
+AnimatedRodMaterial 1.0 AnimatedRodMaterial.qml

@@ -6,9 +6,22 @@ import sys
 from pathlib import Path
 from typing import Mapping
 
+import importlib.util
+
 import pytest
 from _pytest.monkeypatch import notset
 from pytest import MonkeyPatch
+
+
+try:
+    _pytestqt_spec = importlib.util.find_spec("pytestqt.plugin")
+except ModuleNotFoundError:  # pragma: no cover - optional dependency missing
+    _pytestqt_spec = None
+
+if _pytestqt_spec is not None:
+    pytest_plugins = ("pytestqt.plugin",)
+else:  # pragma: no cover - fallback for minimal environments
+    pytest_plugins: tuple[str, ...] = ()
 
 if "raising" not in inspect.signature(MonkeyPatch.setitem).parameters:
 
