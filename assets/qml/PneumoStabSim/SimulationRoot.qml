@@ -674,68 +674,68 @@ SequentialAnimation {
  id: directionalLights
  worldRoot: worldRoot
  cameraRig: cameraController.rig
-    shadowsEnabled: !!lightingGlobal("shadows_enabled", lightingGlobal("shadowsEnabled", true))
+    shadowsEnabled: !!root.lightingGlobal("shadows_enabled", root.lightingGlobal("shadowsEnabled", true))
     shadowResolution: {
-        var raw = lightingGlobal(
+        var raw = root.lightingGlobal(
                     "shadow_resolution",
-                    lightingGlobal("shadowResolution", 4096)
+                    root.lightingGlobal("shadowResolution", 4096)
                 )
         var numeric = Number(raw)
         return isFinite(numeric) ? Math.round(numeric) : 4096
     }
- shadowFilterSamples: Number(lightingGlobal("shadow_filter_samples", lightingGlobal("shadowFilterSamples",32)))
- shadowBias: Number(lightingGlobal("shadow_bias", lightingGlobal("shadowBias",8.0)))
- shadowFactor: Number(lightingGlobal("shadow_factor", lightingGlobal("shadowFactor",80.0)))
+ shadowFilterSamples: Number(root.lightingGlobal("shadow_filter_samples", root.lightingGlobal("shadowFilterSamples",32)))
+ shadowBias: Number(root.lightingGlobal("shadow_bias", root.lightingGlobal("shadowBias",8.0)))
+ shadowFactor: Number(root.lightingGlobal("shadow_factor", root.lightingGlobal("shadowFactor",80.0)))
 
- keyLightBrightness: Number(lightingValue("key", "brightness",1.0))
- keyLightColor: lightingValue("key", "color", "#ffffff")
- keyLightAngleX: Number(lightingValue("key", "angle_x", 25.0))
- keyLightAngleY: Number(lightingValue("key", "angle_y", 23.5))
- keyLightAngleZ: Number(lightingValue("key", "angle_z",0.0))
- keyLightCastsShadow: !!lightingValue("key", "cast_shadow", true)
- keyLightBindToCamera: !!lightingValue("key", "bind_to_camera", false)
- keyLightPosX: Number(lightingValue("key", "position_x",0))
- keyLightPosY: Number(lightingValue("key", "position_y",0))
- keyLightPosZ: Number(lightingValue("key", "position_z",0))
+ keyLightBrightness: Number(root.lightingValue("key", "brightness",1.0))
+ keyLightColor: root.lightingValue("key", "color", "#ffffff")
+ keyLightAngleX: Number(root.lightingValue("key", "angle_x", 25.0))
+ keyLightAngleY: Number(root.lightingValue("key", "angle_y", 23.5))
+ keyLightAngleZ: Number(root.lightingValue("key", "angle_z",0.0))
+ keyLightCastsShadow: !!root.lightingValue("key", "cast_shadow", true)
+ keyLightBindToCamera: !!root.lightingValue("key", "bind_to_camera", false)
+ keyLightPosX: Number(root.lightingValue("key", "position_x",0))
+ keyLightPosY: Number(root.lightingValue("key", "position_y",0))
+ keyLightPosZ: Number(root.lightingValue("key", "position_z",0))
 
- fillLightBrightness: Number(lightingValue("fill", "brightness",1.0))
- fillLightColor: lightingValue("fill", "color", "#f1f4ff")
- fillLightAngleX: Number(lightingValue("fill", "angle_x", 0.0))
- fillLightAngleY: Number(lightingValue("fill", "angle_y", -45.0))
- fillLightAngleZ: Number(lightingValue("fill", "angle_z",0.0))
- fillLightCastsShadow: !!lightingValue("fill", "cast_shadow", false)
- fillLightBindToCamera: !!lightingValue("fill", "bind_to_camera", false)
- fillLightPosX: Number(lightingValue("fill", "position_x",0))
- fillLightPosY: Number(lightingValue("fill", "position_y",0))
- fillLightPosZ: Number(lightingValue("fill", "position_z",0))
+ fillLightBrightness: Number(root.lightingValue("fill", "brightness",1.0))
+ fillLightColor: root.lightingValue("fill", "color", "#f1f4ff")
+ fillLightAngleX: Number(root.lightingValue("fill", "angle_x", 0.0))
+ fillLightAngleY: Number(root.lightingValue("fill", "angle_y", -45.0))
+ fillLightAngleZ: Number(root.lightingValue("fill", "angle_z",0.0))
+ fillLightCastsShadow: !!root.lightingValue("fill", "cast_shadow", false)
+ fillLightBindToCamera: !!root.lightingValue("fill", "bind_to_camera", false)
+ fillLightPosX: Number(root.lightingValue("fill", "position_x",0))
+ fillLightPosY: Number(root.lightingValue("fill", "position_y",0))
+ fillLightPosZ: Number(root.lightingValue("fill", "position_z",0))
 
- rimLightBrightness: Number(lightingValue("rim", "brightness",1.1))
- rimLightColor: lightingValue("rim", "color", "#ffe1bd")
- rimLightAngleX: Number(lightingValue("rim", "angle_x",30.0))
- rimLightAngleY: Number(lightingValue("rim", "angle_y",-135.0))
- rimLightAngleZ: Number(lightingValue("rim", "angle_z",0.0))
- rimLightCastsShadow: !!lightingValue("rim", "cast_shadow", false)
- rimLightBindToCamera: !!lightingValue("rim", "bind_to_camera", false)
- rimLightPosX: Number(lightingValue("rim", "position_x",0))
- rimLightPosY: Number(lightingValue("rim", "position_y",0))
- rimLightPosZ: Number(lightingValue("rim", "position_z",0))
+ rimLightBrightness: Number(root.lightingValue("rim", "brightness",1.1))
+ rimLightColor: root.lightingValue("rim", "color", "#ffe1bd")
+ rimLightAngleX: Number(root.lightingValue("rim", "angle_x",30.0))
+ rimLightAngleY: Number(root.lightingValue("rim", "angle_y",-135.0))
+ rimLightAngleZ: Number(root.lightingValue("rim", "angle_z",0.0))
+ rimLightCastsShadow: !!root.lightingValue("rim", "cast_shadow", false)
+ rimLightBindToCamera: !!root.lightingValue("rim", "bind_to_camera", false)
+ rimLightPosX: Number(root.lightingValue("rim", "position_x",0))
+ rimLightPosY: Number(root.lightingValue("rim", "position_y",0))
+ rimLightPosZ: Number(root.lightingValue("rim", "position_z",0))
  }
 
  PointLights {
  id: pointLights
  worldRoot: worldRoot
  cameraRig: cameraController.rig
- pointLightBrightness: Number(lightingValue("point", "brightness",50.0))
- pointLightColor: lightingValue("point", "color", "#fff7e0")
- pointLightX: Number(lightingValue("point", "position_x",0.0))
- pointLightY: Number(lightingValue("point", "position_y",2.6))
- pointLightZ: Number(lightingValue("point", "position_z",1.5))
- pointLightRange: Number(lightingValue("point", "range",3.6))
- constantFade: Number(lightingValue("point", "constant_fade",1.0))
- linearFade: Number(lightingValue("point", "linear_fade",0.01))
- quadraticFade: Number(lightingValue("point", "quadratic_fade",1.0))
- pointLightCastsShadow: !!lightingValue("point", "cast_shadow", false)
- pointLightBindToCamera: !!lightingValue("point", "bind_to_camera", false)
+ pointLightBrightness: Number(root.lightingValue("point", "brightness",50.0))
+ pointLightColor: root.lightingValue("point", "color", "#fff7e0")
+ pointLightX: Number(root.lightingValue("point", "position_x",0.0))
+ pointLightY: Number(root.lightingValue("point", "position_y",2.6))
+ pointLightZ: Number(root.lightingValue("point", "position_z",1.5))
+ pointLightRange: Number(root.lightingValue("point", "range",3.6))
+ constantFade: Number(root.lightingValue("point", "constant_fade",1.0))
+ linearFade: Number(root.lightingValue("point", "linear_fade",0.01))
+ quadraticFade: Number(root.lightingValue("point", "quadratic_fade",1.0))
+ pointLightCastsShadow: !!root.lightingValue("point", "cast_shadow", false)
+ pointLightBindToCamera: !!root.lightingValue("point", "bind_to_camera", false)
  }
 
  SuspensionAssembly {
@@ -892,27 +892,27 @@ Binding {
  return
 
  if (sceneBridge.geometry && Object.keys(sceneBridge.geometry).length)
- applyGeometryUpdates(sceneBridge.geometry)
+            root.applyGeometryUpdates(sceneBridge.geometry)
  if (sceneBridge.camera && Object.keys(sceneBridge.camera).length)
- applyCameraUpdates(sceneBridge.camera)
+ root.applyCameraUpdates(sceneBridge.camera)
  if (sceneBridge.lighting && Object.keys(sceneBridge.lighting).length)
- applyLightingUpdates(sceneBridge.lighting)
+ root.applyLightingUpdates(sceneBridge.lighting)
  if (sceneBridge.environment && Object.keys(sceneBridge.environment).length)
- applyEnvironmentUpdates(sceneBridge.environment)
+ root.applyEnvironmentUpdates(sceneBridge.environment)
  if (sceneBridge.quality && Object.keys(sceneBridge.quality).length)
- applyQualityUpdates(sceneBridge.quality)
+ root.applyQualityUpdates(sceneBridge.quality)
  if (sceneBridge.materials && Object.keys(sceneBridge.materials).length)
- applyMaterialUpdates(sceneBridge.materials)
+ root.applyMaterialUpdates(sceneBridge.materials)
  if (sceneBridge.effects && Object.keys(sceneBridge.effects).length)
- applyEffectsUpdates(sceneBridge.effects)
+ root.applyEffectsUpdates(sceneBridge.effects)
  if (sceneBridge.animation && Object.keys(sceneBridge.animation).length)
- applyAnimationUpdates(sceneBridge.animation)
+ root.applyAnimationUpdates(sceneBridge.animation)
  if (sceneBridge.threeD && Object.keys(sceneBridge.threeD).length)
- apply3DUpdates(sceneBridge.threeD)
+ root.apply3DUpdates(sceneBridge.threeD)
  if (sceneBridge.render && Object.keys(sceneBridge.render).length)
- applyRenderSettings(sceneBridge.render)
+ root.applyRenderSettings(sceneBridge.render)
  if (sceneBridge.simulation && Object.keys(sceneBridge.simulation).length)
- applySimulationUpdates(sceneBridge.simulation)
+ root.applySimulationUpdates(sceneBridge.simulation)
 
  if (sceneBridge.latestUpdates && Object.keys(sceneBridge.latestUpdates).length) {
  var summary = {}
@@ -990,17 +990,81 @@ Rectangle {
  target: sceneBridge
  enabled: !!sceneBridge
 
- function onGeometryChanged(payload) { if (payload) applyGeometryUpdates(payload) }
- function onCameraChanged(payload) { if (payload) applyCameraUpdates(payload) }
- function onLightingChanged(payload) { if (payload) applyLightingUpdates(payload) }
- function onEnvironmentChanged(payload) { if (payload) applyEnvironmentUpdates(payload) }
- function onQualityChanged(payload) { if (payload) applyQualityUpdates(payload) }
- function onMaterialsChanged(payload) { if (payload) applyMaterialUpdates(payload) }
- function onEffectsChanged(payload) { if (payload) applyEffectsUpdates(payload) }
- function onAnimationChanged(payload) { if (payload) applyAnimationUpdates(payload) }
- function onThreeDChanged(payload) { if (payload) apply3DUpdates(payload) }
- function onRenderChanged(payload) { if (payload) applyRenderSettings(payload) }
- function onSimulationChanged(payload) { if (payload) applySimulationUpdates(payload) }
+    function onGeometryChanged(payload) {
+        if (!payload)
+            return
+        root.applyGeometryUpdates(payload)
+    }
+ function onCameraChanged(payload) {
+     if (!payload)
+         return
+     var handler = root.applyCameraUpdates
+     if (typeof handler === "function")
+         handler.call(root, payload)
+ }
+ function onLightingChanged(payload) {
+     if (!payload)
+         return
+     var handler = root.applyLightingUpdates
+     if (typeof handler === "function")
+         handler.call(root, payload)
+ }
+ function onEnvironmentChanged(payload) {
+     if (!payload)
+         return
+     var handler = root.applyEnvironmentUpdates
+     if (typeof handler === "function")
+         handler.call(root, payload)
+ }
+ function onQualityChanged(payload) {
+     if (!payload)
+         return
+     var handler = root.applyQualityUpdates
+     if (typeof handler === "function")
+         handler.call(root, payload)
+ }
+ function onMaterialsChanged(payload) {
+     if (!payload)
+         return
+     var handler = root.applyMaterialUpdates
+     if (typeof handler === "function")
+         handler.call(root, payload)
+ }
+ function onEffectsChanged(payload) {
+     if (!payload)
+         return
+     var handler = root.applyEffectsUpdates
+     if (typeof handler === "function")
+         handler.call(root, payload)
+ }
+ function onAnimationChanged(payload) {
+     if (!payload)
+         return
+     var handler = root.applyAnimationUpdates
+     if (typeof handler === "function")
+         handler.call(root, payload)
+ }
+ function onThreeDChanged(payload) {
+     if (!payload)
+         return
+     var handler = root.apply3DUpdates
+     if (typeof handler === "function")
+         handler.call(root, payload)
+ }
+ function onRenderChanged(payload) {
+     if (!payload)
+         return
+     var handler = root.applyRenderSettings
+     if (typeof handler === "function")
+         handler.call(root, payload)
+ }
+ function onSimulationChanged(payload) {
+     if (!payload)
+         return
+     var handler = root.applySimulationUpdates
+     if (typeof handler === "function")
+         handler.call(root, payload)
+ }
 
  function onUpdatesDispatched(payload) {
  pendingPythonUpdates = payload
@@ -1031,7 +1095,7 @@ Rectangle {
    applySignalTraceSettings(diagnosticsDefaults.signal_trace)
   }
   if (geometryDefaults && Object.keys(geometryDefaults).length) {
-   applyGeometryUpdates(geometryDefaults)
+        root.applyGeometryUpdates(geometryDefaults)
   }
   applySceneBridgeState()
  }
@@ -1467,17 +1531,20 @@ function sanitizeReflectionProbePadding(value) {
  if (!updates)
  return;
  var applied = {};
- if (updates.geometry) { applyGeometryUpdates(updates.geometry); applied.geometry = true; }
- if (updates.camera) { applyCameraUpdates(updates.camera); applied.camera = true; }
- if (updates.lighting) { applyLightingUpdates(updates.lighting); applied.lighting = true; }
- if (updates.environment){ applyEnvironmentUpdates(updates.environment); applied.environment = true; }
- if (updates.quality) { applyQualityUpdates(updates.quality); applied.quality = true; }
- if (updates.materials) { applyMaterialUpdates(updates.materials); applied.materials = true; }
- if (updates.effects) { applyEffectsUpdates(updates.effects); applied.effects = true; }
- if (updates.animation) { applyAnimationUpdates(updates.animation); applied.animation = true; }
- if (updates.threeD) { apply3DUpdates(updates.threeD); applied.threeD = true; }
- if (updates.render) { applyRenderSettings(updates.render); applied.render = true; }
- if (updates.simulation) { applySimulationUpdates(updates.simulation); applied.simulation = true; }
+    if (updates.geometry) {
+        root.applyGeometryUpdates(updates.geometry)
+        applied.geometry = true
+    }
+ if (updates.camera) { root.applyCameraUpdates(updates.camera); applied.camera = true; }
+ if (updates.lighting) { root.applyLightingUpdates(updates.lighting); applied.lighting = true; }
+ if (updates.environment){ root.applyEnvironmentUpdates(updates.environment); applied.environment = true; }
+ if (updates.quality) { root.applyQualityUpdates(updates.quality); applied.quality = true; }
+ if (updates.materials) { root.applyMaterialUpdates(updates.materials); applied.materials = true; }
+ if (updates.effects) { root.applyEffectsUpdates(updates.effects); applied.effects = true; }
+ if (updates.animation) { root.applyAnimationUpdates(updates.animation); applied.animation = true; }
+ if (updates.threeD) { root.apply3DUpdates(updates.threeD); applied.threeD = true; }
+ if (updates.render) { root.applyRenderSettings(updates.render); applied.render = true; }
+ if (updates.simulation) { root.applySimulationUpdates(updates.simulation); applied.simulation = true; }
 
  batchUpdatesApplied(applied);
  }
@@ -2470,9 +2537,9 @@ function apply3DUpdates(params) {
         if (params.camera)
             applyCameraUpdates(params.camera);
         if (params.animation)
-            applyAnimationUpdates(params.animation);
+            root.applyAnimationUpdates(params.animation);
         if (params.threeD)
-            apply3DUpdates(params.threeD);
+            root.apply3DUpdates(params.threeD);
 
         var environmentPatch = {};
         if (params.backgroundColor !== undefined)
@@ -2588,60 +2655,60 @@ function apply3DUpdates(params) {
         }
 
         if (Object.keys(directAnimationPatch).length)
-            applyAnimationUpdates(directAnimationPatch);
+            root.applyAnimationUpdates(directAnimationPatch);
 
         if (params.threeD)
-            apply3DUpdates(params.threeD);
+            root.apply3DUpdates(params.threeD);
 
         if (params.environment)
-            applyEnvironmentUpdates(params.environment);
+            root.applyEnvironmentUpdates(params.environment);
 
         if (params.effects)
-            applyEffectsUpdates(params.effects);
+            root.applyEffectsUpdates(params.effects);
 
         if (params.quality)
-            applyQualityUpdates(params.quality);
+            root.applyQualityUpdates(params.quality);
 
         if (params.camera)
-            applyCameraUpdates(params.camera);
+            root.applyCameraUpdates(params.camera);
 
         if (params.render)
-            applyRenderSettings(params.render);
+            root.applyRenderSettings(params.render);
     }
 
     // -----------------------------------------------------------------
     // Legacy compatibility shims (update* aliases)
     // -----------------------------------------------------------------
     function updateGeometry(params) {
-        applyGeometryUpdates(params);
+        root.applyGeometryUpdates(params)
     }
 
     function updateAnimation(params) {
-        applyAnimationUpdates(params);
+        root.applyAnimationUpdates(params)
     }
 
     function updateLighting(params) {
-        applyLightingUpdates(params);
+        root.applyLightingUpdates(params)
     }
 
     function updateMaterials(params) {
-        applyMaterialUpdates(params);
+        root.applyMaterialUpdates(params)
     }
 
     function updateEnvironment(params) {
-        applyEnvironmentUpdates(params);
+        root.applyEnvironmentUpdates(params)
     }
 
     function updateQuality(params) {
-        applyQualityUpdates(params);
+        root.applyQualityUpdates(params)
     }
 
     function updateCamera(params) {
-        applyCameraUpdates(params);
+        root.applyCameraUpdates(params)
     }
 
     function updateEffects(params) {
-        applyEffectsUpdates(params);
+        root.applyEffectsUpdates(params)
     }
 }
 
