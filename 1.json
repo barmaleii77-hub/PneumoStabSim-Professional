@@ -20,7 +20,6 @@
   "ibl_enabled": true,
   "ibl_intensity": 1.5,
   "ibl_source": "../hdr/studio.hdr",
-  "ibl_fallback": "assets/studio_small_09_2k.hdr",
   "antialiasing": 2,
   "aa_quality": 2,
   "shadows_enabled": true,

@@ -2,3 +2,4 @@ tests/quality/test_sample_vector.py
 tests/unit/physics/test_forces.py
 tests/unit/physics/test_physics_loop.py
 tests/unit/physics/test_gas_network.py
+tests/unit/pneumo/test_diagonal_linking.py

@@ -54,6 +54,68 @@ class SignalsRouter:
     }
     _CAMERA_FLOAT_TOLERANCE = 1e-5
     _CAMERA_COMMAND_KEYS = {"center_camera"}
+    _HDR_SOURCE_KEYS = (
+        "ibl_source",
+        "iblSource",
+        "ibl_primary",
+        "iblPrimary",
+        "hdr_source",
+        "hdrSource",
+    )
+
+    @staticmethod
+    def _normalise_environment_payload(
+        window: "MainWindow",
+        params: Dict[str, Any],
+        env_payload: Dict[str, Any],
+    ) -> Dict[str, Any]:
+        """Ensure HDR sources are normalised before dispatching to QML.
+
+        The UI may report the selected HDRI through several legacy keys. We
+        normalise the value using :meth:`MainWindow.normalizeHdrPath` (when
+        available) so that both QML and the persisted settings share the same
+        canonical representation.
+        """
+
+        source_key: str | None = None
+        for candidate in SignalsRouter._HDR_SOURCE_KEYS:
+            if candidate in params:
+                source_key = candidate
+                break
+
+        if source_key is None:
+            return env_payload
+
+        raw_value = params.get(source_key)
+        text_value = "" if raw_value is None else str(raw_value)
+        stripped_value = text_value.strip()
+        normalised_value = stripped_value
+
+        if stripped_value:
+            if hasattr(window, "normalizeHdrPath"):
+                try:
+                    candidate_value = window.normalizeHdrPath(stripped_value)
+                    normalised_value = str(candidate_value).strip() or ""
+                except Exception:  # pragma: no cover - logged for diagnostics
+                    logger = getattr(window, "logger", SignalsRouter.logger)
+                    logger.warning(
+                        "Failed to normalise HDR path '%s'",
+                        stripped_value,
+                        exc_info=True,
+                    )
+            else:
+                normalised_value = stripped_value
+        else:
+            normalised_value = ""
+
+        for candidate in SignalsRouter._HDR_SOURCE_KEYS:
+            if candidate in params:
+                params[candidate] = normalised_value
+
+        updated_payload = dict(env_payload)
+        updated_payload["ibl_source"] = normalised_value
+        updated_payload["iblSource"] = normalised_value
+        return updated_payload
 
     @staticmethod
     def _sanitize_camera_payload(payload: Mapping[str, Any]) -> Dict[str, Any]:
@@ -564,6 +626,10 @@ class SignalsRouter:
         env_payload = {k: v for k, v in params.items() if k not in reflection_keys}
         if not env_payload:
             env_payload = dict(params)
+
+        env_payload = SignalsRouter._normalise_environment_payload(
+            window, params, env_payload
+        )
 
         if not QMLBridge.invoke_qml_function(
             window, "applyEnvironmentUpdates", env_payload

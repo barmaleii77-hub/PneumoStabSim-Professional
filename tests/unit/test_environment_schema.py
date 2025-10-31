@@ -204,7 +204,6 @@ def test_environment_validation_accepts_validations_payload():
         "probe_horizon": 0.0,
         "ibl_rotation": 45.0,
         "ibl_source": "hdr/example.exr",
-        "ibl_fallback": "",
         "skybox_blur": 0.5,
         "ibl_offset_x": 5.0,
         "ibl_offset_y": -5.0,

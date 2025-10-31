@@ -6,7 +6,7 @@ Manages interconnections between lines, receiver, and atmosphere
 import logging
 from dataclasses import dataclass
 from typing import Dict, Optional
-from .enums import Line, Port, ThermoMode
+from .enums import Line, ThermoMode
 from .gas_state import (
     LineGasState,
     TankGasState,
@@ -48,25 +48,8 @@ class GasNetwork:
         Returns:
             Dictionary mapping Line to total volume (m?)
         """
-        volumes = {}
-
-        for line_name, line in self.system_ref.lines.items():
-            total_volume = 0.0
-
-            # Sum volumes from both endpoints of the line
-            for wheel, port in line.endpoints:
-                cylinder = self.system_ref.cylinders[wheel]
-
-                if port == Port.HEAD:
-                    volume = cylinder.vol_head()
-                else:  # Port.ROD
-                    volume = cylinder.vol_rod()
-
-                total_volume += volume
-
-            volumes[line_name] = total_volume
-
-        return volumes
+        system_volumes = self.system_ref.get_line_volumes()
+        return {name: data["total_volume"] for name, data in system_volumes.items()}
 
     def update_pressures_due_to_volume(self, thermo_mode: ThermoMode):
         """Update line pressures due to volume changes from kinematics

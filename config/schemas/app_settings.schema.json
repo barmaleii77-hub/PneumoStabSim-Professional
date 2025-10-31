@@ -631,9 +631,6 @@
                 "ibl_source": {
                   "type": "string"
                 },
-                "ibl_fallback": {
-                  "type": "string"
-                },
                 "skybox_blur": {
                   "type": "number"
                 },
@@ -723,7 +720,6 @@
                 "probe_horizon",
                 "ibl_rotation",
                 "ibl_source",
-                "ibl_fallback",
                 "skybox_blur",
                 "ibl_offset_x",
                 "ibl_offset_y",

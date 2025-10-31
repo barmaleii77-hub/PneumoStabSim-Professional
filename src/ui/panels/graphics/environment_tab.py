@@ -19,7 +19,7 @@ from PySide6.QtWidgets import (
     QHBoxLayout,
     QGridLayout,
 )
-from PySide6.QtCore import Signal
+from PySide6.QtCore import Signal, Qt
 from pathlib import Path
 from typing import Dict, Any, List, Tuple
 
@@ -161,24 +161,22 @@ class EnvironmentTab(QWidget):
         # HDR file (primary)
         grid.addWidget(QLabel("HDR окружение", self), row, 0)
         hdr_selector = FileCyclerWidget(self)
+        hdr_selector.set_allow_empty_selection(True, label="—")
         hdr_selector.set_items(self._hdr_items)
         hdr_selector.currentChanged.connect(
             lambda path: self._on_hdr_source_changed(path)
         )
         self._controls["ibl.file"] = hdr_selector
         grid.addWidget(hdr_selector, row, 1)
-        row += 1
 
-        # HDR fallback file
-        grid.addWidget(QLabel("HDR fallback", self), row, 0)
-        fallback_selector = FileCyclerWidget(self)
-        fallback_selector.set_items(self._hdr_items)
-        fallback_selector.set_current_data(None, emit=False)
-        fallback_selector.currentChanged.connect(
-            lambda path: self._on_hdr_fallback_changed(path)
+        hdr_status = QLabel("—", self)
+        hdr_status.setObjectName("environmentHdrStatus")
+        hdr_status.setAlignment(
+            Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignLeft
         )
-        self._controls["ibl.fallback"] = fallback_selector
-        grid.addWidget(fallback_selector, row, 1)
+        hdr_status.setMinimumWidth(80)
+        self._controls["ibl.status_label"] = hdr_status
+        grid.addWidget(hdr_status, row, 2)
         row += 1
 
         # IBL rotation
@@ -332,11 +330,15 @@ class EnvironmentTab(QWidget):
 
     def _on_hdr_source_changed(self, raw_path: str) -> None:
         path = self._normalize_ibl_path(raw_path)
+        self._refresh_hdr_status(path)
         self._on_control_changed("ibl_source", path)
 
-    def _on_hdr_fallback_changed(self, raw_path: str) -> None:
-        path = self._normalize_ibl_path(raw_path)
-        self._on_control_changed("ibl_fallback", path)
+    def _refresh_hdr_status(self, path: str) -> None:
+        widget = self._controls.get("ibl.status_label")
+        if isinstance(widget, QLabel):
+            label = Path(path).name if path else "—"
+            widget.setText(label or "—")
+            widget.setToolTip(path or "")
 
     def _build_fog_group(self) -> QGroupBox:
         """Создать группу Туман - расширенная (Fog Qt 6.10)"""
@@ -578,9 +580,6 @@ class EnvironmentTab(QWidget):
             "ibl_source": self._normalize_ibl_path(
                 self._require_control("ibl.file").current_path()
             ),
-            "ibl_fallback": self._normalize_ibl_path(
-                self._require_control("ibl.fallback").current_path()
-            ),
             "skybox_blur": self._require_control("skybox.blur").value(),
             "ibl_offset_x": self._require_control("ibl.offset_x").value(),
             "ibl_offset_y": self._require_control("ibl.offset_y").value(),
@@ -654,15 +653,8 @@ class EnvironmentTab(QWidget):
             self._require_control("ibl.rotation").set_value(validated["ibl_rotation"])
             hdr_widget: FileCyclerWidget = self._require_control("ibl.file")
             hdr_widget.set_current_data(validated["ibl_source"], emit=False)
-            if not hdr_widget.current_path() and hdr_widget.first_path():
-                hdr_widget.set_current_data(hdr_widget.first_path(), emit=False)
-                validated["ibl_source"] = hdr_widget.current_path()
-            else:
-                validated["ibl_source"] = hdr_widget.current_path()
-
-            fallback_widget: FileCyclerWidget = self._require_control("ibl.fallback")
-            fallback_widget.set_current_data(validated["ibl_fallback"], emit=False)
-            validated["ibl_fallback"] = fallback_widget.current_path()
+            validated["ibl_source"] = hdr_widget.current_path()
+            self._refresh_hdr_status(validated["ibl_source"])
             self._require_control("skybox.blur").set_value(validated["skybox_blur"])
             self._require_control("ibl.offset_x").set_value(validated["ibl_offset_x"])
             self._require_control("ibl.offset_y").set_value(validated["ibl_offset_y"])

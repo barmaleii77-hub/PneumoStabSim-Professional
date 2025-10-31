@@ -263,6 +263,7 @@ class FileCyclerWidget(QWidget):
         self._items: list[tuple[str, str]] = []
         self._index: int = -1
         self._custom_entry: tuple[str, str] | None = None
+        self._allow_empty_selection = False
 
         layout = QHBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
@@ -291,6 +292,23 @@ class FileCyclerWidget(QWidget):
     # ------------------------------------------------------------------
     # Public API
     # ------------------------------------------------------------------
+    def set_allow_empty_selection(
+        self, allow: bool, *, label: str | None = None
+    ) -> None:
+        """Allow cycling to an explicit "no selection" entry."""
+
+        if self._allow_empty_selection == allow and label is None:
+            return
+
+        self._allow_empty_selection = allow
+        if label is not None:
+            self._placeholder = label
+
+        if not allow and self._index == -1 and self._custom_entry is None:
+            if self._items:
+                self._index = 0
+        self._update_ui(emit=False)
+
     def set_items(self, items: list[tuple[str, str]]) -> None:
         """Задать коллекцию доступных файлов.
 
@@ -317,6 +335,10 @@ class FileCyclerWidget(QWidget):
 
         if previous_path:
             self.set_current_data(previous_path, emit=False)
+        elif self._allow_empty_selection:
+            self._index = -1
+            self._custom_entry = None
+            self._update_ui(emit=False)
         elif self._items:
             self._index = 0
             self._custom_entry = None
@@ -332,7 +354,13 @@ class FileCyclerWidget(QWidget):
 
         normalised = str(path).strip().replace("\\", "/") if path else ""
         if not normalised:
-            changed = self._index != -1 or self._custom_entry is not None
+            # Исправленная логика: изменяем только если состояние действительно изменилось,
+            # либо если запрещено пустое выделение и мы пытаемся перейти в пустое состояние
+            changed = (
+                self._index != -1
+                or self._custom_entry is not None
+                or (not self._allow_empty_selection and (self._index == -1 and self._custom_entry is None))
+            )
             self._index = -1
             self._custom_entry = None
             self._update_ui(emit=emit and changed)
@@ -383,6 +411,8 @@ class FileCyclerWidget(QWidget):
             return self._items[self._index]
         if self._custom_entry is not None:
             return self._custom_entry
+        if self._allow_empty_selection:
+            return (self._placeholder, "")
         return None
 
     def _update_ui(self, *, emit: bool) -> None:
@@ -394,11 +424,12 @@ class FileCyclerWidget(QWidget):
             path = ""
             self._label.setText(self._placeholder)
 
-        multi = len(self._items) > 1
-        any_items = bool(self._items)
-        enable_buttons = self.isEnabled() and (
-            multi or (any_items and self._custom_entry is not None)
-        )
+        available_states = len(self._items)
+        if self._allow_empty_selection:
+            available_states += 1
+        if self._custom_entry is not None:
+            available_states += 1
+        enable_buttons = self.isEnabled() and available_states > 1
         self._prev_btn.setEnabled(enable_buttons)
         self._next_btn.setEnabled(enable_buttons)
 
@@ -406,21 +437,49 @@ class FileCyclerWidget(QWidget):
             self.currentChanged.emit(path)
 
     def _show_previous(self) -> None:
-        if not self._items:
-            return
         if self._custom_entry is not None:
-            self._index = len(self._items) - 1
+            if self._items:
+                self._index = len(self._items) - 1
+            elif self._allow_empty_selection:
+                self._index = -1
             self._custom_entry = None
+            self._update_ui(emit=True)
+            return
+
+        if not self._items:
+            if self._allow_empty_selection and self._index != -1:
+                self._index = -1
+                self._update_ui(emit=True)
+            return
+
+        if self._index == -1:
+            self._index = len(self._items) - 1
+        elif self._index == 0 and self._allow_empty_selection:
+            self._index = -1
         else:
             self._index = (self._index - 1) % len(self._items)
         self._update_ui(emit=True)
 
     def _show_next(self) -> None:
-        if not self._items:
-            return
         if self._custom_entry is not None:
-            self._index = 0
+            if self._items:
+                self._index = 0
+            elif self._allow_empty_selection:
+                self._index = -1
             self._custom_entry = None
+            self._update_ui(emit=True)
+            return
+
+        if not self._items:
+            if self._allow_empty_selection and self._index != -1:
+                self._index = -1
+                self._update_ui(emit=True)
+            return
+
+        if self._index == -1:
+            self._index = 0
+        elif self._index == len(self._items) - 1 and self._allow_empty_selection:
+            self._index = -1
         else:
             self._index = (self._index + 1) % len(self._items)
         self._update_ui(emit=True)

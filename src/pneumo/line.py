@@ -4,10 +4,14 @@ Connects cylinders with valve control
 """
 
 from dataclasses import dataclass
-from typing import Tuple
+from typing import Dict, Mapping, Tuple
+
+from src.common.errors import ConnectionError
+
+from .cylinder import CylinderState
 from .enums import Line, Wheel, Port
-from .valves import CheckValve
 from .types import ValidationResult
+from .valves import CheckValve
 
 
 @dataclass
@@ -59,6 +63,38 @@ class PneumoLine:
         """Get human-readable connection description"""
         (wheel1, port1), (wheel2, port2) = self.endpoints
         return f"{wheel1.value}:{port1.value} <-> {wheel2.value}:{port2.value}"
+
+    def compute_total_volume(
+        self, cylinders: Mapping[Wheel, CylinderState]
+    ) -> Tuple[float, list[Dict[str, float]]]:
+        """Return the combined volume of the diagonal pair linked by the line."""
+
+        total_volume = 0.0
+        contributions: list[Dict[str, float]] = []
+
+        for wheel, port in self.endpoints:
+            try:
+                cylinder = cylinders[wheel]
+            except KeyError as exc:  # pragma: no cover - guarded by validation
+                raise ConnectionError(
+                    f"Cylinder for wheel {wheel.value} is not registered in the system"
+                ) from exc
+
+            if port == Port.HEAD:
+                volume = float(cylinder.vol_head())
+            else:
+                volume = float(cylinder.vol_rod())
+
+            total_volume += volume
+            contributions.append(
+                {
+                    "wheel": wheel.value,
+                    "port": port.value,
+                    "volume": volume,
+                }
+            )
+
+        return total_volume, contributions
 
     def is_diagonal_connection(self) -> bool:
         """Check if this line represents a diagonal connection
