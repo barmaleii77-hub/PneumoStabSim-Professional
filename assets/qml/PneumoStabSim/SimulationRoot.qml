@@ -1,3 +1,4 @@
+import QtQml 6.10
 import QtQuick 6.10
 import QtQuick.Controls 6.10
 import QtQuick.Layouts 6.10
@@ -100,6 +101,29 @@ signal animationToggled(bool running)
  spot: {},
  global: {}
  })
+
+ QtObject {
+  id: lightingAccess
+  function value(group, key, fallback) {
+   var groupState = root.lightingState && root.lightingState[group];
+   if (groupState && groupState[key] !== undefined)
+    return groupState[key];
+   return fallback;
+  }
+  function globalValue(key, fallback) {
+   var globalState = root.lightingState && root.lightingState.global;
+   if (!globalState)
+    return fallback;
+   if (globalState[key] !== undefined)
+    return globalState[key];
+   var alt = key.indexOf("_") >= 0
+    ? key.replace(/_([a-z])/g, function(_, ch) { return ch.toUpperCase(); })
+    : key.replace(/[A-Z]/g, function(ch) { return "_" + ch.toLowerCase(); });
+   if (globalState[alt] !== undefined)
+    return globalState[alt];
+   return fallback;
+  }
+ }
 
  property var geometryState: ({
  frameLength: userFrameLength,
@@ -675,68 +699,68 @@ SequentialAnimation {
  id: directionalLights
  worldRoot: worldRoot
  cameraRig: cameraController.rig
-    shadowsEnabled: !!root.lightingGlobal("shadows_enabled", root.lightingGlobal("shadowsEnabled", true))
+    shadowsEnabled: !!lightingAccess.globalValue("shadows_enabled", lightingAccess.globalValue("shadowsEnabled", true))
     shadowResolution: {
-        var raw = root.lightingGlobal(
+        var raw = lightingAccess.globalValue(
                     "shadow_resolution",
-                    root.lightingGlobal("shadowResolution", 4096)
+                    lightingAccess.globalValue("shadowResolution", 4096)
                 )
         var numeric = Number(raw)
         return isFinite(numeric) ? Math.round(numeric) : 4096
     }
- shadowFilterSamples: Number(root.lightingGlobal("shadow_filter_samples", root.lightingGlobal("shadowFilterSamples",32)))
- shadowBias: Number(root.lightingGlobal("shadow_bias", root.lightingGlobal("shadowBias",8.0)))
- shadowFactor: Number(root.lightingGlobal("shadow_factor", root.lightingGlobal("shadowFactor",80.0)))
+ shadowFilterSamples: Number(lightingAccess.globalValue("shadow_filter_samples", lightingAccess.globalValue("shadowFilterSamples",32)))
+ shadowBias: Number(lightingAccess.globalValue("shadow_bias", lightingAccess.globalValue("shadowBias",8.0)))
+ shadowFactor: Number(lightingAccess.globalValue("shadow_factor", lightingAccess.globalValue("shadowFactor",80.0)))
 
- keyLightBrightness: Number(root.lightingValue("key", "brightness",1.0))
- keyLightColor: root.lightingValue("key", "color", "#ffffff")
- keyLightAngleX: Number(root.lightingValue("key", "angle_x", 25.0))
- keyLightAngleY: Number(root.lightingValue("key", "angle_y", 23.5))
- keyLightAngleZ: Number(root.lightingValue("key", "angle_z",0.0))
- keyLightCastsShadow: !!root.lightingValue("key", "cast_shadow", true)
- keyLightBindToCamera: !!root.lightingValue("key", "bind_to_camera", false)
- keyLightPosX: Number(root.lightingValue("key", "position_x",0))
- keyLightPosY: Number(root.lightingValue("key", "position_y",0))
- keyLightPosZ: Number(root.lightingValue("key", "position_z",0))
+ keyLightBrightness: Number(lightingAccess.value("key", "brightness",1.0))
+ keyLightColor: lightingAccess.value("key", "color", "#ffffff")
+ keyLightAngleX: Number(lightingAccess.value("key", "angle_x", 25.0))
+ keyLightAngleY: Number(lightingAccess.value("key", "angle_y", 23.5))
+ keyLightAngleZ: Number(lightingAccess.value("key", "angle_z",0.0))
+ keyLightCastsShadow: !!lightingAccess.value("key", "cast_shadow", true)
+ keyLightBindToCamera: !!lightingAccess.value("key", "bind_to_camera", false)
+ keyLightPosX: Number(lightingAccess.value("key", "position_x",0))
+ keyLightPosY: Number(lightingAccess.value("key", "position_y",0))
+ keyLightPosZ: Number(lightingAccess.value("key", "position_z",0))
 
- fillLightBrightness: Number(root.lightingValue("fill", "brightness",1.0))
- fillLightColor: root.lightingValue("fill", "color", "#f1f4ff")
- fillLightAngleX: Number(root.lightingValue("fill", "angle_x", 0.0))
- fillLightAngleY: Number(root.lightingValue("fill", "angle_y", -45.0))
- fillLightAngleZ: Number(root.lightingValue("fill", "angle_z",0.0))
- fillLightCastsShadow: !!root.lightingValue("fill", "cast_shadow", false)
- fillLightBindToCamera: !!root.lightingValue("fill", "bind_to_camera", false)
- fillLightPosX: Number(root.lightingValue("fill", "position_x",0))
- fillLightPosY: Number(root.lightingValue("fill", "position_y",0))
- fillLightPosZ: Number(root.lightingValue("fill", "position_z",0))
+ fillLightBrightness: Number(lightingAccess.value("fill", "brightness",1.0))
+ fillLightColor: lightingAccess.value("fill", "color", "#f1f4ff")
+ fillLightAngleX: Number(lightingAccess.value("fill", "angle_x", 0.0))
+ fillLightAngleY: Number(lightingAccess.value("fill", "angle_y", -45.0))
+ fillLightAngleZ: Number(lightingAccess.value("fill", "angle_z",0.0))
+ fillLightCastsShadow: !!lightingAccess.value("fill", "cast_shadow", false)
+ fillLightBindToCamera: !!lightingAccess.value("fill", "bind_to_camera", false)
+ fillLightPosX: Number(lightingAccess.value("fill", "position_x",0))
+ fillLightPosY: Number(lightingAccess.value("fill", "position_y",0))
+ fillLightPosZ: Number(lightingAccess.value("fill", "position_z",0))
 
- rimLightBrightness: Number(root.lightingValue("rim", "brightness",1.1))
- rimLightColor: root.lightingValue("rim", "color", "#ffe1bd")
- rimLightAngleX: Number(root.lightingValue("rim", "angle_x",30.0))
- rimLightAngleY: Number(root.lightingValue("rim", "angle_y",-135.0))
- rimLightAngleZ: Number(root.lightingValue("rim", "angle_z",0.0))
- rimLightCastsShadow: !!root.lightingValue("rim", "cast_shadow", false)
- rimLightBindToCamera: !!root.lightingValue("rim", "bind_to_camera", false)
- rimLightPosX: Number(root.lightingValue("rim", "position_x",0))
- rimLightPosY: Number(root.lightingValue("rim", "position_y",0))
- rimLightPosZ: Number(root.lightingValue("rim", "position_z",0))
+ rimLightBrightness: Number(lightingAccess.value("rim", "brightness",1.1))
+ rimLightColor: lightingAccess.value("rim", "color", "#ffe1bd")
+ rimLightAngleX: Number(lightingAccess.value("rim", "angle_x",30.0))
+ rimLightAngleY: Number(lightingAccess.value("rim", "angle_y",-135.0))
+ rimLightAngleZ: Number(lightingAccess.value("rim", "angle_z",0.0))
+ rimLightCastsShadow: !!lightingAccess.value("rim", "cast_shadow", false)
+ rimLightBindToCamera: !!lightingAccess.value("rim", "bind_to_camera", false)
+ rimLightPosX: Number(lightingAccess.value("rim", "position_x",0))
+ rimLightPosY: Number(lightingAccess.value("rim", "position_y",0))
+ rimLightPosZ: Number(lightingAccess.value("rim", "position_z",0))
  }
 
  PointLights {
  id: pointLights
  worldRoot: worldRoot
  cameraRig: cameraController.rig
- pointLightBrightness: Number(root.lightingValue("point", "brightness",50.0))
- pointLightColor: root.lightingValue("point", "color", "#fff7e0")
- pointLightX: Number(root.lightingValue("point", "position_x",0.0))
- pointLightY: Number(root.lightingValue("point", "position_y",2.6))
- pointLightZ: Number(root.lightingValue("point", "position_z",1.5))
- pointLightRange: Number(root.lightingValue("point", "range",3.6))
- constantFade: Number(root.lightingValue("point", "constant_fade",1.0))
- linearFade: Number(root.lightingValue("point", "linear_fade",0.01))
- quadraticFade: Number(root.lightingValue("point", "quadratic_fade",1.0))
- pointLightCastsShadow: !!root.lightingValue("point", "cast_shadow", false)
- pointLightBindToCamera: !!root.lightingValue("point", "bind_to_camera", false)
+ pointLightBrightness: Number(lightingAccess.value("point", "brightness",50.0))
+ pointLightColor: lightingAccess.value("point", "color", "#fff7e0")
+ pointLightX: Number(lightingAccess.value("point", "position_x",0.0))
+ pointLightY: Number(lightingAccess.value("point", "position_y",2.6))
+ pointLightZ: Number(lightingAccess.value("point", "position_z",1.5))
+ pointLightRange: Number(lightingAccess.value("point", "range",3.6))
+ constantFade: Number(lightingAccess.value("point", "constant_fade",1.0))
+ linearFade: Number(lightingAccess.value("point", "linear_fade",0.01))
+ quadraticFade: Number(lightingAccess.value("point", "quadratic_fade",1.0))
+ pointLightCastsShadow: !!lightingAccess.value("point", "cast_shadow", false)
+ pointLightBindToCamera: !!lightingAccess.value("point", "bind_to_camera", false)
  }
 
  Scene.SuspensionAssembly {
@@ -925,7 +949,7 @@ Binding {
  return
 
  if (sceneBridge.geometry && Object.keys(sceneBridge.geometry).length)
-            root.applyGeometryUpdates(sceneBridge.geometry)
+            applyGeometryUpdatesInternal(sceneBridge.geometry)
  if (sceneBridge.camera && Object.keys(sceneBridge.camera).length)
  root.applyCameraUpdates(sceneBridge.camera)
  if (sceneBridge.lighting && Object.keys(sceneBridge.lighting).length)
@@ -1026,7 +1050,7 @@ Rectangle {
     function onGeometryChanged(payload) {
         if (!payload)
             return
-        root.applyGeometryUpdates(payload)
+        applyGeometryUpdatesInternal(payload)
     }
  function onCameraChanged(payload) {
      if (!payload)
@@ -1128,7 +1152,7 @@ Rectangle {
    applySignalTraceSettings(diagnosticsDefaults.signal_trace)
   }
   if (geometryDefaults && Object.keys(geometryDefaults).length) {
-        root.applyGeometryUpdates(geometryDefaults)
+        applyGeometryUpdatesInternal(geometryDefaults)
   }
   applySceneBridgeState()
  }
@@ -1523,27 +1547,14 @@ function sanitizeReflectionProbePadding(value) {
  }
 
  function lightingValue(group, key, fallback) {
- var state = lightingState && lightingState[group];
- if (state && state[key] !== undefined)
- return state[key];
- return fallback;
+ return lightingAccess.value(group, key, fallback);
  }
 
  function lightingGlobal(key, fallback) {
- var state = lightingState && lightingState.global;
- if (state) {
- if (state[key] !== undefined)
- return state[key];
- var alt = key.indexOf("_") >=0
- ? key.replace(/_([a-z])/g, function(_, ch) { return ch.toUpperCase(); })
- : key.replace(/[A-Z]/g, function(ch) { return "_" + ch.toLowerCase(); });
- if (state[alt] !== undefined)
- return state[alt];
- }
- return fallback;
+ return lightingAccess.globalValue(key, fallback);
  }
 
-    // ---------------------------------------------
+// ---------------------------------------------
     // Применение батч-обновлений из Python
     // ---------------------------------------------
     Connections {
@@ -1565,7 +1576,7 @@ function sanitizeReflectionProbePadding(value) {
  return;
  var applied = {};
     if (updates.geometry) {
-        root.applyGeometryUpdates(updates.geometry)
+        applyGeometryUpdatesInternal(updates.geometry)
         applied.geometry = true
     }
  if (updates.camera) { root.applyCameraUpdates(updates.camera); applied.camera = true; }
@@ -1585,7 +1596,7 @@ function sanitizeReflectionProbePadding(value) {
  // ---------------------------------------------
  // Реализации apply*Updates (минимально: geometry, camera, lighting, environment, quality, materials, effects, animation,3d)
  // ---------------------------------------------
- function applyGeometryUpdates(params) {
+ function applyGeometryUpdatesInternal(params) {
  if (!params) return;
  function pick(obj, keys, def) {
  for (var i =0; i < keys.length; i++) if (obj[keys[i]] !== undefined) return obj[keys[i]];
@@ -1653,6 +1664,9 @@ function sanitizeReflectionProbePadding(value) {
     }
 }
 
+ function applyGeometryUpdates(params) {
+  return applyGeometryUpdatesInternal(params);
+ }
  function applyCameraUpdates(params) {
  if (!params)
   return;
@@ -2712,7 +2726,7 @@ function apply3DUpdates(params) {
     // Legacy compatibility shims (update* aliases)
     // -----------------------------------------------------------------
     function updateGeometry(params) {
-        root.applyGeometryUpdates(params)
+        applyGeometryUpdatesInternal(params)
     }
 
     function updateAnimation(params) {
