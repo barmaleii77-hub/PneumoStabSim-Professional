@@ -5,15 +5,25 @@ Supports timeseries and snapshot export with optional gzip compression
 
 import csv
 import gzip
+from importlib import util
 from pathlib import Path
-from typing import Any, Iterable, Mapping, Sequence
+from typing import TYPE_CHECKING, Any, Iterable, Mapping, Sequence
 
-import numpy as np
+np: Any
+_NUMPY_AVAILABLE = util.find_spec("numpy") is not None
+
+if TYPE_CHECKING:
+    import numpy as np
+
+if _NUMPY_AVAILABLE:  # pragma: no branch - executed only when numpy is installed
+    import numpy as np
+else:  # pragma: no cover - behaviour depends on optional dependency
+    np = None
 
 
 def export_timeseries_csv(
-    time: np.ndarray,
-    series: Mapping[str, np.ndarray],
+    time: Sequence[float],
+    series: Mapping[str, Sequence[float]],
     path: Path,
     header: Sequence[str],
 ) -> None:
@@ -53,28 +63,36 @@ def export_timeseries_csv(
 
     # Method 1: Using numpy.savetxt (preferred for numeric data)
     if _can_use_numpy_savetxt(series):
-        _export_with_numpy(time, series, path, header, use_gzip)
+        _export_with_numpy(time, series, path, header)
     else:
         # Method 2: Using csv.writer (fallback)
         _export_with_csv_writer(time, series, path, header, use_gzip)
 
 
-def _can_use_numpy_savetxt(series: Mapping[str, np.ndarray]) -> bool:
-    """Check if all series are numeric (suitable for numpy.savetxt)"""
+def _can_use_numpy_savetxt(series: Mapping[str, Sequence[float]]) -> bool:
+    """Check if all series are numeric (suitable for numpy.savetxt)."""
+
+    if not _NUMPY_AVAILABLE or np is None:
+        return False
+
     for data in series.values():
+        if not hasattr(data, "dtype"):
+            return False
         if not np.issubdtype(data.dtype, np.number):
             return False
     return True
 
 
 def _export_with_numpy(
-    time: np.ndarray,
-    series: Mapping[str, np.ndarray],
+    time: Sequence[float],
+    series: Mapping[str, Sequence[float]],
     path: Path,
     header: Sequence[str],
-    use_gzip: bool,
 ) -> None:
     """Export using numpy.savetxt (efficient for numeric data)"""
+    if not _NUMPY_AVAILABLE or np is None:
+        raise RuntimeError("NumPy is required for numpy-based CSV export")
+
     # Stack columns
     columns = [time] + [series[name] for name in header[1:]]
     data = np.column_stack(columns)
@@ -95,8 +113,8 @@ def _export_with_numpy(
 
 
 def _export_with_csv_writer(
-    time: np.ndarray,
-    series: Mapping[str, np.ndarray],
+    time: Sequence[float],
+    series: Mapping[str, Sequence[float]],
     path: Path,
     header: Sequence[str],
     use_gzip: bool,
