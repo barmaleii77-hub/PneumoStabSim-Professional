@@ -63,7 +63,7 @@ def export_timeseries_csv(
 
     # Method 1: Using numpy.savetxt (preferred for numeric data)
     if _can_use_numpy_savetxt(series):
-        _export_with_numpy(time, series, path, header)
+        _export_with_numpy(time, series, path, header, use_gzip)
     else:
         # Method 2: Using csv.writer (fallback)
         _export_with_csv_writer(time, series, path, header, use_gzip)
@@ -88,8 +88,24 @@ def _export_with_numpy(
     series: Mapping[str, Sequence[float]],
     path: Path,
     header: Sequence[str],
+    use_gzip: bool,
 ) -> None:
-    """Export using numpy.savetxt (efficient for numeric data)"""
+    """Export using numpy.savetxt (efficient for numeric data)
+    
+    Args:
+        time: Time array
+        series: Data series mapping
+        path: Output file path
+        header: Column headers
+        use_gzip: Whether gzip compression is needed (informational - 
+                  numpy.savetxt automatically detects .gz extension)
+    
+    Note:
+        The use_gzip parameter is provided for API consistency with 
+        _export_with_csv_writer(). numpy.savetxt automatically handles
+        gzip compression when the path ends with .gz, so this parameter
+        is not explicitly used in the implementation.
+    """
     if not _NUMPY_AVAILABLE or np is None:
         raise RuntimeError("NumPy is required for numpy-based CSV export")
 
@@ -100,7 +116,7 @@ def _export_with_numpy(
     # Prepare header
     header_str = ",".join(header)
 
-    # Save (numpy automatically handles .gz)
+    # Save (numpy automatically handles .gz based on path extension)
     np.savetxt(
         path,
         data,
