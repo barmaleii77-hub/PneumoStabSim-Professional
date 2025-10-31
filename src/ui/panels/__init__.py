@@ -20,7 +20,7 @@ import inspect
 import sys
 from importlib import import_module
 from types import ModuleType
-from typing import TYPE_CHECKING, Any, Dict
+from typing import TYPE_CHECKING, Any
 
 __all__ = ["GeometryPanel", "PneumoPanel", "ModesPanel", "RoadPanel", "GraphicsPanel"]
 
