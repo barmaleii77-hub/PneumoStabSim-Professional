@@ -361,7 +361,7 @@ class FileCyclerWidget(QWidget):
                 or self._custom_entry is not None
                 or (
                     not self._allow_empty_selection
-                    and (self._index == -1 and self._custom_entry is None)
+                    and self._index == -1 and self._custom_entry is None
                 )
             )
             self._index = -1
