@@ -50,6 +50,8 @@ def _collect_inspect_unwrap_codes() -> set[CodeType]:
     if unwrap is not None and hasattr(unwrap, "__code__"):
         return {unwrap.__code__}
     return set()
+
+
 _INSPECT_UNWRAP_CODES = _collect_inspect_unwrap_codes()
 
 

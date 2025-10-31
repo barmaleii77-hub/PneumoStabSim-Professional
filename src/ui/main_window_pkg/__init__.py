@@ -127,6 +127,8 @@ def _collect_inspect_unwrap_codes() -> set[CodeType]:
     if code is not None:
         return {code}
     return set()
+
+
 _INSPECT_UNWRAP_CODES = _collect_inspect_unwrap_codes()
 
 
