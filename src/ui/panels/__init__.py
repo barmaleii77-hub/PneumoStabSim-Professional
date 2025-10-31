@@ -76,9 +76,9 @@ def __getattr__(name: str) -> Any:
     """Lazily import panel classes on first access."""
 
     if name == "__wrapped__":
-        if _called_from_inspect_unwrap():
-            raise AttributeError(name)
-        return sys.modules[__name__]
+        module = sys.modules[__name__]
+        globals()[name] = module
+        return module
 
     try:
         module_name, attribute = _EXPORTS[name]
