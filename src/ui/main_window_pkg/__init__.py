@@ -18,6 +18,7 @@ from __future__ import annotations
 import inspect
 import sys
 from importlib import import_module, util
+from types import CodeType
 from typing import Any, Dict
 
 __all__ = [
@@ -115,16 +116,31 @@ def get_version_info() -> Dict[str, Any]:
     return info
 
 
+def _collect_inspect_unwrap_codes() -> set[CodeType]:
+    """Возвращает множество code-объектов функции ``inspect.unwrap``.
+
+    В стандартной библиотеке функция ``inspect.unwrap`` не декорирована,
+    поэтому возвращается только её code-объект.
+    """
+    unwrap = getattr(inspect, "unwrap", None)
+    code = getattr(unwrap, "__code__", None)
+    if code is not None:
+        return {code}
+    return set()
+_INSPECT_UNWRAP_CODES = _collect_inspect_unwrap_codes()
+
+
 def _called_from_inspect_unwrap() -> bool:
     """Return ``True`` when the caller is :func:`inspect.unwrap`."""
 
+    if not _INSPECT_UNWRAP_CODES:
+        return False
+
     frame = inspect.currentframe()
     try:
-        # Walk a few frames up the stack—``inspect.unwrap`` sits only a couple
-        # of levels above the module attribute access.
+        frame = frame.f_back
         while frame is not None:
-            module = inspect.getmodule(frame)
-            if module is inspect and frame.f_code.co_name == "unwrap":
+            if frame.f_code in _INSPECT_UNWRAP_CODES:
                 return True
             frame = frame.f_back
     finally:
