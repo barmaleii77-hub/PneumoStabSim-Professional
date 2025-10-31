@@ -122,25 +122,11 @@ class PneumaticSystem:
         line_volumes = {}
 
         for line_name, line in self.lines.items():
-            volumes = {"total_volume": 0.0, "endpoints": []}
-
-            for wheel, port in line.endpoints:
-                cylinder = self.cylinders[wheel]
-
-                if port == Port.HEAD:
-                    volume = cylinder.vol_head()
-                else:  # Port.ROD
-                    volume = cylinder.vol_rod()
-
-                volumes["total_volume"] += volume
-                endpoint = {
-                    "wheel": wheel.value,
-                    "port": port.value,
-                    "volume": volume,
-                }
-                volumes["endpoints"].append(endpoint)
-
-            line_volumes[line_name] = volumes
+            total_volume, contributions = line.compute_total_volume(self.cylinders)
+            line_volumes[line_name] = {
+                "total_volume": total_volume,
+                "endpoints": contributions,
+            }
 
         return line_volumes
 

@@ -137,7 +137,6 @@ ENVIRONMENT_PARAMETERS: Tuple[EnvironmentParameterDefinition, ...] = (
         "ibl_rotation", "float", min_value=-1080.0, max_value=1080.0
     ),
     EnvironmentParameterDefinition("ibl_source", "string", allow_empty_string=True),
-    EnvironmentParameterDefinition("ibl_fallback", "string", allow_empty_string=True),
     EnvironmentParameterDefinition(
         "skybox_blur", "float", min_value=0.0, max_value=1.0
     ),
@@ -228,7 +227,6 @@ ENVIRONMENT_CONTEXT_PROPERTIES: Dict[str, str] = {
     "reflection_time_slicing": "startReflectionTimeSlicing",
     "ibl_rotation": "startIblRotation",
     "ibl_source": "startIblSource",
-    "ibl_fallback": "startIblFallback",
     "skybox_blur": "startSkyboxBlur",
     "ibl_offset_x": "startIblOffsetX",
     "ibl_offset_y": "startIblOffsetY",

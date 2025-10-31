@@ -278,7 +278,6 @@ if (params.cylinder_rings !== undefined)
     "ibl_intensity": 1.3,
     "ibl_rotation": 0.0,               # NEW - no rotation by default
     "ibl_source": "../hdr/studio.hdr",
-    "ibl_fallback": "assets/studio_small_09_2k.hdr",
     "skybox_blur": 0.08,
     # ...
 }

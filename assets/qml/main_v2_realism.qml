@@ -87,7 +87,6 @@ Item {
     property real iblIntensity: 1.3     // === CHANGED: Better exposure
 
     property alias iblPrimarySource: iblLoader.primarySource
-    property alias iblFallbackSource: iblLoader.fallbackSource
     readonly property Texture iblProbeTexture: iblLoader.probe
     readonly property bool iblProbeReady: iblLoader.ready
 
@@ -607,24 +606,6 @@ property real tankPressure: 0.0
         if (primarySource !== undefined)
             iblPrimarySource = resolveIblUrl(primarySource)
 
-        var fallbackSource = _readFirstDefined(params, [
-            "ibl_fallback",
-            "iblFallback",
-            "ibl_secondary",
-            "iblSecondary",
-            "hdr_fallback",
-            "hdrFallback"
-        ])
-        if (params.ibl && typeof params.ibl === "object") {
-            var nestedFallback = _readFirstDefined(params.ibl, [
-                "fallback",
-                "secondary"
-            ])
-            if (nestedFallback !== undefined)
-                fallbackSource = nestedFallback
-        }
-        if (fallbackSource !== undefined)
-            iblFallbackSource = resolveIblUrl(fallbackSource)
     }
 
     function resolvedBackgroundMode() {

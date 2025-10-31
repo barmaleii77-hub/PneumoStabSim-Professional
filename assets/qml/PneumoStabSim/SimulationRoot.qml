@@ -1993,7 +1993,6 @@ function sanitizeReflectionProbePadding(value) {
      if (isFinite(numericBlur)) setIfExists(sceneEnvCtl, 'skyboxBlurValue', numericBlur);
  }
  if (params.iblPrimary || params.hdrSource || params.iblSource) { var src = params.iblPrimary || params.hdrSource || params.iblSource; if (typeof window !== 'undefined' && window && typeof window.normalizeHdrPath === 'function') { try { src = window.normalizeHdrPath(String(src)); } catch(e) { console.warn("HDR path normalization failed:", e); } } setIfExists(iblLoader, 'primarySource', src); }
- if (params.iblFallback) setIfExists(iblLoader, 'fallbackSource', params.iblFallback);
  if (params.tonemapEnabled !== undefined) {
      var tonemapEnabledFlag = !!params.tonemapEnabled;
      setIfExists(sceneEnvCtl, 'tonemapActive', tonemapEnabledFlag);

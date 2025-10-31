@@ -41,7 +41,6 @@ def fix_graphics_panel_fog_antialiasing():
             'ibl_enabled': self.current_graphics['ibl_enabled'],      # ✅ НОВОЕ: IBL
             'ibl_intensity': self.current_graphics['ibl_intensity'],  # ✅ НОВОЕ: IBL
             'ibl_source': self.current_graphics['ibl_source'],
-            'ibl_fallback': self.current_graphics['ibl_fallback'],
             'fog_enabled': self.current_graphics['fog_enabled'],
             'fog_color': self.current_graphics['fog_color'],
             'fog_density': self.current_graphics['fog_density']
@@ -59,7 +58,6 @@ def fix_graphics_panel_fog_antialiasing():
             'ibl_enabled': self.current_graphics['ibl_enabled'],      # ✅ НОВОЕ: IBL
             'ibl_intensity': self.current_graphics['ibl_intensity'],  # ✅ НОВОЕ: IBL
             'ibl_source': self.current_graphics['ibl_source'],
-            'ibl_fallback': self.current_graphics['ibl_fallback'],
             'fog_enabled': self.current_graphics['fog_enabled'],
             'fog_color': self.current_graphics['fog_color'],
             'fog_density': self.current_graphics['fog_density']
