@@ -139,6 +139,12 @@ ExtendedSceneEnvironment {
  property bool canUseDithering: false
  property real sceneScaleFactor:1.0
 
+    // Camera parameters required by custom fog shaders
+    property real cameraClipNear: 0.1
+    property real cameraClipFar: 10000.0
+    property real cameraFieldOfView: 60.0
+    property real cameraAspectRatio: 1.0
+
     function qtVersionAtLeast(requiredMajor, requiredMinor) {
         var versionString = "";
         if (Qt.application && Qt.application.qtVersion)
@@ -834,20 +840,24 @@ return
         depthCurve:1.0
     }
 
- readonly property FogEffect _customFogEffect: FogEffect {
- fogDensity: root.fogDensity
- fogColor: root.fogColor
- fogStartDistance: root.fogNear
- fogEndDistance: root.fogFar
- fogLeastIntenseY: root.fogLeastIntenseY
- fogMostIntenseY: root.fogMostIntenseY
- fogHeightCurve: root.fogHeightCurve
- heightBasedFog: root.fogHeightEnabled
- fogTransmitEnabled: root.fogTransmitEnabled
- fogTransmitCurve: root.fogTransmitCurve
- fogScattering: 0.5
- animatedFog: false
- }
+    readonly property FogEffect _customFogEffect: FogEffect {
+        fogDensity: root.fogDensity
+        fogColor: root.fogColor
+        fogStartDistance: root.fogNear
+        fogEndDistance: root.fogFar
+        fogLeastIntenseY: root.fogLeastIntenseY
+        fogMostIntenseY: root.fogMostIntenseY
+        fogHeightCurve: root.fogHeightCurve
+        heightBasedFog: root.fogHeightEnabled
+        fogTransmitEnabled: root.fogTransmitEnabled
+        fogTransmitCurve: root.fogTransmitCurve
+        fogScattering: 0.5
+        animatedFog: false
+        cameraClipNear: root.cameraClipNear
+        cameraClipFar: root.cameraClipFar
+        cameraFieldOfView: root.cameraFieldOfView
+        cameraAspectRatio: root.cameraAspectRatio
+    }
 
     effects: {
         var stack = []

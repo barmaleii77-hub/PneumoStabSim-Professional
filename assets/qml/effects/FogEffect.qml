@@ -28,173 +28,275 @@ Effect {
     property real animationSpeed: 0.1       // Скорость анимации
     property real time: 0.0                 // Время для анимации
 
-    // Шейдер тумана (uniform parameters configured directly inside shader for Qt 6.10 runtime)
-    passes: [
-        Pass {
-            shaders: [
-                Shader {
-                    id: fogVertexShader
-                    stage: Shader.Vertex
-                    shader: "
-                        #version 440
+    // Параметры камеры для реконструкции глубины
+    property real cameraClipNear: 0.1
+    property real cameraClipFar: 10000.0
+    property real cameraFieldOfView: 60.0
+    property real cameraAspectRatio: 1.0
 
-                        #ifndef INPUT_POSITION
-                        #define INPUT_POSITION qt_Vertex
-                        #endif
+    // Доступность depth-текстуры
+    property bool depthTextureAvailable: false
 
-                        #ifndef INPUT_UV
-                        #define INPUT_UV qt_MultiTexCoord0
-                        #endif
-
-                        // fixed: rely on QtQuick3D-provided POSITION instead of defining gl_Position
-                        layout(location = 0) out vec2 v_uv;
-                        layout(location = 1) out vec3 v_worldPos;
-
-                        layout(std140, binding = 0) uniform qt_effectUniforms {
-                            mat4 qt_ModelMatrix;
-                            mat4 qt_ModelViewProjectionMatrix;
-                            mat4 qt_ViewMatrix;
-                            vec3 qt_CameraPosition;
-                            float qt_Opacity;
-                        } ubuf;
-                        #ifndef CAMERA_POSITION
-                        #define CAMERA_POSITION ubuf.qt_CameraPosition
-                        #endif
-                        #ifndef EFFECT_OPACITY
-                        #define EFFECT_OPACITY ubuf.qt_Opacity
-                        #endif
-
-                        void qt_customMain() {
-                            vec4 localPosition = vec4(INPUT_POSITION, 1.0);
-                            v_uv = INPUT_UV;
-                            v_worldPos = (ubuf.qt_ModelMatrix * localPosition).xyz;
-                            POSITION = ubuf.qt_ModelViewProjectionMatrix * localPosition;
-                        }
-                    "
-                },
-                Shader {
-                    id: fogFragmentShader
-                    stage: Shader.Fragment
-                    property real userFogDensity: fogEffect.fogDensity
-                    property real userFogStart: fogEffect.fogStartDistance
-                    property real userFogEnd: fogEffect.fogEndDistance
-                    property real userFogLeast: fogEffect.fogLeastIntenseY
-                    property real userFogMost: fogEffect.fogMostIntenseY
-                    property real userFogHeightCurve: fogEffect.fogHeightCurve
-                    property real userFogHeightEnabled: fogEffect.heightBasedFog ? 1.0 : 0.0
-                    property real userFogScattering: fogEffect.fogScattering
-                    property real userFogTransmitEnabled: fogEffect.fogTransmitEnabled ? 1.0 : 0.0
-                    property real userFogTransmitCurve: fogEffect.fogTransmitCurve
-                    property real userFogAnimated: fogEffect.animatedFog ? 1.0 : 0.0
-                    property real userFogAnimationSpeed: fogEffect.animationSpeed
-                    property real userFogTime: fogEffect.time
-                    property color userFogColor: fogEffect.fogColor
-                    shader: "
-                        #version 440
-
-                        layout(location = 0) in vec2 v_uv;
-                        layout(location = 1) in vec3 v_worldPos;
-
-                        #ifndef INPUT_UV
-                        #define INPUT_UV v_uv
-                        #endif
-
-                        #ifndef FRAGCOLOR
-                        layout(location = 0) out vec4 qt_FragColor;
-                        #define FRAGCOLOR qt_FragColor
-                        #endif
-
-                        #ifndef INPUT
-                        layout(binding = 1) uniform sampler2D qt_Texture0;
-                        #define INPUT texture(qt_Texture0, INPUT_UV)
-                        #endif
-
-                        layout(std140, binding = 0) uniform qt_effectUniforms {
-                            mat4 qt_ModelMatrix;
-                            mat4 qt_ModelViewProjectionMatrix;
-                            mat4 qt_ViewMatrix;
-                            vec3 qt_CameraPosition;
-                            float qt_Opacity;
-                        } ubuf;
-                        #ifndef CAMERA_POSITION
-                        #define CAMERA_POSITION ubuf.qt_CameraPosition
-                        #endif
-                        #ifndef EFFECT_OPACITY
-                        #define EFFECT_OPACITY ubuf.qt_Opacity
-                        #endif
-
-                        float calculateFogFactor(vec3 worldPosition, vec3 cameraPosition) {
-                            float distance = length(worldPosition - cameraPosition);
-
-                            float span = max(0.001, userFogEnd - userFogStart);
-                            float linearFog = clamp((distance - userFogStart) / span, 0.0, 1.0);
-
-                            float expFog = 1.0 - exp(-userFogDensity * distance * 0.0001);
-
-                            float heightFog = 1.0;
-                            if (userFogHeightEnabled > 0.5) {
-                                float bottom = min(userFogLeast, userFogMost);
-                                float top = max(userFogLeast, userFogMost);
-                                float heightSpan = max(0.001, top - bottom);
-                                float relative = clamp((top - worldPosition.y) / heightSpan, 0.0, 1.0);
-                                float curve = max(0.0001, userFogHeightCurve);
-                                heightFog = pow(relative, curve);
-                            }
-
-                            float animationFactor = 1.0;
-                            if (userFogAnimated > 0.5) {
-                                vec3 noisePos = worldPosition * 0.001 + vec3(userFogTime * userFogAnimationSpeed);
-                                float noise = sin(noisePos.x * 12.9898 + noisePos.y * 78.233 + noisePos.z * 37.719) * 43758.5453;
-                                noise = (sin(noise) + 1.0) * 0.5;
-                                animationFactor = 0.8 + 0.4 * noise;
-                            }
-
-                            return clamp(linearFog * expFog * heightFog * animationFactor, 0.0, 1.0);
-                        }
-
-                        void qt_customMain() {
-                            vec4 originalColor = INPUT;
-
-                            float fogFactor = calculateFogFactor(v_worldPos, CAMERA_POSITION);
-
-                            vec3 scatteredColor = userFogColor.rgb * userFogScattering;
-                            vec3 foggedColor = mix(
-                                originalColor.rgb,
-                                userFogColor.rgb + scatteredColor,
-                                fogFactor
-                            );
-
-                            if (userFogTransmitEnabled > 0.5) {
-                                float transmitCurve = max(0.0001, userFogTransmitCurve);
-                                float transmission = pow(1.0 - fogFactor, transmitCurve);
-                                foggedColor = mix(foggedColor, originalColor.rgb, transmission);
-                            }
-
-                            FRAGCOLOR = vec4(foggedColor, originalColor.a) * EFFECT_OPACITY;
-                        }
-                    "
-                }
-            ]
-        }
-    ]
-    // Таймер для анимации тумана
-    Timer {
-        id: animationTimer
-        running: fogEffect.animatedFog
-        interval: 16  // 60 FPS
-        repeat: true
-        onTriggered: {
-            fogEffect.time += 0.016;
+    function enableDepthTextureSupport() {
+        try {
+            fogEffect.requiresDepthTexture = true
+            depthTextureAvailable = true
+            console.log("🌫️ FogEffect: depth texture support enabled")
+        } catch (error) {
+            depthTextureAvailable = false
+            console.warn("⚠️ FogEffect: depth texture not supported; using fallback shader", error)
         }
     }
 
-    // Отладочная информация
+    Shader {
+        id: fogVertexShader
+        stage: Shader.Vertex
+        shader: "
+            #version 440
+
+            #ifndef INPUT_POSITION
+            #define INPUT_POSITION qt_Vertex
+            #endif
+
+            #ifndef INPUT_UV
+            #define INPUT_UV qt_MultiTexCoord0
+            #endif
+
+            layout(location = 0) out vec2 v_uv;
+
+            layout(std140, binding = 0) uniform qt_effectUniforms {
+                mat4 qt_ModelMatrix;
+                mat4 qt_ModelViewProjectionMatrix;
+                mat4 qt_ViewMatrix;
+                vec3 qt_CameraPosition;
+                float qt_Opacity;
+            } ubuf;
+
+            void qt_customMain() {
+                vec4 localPosition = vec4(INPUT_POSITION, 1.0);
+                v_uv = INPUT_UV;
+                POSITION = ubuf.qt_ModelViewProjectionMatrix * localPosition;
+            }
+        "
+    }
+
+    Shader {
+        id: fogFragmentShader
+        stage: Shader.Fragment
+        property real userFogDensity: fogEffect.fogDensity
+        property real userFogStart: fogEffect.fogStartDistance
+        property real userFogEnd: fogEffect.fogEndDistance
+        property real userFogLeast: fogEffect.fogLeastIntenseY
+        property real userFogMost: fogEffect.fogMostIntenseY
+        property real userFogHeightCurve: fogEffect.fogHeightCurve
+        property real userFogHeightEnabled: fogEffect.heightBasedFog ? 1.0 : 0.0
+        property real userFogScattering: fogEffect.fogScattering
+        property real userFogTransmitEnabled: fogEffect.fogTransmitEnabled ? 1.0 : 0.0
+        property real userFogTransmitCurve: fogEffect.fogTransmitCurve
+        property real userFogAnimated: fogEffect.animatedFog ? 1.0 : 0.0
+        property real userFogAnimationSpeed: fogEffect.animationSpeed
+        property real userFogTime: fogEffect.time
+        property color userFogColor: fogEffect.fogColor
+        property real userCameraNear: fogEffect.cameraClipNear
+        property real userCameraFar: fogEffect.cameraClipFar
+        property real userCameraFov: fogEffect.cameraFieldOfView
+        property real userCameraAspect: fogEffect.cameraAspectRatio
+        shader: "
+            #version 440
+
+            layout(location = 0) in vec2 v_uv;
+
+            #ifndef INPUT_UV
+            #define INPUT_UV v_uv
+            #endif
+
+            #ifndef FRAGCOLOR
+            layout(location = 0) out vec4 qt_FragColor;
+            #define FRAGCOLOR qt_FragColor
+            #endif
+
+            layout(binding = 1) uniform sampler2D qt_Texture0;
+            layout(binding = 2) uniform sampler2D qt_DepthTexture;
+
+            #ifndef INPUT
+            #define INPUT texture(qt_Texture0, INPUT_UV)
+            #endif
+
+            layout(std140, binding = 0) uniform qt_effectUniforms {
+                mat4 qt_ModelMatrix;
+                mat4 qt_ModelViewProjectionMatrix;
+                mat4 qt_ViewMatrix;
+                vec3 qt_CameraPosition;
+                float qt_Opacity;
+            } ubuf;
+
+            #ifndef CAMERA_POSITION
+            #define CAMERA_POSITION ubuf.qt_CameraPosition
+            #endif
+
+            #ifndef EFFECT_OPACITY
+            #define EFFECT_OPACITY ubuf.qt_Opacity
+            #endif
+
+            uniform float userFogDensity;
+            uniform float userFogStart;
+            uniform float userFogEnd;
+            uniform float userFogLeast;
+            uniform float userFogMost;
+            uniform float userFogHeightCurve;
+            uniform float userFogHeightEnabled;
+            uniform float userFogScattering;
+            uniform float userFogTransmitEnabled;
+            uniform float userFogTransmitCurve;
+            uniform float userFogAnimated;
+            uniform float userFogAnimationSpeed;
+            uniform float userFogTime;
+            uniform vec4 userFogColor;
+            uniform float userCameraNear;
+            uniform float userCameraFar;
+            uniform float userCameraFov;
+            uniform float userCameraAspect;
+
+            float linearizeDepth(float depth) {
+                float z = depth * 2.0 - 1.0;
+                return (2.0 * userCameraNear * userCameraFar) /
+                       (userCameraFar + userCameraNear - z * (userCameraFar - userCameraNear));
+            }
+
+            vec3 reconstructWorldPosition(vec2 uv, float linearDepth) {
+                float clampedFov = clamp(userCameraFov, 1.0, 179.0);
+                float tanHalfFov = tan(radians(clampedFov) * 0.5);
+                float aspect = max(userCameraAspect, 0.0001);
+                vec2 clip = vec2(uv.x * 2.0 - 1.0, (1.0 - uv.y) * 2.0 - 1.0);
+                vec3 viewDir = normalize(vec3(clip.x * tanHalfFov * aspect,
+                                              clip.y * tanHalfFov,
+                                              -1.0));
+                mat3 viewRotation = mat3(ubuf.qt_ViewMatrix);
+                mat3 inverseRotation = transpose(viewRotation);
+                vec3 worldDir = normalize(inverseRotation * viewDir);
+                return CAMERA_POSITION + worldDir * linearDepth;
+            }
+
+            float computeHeightFactor(vec3 worldPosition) {
+                if (userFogHeightEnabled <= 0.5)
+                    return 1.0;
+                float bottom = min(userFogLeast, userFogMost);
+                float top = max(userFogLeast, userFogMost);
+                float span = max(0.001, top - bottom);
+                float relative = clamp((top - worldPosition.y) / span, 0.0, 1.0);
+                float curve = max(0.0001, userFogHeightCurve);
+                return pow(relative, curve);
+            }
+
+            float computeAnimatedFactor(vec3 worldPosition) {
+                if (userFogAnimated <= 0.5)
+                    return 1.0;
+                vec3 noisePos = worldPosition * 0.001 + vec3(userFogTime * userFogAnimationSpeed);
+                float noise = sin(dot(noisePos, vec3(12.9898, 78.233, 37.719)));
+                noise = (sin(noise) + 1.0) * 0.5;
+                return 0.8 + 0.4 * noise;
+            }
+
+            void qt_customMain() {
+                vec4 originalColor = INPUT;
+                float depth = texture(qt_DepthTexture, INPUT_UV).r;
+
+                if (depth >= 1.0) {
+                    FRAGCOLOR = originalColor;
+                    return;
+                }
+
+                float linearDepth = linearizeDepth(depth);
+                vec3 worldPosition = reconstructWorldPosition(INPUT_UV, linearDepth);
+
+                float span = max(0.001, userFogEnd - userFogStart);
+                float distanceFactor = clamp((linearDepth - userFogStart) / span, 0.0, 1.0);
+                float densityFactor = 1.0 - exp(-userFogDensity * linearDepth * 0.001);
+                float heightFactor = computeHeightFactor(worldPosition);
+                float animationFactor = computeAnimatedFactor(worldPosition);
+
+                float fogFactor = clamp(distanceFactor * densityFactor * heightFactor * animationFactor, 0.0, 1.0);
+
+                vec3 scatteredColor = userFogColor.rgb * userFogScattering;
+                vec3 foggedColor = mix(
+                    originalColor.rgb,
+                    userFogColor.rgb + scatteredColor,
+                    fogFactor
+                );
+
+                if (userFogTransmitEnabled > 0.5) {
+                    float transmitCurve = max(0.0001, userFogTransmitCurve);
+                    float transmission = pow(1.0 - fogFactor, transmitCurve);
+                    foggedColor = mix(foggedColor, originalColor.rgb, transmission);
+                }
+
+                FRAGCOLOR = vec4(foggedColor, originalColor.a) * EFFECT_OPACITY;
+            }
+        "
+    }
+
+    Shader {
+        id: fogFallbackShader
+        stage: Shader.Fragment
+        property real userFogDensity: fogEffect.fogDensity
+        property color userFogColor: fogEffect.fogColor
+        shader: "
+            #version 440
+
+            #ifndef INPUT_UV
+            #define INPUT_UV v_uv
+            #endif
+
+            layout(location = 0) in vec2 v_uv;
+
+            #ifndef FRAGCOLOR
+            layout(location = 0) out vec4 qt_FragColor;
+            #define FRAGCOLOR qt_FragColor
+            #endif
+
+            layout(binding = 1) uniform sampler2D qt_Texture0;
+
+            #ifndef INPUT
+            #define INPUT texture(qt_Texture0, INPUT_UV)
+            #endif
+
+            uniform float userFogDensity;
+            uniform vec4 userFogColor;
+
+            void qt_customMain() {
+                vec4 originalColor = INPUT;
+                float fogFactor = clamp(userFogDensity, 0.0, 1.0);
+                vec3 foggedColor = mix(originalColor.rgb, userFogColor.rgb, fogFactor);
+                FRAGCOLOR = vec4(foggedColor, originalColor.a);
+            }
+        "
+    }
+
+    passes: [
+        Pass {
+            shaders: depthTextureAvailable
+                    ? [fogVertexShader, fogFragmentShader]
+                    : [fogVertexShader, fogFallbackShader]
+        }
+    ]
+
+    Timer {
+        id: animationTimer
+        running: fogEffect.animatedFog && fogEffect.depthTextureAvailable
+        interval: 16  // 60 FPS
+        repeat: true
+        onTriggered: fogEffect.time += 0.016
+    }
+
     Component.onCompleted: {
-        console.log("🌫️ Enhanced Fog Effect loaded");
-        console.log("   Density:", fogDensity);
-        console.log("   Color:", fogColor);
-        console.log("   Distance range:", fogStartDistance, "-", fogEndDistance);
-        console.log("   Height-based:", heightBasedFog);
-        console.log("   Animated:", animatedFog);
+        enableDepthTextureSupport()
+        console.log("🌫️ Enhanced Fog Effect loaded")
+        console.log("   Density:", fogDensity)
+        console.log("   Color:", fogColor)
+        console.log("   Distance range:", fogStartDistance, "-", fogEndDistance)
+        console.log("   Height-based:", heightBasedFog)
+        console.log("   Animated:", animatedFog)
+        if (!depthTextureAvailable)
+            console.warn("⚠️ FogEffect: depth texture unavailable, fallback shader active")
     }
 }
