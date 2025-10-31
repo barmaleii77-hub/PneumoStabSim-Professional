@@ -359,7 +359,10 @@ class FileCyclerWidget(QWidget):
             changed = (
                 self._index != -1
                 or self._custom_entry is not None
-                or (not self._allow_empty_selection and (self._index == -1 and self._custom_entry is None))
+                or (
+                    not self._allow_empty_selection
+                    and self._index == -1 and self._custom_entry is None
+                )
             )
             self._index = -1
             self._custom_entry = None
