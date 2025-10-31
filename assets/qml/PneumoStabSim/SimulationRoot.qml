@@ -9,7 +9,7 @@ import "../components"
 import "../effects"
 import "../geometry"
 import "../lighting"
-import "../scene"
+import "../scene" as Scene
 import "../animation"
 
 /*
@@ -661,7 +661,7 @@ SequentialAnimation {
         anchors.fill: parent
         environment: sceneEnvCtl
 
-        SharedMaterials {
+        Scene.SharedMaterials {
             id: sharedMaterials
         }
 
@@ -738,7 +738,7 @@ SequentialAnimation {
  pointLightBindToCamera: !!root.lightingValue("point", "bind_to_camera", false)
  }
 
- SuspensionAssembly {
+ Scene.SuspensionAssembly {
   id: suspensionAssembly
   worldRoot: worldRoot
   geometryState: geometryState
