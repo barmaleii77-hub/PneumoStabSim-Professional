@@ -53,7 +53,6 @@ def _collect_inspect_unwrap_codes() -> set[CodeType]:
 
 
 _INSPECT_UNWRAP_CODES = _collect_inspect_unwrap_codes()
-_INSPECT_UNWRAP_ACTIVE = False
 
 
 def _called_from_inspect_unwrap() -> bool:
@@ -79,15 +78,8 @@ def __getattr__(name: str) -> Any:
     """Lazily import panel classes on first access."""
 
     if name == "__wrapped__":
-        global _INSPECT_UNWRAP_ACTIVE
         if _called_from_inspect_unwrap():
-            if _INSPECT_UNWRAP_ACTIVE:
-                raise AttributeError(name)
-            _INSPECT_UNWRAP_ACTIVE = True
-            try:
-                return sys.modules[__name__]
-            finally:
-                _INSPECT_UNWRAP_ACTIVE = False
+            raise AttributeError(name)
         return sys.modules[__name__]
 
     try:
