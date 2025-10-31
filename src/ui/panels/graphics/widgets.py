@@ -354,10 +354,12 @@ class FileCyclerWidget(QWidget):
 
         normalised = str(path).strip().replace("\\", "/") if path else ""
         if not normalised:
+            # Исправленная логика: изменяем только если состояние действительно изменилось,
+            # либо если запрещено пустое выделение и мы пытаемся перейти в пустое состояние
             changed = (
                 self._index != -1
                 or self._custom_entry is not None
-                or not self._allow_empty_selection
+                or (not self._allow_empty_selection and (self._index == -1 and self._custom_entry is None))
             )
             self._index = -1
             self._custom_entry = None
