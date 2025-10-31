@@ -192,7 +192,7 @@ class GraphicsSettingsService:
         legacy = sanitized.pop(self.ANIMATION_CATEGORY, None)
         if legacy is not None:
             self._logger.info(
-                "Detected legacy graphics.animation in %s settings; migrating to current.animation",
+                "Detected legacy graphics.animation in %s settings; treating as deprecated",
                 source,
             )
         return sanitized, legacy
@@ -212,7 +212,11 @@ class GraphicsSettingsService:
                 )
             return top_level
         if legacy is not None:
-            return legacy
+            self._logger.warning(
+                "Dropping legacy graphics.animation in %s settings; the value is no longer consumed",
+                source,
+            )
+            return None
         return None
 
     def _normalise_materials(
