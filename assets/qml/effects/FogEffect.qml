@@ -64,7 +64,11 @@ Effect {
                         #define EFFECT_OPACITY ubuf.qt_Opacity
                         #endif
 
-                        void qt_customMain() {
+                        #ifndef MAIN
+                        #define MAIN qt_customMain
+                        #endif
+
+                        void MAIN() {
                             vec4 localPosition = vec4(INPUT_POSITION, 1.0);
                             v_uv = INPUT_UV;
                             v_worldPos = (ubuf.qt_ModelMatrix * localPosition).xyz;
@@ -152,7 +156,11 @@ Effect {
                             return clamp(linearFog * expFog * heightFog * animationFactor, 0.0, 1.0);
                         }
 
-                        void qt_customMain() {
+                        #ifndef MAIN
+                        #define MAIN qt_customMain
+                        #endif
+
+                        void MAIN() {
                             vec4 originalColor = INPUT;
 
                             float fogFactor = calculateFogFactor(v_worldPos, CAMERA_POSITION);

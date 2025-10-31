@@ -215,7 +215,11 @@ Item {
                                 return color;
                             }
 
-                            void qt_customMain() {
+                            #ifndef MAIN
+                            #define MAIN qt_customMain
+                            #endif
+
+                            void MAIN() {
                                 vec4 original = INPUT;
 
                                 // Извлечение ярких областей
@@ -252,7 +256,11 @@ Item {
 
                             layout(binding = 1) uniform sampler2D qt_Texture0;
 
-                            void qt_customMain() {
+                            #ifndef MAIN
+                            #define MAIN qt_customMain
+                            #endif
+
+                            void MAIN() {
                                 FRAGCOLOR = texture(qt_Texture0, INPUT_UV);
                             }
                         "
@@ -348,7 +356,11 @@ Item {
                                 );
                             }
 
-                            void qt_customMain() {
+                            #ifndef MAIN
+                            #define MAIN qt_customMain
+                            #endif
+
+                            void MAIN() {
                                 vec4 original = INPUT;
                                 vec3 normal = normalize(texture(qt_NormalTexture, INPUT_UV).xyz * 2.0 - 1.0);
                                 float depth = texture(qt_DepthTexture, INPUT_UV).r;
@@ -407,7 +419,11 @@ Item {
 
                             layout(binding = 1) uniform sampler2D qt_Texture0;
 
-                            void qt_customMain() {
+                            #ifndef MAIN
+                            #define MAIN qt_customMain
+                            #endif
+
+                            void MAIN() {
                                 FRAGCOLOR = texture(qt_Texture0, INPUT_UV);
                             }
                         "
@@ -513,7 +529,11 @@ Item {
                                 return color / float(samples);
                             }
 
-                            void qt_customMain() {
+                            #ifndef MAIN
+                            #define MAIN qt_customMain
+                            #endif
+
+                            void MAIN() {
                                 vec4 original = INPUT;
                                 float depth = texture(qt_DepthTexture, INPUT_UV).r;
                                 float linearDepth = linearizeDepth(depth);
@@ -548,7 +568,11 @@ Item {
 
                             layout(binding = 1) uniform sampler2D qt_Texture0;
 
-                            void qt_customMain() {
+                            #ifndef MAIN
+                            #define MAIN qt_customMain
+                            #endif
+
+                            void MAIN() {
                                 FRAGCOLOR = texture(qt_Texture0, INPUT_UV);
                             }
                         "
@@ -621,7 +645,11 @@ Item {
                             uniform float uStrength;
                             uniform int uSamples;
 
-                            void qt_customMain() {
+                            #ifndef MAIN
+                            #define MAIN qt_customMain
+                            #endif
+
+                            void MAIN() {
                                 vec4 original = INPUT;
                                 vec2 velocity = texture(qt_VelocityTexture, INPUT_UV).xy;
 
@@ -659,7 +687,11 @@ Item {
 
                             layout(binding = 1) uniform sampler2D qt_Texture0;
 
-                            void qt_customMain() {
+                            #ifndef MAIN
+                            #define MAIN qt_customMain
+                            #endif
+
+                            void MAIN() {
                                 FRAGCOLOR = texture(qt_Texture0, INPUT_UV);
                             }
                         "
