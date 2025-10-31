@@ -1,6 +1,8 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using System;
+using System.Linq;
 using System.Windows;
 using PneumoStabSim.Core;
 
@@ -21,9 +23,50 @@ namespace PneumoStabSim
 
                 using (host)
                 {
+                    var logger = host.Services.GetRequiredService<ILogger<Program>>();
+                    var environmentService = host.Services.GetRequiredService<IEnvironmentPreparationService>();
+                    var environmentResult = environmentService.PrepareEnvironment();
+
+                    if (!environmentResult.Success)
+                    {
+                        foreach (var error in environmentResult.Errors)
+                        {
+                            logger.LogError("Environment preparation error: {Error}", error);
+                        }
+
+                        var combinedErrors = string.Join(Environment.NewLine, environmentResult.Errors);
+                        MessageBox.Show($"Environment preparation failed:{Environment.NewLine}{combinedErrors}",
+                            "PneumoStabSim Professional",
+                            MessageBoxButton.OK,
+                            MessageBoxImage.Error);
+                        return -1;
+                    }
+
+                    if (!string.IsNullOrWhiteSpace(environmentResult.PythonExecutablePath))
+                    {
+                        logger.LogInformation("Using Python interpreter {Python}", environmentResult.PythonExecutablePath);
+                    }
+
+                    if (environmentResult.Warnings.Any())
+                    {
+                        foreach (var warning in environmentResult.Warnings)
+                        {
+                            logger.LogWarning("Environment preparation warning: {Warning}", warning);
+                        }
+                    }
+
                     // Initialize Python engine integration
                     var pythonService = host.Services.GetRequiredService<IPythonEngineService>();
-                    pythonService.Initialize();
+                    if (!pythonService.Initialize())
+                    {
+                        const string message = "Failed to initialise the embedded Python engine. Check the log output for details.";
+                        logger.LogError(message);
+                        MessageBox.Show(message,
+                            "PneumoStabSim Professional",
+                            MessageBoxButton.OK,
+                            MessageBoxImage.Error);
+                        return -1;
+                    }
 
                     // Start WPF application
                     var app = new App();
@@ -52,6 +95,9 @@ namespace PneumoStabSim
                     // Core services
                     services.AddSingleton<IConfigurationService, ConfigurationService>();
                     services.AddSingleton<ILoggingService, LoggingService>();
+
+                    // Environment preparation
+                    services.AddSingleton<IEnvironmentPreparationService, EnvironmentPreparationService>();
 
                     // Python integration
                     services.AddSingleton<IPythonEngineService, PythonEngineService>();

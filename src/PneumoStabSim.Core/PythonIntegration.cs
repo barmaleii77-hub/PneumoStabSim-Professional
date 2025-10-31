@@ -1,4 +1,7 @@
 ﻿using Microsoft.Extensions.Logging;
+using System;
+using System.IO;
+using System.Runtime.InteropServices;
 using System.Diagnostics;
 using System.Text.Json;
 
@@ -173,6 +176,32 @@ print(json.dumps(result) if result is not None else 'null')
 
         private string? FindPythonExecutable()
         {
+            var explicitPython = Environment.GetEnvironmentVariable("PNEUMOSTABSIM_PYTHON");
+            if (!string.IsNullOrWhiteSpace(explicitPython) && File.Exists(explicitPython))
+            {
+                _logger.LogInformation("Using Python interpreter defined by PNEUMOSTABSIM_PYTHON: {Python}", explicitPython);
+                return explicitPython;
+            }
+
+            var virtualEnv = Environment.GetEnvironmentVariable("VIRTUAL_ENV");
+            if (!string.IsNullOrWhiteSpace(virtualEnv))
+            {
+                var scriptsDirectory = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? "Scripts" : "bin";
+                var pythonExecutable = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? "python.exe" : "python";
+                var venvPython = Path.Combine(virtualEnv, scriptsDirectory, pythonExecutable);
+                if (File.Exists(venvPython))
+                {
+                    _logger.LogInformation("Using Python interpreter from VIRTUAL_ENV: {Python}", venvPython);
+                    return venvPython;
+                }
+            }
+
+            var projectPython = TryResolveProjectPython();
+            if (!string.IsNullOrWhiteSpace(projectPython))
+            {
+                return projectPython;
+            }
+
             var candidates = new[] { "python", "python3", "py" };
 
             foreach (var candidate in candidates)
@@ -197,6 +226,7 @@ print(json.dumps(result) if result is not None else 'null')
 
                     if (process.ExitCode == 0)
                     {
+                        _logger.LogInformation("Using Python interpreter discovered on PATH: {Python}", candidate);
                         return candidate;
                     }
                 }
@@ -204,6 +234,36 @@ print(json.dumps(result) if result is not None else 'null')
                 {
                     continue;
                 }
+            }
+
+            return null;
+        }
+
+
+        private string? TryResolveProjectPython()
+        {
+            try
+            {
+                var currentDirectory = Directory.GetCurrentDirectory();
+                var venvRoot = Path.Combine(currentDirectory, ".venv");
+                if (!Directory.Exists(venvRoot))
+                {
+                    return null;
+                }
+
+                var scriptsDirectory = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? "Scripts" : "bin";
+                var pythonExecutable = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? "python.exe" : "python";
+                var candidate = Path.Combine(venvRoot, scriptsDirectory, pythonExecutable);
+
+                if (File.Exists(candidate))
+                {
+                    _logger.LogInformation("Using Python interpreter from project virtual environment: {Python}", candidate);
+                    return candidate;
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogDebug(ex, "Failed to resolve project virtual environment python executable.");
             }
 
             return null;

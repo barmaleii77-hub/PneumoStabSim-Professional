@@ -1,4 +1,7 @@
-﻿using Microsoft.Extensions.Logging;
+﻿using System;
+using Microsoft.Extensions.Logging;
+using System.Collections.Generic;
+using System.Collections.ObjectModel;
 
 namespace PneumoStabSim.Core
 {
@@ -22,6 +25,71 @@ namespace PneumoStabSim.Core
         void LogInfo(string message);
         void LogWarning(string message);
         void LogError(string message, Exception? exception = null);
+    }
+
+    /// <summary>
+    /// Service that prepares and validates the runtime environment for Windows/Visual Studio.
+    /// </summary>
+    public interface IEnvironmentPreparationService
+    {
+        EnvironmentPreparationResult PrepareEnvironment();
+    }
+
+    /// <summary>
+    /// Result information returned by the environment preparation service.
+    /// Captures success state, warnings, errors, and applied environment variables.
+    /// </summary>
+    public class EnvironmentPreparationResult
+    {
+        private readonly List<string> _warnings = new();
+        private readonly List<string> _errors = new();
+        private readonly Dictionary<string, string> _environmentVariables = new(StringComparer.OrdinalIgnoreCase);
+
+        public EnvironmentPreparationResult()
+        {
+            AppliedEnvironmentVariables = new ReadOnlyDictionary<string, string>(_environmentVariables);
+        }
+
+        public bool Success => _errors.Count == 0;
+        public IReadOnlyList<string> Warnings => _warnings;
+        public IReadOnlyList<string> Errors => _errors;
+        public IReadOnlyDictionary<string, string> AppliedEnvironmentVariables { get; }
+        public string? PythonExecutablePath { get; private set; }
+        public bool EnvironmentSynchronized { get; private set; }
+
+        public void AddWarning(string warning)
+        {
+            if (!string.IsNullOrWhiteSpace(warning))
+            {
+                _warnings.Add(warning);
+            }
+        }
+
+        public void AddError(string error)
+        {
+            if (!string.IsNullOrWhiteSpace(error))
+            {
+                _errors.Add(error);
+            }
+        }
+
+        public void RecordAppliedVariable(string key, string value)
+        {
+            if (!string.IsNullOrWhiteSpace(key))
+            {
+                _environmentVariables[key] = value;
+            }
+        }
+
+        public void SetPythonExecutable(string path)
+        {
+            PythonExecutablePath = path;
+        }
+
+        public void MarkEnvironmentSynchronized()
+        {
+            EnvironmentSynchronized = true;
+        }
     }
 
     /// <summary>
