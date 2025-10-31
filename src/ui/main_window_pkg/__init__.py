@@ -152,6 +152,8 @@ def __getattr__(name: str) -> Any:
     """Provide lazy attribute access for window and helper modules."""
 
     if name == "__wrapped__":
+        if _called_from_inspect_unwrap():
+            raise AttributeError(name)
         module = sys.modules[__name__]
         globals()[name] = module
         return module
