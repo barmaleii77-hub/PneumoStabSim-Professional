@@ -27,6 +27,7 @@ Item {
     // Synchronisation contract with Python
     // ------------------------------------------------------------------
     signal batchUpdatesApplied(var summary)
+    signal animationToggled(bool running)
 
     property var pendingPythonUpdates: ({})
     onPendingPythonUpdatesChanged: {
@@ -39,6 +40,7 @@ Item {
     // Animation state that Python can toggle
     property real animationTime: 0
     property bool isRunning: false
+    onIsRunningChanged: animationToggled(isRunning)
 
     // Diagnostics payloads
     property var lastGeometry: ({})
@@ -200,7 +202,10 @@ Item {
             animationTime = normaliseNumber(params.animationTime, animationTime)
         }
         if (params && params.isRunning !== undefined) {
-            isRunning = Boolean(params.isRunning)
+            var nextRunning = Boolean(params.isRunning)
+            if (isRunning !== nextRunning) {
+                isRunning = nextRunning
+            }
         }
         logQmlEvent("function_called", "applyAnimationUpdates")
     }

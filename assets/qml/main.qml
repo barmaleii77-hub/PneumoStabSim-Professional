@@ -8,6 +8,7 @@ Item {
     anchors.fill: parent
 
     signal batchUpdatesApplied(var summary)
+    signal animationToggled(bool running)
 
     readonly property bool hasSceneBridge: typeof pythonSceneBridge !== "undefined" && pythonSceneBridge !== null
 
@@ -30,6 +31,9 @@ Item {
             if (item && item.batchUpdatesApplied) {
                 item.batchUpdatesApplied.connect(root.batchUpdatesApplied)
             }
+            if (item && item.animationToggled) {
+                item.animationToggled.connect(root.animationToggled)
+            }
         }
     }
 
@@ -42,6 +46,9 @@ Item {
         onLoaded: {
             if (item && item.batchUpdatesApplied) {
                 item.batchUpdatesApplied.connect(root.batchUpdatesApplied)
+            }
+            if (item && item.animationToggled) {
+                item.animationToggled.connect(root.animationToggled)
             }
         }
     }
