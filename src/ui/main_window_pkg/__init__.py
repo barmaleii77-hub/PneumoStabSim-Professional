@@ -19,7 +19,7 @@ import inspect
 import sys
 from importlib import import_module, util
 from types import ModuleType
-from typing import Any, Dict
+from typing import Any
 
 __all__ = [
     "MainWindow",
