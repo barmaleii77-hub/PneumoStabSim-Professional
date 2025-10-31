@@ -24,8 +24,12 @@ import sys
 from pathlib import Path
 from typing import Any, Sequence
 
-from jsonschema import Draft202012Validator
-from jsonschema.exceptions import SchemaError
+try:  # pragma: no cover - import guard for graceful CLI degradation
+    from jsonschema import Draft202012Validator
+    from jsonschema.exceptions import SchemaError
+except ModuleNotFoundError:  # pragma: no cover - validated via integration tests
+    Draft202012Validator = None  # type: ignore[assignment]
+    SchemaError = None  # type: ignore[assignment]
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_SETTINGS_PATH = PROJECT_ROOT / "config" / "app_settings.json"
@@ -44,10 +48,24 @@ def _load_json(path: Path) -> Any:
         raise ValueError(f"Invalid JSON in {path}: {exc}") from exc
 
 
-def _collect_schema_errors(payload: Any, schema: Any) -> list[str]:
+def _require_jsonschema() -> tuple[type[Any], type[Exception]]:
+    """Return jsonschema primitives or raise a helpful error if unavailable."""
+
+    if Draft202012Validator is None or SchemaError is None:
+        raise RuntimeError(
+            "jsonschema package is required for settings validation. "
+            "Run 'make uv-sync' (preferred) or 'pip install jsonschema'."
+        )
+
+    return Draft202012Validator, SchemaError
+
+
+def _collect_schema_errors(
+    payload: Any, schema: Any, validator_cls: type[Any]
+) -> list[str]:
     """Return a sorted list of human-readable schema validation errors."""
 
-    validator = Draft202012Validator(schema)
+    validator = validator_cls(schema)
     errors = []
     for error in sorted(validator.iter_errors(payload), key=lambda err: err.path):
         location = ".".join(str(part) for part in error.path) or "<root>"
@@ -101,8 +119,14 @@ def main(argv: Sequence[str] | None = None) -> int:
         return 1
 
     try:
-        errors = _collect_schema_errors(settings_payload, schema_payload)
-    except SchemaError as exc:
+        validator_cls, schema_error = _require_jsonschema()
+    except RuntimeError as exc:
+        _print_error(str(exc))
+        return 1
+
+    try:
+        errors = _collect_schema_errors(settings_payload, schema_payload, validator_cls)
+    except schema_error as exc:  # type: ignore[misc]
         _print_error(f"Invalid schema: {exc}")
         return 1
 
