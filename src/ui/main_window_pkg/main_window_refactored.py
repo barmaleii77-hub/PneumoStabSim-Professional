@@ -35,6 +35,7 @@ from .qml_bridge import QMLBridge
 from .signals_router import SignalsRouter
 from .state_sync import StateSync
 from .menu_actions import MenuActions
+from .profile_service import ProfileService
 from src.common.settings_manager import get_settings_manager
 from src.common.signal_trace import get_signal_trace_service
 from src.core.settings_manager import ProfileSettingsManager
@@ -119,6 +120,16 @@ class MainWindow(QMainWindow):
             apply_callback=self._apply_settings_update,
         )
         self.logger.info("ProfileSettingsManager initialized")
+
+        self.profile_service = ProfileService(self.profile_manager)
+        try:
+            self.profile_service.refresh()
+        except Exception as profile_exc:
+            self.logger.debug(
+                "ProfileService initial refresh failed: %s",
+                profile_exc,
+                exc_info=profile_exc,
+            )
 
         self.signal_trace_service = None
         try:
