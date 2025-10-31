@@ -3,6 +3,7 @@
 from __future__ import annotations
 from typing import Any
 
+
 def unwrap(module: Any) -> Any:
     """Return the ``__wrapped__`` attribute used by compatibility tests."""
 
