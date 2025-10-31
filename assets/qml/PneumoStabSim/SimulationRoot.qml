@@ -1301,6 +1301,15 @@ function warnInvalidBatch(category, reason, payload) {
     }
 }
 
+function coerceBatchObject(category, payload) {
+    if (payload === null || payload === undefined)
+        return null;
+    if (isPlainObject(payload))
+        return payload;
+    warnInvalidBatch(category, "payload must be an object", payload);
+    return null;
+}
+
 function valueForKeys(map, keys) {
     if (!isPlainObject(map))
         return undefined;
@@ -1593,7 +1602,7 @@ function sanitizeReflectionProbePadding(value) {
         }
     }
 
- function applyBatchedUpdates(updates) {
+function applyBatchedUpdates(updates) {
  if (!updates)
  return;
  var applied = {};
@@ -1602,13 +1611,37 @@ function sanitizeReflectionProbePadding(value) {
         applied.geometry = true
     }
  if (updates.camera) { root.applyCameraUpdates(updates.camera); applied.camera = true; }
- if (updates.lighting) { root.applyLightingUpdates(updates.lighting); applied.lighting = true; }
- if (updates.environment){ root.applyEnvironmentUpdates(updates.environment); applied.environment = true; }
- if (updates.quality) { root.applyQualityUpdates(updates.quality); applied.quality = true; }
+ if (updates.lighting) {
+  var lightingPayload = coerceBatchObject("lighting", updates.lighting);
+  if (lightingPayload) {
+   root.applyLightingUpdates(lightingPayload);
+   applied.lighting = true;
+  }
+ }
+ if (updates.environment){
+  var environmentPayload = coerceBatchObject("environment", updates.environment);
+  if (environmentPayload) {
+   root.applyEnvironmentUpdates(environmentPayload);
+   applied.environment = true;
+  }
+ }
+ if (updates.quality) {
+  var qualityPayload = coerceBatchObject("quality", updates.quality);
+  if (qualityPayload) {
+   root.applyQualityUpdates(qualityPayload);
+   applied.quality = true;
+  }
+ }
  if (updates.materials) { root.applyMaterialUpdates(updates.materials); applied.materials = true; }
  if (updates.effects) { root.applyEffectsUpdates(updates.effects); applied.effects = true; }
  if (updates.animation) { root.applyAnimationUpdates(updates.animation); applied.animation = true; }
- if (updates.threeD) { root.apply3DUpdates(updates.threeD); applied.threeD = true; }
+ if (updates.threeD) {
+  var threeDPayload = coerceBatchObject("threeD", updates.threeD);
+  if (threeDPayload) {
+   root.apply3DUpdates(threeDPayload);
+   applied.threeD = true;
+  }
+ }
  if (updates.render) { root.applyRenderSettings(updates.render); applied.render = true; }
  if (updates.simulation) { root.applySimulationUpdates(updates.simulation); applied.simulation = true; }
 
@@ -1732,10 +1765,9 @@ function sanitizeReflectionProbePadding(value) {
  }
 
 function applyLightingUpdates(params) {
- if (!isPlainObject(params)) {
-  warnInvalidBatch("lighting", "payload must be an object", params);
+ params = coerceBatchObject("lighting", params);
+ if (!params)
   return;
- }
 
  function normalizeGroupPayload(payload) {
  if (!isPlainObject(payload))
@@ -1941,10 +1973,9 @@ function applyLightingUpdates(params) {
  }
 
 function applyEnvironmentUpdates(params) {
- if (!isPlainObject(params)) {
-  warnInvalidBatch("environment", "payload must be an object", params);
+ params = coerceBatchObject("environment", params);
+ if (!params)
   return;
- }
  var bgColorVal = valueForKeys(params, ['backgroundColor', 'background_color']);
  if (bgColorVal !== undefined) setIfExists(sceneEnvCtl, 'backgroundColor', bgColorVal);
  if (params.clearColor) setIfExists(sceneEnvCtl, 'backgroundColor', params.clearColor);
@@ -2116,10 +2147,9 @@ function applyEnvironmentUpdates(params) {
  }
 
     function applyQualityUpdates(params) {
-        if (!isPlainObject(params)) {
-            warnInvalidBatch("quality", "payload must be an object", params);
+        params = coerceBatchObject("quality", params);
+        if (!params)
             return;
-        }
 
         var qualityPatch = {};
 
@@ -2535,10 +2565,9 @@ function applyAnimationUpdates(params) {
 }
 
 function apply3DUpdates(params) {
- if (!isPlainObject(params)) {
-  warnInvalidBatch("threeD", "payload must be an object", params);
+ params = coerceBatchObject("threeD", params);
+ if (!params)
   return;
- }
  var globalImmediate = params.instant === true || params.immediate === true;
  if (isPlainObject(params.frame)) {
   var f = params.frame;
