@@ -742,7 +742,7 @@ SequentialAnimation {
   id: suspensionAssembly
   worldRoot: worldRoot
   geometryState: geometryState
-  geometryDefaults: geometryDefaults || ({})
+  geometryDefaults: root.geometryDefaults || ({})
   materialsDefaults: sceneDefaults && sceneDefaults.materials ? sceneDefaults.materials : ({})
   sharedMaterials: sharedMaterials
   sceneScaleFactor: root.effectiveSceneScaleFactor
