@@ -108,7 +108,6 @@ class SignalsRouter:
         else:
             normalised_value = ""
 
-        params["ibl_source"] = normalised_value
         for candidate in SignalsRouter._HDR_SOURCE_KEYS:
             if candidate in params:
                 params[candidate] = normalised_value
