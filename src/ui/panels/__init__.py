@@ -37,6 +37,54 @@ if TYPE_CHECKING:  # pragma: no cover - typing helpers only
     from .panel_pneumo import PneumoPanel
     from .panel_road import RoadPanel
     from .graphics.panel_graphics_refactored import GraphicsPanel
+_SELF_ALIAS: ModuleType | None = None
+
+
+class _ModuleAlias(ModuleType):
+    """Proxy module object used to satisfy ``__wrapped__`` lookups."""
+
+    def __init__(self, module: ModuleType) -> None:
+        super().__init__(module.__name__, module.__doc__)
+        object.__setattr__(self, "_module", module)
+        object.__setattr__(self, "_wrapped", module)
+
+    def __getattribute__(self, name: str) -> Any:
+        if name == "__wrapped__":
+            return object.__getattribute__(self, "_wrapped")
+        if name in {
+            "_module",
+            "_wrapped",
+            "__class__",
+            "__dict__",
+            "__doc__",
+            "__name__",
+            "__getattribute__",
+            "__setattr__",
+            "__dir__",
+        }:
+            return object.__getattribute__(self, name)
+        module = object.__getattribute__(self, "_module")
+        return getattr(module, name)
+
+    def __setattr__(self, key: str, value: Any) -> None:
+        module = object.__getattribute__(self, "_module")
+        setattr(module, key, value)
+
+    @property
+    def __dict__(self) -> Dict[str, Any]:  # type: ignore[override]
+        module = object.__getattribute__(self, "_module")
+        return module.__dict__
+
+    def __dir__(self) -> list[str]:
+        module = object.__getattribute__(self, "_module")
+        module_dir = dir(module)
+        if "__wrapped__" not in module_dir:
+            module_dir.append("__wrapped__")
+        return module_dir
+
+    def __repr__(self) -> str:
+        module = object.__getattribute__(self, "_module")
+        return repr(module)
 
 
 def _called_from_inspect_unwrap() -> bool:
