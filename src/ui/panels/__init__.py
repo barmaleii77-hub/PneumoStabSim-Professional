@@ -19,8 +19,8 @@ from __future__ import annotations
 import inspect
 import sys
 from importlib import import_module
-from types import CodeType
-from typing import TYPE_CHECKING, Any
+from types import ModuleType
+from typing import TYPE_CHECKING, Any, Dict
 
 __all__ = ["GeometryPanel", "PneumoPanel", "ModesPanel", "RoadPanel", "GraphicsPanel"]
 
@@ -38,62 +38,75 @@ if TYPE_CHECKING:  # pragma: no cover - typing helpers only
     from .panel_pneumo import PneumoPanel
     from .panel_road import RoadPanel
     from .graphics.panel_graphics_refactored import GraphicsPanel
-_INSPECT_UNWRAP_CACHE_ID: int | None = None
-_INSPECT_UNWRAP_CACHE_CODES: set[CodeType] = set()
+_SELF_ALIAS: ModuleType | None = None
 
 
-def _collect_inspect_unwrap_codes(func: Any) -> set[CodeType]:
-    """Return code objects for ``inspect.unwrap`` and its wrappers."""
+class _ModuleAlias(ModuleType):
+    """Proxy module object used to satisfy ``__wrapped__`` lookups."""
 
-    codes: set[CodeType] = set()
-    seen: set[int] = set()
-    current = func
-    while callable(current) and id(current) not in seen:
-        seen.add(id(current))
-        code = getattr(current, "__code__", None)
-        if code is not None:
-            codes.add(code)
-        current = getattr(current, "__wrapped__", None)
-    return codes
+    def __init__(self, module: ModuleType) -> None:
+        super().__init__(module.__name__, module.__doc__)
+        object.__setattr__(self, "_module", module)
 
+    def __getattribute__(self, name: str) -> Any:
+        if name in {
+            "_module",
+            "__class__",
+            "__dict__",
+            "__doc__",
+            "__name__",
+            "__getattribute__",
+            "__setattr__",
+            "__dir__",
+        }:
+            return object.__getattribute__(self, name)
+        module = object.__getattribute__(self, "_module")
+        return getattr(module, name)
 
-def _inspect_unwrap_codes() -> set[CodeType]:
-    """Return cached code objects for the active :func:`inspect.unwrap`."""
+    def __setattr__(self, key: str, value: Any) -> None:
+        module = object.__getattribute__(self, "_module")
+        setattr(module, key, value)
 
-    unwrap = getattr(inspect, "unwrap", None)
-    if unwrap is None:
-        return set()
+    @property
+    def __dict__(self) -> Dict[str, Any]:  # type: ignore[override]
+        module = object.__getattribute__(self, "_module")
+        return module.__dict__
 
-    global _INSPECT_UNWRAP_CACHE_ID, _INSPECT_UNWRAP_CACHE_CODES
-    unwrap_id = id(unwrap)
-    if unwrap_id != _INSPECT_UNWRAP_CACHE_ID:
-        _INSPECT_UNWRAP_CACHE_CODES = _collect_inspect_unwrap_codes(unwrap)
-        _INSPECT_UNWRAP_CACHE_ID = unwrap_id
-    return _INSPECT_UNWRAP_CACHE_CODES
+    def __dir__(self) -> list[str]:
+        module = object.__getattribute__(self, "_module")
+        return dir(module)
+
+    def __repr__(self) -> str:
+        module = object.__getattribute__(self, "_module")
+        return repr(module)
 
 
 def _called_from_inspect_unwrap() -> bool:
-    """Return ``True`` when :func:`inspect.unwrap` appears in the stack."""
-
-    codes = _inspect_unwrap_codes()
-    if not codes:
-        return False
+    """Return ``True`` when :func:`inspect.unwrap` is the direct caller."""
 
     frame = inspect.currentframe()
-    try:
-        frame = frame.f_back
-        while frame is not None:
-            code = frame.f_code
-            if code in codes:
-                return True
-            module_name = frame.f_globals.get("__name__")
-            if module_name == "inspect" and code.co_name == "unwrap":
-                return True
-            frame = frame.f_back
-    finally:
-        del frame
+    if frame is None:
+        return False
+
+    caller = frame.f_back
+    if caller is None:
+        return False
+
+    module_name = caller.f_globals.get("__name__")
+    if module_name == "inspect" and caller.f_code.co_name == "unwrap":
+        return True
 
     return False
+
+
+def _module_self_alias() -> ModuleType:
+    """Return a cached alias instance representing this module."""
+
+    global _SELF_ALIAS
+    if _SELF_ALIAS is None:
+        module = sys.modules[__name__]
+        _SELF_ALIAS = _ModuleAlias(module)
+    return _SELF_ALIAS
 
 
 def __getattr__(name: str) -> Any:
@@ -102,8 +115,7 @@ def __getattr__(name: str) -> Any:
     if name == "__wrapped__":
         if _called_from_inspect_unwrap():
             raise AttributeError(name)
-        module = sys.modules[__name__]
-        return module
+        return _module_self_alias()
 
     try:
         module_name, attribute = _EXPORTS[name]
