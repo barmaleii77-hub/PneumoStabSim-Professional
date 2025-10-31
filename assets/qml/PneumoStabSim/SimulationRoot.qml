@@ -2539,7 +2539,7 @@ function apply3DUpdates(params) {
         if (params.animation)
             root.applyAnimationUpdates(params.animation);
         if (params.threeD)
-            apply3DUpdates(params.threeD);
+            root.apply3DUpdates(params.threeD);
 
         var environmentPatch = {};
         if (params.backgroundColor !== undefined)
