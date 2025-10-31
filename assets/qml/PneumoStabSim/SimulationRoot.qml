@@ -806,6 +806,38 @@ Binding {
 }
 
 Binding {
+    target: sceneEnvCtl
+    property: "cameraClipNear"
+    value: cameraController && cameraController.camera
+            ? cameraController.camera.clipNear
+            : sceneEnvCtl.cameraClipNear
+}
+
+Binding {
+    target: sceneEnvCtl
+    property: "cameraClipFar"
+    value: cameraController && cameraController.camera
+            ? cameraController.camera.clipFar
+            : sceneEnvCtl.cameraClipFar
+}
+
+Binding {
+    target: sceneEnvCtl
+    property: "cameraFieldOfView"
+    value: cameraController && cameraController.camera
+            ? cameraController.camera.fieldOfView
+            : sceneEnvCtl.cameraFieldOfView
+}
+
+Binding {
+    target: sceneEnvCtl
+    property: "cameraAspectRatio"
+    value: cameraController && cameraController.camera
+            ? cameraController.camera.aspectRatio
+            : sceneEnvCtl.cameraAspectRatio
+}
+
+Binding {
     target: postEffects
     property: "cameraClipNear"
     value: cameraController && cameraController.camera ? cameraController.camera.clipNear : postEffects.cameraClipNear
