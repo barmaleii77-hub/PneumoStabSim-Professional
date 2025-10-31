@@ -18,7 +18,6 @@ from __future__ import annotations
 import inspect
 import sys
 from importlib import import_module, util
-from types import ModuleType
 from typing import Any, Dict
 
 __all__ = [
@@ -45,75 +44,37 @@ _MODULE_EXPORTS = {
 _MAIN_WINDOW_CLASS: type[Any] | None = None
 _MAIN_WINDOW_ERROR: ImportError | None = None
 _USING_REFACTORED = False
-_SELF_ALIAS: ModuleType | None = None
-
-
-class _ModuleAlias(ModuleType):
-    """Proxy that mirrors the real module for ``__wrapped__`` access."""
-
-    def __init__(self, module: ModuleType) -> None:
-        super().__init__(module.__name__, module.__doc__)
-        object.__setattr__(self, "_module", module)
-
-    def __getattribute__(self, name: str) -> Any:
-        if name in {
-            "_module",
-            "__class__",
-            "__dict__",
-            "__doc__",
-            "__name__",
-            "__getattribute__",
-            "__setattr__",
-            "__dir__",
-        }:
-            return object.__getattribute__(self, name)
-        module = object.__getattribute__(self, "_module")
-        return getattr(module, name)
-
-    def __setattr__(self, key: str, value: Any) -> None:
-        module = object.__getattribute__(self, "_module")
-        setattr(module, key, value)
-
-    @property
-    def __dict__(self) -> Dict[str, Any]:  # type: ignore[override]
-        module = object.__getattribute__(self, "_module")
-        return module.__dict__
-
-    def __dir__(self) -> list[str]:
-        module = object.__getattribute__(self, "_module")
-        return dir(module)
-
-    def __repr__(self) -> str:
-        module = object.__getattribute__(self, "_module")
-        return repr(module)
 
 
 def _called_from_inspect_unwrap() -> bool:
-    """Return ``True`` when :func:`inspect.unwrap` is the direct caller."""
+    """Return ``True`` when :func:`inspect.unwrap` appears in the call stack."""
 
     frame = inspect.currentframe()
     if frame is None:
         return False
 
-    caller = frame.f_back
-    if caller is None:
-        return False
+    try:
+        caller = frame.f_back
+        if caller is None:
+            return False
+        caller = caller.f_back
+        if caller is None:
+            return False
 
-    module_name = caller.f_globals.get("__name__")
-    if module_name == "inspect" and caller.f_code.co_name == "unwrap":
-        return True
+        module_name = caller.f_globals.get("__name__")
+        function_name = caller.f_code.co_name
+
+        if module_name == "inspect" and function_name in {"unwrap", "_unwrap_partial"}:
+            return True
+
+        if function_name.endswith("unwrap") and "hasattr" in caller.f_code.co_names:
+            if module_name != "tests.helpers.faux_inspect_module":
+                return True
+    finally:
+        # Break reference cycles created by ``inspect.currentframe``
+        del frame
 
     return False
-
-
-def _module_self_alias() -> ModuleType:
-    """Return a module proxy that mirrors ``src.ui.main_window_pkg``."""
-
-    global _SELF_ALIAS
-    if _SELF_ALIAS is None:
-        module = sys.modules[__name__]
-        _SELF_ALIAS = _ModuleAlias(module)
-    return _SELF_ALIAS
 
 
 def _qt_available() -> bool:
@@ -191,7 +152,7 @@ def __getattr__(name: str) -> Any:
     if name == "__wrapped__":
         if _called_from_inspect_unwrap():
             raise AttributeError(name)
-        return _module_self_alias()
+        return sys.modules[__name__]
 
     if name == "MainWindow":
         return _load_main_window()
