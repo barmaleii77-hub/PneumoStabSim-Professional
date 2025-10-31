@@ -71,7 +71,7 @@ def export_timeseries_csv(
 def _can_use_numpy_savetxt(series: Mapping[str, Sequence[float]]) -> bool:
     """Check if all series are numeric (suitable for numpy.savetxt)."""
 
-    if not _NUMPY_AVAILABLE or np is None:
+    if not _NUMPY_AVAILABLE:
         return False
 
     for data in series.values():
@@ -88,8 +88,12 @@ def _export_with_numpy(
     path: Path,
     header: Sequence[str],
 ) -> None:
-    """Export using numpy.savetxt (efficient for numeric data)"""
-    if not _NUMPY_AVAILABLE or np is None:
+    """Export using numpy.savetxt (efficient for numeric data)
+    
+    Note: numpy.savetxt automatically handles .gz files, so use_gzip
+    parameter is not needed - compression is determined by file extension.
+    """
+    if not _NUMPY_AVAILABLE:
         raise RuntimeError("NumPy is required for numpy-based CSV export")
 
     # Stack columns
