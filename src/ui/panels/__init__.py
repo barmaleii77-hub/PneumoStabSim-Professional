@@ -16,10 +16,7 @@ the original ImportError with full context.
 
 from __future__ import annotations
 
-import inspect
-import sys
 from importlib import import_module
-from types import ModuleType
 from typing import TYPE_CHECKING, Any
 
 __all__ = ["GeometryPanel", "PneumoPanel", "ModesPanel", "RoadPanel", "GraphicsPanel"]
@@ -38,91 +35,13 @@ if TYPE_CHECKING:  # pragma: no cover - typing helpers only
     from .panel_pneumo import PneumoPanel
     from .panel_road import RoadPanel
     from .graphics.panel_graphics_refactored import GraphicsPanel
-_SELF_ALIAS: ModuleType | None = None
-
-
-class _ModuleAlias(ModuleType):
-    """Proxy module object used to satisfy ``__wrapped__`` lookups."""
-
-    def __init__(self, module: ModuleType) -> None:
-        super().__init__(module.__name__, module.__doc__)
-        object.__setattr__(self, "_module", module)
-        object.__setattr__(self, "_wrapped", module)
-
-    def __getattribute__(self, name: str) -> Any:
-        if name == "__wrapped__":
-            return object.__getattribute__(self, "_wrapped")
-        if name in {
-            "_module",
-            "_wrapped",
-            "__class__",
-            "__dict__",
-            "__doc__",
-            "__name__",
-            "__getattribute__",
-            "__setattr__",
-            "__dir__",
-        }:
-            return object.__getattribute__(self, name)
-        module = object.__getattribute__(self, "_module")
-        return getattr(module, name)
-
-    def __setattr__(self, key: str, value: Any) -> None:
-        module = object.__getattribute__(self, "_module")
-        setattr(module, key, value)
-
-    @property
-    def __dict__(self) -> Dict[str, Any]:  # type: ignore[override]
-        module = object.__getattribute__(self, "_module")
-        return module.__dict__
-
-    def __dir__(self) -> list[str]:
-        module = object.__getattribute__(self, "_module")
-        module_dir = dir(module)
-        if "__wrapped__" not in module_dir:
-            module_dir.append("__wrapped__")
-        return module_dir
-
-    def __repr__(self) -> str:
-        module = object.__getattribute__(self, "_module")
-        return repr(module)
-
-
-def _called_from_inspect_unwrap() -> bool:
-    """Return ``True`` when :func:`inspect.unwrap` appears in the call stack."""
-
-    frame = inspect.currentframe()
-    if frame is None:
-        return False
-
-    try:
-        caller = frame.f_back
-        if caller is None:
-            return False
-        caller = caller.f_back
-        if caller is None:
-            return False
-
-        module_name = caller.f_globals.get("__name__")
-        function_name = caller.f_code.co_name
-
-        if module_name == "inspect" and function_name in {"unwrap", "_unwrap_partial"}:
-            return True
-    finally:
-        # Break reference cycles created by ``inspect.currentframe``
-        del frame
-
-    return False
 
 
 def __getattr__(name: str) -> Any:
     """Lazily import panel classes on first access."""
 
     if name == "__wrapped__":
-        global _SELF_ALIAS
-        if _SELF_ALIAS is None:
-            _SELF_ALIAS = _ModuleAlias(sys.modules[__name__])
-        return _SELF_ALIAS
+        raise AttributeError(name)
 
     try:
         module_name, attribute = _EXPORTS[name]
