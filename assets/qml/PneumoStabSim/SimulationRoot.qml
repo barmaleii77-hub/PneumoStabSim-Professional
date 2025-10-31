@@ -1270,17 +1270,39 @@ function clearShaderWarning(effectId) {
 }
 
 function setIfExists(obj, prop, value) {
-try {
-if (obj && (prop in obj || typeof obj[prop] !== 'undefined')) {
-obj[prop] = value;
+    try {
+        if (obj && (prop in obj || typeof obj[prop] !== "undefined")) {
+            obj[prop] = value;
+        }
+    } catch (e) {
+        console.warn("setIfExists failed", prop, e);
+    }
 }
-} catch (e) {
-console.warn("setIfExists failed", prop, e);
+
+function isPlainObject(value) {
+    return value !== null && typeof value === "object" && !Array.isArray(value);
 }
+
+function warnInvalidBatch(category, reason, payload) {
+    var message = "Ignoring " + category + " batch: " + reason;
+    try {
+        console.warn("[SimulationRoot]", message, payload !== undefined ? payload : "");
+    } catch (e) {
+        console.warn("[SimulationRoot]", message);
+    }
+
+    if (typeof window !== "undefined" && window) {
+        try {
+            if (typeof window.recordQmlBatchWarning === "function") {
+                window.recordQmlBatchWarning(category, reason, payload);
+            }
+        } catch (err) {
+        }
+    }
 }
 
 function valueForKeys(map, keys) {
-    if (!map)
+    if (!isPlainObject(map))
         return undefined;
     for (var i = 0; i < keys.length; ++i) {
         var key = keys[i];
@@ -1709,13 +1731,15 @@ function sanitizeReflectionProbePadding(value) {
  }
  }
 
- function applyLightingUpdates(params) {
- if (!params)
- return;
+function applyLightingUpdates(params) {
+ if (!isPlainObject(params)) {
+  warnInvalidBatch("lighting", "payload must be an object", params);
+  return;
+ }
 
  function normalizeGroupPayload(payload) {
- if (!payload)
- return payload;
+ if (!isPlainObject(payload))
+  return {};
  var normalized = {};
  var mutated = false;
  for (var key in payload) {
@@ -1772,8 +1796,8 @@ function sanitizeReflectionProbePadding(value) {
  }
 
  function mergeGroup(target, updates) {
- if (!updates || typeof updates !== "object")
- return target;
+ if (!isPlainObject(updates))
+  return target;
  return mergeLightingGroup(target, normalizeGroupPayload(updates));
  }
 
@@ -1800,8 +1824,8 @@ function sanitizeReflectionProbePadding(value) {
  };
 
  function handleGroup(key, group) {
- if (params[key] !== undefined)
- applyToGroup(group, params[key]);
+ if (isPlainObject(params[key]))
+  applyToGroup(group, params[key]);
  consumed[key] = true;
  }
 
@@ -1815,8 +1839,8 @@ function sanitizeReflectionProbePadding(value) {
  for (var alias in aliasGroups) {
  if (!aliasGroups.hasOwnProperty(alias))
  continue;
- if (params[alias] !== undefined)
- applyToGroup(aliasGroups[alias], params[alias]);
+ if (isPlainObject(params[alias]))
+  applyToGroup(aliasGroups[alias], params[alias]);
  consumed[alias] = true;
  }
 
@@ -1902,7 +1926,7 @@ function sanitizeReflectionProbePadding(value) {
  if (!params.hasOwnProperty(remainingKey) || consumed[remainingKey])
  continue;
  var value = params[remainingKey];
- if (typeof value === "object" && value !== null) {
+ if (isPlainObject(value)) {
  var targetState = lightingState[remainingKey];
  next[remainingKey] = mergeLightingGroup(cloneObject(targetState), normalizeGroupPayload(value));
  } else {
@@ -1916,12 +1940,16 @@ function sanitizeReflectionProbePadding(value) {
  lightingState = next;
  }
 
- function applyEnvironmentUpdates(params) {
- if (!params) return;
+function applyEnvironmentUpdates(params) {
+ if (!isPlainObject(params)) {
+  warnInvalidBatch("environment", "payload must be an object", params);
+  return;
+ }
  var bgColorVal = valueForKeys(params, ['backgroundColor', 'background_color']);
  if (bgColorVal !== undefined) setIfExists(sceneEnvCtl, 'backgroundColor', bgColorVal);
  if (params.clearColor) setIfExists(sceneEnvCtl, 'backgroundColor', params.clearColor);
- if (params.background && params.background.color) setIfExists(sceneEnvCtl, 'backgroundColor', params.background.color);
+ if (isPlainObject(params.background) && params.background.color !== undefined)
+  setIfExists(sceneEnvCtl, 'backgroundColor', params.background.color);
 
     var backgroundModeVal = valueForKeys(params, ['backgroundMode', 'background_mode']);
     if (backgroundModeVal !== undefined) setIfExists(sceneEnvCtl, 'backgroundModeKey', String(backgroundModeVal));
@@ -1968,7 +1996,7 @@ function sanitizeReflectionProbePadding(value) {
     ) !== undefined;
     var nestedSkyboxBrightnessProvided = false;
     var nestedProbeBrightnessProvided = false;
-    if (params.ibl && typeof params.ibl === 'object') {
+    if (isPlainObject(params.ibl)) {
         nestedSkyboxBrightnessProvided = valueForKeys(
             params.ibl,
             ['skyboxBrightness', 'skybox_brightness']
@@ -2088,8 +2116,10 @@ function sanitizeReflectionProbePadding(value) {
  }
 
     function applyQualityUpdates(params) {
-        if (!params)
+        if (!isPlainObject(params)) {
+            warnInvalidBatch("quality", "payload must be an object", params);
             return;
+        }
 
         var qualityPatch = {};
 
@@ -2114,9 +2144,9 @@ function sanitizeReflectionProbePadding(value) {
  }
 
  var shadowSource = null;
- if (params.shadowSettings && typeof params.shadowSettings === "object")
+ if (isPlainObject(params.shadowSettings))
   shadowSource = params.shadowSettings;
- else if (params.shadows && typeof params.shadows === "object")
+ else if (isPlainObject(params.shadows))
   shadowSource = params.shadows;
 
  if (shadowSource) {
@@ -2154,7 +2184,7 @@ function sanitizeReflectionProbePadding(value) {
  }
 
  var qualityPatch = {};
- var aaSource = (params.antialiasing && typeof params.antialiasing === "object") ? params.antialiasing : null;
+ var aaSource = isPlainObject(params.antialiasing) ? params.antialiasing : null;
 
  assignString("aaPrimaryMode", params.aaPrimaryMode !== undefined ? params.aaPrimaryMode : aaSource && aaSource.primary);
  assignString("aaQualityLevel", params.aaQualityLevel !== undefined ? params.aaQualityLevel : aaSource && aaSource.quality);
@@ -2196,9 +2226,14 @@ function sanitizeReflectionProbePadding(value) {
  if (oitValue !== undefined && oitValue !== null)
   qualityPatch.oitMode = String(oitValue);
 
- if (Object.keys(qualityPatch).length)
-  sceneEnvCtl.applyQualityPayload(qualityPatch);
+ if (Object.keys(qualityPatch).length && sceneEnvCtl && typeof sceneEnvCtl.applyQualityPayload === "function") {
+  try {
+   sceneEnvCtl.applyQualityPayload(qualityPatch);
+  } catch (err) {
+   console.warn("applyQualityPayload failed", err);
+  }
  }
+    }
 
  function applyMaterialUpdates(params) {
  if (!params)
@@ -2417,9 +2452,9 @@ function applyAnimationUpdates(params) {
  }
 
  var leverAnglesPayload = null;
- if (params.leverAngles)
+ if (isPlainObject(params.leverAngles))
   leverAnglesPayload = params.leverAngles;
- else if (params.lever_angles)
+ else if (isPlainObject(params.lever_angles))
   leverAnglesPayload = params.lever_angles;
  if (leverAnglesPayload) {
   var anglesPayload = {};
@@ -2431,19 +2466,23 @@ function applyAnimationUpdates(params) {
    anglesPayload.rl = Number(leverAnglesPayload.rl);
   if (leverAnglesPayload.rr !== undefined)
    anglesPayload.rr = Number(leverAnglesPayload.rr);
-  if (Object.keys(anglesPayload).length) {
-   rigAnimation.applyLeverAnglesRadians(anglesPayload, {
-    immediate: globalImmediate || params.leverAnglesImmediate === true || leverAnglesPayload.immediate === true
-   });
+  if (Object.keys(anglesPayload).length && rigAnimation && typeof rigAnimation.applyLeverAnglesRadians === "function") {
+   try {
+    rigAnimation.applyLeverAnglesRadians(anglesPayload, {
+     immediate: globalImmediate || params.leverAnglesImmediate === true || leverAnglesPayload.immediate === true
+    });
+   } catch (err) {
+    console.warn("applyLeverAnglesRadians failed", err);
+   }
    pythonLeverAnglesActive = true;
    pythonLeverAnglesTimeout.restart();
   }
  }
 
  var pistonPayloadSource = null;
- if (params.pistonPositions)
+ if (isPlainObject(params.pistonPositions))
   pistonPayloadSource = params.pistonPositions;
- else if (params.piston_positions)
+ else if (isPlainObject(params.piston_positions))
   pistonPayloadSource = params.piston_positions;
  if (pistonPayloadSource) {
   var pistonPayload = {};
@@ -2455,16 +2494,20 @@ function applyAnimationUpdates(params) {
    pistonPayload.rl = Number(pistonPayloadSource.rl);
   if (pistonPayloadSource.rr !== undefined)
    pistonPayload.rr = Number(pistonPayloadSource.rr);
-  if (Object.keys(pistonPayload).length) {
-   rigAnimation.applyPistonPositions(pistonPayload, {
-    immediate: globalImmediate || params.pistonImmediate === true || pistonPayloadSource.immediate === true
-   });
+  if (Object.keys(pistonPayload).length && rigAnimation && typeof rigAnimation.applyPistonPositions === "function") {
+   try {
+    rigAnimation.applyPistonPositions(pistonPayload, {
+     immediate: globalImmediate || params.pistonImmediate === true || pistonPayloadSource.immediate === true
+    });
+   } catch (err) {
+    console.warn("applyPistonPositions failed", err);
+   }
    pythonPistonsActive = true;
    pythonPistonsTimeout.restart();
   }
  }
 
- if (params.linePressures) {
+ if (isPlainObject(params.linePressures)) {
   var lp = params.linePressures;
   var updatedPressures = Object.assign({}, linePressures || {});
   if (lp.a1 !== undefined)
@@ -2492,9 +2535,12 @@ function applyAnimationUpdates(params) {
 }
 
 function apply3DUpdates(params) {
- if (!params) return;
+ if (!isPlainObject(params)) {
+  warnInvalidBatch("threeD", "payload must be an object", params);
+  return;
+ }
  var globalImmediate = params.instant === true || params.immediate === true;
- if (params.frame) {
+ if (isPlainObject(params.frame)) {
   var f = params.frame;
   var framePayload = {};
   if (f.heave !== undefined)
@@ -2503,15 +2549,19 @@ function apply3DUpdates(params) {
    framePayload.roll = Number(f.roll);
   if (f.pitch !== undefined)
    framePayload.pitch = Number(f.pitch);
-  if (Object.keys(framePayload).length) {
-   rigAnimation.applyFrameMotion(framePayload, {
-    immediate: globalImmediate || params.frameImmediate === true || f.immediate === true
-   });
+  if (Object.keys(framePayload).length && rigAnimation && typeof rigAnimation.applyFrameMotion === "function") {
+   try {
+    rigAnimation.applyFrameMotion(framePayload, {
+     immediate: globalImmediate || params.frameImmediate === true || f.immediate === true
+    });
+   } catch (err) {
+    console.warn("applyFrameMotion failed", err);
+   }
    pythonFrameActive = true;
    pythonFrameTimeout.restart();
   }
  }
- if (params.wheels) {
+ if (isPlainObject(params.wheels)) {
   var wheelData = params.wheels;
   var leverPatch = {};
   var pistonPatch = {};
@@ -2519,8 +2569,8 @@ function apply3DUpdates(params) {
   var pistonImmediate = globalImmediate;
 
   function applyWheel(key, source) {
-   if (!source)
-    return;
+  if (!isPlainObject(source))
+   return;
    if (source.leverAngle !== undefined)
     leverPatch[key] = Number(source.leverAngle);
    if (source.pistonPosition !== undefined)
@@ -2536,23 +2586,31 @@ function apply3DUpdates(params) {
   applyWheel("rl", wheelData.rl);
   applyWheel("rr", wheelData.rr);
 
-  if (Object.keys(leverPatch).length) {
-   rigAnimation.applyLeverAnglesRadians(leverPatch, {
-    immediate: leverImmediate || params.leverAnglesImmediate === true || params.wheelsImmediate === true
-   });
+  if (Object.keys(leverPatch).length && rigAnimation && typeof rigAnimation.applyLeverAnglesRadians === "function") {
+   try {
+    rigAnimation.applyLeverAnglesRadians(leverPatch, {
+     immediate: leverImmediate || params.leverAnglesImmediate === true || params.wheelsImmediate === true
+    });
+   } catch (err) {
+    console.warn("applyLeverAnglesRadians failed", err);
+   }
    pythonLeverAnglesActive = true;
    pythonLeverAnglesTimeout.restart();
   }
 
-  if (Object.keys(pistonPatch).length) {
-   rigAnimation.applyPistonPositions(pistonPatch, {
-    immediate: pistonImmediate || params.pistonImmediate === true || params.wheelsImmediate === true
-   });
+  if (Object.keys(pistonPatch).length && rigAnimation && typeof rigAnimation.applyPistonPositions === "function") {
+   try {
+    rigAnimation.applyPistonPositions(pistonPatch, {
+     immediate: pistonImmediate || params.pistonImmediate === true || params.wheelsImmediate === true
+    });
+   } catch (err) {
+    console.warn("applyPistonPositions failed", err);
+   }
    pythonPistonsActive = true;
    pythonPistonsTimeout.restart();
   }
  }
- if (params.reflectionProbe) {
+ if (isPlainObject(params.reflectionProbe)) {
   var rp = params.reflectionProbe;
   if (rp.enabled !== undefined)
    reflectionProbeEnabled = !!rp.enabled;
