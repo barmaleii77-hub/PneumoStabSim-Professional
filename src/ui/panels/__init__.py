@@ -19,6 +19,7 @@ from __future__ import annotations
 import inspect
 import sys
 from importlib import import_module
+from types import CodeType
 from typing import TYPE_CHECKING, Any
 
 __all__ = ["GeometryPanel", "PneumoPanel", "ModesPanel", "RoadPanel", "GraphicsPanel"]
@@ -39,14 +40,36 @@ if TYPE_CHECKING:  # pragma: no cover - typing helpers only
     from .graphics.panel_graphics_refactored import GraphicsPanel
 
 
+def _collect_inspect_unwrap_codes() -> set[CodeType]:
+    """Return the ``inspect.unwrap`` implementation code objects."""
+
+    codes: set[CodeType] = set()
+    unwrap = getattr(inspect, "unwrap", None)
+
+    while callable(unwrap):
+        code = getattr(unwrap, "__code__", None)
+        if code is None or code in codes:
+            break
+        codes.add(code)
+        unwrap = getattr(unwrap, "__wrapped__", None)
+
+    return codes
+
+
+_INSPECT_UNWRAP_CODES = _collect_inspect_unwrap_codes()
+
+
 def _called_from_inspect_unwrap() -> bool:
     """Return ``True`` when :func:`inspect.unwrap` triggered the lookup."""
 
+    if not _INSPECT_UNWRAP_CODES:
+        return False
+
     frame = inspect.currentframe()
     try:
+        frame = frame.f_back
         while frame is not None:
-            module = inspect.getmodule(frame)
-            if module is inspect and frame.f_code.co_name == "unwrap":
+            if frame.f_code in _INSPECT_UNWRAP_CODES:
                 return True
             frame = frame.f_back
     finally:
