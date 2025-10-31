@@ -109,6 +109,10 @@ class GraphicsLogAnalyzer:
             "by_parameter": defaultdict(int),
             "timeline": [],
         }
+        self.unsynced_events: List[Dict[str, Any]] = []
+        self.unsynced_summary: Dict[Tuple[str, str], Dict[str, int]] = defaultdict(
+            lambda: {"pending": 0, "failed": 0}
+        )
 
     def load_events(self) -> bool:
         """Загружает события из файла"""
@@ -148,10 +152,19 @@ class GraphicsLogAnalyzer:
 
             if applied:
                 self.stats["synced"] += 1
-            elif qml_state and not qml_state.get("applied"):
-                self.stats["failed"] += 1
             else:
-                self.stats["pending"] += 1
+                qml_state_applied: Optional[bool] = None
+                if isinstance(qml_state, dict):
+                    qml_state_applied = qml_state.get("applied")
+
+                status = "failed" if qml_state_applied is False else "pending"
+
+                if status == "failed":
+                    self.stats["failed"] += 1
+                else:
+                    self.stats["pending"] += 1
+
+                self._register_unsynced_event(event, category, param, status)
 
             # Timeline
             timestamp = event.get("timestamp", "")
@@ -187,6 +200,101 @@ class GraphicsLogAnalyzer:
             cat: (count / total) * 100
             for cat, count in self.stats["by_category"].items()
         }
+
+    def get_unsynced_events(
+        self,
+        limit: Optional[int] = None,
+        include_pending: bool = True,
+        include_failed: bool = True,
+    ) -> List[Dict[str, Any]]:
+        """Возвращает список несинхронизированных событий."""
+
+        filtered: List[Dict[str, Any]] = []
+        for event in self.unsynced_events:
+            status = event.get("status")
+            if status == "pending" and not include_pending:
+                continue
+            if status == "failed" and not include_failed:
+                continue
+            filtered.append(event)
+            if limit is not None and len(filtered) >= limit:
+                break
+        return filtered
+
+    def get_unsynced_summary(self, limit: Optional[int] = None) -> List[Dict[str, Any]]:
+        """Группирует несинхронизированные события по параметрам."""
+
+        items: List[Dict[str, Any]] = []
+        for (category, parameter), counts in self.unsynced_summary.items():
+            total = counts["pending"] + counts["failed"]
+            items.append(
+                {
+                    "category": category,
+                    "parameter": parameter,
+                    "pending": counts["pending"],
+                    "failed": counts["failed"],
+                    "total": total,
+                }
+            )
+
+        items.sort(key=lambda item: item["total"], reverse=True)
+
+        if limit is not None:
+            return items[:limit]
+        return items
+
+    # ------------------------------------------------------------------
+    # Internal helpers
+    # ------------------------------------------------------------------
+
+    def _register_unsynced_event(
+        self, event: Dict[str, Any], category: str, parameter: str, status: str
+    ) -> None:
+        """Сохраняет несинхронизированное событие для дальнейшего анализа."""
+
+        summary_bucket = self.unsynced_summary[(category, parameter)]
+        summary_bucket[status] += 1
+
+        reason = None
+        qml_state = event.get("qml_state") or {}
+        if isinstance(qml_state, dict):
+            reason = qml_state.get("error") or qml_state.get("reason")
+
+        unsynced_payload = {
+            "timestamp": event.get("timestamp"),
+            "category": category,
+            "parameter": parameter,
+            "status": status,
+            "new_value": self._make_serializable(event.get("new_value")),
+            "old_value": self._make_serializable(event.get("old_value")),
+        }
+
+        if reason:
+            unsynced_payload["reason"] = reason
+
+        if qml_state:
+            unsynced_payload["qml_state"] = self._make_serializable(qml_state)
+
+        error_message = event.get("error") or event.get("message")
+        if error_message:
+            unsynced_payload["message"] = str(error_message)
+
+        self.unsynced_events.append(unsynced_payload)
+
+    @staticmethod
+    def _make_serializable(value: Any) -> Any:
+        """Приводит значение к сериализуемому виду для отчётов."""
+
+        if value is None or isinstance(value, (str, int, float, bool)):
+            return value
+        if isinstance(value, dict):
+            return {
+                str(key): GraphicsLogAnalyzer._make_serializable(sub_value)
+                for key, sub_value in value.items()
+            }
+        if isinstance(value, (list, tuple, set)):
+            return [GraphicsLogAnalyzer._make_serializable(item) for item in value]
+        return str(value)
 
 
 # ============================================================================
@@ -616,6 +724,74 @@ class LogAnalyzer:
                 f"{event['old']} -> {colored(str(event['new']), Colors.YELLOW)}"
             )
             safe_print(f"   {time_str} {cat_str}.{param_str}: {change_str}")
+
+        unsynced_total = len(analyzer.unsynced_events)
+        if unsynced_total:
+            safe_print("\nНЕСИНХРОНИЗИРОВАННЫЕ СОБЫТИЯ:")
+            safe_print(
+                f"   Всего: {colored(str(unsynced_total), Colors.RED if sync_rate < 90 else Colors.YELLOW)}"
+            )
+
+            safe_print("   ТОП ПАРАМЕТРОВ:")
+            for item in analyzer.get_unsynced_summary(limit=5):
+                label = f"{item['category']}.{item['parameter']}"
+                pending = item["pending"]
+                failed = item["failed"]
+                total = item["total"]
+                details = []
+                if pending:
+                    details.append(f"ожидание {pending}")
+                if failed:
+                    details.append(f"ошибки {failed}")
+                detail_text = ", ".join(details)
+                safe_print(
+                    f"      {colored(label, Colors.MAGENTA)} — {colored(str(total), Colors.CYAN)} ({detail_text})"
+                )
+
+            samples = analyzer.get_unsynced_events(limit=3)
+            if samples:
+                safe_print("   ПРИМЕРЫ:")
+                for sample in samples:
+                    timestamp = format_timestamp(sample.get("timestamp", ""))
+                    status = sample.get("status", "pending")
+                    status_color = Colors.YELLOW if status == "pending" else Colors.RED
+                    reason = sample.get("reason") or sample.get("message")
+                    reason_str = f" — {reason}" if reason else ""
+                    safe_print(
+                        f"      [{colored(timestamp or '???', Colors.CYAN)}] "
+                        f"{colored(status, status_color)} → {sample['category']}.{sample['parameter']}{reason_str}"
+                    )
+
+        self._export_unsynced_graphics_report(analyzer)
+
+    def _export_unsynced_graphics_report(
+        self, analyzer: GraphicsLogAnalyzer
+    ) -> None:
+        """Сохраняет подробный отчёт о несинхронизированных событиях."""
+
+        report_root = Path("reports") / "graphics"
+        report_root.mkdir(parents=True, exist_ok=True)
+        report_path = report_root / "unsynced_events.json"
+
+        payload = {
+            "generated_at": datetime.utcnow().isoformat() + "Z",
+            "source_log": str(analyzer.log_file),
+            "sync_rate": analyzer.get_sync_rate(),
+            "unsynced_total": len(analyzer.unsynced_events),
+            "unsynced_by_parameter": analyzer.get_unsynced_summary(),
+            "samples": analyzer.get_unsynced_events(limit=10),
+        }
+
+        try:
+            with open(report_path, "w", encoding="utf-8") as handle:
+                json.dump(payload, handle, ensure_ascii=False, indent=2)
+        except OSError as exc:
+            safe_print(
+                colored(
+                    f"⚠️  Не удалось записать отчёт о синхронизации: {exc}",
+                    Colors.YELLOW,
+                )
+            )
 
     def _analyze_ibl(self):
         """Анализирует IBL логи"""
