@@ -74,7 +74,7 @@ Item {
     readonly property bool backgroundUsesSkybox: backgroundModeSetting === "skybox" && skyboxEnabled
     readonly property bool backgroundUsesTransparent: backgroundIsTransparent && sceneEnvSupportsTransparent
     property color effectiveClearColor: {
-        const base = Qt.color(backgroundColor)
+        var base = Qt.color(backgroundColor)
         if (backgroundUsesTransparent)
             return Qt.rgba(base.r, base.g, base.b, 0.0)
         if (backgroundIsTransparent)
@@ -220,10 +220,10 @@ property real tankPressure: 0.0
         console.warn("Realism scene received unsupported update", category, payload)
     }
 
-    const SCENE_UNITS_PER_METER = 1000.0
+    readonly property real sceneUnitsPerMeter: 1000.0
 
     function toScene(value) {
-        const numeric = Number(value)
+        var numeric = Number(value)
         if (!Number.isFinite(numeric))
             return 0
         return numeric
@@ -232,15 +232,15 @@ property real tankPressure: 0.0
     function metersToScene(value) {
         if (value === undefined || value === null)
             return null
-        const numeric = Number(value)
+        var numeric = Number(value)
         if (!Number.isFinite(numeric))
             return null
-        return numeric * SCENE_UNITS_PER_METER
+        return numeric * sceneUnitsPerMeter
     }
 
     function _readFirstDefined(object, keys) {
         for (var idx = 0; idx < keys.length; ++idx) {
-            const key = keys[idx]
+            var key = keys[idx]
             if (object[key] !== undefined)
                 return object[key]
         }
@@ -250,7 +250,7 @@ property real tankPressure: 0.0
     function resolveIblUrl(path) {
         if (path === undefined || path === null)
             return ""
-        const asString = String(path).trim()
+        var asString = String(path).trim()
         if (!asString)
             return ""
         try {
@@ -273,7 +273,7 @@ property real tankPressure: 0.0
         if (payload.timeSlicing !== undefined)
             reflectionProbeTimeSlicing = String(payload.timeSlicing)
         if (payload.padding !== undefined) {
-            const scenePadding = metersToScene(payload.padding)
+            var scenePadding = metersToScene(payload.padding)
             if (scenePadding !== null)
                 reflectionPaddingScene = Math.max(0, scenePadding)
         }
@@ -632,13 +632,13 @@ property real tankPressure: 0.0
     }
 
     function autoFitFrame(marginFactor) {
-        const L = Math.max(1, userFrameLength)
-        const T = Math.max(1, userTrackWidth)
-        const H = Math.max(1, userFrameHeight)
-        const margin = marginFactor !== undefined ? marginFactor : 1.15
-        const R = 0.5 * Math.sqrt(L*L + T*T + H*H)
-        const fov = cameraFov * Math.PI / 180.0
-        const dist = (R * margin) / Math.tan(fov * 0.5)
+        var L = Math.max(1, userFrameLength)
+        var T = Math.max(1, userTrackWidth)
+        var H = Math.max(1, userFrameHeight)
+        var margin = marginFactor !== undefined ? marginFactor : 1.15
+        var R = 0.5 * Math.sqrt(L*L + T*T + H*H)
+        var fov = cameraFov * Math.PI / 180.0
+        var dist = (R * margin) / Math.tan(fov * 0.5)
         cameraDistance = Math.max(minDistance, Math.min(maxDistance, dist))
     }
 
@@ -884,8 +884,8 @@ property real tankPressure: 0.0
         onPressed: (m) => { lastX = m.x; lastY = m.y }
 
         onPositionChanged: (m) => {
-            const dx = m.x - lastX
-            const dy = m.y - lastY
+            var dx = m.x - lastX
+            var dy = m.y - lastY
 
             if (m.buttons & Qt.LeftButton) {
                 // Rotation around pivot (bottom beam center)
@@ -893,8 +893,8 @@ property real tankPressure: 0.0
                 root.pitchDeg = Math.max(-85, Math.min(85, root.pitchDeg - dy * 0.35))
             } else if (m.buttons & Qt.RightButton) {
                 // Panning: move camera in rig's local X/Y
-                const fovRad = camera.fieldOfView * Math.PI / 180
-                const worldPerPixel = (2 * root.cameraDistance * Math.tan(fovRad / 2)) / view3d.height
+                var fovRad = camera.fieldOfView * Math.PI / 180
+                var worldPerPixel = (2 * root.cameraDistance * Math.tan(fovRad / 2)) / view3d.height
                 root.panX -= dx * worldPerPixel
                 root.panY += dy * worldPerPixel
             }
@@ -932,21 +932,21 @@ property real tankPressure: 0.0
 if (params.phase_rl !== undefined) userPhaseRL = Number(params.phase_rl);
     if (params.phase_rr !== undefined) userPhaseRR = Number(params.phase_rr);
     if (params.frame) {
-   const frame = params.frame;
+   var frame = params.frame;
         if (frame.heave !== undefined) frameHeave = Number(frame.heave);
   if (frame.roll !== undefined) frameRollRad = Number(frame.roll);
   if (frame.pitch !== undefined) framePitchRad = Number(frame.pitch);
     }
     if (params.leverAngles) {
-   const angles = params.leverAngles;
+   var angles = params.leverAngles;
    if (angles.fl !== undefined) flAngleRad = Number(angles.fl);
     if (angles.fr !== undefined) frAngleRad = Number(angles.fr);
   if (angles.rl !== undefined) rlAngleRad = Number(angles.rl);
    if (angles.rr !== undefined) rrAngleRad = Number(angles.rr);
     }
     if (params.pistonPositions) {
-  const pist = params.pistonPositions;
-        const updated = Object.assign({}, pistonPositions || {});
+  var pist = params.pistonPositions;
+        var updated = Object.assign({}, pistonPositions || {});
    if (pist.fl !== undefined) updated.fl = Number(pist.fl);
   if (pist.fr !== undefined) updated.fr = Number(pist.fr);
     if (pist.rl !== undefined) updated.rl = Number(pist.rl);
@@ -954,8 +954,8 @@ if (params.phase_rl !== undefined) userPhaseRL = Number(params.phase_rl);
     pistonPositions = updated;
     }
     if (params.linePressures) {
-    const lp = params.linePressures;
-  const updatedPressures = Object.assign({}, linePressures || {});
+    var lp = params.linePressures;
+  var updatedPressures = Object.assign({}, linePressures || {});
   if (lp.a1 !== undefined) updatedPressures.a1 = Number(lp.a1);
    if (lp.b1 !== undefined) updatedPressures.b1 = Number(lp.b1);
     if (lp.a2 !== undefined) updatedPressures.a2 = Number(lp.a2);

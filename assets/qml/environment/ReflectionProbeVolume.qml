@@ -20,9 +20,6 @@ ReflectionProbe {
     readonly property real _clampedPadding: Math.max(0.0, padding)
 
     position: probe.pivot
-    // qmllint disable missing-property
-    enabled: probe.probeEnabled
-    // qmllint enable missing-property
     boxSize: Qt.vector3d(
                  _clampedTrackWidth + 2.0 * _clampedPadding,
                  _clampedFrameHeight + 2.0 * _clampedPadding,
@@ -31,6 +28,27 @@ ReflectionProbe {
     quality: resolveQuality(qualitySetting)
     refreshMode: resolveRefreshMode(refreshModeSetting)
     timeSlicing: resolveTimeSlicing(timeSlicingSetting)
+
+    function syncEnabledState() {
+        try {
+            // qmllint disable missing-property
+            if (probe.setProperty !== undefined) {
+                if (probe.setProperty("enabled", probe.probeEnabled)) {
+            // qmllint enable missing-property
+                    return
+                }
+            }
+        } catch (error) {
+            console.warn("ReflectionProbeVolume: unable to toggle enabled state", error)
+            return
+        }
+
+        // Fallback for runtimes without an enabled property
+        console.warn("ReflectionProbeVolume: 'enabled' property is unavailable; probeEnabled will be ignored")
+    }
+
+    Component.onCompleted: syncEnabledState()
+    onProbeEnabledChanged: syncEnabledState()
 
     function resolveQuality(setting) {
         const normalized = String(setting || "").toLowerCase()
