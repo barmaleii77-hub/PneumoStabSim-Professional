@@ -556,7 +556,9 @@ namespace PneumoStabSim.Core
 
                 var scriptsFolder = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? "Scripts" : "bin";
                 var executableName = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? "python.exe" : "python";
-                return Path.Combine(VirtualEnvironmentPath, scriptsFolder, executableName);
+                // Преобразуем путь к POSIX формату для совместимости с Python/QML
+                var combinedPath = Path.Combine(VirtualEnvironmentPath, scriptsFolder, executableName);
+                return combinedPath.Replace('\\', '/');
             }
 
             public static EnvironmentStatus? FromJson(string json, ILogger logger, EnvironmentPreparationResult result)
