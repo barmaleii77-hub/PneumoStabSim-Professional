@@ -26,6 +26,7 @@ Item {
  anchors.fill: parent
 
     property var sceneBridge: null
+    readonly property var emptyObject: ({})
 
  // ---------------------------------------------
  // Свойства и сигнал для батч-обновлений из Python
@@ -38,7 +39,7 @@ signal animationToggled(bool running)
  property bool isRunning: animationDefaults && animationDefaults.is_running !== undefined ? Boolean(animationDefaults.is_running) : false
  property var animationDefaults: typeof initialAnimationSettings !== "undefined" ? initialAnimationSettings : null
  property var sceneDefaults: typeof initialSceneSettings !== "undefined" ? initialSceneSettings : null
- property var geometryDefaults: typeof initialGeometrySettings !== "undefined" ? initialGeometrySettings : null
+ property var geometryDefaults: typeof initialGeometrySettings !== "undefined" && initialGeometrySettings ? initialGeometrySettings : emptyObject
  property var diagnosticsDefaults: typeof initialDiagnosticsSettings !== "undefined" ? initialDiagnosticsSettings : null
  property var cameraHudSettings: ({})
  property bool cameraHudEnabled: false
