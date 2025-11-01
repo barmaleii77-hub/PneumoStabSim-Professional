@@ -189,6 +189,7 @@ Item {
         Shader {
             id: bloomFragmentShader
             stage: Shader.Fragment
+            shaderLanguage: Shader.GLSL
             property real uIntensity: bloomEffect.intensity
             property real uThreshold: bloomEffect.threshold
             property real uBlurAmount: bloomEffect.blurAmount
@@ -267,6 +268,7 @@ Item {
         Shader {
             id: bloomFallbackShader
             stage: Shader.Fragment
+            shaderLanguage: Shader.GLSL
             readonly property string shaderSource: glsl([
                 "#version 440"
                 ""
@@ -345,6 +347,7 @@ Item {
         Shader {
             id: ssaoFragmentShader
             stage: Shader.Fragment
+            shaderLanguage: Shader.GLSL
             property real uIntensity: ssaoEffect.intensity
             property real uRadius: ssaoEffect.radius
             property real uBias: ssaoEffect.bias
@@ -441,6 +444,7 @@ Item {
         Shader {
             id: ssaoFallbackShader
             stage: Shader.Fragment
+            shaderLanguage: Shader.GLSL
             readonly property string shaderSource: glsl([
                 "#version 440"
                 ""
@@ -518,6 +522,7 @@ Item {
         Shader {
             id: dofFragmentShader
             stage: Shader.Fragment
+            shaderLanguage: Shader.GLSL
             property real uFocusDistance: dofEffect.focusDistance
             property real uFocusRange: dofEffect.focusRange
             property real uBlurAmount: dofEffect.blurAmount
@@ -599,6 +604,7 @@ Item {
         Shader {
             id: dofFallbackShader
             stage: Shader.Fragment
+            shaderLanguage: Shader.GLSL
             readonly property string shaderSource: glsl([
                 "#version 440"
                 ""
@@ -671,6 +677,7 @@ Item {
         Shader {
             id: motionBlurFragmentShader
             stage: Shader.Fragment
+            shaderLanguage: Shader.GLSL
             property real uStrength: motionBlurEffect.strength
             property int uSamples: motionBlurEffect.samples
             readonly property string shaderSource: glsl([
@@ -728,6 +735,7 @@ Item {
         Shader {
             id: motionBlurFallbackShader
             stage: Shader.Fragment
+            shaderLanguage: Shader.GLSL
             readonly property string shaderSource: glsl([
                 "#version 440"
                 ""
