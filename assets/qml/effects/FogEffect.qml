@@ -38,20 +38,25 @@ Effect {
     property bool depthTextureAvailable: false
 
     function enableDepthTextureSupport() {
-        try {
-            fogEffect.requiresDepthTexture = true
-            depthTextureAvailable = true
-            console.log("🌫️ FogEffect: depth texture support enabled")
-        } catch (error) {
-            depthTextureAvailable = false
-            console.warn("⚠️ FogEffect: depth texture not supported; using fallback shader", error)
+        if (typeof fogEffect.setProperty === "function") {
+            try {
+                if (fogEffect.setProperty("requiresDepthTexture", true)) {
+                    depthTextureAvailable = true
+                    console.log("🌫️ FogEffect: depth texture support enabled")
+                    return
+                }
+            } catch (error) {
+                console.debug("FogEffect requiresDepthTexture assignment failed", error)
+            }
         }
+        depthTextureAvailable = false
+        console.warn("⚠️ FogEffect: depth texture not supported; using fallback shader")
     }
 
     Shader {
         id: fogVertexShader
         stage: Shader.Vertex
-        shader: "
+        code: "
             #version 440
 
             #ifndef INPUT_POSITION
@@ -78,6 +83,10 @@ Effect {
                 POSITION = ubuf.qt_ModelViewProjectionMatrix * localPosition;
             }
         "
+        onStatusChanged: {
+            if (status === Shader.Error)
+                console.warn("⚠️ FogEffect vertex shader compilation failed", log)
+        }
     }
 
     Shader {
@@ -101,7 +110,7 @@ Effect {
         property real userCameraFar: fogEffect.cameraClipFar
         property real userCameraFov: fogEffect.cameraFieldOfView
         property real userCameraAspect: fogEffect.cameraAspectRatio
-        shader: "
+        code: "
             #version 440
 
             layout(location = 0) in vec2 v_uv;
@@ -233,6 +242,10 @@ Effect {
                 FRAGCOLOR = vec4(foggedColor, originalColor.a) * EFFECT_OPACITY;
             }
         "
+        onStatusChanged: {
+            if (status === Shader.Error)
+                console.warn("⚠️ FogEffect fragment shader compilation failed", log)
+        }
     }
 
     Shader {
@@ -240,7 +253,7 @@ Effect {
         stage: Shader.Fragment
         property real userFogDensity: fogEffect.fogDensity
         property color userFogColor: fogEffect.fogColor
-        shader: "
+        code: "
             #version 440
 
             #ifndef INPUT_UV
@@ -270,6 +283,10 @@ Effect {
                 FRAGCOLOR = vec4(foggedColor, originalColor.a);
             }
         "
+        onStatusChanged: {
+            if (status === Shader.Error)
+                console.warn("⚠️ FogEffect fallback shader compilation failed", log)
+        }
     }
 
     passes: [

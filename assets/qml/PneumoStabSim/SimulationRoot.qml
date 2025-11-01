@@ -127,6 +127,11 @@ signal animationToggled(bool running)
     return globalState[alt];
    return fallback;
   }
+  return applied;
+ } catch (error) {
+  console.error("[SimulationRoot] applyMaterialUpdates failed", error);
+  return false;
+ }
  }
 
  property var geometryState: ({
@@ -964,32 +969,55 @@ Binding {
  // ---------------------------------------------
  // Python bridge helpers
  // ---------------------------------------------
+ function invokeBatchHandler(handler, payload, category) {
+ if (typeof handler !== "function") {
+  console.warn("[SimulationRoot] Missing handler for " + category + " updates")
+  return false
+ }
+ try {
+  return handler.call(root, payload)
+ } catch (error) {
+  console.error("[SimulationRoot] " + category + " handler threw:", error)
+  return false
+ }
+ }
+
+ function safeApplyConfigChange(category, payload) {
+ if (typeof window === "undefined" || !window || typeof window.applyQmlConfigChange !== "function")
+  return
+ try {
+  window.applyQmlConfigChange(category, payload || {})
+ } catch (error) {
+  console.warn("[SimulationRoot] applyQmlConfigChange failed:", error)
+ }
+ }
+
  function applySceneBridgeState() {
  if (!sceneBridge)
- return
+  return
 
  if (sceneBridge.geometry && Object.keys(sceneBridge.geometry).length)
-            applyGeometryUpdatesInternal(sceneBridge.geometry)
+  invokeBatchHandler(root.applyGeometryUpdatesInternal, sceneBridge.geometry, "geometry")
  if (sceneBridge.camera && Object.keys(sceneBridge.camera).length)
- root.applyCameraUpdates(sceneBridge.camera)
+  invokeBatchHandler(root.applyCameraUpdates, sceneBridge.camera, "camera")
  if (sceneBridge.lighting && Object.keys(sceneBridge.lighting).length)
- root.applyLightingUpdates(sceneBridge.lighting)
+  invokeBatchHandler(root.applyLightingUpdates, sceneBridge.lighting, "lighting")
  if (sceneBridge.environment && Object.keys(sceneBridge.environment).length)
- root.applyEnvironmentUpdates(sceneBridge.environment)
+  invokeBatchHandler(root.applyEnvironmentUpdates, sceneBridge.environment, "environment")
  if (sceneBridge.quality && Object.keys(sceneBridge.quality).length)
- root.applyQualityUpdates(sceneBridge.quality)
+  invokeBatchHandler(root.applyQualityUpdates, sceneBridge.quality, "quality")
  if (sceneBridge.materials && Object.keys(sceneBridge.materials).length)
- root.applyMaterialUpdates(sceneBridge.materials)
+  invokeBatchHandler(root.applyMaterialUpdates, sceneBridge.materials, "materials")
  if (sceneBridge.effects && Object.keys(sceneBridge.effects).length)
- root.applyEffectsUpdates(sceneBridge.effects)
+  invokeBatchHandler(root.applyEffectsUpdates, sceneBridge.effects, "effects")
  if (sceneBridge.animation && Object.keys(sceneBridge.animation).length)
- root.applyAnimationUpdates(sceneBridge.animation)
+  invokeBatchHandler(root.applyAnimationUpdates, sceneBridge.animation, "animation")
  if (sceneBridge.threeD && Object.keys(sceneBridge.threeD).length)
- root.apply3DUpdates(sceneBridge.threeD)
+  invokeBatchHandler(root.apply3DUpdates, sceneBridge.threeD, "threeD")
  if (sceneBridge.render && Object.keys(sceneBridge.render).length)
- root.applyRenderSettings(sceneBridge.render)
+  invokeBatchHandler(root.applyRenderSettings, sceneBridge.render, "render")
  if (sceneBridge.simulation && Object.keys(sceneBridge.simulation).length)
- root.applySimulationUpdates(sceneBridge.simulation)
+  invokeBatchHandler(root.applySimulationUpdates, sceneBridge.simulation, "simulation")
 
  if (sceneBridge.latestUpdates && Object.keys(sceneBridge.latestUpdates).length) {
  var summary = {}
@@ -1070,7 +1098,7 @@ Rectangle {
     function onGeometryChanged(payload) {
         if (!payload)
             return
-        applyGeometryUpdatesInternal(payload)
+        invokeBatchHandler(root.applyGeometryUpdatesInternal, payload, "geometry")
     }
  function onCameraChanged(payload) {
      if (!payload)
@@ -1172,7 +1200,7 @@ Rectangle {
    applySignalTraceSettings(diagnosticsDefaults.signal_trace)
   }
   if (geometryDefaults && Object.keys(geometryDefaults).length) {
-        applyGeometryUpdatesInternal(geometryDefaults)
+        invokeBatchHandler(root.applyGeometryUpdatesInternal, geometryDefaults, "geometry-defaults")
   }
   applySceneBridgeState()
  }
@@ -1212,18 +1240,14 @@ Rectangle {
    signalTraceOverlayVisible = enabled
    if (!enabled)
     signalTracePanelExpanded = false
-   if (typeof window !== "undefined" && window && window.applyQmlConfigChange) {
-    window.applyQmlConfigChange("diagnostics.signal_trace", { overlay_enabled: enabled })
-   }
+  safeApplyConfigChange("diagnostics.signal_trace", { overlay_enabled: enabled })
   }
 
   onRecordingToggled: function(enabled) {
    if (_signalTraceSyncing)
     return
    signalTraceRecordingEnabled = enabled
-   if (typeof window !== "undefined" && window && window.applyQmlConfigChange) {
-    window.applyQmlConfigChange("diagnostics.signal_trace", { enabled: enabled })
-   }
+  safeApplyConfigChange("diagnostics.signal_trace", { enabled: enabled })
   }
 
   onPanelVisibilityToggled: function(expanded) {
@@ -1468,9 +1492,8 @@ function sanitizeReflectionProbePadding(value) {
  return;
  } catch (err) {
  }
- if (typeof window.applyQmlConfigChange === "function")
- window.applyQmlConfigChange(category, payload);
- }
+ safeApplyConfigChange(category, payload);
+}
 
  function toSceneVector3(position) {
  if (!position)
@@ -1638,68 +1661,95 @@ function sanitizeReflectionProbePadding(value) {
     Connections {
         target: root
         function onPendingPythonUpdatesChanged() {
-            // fixed: apply incoming UI updates immediately for instant redraw
             if (!root.pendingPythonUpdates)
                 return;
-            try {
-                root.applyBatchedUpdates(root.pendingPythonUpdates);
-            } finally {
-                root.pendingPythonUpdates = null; // очистка после применения
-            }
+            var payload = root.pendingPythonUpdates;
+            root.pendingPythonUpdates = null;
+            invokeBatchHandler(root.applyBatchedUpdates, payload, "batched");
         }
     }
 
 function applyBatchedUpdates(updates) {
- if (!updates)
- return;
- var applied = {};
-    if (updates.geometry) {
-        applyGeometryUpdatesInternal(updates.geometry)
-        applied.geometry = true
+    if (!isPlainObject(updates)) {
+        warnInvalidBatch("root", "batch payload must be an object", updates);
+        var rejectedSummary = {
+            timestamp: Date.now(),
+            applied: {},
+            failed: { root: "invalid-payload" },
+            unknownKeys: []
+        };
+        batchUpdatesApplied(rejectedSummary);
+        return rejectedSummary;
     }
- if (updates.camera) { root.applyCameraUpdates(updates.camera); applied.camera = true; }
- if (updates.lighting) {
-  var lightingPayload = coerceBatchObject("lighting", updates.lighting);
-  if (lightingPayload) {
-   root.applyLightingUpdates(lightingPayload);
-   applied.lighting = true;
-  }
- }
- if (updates.environment){
-  var environmentPayload = coerceBatchObject("environment", updates.environment);
-  if (environmentPayload) {
-   root.applyEnvironmentUpdates(environmentPayload);
-   applied.environment = true;
-  }
- }
- if (updates.quality) {
-  var qualityPayload = coerceBatchObject("quality", updates.quality);
-  if (qualityPayload) {
-   root.applyQualityUpdates(qualityPayload);
-   applied.quality = true;
-  }
- }
- if (updates.materials) { root.applyMaterialUpdates(updates.materials); applied.materials = true; }
- if (updates.effects) { root.applyEffectsUpdates(updates.effects); applied.effects = true; }
- if (updates.animation) { root.applyAnimationUpdates(updates.animation); applied.animation = true; }
- if (updates.threeD) {
-  var threeDPayload = coerceBatchObject("threeD", updates.threeD);
-  if (threeDPayload) {
-   root.apply3DUpdates(threeDPayload);
-   applied.threeD = true;
-  }
- }
- if (updates.render) { root.applyRenderSettings(updates.render); applied.render = true; }
- if (updates.simulation) { root.applySimulationUpdates(updates.simulation); applied.simulation = true; }
 
- batchUpdatesApplied(applied);
- }
+    var summary = {
+        timestamp: Date.now(),
+        applied: {},
+        failed: {},
+        unknownKeys: []
+    };
+
+    function recordUnknown(key) {
+        if (summary.unknownKeys.indexOf(key) === -1)
+            summary.unknownKeys.push(key);
+    }
+
+    function invokeHandler(key, payload, handler) {
+        try {
+            var result = handler(payload);
+            if (result === false) {
+                summary.failed[key] = "no-op";
+            } else {
+                summary.applied[key] = true;
+            }
+        } catch (error) {
+            summary.failed[key] = error && error.message ? error.message : String(error);
+            console.error("[SimulationRoot] Failed to apply", key, "batch:", error);
+        }
+    }
+
+    var handlers = {
+        geometry: function(payload) { return root.applyGeometryUpdates(payload); },
+        camera: function(payload) { return root.applyCameraUpdates(payload); },
+        lighting: function(payload) { return root.applyLightingUpdates(payload); },
+        environment: function(payload) { return root.applyEnvironmentUpdates(payload); },
+        quality: function(payload) { return root.applyQualityUpdates(payload); },
+        materials: function(payload) { return root.applyMaterialUpdates(payload); },
+        effects: function(payload) { return root.applyEffectsUpdates(payload); },
+        animation: function(payload) { return root.applyAnimationUpdates(payload); },
+        threeD: function(payload) { return root.apply3DUpdates(payload); },
+        render: function(payload) { return root.applyRenderSettings(payload); },
+        simulation: function(payload) { return root.applySimulationUpdates(payload); }
+    };
+
+    for (var key in updates) {
+        if (!updates.hasOwnProperty(key))
+            continue;
+        var handler = handlers[key];
+        if (!handler) {
+            recordUnknown(key);
+            continue;
+        }
+        invokeHandler(key, updates[key], handler);
+    }
+
+    if (summary.unknownKeys.length) {
+        console.debug(
+            "[SimulationRoot] Unhandled batch categories:",
+            summary.unknownKeys.join(", ")
+        );
+    }
+
+    batchUpdatesApplied(summary);
+    return summary;
+}
 
  // ---------------------------------------------
  // Реализации apply*Updates (минимально: geometry, camera, lighting, environment, quality, materials, effects, animation,3d)
  // ---------------------------------------------
- function applyGeometryUpdatesInternal(params) {
- if (!params) return;
+function applyGeometryUpdatesInternal(params) {
+ if (!params) return false;
+ var changed = false;
  function pick(obj, keys, def) {
  for (var i =0; i < keys.length; i++) if (obj[keys[i]] !== undefined) return obj[keys[i]];
  return def;
@@ -1735,18 +1785,21 @@ function applyBatchedUpdates(updates) {
  if (params.cylinderSegments !== undefined) {
  var seg = Number(params.cylinderSegments);
  if (isFinite(seg)) {
- userCylinderSegments = Math.max(3, Math.round(seg));
- geometryPatch.cylinderSegments = userCylinderSegments;
+  userCylinderSegments = Math.max(3, Math.round(seg));
+  geometryPatch.cylinderSegments = userCylinderSegments;
  }
- }
+}
  if (params.cylinderRings !== undefined) {
  var rings = Number(params.cylinderRings);
  if (isFinite(rings)) {
- userCylinderRings = Math.max(1, Math.round(rings));
- geometryPatch.cylinderRings = userCylinderRings;
+  userCylinderRings = Math.max(1, Math.round(rings));
+  geometryPatch.cylinderRings = userCylinderRings;
  }
+}
+ if (Object.keys(geometryPatch).length) {
+  updateGeometryState(geometryPatch);
+  changed = true;
  }
- updateGeometryState(geometryPatch);
 
  if (cameraController) {
  var cameraGeometryUpdate = {};
@@ -1761,60 +1814,107 @@ function applyBatchedUpdates(updates) {
  if (geometryPatch.frameToPivot !== undefined)
      cameraGeometryUpdate.frameToPivot = geometryPatch.frameToPivot;
 
- if (Object.keys(cameraGeometryUpdate).length)
-     cameraController.updateGeometry(cameraGeometryUpdate);
+ if (Object.keys(cameraGeometryUpdate).length) {
+     try {
+      cameraController.updateGeometry(cameraGeometryUpdate);
+      changed = true;
+     } catch (err) {
+      console.warn("cameraController.updateGeometry failed", err);
+     }
+ }
     }
+ return changed;
 }
 
  function applyGeometryUpdates(params) {
+  params = coerceBatchObject("geometry", params);
+  if (!params)
+   return false;
   return applyGeometryUpdatesInternal(params);
  }
  function applyCameraUpdates(params) {
- if (!params)
-  return;
+  params = coerceBatchObject("camera", params);
+  if (!params)
+   return false;
 
- var controllerHandled = false;
- if (cameraController && cameraController.applyCameraUpdates) {
-  try {
-   cameraController.applyCameraUpdates(params);
-   controllerHandled = true;
-  } catch (err) {
-   console.warn("CameraController.applyCameraUpdates failed:", err);
+  if (cameraController && cameraController.applyCameraUpdates) {
+   try {
+    var controllerResult = cameraController.applyCameraUpdates(params);
+    if (controllerResult !== undefined)
+     return controllerResult !== false;
+    return true;
+   } catch (err) {
+    console.warn("CameraController.applyCameraUpdates failed:", err);
+   }
   }
- }
 
- if (controllerHandled)
-  return;
+  var changed = false;
 
- if (params.fov !== undefined)
-  setIfExists(camera, 'fieldOfView', Number(params.fov));
- var clipNearMeters = params.clipNear !== undefined ? Number(params.clipNear) : undefined;
- if (clipNearMeters !== undefined && isFinite(clipNearMeters)) {
-  var clipNearScene = Math.max(0.0001, toSceneLength(clipNearMeters));
-  setIfExists(camera, 'clipNear', clipNearScene);
-  try { camera.clipNear = clipNearScene; } catch (e) { console.warn("Camera near clip update failed:", e); }
- }
- var clipFarMeters = params.clipFar !== undefined ? Number(params.clipFar) : undefined;
- if (clipFarMeters !== undefined && isFinite(clipFarMeters)) {
-  var clipFarScene = toSceneLength(clipFarMeters);
-  setIfExists(camera, 'clipFar', clipFarScene);
-  try { camera.clipFar = clipFarScene; } catch (e) { console.warn("Camera far clip update failed:", e); }
- }
- var positionVector = params.position ? toSceneVector3(params.position) : null;
- if (positionVector) {
-  setIfExists(camera, 'position', positionVector);
-  try { camera.position = positionVector; } catch (e) { console.warn("Camera position update failed:", e); }
- }
- if (params.eulerRotation) {
-  var r = params.eulerRotation;
-  try { camera.eulerRotation = Qt.vector3d(Number(r.x||r[0]), Number(r.y||r[1]), Number(r.z||r[2])); } catch(e) { console.warn("Camera rotation normalization failed:", e); }
- }
+  if (params.fov !== undefined) {
+   if (setIfExists(camera, 'fieldOfView', Number(params.fov)))
+    changed = true;
+  }
+
+  var clipNearMeters = params.clipNear !== undefined ? Number(params.clipNear) : undefined;
+  if (clipNearMeters !== undefined && isFinite(clipNearMeters)) {
+   var clipNearScene = Math.max(0.0001, toSceneLength(clipNearMeters));
+   var clipNearAssigned = setIfExists(camera, 'clipNear', clipNearScene);
+   try {
+    camera.clipNear = clipNearScene;
+    clipNearAssigned = true;
+   } catch (e) {
+    console.warn("Camera near clip update failed:", e);
+   }
+   if (clipNearAssigned)
+    changed = true;
+  }
+
+  var clipFarMeters = params.clipFar !== undefined ? Number(params.clipFar) : undefined;
+  if (clipFarMeters !== undefined && isFinite(clipFarMeters)) {
+   var clipFarScene = toSceneLength(clipFarMeters);
+   var clipFarAssigned = setIfExists(camera, 'clipFar', clipFarScene);
+   try {
+    camera.clipFar = clipFarScene;
+    clipFarAssigned = true;
+   } catch (e) {
+    console.warn("Camera far clip update failed:", e);
+   }
+   if (clipFarAssigned)
+    changed = true;
+  }
+
+  var positionVector = params.position ? toSceneVector3(params.position) : null;
+  if (positionVector) {
+   var positionAssigned = setIfExists(camera, 'position', positionVector);
+   try {
+    camera.position = positionVector;
+    positionAssigned = true;
+   } catch (e) {
+    console.warn("Camera position update failed:", e);
+   }
+   if (positionAssigned)
+    changed = true;
+  }
+
+  if (params.eulerRotation) {
+   var r = params.eulerRotation;
+   try {
+    camera.eulerRotation = Qt.vector3d(Number(r.x||r[0]), Number(r.y||r[1]), Number(r.z||r[2]));
+    changed = true;
+   } catch(e) {
+    console.warn("Camera rotation normalization failed:", e);
+   }
+  }
+
+  return changed;
  }
 
 function applyLightingUpdates(params) {
  params = coerceBatchObject("lighting", params);
  if (!params)
-  return;
+  return false;
+
+  try {
 
  function normalizeGroupPayload(payload) {
  if (!isPlainObject(payload))
@@ -2017,12 +2117,19 @@ function applyLightingUpdates(params) {
  next.global = mergeLightingGroup(next.global, globalPatch);
 
  lightingState = next;
+  return true;
+ } catch (error) {
+  console.error("[SimulationRoot] applyLightingUpdates failed", error);
+  return false;
  }
+}
 
-function applyEnvironmentUpdates(params) {
- params = coerceBatchObject("environment", params);
- if (!params)
-  return;
+ function applyEnvironmentUpdates(params) {
+  params = coerceBatchObject("environment", params);
+  if (!params)
+   return false;
+
+  try {
  var bgColorVal = valueForKeys(params, ['backgroundColor', 'background_color']);
  if (bgColorVal !== undefined) setIfExists(sceneEnvCtl, 'backgroundColor', bgColorVal);
  if (params.clearColor) setIfExists(sceneEnvCtl, 'backgroundColor', params.clearColor);
@@ -2205,13 +2312,20 @@ function applyEnvironmentUpdates(params) {
  if (params.fxaaEnabled !== undefined) setIfExists(sceneEnvCtl, 'fxaaEnabled', !!params.fxaaEnabled);
  if (params.specularAAEnabled !== undefined) setIfExists(sceneEnvCtl, 'specularAAEnabled', !!params.specularAAEnabled);
  if (params.oitMode) setIfExists(sceneEnvCtl, 'oitMode', String(params.oitMode));
- if (params.ditheringEnabled !== undefined) setIfExists(sceneEnvCtl, 'ditheringEnabled', !!params.ditheringEnabled);
+  if (params.ditheringEnabled !== undefined) setIfExists(sceneEnvCtl, 'ditheringEnabled', !!params.ditheringEnabled);
+  return true;
+ } catch (error) {
+  console.error("[SimulationRoot] applyEnvironmentUpdates failed", error);
+  return false;
+ }
  }
 
     function applyQualityUpdates(params) {
         params = coerceBatchObject("quality", params);
         if (!params)
-            return;
+            return false;
+
+        try {
 
         var qualityPatch = {};
 
@@ -2356,20 +2470,28 @@ else if (isPlainObject(params.shadows))
  if (oitValue !== undefined && oitValue !== null)
   qualityPatch.oitMode = String(oitValue);
 
- if (Object.keys(qualityPatch).length && sceneEnvCtl && typeof sceneEnvCtl.applyQualityPayload === "function") {
-  try {
-   sceneEnvCtl.applyQualityPayload(qualityPatch);
-  } catch (err) {
-   console.warn("applyQualityPayload failed", err);
-  }
- }
+        if (Object.keys(qualityPatch).length && sceneEnvCtl && typeof sceneEnvCtl.applyQualityPayload === "function") {
+            try {
+                sceneEnvCtl.applyQualityPayload(qualityPatch);
+            } catch (err) {
+                console.warn("applyQualityPayload failed", err);
+            }
+        }
+        return true;
+    } catch (error) {
+        console.error("[SimulationRoot] applyQualityUpdates failed", error);
+        return false;
+    }
     }
 
- function applyMaterialUpdates(params) {
- if (!params)
- return;
+  function applyMaterialUpdates(params) {
+  if (!params)
+  return false;
 
- var prefixMap = {
+  try {
+  var applied = false;
+
+  var prefixMap = {
  frame: "frame",
  lever: "lever",
  tail: "tailRod",
@@ -2421,13 +2543,16 @@ else if (isPlainObject(params.shadows))
  return normalized;
  }
 
- function applyMaterialProperty(prefix, propertyKey, value) {
- var suffix = propertySuffixMap[propertyKey];
- if (!suffix)
- return false;
- setIfExists(sharedMaterials, prefix + suffix, value);
- return true;
- }
+  function applyMaterialProperty(prefix, propertyKey, value) {
+  var suffix = propertySuffixMap[propertyKey];
+  if (!suffix)
+  return false;
+  if (setIfExists(sharedMaterials, prefix + suffix, value)) {
+  applied = true;
+  return true;
+  }
+  return false;
+  }
 
  function applyMaterialGroup(materialKey, values) {
  if (!values || typeof values !== "object")
@@ -2440,28 +2565,28 @@ else if (isPlainObject(params.shadows))
  if (!values.hasOwnProperty(key))
  continue;
  var normalizedKey = String(key).toLowerCase();
- if (!applyMaterialProperty(prefix, normalizedKey, values[key]) && materialKey === "joint_tail") {
- if (normalizedKey === "ok_color")
- setIfExists(sharedMaterials, "jointRodOkColor", values[key]);
- if (normalizedKey === "error_color")
- setIfExists(sharedMaterials, "jointRodErrorColor", values[key]);
- }
+  if (!applyMaterialProperty(prefix, normalizedKey, values[key]) && materialKey === "joint_tail") {
+  if (normalizedKey === "ok_color")
+  applied = setIfExists(sharedMaterials, "jointRodOkColor", values[key]) || applied;
+  if (normalizedKey === "error_color")
+  applied = setIfExists(sharedMaterials, "jointRodErrorColor", values[key]) || applied;
+  }
  }
 
- if (materialKey === "piston_body") {
- if (values.warning_color !== undefined)
- setIfExists(sharedMaterials, "pistonBodyWarningColor", values.warning_color);
- }
- if (materialKey === "piston_rod") {
- if (values.warning_color !== undefined)
- setIfExists(sharedMaterials, "pistonRodWarningColor", values.warning_color);
- }
- if (materialKey === "joint_rod") {
- if (values.ok_color !== undefined)
- setIfExists(sharedMaterials, "jointRodOkColor", values.ok_color);
- if (values.error_color !== undefined)
- setIfExists(sharedMaterials, "jointRodErrorColor", values.error_color);
- }
+  if (materialKey === "piston_body") {
+  if (values.warning_color !== undefined)
+  applied = setIfExists(sharedMaterials, "pistonBodyWarningColor", values.warning_color) || applied;
+  }
+  if (materialKey === "piston_rod") {
+  if (values.warning_color !== undefined)
+  applied = setIfExists(sharedMaterials, "pistonRodWarningColor", values.warning_color) || applied;
+  }
+  if (materialKey === "joint_rod") {
+  if (values.ok_color !== undefined)
+  applied = setIfExists(sharedMaterials, "jointRodOkColor", values.ok_color) || applied;
+  if (values.error_color !== undefined)
+  applied = setIfExists(sharedMaterials, "jointRodErrorColor", values.error_color) || applied;
+  }
  }
 
  var consumedKeys = {};
@@ -2487,35 +2612,54 @@ else if (isPlainObject(params.shadows))
  var prefix = prefixMap[materialPart];
  if (!prefix)
  continue;
- if (!applyMaterialProperty(prefix, propertyPart, params[rawKey]) && materialPart === "joint_rod") {
- if (propertyPart === "ok_color")
- setIfExists(sharedMaterials, "jointRodOkColor", params[rawKey]);
- if (propertyPart === "error_color")
- setIfExists(sharedMaterials, "jointRodErrorColor", params[rawKey]);
- }
+  if (!applyMaterialProperty(prefix, propertyPart, params[rawKey]) && materialPart === "joint_rod") {
+  if (propertyPart === "ok_color")
+  applied = setIfExists(sharedMaterials, "jointRodOkColor", params[rawKey]) || applied;
+  if (propertyPart === "error_color")
+  applied = setIfExists(sharedMaterials, "jointRodErrorColor", params[rawKey]) || applied;
+  }
  }
  }
 
- function applyEffectsUpdates(params) {
- if (!params)
- return;
- // Делегируем контроллеру окружения для консистентности
- sceneEnvCtl.applyEffectsPayload(params);
- if (postEffects && typeof postEffects.applyPayload === "function")
- postEffects.applyPayload(params, sceneEnvCtl);
- }
+  function applyEffectsUpdates(params) {
+  if (!params)
+  return false;
+  var changed = false;
+  try {
+  if (sceneEnvCtl && typeof sceneEnvCtl.applyEffectsPayload === "function") {
+  sceneEnvCtl.applyEffectsPayload(params);
+  changed = true;
+  }
+  if (postEffects && typeof postEffects.applyPayload === "function") {
+  postEffects.applyPayload(params, sceneEnvCtl);
+  changed = true;
+  }
+  return changed;
+  } catch (error) {
+  console.error("[SimulationRoot] applyEffectsUpdates failed", error);
+  return false;
+  }
+  }
 
 function applyAnimationUpdates(params) {
  if (!params)
-  return;
+  return false;
 
- if (params.isRunning !== undefined)
+ var changed = false;
+ try {
+ if (params && Object.keys(params).length)
+  changed = true;
+
+ if (params.isRunning !== undefined) {
   isRunning = !!params.isRunning;
+  changed = true;
+ }
 
  if (params.simulationTime !== undefined) {
   animationTime = Number(params.simulationTime);
   pythonAnimationActive = true;
   pythonAnimationTimeout.restart();
+  changed = true;
  }
 
  if (params.smoothingEnabled !== undefined)
@@ -2659,15 +2803,24 @@ function applyAnimationUpdates(params) {
   pythonPressureTimeout.restart();
  }
 
- if (!pythonLeverAnglesActive) {
+  if (!pythonLeverAnglesActive) {
   updateFallbackAngles();
+  }
+  return changed;
+ } catch (error) {
+  console.error("[SimulationRoot] applyAnimationUpdates failed", error);
+  return false;
  }
 }
 
 function apply3DUpdates(params) {
  params = coerceBatchObject("threeD", params);
  if (!params)
-  return;
+  return false;
+ var changed = false;
+ try {
+ if (params && Object.keys(params).length)
+  changed = true;
  var globalImmediate = params.instant === true || params.immediate === true;
  if (isPlainObject(params.frame)) {
   var f = params.frame;
@@ -2752,14 +2905,24 @@ function apply3DUpdates(params) {
   if (rp.timeSlicing !== undefined)
    reflectionProbeTimeSlicingValue = reflectionProbeTimeSlicingFrom(rp.timeSlicing);
  }
-  if (!pythonLeverAnglesActive) {
-   updateFallbackAngles();
+ if (!pythonLeverAnglesActive) {
+  updateFallbackAngles();
   }
-}
+ return changed;
+ } catch (error) {
+  console.error("[SimulationRoot] apply3DUpdates failed", error);
+  return false;
+ }
+ }
 
     function applyRenderSettings(params) {
         if (!params)
-            return;
+            return false;
+
+        var changed = false;
+        try {
+            if (params && Object.keys(params).length)
+                changed = true;
 
         if (params.environment)
             sceneEnvCtl.applyEnvironmentPayload(params.environment);
@@ -2872,11 +3035,21 @@ function apply3DUpdates(params) {
         var directRenderPolicy = valueForKeys(params, ['renderPolicy', 'render_policy']);
         if (directRenderPolicy !== undefined)
             renderPolicyKey = normalizeRenderPolicyKey(directRenderPolicy);
+        return changed;
+    } catch (error) {
+        console.error("[SimulationRoot] applyRenderSettings failed", error);
+        return false;
+    }
     }
 
     function applySimulationUpdates(params) {
         if (!params)
-            return;
+            return false;
+
+        var changed = false;
+        try {
+            if (params && Object.keys(params).length)
+                changed = true;
 
         if (params.animation)
             applyAnimationUpdates(params.animation);
@@ -2925,6 +3098,11 @@ function apply3DUpdates(params) {
 
         if (params.render)
             root.applyRenderSettings(params.render);
+        return changed;
+    } catch (error) {
+        console.error("[SimulationRoot] applySimulationUpdates failed", error);
+        return false;
+    }
     }
 
     // -----------------------------------------------------------------
