@@ -53,10 +53,14 @@ Effect {
         console.warn("⚠️ FogEffect: depth texture not supported; using fallback shader")
     }
 
-    Shader {
-        id: fogVertexShader
-        stage: Shader.Vertex
-        code: "
+    function shaderDataUrl(source) {
+        return "data:text/plain;charset=utf-8," + encodeURIComponent(source)
+    }
+
+        Shader {
+            id: fogVertexShader
+            stage: Shader.Vertex
+            readonly property string shaderSource: "
             #version 440
 
             #ifndef INPUT_POSITION
@@ -83,9 +87,17 @@ Effect {
                 POSITION = ubuf.qt_ModelViewProjectionMatrix * localPosition;
             }
         "
-        onStatusChanged: {
-            if (status === Shader.Error)
-                console.warn("⚠️ FogEffect vertex shader compilation failed", log)
+            shader: shaderDataUrl(shaderSource)
+        }
+
+    Connections {
+        target: fogVertexShader
+        ignoreUnknownSignals: true
+        function onStatusChanged() {
+            if (typeof Shader === "undefined" || Shader.Error === undefined)
+                return
+            if (fogVertexShader.status === Shader.Error)
+                console.warn("⚠️ FogEffect vertex shader compilation failed", fogVertexShader.log)
         }
     }
 
@@ -110,7 +122,7 @@ Effect {
         property real userCameraFar: fogEffect.cameraClipFar
         property real userCameraFov: fogEffect.cameraFieldOfView
         property real userCameraAspect: fogEffect.cameraAspectRatio
-        code: "
+        readonly property string shaderSource: "
             #version 440
 
             layout(location = 0) in vec2 v_uv;
@@ -242,9 +254,17 @@ Effect {
                 FRAGCOLOR = vec4(foggedColor, originalColor.a) * EFFECT_OPACITY;
             }
         "
-        onStatusChanged: {
-            if (status === Shader.Error)
-                console.warn("⚠️ FogEffect fragment shader compilation failed", log)
+        shader: shaderDataUrl(shaderSource)
+    }
+
+    Connections {
+        target: fogFragmentShader
+        ignoreUnknownSignals: true
+        function onStatusChanged() {
+            if (typeof Shader === "undefined" || Shader.Error === undefined)
+                return
+            if (fogFragmentShader.status === Shader.Error)
+                console.warn("⚠️ FogEffect fragment shader compilation failed", fogFragmentShader.log)
         }
     }
 
@@ -253,7 +273,7 @@ Effect {
         stage: Shader.Fragment
         property real userFogDensity: fogEffect.fogDensity
         property color userFogColor: fogEffect.fogColor
-        code: "
+        readonly property string shaderSource: "
             #version 440
 
             #ifndef INPUT_UV
@@ -283,9 +303,17 @@ Effect {
                 FRAGCOLOR = vec4(foggedColor, originalColor.a);
             }
         "
-        onStatusChanged: {
-            if (status === Shader.Error)
-                console.warn("⚠️ FogEffect fallback shader compilation failed", log)
+        shader: shaderDataUrl(shaderSource)
+    }
+
+    Connections {
+        target: fogFallbackShader
+        ignoreUnknownSignals: true
+        function onStatusChanged() {
+            if (typeof Shader === "undefined" || Shader.Error === undefined)
+                return
+            if (fogFallbackShader.status === Shader.Error)
+                console.warn("⚠️ FogEffect fallback shader compilation failed", fogFallbackShader.log)
         }
     }
 
