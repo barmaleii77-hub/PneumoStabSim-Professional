@@ -232,36 +232,73 @@ def gather_environment(probe_mode: str = "auto") -> EnvironmentSnapshot:
         return _probe_via_python()
 
 
-def render_shell_exports(env_vars: Mapping[str, str]) -> str:
-    """Return a POSIX shell snippet exporting the supplied variables."""
+def _quote_powershell(value: str) -> str:
+    return "'" + value.replace("'", "''") + "'"
 
-    lines = [
-        "# Qt/PySide6 environment for Copilot GPT",
-        "# Source this file before launching assistants or tooling",
-    ]
+
+def _quote_cmd(value: str) -> str:
+    escaped = value.replace("^", "^^").replace("%", "%%").replace("\n", "^\n")
+    escaped = escaped.replace('"', '\\"')
+    return escaped
+
+
+def render_shell_exports(env_vars: Mapping[str, str], shell: str = "posix") -> str:
+    """Return a shell snippet exporting the supplied variables."""
+
+    shell_key = shell.lower()
+    if shell_key not in {"posix", "powershell", "cmd"}:
+        raise ValueError("shell must be one of: posix, powershell, cmd")
+
+    lines: list[str]
+    if shell_key == "posix":
+        lines = [
+            "# Qt/PySide6 environment for Copilot GPT",
+            "# Source this file before launching assistants or tooling",
+        ]
+        formatter = lambda key, value: f"export {key}={shlex.quote(value)}"
+    elif shell_key == "powershell":
+        lines = [
+            "# Qt/PySide6 environment for Copilot GPT",
+            "# Dot-source this script in PowerShell to update the current session",
+        ]
+        formatter = lambda key, value: f"$Env:{key} = {_quote_powershell(value)}"
+    else:  # cmd
+        lines = [
+            "@echo off",
+            "REM Qt/PySide6 environment for Copilot GPT",
+            "REM Run using 'call' to persist changes in the caller session",
+        ]
+        formatter = lambda key, value: f'set "{key}={_quote_cmd(value)}"'
+
     for key in ORDERED_KEYS:
         if key in env_vars:
             value = env_vars[key]
-            lines.append(f"export {key}={shlex.quote(value)}")
+            lines.append(formatter(key, value))
     for key in sorted(set(env_vars) - set(ORDERED_KEYS)):
         value = env_vars[key]
-        lines.append(f"export {key}={shlex.quote(value)}")
+        lines.append(formatter(key, value))
     lines.append("")
     return "\n".join(lines)
 
 
-def write_env_file(path: Path, env_vars: Mapping[str, str]) -> None:
-    content = render_shell_exports(env_vars)
+def write_env_file(path: Path, env_vars: Mapping[str, str], *, shell: str) -> None:
+    content = render_shell_exports(env_vars, shell=shell)
     path.write_text(content, encoding="utf-8")
 
 
 def write_report(
-    path: Path, snapshot: EnvironmentSnapshot, *, uv_sync: bool, probe_mode: str
+    path: Path,
+    snapshot: EnvironmentSnapshot,
+    *,
+    uv_sync: bool,
+    probe_mode: str,
+    shell: str,
 ) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     payload = {
         "uv_sync_performed": uv_sync,
         "probe_mode": probe_mode,
+        "shell_format": shell,
         **snapshot.to_dict(),
     }
     path.write_text(
@@ -286,6 +323,12 @@ def parse_args(argv: Iterable[str] | None = None) -> argparse.Namespace:
         default="auto",
         help="Strategy for gathering environment information",
     )
+    parser.add_argument(
+        "--shell-format",
+        choices=["posix", "powershell", "cmd"],
+        default="posix",
+        help="Shell syntax to use when writing the environment file",
+    )
     return parser.parse_args(list(argv) if argv is not None else None)
 
 
@@ -306,12 +349,13 @@ def main(argv: Iterable[str] | None = None) -> int:
         print(f"[cipilot-env] ERROR: {exc}")
         return 1
 
-    write_env_file(args.env_file, snapshot.env_vars)
+    write_env_file(args.env_file, snapshot.env_vars, shell=args.shell_format)
     write_report(
         args.json_report,
         snapshot,
         uv_sync=uv_sync_performed,
         probe_mode=args.probe_mode,
+        shell=args.shell_format,
     )
 
     try:
@@ -326,11 +370,19 @@ def main(argv: Iterable[str] | None = None) -> int:
     env_display_str = str(env_display)
     report_display_str = str(report_display)
 
+    instruction: str
+    if args.shell_format == "posix":
+        instruction = f"source {shlex.quote(env_display_str)}"
+    elif args.shell_format == "powershell":
+        instruction = f". {_quote_powershell(env_display_str)}"
+    else:
+        instruction = f'call "{env_display_str}"'
+
     print("[cipilot-env] Environment file written to", env_display_str)
     print("[cipilot-env] JSON report written to", report_display_str)
     print(
-        "[cipilot-env] Source the environment via 'source "
-        f"{env_display_str}' before invoking Copilot GPT"
+        "[cipilot-env] Apply the environment via '"
+        f"{instruction}' before invoking Copilot GPT"
     )
     return 0
 

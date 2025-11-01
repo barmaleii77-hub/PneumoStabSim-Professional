@@ -30,7 +30,8 @@ def test_render_shell_exports_orders_core_variables() -> None:
             "QT_QPA_PLATFORM": "offscreen",
             "QT_QUICK_CONTROLS_STYLE": "Basic",
             "QT_QUICK_BACKEND": "software",
-        }
+        },
+        shell="posix",
     )
 
     lines = [line for line in exports.splitlines() if line.startswith("export ")]
@@ -39,6 +40,32 @@ def test_render_shell_exports_orders_core_variables() -> None:
         "export QT_QUICK_BACKEND=software",
         "export QT_QUICK_CONTROLS_STYLE=Basic",
     ]
+
+
+def test_render_shell_exports_supports_powershell() -> None:
+    exports = cipilot_environment.render_shell_exports(
+        {
+            "QT_QPA_PLATFORM": "offscreen",
+            "QT_QUICK_BACKEND": "software",
+        },
+        shell="powershell",
+    )
+
+    assert "$Env:QT_QPA_PLATFORM = 'offscreen'" in exports
+    assert "$Env:QT_QUICK_BACKEND = 'software'" in exports
+
+
+def test_render_shell_exports_supports_cmd() -> None:
+    exports = cipilot_environment.render_shell_exports(
+        {
+            "QT_QPA_PLATFORM": "offscreen",
+            "QT_QUICK_BACKEND": "software",
+        },
+        shell="cmd",
+    )
+
+    assert 'set "QT_QPA_PLATFORM=offscreen"' in exports
+    assert 'set "QT_QUICK_BACKEND=software"' in exports
 
 
 def test_write_report_persists_metadata(tmp_path) -> None:
@@ -56,10 +83,12 @@ def test_write_report_persists_metadata(tmp_path) -> None:
         snapshot,
         uv_sync=True,
         probe_mode="python",
+        shell="powershell",
     )
 
     payload = json.loads(report_path.read_text(encoding="utf-8"))
     assert payload["uv_sync_performed"] is True
     assert payload["probe_mode"] == "python"
+    assert payload["shell_format"] == "powershell"
     assert payload["metadata"]["qt_version"] == "6.10.0"
     assert payload["env"]["QT_QPA_PLATFORM"] == "offscreen"
