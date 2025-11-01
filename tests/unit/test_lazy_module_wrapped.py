@@ -63,3 +63,27 @@ def test_unwrap_handles_rebound_inspect(monkeypatch) -> None:
                 del module.__dict__["__wrapped__"]
     finally:
         monkeypatch.setattr(inspect, "unwrap", original_unwrap)
+
+
+def test_custom_hasattr_probes_return_module() -> None:
+    module = importlib.import_module("src.ui.main_window_pkg")
+
+    def custom_hasattr(obj, name):
+        getattr(obj, name)
+        return True
+
+    def custom_unwrap(target):
+        if hasattr(target, "__wrapped__"):
+            return target.__wrapped__
+        return target
+
+    namespace = custom_unwrap.__globals__
+    original_hasattr = namespace.get("hasattr")
+    try:
+        namespace["hasattr"] = custom_hasattr
+        assert custom_unwrap(module) is module
+    finally:
+        if original_hasattr is None:
+            namespace.pop("hasattr", None)
+        else:
+            namespace["hasattr"] = original_hasattr

@@ -16,6 +16,7 @@ consumers that rely on the attribute continue to work.
 
 from __future__ import annotations
 
+import builtins
 import dis
 import inspect
 from functools import lru_cache
@@ -91,7 +92,10 @@ def should_suppress_wrapped() -> bool:
         if "unwrap" in function_name or module_name == "inspect":
             global_name = _global_called_at(caller.f_code, caller.f_lasti)
             if global_name == "hasattr":
-                return True
+                builtin_hasattr = getattr(builtins, "hasattr", None)
+                resolved = caller.f_globals.get("hasattr", builtin_hasattr)
+                if resolved is builtin_hasattr:
+                    return True
 
         caller = caller.f_back
 
