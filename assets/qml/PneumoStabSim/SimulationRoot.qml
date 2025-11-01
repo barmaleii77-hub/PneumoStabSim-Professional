@@ -322,6 +322,30 @@ property real sceneScaleFactor: sceneDefaults && sceneDefaults.scale_factor !== 
  readonly property alias view3d: sceneView
  readonly property alias camera: cameraController.camera
 
+ // ---------------------------------------------------------
+ // Environment compatibility layer (legacy bindings support)
+ // ---------------------------------------------------------
+ property alias bloomEnabled: sceneEnvCtl.bloomEnabled
+ property alias bloomIntensity: sceneEnvCtl.bloomIntensity
+ property alias bloomThreshold: sceneEnvCtl.bloomThreshold
+ property alias bloomSpread: sceneEnvCtl.bloomSpread
+ property alias bloomGlowStrength: sceneEnvCtl.bloomGlowStrength
+ property alias ssaoEnabled: sceneEnvCtl.ssaoEnabled
+ property alias ssaoRadius: sceneEnvCtl.ssaoRadius
+ property alias ssaoIntensity: sceneEnvCtl.ssaoIntensity
+ property alias depthOfFieldEnabled: sceneEnvCtl.internalDepthOfFieldEnabled
+ property alias dofFocusDistance: sceneEnvCtl.dofFocusDistance
+ property alias dofFocusRange: sceneEnvCtl.dofFocusRange
+ property alias tonemapActive: sceneEnvCtl.tonemapActive
+ property alias tonemapModeName: sceneEnvCtl.tonemapModeName
+ property alias tonemapExposure: sceneEnvCtl.tonemapExposure
+ property alias tonemapWhitePoint: sceneEnvCtl.tonemapWhitePoint
+ property alias fogEnabled: sceneEnvCtl.fogEnabled
+ property alias fogColor: sceneEnvCtl.fogColor
+ property alias fogDensity: sceneEnvCtl.fogDensity
+ property alias vignetteEnabled: sceneEnvCtl.internalVignetteEnabled
+ property alias vignetteStrength: sceneEnvCtl.internalVignetteStrength
+
  // -------- Материалы/вид --------
  property color defaultClearColor: sceneDefaults && sceneDefaults.default_clear_color ? sceneDefaults.default_clear_color : "#1a1a2e"
  property color modelBaseColor: sceneDefaults && sceneDefaults.model_base_color ? sceneDefaults.model_base_color : "#9ea4ab"
