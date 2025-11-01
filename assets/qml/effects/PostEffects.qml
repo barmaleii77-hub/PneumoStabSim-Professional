@@ -8,6 +8,25 @@ import QtQuick3D
 Item {
     id: root
 
+    signal effectCompilationError(var effectId, string errorLog)
+    signal effectCompilationRecovered(var effectId)
+
+    function notifyEffectCompilation(effectId, fallbackActive, errorLog) {
+        var normalizedId = effectId !== undefined && effectId !== null
+                ? String(effectId)
+                : "unknown"
+        if (fallbackActive) {
+            var message = ""
+            if (errorLog !== undefined && errorLog !== null)
+                message = String(errorLog)
+            if (!message.length)
+                message = qsTr("%1: fallback shader active").arg(normalizedId)
+            effectCompilationError(normalizedId, message)
+        } else {
+            effectCompilationRecovered(normalizedId)
+        }
+    }
+
     function trySetEffectProperty(effectItem, propertyName, value) {
         if (!effectItem || typeof effectItem.setProperty !== "function")
             return false
@@ -142,6 +161,18 @@ Item {
 
         property bool fallbackActive: false
         property string lastErrorLog: ""
+
+        Component.onCompleted: {
+            root.notifyEffectCompilation("bloom", fallbackActive, lastErrorLog)
+        }
+
+        onFallbackActiveChanged: {
+            if (fallbackActive && (!lastErrorLog || lastErrorLog.length === 0))
+                lastErrorLog = qsTr("Bloom: fallback shader active")
+            root.notifyEffectCompilation("bloom", fallbackActive, lastErrorLog)
+            if (!fallbackActive)
+                lastErrorLog = ""
+        }
 
         property real intensity: 0.3      // Интенсивность свечения
         property real threshold: 0.7      // Порог яркости для свечения
@@ -278,9 +309,22 @@ Item {
             normalTextureAvailable = false
 
             if (!depthTextureAvailable || !normalTextureAvailable) {
+                lastErrorLog = qsTr("SSAO: depth texture buffer is not supported; disabling advanced SSAO")
                 fallbackActive = true
                 console.warn("⚠️ SSAO: switching to passthrough fallback due to missing textures")
+            } else {
+                fallbackActive = false
+                lastErrorLog = ""
+                root.notifyEffectCompilation("ssao", fallbackActive, lastErrorLog)
             }
+        }
+
+        onFallbackActiveChanged: {
+            if (fallbackActive && (!lastErrorLog || lastErrorLog.length === 0))
+                lastErrorLog = qsTr("SSAO: fallback shader active")
+            root.notifyEffectCompilation("ssao", fallbackActive, lastErrorLog)
+            if (!fallbackActive)
+                lastErrorLog = ""
         }
 
         property real intensity: 0.5      // Интенсивность затенения
@@ -446,9 +490,22 @@ Item {
                         "Depth of Field: depth texture unavailable; using fallback shader")
 
             if (!depthTextureAvailable) {
+                lastErrorLog = qsTr("Depth of Field: depth texture unavailable; using fallback shader")
                 fallbackActive = true
                 console.warn("⚠️ Depth of Field: switching to passthrough fallback due to missing depth texture")
+            } else {
+                fallbackActive = false
+                lastErrorLog = ""
+                root.notifyEffectCompilation("depthOfField", fallbackActive, lastErrorLog)
             }
+        }
+
+        onFallbackActiveChanged: {
+            if (fallbackActive && (!lastErrorLog || lastErrorLog.length === 0))
+                lastErrorLog = qsTr("Depth of Field: fallback shader active")
+            root.notifyEffectCompilation("depthOfField", fallbackActive, lastErrorLog)
+            if (!fallbackActive)
+                lastErrorLog = ""
         }
 
         Shader {
@@ -584,9 +641,22 @@ Item {
                         "Motion Blur: velocity texture unavailable; using fallback shader")
 
             if (!velocityTextureAvailable) {
+                lastErrorLog = qsTr("Motion Blur: velocity texture unavailable; using fallback shader")
                 fallbackActive = true
                 console.warn("⚠️ Motion Blur: switching to passthrough fallback due to missing velocity texture")
+            } else {
+                fallbackActive = false
+                lastErrorLog = ""
+                root.notifyEffectCompilation("motionBlur", fallbackActive, lastErrorLog)
             }
+        }
+
+        onFallbackActiveChanged: {
+            if (fallbackActive && (!lastErrorLog || lastErrorLog.length === 0))
+                lastErrorLog = qsTr("Motion Blur: fallback shader active")
+            root.notifyEffectCompilation("motionBlur", fallbackActive, lastErrorLog)
+            if (!fallbackActive)
+                lastErrorLog = ""
         }
 
         Shader {
