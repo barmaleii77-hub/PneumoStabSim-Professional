@@ -319,12 +319,18 @@ Item {
                         true,
                         "SSAO: depth texture support enabled",
                         "SSAO: depth texture buffer is not supported; disabling advanced SSAO")
-            // fixed: removed deprecated 'requiresNormalTexture' requirement (Qt 6)
-            normalTextureAvailable = false
+            normalTextureAvailable = root.ensureEffectRequirement(
+                        ssaoEffect,
+                        "requiresNormalTexture",
+                        true,
+                        "SSAO: normal texture support enabled",
+                        "SSAO: normal texture unavailable; disabling advanced SSAO")
 
-            if (!depthTextureAvailable || !normalTextureAvailable) {
-                fallbackActive = true
+            fallbackActive = !(depthTextureAvailable && normalTextureAvailable)
+            if (fallbackActive) {
                 console.warn("⚠️ SSAO: switching to passthrough fallback due to missing textures")
+            } else {
+                console.log("✅ SSAO: advanced shader inputs available")
             }
         }
 
@@ -423,7 +429,9 @@ Item {
                             FRAGCOLOR = vec4(original.rgb * occlusion, original.a);
                         }
                     "
-            shader: shaderDataUrl(shaderSource)
+            shader: (depthTextureAvailable && normalTextureAvailable)
+                    ? shaderDataUrl(shaderSource)
+                    : ""
         }
 
         Connections {
@@ -504,11 +512,11 @@ Item {
                         true,
                         "Depth of Field: depth texture support enabled",
                         "Depth of Field: depth texture unavailable; using fallback shader")
-
-            if (!depthTextureAvailable) {
-                fallbackActive = true
+            fallbackActive = !depthTextureAvailable
+            if (fallbackActive)
                 console.warn("⚠️ Depth of Field: switching to passthrough fallback due to missing depth texture")
-            }
+            else
+                console.log("✅ Depth of Field: depth texture available")
         }
 
         Shader {
@@ -581,7 +589,7 @@ Item {
                             FRAGCOLOR = vec4(result, original.a);
                         }
                         "
-            shader: shaderDataUrl(shaderSource)
+            shader: depthTextureAvailable ? shaderDataUrl(shaderSource) : ""
         }
 
         Connections {
@@ -657,11 +665,11 @@ Item {
                         true,
                         "Motion Blur: velocity texture support enabled",
                         "Motion Blur: velocity texture unavailable; using fallback shader")
-
-            if (!velocityTextureAvailable) {
-                fallbackActive = true
+            fallbackActive = !velocityTextureAvailable
+            if (fallbackActive)
                 console.warn("⚠️ Motion Blur: switching to passthrough fallback due to missing velocity texture")
-            }
+            else
+                console.log("✅ Motion Blur: velocity texture available")
         }
 
         Shader {
@@ -710,7 +718,7 @@ Item {
                                 FRAGCOLOR = vec4(color, original.a);
                             }
                         "
-            shader: shaderDataUrl(shaderSource)
+            shader: velocityTextureAvailable ? shaderDataUrl(shaderSource) : ""
         }
 
         Connections {

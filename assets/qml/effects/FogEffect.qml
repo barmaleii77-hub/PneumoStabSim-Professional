@@ -254,7 +254,7 @@ Effect {
                 FRAGCOLOR = vec4(foggedColor, originalColor.a) * EFFECT_OPACITY;
             }
         "
-        shader: shaderDataUrl(shaderSource)
+        shader: depthTextureAvailable ? shaderDataUrl(shaderSource) : ""
     }
 
     Connections {
@@ -265,6 +265,8 @@ Effect {
                 return
             if (fogFragmentShader.status === Shader.Error)
                 console.warn("⚠️ FogEffect fragment shader compilation failed", fogFragmentShader.log)
+            else if (fogFragmentShader.status === Shader.Ready)
+                console.log("🌫️ FogEffect fragment shader ready (depth texture:", depthTextureAvailable, ")")
         }
     }
 
