@@ -5,6 +5,7 @@ from __future__ import annotations
 import builtins
 from dataclasses import dataclass
 import re
+from pathlib import Path
 from typing import Any, Dict, Sequence, Tuple
 
 
@@ -339,6 +340,18 @@ def _validate_section(
     return normalized
 
 
+def _normalise_path_value(value: Any) -> str:
+    """Нормализовать строковое представление пути до POSIX-формата."""
+
+    if isinstance(value, Path):
+        text = value.as_posix()
+    else:
+        text = str(value).strip() if value is not None else ""
+    if not text:
+        return ""
+    return text.replace("\\", "/")
+
+
 def _prepare_environment_payload(settings: Dict[str, Any]) -> Dict[str, Any]:
     if not isinstance(settings, dict):
         raise EnvironmentValidationError("environment settings must be a dict")
@@ -354,6 +367,9 @@ def _prepare_environment_payload(settings: Dict[str, Any]) -> Dict[str, Any]:
 
     if "skybox_enabled" not in payload and "ibl_enabled" in payload:
         payload["skybox_enabled"] = payload["ibl_enabled"]
+
+    if "ibl_source" in payload:
+        payload["ibl_source"] = _normalise_path_value(payload["ibl_source"])
 
     if "skybox_brightness" not in payload:
         if "probe_brightness" in payload:
