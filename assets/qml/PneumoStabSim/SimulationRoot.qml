@@ -55,8 +55,55 @@ signal animationToggled(bool running)
  property real fallbackPhase: 0.0
  property real lastFallbackPhase: 0.0
  property real fallbackBaseTime: animationTime
- readonly property real fallbackCycleSeconds: Math.max(0.2, 1.0 / Math.max(userFrequency, 0.01))
+  readonly property real fallbackCycleSeconds: Math.max(0.2, 1.0 / Math.max(userFrequency, 0.01))
  property real batchFlashOpacity: 0.0
+
+ function initializeRenderSettings() {
+  if (sceneRenderSettings) {
+   sceneRenderSettings.destroy();
+   sceneRenderSettings = null;
+  }
+
+  var propertyExists = sceneView && typeof sceneView.renderSettings !== "undefined";
+  if (typeof RenderSettings === "undefined" || !propertyExists) {
+   renderSettingsSupported = false;
+   console.warn("[SimulationRoot] RenderSettings type unavailable; using default View3D settings");
+   return;
+  }
+
+  var qmlSource = "import QtQuick 6.10\n" +
+                  "import QtQuick3D 6.10\n" +
+                  "RenderSettings {\n" +
+                  "    renderScale: Math.max(0.1, root.renderScale)\n" +
+                  "    maximumFrameRate: root.frameRateLimit > 0 ? root.frameRateLimit : 0\n" +
+                  "    renderPolicy: {\n" +
+                  "        var key = root.renderPolicyKey || \\\"always\\\";\n" +
+                  "        if (key === \\\"ondemand\\\")\n" +
+                  "            return RenderSettings.OnDemand;\n" +
+                  "        if (key === \\\"automatic\\\" && RenderSettings.Automatic !== undefined)\n" +
+                  "            return RenderSettings.Automatic;\n" +
+                  "        if (key === \\\"manual\\\" && RenderSettings.Manual !== undefined)\n" +
+                  "            return RenderSettings.Manual;\n" +
+                  "        return RenderSettings.Always;\n" +
+                  "    }\n" +
+                  "}\n";
+
+  try {
+   var created = Qt.createQmlObject(qmlSource, sceneView, "DynamicRenderSettings");
+   if (created) {
+    sceneView.renderSettings = created;
+    sceneRenderSettings = created;
+    renderSettingsSupported = true;
+   } else {
+    renderSettingsSupported = false;
+    console.warn("[SimulationRoot] Failed to instantiate RenderSettings; defaults will be used");
+   }
+  } catch (error) {
+   renderSettingsSupported = false;
+   sceneRenderSettings = null;
+   console.error("[SimulationRoot] initializeRenderSettings failed", error);
+  }
+ }
 
  readonly property real defaultDofFocusDistanceM: effectsDefaultNumber(["dof_focus_distance"], 2.5)
 
@@ -79,6 +126,8 @@ signal animationToggled(bool running)
  property real renderScale: 1.0
  property real frameRateLimit: 144.0
  property string renderPolicyKey: "always"
+ property bool renderSettingsSupported: false
+ property var sceneRenderSettings: null
 
  // -------- Геометрия подвески (СИ) --------
  property real userFrameLength: geometryDefaultNumber(["frameLength", "frame_length", "frame_length_m", "wheelbase"], 0.0)
@@ -127,11 +176,6 @@ signal animationToggled(bool running)
     return globalState[alt];
    return fallback;
   }
-  return applied;
- } catch (error) {
-  console.error("[SimulationRoot] applyMaterialUpdates failed", error);
-  return false;
- }
  }
 
  property var geometryState: ({
@@ -690,26 +734,12 @@ SequentialAnimation {
         onEffectCompilationRecovered: clearShaderWarning(effectId)
     }
 
-    View3D {
-        id: sceneView
-        anchors.fill: parent
-        environment: sceneEnvCtl
+      View3D {
+          id: sceneView
+          anchors.fill: parent
+          environment: sceneEnvCtl
 
-        renderSettings: RenderSettings {
-            id: sceneRenderSettings
-            renderScale: Math.max(0.1, root.renderScale)
-            maximumFrameRate: root.frameRateLimit > 0 ? root.frameRateLimit : 0
-            renderPolicy: {
-                var key = root.renderPolicyKey || "always"
-                if (key === "ondemand")
-                    return RenderSettings.OnDemand
-                if (key === "automatic" && RenderSettings.Automatic !== undefined)
-                    return RenderSettings.Automatic
-                if (key === "manual" && RenderSettings.Manual !== undefined)
-                    return RenderSettings.Manual
-                return RenderSettings.Always
-            }
-        }
+          Component.onCompleted: initializeRenderSettings()
 
         Scene.SharedMaterials {
             id: sharedMaterials
@@ -2618,28 +2648,34 @@ else if (isPlainObject(params.shadows))
   if (propertyPart === "error_color")
   applied = setIfExists(sharedMaterials, "jointRodErrorColor", params[rawKey]) || applied;
   }
+  }
+
+  return applied;
+ } catch (error) {
+  console.error("[SimulationRoot] applyMaterialUpdates failed", error);
+  return false;
  }
  }
 
-  function applyEffectsUpdates(params) {
-  if (!params)
+function applyEffectsUpdates(params) {
+ if (!params)
   return false;
-  var changed = false;
-  try {
+ var changed = false;
+ try {
   if (sceneEnvCtl && typeof sceneEnvCtl.applyEffectsPayload === "function") {
-  sceneEnvCtl.applyEffectsPayload(params);
-  changed = true;
+   sceneEnvCtl.applyEffectsPayload(params);
+   changed = true;
   }
   if (postEffects && typeof postEffects.applyPayload === "function") {
-  postEffects.applyPayload(params, sceneEnvCtl);
-  changed = true;
+   postEffects.applyPayload(params, sceneEnvCtl);
+   changed = true;
   }
   return changed;
-  } catch (error) {
+ } catch (error) {
   console.error("[SimulationRoot] applyEffectsUpdates failed", error);
   return false;
-  }
-  }
+ }
+}
 
 function applyAnimationUpdates(params) {
  if (!params)
