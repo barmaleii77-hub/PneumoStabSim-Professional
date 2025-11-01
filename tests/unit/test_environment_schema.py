@@ -248,6 +248,16 @@ def test_environment_validation_maps_legacy_probe_brightness():
     assert "probe_brightness" not in sanitized
 
 
+def test_environment_validation_normalizes_ibl_source_path():
+    baseline = _baseline_environment()
+    mutated = baseline.copy()
+    mutated["ibl_source"] = "assets\\\\hdr\\\\Scene.HDR"
+
+    sanitized = validate_environment_settings(mutated)
+
+    assert sanitized["ibl_source"] == "assets/hdr/Scene.HDR"
+
+
 def test_environment_validation_rejects_sample_rate_above_max():
     baseline = _baseline_environment()
     mutated = baseline.copy()
