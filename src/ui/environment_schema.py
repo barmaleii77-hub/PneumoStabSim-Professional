@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import builtins
 from dataclasses import dataclass
+import posixpath
 import re
 from pathlib import Path
 from typing import Any, Dict, Sequence, Tuple
@@ -349,7 +350,35 @@ def _normalise_path_value(value: Any) -> str:
         text = str(value).strip() if value is not None else ""
     if not text:
         return ""
-    return text.replace("\\", "/")
+
+    sanitized = text.replace("\\", "/")
+    if "://" in sanitized:
+        prefix, remainder = sanitized.split("://", 1)
+        normalised_remainder = posixpath.normpath(remainder) if remainder else ""
+        if (
+            remainder.startswith("/")
+            and normalised_remainder
+            and not normalised_remainder.startswith("/")
+        ):
+            normalised_remainder = f"/{normalised_remainder}"
+        if (
+            remainder.endswith("/")
+            and normalised_remainder
+            and not normalised_remainder.endswith("/")
+        ):
+            normalised_remainder = f"{normalised_remainder}/"
+        return (
+            f"{prefix}://{normalised_remainder}"
+            if normalised_remainder
+            else f"{prefix}://"
+        )
+
+    normalised = posixpath.normpath(sanitized)
+    if normalised == ".":
+        return ""
+    if sanitized.endswith("/") and not normalised.endswith("/"):
+        normalised = f"{normalised}/"
+    return normalised
 
 
 def _prepare_environment_payload(settings: Dict[str, Any]) -> Dict[str, Any]:
