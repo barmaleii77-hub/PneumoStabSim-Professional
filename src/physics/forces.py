@@ -14,6 +14,7 @@ from __future__ import annotations
 
 from typing import Any, Dict, Iterable, Mapping, Tuple
 
+import math
 import numpy as np
 from numpy.typing import ArrayLike, NDArray
 
@@ -225,8 +226,34 @@ def compute_cylinder_force(
     Returns:
         Net force along cylinder axis (N, positive = extension)
     """
-    # Net force = head pressure ? head area - rod pressure ? rod area
-    F_net = p_head * A_head - p_rod * A_rod
+    p_head_f = float(p_head)
+    p_rod_f = float(p_rod)
+    A_head_f = float(A_head)
+    A_rod_f = float(A_rod)
+
+    for name, value in ("p_head", p_head_f), ("p_rod", p_rod_f):
+        if not math.isfinite(value):
+            raise ValueError(f"{name} must be a finite number")
+
+    for name, value, predicate, message in (
+        ("A_head", A_head_f, lambda v: v > 0.0, "Head side area must be positive"),
+        (
+            "A_rod",
+            A_rod_f,
+            lambda v: v >= 0.0,
+            "Rod side area must be non-negative",
+        ),
+    ):
+        if not math.isfinite(value):
+            raise ValueError(f"{name} must be a finite number")
+        if not predicate(value):
+            raise ValueError(message)
+
+    if A_rod_f > A_head_f:
+        raise ValueError("Rod side area cannot exceed head side area")
+
+    # Net force = head pressure × head area − rod pressure × rod area
+    F_net = p_head_f * A_head_f - p_rod_f * A_rod_f
     return F_net
 
 
