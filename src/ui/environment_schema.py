@@ -5,7 +5,7 @@ from __future__ import annotations
 import builtins
 from dataclasses import dataclass
 import re
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 from typing import Any, Dict, Sequence, Tuple
 
 
@@ -341,7 +341,7 @@ def _validate_section(
 
 
 def _normalise_path_value(value: Any) -> str:
-    """Нормализовать строковое представление пути до POSIX-формата."""
+    """Return a clean POSIX-style path without duplicate separators."""
 
     if isinstance(value, Path):
         text = value.as_posix()
@@ -349,7 +349,20 @@ def _normalise_path_value(value: Any) -> str:
         text = str(value).strip() if value is not None else ""
     if not text:
         return ""
-    return text.replace("\\", "/")
+
+    # Replace Windows-style separators first to avoid ``PurePosixPath`` treating
+    # backslashes as literal characters, then collapse any duplicate
+    # separators.  ``PurePosixPath`` preserves drive prefixes/UNC prefixes and
+    # ``..`` segments while normalising repeated ``/`` tokens.
+    text = text.replace("\\", "/")
+    collapsed = PurePosixPath(text).as_posix()
+
+    # Preserve a trailing slash if the original path explicitly included one;
+    # :class:`PurePosixPath` drops it unless the path is the root itself.
+    if text.endswith("/") and not collapsed.endswith("/") and collapsed != "/":
+        collapsed = f"{collapsed}/"
+
+    return collapsed
 
 
 def _prepare_environment_payload(settings: Dict[str, Any]) -> Dict[str, Any]:
