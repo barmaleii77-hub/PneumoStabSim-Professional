@@ -1,6 +1,5 @@
 import QtQuick
 import QtQuick3D
-import QtQuick3D.Effects
 
 /*
  * Коллекция пост-эффектов для улучшенной визуализации
@@ -8,39 +7,6 @@ import QtQuick3D.Effects
  */
 Item {
     id: root
-
-    signal effectCompilationError(string effectId, string errorLog)
-    signal effectCompilationRecovered(string effectId)
-
-    function handleShaderStatus(effectId, shaderItem, effectItem) {
-        if (!shaderItem)
-            return
-
-        if (shaderItem.status === undefined || Shader === undefined || Shader.Error === undefined || Shader.Ready === undefined) {
-            return
-        }
-
-        switch (shaderItem.status) {
-        case Shader.Error:
-            if (!effectItem.fallbackActive) {
-                effectItem.fallbackActive = true
-                effectItem.lastErrorLog = shaderItem.log || ""
-                console.error("⚠️", effectId, "shader compilation failed:", effectItem.lastErrorLog)
-                root.effectCompilationError(effectId, effectItem.lastErrorLog)
-            }
-            break
-        case Shader.Ready:
-            if (effectItem.fallbackActive) {
-                effectItem.fallbackActive = false
-                effectItem.lastErrorLog = ""
-                console.log("✅", effectId, "shader compiled successfully, restoring effect")
-                root.effectCompilationRecovered(effectId)
-            }
-            break
-        default:
-            break
-        }
-    }
 
     function trySetEffectProperty(effectItem, propertyName, value) {
         if (!effectItem || typeof effectItem.setProperty !== "function")
@@ -192,7 +158,7 @@ Item {
             property real uIntensity: bloomEffect.intensity
             property real uThreshold: bloomEffect.threshold
             property real uBlurAmount: bloomEffect.blurAmount
-            readonly property string shaderSource: glsl([
+            readonly property string shaderSource: root.glsl([
                 "#version 440",
                 "",
                 "#ifndef INPUT_UV",
@@ -253,21 +219,13 @@ Item {
                 "    FRAGCOLOR = vec4(result, original.a);",
                 "}",
             ])
-            shader: shaderDataUrl(shaderSource)
-        }
-
-        Connections {
-            target: bloomFragmentShader
-            ignoreUnknownSignals: true
-            function onStatusChanged() {
-                root.handleShaderStatus("bloom", bloomFragmentShader, bloomEffect)
-            }
+            shader: root.shaderDataUrl(shaderSource)
         }
 
         Shader {
             id: bloomFallbackShader
             stage: Shader.Fragment
-            readonly property string shaderSource: glsl([
+            readonly property string shaderSource: root.glsl([
                 "#version 440",
                 "",
                 "",
@@ -286,20 +244,13 @@ Item {
                 "    FRAGCOLOR = texture(qt_Texture0, INPUT_UV);",
                 "}",
             ])
-            shader: shaderDataUrl(shaderSource)
+            shader: root.shaderDataUrl(shaderSource)
         }
 
-        Connections {
-            target: bloomFallbackShader
-            ignoreUnknownSignals: true
-            function onStatusChanged() {
-                root.handleShaderStatus("bloom-fallback", bloomFallbackShader, bloomEffect)
-            }
-        }
 
         passes: [
             Pass {
-                shaders: resolveShaders(root.bloomEnabled, bloomEffect, bloomFragmentShader, bloomFallbackShader)
+                shaders: root.resolveShaders(root.bloomEnabled, bloomEffect, bloomFragmentShader, bloomFallbackShader)
             }
         ]
 
@@ -349,7 +300,7 @@ Item {
             property real uRadius: ssaoEffect.radius
             property real uBias: ssaoEffect.bias
             property int uSamples: ssaoEffect.samples
-            readonly property string shaderSource: glsl([
+            readonly property string shaderSource: root.glsl([
                 "#version 440",
                 "",
                 "",
@@ -427,21 +378,13 @@ Item {
                 "    FRAGCOLOR = vec4(original.rgb * occlusion, original.a);",
                 "}",
             ])
-            shader: shaderDataUrl(shaderSource)
-        }
-
-        Connections {
-            target: ssaoFragmentShader
-            ignoreUnknownSignals: true
-            function onStatusChanged() {
-                root.handleShaderStatus("ssao", ssaoFragmentShader, ssaoEffect)
-            }
+            shader: root.shaderDataUrl(shaderSource)
         }
 
         Shader {
             id: ssaoFallbackShader
             stage: Shader.Fragment
-            readonly property string shaderSource: glsl([
+            readonly property string shaderSource: root.glsl([
                 "#version 440",
                 "",
                 "#ifndef INPUT_UV",
@@ -459,20 +402,13 @@ Item {
                 "    FRAGCOLOR = texture(qt_Texture0, INPUT_UV);",
                 "}",
             ])
-            shader: shaderDataUrl(shaderSource)
+            shader: root.shaderDataUrl(shaderSource)
         }
 
-        Connections {
-            target: ssaoFallbackShader
-            ignoreUnknownSignals: true
-            function onStatusChanged() {
-                root.handleShaderStatus("ssao-fallback", ssaoFallbackShader, ssaoEffect)
-            }
-        }
 
         passes: [
             Pass {
-                shaders: resolveShaders(root.ssaoEnabled, ssaoEffect, ssaoFragmentShader, ssaoFallbackShader)
+                shaders: root.resolveShaders(root.ssaoEnabled, ssaoEffect, ssaoFragmentShader, ssaoFallbackShader)
             }
         ]
 
@@ -523,7 +459,7 @@ Item {
             property real uBlurAmount: dofEffect.blurAmount
             property real uCameraNear: dofEffect.cameraNear
             property real uCameraFar: dofEffect.cameraFar
-            readonly property string shaderSource: glsl([
+            readonly property string shaderSource: root.glsl([
                 "#version 440",
                 "",
                 "",
@@ -585,21 +521,13 @@ Item {
                 "    FRAGCOLOR = vec4(result, original.a);",
                 "}",
             ])
-            shader: shaderDataUrl(shaderSource)
-        }
-
-        Connections {
-            target: dofFragmentShader
-            ignoreUnknownSignals: true
-            function onStatusChanged() {
-                root.handleShaderStatus("dof", dofFragmentShader, dofEffect)
-            }
+            shader: root.shaderDataUrl(shaderSource)
         }
 
         Shader {
             id: dofFallbackShader
             stage: Shader.Fragment
-            readonly property string shaderSource: glsl([
+            readonly property string shaderSource: root.glsl([
                 "#version 440",
                 "",
                 "",
@@ -618,20 +546,13 @@ Item {
                 "    FRAGCOLOR = texture(qt_Texture0, INPUT_UV);",
                 "}",
             ])
-            shader: shaderDataUrl(shaderSource)
+            shader: root.shaderDataUrl(shaderSource)
         }
 
-        Connections {
-            target: dofFallbackShader
-            ignoreUnknownSignals: true
-            function onStatusChanged() {
-                root.handleShaderStatus("dof-fallback", dofFallbackShader, dofEffect)
-            }
-        }
 
         passes: [
             Pass {
-                shaders: resolveShaders(root.depthOfFieldEnabled, dofEffect, dofFragmentShader, dofFallbackShader)
+                shaders: root.resolveShaders(root.depthOfFieldEnabled, dofEffect, dofFragmentShader, dofFallbackShader)
             }
         ]
 
@@ -673,7 +594,7 @@ Item {
             stage: Shader.Fragment
             property real uStrength: motionBlurEffect.strength
             property int uSamples: motionBlurEffect.samples
-            readonly property string shaderSource: glsl([
+            readonly property string shaderSource: root.glsl([
                 "#version 440",
                 "",
                 "",
@@ -714,21 +635,13 @@ Item {
                 "    FRAGCOLOR = vec4(color, original.a);",
                 "}",
             ])
-            shader: shaderDataUrl(shaderSource)
-        }
-
-        Connections {
-            target: motionBlurFragmentShader
-            ignoreUnknownSignals: true
-            function onStatusChanged() {
-                root.handleShaderStatus("motion-blur", motionBlurFragmentShader, motionBlurEffect)
-            }
+            shader: root.shaderDataUrl(shaderSource)
         }
 
         Shader {
             id: motionBlurFallbackShader
             stage: Shader.Fragment
-            readonly property string shaderSource: glsl([
+            readonly property string shaderSource: root.glsl([
                 "#version 440",
                 "",
                 "",
@@ -747,20 +660,13 @@ Item {
                 "    FRAGCOLOR = texture(qt_Texture0, INPUT_UV);",
                 "}",
             ])
-            shader: shaderDataUrl(shaderSource)
+            shader: root.shaderDataUrl(shaderSource)
         }
 
-        Connections {
-            target: motionBlurFallbackShader
-            ignoreUnknownSignals: true
-            function onStatusChanged() {
-                root.handleShaderStatus("motion-blur-fallback", motionBlurFallbackShader, motionBlurEffect)
-            }
-        }
 
         passes: [
             Pass {
-                shaders: resolveShaders(root.motionBlurEnabled, motionBlurEffect, motionBlurFragmentShader, motionBlurFallbackShader)
+                shaders: root.resolveShaders(root.motionBlurEnabled, motionBlurEffect, motionBlurFragmentShader, motionBlurFallbackShader)
             }
         ]
 

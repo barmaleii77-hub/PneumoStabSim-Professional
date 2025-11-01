@@ -151,11 +151,20 @@ class GraphicsLogAnalyzer:
         # сессии (session_start/session_end) не содержат категорий
         # и искажали статистику, формируя записи вида
         # ``unknown.unknown`` в отчётах.
-        relevant_events = [
-            event
-            for event in self.events
-            if event.get("event_type") in {"parameter_change", "parameter_update"}
-        ]
+        relevant_events = []
+        for event in self.events:
+            event_type = event.get("event_type")
+            if event_type in {"parameter_change", "parameter_update"}:
+                relevant_events.append(event)
+                continue
+
+            # Исторические логи могли не указывать тип события, но при этом
+            # содержат параметры/категории. Такие записи представляют реальные
+            # изменения и должны участвовать в расчётах синхронизации.
+            if event_type is None and (
+                "parameter_name" in event or "category" in event
+            ):
+                relevant_events.append(event)
 
         self.stats["total"] = len(relevant_events)
 
