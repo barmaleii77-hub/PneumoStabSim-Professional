@@ -324,16 +324,33 @@ class IblLogAnalyzer:
         try:
             with open(self.log_file, "r", encoding="utf-8") as f:
                 for line in f:
-                    if "|" in line:
-                        parts = line.strip().split("|")
-                        if len(parts) >= 4:
-                            event = {
-                                "timestamp": parts[0].strip(),
-                                "level": parts[1].strip(),
-                                "component": parts[2].strip(),
-                                "message": parts[3].strip(),
-                            }
-                            self.events.append(event)
+                    raw = line.strip()
+                    if not raw or "|" not in raw:
+                        continue
+
+                    # Пропускаем заголовки и служебные строки лог-файла
+                    if raw.startswith(("=", "-")):
+                        continue
+                    if raw.startswith("FORMAT:") or raw.startswith("IBL SIGNAL"):
+                        continue
+                    if raw.startswith("Log started") or raw.startswith("Log closed"):
+                        continue
+
+                    parts = [part.strip() for part in raw.split("|", 3)]
+                    if len(parts) < 4:
+                        continue
+
+                    # Первая часть должна быть ISO timestamp, иначе это не событие
+                    if not re.match(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}", parts[0]):
+                        continue
+
+                    event = {
+                        "timestamp": parts[0],
+                        "level": parts[1],
+                        "component": parts[2],
+                        "message": parts[3],
+                    }
+                    self.events.append(event)
             return True
         except Exception as e:
             print(f"❌ Ошибка загрузки IBL: {e}")
