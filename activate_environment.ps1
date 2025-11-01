@@ -57,6 +57,59 @@ Get-Content -Path $envFile -Encoding UTF8 | ForEach-Object {
 if (-not $env:LANG) { Set-Item -Path Env:LANG -Value 'C.UTF-8' }
 if (-not $env:LC_ALL) { Set-Item -Path Env:LC_ALL -Value 'C.UTF-8' }
 
+$isWindows = [System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform(
+    [System.Runtime.InteropServices.OSPlatform]::Windows
+)
+
+if ($isWindows) {
+    $pathSeparator = [System.IO.Path]::PathSeparator
+
+    function Normalize-WorkspacePath {
+        param(
+            [Parameter(Mandatory = $true)]
+            [string] $Value
+        )
+
+        $adjusted = $Value -replace '/workspace/PneumoStabSim-Professional', $projectRoot
+        if ($pathSeparator -eq ';') {
+            $adjusted = $adjusted -replace '/', '\\'
+        }
+
+        return $adjusted
+    }
+
+    $pathVariables = @{
+        'PROJECT_ROOT'     = $false
+        'PYTHONPATH'       = $true
+        'QT_PLUGIN_PATH'   = $false
+        'QML2_IMPORT_PATH' = $false
+        'QML_IMPORT_PATH'  = $false
+    }
+
+    foreach ($entry in $pathVariables.GetEnumerator()) {
+        $currentValue = (Get-Item -Path "Env:$($entry.Key)" -ErrorAction SilentlyContinue).Value
+        if (-not $currentValue) {
+            continue
+        }
+
+        if ($entry.Value) {
+            $segments = $currentValue -split '[:;]'
+            $normalized = @()
+            foreach ($segment in $segments) {
+                if (-not [string]::IsNullOrWhiteSpace($segment)) {
+                    $normalized += (Normalize-WorkspacePath -Value $segment.Trim())
+                }
+            }
+
+            $currentValue = $normalized -join $pathSeparator
+        } else {
+            $currentValue = Normalize-WorkspacePath -Value $currentValue
+        }
+
+        Set-Item -Path "Env:$($entry.Key)" -Value $currentValue
+    }
+}
+
 Write-Host "[env] Variables loaded from .env" -ForegroundColor Cyan
 
 $venvPath = Join-Path $projectRoot ".venv"
@@ -67,7 +120,8 @@ if ($preferredPython -and (Get-Command Get-PythonVersionFromExecutable -ErrorAct
     if (Test-Path $venvPython) {
         $venvVersion = Get-PythonVersionFromExecutable -Executable $venvPython
         if ($venvVersion -and $venvVersion -lt $preferredPython.Version) {
-            Write-Host "[env] Existing .venv uses Python $venvVersion – recreating with $($preferredPython.Version)" -ForegroundColor Yellow
+            $recreateMessage = "[env] Existing .venv uses Python $venvVersion – recreating with $($preferredPython.Version)"
+            Write-Host $recreateMessage -ForegroundColor Yellow
             try {
                 Remove-Item -Recurse -Force $venvPath
             } catch {
