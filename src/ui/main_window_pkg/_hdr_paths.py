@@ -24,12 +24,20 @@ def _build_candidate_paths(
     base_dirs.extend(
         [
             project_root / "assets" / "qml",
+            project_root / "assets" / "hdr",
             project_root / "assets",
             project_root,
         ]
     )
 
-    candidates = [(base / path_input).resolve() for base in base_dirs]
+    # Удаляем возможные дубликаты, сохраняя порядок поиска (в т.ч. если
+    # qml_base_dir уже указывает на одну из папок выше).
+    deduplicated_base_dirs: list[Path] = []
+    for candidate in base_dirs:
+        if candidate not in deduplicated_base_dirs:
+            deduplicated_base_dirs.append(candidate)
+
+    candidates = [(base / path_input).resolve() for base in deduplicated_base_dirs]
     if not candidates:
         candidates.append(path_input)
     return candidates
