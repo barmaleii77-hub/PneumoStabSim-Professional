@@ -41,6 +41,32 @@ def settings_file(tmp_path: Path, settings_payload: dict[str, Any]) -> Path:
     return target
 
 
+def test_load_missing_file_raises_settings_error(tmp_path: Path) -> None:
+    missing_path = tmp_path / "missing.json"
+    service = SettingsService(settings_path=missing_path, schema_path=SCHEMA_PATH)
+
+    with pytest.raises(SettingsValidationError) as exc_info:
+        service.load(use_cache=False)
+
+    message = str(exc_info.value)
+    assert "not found" in message
+    assert str(missing_path) in message
+
+
+def test_load_invalid_json_raises_settings_error(tmp_path: Path) -> None:
+    invalid_file = tmp_path / "app_settings.json"
+    invalid_file.write_text("{\n  invalid json\n}", encoding="utf-8")
+
+    service = SettingsService(settings_path=invalid_file, schema_path=SCHEMA_PATH)
+
+    with pytest.raises(SettingsValidationError) as exc_info:
+        service.load(use_cache=False)
+
+    message = str(exc_info.value)
+    assert "invalid JSON" in message
+    assert str(invalid_file) in message
+
+
 @pytest.fixture()
 def event_bus_override() -> EventBus:
     """Provide an isolated :class:`EventBus` override for published events."""

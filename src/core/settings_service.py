@@ -92,8 +92,22 @@ class SettingsService:
 
     def _read_file(self) -> dict[str, Any]:
         path = self.resolve_path()
-        with path.open("r", encoding="utf-8") as stream:
-            payload: dict[str, Any] = json.load(stream)
+        try:
+            with path.open("r", encoding="utf-8") as stream:
+                payload: dict[str, Any] = json.load(stream)
+        except FileNotFoundError as exc:
+            raise SettingsValidationError(
+                f"Settings file not found at '{path}'"
+            ) from exc
+        except json.JSONDecodeError as exc:
+            raise SettingsValidationError(
+                "Settings file contains invalid JSON: "
+                f"{path} (line {exc.lineno}, column {exc.colno})"
+            ) from exc
+        except OSError as exc:
+            raise SettingsValidationError(
+                f"Failed to read settings file '{path}': {exc}"
+            ) from exc
         if self._validate_schema:
             self.validate(payload)
         self._capture_last_modified(payload)
