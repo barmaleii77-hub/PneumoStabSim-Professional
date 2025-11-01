@@ -193,65 +193,65 @@ Item {
             property real uThreshold: bloomEffect.threshold
             property real uBlurAmount: bloomEffect.blurAmount
             readonly property string shaderSource: glsl([
-                "#version 440"
-                ""
-                "#ifndef INPUT_UV"
-                "#define INPUT_UV v_uv"
-                "#endif"
-                ""
-                "#ifndef FRAGCOLOR"
-                "    layout(location = 0) out vec4 qt_FragColor;"
-                "#define FRAGCOLOR qt_FragColor"
-                "#endif"
-                ""
-                "    layout(binding = 1) uniform sampler2D qt_Texture0;"
-                ""
-                "#ifndef INPUT"
-                "#define INPUT texture(qt_Texture0, INPUT_UV)"
-                "#endif"
-                ""
-                "    uniform float uIntensity;"
-                "    uniform float uThreshold;"
-                "    uniform float uBlurAmount;"
-                ""
-                "    // Функция luminance"
-                "    float luminance(vec3 color) {"
-                "        return dot(color, vec3(0.299, 0.587, 0.114));"
-                "    }"
-                ""
-                "    // Gaussian blur"
-                "    vec3 gaussianBlur(vec2 uv, vec2 texelStep, float blurSize) {"
-                "        vec3 color = vec3(0.0);"
-                ""
-                "        // 9-точечный Gaussian kernel"
-                "        float weights[9] = float[]("
-                "            0.05, 0.09, 0.12, 0.15, 0.18, 0.15, 0.12, 0.09, 0.05"
-                "        );"
-                ""
-                "        for (int i = -4; i <= 4; i++) {"
-                "            vec2 offset = texelStep * float(i) * blurSize * 0.01;"
-                "            color += texture(qt_Texture0, uv + offset).rgb * weights[i + 4];"
-                "        }"
-                ""
-                "        return color;"
-                "    }"
-                ""
-                "    void MAIN() {"
-                "        vec4 original = INPUT;"
-                ""
-                "        // Извлечение ярких областей"
-                "        float lum = luminance(original.rgb);"
-                ""
-                "        // Размытие ярких областей"
-                "        vec2 texelSize = 1.0 / vec2(textureSize(qt_Texture0, 0));"
-                "        vec3 blurredBright = gaussianBlur(INPUT_UV, texelSize, uBlurAmount);"
-                ""
-                "        // Комбинирование"
-                "        vec3 bloom = blurredBright * uIntensity;"
-                "    vec3 result = original.rgb + bloom;"
-                ""
-                "    FRAGCOLOR = vec4(result, original.a);"
-                "}"
+                "#version 440",
+                "",
+                "#ifndef INPUT_UV",
+                "#define INPUT_UV v_uv",
+                "#endif",
+                "",
+                "#ifndef FRAGCOLOR",
+                "    layout(location = 0) out vec4 qt_FragColor;",
+                "#define FRAGCOLOR qt_FragColor",
+                "#endif",
+                "",
+                "    layout(binding = 1) uniform sampler2D qt_Texture0;",
+                "",
+                "#ifndef INPUT",
+                "#define INPUT texture(qt_Texture0, INPUT_UV)",
+                "#endif",
+                "",
+                "    uniform float uIntensity;",
+                "    uniform float uThreshold;",
+                "    uniform float uBlurAmount;",
+                "",
+                "    // Функция luminance",
+                "    float luminance(vec3 color) {",
+                "        return dot(color, vec3(0.299, 0.587, 0.114));",
+                "    }",
+                "",
+                "    // Gaussian blur",
+                "    vec3 gaussianBlur(vec2 uv, vec2 texelStep, float blurSize) {",
+                "        vec3 color = vec3(0.0);",
+                "",
+                "        // 9-точечный Gaussian kernel",
+                "        float weights[9] = float[](",
+                "            0.05, 0.09, 0.12, 0.15, 0.18, 0.15, 0.12, 0.09, 0.05",
+                "        );",
+                "",
+                "        for (int i = -4; i <= 4; i++) {",
+                "            vec2 offset = texelStep * float(i) * blurSize * 0.01;",
+                "            color += texture(qt_Texture0, uv + offset).rgb * weights[i + 4];",
+                "        }",
+                "",
+                "        return color;",
+                "    }",
+                "",
+                "    void MAIN() {",
+                "        vec4 original = INPUT;",
+                "",
+                "        // Извлечение ярких областей",
+                "        float lum = luminance(original.rgb);",
+                "",
+                "        // Размытие ярких областей",
+                "        vec2 texelSize = 1.0 / vec2(textureSize(qt_Texture0, 0));",
+                "        vec3 blurredBright = gaussianBlur(INPUT_UV, texelSize, uBlurAmount);",
+                "",
+                "        // Комбинирование",
+                "        vec3 bloom = blurredBright * uIntensity;",
+                "    vec3 result = original.rgb + bloom;",
+                "",
+                "    FRAGCOLOR = vec4(result, original.a);",
+                "}",
             ])
             shader: shaderDataUrl(shaderSource)
         }
@@ -268,23 +268,23 @@ Item {
             id: bloomFallbackShader
             stage: Shader.Fragment
             readonly property string shaderSource: glsl([
-                "#version 440"
-                ""
-                ""
-                "#ifndef INPUT_UV"
-                "#define INPUT_UV v_uv"
-                "#endif"
-                ""
-                "#ifndef FRAGCOLOR"
-                "layout(location = 0) out vec4 qt_FragColor;"
-                "#define FRAGCOLOR qt_FragColor"
-                "#endif"
-                ""
-                "layout(binding = 1) uniform sampler2D qt_Texture0;"
-                ""
-                "void MAIN() {"
-                "    FRAGCOLOR = texture(qt_Texture0, INPUT_UV);"
-                "}"
+                "#version 440",
+                "",
+                "",
+                "#ifndef INPUT_UV",
+                "#define INPUT_UV v_uv",
+                "#endif",
+                "",
+                "#ifndef FRAGCOLOR",
+                "layout(location = 0) out vec4 qt_FragColor;",
+                "#define FRAGCOLOR qt_FragColor",
+                "#endif",
+                "",
+                "layout(binding = 1) uniform sampler2D qt_Texture0;",
+                "",
+                "void MAIN() {",
+                "    FRAGCOLOR = texture(qt_Texture0, INPUT_UV);",
+                "}",
             ])
             shader: shaderDataUrl(shaderSource)
         }
@@ -350,82 +350,82 @@ Item {
             property real uBias: ssaoEffect.bias
             property int uSamples: ssaoEffect.samples
             readonly property string shaderSource: glsl([
-                "#version 440"
-                ""
-                ""
-                "#ifndef INPUT_UV"
-                "#define INPUT_UV v_uv"
-                "#endif"
-                ""
-                "#ifndef FRAGCOLOR"
-                "    layout(location = 0) out vec4 qt_FragColor;"
-                "#define FRAGCOLOR qt_FragColor"
-                "#endif"
-                ""
-                "    layout(binding = 1) uniform sampler2D qt_Texture0;"
-                "    layout(binding = 2) uniform sampler2D qt_DepthTexture;"
-                "    layout(binding = 3) uniform sampler2D qt_NormalTexture;"
-                ""
-                "#ifndef INPUT"
-                "#define INPUT texture(qt_Texture0, INPUT_UV)"
-                "#endif"
-                ""
-                "    uniform float uIntensity;"
-                "    uniform float uRadius;"
-                "    uniform float uBias;"
-                "    uniform int uSamples;"
-                ""
-                "    // Генерация случайных векторов для сэмплинга"
-                "    vec3 generateSampleVector(int index) {"
-                "        float angle = float(index) * 0.39269908; // 2π/16"
-                "        float radius = float(index + 1) / max(1.0, float(uSamples));"
-                ""
-                "        return vec3("
-                "            cos(angle) * radius,"
-                "            sin(angle) * radius,"
-                "            radius * 0.5 + 0.5"
-                "        );"
-                "    }"
-                ""
-                "    void MAIN() {"
-                "        vec4 original = INPUT;"
-                "        vec3 normal = normalize(texture(qt_NormalTexture, INPUT_UV).xyz * 2.0 - 1.0);"
-                "        float depth = texture(qt_DepthTexture, INPUT_UV).r;"
-                ""
-                "        if (depth >= 1.0) {"
-                "            FRAGCOLOR = original;"
-                "            return;"
-                "        }"
-                ""
-                "        float occlusion = 0.0;"
-                "        vec2 texelSize = 1.0 / vec2(textureSize(qt_Texture0, 0));"
-                "        int sampleCount = max(uSamples, 1);"
-                ""
-                "        // SSAO сэмплинг"
-                "        for (int i = 0; i < sampleCount; i++) {"
-                "            vec3 sampleVec = generateSampleVector(i);"
-                ""
-                "            // Ориентация сэмплов по нормали"
-                "            sampleVec = normalize(sampleVec);"
-                "            if (dot(sampleVec, normal) < 0.0) {"
-                "                sampleVec = -sampleVec;"
-                "            }"
-                ""
-                "            vec2 sampleCoord = INPUT_UV + sampleVec.xy * uRadius * texelSize;"
-                "            float sampleDepth = texture(qt_DepthTexture, sampleCoord).r;"
-                ""
-                "            // Проверка окклюзии"
-                "            float depthDiff = depth - sampleDepth;"
-                "            if (depthDiff > uBias) {"
-                "                occlusion += 1.0;"
-                "            }"
-                "        }"
-                ""
-                "        occlusion /= max(1.0, float(sampleCount));"
-                "        occlusion = 1.0 - (occlusion * uIntensity);"
-                ""
-                "    FRAGCOLOR = vec4(original.rgb * occlusion, original.a);"
-                "}"
+                "#version 440",
+                "",
+                "",
+                "#ifndef INPUT_UV",
+                "#define INPUT_UV v_uv",
+                "#endif",
+                "",
+                "#ifndef FRAGCOLOR",
+                "    layout(location = 0) out vec4 qt_FragColor;",
+                "#define FRAGCOLOR qt_FragColor",
+                "#endif",
+                "",
+                "    layout(binding = 1) uniform sampler2D qt_Texture0;",
+                "    layout(binding = 2) uniform sampler2D qt_DepthTexture;",
+                "    layout(binding = 3) uniform sampler2D qt_NormalTexture;",
+                "",
+                "#ifndef INPUT",
+                "#define INPUT texture(qt_Texture0, INPUT_UV)",
+                "#endif",
+                "",
+                "    uniform float uIntensity;",
+                "    uniform float uRadius;",
+                "    uniform float uBias;",
+                "    uniform int uSamples;",
+                "",
+                "    // Генерация случайных векторов для сэмплинга",
+                "    vec3 generateSampleVector(int index) {",
+                "        float angle = float(index) * 0.39269908; // 2π/16",
+                "        float radius = float(index + 1) / max(1.0, float(uSamples));",
+                "",
+                "        return vec3(",
+                "            cos(angle) * radius,",
+                "            sin(angle) * radius,",
+                "            radius * 0.5 + 0.5",
+                "        );",
+                "    }",
+                "",
+                "    void MAIN() {",
+                "        vec4 original = INPUT;",
+                "        vec3 normal = normalize(texture(qt_NormalTexture, INPUT_UV).xyz * 2.0 - 1.0);",
+                "        float depth = texture(qt_DepthTexture, INPUT_UV).r;",
+                "",
+                "        if (depth >= 1.0) {",
+                "            FRAGCOLOR = original;",
+                "            return;",
+                "        }",
+                "",
+                "        float occlusion = 0.0;",
+                "        vec2 texelSize = 1.0 / vec2(textureSize(qt_Texture0, 0));",
+                "        int sampleCount = max(uSamples, 1);",
+                "",
+                "        // SSAO сэмплинг",
+                "        for (int i = 0; i < sampleCount; i++) {",
+                "            vec3 sampleVec = generateSampleVector(i);",
+                "",
+                "            // Ориентация сэмплов по нормали",
+                "            sampleVec = normalize(sampleVec);",
+                "            if (dot(sampleVec, normal) < 0.0) {",
+                "                sampleVec = -sampleVec;",
+                "            }",
+                "",
+                "            vec2 sampleCoord = INPUT_UV + sampleVec.xy * uRadius * texelSize;",
+                "            float sampleDepth = texture(qt_DepthTexture, sampleCoord).r;",
+                "",
+                "            // Проверка окклюзии",
+                "            float depthDiff = depth - sampleDepth;",
+                "            if (depthDiff > uBias) {",
+                "                occlusion += 1.0;",
+                "            }",
+                "        }",
+                "",
+                "        occlusion /= max(1.0, float(sampleCount));",
+                "        occlusion = 1.0 - (occlusion * uIntensity);",
+                "",
+                "    FRAGCOLOR = vec4(original.rgb * occlusion, original.a);",
+                "}",
             ])
             shader: shaderDataUrl(shaderSource)
         }
@@ -442,22 +442,22 @@ Item {
             id: ssaoFallbackShader
             stage: Shader.Fragment
             readonly property string shaderSource: glsl([
-                "#version 440"
-                ""
-                "#ifndef INPUT_UV"
-                "#define INPUT_UV v_uv"
-                "#endif"
-                ""
-                "#ifndef FRAGCOLOR"
-                "layout(location = 0) out vec4 qt_FragColor;"
-                "#define FRAGCOLOR qt_FragColor"
-                "#endif"
-                ""
-                "layout(binding = 1) uniform sampler2D qt_Texture0;"
-                ""
-                "void MAIN() {"
-                "    FRAGCOLOR = texture(qt_Texture0, INPUT_UV);"
-                "}"
+                "#version 440",
+                "",
+                "#ifndef INPUT_UV",
+                "#define INPUT_UV v_uv",
+                "#endif",
+                "",
+                "#ifndef FRAGCOLOR",
+                "layout(location = 0) out vec4 qt_FragColor;",
+                "#define FRAGCOLOR qt_FragColor",
+                "#endif",
+                "",
+                "layout(binding = 1) uniform sampler2D qt_Texture0;",
+                "",
+                "void MAIN() {",
+                "    FRAGCOLOR = texture(qt_Texture0, INPUT_UV);",
+                "}",
             ])
             shader: shaderDataUrl(shaderSource)
         }
@@ -524,66 +524,66 @@ Item {
             property real uCameraNear: dofEffect.cameraNear
             property real uCameraFar: dofEffect.cameraFar
             readonly property string shaderSource: glsl([
-                "#version 440"
-                ""
-                ""
-                "#ifndef INPUT_UV"
-                "#define INPUT_UV v_uv"
-                "#endif"
-                ""
-                "#ifndef FRAGCOLOR"
-                "    layout(location = 0) out vec4 qt_FragColor;"
-                "#define FRAGCOLOR qt_FragColor"
-                "#endif"
-                ""
-                "    layout(binding = 1) uniform sampler2D qt_Texture0;"
-                "    layout(binding = 2) uniform sampler2D qt_DepthTexture;"
-                ""
-                "#ifndef INPUT"
-                "#define INPUT texture(qt_Texture0, INPUT_UV)"
-                "#endif"
-                ""
-                "    uniform float uFocusDistance;"
-                "    uniform float uFocusRange;"
-                "    uniform float uBlurAmount;"
-                "    uniform float uCameraNear;"
-                "    uniform float uCameraFar;"
-                ""
-                "    // Преобразование depth buffer в линейную глубину"
-                "    float linearizeDepth(float depth) {"
-                "        float z = depth * 2.0 - 1.0;"
-                "        return (2.0 * uCameraNear * uCameraFar) /"
-                "               (uCameraFar + uCameraNear - z * (uCameraFar - uCameraNear));"
-                "    }"
-                ""
-                "    // Размытие по кругу (bokeh)"
-                "    vec3 circularBlur(vec2 uv, float radius) {"
-                "    vec3 color = vec3(0.0);"
-                "    int samples = 16;"
-                ""
-                "    for (int i = 0; i < samples; i++) {"
-                "            float angle = float(i) * 6.28318 / float(samples);"
-                "            vec2 offset = vec2(cos(angle), sin(angle)) * radius;"
-                "            color += texture(qt_Texture0, uv + offset).rgb;"
-                "        }"
-                ""
-                "        return color / float(samples);"
-                "    }"
-                ""
-                "    void MAIN() {"
-                "        vec4 original = INPUT;"
-                "        float depth = texture(qt_DepthTexture, INPUT_UV).r;"
-                "        float linearDepth = linearizeDepth(depth);"
-                ""
-                "        // Расчет blur радиуса на основе расстояния от фокуса"
-                "        float focusFactor = abs(linearDepth - uFocusDistance) / max(0.0001, uFocusRange);"
-                "        float blurRadius = clamp(focusFactor, 0.0, 1.0) * uBlurAmount * 0.01;"
-                ""
-                "        vec3 blurred = circularBlur(INPUT_UV, blurRadius);"
-                "        vec3 result = mix(original.rgb, blurred, clamp(focusFactor, 0.0, 1.0));"
-                ""
-                "    FRAGCOLOR = vec4(result, original.a);"
-                "}"
+                "#version 440",
+                "",
+                "",
+                "#ifndef INPUT_UV",
+                "#define INPUT_UV v_uv",
+                "#endif",
+                "",
+                "#ifndef FRAGCOLOR",
+                "    layout(location = 0) out vec4 qt_FragColor;",
+                "#define FRAGCOLOR qt_FragColor",
+                "#endif",
+                "",
+                "    layout(binding = 1) uniform sampler2D qt_Texture0;",
+                "    layout(binding = 2) uniform sampler2D qt_DepthTexture;",
+                "",
+                "#ifndef INPUT",
+                "#define INPUT texture(qt_Texture0, INPUT_UV)",
+                "#endif",
+                "",
+                "    uniform float uFocusDistance;",
+                "    uniform float uFocusRange;",
+                "    uniform float uBlurAmount;",
+                "    uniform float uCameraNear;",
+                "    uniform float uCameraFar;",
+                "",
+                "    // Преобразование depth buffer в линейную глубину",
+                "    float linearizeDepth(float depth) {",
+                "        float z = depth * 2.0 - 1.0;",
+                "        return (2.0 * uCameraNear * uCameraFar) /",
+                "               (uCameraFar + uCameraNear - z * (uCameraFar - uCameraNear));",
+                "    }",
+                "",
+                "    // Размытие по кругу (bokeh)",
+                "    vec3 circularBlur(vec2 uv, float radius) {",
+                "    vec3 color = vec3(0.0);",
+                "    int samples = 16;",
+                "",
+                "    for (int i = 0; i < samples; i++) {",
+                "            float angle = float(i) * 6.28318 / float(samples);",
+                "            vec2 offset = vec2(cos(angle), sin(angle)) * radius;",
+                "            color += texture(qt_Texture0, uv + offset).rgb;",
+                "        }",
+                "",
+                "        return color / float(samples);",
+                "    }",
+                "",
+                "    void MAIN() {",
+                "        vec4 original = INPUT;",
+                "        float depth = texture(qt_DepthTexture, INPUT_UV).r;",
+                "        float linearDepth = linearizeDepth(depth);",
+                "",
+                "        // Расчет blur радиуса на основе расстояния от фокуса",
+                "        float focusFactor = abs(linearDepth - uFocusDistance) / max(0.0001, uFocusRange);",
+                "        float blurRadius = clamp(focusFactor, 0.0, 1.0) * uBlurAmount * 0.01;",
+                "",
+                "        vec3 blurred = circularBlur(INPUT_UV, blurRadius);",
+                "        vec3 result = mix(original.rgb, blurred, clamp(focusFactor, 0.0, 1.0));",
+                "",
+                "    FRAGCOLOR = vec4(result, original.a);",
+                "}",
             ])
             shader: shaderDataUrl(shaderSource)
         }
@@ -600,23 +600,23 @@ Item {
             id: dofFallbackShader
             stage: Shader.Fragment
             readonly property string shaderSource: glsl([
-                "#version 440"
-                ""
-                ""
-                "#ifndef INPUT_UV"
-                "#define INPUT_UV v_uv"
-                "#endif"
-                ""
-                "#ifndef FRAGCOLOR"
-                "layout(location = 0) out vec4 qt_FragColor;"
-                "#define FRAGCOLOR qt_FragColor"
-                "#endif"
-                ""
-                "layout(binding = 1) uniform sampler2D qt_Texture0;"
-                ""
-                "void MAIN() {"
-                "    FRAGCOLOR = texture(qt_Texture0, INPUT_UV);"
-                "}"
+                "#version 440",
+                "",
+                "",
+                "#ifndef INPUT_UV",
+                "#define INPUT_UV v_uv",
+                "#endif",
+                "",
+                "#ifndef FRAGCOLOR",
+                "layout(location = 0) out vec4 qt_FragColor;",
+                "#define FRAGCOLOR qt_FragColor",
+                "#endif",
+                "",
+                "layout(binding = 1) uniform sampler2D qt_Texture0;",
+                "",
+                "void MAIN() {",
+                "    FRAGCOLOR = texture(qt_Texture0, INPUT_UV);",
+                "}",
             ])
             shader: shaderDataUrl(shaderSource)
         }
@@ -674,45 +674,45 @@ Item {
             property real uStrength: motionBlurEffect.strength
             property int uSamples: motionBlurEffect.samples
             readonly property string shaderSource: glsl([
-                "#version 440"
-                ""
-                ""
-                "#ifndef INPUT_UV"
-                "#define INPUT_UV v_uv"
-                "#endif"
-                ""
-                "#ifndef FRAGCOLOR"
-                "layout(location = 0) out vec4 qt_FragColor;"
-                "#define FRAGCOLOR qt_FragColor"
-                "#endif"
-                ""
-                "layout(binding = 1) uniform sampler2D qt_Texture0;"
-                "layout(binding = 2) uniform sampler2D qt_VelocityTexture;"
-                ""
-                "#ifndef INPUT"
-                "#define INPUT texture(qt_Texture0, INPUT_UV)"
-                "#endif"
-                ""
-                "uniform float uStrength;"
-                "uniform int uSamples;"
-                ""
-                "void MAIN() {"
-                "    vec4 original = INPUT;"
-                "    vec2 velocity = texture(qt_VelocityTexture, INPUT_UV).xy;"
-                ""
-                "    vec3 color = original.rgb;"
-                "    int sampleCount = max(uSamples, 1);"
-                "    vec2 step = velocity * uStrength / max(1.0, float(sampleCount));"
-                ""
-                "    // Сэмплирование вдоль вектора движения"
-                "    for (int i = 1; i < sampleCount; i++) {"
-                "        vec2 sampleCoord = INPUT_UV + step * float(i);"
-                "        color += texture(qt_Texture0, sampleCoord).rgb;"
-                "    }"
-                ""
-                "    color /= max(1.0, float(sampleCount));"
-                "    FRAGCOLOR = vec4(color, original.a);"
-                "}"
+                "#version 440",
+                "",
+                "",
+                "#ifndef INPUT_UV",
+                "#define INPUT_UV v_uv",
+                "#endif",
+                "",
+                "#ifndef FRAGCOLOR",
+                "layout(location = 0) out vec4 qt_FragColor;",
+                "#define FRAGCOLOR qt_FragColor",
+                "#endif",
+                "",
+                "layout(binding = 1) uniform sampler2D qt_Texture0;",
+                "layout(binding = 2) uniform sampler2D qt_VelocityTexture;",
+                "",
+                "#ifndef INPUT",
+                "#define INPUT texture(qt_Texture0, INPUT_UV)",
+                "#endif",
+                "",
+                "uniform float uStrength;",
+                "uniform int uSamples;",
+                "",
+                "void MAIN() {",
+                "    vec4 original = INPUT;",
+                "    vec2 velocity = texture(qt_VelocityTexture, INPUT_UV).xy;",
+                "",
+                "    vec3 color = original.rgb;",
+                "    int sampleCount = max(uSamples, 1);",
+                "    vec2 step = velocity * uStrength / max(1.0, float(sampleCount));",
+                "",
+                "    // Сэмплирование вдоль вектора движения",
+                "    for (int i = 1; i < sampleCount; i++) {",
+                "        vec2 sampleCoord = INPUT_UV + step * float(i);",
+                "        color += texture(qt_Texture0, sampleCoord).rgb;",
+                "    }",
+                "",
+                "    color /= max(1.0, float(sampleCount));",
+                "    FRAGCOLOR = vec4(color, original.a);",
+                "}",
             ])
             shader: shaderDataUrl(shaderSource)
         }
@@ -729,23 +729,23 @@ Item {
             id: motionBlurFallbackShader
             stage: Shader.Fragment
             readonly property string shaderSource: glsl([
-                "#version 440"
-                ""
-                ""
-                "#ifndef INPUT_UV"
-                "#define INPUT_UV v_uv"
-                "#endif"
-                ""
-                "#ifndef FRAGCOLOR"
-                "layout(location = 0) out vec4 qt_FragColor;"
-                "#define FRAGCOLOR qt_FragColor"
-                "#endif"
-                ""
-                "layout(binding = 1) uniform sampler2D qt_Texture0;"
-                ""
-                "void MAIN() {"
-                "    FRAGCOLOR = texture(qt_Texture0, INPUT_UV);"
-                "}"
+                "#version 440",
+                "",
+                "",
+                "#ifndef INPUT_UV",
+                "#define INPUT_UV v_uv",
+                "#endif",
+                "",
+                "#ifndef FRAGCOLOR",
+                "layout(location = 0) out vec4 qt_FragColor;",
+                "#define FRAGCOLOR qt_FragColor",
+                "#endif",
+                "",
+                "layout(binding = 1) uniform sampler2D qt_Texture0;",
+                "",
+                "void MAIN() {",
+                "    FRAGCOLOR = texture(qt_Texture0, INPUT_UV);",
+                "}",
             ])
             shader: shaderDataUrl(shaderSource)
         }
