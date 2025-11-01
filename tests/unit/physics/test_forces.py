@@ -90,6 +90,22 @@ def test_compute_cylinder_force_uses_pressures_and_areas() -> None:
     )
 
 
+def test_compute_cylinder_force_rejects_invalid_geometry() -> None:
+    with pytest.raises(ValueError, match="positive"):
+        compute_cylinder_force(120000.0, 80000.0, 0.0, 0.0032)
+    with pytest.raises(ValueError, match="non-negative"):
+        compute_cylinder_force(120000.0, 80000.0, 0.0045, -0.0001)
+    with pytest.raises(ValueError, match="exceed"):
+        compute_cylinder_force(120000.0, 80000.0, 0.0030, 0.0032)
+
+
+def test_compute_cylinder_force_rejects_non_finite_pressures() -> None:
+    with pytest.raises(ValueError, match="p_head"):
+        compute_cylinder_force(float("nan"), 80000.0, 0.0045, 0.0032)
+    with pytest.raises(ValueError, match="p_rod"):
+        compute_cylinder_force(120000.0, float("inf"), 0.0045, 0.0032)
+
+
 def test_compute_spring_force_compression_only() -> None:
     assert math.isclose(compute_spring_force(0.1, 0.2, 30000.0), 3000.0)
     assert math.isclose(compute_spring_force(0.3, 0.2, 30000.0), 0.0)
