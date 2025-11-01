@@ -46,14 +46,14 @@
 
 ### Шаг 0: Системные библиотеки (Linux)
 
-Перед созданием виртуального окружения убедитесь, что в системе доступны базовые графические библиотеки. Для headless-сред при первом запуске может отсутствовать `libGL.so.1`, из-за чего Qt не сможет инициализировать OpenGL. Установите Mesa-пакеты одной командой:
+Перед созданием виртуального окружения убедитесь, что в системе доступны базовые графические библиотеки. Для headless-сред при первом запуске может отсутствовать `libGL.so.1`, из-за чего Qt не сможет инициализировать OpenGL. Также Qt Quick требует `libxkbcommon.so.0` для обработки ввода и `libEGL.so.1` для создания offscreen-контекста. Установите Mesa-пакеты и XKB-библиотеки одной командой:
 
 ```bash
 sudo apt-get update
-sudo apt-get install -y libgl1
+sudo apt-get install -y libgl1 libxkbcommon0 libegl1
 ```
 
-Пакет подтянет весь необходимый стек (`libglx-mesa0`, `mesa-vulkan-drivers` и др.), после чего проверка окружения `python -m tools.autonomous_check --launch-trace` проходит без предупреждений.
+Пакеты подтянут весь необходимый стек (`libglx-mesa0`, `mesa-vulkan-drivers`, `libegl-mesa0` и др.), после чего проверка окружения `python -m tools.autonomous_check --launch-trace` и обычный запуск `python app.py --test-mode` проходят без предупреждений даже в headless-контейнере.
 
 ### Шаг 1: Проверка Python
 
