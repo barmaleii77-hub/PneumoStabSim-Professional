@@ -135,9 +135,31 @@ class GraphicsLogAnalyzer:
 
     def analyze(self):
         """Анализирует загруженные события"""
-        self.stats["total"] = len(self.events)
+        # Сбрасываем накопленные метрики, чтобы повторные запуски
+        # не накапливали значения поверх предыдущих расчётов.
+        self.stats["synced"] = 0
+        self.stats["failed"] = 0
+        self.stats["pending"] = 0
+        self.stats["by_category"].clear()
+        self.stats["by_parameter"].clear()
+        self.stats["timeline"].clear()
+        self.unsynced_events.clear()
+        self.unsynced_summary.clear()
 
-        for event in self.events:
+        # Нас интересуют только события, представляющие реальные
+        # изменения параметров или их применение в QML. Заголовки
+        # сессии (session_start/session_end) не содержат категорий
+        # и искажали статистику, формируя записи вида
+        # ``unknown.unknown`` в отчётах.
+        relevant_events = [
+            event
+            for event in self.events
+            if event.get("event_type") in {"parameter_change", "parameter_update"}
+        ]
+
+        self.stats["total"] = len(relevant_events)
+
+        for event in relevant_events:
             # Категории
             category = event.get("category", "unknown")
             self.stats["by_category"][category] += 1
