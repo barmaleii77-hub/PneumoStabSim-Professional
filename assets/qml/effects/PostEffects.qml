@@ -38,6 +38,17 @@ Item {
         }
     }
 
+    function trySetEffectProperty(effectItem, propertyName, value) {
+        if (!effectItem || typeof effectItem.setProperty !== "function")
+            return false
+        try {
+            return effectItem.setProperty(propertyName, value)
+        } catch (error) {
+            console.debug("⚠️", effectItem, "does not support", propertyName, error)
+            return false
+        }
+    }
+
     // Свойства управления эффектами
     property bool bloomEnabled: false
     property alias bloomIntensity: bloomEffect.intensity
@@ -66,27 +77,25 @@ Item {
     function resolveShaders(isEnabled, effectItem, activeShader, fallbackShader) {
         // Если эффект выключен, отключаем его полностью
         if (!isEnabled) {
-            effectItem.enabled = false
+            trySetEffectProperty(effectItem, "enabled", false)
             return []
         }
         // Включаем эффект и выбираем нужный шейдер
-        effectItem.enabled = true
+        trySetEffectProperty(effectItem, "enabled", true)
         return effectItem.fallbackActive ? [fallbackShader] : [activeShader]
     }
 
     function ensureEffectRequirement(effectItem, propertyName, value, successLog, failureLog) {
-        try {
-            effectItem[propertyName] = value
+        if (trySetEffectProperty(effectItem, propertyName, value)) {
             if (successLog && successLog.length > 0)
                 console.log("✅", successLog)
             return true
-        } catch (error) {
-            const message = failureLog && failureLog.length > 0
-                    ? failureLog
-                    : `Effect requirement '${propertyName}' is not supported`
-            console.warn("⚠️", message, error)
-            return false
         }
+        const message = failureLog && failureLog.length > 0
+                ? failureLog
+                : `Effect requirement '${propertyName}' is not supported`
+        console.warn("⚠️", message)
+        return false
     }
 
     Component.onCompleted: {
@@ -171,9 +180,9 @@ Item {
             property real uIntensity: bloomEffect.intensity
             property real uThreshold: bloomEffect.threshold
             property real uBlurAmount: bloomEffect.blurAmount
-            shader: "
+            code: "
                             #version 440
-                            
+
                             #ifndef INPUT_UV
                             #define INPUT_UV v_uv
                             #endif
@@ -229,18 +238,19 @@ Item {
                                 vec3 bloom = blurredBright * uIntensity;
                                 vec3 result = original.rgb + bloom;
 
-                                FRAGCOLOR = vec4(result, original.a);
-                            }
+                            FRAGCOLOR = vec4(result, original.a);
+                        }
                         "
+            onStatusChanged: root.handleShaderStatus("bloom", bloomFragmentShader, bloomEffect)
         }
 
         Shader {
             id: bloomFallbackShader
             stage: Shader.Fragment
-            shader: "
+            code: "
                             #version 440
 
-                            
+
                             #ifndef INPUT_UV
                             #define INPUT_UV v_uv
                             #endif
@@ -256,6 +266,7 @@ Item {
                                 FRAGCOLOR = texture(qt_Texture0, INPUT_UV);
                             }
                         "
+            onStatusChanged: root.handleShaderStatus("bloom-fallback", bloomFallbackShader, bloomEffect)
         }
 
         passes: [
@@ -310,10 +321,10 @@ Item {
             property real uRadius: ssaoEffect.radius
             property real uBias: ssaoEffect.bias
             property int uSamples: ssaoEffect.samples
-            shader: "
+            code: "
                             #version 440
 
-                            
+
                             #ifndef INPUT_UV
                             #define INPUT_UV v_uv
                             #endif
@@ -388,12 +399,13 @@ Item {
                                 FRAGCOLOR = vec4(original.rgb * occlusion, original.a);
                             }
                         "
+            onStatusChanged: root.handleShaderStatus("ssao", ssaoFragmentShader, ssaoEffect)
         }
 
         Shader {
             id: ssaoFallbackShader
             stage: Shader.Fragment
-            shader: "
+            code: "
                             #version 440
 
                             #ifndef INPUT_UV
@@ -411,6 +423,7 @@ Item {
                                 FRAGCOLOR = texture(qt_Texture0, INPUT_UV);
                             }
                         "
+            onStatusChanged: root.handleShaderStatus("ssao-fallback", ssaoFallbackShader, ssaoEffect)
         }
 
         passes: [
@@ -466,10 +479,10 @@ Item {
             property real uBlurAmount: dofEffect.blurAmount
             property real uCameraNear: dofEffect.cameraNear
             property real uCameraFar: dofEffect.cameraFar
-            shader: "
+            code: "
                             #version 440
 
-                            
+
                             #ifndef INPUT_UV
                             #define INPUT_UV v_uv
                             #endif
@@ -528,12 +541,13 @@ Item {
                                 FRAGCOLOR = vec4(result, original.a);
                             }
                         "
+            onStatusChanged: root.handleShaderStatus("dof", dofFragmentShader, dofEffect)
         }
 
         Shader {
             id: dofFallbackShader
             stage: Shader.Fragment
-            shader: "
+            code: "
                             #version 440
 
 
@@ -552,6 +566,7 @@ Item {
                                 FRAGCOLOR = texture(qt_Texture0, INPUT_UV);
                             }
                         "
+            onStatusChanged: root.handleShaderStatus("dof-fallback", dofFallbackShader, dofEffect)
         }
 
         passes: [
@@ -598,10 +613,10 @@ Item {
             stage: Shader.Fragment
             property real uStrength: motionBlurEffect.strength
             property int uSamples: motionBlurEffect.samples
-            shader: "
+            code: "
                             #version 440
 
-                            
+
                             #ifndef INPUT_UV
                             #define INPUT_UV v_uv
                             #endif
@@ -639,12 +654,13 @@ Item {
                                 FRAGCOLOR = vec4(color, original.a);
                             }
                         "
+            onStatusChanged: root.handleShaderStatus("motion-blur", motionBlurFragmentShader, motionBlurEffect)
         }
 
         Shader {
             id: motionBlurFallbackShader
             stage: Shader.Fragment
-            shader: "
+            code: "
                             #version 440
 
 
@@ -663,6 +679,7 @@ Item {
                                 FRAGCOLOR = texture(qt_Texture0, INPUT_UV);
                             }
                         "
+            onStatusChanged: root.handleShaderStatus("motion-blur-fallback", motionBlurFallbackShader, motionBlurEffect)
         }
 
         passes: [
