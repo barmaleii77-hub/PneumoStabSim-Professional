@@ -2306,7 +2306,37 @@ function applyLightingUpdates(params) {
      var numericBlur = Number(skyboxBlurVal);
      if (isFinite(numericBlur)) setIfExists(sceneEnvCtl, 'skyboxBlurValue', numericBlur);
  }
- if (params.iblPrimary || params.hdrSource || params.iblSource) { var src = params.iblPrimary || params.hdrSource || params.iblSource; if (typeof window !== 'undefined' && window && typeof window.normalizeHdrPath === 'function') { try { src = window.normalizeHdrPath(String(src)); } catch(e) { console.warn("HDR path normalization failed:", e); } } setIfExists(iblLoader, 'primarySource', src); }
+ var hdrSourceVal = valueForKeys(
+     params,
+     [
+         'iblSource',
+         'ibl_source',
+         'iblPrimary',
+         'ibl_primary',
+         'hdrSource',
+         'hdr_source'
+     ]
+ );
+ if (hdrSourceVal !== undefined) {
+     var resolvedSource = hdrSourceVal;
+     if (resolvedSource === null)
+         resolvedSource = '';
+     if (resolvedSource !== '') {
+         resolvedSource = String(resolvedSource);
+         if (
+             typeof window !== 'undefined'
+             && window
+             && typeof window.normalizeHdrPath === 'function'
+         ) {
+             try {
+                 resolvedSource = window.normalizeHdrPath(resolvedSource);
+             } catch (e) {
+                 console.warn('HDR path normalization failed:', e);
+             }
+         }
+     }
+     setIfExists(iblLoader, 'primarySource', resolvedSource || '');
+ }
  if (params.tonemapEnabled !== undefined) {
      var tonemapEnabledFlag = !!params.tonemapEnabled;
      setIfExists(sceneEnvCtl, 'tonemapActive', tonemapEnabledFlag);
