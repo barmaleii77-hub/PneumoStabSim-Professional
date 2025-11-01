@@ -36,7 +36,6 @@ else:
             for subscriber in list(self._subscribers):
                 subscriber()
 
-
     class HeadlessTimer:
         """Replacement for :class:`PySide6.QtCore.QTimer`."""
 
@@ -51,12 +50,12 @@ else:
 
             self.timeout.emit()
 
-
-    def headless_install_message_handler(handler: Callable[..., Any]) -> Callable[..., Any]:
+    def headless_install_message_handler(
+        handler: Callable[..., Any],
+    ) -> Callable[..., Any]:
         """Return the handler unchanged to mirror :func:`qInstallMessageHandler`."""
 
         return handler
-
 
     @dataclass(slots=True)
     class HeadlessQtNamespace:
@@ -67,7 +66,6 @@ else:
 
         class HighDpiScaleFactorRoundingPolicy:  # pragma: no cover - attribute container
             PassThrough = 0
-
 
     class HeadlessApplication:
         """Stand-in for :class:`PySide6.QtWidgets.QApplication`."""
@@ -81,10 +79,14 @@ else:
             self._org: str | None = None
 
         # ------------------------------------------------------------- setters
-        def setApplicationName(self, name: str) -> None:  # pragma: no cover - simple setter
+        def setApplicationName(
+            self, name: str
+        ) -> None:  # pragma: no cover - simple setter
             self._name = name
 
-        def setApplicationVersion(self, version: str) -> None:  # pragma: no cover - setter
+        def setApplicationVersion(
+            self, version: str
+        ) -> None:  # pragma: no cover - setter
             self._version = version
 
         def setOrganizationName(self, organization: str) -> None:  # pragma: no cover
@@ -99,7 +101,6 @@ else:
 
         def quit(self) -> None:  # pragma: no cover - compatibility method
             """Compatibility placeholder for the real Qt API."""
-
 
     sentinel_module = ModuleType(_SENTINEL_MODULE)
     sentinel_module.HeadlessApplication = HeadlessApplication

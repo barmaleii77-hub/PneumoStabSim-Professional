@@ -219,6 +219,13 @@ def task_test() -> None:
 
     targets = _ensure_targets_exist(targets)
 
+    # Prevent externally installed pytest plugins from interfering with the
+    # suite.  Some environments ship plugins that eagerly print debugging
+    # information during interpreter start-up which, in turn, breaks our CI
+    # expectations (pytest aborts before running any tests).  Unless a caller
+    # has explicitly opted in to plugin autoloading, keep it disabled.
+    os.environ.setdefault("PYTEST_DISABLE_PLUGIN_AUTOLOAD", "1")
+
     command = [sys.executable, "-m", "pytest", *env_flags, *targets]
     _run_command(command)
 
