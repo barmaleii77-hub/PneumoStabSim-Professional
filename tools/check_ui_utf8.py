@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import sys
+from collections.abc import Iterator
 from pathlib import Path
 
 
@@ -11,8 +12,7 @@ TARGET_DIRECTORIES = ("src", "assets", "docs")
 TARGET_EXTENSIONS = {".py", ".qml", ".md"}
 
 
-def _iter_target_files() -> list[Path]:
-    files: list[Path] = []
+def _iter_target_files() -> Iterator[Path]:
     for directory in TARGET_DIRECTORIES:
         dir_path = ROOT_DIR / directory
         if not dir_path.exists():
@@ -20,9 +20,7 @@ def _iter_target_files() -> list[Path]:
 
         for path in dir_path.rglob("*"):
             if path.is_file() and path.suffix.lower() in TARGET_EXTENSIONS:
-                files.append(path)
-
-    return files
+                yield path
 
 
 def _check_file(path: Path) -> bool:
