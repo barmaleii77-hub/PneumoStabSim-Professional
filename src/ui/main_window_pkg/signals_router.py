@@ -113,11 +113,10 @@ class SignalsRouter:
                 params[candidate] = normalised_value
 
         params["ibl_source"] = normalised_value
-        params["iblSource"] = normalised_value
+        params.pop("iblSource", None)
 
         updated_payload = dict(env_payload)
         updated_payload["ibl_source"] = normalised_value
-        updated_payload["iblSource"] = normalised_value
         return updated_payload
 
     @staticmethod

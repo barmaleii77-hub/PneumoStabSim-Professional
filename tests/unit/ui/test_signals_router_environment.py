@@ -77,12 +77,12 @@ def test_handle_environment_changed_normalises_hdr_path() -> None:
     call_name, payload = _StubBridge.calls[0]
     assert call_name == "applyEnvironmentUpdates"
     assert payload["ibl_source"] == "assets/hdr/studio.hdr"
-    assert payload["iblSource"] == "assets/hdr/studio.hdr"
+    assert "iblSource" not in payload
 
     assert params["ibl_source"] == "assets/hdr/studio.hdr"
-    # Original key preserved with normalised value for backwards compatibility
-    assert params["iblSource"] == "assets/hdr/studio.hdr"
+    assert "iblSource" not in params
 
     assert window.saved_updates
     _, saved_payload = window.saved_updates[0]
     assert saved_payload["ibl_source"] == "assets/hdr/studio.hdr"
+    assert "iblSource" not in saved_payload
