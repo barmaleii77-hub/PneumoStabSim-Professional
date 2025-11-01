@@ -109,13 +109,16 @@ class SignalsRouter:
             normalised_value = ""
 
         for candidate in SignalsRouter._HDR_SOURCE_KEYS:
-            if candidate in params:
-                params[candidate] = normalised_value
+            if candidate != "ibl_source":
+                params.pop(candidate, None)
 
         params["ibl_source"] = normalised_value
-        params.pop("iblSource", None)
 
-        updated_payload = dict(env_payload)
+        updated_payload = {
+            key: value
+            for key, value in env_payload.items()
+            if key not in SignalsRouter._HDR_SOURCE_KEYS or key == "ibl_source"
+        }
         updated_payload["ibl_source"] = normalised_value
         return updated_payload
 

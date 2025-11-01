@@ -1,6 +1,5 @@
 import QtQuick
 import QtQuick3D 6.10
-import QtQuick3D.Effects 6.10
 
 /*
  * Улучшенный эффект тумана с расширенными настройками
@@ -38,13 +37,13 @@ Effect {
     property bool depthTextureAvailable: false
 
     function enableDepthTextureSupport() {
-        if (typeof fogEffect.setProperty === "function") {
+        const propertyName = "requiresDepthTexture"
+        if (propertyName in fogEffect) {
             try {
-                if (fogEffect.setProperty("requiresDepthTexture", true)) {
-                    depthTextureAvailable = true
-                    console.log("🌫️ FogEffect: depth texture support enabled")
-                    return
-                }
+                fogEffect[propertyName] = true
+                depthTextureAvailable = true
+                console.log("🌫️ FogEffect: depth texture support enabled")
+                return
             } catch (error) {
                 console.debug("FogEffect requiresDepthTexture assignment failed", error)
             }
@@ -64,7 +63,7 @@ Effect {
     Shader {
         id: fogVertexShader
         stage: Shader.Vertex
-        readonly property string shaderSource: glsl([
+        readonly property string shaderSource: fogEffect.glsl([
             "#version 440",
             "",
             "#ifndef INPUT_POSITION",
@@ -91,18 +90,7 @@ Effect {
             "    POSITION = ubuf.qt_ModelViewProjectionMatrix * localPosition;",
             "}"
         ])
-        shader: shaderDataUrl(shaderSource)
-    }
-
-    Connections {
-        target: fogVertexShader
-        ignoreUnknownSignals: true
-        function onStatusChanged() {
-            if (typeof Shader === "undefined" || Shader.Error === undefined)
-                return
-            if (fogVertexShader.status === Shader.Error)
-                console.warn("⚠️ FogEffect vertex shader compilation failed", fogVertexShader.log)
-        }
+        shader: fogEffect.shaderDataUrl(shaderSource)
     }
 
     Shader {
@@ -126,7 +114,7 @@ Effect {
         property real userCameraFar: fogEffect.cameraClipFar
         property real userCameraFov: fogEffect.cameraFieldOfView
         property real userCameraAspect: fogEffect.cameraAspectRatio
-        readonly property string shaderSource: glsl([
+        readonly property string shaderSource: fogEffect.glsl([
             "#version 440",
             "",
             "layout(location = 0) in vec2 v_uv;",
@@ -258,18 +246,7 @@ Effect {
             "    FRAGCOLOR = vec4(foggedColor, originalColor.a) * EFFECT_OPACITY;",
             "}"
         ])
-        shader: shaderDataUrl(shaderSource)
-    }
-
-    Connections {
-        target: fogFragmentShader
-        ignoreUnknownSignals: true
-        function onStatusChanged() {
-            if (typeof Shader === "undefined" || Shader.Error === undefined)
-                return
-            if (fogFragmentShader.status === Shader.Error)
-                console.warn("⚠️ FogEffect fragment shader compilation failed", fogFragmentShader.log)
-        }
+        shader: fogEffect.shaderDataUrl(shaderSource)
     }
 
     Shader {
@@ -277,7 +254,7 @@ Effect {
         stage: Shader.Fragment
         property real userFogDensity: fogEffect.fogDensity
         property color userFogColor: fogEffect.fogColor
-        readonly property string shaderSource: glsl([
+        readonly property string shaderSource: fogEffect.glsl([
             "#version 440",
             "",
             "#ifndef INPUT_UV",
@@ -307,23 +284,12 @@ Effect {
             "    FRAGCOLOR = vec4(foggedColor, originalColor.a);",
             "}"
         ])
-        shader: shaderDataUrl(shaderSource)
-    }
-
-    Connections {
-        target: fogFallbackShader
-        ignoreUnknownSignals: true
-        function onStatusChanged() {
-            if (typeof Shader === "undefined" || Shader.Error === undefined)
-                return
-            if (fogFallbackShader.status === Shader.Error)
-                console.warn("⚠️ FogEffect fallback shader compilation failed", fogFallbackShader.log)
-        }
+        shader: fogEffect.shaderDataUrl(shaderSource)
     }
 
     passes: [
         Pass {
-            shaders: depthTextureAvailable
+            shaders: fogEffect.depthTextureAvailable
                     ? [fogVertexShader, fogFragmentShader]
                     : [fogVertexShader, fogFallbackShader]
         }
