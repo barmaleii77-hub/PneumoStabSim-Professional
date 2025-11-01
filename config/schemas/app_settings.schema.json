@@ -433,6 +433,21 @@
                     },
                     "angle_z": {
                       "type": "number"
+                    },
+                    "position_x": {
+                      "type": "number"
+                    },
+                    "position_y": {
+                      "type": "number"
+                    },
+                    "position_z": {
+                      "type": "number"
+                    },
+                    "cast_shadow": {
+                      "type": "boolean"
+                    },
+                    "bind_to_camera": {
+                      "type": "boolean"
                     }
                   },
                   "required": [
@@ -464,6 +479,18 @@
                     },
                     "position_x": {
                       "type": "number"
+                    },
+                    "position_y": {
+                      "type": "number"
+                    },
+                    "position_z": {
+                      "type": "number"
+                    },
+                    "cast_shadow": {
+                      "type": "boolean"
+                    },
+                    "bind_to_camera": {
+                      "type": "boolean"
                     }
                   },
                   "required": [
@@ -492,6 +519,21 @@
                     },
                     "angle_z": {
                       "type": "number"
+                    },
+                    "position_x": {
+                      "type": "number"
+                    },
+                    "position_y": {
+                      "type": "number"
+                    },
+                    "position_z": {
+                      "type": "number"
+                    },
+                    "cast_shadow": {
+                      "type": "boolean"
+                    },
+                    "bind_to_camera": {
+                      "type": "boolean"
                     }
                   },
                   "required": [
@@ -518,6 +560,12 @@
                     "range": {
                       "type": "number"
                     },
+                    "position_x": {
+                      "type": "number"
+                    },
+                    "position_z": {
+                      "type": "number"
+                    },
                     "constant_fade": {
                       "type": "number"
                     },
@@ -526,6 +574,12 @@
                     },
                     "quadratic_fade": {
                       "type": "number"
+                    },
+                    "cast_shadow": {
+                      "type": "boolean"
+                    },
+                    "bind_to_camera": {
+                      "type": "boolean"
                     }
                   },
                   "required": [
@@ -574,6 +628,12 @@
                     },
                     "angle_z": {
                       "type": "number"
+                    },
+                    "cast_shadow": {
+                      "type": "boolean"
+                    },
+                    "bind_to_camera": {
+                      "type": "boolean"
                     }
                   },
                   "required": [
