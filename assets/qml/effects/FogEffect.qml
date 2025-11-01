@@ -81,7 +81,7 @@ Effect {
                 float qt_Opacity;
             } ubuf;
 
-            void qt_customMain() {
+            void MAIN() {
                 vec4 localPosition = vec4(INPUT_POSITION, 1.0);
                 v_uv = INPUT_UV;
                 POSITION = ubuf.qt_ModelViewProjectionMatrix * localPosition;
@@ -218,7 +218,7 @@ Effect {
                 return 0.8 + 0.4 * noise;
             }
 
-            void qt_customMain() {
+            void MAIN() {
                 vec4 originalColor = INPUT;
                 float depth = texture(qt_DepthTexture, INPUT_UV).r;
 
@@ -296,7 +296,7 @@ Effect {
             uniform float userFogDensity;
             uniform vec4 userFogColor;
 
-            void qt_customMain() {
+            void MAIN() {
                 vec4 originalColor = INPUT;
                 float fogFactor = clamp(userFogDensity, 0.0, 1.0);
                 vec3 foggedColor = mix(originalColor.rgb, userFogColor.rgb, fogFactor);
