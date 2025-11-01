@@ -16,8 +16,11 @@ the original ImportError with full context.
 
 from __future__ import annotations
 
+import sys
 from importlib import import_module
 from typing import TYPE_CHECKING, Any
+
+from src.ui._lazy_module_utils import should_suppress_wrapped
 
 __all__ = ["GeometryPanel", "PneumoPanel", "ModesPanel", "RoadPanel", "GraphicsPanel"]
 
@@ -41,7 +44,9 @@ def __getattr__(name: str) -> Any:
     """Lazily import panel classes on first access."""
 
     if name == "__wrapped__":
-        raise AttributeError(name)
+        if should_suppress_wrapped():
+            raise AttributeError(name)
+        return sys.modules[__name__]
 
     try:
         module_name, attribute = _EXPORTS[name]
