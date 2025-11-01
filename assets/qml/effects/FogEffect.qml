@@ -64,7 +64,6 @@ Effect {
     Shader {
         id: fogVertexShader
         stage: Shader.Vertex
-        language: Shader.GLSL
         readonly property string shaderSource: glsl([
             "#version 440",
             "",
@@ -109,7 +108,6 @@ Effect {
     Shader {
         id: fogFragmentShader
         stage: Shader.Fragment
-        language: Shader.GLSL
         property real userFogDensity: fogEffect.fogDensity
         property real userFogStart: fogEffect.fogStartDistance
         property real userFogEnd: fogEffect.fogEndDistance
@@ -277,7 +275,6 @@ Effect {
     Shader {
         id: fogFallbackShader
         stage: Shader.Fragment
-        language: Shader.GLSL
         property real userFogDensity: fogEffect.fogDensity
         property color userFogColor: fogEffect.fogColor
         readonly property string shaderSource: glsl([
