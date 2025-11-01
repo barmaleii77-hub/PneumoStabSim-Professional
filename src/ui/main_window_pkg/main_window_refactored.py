@@ -36,6 +36,7 @@ from .signals_router import SignalsRouter
 from .state_sync import StateSync
 from .menu_actions import MenuActions
 from .profile_service import ProfileService
+from ._hdr_paths import normalise_hdr_path
 from src.common.settings_manager import get_settings_manager
 from src.common.signal_trace import get_signal_trace_service
 from src.core.settings_manager import ProfileSettingsManager
@@ -519,45 +520,24 @@ class MainWindow(QMainWindow):
             self.logger.debug("normalizeHdrPath: invalid URL candidate", exc_info=True)
 
         try:
-            path_input = Path(raw_value)
-            candidates: list[Path] = []
+            project_root = Path(__file__).resolve().parents[3]
+        except Exception:
+            project_root = Path.cwd()
 
-            if path_input.is_absolute():
-                candidates.append(path_input)
-            else:
-                base_dirs: list[Path] = []
-                if self._qml_base_dir is not None:
-                    base_dirs.append(self._qml_base_dir)
-
-                project_root = Path(__file__).resolve().parents[3]
-                base_dirs.extend(
-                    [
-                        project_root / "assets" / "qml",
-                        project_root / "assets",
-                        project_root,
-                    ]
-                )
-
-                for base in base_dirs:
-                    candidates.append((base / path_input).resolve())
-
-            if not candidates:
-                candidates.append(path_input)
-
-            for candidate in candidates:
-                if candidate.exists():
-                    return QUrl.fromLocalFile(str(candidate)).toString()
-
-            # Fall back to the first candidate even if it does not exist
-            return QUrl.fromLocalFile(str(candidates[0])).toString()
+        try:
+            return normalise_hdr_path(
+                raw_value,
+                qml_base_dir=self._qml_base_dir,
+                project_root=project_root,
+                logger=self.logger,
+            )
         except Exception:
             self.logger.debug(
                 "normalizeHdrPath: failed to normalise path %s",
                 raw_value,
                 exc_info=True,
             )
-
-        return raw_value
+            return raw_value
 
     @Slot(dict)
     def _on_qml_batch_ack(self, summary: Dict[str, Any]) -> None:
