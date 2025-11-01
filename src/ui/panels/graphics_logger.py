@@ -8,7 +8,7 @@ import json
 import logging
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, Union
 from dataclasses import dataclass, asdict
 from collections import deque
 
@@ -346,7 +346,7 @@ class GraphicsLogger:
     # Помощники для массовой отметки применённых изменений
     # ------------------------------------------------------------------
     def mark_category_changes_applied(
-        self, category: str, since_timestamp: Optional[str] = None
+        self, category: str, since_timestamp: Optional[Union[str, int, float]] = None
     ) -> int:
         """Отметить все события типа parameter_change в указанной категории как применённые (успешные).
 
@@ -358,6 +358,8 @@ class GraphicsLogger:
             Количество помеченных событий
         """
         marked = 0
+        threshold = self._coerce_timestamp(since_timestamp)
+
         # Идём по копии буфера, чтобы безопасно логировать обновления
         for e in list(self.events_buffer):
             try:
@@ -365,8 +367,15 @@ class GraphicsLogger:
                     continue
                 if e.applied_to_qml:
                     continue
-                if since_timestamp and e.timestamp < since_timestamp:
+
+                event_timestamp = self._coerce_timestamp(e.timestamp)
+                if (
+                    threshold is not None
+                    and event_timestamp is not None
+                    and event_timestamp < threshold
+                ):
                     continue
+
                 # Пишем parameter_update и помечаем как success
                 self.log_qml_update(e, qml_state={"applied": True}, success=True)
                 marked += 1
@@ -374,6 +383,42 @@ class GraphicsLogger:
                 # Не прерываем массовую отметку единичной ошибкой
                 continue
         return marked
+
+    def _coerce_timestamp(
+        self, value: Optional[Union[str, int, float]]
+    ) -> Optional[float]:
+        """Преобразовать различные форматы временных отметок к секундам."""
+
+        if value is None:
+            return None
+
+        # Числовые значения (миллисекунды или секунды)
+        if isinstance(value, (int, float)):
+            numeric = float(value)
+            # Date.now() возвращает миллисекунды — нормализуем к секундам
+            if numeric > 1e11:  # ~ 1973 год в миллисекундах
+                return numeric / 1000.0
+            return numeric
+
+        # Пытаемся разобрать ISO-строку
+        if isinstance(value, str):
+            stripped = value.strip()
+            if not stripped:
+                return None
+
+            try:
+                return datetime.fromisoformat(stripped).timestamp()
+            except ValueError:
+                # Возможно, строка — число в текстовом виде
+                try:
+                    numeric = float(stripped)
+                except ValueError:
+                    return None
+                if numeric > 1e11:
+                    return numeric / 1000.0
+                return numeric
+
+        return None
 
 
 # Глобальный экземпляр логгера
