@@ -1,8 +1,8 @@
 {
   "metadata": {
-    "version": "4.9.6",
+    "version": "4.9.7",
     "schema_version": "0.2.1",
-    "last_modified": "2025-10-30T08:10:26Z",
+    "last_modified": "2025-11-01T12:00:00Z",
     "units_version": "si_v2",
     "migrations": [
       "0001_add_diagnostics_defaults"
@@ -10,7 +10,7 @@
     "last_migration": "0001_add_diagnostics_defaults",
     "migrated_from": "src/ui/panels/graphics/defaults.py",
     "migration_date": "2025-10-18",
-    "total_parameters": 293,
+    "total_parameters": 313,
     "description": "Unified settings file - single source of truth",
     "operational_imperatives": [
       "Запрещены дефолты и магические константы в коде — все значения настраиваются через config/app_settings.json.",
@@ -96,7 +96,12 @@
           "color": "#ffffff",
           "angle_x": 25.0,
           "angle_y": 23.5,
-          "angle_z": 0.0
+          "angle_z": 0.0,
+          "position_x": 0.0,
+          "position_y": 0.0,
+          "position_z": 0.0,
+          "cast_shadow": true,
+          "bind_to_camera": false
         },
         "fill": {
           "brightness": 1.0,
@@ -104,23 +109,36 @@
           "angle_x": 0.0,
           "angle_y": -45.0,
           "angle_z": 0.0,
-          "position_x": 0.0
+          "position_x": 0.0,
+          "position_y": 0.0,
+          "position_z": 0.0,
+          "cast_shadow": false,
+          "bind_to_camera": false
         },
         "rim": {
           "brightness": 1.1,
           "color": "#ffe1bd",
           "angle_x": 30.0,
           "angle_y": -135.0,
-          "angle_z": 0.0
+          "angle_z": 0.0,
+          "position_x": 0.0,
+          "position_y": 0.0,
+          "position_z": 0.0,
+          "cast_shadow": false,
+          "bind_to_camera": false
         },
         "point": {
           "brightness": 50.0,
           "color": "#fff7e0",
+          "position_x": 0.0,
           "position_y": 2.6,
+          "position_z": 1.5,
           "range": 3.6,
           "constant_fade": 1.0,
           "linear_fade": 0.01,
-          "quadratic_fade": 1.0
+          "quadratic_fade": 1.0,
+          "cast_shadow": false,
+          "bind_to_camera": false
         },
         "spot": {
           "brightness": 4900.0,
@@ -133,7 +151,9 @@
           "angle_y": 0.0,
           "position_x": 0.0,
           "position_z": 2.28,
-          "angle_z": 0.0
+          "angle_z": 0.0,
+          "cast_shadow": true,
+          "bind_to_camera": false
         }
       },
       "environment": {
@@ -1131,7 +1151,12 @@
           "color": "#ffffff",
           "angle_x": 25.0,
           "angle_y": 23.5,
-          "angle_z": 0.0
+          "angle_z": 0.0,
+          "position_x": 0.0,
+          "position_y": 0.0,
+          "position_z": 0.0,
+          "cast_shadow": true,
+          "bind_to_camera": false
         },
         "fill": {
           "brightness": 1.0,
@@ -1139,23 +1164,36 @@
           "angle_x": 0.0,
           "angle_y": -45.0,
           "angle_z": 0.0,
-          "position_x": 0.0
+          "position_x": 0.0,
+          "position_y": 0.0,
+          "position_z": 0.0,
+          "cast_shadow": false,
+          "bind_to_camera": false
         },
         "rim": {
           "brightness": 1.1,
           "color": "#ffe1bd",
           "angle_x": 30.0,
           "angle_y": -135.0,
-          "angle_z": 0.0
+          "angle_z": 0.0,
+          "position_x": 0.0,
+          "position_y": 0.0,
+          "position_z": 0.0,
+          "cast_shadow": false,
+          "bind_to_camera": false
         },
         "point": {
           "brightness": 50.0,
           "color": "#fff7e0",
+          "position_x": 0.0,
           "position_y": 2.6,
+          "position_z": 1.5,
           "range": 3.6,
           "constant_fade": 1.0,
           "linear_fade": 0.01,
-          "quadratic_fade": 1.0
+          "quadratic_fade": 1.0,
+          "cast_shadow": false,
+          "bind_to_camera": false
         },
         "spot": {
           "brightness": 4900.0,
@@ -1168,7 +1206,9 @@
           "angle_y": 0.0,
           "position_x": 0.0,
           "position_z": 2.28,
-          "angle_z": 0.0
+          "angle_z": 0.0,
+          "cast_shadow": true,
+          "bind_to_camera": false
         }
       },
       "environment": {
