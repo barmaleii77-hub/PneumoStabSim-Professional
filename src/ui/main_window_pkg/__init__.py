@@ -15,10 +15,11 @@ Qt bindings.
 
 from __future__ import annotations
 
-import inspect
 import sys
 from importlib import import_module, util
 from typing import Any
+
+from src.ui._lazy_module_utils import should_suppress_wrapped
 
 __all__ = [
     "MainWindow",
@@ -44,33 +45,6 @@ _MODULE_EXPORTS = {
 _MAIN_WINDOW_CLASS: type[Any] | None = None
 _MAIN_WINDOW_ERROR: ImportError | None = None
 _USING_REFACTORED = False
-
-
-def _called_from_inspect_unwrap() -> bool:
-    """Return ``True`` when :func:`inspect.unwrap` appears in the call stack."""
-
-    frame = inspect.currentframe()
-    if frame is None:
-        return False
-
-    try:
-        caller = frame.f_back
-        if caller is None:
-            return False
-        caller = caller.f_back
-        if caller is None:
-            return False
-
-        module_name = caller.f_globals.get("__name__")
-        function_name = caller.f_code.co_name
-
-        if module_name == "inspect" and function_name in {"unwrap", "_unwrap_partial"}:
-            return True
-    finally:
-        # Break reference cycles created by ``inspect.currentframe``
-        del frame
-
-    return False
 
 
 def _qt_available() -> bool:
@@ -146,7 +120,9 @@ def __getattr__(name: str) -> Any:
     """Provide lazy attribute access for window and helper modules."""
 
     if name == "__wrapped__":
-        raise AttributeError(name)
+        if should_suppress_wrapped():
+            raise AttributeError(name)
+        return sys.modules[__name__]
 
     if name == "MainWindow":
         return _load_main_window()
