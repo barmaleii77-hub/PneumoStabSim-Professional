@@ -674,7 +674,6 @@ class SignalsRouter:
         if not isinstance(params, dict):
             return
 
-    
         normalized = SignalsRouter._normalize_quality_payload(params)
 
         if not QMLBridge.invoke_qml_function(window, "applyQualityUpdates", normalized):
@@ -691,7 +690,6 @@ class SignalsRouter:
         if not isinstance(params, dict):
             return
 
-    
         sanitized = SignalsRouter._sanitize_camera_payload(params)
         if not sanitized:
             return
@@ -725,7 +723,6 @@ class SignalsRouter:
         if not isinstance(params, dict):
             return
 
-    
         if not QMLBridge.invoke_qml_function(window, "applyEffectsUpdates", params):
             QMLBridge.queue_update(window, "effects", params)
             QMLBridge._log_graphics_change(window, "effects", params, applied=False)
@@ -745,7 +742,6 @@ class SignalsRouter:
         if not isinstance(full_state, dict):
             return
 
-    
         # Queue all categories as batch
         QMLBridge.queue_update(window, "environment", full_state.get("environment", {}))
         QMLBridge.queue_update(window, "lighting", full_state.get("lighting", {}))
@@ -772,7 +768,6 @@ class SignalsRouter:
         if not isinstance(params, dict):
             return
 
-    
         qml_payload: Dict[str, Any] = {}
         settings_payload: Dict[str, Any] = {}
 
@@ -981,7 +976,6 @@ class SignalsRouter:
             window.is_simulation_running = False
             animation_toggle = False
         elif cmd == "reset":
-        
             QMLBridge.invoke_qml_function(window, "fullResetView")
         else:
             SignalsRouter.logger.warning("Unknown simulation command: %s", command)
@@ -1006,7 +1000,6 @@ class SignalsRouter:
             SignalsRouter.logger.error("Simulation control emit failed: %s", exc)
 
         if animation_toggle is not None:
-        
             payload = {"isRunning": animation_toggle}
             applied = QMLBridge.invoke_qml_function(
                 window, "applyAnimationUpdates", payload
