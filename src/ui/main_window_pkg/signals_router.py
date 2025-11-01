@@ -112,6 +112,9 @@ class SignalsRouter:
             if candidate in params:
                 params[candidate] = normalised_value
 
+        params["ibl_source"] = normalised_value
+        params["iblSource"] = normalised_value
+
         updated_payload = dict(env_payload)
         updated_payload["ibl_source"] = normalised_value
         updated_payload["iblSource"] = normalised_value
@@ -581,8 +584,6 @@ class SignalsRouter:
         if not isinstance(params, dict):
             return
 
-        from .qml_bridge import QMLBridge
-
         if not QMLBridge.invoke_qml_function(window, "applyLightingUpdates", params):
             QMLBridge.queue_update(window, "lighting", params)
             QMLBridge._log_graphics_change(window, "lighting", params, applied=False)
@@ -597,8 +598,6 @@ class SignalsRouter:
         if not isinstance(params, dict):
             return
 
-        from .qml_bridge import QMLBridge
-
         if not QMLBridge.invoke_qml_function(window, "applyMaterialUpdates", params):
             QMLBridge.queue_update(window, "materials", params)
             QMLBridge._log_graphics_change(window, "materials", params, applied=False)
@@ -612,8 +611,6 @@ class SignalsRouter:
         """Handle environment changes from GraphicsPanel"""
         if not isinstance(params, dict):
             return
-
-        from .qml_bridge import QMLBridge
 
         reflection_keys = {
             "reflection_enabled",
@@ -677,8 +674,7 @@ class SignalsRouter:
         if not isinstance(params, dict):
             return
 
-        from .qml_bridge import QMLBridge
-
+    
         normalized = SignalsRouter._normalize_quality_payload(params)
 
         if not QMLBridge.invoke_qml_function(window, "applyQualityUpdates", normalized):
@@ -695,8 +691,7 @@ class SignalsRouter:
         if not isinstance(params, dict):
             return
 
-        from .qml_bridge import QMLBridge
-
+    
         sanitized = SignalsRouter._sanitize_camera_payload(params)
         if not sanitized:
             return
@@ -730,8 +725,7 @@ class SignalsRouter:
         if not isinstance(params, dict):
             return
 
-        from .qml_bridge import QMLBridge
-
+    
         if not QMLBridge.invoke_qml_function(window, "applyEffectsUpdates", params):
             QMLBridge.queue_update(window, "effects", params)
             QMLBridge._log_graphics_change(window, "effects", params, applied=False)
@@ -751,8 +745,7 @@ class SignalsRouter:
         if not isinstance(full_state, dict):
             return
 
-        from .qml_bridge import QMLBridge
-
+    
         # Queue all categories as batch
         QMLBridge.queue_update(window, "environment", full_state.get("environment", {}))
         QMLBridge.queue_update(window, "lighting", full_state.get("lighting", {}))
@@ -779,8 +772,7 @@ class SignalsRouter:
         if not isinstance(params, dict):
             return
 
-        from .qml_bridge import QMLBridge
-
+    
         qml_payload: Dict[str, Any] = {}
         settings_payload: Dict[str, Any] = {}
 
@@ -989,8 +981,7 @@ class SignalsRouter:
             window.is_simulation_running = False
             animation_toggle = False
         elif cmd == "reset":
-            from .qml_bridge import QMLBridge
-
+        
             QMLBridge.invoke_qml_function(window, "fullResetView")
         else:
             SignalsRouter.logger.warning("Unknown simulation command: %s", command)
@@ -1015,8 +1006,7 @@ class SignalsRouter:
             SignalsRouter.logger.error("Simulation control emit failed: %s", exc)
 
         if animation_toggle is not None:
-            from .qml_bridge import QMLBridge
-
+        
             payload = {"isRunning": animation_toggle}
             applied = QMLBridge.invoke_qml_function(
                 window, "applyAnimationUpdates", payload

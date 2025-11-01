@@ -39,9 +39,11 @@ def _missing_numpy_stub(original_error: ModuleNotFoundError) -> _SafeImportQt:
 
 
 try:  # pragma: no cover - exercised indirectly in tests
-    from .qt_imports import safe_import_qt
+    import numpy  # noqa: F401 - we only need to ensure the dependency is present
 except ModuleNotFoundError as exc:  # pragma: no cover - depends on runtime deps
     if getattr(exc, "name", None) == "numpy":
         safe_import_qt = _missing_numpy_stub(exc)
     else:
         raise
+else:  # pragma: no cover - exercised indirectly in tests
+    from .qt_imports import safe_import_qt
