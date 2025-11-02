@@ -45,6 +45,7 @@ Effect {
     property string compilationErrorLog: ""
     readonly property bool compilationFallbackActive: fallbackDueToCompilation
     property var activePassShaders: []
+    property bool _usingFallbackPassConfiguration: false
 
     onDepthTextureAvailableChanged: {
         fallbackDueToDepth = !depthTextureAvailable
@@ -424,16 +425,41 @@ Effect {
     }
 
     function setCompilationFallbackState(active, message) {
+        var normalizedMessage = active && message ? String(message) : ""
+        var previouslyActive = fallbackDueToCompilation
         fallbackDueToCompilation = !!active
-        compilationErrorLog = active && message ? String(message) : ""
+        compilationErrorLog = fallbackDueToCompilation ? normalizedMessage : ""
         updateFallbackActivation()
+        if (fallbackDueToCompilation && !previouslyActive) {
+            var logMessage = normalizedMessage.length
+                    ? normalizedMessage
+                    : qsTr("Fog shader compilation failed; fallback shader active")
+            console.warn("⚠️ FogEffect: shader compilation error detected ->", logMessage)
+        } else if (!fallbackDueToCompilation && previouslyActive) {
+            console.log("✅ FogEffect: shader compilation recovered; attempting primary shader rebuild")
+        }
     }
 
     function refreshPassConfiguration() {
         var useFallback = fallbackActive || !depthTextureAvailable
-        activePassShaders = useFallback
+        var newShaders = useFallback
                 ? [fogVertexShader, fogFallbackShader]
                 : [fogVertexShader, fogFragmentShader]
+        if (_usingFallbackPassConfiguration !== useFallback) {
+            var transitionMessage = fallbackReason && fallbackReason.length
+                    ? fallbackReason
+                    : (useFallback
+                        ? (fallbackDueToCompilation
+                            ? qsTr("Fog shader compilation failed; fallback pass engaged")
+                            : qsTr("Depth texture unavailable; using fallback shader pass"))
+                        : qsTr("Primary fog shader path restored"))
+            if (useFallback)
+                console.warn("⚠️ FogEffect: switching passes to fallback shader ->", transitionMessage)
+            else
+                console.log("✅ FogEffect: fallback shader pass released; primary pipeline active")
+            _usingFallbackPassConfiguration = useFallback
+        }
+        activePassShaders = newShaders
     }
 
     function handleShaderStatusChange(shaderItem, shaderId) {
@@ -554,6 +580,7 @@ Effect {
     onFallbackShaderCodeChanged: refreshShaderAssignments()
 
     Component.onCompleted: {
+        var depthReady = enableDepthTextureSupport()
         inlineShaderCodeSupported = shaderSupportsInlineCode(fogVertexShader)
                 && shaderSupportsInlineCode(fogFragmentShader)
                 && shaderSupportsInlineCode(fogFallbackShader)
@@ -570,7 +597,6 @@ Effect {
         } else {
             console.warn("⚠️ FogEffect: Shader.autoInsertHeader unavailable; stripping #version from shader sources")
         }
-        enableDepthTextureSupport()
         refreshShaderSources()
         refreshShaderAssignments()
         refreshPassConfiguration()
@@ -593,7 +619,7 @@ Effect {
         console.log("   Distance range:", fogStartDistance, "-", fogEndDistance)
         console.log("   Height-based:", heightBasedFog)
         console.log("   Animated:", animatedFog)
-        if (!depthTextureAvailable)
+        if (!depthReady)
             console.warn("⚠️ FogEffect: depth texture unavailable, fallback shader active")
     }
 

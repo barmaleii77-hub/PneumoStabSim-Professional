@@ -269,6 +269,31 @@ ExtendedSceneEnvironment {
         root.applyEffectsPayload(payload)
     }
 
+    function _logFogEvent(level, message) {
+        var normalizedLevel = String(level || "info").toLowerCase()
+        var normalizedMessage = ""
+        if (message !== undefined && message !== null)
+            normalizedMessage = String(message)
+        if (!normalizedMessage.length)
+            normalizedMessage = qsTr("Fog effect fallback active")
+
+        if (normalizedLevel === "error") {
+            console.error("❌ SceneEnvironmentController:", normalizedMessage)
+        } else if (normalizedLevel === "warn" || normalizedLevel === "warning") {
+            console.warn("⚠️ SceneEnvironmentController:", normalizedMessage)
+        } else {
+            console.log("ℹ️ SceneEnvironmentController:", normalizedMessage)
+        }
+
+        if (root.sceneBridge && typeof root.sceneBridge.logGraphicsEvent === "function") {
+            try {
+                root.sceneBridge.logGraphicsEvent("fog", normalizedLevel, normalizedMessage)
+            } catch (error) {
+                console.debug("SceneEnvironmentController: failed to forward fog log", error)
+            }
+        }
+    }
+
     onSceneBridgeChanged: root._applySceneBridgeState()
 
     Connections {
@@ -881,23 +906,20 @@ return
         if (active) {
             if (_fogLastFallbackReason !== message) {
                 _fogLastFallbackReason = message
-                if (compilationRelated)
-                    console.error("❌ SceneEnvironmentController:", message)
-                else
-                    console.warn("⚠️ SceneEnvironmentController:", message)
+                _logFogEvent(compilationRelated ? "error" : "warn", message)
             }
             if (compilationRelated && fogEnabled) {
                 fogEnabled = false
                 _fogAutoDisabled = true
-                console.warn("⚠️ SceneEnvironmentController: fog effect disabled due to shader compilation failure")
+                _logFogEvent("warn", qsTr("⚠️ Fog effect disabled due to shader compilation failure"))
             }
         } else {
             if (_fogLastFallbackReason.length) {
-                console.log("✅ SceneEnvironmentController: fog fallback cleared")
+                _logFogEvent("info", qsTr("✅ Fog fallback cleared"))
                 _fogLastFallbackReason = ""
             }
             if (_fogAutoDisabled) {
-                console.log("ℹ️ SceneEnvironmentController: fog effect was disabled after a shader failure; re-enable it manually if needed")
+                _logFogEvent("info", qsTr("ℹ️ Fog effect was disabled after a shader failure; re-enable it manually if needed"))
                 _fogAutoDisabled = false
             }
         }
