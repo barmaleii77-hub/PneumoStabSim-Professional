@@ -10,7 +10,7 @@
 - Session files (`logs/graphics/session_*.jsonl`) consistently report **31–43 events** per run with a sync rate of roughly **72–74 %**, leaving **8–12 events** marked as `failed` or `pending`.
 - The failed events concentrate in the **`environment.environment_batch`** and **`threeD.threeD_batch`** categories, with only occasional hits on `lighting`/`quality`. A single `pending` entry usually appears for `unknown.unknown`, representing an early event that never receives `applied_to_qml` before auto-timeout (~5 s).
 - **Payload anomalies**:
-  - Batched payloads intentionally carry both `ibl_source` and the legacy `iblSource` so that newer Python code and legacy QML handlers remain interoperable. The values still need to be normalised to avoid drift while we clean up duplicate dispatches.
+  - Batched payloads intentionally carry both `ibl_source` and the legacy `iblSource` so that newer Python code and legacy QML handlers remain interoperable. This duplication is **intentional for backward compatibility**; downstream tooling should treat the pair as mirrors while we complete the migration.
   - Duplicate `environment_batch`/`threeD_batch` payloads are emitted within the same second, signalling redundant dispatch or race conditions in debouncing logic.
 - Consequence: High-level handlers still print `✅ QML updated`, but the analytics pipeline marks individual parameter updates as `failed` because the underlying QML work item never succeeds.
 
@@ -19,7 +19,7 @@
 - HDR source initialization and swaps complete normally; no correlation with the graphics sync failures.
 
 ## System Runtime Log (`logs/run.log`)
-- Dozens of repeating shader compilation errors per session (`"ERROR: :47: '' : compilation terminated"`, followed by `"2 compilation errors. No code generated."`). Totals range between **43 and 91 errors** for the monitored runs. The leading line number refers to the generated GLSL; enable `QT_DEBUG_SHADERS=1` to capture the expanded shader source for correlation.
+- Dozens of repeating shader compilation errors per session (`"ERROR: :47: '' : compilation terminated"`, followed by `"2 compilation errors. No code generated."`). Totals range between **43 and 91 errors** for the monitored runs. The leading line number points to the generated GLSL rather than QML; enable `QT_DEBUG_SHADERS=1` to dump the expanded shader source and correlate the GLSL lines.
 - Error bursts align with the timestamps of `environment`/`threeD` batch processing, meaning shader compilation aborts prevent those batches from applying.
 - Recent git history shows modifications around **`assets/qml/effects/FogEffect.qml`** and **`assets/qml/effects/PostEffects.qml`**, aligning with the failures in Qt Quick 3D’s material pipeline.
 

@@ -17,8 +17,8 @@
 
 ## Observed Log Correlations (Project Context)
 
-- Bursts of `"ERROR: :47: '' : compilation terminated"` and `"2 compilation errors. No code generated."` in `logs/run.log` coincide with `environment_batch` and `threeD_batch` telemetry marked as `failed` inside `logs/graphics/session_*.jsonl`. The `:47` prefix refers to the generated GLSL; enabling `QT_DEBUG_SHADERS=1` (followed by a rerun) dumps the expanded shader source for line-accurate inspection.
-- Batched payloads include both `ibl_source` and the legacy `iblSource` to keep downstream QML bridges compatible. The dual keys are intentional for backward compatibility and do **not** signal an unfinished migration; normalisation simply keeps the mirrored values in sync while we eliminate duplicate batch dispatches.
+- Bursts of `"ERROR: :47: '' : compilation terminated"` and `"2 compilation errors. No code generated."` in `logs/run.log` coincide with `environment_batch` and `threeD_batch` telemetry marked as `failed` inside `logs/graphics/session_*.jsonl`. The `:47` prefix maps to the generated GLSL rather than any QML line; rerun with `QT_DEBUG_SHADERS=1` to dump the expanded shader source and inspect the exact GLSL line numbers.
+- Batched payloads include both `ibl_source` and the legacy `iblSource` to keep downstream QML bridges compatible. The dual keys are deliberate for backward compatibility and do **not** signal an unfinished migration; normalisation simply keeps the mirrored values in sync while we eliminate duplicate batch dispatches.
 
 ## GitHub Copilot Prompt
 
