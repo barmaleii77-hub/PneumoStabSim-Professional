@@ -57,10 +57,6 @@ Effect {
         return lines.join("\n")
     }
 
-    function shaderSourceToUrl(source) {
-        return "data:text/plain," + encodeURIComponent(source)
-    }
-
     // Используем GLSL 330 core для совместимости с OpenGL 3.3.
     // Qt Quick 3D сам привязывает текстурные юниты, поэтому layout(binding=...)
     // намеренно не применяются.
@@ -97,9 +93,9 @@ Effect {
             "    POSITION = ubuf.qt_ModelViewProjectionMatrix * localPosition;",
             "}"
         ])
-        readonly property url shaderUrl: fogEffect.shaderSourceToUrl(shaderSource)
-        // Используем data:-URL для передачи исходного кода вместо устаревшего ShaderProgram.
-        shader: shaderUrl
+        shader: ShaderCode {
+            source: fogVertexShader.shaderSource
+        }
     }
 
     Shader {
@@ -257,9 +253,9 @@ Effect {
             "    FRAGCOLOR = vec4(foggedColor, originalColor.a) * EFFECT_OPACITY;",
             "}"
         ])
-        readonly property url shaderUrl: fogEffect.shaderSourceToUrl(shaderSource)
-        // Используем data:-URL для передачи исходного кода вместо устаревшего ShaderProgram.
-        shader: shaderUrl
+        shader: ShaderCode {
+            source: fogFragmentShader.shaderSource
+        }
     }
 
     Shader {
@@ -297,8 +293,9 @@ Effect {
             "    FRAGCOLOR = vec4(foggedColor, originalColor.a);",
             "}"
         ])
-        readonly property url shaderUrl: fogEffect.shaderSourceToUrl(shaderSource)
-        shader: shaderUrl
+        shader: ShaderCode {
+            source: fogFallbackShader.shaderSource
+        }
     }
 
     passes: [
