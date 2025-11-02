@@ -369,8 +369,10 @@ Effect {
         if (normalized.indexOf("profile") === -1 && normalized.indexOf("expected newline") === -1)
             return
         var history = shaderProfileFailoverAttempts[shaderId]
-        if (!history)
+        if (!history) {
             history = ({ requestedDesktop: false, requestedGles: false, exhausted: false })
+            shaderProfileFailoverAttempts[shaderId] = history
+        }
 
         if (history.exhausted)
             return
