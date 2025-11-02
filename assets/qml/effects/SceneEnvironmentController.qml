@@ -840,6 +840,10 @@ return
  property bool fogTransmitEnabled: true
     property real fogTransmitCurve:1.0
 
+    property bool fogCompilationErrorActive: false
+    property bool _fogAutoDisabled: false
+    property string _fogLastFallbackReason: ""
+
     // Дополнительные эффекты (например, постобработка View3D)
     property list<Effect> externalEffects: []
 
@@ -872,6 +876,34 @@ return
         cameraAspectRatio: root.cameraAspectRatio
     }
 
+    function _handleFogFallbackState(active, reason, compilationRelated) {
+        var message = reason && reason.length ? reason : qsTr("Fog effect fallback active")
+        if (active) {
+            if (_fogLastFallbackReason !== message) {
+                _fogLastFallbackReason = message
+                if (compilationRelated)
+                    console.error("❌ SceneEnvironmentController:", message)
+                else
+                    console.warn("⚠️ SceneEnvironmentController:", message)
+            }
+            if (compilationRelated && fogEnabled) {
+                fogEnabled = false
+                _fogAutoDisabled = true
+                console.warn("⚠️ SceneEnvironmentController: fog effect disabled due to shader compilation failure")
+            }
+        } else {
+            if (_fogLastFallbackReason.length) {
+                console.log("✅ SceneEnvironmentController: fog fallback cleared")
+                _fogLastFallbackReason = ""
+            }
+            if (_fogAutoDisabled) {
+                console.log("ℹ️ SceneEnvironmentController: fog effect was disabled after a shader failure; re-enable it manually if needed")
+                _fogAutoDisabled = false
+            }
+        }
+        fogCompilationErrorActive = compilationRelated && active
+    }
+
     effects: {
         var stack = []
         if (externalEffects && externalEffects.length)
@@ -879,6 +911,26 @@ return
         if (fogEnabled)
             stack.push(_customFogEffect)
         return stack
+    }
+
+    Connections {
+        target: _customFogEffect
+        function onFallbackActiveChanged(active) {
+            root._handleFogFallbackState(active,
+                                         _customFogEffect.fallbackReason,
+                                         _customFogEffect.compilationFallbackActive)
+        }
+        function onFallbackReasonChanged(reason) {
+            if (_customFogEffect.fallbackActive)
+                root._handleFogFallbackState(true,
+                                             reason,
+                                             _customFogEffect.compilationFallbackActive)
+        }
+        function onCompilationFallbackActiveChanged(active) {
+            root._handleFogFallbackState(_customFogEffect.fallbackActive,
+                                         _customFogEffect.fallbackReason,
+                                         active)
+        }
     }
 
  // ===============================================================
