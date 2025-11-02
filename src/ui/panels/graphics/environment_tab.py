@@ -323,6 +323,7 @@ class EnvironmentTab(QWidget):
         try:
             text = str(value)
         except Exception:
+            # Игнорируем ошибки конвертации в str для некорректных объектов
             return ""
         text = text.strip()
         if not text:
@@ -632,6 +633,7 @@ class EnvironmentTab(QWidget):
             try:
                 control.blockSignals(True)
             except Exception:
+                # Игнорируем ошибки для контролов без метода blockSignals
                 pass
         try:
             combo = self._require_control("background.mode")
@@ -726,6 +728,7 @@ class EnvironmentTab(QWidget):
                 try:
                     control.blockSignals(False)
                 except Exception:
+                    # Игнорируем ошибки для контролов без метода blockSignals
                     pass
             self._updating_ui = False
         self._update_ibl_dependency_states()
@@ -749,6 +752,7 @@ class EnvironmentTab(QWidget):
         try:
             widget.setEnabled(enabled)
         except Exception:
+            # Игнорируем ошибки для виджетов без метода setEnabled
             pass
 
     def _update_ibl_dependency_states(self) -> None:
