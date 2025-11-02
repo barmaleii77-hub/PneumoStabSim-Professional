@@ -117,7 +117,7 @@ class SignalsRouter:
         updated_payload = {
             key: value
             for key, value in env_payload.items()
-            if key not in SignalsRouter._HDR_SOURCE_KEYS or key == "ibl_source"
+            if key not in SignalsRouter._HDR_SOURCE_KEYS
         }
         updated_payload["ibl_source"] = normalised_value
         return updated_payload

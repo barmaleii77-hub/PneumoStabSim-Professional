@@ -42,6 +42,10 @@ Item {
         return lines.join("\n")
     }
 
+    // Примечание по совместимости: все пользовательские шейдеры используют GLSL 330 core,
+    // чтобы гарантировать работу на рендерере OpenGL 3.3. Явные layout(binding=...)
+    // квалификаторы не применяются — Qt Quick 3D назначает текстурные юниты автоматически.
+
     // Свойства управления эффектами
     property bool bloomEnabled: false
     property alias bloomIntensity: bloomEffect.intensity
@@ -67,6 +71,15 @@ Item {
     property alias motionBlurStrength: motionBlurEffect.strength
     property alias motionBlurSamples: motionBlurEffect.samples
 
+    /**
+     * Выбирает шейдерные программы для эффекта с учётом состояния фоллбэка.
+     *
+     * @param {bool} isEnabled            Флаг включения эффекта на уровне UI.
+     * @param {Effect} effectItem          QML-объект Effect, для которого выполняется выбор.
+     * @param {Shader} activeShader        Основной шейдер, используемый при успешной компиляции.
+     * @param {Shader|undefined} fallbackShader  Альтернативный шейдер, применяемый при ошибке компиляции.
+     * @returns {list<Shader>} Список шейдеров, который необходимо передать в Pass.shaders.
+     */
     function resolveShaders(isEnabled, effectItem, activeShader, fallbackShader) {
         const hasFallback = fallbackShader !== undefined && fallbackShader !== null
         // Если эффект выключен, отключаем его полностью, но оставляем безопасный шейдер,
@@ -76,7 +89,7 @@ Item {
             return hasFallback ? [fallbackShader] : []
         }
         // Включаем эффект и выбираем нужный шейдер. Если не хватает данных и активируется
-        // фолбэк, всегда возвращаем валидный шейдер.
+        // фоллбэк, всегда возвращаем валидный шейдер.
         trySetEffectProperty(effectItem, "enabled", true)
         if (effectItem.fallbackActive)
             return hasFallback ? [fallbackShader] : []
@@ -168,7 +181,7 @@ Item {
         }
 
         onFallbackActiveChanged: {
-            if (fallbackActive && (!lastErrorLog || lastErrorLog.length === 0))
+            if (fallbackActive && !lastErrorLog)
                 lastErrorLog = qsTr("Bloom: fallback shader active")
             root.notifyEffectCompilation("bloom", fallbackActive, lastErrorLog)
             if (!fallbackActive)
@@ -246,10 +259,10 @@ Item {
                 "",
                 "        // Комбинирование",
                 "        vec3 bloom = blurredBright * uIntensity;",
-                "    vec3 result = original.rgb + bloom;",
+                "        vec3 result = original.rgb + bloom;",
                 "",
-                "    FRAGCOLOR = vec4(result, original.a);",
-                "}",
+                "        FRAGCOLOR = vec4(result, original.a);",
+                "    }",
             ])
             shader: ShaderProgram {
                 fragmentShaderCode: bloomFragmentShader.shaderSource
@@ -274,9 +287,9 @@ Item {
                 "",
                 "uniform sampler2D qt_Texture0;",
                 "",
-                "void MAIN() {",
-                "    FRAGCOLOR = texture(qt_Texture0, INPUT_UV);",
-                "}",
+                "    void MAIN() {",
+                "        FRAGCOLOR = texture(qt_Texture0, INPUT_UV);",
+                "    }",
             ])
             shader: ShaderProgram {
                 fragmentShaderCode: bloomFallbackShader.shaderSource
@@ -313,19 +326,19 @@ Item {
             // fixed: removed deprecated 'requiresNormalTexture' requirement (Qt 6)
             normalTextureAvailable = false
 
-            if (!depthTextureAvailable || !normalTextureAvailable) {
+            var requiresFallback = !depthTextureAvailable || !normalTextureAvailable
+            if (requiresFallback) {
                 lastErrorLog = qsTr("SSAO: depth texture buffer is not supported; disabling advanced SSAO")
-                fallbackActive = true
                 console.warn("⚠️ SSAO: switching to passthrough fallback due to missing textures")
             } else {
-                fallbackActive = false
                 lastErrorLog = ""
-                root.notifyEffectCompilation("ssao", fallbackActive, lastErrorLog)
             }
+            fallbackActive = requiresFallback
+            root.notifyEffectCompilation("ssao", fallbackActive, lastErrorLog)
         }
 
         onFallbackActiveChanged: {
-            if (fallbackActive && (!lastErrorLog || lastErrorLog.length === 0))
+            if (fallbackActive && !lastErrorLog)
                 lastErrorLog = qsTr("SSAO: fallback shader active")
             root.notifyEffectCompilation("ssao", fallbackActive, lastErrorLog)
             if (!fallbackActive)
@@ -424,8 +437,8 @@ Item {
                 "        occlusion /= max(1.0, float(sampleCount));",
                 "        occlusion = 1.0 - (occlusion * uIntensity);",
                 "",
-                "    FRAGCOLOR = vec4(original.rgb * occlusion, original.a);",
-                "}",
+                "        FRAGCOLOR = vec4(original.rgb * occlusion, original.a);",
+                "    }",
             ])
             shader: ShaderProgram {
                 fragmentShaderCode: ssaoFragmentShader.shaderSource
@@ -449,9 +462,9 @@ Item {
                 "",
                 "uniform sampler2D qt_Texture0;",
                 "",
-                "void MAIN() {",
-                "    FRAGCOLOR = texture(qt_Texture0, INPUT_UV);",
-                "}",
+                "    void MAIN() {",
+                "        FRAGCOLOR = texture(qt_Texture0, INPUT_UV);",
+                "    }",
             ])
             shader: ShaderProgram {
                 fragmentShaderCode: ssaoFallbackShader.shaderSource
@@ -498,19 +511,19 @@ Item {
                         "Depth of Field: depth texture support enabled",
                         "Depth of Field: depth texture unavailable; using fallback shader")
 
-            if (!depthTextureAvailable) {
+            var requiresFallback = !depthTextureAvailable
+            if (requiresFallback) {
                 lastErrorLog = qsTr("Depth of Field: depth texture unavailable; using fallback shader")
-                fallbackActive = true
                 console.warn("⚠️ Depth of Field: switching to passthrough fallback due to missing depth texture")
             } else {
-                fallbackActive = false
                 lastErrorLog = ""
-                root.notifyEffectCompilation("depthOfField", fallbackActive, lastErrorLog)
             }
+            fallbackActive = requiresFallback
+            root.notifyEffectCompilation("depthOfField", fallbackActive, lastErrorLog)
         }
 
         onFallbackActiveChanged: {
-            if (fallbackActive && (!lastErrorLog || lastErrorLog.length === 0))
+            if (fallbackActive && !lastErrorLog)
                 lastErrorLog = qsTr("Depth of Field: fallback shader active")
             root.notifyEffectCompilation("depthOfField", fallbackActive, lastErrorLog)
             if (!fallbackActive)
@@ -560,10 +573,10 @@ Item {
                 "",
                 "    // Размытие по кругу (bokeh)",
                 "    vec3 circularBlur(vec2 uv, float radius) {",
-                "    vec3 color = vec3(0.0);",
-                "    int samples = 16;",
+                "        vec3 color = vec3(0.0);",
+                "        int samples = 16;",
                 "",
-                "    for (int i = 0; i < samples; i++) {",
+                "        for (int i = 0; i < samples; i++) {",
                 "            float angle = float(i) * 6.28318 / float(samples);",
                 "            vec2 offset = vec2(cos(angle), sin(angle)) * radius;",
                 "            color += texture(qt_Texture0, uv + offset).rgb;",
@@ -584,8 +597,8 @@ Item {
                 "        vec3 blurred = circularBlur(INPUT_UV, blurRadius);",
                 "        vec3 result = mix(original.rgb, blurred, clamp(focusFactor, 0.0, 1.0));",
                 "",
-                "    FRAGCOLOR = vec4(result, original.a);",
-                "}",
+                "        FRAGCOLOR = vec4(result, original.a);",
+                "    }",
             ])
             shader: ShaderProgram {
                 fragmentShaderCode: dofFragmentShader.shaderSource
@@ -610,9 +623,9 @@ Item {
                 "",
                 "uniform sampler2D qt_Texture0;",
                 "",
-                "void MAIN() {",
-                "    FRAGCOLOR = texture(qt_Texture0, INPUT_UV);",
-                "}",
+                "    void MAIN() {",
+                "        FRAGCOLOR = texture(qt_Texture0, INPUT_UV);",
+                "    }",
             ])
             shader: ShaderProgram {
                 fragmentShaderCode: dofFallbackShader.shaderSource
@@ -653,19 +666,19 @@ Item {
                         "Motion Blur: velocity texture support enabled",
                         "Motion Blur: velocity texture unavailable; using fallback shader")
 
-            if (!velocityTextureAvailable) {
+            var requiresFallback = !velocityTextureAvailable
+            if (requiresFallback) {
                 lastErrorLog = qsTr("Motion Blur: velocity texture unavailable; using fallback shader")
-                fallbackActive = true
                 console.warn("⚠️ Motion Blur: switching to passthrough fallback due to missing velocity texture")
             } else {
-                fallbackActive = false
                 lastErrorLog = ""
-                root.notifyEffectCompilation("motionBlur", fallbackActive, lastErrorLog)
             }
+            fallbackActive = requiresFallback
+            root.notifyEffectCompilation("motionBlur", fallbackActive, lastErrorLog)
         }
 
         onFallbackActiveChanged: {
-            if (fallbackActive && (!lastErrorLog || lastErrorLog.length === 0))
+            if (fallbackActive && !lastErrorLog)
                 lastErrorLog = qsTr("Motion Blur: fallback shader active")
             root.notifyEffectCompilation("motionBlur", fallbackActive, lastErrorLog)
             if (!fallbackActive)
@@ -700,23 +713,23 @@ Item {
                 "uniform float uStrength;",
                 "uniform int uSamples;",
                 "",
-                "void MAIN() {",
-                "    vec4 original = INPUT;",
-                "    vec2 velocity = texture(qt_VelocityTexture, INPUT_UV).xy;",
+                "    void MAIN() {",
+                "        vec4 original = INPUT;",
+                "        vec2 velocity = texture(qt_VelocityTexture, INPUT_UV).xy;",
                 "",
-                "    vec3 color = original.rgb;",
-                "    int sampleCount = max(uSamples, 1);",
-                "    vec2 step = velocity * uStrength / max(1.0, float(sampleCount));",
+                "        vec3 color = original.rgb;",
+                "        int sampleCount = max(uSamples, 1);",
+                "        vec2 step = velocity * uStrength / max(1.0, float(sampleCount));",
                 "",
-                "    // Сэмплирование вдоль вектора движения",
-                "    for (int i = 1; i < sampleCount; i++) {",
-                "        vec2 sampleCoord = INPUT_UV + step * float(i);",
-                "        color += texture(qt_Texture0, sampleCoord).rgb;",
+                "        // Сэмплирование вдоль вектора движения",
+                "        for (int i = 1; i < sampleCount; i++) {",
+                "            vec2 sampleCoord = INPUT_UV + step * float(i);",
+                "            color += texture(qt_Texture0, sampleCoord).rgb;",
+                "        }",
+                "",
+                "        color /= max(1.0, float(sampleCount));",
+                "        FRAGCOLOR = vec4(color, original.a);",
                 "    }",
-                "",
-                "    color /= max(1.0, float(sampleCount));",
-                "    FRAGCOLOR = vec4(color, original.a);",
-                "}",
             ])
             shader: ShaderProgram {
                 fragmentShaderCode: motionBlurFragmentShader.shaderSource
@@ -741,9 +754,9 @@ Item {
                 "",
                 "uniform sampler2D qt_Texture0;",
                 "",
-                "void MAIN() {",
-                "    FRAGCOLOR = texture(qt_Texture0, INPUT_UV);",
-                "}",
+                "    void MAIN() {",
+                "        FRAGCOLOR = texture(qt_Texture0, INPUT_UV);",
+                "    }",
             ])
             shader: ShaderProgram {
                 fragmentShaderCode: motionBlurFallbackShader.shaderSource
