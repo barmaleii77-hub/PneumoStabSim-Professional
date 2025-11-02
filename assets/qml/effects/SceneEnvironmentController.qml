@@ -1,6 +1,6 @@
 import QtQuick 6.10
+import QtQuick.Window
 import QtQuick3D 6.10
-import QtQuick3D.Effects 6.10
 import QtQuick3D.Helpers 6.10 // ✅ CRITICAL: Required for ExtendedSceneEnvironment
 import "." // Local helpers (QualityPresets)
 
@@ -53,7 +53,7 @@ ExtendedSceneEnvironment {
             return Qt.rgba(base.r, base.g, base.b, 1.0)
         return base
     }
-    property Texture iblProbe: null
+    property var iblProbe: null
     property real iblIntensity:1.0
     property real skyboxBrightnessValue:1.0
     property alias probeBrightnessValue: root.skyboxBrightnessValue
@@ -227,6 +227,14 @@ ExtendedSceneEnvironment {
                     ? SceneEnvironment.Transparent
                     : SceneEnvironment.Color
         return SceneEnvironment.SkyBox
+    }
+
+    function sceneEnvironmentEnum(name, fallbackName) {
+        if (SceneEnvironment && SceneEnvironment[name] !== undefined)
+            return SceneEnvironment[name]
+        if (fallbackName && SceneEnvironment && SceneEnvironment[fallbackName] !== undefined)
+            return SceneEnvironment[fallbackName]
+        return undefined
     }
 
     function _applySceneBridgeState() {

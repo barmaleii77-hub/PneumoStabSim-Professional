@@ -12,7 +12,7 @@ layout(location = 0) out vec4 qt_FragColor;
 #define FRAGCOLOR qt_FragColor
 #endif
 
-uniform sampler2D qt_Texture0;
+layout(binding = 0) uniform sampler2D qt_Texture0;
 
 void MAIN()
 {
