@@ -314,34 +314,50 @@ Effect {
         })
     }
 
-    function sanitizedShaderUrl(url, resourceName) {
-        if (!url || !url.length)
-            return url
-
-        if (Object.prototype.hasOwnProperty.call(shaderSanitizationCache, url))
-            return shaderSanitizationCache[url]
-
-        var sanitizedUrl = url
-
-        try {
-            var xhr = new XMLHttpRequest()
-            xhr.open("GET", url, false)
-            xhr.responseType = "text"
-            xhr.send()
-            if (xhr.status === 200 || xhr.status === 0) {
-                var shaderSource = xhr.responseText
-                if (shaderSource && shaderSource.indexOf("\r") !== -1) {
-                    var normalized = shaderSource.replace(/\r\n/g, "\n").replace(/\r/g, "\n")
-                    sanitizedUrl = "data:text/plain;charset=utf-8," + encodeURIComponent(normalized)
-                    console.warn("⚠️ FogEffect: normalized CRLF line endings for shader", resourceName)
-                }
-            }
-        } catch (error) {
-            console.debug("FogEffect: shader normalization skipped", resourceName, error)
+    /**
+     * Асинхронно нормализует URL шейдера.
+     * Использует callback для возврата результата, чтобы не блокировать UI thread.
+     * Если результат уже закэширован, callback вызывается немедленно.
+     * @param url {string} - исходный URL
+     * @param resourceName {string} - имя ресурса (для логирования)
+     * @param callback {function} - функция, принимающая нормализованный URL
+     */
+    function sanitizedShaderUrl(url, resourceName, callback) {
+        if (!url || !url.length) {
+            callback(url)
+            return
         }
 
-        shaderSanitizationCache[url] = sanitizedUrl
-        return sanitizedUrl
+        if (Object.prototype.hasOwnProperty.call(shaderSanitizationCache, url)) {
+            callback(shaderSanitizationCache[url])
+            return
+        }
+
+        // Асинхронная загрузка шейдера
+        var xhr = new XMLHttpRequest()
+        xhr.open("GET", url, true) // true = асинхронно
+        xhr.responseType = "text"
+        xhr.onreadystatechange = function() {
+            if (xhr.readyState === XMLHttpRequest.DONE) {
+                var sanitizedUrl = url
+                if (xhr.status === 200 || xhr.status === 0) {
+                    var shaderSource = xhr.responseText
+                    if (shaderSource && shaderSource.indexOf("\r") !== -1) {
+                        var normalized = shaderSource.replace(/\r\n/g, "\n").replace(/\r/g, "\n")
+                        sanitizedUrl = "data:text/plain;charset=utf-8," + encodeURIComponent(normalized)
+                        console.warn("⚠️ FogEffect: normalized CRLF line endings for shader", resourceName)
+                    }
+                }
+                shaderSanitizationCache[url] = sanitizedUrl
+                callback(sanitizedUrl)
+            }
+        }
+        try {
+            xhr.send()
+        } catch (error) {
+            console.debug("FogEffect: shader normalization skipped", resourceName, error)
+            callback(url)
+        }
     }
 
     function handleShaderCompilationLog(shaderId, message) {
