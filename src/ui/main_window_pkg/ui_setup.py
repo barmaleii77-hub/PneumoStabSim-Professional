@@ -26,7 +26,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 from PySide6.QtQuickWidgets import QQuickWidget
-from PySide6.QtGui import QAction, QKeySequence
+from PySide6.QtGui import QAction, QKeySequence, QSurfaceFormat
 
 if TYPE_CHECKING:
     from .main_window_refactored import MainWindow
@@ -297,18 +297,31 @@ class UISetup:
                 )
                 graphics_api = QSGRendererInterface.GraphicsApi.Unknown
 
+            graphics_api_label = UISetup._graphics_api_to_string(graphics_api)
+            requires_desktop_shaders = UISetup._graphics_api_requires_desktop_shaders(
+                graphics_api
+            )
+
+            try:
+                surface_format = window._qquick_widget.format()
+                renderable_type = surface_format.renderableType()
+            except Exception as format_exc:  # pragma: no cover - diagnostic logging
+                UISetup.logger.debug(
+                    "    ⚠️ Unable to query QQuickWidget surface format: %s", format_exc
+                )
+            else:
+                if renderable_type == QSurfaceFormat.OpenGLES:
+                    graphics_api_label = "opengl-es"
+                    requires_desktop_shaders = False
+                    UISetup.logger.info(
+                        "    [QML] Detected OpenGL ES surface format; forcing GLES shaders"
+                    )
+
+            context.setContextProperty("qtGraphicsApiName", graphics_api_label)
             context.setContextProperty(
-                "qtGraphicsApiName",
-                UISetup._graphics_api_to_string(graphics_api),
+                "qtGraphicsApiRequiresDesktopShaders", requires_desktop_shaders
             )
-            context.setContextProperty(
-                "qtGraphicsApiRequiresDesktopShaders",
-                UISetup._graphics_api_requires_desktop_shaders(graphics_api),
-            )
-            UISetup.logger.info(
-                "    [QML] Renderer API: %s",
-                UISetup._graphics_api_to_string(graphics_api),
-            )
+            UISetup.logger.info("    [QML] Renderer API: %s", graphics_api_label)
 
             try:
                 from src.ui.scene_bridge import SceneBridge
