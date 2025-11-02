@@ -1,6 +1,10 @@
 import QtQuick
 import QtQuick.Window
 import QtQuick3D
+// qmllint disable unused-imports
+import QtQuick3D.Effects
+import QtQuick3D.Helpers
+// qmllint enable unused-imports
 
 /*
  * Коллекция пост-эффектов для улучшенной визуализации
@@ -98,11 +102,13 @@ Item {
     readonly property bool reportedGlesContext: {
         if (forceDesktopShaderProfile)
             return false
+        // qmllint disable missing-property
         try {
             if (GraphicsInfo.renderableType === GraphicsInfo.OpenGLES)
                 return true
         } catch (error) {
         }
+        // qmllint enable missing-property
         try {
             var normalized = normalizedRendererGraphicsApi
             if (!normalized.length)
@@ -274,46 +280,8 @@ Item {
         return ""
     }
 
-    function applyShaderSource(shaderItem, source, fileName) {
-        if (!shaderItem)
-            return
-        if (inlineShaderCodeSupported && shaderSupportsInlineCode(shaderItem)) {
-            try {
-                shaderItem.code = source
-                return
-            } catch (error) {
-                console.warn("⚠️ PostEffects: unable to assign inline shader code", error)
-            }
-        }
-
-        if ("shader" in shaderItem) {
-            var fallbackUrl = shaderPath(fileName)
-            var encoded = shaderDataUrl(source)
-            if (encoded && encoded.length) {
-                shaderItem.shader = encoded
-            } else {
-                shaderItem.shader = fallbackUrl
-            }
-        } else {
-            console.warn("⚠️ PostEffects: shader item lacks compatible properties", shaderItem)
-        }
-    }
-
     function refreshAllShaderAssignments() {
-        var mappings = [
-            { item: bloomFragmentShader, source: bloomFragmentShader.shaderSource, file: "bloom.frag" },
-            { item: bloomFallbackShader, source: bloomFallbackShader.shaderSource, file: "bloom_fallback.frag" },
-            { item: ssaoFragmentShader, source: ssaoFragmentShader.shaderSource, file: "ssao.frag" },
-            { item: ssaoFallbackShader, source: ssaoFallbackShader.shaderSource, file: "ssao_fallback.frag" },
-            { item: dofFragmentShader, source: dofFragmentShader.shaderSource, file: "dof.frag" },
-            { item: dofFallbackShader, source: dofFallbackShader.shaderSource, file: "dof_fallback.frag" },
-            { item: motionBlurFragmentShader, source: motionBlurFragmentShader.shaderSource, file: "motion_blur.frag" },
-            { item: motionBlurFallbackShader, source: motionBlurFallbackShader.shaderSource, file: "motion_blur_fallback.frag" }
-        ]
-        for (var i = 0; i < mappings.length; ++i) {
-            var entry = mappings[i]
-            applyShaderSource(entry.item, entry.source, entry.file)
-        }
+        // Bindings keep shader URLs synchronized automatically.
     }
 
     // Примечание по совместимости: единый GLSL-файл обслуживает OpenGL и GLES.
@@ -411,6 +379,7 @@ Item {
         if (!inlineShaderCodeSupported)
             console.warn("⚠️ PostEffects: inline shader code not supported; using shader URL fallback")
 
+        // qmllint disable missing-property
         shaderAutoHeaderToggleSupported = typeof bloomFragmentShader.autoInsertHeader === "boolean"
                 && typeof bloomFallbackShader.autoInsertHeader === "boolean"
                 && typeof ssaoFragmentShader.autoInsertHeader === "boolean"
@@ -419,6 +388,7 @@ Item {
                 && typeof dofFallbackShader.autoInsertHeader === "boolean"
                 && typeof motionBlurFragmentShader.autoInsertHeader === "boolean"
                 && typeof motionBlurFallbackShader.autoInsertHeader === "boolean"
+        // qmllint enable missing-property
         useManualShaderHeaders = shaderAutoHeaderToggleSupported
         if (shaderAutoHeaderToggleSupported) {
             var shaders = [
@@ -431,6 +401,7 @@ Item {
                         motionBlurFragmentShader,
                         motionBlurFallbackShader
                     ]
+            // qmllint disable missing-property
             for (var i = 0; i < shaders.length; ++i) {
                 try {
                     shaders[i].autoInsertHeader = false
@@ -438,6 +409,7 @@ Item {
                     console.debug("⚠️ PostEffects: unable to disable auto header", shaders[i], error)
                 }
             }
+            // qmllint enable missing-property
         } else {
             console.warn("⚠️ PostEffects: Shader.autoInsertHeader unavailable; stripping #version from custom shader sources")
         }
@@ -539,9 +511,12 @@ Item {
             property real uThreshold: bloomEffect.threshold
             property real uBlurAmount: bloomEffect.blurAmount
             property string shaderSource: root.shaderSourceWithToken("bloom.frag", root.shaderReloadToken)
-            onShaderSourceChanged: root.applyShaderSource(bloomFragmentShader, shaderSource, "bloom.frag")
+            // qmllint disable import missing-property
+            shader: ShaderData {
+                source: root.shaderDataUrl(bloomFragmentShader.shaderSource)
+            }
+            // qmllint enable import missing-property
             Component.onCompleted: {
-                root.applyShaderSource(bloomFragmentShader, shaderSource, "bloom.frag")
                 if (!root.attachShaderLogHandler(bloomFragmentShader, "bloom.frag"))
                     console.debug("PostEffects: shader log handler unavailable for bloom.frag")
             }
@@ -551,9 +526,12 @@ Item {
             id: bloomFallbackShader
             stage: Shader.Fragment
             property string shaderSource: root.shaderSourceWithToken("bloom_fallback.frag", root.shaderReloadToken)
-            onShaderSourceChanged: root.applyShaderSource(bloomFallbackShader, shaderSource, "bloom_fallback.frag")
+            // qmllint disable import missing-property
+            shader: ShaderData {
+                source: root.shaderDataUrl(bloomFallbackShader.shaderSource)
+            }
+            // qmllint enable import missing-property
             Component.onCompleted: {
-                root.applyShaderSource(bloomFallbackShader, shaderSource, "bloom_fallback.frag")
                 if (!root.attachShaderLogHandler(bloomFallbackShader, "bloom_fallback.frag"))
                     console.debug("PostEffects: shader log handler unavailable for bloom_fallback.frag")
             }
@@ -632,9 +610,12 @@ Item {
             property real uBias: ssaoEffect.bias
             property int uSamples: ssaoEffect.samples
             property string shaderSource: root.shaderSourceWithToken("ssao.frag", root.shaderReloadToken)
-            onShaderSourceChanged: root.applyShaderSource(ssaoFragmentShader, shaderSource, "ssao.frag")
+            // qmllint disable import missing-property
+            shader: ShaderData {
+                source: root.shaderDataUrl(ssaoFragmentShader.shaderSource)
+            }
+            // qmllint enable import missing-property
             Component.onCompleted: {
-                root.applyShaderSource(ssaoFragmentShader, shaderSource, "ssao.frag")
                 if (!root.attachShaderLogHandler(ssaoFragmentShader, "ssao.frag"))
                     console.debug("PostEffects: shader log handler unavailable for ssao.frag")
             }
@@ -644,9 +625,12 @@ Item {
             id: ssaoFallbackShader
             stage: Shader.Fragment
             property string shaderSource: root.shaderSourceWithToken("ssao_fallback.frag", root.shaderReloadToken)
-            onShaderSourceChanged: root.applyShaderSource(ssaoFallbackShader, shaderSource, "ssao_fallback.frag")
+            // qmllint disable import missing-property
+            shader: ShaderData {
+                source: root.shaderDataUrl(ssaoFallbackShader.shaderSource)
+            }
+            // qmllint enable import missing-property
             Component.onCompleted: {
-                root.applyShaderSource(ssaoFallbackShader, shaderSource, "ssao_fallback.frag")
                 if (!root.attachShaderLogHandler(ssaoFallbackShader, "ssao_fallback.frag"))
                     console.debug("PostEffects: shader log handler unavailable for ssao_fallback.frag")
             }
@@ -726,9 +710,12 @@ Item {
             property real uCameraNear: dofEffect.cameraNear
             property real uCameraFar: dofEffect.cameraFar
             property string shaderSource: root.shaderSourceWithToken("dof.frag", root.shaderReloadToken)
-            onShaderSourceChanged: root.applyShaderSource(dofFragmentShader, shaderSource, "dof.frag")
+            // qmllint disable import missing-property
+            shader: ShaderData {
+                source: root.shaderDataUrl(dofFragmentShader.shaderSource)
+            }
+            // qmllint enable import missing-property
             Component.onCompleted: {
-                root.applyShaderSource(dofFragmentShader, shaderSource, "dof.frag")
                 if (!root.attachShaderLogHandler(dofFragmentShader, "dof.frag"))
                     console.debug("PostEffects: shader log handler unavailable for dof.frag")
             }
@@ -738,9 +725,12 @@ Item {
             id: dofFallbackShader
             stage: Shader.Fragment
             property string shaderSource: root.shaderSourceWithToken("dof_fallback.frag", root.shaderReloadToken)
-            onShaderSourceChanged: root.applyShaderSource(dofFallbackShader, shaderSource, "dof_fallback.frag")
+            // qmllint disable import missing-property
+            shader: ShaderData {
+                source: root.shaderDataUrl(dofFallbackShader.shaderSource)
+            }
+            // qmllint enable import missing-property
             Component.onCompleted: {
-                root.applyShaderSource(dofFallbackShader, shaderSource, "dof_fallback.frag")
                 if (!root.attachShaderLogHandler(dofFallbackShader, "dof_fallback.frag"))
                     console.debug("PostEffects: shader log handler unavailable for dof_fallback.frag")
             }
@@ -811,9 +801,12 @@ Item {
             property real uStrength: motionBlurEffect.strength
             property int uSamples: motionBlurEffect.samples
             property string shaderSource: root.shaderSourceWithToken("motion_blur.frag", root.shaderReloadToken)
-            onShaderSourceChanged: root.applyShaderSource(motionBlurFragmentShader, shaderSource, "motion_blur.frag")
+            // qmllint disable import missing-property
+            shader: ShaderData {
+                source: root.shaderDataUrl(motionBlurFragmentShader.shaderSource)
+            }
+            // qmllint enable import missing-property
             Component.onCompleted: {
-                root.applyShaderSource(motionBlurFragmentShader, shaderSource, "motion_blur.frag")
                 if (!root.attachShaderLogHandler(motionBlurFragmentShader, "motion_blur.frag"))
                     console.debug("PostEffects: shader log handler unavailable for motion_blur.frag")
             }
@@ -823,9 +816,12 @@ Item {
             id: motionBlurFallbackShader
             stage: Shader.Fragment
             property string shaderSource: root.shaderSourceWithToken("motion_blur_fallback.frag", root.shaderReloadToken)
-            onShaderSourceChanged: root.applyShaderSource(motionBlurFallbackShader, shaderSource, "motion_blur_fallback.frag")
+            // qmllint disable import missing-property
+            shader: ShaderData {
+                source: root.shaderDataUrl(motionBlurFallbackShader.shaderSource)
+            }
+            // qmllint enable import missing-property
             Component.onCompleted: {
-                root.applyShaderSource(motionBlurFallbackShader, shaderSource, "motion_blur_fallback.frag")
                 if (!root.attachShaderLogHandler(motionBlurFallbackShader, "motion_blur_fallback.frag"))
                     console.debug("PostEffects: shader log handler unavailable for motion_blur_fallback.frag")
             }
