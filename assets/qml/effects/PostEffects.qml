@@ -39,9 +39,17 @@ Item {
     }
 
     // Используем версию шейдеров OpenGL ES только при реальном контексте OpenGL ES.
-    // Программный рендерер Qt (GraphicsInfo.Software) транслирует шейдеры через
-    // десктопный стек, поэтому ему требуется профиль core/compatibility.
-    readonly property bool useGlesShaders: GraphicsInfo.api === GraphicsInfo.OpenGLES
+    // Программный или RHI-рендерер Qt требует десктопный профиль GLSL.
+    readonly property bool preferDesktopShaderProfile:
+            typeof qtGraphicsApiRequiresDesktopShaders === "boolean"
+            ? qtGraphicsApiRequiresDesktopShaders
+            : false
+    readonly property string rendererGraphicsApi:
+            typeof qtGraphicsApiName === "string"
+            ? qtGraphicsApiName
+            : "unknown"
+    readonly property bool reportedGlesContext: GraphicsInfo.api === GraphicsInfo.OpenGLES
+    readonly property bool useGlesShaders: reportedGlesContext && !preferDesktopShaderProfile
 
     function shaderPath(fileName) {
         if (!fileName || typeof fileName !== "string")
@@ -130,6 +138,13 @@ Item {
 
     Component.onCompleted: {
         console.log("🎨 Post Effects Collection loaded")
+        console.log("   Graphics API:", rendererGraphicsApi)
+        console.log(
+                    "   Shader profile:",
+                    useGlesShaders
+                    ? "OpenGL ES (GLSL 300 es)"
+                    : "Desktop (GLSL 330 core)"
+                    )
         console.log("   Available effects: Bloom, SSAO, DOF, Motion Blur")
     }
 

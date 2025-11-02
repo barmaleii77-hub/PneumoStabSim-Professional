@@ -15,6 +15,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any, Dict
 
 from PySide6.QtCore import Qt, QSettings, QUrl
+from PySide6.QtQuick import QQuickWindow, QSGRendererInterface
 from PySide6.QtWidgets import (
     QLabel,
     QScrollArea,
@@ -158,6 +159,37 @@ class UISetup:
             "diagnostics": _read_diagnostics(),
         }
 
+    @staticmethod
+    def _graphics_api_to_string(api: QSGRendererInterface.GraphicsApi) -> str:
+        """Convert ``QSGRendererInterface.GraphicsApi`` to a readable label."""
+
+        mapping: dict[QSGRendererInterface.GraphicsApi, str] = {
+            QSGRendererInterface.GraphicsApi.Unknown: "unknown",
+            QSGRendererInterface.GraphicsApi.Software: "software",
+            QSGRendererInterface.GraphicsApi.OpenGL: "opengl",
+            QSGRendererInterface.GraphicsApi.OpenGLRhi: "opengl-rhi",
+            QSGRendererInterface.GraphicsApi.Direct3D11: "direct3d11",
+            QSGRendererInterface.GraphicsApi.Vulkan: "vulkan",
+            QSGRendererInterface.GraphicsApi.Metal: "metal",
+            QSGRendererInterface.GraphicsApi.Null: "null",
+        }
+        return mapping.get(api, f"unknown({int(api)})")
+
+    @staticmethod
+    def _graphics_api_requires_desktop_shaders(
+        api: QSGRendererInterface.GraphicsApi,
+    ) -> bool:
+        """Return ``True`` when GLSL core profile shaders are required."""
+
+        return api in (
+            QSGRendererInterface.GraphicsApi.Direct3D11,
+            QSGRendererInterface.GraphicsApi.Vulkan,
+            QSGRendererInterface.GraphicsApi.Metal,
+            QSGRendererInterface.GraphicsApi.Software,
+            QSGRendererInterface.GraphicsApi.Null,
+            QSGRendererInterface.GraphicsApi.OpenGLRhi,
+        )
+
     # ------------------------------------------------------------------
     # Central Widget Setup
     # ------------------------------------------------------------------
@@ -243,6 +275,27 @@ class UISetup:
             # ✅ КРИТИЧЕСКОЕ: Устанавливаем контекст ДО загрузки QML
             context = engine.rootContext()
             context.setContextProperty("window", window)
+
+            try:
+                graphics_api = QQuickWindow.graphicsApi()
+            except Exception as api_exc:  # pragma: no cover - diagnostic logging
+                UISetup.logger.debug(
+                    "    ⚠️ Unable to query QQuickWindow graphics API: %s", api_exc
+                )
+                graphics_api = QSGRendererInterface.GraphicsApi.Unknown
+
+            context.setContextProperty(
+                "qtGraphicsApiName",
+                UISetup._graphics_api_to_string(graphics_api),
+            )
+            context.setContextProperty(
+                "qtGraphicsApiRequiresDesktopShaders",
+                UISetup._graphics_api_requires_desktop_shaders(graphics_api),
+            )
+            UISetup.logger.info(
+                "    [QML] Renderer API: %s",
+                UISetup._graphics_api_to_string(graphics_api),
+            )
 
             try:
                 from src.ui.scene_bridge import SceneBridge

@@ -54,8 +54,17 @@ Effect {
     }
 
     // Используем GLSL ES только при наличии реального контекста OpenGL ES.
-    // Для программного или десктопного рендерера требуются варианты core.
-    readonly property bool useGlesShaders: GraphicsInfo.api === GraphicsInfo.OpenGLES
+    // Для программного или RHI-рендерера требуются варианты core.
+    readonly property bool preferDesktopShaderProfile:
+            typeof qtGraphicsApiRequiresDesktopShaders === "boolean"
+            ? qtGraphicsApiRequiresDesktopShaders
+            : false
+    readonly property string rendererGraphicsApi:
+            typeof qtGraphicsApiName === "string"
+            ? qtGraphicsApiName
+            : "unknown"
+    readonly property bool reportedGlesContext: GraphicsInfo.api === GraphicsInfo.OpenGLES
+    readonly property bool useGlesShaders: reportedGlesContext && !preferDesktopShaderProfile
 
     function shaderPath(fileName) {
         if (!fileName || typeof fileName !== "string")
@@ -132,6 +141,13 @@ Effect {
     }
 
     Component.onCompleted: {
+        console.log("🌫️ FogEffect graphics API:", rendererGraphicsApi)
+        console.log(
+                    "   Shader profile:",
+                    useGlesShaders
+                    ? "OpenGL ES (GLSL 300 es)"
+                    : "Desktop (GLSL 330 core)"
+                    )
         enableDepthTextureSupport()
         console.log("🌫️ Enhanced Fog Effect loaded")
         console.log("   Density:", fogDensity)
