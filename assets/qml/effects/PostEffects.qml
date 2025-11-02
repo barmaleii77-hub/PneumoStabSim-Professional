@@ -85,6 +85,11 @@ Item {
     // qmllint enable unqualified
     readonly property bool useGlesShaders: reportedGlesContext && !preferDesktopShaderProfile
 
+    property bool shaderAutoHeaderToggleSupported: false
+    property bool useManualShaderHeaders: false
+    property int shaderReloadToken: 0
+    property var shaderCache: ({})
+
     function shaderPath(fileName) {
         if (!fileName || typeof fileName !== "string")
             return ""
@@ -100,6 +105,53 @@ Item {
         }
 
         return Qt.resolvedUrl("../../shaders/effects/" + normalized)
+    }
+
+    function loadShaderSource(fileName) {
+        var url = shaderPath(fileName)
+        if (!url)
+            return ""
+        try {
+            var xhr = new XMLHttpRequest()
+            xhr.open("GET", url, false)
+            xhr.send()
+            if (xhr.status !== 200 && xhr.status !== 0) {
+                console.warn("⚠️ PostEffects: failed to load shader", url, xhr.status)
+                return ""
+            }
+            var source = xhr.responseText || ""
+            if (useManualShaderHeaders)
+                return source
+
+            var lines = source.split(/\r?\n/)
+            while (lines.length && lines[0].trim().startsWith("#version"))
+                lines.shift()
+            return lines.join("\n")
+        } catch (error) {
+            console.warn("⚠️ PostEffects: shader load error", url, error)
+        }
+        return ""
+    }
+
+    function shaderSource(fileName) {
+        var cacheKey = (useManualShaderHeaders ? "manual:" : "auto:")
+                + (useGlesShaders ? "es:" : "desktop:") + fileName
+        if (shaderCache.hasOwnProperty(cacheKey))
+            return shaderCache[cacheKey]
+
+        var source = loadShaderSource(fileName)
+        shaderCache[cacheKey] = source
+        return source
+    }
+
+    function shaderSourceWithToken(fileName, reloadToken) {
+        reloadToken
+        return shaderSource(fileName)
+    }
+
+    function reloadShaderSources() {
+        shaderCache = ({})
+        shaderReloadToken += 1
     }
 
     // Примечание по совместимости: в средах OpenGL используем GLSL 330 core,
@@ -272,18 +324,16 @@ Item {
         Shader {
             id: bloomFragmentShader
             stage: Shader.Fragment
-            autoInsertHeader: false
             property real uIntensity: bloomEffect.intensity
             property real uThreshold: bloomEffect.threshold
             property real uBlurAmount: bloomEffect.blurAmount
-            shader: root.shaderPath("bloom.frag")
+            code: root.shaderSourceWithToken("bloom.frag", root.shaderReloadToken)
         }
 
         Shader {
             id: bloomFallbackShader
             stage: Shader.Fragment
-            autoInsertHeader: false
-            shader: root.shaderPath("bloom_fallback.frag")
+            code: root.shaderSourceWithToken("bloom_fallback.frag", root.shaderReloadToken)
         }
 
 
@@ -354,19 +404,17 @@ Item {
         Shader {
             id: ssaoFragmentShader
             stage: Shader.Fragment
-            autoInsertHeader: false
             property real uIntensity: ssaoEffect.intensity
             property real uRadius: ssaoEffect.radius
             property real uBias: ssaoEffect.bias
             property int uSamples: ssaoEffect.samples
-            shader: root.shaderPath("ssao.frag")
+            code: root.shaderSourceWithToken("ssao.frag", root.shaderReloadToken)
         }
 
         Shader {
             id: ssaoFallbackShader
             stage: Shader.Fragment
-            autoInsertHeader: false
-            shader: root.shaderPath("ssao_fallback.frag")
+            code: root.shaderSourceWithToken("ssao_fallback.frag", root.shaderReloadToken)
         }
 
 
@@ -437,20 +485,18 @@ Item {
         Shader {
             id: dofFragmentShader
             stage: Shader.Fragment
-            autoInsertHeader: false
             property real uFocusDistance: dofEffect.focusDistance
             property real uFocusRange: dofEffect.focusRange
             property real uBlurAmount: dofEffect.blurAmount
             property real uCameraNear: dofEffect.cameraNear
             property real uCameraFar: dofEffect.cameraFar
-            shader: root.shaderPath("dof.frag")
+            code: root.shaderSourceWithToken("dof.frag", root.shaderReloadToken)
         }
 
         Shader {
             id: dofFallbackShader
             stage: Shader.Fragment
-            autoInsertHeader: false
-            shader: root.shaderPath("dof_fallback.frag")
+            code: root.shaderSourceWithToken("dof_fallback.frag", root.shaderReloadToken)
         }
 
 
@@ -515,17 +561,15 @@ Item {
         Shader {
             id: motionBlurFragmentShader
             stage: Shader.Fragment
-            autoInsertHeader: false
             property real uStrength: motionBlurEffect.strength
             property int uSamples: motionBlurEffect.samples
-            shader: root.shaderPath("motion_blur.frag")
+            code: root.shaderSourceWithToken("motion_blur.frag", root.shaderReloadToken)
         }
 
         Shader {
             id: motionBlurFallbackShader
             stage: Shader.Fragment
-            autoInsertHeader: false
-            shader: root.shaderPath("motion_blur_fallback.frag")
+            code: root.shaderSourceWithToken("motion_blur_fallback.frag", root.shaderReloadToken)
         }
 
 
@@ -537,6 +581,42 @@ Item {
 
         // Effect.enabled is controlled externally via root.motionBlurEnabled
     }
+
+    Component.onCompleted: {
+        shaderAutoHeaderToggleSupported = typeof bloomFragmentShader.autoInsertHeader === "boolean"
+                && typeof bloomFallbackShader.autoInsertHeader === "boolean"
+                && typeof ssaoFragmentShader.autoInsertHeader === "boolean"
+                && typeof ssaoFallbackShader.autoInsertHeader === "boolean"
+                && typeof dofFragmentShader.autoInsertHeader === "boolean"
+                && typeof dofFallbackShader.autoInsertHeader === "boolean"
+                && typeof motionBlurFragmentShader.autoInsertHeader === "boolean"
+                && typeof motionBlurFallbackShader.autoInsertHeader === "boolean"
+        useManualShaderHeaders = shaderAutoHeaderToggleSupported
+        if (shaderAutoHeaderToggleSupported) {
+            var shaders = [
+                        bloomFragmentShader,
+                        bloomFallbackShader,
+                        ssaoFragmentShader,
+                        ssaoFallbackShader,
+                        dofFragmentShader,
+                        dofFallbackShader,
+                        motionBlurFragmentShader,
+                        motionBlurFallbackShader
+                    ]
+            for (var i = 0; i < shaders.length; ++i) {
+                try {
+                    shaders[i].autoInsertHeader = false
+                } catch (error) {
+                    console.debug("⚠️ PostEffects: unable to disable auto header", shaders[i], error)
+                }
+            }
+        } else {
+            console.warn("⚠️ PostEffects: Shader.autoInsertHeader unavailable; stripping #version from custom shader sources")
+        }
+        reloadShaderSources()
+    }
+
+    onUseGlesShadersChanged: reloadShaderSources()
 
     function applyPayload(params, environment) {
         var env = environment || null
