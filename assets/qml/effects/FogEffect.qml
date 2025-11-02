@@ -67,6 +67,8 @@ Effect {
                 return qtGraphicsApiRequiresDesktopShaders
         } catch (error) {
         }
+        if (GraphicsInfo.api === GraphicsInfo.Direct3D11 && reportedGlesContext)
+            return false
         return GraphicsInfo.api === GraphicsInfo.Direct3D11
                 || GraphicsInfo.api === GraphicsInfo.Vulkan
                 || GraphicsInfo.api === GraphicsInfo.Metal

@@ -14,8 +14,8 @@ layout(location = 0) out vec4 qt_FragColor;
 #define FRAGCOLOR qt_FragColor
 #endif
 
-layout(binding = 0) uniform sampler2D qt_Texture0;
-layout(binding = 1) uniform sampler2D qt_DepthTexture;
+uniform sampler2D qt_Texture0;
+uniform sampler2D qt_DepthTexture;
 
 #ifndef INPUT
 #define INPUT texture(qt_Texture0, INPUT_UV)
@@ -93,9 +93,9 @@ vec3 reconstructWorldPosition(vec2 uv, float depth)
     float linearDepth = linearizeDepth(depth);
     vec3 viewPos = ray * linearDepth;
 
-    mat4 invView = inverse(ubuf.qt_ViewMatrix);
-    vec4 worldPos = invView * vec4(viewPos, 1.0);
-    return worldPos.xyz / worldPos.w;
+    mat3 viewRotation = mat3(ubuf.qt_ViewMatrix);
+    vec3 worldOffset = transpose(viewRotation) * viewPos;
+    return CAMERA_POSITION + worldOffset;
 }
 
 float computeFogFactor(float distance)
