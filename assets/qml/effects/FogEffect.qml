@@ -177,6 +177,47 @@ Effect {
                     `Shader ${shaderId} reported #version incompatibility`)
     }
 
+    function shaderCompilationMessage(shaderItem) {
+        if (!shaderItem)
+            return ""
+        try {
+            if ("log" in shaderItem && shaderItem.log)
+                return shaderItem.log
+        } catch (error) {
+        }
+        try {
+            if ("compilationLog" in shaderItem && shaderItem.compilationLog)
+                return shaderItem.compilationLog
+        } catch (error) {
+        }
+        return ""
+    }
+
+    function attachShaderLogHandler(shaderItem, shaderId) {
+        if (!shaderItem)
+            return false
+        function emitLog() {
+            fogEffect.handleShaderCompilationLog(shaderId, shaderCompilationMessage(shaderItem))
+        }
+        try {
+            if (typeof shaderItem.logChanged === "function") {
+                shaderItem.logChanged.connect(emitLog)
+                emitLog()
+                return true
+            }
+        } catch (error) {
+        }
+        try {
+            if (typeof shaderItem.compilationLogChanged === "function") {
+                shaderItem.compilationLogChanged.connect(emitLog)
+                emitLog()
+                return true
+            }
+        } catch (error) {
+        }
+        return false
+    }
+
     function loadShaderSource(fileName, stripVersionDirective) {
         var url = shaderPath(fileName)
         if (!url)
@@ -267,11 +308,14 @@ Effect {
     Shader {
         id: fogVertexShader
         stage: Shader.Vertex
-        Component.onCompleted: fogEffect.assignShaderSource(
-                                   fogVertexShader,
-                                   fogEffect.vertexShaderCode,
-                                   "fog.vert")
-        onLogChanged: fogEffect.handleShaderCompilationLog("fog.vert", log)
+        Component.onCompleted: {
+            fogEffect.assignShaderSource(
+                        fogVertexShader,
+                        fogEffect.vertexShaderCode,
+                        "fog.vert")
+            if (!fogEffect.attachShaderLogHandler(fogVertexShader, "fog.vert"))
+                console.debug("FogEffect: shader log handler unavailable for fog.vert")
+        }
     }
 
     Shader {
@@ -295,11 +339,14 @@ Effect {
         property real userCameraFar: fogEffect.cameraClipFar
         property real userCameraFov: fogEffect.cameraFieldOfView
         property real userCameraAspect: fogEffect.cameraAspectRatio
-        Component.onCompleted: fogEffect.assignShaderSource(
-                                   fogFragmentShader,
-                                   fogEffect.fragmentShaderCode,
-                                   "fog.frag")
-        onLogChanged: fogEffect.handleShaderCompilationLog("fog.frag", log)
+        Component.onCompleted: {
+            fogEffect.assignShaderSource(
+                        fogFragmentShader,
+                        fogEffect.fragmentShaderCode,
+                        "fog.frag")
+            if (!fogEffect.attachShaderLogHandler(fogFragmentShader, "fog.frag"))
+                console.debug("FogEffect: shader log handler unavailable for fog.frag")
+        }
     }
 
     Shader {
@@ -307,11 +354,14 @@ Effect {
         stage: Shader.Fragment
         property real userFogDensity: fogEffect.fogDensity
         property color userFogColor: fogEffect.fogColor
-        Component.onCompleted: fogEffect.assignShaderSource(
-                                   fogFallbackShader,
-                                   fogEffect.fallbackShaderCode,
-                                   "fog_fallback.frag")
-        onLogChanged: fogEffect.handleShaderCompilationLog("fog_fallback.frag", log)
+        Component.onCompleted: {
+            fogEffect.assignShaderSource(
+                        fogFallbackShader,
+                        fogEffect.fallbackShaderCode,
+                        "fog_fallback.frag")
+            if (!fogEffect.attachShaderLogHandler(fogFallbackShader, "fog_fallback.frag"))
+                console.debug("FogEffect: shader log handler unavailable for fog_fallback.frag")
+        }
     }
 
     passes: [
