@@ -41,3 +41,45 @@ Environment payload (вложенный)
 Диагностика
 - В QML логируются вызовы функций (`console.log`) и важные состояния (IBL ready, skyboxActive)
 - В Python логируем `log_qml_invoke`, `log_signal_emit`, и помечаем события как `applied_to_qml`
+
+## FogEffect v4.9.5 — компиляция шейдеров и fallback
+
+- **Файлы:** `assets/qml/effects/FogEffect.qml`, `assets/shaders/effects/fog.vert`, `assets/shaders/effects/fog.frag`,
+  `assets/shaders/effects/fog_fallback.frag`.
+- **Цель:** гарантировать корректную компиляцию шейдеров при включённых флагах `QSG_INFO=1` и `QSG_RHI_DEBUG_LAYER=1`
+  для всех рендер-бэкендов (ANGLE/D3D11, OpenGL, Vulkan/Metal) и сохранить визуально ожидаемый результат тумана.
+- **Fallback:** при отсутствии depth-текстуры или ошибке компиляции активируется `fog_fallback.frag` и в
+  `SceneEnvironmentController.qml` автоматически выключается туман, если причина — ошибка компиляции.
+
+### Проверка компиляции шейдеров
+
+1. Запустить приложение c включённым логированием Qt Shader Graph:
+
+   ```bash
+   QSG_INFO=1 QSG_RHI_DEBUG_LAYER=1 python app.py --test-mode
+   ```
+
+2. В логах искать строки `FogEffect`/`Shader` с ошибками. При успешной компиляции статус `Shader.Ready` не сопровождается
+   сообщениями `❌ FogEffect`.
+3. Для ANGLE/D3D11 и Vulkan/Metal дополнительно убедиться, что `FogEffect` фиксирует принятый профиль шейдеров через
+   `preferDesktopShaderProfile` и при необходимости запрашивает десктопный GLSL (`requestDesktopShaderProfile(...)`).
+
+> ℹ️ В CI-контейнере Qt Quick 3D работает в headless-режиме. Перед запуском необходимо установить системные
+> зависимости `libgl1`, `libegl1`, `libxkbcommon0`, `libxkbcommon-x11-0`, иначе импорт PySide6 завершится ошибкой
+> (`libGL.so.1`/`libxkbcommon.so.0` не найдены). После установки запуск команды выше завершается успешно, в логе
+> фиксируются статусы `Shader.Ready` без сообщений об ошибках компиляции.
+
+### Проверка визуального результата
+
+1. На настольных системах (Windows ANGLE/D3D11, Linux/OpenGL, macOS Metal) включить туман в панели окружения и убедиться,
+   что плотность, цвет и высотный профиль применяются в реальном времени.
+2. На мобильных устройствах (Android/iOS, обычно GLES) проверить, что при сообщении `reportedGlesContext` эффект выбирает
+   GLES-профиль и сохраняет ожидаемое визуальное поведение.
+3. Искусственно отключить depth-текстуру (в панели разработчика или модифицируя `depthTextureAvailable`) и подтвердить,
+   что активируется fallback-шейдер и лог выдаёт `⚠️ FogEffect: depth texture unavailable; using fallback shader`.
+4. После восстановления глубины убедиться, что `SceneEnvironmentController` записывает `✅ Fog fallback cleared`.
+
+### Документирование результатов
+
+- Снимки логов и скриншоты визуальных проверок прикладываются к Phase 3 в разделе «Fog pipeline stability».
+- При обновлении шейдеров фиксировать изменения и выводы в этом разделе, чтобы сохранить трассировку решений.
