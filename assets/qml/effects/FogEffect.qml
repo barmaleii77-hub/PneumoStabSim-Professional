@@ -102,6 +102,23 @@ Effect {
     // qmllint disable unqualified
     property bool forceDesktopShaderProfile: false
     property bool forceGlesShaderProfile: false
+    property var shaderProfileFailoverAttempts: ({})
+    onForceDesktopShaderProfileChanged: {
+        if (forceDesktopShaderProfile && forceGlesShaderProfile) {
+            console.assert(false,
+                "FogEffect: forceDesktopShaderProfile and forceGlesShaderProfile cannot both be true")
+            console.warn("⚠️ FogEffect: disabling forceGlesShaderProfile to honour desktop override")
+            forceGlesShaderProfile = false
+        }
+    }
+    onForceGlesShaderProfileChanged: {
+        if (forceDesktopShaderProfile && forceGlesShaderProfile) {
+            console.assert(false,
+                "FogEffect: forceDesktopShaderProfile and forceGlesShaderProfile cannot both be true")
+            console.warn("⚠️ FogEffect: disabling forceDesktopShaderProfile to honour GLES override")
+            forceDesktopShaderProfile = false
+        }
+    }
     property bool preferUnifiedShaderSources: false
 
     readonly property bool preferDesktopShaderProfile: {
@@ -194,6 +211,7 @@ Effect {
 
     readonly property string shaderResourceDirectory: "../../shaders/effects/"
     property var shaderResourceAvailabilityCache: ({})
+    property var shaderSanitizationCache: ({})
 
     function resolvedShaderUrl(resourceName) {
         return Qt.resolvedUrl(shaderResourceDirectory + resourceName)
@@ -250,7 +268,7 @@ Effect {
 
             var glesUrl = resolvedShaderUrl(glesName)
             if (shaderResourceExists(glesUrl, glesName, false))
-                return glesUrl
+                return sanitizedShaderUrl(glesUrl, glesName)
 
             if (!preferUnifiedShaderSources) {
                 console.warn("⚠️ FogEffect: GLES shader variant missing; forcing desktop profile", glesName)
@@ -260,7 +278,7 @@ Effect {
 
         var resolvedUrl = resolvedShaderUrl(normalized)
         shaderResourceExists(resolvedUrl, normalized, false)
-        return resolvedUrl
+        return sanitizedShaderUrl(resolvedUrl, normalized)
     }
 
     // Для профиля OpenGL ES поставляются отдельные GLSL-файлы с суффиксом _es,
@@ -279,6 +297,7 @@ Effect {
         forceDesktopShaderProfile = true
         Qt.callLater(function() {
             shaderResourceAvailabilityCache = ({})
+            shaderSanitizationCache = ({})
         })
     }
 
@@ -291,7 +310,54 @@ Effect {
         forceGlesShaderProfile = true
         Qt.callLater(function() {
             shaderResourceAvailabilityCache = ({})
+            shaderSanitizationCache = ({})
         })
+    }
+
+    /**
+     * Асинхронно нормализует URL шейдера.
+     * Использует callback для возврата результата, чтобы не блокировать UI thread.
+     * Если результат уже закэширован, callback вызывается немедленно.
+     * @param url {string} - исходный URL
+     * @param resourceName {string} - имя ресурса (для логирования)
+     * @param callback {function} - функция, принимающая нормализованный URL
+     */
+    function sanitizedShaderUrl(url, resourceName, callback) {
+        if (!url || !url.length) {
+            callback(url)
+            return
+        }
+
+        if (Object.prototype.hasOwnProperty.call(shaderSanitizationCache, url)) {
+            callback(shaderSanitizationCache[url])
+            return
+        }
+
+        // Асинхронная загрузка шейдера
+        var xhr = new XMLHttpRequest()
+        xhr.open("GET", url, true) // true = асинхронно
+        xhr.responseType = "text"
+        xhr.onreadystatechange = function() {
+            if (xhr.readyState === XMLHttpRequest.DONE) {
+                var sanitizedUrl = url
+                if (xhr.status === 200 || xhr.status === 0) {
+                    var shaderSource = xhr.responseText
+                    if (shaderSource && shaderSource.indexOf("\r") !== -1) {
+                        var normalized = shaderSource.replace(/\r\n/g, "\n").replace(/\r/g, "\n")
+                        sanitizedUrl = "data:text/plain;charset=utf-8," + encodeURIComponent(normalized)
+                        console.warn("⚠️ FogEffect: normalized CRLF line endings for shader", resourceName)
+                    }
+                }
+                shaderSanitizationCache[url] = sanitizedUrl
+                callback(sanitizedUrl)
+            }
+        }
+        try {
+            xhr.send()
+        } catch (error) {
+            console.debug("FogEffect: shader normalization skipped", resourceName, error)
+            callback(url)
+        }
     }
 
     function handleShaderCompilationLog(shaderId, message) {
@@ -302,10 +368,35 @@ Effect {
             return
         if (normalized.indexOf("profile") === -1 && normalized.indexOf("expected newline") === -1)
             return
+        var history = shaderProfileFailoverAttempts[shaderId]
+        if (!history) {
+            history = ({ requestedDesktop: false, requestedGles: false, exhausted: false })
+            shaderProfileFailoverAttempts[shaderId] = history
+        }
+
+        if (history.exhausted)
+            return
+
         if (useGlesShaders) {
+            if (history.requestedDesktop) {
+                history.exhausted = true
+                shaderProfileFailoverAttempts[shaderId] = history
+                console.error(`FogEffect: shader ${shaderId} failed under both profiles; leaving GLES active`)
+                return
+            }
+            history.requestedDesktop = true
+            shaderProfileFailoverAttempts[shaderId] = history
             requestDesktopShaderProfile(
                         `Shader ${shaderId} reported #version incompatibility while using GLES profile`)
         } else {
+            if (history.requestedGles) {
+                history.exhausted = true
+                shaderProfileFailoverAttempts[shaderId] = history
+                console.error(`FogEffect: shader ${shaderId} failed under both profiles; leaving desktop active`)
+                return
+            }
+            history.requestedGles = true
+            shaderProfileFailoverAttempts[shaderId] = history
             requestGlesShaderProfile(
                         `Shader ${shaderId} reported #version incompatibility while using desktop profile`)
         }
