@@ -337,7 +337,7 @@ Effect {
         try {
             var xhr = new XMLHttpRequest()
             xhr.open("GET", url, false)
-            xhr.responseType = "text"
+            // xhr.responseType = "text" // Удалено для совместимости с Qt/JS движком
             xhr.send()
             if (xhr.status === 200 || xhr.status === 0) {
                 var shaderSource = xhr.responseText
