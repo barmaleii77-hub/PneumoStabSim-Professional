@@ -101,7 +101,7 @@ Effect {
     //    and can be overridden via forceDesktopShaderProfile.
     // qmllint disable unqualified
     property bool forceDesktopShaderProfile: false
-    property bool preferUnifiedShaderSources: true
+    property bool preferUnifiedShaderSources: false
 
     readonly property bool preferDesktopShaderProfile: {
         if (forceDesktopShaderProfile)
@@ -236,7 +236,7 @@ Effect {
             return ""
 
         var normalized = String(fileName)
-        if (!preferUnifiedShaderSources && useGlesShaders) {
+        if (useGlesShaders) {
             var dotIndex = normalized.lastIndexOf(".")
             var glesName
             if (dotIndex > 0)
@@ -247,6 +247,11 @@ Effect {
             var glesUrl = resolvedShaderUrl(glesName)
             if (shaderResourceExists(glesUrl, glesName, false))
                 return glesUrl
+
+            if (!preferUnifiedShaderSources) {
+                console.warn("⚠️ FogEffect: GLES shader variant missing; forcing desktop profile", glesName)
+                requestDesktopShaderProfile(`Shader ${glesName} unavailable; enforcing desktop profile`)
+            }
         }
 
         var resolvedUrl = resolvedShaderUrl(normalized)
@@ -254,9 +259,12 @@ Effect {
         return resolvedUrl
     }
 
-    // Шейдеры поставляются в единственном варианте; внутри GLSL-файлов
-    // присутствует блок #ifdef GL_ES, добавляющий precision для GLES.
-    // Это устраняет необходимость в отдельных файлах с суффиксом _es.
+    // Для профиля OpenGL ES поставляются отдельные GLSL-файлы с суффиксом _es,
+    // содержащие корректную директиву #version 300 es. Свойство
+    // preferUnifiedShaderSources можно использовать для диагностики, чтобы
+    // принудительно задействовать единый файл, но по умолчанию мы выбираем
+    // специализированные GLES-варианты и избегаем ошибок компиляции из-за
+    // неподдерживаемого профиля #version.
 
     function requestDesktopShaderProfile(reason) {
         if (forceDesktopShaderProfile)

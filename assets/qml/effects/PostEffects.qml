@@ -141,6 +141,9 @@ Item {
     // qmllint enable unqualified
     readonly property bool useGlesShaders: reportedGlesContext && !preferDesktopShaderProfile
 
+    readonly property string shaderResourceDirectory: "../../shaders/effects/"
+    property var shaderResourceAvailabilityCache: ({})
+
     function shaderCompilationMessage(shaderItem) {
         if (!shaderItem)
             return ""
@@ -182,11 +185,70 @@ Item {
         return false
     }
 
+    function resolvedShaderUrl(resourceName) {
+        return Qt.resolvedUrl(shaderResourceDirectory + resourceName)
+    }
+
+    function shaderResourceExists(url, resourceName, suppressErrors) {
+        if (!url || !url.length)
+            return false
+
+        if (Object.prototype.hasOwnProperty.call(shaderResourceAvailabilityCache, url))
+            return shaderResourceAvailabilityCache[url]
+
+        var available = false
+
+        function checkAvailability(method) {
+            try {
+                var xhr = new XMLHttpRequest()
+                xhr.open(method, url, false)
+                xhr.send()
+                if (xhr.status === 200 || xhr.status === 0) {
+                    available = true
+                    return true
+                }
+                if (xhr.status === 405 || xhr.status === 501)
+                    return false
+            } catch (error) {
+                console.debug("PostEffects: shader availability check failed", resourceName, method, error)
+            }
+            return false
+        }
+
+        if (!checkAvailability("HEAD"))
+            checkAvailability("GET")
+
+        shaderResourceAvailabilityCache[url] = available
+        if (!available && !suppressErrors)
+            console.error("❌ PostEffects: shader resource missing", resourceName, url)
+
+        return available
+    }
+
     function shaderPath(fileName) {
         if (!fileName || typeof fileName !== "string")
             return ""
 
-        return Qt.resolvedUrl("../../shaders/effects/" + String(fileName))
+        var normalized = String(fileName)
+        if (useGlesShaders) {
+            var dotIndex = normalized.lastIndexOf(".")
+            var glesName
+            if (dotIndex > 0)
+                glesName = normalized.slice(0, dotIndex) + "_es" + normalized.slice(dotIndex)
+            else
+                glesName = normalized + "_es"
+
+            var glesUrl = resolvedShaderUrl(glesName)
+            if (shaderResourceExists(glesUrl, glesName, false))
+                return glesUrl
+
+            console.warn("⚠️ PostEffects: GLES shader variant missing; falling back to desktop profile", glesName)
+            requestDesktopShaderProfile(`Shader ${glesName} unavailable; enforcing desktop profile`)
+        }
+
+        var resolvedUrl = resolvedShaderUrl(normalized)
+        shaderResourceExists(resolvedUrl, normalized, false)
+        return resolvedUrl
     }
 
     function requestDesktopShaderProfile(reason) {
@@ -210,9 +272,10 @@ Item {
                     `Shader ${shaderId} reported #version incompatibility`)
     }
 
-    // Примечание по совместимости: единый GLSL-файл обслуживает OpenGL и GLES.
-    // Внутри шейдера блок #ifdef GL_ES добавляет precision-объявления,
-    // поэтому раздельные файлы с суффиксом _es больше не требуются.
+    // Примечание по совместимости: для профиля OpenGL ES теперь поставляются
+    // отдельные GLSL-файлы с суффиксом _es и корректной директивой #version 300 es.
+    // При отсутствии GLES-варианта компонент автоматически переключается на
+    // десктопный профиль, чтобы не оставлять эффект без шейдера.
 
     // Свойства управления эффектами
     property bool bloomEnabled: false
