@@ -93,8 +93,8 @@ ExtendedSceneEnvironment {
         return targetMode
     }
     clearColor: resolvedClearColor
-    skyBoxCubeMap: (iblBackgroundEnabled && iblProbe) ? iblProbe : undefined
-    lightProbe: (iblLightingEnabled && iblProbe) ? iblProbe : undefined
+    skyBoxCubeMap: (iblBackgroundEnabled && iblProbe) ? iblProbe : null
+    lightProbe: (iblLightingEnabled && iblProbe) ? iblProbe : null
     probeExposure: skyboxBrightnessValue
     probeOrientation: Qt.vector3d(iblRotationPitchDeg, iblRotationDeg, iblRotationRollDeg)
     probeHorizon: probeHorizonValue
@@ -113,19 +113,25 @@ ExtendedSceneEnvironment {
  property bool specularAAEnabled: false
  property bool cameraIsMoving: false
 
- antialiasingMode: {
- if (aaPrimaryMode === "ssaa") return SceneEnvironment.SSAA
- if (aaPrimaryMode === "msaa") return SceneEnvironment.MSAA
- if (aaPrimaryMode === "progressive") return SceneEnvironment.ProgressiveAA
- return SceneEnvironment.NoAA
- }
+    antialiasingMode: {
+        if (aaPrimaryMode === "ssaa")
+            return SceneEnvironment.SSAA
+        if (aaPrimaryMode === "msaa")
+            return SceneEnvironment.MSAA
+        if (aaPrimaryMode === "progressive")
+            return SceneEnvironment.ProgressiveAA
+        return SceneEnvironment.NoAA
+    }
 
- antialiasingQuality: {
- if (aaQualityLevel === "high") return SceneEnvironment.AntialiasingQualityHigh
- if (aaQualityLevel === "medium") return SceneEnvironment.AntialiasingQualityMedium
- if (aaQualityLevel === "low") return SceneEnvironment.AntialiasingQualityLow
- return SceneEnvironment.AntialiasingQualityMedium
- }
+    antialiasingQuality: {
+        if (aaQualityLevel === "high" && SceneEnvironment["AntialiasingQualityHigh"] !== undefined)
+            return SceneEnvironment["AntialiasingQualityHigh"]
+        if (aaQualityLevel === "medium" && SceneEnvironment["AntialiasingQualityMedium"] !== undefined)
+            return SceneEnvironment["AntialiasingQualityMedium"]
+        if (aaQualityLevel === "low" && SceneEnvironment["AntialiasingQualityLow"] !== undefined)
+            return SceneEnvironment["AntialiasingQualityLow"]
+        return SceneEnvironment.AntialiasingQualityMedium
+    }
 
  // ✅ ИСПРАВЛЕНО: fxaaEnabled и specularAAEnabled уже установлены выше
  temporalAAEnabled: (aaPostMode === "taa" && taaEnabled && (!taaMotionAdaptive || cameraIsMoving))
@@ -165,10 +171,10 @@ ExtendedSceneEnvironment {
         return minor >= requiredMinor;
     }
 
- function toSceneLength(value) {
- var numeric = Number(value)
- if (!isFinite(numeric))
- return 0.0
+    function toSceneLength(value) {
+        var numeric = Number(value)
+        if (!isFinite(numeric))
+            return 0.0
         var scale = Number(sceneScaleFactor)
         if (!isFinite(scale) || scale <= 0)
             return numeric
@@ -223,8 +229,8 @@ ExtendedSceneEnvironment {
         if (normalized === "color")
             return SceneEnvironment.Color
         if (normalized === "transparent")
-            return (SceneEnvironment.Transparent !== undefined)
-                    ? SceneEnvironment.Transparent
+            return (SceneEnvironment["Transparent"] !== undefined)
+                    ? SceneEnvironment["Transparent"]
                     : SceneEnvironment.Color
         return SceneEnvironment.SkyBox
     }
@@ -252,15 +258,15 @@ ExtendedSceneEnvironment {
     }
 
     function _applyEnvironmentPayload(payload) {
-        applyEnvironmentPayload(payload)
+        root.applyEnvironmentPayload(payload)
     }
 
     function _applyQualityPayload(payload) {
-        applyQualityPayload(payload)
+        root.applyQualityPayload(payload)
     }
 
     function _applyEffectsPayload(payload) {
-        applyEffectsPayload(payload)
+        root.applyEffectsPayload(payload)
     }
 
     onSceneBridgeChanged: root._applySceneBridgeState()
@@ -890,8 +896,8 @@ return
         "aces": SceneEnvironment.TonemapModeAces !== undefined
                  ? SceneEnvironment.TonemapModeAces
                  : SceneEnvironment.TonemapModeFilmic,
-        "reinhard": SceneEnvironment.TonemapModeReinhard !== undefined
-                     ? SceneEnvironment.TonemapModeReinhard
+        "reinhard": SceneEnvironment["TonemapModeReinhard"] !== undefined
+                     ? SceneEnvironment["TonemapModeReinhard"]
                      : SceneEnvironment.TonemapModeLinear,
         "gamma": SceneEnvironment.TonemapModeGamma !== undefined
                   ? SceneEnvironment.TonemapModeGamma

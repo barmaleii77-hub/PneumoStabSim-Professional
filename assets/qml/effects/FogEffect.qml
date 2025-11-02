@@ -123,12 +123,14 @@ Effect {
     Shader {
         id: fogVertexShader
         stage: Shader.Vertex
+        autoInsertHeader: false
         shader: fogEffect.shaderPath("fog.vert")
     }
 
     Shader {
         id: fogFragmentShader
         stage: Shader.Fragment
+        autoInsertHeader: false
         property real userFogDensity: fogEffect.fogDensity
         property real userFogStart: fogEffect.fogStartDistance
         property real userFogEnd: fogEffect.fogEndDistance
@@ -153,6 +155,7 @@ Effect {
     Shader {
         id: fogFallbackShader
         stage: Shader.Fragment
+        autoInsertHeader: false
         property real userFogDensity: fogEffect.fogDensity
         property color userFogColor: fogEffect.fogColor
         shader: fogEffect.shaderPath("fog_fallback.frag")

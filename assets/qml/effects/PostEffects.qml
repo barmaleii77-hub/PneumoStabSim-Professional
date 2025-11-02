@@ -272,6 +272,7 @@ Item {
         Shader {
             id: bloomFragmentShader
             stage: Shader.Fragment
+            autoInsertHeader: false
             property real uIntensity: bloomEffect.intensity
             property real uThreshold: bloomEffect.threshold
             property real uBlurAmount: bloomEffect.blurAmount
@@ -281,6 +282,7 @@ Item {
         Shader {
             id: bloomFallbackShader
             stage: Shader.Fragment
+            autoInsertHeader: false
             shader: root.shaderPath("bloom_fallback.frag")
         }
 
@@ -352,6 +354,7 @@ Item {
         Shader {
             id: ssaoFragmentShader
             stage: Shader.Fragment
+            autoInsertHeader: false
             property real uIntensity: ssaoEffect.intensity
             property real uRadius: ssaoEffect.radius
             property real uBias: ssaoEffect.bias
@@ -362,6 +365,7 @@ Item {
         Shader {
             id: ssaoFallbackShader
             stage: Shader.Fragment
+            autoInsertHeader: false
             shader: root.shaderPath("ssao_fallback.frag")
         }
 
@@ -433,6 +437,7 @@ Item {
         Shader {
             id: dofFragmentShader
             stage: Shader.Fragment
+            autoInsertHeader: false
             property real uFocusDistance: dofEffect.focusDistance
             property real uFocusRange: dofEffect.focusRange
             property real uBlurAmount: dofEffect.blurAmount
@@ -444,6 +449,7 @@ Item {
         Shader {
             id: dofFallbackShader
             stage: Shader.Fragment
+            autoInsertHeader: false
             shader: root.shaderPath("dof_fallback.frag")
         }
 
@@ -509,6 +515,7 @@ Item {
         Shader {
             id: motionBlurFragmentShader
             stage: Shader.Fragment
+            autoInsertHeader: false
             property real uStrength: motionBlurEffect.strength
             property int uSamples: motionBlurEffect.samples
             shader: root.shaderPath("motion_blur.frag")
@@ -517,6 +524,7 @@ Item {
         Shader {
             id: motionBlurFallbackShader
             stage: Shader.Fragment
+            autoInsertHeader: false
             shader: root.shaderPath("motion_blur_fallback.frag")
         }
 
