@@ -105,19 +105,19 @@ Effect {
     property var shaderProfileFailoverAttempts: ({})
     onForceDesktopShaderProfileChanged: {
         if (forceDesktopShaderProfile && forceGlesShaderProfile) {
+            console.assert(false,
+                "FogEffect: forceDesktopShaderProfile and forceGlesShaderProfile cannot both be true")
             console.warn("⚠️ FogEffect: disabling forceGlesShaderProfile to honour desktop override")
             forceGlesShaderProfile = false
         }
-        console.assert(!(forceDesktopShaderProfile && forceGlesShaderProfile),
-                        "FogEffect: forceDesktopShaderProfile and forceGlesShaderProfile cannot both be true")
     }
     onForceGlesShaderProfileChanged: {
         if (forceDesktopShaderProfile && forceGlesShaderProfile) {
+            console.assert(false,
+                "FogEffect: forceDesktopShaderProfile and forceGlesShaderProfile cannot both be true")
             console.warn("⚠️ FogEffect: disabling forceDesktopShaderProfile to honour GLES override")
             forceDesktopShaderProfile = false
         }
-        console.assert(!(forceDesktopShaderProfile && forceGlesShaderProfile),
-                        "FogEffect: forceDesktopShaderProfile and forceGlesShaderProfile cannot both be true")
     }
     property bool preferUnifiedShaderSources: false
 
