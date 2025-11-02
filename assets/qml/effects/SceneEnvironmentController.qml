@@ -93,8 +93,8 @@ ExtendedSceneEnvironment {
         return targetMode
     }
     clearColor: resolvedClearColor
-    skyBoxCubeMap: (iblBackgroundEnabled && iblProbe) ? iblProbe : null
-    lightProbe: (iblLightingEnabled && iblProbe) ? iblProbe : null
+    skyBoxCubeMap: (iblBackgroundEnabled && iblProbe) ? iblProbe : undefined
+    lightProbe: (iblLightingEnabled && iblProbe) ? iblProbe : undefined
     probeExposure: skyboxBrightnessValue
     probeOrientation: Qt.vector3d(iblRotationPitchDeg, iblRotationDeg, iblRotationRollDeg)
     probeHorizon: probeHorizonValue
@@ -121,10 +121,10 @@ ExtendedSceneEnvironment {
  }
 
  antialiasingQuality: {
- if (aaQualityLevel === "high") return SceneEnvironment.High
- if (aaQualityLevel === "medium") return SceneEnvironment.Medium
- if (aaQualityLevel === "low") return SceneEnvironment.Low
- return SceneEnvironment.Medium
+ if (aaQualityLevel === "high") return SceneEnvironment.AntialiasingQualityHigh
+ if (aaQualityLevel === "medium") return SceneEnvironment.AntialiasingQualityMedium
+ if (aaQualityLevel === "low") return SceneEnvironment.AntialiasingQualityLow
+ return SceneEnvironment.AntialiasingQualityMedium
  }
 
  // ✅ ИСПРАВЛЕНО: fxaaEnabled и specularAAEnabled уже установлены выше
@@ -147,23 +147,23 @@ ExtendedSceneEnvironment {
 
     function qtVersionAtLeast(requiredMajor, requiredMinor) {
         var versionString = "";
-        if (Qt.application && Qt.application.qtVersion)
-            versionString = String(Qt.application.qtVersion);
-        else if (Qt.version)
-            versionString = String(Qt.version);
- var parts = versionString.split(".");
- if (parts.length <2)
- return false;
- var major = Number(parts[0]);
- var minor = Number(parts[1]);
- if (!isFinite(major) || !isFinite(minor))
- return false;
- if (major > requiredMajor)
- return true;
- if (major < requiredMajor)
- return false;
- return minor >= requiredMinor;
- }
+        if (Qt.application && Qt.application.version !== undefined)
+            versionString = String(Qt.application.version);
+        if (!versionString)
+            return false;
+        var parts = versionString.split(".");
+        if (parts.length < 2)
+            return false;
+        var major = Number(parts[0]);
+        var minor = Number(parts[1]);
+        if (!isFinite(major) || !isFinite(minor))
+            return false;
+        if (major > requiredMajor)
+            return true;
+        if (major < requiredMajor)
+            return false;
+        return minor >= requiredMinor;
+    }
 
  function toSceneLength(value) {
  var numeric = Number(value)
@@ -230,52 +230,52 @@ ExtendedSceneEnvironment {
     }
 
     function _applySceneBridgeState() {
-        if (!sceneBridge)
+        if (!root.sceneBridge)
             return
 
-        if (sceneBridge.environment && Object.keys(sceneBridge.environment).length)
- _applyEnvironmentPayload(sceneBridge.environment)
+        if (root.sceneBridge.environment && Object.keys(root.sceneBridge.environment).length)
+            root._applyEnvironmentPayload(root.sceneBridge.environment)
 
- if (sceneBridge.quality && Object.keys(sceneBridge.quality).length)
- _applyQualityPayload(sceneBridge.quality)
+        if (root.sceneBridge.quality && Object.keys(root.sceneBridge.quality).length)
+            root._applyQualityPayload(root.sceneBridge.quality)
 
- if (sceneBridge.effects && Object.keys(sceneBridge.effects).length)
- _applyEffectsPayload(sceneBridge.effects)
- }
+        if (root.sceneBridge.effects && Object.keys(root.sceneBridge.effects).length)
+            root._applyEffectsPayload(root.sceneBridge.effects)
+    }
 
- function _applyEnvironmentPayload(payload) {
- applyEnvironmentPayload(payload)
- }
+    function _applyEnvironmentPayload(payload) {
+        applyEnvironmentPayload(payload)
+    }
 
- function _applyQualityPayload(payload) {
- applyQualityPayload(payload)
- }
+    function _applyQualityPayload(payload) {
+        applyQualityPayload(payload)
+    }
 
- function _applyEffectsPayload(payload) {
- applyEffectsPayload(payload)
- }
+    function _applyEffectsPayload(payload) {
+        applyEffectsPayload(payload)
+    }
 
- onSceneBridgeChanged: _applySceneBridgeState()
+    onSceneBridgeChanged: root._applySceneBridgeState()
 
- Connections {
- target: sceneBridge
- enabled: !!sceneBridge
+    Connections {
+        target: root.sceneBridge
+        enabled: !!root.sceneBridge
 
- function onEnvironmentChanged(payload) {
- if (payload)
- _applyEnvironmentPayload(payload)
- }
+        function onEnvironmentChanged(payload) {
+            if (payload)
+                root._applyEnvironmentPayload(payload)
+        }
 
- function onQualityChanged(payload) {
- if (payload)
- _applyQualityPayload(payload)
- }
+        function onQualityChanged(payload) {
+            if (payload)
+                root._applyQualityPayload(payload)
+        }
 
- function onEffectsChanged(payload) {
- if (payload)
- _applyEffectsPayload(payload)
- }
- }
+        function onEffectsChanged(payload) {
+            if (payload)
+                root._applyEffectsPayload(payload)
+        }
+    }
 
     Component.onCompleted: {
         root.canUseDithering = qtVersionAtLeast(6,10)
@@ -284,7 +284,7 @@ ExtendedSceneEnvironment {
         }
         console.log("✅ SceneEnvironmentController loaded (dithering "
                     + (root.canUseDithering ? "enabled" : "disabled") + ")")
-        _applySceneBridgeState()
+        root._applySceneBridgeState()
         applyQualityPresetInternal(qualityPreset)
         _syncSkyboxBackground()
     }
@@ -879,9 +879,15 @@ return
     property real tonemapWhitePoint: 2.0
     readonly property var tonemapModeLookup: ({
         "filmic": SceneEnvironment.TonemapModeFilmic,
-        "aces": SceneEnvironment.TonemapModeAces,
-        "reinhard": SceneEnvironment.TonemapModeReinhard,
-        "gamma": SceneEnvironment.TonemapModeLinear,
+        "aces": SceneEnvironment.TonemapModeAces !== undefined
+                 ? SceneEnvironment.TonemapModeAces
+                 : SceneEnvironment.TonemapModeFilmic,
+        "reinhard": SceneEnvironment.TonemapModeReinhard !== undefined
+                     ? SceneEnvironment.TonemapModeReinhard
+                     : SceneEnvironment.TonemapModeLinear,
+        "gamma": SceneEnvironment.TonemapModeGamma !== undefined
+                  ? SceneEnvironment.TonemapModeGamma
+                  : SceneEnvironment.TonemapModeLinear,
         "linear": SceneEnvironment.TonemapModeLinear,
         "none": SceneEnvironment.TonemapModeNone
     })
