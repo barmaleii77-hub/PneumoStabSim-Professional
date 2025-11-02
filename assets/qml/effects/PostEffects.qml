@@ -38,15 +38,30 @@ Item {
         }
     }
 
+    readonly property bool useGlesShaders: GraphicsInfo.api === GraphicsInfo.OpenGLES
+            || GraphicsInfo.api === GraphicsInfo.Software
+
     function shaderPath(fileName) {
         if (!fileName || typeof fileName !== "string")
             return ""
-        return Qt.resolvedUrl("../../shaders/effects/" + fileName)
+
+        var normalized = String(fileName)
+        if (useGlesShaders) {
+            var dotIndex = normalized.lastIndexOf(".")
+            if (dotIndex > 0) {
+                normalized = normalized.slice(0, dotIndex) + "_es" + normalized.slice(dotIndex)
+            } else {
+                normalized = normalized + "_es"
+            }
+        }
+
+        return Qt.resolvedUrl("../../shaders/effects/" + normalized)
     }
 
-    // Примечание по совместимости: все пользовательские шейдеры используют GLSL 330 core,
-    // чтобы гарантировать работу на рендерере OpenGL 3.3. Явные layout(binding=...)
-    // квалификаторы не применяются — Qt Quick 3D назначает текстурные юниты автоматически.
+    // Примечание по совместимости: в средах OpenGL используем GLSL 330 core,
+    // а для OpenGL ES автоматически подключаем GLSL 300 es версии шейдеров.
+    // Явные layout(binding=...) квалификаторы не применяются — Qt Quick 3D назначает
+    // текстурные юниты автоматически.
 
     // Свойства управления эффектами
     property bool bloomEnabled: false

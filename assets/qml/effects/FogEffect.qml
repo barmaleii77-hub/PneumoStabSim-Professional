@@ -53,13 +53,26 @@ Effect {
         console.warn("⚠️ FogEffect: depth texture not supported; using fallback shader")
     }
 
+    readonly property bool useGlesShaders: GraphicsInfo.api === GraphicsInfo.OpenGLES
+            || GraphicsInfo.api === GraphicsInfo.Software
+
     function shaderPath(fileName) {
         if (!fileName || typeof fileName !== "string")
             return ""
-        return Qt.resolvedUrl("../../shaders/effects/" + fileName)
+
+        var normalized = String(fileName)
+        if (useGlesShaders) {
+            var dotIndex = normalized.lastIndexOf(".")
+            if (dotIndex > 0)
+                normalized = normalized.slice(0, dotIndex) + "_es" + normalized.slice(dotIndex)
+            else
+                normalized = normalized + "_es"
+        }
+
+        return Qt.resolvedUrl("../../shaders/effects/" + normalized)
     }
 
-    // Используем GLSL 330 core для совместимости с OpenGL 3.3.
+    // Используем GLSL 330 core на OpenGL и GLSL 300 es в контекстах OpenGL ES.
     // Qt Quick 3D сам привязывает текстурные юниты, поэтому layout(binding=...)
     // намеренно не применяются.
 
