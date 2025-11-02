@@ -118,7 +118,7 @@ def test_handle_environment_changed_prefers_canonical_key_when_both_provided() -
     assert saved_payload["ibl_source"] == "assets/hdr/canonical.hdr"
 
 
-def test_handle_environment_changed_queues_canonical_payload_when_invoke_fails() -> None:
+def test_environment_change_invoke_failure_queues_payload() -> None:
     window = _StubWindow()
     params: Dict[str, Any] = {"iblSource": "assets\\hdr\\queued.hdr"}
 
@@ -163,7 +163,9 @@ def test_handle_preset_applied_normalizes_environment_section() -> None:
     assert "iblSource" not in env_state
 
     env_queue_payloads = [
-        payload for category, payload in _StubBridge.queue_calls if category == "environment"
+        payload
+        for category, payload in _StubBridge.queue_calls
+        if category == "environment"
     ]
     assert env_queue_payloads
     queued_payload = env_queue_payloads[-1]
@@ -173,3 +175,35 @@ def test_handle_preset_applied_normalizes_environment_section() -> None:
     saved_key, saved_payload = window.saved_updates[-1]
     assert saved_key == "graphics"
     assert saved_payload["environment"]["ibl_source"] == "assets/hdr/preset.hdr"
+
+
+def test_handle_environment_changed_skips_duplicate_payloads() -> None:
+    window = _StubWindow()
+    base_params: Dict[str, Any] = {"iblSource": "assets/hdr/unique.hdr"}
+
+    signals_router.SignalsRouter.handle_environment_changed(window, dict(base_params))
+    initial_invoke_calls = len(_StubBridge.calls)
+
+    signals_router.SignalsRouter.handle_environment_changed(window, dict(base_params))
+
+    assert len(_StubBridge.calls) == initial_invoke_calls
+    assert not _StubBridge.queue_calls
+
+
+def test_handle_environment_changed_skips_duplicate_queued_payloads() -> None:
+    window = _StubWindow()
+    base_params: Dict[str, Any] = {"iblSource": "assets\\hdr\\dedupe.hdr"}
+
+    _StubBridge.invoke_result = False
+    try:
+        signals_router.SignalsRouter.handle_environment_changed(
+            window, dict(base_params)
+        )
+        signals_router.SignalsRouter.handle_environment_changed(
+            window, dict(base_params)
+        )
+    finally:
+        _StubBridge.invoke_result = True
+
+    assert len(_StubBridge.calls) == 1
+    assert len(_StubBridge.queue_calls) == 1
