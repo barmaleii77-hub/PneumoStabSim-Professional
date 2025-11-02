@@ -72,14 +72,19 @@ Item {
     property alias motionBlurSamples: motionBlurEffect.samples
 
     function resolveShaders(isEnabled, effectItem, activeShader, fallbackShader) {
-        // Если эффект выключен, отключаем его полностью
+        const hasFallback = fallbackShader !== undefined && fallbackShader !== null
+        // Если эффект выключен, отключаем его полностью, но оставляем безопасный шейдер,
+        // чтобы движок QtQuick3D не создавал пустой шейдер и не завершал компиляцию.
         if (!isEnabled) {
             trySetEffectProperty(effectItem, "enabled", false)
-            return []
+            return hasFallback ? [fallbackShader] : []
         }
-        // Включаем эффект и выбираем нужный шейдер
+        // Включаем эффект и выбираем нужный шейдер. Если не хватает данных и активируется
+        // фолбэк, всегда возвращаем валидный шейдер.
         trySetEffectProperty(effectItem, "enabled", true)
-        return effectItem.fallbackActive ? [fallbackShader] : [activeShader]
+        if (effectItem.fallbackActive)
+            return hasFallback ? [fallbackShader] : []
+        return [activeShader]
     }
 
     function ensureEffectRequirement(effectItem, propertyName, value, successLog, failureLog) {
