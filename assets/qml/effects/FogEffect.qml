@@ -89,12 +89,16 @@ Effect {
         return false
     }
 
-    // Используем GLSL ES только при наличии реального контекста OpenGL ES.
-    // Для программного или RHI-рендерера требуются варианты core.
-    // Свойство language: Shader.GLSL намеренно не задаём — Qt Quick 3D
-    // автоматически выбирает нужный профиль GLSL в зависимости от API.
-    // We intentionally omit language: Shader.GLSL so Qt Quick 3D can
-    // auto-select the appropriate GLSL profile for the active graphics API.
+    // Стратегия выбора профиля шейдеров:
+    // 1. Не задаём language: Shader.GLSL, чтобы Qt Quick 3D самостоятельно
+    //    выбрал корректный профиль GLSL для активного графического API.
+    // 2. Приоритет GLES-профиля задаётся детектором платформы ниже и может
+    //    быть переопределён свойством forceDesktopShaderProfile.
+    // Shader profile selection strategy:
+    // 1. Omit language: Shader.GLSL so Qt Quick 3D can choose the best GLSL
+    //    profile automatically for the current graphics backend.
+    // 2. The GLES preference is driven by the platform detection logic below
+    //    and can be overridden via forceDesktopShaderProfile.
     // qmllint disable unqualified
     property bool forceDesktopShaderProfile: false
     property bool preferUnifiedShaderSources: true
