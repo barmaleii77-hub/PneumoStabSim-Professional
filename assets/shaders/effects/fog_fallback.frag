@@ -1,4 +1,5 @@
 #version 330 core
+// Requires an OpenGL 3.3 core context for Qt Quick 3D runtime compatibility.
 
 #ifdef GL_ES
 precision highp float;
@@ -18,11 +19,13 @@ precision mediump sampler2D;
 #ifndef SAMPLER_BINDING
 #ifdef QSB_ADD_BINDINGS
 #ifdef GL_ES
+// GLSL 330 does not support explicit binding qualifiers; Qt assigns bindings automatically.
 #define SAMPLER_BINDING(index)
 #else
 #define SAMPLER_BINDING(index) layout(binding = index)
 #endif
 #else
+// GLSL 330 does not support explicit binding qualifiers; Qt assigns bindings automatically.
 #define SAMPLER_BINDING(index)
 #endif
 #endif
@@ -30,11 +33,13 @@ precision mediump sampler2D;
 #ifndef UBO_BINDING
 #ifdef QSB_ADD_BINDINGS
 #ifdef GL_ES
+// GLSL 330 does not support explicit binding qualifiers; Qt assigns bindings automatically.
 #define UBO_BINDING(index)
 #else
 #define UBO_BINDING(index) layout(binding = index)
 #endif
 #else
+// GLSL 330 does not support explicit binding qualifiers; Qt assigns bindings automatically.
 #define UBO_BINDING(index)
 #endif
 #endif
