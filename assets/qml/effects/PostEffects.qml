@@ -251,7 +251,9 @@ Item {
                 "    FRAGCOLOR = vec4(result, original.a);",
                 "}",
             ])
-            code: shaderSource
+            shader: ShaderProgram {
+                fragmentShaderCode: bloomFragmentShader.shaderSource
+            }
         }
 
         Shader {
@@ -276,7 +278,9 @@ Item {
                 "    FRAGCOLOR = texture(qt_Texture0, INPUT_UV);",
                 "}",
             ])
-            code: shaderSource
+            shader: ShaderProgram {
+                fragmentShaderCode: bloomFallbackShader.shaderSource
+            }
         }
 
 
@@ -423,7 +427,9 @@ Item {
                 "    FRAGCOLOR = vec4(original.rgb * occlusion, original.a);",
                 "}",
             ])
-            code: shaderSource
+            shader: ShaderProgram {
+                fragmentShaderCode: ssaoFragmentShader.shaderSource
+            }
         }
 
         Shader {
@@ -447,7 +453,9 @@ Item {
                 "    FRAGCOLOR = texture(qt_Texture0, INPUT_UV);",
                 "}",
             ])
-            code: shaderSource
+            shader: ShaderProgram {
+                fragmentShaderCode: ssaoFallbackShader.shaderSource
+            }
         }
 
 
@@ -579,7 +587,9 @@ Item {
                 "    FRAGCOLOR = vec4(result, original.a);",
                 "}",
             ])
-            code: shaderSource
+            shader: ShaderProgram {
+                fragmentShaderCode: dofFragmentShader.shaderSource
+            }
         }
 
         Shader {
@@ -604,7 +614,9 @@ Item {
                 "    FRAGCOLOR = texture(qt_Texture0, INPUT_UV);",
                 "}",
             ])
-            code: shaderSource
+            shader: ShaderProgram {
+                fragmentShaderCode: dofFallbackShader.shaderSource
+            }
         }
 
 
@@ -706,7 +718,9 @@ Item {
                 "    FRAGCOLOR = vec4(color, original.a);",
                 "}",
             ])
-            code: shaderSource
+            shader: ShaderProgram {
+                fragmentShaderCode: motionBlurFragmentShader.shaderSource
+            }
         }
 
         Shader {
@@ -731,7 +745,9 @@ Item {
                 "    FRAGCOLOR = texture(qt_Texture0, INPUT_UV);",
                 "}",
             ])
-            code: shaderSource
+            shader: ShaderProgram {
+                fragmentShaderCode: motionBlurFallbackShader.shaderSource
+            }
         }
 
 

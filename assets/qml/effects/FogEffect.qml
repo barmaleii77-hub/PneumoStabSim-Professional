@@ -86,7 +86,9 @@ Effect {
             "    POSITION = ubuf.qt_ModelViewProjectionMatrix * localPosition;",
             "}"
         ])
-        code: shaderSource
+        shader: ShaderProgram {
+            vertexShaderCode: fogVertexShader.shaderSource
+        }
     }
 
     Shader {
@@ -242,7 +244,9 @@ Effect {
             "    FRAGCOLOR = vec4(foggedColor, originalColor.a) * EFFECT_OPACITY;",
             "}"
         ])
-        code: shaderSource
+        shader: ShaderProgram {
+            fragmentShaderCode: fogFragmentShader.shaderSource
+        }
     }
 
     Shader {
@@ -280,7 +284,9 @@ Effect {
             "    FRAGCOLOR = vec4(foggedColor, originalColor.a);",
             "}"
         ])
-        code: shaderSource
+        shader: ShaderProgram {
+            fragmentShaderCode: fogFallbackShader.shaderSource
+        }
     }
 
     passes: [
