@@ -1,5 +1,6 @@
 import QtQuick
 import QtQuick3D 6.10
+import QtQuick3D.Effects 6.10
 
 /*
  * Улучшенный эффект тумана с расширенными настройками
