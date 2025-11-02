@@ -173,7 +173,20 @@ class UISetup:
             QSGRendererInterface.GraphicsApi.Metal: "metal",
             QSGRendererInterface.GraphicsApi.Null: "null",
         }
-        return mapping.get(api, f"unknown({int(api)})")
+        if api in mapping:
+            return mapping[api]
+
+        fallback: str
+        value = getattr(api, "value", None)
+        if value is not None:
+            fallback = str(value)
+        else:
+            try:
+                fallback = str(int(api))
+            except (TypeError, ValueError):
+                fallback = str(api)
+
+        return f"unknown({fallback})"
 
     @staticmethod
     def _graphics_api_requires_desktop_shaders(
