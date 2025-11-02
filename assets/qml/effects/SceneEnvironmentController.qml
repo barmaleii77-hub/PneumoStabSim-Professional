@@ -93,8 +93,8 @@ ExtendedSceneEnvironment {
         return targetMode
     }
     clearColor: resolvedClearColor
-    skyBoxCubeMap: (iblBackgroundEnabled && iblProbe !== null) ? iblProbe : null
-    lightProbe: (iblLightingEnabled && iblProbe !== null) ? iblProbe : null
+    skyBoxCubeMap: (iblBackgroundEnabled && iblProbe) ? iblProbe : undefined
+    lightProbe: (iblLightingEnabled && iblProbe) ? iblProbe : undefined
     probeExposure: skyboxBrightnessValue
     probeOrientation: Qt.vector3d(iblRotationPitchDeg, iblRotationDeg, iblRotationRollDeg)
     probeHorizon: probeHorizonValue
@@ -120,15 +120,12 @@ ExtendedSceneEnvironment {
  return SceneEnvironment.NoAA
  }
 
-    antialiasingQuality: {
-        if (aaQualityLevel === "high")
-            return sceneEnvironmentEnum("High", "Medium")
-        if (aaQualityLevel === "medium")
-            return sceneEnvironmentEnum("Medium", null)
-        if (aaQualityLevel === "low")
-            return sceneEnvironmentEnum("Low", "Medium")
-        return sceneEnvironmentEnum("Medium", null)
-    }
+ antialiasingQuality: {
+ if (aaQualityLevel === "high") return SceneEnvironment.AntialiasingQualityHigh
+ if (aaQualityLevel === "medium") return SceneEnvironment.AntialiasingQualityMedium
+ if (aaQualityLevel === "low") return SceneEnvironment.AntialiasingQualityLow
+ return SceneEnvironment.AntialiasingQualityMedium
+ }
 
  // ✅ ИСПРАВЛЕНО: fxaaEnabled и specularAAEnabled уже установлены выше
  temporalAAEnabled: (aaPostMode === "taa" && taaEnabled && (!taaMotionAdaptive || cameraIsMoving))
@@ -149,26 +146,23 @@ ExtendedSceneEnvironment {
     property real cameraAspectRatio: 1.0
 
     function qtVersionAtLeast(requiredMajor, requiredMinor) {
-        var versionString = ""
-        if (Qt.application && typeof Qt.application.version === "string")
-            versionString = Qt.application.version
-
+        var versionString = "";
+        if (Qt.application && Qt.application.version !== undefined)
+            versionString = String(Qt.application.version);
         if (!versionString)
-            return false
-
-        var parts = versionString.split(".")
+            return false;
+        var parts = versionString.split(".");
         if (parts.length < 2)
-            return false
-
-        var major = Number(parts[0])
-        var minor = Number(parts[1])
+            return false;
+        var major = Number(parts[0]);
+        var minor = Number(parts[1]);
         if (!isFinite(major) || !isFinite(minor))
-            return false
+            return false;
         if (major > requiredMajor)
-            return true
+            return true;
         if (major < requiredMajor)
-            return false
-        return minor >= requiredMinor
+            return false;
+        return minor >= requiredMinor;
     }
 
  function toSceneLength(value) {
@@ -247,16 +241,14 @@ ExtendedSceneEnvironment {
         if (!root.sceneBridge)
             return
 
-        var bridge = root.sceneBridge
+        if (root.sceneBridge.environment && Object.keys(root.sceneBridge.environment).length)
+            root._applyEnvironmentPayload(root.sceneBridge.environment)
 
-        if (bridge.environment && Object.keys(bridge.environment).length)
-            root._applyEnvironmentPayload(bridge.environment)
+        if (root.sceneBridge.quality && Object.keys(root.sceneBridge.quality).length)
+            root._applyQualityPayload(root.sceneBridge.quality)
 
-        if (bridge.quality && Object.keys(bridge.quality).length)
-            root._applyQualityPayload(bridge.quality)
-
-        if (bridge.effects && Object.keys(bridge.effects).length)
-            root._applyEffectsPayload(bridge.effects)
+        if (root.sceneBridge.effects && Object.keys(root.sceneBridge.effects).length)
+            root._applyEffectsPayload(root.sceneBridge.effects)
     }
 
     function _applyEnvironmentPayload(payload) {
@@ -271,7 +263,7 @@ ExtendedSceneEnvironment {
         applyEffectsPayload(payload)
     }
 
-    onSceneBridgeChanged: _applySceneBridgeState()
+    onSceneBridgeChanged: root._applySceneBridgeState()
 
     Connections {
         target: root.sceneBridge
@@ -300,7 +292,7 @@ ExtendedSceneEnvironment {
         }
         console.log("✅ SceneEnvironmentController loaded (dithering "
                     + (root.canUseDithering ? "enabled" : "disabled") + ")")
-        _applySceneBridgeState()
+        root._applySceneBridgeState()
         applyQualityPresetInternal(qualityPreset)
         _syncSkyboxBackground()
     }
@@ -894,12 +886,18 @@ return
     property real tonemapExposure: 1.0
     property real tonemapWhitePoint: 2.0
     readonly property var tonemapModeLookup: ({
-        "filmic": sceneEnvironmentEnum("TonemapModeFilmic", "TonemapModeLinear"),
-        "aces": sceneEnvironmentEnum("TonemapModeAces", "TonemapModeFilmic"),
-        "reinhard": sceneEnvironmentEnum("TonemapModeReinhard", "TonemapModeLinear"),
-        "gamma": sceneEnvironmentEnum("TonemapModeLinear", null),
-        "linear": sceneEnvironmentEnum("TonemapModeLinear", null),
-        "none": sceneEnvironmentEnum("TonemapModeNone", null)
+        "filmic": SceneEnvironment.TonemapModeFilmic,
+        "aces": SceneEnvironment.TonemapModeAces !== undefined
+                 ? SceneEnvironment.TonemapModeAces
+                 : SceneEnvironment.TonemapModeFilmic,
+        "reinhard": SceneEnvironment.TonemapModeReinhard !== undefined
+                     ? SceneEnvironment.TonemapModeReinhard
+                     : SceneEnvironment.TonemapModeLinear,
+        "gamma": SceneEnvironment.TonemapModeGamma !== undefined
+                  ? SceneEnvironment.TonemapModeGamma
+                  : SceneEnvironment.TonemapModeLinear,
+        "linear": SceneEnvironment.TonemapModeLinear,
+        "none": SceneEnvironment.TonemapModeNone
     })
 
     function normalizeTonemapModeName(value) {
