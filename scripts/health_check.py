@@ -8,6 +8,10 @@ import subprocess
 import importlib
 from pathlib import Path
 
+from importlib import metadata
+
+from packaging.version import InvalidVersion, Version
+
 
 def check_python_version():
     """Проверяет версию Python"""
@@ -22,24 +26,123 @@ def check_python_version():
         return True
 
 
+def _pip_show_version(distribution_name: str) -> str | None:
+    """Возвращает версию пакета через ``pip show`` для текущего интерпретатора."""
+
+    try:
+        result = subprocess.run(
+            [sys.executable, "-m", "pip", "show", distribution_name],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+    except FileNotFoundError:
+        return None
+
+    if result.returncode != 0 or not result.stdout:
+        return None
+
+    for line in result.stdout.splitlines():
+        if line.lower().startswith("version:"):
+            return line.split(":", 1)[1].strip()
+
+    return None
+
+
+def _get_distribution_version(distribution_names: tuple[str, ...]) -> tuple[str | None, str | None]:
+    """Пытается определить версию установленного дистрибутива."""
+
+    for name in distribution_names:
+        try:
+            return metadata.version(name), name
+        except metadata.PackageNotFoundError:
+            version_from_pip = _pip_show_version(name)
+            if version_from_pip:
+                return version_from_pip, name
+
+    return None, None
+
+
 def check_dependencies():
     """Проверяет основные зависимости"""
-    required_packages = {
-        "PySide6": "6.9.0",
-        "numpy": "2.0.0",
-        "scipy": "1.10.0",
-        "matplotlib": "3.5.0",
-    }
+
+    required_packages = (
+        {
+            "display": "PySide6",
+            "min_version": "6.9.0",
+            "import_names": ("PySide6",),
+            "distributions": ("PySide6", "PySide6-Essentials", "PySide6-Addons"),
+        },
+        {
+            "display": "numpy",
+            "min_version": "2.0.0",
+            "import_names": ("numpy",),
+            "distributions": ("numpy",),
+        },
+        {
+            "display": "scipy",
+            "min_version": "1.10.0",
+            "import_names": ("scipy",),
+            "distributions": ("scipy",),
+        },
+        {
+            "display": "matplotlib",
+            "min_version": "3.5.0",
+            "import_names": ("matplotlib",),
+            "distributions": ("matplotlib",),
+        },
+    )
 
     all_ok = True
 
-    for package, min_version in required_packages.items():
+    for package in required_packages:
+        display = package["display"]
+        min_version = package["min_version"]
+        import_names = package["import_names"]
+        distributions = package["distributions"]
+
+        module = None
+        imported_name = None
+        for import_name in import_names:
+            try:
+                module = importlib.import_module(import_name)
+                imported_name = import_name
+                break
+            except ImportError:
+                continue
+
+        if module is None:
+            print(f"❌ {display} не установлен (импорт не найден)")
+            all_ok = False
+            continue
+
+        version_attr = getattr(module, "__version__", None)
+        version, dist_name = _get_distribution_version(distributions)
+
+        if version is None:
+            version = version_attr or "unknown"
+
+        info_suffix = ""
+        if dist_name:
+            info_suffix = f" (дистрибутив {dist_name})"
+        elif imported_name:
+            info_suffix = f" (модуль {imported_name})"
+
+        print(f"✅ {display}: {version}{info_suffix}")
+
         try:
-            module = importlib.import_module(package.lower().replace("-", "_"))
-            version = getattr(module, "__version__", "unknown")
-            print(f"✅ {package}: {version}")
-        except ImportError:
-            print(f"❌ {package} не установлен")
+            current_version = Version(version)
+            required_version = Version(min_version)
+        except InvalidVersion:
+            print(
+                f"⚠️ Невозможно сравнить версии для {display}: текущее значение '{version}'"
+            )
+            continue
+
+        if current_version < required_version:
+            print(
+                f"❌ {display}: требуется версия {min_version}+ (обнаружена {version})"
+            )
             all_ok = False
 
     return all_ok
