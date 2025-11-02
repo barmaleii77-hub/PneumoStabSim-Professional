@@ -1,4 +1,5 @@
 #version 300 es
+
 precision highp float;
 precision highp int;
 precision mediump sampler2D;
