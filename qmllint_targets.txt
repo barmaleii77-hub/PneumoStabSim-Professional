@@ -3,3 +3,4 @@ assets/qml/components
 assets/qml/environment
 assets/qml/scene
 assets/qml/quality/Check.qml
+assets/qml/effects

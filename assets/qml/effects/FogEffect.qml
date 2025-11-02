@@ -258,22 +258,13 @@ Effect {
     // присутствует блок #ifdef GL_ES, добавляющий precision для GLES.
     // Это устраняет необходимость в отдельных файлах с суффиксом _es.
 
-    property bool supportsAutoInsertHeader: false
-    property bool useManualShaderHeaders: false
-    property bool inlineShaderCodeSupported: false
-
-    property string vertexShaderCode: ""
-    property string fragmentShaderCode: ""
-    property string fallbackShaderCode: ""
-
     function requestDesktopShaderProfile(reason) {
         if (forceDesktopShaderProfile)
             return
         console.warn("⚠️ FogEffect:", reason, "– forcing desktop shader profile")
         forceDesktopShaderProfile = true
         Qt.callLater(function() {
-            refreshShaderSources()
-            refreshShaderAssignments()
+            shaderResourceAvailabilityCache = ({})
         })
     }
 
@@ -330,73 +321,6 @@ Effect {
         } catch (error) {
         }
         return false
-    }
-
-    function loadShaderSource(fileName, stripVersionDirective) {
-        var url = shaderPath(fileName)
-        if (!url)
-            return ""
-
-        try {
-            var xhr = new XMLHttpRequest()
-            xhr.open("GET", url, false)
-            xhr.send()
-            if (xhr.status !== 200 && xhr.status !== 0) {
-                console.warn("⚠️ FogEffect: failed to load shader", url, xhr.status)
-                return ""
-            }
-
-            var source = xhr.responseText || ""
-            if (!stripVersionDirective)
-                return source
-
-            var lines = source.split(/\r?\n/)
-            while (lines.length && lines[0].trim().startsWith("#version"))
-                lines.shift()
-            return lines.join("\n")
-        } catch (error) {
-            console.warn("⚠️ FogEffect: shader load error", url, error)
-        }
-        return ""
-    }
-
-    function refreshShaderSources() {
-        var stripVersion = !useManualShaderHeaders
-        vertexShaderCode = loadShaderSource("fog.vert", stripVersion)
-        fragmentShaderCode = loadShaderSource("fog.frag", stripVersion)
-        fallbackShaderCode = loadShaderSource("fog_fallback.frag", stripVersion)
-    }
-
-    function shaderSupportsInlineCode(shaderItem) {
-        if (!shaderItem)
-            return false
-        try {
-            return "code" in shaderItem
-        } catch (error) {
-        }
-        return false
-    }
-
-    function shaderDataUrl(source) {
-        if (!source || !source.length)
-            return ""
-        try {
-            return "data:text/plain;base64," + Qt.btoa(source)
-        } catch (error) {
-            console.warn("⚠️ FogEffect: failed to encode shader source", error)
-        }
-        return ""
-    }
-
-    function assignShaderSource(shaderItem, source, fileName) {
-        shaderItem
-        source
-        fileName
-        // Shader URLs are bound directly via the shader property.
-    }
-
-    function refreshShaderAssignments() {
-        // Bindings keep shader URLs synchronized automatically.
     }
 
     function updateFallbackActivation() {
@@ -495,12 +419,7 @@ Effect {
     Shader {
         id: fogVertexShader
         stage: Shader.Vertex
-        property string shaderSource: fogEffect.vertexShaderCode
-        // qmllint disable import missing-property
-        shader: ShaderData {
-            source: fogEffect.shaderDataUrl(fogVertexShader.shaderSource)
-        }
-        // qmllint enable import missing-property
+        shader: fogEffect.shaderPath("fog.vert")
         Component.onCompleted: {
             if (!fogEffect.attachShaderLogHandler(fogVertexShader, "fog.vert"))
                 console.debug("FogEffect: shader log handler unavailable for fog.vert")
@@ -518,7 +437,6 @@ Effect {
     Shader {
         id: fogFragmentShader
         stage: Shader.Fragment
-        property string shaderSource: fogEffect.fragmentShaderCode
         property real userFogDensity: fogEffect.fogDensity
         property real userFogStart: fogEffect.fogStartDistance
         property real userFogEnd: fogEffect.fogEndDistance
@@ -537,11 +455,7 @@ Effect {
         property real userCameraFar: fogEffect.cameraClipFar
         property real userCameraFov: fogEffect.cameraFieldOfView
         property real userCameraAspect: fogEffect.cameraAspectRatio
-        // qmllint disable import missing-property
-        shader: ShaderData {
-            source: fogEffect.shaderDataUrl(fogFragmentShader.shaderSource)
-        }
-        // qmllint enable import missing-property
+        shader: fogEffect.shaderPath("fog.frag")
         Component.onCompleted: {
             if (!fogEffect.attachShaderLogHandler(fogFragmentShader, "fog.frag"))
                 console.debug("FogEffect: shader log handler unavailable for fog.frag")
@@ -559,12 +473,7 @@ Effect {
     Shader {
         id: fogFallbackShader
         stage: Shader.Fragment
-        property string shaderSource: fogEffect.fallbackShaderCode
-        // qmllint disable import missing-property
-        shader: ShaderData {
-            source: fogEffect.shaderDataUrl(fogFallbackShader.shaderSource)
-        }
-        // qmllint enable import missing-property
+        shader: fogEffect.shaderPath("fog_fallback.frag")
         property real userFogDensity: fogEffect.fogDensity
         property color userFogColor: fogEffect.fogColor
         Component.onCompleted: {
@@ -597,32 +506,8 @@ Effect {
         onTriggered: fogEffect.time += 0.016
     }
 
-    onVertexShaderCodeChanged: refreshShaderAssignments()
-    onFragmentShaderCodeChanged: refreshShaderAssignments()
-    onFallbackShaderCodeChanged: refreshShaderAssignments()
-
     Component.onCompleted: {
         var depthReady = enableDepthTextureSupport()
-        inlineShaderCodeSupported = shaderSupportsInlineCode(fogVertexShader)
-                && shaderSupportsInlineCode(fogFragmentShader)
-                && shaderSupportsInlineCode(fogFallbackShader)
-        if (!inlineShaderCodeSupported)
-            console.warn("⚠️ FogEffect: inline shader code not supported; using shader URL fallback")
-        // qmllint disable missing-property
-        supportsAutoInsertHeader = typeof fogVertexShader.autoInsertHeader === "boolean"
-                && typeof fogFragmentShader.autoInsertHeader === "boolean"
-                && typeof fogFallbackShader.autoInsertHeader === "boolean"
-        useManualShaderHeaders = supportsAutoInsertHeader
-        if (supportsAutoInsertHeader) {
-            fogVertexShader.autoInsertHeader = false
-            fogFragmentShader.autoInsertHeader = false
-            fogFallbackShader.autoInsertHeader = false
-        } else {
-            console.warn("⚠️ FogEffect: Shader.autoInsertHeader unavailable; stripping #version from shader sources")
-        }
-        // qmllint enable missing-property
-        refreshShaderSources()
-        refreshShaderAssignments()
         refreshPassConfiguration()
         console.log("🌫️ FogEffect graphics API:", rendererGraphicsApi)
         if (normalizedRendererGraphicsApi.length)
@@ -647,5 +532,4 @@ Effect {
             console.warn("⚠️ FogEffect: depth texture unavailable, fallback shader active")
     }
 
-    onUseGlesShadersChanged: refreshShaderSources()
 }
