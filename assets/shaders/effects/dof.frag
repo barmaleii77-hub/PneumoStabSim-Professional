@@ -94,7 +94,7 @@ float linearizeDepth(float depth)
 {
     float z = depth * 2.0 - 1.0;
     return (2.0 * uCameraNear * uCameraFar)
-           / (uCameraFar + uCameraNear - z * (uCameraFar - uCameraNear));
+        / (uCameraFar + uCameraNear - z * (uCameraFar - uCameraNear));
 }
 
 vec3 circularBlur(vec2 uv, float radius)

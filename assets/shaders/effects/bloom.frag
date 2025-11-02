@@ -92,7 +92,11 @@ vec3 gaussianBlur(vec2 uv, vec2 texelStep, float blurSize)
 {
     vec3 color = vec3(0.0);
 
-    float weights[9] = float[](0.05, 0.09, 0.12, 0.15, 0.18, 0.15, 0.12, 0.09, 0.05);
+    float weights[9] = float[](
+        0.05, 0.09, 0.12,
+        0.15, 0.18, 0.15,
+        0.12, 0.09, 0.05
+    );
 
     for (int i = -4; i <= 4; i++) {
         vec2 offset = texelStep * float(i) * blurSize * 0.01;

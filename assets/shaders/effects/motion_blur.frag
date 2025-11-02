@@ -91,7 +91,8 @@ void MAIN()
 
     vec3 color = original.rgb;
     int sampleCount = max(uSamples, 1);
-    vec2 step = velocity * uStrength / max(1.0, float(sampleCount));
+    vec2 step = velocity * uStrength
+        / max(1.0, float(sampleCount));
 
     for (int i = 1; i < sampleCount; i++) {
         vec2 sampleCoord = INPUT_UV + step * float(i);
