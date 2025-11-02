@@ -115,6 +115,47 @@ Item {
     property int shaderReloadToken: 0
     property var shaderCache: ({})
 
+    function shaderCompilationMessage(shaderItem) {
+        if (!shaderItem)
+            return ""
+        try {
+            if ("log" in shaderItem && shaderItem.log)
+                return shaderItem.log
+        } catch (error) {
+        }
+        try {
+            if ("compilationLog" in shaderItem && shaderItem.compilationLog)
+                return shaderItem.compilationLog
+        } catch (error) {
+        }
+        return ""
+    }
+
+    function attachShaderLogHandler(shaderItem, shaderId) {
+        if (!shaderItem)
+            return false
+        function emitLog() {
+            root.handleShaderCompilationLog(shaderId, shaderCompilationMessage(shaderItem))
+        }
+        try {
+            if (typeof shaderItem.logChanged === "function") {
+                shaderItem.logChanged.connect(emitLog)
+                emitLog()
+                return true
+            }
+        } catch (error) {
+        }
+        try {
+            if (typeof shaderItem.compilationLogChanged === "function") {
+                shaderItem.compilationLogChanged.connect(emitLog)
+                emitLog()
+                return true
+            }
+        } catch (error) {
+        }
+        return false
+    }
+
     function shaderPath(fileName) {
         if (!fileName || typeof fileName !== "string")
             return ""
@@ -486,8 +527,11 @@ Item {
             property real uBlurAmount: bloomEffect.blurAmount
             property string shaderSource: root.shaderSourceWithToken("bloom.frag", root.shaderReloadToken)
             onShaderSourceChanged: root.applyShaderSource(bloomFragmentShader, shaderSource, "bloom.frag")
-            Component.onCompleted: root.applyShaderSource(bloomFragmentShader, shaderSource, "bloom.frag")
-            onLogChanged: root.handleShaderCompilationLog("bloom.frag", log)
+            Component.onCompleted: {
+                root.applyShaderSource(bloomFragmentShader, shaderSource, "bloom.frag")
+                if (!root.attachShaderLogHandler(bloomFragmentShader, "bloom.frag"))
+                    console.debug("PostEffects: shader log handler unavailable for bloom.frag")
+            }
         }
 
         Shader {
@@ -495,8 +539,11 @@ Item {
             stage: Shader.Fragment
             property string shaderSource: root.shaderSourceWithToken("bloom_fallback.frag", root.shaderReloadToken)
             onShaderSourceChanged: root.applyShaderSource(bloomFallbackShader, shaderSource, "bloom_fallback.frag")
-            Component.onCompleted: root.applyShaderSource(bloomFallbackShader, shaderSource, "bloom_fallback.frag")
-            onLogChanged: root.handleShaderCompilationLog("bloom_fallback.frag", log)
+            Component.onCompleted: {
+                root.applyShaderSource(bloomFallbackShader, shaderSource, "bloom_fallback.frag")
+                if (!root.attachShaderLogHandler(bloomFallbackShader, "bloom_fallback.frag"))
+                    console.debug("PostEffects: shader log handler unavailable for bloom_fallback.frag")
+            }
         }
 
 
@@ -573,8 +620,11 @@ Item {
             property int uSamples: ssaoEffect.samples
             property string shaderSource: root.shaderSourceWithToken("ssao.frag", root.shaderReloadToken)
             onShaderSourceChanged: root.applyShaderSource(ssaoFragmentShader, shaderSource, "ssao.frag")
-            Component.onCompleted: root.applyShaderSource(ssaoFragmentShader, shaderSource, "ssao.frag")
-            onLogChanged: root.handleShaderCompilationLog("ssao.frag", log)
+            Component.onCompleted: {
+                root.applyShaderSource(ssaoFragmentShader, shaderSource, "ssao.frag")
+                if (!root.attachShaderLogHandler(ssaoFragmentShader, "ssao.frag"))
+                    console.debug("PostEffects: shader log handler unavailable for ssao.frag")
+            }
         }
 
         Shader {
@@ -582,8 +632,11 @@ Item {
             stage: Shader.Fragment
             property string shaderSource: root.shaderSourceWithToken("ssao_fallback.frag", root.shaderReloadToken)
             onShaderSourceChanged: root.applyShaderSource(ssaoFallbackShader, shaderSource, "ssao_fallback.frag")
-            Component.onCompleted: root.applyShaderSource(ssaoFallbackShader, shaderSource, "ssao_fallback.frag")
-            onLogChanged: root.handleShaderCompilationLog("ssao_fallback.frag", log)
+            Component.onCompleted: {
+                root.applyShaderSource(ssaoFallbackShader, shaderSource, "ssao_fallback.frag")
+                if (!root.attachShaderLogHandler(ssaoFallbackShader, "ssao_fallback.frag"))
+                    console.debug("PostEffects: shader log handler unavailable for ssao_fallback.frag")
+            }
         }
 
 
@@ -661,8 +714,11 @@ Item {
             property real uCameraFar: dofEffect.cameraFar
             property string shaderSource: root.shaderSourceWithToken("dof.frag", root.shaderReloadToken)
             onShaderSourceChanged: root.applyShaderSource(dofFragmentShader, shaderSource, "dof.frag")
-            Component.onCompleted: root.applyShaderSource(dofFragmentShader, shaderSource, "dof.frag")
-            onLogChanged: root.handleShaderCompilationLog("dof.frag", log)
+            Component.onCompleted: {
+                root.applyShaderSource(dofFragmentShader, shaderSource, "dof.frag")
+                if (!root.attachShaderLogHandler(dofFragmentShader, "dof.frag"))
+                    console.debug("PostEffects: shader log handler unavailable for dof.frag")
+            }
         }
 
         Shader {
@@ -670,8 +726,11 @@ Item {
             stage: Shader.Fragment
             property string shaderSource: root.shaderSourceWithToken("dof_fallback.frag", root.shaderReloadToken)
             onShaderSourceChanged: root.applyShaderSource(dofFallbackShader, shaderSource, "dof_fallback.frag")
-            Component.onCompleted: root.applyShaderSource(dofFallbackShader, shaderSource, "dof_fallback.frag")
-            onLogChanged: root.handleShaderCompilationLog("dof_fallback.frag", log)
+            Component.onCompleted: {
+                root.applyShaderSource(dofFallbackShader, shaderSource, "dof_fallback.frag")
+                if (!root.attachShaderLogHandler(dofFallbackShader, "dof_fallback.frag"))
+                    console.debug("PostEffects: shader log handler unavailable for dof_fallback.frag")
+            }
         }
 
 
@@ -740,8 +799,11 @@ Item {
             property int uSamples: motionBlurEffect.samples
             property string shaderSource: root.shaderSourceWithToken("motion_blur.frag", root.shaderReloadToken)
             onShaderSourceChanged: root.applyShaderSource(motionBlurFragmentShader, shaderSource, "motion_blur.frag")
-            Component.onCompleted: root.applyShaderSource(motionBlurFragmentShader, shaderSource, "motion_blur.frag")
-            onLogChanged: root.handleShaderCompilationLog("motion_blur.frag", log)
+            Component.onCompleted: {
+                root.applyShaderSource(motionBlurFragmentShader, shaderSource, "motion_blur.frag")
+                if (!root.attachShaderLogHandler(motionBlurFragmentShader, "motion_blur.frag"))
+                    console.debug("PostEffects: shader log handler unavailable for motion_blur.frag")
+            }
         }
 
         Shader {
@@ -749,8 +811,11 @@ Item {
             stage: Shader.Fragment
             property string shaderSource: root.shaderSourceWithToken("motion_blur_fallback.frag", root.shaderReloadToken)
             onShaderSourceChanged: root.applyShaderSource(motionBlurFallbackShader, shaderSource, "motion_blur_fallback.frag")
-            Component.onCompleted: root.applyShaderSource(motionBlurFallbackShader, shaderSource, "motion_blur_fallback.frag")
-            onLogChanged: root.handleShaderCompilationLog("motion_blur_fallback.frag", log)
+            Component.onCompleted: {
+                root.applyShaderSource(motionBlurFallbackShader, shaderSource, "motion_blur_fallback.frag")
+                if (!root.attachShaderLogHandler(motionBlurFallbackShader, "motion_blur_fallback.frag"))
+                    console.debug("PostEffects: shader log handler unavailable for motion_blur_fallback.frag")
+            }
         }
 
 
