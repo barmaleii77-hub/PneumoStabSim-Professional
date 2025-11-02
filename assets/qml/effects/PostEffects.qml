@@ -154,6 +154,17 @@ Item {
         shaderReloadToken += 1
     }
 
+    function shaderSourceToDataUrl(source) {
+        if (!source || !source.length)
+            return ""
+        try {
+            return "data:text/plain;base64," + Qt.btoa(source)
+        } catch (error) {
+            console.warn("⚠️ PostEffects: failed to encode shader to data URL", error)
+        }
+        return ""
+    }
+
     // Примечание по совместимости: в средах OpenGL используем GLSL 330 core,
     // а для OpenGL ES автоматически подключаем GLSL 300 es версии шейдеров.
     // Текстурные юниты задаются через layout(binding=...), чтобы Qt не вставлял
@@ -327,13 +338,13 @@ Item {
             property real uIntensity: bloomEffect.intensity
             property real uThreshold: bloomEffect.threshold
             property real uBlurAmount: bloomEffect.blurAmount
-            code: root.shaderSourceWithToken("bloom.frag", root.shaderReloadToken)
+            shader: root.shaderSourceToDataUrl(root.shaderSourceWithToken("bloom.frag", root.shaderReloadToken))
         }
 
         Shader {
             id: bloomFallbackShader
             stage: Shader.Fragment
-            code: root.shaderSourceWithToken("bloom_fallback.frag", root.shaderReloadToken)
+            shader: root.shaderSourceToDataUrl(root.shaderSourceWithToken("bloom_fallback.frag", root.shaderReloadToken))
         }
 
 
@@ -408,13 +419,13 @@ Item {
             property real uRadius: ssaoEffect.radius
             property real uBias: ssaoEffect.bias
             property int uSamples: ssaoEffect.samples
-            code: root.shaderSourceWithToken("ssao.frag", root.shaderReloadToken)
+            shader: root.shaderSourceToDataUrl(root.shaderSourceWithToken("ssao.frag", root.shaderReloadToken))
         }
 
         Shader {
             id: ssaoFallbackShader
             stage: Shader.Fragment
-            code: root.shaderSourceWithToken("ssao_fallback.frag", root.shaderReloadToken)
+            shader: root.shaderSourceToDataUrl(root.shaderSourceWithToken("ssao_fallback.frag", root.shaderReloadToken))
         }
 
 
@@ -490,13 +501,13 @@ Item {
             property real uBlurAmount: dofEffect.blurAmount
             property real uCameraNear: dofEffect.cameraNear
             property real uCameraFar: dofEffect.cameraFar
-            code: root.shaderSourceWithToken("dof.frag", root.shaderReloadToken)
+            shader: root.shaderSourceToDataUrl(root.shaderSourceWithToken("dof.frag", root.shaderReloadToken))
         }
 
         Shader {
             id: dofFallbackShader
             stage: Shader.Fragment
-            code: root.shaderSourceWithToken("dof_fallback.frag", root.shaderReloadToken)
+            shader: root.shaderSourceToDataUrl(root.shaderSourceWithToken("dof_fallback.frag", root.shaderReloadToken))
         }
 
 
@@ -563,13 +574,13 @@ Item {
             stage: Shader.Fragment
             property real uStrength: motionBlurEffect.strength
             property int uSamples: motionBlurEffect.samples
-            code: root.shaderSourceWithToken("motion_blur.frag", root.shaderReloadToken)
+            shader: root.shaderSourceToDataUrl(root.shaderSourceWithToken("motion_blur.frag", root.shaderReloadToken))
         }
 
         Shader {
             id: motionBlurFallbackShader
             stage: Shader.Fragment
-            code: root.shaderSourceWithToken("motion_blur_fallback.frag", root.shaderReloadToken)
+            shader: root.shaderSourceToDataUrl(root.shaderSourceWithToken("motion_blur_fallback.frag", root.shaderReloadToken))
         }
 
 
