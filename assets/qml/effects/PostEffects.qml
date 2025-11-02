@@ -269,6 +269,8 @@ Item {
                 "        FRAGCOLOR = vec4(result, original.a);",
                 "    }",
             ])
+            // Используем прямую ссылку на shaderSource вместо parent.shaderSource,
+            // чтобы исключить ошибки разрешения идентификаторов во время выполнения.
             shader: ShaderProgram {
                 fragmentShaderCode: bloomFragmentShader.shaderSource
             }
@@ -297,6 +299,8 @@ Item {
                 "        FRAGCOLOR = texture(qt_Texture0, INPUT_UV);",
                 "    }",
             ])
+            // Используем прямую ссылку на shaderSource вместо parent.shaderSource,
+            // чтобы исключить ошибки разрешения идентификаторов во время выполнения.
             shader: ShaderProgram {
                 fragmentShaderCode: bloomFallbackShader.shaderSource
             }
@@ -453,6 +457,8 @@ Item {
                 "        FRAGCOLOR = vec4(original.rgb * occlusion, original.a);",
                 "    }",
             ])
+            // Используем прямую ссылку на shaderSource вместо parent.shaderSource,
+            // чтобы исключить ошибки разрешения идентификаторов во время выполнения.
             shader: ShaderProgram {
                 fragmentShaderCode: ssaoFragmentShader.shaderSource
             }
@@ -480,6 +486,8 @@ Item {
                 "        FRAGCOLOR = texture(qt_Texture0, INPUT_UV);",
                 "    }",
             ])
+            // Используем прямую ссылку на shaderSource вместо parent.shaderSource,
+            // чтобы исключить ошибки разрешения идентификаторов во время выполнения.
             shader: ShaderProgram {
                 fragmentShaderCode: ssaoFallbackShader.shaderSource
             }
@@ -621,6 +629,8 @@ Item {
                 "        FRAGCOLOR = vec4(result, original.a);",
                 "    }",
             ])
+            // Используем прямую ссылку на shaderSource вместо parent.shaderSource,
+            // чтобы исключить ошибки разрешения идентификаторов во время выполнения.
             shader: ShaderProgram {
                 fragmentShaderCode: dofFragmentShader.shaderSource
             }
@@ -649,6 +659,8 @@ Item {
                 "        FRAGCOLOR = texture(qt_Texture0, INPUT_UV);",
                 "    }",
             ])
+            // Используем прямую ссылку на shaderSource вместо parent.shaderSource,
+            // чтобы исключить ошибки разрешения идентификаторов во время выполнения.
             shader: ShaderProgram {
                 fragmentShaderCode: dofFallbackShader.shaderSource
             }
@@ -760,6 +772,8 @@ Item {
                 "        FRAGCOLOR = vec4(color, original.a);",
                 "    }",
             ])
+            // Используем прямую ссылку на shaderSource вместо parent.shaderSource,
+            // чтобы исключить ошибки разрешения идентификаторов во время выполнения.
             shader: ShaderProgram {
                 fragmentShaderCode: motionBlurFragmentShader.shaderSource
             }
@@ -788,6 +802,8 @@ Item {
                 "        FRAGCOLOR = texture(qt_Texture0, INPUT_UV);",
                 "    }",
             ])
+            // Используем прямую ссылку на shaderSource вместо parent.shaderSource,
+            // чтобы исключить ошибки разрешения идентификаторов во время выполнения.
             shader: ShaderProgram {
                 fragmentShaderCode: motionBlurFallbackShader.shaderSource
             }
