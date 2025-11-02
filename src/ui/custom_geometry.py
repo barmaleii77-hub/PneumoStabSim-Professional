@@ -7,7 +7,7 @@ Generates procedural sphere mesh
 
 import numpy as np
 from PySide6.QtQuick3D import QQuick3DGeometry
-from PySide6.QtCore import QByteArray
+from PySide6.QtCore import QByteArray, Property
 from PySide6.QtQml import QmlElement
 
 QML_IMPORT_NAME = "CustomGeometry"
@@ -132,6 +132,209 @@ class SphereGeometry(QQuick3DGeometry):
         self.setBounds(QVector3D(-r, -r, -r), QVector3D(r, r, r))
 
         print("SphereGeometry.updateData() completed")
+
+
+@QmlElement
+class ProceduralCylinderGeometry(QQuick3DGeometry):
+    """Procedural cylinder mesh with adjustable tesselation."""
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self._segments = 32
+        self._rings = 1
+        self._vertex_count = 0
+        self._index_count = 0
+
+        self.updateData()
+        self.geometryNodeDirty.connect(self.updateData)
+
+    @Property(int)
+    def segments(self) -> int:
+        return self._segments
+
+    @segments.setter
+    def segments(self, value: int) -> None:
+        coerced = max(3, int(value))
+        if coerced != self._segments:
+            self._segments = coerced
+            self.updateData()
+
+    @Property(int)
+    def rings(self) -> int:
+        return self._rings
+
+    @rings.setter
+    def rings(self, value: int) -> None:
+        coerced = max(1, int(value))
+        if coerced != self._rings:
+            self._rings = coerced
+            self.updateData()
+
+    @property
+    def vertex_count(self) -> int:
+        return self._vertex_count
+
+    @property
+    def index_count(self) -> int:
+        return self._index_count
+
+    def updateData(self) -> None:  # noqa: C901 - geometry generation requires loops
+        print("ProceduralCylinderGeometry.updateData() called")
+
+        self.clear()
+
+        segments = max(3, int(self._segments))
+        rings = max(1, int(self._rings))
+
+        two_pi = 2.0 * np.pi
+        angles = np.linspace(0.0, two_pi, segments + 1, dtype=np.float32)
+        cos_angles = np.cos(angles)
+        sin_angles = np.sin(angles)
+        ring_positions = np.linspace(-1.0, 1.0, rings + 1, dtype=np.float32)
+
+        side_positions = []
+        side_normals = []
+        side_uvs = []
+
+        for ring_index, y in enumerate(ring_positions):
+            v_coord = ring_index / rings
+            for seg_index in range(segments + 1):
+                x = cos_angles[seg_index]
+                z = sin_angles[seg_index]
+                u_coord = seg_index / segments
+                side_positions.append([x, y, z])
+                side_normals.append([x, 0.0, z])
+                side_uvs.append([u_coord, v_coord])
+
+        side_positions = np.array(side_positions, dtype=np.float32)
+        side_normals = np.array(side_normals, dtype=np.float32)
+        side_uvs = np.array(side_uvs, dtype=np.float32)
+
+        indices: list[int] = []
+        stride = segments + 1
+        for ring_index in range(rings):
+            ring_start = ring_index * stride
+            next_ring_start = (ring_index + 1) * stride
+            for seg_index in range(segments):
+                top_left = ring_start + seg_index
+                top_right = ring_start + seg_index + 1
+                bottom_left = next_ring_start + seg_index
+                bottom_right = next_ring_start + seg_index + 1
+                indices.extend((top_left, bottom_left, top_right))
+                indices.extend((top_right, bottom_left, bottom_right))
+
+        top_center = np.array([[0.0, 1.0, 0.0]], dtype=np.float32)
+        bottom_center = np.array([[0.0, -1.0, 0.0]], dtype=np.float32)
+
+        top_ring_positions = []
+        bottom_ring_positions = []
+        top_ring_normals = []
+        bottom_ring_normals = []
+        top_ring_uvs = []
+        bottom_ring_uvs = []
+
+        for seg_index in range(segments):
+            angle = two_pi * seg_index / segments
+            cos_val = np.cos(angle)
+            sin_val = np.sin(angle)
+            top_ring_positions.append([cos_val, 1.0, sin_val])
+            bottom_ring_positions.append([cos_val, -1.0, sin_val])
+            top_ring_normals.append([0.0, 1.0, 0.0])
+            bottom_ring_normals.append([0.0, -1.0, 0.0])
+            u = 0.5 + cos_val * 0.5
+            v = 0.5 - sin_val * 0.5
+            top_ring_uvs.append([u, v])
+            bottom_ring_uvs.append([u, 1.0 - v])
+
+        top_ring_positions = np.array(top_ring_positions, dtype=np.float32)
+        bottom_ring_positions = np.array(bottom_ring_positions, dtype=np.float32)
+        top_ring_normals = np.array(top_ring_normals, dtype=np.float32)
+        bottom_ring_normals = np.array(bottom_ring_normals, dtype=np.float32)
+        top_ring_uvs = np.array(top_ring_uvs, dtype=np.float32)
+        bottom_ring_uvs = np.array(bottom_ring_uvs, dtype=np.float32)
+
+        positions = np.concatenate(
+            (
+                side_positions,
+                top_center,
+                top_ring_positions,
+                bottom_center,
+                bottom_ring_positions,
+            ),
+            axis=0,
+        )
+        normals = np.concatenate(
+            (
+                side_normals,
+                np.array([[0.0, 1.0, 0.0]], dtype=np.float32),
+                top_ring_normals,
+                np.array([[0.0, -1.0, 0.0]], dtype=np.float32),
+                bottom_ring_normals,
+            ),
+            axis=0,
+        )
+        uvs = np.concatenate(
+            (
+                side_uvs,
+                np.array([[0.5, 0.0]], dtype=np.float32),
+                top_ring_uvs,
+                np.array([[0.5, 1.0]], dtype=np.float32),
+                bottom_ring_uvs,
+            ),
+            axis=0,
+        )
+
+        top_center_index = side_positions.shape[0]
+        top_ring_start = top_center_index + 1
+        bottom_center_index = top_ring_start + top_ring_positions.shape[0]
+        bottom_ring_start = bottom_center_index + 1
+
+        for seg_index in range(segments):
+            current = top_ring_start + seg_index
+            next_index = top_ring_start + ((seg_index + 1) % segments)
+            indices.extend((top_center_index, current, next_index))
+
+        for seg_index in range(segments):
+            current = bottom_ring_start + seg_index
+            next_index = bottom_ring_start + ((seg_index + 1) % segments)
+            indices.extend((bottom_center_index, next_index, current))
+
+        normals = np.array(normals, dtype=np.float32)
+        uvs = np.array(uvs, dtype=np.float32)
+
+        vertex_data = np.hstack((positions, normals, uvs)).astype(np.float32)
+        index_data = np.array(indices, dtype=np.uint32)
+
+        self._vertex_count = vertex_data.shape[0]
+        self._index_count = index_data.shape[0]
+
+        self.setVertexData(QByteArray(vertex_data.tobytes()))
+        self.setIndexData(QByteArray(index_data.tobytes()))
+        self.setStride(8 * 4)
+
+        self.addAttribute(
+            QQuick3DGeometry.Attribute.PositionSemantic,
+            0,
+            QQuick3DGeometry.Attribute.F32Type,
+        )
+        self.addAttribute(
+            QQuick3DGeometry.Attribute.NormalSemantic,
+            12,
+            QQuick3DGeometry.Attribute.F32Type,
+        )
+        self.addAttribute(
+            QQuick3DGeometry.Attribute.TexCoordSemantic,
+            24,
+            QQuick3DGeometry.Attribute.F32Type,
+        )  # Qt defaults texcoord component count to 2 for this semantic
+
+        self.setPrimitiveType(QQuick3DGeometry.PrimitiveType.Triangles)
+
+        from PySide6.QtGui import QVector3D
+
+        self.setBounds(QVector3D(-1.0, -1.0, -1.0), QVector3D(1.0, 1.0, 1.0))
+
+        print("ProceduralCylinderGeometry.updateData() completed")
 
 
 @QmlElement

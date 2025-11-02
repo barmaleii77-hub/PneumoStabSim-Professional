@@ -194,6 +194,8 @@ Node {
         radius: cylinderRadius * 1.05
         material: cylinderMaterial
         warnOnTinyLength: false
+        segments: cylinderSegments
+        rings: cylinderRings
     }
 
     // 4. PISTON (moving, position from Python)

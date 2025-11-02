@@ -433,6 +433,7 @@ class QualityTab(QWidget):
         seg = LabeledSlider(
             "Сегменты цилиндра по окружности", 8.0, 128.0, 1.0, decimals=0
         )
+        seg.setToolTip("Настраивает детализацию меша цилиндров подвески по окружности.")
         seg.valueChanged.connect(
             lambda v: self._on_control_changed("mesh.cylinder_segments", int(v))
         )
@@ -440,6 +441,9 @@ class QualityTab(QWidget):
         grid.addWidget(seg, 0, 0, 1, 2)
 
         rings = LabeledSlider("Кольца цилиндра по длине", 1.0, 32.0, 1.0, decimals=0)
+        rings.setToolTip(
+            "Указывает количество сегментов по длине для процедурного цилиндра."
+        )
         rings.valueChanged.connect(
             lambda v: self._on_control_changed("mesh.cylinder_rings", int(v))
         )

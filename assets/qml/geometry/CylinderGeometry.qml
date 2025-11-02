@@ -1,32 +1,19 @@
-import QtQuick
-import QtQuick3D
+import QtQuick 6.10
+import QtQuick3D 6.10
+import CustomGeometry 1.0
 
 /*
- * CylinderGeometry Component - Quality control for procedural cylinders
- * Extracted from main.qml for modular QML architecture
+ * CylinderGeometry Component - procedural cylinder mesh with adjustable quality.
  *
- * This is a placeholder component for future procedural geometry generation.
- * Currently, Qt Quick 3D uses built-in "#Cylinder" primitive with quality settings.
+ * Provides a shared wrapper around the CustomGeometry.ProceduralCylinderGeometry
+ * class so that other QML components can simply instantiate ``CylinderGeometry``
+ * and bind its ``segments`` / ``rings`` properties to UI controls.
  */
-QtObject {
+ProceduralCylinderGeometry {
     id: cylinderGeometry
 
-    // ===============================================================
-    // QUALITY PARAMETERS (for future use)
-    // ===============================================================
-
-    property int segments: 64    // Longitudinal segments
-    property int rings: 8        // Latitudinal rings
-    property real radius: 1.0    // Radius in scene units
-    property real height: 2.0    // Height in scene units
-
-    // ===============================================================
-    // INITIALIZATION
-    // ===============================================================
-
     Component.onCompleted: {
-        console.log("🔷 CylinderGeometry placeholder initialized")
-        console.log("   Quality: segments=" + segments + ", rings=" + rings)
-        console.log("   Note: Using Qt Quick 3D built-in #Cylinder with these settings")
+        console.log("🔷 CylinderGeometry ready (procedural mesh)")
+        console.log("   segments=" + segments + ", rings=" + rings)
     }
 }
