@@ -315,50 +315,54 @@ Effect {
     }
 
     /**
-     * Асинхронно нормализует URL шейдера.
-     * Использует callback для возврата результата, чтобы не блокировать UI thread.
-     * Если результат уже закэширован, callback вызывается немедленно.
+     * Нормализует URL шейдера, устраняя CRLF-окончания строк.
+     * Используется синхронный запрос, чтобы свойство Shader.shader получило
+     * корректное значение сразу в рамках вычисления биндинга. Асинхронная
+     * версия приводила к тому, что Shader начинал компиляцию с исходным URL,
+     * а позже перезаписывался data URL'ом, что в связке с кешем Qt вызывало
+     * ошибки вида "#version must occur first".
      * @param url {string} - исходный URL
      * @param resourceName {string} - имя ресурса (для логирования)
-     * @param callback {function} - функция, принимающая нормализованный URL
+     * @returns {string} нормализованный URL (или исходный при ошибке)
      */
-    function sanitizedShaderUrl(url, resourceName, callback) {
-        if (!url || !url.length) {
-            callback(url)
-            return
-        }
+    function sanitizedShaderUrl(url, resourceName) {
+        if (!url || !url.length)
+            return url
 
-        if (Object.prototype.hasOwnProperty.call(shaderSanitizationCache, url)) {
-            callback(shaderSanitizationCache[url])
-            return
-        }
+        if (Object.prototype.hasOwnProperty.call(shaderSanitizationCache, url))
+            return shaderSanitizationCache[url]
 
-        // Асинхронная загрузка шейдера
-        var xhr = new XMLHttpRequest()
-        xhr.open("GET", url, true) // true = асинхронно
-        xhr.responseType = "text"
-        xhr.onreadystatechange = function() {
-            if (xhr.readyState === XMLHttpRequest.DONE) {
-                var sanitizedUrl = url
-                if (xhr.status === 200 || xhr.status === 0) {
-                    var shaderSource = xhr.responseText
-                    if (shaderSource && shaderSource.indexOf("\r") !== -1) {
-                        var normalized = shaderSource.replace(/\r\n/g, "\n").replace(/\r/g, "\n")
+        var sanitizedUrl = url
+
+        try {
+            var xhr = new XMLHttpRequest()
+            xhr.open("GET", url, false)
+            // xhr.responseType = "text" // Удалено для совместимости с Qt/JS движком
+            xhr.send()
+            if (xhr.status === 200 || xhr.status === 0) {
+                var shaderSource = xhr.responseText
+                if (shaderSource && shaderSource.indexOf("\r") !== -1) {
+                    var normalized = shaderSource.replace(/\r\n/g, "\n").replace(/\r/g, "\n")
+                    if (typeof Blob !== "undefined" && typeof URL !== "undefined"
+                            && typeof URL.createObjectURL === "function") {
+                        var blob = new Blob([normalized], { type: "text/plain;charset=utf-8" })
+                        sanitizedUrl = URL.createObjectURL(blob)
+                        console.warn("⚠️ FogEffect: нормализованы CRLF окончания строк для шейдера, использован Blob URL", resourceName)
+                    } else {
                         sanitizedUrl = "data:text/plain;charset=utf-8," + encodeURIComponent(normalized)
-                        console.warn("⚠️ FogEffect: normalized CRLF line endings for shader", resourceName)
+                        console.warn("⚠️ FogEffect: normalized CRLF line endings for shader, Blob недоступен, использован data URL", resourceName)
                     }
                 }
-                shaderSanitizationCache[url] = sanitizedUrl
-                callback(sanitizedUrl)
             }
-        }
-        try {
-            xhr.send()
         } catch (error) {
             console.debug("FogEffect: shader normalization skipped", resourceName, error)
-            callback(url)
         }
-    }
+
+        // Кэшируем только если url был нормализован
+        if (sanitizedUrl !== url) {
+            shaderSanitizationCache[url] = sanitizedUrl
+        }
+        return sanitizedUrl
 
     function handleShaderCompilationLog(shaderId, message) {
         if (!message || !message.length)
