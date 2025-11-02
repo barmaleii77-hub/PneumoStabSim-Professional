@@ -42,10 +42,6 @@ Item {
         return lines.join("\n")
     }
 
-    function shaderSourceToUrl(source) {
-        return "data:text/plain," + encodeURIComponent(source)
-    }
-
     // Примечание по совместимости: все пользовательские шейдеры используют GLSL 330 core,
     // чтобы гарантировать работу на рендерере OpenGL 3.3. Явные layout(binding=...)
     // квалификаторы не применяются — Qt Quick 3D назначает текстурные юниты автоматически.
@@ -272,9 +268,9 @@ Item {
                 "        FRAGCOLOR = vec4(result, original.a);",
                 "    }",
             ])
-            readonly property url shaderUrl: root.shaderSourceToUrl(shaderSource)
-            // Используем data:-URL вместо устаревшего ShaderProgram, чтобы загрузить исходный код шейдера.
-            shader: shaderUrl
+            shader: ShaderCode {
+                source: bloomFragmentShader.shaderSource
+            }
         }
 
         Shader {
@@ -299,8 +295,9 @@ Item {
                 "        FRAGCOLOR = texture(qt_Texture0, INPUT_UV);",
                 "    }",
             ])
-            readonly property url shaderUrl: root.shaderSourceToUrl(shaderSource)
-            shader: shaderUrl
+            shader: ShaderCode {
+                source: bloomFallbackShader.shaderSource
+            }
         }
 
 
@@ -453,9 +450,9 @@ Item {
                 "        FRAGCOLOR = vec4(original.rgb * occlusion, original.a);",
                 "    }",
             ])
-            readonly property url shaderUrl: root.shaderSourceToUrl(shaderSource)
-            // Используем data:-URL вместо устаревшего ShaderProgram, чтобы загрузить исходный код шейдера.
-            shader: shaderUrl
+            shader: ShaderCode {
+                source: ssaoFragmentShader.shaderSource
+            }
         }
 
         Shader {
@@ -479,8 +476,9 @@ Item {
                 "        FRAGCOLOR = texture(qt_Texture0, INPUT_UV);",
                 "    }",
             ])
-            readonly property url shaderUrl: root.shaderSourceToUrl(shaderSource)
-            shader: shaderUrl
+            shader: ShaderCode {
+                source: ssaoFallbackShader.shaderSource
+            }
         }
 
 
@@ -618,9 +616,9 @@ Item {
                 "        FRAGCOLOR = vec4(result, original.a);",
                 "    }",
             ])
-            readonly property url shaderUrl: root.shaderSourceToUrl(shaderSource)
-            // Используем data:-URL вместо устаревшего ShaderProgram, чтобы загрузить исходный код шейдера.
-            shader: shaderUrl
+            shader: ShaderCode {
+                source: dofFragmentShader.shaderSource
+            }
         }
 
         Shader {
@@ -645,8 +643,9 @@ Item {
                 "        FRAGCOLOR = texture(qt_Texture0, INPUT_UV);",
                 "    }",
             ])
-            readonly property url shaderUrl: root.shaderSourceToUrl(shaderSource)
-            shader: shaderUrl
+            shader: ShaderCode {
+                source: dofFallbackShader.shaderSource
+            }
         }
 
 
@@ -754,9 +753,9 @@ Item {
                 "        FRAGCOLOR = vec4(color, original.a);",
                 "    }",
             ])
-            readonly property url shaderUrl: root.shaderSourceToUrl(shaderSource)
-            // Используем data:-URL вместо устаревшего ShaderProgram, чтобы загрузить исходный код шейдера.
-            shader: shaderUrl
+            shader: ShaderCode {
+                source: motionBlurFragmentShader.shaderSource
+            }
         }
 
         Shader {
@@ -781,8 +780,9 @@ Item {
                 "        FRAGCOLOR = texture(qt_Texture0, INPUT_UV);",
                 "    }",
             ])
-            readonly property url shaderUrl: root.shaderSourceToUrl(shaderSource)
-            shader: shaderUrl
+            shader: ShaderCode {
+                source: motionBlurFallbackShader.shaderSource
+            }
         }
 
 
