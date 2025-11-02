@@ -43,12 +43,16 @@ Item {
         }
     }
 
-    // Используем версию шейдеров OpenGL ES только при реальном контексте OpenGL ES.
-    // Программный или RHI-рендерер Qt требует десктопный профиль GLSL.
-    // Свойство language: Shader.GLSL намеренно не задаём — Qt Quick 3D
-    // самостоятельно подбирает подходящий профиль GLSL под активный API.
-    // We intentionally omit language: Shader.GLSL so Qt Quick 3D selects
-    // the correct GLSL profile for the active graphics backend.
+    // Стратегия выбора профиля шейдеров:
+    // 1. Не задаём language: Shader.GLSL, позволяя Qt Quick 3D автоматически
+    //    подобрать профиль GLSL в зависимости от используемого графического API.
+    // 2. Предпочтение GLES-профиля определяется логикой ниже и может быть
+    //    переопределено свойством forceDesktopShaderProfile.
+    // Shader profile selection strategy:
+    // 1. Omit language: Shader.GLSL so Qt Quick 3D can automatically choose the
+    //    correct GLSL profile for the active graphics backend.
+    // 2. The GLES preference is decided by the detection logic below and can be
+    //    overridden with forceDesktopShaderProfile.
     // qmllint disable unqualified
     property bool forceDesktopShaderProfile: false
 
