@@ -1,4 +1,5 @@
 import QtQuick
+import QtQuick.Window
 import QtQuick3D
 
 /*
@@ -40,15 +41,48 @@ Item {
 
     // Используем версию шейдеров OpenGL ES только при реальном контексте OpenGL ES.
     // Программный или RHI-рендерер Qt требует десктопный профиль GLSL.
-    readonly property bool preferDesktopShaderProfile:
-            typeof qtGraphicsApiRequiresDesktopShaders === "boolean"
-            ? qtGraphicsApiRequiresDesktopShaders
-            : false
-    readonly property string rendererGraphicsApi:
-            typeof qtGraphicsApiName === "string"
-            ? qtGraphicsApiName
-            : "unknown"
-    readonly property bool reportedGlesContext: GraphicsInfo.api === GraphicsInfo.OpenGLES
+    // qmllint disable unqualified
+    readonly property bool preferDesktopShaderProfile: {
+        try {
+            if (typeof qtGraphicsApiRequiresDesktopShaders === "boolean")
+                return qtGraphicsApiRequiresDesktopShaders
+        } catch (error) {
+        }
+        return GraphicsInfo.api === GraphicsInfo.Direct3D11
+                || GraphicsInfo.api === GraphicsInfo.Vulkan
+                || GraphicsInfo.api === GraphicsInfo.Metal
+                || GraphicsInfo.api === GraphicsInfo.Null
+    }
+    readonly property string rendererGraphicsApi: {
+        try {
+            if (typeof qtGraphicsApiName === "string")
+                return qtGraphicsApiName
+        } catch (error) {
+        }
+        switch (GraphicsInfo.api) {
+        case GraphicsInfo.OpenGL:
+            return "opengl"
+        case GraphicsInfo.Direct3D11:
+            return "direct3d11"
+        case GraphicsInfo.Vulkan:
+            return "vulkan"
+        case GraphicsInfo.Metal:
+            return "metal"
+        case GraphicsInfo.Software:
+            return "software"
+        default:
+            return "unknown"
+        }
+    }
+    readonly property bool reportedGlesContext: {
+        try {
+            return typeof qtGraphicsApiName === "string"
+                    && qtGraphicsApiName.toLowerCase().indexOf("es") !== -1
+        } catch (error) {
+        }
+        return false
+    }
+    // qmllint enable unqualified
     readonly property bool useGlesShaders: reportedGlesContext && !preferDesktopShaderProfile
 
     function shaderPath(fileName) {
@@ -70,8 +104,8 @@ Item {
 
     // Примечание по совместимости: в средах OpenGL используем GLSL 330 core,
     // а для OpenGL ES автоматически подключаем GLSL 300 es версии шейдеров.
-    // Явные layout(binding=...) квалификаторы не применяются — Qt Quick 3D назначает
-    // текстурные юниты автоматически.
+    // Текстурные юниты задаются через layout(binding=...), чтобы Qt не вставлял
+    // дополнительные объявления перед директивой #version.
 
     // Свойства управления эффектами
     property bool bloomEnabled: false

@@ -9,9 +9,9 @@ layout(location = 0) out vec4 qt_FragColor;
 #define FRAGCOLOR qt_FragColor
 #endif
 
-uniform sampler2D qt_Texture0;
-uniform sampler2D qt_DepthTexture;
-uniform sampler2D qt_NormalTexture;
+layout(binding = 0) uniform sampler2D qt_Texture0;
+layout(binding = 1) uniform sampler2D qt_DepthTexture;
+layout(binding = 2) uniform sampler2D qt_NormalTexture;
 
 #ifndef INPUT
 #define INPUT texture(qt_Texture0, INPUT_UV)
