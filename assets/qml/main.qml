@@ -111,28 +111,46 @@ Item {
         return false
     }
 
-    function applyGeometryUpdates(params) { return _invokeOnActiveRoot("applyGeometryUpdates", params) }
-    function updateGeometry(params) { return _invokeOnActiveRoot("updateGeometry", params) }
-    function applyAnimationUpdates(params) { return _invokeOnActiveRoot("applyAnimationUpdates", params) }
-    function updateAnimation(params) { return _invokeOnActiveRoot("updateAnimation", params) }
-    function applyLightingUpdates(params) { return _invokeOnActiveRoot("applyLightingUpdates", params) }
-    function updateLighting(params) { return _invokeOnActiveRoot("updateLighting", params) }
-    function applyMaterialUpdates(params) { return _invokeOnActiveRoot("applyMaterialUpdates", params) }
-    function updateMaterials(params) { return _invokeOnActiveRoot("updateMaterials", params) }
-    function applyEnvironmentUpdates(params) { return _invokeOnActiveRoot("applyEnvironmentUpdates", params) }
-    function updateEnvironment(params) { return _invokeOnActiveRoot("updateEnvironment", params) }
-    function applyQualityUpdates(params) { return _invokeOnActiveRoot("applyQualityUpdates", params) }
-    function updateQuality(params) { return _invokeOnActiveRoot("updateQuality", params) }
-    function applyCameraUpdates(params) { return _invokeOnActiveRoot("applyCameraUpdates", params) }
-    function updateCamera(params) { return _invokeOnActiveRoot("updateCamera", params) }
-    function applyEffectsUpdates(params) { return _invokeOnActiveRoot("applyEffectsUpdates", params) }
-    function updateEffects(params) { return _invokeOnActiveRoot("updateEffects", params) }
-    function applySimulationUpdates(params) { return _invokeOnActiveRoot("applySimulationUpdates", params) }
-    function applyThreeDUpdates(params) { return _invokeOnActiveRoot("applyThreeDUpdates", params) }
-    function apply3DUpdates(params) { return _invokeOnActiveRoot("apply3DUpdates", params) }
-    function applyRenderSettings(params) { return _invokeOnActiveRoot("applyRenderSettings", params) }
+    readonly property var _forwardedMethodNames: [
+        "applyGeometryUpdates",
+        "updateGeometry",
+        "applyAnimationUpdates",
+        "updateAnimation",
+        "applyLightingUpdates",
+        "updateLighting",
+        "applyMaterialUpdates",
+        "updateMaterials",
+        "applyEnvironmentUpdates",
+        "updateEnvironment",
+        "applyQualityUpdates",
+        "updateQuality",
+        "applyCameraUpdates",
+        "updateCamera",
+        "applyEffectsUpdates",
+        "updateEffects",
+        "applySimulationUpdates",
+        "applyThreeDUpdates",
+        "apply3DUpdates",
+        "applyRenderSettings"
+    ]
 
-    Component.onCompleted: _flushQueuedBatches()
+    function _installForwarders() {
+        for (var i = 0; i < _forwardedMethodNames.length; ++i) {
+            var name = _forwardedMethodNames[i]
+            if (root[name] === undefined) {
+                root[name] = (function(methodName) {
+                    return function(params) {
+                        return _invokeOnActiveRoot(methodName, params)
+                    }
+                })(name)
+            }
+        }
+    }
+
+    Component.onCompleted: {
+        _installForwarders()
+        _flushQueuedBatches()
+    }
 
     Loader {
         id: simulationLoader
@@ -159,7 +177,6 @@ Item {
             if (item && item.animationToggled) {
                 item.animationToggled.connect(root.animationToggled)
             }
-            _flushQueuedBatches()
         }
     }
 
@@ -181,7 +198,6 @@ Item {
             if (item && item.animationToggled) {
                 item.animationToggled.connect(root.animationToggled)
             }
-            _flushQueuedBatches()
         }
     }
 }

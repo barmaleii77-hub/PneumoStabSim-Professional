@@ -17,25 +17,25 @@
 
 ## Observed Log Correlations (Project Context)
 
-- Bursts of `"ERROR: :47: '' : compilation terminated"` and `"2 compilation errors. No code generated."` in `logs/run.log` coincide with `environment_batch` and `threeD_batch` telemetry marked as `failed` inside `logs/graphics/session_*.jsonl`.
-- Payload mismatches (mixing `ibl_source` and legacy `iblSource`) and rapid duplicate batches aggravate shader recompilation pressure, increasing the number of failed events per run.
+- Bursts of `"ERROR: :47: '' : compilation terminated"` and `"2 compilation errors. No code generated."` in `logs/run.log` coincide with `environment_batch` and `threeD_batch` telemetry marked as `failed` inside `logs/graphics/session_*.jsonl`. The `:47` prefix refers to the generated GLSL; setting `QT_DEBUG_SHADERS=1` dumps the expanded shader source for line-accurate inspection.
+- Batched payloads include both `ibl_source` and the legacy `iblSource` to keep downstream QML bridges compatible. Normalisation must ensure the values stay in sync while we eliminate duplicate batch dispatches.
 
 ## GitHub Copilot Prompt
 
 ```text
 Project context: Qt Quick 3D app (Qt 6.x) using batched QML updates for lighting, environment, quality, camera, materials, and effects. Recent edits touched FogEffect.qml and PostEffects.qml.
 
-Problem: Runtime logs show repeated shader compilation failures exactly when environment_batch or threeD_batch payloads apply. Errors read “ERROR: :47: '' : compilation terminated” and “ERROR: 2 compilation errors. No code generated.” Graphics telemetry records ~8–12 failed batched events per session. Payloads currently include both ibl_source and legacy iblSource keys, and some batches are dispatched twice within one second.
+Problem: Runtime logs show repeated shader compilation failures exactly when environment_batch or threeD_batch payloads apply. Errors read “ERROR: :47: '' : compilation terminated” and “ERROR: 2 compilation errors. No code generated.” Graphics telemetry records ~8–12 failed batched events per session. Payloads intentionally include both `ibl_source` and legacy `iblSource` keys for compatibility, but they must remain normalised, and some batches are dispatched twice within one second.
 
 Goals:
 1. Fix shader compilation errors in FogEffect.qml/PostEffects.qml so all uniforms and samplers have matching QML properties and GLSL syntax aligns with Qt 6 expectations.
 2. Ensure environment/threeD batches succeed (no failed events) after shader fixes.
-3. Standardise the payload schema to one IBL key (prefer iblSource to match existing QML) and guard against sending duplicate batches.
+3. Keep `ibl_source` as the canonical value, mirror it to the legacy `iblSource` key for compatibility, and guard against sending duplicate batches.
 4. Optionally migrate to ExtendedSceneEnvironment APIs if custom effects remain unstable.
 
 Task for Copilot: Provide concrete QML and, if needed, Python examples that:
 - audit FogEffect/PostEffects uniform/property bindings,
 - adjust shader snippets or regenerate .qsb assets to compile cleanly,
 - show how to debounce or coalesce batched updates before dispatch,
-- and update the payload handling so only the supported IBL key is emitted.
+- and keep payload handling normalised so `ibl_source` and `iblSource` always carry the same value.
 ```
