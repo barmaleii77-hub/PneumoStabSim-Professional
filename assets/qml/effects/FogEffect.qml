@@ -62,6 +62,15 @@ Effect {
     readonly property bool preferDesktopShaderProfile: {
         if (forceDesktopShaderProfile)
             return true
+        var normalized = normalizedRendererGraphicsApi
+        if (normalized.length) {
+            if (normalized.indexOf("angle") !== -1)
+                return false
+            if (normalized.indexOf("opengl es") !== -1
+                    || normalized.indexOf("opengles") !== -1
+                    || normalized.indexOf("gles") !== -1)
+                return false
+        }
         try {
             if (typeof qtGraphicsApiRequiresDesktopShaders === "boolean")
                 return qtGraphicsApiRequiresDesktopShaders
@@ -95,6 +104,12 @@ Effect {
             return "unknown"
         }
     }
+    readonly property string normalizedRendererGraphicsApi: {
+        var apiName = rendererGraphicsApi
+        if (!apiName || typeof apiName !== "string")
+            return ""
+        return apiName.trim().toLowerCase()
+    }
     readonly property bool reportedGlesContext: {
         if (forceDesktopShaderProfile)
             return false
@@ -104,24 +119,22 @@ Effect {
         } catch (error) {
         }
         try {
-            if (typeof qtGraphicsApiName === "string") {
-                var normalized = qtGraphicsApiName.trim().toLowerCase()
-                if (!normalized.length)
-                    return false
-                if (normalized.indexOf("rhi") !== -1
-                        && normalized.indexOf("opengl") !== -1
-                        && normalized.indexOf("gles") === -1)
-                    return false
-                if (normalized.indexOf("opengl es") !== -1)
-                    return true
-                if (normalized.indexOf("opengles") !== -1)
-                    return true
-                if (normalized.indexOf("gles") !== -1)
-                    return true
-                if (GraphicsInfo.api === GraphicsInfo.Direct3D11
-                        && normalized.indexOf("angle") !== -1)
-                    return true
-            }
+            var normalized = normalizedRendererGraphicsApi
+            if (!normalized.length)
+                return false
+            if (normalized.indexOf("rhi") !== -1
+                    && normalized.indexOf("opengl") !== -1
+                    && normalized.indexOf("gles") === -1)
+                return false
+            if (normalized.indexOf("opengl es") !== -1)
+                return true
+            if (normalized.indexOf("opengles") !== -1)
+                return true
+            if (normalized.indexOf("gles") !== -1)
+                return true
+            if (GraphicsInfo.api === GraphicsInfo.Direct3D11
+                    && normalized.indexOf("angle") !== -1)
+                return true
         } catch (error) {
         }
         return false
@@ -409,12 +422,18 @@ Effect {
         refreshShaderSources()
         refreshShaderAssignments()
         console.log("🌫️ FogEffect graphics API:", rendererGraphicsApi)
+        if (normalizedRendererGraphicsApi.length)
+            console.log("   Normalized API:", normalizedRendererGraphicsApi)
         console.log(
                     "   Shader profile:",
                     useGlesShaders
                     ? "OpenGL ES (GLSL 300 es)"
                     : "Desktop (GLSL 330 core)"
                     )
+        console.log("   Profile decision flags ->",
+                    "preferDesktop:", preferDesktopShaderProfile,
+                    "reportedGles:", reportedGlesContext,
+                    "forceDesktopOverride:", forceDesktopShaderProfile)
         enableDepthTextureSupport()
         console.log("🌫️ Enhanced Fog Effect loaded")
         console.log("   Density:", fogDensity)
