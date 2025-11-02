@@ -90,7 +90,9 @@ Effect {
             "    POSITION = ubuf.qt_ModelViewProjectionMatrix * localPosition;",
             "}"
         ])
-        shader: fogEffect.shaderDataUrl(shaderSource)
+        shader: ShaderData {
+            source: fogEffect.shaderDataUrl(parent.shaderSource)
+        }
     }
 
     Shader {
@@ -246,7 +248,9 @@ Effect {
             "    FRAGCOLOR = vec4(foggedColor, originalColor.a) * EFFECT_OPACITY;",
             "}"
         ])
-        shader: fogEffect.shaderDataUrl(shaderSource)
+        shader: ShaderData {
+            source: fogEffect.shaderDataUrl(parent.shaderSource)
+        }
     }
 
     Shader {
@@ -284,7 +288,9 @@ Effect {
             "    FRAGCOLOR = vec4(foggedColor, originalColor.a);",
             "}"
         ])
-        shader: fogEffect.shaderDataUrl(shaderSource)
+        shader: ShaderData {
+            source: fogEffect.shaderDataUrl(parent.shaderSource)
+        }
     }
 
     passes: [
