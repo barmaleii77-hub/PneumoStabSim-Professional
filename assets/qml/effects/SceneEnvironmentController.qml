@@ -123,15 +123,23 @@ ExtendedSceneEnvironment {
         return SceneEnvironment.NoAA
     }
 
+    // qmllint disable missing-property
     antialiasingQuality: {
-        if (aaQualityLevel === "high" && SceneEnvironment["AntialiasingQualityHigh"] !== undefined)
-            return SceneEnvironment["AntialiasingQualityHigh"]
-        if (aaQualityLevel === "medium" && SceneEnvironment["AntialiasingQualityMedium"] !== undefined)
-            return SceneEnvironment["AntialiasingQualityMedium"]
-        if (aaQualityLevel === "low" && SceneEnvironment["AntialiasingQualityLow"] !== undefined)
-            return SceneEnvironment["AntialiasingQualityLow"]
-        return SceneEnvironment.AntialiasingQualityMedium
+        if (aaQualityLevel === "high" && typeof SceneEnvironment.AntialiasingQualityHigh !== "undefined")
+            return SceneEnvironment.AntialiasingQualityHigh
+        if (aaQualityLevel === "medium" && typeof SceneEnvironment.AntialiasingQualityMedium !== "undefined")
+            return SceneEnvironment.AntialiasingQualityMedium
+        if (aaQualityLevel === "low" && typeof SceneEnvironment.AntialiasingQualityLow !== "undefined")
+            return SceneEnvironment.AntialiasingQualityLow
+        if (typeof SceneEnvironment.AntialiasingQualityMedium !== "undefined")
+            return SceneEnvironment.AntialiasingQualityMedium
+        if (typeof SceneEnvironment.AntialiasingQualityHigh !== "undefined")
+            return SceneEnvironment.AntialiasingQualityHigh
+        if (typeof SceneEnvironment.AntialiasingQualityLow !== "undefined")
+            return SceneEnvironment.AntialiasingQualityLow
+        return SceneEnvironment.NoAA
     }
+    // qmllint enable missing-property
 
  // ✅ ИСПРАВЛЕНО: fxaaEnabled и specularAAEnabled уже установлены выше
  temporalAAEnabled: (aaPostMode === "taa" && taaEnabled && (!taaMotionAdaptive || cameraIsMoving))
@@ -931,26 +939,26 @@ return
         if (externalEffects && externalEffects.length)
             stack = stack.concat(externalEffects)
         if (fogEnabled)
-            stack.push(_customFogEffect)
+            stack.push(root._customFogEffect)
         return stack
     }
 
     Connections {
-        target: _customFogEffect
+        target: root._customFogEffect
         function onFallbackActiveChanged(active) {
             root._handleFogFallbackState(active,
-                                         _customFogEffect.fallbackReason,
-                                         _customFogEffect.compilationFallbackActive)
+                                         root._customFogEffect.fallbackReason,
+                                         root._customFogEffect.compilationFallbackActive)
         }
         function onFallbackReasonChanged(reason) {
-            if (_customFogEffect.fallbackActive)
+            if (root._customFogEffect.fallbackActive)
                 root._handleFogFallbackState(true,
                                              reason,
-                                             _customFogEffect.compilationFallbackActive)
+                                             root._customFogEffect.compilationFallbackActive)
         }
         function onCompilationFallbackActiveChanged(active) {
-            root._handleFogFallbackState(_customFogEffect.fallbackActive,
-                                         _customFogEffect.fallbackReason,
+            root._handleFogFallbackState(root._customFogEffect.fallbackActive,
+                                         root._customFogEffect.fallbackReason,
                                          active)
         }
     }
@@ -965,20 +973,24 @@ return
     property string tonemapStoredModeName: "filmic"
     property real tonemapExposure: 1.0
     property real tonemapWhitePoint: 2.0
+    // qmllint disable missing-property
     readonly property var tonemapModeLookup: ({
         "filmic": SceneEnvironment.TonemapModeFilmic,
-        "aces": SceneEnvironment.TonemapModeAces !== undefined
+        "aces": typeof SceneEnvironment.TonemapModeAces !== "undefined"
                  ? SceneEnvironment.TonemapModeAces
                  : SceneEnvironment.TonemapModeFilmic,
-        "reinhard": SceneEnvironment["TonemapModeReinhard"] !== undefined
-                     ? SceneEnvironment["TonemapModeReinhard"]
+        "reinhard": typeof SceneEnvironment.TonemapModeReinhard !== "undefined"
+                     ? SceneEnvironment.TonemapModeReinhard
                      : SceneEnvironment.TonemapModeLinear,
-        "gamma": SceneEnvironment.TonemapModeGamma !== undefined
+        "gamma": typeof SceneEnvironment.TonemapModeGamma !== "undefined"
                   ? SceneEnvironment.TonemapModeGamma
-                  : SceneEnvironment.TonemapModeLinear,
+                  : (typeof SceneEnvironment.TonemapModeAces !== "undefined"
+                     ? SceneEnvironment.TonemapModeAces
+                     : SceneEnvironment.TonemapModeLinear),
         "linear": SceneEnvironment.TonemapModeLinear,
         "none": SceneEnvironment.TonemapModeNone
     })
+    // qmllint enable missing-property
 
     function normalizeTonemapModeName(value) {
         if (value === undefined || value === null)
