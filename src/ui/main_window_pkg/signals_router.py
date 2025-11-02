@@ -89,10 +89,9 @@ class SignalsRouter:
         raw_value = params.get(source_key)
         text_value = "" if raw_value is None else str(raw_value)
         stripped_value = text_value.strip()
-        # Mirror the FileCyclerWidget fix from PR #346: decide on the placeholder
-        # entry using the trimmed value so that whitespace-only strings count as
-        # an explicit "empty" selection.
-        allow_empty_selection = not stripped_value
+        allow_empty_selection = SignalsRouter._allow_empty_selection(
+            raw_value, stripped_value
+        )
         normalised_value = stripped_value
 
         if not allow_empty_selection:
@@ -128,6 +127,26 @@ class SignalsRouter:
         }
         updated_payload["ibl_source"] = normalised_value
         return updated_payload
+
+    @staticmethod
+    def _allow_empty_selection(
+        raw_value: Any, stripped_value: str | None = None
+    ) -> bool:
+        """Return ``True`` when the HDR selector explicitly requests "no file".
+
+        The FileCyclerWidget fix from PR #346 treats whitespace-only strings the
+        same as an explicit empty selection. We mirror that behaviour here so the
+        Python bridge does not reintroduce phantom paths when the UI clears the
+        HDR field.
+        """
+
+        if raw_value is None:
+            return True
+
+        candidate = (
+            stripped_value if stripped_value is not None else str(raw_value).strip()
+        )
+        return candidate == ""
 
     @staticmethod
     def _sanitize_camera_payload(payload: Mapping[str, Any]) -> Dict[str, Any]:
