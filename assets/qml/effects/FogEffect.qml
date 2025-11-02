@@ -64,7 +64,7 @@ Effect {
         id: fogVertexShader
         stage: Shader.Vertex
         readonly property string shaderSource: fogEffect.glsl([
-            "#version 440",
+            "#version 330 core",
             "",
             "#ifndef INPUT_POSITION",
             "#define INPUT_POSITION qt_Vertex",
@@ -76,7 +76,7 @@ Effect {
             "",
             "layout(location = 0) out vec2 v_uv;",
             "",
-            "layout(std140, binding = 0) uniform qt_effectUniforms {",
+            "layout(std140) uniform qt_effectUniforms {",
             "    mat4 qt_ModelMatrix;",
             "    mat4 qt_ModelViewProjectionMatrix;",
             "    mat4 qt_ViewMatrix;",
@@ -115,7 +115,7 @@ Effect {
         property real userCameraFov: fogEffect.cameraFieldOfView
         property real userCameraAspect: fogEffect.cameraAspectRatio
         readonly property string shaderSource: fogEffect.glsl([
-            "#version 440",
+            "#version 330 core",
             "",
             "layout(location = 0) in vec2 v_uv;",
             "",
@@ -128,14 +128,14 @@ Effect {
             "#define FRAGCOLOR qt_FragColor",
             "#endif",
             "",
-            "layout(binding = 1) uniform sampler2D qt_Texture0;",
-            "layout(binding = 2) uniform sampler2D qt_DepthTexture;",
+            "uniform sampler2D qt_Texture0;",
+            "uniform sampler2D qt_DepthTexture;",
             "",
             "#ifndef INPUT",
             "#define INPUT texture(qt_Texture0, INPUT_UV)",
             "#endif",
             "",
-            "layout(std140, binding = 0) uniform qt_effectUniforms {",
+            "layout(std140) uniform qt_effectUniforms {",
             "    mat4 qt_ModelMatrix;",
             "    mat4 qt_ModelViewProjectionMatrix;",
             "    mat4 qt_ViewMatrix;",
@@ -255,7 +255,7 @@ Effect {
         property real userFogDensity: fogEffect.fogDensity
         property color userFogColor: fogEffect.fogColor
         readonly property string shaderSource: fogEffect.glsl([
-            "#version 440",
+            "#version 330 core",
             "",
             "#ifndef INPUT_UV",
             "#define INPUT_UV v_uv",
@@ -268,7 +268,7 @@ Effect {
             "#define FRAGCOLOR qt_FragColor",
             "#endif",
             "",
-            "layout(binding = 1) uniform sampler2D qt_Texture0;",
+            "uniform sampler2D qt_Texture0;",
             "",
             "#ifndef INPUT",
             "#define INPUT texture(qt_Texture0, INPUT_UV)",

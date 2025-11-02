@@ -190,7 +190,7 @@ Item {
             property real uThreshold: bloomEffect.threshold
             property real uBlurAmount: bloomEffect.blurAmount
             readonly property string shaderSource: root.glsl([
-                "#version 440",
+                "#version 330 core",
                 "",
                 "#ifndef INPUT_UV",
                 "#define INPUT_UV v_uv",
@@ -201,7 +201,7 @@ Item {
                 "#define FRAGCOLOR qt_FragColor",
                 "#endif",
                 "",
-                "    layout(binding = 1) uniform sampler2D qt_Texture0;",
+                "    uniform sampler2D qt_Texture0;",
                 "",
                 "#ifndef INPUT",
                 "#define INPUT texture(qt_Texture0, INPUT_UV)",
@@ -257,7 +257,7 @@ Item {
             id: bloomFallbackShader
             stage: Shader.Fragment
             readonly property string shaderSource: root.glsl([
-                "#version 440",
+                "#version 330 core",
                 "",
                 "",
                 "#ifndef INPUT_UV",
@@ -269,7 +269,7 @@ Item {
                 "#define FRAGCOLOR qt_FragColor",
                 "#endif",
                 "",
-                "layout(binding = 1) uniform sampler2D qt_Texture0;",
+                "uniform sampler2D qt_Texture0;",
                 "",
                 "void MAIN() {",
                 "    FRAGCOLOR = texture(qt_Texture0, INPUT_UV);",
@@ -345,7 +345,7 @@ Item {
             property real uBias: ssaoEffect.bias
             property int uSamples: ssaoEffect.samples
             readonly property string shaderSource: root.glsl([
-                "#version 440",
+                "#version 330 core",
                 "",
                 "",
                 "#ifndef INPUT_UV",
@@ -357,9 +357,9 @@ Item {
                 "#define FRAGCOLOR qt_FragColor",
                 "#endif",
                 "",
-                "    layout(binding = 1) uniform sampler2D qt_Texture0;",
-                "    layout(binding = 2) uniform sampler2D qt_DepthTexture;",
-                "    layout(binding = 3) uniform sampler2D qt_NormalTexture;",
+                "    uniform sampler2D qt_Texture0;",
+                "    uniform sampler2D qt_DepthTexture;",
+                "    uniform sampler2D qt_NormalTexture;",
                 "",
                 "#ifndef INPUT",
                 "#define INPUT texture(qt_Texture0, INPUT_UV)",
@@ -429,7 +429,7 @@ Item {
             id: ssaoFallbackShader
             stage: Shader.Fragment
             readonly property string shaderSource: root.glsl([
-                "#version 440",
+                "#version 330 core",
                 "",
                 "#ifndef INPUT_UV",
                 "#define INPUT_UV v_uv",
@@ -440,7 +440,7 @@ Item {
                 "#define FRAGCOLOR qt_FragColor",
                 "#endif",
                 "",
-                "layout(binding = 1) uniform sampler2D qt_Texture0;",
+                "uniform sampler2D qt_Texture0;",
                 "",
                 "void MAIN() {",
                 "    FRAGCOLOR = texture(qt_Texture0, INPUT_UV);",
@@ -517,7 +517,7 @@ Item {
             property real uCameraNear: dofEffect.cameraNear
             property real uCameraFar: dofEffect.cameraFar
             readonly property string shaderSource: root.glsl([
-                "#version 440",
+                "#version 330 core",
                 "",
                 "",
                 "#ifndef INPUT_UV",
@@ -529,8 +529,8 @@ Item {
                 "#define FRAGCOLOR qt_FragColor",
                 "#endif",
                 "",
-                "    layout(binding = 1) uniform sampler2D qt_Texture0;",
-                "    layout(binding = 2) uniform sampler2D qt_DepthTexture;",
+                "    uniform sampler2D qt_Texture0;",
+                "    uniform sampler2D qt_DepthTexture;",
                 "",
                 "#ifndef INPUT",
                 "#define INPUT texture(qt_Texture0, INPUT_UV)",
@@ -585,7 +585,7 @@ Item {
             id: dofFallbackShader
             stage: Shader.Fragment
             readonly property string shaderSource: root.glsl([
-                "#version 440",
+                "#version 330 core",
                 "",
                 "",
                 "#ifndef INPUT_UV",
@@ -597,7 +597,7 @@ Item {
                 "#define FRAGCOLOR qt_FragColor",
                 "#endif",
                 "",
-                "layout(binding = 1) uniform sampler2D qt_Texture0;",
+                "uniform sampler2D qt_Texture0;",
                 "",
                 "void MAIN() {",
                 "    FRAGCOLOR = texture(qt_Texture0, INPUT_UV);",
@@ -665,7 +665,7 @@ Item {
             property real uStrength: motionBlurEffect.strength
             property int uSamples: motionBlurEffect.samples
             readonly property string shaderSource: root.glsl([
-                "#version 440",
+                "#version 330 core",
                 "",
                 "",
                 "#ifndef INPUT_UV",
@@ -677,8 +677,8 @@ Item {
                 "#define FRAGCOLOR qt_FragColor",
                 "#endif",
                 "",
-                "layout(binding = 1) uniform sampler2D qt_Texture0;",
-                "layout(binding = 2) uniform sampler2D qt_VelocityTexture;",
+                "uniform sampler2D qt_Texture0;",
+                "uniform sampler2D qt_VelocityTexture;",
                 "",
                 "#ifndef INPUT",
                 "#define INPUT texture(qt_Texture0, INPUT_UV)",
@@ -712,7 +712,7 @@ Item {
             id: motionBlurFallbackShader
             stage: Shader.Fragment
             readonly property string shaderSource: root.glsl([
-                "#version 440",
+                "#version 330 core",
                 "",
                 "",
                 "#ifndef INPUT_UV",
@@ -724,7 +724,7 @@ Item {
                 "#define FRAGCOLOR qt_FragColor",
                 "#endif",
                 "",
-                "layout(binding = 1) uniform sampler2D qt_Texture0;",
+                "uniform sampler2D qt_Texture0;",
                 "",
                 "void MAIN() {",
                 "    FRAGCOLOR = texture(qt_Texture0, INPUT_UV);",
