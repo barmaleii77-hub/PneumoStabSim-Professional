@@ -8,6 +8,7 @@ Russian comments / English code.
 
 from __future__ import annotations
 
+import copy
 import logging
 import math
 from typing import TYPE_CHECKING, Any, Dict, Mapping, Optional
@@ -485,8 +486,14 @@ class SignalsRouter:
             return
 
         payload = SignalsRouter._build_simulation_payload(snapshot)
-        if payload:
-            QMLBridge.queue_update(window, "simulation", payload)
+        if not payload:
+            return
+
+        if not SignalsRouter._should_emit_update(window, "simulation", payload):
+            return
+
+        QMLBridge.queue_update(window, "simulation", payload)
+        SignalsRouter._record_dispatched_payload(window, "simulation", payload)
 
     # ------------------------------------------------------------------
     # Setup Connections
@@ -612,11 +619,14 @@ class SignalsRouter:
         if not isinstance(params, dict):
             return
 
-        if not QMLBridge.invoke_qml_function(window, "applyLightingUpdates", params):
-            QMLBridge.queue_update(window, "lighting", params)
-            QMLBridge._log_graphics_change(window, "lighting", params, applied=False)
-        else:
-            QMLBridge._log_graphics_change(window, "lighting", params, applied=True)
+        if SignalsRouter._should_emit_update(window, "lighting", params):
+            applied = QMLBridge.invoke_qml_function(
+                window, "applyLightingUpdates", params
+            )
+            if not applied:
+                QMLBridge.queue_update(window, "lighting", params)
+            QMLBridge._log_graphics_change(window, "lighting", params, applied=applied)
+            SignalsRouter._record_dispatched_payload(window, "lighting", params)
 
         window._apply_settings_update("graphics.lighting", params)
 
@@ -626,11 +636,14 @@ class SignalsRouter:
         if not isinstance(params, dict):
             return
 
-        if not QMLBridge.invoke_qml_function(window, "applyMaterialUpdates", params):
-            QMLBridge.queue_update(window, "materials", params)
-            QMLBridge._log_graphics_change(window, "materials", params, applied=False)
-        else:
-            QMLBridge._log_graphics_change(window, "materials", params, applied=True)
+        if SignalsRouter._should_emit_update(window, "materials", params):
+            applied = QMLBridge.invoke_qml_function(
+                window, "applyMaterialUpdates", params
+            )
+            if not applied:
+                QMLBridge.queue_update(window, "materials", params)
+            QMLBridge._log_graphics_change(window, "materials", params, applied=applied)
+            SignalsRouter._record_dispatched_payload(window, "materials", params)
 
         window._apply_settings_update("graphics.materials", params)
 
@@ -656,17 +669,16 @@ class SignalsRouter:
             window, params, env_payload
         )
 
-        if not QMLBridge.invoke_qml_function(
-            window, "applyEnvironmentUpdates", env_payload
-        ):
-            QMLBridge.queue_update(window, "environment", env_payload)
-            QMLBridge._log_graphics_change(
-                window, "environment", env_payload, applied=False
+        if SignalsRouter._should_emit_update(window, "environment", env_payload):
+            applied = QMLBridge.invoke_qml_function(
+                window, "applyEnvironmentUpdates", env_payload
             )
-        else:
+            if not applied:
+                QMLBridge.queue_update(window, "environment", env_payload)
             QMLBridge._log_graphics_change(
-                window, "environment", env_payload, applied=True
+                window, "environment", env_payload, applied=applied
             )
+            SignalsRouter._record_dispatched_payload(window, "environment", env_payload)
 
         reflection_updates = {}
         if params.get("reflection_enabled") is not None:
@@ -682,16 +694,17 @@ class SignalsRouter:
 
         if reflection_updates:
             three_d_payload = {"reflectionProbe": reflection_updates}
-            if not QMLBridge.invoke_qml_function(
-                window, "apply3DUpdates", three_d_payload
-            ):
-                QMLBridge.queue_update(window, "threeD", three_d_payload)
-                QMLBridge._log_graphics_change(
-                    window, "threeD", three_d_payload, applied=False
+            if SignalsRouter._should_emit_update(window, "threeD", three_d_payload):
+                applied = QMLBridge.invoke_qml_function(
+                    window, "apply3DUpdates", three_d_payload
                 )
-            else:
+                if not applied:
+                    QMLBridge.queue_update(window, "threeD", three_d_payload)
                 QMLBridge._log_graphics_change(
-                    window, "threeD", three_d_payload, applied=True
+                    window, "threeD", three_d_payload, applied=applied
+                )
+                SignalsRouter._record_dispatched_payload(
+                    window, "threeD", three_d_payload
                 )
 
         window._apply_settings_update("graphics.environment", params)
@@ -704,11 +717,16 @@ class SignalsRouter:
 
         normalized = SignalsRouter._normalize_quality_payload(params)
 
-        if not QMLBridge.invoke_qml_function(window, "applyQualityUpdates", normalized):
-            QMLBridge.queue_update(window, "quality", normalized)
-            QMLBridge._log_graphics_change(window, "quality", normalized, applied=False)
-        else:
-            QMLBridge._log_graphics_change(window, "quality", normalized, applied=True)
+        if SignalsRouter._should_emit_update(window, "quality", normalized):
+            applied = QMLBridge.invoke_qml_function(
+                window, "applyQualityUpdates", normalized
+            )
+            if not applied:
+                QMLBridge.queue_update(window, "quality", normalized)
+            QMLBridge._log_graphics_change(
+                window, "quality", normalized, applied=applied
+            )
+            SignalsRouter._record_dispatched_payload(window, "quality", normalized)
 
         window._apply_settings_update("graphics.quality", params)
 
@@ -740,6 +758,7 @@ class SignalsRouter:
         else:
             QMLBridge._log_graphics_change(window, "camera", sanitized, applied=True)
 
+        SignalsRouter._record_dispatched_payload(window, "camera", sanitized)
         window._last_camera_payload = normalized
 
         if stripped:
@@ -751,11 +770,14 @@ class SignalsRouter:
         if not isinstance(params, dict):
             return
 
-        if not QMLBridge.invoke_qml_function(window, "applyEffectsUpdates", params):
-            QMLBridge.queue_update(window, "effects", params)
-            QMLBridge._log_graphics_change(window, "effects", params, applied=False)
-        else:
-            QMLBridge._log_graphics_change(window, "effects", params, applied=True)
+        if SignalsRouter._should_emit_update(window, "effects", params):
+            applied = QMLBridge.invoke_qml_function(
+                window, "applyEffectsUpdates", params
+            )
+            if not applied:
+                QMLBridge.queue_update(window, "effects", params)
+            QMLBridge._log_graphics_change(window, "effects", params, applied=applied)
+            SignalsRouter._record_dispatched_payload(window, "effects", params)
 
         window._apply_settings_update("graphics.effects", params)
 
@@ -788,23 +810,37 @@ class SignalsRouter:
         else:
             env_payload = {}
 
+        def _coerce_payload(value: Any) -> Dict[str, Any]:
+            if isinstance(value, Mapping):
+                return dict(value)
+            return {}
+
         # Queue all categories as batch
-        QMLBridge.queue_update(window, "environment", env_payload)
-        QMLBridge.queue_update(window, "lighting", full_state.get("lighting", {}))
-        QMLBridge.queue_update(window, "materials", full_state.get("materials", {}))
+        updates: list[tuple[str, Dict[str, Any]]] = []
+        updates.append(("environment", env_payload))
+        updates.append(("lighting", _coerce_payload(full_state.get("lighting", {}))))
+        updates.append(("materials", _coerce_payload(full_state.get("materials", {}))))
         quality_payload = SignalsRouter._normalize_quality_payload(
             full_state.get("quality", {})
         )
-        QMLBridge.queue_update(window, "quality", quality_payload)
+        updates.append(("quality", quality_payload))
         camera_state = SignalsRouter._sanitize_camera_payload(
             full_state.get("camera", {})
         )
         if camera_state:
-            QMLBridge.queue_update(window, "camera", camera_state)
+            updates.append(("camera", camera_state))
             window._last_camera_payload = SignalsRouter._normalize_camera_payload(
                 camera_state
             )
-        QMLBridge.queue_update(window, "effects", full_state.get("effects", {}))
+        updates.append(("effects", _coerce_payload(full_state.get("effects", {}))))
+
+        for category, payload in updates:
+            if not payload:
+                continue
+            if not SignalsRouter._should_emit_update(window, category, payload):
+                continue
+            QMLBridge.queue_update(window, category, payload)
+            SignalsRouter._record_dispatched_payload(window, category, payload)
 
         window._apply_settings_update("graphics", full_state)
 
@@ -912,7 +948,9 @@ class SignalsRouter:
             settings_payload["is_running"] = running_flag
             qml_payload["isRunning"] = running_flag
 
-        if qml_payload:
+        if qml_payload and SignalsRouter._should_emit_update(
+            window, "animation", qml_payload
+        ):
             applied = QMLBridge.invoke_qml_function(
                 window, "applyAnimationUpdates", qml_payload
             )
@@ -924,6 +962,7 @@ class SignalsRouter:
                 settings_payload if settings_payload else qml_payload,
                 applied=applied,
             )
+            SignalsRouter._record_dispatched_payload(window, "animation", qml_payload)
 
         if settings_payload:
             window._apply_settings_update("animation", settings_payload)
@@ -1053,3 +1092,110 @@ class SignalsRouter:
             if not applied:
                 QMLBridge.queue_update(window, "animation", payload)
             SignalsRouter.handle_animation_toggled(window, animation_toggle)
+
+    @staticmethod
+    def _clone_value(value: Any) -> Any:
+        """Return a best-effort deep copy of ``value`` suitable for caching."""
+
+        if isinstance(value, Mapping):
+            return {
+                key: SignalsRouter._clone_value(nested) for key, nested in value.items()
+            }
+        if isinstance(value, (list, tuple)):
+            return [SignalsRouter._clone_value(item) for item in value]
+        try:
+            return copy.deepcopy(value)
+        except Exception:
+            return value
+
+    @staticmethod
+    def _clone_payload(payload: Mapping[str, Any]) -> Dict[str, Any]:
+        """Create a detached copy of a mapping payload."""
+
+        base = dict(payload)
+        try:
+            return copy.deepcopy(base)
+        except Exception:
+            return {
+                key: SignalsRouter._clone_value(value) for key, value in base.items()
+            }
+
+    @staticmethod
+    def _payloads_equal(left: Any, right: Any) -> bool:
+        """Recursively compare two payload structures with float tolerance."""
+
+        if left is right:
+            return True
+
+        if isinstance(left, Mapping) and isinstance(right, Mapping):
+            if set(left.keys()) != set(right.keys()):
+                return False
+            return all(
+                SignalsRouter._payloads_equal(left[key], right[key])
+                for key in left.keys()
+            )
+
+        if isinstance(left, (list, tuple)) and isinstance(right, (list, tuple)):
+            if len(left) != len(right):
+                return False
+            return all(
+                SignalsRouter._payloads_equal(l_item, r_item)
+                for l_item, r_item in zip(left, right)
+            )
+
+        numeric_types = (int, float)
+        if isinstance(left, numeric_types) and isinstance(right, numeric_types):
+            return math.isclose(float(left), float(right), rel_tol=1e-9, abs_tol=1e-9)
+
+        return left == right
+
+    @staticmethod
+    def _get_last_payloads(window: "MainWindow") -> Dict[str, Any]:
+        """Return the map tracking the last dispatched payload per category."""
+
+        payloads: Dict[str, Any] | None = getattr(
+            window, "_last_dispatched_payloads", None
+        )
+        if payloads is None:
+            payloads = {}
+            window._last_dispatched_payloads = payloads
+        return payloads
+
+    @staticmethod
+    def _should_emit_update(
+        window: "MainWindow", category: str, payload: Mapping[str, Any]
+    ) -> bool:
+        """Return ``True`` when the payload differs from cached state."""
+
+        if not payload:
+            return False
+
+        last_payloads = getattr(window, "_last_dispatched_payloads", {})
+        cached = last_payloads.get(category)
+        if cached is not None and SignalsRouter._payloads_equal(cached, payload):
+            SignalsRouter.logger.debug(
+                "⏭️ Skipping redundant %s update (same as last payload)", category
+            )
+            return False
+
+        queued = getattr(window, "_qml_update_queue", None)
+        if queued is not None:
+            existing = queued.get(category)
+            if existing is not None and SignalsRouter._payloads_equal(
+                existing, payload
+            ):
+                SignalsRouter.logger.debug(
+                    "⏭️ %s update already queued; ignoring duplicate payload", category
+                )
+                return False
+
+        return True
+
+    @staticmethod
+    def _record_dispatched_payload(
+        window: "MainWindow", category: str, payload: Mapping[str, Any]
+    ) -> None:
+        """Cache the last payload dispatched for ``category``."""
+
+        payloads = SignalsRouter._get_last_payloads(window)
+        payloads[category] = SignalsRouter._clone_payload(payload)
