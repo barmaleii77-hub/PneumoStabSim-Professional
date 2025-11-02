@@ -475,6 +475,7 @@ check_*.py
 !tests/settings/test_persistence.py
 !tests/ui/test_geometry_cylinder_tab.py
 !tests/ui/test_effect_shaders.py
+!tests/ui/test_environment_tab_ibl_dependencies.py
 !tests/unit/ui/test_knob.py
 !tests/unit/ui/test_signals_router_quality.py
 !tests/unit/ui/test_signals_router_dedup.py

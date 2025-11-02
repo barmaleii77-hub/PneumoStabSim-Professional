@@ -66,6 +66,7 @@ class EnvironmentTab(QWidget):
             self._updating_ui = previous_flag
 
         layout.addStretch(1)
+        self._update_ibl_dependency_states()
 
     def _build_background_group(self) -> QGroupBox:
         """Создать группу Фон и IBL - расширенная"""
@@ -534,11 +535,13 @@ class EnvironmentTab(QWidget):
     def _on_ibl_enabled_clicked(self, checked: bool) -> None:
         if self._updating_ui:
             return
+        self._update_ibl_dependency_states()
         self._on_control_changed("ibl_enabled", checked)
 
     def _on_skybox_enabled_clicked(self, checked: bool) -> None:
         if self._updating_ui:
             return
+        self._update_ibl_dependency_states()
         self._on_control_changed("skybox_enabled", checked)
 
     def _on_fog_enabled_clicked(self, checked: bool) -> None:
@@ -725,9 +728,53 @@ class EnvironmentTab(QWidget):
                 except Exception:
                     pass
             self._updating_ui = False
+        self._update_ibl_dependency_states()
 
     def get_controls(self) -> Dict[str, Any]:
         return self._controls
 
     def set_updating_ui(self, updating: bool) -> None:
         self._updating_ui = updating
+
+    # ========== ВСПОМОГАТЕЛЬНЫЕ МЕТОДЫ ==========
+
+    def _set_control_enabled(self, key: str, enabled: bool) -> None:
+        widget = self._controls.get(key)
+        if widget is None:
+            return
+        setter = getattr(widget, "set_enabled", None)
+        if callable(setter):
+            setter(enabled)
+            return
+        try:
+            widget.setEnabled(enabled)
+        except Exception:
+            pass
+
+    def _update_ibl_dependency_states(self) -> None:
+        """Disable IBL controls when master toggles are off."""
+
+        ibl_enabled = False
+        skybox_enabled = False
+
+        ibl_checkbox = self._controls.get("ibl.enabled")
+        if hasattr(ibl_checkbox, "isChecked"):
+            ibl_enabled = bool(ibl_checkbox.isChecked())
+
+        skybox_checkbox = self._controls.get("background.skybox_enabled")
+        if hasattr(skybox_checkbox, "isChecked"):
+            skybox_enabled = bool(skybox_checkbox.isChecked())
+
+        for key in (
+            "ibl.intensity",
+            "ibl.probe_horizon",
+            "ibl.offset_x",
+            "ibl.offset_y",
+            "ibl.bind",
+        ):
+            self._set_control_enabled(key, ibl_enabled)
+
+        for key in ("ibl.skybox_brightness", "skybox.blur"):
+            self._set_control_enabled(key, skybox_enabled)
+
+        self._set_control_enabled("ibl.rotation", ibl_enabled or skybox_enabled)
