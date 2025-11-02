@@ -142,6 +142,49 @@ Effect {
     // qmllint enable unqualified
     readonly property bool useGlesShaders: reportedGlesContext && !preferDesktopShaderProfile
 
+    readonly property string shaderResourceDirectory: "../../shaders/effects/"
+    property var shaderResourceAvailabilityCache: ({})
+
+    function resolvedShaderUrl(resourceName) {
+        return Qt.resolvedUrl(shaderResourceDirectory + resourceName)
+    }
+
+    function shaderResourceExists(url, resourceName) {
+        if (!url || !url.length)
+            return false
+
+        if (Object.prototype.hasOwnProperty.call(shaderResourceAvailabilityCache, url))
+            return shaderResourceAvailabilityCache[url]
+
+        var available = false
+
+        function checkAvailability(method) {
+            try {
+                var xhr = new XMLHttpRequest()
+                xhr.open(method, url, false)
+                xhr.send()
+                if (xhr.status === 200 || xhr.status === 0) {
+                    available = true
+                    return true
+                }
+                if (xhr.status === 405 || xhr.status === 501)
+                    return false
+            } catch (error) {
+                console.debug("FogEffect: shader availability check failed", resourceName, method, error)
+            }
+            return false
+        }
+
+        if (!checkAvailability("HEAD"))
+            checkAvailability("GET")
+
+        shaderResourceAvailabilityCache[url] = available
+        if (!available)
+            console.error("❌ FogEffect: shader resource missing", resourceName, url)
+
+        return available
+    }
+
     function shaderPath(fileName) {
         if (!fileName || typeof fileName !== "string")
             return ""
@@ -149,13 +192,20 @@ Effect {
         var normalized = String(fileName)
         if (useGlesShaders) {
             var dotIndex = normalized.lastIndexOf(".")
+            var glesName
             if (dotIndex > 0)
-                normalized = normalized.slice(0, dotIndex) + "_es" + normalized.slice(dotIndex)
+                glesName = normalized.slice(0, dotIndex) + "_es" + normalized.slice(dotIndex)
             else
-                normalized = normalized + "_es"
+                glesName = normalized + "_es"
+
+            var glesUrl = resolvedShaderUrl(glesName)
+            if (shaderResourceExists(glesUrl, glesName))
+                return glesUrl
         }
 
-        return Qt.resolvedUrl("../../shaders/effects/" + normalized)
+        var resolvedUrl = resolvedShaderUrl(normalized)
+        shaderResourceExists(resolvedUrl, normalized)
+        return resolvedUrl
     }
 
     // Используем GLSL 330 core на OpenGL и GLSL 300 es в контекстах OpenGL ES.
