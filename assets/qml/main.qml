@@ -111,7 +111,7 @@ Item {
         return false
     }
 
-    readonly property var _forwardedMethodNames: [
+    readonly property var _proxyMethodNames: [
         "applyGeometryUpdates",
         "updateGeometry",
         "applyAnimationUpdates",
@@ -134,18 +134,19 @@ Item {
         "applyRenderSettings"
     ]
 
+    function _createProxyMethod(methodName) {
+        return function(params) {
+            return _invokeOnActiveRoot(methodName, params)
+        }
+    }
+
     Component.onCompleted: {
-        for (var i = 0; i < _forwardedMethodNames.length; ++i) {
-            var methodName = _forwardedMethodNames[i]
-            if (root[methodName] === undefined) {
-                root[methodName] = (function(name) {
-                    return function(params) {
-                        return _invokeOnActiveRoot(name, params)
-                    }
-                })(methodName)
+        for (var i = 0; i < _proxyMethodNames.length; ++i) {
+            var methodName = _proxyMethodNames[i]
+            if (typeof root[methodName] !== "function") {
+                root[methodName] = _createProxyMethod(methodName)
             }
         }
-        _flushQueuedBatches()
     }
 
     Loader {
