@@ -358,9 +358,11 @@ Effect {
             console.debug("FogEffect: shader normalization skipped", resourceName, error)
         }
 
-        shaderSanitizationCache[url] = sanitizedUrl
+        // Кэшируем только если url был нормализован
+        if (sanitizedUrl !== url) {
+            shaderSanitizationCache[url] = sanitizedUrl
+        }
         return sanitizedUrl
-    }
 
     function handleShaderCompilationLog(shaderId, message) {
         if (!message || !message.length)
