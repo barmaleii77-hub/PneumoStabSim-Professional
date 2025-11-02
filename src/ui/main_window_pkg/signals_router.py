@@ -89,9 +89,13 @@ class SignalsRouter:
         raw_value = params.get(source_key)
         text_value = "" if raw_value is None else str(raw_value)
         stripped_value = text_value.strip()
+        # Mirror the FileCyclerWidget fix from PR #346: decide on the placeholder
+        # entry using the trimmed value so that whitespace-only strings count as
+        # an explicit "empty" selection.
+        allow_empty_selection = not stripped_value
         normalised_value = stripped_value
 
-        if stripped_value:
+        if not allow_empty_selection:
             if hasattr(window, "normalizeHdrPath"):
                 try:
                     candidate_value = window.normalizeHdrPath(stripped_value)
@@ -108,10 +112,13 @@ class SignalsRouter:
         else:
             normalised_value = ""
 
-        for candidate in SignalsRouter._HDR_SOURCE_KEYS:
-            if candidate != "ibl_source":
-                params.pop(candidate, None)
-
+        filtered_params = {
+            key: value
+            for key, value in params.items()
+            if key not in SignalsRouter._HDR_SOURCE_KEYS
+        }
+        params.clear()
+        params.update(filtered_params)
         params["ibl_source"] = normalised_value
 
         updated_payload = {
