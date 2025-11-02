@@ -21,6 +21,11 @@ EFFECT_FILES = [
     REPO_ROOT / "assets/qml/effects/PostEffects.qml",
 ]
 
+SHADER_DIR = REPO_ROOT / "assets/shaders/effects"
+SHADER_FILES = sorted(
+    list(SHADER_DIR.glob("*.frag")) + list(SHADER_DIR.glob("*.vert"))
+)
+
 
 @pytest.mark.parametrize("qml_file", EFFECT_FILES)
 def test_effect_shaders_use_url_bindings(qml_file: Path) -> None:
@@ -35,3 +40,28 @@ def test_effect_shaders_use_url_bindings(qml_file: Path) -> None:
     # Verify that each effect continues to bind shaders via the helper
     # `shaderPath(...)` function, which produces Qt-compatible URLs.
     assert re.search(r"shader\s*:\s*(?:fogEffect|root)\.shaderPath", source)
+
+
+@pytest.mark.parametrize("shader_file", SHADER_FILES)
+def test_effect_shaders_use_lf_line_endings(shader_file: Path) -> None:
+    """Ensure GLSL shader files keep LF endings to avoid CR-induced compiler errors."""
+
+    data = shader_file.read_bytes()
+    assert b"\r" not in data, f"{shader_file} contains Windows CR characters"
+
+
+@pytest.mark.parametrize("shader_file", SHADER_FILES)
+def test_effect_shaders_start_with_version(shader_file: Path) -> None:
+    """The first non-empty line in each shader must start with #version."""
+
+    text = shader_file.read_text(encoding="utf-8")
+    for line in text.splitlines():
+        stripped = line.strip()
+        if not stripped:
+            continue
+        assert stripped.startswith("#version"), (
+            f"{shader_file} must begin with a #version directive"
+        )
+        break
+    else:
+        pytest.fail(f"{shader_file} is empty or lacks a #version directive")

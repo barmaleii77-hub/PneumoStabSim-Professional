@@ -143,6 +143,7 @@ Item {
 
     readonly property string shaderResourceDirectory: "../../shaders/effects/"
     property var shaderResourceAvailabilityCache: ({})
+    property var shaderSanitizationCache: ({})
 
     function shaderCompilationMessage(shaderItem) {
         if (!shaderItem)
@@ -240,7 +241,7 @@ Item {
 
             var glesUrl = resolvedShaderUrl(glesName)
             if (shaderResourceExists(glesUrl, glesName, false))
-                return glesUrl
+                return sanitizedShaderUrl(glesUrl, glesName)
 
             console.warn("⚠️ PostEffects: GLES shader variant missing; falling back to desktop profile", glesName)
             requestDesktopShaderProfile(`Shader ${glesName} unavailable; enforcing desktop profile`)
@@ -248,7 +249,7 @@ Item {
 
         var resolvedUrl = resolvedShaderUrl(normalized)
         shaderResourceExists(resolvedUrl, normalized, false)
-        return resolvedUrl
+        return sanitizedShaderUrl(resolvedUrl, normalized)
     }
 
     function requestDesktopShaderProfile(reason) {
@@ -256,6 +257,8 @@ Item {
             return
         console.warn("⚠️ PostEffects:", reason, "– forcing desktop shader profile")
         forceDesktopShaderProfile = true
+        shaderResourceAvailabilityCache = ({})
+        shaderSanitizationCache = ({})
     }
 
     function handleShaderCompilationLog(shaderId, message) {
@@ -270,6 +273,36 @@ Item {
             return
         requestDesktopShaderProfile(
                     `Shader ${shaderId} reported #version incompatibility`)
+    }
+
+    function sanitizedShaderUrl(url, resourceName) {
+        if (!url || !url.length)
+            return url
+
+        if (Object.prototype.hasOwnProperty.call(shaderSanitizationCache, url))
+            return shaderSanitizationCache[url]
+
+        var sanitizedUrl = url
+
+        try {
+            var xhr = new XMLHttpRequest()
+            xhr.open("GET", url, false)
+            xhr.responseType = "text"
+            xhr.send()
+            if (xhr.status === 200 || xhr.status === 0) {
+                var shaderSource = xhr.responseText
+                if (shaderSource && shaderSource.indexOf("\r") !== -1) {
+                    var normalized = shaderSource.replace(/\r\n/g, "\n").replace(/\r/g, "\n")
+                    sanitizedUrl = "data:text/plain;charset=utf-8," + encodeURIComponent(normalized)
+                    console.warn("⚠️ PostEffects: normalized CRLF line endings for shader", resourceName)
+                }
+            }
+        } catch (error) {
+            console.debug("PostEffects: shader normalization skipped", resourceName, error)
+        }
+
+        shaderSanitizationCache[url] = sanitizedUrl
+        return sanitizedUrl
     }
 
     // Примечание по совместимости: для профиля OpenGL ES теперь поставляются
