@@ -33,7 +33,7 @@ if (Get-Command Get-PreferredPython -ErrorAction SilentlyContinue) {
 }
 
 if (-not (Test-Path $envFile)) {
-    Write-Host "[env] .env not found – run setup_environment.py" -ForegroundColor Yellow
+    Write-Host "[env] .env not found - run setup_environment.py" -ForegroundColor Yellow
     return
 }
 
@@ -116,15 +116,33 @@ foreach ($entry in $pathVariables.GetEnumerator()) {
 
 Write-Host "[env] Variables loaded from .env" -ForegroundColor Cyan
 
-$venvPath = Join-Path $projectRoot ".venv"
-$venvActivate = Join-Path $venvPath "Scripts/Activate.ps1"
+$joinPath = {
+    param(
+        [Parameter(Mandatory = $true)][string] $Base,
+        [Parameter(ValueFromRemainingArguments = $true)][string[]] $Parts
+    )
+
+    $current = $Base
+    foreach ($part in $Parts) {
+        if ([string]::IsNullOrWhiteSpace($part)) {
+            continue
+        }
+
+        $current = Join-Path -Path $current -ChildPath $part
+    }
+
+    return $current
+}
+
+$venvPath = & $joinPath -Base $projectRoot -Parts '.venv'
+$venvActivate = & $joinPath -Base $venvPath -Parts 'Scripts', 'Activate.ps1'
 
 if ($preferredPython -and (Get-Command Get-PythonVersionFromExecutable -ErrorAction SilentlyContinue)) {
-    $venvPython = Join-Path $venvPath 'Scripts' 'python.exe'
+    $venvPython = & $joinPath -Base $venvPath -Parts 'Scripts', 'python.exe'
     if (Test-Path $venvPython) {
         $venvVersion = Get-PythonVersionFromExecutable -Executable $venvPython
         if ($venvVersion -and $venvVersion -lt $preferredPython.Version) {
-            $recreateMessage = "[env] Existing .venv uses Python $venvVersion – recreating with $($preferredPython.Version)"
+            $recreateMessage = "[env] Existing .venv uses Python $venvVersion - recreating with $($preferredPython.Version)"
             Write-Host $recreateMessage -ForegroundColor Yellow
             try {
                 Remove-Item -Recurse -Force $venvPath
@@ -137,7 +155,7 @@ if ($preferredPython -and (Get-Command Get-PythonVersionFromExecutable -ErrorAct
 }
 
 if (-not (Test-Path $venvPath)) {
-    Write-Host "[env] .venv not found – bootstrapping via uv" -ForegroundColor Yellow
+    Write-Host "[env] .venv not found - bootstrapping via uv" -ForegroundColor Yellow
     $uv = Get-Command uv -ErrorAction SilentlyContinue
     if ($uv) {
         if ($preferredPython) {
@@ -161,9 +179,10 @@ if (-not (Test-Path $venvPath)) {
         Write-Host "[env] uv is not available, falling back to python -m venv" -ForegroundColor Yellow
         $pythonExecutable = if ($preferredPython) { $preferredPython.Path } else { 'python' }
         & $pythonExecutable '-m' 'venv' $venvPath
-        $requirements = Join-Path $projectRoot "requirements.txt"
+        $requirements = & $joinPath -Base $projectRoot -Parts 'requirements.txt'
         if (Test-Path $requirements) {
-            & (Join-Path $venvPath "Scripts/python.exe") -m pip install -r $requirements
+            $venvPythonExe = & $joinPath -Base $venvPath -Parts 'Scripts', 'python.exe'
+            & $venvPythonExe -m pip install -r $requirements
         }
     }
 }
