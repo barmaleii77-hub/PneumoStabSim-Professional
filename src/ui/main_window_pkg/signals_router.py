@@ -770,8 +770,26 @@ class SignalsRouter:
         if not isinstance(full_state, dict):
             return
 
+        environment_state = full_state.get("environment")
+        if isinstance(environment_state, dict):
+            env_payload = SignalsRouter._normalise_environment_payload(
+                window,
+                environment_state,
+                dict(environment_state),
+            )
+        elif isinstance(environment_state, Mapping):
+            env_dict = dict(environment_state)
+            env_payload = SignalsRouter._normalise_environment_payload(
+                window,
+                env_dict,
+                dict(env_dict),
+            )
+            full_state["environment"] = env_dict
+        else:
+            env_payload = {}
+
         # Queue all categories as batch
-        QMLBridge.queue_update(window, "environment", full_state.get("environment", {}))
+        QMLBridge.queue_update(window, "environment", env_payload)
         QMLBridge.queue_update(window, "lighting", full_state.get("lighting", {}))
         QMLBridge.queue_update(window, "materials", full_state.get("materials", {}))
         quality_payload = SignalsRouter._normalize_quality_payload(

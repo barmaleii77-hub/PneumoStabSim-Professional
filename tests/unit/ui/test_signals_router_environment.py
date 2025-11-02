@@ -11,16 +11,20 @@ from src.ui.main_window_pkg import signals_router
 
 class _StubBridge:
     calls: List[Tuple[str, Dict[str, Any]]] = []
+    queue_calls: List[Tuple[str, Dict[str, Any]]] = []
     logs: List[Tuple[str, Dict[str, Any], bool]] = []
+    invoke_result: bool = True
 
     @staticmethod
     def invoke_qml_function(window, name: str, payload: Dict[str, Any]) -> bool:
         _StubBridge.calls.append((name, dict(payload)))
-        return True
+        return _StubBridge.invoke_result
 
     @staticmethod
-    def queue_update(*args, **kwargs) -> None:  # pragma: no cover - should not run
-        raise AssertionError("queue_update should not be called when invoke succeeds")
+    def queue_update(_window, category: str, payload: Dict[str, Any]) -> None:
+        if not payload:
+            return
+        _StubBridge.queue_calls.append((category, dict(payload)))
 
     @staticmethod
     def _log_graphics_change(
@@ -60,7 +64,9 @@ class _StubWindow:
 @pytest.fixture(autouse=True)
 def _patch_qml_bridge(monkeypatch: pytest.MonkeyPatch) -> None:
     _StubBridge.calls.clear()
+    _StubBridge.queue_calls.clear()
     _StubBridge.logs.clear()
+    _StubBridge.invoke_result = True
     monkeypatch.setattr(signals_router, "QMLBridge", _StubBridge)
 
 
@@ -82,7 +88,88 @@ def test_handle_environment_changed_normalises_hdr_path() -> None:
     assert params["ibl_source"] == "assets/hdr/studio.hdr"
     assert "iblSource" not in params
 
+    assert not _StubBridge.queue_calls
+
     assert window.saved_updates
     _, saved_payload = window.saved_updates[0]
     assert saved_payload["ibl_source"] == "assets/hdr/studio.hdr"
     assert "iblSource" not in saved_payload
+
+
+def test_handle_environment_changed_prefers_canonical_key_when_both_provided() -> None:
+    window = _StubWindow()
+    params: Dict[str, Any] = {
+        "ibl_source": "assets/hdr/canonical.hdr",
+        "iblSource": "assets/hdr/legacy.hdr",
+        "ibl_enabled": False,
+    }
+
+    signals_router.SignalsRouter.handle_environment_changed(window, params)
+
+    assert _StubBridge.calls
+    _, payload = _StubBridge.calls[0]
+    assert payload["ibl_source"] == "assets/hdr/canonical.hdr"
+    assert "iblSource" not in payload
+
+    assert params["ibl_source"] == "assets/hdr/canonical.hdr"
+    assert "iblSource" not in params
+
+    saved_payload = window.saved_updates[0][1]
+    assert saved_payload["ibl_source"] == "assets/hdr/canonical.hdr"
+
+
+def test_handle_environment_changed_queues_canonical_payload_when_invoke_fails() -> None:
+    window = _StubWindow()
+    params: Dict[str, Any] = {"iblSource": "assets\\hdr\\queued.hdr"}
+
+    _StubBridge.invoke_result = False
+    try:
+        signals_router.SignalsRouter.handle_environment_changed(window, params)
+    finally:
+        _StubBridge.invoke_result = True
+
+    assert _StubBridge.calls
+    assert _StubBridge.queue_calls
+    category, queued_payload = _StubBridge.queue_calls[0]
+    assert category == "environment"
+    assert queued_payload["ibl_source"] == "assets/hdr/queued.hdr"
+    assert "iblSource" not in queued_payload
+
+    assert params["ibl_source"] == "assets/hdr/queued.hdr"
+    assert "iblSource" not in params
+
+    saved_payload = window.saved_updates[0][1]
+    assert saved_payload["ibl_source"] == "assets/hdr/queued.hdr"
+
+
+def test_handle_preset_applied_normalizes_environment_section() -> None:
+    window = _StubWindow()
+    full_state: Dict[str, Any] = {
+        "environment": {
+            "iblSource": " assets\\hdr\\preset.hdr ",
+            "ibl_enabled": True,
+        },
+        "lighting": {"mode": "studio"},
+        "materials": {},
+        "quality": {},
+        "camera": {},
+        "effects": {},
+    }
+
+    signals_router.SignalsRouter.handle_preset_applied(window, full_state)
+
+    env_state = full_state["environment"]
+    assert env_state["ibl_source"] == "assets/hdr/preset.hdr"
+    assert "iblSource" not in env_state
+
+    env_queue_payloads = [
+        payload for category, payload in _StubBridge.queue_calls if category == "environment"
+    ]
+    assert env_queue_payloads
+    queued_payload = env_queue_payloads[-1]
+    assert queued_payload["ibl_source"] == "assets/hdr/preset.hdr"
+    assert "iblSource" not in queued_payload
+
+    saved_key, saved_payload = window.saved_updates[-1]
+    assert saved_key == "graphics"
+    assert saved_payload["environment"]["ibl_source"] == "assets/hdr/preset.hdr"
