@@ -57,7 +57,11 @@ Effect {
     // Используем GLSL ES только при наличии реального контекста OpenGL ES.
     // Для программного или RHI-рендерера требуются варианты core.
     // qmllint disable unqualified
+    property bool forceDesktopShaderProfile: false
+
     readonly property bool preferDesktopShaderProfile: {
+        if (forceDesktopShaderProfile)
+            return true
         try {
             if (typeof qtGraphicsApiRequiresDesktopShaders === "boolean")
                 return qtGraphicsApiRequiresDesktopShaders
@@ -90,9 +94,29 @@ Effect {
         }
     }
     readonly property bool reportedGlesContext: {
+        if (forceDesktopShaderProfile)
+            return false
         try {
-            return typeof qtGraphicsApiName === "string"
-                    && qtGraphicsApiName.toLowerCase().indexOf("es") !== -1
+            if (GraphicsInfo.renderableType === GraphicsInfo.OpenGLES)
+                return true
+        } catch (error) {
+        }
+        try {
+            if (typeof qtGraphicsApiName === "string") {
+                var normalized = qtGraphicsApiName.trim().toLowerCase()
+                if (!normalized.length)
+                    return false
+                if (normalized.indexOf("rhi") !== -1
+                        && normalized.indexOf("opengl") !== -1
+                        && normalized.indexOf("gles") === -1)
+                    return false
+                if (normalized.indexOf("opengl es") !== -1)
+                    return true
+                if (normalized.indexOf("opengles") !== -1)
+                    return true
+                if (normalized.indexOf("gles") !== -1)
+                    return true
+            }
         } catch (error) {
         }
         return false
@@ -127,6 +151,31 @@ Effect {
     property string vertexShaderCode: ""
     property string fragmentShaderCode: ""
     property string fallbackShaderCode: ""
+
+    function requestDesktopShaderProfile(reason) {
+        if (forceDesktopShaderProfile)
+            return
+        console.warn("⚠️ FogEffect:", reason, "– forcing desktop shader profile")
+        forceDesktopShaderProfile = true
+        Qt.callLater(function() {
+            refreshShaderSources()
+            refreshShaderAssignments()
+        })
+    }
+
+    function handleShaderCompilationLog(shaderId, message) {
+        if (!useGlesShaders)
+            return
+        if (!message || !message.length)
+            return
+        var normalized = String(message).toLowerCase()
+        if (normalized.indexOf("#version") === -1)
+            return
+        if (normalized.indexOf("profile") === -1 && normalized.indexOf("expected newline") === -1)
+            return
+        requestDesktopShaderProfile(
+                    `Shader ${shaderId} reported #version incompatibility`)
+    }
 
     function loadShaderSource(fileName, stripVersionDirective) {
         var url = shaderPath(fileName)
@@ -222,6 +271,7 @@ Effect {
                                    fogVertexShader,
                                    fogEffect.vertexShaderCode,
                                    "fog.vert")
+        onLogChanged: fogEffect.handleShaderCompilationLog("fog.vert", log)
     }
 
     Shader {
@@ -249,6 +299,7 @@ Effect {
                                    fogFragmentShader,
                                    fogEffect.fragmentShaderCode,
                                    "fog.frag")
+        onLogChanged: fogEffect.handleShaderCompilationLog("fog.frag", log)
     }
 
     Shader {
@@ -260,6 +311,7 @@ Effect {
                                    fogFallbackShader,
                                    fogEffect.fallbackShaderCode,
                                    "fog_fallback.frag")
+        onLogChanged: fogEffect.handleShaderCompilationLog("fog_fallback.frag", log)
     }
 
     passes: [

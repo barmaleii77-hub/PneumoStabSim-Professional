@@ -42,7 +42,11 @@ Item {
     // Используем версию шейдеров OpenGL ES только при реальном контексте OpenGL ES.
     // Программный или RHI-рендерер Qt требует десктопный профиль GLSL.
     // qmllint disable unqualified
+    property bool forceDesktopShaderProfile: false
+
     readonly property bool preferDesktopShaderProfile: {
+        if (forceDesktopShaderProfile)
+            return true
         try {
             if (typeof qtGraphicsApiRequiresDesktopShaders === "boolean")
                 return qtGraphicsApiRequiresDesktopShaders
@@ -75,9 +79,29 @@ Item {
         }
     }
     readonly property bool reportedGlesContext: {
+        if (forceDesktopShaderProfile)
+            return false
         try {
-            return typeof qtGraphicsApiName === "string"
-                    && qtGraphicsApiName.toLowerCase().indexOf("es") !== -1
+            if (GraphicsInfo.renderableType === GraphicsInfo.OpenGLES)
+                return true
+        } catch (error) {
+        }
+        try {
+            if (typeof qtGraphicsApiName === "string") {
+                var normalized = qtGraphicsApiName.trim().toLowerCase()
+                if (!normalized.length)
+                    return false
+                if (normalized.indexOf("rhi") !== -1
+                        && normalized.indexOf("opengl") !== -1
+                        && normalized.indexOf("gles") === -1)
+                    return false
+                if (normalized.indexOf("opengl es") !== -1)
+                    return true
+                if (normalized.indexOf("opengles") !== -1)
+                    return true
+                if (normalized.indexOf("gles") !== -1)
+                    return true
+            }
         } catch (error) {
         }
         return false
@@ -153,6 +177,31 @@ Item {
     function reloadShaderSources() {
         shaderCache = ({})
         shaderReloadToken += 1
+    }
+
+    function requestDesktopShaderProfile(reason) {
+        if (forceDesktopShaderProfile)
+            return
+        console.warn("⚠️ PostEffects:", reason, "– forcing desktop shader profile")
+        forceDesktopShaderProfile = true
+        Qt.callLater(function() {
+            reloadShaderSources()
+            refreshAllShaderAssignments()
+        })
+    }
+
+    function handleShaderCompilationLog(shaderId, message) {
+        if (!useGlesShaders)
+            return
+        if (!message || !message.length)
+            return
+        var normalized = String(message).toLowerCase()
+        if (normalized.indexOf("#version") === -1)
+            return
+        if (normalized.indexOf("profile") === -1 && normalized.indexOf("expected newline") === -1)
+            return
+        requestDesktopShaderProfile(
+                    `Shader ${shaderId} reported #version incompatibility`)
     }
 
     function shaderSupportsInlineCode(shaderItem) {
@@ -438,6 +487,7 @@ Item {
             property string shaderSource: root.shaderSourceWithToken("bloom.frag", root.shaderReloadToken)
             onShaderSourceChanged: root.applyShaderSource(bloomFragmentShader, shaderSource, "bloom.frag")
             Component.onCompleted: root.applyShaderSource(bloomFragmentShader, shaderSource, "bloom.frag")
+            onLogChanged: root.handleShaderCompilationLog("bloom.frag", log)
         }
 
         Shader {
@@ -446,6 +496,7 @@ Item {
             property string shaderSource: root.shaderSourceWithToken("bloom_fallback.frag", root.shaderReloadToken)
             onShaderSourceChanged: root.applyShaderSource(bloomFallbackShader, shaderSource, "bloom_fallback.frag")
             Component.onCompleted: root.applyShaderSource(bloomFallbackShader, shaderSource, "bloom_fallback.frag")
+            onLogChanged: root.handleShaderCompilationLog("bloom_fallback.frag", log)
         }
 
 
@@ -523,6 +574,7 @@ Item {
             property string shaderSource: root.shaderSourceWithToken("ssao.frag", root.shaderReloadToken)
             onShaderSourceChanged: root.applyShaderSource(ssaoFragmentShader, shaderSource, "ssao.frag")
             Component.onCompleted: root.applyShaderSource(ssaoFragmentShader, shaderSource, "ssao.frag")
+            onLogChanged: root.handleShaderCompilationLog("ssao.frag", log)
         }
 
         Shader {
@@ -531,6 +583,7 @@ Item {
             property string shaderSource: root.shaderSourceWithToken("ssao_fallback.frag", root.shaderReloadToken)
             onShaderSourceChanged: root.applyShaderSource(ssaoFallbackShader, shaderSource, "ssao_fallback.frag")
             Component.onCompleted: root.applyShaderSource(ssaoFallbackShader, shaderSource, "ssao_fallback.frag")
+            onLogChanged: root.handleShaderCompilationLog("ssao_fallback.frag", log)
         }
 
 
@@ -609,6 +662,7 @@ Item {
             property string shaderSource: root.shaderSourceWithToken("dof.frag", root.shaderReloadToken)
             onShaderSourceChanged: root.applyShaderSource(dofFragmentShader, shaderSource, "dof.frag")
             Component.onCompleted: root.applyShaderSource(dofFragmentShader, shaderSource, "dof.frag")
+            onLogChanged: root.handleShaderCompilationLog("dof.frag", log)
         }
 
         Shader {
@@ -617,6 +671,7 @@ Item {
             property string shaderSource: root.shaderSourceWithToken("dof_fallback.frag", root.shaderReloadToken)
             onShaderSourceChanged: root.applyShaderSource(dofFallbackShader, shaderSource, "dof_fallback.frag")
             Component.onCompleted: root.applyShaderSource(dofFallbackShader, shaderSource, "dof_fallback.frag")
+            onLogChanged: root.handleShaderCompilationLog("dof_fallback.frag", log)
         }
 
 
@@ -686,6 +741,7 @@ Item {
             property string shaderSource: root.shaderSourceWithToken("motion_blur.frag", root.shaderReloadToken)
             onShaderSourceChanged: root.applyShaderSource(motionBlurFragmentShader, shaderSource, "motion_blur.frag")
             Component.onCompleted: root.applyShaderSource(motionBlurFragmentShader, shaderSource, "motion_blur.frag")
+            onLogChanged: root.handleShaderCompilationLog("motion_blur.frag", log)
         }
 
         Shader {
@@ -694,6 +750,7 @@ Item {
             property string shaderSource: root.shaderSourceWithToken("motion_blur_fallback.frag", root.shaderReloadToken)
             onShaderSourceChanged: root.applyShaderSource(motionBlurFallbackShader, shaderSource, "motion_blur_fallback.frag")
             Component.onCompleted: root.applyShaderSource(motionBlurFallbackShader, shaderSource, "motion_blur_fallback.frag")
+            onLogChanged: root.handleShaderCompilationLog("motion_blur_fallback.frag", log)
         }
 
 
