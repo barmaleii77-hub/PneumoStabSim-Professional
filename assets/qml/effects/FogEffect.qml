@@ -347,7 +347,7 @@ Effect {
                             && typeof URL.createObjectURL === "function") {
                         var blob = new Blob([normalized], { type: "text/plain;charset=utf-8" })
                         sanitizedUrl = URL.createObjectURL(blob)
-                        console.warn("⚠️ FogEffect: normalized CRLF line endings for shader, использован Blob URL", resourceName)
+                        console.warn("⚠️ FogEffect: нормализованы CRLF окончания строк для шейдера, использован Blob URL", resourceName)
                     } else {
                         sanitizedUrl = "data:text/plain;charset=utf-8," + encodeURIComponent(normalized)
                         console.warn("⚠️ FogEffect: normalized CRLF line endings for shader, Blob недоступен, использован data URL", resourceName)
