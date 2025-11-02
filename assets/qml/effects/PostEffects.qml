@@ -351,6 +351,24 @@ Item {
         return false
     }
 
+    function emitEffectCompilationStatus(effectId, effectItem, fallbackMessage) {
+        if (!effectItem)
+            return
+        var hasLog = typeof effectItem.lastErrorLog !== "undefined"
+        var logValue = hasLog ? effectItem.lastErrorLog : ""
+        if (effectItem.fallbackActive) {
+            if (!logValue && fallbackMessage && hasLog) {
+                effectItem.lastErrorLog = fallbackMessage
+                logValue = effectItem.lastErrorLog
+            }
+            root.notifyEffectCompilation(effectId, true, logValue)
+        } else {
+            root.notifyEffectCompilation(effectId, false, logValue)
+            if (hasLog && logValue)
+                effectItem.lastErrorLog = ""
+        }
+    }
+
     Component.onCompleted: {
         console.log("🎨 Post Effects Collection loaded")
         console.log("   Graphics API:", rendererGraphicsApi)
@@ -479,9 +497,10 @@ Item {
         property bool fallbackActive: false
         property string lastErrorLog: ""
         property bool componentCompleted: false
+        readonly property string fallbackMessage: qsTr("Bloom: fallback shader active")
 
         Component.onCompleted: {
-            root.notifyEffectCompilation("bloom", fallbackActive, lastErrorLog)
+            root.emitEffectCompilationStatus("bloom", bloomEffect, fallbackMessage)
             componentCompleted = true
         }
 
@@ -489,10 +508,8 @@ Item {
             if (!componentCompleted)
                 return
             if (fallbackActive && !lastErrorLog)
-                lastErrorLog = qsTr("Bloom: fallback shader active")
-            root.notifyEffectCompilation("bloom", fallbackActive, lastErrorLog)
-            if (!fallbackActive)
-                lastErrorLog = ""
+                lastErrorLog = fallbackMessage
+            root.emitEffectCompilationStatus("bloom", bloomEffect, fallbackMessage)
         }
 
         property real intensity: 0.3      // Интенсивность свечения
@@ -557,6 +574,7 @@ Item {
         property bool depthTextureAvailable: false
         property bool normalTextureAvailable: false
         property bool componentCompleted: false
+        readonly property string fallbackMessage: qsTr("SSAO: fallback shader active")
 
         Component.onCompleted: {
             depthTextureAvailable = root.ensureEffectRequirement(
@@ -573,11 +591,11 @@ Item {
                 lastErrorLog = qsTr("SSAO: depth texture buffer is not supported; disabling advanced SSAO")
                 console.warn("⚠️ SSAO: switching to passthrough fallback due to missing textures")
                 fallbackActive = true
-                root.notifyEffectCompilation("ssao", true, lastErrorLog)
+                root.emitEffectCompilationStatus("ssao", ssaoEffect, fallbackMessage)
             } else {
                 lastErrorLog = ""
                 fallbackActive = false
-                root.notifyEffectCompilation("ssao", false, lastErrorLog)
+                root.emitEffectCompilationStatus("ssao", ssaoEffect, fallbackMessage)
             }
             componentCompleted = true
         }
@@ -586,10 +604,8 @@ Item {
             if (!componentCompleted)
                 return
             if (fallbackActive && !lastErrorLog)
-                lastErrorLog = qsTr("SSAO: fallback shader active")
-            root.notifyEffectCompilation("ssao", fallbackActive, lastErrorLog)
-            if (!fallbackActive)
-                lastErrorLog = ""
+                lastErrorLog = fallbackMessage
+            root.emitEffectCompilationStatus("ssao", ssaoEffect, fallbackMessage)
         }
 
         property real intensity: 0.5      // Интенсивность затенения
@@ -655,6 +671,7 @@ Item {
         property string lastErrorLog: ""
         property bool depthTextureAvailable: false
         property bool componentCompleted: false
+        readonly property string fallbackMessage: qsTr("Depth of Field: fallback shader active")
 
         property real focusDistance: 2000.0  // Расстояние фокуса (мм)
         property real focusRange: 1000.0     // Диапазон фокуса (мм)
@@ -682,11 +699,11 @@ Item {
                 lastErrorLog = qsTr("Depth of Field: depth texture unavailable; using fallback shader")
                 console.warn("⚠️ Depth of Field: switching to passthrough fallback due to missing depth texture")
                 fallbackActive = true
-                root.notifyEffectCompilation("depthOfField", true, lastErrorLog)
+                root.emitEffectCompilationStatus("depthOfField", dofEffect, fallbackMessage)
             } else {
                 lastErrorLog = ""
                 fallbackActive = false
-                root.notifyEffectCompilation("depthOfField", false, lastErrorLog)
+                root.emitEffectCompilationStatus("depthOfField", dofEffect, fallbackMessage)
             }
             componentCompleted = true
         }
@@ -695,10 +712,8 @@ Item {
             if (!componentCompleted)
                 return
             if (fallbackActive && !lastErrorLog)
-                lastErrorLog = qsTr("Depth of Field: fallback shader active")
-            root.notifyEffectCompilation("depthOfField", fallbackActive, lastErrorLog)
-            if (!fallbackActive)
-                lastErrorLog = ""
+                lastErrorLog = fallbackMessage
+            root.emitEffectCompilationStatus("depthOfField", dofEffect, fallbackMessage)
         }
 
         Shader {
@@ -755,6 +770,7 @@ Item {
         property string lastErrorLog: ""
         property bool velocityTextureAvailable: false
         property bool componentCompleted: false
+        readonly property string fallbackMessage: qsTr("Motion Blur: fallback shader active")
 
         property real strength: 0.5          // Сила размытия движения
         property int samples: 8              // Количество сэмплов
@@ -776,11 +792,11 @@ Item {
                 lastErrorLog = qsTr("Motion Blur: velocity texture unavailable; using fallback shader")
                 console.warn("⚠️ Motion Blur: switching to passthrough fallback due to missing velocity texture")
                 fallbackActive = true
-                root.notifyEffectCompilation("motionBlur", true, lastErrorLog)
+                root.emitEffectCompilationStatus("motionBlur", motionBlurEffect, fallbackMessage)
             } else {
                 lastErrorLog = ""
                 fallbackActive = false
-                root.notifyEffectCompilation("motionBlur", false, lastErrorLog)
+                root.emitEffectCompilationStatus("motionBlur", motionBlurEffect, fallbackMessage)
             }
             componentCompleted = true
         }
@@ -789,10 +805,8 @@ Item {
             if (!componentCompleted)
                 return
             if (fallbackActive && !lastErrorLog)
-                lastErrorLog = qsTr("Motion Blur: fallback shader active")
-            root.notifyEffectCompilation("motionBlur", fallbackActive, lastErrorLog)
-            if (!fallbackActive)
-                lastErrorLog = ""
+                lastErrorLog = fallbackMessage
+            root.emitEffectCompilationStatus("motionBlur", motionBlurEffect, fallbackMessage)
         }
 
         Shader {
