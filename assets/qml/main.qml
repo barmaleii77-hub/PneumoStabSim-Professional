@@ -134,21 +134,17 @@ Item {
         "applyRenderSettings"
     ]
 
-    function _installForwarders() {
+    Component.onCompleted: {
         for (var i = 0; i < _forwardedMethodNames.length; ++i) {
-            var name = _forwardedMethodNames[i]
-            if (root[name] === undefined) {
-                root[name] = (function(methodName) {
+            var methodName = _forwardedMethodNames[i]
+            if (root[methodName] === undefined) {
+                root[methodName] = (function(name) {
                     return function(params) {
-                        return _invokeOnActiveRoot(methodName, params)
+                        return _invokeOnActiveRoot(name, params)
                     }
-                })(name)
+                })(methodName)
             }
         }
-    }
-
-    Component.onCompleted: {
-        _installForwarders()
         _flushQueuedBatches()
     }
 
