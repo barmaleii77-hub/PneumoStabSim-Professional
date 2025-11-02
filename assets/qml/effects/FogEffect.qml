@@ -508,7 +508,14 @@ Effect {
             if (!fogEffect.attachShaderLogHandler(fogVertexShader, "fog.vert"))
                 console.debug("FogEffect: shader log handler unavailable for fog.vert")
         }
-        onStatusChanged: fogEffect.handleShaderStatusChange(fogVertexShader, "fog.vert")
+    }
+
+    Connections {
+        target: fogVertexShader
+
+        function onStatusChanged() {
+            fogEffect.handleShaderStatusChange(fogVertexShader, "fog.vert")
+        }
     }
 
     Shader {
@@ -540,7 +547,14 @@ Effect {
             if (!fogEffect.attachShaderLogHandler(fogFragmentShader, "fog.frag"))
                 console.debug("FogEffect: shader log handler unavailable for fog.frag")
         }
-        onStatusChanged: fogEffect.handleShaderStatusChange(fogFragmentShader, "fog.frag")
+    }
+
+    Connections {
+        target: fogFragmentShader
+
+        function onStatusChanged() {
+            fogEffect.handleShaderStatusChange(fogFragmentShader, "fog.frag")
+        }
     }
 
     Shader {
@@ -556,7 +570,14 @@ Effect {
             if (!fogEffect.attachShaderLogHandler(fogFallbackShader, "fog_fallback.frag"))
                 console.debug("FogEffect: shader log handler unavailable for fog_fallback.frag")
         }
-        onStatusChanged: fogEffect.handleShaderStatusChange(fogFallbackShader, "fog_fallback.frag")
+    }
+
+    Connections {
+        target: fogFallbackShader
+
+        function onStatusChanged() {
+            fogEffect.handleShaderStatusChange(fogFallbackShader, "fog_fallback.frag")
+        }
     }
 
     passes: [
