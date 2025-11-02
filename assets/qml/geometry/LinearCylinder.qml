@@ -1,5 +1,6 @@
 import QtQuick 6.10
 import QtQuick3D 6.10
+import "."
 
 /*
  * LinearCylinder - reusable helper for cylinders stretched between two points
@@ -18,6 +19,10 @@ Node {
     property real radius: 0.05
     property var material: null
     property list<Material> materialOverrides
+
+    // --- Quality ---
+    property int segments: 24
+    property int rings: 1
 
     // --- Behaviour ---
     property real minimumLength: 1e-6
@@ -53,10 +58,14 @@ Node {
 
     Model {
         id: cylinderModel
-        source: "#Cylinder"
+        objectName: "cylinderModel"
         position: root.midpoint
         scale: Qt.vector3d(root.safeRadius, root.length / 2, root.safeRadius)
         eulerRotation: Qt.vector3d(0, 0, root.rotationDeg)
+        geometry: CylinderGeometry {
+            segments: Math.max(3, root.segments)
+            rings: Math.max(1, root.rings)
+        }
         materials: root.material ? [root.material] : root.materialOverrides
     }
 }

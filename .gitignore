@@ -478,6 +478,8 @@ check_*.py
 !tests/ui/test_environment_tab_ibl_dependencies.py
 !tests/unit/ui/test_knob.py
 !tests/unit/ui/test_signals_router_quality.py
+!tests/unit/ui/test_custom_cylinder_geometry.py
+!tests/unit/ui/test_linear_cylinder.py
 !tests/unit/ui/test_signals_router_dedup.py
 !tests/unit/test_graphics_settings_service.py
 !tests/unit/test_lazy_module_wrapped.py
