@@ -7,7 +7,7 @@
     <UseWindowsForms>true</UseWindowsForms>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
-    <ApplicationIcon>assets\icon.ico</ApplicationIcon>
+    <ApplicationIcon Condition="Exists('assets\\icon.ico')">assets\icon.ico</ApplicationIcon>
     <AssemblyTitle>PneumoStabSim Professional</AssemblyTitle>
     <Product>Pneumatic Stabilizer Simulator</Product>
     <Description>Professional pneumatic stabilizer simulation software with advanced 3D visualization</Description>
@@ -40,7 +40,7 @@
     <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
 
     <!-- High DPI support -->
-    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <ApplicationManifest Condition="Exists('app.manifest')">app.manifest</ApplicationManifest>
 
     <!-- Resource embedding -->
     <GenerateResourceUsePreserializedResources>true</GenerateResourceUsePreserializedResources>
@@ -114,7 +114,7 @@
   <ItemGroup>
     <EmbeddedResource Include="assets\**\*" />
     <EmbeddedResource Include="config\**\*.json" />
-    <Content Include="app.manifest" />
+    <Content Include="app.manifest" Condition="Exists('app.manifest')" />
   </ItemGroup>
 
   <!-- Build events -->
