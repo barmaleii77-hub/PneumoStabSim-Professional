@@ -120,17 +120,57 @@ Effect {
     // Текстурные юниты привязываются явно через layout(binding=...), чтобы
     // избежать автоматических префиксов Qt перед директивой #version.
 
+    property bool supportsAutoInsertHeader: false
+    property bool useManualShaderHeaders: false
+
+    property string vertexShaderSource: ""
+    property string fragmentShaderSource: ""
+    property string fallbackShaderSource: ""
+
+    function loadShaderSource(fileName, stripVersionDirective) {
+        var url = shaderPath(fileName)
+        if (!url)
+            return ""
+
+        try {
+            var xhr = new XMLHttpRequest()
+            xhr.open("GET", url, false)
+            xhr.send()
+            if (xhr.status !== 200 && xhr.status !== 0) {
+                console.warn("⚠️ FogEffect: failed to load shader", url, xhr.status)
+                return ""
+            }
+
+            var source = xhr.responseText || ""
+            if (!stripVersionDirective)
+                return source
+
+            var lines = source.split(/\r?\n/)
+            while (lines.length && lines[0].trim().startsWith("#version"))
+                lines.shift()
+            return lines.join("\n")
+        } catch (error) {
+            console.warn("⚠️ FogEffect: shader load error", url, error)
+        }
+        return ""
+    }
+
+    function refreshShaderSources() {
+        var stripVersion = !useManualShaderHeaders
+        vertexShaderSource = loadShaderSource("fog.vert", stripVersion)
+        fragmentShaderSource = loadShaderSource("fog.frag", stripVersion)
+        fallbackShaderSource = loadShaderSource("fog_fallback.frag", stripVersion)
+    }
+
     Shader {
         id: fogVertexShader
         stage: Shader.Vertex
-        autoInsertHeader: false
-        shader: fogEffect.shaderPath("fog.vert")
+        code: fogEffect.vertexShaderSource
     }
 
     Shader {
         id: fogFragmentShader
         stage: Shader.Fragment
-        autoInsertHeader: false
         property real userFogDensity: fogEffect.fogDensity
         property real userFogStart: fogEffect.fogStartDistance
         property real userFogEnd: fogEffect.fogEndDistance
@@ -149,16 +189,15 @@ Effect {
         property real userCameraFar: fogEffect.cameraClipFar
         property real userCameraFov: fogEffect.cameraFieldOfView
         property real userCameraAspect: fogEffect.cameraAspectRatio
-        shader: fogEffect.shaderPath("fog.frag")
+        code: fogEffect.fragmentShaderSource
     }
 
     Shader {
         id: fogFallbackShader
         stage: Shader.Fragment
-        autoInsertHeader: false
         property real userFogDensity: fogEffect.fogDensity
         property color userFogColor: fogEffect.fogColor
-        shader: fogEffect.shaderPath("fog_fallback.frag")
+        code: fogEffect.fallbackShaderSource
     }
 
     passes: [
@@ -178,6 +217,18 @@ Effect {
     }
 
     Component.onCompleted: {
+        supportsAutoInsertHeader = typeof fogVertexShader.autoInsertHeader === "boolean"
+                && typeof fogFragmentShader.autoInsertHeader === "boolean"
+                && typeof fogFallbackShader.autoInsertHeader === "boolean"
+        useManualShaderHeaders = supportsAutoInsertHeader
+        if (supportsAutoInsertHeader) {
+            fogVertexShader.autoInsertHeader = false
+            fogFragmentShader.autoInsertHeader = false
+            fogFallbackShader.autoInsertHeader = false
+        } else {
+            console.warn("⚠️ FogEffect: Shader.autoInsertHeader unavailable; stripping #version from shader sources")
+        }
+        refreshShaderSources()
         console.log("🌫️ FogEffect graphics API:", rendererGraphicsApi)
         console.log(
                     "   Shader profile:",
@@ -195,4 +246,6 @@ Effect {
         if (!depthTextureAvailable)
             console.warn("⚠️ FogEffect: depth texture unavailable, fallback shader active")
     }
+
+    onUseGlesShadersChanged: refreshShaderSources()
 }
