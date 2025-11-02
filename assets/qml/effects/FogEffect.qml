@@ -101,9 +101,12 @@ Effect {
     //    and can be overridden via forceDesktopShaderProfile.
     // qmllint disable unqualified
     property bool forceDesktopShaderProfile: false
+    property bool forceGlesShaderProfile: false
     property bool preferUnifiedShaderSources: false
 
     readonly property bool preferDesktopShaderProfile: {
+        if (forceGlesShaderProfile)
+            return false
         if (forceDesktopShaderProfile)
             return true
         var normalized = normalizedRendererGraphicsApi
@@ -186,7 +189,8 @@ Effect {
         return false
     }
     // qmllint enable unqualified
-    readonly property bool useGlesShaders: reportedGlesContext && !preferDesktopShaderProfile
+    readonly property bool useGlesShaders: forceGlesShaderProfile
+            || (reportedGlesContext && !preferDesktopShaderProfile)
 
     readonly property string shaderResourceDirectory: "../../shaders/effects/"
     property var shaderResourceAvailabilityCache: ({})
@@ -270,15 +274,27 @@ Effect {
         if (forceDesktopShaderProfile)
             return
         console.warn("⚠️ FogEffect:", reason, "– forcing desktop shader profile")
+        if (forceGlesShaderProfile)
+            forceGlesShaderProfile = false
         forceDesktopShaderProfile = true
         Qt.callLater(function() {
             shaderResourceAvailabilityCache = ({})
         })
     }
 
-    function handleShaderCompilationLog(shaderId, message) {
-        if (!useGlesShaders)
+    function requestGlesShaderProfile(reason) {
+        if (forceGlesShaderProfile)
             return
+        console.warn("⚠️ FogEffect:", reason, "– forcing GLES shader profile")
+        if (forceDesktopShaderProfile)
+            forceDesktopShaderProfile = false
+        forceGlesShaderProfile = true
+        Qt.callLater(function() {
+            shaderResourceAvailabilityCache = ({})
+        })
+    }
+
+    function handleShaderCompilationLog(shaderId, message) {
         if (!message || !message.length)
             return
         var normalized = String(message).toLowerCase()
@@ -286,8 +302,13 @@ Effect {
             return
         if (normalized.indexOf("profile") === -1 && normalized.indexOf("expected newline") === -1)
             return
-        requestDesktopShaderProfile(
-                    `Shader ${shaderId} reported #version incompatibility`)
+        if (useGlesShaders) {
+            requestDesktopShaderProfile(
+                        `Shader ${shaderId} reported #version incompatibility while using GLES profile`)
+        } else {
+            requestGlesShaderProfile(
+                        `Shader ${shaderId} reported #version incompatibility while using desktop profile`)
+        }
     }
 
     function shaderCompilationMessage(shaderItem) {
