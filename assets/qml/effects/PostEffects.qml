@@ -243,6 +243,38 @@ Item {
                     : "Desktop (GLSL 330 core)"
                     )
         console.log("   Available effects: Bloom, SSAO, DOF, Motion Blur")
+
+        shaderAutoHeaderToggleSupported = typeof bloomFragmentShader.autoInsertHeader === "boolean"
+                && typeof bloomFallbackShader.autoInsertHeader === "boolean"
+                && typeof ssaoFragmentShader.autoInsertHeader === "boolean"
+                && typeof ssaoFallbackShader.autoInsertHeader === "boolean"
+                && typeof dofFragmentShader.autoInsertHeader === "boolean"
+                && typeof dofFallbackShader.autoInsertHeader === "boolean"
+                && typeof motionBlurFragmentShader.autoInsertHeader === "boolean"
+                && typeof motionBlurFallbackShader.autoInsertHeader === "boolean"
+        useManualShaderHeaders = shaderAutoHeaderToggleSupported
+        if (shaderAutoHeaderToggleSupported) {
+            var shaders = [
+                        bloomFragmentShader,
+                        bloomFallbackShader,
+                        ssaoFragmentShader,
+                        ssaoFallbackShader,
+                        dofFragmentShader,
+                        dofFallbackShader,
+                        motionBlurFragmentShader,
+                        motionBlurFallbackShader
+                    ]
+            for (var i = 0; i < shaders.length; ++i) {
+                try {
+                    shaders[i].autoInsertHeader = false
+                } catch (error) {
+                    console.debug("⚠️ PostEffects: unable to disable auto header", shaders[i], error)
+                }
+            }
+        } else {
+            console.warn("⚠️ PostEffects: Shader.autoInsertHeader unavailable; stripping #version from custom shader sources")
+        }
+        reloadShaderSources()
     }
 
     function valueFromKeys(container, keys) {
@@ -591,40 +623,6 @@ Item {
         ]
 
         // Effect.enabled is controlled externally via root.motionBlurEnabled
-    }
-
-    Component.onCompleted: {
-        shaderAutoHeaderToggleSupported = typeof bloomFragmentShader.autoInsertHeader === "boolean"
-                && typeof bloomFallbackShader.autoInsertHeader === "boolean"
-                && typeof ssaoFragmentShader.autoInsertHeader === "boolean"
-                && typeof ssaoFallbackShader.autoInsertHeader === "boolean"
-                && typeof dofFragmentShader.autoInsertHeader === "boolean"
-                && typeof dofFallbackShader.autoInsertHeader === "boolean"
-                && typeof motionBlurFragmentShader.autoInsertHeader === "boolean"
-                && typeof motionBlurFallbackShader.autoInsertHeader === "boolean"
-        useManualShaderHeaders = shaderAutoHeaderToggleSupported
-        if (shaderAutoHeaderToggleSupported) {
-            var shaders = [
-                        bloomFragmentShader,
-                        bloomFallbackShader,
-                        ssaoFragmentShader,
-                        ssaoFallbackShader,
-                        dofFragmentShader,
-                        dofFallbackShader,
-                        motionBlurFragmentShader,
-                        motionBlurFallbackShader
-                    ]
-            for (var i = 0; i < shaders.length; ++i) {
-                try {
-                    shaders[i].autoInsertHeader = false
-                } catch (error) {
-                    console.debug("⚠️ PostEffects: unable to disable auto header", shaders[i], error)
-                }
-            }
-        } else {
-            console.warn("⚠️ PostEffects: Shader.autoInsertHeader unavailable; stripping #version from custom shader sources")
-        }
-        reloadShaderSources()
     }
 
     onUseGlesShadersChanged: reloadShaderSources()
