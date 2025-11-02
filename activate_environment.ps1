@@ -57,8 +57,6 @@ Get-Content -Path $envFile -Encoding UTF8 | ForEach-Object {
 if (-not $env:LANG) { Set-Item -Path Env:LANG -Value 'C.UTF-8' }
 if (-not $env:LC_ALL) { Set-Item -Path Env:LC_ALL -Value 'C.UTF-8' }
 
-$nativePathSeparator = [System.IO.Path]::PathSeparator
-
 function Normalize-WorkspacePath {
     param(
         [Parameter(Mandatory = $true)]
@@ -66,11 +64,23 @@ function Normalize-WorkspacePath {
     )
 
     $adjusted = $Value -replace '/workspace/PneumoStabSim-Professional', $projectRoot
-    if ($nativePathSeparator -eq ';') {
-        $adjusted = $adjusted -replace '/', '\\'
-    }
+    $adjusted = $adjusted -replace '/', '\\'
 
     return $adjusted
+}
+
+function Get-PathSegments {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string] $Value
+    )
+
+    $segments = $Value -split ';'
+    if ($segments.Count -eq 1 -and $Value -match ':(?=/)') {
+        $segments = $Value -split ':(?=/)'
+    }
+
+    return $segments
 }
 
 $pathVariables = @{
@@ -88,7 +98,7 @@ foreach ($entry in $pathVariables.GetEnumerator()) {
     }
 
     if ($entry.Value) {
-        $segments = $currentValue -split ';'
+        $segments = Get-PathSegments -Value $currentValue
         $normalized = @()
         foreach ($segment in $segments) {
             if (-not [string]::IsNullOrWhiteSpace($segment)) {
