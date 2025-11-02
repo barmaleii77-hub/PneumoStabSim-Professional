@@ -293,8 +293,15 @@ Item {
                 var shaderSource = xhr.responseText
                 if (shaderSource && shaderSource.indexOf("\r") !== -1) {
                     var normalized = shaderSource.replace(/\r\n/g, "\n").replace(/\r/g, "\n")
-                    sanitizedUrl = "data:text/plain;charset=utf-8," + encodeURIComponent(normalized)
-                    console.warn("⚠️ PostEffects: normalized CRLF line endings for shader", resourceName)
+                    // Используем Blob URL вместо data URL для экономии памяти
+                    if (typeof Blob !== "undefined" && typeof URL !== "undefined" && typeof URL.createObjectURL === "function") {
+                        var blob = new Blob([normalized], { type: "text/plain;charset=utf-8" })
+                        sanitizedUrl = URL.createObjectURL(blob)
+                        console.warn("⚠️ PostEffects: normalized CRLF line endings for shader, использован Blob URL", resourceName)
+                    } else {
+                        sanitizedUrl = "data:text/plain;charset=utf-8," + encodeURIComponent(normalized)
+                        console.warn("⚠️ PostEffects: normalized CRLF line endings for shader, Blob не поддерживается, использован data URL", resourceName)
+                    }
                 }
             }
         } catch (error) {
