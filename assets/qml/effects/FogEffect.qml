@@ -77,6 +77,8 @@ Effect {
             "",
             "layout(location = 0) out vec2 v_uv;",
             "",
+            "// layout(binding = 0) опущен: GLSL 330 не поддерживает явные binding для блоков,",
+            "// Qt Quick 3D автоматически назначает точки привязки uniform-блоков.",
             "layout(std140) uniform qt_effectUniforms {",
             "    mat4 qt_ModelMatrix;",
             "    mat4 qt_ModelViewProjectionMatrix;",
@@ -91,6 +93,8 @@ Effect {
             "    POSITION = ubuf.qt_ModelViewProjectionMatrix * localPosition;",
             "}"
         ])
+        // Используем прямую ссылку на shaderSource вместо parent.shaderSource,
+        // чтобы исключить ошибки разрешения идентификаторов во время выполнения.
         shader: ShaderProgram {
             vertexShaderCode: fogVertexShader.shaderSource
         }
@@ -134,6 +138,8 @@ Effect {
             "",
             "uniform sampler2D qt_Texture0;",
             "uniform sampler2D qt_DepthTexture;",
+            "// layout(binding = 0) опущен: GLSL 330 не поддерживает явные binding для блоков,",
+            "// Qt Quick 3D автоматически назначает точки привязки uniform-блоков.",
             "",
             "#ifndef INPUT",
             "#define INPUT texture(qt_Texture0, INPUT_UV)",
@@ -250,6 +256,8 @@ Effect {
             "    FRAGCOLOR = vec4(foggedColor, originalColor.a) * EFFECT_OPACITY;",
             "}"
         ])
+        // Используем прямую ссылку на shaderSource вместо parent.shaderSource,
+        // чтобы исключить ошибки разрешения идентификаторов во время выполнения.
         shader: ShaderProgram {
             fragmentShaderCode: fogFragmentShader.shaderSource
         }
