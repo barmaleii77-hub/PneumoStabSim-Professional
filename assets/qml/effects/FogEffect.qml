@@ -52,10 +52,6 @@ Effect {
         console.warn("⚠️ FogEffect: depth texture not supported; using fallback shader")
     }
 
-    function shaderDataUrl(source) {
-        return "data:text/plain;charset=utf-8," + encodeURIComponent(source)
-    }
-
     function glsl(lines) {
         return lines.join("\n")
     }
@@ -90,9 +86,7 @@ Effect {
             "    POSITION = ubuf.qt_ModelViewProjectionMatrix * localPosition;",
             "}"
         ])
-        shader: ShaderData {
-            source: fogEffect.shaderDataUrl(parent.shaderSource)
-        }
+        code: shaderSource
     }
 
     Shader {
@@ -248,9 +242,7 @@ Effect {
             "    FRAGCOLOR = vec4(foggedColor, originalColor.a) * EFFECT_OPACITY;",
             "}"
         ])
-        shader: ShaderData {
-            source: fogEffect.shaderDataUrl(parent.shaderSource)
-        }
+        code: shaderSource
     }
 
     Shader {
@@ -288,9 +280,7 @@ Effect {
             "    FRAGCOLOR = vec4(foggedColor, originalColor.a);",
             "}"
         ])
-        shader: ShaderData {
-            source: fogEffect.shaderDataUrl(parent.shaderSource)
-        }
+        code: shaderSource
     }
 
     passes: [
