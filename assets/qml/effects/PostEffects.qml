@@ -38,10 +38,6 @@ Item {
         }
     }
 
-    function shaderDataUrl(source) {
-        return "data:text/plain;charset=utf-8," + encodeURIComponent(source)
-    }
-
     function glsl(lines) {
         return lines.join("\n")
     }
@@ -255,9 +251,7 @@ Item {
                 "    FRAGCOLOR = vec4(result, original.a);",
                 "}",
             ])
-            shader: ShaderData {
-                source: root.shaderDataUrl(parent.shaderSource)
-            }
+            code: shaderSource
         }
 
         Shader {
@@ -282,9 +276,7 @@ Item {
                 "    FRAGCOLOR = texture(qt_Texture0, INPUT_UV);",
                 "}",
             ])
-            shader: ShaderData {
-                source: root.shaderDataUrl(parent.shaderSource)
-            }
+            code: shaderSource
         }
 
 
@@ -431,9 +423,7 @@ Item {
                 "    FRAGCOLOR = vec4(original.rgb * occlusion, original.a);",
                 "}",
             ])
-            shader: ShaderData {
-                source: root.shaderDataUrl(parent.shaderSource)
-            }
+            code: shaderSource
         }
 
         Shader {
@@ -457,9 +447,7 @@ Item {
                 "    FRAGCOLOR = texture(qt_Texture0, INPUT_UV);",
                 "}",
             ])
-            shader: ShaderData {
-                source: root.shaderDataUrl(parent.shaderSource)
-            }
+            code: shaderSource
         }
 
 
@@ -591,9 +579,7 @@ Item {
                 "    FRAGCOLOR = vec4(result, original.a);",
                 "}",
             ])
-            shader: ShaderData {
-                source: root.shaderDataUrl(parent.shaderSource)
-            }
+            code: shaderSource
         }
 
         Shader {
@@ -618,9 +604,7 @@ Item {
                 "    FRAGCOLOR = texture(qt_Texture0, INPUT_UV);",
                 "}",
             ])
-            shader: ShaderData {
-                source: root.shaderDataUrl(parent.shaderSource)
-            }
+            code: shaderSource
         }
 
 
@@ -722,9 +706,7 @@ Item {
                 "    FRAGCOLOR = vec4(color, original.a);",
                 "}",
             ])
-            shader: ShaderData {
-                source: root.shaderDataUrl(parent.shaderSource)
-            }
+            code: shaderSource
         }
 
         Shader {
@@ -749,9 +731,7 @@ Item {
                 "    FRAGCOLOR = texture(qt_Texture0, INPUT_UV);",
                 "}",
             ])
-            shader: ShaderData {
-                source: root.shaderDataUrl(parent.shaderSource)
-            }
+            code: shaderSource
         }
 
 
