@@ -1,7 +1,60 @@
 #version 330 core
 
+#ifdef GL_ES
+precision highp float;
+precision highp int;
+precision mediump sampler2D;
+#endif
+
+#ifdef QSB_ADD_BINDINGS
+#ifndef GL_ES
+#extension GL_ARB_shading_language_420pack : enable
+#extension GL_ARB_separate_shader_objects : enable
+#endif
+#endif
+
+
+
+#ifndef SAMPLER_BINDING
+#ifdef QSB_ADD_BINDINGS
+#ifdef GL_ES
+#define SAMPLER_BINDING(index)
+#else
+#define SAMPLER_BINDING(index) layout(binding = index)
+#endif
+#else
+#define SAMPLER_BINDING(index)
+#endif
+#endif
+
+#ifdef QSB_ADD_BINDINGS
+#ifdef GL_ES
+in vec2 v_uv;
+#else
+layout(location = 0) in vec2 v_uv;
+#endif
+#else
+in vec2 v_uv;
+#endif
+
+#ifndef UBO_BINDING
+#ifdef QSB_ADD_BINDINGS
+#ifdef GL_ES
+#define UBO_BINDING(index)
+#else
+#define UBO_BINDING(index) layout(binding = index)
+#endif
+#else
+#define UBO_BINDING(index)
+#endif
+#endif
+
 #ifndef INPUT_UV
 #define INPUT_UV v_uv
+#endif
+
+#ifndef MAIN
+#define MAIN main
 #endif
 
 #ifndef FRAGCOLOR
@@ -9,18 +62,28 @@ layout(location = 0) out vec4 qt_FragColor;
 #define FRAGCOLOR qt_FragColor
 #endif
 
-layout(binding = 0) uniform sampler2D qt_Texture0;
-layout(binding = 1) uniform sampler2D qt_DepthTexture;
+SAMPLER_BINDING(0) uniform sampler2D qt_Texture0;
+SAMPLER_BINDING(1) uniform sampler2D qt_DepthTexture;
 
 #ifndef INPUT
 #define INPUT texture(qt_Texture0, INPUT_UV)
 #endif
 
+#ifdef QSB_USE_UNIFORM_BLOCK
+layout(std140) UBO_BINDING(10) uniform QsbDofParams {
+    float uFocusDistance;
+    float uFocusRange;
+    float uBlurAmount;
+    float uCameraNear;
+    float uCameraFar;
+};
+#else
 uniform float uFocusDistance;
 uniform float uFocusRange;
 uniform float uBlurAmount;
 uniform float uCameraNear;
 uniform float uCameraFar;
+#endif
 
 float linearizeDepth(float depth)
 {

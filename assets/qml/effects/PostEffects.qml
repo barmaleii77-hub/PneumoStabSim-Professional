@@ -178,17 +178,7 @@ Item {
         if (!fileName || typeof fileName !== "string")
             return ""
 
-        var normalized = String(fileName)
-        if (useGlesShaders) {
-            var dotIndex = normalized.lastIndexOf(".")
-            if (dotIndex > 0) {
-                normalized = normalized.slice(0, dotIndex) + "_es" + normalized.slice(dotIndex)
-            } else {
-                normalized = normalized + "_es"
-            }
-        }
-
-        return Qt.resolvedUrl("../../shaders/effects/" + normalized)
+        return Qt.resolvedUrl("../../shaders/effects/" + String(fileName))
     }
 
     function loadShaderSource(fileName) {
@@ -326,10 +316,9 @@ Item {
         }
     }
 
-    // Примечание по совместимости: в средах OpenGL используем GLSL 330 core,
-    // а для OpenGL ES автоматически подключаем GLSL 300 es версии шейдеров.
-    // Текстурные юниты задаются через layout(binding=...), чтобы Qt не вставлял
-    // дополнительные объявления перед директивой #version.
+    // Примечание по совместимости: единый GLSL-файл обслуживает OpenGL и GLES.
+    // Внутри шейдера блок #ifdef GL_ES добавляет precision-объявления,
+    // поэтому раздельные файлы с суффиксом _es больше не требуются.
 
     // Свойства управления эффектами
     property bool bloomEnabled: false
