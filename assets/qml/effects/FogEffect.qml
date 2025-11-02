@@ -123,13 +123,9 @@ Effect {
     property bool supportsAutoInsertHeader: false
     property bool useManualShaderHeaders: false
 
-    property string vertexShaderSource: ""
-    property string fragmentShaderSource: ""
-    property string fallbackShaderSource: ""
-
-    property url vertexShaderDataUrl: ""
-    property url fragmentShaderDataUrl: ""
-    property url fallbackShaderDataUrl: ""
+    property string vertexShaderCode: ""
+    property string fragmentShaderCode: ""
+    property string fallbackShaderCode: ""
 
     function loadShaderSource(fileName, stripVersionDirective) {
         var url = shaderPath(fileName)
@@ -159,31 +155,17 @@ Effect {
         return ""
     }
 
-    function shaderSourceToDataUrl(source) {
-        if (!source || !source.length)
-            return ""
-        try {
-            return "data:text/plain;base64," + Qt.btoa(source)
-        } catch (error) {
-            console.warn("⚠️ FogEffect: failed to encode shader to data URL", error)
-        }
-        return ""
-    }
-
     function refreshShaderSources() {
         var stripVersion = !useManualShaderHeaders
-        vertexShaderSource = loadShaderSource("fog.vert", stripVersion)
-        vertexShaderDataUrl = shaderSourceToDataUrl(vertexShaderSource)
-        fragmentShaderSource = loadShaderSource("fog.frag", stripVersion)
-        fragmentShaderDataUrl = shaderSourceToDataUrl(fragmentShaderSource)
-        fallbackShaderSource = loadShaderSource("fog_fallback.frag", stripVersion)
-        fallbackShaderDataUrl = shaderSourceToDataUrl(fallbackShaderSource)
+        vertexShaderCode = loadShaderSource("fog.vert", stripVersion)
+        fragmentShaderCode = loadShaderSource("fog.frag", stripVersion)
+        fallbackShaderCode = loadShaderSource("fog_fallback.frag", stripVersion)
     }
 
     Shader {
         id: fogVertexShader
         stage: Shader.Vertex
-        shader: fogEffect.vertexShaderDataUrl
+        code: fogEffect.vertexShaderCode
     }
 
     Shader {
@@ -207,7 +189,7 @@ Effect {
         property real userCameraFar: fogEffect.cameraClipFar
         property real userCameraFov: fogEffect.cameraFieldOfView
         property real userCameraAspect: fogEffect.cameraAspectRatio
-        shader: fogEffect.fragmentShaderDataUrl
+        code: fogEffect.fragmentShaderCode
     }
 
     Shader {
@@ -215,7 +197,7 @@ Effect {
         stage: Shader.Fragment
         property real userFogDensity: fogEffect.fogDensity
         property color userFogColor: fogEffect.fogColor
-        shader: fogEffect.fallbackShaderDataUrl
+        code: fogEffect.fallbackShaderCode
     }
 
     passes: [
