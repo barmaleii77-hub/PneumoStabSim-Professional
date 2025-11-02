@@ -58,6 +58,7 @@ Effect {
     // Для программного или RHI-рендерера требуются варианты core.
     // qmllint disable unqualified
     property bool forceDesktopShaderProfile: false
+    property bool preferUnifiedShaderSources: true
 
     readonly property bool preferDesktopShaderProfile: {
         if (forceDesktopShaderProfile)
@@ -149,7 +150,7 @@ Effect {
         return Qt.resolvedUrl(shaderResourceDirectory + resourceName)
     }
 
-    function shaderResourceExists(url, resourceName) {
+    function shaderResourceExists(url, resourceName, suppressErrors) {
         if (!url || !url.length)
             return false
 
@@ -179,7 +180,7 @@ Effect {
             checkAvailability("GET")
 
         shaderResourceAvailabilityCache[url] = available
-        if (!available)
+        if (!available && !suppressErrors)
             console.error("❌ FogEffect: shader resource missing", resourceName, url)
 
         return available
@@ -190,7 +191,7 @@ Effect {
             return ""
 
         var normalized = String(fileName)
-        if (useGlesShaders) {
+        if (!preferUnifiedShaderSources && useGlesShaders) {
             var dotIndex = normalized.lastIndexOf(".")
             var glesName
             if (dotIndex > 0)
@@ -199,18 +200,18 @@ Effect {
                 glesName = normalized + "_es"
 
             var glesUrl = resolvedShaderUrl(glesName)
-            if (shaderResourceExists(glesUrl, glesName))
+            if (shaderResourceExists(glesUrl, glesName, false))
                 return glesUrl
         }
 
         var resolvedUrl = resolvedShaderUrl(normalized)
-        shaderResourceExists(resolvedUrl, normalized)
+        shaderResourceExists(resolvedUrl, normalized, false)
         return resolvedUrl
     }
 
-    // Используем GLSL 330 core на OpenGL и GLSL 300 es в контекстах OpenGL ES.
-    // Текстурные юниты привязываются явно через layout(binding=...), чтобы
-    // избежать автоматических префиксов Qt перед директивой #version.
+    // Шейдеры поставляются в единственном варианте; внутри GLSL-файлов
+    // присутствует блок #ifdef GL_ES, добавляющий precision для GLES.
+    // Это устраняет необходимость в отдельных файлах с суффиксом _es.
 
     property bool supportsAutoInsertHeader: false
     property bool useManualShaderHeaders: false
