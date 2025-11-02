@@ -87,6 +87,7 @@ Item {
 
     property bool shaderAutoHeaderToggleSupported: false
     property bool useManualShaderHeaders: false
+    property bool inlineShaderCodeSupported: false
     property int shaderReloadToken: 0
     property var shaderCache: ({})
 
@@ -152,6 +153,69 @@ Item {
     function reloadShaderSources() {
         shaderCache = ({})
         shaderReloadToken += 1
+    }
+
+    function shaderSupportsInlineCode(shaderItem) {
+        if (!shaderItem)
+            return false
+        try {
+            return "code" in shaderItem
+        } catch (error) {
+        }
+        return false
+    }
+
+    function shaderDataUrl(source) {
+        if (!source || !source.length)
+            return ""
+        try {
+            return "data:text/plain;base64," + Qt.btoa(source)
+        } catch (error) {
+            console.warn("⚠️ PostEffects: failed to encode shader source", error)
+        }
+        return ""
+    }
+
+    function applyShaderSource(shaderItem, source, fileName) {
+        if (!shaderItem)
+            return
+        if (inlineShaderCodeSupported && shaderSupportsInlineCode(shaderItem)) {
+            try {
+                shaderItem.code = source
+                return
+            } catch (error) {
+                console.warn("⚠️ PostEffects: unable to assign inline shader code", error)
+            }
+        }
+
+        if ("shader" in shaderItem) {
+            var fallbackUrl = shaderPath(fileName)
+            var encoded = shaderDataUrl(source)
+            if (encoded && encoded.length) {
+                shaderItem.shader = encoded
+            } else {
+                shaderItem.shader = fallbackUrl
+            }
+        } else {
+            console.warn("⚠️ PostEffects: shader item lacks compatible properties", shaderItem)
+        }
+    }
+
+    function refreshAllShaderAssignments() {
+        var mappings = [
+            { item: bloomFragmentShader, source: bloomFragmentShader.shaderSource, file: "bloom.frag" },
+            { item: bloomFallbackShader, source: bloomFallbackShader.shaderSource, file: "bloom_fallback.frag" },
+            { item: ssaoFragmentShader, source: ssaoFragmentShader.shaderSource, file: "ssao.frag" },
+            { item: ssaoFallbackShader, source: ssaoFallbackShader.shaderSource, file: "ssao_fallback.frag" },
+            { item: dofFragmentShader, source: dofFragmentShader.shaderSource, file: "dof.frag" },
+            { item: dofFallbackShader, source: dofFallbackShader.shaderSource, file: "dof_fallback.frag" },
+            { item: motionBlurFragmentShader, source: motionBlurFragmentShader.shaderSource, file: "motion_blur.frag" },
+            { item: motionBlurFallbackShader, source: motionBlurFallbackShader.shaderSource, file: "motion_blur_fallback.frag" }
+        ]
+        for (var i = 0; i < mappings.length; ++i) {
+            var entry = mappings[i]
+            applyShaderSource(entry.item, entry.source, entry.file)
+        }
     }
 
     // Примечание по совместимости: в средах OpenGL используем GLSL 330 core,
@@ -233,6 +297,17 @@ Item {
                     )
         console.log("   Available effects: Bloom, SSAO, DOF, Motion Blur")
 
+        inlineShaderCodeSupported = shaderSupportsInlineCode(bloomFragmentShader)
+                && shaderSupportsInlineCode(bloomFallbackShader)
+                && shaderSupportsInlineCode(ssaoFragmentShader)
+                && shaderSupportsInlineCode(ssaoFallbackShader)
+                && shaderSupportsInlineCode(dofFragmentShader)
+                && shaderSupportsInlineCode(dofFallbackShader)
+                && shaderSupportsInlineCode(motionBlurFragmentShader)
+                && shaderSupportsInlineCode(motionBlurFallbackShader)
+        if (!inlineShaderCodeSupported)
+            console.warn("⚠️ PostEffects: inline shader code not supported; using shader URL fallback")
+
         shaderAutoHeaderToggleSupported = typeof bloomFragmentShader.autoInsertHeader === "boolean"
                 && typeof bloomFallbackShader.autoInsertHeader === "boolean"
                 && typeof ssaoFragmentShader.autoInsertHeader === "boolean"
@@ -264,6 +339,7 @@ Item {
             console.warn("⚠️ PostEffects: Shader.autoInsertHeader unavailable; stripping #version from custom shader sources")
         }
         reloadShaderSources()
+        refreshAllShaderAssignments()
     }
 
     function valueFromKeys(container, keys) {
@@ -359,13 +435,17 @@ Item {
             property real uIntensity: bloomEffect.intensity
             property real uThreshold: bloomEffect.threshold
             property real uBlurAmount: bloomEffect.blurAmount
-            code: root.shaderSourceWithToken("bloom.frag", root.shaderReloadToken)
+            property string shaderSource: root.shaderSourceWithToken("bloom.frag", root.shaderReloadToken)
+            onShaderSourceChanged: root.applyShaderSource(bloomFragmentShader, shaderSource, "bloom.frag")
+            Component.onCompleted: root.applyShaderSource(bloomFragmentShader, shaderSource, "bloom.frag")
         }
 
         Shader {
             id: bloomFallbackShader
             stage: Shader.Fragment
-            code: root.shaderSourceWithToken("bloom_fallback.frag", root.shaderReloadToken)
+            property string shaderSource: root.shaderSourceWithToken("bloom_fallback.frag", root.shaderReloadToken)
+            onShaderSourceChanged: root.applyShaderSource(bloomFallbackShader, shaderSource, "bloom_fallback.frag")
+            Component.onCompleted: root.applyShaderSource(bloomFallbackShader, shaderSource, "bloom_fallback.frag")
         }
 
 
@@ -440,13 +520,17 @@ Item {
             property real uRadius: ssaoEffect.radius
             property real uBias: ssaoEffect.bias
             property int uSamples: ssaoEffect.samples
-            code: root.shaderSourceWithToken("ssao.frag", root.shaderReloadToken)
+            property string shaderSource: root.shaderSourceWithToken("ssao.frag", root.shaderReloadToken)
+            onShaderSourceChanged: root.applyShaderSource(ssaoFragmentShader, shaderSource, "ssao.frag")
+            Component.onCompleted: root.applyShaderSource(ssaoFragmentShader, shaderSource, "ssao.frag")
         }
 
         Shader {
             id: ssaoFallbackShader
             stage: Shader.Fragment
-            code: root.shaderSourceWithToken("ssao_fallback.frag", root.shaderReloadToken)
+            property string shaderSource: root.shaderSourceWithToken("ssao_fallback.frag", root.shaderReloadToken)
+            onShaderSourceChanged: root.applyShaderSource(ssaoFallbackShader, shaderSource, "ssao_fallback.frag")
+            Component.onCompleted: root.applyShaderSource(ssaoFallbackShader, shaderSource, "ssao_fallback.frag")
         }
 
 
@@ -522,13 +606,17 @@ Item {
             property real uBlurAmount: dofEffect.blurAmount
             property real uCameraNear: dofEffect.cameraNear
             property real uCameraFar: dofEffect.cameraFar
-            code: root.shaderSourceWithToken("dof.frag", root.shaderReloadToken)
+            property string shaderSource: root.shaderSourceWithToken("dof.frag", root.shaderReloadToken)
+            onShaderSourceChanged: root.applyShaderSource(dofFragmentShader, shaderSource, "dof.frag")
+            Component.onCompleted: root.applyShaderSource(dofFragmentShader, shaderSource, "dof.frag")
         }
 
         Shader {
             id: dofFallbackShader
             stage: Shader.Fragment
-            code: root.shaderSourceWithToken("dof_fallback.frag", root.shaderReloadToken)
+            property string shaderSource: root.shaderSourceWithToken("dof_fallback.frag", root.shaderReloadToken)
+            onShaderSourceChanged: root.applyShaderSource(dofFallbackShader, shaderSource, "dof_fallback.frag")
+            Component.onCompleted: root.applyShaderSource(dofFallbackShader, shaderSource, "dof_fallback.frag")
         }
 
 
@@ -595,13 +683,17 @@ Item {
             stage: Shader.Fragment
             property real uStrength: motionBlurEffect.strength
             property int uSamples: motionBlurEffect.samples
-            code: root.shaderSourceWithToken("motion_blur.frag", root.shaderReloadToken)
+            property string shaderSource: root.shaderSourceWithToken("motion_blur.frag", root.shaderReloadToken)
+            onShaderSourceChanged: root.applyShaderSource(motionBlurFragmentShader, shaderSource, "motion_blur.frag")
+            Component.onCompleted: root.applyShaderSource(motionBlurFragmentShader, shaderSource, "motion_blur.frag")
         }
 
         Shader {
             id: motionBlurFallbackShader
             stage: Shader.Fragment
-            code: root.shaderSourceWithToken("motion_blur_fallback.frag", root.shaderReloadToken)
+            property string shaderSource: root.shaderSourceWithToken("motion_blur_fallback.frag", root.shaderReloadToken)
+            onShaderSourceChanged: root.applyShaderSource(motionBlurFallbackShader, shaderSource, "motion_blur_fallback.frag")
+            Component.onCompleted: root.applyShaderSource(motionBlurFallbackShader, shaderSource, "motion_blur_fallback.frag")
         }
 
 

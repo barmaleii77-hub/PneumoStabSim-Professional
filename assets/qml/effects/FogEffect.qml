@@ -122,6 +122,7 @@ Effect {
 
     property bool supportsAutoInsertHeader: false
     property bool useManualShaderHeaders: false
+    property bool inlineShaderCodeSupported: false
 
     property string vertexShaderCode: ""
     property string fragmentShaderCode: ""
@@ -162,10 +163,65 @@ Effect {
         fallbackShaderCode = loadShaderSource("fog_fallback.frag", stripVersion)
     }
 
+    function shaderSupportsInlineCode(shaderItem) {
+        if (!shaderItem)
+            return false
+        try {
+            return "code" in shaderItem
+        } catch (error) {
+        }
+        return false
+    }
+
+    function shaderDataUrl(source) {
+        if (!source || !source.length)
+            return ""
+        try {
+            return "data:text/plain;base64," + Qt.btoa(source)
+        } catch (error) {
+            console.warn("⚠️ FogEffect: failed to encode shader source", error)
+        }
+        return ""
+    }
+
+    function assignShaderSource(shaderItem, source, fileName) {
+        if (!shaderItem)
+            return
+        if (inlineShaderCodeSupported && shaderSupportsInlineCode(shaderItem)) {
+            try {
+                shaderItem.code = source
+                return
+            } catch (error) {
+                console.warn("⚠️ FogEffect: unable to assign inline shader code", error)
+            }
+        }
+
+        if ("shader" in shaderItem) {
+            var fallbackUrl = shaderPath(fileName)
+            var encoded = shaderDataUrl(source)
+            if (encoded && encoded.length) {
+                shaderItem.shader = encoded
+            } else {
+                shaderItem.shader = fallbackUrl
+            }
+        } else {
+            console.warn("⚠️ FogEffect: shader item lacks compatible properties", shaderItem)
+        }
+    }
+
+    function refreshShaderAssignments() {
+        assignShaderSource(fogVertexShader, vertexShaderCode, "fog.vert")
+        assignShaderSource(fogFragmentShader, fragmentShaderCode, "fog.frag")
+        assignShaderSource(fogFallbackShader, fallbackShaderCode, "fog_fallback.frag")
+    }
+
     Shader {
         id: fogVertexShader
         stage: Shader.Vertex
-        code: fogEffect.vertexShaderCode
+        Component.onCompleted: fogEffect.assignShaderSource(
+                                   fogVertexShader,
+                                   fogEffect.vertexShaderCode,
+                                   "fog.vert")
     }
 
     Shader {
@@ -189,7 +245,10 @@ Effect {
         property real userCameraFar: fogEffect.cameraClipFar
         property real userCameraFov: fogEffect.cameraFieldOfView
         property real userCameraAspect: fogEffect.cameraAspectRatio
-        code: fogEffect.fragmentShaderCode
+        Component.onCompleted: fogEffect.assignShaderSource(
+                                   fogFragmentShader,
+                                   fogEffect.fragmentShaderCode,
+                                   "fog.frag")
     }
 
     Shader {
@@ -197,7 +256,10 @@ Effect {
         stage: Shader.Fragment
         property real userFogDensity: fogEffect.fogDensity
         property color userFogColor: fogEffect.fogColor
-        code: fogEffect.fallbackShaderCode
+        Component.onCompleted: fogEffect.assignShaderSource(
+                                   fogFallbackShader,
+                                   fogEffect.fallbackShaderCode,
+                                   "fog_fallback.frag")
     }
 
     passes: [
@@ -216,7 +278,16 @@ Effect {
         onTriggered: fogEffect.time += 0.016
     }
 
+    onVertexShaderCodeChanged: refreshShaderAssignments()
+    onFragmentShaderCodeChanged: refreshShaderAssignments()
+    onFallbackShaderCodeChanged: refreshShaderAssignments()
+
     Component.onCompleted: {
+        inlineShaderCodeSupported = shaderSupportsInlineCode(fogVertexShader)
+                && shaderSupportsInlineCode(fogFragmentShader)
+                && shaderSupportsInlineCode(fogFallbackShader)
+        if (!inlineShaderCodeSupported)
+            console.warn("⚠️ FogEffect: inline shader code not supported; using shader URL fallback")
         supportsAutoInsertHeader = typeof fogVertexShader.autoInsertHeader === "boolean"
                 && typeof fogFragmentShader.autoInsertHeader === "boolean"
                 && typeof fogFallbackShader.autoInsertHeader === "boolean"
@@ -229,6 +300,7 @@ Effect {
             console.warn("⚠️ FogEffect: Shader.autoInsertHeader unavailable; stripping #version from shader sources")
         }
         refreshShaderSources()
+        refreshShaderAssignments()
         console.log("🌫️ FogEffect graphics API:", rendererGraphicsApi)
         console.log(
                     "   Shader profile:",
