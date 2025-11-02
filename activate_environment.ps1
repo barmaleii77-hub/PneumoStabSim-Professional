@@ -15,7 +15,7 @@ try {
 $projectRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
 $envFile = Join-Path $projectRoot ".env"
 
-$pythonHelper = Join-Path $projectRoot 'tools' 'powershell' 'python_environment.ps1'
+$pythonHelper = [System.IO.Path]::Combine($projectRoot, 'tools', 'powershell', 'python_environment.ps1')
 if (Test-Path $pythonHelper) {
     . $pythonHelper
 } else {
