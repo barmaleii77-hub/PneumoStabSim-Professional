@@ -9,6 +9,7 @@ import sys
 import subprocess
 import time
 import json
+import shutil
 from pathlib import Path
 from typing import List, Dict, Any, Optional
 import logging
@@ -25,6 +26,7 @@ class ProjectTester:
             "summary": {"passed": 0, "failed": 0, "warnings": 0},
         }
         self.setup_logging()
+        self.dotnet_path = shutil.which("dotnet")
 
     def setup_logging(self):
         """Setup logging for test runner"""
@@ -44,6 +46,24 @@ class ProjectTester:
 
         self.logger = logging.getLogger(__name__)
         self.logger.info(f"Test session started - Log file: {log_file}")
+
+    def _record_skip(self, key: str, reason: str) -> None:
+        """Record a skipped test as a warning."""
+
+        self.logger.warning(reason)
+        self.results["tests"][key] = {
+            "passed": True,
+            "details": {
+                "success": True,
+                "returncode": 0,
+                "stdout": "",
+                "stderr": "",
+                "command": "",
+                "skipped": True,
+                "reason": reason,
+            },
+        }
+        self.results["summary"]["warnings"] += 1
 
     def run_command(
         self, command: List[str], cwd: Optional[Path] = None, timeout: int = 60
@@ -170,7 +190,14 @@ except Exception as e:
         """Test .NET package restoration"""
         self.logger.info("Testing .NET package restore...")
 
-        restore_result = self.run_command(["dotnet", "restore"], timeout=120)
+        if not self.dotnet_path:
+            self._record_skip(
+                "dotnet_restore",
+                "dotnet CLI not available – skipping restore step",
+            )
+            return True
+
+        restore_result = self.run_command([self.dotnet_path, "restore"], timeout=120)
 
         self.results["tests"]["dotnet_restore"] = {
             "passed": restore_result["success"],
@@ -191,8 +218,15 @@ except Exception as e:
         """Test .NET compilation"""
         self.logger.info("Testing .NET build...")
 
+        if not self.dotnet_path:
+            self._record_skip(
+                "dotnet_build",
+                "dotnet CLI not available – skipping build step",
+            )
+            return True
+
         build_result = self.run_command(
-            ["dotnet", "build", "--no-restore"], timeout=180
+            [self.dotnet_path, "build", "--no-restore"], timeout=180
         )
 
         self.results["tests"]["dotnet_build"] = {

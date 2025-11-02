@@ -44,6 +44,53 @@ def _require_float(payload: Mapping[str, Any], key: str, context: str) -> float:
         ) from exc
 
 
+@dataclass(frozen=True)
+class Vector3D:
+    """Simple 3D vector helper used by geometry and bridge layers."""
+
+    x: float
+    y: float
+    z: float
+
+    def as_array(self) -> np.ndarray:
+        """Return the vector as a numpy array with ``float`` dtype."""
+
+        return np.array([self.x, self.y, self.z], dtype=float)
+
+    def __add__(self, other: "Vector3D") -> "Vector3D":
+        vec = self.as_array() + other.as_array()
+        return Vector3D(float(vec[0]), float(vec[1]), float(vec[2]))
+
+    def __sub__(self, other: "Vector3D") -> "Vector3D":
+        vec = self.as_array() - other.as_array()
+        return Vector3D(float(vec[0]), float(vec[1]), float(vec[2]))
+
+    def __mul__(self, scalar: float) -> "Vector3D":
+        vec = self.as_array() * float(scalar)
+        return Vector3D(float(vec[0]), float(vec[1]), float(vec[2]))
+
+    __rmul__ = __mul__
+
+    def dot(self, other: "Vector3D") -> float:
+        return float(np.dot(self.as_array(), other.as_array()))
+
+    def cross(self, other: "Vector3D") -> "Vector3D":
+        vec = np.cross(self.as_array(), other.as_array())
+        return Vector3D(float(vec[0]), float(vec[1]), float(vec[2]))
+
+    def magnitude(self) -> float:
+        return float(np.linalg.norm(self.as_array()))
+
+    def normalized(self) -> "Vector3D":
+        norm = self.magnitude()
+        if norm <= 1e-12:
+            return Vector3D(0.0, 0.0, 0.0)
+        return self * (1.0 / norm)
+
+    def distance_to(self, other: "Vector3D") -> float:
+        return float(np.linalg.norm(self.as_array() - other.as_array()))
+
+
 @dataclass
 class Point2:
     """2D point in plane"""

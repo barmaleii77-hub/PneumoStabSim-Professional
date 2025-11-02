@@ -20,6 +20,28 @@ from src.pneumo.geometry import LeverGeom, CylinderGeom
 
 
 @dataclass
+class Mass:
+    """Lumped mass helper for lightweight dynamics calculations."""
+
+    value: float = 1.0
+
+    def acceleration(self, force: float) -> float:
+        """Return the acceleration produced by ``force`` in Newtons."""
+
+        return force / max(self.value, 1e-9)
+
+    def weight(self, gravity: float = 9.81) -> float:
+        """Compute the gravitational force exerted by the mass."""
+
+        return self.value * gravity
+
+    def combine(self, other: "Mass") -> "Mass":
+        """Return a new mass representing the sum of two bodies."""
+
+        return Mass(self.value + other.value)
+
+
+@dataclass
 class Lever:
     """Lever kinematics based on the validated geometry definition."""
 
