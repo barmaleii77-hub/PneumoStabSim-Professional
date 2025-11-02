@@ -175,12 +175,16 @@ Item {
 
         property bool fallbackActive: false
         property string lastErrorLog: ""
+        property bool componentCompleted: false
 
         Component.onCompleted: {
             root.notifyEffectCompilation("bloom", fallbackActive, lastErrorLog)
+            componentCompleted = true
         }
 
         onFallbackActiveChanged: {
+            if (!componentCompleted)
+                return
             if (fallbackActive && !lastErrorLog)
                 lastErrorLog = qsTr("Bloom: fallback shader active")
             root.notifyEffectCompilation("bloom", fallbackActive, lastErrorLog)
@@ -200,6 +204,7 @@ Item {
         Shader {
             id: bloomFragmentShader
             stage: Shader.Fragment
+            language: Shader.GLSL
             property real uIntensity: bloomEffect.intensity
             property real uThreshold: bloomEffect.threshold
             property real uBlurAmount: bloomEffect.blurAmount
@@ -272,6 +277,7 @@ Item {
         Shader {
             id: bloomFallbackShader
             stage: Shader.Fragment
+            language: Shader.GLSL
             readonly property string shaderSource: root.glsl([
                 "#version 330 core",
                 "",
@@ -315,6 +321,7 @@ Item {
         property string lastErrorLog: ""
         property bool depthTextureAvailable: false
         property bool normalTextureAvailable: false
+        property bool componentCompleted: false
 
         Component.onCompleted: {
             depthTextureAvailable = root.ensureEffectRequirement(
@@ -330,14 +337,19 @@ Item {
             if (requiresFallback) {
                 lastErrorLog = qsTr("SSAO: depth texture buffer is not supported; disabling advanced SSAO")
                 console.warn("⚠️ SSAO: switching to passthrough fallback due to missing textures")
+                fallbackActive = true
+                root.notifyEffectCompilation("ssao", true, lastErrorLog)
             } else {
                 lastErrorLog = ""
+                fallbackActive = false
+                root.notifyEffectCompilation("ssao", false, lastErrorLog)
             }
-            fallbackActive = requiresFallback
-            root.notifyEffectCompilation("ssao", fallbackActive, lastErrorLog)
+            componentCompleted = true
         }
 
         onFallbackActiveChanged: {
+            if (!componentCompleted)
+                return
             if (fallbackActive && !lastErrorLog)
                 lastErrorLog = qsTr("SSAO: fallback shader active")
             root.notifyEffectCompilation("ssao", fallbackActive, lastErrorLog)
@@ -358,6 +370,7 @@ Item {
         Shader {
             id: ssaoFragmentShader
             stage: Shader.Fragment
+            language: Shader.GLSL
             property real uIntensity: ssaoEffect.intensity
             property real uRadius: ssaoEffect.radius
             property real uBias: ssaoEffect.bias
@@ -448,6 +461,7 @@ Item {
         Shader {
             id: ssaoFallbackShader
             stage: Shader.Fragment
+            language: Shader.GLSL
             readonly property string shaderSource: root.glsl([
                 "#version 330 core",
                 "",
@@ -489,6 +503,7 @@ Item {
         property bool fallbackActive: false
         property string lastErrorLog: ""
         property bool depthTextureAvailable: false
+        property bool componentCompleted: false
 
         property real focusDistance: 2000.0  // Расстояние фокуса (мм)
         property real focusRange: 1000.0     // Диапазон фокуса (мм)
@@ -515,14 +530,19 @@ Item {
             if (requiresFallback) {
                 lastErrorLog = qsTr("Depth of Field: depth texture unavailable; using fallback shader")
                 console.warn("⚠️ Depth of Field: switching to passthrough fallback due to missing depth texture")
+                fallbackActive = true
+                root.notifyEffectCompilation("depthOfField", true, lastErrorLog)
             } else {
                 lastErrorLog = ""
+                fallbackActive = false
+                root.notifyEffectCompilation("depthOfField", false, lastErrorLog)
             }
-            fallbackActive = requiresFallback
-            root.notifyEffectCompilation("depthOfField", fallbackActive, lastErrorLog)
+            componentCompleted = true
         }
 
         onFallbackActiveChanged: {
+            if (!componentCompleted)
+                return
             if (fallbackActive && !lastErrorLog)
                 lastErrorLog = qsTr("Depth of Field: fallback shader active")
             root.notifyEffectCompilation("depthOfField", fallbackActive, lastErrorLog)
@@ -533,6 +553,7 @@ Item {
         Shader {
             id: dofFragmentShader
             stage: Shader.Fragment
+            language: Shader.GLSL
             property real uFocusDistance: dofEffect.focusDistance
             property real uFocusRange: dofEffect.focusRange
             property real uBlurAmount: dofEffect.blurAmount
@@ -608,6 +629,7 @@ Item {
         Shader {
             id: dofFallbackShader
             stage: Shader.Fragment
+            language: Shader.GLSL
             readonly property string shaderSource: root.glsl([
                 "#version 330 core",
                 "",
@@ -650,6 +672,7 @@ Item {
         property bool fallbackActive: false
         property string lastErrorLog: ""
         property bool velocityTextureAvailable: false
+        property bool componentCompleted: false
 
         property real strength: 0.5          // Сила размытия движения
         property int samples: 8              // Количество сэмплов
@@ -670,14 +693,19 @@ Item {
             if (requiresFallback) {
                 lastErrorLog = qsTr("Motion Blur: velocity texture unavailable; using fallback shader")
                 console.warn("⚠️ Motion Blur: switching to passthrough fallback due to missing velocity texture")
+                fallbackActive = true
+                root.notifyEffectCompilation("motionBlur", true, lastErrorLog)
             } else {
                 lastErrorLog = ""
+                fallbackActive = false
+                root.notifyEffectCompilation("motionBlur", false, lastErrorLog)
             }
-            fallbackActive = requiresFallback
-            root.notifyEffectCompilation("motionBlur", fallbackActive, lastErrorLog)
+            componentCompleted = true
         }
 
         onFallbackActiveChanged: {
+            if (!componentCompleted)
+                return
             if (fallbackActive && !lastErrorLog)
                 lastErrorLog = qsTr("Motion Blur: fallback shader active")
             root.notifyEffectCompilation("motionBlur", fallbackActive, lastErrorLog)
@@ -688,6 +716,7 @@ Item {
         Shader {
             id: motionBlurFragmentShader
             stage: Shader.Fragment
+            language: Shader.GLSL
             property real uStrength: motionBlurEffect.strength
             property int uSamples: motionBlurEffect.samples
             readonly property string shaderSource: root.glsl([
@@ -739,6 +768,7 @@ Item {
         Shader {
             id: motionBlurFallbackShader
             stage: Shader.Fragment
+            language: Shader.GLSL
             readonly property string shaderSource: root.glsl([
                 "#version 330 core",
                 "",
