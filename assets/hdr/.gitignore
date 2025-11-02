@@ -6,4 +6,3 @@
 *.jpg
 !.gitignore
 !README.md
-!*.placeholder

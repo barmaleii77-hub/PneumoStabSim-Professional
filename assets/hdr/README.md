@@ -22,9 +22,13 @@ renovation plan can track coverage at a glance._
    `assets/qml/assets/studio_small_09_2k.hdr`.
 4. Commit the updated inventory table whenever new lighting profiles are added.
 
-## Placeholder policy
+## Curation policy
 
-Until the production assets are available, create a tiny placeholder file named
-`studio_small_09_2k.hdr` in both `assets/hdr/` and `assets/qml/assets/` so that QML
-imports continue to resolve. Replace these placeholders with the genuine files before
-shipping a release build.
+- Do not commit temporary placeholder files. Missing HDRIs should surface as
+  configuration warnings during testing so we notice broken lighting pipelines
+  early.
+- Large raw captures (for example, `DSC_9975.NEF`) must stay in the external
+  art source archive. Reference them in documentation or manifests, but do not
+  add them to this repository.
+- When introducing a new HDRI, update the table above and attach licensing
+  details so downstream teams can validate redistribution rights.
