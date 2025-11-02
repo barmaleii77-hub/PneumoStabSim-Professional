@@ -118,15 +118,17 @@ void MAIN()
 
     for (int i = 0; i < sampleCount; i++) {
         vec3 sampleVec = normalize(generateSampleVector(i));
-        if (dot(sampleVec, normal) < 0.0)
+        if (dot(sampleVec, normal) < 0.0) {
             sampleVec = -sampleVec;
+        }
 
         vec2 sampleCoord = INPUT_UV + sampleVec.xy * uRadius * texelSize;
         float sampleDepth = texture(qt_DepthTexture, sampleCoord).r;
 
         float depthDiff = depth - sampleDepth;
-        if (depthDiff > uBias)
+        if (depthDiff > uBias) {
             occlusion += 1.0;
+        }
     }
 
     occlusion /= max(1.0, float(sampleCount));
