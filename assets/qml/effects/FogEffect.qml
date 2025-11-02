@@ -53,8 +53,9 @@ Effect {
         console.warn("⚠️ FogEffect: depth texture not supported; using fallback shader")
     }
 
+    // Используем GLSL ES только при наличии реального контекста OpenGL ES.
+    // Для программного или десктопного рендерера требуются варианты core.
     readonly property bool useGlesShaders: GraphicsInfo.api === GraphicsInfo.OpenGLES
-            || GraphicsInfo.api === GraphicsInfo.Software
 
     function shaderPath(fileName) {
         if (!fileName || typeof fileName !== "string")

@@ -38,8 +38,10 @@ Item {
         }
     }
 
+    // Используем версию шейдеров OpenGL ES только при реальном контексте OpenGL ES.
+    // Программный рендерер Qt (GraphicsInfo.Software) транслирует шейдеры через
+    // десктопный стек, поэтому ему требуется профиль core/compatibility.
     readonly property bool useGlesShaders: GraphicsInfo.api === GraphicsInfo.OpenGLES
-            || GraphicsInfo.api === GraphicsInfo.Software
 
     function shaderPath(fileName) {
         if (!fileName || typeof fileName !== "string")
