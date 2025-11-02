@@ -13,7 +13,8 @@ SMOKE_TARGET ?= tests/smoke
 INTEGRATION_TARGET ?= tests/integration/test_main_window_qml.py
 
 .PHONY: format lint typecheck qml-lint test check verify smoke integration \
-autonomous-check autonomous-check-trace trace-launch sanitize cipilot-env
+autonomous-check autonomous-check-trace trace-launch sanitize cipilot-env \
+install-qt-runtime
 
 .PHONY: uv-sync uv-run
 
@@ -34,6 +35,10 @@ uv-run:
 	exit 1; \
 	fi
 	cd $(UV_PROJECT_DIR) && PYTEST_DISABLE_PLUGIN_AUTOLOAD=$${PYTEST_DISABLE_PLUGIN_AUTOLOAD-1} $(UV) run -- $(CMD)
+
+install-qt-runtime:
+	@echo "Installing Qt runtime system libraries (libgl1, libxkbcommon0, libegl1)"
+	@bash tools/install_qt_runtime.sh
 
 format:
 	$(PYTHON) -m ruff format $(PYTHON_LINT_PATHS)
