@@ -90,21 +90,22 @@ def _export_with_numpy(
     header: Sequence[str],
     use_gzip: bool,
 ) -> None:
-    """Export using numpy.savetxt (efficient for numeric data)
-    
-    Args:
-        time: Time array
-        series: Data series mapping
-        path: Output file path
-        header: Column headers
-        use_gzip: Whether gzip compression is needed (informational - 
-                  numpy.savetxt automatically detects .gz extension)
-    
-    Note:
-        The use_gzip parameter is provided for API consistency with 
-        _export_with_csv_writer(). numpy.savetxt automatically handles
-        gzip compression when the path ends with .gz, so this parameter
-        is not explicitly used in the implementation.
+    """
+    Экспорт данных с помощью numpy.savetxt (эффективно для числовых данных).
+
+    Аргументы:
+        time: Массив времени
+        series: Словарь с данными (имя серии → значения)
+        path: Путь к выходному файлу
+        header: Заголовки столбцов
+        use_gzip: Требуется ли сжатие gzip (информационный параметр —
+            numpy.savetxt автоматически определяет .gz по расширению файла)
+
+    Примечание:
+        Параметр use_gzip добавлен для согласованности API с
+        _export_with_csv_writer(). numpy.savetxt автоматически
+        обрабатывает сжатие gzip, если путь заканчивается на .gz,
+        поэтому этот параметр явно не используется в реализации.
     """
     if not _NUMPY_AVAILABLE or np is None:
         raise RuntimeError("NumPy is required for numpy-based CSV export")
