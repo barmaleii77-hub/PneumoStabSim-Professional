@@ -320,11 +320,11 @@ Item {
     /**
      * Выбирает шейдерные программы для эффекта с учётом состояния фоллбэка.
      *
-     * @param {bool} isEnabled            Флаг включения эффекта на уровне UI.
-     * @param {Effect} effectItem          QML-объект Effect, для которого выполняется выбор.
-     * @param {Shader} activeShader        Основной шейдер, используемый при успешной компиляции.
-     * @param {Shader|undefined} fallbackShader  Альтернативный шейдер, применяемый при ошибке компиляции.
-     * @returns {list<Shader>} Список шейдеров, который необходимо передать в Pass.shaders.
+     * @param {bool} isEnabled     Флаг включения эффекта на уровне UI.
+     * @param {Effect} effectItem   QML-объект Effect, для которого выполняется выбор.
+     * @param {Shader} activeShader Основной шейдер, используемый при успешной компиляции.
+     * @param {Shader} [fallbackShader] Необязательный альтернативный шейдер на случай ошибки компиляции.
+     * @returns {Shader[]} Список шейдеров, который необходимо передать в Pass.shaders.
      */
     function resolveShaders(isEnabled, effectItem, activeShader, fallbackShader) {
         const hasFallback = fallbackShader !== undefined && fallbackShader !== null
