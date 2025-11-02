@@ -118,6 +118,9 @@ Effect {
                     return true
                 if (normalized.indexOf("gles") !== -1)
                     return true
+                if (GraphicsInfo.api === GraphicsInfo.Direct3D11
+                        && normalized.indexOf("angle") !== -1)
+                    return true
             }
         } catch (error) {
         }
