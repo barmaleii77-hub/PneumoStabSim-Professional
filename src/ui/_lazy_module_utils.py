@@ -100,9 +100,13 @@ def should_suppress_wrapped() -> bool:
     caller = frame.f_back
     while caller is not None:
         module_name = caller.f_globals.get("__name__", "")
-        function_name = caller.f_code.co_name
 
-        if "unwrap" in function_name or module_name == "inspect":
+        if module_name == "inspect":
+            # ``inspect`` is the only module that should trigger the unwrap
+            # safeguard.  Third-party helpers (for example, PySide's
+            # ``unwrapInstance``) legitimately expect ``module.__wrapped__`` to
+            # resolve, so restricting the check keeps the lazy packages
+            # compatible with those call sites.
             global_name = _global_called_at(caller.f_code, caller.f_lasti)
             if global_name == "hasattr":
                 builtin_hasattr = getattr(builtins, "hasattr", None)

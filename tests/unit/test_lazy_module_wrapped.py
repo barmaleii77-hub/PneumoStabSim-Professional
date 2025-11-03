@@ -100,3 +100,13 @@ def test_direct_lookup_after_hasattr_returns_module() -> None:
         return getattr(target, "__wrapped__")
 
     assert probe(module) is module
+
+
+def test_non_inspect_unwrap_like_helpers_return_module() -> None:
+    module = importlib.import_module("src.ui.panels")
+
+    def unwrap_instance(target):
+        hasattr(target, "__wrapped__")
+        return getattr(target, "__wrapped__")
+
+    assert unwrap_instance(module) is module
