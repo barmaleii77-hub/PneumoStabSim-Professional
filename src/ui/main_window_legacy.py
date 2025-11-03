@@ -545,8 +545,19 @@ class MainWindow(QMainWindow):
         if not updates or not self._qml_root_object:
             return False
         try:
-            self._qml_root_object.setProperty("pendingPythonUpdates", updates)
-            return True
+            result = bool(
+                self._qml_root_object.setProperty("pendingPythonUpdates", updates)
+            )
+            if not result:
+                logger = getattr(self, "logger", None)
+                if logger is not None:
+                    try:
+                        logger.warning(
+                            "QML did not accept pendingPythonUpdates payload"
+                        )
+                    except Exception:
+                        pass
+            return result
         except Exception:
             return False
 
