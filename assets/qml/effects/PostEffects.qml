@@ -206,6 +206,7 @@ Item {
     property var shaderSanitizationCache: ({})
     property var shaderSanitizationWarnings: ({})
     property var shaderVariantSelectionCache: ({})
+    property var shaderProfileMismatchWarnings: ({})
 
     onUseGlesShadersChanged: {
         console.log("🎚️ PostEffects: shader profile toggled ->", useGlesShaders
@@ -361,11 +362,21 @@ Item {
         shaderResourceAvailabilityCache = ({})
         shaderSanitizationCache = ({})
         shaderVariantSelectionCache = ({})
+        shaderProfileMismatchWarnings = ({})
     }
 
     function requestDesktopShaderProfile(reason) {
         if (forceDesktopShaderProfile)
             return
+        if (reportedGlesContext) {
+            if (!Object.prototype.hasOwnProperty.call(shaderProfileMismatchWarnings, reason)) {
+                shaderProfileMismatchWarnings[reason] = true
+                console.warn(
+                            "⚠️ PostEffects:", reason,
+                            "– keeping OpenGL ES profile because desktop shaders are incompatible")
+            }
+            return
+        }
         console.warn("⚠️ PostEffects:", reason, "– forcing desktop shader profile")
         forceDesktopShaderProfile = true
         resetShaderCaches()
@@ -381,8 +392,15 @@ Item {
             return
         if (normalized.indexOf("profile") === -1 && normalized.indexOf("expected newline") === -1)
             return
-        requestDesktopShaderProfile(
-                    `Shader ${shaderId} reported #version incompatibility`)
+
+        var reason = `Shader ${shaderId} reported #version incompatibility`
+        if (!Object.prototype.hasOwnProperty.call(shaderProfileMismatchWarnings, reason)) {
+            shaderProfileMismatchWarnings[reason] = true
+            console.warn(
+                        "⚠️ PostEffects:", reason,
+                        "– activating fallback shaders without switching to desktop profile")
+        }
+        requestDesktopShaderProfile(reason)
     }
 
     function handleEffectShaderStatusChange(effectId, effectItem, shaderItem, shaderId, isFallback) {
