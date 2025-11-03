@@ -62,6 +62,51 @@ class ApplicationRunner:
         self.use_qml_3d_schema: bool = True
         self._is_headless: bool = False
         self._headless_reason: Optional[str] = None
+        self._surface_format_configured: bool = False
+
+    def _configure_default_surface_format(self) -> None:
+        """Ensure Qt uses an OpenGL 4.5 core profile surface format."""
+
+        if self._surface_format_configured:
+            return
+
+        try:
+            from PySide6.QtGui import QSurfaceFormat
+            from PySide6.QtQuick import QQuickWindow, QSGRendererInterface
+        except Exception as exc:  # pragma: no cover - Qt bindings may be missing in CI
+            if self.app_logger:
+                self.app_logger.debug(
+                    "Skipping OpenGL surface configuration (Qt modules unavailable): %s",
+                    exc,
+                )
+            return
+
+        try:
+            format_ = QSurfaceFormat()
+            format_.setRenderableType(QSurfaceFormat.RenderableType.OpenGL)
+            format_.setVersion(4, 5)
+            format_.setProfile(QSurfaceFormat.OpenGLContextProfile.CoreProfile)
+            format_.setDepthBufferSize(24)
+            format_.setStencilBufferSize(8)
+            format_.setSwapBehavior(QSurfaceFormat.SwapBehavior.DoubleBuffer)
+            format_.setSwapInterval(1)
+            format_.setOption(QSurfaceFormat.FormatOption.DebugContext)
+
+            QSurfaceFormat.setDefaultFormat(format_)
+            QQuickWindow.setGraphicsApi(QSGRendererInterface.GraphicsApi.OpenGL)
+
+            self._surface_format_configured = True
+
+            if self.app_logger:
+                self.app_logger.info(
+                    "Configured default OpenGL surface format -> OpenGL 4.5 Core Profile"
+                )
+        except Exception as exc:  # pragma: no cover - defensive guard around Qt APIs
+            if self.app_logger:
+                self.app_logger.warning(
+                    "Failed to configure OpenGL surface format: %s",
+                    exc,
+                )
 
     def setup_signals(self) -> None:
         """Настройка обработчиков сигналов (Ctrl+C, SIGTERM)."""
@@ -241,6 +286,8 @@ class ApplicationRunner:
 
     def create_application(self) -> None:
         """Создание и настройка QApplication."""
+        self._configure_default_surface_format()
+
         app = self.QApplication(sys.argv)
         self.app_instance = app
 
