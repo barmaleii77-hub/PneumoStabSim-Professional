@@ -1,5 +1,5 @@
-#version 330 core
-// Requires an OpenGL 3.3 core context for Qt Quick 3D runtime compatibility.
+#version 330
+// Requires an OpenGL 3.3 context for Qt Quick 3D runtime compatibility.
 
 #ifdef GL_ES
 precision highp float;
