@@ -117,6 +117,36 @@ Item {
             return ""
         return apiName.trim().toLowerCase()
     }
+    readonly property string openGlVersionLabel: {
+        if (GraphicsInfo.api !== GraphicsInfo.OpenGL)
+            return ""
+        var major = Number(GraphicsInfo.majorVersion)
+        if (!isFinite(major) || major <= 0)
+            return ""
+        var minorValue = Number(GraphicsInfo.minorVersion)
+        var minor = isFinite(minorValue) && minorValue >= 0 ? minorValue : 0
+        return major + "." + minor
+    }
+    readonly property bool enforceLegacyFallbackShaders: {
+        if (GraphicsInfo.api !== GraphicsInfo.OpenGL)
+            return false
+        var major = Number(GraphicsInfo.majorVersion)
+        if (!isFinite(major) || major <= 0)
+            return false
+        if (major < 3)
+            return true
+        if (major === 3) {
+            var minorValue = Number(GraphicsInfo.minorVersion)
+            if (!isFinite(minorValue))
+                return false
+            return minorValue <= 3
+        }
+        return false
+    }
+    readonly property string legacyFallbackReason: enforceLegacyFallbackShaders
+            ? qsTr("Legacy OpenGL profile detected (OpenGL %1); forcing GLSL 330 fallback shaders.")
+                .arg(openGlVersionLabel.length ? openGlVersionLabel : "3.3")
+            : ""
     readonly property bool reportedGlesContext: {
         if (forceDesktopShaderProfile)
             return false
@@ -535,6 +565,8 @@ Item {
                     "preferDesktop:", preferDesktopShaderProfile,
                     "reportedGles:", reportedGlesContext,
                     "forceDesktopOverride:", forceDesktopShaderProfile)
+        if (legacyFallbackReason.length)
+            console.warn("⚠️ PostEffects:", legacyFallbackReason)
         console.log("   Available effects: Bloom, SSAO, DOF, Motion Blur")
     }
 
@@ -602,9 +634,28 @@ Item {
         property bool componentCompleted: false
         property bool fallbackDueToCompilation: false
         property string compilationErrorLog: ""
+        property bool fallbackForcedByCompatibility: false
         readonly property string fallbackMessage: qsTr("Bloom: fallback shader active")
+        readonly property string compatibilityFallbackMessage: {
+            var versionLabel = root.openGlVersionLabel.length
+                    ? root.openGlVersionLabel
+                    : "3.3"
+            return qsTr("Bloom: forcing GLSL 330 fallback shader for OpenGL %1")
+                    .arg(versionLabel)
+        }
 
         Component.onCompleted: {
+            if (root.enforceLegacyFallbackShaders && !fallbackForcedByCompatibility) {
+                fallbackForcedByCompatibility = true
+                var compatibilityLog = compatibilityFallbackMessage.length
+                        ? compatibilityFallbackMessage
+                        : root.legacyFallbackReason
+                if ((!lastErrorLog || !lastErrorLog.length) && compatibilityLog.length)
+                    lastErrorLog = compatibilityLog
+                fallbackActive = true
+                if (compatibilityLog.length)
+                    console.warn("⚠️", compatibilityLog)
+            }
             if (fallbackActive && !lastErrorLog)
                 lastErrorLog = fallbackMessage
             else if (!fallbackActive && lastErrorLog)
@@ -695,7 +746,15 @@ Item {
         property bool fallbackDueToRequirements: false
         property string compilationErrorLog: ""
         property string requirementFallbackLog: ""
+        property bool fallbackForcedByCompatibility: false
         readonly property string fallbackMessage: qsTr("SSAO: fallback shader active")
+        readonly property string compatibilityFallbackMessage: {
+            var versionLabel = root.openGlVersionLabel.length
+                    ? root.openGlVersionLabel
+                    : "3.3"
+            return qsTr("SSAO: forcing GLSL 330 fallback shader for OpenGL %1")
+                    .arg(versionLabel)
+        }
 
         Component.onCompleted: {
             depthTextureAvailable = root.ensureEffectRequirement(
@@ -716,13 +775,30 @@ Item {
                 lastErrorLog = requirementFallbackLog
                 console.warn("⚠️ SSAO: switching to passthrough fallback due to missing textures")
                 fallbackActive = true
-                root.notifyEffectCompilation("ssao", true, lastErrorLog)
             } else {
                 requirementFallbackLog = ""
                 lastErrorLog = ""
                 fallbackActive = false
-                root.notifyEffectCompilation("ssao", false, lastErrorLog)
             }
+
+            if (root.enforceLegacyFallbackShaders && !fallbackForcedByCompatibility) {
+                fallbackForcedByCompatibility = true
+                var compatibilityLog = compatibilityFallbackMessage.length
+                        ? compatibilityFallbackMessage
+                        : root.legacyFallbackReason
+                if (compatibilityLog.length) {
+                    if (lastErrorLog.length) {
+                        if (lastErrorLog.indexOf(compatibilityLog) === -1)
+                            lastErrorLog = lastErrorLog + " | " + compatibilityLog
+                    } else {
+                        lastErrorLog = compatibilityLog
+                    }
+                    console.warn("⚠️", compatibilityLog)
+                }
+                fallbackActive = true
+            }
+
+            root.notifyEffectCompilation("ssao", fallbackActive, lastErrorLog)
             componentCompleted = true
         }
 
@@ -809,7 +885,15 @@ Item {
         property bool fallbackDueToRequirements: false
         property string compilationErrorLog: ""
         property string requirementFallbackLog: ""
+        property bool fallbackForcedByCompatibility: false
         readonly property string fallbackMessage: qsTr("Depth of Field: fallback shader active")
+        readonly property string compatibilityFallbackMessage: {
+            var versionLabel = root.openGlVersionLabel.length
+                    ? root.openGlVersionLabel
+                    : "3.3"
+            return qsTr("Depth of Field: forcing GLSL 330 fallback shader for OpenGL %1")
+                    .arg(versionLabel)
+        }
 
         property real focusDistance: 2000.0  // Расстояние фокуса (мм)
         property real focusRange: 1000.0     // Диапазон фокуса (мм)
@@ -841,13 +925,30 @@ Item {
                 lastErrorLog = requirementFallbackLog
                 console.warn("⚠️ Depth of Field: switching to passthrough fallback due to missing depth texture")
                 fallbackActive = true
-                root.notifyEffectCompilation("depthOfField", true, lastErrorLog)
             } else {
                 requirementFallbackLog = ""
                 lastErrorLog = ""
                 fallbackActive = false
-                root.notifyEffectCompilation("depthOfField", false, lastErrorLog)
             }
+
+            if (root.enforceLegacyFallbackShaders && !fallbackForcedByCompatibility) {
+                fallbackForcedByCompatibility = true
+                var compatibilityLog = compatibilityFallbackMessage.length
+                        ? compatibilityFallbackMessage
+                        : root.legacyFallbackReason
+                if (compatibilityLog.length) {
+                    if (lastErrorLog.length) {
+                        if (lastErrorLog.indexOf(compatibilityLog) === -1)
+                            lastErrorLog = lastErrorLog + " | " + compatibilityLog
+                    } else {
+                        lastErrorLog = compatibilityLog
+                    }
+                    console.warn("⚠️", compatibilityLog)
+                }
+                fallbackActive = true
+            }
+
+            root.notifyEffectCompilation("depthOfField", fallbackActive, lastErrorLog)
             componentCompleted = true
         }
 
@@ -925,7 +1026,15 @@ Item {
         property bool fallbackDueToRequirements: false
         property string compilationErrorLog: ""
         property string requirementFallbackLog: ""
+        property bool fallbackForcedByCompatibility: false
         readonly property string fallbackMessage: qsTr("Motion Blur: fallback shader active")
+        readonly property string compatibilityFallbackMessage: {
+            var versionLabel = root.openGlVersionLabel.length
+                    ? root.openGlVersionLabel
+                    : "3.3"
+            return qsTr("Motion Blur: forcing GLSL 330 fallback shader for OpenGL %1")
+                    .arg(versionLabel)
+        }
 
         property real strength: 0.5          // Сила размытия движения
         property int samples: 8              // Количество сэмплов
@@ -951,13 +1060,30 @@ Item {
                 lastErrorLog = requirementFallbackLog
                 console.warn("⚠️ Motion Blur: switching to passthrough fallback due to missing velocity texture")
                 fallbackActive = true
-                root.notifyEffectCompilation("motionBlur", true, lastErrorLog)
             } else {
                 requirementFallbackLog = ""
                 lastErrorLog = ""
                 fallbackActive = false
-                root.notifyEffectCompilation("motionBlur", false, lastErrorLog)
             }
+
+            if (root.enforceLegacyFallbackShaders && !fallbackForcedByCompatibility) {
+                fallbackForcedByCompatibility = true
+                var compatibilityLog = compatibilityFallbackMessage.length
+                        ? compatibilityFallbackMessage
+                        : root.legacyFallbackReason
+                if (compatibilityLog.length) {
+                    if (lastErrorLog.length) {
+                        if (lastErrorLog.indexOf(compatibilityLog) === -1)
+                            lastErrorLog = lastErrorLog + " | " + compatibilityLog
+                    } else {
+                        lastErrorLog = compatibilityLog
+                    }
+                    console.warn("⚠️", compatibilityLog)
+                }
+                fallbackActive = true
+            }
+
+            root.notifyEffectCompilation("motionBlur", fallbackActive, lastErrorLog)
             componentCompleted = true
         }
 

@@ -188,6 +188,37 @@ Effect {
             return ""
         return apiName.trim().toLowerCase()
     }
+    property bool compatibilityFallbackLogged: false
+    readonly property string openGlVersionLabel: {
+        if (GraphicsInfo.api !== GraphicsInfo.OpenGL)
+            return ""
+        var major = Number(GraphicsInfo.majorVersion)
+        if (!isFinite(major) || major <= 0)
+            return ""
+        var minorValue = Number(GraphicsInfo.minorVersion)
+        var minor = isFinite(minorValue) && minorValue >= 0 ? minorValue : 0
+        return major + "." + minor
+    }
+    readonly property bool enforceLegacyFallbackShaders: {
+        if (GraphicsInfo.api !== GraphicsInfo.OpenGL)
+            return false
+        var major = Number(GraphicsInfo.majorVersion)
+        if (!isFinite(major) || major <= 0)
+            return false
+        if (major < 3)
+            return true
+        if (major === 3) {
+            var minorValue = Number(GraphicsInfo.minorVersion)
+            if (!isFinite(minorValue))
+                return false
+            return minorValue <= 3
+        }
+        return false
+    }
+    readonly property string compatibilityFallbackMessage: enforceLegacyFallbackShaders
+            ? qsTr("FogEffect: forcing GLSL 330 fallback shader for OpenGL %1")
+                .arg(openGlVersionLabel.length ? openGlVersionLabel : "3.3")
+            : ""
     readonly property bool reportedGlesContext: {
         if (forceDesktopShaderProfile)
             return false
@@ -511,7 +542,8 @@ Effect {
     }
 
     function updateFallbackActivation() {
-        var shouldFallback = fallbackDueToDepth || fallbackDueToCompilation
+        var compatibilityFallback = enforceLegacyFallbackShaders
+        var shouldFallback = fallbackDueToDepth || fallbackDueToCompilation || compatibilityFallback
         var reason = ""
         if (fallbackDueToDepth) {
             reason = qsTr("Depth texture unavailable; using fallback shader")
@@ -519,6 +551,19 @@ Effect {
             reason = compilationErrorLog && compilationErrorLog.length
                     ? compilationErrorLog
                     : qsTr("Fog shader compilation failed; fallback shader active")
+        }
+        if (compatibilityFallback) {
+            var compatibilityMessage = compatibilityFallbackMessage.length
+                    ? compatibilityFallbackMessage
+                    : qsTr("FogEffect: forcing GLSL 330 fallback shader for legacy OpenGL profile")
+            if (reason.length && compatibilityMessage.length)
+                reason = reason + " | " + compatibilityMessage
+            else if (compatibilityMessage.length)
+                reason = compatibilityMessage
+            if (!compatibilityFallbackLogged && compatibilityMessage.length) {
+                console.warn("⚠️ FogEffect:", compatibilityMessage)
+                compatibilityFallbackLogged = true
+            }
         }
         if (fallbackReason !== reason)
             fallbackReason = reason
@@ -695,6 +740,11 @@ Effect {
 
     Component.onCompleted: {
         var depthReady = enableDepthTextureSupport()
+        updateFallbackActivation()
+        if (enforceLegacyFallbackShaders && compatibilityFallbackMessage.length && !compatibilityFallbackLogged) {
+            console.warn("⚠️ FogEffect:", compatibilityFallbackMessage)
+            compatibilityFallbackLogged = true
+        }
         refreshPassConfiguration()
         console.log("🌫️ FogEffect graphics API:", rendererGraphicsApi)
         if (normalizedRendererGraphicsApi.length)
