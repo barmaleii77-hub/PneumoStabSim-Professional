@@ -264,6 +264,7 @@ Effect {
     readonly property var glesShaderSuffixes: ["_es", "_gles", "_300es"]
     property var shaderResourceAvailabilityCache: ({})
     property var shaderSanitizationCache: ({})
+    property var shaderSanitizationWarnings: ({})
     property var shaderVariantSelectionCache: ({})
 
     onUseGlesShadersChanged: {
@@ -380,6 +381,7 @@ Effect {
         Qt.callLater(function() {
             shaderResourceAvailabilityCache = ({})
             shaderSanitizationCache = ({})
+            shaderSanitizationWarnings = ({})
             shaderVariantSelectionCache = ({})
         })
     }
@@ -405,15 +407,14 @@ Effect {
     }
 
     /**
-     * Нормализует URL шейдера, устраняя CRLF-окончания строк.
-     * Используется синхронный запрос, чтобы свойство Shader.shader получило
-     * корректное значение сразу в рамках вычисления биндинга. Асинхронная
-     * версия приводила к тому, что Shader начинал компиляцию с исходным URL,
-     * а позже перезаписывался data URL'ом, что в связке с кешем Qt вызывало
-     * ошибки вида "#version must occur first".
+     * Проверяет содержимое шейдера на предмет несовместимых префиксов (CRLF,
+     * BOM, лидирующие пробелы) и логирует предупреждение при обнаружении.
+     * В отличие от предыдущей реализации больше не создаёт Blob/data URL,
+     * поскольку Qt RHI не принимает такие схемы. Шейдер по-прежнему
+     * загружается по исходному URL.
      * @param url {string} - исходный URL
      * @param resourceName {string} - имя ресурса (для логирования)
-     * @returns {string} нормализованный URL (или исходный при ошибке)
+     * @returns {string} исходный URL (для совместимости биндингов)
      */
     // qmllint disable unqualified
     function sanitizedShaderUrl(url, resourceName) {
@@ -424,24 +425,44 @@ Effect {
             return shaderSanitizationCache[url]
 
         var sanitizedUrl = url
+        var sanitizationApplied = false
 
         try {
             var xhr = new XMLHttpRequest()
             xhr.open("GET", url, false)
-            // xhr.responseType = "text" // Удалено для совместимости с Qt/JS движком
+            xhr.responseType = "text"
             xhr.send()
             if (xhr.status === 200 || xhr.status === 0) {
                 var shaderSource = xhr.responseText
-                if (shaderSource && shaderSource.indexOf("\r") !== -1) {
-                    var normalized = shaderSource.replace(/\r\n/g, "\n").replace(/\r/g, "\n")
-                    if (typeof Blob !== "undefined" && typeof URL !== "undefined"
-                            && typeof URL.createObjectURL === "function") {
-                        var blob = new Blob([normalized], { type: "text/plain;charset=utf-8" })
-                        sanitizedUrl = URL.createObjectURL(blob)
-                        console.warn("⚠️ FogEffect: нормализованы CRLF окончания строк для шейдера, использован Blob URL", resourceName)
-                    } else {
-                        sanitizedUrl = "data:text/plain;charset=utf-8," + encodeURIComponent(normalized)
-                        console.warn("⚠️ FogEffect: normalized CRLF line endings for shader, Blob недоступен, использован data URL", resourceName)
+                if (shaderSource) {
+                    var normalized = shaderSource
+                    var mutated = false
+
+                    if (normalized.indexOf("\r") !== -1) {
+                        normalized = normalized.replace(/\r\n/g, "\n").replace(/\r/g, "\n")
+                        mutated = true
+                    }
+
+                    if (normalized.length && normalized.charCodeAt(0) === 0xFEFF) {
+                        normalized = normalized.slice(1)
+                        mutated = true
+                    }
+
+                    var leadingWhitespaceMatch = normalized.match(/^[\s]+/)
+                    if (leadingWhitespaceMatch && leadingWhitespaceMatch[0].length) {
+                        normalized = normalized.slice(leadingWhitespaceMatch[0].length)
+                        mutated = true
+                    }
+
+                    if (mutated && normalized !== shaderSource) {
+                        var cacheKey = resourceName || url
+                        if (!Object.prototype.hasOwnProperty.call(shaderSanitizationWarnings, cacheKey)) {
+                            console.warn(
+                                        "⚠️ FogEffect: shader", resourceName,
+                                        "contains leading BOM/whitespace incompatible with Qt RHI; please clean the source file")
+                            shaderSanitizationWarnings[cacheKey] = true
+                        }
+                        sanitizationApplied = true
                     }
                 }
             }
@@ -449,10 +470,9 @@ Effect {
             console.debug("FogEffect: shader normalization skipped", resourceName, error)
         }
 
-        // Кэшируем только если url был нормализован
-        if (sanitizedUrl !== url) {
-            shaderSanitizationCache[url] = sanitizedUrl
-        }
+        shaderSanitizationCache[url] = sanitizedUrl
+        if (sanitizationApplied)
+            shaderSanitizationCache[url] = url
         return sanitizedUrl
 
     }
