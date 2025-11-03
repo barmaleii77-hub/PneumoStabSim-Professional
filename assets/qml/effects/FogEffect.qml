@@ -364,6 +364,8 @@ Effect {
         }
         return sanitizedUrl
 
+    }
+
     function handleShaderCompilationLog(shaderId, message) {
         if (!message || !message.length)
             return
