@@ -55,6 +55,14 @@ Item {
     //    overridden with forceDesktopShaderProfile.
     // qmllint disable unqualified
     property bool forceDesktopShaderProfile: false
+    onForceDesktopShaderProfileChanged: {
+        if (forceDesktopShaderProfile)
+            console.warn("⚠️ PostEffects: desktop shader profile override enabled (preferring GLSL 450 resources)")
+        else
+            console.log("ℹ️ PostEffects: desktop shader profile override cleared; reverting to auto detection")
+        shaderVariantSelectionCache = ({})
+        resetShaderCaches()
+    }
 
     readonly property bool preferDesktopShaderProfile: {
         if (forceDesktopShaderProfile)
@@ -144,8 +152,19 @@ Item {
     readonly property bool useGlesShaders: reportedGlesContext && !preferDesktopShaderProfile
 
     readonly property string shaderResourceDirectory: "../../shaders/effects/"
+    readonly property var desktopShaderSuffixes: ["_glsl450", "_desktop", "_core"]
+    readonly property var glesShaderSuffixes: ["_es", "_gles", "_300es"]
     property var shaderResourceAvailabilityCache: ({})
     property var shaderSanitizationCache: ({})
+    property var shaderVariantSelectionCache: ({})
+
+    onUseGlesShadersChanged: {
+        console.log("🎚️ PostEffects: shader profile toggled ->", useGlesShaders
+                ? "OpenGL ES (GLSL 300 es)"
+                : "Desktop (GLSL 450 core)")
+        shaderVariantSelectionCache = ({})
+        resetShaderCaches()
+    }
 
     function shaderCompilationMessage(shaderItem) {
         if (!shaderItem)
@@ -233,25 +252,58 @@ Item {
             return ""
 
         var normalized = String(fileName)
-        if (useGlesShaders) {
-            var dotIndex = normalized.lastIndexOf(".")
-            var glesName
-            if (dotIndex > 0)
-                glesName = normalized.slice(0, dotIndex) + "_es" + normalized.slice(dotIndex)
-            else
-                glesName = normalized + "_es"
+        var dotIndex = normalized.lastIndexOf(".")
+        var baseName = dotIndex >= 0 ? normalized.slice(0, dotIndex) : normalized
+        var extension = dotIndex >= 0 ? normalized.slice(dotIndex) : ""
+        var suffixes = useGlesShaders ? glesShaderSuffixes : desktopShaderSuffixes
 
-            var glesUrl = resolvedShaderUrl(glesName)
-            if (shaderResourceExists(glesUrl, glesName, false))
-                return sanitizedShaderUrl(glesUrl, glesName)
+        var candidateNames = []
+        for (var i = 0; i < suffixes.length; ++i) {
+            var suffix = suffixes[i]
+            if (!suffix || !suffix.length)
+                continue
+            candidateNames.push(baseName + suffix + extension)
+        }
+        candidateNames.push(normalized)
 
-            console.warn("⚠️ PostEffects: GLES shader variant missing; falling back to desktop profile", glesName)
-            requestDesktopShaderProfile(`Shader ${glesName} unavailable; enforcing desktop profile`)
+        var selectedName = normalized
+        var selectedUrl = resolvedShaderUrl(normalized)
+        var found = false
+        for (var idx = 0; idx < candidateNames.length; ++idx) {
+            var candidateName = candidateNames[idx]
+            var candidateUrl = resolvedShaderUrl(candidateName)
+            var suppressErrors = candidateName === normalized ? false : true
+            if (shaderResourceExists(candidateUrl, candidateName, suppressErrors)) {
+                selectedName = candidateName
+                selectedUrl = candidateUrl
+                found = true
+                break
+            }
         }
 
-        var resolvedUrl = resolvedShaderUrl(normalized)
-        shaderResourceExists(resolvedUrl, normalized, false)
-        return sanitizedShaderUrl(resolvedUrl, normalized)
+        var glesVariantList = candidateNames.slice(0, Math.max(candidateNames.length - 1, 0))
+        if (!found && useGlesShaders && glesVariantList.length > 0) {
+            console.warn("⚠️ PostEffects: GLES shader variants missing; enforcing desktop profile", glesVariantList)
+            requestDesktopShaderProfile(`Shader ${normalized} lacks GLES variants (${glesVariantList.join(", ")}); enforcing desktop profile`)
+        } else if (useGlesShaders && glesVariantList.length > 0 && selectedName === normalized) {
+            console.warn("⚠️ PostEffects: GLES shader variant not found; enforcing desktop profile", glesVariantList)
+            requestDesktopShaderProfile(`Shader ${normalized} did not resolve GLES variants (${glesVariantList.join(", ")}); enforcing desktop profile`)
+        }
+
+        var previousSelection = shaderVariantSelectionCache[normalized]
+        if (previousSelection !== selectedName) {
+            shaderVariantSelectionCache[normalized] = selectedName
+            var profileLabel = useGlesShaders ? "OpenGL ES" : "Desktop"
+            console.log(`🌐 PostEffects: resolved ${profileLabel} shader '${normalized}' -> '${selectedName}'`)
+        }
+
+        return sanitizedShaderUrl(selectedUrl, selectedName)
+    }
+
+    function resetShaderCaches() {
+        shaderResourceAvailabilityCache = ({})
+        shaderSanitizationCache = ({})
+        shaderVariantSelectionCache = ({})
     }
 
     function requestDesktopShaderProfile(reason) {
@@ -259,8 +311,7 @@ Item {
             return
         console.warn("⚠️ PostEffects:", reason, "– forcing desktop shader profile")
         forceDesktopShaderProfile = true
-        shaderResourceAvailabilityCache = ({})
-        shaderSanitizationCache = ({})
+        resetShaderCaches()
     }
 
     function handleShaderCompilationLog(shaderId, message) {
@@ -277,6 +328,92 @@ Item {
                     `Shader ${shaderId} reported #version incompatibility`)
     }
 
+    function handleEffectShaderStatusChange(effectId, effectItem, shaderItem, shaderId, isFallback) {
+        if (!shaderItem || !effectItem)
+            return
+        var status
+        try {
+            status = shaderItem.status
+        } catch (error) {
+            console.debug("PostEffects: unable to read shader status", effectId, shaderId, error)
+            return
+        }
+        // qmllint disable missing-property
+        if (status === Shader.Error) {
+            var message = shaderCompilationMessage(shaderItem)
+            if (!message.length) {
+                message = isFallback
+                        ? qsTr("%1 fallback shader %2 compilation failed").arg(effectId).arg(shaderId)
+                        : qsTr("%1 shader %2 compilation failed").arg(effectId).arg(shaderId)
+            }
+            console.error(`❌ PostEffects (${effectId}):`, message)
+            if (isFallback)
+                return
+            try {
+                effectItem.compilationErrorLog = message
+            } catch (error) {
+            }
+            try {
+                if ("fallbackDueToCompilation" in effectItem)
+                    effectItem.fallbackDueToCompilation = true
+            } catch (error) {
+            }
+            if (!effectItem.fallbackActive)
+                effectItem.fallbackActive = true
+            if (effectItem.lastErrorLog !== message)
+                effectItem.lastErrorLog = message
+            root.notifyEffectCompilation(effectId, effectItem.fallbackActive, effectItem.lastErrorLog)
+            return
+        }
+        if (status === Shader.Ready && !isFallback) {
+            var dueToCompilation = false
+            try {
+                dueToCompilation = !!effectItem.fallbackDueToCompilation
+            } catch (error) {
+            }
+            if (!dueToCompilation)
+                return
+            try {
+                effectItem.fallbackDueToCompilation = false
+            } catch (error) {
+            }
+            try {
+                effectItem.compilationErrorLog = ""
+            } catch (error) {
+            }
+            var requirementActive = false
+            try {
+                requirementActive = !!effectItem.fallbackDueToRequirements
+            } catch (error) {
+            }
+            if (!requirementActive) {
+                if (effectItem.fallbackActive)
+                    effectItem.fallbackActive = false
+                if (effectItem.lastErrorLog.length)
+                    effectItem.lastErrorLog = ""
+            } else {
+                var requirementLog = ""
+                try {
+                    if (effectItem.requirementFallbackLog && effectItem.requirementFallbackLog.length)
+                        requirementLog = effectItem.requirementFallbackLog
+                } catch (error) {
+                }
+                if (!requirementLog.length) {
+                    try {
+                        if (effectItem.fallbackMessage)
+                            requirementLog = effectItem.fallbackMessage
+                    } catch (error) {
+                    }
+                }
+                if (requirementLog.length && effectItem.lastErrorLog !== requirementLog)
+                    effectItem.lastErrorLog = requirementLog
+            }
+            root.notifyEffectCompilation(effectId, effectItem.fallbackActive, effectItem.lastErrorLog)
+        }
+        // qmllint enable missing-property
+    }
+
+    // qmllint disable unqualified
     function sanitizedShaderUrl(url, resourceName) {
         if (!url || !url.length)
             return url
@@ -313,6 +450,7 @@ Item {
         shaderSanitizationCache[url] = sanitizedUrl
         return sanitizedUrl
     }
+    // qmllint enable unqualified
 
     // Примечание по совместимости: для профиля OpenGL ES теперь поставляются
     // отдельные GLSL-файлы с суффиксом _es и корректной директивой #version 300 es.
@@ -462,6 +600,8 @@ Item {
         property bool fallbackActive: false
         property string lastErrorLog: ""
         property bool componentCompleted: false
+        property bool fallbackDueToCompilation: false
+        property string compilationErrorLog: ""
         readonly property string fallbackMessage: qsTr("Bloom: fallback shader active")
 
         Component.onCompleted: {
@@ -505,6 +645,14 @@ Item {
             }
         }
 
+        Connections {
+            target: bloomFragmentShader
+
+            function onStatusChanged() {
+                root.handleEffectShaderStatusChange("bloom", bloomEffect, bloomFragmentShader, "bloom.frag", false)
+            }
+        }
+
         Shader {
             id: bloomFallbackShader
             stage: Shader.Fragment
@@ -512,6 +660,14 @@ Item {
             Component.onCompleted: {
                 if (!root.attachShaderLogHandler(bloomFallbackShader, "bloom_fallback.frag"))
                     console.debug("PostEffects: shader log handler unavailable for bloom_fallback.frag")
+            }
+        }
+
+        Connections {
+            target: bloomFallbackShader
+
+            function onStatusChanged() {
+                root.handleEffectShaderStatusChange("bloom", bloomEffect, bloomFallbackShader, "bloom_fallback.frag", true)
             }
         }
 
@@ -535,6 +691,10 @@ Item {
         property bool depthTextureAvailable: false
         property bool normalTextureAvailable: false
         property bool componentCompleted: false
+        property bool fallbackDueToCompilation: false
+        property bool fallbackDueToRequirements: false
+        property string compilationErrorLog: ""
+        property string requirementFallbackLog: ""
         readonly property string fallbackMessage: qsTr("SSAO: fallback shader active")
 
         Component.onCompleted: {
@@ -547,13 +707,18 @@ Item {
             // fixed: removed deprecated 'requiresNormalTexture' requirement (Qt 6)
             normalTextureAvailable = false
 
+            fallbackDueToCompilation = false
+            compilationErrorLog = ""
             var requiresFallback = !depthTextureAvailable || !normalTextureAvailable
+            fallbackDueToRequirements = requiresFallback
             if (requiresFallback) {
-                lastErrorLog = qsTr("SSAO: depth texture buffer is not supported; disabling advanced SSAO")
+                requirementFallbackLog = qsTr("SSAO: depth texture buffer is not supported; disabling advanced SSAO")
+                lastErrorLog = requirementFallbackLog
                 console.warn("⚠️ SSAO: switching to passthrough fallback due to missing textures")
                 fallbackActive = true
                 root.notifyEffectCompilation("ssao", true, lastErrorLog)
             } else {
+                requirementFallbackLog = ""
                 lastErrorLog = ""
                 fallbackActive = false
                 root.notifyEffectCompilation("ssao", false, lastErrorLog)
@@ -595,6 +760,14 @@ Item {
             }
         }
 
+        Connections {
+            target: ssaoFragmentShader
+
+            function onStatusChanged() {
+                root.handleEffectShaderStatusChange("ssao", ssaoEffect, ssaoFragmentShader, "ssao.frag", false)
+            }
+        }
+
         Shader {
             id: ssaoFallbackShader
             stage: Shader.Fragment
@@ -602,6 +775,14 @@ Item {
             Component.onCompleted: {
                 if (!root.attachShaderLogHandler(ssaoFallbackShader, "ssao_fallback.frag"))
                     console.debug("PostEffects: shader log handler unavailable for ssao_fallback.frag")
+            }
+        }
+
+        Connections {
+            target: ssaoFallbackShader
+
+            function onStatusChanged() {
+                root.handleEffectShaderStatusChange("ssao", ssaoEffect, ssaoFallbackShader, "ssao_fallback.frag", true)
             }
         }
 
@@ -624,6 +805,10 @@ Item {
         property string lastErrorLog: ""
         property bool depthTextureAvailable: false
         property bool componentCompleted: false
+        property bool fallbackDueToCompilation: false
+        property bool fallbackDueToRequirements: false
+        property string compilationErrorLog: ""
+        property string requirementFallbackLog: ""
         readonly property string fallbackMessage: qsTr("Depth of Field: fallback shader active")
 
         property real focusDistance: 2000.0  // Расстояние фокуса (мм)
@@ -647,13 +832,18 @@ Item {
                         "Depth of Field: depth texture support enabled",
                         "Depth of Field: depth texture unavailable; using fallback shader")
 
+            fallbackDueToCompilation = false
+            compilationErrorLog = ""
             var requiresFallback = !depthTextureAvailable
+            fallbackDueToRequirements = requiresFallback
             if (requiresFallback) {
-                lastErrorLog = qsTr("Depth of Field: depth texture unavailable; using fallback shader")
+                requirementFallbackLog = qsTr("Depth of Field: depth texture unavailable; using fallback shader")
+                lastErrorLog = requirementFallbackLog
                 console.warn("⚠️ Depth of Field: switching to passthrough fallback due to missing depth texture")
                 fallbackActive = true
                 root.notifyEffectCompilation("depthOfField", true, lastErrorLog)
             } else {
+                requirementFallbackLog = ""
                 lastErrorLog = ""
                 fallbackActive = false
                 root.notifyEffectCompilation("depthOfField", false, lastErrorLog)
@@ -686,6 +876,14 @@ Item {
             }
         }
 
+        Connections {
+            target: dofFragmentShader
+
+            function onStatusChanged() {
+                root.handleEffectShaderStatusChange("depthOfField", dofEffect, dofFragmentShader, "dof.frag", false)
+            }
+        }
+
         Shader {
             id: dofFallbackShader
             stage: Shader.Fragment
@@ -693,6 +891,14 @@ Item {
             Component.onCompleted: {
                 if (!root.attachShaderLogHandler(dofFallbackShader, "dof_fallback.frag"))
                     console.debug("PostEffects: shader log handler unavailable for dof_fallback.frag")
+            }
+        }
+
+        Connections {
+            target: dofFallbackShader
+
+            function onStatusChanged() {
+                root.handleEffectShaderStatusChange("depthOfField", dofEffect, dofFallbackShader, "dof_fallback.frag", true)
             }
         }
 
@@ -715,6 +921,10 @@ Item {
         property string lastErrorLog: ""
         property bool velocityTextureAvailable: false
         property bool componentCompleted: false
+        property bool fallbackDueToCompilation: false
+        property bool fallbackDueToRequirements: false
+        property string compilationErrorLog: ""
+        property string requirementFallbackLog: ""
         readonly property string fallbackMessage: qsTr("Motion Blur: fallback shader active")
 
         property real strength: 0.5          // Сила размытия движения
@@ -732,13 +942,18 @@ Item {
                         "Motion Blur: velocity texture support enabled",
                         "Motion Blur: velocity texture unavailable; using fallback shader")
 
+            fallbackDueToCompilation = false
+            compilationErrorLog = ""
             var requiresFallback = !velocityTextureAvailable
+            fallbackDueToRequirements = requiresFallback
             if (requiresFallback) {
-                lastErrorLog = qsTr("Motion Blur: velocity texture unavailable; using fallback shader")
+                requirementFallbackLog = qsTr("Motion Blur: velocity texture unavailable; using fallback shader")
+                lastErrorLog = requirementFallbackLog
                 console.warn("⚠️ Motion Blur: switching to passthrough fallback due to missing velocity texture")
                 fallbackActive = true
                 root.notifyEffectCompilation("motionBlur", true, lastErrorLog)
             } else {
+                requirementFallbackLog = ""
                 lastErrorLog = ""
                 fallbackActive = false
                 root.notifyEffectCompilation("motionBlur", false, lastErrorLog)
@@ -768,6 +983,14 @@ Item {
             }
         }
 
+        Connections {
+            target: motionBlurFragmentShader
+
+            function onStatusChanged() {
+                root.handleEffectShaderStatusChange("motionBlur", motionBlurEffect, motionBlurFragmentShader, "motion_blur.frag", false)
+            }
+        }
+
         Shader {
             id: motionBlurFallbackShader
             stage: Shader.Fragment
@@ -775,6 +998,14 @@ Item {
             Component.onCompleted: {
                 if (!root.attachShaderLogHandler(motionBlurFallbackShader, "motion_blur_fallback.frag"))
                     console.debug("PostEffects: shader log handler unavailable for motion_blur_fallback.frag")
+            }
+        }
+
+        Connections {
+            target: motionBlurFallbackShader
+
+            function onStatusChanged() {
+                root.handleEffectShaderStatusChange("motionBlur", motionBlurEffect, motionBlurFallbackShader, "motion_blur_fallback.frag", true)
             }
         }
 
@@ -787,8 +1018,6 @@ Item {
 
         // Effect.enabled is controlled externally via root.motionBlurEnabled
     }
-
-    onUseGlesShadersChanged: {/* Shader bindings evaluate automatically */}
 
     function applyPayload(params, environment) {
         var env = environment || null
