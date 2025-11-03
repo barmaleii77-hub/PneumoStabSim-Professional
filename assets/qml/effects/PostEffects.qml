@@ -207,6 +207,7 @@ Item {
     property var shaderSanitizationWarnings: ({})
     property var shaderVariantSelectionCache: ({})
     property var shaderProfileMismatchWarnings: ({})
+    property var shaderCompatibilityOverrides: ({})
 
     onUseGlesShadersChanged: {
         console.log("🎚️ PostEffects: shader profile toggled ->", useGlesShaders
@@ -340,12 +341,23 @@ Item {
         }
 
         var glesVariantList = candidateNames.slice(0, Math.max(candidateNames.length - 1, 0))
+        var requireCompatibilityFallback = false
         if (!found && useGlesShaders && glesVariantList.length > 0) {
-            console.warn("⚠️ PostEffects: GLES shader variants missing; enforcing desktop profile", glesVariantList)
+            requireCompatibilityFallback = true
+            console.warn("⚠️ PostEffects: GLES shader variants missing; activating compatibility fallback", glesVariantList)
             requestDesktopShaderProfile(`Shader ${normalized} lacks GLES variants (${glesVariantList.join(", ")}); enforcing desktop profile`)
         } else if (useGlesShaders && glesVariantList.length > 0 && selectedName === normalized) {
-            console.warn("⚠️ PostEffects: GLES shader variant not found; enforcing desktop profile", glesVariantList)
+            requireCompatibilityFallback = true
+            console.warn("⚠️ PostEffects: GLES shader variant not found; activating compatibility fallback", glesVariantList)
             requestDesktopShaderProfile(`Shader ${normalized} did not resolve GLES variants (${glesVariantList.join(", ")}); enforcing desktop profile`)
+        }
+
+        if (requireCompatibilityFallback) {
+            if (!Object.prototype.hasOwnProperty.call(shaderCompatibilityOverrides, normalized))
+                console.warn("⚠️ PostEffects: forcing fallback shaders for", normalized, "due to missing GLES profile")
+            shaderCompatibilityOverrides[normalized] = true
+        } else if (Object.prototype.hasOwnProperty.call(shaderCompatibilityOverrides, normalized)) {
+            delete shaderCompatibilityOverrides[normalized]
         }
 
         var previousSelection = shaderVariantSelectionCache[normalized]
@@ -363,6 +375,7 @@ Item {
         shaderSanitizationCache = ({})
         shaderVariantSelectionCache = ({})
         shaderProfileMismatchWarnings = ({})
+        shaderCompatibilityOverrides = ({})
     }
 
     function requestDesktopShaderProfile(reason) {
@@ -586,9 +599,10 @@ Item {
      * @param {Effect} effectItem   QML-объект Effect, для которого выполняется выбор.
      * @param {Shader} activeShader Основной шейдер, используемый при успешной компиляции.
      * @param {Shader} [fallbackShader] Необязательный альтернативный шейдер на случай ошибки компиляции.
+     * @param {string} [shaderBaseName] Имя исходного файла шейдера для отслеживания совместимости профилей.
      * @returns {Shader[]} Список шейдеров, который необходимо передать в Pass.shaders.
      */
-    function resolveShaders(isEnabled, effectItem, activeShader, fallbackShader) {
+    function resolveShaders(isEnabled, effectItem, activeShader, fallbackShader, shaderBaseName) {
         const hasFallback = fallbackShader !== undefined && fallbackShader !== null
         // Если эффект выключен, отключаем его полностью, но оставляем безопасный шейдер,
         // чтобы движок QtQuick3D не создавал пустой шейдер и не завершал компиляцию.
@@ -599,6 +613,37 @@ Item {
         // Включаем эффект и выбираем нужный шейдер. Если не хватает данных и активируется
         // фоллбэк, всегда возвращаем валидный шейдер.
         trySetEffectProperty(effectItem, "enabled", true)
+        var compatibilityOverrideActive = false
+        if (useGlesShaders && shaderBaseName && Object.prototype.hasOwnProperty.call(shaderCompatibilityOverrides, shaderBaseName))
+            compatibilityOverrideActive = !!shaderCompatibilityOverrides[shaderBaseName]
+
+        if (!compatibilityOverrideActive) {
+            trySetEffectProperty(effectItem, "fallbackForcedByCompatibility", false)
+            var fallbackLocked = false
+            try {
+                if (effectItem.fallbackDueToCompilation)
+                    fallbackLocked = true
+            } catch (error) {
+            }
+            if (!fallbackLocked) {
+                try {
+                    if (effectItem.fallbackDueToRequirements)
+                        fallbackLocked = true
+                } catch (error) {
+                }
+            }
+            if (!fallbackLocked && effectItem.fallbackActive)
+                trySetEffectProperty(effectItem, "fallbackActive", false)
+        }
+
+        if (compatibilityOverrideActive) {
+            trySetEffectProperty(effectItem, "fallbackForcedByCompatibility", true)
+            trySetEffectProperty(effectItem, "fallbackActive", true)
+            if (hasFallback)
+                return [fallbackShader]
+            console.warn("⚠️", effectItem, "missing fallback shader for", shaderBaseName, "– disabling effect")
+            return []
+        }
         if (effectItem.fallbackActive)
             return hasFallback ? [fallbackShader] : []
         return [activeShader]
@@ -792,7 +837,7 @@ Item {
 
         passes: [
             Pass {
-                shaders: root.resolveShaders(root.bloomEnabled, bloomEffect, bloomFragmentShader, bloomFallbackShader)
+                shaders: root.resolveShaders(root.bloomEnabled, bloomEffect, bloomFragmentShader, bloomFallbackShader, "bloom.frag")
             }
         ]
 
@@ -932,7 +977,7 @@ Item {
 
         passes: [
             Pass {
-                shaders: root.resolveShaders(root.ssaoEnabled, ssaoEffect, ssaoFragmentShader, ssaoFallbackShader)
+                shaders: root.resolveShaders(root.ssaoEnabled, ssaoEffect, ssaoFragmentShader, ssaoFallbackShader, "ssao.frag")
             }
         ]
 
@@ -1073,7 +1118,7 @@ Item {
 
         passes: [
             Pass {
-                shaders: root.resolveShaders(root.depthOfFieldEnabled, dofEffect, dofFragmentShader, dofFallbackShader)
+                shaders: root.resolveShaders(root.depthOfFieldEnabled, dofEffect, dofFragmentShader, dofFallbackShader, "dof.frag")
             }
         ]
 
@@ -1205,7 +1250,7 @@ Item {
 
         passes: [
             Pass {
-                shaders: root.resolveShaders(root.motionBlurEnabled, motionBlurEffect, motionBlurFragmentShader, motionBlurFallbackShader)
+                shaders: root.resolveShaders(root.motionBlurEnabled, motionBlurEffect, motionBlurFragmentShader, motionBlurFallbackShader, "motion_blur.frag")
             }
         ]
 
