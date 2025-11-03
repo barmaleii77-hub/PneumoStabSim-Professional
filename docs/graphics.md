@@ -81,8 +81,31 @@ Environment payload (вложенный)
 
 ### Документирование результатов
 
-- Снимки логов и скриншоты визуальных проверок прикладываются к Phase 3 в разделе «Fog pipeline stability».
+- Снимки логов и скриншотов визуальных проверок прикладываются к Phase 3 в разделе «Fog pipeline stability».
 - При обновлении шейдеров фиксировать изменения и выводы в этом разделе, чтобы сохранить трассировку решений.
+
+### Профиль GLSL 450 core и поведение fallback
+
+- Основной фрагментный шейдер `fog.frag` переведён на `#version 450 core`, чтобы соответствовать требованию Qt Quick 3D
+  поставлять «Vulkan-style GLSL» даже при запуске на OpenGL/ANGLE-бэкендах и тем самым получать корректный SPIR-V
+  байткод через `qt_shader_tools`. [Qt docs подтверждают требование к Vulkan-совместимому GLSL для эффектов.][qt-effect]
+- Fallback-шейдер `fog_fallback.frag` оставлен на `#version 330` без явных биндингов, что гарантирует загрузку в
+  OpenGL ES/ANGLE профилях, когда `FogEffect` фиксирует отсутствие depth-текстуры (`depthTextureAvailable=false`) или
+  ловит `Shader.Error` и принудительно переключает `passes` на безопасный режим.
+- В QML-логике `FogEffect.qml` fallback активируется при ошибках компиляции или когда рендер-профиль не поддерживает
+  GLSL 4.50. Таймер анимации автоматически выключается, пока `fallbackActive == true`, что предотвращает обращения к
+  недоступным uniform'ам.
+- Обновление профиля зафиксировано тестами: `make check` проходит без ошибок, включая `qmllint`, что подтверждено
+  отчётом `reports/tests/make_check_20250213.md`.
+- Рекомендации basysKom по compute/эффектным шейдерам (минимум GLSL 4.40 и автоматическая компиляция в SPIR-V)
+  подтверждают выбор профиля 4.50 как безопасного запаса для Qt Quick 3D. [см. обзор basysKom.][basyskom-compute]
+
+#### Ссылки
+
+- [Qt docs — Effect QML Type][qt-effect]
+- [basysKom — Use compute shader in Qt Quick][basyskom-compute]
+- [Лог проверок `make check` (2025‑02‑13)](../reports/tests/make_check_20250213.md)
+
 
 ## ✅ Валидация Qt 6.10 (2025-11-03)
 
@@ -100,3 +123,6 @@ Environment payload (вложенный)
 - **Ограничения тестовой среды:** QQuick offscreen не предоставляет Direct3D (ANGLE), поэтому покрытие D3D11 невозможно подтвердить. Необработанные предупреждения `applyGeometryUpdates` и `CameraStateHud` остаются и требуют ручной ревизии. 【F:reports/run_vulkan_20251103.log†L208-L220】
 
 > ℹ️ В headless-режиме невозможно визуально подтвердить градиентный материал и прочие пост-эффекты. Для полной проверки требуется система с доступным GPU и интерактивным выводом.
+
+[qt-effect]: https://doc.qt.io/qt-6/qml-qtquick3d-effect.html#details
+[basyskom-compute]: https://www.basyskom.de/use-compute-shader-in-qt-quick/
