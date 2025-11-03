@@ -27,7 +27,7 @@ Item {
  anchors.fill: parent
 
     property var sceneBridge: null
-    readonly property var emptyObject: ({})
+    readonly property var emptyGeometryDefaults: ({})
 
  // ---------------------------------------------
  // Свойства и сигнал для батч-обновлений из Python
@@ -40,7 +40,7 @@ signal animationToggled(bool running)
  property bool isRunning: animationDefaults && animationDefaults.is_running !== undefined ? Boolean(animationDefaults.is_running) : false
  property var animationDefaults: typeof initialAnimationSettings !== "undefined" ? initialAnimationSettings : null
  property var sceneDefaults: typeof initialSceneSettings !== "undefined" ? initialSceneSettings : null
- property var geometryDefaults: typeof initialGeometrySettings !== "undefined" && initialGeometrySettings ? initialGeometrySettings : emptyObject
+ property var geometryDefaults: typeof initialGeometrySettings !== "undefined" && initialGeometrySettings ? initialGeometrySettings : emptyGeometryDefaults
  property var diagnosticsDefaults: typeof initialDiagnosticsSettings !== "undefined" ? initialDiagnosticsSettings : null
  property var cameraHudSettings: ({})
  property bool cameraHudEnabled: false
@@ -849,7 +849,7 @@ SequentialAnimation {
   id: suspensionAssembly
   worldRoot: worldRoot
   geometryState: geometryState
-  geometryDefaults: root.geometryDefaults || ({})
+  geometryDefaults: root.geometryDefaults ? root.geometryDefaults : root.emptyGeometryDefaults
   materialsDefaults: sceneDefaults && sceneDefaults.materials ? sceneDefaults.materials : ({})
   sharedMaterials: sharedMaterials
   sceneScaleFactor: root.effectiveSceneScaleFactor
