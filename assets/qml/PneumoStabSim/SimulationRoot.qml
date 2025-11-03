@@ -763,7 +763,10 @@ SequentialAnimation {
           anchors.fill: parent
           environment: sceneEnvCtl
 
-          Component.onCompleted: initializeRenderSettings()
+          Component.onCompleted: {
+              initializeRenderSettings()
+              DepthTextureActivator.activate(sceneView)
+          }
 
         Scene.SharedMaterials {
             id: sharedMaterials
