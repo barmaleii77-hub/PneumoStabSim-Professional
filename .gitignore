@@ -468,6 +468,7 @@ check_*.py
 !tests/unit/tools/test_settings_audit.py
 !tests/unit/tools/test_redundant_files.py
 !tests/unit/tools/test_project_sanitize.py
+!tests/unit/ui/test_lazy_module_utils.py
 !tests/unit/tools/test_report_metrics.py
 !tests/unit/tools/test_validate_settings_cli.py
 !tests/unit/tools/test_ci_tasks.py
