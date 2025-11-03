@@ -206,8 +206,13 @@ Effect {
         return false
     }
     // qmllint enable unqualified
-    readonly property bool useGlesShaders: forceGlesShaderProfile
-            || (reportedGlesContext && !preferDesktopShaderProfile)
+    readonly property bool useGlesShaders: {
+        if (forceDesktopShaderProfile)
+            return false
+        if (forceGlesShaderProfile)
+            return true
+        return !preferDesktopShaderProfile
+    }
 
     readonly property string shaderResourceDirectory: "../../shaders/effects/"
     property var shaderResourceAvailabilityCache: ({})
