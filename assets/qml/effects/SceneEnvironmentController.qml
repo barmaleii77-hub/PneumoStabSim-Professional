@@ -334,6 +334,7 @@ ExtendedSceneEnvironment {
         root._applySceneBridgeState()
         applyQualityPresetInternal(qualityPreset)
         _syncSkyboxBackground()
+        Qt.callLater(_updateBufferRequirements)
     }
 
     function applyEnvironmentPayload(params) {
@@ -1029,10 +1030,6 @@ return
 
     onExternalEffectsChanged: _updateBufferRequirements()
     onFogEnabledChanged: _updateBufferRequirements()
-
-    Component.onCompleted: {
-        Qt.callLater(_updateBufferRequirements)
-    }
 
     Connections {
         target: root._customFogEffect
