@@ -20,7 +20,7 @@ import builtins
 import dis
 import inspect
 from functools import lru_cache
-from types import CodeType
+from types import CodeType, FrameType
 from typing import Optional, Sequence
 
 _INSPECT_UNWRAP_CALLERS = frozenset({"unwrap", "get_annotations"})
@@ -86,6 +86,29 @@ def _reverse_skip(instructions: Sequence[dis.Instruction], start: int):
         yield instr
 
 
+def _is_unwrap_like_frame(frame: FrameType) -> bool:
+    """Return ``True`` when ``frame`` looks like an unwrap helper."""
+
+    module_name = frame.f_globals.get("__name__", "")
+
+    if module_name == "inspect" or module_name.startswith("inspect."):
+        return frame.f_code.co_name in _INSPECT_UNWRAP_CALLERS
+
+    code_name = frame.f_code.co_name
+    if code_name in _INSPECT_UNWRAP_CALLERS:
+        return True
+
+    if "unwrap" in code_name:
+        constants = frame.f_code.co_consts
+        if (
+            "__wrapped__" in constants
+            or "wrapper loop when unwrapping {!r}" in constants
+        ):
+            return True
+
+    return False
+
+
 def should_suppress_wrapped() -> bool:
     """Return ``True`` when ``__getattr__`` should hide ``__wrapped__``.
 
@@ -101,17 +124,12 @@ def should_suppress_wrapped() -> bool:
 
     caller = frame.f_back
     while caller is not None:
-        module_name = caller.f_globals.get("__name__", "")
-
-        if (
-            module_name == "inspect"
-            and caller.f_code.co_name in _INSPECT_UNWRAP_CALLERS
-        ):
-            # ``inspect`` is the only module that should trigger the unwrap
-            # safeguard.  Third-party helpers (for example, PySide's
-            # ``unwrapInstance``) legitimately expect ``module.__wrapped__`` to
-            # resolve, so restricting the check keeps the lazy packages
-            # compatible with those call sites.
+        if _is_unwrap_like_frame(caller):
+            # Treat direct calls from :mod:`inspect` *and* thin wrappers that
+            # simply delegate to ``inspect.unwrap`` as unwrap probes.  Other
+            # third-party helpers (for example, PySide's ``unwrapInstance``)
+            # legitimately expect ``module.__wrapped__`` to resolve, so the
+            # heuristics remain conservative.
             global_name = _global_called_at(caller.f_code, caller.f_lasti)
             if global_name == "hasattr":
                 builtin_hasattr = getattr(builtins, "hasattr", None)
