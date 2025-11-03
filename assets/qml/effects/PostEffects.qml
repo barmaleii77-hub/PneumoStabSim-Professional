@@ -33,14 +33,23 @@ Item {
     }
 
     function trySetEffectProperty(effectItem, propertyName, value) {
-        if (!effectItem || typeof effectItem.setProperty !== "function")
+        if (!effectItem || !propertyName)
             return false
         try {
-            return effectItem.setProperty(propertyName, value)
+            if (propertyName in effectItem) {
+                effectItem[propertyName] = value
+                return true
+            }
+        } catch (error) {
+            console.debug("⚠️", effectItem, "property lookup failed for", propertyName, error)
+        }
+        try {
+            if (typeof effectItem.setProperty === "function")
+                return effectItem.setProperty(propertyName, value)
         } catch (error) {
             console.debug("⚠️", effectItem, "does not support", propertyName, error)
-            return false
         }
+        return false
     }
 
     // Стратегия выбора профиля шейдеров:
@@ -186,6 +195,7 @@ Item {
     readonly property var glesShaderSuffixes: ["_es", "_gles", "_300es"]
     property var shaderResourceAvailabilityCache: ({})
     property var shaderSanitizationCache: ({})
+    property var shaderSanitizationWarnings: ({})
     property var shaderVariantSelectionCache: ({})
 
     onUseGlesShadersChanged: {
@@ -452,6 +462,7 @@ Item {
             return shaderSanitizationCache[url]
 
         var sanitizedUrl = url
+        var sanitizationApplied = false
 
         try {
             var xhr = new XMLHttpRequest()
@@ -481,14 +492,14 @@ Item {
                     }
 
                     if (mutated && normalized !== shaderSource) {
-                        if (typeof Blob !== "undefined" && typeof URL !== "undefined" && typeof URL.createObjectURL === "function") {
-                            var blob = new Blob([normalized], { type: "text/plain;charset=utf-8" })
-                            sanitizedUrl = URL.createObjectURL(blob)
-                            console.warn("⚠️ PostEffects: sanitized shader source (BOM/whitespace removed), использован Blob URL", resourceName)
-                        } else {
-                            sanitizedUrl = "data:text/plain;charset=utf-8," + encodeURIComponent(normalized)
-                            console.warn("⚠️ PostEffects: sanitized shader source (BOM/whitespace removed), Blob не поддерживается, использован data URL", resourceName)
+                        var cacheKey = resourceName || url
+                        if (!Object.prototype.hasOwnProperty.call(shaderSanitizationWarnings, cacheKey)) {
+                            console.warn(
+                                        "⚠️ PostEffects: shader", resourceName,
+                                        "contains leading BOM/whitespace incompatible with Qt RHI; please clean the source file")
+                            shaderSanitizationWarnings[cacheKey] = true
                         }
+                        sanitizationApplied = true
                     }
                 }
             }
@@ -497,6 +508,8 @@ Item {
         }
 
         shaderSanitizationCache[url] = sanitizedUrl
+        if (sanitizationApplied)
+            shaderSanitizationCache[url] = url
         return sanitizedUrl
     }
     // qmllint enable unqualified

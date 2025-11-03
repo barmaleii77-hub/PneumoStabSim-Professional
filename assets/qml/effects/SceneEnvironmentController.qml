@@ -879,6 +879,90 @@ return
 
     // Дополнительные эффекты (например, постобработка View3D)
     property list<Effect> externalEffects: []
+    property bool depthTextureSupportActive: false
+    property bool velocityTextureSupportActive: false
+    property bool _depthTextureWarningLogged: false
+    property bool _velocityTextureWarningLogged: false
+
+    function _setEnvironmentProperty(propertyName, value) {
+        if (!propertyName)
+            return false
+        try {
+            if (!(propertyName in root))
+                return false
+        } catch (error) {
+            console.debug("SceneEnvironmentController: property check failed", propertyName, error)
+            return false
+        }
+        try {
+            if (root[propertyName] === value)
+                return true
+            root[propertyName] = value
+            return true
+        } catch (error) {
+            console.debug("SceneEnvironmentController: failed to set", propertyName, error)
+            return false
+        }
+    }
+
+    function _applyDepthTextureState(enabled) {
+        if (_setEnvironmentProperty("depthTextureEnabled", enabled)) {
+            if (depthTextureSupportActive !== enabled) {
+                depthTextureSupportActive = enabled
+                console.log("SceneEnvironmentController:", enabled
+                            ? qsTr("Depth texture support enabled")
+                            : qsTr("Depth texture support disabled"))
+            }
+            return
+        }
+        if (enabled && !_depthTextureWarningLogged) {
+            console.warn("SceneEnvironmentController: depth textures requested but 'depthTextureEnabled' property is unavailable on ExtendedSceneEnvironment")
+            _depthTextureWarningLogged = true
+        }
+    }
+
+    function _applyVelocityTextureState(enabled) {
+        if (_setEnvironmentProperty("velocityTextureEnabled", enabled)
+                || _setEnvironmentProperty("velocityBufferEnabled", enabled)) {
+            if (velocityTextureSupportActive !== enabled) {
+                velocityTextureSupportActive = enabled
+                console.log("SceneEnvironmentController:", enabled
+                            ? qsTr("Velocity texture support enabled")
+                            : qsTr("Velocity texture support disabled"))
+            }
+            return
+        }
+        if (enabled && !_velocityTextureWarningLogged) {
+            console.warn("SceneEnvironmentController: velocity textures requested but environment does not expose 'velocityTextureEnabled' or 'velocityBufferEnabled'")
+            _velocityTextureWarningLogged = true
+        }
+    }
+
+    function _updateBufferRequirements() {
+        var requiresDepth = fogEnabled
+        var requiresVelocity = false
+        var stack = effects
+        if (stack && stack.length) {
+            for (var i = 0; i < stack.length; ++i) {
+                var effect = stack[i]
+                if (!effect)
+                    continue
+                try {
+                    if (effect.requiresDepthTexture === true)
+                        requiresDepth = true
+                } catch (error) {
+                }
+                try {
+                    if (effect.requiresVelocityTexture === true)
+                        requiresVelocity = true
+                } catch (error) {
+                }
+            }
+        }
+
+        _applyDepthTextureState(requiresDepth)
+        _applyVelocityTextureState(requiresVelocity)
+    }
 
     fog: Fog {
         enabled: root.fogEnabled
@@ -941,6 +1025,13 @@ return
         if (fogEnabled)
             stack.push(root._customFogEffect)
         return stack
+    }
+
+    onExternalEffectsChanged: _updateBufferRequirements()
+    onFogEnabledChanged: _updateBufferRequirements()
+
+    Component.onCompleted: {
+        Qt.callLater(_updateBufferRequirements)
     }
 
     Connections {
