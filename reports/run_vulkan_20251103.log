@@ -1,0 +1,482 @@
+2025-11-03T07:01:07 | PID:5555 TID:140037049510784 | INFO     | PneumoStabSim | ======================================================================
+2025-11-03T07:01:07 | PID:5555 TID:140037049510784 | INFO     | PneumoStabSim | === START RUN: PneumoStabSim ===
+2025-11-03T07:01:07 | PID:5555 TID:140037049510784 | INFO     | PneumoStabSim | ======================================================================
+2025-11-03T07:01:07 | PID:5555 TID:140037049510784 | INFO     | PneumoStabSim | Python version: 3.13.3 (main, Aug 28 2025, 21:56:01) [GCC 13.3.0]
+2025-11-03T07:01:08 | PID:5555 TID:140037049510784 | INFO     | PneumoStabSim | Platform: Linux-6.12.13-x86_64-with-glibc2.39
+2025-11-03T07:01:08 | PID:5555 TID:140037049510784 | INFO     | PneumoStabSim | Process ID: 5555
+2025-11-03T07:01:08 | PID:5555 TID:140037049510784 | INFO     | PneumoStabSim | Log file: /workspace/PneumoStabSim-Professional/logs/PneumoStabSim_20251103_070107.log
+2025-11-03T07:01:08 | PID:5555 TID:140037049510784 | INFO     | PneumoStabSim | Run log: /workspace/PneumoStabSim-Professional/logs/run.log
+2025-11-03T07:01:08 | PID:5555 TID:140037049510784 | INFO     | PneumoStabSim | Max log size: 10.0 MB
+2025-11-03T07:01:08 | PID:5555 TID:140037049510784 | INFO     | PneumoStabSim | Backup count: 5
+2025-11-03T07:01:08 | PID:5555 TID:140037049510784 | INFO     | PneumoStabSim | Timestamp: 2025-11-03T07:01:08.005103Z
+2025-11-03T07:01:08 | PID:5555 TID:140037049510784 | INFO     | PneumoStabSim | PySide6 version: 6.10.0
+2025-11-03T07:01:08 | PID:5555 TID:140037049510784 | INFO     | PneumoStabSim | NumPy version: 2.3.4
+2025-11-03T07:01:08 | PID:5555 TID:140037049510784 | INFO     | PneumoStabSim | SciPy version: 1.16.2
+2025-11-03T07:01:08 | PID:5555 TID:140037049510784 | INFO     | PneumoStabSim | ======================================================================
+2025-11-03T07:01:08 | PID:5555 TID:140037049510784 | INFO     | PneumoStabSim | ============================================================
+2025-11-03T07:01:08 | PID:5555 TID:140037049510784 | INFO     | PneumoStabSim | PneumoStabSim v4.9.5 - Application Started
+2025-11-03T07:01:08 | PID:5555 TID:140037049510784 | INFO     | PneumoStabSim | ============================================================
+2025-11-03T07:01:08 | PID:5555 TID:140037049510784 | INFO     | PneumoStabSim | Python: 3.13
+2025-11-03T07:01:08 | PID:5555 TID:140037049510784 | INFO     | PneumoStabSim | Global error hooks enabled (JSON log: logs/errors/errors_20251103_070108.jsonl)
+2025-11-03T07:01:08 | PID:5555 TID:140037049510784 | INFO     | PneumoStabSim | Qt: 6.10.0
+2025-11-03T07:01:08 | PID:5555 TID:140037049510784 | INFO     | PneumoStabSim | Platform: linux
+2025-11-03T07:01:08 | PID:5555 TID:140037049510784 | INFO     | PneumoStabSim | Backend: opengl
+2025-11-03T07:01:08 | PID:5555 TID:140037049510784 | INFO     | PneumoStabSim | Logging initialized successfully
+2025-11-03T07:01:08 | PID:5555 TID:140037049510784 | INFO     | PneumoStabSim | QApplication created and configured
+2025-11-03T07:01:08 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Settings schema JSON parsed successfully
+2025-11-03T07:01:08 | PID:5555 TID:140037049510784 | INFO     | PneumoStabSim | Settings file: /workspace/PneumoStabSim-Professional/config/app_settings.json [source=PROJECT]
+2025-11-03T07:01:08 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Settings schema validation passed
+2025-11-03T07:01:08 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Settings schema and structure validated
+2025-11-03T07:01:08 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtDebugMsg]: Loading backend software
+2025-11-03T07:01:08 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: [SimulationRoot] ⚠️ effects default for dof_focus_distance unavailable (defaults unavailable); using fallback 2.5
+2025-11-03T07:01:08 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtDebugMsg]: 🌐 PostEffects: resolved Desktop shader 'motion_blur_fallback.frag' -> 'motion_blur_fallback.frag'
+2025-11-03T07:01:08 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtDebugMsg]: 🌐 PostEffects: resolved Desktop shader 'motion_blur.frag' -> 'motion_blur.frag'
+2025-11-03T07:01:08 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtDebugMsg]: 🌐 PostEffects: resolved Desktop shader 'dof_fallback.frag' -> 'dof_fallback.frag'
+2025-11-03T07:01:08 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtDebugMsg]: 🌐 PostEffects: resolved Desktop shader 'dof.frag' -> 'dof.frag'
+2025-11-03T07:01:08 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtDebugMsg]: 🌐 PostEffects: resolved Desktop shader 'ssao_fallback.frag' -> 'ssao_fallback.frag'
+2025-11-03T07:01:08 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtDebugMsg]: 🌐 PostEffects: resolved Desktop shader 'ssao.frag' -> 'ssao.frag'
+2025-11-03T07:01:08 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtDebugMsg]: 🌐 PostEffects: resolved Desktop shader 'bloom_fallback.frag' -> 'bloom_fallback.frag'
+2025-11-03T07:01:08 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtDebugMsg]: 🌐 PostEffects: resolved Desktop shader 'bloom.frag' -> 'bloom.frag'
+2025-11-03T07:01:08 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtDebugMsg]: SceneEnvironmentController: applying quality preset balanced
+2025-11-03T07:01:08 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtDebugMsg]: 🌐 FogEffect: resolved Desktop shader 'fog_fallback.frag' -> 'fog_fallback.frag'
+2025-11-03T07:01:08 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtDebugMsg]: 🌐 FogEffect: resolved Desktop shader 'fog.frag' -> 'fog.frag'
+2025-11-03T07:01:08 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtDebugMsg]: 🌐 FogEffect: resolved Desktop shader 'fog.vert' -> 'fog.vert'
+2025-11-03T07:01:08 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: [SimulationRoot] ⚠️ geometry default for cylinderSegments unavailable (missing key); using fallback 64
+2025-11-03T07:01:08 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: [SimulationRoot] ⚠️ geometry default for cylinderRings unavailable (missing key); using fallback 8
+2025-11-03T07:01:08 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: file:///workspace/PneumoStabSim-Professional/assets/qml/PneumoStabSim/SimulationRoot.qml:894:1: QML Binding: Property 'clearColor' does not exist on View3D.
+2025-11-03T07:01:08 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: file:///workspace/PneumoStabSim-Professional/assets/qml/effects/PostEffects.qml:1130:9: QML Connections: Detected function "onStatusChanged" in Connections element. This is probably intended to be a signal handler but no signal of the target matches the name.
+2025-11-03T07:01:08 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: file:///workspace/PneumoStabSim-Professional/assets/qml/effects/PostEffects.qml:1112:9: QML Connections: Detected function "onStatusChanged" in Connections element. This is probably intended to be a signal handler but no signal of the target matches the name.
+2025-11-03T07:01:08 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: file:///workspace/PneumoStabSim-Professional/assets/qml/effects/PostEffects.qml:998:9: QML Connections: Detected function "onStatusChanged" in Connections element. This is probably intended to be a signal handler but no signal of the target matches the name.
+2025-11-03T07:01:08 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: file:///workspace/PneumoStabSim-Professional/assets/qml/effects/PostEffects.qml:980:9: QML Connections: Detected function "onStatusChanged" in Connections element. This is probably intended to be a signal handler but no signal of the target matches the name.
+2025-11-03T07:01:08 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: file:///workspace/PneumoStabSim-Professional/assets/qml/effects/PostEffects.qml:857:9: QML Connections: Detected function "onStatusChanged" in Connections element. This is probably intended to be a signal handler but no signal of the target matches the name.
+2025-11-03T07:01:08 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: file:///workspace/PneumoStabSim-Professional/assets/qml/effects/PostEffects.qml:839:9: QML Connections: Detected function "onStatusChanged" in Connections element. This is probably intended to be a signal handler but no signal of the target matches the name.
+2025-11-03T07:01:08 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: file:///workspace/PneumoStabSim-Professional/assets/qml/effects/PostEffects.qml:717:9: QML Connections: Detected function "onStatusChanged" in Connections element. This is probably intended to be a signal handler but no signal of the target matches the name.
+2025-11-03T07:01:08 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: file:///workspace/PneumoStabSim-Professional/assets/qml/effects/PostEffects.qml:699:9: QML Connections: Detected function "onStatusChanged" in Connections element. This is probably intended to be a signal handler but no signal of the target matches the name.
+2025-11-03T07:01:08 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: file:///workspace/PneumoStabSim-Professional/assets/qml/components/IblProbeLoader.qml:54:5: QML Connections: Detected function "onStatusChanged" in Connections element. This is probably intended to be a signal handler but no signal of the target matches the name.
+2025-11-03T07:01:08 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: file:///workspace/PneumoStabSim-Professional/assets/qml/effects/FogEffect.qml:717:5: QML Connections: Detected function "onStatusChanged" in Connections element. This is probably intended to be a signal handler but no signal of the target matches the name.
+2025-11-03T07:01:08 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: file:///workspace/PneumoStabSim-Professional/assets/qml/effects/FogEffect.qml:697:5: QML Connections: Detected function "onStatusChanged" in Connections element. This is probably intended to be a signal handler but no signal of the target matches the name.
+2025-11-03T07:01:08 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: file:///workspace/PneumoStabSim-Professional/assets/qml/effects/FogEffect.qml:661:5: QML Connections: Detected function "onStatusChanged" in Connections element. This is probably intended to be a signal handler but no signal of the target matches the name.
+2025-11-03T07:01:08 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: [SimulationRoot] RenderSettings type unavailable; using default View3D settings
+2025-11-03T07:01:08 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtDebugMsg]: ✅ SimulationRoot initialized successfully
+2025-11-03T07:01:08 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: [SimulationRoot] Missing handler for geometry-defaults updates
+2025-11-03T07:01:08 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtDebugMsg]: ═══════════════════════════════════════════
+2025-11-03T07:01:08 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtDebugMsg]: ✅ CameraController initialized (v1.0.0)
+2025-11-03T07:01:08 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtDebugMsg]: ═══════════════════════════════════════════
+2025-11-03T07:01:08 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtDebugMsg]: 📷 Camera System Status:
+2025-11-03T07:01:08 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtDebugMsg]:    State:        CameraState v1.0.0
+2025-11-03T07:01:08 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtDebugMsg]:    Rig:          CameraRig v1.0.0
+2025-11-03T07:01:08 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtDebugMsg]:    Controls:     MouseControls v1.0.0
+2025-11-03T07:01:08 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtDebugMsg]:    Auto-rotate:  OFF
+2025-11-03T07:01:08 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtDebugMsg]:    TAA adaptive: ON
+2025-11-03T07:01:08 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtDebugMsg]: ═══════════════════════════════════════════
+2025-11-03T07:01:08 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtDebugMsg]: 🎯 Camera Controller ready!
+2025-11-03T07:01:08 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtDebugMsg]: ═══════════════════════════════════════════
+2025-11-03T07:01:08 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtDebugMsg]: ✅ MouseControls initialized (v1.0.0)
+2025-11-03T07:01:08 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtDebugMsg]:    🖱️ Left button: rotation
+2025-11-03T07:01:08 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtDebugMsg]:    🖱️ Right button: panning
+2025-11-03T07:01:08 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtDebugMsg]:    🖱️ Wheel: zoom
+2025-11-03T07:01:08 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtDebugMsg]:    🖱️ Double-click: reset view
+2025-11-03T07:01:08 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtDebugMsg]:    ⌨️ Keys: R (reset), F (auto-fit), Space (animation), Ctrl+H (camera HUD)
+2025-11-03T07:01:08 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtDebugMsg]: ✅ CameraRig initialized (v1.0.0)
+2025-11-03T07:01:08 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtDebugMsg]:    📷 Pivot: QVector3D(0, 0, 0)
+2025-11-03T07:01:08 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtDebugMsg]:    📷 Rotation: Yaw 225 ° | Pitch -25 °
+2025-11-03T07:01:08 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtDebugMsg]: ✅ PanNode initialized
+2025-11-03T07:01:08 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtDebugMsg]:    📷 Local offset: QVector3D(0, 0, 0)
+2025-11-03T07:01:08 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtDebugMsg]: ✅ PerspectiveCamera initialized
+2025-11-03T07:01:08 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtDebugMsg]:    📷 Position: QVector3D(0, 0, 3.5)
+2025-11-03T07:01:08 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtDebugMsg]:    📷 FOV: 60 °
+2025-11-03T07:01:08 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtDebugMsg]:    📷 Near: 0.10000000149011612 scene units | Far: 20 scene units
+2025-11-03T07:01:08 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtDebugMsg]: ✅ CameraState initialized (v1.0.0)
+2025-11-03T07:01:08 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtDebugMsg]:    📷 Pivot: QVector3D(0, 0, 0)
+2025-11-03T07:01:08 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtDebugMsg]:    📷 Distance: 3500 mm
+2025-11-03T07:01:08 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtDebugMsg]:    📷 Yaw: 225 ° | Pitch: -25 °
+2025-11-03T07:01:08 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtDebugMsg]:    📷 FOV: 60 °
+2025-11-03T07:01:08 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtDebugMsg]: ✅ SuspensionAssembly loaded (all components initialized)
+2025-11-03T07:01:08 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtDebugMsg]: 🔧 SuspensionCorner initialized:
+2025-11-03T07:01:08 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtDebugMsg]:    j_arm: 1.059999942779541 0.11999999731779099 1.190000057220459
+2025-11-03T07:01:08 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtDebugMsg]:    j_tail: 1.059999942779541 0.7699999809265137 1.190000057220459
+2025-11-03T07:01:08 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtDebugMsg]:    j_rod: 1.307499885559082 0.11999999731779099 1.190000057220459
+2025-11-03T07:01:08 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtDebugMsg]:    leverAngle: 0 deg
+2025-11-03T07:01:08 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtDebugMsg]:    pistonPosition: 0 m
+2025-11-03T07:01:08 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtDebugMsg]:    rodLengthError: 0.1955 m
+2025-11-03T07:01:08 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtDebugMsg]: 🔷 CylinderGeometry ready (procedural mesh)
+2025-11-03T07:01:08 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtDebugMsg]:    segments=24, rings=1
+2025-11-03T07:01:08 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtDebugMsg]: 🔷 CylinderGeometry ready (procedural mesh)
+2025-11-03T07:01:08 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtDebugMsg]:    segments=3, rings=1
+2025-11-03T07:01:08 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtDebugMsg]: 🔷 CylinderGeometry ready (procedural mesh)
+2025-11-03T07:01:08 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtDebugMsg]:    segments=24, rings=1
+2025-11-03T07:01:08 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtDebugMsg]: 🔧 SuspensionCorner initialized:
+2025-11-03T07:01:08 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtDebugMsg]:    j_arm: -1.059999942779541 0.11999999731779099 1.190000057220459
+2025-11-03T07:01:08 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtDebugMsg]:    j_tail: -1.059999942779541 0.7699999809265137 1.190000057220459
+2025-11-03T07:01:08 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtDebugMsg]:    j_rod: -1.307499885559082 0.11999999731779099 1.190000057220459
+2025-11-03T07:01:08 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtDebugMsg]:    leverAngle: 0 deg
+2025-11-03T07:01:08 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtDebugMsg]:    pistonPosition: 0 m
+2025-11-03T07:01:08 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtDebugMsg]:    rodLengthError: 0.1955 m
+2025-11-03T07:01:08 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtDebugMsg]: 🔷 CylinderGeometry ready (procedural mesh)
+2025-11-03T07:01:08 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtDebugMsg]:    segments=24, rings=1
+2025-11-03T07:01:08 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtDebugMsg]: 🔷 CylinderGeometry ready (procedural mesh)
+2025-11-03T07:01:08 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtDebugMsg]:    segments=3, rings=1
+2025-11-03T07:01:08 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtDebugMsg]: 🔷 CylinderGeometry ready (procedural mesh)
+2025-11-03T07:01:08 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtDebugMsg]:    segments=24, rings=1
+2025-11-03T07:01:08 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtDebugMsg]: 🔧 SuspensionCorner initialized:
+2025-11-03T07:01:08 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtDebugMsg]:    j_arm: 1.059999942779541 0.11999999731779099 -1.190000057220459
+2025-11-03T07:01:08 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtDebugMsg]:    j_tail: 1.059999942779541 0.7699999809265137 -1.190000057220459
+2025-11-03T07:01:08 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtDebugMsg]:    j_rod: 1.307499885559082 0.11999999731779099 -1.190000057220459
+2025-11-03T07:01:08 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtDebugMsg]:    leverAngle: 0 deg
+2025-11-03T07:01:08 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtDebugMsg]:    pistonPosition: 0 m
+2025-11-03T07:01:08 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtDebugMsg]:    rodLengthError: 0.1955 m
+2025-11-03T07:01:08 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtDebugMsg]: 🔷 CylinderGeometry ready (procedural mesh)
+2025-11-03T07:01:08 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtDebugMsg]:    segments=24, rings=1
+2025-11-03T07:01:08 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtDebugMsg]: 🔷 CylinderGeometry ready (procedural mesh)
+2025-11-03T07:01:08 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtDebugMsg]:    segments=3, rings=1
+2025-11-03T07:01:08 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtDebugMsg]: 🔷 CylinderGeometry ready (procedural mesh)
+2025-11-03T07:01:08 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtDebugMsg]:    segments=24, rings=1
+2025-11-03T07:01:08 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtDebugMsg]: 🔧 SuspensionCorner initialized:
+2025-11-03T07:01:08 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtDebugMsg]:    j_arm: -1.059999942779541 0.11999999731779099 -1.190000057220459
+2025-11-03T07:01:08 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtDebugMsg]:    j_tail: -1.059999942779541 0.7699999809265137 -1.190000057220459
+2025-11-03T07:01:08 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtDebugMsg]:    j_rod: -1.307499885559082 0.11999999731779099 -1.190000057220459
+2025-11-03T07:01:08 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtDebugMsg]:    leverAngle: 0 deg
+2025-11-03T07:01:08 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtDebugMsg]:    pistonPosition: 0 m
+2025-11-03T07:01:08 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtDebugMsg]:    rodLengthError: 0.1955 m
+2025-11-03T07:01:08 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtDebugMsg]: 🔷 CylinderGeometry ready (procedural mesh)
+2025-11-03T07:01:08 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtDebugMsg]:    segments=24, rings=1
+2025-11-03T07:01:08 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtDebugMsg]: 🔷 CylinderGeometry ready (procedural mesh)
+2025-11-03T07:01:08 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtDebugMsg]:    segments=3, rings=1
+2025-11-03T07:01:08 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtDebugMsg]: 🔷 CylinderGeometry ready (procedural mesh)
+2025-11-03T07:01:08 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtDebugMsg]:    segments=24, rings=1
+2025-11-03T07:01:08 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtDebugMsg]: 🏗️ Frame initialized (centered): 0.120 × 0.650 × 3.400 m
+2025-11-03T07:01:08 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtDebugMsg]: 💡 PointLights initialized:
+2025-11-03T07:01:08 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtDebugMsg]:    Brightness: 50
+2025-11-03T07:01:08 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtDebugMsg]:    Position: ( 0 , 2.6 , 1.5 )
+2025-11-03T07:01:08 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtDebugMsg]:    Range: 3.6
+2025-11-03T07:01:08 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtDebugMsg]:    Fade (const/lin/quad): 1 0.01 1
+2025-11-03T07:01:08 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtDebugMsg]:    Casts shadow: false
+2025-11-03T07:01:08 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtDebugMsg]: 💡 DirectionalLights initialized:
+2025-11-03T07:01:08 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtDebugMsg]:    Key: 1 #ffffff angles: 25 23.5 0 pos: 0 0 0
+2025-11-03T07:01:08 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtDebugMsg]:    Fill: 1 #f1f4ff angles: 0 -45 0 pos: 0 0 0
+2025-11-03T07:01:08 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtDebugMsg]:    Rim: 1.1 #ffe1bd angles: 30 -135 0 pos: 0 0 0
+2025-11-03T07:01:08 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtDebugMsg]:    Shadows: true 4096
+2025-11-03T07:01:08 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtDebugMsg]: 🎨 SharedMaterials initialized
+2025-11-03T07:01:08 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtDebugMsg]:  📦7 static materials created
+2025-11-03T07:01:08 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtDebugMsg]:  🔧 Dynamic piston/rod materials available
+2025-11-03T07:01:08 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtDebugMsg]: 🎨 Post Effects Collection loaded
+2025-11-03T07:01:08 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtDebugMsg]:    Graphics API: opengl-rhi
+2025-11-03T07:01:08 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtDebugMsg]:    Normalized API: opengl-rhi
+2025-11-03T07:01:08 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtDebugMsg]:    Shader profile: Desktop (GLSL 450 core)
+2025-11-03T07:01:08 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtDebugMsg]:    Profile decision flags -> preferDesktop: true reportedGles: false forceDesktopOverride: false
+2025-11-03T07:01:08 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtDebugMsg]:    Available effects: Bloom, SSAO, DOF, Motion Blur
+2025-11-03T07:01:08 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: ⚠️ Motion Blur: velocity texture unavailable; using fallback shader
+2025-11-03T07:01:08 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: ⚠️ Motion Blur: switching to passthrough fallback due to missing velocity texture
+2025-11-03T07:01:08 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: file:///workspace/PneumoStabSim-Professional/assets/qml/PneumoStabSim/SimulationRoot.qml:757:9 Parameter "effectId" is not declared. Injection of parameters into signal handlers is deprecated. Use JavaScript functions with formal parameters instead.
+2025-11-03T07:01:08 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: file:///workspace/PneumoStabSim-Professional/assets/qml/PneumoStabSim/SimulationRoot.qml:757: ReferenceError: registerShaderWarning is not defined
+2025-11-03T07:01:08 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtDebugMsg]: PostEffects: shader log handler unavailable for motion_blur_fallback.frag
+2025-11-03T07:01:08 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtDebugMsg]: PostEffects: shader log handler unavailable for motion_blur.frag
+2025-11-03T07:01:08 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: ⚠️ Depth of Field: depth texture unavailable; using fallback shader
+2025-11-03T07:01:08 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: ⚠️ Depth of Field: switching to passthrough fallback due to missing depth texture
+2025-11-03T07:01:08 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: file:///workspace/PneumoStabSim-Professional/assets/qml/PneumoStabSim/SimulationRoot.qml:757: ReferenceError: registerShaderWarning is not defined
+2025-11-03T07:01:08 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtDebugMsg]: PostEffects: shader log handler unavailable for dof_fallback.frag
+2025-11-03T07:01:08 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtDebugMsg]: PostEffects: shader log handler unavailable for dof.frag
+2025-11-03T07:01:08 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: ⚠️ SSAO: depth texture buffer is not supported; disabling advanced SSAO
+2025-11-03T07:01:08 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: ⚠️ SSAO: switching to passthrough fallback due to missing textures
+2025-11-03T07:01:08 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: file:///workspace/PneumoStabSim-Professional/assets/qml/PneumoStabSim/SimulationRoot.qml:757: ReferenceError: registerShaderWarning is not defined
+2025-11-03T07:01:08 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtDebugMsg]: PostEffects: shader log handler unavailable for ssao_fallback.frag
+2025-11-03T07:01:08 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtDebugMsg]: PostEffects: shader log handler unavailable for ssao.frag
+2025-11-03T07:01:08 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: file:///workspace/PneumoStabSim-Professional/assets/qml/PneumoStabSim/SimulationRoot.qml:758:9 Parameter "effectId" is not declared. Injection of parameters into signal handlers is deprecated. Use JavaScript functions with formal parameters instead.
+2025-11-03T07:01:08 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: file:///workspace/PneumoStabSim-Professional/assets/qml/PneumoStabSim/SimulationRoot.qml:758: ReferenceError: clearShaderWarning is not defined
+2025-11-03T07:01:08 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtDebugMsg]: PostEffects: shader log handler unavailable for bloom_fallback.frag
+2025-11-03T07:01:08 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtDebugMsg]: PostEffects: shader log handler unavailable for bloom.frag
+2025-11-03T07:01:08 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtDebugMsg]: 2025-11-03T07:01:08.687Z | INFO | IblProbeLoader | IblProbeLoader initialized | Primary: 
+2025-11-03T07:01:08 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: 2025-11-03T07:01:08.687Z | WARN | IblProbeLoader | No primarySource provided at init
+2025-11-03T07:01:08 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtDebugMsg]: ✅ SceneEnvironmentController loaded (dithering disabled)
+2025-11-03T07:01:08 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtDebugMsg]: SceneEnvironmentController: applying quality preset balanced
+2025-11-03T07:01:08 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: ⚠️ FogEffect: depth texture not supported; using fallback shader
+2025-11-03T07:01:08 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: ⚠️ FogEffect: switching passes to fallback shader -> Depth texture unavailable; using fallback shader pass
+2025-11-03T07:01:08 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtDebugMsg]: 🌫️ FogEffect graphics API: opengl-rhi
+2025-11-03T07:01:08 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtDebugMsg]:    Normalized API: opengl-rhi
+2025-11-03T07:01:08 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtDebugMsg]:    Shader profile: Desktop (GLSL 450 core)
+2025-11-03T07:01:08 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtDebugMsg]:    Profile decision flags -> preferDesktop: true reportedGles: true forceDesktopOverride: false
+2025-11-03T07:01:08 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtDebugMsg]: 🌫️ Enhanced Fog Effect loaded
+2025-11-03T07:01:08 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtDebugMsg]:    Density: 0.1
+2025-11-03T07:01:08 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtDebugMsg]:    Color: #808080
+2025-11-03T07:01:08 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtDebugMsg]:    Distance range: 1200 - 12000
+2025-11-03T07:01:08 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtDebugMsg]:    Height-based: false
+2025-11-03T07:01:08 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtDebugMsg]:    Animated: false
+2025-11-03T07:01:08 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: ⚠️ FogEffect: depth texture unavailable, fallback shader active
+2025-11-03T07:01:08 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtDebugMsg]: FogEffect: shader log handler unavailable for fog_fallback.frag
+2025-11-03T07:01:08 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtDebugMsg]: FogEffect: shader log handler unavailable for fog.frag
+2025-11-03T07:01:08 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtDebugMsg]: FogEffect: shader log handler unavailable for fog.vert
+2025-11-03T07:01:08 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: file:///workspace/PneumoStabSim-Professional/assets/qml/main.qml:147: Error: Cannot assign to non-existent property "applyGeometryUpdates"
+2025-11-03T07:01:08 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: file:///workspace/PneumoStabSim-Professional/assets/qml/camera/CameraStateHud.qml:73:25: Unable to assign [undefined] to QString
+2025-11-03T07:01:08 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: file:///workspace/PneumoStabSim-Professional/assets/qml/camera/CameraStateHud.qml:73:25: Unable to assign [undefined] to QString
+2025-11-03T07:01:08 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: file:///workspace/PneumoStabSim-Professional/assets/qml/camera/CameraStateHud.qml:73:25: Unable to assign [undefined] to QString
+2025-11-03T07:01:08 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: file:///workspace/PneumoStabSim-Professional/assets/qml/camera/CameraStateHud.qml:73:25: Unable to assign [undefined] to QString
+2025-11-03T07:01:08 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: file:///workspace/PneumoStabSim-Professional/assets/qml/camera/CameraStateHud.qml:73:25: Unable to assign [undefined] to QString
+2025-11-03T07:01:08 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: file:///workspace/PneumoStabSim-Professional/assets/qml/camera/CameraStateHud.qml:73:25: Unable to assign [undefined] to QString
+2025-11-03T07:01:08 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: file:///workspace/PneumoStabSim-Professional/assets/qml/camera/CameraStateHud.qml:73:25: Unable to assign [undefined] to QString
+2025-11-03T07:01:08 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: file:///workspace/PneumoStabSim-Professional/assets/qml/camera/CameraStateHud.qml:73:25: Unable to assign [undefined] to QString
+2025-11-03T07:01:08 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: file:///workspace/PneumoStabSim-Professional/assets/qml/camera/CameraStateHud.qml:73:25: Unable to assign [undefined] to QString
+2025-11-03T07:01:08 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: file:///workspace/PneumoStabSim-Professional/assets/qml/camera/CameraStateHud.qml:73:25: Unable to assign [undefined] to QString
+2025-11-03T07:01:08 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: file:///workspace/PneumoStabSim-Professional/assets/qml/effects/SceneEnvironmentController.qml:96:5: Unable to assign QQuick3DTexture to QQuick3DCubeMapTexture
+2025-11-03T07:01:08 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: file:///workspace/PneumoStabSim-Professional/assets/qml/lighting/DirectionalLights.qml:108:9: Unable to assign [undefined] to float
+2025-11-03T07:01:08 | PID:5555 TID:140037049510784 | INFO     | PneumoStabSim.GeometryPanel | ✅ Geometry loaded from app_settings.json (no code defaults)
+2025-11-03T07:01:09 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: QMetaObject::invokeMethod: No such method QQuickItem_QML_92::fullResetView()
+2025-11-03T07:01:09 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: SceneEnvironmentController: unknown quality preset ultra
+2025-11-03T07:01:09 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtDebugMsg]: 📷 CameraController: applying camera updates...
+2025-11-03T07:01:09 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: file:///workspace/PneumoStabSim-Professional/assets/qml/camera/CameraStateHud.qml:73:25: Unable to assign [undefined] to QString
+2025-11-03T07:01:09 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: file:///workspace/PneumoStabSim-Professional/assets/qml/camera/CameraStateHud.qml:73:25: Unable to assign [undefined] to QString
+2025-11-03T07:01:09 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: file:///workspace/PneumoStabSim-Professional/assets/qml/camera/CameraStateHud.qml:73:25: Unable to assign [undefined] to QString
+2025-11-03T07:01:09 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: file:///workspace/PneumoStabSim-Professional/assets/qml/camera/CameraStateHud.qml:73:25: Unable to assign [undefined] to QString
+2025-11-03T07:01:09 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: file:///workspace/PneumoStabSim-Professional/assets/qml/camera/CameraStateHud.qml:73:25: Unable to assign [undefined] to QString
+2025-11-03T07:01:09 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: file:///workspace/PneumoStabSim-Professional/assets/qml/camera/CameraStateHud.qml:73:25: Unable to assign [undefined] to QString
+2025-11-03T07:01:09 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: file:///workspace/PneumoStabSim-Professional/assets/qml/camera/CameraStateHud.qml:73:25: Unable to assign [undefined] to QString
+2025-11-03T07:01:09 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: file:///workspace/PneumoStabSim-Professional/assets/qml/camera/CameraStateHud.qml:73:25: Unable to assign [undefined] to QString
+2025-11-03T07:01:09 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: file:///workspace/PneumoStabSim-Professional/assets/qml/camera/CameraStateHud.qml:73:25: Unable to assign [undefined] to QString
+2025-11-03T07:01:09 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: file:///workspace/PneumoStabSim-Professional/assets/qml/camera/CameraStateHud.qml:73:25: Unable to assign [undefined] to QString
+2025-11-03T07:01:09 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: file:///workspace/PneumoStabSim-Professional/assets/qml/camera/CameraStateHud.qml:73:25: Unable to assign [undefined] to QString
+2025-11-03T07:01:09 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: file:///workspace/PneumoStabSim-Professional/assets/qml/camera/CameraStateHud.qml:73:25: Unable to assign [undefined] to QString
+2025-11-03T07:01:09 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: file:///workspace/PneumoStabSim-Professional/assets/qml/camera/CameraStateHud.qml:73:25: Unable to assign [undefined] to QString
+2025-11-03T07:01:09 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: file:///workspace/PneumoStabSim-Professional/assets/qml/camera/CameraStateHud.qml:73:25: Unable to assign [undefined] to QString
+2025-11-03T07:01:09 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: file:///workspace/PneumoStabSim-Professional/assets/qml/camera/CameraStateHud.qml:73:25: Unable to assign [undefined] to QString
+2025-11-03T07:01:09 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: file:///workspace/PneumoStabSim-Professional/assets/qml/camera/CameraStateHud.qml:73:25: Unable to assign [undefined] to QString
+2025-11-03T07:01:09 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: file:///workspace/PneumoStabSim-Professional/assets/qml/camera/CameraStateHud.qml:73:25: Unable to assign [undefined] to QString
+2025-11-03T07:01:09 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: file:///workspace/PneumoStabSim-Professional/assets/qml/camera/CameraStateHud.qml:73:25: Unable to assign [undefined] to QString
+2025-11-03T07:01:09 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: file:///workspace/PneumoStabSim-Professional/assets/qml/camera/CameraStateHud.qml:73:25: Unable to assign [undefined] to QString
+2025-11-03T07:01:09 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: file:///workspace/PneumoStabSim-Professional/assets/qml/camera/CameraStateHud.qml:73:25: Unable to assign [undefined] to QString
+2025-11-03T07:01:09 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtDebugMsg]: ✅ MathUtils Singleton initialized (v1.0.0)
+2025-11-03T07:01:09 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtDebugMsg]:    📐 Mathematical constants loaded
+2025-11-03T07:01:09 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtDebugMsg]:    🧮 Vector operations available
+2025-11-03T07:01:09 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtDebugMsg]:    📊 26 utility functions ready
+2025-11-03T07:01:09 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: file:///workspace/PneumoStabSim-Professional/assets/qml/camera/CameraStateHud.qml:73:25: Unable to assign [undefined] to QString
+2025-11-03T07:01:09 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: file:///workspace/PneumoStabSim-Professional/assets/qml/camera/CameraStateHud.qml:73:25: Unable to assign [undefined] to QString
+2025-11-03T07:01:09 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: file:///workspace/PneumoStabSim-Professional/assets/qml/camera/CameraStateHud.qml:73:25: Unable to assign [undefined] to QString
+2025-11-03T07:01:09 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: file:///workspace/PneumoStabSim-Professional/assets/qml/camera/CameraStateHud.qml:73:25: Unable to assign [undefined] to QString
+2025-11-03T07:01:09 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: file:///workspace/PneumoStabSim-Professional/assets/qml/camera/CameraStateHud.qml:73:25: Unable to assign [undefined] to QString
+2025-11-03T07:01:09 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: file:///workspace/PneumoStabSim-Professional/assets/qml/camera/CameraStateHud.qml:73:25: Unable to assign [undefined] to QString
+2025-11-03T07:01:09 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: file:///workspace/PneumoStabSim-Professional/assets/qml/camera/CameraStateHud.qml:73:25: Unable to assign [undefined] to QString
+2025-11-03T07:01:09 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: file:///workspace/PneumoStabSim-Professional/assets/qml/camera/CameraStateHud.qml:73:25: Unable to assign [undefined] to QString
+2025-11-03T07:01:09 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: file:///workspace/PneumoStabSim-Professional/assets/qml/camera/CameraStateHud.qml:73:25: Unable to assign [undefined] to QString
+2025-11-03T07:01:09 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: file:///workspace/PneumoStabSim-Professional/assets/qml/camera/CameraStateHud.qml:73:25: Unable to assign [undefined] to QString
+2025-11-03T07:01:09 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtDebugMsg]:    ✅ Camera updated successfully
+2025-11-03T07:01:09 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: file:///workspace/PneumoStabSim-Professional/assets/qml/PneumoStabSim/SimulationRoot.qml:1722: ReferenceError: invokeBatchHandler is not defined
+2025-11-03T07:01:09 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: This plugin does not support raise()
+2025-11-03T07:01:09 | PID:5555 TID:140037049510784 | INFO     | PneumoStabSim | MainWindow created and shown
+2025-11-03T07:01:09 | PID:5555 TID:140037049510784 | INFO     | PneumoStabSim | Test mode: auto-closing in 5 seconds
+2025-11-03T07:01:09 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: QMetaObject::invokeMethod: No such method QQuickItem_QML_92::applyLightingUpdates(QVariant)
+2025-11-03T07:01:09 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: QMetaObject::invokeMethod: No such method QQuickItem_QML_92::applyEnvironmentUpdates(QVariant)
+2025-11-03T07:01:09 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: QMetaObject::invokeMethod: No such method QQuickItem_QML_92::apply3DUpdates(QVariant)
+2025-11-03T07:01:09 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: QMetaObject::invokeMethod: No such method QQuickItem_QML_92::applyQualityUpdates(QVariant)
+2025-11-03T07:01:09 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: QMetaObject::invokeMethod: No such method QQuickItem_QML_92::applyCameraUpdates(QVariant)
+2025-11-03T07:01:09 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: QMetaObject::invokeMethod: No such method QQuickItem_QML_92::applyMaterialUpdates(QVariant)
+2025-11-03T07:01:09 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: QMetaObject::invokeMethod: No such method QQuickItem_QML_92::applyEffectsUpdates(QVariant)
+2025-11-03T07:01:09 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtDebugMsg]: 📷 CameraController: applying camera updates...
+2025-11-03T07:01:09 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtDebugMsg]:    ✅ Camera updated successfully
+2025-11-03T07:01:09 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: file:///workspace/PneumoStabSim-Professional/assets/qml/PneumoStabSim/SimulationRoot.qml:1722: ReferenceError: invokeBatchHandler is not defined
+2025-11-03T07:01:09 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: QMetaObject::invokeMethod: No such method QQuickItem_QML_92::applyGeometryUpdates(QVariant)
+2025-11-03T07:01:09 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: file:///workspace/PneumoStabSim-Professional/assets/qml/PneumoStabSim/SimulationRoot.qml:1155: ReferenceError: invokeBatchHandler is not defined
+2025-11-03T07:01:09 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtDebugMsg]: 📷 CameraController: auto-fit to frame...
+2025-11-03T07:01:09 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtDebugMsg]: 📷 CameraState: auto-fitting to frame...
+2025-11-03T07:01:09 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: file:///workspace/PneumoStabSim-Professional/assets/qml/camera/CameraStateHud.qml:73:25: Unable to assign [undefined] to QString
+2025-11-03T07:01:09 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: file:///workspace/PneumoStabSim-Professional/assets/qml/camera/CameraStateHud.qml:73:25: Unable to assign [undefined] to QString
+2025-11-03T07:01:09 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: file:///workspace/PneumoStabSim-Professional/assets/qml/camera/CameraStateHud.qml:73:25: Unable to assign [undefined] to QString
+2025-11-03T07:01:09 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: file:///workspace/PneumoStabSim-Professional/assets/qml/camera/CameraStateHud.qml:73:25: Unable to assign [undefined] to QString
+2025-11-03T07:01:09 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: file:///workspace/PneumoStabSim-Professional/assets/qml/camera/CameraStateHud.qml:73:25: Unable to assign [undefined] to QString
+2025-11-03T07:01:09 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: file:///workspace/PneumoStabSim-Professional/assets/qml/camera/CameraStateHud.qml:73:25: Unable to assign [undefined] to QString
+2025-11-03T07:01:09 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: file:///workspace/PneumoStabSim-Professional/assets/qml/camera/CameraStateHud.qml:73:25: Unable to assign [undefined] to QString
+2025-11-03T07:01:09 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: file:///workspace/PneumoStabSim-Professional/assets/qml/camera/CameraStateHud.qml:73:25: Unable to assign [undefined] to QString
+2025-11-03T07:01:09 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: file:///workspace/PneumoStabSim-Professional/assets/qml/camera/CameraStateHud.qml:73:25: Unable to assign [undefined] to QString
+2025-11-03T07:01:09 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: file:///workspace/PneumoStabSim-Professional/assets/qml/camera/CameraStateHud.qml:73:25: Unable to assign [undefined] to QString
+2025-11-03T07:01:09 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtDebugMsg]: ✅ GeometryCalculations Singleton initialized (v1.0.0)
+2025-11-03T07:01:09 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtDebugMsg]:    📐 Suspension geometry calculations ready
+2025-11-03T07:01:09 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtDebugMsg]:    📷 Camera calculations available
+2025-11-03T07:01:09 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtDebugMsg]:    📦 Bounding box utilities loaded
+2025-11-03T07:01:09 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtDebugMsg]:    Pivot: QVector3D(0, 325, 550)
+2025-11-03T07:01:09 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtDebugMsg]:    Distance: 3500 mm
+2025-11-03T07:01:09 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: file:///workspace/PneumoStabSim-Professional/assets/qml/PneumoStabSim/SimulationRoot.qml:1722: ReferenceError: invokeBatchHandler is not defined
+2025-11-03T07:01:09 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: file:///workspace/PneumoStabSim-Professional/assets/qml/camera/CameraStateHud.qml:73:25: Unable to assign [undefined] to QString
+2025-11-03T07:01:09 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: file:///workspace/PneumoStabSim-Professional/assets/qml/camera/CameraStateHud.qml:73:25: Unable to assign [undefined] to QString
+2025-11-03T07:01:09 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: file:///workspace/PneumoStabSim-Professional/assets/qml/camera/CameraStateHud.qml:73:25: Unable to assign [undefined] to QString
+2025-11-03T07:01:09 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: file:///workspace/PneumoStabSim-Professional/assets/qml/camera/CameraStateHud.qml:73:25: Unable to assign [undefined] to QString
+2025-11-03T07:01:09 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: file:///workspace/PneumoStabSim-Professional/assets/qml/camera/CameraStateHud.qml:73:25: Unable to assign [undefined] to QString
+2025-11-03T07:01:09 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: file:///workspace/PneumoStabSim-Professional/assets/qml/camera/CameraStateHud.qml:73:25: Unable to assign [undefined] to QString
+2025-11-03T07:01:09 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: file:///workspace/PneumoStabSim-Professional/assets/qml/camera/CameraStateHud.qml:73:25: Unable to assign [undefined] to QString
+2025-11-03T07:01:09 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: file:///workspace/PneumoStabSim-Professional/assets/qml/camera/CameraStateHud.qml:73:25: Unable to assign [undefined] to QString
+2025-11-03T07:01:09 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: file:///workspace/PneumoStabSim-Professional/assets/qml/camera/CameraStateHud.qml:73:25: Unable to assign [undefined] to QString
+2025-11-03T07:01:09 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: file:///workspace/PneumoStabSim-Professional/assets/qml/camera/CameraStateHud.qml:73:25: Unable to assign [undefined] to QString
+2025-11-03T07:01:09 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: file:///workspace/PneumoStabSim-Professional/assets/qml/camera/CameraStateHud.qml:73:25: Unable to assign [undefined] to QString
+2025-11-03T07:01:09 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: file:///workspace/PneumoStabSim-Professional/assets/qml/camera/CameraStateHud.qml:73:25: Unable to assign [undefined] to QString
+2025-11-03T07:01:09 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: file:///workspace/PneumoStabSim-Professional/assets/qml/camera/CameraStateHud.qml:73:25: Unable to assign [undefined] to QString
+2025-11-03T07:01:09 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: file:///workspace/PneumoStabSim-Professional/assets/qml/camera/CameraStateHud.qml:73:25: Unable to assign [undefined] to QString
+2025-11-03T07:01:09 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: file:///workspace/PneumoStabSim-Professional/assets/qml/camera/CameraStateHud.qml:73:25: Unable to assign [undefined] to QString
+2025-11-03T07:01:09 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: file:///workspace/PneumoStabSim-Professional/assets/qml/camera/CameraStateHud.qml:73:25: Unable to assign [undefined] to QString
+2025-11-03T07:01:09 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: file:///workspace/PneumoStabSim-Professional/assets/qml/camera/CameraStateHud.qml:73:25: Unable to assign [undefined] to QString
+2025-11-03T07:01:09 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: file:///workspace/PneumoStabSim-Professional/assets/qml/camera/CameraStateHud.qml:73:25: Unable to assign [undefined] to QString
+2025-11-03T07:01:09 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: file:///workspace/PneumoStabSim-Professional/assets/qml/camera/CameraStateHud.qml:73:25: Unable to assign [undefined] to QString
+2025-11-03T07:01:09 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: file:///workspace/PneumoStabSim-Professional/assets/qml/camera/CameraStateHud.qml:73:25: Unable to assign [undefined] to QString
+2025-11-03T07:01:09 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: file:///workspace/PneumoStabSim-Professional/assets/qml/camera/CameraStateHud.qml:73:25: Unable to assign [undefined] to QString
+2025-11-03T07:01:09 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: file:///workspace/PneumoStabSim-Professional/assets/qml/camera/CameraStateHud.qml:73:25: Unable to assign [undefined] to QString
+2025-11-03T07:01:09 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: file:///workspace/PneumoStabSim-Professional/assets/qml/camera/CameraStateHud.qml:73:25: Unable to assign [undefined] to QString
+2025-11-03T07:01:09 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: file:///workspace/PneumoStabSim-Professional/assets/qml/camera/CameraStateHud.qml:73:25: Unable to assign [undefined] to QString
+2025-11-03T07:01:09 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: file:///workspace/PneumoStabSim-Professional/assets/qml/camera/CameraStateHud.qml:73:25: Unable to assign [undefined] to QString
+2025-11-03T07:01:09 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: file:///workspace/PneumoStabSim-Professional/assets/qml/camera/CameraStateHud.qml:73:25: Unable to assign [undefined] to QString
+2025-11-03T07:01:09 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: file:///workspace/PneumoStabSim-Professional/assets/qml/camera/CameraStateHud.qml:73:25: Unable to assign [undefined] to QString
+2025-11-03T07:01:09 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: file:///workspace/PneumoStabSim-Professional/assets/qml/camera/CameraStateHud.qml:73:25: Unable to assign [undefined] to QString
+2025-11-03T07:01:09 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: file:///workspace/PneumoStabSim-Professional/assets/qml/camera/CameraStateHud.qml:73:25: Unable to assign [undefined] to QString
+2025-11-03T07:01:09 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: file:///workspace/PneumoStabSim-Professional/assets/qml/camera/CameraStateHud.qml:73:25: Unable to assign [undefined] to QString
+2025-11-03T07:01:09 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: file:///workspace/PneumoStabSim-Professional/assets/qml/camera/CameraStateHud.qml:73:25: Unable to assign [undefined] to QString
+2025-11-03T07:01:09 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: file:///workspace/PneumoStabSim-Professional/assets/qml/camera/CameraStateHud.qml:73:25: Unable to assign [undefined] to QString
+2025-11-03T07:01:09 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: file:///workspace/PneumoStabSim-Professional/assets/qml/camera/CameraStateHud.qml:73:25: Unable to assign [undefined] to QString
+2025-11-03T07:01:09 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: file:///workspace/PneumoStabSim-Professional/assets/qml/camera/CameraStateHud.qml:73:25: Unable to assign [undefined] to QString
+2025-11-03T07:01:09 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: file:///workspace/PneumoStabSim-Professional/assets/qml/camera/CameraStateHud.qml:73:25: Unable to assign [undefined] to QString
+2025-11-03T07:01:09 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: file:///workspace/PneumoStabSim-Professional/assets/qml/camera/CameraStateHud.qml:73:25: Unable to assign [undefined] to QString
+2025-11-03T07:01:09 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: file:///workspace/PneumoStabSim-Professional/assets/qml/camera/CameraStateHud.qml:73:25: Unable to assign [undefined] to QString
+2025-11-03T07:01:09 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: file:///workspace/PneumoStabSim-Professional/assets/qml/camera/CameraStateHud.qml:73:25: Unable to assign [undefined] to QString
+2025-11-03T07:01:09 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: file:///workspace/PneumoStabSim-Professional/assets/qml/camera/CameraStateHud.qml:73:25: Unable to assign [undefined] to QString
+2025-11-03T07:01:09 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: file:///workspace/PneumoStabSim-Professional/assets/qml/camera/CameraStateHud.qml:73:25: Unable to assign [undefined] to QString
+2025-11-03T07:01:09 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: file:///workspace/PneumoStabSim-Professional/assets/qml/camera/CameraStateHud.qml:73:25: Unable to assign [undefined] to QString
+2025-11-03T07:01:09 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: file:///workspace/PneumoStabSim-Professional/assets/qml/camera/CameraStateHud.qml:73:25: Unable to assign [undefined] to QString
+2025-11-03T07:01:09 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: file:///workspace/PneumoStabSim-Professional/assets/qml/camera/CameraStateHud.qml:73:25: Unable to assign [undefined] to QString
+2025-11-03T07:01:09 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: file:///workspace/PneumoStabSim-Professional/assets/qml/camera/CameraStateHud.qml:73:25: Unable to assign [undefined] to QString
+2025-11-03T07:01:09 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: file:///workspace/PneumoStabSim-Professional/assets/qml/camera/CameraStateHud.qml:73:25: Unable to assign [undefined] to QString
+2025-11-03T07:01:09 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: file:///workspace/PneumoStabSim-Professional/assets/qml/camera/CameraStateHud.qml:73:25: Unable to assign [undefined] to QString
+2025-11-03T07:01:09 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: file:///workspace/PneumoStabSim-Professional/assets/qml/camera/CameraStateHud.qml:73:25: Unable to assign [undefined] to QString
+2025-11-03T07:01:09 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: file:///workspace/PneumoStabSim-Professional/assets/qml/camera/CameraStateHud.qml:73:25: Unable to assign [undefined] to QString
+2025-11-03T07:01:09 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: file:///workspace/PneumoStabSim-Professional/assets/qml/camera/CameraStateHud.qml:73:25: Unable to assign [undefined] to QString
+2025-11-03T07:01:09 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: file:///workspace/PneumoStabSim-Professional/assets/qml/camera/CameraStateHud.qml:73:25: Unable to assign [undefined] to QString
+2025-11-03T07:01:09 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: file:///workspace/PneumoStabSim-Professional/assets/qml/camera/CameraStateHud.qml:73:25: Unable to assign [undefined] to QString
+2025-11-03T07:01:09 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: file:///workspace/PneumoStabSim-Professional/assets/qml/camera/CameraStateHud.qml:73:25: Unable to assign [undefined] to QString
+2025-11-03T07:01:09 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: file:///workspace/PneumoStabSim-Professional/assets/qml/camera/CameraStateHud.qml:73:25: Unable to assign [undefined] to QString
+2025-11-03T07:01:09 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: file:///workspace/PneumoStabSim-Professional/assets/qml/camera/CameraStateHud.qml:73:25: Unable to assign [undefined] to QString
+2025-11-03T07:01:09 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: file:///workspace/PneumoStabSim-Professional/assets/qml/camera/CameraStateHud.qml:73:25: Unable to assign [undefined] to QString
+2025-11-03T07:01:09 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: file:///workspace/PneumoStabSim-Professional/assets/qml/camera/CameraStateHud.qml:73:25: Unable to assign [undefined] to QString
+2025-11-03T07:01:09 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: file:///workspace/PneumoStabSim-Professional/assets/qml/camera/CameraStateHud.qml:73:25: Unable to assign [undefined] to QString
+2025-11-03T07:01:09 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: file:///workspace/PneumoStabSim-Professional/assets/qml/camera/CameraStateHud.qml:73:25: Unable to assign [undefined] to QString
+2025-11-03T07:01:09 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: file:///workspace/PneumoStabSim-Professional/assets/qml/camera/CameraStateHud.qml:73:25: Unable to assign [undefined] to QString
+2025-11-03T07:01:09 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: file:///workspace/PneumoStabSim-Professional/assets/qml/camera/CameraStateHud.qml:73:25: Unable to assign [undefined] to QString
+2025-11-03T07:01:09 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: file:///workspace/PneumoStabSim-Professional/assets/qml/camera/CameraStateHud.qml:73:25: Unable to assign [undefined] to QString
+2025-11-03T07:01:09 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: file:///workspace/PneumoStabSim-Professional/assets/qml/camera/CameraStateHud.qml:73:25: Unable to assign [undefined] to QString
+2025-11-03T07:01:09 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: file:///workspace/PneumoStabSim-Professional/assets/qml/camera/CameraStateHud.qml:73:25: Unable to assign [undefined] to QString
+2025-11-03T07:01:09 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: file:///workspace/PneumoStabSim-Professional/assets/qml/camera/CameraStateHud.qml:73:25: Unable to assign [undefined] to QString
+2025-11-03T07:01:09 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: file:///workspace/PneumoStabSim-Professional/assets/qml/camera/CameraStateHud.qml:73:25: Unable to assign [undefined] to QString
+2025-11-03T07:01:09 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: file:///workspace/PneumoStabSim-Professional/assets/qml/camera/CameraStateHud.qml:73:25: Unable to assign [undefined] to QString
+2025-11-03T07:01:09 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: file:///workspace/PneumoStabSim-Professional/assets/qml/camera/CameraStateHud.qml:73:25: Unable to assign [undefined] to QString
+2025-11-03T07:01:09 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: file:///workspace/PneumoStabSim-Professional/assets/qml/camera/CameraStateHud.qml:73:25: Unable to assign [undefined] to QString
+2025-11-03T07:01:09 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: file:///workspace/PneumoStabSim-Professional/assets/qml/camera/CameraStateHud.qml:73:25: Unable to assign [undefined] to QString
+2025-11-03T07:01:09 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: file:///workspace/PneumoStabSim-Professional/assets/qml/camera/CameraStateHud.qml:73:25: Unable to assign [undefined] to QString
+2025-11-03T07:01:09 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: file:///workspace/PneumoStabSim-Professional/assets/qml/camera/CameraStateHud.qml:73:25: Unable to assign [undefined] to QString
+2025-11-03T07:01:09 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: file:///workspace/PneumoStabSim-Professional/assets/qml/camera/CameraStateHud.qml:73:25: Unable to assign [undefined] to QString
+2025-11-03T07:01:09 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: file:///workspace/PneumoStabSim-Professional/assets/qml/camera/CameraStateHud.qml:73:25: Unable to assign [undefined] to QString
+2025-11-03T07:01:09 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: file:///workspace/PneumoStabSim-Professional/assets/qml/camera/CameraStateHud.qml:73:25: Unable to assign [undefined] to QString
+2025-11-03T07:01:09 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: file:///workspace/PneumoStabSim-Professional/assets/qml/camera/CameraStateHud.qml:73:25: Unable to assign [undefined] to QString
+2025-11-03T07:01:09 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: file:///workspace/PneumoStabSim-Professional/assets/qml/camera/CameraStateHud.qml:73:25: Unable to assign [undefined] to QString
+2025-11-03T07:01:09 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: file:///workspace/PneumoStabSim-Professional/assets/qml/camera/CameraStateHud.qml:73:25: Unable to assign [undefined] to QString
+2025-11-03T07:01:09 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: file:///workspace/PneumoStabSim-Professional/assets/qml/camera/CameraStateHud.qml:73:25: Unable to assign [undefined] to QString
+2025-11-03T07:01:09 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: file:///workspace/PneumoStabSim-Professional/assets/qml/camera/CameraStateHud.qml:73:25: Unable to assign [undefined] to QString
+2025-11-03T07:01:09 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: file:///workspace/PneumoStabSim-Professional/assets/qml/camera/CameraStateHud.qml:73:25: Unable to assign [undefined] to QString
+2025-11-03T07:01:09 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: file:///workspace/PneumoStabSim-Professional/assets/qml/camera/CameraStateHud.qml:73:25: Unable to assign [undefined] to QString
+2025-11-03T07:01:09 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: file:///workspace/PneumoStabSim-Professional/assets/qml/camera/CameraStateHud.qml:73:25: Unable to assign [undefined] to QString
+2025-11-03T07:01:09 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: file:///workspace/PneumoStabSim-Professional/assets/qml/camera/CameraStateHud.qml:73:25: Unable to assign [undefined] to QString
+2025-11-03T07:01:09 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: file:///workspace/PneumoStabSim-Professional/assets/qml/camera/CameraStateHud.qml:73:25: Unable to assign [undefined] to QString
+2025-11-03T07:01:09 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: file:///workspace/PneumoStabSim-Professional/assets/qml/camera/CameraStateHud.qml:73:25: Unable to assign [undefined] to QString
+2025-11-03T07:01:09 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: file:///workspace/PneumoStabSim-Professional/assets/qml/camera/CameraStateHud.qml:73:25: Unable to assign [undefined] to QString
+2025-11-03T07:01:09 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: file:///workspace/PneumoStabSim-Professional/assets/qml/camera/CameraStateHud.qml:73:25: Unable to assign [undefined] to QString
+2025-11-03T07:01:09 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: file:///workspace/PneumoStabSim-Professional/assets/qml/camera/CameraStateHud.qml:73:25: Unable to assign [undefined] to QString
+2025-11-03T07:01:09 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: file:///workspace/PneumoStabSim-Professional/assets/qml/camera/CameraStateHud.qml:73:25: Unable to assign [undefined] to QString
+2025-11-03T07:01:09 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: file:///workspace/PneumoStabSim-Professional/assets/qml/camera/CameraStateHud.qml:73:25: Unable to assign [undefined] to QString
+2025-11-03T07:01:09 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: file:///workspace/PneumoStabSim-Professional/assets/qml/camera/CameraStateHud.qml:73:25: Unable to assign [undefined] to QString
+2025-11-03T07:01:09 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: file:///workspace/PneumoStabSim-Professional/assets/qml/camera/CameraStateHud.qml:73:25: Unable to assign [undefined] to QString
+2025-11-03T07:01:09 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: file:///workspace/PneumoStabSim-Professional/assets/qml/camera/CameraStateHud.qml:73:25: Unable to assign [undefined] to QString
+2025-11-03T07:01:09 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: file:///workspace/PneumoStabSim-Professional/assets/qml/camera/CameraStateHud.qml:73:25: Unable to assign [undefined] to QString
+2025-11-03T07:01:09 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: file:///workspace/PneumoStabSim-Professional/assets/qml/camera/CameraStateHud.qml:73:25: Unable to assign [undefined] to QString
+2025-11-03T07:01:09 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: file:///workspace/PneumoStabSim-Professional/assets/qml/camera/CameraStateHud.qml:73:25: Unable to assign [undefined] to QString
+2025-11-03T07:01:09 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: file:///workspace/PneumoStabSim-Professional/assets/qml/camera/CameraStateHud.qml:73:25: Unable to assign [undefined] to QString
+2025-11-03T07:01:09 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: file:///workspace/PneumoStabSim-Professional/assets/qml/camera/CameraStateHud.qml:73:25: Unable to assign [undefined] to QString
+2025-11-03T07:01:09 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: file:///workspace/PneumoStabSim-Professional/assets/qml/camera/CameraStateHud.qml:73:25: Unable to assign [undefined] to QString
+2025-11-03T07:01:09 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: file:///workspace/PneumoStabSim-Professional/assets/qml/camera/CameraStateHud.qml:73:25: Unable to assign [undefined] to QString
+2025-11-03T07:01:09 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: file:///workspace/PneumoStabSim-Professional/assets/qml/camera/CameraStateHud.qml:73:25: Unable to assign [undefined] to QString
+2025-11-03T07:01:09 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: file:///workspace/PneumoStabSim-Professional/assets/qml/camera/CameraStateHud.qml:73:25: Unable to assign [undefined] to QString
+2025-11-03T07:01:09 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: file:///workspace/PneumoStabSim-Professional/assets/qml/camera/CameraStateHud.qml:73:25: Unable to assign [undefined] to QString
+2025-11-03T07:01:09 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: file:///workspace/PneumoStabSim-Professional/assets/qml/camera/CameraStateHud.qml:73:25: Unable to assign [undefined] to QString
+2025-11-03T07:01:09 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: file:///workspace/PneumoStabSim-Professional/assets/qml/camera/CameraStateHud.qml:73:25: Unable to assign [undefined] to QString
+2025-11-03T07:01:09 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: file:///workspace/PneumoStabSim-Professional/assets/qml/camera/CameraStateHud.qml:73:25: Unable to assign [undefined] to QString
+2025-11-03T07:01:09 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: file:///workspace/PneumoStabSim-Professional/assets/qml/camera/CameraStateHud.qml:73:25: Unable to assign [undefined] to QString
+2025-11-03T07:01:09 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: file:///workspace/PneumoStabSim-Professional/assets/qml/camera/CameraStateHud.qml:73:25: Unable to assign [undefined] to QString
+2025-11-03T07:01:09 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: file:///workspace/PneumoStabSim-Professional/assets/qml/camera/CameraStateHud.qml:73:25: Unable to assign [undefined] to QString
+2025-11-03T07:01:09 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: file:///workspace/PneumoStabSim-Professional/assets/qml/camera/CameraStateHud.qml:73:25: Unable to assign [undefined] to QString
+2025-11-03T07:01:09 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: file:///workspace/PneumoStabSim-Professional/assets/qml/camera/CameraStateHud.qml:73:25: Unable to assign [undefined] to QString
+2025-11-03T07:01:09 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: file:///workspace/PneumoStabSim-Professional/assets/qml/camera/CameraStateHud.qml:73:25: Unable to assign [undefined] to QString
+2025-11-03T07:01:09 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: file:///workspace/PneumoStabSim-Professional/assets/qml/camera/CameraStateHud.qml:73:25: Unable to assign [undefined] to QString
+2025-11-03T07:01:09 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: file:///workspace/PneumoStabSim-Professional/assets/qml/camera/CameraStateHud.qml:73:25: Unable to assign [undefined] to QString
+2025-11-03T07:01:09 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: file:///workspace/PneumoStabSim-Professional/assets/qml/camera/CameraStateHud.qml:73:25: Unable to assign [undefined] to QString
+2025-11-03T07:01:09 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: file:///workspace/PneumoStabSim-Professional/assets/qml/camera/CameraStateHud.qml:73:25: Unable to assign [undefined] to QString
+2025-11-03T07:01:09 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: file:///workspace/PneumoStabSim-Professional/assets/qml/camera/CameraStateHud.qml:73:25: Unable to assign [undefined] to QString
+2025-11-03T07:01:09 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: file:///workspace/PneumoStabSim-Professional/assets/qml/camera/CameraStateHud.qml:73:25: Unable to assign [undefined] to QString
+2025-11-03T07:01:09 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: file:///workspace/PneumoStabSim-Professional/assets/qml/camera/CameraStateHud.qml:73:25: Unable to assign [undefined] to QString
+2025-11-03T07:01:09 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: file:///workspace/PneumoStabSim-Professional/assets/qml/camera/CameraStateHud.qml:73:25: Unable to assign [undefined] to QString
+2025-11-03T07:01:09 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: file:///workspace/PneumoStabSim-Professional/assets/qml/camera/CameraStateHud.qml:73:25: Unable to assign [undefined] to QString
+2025-11-03T07:01:09 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: file:///workspace/PneumoStabSim-Professional/assets/qml/camera/CameraStateHud.qml:73:25: Unable to assign [undefined] to QString
+2025-11-03T07:01:09 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: file:///workspace/PneumoStabSim-Professional/assets/qml/camera/CameraStateHud.qml:73:25: Unable to assign [undefined] to QString
+2025-11-03T07:01:09 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: file:///workspace/PneumoStabSim-Professional/assets/qml/camera/CameraStateHud.qml:73:25: Unable to assign [undefined] to QString
+2025-11-03T07:01:09 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: file:///workspace/PneumoStabSim-Professional/assets/qml/camera/CameraStateHud.qml:73:25: Unable to assign [undefined] to QString
+2025-11-03T07:01:09 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: file:///workspace/PneumoStabSim-Professional/assets/qml/camera/CameraStateHud.qml:73:25: Unable to assign [undefined] to QString
+2025-11-03T07:01:09 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: file:///workspace/PneumoStabSim-Professional/assets/qml/camera/CameraStateHud.qml:73:25: Unable to assign [undefined] to QString
+2025-11-03T07:01:09 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: file:///workspace/PneumoStabSim-Professional/assets/qml/camera/CameraStateHud.qml:73:25: Unable to assign [undefined] to QString
+2025-11-03T07:01:09 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: file:///workspace/PneumoStabSim-Professional/assets/qml/camera/CameraStateHud.qml:73:25: Unable to assign [undefined] to QString
+2025-11-03T07:01:09 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: file:///workspace/PneumoStabSim-Professional/assets/qml/camera/CameraStateHud.qml:73:25: Unable to assign [undefined] to QString
+2025-11-03T07:01:09 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: file:///workspace/PneumoStabSim-Professional/assets/qml/camera/CameraStateHud.qml:73:25: Unable to assign [undefined] to QString
+2025-11-03T07:01:09 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: file:///workspace/PneumoStabSim-Professional/assets/qml/camera/CameraStateHud.qml:73:25: Unable to assign [undefined] to QString
+2025-11-03T07:01:09 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: file:///workspace/PneumoStabSim-Professional/assets/qml/camera/CameraStateHud.qml:73:25: Unable to assign [undefined] to QString
+2025-11-03T07:01:09 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: file:///workspace/PneumoStabSim-Professional/assets/qml/camera/CameraStateHud.qml:73:25: Unable to assign [undefined] to QString
+2025-11-03T07:01:09 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: file:///workspace/PneumoStabSim-Professional/assets/qml/camera/CameraStateHud.qml:73:25: Unable to assign [undefined] to QString
+2025-11-03T07:01:09 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: file:///workspace/PneumoStabSim-Professional/assets/qml/camera/CameraStateHud.qml:73:25: Unable to assign [undefined] to QString
+2025-11-03T07:01:09 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: file:///workspace/PneumoStabSim-Professional/assets/qml/camera/CameraStateHud.qml:73:25: Unable to assign [undefined] to QString
+2025-11-03T07:01:09 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: file:///workspace/PneumoStabSim-Professional/assets/qml/camera/CameraStateHud.qml:73:25: Unable to assign [undefined] to QString
+2025-11-03T07:01:09 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: file:///workspace/PneumoStabSim-Professional/assets/qml/camera/CameraStateHud.qml:73:25: Unable to assign [undefined] to QString
+2025-11-03T07:01:09 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: file:///workspace/PneumoStabSim-Professional/assets/qml/camera/CameraStateHud.qml:73:25: Unable to assign [undefined] to QString
+2025-11-03T07:01:09 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: file:///workspace/PneumoStabSim-Professional/assets/qml/camera/CameraStateHud.qml:73:25: Unable to assign [undefined] to QString
+2025-11-03T07:01:09 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: file:///workspace/PneumoStabSim-Professional/assets/qml/camera/CameraStateHud.qml:73:25: Unable to assign [undefined] to QString
+2025-11-03T07:01:09 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: file:///workspace/PneumoStabSim-Professional/assets/qml/camera/CameraStateHud.qml:73:25: Unable to assign [undefined] to QString
+2025-11-03T07:01:09 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: file:///workspace/PneumoStabSim-Professional/assets/qml/camera/CameraStateHud.qml:73:25: Unable to assign [undefined] to QString
+2025-11-03T07:01:09 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: file:///workspace/PneumoStabSim-Professional/assets/qml/camera/CameraStateHud.qml:73:25: Unable to assign [undefined] to QString
+2025-11-03T07:01:09 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: file:///workspace/PneumoStabSim-Professional/assets/qml/camera/CameraStateHud.qml:73:25: Unable to assign [undefined] to QString
+2025-11-03T07:01:09 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: file:///workspace/PneumoStabSim-Professional/assets/qml/camera/CameraStateHud.qml:73:25: Unable to assign [undefined] to QString
+2025-11-03T07:01:09 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: file:///workspace/PneumoStabSim-Professional/assets/qml/camera/CameraStateHud.qml:73:25: Unable to assign [undefined] to QString
+2025-11-03T07:01:09 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: file:///workspace/PneumoStabSim-Professional/assets/qml/camera/CameraStateHud.qml:73:25: Unable to assign [undefined] to QString
+2025-11-03T07:01:09 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: file:///workspace/PneumoStabSim-Professional/assets/qml/camera/CameraStateHud.qml:73:25: Unable to assign [undefined] to QString
+2025-11-03T07:01:09 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: file:///workspace/PneumoStabSim-Professional/assets/qml/camera/CameraStateHud.qml:73:25: Unable to assign [undefined] to QString
+2025-11-03T07:01:09 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: file:///workspace/PneumoStabSim-Professional/assets/qml/camera/CameraStateHud.qml:73:25: Unable to assign [undefined] to QString
+2025-11-03T07:01:09 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: file:///workspace/PneumoStabSim-Professional/assets/qml/camera/CameraStateHud.qml:73:25: Unable to assign [undefined] to QString
+2025-11-03T07:01:09 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: file:///workspace/PneumoStabSim-Professional/assets/qml/camera/CameraStateHud.qml:73:25: Unable to assign [undefined] to QString
+2025-11-03T07:01:09 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: file:///workspace/PneumoStabSim-Professional/assets/qml/camera/CameraStateHud.qml:73:25: Unable to assign [undefined] to QString
+2025-11-03T07:01:09 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: file:///workspace/PneumoStabSim-Professional/assets/qml/camera/CameraStateHud.qml:73:25: Unable to assign [undefined] to QString
+2025-11-03T07:01:09 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: file:///workspace/PneumoStabSim-Professional/assets/qml/camera/CameraStateHud.qml:73:25: Unable to assign [undefined] to QString
+2025-11-03T07:01:09 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: file:///workspace/PneumoStabSim-Professional/assets/qml/camera/CameraStateHud.qml:73:25: Unable to assign [undefined] to QString
+2025-11-03T07:01:09 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: file:///workspace/PneumoStabSim-Professional/assets/qml/camera/CameraStateHud.qml:73:25: Unable to assign [undefined] to QString
+2025-11-03T07:01:09 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: file:///workspace/PneumoStabSim-Professional/assets/qml/camera/CameraStateHud.qml:73:25: Unable to assign [undefined] to QString
+2025-11-03T07:01:09 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: file:///workspace/PneumoStabSim-Professional/assets/qml/camera/CameraStateHud.qml:73:25: Unable to assign [undefined] to QString
+2025-11-03T07:01:09 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: file:///workspace/PneumoStabSim-Professional/assets/qml/camera/CameraStateHud.qml:73:25: Unable to assign [undefined] to QString
+2025-11-03T07:01:09 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: file:///workspace/PneumoStabSim-Professional/assets/qml/camera/CameraStateHud.qml:73:25: Unable to assign [undefined] to QString
+2025-11-03T07:01:09 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: file:///workspace/PneumoStabSim-Professional/assets/qml/camera/CameraStateHud.qml:73:25: Unable to assign [undefined] to QString
+2025-11-03T07:01:09 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: file:///workspace/PneumoStabSim-Professional/assets/qml/camera/CameraStateHud.qml:73:25: Unable to assign [undefined] to QString
+2025-11-03T07:01:09 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: file:///workspace/PneumoStabSim-Professional/assets/qml/camera/CameraStateHud.qml:73:25: Unable to assign [undefined] to QString
+2025-11-03T07:01:09 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: file:///workspace/PneumoStabSim-Professional/assets/qml/camera/CameraStateHud.qml:73:25: Unable to assign [undefined] to QString
+2025-11-03T07:01:09 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: file:///workspace/PneumoStabSim-Professional/assets/qml/camera/CameraStateHud.qml:73:25: Unable to assign [undefined] to QString
+2025-11-03T07:01:09 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: file:///workspace/PneumoStabSim-Professional/assets/qml/camera/CameraStateHud.qml:73:25: Unable to assign [undefined] to QString
+2025-11-03T07:01:09 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: file:///workspace/PneumoStabSim-Professional/assets/qml/camera/CameraStateHud.qml:73:25: Unable to assign [undefined] to QString
+2025-11-03T07:01:09 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: file:///workspace/PneumoStabSim-Professional/assets/qml/camera/CameraStateHud.qml:73:25: Unable to assign [undefined] to QString
+2025-11-03T07:01:09 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: file:///workspace/PneumoStabSim-Professional/assets/qml/camera/CameraStateHud.qml:73:25: Unable to assign [undefined] to QString
+2025-11-03T07:01:09 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: file:///workspace/PneumoStabSim-Professional/assets/qml/camera/CameraStateHud.qml:73:25: Unable to assign [undefined] to QString
+2025-11-03T07:01:09 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: file:///workspace/PneumoStabSim-Professional/assets/qml/camera/CameraStateHud.qml:73:25: Unable to assign [undefined] to QString
+2025-11-03T07:01:09 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: file:///workspace/PneumoStabSim-Professional/assets/qml/camera/CameraStateHud.qml:73:25: Unable to assign [undefined] to QString
+2025-11-03T07:01:09 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: file:///workspace/PneumoStabSim-Professional/assets/qml/camera/CameraStateHud.qml:73:25: Unable to assign [undefined] to QString
+2025-11-03T07:01:09 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: file:///workspace/PneumoStabSim-Professional/assets/qml/camera/CameraStateHud.qml:73:25: Unable to assign [undefined] to QString
+2025-11-03T07:01:09 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: file:///workspace/PneumoStabSim-Professional/assets/qml/camera/CameraStateHud.qml:73:25: Unable to assign [undefined] to QString
+2025-11-03T07:01:09 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: file:///workspace/PneumoStabSim-Professional/assets/qml/camera/CameraStateHud.qml:73:25: Unable to assign [undefined] to QString
+2025-11-03T07:01:09 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | Qt[QtWarningMsg]: file:///workspace/PneumoStabSim-Professional/assets/qml/camera/CameraStateHud.qml:73:25: Unable to assign [undefined] to QString
+2025-11-03T07:01:14 | PID:5555 TID:140037049510784 | DEBUG    | PneumoStabSim | SettingsManager had no pending changes on exit
+2025-11-03T07:01:14 | PID:5555 TID:140037049510784 | INFO     | PneumoStabSim | SettingsService payload persisted on exit
+2025-11-03T07:01:14 | PID:5555 TID:140037049510784 | INFO     | PneumoStabSim | Application closed with code: 0
+2025-11-03T07:01:14 | PID:5555 TID:140037049510784 | INFO     | PneumoStabSim | ============================================================
+2025-11-03T07:01:14 | PID:5555 TID:140037049510784 | INFO     | PneumoStabSim | ======================================================================
+2025-11-03T07:01:14 | PID:5555 TID:140037049510784 | INFO     | PneumoStabSim | === END RUN ===
+2025-11-03T07:01:14 | PID:5555 TID:140037049510784 | INFO     | PneumoStabSim | Shutdown at: 2025-11-03T07:01:14.241277Z
+2025-11-03T07:01:14 | PID:5555 TID:140037049510784 | INFO     | PneumoStabSim | ======================================================================
