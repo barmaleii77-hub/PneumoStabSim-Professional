@@ -87,3 +87,16 @@ def test_custom_hasattr_probes_return_module() -> None:
             namespace.pop("hasattr", None)
         else:
             namespace["hasattr"] = original_hasattr
+
+
+def test_direct_lookup_after_hasattr_returns_module() -> None:
+    module = importlib.import_module("src.ui.panels")
+
+    def probe(target):
+        # Some toolkits probe ``__wrapped__`` with ``hasattr`` before falling
+        # back to direct ``getattr`` access.  The lazy module should continue to
+        # return itself instead of bubbling up ``AttributeError``.
+        hasattr(target, "__wrapped__")
+        return getattr(target, "__wrapped__")
+
+    assert probe(module) is module
