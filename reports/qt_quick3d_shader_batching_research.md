@@ -42,7 +42,7 @@ Task for Copilot: Provide concrete QML and, if needed, Python examples that:
 ## 2025-02-13 — GLSL 450 core adoption
 
 - Основной fog-фрагмент переведён на `#version 450 core`, что соответствует требованию Qt Quick 3D использовать Vulkan-style GLSL и исключает непредсказуемые профили при компиляции SPIR-V. См. детализацию в [docs/graphics.md](../docs/graphics.md) и официальную справку Qt.[^qt-effect]
-- Резервный `fog_fallback.frag` остаётся на `#version 330` и активируется, когда `FogEffect.qml` фиксирует `Shader.Error` или отсутствие depth-текстуры (`depthTextureAvailable=false`). Это гарантирует, что batched обновления не обрываются даже в GLES/ANGLE профилях.
+- Резервный `fog_fallback.frag` остаётся на `#version 330 core` и активируется, когда `FogEffect.qml` фиксирует `Shader.Error` или отсутствие depth-текстуры (`depthTextureAvailable=false`). Это гарантирует, что batched обновления не обрываются даже в GLES/ANGLE профилях.
 - Результаты проверки зафиксированы в `reports/tests/make_check_20250213.md`: `make check` проходит `ruff`/`mypy`/`qmllint` без ошибок, подтверждая целостность пакета шейдеров и QML-мостов.
 - basysKom подчёркивает, что для compute/эффектных шейдеров следует использовать как минимум GLSL 4.40, поскольку `qt_shader_tools` компилирует исходники в SPIR-V.[^basyskom]
 

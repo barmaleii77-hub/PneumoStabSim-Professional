@@ -89,7 +89,7 @@ Environment payload (вложенный)
 - Основной фрагментный шейдер `fog.frag` переведён на `#version 450 core`, чтобы соответствовать требованию Qt Quick 3D
   поставлять «Vulkan-style GLSL» даже при запуске на OpenGL/ANGLE-бэкендах и тем самым получать корректный SPIR-V
   байткод через `qt_shader_tools`. [Qt docs подтверждают требование к Vulkan-совместимому GLSL для эффектов.][qt-effect]
-- Fallback-шейдер `fog_fallback.frag` оставлен на `#version 330` без явных биндингов, что гарантирует загрузку в
+- Fallback-шейдер `fog_fallback.frag` оставлен на `#version 330 core` без явных биндингов, что гарантирует загрузку в
   OpenGL ES/ANGLE профилях, когда `FogEffect` фиксирует отсутствие depth-текстуры (`depthTextureAvailable=false`) или
   ловит `Shader.Error` и принудительно переключает `passes` на безопасный режим.
 - В QML-логике `FogEffect.qml` fallback активируется при ошибках компиляции или когда рендер-профиль не поддерживает
