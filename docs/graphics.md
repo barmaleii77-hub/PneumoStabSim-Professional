@@ -83,3 +83,20 @@ Environment payload (вложенный)
 
 - Снимки логов и скриншоты визуальных проверок прикладываются к Phase 3 в разделе «Fog pipeline stability».
 - При обновлении шейдеров фиксировать изменения и выводы в этом разделе, чтобы сохранить трассировку решений.
+
+## ✅ Валидация Qt 6.10 (2025-11-03)
+
+| Команда | Рендер-бэкенд | Итог | Комментарии |
+|---------|----------------|------|-------------|
+| `QT_QPA_PLATFORM=offscreen QT_RHI_BACKEND=vulkan … python app.py --test-mode --diag` | Qt Quick 3D → OpenGL RHI (software fallback) | ⚠️ | Контейнер без GPU: Qt сообщает `Backend: opengl` и `Loading backend software`, переключаясь на программный рендер. 【F:reports/run_vulkan_20251103.log†L21-L31】 |
+| `QT_QPA_PLATFORM=offscreen QT_RHI_BACKEND=opengl … python app.py --test-mode --diag` | Qt Quick 3D → OpenGL RHI (software fallback) | ⚠️ | Идентичное поведение: Qt сразу загружает software-бэкэнд. 【F:reports/run_opengl_20251103.log†L21-L31】 |
+
+### Основные наблюдения
+
+- **Компиляция шейдеров:** Bloom, SSAO, DOF и Fog успешно резолвят как основные, так и fallback-шейдеры; сообщений `ERROR` от компилятора нет. 【F:reports/run_vulkan_20251103.log†L32-L207】
+- **Fallback в ограниченном профиле:** Отсутствие depth/velocity текстур в offscreen-среде приводит к деградации SSAO, DOF, Motion Blur и Fog до безопасных режимов. 【F:reports/run_vulkan_20251103.log†L167-L205】
+- **Материалы:** `SharedMaterials` и динамические материалы сцены инициализируются без ошибок; предупреждения касаются только отсутствующих сигналов/свойств в Connections. 【F:reports/run_vulkan_20251103.log†L159-L208】
+- **QSG_INFO / RHI:** Qt логирует использование профиля Desktop GLSL 4.5 и переключение на software-путь; дополнительных RHI-ошибок не зафиксировано. 【F:reports/run_vulkan_20251103.log†L23-L197】
+- **Ограничения тестовой среды:** QQuick offscreen не предоставляет Direct3D (ANGLE), поэтому покрытие D3D11 невозможно подтвердить. Необработанные предупреждения `applyGeometryUpdates` и `CameraStateHud` остаются и требуют ручной ревизии. 【F:reports/run_vulkan_20251103.log†L208-L220】
+
+> ℹ️ В headless-режиме невозможно визуально подтвердить градиентный материал и прочие пост-эффекты. Для полной проверки требуется система с доступным GPU и интерактивным выводом.
