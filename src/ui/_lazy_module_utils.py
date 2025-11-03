@@ -23,6 +23,8 @@ from functools import lru_cache
 from types import CodeType
 from typing import Optional, Sequence
 
+_INSPECT_UNWRAP_CALLERS = frozenset({"unwrap", "get_annotations"})
+
 _SKIPPED_OPNAMES: frozenset[str] = frozenset(
     {
         "CACHE",
@@ -101,7 +103,10 @@ def should_suppress_wrapped() -> bool:
     while caller is not None:
         module_name = caller.f_globals.get("__name__", "")
 
-        if module_name == "inspect":
+        if (
+            module_name == "inspect"
+            and caller.f_code.co_name in _INSPECT_UNWRAP_CALLERS
+        ):
             # ``inspect`` is the only module that should trigger the unwrap
             # safeguard.  Third-party helpers (for example, PySide's
             # ``unwrapInstance``) legitimately expect ``module.__wrapped__`` to
