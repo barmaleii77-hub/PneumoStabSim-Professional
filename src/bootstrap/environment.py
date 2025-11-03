@@ -98,9 +98,8 @@ def setup_qtquick3d_environment(
 def configure_qt_environment() -> None:
     """Настройка переменных окружения Qt для графики и логирования."""
     # Уважаем .env, но задаём дефолты при отсутствии значений
-    os.environ.setdefault(
-        "QSG_RHI_BACKEND", "d3d11" if sys.platform == "win32" else "opengl"
-    )
+    backend_default = "d3d11" if sys.platform == "win32" else "opengl"
+    backend = os.environ.setdefault("QSG_RHI_BACKEND", backend_default)
     os.environ.setdefault("QT_QUICK_CONTROLS_STYLE", "Fusion")
     os.environ.setdefault("QSG_INFO", "0")
     os.environ.setdefault("QT_LOGGING_RULES", "*.debug=false;*.info=false")
@@ -109,6 +108,10 @@ def configure_qt_environment() -> None:
     os.environ.setdefault("QT_SCALE_FACTOR_ROUNDING_POLICY", "PassThrough")
     os.environ.setdefault("QT_ENABLE_HIGHDPI_SCALING", "1")
     os.environ.setdefault("PSS_DIAG", "1")
+
+    if backend.lower() == "opengl":
+        os.environ.setdefault("QSG_OPENGL_VERSION", "4.5")
+        os.environ.setdefault("QT_OPENGL", "desktop")
 
     if sys.platform.startswith("linux") and not os.environ.get("DISPLAY"):
         os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
