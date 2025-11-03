@@ -8,19 +8,11 @@ precision mediump sampler2D;
 #endif
 
 #ifndef SAMPLER_BINDING
-#ifdef QSB_ADD_BINDINGS
 #define SAMPLER_BINDING(index) layout(binding = index)
-#else
-#define SAMPLER_BINDING(index)
-#endif
 #endif
 
 #ifndef UBO_BINDING
-#ifdef QSB_ADD_BINDINGS
 #define UBO_BINDING(index) layout(binding = index)
-#else
-#define UBO_BINDING(index)
-#endif
 #endif
 
 #ifndef VARYING_UV
