@@ -55,6 +55,19 @@ def _global_called_at(code: CodeType, offset: int) -> Optional[str]:
     if index is None:
         return None
 
+    # Only treat the lookup as originating from a callable (such as ``hasattr``)
+    # when the current bytecode instruction actually performs a call.  When the
+    # module attribute is accessed directly (``obj.__wrapped__``) ``lasti``
+    # points at the ``LOAD_ATTR`` opcode.  In such cases scanning backwards would
+    # incorrectly associate the access with a previous ``hasattr`` invocation
+    # within the same function, causing false positives and leaking the
+    # ``AttributeError``.  Restricting the heuristic to recognised call opcodes
+    # avoids that problem while keeping compatibility with Python 3.13's "CALL"
+    # instruction as well as the legacy variants emitted on older interpreters.
+    call_opnames = {"CALL", "CALL_FUNCTION", "CALL_METHOD", "CALL_FUNCTION_KW"}
+    if instructions[index].opname not in call_opnames:
+        return None
+
     for instr in _reverse_skip(instructions, index):
         if instr.opname == "LOAD_GLOBAL" and isinstance(instr.argval, str):
             return instr.argval
