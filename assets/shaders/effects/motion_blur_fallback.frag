@@ -1,4 +1,4 @@
-#version 330
+#version 330 core
 // Requires an OpenGL 3.3 context for Qt Quick 3D runtime compatibility.
 
 #ifdef GL_ES
