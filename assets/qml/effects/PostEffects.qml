@@ -75,6 +75,8 @@ Item {
         }
         if (GraphicsInfo.api === GraphicsInfo.Direct3D11 && reportedGlesContext)
             return false
+        if (!reportedGlesContext && GraphicsInfo.api === GraphicsInfo.OpenGL)
+            return true
         return GraphicsInfo.api === GraphicsInfo.Direct3D11
                 || GraphicsInfo.api === GraphicsInfo.Vulkan
                 || GraphicsInfo.api === GraphicsInfo.Metal
