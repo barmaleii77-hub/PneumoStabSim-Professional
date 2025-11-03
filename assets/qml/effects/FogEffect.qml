@@ -140,11 +140,13 @@ Effect {
             return true
         var normalized = normalizedRendererGraphicsApi
         if (normalized.length) {
+            var normalizedCondensed = normalized.replace(/[\s_-]+/g, "")
+            var normalizedWithSpaces = normalized.replace(/[_-]+/g, " ")
             if (normalized.indexOf("angle") !== -1)
                 return false
-            if (normalized.indexOf("opengl es") !== -1
-                    || normalized.indexOf("opengles") !== -1
-                    || normalized.indexOf("gles") !== -1)
+            if (normalizedWithSpaces.indexOf("opengl es") !== -1
+                    || normalizedCondensed.indexOf("opengles") !== -1
+                    || normalizedCondensed.indexOf("gles") !== -1)
                 return false
         }
         try {
@@ -233,15 +235,17 @@ Effect {
             var normalized = normalizedRendererGraphicsApi
             if (!normalized.length)
                 return false
+            var normalizedCondensed = normalized.replace(/[\s_-]+/g, "")
+            var normalizedWithSpaces = normalized.replace(/[_-]+/g, " ")
             if (normalized.indexOf("rhi") !== -1
                     && normalized.indexOf("opengl") !== -1
-                    && normalized.indexOf("gles") === -1)
+                    && normalizedCondensed.indexOf("gles") === -1)
                 return false
-            if (normalized.indexOf("opengl es") !== -1)
+            if (normalizedWithSpaces.indexOf("opengl es") !== -1)
                 return true
-            if (normalized.indexOf("opengles") !== -1)
+            if (normalizedCondensed.indexOf("opengles") !== -1)
                 return true
-            if (normalized.indexOf("gles") !== -1)
+            if (normalizedCondensed.indexOf("gles") !== -1)
                 return true
             if (GraphicsInfo.api === GraphicsInfo.Direct3D11
                     && normalized.indexOf("angle") !== -1)
