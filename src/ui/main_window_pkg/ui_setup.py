@@ -32,6 +32,10 @@ if TYPE_CHECKING:
     from .main_window_refactored import MainWindow
 
 
+PROJECT_ROOT = Path(__file__).resolve().parents[3]
+EFFECT_SHADER_DIR = PROJECT_ROOT / "assets" / "shaders" / "effects"
+
+
 class UISetup:
     """Построение UI элементов главного окна
 
@@ -49,6 +53,32 @@ class UISetup:
     _SCENE_LOAD_ORDER: tuple[str, ...] = ("main", "realism", "fallback")
     _SCENE_ENV_VAR = "PSS_QML_SCENE"
     _POST_DIAG_ENV = "PSS_POST_DIAG_TRACE"
+
+    @staticmethod
+    def _build_effect_shader_manifest() -> Dict[str, bool]:
+        """Return a manifest of effect shader files available on disk."""
+
+        manifest: Dict[str, bool] = {}
+
+        try:
+            for path in EFFECT_SHADER_DIR.iterdir():
+                if not path.is_file():
+                    continue
+                if path.suffix.lower() not in {".frag", ".vert"}:
+                    continue
+                manifest[path.name] = True
+        except FileNotFoundError:
+            UISetup.logger.error(
+                "    ❌ Effect shader directory missing: %s", EFFECT_SHADER_DIR
+            )
+        except Exception as exc:  # pragma: no cover - defensive logging
+            UISetup.logger.warning(
+                "    ⚠️ Unable to enumerate effect shaders at %s: %s",
+                EFFECT_SHADER_DIR,
+                exc,
+            )
+
+        return manifest
 
     @staticmethod
     def _register_postmortem_reason(reason: str) -> None:
@@ -320,6 +350,10 @@ class UISetup:
             context.setContextProperty("qtGraphicsApiName", graphics_api_label)
             context.setContextProperty(
                 "qtGraphicsApiRequiresDesktopShaders", requires_desktop_shaders
+            )
+            context.setContextProperty(
+                "effectShaderManifest",
+                UISetup._build_effect_shader_manifest(),
             )
             UISetup.logger.info("    [QML] Renderer API: %s", graphics_api_label)
 
