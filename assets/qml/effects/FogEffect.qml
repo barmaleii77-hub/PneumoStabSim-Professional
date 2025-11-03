@@ -110,6 +110,12 @@ Effect {
             console.warn("⚠️ FogEffect: disabling forceGlesShaderProfile to honour desktop override")
             forceGlesShaderProfile = false
         }
+        if (forceDesktopShaderProfile)
+            console.warn("⚠️ FogEffect: desktop shader profile override enabled (preferring GLSL 450 resources)")
+        else
+            console.log("ℹ️ FogEffect: desktop shader profile override cleared; reverting to auto detection")
+        shaderVariantSelectionCache = ({})
+        scheduleShaderCacheReset()
     }
     onForceGlesShaderProfileChanged: {
         if (forceDesktopShaderProfile && forceGlesShaderProfile) {
@@ -118,6 +124,12 @@ Effect {
             console.warn("⚠️ FogEffect: disabling forceDesktopShaderProfile to honour GLES override")
             forceDesktopShaderProfile = false
         }
+        if (forceGlesShaderProfile)
+            console.warn("⚠️ FogEffect: GLES shader profile override enabled (preferring GLSL 300 es resources)")
+        else
+            console.log("ℹ️ FogEffect: GLES shader profile override cleared; reverting to auto detection")
+        shaderVariantSelectionCache = ({})
+        scheduleShaderCacheReset()
     }
     property bool preferUnifiedShaderSources: false
 
@@ -217,8 +229,19 @@ Effect {
     }
 
     readonly property string shaderResourceDirectory: "../../shaders/effects/"
+    readonly property var desktopShaderSuffixes: ["_glsl450", "_desktop", "_core"]
+    readonly property var glesShaderSuffixes: ["_es", "_gles", "_300es"]
     property var shaderResourceAvailabilityCache: ({})
     property var shaderSanitizationCache: ({})
+    property var shaderVariantSelectionCache: ({})
+
+    onUseGlesShadersChanged: {
+        console.log("🎚️ FogEffect: shader profile toggled ->", useGlesShaders
+                ? "OpenGL ES (GLSL 300 es)"
+                : "Desktop (GLSL 450 core)")
+        shaderVariantSelectionCache = ({})
+        scheduleShaderCacheReset()
+    }
 
     function resolvedShaderUrl(resourceName) {
         return Qt.resolvedUrl(shaderResourceDirectory + resourceName)
@@ -265,27 +288,54 @@ Effect {
             return ""
 
         var normalized = String(fileName)
-        if (useGlesShaders) {
-            var dotIndex = normalized.lastIndexOf(".")
-            var glesName
-            if (dotIndex > 0)
-                glesName = normalized.slice(0, dotIndex) + "_es" + normalized.slice(dotIndex)
-            else
-                glesName = normalized + "_es"
+        var dotIndex = normalized.lastIndexOf(".")
+        var baseName = dotIndex >= 0 ? normalized.slice(0, dotIndex) : normalized
+        var extension = dotIndex >= 0 ? normalized.slice(dotIndex) : ""
+        var candidateSuffixes = []
+        if (!preferUnifiedShaderSources)
+            candidateSuffixes = useGlesShaders ? glesShaderSuffixes : desktopShaderSuffixes
 
-            var glesUrl = resolvedShaderUrl(glesName)
-            if (shaderResourceExists(glesUrl, glesName, false))
-                return sanitizedShaderUrl(glesUrl, glesName)
+        var candidateNames = []
+        for (var i = 0; i < candidateSuffixes.length; ++i) {
+            var suffix = candidateSuffixes[i]
+            if (!suffix || !suffix.length)
+                continue
+            candidateNames.push(baseName + suffix + extension)
+        }
+        candidateNames.push(normalized)
 
-            if (!preferUnifiedShaderSources) {
-                console.warn("⚠️ FogEffect: GLES shader variant missing; forcing desktop profile", glesName)
-                requestDesktopShaderProfile(`Shader ${glesName} unavailable; enforcing desktop profile`)
+        var selectedName = normalized
+        var selectedUrl = resolvedShaderUrl(normalized)
+        var found = false
+        for (var idx = 0; idx < candidateNames.length; ++idx) {
+            var candidateName = candidateNames[idx]
+            var candidateUrl = resolvedShaderUrl(candidateName)
+            var suppressErrors = candidateName === normalized ? false : true
+            if (shaderResourceExists(candidateUrl, candidateName, suppressErrors)) {
+                selectedName = candidateName
+                selectedUrl = candidateUrl
+                found = true
+                break
             }
         }
 
-        var resolvedUrl = resolvedShaderUrl(normalized)
-        shaderResourceExists(resolvedUrl, normalized, false)
-        return sanitizedShaderUrl(resolvedUrl, normalized)
+        var glesVariantList = candidateNames.slice(0, Math.max(candidateNames.length - 1, 0))
+        if (!found && useGlesShaders && !preferUnifiedShaderSources && glesVariantList.length > 0) {
+            console.warn("⚠️ FogEffect: GLES shader variants missing; enforcing desktop profile", glesVariantList)
+            requestDesktopShaderProfile(`Shader ${normalized} lacks GLES variants (${glesVariantList.join(", ")}); enforcing desktop profile`)
+        } else if (useGlesShaders && !preferUnifiedShaderSources && glesVariantList.length > 0 && selectedName === normalized) {
+            console.warn("⚠️ FogEffect: GLES shader variant not found; enforcing desktop profile", glesVariantList)
+            requestDesktopShaderProfile(`Shader ${normalized} did not resolve GLES variants (${glesVariantList.join(", ")}); enforcing desktop profile`)
+        }
+
+        var previousSelection = shaderVariantSelectionCache[normalized]
+        if (previousSelection !== selectedName) {
+            shaderVariantSelectionCache[normalized] = selectedName
+            var profileLabel = useGlesShaders ? "OpenGL ES" : "Desktop"
+            console.log(`🌐 FogEffect: resolved ${profileLabel} shader '${normalized}' -> '${selectedName}'`)
+        }
+
+        return sanitizedShaderUrl(selectedUrl, selectedName)
     }
 
     // Для профиля OpenGL ES поставляются отдельные GLSL-файлы с суффиксом _es,
@@ -295,6 +345,14 @@ Effect {
     // специализированные GLES-варианты и избегаем ошибок компиляции из-за
     // неподдерживаемого профиля #version.
 
+    function scheduleShaderCacheReset() {
+        Qt.callLater(function() {
+            shaderResourceAvailabilityCache = ({})
+            shaderSanitizationCache = ({})
+            shaderVariantSelectionCache = ({})
+        })
+    }
+
     function requestDesktopShaderProfile(reason) {
         if (forceDesktopShaderProfile)
             return
@@ -302,10 +360,7 @@ Effect {
         if (forceGlesShaderProfile)
             forceGlesShaderProfile = false
         forceDesktopShaderProfile = true
-        Qt.callLater(function() {
-            shaderResourceAvailabilityCache = ({})
-            shaderSanitizationCache = ({})
-        })
+        scheduleShaderCacheReset()
     }
 
     function requestGlesShaderProfile(reason) {
@@ -315,10 +370,7 @@ Effect {
         if (forceDesktopShaderProfile)
             forceDesktopShaderProfile = false
         forceGlesShaderProfile = true
-        Qt.callLater(function() {
-            shaderResourceAvailabilityCache = ({})
-            shaderSanitizationCache = ({})
-        })
+        scheduleShaderCacheReset()
     }
 
     /**
@@ -332,6 +384,7 @@ Effect {
      * @param resourceName {string} - имя ресурса (для логирования)
      * @returns {string} нормализованный URL (или исходный при ошибке)
      */
+    // qmllint disable unqualified
     function sanitizedShaderUrl(url, resourceName) {
         if (!url || !url.length)
             return url
@@ -372,6 +425,7 @@ Effect {
         return sanitizedUrl
 
     }
+    // qmllint enable unqualified
 
     function handleShaderCompilationLog(shaderId, message) {
         if (!message || !message.length)
