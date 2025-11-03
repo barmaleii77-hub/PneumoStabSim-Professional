@@ -1,5 +1,5 @@
-#version 330 core
-// Requires an OpenGL 3.3 core context for Qt Quick 3D runtime compatibility.
+#version 450 core
+// Requires GLSL 4.50 core for Qt Quick 3D SPIR-V runtime compatibility.
 
 #ifdef GL_ES
 precision highp float;
@@ -7,47 +7,33 @@ precision highp int;
 precision mediump sampler2D;
 #endif
 
-#ifdef QSB_ADD_BINDINGS
-#ifndef GL_ES
-#extension GL_ARB_shading_language_420pack : enable
-#extension GL_ARB_separate_shader_objects : enable
-#endif
-#endif
-
-
-
 #ifndef SAMPLER_BINDING
 #ifdef QSB_ADD_BINDINGS
-#ifdef GL_ES
-// GLSL 330 does not support explicit binding qualifiers; Qt assigns bindings automatically.
-#define SAMPLER_BINDING(index)
-#else
 #define SAMPLER_BINDING(index) layout(binding = index)
-#endif
 #else
-// GLSL 330 does not support explicit binding qualifiers; Qt assigns bindings automatically.
 #define SAMPLER_BINDING(index)
 #endif
 #endif
 
 #ifndef UBO_BINDING
 #ifdef QSB_ADD_BINDINGS
-#ifdef GL_ES
-// GLSL 330 does not support explicit binding qualifiers; Qt assigns bindings automatically.
-#define UBO_BINDING(index)
-#else
 #define UBO_BINDING(index) layout(binding = index)
-#endif
 #else
-// GLSL 330 does not support explicit binding qualifiers; Qt assigns bindings automatically.
 #define UBO_BINDING(index)
 #endif
 #endif
 
-layout(location = 0) in vec2 v_uv;
+#ifndef VARYING_UV
+#define VARYING_UV v_uv
+#endif
+
+#ifndef DECLARE_INPUT_UV
+#define DECLARE_INPUT_UV layout(location = 0) in vec2 VARYING_UV;
+#endif
+DECLARE_INPUT_UV
 
 #ifndef INPUT_UV
-#define INPUT_UV v_uv
+#define INPUT_UV VARYING_UV
 #endif
 
 #ifndef MAIN

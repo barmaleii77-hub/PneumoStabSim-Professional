@@ -649,7 +649,7 @@ Effect {
                     "   Shader profile:",
                     useGlesShaders
                     ? "OpenGL ES (GLSL 300 es)"
-                    : "Desktop (GLSL 330 core)"
+                    : "Desktop (GLSL 450 core)"
                     )
         console.log("   Profile decision flags ->",
                     "preferDesktop:", preferDesktopShaderProfile,
