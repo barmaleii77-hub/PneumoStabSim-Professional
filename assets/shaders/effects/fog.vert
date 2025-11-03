@@ -1,16 +1,9 @@
-#version 330 core
-// Requires an OpenGL 3.3 core context for Qt Quick 3D runtime compatibility.
+#version 450 core
+// Requires GLSL 4.50 core for Qt Quick 3D SPIR-V runtime compatibility.
 
 #ifdef GL_ES
 precision highp float;
 precision highp int;
-#endif
-
-#ifdef QSB_ADD_BINDINGS
-#ifndef GL_ES
-#extension GL_ARB_shading_language_420pack : enable
-#extension GL_ARB_separate_shader_objects : enable
-#endif
 #endif
 
 #ifndef INPUT_POSITION
@@ -27,14 +20,8 @@ precision highp int;
 
 #ifndef UBO_BINDING
 #ifdef QSB_ADD_BINDINGS
-#ifdef GL_ES
-// GLSL 330 does not support explicit binding qualifiers; Qt assigns bindings automatically.
-#define UBO_BINDING(index)
-#else
 #define UBO_BINDING(index) layout(binding = index)
-#endif
 #else
-// GLSL 330 does not support explicit binding qualifiers; Qt assigns bindings automatically.
 #define UBO_BINDING(index)
 #endif
 #endif
@@ -51,7 +38,14 @@ layout(location = 1) in vec2 qt_MultiTexCoord0;
 #define POSITION gl_Position
 #endif
 
-layout(location = 0) out vec2 v_uv;
+#ifndef VARYING_UV
+#define VARYING_UV v_uv
+#endif
+
+#ifndef DECLARE_OUTPUT_UV
+#define DECLARE_OUTPUT_UV layout(location = 0) out vec2 VARYING_UV;
+#endif
+DECLARE_OUTPUT_UV
 
 layout(std140) UBO_BINDING(0) uniform qt_effectUniforms {
     mat4 qt_ModelMatrix;
@@ -64,6 +58,6 @@ layout(std140) UBO_BINDING(0) uniform qt_effectUniforms {
 void MAIN()
 {
     vec4 localPosition = vec4(INPUT_POSITION, 1.0);
-    v_uv = INPUT_UV;
+    VARYING_UV = INPUT_UV;
     POSITION = ubuf.qt_ModelViewProjectionMatrix * localPosition;
 }
