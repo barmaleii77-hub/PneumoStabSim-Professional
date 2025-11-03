@@ -87,24 +87,17 @@ def _reverse_skip(instructions: Sequence[dis.Instruction], start: int):
 
 
 def _is_unwrap_like_frame(frame: FrameType) -> bool:
-    """Return ``True`` when ``frame`` looks like an unwrap helper."""
+    """Return ``True`` when the ``frame`` originates from :mod:`inspect`."""
 
     module_name = frame.f_globals.get("__name__", "")
+    if not module_name:
+        return False
 
     if module_name == "inspect" or module_name.startswith("inspect."):
-        return frame.f_code.co_name in _INSPECT_UNWRAP_CALLERS
-
-    code_name = frame.f_code.co_name
-    if code_name in _INSPECT_UNWRAP_CALLERS:
-        return True
-
-    if "unwrap" in code_name:
-        constants = frame.f_code.co_consts
-        if (
-            "__wrapped__" in constants
-            or "wrapper loop when unwrapping {!r}" in constants
-        ):
-            return True
+        return (
+            frame.f_code.co_name in _INSPECT_UNWRAP_CALLERS
+            or "unwrap" in frame.f_code.co_name
+        )
 
     return False
 
