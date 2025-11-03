@@ -19,11 +19,7 @@ precision highp int;
 #endif
 
 #ifndef UBO_BINDING
-#ifdef QSB_ADD_BINDINGS
 #define UBO_BINDING(index) layout(binding = index)
-#else
-#define UBO_BINDING(index)
-#endif
 #endif
 
 #ifndef qt_Vertex
