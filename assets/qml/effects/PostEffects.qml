@@ -193,6 +193,11 @@ Item {
     readonly property string shaderResourceDirectory: "../../shaders/effects/"
     readonly property var desktopShaderSuffixes: ["_glsl450", "_desktop", "_core"]
     readonly property var glesShaderSuffixes: ["_es", "_gles", "_300es"]
+    // qmllint disable unqualified
+    readonly property var shaderResourceManifest: typeof effectShaderManifest !== "undefined"
+            ? effectShaderManifest
+            : ({})
+    // qmllint enable unqualified
     property var shaderResourceAvailabilityCache: ({})
     property var shaderSanitizationCache: ({})
     property var shaderSanitizationWarnings: ({})
@@ -259,6 +264,14 @@ Item {
             return shaderResourceAvailabilityCache[url]
 
         var available = false
+
+        if (resourceName && Object.prototype.hasOwnProperty.call(shaderResourceManifest, resourceName)) {
+            available = !!shaderResourceManifest[resourceName]
+            shaderResourceAvailabilityCache[url] = available
+            if (!available && !suppressErrors)
+                console.error("❌ PostEffects: shader resource missing", resourceName, url)
+            return available
+        }
 
         function checkAvailability(method) {
             try {

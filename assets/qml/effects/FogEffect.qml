@@ -260,6 +260,11 @@ Effect {
     }
 
     readonly property string shaderResourceDirectory: "../../shaders/effects/"
+    // qmllint disable unqualified
+    readonly property var shaderResourceManifest: typeof effectShaderManifest !== "undefined"
+            ? effectShaderManifest
+            : ({})
+    // qmllint enable unqualified
     readonly property var desktopShaderSuffixes: ["_glsl450", "_desktop", "_core"]
     readonly property var glesShaderSuffixes: ["_es", "_gles", "_300es"]
     property var shaderResourceAvailabilityCache: ({})
@@ -287,6 +292,14 @@ Effect {
             return shaderResourceAvailabilityCache[url]
 
         var available = false
+
+        if (resourceName && Object.prototype.hasOwnProperty.call(shaderResourceManifest, resourceName)) {
+            available = !!shaderResourceManifest[resourceName]
+            shaderResourceAvailabilityCache[url] = available
+            if (!available && !suppressErrors)
+                console.error("❌ FogEffect: shader resource missing", resourceName, url)
+            return available
+        }
 
         function checkAvailability(method) {
             try {

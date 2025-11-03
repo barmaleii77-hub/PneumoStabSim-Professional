@@ -13,6 +13,8 @@ from pathlib import Path
 
 import pytest
 
+from src.ui.main_window_pkg.ui_setup import EFFECT_SHADER_DIR, UISetup
+
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 
@@ -65,3 +67,17 @@ def test_effect_shaders_start_with_version(shader_file: Path) -> None:
         break
     else:
         pytest.fail(f"{shader_file} is empty or lacks a #version directive")
+
+
+def test_effect_shader_manifest_matches_filesystem() -> None:
+    """UISetup manifest should mirror the actual shader files on disk."""
+
+    manifest = UISetup._build_effect_shader_manifest()
+    expected = {
+        path.name
+        for path in EFFECT_SHADER_DIR.iterdir()
+        if path.is_file() and path.suffix.lower() in {".frag", ".vert"}
+    }
+
+    assert set(manifest.keys()) == expected
+    assert all(manifest[name] for name in expected)
