@@ -61,9 +61,21 @@ layout(std140) UBO_BINDING(0) uniform qt_effectUniforms {
     float qt_Opacity;
 } ubuf;
 
-void MAIN()
+void fogESVertexMain(out vec4 position)
 {
     vec4 localPosition = vec4(INPUT_POSITION, 1.0);
     v_uv = INPUT_UV;
-    POSITION = ubuf.qt_ModelViewProjectionMatrix * localPosition;
+    position = ubuf.qt_ModelViewProjectionMatrix * localPosition;
+}
+
+void MAIN()
+{
+    vec4 position = vec4(0.0);
+    fogESVertexMain(position);
+    POSITION = position;
+}
+
+void MAIN(out vec4 position)
+{
+    fogESVertexMain(position);
 }

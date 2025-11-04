@@ -101,14 +101,14 @@ vec3 generateSampleVector(int index)
     );
 }
 
-void MAIN()
+void ssaoESMain(inout vec4 fragColor)
 {
     vec4 original = INPUT;
     vec3 normal = normalize(texture(qt_NormalTexture, INPUT_UV).xyz * 2.0 - 1.0);
     float depth = texture(qt_DepthTexture, INPUT_UV).r;
 
     if (depth >= 1.0) {
-        FRAGCOLOR = original;
+        fragColor = original;
         return;
     }
 
@@ -134,5 +134,17 @@ void MAIN()
     occlusion /= max(1.0, float(sampleCount));
     occlusion = 1.0 - (occlusion * uIntensity);
 
-    FRAGCOLOR = vec4(original.rgb * occlusion, original.a);
+    fragColor = vec4(original.rgb * occlusion, original.a);
+}
+
+void MAIN()
+{
+    vec4 fragColor = vec4(0.0);
+    ssaoESMain(fragColor);
+    FRAGCOLOR = fragColor;
+}
+
+void MAIN(inout vec4 fragColor)
+{
+    ssaoESMain(fragColor);
 }

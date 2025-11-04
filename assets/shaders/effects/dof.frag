@@ -81,7 +81,7 @@ vec3 circularBlur(vec2 uv, float radius)
     return color / float(samples);
 }
 
-void MAIN()
+void dofMain(inout vec4 fragColor)
 {
     vec4 original = INPUT;
     float depth = texture(qt_DepthTexture, INPUT_UV).r;
@@ -93,5 +93,17 @@ void MAIN()
     vec3 blurred = circularBlur(INPUT_UV, blurRadius);
     vec3 result = mix(original.rgb, blurred, clamp(focusFactor, 0.0, 1.0));
 
-    FRAGCOLOR = vec4(result, original.a);
+    fragColor = vec4(result, original.a);
+}
+
+void MAIN()
+{
+    vec4 fragColor = vec4(0.0);
+    dofMain(fragColor);
+    FRAGCOLOR = fragColor;
+}
+
+void MAIN(inout vec4 fragColor)
+{
+    dofMain(fragColor);
 }

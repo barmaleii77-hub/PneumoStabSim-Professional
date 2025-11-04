@@ -106,7 +106,7 @@ vec3 gaussianBlur(vec2 uv, vec2 texelStep, float blurSize)
     return color;
 }
 
-void MAIN()
+void bloomESMain(inout vec4 fragColor)
 {
     vec4 original = INPUT;
 
@@ -117,5 +117,17 @@ void MAIN()
     vec3 bloom = blurredBright * uIntensity;
     vec3 result = original.rgb + bloom;
 
-    FRAGCOLOR = vec4(result, original.a);
+    fragColor = vec4(result, original.a);
+}
+
+void MAIN()
+{
+    vec4 fragColor = vec4(0.0);
+    bloomESMain(fragColor);
+    FRAGCOLOR = fragColor;
+}
+
+void MAIN(inout vec4 fragColor)
+{
+    bloomESMain(fragColor);
 }

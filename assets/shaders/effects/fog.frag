@@ -170,13 +170,13 @@ vec3 applyScattering(vec3 fogColor, vec3 sceneColor, float fogFactor, vec3 norma
     return mix(sceneColor, fogColor * scattering, fogFactor);
 }
 
-void MAIN()
+void fogMain(inout vec4 fragColor)
 {
     vec4 original = INPUT;
     float depth = texture(qt_DepthTexture, INPUT_UV).r;
 
     if (depth >= 1.0) {
-        FRAGCOLOR = original;
+        fragColor = original;
         return;
     }
 
@@ -196,5 +196,17 @@ void MAIN()
     float transmit = computeTransmit(fogFactor);
     result = mix(result, original.rgb, transmit * (1.0 - fogFactor));
 
-    FRAGCOLOR = vec4(result, original.a);
+    fragColor = vec4(result, original.a);
+}
+
+void MAIN()
+{
+    vec4 fragColor = vec4(0.0);
+    fogMain(fragColor);
+    FRAGCOLOR = fragColor;
+}
+
+void MAIN(inout vec4 fragColor)
+{
+    fogMain(fragColor);
 }
