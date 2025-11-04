@@ -74,4 +74,3 @@ void main()
     ssaoFallbackESMain(fragColor);
     FRAGCOLOR = fragColor;
 }
-

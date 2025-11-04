@@ -70,4 +70,3 @@ void MAIN()
     fogFallbackESMain(fragColor);
     FRAGCOLOR = fragColor;
 }
-

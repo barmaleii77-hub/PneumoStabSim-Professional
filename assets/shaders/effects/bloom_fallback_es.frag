@@ -74,4 +74,3 @@ void main()
     bloomFallbackESMain(fragColor);
     FRAGCOLOR = fragColor;
 }
-
