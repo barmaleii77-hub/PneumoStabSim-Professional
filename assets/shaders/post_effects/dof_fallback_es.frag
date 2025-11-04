@@ -70,7 +70,19 @@ layout(location = 0) out vec4 qt_FragColor;
 
 SAMPLER_BINDING(0) uniform sampler2D qt_Texture0;
 
+void dofFallbackESMain(inout vec4 fragColor)
+{
+    fragColor = texture(qt_Texture0, INPUT_UV);
+}
+
 void MAIN()
 {
-    FRAGCOLOR = texture(qt_Texture0, INPUT_UV);
+    vec4 fragColor = vec4(0.0);
+    dofFallbackESMain(fragColor);
+    FRAGCOLOR = fragColor;
+}
+
+void MAIN(inout vec4 fragColor)
+{
+    dofFallbackESMain(fragColor);
 }

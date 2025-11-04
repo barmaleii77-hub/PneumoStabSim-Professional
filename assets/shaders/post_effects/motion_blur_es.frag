@@ -84,7 +84,7 @@ uniform float uStrength;
 uniform int uSamples;
 #endif
 
-void MAIN()
+void motionBlurESMain(inout vec4 fragColor)
 {
     vec4 original = INPUT;
     vec2 velocity = texture(qt_VelocityTexture, INPUT_UV).xy;
@@ -100,5 +100,17 @@ void MAIN()
     }
 
     color /= max(1.0, float(sampleCount));
-    FRAGCOLOR = vec4(color, original.a);
+    fragColor = vec4(color, original.a);
+}
+
+void MAIN()
+{
+    vec4 fragColor = vec4(0.0);
+    motionBlurESMain(fragColor);
+    FRAGCOLOR = fragColor;
+}
+
+void MAIN(inout vec4 fragColor)
+{
+    motionBlurESMain(fragColor);
 }
