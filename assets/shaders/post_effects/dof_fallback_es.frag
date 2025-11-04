@@ -1,5 +1,6 @@
 #version 300 es
 // Requires an OpenGL ES 3.0 context for Qt Quick 3D runtime compatibility.
+// ANGLE note: keep the explicit profile to avoid falling back to desktop GLSL.
 
 #ifdef GL_ES
 precision highp float;

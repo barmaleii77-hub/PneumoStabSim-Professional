@@ -137,7 +137,9 @@ def validate_shaders(shader_root: Path) -> ValidationErrors:
                     f"{base}{extension}: missing fallback variant (expected file '*_fallback{extension}')"
                 )
 
-            fallback_es_variants = [item for item in files if item.variant == "fallback_es"]
+            fallback_es_variants = [
+                item for item in files if item.variant == "fallback_es"
+            ]
             if not fallback_es_variants:
                 errors.append(
                     f"{base}{extension}: missing fallback ES variant (expected file '*_fallback_es{extension}')"
