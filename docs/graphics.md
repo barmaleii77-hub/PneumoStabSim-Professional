@@ -45,7 +45,10 @@ Environment payload (вложенный)
 ## PostEffects GLES 3.0 — профиль шейдеров
 
 - **Каталоги:** GLES-варианты bloom/SSAO/DoF/motion blur теперь расположены в `assets/shaders/post_effects/` с суффиксом `_es`
-  и директивой `#version 300 es`, а десктопные версии остаются в `assets/shaders/effects/`. 【F:assets/shaders/post_effects/bloom_es.frag†L1-L15】【F:assets/shaders/effects/bloom.frag†L1-L18】
+  и директивой `#version 300 es`, а десктопные версии остаются в `assets/shaders/effects/`. 【F:assets/shaders/post_effects/bloom_es.frag†L1-L24】【F:assets/shaders/effects/bloom.frag†L1-L18】
+- **Совместимость GLSL ES:** для профиля GLES 3.0 мы полностью отключаем `layout(binding=…)` через условные макросы, чтобы
+  соответствовать ограничению `GLSL ES 3.00` на явные биндинги. Комментарии в `_es`-шейдерах теперь фиксируют это требование,
+  облегчая ревью и ревизию будущих обновлений. 【F:assets/shaders/post_effects/bloom_es.frag†L16-L36】
 - **Загрузка:** `PostEffects.qml` в первую очередь ищет GLES-файлы через `shaderResourceDirectories`, добавляя `../../shaders/post_effects/`
   перед десктопным каталогом, чтобы Qt Quick 3D под ANGLE/OpenGL ES подхватывал нужные варианты. Если ни один GLES-ресурс не найден,
   `shaderPath()` автоматически переключается на `_fallback`-шейдер (`#version 330 core`), который совместим с GLES и фиксируется в
