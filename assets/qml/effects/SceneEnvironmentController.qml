@@ -888,22 +888,32 @@ return
     function _setEnvironmentProperty(propertyName, value) {
         if (!propertyName)
             return false
-        try {
-            if (!(propertyName in root))
-                return false
-        } catch (error) {
-            console.debug("SceneEnvironmentController: property check failed", propertyName, error)
-            return false
-        }
+
         try {
             if (root[propertyName] === value)
                 return true
-            root[propertyName] = value
-            return true
         } catch (error) {
-            console.debug("SceneEnvironmentController: failed to set", propertyName, error)
-            return false
+            console.debug("SceneEnvironmentController: property read failed", propertyName, error)
         }
+
+        try {
+            root[propertyName] = value
+            if (root[propertyName] === value)
+                return true
+        } catch (error) {
+            console.debug("SceneEnvironmentController: direct assignment failed", propertyName, error)
+        }
+
+        // qmllint disable missing-property
+        try {
+            if (typeof root.setProperty === "function" && root.setProperty(propertyName, value))
+                return true
+        } catch (error) {
+            console.debug("SceneEnvironmentController: setProperty fallback failed", propertyName, error)
+        }
+        // qmllint enable missing-property
+
+        return false
     }
 
     function _applyDepthTextureState(enabled) {

@@ -166,28 +166,41 @@ QtObject {
     }
 
     function _trySetProperty(target, propertyName, value) {
-        if (!target)
+        if (!target || !propertyName)
             return false
 
-        try {
-            if (!(propertyName in target))
-                return false
-        } catch (error) {
-            console.debug("DepthTextureActivator: property lookup failed", propertyName, error)
-            return false
+        function logSuccess() {
+            console.log("✅ DepthTextureActivator:", propertyName, "=", value)
         }
 
         try {
             if (target[propertyName] === value)
                 return true
+        } catch (error) {
+            console.debug("DepthTextureActivator: failed to read", propertyName, error)
+        }
+
+        try {
             target[propertyName] = value
             if (target[propertyName] === value) {
-                console.log("✅ DepthTextureActivator:", propertyName, "=", value)
+                logSuccess()
                 return true
             }
         } catch (error) {
-            console.debug("DepthTextureActivator: failed to set", propertyName, "->", value, error)
+            console.debug("DepthTextureActivator: failed direct set", propertyName, "->", value, error)
         }
+
+        // qmllint disable missing-property
+        try {
+            if (typeof target.setProperty === "function" && target.setProperty(propertyName, value)) {
+                logSuccess()
+                return true
+            }
+        } catch (error) {
+            console.debug("DepthTextureActivator: setProperty fallback failed", propertyName, error)
+        }
+        // qmllint enable missing-property
+
         return false
     }
 
@@ -195,13 +208,19 @@ QtObject {
         if (!target || !propertyName)
             return undefined
         try {
-            if (!(propertyName in target))
-                return undefined
             return target[propertyName]
         } catch (error) {
             console.debug("DepthTextureActivator: failed to read", propertyName, error)
-            return undefined
         }
+        // qmllint disable missing-property
+        try {
+            if (typeof target.property === "function")
+                return target.property(propertyName)
+        } catch (error) {
+            console.debug("DepthTextureActivator: QObject property lookup failed", propertyName, error)
+        }
+        // qmllint enable missing-property
+        return undefined
     }
 
     function _safeRead(readFn) {
