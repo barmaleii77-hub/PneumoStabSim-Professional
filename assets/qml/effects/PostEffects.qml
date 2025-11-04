@@ -194,7 +194,7 @@ Item {
     // qmllint enable unqualified
     readonly property bool useGlesShaders: reportedGlesContext && !preferDesktopShaderProfile
 
-    readonly property string shaderResourceDirectory: "../../shaders/post_effects/"
+    readonly property string shaderResourceDirectory: "../../shaders/effects/"
     readonly property string legacyShaderResourceDirectory: "../../shaders/effects/"
     readonly property string glesShaderResourceDirectory: "../../shaders/post_effects/"
     readonly property var shaderResourceDirectories: {
@@ -206,9 +206,13 @@ Item {
                 return
             directories.push(path)
         }
-        if (useGlesShaders)
+        if (useGlesShaders) {
             appendDirectory(glesShaderResourceDirectory)
-        appendDirectory(shaderResourceDirectory)
+            appendDirectory(shaderResourceDirectory)
+        } else {
+            appendDirectory(shaderResourceDirectory)
+            appendDirectory(glesShaderResourceDirectory)
+        }
         appendDirectory(legacyShaderResourceDirectory)
         return directories
     }
@@ -279,7 +283,7 @@ Item {
     function resolvedShaderUrl(resourceName, resourceDirectory) {
         var baseDirectory = resourceDirectory && resourceDirectory.length
                 ? resourceDirectory
-                : shaderResourceDirectory
+                : (useGlesShaders ? glesShaderResourceDirectory : shaderResourceDirectory)
         return Qt.resolvedUrl(baseDirectory + resourceName)
     }
 
@@ -356,6 +360,25 @@ Item {
         return false
     }
 
+    function shaderVariantCandidateNames(baseName, extension, suffixes, normalizedName) {
+        var candidates = []
+        var effectiveSuffixes = suffixes || []
+        for (var sIdx = 0; sIdx < effectiveSuffixes.length; ++sIdx) {
+            var suffix = effectiveSuffixes[sIdx]
+            if (!suffix || !suffix.length)
+                continue
+            var candidateName = baseName + suffix + extension
+            if (candidates.indexOf(candidateName) === -1)
+                candidates.push(candidateName)
+        }
+        var normalizedCandidate = normalizedName && normalizedName.length
+                ? normalizedName
+                : baseName + extension
+        if (candidates.indexOf(normalizedCandidate) === -1)
+            candidates.push(normalizedCandidate)
+        return candidates
+    }
+
     function shaderPath(fileName) {
         if (!fileName || typeof fileName !== "string")
             return ""
@@ -366,18 +389,11 @@ Item {
         var extension = dotIndex >= 0 ? normalized.slice(dotIndex) : ""
         var suffixes = useGlesShaders ? glesShaderSuffixes : desktopShaderSuffixes
 
-        var candidateNames = []
-        for (var i = 0; i < suffixes.length; ++i) {
-            var suffix = suffixes[i]
-            if (!suffix || !suffix.length)
-                continue
-            candidateNames.push(baseName + suffix + extension)
-        }
-        candidateNames.push(normalized)
+        var candidateNames = shaderVariantCandidateNames(baseName, extension, suffixes, normalized)
 
         var directories = shaderResourceDirectories
         if (!directories || !directories.length)
-            directories = [shaderResourceDirectory]
+            directories = [useGlesShaders ? glesShaderResourceDirectory : shaderResourceDirectory]
 
         var selectedName = normalized
         var selectedUrl = resolvedShaderUrl(normalized, directories[0])
@@ -408,7 +424,9 @@ Item {
             }
         }
 
-        var glesVariantList = candidateNames.slice(0, Math.max(candidateNames.length - 1, 0))
+        var glesVariantList = []
+        if (useGlesShaders)
+            glesVariantList = candidateNames.slice(0, Math.max(candidateNames.length - 1, 0))
         var requireCompatibilityFallback = false
         var fallbackCandidateNames = []
         var fallbackSelectedName = ""
@@ -416,13 +434,11 @@ Item {
             var baseRequiresFallback = selectedName === normalized || !found
             if (baseRequiresFallback) {
                 var fallbackBaseName = baseName.endsWith("_fallback") ? baseName : baseName + "_fallback"
-                for (var fIdx = 0; fIdx < glesShaderSuffixes.length; ++fIdx) {
-                    var fallbackSuffix = glesShaderSuffixes[fIdx]
-                    if (!fallbackSuffix || !fallbackSuffix.length)
-                        continue
-                    fallbackCandidateNames.push(fallbackBaseName + fallbackSuffix + extension)
-                }
-                fallbackCandidateNames.push(fallbackBaseName + extension)
+                fallbackCandidateNames = shaderVariantCandidateNames(
+                            fallbackBaseName,
+                            extension,
+                            glesShaderSuffixes,
+                            fallbackBaseName + extension)
             }
 
             if (!found || selectedName === normalized) {
