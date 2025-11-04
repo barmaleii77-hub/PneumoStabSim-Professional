@@ -76,6 +76,55 @@ def test_effect_shaders_start_with_version(shader_file: Path) -> None:
         f"{shader_file} first line must contain #version"
     )
 
+
+@pytest.mark.gui
+@pytest.mark.parametrize("qml_file", EFFECT_FILES)
+def test_effect_shaders_load_without_version_warning(qapp, qml_file: Path) -> None:
+    """Ensure loading the effect components emits no #version warnings."""
+
+    pytest.importorskip(
+        "PySide6.QtCore",
+        reason="PySide6 QtCore module is required to verify shader warnings",
+        exc_type=ImportError,
+    )
+    pytest.importorskip(
+        "PySide6.QtQml",
+        reason="PySide6 QtQml module is required to verify shader warnings",
+        exc_type=ImportError,
+    )
+    pytest.importorskip(
+        "PySide6.QtQuick3D",
+        reason="PySide6 QtQuick3D module is required to instantiate effects",
+        exc_type=ImportError,
+    )
+
+    from PySide6.QtCore import QUrl
+    from PySide6.QtQml import QQmlApplicationEngine
+
+    engine = QQmlApplicationEngine()
+    engine.addImportPath(str((REPO_ROOT / "assets" / "qml").resolve()))
+
+    qml_url = QUrl.fromLocalFile(str(qml_file.resolve()))
+    engine.load(qml_url)
+
+    try:
+        qapp.processEvents()
+        assert engine.rootObjects(), f"{qml_file} should instantiate a root object"
+
+        version_warnings = [
+            warning
+            for warning in engine.warnings()
+            if "#version must appear first" in warning.description()
+        ]
+        assert not version_warnings, (
+            "Qt reported '#version must appear first' while loading "
+            f"{qml_file}: "
+            + "; ".join(warning.description() for warning in version_warnings)
+        )
+    finally:
+        engine.deleteLater()
+
+
 def test_effect_shader_manifest_matches_filesystem() -> None:
     """UISetup manifest should mirror the actual shader files on disk."""
 
