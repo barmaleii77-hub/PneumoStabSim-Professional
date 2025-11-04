@@ -28,15 +28,6 @@ DECLARE_INPUT_UV
 #define INPUT_UV VARYING_UV
 #endif
 
-#ifndef MAIN
-#define MAIN qt_customMain
-#define QSB_USES_QT_CUSTOM_MAIN 1
-#endif
-
-#ifndef QSB_USES_QT_CUSTOM_MAIN
-#define QSB_USES_QT_CUSTOM_MAIN 0
-#endif
-
 #ifndef FRAGCOLOR
 layout(location = 0) out vec4 qt_FragColor;
 #define FRAGCOLOR qt_FragColor
@@ -49,7 +40,7 @@ void fogFallbackMain(inout vec4 fragColor)
     fragColor = texture(qt_Texture0, INPUT_UV);
 }
 
-void MAIN()
+void main()
 {
     vec4 fragColor = vec4(0.0);
     fogFallbackMain(fragColor);
