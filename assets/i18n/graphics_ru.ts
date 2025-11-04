@@ -219,8 +219,56 @@
         <translation>Переключить тему высокой контрастности</translation>
     </message>
     <message>
-        <source>Optimised for WCAG AAA large text contrast requirements.</source>
-        <translation>Оптимизировано под требования контраста WCAG AAA для крупного текста.</translation>
+        <source>Optimised for WCAG AAA large text contrast requirements with reinforced focus outlines.</source>
+        <translation>Оптимизировано под требования контраста WCAG AAA для крупного текста с усиленными фокусными контурами.</translation>
+    </message>
+    <message>
+        <source>Rotary value selector</source>
+        <translation>Поворотный селектор значения</translation>
+    </message>
+    <message>
+        <source>Use the knob to adjust continuous values with precise keyboard support.</source>
+        <translation>Используйте регулятор для точной настройки непрерывных значений с поддержкой клавиатуры.</translation>
+    </message>
+    <message>
+        <source>Increase the current knob value by one step.</source>
+        <translation>Увеличить текущее значение регулятора на один шаг.</translation>
+    </message>
+    <message>
+        <source>Decrease the current knob value by one step.</source>
+        <translation>Уменьшить текущее значение регулятора на один шаг.</translation>
+    </message>
+    <message>
+        <source>Reset the knob to the midpoint of its range.</source>
+        <translation>Сбросить регулятор к середине диапазона.</translation>
+    </message>
+    <message>
+        <source>Continuous range slider</source>
+        <translation>Непрерывный ползунок диапазона</translation>
+    </message>
+    <message>
+        <source>Adjust minimum, maximum, and live values while tracking slider position.</source>
+        <translation>Настраивайте минимум, максимум и текущее значение с отслеживанием позиции ползунка.</translation>
+    </message>
+    <message>
+        <source>Increase the slider value by one step.</source>
+        <translation>Увеличить значение ползунка на один шаг.</translation>
+    </message>
+    <message>
+        <source>Decrease the slider value by one step.</source>
+        <translation>Уменьшить значение ползунка на один шаг.</translation>
+    </message>
+    <message>
+        <source>Move focus to the minimum value field.</source>
+        <translation>Перевести фокус в поле минимального значения.</translation>
+    </message>
+    <message>
+        <source>Move focus to the current value field.</source>
+        <translation>Перевести фокус в поле текущего значения.</translation>
+    </message>
+    <message>
+        <source>Move focus to the maximum value field.</source>
+        <translation>Перевести фокус в поле максимального значения.</translation>
     </message>
 </context>
 
@@ -281,6 +329,10 @@
     <message>
         <source>Reset %1 to its default value (%2).</source>
         <translation>Сбросить %1 к значению по умолчанию (%2).</translation>
+    </message>
+    <message>
+        <source>Keyboard shortcuts: %1</source>
+        <translation>Горячие клавиши: %1</translation>
     </message>
 </context>
 
@@ -373,6 +425,10 @@
     <message>
         <source>Focus maximum value field (%1).</source>
         <translation>Перейти к полю максимального значения (%1).</translation>
+    </message>
+    <message>
+        <source>Keyboard shortcuts: %1</source>
+        <translation>Горячие клавиши: %1</translation>
     </message>
     <message>
         <source>Current value positioned at %1 percent of the span.</source>

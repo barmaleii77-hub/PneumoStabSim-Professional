@@ -219,8 +219,56 @@
         <translation>Toggle the high contrast theme</translation>
     </message>
     <message>
-        <source>Optimised for WCAG AAA large text contrast requirements.</source>
-        <translation>Optimised for WCAG AAA large text contrast requirements.</translation>
+        <source>Optimised for WCAG AAA large text contrast requirements with reinforced focus outlines.</source>
+        <translation>Optimised for WCAG AAA large text contrast requirements with reinforced focus outlines.</translation>
+    </message>
+    <message>
+        <source>Rotary value selector</source>
+        <translation>Rotary value selector</translation>
+    </message>
+    <message>
+        <source>Use the knob to adjust continuous values with precise keyboard support.</source>
+        <translation>Use the knob to adjust continuous values with precise keyboard support.</translation>
+    </message>
+    <message>
+        <source>Increase the current knob value by one step.</source>
+        <translation>Increase the current knob value by one step.</translation>
+    </message>
+    <message>
+        <source>Decrease the current knob value by one step.</source>
+        <translation>Decrease the current knob value by one step.</translation>
+    </message>
+    <message>
+        <source>Reset the knob to the midpoint of its range.</source>
+        <translation>Reset the knob to the midpoint of its range.</translation>
+    </message>
+    <message>
+        <source>Continuous range slider</source>
+        <translation>Continuous range slider</translation>
+    </message>
+    <message>
+        <source>Adjust minimum, maximum, and live values while tracking slider position.</source>
+        <translation>Adjust minimum, maximum, and live values while tracking slider position.</translation>
+    </message>
+    <message>
+        <source>Increase the slider value by one step.</source>
+        <translation>Increase the slider value by one step.</translation>
+    </message>
+    <message>
+        <source>Decrease the slider value by one step.</source>
+        <translation>Decrease the slider value by one step.</translation>
+    </message>
+    <message>
+        <source>Move focus to the minimum value field.</source>
+        <translation>Move focus to the minimum value field.</translation>
+    </message>
+    <message>
+        <source>Move focus to the current value field.</source>
+        <translation>Move focus to the current value field.</translation>
+    </message>
+    <message>
+        <source>Move focus to the maximum value field.</source>
+        <translation>Move focus to the maximum value field.</translation>
     </message>
 </context>
 
@@ -281,6 +329,10 @@
     <message>
         <source>Reset %1 to its default value (%2).</source>
         <translation>Reset %1 to its default value (%2).</translation>
+    </message>
+    <message>
+        <source>Keyboard shortcuts: %1</source>
+        <translation>Keyboard shortcuts: %1</translation>
     </message>
 </context>
 
@@ -373,6 +425,10 @@
     <message>
         <source>Focus maximum value field (%1).</source>
         <translation>Focus maximum value field (%1).</translation>
+    </message>
+    <message>
+        <source>Keyboard shortcuts: %1</source>
+        <translation>Keyboard shortcuts: %1</translation>
     </message>
     <message>
         <source>Current value positioned at %1 percent of the span.</source>

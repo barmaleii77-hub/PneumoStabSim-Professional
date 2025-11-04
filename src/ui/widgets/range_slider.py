@@ -16,6 +16,9 @@ Key refinements introduced during the refactor:
 from __future__ import annotations
 
 import math
+from dataclasses import dataclass
+from typing import List
+
 from PySide6.QtWidgets import (
     QWidget,
     QHBoxLayout,
@@ -27,6 +30,15 @@ from PySide6.QtWidgets import (
 )
 from PySide6.QtCore import Signal, Slot, QTimer, Qt
 from PySide6.QtGui import QFont, QPalette, QColor, QKeySequence, QShortcut
+
+
+@dataclass(slots=True)
+class AccessibilityShortcut:
+    """Shortcut metadata surfaced for assistive tooling."""
+
+    identifier: str
+    sequence: str
+    description: str
 
 
 class RangeSlider(QWidget):
@@ -59,6 +71,7 @@ class RangeSlider(QWidget):
         title="",
         parent=None,
         accessible_name: str | None = None,
+        accessible_role: str | None = None,
         increase_shortcut: str = "Ctrl+Alt+Right",
         decrease_shortcut: str = "Ctrl+Alt+Left",
         focus_min_shortcut: str = "Ctrl+Alt+1",
@@ -70,6 +83,8 @@ class RangeSlider(QWidget):
         self._decimals = decimals
         self._units = units
         self._accessible_label = accessible_name or ""
+        self._accessible_role = accessible_role or "range-slider"
+        self._shortcut_metadata: list[AccessibilityShortcut] = []
 
         # УВЕЛИЧЕННОЕ разрешение слайдера для точности 0.001м
         # Для диапазона 4м с шагом 0.001м нужно 4000 позиций
@@ -95,6 +110,7 @@ class RangeSlider(QWidget):
             focus_value_shortcut,
             focus_max_shortcut,
         )
+        self._refresh_accessibility_descriptions()
 
     def _setup_ui(self, title):
         layout = QVBoxLayout(self)
@@ -241,21 +257,26 @@ class RangeSlider(QWidget):
 
         self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
         self.setAccessibleName(self._accessible_label)
+        self.setProperty("accessibilityRole", self._accessible_role)
         self._refresh_accessibility_descriptions()
 
         self.slider.setAccessibleName(
             self.tr("%1 slider track").replace("%1", display_label)
         )
+        self.slider.setProperty("accessibilityRole", "slider")
 
         self.min_spinbox.setAccessibleName(
             self.tr("%1 minimum value").replace("%1", display_label)
         )
+        self.min_spinbox.setProperty("accessibilityRole", "spinbox")
         self.value_spinbox.setAccessibleName(
             self.tr("%1 current value").replace("%1", display_label)
         )
+        self.value_spinbox.setProperty("accessibilityRole", "spinbox")
         self.max_spinbox.setAccessibleName(
             self.tr("%1 maximum value").replace("%1", display_label)
         )
+        self.max_spinbox.setProperty("accessibilityRole", "spinbox")
 
         for widget in (self.min_spinbox, self.value_spinbox, self.max_spinbox):
             widget.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
@@ -280,6 +301,9 @@ class RangeSlider(QWidget):
             .replace("%3", f"{max_value:.{self._decimals}f}")
             .replace("%4", units_suffix)
         )
+        shortcut_hint = self._compose_shortcut_summary()
+        if shortcut_hint:
+            slider_description = f"{slider_description} {shortcut_hint}"
         self.setAccessibleDescription(slider_description)
         self.slider.setAccessibleDescription(slider_description)
         self.value_spinbox.setAccessibleDescription(slider_description)
@@ -332,60 +356,100 @@ class RangeSlider(QWidget):
     ) -> None:
         """Expose keyboard shortcuts mirroring pointer interactions."""
 
-        self._increase_shortcut = QShortcut(QKeySequence(increase_shortcut), self)
-        self._increase_shortcut.setContext(
-            Qt.ShortcutContext.WidgetWithChildrenShortcut
-        )
-        self._increase_shortcut.activated.connect(
-            lambda: self._nudge_slider(self._step)
-        )
-        self._increase_shortcut.setWhatsThis(
-            self.tr("Increase %1 by one step (%2).")
-            .replace("%1", self._display_label)
-            .replace("%2", increase_shortcut)
+        self._shortcut_metadata.clear()
+
+        self._increase_shortcut = self._register_shortcut(
+            "increase",
+            increase_shortcut,
+            lambda: self._nudge_slider(self._step),
+            self.tr("Increase %1 by one step (%2)."),
+            {
+                "%1": self._display_label,
+                "%2": increase_shortcut,
+            },
         )
 
-        self._decrease_shortcut = QShortcut(QKeySequence(decrease_shortcut), self)
-        self._decrease_shortcut.setContext(
-            Qt.ShortcutContext.WidgetWithChildrenShortcut
-        )
-        self._decrease_shortcut.activated.connect(
-            lambda: self._nudge_slider(-self._step)
-        )
-        self._decrease_shortcut.setWhatsThis(
-            self.tr("Decrease %1 by one step (%2).")
-            .replace("%1", self._display_label)
-            .replace("%2", decrease_shortcut)
+        self._decrease_shortcut = self._register_shortcut(
+            "decrease",
+            decrease_shortcut,
+            lambda: self._nudge_slider(-self._step),
+            self.tr("Decrease %1 by one step (%2)."),
+            {
+                "%1": self._display_label,
+                "%2": decrease_shortcut,
+            },
         )
 
-        self._focus_min_shortcut = QShortcut(QKeySequence(focus_min_shortcut), self)
-        self._focus_min_shortcut.setContext(
-            Qt.ShortcutContext.WidgetWithChildrenShortcut
-        )
-        self._focus_min_shortcut.activated.connect(self.min_spinbox.setFocus)
-        self._focus_min_shortcut.setWhatsThis(
-            self.tr("Focus minimum value field (%1).").replace("%1", focus_min_shortcut)
-        )
-
-        self._focus_value_shortcut = QShortcut(QKeySequence(focus_value_shortcut), self)
-        self._focus_value_shortcut.setContext(
-            Qt.ShortcutContext.WidgetWithChildrenShortcut
-        )
-        self._focus_value_shortcut.activated.connect(self.value_spinbox.setFocus)
-        self._focus_value_shortcut.setWhatsThis(
-            self.tr("Focus current value field (%1).").replace(
-                "%1", focus_value_shortcut
-            )
+        self._focus_min_shortcut = self._register_shortcut(
+            "focus-min",
+            focus_min_shortcut,
+            self.min_spinbox.setFocus,
+            self.tr("Focus minimum value field (%1)."),
+            {"%1": focus_min_shortcut},
         )
 
-        self._focus_max_shortcut = QShortcut(QKeySequence(focus_max_shortcut), self)
-        self._focus_max_shortcut.setContext(
-            Qt.ShortcutContext.WidgetWithChildrenShortcut
+        self._focus_value_shortcut = self._register_shortcut(
+            "focus-value",
+            focus_value_shortcut,
+            self.value_spinbox.setFocus,
+            self.tr("Focus current value field (%1)."),
+            {"%1": focus_value_shortcut},
         )
-        self._focus_max_shortcut.activated.connect(self.max_spinbox.setFocus)
-        self._focus_max_shortcut.setWhatsThis(
-            self.tr("Focus maximum value field (%1).").replace("%1", focus_max_shortcut)
+
+        self._focus_max_shortcut = self._register_shortcut(
+            "focus-max",
+            focus_max_shortcut,
+            self.max_spinbox.setFocus,
+            self.tr("Focus maximum value field (%1)."),
+            {"%1": focus_max_shortcut},
         )
+
+    def _register_shortcut(
+        self,
+        identifier: str,
+        sequence_str: str,
+        callback,
+        description_template: str,
+        replacements: dict[str, str] | None = None,
+    ) -> QShortcut:
+        """Create a shortcut and store metadata for accessibility consumers."""
+
+        shortcut = QShortcut(QKeySequence(sequence_str), self)
+        shortcut.setContext(Qt.ShortcutContext.WidgetWithChildrenShortcut)
+        shortcut.activated.connect(callback)
+
+        description = description_template
+        if replacements:
+            for placeholder, value in replacements.items():
+                description = description.replace(placeholder, value)
+        shortcut.setWhatsThis(description)
+
+        sequence_text = shortcut.keySequence().toString(
+            QKeySequence.SequenceFormat.NativeText
+        )
+        self._shortcut_metadata.append(
+            AccessibilityShortcut(identifier, sequence_text, description)
+        )
+        return shortcut
+
+    def _compose_shortcut_summary(self) -> str:
+        """Summarise registered shortcuts for accessible descriptions."""
+
+        if not self._shortcut_metadata:
+            return ""
+
+        joined = " ".join(shortcut.description for shortcut in self._shortcut_metadata)
+        return self.tr("Keyboard shortcuts: %1").replace("%1", joined)
+
+    def accessibilityRole(self) -> str:
+        """Expose the semantic role for automated accessibility audits."""
+
+        return self._accessible_role
+
+    def accessibilityShortcuts(self) -> List[AccessibilityShortcut]:
+        """Return the shortcuts exposed by the widget."""
+
+        return list(self._shortcut_metadata)
 
     def _nudge_slider(self, delta: float) -> None:
         """Increment the slider value by *delta*."""

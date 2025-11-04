@@ -3,6 +3,11 @@ Universal knob widget for PySide6
 Combines QDial with QDoubleSpinBox for precise value control
 """
 
+from __future__ import annotations
+
+from dataclasses import dataclass
+from typing import List
+
 from PySide6.QtWidgets import (
     QWidget,
     QVBoxLayout,
@@ -14,6 +19,15 @@ from PySide6.QtWidgets import (
 )
 from PySide6.QtCore import Signal, Slot, Qt
 from PySide6.QtGui import QFont, QKeySequence, QShortcut
+
+
+@dataclass(slots=True)
+class AccessibilityShortcut:
+    """Metadata describing an announced shortcut for assistive tech."""
+
+    identifier: str
+    sequence: str
+    description: str
 
 
 class _UnitsLabel(QLabel):
@@ -55,6 +69,7 @@ class Knob(QWidget):
         title: str = "",
         parent=None,
         accessible_name: str | None = None,
+        accessible_role: str | None = None,
         increase_shortcut: str = "Ctrl+Alt+Up",
         decrease_shortcut: str = "Ctrl+Alt+Down",
         reset_shortcut: str = "Ctrl+Alt+0",
@@ -80,6 +95,8 @@ class Knob(QWidget):
         self._decimals = decimals
         self._units = units
         self._dial_resolution = 1000  # Internal dial resolution
+        self._accessible_role = accessible_role or "dial"
+        self._shortcut_metadata: List[AccessibilityShortcut] = []
 
         # Create UI
         self._setup_ui(title)
@@ -88,6 +105,7 @@ class Knob(QWidget):
         self._accessible_label = accessible_name or ""
         self._configure_accessibility(title)
         self._setup_shortcuts(increase_shortcut, decrease_shortcut, reset_shortcut)
+        self._refresh_accessible_descriptions()
 
         # Set initial value
         self.setValue(value)
@@ -155,6 +173,7 @@ class Knob(QWidget):
 
         self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
         self.setAccessibleName(self._accessible_label)
+        self.setProperty("accessibilityRole", self._accessible_role)
         self._refresh_accessible_descriptions(display_label)
 
         self.dial.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
@@ -164,11 +183,13 @@ class Knob(QWidget):
                 "Rotate to change %1 using the keyboard shortcuts or mouse."
             ).replace("%1", display_label)
         )
+        self.dial.setProperty("accessibilityRole", "dial")
 
         self.spinbox.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
         self.spinbox.setAccessibleName(
             self.tr("%1 numeric entry").replace("%1", display_label)
         )
+        self.spinbox.setProperty("accessibilityRole", "spinbox")
 
     def _refresh_accessible_descriptions(
         self, display_label: str | None = None
@@ -194,6 +215,11 @@ class Knob(QWidget):
                 .replace("%2", f"{self._minimum:.{self._decimals}f}")
                 .replace("%3", f"{self._maximum:.{self._decimals}f}")
             )
+
+        shortcut_hint = self._compose_shortcut_summary()
+        if shortcut_hint:
+            description = f"{description} {shortcut_hint}"
+
         self.setAccessibleDescription(description)
         self.spinbox.setAccessibleDescription(description)
 
@@ -212,38 +238,87 @@ class Knob(QWidget):
     ) -> None:
         """Provide keyboard shortcuts for screen reader friendly control."""
 
-        self._increase_shortcut = QShortcut(QKeySequence(increase_shortcut), self)
-        self._increase_shortcut.setContext(
-            Qt.ShortcutContext.WidgetWithChildrenShortcut
-        )
-        self._increase_shortcut.activated.connect(lambda: self._nudge_value(self._step))
-        self._increase_shortcut.setWhatsThis(
-            self.tr("Increase %1 by one step (%2).")
-            .replace("%1", self.accessibleName())
-            .replace("%2", increase_shortcut)
+        self._shortcut_metadata.clear()
+
+        self._increase_shortcut = self._register_shortcut(
+            "increase",
+            increase_shortcut,
+            lambda: self._nudge_value(self._step),
+            self.tr("Increase %1 by one step (%2)."),
+            {
+                "%1": self.accessibleName(),
+                "%2": increase_shortcut,
+            },
         )
 
-        self._decrease_shortcut = QShortcut(QKeySequence(decrease_shortcut), self)
-        self._decrease_shortcut.setContext(
-            Qt.ShortcutContext.WidgetWithChildrenShortcut
-        )
-        self._decrease_shortcut.activated.connect(
-            lambda: self._nudge_value(-self._step)
-        )
-        self._decrease_shortcut.setWhatsThis(
-            self.tr("Decrease %1 by one step (%2).")
-            .replace("%1", self.accessibleName())
-            .replace("%2", decrease_shortcut)
+        self._decrease_shortcut = self._register_shortcut(
+            "decrease",
+            decrease_shortcut,
+            lambda: self._nudge_value(-self._step),
+            self.tr("Decrease %1 by one step (%2)."),
+            {
+                "%1": self.accessibleName(),
+                "%2": decrease_shortcut,
+            },
         )
 
-        self._reset_shortcut = QShortcut(QKeySequence(reset_shortcut), self)
-        self._reset_shortcut.setContext(Qt.ShortcutContext.WidgetWithChildrenShortcut)
-        self._reset_shortcut.activated.connect(self._reset_to_default)
-        self._reset_shortcut.setWhatsThis(
-            self.tr("Reset %1 to its default value (%2).")
-            .replace("%1", self.accessibleName())
-            .replace("%2", reset_shortcut)
+        self._reset_shortcut = self._register_shortcut(
+            "reset",
+            reset_shortcut,
+            self._reset_to_default,
+            self.tr("Reset %1 to its default value (%2)."),
+            {
+                "%1": self.accessibleName(),
+                "%2": reset_shortcut,
+            },
         )
+
+    def _register_shortcut(
+        self,
+        identifier: str,
+        sequence_str: str,
+        callback,
+        description_template: str,
+        replacements: dict[str, str] | None = None,
+    ) -> QShortcut:
+        """Create and register a shortcut with accessibility metadata."""
+
+        shortcut = QShortcut(QKeySequence(sequence_str), self)
+        shortcut.setContext(Qt.ShortcutContext.WidgetWithChildrenShortcut)
+        shortcut.activated.connect(callback)
+
+        description = description_template
+        if replacements:
+            for placeholder, value in replacements.items():
+                description = description.replace(placeholder, value)
+        shortcut.setWhatsThis(description)
+
+        sequence_text = shortcut.keySequence().toString(
+            QKeySequence.SequenceFormat.NativeText
+        )
+        self._shortcut_metadata.append(
+            AccessibilityShortcut(identifier, sequence_text, description)
+        )
+        return shortcut
+
+    def _compose_shortcut_summary(self) -> str:
+        """Summarise the registered shortcuts for accessible descriptions."""
+
+        if not self._shortcut_metadata:
+            return ""
+
+        joined = " ".join(shortcut.description for shortcut in self._shortcut_metadata)
+        return self.tr("Keyboard shortcuts: %1").replace("%1", joined)
+
+    def accessibilityRole(self) -> str:
+        """Expose the semantic role expected by accessibility tooling."""
+
+        return self._accessible_role
+
+    def accessibilityShortcuts(self) -> List[AccessibilityShortcut]:
+        """Return the shortcuts that should be announced to automation."""
+
+        return list(self._shortcut_metadata)
 
     def _nudge_value(self, delta: float) -> None:
         """Increment or decrement the knob by *delta*."""
