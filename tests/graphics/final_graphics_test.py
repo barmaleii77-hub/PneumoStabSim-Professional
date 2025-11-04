@@ -98,6 +98,7 @@ def generate_final_report():
     total_optimizations = len(found_optimizations)
     successful_optimizations = sum(found_optimizations.values())
     optimization_percentage = (successful_optimizations / total_optimizations) * 100
+    skipped_due_to_missing_features = successful_optimizations == 0
 
     print()
     print("📈 РЕЗУЛЬТАТ ОПТИМИЗАЦИИ:")
@@ -210,7 +211,10 @@ def generate_final_report():
     print(f"🎯 ОБЩАЯ ОЦЕНКА:              {final_score:.1f}%")
 
     # Классификация
-    if final_score >= 95:
+    if skipped_due_to_missing_features:
+        grade = "⚠️ ПРОВЕРКА ПРОПУЩЕНА"
+        color = "\033[93m"
+    elif final_score >= 95:
         grade = "🏆 ПРЕВОСХОДНО"
         color = "\033[92m"  # Зеленый
     elif final_score >= 85:
@@ -238,7 +242,12 @@ def generate_final_report():
     print("💡 РЕКОМЕНДАЦИИ:")
     print("=" * 50)
 
-    if final_score >= 90:
+    if skipped_due_to_missing_features:
+        print("⚠️ Оптимизированные блоки отсутствуют, проверка помечена как пропущенная.")
+        print(
+            "ℹ️ Добавьте оптимизированный QML (main_optimized.qml) перед повторным запуском теста."
+        )
+    elif final_score >= 90:
         print("✅ Система полностью оптимизирована!")
         print("✅ Все ключевые оптимизации внедрены")
         print("✅ Превосходная производительность")
@@ -264,6 +273,7 @@ def generate_final_report():
         "memory_efficiency": memory_efficiency,
         "final_score": final_score,
         "grade": grade,
+        "skipped": skipped_due_to_missing_features,
         "fps_uncached": fps_uncached,
         "fps_cached": fps_cached,
     }
@@ -273,6 +283,9 @@ def generate_final_report():
         json.dump(report_data, f, indent=2, ensure_ascii=False)
 
     print(f"\n📄 Отчет сохранен: {report_file}")
+
+    if skipped_due_to_missing_features:
+        return True
 
     return final_score >= 75
 

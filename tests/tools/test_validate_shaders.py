@@ -108,6 +108,29 @@ def test_validate_shaders_success(tmp_path: Path) -> None:
     assert errors == []
 
 
+def test_validate_shaders_warns_when_qsb_missing(tmp_path: Path) -> None:
+    shader_root = tmp_path / "shaders"
+
+    _write_shader(
+        shader_root, "effects/bloom.frag", "#version 450 core\nvoid main() {}\n"
+    )
+    _write_shader(
+        shader_root, "effects/bloom_fallback.frag", "#version 450 core\nvoid main() {}\n"
+    )
+    _write_shader(
+        shader_root, "effects/bloom_fallback_es.frag", "#version 300 es\nvoid main() {}\n"
+    )
+    _write_shader(
+        shader_root, "effects/bloom_es.frag", "#version 300 es\nvoid main() {}\n"
+    )
+
+    warnings: list[str] = []
+    errors = validate_shaders.validate_shaders(shader_root, warnings=warnings)
+
+    assert errors == []
+    assert any("qsb executable not found" in message for message in warnings)
+
+
 def test_validate_shaders_reports_missing_gles_variant(tmp_path: Path) -> None:
     shader_root = tmp_path / "shaders"
     reports_dir = tmp_path / "reports"

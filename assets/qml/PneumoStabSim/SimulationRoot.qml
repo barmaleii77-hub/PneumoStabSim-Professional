@@ -802,7 +802,13 @@ SequentialAnimation {
 
           Component.onCompleted: {
               initializeRenderSettings()
-              DepthTextureActivator.activate(sceneView)
+              const activated = DepthTextureActivator.activate(sceneView)
+              if (activated) {
+                  console.log("DepthTextureActivator: Depth and velocity textures active for sceneView")
+              } else {
+                  console.warn("DepthTextureActivator: Activation returned false, dumping status report")
+                  DepthTextureActivator.logStatus(sceneView)
+              }
           }
 
         Scene.SharedMaterials {

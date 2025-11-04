@@ -24,7 +24,6 @@ QtObject {
         activated = _setViewFlags(view3d) || activated
         activated = _setRenderSettingsFlags(view3d) || activated
         activated = _setEnvironmentFlags(view3d) || activated
-        activated = _invokeEnableDepthBuffer(view3d) || activated
 
         var depthAvailable = isDepthAvailable(view3d)
         if (depthAvailable) {
@@ -105,12 +104,12 @@ QtObject {
 
     function _setExplicitFlags(view3d) {
         var updated = false
-        updated = _trySetProperty(view3d, "explicitDepthTextureEnabled", true) || updated
-        updated = _trySetProperty(view3d, "explicitVelocityTextureEnabled", true) || updated
+        updated = _invokeEnableBufferMethod(view3d, "enableDepthBuffer", "View3D") || updated
+        updated = _invokeEnableBufferMethod(view3d, "enableVelocityBuffer", "View3D") || updated
 
         var renderSettings = _safeRead(function () { return view3d.renderSettings })
-        updated = _trySetProperty(renderSettings, "explicitDepthTextureEnabled", true) || updated
-        updated = _trySetProperty(renderSettings, "explicitVelocityTextureEnabled", true) || updated
+        updated = _invokeEnableBufferMethod(renderSettings, "enableDepthBuffer", "renderSettings") || updated
+        updated = _invokeEnableBufferMethod(renderSettings, "enableVelocityBuffer", "renderSettings") || updated
 
         return updated
     }
@@ -118,10 +117,8 @@ QtObject {
     function _setViewFlags(view3d) {
         var updated = false
         updated = _trySetProperty(view3d, "depthTextureEnabled", true) || updated
-        updated = _trySetProperty(view3d, "requiresDepthTexture", true) || updated
         updated = _trySetProperty(view3d, "velocityTextureEnabled", true) || updated
         updated = _trySetProperty(view3d, "velocityBufferEnabled", true) || updated
-        updated = _trySetProperty(view3d, "requiresVelocityTexture", true) || updated
         return updated
     }
 
@@ -132,11 +129,9 @@ QtObject {
 
         var updated = false
         updated = _trySetProperty(renderSettings, "depthTextureEnabled", true) || updated
-        updated = _trySetProperty(renderSettings, "requiresDepthTexture", true) || updated
         updated = _trySetProperty(renderSettings, "depthPrePassEnabled", true) || updated
         updated = _trySetProperty(renderSettings, "velocityTextureEnabled", true) || updated
         updated = _trySetProperty(renderSettings, "velocityBufferEnabled", true) || updated
-        updated = _trySetProperty(renderSettings, "requiresVelocityTexture", true) || updated
         return updated
     }
 
@@ -152,15 +147,29 @@ QtObject {
         return updated
     }
 
-    function _invokeEnableDepthBuffer(view3d) {
+    function _invokeEnableBufferMethod(target, methodName, contextLabel) {
+        if (!target)
+            return false
+
+        var callable = null
         try {
-            if (typeof view3d.enableDepthBuffer === "function") {
-                view3d.enableDepthBuffer()
-                console.log("✅ DepthTextureActivator: enableDepthBuffer() called")
-                return true
-            }
+            callable = target[methodName]
         } catch (error) {
-            console.debug("DepthTextureActivator: enableDepthBuffer() failed", error)
+            console.debug("DepthTextureActivator: failed to read method", contextLabel + "." + methodName, error)
+            return false
+        }
+
+        if (typeof callable !== "function")
+            return false
+
+        try {
+            var result = callable.call(target)
+            console.log("✅ DepthTextureActivator:", contextLabel + "." + methodName + "() invoked", result)
+            if (result === undefined)
+                return true
+            return !!result
+        } catch (error) {
+            console.debug("DepthTextureActivator:", contextLabel + "." + methodName + "() failed", error)
         }
         return false
     }

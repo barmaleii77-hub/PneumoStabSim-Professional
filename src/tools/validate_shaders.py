@@ -159,10 +159,12 @@ def _shader_reports_paths(
 def _run_qsb(
     shader: ShaderFile,
     shader_root: Path,
-    qsb_command: Sequence[str],
+    qsb_command: Sequence[str] | None,
     reports_dir: Path | None,
     errors: ValidationErrors,
 ) -> None:
+    if qsb_command is None:
+        return
     output_path, log_path = _shader_reports_paths(reports_dir, shader, shader_root)
 
     command = [
@@ -206,10 +208,12 @@ def validate_shaders(
     *,
     qsb_command: Sequence[str] | None = None,
     reports_dir: Path | None = None,
+    warnings: list[str] | None = None,
 ) -> ValidationErrors:
     """Return a list of validation error messages for *shader_root*."""
 
     errors: ValidationErrors = []
+    collected_warnings: list[str] = []
 
     if not shader_root.exists():
         return [f"Shader directory does not exist: {shader_root}"]
@@ -219,7 +223,8 @@ def validate_shaders(
             list(qsb_command) if qsb_command is not None else _resolve_qsb_command()
         )
     except (FileNotFoundError, RuntimeError) as exc:
-        return [str(exc)]
+        command = None
+        collected_warnings.append(str(exc))
 
     if reports_dir is not None:
         _ensure_directory(reports_dir)
@@ -256,6 +261,11 @@ def validate_shaders(
         for shader in files:
             _run_qsb(shader, shader_root, command, reports_dir, errors)
 
+    if warnings is not None:
+        warnings.extend(collected_warnings)
+    elif collected_warnings:
+        setattr(validate_shaders, "_last_warnings", list(collected_warnings))
+
     return errors
 
 
@@ -285,7 +295,13 @@ def main(argv: Sequence[str] | None = None) -> int:
     args = parse_args(argv)
     shader_root = args.shader_root.resolve()
     reports_dir = args.reports_dir.resolve() if args.reports_dir else None
-    errors = validate_shaders(shader_root, reports_dir=reports_dir)
+    warning_messages: list[str] = []
+    errors = validate_shaders(
+        shader_root, reports_dir=reports_dir, warnings=warning_messages
+    )
+
+    for message in warning_messages:
+        print(f"[validate_shaders] WARNING: {message}", file=sys.stderr)
 
     if errors:
         for message in errors:
