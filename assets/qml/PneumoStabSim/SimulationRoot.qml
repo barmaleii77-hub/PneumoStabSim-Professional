@@ -2393,234 +2393,74 @@ function updateScene(params) {
    return false;
 
   try {
- var bgColorVal = valueForKeys(params, ['backgroundColor', 'background_color']);
- if (bgColorVal !== undefined) setIfExists(sceneEnvCtl, 'backgroundColor', bgColorVal);
- if (params.clearColor) setIfExists(sceneEnvCtl, 'backgroundColor', params.clearColor);
- if (isPlainObject(params.background) && params.background.color !== undefined)
-  setIfExists(sceneEnvCtl, 'backgroundColor', params.background.color);
+   var applied = false;
 
-    var backgroundModeVal = valueForKeys(params, ['backgroundMode', 'background_mode']);
-    if (backgroundModeVal !== undefined) setIfExists(sceneEnvCtl, 'backgroundModeKey', String(backgroundModeVal));
-
-    var skyboxFlagRaw = valueForKeys(
-        params,
-        ['iblBackgroundEnabled', 'ibl_background_enabled', 'skyboxEnabled', 'skybox_enabled']
-    );
-    if (skyboxFlagRaw !== undefined)
-        setIfExists(sceneEnvCtl, 'skyboxToggleFlag', !!skyboxFlagRaw);
-
-    var currentSkyboxState = false;
-    if (sceneEnvCtl && sceneEnvCtl.skyboxToggleFlag !== undefined)
-        currentSkyboxState = !!sceneEnvCtl.skyboxToggleFlag;
-    var resolvedSkybox = skyboxFlagRaw !== undefined ? !!skyboxFlagRaw : currentSkyboxState;
-
-    var iblEnabledRaw = valueForKeys(params, ['iblEnabled', 'ibl_enabled']);
-    var iblLightingRaw = valueForKeys(params, ['iblLightingEnabled', 'ibl_lighting_enabled']);
-
-    var resolvedLighting = false;
-    if (sceneEnvCtl && sceneEnvCtl.iblLightingEnabled !== undefined)
-        resolvedLighting = !!sceneEnvCtl.iblLightingEnabled;
-
-    if (iblEnabledRaw !== undefined) {
-        resolvedLighting = !!iblEnabledRaw;
-        setIfExists(sceneEnvCtl, 'iblLightingEnabled', resolvedLighting);
+   if (sceneEnvCtl && typeof sceneEnvCtl.applyEnvironmentPayload === "function") {
+    try {
+     sceneEnvCtl.applyEnvironmentPayload(params);
+     applied = true;
+    } catch (controllerError) {
+     console.warn("[SimulationRoot] applyEnvironmentPayload failed", controllerError);
     }
+   }
 
-    if (iblLightingRaw !== undefined) {
-        resolvedLighting = !!iblLightingRaw;
-        setIfExists(sceneEnvCtl, 'iblLightingEnabled', resolvedLighting);
-    }
-
-    var masterEnabled = resolvedLighting || resolvedSkybox;
-    setIfExists(sceneEnvCtl, 'iblMasterEnabled', masterEnabled);
-
-    var directSkyboxBrightnessProvided = valueForKeys(
-        params,
-        ['skyboxBrightness', 'skybox_brightness']
-    ) !== undefined;
-    var directProbeBrightnessProvided = valueForKeys(
-        params,
-        ['probeBrightness', 'probe_brightness']
-    ) !== undefined;
-    var nestedSkyboxBrightnessProvided = false;
-    var nestedProbeBrightnessProvided = false;
-    if (isPlainObject(params.ibl)) {
-        nestedSkyboxBrightnessProvided = valueForKeys(
-            params.ibl,
-            ['skyboxBrightness', 'skybox_brightness']
-        ) !== undefined;
-        nestedProbeBrightnessProvided = valueForKeys(
-            params.ibl,
-            ['probeBrightness', 'probe_brightness']
-        ) !== undefined;
-    }
-    var shouldMirrorIntensity = !(
-        directSkyboxBrightnessProvided ||
-        directProbeBrightnessProvided ||
-        nestedSkyboxBrightnessProvided ||
-        nestedProbeBrightnessProvided
-    );
-
-    var intensityVal = valueForKeys(params, ['iblIntensity', 'ibl_intensity']);
-    if (intensityVal !== undefined) {
-        var numericIntensity = Number(intensityVal);
-        if (isFinite(numericIntensity)) {
-            setIfExists(sceneEnvCtl, 'iblIntensity', numericIntensity);
-            if (shouldMirrorIntensity) {
-                setIfExists(sceneEnvCtl, 'skyboxBrightnessValue', numericIntensity);
-            }
-        }
-    }
-
-    var skyboxBrightnessVal = valueForKeys(
-        params,
-        ['skyboxBrightness', 'skybox_brightness', 'probeBrightness', 'probe_brightness']
-    );
-    if (skyboxBrightnessVal !== undefined) {
-        var numericSkyboxBrightness = Number(skyboxBrightnessVal);
-        if (isFinite(numericSkyboxBrightness)) {
-            setIfExists(sceneEnvCtl, 'skyboxBrightnessValue', numericSkyboxBrightness);
-        }
-    }
-
- var probeHorizonVal = valueForKeys(params, ['probeHorizon', 'probe_horizon']);
- if (probeHorizonVal !== undefined) {
-     var numericHorizon = Number(probeHorizonVal);
-     if (isFinite(numericHorizon)) setIfExists(sceneEnvCtl, 'probeHorizonValue', numericHorizon);
- }
-
- var rotationYawVal = valueForKeys(params, ['iblRotationDeg', 'ibl_rotation']);
- if (rotationYawVal !== undefined) {
-     var numericYaw = Number(rotationYawVal);
-     if (isFinite(numericYaw)) setIfExists(sceneEnvCtl, 'iblRotationDeg', numericYaw);
- }
-
- var rotationPitchVal = valueForKeys(params, ['iblRotationPitchDeg', 'ibl_offset_x']);
- if (rotationPitchVal !== undefined) {
-     var numericPitch = Number(rotationPitchVal);
-     if (isFinite(numericPitch)) setIfExists(sceneEnvCtl, 'iblRotationPitchDeg', numericPitch);
- }
-
- var rotationRollVal = valueForKeys(params, ['iblRotationRollDeg', 'ibl_offset_y']);
- if (rotationRollVal !== undefined) {
-     var numericRoll = Number(rotationRollVal);
-     if (isFinite(numericRoll)) setIfExists(sceneEnvCtl, 'iblRotationRollDeg', numericRoll);
- }
-
- var bindCameraVal = valueForKeys(params, ['iblBindToCamera', 'ibl_bind_to_camera']);
- if (bindCameraVal !== undefined) setIfExists(sceneEnvCtl, 'iblBindToCamera', !!bindCameraVal);
-
- var skyboxBlurVal = valueForKeys(params, ['skyboxBlur', 'skybox_blur']);
- if (skyboxBlurVal !== undefined) {
-     var numericBlur = Number(skyboxBlurVal);
-     if (isFinite(numericBlur)) setIfExists(sceneEnvCtl, 'skyboxBlurValue', numericBlur);
- }
- var hdrSourceVal = valueForKeys(
-     params,
-     [
-         'iblSource',
-         'ibl_source',
-         'iblPrimary',
-         'ibl_primary',
-         'hdrSource',
-         'hdr_source'
-     ]
- );
- if (hdrSourceVal !== undefined) {
-     var resolvedSource = hdrSourceVal;
-     if (resolvedSource === null)
-         resolvedSource = '';
-     if (resolvedSource !== '') {
-         resolvedSource = String(resolvedSource);
-         if (
-             typeof window !== 'undefined'
-             && window
-             && typeof window.normalizeHdrPath === 'function'
-         ) {
-             try {
-                 resolvedSource = window.normalizeHdrPath(resolvedSource);
-             } catch (e) {
-                 console.warn('HDR path normalization failed:', e);
-             }
-         }
+   var hdrSourceVal = valueForKeys(
+    params,
+    [
+     'iblSource',
+     'ibl_source',
+     'iblPrimary',
+     'ibl_primary',
+     'hdrSource',
+     'hdr_source'
+    ]
+   );
+   if (hdrSourceVal === undefined && isPlainObject(params.ibl))
+    hdrSourceVal = valueForKeys(params.ibl, ['source', 'primary', 'path']);
+   if (hdrSourceVal !== undefined) {
+    var resolvedSource = hdrSourceVal === null ? '' : String(hdrSourceVal);
+    if (
+     resolvedSource !== ''
+     && typeof window !== 'undefined'
+     && window
+     && typeof window.normalizeHdrPath === 'function'
+    ) {
+     try {
+      resolvedSource = window.normalizeHdrPath(resolvedSource);
+     } catch (normaliseError) {
+      console.warn('[SimulationRoot] HDR path normalization failed', normaliseError);
      }
+    }
+    if (iblLoader && typeof iblLoader.primarySource !== "undefined") {
      setIfExists(iblLoader, 'primarySource', resolvedSource || '');
- }
- if (params.tonemapEnabled !== undefined) {
-     var tonemapEnabledFlag = !!params.tonemapEnabled;
-     setIfExists(sceneEnvCtl, 'tonemapActive', tonemapEnabledFlag);
-     if (!tonemapEnabledFlag) {
-         setIfExists(sceneEnvCtl, 'tonemapModeName', 'none');
-     } else if (!params.tonemapModeName && !params.tonemap_mode) {
-         var storedMode = sceneEnvCtl.tonemapStoredModeName || sceneEnvCtl.tonemapModeName || 'filmic';
-         setIfExists(sceneEnvCtl, 'tonemapModeName', storedMode);
-     }
- }
- if (params.tonemapActive !== undefined) {
-     var tonemapActiveFlag = !!params.tonemapActive;
-     setIfExists(sceneEnvCtl, 'tonemapActive', tonemapActiveFlag);
-     if (!tonemapActiveFlag) {
-         setIfExists(sceneEnvCtl, 'tonemapModeName', 'none');
-     } else if (!params.tonemapModeName && !params.tonemap_mode) {
-         var activeStored = sceneEnvCtl.tonemapStoredModeName || sceneEnvCtl.tonemapModeName || 'filmic';
-         setIfExists(sceneEnvCtl, 'tonemapModeName', activeStored);
-     }
- }
- if (params.tonemapModeName) setIfExists(sceneEnvCtl, 'tonemapModeName', String(params.tonemapModeName));
- if (params.tonemapExposure !== undefined) setIfExists(sceneEnvCtl, 'tonemapExposure', Number(params.tonemapExposure));
- if (params.tonemapWhitePoint !== undefined) setIfExists(sceneEnvCtl, 'tonemapWhitePoint', Number(params.tonemapWhitePoint));
- var fogEnabledVal = valueForKeys(params, ['fogEnabled', 'fog_enabled']);
- if (fogEnabledVal !== undefined) setIfExists(sceneEnvCtl, 'fogEnabled', !!fogEnabledVal);
- var fogColorVal = valueForKeys(params, ['fogColor', 'fog_color']);
- if (fogColorVal !== undefined) setIfExists(sceneEnvCtl, 'fogColor', fogColorVal);
- var fogDensityVal = valueForKeys(params, ['fogDensity', 'fog_density']);
- if (fogDensityVal !== undefined) {
-     var fogDensityNum = Number(fogDensityVal);
-     if (isFinite(fogDensityNum)) setIfExists(sceneEnvCtl, 'fogDensity', fogDensityNum);
- }
- var fogNearSource = valueForKeys(params, ['fogNear', 'fog_near']);
- if (fogNearSource !== undefined) {
-     var fogNearVal = Number(fogNearSource);
-     if (isFinite(fogNearVal)) setIfExists(sceneEnvCtl, 'fogNear', toSceneLength(fogNearVal));
- }
- var fogFarSource = valueForKeys(params, ['fogFar', 'fog_far']);
- if (fogFarSource !== undefined) {
-     var fogFarVal = Number(fogFarSource);
-     if (isFinite(fogFarVal)) setIfExists(sceneEnvCtl, 'fogFar', toSceneLength(fogFarVal));
- }
- if (params.ssaoEnabled !== undefined) setIfExists(sceneEnvCtl, 'ssaoEnabled', !!params.ssaoEnabled);
- if (params.ssaoRadius !== undefined) setIfExists(sceneEnvCtl, 'ssaoRadius', Number(params.ssaoRadius));
- if (params.ssaoIntensity !== undefined) setIfExists(sceneEnvCtl, 'ssaoIntensity', Number(params.ssaoIntensity));
- if (params.depthOfFieldEnabled !== undefined) setIfExists(sceneEnvCtl, 'internalDepthOfFieldEnabled', !!params.depthOfFieldEnabled);
- if (params.dofFocusDistance !== undefined) { var dofDist = Number(params.dofFocusDistance); if (isFinite(dofDist)) setIfExists(sceneEnvCtl, 'dofFocusDistance', toSceneLength(dofDist)); }
- if (params.dofBlurAmount !== undefined) setIfExists(sceneEnvCtl, 'dofBlurAmount', Number(params.dofBlurAmount));
- if (params.vignetteEnabled !== undefined) setIfExists(sceneEnvCtl, 'internalVignetteEnabled', !!params.vignetteEnabled);
- if (params.vignetteStrength !== undefined) setIfExists(sceneEnvCtl, 'internalVignetteStrength', Number(params.vignetteStrength));
- if (params.aaPrimaryMode) setIfExists(sceneEnvCtl, 'aaPrimaryMode', String(params.aaPrimaryMode));
- if (params.aaQualityLevel) setIfExists(sceneEnvCtl, 'aaQualityLevel', String(params.aaQualityLevel));
- if (params.aaPostMode) setIfExists(sceneEnvCtl, 'aaPostMode', String(params.aaPostMode));
- if (params.taaEnabled !== undefined) setIfExists(sceneEnvCtl, 'taaEnabled', !!params.taaEnabled);
- if (params.taaStrength !== undefined) setIfExists(sceneEnvCtl, 'taaStrength', Number(params.taaStrength));
- if (params.taaMotionAdaptive !== undefined) setIfExists(sceneEnvCtl, 'taaMotionAdaptive', !!params.taaMotionAdaptive);
- if (params.fxaaEnabled !== undefined) setIfExists(sceneEnvCtl, 'fxaaEnabled', !!params.fxaaEnabled);
- if (params.specularAAEnabled !== undefined) setIfExists(sceneEnvCtl, 'specularAAEnabled', !!params.specularAAEnabled);
- if (params.oitMode) setIfExists(sceneEnvCtl, 'oitMode', String(params.oitMode));
-  if (params.ditheringEnabled !== undefined) setIfExists(sceneEnvCtl, 'ditheringEnabled', !!params.ditheringEnabled);
+     applied = true;
+    }
+   }
 
- if (postEffects && typeof postEffects.applyPayload === "function") {
-  try {
-   postEffects.applyPayload(params, sceneEnvCtl);
-  } catch (effectError) {
-   console.warn("[SimulationRoot] postEffects.applyPayload failed", effectError);
+   var scaleValue = valueForKeys(params, ['sceneScaleFactor', 'scene_scale_factor', 'scene_scale']);
+   if (scaleValue !== undefined) {
+    var numericScale = Number(scaleValue);
+    if (isFinite(numericScale) && numericScale > 0) {
+     root.sceneScaleFactor = numericScale;
+     applied = true;
+    }
+   }
+
+   if (postEffects && typeof postEffects.applyPayload === "function") {
+    try {
+     postEffects.applyPayload(params, sceneEnvCtl);
+     applied = true;
+    } catch (effectError) {
+     console.warn("[SimulationRoot] postEffects.applyPayload failed", effectError);
+    }
+   }
+
+   return applied;
+  } catch (error) {
+   console.error("[SimulationRoot] applyEnvironmentUpdates failed", error);
+   return false;
   }
  }
-
- return true;
- } catch (error) {
-  console.error("[SimulationRoot] applyEnvironmentUpdates failed", error);
-  return false;
- }
-}
 
     function applyQualityUpdates(params) {
         params = coerceBatchObject("quality", params);
@@ -2730,6 +2570,12 @@ else if (isPlainObject(params.shadows))
  }
 
  var qualityPatch = {};
+ var presetValue = valueForKeys(params, ['qualityPreset', 'preset']);
+ if (presetValue !== undefined && presetValue !== null) {
+  var presetText = String(presetValue).trim();
+  if (presetText.length)
+   qualityPatch.qualityPreset = presetText;
+ }
  var aaSource = isPlainObject(params.antialiasing) ? params.antialiasing : null;
 
  assignString("aaPrimaryMode", params.aaPrimaryMode !== undefined ? params.aaPrimaryMode : aaSource && aaSource.primary);
