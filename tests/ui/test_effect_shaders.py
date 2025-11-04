@@ -13,7 +13,7 @@ from pathlib import Path
 
 import pytest
 
-from src.ui.main_window_pkg.ui_setup import EFFECT_SHADER_DIR, UISetup
+from src.ui.main_window_pkg.ui_setup import EFFECT_SHADER_DIRS, UISetup
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -23,9 +23,14 @@ EFFECT_FILES = [
     REPO_ROOT / "assets/qml/effects/PostEffects.qml",
 ]
 
-SHADER_DIR = REPO_ROOT / "assets/shaders/effects"
+SHADER_DIRS = [Path(directory) for directory in EFFECT_SHADER_DIRS]
 SHADER_FILES = sorted(
-    list(SHADER_DIR.glob("*.frag")) + list(SHADER_DIR.glob("*.vert"))
+    [
+        shader
+        for directory in SHADER_DIRS
+        for pattern in ("*.frag", "*.vert")
+        for shader in directory.glob(pattern)
+    ]
 )
 
 
@@ -75,7 +80,8 @@ def test_effect_shader_manifest_matches_filesystem() -> None:
     manifest = UISetup._build_effect_shader_manifest()
     expected = {
         path.name
-        for path in EFFECT_SHADER_DIR.iterdir()
+        for directory in SHADER_DIRS
+        for path in directory.iterdir()
         if path.is_file() and path.suffix.lower() in {".frag", ".vert"}
     }
 

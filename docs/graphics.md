@@ -42,6 +42,15 @@ Environment payload (вложенный)
 - В QML логируются вызовы функций (`console.log`) и важные состояния (IBL ready, skyboxActive)
 - В Python логируем `log_qml_invoke`, `log_signal_emit`, и помечаем события как `applied_to_qml`
 
+## PostEffects GLES 3.0 — профиль шейдеров
+
+- **Каталоги:** GLES-варианты bloom/SSAO/DoF/motion blur теперь расположены в `assets/shaders/post_effects/` с суффиксом `_es`
+  и директивой `#version 300 es`, а десктопные версии остаются в `assets/shaders/effects/`. 【F:assets/shaders/post_effects/bloom_es.frag†L1-L15】【F:assets/shaders/effects/bloom.frag†L1-L18】
+- **Загрузка:** `PostEffects.qml` в первую очередь ищет GLES-файлы через `shaderResourceDirectories`, добавляя `../../shaders/post_effects/`
+  перед десктопным каталогом, чтобы Qt Quick 3D под ANGLE/OpenGL ES подхватывал нужные варианты. 【F:assets/qml/effects/PostEffects.qml†L197-L214】【F:assets/qml/effects/PostEffects.qml†L320-L349】
+- **Манифест:** `UISetup._build_effect_shader_manifest()` агрегирует оба каталога (`effects` и `post_effects`), чтобы QML быстро проверял
+  наличие ресурсов без синхронных запросов. 【F:src/ui/main_window_pkg/ui_setup.py†L34-L88】
+
 ## FogEffect v4.9.5 — компиляция шейдеров и fallback
 
 - **Файлы:** `assets/qml/effects/FogEffect.qml`, `assets/shaders/effects/fog.vert`, `assets/shaders/effects/fog.frag`,
@@ -66,8 +75,10 @@ Environment payload (вложенный)
 
 > ℹ️ В CI-контейнере Qt Quick 3D работает в headless-режиме. Перед запуском необходимо установить системные
 > зависимости `libgl1`, `libegl1`, `libxkbcommon0`, `libxkbcommon-x11-0`, иначе импорт PySide6 завершится ошибкой
-> (`libGL.so.1`/`libxkbcommon.so.0` не найдены). После установки запуск команды выше завершается успешно, в логе
-> фиксируются статусы `Shader.Ready` без сообщений об ошибках компиляции.
+> (`libGL.so.1`/`libxkbcommon.so.0` не найдены). Используйте
+> `apt-get install -y libgl1 libegl1 libxkbcommon0 libxkbcommon-x11-0`, чтобы подтянуть минимальный набор
+> библиотек. После установки запуск команды выше завершается успешно, в логе фиксируются статусы `Shader.Ready`
+> без сообщений об ошибках компиляции.
 
 ### Проверка визуального результата
 
