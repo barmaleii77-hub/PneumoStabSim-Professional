@@ -133,14 +133,31 @@ signal animationToggled(bool running)
   }
  }
 
- readonly property real defaultDofFocusDistanceM: effectsDefaultNumber(["dof_focus_distance"], 2.5)
+readonly property real defaultDofFocusDistanceM: effectsDefaultNumber(["dof_focus_distance"], 2.5)
 
- property bool reflectionProbeEnabled: true
- // Padding stored in metres; converted to scene units where required
- property real reflectionProbePaddingM: 0.15
- property int reflectionProbeQualityValue: ReflectionProbe.VeryHigh
- property int reflectionProbeRefreshModeValue: ReflectionProbe.EveryFrame
- property int reflectionProbeTimeSlicingValue: ReflectionProbe.IndividualFaces
+readonly property var environmentDefaultsMap: environmentDefaultsMapFor(sceneDefaults)
+property color environmentBackgroundColorDefault: environmentDefaultString(environmentDefaultsMap, ["background_color", "backgroundColor"], "#1f242c")
+property string environmentBackgroundModeDefault: environmentDefaultString(environmentDefaultsMap, ["background_mode", "backgroundMode"], "skybox")
+property bool environmentSkyboxEnabledDefault: environmentDefaultBool(environmentDefaultsMap, ["skybox_enabled", "skyboxEnabled"], true)
+property bool environmentIblBackgroundEnabledDefault: environmentDefaultBool(environmentDefaultsMap, ["ibl_background_enabled", "iblBackgroundEnabled", "skybox_enabled", "skyboxEnabled"], true)
+property bool environmentIblLightingEnabledDefault: environmentDefaultBool(environmentDefaultsMap, ["ibl_lighting_enabled", "iblLightingEnabled", "ibl_enabled", "iblEnabled"], true)
+property bool environmentIblMasterEnabledDefault: environmentDefaultBool(environmentDefaultsMap, ["ibl_master_enabled", "iblMasterEnabled"], environmentIblLightingEnabledDefault || environmentIblBackgroundEnabledDefault)
+property bool environmentIblBindToCameraDefault: environmentDefaultBool(environmentDefaultsMap, ["ibl_bind_to_camera", "iblBindToCamera"], false)
+property real environmentIblIntensityDefault: environmentDefaultNumber(environmentDefaultsMap, ["ibl_intensity", "iblIntensity"], 1.3)
+property real environmentSkyboxBrightnessDefault: environmentDefaultNumber(environmentDefaultsMap, ["skybox_brightness", "probe_brightness", "skyboxBrightness", "probeBrightness"], 1.0)
+property real environmentProbeHorizonDefault: environmentDefaultNumber(environmentDefaultsMap, ["probe_horizon", "probeHorizon"], 0.0)
+property real environmentIblRotationPitchDefault: environmentDefaultNumber(environmentDefaultsMap, ["ibl_offset_x", "iblRotationPitchDeg"], 0.0)
+property real environmentIblRotationYawDefault: environmentDefaultNumber(environmentDefaultsMap, ["ibl_rotation", "iblRotationDeg"], 0.0)
+property real environmentIblRotationRollDefault: environmentDefaultNumber(environmentDefaultsMap, ["ibl_offset_y", "iblRotationRollDeg"], 0.0)
+property real environmentSkyboxBlurDefault: environmentDefaultNumber(environmentDefaultsMap, ["skybox_blur", "skyboxBlur"], 0.08)
+property url environmentHdrSourceDefault: normalizeHdrSource(environmentDefaultString(environmentDefaultsMap, ["ibl_source", "hdr_source", "iblPrimary"], ""))
+
+property bool reflectionProbeEnabled: environmentDefaultBool(environmentDefaultsMap, ["reflection_enabled", "reflectionEnabled"], true)
+// Padding stored in metres; converted to scene units where required
+property real reflectionProbePaddingM: environmentDefaultNumber(environmentDefaultsMap, ["reflection_padding_m", "reflectionPadding"], 0.15)
+property int reflectionProbeQualityValue: reflectionProbeQualityFrom(environmentDefaultString(environmentDefaultsMap, ["reflection_quality", "reflectionQuality"], "veryhigh"))
+property int reflectionProbeRefreshModeValue: reflectionProbeRefreshModeFrom(environmentDefaultString(environmentDefaultsMap, ["reflection_refresh_mode", "reflectionRefreshMode"], "everyframe"))
+property int reflectionProbeTimeSlicingValue: reflectionProbeTimeSlicingFrom(environmentDefaultString(environmentDefaultsMap, ["reflection_time_slicing", "reflectionTimeSlicing"], "individualfaces"))
 
  property bool signalTraceOverlayVisible: false
  property bool signalTraceRecordingEnabled: false
@@ -509,6 +526,112 @@ function geometryDefaultNumber(keys, fallback) {
     return fallbackNumeric
 }
 
+function environmentDefaultsMapFor(source) {
+    if (!source || typeof source !== "object" || Array.isArray(source))
+        return {}
+    if (source.environment && typeof source.environment === "object" && !Array.isArray(source.environment))
+        return source.environment
+    return source
+}
+
+function environmentDefaultRaw(defaults, list) {
+    if (!defaults || typeof defaults !== "object")
+        return undefined
+    for (var i = 0; i < list.length; ++i) {
+        var key = list[i]
+        if (Object.prototype.hasOwnProperty.call(defaults, key))
+            return defaults[key]
+        var alt = key.indexOf("_") >= 0
+            ? key.replace(/_([a-z])/g, function(_, ch) { return ch.toUpperCase() })
+            : key.replace(/[A-Z]/g, function(ch) { return "_" + ch.toLowerCase() })
+        if (Object.prototype.hasOwnProperty.call(defaults, alt))
+            return defaults[alt]
+    }
+    return undefined
+}
+
+function environmentDefaultNumber(defaults, keys, fallback) {
+    var list = Array.isArray(keys) ? keys : [keys]
+    var raw = environmentDefaultRaw(defaults, list)
+    if (raw === undefined || raw === null) {
+        var fallbackNumeric = Number(fallback)
+        if (!isFinite(fallbackNumeric))
+            fallbackNumeric = 0.0
+        var reason = defaults && Object.keys(defaults).length ? "missing key" : "defaults unavailable"
+        recordDefaultFallback("environment", list, fallbackNumeric, reason)
+        return fallbackNumeric
+    }
+    var numeric = Number(raw)
+    if (isFinite(numeric))
+        return numeric
+    var fallbackNumeric = Number(fallback)
+    if (!isFinite(fallbackNumeric))
+        fallbackNumeric = 0.0
+    recordDefaultFallback("environment", list, fallbackNumeric, "invalid value " + defaultDebugValue(raw))
+    return fallbackNumeric
+}
+
+function environmentDefaultBool(defaults, keys, fallback) {
+    var list = Array.isArray(keys) ? keys : [keys]
+    var raw = environmentDefaultRaw(defaults, list)
+    if (raw === undefined || raw === null) {
+        var fallbackBool = !!fallback
+        var reason = defaults && Object.keys(defaults).length ? "missing key" : "defaults unavailable"
+        recordDefaultFallback("environment", list, fallbackBool, reason)
+        return fallbackBool
+    }
+    if (typeof raw === "boolean")
+        return raw
+    if (typeof raw === "number")
+        return raw !== 0
+    if (typeof raw === "string") {
+        var token = raw.trim().toLowerCase()
+        if (token === "true" || token === "yes" || token === "on")
+            return true
+        if (token === "false" || token === "no" || token === "off")
+            return false
+        var numeric = Number(raw)
+        if (isFinite(numeric))
+            return numeric !== 0
+    }
+    var fallbackBool = !!fallback
+    recordDefaultFallback("environment", list, fallbackBool, "invalid value " + defaultDebugValue(raw))
+    return fallbackBool
+}
+
+function environmentDefaultString(defaults, keys, fallback) {
+    var list = Array.isArray(keys) ? keys : [keys]
+    var raw = environmentDefaultRaw(defaults, list)
+    if (raw === undefined || raw === null) {
+        var fallbackText = fallback !== undefined && fallback !== null ? String(fallback) : ""
+        var reason = defaults && Object.keys(defaults).length ? "missing key" : "defaults unavailable"
+        recordDefaultFallback("environment", list, fallbackText, reason)
+        return fallbackText
+    }
+    var text = String(raw)
+    if (text.length)
+        return text
+    var fallbackText = fallback !== undefined && fallback !== null ? String(fallback) : ""
+    recordDefaultFallback("environment", list, fallbackText, "empty string value")
+    return fallbackText
+}
+
+function normalizeHdrSource(source) {
+    if (source === undefined || source === null)
+        return ""
+    var resolved = String(source)
+    if (!resolved.length)
+        return ""
+    if (typeof window !== "undefined" && window && typeof window.normalizeHdrPath === "function") {
+        try {
+            resolved = window.normalizeHdrPath(resolved)
+        } catch (error) {
+            console.warn("[SimulationRoot] HDR path normalization failed:", error)
+        }
+    }
+    return resolved
+}
+
 function animationDefaultNumber(keys, fallback) {
     var defaults = animationDefaults || {}
     var list = Array.isArray(keys) ? keys : [keys]
@@ -743,17 +866,32 @@ function toggleAnimation() {
   }
  }
 
- SceneEnvironmentController {
+SceneEnvironmentController {
  id: sceneEnvCtl
  objectName: "sceneEnvironmentController"
  sceneBridge: root.sceneBridge
  sceneScaleFactor: root.sceneScaleFactor
- }
+ backgroundColor: root.environmentBackgroundColorDefault
+ backgroundModeKey: root.environmentBackgroundModeDefault
+ skyboxToggleFlag: root.environmentSkyboxEnabledDefault
+ iblBackgroundEnabled: root.environmentIblBackgroundEnabledDefault
+ iblLightingEnabled: root.environmentIblLightingEnabledDefault
+ iblMasterEnabled: root.environmentIblMasterEnabledDefault
+ iblBindToCamera: root.environmentIblBindToCameraDefault
+ iblIntensity: root.environmentIblIntensityDefault
+ skyboxBrightnessValue: root.environmentSkyboxBrightnessDefault
+ probeHorizonValue: root.environmentProbeHorizonDefault
+ iblRotationPitchDeg: root.environmentIblRotationPitchDefault
+ iblRotationDeg: root.environmentIblRotationYawDefault
+ iblRotationRollDeg: root.environmentIblRotationRollDefault
+ skyboxBlurValue: root.environmentSkyboxBlurDefault
+}
 
 IblProbeLoader {
  id: iblLoader
  objectName: "iblProbeLoader"
  visible: false
+ primarySource: root.environmentHdrSourceDefault
 }
 
  SequentialAnimation {
@@ -985,6 +1123,15 @@ SequentialAnimation {
  hudSettings: root.cameraHudSettings
  hudVisible: root.cameraHudEnabled
  taaMotionAdaptive: sceneEnvCtl.taaMotionAdaptive
+ frameLength: root.userFrameLength * metersToControllerUnits
+ frameHeight: root.userFrameHeight * metersToControllerUnits
+ trackWidth: root.userTrackWidth * metersToControllerUnits
+ beamSize: root.userBeamSize * metersToControllerUnits
+ frameToPivot: root.userFrameToPivot > 0
+               ? root.userFrameToPivot * metersToControllerUnits
+               : (root.userFrameLength > 0
+                  ? root.userFrameLength * metersToControllerUnits / 2
+                  : 0)
  onToggleAnimation: function() {
  if (typeof root.toggleAnimation === "function") {
  root.toggleAnimation()
@@ -2433,6 +2580,7 @@ function updateScene(params) {
 
     var masterEnabled = resolvedLighting || resolvedSkybox;
     setIfExists(sceneEnvCtl, 'iblMasterEnabled', masterEnabled);
+    setIfExists(sceneEnvCtl, 'iblBackgroundEnabled', masterEnabled && resolvedSkybox);
 
     var directSkyboxBrightnessProvided = valueForKeys(
         params,
@@ -2515,37 +2663,21 @@ function updateScene(params) {
      var numericBlur = Number(skyboxBlurVal);
      if (isFinite(numericBlur)) setIfExists(sceneEnvCtl, 'skyboxBlurValue', numericBlur);
  }
- var hdrSourceVal = valueForKeys(
-     params,
-     [
-         'iblSource',
-         'ibl_source',
-         'iblPrimary',
-         'ibl_primary',
-         'hdrSource',
-         'hdr_source'
-     ]
- );
- if (hdrSourceVal !== undefined) {
-     var resolvedSource = hdrSourceVal;
-     if (resolvedSource === null)
-         resolvedSource = '';
-     if (resolvedSource !== '') {
-         resolvedSource = String(resolvedSource);
-         if (
-             typeof window !== 'undefined'
-             && window
-             && typeof window.normalizeHdrPath === 'function'
-         ) {
-             try {
-                 resolvedSource = window.normalizeHdrPath(resolvedSource);
-             } catch (e) {
-                 console.warn('HDR path normalization failed:', e);
-             }
-         }
-     }
-     setIfExists(iblLoader, 'primarySource', resolvedSource || '');
- }
+    var hdrSourceVal = valueForKeys(
+        params,
+        [
+            'iblSource',
+            'ibl_source',
+            'iblPrimary',
+            'ibl_primary',
+            'hdrSource',
+            'hdr_source'
+        ]
+    );
+    if (hdrSourceVal !== undefined) {
+        var normalizedSource = normalizeHdrSource(hdrSourceVal);
+        setIfExists(iblLoader, 'primarySource', normalizedSource);
+    }
  if (params.tonemapEnabled !== undefined) {
      var tonemapEnabledFlag = !!params.tonemapEnabled;
      setIfExists(sceneEnvCtl, 'tonemapActive', tonemapEnabledFlag);
