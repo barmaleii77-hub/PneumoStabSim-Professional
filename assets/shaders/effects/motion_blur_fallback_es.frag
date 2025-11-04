@@ -74,4 +74,3 @@ void main()
     motionBlurFallbackESMain(fragColor);
     FRAGCOLOR = fragColor;
 }
-
