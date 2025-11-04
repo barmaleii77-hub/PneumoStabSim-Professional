@@ -52,6 +52,11 @@ layout(location = 0) in vec2 v_uv;
 
 #ifndef MAIN
 #define MAIN qt_customMain
+#define QSB_USES_QT_CUSTOM_MAIN 1
+#endif
+
+#ifndef QSB_USES_QT_CUSTOM_MAIN
+#define QSB_USES_QT_CUSTOM_MAIN 0
 #endif
 
 #ifndef FRAGCOLOR
@@ -66,14 +71,16 @@ void fogFallbackESMain(inout vec4 fragColor)
     fragColor = texture(qt_Texture0, INPUT_UV);
 }
 
+#if QSB_USES_QT_CUSTOM_MAIN
+void MAIN(inout vec4 fragColor)
+{
+    fogFallbackESMain(fragColor);
+}
+#else
 void MAIN()
 {
     vec4 fragColor = vec4(0.0);
     fogFallbackESMain(fragColor);
     FRAGCOLOR = fragColor;
 }
-
-void MAIN(inout vec4 fragColor)
-{
-    fogFallbackESMain(fragColor);
-}
+#endif
