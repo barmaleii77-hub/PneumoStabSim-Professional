@@ -1,4 +1,8 @@
 #version 450 core
+#ifndef MAIN
+#define MAIN qt_customMain
+#endif
+
 // Requires GLSL 4.50 core for Qt Quick 3D SPIR-V runtime compatibility.
 
 #ifdef GL_ES
@@ -88,7 +92,7 @@ void bloomMain(inout vec4 fragColor)
     fragColor = vec4(result, original.a);
 }
 
-void main()
+void MAIN()
 {
     vec4 fragColor = vec4(0.0);
     bloomMain(fragColor);
