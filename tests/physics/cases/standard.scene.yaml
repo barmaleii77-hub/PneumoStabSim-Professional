@@ -1,0 +1,51 @@
+$schema: "https://pneumostabsim.local/schemas/scene.schema.yaml"
+name: "standard-diagonal-balancing"
+description: "Balanced suspension configuration with mild body motion"
+attachment_points:
+  LP: [-0.85, 0.32]
+  PP: [0.85, 0.32]
+  LZ: [-0.9, -0.32]
+  PZ: [0.9, -0.32]
+axis_directions:
+  LP: [0.05, 0.97, 0.23]
+  PP: [-0.05, 0.97, 0.23]
+  LZ: [0.06, 0.97, -0.21]
+  PZ: [-0.06, 0.97, -0.21]
+state_vectors:
+  primary: [0.018, 0.012, -0.015, 0.08, -0.032, 0.05]
+  aggressive: [0.032, 0.021, -0.027, 0.12, -0.048, 0.075]
+pneumatic:
+  pressures:
+    LP:
+      head: 4050000
+      rod: 3550000
+    PP:
+      head: 4010000
+      rod: 3490000
+    LZ:
+      head: 3990000
+      rod: 3450000
+    PZ:
+      head: 4070000
+      rod: 3510000
+  springs:
+    LP:
+      rest: 0.36
+      current: 0.33
+    PP:
+      rest: 0.36
+      current: 0.331
+    LZ:
+      rest: 0.362
+      current: 0.335
+    PZ:
+      rest: 0.359
+      current: 0.333
+  dampers:
+    LP: 0.042
+    PP: 0.041
+    LZ: 0.038
+    PZ: 0.043
+notes:
+  - "Attachment points derived from CAD import 2025-01"
+  - "Pressures correspond to 4.0 MPa supply with 12% differential"

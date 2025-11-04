@@ -463,6 +463,7 @@ test_*.py
 check_*.py
 !tools/check_ui_utf8.py
 !tools/check_forbidden_artifacts.py
+!tools/check_shader_logs.py
 !tools/validate_settings.py
 !tools/validate_shaders.py
 !tools/graphics/validate_hdr_orientation.py
@@ -477,6 +478,7 @@ check_*.py
 !tests/unit/tools/test_ci_tasks.py
 !tests/unit/tools/test_cipilot_environment.py
 !tests/tools/test_validate_shaders.py
+!tests/tools/test_cli_utilities.py
 !tests/settings/test_persistence.py
 !tests/ui/test_geometry_cylinder_tab.py
 !tests/ui/test_effect_shaders.py
@@ -507,9 +509,11 @@ check_*.py
 !tests/unit/ui/test_hdr_paths.py
 !tests/unit/ui/test_environment_tab.py
 !tests/unit/ui/test_signals_router_environment.py
+!tests/ui/test_parameter_validation.py
 !tests/unit/ui/test_main_window_hdr_paths.py
 !tests/unit/ui/test_main_window_batch_updates.py
 !tests/ui/test_graphics_scene_quality_tabs.py
+!tests/graphics/test_visual_regression.py
 !tests/ui/test_signals_router_connections.py
 !tests/ui/test_qml_signal_contract.py
 !tests/ui/test_shader_fallback_selection.py
@@ -517,6 +521,7 @@ check_*.py
 !tests/integration/test_graphics_signal_routing.py
 !tests/unit/ui/pneumo/test_state_manager_units.py
 !tests/unit/pneumo/test_diagonal_linking.py
+!tests/pneumo/test_valves_and_system.py
 !tests/unit/app/test_app_runner.py
 
 # Temporary batch files
@@ -923,5 +928,8 @@ assets/hdr/*.exr
 !tests/unit/environment/test_verify_qt_setup.py
 !tests/ui/test_qml_signals.py
 !tests/test_analyze_logs.py
+!tests/physics/test_suspension_cases.py
+!tests/physics/cases/*
+/tests/baseline_images/*.png
 
 # END OF .GITIGNORE

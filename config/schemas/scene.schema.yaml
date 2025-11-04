@@ -1,0 +1,99 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://pneumostabsim.local/schemas/scene.schema.yaml"
+title: "Physics scene definition"
+type: object
+required:
+  - name
+  - attachment_points
+  - axis_directions
+  - state_vectors
+  - pneumatic
+properties:
+  "$schema":
+    type: string
+    description: "Optional URI pointing to the schema used for validation"
+  name:
+    type: string
+    minLength: 1
+  description:
+    type: string
+  attachment_points:
+    type: object
+    minProperties: 1
+    patternProperties:
+      "^[A-Z]{2}$":
+        type: array
+        prefixItems:
+          - type: number
+          - type: number
+        minItems: 2
+        maxItems: 2
+        description: "(x, z) coordinates of the wheel attachment point"
+  axis_directions:
+    type: object
+    minProperties: 1
+    patternProperties:
+      "^[A-Z]{2}$":
+        type: array
+        prefixItems:
+          - type: number
+          - type: number
+          - type: number
+        minItems: 3
+        maxItems: 3
+        description: "Cylinder axis direction in world coordinates"
+  state_vectors:
+    type: object
+    minProperties: 1
+    patternProperties:
+      "^[a-z0-9-]+$":
+        type: array
+        items:
+          type: number
+        minItems: 6
+        maxItems: 6
+    description: "Named generalised coordinate vectors [Y, phi_z, theta_x, dY, dphi_z, dtheta_x]"
+  pneumatic:
+    type: object
+    required:
+      - pressures
+      - springs
+      - dampers
+    properties:
+      pressures:
+        type: object
+        patternProperties:
+          "^[A-Z]{2}$":
+            type: object
+            required:
+              - head
+              - rod
+            properties:
+              head:
+                type: number
+              rod:
+                type: number
+      springs:
+        type: object
+        patternProperties:
+          "^[A-Z]{2}$":
+            type: object
+            required:
+              - rest
+              - current
+            properties:
+              rest:
+                type: number
+              current:
+                type: number
+      dampers:
+        type: object
+        patternProperties:
+          "^[A-Z]{2}$":
+            type: number
+    additionalProperties: false
+  notes:
+    type: array
+    items:
+      type: string
+additionalProperties: false

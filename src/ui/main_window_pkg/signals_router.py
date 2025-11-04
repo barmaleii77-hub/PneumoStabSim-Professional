@@ -19,6 +19,7 @@ if util.find_spec("PySide6.QtCore") is not None:
     qtcore = import_module("PySide6.QtCore")
     Qt = qtcore.Qt
     QTimer = getattr(qtcore, "QTimer", None)
+    QObject = getattr(qtcore, "QObject", None)
 else:  # pragma: no cover - executed only on headless environments
 
     class _QtStub:
@@ -28,6 +29,7 @@ else:  # pragma: no cover - executed only on headless environments
 
     Qt = _QtStub()
     QTimer = None
+    QObject = None
 
 from ...pneumo.enums import Line, Wheel
 from .qml_bridge import QMLBridge
@@ -96,7 +98,7 @@ class SignalsRouter:
                 break
 
         if source_key is None:
-            return env_payload
+            return SignalsRouter._apply_environment_aliases(params, env_payload)
 
         raw_value = params.get(source_key)
         text_value = "" if raw_value is None else str(raw_value)
@@ -459,9 +461,9 @@ class SignalsRouter:
             if mesh_payload:
                 normalized["meshQuality"] = mesh_payload
 
+        shadow_payload: Dict[str, Any] = {}
         shadows = params.get("shadowSettings", params.get("shadows"))
         if isinstance(shadows, Mapping):
-            shadow_payload: Dict[str, Any] = {}
             enabled = coerce_bool(shadows.get("enabled"))
             if enabled is not None:
                 shadow_payload["enabled"] = enabled
@@ -485,8 +487,20 @@ class SignalsRouter:
             )
             if factor is not None:
                 shadow_payload["factor"] = factor
-            if shadow_payload:
-                normalized["shadowSettings"] = shadow_payload
+        if shadow_payload:
+            normalized["shadowSettings"] = shadow_payload
+
+        passthrough_aliases = {
+            "msaa": coerce_int,
+            "taa": coerce_bool,
+            "shadows": coerce_str,
+            "vSync": coerce_bool,
+        }
+        for alias, converter in passthrough_aliases.items():
+            if alias in params and alias not in normalized:
+                value = converter(params.get(alias)) if converter else params.get(alias)
+                if value is not None:
+                    normalized[alias] = value
 
         return normalized
 
@@ -1408,7 +1422,13 @@ class SignalsRouter:
         dispatcher: Callable[["MainWindow", Dict[str, Any]], None],
     ) -> None:
         delay = SignalsRouter._DEBOUNCE_DELAYS_MS.get(category)
-        if not delay or delay <= 0 or QTimer is None:
+        if (
+            not delay
+            or delay <= 0
+            or QTimer is None
+            or QObject is None
+            or not isinstance(window, QObject)
+        ):
             dispatcher(window, payload)
             return
 
@@ -1425,7 +1445,8 @@ class SignalsRouter:
 
         entry = registry.get(category)
         if entry is None:
-            timer = QTimer(window)
+            parent = window if QObject is not None and isinstance(window, QObject) else None
+            timer = QTimer(parent)
             timer.setSingleShot(True)
             try:
                 timer.timeout.connect(

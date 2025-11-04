@@ -6,6 +6,12 @@ from typing import Any, Dict, List, Tuple
 
 import pytest
 
+pytest.importorskip(
+    "PySide6.QtCore",
+    reason="PySide6 QtCore module is required for signals router environment tests",
+    exc_type=ImportError,
+)
+
 from src.ui.main_window_pkg import signals_router
 
 

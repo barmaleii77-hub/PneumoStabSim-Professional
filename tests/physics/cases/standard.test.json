@@ -1,0 +1,144 @@
+{
+  "$schema": "https://pneumostabsim.local/schemas/test_case.schema.json",
+  "id": "standard-suspension-balance",
+  "name": "Standard diagonal suspension balance",
+  "description": "Validates suspension kinematics, pneumatic forces and projection invariants",
+  "tags": ["baseline", "suspension"],
+  "scene": "standard.scene.yaml",
+  "assertions": [
+    {
+      "kind": "axis-velocity",
+      "target": "LP",
+      "expected": 0.08862811395691082,
+      "tolerance": 1e-6,
+      "source": "kinematics"
+    },
+    {
+      "kind": "axis-velocity",
+      "target": "PP",
+      "expected": 0.035762221421209626,
+      "tolerance": 1e-6,
+      "source": "kinematics"
+    },
+    {
+      "kind": "axis-velocity",
+      "target": "LZ",
+      "expected": 0.12175197547583307,
+      "tolerance": 1e-6,
+      "source": "kinematics"
+    },
+    {
+      "kind": "axis-velocity",
+      "target": "PZ",
+      "expected": 0.06555875602544857,
+      "tolerance": 1e-6,
+      "source": "kinematics"
+    },
+    {
+      "kind": "cylinder-force",
+      "target": "LP",
+      "expected": 6050.0,
+      "tolerance": 0.5,
+      "source": "cylinder"
+    },
+    {
+      "kind": "cylinder-force",
+      "target": "PP",
+      "expected": 6090.0,
+      "tolerance": 0.5,
+      "source": "cylinder"
+    },
+    {
+      "kind": "cylinder-force",
+      "target": "LZ",
+      "expected": 6150.0,
+      "tolerance": 0.5,
+      "source": "cylinder"
+    },
+    {
+      "kind": "cylinder-force",
+      "target": "PZ",
+      "expected": 6310.0,
+      "tolerance": 0.5,
+      "source": "cylinder"
+    },
+    {
+      "kind": "spring-force",
+      "target": "LP",
+      "expected": 1500.0,
+      "tolerance": 1.0,
+      "source": "spring"
+    },
+    {
+      "kind": "spring-force",
+      "target": "PP",
+      "expected": 1450.0,
+      "tolerance": 1.0,
+      "source": "spring"
+    },
+    {
+      "kind": "spring-force",
+      "target": "LZ",
+      "expected": 1350.0,
+      "tolerance": 1.0,
+      "source": "spring"
+    },
+    {
+      "kind": "spring-force",
+      "target": "PZ",
+      "expected": 1300.0,
+      "tolerance": 1.0,
+      "source": "spring"
+    },
+    {
+      "kind": "damper-force",
+      "target": "LP",
+      "expected": 177.25622791382165,
+      "tolerance": 1e-3,
+      "source": "damper"
+    },
+    {
+      "kind": "damper-force",
+      "target": "PP",
+      "expected": 71.52444284241925,
+      "tolerance": 1e-3,
+      "source": "damper"
+    },
+    {
+      "kind": "damper-force",
+      "target": "LZ",
+      "expected": 243.50395095166613,
+      "tolerance": 1e-3,
+      "source": "damper"
+    },
+    {
+      "kind": "damper-force",
+      "target": "PZ",
+      "expected": 131.11751205089715,
+      "tolerance": 1e-3,
+      "source": "damper"
+    },
+    {
+      "kind": "vertical-force",
+      "target": "aggregate",
+      "expected": {
+        "LP": 7727.256227913822,
+        "PP": 7611.524442842419,
+        "LZ": 7743.503950951666,
+        "PZ": 7741.117512050897
+      },
+      "tolerance": 1e-3,
+      "source": "projection"
+    },
+    {
+      "kind": "moment",
+      "target": "pitch-roll",
+      "expected": {
+        "tau_x": -46.66905351882269,
+        "tau_z": -100.51981232138496
+      },
+      "tolerance": 1e-3,
+      "source": "projection"
+    }
+  ]
+}

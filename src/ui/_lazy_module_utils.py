@@ -116,7 +116,13 @@ def should_suppress_wrapped() -> bool:
         return False
 
     caller = frame.f_back
+    unwrap_fn = getattr(inspect, "unwrap", None)
+    unwrap_code = getattr(unwrap_fn, "__code__", None)
     while caller is not None:
+        if unwrap_code is not None and caller.f_code is unwrap_code:
+            global_name = _global_called_at(caller.f_code, caller.f_lasti)
+            if global_name == "hasattr":
+                return True
         if _is_unwrap_like_frame(caller):
             # Treat direct calls from :mod:`inspect` *and* thin wrappers that
             # simply delegate to ``inspect.unwrap`` as unwrap probes.  Other

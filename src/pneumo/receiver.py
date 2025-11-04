@@ -119,8 +119,8 @@ class ReceiverState:
 
         # Validate specification
         spec_result = self.spec.validate_invariants()
-        errors.extend(spec_result.errors)
-        warnings.extend(spec_result.warnings)
+        errors.extend(spec_result["errors"])
+        warnings.extend(spec_result["warnings"])
 
         # Validate current state
         try:

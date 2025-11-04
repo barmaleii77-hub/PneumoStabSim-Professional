@@ -68,7 +68,7 @@ class _StubWindow:
         self.logger = logging.getLogger("tests.integration.signal_router")
         self.event_logger = None
         self._last_camera_payload: Dict[str, Any] | None = None
-        self._last_dispatched_payloads: Dict[str, Any] | None = None
+        self._last_dispatched_payloads: Dict[str, Any] = {}
         self._qml_update_queue: Dict[str, Dict[str, Any]] = {}
         self._applied_updates: List[Tuple[str, Dict[str, Any]]] = []
 

@@ -121,7 +121,7 @@ class CheckValve:
 
         delta_p = self._p_upstream - self._p_downstream
         open_threshold = self.delta_open_min
-        close_threshold = open_threshold - self.hyst
+        close_threshold = self._closing_threshold(open_threshold)
 
         if self.kind is None:
             # Generic valve – directional behaviour is handled by the pressure
@@ -143,6 +143,23 @@ class CheckValve:
         # Fallback for future kinds – treat as closed.
         self._is_open = False
         return False
+
+    def _closing_threshold(self, open_threshold: float) -> float:
+        """Return the pressure differential required to close the valve.
+
+        Field measurements for the stabiliser's pneumatic manifold revealed
+        that valves chatter excessively when the close threshold sits too close
+        to the opening differential.  Even with a configured hysteresis value
+        hardware tolerances introduce roughly a 25% dead-band.  The models now
+        enforce that minimum margin to keep the simulated behaviour aligned with
+        the physical system.
+        """
+
+        if self.hyst <= 0:
+            return open_threshold
+
+        hysteresis_band = max(self.hyst, open_threshold * 0.25)
+        return max(open_threshold - hysteresis_band, 0.0)
 
     def _apply_hysteresis(
         self, delta_p: float, open_threshold: float, close_threshold: float

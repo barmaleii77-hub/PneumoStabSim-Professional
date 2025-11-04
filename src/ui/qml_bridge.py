@@ -359,24 +359,17 @@ class QMLBridge:
 
         try:
             batch_id = QMLBridge._next_batch_id(window)
-            envelope: Dict[str, Any]
             try:
-                envelope = copy.deepcopy(updates)
+                payload = copy.deepcopy(updates)
             except Exception:
-                envelope = dict(updates)
-            envelope_meta = {
-                "batchId": batch_id,
-                "issuedAt": int(time.time() * 1000),
-                "categories": [str(key) for key in envelope.keys()],
-            }
-            envelope["_meta"] = envelope_meta
-            sanitized = QMLBridge._prepare_for_qml(envelope)
+                payload = dict(updates)
+            sanitized = QMLBridge._prepare_for_qml(payload)
             window._suppress_qml_feedback = True
             try:
                 window._qml_root_object.setProperty("pendingPythonUpdates", sanitized)
             finally:
                 window._suppress_qml_feedback = False
-            QMLBridge._track_pending_batch(window, batch_id, updates)
+            QMLBridge._track_pending_batch(window, batch_id, payload)
             return QMLBridge._make_update_result(True, detailed)
         except Exception as exc:  # pragma: no cover - Qt specific failure
             QMLBridge.logger.error(
