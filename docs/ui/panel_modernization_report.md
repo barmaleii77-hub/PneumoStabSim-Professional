@@ -2,35 +2,36 @@
 
 ## 1. Audit of Existing Preset Logic
 
-- **Geometry panel (`src/ui/panels/geometry/defaults.py`)** consolidates baseline geometry, slider ranges, and preset bundles such as `standard_truck`, `light_commercial`, and `heavy_truck`.  The presets derive from `config/app_settings.json` and expose a `PRESET_INDEX_MAP` used by options tabs.
-- **Graphics quality tab (`src/ui/panels/graphics/quality_tab.py`)** builds a `_quality_presets` dictionary that mirrors the high/medium/low/ultra quality bundles.  The tab uses `_suspend_preset_sync` to guard against feedback loops when presets are applied programmatically.
-- **Lighting baseline (`src/ui/panels/lighting/baseline.py`)** normalises tonemapping presets, validating payloads and emitting QML-friendly descriptors that surface inside `LightingTonemapPanel.qml`.
-- **QML (`assets/qml/panels/lighting/LightingTonemapPanel.qml`)** binds to the lighting settings bridge and repeats preset buttons, mirroring the Python-side preset orchestration.
+- **Geometry defaults (`src/ui/panels/panel_geometry.py` & `config/constants.py`)** still define preset payloads (`standard_truck`, `light_commercial`, `heavy_truck`) that are hydrated from `app_settings.json`.  The new accordion implementation now consumes those same payloads directly from `get_geometry_presets()` instead of duplicating the data.
+- **Graphics quality tab (`src/ui/panels/graphics/quality_tab.py`)** keeps an in-memory `_quality_presets` dictionary and a `_suspend_preset_sync` guard to prevent feedback loops while presets are replayed.
+- **Lighting facade (`src/ui/panels/lighting/settings.py`)** exposes `LightingSettingsBridge` which already surfaces tonemap presets to QML via `list_tonemap_presets()` and `applyTonemapPreset()`.
+- **Legacy QML (`assets/qml/panels/lighting/LightingTonemapPanel.qml`)** previously re-implemented the preset button layout, duplicating tooltip and selection handling.
 
-Shared themes:
+Common threads across these modules:
 
-1. Preset payloads always originate from the settings file to keep Python and QML in sync.
-2. Both Python panels and QML wrappers use event hooks (`preset_applied`, `applyTonemapPreset`) to log telemetry and update state managers.
-3. Manual guard flags (for example `_suspend_preset_sync`) are reimplemented across panels to stop recursive updates.
+1. Preset definitions originate from the JSON settings payload and must stay in sync with persisted values.
+2. UI layers publish explicit "preset activated" signals alongside telemetry hooks so diagnostics can trace changes.
+3. Each panel implemented bespoke guard flags to avoid recursive updates during undo/redo or preset application.
 
 ## 2. Reusable Accordion Primitives
 
-- Introduced `SliderFieldSpec`, `_UndoCommand`, `PanelUndoController`, and `SettingsBackedAccordionPanel` inside `src/ui/panels_accordion.py`.  These abstractions build `ParameterSlider` widgets declaratively, hydrate values from `SettingsManager`, and automatically register undo/redo steps.
-- Refactored `GeometryPanelAccordion` to inherit from the new base.  The panel now declares nine slider specs (wheelbase, track width, lever arm, etc.), emits the legacy `parameter_changed` signal, persists values to `current.geometry`, and keeps the read-only lever angle in sync via `set_read_only_value`.
-- Telemetry is routed through a structlog-compatible shim so every change emits a `field.changed` event tagged with the originating panel and settings key.
+- `SliderFieldSpec` gained a `resets_preset` flag so individual sliders can opt out of preset resets, and `_UndoCommand` now records arbitrary payloads (value + preset id) so undo/redo restores both numeric state and active preset.
+- The new `PanelPreset` dataclass plus `SettingsBackedAccordionPanel.register_presets()` and `.apply_preset()` encapsulate preset orchestration, including snapshot diffing, telemetry emission, and persistence of the active preset via `SettingsManager`.
+- `GeometryPanelAccordion` now instantiates with `preset_settings_key="active_preset"`, loads preset definitions from `config/app_settings.json`, and updates the active preset automatically when users tweak sliders or replay undo steps.
 
 ## 3. Undo/Redo Surface
 
-- `PanelUndoController` exposes Qt properties (`canUndo`, `canRedo`) and slots (`undo()`, `redo()`) that drive UI affordances and keep a replay-safe flag (`is_replaying`).
-- Added `Panels.Common/UndoRedoControls.qml` to provide ready-to-use buttons plus keyboard shortcuts bound to any `PanelUndoController` instance.
-- Sliders automatically push undo commands capturing old/new values; undo/redo updates both the slider widget and the persisted settings snapshot.
+- `PanelUndoController` continues to expose Qt properties for availability state, and replay paths now drive both slider values and preset identifiers through a single command pipeline.
+- `Panels.Common/PresetButtons.qml` wraps the preset list UI, optionally wiring an injected `PanelUndoController` into the shared `UndoRedoControls` header so QML surfaces get consistent undo affordances alongside preset buttons.
+- `LightingTonemapPanel.qml` now delegates its UI to `PresetButtons`, reducing duplication and giving the QML layer immediate access to the shared undo/redo affordance.
 
 ## 4. Settings & Telemetry Integration
 
-- All geometry sliders now persist through `SettingsManager` using canonical keys (e.g. `current.geometry.wheelbase`).  Newly exposed `frame_mass` and `wheel_mass` fields are seeded in `config/app_settings.json` and covered by the JSON schema.
-- Structured logs keep parity across structlog-enabled and standard-logging environments so diagnostics channels receive consistent payloads.
+- Slider changes and preset activations emit `diagnostics.ui.panels.*` events, ensuring structlog-aware and standard logging environments share the same diagnostics channel.
+- Active preset identifiers persist through `SettingsManager` (`current.geometry.active_preset`) so both Python and QML can recover the last selection without bespoke glue code.
+- Preset application reuses `set_parameters()` under the hood, guaranteeing that any slider participating in a preset benefits from the same undo, validation, and telemetry hooks as ad-hoc edits.
 
 ## 5. Follow-up Items
 
-- Migrate `PneumoPanelAccordion` and other legacy accordion panels to `SettingsBackedAccordionPanel` for unified undo/redo behaviour.
-- Wire `UndoRedoControls` into the QtQuick host once the panel controllers are registered with the QML engine.
+- Adopt `SettingsBackedAccordionPanel` + `PanelPreset` within pneumatic, simulation, and graphics accordion panels to retire bespoke preset guards.
+- Surface the shared `PresetButtons` component inside the graphics and modes QML panels once their controllers expose a `PanelUndoController` to QML.

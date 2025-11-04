@@ -7,7 +7,7 @@ import logging
 import math
 from dataclasses import dataclass
 from functools import partial
-from typing import Callable, Dict, Iterable, Mapping, Optional
+from typing import Any, Callable, Dict, Iterable, Mapping, Optional
 
 try:  # pragma: no cover - structlog is optional at runtime
     import structlog
@@ -22,6 +22,8 @@ from PySide6.QtWidgets import (
     QComboBox,
     QCheckBox,
 )
+
+from config.constants import get_geometry_presets
 
 from src.common.settings_manager import get_settings_manager
 from src.ui.parameter_slider import ParameterSlider
@@ -71,20 +73,32 @@ class SliderFieldSpec:
     to_settings: Optional[Callable[[float], float]] = None
     from_settings: Optional[Callable[[float], float]] = None
     telemetry_key: Optional[str] = None
+    resets_preset: bool = True
 
     def __post_init__(self) -> None:
         if self.settings_key is None and not self.read_only:
             object.__setattr__(self, "settings_key", self.key)
 
 
+@dataclass(frozen=True)
+class PanelPreset:
+    """Declarative preset definition applied across registered sliders."""
+
+    preset_id: str
+    label: str
+    values: Mapping[str, float]
+    description: str = ""
+    telemetry_key: Optional[str] = None
+
+
 @dataclass(slots=True)
 class _UndoCommand:
-    """Undo/redo command for slider changes."""
+    """Undo/redo command for field mutations."""
 
     field_key: str
-    previous: float
-    new: float
-    apply: Callable[[float, str], None]
+    previous: Any
+    new: Any
+    apply: Callable[[Any, str], None]
     telemetry_key: str
 
 
@@ -99,7 +113,7 @@ class PanelUndoController(QObject):
         self._undo_stack: list[_UndoCommand] = []
         self._redo_stack: list[_UndoCommand] = []
         self._replaying = False
-        self._logger = _build_logger("ui.panels.undo", panel=None)
+        self._logger = _build_logger("diagnostics.ui.panels.undo", panel=None)
 
     @Property(bool, notify=undoAvailabilityChanged)
     def canUndo(self) -> bool:  # pragma: no cover - trivial Qt binding
@@ -190,7 +204,14 @@ class PanelUndoController(QObject):
 class SettingsBackedAccordionPanel(QWidget):
     """Base class wiring sliders to :class:`SettingsManager` and undo support."""
 
-    def __init__(self, settings_section: str, parent: Optional[QWidget] = None) -> None:
+    def __init__(
+        self,
+        settings_section: str,
+        parent: Optional[QWidget] = None,
+        *,
+        preset_settings_key: Optional[str] = None,
+        custom_preset_id: str = "custom",
+    ) -> None:
         super().__init__(parent)
         self._settings_section = settings_section
         self._settings = get_settings_manager()
@@ -199,10 +220,26 @@ class SettingsBackedAccordionPanel(QWidget):
         self.content_layout.setContentsMargins(0, 0, 0, 0)
         self.content_layout.setSpacing(8)
         panel_name = self.objectName() or self.__class__.__name__
-        self._logger = _build_logger("ui.panels.accordion", panel=panel_name)
+        self._logger = _build_logger(
+            "diagnostics.ui.panels.accordion", panel=panel_name
+        )
         self._field_specs: Dict[str, SliderFieldSpec] = {}
         self._field_widgets: Dict[str, ParameterSlider] = {}
         self._field_values: Dict[str, float] = {}
+        self._preset_settings_key = preset_settings_key
+        self._custom_preset_id = custom_preset_id
+        self._presets: Dict[str, PanelPreset] = {}
+        self._preset_telemetry_key = f"{self._settings_section}.preset"
+        self._active_preset_id: str = custom_preset_id
+        self._applying_preset = False
+
+        if preset_settings_key:
+            stored = self._settings.get(
+                f"current.{self._settings_section}.{preset_settings_key}",
+                custom_preset_id,
+            )
+            if isinstance(stored, str) and stored:
+                self._active_preset_id = stored
 
     # ------------------------------------------------------------------ helpers
     def add_slider_field(self, spec: SliderFieldSpec) -> ParameterSlider:
@@ -264,19 +301,36 @@ class SettingsBackedAccordionPanel(QWidget):
     def _handle_slider_change(self, key: str, value: float) -> None:
         spec = self._field_specs[key]
         previous = self._field_values.get(key, value)
+        previous_preset = self._active_preset_id if spec.resets_preset else None
         if math.isclose(previous, value, rel_tol=1e-9, abs_tol=1e-12):
             return
 
         self._field_values[key] = value
 
+        new_preset = previous_preset
+        should_reset_preset = (
+            spec.resets_preset
+            and not self._applying_preset
+            and previous_preset is not None
+        )
+
+        if should_reset_preset and previous_preset != self._custom_preset_id:
+            self._set_active_preset(
+                self._custom_preset_id,
+                reason="field-change",
+                persist=True,
+                _from_command=False,
+            )
+            new_preset = self._active_preset_id
+
         if not self.undo_controller.is_replaying:
             command = _UndoCommand(
                 field_key=key,
-                previous=previous,
-                new=value,
+                previous=(previous, previous_preset),
+                new=(value, new_preset),
                 telemetry_key=spec.telemetry_key or spec.settings_key or spec.key,
-                apply=lambda new_value, reason: self._apply_value_from_command(
-                    key, new_value, reason
+                apply=lambda payload, reason: self._apply_value_from_command(
+                    key, payload, reason
                 ),
             )
             self.undo_controller.push(command)
@@ -285,7 +339,10 @@ class SettingsBackedAccordionPanel(QWidget):
         if spec.emit_signal:
             self.on_field_value_changed(spec, value)
 
-    def _apply_value_from_command(self, key: str, value: float, source: str) -> None:
+    def _apply_value_from_command(
+        self, key: str, payload: tuple[float, Optional[str]], source: str
+    ) -> None:
+        value, preset_id = payload
         spec = self._field_specs[key]
         slider = self._field_widgets[key]
         self._field_values[key] = value
@@ -297,6 +354,10 @@ class SettingsBackedAccordionPanel(QWidget):
         self._commit_value(spec, value, source=source)
         if spec.emit_signal:
             self.on_field_value_changed(spec, value)
+        if preset_id is not None:
+            self._set_active_preset(
+                preset_id, reason=f"{source}.replay", persist=True, _from_command=True
+            )
 
     def _commit_value(
         self, spec: SliderFieldSpec, value: float, *, source: str
@@ -338,7 +399,11 @@ class SettingsBackedAccordionPanel(QWidget):
         return dict(self._field_values)
 
     def set_parameters(
-        self, params: Mapping[str, float], *, source: str = "external"
+        self,
+        params: Mapping[str, float],
+        *,
+        source: str = "external",
+        mark_custom: bool = False,
     ) -> None:
         """Update registered fields without emitting undo commands."""
 
@@ -357,6 +422,13 @@ class SettingsBackedAccordionPanel(QWidget):
             self._commit_value(spec, numeric_value, source=source)
             if spec.emit_signal:
                 self.on_field_value_changed(spec, numeric_value)
+            if mark_custom and spec.resets_preset and not self._applying_preset:
+                self._set_active_preset(
+                    self._custom_preset_id,
+                    reason="external-update",
+                    persist=True,
+                    _from_command=False,
+                )
 
     def set_read_only_value(self, key: str, value: float) -> None:
         """Update read-only slider values without persisting to settings."""
@@ -380,6 +452,189 @@ class SettingsBackedAccordionPanel(QWidget):
             value=value,
         )
 
+    # ---------------------------------------------------------------- presets
+    @property
+    def active_preset_id(self) -> str:
+        """Return the currently active preset identifier."""
+
+        return self._active_preset_id
+
+    def register_presets(
+        self,
+        presets: Iterable[PanelPreset],
+        *,
+        telemetry_key: Optional[str] = None,
+    ) -> None:
+        """Register preset definitions available for the panel."""
+
+        preset_map: Dict[str, PanelPreset] = {}
+        for preset in presets:
+            preset_map[preset.preset_id] = preset
+        self._presets = preset_map
+        if telemetry_key:
+            self._preset_telemetry_key = telemetry_key
+
+        self._resolve_initial_preset_state()
+
+    def apply_preset(
+        self, preset_id: str, *, source: str = "preset", push_undo: bool = True
+    ) -> None:
+        """Apply the preset identified by ``preset_id``."""
+
+        preset = self._presets.get(preset_id)
+        if preset is None:
+            raise KeyError(f"Unknown preset '{preset_id}'")
+
+        target_values = self._prepare_preset_values(preset)
+        if not target_values:
+            return
+
+        previous_snapshot = {
+            key: self._field_values.get(key, target)
+            for key, target in target_values.items()
+        }
+        previous_payload = (previous_snapshot, self._active_preset_id)
+        next_payload = (target_values, preset_id)
+
+        should_push = True
+        if self._snapshots_equal(previous_snapshot, target_values) and (
+            self._active_preset_id == preset_id
+        ):
+            should_push = False
+
+        telemetry_key = preset.telemetry_key or self._preset_telemetry_key
+        if push_undo and should_push:
+            command = _UndoCommand(
+                field_key=f"preset:{preset_id}",
+                previous=previous_payload,
+                new=next_payload,
+                telemetry_key=telemetry_key,
+                apply=self._apply_preset_from_command,
+            )
+            self.undo_controller.push(command)
+
+        self._apply_preset_from_command(next_payload, source)
+
+    # ----------------------------------------------------------------- helpers
+    def _prepare_preset_values(self, preset: PanelPreset) -> Dict[str, float]:
+        values: Dict[str, float] = {}
+        for field_key, spec in self._field_specs.items():
+            candidate_keys = [spec.key]
+            if spec.settings_key and spec.settings_key not in candidate_keys:
+                candidate_keys.append(spec.settings_key)
+
+            resolved: Optional[float] = None
+            for candidate in candidate_keys:
+                if candidate not in preset.values:
+                    continue
+                try:
+                    resolved = float(preset.values[candidate])
+                except (TypeError, ValueError):
+                    _log_event(
+                        self._logger,
+                        "warning",
+                        "preset.invalid_value",
+                        field=candidate,
+                        preset=preset.preset_id,
+                        value=preset.values[candidate],
+                    )
+                    resolved = None
+                break
+
+            if resolved is not None:
+                values[field_key] = resolved
+        return values
+
+    def _resolve_initial_preset_state(self) -> None:
+        preset_from_settings: Optional[str] = None
+        if self._preset_settings_key:
+            path = f"current.{self._settings_section}.{self._preset_settings_key}"
+            stored = self._settings.get(path, self._custom_preset_id)
+            if isinstance(stored, str) and stored:
+                preset_from_settings = stored
+
+        if preset_from_settings and preset_from_settings in self._presets:
+            resolved = preset_from_settings
+        else:
+            resolved = self._match_snapshot_to_preset()
+        self._active_preset_id = resolved
+        self._persist_active_preset()
+
+    def _match_snapshot_to_preset(self) -> str:
+        current = self.get_parameters()
+        for preset in self._presets.values():
+            target = self._prepare_preset_values(preset)
+            if not target:
+                continue
+            if self._snapshots_equal(target, current):
+                return preset.preset_id
+        return self._custom_preset_id
+
+    def _snapshots_equal(
+        self, first: Mapping[str, float], second: Mapping[str, float]
+    ) -> bool:
+        keys = set(first) | set(second)
+        for key in keys:
+            left = first.get(key)
+            right = second.get(key)
+            if left is None or right is None:
+                if left != right:
+                    return False
+                continue
+            if not math.isclose(left, right, rel_tol=1e-9, abs_tol=1e-12):
+                return False
+        return True
+
+    def _apply_preset_from_command(
+        self, payload: tuple[Mapping[str, float], Optional[str]], reason: str
+    ) -> None:
+        values, preset_id = payload
+        self._applying_preset = True
+        try:
+            self.set_parameters(values, source=reason)
+        finally:
+            self._applying_preset = False
+        if preset_id is not None:
+            self._set_active_preset(
+                preset_id, reason=reason, persist=True, _from_command=True
+            )
+        _log_event(
+            self._logger,
+            "info",
+            "preset.apply",
+            preset=preset_id,
+            source=reason,
+        )
+
+    def _set_active_preset(
+        self,
+        preset_id: str,
+        *,
+        reason: str,
+        persist: bool,
+        _from_command: bool,
+    ) -> None:
+        if preset_id == self._active_preset_id:
+            return
+        self._active_preset_id = preset_id
+        if persist:
+            self._persist_active_preset()
+        _log_event(
+            self._logger,
+            "info",
+            "preset.changed",
+            field=self._preset_telemetry_key,
+            value=preset_id,
+            source=reason,
+            replay=_from_command,
+        )
+
+    def _persist_active_preset(self) -> None:
+        if not self._preset_settings_key:
+            return
+        path = f"current.{self._settings_section}.{self._preset_settings_key}"
+        self._settings.set(path, self._active_preset_id)
+
 
 class GeometryPanelAccordion(SettingsBackedAccordionPanel):
     """Geometry parameters panel with settings-backed sliders."""
@@ -387,7 +642,11 @@ class GeometryPanelAccordion(SettingsBackedAccordionPanel):
     parameter_changed = Signal(str, float)
 
     def __init__(self, parent: Optional[QWidget] = None) -> None:
-        super().__init__(settings_section="geometry", parent=parent)
+        super().__init__(
+            settings_section="geometry",
+            parent=parent,
+            preset_settings_key="active_preset",
+        )
 
         field_specs = (
             (
@@ -541,6 +800,8 @@ class GeometryPanelAccordion(SettingsBackedAccordionPanel):
             slider = self.add_slider_field(spec)
             setattr(self, attr, slider)
 
+        self._initialise_geometry_presets()
+
         self.content_layout.addStretch()
 
     def on_field_value_changed(self, spec: SliderFieldSpec, value: float) -> None:
@@ -550,6 +811,39 @@ class GeometryPanelAccordion(SettingsBackedAccordionPanel):
         """Update the derived lever angle without recording undo state."""
 
         self.set_read_only_value("lever_angle", lever_angle)
+
+    def _initialise_geometry_presets(self) -> None:
+        try:
+            raw_presets = get_geometry_presets()
+        except Exception as exc:  # pragma: no cover - defensive guard
+            _log_event(
+                self._logger,
+                "warning",
+                "preset.load_failed",
+                error=str(exc),
+            )
+            return
+
+        presets: list[PanelPreset] = []
+        for entry in raw_presets:
+            key = entry.get("key")
+            values = entry.get("values")
+            if not key or not isinstance(values, Mapping):
+                continue
+            label = entry.get("label") or str(key)
+            description = entry.get("description", "")
+            presets.append(
+                PanelPreset(
+                    preset_id=str(key),
+                    label=str(label),
+                    description=str(description),
+                    values=values,
+                    telemetry_key="geometry.preset",
+                )
+            )
+
+        if presets:
+            self.register_presets(presets, telemetry_key="geometry.preset")
 
 
 class PneumoPanelAccordion(QWidget):
