@@ -31,13 +31,11 @@ Node {
         readonly property var emptyGeometryDefaults: ({})
     }
 
-    readonly property var resolvedEmptyGeometryDefaults: emptyGeometryDefaults && typeof emptyGeometryDefaults === "object"
-        ? emptyGeometryDefaults
-        : defaultsBridge.emptyGeometryDefaults
-
     readonly property var resolvedGeometryDefaults: geometryDefaults && typeof geometryDefaults === "object"
         ? geometryDefaults
-        : resolvedEmptyGeometryDefaults
+        : (emptyGeometryDefaults && typeof emptyGeometryDefaults === "object"
+            ? emptyGeometryDefaults
+            : defaultsBridge.emptyGeometryDefaults)
 
     // ------------------------------------------------------------------
     // Animation inputs (degrees for lever angles, metres for pistons)
