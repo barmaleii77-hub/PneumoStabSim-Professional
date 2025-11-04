@@ -40,6 +40,9 @@ Effect {
 
     // Доступность depth-текстуры
     property bool depthTextureAvailable: false
+    property bool forceDepthTextureUnavailable: false
+    property bool _depthInitializationStarted: false
+    readonly property bool _depthInitializationComplete: initializeDepthTextureSupport()
 
     property bool fallbackActive: false
     property string fallbackReason: ""
@@ -47,12 +50,20 @@ Effect {
     property bool fallbackDueToCompilation: false
     property string compilationErrorLog: ""
     readonly property bool compilationFallbackActive: fallbackDueToCompilation
-    property var activePassShaders: []
+    property var activePassShaders: {
+        var _ = _depthInitializationComplete
+        return []
+    }
     property bool _usingFallbackPassConfiguration: false
 
     onDepthTextureAvailableChanged: {
         fallbackDueToDepth = !depthTextureAvailable
         updateFallbackActivation()
+    }
+
+    onForceDepthTextureUnavailableChanged: {
+        if (_depthInitializationStarted)
+            initializeDepthTextureSupport()
     }
 
     onFallbackActiveChanged: {
@@ -74,19 +85,46 @@ Effect {
 
     function enableDepthTextureSupport() {
         const propertyName = "requiresDepthTexture"
-        if (propertyName in fogEffect) {
+        var depthReady = true
+        var previousDepthState = depthTextureAvailable
+
+        if (forceDepthTextureUnavailable) {
+            depthReady = false
+        } else if (propertyName in fogEffect) {
             try {
                 fogEffect[propertyName] = true
-                depthTextureAvailable = true
-                console.log("🌫️ FogEffect: depth texture support enabled")
-                return true
             } catch (error) {
+                depthReady = false
                 console.debug("FogEffect requiresDepthTexture assignment failed", error)
             }
+        } else {
+            depthReady = false
         }
-        depthTextureAvailable = false
-        console.warn("⚠️ FogEffect: depth texture not supported; using fallback shader")
-        return false
+
+        if (depthReady) {
+            depthTextureAvailable = true
+            fallbackDueToDepth = false
+            if (!previousDepthState)
+                console.log("🌫️ FogEffect: depth texture support enabled")
+        } else {
+            depthTextureAvailable = false
+            fallbackDueToDepth = true
+            var warningMessage = forceDepthTextureUnavailable
+                    ? qsTr("Depth texture support forced unavailable; using fallback shader")
+                    : qsTr("Depth texture not supported; using fallback shader")
+            console.warn("⚠️ FogEffect:", warningMessage)
+        }
+
+        if (previousDepthState === depthTextureAvailable)
+            updateFallbackActivation()
+
+        return depthTextureAvailable
+    }
+
+    function initializeDepthTextureSupport() {
+        if (!_depthInitializationStarted)
+            _depthInitializationStarted = true
+        return enableDepthTextureSupport()
     }
 
     // Стратегия выбора профиля шейдеров:
@@ -711,7 +749,9 @@ Effect {
         var shouldFallback = fallbackDueToDepth || fallbackDueToCompilation || compatibilityFallback
         var reason = ""
         if (fallbackDueToDepth) {
-            reason = qsTr("Depth texture unavailable; using fallback shader")
+            reason = forceDepthTextureUnavailable
+                    ? qsTr("Depth texture support forcibly disabled; using fallback shader")
+                    : qsTr("Depth texture unavailable; using fallback shader")
         } else if (fallbackDueToCompilation) {
             reason = compilationErrorLog && compilationErrorLog.length
                     ? compilationErrorLog
@@ -904,7 +944,7 @@ Effect {
     }
 
     Component.onCompleted: {
-        var depthReady = enableDepthTextureSupport()
+        var depthReady = _depthInitializationComplete
         updateFallbackActivation()
         if (enforceLegacyFallbackShaders && compatibilityFallbackMessage.length && !compatibilityFallbackLogged) {
             console.warn("⚠️ FogEffect:", compatibilityFallbackMessage)
