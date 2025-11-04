@@ -36,8 +36,9 @@ if TYPE_CHECKING:
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[3]
-EFFECT_SHADER_DIR = PROJECT_ROOT / "assets" / "shaders" / "effects"
-POST_EFFECT_SHADER_DIR = PROJECT_ROOT / "assets" / "shaders" / "post_effects"
+SHADER_ROOT = PROJECT_ROOT / "assets" / "shaders"
+EFFECT_SHADER_DIR = SHADER_ROOT / "effects"
+POST_EFFECT_SHADER_DIR = SHADER_ROOT / "post_effects"
 EFFECT_SHADER_DIRS: tuple[Path, ...] = (EFFECT_SHADER_DIR, POST_EFFECT_SHADER_DIR)
 
 
@@ -60,10 +61,10 @@ class UISetup:
     _POST_DIAG_ENV = "PSS_POST_DIAG_TRACE"
 
     @staticmethod
-    def _build_effect_shader_manifest() -> Dict[str, bool]:
+    def _build_effect_shader_manifest() -> Dict[str, Dict[str, Any]]:
         """Return a manifest of effect shader files available on disk."""
 
-        manifest: Dict[str, bool] = {}
+        manifest: Dict[str, Dict[str, Any]] = {}
 
         for directory in EFFECT_SHADER_DIRS:
             try:
@@ -72,7 +73,27 @@ class UISetup:
                         continue
                     if path.suffix.lower() not in {".frag", ".vert"}:
                         continue
-                    manifest[path.name] = True
+
+                    try:
+                        relative_path = path.relative_to(SHADER_ROOT)
+                        relative_key = relative_path.as_posix()
+                    except ValueError:
+                        relative_key = path.name
+
+                    entry = manifest.get(path.name)
+                    if entry is None:
+                        manifest[path.name] = {
+                            "enabled": True,
+                            "path": relative_key,
+                            "paths": [relative_key],
+                        }
+                        continue
+
+                    entry.setdefault("enabled", True)
+                    entry_paths = entry.setdefault("paths", [])
+                    if relative_key not in entry_paths:
+                        entry_paths.append(relative_key)
+                    entry.setdefault("path", relative_key)
             except FileNotFoundError:
                 UISetup.logger.error(
                     "    ❌ Effect shader directory missing: %s", directory

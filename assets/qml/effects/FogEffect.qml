@@ -374,14 +374,91 @@ Effect {
 
         var manifestEntry
         var manifestHasEntry = false
+        var manifestEnabled = true
+        var manifestPaths = []
+        var normalizedUrlPath = ""
+        var matchesManifestPath = false
         if (resourceName && Object.prototype.hasOwnProperty.call(shaderResourceManifest, resourceName)) {
             manifestEntry = shaderResourceManifest[resourceName]
             manifestHasEntry = true
-            if (!manifestEntry) {
+            if (typeof manifestEntry === "boolean") {
+                manifestEnabled = manifestEntry
+            } else if (manifestEntry === null || manifestEntry === undefined) {
+                manifestEnabled = false
+            } else if (typeof manifestEntry === "string") {
+                manifestPaths.push(manifestEntry)
+            } else if (typeof manifestEntry === "object") {
+                if (Object.prototype.hasOwnProperty.call(manifestEntry, "enabled"))
+                    manifestEnabled = manifestEntry.enabled !== false
+                if (Object.prototype.hasOwnProperty.call(manifestEntry, "path")) {
+                    var manifestPath = manifestEntry.path
+                    if (manifestPath && typeof manifestPath === "string")
+                        manifestPaths.push(manifestPath)
+                }
+                if (Object.prototype.hasOwnProperty.call(manifestEntry, "paths") && manifestEntry.paths) {
+                    var manifestPathList = manifestEntry.paths
+                    for (var mpIdx = 0; mpIdx < manifestPathList.length; ++mpIdx) {
+                        var manifestPathCandidate = manifestPathList[mpIdx]
+                        if (!manifestPathCandidate || typeof manifestPathCandidate !== "string")
+                            continue
+                        if (manifestPaths.indexOf(manifestPathCandidate) === -1)
+                            manifestPaths.push(manifestPathCandidate)
+                    }
+                }
+            }
+            if (!manifestEnabled) {
                 shaderResourceAvailabilityCache[normalizedUrl] = false
                 if (!suppressErrors)
                     console.error("❌ FogEffect: shader resource disabled by manifest", resourceName, normalizedUrl)
                 return false
+            }
+            normalizedUrlPath = String(normalizedUrl).replace(/\\/g, "/")
+        }
+
+        if (manifestHasEntry && manifestEnabled) {
+            var shaderRootHint = "/assets/shaders/"
+
+            function manifestPathMatches(manifestPathEntry) {
+                if (!manifestPathEntry)
+                    return false
+
+                var normalizedEntry = String(manifestPathEntry).replace(/\\/g, "/")
+                if (!normalizedEntry.length)
+                    return false
+
+                if (normalizedUrlPath.endsWith(normalizedEntry))
+                    return true
+
+                var trimmedEntry = normalizedEntry.replace(/^\/+/, "")
+                if (!trimmedEntry.length)
+                    return false
+
+                if (normalizedUrlPath.endsWith("/" + trimmedEntry))
+                    return true
+
+                var shaderRootIndex = normalizedUrlPath.indexOf(shaderRootHint)
+                if (shaderRootIndex !== -1) {
+                    var relativeUrlPath = normalizedUrlPath.slice(shaderRootIndex + shaderRootHint.length)
+                    if (relativeUrlPath === trimmedEntry)
+                        return true
+                }
+
+                return false
+            }
+
+            matchesManifestPath = manifestPaths.length === 0
+            if (!matchesManifestPath) {
+                for (var pathIdx = 0; pathIdx < manifestPaths.length; ++pathIdx) {
+                    if (manifestPathMatches(manifestPaths[pathIdx])) {
+                        matchesManifestPath = true
+                        break
+                    }
+                }
+            }
+
+            if (matchesManifestPath && manifestPaths.length > 0) {
+                shaderResourceAvailabilityCache[normalizedUrl] = true
+                return true
             }
         }
 
@@ -410,10 +487,16 @@ Effect {
             return true
         }
 
-        if (manifestHasEntry && manifestEntry) {
+        if (manifestHasEntry && manifestEnabled) {
+            if (matchesManifestPath) {
+                shaderResourceAvailabilityCache[normalizedUrl] = false
+                if (!suppressErrors)
+                    console.error("❌ FogEffect: shader manifest mismatch", resourceName, normalizedUrl)
+                return false
+            }
             shaderResourceAvailabilityCache[normalizedUrl] = false
             if (!suppressErrors)
-                console.error("❌ FogEffect: shader manifest mismatch", resourceName, normalizedUrl)
+                console.error("❌ FogEffect: shader resource missing", resourceName, normalizedUrl)
             return false
         }
 

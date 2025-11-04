@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 from pathlib import Path
 
 import pytest
@@ -23,21 +24,41 @@ SHADER_DIRS = (
     REPO_ROOT / "assets" / "shaders" / "effects",
     REPO_ROOT / "assets" / "shaders" / "post_effects",
 )
+SHADER_ROOT = REPO_ROOT / "assets" / "shaders"
 
 
-def _build_manifest() -> dict[str, bool]:
-    manifest: dict[str, bool] = {}
+os.environ.setdefault("QML_XHR_ALLOW_FILE_READ", "1")
+
+
+def _build_manifest() -> dict[str, dict[str, object]]:
+    manifest: dict[str, dict[str, object]] = {}
     for directory in SHADER_DIRS:
         for path in directory.iterdir():
             if not path.is_file():
                 continue
             if path.suffix.lower() not in {".frag", ".vert"}:
                 continue
-            manifest[path.name] = True
+            relative_path = path.relative_to(SHADER_ROOT).as_posix()
+            entry = manifest.get(path.name)
+            if entry is None:
+                manifest[path.name] = {
+                    "enabled": True,
+                    "path": relative_path,
+                    "paths": [relative_path],
+                }
+                continue
+
+            entry.setdefault("enabled", True)
+            paths = entry.setdefault("paths", [])
+            if relative_path not in paths:
+                paths.append(relative_path)
+            entry.setdefault("path", relative_path)
     return manifest
 
 
-def _create_engine_with_manifest(manifest_overrides: dict[str, bool] | None = None) -> QQmlEngine:
+def _create_engine_with_manifest(
+    manifest_overrides: dict[str, object] | None = None,
+) -> QQmlEngine:
     engine = QQmlEngine()
     context = engine.rootContext()
 
@@ -70,6 +91,8 @@ def _normalize_url(value: object) -> str:
 
 
 def _to_variant_map(value: object) -> dict[str, object]:
+    if value is None:
+        return {}
     if isinstance(value, QJSValue):
         try:
             variant = value.toVariant()
@@ -80,6 +103,21 @@ def _to_variant_map(value: object) -> dict[str, object]:
     if isinstance(value, dict):
         return value
     raise TypeError(f"Unsupported manifest container: {type(value)!r}")
+
+
+def _to_sequence(value: object) -> list[object]:
+    if value is None:
+        return []
+    if isinstance(value, QJSValue):
+        try:
+            variant = value.toVariant()
+        except AttributeError:  # pragma: no cover - defensive for PySide variations
+            variant = None
+        if isinstance(variant, list):
+            return variant
+    if isinstance(value, (list, tuple)):
+        return list(value)
+    raise TypeError(f"Unsupported sequence container: {type(value)!r}")
 
 
 def test_post_effects_prefers_fallback_when_gles_variant_missing(qapp) -> None:  # type: ignore[missing-type-doc]
@@ -149,7 +187,7 @@ def test_fog_effect_activates_depth_fallback_when_forced(qapp) -> None:  # type:
         assert root.property("fallbackDueToDepth") is True
         assert root.property("fallbackActive") is True
 
-        active_shaders = list(root.property("activePassShaders"))
+        active_shaders = _to_sequence(root.property("activePassShaders"))
         assert len(active_shaders) == 2
         fallback_shader = active_shaders[1]
         shader_url = _normalize_url(fallback_shader.property("shader"))
