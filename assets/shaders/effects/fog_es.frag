@@ -50,7 +50,8 @@ layout(location = 0) in vec2 v_uv;
 #define INPUT_UV v_uv
 #endif
 
-#ifndef MAIN
+#ifdef MAIN
+#undef MAIN
 #define MAIN qt_customMain
 #define QSB_USES_QT_CUSTOM_MAIN 1
 #endif
