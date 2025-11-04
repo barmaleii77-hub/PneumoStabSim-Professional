@@ -67,7 +67,12 @@ Environment payload (вложенный)
 - **Fallback:** при отсутствии depth-текстуры, ошибке компиляции или отсутствии GLES-варианта базового шейдера активируется
   `fog_fallback.frag` (`#version 330 core`). Теперь отсутствие `_es`/`_gles` варианта явно логируется в `shaderVariantMissingWarnings`,
   что позволяет быстро заметить расхождения в поставке ресурсов. Включение fallback не требует переключения на десктопный профиль.
-  【F:assets/qml/effects/FogEffect.qml†L273-L307】【F:assets/qml/effects/FogEffect.qml†L356-L421】
+  【F:assets/qml/effects/FogEffect.qml†L747-L817】
+- **Depth requirements:** до загрузки любых `Shader`-ресурсов `FogEffect` вызывает `initializeDepthTextureSupport()`, который
+  устанавливает `requiresDepthTexture` и отслеживает исключения. Если depth недоступен (в том числе при принудительном флаге
+  `forceDepthTextureUnavailable`), свойство `fallbackDueToDepth` активирует каскадную деградацию: для GLES-бэкендов выбирается
+  `fog_fallback_es.frag`, для десктопного профиля — `fog_fallback.frag`. Все переходы логируются, чтобы разработчики расширений
+  могли повторять шаблон. 【F:assets/qml/effects/FogEffect.qml†L41-L128】【F:assets/qml/effects/FogEffect.qml†L930-L954】
 
 ### Проверка компиляции шейдеров
 
@@ -105,7 +110,9 @@ Environment payload (вложенный)
 2. На мобильных устройствах (Android/iOS, обычно GLES) проверить, что при сообщении `reportedGlesContext` эффект выбирает
    GLES-профиль и сохраняет ожидаемое визуальное поведение.
 3. Искусственно отключить depth-текстуру (в панели разработчика или модифицируя `depthTextureAvailable`) и подтвердить,
-   что активируется fallback-шейдер и лог выдаёт `⚠️ FogEffect: depth texture unavailable; using fallback shader`.
+   что активируется fallback-шейдер и лог выдаёт `⚠️ FogEffect: Depth texture not supported; using fallback shader`
+   или `⚠️ FogEffect: Depth texture support forced unavailable; using fallback shader` при принудительном отключении.
+   【F:assets/qml/effects/FogEffect.qml†L91-L116】
 4. После восстановления глубины убедиться, что `SceneEnvironmentController` записывает `✅ Fog fallback cleared`.
 
 ### Документирование результатов

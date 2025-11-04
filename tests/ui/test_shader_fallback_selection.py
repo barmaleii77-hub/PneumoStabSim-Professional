@@ -135,3 +135,24 @@ def test_fog_effect_prefers_fallback_when_gles_variant_missing(qapp) -> None:  #
         assert missing_variants.get("fog_es.frag") is True
     finally:
         root.deleteLater()
+
+
+@pytest.mark.gui
+def test_fog_effect_activates_depth_fallback_when_forced(qapp) -> None:  # type: ignore[missing-type-doc]
+    """FogEffect should engage fallback shader when depth textures are unavailable."""
+
+    engine = _create_engine_with_manifest({})
+    component = _create_component(engine, REPO_ROOT / "assets" / "qml" / "effects" / "FogEffect.qml")
+    root = component.createWithInitialProperties({"forceDepthTextureUnavailable": True})
+    try:
+        assert root.property("depthTextureAvailable") is False
+        assert root.property("fallbackDueToDepth") is True
+        assert root.property("fallbackActive") is True
+
+        active_shaders = list(root.property("activePassShaders"))
+        assert len(active_shaders) == 2
+        fallback_shader = active_shaders[1]
+        shader_url = _normalize_url(fallback_shader.property("shader"))
+        assert shader_url.endswith("fog_fallback_es.frag")
+    finally:
+        root.deleteLater()
