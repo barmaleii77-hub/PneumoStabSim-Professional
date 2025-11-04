@@ -304,12 +304,17 @@ Item {
 
         var available = false
 
+        var manifestEntry
+        var manifestHasEntry = false
         if (resourceName && Object.prototype.hasOwnProperty.call(shaderResourceManifest, resourceName)) {
-            available = !!shaderResourceManifest[resourceName]
-            shaderResourceAvailabilityCache[normalizedUrl] = available
-            if (!available && !suppressErrors)
-                console.error("❌ PostEffects: shader resource missing", resourceName, normalizedUrl)
-            return available
+            manifestEntry = shaderResourceManifest[resourceName]
+            manifestHasEntry = true
+            if (!manifestEntry) {
+                shaderResourceAvailabilityCache[normalizedUrl] = false
+                if (!suppressErrors)
+                    console.error("❌ PostEffects: shader resource disabled by manifest", resourceName, normalizedUrl)
+                return false
+            }
         }
 
         function checkAvailability(method) {
@@ -332,11 +337,23 @@ Item {
         if (!checkAvailability("HEAD"))
             checkAvailability("GET")
 
-        shaderResourceAvailabilityCache[normalizedUrl] = available
-        if (!available && !suppressErrors)
+        if (available) {
+            shaderResourceAvailabilityCache[normalizedUrl] = true
+            return true
+        }
+
+        if (manifestHasEntry && manifestEntry) {
+            shaderResourceAvailabilityCache[normalizedUrl] = false
+            if (!suppressErrors)
+                console.error("❌ PostEffects: shader manifest mismatch", resourceName, normalizedUrl)
+            return false
+        }
+
+        shaderResourceAvailabilityCache[normalizedUrl] = false
+        if (!suppressErrors)
             console.error("❌ PostEffects: shader resource missing", resourceName, normalizedUrl)
 
-        return available
+        return false
     }
 
     function shaderPath(fileName) {
