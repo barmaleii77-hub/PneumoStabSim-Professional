@@ -17,7 +17,7 @@ def test_validate_shaders_success(tmp_path: Path) -> None:
     shader_root = tmp_path / "shaders"
 
     _write_shader(shader_root, "effects/bloom.frag", "#version 450 core\nvoid main() {}\n")
-    _write_shader(shader_root, "effects/bloom_fallback.frag", "#version 330 core\nvoid main() {}\n")
+    _write_shader(shader_root, "effects/bloom_fallback.frag", "#version 450 core\nvoid main() {}\n")
     _write_shader(
         shader_root, "effects/bloom_fallback_es.frag", "#version 300 es\nvoid main() {}\n"
     )
@@ -26,7 +26,7 @@ def test_validate_shaders_success(tmp_path: Path) -> None:
     _write_shader(shader_root, "effects/fog.vert", "#version 450 core\nvoid main() {}\n")
     _write_shader(shader_root, "effects/fog_es.vert", "#version 300 es\nvoid main() {}\n")
     _write_shader(shader_root, "effects/fog.frag", "#version 450 core\nvoid main() {}\n")
-    _write_shader(shader_root, "effects/fog_fallback.frag", "#version 330 core\nvoid main() {}\n")
+    _write_shader(shader_root, "effects/fog_fallback.frag", "#version 450 core\nvoid main() {}\n")
     _write_shader(shader_root, "effects/fog_es.frag", "#version 300 es\nvoid main() {}\n")
     _write_shader(
         shader_root, "effects/fog_fallback_es.frag", "#version 300 es\nvoid main() {}\n"
@@ -41,7 +41,7 @@ def test_validate_shaders_reports_missing_gles_variant(tmp_path: Path) -> None:
     shader_root = tmp_path / "shaders"
 
     _write_shader(shader_root, "effects/ssao.frag", "#version 450 core\nvoid main() {}\n")
-    _write_shader(shader_root, "effects/ssao_fallback.frag", "#version 330 core\nvoid main() {}\n")
+    _write_shader(shader_root, "effects/ssao_fallback.frag", "#version 450 core\nvoid main() {}\n")
 
     errors = validate_shaders.validate_shaders(shader_root)
 
@@ -52,7 +52,7 @@ def test_validate_shaders_reports_missing_fallback_es_variant(tmp_path: Path) ->
     shader_root = tmp_path / "shaders"
 
     _write_shader(shader_root, "effects/dof.frag", "#version 450 core\nvoid main() {}\n")
-    _write_shader(shader_root, "effects/dof_fallback.frag", "#version 330 core\nvoid main() {}\n")
+    _write_shader(shader_root, "effects/dof_fallback.frag", "#version 450 core\nvoid main() {}\n")
     _write_shader(shader_root, "effects/dof_es.frag", "#version 300 es\nvoid main() {}\n")
 
     errors = validate_shaders.validate_shaders(shader_root)
@@ -64,7 +64,7 @@ def test_validate_shaders_reports_version_mismatch(tmp_path: Path) -> None:
     shader_root = tmp_path / "shaders"
 
     _write_shader(shader_root, "effects/dof.frag", "#version 450 core\nvoid main() {}\n")
-    _write_shader(shader_root, "effects/dof_fallback.frag", "#version 330 core\nvoid main() {}\n")
+    _write_shader(shader_root, "effects/dof_fallback.frag", "#version 450 core\nvoid main() {}\n")
     _write_shader(shader_root, "post_effects/dof_es.frag", "#version 100 es\nvoid main() {}\n")
 
     errors = validate_shaders.validate_shaders(shader_root)

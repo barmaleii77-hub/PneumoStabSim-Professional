@@ -29,7 +29,7 @@ EXPECTED_VERSIONS: Mapping[tuple[str, str], str] = {
     ("desktop", ".vert"): "#version 450 core",
     ("es", ".frag"): "#version 300 es",
     ("es", ".vert"): "#version 300 es",
-    ("fallback", ".frag"): "#version 330 core",
+    ("fallback", ".frag"): "#version 450 core",
     ("fallback_es", ".frag"): "#version 300 es",
 }
 
