@@ -22,7 +22,6 @@ pytest.importorskip(
 REPO_ROOT = Path(__file__).resolve().parents[2]
 SHADER_DIRS = (
     REPO_ROOT / "assets" / "shaders" / "effects",
-    REPO_ROOT / "assets" / "shaders" / "post_effects",
 )
 SHADER_ROOT = REPO_ROOT / "assets" / "shaders"
 

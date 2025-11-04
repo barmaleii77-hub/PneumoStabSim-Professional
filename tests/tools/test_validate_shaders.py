@@ -91,7 +91,7 @@ def test_validate_shaders_success(tmp_path: Path) -> None:
         "#version 300 es\nvoid main() {}\n",
     )
     _write_shader(
-        shader_root, "post_effects/bloom_es.frag", "#version 300 es\nvoid main() {}\n"
+        shader_root, "effects/bloom_es.frag", "#version 300 es\nvoid main() {}\n"
     )
 
     _write_shader(
@@ -140,7 +140,7 @@ def test_validate_shaders_invokes_qsb_profiles_and_logs(tmp_path: Path) -> None:
         "#version 300 es\nvoid main() {}\n",
     )
     _write_shader(
-        shader_root, "post_effects/bloom_es.frag", "#version 300 es\nvoid main() {}\n"
+        shader_root, "effects/bloom_es.frag", "#version 300 es\nvoid main() {}\n"
     )
 
     errors = validate_shaders.validate_shaders(
@@ -232,7 +232,7 @@ def test_validate_shaders_reports_version_mismatch(tmp_path: Path) -> None:
         shader_root, "effects/dof_fallback.frag", "#version 450 core\nvoid main() {}\n"
     )
     _write_shader(
-        shader_root, "post_effects/dof_es.frag", "#version 100 es\nvoid main() {}\n"
+        shader_root, "effects/dof_es.frag", "#version 100 es\nvoid main() {}\n"
     )
 
     errors = validate_shaders.validate_shaders(

@@ -303,7 +303,7 @@ Effect {
 
     readonly property string shaderResourceDirectory: "../../shaders/effects/"
     readonly property string legacyShaderResourceDirectory: "../../shaders/effects/"
-    readonly property string glesShaderResourceDirectory: "../../shaders/post_effects/"
+    readonly property string glesShaderResourceDirectory: "../../shaders/effects/"
     // qmllint disable unqualified
     readonly property var shaderResourceManifest: typeof effectShaderManifest !== "undefined"
             ? effectShaderManifest

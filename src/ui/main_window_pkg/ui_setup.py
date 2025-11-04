@@ -38,8 +38,7 @@ if TYPE_CHECKING:
 PROJECT_ROOT = Path(__file__).resolve().parents[3]
 SHADER_ROOT = PROJECT_ROOT / "assets" / "shaders"
 EFFECT_SHADER_DIR = SHADER_ROOT / "effects"
-POST_EFFECT_SHADER_DIR = SHADER_ROOT / "post_effects"
-EFFECT_SHADER_DIRS: tuple[Path, ...] = (EFFECT_SHADER_DIR, POST_EFFECT_SHADER_DIR)
+EFFECT_SHADER_DIRS: tuple[Path, ...] = (EFFECT_SHADER_DIR,)
 
 
 class UISetup:
