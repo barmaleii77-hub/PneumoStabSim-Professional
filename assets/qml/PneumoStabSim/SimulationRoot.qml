@@ -27,7 +27,9 @@ Item {
  anchors.fill: parent
 
     property var sceneBridge: null
-    readonly property var emptyGeometryDefaults: ({})
+    readonly property var emptyDefaultsObject: Object.freeze({})
+    readonly property var emptyGeometryDefaults: emptyDefaultsObject
+    readonly property var emptyMaterialsDefaults: emptyDefaultsObject
 
  // ---------------------------------------------
  // Свойства и сигнал для батч-обновлений из Python
@@ -855,7 +857,7 @@ SequentialAnimation {
   geometryState: geometryState
   geometryDefaults: root.geometryDefaults || root.emptyGeometryDefaults
   emptyGeometryDefaults: root.emptyGeometryDefaults
-  materialsDefaults: sceneDefaults && sceneDefaults.materials ? sceneDefaults.materials : ({})
+  materialsDefaults: sceneDefaults && sceneDefaults.materials ? sceneDefaults.materials : root.emptyMaterialsDefaults
   sharedMaterials: sharedMaterials
   sceneScaleFactor: root.effectiveSceneScaleFactor
   leverAngles: ({

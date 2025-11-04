@@ -23,8 +23,8 @@ Node {
     required property var geometryState
     required property SharedMaterials sharedMaterials
     required property var materialsDefaults
-    property var geometryDefaults: null
-    property var emptyGeometryDefaults: null
+    required property var geometryDefaults
+    required property var emptyGeometryDefaults
 
     function asObject(value) {
         return value && typeof value === "object" ? value : null
@@ -38,12 +38,11 @@ Node {
         // qmllint disable missing-property
         const parentNode = assembly.parent
         if (parentNode) {
-            const hasOwn = typeof parentNode.hasOwnProperty === "function" ? parentNode.hasOwnProperty : null
-            const parentDefaults = asObject(hasOwn && hasOwn.call(parentNode, "geometryDefaults") ? parentNode["geometryDefaults"] : null)
+            const parentDefaults = asObject(parentNode.geometryDefaults)
             if (parentDefaults)
                 return parentDefaults
 
-            const parentEmpty = asObject(hasOwn && hasOwn.call(parentNode, "emptyGeometryDefaults") ? parentNode["emptyGeometryDefaults"] : null)
+            const parentEmpty = asObject(parentNode.emptyGeometryDefaults)
             if (parentEmpty)
                 return parentEmpty
         }
