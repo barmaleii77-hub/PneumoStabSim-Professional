@@ -11,12 +11,14 @@ from __future__ import annotations
 import copy
 import logging
 import math
-from typing import TYPE_CHECKING, Any, Dict, Mapping, Optional
+from typing import TYPE_CHECKING, Any, Callable, Dict, Mapping, Optional
 
 from importlib import import_module, util
 
 if util.find_spec("PySide6.QtCore") is not None:
-    Qt = import_module("PySide6.QtCore").Qt
+    qtcore = import_module("PySide6.QtCore")
+    Qt = qtcore.Qt
+    QTimer = getattr(qtcore, "QTimer", None)
 else:  # pragma: no cover - executed only on headless environments
 
     class _QtStub:
@@ -25,6 +27,7 @@ else:  # pragma: no cover - executed only on headless environments
         QueuedConnection = "queued"
 
     Qt = _QtStub()
+    QTimer = None
 
 from ...pneumo.enums import Line, Wheel
 from .qml_bridge import QMLBridge
@@ -67,6 +70,10 @@ class SignalsRouter:
         "hdr_source",
         "hdrSource",
     )
+    _DEBOUNCE_DELAYS_MS = {
+        "environment": 150,
+        "effects": 150,
+    }
 
     @staticmethod
     def _normalise_environment_payload(
@@ -786,6 +793,17 @@ class SignalsRouter:
         if not isinstance(params, dict):
             return
 
+        SignalsRouter._schedule_debounced_update(
+            window, "environment", params, SignalsRouter._dispatch_environment_update
+        )
+
+    @staticmethod
+    def _dispatch_environment_update(
+        window: MainWindow, params: Dict[str, Any]
+    ) -> None:
+        if not isinstance(params, dict):
+            return
+
         reflection_keys = {
             "reflection_enabled",
             "reflection_padding_m",
@@ -900,6 +918,15 @@ class SignalsRouter:
     @staticmethod
     def handle_effects_changed(window: MainWindow, params: Dict[str, Any]) -> None:
         """Handle effects changes from GraphicsPanel"""
+        if not isinstance(params, dict):
+            return
+
+        SignalsRouter._schedule_debounced_update(
+            window, "effects", params, SignalsRouter._dispatch_effects_update
+        )
+
+    @staticmethod
+    def _dispatch_effects_update(window: MainWindow, params: Dict[str, Any]) -> None:
         if not isinstance(params, dict):
             return
 
@@ -1279,6 +1306,21 @@ class SignalsRouter:
             }
 
     @staticmethod
+    def _merge_payload(target: Dict[str, Any], updates: Mapping[str, Any]) -> None:
+        """Recursively merge ``updates`` into ``target``."""
+
+        for key, value in updates.items():
+            if isinstance(value, Mapping):
+                nested_update = dict(value)
+                existing = target.get(key)
+                if not isinstance(existing, dict):
+                    existing = {}
+                target[key] = existing
+                SignalsRouter._merge_payload(existing, nested_update)
+            else:
+                target[key] = SignalsRouter._clone_value(value)
+
+    @staticmethod
     def _payloads_equal(left: Any, right: Any) -> bool:
         """Recursively compare two payload structures with float tolerance."""
 
@@ -1357,3 +1399,81 @@ class SignalsRouter:
 
         payloads = SignalsRouter._get_last_payloads(window)
         payloads[category] = SignalsRouter._clone_payload(payload)
+
+    @staticmethod
+    def _schedule_debounced_update(
+        window: "MainWindow",
+        category: str,
+        payload: Dict[str, Any],
+        dispatcher: Callable[["MainWindow", Dict[str, Any]], None],
+    ) -> None:
+        delay = SignalsRouter._DEBOUNCE_DELAYS_MS.get(category)
+        if not delay or delay <= 0 or QTimer is None:
+            dispatcher(window, payload)
+            return
+
+        if not isinstance(payload, Mapping):
+            dispatcher(window, payload)
+            return
+
+        registry: Dict[str, Dict[str, Any]] | None = getattr(
+            window, "_qml_debounce_registry", None
+        )
+        if registry is None:
+            registry = {}
+            window._qml_debounce_registry = registry
+
+        entry = registry.get(category)
+        if entry is None:
+            timer = QTimer(window)
+            timer.setSingleShot(True)
+            try:
+                timer.timeout.connect(
+                    lambda cat=category: SignalsRouter._flush_debounced_update(
+                        window, cat
+                    )
+                )
+            except Exception:
+                dispatcher(window, payload)
+                return
+            entry = {"timer": timer, "pending": None, "dispatcher": dispatcher}
+            registry[category] = entry
+        else:
+            entry["dispatcher"] = dispatcher
+
+        if entry.get("pending") is None:
+            entry["pending"] = SignalsRouter._clone_payload(payload)
+        else:
+            SignalsRouter._merge_payload(entry["pending"], payload)
+
+        timer = entry["timer"]
+        try:
+            if timer.isActive():
+                timer.stop()
+            timer.start(delay)
+        except Exception:
+            entry["pending"] = None
+            dispatcher(window, payload)
+
+    @staticmethod
+    def _flush_debounced_update(window: "MainWindow", category: str) -> None:
+        registry: Dict[str, Dict[str, Any]] | None = getattr(
+            window, "_qml_debounce_registry", None
+        )
+        if not registry:
+            return
+
+        entry = registry.get(category)
+        if not entry:
+            return
+
+        pending = entry.get("pending")
+        entry["pending"] = None
+        dispatcher = entry.get("dispatcher")
+        if dispatcher is None:
+            return
+
+        if not isinstance(pending, dict) or not pending:
+            return
+
+        dispatcher(window, pending)

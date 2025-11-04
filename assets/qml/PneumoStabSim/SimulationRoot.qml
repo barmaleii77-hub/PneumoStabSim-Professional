@@ -1754,7 +1754,11 @@ function applyBatchedUpdates(updates) {
             timestamp: Date.now(),
             applied: {},
             failed: { root: "invalid-payload" },
-            unknownKeys: []
+            unknownKeys: [],
+            meta: null,
+            appliedCount: 0,
+            failedCount: 1,
+            success: false
         };
         batchUpdatesApplied(rejectedSummary);
         return rejectedSummary;
@@ -1764,7 +1768,8 @@ function applyBatchedUpdates(updates) {
         timestamp: Date.now(),
         applied: {},
         failed: {},
-        unknownKeys: []
+        unknownKeys: [],
+        meta: null
     };
 
     function recordUnknown(key) {
@@ -1804,6 +1809,14 @@ function applyBatchedUpdates(updates) {
     for (var key in updates) {
         if (!updates.hasOwnProperty(key))
             continue;
+        if (key === "_meta" || key === "meta") {
+            if (summary.meta === null && isPlainObject(updates[key]))
+                summary.meta = updates[key];
+            if (summary.batchId === undefined && isPlainObject(updates[key])
+                    && updates[key].batchId !== undefined)
+                summary.batchId = updates[key].batchId;
+            continue;
+        }
         var handler = handlers[key];
         if (!handler) {
             recordUnknown(key);
@@ -1818,6 +1831,14 @@ function applyBatchedUpdates(updates) {
             summary.unknownKeys.join(", ")
         );
     }
+
+    if (summary.meta !== null && summary.batchId === undefined
+            && summary.meta && summary.meta.batchId !== undefined)
+        summary.batchId = summary.meta.batchId;
+
+    summary.appliedCount = Object.keys(summary.applied).length;
+    summary.failedCount = Object.keys(summary.failed).length;
+    summary.success = summary.failedCount === 0 && summary.unknownKeys.length === 0;
 
     batchUpdatesApplied(summary);
     return summary;

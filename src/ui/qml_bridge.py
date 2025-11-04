@@ -20,9 +20,11 @@ executed at runtime.
 from __future__ import annotations
 
 from dataclasses import dataclass
+import copy
 import logging
 from functools import lru_cache
 from pathlib import Path
+import time
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -64,6 +66,8 @@ if TYPE_CHECKING:  # pragma: no cover - imported only for typing
     from .main_window import MainWindow
 
 _LOGGER = logging.getLogger(__name__)
+
+_BATCH_RETRY_LIMIT = 2
 
 _PROJECT_ROOT = Path(__file__).resolve().parents[2]
 _METADATA_CANDIDATES = (
@@ -354,12 +358,25 @@ class QMLBridge:
             return QMLBridge._make_update_result(False, detailed, "QML root missing")
 
         try:
-            sanitized = QMLBridge._prepare_for_qml(updates)
+            batch_id = QMLBridge._next_batch_id(window)
+            envelope: Dict[str, Any]
+            try:
+                envelope = copy.deepcopy(updates)
+            except Exception:
+                envelope = dict(updates)
+            envelope_meta = {
+                "batchId": batch_id,
+                "issuedAt": int(time.time() * 1000),
+                "categories": [str(key) for key in envelope.keys()],
+            }
+            envelope["_meta"] = envelope_meta
+            sanitized = QMLBridge._prepare_for_qml(envelope)
             window._suppress_qml_feedback = True
             try:
                 window._qml_root_object.setProperty("pendingPythonUpdates", sanitized)
             finally:
                 window._suppress_qml_feedback = False
+            QMLBridge._track_pending_batch(window, batch_id, updates)
             return QMLBridge._make_update_result(True, detailed)
         except Exception as exc:  # pragma: no cover - Qt specific failure
             QMLBridge.logger.error(
@@ -643,6 +660,139 @@ class QMLBridge:
             )
 
     @staticmethod
+    def _next_batch_id(window: "MainWindow") -> int:
+        current = int(getattr(window, "_qml_batch_sequence", 0)) + 1
+        window._qml_batch_sequence = current
+        return current
+
+    @staticmethod
+    def _track_pending_batch(
+        window: "MainWindow", batch_id: int, payload: Dict[str, Any]
+    ) -> None:
+        try:
+            stored_payload = copy.deepcopy(payload)
+        except Exception:
+            stored_payload = dict(payload)
+
+        window._pending_batch_ack = {
+            "batch_id": batch_id,
+            "payload": stored_payload,
+            "retries_left": _BATCH_RETRY_LIMIT,
+            "issued_at": time.time(),
+        }
+
+    @staticmethod
+    def _extract_ack_components(
+        summary: Dict[str, Any],
+    ) -> tuple[Optional[int], Dict[str, str], set[str], Optional[bool]]:
+        batch_id: Optional[int] = None
+        failed: Dict[str, str] = {}
+        unknown: set[str] = set()
+        success_flag: Optional[bool] = None
+
+        if isinstance(summary, Mapping):
+            raw_failed = summary.get("failed")
+            if isinstance(raw_failed, Mapping):
+                failed = {
+                    str(key): (str(value) if value is not None else "")
+                    for key, value in raw_failed.items()
+                }
+
+            raw_unknown = summary.get("unknownKeys")
+            if isinstance(raw_unknown, (list, tuple, set)):
+                unknown = {
+                    str(item)
+                    for item in raw_unknown
+                    if item is not None and str(item) != ""
+                }
+
+            meta_candidates: list[Optional[Any]] = []
+            raw_meta = summary.get("meta") or summary.get("_meta")
+            if isinstance(raw_meta, Mapping):
+                meta_candidates.extend(
+                    [raw_meta.get("batchId"), raw_meta.get("batch_id")]
+                )
+            meta_candidates.extend([summary.get("batchId"), summary.get("batch_id")])
+
+            for candidate in meta_candidates:
+                if candidate is None:
+                    continue
+                try:
+                    batch_id = int(candidate)
+                    break
+                except (TypeError, ValueError):
+                    continue
+
+            success_value = summary.get("success")
+            if isinstance(success_value, bool):
+                success_flag = success_value
+
+        return batch_id, failed, unknown, success_flag
+
+    @staticmethod
+    def _process_ack_retry(
+        window: "MainWindow", summary: Dict[str, Any]
+    ) -> tuple[bool, bool, Dict[str, str], set[str], bool]:
+        pending = getattr(window, "_pending_batch_ack", None)
+        batch_id, failed, unknown, success_flag = QMLBridge._extract_ack_components(
+            summary
+        )
+
+        ack_success = not failed and not unknown and success_flag is not False
+
+        if not pending:
+            return ack_success, False, failed, unknown, True
+
+        expected_id = pending.get("batch_id")
+        if batch_id is not None and expected_id is not None and batch_id != expected_id:
+            QMLBridge.logger.debug(
+                "Ignoring ACK for batch %s while waiting for %s",
+                batch_id,
+                expected_id,
+            )
+            return ack_success, False, failed, unknown, False
+
+        has_failures = bool(failed) or bool(unknown) or success_flag is False
+        if not has_failures:
+            window._pending_batch_ack = None
+            return True, False, failed, unknown, True
+
+        retries_left = int(pending.get("retries_left", 0))
+        if retries_left > 0:
+            pending["retries_left"] = retries_left - 1
+            categories = set(failed.keys()) | set(unknown)
+            payload: Mapping[str, Any] = pending.get("payload", {})
+            for category in categories:
+                category_payload = payload.get(category)
+                if not category_payload:
+                    continue
+                try:
+                    retry_payload = copy.deepcopy(category_payload)
+                except Exception:
+                    retry_payload = dict(category_payload)
+                QMLBridge.queue_update(window, category, retry_payload)
+
+            window._pending_batch_ack = pending
+            QMLBridge.logger.warning(
+                "Retrying batch %s (%d retries left) after ACK failure: failed=%s unknown=%s",
+                expected_id,
+                pending.get("retries_left", 0),
+                sorted(failed.keys()),
+                sorted(unknown),
+            )
+            return False, True, failed, unknown, True
+
+        window._pending_batch_ack = None
+        QMLBridge.logger.error(
+            "Batched update %s failed after retries: %s", expected_id, failed
+        )
+        if unknown:
+            QMLBridge.logger.error(
+                "Unhandled batch categories for %s: %s", expected_id, sorted(unknown)
+            )
+        return False, False, failed, unknown, True
+
+    @staticmethod
     def _prepare_for_qml(value: Any) -> Any:
         """Normalise Python objects so they can be passed into QML."""
 
@@ -704,10 +854,24 @@ class QMLBridge:
         try:
             QMLBridge.logger.info("QML batch ACK: %s", summary)
 
-            if hasattr(window, "status_bar"):
-                window.status_bar.showMessage("Обновления применены в сцене", 1500)
+            ack_success, retried, failed, unknown, matched = (
+                QMLBridge._process_ack_retry(window, summary)
+            )
 
-            if window._last_batched_updates:
+            status_bar = getattr(window, "status_bar", None)
+            if status_bar is not None:
+                if ack_success:
+                    status_bar.showMessage("Обновления применены в сцене", 1500)
+                elif retried:
+                    status_bar.showMessage(
+                        "Повторная отправка обновлений в сцену…", 2000
+                    )
+                else:
+                    status_bar.showMessage(
+                        "Не удалось применить обновления в сцене", 4000
+                    )
+
+            if ack_success and matched and window._last_batched_updates:
                 try:
                     from .panels.graphics_logger import get_graphics_logger
 
@@ -735,6 +899,16 @@ class QMLBridge:
                     window._last_batched_updates = None
                 except Exception:  # pragma: no cover - diagnostics best effort
                     pass
+            elif retried:
+                QMLBridge.logger.debug(
+                    "Batched update retry scheduled due to failures: %s", failed
+                )
+            elif (failed or unknown) and matched:
+                QMLBridge.logger.error(
+                    "QML reported batch failure without retry: failed=%s unknown=%s",
+                    failed,
+                    sorted(unknown),
+                )
         except Exception:  # pragma: no cover - diagnostics best effort
             QMLBridge.logger.debug("handle_qml_ack failed", exc_info=True)
 
