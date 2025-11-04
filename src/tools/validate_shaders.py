@@ -38,6 +38,17 @@ EXPECTED_VERSIONS: Mapping[tuple[str, str], str] = {
     ("fallback_es", ".frag"): "#version 300 es",
 }
 
+QSB_PROFILE_ARGUMENTS: tuple[str, ...] = (
+    "--glsl",
+    "450",
+    "--glsl",
+    "300es",
+    "--hlsl",
+    "50",
+    "--msl",
+    "12",
+)
+
 
 @dataclass(frozen=True)
 class ShaderFile:
@@ -165,17 +176,7 @@ def _run_qsb(
 ) -> None:
     output_path, log_path = _shader_reports_paths(reports_dir, shader, shader_root)
 
-    command = [
-        *qsb_command,
-        "--glsl",
-        "450",
-        "--glsl",
-        "300es",
-        "--hlsl",
-        "50",
-        "--msl",
-        "12",
-    ]
+    command = [*qsb_command, *QSB_PROFILE_ARGUMENTS]
     if output_path is not None:
         command.extend(["-o", str(output_path)])
     command.append(str(shader.path))

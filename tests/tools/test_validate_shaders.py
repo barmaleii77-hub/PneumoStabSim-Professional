@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import sys
+import json
 from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
@@ -18,14 +19,25 @@ def _make_qsb_stub(
     exit_code: int = 0,
     stdout: str = "compiled",
     stderr: str = "compilation failed",
+    capture_args: Path | None = None,
 ) -> list[str]:
     script = base / "qsb_stub.py"
+    capture_literal = repr(str(capture_args)) if capture_args is not None else "None"
     script.write_text(
         f"""
+import json
 import sys
 from pathlib import Path
 
 args = sys.argv[1:]
+
+capture_path = {capture_literal}
+if capture_path is not None:
+    capture = Path(capture_path)
+    capture.parent.mkdir(parents=True, exist_ok=True)
+    with capture.open("a", encoding="utf-8") as handle:
+        json.dump(args, handle)
+        handle.write("\n")
 
 output = None
 for index, value in enumerate(list(args)):
@@ -106,6 +118,65 @@ def test_validate_shaders_success(tmp_path: Path) -> None:
     )
 
     assert errors == []
+
+
+def test_validate_shaders_invokes_qsb_profiles_and_logs(tmp_path: Path) -> None:
+    shader_root = tmp_path / "shaders"
+    reports_dir = tmp_path / "reports"
+    capture = tmp_path / "qsb_invocations.jsonl"
+    qsb_cmd = _make_qsb_stub(tmp_path, capture_args=capture)
+
+    _write_shader(
+        shader_root, "effects/bloom.frag", "#version 450 core\nvoid main() {}\n"
+    )
+    _write_shader(
+        shader_root,
+        "effects/bloom_fallback.frag",
+        "#version 450 core\nvoid main() {}\n",
+    )
+    _write_shader(
+        shader_root,
+        "effects/bloom_fallback_es.frag",
+        "#version 300 es\nvoid main() {}\n",
+    )
+    _write_shader(
+        shader_root, "post_effects/bloom_es.frag", "#version 300 es\nvoid main() {}\n"
+    )
+
+    errors = validate_shaders.validate_shaders(
+        shader_root, qsb_command=qsb_cmd, reports_dir=reports_dir
+    )
+
+    assert errors == []
+    assert capture.exists()
+
+    invocations = [json.loads(line) for line in capture.read_text().splitlines() if line]
+    assert invocations, "expected at least one qsb invocation"
+    for invocation in invocations:
+        assert any(
+            invocation[index : index + 2] == ["--glsl", "450"]
+            for index in range(len(invocation) - 1)
+        )
+        assert any(
+            invocation[index : index + 2] == ["--glsl", "300es"]
+            for index in range(len(invocation) - 1)
+        )
+        assert any(
+            invocation[index : index + 2] == ["--hlsl", "50"]
+            for index in range(len(invocation) - 1)
+        )
+        assert any(
+            invocation[index : index + 2] == ["--msl", "12"]
+            for index in range(len(invocation) - 1)
+        )
+
+    log_path = reports_dir / "effects" / "bloom.log"
+    qsb_output_path = reports_dir / "effects" / "bloom.qsb"
+    assert log_path.exists()
+    assert qsb_output_path.exists()
+    log_contents = log_path.read_text(encoding="utf-8")
+    assert "--hlsl 50" in log_contents
+    assert "--msl 12" in log_contents
 
 
 def test_validate_shaders_reports_missing_gles_variant(tmp_path: Path) -> None:
