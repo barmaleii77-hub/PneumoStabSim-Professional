@@ -194,11 +194,24 @@ Item {
     // qmllint enable unqualified
     readonly property bool useGlesShaders: reportedGlesContext && !preferDesktopShaderProfile
 
-    readonly property string shaderResourceDirectory: "../../shaders/effects/"
+    readonly property string shaderResourceDirectory: "../../shaders/post_effects/"
+    readonly property string legacyShaderResourceDirectory: "../../shaders/effects/"
     readonly property string glesShaderResourceDirectory: "../../shaders/post_effects/"
-    readonly property var shaderResourceDirectories: useGlesShaders
-            ? [glesShaderResourceDirectory, shaderResourceDirectory]
-            : [shaderResourceDirectory]
+    readonly property var shaderResourceDirectories: {
+        var directories = []
+        function appendDirectory(path) {
+            if (!path || !path.length)
+                return
+            if (directories.indexOf(path) !== -1)
+                return
+            directories.push(path)
+        }
+        if (useGlesShaders)
+            appendDirectory(glesShaderResourceDirectory)
+        appendDirectory(shaderResourceDirectory)
+        appendDirectory(legacyShaderResourceDirectory)
+        return directories
+    }
     readonly property var desktopShaderSuffixes: ["_glsl450", "_desktop", "_core"]
     readonly property var glesShaderSuffixes: ["_es", "_gles", "_300es"]
     // qmllint disable unqualified
