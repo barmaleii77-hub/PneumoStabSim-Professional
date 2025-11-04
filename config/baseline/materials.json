@@ -1,6 +1,12 @@
 {
   "version": 1,
   "materials": {
+    "cylinder": {
+      "label_key": "lighting.material.cylinder",
+      "base_color": "#8A8F96",
+      "roughness": 0.42,
+      "metalness": 0.82
+    },
     "frame": {
       "label_key": "lighting.material.frame",
       "base_color": "#7A7F85",
@@ -8,25 +14,30 @@
       "metalness": 0.35,
       "clearcoat": 0.1
     },
+    "joint_arm": {
+      "label_key": "lighting.material.joint_arm",
+      "base_color": "#9DA2A8",
+      "roughness": 0.4,
+      "metalness": 0.64
+    },
+    "joint_rod": {
+      "label_key": "lighting.material.joint_rod",
+      "base_color": "#B6BBC1",
+      "roughness": 0.33,
+      "metalness": 0.68
+    },
+    "joint_tail": {
+      "label_key": "lighting.material.joint_tail",
+      "base_color": "#A6AAAF",
+      "roughness": 0.38,
+      "metalness": 0.76
+    },
     "lever": {
       "label_key": "lighting.material.lever",
       "base_color": "#6C7076",
       "roughness": 0.55,
       "metalness": 0.28,
       "anisotropy": 0.05
-    },
-    "tail_rod": {
-      "label_key": "lighting.material.tail_rod",
-      "base_color": "#8F9498",
-      "roughness": 0.48,
-      "metalness": 0.8,
-      "notes": "Baseline stainless steel preset"
-    },
-    "cylinder": {
-      "label_key": "lighting.material.cylinder",
-      "base_color": "#8A8F96",
-      "roughness": 0.42,
-      "metalness": 0.82
     },
     "piston_body": {
       "label_key": "lighting.material.piston_body",
@@ -40,23 +51,12 @@
       "roughness": 0.1,
       "metalness": 0.95
     },
-    "joint_tail": {
-      "label_key": "lighting.material.joint_tail",
-      "base_color": "#A6AAAF",
-      "roughness": 0.38,
-      "metalness": 0.76
-    },
-    "joint_arm": {
-      "label_key": "lighting.material.joint_arm",
-      "base_color": "#9DA2A8",
-      "roughness": 0.4,
-      "metalness": 0.64
-    },
-    "joint_rod": {
-      "label_key": "lighting.material.joint_rod",
-      "base_color": "#B6BBC1",
-      "roughness": 0.33,
-      "metalness": 0.68
+    "tail_rod": {
+      "label_key": "lighting.material.tail_rod",
+      "base_color": "#8F9498",
+      "roughness": 0.48,
+      "metalness": 0.8,
+      "notes": "Baseline stainless steel preset"
     }
   },
   "tonemap_presets": [
@@ -67,7 +67,8 @@
       "mode": "filmic",
       "exposure": 1.0,
       "white_point": 2.0,
-      "tonemap_enabled": true
+      "tonemap_enabled": true,
+      "order": 0
     },
     {
       "id": "filmic_contrast_boost",
@@ -77,7 +78,8 @@
       "exposure": 1.25,
       "white_point": 2.4,
       "tonemap_enabled": true,
-      "adjustment_contrast": 0.12
+      "adjustment_contrast": 0.12,
+      "order": 1
     },
     {
       "id": "aces_studio",
@@ -87,7 +89,8 @@
       "exposure": 1.1,
       "white_point": 1.8,
       "tonemap_enabled": true,
-      "adjustment_saturation": -0.05
+      "adjustment_saturation": -0.05,
+      "order": 2
     }
   ],
   "skyboxes": [

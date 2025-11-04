@@ -12,7 +12,7 @@ from __future__ import annotations
 import json
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Dict, Iterable, Mapping
+from typing import Any, Dict, Iterable, Mapping, Sequence
 
 DEFAULT_BASELINE_PATH = Path("config/baseline/materials.json")
 _ALLOWED_ORIENTATIONS = {"z-up", "y-up"}
@@ -58,6 +58,7 @@ class TonemapPreset:
     label_key: str
     description_key: str | None = None
     tonemap_enabled: bool = True
+    display_order: float = 0.0
     extras: Mapping[str, Any] = field(default_factory=dict)
 
     def to_qml_payload(self) -> Dict[str, Any]:
@@ -68,6 +69,7 @@ class TonemapPreset:
             "whitePoint": self.white_point,
             "labelKey": self.label_key,
             "tonemapEnabled": self.tonemap_enabled,
+            "order": self.display_order,
         }
         if self.description_key:
             payload["descriptionKey"] = self.description_key
@@ -96,6 +98,9 @@ class TonemapPreset:
             abs(exposure - self.exposure) <= tolerance
             and abs(white_point - self.white_point) <= tolerance
         )
+
+    def sort_key(self) -> tuple[float, str]:
+        return (self.display_order, self.id)
 
 
 @dataclass(frozen=True)
@@ -134,6 +139,69 @@ class MaterialsBaseline:
             if preset.id == preset_id:
                 return preset
         return None
+
+    def list_tonemap_presets(self) -> Sequence[TonemapPreset]:
+        return tuple(sorted(self.tonemap_presets, key=lambda preset: preset.sort_key()))
+
+    def detect_orientation_issues(self) -> list[OrientationIssue]:
+        issues: list[OrientationIssue] = []
+        for entry in self.skyboxes:
+            if entry.status != "ok":
+                issues.append(
+                    OrientationIssue(
+                        skybox=entry,
+                        kind="status",
+                        message=entry.notes or "Skybox flagged for manual review",
+                    )
+                )
+                continue
+
+            if entry.orientation != "z-up":
+                issues.append(
+                    OrientationIssue(
+                        skybox=entry,
+                        kind="orientation",
+                        message=(
+                            "Expected 'z-up' orientation but received"
+                            f" '{entry.orientation}'"
+                        ),
+                    )
+                )
+                continue
+
+            if abs(entry.rotation) > 180.0:
+                issues.append(
+                    OrientationIssue(
+                        skybox=entry,
+                        kind="rotation",
+                        message=(
+                            "Rotation offset must stay within ±180°, "
+                            f"got {entry.rotation:.1f}"
+                        ),
+                    )
+                )
+                continue
+
+            if "\\" in entry.file:
+                issues.append(
+                    OrientationIssue(
+                        skybox=entry,
+                        kind="path",
+                        message="File path must use POSIX separators",
+                    )
+                )
+                continue
+
+            suffix = Path(entry.file).suffix.lower()
+            if suffix not in {".hdr", ".exr"}:
+                issues.append(
+                    OrientationIssue(
+                        skybox=entry,
+                        kind="format",
+                        message="Skybox must reference an .hdr or .exr asset",
+                    )
+                )
+        return issues
 
 
 def _normalise_color(value: Any) -> str:
@@ -221,6 +289,12 @@ def _normalise_presets(
         )
         tonemap_enabled = bool(item.get("tonemap_enabled", True))
 
+        order_raw = item.get("order", len(presets))
+        try:
+            display_order = float(order_raw)
+        except (TypeError, ValueError):
+            display_order = float(len(presets))
+
         extras = {
             extra_key: extra_value
             for extra_key, extra_value in item.items()
@@ -233,6 +307,7 @@ def _normalise_presets(
                 "label_key",
                 "description_key",
                 "tonemap_enabled",
+                "order",
             }
         }
 
@@ -245,10 +320,11 @@ def _normalise_presets(
                 label_key=label_key,
                 description_key=description_key,
                 tonemap_enabled=tonemap_enabled,
+                display_order=display_order,
                 extras=extras,
             )
         )
-    return tuple(presets)
+    return tuple(sorted(presets, key=lambda preset: preset.sort_key()))
 
 
 def _normalise_skyboxes(
