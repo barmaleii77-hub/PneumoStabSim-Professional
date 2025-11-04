@@ -13,7 +13,7 @@ from PySide6.QtWidgets import (
     QSizePolicy,
 )
 from PySide6.QtCore import Signal, Slot, Qt
-from PySide6.QtGui import QFont
+from PySide6.QtGui import QFont, QKeySequence, QShortcut
 
 
 class _UnitsLabel(QLabel):
@@ -54,6 +54,10 @@ class Knob(QWidget):
         units: str = "",
         title: str = "",
         parent=None,
+        accessible_name: str | None = None,
+        increase_shortcut: str = "Ctrl+Alt+Up",
+        decrease_shortcut: str = "Ctrl+Alt+Down",
+        reset_shortcut: str = "Ctrl+Alt+0",
     ):
         """Initialize knob widget
 
@@ -80,6 +84,11 @@ class Knob(QWidget):
         # Create UI
         self._setup_ui(title)
 
+        # Accessibility configuration
+        self._accessible_label = accessible_name or ""
+        self._configure_accessibility(title)
+        self._setup_shortcuts(increase_shortcut, decrease_shortcut, reset_shortcut)
+
         # Set initial value
         self.setValue(value)
 
@@ -104,6 +113,7 @@ class Knob(QWidget):
             font.setBold(True)
             self.title_label.setFont(font)
             layout.addWidget(self.title_label)
+            self.title_label.setAccessibleName(self.tr("%1 title").replace("%1", title))
 
         # Dial widget
         self.dial = QDial()
@@ -134,6 +144,120 @@ class Knob(QWidget):
             self._create_or_update_units_label(self._units)
 
         layout.addLayout(self._value_layout)
+
+    def _configure_accessibility(self, title: str) -> None:
+        """Assign accessible metadata for screen readers."""
+
+        display_label = title or self.tr("Value")
+        self._display_label = display_label
+        if not self._accessible_label:
+            self._accessible_label = self.tr("%1 control").replace("%1", display_label)
+
+        self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
+        self.setAccessibleName(self._accessible_label)
+        self._refresh_accessible_descriptions(display_label)
+
+        self.dial.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
+        self.dial.setAccessibleName(self.tr("%1 dial").replace("%1", display_label))
+        self.dial.setAccessibleDescription(
+            self.tr(
+                "Rotate to change %1 using the keyboard shortcuts or mouse."
+            ).replace("%1", display_label)
+        )
+
+        self.spinbox.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
+        self.spinbox.setAccessibleName(
+            self.tr("%1 numeric entry").replace("%1", display_label)
+        )
+
+    def _refresh_accessible_descriptions(
+        self, display_label: str | None = None
+    ) -> None:
+        """Refresh descriptions when range or units change."""
+
+        if display_label is None:
+            display_label = getattr(self, "_display_label", None) or self.tr("Value")
+
+        if self._units:
+            units_fragment = self.tr("%1.").replace("%1", self._units)
+            description = (
+                self.tr("Adjust %1 between %2 and %3 %4")
+                .replace("%1", display_label)
+                .replace("%2", f"{self._minimum:.{self._decimals}f}")
+                .replace("%3", f"{self._maximum:.{self._decimals}f}")
+                .replace("%4", units_fragment)
+            )
+        else:
+            description = (
+                self.tr("Adjust %1 between %2 and %3.")
+                .replace("%1", display_label)
+                .replace("%2", f"{self._minimum:.{self._decimals}f}")
+                .replace("%3", f"{self._maximum:.{self._decimals}f}")
+            )
+        self.setAccessibleDescription(description)
+        self.spinbox.setAccessibleDescription(description)
+
+        if hasattr(self, "units_label") and self._units:
+            self.units_label.setAccessibleName(
+                self.tr("%1 units").replace("%1", display_label)
+            )
+            self.units_label.setAccessibleDescription(
+                self.tr("Displays the measurement units for %1.").replace(
+                    "%1", display_label
+                )
+            )
+
+    def _setup_shortcuts(
+        self, increase_shortcut: str, decrease_shortcut: str, reset_shortcut: str
+    ) -> None:
+        """Provide keyboard shortcuts for screen reader friendly control."""
+
+        self._increase_shortcut = QShortcut(QKeySequence(increase_shortcut), self)
+        self._increase_shortcut.setContext(
+            Qt.ShortcutContext.WidgetWithChildrenShortcut
+        )
+        self._increase_shortcut.activated.connect(lambda: self._nudge_value(self._step))
+        self._increase_shortcut.setWhatsThis(
+            self.tr("Increase %1 by one step (%2).")
+            .replace("%1", self.accessibleName())
+            .replace("%2", increase_shortcut)
+        )
+
+        self._decrease_shortcut = QShortcut(QKeySequence(decrease_shortcut), self)
+        self._decrease_shortcut.setContext(
+            Qt.ShortcutContext.WidgetWithChildrenShortcut
+        )
+        self._decrease_shortcut.activated.connect(
+            lambda: self._nudge_value(-self._step)
+        )
+        self._decrease_shortcut.setWhatsThis(
+            self.tr("Decrease %1 by one step (%2).")
+            .replace("%1", self.accessibleName())
+            .replace("%2", decrease_shortcut)
+        )
+
+        self._reset_shortcut = QShortcut(QKeySequence(reset_shortcut), self)
+        self._reset_shortcut.setContext(Qt.ShortcutContext.WidgetWithChildrenShortcut)
+        self._reset_shortcut.activated.connect(self._reset_to_default)
+        self._reset_shortcut.setWhatsThis(
+            self.tr("Reset %1 to its default value (%2).")
+            .replace("%1", self.accessibleName())
+            .replace("%2", reset_shortcut)
+        )
+
+    def _nudge_value(self, delta: float) -> None:
+        """Increment or decrement the knob by *delta*."""
+
+        new_value = self.value() + delta
+        self.setValue(new_value)
+        self.valueChanged.emit(self.value())
+
+    def _reset_to_default(self) -> None:
+        """Reset the control to the midpoint of its range."""
+
+        midpoint = self._minimum + (self._maximum - self._minimum) / 2.0
+        self.setValue(midpoint)
+        self.valueChanged.emit(self.value())
 
     def _connect_signals(self):
         """Connect internal signals"""
@@ -245,6 +369,7 @@ class Knob(QWidget):
 
         # Restore value (clamped to new range)
         self.setValue(current_value)
+        self._refresh_accessible_descriptions()
 
     def setDecimals(self, decimals: int):
         """Set number of decimal places
@@ -286,6 +411,7 @@ class Knob(QWidget):
         units = units or ""
         self._units = units
         self._create_or_update_units_label(units)
+        self._refresh_accessible_descriptions()
 
     def setEnabled(self, enabled: bool):
         """Enable/disable the knob

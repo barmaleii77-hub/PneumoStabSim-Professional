@@ -204,4 +204,180 @@
     </message>
 </context>
 
+<context>
+    <name>HighContrastTheme</name>
+    <message>
+        <source>High contrast</source>
+        <translation>High contrast</translation>
+    </message>
+    <message>
+        <source>Dark background with vivid accents for accessibility reviews.</source>
+        <translation>Dark background with vivid accents for accessibility reviews.</translation>
+    </message>
+    <message>
+        <source>Toggle the high contrast theme</source>
+        <translation>Toggle the high contrast theme</translation>
+    </message>
+    <message>
+        <source>Optimised for WCAG AAA large text contrast requirements.</source>
+        <translation>Optimised for WCAG AAA large text contrast requirements.</translation>
+    </message>
+</context>
+
+<context>
+    <name>Knob</name>
+    <message>
+        <source>%1 title</source>
+        <translation>%1 title</translation>
+    </message>
+    <message>
+        <source>Value</source>
+        <translation>Value</translation>
+    </message>
+    <message>
+        <source>%1 control</source>
+        <translation>%1 control</translation>
+    </message>
+    <message>
+        <source>%1 dial</source>
+        <translation>%1 dial</translation>
+    </message>
+    <message>
+        <source>Rotate to change %1 using the keyboard shortcuts or mouse.</source>
+        <translation>Rotate to change %1 using the keyboard shortcuts or mouse.</translation>
+    </message>
+    <message>
+        <source>%1 numeric entry</source>
+        <translation>%1 numeric entry</translation>
+    </message>
+    <message>
+        <source>Adjust %1 between %2 and %3 %4</source>
+        <translation>Adjust %1 between %2 and %3 %4</translation>
+    </message>
+    <message>
+        <source>%1.</source>
+        <translation>%1.</translation>
+    </message>
+    <message>
+        <source>Adjust %1 between %2 and %3.</source>
+        <translation>Adjust %1 between %2 and %3.</translation>
+    </message>
+    <message>
+        <source>%1 units</source>
+        <translation>%1 units</translation>
+    </message>
+    <message>
+        <source>Displays the measurement units for %1.</source>
+        <translation>Displays the measurement units for %1.</translation>
+    </message>
+    <message>
+        <source>Increase %1 by one step (%2).</source>
+        <translation>Increase %1 by one step (%2).</translation>
+    </message>
+    <message>
+        <source>Decrease %1 by one step (%2).</source>
+        <translation>Decrease %1 by one step (%2).</translation>
+    </message>
+    <message>
+        <source>Reset %1 to its default value (%2).</source>
+        <translation>Reset %1 to its default value (%2).</translation>
+    </message>
+</context>
+
+<context>
+    <name>RangeSlider</name>
+    <message>
+        <source>%1 title</source>
+        <translation>%1 title</translation>
+    </message>
+    <message>
+        <source>Range</source>
+        <translation>Range</translation>
+    </message>
+    <message>
+        <source>%1 range slider</source>
+        <translation>%1 range slider</translation>
+    </message>
+    <message>
+        <source>%1 slider track</source>
+        <translation>%1 slider track</translation>
+    </message>
+    <message>
+        <source>%1 minimum value</source>
+        <translation>%1 minimum value</translation>
+    </message>
+    <message>
+        <source>%1 current value</source>
+        <translation>%1 current value</translation>
+    </message>
+    <message>
+        <source>%1 maximum value</source>
+        <translation>%1 maximum value</translation>
+    </message>
+    <message>
+        <source>Heading for the %1 controls.</source>
+        <translation>Heading for the %1 controls.</translation>
+    </message>
+    <message>
+        <source>Adjust %1 between %2 and %3%4.</source>
+        <translation>Adjust %1 between %2 and %3%4.</translation>
+    </message>
+    <message>
+        <source> %1</source>
+        <translation> %1</translation>
+    </message>
+    <message>
+        <source>Sets the minimum bound for %1.</source>
+        <translation>Sets the minimum bound for %1.</translation>
+    </message>
+    <message>
+        <source>Sets the maximum bound for %1.</source>
+        <translation>Sets the maximum bound for %1.</translation>
+    </message>
+    <message>
+        <source>Units label for %1</source>
+        <translation>Units label for %1</translation>
+    </message>
+    <message>
+        <source>Displays the measurement units applied to %1.</source>
+        <translation>Displays the measurement units applied to %1.</translation>
+    </message>
+    <message>
+        <source>%1 range summary</source>
+        <translation>%1 range summary</translation>
+    </message>
+    <message>
+        <source>Current limits span %1 to %2 with a width of %3%4.</source>
+        <translation>Current limits span %1 to %2 with a width of %3%4.</translation>
+    </message>
+    <message>
+        <source>%1 position indicator</source>
+        <translation>%1 position indicator</translation>
+    </message>
+    <message>
+        <source>Increase %1 by one step (%2).</source>
+        <translation>Increase %1 by one step (%2).</translation>
+    </message>
+    <message>
+        <source>Decrease %1 by one step (%2).</source>
+        <translation>Decrease %1 by one step (%2).</translation>
+    </message>
+    <message>
+        <source>Focus minimum value field (%1).</source>
+        <translation>Focus minimum value field (%1).</translation>
+    </message>
+    <message>
+        <source>Focus current value field (%1).</source>
+        <translation>Focus current value field (%1).</translation>
+    </message>
+    <message>
+        <source>Focus maximum value field (%1).</source>
+        <translation>Focus maximum value field (%1).</translation>
+    </message>
+    <message>
+        <source>Current value positioned at %1 percent of the span.</source>
+        <translation>Current value positioned at %1 percent of the span.</translation>
+    </message>
+</context>
+
 </TS>

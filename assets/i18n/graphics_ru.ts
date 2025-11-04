@@ -204,4 +204,180 @@
     </message>
 </context>
 
+<context>
+    <name>HighContrastTheme</name>
+    <message>
+        <source>High contrast</source>
+        <translation>Высокая контрастность</translation>
+    </message>
+    <message>
+        <source>Dark background with vivid accents for accessibility reviews.</source>
+        <translation>Тёмный фон с яркими акцентами для проверок доступности.</translation>
+    </message>
+    <message>
+        <source>Toggle the high contrast theme</source>
+        <translation>Переключить тему высокой контрастности</translation>
+    </message>
+    <message>
+        <source>Optimised for WCAG AAA large text contrast requirements.</source>
+        <translation>Оптимизировано под требования контраста WCAG AAA для крупного текста.</translation>
+    </message>
+</context>
+
+<context>
+    <name>Knob</name>
+    <message>
+        <source>%1 title</source>
+        <translation>Заголовок %1</translation>
+    </message>
+    <message>
+        <source>Value</source>
+        <translation>Значение</translation>
+    </message>
+    <message>
+        <source>%1 control</source>
+        <translation>Элемент управления %1</translation>
+    </message>
+    <message>
+        <source>%1 dial</source>
+        <translation>Шкала %1</translation>
+    </message>
+    <message>
+        <source>Rotate to change %1 using the keyboard shortcuts or mouse.</source>
+        <translation>Поверните, чтобы изменить %1 с помощью клавиатуры или мыши.</translation>
+    </message>
+    <message>
+        <source>%1 numeric entry</source>
+        <translation>Числовое поле %1</translation>
+    </message>
+    <message>
+        <source>Adjust %1 between %2 and %3 %4</source>
+        <translation>Настройте %1 в диапазоне от %2 до %3 %4</translation>
+    </message>
+    <message>
+        <source>%1.</source>
+        <translation>%1.</translation>
+    </message>
+    <message>
+        <source>Adjust %1 between %2 and %3.</source>
+        <translation>Настройте %1 в диапазоне от %2 до %3.</translation>
+    </message>
+    <message>
+        <source>%1 units</source>
+        <translation>Единицы %1</translation>
+    </message>
+    <message>
+        <source>Displays the measurement units for %1.</source>
+        <translation>Отображает единицы измерения для %1.</translation>
+    </message>
+    <message>
+        <source>Increase %1 by one step (%2).</source>
+        <translation>Увеличить %1 на один шаг (%2).</translation>
+    </message>
+    <message>
+        <source>Decrease %1 by one step (%2).</source>
+        <translation>Уменьшить %1 на один шаг (%2).</translation>
+    </message>
+    <message>
+        <source>Reset %1 to its default value (%2).</source>
+        <translation>Сбросить %1 к значению по умолчанию (%2).</translation>
+    </message>
+</context>
+
+<context>
+    <name>RangeSlider</name>
+    <message>
+        <source>%1 title</source>
+        <translation>Заголовок %1</translation>
+    </message>
+    <message>
+        <source>Range</source>
+        <translation>Диапазон</translation>
+    </message>
+    <message>
+        <source>%1 range slider</source>
+        <translation>Слайдер диапазона %1</translation>
+    </message>
+    <message>
+        <source>%1 slider track</source>
+        <translation>Направляющая слайдера %1</translation>
+    </message>
+    <message>
+        <source>%1 minimum value</source>
+        <translation>Минимальное значение %1</translation>
+    </message>
+    <message>
+        <source>%1 current value</source>
+        <translation>Текущее значение %1</translation>
+    </message>
+    <message>
+        <source>%1 maximum value</source>
+        <translation>Максимальное значение %1</translation>
+    </message>
+    <message>
+        <source>Heading for the %1 controls.</source>
+        <translation>Заголовок блока управления %1.</translation>
+    </message>
+    <message>
+        <source>Adjust %1 between %2 and %3%4.</source>
+        <translation>Настройте %1 в диапазоне от %2 до %3%4.</translation>
+    </message>
+    <message>
+        <source> %1</source>
+        <translation> %1</translation>
+    </message>
+    <message>
+        <source>Sets the minimum bound for %1.</source>
+        <translation>Устанавливает нижнюю границу для %1.</translation>
+    </message>
+    <message>
+        <source>Sets the maximum bound for %1.</source>
+        <translation>Устанавливает верхнюю границу для %1.</translation>
+    </message>
+    <message>
+        <source>Units label for %1</source>
+        <translation>Подпись единиц для %1</translation>
+    </message>
+    <message>
+        <source>Displays the measurement units applied to %1.</source>
+        <translation>Отображает единицы измерения, применяемые к %1.</translation>
+    </message>
+    <message>
+        <source>%1 range summary</source>
+        <translation>Сводка диапазона %1</translation>
+    </message>
+    <message>
+        <source>Current limits span %1 to %2 with a width of %3%4.</source>
+        <translation>Текущие границы: от %1 до %2, ширина %3%4.</translation>
+    </message>
+    <message>
+        <source>%1 position indicator</source>
+        <translation>Индикатор позиции %1</translation>
+    </message>
+    <message>
+        <source>Increase %1 by one step (%2).</source>
+        <translation>Увеличить %1 на один шаг (%2).</translation>
+    </message>
+    <message>
+        <source>Decrease %1 by one step (%2).</source>
+        <translation>Уменьшить %1 на один шаг (%2).</translation>
+    </message>
+    <message>
+        <source>Focus minimum value field (%1).</source>
+        <translation>Перейти к полю минимального значения (%1).</translation>
+    </message>
+    <message>
+        <source>Focus current value field (%1).</source>
+        <translation>Перейти к полю текущего значения (%1).</translation>
+    </message>
+    <message>
+        <source>Focus maximum value field (%1).</source>
+        <translation>Перейти к полю максимального значения (%1).</translation>
+    </message>
+    <message>
+        <source>Current value positioned at %1 percent of the span.</source>
+        <translation>Текущее значение находится на %1% диапазона.</translation>
+    </message>
+</context>
+
 </TS>

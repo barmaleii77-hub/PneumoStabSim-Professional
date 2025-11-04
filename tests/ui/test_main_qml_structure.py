@@ -7,6 +7,7 @@ from pathlib import Path
 import pytest
 
 QML_ROOT = Path("assets/qml/main.qml")
+HIGH_CONTRAST_THEME = Path("assets/qml/themes/HighContrastTheme.qml")
 
 
 @pytest.mark.gui
@@ -29,4 +30,25 @@ def test_main_qml_contains_required_elements():
     for label, token in expected_tokens.items():
         assert token in contents, f"Missing {label} token '{token}' in main.qml"
 
-    assert contents.count("Loader {") >= 2, "Expected both simulation and fallback loaders"
+    assert contents.count("Loader {") >= 2, (
+        "Expected both simulation and fallback loaders"
+    )
+
+
+def test_accessibility_attributes():
+    """High-contrast theme must advertise accessibility metadata."""
+
+    assert HIGH_CONTRAST_THEME.exists(), "HighContrastTheme.qml is missing"
+    contents = HIGH_CONTRAST_THEME.read_text(encoding="utf-8")
+
+    expected_tokens = {
+        "accessibility dictionary": "readonly property var accessibility",
+        "shortcut description": '"sequence": "Ctrl+Alt+H"',
+        "contrast ratio": '"contrastRatio": 12.8',
+        "translated description": 'qsTr("Dark background with vivid accents for accessibility reviews.")',
+    }
+
+    for label, token in expected_tokens.items():
+        assert token in contents, (
+            f"Missing {label} token '{token}' in HighContrastTheme.qml"
+        )

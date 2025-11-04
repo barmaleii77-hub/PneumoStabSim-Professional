@@ -1,0 +1,3 @@
+module PneumoThemes
+singleton HighContrastPalette 1.0 HighContrastPalette.qml
+singleton HighContrastTheme 1.0 HighContrastTheme.qml
