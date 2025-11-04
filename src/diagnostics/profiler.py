@@ -122,8 +122,33 @@ def get_profiler_overlay_defaults(
         signal_trace = {}
 
     state = load_profiler_overlay_state(manager)
-    signal_trace["overlay_enabled"] = bool(state.overlay_enabled)
-    signal_trace.setdefault("overlayEnabled", bool(state.overlay_enabled))
+    state_payload = state.to_payload()
+    overlay_enabled = bool(state.overlay_enabled)
+
+    signal_trace["overlay_enabled"] = overlay_enabled
+    signal_trace["overlayEnabled"] = state_payload["overlayEnabled"]
+    signal_trace["recordedAt"] = state_payload["recordedAt"]
+
+    if "recorded_at" not in signal_trace:
+        signal_trace["recorded_at"] = state.recorded_at.isoformat()
+
+    if "history_limit" not in signal_trace and "historyLimit" in signal_trace:
+        signal_trace["history_limit"] = signal_trace["historyLimit"]
+    if "historyLimit" not in signal_trace and "history_limit" in signal_trace:
+        signal_trace["historyLimit"] = signal_trace["history_limit"]
+
+    signal_trace.setdefault("source", state_payload["source"])
+    if "scenario" not in signal_trace and "scenario" in state_payload:
+        signal_trace["scenario"] = state_payload["scenario"]
+
+    if state_payload.get("metadata"):
+        existing_metadata = signal_trace.get("metadata")
+        if isinstance(existing_metadata, dict):
+            merged_metadata = {**state_payload["metadata"], **existing_metadata}
+        else:
+            merged_metadata = state_payload["metadata"]
+        signal_trace["metadata"] = merged_metadata
+
     diagnostics_payload["signal_trace"] = signal_trace
     return diagnostics_payload
 

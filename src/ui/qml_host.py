@@ -6,6 +6,7 @@ Uses geometry_bridge.py for correct coordinate calculation
 """
 
 import logging
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Dict, Optional
 
@@ -16,7 +17,11 @@ from PySide6.QtQuickWidgets import QQuickWidget
 from ..core.geometry import GeometryParams
 from src.ui.geometry_bridge import GeometryTo3DConverter
 from src.ui.scene_bridge import SceneBridge
-from src.diagnostics.profiler import get_profiler_overlay_defaults
+from src.diagnostics.profiler import (
+    ProfilerOverlayState,
+    get_profiler_overlay_defaults,
+    load_profiler_overlay_state,
+)
 
 _logger = logging.getLogger(__name__)
 
@@ -38,13 +43,27 @@ class SuspensionSceneHost(QQuickWidget):
         context = self.rootContext()
         context.setContextProperty("pythonSceneBridge", self._scene_bridge)
         try:
+            overlay_state = load_profiler_overlay_state()
             diagnostics_defaults = get_profiler_overlay_defaults()
         except Exception as exc:  # pragma: no cover - diagnostics bootstrap best effort
             _logger.debug("Failed to load diagnostics defaults: %s", exc)
+            overlay_state = ProfilerOverlayState(
+                overlay_enabled=False,
+                recorded_at=datetime.now(timezone.utc),
+                source="defaults",
+            )
+            signal_payload = overlay_state.to_payload()
+            signal_payload.setdefault(
+                "overlay_enabled", signal_payload.get("overlayEnabled", False)
+            )
             diagnostics_defaults = {
-                "signal_trace": {"overlay_enabled": False, "overlayEnabled": False}
+                "signal_trace": signal_payload,
             }
+
         context.setContextProperty("initialDiagnosticsSettings", diagnostics_defaults)
+        context.setContextProperty(
+            "initialProfilerOverlayState", overlay_state.to_payload()
+        )
 
         # Get calculated coordinates for all corners
         self._corner_data = self.geometry_converter.get_all_corners_3d()
