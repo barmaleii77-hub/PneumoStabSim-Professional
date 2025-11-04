@@ -5,19 +5,24 @@
 The refreshed manifest (`config/orbit_presets.json`) now embeds bilingual
 labels, descriptions, and metadata blocks while remaining compliant with the
 validation schema in `config/schemas/orbit_presets.schema.json`. The curated
-profiles cover the persisted desktop default plus three ergonomics-driven
-variants:
+profiles span the persisted desktop default, new touch/VR targets, and an
+accessibility-focused option:
 
-| Preset ID  | Category      | Devices                | Notes |
-|------------|---------------|------------------------|-------|
-| `baseline` | Desktop       | Mouse                  | Balanced damping matching the persisted defaults. |
-| `rigid`    | Desktop       | Mouse, pen tablet      | Zero inertia for CAD/CAM inspection workflows. |
-| `smooth`   | Desktop       | Trackpad               | Increased damping tuned for multi-touch gestures. |
-| `cinematic`| Presentation  | Controller, mouse      | Showcase preset with deliberate inertia and friction. |
+| Preset ID       | Category       | Devices                     | Notes |
+|-----------------|----------------|-----------------------------|-------|
+| `baseline`      | Desktop        | Mouse                       | Balanced damping matching the persisted defaults. |
+| `rigid`         | Desktop        | Mouse, pen tablet           | Zero inertia for CAD/CAM inspection workflows. |
+| `smooth`        | Desktop        | Trackpad                    | Increased damping tuned for multi-touch gestures. |
+| `cinematic`     | Presentation   | Controller, mouse           | Showcase preset with deliberate inertia and friction. |
+| `mobile_touch`  | Mobile         | Touchscreen                 | Extra smoothing and friction for handheld input. |
+| `vr_precision`  | Immersive      | VR controllers, controller  | Balanced inertia for tracked controllers with drift suppression. |
+| `low_motion`    | Accessibility  | Mouse, trackpad             | High damping/friction to minimise motion for sensitive reviews. |
 
 `SettingsManager.get_orbit_presets()` now returns the versioned manifest, an
 index map, and the default preset identifier so `SceneBridge` can attach human
-readable labels to HUD telemetry updates.
+readable labels to HUD telemetry updates. The new
+`SceneBridge.refresh_orbit_presets()` helper rehydrates cached manifests and
+re-broadcasts them to QML when presets change on disk.
 
 ## Telemetry Export (Python Bridge)
 
@@ -30,7 +35,7 @@ bridge is outlined below:
 
 ```json
 {
-  "timestamp": "2025-11-04T07:48:08.323Z",
+  "timestamp": "2025-11-04T08:53:17.108Z",
   "distance": 4.6,
   "yawDeg": 30.0,
   "pitchDeg": -20.0,
@@ -56,6 +61,8 @@ bridge is outlined below:
   "friction": 0.2,
   "presetId": "baseline",
   "presetLabel": "Baseline",
+  "orbitPresetDefault": "baseline",
+  "orbitPresetVersion": 1,
   "motionSettlingMs": 0.0,
   "rotationDampingMs": 0.0,
   "panDampingMs": 0.0,
@@ -64,7 +71,8 @@ bridge is outlined below:
 ```
 
 The QML overlay consumes the telemetry as a fallback when the live
-`CameraController` state is unavailable and also surfaces the preset label. HUD
-toggles (`Pivot`, `Pan`, `Angles`, `Motion`) now invoke
-`safeApplyConfigChange("diagnostics.camera_hud", …)` so adjustments persist via
-`SettingsManager` and echo back through the diagnostics event bus.
+`CameraController` state is unavailable and also surfaces the preset label plus
+the manifest version/default identifier. HUD toggles now cover `Pivot`, `Pan`,
+`Angles`, `Motion`, `Damping`, `Inertia`, `Smoothing`, `Preset`, and `Timestamp`,
+invoking `safeApplyConfigChange("diagnostics.camera_hud", …)` so adjustments
+persist via `SettingsManager` and echo back through the diagnostics event bus.

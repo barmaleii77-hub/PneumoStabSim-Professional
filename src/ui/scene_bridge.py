@@ -7,7 +7,7 @@ strongly typed properties and signals for all QML controllers.
 from __future__ import annotations
 
 import logging
-from typing import Any, Dict, Iterable, Mapping
+from typing import Any, Dict, Iterable, Mapping, Sequence
 
 from PySide6.QtCore import QObject, Property, Signal
 
@@ -205,8 +205,26 @@ class SceneBridge(QObject):
         if not payload:
             return
 
-        self._state["camera"] = payload
-        self._latest_updates = {"camera": payload}
+        self.dispatch_updates({"camera": payload})
+
+    def refresh_orbit_presets(self) -> Dict[str, Any]:
+        """Reload orbit presets via the settings manager and broadcast updates."""
+
+        manager = self._resolve_settings_manager()
+        if manager is None:
+            return {}
+
+        try:
+            manifest = manager.refresh_orbit_presets()
+        except Exception as exc:  # pragma: no cover - defensive logging only
+            _LOGGER.debug("Unable to refresh orbit presets: %s", exc)
+            manifest = {}
+
+        payload = self._camera_payload_from_settings(manager)
+        if payload:
+            self.dispatch_updates({"camera": payload})
+
+        return manifest
 
     def _prepare_camera_payload(
         self,
@@ -221,7 +239,9 @@ class SceneBridge(QObject):
         if isinstance(existing, Mapping):
             base.update(dict(existing))
 
+        payload_mapping: Mapping[str, Any] | None = None
         if isinstance(payload, Mapping):
+            payload_mapping = payload
             base.update(dict(payload))
         else:
             base = dict(base)
@@ -274,11 +294,74 @@ class SceneBridge(QObject):
                             base["orbitPresetLabel"] = label
                         break
 
+        if payload_mapping is None and isinstance(payload, Mapping):
+            payload_mapping = payload
+
+        if payload_mapping is not None:
+            self._synchronise_vector_field(base, payload_mapping, key="orbit_target")
+            self._synchronise_vector_field(base, payload_mapping, key="pan")
+
         telemetry = self._camera_telemetry.build(base)
         if telemetry:
             base["hudTelemetry"] = telemetry
 
         return dict(base)
+
+    def _synchronise_vector_field(
+        self,
+        base: Dict[str, Any],
+        payload: Mapping[str, Any],
+        *,
+        key: str,
+    ) -> None:
+        """Keep compound vector keys (e.g. orbit_target) and axis aliases in sync."""
+
+        axes: Sequence[str] = ("x", "y", "z")
+        components: Dict[str, Any] = {}
+
+        vector_value = payload.get(key)
+        if isinstance(vector_value, Mapping):
+            for axis in axes:
+                if axis in vector_value:
+                    components[axis] = vector_value[axis]
+                elif axis.upper() in vector_value:
+                    components[axis] = vector_value[axis.upper()]
+        elif isinstance(vector_value, Sequence) and not isinstance(
+            vector_value, (str, bytes, bytearray)
+        ):
+            for idx, axis in enumerate(axes):
+                if len(vector_value) > idx:
+                    components[axis] = vector_value[idx]
+
+        for axis in axes:
+            explicit_key = f"{key}_{axis}"
+            if explicit_key in payload:
+                components[axis] = payload[explicit_key]
+
+        existing = base.get(key)
+        if isinstance(existing, Mapping):
+            for axis in axes:
+                components.setdefault(axis, existing.get(axis))
+        elif isinstance(existing, Sequence) and not isinstance(
+            existing, (str, bytes, bytearray)
+        ):
+            for idx, axis in enumerate(axes):
+                if len(existing) > idx and axis not in components:
+                    components[axis] = existing[idx]
+
+        for axis in axes:
+            explicit_key = f"{key}_{axis}"
+            if explicit_key in base and axis not in components:
+                components[axis] = base[explicit_key]
+
+        if not components:
+            return
+
+        base[key] = {axis: components[axis] for axis in axes if axis in components}
+        for axis in axes:
+            explicit_key = f"{key}_{axis}"
+            if axis in components:
+                base[explicit_key] = components[axis]
 
 
 __all__ = ["SceneBridge"]

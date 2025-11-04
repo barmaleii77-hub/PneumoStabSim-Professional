@@ -49,6 +49,16 @@ Item {
         ? !!settings.showAngles : true
     readonly property bool showMotion: settings && settings.showMotion !== undefined
         ? !!settings.showMotion : true
+    readonly property bool showDamping: settings && settings.showDamping !== undefined
+        ? !!settings.showDamping : true
+    readonly property bool showInertia: settings && settings.showInertia !== undefined
+        ? !!settings.showInertia : true
+    readonly property bool showSmoothing: settings && settings.showSmoothing !== undefined
+        ? !!settings.showSmoothing : true
+    readonly property bool showPreset: settings && settings.showPreset !== undefined
+        ? !!settings.showPreset : true
+    readonly property bool showTimestamp: settings && settings.showTimestamp !== undefined
+        ? !!settings.showTimestamp : true
 
     readonly property string labelOn: qsTrId("camera.hud.state.on") || qsTr("ON")
     readonly property string labelOff: qsTrId("camera.hud.state.off") || qsTr("OFF")
@@ -83,35 +93,67 @@ Item {
                 color: "#dce7ff"
             }
 
-            RowLayout {
-                spacing: 4
+            Flow {
+                id: toggleFlow
                 Layout.fillWidth: true
+                spacing: 6
+                flow: Flow.LeftToRight
 
-                CheckDelegate {
-                    text: qsTrId("camera.hud.toggle.pivot") || qsTr("Pivot")
-                    checked: hud.showPivot
-                    onToggled: hud.persistSetting("showPivot", checked)
+                Repeater {
+                    model: [
+                        {
+                            binding: "showPivot",
+                            settingKey: "showPivot",
+                            text: qsTrId("camera.hud.toggle.pivot") || qsTr("Pivot")
+                        },
+                        {
+                            binding: "showPan",
+                            settingKey: "showPan",
+                            text: qsTrId("camera.hud.toggle.pan") || qsTr("Pan")
+                        },
+                        {
+                            binding: "showAngles",
+                            settingKey: "showAngles",
+                            text: qsTrId("camera.hud.toggle.angles") || qsTr("Angles")
+                        },
+                        {
+                            binding: "showMotion",
+                            settingKey: "showMotion",
+                            text: qsTrId("camera.hud.toggle.motion") || qsTr("Motion")
+                        },
+                        {
+                            binding: "showDamping",
+                            settingKey: "showDamping",
+                            text: qsTrId("camera.hud.toggle.damping") || qsTr("Damping")
+                        },
+                        {
+                            binding: "showInertia",
+                            settingKey: "showInertia",
+                            text: qsTrId("camera.hud.toggle.inertia") || qsTr("Inertia")
+                        },
+                        {
+                            binding: "showSmoothing",
+                            settingKey: "showSmoothing",
+                            text: qsTrId("camera.hud.toggle.smoothing") || qsTr("Smoothing")
+                        },
+                        {
+                            binding: "showPreset",
+                            settingKey: "showPreset",
+                            text: qsTrId("camera.hud.toggle.preset") || qsTr("Preset")
+                        },
+                        {
+                            binding: "showTimestamp",
+                            settingKey: "showTimestamp",
+                            text: qsTrId("camera.hud.toggle.timestamp") || qsTr("Timestamp")
+                        }
+                    ]
+
+                    delegate: CheckDelegate {
+                        text: modelData.text
+                        checked: hud[modelData.binding]
+                        onToggled: hud.persistSetting(modelData.settingKey, checked)
+                    }
                 }
-
-                CheckDelegate {
-                    text: qsTrId("camera.hud.toggle.pan") || qsTr("Pan")
-                    checked: hud.showPan
-                    onToggled: hud.persistSetting("showPan", checked)
-                }
-
-                CheckDelegate {
-                    text: qsTrId("camera.hud.toggle.angles") || qsTr("Angles")
-                    checked: hud.showAngles
-                    onToggled: hud.persistSetting("showAngles", checked)
-                }
-
-                CheckDelegate {
-                    text: qsTrId("camera.hud.toggle.motion") || qsTr("Motion")
-                    checked: hud.showMotion
-                    onToggled: hud.persistSetting("showMotion", checked)
-                }
-
-                Item { Layout.fillWidth: true }
             }
 
             Repeater {
@@ -266,10 +308,12 @@ Item {
             })
         }
 
-        metrics.push({
-            label: qsTrId("camera.hud.metric.damping") || qsTr("Damping [ms]"),
-            value: formatDamping()
-        })
+        if (hud.showDamping) {
+            metrics.push({
+                label: qsTrId("camera.hud.metric.damping") || qsTr("Damping [ms]"),
+                value: formatDamping()
+            })
+        }
 
         var settleValue = data && data.motionSettlingMs !== undefined
             ? Number(data.motionSettlingMs)
@@ -284,7 +328,7 @@ Item {
         }
 
         var inertiaInfo = formatInertiaTelemetry()
-        if (inertiaInfo) {
+        if (hud.showInertia && inertiaInfo) {
             metrics.push({
                 label: qsTrId("camera.hud.metric.inertia") || qsTr("Inertia / Friction"),
                 value: inertiaInfo
@@ -292,7 +336,7 @@ Item {
         }
 
         var smoothingInfo = formatSmoothingTelemetry()
-        if (smoothingInfo) {
+        if (hud.showSmoothing && smoothingInfo) {
             metrics.push({
                 label: qsTrId("camera.hud.metric.smoothing") || qsTr("Smoothing [rotate/pan/zoom]"),
                 value: smoothingInfo
@@ -300,7 +344,7 @@ Item {
         }
 
         var presetInfo = formatPresetTelemetry()
-        if (presetInfo) {
+        if (hud.showPreset && presetInfo) {
             metrics.push({
                 label: qsTrId("camera.hud.metric.preset") || qsTr("Preset"),
                 value: presetInfo
@@ -308,7 +352,7 @@ Item {
         }
 
         var timestampInfo = formatTimestamp()
-        if (timestampInfo) {
+        if (hud.showTimestamp && timestampInfo) {
             metrics.push({
                 label: qsTrId("camera.hud.metric.timestamp") || qsTr("Snapshot"),
                 value: timestampInfo
@@ -438,11 +482,22 @@ Item {
                 }
             }
         }
-        if (typeof label === "string" && label.length)
-            return label
         var presetId = telemetry.presetId || telemetry.orbitPresetDefault
-        if (typeof presetId === "string" && presetId.length)
-            return presetId
+        var version = telemetry.orbitPresetVersion
+        var labelText = typeof label === "string" && label.length ? label : ""
+
+        var parts = []
+        if (labelText.length)
+            parts.push(labelText)
+        if (typeof presetId === "string" && presetId.length) {
+            if (!labelText.length || labelText.toLowerCase() !== presetId.toLowerCase())
+                parts.push("#" + presetId)
+        }
+        if (version !== undefined && version !== null && version !== "") {
+            parts.push("v" + version)
+        }
+        if (parts.length)
+            return parts.join(" • ")
         return ""
     }
 

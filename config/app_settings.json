@@ -682,7 +682,12 @@
         "showPivot": true,
         "showPan": true,
         "showAngles": true,
-        "showMotion": true
+        "showMotion": true,
+        "showDamping": true,
+        "showInertia": true,
+        "showSmoothing": true,
+        "showPreset": true,
+        "showTimestamp": true
       }
     },
     "system": {
@@ -1883,7 +1888,12 @@
         "showPivot": true,
         "showPan": true,
         "showAngles": true,
-        "showMotion": true
+        "showMotion": true,
+        "showDamping": true,
+        "showInertia": true,
+        "showSmoothing": true,
+        "showPreset": true,
+        "showTimestamp": true
       }
     },
     "physics": {
