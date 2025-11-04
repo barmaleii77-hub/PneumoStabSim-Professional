@@ -127,3 +127,6 @@ apply to all contributors without exception:
 - **Settings integrity**: reading the settings file must never mutate it. The
   runtime may only persist changes in direct response to an explicit user
   action.
+- **Dependency & testing compliance**: Всегда в обязательном порядке
+  устанавливайте все необходимые модули и библиотеки и тестируйте все
+  изменения в полном объеме.
