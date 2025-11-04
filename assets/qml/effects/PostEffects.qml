@@ -212,6 +212,7 @@ Item {
     property var shaderVariantSelectionCache: ({})
     property var shaderProfileMismatchWarnings: ({})
     property var shaderCompatibilityOverrides: ({})
+    property var shaderVariantMissingWarnings: ({})
 
     onUseGlesShadersChanged: {
         console.log("🎚️ PostEffects: shader profile toggled ->", useGlesShaders
@@ -354,6 +355,7 @@ Item {
         for (var idx = 0; idx < candidateNames.length; ++idx) {
             var candidateName = candidateNames[idx]
             var suppressErrors = candidateName === normalized ? false : true
+            var candidateFound = false
             for (var dirIdx = 0; dirIdx < directories.length; ++dirIdx) {
                 var directory = directories[dirIdx]
                 var candidateUrl = resolvedShaderUrl(candidateName, directory)
@@ -361,11 +363,19 @@ Item {
                     selectedName = candidateName
                     selectedUrl = candidateUrl
                     found = true
+                    candidateFound = true
                     break
                 }
             }
-            if (found)
+            if (candidateFound) {
                 break
+            }
+            if (useGlesShaders && candidateName !== normalized) {
+                if (!Object.prototype.hasOwnProperty.call(shaderVariantMissingWarnings, candidateName)) {
+                    shaderVariantMissingWarnings[candidateName] = true
+                    console.warn(`⚠️ PostEffects: GLES shader variant '${candidateName}' not found; using compatibility fallback`)
+                }
+            }
         }
 
         var glesVariantList = candidateNames.slice(0, Math.max(candidateNames.length - 1, 0))
@@ -439,6 +449,7 @@ Item {
         shaderVariantSelectionCache = ({})
         shaderProfileMismatchWarnings = ({})
         shaderCompatibilityOverrides = ({})
+        shaderVariantMissingWarnings = ({})
     }
 
     function requestDesktopShaderProfile(reason) {
