@@ -59,20 +59,22 @@ def test_effect_shaders_use_lf_line_endings(shader_file: Path) -> None:
 
 @pytest.mark.parametrize("shader_file", SHADER_FILES)
 def test_effect_shaders_start_with_version(shader_file: Path) -> None:
-    """The first non-empty line in each shader must start with #version."""
+    """Each shader must start with a #version directive without BOM/whitespace."""
 
-    text = shader_file.read_text(encoding="utf-8")
-    for line in text.splitlines():
-        stripped = line.strip()
-        if not stripped:
-            continue
-        assert stripped.startswith("#version"), (
-            f"{shader_file} must begin with a #version directive"
-        )
-        break
-    else:
-        pytest.fail(f"{shader_file} is empty or lacks a #version directive")
+    data = shader_file.read_bytes()
+    assert not data.startswith(
+        b"\xef\xbb\xbf"
+    ), f"{shader_file} should not contain a UTF-8 BOM"
 
+    text = data.decode("utf-8")
+    assert text.startswith("#version"), (
+        f"{shader_file} must start with #version on the very first line"
+    )
+
+    first_line = text.splitlines()[0]
+    assert first_line.startswith("#version"), (
+        f"{shader_file} first line must contain #version"
+    )
 
 def test_effect_shader_manifest_matches_filesystem() -> None:
     """UISetup manifest should mirror the actual shader files on disk."""
