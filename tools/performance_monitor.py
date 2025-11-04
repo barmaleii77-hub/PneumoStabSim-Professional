@@ -50,6 +50,7 @@ class PerformanceMetrics:
     fps: Optional[float] = None
     frame_time_ms: Optional[float] = None
     qt_objects_count: Optional[int] = None
+    profiler_overlay_enabled: Optional[bool] = None
 
 
 class PerformanceMonitor:
@@ -113,6 +114,15 @@ class PerformanceMonitor:
                 fps = self._calculate_fps()
                 frame_time_ms = self._calculate_frame_time()
 
+                try:
+                    overlay_snapshot = load_profiler_overlay_state()
+                    overlay_enabled: Optional[bool] = overlay_snapshot.overlay_enabled
+                except Exception as overlay_exc:  # pragma: no cover - defensive logging
+                    LOGGER.debug(
+                        "Unable to load profiler overlay state: %s", overlay_exc
+                    )
+                    overlay_enabled = None
+
                 # Создаем метрику
                 metric = PerformanceMetrics(
                     timestamp=time.time(),
@@ -121,6 +131,7 @@ class PerformanceMonitor:
                     memory_percent=memory_percent,
                     fps=fps,
                     frame_time_ms=frame_time_ms,
+                    profiler_overlay_enabled=overlay_enabled,
                 )
 
                 self.metrics.append(metric)
@@ -221,6 +232,26 @@ class PerformanceMonitor:
                 f"Время кадра: {current.frame_time_ms:.2f}ms (среднее: {averages.get('avg_frame_time_ms', 0):.2f}ms)"
             )
 
+        overlay_state = None
+        try:
+            overlay_state = load_profiler_overlay_state()
+        except Exception as overlay_exc:  # pragma: no cover - defensive logging
+            LOGGER.debug(
+                "Unable to refresh overlay state during status print: %s",
+                overlay_exc,
+            )
+
+        if overlay_state:
+            print(
+                "Profiler overlay enabled:",
+                "Yes" if overlay_state.overlay_enabled else "No",
+            )
+        elif current.profiler_overlay_enabled is not None:
+            print(
+                "Profiler overlay enabled (cached):",
+                "Yes" if current.profiler_overlay_enabled else "No",
+            )
+
         print("=" * 50 + "\n")
 
     def save_metrics(self, filepath: Path):
@@ -237,6 +268,7 @@ class PerformanceMonitor:
                         "memory_percent": m.memory_percent,
                         "fps": m.fps,
                         "frame_time_ms": m.frame_time_ms,
+                        "profiler_overlay_enabled": m.profiler_overlay_enabled,
                     }
                     for m in self.metrics
                 ],
@@ -313,6 +345,7 @@ def _run_phase3_scenario(
         "timestamp": datetime.now(timezone.utc).isoformat(),
         "averages": averages,
         "samples": sample_count,
+        "overlay_enabled": base_state.overlay_enabled,
     }
     snapshot = record_profiler_overlay(
         base_state.overlay_enabled,
@@ -325,6 +358,7 @@ def _run_phase3_scenario(
         "averages": averages,
         "sampleCount": sample_count,
         "psutilAvailable": PSUTIL_AVAILABLE,
+        "overlayEnabled": snapshot.overlay_enabled,
     }
 
     return export_profiler_report(

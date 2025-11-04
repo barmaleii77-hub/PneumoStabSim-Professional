@@ -29,86 +29,108 @@ QtObject {
     // Lever angles (stored in radians, exposed in degrees via aliases)
     // ------------------------------------------------------------------
     property real flAngleRad: 0.0
-    NumberAnimation on flAngleRad {
-        running: root._behavioursEnabled
-        duration: root.animationDuration
-        easing.type: root.smoothingEasingType
+    Behavior on flAngleRad {
+        enabled: root._behavioursEnabled
+        NumberAnimation {
+            duration: root.animationDuration
+            easing.type: root.smoothingEasingType
+        }
     }
 
     property real frAngleRad: 0.0
-    NumberAnimation on frAngleRad {
-        running: root._behavioursEnabled
-        duration: root.animationDuration
-        easing.type: root.smoothingEasingType
+    Behavior on frAngleRad {
+        enabled: root._behavioursEnabled
+        NumberAnimation {
+            duration: root.animationDuration
+            easing.type: root.smoothingEasingType
+        }
     }
 
     property real rlAngleRad: 0.0
-    NumberAnimation on rlAngleRad {
-        running: root._behavioursEnabled
-        duration: root.animationDuration
-        easing.type: root.smoothingEasingType
+    Behavior on rlAngleRad {
+        enabled: root._behavioursEnabled
+        NumberAnimation {
+            duration: root.animationDuration
+            easing.type: root.smoothingEasingType
+        }
     }
 
     property real rrAngleRad: 0.0
-    NumberAnimation on rrAngleRad {
-        running: root._behavioursEnabled
-        duration: root.animationDuration
-        easing.type: root.smoothingEasingType
+    Behavior on rrAngleRad {
+        enabled: root._behavioursEnabled
+        NumberAnimation {
+            duration: root.animationDuration
+            easing.type: root.smoothingEasingType
+        }
     }
 
     // ------------------------------------------------------------------
     // Frame motion (heave/pitch/roll)
     // ------------------------------------------------------------------
     property real frameHeave: 0.0
-    NumberAnimation on frameHeave {
-        running: root._behavioursEnabled
-        duration: root.animationDuration
-        easing.type: root.smoothingEasingType
+    Behavior on frameHeave {
+        enabled: root._behavioursEnabled
+        NumberAnimation {
+            duration: root.animationDuration
+            easing.type: root.smoothingEasingType
+        }
     }
 
     property real frameRollRad: 0.0
-    NumberAnimation on frameRollRad {
-        running: root._behavioursEnabled
-        duration: root.animationDuration
-        easing.type: root.smoothingEasingType
+    Behavior on frameRollRad {
+        enabled: root._behavioursEnabled
+        NumberAnimation {
+            duration: root.animationDuration
+            easing.type: root.smoothingEasingType
+        }
     }
 
     property real framePitchRad: 0.0
-    NumberAnimation on framePitchRad {
-        running: root._behavioursEnabled
-        duration: root.animationDuration
-        easing.type: root.smoothingEasingType
+    Behavior on framePitchRad {
+        enabled: root._behavioursEnabled
+        NumberAnimation {
+            duration: root.animationDuration
+            easing.type: root.smoothingEasingType
+        }
     }
 
     // ------------------------------------------------------------------
     // Piston positions (metres)
     // ------------------------------------------------------------------
     property real pistonFl: 0.0
-    NumberAnimation on pistonFl {
-        running: root._behavioursEnabled
-        duration: root.animationDuration
-        easing.type: root.smoothingEasingType
+    Behavior on pistonFl {
+        enabled: root._behavioursEnabled
+        NumberAnimation {
+            duration: root.animationDuration
+            easing.type: root.smoothingEasingType
+        }
     }
 
     property real pistonFr: 0.0
-    NumberAnimation on pistonFr {
-        running: root._behavioursEnabled
-        duration: root.animationDuration
-        easing.type: root.smoothingEasingType
+    Behavior on pistonFr {
+        enabled: root._behavioursEnabled
+        NumberAnimation {
+            duration: root.animationDuration
+            easing.type: root.smoothingEasingType
+        }
     }
 
     property real pistonRl: 0.0
-    NumberAnimation on pistonRl {
-        running: root._behavioursEnabled
-        duration: root.animationDuration
-        easing.type: root.smoothingEasingType
+    Behavior on pistonRl {
+        enabled: root._behavioursEnabled
+        NumberAnimation {
+            duration: root.animationDuration
+            easing.type: root.smoothingEasingType
+        }
     }
 
     property real pistonRr: 0.0
-    NumberAnimation on pistonRr {
-        running: root._behavioursEnabled
-        duration: root.animationDuration
-        easing.type: root.smoothingEasingType
+    Behavior on pistonRr {
+        enabled: root._behavioursEnabled
+        NumberAnimation {
+            duration: root.animationDuration
+            easing.type: root.smoothingEasingType
+        }
     }
 
     // ------------------------------------------------------------------

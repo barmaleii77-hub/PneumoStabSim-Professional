@@ -1,31 +1,33 @@
 {
   "overlayEnabled": false,
-  "recordedAt": "2025-11-04T11:38:24.036994+00:00",
+  "recordedAt": "2025-11-04T11:49:06.468492+00:00",
   "source": "performance_monitor.phase3",
   "scenario": "phase3",
   "metadata": {
     "settingsAvailable": true,
     "historyLimit": 1000,
     "scenario": "phase3",
-    "timestamp": "2025-11-04T11:38:24.036957+00:00",
+    "timestamp": "2025-11-04T11:49:06.468424+00:00",
     "averages": {
-      "avg_cpu_percent": 0.0,
-      "avg_memory_mb": 44.62890625,
-      "avg_memory_percent": 0.24305971440004887,
+      "avg_cpu_percent": 0.4,
+      "avg_memory_mb": 45.328125,
+      "avg_memory_percent": 0.24686782721209335,
       "avg_fps": 0.0,
       "avg_frame_time_ms": 0.0
     },
-    "samples": 5
+    "samples": 12,
+    "overlay_enabled": false
   },
   "extra": {
     "averages": {
-      "avg_cpu_percent": 0.0,
-      "avg_memory_mb": 44.62890625,
-      "avg_memory_percent": 0.24305971440004887,
+      "avg_cpu_percent": 0.4,
+      "avg_memory_mb": 45.328125,
+      "avg_memory_percent": 0.24686782721209335,
       "avg_fps": 0.0,
       "avg_frame_time_ms": 0.0
     },
-    "sampleCount": 5,
-    "psutilAvailable": true
+    "sampleCount": 12,
+    "psutilAvailable": true,
+    "overlayEnabled": false
   }
 }

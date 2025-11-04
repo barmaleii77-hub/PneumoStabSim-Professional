@@ -155,13 +155,18 @@ def test_profiler_toggle_available(monkeypatch) -> None:
     monkeypatch.setattr(profiler_module, "get_settings_manager", lambda: _DummySettingsManager())
 
     defaults = profiler_module.get_profiler_overlay_defaults()
-    assert defaults["signal_trace"]["overlay_enabled"] is True
-    assert defaults["signal_trace"]["history_limit"] == 64
+    payload = defaults["signal_trace"]
+    assert payload["overlay_enabled"] is True
+    assert payload["overlayEnabled"] is True
+    assert payload["history_limit"] == 64
+    assert "recordedAt" in payload
 
     state = profiler_module.load_profiler_overlay_state()
     assert state.overlay_enabled is True
+    assert state.to_payload()["overlayEnabled"] is True
 
     updated = profiler_module.record_profiler_overlay(False, source="pytest")
     assert updated.overlay_enabled is False
+    assert updated.to_payload()["overlayEnabled"] is False
 
     profiler_module._reset_profiler_state_for_tests()
