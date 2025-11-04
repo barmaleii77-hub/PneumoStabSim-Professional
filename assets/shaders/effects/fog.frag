@@ -28,8 +28,7 @@ DECLARE_INPUT_UV
 #define INPUT_UV VARYING_UV
 #endif
 
-#ifdef MAIN
-#undef MAIN
+#ifndef MAIN
 #define MAIN qt_customMain
 #define QSB_USES_QT_CUSTOM_MAIN 1
 #endif

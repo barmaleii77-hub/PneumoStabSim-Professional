@@ -21,8 +21,7 @@ precision highp int;
 #define INPUT_UV qt_MultiTexCoord0
 #endif
 
-#ifdef MAIN
-#undef MAIN
+#ifndef MAIN
 #define MAIN qt_customMain
 #define QSB_USES_QT_CUSTOM_MAIN 1
 #endif

@@ -60,9 +60,9 @@ in vec2 v_uv;
 
 #ifdef MAIN
 #undef MAIN
+#endif
 #define MAIN qt_customMain
 #define QSB_USES_QT_CUSTOM_MAIN 1
-#endif
 
 #ifndef QSB_USES_QT_CUSTOM_MAIN
 #define QSB_USES_QT_CUSTOM_MAIN 0
