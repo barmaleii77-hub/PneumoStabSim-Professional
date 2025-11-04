@@ -855,7 +855,7 @@ SequentialAnimation {
   id: suspensionAssembly
   worldRoot: worldRoot
   geometryState: geometryState
-  geometryDefaults: root.geometryDefaults ? root.geometryDefaults : root.emptyGeometryDefaults
+  geometryDefaults: root.geometryDefaults ? root.geometryDefaults : emptyGeometryDefaults
   emptyGeometryDefaults: root.emptyGeometryDefaults
   materialsDefaults: sceneDefaults && sceneDefaults.materials ? sceneDefaults.materials : root.emptyMaterialsDefaults
   sharedMaterials: sharedMaterials
