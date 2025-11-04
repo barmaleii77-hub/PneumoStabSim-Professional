@@ -396,7 +396,7 @@ function recordDefaultFallback(scope, keyList, fallbackValue, reason) {
 }
 
 function geometryDefaultNumber(keys, fallback) {
-    var defaults = geometryDefaults || {}
+    var defaults = geometryDefaults || emptyGeometryDefaults
     var list = Array.isArray(keys) ? keys : [keys]
     for (var i = 0; i < list.length; ++i) {
         var candidate = defaults[list[i]]
@@ -853,7 +853,7 @@ SequentialAnimation {
   id: suspensionAssembly
   worldRoot: worldRoot
   geometryState: geometryState
-  geometryDefaults: root.geometryDefaults ? root.geometryDefaults : root.emptyGeometryDefaults
+  geometryDefaults: root.geometryDefaults || root.emptyGeometryDefaults
   emptyGeometryDefaults: root.emptyGeometryDefaults
   materialsDefaults: sceneDefaults && sceneDefaults.materials ? sceneDefaults.materials : ({})
   sharedMaterials: sharedMaterials
