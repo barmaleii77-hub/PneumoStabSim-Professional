@@ -1,8 +1,8 @@
 import QtQuick
 import QtQuick.Window
-import QtQuick3D
+import QtQuick3D 6.10
 // qmllint disable unused-imports
-import QtQuick3D.Effects
+import QtQuick3D.Effects 6.10
 import QtQuick3D.Helpers
 // qmllint enable unused-imports
 
@@ -1083,19 +1083,6 @@ Item {
                     .arg(versionLabel)
         }
 
-        // qmllint disable missing-property import
-        parameters: [
-            Parameter {
-                name: "qt_DepthTexture"
-                value: Effect.DepthTexture
-            },
-            Parameter {
-                name: "qt_NormalTexture"
-                value: Effect.NormalTexture
-            }
-        ]
-        // qmllint enable missing-property import
-
         Component.onCompleted: {
             depthTextureAvailable = root.ensureEffectRequirement(
                         ssaoEffect,
@@ -1251,15 +1238,6 @@ Item {
         property real cameraNear: root.cameraClipNear
         property real cameraFar: root.cameraClipFar
 
-        // qmllint disable missing-property import
-        parameters: [
-            Parameter {
-                name: "qt_DepthTexture"
-                value: Effect.DepthTexture
-            }
-        ]
-        // qmllint enable missing-property import
-
 
         onBlurAmountChanged: {
             if (blurAmount < 0.0)
@@ -1400,15 +1378,6 @@ Item {
             if (samples < 1)
                 samples = 1
         }
-
-        // qmllint disable missing-property import
-        parameters: [
-            Parameter {
-                name: "qt_VelocityTexture"
-                value: Effect.VelocityTexture
-            }
-        ]
-        // qmllint enable missing-property import
 
         Component.onCompleted: {
             velocityTextureAvailable = root.ensureEffectRequirement(

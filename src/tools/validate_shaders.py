@@ -14,6 +14,8 @@ import shlex
 import shutil
 import subprocess
 import sys
+import tempfile
+from contextlib import suppress
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Iterable, List, Mapping, Sequence
@@ -212,8 +214,18 @@ def _run_qsb(
     output_path, log_path = _shader_reports_paths(reports_dir, shader, shader_root)
 
     command = [*qsb_command, *QSB_PROFILE_ARGUMENTS]
-    if output_path is not None:
-        command.extend(["-o", str(output_path)])
+
+    temp_output: Path | None = None
+    target_output: Path | None = output_path
+    if target_output is None:
+        temp_file = tempfile.NamedTemporaryFile(delete=False, suffix=".qsb")
+        temp_output = Path(temp_file.name)
+        temp_file.close()
+        target_output = temp_output
+
+    if target_output is not None:
+        command.extend(["-o", str(target_output)])
+
     command.append(str(shader.path))
 
     completed = subprocess.run(command, capture_output=True, text=True)
@@ -235,6 +247,10 @@ def _run_qsb(
         if stderr:
             first_line = stderr.strip().splitlines()[0]
             errors.append(f"    {first_line}")
+
+    if temp_output is not None:
+        with suppress(FileNotFoundError):
+            temp_output.unlink()
 
 
 def validate_shaders(
@@ -306,8 +322,19 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     parser.add_argument(
         "--reports-dir",
         type=Path,
-        default=DEFAULT_REPORTS_ROOT,
-        help="Directory to store qsb compilation artefacts/logs (default: reports/shaders)",
+        default=None,
+        help=(
+            "Directory to store qsb compilation artefacts/logs. "
+            "If omitted, validation runs without writing .qsb outputs."
+        ),
+    )
+    parser.add_argument(
+        "--emit-qsb",
+        action="store_true",
+        help=(
+            "Write compiled .qsb files to the default reports directory "
+            "(reports/shaders) unless --reports-dir overrides it."
+        ),
     )
     parser.add_argument(
         "--quiet",
@@ -321,6 +348,8 @@ def main(argv: Sequence[str] | None = None) -> int:
     args = parse_args(argv)
     shader_root = args.shader_root.resolve()
     reports_dir = args.reports_dir.resolve() if args.reports_dir else None
+    if reports_dir is None and args.emit_qsb:
+        reports_dir = DEFAULT_REPORTS_ROOT
     errors = validate_shaders(shader_root, reports_dir=reports_dir)
 
     if errors:

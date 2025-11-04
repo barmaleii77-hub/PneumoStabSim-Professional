@@ -1096,28 +1096,28 @@ Binding {
  // ---------------------------------------------
  // Python bridge helpers
  // ---------------------------------------------
- function invokeBatchHandler(handler, payload, category) {
- if (typeof handler !== "function") {
-  console.warn("[SimulationRoot] Missing handler for " + category + " updates")
-  return false
- }
- try {
-  return handler.call(root, payload)
- } catch (error) {
-  console.error("[SimulationRoot] " + category + " handler threw:", error)
-  return false
- }
- }
+function invokeBatchHandler(handler, payload, category) {
+    if (typeof handler !== "function") {
+        console.warn("[SimulationRoot] Missing handler for " + category + " updates")
+        return false
+    }
+    try {
+        return handler.call(root, payload)
+    } catch (error) {
+        console.error("[SimulationRoot] " + category + " handler threw:", error)
+        return false
+    }
+}
 
- function safeApplyConfigChange(category, payload) {
- if (typeof window === "undefined" || !window || typeof window.applyQmlConfigChange !== "function")
-  return
- try {
-  window.applyQmlConfigChange(category, payload || {})
- } catch (error) {
-  console.warn("[SimulationRoot] applyQmlConfigChange failed:", error)
- }
- }
+function safeApplyConfigChange(category, payload) {
+    if (typeof window === "undefined" || !window || typeof window.applyQmlConfigChange !== "function")
+        return
+    try {
+        window.applyQmlConfigChange(category, payload || {})
+    } catch (error) {
+        console.warn("[SimulationRoot] applyQmlConfigChange failed:", error)
+    }
+}
 
  function applySceneBridgeState() {
  if (!sceneBridge)
@@ -1219,15 +1219,25 @@ Rectangle {
  border.width: 0
  }
 
- Connections {
-  id: sceneBridgeConnections
+Connections {
+ id: sceneBridgeConnections
  target: sceneBridge
  enabled: !!sceneBridge
+
+    function safeInvoke(handler, payload, category) {
+        if (typeof handler !== "function")
+            return
+        try {
+            handler.call(root, payload)
+        } catch (error) {
+            console.error("[SimulationRoot] " + category + " handler threw:", error)
+        }
+    }
 
     function onGeometryChanged(payload) {
         if (!payload)
             return
-        invokeBatchHandler(root.applyGeometryUpdatesInternal, payload, "geometry")
+        safeInvoke(root.applyGeometryUpdatesInternal, payload, "geometry")
     }
  function onCameraChanged(payload) {
      if (!payload)
@@ -1764,12 +1774,21 @@ function sanitizeReflectionProbePadding(value) {
     // ---------------------------------------------
     Connections {
         target: root
+        function safeInvoke(handler, payload, category) {
+            if (typeof handler !== "function")
+                return
+            try {
+                handler.call(root, payload)
+            } catch (error) {
+                console.error("[SimulationRoot] " + category + " handler threw:", error)
+            }
+        }
         function onPendingPythonUpdatesChanged() {
             if (!root.pendingPythonUpdates)
                 return;
             var payload = root.pendingPythonUpdates;
             root.pendingPythonUpdates = null;
-            invokeBatchHandler(root.applyBatchedUpdates, payload, "batched");
+            safeInvoke(root.applyBatchedUpdates, payload, "batched");
         }
     }
 

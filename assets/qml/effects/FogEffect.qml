@@ -2,7 +2,7 @@ import QtQuick
 import QtQuick.Window
 import QtQuick3D 6.10
 // qmllint disable unused-imports
-import QtQuick3D.Effects
+import QtQuick3D.Effects 6.10
 import QtQuick3D.Helpers
 // qmllint enable unused-imports
 
@@ -39,12 +39,6 @@ Effect {
     property real cameraAspectRatio: 1.0
 
     // qmllint disable missing-property import
-    parameters: [
-        Parameter {
-            name: "qt_DepthTexture"
-            value: Effect.DepthTexture
-        }
-    ]
     // qmllint enable missing-property import
 
     // Доступность depth-текстуры

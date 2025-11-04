@@ -138,6 +138,10 @@ _TeamCity*
 # DotCover is a Code Coverage Tool
 *.dotCover
 
+# Qt Shader Baker artefacts
+reports/shaders/**/*.qsb
+reports/shaders/**/*.log
+
 # AxoCover is a Code Coverage Tool
 .axoCover/*
 

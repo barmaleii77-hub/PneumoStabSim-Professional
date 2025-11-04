@@ -93,6 +93,9 @@ validate-shaders:
 
 check-shaders: validate-shaders
 
+shader-artifacts:
+	$(PYTHON) tools/validate_shaders.py --emit-qsb
+
 validate-hdr-orientation:
 	$(PYTHON) tools/graphics/validate_hdr_orientation.py
 
