@@ -23,6 +23,11 @@ precision highp int;
 
 #ifndef MAIN
 #define MAIN qt_customMain
+#define QSB_USES_QT_CUSTOM_MAIN 1
+#endif
+
+#ifndef QSB_USES_QT_CUSTOM_MAIN
+#define QSB_USES_QT_CUSTOM_MAIN 0
 #endif
 
 #ifndef UBO_BINDING
@@ -68,14 +73,16 @@ void fogESVertexMain(out vec4 position)
     position = ubuf.qt_ModelViewProjectionMatrix * localPosition;
 }
 
+#if QSB_USES_QT_CUSTOM_MAIN
+void MAIN(out vec4 position)
+{
+    fogESVertexMain(position);
+}
+#else
 void MAIN()
 {
     vec4 position = vec4(0.0);
     fogESVertexMain(position);
     POSITION = position;
 }
-
-void MAIN(out vec4 position)
-{
-    fogESVertexMain(position);
-}
+#endif

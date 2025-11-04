@@ -30,6 +30,11 @@ DECLARE_INPUT_UV
 
 #ifndef MAIN
 #define MAIN qt_customMain
+#define QSB_USES_QT_CUSTOM_MAIN 1
+#endif
+
+#ifndef QSB_USES_QT_CUSTOM_MAIN
+#define QSB_USES_QT_CUSTOM_MAIN 0
 #endif
 
 #ifndef FRAGCOLOR
@@ -73,14 +78,16 @@ void motionBlurMain(inout vec4 fragColor)
     fragColor = vec4(color, original.a);
 }
 
+#if QSB_USES_QT_CUSTOM_MAIN
+void MAIN(inout vec4 fragColor)
+{
+    motionBlurMain(fragColor);
+}
+#else
 void MAIN()
 {
     vec4 fragColor = vec4(0.0);
     motionBlurMain(fragColor);
     FRAGCOLOR = fragColor;
 }
-
-void MAIN(inout vec4 fragColor)
-{
-    motionBlurMain(fragColor);
-}
+#endif
