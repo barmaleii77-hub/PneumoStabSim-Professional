@@ -9,7 +9,7 @@ from src.ui.scene_bridge import SceneBridge
 from src.ui.qml_bridge import QMLBridge
 
 try:  # pragma: no cover - optional dependency for headless environments
-    from PySide6 import QtCore  # noqa: F401 - used to detect availability
+    from PySide6 import QtCore, QtTest  # noqa: F401 - used to detect availability
 except Exception:  # pragma: no cover - allow tests to be skipped when PySide6 is missing
     PYSIDE_AVAILABLE = False
 else:  # pragma: no cover - executed only when PySide6 is present
@@ -51,7 +51,15 @@ def test_settings_manager_loads_orbit_presets() -> None:
     assert presets.get("version") >= 1
 
     preset_ids = {entry.get("id") for entry in presets.get("presets", []) if isinstance(entry, dict)}
-    assert {"baseline", "rigid", "smooth", "cinematic"}.issubset(preset_ids)
+    assert {
+        "baseline",
+        "rigid",
+        "smooth",
+        "cinematic",
+        "mobile_touch",
+        "vr_precision",
+        "low_motion",
+    }.issubset(preset_ids)
 
     index = presets.get("index", {})
     baseline = index.get("baseline")
@@ -66,6 +74,7 @@ def test_camera_hud_context() -> None:
     bridge = SceneBridge(settings_manager=manager)
 
     camera_payload = bridge.camera
+    presets = manager.get_orbit_presets()
 
     assert "orbitPresets" in camera_payload
     assert camera_payload.get("orbitPresetVersion") == manager.get_orbit_presets().get("version")
@@ -74,6 +83,8 @@ def test_camera_hud_context() -> None:
     assert isinstance(telemetry, dict)
     assert telemetry["pivot"]["z"] == pytest.approx(0.5, rel=1e-3)
     assert telemetry["distance"] >= 0.0
+    assert telemetry["orbitPresetDefault"] == presets.get("default")
+    assert telemetry["orbitPresetVersion"] == presets.get("version")
 
     latest = bridge.latestUpdates
     assert "camera" in latest
@@ -104,7 +115,42 @@ def test_scene_bridge_augments_camera_updates() -> None:
     assert telemetry["pivot"]["x"] == pytest.approx(0.1, rel=1e-3)
     assert telemetry["inertiaEnabled"] is True
     assert telemetry["rotateSmoothing"] == pytest.approx(0.18, rel=1e-3)
+    assert telemetry["orbitPresetDefault"] == camera_state.get("orbitPresetDefault")
+    assert telemetry["orbitPresetVersion"] == camera_state.get("orbitPresetVersion")
 
     presets = camera_state.get("orbitPresets")
     assert isinstance(presets, list) and presets
     assert camera_state.get("orbitPresetDefault")
+
+
+@pytest.mark.skipif(not PYSIDE_AVAILABLE, reason="PySide6 is required for SceneBridge")
+def test_scene_bridge_refresh_orbit_presets_emits_updates(monkeypatch) -> None:
+    manager = SettingsManager()
+    bridge = SceneBridge(settings_manager=manager)
+
+    from PySide6 import QtTest  # type: ignore
+
+    spy = QtTest.QSignalSpy(bridge.cameraChanged)
+
+    manifest = manager.get_orbit_presets()
+    updated_manifest = {
+        "version": manifest.get("version", 0) + 1,
+        "default": manifest.get("default"),
+        "presets": manifest.get("presets", []),
+        "index": manifest.get("index", {}),
+    }
+
+    def fake_refresh() -> dict[str, object]:
+        manager._orbit_presets = updated_manifest  # type: ignore[attr-defined]
+        return updated_manifest
+
+    monkeypatch.setattr(manager, "refresh_orbit_presets", fake_refresh)
+
+    result = bridge.refresh_orbit_presets()
+
+    assert result["version"] == updated_manifest["version"]
+    assert spy.count() >= 1
+
+    camera_payload = bridge.camera
+    assert camera_payload.get("orbitPresetVersion") == updated_manifest["version"]
+    assert bridge.latestUpdates["camera"]["orbitPresetVersion"] == updated_manifest["version"]

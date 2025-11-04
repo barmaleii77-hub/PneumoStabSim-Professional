@@ -99,3 +99,29 @@ def test_graphics_panel_collect_state_includes_scene(qapp):
         assert refreshed["scene"] == panel.scene_tab.get_state()
     finally:
         panel.deleteLater()
+
+
+@pytest.mark.gui
+def test_camera_controls_signals(qapp):
+    panel = GraphicsPanel()
+
+    try:
+        from PySide6 import QtTest  # type: ignore
+
+        spy = QtTest.QSignalSpy(panel.camera_changed)
+        camera_tab = panel.camera_tab
+        assert camera_tab is not None
+
+        slider = camera_tab._controls["orbit_distance"]
+        initial = slider.value()
+        slider.set_value(initial + 0.5)
+
+        camera_tab._emit()
+
+        assert spy.count() >= 1
+        payload = spy.at(spy.count() - 1)[0]
+
+        assert isinstance(payload, dict)
+        assert pytest.approx(slider.value(), rel=1e-3) == payload["orbit_distance"]
+    finally:
+        panel.deleteLater()

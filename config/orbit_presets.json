@@ -125,6 +125,99 @@
         "orbit_target_y": 0.0,
         "orbit_target_z": 0.5
       }
+    },
+    {
+      "id": "mobile_touch",
+      "label": {
+        "en": "Mobile Touch",
+        "ru": "Мобильный сенсор"
+      },
+      "description": {
+        "en": "Extra smoothing and friction to tame handheld touch controls.",
+        "ru": "Дополнительное сглаживание и трение для ручного сенсорного управления."
+      },
+      "metadata": {
+        "devices": ["touchscreen"],
+        "tuning": "mobile_low_noise"
+      },
+      "category": "mobile",
+      "devices": ["touchscreen"],
+      "values": {
+        "orbit_inertia_enabled": false,
+        "orbit_inertia": 0.0,
+        "orbit_rotate_smoothing": 0.34,
+        "orbit_pan_smoothing": 0.32,
+        "orbit_zoom_smoothing": 0.36,
+        "orbit_friction": 0.16,
+        "orbit_distance": 4.2,
+        "orbit_pitch": -22.0,
+        "orbit_yaw": 28.0,
+        "orbit_target_x": 0.0,
+        "orbit_target_y": 0.0,
+        "orbit_target_z": 0.45
+      }
+    },
+    {
+      "id": "vr_precision",
+      "label": {
+        "en": "VR Precision",
+        "ru": "VR-точность"
+      },
+      "description": {
+        "en": "Balanced inertia for tracked controllers with reduced drift.",
+        "ru": "Сбалансированная инерция для трековых контроллеров с минимальным дрейфом."
+      },
+      "metadata": {
+        "devices": ["vr_controller", "controller"],
+        "tuning": "immersive"
+      },
+      "category": "immersive",
+      "devices": ["vr_controller", "controller"],
+      "values": {
+        "orbit_inertia_enabled": true,
+        "orbit_inertia": 0.26,
+        "orbit_rotate_smoothing": 0.19,
+        "orbit_pan_smoothing": 0.2,
+        "orbit_zoom_smoothing": 0.19,
+        "orbit_friction": 0.12,
+        "orbit_distance": 4.9,
+        "orbit_pitch": -16.0,
+        "orbit_yaw": 34.0,
+        "orbit_target_x": 0.0,
+        "orbit_target_y": 0.0,
+        "orbit_target_z": 0.52
+      }
+    },
+    {
+      "id": "low_motion",
+      "label": {
+        "en": "Low Motion",
+        "ru": "Минимальное движение"
+      },
+      "description": {
+        "en": "High damping and friction for accessibility-focused reviews.",
+        "ru": "Высокое демпфирование и трение для комфортного обзора без резких движений."
+      },
+      "metadata": {
+        "devices": ["mouse", "trackpad"],
+        "tuning": "accessibility"
+      },
+      "category": "accessibility",
+      "devices": ["mouse", "trackpad"],
+      "values": {
+        "orbit_inertia_enabled": false,
+        "orbit_inertia": 0.0,
+        "orbit_rotate_smoothing": 0.4,
+        "orbit_pan_smoothing": 0.42,
+        "orbit_zoom_smoothing": 0.38,
+        "orbit_friction": 0.22,
+        "orbit_distance": 4.5,
+        "orbit_pitch": -21.0,
+        "orbit_yaw": 27.0,
+        "orbit_target_x": 0.0,
+        "orbit_target_y": 0.0,
+        "orbit_target_z": 0.48
+      }
     }
   ]
 }

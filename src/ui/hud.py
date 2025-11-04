@@ -103,6 +103,11 @@ class CameraHudTelemetry:
         if not isinstance(payload, Mapping):
             return {}
 
+        preset_id = payload.get("orbitPresetId") or payload.get("orbitPreset")
+        preset_label = payload.get("orbitPresetLabel")
+        preset_default = payload.get("orbitPresetDefault")
+        preset_version = payload.get("orbitPresetVersion")
+
         snapshot = {
             "timestamp": _current_timestamp(),
             "distance": _coerce_float(
@@ -138,8 +143,6 @@ class CameraHudTelemetry:
             "panSmoothing": _coerce_float(payload.get("orbit_pan_smoothing"), 0.0),
             "zoomSmoothing": _coerce_float(payload.get("orbit_zoom_smoothing"), 0.0),
             "friction": _coerce_float(payload.get("orbit_friction"), 0.0),
-            "presetId": payload.get("orbitPresetId") or payload.get("orbitPreset"),
-            "presetLabel": payload.get("orbitPresetLabel"),
             "motionSettlingMs": _coerce_float(
                 payload.get("motion_settling_ms", payload.get("motionSettlingMs")), 0.0
             ),
@@ -168,6 +171,15 @@ class CameraHudTelemetry:
                 0.0,
             ),
         }
+
+        if preset_id is not None:
+            snapshot["presetId"] = preset_id
+        if preset_label is not None:
+            snapshot["presetLabel"] = preset_label
+        if preset_default is not None:
+            snapshot["orbitPresetDefault"] = preset_default
+        if preset_version is not None:
+            snapshot["orbitPresetVersion"] = preset_version
 
         return snapshot
 
