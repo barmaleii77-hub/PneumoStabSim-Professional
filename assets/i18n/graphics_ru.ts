@@ -167,4 +167,41 @@
             <translation>Экспортируйте активную конфигурацию графики для диагностики.</translation>
         </message>
     </context>
+
+<context>
+    <name>LightingTonemapPanel</name>
+    <message>
+        <source>Tonemapping presets</source>
+        <translation>Пресеты тонемаппинга</translation>
+    </message>
+    <message>
+        <source>No tonemapping presets configured</source>
+        <translation>Нет настроенных пресетов тонемаппинга</translation>
+    </message>
+    <message id="lighting.tonemapPreset.filmic_neutral">
+        <source>Filmic (neutral)</source>
+        <translation>Фильмик (нейтральный)</translation>
+    </message>
+    <message id="lighting.tonemapPreset.filmic_neutral.description">
+        <source>Balanced highlight roll-off for product shots.</source>
+        <translation>Сбалансированное сглаживание хайлайтов для продуктовых сцен.</translation>
+    </message>
+    <message id="lighting.tonemapPreset.filmic_contrast">
+        <source>Filmic (contrast boost)</source>
+        <translation>Фильмик (усиленный контраст)</translation>
+    </message>
+    <message id="lighting.tonemapPreset.filmic_contrast.description">
+        <source>Adds gentle contrast for dramatic studio lighting.</source>
+        <translation>Немного повышает контраст для студийного освещения.</translation>
+    </message>
+    <message id="lighting.tonemapPreset.aces_studio">
+        <source>ACES (studio)</source>
+        <translation>ACES (студия)</translation>
+    </message>
+    <message id="lighting.tonemapPreset.aces_studio.description">
+        <source>ACES curve with lower white point for HDR monitors.</source>
+        <translation>Кривая ACES с пониженной белой точкой для HDR-мониторов.</translation>
+    </message>
+</context>
+
 </TS>
