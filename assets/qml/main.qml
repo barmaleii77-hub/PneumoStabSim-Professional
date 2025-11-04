@@ -50,55 +50,61 @@ Item {
     property real environmentTonemapExposure: 1.0
     property real environmentTonemapWhitePoint: 1.0
 
-    property bool environmentSsaoEnabled: true
-    property real environmentSsaoRadius: 0.008
-    property real environmentSsaoIntensity: 1.0
-    property real environmentSsaoSoftness: 20.0
-    property bool environmentSsaoDither: true
-    property int environmentSsaoSampleRate: 4
+    // SSAO properties
+    property bool ssaoEnabled: true
+    property real ssaoRadius: 0.008
+    property real ssaoIntensity: 1.0
+    property real ssaoSoftness: 20.0
+    property bool ssaoDither: true
+    property int ssaoSampleRate: 4
 
-    property bool environmentBloomEnabled: true
-    property real environmentBloomIntensity: 0.5
-    property real environmentBloomThreshold: 1.0
-    property real environmentBloomSpread: 0.65
-    property real environmentBloomGlowStrength: 1.0
-    property bool environmentBloomQualityHigh: true
-    property bool environmentBloomUseBicubic: true
-    property real environmentBloomHdrMaximum: 8.0
-    property real environmentBloomHdrScale: 2.0
+    // Bloom and glow
+    property bool bloomEnabled: true
+    property real bloomIntensity: 0.5
+    property real bloomThreshold: 1.0
+    property real bloomSecondaryBloom: 0.65
+    property real bloomStrength: 1.0
+    property bool glowQualityHighEnabled: true
+    property bool glowUseBicubic: true
+    property real glowHdrMaximumValue: 8.0
+    property real glowHdrScale: 2.0
 
-    property bool environmentLensFlareEnabled: false
-    property int environmentLensFlareGhostCount: 4
-    property real environmentLensFlareGhostDispersal: 0.06
-    property real environmentLensFlareHaloWidth: 0.05
-    property real environmentLensFlareBloomBias: 1.0
-    property real environmentLensFlareStretch: 0.0
+    // Lens flare
+    property bool lensFlareActive: false
+    property int lensFlareGhosts: 4
+    property real lensFlareGhostDispersalValue: 0.06
+    property real lensFlareHaloWidthValue: 0.05
+    property real lensFlareBloomBiasValue: 1.0
+    property real lensFlareStretchValue: 0.0
 
-    property bool environmentDepthOfFieldEnabled: false
-    property bool environmentDofAutoFocus: true
-    property real environmentDofFocusDistance: 2.5
-    property real environmentDofFocusRange: 0.9
-    property real environmentDofBlurAmount: 4.0
+    // Depth of field
+    property bool depthOfFieldActive: false
+    property bool depthOfFieldAutoFocus: true
+    property real depthOfFieldFocusDistanceValue: 2.5
+    property real depthOfFieldFocusRangeValue: 0.9
+    property real depthOfFieldBlurAmountValue: 4.0
 
-    property bool environmentFogEnabled: true
-    property color environmentFogColor: "#aab9cf"
-    property real environmentFogDensity: 0.06
-    property real environmentFogNear: 2.0
-    property real environmentFogFar: 20.0
-    property bool environmentFogHeightEnabled: false
-    property real environmentFogLeastIntenseY: 0.0
-    property real environmentFogMostIntenseY: 3.0
-    property real environmentFogHeightCurve: 1.0
-    property bool environmentFogTransmitEnabled: true
-    property real environmentFogTransmitCurve: 1.0
+    // Fog
+    property bool fogEnabled: true
+    property color fogColor: "#aab9cf"
+    property real fogDensity: 0.06
+    property real fogDepthNear: 2.0
+    property real fogDepthFar: 20.0
+    property bool fogHeightEnabled: false
+    property real fogLeastIntenseY: 0.0
+    property real fogMostIntenseY: 3.0
+    property real fogHeightCurve: 1.0
+    property bool fogTransmitEnabled: true
+    property real fogTransmitCurve: 1.0
 
-    property bool environmentVignetteEnabled: false
-    property real environmentVignetteStrength: 0.35
-    property real environmentVignetteRadius: 0.5
+    // Vignette & adjustments
+    property bool vignetteActive: false
+    property real vignetteStrengthValue: 0.35
+    property real vignetteRadiusValue: 0.5
 
-    property real environmentAdjustmentBrightness: 0.0
-    property real environmentAdjustmentContrast: 0.0
-    property real environmentAdjustmentSaturation: 0.0
+    property real adjustmentBrightnessValue: 0.0
+    property real adjustmentContrastValue: 0.0
+    property real adjustmentSaturationValue: 0.0
 
     SceneEnvironmentController {
         id: environmentDefaults
@@ -137,55 +143,55 @@ Item {
         tonemapExposure: root.environmentTonemapExposure
         tonemapWhitePoint: root.environmentTonemapWhitePoint
 
-        ssaoEnabled: root.environmentSsaoEnabled
-        ssaoRadius: root.environmentSsaoRadius
-        ssaoIntensity: root.environmentSsaoIntensity
-        ssaoSoftness: root.environmentSsaoSoftness
-        ssaoDither: root.environmentSsaoDither
-        ssaoSampleRate: root.environmentSsaoSampleRate
+        ssaoEnabled: root.ssaoEnabled
+        ssaoRadius: root.ssaoRadius
+        ssaoIntensity: root.ssaoIntensity
+        ssaoSoftness: root.ssaoSoftness
+        ssaoDither: root.ssaoDither
+        ssaoSampleRate: root.ssaoSampleRate
 
-        bloomEnabled: root.environmentBloomEnabled
-        bloomIntensity: root.environmentBloomIntensity
-        bloomThreshold: root.environmentBloomThreshold
-        bloomSpread: root.environmentBloomSpread
-        bloomGlowStrength: root.environmentBloomGlowStrength
-        bloomQualityHigh: root.environmentBloomQualityHigh
-        bloomUseBicubicUpscale: root.environmentBloomUseBicubic
-        bloomHdrMaximum: root.environmentBloomHdrMaximum
-        bloomHdrScale: root.environmentBloomHdrScale
+        bloomEnabled: root.bloomEnabled
+        bloomIntensity: root.bloomIntensity
+        bloomThreshold: root.bloomThreshold
+        bloomSpread: root.bloomSecondaryBloom
+        bloomGlowStrength: root.bloomStrength
+        bloomQualityHigh: root.glowQualityHighEnabled
+        bloomUseBicubicUpscale: root.glowUseBicubic
+        bloomHdrMaximum: root.glowHdrMaximumValue
+        bloomHdrScale: root.glowHdrScale
 
-        internalLensFlareEnabled: root.environmentLensFlareEnabled
-        lensFlareGhostCountValue: root.environmentLensFlareGhostCount
-        lensFlareGhostDispersalValue: root.environmentLensFlareGhostDispersal
-        lensFlareHaloWidthValue: root.environmentLensFlareHaloWidth
-        lensFlareBloomBiasValue: root.environmentLensFlareBloomBias
-        lensFlareStretchValue: root.environmentLensFlareStretch
+        internalLensFlareEnabled: root.lensFlareActive
+        lensFlareGhostCountValue: root.lensFlareGhosts
+        lensFlareGhostDispersalValue: root.lensFlareGhostDispersalValue
+        lensFlareHaloWidthValue: root.lensFlareHaloWidthValue
+        lensFlareBloomBiasValue: root.lensFlareBloomBiasValue
+        lensFlareStretchValue: root.lensFlareStretchValue
 
-        internalDepthOfFieldEnabled: root.environmentDepthOfFieldEnabled
-        depthOfFieldAutoFocus: root.environmentDofAutoFocus
-        dofFocusDistance: root.environmentDofFocusDistance
-        dofFocusRange: root.environmentDofFocusRange
-        dofBlurAmount: root.environmentDofBlurAmount
+        internalDepthOfFieldEnabled: root.depthOfFieldActive
+        depthOfFieldAutoFocus: root.depthOfFieldAutoFocus
+        dofFocusDistance: root.depthOfFieldFocusDistanceValue
+        dofFocusRange: root.depthOfFieldFocusRangeValue
+        dofBlurAmount: root.depthOfFieldBlurAmountValue
 
-        fogEnabled: root.environmentFogEnabled
-        fogColor: root.environmentFogColor
-        fogDensity: root.environmentFogDensity
-        fogNear: root.environmentFogNear
-        fogFar: root.environmentFogFar
-        fogHeightEnabled: root.environmentFogHeightEnabled
-        fogLeastIntenseY: root.environmentFogLeastIntenseY
-        fogMostIntenseY: root.environmentFogMostIntenseY
-        fogHeightCurve: root.environmentFogHeightCurve
-        fogTransmitEnabled: root.environmentFogTransmitEnabled
-        fogTransmitCurve: root.environmentFogTransmitCurve
+        fogEnabled: root.fogEnabled
+        fogColor: root.fogColor
+        fogDensity: root.fogDensity
+        fogNear: root.fogDepthNear
+        fogFar: root.fogDepthFar
+        fogHeightEnabled: root.fogHeightEnabled
+        fogLeastIntenseY: root.fogLeastIntenseY
+        fogMostIntenseY: root.fogMostIntenseY
+        fogHeightCurve: root.fogHeightCurve
+        fogTransmitEnabled: root.fogTransmitEnabled
+        fogTransmitCurve: root.fogTransmitCurve
 
-        internalVignetteEnabled: root.environmentVignetteEnabled
-        internalVignetteStrength: root.environmentVignetteStrength
-        vignetteRadiusValue: root.environmentVignetteRadius
+        internalVignetteEnabled: root.vignetteActive
+        internalVignetteStrength: root.vignetteStrengthValue
+        vignetteRadiusValue: root.vignetteRadiusValue
 
-        adjustmentBrightnessValue: root.environmentAdjustmentBrightness
-        adjustmentContrastValue: root.environmentAdjustmentContrast
-        adjustmentSaturationValue: root.environmentAdjustmentSaturation
+        adjustmentBrightnessValue: root.adjustmentBrightnessValue
+        adjustmentContrastValue: root.adjustmentContrastValue
+        adjustmentSaturationValue: root.adjustmentSaturationValue
     }
 
     onPendingPythonUpdatesChanged: {
