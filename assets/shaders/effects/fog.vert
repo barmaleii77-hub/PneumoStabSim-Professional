@@ -15,7 +15,7 @@ precision highp int;
 #endif
 
 #ifndef MAIN
-#define MAIN main
+#define MAIN qt_customMain
 #endif
 
 #ifndef UBO_BINDING
