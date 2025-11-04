@@ -414,7 +414,8 @@ class RangeSlider(QWidget):
     ) -> QShortcut:
         """Create a shortcut and store metadata for accessibility consumers."""
 
-        shortcut = QShortcut(QKeySequence(sequence_str), self)
+        sequence = QKeySequence(sequence_str)
+        shortcut = QShortcut(sequence, self)
         shortcut.setContext(Qt.ShortcutContext.WidgetWithChildrenShortcut)
         shortcut.activated.connect(callback)
 
@@ -424,9 +425,7 @@ class RangeSlider(QWidget):
                 description = description.replace(placeholder, value)
         shortcut.setWhatsThis(description)
 
-        sequence_text = shortcut.keySequence().toString(
-            QKeySequence.SequenceFormat.NativeText
-        )
+        sequence_text = sequence.toString(QKeySequence.SequenceFormat.NativeText)
         self._shortcut_metadata.append(
             AccessibilityShortcut(identifier, sequence_text, description)
         )
