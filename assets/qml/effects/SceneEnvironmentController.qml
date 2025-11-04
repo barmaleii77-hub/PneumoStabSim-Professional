@@ -907,6 +907,24 @@ return
     property string _velocityTexturePropertyName: ""
     property bool _depthTextureWarningLogged: false
     property bool _velocityTextureWarningLogged: false
+    readonly property var _depthTexturePropertyCandidates: [
+            "explicitDepthTextureEnabled",
+            "depthTextureEnabled",
+            "depthBufferEnabled",
+            "depthPassEnabled",
+            "requiresDepthTexture",
+            "requiresDepthBuffer",
+            "requiresDepthPass"
+        ]
+    readonly property var _velocityTexturePropertyCandidates: [
+            "explicitVelocityTextureEnabled",
+            "velocityTextureEnabled",
+            "velocityBufferEnabled",
+            "velocityPassEnabled",
+            "requiresVelocityTexture",
+            "requiresVelocityBuffer",
+            "requiresVelocityPass"
+        ]
 
     function _setEnvironmentProperty(propertyName, value) {
         if (!propertyName)
@@ -1047,6 +1065,8 @@ return
                     "requiredBuffers",
                     "bufferPassRequirements",
                     "bufferPassRequirement",
+                    "requiredBufferPasses",
+                    "bufferResourceRequirements",
                     "buffers",
                     "bufferPasses"
                 ]
@@ -1067,13 +1087,7 @@ return
     }
 
     function _applyDepthTextureState(enabled) {
-        var propertyName = _setEnvironmentPropertyCandidates([
-                    "depthTextureEnabled",
-                    "depthBufferEnabled",
-                    "explicitDepthTextureEnabled",
-                    "requiresDepthTexture",
-                    "requiresDepthBuffer"
-                ], enabled)
+        var propertyName = _setEnvironmentPropertyCandidates(_depthTexturePropertyCandidates, enabled)
 
         if (propertyName.length) {
             if (_depthTexturePropertyName !== propertyName) {
@@ -1099,12 +1113,7 @@ return
     }
 
     function _applyVelocityTextureState(enabled) {
-        var propertyName = _setEnvironmentPropertyCandidates([
-                    "velocityTextureEnabled",
-                    "velocityBufferEnabled",
-                    "explicitVelocityTextureEnabled",
-                    "requiresVelocityTexture"
-                ], enabled)
+        var propertyName = _setEnvironmentPropertyCandidates(_velocityTexturePropertyCandidates, enabled)
 
         if (propertyName.length) {
             if (_velocityTexturePropertyName !== propertyName) {
@@ -1142,18 +1151,22 @@ return
                                           [
                                               "requiresDepthTexture",
                                               "requiresDepthBuffer",
+                                              "requiresDepthPass",
                                               "needsDepthTexture",
                                               "needsDepthBuffer",
+                                              "usesDepthTexture",
                                               "depthTextureEnabled"
                                           ],
-                                          ["depth"]))
+                                          ["depth", "z"]))
                     requiresDepth = true
                 if (_effectRequestsBuffer(effect,
                                           [
                                               "requiresVelocityTexture",
                                               "requiresVelocityBuffer",
+                                              "requiresVelocityPass",
                                               "needsVelocityTexture",
                                               "needsVelocityBuffer",
+                                              "usesVelocityTexture",
                                               "velocityTextureEnabled"
                                           ],
                                           ["velocity", "motion"]))
