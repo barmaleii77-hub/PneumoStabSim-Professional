@@ -254,9 +254,9 @@ onIsRunningChanged: {
  onUserPhaseRLChanged: updateFallbackAngles()
  onUserPhaseRRChanged: updateFallbackAngles()
 
- onBatchUpdatesApplied: {
- feedbackReady = true
- batchFlash.restart()
+ onBatchUpdatesApplied: function(summary) {
+  feedbackReady = true
+  batchFlash.restart()
  }
 
 // Масштаб перевода метров в сцену Qt Quick3D (значение 1.0 = метры в сцене)
@@ -1248,6 +1248,8 @@ Rectangle {
  }
 
  Component.onCompleted: {
+  root.registerShaderWarning = registerShaderWarning
+  root.clearShaderWarning = clearShaderWarning
   console.log("✅ SimulationRoot initialized successfully")
   if (typeof signalTrace !== "undefined" && signalTrace && typeof signalTrace.registerSubscription === "function") {
    signalTrace.registerSubscription("settings.settingChanged","main.qml","qml")
