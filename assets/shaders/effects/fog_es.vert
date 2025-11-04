@@ -73,16 +73,14 @@ void fogESVertexMain(out vec4 position)
     position = ubuf.qt_ModelViewProjectionMatrix * localPosition;
 }
 
-#if QSB_USES_QT_CUSTOM_MAIN
-void MAIN(out vec4 position)
-{
-    fogESVertexMain(position);
-}
-#else
 void MAIN()
 {
     vec4 position = vec4(0.0);
     fogESVertexMain(position);
     POSITION = position;
 }
-#endif
+
+void MAIN(out vec4 position)
+{
+    fogESVertexMain(position);
+}
