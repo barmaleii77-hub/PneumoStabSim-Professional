@@ -47,7 +47,9 @@ Environment payload (вложенный)
 - **Каталоги:** GLES-варианты bloom/SSAO/DoF/motion blur теперь расположены в `assets/shaders/post_effects/` с суффиксом `_es`
   и директивой `#version 300 es`, а десктопные версии остаются в `assets/shaders/effects/`. 【F:assets/shaders/post_effects/bloom_es.frag†L1-L15】【F:assets/shaders/effects/bloom.frag†L1-L18】
 - **Загрузка:** `PostEffects.qml` в первую очередь ищет GLES-файлы через `shaderResourceDirectories`, добавляя `../../shaders/post_effects/`
-  перед десктопным каталогом, чтобы Qt Quick 3D под ANGLE/OpenGL ES подхватывал нужные варианты. 【F:assets/qml/effects/PostEffects.qml†L197-L214】【F:assets/qml/effects/PostEffects.qml†L320-L349】
+  перед десктопным каталогом, чтобы Qt Quick 3D под ANGLE/OpenGL ES подхватывал нужные варианты. Если ни один GLES-ресурс не найден,
+  `shaderPath()` автоматически переключается на `_fallback`-шейдер (`#version 330 core`), который совместим с GLES и фиксируется в
+  логе предупреждением. 【F:assets/qml/effects/PostEffects.qml†L197-L214】【F:assets/qml/effects/PostEffects.qml†L320-L371】
 - **Манифест:** `UISetup._build_effect_shader_manifest()` агрегирует оба каталога (`effects` и `post_effects`), чтобы QML быстро проверял
   наличие ресурсов без синхронных запросов. 【F:src/ui/main_window_pkg/ui_setup.py†L34-L88】
 
@@ -57,8 +59,8 @@ Environment payload (вложенный)
   `assets/shaders/effects/fog_fallback.frag`.
 - **Цель:** гарантировать корректную компиляцию шейдеров при включённых флагах `QSG_INFO=1` и `QSG_RHI_DEBUG_LAYER=1`
   для всех рендер-бэкендов (ANGLE/D3D11, OpenGL, Vulkan/Metal) и сохранить визуально ожидаемый результат тумана.
-- **Fallback:** при отсутствии depth-текстуры или ошибке компиляции активируется `fog_fallback.frag` и в
-  `SceneEnvironmentController.qml` автоматически выключается туман, если причина — ошибка компиляции.
+- **Fallback:** при отсутствии depth-текстуры, ошибке компиляции или отсутствии GLES-варианта базового шейдера активируется
+  `fog_fallback.frag` (`#version 330 core`), что сопровождается предупреждением и не требует переключения на десктопный профиль.
 
 ### Проверка компиляции шейдеров
 
@@ -106,8 +108,9 @@ Environment payload (вложенный)
 - В QML-логике `FogEffect.qml` fallback активируется при ошибках компиляции или когда рендер-профиль не поддерживает
   GLSL 4.50. Таймер анимации автоматически выключается, пока `fallbackActive == true`, что предотвращает обращения к
   недоступным uniform'ам.
-- Обновление профиля зафиксировано тестами: `make check` проходит без ошибок, включая `qmllint`, что подтверждено
-  отчётом `reports/tests/make_check_20250213.md`.
+- Обновление профиля и автоматического fallback покрыто автотестами `tests/ui/test_shader_fallback_selection.py`, которые создают
+  QML-компоненты в GLES-профиле и проверяют выбор `_fallback`-шейдеров. Итоговое тестирование по-прежнему подтверждается `make check`
+  (включая `qmllint`).
 - Рекомендации basysKom по compute/эффектным шейдерам (минимум GLSL 4.40 и автоматическая компиляция в SPIR-V)
   подтверждают выбор профиля 4.50 как безопасного запаса для Qt Quick 3D. [см. обзор basysKom.][basyskom-compute]
 

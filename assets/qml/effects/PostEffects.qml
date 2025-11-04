@@ -270,26 +270,38 @@ Item {
     }
 
     function shaderResourceExists(url, resourceName, suppressErrors) {
-        if (!url || !url.length)
+        if (!url)
             return false
 
-        if (Object.prototype.hasOwnProperty.call(shaderResourceAvailabilityCache, url))
-            return shaderResourceAvailabilityCache[url]
+        var normalizedUrl = url
+        if (typeof normalizedUrl === "object" && normalizedUrl !== null) {
+            try {
+                if (typeof normalizedUrl.toString === "function")
+                    normalizedUrl = normalizedUrl.toString()
+            } catch (error) {
+            }
+        }
+
+        if (!normalizedUrl || !normalizedUrl.length)
+            return false
+
+        if (Object.prototype.hasOwnProperty.call(shaderResourceAvailabilityCache, normalizedUrl))
+            return shaderResourceAvailabilityCache[normalizedUrl]
 
         var available = false
 
         if (resourceName && Object.prototype.hasOwnProperty.call(shaderResourceManifest, resourceName)) {
             available = !!shaderResourceManifest[resourceName]
-            shaderResourceAvailabilityCache[url] = available
+            shaderResourceAvailabilityCache[normalizedUrl] = available
             if (!available && !suppressErrors)
-                console.error("❌ PostEffects: shader resource missing", resourceName, url)
+                console.error("❌ PostEffects: shader resource missing", resourceName, normalizedUrl)
             return available
         }
 
         function checkAvailability(method) {
             try {
                 var xhr = new XMLHttpRequest()
-                xhr.open(method, url, false)
+                xhr.open(method, normalizedUrl, false)
                 xhr.send()
                 if (xhr.status === 200 || xhr.status === 0) {
                     available = true
@@ -306,9 +318,9 @@ Item {
         if (!checkAvailability("HEAD"))
             checkAvailability("GET")
 
-        shaderResourceAvailabilityCache[url] = available
+        shaderResourceAvailabilityCache[normalizedUrl] = available
         if (!available && !suppressErrors)
-            console.error("❌ PostEffects: shader resource missing", resourceName, url)
+            console.error("❌ PostEffects: shader resource missing", resourceName, normalizedUrl)
 
         return available
     }
@@ -358,14 +370,49 @@ Item {
 
         var glesVariantList = candidateNames.slice(0, Math.max(candidateNames.length - 1, 0))
         var requireCompatibilityFallback = false
-        if (!found && useGlesShaders && glesVariantList.length > 0) {
-            requireCompatibilityFallback = true
-            console.warn("⚠️ PostEffects: GLES shader variants missing; activating compatibility fallback", glesVariantList)
-            requestDesktopShaderProfile(`Shader ${normalized} lacks GLES variants (${glesVariantList.join(", ")}); enforcing desktop profile`)
-        } else if (useGlesShaders && glesVariantList.length > 0 && selectedName === normalized) {
-            requireCompatibilityFallback = true
-            console.warn("⚠️ PostEffects: GLES shader variant not found; activating compatibility fallback", glesVariantList)
-            requestDesktopShaderProfile(`Shader ${normalized} did not resolve GLES variants (${glesVariantList.join(", ")}); enforcing desktop profile`)
+        var fallbackCandidateNames = []
+        var fallbackSelectedName = ""
+        if (useGlesShaders && glesVariantList.length > 0) {
+            var baseRequiresFallback = selectedName === normalized || !found
+            if (baseRequiresFallback) {
+                var fallbackBaseName = baseName.endsWith("_fallback") ? baseName : baseName + "_fallback"
+                for (var fIdx = 0; fIdx < glesShaderSuffixes.length; ++fIdx) {
+                    var fallbackSuffix = glesShaderSuffixes[fIdx]
+                    if (!fallbackSuffix || !fallbackSuffix.length)
+                        continue
+                    fallbackCandidateNames.push(fallbackBaseName + fallbackSuffix + extension)
+                }
+                fallbackCandidateNames.push(fallbackBaseName + extension)
+            }
+
+            if (!found || selectedName === normalized) {
+                if (!found)
+                    console.warn("⚠️ PostEffects: GLES shader variants missing; trying fallback", glesVariantList)
+                else
+                    console.warn("⚠️ PostEffects: GLES shader variant not resolved; falling back", glesVariantList)
+
+                var fallbackResolved = false
+                for (var fbIdx = 0; fbIdx < fallbackCandidateNames.length && !fallbackResolved; ++fbIdx) {
+                    var fallbackName = fallbackCandidateNames[fbIdx]
+                    for (var fbDirIdx = 0; fbDirIdx < directories.length && !fallbackResolved; ++fbDirIdx) {
+                        var fallbackUrl = resolvedShaderUrl(fallbackName, directories[fbDirIdx])
+                        if (shaderResourceExists(fallbackUrl, fallbackName, false)) {
+                            selectedName = fallbackName
+                            selectedUrl = fallbackUrl
+                            fallbackSelectedName = fallbackName
+                            fallbackResolved = true
+                        }
+                    }
+                }
+
+                if (fallbackResolved && fallbackSelectedName.length > 0) {
+                    requireCompatibilityFallback = true
+                    found = true
+                    console.warn("⚠️ PostEffects: GLES fallback shader selected", fallbackSelectedName)
+                } else if (!found) {
+                    requestDesktopShaderProfile(`Shader ${normalized} lacks GLES variants (${glesVariantList.join(", ")}); enforcing desktop profile`)
+                }
+            }
         }
 
         if (requireCompatibilityFallback) {
@@ -519,18 +566,30 @@ Item {
 
     // qmllint disable unqualified
     function sanitizedShaderUrl(url, resourceName) {
-        if (!url || !url.length)
+        if (!url)
             return url
 
-        if (Object.prototype.hasOwnProperty.call(shaderSanitizationCache, url))
-            return shaderSanitizationCache[url]
+        var normalizedUrl = url
+        if (typeof normalizedUrl === "object" && normalizedUrl !== null) {
+            try {
+                if (typeof normalizedUrl.toString === "function")
+                    normalizedUrl = normalizedUrl.toString()
+            } catch (error) {
+            }
+        }
 
-        var sanitizedUrl = url
+        if (!normalizedUrl || !normalizedUrl.length)
+            return normalizedUrl
+
+        if (Object.prototype.hasOwnProperty.call(shaderSanitizationCache, normalizedUrl))
+            return shaderSanitizationCache[normalizedUrl]
+
+        var sanitizedUrl = normalizedUrl
         var sanitizationApplied = false
 
         try {
             var xhr = new XMLHttpRequest()
-            xhr.open("GET", url, false)
+            xhr.open("GET", normalizedUrl, false)
             xhr.responseType = "text"
             xhr.send()
             if (xhr.status === 200 || xhr.status === 0) {
@@ -556,7 +615,7 @@ Item {
                     }
 
                     if (mutated && normalized !== shaderSource) {
-                        var cacheKey = resourceName || url
+                        var cacheKey = resourceName || normalizedUrl
                         if (!Object.prototype.hasOwnProperty.call(shaderSanitizationWarnings, cacheKey)) {
                             console.warn(
                                         "⚠️ PostEffects: shader", resourceName,
@@ -571,9 +630,9 @@ Item {
             console.debug("PostEffects: shader normalization skipped", resourceName, error)
         }
 
-        shaderSanitizationCache[url] = sanitizedUrl
+        shaderSanitizationCache[normalizedUrl] = sanitizedUrl
         if (sanitizationApplied)
-            shaderSanitizationCache[url] = url
+            shaderSanitizationCache[normalizedUrl] = normalizedUrl
         return sanitizedUrl
     }
     // qmllint enable unqualified
