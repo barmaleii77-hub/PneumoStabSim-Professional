@@ -1,19 +1,18 @@
 import QtQuick 6.10
 import QtQuick3D 6.10
-import CustomGeometry 1.0
+import QtQuick3D.Helpers 6.10 as Helpers
 
 /*
- * CylinderGeometry Component - procedural cylinder mesh with adjustable quality.
- *
- * Provides a shared wrapper around the CustomGeometry.ProceduralCylinderGeometry
- * class so that other QML components can simply instantiate ``CylinderGeometry``
- * and bind its ``segments`` / ``rings`` properties to UI controls.
+ * CylinderGeometry Component - wraps the built-in Helpers.CylinderGeometry so
+ * other QML components can bind ``segments`` / ``rings`` without depending on
+ * the Python-based CustomGeometry module. This keeps headless/offscreen loads
+ * lightweight while matching the original API surface.
  */
-ProceduralCylinderGeometry {
+Helpers.CylinderGeometry {
     id: cylinderGeometry
 
     Component.onCompleted: {
-        console.log("🔷 CylinderGeometry ready (procedural mesh)")
+        console.log("🔷 CylinderGeometry ready (helpers mesh)")
         console.log("   segments=" + segments + ", rings=" + rings)
     }
 }

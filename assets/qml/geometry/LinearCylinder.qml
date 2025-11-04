@@ -60,9 +60,10 @@ Node {
         id: cylinderModel
         objectName: "cylinderModel"
         position: root.midpoint
-        scale: Qt.vector3d(root.safeRadius, root.length / 2, root.safeRadius)
         eulerRotation: Qt.vector3d(0, 0, root.rotationDeg)
         geometry: CylinderGeometry {
+            radius: root.safeRadius
+            length: root.length
             segments: Math.max(3, root.segments)
             rings: Math.max(1, root.rings)
         }

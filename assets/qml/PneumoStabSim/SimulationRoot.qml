@@ -850,6 +850,7 @@ SequentialAnimation {
   worldRoot: worldRoot
   geometryState: geometryState
   geometryDefaults: root.geometryDefaults ? root.geometryDefaults : root.emptyGeometryDefaults
+  emptyGeometryDefaults: root.emptyGeometryDefaults
   materialsDefaults: sceneDefaults && sceneDefaults.materials ? sceneDefaults.materials : ({})
   sharedMaterials: sharedMaterials
   sceneScaleFactor: root.effectiveSceneScaleFactor
