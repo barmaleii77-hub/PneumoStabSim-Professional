@@ -1099,6 +1099,8 @@ Binding {
   invokeBatchHandler(root.applyLightingUpdates, sceneBridge.lighting, "lighting")
  if (sceneBridge.environment && Object.keys(sceneBridge.environment).length)
   invokeBatchHandler(root.applyEnvironmentUpdates, sceneBridge.environment, "environment")
+ if (sceneBridge.scene && Object.keys(sceneBridge.scene).length)
+  invokeBatchHandler(root.applySceneUpdates, sceneBridge.scene, "scene")
  if (sceneBridge.quality && Object.keys(sceneBridge.quality).length)
   invokeBatchHandler(root.applyQualityUpdates, sceneBridge.quality, "quality")
  if (sceneBridge.materials && Object.keys(sceneBridge.materials).length)
@@ -1783,6 +1785,7 @@ function applyBatchedUpdates(updates) {
         camera: function(payload) { return root.applyCameraUpdates(payload); },
         lighting: function(payload) { return root.applyLightingUpdates(payload); },
         environment: function(payload) { return root.applyEnvironmentUpdates(payload); },
+        scene: function(payload) { return root.applySceneUpdates(payload); },
         quality: function(payload) { return root.applyQualityUpdates(payload); },
         materials: function(payload) { return root.applyMaterialUpdates(payload); },
         effects: function(payload) { return root.applyEffectsUpdates(payload); },
@@ -2190,8 +2193,91 @@ function applyLightingUpdates(params) {
   return true;
  } catch (error) {
   console.error("[SimulationRoot] applyLightingUpdates failed", error);
+ return false;
+}
+}
+
+function applySceneUpdates(params) {
+ params = coerceBatchObject("scene", params);
+ if (!params)
   return false;
+
+ var sourceDefaults = sceneDefaults;
+ if (!sourceDefaults || typeof sourceDefaults !== "object")
+  sourceDefaults = {};
+ var nextDefaults = cloneObject(sourceDefaults);
+ var changed = false;
+
+ function assignDefault(key, value) {
+  if (nextDefaults[key] === value)
+   return;
+  nextDefaults[key] = value;
+  changed = true;
  }
+
+ var scaleValue = valueForKeys(params, ["scale_factor", "scaleFactor"]);
+ if (scaleValue !== undefined) {
+  var numericScale = Number(scaleValue);
+  if (isFinite(numericScale) && numericScale > 0)
+   assignDefault("scale_factor", numericScale);
+ }
+
+ var exposureValue = valueForKeys(params, ["exposure"]);
+ if (exposureValue !== undefined) {
+  var numericExposure = Number(exposureValue);
+  if (isFinite(numericExposure)) {
+   assignDefault("exposure", numericExposure);
+   setIfExists(sceneEnvCtl, "tonemapExposure", numericExposure);
+  }
+ }
+
+ var clearColorValue = valueForKeys(
+  params,
+  ["default_clear_color", "defaultClearColor"]
+ );
+ if (clearColorValue !== undefined && clearColorValue !== null) {
+  var resolvedClear = String(clearColorValue);
+  assignDefault("default_clear_color", resolvedClear);
+  setIfExists(sceneEnvCtl, "backgroundColor", resolvedClear);
+ }
+
+ var baseColorValue = valueForKeys(
+  params,
+  ["model_base_color", "modelBaseColor"]
+ );
+ if (baseColorValue !== undefined && baseColorValue !== null)
+  assignDefault("model_base_color", String(baseColorValue));
+
+ var roughnessValue = valueForKeys(
+  params,
+  ["model_roughness", "modelRoughness"]
+ );
+ if (roughnessValue !== undefined) {
+  var numericRoughness = Number(roughnessValue);
+  if (isFinite(numericRoughness))
+   assignDefault("model_roughness", numericRoughness);
+ }
+
+ var metalnessValue = valueForKeys(
+  params,
+  ["model_metalness", "modelMetalness"]
+ );
+ if (metalnessValue !== undefined) {
+  var numericMetalness = Number(metalnessValue);
+  if (isFinite(numericMetalness))
+   assignDefault("model_metalness", numericMetalness);
+ }
+
+ if (changed) {
+  sceneDefaults = nextDefaults;
+  return true;
+ }
+
+ return false;
+}
+
+function updateScene(params) {
+ return applySceneUpdates(params);
 }
 
  function applyEnvironmentUpdates(params) {

@@ -21,6 +21,9 @@ update_methods:
   environment:
     - applyEnvironmentUpdates
     - updateEnvironment
+  scene:
+    - applySceneUpdates
+    - updateScene
   quality:
     - applyQualityUpdates
     - updateQuality
