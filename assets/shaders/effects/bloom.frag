@@ -103,8 +103,3 @@ void MAIN()
     bloomMain(fragColor);
     FRAGCOLOR = fragColor;
 }
-
-void MAIN(inout vec4 fragColor)
-{
-    bloomMain(fragColor);
-}

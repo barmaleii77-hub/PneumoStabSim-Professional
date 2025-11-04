@@ -70,7 +70,3 @@ void MAIN()
     POSITION = position;
 }
 
-void MAIN(out vec4 position)
-{
-    fogVertexMain(position);
-}
