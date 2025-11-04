@@ -46,6 +46,7 @@ Environment payload (вложенный)
 
 - **Каталоги:** GLES-варианты bloom/SSAO/DoF/motion blur теперь расположены в `assets/shaders/post_effects/` с суффиксом `_es`
   и директивой `#version 300 es`, а десктопные версии остаются в `assets/shaders/effects/`. 【F:assets/shaders/post_effects/bloom_es.frag†L1-L24】【F:assets/shaders/effects/bloom.frag†L1-L18】
+- **DoF GLES:** обе версии `dof_es.frag` и `dof_fallback_es.frag` содержат явное объявление профиля `#version 300 es`; добавлен комментарий-предупреждение для ANGLE, чтобы директива не удалялась и эффект не уходил в десктопный fallback. 【F:assets/shaders/post_effects/dof_es.frag†L1-L12】【F:assets/shaders/post_effects/dof_fallback_es.frag†L1-L12】
 - **Совместимость GLSL ES:** для профиля GLES 3.0 мы полностью отключаем `layout(binding=…)` через условные макросы, чтобы
   соответствовать ограничению `GLSL ES 3.00` на явные биндинги. Комментарии в `_es`-шейдерах теперь фиксируют это требование,
   облегчая ревью и ревизию будущих обновлений. 【F:assets/shaders/post_effects/bloom_es.frag†L16-L36】
