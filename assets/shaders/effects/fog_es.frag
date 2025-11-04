@@ -233,7 +233,3 @@ void MAIN()
     FRAGCOLOR = fragColor;
 }
 
-void MAIN(inout vec4 fragColor)
-{
-    fogESMain(fragColor);
-}

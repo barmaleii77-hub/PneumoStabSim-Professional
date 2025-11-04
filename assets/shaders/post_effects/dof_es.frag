@@ -139,7 +139,3 @@ void MAIN()
     FRAGCOLOR = fragColor;
 }
 
-void MAIN(inout vec4 fragColor)
-{
-    dofESMain(fragColor);
-}
