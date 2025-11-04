@@ -4,4 +4,5 @@ assets/qml/environment
 assets/qml/scene
 assets/qml/quality/Check.qml
 assets/qml/effects
+assets/qml/themes
 src/ui/qml/panels

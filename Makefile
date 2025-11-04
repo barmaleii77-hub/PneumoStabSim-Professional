@@ -16,6 +16,10 @@ INTEGRATION_TARGET ?= tests/integration/test_main_window_qml.py
 autonomous-check autonomous-check-trace trace-launch sanitize cipilot-env \
 install-qt-runtime
 
+.PHONY: qmllint
+qmllint:
+	$(MAKE) qml-lint
+
 .PHONY: uv-sync uv-run
 
 uv-sync:

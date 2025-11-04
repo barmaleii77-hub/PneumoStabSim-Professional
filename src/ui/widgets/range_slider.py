@@ -26,7 +26,7 @@ from PySide6.QtWidgets import (
     QSizePolicy,
 )
 from PySide6.QtCore import Signal, Slot, QTimer, Qt
-from PySide6.QtGui import QFont, QPalette, QColor
+from PySide6.QtGui import QFont, QPalette, QColor, QKeySequence, QShortcut
 
 
 class RangeSlider(QWidget):
@@ -58,11 +58,18 @@ class RangeSlider(QWidget):
         units="",
         title="",
         parent=None,
+        accessible_name: str | None = None,
+        increase_shortcut: str = "Ctrl+Alt+Right",
+        decrease_shortcut: str = "Ctrl+Alt+Left",
+        focus_min_shortcut: str = "Ctrl+Alt+1",
+        focus_value_shortcut: str = "Ctrl+Alt+2",
+        focus_max_shortcut: str = "Ctrl+Alt+3",
     ):
         super().__init__(parent)
         self._step = step
         self._decimals = decimals
         self._units = units
+        self._accessible_label = accessible_name or ""
 
         # УВЕЛИЧЕННОЕ разрешение слайдера для точности 0.001м
         # Для диапазона 4м с шагом 0.001м нужно 4000 позиций
@@ -76,10 +83,18 @@ class RangeSlider(QWidget):
         self._debounce_delay = 200
 
         self._setup_ui(title)
+        self._configure_accessibility(title)
         self.setRange(minimum, maximum)
         self.setValue(value)
         self._connect_signals()
         self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+        self._setup_shortcuts(
+            increase_shortcut,
+            decrease_shortcut,
+            focus_min_shortcut,
+            focus_value_shortcut,
+            focus_max_shortcut,
+        )
 
     def _setup_ui(self, title):
         layout = QVBoxLayout(self)
@@ -94,6 +109,7 @@ class RangeSlider(QWidget):
             font.setBold(True)
             self.title_label.setFont(font)
             layout.addWidget(self.title_label)
+            self.title_label.setAccessibleName(self.tr("%1 title").replace("%1", title))
 
         # ✨ ОБНОВЛЕНО: Индикатор диапазона с ширной диапазона без скобок
         self.range_indicator_label = QLabel(
@@ -120,6 +136,7 @@ class RangeSlider(QWidget):
         # Задаем минимальную ширину для полного использования пространства
         self.slider.setMinimumWidth(300)
         layout.addWidget(self.slider)
+        self.slider.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
 
         # ✨ Индикатор позиции
         self.position_indicator_label = QLabel("Позиция: 50.0% от диапазона")
@@ -212,6 +229,171 @@ class RangeSlider(QWidget):
         self.units_label.setFont(font)
         layout.addWidget(self.units_label)
 
+    def _configure_accessibility(self, title: str) -> None:
+        """Configure accessibility metadata for assistive technologies."""
+
+        display_label = title or self.tr("Range")
+        self._display_label = display_label
+        if not self._accessible_label:
+            self._accessible_label = self.tr("%1 range slider").replace(
+                "%1", display_label
+            )
+
+        self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
+        self.setAccessibleName(self._accessible_label)
+        self._refresh_accessibility_descriptions()
+
+        self.slider.setAccessibleName(
+            self.tr("%1 slider track").replace("%1", display_label)
+        )
+
+        self.min_spinbox.setAccessibleName(
+            self.tr("%1 minimum value").replace("%1", display_label)
+        )
+        self.value_spinbox.setAccessibleName(
+            self.tr("%1 current value").replace("%1", display_label)
+        )
+        self.max_spinbox.setAccessibleName(
+            self.tr("%1 maximum value").replace("%1", display_label)
+        )
+
+        for widget in (self.min_spinbox, self.value_spinbox, self.max_spinbox):
+            widget.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
+
+        if hasattr(self, "title_label"):
+            self.title_label.setAccessibleDescription(
+                self.tr("Heading for the %1 controls.").replace("%1", display_label)
+            )
+
+    def _refresh_accessibility_descriptions(self) -> None:
+        """Update descriptions when range or units change."""
+
+        min_value = getattr(self, "_minimum", 0.0)
+        max_value = getattr(self, "_maximum", 0.0)
+        width = max_value - min_value
+        units_suffix = self.tr(" %1").replace("%1", self._units) if self._units else ""
+
+        slider_description = (
+            self.tr("Adjust %1 between %2 and %3%4.")
+            .replace("%1", self._display_label)
+            .replace("%2", f"{min_value:.{self._decimals}f}")
+            .replace("%3", f"{max_value:.{self._decimals}f}")
+            .replace("%4", units_suffix)
+        )
+        self.setAccessibleDescription(slider_description)
+        self.slider.setAccessibleDescription(slider_description)
+        self.value_spinbox.setAccessibleDescription(slider_description)
+
+        min_description = self.tr("Sets the minimum bound for %1.").replace(
+            "%1", self._display_label
+        )
+        max_description = self.tr("Sets the maximum bound for %1.").replace(
+            "%1", self._display_label
+        )
+        self.min_spinbox.setAccessibleDescription(min_description)
+        self.max_spinbox.setAccessibleDescription(max_description)
+
+        if self.units_label:
+            if self._units:
+                self.units_label.setAccessibleName(
+                    self.tr("Units label for %1").replace("%1", self._display_label)
+                )
+                self.units_label.setAccessibleDescription(
+                    self.tr("Displays the measurement units applied to %1.").replace(
+                        "%1", self._display_label
+                    )
+                )
+            else:
+                self.units_label.setAccessibleName("")
+                self.units_label.setAccessibleDescription("")
+
+        self.range_indicator_label.setAccessibleName(
+            self.tr("%1 range summary").replace("%1", self._display_label)
+        )
+        self.range_indicator_label.setAccessibleDescription(
+            self.tr("Current limits span %1 to %2 with a width of %3%4.")
+            .replace("%1", f"{min_value:.{self._decimals}f}")
+            .replace("%2", f"{max_value:.{self._decimals}f}")
+            .replace("%3", f"{width:.{self._decimals}f}")
+            .replace("%4", units_suffix)
+        )
+
+        self.position_indicator_label.setAccessibleName(
+            self.tr("%1 position indicator").replace("%1", self._display_label)
+        )
+
+    def _setup_shortcuts(
+        self,
+        increase_shortcut: str,
+        decrease_shortcut: str,
+        focus_min_shortcut: str,
+        focus_value_shortcut: str,
+        focus_max_shortcut: str,
+    ) -> None:
+        """Expose keyboard shortcuts mirroring pointer interactions."""
+
+        self._increase_shortcut = QShortcut(QKeySequence(increase_shortcut), self)
+        self._increase_shortcut.setContext(
+            Qt.ShortcutContext.WidgetWithChildrenShortcut
+        )
+        self._increase_shortcut.activated.connect(
+            lambda: self._nudge_slider(self._step)
+        )
+        self._increase_shortcut.setWhatsThis(
+            self.tr("Increase %1 by one step (%2).")
+            .replace("%1", self._display_label)
+            .replace("%2", increase_shortcut)
+        )
+
+        self._decrease_shortcut = QShortcut(QKeySequence(decrease_shortcut), self)
+        self._decrease_shortcut.setContext(
+            Qt.ShortcutContext.WidgetWithChildrenShortcut
+        )
+        self._decrease_shortcut.activated.connect(
+            lambda: self._nudge_slider(-self._step)
+        )
+        self._decrease_shortcut.setWhatsThis(
+            self.tr("Decrease %1 by one step (%2).")
+            .replace("%1", self._display_label)
+            .replace("%2", decrease_shortcut)
+        )
+
+        self._focus_min_shortcut = QShortcut(QKeySequence(focus_min_shortcut), self)
+        self._focus_min_shortcut.setContext(
+            Qt.ShortcutContext.WidgetWithChildrenShortcut
+        )
+        self._focus_min_shortcut.activated.connect(self.min_spinbox.setFocus)
+        self._focus_min_shortcut.setWhatsThis(
+            self.tr("Focus minimum value field (%1).").replace("%1", focus_min_shortcut)
+        )
+
+        self._focus_value_shortcut = QShortcut(QKeySequence(focus_value_shortcut), self)
+        self._focus_value_shortcut.setContext(
+            Qt.ShortcutContext.WidgetWithChildrenShortcut
+        )
+        self._focus_value_shortcut.activated.connect(self.value_spinbox.setFocus)
+        self._focus_value_shortcut.setWhatsThis(
+            self.tr("Focus current value field (%1).").replace(
+                "%1", focus_value_shortcut
+            )
+        )
+
+        self._focus_max_shortcut = QShortcut(QKeySequence(focus_max_shortcut), self)
+        self._focus_max_shortcut.setContext(
+            Qt.ShortcutContext.WidgetWithChildrenShortcut
+        )
+        self._focus_max_shortcut.activated.connect(self.max_spinbox.setFocus)
+        self._focus_max_shortcut.setWhatsThis(
+            self.tr("Focus maximum value field (%1).").replace("%1", focus_max_shortcut)
+        )
+
+    def _nudge_slider(self, delta: float) -> None:
+        """Increment the slider value by *delta*."""
+
+        target_value = self.value() + delta
+        self.setValue(target_value)
+        self.valueChanged.emit(self.value())
+
     def _connect_signals(self):
         self.slider.valueChanged.connect(self._on_slider_value_changed)
         self.slider.sliderPressed.connect(self._on_slider_pressed)
@@ -248,6 +430,7 @@ class RangeSlider(QWidget):
             self.max_spinbox.blockSignals(False)
         self._update_range_indicator()
         self.rangeChanged.emit(minimum, maximum)
+        self._refresh_accessibility_descriptions()
 
     def setUnits(self, units: str):
         self._units = units
@@ -255,6 +438,7 @@ class RangeSlider(QWidget):
             self.units_label.setText(f"Единицы: {units}")
         else:
             self.units_label.clear()
+        self._refresh_accessibility_descriptions()
 
     def setTitle(self, title: str):
         if hasattr(self, "title_label"):
@@ -335,6 +519,11 @@ class RangeSlider(QWidget):
             percentage = position / self._slider_resolution * 100
         self.position_indicator_label.setText(
             f"Позиция: {percentage:.1f}% от диапазона"
+        )
+        self.position_indicator_label.setAccessibleDescription(
+            self.tr("Current value positioned at %1 percent of the span.").replace(
+                "%1", f"{percentage:.1f}"
+            )
         )
 
     # =========================================================================
