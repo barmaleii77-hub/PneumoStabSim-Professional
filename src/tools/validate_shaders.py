@@ -148,6 +148,29 @@ def _resolve_qsb_command() -> list[str]:
     if resolved:
         return [resolved]
 
+    candidate_dirs: list[Path] = []
+
+    for var in ("QT_INSTALL_BINS", "QT6_INSTALL_BINS", "QTDIR"):
+        value = os.environ.get(var)
+        if not value:
+            continue
+        candidate_dirs.append(Path(value))
+        candidate_dirs.append(Path(value) / "bin")
+
+    candidate_dirs.extend(
+        Path(path) for path in (
+            "/usr/lib/qt6/bin",
+            "/usr/lib64/qt6/bin",
+            "/usr/local/lib/qt6/bin",
+            "/opt/qt6/bin",
+        )
+    )
+
+    for directory in candidate_dirs:
+        qsb_path = directory / "qsb"
+        if qsb_path.exists() and qsb_path.is_file():
+            return [str(qsb_path)]
+
     raise FileNotFoundError(
         "qsb executable not found; install Qt Shader Tools or set QSB_COMMAND"
     )

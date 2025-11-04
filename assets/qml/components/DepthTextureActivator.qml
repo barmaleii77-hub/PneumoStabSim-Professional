@@ -20,6 +20,8 @@ QtObject {
         console.log("🔍 DepthTextureActivator: Activating depth/velocity textures for View3D")
 
         var activated = false
+
+        activated = prepareRenderSettings(view3d) || activated
         activated = _setViewFlags(view3d) || activated
         activated = _setRenderSettingsFlags(view3d) || activated
         activated = _setEnvironmentFlags(view3d) || activated
@@ -102,6 +104,23 @@ QtObject {
         updated = _trySetProperty(view3d, "depthTextureEnabled", true) || updated
         updated = _trySetProperty(view3d, "velocityTextureEnabled", true) || updated
         updated = _trySetProperty(view3d, "velocityBufferEnabled", true) || updated
+        return updated
+    }
+
+    function prepareRenderSettings(view3d, renderSettingsOverride) {
+        var target = renderSettingsOverride
+        if (!target)
+            target = _safeRead(function () { return view3d ? view3d.renderSettings : null })
+        if (!target)
+            return false
+
+        var updated = false
+        updated = _trySetProperty(target, "depthTextureEnabled", true) || updated
+        updated = _trySetProperty(target, "depthPrePassEnabled", true) || updated
+        updated = _trySetProperty(target, "velocityTextureEnabled", true) || updated
+        updated = _trySetProperty(target, "velocityBufferEnabled", true) || updated
+        updated = _invokeBufferMethod(target, "enableDepthBuffer", "RenderSettings") || updated
+        updated = _invokeBufferMethod(target, "enableVelocityBuffer", "RenderSettings") || updated
         return updated
     }
 
