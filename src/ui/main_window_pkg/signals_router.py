@@ -127,7 +127,134 @@ class SignalsRouter:
             if key not in SignalsRouter._HDR_SOURCE_KEYS
         }
         updated_payload["ibl_source"] = normalised_value
-        return updated_payload
+        return SignalsRouter._apply_environment_aliases(params, updated_payload)
+
+    @staticmethod
+    def _apply_environment_aliases(
+        params: Dict[str, Any], env_payload: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        """Augment payload with nested keys documented for environment updates."""
+
+        def _first_mapping(*candidates: Any) -> Dict[str, Any] | None:
+            for candidate in candidates:
+                if isinstance(candidate, Mapping):
+                    return dict(candidate)
+            return None
+
+        def _setdefault(target: Dict[str, Any], key: str, value: Any) -> None:
+            if value is None:
+                return
+            if key not in target:
+                target[key] = value
+
+        background_section = _first_mapping(
+            env_payload.get("background"), params.get("background")
+        )
+        if background_section:
+            _setdefault(env_payload, "background_mode", background_section.get("mode"))
+            _setdefault(
+                env_payload, "background_color", background_section.get("color")
+            )
+            _setdefault(
+                env_payload,
+                "skybox_enabled",
+                background_section.get("skybox_enabled"),
+            )
+            if "background_mode" in env_payload:
+                params.setdefault("background_mode", env_payload["background_mode"])
+            if "background_color" in env_payload:
+                params.setdefault("background_color", env_payload["background_color"])
+            if "skybox_enabled" in env_payload:
+                params.setdefault("skybox_enabled", env_payload["skybox_enabled"])
+
+        ibl_section = _first_mapping(env_payload.get("ibl"), params.get("ibl"))
+        if ibl_section:
+            ibl_map = {
+                "enabled": "ibl_enabled",
+                "intensity": "ibl_intensity",
+                "source": "ibl_source",
+                "fallback": "ibl_fallback",
+                "lighting_enabled": "ibl_lighting_enabled",
+                "background_enabled": "ibl_background_enabled",
+                "skybox_brightness": "skybox_brightness",
+                "probe_brightness": "probe_brightness",
+                "probe_horizon": "probe_horizon",
+                "rotation": "ibl_rotation",
+                "rotation_x": "ibl_offset_x",
+                "rotation_y": "ibl_rotation_deg",
+                "rotation_z": "ibl_offset_y",
+                "bind_to_camera": "ibl_bind_to_camera",
+            }
+            for source_key, target_key in ibl_map.items():
+                value = ibl_section.get(source_key)
+                _setdefault(env_payload, target_key, value)
+                if target_key in env_payload:
+                    params.setdefault(target_key, env_payload[target_key])
+
+        fog_section = _first_mapping(env_payload.get("fog"), params.get("fog"))
+        if fog_section:
+            fog_map = {
+                "enabled": "fog_enabled",
+                "color": "fog_color",
+                "density": "fog_density",
+                "near": "fog_near",
+                "far": "fog_far",
+                "least_intense_y": "fog_least_intense_y",
+                "most_intense_y": "fog_most_intense_y",
+                "height_curve": "fog_height_curve",
+                "height_enabled": "fog_height_enabled",
+                "transmit_enabled": "fog_transmit_enabled",
+                "transmit_curve": "fog_transmit_curve",
+            }
+            for source_key, target_key in fog_map.items():
+                value = fog_section.get(source_key)
+                _setdefault(env_payload, target_key, value)
+                if target_key in env_payload:
+                    params.setdefault(target_key, env_payload[target_key])
+
+        ambient_section = _first_mapping(
+            env_payload.get("ambient_occlusion"), params.get("ambient_occlusion")
+        )
+        if ambient_section:
+            ao_map = {
+                "enabled": "ao_enabled",
+                "strength": "ao_strength",
+                "radius": "ao_radius",
+                "softness": "ao_softness",
+                "dither": "ao_dither",
+                "sample_rate": "ao_sample_rate",
+                "bias": "ao_bias",
+            }
+            for source_key, target_key in ao_map.items():
+                value = ambient_section.get(source_key)
+                _setdefault(env_payload, target_key, value)
+                if target_key in env_payload:
+                    params.setdefault(target_key, env_payload[target_key])
+
+            ssao_patch: Dict[str, Any] = {}
+            if "enabled" in ambient_section:
+                ssao_patch["enabled"] = ambient_section["enabled"]
+            if "strength" in ambient_section:
+                ssao_patch["intensity"] = ambient_section["strength"]
+            if "radius" in ambient_section:
+                ssao_patch["radius"] = ambient_section["radius"]
+            if "softness" in ambient_section:
+                ssao_patch["softness"] = ambient_section["softness"]
+            if "dither" in ambient_section:
+                ssao_patch["dither"] = ambient_section["dither"]
+            if "sample_rate" in ambient_section:
+                ssao_patch["sample_rate"] = ambient_section["sample_rate"]
+            if ssao_patch:
+                existing_ssao = env_payload.get("ssao")
+                if isinstance(existing_ssao, Mapping):
+                    merged_ssao = dict(existing_ssao)
+                else:
+                    merged_ssao = {}
+                merged_ssao.update(ssao_patch)
+                env_payload["ssao"] = merged_ssao
+                params.setdefault("ssao", merged_ssao)
+
+        return env_payload
 
     @staticmethod
     def _allow_empty_selection(

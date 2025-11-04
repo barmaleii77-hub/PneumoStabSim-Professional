@@ -118,6 +118,43 @@ def test_handle_environment_changed_prefers_canonical_key_when_both_provided() -
     assert saved_payload["ibl_source"] == "assets/hdr/canonical.hdr"
 
 
+def test_handle_environment_changed_supports_nested_sections() -> None:
+    window = _StubWindow()
+    params: Dict[str, Any] = {
+        "background": {"mode": "color", "color": "#445566", "skybox_enabled": False},
+        "ibl": {"enabled": True, "intensity": 1.25, "source": "assets/hdr/nested.hdr"},
+        "fog": {"enabled": True, "density": 0.42},
+        "ambient_occlusion": {
+            "enabled": True,
+            "strength": 0.6,
+            "radius": 5.0,
+            "sample_rate": 6,
+        },
+    }
+
+    signals_router.SignalsRouter.handle_environment_changed(window, params)
+
+    assert _StubBridge.calls
+    call_name, payload = _StubBridge.calls[-1]
+    assert call_name == "applyEnvironmentUpdates"
+    assert payload["background_mode"] == "color"
+    assert payload["background_color"] == "#445566"
+    assert payload["ibl_enabled"] is True
+    assert payload["ibl_intensity"] == 1.25
+    assert payload["ibl_source"] == "assets/hdr/nested.hdr"
+    assert payload["fog_enabled"] is True
+    assert payload["fog_density"] == 0.42
+    assert payload["ao_strength"] == 0.6
+    assert payload["ao_radius"] == 5.0
+    assert payload["ao_sample_rate"] == 6
+    assert "ssao" in payload
+    assert payload["ssao"]["intensity"] == 0.6
+
+    assert params["ibl_source"] == "assets/hdr/nested.hdr"
+    assert params["ao_strength"] == 0.6
+    assert params["ssao"]["radius"] == 5.0
+
+
 def test_environment_change_invoke_failure_queues_payload() -> None:
     window = _StubWindow()
     params: Dict[str, Any] = {"iblSource": "assets\\hdr\\queued.hdr"}
