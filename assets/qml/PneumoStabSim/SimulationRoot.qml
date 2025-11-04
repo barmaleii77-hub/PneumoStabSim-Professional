@@ -125,6 +125,37 @@ signal animationToggled(bool running)
  property var shaderWarningMap: ({})
  property var shaderWarningList: []
 
+ // ---------------------------------------------
+ // Shader compilation diagnostics
+ // ---------------------------------------------
+ function registerShaderWarning(effectId, errorLog) {
+  var normalizedId = effectId !== undefined && effectId !== null ? String(effectId) : "unknown"
+  var message = errorLog !== undefined && errorLog !== null ? String(errorLog) : qsTr("Shader compilation failed")
+
+  var nextMap = Object.assign({}, shaderWarningMap)
+  nextMap[normalizedId] = {
+   id: normalizedId,
+   message: message,
+   timestamp: Date.now()
+  }
+
+  shaderWarningMap = nextMap
+  shaderWarningList = Object.values(nextMap).sort(function(a, b) { return a.timestamp - b.timestamp })
+  console.warn("⚠️ Shader fallback activated for", normalizedId, "-", message)
+ }
+
+ function clearShaderWarning(effectId) {
+  var normalizedId = effectId !== undefined && effectId !== null ? String(effectId) : "unknown"
+  if (!shaderWarningMap.hasOwnProperty(normalizedId))
+   return
+
+  var nextMap = Object.assign({}, shaderWarningMap)
+  delete nextMap[normalizedId]
+  shaderWarningMap = nextMap
+  shaderWarningList = Object.values(nextMap).sort(function(a, b) { return a.timestamp - b.timestamp })
+  console.log("✅ Shader restored for", normalizedId)
+ }
+
  property real renderScale: 1.0
  property real frameRateLimit: 144.0
  property string renderPolicyKey: "always"
@@ -1250,8 +1281,6 @@ Rectangle {
  }
 
  Component.onCompleted: {
-  root.registerShaderWarning = registerShaderWarning
-  root.clearShaderWarning = clearShaderWarning
   console.log("✅ SimulationRoot initialized successfully")
   if (typeof signalTrace !== "undefined" && signalTrace && typeof signalTrace.registerSubscription === "function") {
    signalTrace.registerSubscription("settings.settingChanged","main.qml","qml")
@@ -1353,31 +1382,6 @@ Rectangle {
 // ---------------------------------------------
 // Утилиты
 // ---------------------------------------------
-
-function registerShaderWarning(effectId, errorLog) {
- var normalizedId = effectId !== undefined && effectId !== null ? String(effectId) : "unknown"
- var message = errorLog !== undefined && errorLog !== null ? String(errorLog) : qsTr("Shader compilation failed")
- var nextMap = Object.assign({}, shaderWarningMap)
- nextMap[normalizedId] = {
-  id: normalizedId,
-  message: message,
-  timestamp: Date.now()
- }
- shaderWarningMap = nextMap
- shaderWarningList = Object.values(nextMap).sort(function(a, b) { return a.timestamp - b.timestamp })
- console.warn("⚠️ Shader fallback activated for", normalizedId, "-", message)
-}
-
-function clearShaderWarning(effectId) {
- var normalizedId = effectId !== undefined && effectId !== null ? String(effectId) : "unknown"
- if (!shaderWarningMap.hasOwnProperty(normalizedId))
-  return
- var nextMap = Object.assign({}, shaderWarningMap)
- delete nextMap[normalizedId]
- shaderWarningMap = nextMap
- shaderWarningList = Object.values(nextMap).sort(function(a, b) { return a.timestamp - b.timestamp })
- console.log("✅ Shader restored for", normalizedId)
-}
 
 function setIfExists(obj, prop, value) {
     try {
