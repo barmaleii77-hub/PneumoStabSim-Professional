@@ -79,16 +79,14 @@ void motionBlurFallbackESMain(inout vec4 fragColor)
     fragColor = texture(qt_Texture0, INPUT_UV);
 }
 
-#if QSB_USES_QT_CUSTOM_MAIN
-void MAIN(inout vec4 fragColor)
-{
-    motionBlurFallbackESMain(fragColor);
-}
-#else
 void MAIN()
 {
     vec4 fragColor = vec4(0.0);
     motionBlurFallbackESMain(fragColor);
     FRAGCOLOR = fragColor;
 }
-#endif
+
+void MAIN(inout vec4 fragColor)
+{
+    motionBlurFallbackESMain(fragColor);
+}

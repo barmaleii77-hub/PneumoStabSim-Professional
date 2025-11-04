@@ -125,16 +125,14 @@ void bloomESMain(inout vec4 fragColor)
     fragColor = vec4(result, original.a);
 }
 
-#if QSB_USES_QT_CUSTOM_MAIN
-void MAIN(inout vec4 fragColor)
-{
-    bloomESMain(fragColor);
-}
-#else
 void MAIN()
 {
     vec4 fragColor = vec4(0.0);
     bloomESMain(fragColor);
     FRAGCOLOR = fragColor;
 }
-#endif
+
+void MAIN(inout vec4 fragColor)
+{
+    bloomESMain(fragColor);
+}

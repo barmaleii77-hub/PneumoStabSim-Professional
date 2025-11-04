@@ -108,16 +108,14 @@ void motionBlurESMain(inout vec4 fragColor)
     fragColor = vec4(color, original.a);
 }
 
-#if QSB_USES_QT_CUSTOM_MAIN
-void MAIN(inout vec4 fragColor)
-{
-    motionBlurESMain(fragColor);
-}
-#else
 void MAIN()
 {
     vec4 fragColor = vec4(0.0);
     motionBlurESMain(fragColor);
     FRAGCOLOR = fragColor;
 }
-#endif
+
+void MAIN(inout vec4 fragColor)
+{
+    motionBlurESMain(fragColor);
+}
