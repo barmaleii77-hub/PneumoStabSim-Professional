@@ -275,6 +275,7 @@ Effect {
     property var shaderSanitizationCache: ({})
     property var shaderSanitizationWarnings: ({})
     property var shaderVariantSelectionCache: ({})
+    property var shaderVariantMissingWarnings: ({})
 
     onUseGlesShadersChanged: {
         console.log("🎚️ FogEffect: shader profile toggled ->", useGlesShaders
@@ -378,6 +379,12 @@ Effect {
                 found = true
                 break
             }
+            if (useGlesShaders && candidateName !== normalized) {
+                if (!Object.prototype.hasOwnProperty.call(shaderVariantMissingWarnings, candidateName)) {
+                    shaderVariantMissingWarnings[candidateName] = true
+                    console.warn(`⚠️ FogEffect: GLES shader variant '${candidateName}' not found; using compatibility fallback`)
+                }
+            }
         }
 
         var glesVariantList = candidateNames.slice(0, Math.max(candidateNames.length - 1, 0))
@@ -442,6 +449,7 @@ Effect {
             shaderSanitizationCache = ({})
             shaderSanitizationWarnings = ({})
             shaderVariantSelectionCache = ({})
+            shaderVariantMissingWarnings = ({})
         })
     }
 

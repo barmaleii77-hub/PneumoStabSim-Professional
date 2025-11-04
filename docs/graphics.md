@@ -51,8 +51,9 @@ Environment payload (вложенный)
   облегчая ревью и ревизию будущих обновлений. 【F:assets/shaders/post_effects/bloom_es.frag†L16-L36】
 - **Загрузка:** `PostEffects.qml` в первую очередь ищет GLES-файлы через `shaderResourceDirectories`, добавляя `../../shaders/post_effects/`
   перед десктопным каталогом, чтобы Qt Quick 3D под ANGLE/OpenGL ES подхватывал нужные варианты. Если ни один GLES-ресурс не найден,
-  `shaderPath()` автоматически переключается на `_fallback`-шейдер (`#version 330 core`), который совместим с GLES и фиксируется в
-  логе предупреждением. 【F:assets/qml/effects/PostEffects.qml†L197-L214】【F:assets/qml/effects/PostEffects.qml†L320-L371】
+  `shaderPath()` автоматически переключается на `_fallback`-шейдер (`#version 330 core`), совместимый с GLES. Для облегчения диагностики
+  недостающие `_es`/`_gles` файлы логируются в `shaderVariantMissingWarnings`, а выбранный `_fallback` фиксируется отдельным предупреждением.
+  【F:assets/qml/effects/PostEffects.qml†L202-L232】【F:assets/qml/effects/PostEffects.qml†L336-L396】
 - **Манифест:** `UISetup._build_effect_shader_manifest()` агрегирует оба каталога (`effects` и `post_effects`), чтобы QML быстро проверял
   наличие ресурсов без синхронных запросов. 【F:src/ui/main_window_pkg/ui_setup.py†L34-L88】
 
@@ -63,7 +64,9 @@ Environment payload (вложенный)
 - **Цель:** гарантировать корректную компиляцию шейдеров при включённых флагах `QSG_INFO=1` и `QSG_RHI_DEBUG_LAYER=1`
   для всех рендер-бэкендов (ANGLE/D3D11, OpenGL, Vulkan/Metal) и сохранить визуально ожидаемый результат тумана.
 - **Fallback:** при отсутствии depth-текстуры, ошибке компиляции или отсутствии GLES-варианта базового шейдера активируется
-  `fog_fallback.frag` (`#version 330 core`), что сопровождается предупреждением и не требует переключения на десктопный профиль.
+  `fog_fallback.frag` (`#version 330 core`). Теперь отсутствие `_es`/`_gles` варианта явно логируется в `shaderVariantMissingWarnings`,
+  что позволяет быстро заметить расхождения в поставке ресурсов. Включение fallback не требует переключения на десктопный профиль.
+  【F:assets/qml/effects/FogEffect.qml†L273-L307】【F:assets/qml/effects/FogEffect.qml†L356-L421】
 
 ### Проверка компиляции шейдеров
 

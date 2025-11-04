@@ -103,6 +103,9 @@ def test_post_effects_prefers_fallback_when_gles_variant_missing(qapp) -> None: 
         overrides = _to_variant_map(root.property("shaderCompatibilityOverrides"))
         assert overrides["bloom.frag"] is True
         assert root.property("forceDesktopShaderProfile") is False
+
+        missing_variants = _to_variant_map(root.property("shaderVariantMissingWarnings"))
+        assert missing_variants.get("bloom_es.frag") is True
     finally:
         root.deleteLater()
 
@@ -127,5 +130,8 @@ def test_fog_effect_prefers_fallback_when_gles_variant_missing(qapp) -> None:  #
         assert shader_url.endswith("fog_fallback_es.frag")
 
         assert root.property("forceDesktopShaderProfile") is False
+
+        missing_variants = _to_variant_map(root.property("shaderVariantMissingWarnings"))
+        assert missing_variants.get("fog_es.frag") is True
     finally:
         root.deleteLater()
