@@ -1,16 +1,29 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""
-PneumoStabSim Performance Monitor
-Утилита для мониторинга производительности приложения
-"""
+"""PneumoStabSim Performance Monitor utilities and CLI."""
 
+from __future__ import annotations
+
+import argparse
+import json
+import logging
+import sys
 import time
 import threading
 from dataclasses import dataclass
-from typing import Dict, List, Optional
-import json
+from datetime import datetime, timezone
 from pathlib import Path
+from typing import Dict, List, Optional
+
+REPO_ROOT = Path(__file__).resolve().parents[1]
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
+
+from src.diagnostics.profiler import (
+    export_profiler_report,
+    load_profiler_overlay_state,
+    record_profiler_overlay,
+)
 
 # Опциональный импорт psutil с graceful fallback
 try:
@@ -21,6 +34,9 @@ except ImportError:
     PSUTIL_AVAILABLE = False
     print("[WARNING] psutil not available. Performance monitoring will be limited.")
     print("[TIP] Install psutil for full monitoring: pip install psutil")
+
+
+LOGGER = logging.getLogger(__name__)
 
 
 @dataclass
@@ -271,14 +287,118 @@ def print_performance_status():
         print("[PERF] Мониторинг не запущен")
 
 
-if __name__ == "__main__":
-    # Тестирование монитора
-    monitor = PerformanceMonitor()
-    monitor.start_monitoring(0.5)
+def _run_phase3_scenario(
+    output_path: Path, *, duration: float, interval: float
+) -> Path:
+    """Capture profiler overlay information for the phase 3 UI scenario."""
 
+    LOGGER.info(
+        "Running phase3 performance scenario (duration=%.2fs, interval=%.2fs)",
+        duration,
+        interval,
+    )
+    monitor = PerformanceMonitor()
+    monitor.start_monitoring(interval)
     try:
-        for i in range(10):
-            time.sleep(1)
-            monitor.print_status()
+        time.sleep(duration)
     finally:
         monitor.stop_monitoring()
+
+    averages = monitor.get_average_metrics()
+    sample_count = len(monitor.metrics)
+
+    base_state = load_profiler_overlay_state()
+    metadata = {
+        "scenario": "phase3",
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "averages": averages,
+        "samples": sample_count,
+    }
+    snapshot = record_profiler_overlay(
+        base_state.overlay_enabled,
+        source="performance_monitor.phase3",
+        scenario="phase3",
+        metadata=metadata,
+    )
+
+    extra_payload = {
+        "averages": averages,
+        "sampleCount": sample_count,
+        "psutilAvailable": PSUTIL_AVAILABLE,
+    }
+
+    return export_profiler_report(
+        output_path,
+        state=snapshot,
+        scenario="phase3",
+        extra=extra_payload,
+    )
+
+
+def _build_argument_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(
+        description="PneumoStabSim performance monitor",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+    )
+    parser.add_argument(
+        "--scenario",
+        choices=["phase3"],
+        help="Run a predefined monitoring scenario instead of the interactive sampler.",
+    )
+    parser.add_argument(
+        "--output",
+        type=Path,
+        default=None,
+        help="Destination file for scenario reports.",
+    )
+    parser.add_argument(
+        "--duration",
+        type=float,
+        default=3.0,
+        help="Sampling duration in seconds.",
+    )
+    parser.add_argument(
+        "--interval",
+        type=float,
+        default=0.25,
+        help="Sampling interval in seconds.",
+    )
+    parser.add_argument(
+        "--log-level",
+        default="INFO",
+        choices=["CRITICAL", "ERROR", "WARNING", "INFO", "DEBUG"],
+        help="Verbosity for diagnostic output.",
+    )
+    return parser
+
+
+def main(argv: Optional[List[str]] = None) -> int:
+    parser = _build_argument_parser()
+    args = parser.parse_args(argv)
+
+    logging.basicConfig(level=getattr(logging, args.log_level.upper(), logging.INFO))
+
+    if args.scenario:
+        output = args.output
+        if output is None:
+            output = Path("reports/performance/ui_phase3_profile.json")
+        if args.scenario == "phase3":
+            report = _run_phase3_scenario(
+                output_path=output, duration=args.duration, interval=args.interval
+            )
+            print(f"[PERF] Scenario 'phase3' report written to {report}")
+            return 0
+        parser.error(f"Unsupported scenario: {args.scenario}")
+
+    monitor = PerformanceMonitor()
+    monitor.start_monitoring(args.interval)
+    try:
+        time.sleep(args.duration)
+        monitor.print_status()
+    finally:
+        monitor.stop_monitoring()
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

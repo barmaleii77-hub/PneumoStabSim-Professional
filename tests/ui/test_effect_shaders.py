@@ -138,3 +138,30 @@ def test_effect_shader_manifest_matches_filesystem() -> None:
 
     assert set(manifest.keys()) == expected
     assert all(manifest[name] for name in expected)
+
+
+def test_profiler_toggle_available(monkeypatch) -> None:
+    """Diagnostics profiler module should expose the overlay toggle state."""
+
+    from src.diagnostics import profiler as profiler_module
+
+    class _DummySettingsManager:
+        def get(self, path, default=None):
+            if path == "diagnostics":
+                return {"signal_trace": {"overlay_enabled": True, "history_limit": 64}}
+            return default
+
+    profiler_module._reset_profiler_state_for_tests()
+    monkeypatch.setattr(profiler_module, "get_settings_manager", lambda: _DummySettingsManager())
+
+    defaults = profiler_module.get_profiler_overlay_defaults()
+    assert defaults["signal_trace"]["overlay_enabled"] is True
+    assert defaults["signal_trace"]["history_limit"] == 64
+
+    state = profiler_module.load_profiler_overlay_state()
+    assert state.overlay_enabled is True
+
+    updated = profiler_module.record_profiler_overlay(False, source="pytest")
+    assert updated.overlay_enabled is False
+
+    profiler_module._reset_profiler_state_for_tests()
