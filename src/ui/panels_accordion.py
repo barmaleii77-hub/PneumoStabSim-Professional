@@ -1,9 +1,20 @@
 # -*- coding: utf-8 -*-
-"""
-Accordion panels with ParameterSlider
-Replaces old dock widget panels
-"""
+"""Reusable accordion panel primitives with undo/redo orchestration."""
 
+from __future__ import annotations
+
+import logging
+import math
+from dataclasses import dataclass
+from functools import partial
+from typing import Callable, Dict, Iterable, Mapping, Optional
+
+try:  # pragma: no cover - structlog is optional at runtime
+    import structlog
+except ImportError:  # pragma: no cover - fallback for minimal environments
+    structlog = None  # type: ignore[assignment]
+
+from PySide6.QtCore import QObject, Property, Signal, Slot
 from PySide6.QtWidgets import (
     QWidget,
     QVBoxLayout,
@@ -11,214 +22,534 @@ from PySide6.QtWidgets import (
     QComboBox,
     QCheckBox,
 )
-from PySide6.QtCore import Signal
 
+from src.common.settings_manager import get_settings_manager
 from src.ui.parameter_slider import ParameterSlider
 
 
-class GeometryPanelAccordion(QWidget):
-    """Geometry parameters panel with sliders and range controls"""
+def _build_logger(channel: str, *, panel: Optional[str] = None):
+    """Return a logger compatible with structlog bindings."""
 
-    parameter_changed = Signal(str, float)  # (parameter_name, value)
+    if structlog is not None:
+        base = structlog.get_logger(channel)
+        return base.bind(panel=panel) if panel else base
 
-    def __init__(self, parent=None):
+    name = channel if panel is None else f"{channel}.{panel}"
+    return logging.getLogger(name)
+
+
+def _log_event(logger, level: str, event: str, **kwargs) -> None:
+    """Emit a structured log event with graceful fallback."""
+
+    if structlog is not None and hasattr(logger, level):
+        getattr(logger, level)(event, **kwargs)
+        return
+
+    message = event
+    if kwargs:
+        extras = " ".join(f"{key}={value!r}" for key, value in sorted(kwargs.items()))
+        message = f"{event} | {extras}"
+    getattr(logger, level)(message)
+
+
+@dataclass(frozen=True)
+class SliderFieldSpec:
+    """Declarative description of a slider field."""
+
+    key: str
+    label: str
+    min_value: float
+    max_value: float
+    step: float
+    decimals: int
+    unit: str = ""
+    allow_range_edit: bool = True
+    default: float = 0.0
+    settings_key: Optional[str] = None
+    read_only: bool = False
+    emit_signal: bool = True
+    to_settings: Optional[Callable[[float], float]] = None
+    from_settings: Optional[Callable[[float], float]] = None
+    telemetry_key: Optional[str] = None
+
+    def __post_init__(self) -> None:
+        if self.settings_key is None and not self.read_only:
+            object.__setattr__(self, "settings_key", self.key)
+
+
+@dataclass(slots=True)
+class _UndoCommand:
+    """Undo/redo command for slider changes."""
+
+    field_key: str
+    previous: float
+    new: float
+    apply: Callable[[float, str], None]
+    telemetry_key: str
+
+
+class PanelUndoController(QObject):
+    """Tracks slider changes and exposes undo/redo operations."""
+
+    undoAvailabilityChanged = Signal(bool)
+    redoAvailabilityChanged = Signal(bool)
+
+    def __init__(self, parent: Optional[QObject] = None) -> None:
         super().__init__(parent)
+        self._undo_stack: list[_UndoCommand] = []
+        self._redo_stack: list[_UndoCommand] = []
+        self._replaying = False
+        self._logger = _build_logger("ui.panels.undo", panel=None)
 
-        # Main layout
-        layout = QVBoxLayout(self)
-        layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(8)
+    @Property(bool, notify=undoAvailabilityChanged)
+    def canUndo(self) -> bool:  # pragma: no cover - trivial Qt binding
+        return bool(self._undo_stack)
 
-        # === BASIC DIMENSIONS ===
+    @Property(bool, notify=redoAvailabilityChanged)
+    def canRedo(self) -> bool:  # pragma: no cover - trivial Qt binding
+        return bool(self._redo_stack)
 
-        # Wheelbase
-        self.wheelbase = ParameterSlider(
-            name="Wheelbase (L)",
-            initial_value=3.0,
-            min_value=2.0,
-            max_value=5.0,
-            step=0.01,
-            decimals=3,
-            unit="m",
-            allow_range_edit=True,
+    @property
+    def is_replaying(self) -> bool:
+        """Return ``True`` while an undo/redo command is being replayed."""
+
+        return self._replaying
+
+    def push(self, command: _UndoCommand) -> None:
+        """Record a new undo command."""
+
+        if math.isclose(command.previous, command.new, rel_tol=1e-9, abs_tol=1e-12):
+            return
+
+        self._undo_stack.append(command)
+        self._redo_stack.clear()
+        _log_event(
+            self._logger,
+            "info",
+            "undo.push",
+            field=command.telemetry_key,
+            previous=command.previous,
+            new=command.new,
         )
-        self.wheelbase.value_changed.connect(
-            lambda v: self.parameter_changed.emit("wheelbase", v)
-        )
-        layout.addWidget(self.wheelbase)
+        self._emit_state()
 
-        # Track width
-        self.track_width = ParameterSlider(
-            name="Track Width (B)",
-            initial_value=1.8,
-            min_value=1.0,
-            max_value=2.5,
-            step=0.01,
-            decimals=3,
-            unit="m",
-            allow_range_edit=True,
-        )
-        self.track_width.value_changed.connect(
-            lambda v: self.parameter_changed.emit("track_width", v)
-        )
-        layout.addWidget(self.track_width)
+    @Slot()
+    def undo(self) -> None:
+        if not self._undo_stack:
+            return
 
-        # === LEVER GEOMETRY ===
-
-        # Lever arm length
-        self.lever_arm = ParameterSlider(
-            name="Lever Arm (r)",
-            initial_value=0.3,
-            min_value=0.1,
-            max_value=0.6,
-            step=0.001,
-            decimals=3,
-            unit="m",
-            allow_range_edit=True,
+        command = self._undo_stack.pop()
+        self._replaying = True
+        try:
+            command.apply(command.previous, "undo")
+        finally:
+            self._replaying = False
+        self._redo_stack.append(command)
+        _log_event(
+            self._logger,
+            "info",
+            "undo.invoke",
+            field=command.telemetry_key,
+            value=command.previous,
         )
-        self.lever_arm.value_changed.connect(
-            lambda v: self.parameter_changed.emit("lever_arm", v)
-        )
-        layout.addWidget(self.lever_arm)
+        self._emit_state()
 
-        # Lever angle (alpha) - read-only, calculated
-        self.lever_angle = ParameterSlider(
-            name="Lever Angle (?)",
-            initial_value=0.0,
-            min_value=-30.0,
-            max_value=30.0,
-            step=0.1,
-            decimals=2,
-            unit="deg",
-            allow_range_edit=False,
-        )
-        self.lever_angle.spinbox.setReadOnly(True)
-        self.lever_angle.slider.setEnabled(False)
-        layout.addWidget(self.lever_angle)
+    @Slot()
+    def redo(self) -> None:
+        if not self._redo_stack:
+            return
 
-        # === CYLINDER GEOMETRY ===
-
-        # Cylinder stroke (max)
-        self.cylinder_stroke = ParameterSlider(
-            name="Cylinder Stroke (s_max)",
-            initial_value=0.2,
-            min_value=0.05,
-            max_value=0.5,
-            step=0.001,
-            decimals=3,
-            unit="m",
-            allow_range_edit=True,
+        command = self._redo_stack.pop()
+        self._replaying = True
+        try:
+            command.apply(command.new, "redo")
+        finally:
+            self._replaying = False
+        self._undo_stack.append(command)
+        _log_event(
+            self._logger,
+            "info",
+            "redo.invoke",
+            field=command.telemetry_key,
+            value=command.new,
         )
-        self.cylinder_stroke.value_changed.connect(
-            lambda v: self.parameter_changed.emit("cylinder_stroke", v)
-        )
-        layout.addWidget(self.cylinder_stroke)
+        self._emit_state()
 
-        # Piston diameter
-        self.piston_diameter = ParameterSlider(
-            name="Piston Diameter (D_p)",
-            initial_value=0.08,
-            min_value=0.03,
-            max_value=0.15,
-            step=0.001,
-            decimals=3,
-            unit="m",
-            allow_range_edit=True,
-        )
-        self.piston_diameter.value_changed.connect(
-            lambda v: self.parameter_changed.emit("piston_diameter", v)
-        )
-        layout.addWidget(self.piston_diameter)
+    def reset(self) -> None:
+        """Clear undo and redo stacks."""
 
-        # Rod diameter
-        self.rod_diameter = ParameterSlider(
-            name="Rod Diameter (D_r)",
-            initial_value=0.04,
-            min_value=0.01,
-            max_value=0.10,
-            step=0.001,
-            decimals=3,
-            unit="m",
-            allow_range_edit=True,
+        self._undo_stack.clear()
+        self._redo_stack.clear()
+        self._emit_state()
+
+    def _emit_state(self) -> None:
+        self.undoAvailabilityChanged.emit(self.canUndo)
+        self.redoAvailabilityChanged.emit(self.canRedo)
+
+
+class SettingsBackedAccordionPanel(QWidget):
+    """Base class wiring sliders to :class:`SettingsManager` and undo support."""
+
+    def __init__(self, settings_section: str, parent: Optional[QWidget] = None) -> None:
+        super().__init__(parent)
+        self._settings_section = settings_section
+        self._settings = get_settings_manager()
+        self.undo_controller = PanelUndoController(self)
+        self.content_layout = QVBoxLayout(self)
+        self.content_layout.setContentsMargins(0, 0, 0, 0)
+        self.content_layout.setSpacing(8)
+        panel_name = self.objectName() or self.__class__.__name__
+        self._logger = _build_logger("ui.panels.accordion", panel=panel_name)
+        self._field_specs: Dict[str, SliderFieldSpec] = {}
+        self._field_widgets: Dict[str, ParameterSlider] = {}
+        self._field_values: Dict[str, float] = {}
+
+    # ------------------------------------------------------------------ helpers
+    def add_slider_field(self, spec: SliderFieldSpec) -> ParameterSlider:
+        """Create a :class:`ParameterSlider` from ``spec`` and wire callbacks."""
+
+        if spec.key in self._field_specs:
+            raise ValueError(f"Field '{spec.key}' already registered")
+
+        slider = ParameterSlider(
+            name=spec.label,
+            initial_value=spec.default,
+            min_value=spec.min_value,
+            max_value=spec.max_value,
+            step=spec.step,
+            decimals=spec.decimals,
+            unit=spec.unit,
+            allow_range_edit=spec.allow_range_edit,
         )
-        self.rod_diameter.value_changed.connect(
-            lambda v: self.parameter_changed.emit("rod_diameter", v)
+
+        if spec.read_only:
+            slider.spinbox.setReadOnly(True)
+            slider.slider.setEnabled(False)
+
+        initial = self._resolve_initial_value(spec)
+        self._field_specs[spec.key] = spec
+        self._field_widgets[spec.key] = slider
+        self._field_values[spec.key] = initial
+
+        slider.set_value(initial)
+        slider.value_changed.connect(partial(self._handle_slider_change, spec.key))
+        self.content_layout.addWidget(slider)
+        return slider
+
+    def slider(self, key: str) -> ParameterSlider:
+        """Return the slider widget associated with ``key``."""
+
+        return self._field_widgets[key]
+
+    def _resolve_initial_value(self, spec: SliderFieldSpec) -> float:
+        value = spec.default
+        if spec.settings_key:
+            path = f"current.{self._settings_section}.{spec.settings_key}"
+            stored = self._settings.get(path, spec.default)
+            try:
+                candidate = spec.from_settings(stored) if spec.from_settings else stored
+                value = float(candidate)
+            except (TypeError, ValueError):
+                _log_event(
+                    self._logger,
+                    "warning",
+                    "settings.invalid",
+                    field=spec.key,
+                    path=path,
+                    value=stored,
+                )
+                value = spec.default
+        return value
+
+    def _handle_slider_change(self, key: str, value: float) -> None:
+        spec = self._field_specs[key]
+        previous = self._field_values.get(key, value)
+        if math.isclose(previous, value, rel_tol=1e-9, abs_tol=1e-12):
+            return
+
+        self._field_values[key] = value
+
+        if not self.undo_controller.is_replaying:
+            command = _UndoCommand(
+                field_key=key,
+                previous=previous,
+                new=value,
+                telemetry_key=spec.telemetry_key or spec.settings_key or spec.key,
+                apply=lambda new_value, reason: self._apply_value_from_command(
+                    key, new_value, reason
+                ),
+            )
+            self.undo_controller.push(command)
+
+        self._commit_value(spec, value, source="user")
+        if spec.emit_signal:
+            self.on_field_value_changed(spec, value)
+
+    def _apply_value_from_command(self, key: str, value: float, source: str) -> None:
+        spec = self._field_specs[key]
+        slider = self._field_widgets[key]
+        self._field_values[key] = value
+        slider.blockSignals(True)
+        try:
+            slider.set_value(value)
+        finally:
+            slider.blockSignals(False)
+        self._commit_value(spec, value, source=source)
+        if spec.emit_signal:
+            self.on_field_value_changed(spec, value)
+
+    def _commit_value(
+        self, spec: SliderFieldSpec, value: float, *, source: str
+    ) -> None:
+        if spec.settings_key:
+            path = f"current.{self._settings_section}.{spec.settings_key}"
+            payload = value
+            if spec.to_settings:
+                try:
+                    payload = spec.to_settings(value)
+                except Exception as exc:  # pragma: no cover - defensive
+                    _log_event(
+                        self._logger,
+                        "warning",
+                        "settings.transform_failed",
+                        field=spec.key,
+                        error=str(exc),
+                    )
+                    payload = value
+            self._settings.set(path, payload)
+
+        telemetry_key = spec.telemetry_key or spec.settings_key or spec.key
+        _log_event(
+            self._logger,
+            "info",
+            "field.changed",
+            field=telemetry_key,
+            value=value,
+            source=source,
         )
-        layout.addWidget(self.rod_diameter)
 
-        # === MASSES ===
+    # ---------------------------------------------------------------- interface
+    def on_field_value_changed(self, spec: SliderFieldSpec, value: float) -> None:
+        """Hook for subclasses to respond to slider updates."""
 
-        # Frame mass
-        self.frame_mass = ParameterSlider(
-            name="Frame Mass (M_frame)",
-            initial_value=1500.0,
-            min_value=500.0,
-            max_value=5000.0,
-            step=10.0,
-            decimals=1,
-            unit="kg",
-            allow_range_edit=True,
+    def get_parameters(self) -> Dict[str, float]:
+        """Return a snapshot of registered field values."""
+
+        return dict(self._field_values)
+
+    def set_parameters(
+        self, params: Mapping[str, float], *, source: str = "external"
+    ) -> None:
+        """Update registered fields without emitting undo commands."""
+
+        for key, value in params.items():
+            if key not in self._field_specs:
+                continue
+            spec = self._field_specs[key]
+            numeric_value = float(value)
+            self._field_values[key] = numeric_value
+            slider = self._field_widgets[key]
+            slider.blockSignals(True)
+            try:
+                slider.set_value(numeric_value)
+            finally:
+                slider.blockSignals(False)
+            self._commit_value(spec, numeric_value, source=source)
+            if spec.emit_signal:
+                self.on_field_value_changed(spec, numeric_value)
+
+    def set_read_only_value(self, key: str, value: float) -> None:
+        """Update read-only slider values without persisting to settings."""
+
+        if key not in self._field_specs:
+            raise KeyError(f"Unknown field '{key}'")
+        spec = self._field_specs[key]
+        slider = self._field_widgets[key]
+        self._field_values[key] = value
+        slider.blockSignals(True)
+        try:
+            slider.set_value(value)
+        finally:
+            slider.blockSignals(False)
+        telemetry_key = spec.telemetry_key or spec.settings_key or spec.key
+        _log_event(
+            self._logger,
+            "info",
+            "field.read_only_update",
+            field=telemetry_key,
+            value=value,
         )
-        self.frame_mass.value_changed.connect(
-            lambda v: self.parameter_changed.emit("frame_mass", v)
+
+
+class GeometryPanelAccordion(SettingsBackedAccordionPanel):
+    """Geometry parameters panel with settings-backed sliders."""
+
+    parameter_changed = Signal(str, float)
+
+    def __init__(self, parent: Optional[QWidget] = None) -> None:
+        super().__init__(settings_section="geometry", parent=parent)
+
+        field_specs = (
+            (
+                "wheelbase",
+                SliderFieldSpec(
+                    key="wheelbase",
+                    label="Wheelbase (L)",
+                    min_value=2.0,
+                    max_value=5.0,
+                    step=0.01,
+                    decimals=3,
+                    unit="m",
+                    allow_range_edit=True,
+                    default=3.0,
+                    settings_key="wheelbase",
+                    telemetry_key="geometry.wheelbase",
+                ),
+            ),
+            (
+                "track_width",
+                SliderFieldSpec(
+                    key="track_width",
+                    label="Track Width (B)",
+                    min_value=1.0,
+                    max_value=2.5,
+                    step=0.01,
+                    decimals=3,
+                    unit="m",
+                    allow_range_edit=True,
+                    default=1.8,
+                    settings_key="track",
+                    telemetry_key="geometry.track",
+                ),
+            ),
+            (
+                "lever_arm",
+                SliderFieldSpec(
+                    key="lever_arm",
+                    label="Lever Arm (r)",
+                    min_value=0.1,
+                    max_value=0.6,
+                    step=0.001,
+                    decimals=3,
+                    unit="m",
+                    allow_range_edit=True,
+                    default=0.3,
+                    settings_key="lever_length",
+                    telemetry_key="geometry.lever_length",
+                ),
+            ),
+            (
+                "lever_angle",
+                SliderFieldSpec(
+                    key="lever_angle",
+                    label="Lever Angle (?)",
+                    min_value=-30.0,
+                    max_value=30.0,
+                    step=0.1,
+                    decimals=2,
+                    unit="deg",
+                    allow_range_edit=False,
+                    default=0.0,
+                    read_only=True,
+                    emit_signal=False,
+                    telemetry_key="geometry.lever_angle",
+                ),
+            ),
+            (
+                "cylinder_stroke",
+                SliderFieldSpec(
+                    key="cylinder_stroke",
+                    label="Cylinder Stroke (s_max)",
+                    min_value=0.05,
+                    max_value=0.5,
+                    step=0.001,
+                    decimals=3,
+                    unit="m",
+                    allow_range_edit=True,
+                    default=0.2,
+                    settings_key="stroke_m",
+                    telemetry_key="geometry.stroke",
+                ),
+            ),
+            (
+                "piston_diameter",
+                SliderFieldSpec(
+                    key="piston_diameter",
+                    label="Piston Diameter (D_p)",
+                    min_value=0.03,
+                    max_value=0.15,
+                    step=0.001,
+                    decimals=3,
+                    unit="m",
+                    allow_range_edit=True,
+                    default=0.08,
+                    settings_key="cyl_diam_m",
+                    telemetry_key="geometry.cyl_diameter",
+                ),
+            ),
+            (
+                "rod_diameter",
+                SliderFieldSpec(
+                    key="rod_diameter",
+                    label="Rod Diameter (D_r)",
+                    min_value=0.01,
+                    max_value=0.10,
+                    step=0.001,
+                    decimals=3,
+                    unit="m",
+                    allow_range_edit=True,
+                    default=0.04,
+                    settings_key="rod_diameter_m",
+                    telemetry_key="geometry.rod_diameter",
+                ),
+            ),
+            (
+                "frame_mass",
+                SliderFieldSpec(
+                    key="frame_mass",
+                    label="Frame Mass (M_frame)",
+                    min_value=500.0,
+                    max_value=5000.0,
+                    step=10.0,
+                    decimals=1,
+                    unit="kg",
+                    allow_range_edit=True,
+                    default=1500.0,
+                    settings_key="frame_mass",
+                    telemetry_key="geometry.frame_mass",
+                ),
+            ),
+            (
+                "wheel_mass",
+                SliderFieldSpec(
+                    key="wheel_mass",
+                    label="Wheel Mass (M_wheel)",
+                    min_value=10.0,
+                    max_value=200.0,
+                    step=1.0,
+                    decimals=1,
+                    unit="kg",
+                    allow_range_edit=True,
+                    default=50.0,
+                    settings_key="wheel_mass",
+                    telemetry_key="geometry.wheel_mass",
+                ),
+            ),
         )
-        layout.addWidget(self.frame_mass)
 
-        # Wheel mass (each)
-        self.wheel_mass = ParameterSlider(
-            name="Wheel Mass (M_wheel)",
-            initial_value=50.0,
-            min_value=10.0,
-            max_value=200.0,
-            step=1.0,
-            decimals=1,
-            unit="kg",
-            allow_range_edit=True,
-        )
-        self.wheel_mass.value_changed.connect(
-            lambda v: self.parameter_changed.emit("wheel_mass", v)
-        )
-        layout.addWidget(self.wheel_mass)
+        for attr, spec in field_specs:
+            slider = self.add_slider_field(spec)
+            setattr(self, attr, slider)
 
-        # Add stretch at bottom
-        layout.addStretch()
+        self.content_layout.addStretch()
 
-    def get_parameters(self) -> dict:
-        """Get all parameters as dict"""
-        return {
-            "wheelbase": self.wheelbase.value(),
-            "track_width": self.track_width.value(),
-            "lever_arm": self.lever_arm.value(),
-            "lever_angle": self.lever_angle.value(),
-            "cylinder_stroke": self.cylinder_stroke.value(),
-            "piston_diameter": self.piston_diameter.value(),
-            "rod_diameter": self.rod_diameter.value(),
-            "frame_mass": self.frame_mass.value(),
-            "wheel_mass": self.wheel_mass.value(),
-        }
+    def on_field_value_changed(self, spec: SliderFieldSpec, value: float) -> None:
+        self.parameter_changed.emit(spec.key, value)
 
-    def set_parameters(self, params: dict):
-        """Set parameters from dict"""
-        if "wheelbase" in params:
-            self.wheelbase.set_value(params["wheelbase"])
-        if "track_width" in params:
-            self.track_width.set_value(params["track_width"])
-        if "lever_arm" in params:
-            self.lever_arm.set_value(params["lever_arm"])
-        if "cylinder_stroke" in params:
-            self.cylinder_stroke.set_value(params["cylinder_stroke"])
-        if "piston_diameter" in params:
-            self.piston_diameter.set_value(params["piston_diameter"])
-        if "rod_diameter" in params:
-            self.rod_diameter.set_value(params["rod_diameter"])
-        if "frame_mass" in params:
-            self.frame_mass.set_value(params["frame_mass"])
-        if "wheel_mass" in params:
-            self.wheel_mass.set_value(params["wheel_mass"])
+    def update_calculated_values(self, lever_angle: float) -> None:
+        """Update the derived lever angle without recording undo state."""
 
-    def update_calculated_values(self, lever_angle: float):
-        """Update read-only calculated values (called from simulation)"""
-        self.lever_angle.set_value(lever_angle)
+        self.set_read_only_value("lever_angle", lever_angle)
 
 
 class PneumoPanelAccordion(QWidget):
