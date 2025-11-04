@@ -424,9 +424,7 @@ class RangeSlider(QWidget):
                 description = description.replace(placeholder, value)
         shortcut.setWhatsThis(description)
 
-        sequence_text = shortcut.keySequence().toString(
-            QKeySequence.SequenceFormat.NativeText
-        )
+        sequence_text = shortcut.key().toString(QKeySequence.SequenceFormat.NativeText)
         self._shortcut_metadata.append(
             AccessibilityShortcut(identifier, sequence_text, description)
         )
