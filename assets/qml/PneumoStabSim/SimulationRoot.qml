@@ -93,6 +93,32 @@ signal animationToggled(bool running)
   try {
    var created = Qt.createQmlObject(qmlSource, sceneView, "DynamicRenderSettings");
    if (created) {
+    var depthPrepared = false;
+    if (typeof DepthTextureActivator !== "undefined"
+            && DepthTextureActivator
+            && typeof DepthTextureActivator.prepareRenderSettings === "function") {
+     depthPrepared = DepthTextureActivator.prepareRenderSettings(sceneView, created);
+    } else {
+     try {
+      if ("depthPrePassEnabled" in created) {
+       created.depthPrePassEnabled = true;
+       depthPrepared = true;
+      }
+     } catch (error) {
+      console.debug("[SimulationRoot] depthPrePassEnabled preconfigure failed", error);
+     }
+     try {
+      if (typeof created.enableDepthBuffer === "function") {
+       created.enableDepthBuffer();
+       depthPrepared = true;
+      }
+     } catch (error) {
+      console.debug("[SimulationRoot] enableDepthBuffer preconfigure failed", error);
+     }
+    }
+    if (depthPrepared) {
+     console.log("[SimulationRoot] RenderSettings depth pre-pass configured before assignment");
+    }
     sceneView.renderSettings = created;
     sceneRenderSettings = created;
     renderSettingsSupported = true;
