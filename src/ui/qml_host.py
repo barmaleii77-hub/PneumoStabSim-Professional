@@ -16,6 +16,7 @@ from PySide6.QtQuickWidgets import QQuickWidget
 from ..core.geometry import GeometryParams
 from src.ui.geometry_bridge import GeometryTo3DConverter
 from src.ui.scene_bridge import SceneBridge
+from src.diagnostics.profiler import get_profiler_overlay_defaults
 
 _logger = logging.getLogger(__name__)
 
@@ -34,7 +35,16 @@ class SuspensionSceneHost(QQuickWidget):
         self._geometry_params = self._build_geometry_params(geometry_overrides or {})
         self.geometry_converter = GeometryTo3DConverter(self._geometry_params)
         self._scene_bridge = SceneBridge(self)
-        self.rootContext().setContextProperty("pythonSceneBridge", self._scene_bridge)
+        context = self.rootContext()
+        context.setContextProperty("pythonSceneBridge", self._scene_bridge)
+        try:
+            diagnostics_defaults = get_profiler_overlay_defaults()
+        except Exception as exc:  # pragma: no cover - diagnostics bootstrap best effort
+            _logger.debug("Failed to load diagnostics defaults: %s", exc)
+            diagnostics_defaults = {
+                "signal_trace": {"overlay_enabled": False, "overlayEnabled": False}
+            }
+        context.setContextProperty("initialDiagnosticsSettings", diagnostics_defaults)
 
         # Get calculated coordinates for all corners
         self._corner_data = self.geometry_converter.get_all_corners_3d()

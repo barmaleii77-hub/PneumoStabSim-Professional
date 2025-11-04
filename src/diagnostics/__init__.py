@@ -13,6 +13,13 @@ from .signal_tracing import (
     SignalTracerBridge,
     SignalTracingError,
 )
+from .profiler import (
+    ProfilerOverlayState,
+    export_profiler_report,
+    get_profiler_overlay_defaults,
+    load_profiler_overlay_state,
+    record_profiler_overlay,
+)
 
 __all__ = [
     "log_warning",
@@ -25,4 +32,9 @@ __all__ = [
     "MissingSignalError",
     "SignalTracerBridge",
     "HAS_QT",
+    "ProfilerOverlayState",
+    "get_profiler_overlay_defaults",
+    "load_profiler_overlay_state",
+    "record_profiler_overlay",
+    "export_profiler_report",
 ]
