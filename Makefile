@@ -87,7 +87,10 @@ test:
 validate-shaders:
 	$(PYTHON) tools/validate_shaders.py
 
-check: lint typecheck qml-lint test validate-shaders
+validate-hdr-orientation:
+	$(PYTHON) tools/graphics/validate_hdr_orientation.py
+
+check: lint typecheck qml-lint test validate-shaders validate-hdr-orientation
 
 verify: lint typecheck qml-lint test smoke integration
 

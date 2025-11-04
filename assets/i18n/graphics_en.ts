@@ -167,4 +167,41 @@
             <translation>Export the active graphics configuration for diagnostics.</translation>
         </message>
     </context>
+
+<context>
+    <name>LightingTonemapPanel</name>
+    <message>
+        <source>Tonemapping presets</source>
+        <translation>Tonemapping presets</translation>
+    </message>
+    <message>
+        <source>No tonemapping presets configured</source>
+        <translation>No tonemapping presets configured</translation>
+    </message>
+    <message id="lighting.tonemapPreset.filmic_neutral">
+        <source>Filmic (neutral)</source>
+        <translation>Filmic (neutral)</translation>
+    </message>
+    <message id="lighting.tonemapPreset.filmic_neutral.description">
+        <source>Balanced highlight roll-off for product shots.</source>
+        <translation>Balanced highlight roll-off for product shots.</translation>
+    </message>
+    <message id="lighting.tonemapPreset.filmic_contrast">
+        <source>Filmic (contrast boost)</source>
+        <translation>Filmic (contrast boost)</translation>
+    </message>
+    <message id="lighting.tonemapPreset.filmic_contrast.description">
+        <source>Adds gentle contrast for dramatic studio lighting.</source>
+        <translation>Adds gentle contrast for dramatic studio lighting.</translation>
+    </message>
+    <message id="lighting.tonemapPreset.aces_studio">
+        <source>ACES (studio)</source>
+        <translation>ACES (studio)</translation>
+    </message>
+    <message id="lighting.tonemapPreset.aces_studio.description">
+        <source>ACES curve with lower white point for HDR monitors.</source>
+        <translation>ACES curve with lower white point for HDR monitors.</translation>
+    </message>
+</context>
+
 </TS>

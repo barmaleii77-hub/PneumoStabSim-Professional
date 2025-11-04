@@ -1,0 +1,122 @@
+{
+  "version": 1,
+  "materials": {
+    "frame": {
+      "label_key": "lighting.material.frame",
+      "base_color": "#7A7F85",
+      "roughness": 0.62,
+      "metalness": 0.35,
+      "clearcoat": 0.1
+    },
+    "lever": {
+      "label_key": "lighting.material.lever",
+      "base_color": "#6C7076",
+      "roughness": 0.55,
+      "metalness": 0.28,
+      "anisotropy": 0.05
+    },
+    "tail_rod": {
+      "label_key": "lighting.material.tail_rod",
+      "base_color": "#8F9498",
+      "roughness": 0.48,
+      "metalness": 0.8,
+      "notes": "Baseline stainless steel preset"
+    },
+    "cylinder": {
+      "label_key": "lighting.material.cylinder",
+      "base_color": "#8A8F96",
+      "roughness": 0.42,
+      "metalness": 0.82
+    },
+    "piston_body": {
+      "label_key": "lighting.material.piston_body",
+      "base_color": "#C8CDD2",
+      "roughness": 0.24,
+      "metalness": 0.15
+    },
+    "piston_rod": {
+      "label_key": "lighting.material.piston_rod",
+      "base_color": "#F2F5F8",
+      "roughness": 0.1,
+      "metalness": 0.95
+    },
+    "joint_tail": {
+      "label_key": "lighting.material.joint_tail",
+      "base_color": "#A6AAAF",
+      "roughness": 0.38,
+      "metalness": 0.76
+    },
+    "joint_arm": {
+      "label_key": "lighting.material.joint_arm",
+      "base_color": "#9DA2A8",
+      "roughness": 0.4,
+      "metalness": 0.64
+    },
+    "joint_rod": {
+      "label_key": "lighting.material.joint_rod",
+      "base_color": "#B6BBC1",
+      "roughness": 0.33,
+      "metalness": 0.68
+    }
+  },
+  "tonemap_presets": [
+    {
+      "id": "filmic_neutral",
+      "label_key": "lighting.tonemapPreset.filmic_neutral",
+      "description_key": "lighting.tonemapPreset.filmic_neutral.description",
+      "mode": "filmic",
+      "exposure": 1.0,
+      "white_point": 2.0,
+      "tonemap_enabled": true
+    },
+    {
+      "id": "filmic_contrast_boost",
+      "label_key": "lighting.tonemapPreset.filmic_contrast",
+      "description_key": "lighting.tonemapPreset.filmic_contrast.description",
+      "mode": "filmic",
+      "exposure": 1.25,
+      "white_point": 2.4,
+      "tonemap_enabled": true,
+      "adjustment_contrast": 0.12
+    },
+    {
+      "id": "aces_studio",
+      "label_key": "lighting.tonemapPreset.aces_studio",
+      "description_key": "lighting.tonemapPreset.aces_studio.description",
+      "mode": "aces",
+      "exposure": 1.1,
+      "white_point": 1.8,
+      "tonemap_enabled": true,
+      "adjustment_saturation": -0.05
+    }
+  ],
+  "skyboxes": [
+    {
+      "id": "studio_soft",
+      "label": "Studio Softbox",
+      "file": "studio_soft_4k.hdr",
+      "orientation": "z-up",
+      "rotation": 0.0,
+      "status": "ok",
+      "notes": "Aligned to the reference rig"
+    },
+    {
+      "id": "hangar_evening",
+      "label": "Hangar Evening",
+      "file": "hangar_evening_2k.hdr",
+      "orientation": "z-up",
+      "rotation": 90.0,
+      "status": "ok",
+      "notes": "Re-aligned to z-up with 90° yaw offset"
+    },
+    {
+      "id": "city_night",
+      "label": "City Night",
+      "file": "city_night_4k.hdr",
+      "orientation": "z-up",
+      "rotation": -15.0,
+      "status": "ok",
+      "notes": "Slight yaw offset keeps skyline aligned"
+    }
+  ]
+}
