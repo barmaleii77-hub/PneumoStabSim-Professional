@@ -56,8 +56,7 @@ in vec2 v_uv;
 #define INPUT_UV v_uv
 #endif
 
-#ifdef MAIN
-#undef MAIN
+#ifndef MAIN
 #define MAIN qt_customMain
 #define QSB_USES_QT_CUSTOM_MAIN 1
 #endif
