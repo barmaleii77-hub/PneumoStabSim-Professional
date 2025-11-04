@@ -144,6 +144,7 @@ ExtendedSceneEnvironment {
  // ✅ ИСПРАВЛЕНО: fxaaEnabled и specularAAEnabled уже установлены выше
  temporalAAEnabled: (aaPostMode === "taa" && taaEnabled && (!taaMotionAdaptive || cameraIsMoving))
  temporalAAStrength: taaStrength
+    onTemporalAAEnabledChanged: _updateBufferRequirements()
 
  // ===============================================================
  // DITHERING (Qt6.10+)
@@ -331,6 +332,12 @@ ExtendedSceneEnvironment {
         }
         console.log("✅ SceneEnvironmentController loaded (dithering "
                     + (root.canUseDithering ? "enabled" : "disabled") + ")")
+        var depthPropertyAvailable = _hasEnvironmentProperty("depthTextureEnabled")
+        var velocityPropertyAvailable = _hasEnvironmentProperty("velocityTextureEnabled")
+        if (!depthPropertyAvailable)
+            console.warn("⚠️ SceneEnvironmentController: ExtendedSceneEnvironment.depthTextureEnabled property is unavailable; depth buffer requests will be skipped")
+        if (!velocityPropertyAvailable)
+            console.warn("⚠️ SceneEnvironmentController: ExtendedSceneEnvironment.velocityTextureEnabled property is unavailable; velocity buffer requests will be skipped")
         root._applySceneBridgeState()
         applyQualityPresetInternal(qualityPreset)
         _syncSkyboxBackground()
@@ -991,6 +998,66 @@ return
             console.log("SceneEnvironmentController:", message)
     }
 
+    function _effectFlagValue(effect, propertyName) {
+        if (!effect || !propertyName)
+            return undefined
+
+        try {
+            if (propertyName in effect)
+                return effect[propertyName]
+        } catch (error) {
+        }
+
+        return undefined
+    }
+
+    function _effectIsOperational(effect, availabilityGuards) {
+        if (!effect)
+            return false
+
+        var enabledValue = _effectFlagValue(effect, "enabled")
+        if (enabledValue === false)
+            return false
+
+        var activeValue = _effectFlagValue(effect, "active")
+        if (activeValue === false)
+            return false
+
+        if (_effectFlagValue(effect, "componentCompleted") === false)
+            return false
+
+        if (_effectFlagValue(effect, "fallbackActive"))
+            return false
+
+        if (_effectFlagValue(effect, "fallbackDueToRequirements"))
+            return false
+
+        if (_effectFlagValue(effect, "fallbackForcedByCompatibility"))
+            return false
+
+        if (_effectFlagValue(effect, "forceDepthTextureUnavailable"))
+            return false
+
+        if (_effectFlagValue(effect, "forceVelocityTextureUnavailable"))
+            return false
+
+        var guards = availabilityGuards
+        if (guards !== undefined && guards !== null) {
+            if (!Array.isArray(guards))
+                guards = [guards]
+            for (var i = 0; i < guards.length; ++i) {
+                var guardName = guards[i]
+                if (!guardName)
+                    continue
+                var guardValue = _effectFlagValue(effect, guardName)
+                if (guardValue !== undefined && guardValue !== null && !guardValue)
+                    return false
+            }
+        }
+
+        return true
+    }
+
     function _descriptorContainsToken(descriptor, tokens) {
         if (!descriptor || !tokens || !tokens.length)
             return false
@@ -1032,8 +1099,11 @@ return
         return false
     }
 
-    function _effectRequestsBuffer(effect, propertyNames, requirementTokens) {
+    function _effectRequestsBuffer(effect, propertyNames, requirementTokens, availabilityGuards) {
         if (!effect)
+            return false
+
+        if (!_effectIsOperational(effect, availabilityGuards))
             return false
 
         var candidates = propertyNames || []
@@ -1142,33 +1212,47 @@ return
     }
 
     function _updateBufferRequirements() {
-        var requiresDepth = fogEnabled
+        var depthPropertyAvailable = _hasEnvironmentProperty("depthTextureEnabled")
+        var velocityPropertyAvailable = _hasEnvironmentProperty("velocityTextureEnabled")
+
+        var requiresDepth = false
         var requiresVelocity = false
+
+        if (depthPropertyAvailable && fogEnabled && _effectIsOperational(root._customFogEffect, "depthTextureAvailable"))
+            requiresDepth = true
+
+        if (velocityPropertyAvailable && temporalAAEnabled)
+            requiresVelocity = true
+
         var stack = effects
         if (stack && stack.length) {
             for (var i = 0; i < stack.length; ++i) {
                 var effect = stack[i]
                 if (!effect)
                     continue
-                if (_effectRequestsBuffer(effect,
-                                          [
-                                              "requiresDepthTexture",
-                                              "depthTextureEnabled"
-                                          ],
-                                          ["depth", "z"]))
+                if (depthPropertyAvailable
+                        && _effectRequestsBuffer(effect,
+                                                  [
+                                                      "requiresDepthTexture",
+                                                      "depthTextureEnabled"
+                                                  ],
+                                                  ["depth", "z"],
+                                                  ["depthTextureAvailable"]))
                     requiresDepth = true
-                if (_effectRequestsBuffer(effect,
-                                          [
-                                              "requiresVelocityTexture",
-                                              "velocityTextureEnabled"
-                                          ],
-                                          ["velocity", "motion"]))
+                if (velocityPropertyAvailable
+                        && _effectRequestsBuffer(effect,
+                                                  [
+                                                      "requiresVelocityTexture",
+                                                      "velocityTextureEnabled"
+                                                  ],
+                                                  ["velocity", "motion"],
+                                                  ["velocityTextureAvailable"]))
                     requiresVelocity = true
             }
         }
 
-        _applyDepthTextureState(requiresDepth)
-        _applyVelocityTextureState(requiresVelocity)
+        _applyDepthTextureState(depthPropertyAvailable && requiresDepth)
+        _applyVelocityTextureState(velocityPropertyAvailable && requiresVelocity)
 
         if (root._customFogEffect) {
             var shouldForceFallback = requiresDepth && !depthTextureSupportActive
@@ -1245,22 +1329,51 @@ return
 
     Connections {
         target: root._customFogEffect
+        ignoreUnknownSignals: true
         function onFallbackActiveChanged(active) {
             root._handleFogFallbackState(active,
                                          root._customFogEffect.fallbackReason,
                                          root._customFogEffect.compilationFallbackActive)
+            Qt.callLater(root._updateBufferRequirements)
         }
         function onFallbackReasonChanged(reason) {
             if (root._customFogEffect.fallbackActive)
                 root._handleFogFallbackState(true,
                                              reason,
                                              root._customFogEffect.compilationFallbackActive)
+            Qt.callLater(root._updateBufferRequirements)
         }
         function onCompilationFallbackActiveChanged(active) {
             root._handleFogFallbackState(root._customFogEffect.fallbackActive,
                                          root._customFogEffect.fallbackReason,
                                          active)
+            Qt.callLater(root._updateBufferRequirements)
         }
+        function onDepthTextureAvailableChanged() {
+            Qt.callLater(root._updateBufferRequirements)
+        }
+    }
+
+    Connections {
+        target: root.externalEffects.length > 1 ? root.externalEffects[1] : null
+        ignoreUnknownSignals: true
+        function onFallbackActiveChanged() { Qt.callLater(root._updateBufferRequirements) }
+        function onDepthTextureAvailableChanged() { Qt.callLater(root._updateBufferRequirements) }
+        function onNormalTextureAvailableChanged() { Qt.callLater(root._updateBufferRequirements) }
+    }
+
+    Connections {
+        target: root.externalEffects.length > 2 ? root.externalEffects[2] : null
+        ignoreUnknownSignals: true
+        function onFallbackActiveChanged() { Qt.callLater(root._updateBufferRequirements) }
+        function onDepthTextureAvailableChanged() { Qt.callLater(root._updateBufferRequirements) }
+    }
+
+    Connections {
+        target: root.externalEffects.length > 3 ? root.externalEffects[3] : null
+        ignoreUnknownSignals: true
+        function onFallbackActiveChanged() { Qt.callLater(root._updateBufferRequirements) }
+        function onVelocityTextureAvailableChanged() { Qt.callLater(root._updateBufferRequirements) }
     }
 
  // ===============================================================
@@ -1407,6 +1520,7 @@ return
  property real ssaoSoftness:20.0
  property bool ssaoDither: true
  property int ssaoSampleRate:3
+    onSsaoEnabledChanged: _updateBufferRequirements()
 
  aoEnabled: ssaoEnabled
  aoDistance: ssaoRadius
@@ -1426,6 +1540,7 @@ return
     property bool depthOfFieldAutoFocus: false
     property real autoFocusDistanceHint: dofFocusDistance
     property real autoFocusRangeHint: dofFocusRange
+    onInternalDepthOfFieldEnabledChanged: _updateBufferRequirements()
 
     onDepthOfFieldAutoFocusChanged: {
         _applyAutoFocusDistance()
