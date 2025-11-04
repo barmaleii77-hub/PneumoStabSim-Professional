@@ -450,6 +450,11 @@ class MainWindow(QMainWindow):
         SignalsRouter.handle_quality_changed(self, params)
 
     @Slot(dict)
+    def _on_scene_changed(self, params: Dict[str, Any]) -> None:
+        """Scene changed → SignalsRouter"""
+        SignalsRouter.handle_scene_changed(self, params)
+
+    @Slot(dict)
     def _on_camera_changed(self, params: Dict[str, Any]) -> None:
         """Camera changed → SignalsRouter"""
         SignalsRouter.handle_camera_changed(self, params)

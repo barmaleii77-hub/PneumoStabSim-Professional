@@ -26,6 +26,7 @@ class SceneBridge(QObject):
     cameraChanged = Signal("QVariantMap")
     lightingChanged = Signal("QVariantMap")
     environmentChanged = Signal("QVariantMap")
+    sceneChanged = Signal("QVariantMap")
     qualityChanged = Signal("QVariantMap")
     materialsChanged = Signal("QVariantMap")
     effectsChanged = Signal("QVariantMap")
@@ -39,6 +40,7 @@ class SceneBridge(QObject):
         "camera",
         "lighting",
         "environment",
+        "scene",
         "quality",
         "materials",
         "effects",
@@ -64,6 +66,7 @@ class SceneBridge(QObject):
             "camera": self.cameraChanged,
             "lighting": self.lightingChanged,
             "environment": self.environmentChanged,
+            "scene": self.sceneChanged,
             "quality": self.qualityChanged,
             "materials": self.materialsChanged,
             "effects": self.effectsChanged,
@@ -96,6 +99,10 @@ class SceneBridge(QObject):
     @Property("QVariantMap", notify=qualityChanged)
     def quality(self) -> Dict[str, Any]:
         return self._state["quality"]
+
+    @Property("QVariantMap", notify=sceneChanged)
+    def scene(self) -> Dict[str, Any]:
+        return self._state["scene"]
 
     @Property("QVariantMap", notify=materialsChanged)
     def materials(self) -> Dict[str, Any]:

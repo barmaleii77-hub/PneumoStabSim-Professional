@@ -28,6 +28,10 @@ else:  # pragma: no cover - executed only on headless environments
 
 from ...pneumo.enums import Line, Wheel
 from .qml_bridge import QMLBridge
+from ..environment_schema import (
+    EnvironmentValidationError,
+    validate_scene_settings,
+)
 from ..qml_bridge import register_qml_signals
 
 if TYPE_CHECKING:
@@ -695,6 +699,8 @@ class SignalsRouter:
             window.graphics_panel.quality_changed.connect(window._on_quality_changed)
             window.graphics_panel.camera_changed.connect(window._on_camera_changed)
             window.graphics_panel.effects_changed.connect(window._on_effects_changed)
+            if hasattr(window.graphics_panel, "scene_changed"):
+                window.graphics_panel.scene_changed.connect(window._on_scene_changed)
             window.graphics_panel.preset_applied.connect(window._on_preset_applied)
             SignalsRouter.logger.info("✅ GraphicsPanel signals connected")
 
@@ -907,6 +913,31 @@ class SignalsRouter:
             SignalsRouter._record_dispatched_payload(window, "effects", params)
 
         window._apply_settings_update("graphics.effects", params)
+
+    @staticmethod
+    def handle_scene_changed(window: MainWindow, params: Dict[str, Any]) -> None:
+        """Handle scene changes from GraphicsPanel."""
+
+        if not isinstance(params, dict):
+            return
+
+        try:
+            validated = validate_scene_settings(params)
+        except EnvironmentValidationError as exc:
+            logger = getattr(window, "logger", SignalsRouter.logger)
+            logger.warning("Invalid scene payload received: %s", exc)
+            return
+
+        if SignalsRouter._should_emit_update(window, "scene", validated):
+            applied = QMLBridge.invoke_qml_function(
+                window, "applySceneUpdates", validated
+            )
+            if not applied:
+                QMLBridge.queue_update(window, "scene", validated)
+            QMLBridge._log_graphics_change(window, "scene", validated, applied=applied)
+            SignalsRouter._record_dispatched_payload(window, "scene", validated)
+
+        window._apply_settings_update("graphics.scene", validated)
 
     @staticmethod
     def handle_preset_applied(window: MainWindow, full_state: Dict[str, Any]) -> None:

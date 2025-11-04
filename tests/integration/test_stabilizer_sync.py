@@ -35,6 +35,14 @@ class _FakeGraphicsPanel:
         self.state: Dict[str, Dict[str, Any]] = {
             "lighting": {"exposure": 1.0, "shadowsEnabled": True},
             "environment": {"ibl_source": "studio.hdr"},
+            "scene": {
+                "scale_factor": 1.0,
+                "exposure": 1.5,
+                "default_clear_color": "#1b1f27",
+                "model_base_color": "#9ea4ab",
+                "model_roughness": 0.35,
+                "model_metalness": 0.9,
+            },
             "quality": {"shading": "high", "anisotropy": 8},
             "effects": {"bloom": {"enabled": True, "intensity": 0.75}},
         }

@@ -295,6 +295,8 @@ Item {
         "updateMaterials",
         "applyEnvironmentUpdates",
         "updateEnvironment",
+        "applySceneUpdates",
+        "updateScene",
         "applyQualityUpdates",
         "updateQuality",
         "applyCameraUpdates",
