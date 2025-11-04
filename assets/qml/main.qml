@@ -15,6 +15,179 @@ Item {
 
     readonly property bool hasSceneBridge: typeof pythonSceneBridge !== "undefined" && pythonSceneBridge !== null
 
+    // ---------------------------------------------------------
+    // Environment defaults mirrored from SceneEnvironmentController
+    // ---------------------------------------------------------
+    property real environmentSceneScaleFactor: 1.0
+    property color environmentBackgroundColor: "#1f242c"
+    property string environmentBackgroundMode: "skybox"
+    property bool environmentSkyboxEnabled: true
+    property bool environmentIblMasterEnabled: true
+    property bool environmentIblLightingEnabled: true
+    property bool environmentIblBackgroundEnabled: true
+    property bool environmentIblBindToCamera: false
+    property real environmentIblIntensity: 1.3
+    property real environmentSkyboxBrightness: 1.0
+    property real environmentProbeHorizon: 0.0
+    property real environmentIblRotationPitch: 0.0
+    property real environmentIblRotationYaw: 0.0
+    property real environmentIblRotationRoll: 0.0
+    property real environmentSkyboxBlur: 0.08
+
+    property string environmentAaPrimaryMode: "ssaa"
+    property string environmentAaQualityLevel: "high"
+    property string environmentAaPostMode: "taa"
+    property bool environmentTaaEnabled: true
+    property real environmentTaaStrength: 0.4
+    property bool environmentTaaMotionAdaptive: true
+    property bool environmentFxaaEnabled: false
+    property bool environmentSpecularAaEnabled: true
+    property bool environmentDitheringEnabled: true
+    property string environmentOitMode: "weighted"
+
+    property bool environmentTonemapEnabled: false
+    property string environmentTonemapMode: "filmic"
+    property real environmentTonemapExposure: 1.0
+    property real environmentTonemapWhitePoint: 1.0
+
+    property bool environmentSsaoEnabled: true
+    property real environmentSsaoRadius: 0.008
+    property real environmentSsaoIntensity: 1.0
+    property real environmentSsaoSoftness: 20.0
+    property bool environmentSsaoDither: true
+    property int environmentSsaoSampleRate: 4
+
+    property bool environmentBloomEnabled: true
+    property real environmentBloomIntensity: 0.5
+    property real environmentBloomThreshold: 1.0
+    property real environmentBloomSpread: 0.65
+    property real environmentBloomGlowStrength: 1.0
+    property bool environmentBloomQualityHigh: true
+    property bool environmentBloomUseBicubic: true
+    property real environmentBloomHdrMaximum: 8.0
+    property real environmentBloomHdrScale: 2.0
+
+    property bool environmentLensFlareEnabled: false
+    property int environmentLensFlareGhostCount: 4
+    property real environmentLensFlareGhostDispersal: 0.06
+    property real environmentLensFlareHaloWidth: 0.05
+    property real environmentLensFlareBloomBias: 1.0
+    property real environmentLensFlareStretch: 0.0
+
+    property bool environmentDepthOfFieldEnabled: false
+    property bool environmentDofAutoFocus: true
+    property real environmentDofFocusDistance: 2.5
+    property real environmentDofFocusRange: 0.9
+    property real environmentDofBlurAmount: 4.0
+
+    property bool environmentFogEnabled: true
+    property color environmentFogColor: "#aab9cf"
+    property real environmentFogDensity: 0.06
+    property real environmentFogNear: 2.0
+    property real environmentFogFar: 20.0
+    property bool environmentFogHeightEnabled: false
+    property real environmentFogLeastIntenseY: 0.0
+    property real environmentFogMostIntenseY: 3.0
+    property real environmentFogHeightCurve: 1.0
+    property bool environmentFogTransmitEnabled: true
+    property real environmentFogTransmitCurve: 1.0
+
+    property bool environmentVignetteEnabled: false
+    property real environmentVignetteStrength: 0.35
+    property real environmentVignetteRadius: 0.5
+
+    property real environmentAdjustmentBrightness: 0.0
+    property real environmentAdjustmentContrast: 0.0
+    property real environmentAdjustmentSaturation: 0.0
+
+    SceneEnvironmentController {
+        id: environmentDefaults
+        objectName: "environmentDefaults"
+
+        sceneScaleFactor: root.environmentSceneScaleFactor
+
+        backgroundColor: root.environmentBackgroundColor
+        backgroundModeKey: root.environmentBackgroundMode
+        skyboxToggleFlag: root.environmentSkyboxEnabled
+        iblMasterEnabled: root.environmentIblMasterEnabled
+        iblLightingEnabled: root.environmentIblLightingEnabled
+        iblBackgroundEnabled: root.environmentIblBackgroundEnabled
+        iblBindToCamera: root.environmentIblBindToCamera
+        iblIntensity: root.environmentIblIntensity
+        skyboxBrightnessValue: root.environmentSkyboxBrightness
+        probeHorizonValue: root.environmentProbeHorizon
+        iblRotationPitchDeg: root.environmentIblRotationPitch
+        iblRotationDeg: root.environmentIblRotationYaw
+        iblRotationRollDeg: root.environmentIblRotationRoll
+        skyboxBlurValue: root.environmentSkyboxBlur
+
+        aaPrimaryMode: root.environmentAaPrimaryMode
+        aaQualityLevel: root.environmentAaQualityLevel
+        aaPostMode: root.environmentAaPostMode
+        taaEnabled: root.environmentTaaEnabled
+        taaStrength: root.environmentTaaStrength
+        taaMotionAdaptive: root.environmentTaaMotionAdaptive
+        fxaaEnabled: root.environmentFxaaEnabled
+        specularAAEnabled: root.environmentSpecularAaEnabled
+        ditheringEnabled: root.environmentDitheringEnabled
+        oitMode: root.environmentOitMode
+
+        tonemapActive: root.environmentTonemapEnabled
+        tonemapModeName: root.environmentTonemapMode
+        tonemapExposure: root.environmentTonemapExposure
+        tonemapWhitePoint: root.environmentTonemapWhitePoint
+
+        ssaoEnabled: root.environmentSsaoEnabled
+        ssaoRadius: root.environmentSsaoRadius
+        ssaoIntensity: root.environmentSsaoIntensity
+        ssaoSoftness: root.environmentSsaoSoftness
+        ssaoDither: root.environmentSsaoDither
+        ssaoSampleRate: root.environmentSsaoSampleRate
+
+        bloomEnabled: root.environmentBloomEnabled
+        bloomIntensity: root.environmentBloomIntensity
+        bloomThreshold: root.environmentBloomThreshold
+        bloomSpread: root.environmentBloomSpread
+        bloomGlowStrength: root.environmentBloomGlowStrength
+        bloomQualityHigh: root.environmentBloomQualityHigh
+        bloomUseBicubicUpscale: root.environmentBloomUseBicubic
+        bloomHdrMaximum: root.environmentBloomHdrMaximum
+        bloomHdrScale: root.environmentBloomHdrScale
+
+        internalLensFlareEnabled: root.environmentLensFlareEnabled
+        lensFlareGhostCountValue: root.environmentLensFlareGhostCount
+        lensFlareGhostDispersalValue: root.environmentLensFlareGhostDispersal
+        lensFlareHaloWidthValue: root.environmentLensFlareHaloWidth
+        lensFlareBloomBiasValue: root.environmentLensFlareBloomBias
+        lensFlareStretchValue: root.environmentLensFlareStretch
+
+        internalDepthOfFieldEnabled: root.environmentDepthOfFieldEnabled
+        depthOfFieldAutoFocus: root.environmentDofAutoFocus
+        dofFocusDistance: root.environmentDofFocusDistance
+        dofFocusRange: root.environmentDofFocusRange
+        dofBlurAmount: root.environmentDofBlurAmount
+
+        fogEnabled: root.environmentFogEnabled
+        fogColor: root.environmentFogColor
+        fogDensity: root.environmentFogDensity
+        fogNear: root.environmentFogNear
+        fogFar: root.environmentFogFar
+        fogHeightEnabled: root.environmentFogHeightEnabled
+        fogLeastIntenseY: root.environmentFogLeastIntenseY
+        fogMostIntenseY: root.environmentFogMostIntenseY
+        fogHeightCurve: root.environmentFogHeightCurve
+        fogTransmitEnabled: root.environmentFogTransmitEnabled
+        fogTransmitCurve: root.environmentFogTransmitCurve
+
+        internalVignetteEnabled: root.environmentVignetteEnabled
+        internalVignetteStrength: root.environmentVignetteStrength
+        vignetteRadiusValue: root.environmentVignetteRadius
+
+        adjustmentBrightnessValue: root.environmentAdjustmentBrightness
+        adjustmentContrastValue: root.environmentAdjustmentContrast
+        adjustmentSaturationValue: root.environmentAdjustmentSaturation
+    }
+
     onPendingPythonUpdatesChanged: {
         if (!pendingPythonUpdates || typeof pendingPythonUpdates !== "object") {
             return
