@@ -8,15 +8,28 @@ its shader loader.
 
 from __future__ import annotations
 
+import os
 import re
 from pathlib import Path
 
 import pytest
 
+pytest.importorskip(
+    "PySide6.QtQuick",
+    reason=(
+        "PySide6 QtQuick module is required for effect shader tests; install libgl1/libegl1"
+    ),
+    exc_type=ImportError,
+)
+
+from PySide6.QtCore import QUrl, SignalInstance
+from PySide6.QtQml import QQmlApplicationEngine
+
 from src.ui.main_window_pkg.ui_setup import EFFECT_SHADER_DIRS, UISetup
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
+SHADER_ROOT = REPO_ROOT / "assets" / "shaders"
 
 EFFECT_FILES = [
     REPO_ROOT / "assets/qml/effects/FogEffect.qml",
@@ -32,6 +45,9 @@ SHADER_FILES = sorted(
         for shader in directory.glob(pattern)
     ]
 )
+
+
+os.environ.setdefault("QML_XHR_ALLOW_FILE_READ", "1")
 
 
 @pytest.mark.parametrize("qml_file", EFFECT_FILES)
@@ -98,11 +114,19 @@ def test_effect_shaders_load_without_version_warning(qapp, qml_file: Path) -> No
         exc_type=ImportError,
     )
 
-    from PySide6.QtCore import QUrl
-    from PySide6.QtQml import QQmlApplicationEngine
-
     engine = QQmlApplicationEngine()
     engine.addImportPath(str((REPO_ROOT / "assets" / "qml").resolve()))
+
+    captured_warnings: list[object] = []
+    warnings_attr = getattr(engine, "warnings", None)
+    if isinstance(warnings_attr, SignalInstance):
+        def _collect_warnings(payload):
+            if isinstance(payload, (list, tuple)):
+                captured_warnings.extend(payload)
+            elif payload is not None:
+                captured_warnings.append(payload)
+
+        warnings_attr.connect(_collect_warnings)
 
     qml_url = QUrl.fromLocalFile(str(qml_file.resolve()))
     engine.load(qml_url)
@@ -111,9 +135,16 @@ def test_effect_shaders_load_without_version_warning(qapp, qml_file: Path) -> No
         qapp.processEvents()
         assert engine.rootObjects(), f"{qml_file} should instantiate a root object"
 
+        if isinstance(warnings_attr, SignalInstance):
+            warning_entries = captured_warnings
+        elif callable(warnings_attr):
+            warning_entries = warnings_attr()
+        else:
+            warning_entries = []
+
         version_warnings = [
             warning
-            for warning in engine.warnings()
+            for warning in warning_entries
             if "#version must appear first" in warning.description()
         ]
         assert not version_warnings, (
@@ -129,15 +160,24 @@ def test_effect_shader_manifest_matches_filesystem() -> None:
     """UISetup manifest should mirror the actual shader files on disk."""
 
     manifest = UISetup._build_effect_shader_manifest()
-    expected = {
-        path.name
+    expected_paths = {
+        path.name: path.relative_to(SHADER_ROOT).as_posix()
         for directory in SHADER_DIRS
         for path in directory.iterdir()
         if path.is_file() and path.suffix.lower() in {".frag", ".vert"}
     }
 
-    assert set(manifest.keys()) == expected
-    assert all(manifest[name] for name in expected)
+    assert set(manifest.keys()) == set(expected_paths.keys())
+
+    for shader_name, relative_path in expected_paths.items():
+        entry = manifest[shader_name]
+        if isinstance(entry, dict):
+            assert entry.get("enabled", True) is not False
+            paths = entry.get("paths") or []
+            assert relative_path in paths
+            assert entry.get("path") in paths
+        else:
+            assert entry
 
 
 def test_profiler_toggle_available(monkeypatch) -> None:
