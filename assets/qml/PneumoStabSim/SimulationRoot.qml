@@ -151,12 +151,41 @@ signal animationToggled(bool running)
  property var shaderWarningMap: ({})
  property var shaderWarningList: []
 
+ function notifyPythonShaderEvent(handlerName, args) {
+  if (!handlerName || !args)
+   return false
+
+  var potentialTargets = []
+  if (typeof window !== "undefined" && window)
+   potentialTargets.push(window)
+  if (root.sceneBridge)
+   potentialTargets.push(root.sceneBridge)
+
+  for (var idx = 0; idx < potentialTargets.length; ++idx) {
+   var target = potentialTargets[idx]
+   var handler = target && typeof target[handlerName] === "function" ? target[handlerName] : null
+   if (typeof handler === "function") {
+    try {
+     handler.apply(target, args)
+     return true
+    } catch (error) {
+     console.debug("[SimulationRoot]", handlerName, "forwarding failed", error)
+    }
+   }
+  }
+
+  return false
+ }
+
  // ---------------------------------------------
  // Shader compilation diagnostics
  // ---------------------------------------------
  function registerShaderWarning(effectId, errorLog) {
   var normalizedId = effectId !== undefined && effectId !== null ? String(effectId) : "unknown"
   var message = errorLog !== undefined && errorLog !== null ? String(errorLog) : qsTr("Shader compilation failed")
+
+  var hadEntry = Object.prototype.hasOwnProperty.call(shaderWarningMap, normalizedId)
+  var previousEntry = hadEntry ? shaderWarningMap[normalizedId] : null
 
   var nextMap = Object.assign({}, shaderWarningMap)
   nextMap[normalizedId] = {
@@ -168,11 +197,15 @@ signal animationToggled(bool running)
   shaderWarningMap = nextMap
   shaderWarningList = Object.values(nextMap).sort(function(a, b) { return a.timestamp - b.timestamp })
   console.warn("⚠️ Shader fallback activated for", normalizedId, "-", message)
+
+  var messageChanged = !previousEntry || previousEntry.message !== message
+  if (messageChanged)
+   notifyPythonShaderEvent("registerShaderWarning", [normalizedId, message])
  }
 
  function clearShaderWarning(effectId) {
   var normalizedId = effectId !== undefined && effectId !== null ? String(effectId) : "unknown"
-  if (!shaderWarningMap.hasOwnProperty(normalizedId))
+  if (!Object.prototype.hasOwnProperty.call(shaderWarningMap, normalizedId))
    return
 
   var nextMap = Object.assign({}, shaderWarningMap)
@@ -180,6 +213,8 @@ signal animationToggled(bool running)
   shaderWarningMap = nextMap
   shaderWarningList = Object.values(nextMap).sort(function(a, b) { return a.timestamp - b.timestamp })
   console.log("✅ Shader restored for", normalizedId)
+
+  notifyPythonShaderEvent("clearShaderWarning", [normalizedId])
  }
 
  property real renderScale: 1.0

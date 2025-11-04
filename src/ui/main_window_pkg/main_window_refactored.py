@@ -286,6 +286,60 @@ class MainWindow(QMainWindow):
         except Exception:
             pass
 
+    @Slot(str, str)
+    def registerShaderWarning(self, effect_id: str, error_log: str) -> None:
+        """Receive shader compilation warnings emitted from QML."""
+
+        normalized_id = (effect_id or "").strip() or "unknown"
+        message = (error_log or "").strip() or "Shader compilation failed"
+
+        self.logger.warning("⚠️ Shader warning [%s]: %s", normalized_id, message)
+
+        try:
+            if getattr(self, "event_logger", None) is None:
+                return
+            from src.common.event_logger import EventType
+
+            self.event_logger.log_event(  # type: ignore[union-attr]
+                event_type=EventType.QML_ERROR,
+                component="SimulationRoot",
+                action="shader_warning",
+                new_value=message,
+                metadata={"effectId": normalized_id},
+                source="qml",
+            )
+        except Exception as exc:
+            self.logger.debug(
+                "EventLogger failed to record shader warning: %s", exc, exc_info=exc
+            )
+
+    @Slot(str)
+    def clearShaderWarning(self, effect_id: str) -> None:
+        """Reset shader warning state once compilation succeeds."""
+
+        normalized_id = (effect_id or "").strip() or "unknown"
+        self.logger.info("✅ Shader warning cleared [%s]", normalized_id)
+
+        try:
+            if getattr(self, "event_logger", None) is None:
+                return
+            from src.common.event_logger import EventType
+
+            self.event_logger.log_event(  # type: ignore[union-attr]
+                event_type=EventType.FUNCTION_CALLED,
+                component="SimulationRoot",
+                action="shader_warning_cleared",
+                new_value=normalized_id,
+                metadata={"effectId": normalized_id},
+                source="qml",
+            )
+        except Exception as exc:
+            self.logger.debug(
+                "EventLogger failed to record shader warning clear: %s",
+                exc,
+                exc_info=exc,
+            )
+
     # ------------------------------------------------------------------
     # Settings synchronization helpers
     # ------------------------------------------------------------------
