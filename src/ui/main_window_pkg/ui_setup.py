@@ -34,6 +34,8 @@ if TYPE_CHECKING:
 
 PROJECT_ROOT = Path(__file__).resolve().parents[3]
 EFFECT_SHADER_DIR = PROJECT_ROOT / "assets" / "shaders" / "effects"
+POST_EFFECT_SHADER_DIR = PROJECT_ROOT / "assets" / "shaders" / "post_effects"
+EFFECT_SHADER_DIRS: tuple[Path, ...] = (EFFECT_SHADER_DIR, POST_EFFECT_SHADER_DIR)
 
 
 class UISetup:
@@ -60,23 +62,24 @@ class UISetup:
 
         manifest: Dict[str, bool] = {}
 
-        try:
-            for path in EFFECT_SHADER_DIR.iterdir():
-                if not path.is_file():
-                    continue
-                if path.suffix.lower() not in {".frag", ".vert"}:
-                    continue
-                manifest[path.name] = True
-        except FileNotFoundError:
-            UISetup.logger.error(
-                "    ❌ Effect shader directory missing: %s", EFFECT_SHADER_DIR
-            )
-        except Exception as exc:  # pragma: no cover - defensive logging
-            UISetup.logger.warning(
-                "    ⚠️ Unable to enumerate effect shaders at %s: %s",
-                EFFECT_SHADER_DIR,
-                exc,
-            )
+        for directory in EFFECT_SHADER_DIRS:
+            try:
+                for path in directory.iterdir():
+                    if not path.is_file():
+                        continue
+                    if path.suffix.lower() not in {".frag", ".vert"}:
+                        continue
+                    manifest[path.name] = True
+            except FileNotFoundError:
+                UISetup.logger.error(
+                    "    ❌ Effect shader directory missing: %s", directory
+                )
+            except Exception as exc:  # pragma: no cover - defensive logging
+                UISetup.logger.warning(
+                    "    ⚠️ Unable to enumerate effect shaders at %s: %s",
+                    directory,
+                    exc,
+                )
 
         return manifest
 

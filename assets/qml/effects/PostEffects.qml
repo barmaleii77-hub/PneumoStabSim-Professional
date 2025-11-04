@@ -195,6 +195,10 @@ Item {
     readonly property bool useGlesShaders: reportedGlesContext && !preferDesktopShaderProfile
 
     readonly property string shaderResourceDirectory: "../../shaders/effects/"
+    readonly property string glesShaderResourceDirectory: "../../shaders/post_effects/"
+    readonly property var shaderResourceDirectories: useGlesShaders
+            ? [glesShaderResourceDirectory, shaderResourceDirectory]
+            : [shaderResourceDirectory]
     readonly property var desktopShaderSuffixes: ["_glsl450", "_desktop", "_core"]
     readonly property var glesShaderSuffixes: ["_es", "_gles", "_300es"]
     // qmllint disable unqualified
@@ -258,8 +262,11 @@ Item {
         return false
     }
 
-    function resolvedShaderUrl(resourceName) {
-        return Qt.resolvedUrl(shaderResourceDirectory + resourceName)
+    function resolvedShaderUrl(resourceName, resourceDirectory) {
+        var baseDirectory = resourceDirectory && resourceDirectory.length
+                ? resourceDirectory
+                : shaderResourceDirectory
+        return Qt.resolvedUrl(baseDirectory + resourceName)
     }
 
     function shaderResourceExists(url, resourceName, suppressErrors) {
@@ -325,19 +332,28 @@ Item {
         }
         candidateNames.push(normalized)
 
+        var directories = shaderResourceDirectories
+        if (!directories || !directories.length)
+            directories = [shaderResourceDirectory]
+
         var selectedName = normalized
-        var selectedUrl = resolvedShaderUrl(normalized)
+        var selectedUrl = resolvedShaderUrl(normalized, directories[0])
         var found = false
         for (var idx = 0; idx < candidateNames.length; ++idx) {
             var candidateName = candidateNames[idx]
-            var candidateUrl = resolvedShaderUrl(candidateName)
             var suppressErrors = candidateName === normalized ? false : true
-            if (shaderResourceExists(candidateUrl, candidateName, suppressErrors)) {
-                selectedName = candidateName
-                selectedUrl = candidateUrl
-                found = true
-                break
+            for (var dirIdx = 0; dirIdx < directories.length; ++dirIdx) {
+                var directory = directories[dirIdx]
+                var candidateUrl = resolvedShaderUrl(candidateName, directory)
+                if (shaderResourceExists(candidateUrl, candidateName, suppressErrors)) {
+                    selectedName = candidateName
+                    selectedUrl = candidateUrl
+                    found = true
+                    break
+                }
             }
+            if (found)
+                break
         }
 
         var glesVariantList = candidateNames.slice(0, Math.max(candidateNames.length - 1, 0))
