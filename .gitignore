@@ -466,6 +466,7 @@ check_*.py
 !tools/validate_settings.py
 !tools/validate_shaders.py
 !tools/graphics/validate_hdr_orientation.py
+!src/tools/validate_shaders.py
 !tests/unit/test_signal_tracing.py
 !tests/unit/tools/test_settings_audit.py
 !tests/unit/tools/test_redundant_files.py
@@ -760,6 +761,7 @@ validate_*.py
 !tools/validate_settings.py
 !tools/validate_shaders.py
 !tools/graphics/validate_hdr_orientation.py
+!src/tools/validate_shaders.py
 analysis_*.py
 study_*.py
 check_*.py.temp
