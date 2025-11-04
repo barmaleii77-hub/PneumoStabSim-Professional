@@ -263,7 +263,9 @@ Effect {
         return !preferDesktopShaderProfile
     }
 
-    readonly property string shaderResourceDirectory: "../../shaders/effects/"
+    readonly property string shaderResourceDirectory: "../../shaders/post_effects/"
+    readonly property string legacyShaderResourceDirectory: "../../shaders/effects/"
+    readonly property string glesShaderResourceDirectory: "../../shaders/post_effects/"
     // qmllint disable unqualified
     readonly property var shaderResourceManifest: typeof effectShaderManifest !== "undefined"
             ? effectShaderManifest
@@ -271,6 +273,21 @@ Effect {
     // qmllint enable unqualified
     readonly property var desktopShaderSuffixes: ["_glsl450", "_desktop", "_core"]
     readonly property var glesShaderSuffixes: ["_es", "_gles", "_300es"]
+    readonly property var shaderResourceDirectories: {
+        var directories = []
+        function appendDirectory(path) {
+            if (!path || !path.length)
+                return
+            if (directories.indexOf(path) !== -1)
+                return
+            directories.push(path)
+        }
+        if (useGlesShaders)
+            appendDirectory(glesShaderResourceDirectory)
+        appendDirectory(shaderResourceDirectory)
+        appendDirectory(legacyShaderResourceDirectory)
+        return directories
+    }
     property var shaderResourceAvailabilityCache: ({})
     property var shaderSanitizationCache: ({})
     property var shaderSanitizationWarnings: ({})
@@ -285,8 +302,11 @@ Effect {
         scheduleShaderCacheReset()
     }
 
-    function resolvedShaderUrl(resourceName) {
-        return Qt.resolvedUrl(shaderResourceDirectory + resourceName)
+    function resolvedShaderUrl(resourceName, resourceDirectory) {
+        var baseDirectory = resourceDirectory && resourceDirectory.length
+                ? resourceDirectory
+                : shaderResourceDirectory
+        return Qt.resolvedUrl(baseDirectory + resourceName)
     }
 
     function shaderResourceExists(url, resourceName, suppressErrors) {
@@ -366,19 +386,30 @@ Effect {
         }
         candidateNames.push(normalized)
 
+        var directories = shaderResourceDirectories
+        if (!directories || !directories.length)
+            directories = [shaderResourceDirectory]
+
         var selectedName = normalized
-        var selectedUrl = resolvedShaderUrl(normalized)
+        var selectedUrl = resolvedShaderUrl(normalized, directories[0])
         var found = false
         for (var idx = 0; idx < candidateNames.length; ++idx) {
             var candidateName = candidateNames[idx]
-            var candidateUrl = resolvedShaderUrl(candidateName)
             var suppressErrors = candidateName === normalized ? false : true
-            if (shaderResourceExists(candidateUrl, candidateName, suppressErrors)) {
-                selectedName = candidateName
-                selectedUrl = candidateUrl
-                found = true
-                break
+            var candidateFound = false
+            for (var dirIdx = 0; dirIdx < directories.length; ++dirIdx) {
+                var directory = directories[dirIdx]
+                var candidateUrl = resolvedShaderUrl(candidateName, directory)
+                if (shaderResourceExists(candidateUrl, candidateName, suppressErrors)) {
+                    selectedName = candidateName
+                    selectedUrl = candidateUrl
+                    found = true
+                    candidateFound = true
+                    break
+                }
             }
+            if (candidateFound)
+                break
             if (useGlesShaders && candidateName !== normalized) {
                 if (!Object.prototype.hasOwnProperty.call(shaderVariantMissingWarnings, candidateName)) {
                     shaderVariantMissingWarnings[candidateName] = true
@@ -409,12 +440,14 @@ Effect {
                 var fallbackResolved = false
                 for (var candidateIndex = 0; candidateIndex < fallbackCandidateNames.length && !fallbackResolved; ++candidateIndex) {
                     var fallbackName = fallbackCandidateNames[candidateIndex]
-                    var fallbackUrl = resolvedShaderUrl(fallbackName)
-                    if (shaderResourceExists(fallbackUrl, fallbackName, false)) {
-                        selectedName = fallbackName
-                        selectedUrl = fallbackUrl
-                        fallbackResolved = true
-                        console.warn("⚠️ FogEffect: GLES fallback shader selected", fallbackName)
+                    for (var fbDirIdx = 0; fbDirIdx < directories.length && !fallbackResolved; ++fbDirIdx) {
+                        var fallbackUrl = resolvedShaderUrl(fallbackName, directories[fbDirIdx])
+                        if (shaderResourceExists(fallbackUrl, fallbackName, false)) {
+                            selectedName = fallbackName
+                            selectedUrl = fallbackUrl
+                            fallbackResolved = true
+                            console.warn("⚠️ FogEffect: GLES fallback shader selected", fallbackName)
+                        }
                     }
                 }
 
