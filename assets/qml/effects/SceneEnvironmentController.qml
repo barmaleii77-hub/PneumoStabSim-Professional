@@ -970,11 +970,109 @@ return
             console.log("SceneEnvironmentController:", message)
     }
 
+    function _descriptorContainsToken(descriptor, tokens) {
+        if (!descriptor || !tokens || !tokens.length)
+            return false
+
+        if (Array.isArray(descriptor)) {
+            for (var i = 0; i < descriptor.length; ++i) {
+                if (_descriptorContainsToken(descriptor[i], tokens))
+                    return true
+            }
+            return false
+        }
+
+        if (typeof descriptor === "string" || typeof descriptor === "number") {
+            var normalized = String(descriptor).toLowerCase()
+            for (var t = 0; t < tokens.length; ++t) {
+                if (normalized.indexOf(tokens[t]) !== -1)
+                    return true
+            }
+            return false
+        }
+
+        if (typeof descriptor === "object") {
+            var keys = Object.keys(descriptor)
+            for (var k = 0; k < keys.length; ++k) {
+                var key = keys[k]
+                var normalizedKey = String(key).toLowerCase()
+                for (var idx = 0; idx < tokens.length; ++idx) {
+                    if (normalizedKey.indexOf(tokens[idx]) !== -1)
+                        return true
+                }
+                try {
+                    if (_descriptorContainsToken(descriptor[key], tokens))
+                        return true
+                } catch (error) {
+                }
+            }
+        }
+
+        return false
+    }
+
+    function _effectRequestsBuffer(effect, propertyNames, requirementTokens) {
+        if (!effect)
+            return false
+
+        var candidates = propertyNames || []
+        if (!Array.isArray(candidates))
+            candidates = [candidates]
+
+        for (var i = 0; i < candidates.length; ++i) {
+            var candidate = candidates[i]
+            if (!candidate)
+                continue
+            try {
+                var value = effect[candidate]
+                if (value === true)
+                    return true
+                if (typeof value === "function") {
+                    try {
+                        if (value.call(effect) === true)
+                            return true
+                    } catch (error) {
+                    }
+                }
+            } catch (error) {
+            }
+        }
+
+        if (!requirementTokens || !requirementTokens.length)
+            return false
+
+        var metadataCandidates = [
+                    "bufferRequirements",
+                    "bufferRequirement",
+                    "requiredBuffers",
+                    "bufferPassRequirements",
+                    "bufferPassRequirement",
+                    "buffers",
+                    "bufferPasses"
+                ]
+
+        for (var j = 0; j < metadataCandidates.length; ++j) {
+            var metadataName = metadataCandidates[j]
+            try {
+                var descriptor = effect[metadataName]
+                if (descriptor === undefined || descriptor === null)
+                    continue
+                if (_descriptorContainsToken(descriptor, requirementTokens))
+                    return true
+            } catch (error) {
+            }
+        }
+
+        return false
+    }
+
     function _applyDepthTextureState(enabled) {
         var propertyName = _setEnvironmentPropertyCandidates([
                     "depthTextureEnabled",
+                    "depthBufferEnabled",
                     "explicitDepthTextureEnabled",
-                    "requiresDepthTexture"
+                    "requiresDepthTexture",
+                    "requiresDepthBuffer"
                 ], enabled)
 
         if (propertyName.length) {
@@ -1040,21 +1138,37 @@ return
                 var effect = stack[i]
                 if (!effect)
                     continue
-                try {
-                    if (effect.requiresDepthTexture === true)
-                        requiresDepth = true
-                } catch (error) {
-                }
-                try {
-                    if (effect.requiresVelocityTexture === true)
-                        requiresVelocity = true
-                } catch (error) {
-                }
+                if (_effectRequestsBuffer(effect,
+                                          [
+                                              "requiresDepthTexture",
+                                              "requiresDepthBuffer",
+                                              "needsDepthTexture",
+                                              "needsDepthBuffer",
+                                              "depthTextureEnabled"
+                                          ],
+                                          ["depth"]))
+                    requiresDepth = true
+                if (_effectRequestsBuffer(effect,
+                                          [
+                                              "requiresVelocityTexture",
+                                              "requiresVelocityBuffer",
+                                              "needsVelocityTexture",
+                                              "needsVelocityBuffer",
+                                              "velocityTextureEnabled"
+                                          ],
+                                          ["velocity", "motion"]))
+                    requiresVelocity = true
             }
         }
 
         _applyDepthTextureState(requiresDepth)
         _applyVelocityTextureState(requiresVelocity)
+
+        if (root._customFogEffect) {
+            var shouldForceFallback = requiresDepth && !depthTextureSupportActive
+            if (root._customFogEffect.forceDepthTextureUnavailable !== shouldForceFallback)
+                root._customFogEffect.forceDepthTextureUnavailable = shouldForceFallback
+        }
     }
 
     fog: Fog {
