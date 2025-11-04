@@ -43,6 +43,7 @@ logger = logging.getLogger(__name__)
 DEFAULT_SETTINGS_PATH = Path("config/app_settings.json")
 _DEFAULT_UNITS_VERSION = "si_v2"
 _MM_PER_M = 1000.0
+_ORBIT_PRESETS_PATH = Path("config/orbit_presets.json")
 
 _GEOMETRY_LINEAR_KEYS: Dict[str, None] = {
     "wheelbase": None,
@@ -329,6 +330,7 @@ class SettingsManager:
         self._extra: Dict[str, Any] = {}
         self._original_units_version: str = _DEFAULT_UNITS_VERSION
         self._dirty: bool = False
+        self._orbit_presets: Dict[str, Any] | None = None
         self.load()
 
     # ------------------------------------------------------------------ helpers
@@ -643,6 +645,77 @@ class SettingsManager:
     @property
     def is_dirty(self) -> bool:
         return self._dirty
+
+    # ----------------------------------------------------------------- orbit presets
+
+    def _load_orbit_presets(self) -> Dict[str, Any]:
+        path = _expand_path(_ORBIT_PRESETS_PATH)
+        try:
+            raw = path.read_text(encoding="utf-8")
+        except FileNotFoundError:
+            logger.warning("Orbit preset manifest not found: %s", path)
+            return {"version": 0, "presets": [], "index": {}}
+        except OSError as exc:
+            logger.error("Unable to read orbit preset manifest %s: %s", path, exc)
+            return {"version": 0, "presets": [], "index": {}}
+
+        try:
+            payload = json.loads(raw)
+        except json.JSONDecodeError as exc:
+            logger.error(
+                "Failed to parse orbit preset manifest %s: %s",
+                path,
+                exc,
+            )
+            return {"version": 0, "presets": [], "index": {}}
+
+        if not isinstance(payload, dict):
+            logger.error(
+                "Orbit preset manifest root must be a JSON object (found %s)",
+                type(payload).__name__,
+            )
+            return {"version": 0, "presets": [], "index": {}}
+
+        presets: list[dict[str, Any]] = []
+        index: dict[str, dict[str, Any]] = {}
+
+        raw_presets = payload.get("presets")
+        if isinstance(raw_presets, list):
+            for entry in raw_presets:
+                if not isinstance(entry, dict):
+                    continue
+                preset_id = entry.get("id")
+                if not isinstance(preset_id, str) or not preset_id:
+                    continue
+                preset_copy = _deep_copy(entry)
+                presets.append(preset_copy)
+                index[preset_id] = preset_copy
+
+        version = payload.get("version")
+        if isinstance(version, int):
+            version_value = version
+        else:
+            try:
+                version_value = int(version)
+            except (TypeError, ValueError):
+                version_value = 0
+
+        manifest: Dict[str, Any] = {
+            "version": version_value,
+            "default": payload.get("default"),
+            "presets": presets,
+            "index": index,
+        }
+        return manifest
+
+    def get_orbit_presets(self) -> Dict[str, Any]:
+        if self._orbit_presets is None:
+            self._orbit_presets = self._load_orbit_presets()
+        return _deep_copy(self._orbit_presets)
+
+    def refresh_orbit_presets(self) -> Dict[str, Any]:
+        self._orbit_presets = None
+        return self.get_orbit_presets()
 
     def _notify_change(self, change: _SettingsChange) -> None:
         if _settings_event_bus is None:

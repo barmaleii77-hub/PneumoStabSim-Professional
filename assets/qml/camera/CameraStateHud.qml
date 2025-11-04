@@ -1,4 +1,5 @@
 import QtQuick
+import QtQuick.Controls
 import QtQuick.Layouts
 
 /*
@@ -10,6 +11,30 @@ Item {
 
     property var cameraController: null
     property var settings: ({})
+    property var telemetry: null
+
+    function setSetting(key, value) {
+        var current = settings || {}
+        if (current[key] === value)
+            return
+
+        var next = {}
+        for (var entry in current) {
+            if (current.hasOwnProperty(entry))
+                next[entry] = current[entry]
+        }
+        next[key] = value
+        settings = next
+    }
+
+    function persistSetting(key, value) {
+        hud.setSetting(key, value)
+        if (typeof safeApplyConfigChange === "function") {
+            var patch = {}
+            patch[key] = value
+            safeApplyConfigChange("diagnostics.camera_hud", patch)
+        }
+    }
 
     readonly property var cameraState: cameraController ? cameraController.state : null
     readonly property real sceneScaleFactor: cameraController ? cameraController.sceneScaleFactor : 1000.0
@@ -24,6 +49,11 @@ Item {
         ? !!settings.showAngles : true
     readonly property bool showMotion: settings && settings.showMotion !== undefined
         ? !!settings.showMotion : true
+
+    readonly property string labelOn: qsTrId("camera.hud.state.on") || qsTr("ON")
+    readonly property string labelOff: qsTrId("camera.hud.state.off") || qsTr("OFF")
+    readonly property string labelMoving: qsTrId("camera.hud.state.moving") || qsTr("Moving")
+    readonly property string labelIdle: qsTrId("camera.hud.state.idle") || qsTr("Idle")
 
     implicitWidth: panel.implicitWidth
     implicitHeight: panel.implicitHeight
@@ -47,10 +77,41 @@ Item {
 
             Text {
                 id: header
-                text: qsTr("Camera HUD")
+                text: qsTrId("camera.hud.header") || qsTr("Camera HUD")
                 font.pixelSize: 15
                 font.bold: true
                 color: "#dce7ff"
+            }
+
+            RowLayout {
+                spacing: 4
+                Layout.fillWidth: true
+
+                CheckDelegate {
+                    text: qsTrId("camera.hud.toggle.pivot") || qsTr("Pivot")
+                    checked: hud.showPivot
+                    onToggled: hud.persistSetting("showPivot", checked)
+                }
+
+                CheckDelegate {
+                    text: qsTrId("camera.hud.toggle.pan") || qsTr("Pan")
+                    checked: hud.showPan
+                    onToggled: hud.persistSetting("showPan", checked)
+                }
+
+                CheckDelegate {
+                    text: qsTrId("camera.hud.toggle.angles") || qsTr("Angles")
+                    checked: hud.showAngles
+                    onToggled: hud.persistSetting("showAngles", checked)
+                }
+
+                CheckDelegate {
+                    text: qsTrId("camera.hud.toggle.motion") || qsTr("Motion")
+                    checked: hud.showMotion
+                    onToggled: hud.persistSetting("showMotion", checked)
+                }
+
+                Item { Layout.fillWidth: true }
             }
 
             Repeater {
@@ -66,7 +127,7 @@ Item {
                         color: "#8fa6d3"
                         horizontalAlignment: Text.AlignLeft
                         Layout.fillWidth: false
-                        Layout.preferredWidth: 110
+                        Layout.preferredWidth: 160
                     }
 
                     Text {
@@ -84,71 +145,177 @@ Item {
     }
 
     function metricsModel() {
-        if (!cameraState) {
-            return []
+        var metrics = []
+        var state = hud.cameraState
+        var data = hud.telemetry
+
+        function telemetryToMillimetres(value) {
+            var numeric = Number(value)
+            if (!isFinite(numeric))
+                return null
+            if (!isFinite(hud.sceneScaleFactor) || hud.sceneScaleFactor === 0)
+                return numeric
+            return numeric * hud.sceneScaleFactor
         }
 
-        var values = []
-        values.push({
-            label: qsTr("Distance [m]"),
-            value: formatMeters(cameraState.distance)
+        function resolveNumber(telemetryKey, stateValue) {
+            if (data && data[telemetryKey] !== undefined) {
+                var candidate = Number(data[telemetryKey])
+                if (isFinite(candidate))
+                    return candidate
+            }
+            var fallback = Number(stateValue)
+            return isFinite(fallback) ? fallback : null
+        }
+
+        var distanceMm = null
+        if (data && data.distance !== undefined)
+            distanceMm = telemetryToMillimetres(data.distance)
+        if (distanceMm === null && state && state.distance !== undefined) {
+            var stateDistance = Number(state.distance)
+            if (isFinite(stateDistance))
+                distanceMm = stateDistance
+        }
+        metrics.push({
+            label: qsTrId("camera.hud.metric.distance") || qsTr("Distance [m]"),
+            value: distanceMm !== null ? formatMeters(distanceMm) : "—"
         })
 
-        if (showAngles) {
-            values.push({
-                label: qsTr("Yaw/Pitch [°]"),
-                value: formatAngles(cameraState.yawDeg, cameraState.pitchDeg)
+        if (hud.showAngles) {
+            var yaw = resolveNumber("yawDeg", state ? state.yawDeg : undefined)
+            var pitch = resolveNumber("pitchDeg", state ? state.pitchDeg : undefined)
+            metrics.push({
+                label: qsTrId("camera.hud.metric.angles") || qsTr("Yaw/Pitch [°]"),
+                value: formatAngles(yaw, pitch)
             })
         }
 
-        if (showPan) {
-            values.push({
-                label: qsTr("Pan [m]"),
-                value: formatVector(Qt.vector3d(cameraState.panX, cameraState.panY, 0))
+        if (hud.showPan) {
+            var panVector = null
+            if (data && (data.panX !== undefined || data.panY !== undefined || data.panZ !== undefined)) {
+                var px = telemetryToMillimetres(data.panX)
+                var py = telemetryToMillimetres(data.panY)
+                var pz = telemetryToMillimetres(data.panZ)
+                if (px !== null || py !== null || pz !== null) {
+                    panVector = Qt.vector3d(px !== null ? px : 0, py !== null ? py : 0, pz !== null ? pz : 0)
+                }
+            }
+            if (!panVector && state)
+                panVector = Qt.vector3d(state.panX, state.panY, 0)
+            metrics.push({
+                label: qsTrId("camera.hud.metric.pan") || qsTr("Pan [m]"),
+                value: panVector ? formatVector(panVector) : "—"
             })
         }
 
-        if (showPivot) {
-            values.push({
-                label: qsTr("Pivot [m]"),
-                value: formatVector(cameraState.pivot)
+        if (hud.showPivot) {
+            var pivotVector = null
+            if (data && data.pivot) {
+                var pivot = data.pivot
+                var pvx = telemetryToMillimetres(pivot.x !== undefined ? pivot.x : pivot[0])
+                var pvy = telemetryToMillimetres(pivot.y !== undefined ? pivot.y : pivot[1])
+                var pvz = telemetryToMillimetres(pivot.z !== undefined ? pivot.z : pivot[2])
+                if (pvx !== null || pvy !== null || pvz !== null)
+                    pivotVector = Qt.vector3d(pvx !== null ? pvx : 0, pvy !== null ? pvy : 0, pvz !== null ? pvz : 0)
+            }
+            if (!pivotVector && state)
+                pivotVector = state.pivot
+            metrics.push({
+                label: qsTrId("camera.hud.metric.pivot") || qsTr("Pivot [m]"),
+                value: pivotVector ? formatVector(pivotVector) : "—"
             })
         }
 
-        values.push({
-            label: qsTr("FOV / Speed"),
-            value: formatScalar(cameraState.fov) + "° / " + formatScalar(cameraState.speed)
+        var fovValue = resolveNumber("fov", state ? state.fov : undefined)
+        var speedValue = resolveNumber("speed", state ? state.speed : undefined)
+        var fovText = fovValue !== null ? formatScalar(fovValue) + "°" : "—"
+        var speedText = speedValue !== null ? formatScalar(speedValue) : "—"
+        metrics.push({
+            label: qsTrId("camera.hud.metric.fov") || qsTr("FOV / Speed"),
+            value: fovText + " / " + speedText
         })
 
-        values.push({
-            label: qsTr("Clip [m]"),
-            value: formatMeters(cameraState.nearPlane) + " – " + formatMeters(cameraState.farPlane)
+        var nearMm = data && data.nearPlane !== undefined
+            ? telemetryToMillimetres(data.nearPlane)
+            : (state ? Number(state.nearPlane) : null)
+        var farMm = data && data.farPlane !== undefined
+            ? telemetryToMillimetres(data.farPlane)
+            : (state ? Number(state.farPlane) : null)
+        var nearText = nearMm !== null && isFinite(nearMm) ? formatMeters(nearMm) : "—"
+        var farText = farMm !== null && isFinite(farMm) ? formatMeters(farMm) : "—"
+        metrics.push({
+            label: qsTrId("camera.hud.metric.clip") || qsTr("Clip [m]"),
+            value: nearText + " – " + farText
         })
 
-        if (showMotion) {
-            values.push({
-                label: qsTr("Auto-rotate"),
-                value: cameraState.autoRotate ? qsTr("ON (%1°/s)").arg(formatScalar(cameraState.autoRotateSpeed)) : qsTr("OFF")
+        if (hud.showMotion) {
+            var autoRotate = data && data.autoRotate !== undefined ? !!data.autoRotate : (state ? !!state.autoRotate : false)
+            var autoSpeed = resolveNumber("autoRotateSpeed", state ? state.autoRotateSpeed : undefined)
+            var autoText = autoRotate
+                ? hud.labelOn + (autoSpeed !== null ? " (" + formatScalar(autoSpeed) + "°/s)" : "")
+                : hud.labelOff
+            metrics.push({
+                label: qsTrId("camera.hud.metric.autorotate") || qsTr("Auto-rotate"),
+                value: autoText
             })
-            values.push({
-                label: qsTr("Motion state"),
-                value: cameraController && cameraController.isMoving ? qsTr("Moving") : qsTr("Idle")
+
+            var moving = cameraController && cameraController.isMoving
+            metrics.push({
+                label: qsTrId("camera.hud.metric.motionstate") || qsTr("Motion state"),
+                value: moving ? hud.labelMoving : hud.labelIdle
             })
         }
 
-        values.push({
-            label: qsTr("Damping [ms]"),
+        metrics.push({
+            label: qsTrId("camera.hud.metric.damping") || qsTr("Damping [ms]"),
             value: formatDamping()
         })
 
-        if (cameraController && cameraController.motionSettlingMs !== undefined) {
-            values.push({
-                label: qsTr("Settle [ms]"),
-                value: String(cameraController.motionSettlingMs)
+        var settleValue = data && data.motionSettlingMs !== undefined
+            ? Number(data.motionSettlingMs)
+            : (cameraController && cameraController.motionSettlingMs !== undefined
+                ? Number(cameraController.motionSettlingMs)
+                : null)
+        if (isFinite(settleValue)) {
+            metrics.push({
+                label: qsTrId("camera.hud.metric.settle") || qsTr("Settle [ms]"),
+                value: formatScalar(settleValue)
             })
         }
 
-        return values
+        var inertiaInfo = formatInertiaTelemetry()
+        if (inertiaInfo) {
+            metrics.push({
+                label: qsTrId("camera.hud.metric.inertia") || qsTr("Inertia / Friction"),
+                value: inertiaInfo
+            })
+        }
+
+        var smoothingInfo = formatSmoothingTelemetry()
+        if (smoothingInfo) {
+            metrics.push({
+                label: qsTrId("camera.hud.metric.smoothing") || qsTr("Smoothing [rotate/pan/zoom]"),
+                value: smoothingInfo
+            })
+        }
+
+        var presetInfo = formatPresetTelemetry()
+        if (presetInfo) {
+            metrics.push({
+                label: qsTrId("camera.hud.metric.preset") || qsTr("Preset"),
+                value: presetInfo
+            })
+        }
+
+        var timestampInfo = formatTimestamp()
+        if (timestampInfo) {
+            metrics.push({
+                label: qsTrId("camera.hud.metric.timestamp") || qsTr("Snapshot"),
+                value: timestampInfo
+            })
+        }
+
+        return metrics
     }
 
     function formatScalar(value) {
@@ -183,20 +350,105 @@ Item {
         if (!vector) {
             return "—"
         }
-        return [vector.x, vector.y, vector.z]
+        var components = []
+        if (vector.x !== undefined && vector.y !== undefined && vector.z !== undefined) {
+            components = [vector.x, vector.y, vector.z]
+        } else if (vector.length === 3) {
+            components = [vector[0], vector[1], vector[2]]
+        } else {
+            return "—"
+        }
+        return components
             .map(function (component) { return formatMeters(component) })
             .join(", ")
     }
 
     function formatDamping() {
+        if (telemetry) {
+            var rotation = Number(telemetry.rotationDampingMs)
+            var distance = Number(telemetry.distanceDampingMs)
+            var pan = Number(telemetry.panDampingMs)
+            var parts = []
+            if (isFinite(rotation) && rotation > 0)
+                parts.push(formatScalar(rotation))
+            if (isFinite(distance) && distance > 0)
+                parts.push(formatScalar(distance))
+            if (isFinite(pan) && pan > 0)
+                parts.push(formatScalar(pan))
+            if (parts.length)
+                return parts.join(" / ")
+        }
+
         if (!cameraState) {
             return "—"
         }
-        var parts = [
+        var rawParts = [
             cameraState.rotationDampingMs,
             cameraState.distanceDampingMs,
             cameraState.panDampingMs
         ].map(function (value) { return String(value) })
-        return parts.join(" / ")
+        return rawParts.join(" / ")
+    }
+
+    function formatInertiaTelemetry() {
+        if (!telemetry)
+            return ""
+        var enabled = telemetry.inertiaEnabled
+        var inertia = Number(telemetry.inertia)
+        var friction = Number(telemetry.friction)
+        var parts = []
+        if (enabled !== undefined)
+            parts.push(enabled ? labelOn : labelOff)
+        if (isFinite(inertia))
+            parts.push("μ=" + formatScalar(inertia))
+        if (isFinite(friction))
+            parts.push("ƒ=" + formatScalar(friction))
+        return parts.join(" • ")
+    }
+
+    function formatSmoothingTelemetry() {
+        if (!telemetry)
+            return ""
+        var rotate = Number(telemetry.rotateSmoothing)
+        var pan = Number(telemetry.panSmoothing)
+        var zoom = Number(telemetry.zoomSmoothing)
+        var entries = []
+        if (isFinite(rotate))
+            entries.push((qsTrId("camera.hud.metric.rotate") || qsTr("Rotate")) + "=" + formatScalar(rotate))
+        if (isFinite(pan))
+            entries.push((qsTrId("camera.hud.metric.pan.short") || qsTr("Pan")) + "=" + formatScalar(pan))
+        if (isFinite(zoom))
+            entries.push((qsTrId("camera.hud.metric.zoom") || qsTr("Zoom")) + "=" + formatScalar(zoom))
+        return entries.join(" / ")
+    }
+
+    function formatPresetTelemetry() {
+        if (!telemetry)
+            return ""
+        var label = telemetry.presetLabel
+        if (label && typeof label === "object") {
+            if (label.en)
+                label = label.en
+            else {
+                for (var key in label) {
+                    if (label.hasOwnProperty(key) && typeof label[key] === "string" && label[key].length) {
+                        label = label[key]
+                        break
+                    }
+                }
+            }
+        }
+        if (typeof label === "string" && label.length)
+            return label
+        var presetId = telemetry.presetId || telemetry.orbitPresetDefault
+        if (typeof presetId === "string" && presetId.length)
+            return presetId
+        return ""
+    }
+
+    function formatTimestamp() {
+        if (!telemetry || !telemetry.timestamp)
+            return ""
+        return String(telemetry.timestamp)
     }
 }

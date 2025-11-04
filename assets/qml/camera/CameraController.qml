@@ -197,6 +197,9 @@ Item {
         height: implicitHeight
         cameraController: controller
         settings: controller.hudSettings
+        telemetry: controller.sceneBridge && controller.sceneBridge.camera
+                ? controller.sceneBridge.camera.hudTelemetry
+                : null
         visible: controller.hudVisible
         opacity: controller.hudVisible ? 1 : 0
         Behavior on opacity {
