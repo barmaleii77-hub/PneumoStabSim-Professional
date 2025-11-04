@@ -654,6 +654,27 @@ ExtendedSceneEnvironment {
         }
     }
 
+    if (params.ambient_occlusion && typeof params.ambient_occlusion === "object") {
+        var ambientOcclusion = params.ambient_occlusion
+        if (ambientOcclusion.enabled !== undefined)
+            ssaoEnabled = !!ambientOcclusion.enabled
+        if (ambientOcclusion.strength !== undefined) {
+            var ambientStrength = Number(ambientOcclusion.strength)
+            if (isFinite(ambientStrength))
+                ssaoIntensity = ambientStrength
+        }
+        if (ambientOcclusion.radius !== undefined) {
+            var ambientRadius = Number(ambientOcclusion.radius)
+            if (isFinite(ambientRadius))
+                ssaoRadius = Math.max(0.0001, toSceneLength(ambientRadius))
+        }
+        if (ambientOcclusion.samples !== undefined) {
+            var ambientSamples = Number(ambientOcclusion.samples)
+            if (isFinite(ambientSamples))
+                ssaoSampleRate = Math.max(1, Math.round(ambientSamples))
+        }
+    }
+
     if (params.depthOfFieldEnabled !== undefined)
         internalDepthOfFieldEnabled = !!params.depthOfFieldEnabled
     if (params.dofFocusDistance !== undefined) {

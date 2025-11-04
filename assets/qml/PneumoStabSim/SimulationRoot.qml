@@ -2413,12 +2413,21 @@ function applyLightingUpdates(params) {
  if (params.specularAAEnabled !== undefined) setIfExists(sceneEnvCtl, 'specularAAEnabled', !!params.specularAAEnabled);
  if (params.oitMode) setIfExists(sceneEnvCtl, 'oitMode', String(params.oitMode));
   if (params.ditheringEnabled !== undefined) setIfExists(sceneEnvCtl, 'ditheringEnabled', !!params.ditheringEnabled);
-  return true;
+
+ if (postEffects && typeof postEffects.applyPayload === "function") {
+  try {
+   postEffects.applyPayload(params, sceneEnvCtl);
+  } catch (effectError) {
+   console.warn("[SimulationRoot] postEffects.applyPayload failed", effectError);
+  }
+ }
+
+ return true;
  } catch (error) {
   console.error("[SimulationRoot] applyEnvironmentUpdates failed", error);
   return false;
  }
- }
+}
 
     function applyQualityUpdates(params) {
         params = coerceBatchObject("quality", params);
