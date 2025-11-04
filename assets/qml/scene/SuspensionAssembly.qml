@@ -26,16 +26,35 @@ Node {
     property var geometryDefaults: null
     property var emptyGeometryDefaults: null
 
-    QtObject {
-        id: defaultsBridge
-        readonly property var emptyGeometryDefaults: ({})
+    function asObject(value) {
+        return value && typeof value === "object" ? value : null
     }
 
-    readonly property var resolvedGeometryDefaults: geometryDefaults && typeof geometryDefaults === "object"
-        ? geometryDefaults
-        : (emptyGeometryDefaults && typeof emptyGeometryDefaults === "object"
-            ? emptyGeometryDefaults
-            : defaultsBridge.emptyGeometryDefaults)
+    readonly property var resolvedGeometryDefaults: {
+        const directDefaults = asObject(geometryDefaults)
+        if (directDefaults)
+            return directDefaults
+
+        // qmllint disable missing-property
+        const parentNode = assembly.parent
+        if (parentNode) {
+            const hasOwn = typeof parentNode.hasOwnProperty === "function" ? parentNode.hasOwnProperty : null
+            const parentDefaults = asObject(hasOwn && hasOwn.call(parentNode, "geometryDefaults") ? parentNode["geometryDefaults"] : null)
+            if (parentDefaults)
+                return parentDefaults
+
+            const parentEmpty = asObject(hasOwn && hasOwn.call(parentNode, "emptyGeometryDefaults") ? parentNode["emptyGeometryDefaults"] : null)
+            if (parentEmpty)
+                return parentEmpty
+        }
+        // qmllint enable missing-property
+
+        const fallbackDefaults = asObject(emptyGeometryDefaults)
+        if (fallbackDefaults)
+            return fallbackDefaults
+
+        return null
+    }
 
     // ------------------------------------------------------------------
     // Animation inputs (degrees for lever angles, metres for pistons)
