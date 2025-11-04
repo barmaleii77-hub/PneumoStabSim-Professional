@@ -464,6 +464,7 @@ check_*.py
 !tools/check_ui_utf8.py
 !tools/check_forbidden_artifacts.py
 !tools/validate_settings.py
+!tools/validate_shaders.py
 !tests/unit/test_signal_tracing.py
 !tests/unit/tools/test_settings_audit.py
 !tests/unit/tools/test_redundant_files.py
@@ -473,6 +474,7 @@ check_*.py
 !tests/unit/tools/test_validate_settings_cli.py
 !tests/unit/tools/test_ci_tasks.py
 !tests/unit/tools/test_cipilot_environment.py
+!tests/tools/test_validate_shaders.py
 !tests/settings/test_persistence.py
 !tests/ui/test_geometry_cylinder_tab.py
 !tests/ui/test_effect_shaders.py
@@ -753,6 +755,7 @@ debug_*.qml
 # Validation and analysis scripts
 validate_*.py
 !tools/validate_settings.py
+!tools/validate_shaders.py
 analysis_*.py
 study_*.py
 check_*.py.temp

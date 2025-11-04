@@ -12,7 +12,7 @@ PYTEST_FLAGS ?= -vv --color=yes --maxfail=1
 SMOKE_TARGET ?= tests/smoke
 INTEGRATION_TARGET ?= tests/integration/test_main_window_qml.py
 
-.PHONY: format lint typecheck qml-lint test check verify smoke integration \
+.PHONY: format lint typecheck qml-lint test validate-shaders check verify smoke integration \
 autonomous-check autonomous-check-trace trace-launch sanitize cipilot-env \
 install-qt-runtime
 
@@ -84,7 +84,10 @@ qml-lint:
 test:
 	$(PYTHON) -m tools.ci_tasks test
 
-check: lint typecheck qml-lint test
+validate-shaders:
+	$(PYTHON) tools/validate_shaders.py
+
+check: lint typecheck qml-lint test validate-shaders
 
 verify: lint typecheck qml-lint test smoke integration
 

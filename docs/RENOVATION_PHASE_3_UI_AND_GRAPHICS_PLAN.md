@@ -101,3 +101,9 @@ Track panel completion status, performance runs, and localization updates here.
 - Normalised rigid-body static wheel loads so the scene holds a neutral pose without drift.
 - Added regression tests validating the equilibrium to keep render diagnostics reliable.
 
+### 2025-11-12 – Shader profile validation automation
+- Added `tools/validate_shaders.py` to assert that every desktop effect has matching `_fallback`
+  and `_es` profiles with the expected GLSL `#version` directives.
+- Integrated the validator into `make check` so CI fails when GLES variants are missing and
+  passes once the corresponding shader files are restored.
+
