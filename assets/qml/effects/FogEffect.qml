@@ -38,6 +38,15 @@ Effect {
     property real cameraFieldOfView: 60.0
     property real cameraAspectRatio: 1.0
 
+    // qmllint disable missing-property import
+    parameters: [
+        Parameter {
+            name: "qt_DepthTexture"
+            value: Effect.DepthTexture
+        }
+    ]
+    // qmllint enable missing-property import
+
     // Доступность depth-текстуры
     property bool depthTextureAvailable: false
     property bool forceDepthTextureUnavailable: false
