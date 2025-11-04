@@ -802,7 +802,13 @@ SequentialAnimation {
 
           Component.onCompleted: {
               initializeRenderSettings()
-              DepthTextureActivator.activate(sceneView)
+              var depthActivated = DepthTextureActivator.activate(sceneView)
+              if (depthActivated) {
+                  console.log("✅ SimulationRoot: DepthTextureActivator successfully applied")
+              } else {
+                  console.warn("⚠️ SimulationRoot: DepthTextureActivator returned false; logging status")
+                  DepthTextureActivator.logStatus(sceneView)
+              }
           }
 
         Scene.SharedMaterials {
