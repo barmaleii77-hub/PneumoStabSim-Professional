@@ -35,13 +35,13 @@ assets/qml/camera/
 ```qml
 // Position
 property vector3d pivot
-property real distance: 3500
+property real distance: 3200
 property real minDistance: 150
 property real maxDistance: 30000
 
 // Rotation
-property real yawDeg: 225
-property real pitchDeg: -25
+property real yawDeg: 30
+property real pitchDeg: -10
 property real minPitchDeg: -89
 property real maxPitchDeg: 89
 
@@ -50,8 +50,12 @@ property real panX: 0
 property real panY: 0
 
 // Camera settings
-property real fov: 60.0
-property real nearPlane: 10.0
+property real fov: 50.0
+// ВНИМАНИЕ: nearPlane установлен в 5.0 мм (0.005 м) для возможности детального просмотра мелких элементов подвески.
+// Такое малое значение может привести к проблемам с точностью depth buffer (z-fighting) на больших сценах.
+// Если требуется высокая точность глубины, рекомендуется использовать nearPlane в диапазоне 0.1–20 м (см. комментарий в CameraState.qml, строка 84).
+// В текущей реализации используется 32-битный depth buffer, что частично компенсирует потери точности.
+property real nearPlane: 5.0
 property real farPlane: 50000.0
 property real speed: 1.0
 
