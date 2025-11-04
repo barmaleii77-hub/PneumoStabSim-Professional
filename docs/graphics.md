@@ -104,6 +104,10 @@ Environment payload (вложенный)
 - При необходимости можно переопределить исполняемый файл Qt Shader Baker переменной окружения `QSB_COMMAND`
   (например, `QSB_COMMAND="/opt/qt/bin/qsb" make check-shaders`). Путь записывается в лог каждого шейдера, так что
   в `reports/shaders/*.log` всегда видно, какой бинарник использовался при проверке.
+- В чистых CI/контейнерах Ubuntu бинарник `qsb` отсутствует по умолчанию. Установите пакеты `qt6-shadertools-dev`
+  (подтягивает `qt6-shader-baker`) и зависимые библиотеки: `apt-get update && apt-get install -y qt6-shadertools-dev`.
+  После установки `make check` автоматически использует `/usr/lib/qt6/bin/qsb`, либо укажите путь явно через
+  `QSB_COMMAND=/usr/lib/qt6/bin/qsb make check`.
 - Команда включена в `make check`, поэтому локальная проверка и CI падают при любой ошибке компиляции шейдера.
 
 ### Проверка визуального результата
