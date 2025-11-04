@@ -55,8 +55,7 @@ Desktop shader 'fog_fallback.frag' → 'fog_fallback.frag'
 
 ### 3.2 Shader resolution profile
 - Используемый профиль: Desktop (не GLES)
-- Директория поиска: `../../shaders/effects/` (старая директория)
-- Не использует: `../../shaders/post_effects/` (новая директория с исправленными шейдерами)
+- Директория поиска: `../../shaders/effects/` (единая директория для всех профилей после миграции)
 
 ## 4. Shader availability check failures
 
@@ -72,12 +71,8 @@ dof_fallback_core.frag (HEAD/GET) – Invalid state
 ```
 
 ### 4.2 Manifest mismatch errors
-```
-motion_blur.frag (post_effects/)
-motion_blur.frag (effects/)
-```
 
-**Причина:** шейдеры присутствуют в манифесте, но физически недоступны через XMLHttpRequest.
+*(устранено после объединения шейдеров в `effects/`; записи `post_effects/` больше не фигурируют в манифесте и предупреждения не появляются).* 
 
 ## 5. Effect pipeline hashes
 ```
@@ -104,20 +99,20 @@ DEFAULT>:5fca73276dc57be376f00d097080c7207685e641:1:0
 
 ## 7. Проблема: директории шейдеров
 
-### 7.1 Приоритет резолюции
+### 7.1 Текущий порядок поиска
 ```
-1. ../../shaders/post_effects/  (новые ES шейдеры) ← не используется
-2. ../../shaders/effects/       (старые desktop) ← используется
-3. Legacy fallback              (старые)
+1. ../../shaders/effects/       (единый каталог для desktop и GLES)
+2. Legacy fallback              (архивные GLSL 330 варианты)
 ```
 
-### 7.2 Файлы в `effects/` (старые)
-- Используют `#define MAIN main` (старый entry point)
-- Не обновлены до `#define MAIN qt_customMain`
+### 7.2 Консолидация ресурсов
+- Все `_es` и `_fallback_es` файлы перенесены в `effects/`, что исключает расхождения между профилями.
+- Манифест больше не содержит ссылок на `post_effects/`, поэтому Qt не пытается загрузить дубликаты.
+- Проверка `shaderVariantMissingWarnings` корректно сигнализирует только о реальных пропущенных файлах.
 
-### 7.3 Файлы в `post_effects/` (новые)
-- Используют `#define MAIN qt_customMain`
-- Не загружаются, потому что Desktop profile ищет в `effects/` первым
+### 7.3 Историческая справка
+- Ранее `post_effects/` содержал исправленные GLES-шейдеры, но Qt отдавал приоритет `effects/`, вызывая предупреждения о mismatch.
+- После переноса файлы из `post_effects/` удалены, а ссылки обновлены на новый путь.
 
 ## 8. Статистика успешности
 ```
@@ -150,9 +145,9 @@ DEFAULT>:5fca73276dc57be376f00d097080c7207685e641:1:0
 | Повторов | 2× каждая |
 | Fragment shader fails | 30 |
 | Vertex shader fails | 6 |
-| Используемая директория | `effects/` (старая) |
-| Игнорируемая директория | `post_effects/` (исправленная) |
-| Тип ошибки | `qt_customMain` not found |
-| Причина | Desktop profile загружает старые шейдеры из `effects/` с устаревшим `#define MAIN main` |
+| Используемая директория | `effects/` (объединённая) |
+| Игнорируемая директория | *(нет; `post_effects/` удалена)* |
+| Тип ошибки | `qt_customMain` not found (исторический отчёт) |
+| Причина | До миграции Desktop profile загружал старые шейдеры из `effects/` с устаревшим `#define MAIN main` |
 | Эффекты | Все используют fallback shaders |
 | Функциональность | Приложение работает, эффекты деградированы |

@@ -196,7 +196,7 @@ Item {
 
     readonly property string shaderResourceDirectory: "../../shaders/effects/"
     readonly property string legacyShaderResourceDirectory: "../../shaders/effects/"
-    readonly property string glesShaderResourceDirectory: "../../shaders/post_effects/"
+    readonly property string glesShaderResourceDirectory: "../../shaders/effects/"
     readonly property var shaderResourceDirectories: {
         var directories = []
         function appendDirectory(path) {
