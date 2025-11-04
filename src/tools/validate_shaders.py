@@ -158,7 +158,8 @@ def _resolve_qsb_command() -> list[str]:
         candidate_dirs.append(Path(value) / "bin")
 
     candidate_dirs.extend(
-        Path(path) for path in (
+        Path(path)
+        for path in (
             "/usr/lib/qt6/bin",
             "/usr/lib64/qt6/bin",
             "/usr/local/lib/qt6/bin",
