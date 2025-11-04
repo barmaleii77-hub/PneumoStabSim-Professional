@@ -198,6 +198,12 @@
             "piston_thickness_m": {
               "type": "number"
             },
+            "frame_mass": {
+              "type": "number"
+            },
+            "wheel_mass": {
+              "type": "number"
+            },
             "tail_rod_length_m": {
               "type": "number"
             },
@@ -240,6 +246,8 @@
             "rod_diameter_rear_m",
             "piston_rod_length_m",
             "piston_thickness_m",
+            "frame_mass",
+            "wheel_mass",
             "tail_rod_length_m",
             "interference_check",
             "link_rod_diameters",
