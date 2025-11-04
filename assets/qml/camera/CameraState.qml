@@ -31,7 +31,7 @@ QtObject {
     /**
      * Расстояние камеры от pivot point (в мм)
      */
-    property real distance: 3500
+    property real distance: 3200
 
     /**
      * Минимальное/максимальное расстояние
@@ -47,13 +47,13 @@ QtObject {
      * Yaw (горизонтальное вращение) в градусах
      * 0° = вид с востока, 90° = вид с севера, 180° = вид с запада
      */
-    property real yawDeg: 225
+    property real yawDeg: 30
 
     /**
      * Pitch (вертикальное вращение) в градусах
      * 0° = горизонт, -90° = вид сверху, +90° = вид снизу
      */
-    property real pitchDeg: -25
+    property real pitchDeg: -10
 
     /**
      * Ограничения pitch (избежание gimbal lock)
@@ -78,13 +78,13 @@ QtObject {
     /**
      * Field of View (в градусах)
      */
-    property real fov: 60.0
+    property real fov: 50.0
 
     /**
      * Near/Far clipping planes (в мм). Defaults target ~0.1–20 м для лучшей точности глубины.
      */
-    property real nearPlane: 100.0
-    property real farPlane: 20000.0
+    property real nearPlane: 5.0
+    property real farPlane: 50000.0
 
     /**
      * Camera movement speed multiplier
@@ -245,9 +245,19 @@ QtObject {
             }
         }
 
+        var beamNumeric = Number(beamSize)
+        if (!isFinite(beamNumeric) || beamNumeric < 0)
+            beamNumeric = 0
+
+        var frameNumeric = Number(frameHeight)
+        if (!isFinite(frameNumeric) || frameNumeric < 0)
+            frameNumeric = 0
+
+        var pivotY = beamNumeric > 0 ? beamNumeric / 2 : frameNumeric / 2
+
         return Qt.vector3d(
             0,
-            beamSize + frameHeight / 2,
+            pivotY,
             centerZ
         )
     }
@@ -325,8 +335,8 @@ QtObject {
         pivot = calculatePivot(beamSize, frameHeight, frameLength, frameToPivot)
 
         // Reset rotation to defaults
-        yawDeg = 225
-        pitchDeg = -25
+        yawDeg = 30
+        pitchDeg = -10
 
         // Reset pan
         panX = 0
