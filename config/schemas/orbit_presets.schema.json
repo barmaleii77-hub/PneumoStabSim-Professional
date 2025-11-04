@@ -1,0 +1,83 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Orbit controller preset manifest",
+  "type": "object",
+  "required": ["version", "presets"],
+  "properties": {
+    "version": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "default": {
+      "type": "string",
+      "pattern": "^[a-z0-9_\-]+$"
+    },
+    "presets": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["id", "label", "values"],
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[a-z0-9_\-]+$"
+          },
+          "category": {
+            "type": "string"
+          },
+          "devices": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "label": {
+            "type": "object",
+            "minProperties": 1,
+            "additionalProperties": {
+              "type": "string"
+            }
+          },
+          "description": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            }
+          },
+          "metadata": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "values": {
+            "type": "object",
+            "required": [
+              "orbit_inertia_enabled",
+              "orbit_inertia",
+              "orbit_rotate_smoothing",
+              "orbit_pan_smoothing",
+              "orbit_zoom_smoothing",
+              "orbit_friction"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "orbit_inertia_enabled": {"type": "boolean"},
+              "orbit_inertia": {"type": "number"},
+              "orbit_rotate_smoothing": {"type": "number"},
+              "orbit_pan_smoothing": {"type": "number"},
+              "orbit_zoom_smoothing": {"type": "number"},
+              "orbit_friction": {"type": "number"},
+              "orbit_distance": {"type": "number"},
+              "orbit_pitch": {"type": "number"},
+              "orbit_yaw": {"type": "number"},
+              "orbit_target_x": {"type": "number"},
+              "orbit_target_y": {"type": "number"},
+              "orbit_target_z": {"type": "number"}
+            }
+          }
+        }
+      }
+    }
+  }
+}

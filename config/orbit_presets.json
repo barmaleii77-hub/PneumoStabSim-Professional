@@ -1,0 +1,130 @@
+{
+  "version": 1,
+  "default": "baseline",
+  "presets": [
+    {
+      "id": "baseline",
+      "label": {
+        "en": "Baseline",
+        "ru": "Базовый"
+      },
+      "description": {
+        "en": "Default desktop profile mirroring persisted settings.",
+        "ru": "Базовый рабочий профиль для настольного режима."
+      },
+      "metadata": {
+        "devices": ["mouse"],
+        "tuning": "balanced"
+      },
+      "category": "desktop",
+      "devices": ["mouse"],
+      "values": {
+        "orbit_inertia_enabled": true,
+        "orbit_inertia": 0.4,
+        "orbit_rotate_smoothing": 0.5,
+        "orbit_pan_smoothing": 0.5,
+        "orbit_zoom_smoothing": 0.51,
+        "orbit_friction": 0.2,
+        "orbit_distance": 4.6,
+        "orbit_pitch": -20.0,
+        "orbit_yaw": 30.0,
+        "orbit_target_x": 0.0,
+        "orbit_target_y": 0.0,
+        "orbit_target_z": 0.5
+      }
+    },
+    {
+      "id": "rigid",
+      "label": {
+        "en": "Rigid",
+        "ru": "Жёсткий"
+      },
+      "description": {
+        "en": "Snappy input without inertia for CAD-style inspection.",
+        "ru": "Жёсткое управление без инерции для точного осмотра моделей."
+      },
+      "metadata": {
+        "devices": ["mouse", "pen_tablet"],
+        "tuning": "snappy"
+      },
+      "category": "desktop",
+      "devices": ["mouse", "pen_tablet"],
+      "values": {
+        "orbit_inertia_enabled": false,
+        "orbit_inertia": 0.0,
+        "orbit_rotate_smoothing": 0.08,
+        "orbit_pan_smoothing": 0.08,
+        "orbit_zoom_smoothing": 0.08,
+        "orbit_friction": 0.0,
+        "orbit_distance": 4.4,
+        "orbit_pitch": -18.0,
+        "orbit_yaw": 28.0,
+        "orbit_target_x": 0.0,
+        "orbit_target_y": 0.0,
+        "orbit_target_z": 0.45
+      }
+    },
+    {
+      "id": "smooth",
+      "label": {
+        "en": "Smooth",
+        "ru": "Плавный"
+      },
+      "description": {
+        "en": "Extra damping tuned for multi-touch trackpads.",
+        "ru": "Дополнительное сглаживание под жесты на трекпаде."
+      },
+      "metadata": {
+        "devices": ["trackpad"],
+        "tuning": "damped"
+      },
+      "category": "desktop",
+      "devices": ["trackpad"],
+      "values": {
+        "orbit_inertia_enabled": false,
+        "orbit_inertia": 0.0,
+        "orbit_rotate_smoothing": 0.18,
+        "orbit_pan_smoothing": 0.18,
+        "orbit_zoom_smoothing": 0.18,
+        "orbit_friction": 0.0,
+        "orbit_distance": 4.55,
+        "orbit_pitch": -19.0,
+        "orbit_yaw": 30.0,
+        "orbit_target_x": 0.0,
+        "orbit_target_y": 0.0,
+        "orbit_target_z": 0.5
+      }
+    },
+    {
+      "id": "cinematic",
+      "label": {
+        "en": "Cinematic",
+        "ru": "Кинематографичный"
+      },
+      "description": {
+        "en": "High-inertia demo preset suited for controllers and scripted fly-throughs.",
+        "ru": "Высокая инерция для презентаций и плавных пролётов."
+      },
+      "metadata": {
+        "devices": ["controller", "mouse"],
+        "tuning": "showcase"
+      },
+      "category": "presentation",
+      "devices": ["controller", "mouse"],
+      "values": {
+        "orbit_inertia_enabled": true,
+        "orbit_inertia": 0.3,
+        "orbit_rotate_smoothing": 0.22,
+        "orbit_pan_smoothing": 0.25,
+        "orbit_zoom_smoothing": 0.2,
+        "orbit_friction": 0.08,
+        "orbit_distance": 4.75,
+        "orbit_pitch": -17.5,
+        "orbit_yaw": 32.0,
+        "orbit_target_x": 0.0,
+        "orbit_target_y": 0.0,
+        "orbit_target_z": 0.5
+      }
+    }
+  ]
+}
