@@ -53,14 +53,9 @@ QtObject {
 
         var checks = [
             function () { return _readProperty(view3d, "depthTextureEnabled") },
-            function () { return _readProperty(view3d, "explicitDepthTextureEnabled") },
             function () {
                 var renderSettings = _safeRead(function () { return view3d.renderSettings })
                 return _readProperty(renderSettings, "depthTextureEnabled")
-            },
-            function () {
-                var renderSettings = _safeRead(function () { return view3d.renderSettings })
-                return _readProperty(renderSettings, "explicitDepthTextureEnabled")
             },
             function () {
                 var environment = _safeRead(function () { return view3d.environment })
@@ -87,19 +82,18 @@ QtObject {
 
         console.log("=== DepthTextureActivator Status Report ===")
         console.log("  depthTextureEnabled:", _readProperty(view3d, "depthTextureEnabled"))
-        console.log("  explicitDepthTextureEnabled:", _readProperty(view3d, "explicitDepthTextureEnabled"))
-        console.log("  velocityTextureEnabled:", _readProperty(view3d, "velocityTextureEnabled"))
-        console.log("  explicitVelocityTextureEnabled:", _readProperty(view3d, "explicitVelocityTextureEnabled"))
+        if (_hasProperty(view3d, "velocityTextureEnabled"))
+            console.log("  velocityTextureEnabled:", _readProperty(view3d, "velocityTextureEnabled"))
 
         var renderSettings = _safeRead(function () { return view3d.renderSettings })
         console.log("  renderSettings.depthTextureEnabled:", _readProperty(renderSettings, "depthTextureEnabled"))
-        console.log("  renderSettings.explicitDepthTextureEnabled:", _readProperty(renderSettings, "explicitDepthTextureEnabled"))
-        console.log("  renderSettings.velocityTextureEnabled:", _readProperty(renderSettings, "velocityTextureEnabled"))
-        console.log("  renderSettings.explicitVelocityTextureEnabled:", _readProperty(renderSettings, "explicitVelocityTextureEnabled"))
+        if (_hasProperty(renderSettings, "velocityTextureEnabled"))
+            console.log("  renderSettings.velocityTextureEnabled:", _readProperty(renderSettings, "velocityTextureEnabled"))
 
         var environment = _safeRead(function () { return view3d.environment })
         console.log("  environment.depthTextureEnabled:", _readProperty(environment, "depthTextureEnabled"))
-        console.log("  environment.velocityTextureEnabled:", _readProperty(environment, "velocityTextureEnabled"))
+        if (_hasProperty(environment, "velocityTextureEnabled"))
+            console.log("  environment.velocityTextureEnabled:", _readProperty(environment, "velocityTextureEnabled"))
         console.log("===========================================")
     }
 
@@ -185,8 +179,22 @@ QtObject {
         return false
     }
 
+    function _hasProperty(target, propertyName) {
+        if (!target || !propertyName)
+            return false
+        try {
+            return propertyName in target
+        } catch (error) {
+            console.debug("DepthTextureActivator: property presence check failed", propertyName, error)
+        }
+        return false
+    }
+
     function _trySetProperty(target, propertyName, value) {
         if (!target || !propertyName)
+            return false
+
+        if (!_hasProperty(target, propertyName))
             return false
 
         function logSuccess() {
@@ -227,6 +235,10 @@ QtObject {
     function _readProperty(target, propertyName) {
         if (!target || !propertyName)
             return undefined
+
+        if (!_hasProperty(target, propertyName))
+            return undefined
+
         try {
             return target[propertyName]
         } catch (error) {

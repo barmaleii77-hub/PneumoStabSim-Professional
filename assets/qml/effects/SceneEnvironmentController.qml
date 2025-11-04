@@ -908,26 +908,29 @@ return
     property bool _depthTextureWarningLogged: false
     property bool _velocityTextureWarningLogged: false
     readonly property var _depthTexturePropertyCandidates: [
-            "explicitDepthTextureEnabled",
-            "depthTextureEnabled",
-            "depthBufferEnabled",
-            "depthPassEnabled",
-            "requiresDepthTexture",
-            "requiresDepthBuffer",
-            "requiresDepthPass"
+            "depthTextureEnabled"
         ]
     readonly property var _velocityTexturePropertyCandidates: [
-            "explicitVelocityTextureEnabled",
-            "velocityTextureEnabled",
-            "velocityBufferEnabled",
-            "velocityPassEnabled",
-            "requiresVelocityTexture",
-            "requiresVelocityBuffer",
-            "requiresVelocityPass"
+            "velocityTextureEnabled"
         ]
+
+    function _hasEnvironmentProperty(propertyName) {
+        if (!propertyName)
+            return false
+
+        try {
+            return propertyName in root
+        } catch (error) {
+            console.debug("SceneEnvironmentController: property presence check failed", propertyName, error)
+        }
+        return false
+    }
 
     function _setEnvironmentProperty(propertyName, value) {
         if (!propertyName)
+            return false
+
+        if (!_hasEnvironmentProperty(propertyName))
             return false
 
         try {
@@ -1150,11 +1153,6 @@ return
                 if (_effectRequestsBuffer(effect,
                                           [
                                               "requiresDepthTexture",
-                                              "requiresDepthBuffer",
-                                              "requiresDepthPass",
-                                              "needsDepthTexture",
-                                              "needsDepthBuffer",
-                                              "usesDepthTexture",
                                               "depthTextureEnabled"
                                           ],
                                           ["depth", "z"]))
@@ -1162,11 +1160,6 @@ return
                 if (_effectRequestsBuffer(effect,
                                           [
                                               "requiresVelocityTexture",
-                                              "requiresVelocityBuffer",
-                                              "requiresVelocityPass",
-                                              "needsVelocityTexture",
-                                              "needsVelocityBuffer",
-                                              "usesVelocityTexture",
                                               "velocityTextureEnabled"
                                           ],
                                           ["velocity", "motion"]))

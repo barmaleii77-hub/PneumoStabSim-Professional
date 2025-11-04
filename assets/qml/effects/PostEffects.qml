@@ -1083,6 +1083,19 @@ Item {
                     .arg(versionLabel)
         }
 
+        // qmllint disable missing-property import
+        parameters: [
+            Parameter {
+                name: "qt_DepthTexture"
+                value: Effect.DepthTexture
+            },
+            Parameter {
+                name: "qt_NormalTexture"
+                value: Effect.NormalTexture
+            }
+        ]
+        // qmllint enable missing-property import
+
         Component.onCompleted: {
             depthTextureAvailable = root.ensureEffectRequirement(
                         ssaoEffect,
@@ -1090,15 +1103,24 @@ Item {
                         true,
                         "SSAO: depth texture support enabled",
                         "SSAO: depth texture buffer is not supported; disabling advanced SSAO")
-            // fixed: removed deprecated 'requiresNormalTexture' requirement (Qt 6)
-            normalTextureAvailable = false
+            normalTextureAvailable = root.ensureEffectRequirement(
+                        ssaoEffect,
+                        "requiresNormalTexture",
+                        true,
+                        "SSAO: normal texture support enabled",
+                        "SSAO: normal texture buffer is not supported; disabling advanced SSAO")
 
             fallbackDueToCompilation = false
             compilationErrorLog = ""
             var requiresFallback = !depthTextureAvailable || !normalTextureAvailable
             fallbackDueToRequirements = requiresFallback
             if (requiresFallback) {
-                requirementFallbackLog = qsTr("SSAO: depth texture buffer is not supported; disabling advanced SSAO")
+                if (!depthTextureAvailable && !normalTextureAvailable)
+                    requirementFallbackLog = qsTr("SSAO: depth and normal textures are not supported; disabling advanced SSAO")
+                else if (!depthTextureAvailable)
+                    requirementFallbackLog = qsTr("SSAO: depth texture buffer is not supported; disabling advanced SSAO")
+                else
+                    requirementFallbackLog = qsTr("SSAO: normal texture buffer is not supported; disabling advanced SSAO")
                 lastErrorLog = requirementFallbackLog
                 console.warn("⚠️ SSAO: switching to passthrough fallback due to missing textures")
                 fallbackActive = true
@@ -1228,6 +1250,15 @@ Item {
 
         property real cameraNear: root.cameraClipNear
         property real cameraFar: root.cameraClipFar
+
+        // qmllint disable missing-property import
+        parameters: [
+            Parameter {
+                name: "qt_DepthTexture"
+                value: Effect.DepthTexture
+            }
+        ]
+        // qmllint enable missing-property import
 
 
         onBlurAmountChanged: {
@@ -1369,6 +1400,15 @@ Item {
             if (samples < 1)
                 samples = 1
         }
+
+        // qmllint disable missing-property import
+        parameters: [
+            Parameter {
+                name: "qt_VelocityTexture"
+                value: Effect.VelocityTexture
+            }
+        ]
+        // qmllint enable missing-property import
 
         Component.onCompleted: {
             velocityTextureAvailable = root.ensureEffectRequirement(
