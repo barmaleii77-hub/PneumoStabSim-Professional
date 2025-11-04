@@ -754,8 +754,12 @@ SequentialAnimation {
         id: postEffects
         anchors.fill: parent
         visible: false
-        onEffectCompilationError: registerShaderWarning(effectId, errorLog)
-        onEffectCompilationRecovered: clearShaderWarning(effectId)
+        onEffectCompilationError: function(effectId, errorLog) {
+            root.registerShaderWarning(effectId, errorLog)
+        }
+        onEffectCompilationRecovered: function(effectId) {
+            root.clearShaderWarning(effectId)
+        }
     }
 
       View3D {
