@@ -14,8 +14,6 @@ precision mediump sampler2D;
 #endif
 #endif
 
-
-
 #ifndef SAMPLER_BINDING
 #ifdef QSB_ADD_BINDINGS
 #ifdef GL_ES
@@ -56,15 +54,6 @@ in vec2 v_uv;
 
 #ifndef INPUT_UV
 #define INPUT_UV v_uv
-#endif
-
-#ifndef MAIN
-#define MAIN qt_customMain
-#define QSB_USES_QT_CUSTOM_MAIN 1
-#endif
-
-#ifndef QSB_USES_QT_CUSTOM_MAIN
-#define QSB_USES_QT_CUSTOM_MAIN 0
 #endif
 
 #ifndef FRAGCOLOR
@@ -142,7 +131,7 @@ void ssaoESMain(inout vec4 fragColor)
     fragColor = vec4(original.rgb * occlusion, original.a);
 }
 
-void MAIN()
+void main()
 {
     vec4 fragColor = vec4(0.0);
     ssaoESMain(fragColor);
