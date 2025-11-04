@@ -289,26 +289,38 @@ Effect {
     }
 
     function shaderResourceExists(url, resourceName, suppressErrors) {
-        if (!url || !url.length)
+        if (!url)
             return false
 
-        if (Object.prototype.hasOwnProperty.call(shaderResourceAvailabilityCache, url))
-            return shaderResourceAvailabilityCache[url]
+        var normalizedUrl = url
+        if (typeof normalizedUrl === "object" && normalizedUrl !== null) {
+            try {
+                if (typeof normalizedUrl.toString === "function")
+                    normalizedUrl = normalizedUrl.toString()
+            } catch (error) {
+            }
+        }
+
+        if (!normalizedUrl || !normalizedUrl.length)
+            return false
+
+        if (Object.prototype.hasOwnProperty.call(shaderResourceAvailabilityCache, normalizedUrl))
+            return shaderResourceAvailabilityCache[normalizedUrl]
 
         var available = false
 
         if (resourceName && Object.prototype.hasOwnProperty.call(shaderResourceManifest, resourceName)) {
             available = !!shaderResourceManifest[resourceName]
-            shaderResourceAvailabilityCache[url] = available
+            shaderResourceAvailabilityCache[normalizedUrl] = available
             if (!available && !suppressErrors)
-                console.error("❌ FogEffect: shader resource missing", resourceName, url)
+                console.error("❌ FogEffect: shader resource missing", resourceName, normalizedUrl)
             return available
         }
 
         function checkAvailability(method) {
             try {
                 var xhr = new XMLHttpRequest()
-                xhr.open(method, url, false)
+                xhr.open(method, normalizedUrl, false)
                 xhr.send()
                 if (xhr.status === 200 || xhr.status === 0) {
                     available = true
@@ -325,9 +337,9 @@ Effect {
         if (!checkAvailability("HEAD"))
             checkAvailability("GET")
 
-        shaderResourceAvailabilityCache[url] = available
+        shaderResourceAvailabilityCache[normalizedUrl] = available
         if (!available && !suppressErrors)
-            console.error("❌ FogEffect: shader resource missing", resourceName, url)
+            console.error("❌ FogEffect: shader resource missing", resourceName, normalizedUrl)
 
         return available
     }
@@ -369,12 +381,42 @@ Effect {
         }
 
         var glesVariantList = candidateNames.slice(0, Math.max(candidateNames.length - 1, 0))
-        if (!found && useGlesShaders && !preferUnifiedShaderSources && glesVariantList.length > 0) {
-            console.warn("⚠️ FogEffect: GLES shader variants missing; enforcing desktop profile", glesVariantList)
-            requestDesktopShaderProfile(`Shader ${normalized} lacks GLES variants (${glesVariantList.join(", ")}); enforcing desktop profile`)
-        } else if (useGlesShaders && !preferUnifiedShaderSources && glesVariantList.length > 0 && selectedName === normalized) {
-            console.warn("⚠️ FogEffect: GLES shader variant not found; enforcing desktop profile", glesVariantList)
-            requestDesktopShaderProfile(`Shader ${normalized} did not resolve GLES variants (${glesVariantList.join(", ")}); enforcing desktop profile`)
+        var fallbackCandidateNames = []
+        if (useGlesShaders && !preferUnifiedShaderSources && glesVariantList.length > 0) {
+            var needsFallback = !found || selectedName === normalized
+            if (needsFallback) {
+                var fallbackBaseName = baseName.endsWith("_fallback") ? baseName : baseName + "_fallback"
+                for (var fbIdx = 0; fbIdx < glesShaderSuffixes.length; ++fbIdx) {
+                    var fbSuffix = glesShaderSuffixes[fbIdx]
+                    if (!fbSuffix || !fbSuffix.length)
+                        continue
+                    fallbackCandidateNames.push(fallbackBaseName + fbSuffix + extension)
+                }
+                fallbackCandidateNames.push(fallbackBaseName + extension)
+
+                if (!found)
+                    console.warn("⚠️ FogEffect: GLES shader variants missing; trying fallback", glesVariantList)
+                else
+                    console.warn("⚠️ FogEffect: GLES shader variant not resolved; falling back", glesVariantList)
+
+                var fallbackResolved = false
+                for (var candidateIndex = 0; candidateIndex < fallbackCandidateNames.length && !fallbackResolved; ++candidateIndex) {
+                    var fallbackName = fallbackCandidateNames[candidateIndex]
+                    var fallbackUrl = resolvedShaderUrl(fallbackName)
+                    if (shaderResourceExists(fallbackUrl, fallbackName, false)) {
+                        selectedName = fallbackName
+                        selectedUrl = fallbackUrl
+                        fallbackResolved = true
+                        console.warn("⚠️ FogEffect: GLES fallback shader selected", fallbackName)
+                    }
+                }
+
+                if (fallbackResolved) {
+                    found = true
+                } else if (!found) {
+                    requestDesktopShaderProfile(`Shader ${normalized} lacks GLES variants (${glesVariantList.join(", ")}); enforcing desktop profile`)
+                }
+            }
         }
 
         var previousSelection = shaderVariantSelectionCache[normalized]
@@ -435,18 +477,30 @@ Effect {
      */
     // qmllint disable unqualified
     function sanitizedShaderUrl(url, resourceName) {
-        if (!url || !url.length)
+        if (!url)
             return url
 
-        if (Object.prototype.hasOwnProperty.call(shaderSanitizationCache, url))
-            return shaderSanitizationCache[url]
+        var normalizedUrl = url
+        if (typeof normalizedUrl === "object" && normalizedUrl !== null) {
+            try {
+                if (typeof normalizedUrl.toString === "function")
+                    normalizedUrl = normalizedUrl.toString()
+            } catch (error) {
+            }
+        }
 
-        var sanitizedUrl = url
+        if (!normalizedUrl || !normalizedUrl.length)
+            return normalizedUrl
+
+        if (Object.prototype.hasOwnProperty.call(shaderSanitizationCache, normalizedUrl))
+            return shaderSanitizationCache[normalizedUrl]
+
+        var sanitizedUrl = normalizedUrl
         var sanitizationApplied = false
 
         try {
             var xhr = new XMLHttpRequest()
-            xhr.open("GET", url, false)
+            xhr.open("GET", normalizedUrl, false)
             xhr.responseType = "text"
             xhr.send()
             if (xhr.status === 200 || xhr.status === 0) {
@@ -472,7 +526,7 @@ Effect {
                     }
 
                     if (mutated && normalized !== shaderSource) {
-                        var cacheKey = resourceName || url
+                        var cacheKey = resourceName || normalizedUrl
                         if (!Object.prototype.hasOwnProperty.call(shaderSanitizationWarnings, cacheKey)) {
                             console.warn(
                                         "⚠️ FogEffect: shader", resourceName,
@@ -487,9 +541,9 @@ Effect {
             console.debug("FogEffect: shader normalization skipped", resourceName, error)
         }
 
-        shaderSanitizationCache[url] = sanitizedUrl
+        shaderSanitizationCache[normalizedUrl] = sanitizedUrl
         if (sanitizationApplied)
-            shaderSanitizationCache[url] = url
+            shaderSanitizationCache[normalizedUrl] = normalizedUrl
         return sanitizedUrl
 
     }
