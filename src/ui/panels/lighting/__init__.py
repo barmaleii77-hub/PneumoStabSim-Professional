@@ -7,7 +7,7 @@ from .baseline import (
     TonemapPreset,
     load_materials_baseline,
 )
-from .settings import LightingSettingsFacade
+from .settings import LightingSettingsBridge, LightingSettingsFacade
 
 __all__ = [
     "LightingSettingsFacade",
@@ -16,4 +16,5 @@ __all__ = [
     "SkyboxOrientation",
     "TonemapPreset",
     "load_materials_baseline",
+    "LightingSettingsBridge",
 ]

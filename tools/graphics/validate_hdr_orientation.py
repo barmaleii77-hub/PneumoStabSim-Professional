@@ -16,9 +16,10 @@ from __future__ import annotations
 
 import argparse
 import sys
+from datetime import datetime, timezone
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Iterable, Sequence
+from typing import Sequence
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 if str(REPO_ROOT) not in sys.path:
@@ -27,7 +28,6 @@ if str(REPO_ROOT) not in sys.path:
 from src.ui.panels.lighting.baseline import (
     MaterialsBaseline,
     OrientationIssue,
-    SkyboxOrientation,
     load_materials_baseline,
 )
 
@@ -41,48 +41,6 @@ class _ValidationResult:
     issues: Sequence[OrientationIssue]
 
 
-def _detect_orientation_issues(
-    skyboxes: Iterable[SkyboxOrientation],
-) -> list[OrientationIssue]:
-    issues: list[OrientationIssue] = []
-    for entry in skyboxes:
-        if entry.status != "ok":
-            issues.append(
-                OrientationIssue(
-                    skybox=entry,
-                    kind="status",
-                    message=entry.notes or "Skybox flagged for manual review",
-                )
-            )
-            continue
-
-        if entry.orientation != "z-up":
-            issues.append(
-                OrientationIssue(
-                    skybox=entry,
-                    kind="orientation",
-                    message=(
-                        "Expected 'z-up' orientation but received"
-                        f" '{entry.orientation}'"
-                    ),
-                )
-            )
-            continue
-
-        if abs(entry.rotation) > 180.0:
-            issues.append(
-                OrientationIssue(
-                    skybox=entry,
-                    kind="rotation",
-                    message=(
-                        "Rotation offset must stay within ±180°,"
-                        f" got {entry.rotation:.1f}"
-                    ),
-                )
-            )
-    return issues
-
-
 def _render_markdown(result: _ValidationResult) -> str:
     baseline = result.baseline
     issues_by_id = {issue.skybox.id: issue for issue in result.issues}
@@ -90,6 +48,8 @@ def _render_markdown(result: _ValidationResult) -> str:
     lines: list[str] = ["# HDR Orientation Report", ""]
     lines.append(f"- Total skyboxes: {len(baseline.skyboxes)}")
     lines.append(f"- Issues detected: {len(result.issues)}")
+    generated_ts = datetime.now(tz=timezone.utc).strftime("%Y-%m-%d %H:%M:%S %Z")
+    lines.append(f"- Generated: {generated_ts}")
     lines.append("")
 
     if not baseline.skyboxes:
@@ -98,8 +58,8 @@ def _render_markdown(result: _ValidationResult) -> str:
 
     lines.extend(
         [
-            "| Skybox | Orientation | Rotation | Status | Notes |",
-            "| --- | --- | --- | --- | --- |",
+            "| Skybox | File | Orientation | Rotation | Status | Notes |",
+            "| --- | --- | --- | --- | --- | --- |",
         ]
     )
 
@@ -108,8 +68,9 @@ def _render_markdown(result: _ValidationResult) -> str:
         status = "❌" if issue else "✅"
         note = issue.message if issue else entry.notes or ""
         lines.append(
-            "| {name} | {orientation} | {rotation:.1f}° | {status} | {note} |".format(
+            "| {name} | {file} | {orientation} | {rotation:.1f}° | {status} | {note} |".format(
                 name=entry.label,
+                file=entry.file,
                 orientation=entry.orientation,
                 rotation=entry.rotation,
                 status=status,
@@ -122,7 +83,7 @@ def _render_markdown(result: _ValidationResult) -> str:
 
 def _run_validation(baseline_path: Path) -> _ValidationResult:
     baseline = load_materials_baseline(baseline_path)
-    issues = _detect_orientation_issues(baseline.skyboxes)
+    issues = baseline.detect_orientation_issues()
     return _ValidationResult(baseline=baseline, issues=issues)
 
 
@@ -147,6 +108,11 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
         action="store_true",
         help="Echo the report to stdout in addition to writing the file",
     )
+    parser.add_argument(
+        "--ci",
+        action="store_true",
+        help="Emit GitHub Actions annotations when issues are detected",
+    )
     return parser.parse_args(argv)
 
 
@@ -168,6 +134,13 @@ def main(argv: Sequence[str] | None = None) -> int:
         print(report_content)
 
     if result.issues:
+        if args.ci:
+            for issue in result.issues:
+                skybox = issue.skybox
+                message = (
+                    f"[{skybox.id}] {issue.kind}: {issue.message} (file={skybox.file})"
+                )
+                print(f"::error title=HDR orientation::{message}")
         print(
             f"Found {len(result.issues)} HDR orientation issue(s); see {args.report}",
             file=sys.stderr,

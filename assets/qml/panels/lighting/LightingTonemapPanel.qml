@@ -1,10 +1,12 @@
 import QtQuick 2.15
 import QtQuick.Controls 2.15
 import QtQuick.Layouts 1.15
+import QtQml 2.15
 
 ColumnLayout {
     id: root
 
+    property var settingsBridge: (typeof lightingSettings !== "undefined" ? lightingSettings : null)
     property var tonemapPresets: []
     property string activePresetId: ""
 
@@ -12,6 +14,18 @@ ColumnLayout {
 
     spacing: 12
     Layout.fillWidth: true
+
+    Binding {
+        target: root
+        property: "tonemapPresets"
+        value: root.settingsBridge ? root.settingsBridge.tonemapPresets : []
+    }
+
+    Binding {
+        target: root
+        property: "activePresetId"
+        value: root.settingsBridge ? root.settingsBridge.activeTonemapPreset : ""
+    }
 
     Label {
         text: qsTr("Tonemapping presets")
@@ -33,7 +47,12 @@ ColumnLayout {
             checked: modelData.id === root.activePresetId
             Layout.fillWidth: true
 
-            onClicked: root.presetActivated(modelData.id)
+            onClicked: {
+                root.presetActivated(modelData.id)
+                if (root.settingsBridge) {
+                    root.settingsBridge.applyTonemapPreset(modelData.id)
+                }
+            }
 
             ToolTip.visible: hovered && tooltipText.length > 0
             ToolTip.delay: 200

@@ -28,6 +28,9 @@ from PySide6.QtWidgets import (
 from PySide6.QtQuickWidgets import QQuickWidget
 from PySide6.QtGui import QAction, QKeySequence, QSurfaceFormat
 
+from src.common.settings_manager import get_settings_event_bus, get_settings_manager
+from src.ui.panels.lighting import LightingSettingsBridge, LightingSettingsFacade
+
 if TYPE_CHECKING:
     from .main_window_refactored import MainWindow
 
@@ -107,8 +110,6 @@ class UISetup:
         settings_manager: Any | None,
     ) -> Dict[str, Dict[str, Any]]:
         """Подготовить стартовые словари для QML контекста."""
-
-        from src.common.settings_manager import get_settings_manager
 
         manager = settings_manager
         if manager is None:
@@ -374,7 +375,6 @@ class UISetup:
 
             # Новые контексты: события настроек и трассировка сигналов
             try:
-                from src.common.settings_manager import get_settings_event_bus
                 from src.common.signal_trace import get_signal_trace_service
 
                 context.setContextProperty("settingsEvents", get_settings_event_bus())
@@ -382,6 +382,23 @@ class UISetup:
             except Exception as inject_exc:
                 UISetup.logger.warning(
                     "    ⚠️ Failed to inject diagnostics contexts: %s", inject_exc
+                )
+
+            try:
+                facade = LightingSettingsFacade(
+                    settings_manager=getattr(window, "settings_manager", None)
+                )
+                bridge = LightingSettingsBridge(facade)
+                window._lighting_settings_facade = facade
+                window._lighting_settings_bridge = bridge
+                context.setContextProperty("lightingSettings", bridge)
+                UISetup.logger.info(
+                    "    ✅ Lighting settings facade exposed to QML context"
+                )
+            except Exception as lighting_exc:
+                UISetup.logger.warning(
+                    "    ⚠️ Failed to expose lighting settings facade: %s",
+                    lighting_exc,
                 )
 
             UISetup.logger.info("    ✅ Window context registered")
