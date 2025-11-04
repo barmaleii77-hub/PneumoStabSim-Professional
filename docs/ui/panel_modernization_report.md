@@ -17,12 +17,13 @@ Common threads across these modules:
 
 - `SliderFieldSpec` gained a `resets_preset` flag so individual sliders can opt out of preset resets, and `_UndoCommand` now records arbitrary payloads (value + preset id) so undo/redo restores both numeric state and active preset.
 - The new `PanelPreset` dataclass plus `SettingsBackedAccordionPanel.register_presets()` and `.apply_preset()` encapsulate preset orchestration, including snapshot diffing, telemetry emission, and persistence of the active preset via `SettingsManager`.
+- `SettingsBackedAccordionPanel` publishes QML-facing bindings: `undoController` (constant), `presetModel` (`QVariantList`), `activePresetId` (`str`), and an `applyPreset()` slot, letting QML reuse the Python undo stack and preset store without custom glue.
 - `GeometryPanelAccordion` now instantiates with `preset_settings_key="active_preset"`, loads preset definitions from `config/app_settings.json`, and updates the active preset automatically when users tweak sliders or replay undo steps.
 
 ## 3. Undo/Redo Surface
 
 - `PanelUndoController` continues to expose Qt properties for availability state, and replay paths now drive both slider values and preset identifiers through a single command pipeline.
-- `Panels.Common/PresetButtons.qml` wraps the preset list UI, optionally wiring an injected `PanelUndoController` into the shared `UndoRedoControls` header so QML surfaces get consistent undo affordances alongside preset buttons.
+- `Panels.Common/PresetButtons.qml` wraps the preset list UI, optionally wiring an injected `PanelUndoController` into the shared `UndoRedoControls` header so QML surfaces get consistent undo affordances alongside preset buttons. When paired with the new `presetModel`/`activePresetId` properties, the QML delegate stays in sync with Python-driven preset changes and undo replays.
 - `LightingTonemapPanel.qml` now delegates its UI to `PresetButtons`, reducing duplication and giving the QML layer immediate access to the shared undo/redo affordance.
 
 ## 4. Settings & Telemetry Integration
@@ -35,3 +36,8 @@ Common threads across these modules:
 
 - Adopt `SettingsBackedAccordionPanel` + `PanelPreset` within pneumatic, simulation, and graphics accordion panels to retire bespoke preset guards.
 - Surface the shared `PresetButtons` component inside the graphics and modes QML panels once their controllers expose a `PanelUndoController` to QML.
+
+## 6. Verification
+
+- `pytest tests/ui/test_signals_router_connections.py`
+- `pytest tests/settings/test_persistence.py`

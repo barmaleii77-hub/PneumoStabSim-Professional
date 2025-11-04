@@ -204,6 +204,9 @@ class PanelUndoController(QObject):
 class SettingsBackedAccordionPanel(QWidget):
     """Base class wiring sliders to :class:`SettingsManager` and undo support."""
 
+    presetsChanged = Signal()
+    activePresetChanged = Signal()
+
     def __init__(
         self,
         settings_section: str,
@@ -215,7 +218,7 @@ class SettingsBackedAccordionPanel(QWidget):
         super().__init__(parent)
         self._settings_section = settings_section
         self._settings = get_settings_manager()
-        self.undo_controller = PanelUndoController(self)
+        self._undo_controller = PanelUndoController(self)
         self.content_layout = QVBoxLayout(self)
         self.content_layout.setContentsMargins(0, 0, 0, 0)
         self.content_layout.setSpacing(8)
@@ -229,6 +232,7 @@ class SettingsBackedAccordionPanel(QWidget):
         self._preset_settings_key = preset_settings_key
         self._custom_preset_id = custom_preset_id
         self._presets: Dict[str, PanelPreset] = {}
+        self._preset_model: list[Dict[str, str]] = []
         self._preset_telemetry_key = f"{self._settings_section}.preset"
         self._active_preset_id: str = custom_preset_id
         self._applying_preset = False
@@ -240,6 +244,23 @@ class SettingsBackedAccordionPanel(QWidget):
             )
             if isinstance(stored, str) and stored:
                 self._active_preset_id = stored
+
+    # ----------------------------------------------------------------- bindings
+    @Property(QObject, constant=True)
+    def undoController(self) -> QObject:  # pragma: no cover - Qt binding
+        return self._undo_controller
+
+    @Property("QVariantList", notify=presetsChanged)
+    def presetModel(self) -> list[Dict[str, Any]]:  # pragma: no cover - Qt binding
+        return [dict(item) for item in self._preset_model]
+
+    @Property(str, notify=activePresetChanged)
+    def activePresetId(self) -> str:  # pragma: no cover - Qt binding
+        return self._active_preset_id
+
+    @Slot(str)
+    def applyPreset(self, preset_id: str) -> None:  # pragma: no cover - Qt binding
+        self.apply_preset(preset_id)
 
     # ------------------------------------------------------------------ helpers
     def add_slider_field(self, spec: SliderFieldSpec) -> ParameterSlider:
@@ -323,7 +344,7 @@ class SettingsBackedAccordionPanel(QWidget):
             )
             new_preset = self._active_preset_id
 
-        if not self.undo_controller.is_replaying:
+        if not self._undo_controller.is_replaying:
             command = _UndoCommand(
                 field_key=key,
                 previous=(previous, previous_preset),
@@ -333,7 +354,7 @@ class SettingsBackedAccordionPanel(QWidget):
                     key, payload, reason
                 ),
             )
-            self.undo_controller.push(command)
+            self._undo_controller.push(command)
 
         self._commit_value(spec, value, source="user")
         if spec.emit_signal:
@@ -471,6 +492,7 @@ class SettingsBackedAccordionPanel(QWidget):
         for preset in presets:
             preset_map[preset.preset_id] = preset
         self._presets = preset_map
+        self._update_preset_model()
         if telemetry_key:
             self._preset_telemetry_key = telemetry_key
 
@@ -511,7 +533,7 @@ class SettingsBackedAccordionPanel(QWidget):
                 telemetry_key=telemetry_key,
                 apply=self._apply_preset_from_command,
             )
-            self.undo_controller.push(command)
+            self._undo_controller.push(command)
 
         self._apply_preset_from_command(next_payload, source)
 
@@ -559,6 +581,7 @@ class SettingsBackedAccordionPanel(QWidget):
             resolved = self._match_snapshot_to_preset()
         self._active_preset_id = resolved
         self._persist_active_preset()
+        self.activePresetChanged.emit()
 
     def _match_snapshot_to_preset(self) -> str:
         current = self.get_parameters()
@@ -628,12 +651,24 @@ class SettingsBackedAccordionPanel(QWidget):
             source=reason,
             replay=_from_command,
         )
+        self.activePresetChanged.emit()
 
     def _persist_active_preset(self) -> None:
         if not self._preset_settings_key:
             return
         path = f"current.{self._settings_section}.{self._preset_settings_key}"
         self._settings.set(path, self._active_preset_id)
+
+    def _update_preset_model(self) -> None:
+        self._preset_model = [
+            {
+                "id": preset.preset_id,
+                "label": preset.label,
+                "description": preset.description,
+            }
+            for preset in self._presets.values()
+        ]
+        self.presetsChanged.emit()
 
 
 class GeometryPanelAccordion(SettingsBackedAccordionPanel):
