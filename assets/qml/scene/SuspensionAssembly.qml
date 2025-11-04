@@ -23,7 +23,21 @@ Node {
     required property var geometryState
     required property SharedMaterials sharedMaterials
     required property var materialsDefaults
-    property var geometryDefaults: ({})
+    property var geometryDefaults: null
+    property var emptyGeometryDefaults: null
+
+    QtObject {
+        id: defaultsBridge
+        readonly property var emptyGeometryDefaults: ({})
+    }
+
+    readonly property var resolvedEmptyGeometryDefaults: emptyGeometryDefaults && typeof emptyGeometryDefaults === "object"
+        ? emptyGeometryDefaults
+        : defaultsBridge.emptyGeometryDefaults
+
+    readonly property var resolvedGeometryDefaults: geometryDefaults && typeof geometryDefaults === "object"
+        ? geometryDefaults
+        : resolvedEmptyGeometryDefaults
 
     // ------------------------------------------------------------------
     // Animation inputs (degrees for lever angles, metres for pistons)
@@ -115,7 +129,7 @@ Node {
             var stateValue = _numeric(_lookup(assembly.geometryState, key))
             if (stateValue !== undefined)
                 return stateValue
-            var defaultValue = _numeric(_lookup(assembly.geometryDefaults, key))
+            var defaultValue = _numeric(_lookup(assembly.resolvedGeometryDefaults, key))
             if (defaultValue !== undefined)
                 return defaultValue
             var fallbackValue = _numeric(fallback)

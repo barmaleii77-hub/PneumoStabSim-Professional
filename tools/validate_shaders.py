@@ -93,16 +93,16 @@ def _relative(path: Path, root: Path) -> str:
         return str(path)
 
 
-def _validate_versions(files: Iterable[ShaderFile], root: Path, errors: ValidationErrors) -> None:
+def _validate_versions(
+    files: Iterable[ShaderFile], root: Path, errors: ValidationErrors
+) -> None:
     for shader in files:
         expected = EXPECTED_VERSIONS.get((shader.variant, shader.extension))
         if expected is None:
             continue
         directive = _read_first_significant_line(shader.path)
         if directive is None:
-            errors.append(
-                f"{_relative(shader.path, root)}: missing #version directive"
-            )
+            errors.append(f"{_relative(shader.path, root)}: missing #version directive")
             continue
         if directive != expected:
             errors.append(
