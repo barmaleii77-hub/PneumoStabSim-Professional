@@ -1,5 +1,18 @@
 # Accessibility Hardening Log
 
+## 2025-11-04 – High-contrast palette expansion and shortcut surfacing
+
+- Refreshed the high-contrast palette with clearer outline, selection, and
+  danger tones while publishing widget-specific accessibility metadata so
+  automation can match colours to control roles.
+- Extended the `Knob` and `RangeSlider` widgets to expose explicit semantic
+  roles, enumerated keyboard shortcuts, and aggregated descriptions for screen
+  readers.
+- Localised the new guidance strings (EN/RU) and exported the compiled
+  translation packs after validating the updated QML with `qmllint`.
+- Captured a new accessibility audit report and verified the targeted widget
+  tests to ensure the additional metadata is exercised in CI.
+
 ## 2025-03-08 – High-contrast theme and widget metadata refresh
 
 - Added the dedicated `assets/qml/themes/` module with singleton palette and

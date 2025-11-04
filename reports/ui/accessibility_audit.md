@@ -60,4 +60,4 @@
 | `scene/SharedMaterials.qml` | ⚠️ | ⚠️ | — | — |
 | `scene/SuspensionAssembly.qml` | ⚠️ | ⚠️ | — | — |
 | `themes/HighContrastPalette.qml` | ⚠️ | ⚠️ | — | — |
-| `themes/HighContrastTheme.qml` | ✅ | ✅ | — | Ctrl+Alt+H |
+| `themes/HighContrastTheme.qml` | ✅ | ✅ | — | Ctrl+Alt+Up<br/>Ctrl+Alt+Down<br/>Ctrl+Alt+0<br/>Ctrl+Alt+Right<br/>Ctrl+Alt+Left<br/>Ctrl+Alt+1<br/>Ctrl+Alt+2<br/>Ctrl+Alt+3<br/>Ctrl+Alt+H |

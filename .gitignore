@@ -839,6 +839,9 @@ run_*.bat.backup
 # Node modules (if using any JS tools)
 node_modules/
 
+# Qt translation binaries
+assets/i18n/*.qm
+
 # Archive directories for temporary files
 archive/temp/
 archive/old/
