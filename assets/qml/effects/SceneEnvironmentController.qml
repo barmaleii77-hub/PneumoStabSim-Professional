@@ -882,6 +882,8 @@ return
     property list<Effect> externalEffects: []
     property bool depthTextureSupportActive: false
     property bool velocityTextureSupportActive: false
+    property string _depthTexturePropertyName: ""
+    property string _velocityTexturePropertyName: ""
     property bool _depthTextureWarningLogged: false
     property bool _velocityTextureWarningLogged: false
 
@@ -916,35 +918,94 @@ return
         return false
     }
 
+    function _setEnvironmentPropertyCandidates(propertyNames, value) {
+        if (!propertyNames)
+            return ""
+
+        var list = propertyNames
+        if (!Array.isArray(propertyNames))
+            list = [propertyNames]
+
+        for (var i = 0; i < list.length; ++i) {
+            var propertyName = list[i]
+            if (!propertyName)
+                continue
+            if (_setEnvironmentProperty(propertyName, value))
+                return propertyName
+        }
+        return ""
+    }
+
+    function _logBufferToggle(prefix, enabled, propertyName) {
+        var suffix = propertyName && propertyName.length ? " (" + propertyName + ")" : ""
+        var message
+        if (prefix === "Depth")
+            message = enabled ? qsTr("Depth texture support enabled") : qsTr("Depth texture support disabled")
+        else
+            message = enabled ? qsTr("Velocity texture support enabled") : qsTr("Velocity texture support disabled")
+        if (suffix.length)
+            console.log("SceneEnvironmentController:", message + suffix)
+        else
+            console.log("SceneEnvironmentController:", message)
+    }
+
     function _applyDepthTextureState(enabled) {
-        if (_setEnvironmentProperty("depthTextureEnabled", enabled)) {
+        var propertyName = _setEnvironmentPropertyCandidates([
+                    "depthTextureEnabled",
+                    "explicitDepthTextureEnabled",
+                    "requiresDepthTexture"
+                ], enabled)
+
+        if (propertyName.length) {
+            if (_depthTexturePropertyName !== propertyName) {
+                console.log("SceneEnvironmentController:",
+                            qsTr("Depth texture binding via %1").arg(propertyName))
+                _depthTexturePropertyName = propertyName
+            }
             if (depthTextureSupportActive !== enabled) {
                 depthTextureSupportActive = enabled
-                console.log("SceneEnvironmentController:", enabled
-                            ? qsTr("Depth texture support enabled")
-                            : qsTr("Depth texture support disabled"))
+                _logBufferToggle("Depth", enabled, propertyName)
             }
+            _depthTextureWarningLogged = false
             return
         }
+
+        depthTextureSupportActive = false
+        _depthTexturePropertyName = ""
+
         if (enabled && !_depthTextureWarningLogged) {
-            console.warn("SceneEnvironmentController: depth textures requested but 'depthTextureEnabled' property is unavailable on ExtendedSceneEnvironment")
+            console.warn("SceneEnvironmentController: depth textures requested but ExtendedSceneEnvironment does not expose compatible properties")
             _depthTextureWarningLogged = true
         }
     }
 
     function _applyVelocityTextureState(enabled) {
-        if (_setEnvironmentProperty("velocityTextureEnabled", enabled)
-                || _setEnvironmentProperty("velocityBufferEnabled", enabled)) {
+        var propertyName = _setEnvironmentPropertyCandidates([
+                    "velocityTextureEnabled",
+                    "velocityBufferEnabled",
+                    "explicitVelocityTextureEnabled",
+                    "requiresVelocityTexture"
+                ], enabled)
+
+        if (propertyName.length) {
+            if (_velocityTexturePropertyName !== propertyName) {
+                console.log("SceneEnvironmentController:",
+                            qsTr("Velocity texture binding via %1").arg(propertyName))
+                _velocityTexturePropertyName = propertyName
+            }
             if (velocityTextureSupportActive !== enabled) {
                 velocityTextureSupportActive = enabled
-                console.log("SceneEnvironmentController:", enabled
-                            ? qsTr("Velocity texture support enabled")
-                            : qsTr("Velocity texture support disabled"))
+                _logBufferToggle("Velocity", enabled, propertyName)
             }
+            _velocityTextureWarningLogged = false
             return
         }
+
+        velocityTextureSupportActive = false
+        _velocityTexturePropertyName = ""
+
         if (enabled && !_velocityTextureWarningLogged) {
-            console.warn("SceneEnvironmentController: velocity textures requested but environment does not expose 'velocityTextureEnabled' or 'velocityBufferEnabled'")
+            console.warn("SceneEnvironmentController: velocity textures requested but ExtendedSceneEnvironment does not expose compatible properties")
             _velocityTextureWarningLogged = true
         }
     }
