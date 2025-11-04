@@ -173,7 +173,7 @@ Item {
                     }
 
                     Text {
-                        text: model.value
+                        text: model.value !== undefined && model.value !== null ? model.value : "—"
                         font.pixelSize: 13
                         color: "#e9f0ff"
                         horizontalAlignment: Text.AlignRight
@@ -357,6 +357,17 @@ Item {
                 label: qsTrId("camera.hud.metric.timestamp") || qsTr("Snapshot"),
                 value: timestampInfo
             })
+        }
+
+        for (var i = 0; i < metrics.length; ++i) {
+            var entry = metrics[i]
+            if (!entry || typeof entry !== "object")
+                continue
+            if (!("value" in entry) || entry.value === undefined || entry.value === null) {
+                entry.value = "—"
+            } else if (typeof entry.value !== "string") {
+                entry.value = String(entry.value)
+            }
         }
 
         return metrics
