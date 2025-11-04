@@ -37,7 +37,7 @@ if capture_path is not None:
     capture.parent.mkdir(parents=True, exist_ok=True)
     with capture.open("a", encoding="utf-8") as handle:
         json.dump(args, handle)
-        handle.write("\n")
+        handle.write("\\n")
 
 output = None
 for index, value in enumerate(list(args)):
