@@ -66,8 +66,28 @@ def _global_called_at(code: CodeType, offset: int) -> Optional[str]:
     # ``AttributeError``.  Restricting the heuristic to recognised call opcodes
     # avoids that problem while keeping compatibility with Python 3.13's "CALL"
     # instruction as well as the legacy variants emitted on older interpreters.
-    call_opnames = {"CALL", "CALL_FUNCTION", "CALL_METHOD", "CALL_FUNCTION_KW"}
+    call_opnames = {
+        "CALL",
+        "CALL_FUNCTION",
+        "CALL_METHOD",
+        "CALL_FUNCTION_KW",
+        "CALL_INTRINSIC_1",
+        "CALL_INTRINSIC_2",
+        "CALL_INTRINSIC_3",
+    }
     if instructions[index].opname not in call_opnames:
+        return None
+
+    # ``inspect.unwrap`` and similar helpers load the attribute name literal
+    # immediately before invoking ``hasattr``.  Guarding on this pattern keeps
+    # us from accidentally attributing an unrelated call (for example,
+    # ``hasattr(x, "some_other_attr")`` elsewhere in the same function) to the
+    # ``__wrapped__`` probe and re-raising ``AttributeError`` when the caller is
+    # performing a legitimate lookup.
+    if index == 0:
+        return None
+    preceding = instructions[index - 1]
+    if preceding.opname != "LOAD_CONST" or preceding.argval != "__wrapped__":
         return None
 
     for instr in _reverse_skip(instructions, index):
