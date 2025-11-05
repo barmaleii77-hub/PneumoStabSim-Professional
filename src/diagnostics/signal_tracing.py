@@ -7,9 +7,22 @@ from collections import deque
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from threading import RLock
-from typing import Any, Callable, Deque, Iterable, Iterator, List, Optional, Tuple
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Callable,
+    Deque,
+    Iterable,
+    Iterator,
+    List,
+    Optional,
+    Tuple,
+)
 
-from structlog.stdlib import BoundLogger
+if TYPE_CHECKING:
+    from structlog.stdlib import BoundLogger  # pragma: no cover
+else:
+    BoundLogger = Any
 
 from .logger_factory import get_logger
 

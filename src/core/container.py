@@ -24,9 +24,12 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from pathlib import Path
-from typing import Any, Dict, TypeVar
+from typing import TYPE_CHECKING, Any, Dict, TypeVar
 
-from structlog.stdlib import BoundLogger
+if TYPE_CHECKING:
+    from structlog.stdlib import BoundLogger  # pragma: no cover
+else:
+    BoundLogger = Any
 
 from src.common.event_logger import EventLogger
 from src.common.settings_manager import ProfileSettingsManager, SettingsManager

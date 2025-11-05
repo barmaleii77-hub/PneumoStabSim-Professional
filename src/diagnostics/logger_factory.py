@@ -21,18 +21,28 @@ take advantage of structured logging semantics.
 
 from __future__ import annotations
 
+import importlib
+import importlib.util
 import logging
 from dataclasses import dataclass
-from typing import Iterable, Optional
+from typing import Any, Iterable, Optional
 
-import structlog
+
+_STRUCTLOG_SPEC = importlib.util.find_spec("structlog")
+if _STRUCTLOG_SPEC is not None:
+    structlog = importlib.import_module("structlog")
+else:  # pragma: no cover - executed when structlog is absent
+    structlog = None
 
 
 DEFAULT_LOG_LEVEL = logging.INFO
 
 
-def _shared_processors() -> list[structlog.typing.Processor]:
-    """Return the processors shared by stdlib + structlog pipelines."""
+def _shared_processors() -> list[Any]:
+    """Return processors shared by stdlib + structlog pipelines."""
+
+    if structlog is None:
+        return []
 
     return [
         structlog.contextvars.merge_contextvars,
@@ -44,19 +54,87 @@ def _shared_processors() -> list[structlog.typing.Processor]:
 
 
 def _ensure_stdlib_bridge(level: int) -> None:
-    """Configure the standard logging module to forward records to structlog."""
+    """Configure the logging bridge for structlog or provide a fallback."""
 
-    formatter = structlog.stdlib.ProcessorFormatter(
-        processor=structlog.processors.JSONRenderer(),
-        foreign_pre_chain=_shared_processors(),
-    )
+    if structlog is not None:
+        formatter = structlog.stdlib.ProcessorFormatter(
+            processor=structlog.processors.JSONRenderer(),
+            foreign_pre_chain=_shared_processors(),
+        )
+
+        handler = logging.StreamHandler()
+        handler.setFormatter(formatter)
+
+        root_logger = logging.getLogger()
+        root_logger.handlers[:] = [handler]
+        root_logger.setLevel(level)
+        return
 
     handler = logging.StreamHandler()
-    handler.setFormatter(formatter)
+    handler.setFormatter(
+        logging.Formatter("%(asctime)s %(name)s [%(levelname)s] %(message)s")
+    )
 
     root_logger = logging.getLogger()
     root_logger.handlers[:] = [handler]
     root_logger.setLevel(level)
+
+
+_FALLBACK_CONFIGURED = False
+_FALLBACK_LEVEL = DEFAULT_LOG_LEVEL
+
+
+class _FallbackBoundLogger:
+    """Minimal structlog-compatible logger based on :mod:`logging`."""
+
+    __slots__ = ("_logger", "_context")
+
+    def __init__(self, name: str, *, context: dict[str, object] | None = None) -> None:
+        self._logger = logging.getLogger(name)
+        self._context: dict[str, object] = dict(context or {})
+
+    def bind(self, **kwargs: object) -> "_FallbackBoundLogger":
+        if not kwargs:
+            return self
+        merged = {**self._context, **kwargs}
+        return _FallbackBoundLogger(self._logger.name, context=merged)
+
+    def setLevel(self, level: int) -> None:  # pragma: no cover - passthrough
+        self._logger.setLevel(level)
+
+    def _format(self, event: str, event_kwargs: dict[str, object]) -> str:
+        parts = [event]
+        if self._context:
+            parts.append(f"context={self._context}")
+        if event_kwargs:
+            parts.append(f"event={event_kwargs}")
+        return " | ".join(parts)
+
+    def _log(self, level: int, event: str, **event_kwargs: object) -> None:
+        message = self._format(event, event_kwargs)
+        self._logger.log(level, message)
+
+    def debug(self, event: str, **event_kwargs: object) -> None:
+        self._log(logging.DEBUG, event, **event_kwargs)
+
+    def info(self, event: str, **event_kwargs: object) -> None:
+        self._log(logging.INFO, event, **event_kwargs)
+
+    def warning(self, event: str, **event_kwargs: object) -> None:
+        self._log(logging.WARNING, event, **event_kwargs)
+
+    def error(self, event: str, **event_kwargs: object) -> None:
+        self._log(logging.ERROR, event, **event_kwargs)
+
+    def exception(self, event: str, **event_kwargs: object) -> None:
+        message = self._format(event, event_kwargs)
+        self._logger.exception(message)
+
+    def critical(self, event: str, **event_kwargs: object) -> None:
+        self._log(logging.CRITICAL, event, **event_kwargs)
+
+    def __getattr__(self, item: str) -> Any:  # pragma: no cover - passthrough
+        return getattr(self._logger, item)
 
 
 def configure_logging(
@@ -85,6 +163,13 @@ def configure_logging(
         that contextual information is consistent across the application.
     """
 
+    if structlog is None:
+        global _FALLBACK_CONFIGURED, _FALLBACK_LEVEL
+        _FALLBACK_LEVEL = level
+        _ensure_stdlib_bridge(level)
+        _FALLBACK_CONFIGURED = True
+        return
+
     chosen_wrapper = wrapper_class or structlog.stdlib.BoundLogger
     configured_processors = list(_shared_processors())
     if processors is not None:
@@ -110,10 +195,12 @@ class LoggerConfig:
     level: int = DEFAULT_LOG_LEVEL
     context: tuple[tuple[str, object], ...] = ()
 
-    def build(self) -> structlog.stdlib.BoundLogger:
+    def build(self) -> Any:
         logger = get_logger(self.name)
         if self.context:
-            logger = logger.bind(**dict(self.context))
+            bind = getattr(logger, "bind", None)
+            if callable(bind):
+                logger = bind(**dict(self.context))
         if hasattr(logger, "setLevel"):
             # ``structlog`` bound loggers expose ``setLevel`` when using the
             # stdlib wrapper.
@@ -121,8 +208,14 @@ class LoggerConfig:
         return logger
 
 
-def get_logger(name: str) -> structlog.stdlib.BoundLogger:
+def get_logger(name: str) -> Any:
     """Return a structlog bound logger, configuring defaults if needed."""
+
+    if structlog is None:
+        global _FALLBACK_CONFIGURED
+        if not _FALLBACK_CONFIGURED:
+            configure_logging(level=_FALLBACK_LEVEL)
+        return _FallbackBoundLogger(name)
 
     if not structlog.is_configured():  # pragma: no cover - defensive path
         configure_logging()
