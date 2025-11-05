@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import importlib.util
+import os
 import pathlib
 import subprocess
 import sys
@@ -56,17 +57,34 @@ def install_optional_dev() -> None:
         pip_install(flat)
 
 
+def install_pyside() -> None:
+    candidates = [
+        version.strip()
+        for version in os.environ.get("PYSIDE_VERSIONS", "6.10.0,6.9.0,6.8.2").split(",")
+        if version.strip()
+    ]
+    for version in candidates:
+        try:
+            print(f"[deps] installing PySide6/shiboken6 {version}")
+            pip_install([f"pyside6=={version}", f"shiboken6=={version}"])
+        except subprocess.CalledProcessError as exc:
+            print(f"[deps] PySide6 {version} unavailable: {exc}")
+        else:
+            return
+    print("[deps] falling back to latest PySide6/shiboken6 from PyPI")
+    pip_install(["pyside6", "shiboken6"])
+
+
 def install_critical_runtime() -> None:
-    critical = [
-        "pyside6==6.10.0",
-        "shiboken6==6.10.0",
+    install_pyside()
+    other = [
         "numpy",
         "scipy",
         "pyyaml",
         "tomli; python_version<'3.11'",
     ]
     print("[deps] installing critical runtime set …")
-    pip_install(critical)
+    pip_install(other)
 
 
 def check_modules() -> None:

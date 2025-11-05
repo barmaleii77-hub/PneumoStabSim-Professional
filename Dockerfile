@@ -43,6 +43,12 @@ ENV PATH=${QT_HOME}/bin:${PATH}
 WORKDIR /workdir
 COPY . /workdir
 
+# Install Qt after sources are available so the helper script can run
+RUN python scripts/install_qt.py
+
+ENV QT_HOME=${QT_ROOT}/current/${QT_ARCH}
+ENV PATH=${QT_HOME}/bin:${PATH}
+
 # Helper scripts
 COPY scripts/entrypoint.sh /usr/local/bin/entrypoint.sh
 COPY scripts/xvfb_wrapper.sh /usr/local/bin/xvfb_wrapper.sh
