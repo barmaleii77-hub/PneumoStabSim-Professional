@@ -55,6 +55,14 @@ os.environ.setdefault("QT_QUICK_BACKEND", "software")
 os.environ.setdefault("PYTHONHASHSEED", "0")
 
 
+_SETTINGS_TEMPLATE = Path("config/app_settings.json").read_text(encoding="utf-8")
+
+
+def _write_settings_payload(target: Path) -> Path:
+    target.write_text(_SETTINGS_TEMPLATE, encoding="utf-8")
+    return target
+
+
 @pytest.fixture(scope="session")
 def project_root_path():
     """Provide project root path"""
@@ -105,6 +113,91 @@ def qapp():
     yield app
 
     # Cleanup handled by Qt
+
+
+@pytest.fixture
+def temp_settings_file(tmp_path: Path) -> Path:
+    """Provide an isolated copy of ``config/app_settings.json`` for tests."""
+
+    return _write_settings_payload(tmp_path / "app_settings.json")
+
+
+@pytest.fixture
+def settings_service(monkeypatch: MonkeyPatch, temp_settings_file: Path):
+    """Return a :class:`SettingsService` bound to the temporary settings file."""
+
+    from src.core.settings_service import SettingsService
+
+    monkeypatch.setenv("PSS_SETTINGS_FILE", str(temp_settings_file))
+    return SettingsService(settings_path=temp_settings_file)
+
+
+@pytest.fixture
+def settings_manager(monkeypatch: MonkeyPatch, temp_settings_file: Path):
+    """Return an isolated :class:`SettingsManager` with fresh event bus."""
+
+    from src.common import settings_manager as sm
+
+    monkeypatch.setenv("PSS_SETTINGS_FILE", str(temp_settings_file))
+    monkeypatch.setattr(sm, "_settings_manager", None, raising=False)
+    monkeypatch.setattr(sm, "_settings_event_bus", sm.SettingsEventBus(), raising=False)
+    return sm.SettingsManager(settings_file=temp_settings_file)
+
+
+@pytest.fixture
+def training_preset_bridge(settings_manager):
+    """Expose a :class:`TrainingPresetBridge` connected to the isolated settings."""
+
+    pytest.importorskip(
+        "PySide6.QtCore",
+        reason="PySide6 QtCore module is required for TrainingPresetBridge fixtures",
+        exc_type=ImportError,
+    )
+    from src.simulation.presets import get_default_training_library
+    from src.ui.bridge.training_bridge import TrainingPresetBridge
+
+    bridge = TrainingPresetBridge(
+        settings_manager=settings_manager,
+        library=get_default_training_library(),
+    )
+    yield bridge
+    bridge.deleteLater()
+
+
+@pytest.fixture
+def simulation_harness(qapp, qtbot):
+    """Helper to start/stop :class:`SimulationManager` for smoke checks."""
+
+    pytest.importorskip(
+        "PySide6.QtCore",
+        reason="PySide6 QtCore module is required for simulation harness",
+        exc_type=ImportError,
+    )
+    try:
+        from src.runtime.sim_loop import SimulationManager
+    except Exception as exc:  # pragma: no cover - optional dependency environment
+        pytest.skip(f"Simulation stack unavailable: {exc}")
+
+    manager = SimulationManager()
+
+    def _run(*, runtime_ms: int = 50) -> None:
+        manager.start()
+
+        def _thread_running() -> bool:
+            return manager.physics_thread.isRunning()
+
+        qtbot.waitUntil(_thread_running, timeout=2000)
+        qtbot.wait(runtime_ms)
+        manager.stop()
+        qtbot.waitUntil(lambda: not manager.physics_thread.isRunning(), timeout=2000)
+
+    yield _run
+
+    try:
+        manager.stop()
+        manager.physics_thread.wait(500)
+    finally:
+        manager.deleteLater()
 
 
 @pytest.fixture
