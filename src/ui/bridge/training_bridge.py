@@ -12,6 +12,13 @@ from src.simulation.presets import TrainingPresetLibrary, get_default_training_l
 from src.simulation.service import TrainingPresetService
 
 
+class _CallableMap(dict):
+    """Dictionary that can also be invoked like a callable returning a copy."""
+
+    def __call__(self) -> Dict[str, Any]:  # type: ignore[override]
+        return dict(self)
+
+
 class TrainingPresetBridge(QObject):
     """Expose training preset catalogue and application helpers to QML."""
 
@@ -109,7 +116,7 @@ class TrainingPresetBridge(QObject):
 
     @Property("QVariantMap", notify=selectedPresetChanged)
     def selectedPreset(self) -> Dict[str, Any]:  # pragma: no cover - Qt binding
-        return dict(self._selected_payload)
+        return _CallableMap(self._selected_payload)
 
     # ---------------------------------------------------------------------- slots
     @Slot(result="QVariantList")
@@ -124,11 +131,14 @@ class TrainingPresetBridge(QObject):
     def applyPreset(self, preset_id: str) -> bool:
         if not preset_id:
             return False
+        previous_active = self._active_preset_id
         try:
             self._service.apply_preset(preset_id, auto_save=True)
         except KeyError:
             return False
-        self._set_selected_payload(preset_id)
+        if self._active_preset_id == previous_active:
+            self._set_selected_payload(preset_id)
+            self.activePresetChanged.emit()
         return True
 
     @Slot(result=str)

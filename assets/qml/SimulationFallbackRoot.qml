@@ -2,7 +2,7 @@ import QtQuick 6.10
 import QtQuick.Controls 6.10
 import QtQuick.Layouts 6.10
 import "./components"
-import "./diagnostics" as Diagnostics
+import "./diagnostics/LogBridge.js" as Diagnostics
 
 /*
  * PneumoStabSim fallback scene used when the full QtQuick3D assets are missing.
@@ -60,7 +60,7 @@ Item {
     // Helper utilities
     // ------------------------------------------------------------------
     function logQmlEvent(eventType, name) {
-        Diagnostics.LogBridge.forward(
+        Diagnostics.forward(
             eventType,
             name,
             typeof window !== "undefined" ? window : null,
