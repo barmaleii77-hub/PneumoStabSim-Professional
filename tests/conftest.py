@@ -51,6 +51,7 @@ project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 src_path = str(project_root / "src")
 if src_path not in sys.path:
+    # Вставляем src на позицию 1, чтобы project_root имел приоритет при разрешении импортов (Insert at position 1 to preserve project_root priority)
     sys.path.insert(1, src_path)
 
 # Set up environment variables for testing
