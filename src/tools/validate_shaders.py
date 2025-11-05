@@ -86,12 +86,8 @@ class ShaderValidationUnavailableError(RuntimeError):
     """Raised when qsb cannot run due to a missing runtime dependency."""
 
 
-class ShaderValidationEnvironmentError(ShaderValidationUnavailableError):
-    """Raised when ``qsb`` fails to start because of an environment issue."""
-
-
 class QsbEnvironmentError(RuntimeError):
-    """Raised when ``qsb`` execution fails due to an environment misconfiguration."""
+    """Raised when qsb fails because the Qt runtime is misconfigured."""
 
 
 def classify_shader(path: Path) -> tuple[str, str]:
@@ -237,134 +233,99 @@ def _extract_missing_shared_library(stderr: str) -> str | None:
     return None
 
 
-def _hint_for_library(library: str) -> str | None:
-    """Return the suggested package for *library*, if known."""
-
-    for candidate, package in RUNTIME_DEPENDENCY_HINTS:
-        if candidate == library:
-            return package
-    return None
-
-
-def _format_missing_library_message(library: str) -> str:
-    hint = _hint_for_library(library)
-    if hint:
-        return (
-            "Qt Shader Baker could not start because the shared library "
-            f"'{library}' is missing. Install the '{hint}' package or make the"
-            " library available on the system library path."
-        )
-    return (
-        "Qt Shader Baker could not start because the shared library "
-        f"'{library}' is missing from the runtime environment."
-    )
-
-
-def _interpret_qsb_startup_failure(
-    returncode: int,
-    stderr: str,
-    stdout: str,
-    *,
-    allow_generic: bool = True,
-) -> str | None:
-    """Return a human-friendly description for an early qsb failure."""
-
-    missing_library = _extract_missing_shared_library(stderr)
-    if missing_library:
-        return _format_missing_library_message(missing_library)
-
-    plugin_marker = "qt.qpa.plugin: Could not load the Qt platform plugin"
-    if plugin_marker in stderr:
-        return (
-            "Qt Shader Baker failed to initialise the Qt platform plugin. "
-            "Ensure Qt is installed correctly and QT_PLUGIN_PATH points to the"
-            " platform plugins directory."
-        )
-
-    if "This application failed to start" in stderr and "Qt platform plugin" in stderr:
-        return (
-            "Qt Shader Baker could not initialise the Qt platform plugin. "
-            "Install headless Qt dependencies (for example 'qt6-base') or run "
-            "with QT_QPA_PLATFORM=offscreen."
-        )
-
-    if allow_generic and returncode != 0 and not stdout.strip() and not stderr.strip():
-        return (
-            "Qt Shader Baker exited immediately without producing output. "
-            "This usually indicates a missing runtime dependency."
-        )
-
-    return None
-
-
 def _summarize_environment_failure(
-    returncode: int,
-    stdout: str,
-    stderr: str,
-    command: Sequence[str],
+    return_code: int, stdout: str, stderr: str, _command: Sequence[str]
 ) -> str | None:
-    """Provide a summary for qsb failures caused by the environment."""
+    """Return a human friendly description for common qsb bootstrap issues."""
 
-    message = _interpret_qsb_startup_failure(returncode, stderr, stdout)
-    if message is not None:
-        return message
+    if return_code == 0:
+        return None
 
-    missing_library = _extract_missing_shared_library(stderr)
-    if missing_library is not None:
-        return _format_missing_library_message(missing_library)
+    combined = "\n".join(filter(None, (stdout, stderr))).lower()
+    if not combined:
+        return None
 
-    if returncode in {127, 134}:
+    if "qt.qpa.plugin" in combined and "xcb" in combined:
         return (
-            "Qt Shader Baker exited with code "
-            f"{returncode} when running {' '.join(shlex.quote(arg) for arg in command)}."
+            "Qt Shader Baker could not load the Qt XCB platform plugin. "
+            "Install the headless Qt runtime dependencies (libxcb1, "
+            "libxkbcommon0, libxkbcommon-x11-0, libegl1, libgl1) or activate "
+            "the project environment before running qsb."
         )
+
+    if "qt.qpa.plugin" in combined and "could not find" in combined:
+        return (
+            "Qt Shader Baker is missing the Qt platform plugins. "
+            "Ensure QT_PLUGIN_PATH is set correctly (source activate_environment.sh) "
+            "or reinstall the Qt tooling."
+        )
+
+    if "failed to create opengl context" in combined or "could not initialize opengl" in combined:
+        return (
+            "Qt Shader Baker failed to initialise an OpenGL context. "
+            "Install the system OpenGL libraries (e.g. 'apt-get install -y libgl1 libegl1')."
+        )
+
+    if "error while loading shared libraries" in combined:
+        missing = _extract_missing_shared_library(stderr)
+        if missing:
+            package_hint = _package_for_library(missing)
+            if package_hint:
+                return (
+                    "Qt Shader Baker could not start because the shared library "
+                    f"'{missing}' is missing (install '{package_hint}')."
+                )
+            return f"Qt Shader Baker could not start because the shared library '{missing}' is missing."
 
     return None
 
 
 def _diagnose_qsb_failure(stderr: str) -> list[str]:
-    """Return additional diagnostic hints derived from qsb stderr."""
+    """Return supplemental diagnostic hints based on qsb stderr output."""
 
     hints: list[str] = []
-    missing_library = _extract_missing_shared_library(stderr)
-    if missing_library:
-        package = _hint_for_library(missing_library)
-        if package:
-            hints.append(
-                f"    Hint: install the '{package}' package to provide {missing_library}."
-            )
-    if "qt.qpa.plugin" in stderr and "xcb" in stderr:
+    lower = (stderr or "").lower()
+
+    if "qt.qpa.plugin" in lower and "xcb" in lower:
         hints.append(
-            "    Hint: Qt platform plugin 'xcb' is unavailable. Install X11 dependencies"
-            " or set QT_QPA_PLATFORM=offscreen for headless environments."
+            "    Hint: Install Qt platform dependencies (libxcb1, libxkbcommon0, "
+            "libxkbcommon-x11-0) or export QT_QPA_PLATFORM=offscreen."
         )
+
+    if "qt.qpa.plugin" in lower and "could not find" in lower:
+        hints.append(
+            "    Hint: Ensure QT_PLUGIN_PATH points to the Qt plugins directory "
+            "(source activate_environment.sh)."
+        )
+
+    if "failed to create opengl context" in lower or "could not initialize opengl" in lower:
+        hints.append(
+            "    Hint: Install OpenGL runtime libraries such as libgl1 and libegl1 "
+            "on the host system."
+        )
+
+    missing = _extract_missing_shared_library(stderr)
+    if missing:
+        package_hint = _package_for_library(missing)
+        if package_hint:
+            hints.append(
+                "    Hint: Install the missing shared library "
+                f"'{missing}' via 'apt-get install -y {package_hint}'."
+            )
+        else:
+            hints.append(
+                "    Hint: Install the missing shared library "
+                f"'{missing}' using your package manager."
+            )
+
     return hints
 
 
-def _probe_qsb(command: Sequence[str]) -> None:
-    """Ensure the qsb command can start before validating shaders."""
-
-    try:
-        completed = subprocess.run(
-            [*command, "--version"],
-            capture_output=True,
-            text=True,
-        )
-    except FileNotFoundError as exc:  # pragma: no cover - defensive guard
-        raise ShaderValidationUnavailableError(str(exc)) from exc
-
-    if completed.returncode != 0:
-        message = _interpret_qsb_startup_failure(
-            completed.returncode,
-            completed.stderr or "",
-            completed.stdout or "",
-        )
-        if message is None:
-            message = (
-                "Qt Shader Baker could not be started successfully (exit code "
-                f"{completed.returncode})."
-            )
-        raise ShaderValidationEnvironmentError(message)
+def _package_for_library(library: str) -> str | None:
+    for shared, package in RUNTIME_DEPENDENCY_HINTS:
+        if shared == library:
+            return package
+    return None
 
 
 def _run_qsb(

@@ -73,10 +73,48 @@ class ProbeResult:
 
     ok: bool
     message: str
+    fatal: bool = True
 
 
-class ProbeError(RuntimeError):
-    """Raised when the Qt installation does not satisfy the expected contract."""
+class QtRuntimeUnavailableError(ProbeError):
+    """Raised when the Qt runtime cannot be initialised due to missing deps."""
+
+    def __init__(self, message: str, *, fatal: bool = False) -> None:
+        super().__init__(message)
+        self.fatal = fatal
+
+
+def _dependency_hint(library: str) -> str:
+    hint = RUNTIME_DEPENDENCY_HINTS.get(library)
+    if hint:
+        return hint
+    return (
+        "Install the missing Qt runtime library via your package manager or run "
+        "'make install-qt-runtime'."
+    )
+
+
+def _extract_missing_dependency(message: str) -> str | None:
+    for library in RUNTIME_DEPENDENCY_HINTS:
+        if library in message:
+            return library
+    return None
+
+
+def _format_dependency_message(library: str) -> str:
+    hint = _dependency_hint(library)
+    return (
+        f"Qt runtime dependency '{library}' is not available in the current environment. "
+        f"{hint} You can also run 'make install-qt-runtime'."
+    )
+
+
+def _classify_runtime_error(exc: Exception) -> tuple[str, bool]:
+    message = str(exc)
+    library = _extract_missing_dependency(message)
+    if library:
+        return _format_dependency_message(library), False
+    return (f"Qt runtime initialisation failed: {message}", True)
 
 
 class MissingSystemLibraryError(ProbeError):
@@ -265,7 +303,11 @@ def _probe_qt_runtime(expected_platform: str | None = None) -> str:
 
     os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
-    app = QGuiApplication([])
+    try:
+        app = QGuiApplication([])
+    except Exception as exc:  # pragma: no cover - defensive
+        message, fatal = _classify_runtime_error(exc)
+        raise QtRuntimeUnavailableError(message, fatal=fatal) from exc
     try:
         platform_name = QGuiApplication.platformName()
         if not platform_name:
@@ -276,14 +318,22 @@ def _probe_qt_runtime(expected_platform: str | None = None) -> str:
                 f"expected {expected_platform}, got {platform_name}"
             )
 
-        engine = QQmlEngine()
+        try:
+            engine = QQmlEngine()
+        except Exception as exc:  # pragma: no cover - defensive
+            message, fatal = _classify_runtime_error(exc)
+            raise QtRuntimeUnavailableError(message, fatal=fatal) from exc
         try:
             if not engine.importPathList():
                 raise ProbeError("QQmlEngine.importPathList() returned no entries.")
         finally:
             engine.deleteLater()
 
-        geometry = QQuick3DGeometry()
+        try:
+            geometry = QQuick3DGeometry()
+        except Exception as exc:  # pragma: no cover - defensive
+            message, fatal = _classify_runtime_error(exc)
+            raise QtRuntimeUnavailableError(message, fatal=fatal) from exc
         geometry.deleteLater()
 
         return platform_name
@@ -298,6 +348,7 @@ def _check_opengl_runtime() -> ProbeResult:
         )
 
     candidates, install_hint = _resolve_opengl_dependency()
+    strict = _strict_checks_enabled()
 
     for candidate in candidates:
         try:
@@ -307,25 +358,38 @@ def _check_opengl_runtime() -> ProbeResult:
         else:
             return ProbeResult(True, f"OpenGL runtime '{candidate}' is loadable.")
 
-    return ProbeResult(
-        False,
+    message = (
         "OpenGL runtime libraries are missing: "
         + ", ".join(candidates)
-        + f". {install_hint}",
+        + f". {install_hint}"
+    )
+
+    if strict:
+        return ProbeResult(False, message)
+
+    return ProbeResult(
+        True,
+        message + " Skipping OpenGL probe because QT_ENV_CHECK_STRICT is not enabled.",
     )
 
 
-def _format_results(results: Iterable[ProbeResult]) -> tuple[list[str], list[str]]:
+def _format_results(
+    results: Iterable[ProbeResult],
+) -> tuple[list[str], list[str], list[str]]:
     successes: list[str] = []
+    warnings: list[str] = []
     failures: list[str] = []
     for result in results:
-        prefix = "[OK]" if result.ok else "[FAIL]"
-        line = f"{prefix} {result.message}"
         if result.ok:
-            successes.append(line)
+            successes.append(f"[OK] {result.message}")
+            continue
+
+        if result.fatal:
+            failures.append(f"[FAIL] {result.message}")
         else:
-            failures.append(line)
-    return successes, failures
+            warnings.append(f"[WARN] {result.message}")
+
+    return successes, warnings, failures
 
 
 def _write_report(
@@ -333,6 +397,7 @@ def _write_report(
     expected_version: str,
     expected_platform: str | None,
     successes: Sequence[str],
+    warnings: Sequence[str],
     failures: Sequence[str],
     exit_code: int,
 ) -> Path:
@@ -348,7 +413,7 @@ def _write_report(
         "",
         "## Probe summary",
     ]
-    body = list(successes) + list(failures)
+    body = list(successes) + list(warnings) + list(failures)
     contents = "\n".join(header + body) + "\n"
 
     unique_name = timestamp.strftime("qt_environment_%Y%m%dT%H%M%SZ.log")
@@ -368,6 +433,8 @@ def run_smoke_check(
 ) -> int:
     results: list[ProbeResult] = []
 
+    runtime_ready = True
+
     try:
         version = _check_pyside_version(expected_version)
     except MissingSystemLibraryError as exc:
@@ -376,35 +443,50 @@ def run_smoke_check(
         )
     except ProbeError as exc:
         results.append(ProbeResult(False, str(exc)))
-        successes, failures = _format_results(results)
-        for line in successes + failures:
-            print(line)
-        return 1
-
-    results.append(
-        ProbeResult(
-            True, f"PySide6 {version} detected (expected prefix {expected_version})."
-        )
-    )
-
-    for var_name in ("QT_PLUGIN_PATH", "QML2_IMPORT_PATH"):
-        try:
-            _check_environment_paths(var_name)
-        except ProbeError as exc:
-            results.append(ProbeResult(False, str(exc)))
-        else:
-            results.append(ProbeResult(True, f"{var_name} directories are present."))
-
-    try:
-        plugins_dir = _check_qlibraryinfo()
-    except ProbeError as exc:
-        results.append(ProbeResult(False, str(exc)))
+        runtime_ready = False
     else:
         results.append(
             ProbeResult(
-                True, f"QLibraryInfo reports plugin directory at {plugins_dir}."
+                True,
+                f"PySide6 {version} detected (expected prefix {expected_version}).",
             )
         )
+
+    if runtime_ready:
+        try:
+            platform_name = _probe_qt_runtime(expected_platform)
+        except QtRuntimeUnavailableError as exc:
+            results.append(ProbeResult(False, str(exc), fatal=exc.fatal))
+            runtime_ready = False
+        except ProbeError as exc:
+            results.append(ProbeResult(False, str(exc)))
+            runtime_ready = False
+        else:
+            results.append(
+                ProbeResult(True, f"Qt platform plugin '{platform_name}' initialised.")
+            )
+
+    if runtime_ready:
+        for var_name in ("QT_PLUGIN_PATH", "QML2_IMPORT_PATH"):
+            try:
+                _check_environment_paths(var_name)
+            except ProbeError as exc:
+                results.append(ProbeResult(False, str(exc)))
+            else:
+                results.append(
+                    ProbeResult(True, f"{var_name} directories are present.")
+                )
+
+        try:
+            plugins_dir = _check_qlibraryinfo()
+        except ProbeError as exc:
+            results.append(ProbeResult(False, str(exc)))
+        else:
+            results.append(
+                ProbeResult(
+                    True, f"QLibraryInfo reports plugin directory at {plugins_dir}."
+                )
+            )
 
     try:
         platform_name = _probe_qt_runtime(expected_platform)
@@ -416,12 +498,14 @@ def run_smoke_check(
         results.append(ProbeResult(False, str(exc)))
     else:
         results.append(
-            ProbeResult(True, f"Qt platform plugin '{platform_name}' initialised.")
+            ProbeResult(
+                False,
+                "Skipping remaining Qt environment probes because prerequisite checks failed.",
+                fatal=False,
+            )
         )
 
-    results.append(_check_opengl_runtime())
-
-    successes, failures = _format_results(results)
+    successes, warnings, failures = _format_results(results)
     exit_code = 0 if not failures else 1
 
     if report_dir is not None:
@@ -431,6 +515,7 @@ def run_smoke_check(
                 expected_version,
                 expected_platform,
                 successes,
+                warnings,
                 failures,
                 exit_code,
             )
@@ -440,7 +525,7 @@ def run_smoke_check(
         else:
             successes.append(f"[OK] Environment report saved to {report_path}.")
 
-    for line in successes + failures:
+    for line in successes + warnings + failures:
         print(line)
 
     return exit_code
