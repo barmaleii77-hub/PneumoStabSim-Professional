@@ -594,6 +594,42 @@ class EnvironmentSetup:
             except Exception:
                 self.logger.log(f"  ❓ {package}: ошибка проверки")
 
+    def _split_paths(self, value: str) -> List[str]:
+        """Разбивает строку путей по разделителю ОС с учётом ручных ';'."""
+
+        if not value:
+            return []
+
+        if ";" in value and os.pathsep != ";":
+            parts = [part.strip() for part in value.split(";") if part.strip()]
+        else:
+            parts = [part.strip() for part in value.split(os.pathsep) if part.strip()]
+
+        seen: set[str] = set()
+        unique_parts: List[str] = []
+        for part in parts:
+            if part not in seen:
+                seen.add(part)
+                unique_parts.append(part)
+        return unique_parts
+
+    def _qml_import_paths(self) -> List[str]:
+        """Формирует список путей QML (включая каталоги проекта)."""
+
+        qml_paths: List[str] = []
+
+        detected_paths = self.qt_environment.get("QML2_IMPORT_PATH", "")
+        qml_paths.extend(self._split_paths(detected_paths))
+
+        project_qml = str(self.project_root / "assets" / "qml")
+        scene_module = str(self.project_root / "assets" / "qml" / "scene")
+
+        for candidate in (project_qml, scene_module):
+            if candidate not in qml_paths:
+                qml_paths.append(candidate)
+
+        return qml_paths
+
     def setup_paths(self):
         """Настраивает переменные окружения и пути"""
         self.logger.log("🔧 Настройка путей проекта...")
@@ -601,6 +637,10 @@ class EnvironmentSetup:
         # Обновляем .env файл с актуальными путями
         env_file = self.project_root / ".env"
         pythonpath = f"{self.project_root}/src;{self.project_root}/tests;{self.project_root}/scripts"
+
+        qt_plugin_path = self.qt_environment.get("QT_PLUGIN_PATH", "")
+        qml_import_paths = self._qml_import_paths()
+        qml_import_value = os.pathsep.join(qml_import_paths)
 
         env_content = f"""# PneumoStabSim Professional Environment (Автоматически обновлено)
 PYTHONPATH={pythonpath}
@@ -611,6 +651,8 @@ PYTHONDONTWRITEBYTECODE=1
 QSG_RHI_BACKEND=d3d11
 QT_LOGGING_RULES=js.debug=true;qt.qml.debug=true
 QSG_INFO=1
+QT_PLUGIN_PATH={qt_plugin_path}
+QML2_IMPORT_PATH={qml_import_value}
 
 # Project Paths
 PROJECT_ROOT={self.project_root}

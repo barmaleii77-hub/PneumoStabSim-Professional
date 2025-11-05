@@ -10,7 +10,7 @@ import "../components"
 import "../effects"
 import "../geometry"
 import "../lighting"
-import "../scene" as Scene
+import scene 1.0 as Scene
 import "../animation"
 
 /*
@@ -1091,9 +1091,9 @@ SequentialAnimation {
   id: suspensionAssembly
   worldRoot: worldRoot
   geometryState: geometryState
-  geometryDefaults: root.geometryDefaults ? root.geometryDefaults : emptyGeometryDefaults
+  geometryDefaults: root.geometryDefaults ? root.geometryDefaults : root.emptyGeometryDefaults
   emptyGeometryDefaults: root.emptyGeometryDefaults
-  materialsDefaults: sceneDefaults && sceneDefaults.materials ? sceneDefaults.materials : root.emptyMaterialsDefaults
+  materialsDefaults: root.sceneDefaults && root.sceneDefaults.materials ? root.sceneDefaults.materials : root.emptyMaterialsDefaults
   sharedMaterials: sharedMaterials
   sceneScaleFactor: root.effectiveSceneScaleFactor
   leverAngles: ({
@@ -1506,7 +1506,7 @@ Connections {
  }
  }
 
- Component.onCompleted: {
+Component.onCompleted: {
   console.log("✅ SimulationRoot initialized successfully")
   if (typeof signalTrace !== "undefined" && signalTrace && typeof signalTrace.registerSubscription === "function") {
    signalTrace.registerSubscription("settings.settingChanged","main.qml","qml")
