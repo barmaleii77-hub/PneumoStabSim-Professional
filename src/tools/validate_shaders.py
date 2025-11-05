@@ -86,6 +86,10 @@ class ShaderValidationUnavailableError(RuntimeError):
     """Raised when qsb cannot run due to a missing runtime dependency."""
 
 
+class QsbEnvironmentError(RuntimeError):
+    """Raised when qsb fails because the Qt runtime is misconfigured."""
+
+
 def classify_shader(path: Path) -> tuple[str, str]:
     """Return the base name and variant label for *path*."""
 
@@ -226,6 +230,101 @@ def _extract_missing_shared_library(stderr: str) -> str | None:
         library = library.strip()
         if library:
             return library
+    return None
+
+
+def _summarize_environment_failure(
+    return_code: int, stdout: str, stderr: str, _command: Sequence[str]
+) -> str | None:
+    """Return a human friendly description for common qsb bootstrap issues."""
+
+    if return_code == 0:
+        return None
+
+    combined = "\n".join(filter(None, (stdout, stderr))).lower()
+    if not combined:
+        return None
+
+    if "qt.qpa.plugin" in combined and "xcb" in combined:
+        return (
+            "Qt Shader Baker could not load the Qt XCB platform plugin. "
+            "Install the headless Qt runtime dependencies (libxcb1, "
+            "libxkbcommon0, libxkbcommon-x11-0, libegl1, libgl1) or activate "
+            "the project environment before running qsb."
+        )
+
+    if "qt.qpa.plugin" in combined and "could not find" in combined:
+        return (
+            "Qt Shader Baker is missing the Qt platform plugins. "
+            "Ensure QT_PLUGIN_PATH is set correctly (source activate_environment.sh) "
+            "or reinstall the Qt tooling."
+        )
+
+    if "failed to create opengl context" in combined or "could not initialize opengl" in combined:
+        return (
+            "Qt Shader Baker failed to initialise an OpenGL context. "
+            "Install the system OpenGL libraries (e.g. 'apt-get install -y libgl1 libegl1')."
+        )
+
+    if "error while loading shared libraries" in combined:
+        missing = _extract_missing_shared_library(stderr)
+        if missing:
+            package_hint = _package_for_library(missing)
+            if package_hint:
+                return (
+                    "Qt Shader Baker could not start because the shared library "
+                    f"'{missing}' is missing (install '{package_hint}')."
+                )
+            return f"Qt Shader Baker could not start because the shared library '{missing}' is missing."
+
+    return None
+
+
+def _diagnose_qsb_failure(stderr: str) -> list[str]:
+    """Return supplemental diagnostic hints based on qsb stderr output."""
+
+    hints: list[str] = []
+    lower = (stderr or "").lower()
+
+    if "qt.qpa.plugin" in lower and "xcb" in lower:
+        hints.append(
+            "    Hint: Install Qt platform dependencies (libxcb1, libxkbcommon0, "
+            "libxkbcommon-x11-0) or export QT_QPA_PLATFORM=offscreen."
+        )
+
+    if "qt.qpa.plugin" in lower and "could not find" in lower:
+        hints.append(
+            "    Hint: Ensure QT_PLUGIN_PATH points to the Qt plugins directory "
+            "(source activate_environment.sh)."
+        )
+
+    if "failed to create opengl context" in lower or "could not initialize opengl" in lower:
+        hints.append(
+            "    Hint: Install OpenGL runtime libraries such as libgl1 and libegl1 "
+            "on the host system."
+        )
+
+    missing = _extract_missing_shared_library(stderr)
+    if missing:
+        package_hint = _package_for_library(missing)
+        if package_hint:
+            hints.append(
+                "    Hint: Install the missing shared library "
+                f"'{missing}' via 'apt-get install -y {package_hint}'."
+            )
+        else:
+            hints.append(
+                "    Hint: Install the missing shared library "
+                f"'{missing}' using your package manager."
+            )
+
+    return hints
+
+
+def _package_for_library(library: str) -> str | None:
+    for shared, package in RUNTIME_DEPENDENCY_HINTS:
+        if shared == library:
+            return package
     return None
 
 
