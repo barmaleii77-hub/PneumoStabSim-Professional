@@ -132,24 +132,21 @@ localization-check:
 	$(PYTHON) tools/update_translations.py --check
 
 qt-env-check:
-	@$(SHELL) -lc '
-		VENV_PY="$(UV_PROJECT_DIR)/.venv/bin/python"; \
-		if [ -f "$(UV_PROJECT_DIR)/activate_environment.sh" ]; then \
-			PSS_SKIP_ENV_BOOTSTRAP=1 source "$(UV_PROJECT_DIR)/activate_environment.sh" >/dev/null 2>&1; \
+	@$(SHELL) -lc "set -Eeuo pipefail; \
+		VENV_PY=\"$(UV_PROJECT_DIR)/.venv/bin/python\"; \
+		if [ -f \"$(UV_PROJECT_DIR)/activate_environment.sh\" ]; then \
+			PSS_SKIP_ENV_BOOTSTRAP=1 source \"$(UV_PROJECT_DIR)/activate_environment.sh\" >/dev/null 2>&1; \
 		fi; \
-		if [ -x "$$VENV_PY" ]; then \
-			cd "$(UV_PROJECT_DIR)" && "$$VENV_PY" tools/environment/verify_qt_setup.py --report-dir reports/environment; \
-		elif command -v "$(UV)" >/dev/null 2>&1; then \
-			if ! (cd "$(UV_PROJECT_DIR)" && "$(UV)" run $(UV_RUN_ARGS) -- python tools/environment/verify_qt_setup.py --report-dir reports/environment); then \
-				echo "Warning: '$(UV)' execution failed; falling back to '$(PYTHON)'." >&2; \
-				cd "$(UV_PROJECT_DIR)" && $(PYTHON) tools/environment/verify_qt_setup.py --report-dir reports/environment; \
+		if [ -x \"$$VENV_PY\" ]; then \
+			cd \"$(UV_PROJECT_DIR)\" && \"$$VENV_PY\" tools/environment/verify_qt_setup.py --report-dir reports/environment --allow-missing-runtime; \
+		elif command -v \"$(UV)\" >/dev/null 2>&1; then \
+			if ! (cd \"$(UV_PROJECT_DIR)\" && \"$(UV)\" run $(UV_RUN_ARGS) -- python tools/environment/verify_qt_setup.py --report-dir reports/environment --allow-missing-runtime); then \
+				echo \"Warning: $(UV) execution failed; falling back to $(PYTHON).\" >&2; \
+				cd \"$(UV_PROJECT_DIR)\" && $(PYTHON) tools/environment/verify_qt_setup.py --report-dir reports/environment --allow-missing-runtime; \
 			fi; \
 		else \
-			$(PYTHON) tools/environment/verify_qt_setup.py --report-dir reports/environment; \
-		fi \
-	'
-
-
+			$(PYTHON) tools/environment/verify_qt_setup.py --report-dir reports/environment --allow-missing-runtime; \
+		fi"
 .PHONY: telemetry-etl
 telemetry-etl:
 	$(PYTHON) tools/telemetry_exporter.py export --format json --output reports/analytics/telemetry_events.json

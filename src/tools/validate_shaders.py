@@ -305,7 +305,9 @@ def _probe_qsb(command: Sequence[str]) -> None:
     if message is not None:
         raise ShaderValidationEnvironmentError(message)
 
-    first_line = (stderr.strip() or stdout.strip() or "qsb produced no output").splitlines()[0]
+    first_line = (
+        stderr.strip() or stdout.strip() or "qsb produced no output"
+    ).splitlines()[0]
     raise ShaderValidationEnvironmentError(
         "Qt Shader Baker failed to start (exit code "
         f"{probe.returncode}). Details: {first_line}"

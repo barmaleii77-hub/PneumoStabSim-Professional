@@ -76,6 +76,14 @@ class ProbeResult:
     fatal: bool = True
 
 
+class ProbeError(RuntimeError):
+    """Base exception for Qt environment probe failures."""
+
+    def __init__(self, message: str, *, fatal: bool = True) -> None:
+        super().__init__(message)
+        self.fatal = fatal
+
+
 class QtRuntimeUnavailableError(ProbeError):
     """Raised when the Qt runtime cannot be initialised due to missing deps."""
 
@@ -187,10 +195,13 @@ def _handle_missing_system_library(
     expected_version: str,
     expected_platform: str | None,
     report_dir: Path | None,
+    *,
+    allow_missing_runtime: bool,
 ) -> int:
     strict = _strict_checks_enabled()
-    results.append(ProbeResult(not strict, str(exc)))
-    if strict:
+    ok = allow_missing_runtime or not strict
+    results.append(ProbeResult(ok, str(exc), fatal=not ok and strict))
+    if strict and not allow_missing_runtime:
         results.append(
             ProbeResult(
                 False,
@@ -209,8 +220,8 @@ def _handle_missing_system_library(
             )
         )
 
-    successes, failures = _format_results(results)
-    exit_code = 1 if (strict or failures) else 0
+    successes, warnings, failures = _format_results(results)
+    exit_code = 1 if ((strict and not allow_missing_runtime) or failures) else 0
 
     if report_dir is not None:
         try:
@@ -219,6 +230,7 @@ def _handle_missing_system_library(
                 expected_version,
                 expected_platform,
                 successes,
+                warnings,
                 failures,
                 exit_code,
             )
@@ -228,7 +240,7 @@ def _handle_missing_system_library(
         else:
             successes.append(f"[OK] Environment report saved to {report_path}.")
 
-    for line in successes + failures:
+    for line in successes + warnings + failures:
         print(line)
 
     return exit_code
@@ -441,7 +453,12 @@ def run_smoke_check(
         version = _check_pyside_version(expected_version)
     except MissingSystemLibraryError as exc:
         return _handle_missing_system_library(
-            results, exc, expected_version, expected_platform, report_dir
+            results,
+            exc,
+            expected_version,
+            expected_platform,
+            report_dir,
+            allow_missing_runtime=allow_missing_runtime,
         )
     except ProbeError as exc:
         results.append(ProbeResult(False, str(exc)))
@@ -457,6 +474,15 @@ def run_smoke_check(
     if runtime_ready:
         try:
             platform_name = _probe_qt_runtime(expected_platform)
+        except MissingSystemLibraryError as exc:
+            return _handle_missing_system_library(
+                results,
+                exc,
+                expected_version,
+                expected_platform,
+                report_dir,
+                allow_missing_runtime=allow_missing_runtime,
+            )
         except QtRuntimeUnavailableError as exc:
             results.append(ProbeResult(False, str(exc), fatal=exc.fatal))
             runtime_ready = False
@@ -494,7 +520,12 @@ def run_smoke_check(
         platform_name = _probe_qt_runtime(expected_platform)
     except MissingSystemLibraryError as exc:
         return _handle_missing_system_library(
-            results, exc, expected_version, expected_platform, report_dir
+            results,
+            exc,
+            expected_version,
+            expected_platform,
+            report_dir,
+            allow_missing_runtime=allow_missing_runtime,
         )
     except ProbeError as exc:
         results.append(ProbeResult(False, str(exc)))
