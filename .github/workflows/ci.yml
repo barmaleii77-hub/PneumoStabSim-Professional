@@ -117,3 +117,52 @@ jobs:
           else
             python -m tools.ci_tasks test || pytest -q
           fi
+
+  performance:
+    name: Qt Quick performance regression gate
+    needs: tests
+    runs-on: ubuntu-latest
+    env:
+      QT_QPA_PLATFORM: ${{ env.QT_QPA_PLATFORM }}
+      QT_QUICK_BACKEND: ${{ env.QT_QUICK_BACKEND }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+          cache-dependency-path: |
+            pyproject.toml
+            requirements*.txt
+
+      - name: Install Qt ${{ env.QT_VERSION }}
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: ${{ env.QT_VERSION }}
+          modules: ${{ env.QT_MODULES }}
+          cache: true
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e .[dev]
+
+      - name: Generate Qt Quick profiling artefacts
+        run: |
+          make profile-render
+
+      - name: Validate metrics against baseline
+        run: |
+          make profile-validate
+
+      - name: Upload profiling reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: qt-quick-performance
+          path: |
+            reports/performance/ui_phase3_profile.json
+            reports/performance/ui_phase3_profile.html
+            reports/performance/ui_phase3_summary.json

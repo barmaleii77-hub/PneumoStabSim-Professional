@@ -69,6 +69,10 @@
 ## Metrics & Evidence
 - Frame time (<16.7 ms target) recorded via Qt profiler exports in
   `reports/performance/ui_phase3_*.json`.
+- Automated Qt Quick profiler runs via `make profile-render` with
+  complementary HTML summaries and CI threshold checks documented in
+  `docs/performance.md`. Baseline envelopes are stored in
+  `reports/performance/baselines/` and validated with `make profile-validate`.
 - UI regression screenshots stored under `tests/ui/screenshots/` with diff
   approvals.
 - Accessibility checklist reviewed using `tools/accessibility/audit_qml.py` with
@@ -114,4 +118,10 @@ Track panel completion status, performance runs, and localization updates here.
   `_fallback_es`, and `_es` profiles with the expected GLSL `#version` directives.
 - Integrated the validator into `make check` so CI fails when GLES variants are missing and
   passes once the corresponding shader files are restored.
+
+### 2025-11-18 – Performance profiling automation
+- Extended `tools/performance_monitor.py` with CPU time and optional GPU metrics plus HTML report export.
+- Added `tools/performance_gate.py` and Make targets (`profile-render`, `profile-validate`) to standardise
+  Qt Quick profiling workflows.
+- Wired the new gate into `.github/workflows/ci.yml` so PRs fail when metrics breach the Phase 3 baseline envelope.
 

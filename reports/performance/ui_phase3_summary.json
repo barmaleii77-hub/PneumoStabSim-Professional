@@ -1,0 +1,54 @@
+{
+  "report": "reports/performance/ui_phase3_profile.json",
+  "baseline": "reports/performance/baselines/ui_phase3_baseline.json",
+  "outcomes": [
+    {
+      "name": "avg_cpu_percent",
+      "actual": 1.1,
+      "passed": true,
+      "messages": []
+    },
+    {
+      "name": "avg_memory_mb",
+      "actual": 52.0,
+      "passed": true,
+      "messages": []
+    },
+    {
+      "name": "avg_memory_percent",
+      "actual": 0.35,
+      "passed": true,
+      "messages": []
+    },
+    {
+      "name": "avg_fps",
+      "actual": 60.0,
+      "passed": true,
+      "messages": []
+    },
+    {
+      "name": "avg_frame_time_ms",
+      "actual": 16.5,
+      "passed": true,
+      "messages": []
+    },
+    {
+      "name": "avg_cpu_time_total",
+      "actual": 1.6,
+      "passed": true,
+      "messages": []
+    },
+    {
+      "name": "avg_gpu_utilization_percent",
+      "actual": 48.0,
+      "passed": true,
+      "messages": []
+    },
+    {
+      "name": "avg_gpu_memory_used_mb",
+      "actual": 2048.0,
+      "passed": true,
+      "messages": []
+    }
+  ]
+}
