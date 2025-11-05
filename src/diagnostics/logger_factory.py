@@ -26,6 +26,8 @@ log message.
 
 from __future__ import annotations
 
+import importlib
+import importlib.util
 import logging
 from dataclasses import dataclass
 from types import ModuleType
@@ -226,7 +228,7 @@ def _configure_fallback_logging(level: int) -> None:
 
 
 def _ensure_stdlib_bridge(level: int) -> None:
-    """Configure the standard logging module to forward records to structlog."""
+    """Configure the logging bridge for structlog or provide a fallback."""
 
     if not HAS_STRUCTLOG:
         _configure_fallback_logging(level)
@@ -238,11 +240,70 @@ def _ensure_stdlib_bridge(level: int) -> None:
     )
 
     handler = logging.StreamHandler()
-    handler.setFormatter(formatter)
+    handler.setFormatter(
+        logging.Formatter("%(asctime)s %(name)s [%(levelname)s] %(message)s")
+    )
 
     root_logger = logging.getLogger()
     root_logger.handlers[:] = [handler]
     root_logger.setLevel(level)
+
+
+_FALLBACK_CONFIGURED = False
+_FALLBACK_LEVEL = DEFAULT_LOG_LEVEL
+
+
+class _FallbackBoundLogger:
+    """Minimal structlog-compatible logger based on :mod:`logging`."""
+
+    __slots__ = ("_logger", "_context")
+
+    def __init__(self, name: str, *, context: dict[str, object] | None = None) -> None:
+        self._logger = logging.getLogger(name)
+        self._context: dict[str, object] = dict(context or {})
+
+    def bind(self, **kwargs: object) -> "_FallbackBoundLogger":
+        if not kwargs:
+            return self
+        merged = {**self._context, **kwargs}
+        return _FallbackBoundLogger(self._logger.name, context=merged)
+
+    def setLevel(self, level: int) -> None:  # pragma: no cover - passthrough
+        self._logger.setLevel(level)
+
+    def _format(self, event: str, event_kwargs: dict[str, object]) -> str:
+        parts = [event]
+        if self._context:
+            parts.append(f"context={self._context}")
+        if event_kwargs:
+            parts.append(f"event={event_kwargs}")
+        return " | ".join(parts)
+
+    def _log(self, level: int, event: str, **event_kwargs: object) -> None:
+        message = self._format(event, event_kwargs)
+        self._logger.log(level, message)
+
+    def debug(self, event: str, **event_kwargs: object) -> None:
+        self._log(logging.DEBUG, event, **event_kwargs)
+
+    def info(self, event: str, **event_kwargs: object) -> None:
+        self._log(logging.INFO, event, **event_kwargs)
+
+    def warning(self, event: str, **event_kwargs: object) -> None:
+        self._log(logging.WARNING, event, **event_kwargs)
+
+    def error(self, event: str, **event_kwargs: object) -> None:
+        self._log(logging.ERROR, event, **event_kwargs)
+
+    def exception(self, event: str, **event_kwargs: object) -> None:
+        message = self._format(event, event_kwargs)
+        self._logger.exception(message)
+
+    def critical(self, event: str, **event_kwargs: object) -> None:
+        self._log(logging.CRITICAL, event, **event_kwargs)
+
+    def __getattr__(self, item: str) -> Any:  # pragma: no cover - passthrough
+        return getattr(self._logger, item)
 
 
 def configure_logging(
@@ -303,7 +364,9 @@ class LoggerConfig:
     def build(self) -> LoggerProtocol:
         logger = get_logger(self.name)
         if self.context:
-            logger = logger.bind(**dict(self.context))
+            bind = getattr(logger, "bind", None)
+            if callable(bind):
+                logger = bind(**dict(self.context))
         if hasattr(logger, "setLevel"):
             # ``structlog`` bound loggers expose ``setLevel`` when using the
             # stdlib wrapper.
