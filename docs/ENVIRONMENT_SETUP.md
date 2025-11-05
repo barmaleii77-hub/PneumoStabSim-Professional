@@ -83,9 +83,8 @@ make uv-run CMD="python -m pytest -k smoke"
 3. Для запуска приложения используйте `make uv-run CMD="python app.py"` — команда автоматически активирует окружение.
 
 ### Интеграция с Visual Studio
-1. Откройте `PneumoStabSim-Professional.sln`.
-2. В свойствах конфигурации импортируйте переменные из `.env` и укажите путь к интерпретатору, созданному `uv` (см. `uv env`).
-3. Проверьте, что `QT_PLUGIN_PATH` и `QML2_IMPORT_PATH` включены в переменные среды конфигурации отладки.
+> ⚠️ Поддержка Visual Studio и `.pyproj/.sln` проектов прекращена. Используйте VS Code
+> или терминал с `uv` для запуска и отладки.
 
 ### Visual Studio Code
 1. Откройте `PneumoStabSim.code-workspace`.

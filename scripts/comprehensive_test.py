@@ -1,15 +1,16 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Comprehensive test runner for PneumoStabSim Professional
-Tests Python integration, C# compilation, and overall system health
+Comprehensive test runner for PneumoStabSim Professional.
+
+The suite validates Python integration, repository structure, and
+configuration health for the modernised Qt/Python stack.
 """
 
 import sys
 import subprocess
 import time
 import json
-import shutil
 from pathlib import Path
 from typing import List, Dict, Any, Optional
 import logging
@@ -26,7 +27,6 @@ class ProjectTester:
             "summary": {"passed": 0, "failed": 0, "warnings": 0},
         }
         self.setup_logging()
-        self.dotnet_path = shutil.which("dotnet")
 
     def setup_logging(self):
         """Setup logging for test runner"""
@@ -46,24 +46,6 @@ class ProjectTester:
 
         self.logger = logging.getLogger(__name__)
         self.logger.info(f"Test session started - Log file: {log_file}")
-
-    def _record_skip(self, key: str, reason: str) -> None:
-        """Record a skipped test as a warning."""
-
-        self.logger.warning(reason)
-        self.results["tests"][key] = {
-            "passed": True,
-            "details": {
-                "success": True,
-                "returncode": 0,
-                "stdout": "",
-                "stderr": "",
-                "command": "",
-                "skipped": True,
-                "reason": reason,
-            },
-        }
-        self.results["summary"]["warnings"] += 1
 
     def run_command(
         self, command: List[str], cwd: Optional[Path] = None, timeout: int = 60
@@ -186,64 +168,6 @@ except Exception as e:
             self.results["summary"]["failed"] += 1
             return False
 
-    def test_dotnet_restore(self) -> bool:
-        """Test .NET package restoration"""
-        self.logger.info("Testing .NET package restore...")
-
-        if not self.dotnet_path:
-            self._record_skip(
-                "dotnet_restore",
-                "dotnet CLI not available – skipping restore step",
-            )
-            return True
-
-        restore_result = self.run_command([self.dotnet_path, "restore"], timeout=120)
-
-        self.results["tests"]["dotnet_restore"] = {
-            "passed": restore_result["success"],
-            "details": restore_result,
-        }
-
-        if restore_result["success"]:
-            self.logger.info("✓ .NET restore successful")
-            self.results["summary"]["passed"] += 1
-            return True
-        else:
-            self.logger.error("✗ .NET restore failed")
-            self.logger.error(f"Error: {restore_result['stderr']}")
-            self.results["summary"]["failed"] += 1
-            return False
-
-    def test_dotnet_build(self) -> bool:
-        """Test .NET compilation"""
-        self.logger.info("Testing .NET build...")
-
-        if not self.dotnet_path:
-            self._record_skip(
-                "dotnet_build",
-                "dotnet CLI not available – skipping build step",
-            )
-            return True
-
-        build_result = self.run_command(
-            [self.dotnet_path, "build", "--no-restore"], timeout=180
-        )
-
-        self.results["tests"]["dotnet_build"] = {
-            "passed": build_result["success"],
-            "details": build_result,
-        }
-
-        if build_result["success"]:
-            self.logger.info("✓ .NET build successful")
-            self.results["summary"]["passed"] += 1
-            return True
-        else:
-            self.logger.error("✗ .NET build failed")
-            self.logger.error(f"Error: {build_result['stderr']}")
-            self.results["summary"]["failed"] += 1
-            return False
-
     def test_python_app_startup(self) -> bool:
         """Test Python application startup (test mode)"""
         self.logger.info("Testing Python application startup...")
@@ -273,17 +197,22 @@ except Exception as e:
         self.logger.info("Testing project file structure...")
 
         required_files = [
+            "app.py",
+            "pyproject.toml",
+            "uv.lock",
+            "Makefile",
+            "config/app_settings.json",
+            "config/qml_bridge.yaml",
+            "src/app_runner.py",
+            "src/bootstrap/environment.py",
+            "tests/__init__.py",
+        ]
+
+        deprecated_artifacts = [
             "PneumoStabSim-Professional.sln",
             "PneumoStabSim-Professional.csproj",
-            "Program.cs",
-            "App.xaml",
-            "app.py",
-            "requirements.txt",
-            "config/appsettings.json",
-            "src/PneumoStabSim.Core/PneumoStabSim.Core.csproj",
-            "src/PneumoStabSim.Physics/PneumoStabSim.Physics.csproj",
-            "src/PneumoStabSim.UI/PneumoStabSim.UI.csproj",
-            "tests/PneumoStabSim.Tests/PneumoStabSim.Tests.csproj",
+            "PneumoStabSim-Professional.pyproj",
+            "PneumoStabSim.sln",
         ]
 
         missing_files = []
@@ -292,13 +221,19 @@ except Exception as e:
             if not full_path.exists():
                 missing_files.append(file_path)
 
-        success = len(missing_files) == 0
+        unexpected_legacy = []
+        for file_path in deprecated_artifacts:
+            if (self.project_root / file_path).exists():
+                unexpected_legacy.append(file_path)
+
+        success = len(missing_files) == 0 and not unexpected_legacy
 
         self.results["tests"]["file_structure"] = {
             "passed": success,
             "details": {
                 "required_files": required_files,
                 "missing_files": missing_files,
+                "unexpected_legacy": unexpected_legacy,
                 "total_required": len(required_files),
                 "found": len(required_files) - len(missing_files),
             },
@@ -310,7 +245,10 @@ except Exception as e:
             return True
         else:
             self.logger.error("✗ File structure test failed")
-            self.logger.error(f"Missing files: {missing_files}")
+            if missing_files:
+                self.logger.error(f"Missing files: {missing_files}")
+            if unexpected_legacy:
+                self.logger.error("Unexpected legacy artefacts detected: %s", unexpected_legacy)
             self.results["summary"]["failed"] += 1
             return False
 
@@ -444,8 +382,6 @@ except Exception as e:
             ("Configuration Files", self.test_configuration_files),
             ("Python Environment", self.test_python_environment),
             ("Python Imports", self.test_python_imports),
-            (".NET Restore", self.test_dotnet_restore),
-            (".NET Build", self.test_dotnet_build),
             ("Python App Startup", self.test_python_app_startup),
         ]
 
@@ -491,8 +427,7 @@ except Exception as e:
             print()
             print("Next steps:")
             print("1. Run: python app.py")
-            print("2. Or run: dotnet run")
-            print("3. Check the reports/ directory for detailed test results")
+            print("2. Check the reports/ directory for detailed test results")
         else:
             print("❌ SOME TESTS FAILED")
             print("Please review the errors above and fix the issues.")

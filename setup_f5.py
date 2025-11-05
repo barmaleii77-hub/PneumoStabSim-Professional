@@ -19,7 +19,6 @@ class F5SetupManager:
 
         results = {
             "VS Code": self.setup_vscode(),
-            "Visual Studio": self.setup_visual_studio(),
             "PyCharm": self.setup_pycharm(),
             "Sublime Text": self.setup_sublime(),
             "Atom": self.setup_atom(),
@@ -37,12 +36,6 @@ class F5SetupManager:
         vscode_dir = self.project_root / ".vscode"
         launch_file = vscode_dir / "launch.json"
         return launch_file.exists()
-
-    def setup_visual_studio(self):
-        """Настройка Visual Studio (уже выполнено)"""
-        pyproj_file = self.project_root / "PneumoStabSim.pyproj"
-        sln_file = self.project_root / "PneumoStabSim.sln"
-        return pyproj_file.exists() and sln_file.exists()
 
     def setup_pycharm(self):
         """Настройка PyCharm"""
@@ -193,11 +186,6 @@ if __name__ == "__main__":
         """Печать инструкций по использованию F5 в разных IDE"""
         instructions = """
 🎯 ИНСТРУКЦИИ ПО ИСПОЛЬЗОВАНИЮ F5 В РАЗНЫХ IDE
-
-📝 Visual Studio 2022:
-   1. Откройте PneumoStabSim.sln
-   2. Нажмите F5 для запуска с отладкой
-   3. Ctrl+F5 для запуска без отладки
 
 📝 VS Code:
    1. Откройте папку проекта

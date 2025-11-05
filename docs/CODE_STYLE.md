@@ -28,21 +28,8 @@ cleanly. Add new modules here as soon as they are ready for enforcement.
 
 ## .NET / C# (`PneumoStabSim.Core`)
 
-C# code in `src/PneumoStabSim.Core` follows the rules encoded in
-[`stylecop.json`](../src/PneumoStabSim.Core/stylecop.json) and the repository
-`.editorconfig`.
-
-- The project references `StyleCop.Analyzers` and treats all warnings as errors
-  to guarantee consistent style.
-- Use `dotnet format` to apply the conventions and verify CI compliance:
-
-  ```bash
-  dotnet format src/PneumoStabSim.Core/PneumoStabSim.Core.csproj
-  dotnet format src/PneumoStabSim.Core/PneumoStabSim.Core.csproj --verify-no-changes --severity error
-  ```
-
-Running `dotnet build` locally is recommended because the analyzers execute
-on every compilation.
+> ℹ️ Исторические разделы по C# удалены: .NET проекты больше не входят в состав
+> репозитория. Используйте рекомендации в этом документе только для Python/QML.
 
 ## QML
 
@@ -59,7 +46,6 @@ Update `qmllint_targets.txt` whenever new UI components need coverage.
 ## Continuous Integration
 
 The `Continuous Integration` workflow in `.github/workflows/ci.yml` runs all of
-these checks (Ruff, mypy, `qmllint`, and `dotnet format --verify-no-changes`)
-for every push and pull request. A failing job signals a regression in one of
-these quality gates. Keep local environments aligned with the documented
-commands to avoid surprises in CI.
+these checks (Ruff, mypy, `qmllint`) for every push and pull request. A failing
+job signals a regression in one of these quality gates. Keep local environments
+aligned with the documented commands to avoid surprises in CI.

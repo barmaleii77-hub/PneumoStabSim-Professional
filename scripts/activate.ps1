@@ -16,4 +16,3 @@ Write-Host "Environment configured. You can now run:" -ForegroundColor Yellow
 Write-Host "  python app.py                    # Standard mode"
 Write-Host "  python app.py --no-block         # Non-blocking mode"
 Write-Host "  python app.py --test-mode        # Test mode (5 sec auto-close)"
-Write-Host "  dotnet run                       # C# .NET version"
