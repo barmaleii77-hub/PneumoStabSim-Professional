@@ -9,7 +9,13 @@ from .container import (
     set_default_container,
 )
 from .event_bus import EVENT_BUS_TOKEN, EventBus, get_event_bus
-from .logging import LOGGER_TOKEN, configure_logging, get_logger
+from .logging import (
+    LOGGER_TOKEN,
+    ErrorHookManager,
+    configure_logging,
+    get_logger,
+    install_error_hooks,
+)
 
 __all__ = [
     "ServiceContainer",
@@ -22,6 +28,8 @@ __all__ = [
     "EVENT_BUS_TOKEN",
     "get_event_bus",
     "LOGGER_TOKEN",
+    "ErrorHookManager",
     "configure_logging",
     "get_logger",
+    "install_error_hooks",
 ]

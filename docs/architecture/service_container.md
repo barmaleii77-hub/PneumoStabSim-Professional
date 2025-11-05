@@ -50,9 +50,10 @@ unsubscribe = bus.subscribe("settings.updated", lambda payload: logger.info("set
 ## Resolving services
 
 ```python
-from src.core.settings_service import get_settings_service
+from src.core.settings_service import SETTINGS_SERVICE_TOKEN
+from src.infrastructure.container import get_default_container
 
-service = get_settings_service()  # pulls from the shared container
+service = get_default_container().resolve(SETTINGS_SERVICE_TOKEN)
 ```
 
 `get_settings_service` delegates to the container to honour overrides and other
@@ -68,7 +69,7 @@ container = get_default_container()
 override = SettingsService(settings_path="/tmp/test.json")
 
 with container.override(SETTINGS_SERVICE_TOKEN, override):
-    assert get_settings_service() is override
+    assert container.resolve(SETTINGS_SERVICE_TOKEN) is override
 ```
 
 Overrides are stacked, making it safe to nest fixtures. Exiting the context

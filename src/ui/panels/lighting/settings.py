@@ -12,12 +12,9 @@ from src.common.settings_manager import (
     get_settings_event_bus,
     get_settings_manager,
 )
+from src.graphics.materials import MaterialCache, get_material_cache
 
-from .baseline import (
-    MaterialsBaseline,
-    SkyboxOrientation,
-    load_materials_baseline,
-)
+from .baseline import MaterialsBaseline, SkyboxOrientation
 
 
 class LightingSettingsFacade:
@@ -27,13 +24,17 @@ class LightingSettingsFacade:
         self,
         *,
         settings_manager: SettingsManager | None = None,
+        material_cache: MaterialCache | None = None,
         baseline_path: Path | str | None = None,
     ) -> None:
         self._settings_manager = settings_manager or get_settings_manager()
-        if baseline_path is None:
-            self._baseline = load_materials_baseline()
+        if material_cache is not None:
+            self._material_cache = material_cache
+        elif baseline_path is not None:
+            self._material_cache = MaterialCache(baseline_path=Path(baseline_path))
         else:
-            self._baseline = load_materials_baseline(Path(baseline_path))
+            self._material_cache = get_material_cache()
+        self._baseline = self._material_cache.baseline()
 
     @property
     def baseline(self) -> MaterialsBaseline:

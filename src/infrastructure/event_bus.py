@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from __future__ import annotations
+
 from threading import RLock
 from typing import Any, Callable
 
@@ -75,15 +77,6 @@ EVENT_BUS_TOKEN = ServiceToken[EventBus](
     "infrastructure.event_bus",
     "In-process publish/subscribe helper for diagnostics and settings",
 )
-
-
-def _ensure_default_registration() -> None:
-    container = get_default_container()
-    if not container.is_registered(EVENT_BUS_TOKEN):
-        container.register_factory(EVENT_BUS_TOKEN, lambda _: EventBus())
-
-
-_ensure_default_registration()
 
 
 def get_event_bus(container: ServiceContainer | None = None) -> EventBus:

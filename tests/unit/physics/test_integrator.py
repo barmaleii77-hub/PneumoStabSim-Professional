@@ -15,7 +15,8 @@ from physics.integrator import (
     create_default_rigid_body,
     refresh_physics_loop_defaults,
 )
-from src.core.settings_service import SettingsService
+from src.core.settings_service import SETTINGS_SERVICE_TOKEN, SettingsService
+from src.infrastructure.container import get_default_container
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[3]
@@ -43,20 +44,14 @@ def _write_custom_settings(tmp_path: Path) -> Path:
     return settings_file
 
 
-def test_refresh_physics_loop_defaults_reload(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-) -> None:
+def test_refresh_physics_loop_defaults_reload(tmp_path: Path) -> None:
     """refresh_physics_loop_defaults must reload solver and clamp parameters."""
 
     custom_settings = _write_custom_settings(tmp_path)
     service = SettingsService(settings_path=custom_settings)
 
-    with monkeypatch.context() as patch:
-        patch.setattr(
-            constants_module,
-            "get_settings_service",
-            lambda: service,
-        )
+    container = get_default_container()
+    with container.override(SETTINGS_SERVICE_TOKEN, service):
         constants_module.refresh_cache()
         refresh_physics_loop_defaults()
 
