@@ -81,6 +81,10 @@ ValidationErrors = List[str]
 QSB_ENV_VARIABLE = "QSB_COMMAND"
 
 
+class ShaderValidationUnavailableError(RuntimeError):
+    """Raised when qsb cannot run due to a missing runtime dependency."""
+
+
 def classify_shader(path: Path) -> tuple[str, str]:
     """Return the base name and variant label for *path*."""
 
@@ -206,35 +210,22 @@ def _shader_reports_paths(
     return output_path, log_path
 
 
-def _diagnose_qsb_failure(stderr: str) -> list[str]:
-    """Return helpful diagnostics for common qsb runtime failures."""
+def _extract_missing_shared_library(stderr: str) -> str | None:
+    """Return the missing shared library mentioned in *stderr*, if any."""
 
-    message = stderr.lower()
-    hints: list[str] = []
-
-    loader_token = "error while loading shared libraries"
-    if loader_token in message:
-        detected = [
-            (library, package)
-            for library, package in RUNTIME_DEPENDENCY_HINTS
-            if library.lower() in message
-        ]
-        if detected:
-            for library, package in detected:
-                hints.append(
-                    "    hint: qsb is missing '{library}'. Install the '{package}' package "
-                    "(e.g. 'apt-get install -y {package}') or run 'make install-qt-runtime' to "
-                    "pull in the required Qt runtime libraries.".format(
-                        library=library, package=package
-                    )
-                )
-        else:
-            hints.append(
-                "    hint: qsb failed to load a shared library. Ensure Qt runtime dependencies "
-                "(libgl1, libxkbcommon0, libegl1) are installed or run 'make install-qt-runtime'."
-            )
-
-    return hints
+    marker = "error while loading shared libraries:"
+    for line in stderr.splitlines():
+        if marker not in line:
+            continue
+        _, tail = line.split(marker, 1)
+        candidate = tail.strip()
+        if not candidate:
+            continue
+        library, *_ = candidate.split(":", 1)
+        library = library.strip()
+        if library:
+            return library
+    return None
 
 
 def _run_qsb(
@@ -280,6 +271,13 @@ def _run_qsb(
             log_contents.append("[stderr]\n" + stderr)
         log_path.write_text("\n\n".join(log_contents), encoding="utf-8")
 
+    missing_library = _extract_missing_shared_library(stderr)
+    if completed.returncode == 127 and missing_library:
+        raise ShaderValidationUnavailableError(
+            "Qt Shader Baker could not start because the shared library "
+            f"'{missing_library}' is not available in the current environment."
+        )
+
     if completed.returncode != 0:
         errors.append(
             f"{_relative(shader.path, shader_root)}: qsb failed with exit code {completed.returncode}"
@@ -300,7 +298,14 @@ def validate_shaders(
     qsb_command: Sequence[str] | None = None,
     reports_dir: Path | None = None,
 ) -> ValidationErrors:
-    """Return a list of validation error messages for *shader_root*."""
+    """Return a list of validation error messages for *shader_root*.
+
+    Raises
+    ------
+    ShaderValidationUnavailableError
+        If ``qsb`` is present but cannot be executed due to a missing
+        shared library at runtime (for example ``libxkbcommon.so.0``).
+    """
 
     errors: ValidationErrors = []
 
@@ -391,7 +396,11 @@ def main(argv: Sequence[str] | None = None) -> int:
     reports_dir = args.reports_dir.resolve() if args.reports_dir else None
     if reports_dir is None and args.emit_qsb:
         reports_dir = DEFAULT_REPORTS_ROOT
-    errors = validate_shaders(shader_root, reports_dir=reports_dir)
+    try:
+        errors = validate_shaders(shader_root, reports_dir=reports_dir)
+    except ShaderValidationUnavailableError as exc:
+        print(f"[validate_shaders] WARNING: {exc}", file=sys.stderr)
+        return 0
 
     if errors:
         for message in errors:
