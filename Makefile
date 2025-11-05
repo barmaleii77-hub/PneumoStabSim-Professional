@@ -24,7 +24,7 @@ install-qt-runtime qt-env-check telemetry-etl profile-phase3 profile-render prof
 qmllint:
 	$(MAKE) qml-lint
 
-.PHONY: uv-sync uv-sync-locked uv-run
+.PHONY: uv-sync uv-sync-locked uv-run uv-lock uv-export-requirements uv-release-refresh
 
 uv-sync:
 	@if ! command -v $(UV) >/dev/null 2>&1; then \
