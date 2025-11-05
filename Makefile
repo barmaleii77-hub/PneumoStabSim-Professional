@@ -12,6 +12,8 @@ MYPY_TARGETS ?= $(shell cat mypy_targets.txt 2>/dev/null)
 PYTEST_TARGETS_FILE ?= pytest_targets.txt
 LOG_DIR ?= logs
 PYTEST_FLAGS ?= -vv --color=yes --maxfail=1
+AUTONOMOUS_CHECK_ARGS ?= --task verify --history-limit 10 --sanitize --launch-trace
+CHECK_AUTONOMOUS_ARGS ?= --task verify --history-limit 5 --sanitize-history 3
 SMOKE_TARGET ?= tests/smoke
 INTEGRATION_TARGET ?= tests/integration/test_main_window_qml.py
 
@@ -115,9 +117,14 @@ shader-artifacts:
 validate-hdr-orientation:
 	$(PYTHON) tools/graphics/validate_hdr_orientation.py
 
-check: lint typecheck qml-lint test-local check-shaders validate-hdr-orientation localization-check qt-env-check
+check:
+	$(MAKE) AUTONOMOUS_CHECK_ARGS="$(CHECK_AUTONOMOUS_ARGS)" autonomous-check
+	$(MAKE) check-shaders
+	$(MAKE) validate-hdr-orientation
+	$(MAKE) localization-check
+	$(MAKE) qt-env-check
 
-verify: lint typecheck qml-lint test-local smoke integration
+verify: check smoke integration
 
 localization-check:
 	$(PYTHON) tools/update_translations.py --check
@@ -151,13 +158,21 @@ profile-validate:
 	$(PYTHON) tools/performance_gate.py reports/performance/ui_phase3_profile.json reports/performance/baselines/ui_phase3_baseline.json --summary-output reports/performance/ui_phase3_summary.json
 
 autonomous-check:
-	$(PYTHON) -m tools.autonomous_check
+	$(PYTHON) -m tools.autonomous_check $(AUTONOMOUS_CHECK_ARGS)
 
 autonomous-check-trace:
 	$(PYTHON) -m tools.autonomous_check --launch-trace
 
 trace-launch:
 	$(PYTHON) -m tools.trace_launch
+
+.PHONY: smoke integration
+
+smoke:
+	$(PYTHON) -m pytest $(PYTEST_FLAGS) $(SMOKE_TARGET)
+
+integration:
+	$(PYTHON) -m pytest $(PYTEST_FLAGS) $(INTEGRATION_TARGET)
 
 sanitize:
 	$(PYTHON) -m tools.project_sanitize
@@ -198,7 +213,7 @@ container-test-vulkan: container-build
 container-verify-all: container-build container-test
 
 container-analyze-logs: container-build
-        docker run --rm -t -v $(CURDIR):$(CONTAINER_WORKDIR) -w $(CONTAINER_WORKDIR) $(CONTAINER_IMAGE) python /usr/local/bin/collect_logs.py
+	docker run --rm -t -v $(CURDIR):$(CONTAINER_WORKDIR) -w $(CONTAINER_WORKDIR) $(CONTAINER_IMAGE) python /usr/local/bin/collect_logs.py
 
 .PHONY: build shell test test-opengl test-vulkan verify-all analyze-logs
 build: container-build
@@ -206,23 +221,6 @@ build: container-build
 shell: container-shell
 
 test: container-test
-
-test-opengl: container-test-opengl
-
-test-vulkan: container-test-vulkan
-
-verify-all: container-verify-all
-
-analyze-logs: container-analyze-logs
-
-.PHONY: build shell test-opengl test-vulkan verify-all analyze-logs
-
-build: container-build
-
-shell: container-shell
-
-# Ensure legacy test workflows still run alongside container validation
-test:: container-test
 
 test-opengl: container-test-opengl
 

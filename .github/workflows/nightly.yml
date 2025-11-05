@@ -1,10 +1,8 @@
-name: Continuous Integration
+name: Nightly Regression
 
 on:
-  push:
-    branches: [main, develop]
-  pull_request:
-    branches: [main, develop]
+  schedule:
+    - cron: '0 3 * * *'
   workflow_dispatch:
 
 env:
@@ -12,8 +10,8 @@ env:
   QT_VERSION: "6.10.0"
 
 jobs:
-  quality:
-    name: Quality checks (${{ matrix.os }})
+  nightly:
+    name: Nightly quality sweep (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -78,16 +76,22 @@ jobs:
               fh.write(f"QT_PLUGIN_PATH={plugin_path}{os.linesep}")
               fh.write(f"QML2_IMPORT_PATH={qml_path}{os.linesep}")
 
-      - name: Run make check
+      - name: Run nightly autonomous check
         env:
-          CHECK_AUTONOMOUS_ARGS: "--task verify --history-limit 10 --sanitize --launch-trace --sanitize-history 5 --trace-history-limit 5"
+          CHECK_AUTONOMOUS_ARGS: "--task verify --history-limit 20 --sanitize --launch-trace --trace-history-limit 10 --sanitize-history 5"
         run: make check
 
-      - name: Upload quality artefacts
+      - name: Targeted smoke suite
+        run: make smoke
+
+      - name: Integration focus tests
+        run: make integration
+
+      - name: Upload nightly artefacts
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: quality-${{ matrix.os }}
+          name: nightly-quality-${{ matrix.os }}
           path: |
             reports/quality/autonomous_check_*.log
             reports/quality/autonomous_check_latest.log

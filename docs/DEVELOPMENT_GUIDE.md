@@ -49,9 +49,15 @@ uv-first environment strategy captured in the renovation master plan.
    python -m tools.environment.verify_qt_setup
    ```
 6. **Run the quality gate** – executes Ruff, mypy, pytest, and qmllint via the
-   helper runner.
+   helper runner and writes consolidated logs to `reports/quality/`.
    ```bash
    make check
+   ```
+   To capture an extended launch trace (mirroring CI), run the autonomous
+   wrapper. It persists a timestamped Markdown log and JSON status record that
+   can be attached to issues or inspected after failures.
+   ```bash
+   make autonomous-check
    ```
    Use `make uv-run CMD="..."` (or `uv run -- ...`) to execute ad-hoc commands
    inside the managed environment.
@@ -98,9 +104,14 @@ uv-first environment strategy captured in the renovation master plan.
 
 ## 4. Quality gates & workflows
 
-- `make check` (or `python -m tools.ci_tasks verify`) must succeed before pushing
-  or opening a pull request. The command runs Ruff (format + lint), mypy,
-  pytest, and qmllint with repository-configured targets.
+- Run both `python -m tools.ci_tasks verify` **and** `make autonomous-check`
+  before pushing or opening a pull request. The `verify` command provides the
+  fast inner loop, while `make autonomous-check` stores the aggregated results
+  under `reports/quality/` (including `autonomous_check_latest.log` and the
+  JSON status snapshot) so regressions are easy to audit.
+- `make check` delegates to the autonomous runner and augments it with shader,
+  localization, and Qt environment probes. Use this target when you need the
+  exact CI contract on a workstation.
 - `python -m tools.environment.verify_qt_setup` validates that Qt plugins and
   Qt Quick 3D bindings are discoverable on the current workstation. Capture the
   first successful transcript in `reports/environment/qt-smoke.md`.
@@ -130,8 +141,13 @@ uv-first environment strategy captured in the renovation master plan.
 - **`qmllint` missing** – ensure Qt 6.10 tools are available on `PATH`. The Qt
   setup script downloads the CLI utilities into `.qt/6.10` and the activation
   scripts append them to the shell.
-- **CI reproductions** – run `python -m tools.ci_tasks verify` for local parity
-  with the CI container workflows.
+- **CI reproductions** – run `make check` to mirror the GitHub Actions jobs. The
+  command emits logs in `reports/quality/` which are uploaded as workflow
+  artefacts (see the `quality-<os>` bundle on successful or failed runs).
+- **Investigating CI failures** – download the `quality-<os>` artefact from the
+  corresponding workflow. It contains the autonomous-check Markdown log,
+  `autonomous_check_status.json`, and any Qt environment reports produced by the
+  job. Inspect these files before re-running the pipeline.
 - Post blockers and environment anomalies in the `#dev-environment` Slack
   channel; link the relevant section of this guide or the renovation master plan
   when requesting assistance.
