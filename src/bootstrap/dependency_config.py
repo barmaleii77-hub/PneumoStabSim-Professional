@@ -5,7 +5,8 @@ from dataclasses import dataclass
 from functools import lru_cache
 from typing import Any, Mapping, Sequence
 
-from src.core.settings_service import get_settings_service
+from src.core.settings_service import SettingsValidationError, get_settings_service
+from src.infrastructure.container import ServiceResolutionError
 
 
 class DependencyConfigError(RuntimeError):
@@ -89,13 +90,57 @@ class DependencyVariant:
 
 
 @lru_cache(maxsize=None)
+def _fallback_dependencies() -> Mapping[str, Any]:
+    """Return a minimal dependency configuration when settings cannot be read."""
+
+    return {
+        "opengl_runtime": {
+            "description": "OpenGL runtime required for Qt Quick rendering.",
+            "missing_message": "Required OpenGL runtime ({human_name}) is missing.",
+            "variants": (
+                {
+                    "id": "linux_default",
+                    "platform_prefixes": ("linux", "linux2"),
+                    "library_name": "GL",
+                    "human_name": "libGL.so.1",
+                    "install_hint": "Install a Mesa/OpenGL package (e.g. 'apt-get install -y libgl1').",
+                    "error_markers": ("libGL.so.1",),
+                },
+                {
+                    "id": "windows_default",
+                    "platform_prefixes": ("win32", "cygwin"),
+                    "library_name": "opengl32",
+                    "human_name": "opengl32.dll",
+                    "install_hint": "Install the latest GPU drivers or enable OpenGL compatibility components.",
+                    "error_markers": ("opengl32.dll", "opengl32"),
+                },
+                {
+                    "id": "macos_default",
+                    "platform_prefixes": ("darwin",),
+                    "library_name": "OpenGL",
+                    "human_name": "OpenGL.framework",
+                    "install_hint": "Ensure the Xcode command line tools are installed for OpenGL support.",
+                    "error_markers": ("OpenGL.framework", "OpenGL"),
+                },
+            ),
+        }
+    }
+
+
+@lru_cache(maxsize=None)
 def _load_dependencies_section() -> Mapping[str, Any]:
-    settings = get_settings_service()
-    section = settings.get("current.system.dependencies")
+    try:
+        settings = get_settings_service()
+    except ServiceResolutionError:
+        return _fallback_dependencies()
+
+    try:
+        section = settings.get("current.system.dependencies")
+    except SettingsValidationError:
+        return _fallback_dependencies()
+
     if not isinstance(section, Mapping):
-        raise DependencyConfigError(
-            "Missing 'current.system.dependencies' section in app settings."
-        )
+        return _fallback_dependencies()
     return section
 
 
