@@ -23,9 +23,9 @@ except ModuleNotFoundError:  # pragma: no cover - optional dependency missing
 if _pytestqt_spec is not None:
     _autoload_disabled = os.environ.get("PYTEST_DISABLE_PLUGIN_AUTOLOAD", "0").lower()
     if _autoload_disabled in {"1", "true", "yes"}:
-        pytest_plugins = ("pytestqt.plugin",)
-    else:
         pytest_plugins = ()
+    else:
+        pytest_plugins = ("pytestqt.plugin",)
 else:  # pragma: no cover - fallback for minimal environments
     pytest_plugins: tuple[str, ...] = ()
 
