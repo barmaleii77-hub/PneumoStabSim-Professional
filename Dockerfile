@@ -16,7 +16,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libvulkan1 mesa-vulkan-drivers vulkan-tools \
     && rm -rf /var/lib/apt/lists/*
 
-# Trust the egress proxy certificate so that Python tooling (aqtinstall/requests)
+# Trust the egress proxy certificate so that Python tooling (aqt/requests)
 # can download Qt payloads during image build.
 COPY config/certs/envoy-mitmproxy-ca-cert.crt /usr/local/share/ca-certificates/
 RUN update-ca-certificates
