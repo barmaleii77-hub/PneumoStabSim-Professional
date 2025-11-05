@@ -18,7 +18,7 @@ INTEGRATION_TARGET ?= tests/integration/test_main_window_qml.py
 .PHONY: format lint typecheck qml-lint test validate-shaders check-shaders check verify smoke integration \
 localization-check \
 autonomous-check autonomous-check-trace trace-launch sanitize cipilot-env \
-install-qt-runtime qt-env-check package-all
+install-qt-runtime qt-env-check telemetry-etl
 
 .PHONY: qmllint
 qmllint:
@@ -122,20 +122,16 @@ localization-check:
 	$(PYTHON) tools/update_translations.py --check
 
 qt-env-check:
-	@if command -v $(UV) >/dev/null 2>&1; then \
-		cd $(UV_PROJECT_DIR) && $(UV) run $(UV_RUN_ARGS) -- python tools/environment/verify_qt_setup.py --report-dir reports/environment; \
-	else \
-		$(PYTHON) tools/environment/verify_qt_setup.py --report-dir reports/environment; \
+	@if command -v $(UV) >/dev/null 2>&1; then \\
+		cd $(UV_PROJECT_DIR) && $(UV) run $(UV_RUN_ARGS) -- python tools/environment/verify_qt_setup.py --report-dir reports/environment; \\
+	else \\
+		$(PYTHON) tools/environment/verify_qt_setup.py --report-dir reports/environment; \\
 	fi
 
-PACKAGE_ARGS ?= --output-dir dist/packages
-
-package-all:
-	@if command -v $(UV) >/dev/null 2>&1; then \
-		cd $(UV_PROJECT_DIR) && $(UV) run $(UV_RUN_ARGS) -- python -m tools.packaging.build_packages $(PACKAGE_ARGS); \
-	else \
-		$(PYTHON) -m tools.packaging.build_packages $(PACKAGE_ARGS); \
-	fi
+.PHONY: telemetry-etl
+telemetry-etl:
+	$(PYTHON) tools/telemetry_exporter.py export --format json --output reports/analytics/telemetry_events.json
+	$(PYTHON) tools/telemetry_exporter.py aggregate --output reports/analytics/telemetry_aggregates.json
 
 autonomous-check:
 	$(PYTHON) -m tools.autonomous_check
