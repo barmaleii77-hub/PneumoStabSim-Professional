@@ -1,12 +1,15 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-export QT_HOME="${QT_HOME:-/opt/Qt/6.10.0/gcc_64}"
+export QT_HOME="${QT_HOME:-/opt/Qt/current/gcc_64}"
 export PATH="${QT_HOME}/bin:${PATH}"
 export QT_QPA_PLATFORM='offscreen'
 export PYTHONUNBUFFERED=1
 
 echo "== Qt == "
+if [[ -f "/opt/Qt/CURRENT_VERSION" ]]; then
+  echo "Active Qt version: $(cat /opt/Qt/CURRENT_VERSION)"
+fi
 qmllint -v 2>/dev/null || true
 qsb -h 2>/dev/null || true
 echo "== GLX =="

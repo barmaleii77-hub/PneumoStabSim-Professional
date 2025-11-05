@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-export PATH="${QT_HOME:-/opt/Qt/6.10.0/gcc_64}/bin:${PATH}"
+export PATH="${QT_HOME:-/opt/Qt/current/gcc_64}/bin:${PATH}"
 export PYTHONUNBUFFERED=1
 
 echo "== Lint =="
