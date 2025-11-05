@@ -1,7 +1,7 @@
 import QtQuick 6.10
 import QtQuick.Controls 6.10
 import QtQuick.Layouts 6.10
-import "../panels/common" as Common
+import "../Panels/Common" as Common
 
 Pane {
     id: root
