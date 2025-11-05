@@ -2540,129 +2540,472 @@ function updateScene(params) {
    return false;
 
   try {
- var bgColorVal = valueForKeys(params, ['backgroundColor', 'background_color']);
- if (bgColorVal !== undefined) setIfExists(sceneEnvCtl, 'backgroundColor', bgColorVal);
- if (params.clearColor) setIfExists(sceneEnvCtl, 'backgroundColor', params.clearColor);
- if (isPlainObject(params.background) && params.background.color !== undefined)
-  setIfExists(sceneEnvCtl, 'backgroundColor', params.background.color);
+    var backgroundSection = isPlainObject(params.background) ? params.background : null;
+    var iblSection = isPlainObject(params.ibl) ? params.ibl : null;
+    var tonemapSection = isPlainObject(params.tonemap) ? params.tonemap : null;
+    var fogSection = isPlainObject(params.fog) ? params.fog : null;
+    var ssaoSection = isPlainObject(params.ssao) ? params.ssao : null;
+    var ambientSection = isPlainObject(params.ambient_occlusion) ? params.ambient_occlusion : null;
+    if (!ssaoSection && ambientSection)
+        ssaoSection = ambientSection;
+    var dofSection = isPlainObject(params.depthOfField) ? params.depthOfField : null;
+    var vignetteSection = isPlainObject(params.vignette) ? params.vignette : null;
+    var aaSection = isPlainObject(params.antialiasing) ? params.antialiasing : null;
 
-    var backgroundModeVal = valueForKeys(params, ['backgroundMode', 'background_mode']);
-    if (backgroundModeVal !== undefined) setIfExists(sceneEnvCtl, 'backgroundModeKey', String(backgroundModeVal));
-
-    var skyboxFlagRaw = valueForKeys(
-        params,
-        ['iblBackgroundEnabled', 'ibl_background_enabled', 'skyboxEnabled', 'skybox_enabled']
-    );
-    if (skyboxFlagRaw !== undefined)
-        setIfExists(sceneEnvCtl, 'skyboxToggleFlag', !!skyboxFlagRaw);
-
-    var currentSkyboxState = false;
-    if (sceneEnvCtl && sceneEnvCtl.skyboxToggleFlag !== undefined)
-        currentSkyboxState = !!sceneEnvCtl.skyboxToggleFlag;
-    var resolvedSkybox = skyboxFlagRaw !== undefined ? !!skyboxFlagRaw : currentSkyboxState;
-
-    var iblEnabledRaw = valueForKeys(params, ['iblEnabled', 'ibl_enabled']);
-    var iblLightingRaw = valueForKeys(params, ['iblLightingEnabled', 'ibl_lighting_enabled']);
-
-    var resolvedLighting = false;
-    if (sceneEnvCtl && sceneEnvCtl.iblLightingEnabled !== undefined)
-        resolvedLighting = !!sceneEnvCtl.iblLightingEnabled;
-
-    if (iblEnabledRaw !== undefined) {
-        resolvedLighting = !!iblEnabledRaw;
-        setIfExists(sceneEnvCtl, 'iblLightingEnabled', resolvedLighting);
+    var controllerApplied = false;
+    if (sceneEnvCtl && typeof sceneEnvCtl.applyEnvironmentPayload === "function") {
+        try {
+            sceneEnvCtl.applyEnvironmentPayload(params);
+            controllerApplied = true;
+        } catch (controllerError) {
+            console.warn("[SimulationRoot] sceneEnvCtl.applyEnvironmentPayload failed", controllerError);
+        }
     }
 
-    if (iblLightingRaw !== undefined) {
-        resolvedLighting = !!iblLightingRaw;
-        setIfExists(sceneEnvCtl, 'iblLightingEnabled', resolvedLighting);
-    }
+    if (!controllerApplied) {
+        var bgColorVal = valueForKeys(params, ['backgroundColor', 'background_color']);
+        if (bgColorVal === undefined && backgroundSection)
+            bgColorVal = backgroundSection.color;
+        if (bgColorVal === undefined)
+            bgColorVal = valueForKeys(params, ['clearColor', 'clear_color']);
+        if (bgColorVal !== undefined)
+            setIfExists(sceneEnvCtl, 'backgroundColor', bgColorVal);
 
-    var masterEnabled = resolvedLighting || resolvedSkybox;
-    setIfExists(sceneEnvCtl, 'iblMasterEnabled', masterEnabled);
-    setIfExists(sceneEnvCtl, 'iblBackgroundEnabled', masterEnabled && resolvedSkybox);
+        var backgroundModeVal = valueForKeys(params, ['backgroundMode', 'background_mode']);
+        if (backgroundModeVal === undefined && backgroundSection)
+            backgroundModeVal = backgroundSection.mode;
+        if (backgroundModeVal !== undefined)
+            setIfExists(sceneEnvCtl, 'backgroundModeKey', String(backgroundModeVal));
 
-    var directSkyboxBrightnessProvided = valueForKeys(
-        params,
-        ['skyboxBrightness', 'skybox_brightness']
-    ) !== undefined;
-    var directProbeBrightnessProvided = valueForKeys(
-        params,
-        ['probeBrightness', 'probe_brightness']
-    ) !== undefined;
-    var nestedSkyboxBrightnessProvided = false;
-    var nestedProbeBrightnessProvided = false;
-    if (isPlainObject(params.ibl)) {
-        nestedSkyboxBrightnessProvided = valueForKeys(
-            params.ibl,
+        var skyboxFlagRaw = valueForKeys(
+            params,
+            ['iblBackgroundEnabled', 'ibl_background_enabled', 'skyboxEnabled', 'skybox_enabled']
+        );
+        if (skyboxFlagRaw === undefined && backgroundSection)
+            skyboxFlagRaw = valueForKeys(backgroundSection, ['skybox_enabled', 'skybox']);
+        if (skyboxFlagRaw !== undefined)
+            setIfExists(sceneEnvCtl, 'skyboxToggleFlag', !!skyboxFlagRaw);
+
+        var currentSkyboxState = false;
+        if (sceneEnvCtl && sceneEnvCtl.skyboxToggleFlag !== undefined)
+            currentSkyboxState = !!sceneEnvCtl.skyboxToggleFlag;
+        var resolvedSkybox = skyboxFlagRaw !== undefined ? !!skyboxFlagRaw : currentSkyboxState;
+
+        var iblEnabledRaw = valueForKeys(params, ['iblEnabled', 'ibl_enabled']);
+        if (iblEnabledRaw === undefined && iblSection)
+            iblEnabledRaw = valueForKeys(iblSection, ['enabled']);
+        var iblLightingRaw = valueForKeys(params, ['iblLightingEnabled', 'ibl_lighting_enabled']);
+        if (iblLightingRaw === undefined && iblSection)
+            iblLightingRaw = valueForKeys(iblSection, ['lighting_enabled', 'lightingEnabled']);
+
+        var resolvedLighting = false;
+        if (sceneEnvCtl && sceneEnvCtl.iblLightingEnabled !== undefined)
+            resolvedLighting = !!sceneEnvCtl.iblLightingEnabled;
+
+        if (iblEnabledRaw !== undefined) {
+            resolvedLighting = !!iblEnabledRaw;
+            setIfExists(sceneEnvCtl, 'iblLightingEnabled', resolvedLighting);
+        }
+
+        if (iblLightingRaw !== undefined) {
+            resolvedLighting = !!iblLightingRaw;
+            setIfExists(sceneEnvCtl, 'iblLightingEnabled', resolvedLighting);
+        }
+
+        var masterEnabled = resolvedLighting || resolvedSkybox;
+        setIfExists(sceneEnvCtl, 'iblMasterEnabled', masterEnabled);
+        setIfExists(sceneEnvCtl, 'iblBackgroundEnabled', masterEnabled && resolvedSkybox);
+
+        var directSkyboxBrightnessProvided = valueForKeys(
+            params,
             ['skyboxBrightness', 'skybox_brightness']
         ) !== undefined;
-        nestedProbeBrightnessProvided = valueForKeys(
-            params.ibl,
+        var directProbeBrightnessProvided = valueForKeys(
+            params,
             ['probeBrightness', 'probe_brightness']
         ) !== undefined;
-    }
-    var shouldMirrorIntensity = !(
-        directSkyboxBrightnessProvided ||
-        directProbeBrightnessProvided ||
-        nestedSkyboxBrightnessProvided ||
-        nestedProbeBrightnessProvided
-    );
+        var nestedSkyboxBrightnessProvided = false;
+        var nestedProbeBrightnessProvided = false;
+        if (iblSection) {
+            nestedSkyboxBrightnessProvided = valueForKeys(
+                iblSection,
+                ['skyboxBrightness', 'skybox_brightness']
+            ) !== undefined;
+            nestedProbeBrightnessProvided = valueForKeys(
+                iblSection,
+                ['probeBrightness', 'probe_brightness']
+            ) !== undefined;
+        }
+        var shouldMirrorIntensity = !(
+            directSkyboxBrightnessProvided ||
+            directProbeBrightnessProvided ||
+            nestedSkyboxBrightnessProvided ||
+            nestedProbeBrightnessProvided
+        );
 
-    var intensityVal = valueForKeys(params, ['iblIntensity', 'ibl_intensity']);
-    if (intensityVal !== undefined) {
-        var numericIntensity = Number(intensityVal);
-        if (isFinite(numericIntensity)) {
-            setIfExists(sceneEnvCtl, 'iblIntensity', numericIntensity);
-            if (shouldMirrorIntensity) {
-                setIfExists(sceneEnvCtl, 'skyboxBrightnessValue', numericIntensity);
+        var intensityVal = valueForKeys(params, ['iblIntensity', 'ibl_intensity']);
+        if (intensityVal === undefined && iblSection)
+            intensityVal = valueForKeys(iblSection, ['intensity']);
+        if (intensityVal !== undefined) {
+            var numericIntensity = Number(intensityVal);
+            if (isFinite(numericIntensity)) {
+                setIfExists(sceneEnvCtl, 'iblIntensity', numericIntensity);
+                if (shouldMirrorIntensity) {
+                    setIfExists(sceneEnvCtl, 'skyboxBrightnessValue', numericIntensity);
+                }
+            }
+        }
+
+        var skyboxBrightnessVal = valueForKeys(
+            params,
+            ['skyboxBrightness', 'skybox_brightness', 'probeBrightness', 'probe_brightness']
+        );
+        if (skyboxBrightnessVal === undefined && iblSection)
+            skyboxBrightnessVal = valueForKeys(
+                iblSection,
+                ['skyboxBrightness', 'skybox_brightness', 'probeBrightness', 'probe_brightness']
+            );
+        if (skyboxBrightnessVal !== undefined) {
+            var numericSkyboxBrightness = Number(skyboxBrightnessVal);
+            if (isFinite(numericSkyboxBrightness)) {
+                setIfExists(sceneEnvCtl, 'skyboxBrightnessValue', numericSkyboxBrightness);
+            }
+        }
+
+        var probeHorizonVal = valueForKeys(params, ['probeHorizon', 'probe_horizon']);
+        if (probeHorizonVal === undefined && iblSection)
+            probeHorizonVal = valueForKeys(iblSection, ['probe_horizon', 'horizon']);
+        if (probeHorizonVal !== undefined) {
+            var numericHorizon = Number(probeHorizonVal);
+            if (isFinite(numericHorizon))
+                setIfExists(sceneEnvCtl, 'probeHorizonValue', numericHorizon);
+        }
+
+        var rotationYawVal = valueForKeys(params, ['iblRotationDeg', 'ibl_rotation']);
+        if (rotationYawVal === undefined && iblSection)
+            rotationYawVal = valueForKeys(iblSection, ['rotation', 'rotation_y']);
+        if (rotationYawVal !== undefined) {
+            var numericYaw = Number(rotationYawVal);
+            if (isFinite(numericYaw))
+                setIfExists(sceneEnvCtl, 'iblRotationDeg', numericYaw);
+        }
+
+        var rotationPitchVal = valueForKeys(params, ['iblRotationPitchDeg', 'ibl_offset_x']);
+        if (rotationPitchVal === undefined && iblSection)
+            rotationPitchVal = valueForKeys(iblSection, ['rotation_x']);
+        if (rotationPitchVal !== undefined) {
+            var numericPitch = Number(rotationPitchVal);
+            if (isFinite(numericPitch))
+                setIfExists(sceneEnvCtl, 'iblRotationPitchDeg', numericPitch);
+        }
+
+        var rotationRollVal = valueForKeys(params, ['iblRotationRollDeg', 'ibl_offset_y']);
+        if (rotationRollVal === undefined && iblSection)
+            rotationRollVal = valueForKeys(iblSection, ['rotation_z']);
+        if (rotationRollVal !== undefined) {
+            var numericRoll = Number(rotationRollVal);
+            if (isFinite(numericRoll))
+                setIfExists(sceneEnvCtl, 'iblRotationRollDeg', numericRoll);
+        }
+
+        var bindCameraVal = valueForKeys(params, ['iblBindToCamera', 'ibl_bind_to_camera']);
+        if (bindCameraVal === undefined && iblSection)
+            bindCameraVal = valueForKeys(iblSection, ['bind_to_camera']);
+        if (bindCameraVal !== undefined)
+            setIfExists(sceneEnvCtl, 'iblBindToCamera', !!bindCameraVal);
+
+        var skyboxBlurVal = valueForKeys(params, ['skyboxBlur', 'skybox_blur']);
+        if (skyboxBlurVal === undefined && iblSection)
+            skyboxBlurVal = valueForKeys(iblSection, ['skybox_blur', 'blur']);
+        if (skyboxBlurVal !== undefined) {
+            var numericBlur = Number(skyboxBlurVal);
+            if (isFinite(numericBlur))
+                setIfExists(sceneEnvCtl, 'skyboxBlurValue', numericBlur);
+        }
+
+        var tonemapToggleVal = valueForKeys(
+            params,
+            ['tonemapEnabled', 'tonemap_enabled', 'tonemapActive', 'tonemap_active']
+        );
+        if (tonemapToggleVal === undefined && tonemapSection)
+            tonemapToggleVal = valueForKeys(tonemapSection, ['enabled', 'active']);
+        if (tonemapToggleVal !== undefined) {
+            var tonemapFlag = !!tonemapToggleVal;
+            setIfExists(sceneEnvCtl, 'tonemapActive', tonemapFlag);
+            if (!tonemapFlag) {
+                setIfExists(sceneEnvCtl, 'tonemapModeName', 'none');
+            } else {
+                var explicitModeProvided = valueForKeys(params, ['tonemapModeName', 'tonemap_mode']) !== undefined;
+                if (!explicitModeProvided && tonemapSection)
+                    explicitModeProvided = valueForKeys(tonemapSection, ['mode', 'name']) !== undefined;
+                if (!explicitModeProvided) {
+                    var storedMode = sceneEnvCtl.tonemapStoredModeName || sceneEnvCtl.tonemapModeName || 'filmic';
+                    setIfExists(sceneEnvCtl, 'tonemapModeName', storedMode);
+                }
             }
         }
     }
+    var tonemapModeVal = valueForKeys(params, ['tonemapModeName', 'tonemap_mode']);
+    if (tonemapModeVal === undefined && tonemapSection)
+        tonemapModeVal = valueForKeys(tonemapSection, ['mode', 'name']);
+    if (tonemapModeVal !== undefined)
+        setIfExists(sceneEnvCtl, 'tonemapModeName', String(tonemapModeVal));
 
-    var skyboxBrightnessVal = valueForKeys(
-        params,
-        ['skyboxBrightness', 'skybox_brightness', 'probeBrightness', 'probe_brightness']
-    );
-    if (skyboxBrightnessVal !== undefined) {
-        var numericSkyboxBrightness = Number(skyboxBrightnessVal);
-        if (isFinite(numericSkyboxBrightness)) {
-            setIfExists(sceneEnvCtl, 'skyboxBrightnessValue', numericSkyboxBrightness);
-        }
+    var tonemapExposureVal = valueForKeys(params, ['tonemapExposure', 'tonemap_exposure']);
+    if (tonemapExposureVal === undefined && tonemapSection)
+        tonemapExposureVal = valueForKeys(tonemapSection, ['exposure']);
+    if (tonemapExposureVal !== undefined)
+        setIfExists(sceneEnvCtl, 'tonemapExposure', Number(tonemapExposureVal));
+
+    var tonemapWhitePointVal = valueForKeys(params, ['tonemapWhitePoint', 'tonemap_white_point']);
+    if (tonemapWhitePointVal === undefined && tonemapSection)
+        tonemapWhitePointVal = valueForKeys(tonemapSection, ['white_point']);
+    if (tonemapWhitePointVal !== undefined)
+        setIfExists(sceneEnvCtl, 'tonemapWhitePoint', Number(tonemapWhitePointVal));
+
+    var fogEnabledVal = valueForKeys(params, ['fogEnabled', 'fog_enabled']);
+    if (fogEnabledVal === undefined && fogSection)
+        fogEnabledVal = valueForKeys(fogSection, ['enabled']);
+    if (fogEnabledVal !== undefined)
+        setIfExists(sceneEnvCtl, 'fogEnabled', !!fogEnabledVal);
+
+    var fogColorVal = valueForKeys(params, ['fogColor', 'fog_color']);
+    if (fogColorVal === undefined && fogSection)
+        fogColorVal = valueForKeys(fogSection, ['color']);
+    if (fogColorVal !== undefined)
+        setIfExists(sceneEnvCtl, 'fogColor', fogColorVal);
+
+    var fogDensityVal = valueForKeys(params, ['fogDensity', 'fog_density']);
+    if (fogDensityVal === undefined && fogSection)
+        fogDensityVal = valueForKeys(fogSection, ['density']);
+    if (fogDensityVal !== undefined) {
+        var fogDensityNum = Number(fogDensityVal);
+        if (isFinite(fogDensityNum))
+            setIfExists(sceneEnvCtl, 'fogDensity', fogDensityNum);
     }
 
- var probeHorizonVal = valueForKeys(params, ['probeHorizon', 'probe_horizon']);
- if (probeHorizonVal !== undefined) {
-     var numericHorizon = Number(probeHorizonVal);
-     if (isFinite(numericHorizon)) setIfExists(sceneEnvCtl, 'probeHorizonValue', numericHorizon);
- }
+    var fogNearSource = valueForKeys(params, ['fogNear', 'fog_near']);
+    if (fogNearSource === undefined && fogSection)
+        fogNearSource = valueForKeys(fogSection, ['near']);
+    if (fogNearSource !== undefined) {
+        var fogNearVal = Number(fogNearSource);
+        if (isFinite(fogNearVal))
+            setIfExists(sceneEnvCtl, 'fogNear', toSceneLength(fogNearVal));
+    }
 
- var rotationYawVal = valueForKeys(params, ['iblRotationDeg', 'ibl_rotation']);
- if (rotationYawVal !== undefined) {
-     var numericYaw = Number(rotationYawVal);
-     if (isFinite(numericYaw)) setIfExists(sceneEnvCtl, 'iblRotationDeg', numericYaw);
- }
+    var fogFarSource = valueForKeys(params, ['fogFar', 'fog_far']);
+    if (fogFarSource === undefined && fogSection)
+        fogFarSource = valueForKeys(fogSection, ['far']);
+    if (fogFarSource !== undefined) {
+        var fogFarVal = Number(fogFarSource);
+        if (isFinite(fogFarVal))
+            setIfExists(sceneEnvCtl, 'fogFar', toSceneLength(fogFarVal));
+    }
 
- var rotationPitchVal = valueForKeys(params, ['iblRotationPitchDeg', 'ibl_offset_x']);
- if (rotationPitchVal !== undefined) {
-     var numericPitch = Number(rotationPitchVal);
-     if (isFinite(numericPitch)) setIfExists(sceneEnvCtl, 'iblRotationPitchDeg', numericPitch);
- }
+    var fogHeightEnabledVal = valueForKeys(params, ['fogHeightEnabled', 'fog_height_enabled']);
+    if (fogHeightEnabledVal === undefined && fogSection)
+        fogHeightEnabledVal = valueForKeys(fogSection, ['height_enabled']);
+    if (fogHeightEnabledVal !== undefined)
+        setIfExists(sceneEnvCtl, 'fogHeightEnabled', !!fogHeightEnabledVal);
 
- var rotationRollVal = valueForKeys(params, ['iblRotationRollDeg', 'ibl_offset_y']);
- if (rotationRollVal !== undefined) {
-     var numericRoll = Number(rotationRollVal);
-     if (isFinite(numericRoll)) setIfExists(sceneEnvCtl, 'iblRotationRollDeg', numericRoll);
- }
+    var fogLeastVal = valueForKeys(params, ['fogLeastIntenseY', 'fog_least_intense_y']);
+    if (fogLeastVal === undefined && fogSection)
+        fogLeastVal = valueForKeys(fogSection, ['least_intense_y']);
+    if (fogLeastVal !== undefined) {
+        var fogLeastNum = Number(fogLeastVal);
+        if (isFinite(fogLeastNum))
+            setIfExists(sceneEnvCtl, 'fogLeastIntenseY', toSceneLength(fogLeastNum));
+    }
 
- var bindCameraVal = valueForKeys(params, ['iblBindToCamera', 'ibl_bind_to_camera']);
- if (bindCameraVal !== undefined) setIfExists(sceneEnvCtl, 'iblBindToCamera', !!bindCameraVal);
+    var fogMostVal = valueForKeys(params, ['fogMostIntenseY', 'fog_most_intense_y']);
+    if (fogMostVal === undefined && fogSection)
+        fogMostVal = valueForKeys(fogSection, ['most_intense_y']);
+    if (fogMostVal !== undefined) {
+        var fogMostNum = Number(fogMostVal);
+        if (isFinite(fogMostNum))
+            setIfExists(sceneEnvCtl, 'fogMostIntenseY', toSceneLength(fogMostNum));
+    }
 
- var skyboxBlurVal = valueForKeys(params, ['skyboxBlur', 'skybox_blur']);
- if (skyboxBlurVal !== undefined) {
-     var numericBlur = Number(skyboxBlurVal);
-     if (isFinite(numericBlur)) setIfExists(sceneEnvCtl, 'skyboxBlurValue', numericBlur);
- }
+    var fogHeightCurveVal = valueForKeys(params, ['fogHeightCurve', 'fog_height_curve']);
+    if (fogHeightCurveVal === undefined && fogSection)
+        fogHeightCurveVal = valueForKeys(fogSection, ['height_curve']);
+    if (fogHeightCurveVal !== undefined) {
+        var fogHeightCurveNum = Number(fogHeightCurveVal);
+        if (isFinite(fogHeightCurveNum))
+            setIfExists(sceneEnvCtl, 'fogHeightCurve', fogHeightCurveNum);
+    }
+
+    var fogTransmitEnabledVal = valueForKeys(params, ['fogTransmitEnabled', 'fog_transmit_enabled']);
+    if (fogTransmitEnabledVal === undefined && fogSection)
+        fogTransmitEnabledVal = valueForKeys(fogSection, ['transmit_enabled']);
+    if (fogTransmitEnabledVal !== undefined)
+        setIfExists(sceneEnvCtl, 'fogTransmitEnabled', !!fogTransmitEnabledVal);
+
+    var fogTransmitCurveVal = valueForKeys(params, ['fogTransmitCurve', 'fog_transmit_curve']);
+    if (fogTransmitCurveVal === undefined && fogSection)
+        fogTransmitCurveVal = valueForKeys(fogSection, ['transmit_curve']);
+    if (fogTransmitCurveVal !== undefined) {
+        var fogTransmitCurveNum = Number(fogTransmitCurveVal);
+        if (isFinite(fogTransmitCurveNum))
+            setIfExists(sceneEnvCtl, 'fogTransmitCurve', fogTransmitCurveNum);
+    }
+
+    var ssaoEnabledVal = valueForKeys(params, ['ssaoEnabled', 'ssao_enabled', 'ao_enabled']);
+    if (ssaoEnabledVal === undefined && ssaoSection)
+        ssaoEnabledVal = valueForKeys(ssaoSection, ['enabled']);
+    if (ssaoEnabledVal !== undefined)
+        setIfExists(sceneEnvCtl, 'ssaoEnabled', !!ssaoEnabledVal);
+
+    var ssaoRadiusVal = valueForKeys(params, ['ssaoRadius', 'ssao_radius', 'ao_radius']);
+    if (ssaoRadiusVal === undefined && ssaoSection)
+        ssaoRadiusVal = valueForKeys(ssaoSection, ['radius']);
+    if (ssaoRadiusVal !== undefined) {
+        var ssaoRadiusNum = Number(ssaoRadiusVal);
+        if (isFinite(ssaoRadiusNum))
+            setIfExists(sceneEnvCtl, 'ssaoRadius', ssaoRadiusNum);
+    }
+
+    var ssaoIntensityVal = valueForKeys(params, ['ssaoIntensity', 'ssao_intensity', 'ao_strength']);
+    if (ssaoIntensityVal === undefined && ssaoSection)
+        ssaoIntensityVal = valueForKeys(ssaoSection, ['intensity', 'strength']);
+    if (ssaoIntensityVal !== undefined)
+        setIfExists(sceneEnvCtl, 'ssaoIntensity', Number(ssaoIntensityVal));
+
+    var ssaoSoftnessVal = valueForKeys(params, ['ssaoSoftness', 'ssao_softness', 'ao_softness']);
+    if (ssaoSoftnessVal === undefined && ssaoSection)
+        ssaoSoftnessVal = valueForKeys(ssaoSection, ['softness']);
+    if (ssaoSoftnessVal !== undefined)
+        setIfExists(sceneEnvCtl, 'ssaoSoftness', Number(ssaoSoftnessVal));
+
+    var ssaoDitherVal = valueForKeys(params, ['ssaoDither', 'ssao_dither', 'ao_dither']);
+    if (ssaoDitherVal === undefined && ssaoSection)
+        ssaoDitherVal = valueForKeys(ssaoSection, ['dither']);
+    if (ssaoDitherVal !== undefined)
+        setIfExists(sceneEnvCtl, 'ssaoDither', !!ssaoDitherVal);
+
+    var ssaoSampleRateVal = valueForKeys(params, ['ssaoSampleRate', 'ssao_sample_rate', 'ao_sample_rate']);
+    if (ssaoSampleRateVal === undefined && ssaoSection)
+        ssaoSampleRateVal = valueForKeys(ssaoSection, ['sample_rate']);
+    if (ssaoSampleRateVal !== undefined) {
+        var ssaoSampleNumeric = Number(ssaoSampleRateVal);
+        if (isFinite(ssaoSampleNumeric))
+            setIfExists(sceneEnvCtl, 'ssaoSampleRate', Math.max(1, Math.round(ssaoSampleNumeric)));
+    }
+
+    var dofEnabledVal = valueForKeys(
+        params,
+        ['depthOfFieldEnabled', 'depth_of_field_enabled', 'depth_of_field']
+    );
+    if (dofEnabledVal === undefined && dofSection)
+        dofEnabledVal = valueForKeys(dofSection, ['enabled']);
+    if (dofEnabledVal !== undefined)
+        setIfExists(sceneEnvCtl, 'internalDepthOfFieldEnabled', !!dofEnabledVal);
+
+    var dofAutoFocusVal = valueForKeys(params, ['depthOfFieldAutoFocus', 'dof_auto_focus']);
+    if (dofAutoFocusVal === undefined && dofSection)
+        dofAutoFocusVal = valueForKeys(dofSection, ['auto_focus']);
+    if (dofAutoFocusVal !== undefined)
+        setIfExists(sceneEnvCtl, 'depthOfFieldAutoFocus', !!dofAutoFocusVal);
+
+    var dofFocusDistanceVal = valueForKeys(params, ['dofFocusDistance', 'dof_focus_distance']);
+    if (dofFocusDistanceVal === undefined && dofSection)
+        dofFocusDistanceVal = valueForKeys(dofSection, ['focus_distance']);
+    if (dofFocusDistanceVal !== undefined) {
+        var dofDist = Number(dofFocusDistanceVal);
+        if (isFinite(dofDist))
+            setIfExists(sceneEnvCtl, 'dofFocusDistance', toSceneLength(dofDist));
+    }
+
+    var dofFocusRangeVal = valueForKeys(params, ['dofFocusRange', 'dof_focus_range']);
+    if (dofFocusRangeVal === undefined && dofSection)
+        dofFocusRangeVal = valueForKeys(dofSection, ['focus_range']);
+    if (dofFocusRangeVal !== undefined) {
+        var dofRange = Number(dofFocusRangeVal);
+        if (isFinite(dofRange))
+            setIfExists(sceneEnvCtl, 'dofFocusRange', toSceneLength(dofRange));
+    }
+
+    var dofBlurAmountVal = valueForKeys(params, ['dofBlurAmount', 'dof_blur_amount']);
+    if (dofBlurAmountVal === undefined && dofSection)
+        dofBlurAmountVal = valueForKeys(dofSection, ['blur_amount']);
+    if (dofBlurAmountVal !== undefined)
+        setIfExists(sceneEnvCtl, 'dofBlurAmount', Number(dofBlurAmountVal));
+
+    var vignetteEnabledVal = valueForKeys(params, ['vignetteEnabled', 'vignette_enabled']);
+    if (vignetteEnabledVal === undefined && vignetteSection)
+        vignetteEnabledVal = valueForKeys(vignetteSection, ['enabled']);
+    if (vignetteEnabledVal !== undefined)
+        setIfExists(sceneEnvCtl, 'internalVignetteEnabled', !!vignetteEnabledVal);
+
+    var vignetteStrengthVal = valueForKeys(params, ['vignetteStrength', 'vignette_strength']);
+    if (vignetteStrengthVal === undefined && vignetteSection)
+        vignetteStrengthVal = valueForKeys(vignetteSection, ['strength']);
+    if (vignetteStrengthVal !== undefined)
+        setIfExists(sceneEnvCtl, 'internalVignetteStrength', Number(vignetteStrengthVal));
+
+    var aaPrimaryVal = valueForKeys(params, ['aaPrimaryMode', 'aa_primary_mode']);
+    if (aaPrimaryVal === undefined && aaSection)
+        aaPrimaryVal = valueForKeys(aaSection, ['primary', 'mode']);
+    if (aaPrimaryVal !== undefined)
+        setIfExists(sceneEnvCtl, 'aaPrimaryMode', String(aaPrimaryVal));
+
+    var aaQualityVal = valueForKeys(params, ['aaQualityLevel', 'aa_quality_level']);
+    if (aaQualityVal === undefined && aaSection)
+        aaQualityVal = valueForKeys(aaSection, ['quality']);
+    if (aaQualityVal !== undefined)
+        setIfExists(sceneEnvCtl, 'aaQualityLevel', String(aaQualityVal));
+
+    var aaPostVal = valueForKeys(params, ['aaPostMode', 'aa_post_mode']);
+    if (aaPostVal === undefined && aaSection)
+        aaPostVal = valueForKeys(aaSection, ['post']);
+    if (aaPostVal !== undefined)
+        setIfExists(sceneEnvCtl, 'aaPostMode', String(aaPostVal));
+
+    var taaEnabledVal = valueForKeys(params, ['taaEnabled', 'taa_enabled']);
+    if (taaEnabledVal === undefined && aaSection)
+        taaEnabledVal = valueForKeys(aaSection, ['taaEnabled', 'taa_enabled']);
+    if (taaEnabledVal !== undefined)
+        setIfExists(sceneEnvCtl, 'taaEnabled', !!taaEnabledVal);
+
+    var taaStrengthVal = valueForKeys(params, ['taaStrength', 'taa_strength']);
+    if (taaStrengthVal === undefined && aaSection)
+        taaStrengthVal = valueForKeys(aaSection, ['taa_strength', 'strength']);
+    if (taaStrengthVal !== undefined)
+        setIfExists(sceneEnvCtl, 'taaStrength', Number(taaStrengthVal));
+
+    var taaMotionVal = valueForKeys(params, ['taaMotionAdaptive', 'taa_motion_adaptive']);
+    if (taaMotionVal === undefined && aaSection)
+        taaMotionVal = valueForKeys(aaSection, ['taa_motion_adaptive']);
+    if (taaMotionVal !== undefined)
+        setIfExists(sceneEnvCtl, 'taaMotionAdaptive', !!taaMotionVal);
+
+    var fxaaVal = valueForKeys(params, ['fxaaEnabled', 'fxaa_enabled']);
+    if (fxaaVal === undefined && aaSection)
+        fxaaVal = valueForKeys(aaSection, ['fxaa_enabled', 'fxaa']);
+    if (fxaaVal !== undefined)
+        setIfExists(sceneEnvCtl, 'fxaaEnabled', !!fxaaVal);
+
+    var specularVal = valueForKeys(
+        params,
+        ['specularAAEnabled', 'specular_aa_enabled', 'specular_aa']
+    );
+    if (specularVal === undefined && aaSection)
+        specularVal = valueForKeys(aaSection, ['specular', 'specular_aa']);
+    if (specularVal !== undefined)
+        setIfExists(sceneEnvCtl, 'specularAAEnabled', !!specularVal);
+
+    var oitVal = valueForKeys(params, ['oitMode', 'oit_mode', 'oit']);
+    if (oitVal === undefined && aaSection)
+        oitVal = valueForKeys(aaSection, ['oit']);
+    if (oitVal !== undefined)
+        setIfExists(sceneEnvCtl, 'oitMode', String(oitVal));
+
+    var ditheringVal = valueForKeys(params, ['ditheringEnabled', 'dithering']);
+    if (ditheringVal === undefined && aaSection)
+        ditheringVal = valueForKeys(aaSection, ['dithering']);
+    if (ditheringVal !== undefined)
+        setIfExists(sceneEnvCtl, 'ditheringEnabled', !!ditheringVal);
+
     var hdrSourceVal = valueForKeys(
         params,
         [
@@ -2674,70 +3017,12 @@ function updateScene(params) {
             'hdr_source'
         ]
     );
+    if (hdrSourceVal === undefined && iblSection)
+        hdrSourceVal = valueForKeys(iblSection, ['source', 'primary', 'hdr_source']);
     if (hdrSourceVal !== undefined) {
         var normalizedSource = normalizeHdrSource(hdrSourceVal);
         setIfExists(iblLoader, 'primarySource', normalizedSource);
     }
- if (params.tonemapEnabled !== undefined) {
-     var tonemapEnabledFlag = !!params.tonemapEnabled;
-     setIfExists(sceneEnvCtl, 'tonemapActive', tonemapEnabledFlag);
-     if (!tonemapEnabledFlag) {
-         setIfExists(sceneEnvCtl, 'tonemapModeName', 'none');
-     } else if (!params.tonemapModeName && !params.tonemap_mode) {
-         var storedMode = sceneEnvCtl.tonemapStoredModeName || sceneEnvCtl.tonemapModeName || 'filmic';
-         setIfExists(sceneEnvCtl, 'tonemapModeName', storedMode);
-     }
- }
- if (params.tonemapActive !== undefined) {
-     var tonemapActiveFlag = !!params.tonemapActive;
-     setIfExists(sceneEnvCtl, 'tonemapActive', tonemapActiveFlag);
-     if (!tonemapActiveFlag) {
-         setIfExists(sceneEnvCtl, 'tonemapModeName', 'none');
-     } else if (!params.tonemapModeName && !params.tonemap_mode) {
-         var activeStored = sceneEnvCtl.tonemapStoredModeName || sceneEnvCtl.tonemapModeName || 'filmic';
-         setIfExists(sceneEnvCtl, 'tonemapModeName', activeStored);
-     }
- }
- if (params.tonemapModeName) setIfExists(sceneEnvCtl, 'tonemapModeName', String(params.tonemapModeName));
- if (params.tonemapExposure !== undefined) setIfExists(sceneEnvCtl, 'tonemapExposure', Number(params.tonemapExposure));
- if (params.tonemapWhitePoint !== undefined) setIfExists(sceneEnvCtl, 'tonemapWhitePoint', Number(params.tonemapWhitePoint));
- var fogEnabledVal = valueForKeys(params, ['fogEnabled', 'fog_enabled']);
- if (fogEnabledVal !== undefined) setIfExists(sceneEnvCtl, 'fogEnabled', !!fogEnabledVal);
- var fogColorVal = valueForKeys(params, ['fogColor', 'fog_color']);
- if (fogColorVal !== undefined) setIfExists(sceneEnvCtl, 'fogColor', fogColorVal);
- var fogDensityVal = valueForKeys(params, ['fogDensity', 'fog_density']);
- if (fogDensityVal !== undefined) {
-     var fogDensityNum = Number(fogDensityVal);
-     if (isFinite(fogDensityNum)) setIfExists(sceneEnvCtl, 'fogDensity', fogDensityNum);
- }
- var fogNearSource = valueForKeys(params, ['fogNear', 'fog_near']);
- if (fogNearSource !== undefined) {
-     var fogNearVal = Number(fogNearSource);
-     if (isFinite(fogNearVal)) setIfExists(sceneEnvCtl, 'fogNear', toSceneLength(fogNearVal));
- }
- var fogFarSource = valueForKeys(params, ['fogFar', 'fog_far']);
- if (fogFarSource !== undefined) {
-     var fogFarVal = Number(fogFarSource);
-     if (isFinite(fogFarVal)) setIfExists(sceneEnvCtl, 'fogFar', toSceneLength(fogFarVal));
- }
- if (params.ssaoEnabled !== undefined) setIfExists(sceneEnvCtl, 'ssaoEnabled', !!params.ssaoEnabled);
- if (params.ssaoRadius !== undefined) setIfExists(sceneEnvCtl, 'ssaoRadius', Number(params.ssaoRadius));
- if (params.ssaoIntensity !== undefined) setIfExists(sceneEnvCtl, 'ssaoIntensity', Number(params.ssaoIntensity));
- if (params.depthOfFieldEnabled !== undefined) setIfExists(sceneEnvCtl, 'internalDepthOfFieldEnabled', !!params.depthOfFieldEnabled);
- if (params.dofFocusDistance !== undefined) { var dofDist = Number(params.dofFocusDistance); if (isFinite(dofDist)) setIfExists(sceneEnvCtl, 'dofFocusDistance', toSceneLength(dofDist)); }
- if (params.dofBlurAmount !== undefined) setIfExists(sceneEnvCtl, 'dofBlurAmount', Number(params.dofBlurAmount));
- if (params.vignetteEnabled !== undefined) setIfExists(sceneEnvCtl, 'internalVignetteEnabled', !!params.vignetteEnabled);
- if (params.vignetteStrength !== undefined) setIfExists(sceneEnvCtl, 'internalVignetteStrength', Number(params.vignetteStrength));
- if (params.aaPrimaryMode) setIfExists(sceneEnvCtl, 'aaPrimaryMode', String(params.aaPrimaryMode));
- if (params.aaQualityLevel) setIfExists(sceneEnvCtl, 'aaQualityLevel', String(params.aaQualityLevel));
- if (params.aaPostMode) setIfExists(sceneEnvCtl, 'aaPostMode', String(params.aaPostMode));
- if (params.taaEnabled !== undefined) setIfExists(sceneEnvCtl, 'taaEnabled', !!params.taaEnabled);
- if (params.taaStrength !== undefined) setIfExists(sceneEnvCtl, 'taaStrength', Number(params.taaStrength));
- if (params.taaMotionAdaptive !== undefined) setIfExists(sceneEnvCtl, 'taaMotionAdaptive', !!params.taaMotionAdaptive);
- if (params.fxaaEnabled !== undefined) setIfExists(sceneEnvCtl, 'fxaaEnabled', !!params.fxaaEnabled);
- if (params.specularAAEnabled !== undefined) setIfExists(sceneEnvCtl, 'specularAAEnabled', !!params.specularAAEnabled);
- if (params.oitMode) setIfExists(sceneEnvCtl, 'oitMode', String(params.oitMode));
-  if (params.ditheringEnabled !== undefined) setIfExists(sceneEnvCtl, 'ditheringEnabled', !!params.ditheringEnabled);
 
  if (postEffects && typeof postEffects.applyPayload === "function") {
   try {
@@ -2748,12 +3033,11 @@ function updateScene(params) {
  }
 
  return true;
- } catch (error) {
+  } catch (error) {
   console.error("[SimulationRoot] applyEnvironmentUpdates failed", error);
   return false;
- }
+  }
 }
-
     function applyQualityUpdates(params) {
         params = coerceBatchObject("quality", params);
         if (!params)
@@ -2782,6 +3066,9 @@ function updateScene(params) {
  if (isFinite(numeric))
   qualityPatch[targetKey] = numeric;
 }
+
+        var presetValue = valueForKeys(params, ['qualityPreset', 'quality_preset', 'preset']);
+        assignString("qualityPreset", presetValue);
 
  var renderScaleValue = valueForKeys(params, ['renderScale', 'render_scale']);
  if (renderScaleValue !== undefined) {
@@ -2861,7 +3148,6 @@ else if (isPlainObject(params.shadows))
    applyLightingUpdates({ global: lightingPatch });
  }
 
- var qualityPatch = {};
  var aaSource = isPlainObject(params.antialiasing) ? params.antialiasing : null;
 
  assignString("aaPrimaryMode", params.aaPrimaryMode !== undefined ? params.aaPrimaryMode : aaSource && aaSource.primary);
