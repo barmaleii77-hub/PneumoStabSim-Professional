@@ -1,33 +1,49 @@
 {
   "overlayEnabled": false,
-  "recordedAt": "2025-11-04T11:49:06.468492+00:00",
+  "recordedAt": "2025-11-18T00:00:00+00:00",
   "source": "performance_monitor.phase3",
   "scenario": "phase3",
   "metadata": {
     "settingsAvailable": true,
     "historyLimit": 1000,
     "scenario": "phase3",
-    "timestamp": "2025-11-04T11:49:06.468424+00:00",
+    "timestamp": "2025-11-18T00:00:00+00:00",
     "averages": {
-      "avg_cpu_percent": 0.4,
-      "avg_memory_mb": 45.328125,
-      "avg_memory_percent": 0.24686782721209335,
-      "avg_fps": 0.0,
-      "avg_frame_time_ms": 0.0
+      "avg_cpu_percent": 1.1,
+      "avg_memory_mb": 52.0,
+      "avg_memory_percent": 0.35,
+      "avg_fps": 60.0,
+      "avg_frame_time_ms": 16.5,
+      "avg_cpu_time_user": 1.2,
+      "avg_cpu_time_system": 0.4,
+      "avg_cpu_time_total": 1.6,
+      "avg_gpu_utilization_percent": 48.0,
+      "avg_gpu_memory_total_mb": 8192.0,
+      "avg_gpu_memory_used_mb": 2048.0,
+      "avg_gpu_memory_free_mb": 6144.0
     },
     "samples": 12,
-    "overlay_enabled": false
+    "overlay_enabled": false,
+    "gpu_metrics_available": true
   },
   "extra": {
     "averages": {
-      "avg_cpu_percent": 0.4,
-      "avg_memory_mb": 45.328125,
-      "avg_memory_percent": 0.24686782721209335,
-      "avg_fps": 0.0,
-      "avg_frame_time_ms": 0.0
+      "avg_cpu_percent": 1.1,
+      "avg_memory_mb": 52.0,
+      "avg_memory_percent": 0.35,
+      "avg_fps": 60.0,
+      "avg_frame_time_ms": 16.5,
+      "avg_cpu_time_user": 1.2,
+      "avg_cpu_time_system": 0.4,
+      "avg_cpu_time_total": 1.6,
+      "avg_gpu_utilization_percent": 48.0,
+      "avg_gpu_memory_total_mb": 8192.0,
+      "avg_gpu_memory_used_mb": 2048.0,
+      "avg_gpu_memory_free_mb": 6144.0
     },
     "sampleCount": 12,
     "psutilAvailable": true,
+    "gpuMetricsAvailable": true,
     "overlayEnabled": false
   }
 }

@@ -18,7 +18,7 @@ INTEGRATION_TARGET ?= tests/integration/test_main_window_qml.py
 .PHONY: format lint typecheck qml-lint test validate-shaders check-shaders check verify smoke integration \
 localization-check \
 autonomous-check autonomous-check-trace trace-launch sanitize cipilot-env \
-install-qt-runtime qt-env-check telemetry-etl
+install-qt-runtime qt-env-check telemetry-etl profile-phase3 profile-render profile-validate
 
 .PHONY: qmllint
 qmllint:
@@ -132,6 +132,17 @@ qt-env-check:
 telemetry-etl:
 	$(PYTHON) tools/telemetry_exporter.py export --format json --output reports/analytics/telemetry_events.json
 	$(PYTHON) tools/telemetry_exporter.py aggregate --output reports/analytics/telemetry_aggregates.json
+
+.PHONY: profile-phase3
+profile-phase3:
+	$(PYTHON) tools/performance_monitor.py --scenario phase3 --output reports/performance/ui_phase3_profile.json --html-output reports/performance/ui_phase3_profile.html
+
+.PHONY: profile-render
+profile-render: profile-phase3
+
+.PHONY: profile-validate
+profile-validate:
+	$(PYTHON) tools/performance_gate.py reports/performance/ui_phase3_profile.json reports/performance/baselines/ui_phase3_baseline.json --summary-output reports/performance/ui_phase3_summary.json
 
 autonomous-check:
 	$(PYTHON) -m tools.autonomous_check
