@@ -636,7 +636,13 @@ class EnvironmentSetup:
 
         # Обновляем .env файл с актуальными путями
         env_file = self.project_root / ".env"
-        pythonpath = f"{self.project_root}/src;{self.project_root}/tests;{self.project_root}/scripts"
+        pythonpath_parts = [
+            str(self.project_root),
+            str(self.project_root / "src"),
+            str(self.project_root / "tests"),
+            str(self.project_root / "scripts"),
+        ]
+        pythonpath = os.pathsep.join(pythonpath_parts)
 
         qt_plugin_path = self.qt_environment.get("QT_PLUGIN_PATH", "")
         qml_import_paths = self._qml_import_paths()
@@ -653,6 +659,8 @@ QT_LOGGING_RULES=js.debug=true;qt.qml.debug=true
 QSG_INFO=1
 QT_PLUGIN_PATH={qt_plugin_path}
 QML2_IMPORT_PATH={qml_import_value}
+QML_IMPORT_PATH={qml_import_value}
+QT_QML_IMPORT_PATH={qml_import_value}
 
 # Project Paths
 PROJECT_ROOT={self.project_root}
