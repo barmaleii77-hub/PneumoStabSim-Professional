@@ -40,6 +40,19 @@ def parse_args() -> argparse.Namespace:
         help="Run `uv sync` after ensuring uv is installed.",
     )
     parser.add_argument(
+        "--lock",
+        action="store_true",
+        help="Run `uv lock` to refresh the lockfile after ensuring uv is installed.",
+    )
+    parser.add_argument(
+        "--export-requirements",
+        action="store_true",
+        help=(
+            "Regenerate requirements exports via `uv export` after syncing. "
+            "Implies --lock so the exports always reflect the current lockfile."
+        ),
+    )
+    parser.add_argument(
         "--executable",
         type=str,
         default="uv",
@@ -106,13 +119,62 @@ def run_uv_command(uv_executable: str, project_dir: Path, args: list[str]) -> No
         )
 
 
+def export_requirements(uv_executable: str, project_dir: Path) -> None:
+    lockfile = project_dir / "uv.lock"
+    if not lockfile.exists():
+        raise RuntimeError(
+            f"Lockfile '{lockfile}' is required before exporting requirements."
+        )
+    commands: list[list[str]] = [
+        [
+            "export",
+            "--format",
+            "requirements.txt",
+            "--output-file",
+            "requirements.txt",
+            "--no-dev",
+            "--locked",
+            "--no-emit-project",
+        ],
+        [
+            "export",
+            "--format",
+            "requirements.txt",
+            "--output-file",
+            "requirements-dev.txt",
+            "--extra",
+            "dev",
+            "--locked",
+            "--no-emit-project",
+        ],
+        [
+            "export",
+            "--format",
+            "requirements.txt",
+            "--output-file",
+            "requirements-compatible.txt",
+            "--no-dev",
+            "--locked",
+            "--no-emit-project",
+            "--no-annotate",
+            "--no-hashes",
+        ],
+    ]
+    for command in commands:
+        run_uv_command(uv_executable, project_dir, command)
+
+
 def main() -> None:
     args = parse_args()
     try:
         uv_path = ensure_uv(args.executable, args.force)
         print(f"uv executable: {uv_path}")
         if args.sync:
-            run_uv_command(uv_path, args.project_dir, ["sync"])
+            run_uv_command(uv_path, args.project_dir, ["sync", "--locked", "--frozen"])
+        if args.lock or args.export_requirements:
+            run_uv_command(uv_path, args.project_dir, ["lock"])
+        if args.export_requirements:
+            export_requirements(uv_path, args.project_dir)
     except RuntimeError as exc:
         print(f"Error: {exc}", file=sys.stderr)
         sys.exit(1)

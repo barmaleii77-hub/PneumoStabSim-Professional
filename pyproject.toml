@@ -58,15 +58,6 @@ release = [
     "cx-Freeze==7.2.4",
 ]
 
-[tool.uv]
-dev-dependencies = [
-    "pytest==8.4.2",
-    "pytest-qt==4.5.0",
-    "ruff==0.14.1",
-    "mypy==1.18.2",
-    "pre-commit==4.3.0",
-]
-
 [project.urls]
 "Homepage" = "https://github.com/barmaleii77-hub/PneumoStabSim-Professional"
 "Bug Reports" = "https://github.com/barmaleii77-hub/PneumoStabSim-Professional/issues"

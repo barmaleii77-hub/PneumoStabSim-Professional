@@ -24,7 +24,7 @@ install-qt-runtime qt-env-check telemetry-etl profile-phase3 profile-render prof
 qmllint:
 	$(MAKE) qml-lint
 
-.PHONY: uv-sync uv-sync-locked uv-run
+.PHONY: uv-sync uv-sync-locked uv-run uv-lock uv-export-requirements uv-release-refresh
 
 uv-sync:
 	@if ! command -v $(UV) >/dev/null 2>&1; then \
@@ -54,6 +54,28 @@ uv-run:
 		exit 1; \
 	fi
 	cd $(UV_PROJECT_DIR) && PYTEST_DISABLE_PLUGIN_AUTOLOAD=$${PYTEST_DISABLE_PLUGIN_AUTOLOAD-1} $(UV) run $(UV_RUN_ARGS) -- $(CMD)
+
+uv-lock:
+	@if ! command -v $(UV) >/dev/null 2>&1; then \
+		echo "Error: '$(UV)' is not installed. Run 'python scripts/bootstrap_uv.py' first." >&2; \
+		exit 1; \
+	fi
+	cd $(UV_PROJECT_DIR) && $(UV) lock
+
+uv-export-requirements:
+	@if ! command -v $(UV) >/dev/null 2>&1; then \
+		echo "Error: '$(UV)' is not installed. Run 'python scripts/bootstrap_uv.py' first." >&2; \
+		exit 1; \
+	fi
+	@if [ ! -f "$(UV_PROJECT_DIR)/$(UV_LOCKFILE)" ]; then \
+		echo "Error: Lockfile '$(UV_LOCKFILE)' was not found in $(UV_PROJECT_DIR). Run 'uv lock' first." >&2; \
+		exit 1; \
+	fi
+	cd $(UV_PROJECT_DIR) && $(UV) export --format requirements.txt --output-file requirements.txt --no-dev --locked --no-emit-project
+	cd $(UV_PROJECT_DIR) && $(UV) export --format requirements.txt --output-file requirements-dev.txt --extra dev --locked --no-emit-project
+	cd $(UV_PROJECT_DIR) && $(UV) export --format requirements.txt --output-file requirements-compatible.txt --no-dev --locked --no-emit-project --no-annotate --no-hashes
+
+uv-release-refresh: uv-lock uv-export-requirements
 
 install-qt-runtime:
 	@echo "Installing Qt runtime system libraries (libgl1, libxkbcommon0, libegl1)"
@@ -198,7 +220,7 @@ container-test-vulkan: container-build
 container-verify-all: container-build container-test
 
 container-analyze-logs: container-build
-        docker run --rm -t -v $(CURDIR):$(CONTAINER_WORKDIR) -w $(CONTAINER_WORKDIR) $(CONTAINER_IMAGE) python /usr/local/bin/collect_logs.py
+	docker run --rm -t -v $(CURDIR):$(CONTAINER_WORKDIR) -w $(CONTAINER_WORKDIR) $(CONTAINER_IMAGE) python /usr/local/bin/collect_logs.py
 
 .PHONY: build shell test test-opengl test-vulkan verify-all analyze-logs
 build: container-build
@@ -206,23 +228,6 @@ build: container-build
 shell: container-shell
 
 test: container-test
-
-test-opengl: container-test-opengl
-
-test-vulkan: container-test-vulkan
-
-verify-all: container-verify-all
-
-analyze-logs: container-analyze-logs
-
-.PHONY: build shell test-opengl test-vulkan verify-all analyze-logs
-
-build: container-build
-
-shell: container-shell
-
-# Ensure legacy test workflows still run alongside container validation
-test:: container-test
 
 test-opengl: container-test-opengl
 

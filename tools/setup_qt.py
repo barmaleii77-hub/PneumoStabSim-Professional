@@ -15,6 +15,7 @@ import importlib.util
 import json
 import platform
 import shutil
+import subprocess
 from pathlib import Path
 from typing import Callable, Iterable, Sequence
 
@@ -104,6 +105,63 @@ def _verify_archives(archives_dir: Path, manifest: Path) -> None:
             lines.append("  Hash mismatches:")
             lines.extend(f"    - {item}" for item in mismatched)
         raise SystemExit("\n".join(lines))
+
+
+def _export_requirements_with_uv(project_root: Path) -> None:
+    uv_executable = shutil.which("uv")
+    if uv_executable is None:
+        raise SystemExit(
+            "uv executable was not found. Run 'python scripts/bootstrap_uv.py --sync' "
+            "before using --refresh-requirements."
+        )
+    lockfile = project_root / "uv.lock"
+    if not lockfile.exists():
+        raise SystemExit(
+            f"Lockfile '{lockfile}' is required before exporting requirements. Run 'uv lock'."
+        )
+    commands = [
+        [
+            "export",
+            "--format",
+            "requirements.txt",
+            "--output-file",
+            "requirements.txt",
+            "--no-dev",
+            "--locked",
+            "--no-emit-project",
+        ],
+        [
+            "export",
+            "--format",
+            "requirements.txt",
+            "--output-file",
+            "requirements-dev.txt",
+            "--extra",
+            "dev",
+            "--locked",
+            "--no-emit-project",
+        ],
+        [
+            "export",
+            "--format",
+            "requirements.txt",
+            "--output-file",
+            "requirements-compatible.txt",
+            "--no-dev",
+            "--locked",
+            "--no-emit-project",
+            "--no-annotate",
+            "--no-hashes",
+        ],
+    ]
+    for command in commands:
+        full_command = [uv_executable, *command]
+        print(f"Running {' '.join(full_command)}", flush=True)
+        result = subprocess.run(full_command, cwd=project_root, check=False)
+        if result.returncode != 0:
+            raise SystemExit(
+                f"Command '{' '.join(full_command)}' failed with exit code {result.returncode}."
+            )
 
 
 HOST_REPO_SEGMENTS: dict[str, str] = {
@@ -198,6 +256,14 @@ def main() -> None:
     parser.add_argument(
         "--dry-run", action="store_true", help="Print the aqt command without executing"
     )
+    parser.add_argument(
+        "--refresh-requirements",
+        action="store_true",
+        help=(
+            "After provisioning Qt, regenerate requirements exports using the uv lockfile. "
+            "Useful for release automation."
+        ),
+    )
 
     args = parser.parse_args()
 
@@ -219,6 +285,8 @@ def main() -> None:
         )
         if args.checksum_manifest:
             _verify_archives(archives_dir, args.checksum_manifest)
+        if args.refresh_requirements:
+            _export_requirements_with_uv(REPO_ROOT)
         return
     if args.force and install_dir.exists():
         if not install_dir.is_relative_to(output_dir):  # type: ignore[attr-defined]
@@ -243,6 +311,8 @@ def main() -> None:
 
     print("Executing aqtinstall with arguments:\n  python -m aqt " + " ".join(aqt_args))
     if args.dry_run:
+        if args.refresh_requirements:
+            print("Skipping requirements export because --dry-run was requested.")
         return
 
     aqt_main = _ensure_aqt()
@@ -252,6 +322,8 @@ def main() -> None:
 
     if args.checksum_manifest:
         _verify_archives(archives_dir, args.checksum_manifest)
+    if args.refresh_requirements:
+        _export_requirements_with_uv(REPO_ROOT)
     print(f"Qt {args.qt_version} installation completed at {install_dir}")
 
 
