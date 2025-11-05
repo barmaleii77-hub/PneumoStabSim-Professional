@@ -19,6 +19,7 @@ ShaderValidationUnavailableError = _impl.ShaderValidationUnavailableError
 DEFAULT_SHADER_ROOT = _impl.DEFAULT_SHADER_ROOT
 DEFAULT_REPORTS_ROOT = _impl.DEFAULT_REPORTS_ROOT
 QSB_PROFILE_ARGUMENTS = _impl.QSB_PROFILE_ARGUMENTS
+ShaderValidationEnvironmentError = _impl.ShaderValidationEnvironmentError
 
 classify_shader = _impl.classify_shader
 parse_args = _impl.parse_args
@@ -32,6 +33,7 @@ __all__ = [
     "DEFAULT_SHADER_ROOT",
     "DEFAULT_REPORTS_ROOT",
     "QSB_PROFILE_ARGUMENTS",
+    "ShaderValidationEnvironmentError",
     "classify_shader",
     "parse_args",
     "validate_shaders",
