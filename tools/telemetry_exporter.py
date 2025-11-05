@@ -10,7 +10,16 @@ from collections import Counter, defaultdict
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Dict, Iterable, List, MutableMapping, Optional, Sequence
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Dict,
+    Iterable,
+    List,
+    MutableMapping,
+    Optional,
+    Sequence,
+)
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 if str(REPO_ROOT) not in sys.path:
@@ -28,7 +37,9 @@ except ModuleNotFoundError:
         module = importlib.util.module_from_spec(spec)
         sys.modules[spec.name] = module
         spec.loader.exec_module(module)
-        EVENT_SCHEMA_VERSION = getattr(module, "EVENT_SCHEMA_VERSION", "telemetry_event_v1")
+        EVENT_SCHEMA_VERSION = getattr(
+            module, "EVENT_SCHEMA_VERSION", "telemetry_event_v1"
+        )
         parse_event_dict = getattr(module, "parse_event_dict", None)
     else:  # pragma: no cover - fallback when spec resolution fails.
         EVENT_SCHEMA_VERSION = "telemetry_event_v1"

@@ -45,12 +45,8 @@ def _build_metadata(
     return TrainingPresetMetadata(
         difficulty=difficulty,
         duration_minutes=duration_minutes,
-        learning_objectives=TrainingPresetMetadata.coerce_iterable(
-            learning_objectives
-        ),
-        recommended_modules=TrainingPresetMetadata.coerce_iterable(
-            recommended_modules
-        ),
+        learning_objectives=TrainingPresetMetadata.coerce_iterable(learning_objectives),
+        recommended_modules=TrainingPresetMetadata.coerce_iterable(recommended_modules),
         evaluation_metrics=TrainingPresetMetadata.coerce_iterable(metrics_source),
         scenario_id=scenario_id,
         scenario_label=descriptor.label if descriptor else "",
