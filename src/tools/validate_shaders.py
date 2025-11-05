@@ -146,9 +146,10 @@ def _resolve_qsb_command() -> list[str]:
             )
         return command
 
-    resolved = shutil.which("qsb")
-    if resolved:
-        return [resolved]
+    for executable in ("qsb", "pyside6-qsb", "pyside2-qsb"):
+        resolved = shutil.which(executable)
+        if resolved:
+            return [resolved]
 
     candidate_dirs: list[Path] = []
 
@@ -170,9 +171,10 @@ def _resolve_qsb_command() -> list[str]:
     )
 
     for directory in candidate_dirs:
-        qsb_path = directory / "qsb"
-        if qsb_path.exists() and qsb_path.is_file():
-            return [str(qsb_path)]
+        for executable in ("qsb", "pyside6-qsb", "pyside2-qsb"):
+            qsb_path = directory / executable
+            if qsb_path.exists() and qsb_path.is_file():
+                return [str(qsb_path)]
 
     raise FileNotFoundError(
         "qsb executable not found; install Qt Shader Tools or set QSB_COMMAND"
