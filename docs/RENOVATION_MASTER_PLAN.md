@@ -147,8 +147,10 @@ best practices for scientific visualisation software.
 
 **Status**
 
-- `config/schemas/app_settings.schema.json` defines a JSON Schema but is not enforced
-  automatically when saving settings.
+- ✅ `SettingsService` теперь возвращает типизированные Pydantic-модели, поэтому
+  модули больше не обращаются к `dict` напрямую.
+- ✅ JSON Schema (`config/schemas/app_settings.schema.json`) генерируется из
+  `src/core/settings_models.py` и применяется при каждом сохранении настроек.
 - Settings logic is split between `src/common/settings_manager.py` (schema
   aware) and `src/core/settings_service.py` (lightweight cache), leading to
   duplicated behaviour and inconsistent defaults.
@@ -184,6 +186,9 @@ best practices for scientific visualisation software.
    `reports/settings/` to validate the workflow. *Status: Completed July 2025
    via the `settings_audit` CLI with a sample report stored under
    `reports/settings/`.*
+8. Maintain the typed settings layer: любое новое поле обязано сопровождаться
+   обновлением `settings_models.py`, генерацией схемы и успешным запуском
+   `tools/validate_settings.py`.
 
 ---
 

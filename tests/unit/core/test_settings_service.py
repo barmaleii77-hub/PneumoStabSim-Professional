@@ -6,6 +6,7 @@ from typing import Any
 import pytest
 
 from config import constants as constants_module
+from src.core.settings_models import dump_settings
 from src.core.settings_service import (
     SETTINGS_SERVICE_TOKEN,
     SettingsService,
@@ -79,7 +80,7 @@ def test_settings_service_update_merges(settings_payload: Path) -> None:
         {"rod_attach_fraction": 0.55},
     )
 
-    payload = service.load()
+    payload = dump_settings(service.load())
     assert (
         payload["current"]["constants"]["geometry"]["kinematics"]["rod_attach_fraction"]
         == 0.55
