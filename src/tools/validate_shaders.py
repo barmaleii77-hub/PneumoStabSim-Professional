@@ -56,6 +56,13 @@ QSB_PROFILE_ARGUMENTS: tuple[str, ...] = (
 )
 
 
+RUNTIME_DEPENDENCY_HINTS: tuple[tuple[str, str], ...] = (
+    ("libxkbcommon.so.0", "libxkbcommon0"),
+    ("libGL.so.1", "libgl1"),
+    ("libEGL.so.1", "libegl1"),
+)
+
+
 @dataclass(frozen=True)
 class ShaderFile:
     """Metadata captured for a single shader variant."""
@@ -278,6 +285,7 @@ def _run_qsb(
         if stderr:
             first_line = stderr.strip().splitlines()[0]
             errors.append(f"    {first_line}")
+            errors.extend(_diagnose_qsb_failure(stderr))
 
     if temp_output is not None:
         with suppress(FileNotFoundError):
