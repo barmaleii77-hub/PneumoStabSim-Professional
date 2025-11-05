@@ -86,6 +86,10 @@ class ShaderValidationUnavailableError(RuntimeError):
     """Raised when qsb cannot run due to a missing runtime dependency."""
 
 
+class QsbEnvironmentError(RuntimeError):
+    """Raised when qsb encounters an environment configuration issue."""
+
+
 def classify_shader(path: Path) -> tuple[str, str]:
     """Return the base name and variant label for *path*."""
 
@@ -227,6 +231,62 @@ def _extract_missing_shared_library(stderr: str) -> str | None:
         if library:
             return library
     return None
+
+
+def _format_dependency_hint(library: str) -> str:
+    """Return a human readable hint for the missing *library*."""
+
+    for candidate, package in RUNTIME_DEPENDENCY_HINTS:
+        if candidate == library:
+            return (
+                f"Install the system package '{package}' or provide '{library}' via "
+                "LD_LIBRARY_PATH."
+            )
+    return f"Ensure the shared library '{library}' is installed and discoverable on the system."
+
+
+def _summarize_environment_failure(
+    returncode: int,
+    _stdout: str,
+    stderr: str,
+    command: Sequence[str],
+) -> str | None:
+    """Return a summary for environment-related qsb failures."""
+
+    missing_library = _extract_missing_shared_library(stderr)
+    if missing_library:
+        hint = _format_dependency_hint(missing_library)
+        return (
+            "Qt Shader Baker could not load the shared library "
+            f"'{missing_library}'. {hint}"
+        )
+
+    if returncode == 127:
+        rendered_command = " ".join(shlex.quote(arg) for arg in command)
+        return (
+            "Qt Shader Baker failed to launch (exit code 127). "
+            f"Command attempted: {rendered_command}. Ensure Qt Shader Tools are installed."
+        )
+
+    if returncode == 126:
+        rendered_command = " ".join(shlex.quote(arg) for arg in command)
+        return (
+            "Qt Shader Baker was found but is not executable (exit code 126). "
+            f"Check file permissions for: {rendered_command}."
+        )
+
+    return None
+
+
+def _diagnose_qsb_failure(stderr: str) -> list[str]:
+    """Return additional diagnostic hints derived from *stderr*."""
+
+    hints: list[str] = []
+    missing_library = _extract_missing_shared_library(stderr)
+    if missing_library:
+        hints.append(f"    Missing shared library: {missing_library}")
+        hints.append(f"    Hint: {_format_dependency_hint(missing_library)}")
+    return hints
 
 
 def _run_qsb(
