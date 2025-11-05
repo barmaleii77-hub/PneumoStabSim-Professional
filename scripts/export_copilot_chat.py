@@ -5,7 +5,7 @@ import argparse, datetime as dt, json, os, sys, sqlite3, glob
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional, Tuple
 
-# ---------- утилиты ----------
+# ---------- СѓС‚РёР»РёС‚С‹ ----------
 
 def human_ts(ts: Optional[dt.datetime], fallback_epoch: Optional[float] = None) -> str:
     if ts:
@@ -17,7 +17,7 @@ def human_ts(ts: Optional[dt.datetime], fallback_epoch: Optional[float] = None) 
 
 def parse_iso(ts: Any) -> Optional[dt.datetime]:
     if isinstance(ts, (int, float)):
-        # эвристика: миллисекунды?
+        # СЌРІСЂРёСЃС‚РёРєР°: РјРёР»Р»РёСЃРµРєСѓРЅРґС‹?
         return dt.datetime.fromtimestamp(ts/1000.0) if ts > 10_000_000_000 else dt.datetime.fromtimestamp(float(ts))
     if isinstance(ts, str):
         try: return dt.datetime.fromisoformat(ts.replace("Z", "+00:00"))
@@ -36,10 +36,10 @@ def sanitize_role(role: str) -> str:
 def write_msgs(md, title, source_path, conv_ts, msgs, fallback_epoch=None):
     md.write(f"---\n\n")
     md.write(f"### {title}\n\n")
-    if source_path: md.write(f"**Источник:** `{source_path}`  \n")
-    if conv_ts or fallback_epoch: md.write(f"**Время:** {human_ts(conv_ts, fallback_epoch)}\n\n")
+    if source_path: md.write(f"**РСЃС‚РѕС‡РЅРёРє:** `{source_path}`  \n")
+    if conv_ts or fallback_epoch: md.write(f"**Р’СЂРµРјСЏ:** {human_ts(conv_ts, fallback_epoch)}\n\n")
     if not msgs:
-        md.write("_Сообщения не найдены._\n\n")
+        md.write("_РЎРѕРѕР±С‰РµРЅРёСЏ РЅРµ РЅР°Р№РґРµРЅС‹._\n\n")
         return
     for m in msgs:
         role = sanitize_role(m.get("role",""))
@@ -52,7 +52,7 @@ def write_msgs(md, title, source_path, conv_ts, msgs, fallback_epoch=None):
         else:
             md.write(content + "\n\n")
 
-# ---------- парсеры ----------
+# ---------- РїР°СЂСЃРµСЂС‹ ----------
 
 def load_json_safe(p: Path) -> Optional[Dict[str, Any]]:
     try:
@@ -91,14 +91,14 @@ def extract_from_vscode_state_db(db_path: Path) -> List[Tuple[str, Optional[dt.d
     VS Code: %APPDATA%/Code/User/workspaceStorage/<id>/state.vscdb -> keys:
       - 'interactive.sessions' (array)
       - 'memento/interactive-session' (object or array)
-    Будем искать любые ключи, где встречаются 'interactive' или 'copilot'.
+    Р‘СѓРґРµРј РёСЃРєР°С‚СЊ Р»СЋР±С‹Рµ РєР»СЋС‡Рё, РіРґРµ РІСЃС‚СЂРµС‡Р°СЋС‚СЃСЏ 'interactive' РёР»Рё 'copilot'.
     """
     out = []
     try:
         con = sqlite3.connect(str(db_path))
         cur = con.cursor()
-        # schema у state.vscdb может отличаться; в новых версиях таблица называется 'ItemTable'
-        # c колонками 'key', 'value'. Попробуем обе схемы.
+        # schema Сѓ state.vscdb РјРѕР¶РµС‚ РѕС‚Р»РёС‡Р°С‚СЊСЃСЏ; РІ РЅРѕРІС‹С… РІРµСЂСЃРёСЏС… С‚Р°Р±Р»РёС†Р° РЅР°Р·С‹РІР°РµС‚СЃСЏ 'ItemTable'
+        # c РєРѕР»РѕРЅРєР°РјРё 'key', 'value'. РџРѕРїСЂРѕР±СѓРµРј РѕР±Рµ СЃС…РµРјС‹.
         tables = []
         try:
             cur.execute("SELECT name FROM sqlite_master WHERE type='table'")
@@ -107,7 +107,7 @@ def extract_from_vscode_state_db(db_path: Path) -> List[Tuple[str, Optional[dt.d
             pass
         candidate_tables = [t for t in tables if t.lower() in ("itemtable","items","state")]
         if not candidate_tables:
-            candidate_tables = tables  # fallback: попробуем всё
+            candidate_tables = tables  # fallback: РїРѕРїСЂРѕР±СѓРµРј РІСЃС‘
 
         for t in candidate_tables:
             try:
@@ -123,13 +123,13 @@ def extract_from_vscode_state_db(db_path: Path) -> List[Tuple[str, Optional[dt.d
                     js = json.loads(v)
                 except Exception:
                     continue
-                # Нормализуем в список сообщений
+                # РќРѕСЂРјР°Р»РёР·СѓРµРј РІ СЃРїРёСЃРѕРє СЃРѕРѕР±С‰РµРЅРёР№
                 collected = []
                 ts_all = []
                 if isinstance(js, list):
                     iterable = js
                 elif isinstance(js, dict):
-                    # возможные поля: messages, items, entries
+                    # РІРѕР·РјРѕР¶РЅС‹Рµ РїРѕР»СЏ: messages, items, entries
                     iterable = js.get("messages") or js.get("items") or js.get("entries") or []
                     if not isinstance(iterable, list):
                         iterable = []
@@ -154,7 +154,7 @@ def extract_from_vscode_state_db(db_path: Path) -> List[Tuple[str, Optional[dt.d
 
 def extract_vscode_all() -> List[Tuple[str, Optional[dt.datetime], List[Dict[str,Any]], float]]:
     out = []
-    # корни VS Code (Windows/macOS/Linux)
+    # РєРѕСЂРЅРё VS Code (Windows/macOS/Linux)
     roots: List[Path] = []
     home = Path.home()
     appdata = os.environ.get("APPDATA")
@@ -190,7 +190,7 @@ def extract_vscode_all() -> List[Tuple[str, Optional[dt.datetime], List[Dict[str
 
 def extract_visualstudio_logs() -> List[Tuple[str, Optional[dt.datetime], List[Dict[str,Any]], float]]:
     """
-    Visual Studio: логи Copilot Chat в %LOCALAPPDATA%\\Temp\\**\\*VSGitHubCopilot*.chat*.log
+    Visual Studio: Р»РѕРіРё Copilot Chat РІ %LOCALAPPDATA%\\Temp\\**\\*VSGitHubCopilot*.chat*.log
     """
     out = []
     lad = os.environ.get("LOCALAPPDATA")
@@ -208,12 +208,12 @@ def extract_visualstudio_logs() -> List[Tuple[str, Optional[dt.datetime], List[D
             text = p.read_text(encoding="utf-8", errors="ignore")
         except Exception:
             continue
-        # логи построчные, сделаем из них "сообщения" (простой парсер)
+        # Р»РѕРіРё РїРѕСЃС‚СЂРѕС‡РЅС‹Рµ, СЃРґРµР»Р°РµРј РёР· РЅРёС… "СЃРѕРѕР±С‰РµРЅРёСЏ" (РїСЂРѕСЃС‚РѕР№ РїР°СЂСЃРµСЂ)
         msgs = []
         ts_guess = None
         for line in text.splitlines():
             if not line.strip(): continue
-            # Попробуем выдернуть метку времени формата [YYYY-MM-DD HH:MM:SS]
+            # РџРѕРїСЂРѕР±СѓРµРј РІС‹РґРµСЂРЅСѓС‚СЊ РјРµС‚РєСѓ РІСЂРµРјРµРЅРё С„РѕСЂРјР°С‚Р° [YYYY-MM-DD HH:MM:SS]
             ts = None
             if line.startswith("[") and "]" in line[:30]:
                 hdr = line[1:line.index("]")]
@@ -229,19 +229,19 @@ def extract_visualstudio_logs() -> List[Tuple[str, Optional[dt.datetime], List[D
         out.append((fp, ts_guess, msgs, p.stat().st_mtime))
     return out
 
-# ---------- основной экспорт ----------
+# ---------- РѕСЃРЅРѕРІРЅРѕР№ СЌРєСЃРїРѕСЂС‚ ----------
 
 def main():
     ap = argparse.ArgumentParser(description="Export GitHub Copilot Chat history (VS Code + Visual Studio) to Markdown.")
-    ap.add_argument("--out", "-o", type=str, default="copilot_chat_history.md", help="Выходной .md")
-    ap.add_argument("--since", type=str, default=None, help="Фильтр по дате YYYY-MM-DD")
+    ap.add_argument("--out", "-o", type=str, default="copilot_chat_history.md", help="Р’С‹С…РѕРґРЅРѕР№ .md")
+    ap.add_argument("--since", type=str, default=None, help="Р¤РёР»СЊС‚СЂ РїРѕ РґР°С‚Рµ YYYY-MM-DD")
     args = ap.parse_args()
 
     since_dt: Optional[dt.datetime] = None
     if args.since:
         try: since_dt = dt.datetime.fromisoformat(args.since)
         except Exception:
-            print("Неверный формат --since. Используйте YYYY-MM-DD.")
+            print("РќРµРІРµСЂРЅС‹Р№ С„РѕСЂРјР°С‚ --since. РСЃРїРѕР»СЊР·СѓР№С‚Рµ YYYY-MM-DD.")
             sys.exit(2)
 
     collected: List[Tuple[str, Optional[dt.datetime], List[Dict[str,Any]], float]] = []
@@ -252,43 +252,43 @@ def main():
         collected = [c for c in collected if dt.datetime.fromtimestamp(c[3]) >= since_dt]
 
     if not collected:
-        print("История чатов не найдена в VS Code workspaceStorage или в логах Visual Studio.\n"
-              "Подсказки:\n"
-              "  • Для VS Code — чаты лежат в User/workspaceStorage (state.vscdb / chatSessions/*.json)\n"
-              "  • Для Visual Studio — попробуй ещё раз после новой беседы (логи создаются при сессии).")
+        print("РСЃС‚РѕСЂРёСЏ С‡Р°С‚РѕРІ РЅРµ РЅР°Р№РґРµРЅР° РІ VS Code workspaceStorage РёР»Рё РІ Р»РѕРіР°С… Visual Studio.\n"
+              "РџРѕРґСЃРєР°Р·РєРё:\n"
+              "  вЂў Р”Р»СЏ VS Code вЂ” С‡Р°С‚С‹ Р»РµР¶Р°С‚ РІ User/workspaceStorage (state.vscdb / chatSessions/*.json)\n"
+              "  вЂў Р”Р»СЏ Visual Studio вЂ” РїРѕРїСЂРѕР±СѓР№ РµС‰С‘ СЂР°Р· РїРѕСЃР»Рµ РЅРѕРІРѕР№ Р±РµСЃРµРґС‹ (Р»РѕРіРё СЃРѕР·РґР°СЋС‚СЃСЏ РїСЂРё СЃРµСЃСЃРёРё).")
         sys.exit(1)
 
     collected.sort(key=lambda x: (x[1] or dt.datetime.fromtimestamp(x[3])))
 
     out_path = Path(args.out).resolve()
     with out_path.open("w", encoding="utf-8") as md:
-        md.write("# Copilot Chat — экспорт\n\n")
-        md.write(f"_Сгенерировано: {dt.datetime.now().astimezone().strftime('%Y-%m-%d %H:%M:%S %Z')}_\n\n")
+        md.write("# Copilot Chat вЂ” СЌРєСЃРїРѕСЂС‚\n\n")
+        md.write(f"_РЎРіРµРЅРµСЂРёСЂРѕРІР°РЅРѕ: {dt.datetime.now().astimezone().strftime('%Y-%m-%d %H:%M:%S %Z')}_\n\n")
 
-        # Группируем блоки по типу источника для наглядности
+        # Р“СЂСѓРїРїРёСЂСѓРµРј Р±Р»РѕРєРё РїРѕ С‚РёРїСѓ РёСЃС‚РѕС‡РЅРёРєР° РґР»СЏ РЅР°РіР»СЏРґРЅРѕСЃС‚Рё
         # VS Code JSON/DB
-        md.write("## Из VS Code / VSCodium (workspaceStorage)\n\n")
+        md.write("## РР· VS Code / VSCodium (workspaceStorage)\n\n")
         any_vscode = False
         for src, ts, msgs, mtime in collected:
             if "workspaceStorage" in src or src.endswith(".vscdb"):
                 any_vscode = True
-                title = "Чат (VS Code)"
+                title = "Р§Р°С‚ (VS Code)"
                 write_msgs(md, title, src, ts, msgs, mtime)
         if not any_vscode:
-            md.write("_Не найдено._\n\n")
+            md.write("_РќРµ РЅР°Р№РґРµРЅРѕ._\n\n")
 
         # Visual Studio logs
-        md.write("## Из Visual Studio (логи Copilot Chat)\n\n")
+        md.write("## РР· Visual Studio (Р»РѕРіРё Copilot Chat)\n\n")
         any_vs = False
         for src, ts, msgs, mtime in collected:
             if src.lower().endswith(".log"):
                 any_vs = True
-                title = "Сеанс (Visual Studio)"
+                title = "РЎРµР°РЅСЃ (Visual Studio)"
                 write_msgs(md, title, src, ts, msgs, mtime)
         if not any_vs:
-            md.write("_Не найдено._\n\n")
+            md.write("_РќРµ РЅР°Р№РґРµРЅРѕ._\n\n")
 
-    print(f"Готово: {out_path} (найдено блоков: {len(collected)})")
+    print(f"Р“РѕС‚РѕРІРѕ: {out_path} (РЅР°Р№РґРµРЅРѕ Р±Р»РѕРєРѕРІ: {len(collected)})")
 
 if __name__ == "__main__":
     main()

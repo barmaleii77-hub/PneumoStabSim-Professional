@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import os
 import pathlib
+import re
 import shutil
 import subprocess
 import sys
@@ -63,8 +64,17 @@ def _list_available_modules(version: str) -> Set[str]:
     return available
 
 
+def _version_sort_key(version: str) -> Tuple[int, ...]:
+    """Return a tuple suitable for sorting Qt semantic versions."""
+
+    parts = [int(part) for part in re.findall(r"\d+", version)]
+    while len(parts) < 3:
+        parts.append(0)
+    return tuple(parts)
+
+
 def _list_available_versions() -> Sequence[str]:
-    """Return versions reported by aqt (newest first)."""
+    """Return distinct Qt 6.x versions reported by aqt sorted newest first."""
 
     try:
         out = subprocess.check_output(
@@ -74,11 +84,21 @@ def _list_available_versions() -> Sequence[str]:
         print(f"[qt] Unable to list available Qt versions: {exc}", file=sys.stderr)
         return []
 
+    seen: Set[str] = set()
     versions: List[str] = []
     for line in out.splitlines():
         token = line.strip().split()[0:1]
-        if token:
-            versions.append(token[0])
+        if not token:
+            continue
+        version = token[0]
+        if not version.startswith("6."):
+            continue
+        if version in seen:
+            continue
+        seen.add(version)
+        versions.append(version)
+
+    versions.sort(key=_version_sort_key, reverse=True)
     return versions
 
 
@@ -151,6 +171,12 @@ def _select_version() -> Tuple[str, Sequence[str], Sequence[str]]:
                 file=sys.stderr,
             )
             continue
+        if QT_BASE_MODULE not in available:
+            print(
+                f"[qt] Skipping {version}: required module '{QT_BASE_MODULE}' missing",
+                file=sys.stderr,
+            )
+            continue
         missing = [m for m in QT_MODULES if m.lower() not in available]
         if not missing:
             return version, QT_MODULES, []
@@ -164,7 +190,7 @@ def _select_version() -> Tuple[str, Sequence[str], Sequence[str]]:
         raise RuntimeError("QT_VERSIONS is empty; cannot install Qt")
 
     available = module_catalogue.get(preferred) or _list_available_modules(preferred)
-    if available:
+    if available and QT_BASE_MODULE in available:
         present = [m for m in QT_MODULES if m.lower() in available]
         missing = [m for m in QT_MODULES if m.lower() not in available]
         print(
@@ -172,6 +198,11 @@ def _select_version() -> Tuple[str, Sequence[str], Sequence[str]]:
             file=sys.stderr,
         )
         return preferred, present or [QT_BASE_MODULE], missing
+    if available and QT_BASE_MODULE not in available:
+        print(
+            f"[qt] Preferred version {preferred} lacks '{QT_BASE_MODULE}', skipping",
+            file=sys.stderr,
+        )
 
     print(
         f"[qt] Preferred version {preferred} unavailable; searching available versions",
@@ -179,7 +210,7 @@ def _select_version() -> Tuple[str, Sequence[str], Sequence[str]]:
     )
     for candidate in _list_available_versions():
         available = _list_available_modules(candidate)
-        if not available:
+        if not available or QT_BASE_MODULE not in available:
             continue
         present = [m for m in QT_MODULES if m.lower() in available]
         missing = [m for m in QT_MODULES if m.lower() not in available]
