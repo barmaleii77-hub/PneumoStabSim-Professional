@@ -3,14 +3,17 @@
 
 from __future__ import annotations
 
-import logging
 from collections import deque
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from threading import RLock
 from typing import Any, Callable, Deque, Iterable, Iterator, List, Optional, Tuple
 
-logger = logging.getLogger("diagnostics.signals")
+from structlog.stdlib import BoundLogger
+
+from .logger_factory import get_logger
+
+logger: BoundLogger = get_logger("diagnostics.signals")
 
 
 class SignalTracingError(RuntimeError):
@@ -60,7 +63,7 @@ class SignalTracer:
         self,
         *,
         max_records: int = 500,
-        log: Optional[logging.Logger] = None,
+        log: Optional[BoundLogger] = None,
     ) -> None:
         self._records: Deque[SignalTraceRecord] = deque(maxlen=max_records)
         self._log = log or logger
@@ -149,10 +152,11 @@ class SignalTracer:
                 sinks_snapshot = tuple(self._sinks)
 
             self._log.info(
-                "[%s] %s(%s)",
-                record.timestamp.strftime("%H:%M:%S.%f")[:-3],
-                record.signal,
-                ", ".join(repr(a) for a in record.args),
+                "signal_trace_event",
+                timestamp=record.timestamp.isoformat(timespec="milliseconds"),
+                sender=record.sender,
+                signal=record.signal,
+                args=list(record.args),
             )
 
             for sink in sinks_snapshot:
@@ -178,7 +182,7 @@ class SignalTracer:
             try:
                 disconnect(_handler)
             except Exception:
-                self._log.debug("Unable to disconnect handler for %s", alias_name)
+                self._log.debug("signal_trace_disconnect_failed", signal=alias_name)
             with self._lock:
                 try:
                     self._connections.remove((signal, _handler))

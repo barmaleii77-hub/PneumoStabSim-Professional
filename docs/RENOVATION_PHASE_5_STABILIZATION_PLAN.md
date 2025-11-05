@@ -12,8 +12,8 @@
 
 ## Work Breakdown Structure
 1. **Monitoring & Telemetry**
-   - Configure centralized log aggregation; define retention and access controls.
-   - Set up dashboards tracking crash rates, frame time metrics, and feature usage.
+   - Configure centralized log aggregation; define retention and access controls. *(см. `src/diagnostics/logger_factory.py` для JSON-конфигурации structlog и фильтрации QML-консоли через `assets/qml/diagnostics/LogBridge.js`).*
+   - Set up dashboards tracking crash rates, frame time metrics, and feature usage.  Подключить `reports/telemetry/user_actions.jsonl` и `reports/telemetry/simulation_events.jsonl` к визуализациям.
    - Establish on-call rotation and escalation paths documented in `docs/operations/oncall.md`.
 2. **Feedback Processing**
    - Run weekly triage sessions for bugs, UX issues, and performance regressions.
@@ -74,6 +74,10 @@
 
 ## Execution Log
 Use this log for incident summaries, release retrospectives, and KPI snapshots.
+
+### 2025-11-04 – Structlog rollout and telemetry routing
+- Introduced `src/diagnostics/logger_factory.py` to enforce structlog JSON output across diagnostics/core modules and updated QML fallback logging to the same format via `assets/qml/diagnostics/LogBridge.js`.
+- Added `src/telemetry/` tracker that writes user and simulation events to `reports/telemetry/`, enabling downstream dashboards to rely on consistent JSONL feeds.
 
 ### 2025-10-10 – Telemetry pilot and on-call readiness
 - Deployed telemetry collectors to staging, forwarding structured logs to the shared `reports/operations/stability_metrics.csv`

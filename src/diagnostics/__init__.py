@@ -5,6 +5,7 @@
 
 from .warnings import log_warning, log_error, print_warnings_errors
 from .logs import run_log_diagnostics
+from .logger_factory import configure_logging, get_logger, LoggerConfig
 from .signal_tracing import (
     HAS_QT,
     MissingSignalError,
@@ -26,6 +27,9 @@ __all__ = [
     "log_error",
     "print_warnings_errors",
     "run_log_diagnostics",
+    "configure_logging",
+    "get_logger",
+    "LoggerConfig",
     "SignalTracer",
     "SignalTraceRecord",
     "SignalTracingError",
