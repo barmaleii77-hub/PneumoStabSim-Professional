@@ -21,6 +21,7 @@ from src.diagnostics.logger_factory import get_logger
 
 
 __all__ = [
+    "EVENT_SCHEMA_VERSION",
     "TelemetryRecord",
     "TelemetryRouter",
     "TelemetryTracker",
@@ -33,6 +34,7 @@ __all__ = [
 _DEFAULT_BASE_DIR = Path("reports/telemetry")
 _USER_ACTIONS_FILE = "user_actions.jsonl"
 _SIMULATION_EVENTS_FILE = "simulation_events.jsonl"
+EVENT_SCHEMA_VERSION = "telemetry_event_v1"
 
 
 @dataclass(slots=True)
@@ -43,9 +45,11 @@ class TelemetryRecord:
     event: str
     timestamp: datetime
     payload: Dict[str, Any]
+    schema_version: str = EVENT_SCHEMA_VERSION
 
     def as_dict(self) -> Dict[str, Any]:
         return {
+            "schema_version": self.schema_version,
             "channel": self.channel,
             "event": self.event,
             "timestamp": self.timestamp.isoformat(),
