@@ -108,7 +108,7 @@ def main() -> None:
     )
 
     if total_errors > 0:
-        raise SystemExit(1)
+        exit(1)
 
 
 if __name__ == "__main__":
