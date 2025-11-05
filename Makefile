@@ -198,7 +198,7 @@ container-test-vulkan: container-build
 container-verify-all: container-build container-test
 
 container-analyze-logs: container-build
-        docker run --rm -t -v $(CURDIR):$(CONTAINER_WORKDIR) -w $(CONTAINER_WORKDIR) $(CONTAINER_IMAGE) python /usr/local/bin/collect_logs.py
+	docker run --rm -t -v $(CURDIR):$(CONTAINER_WORKDIR) -w $(CONTAINER_WORKDIR) $(CONTAINER_IMAGE) python /usr/local/bin/collect_logs.py
 
 .PHONY: build shell test test-opengl test-vulkan verify-all analyze-logs
 build: container-build
@@ -206,23 +206,6 @@ build: container-build
 shell: container-shell
 
 test: container-test
-
-test-opengl: container-test-opengl
-
-test-vulkan: container-test-vulkan
-
-verify-all: container-verify-all
-
-analyze-logs: container-analyze-logs
-
-.PHONY: build shell test-opengl test-vulkan verify-all analyze-logs
-
-build: container-build
-
-shell: container-shell
-
-# Ensure legacy test workflows still run alongside container validation
-test:: container-test
 
 test-opengl: container-test-opengl
 
