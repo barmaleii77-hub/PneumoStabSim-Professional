@@ -18,7 +18,7 @@ INTEGRATION_TARGET ?= tests/integration/test_main_window_qml.py
 .PHONY: format lint typecheck qml-lint test validate-shaders check-shaders check verify smoke integration \
 localization-check \
 autonomous-check autonomous-check-trace trace-launch sanitize cipilot-env \
-install-qt-runtime
+install-qt-runtime qt-env-check
 
 .PHONY: qmllint
 qmllint:
@@ -114,12 +114,19 @@ shader-artifacts:
 validate-hdr-orientation:
 	$(PYTHON) tools/graphics/validate_hdr_orientation.py
 
-check: lint typecheck qml-lint test check-shaders validate-hdr-orientation localization-check
+check: lint typecheck qml-lint test check-shaders validate-hdr-orientation localization-check qt-env-check
 
 verify: lint typecheck qml-lint test smoke integration
 
 localization-check:
 	$(PYTHON) tools/update_translations.py --check
+
+qt-env-check:
+	@if command -v $(UV) >/dev/null 2>&1; then \
+		cd $(UV_PROJECT_DIR) && $(UV) run $(UV_RUN_ARGS) -- python tools/environment/verify_qt_setup.py --report-dir reports/environment; \
+	else \
+		$(PYTHON) tools/environment/verify_qt_setup.py --report-dir reports/environment; \
+	fi
 
 autonomous-check:
 	$(PYTHON) -m tools.autonomous_check

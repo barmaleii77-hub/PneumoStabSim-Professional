@@ -21,6 +21,7 @@ import ctypes
 import os
 import sys
 from dataclasses import dataclass
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Iterable, Sequence
 
@@ -196,7 +197,44 @@ def _format_results(results: Iterable[ProbeResult]) -> tuple[list[str], list[str
     return successes, failures
 
 
-def run_smoke_check(expected_version: str, expected_platform: str | None) -> int:
+def _write_report(
+    report_dir: Path,
+    expected_version: str,
+    expected_platform: str | None,
+    successes: Sequence[str],
+    failures: Sequence[str],
+    exit_code: int,
+) -> Path:
+    timestamp = datetime.now(timezone.utc)
+    report_dir.mkdir(parents=True, exist_ok=True)
+
+    header = [
+        "# Qt environment verification report",
+        f"Timestamp (UTC): {timestamp.isoformat()}",
+        f"Expected PySide6 prefix: {expected_version}",
+        f"Expected platform plugin: {expected_platform or 'auto-detect'}",
+        f"Result: {'success' if exit_code == 0 else 'failure'}",
+        "",
+        "## Probe summary",
+    ]
+    body = list(successes) + list(failures)
+    contents = "\n".join(header + body) + "\n"
+
+    unique_name = timestamp.strftime("qt_environment_%Y%m%dT%H%M%SZ.log")
+    report_path = report_dir / unique_name
+    report_path.write_text(contents, encoding="utf-8")
+
+    latest_path = report_dir / "qt_environment_latest.log"
+    latest_path.write_text(contents, encoding="utf-8")
+
+    return report_path
+
+
+def run_smoke_check(
+    expected_version: str,
+    expected_platform: str | None,
+    report_dir: Path | None = None,
+) -> int:
     results: list[ProbeResult] = []
 
     try:
@@ -245,10 +283,28 @@ def run_smoke_check(expected_version: str, expected_platform: str | None) -> int
     results.append(_check_opengl_runtime())
 
     successes, failures = _format_results(results)
+    exit_code = 0 if not failures else 1
+
+    if report_dir is not None:
+        try:
+            report_path = _write_report(
+                report_dir,
+                expected_version,
+                expected_platform,
+                successes,
+                failures,
+                exit_code,
+            )
+        except OSError as exc:
+            failures.append(f"[FAIL] Unable to write environment report: {exc}")
+            exit_code = 1
+        else:
+            successes.append(f"[OK] Environment report saved to {report_path}.")
+
     for line in successes + failures:
         print(line)
 
-    return 0 if not failures else 1
+    return exit_code
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -265,6 +321,12 @@ def build_parser() -> argparse.ArgumentParser:
         default=None,
         help="Optional Qt platform plugin name (e.g. offscreen)",
     )
+    parser.add_argument(
+        "--report-dir",
+        type=Path,
+        default=Path("reports/environment"),
+        help="Directory where the verification report should be written.",
+    )
     return parser
 
 
@@ -272,7 +334,9 @@ def main(argv: Sequence[str] | None = None) -> None:
     parser = build_parser()
     args = parser.parse_args(argv)
 
-    exit_code = run_smoke_check(args.expected_version, args.expected_platform)
+    exit_code = run_smoke_check(
+        args.expected_version, args.expected_platform, args.report_dir
+    )
     raise SystemExit(exit_code)
 
 

@@ -90,11 +90,19 @@ jobs:
           import os
           from pathlib import Path
           from PySide6.QtCore import QLibraryInfo, LibraryLocation
-          
+
           env_file = Path(os.environ["GITHUB_ENV"])
           with env_file.open("a", encoding="utf-8") as fh:
             fh.write(f"QT_PLUGIN_PATH={QLibraryInfo.path(LibraryLocation.Plugins)}\n")
             fh.write(f"QML2_IMPORT_PATH={QLibraryInfo.path(LibraryLocation.QmlImports)}\n")
+
+      - name: Verify Qt environment
+        shell: bash
+        env:
+          QT_QPA_PLATFORM: ${{ env.QT_QPA_PLATFORM }}
+          QT_QUICK_BACKEND: ${{ env.QT_QUICK_BACKEND }}
+        run: |
+          python tools/environment/verify_qt_setup.py --report-dir reports/environment
 
       - name: Run pytest suite
         shell: bash
