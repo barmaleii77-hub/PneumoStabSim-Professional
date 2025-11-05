@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import json
 import re
+import sys
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Iterable
@@ -108,7 +109,7 @@ def main() -> None:
     )
 
     if total_errors > 0:
-        raise SystemExit(1)
+        sys.exit(1)
 
 
 if __name__ == "__main__":
