@@ -108,11 +108,7 @@ PneumoStabSim-Professional/
 - **Контроль чистоты**: `python -m tools.project_sanitize --verbose` удаляет `__pycache__`, `*.pyc`, временные файлы решений и старые отчёты, чтобы репозиторий оставался чистым.
 
 ### Visual Studio (Insiders) и F5
-- Используй `PneumoStabSim-Professional.Insiders.sln` для интеграции с Visual Studio Insiders.
-- Перед запуском F5 активируй среду: выполни `scripts\activate_environment.ps1` (Windows) или `source activate_environment.sh` (Linux/macOS).
-- Убедись, что переменные `QT_PLUGIN_PATH`, `QML2_IMPORT_PATH` и `QT_QUICK_CONTROLS_STYLE` экспортированы (скрипты активации делают это автоматически).
-- Для F5 настрой рабочий профиль на выполнение `python app.py --env-report reports/quality/f5_environment.md` — это позволит сохранять отчёты окружения после каждой сессии.
-- После завершения приложения изучи краткий рапорт в терминале; полный лог и трассировка лежат в `reports/quality/launch_traces/`.
+> ⚠️ Visual Studio Insiders и F5-профили больше не поддерживаются. Используй VS Code или `make uv-run` для запуска приложения и тестов.
 
 ### Агент GitHub Copilot VS
 - Перед запуском Copilot GPT обязательно подготовь Qt окружение:

@@ -20,10 +20,9 @@ item is discovered.
 | R-002 | Graphics panel refactor relies on manual testing; regression bugs may slip without UI automation. | Medium | Medium | Expand `pytest-qt` coverage for graphics tabs, enable screenshot baselines, tie results into `make check`. | QA automation lead | Monitoring | Master Plan §7.1, Test Plan draft |
 | R-003 | CI workflows absent; quality gates run manually causing inconsistent enforcement. | High | High | Implement GitHub Actions `ci.yml` and `nightly.yml`, gate merges on `make check`, store artefacts. | Engineering manager | High priority | Master Plan §7.2 |
 | R-004 | Incident response process undocumented; on-call teams risk delayed mitigation. | Medium | Low | Complete telemetry dashboards, publish on-call runbook, rehearse escalation via tabletop exercise. | Support lead | Planned | Phase 5 plan §1 |
-| R-005 | Legacy `.sln/.csproj` assets cause confusion about supported platforms. | Low | Medium | Confirm deprecation, archive or remove assets, document outcome in `docs/CHANGELOG_MODULAR.md`. | Architecture lead | Under review | Master Plan §9.2 |
 
 ## Risk Archive
 
 | ID | Risk Description | Retirement Reason | Notes |
 | --- | --- | --- | --- |
-| – | – | – | Use this section to log resolved risks once mitigation holds for two review cycles. |
+| R-005 | Legacy `.sln/.csproj` assets cause confusion about supported platforms. | Decommissioned 2025-12-14 | Visual Studio artefacts удалены, документация обновлена (`docs/CHANGELOG_MODULAR.md`, Phase 4 план). |

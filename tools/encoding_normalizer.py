@@ -55,14 +55,9 @@ LF_SUFFIXES: frozenset[str] = frozenset(_LF_SUFFIX_NAMES)
 _CRLF_SUFFIX_NAMES = {
     ".bat",
     ".cmd",
-    ".cs",
-    ".csproj",
     ".ps1",
     ".psd1",
     ".psm1",
-    ".pyproj",
-    ".sln",
-    ".slnx",
     ".vbproj",
     ".vcxproj",
 }
