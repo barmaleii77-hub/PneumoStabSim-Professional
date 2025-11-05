@@ -298,6 +298,7 @@ def _check_opengl_runtime() -> ProbeResult:
         )
 
     candidates, install_hint = _resolve_opengl_dependency()
+    strict = _strict_checks_enabled()
 
     for candidate in candidates:
         try:
@@ -307,11 +308,18 @@ def _check_opengl_runtime() -> ProbeResult:
         else:
             return ProbeResult(True, f"OpenGL runtime '{candidate}' is loadable.")
 
-    return ProbeResult(
-        False,
+    message = (
         "OpenGL runtime libraries are missing: "
         + ", ".join(candidates)
-        + f". {install_hint}",
+        + f". {install_hint}"
+    )
+
+    if strict:
+        return ProbeResult(False, message)
+
+    return ProbeResult(
+        True,
+        message + " Skipping OpenGL probe because QT_ENV_CHECK_STRICT is not enabled.",
     )
 
 
