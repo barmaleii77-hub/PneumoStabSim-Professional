@@ -1,6 +1,7 @@
 """Public telemetry API."""
 
 from .tracker import (
+    EVENT_SCHEMA_VERSION,
     TelemetryRecord,
     TelemetryRouter,
     TelemetryTracker,
@@ -10,6 +11,7 @@ from .tracker import (
 )
 
 __all__ = [
+    "EVENT_SCHEMA_VERSION",
     "TelemetryRecord",
     "TelemetryRouter",
     "TelemetryTracker",

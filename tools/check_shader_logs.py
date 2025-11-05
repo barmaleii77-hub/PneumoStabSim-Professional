@@ -14,7 +14,9 @@ ERROR_PATTERN = re.compile(r"\b(error|fatal|fail(?:ed)?)\b", re.IGNORECASE)
 WARNING_PATTERN = re.compile(r"\b(warn(?:ing)?)\b", re.IGNORECASE)
 
 
-def _parse_lines(lines: Iterable[str]) -> tuple[list[dict[str, object]], list[dict[str, object]]]:
+def _parse_lines(
+    lines: Iterable[str],
+) -> tuple[list[dict[str, object]], list[dict[str, object]]]:
     errors: list[dict[str, object]] = []
     warnings: list[dict[str, object]] = []
     for idx, raw in enumerate(lines, start=1):
@@ -70,7 +72,9 @@ def _default_output() -> Path:
 
 def _write_summary(summary: list[dict[str, object]], destination: Path) -> None:
     destination.parent.mkdir(parents=True, exist_ok=True)
-    destination.write_text(json.dumps(summary, indent=2, ensure_ascii=False), encoding="utf-8")
+    destination.write_text(
+        json.dumps(summary, indent=2, ensure_ascii=False), encoding="utf-8"
+    )
 
 
 def main() -> None:
