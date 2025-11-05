@@ -94,7 +94,9 @@ else:  # pragma: no cover - requires GUI stack in the execution environment
 
             layout = QVBoxLayout(self)
 
-            sources_text = "\n".join(f"• {path}" for path in discover_user_data_sources())
+            sources_text = "\n".join(
+                f"• {path}" for path in discover_user_data_sources()
+            )
             sources_label = QLabel(
                 "<b>Tracked data sources</b><br>" + sources_text.replace("\n", "<br>")
             )
@@ -204,7 +206,9 @@ else:  # pragma: no cover - requires GUI stack in the execution environment
                 return
 
             try:
-                report = self._service.restore_backup(archive, target_root=Path(target_dir))
+                report = self._service.restore_backup(
+                    archive, target_root=Path(target_dir)
+                )
             except Exception as exc:  # pragma: no cover - filesystem errors are rare
                 self._logger.error("backup_restore_failed", error=str(exc))
                 self._show_error(f"Failed to restore backup: {exc}")
@@ -213,7 +217,8 @@ else:  # pragma: no cover - requires GUI stack in the execution environment
             message = [f"Restored {len(report.restored)} files."]
             if report.skipped:
                 message.append(
-                    "Skipped existing files:\n" + "\n".join(str(path) for path in report.skipped)
+                    "Skipped existing files:\n"
+                    + "\n".join(str(path) for path in report.skipped)
                 )
             dlg = QMessageBox(self)
             dlg.setWindowTitle("Restore complete")
