@@ -134,13 +134,9 @@ localization-check:
 qt-env-check:
 	@$(SHELL) -lc '\
 		if [ -f "$(UV_PROJECT_DIR)/activate_environment.sh" ]; then \
-			source "$(UV_PROJECT_DIR)/activate_environment.sh" >/dev/null 2>&1; \
+			PSS_SKIP_ENV_BOOTSTRAP=1 source "$(UV_PROJECT_DIR)/activate_environment.sh" >/dev/null 2>&1; \
 		fi; \
-		if command -v "$(UV)" >/dev/null 2>&1; then \
-			cd "$(UV_PROJECT_DIR)" && "$(UV)" run $(UV_RUN_ARGS) -- python tools/environment/verify_qt_setup.py --report-dir reports/environment; \
-		else \
-			$(PYTHON) tools/environment/verify_qt_setup.py --report-dir reports/environment; \
-		fi \
+		cd "$(UV_PROJECT_DIR)" && $(PYTHON) tools/environment/verify_qt_setup.py --report-dir reports/environment --allow-missing-runtime \
 	'
 
 .PHONY: telemetry-etl

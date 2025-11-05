@@ -74,19 +74,23 @@ ensure_qml_path "$PROJECT_ROOT/assets/qml" "QT_QML_IMPORT_PATH"
 ensure_qml_path "$PROJECT_ROOT/assets/qml/scene" "QT_QML_IMPORT_PATH"
 
 if [[ ! -d "$PROJECT_ROOT/.venv" ]]; then
-  log "Virtual environment missing – bootstrapping via uv"
-  if command -v uv >/dev/null 2>&1; then
-    (cd "$PROJECT_ROOT" && uv sync)
+  if [[ "${PSS_SKIP_ENV_BOOTSTRAP:-0}" == "1" ]]; then
+    log "Virtual environment missing – bootstrap skipped (PSS_SKIP_ENV_BOOTSTRAP=1)"
   else
-    log "uv is not available, falling back to python -m venv"
-    python3 -m venv "$PROJECT_ROOT/.venv"
-    if [[ -f "$PROJECT_ROOT/requirements.txt" ]]; then
-      pip_args=("install")
-      if [[ $(id -u) -eq 0 ]]; then
-        pip_args+=("--root-user-action=ignore")
+    log "Virtual environment missing – bootstrapping via uv"
+    if command -v uv >/dev/null 2>&1; then
+      (cd "$PROJECT_ROOT" && uv sync)
+    else
+      log "uv is not available, falling back to python -m venv"
+      python3 -m venv "$PROJECT_ROOT/.venv"
+      if [[ -f "$PROJECT_ROOT/requirements.txt" ]]; then
+        pip_args=("install")
+        if [[ $(id -u) -eq 0 ]]; then
+          pip_args+=("--root-user-action=ignore")
+        fi
+        pip_args+=("-r" "$PROJECT_ROOT/requirements.txt")
+        "$PROJECT_ROOT/.venv/bin/python" -m pip "${pip_args[@]}"
       fi
-      pip_args+=("-r" "$PROJECT_ROOT/requirements.txt")
-      "$PROJECT_ROOT/.venv/bin/python" -m pip "${pip_args[@]}"
     fi
   fi
 fi

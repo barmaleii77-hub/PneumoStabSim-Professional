@@ -86,6 +86,10 @@ class ShaderValidationUnavailableError(RuntimeError):
     """Raised when qsb cannot run due to a missing runtime dependency."""
 
 
+class QsbEnvironmentError(RuntimeError):
+    """Raised when qsb fails because the host environment is misconfigured."""
+
+
 def classify_shader(path: Path) -> tuple[str, str]:
     """Return the base name and variant label for *path*."""
 
@@ -127,6 +131,39 @@ def _relative(path: Path, root: Path) -> str:
         return str(path.relative_to(root))
     except ValueError:
         return str(path)
+
+
+def _summarize_environment_failure(
+    exit_code: int,
+    stdout: str,
+    stderr: str,
+    command: Sequence[str],
+) -> str | None:
+    """Return a human-friendly summary for environment-level qsb failures."""
+
+    combined = "\n".join(part for part in (stdout, stderr) if part).lower()
+    for library, package in RUNTIME_DEPENDENCY_HINTS:
+        if library.lower() in combined:
+            return (
+                "Qt Shader Baker failed to load required shared library "
+                f"'{library}'. Install the system package '{package}' and retry."
+            )
+
+    if "qt.qpa.plugin" in combined and "xcb" in combined:
+        return (
+            "Qt Shader Baker could not load the 'xcb' Qt platform plugin. "
+            "Install the Qt X11 runtime dependencies (for example 'libxcb-xinerama0')."
+        )
+
+    if exit_code == 127:
+        quoted = " ".join(shlex.quote(part) for part in command)
+        return (
+            "Qt Shader Baker exited with status 127. Ensure the 'qsb' executable is "
+            "installed (Qt Shader Tools) or set QSB_COMMAND to its absolute path. "
+            f"Command attempted: {quoted or '<unknown>'}."
+        )
+
+    return None
 
 
 def _validate_versions(
@@ -227,6 +264,26 @@ def _extract_missing_shared_library(stderr: str) -> str | None:
         if library:
             return library
     return None
+
+
+def _diagnose_qsb_failure(stderr: str) -> list[str]:
+    """Return heuristic hints for common qsb runtime failures."""
+
+    hints: list[str] = []
+    lowered = stderr.lower()
+
+    for library, package in RUNTIME_DEPENDENCY_HINTS:
+        if library.lower() in lowered:
+            hints.append(
+                f"    Hint: install the system package '{package}' to provide {library}."
+            )
+
+    if "qt.qpa.plugin" in lowered and "xcb" in lowered:
+        hints.append(
+            "    Hint: Qt could not load the 'xcb' platform plugin. Install Qt's XCB runtime dependencies."
+        )
+
+    return hints
 
 
 def _run_qsb(

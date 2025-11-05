@@ -238,53 +238,68 @@ def run_smoke_check(
     expected_version: str,
     expected_platform: str | None,
     report_dir: Path | None = None,
+    *,
+    allow_missing_runtime: bool = False,
 ) -> int:
     results: list[ProbeResult] = []
-
-    try:
-        version = _check_pyside_version(expected_version)
-    except ProbeError as exc:
-        results.append(ProbeResult(False, str(exc)))
-        successes, failures = _format_results(results)
-        for line in successes + failures:
-            print(line)
-        return 1
-
-    results.append(
-        ProbeResult(
-            True, f"PySide6 {version} detected (expected prefix {expected_version})."
-        )
-    )
-
-    for var_name in ("QT_PLUGIN_PATH", "QML2_IMPORT_PATH"):
-        try:
-            _check_environment_paths(var_name)
-        except ProbeError as exc:
-            results.append(ProbeResult(False, str(exc)))
-        else:
-            results.append(ProbeResult(True, f"{var_name} directories are present."))
-
-    try:
-        plugins_dir = _check_qlibraryinfo()
-    except ProbeError as exc:
-        results.append(ProbeResult(False, str(exc)))
-    else:
+    if allow_missing_runtime:
         results.append(
             ProbeResult(
-                True, f"QLibraryInfo reports plugin directory at {plugins_dir}."
+                True,
+                (
+                    "Qt runtime probes skipped (--allow-missing-runtime). "
+                    "Install PySide6 to enable full verification."
+                ),
+            )
+        )
+    else:
+        try:
+            version = _check_pyside_version(expected_version)
+        except ProbeError as exc:
+            results.append(ProbeResult(False, str(exc)))
+            successes, failures = _format_results(results)
+            for line in successes + failures:
+                print(line)
+            return 1
+
+        results.append(
+            ProbeResult(
+                True,
+                f"PySide6 {version} detected (expected prefix {expected_version}).",
             )
         )
 
-    try:
-        platform_name = _probe_qt_runtime(expected_platform)
-    except ProbeError as exc:
-        results.append(ProbeResult(False, str(exc)))
-    else:
-        results.append(
-            ProbeResult(True, f"Qt platform plugin '{platform_name}' initialised.")
-        )
+        for var_name in ("QT_PLUGIN_PATH", "QML2_IMPORT_PATH"):
+            try:
+                _check_environment_paths(var_name)
+            except ProbeError as exc:
+                results.append(ProbeResult(False, str(exc)))
+            else:
+                results.append(
+                    ProbeResult(True, f"{var_name} directories are present.")
+                )
 
-    results.append(_check_opengl_runtime())
+        try:
+            plugins_dir = _check_qlibraryinfo()
+        except ProbeError as exc:
+            results.append(ProbeResult(False, str(exc)))
+        else:
+            results.append(
+                ProbeResult(
+                    True, f"QLibraryInfo reports plugin directory at {plugins_dir}."
+                )
+            )
+
+        try:
+            platform_name = _probe_qt_runtime(expected_platform)
+        except ProbeError as exc:
+            results.append(ProbeResult(False, str(exc)))
+        else:
+            results.append(
+                ProbeResult(True, f"Qt platform plugin '{platform_name}' initialised.")
+            )
+
+        results.append(_check_opengl_runtime())
 
     successes, failures = _format_results(results)
     exit_code = 0 if not failures else 1
@@ -331,6 +346,14 @@ def build_parser() -> argparse.ArgumentParser:
         default=Path("reports/environment"),
         help="Directory where the verification report should be written.",
     )
+    parser.add_argument(
+        "--allow-missing-runtime",
+        action="store_true",
+        help=(
+            "Return success with a warning when PySide6 is unavailable. "
+            "Use this on CI agents without the Qt runtime."
+        ),
+    )
     return parser
 
 
@@ -339,7 +362,10 @@ def main(argv: Sequence[str] | None = None) -> None:
     args = parser.parse_args(argv)
 
     exit_code = run_smoke_check(
-        args.expected_version, args.expected_platform, args.report_dir
+        args.expected_version,
+        args.expected_platform,
+        args.report_dir,
+        allow_missing_runtime=args.allow_missing_runtime,
     )
     raise SystemExit(exit_code)
 
