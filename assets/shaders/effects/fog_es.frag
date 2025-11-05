@@ -18,38 +18,39 @@ precision mediump sampler2D;
 #endif
 #endif
 
+#ifndef VARYING_UV
+#define VARYING_UV v_uv
+#endif
+
 #ifndef SAMPLER_BINDING
-#ifdef QSB_ADD_BINDINGS
-#ifdef GL_ES
-// GLSL 330 does not support explicit binding qualifiers; Qt assigns bindings automatically.
+#if defined(GL_ES)
+// GLSL ES 3.00 does not support explicit binding qualifiers; Qt assigns bindings automatically.
 #define SAMPLER_BINDING(index)
 #else
 #define SAMPLER_BINDING(index) layout(binding = index)
 #endif
-#else
-// GLSL 330 does not support explicit binding qualifiers; Qt assigns bindings automatically.
-#define SAMPLER_BINDING(index)
-#endif
 #endif
 
+#ifndef DECLARE_INPUT_UV
+#if defined(GL_ES)
+#define DECLARE_INPUT_UV in vec2 VARYING_UV;
+#else
+#define DECLARE_INPUT_UV layout(location = 0) in vec2 VARYING_UV;
+#endif
+#endif
+DECLARE_INPUT_UV
+
 #ifndef UBO_BINDING
-#ifdef QSB_ADD_BINDINGS
-#ifdef GL_ES
-// GLSL 330 does not support explicit binding qualifiers; Qt assigns bindings automatically.
+#if defined(GL_ES)
+// GLSL ES 3.00 does not support explicit binding qualifiers; Qt assigns bindings automatically.
 #define UBO_BINDING(index)
 #else
 #define UBO_BINDING(index) layout(binding = index)
 #endif
-#else
-// GLSL 330 does not support explicit binding qualifiers; Qt assigns bindings automatically.
-#define UBO_BINDING(index)
 #endif
-#endif
-
-layout(location = 0) in vec2 v_uv;
 
 #ifndef INPUT_UV
-#define INPUT_UV v_uv
+#define INPUT_UV VARYING_UV
 #endif
 
 #ifndef FRAGCOLOR
