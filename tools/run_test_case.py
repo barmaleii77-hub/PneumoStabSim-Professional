@@ -59,7 +59,9 @@ def run(case_identifier: str, output_dir: Path | None = None) -> dict[str, Any]:
     target_dir = output_dir or _default_reports_dir()
     target_dir.mkdir(parents=True, exist_ok=True)
     report_path = target_dir / f"{case.identifier}_report.json"
-    report_path.write_text(json.dumps(summary, indent=2, ensure_ascii=False), encoding="utf-8")
+    report_path.write_text(
+        json.dumps(summary, indent=2, ensure_ascii=False), encoding="utf-8"
+    )
     summary["report_path"] = str(report_path)
     return summary
 

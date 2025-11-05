@@ -5,7 +5,16 @@ from __future__ import annotations
 from dataclasses import dataclass
 import json
 from pathlib import Path
-from typing import Any, Callable, Dict, Iterable, Iterator, Mapping, MutableMapping, Optional
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    Iterable,
+    Iterator,
+    Mapping,
+    MutableMapping,
+    Optional,
+)
 
 import jsonschema
 import yaml
@@ -94,32 +103,44 @@ def _validate(instance: Mapping[str, Any], schema_name: str) -> None:
     jsonschema.validate(instance=instance, schema=schema, resolver=resolver)
 
 
-def _coerce_attachment_points(raw: Mapping[str, Iterable[float]]) -> Dict[str, tuple[float, float]]:
+def _coerce_attachment_points(
+    raw: Mapping[str, Iterable[float]],
+) -> Dict[str, tuple[float, float]]:
     result: Dict[str, tuple[float, float]] = {}
     for key, values in raw.items():
         coords = tuple(float(v) for v in values)
         if len(coords) != 2:
-            raise ValueError(f"Attachment point '{key}' must contain two values, got {coords}")
+            raise ValueError(
+                f"Attachment point '{key}' must contain two values, got {coords}"
+            )
         result[key] = coords  # type: ignore[assignment]
     return result
 
 
-def _coerce_axis_directions(raw: Mapping[str, Iterable[float]]) -> Dict[str, tuple[float, float, float]]:
+def _coerce_axis_directions(
+    raw: Mapping[str, Iterable[float]],
+) -> Dict[str, tuple[float, float, float]]:
     result: Dict[str, tuple[float, float, float]] = {}
     for key, values in raw.items():
         coords = tuple(float(v) for v in values)
         if len(coords) != 3:
-            raise ValueError(f"Axis direction '{key}' must contain three values, got {coords}")
+            raise ValueError(
+                f"Axis direction '{key}' must contain three values, got {coords}"
+            )
         result[key] = coords  # type: ignore[assignment]
     return result
 
 
-def _coerce_state_vectors(raw: Mapping[str, Iterable[float]]) -> Dict[str, tuple[float, ...]]:
+def _coerce_state_vectors(
+    raw: Mapping[str, Iterable[float]],
+) -> Dict[str, tuple[float, ...]]:
     result: Dict[str, tuple[float, ...]] = {}
     for name, values in raw.items():
         vector = tuple(float(v) for v in values)
         if len(vector) != 6:
-            raise ValueError(f"State vector '{name}' must contain six values, got {vector}")
+            raise ValueError(
+                f"State vector '{name}' must contain six values, got {vector}"
+            )
         result[name] = vector
     return result
 
@@ -182,7 +203,9 @@ def load_test_case(case_path: Path) -> TestCaseDefinition:
 
     scene_path = case_path.parent / str(raw_case["scene"])
     if not scene_path.exists():
-        raise FileNotFoundError(f"Scene {scene_path} referenced by {case_path} is missing")
+        raise FileNotFoundError(
+            f"Scene {scene_path} referenced by {case_path} is missing"
+        )
 
     scene = load_scene(scene_path)
 
@@ -194,7 +217,9 @@ def load_test_case(case_path: Path) -> TestCaseDefinition:
                 target=str(entry["target"]),
                 expected=entry["expected"],
                 tolerance=float(entry.get("tolerance", 1e-6)),
-                source=str(entry.get("source")) if entry.get("source") is not None else None,
+                source=str(entry.get("source"))
+                if entry.get("source") is not None
+                else None,
             )
         )
 
@@ -221,7 +246,9 @@ def discover_cases(base_dir: Path | None = None) -> tuple[TestCaseDefinition, ..
     return tuple(found)
 
 
-def build_case_loader(base_dir: Path | None = None) -> Callable[[str], TestCaseDefinition]:
+def build_case_loader(
+    base_dir: Path | None = None,
+) -> Callable[[str], TestCaseDefinition]:
     """Return a callable that loads a case by identifier."""
 
     cases = {case.identifier: case for case in discover_cases(base_dir)}
