@@ -207,8 +207,7 @@ else:  # pragma: no cover - requires GUI stack in the execution environment
 
             try:
                 report = self._service.restore_backup(
-                    archive,
-                    target_root=Path(target_dir),
+                    archive, target_root=Path(target_dir)
                 )
             except Exception as exc:  # pragma: no cover - filesystem errors are rare
                 self._logger.error("backup_restore_failed", error=str(exc))
@@ -217,8 +216,10 @@ else:  # pragma: no cover - requires GUI stack in the execution environment
 
             message = [f"Restored {len(report.restored)} files."]
             if report.skipped:
-                skipped_paths = "\n".join(str(path) for path in report.skipped)
-                message.append(f"Skipped existing files:\n{skipped_paths}")
+                message.append(
+                    "Skipped existing files:\n"
+                    + "\n".join(str(path) for path in report.skipped)
+                )
             dlg = QMessageBox(self)
             dlg.setWindowTitle("Restore complete")
             dlg.setText("\n\n".join(message))

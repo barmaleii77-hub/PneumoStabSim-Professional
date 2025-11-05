@@ -12,6 +12,8 @@ MYPY_TARGETS ?= $(shell cat mypy_targets.txt 2>/dev/null)
 PYTEST_TARGETS_FILE ?= pytest_targets.txt
 LOG_DIR ?= logs
 PYTEST_FLAGS ?= -vv --color=yes --maxfail=1
+AUTONOMOUS_CHECK_ARGS ?= --task verify --history-limit 10 --sanitize --launch-trace
+CHECK_AUTONOMOUS_ARGS ?= --task verify --history-limit 5 --sanitize-history 3
 SMOKE_TARGET ?= tests/smoke
 INTEGRATION_TARGET ?= tests/integration/test_main_window_qml.py
 
@@ -20,9 +22,39 @@ localization-check \
 autonomous-check autonomous-check-trace trace-launch sanitize cipilot-env \
 install-qt-runtime qt-env-check telemetry-etl profile-phase3 profile-render profile-validate package-all
 
-.PHONY: qmllint
-qmllint:
-	$(MAKE) qml-lint
+
+.PHONY: qml-lint qmllint
+qml-lint qmllint:
+	@echo "Running QML lint (qmllint)"
+	@LINTER="$(QML_LINTER)"; \
+	if [ -z "$$LINTER" ]; then \
+	 if command -v qmllint >/dev/null 2>&1; then \
+	 LINTER=qmllint; \
+	 elif command -v pyside6-qmllint >/dev/null 2>&1; then \
+	 LINTER=pyside6-qmllint; \
+	 else \
+	 echo "Error: qmllint or pyside6-qmllint is not installed. Set QML_LINTER to override." >&2; \
+	 exit 1; \
+	 fi; \
+	fi; \
+	if [ -f "$(QML_LINT_TARGETS_FILE)" ]; then \
+	 mapfile -t qml_files < "$(QML_LINT_TARGETS_FILE)"; \
+	else \
+	 qml_files=(); \
+	fi; \
+	if [ $${#qml_files[@]} -eq 0 ]; then \
+	 echo "No QML lint targets specified; skipping."; \
+	 exit 0; \
+	fi; \
+	for file in "$${qml_files[@]}"; do \
+	 if [ -n "$$file" ]; then \
+	 if [ -d "$$file" ]; then \
+	 find "$$file" -type f -name '*.qml' -print0 | while IFS= read -r -d '' nested; do "$$LINTER" "$$nested"; done; \
+	 else \
+	 "$$LINTER" "$$file"; \
+	 fi; \
+	 fi; \
+	done
 
 .PHONY: uv-sync uv-sync-locked uv-run uv-lock uv-export-requirements uv-release-refresh
 
@@ -71,37 +103,6 @@ lint:
 typecheck:
 	$(PYTHON) -m tools.ci_tasks typecheck
 
-qml-lint:
-	@echo "Running QML lint (qmllint)"
-	@LINTER="$(QML_LINTER)"; \
-	if [ -z "$$LINTER" ]; then \
-	 if command -v qmllint >/dev/null 2>&1; then \
-	 LINTER=qmllint; \
-	 elif command -v pyside6-qmllint >/dev/null 2>&1; then \
-	 LINTER=pyside6-qmllint; \
-	 else \
-	 echo "Error: qmllint or pyside6-qmllint is not installed. Set QML_LINTER to override." >&2; \
-	 exit 1; \
-	 fi; \
-	fi; \
-	if [ -f "$(QML_LINT_TARGETS_FILE)" ]; then \
-	 mapfile -t qml_files < "$(QML_LINT_TARGETS_FILE)"; \
-	else \
-	 qml_files=(); \
-	fi; \
-	if [ $${#qml_files[@]} -eq 0 ]; then \
-	 echo "No QML lint targets specified; skipping."; \
-	 exit 0; \
-	fi; \
-	for file in "$${qml_files[@]}"; do \
-	 if [ -n "$$file" ]; then \
-	 if [ -d "$$file" ]; then \
-	 find "$$file" -type f -name '*.qml' -print0 | while IFS= read -r -d '' nested; do "$$LINTER" "$$nested"; done; \
-	 else \
-	 "$$LINTER" "$$file"; \
-	 fi; \
-	 fi; \
-	done
 
 .PHONY: test-local
 test-local:
@@ -118,9 +119,14 @@ shader-artifacts:
 validate-hdr-orientation:
 	$(PYTHON) tools/graphics/validate_hdr_orientation.py
 
-check: lint typecheck qml-lint test-local check-shaders validate-hdr-orientation localization-check qt-env-check
+check:
+	$(MAKE) AUTONOMOUS_CHECK_ARGS="$(CHECK_AUTONOMOUS_ARGS)" autonomous-check
+	$(MAKE) check-shaders
+	$(MAKE) validate-hdr-orientation
+	$(MAKE) localization-check
+	$(MAKE) qt-env-check
 
-verify: lint typecheck qml-lint test-local smoke integration
+verify: check smoke integration
 
 localization-check:
 	$(PYTHON) tools/update_translations.py --check
@@ -154,13 +160,21 @@ profile-validate:
 	$(PYTHON) tools/performance_gate.py reports/performance/ui_phase3_profile.json reports/performance/baselines/ui_phase3_baseline.json --summary-output reports/performance/ui_phase3_summary.json
 
 autonomous-check:
-	$(PYTHON) -m tools.autonomous_check
+	$(PYTHON) -m tools.autonomous_check $(AUTONOMOUS_CHECK_ARGS)
 
 autonomous-check-trace:
 	$(PYTHON) -m tools.autonomous_check --launch-trace
 
 trace-launch:
 	$(PYTHON) -m tools.trace_launch
+
+.PHONY: smoke integration
+
+smoke:
+	$(PYTHON) -m pytest $(PYTEST_FLAGS) $(SMOKE_TARGET)
+
+integration:
+	$(PYTHON) -m pytest $(PYTEST_FLAGS) $(INTEGRATION_TARGET)
 
 sanitize:
 	$(PYTHON) -m tools.project_sanitize

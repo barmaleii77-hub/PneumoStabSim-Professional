@@ -203,9 +203,7 @@ class BackupService:
         skipped: set[Path] = set()
 
         with zipfile.ZipFile(
-            archive_path,
-            "w",
-            compression=zipfile.ZIP_DEFLATED,
+            archive_path, "w", compression=zipfile.ZIP_DEFLATED
         ) as archive:
             for source in self._sources:
                 absolute = source.absolute_path
@@ -233,8 +231,7 @@ class BackupService:
                             # Only add explicit entries for empty directories.
                             if not any(filesystem_path.iterdir()):
                                 self._write_directory_entry(
-                                    archive,
-                                    archive_path_relative,
+                                    archive, archive_path_relative
                                 )
                                 included.add(archive_path_relative)
                             continue
@@ -290,8 +287,9 @@ class BackupService:
             try:
                 with handle.open(_MANIFEST_FILENAME) as manifest_handle:
                     return cast(dict[str, object], json.load(manifest_handle))
-            except KeyError as exc:  # pragma: no cover
-                # Legacy archives might not have manifests.
+            except (
+                KeyError
+            ) as exc:  # pragma: no cover - legacy archives might not have manifests
                 raise KeyError(
                     f"Archive {archive} does not contain {_MANIFEST_FILENAME}."
                 ) from exc
