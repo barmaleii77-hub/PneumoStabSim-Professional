@@ -13,6 +13,7 @@ SMOKE_TARGET ?= tests/smoke
 INTEGRATION_TARGET ?= tests/integration/test_main_window_qml.py
 
 .PHONY: format lint typecheck qml-lint test validate-shaders check-shaders check verify smoke integration \
+localization-check \
 autonomous-check autonomous-check-trace trace-launch sanitize cipilot-env \
 install-qt-runtime
 
@@ -99,9 +100,12 @@ shader-artifacts:
 validate-hdr-orientation:
 	$(PYTHON) tools/graphics/validate_hdr_orientation.py
 
-check: lint typecheck qml-lint test check-shaders validate-hdr-orientation
+check: lint typecheck qml-lint test check-shaders validate-hdr-orientation localization-check
 
 verify: lint typecheck qml-lint test smoke integration
+
+localization-check:
+	$(PYTHON) tools/update_translations.py --check
 
 autonomous-check:
 	$(PYTHON) -m tools.autonomous_check
