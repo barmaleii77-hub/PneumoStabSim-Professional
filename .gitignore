@@ -525,6 +525,7 @@ check_*.py
 !tests/unit/ui/test_main_window_hdr_paths.py
 !tests/unit/ui/test_main_window_batch_updates.py
 !tests/ui/test_graphics_scene_quality_tabs.py
+!tests/ui/test_initial_full_sync_invocations.py
 !tests/graphics/test_visual_regression.py
 !tests/ui/test_signals_router_connections.py
 !tests/ui/test_qml_signal_contract.py
