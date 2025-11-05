@@ -1,0 +1,25 @@
+{
+  "name": "PneumoStabSim Dev (Qt 6.10 / Py3.13)",
+  "image": "pneumo-dev:qt610",
+  "workspaceFolder": "/workdir",
+  "mounts": [
+    "source=${localWorkspaceFolder},target=/workdir,type=bind,consistency=cached"
+  ],
+  "overrideCommand": true,
+  "postStartCommand": "/usr/local/bin/install_deps.py || true",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-python.python",
+        "ms-python.vscode-pylance"
+      ],
+      "settings": {
+        "python.defaultInterpreterPath": "/usr/local/bin/python",
+        "python.testing.pytestEnabled": true,
+        "python.testing.pytestArgs": [
+          "-q"
+        ]
+      }
+    }
+  }
+}

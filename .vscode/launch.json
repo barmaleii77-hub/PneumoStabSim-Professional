@@ -65,6 +65,34 @@
                 "group": "quality",
                 "order": 2
             }
+        },
+        {
+            "name": "PneumoStabSim (OpenGL, test-mode)",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/app.py",
+            "args": [
+                "--test-mode"
+            ],
+            "console": "integratedTerminal",
+            "env": {
+                "QSG_RHI_BACKEND": "opengl",
+                "QT_QPA_PLATFORM": "xcb"
+            }
+        },
+        {
+            "name": "PneumoStabSim (Vulkan, test-mode)",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/app.py",
+            "args": [
+                "--test-mode"
+            ],
+            "console": "integratedTerminal",
+            "env": {
+                "QSG_RHI_BACKEND": "vulkan",
+                "QT_QPA_PLATFORM": "xcb"
+            }
         }
     ]
 }
