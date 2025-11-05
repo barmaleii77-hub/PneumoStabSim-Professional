@@ -9,7 +9,9 @@ from src.core.settings_service import SETTINGS_SERVICE_TOKEN, SettingsService
 from src.infrastructure.container import get_default_container
 
 
-def _get_service(custom_path: str | None = None) -> SettingsService:
+def get_settings_service(custom_path: str | None = None) -> SettingsService:
+    """Return the active :class:`SettingsService` instance."""
+
     if custom_path is not None:
         return SettingsService(custom_path)
     return get_default_container().resolve(SETTINGS_SERVICE_TOKEN)
@@ -18,7 +20,10 @@ def _get_service(custom_path: str | None = None) -> SettingsService:
 def _load_settings(custom_path: str | None = None) -> Dict[str, Any]:
     """Load the JSON settings file using :class:`SettingsService`."""
 
-    service = _get_service(custom_path)
+    if custom_path is None:
+        service = get_settings_service()
+    else:
+        service = get_settings_service(custom_path)
     return dump_settings(service.load())
 
 
@@ -75,7 +80,7 @@ def _get_constants_section(
 def refresh_cache() -> None:
     """Clear the cached JSON payload (useful for tests)."""
 
-    get_default_container().resolve(SETTINGS_SERVICE_TOKEN).reload()
+    get_settings_service().reload()
 
 
 def get_geometry_constants(
