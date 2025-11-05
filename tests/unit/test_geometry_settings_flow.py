@@ -10,7 +10,8 @@ pytest.importorskip(
 )
 
 from config import constants as constants_module
-from src.core.settings_service import SettingsService
+from src.core.settings_service import SETTINGS_SERVICE_TOKEN, SettingsService
+from src.infrastructure.container import get_default_container
 from src.core.geometry import GeometryParams
 from src.ui.geometry_bridge import create_geometry_converter
 
@@ -68,41 +69,43 @@ def geometry_settings(tmp_path: Path) -> Path:
     return target
 
 
-def test_geometry_params_reflect_settings(
-    geometry_settings: Path, monkeypatch: pytest.MonkeyPatch
-) -> None:
+def test_geometry_params_reflect_settings(geometry_settings: Path) -> None:
     service = SettingsService(settings_path=geometry_settings, validate_schema=False)
-    monkeypatch.setattr(constants_module, "get_settings_service", lambda: service)
+    container = get_default_container()
+    with container.override(SETTINGS_SERVICE_TOKEN, service):
+        constants_module.refresh_cache()
+
+        params = GeometryParams()
+
+        assert params.track_width == pytest.approx(1.6)
+        assert params.lever_length == pytest.approx(0.45)
+        assert params.cylinder_inner_diameter == pytest.approx(0.1)
+
     constants_module.refresh_cache()
 
-    params = GeometryParams()
 
-    assert params.track_width == pytest.approx(1.6)
-    assert params.lever_length == pytest.approx(0.45)
-    assert params.cylinder_inner_diameter == pytest.approx(0.1)
-
-
-def test_geometry_converter_uses_persisted_values(
-    geometry_settings: Path, monkeypatch: pytest.MonkeyPatch
-) -> None:
+def test_geometry_converter_uses_persisted_values(geometry_settings: Path) -> None:
     service = SettingsService(settings_path=geometry_settings, validate_schema=False)
-    monkeypatch.setattr(constants_module, "get_settings_service", lambda: service)
+    container = get_default_container()
+    with container.override(SETTINGS_SERVICE_TOKEN, service):
+        constants_module.refresh_cache()
+
+        class DummyManager:
+            def get_category(self, name: str):
+                if name == "geometry":
+                    return {}
+                raise KeyError(name)
+
+            def set(self, *_args, **_kwargs):
+                pass
+
+            def save(self):
+                pass
+
+        converter = create_geometry_converter(settings_manager=DummyManager())
+        exported = converter.export_geometry_params()
+
+        assert exported["frameLength"] == pytest.approx(2.0)
+        assert converter.geometry.cylinder_inner_diameter == pytest.approx(0.1)
+
     constants_module.refresh_cache()
-
-    class DummyManager:
-        def get_category(self, name: str):
-            if name == "geometry":
-                return {}
-            raise KeyError(name)
-
-        def set(self, *_args, **_kwargs):
-            pass
-
-        def save(self):
-            pass
-
-    converter = create_geometry_converter(settings_manager=DummyManager())
-    exported = converter.export_geometry_params()
-
-    assert exported["frameLength"] == pytest.approx(2.0)
-    assert converter.geometry.cylinder_inner_diameter == pytest.approx(0.1)

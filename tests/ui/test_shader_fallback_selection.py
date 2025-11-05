@@ -7,8 +7,13 @@ from pathlib import Path
 
 import pytest
 
-from PySide6.QtCore import QUrl
+from PySide6.QtCore import QTimer, Qt, QUrl, qInstallMessageHandler
+from PySide6.QtGui import QSurfaceFormat
 from PySide6.QtQml import QQmlComponent, QQmlEngine, QJSValue
+from PySide6.QtQuick import QQuickWindow, QSGRendererInterface
+from PySide6.QtWidgets import QApplication
+
+from src.app_runner import ApplicationRunner
 
 pytest.importorskip(
     "PySide6.QtWidgets",
@@ -27,6 +32,7 @@ SHADER_ROOT = REPO_ROOT / "assets" / "shaders"
 
 
 os.environ.setdefault("QML_XHR_ALLOW_FILE_READ", "1")
+os.environ.setdefault("QSG_RHI_BACKEND", "opengl")
 
 
 def _build_manifest() -> dict[str, dict[str, object]]:
@@ -57,6 +63,9 @@ def _build_manifest() -> dict[str, dict[str, object]]:
 
 def _create_engine_with_manifest(
     manifest_overrides: dict[str, object] | None = None,
+    *,
+    graphics_api_name: str = "opengl-es",
+    requires_desktop: bool | None = None,
 ) -> QQmlEngine:
     engine = QQmlEngine()
     context = engine.rootContext()
@@ -65,10 +74,28 @@ def _create_engine_with_manifest(
     if manifest_overrides:
         manifest.update(manifest_overrides)
 
-    context.setContextProperty("qtGraphicsApiName", "opengl-es")
-    context.setContextProperty("qtGraphicsApiRequiresDesktopShaders", False)
+    context.setContextProperty("qtGraphicsApiName", graphics_api_name)
+    if requires_desktop is None:
+        requires_desktop = False
+    context.setContextProperty(
+        "qtGraphicsApiRequiresDesktopShaders", requires_desktop
+    )
     context.setContextProperty("effectShaderManifest", manifest)
     return engine
+
+
+_SURFACE_CONFIGURED = False
+
+
+def _configure_opengl_surface() -> None:
+    global _SURFACE_CONFIGURED
+    if _SURFACE_CONFIGURED:
+        return
+
+    runner = ApplicationRunner(QApplication, qInstallMessageHandler, Qt, QTimer)
+    runner._surface_format_configured = False
+    runner._configure_default_surface_format()
+    _SURFACE_CONFIGURED = True
 
 
 def _create_component(engine: QQmlEngine, qml_path: Path) -> QQmlComponent:
@@ -193,3 +220,65 @@ def test_fog_effect_activates_depth_fallback_when_forced(qapp) -> None:  # type:
         assert shader_url.endswith("fog_fallback_es.frag")
     finally:
         root.deleteLater()
+
+
+@pytest.mark.gui
+def test_fog_effect_desktop_backend_avoids_fallback(qapp) -> None:  # type: ignore[missing-type-doc]
+    """FogEffect should stay on the primary shader pipeline under the OpenGL RHI backend."""
+
+    _configure_opengl_surface()
+
+    engine = _create_engine_with_manifest(
+        graphics_api_name="opengl",
+        requires_desktop=True,
+    )
+    component = _create_component(
+        engine, REPO_ROOT / "assets" / "qml" / "effects" / "FogEffect.qml"
+    )
+    root = component.create()
+    try:
+        qapp.processEvents()
+
+        assert (
+            QQuickWindow.graphicsApi()
+            == QSGRendererInterface.GraphicsApi.OpenGLRhi
+        )
+
+        format_ = QSurfaceFormat.defaultFormat()
+        assert format_.depthBufferSize() >= 24
+        assert format_.stencilBufferSize() >= 8
+
+        assert root.property("fallbackActive") is False
+        assert root.property("enforceLegacyFallbackShaders") is False
+    finally:
+        root.deleteLater()
+        component.deleteLater()
+        engine.deleteLater()
+
+
+@pytest.mark.gui
+def test_depth_of_field_primary_pipeline_active(qapp) -> None:  # type: ignore[missing-type-doc]
+    """Depth of field effect should compile without engaging compatibility fallbacks."""
+
+    _configure_opengl_surface()
+
+    engine = _create_engine_with_manifest(
+        graphics_api_name="opengl",
+        requires_desktop=True,
+    )
+    component = _create_component(
+        engine, REPO_ROOT / "assets" / "qml" / "effects" / "PostEffects.qml"
+    )
+    root = component.create()
+    try:
+        root.setProperty("depthOfFieldEnabled", True)
+        qapp.processEvents()
+
+        assert root.property("useGlesShaders") is False
+        assert root.property("depthOfFieldDepthTextureAvailable") is True
+        assert root.property("depthOfFieldFallbackActive") is False
+        assert not root.property("legacyFallbackReason")
+    finally:
+        root.deleteLater()
+        component.deleteLater()
+        engine.deleteLater()

@@ -53,7 +53,7 @@ if not exist "venv\Scripts\python.exe" (
 
     rem Set critical environment variables
     set PYTHONPATH=%CD%;%CD%\src
-    set QSG_RHI_BACKEND=d3d11
+    set QSG_RHI_BACKEND=opengl
     set QT_LOGGING_RULES=js.debug=true;qt.qml.debug=true
 
     rem Enhanced encoding settings (don't set PYTHONUTF8 for Python 3.13)

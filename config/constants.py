@@ -5,13 +5,14 @@ from __future__ import annotations
 from typing import Any, Dict, Mapping
 
 from src.core.settings_models import dump_settings
-from src.core.settings_service import SettingsService, get_settings_service
+from src.core.settings_service import SETTINGS_SERVICE_TOKEN, SettingsService
+from src.infrastructure.container import get_default_container
 
 
 def _get_service(custom_path: str | None = None) -> SettingsService:
     if custom_path is not None:
         return SettingsService(custom_path)
-    return get_settings_service()
+    return get_default_container().resolve(SETTINGS_SERVICE_TOKEN)
 
 
 def _load_settings(custom_path: str | None = None) -> Dict[str, Any]:
@@ -74,7 +75,7 @@ def _get_constants_section(
 def refresh_cache() -> None:
     """Clear the cached JSON payload (useful for tests)."""
 
-    get_settings_service().reload()
+    get_default_container().resolve(SETTINGS_SERVICE_TOKEN).reload()
 
 
 def get_geometry_constants(

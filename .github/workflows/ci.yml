@@ -12,8 +12,53 @@ env:
   QT_VERSION: "6.10.0"
 
 jobs:
-  quality:
-    name: Quality checks (${{ matrix.os }})
+  lint:
+    name: Lint & Type Check (Ubuntu)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+          cache-dependency-path: |
+            pyproject.toml
+            requirements*.txt
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e .[dev]
+
+      - name: Ruff & formatting lint
+        shell: bash
+        run: |
+          python -m tools.ci_tasks lint || { python -m ruff format --check . && python -m ruff check .; }
+
+      - name: Static type checking
+        shell: bash
+        run: |
+          python -m tools.ci_tasks typecheck || python -m mypy .
+
+      - name: Validate translations
+        shell: bash
+        run: |
+          python tools/update_translations.py --check
+
+      - name: Upload localization reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: localization-reports
+          path: reports/localization
+          if-no-files-found: warn
+
+  tests:
+    name: Test matrix (Qt ${{ env.QT_VERSION }})
+    needs: lint
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false

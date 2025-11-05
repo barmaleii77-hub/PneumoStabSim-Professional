@@ -23,7 +23,7 @@ def setup_qt_for_qtquick3d():
             "QML_IMPORT_PATH": str(pyside6_path / "qml"),
             "QML2_IMPORT_PATH": str(pyside6_path / "qml"),
             "QTDIR": str(pyside6_path),
-            "QSG_RHI_BACKEND": "d3d11" if sys.platform == "win32" else "opengl",
+            "QSG_RHI_BACKEND": "opengl",
             "QT_QUICK3D_MODULE_PATH": str(pyside6_path / "qml" / "QtQuick3D"),
             "PYTHONIOENCODING": "utf-8",
         }

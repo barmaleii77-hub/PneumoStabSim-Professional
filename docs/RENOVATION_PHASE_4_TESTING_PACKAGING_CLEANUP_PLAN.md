@@ -98,3 +98,8 @@ Use this section to log coverage milestones, release candidate builds, and clean
 - Finalised hierarchical test layout under `tests/{physics,pneumo,graphics,ui,tools}` with shared fixtures in `tests/conftest.py`.
 - Authored JSON/YAML schemas for physics scenarios, added baseline images, and wired CLI utilities (`tools/run_test_case.py`, `tools/collect_qml_errors.py`, `tools/check_shader_logs.py`) to persist artefacts in `reports/tests/`.
 - Captured new pytest-qt flows validating indicator feedback and ensured shader/QML diagnostics are harvested for CI publishing.
+
+### 2025-12-14 – Visual Studio assets retired
+- Удалены `.sln/.csproj/.pyproj` вместе с C# заглушками и Insiders скриптами.
+- Обновлены `docs/ENVIRONMENT_SETUP.md` и `docs/DEVELOPMENT_GUIDE.md` с рекомендациями по VS Code/PyCharm.
+- `scripts/comprehensive_test.py` теперь проверяет отсутствие legacy артефактов.

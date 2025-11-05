@@ -6,9 +6,9 @@
 
 | Инструмент | Назначение | Основные опции |
 |------------|-----------|----------------|
-| `scripts/bootstrap_uv.py` | Проверка и установка [uv](https://github.com/astral-sh/uv), быстрая синхронизация зависимостей | `--sync`, `--project-dir`, `--force`, `--executable` |
-| `make uv-sync`, `make uv-sync-locked`, `make uv-run` | Синхронизация окружения и выполнение команд внутри `uv` | `UV_PROJECT_DIR`, `CMD`, `UV_SYNC_ARGS`, `UV_RUN_ARGS` |
-| `tools/setup_qt.py` | Установка Qt SDK с проверкой контрольных сумм | `--qt-version`, `--modules`, `--output-dir`, `--archives-dir` |
+| `scripts/bootstrap_uv.py` | Проверка и установка [uv](https://github.com/astral-sh/uv), быстрая синхронизация зависимостей | `--sync`, `--lock`, `--export-requirements`, `--project-dir`, `--force`, `--executable` |
+| `make uv-sync`, `make uv-sync-locked`, `make uv-run`, `make uv-lock`, `make uv-export-requirements`, `make uv-release-refresh` | Синхронизация окружения, генерация lock-файла и экспорт requirements | `UV_PROJECT_DIR`, `CMD`, `UV_SYNC_ARGS`, `UV_RUN_ARGS`, `UV_LOCKFILE` |
+| `tools/setup_qt.py` | Установка Qt SDK с проверкой контрольных сумм | `--qt-version`, `--modules`, `--output-dir`, `--archives-dir`, `--refresh-requirements` |
 | `activate_environment.(sh|ps1)` | Генерация `.env`, запуск установки Qt и вспомогательных проверок | `--setup`, `--install-qt`, `--qt-version`, `--qt-modules`, `--hash-file` |
 | `setup_environment.py` | Совместимость со старыми сценариями: заполнение `.env`, проверка зависимостей | `--python-version`, `--install-qt`, `--hash-file`, `--qt-output-dir` |
 
@@ -18,7 +18,7 @@
 
 1. Выполните `python scripts/bootstrap_uv.py --sync`, чтобы установить `uv` (если он ещё не доступен в `PATH`) и сразу синхронизировать зависимости в каталоге проекта.
 2. Применяйте зафиксированные в `uv.lock` версии зависимостей командой `make uv-sync-locked`. Она выполняет `uv sync --locked --frozen` и не изменяет lock-файл.
-3. Для обновления зависимостей после изменения `pyproject.toml` сначала выполните `uv lock`, затем повторите `make uv-sync-locked`. Если нужно протестировать альтернативные версии, можно вызвать `make uv-sync UV_SYNC_ARGS=""` (без `--frozen`).
+3. Для обновления зависимостей после изменения `pyproject.toml` выполните `make uv-lock` (или `uv lock`), после чего запустите `make uv-release-refresh`, чтобы заодно пересобрать `requirements*.txt`. Если нужно протестировать альтернативные версии, можно вызвать `make uv-sync UV_SYNC_ARGS=""` (без `--frozen`).
 4. Запускайте любые команды внутри окружения через `make uv-run CMD="pytest -k smoke"` или другой аргумент `CMD`. Переменные `UV_PROJECT_DIR` и `UV_RUN_ARGS` позволяют работать с вложенными проектами или форками.
 5. Перед коммитами выполняйте `make check` (эквивалентно последовательному запуску `ruff`, `mypy`, `qmllint` и `pytest` через `uv run`).
 
@@ -26,7 +26,8 @@
 
 - Основной lock-файл: `uv.lock`. При изменении `pyproject.toml` обновляйте его командой `uv lock` (или `make uv-run CMD="uv lock"`), затем фиксируйте изменения в Git.
 - Файлы `requirements.txt`, `requirements-dev.txt` и `requirements-compatible.txt` генерируются из `uv.lock` и используются только для совместимости со старыми скриптами. Не редактируйте их вручную.
-- Для ручной регенерации используйте `uv export` (команды приведены в README) или вызовите их напрямую:
+- Для регенерации предпочитайте автоматические цели `make uv-export-requirements` или `make uv-release-refresh`. Они выполняют `uv export` в режиме `--locked` и гарантируют консистентность с lock-файлом. Аналогичную операцию можно запустить из одного шага: `python scripts/bootstrap_uv.py --export-requirements`.
+- Если требуется явно увидеть команды, используйте `uv export` напрямую (вариант для CI или отладки):
   ```bash
   uv export --format requirements.txt --output-file requirements.txt --no-dev --locked --no-emit-project
   uv export --format requirements.txt --output-file requirements-dev.txt --extra dev --locked --no-emit-project
@@ -83,9 +84,8 @@ make uv-run CMD="python -m pytest -k smoke"
 3. Для запуска приложения используйте `make uv-run CMD="python app.py"` — команда автоматически активирует окружение.
 
 ### Интеграция с Visual Studio
-1. Откройте `PneumoStabSim-Professional.sln`.
-2. В свойствах конфигурации импортируйте переменные из `.env` и укажите путь к интерпретатору, созданному `uv` (см. `uv env`).
-3. Проверьте, что `QT_PLUGIN_PATH` и `QML2_IMPORT_PATH` включены в переменные среды конфигурации отладки.
+> ⚠️ Поддержка Visual Studio и `.pyproj/.sln` проектов прекращена. Используйте VS Code
+> или терминал с `uv` для запуска и отладки.
 
 ### Visual Studio Code
 1. Откройте `PneumoStabSim.code-workspace`.

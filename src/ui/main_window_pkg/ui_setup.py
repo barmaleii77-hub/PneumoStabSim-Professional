@@ -206,12 +206,40 @@ class UISetup:
                 raise RuntimeError("Секция diagnostics повреждена")
             return _serialize("diagnostics", payload)
 
+        animation_payload = _read_section("animation")
+        scene_payload = _read_section("scene")
+        materials_payload = _read_section("materials")
+        environment_payload = _read_section("environment")
+        effects_payload = _read_section("effects")
+        quality_payload = _read_section("quality")
+        lighting_payload = _read_section("lighting")
+
+        composed_scene: Dict[str, Any] = dict(scene_payload)
+        composed_scene.update(
+            {
+                "materials": materials_payload,
+                "environment": environment_payload,
+                "effects": effects_payload,
+                "quality": quality_payload,
+                "lighting": lighting_payload,
+                "graphics": {
+                    "scene": scene_payload,
+                    "materials": materials_payload,
+                    "environment": environment_payload,
+                    "effects": effects_payload,
+                    "quality": quality_payload,
+                    "lighting": lighting_payload,
+                },
+            }
+        )
+
         return {
-            "animation": _read_section("animation"),
-            "scene": _read_section("scene"),
-            "materials": _read_section("materials"),
+            "animation": animation_payload,
+            "scene": _serialize("graphics.scene", composed_scene),
+            "materials": materials_payload,
             "geometry": _read_geometry(),
             "diagnostics": _read_diagnostics(),
+            "lighting": lighting_payload,
         }
 
     @staticmethod
@@ -383,6 +411,21 @@ class UISetup:
             UISetup.logger.info("    [QML] Renderer API: %s", graphics_api_label)
 
             try:
+                feedback_controller = getattr(window, "feedback_controller", None)
+                if feedback_controller is not None:
+                    context.setContextProperty(
+                        "feedbackController", feedback_controller
+                    )
+                    UISetup.logger.info(
+                        "    ✅ Feedback controller exposed to QML context"
+                    )
+            except Exception as feedback_exc:
+                UISetup.logger.warning(
+                    "    ⚠️ Failed to expose feedback controller: %s",
+                    feedback_exc,
+                )
+
+            try:
                 from src.ui.scene_bridge import SceneBridge
 
                 window._scene_bridge = SceneBridge(window)
@@ -452,10 +495,16 @@ class UISetup:
                     "initialSharedMaterials", payload["materials"]
                 )
                 context.setContextProperty(
+                    "materialsDefaults", payload["materials"]
+                )
+                context.setContextProperty(
                     "initialGeometrySettings", payload["geometry"]
                 )
                 context.setContextProperty(
                     "initialDiagnosticsSettings", payload.get("diagnostics", {})
+                )
+                context.setContextProperty(
+                    "lightingAccess", payload.get("lighting", {})
                 )
                 UISetup.logger.info("    ✅ Initial graphics settings exposed to QML")
             except Exception as ctx_exc:
@@ -494,6 +543,9 @@ class UISetup:
                 QLibraryInfo.LibraryPath.Qml2ImportsPath
             )
             engine.addImportPath(str(qml_import_path))
+
+            # Ensure the relative path is registered for qmlimportscanner parity
+            engine.addImportPath("assets/qml")
 
             local_qml_path = Path("assets/qml")
             if local_qml_path.exists():
@@ -657,6 +709,7 @@ class UISetup:
             ModesPanel,
             GraphicsPanel,
         )
+        from src.ui.feedback import FeedbackPanel
 
         # Tab 1: Геометрия
         window.geometry_panel = GeometryPanel(window)
@@ -688,6 +741,19 @@ class UISetup:
         window.graphics_panel = GraphicsPanel(window)
         window._graphics_panel = window.graphics_panel  # Alias
         window.tab_widget.addTab(window.graphics_panel, "🎨 Графика")
+
+        try:
+            window.feedback_panel = FeedbackPanel(
+                window,
+                controller=getattr(window, "feedback_controller", None),
+            )
+            window.tab_widget.addTab(window.feedback_panel, "Обратная связь")
+        except Exception as feedback_exc:
+            window.feedback_panel = None
+            UISetup.logger.warning(
+                "⚠️ Не удалось построить вкладку обратной связи: %s",
+                feedback_exc,
+            )
 
         # Tab 5: Динамика движения (stub)
         dynamics_stub = QWidget()

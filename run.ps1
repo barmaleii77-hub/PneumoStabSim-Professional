@@ -28,7 +28,7 @@ Write-Host "🔧 Активация виртуального окружения.
 $env:PYTHONPATH = "$PWD;$PWD\src"
 $env:PYTHONIOENCODING = "utf-8"
 $env:PYTHONUNBUFFERED = "1"
-$env:QSG_RHI_BACKEND = "d3d11"
+$env:QSG_RHI_BACKEND = "opengl"
 $env:QT_ASSUME_STDERR_HAS_CONSOLE = "1"
 $env:QT_AUTO_SCREEN_SCALE_FACTOR = "1"
 $env:QT_SCALE_FACTOR_ROUNDING_POLICY = "PassThrough"

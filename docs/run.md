@@ -16,5 +16,4 @@
 - Тестовый `python app.py --test-mode` (окно закроется через5 сек)
 
 Графический backend
-- Windows: Direct3D11 (`QSG_RHI_BACKEND=d3d11`)
-- Linux/macOS: OpenGL
+- Все платформы: OpenGL RHI (`QSG_RHI_BACKEND=opengl`, требуется OpenGL 3.3+)

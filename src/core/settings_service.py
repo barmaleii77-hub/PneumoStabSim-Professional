@@ -46,6 +46,7 @@ class _LooseAppSettings:
     def model_dump(self, *_, **__) -> dict[str, Any]:  # pragma: no cover - minimal shim
         return json.loads(json.dumps(self._payload))
 
+
 _MISSING = object()
 
 
@@ -228,9 +229,8 @@ class SettingsService:
         target: MutableMapping[str, Any], source: Mapping[str, Any]
     ) -> None:
         for key, value in source.items():
-            if (
-                isinstance(value, Mapping)
-                and isinstance(target.get(key), MutableMapping)
+            if isinstance(value, Mapping) and isinstance(
+                target.get(key), MutableMapping
             ):
                 SettingsService._deep_merge(target[key], value)
             else:
@@ -452,7 +452,8 @@ class SettingsService:
             and isinstance(payload.get("current"), MappingABC)
             and isinstance(payload.get("defaults_snapshot"), MappingABC)
             and all(
-                tuple(error.path)[:2] in {("current", "graphics"), ("defaults_snapshot", "graphics")}
+                tuple(error.path)[:2]
+                in {("current", "graphics"), ("defaults_snapshot", "graphics")}
                 for error in errors
             )
         ):
@@ -673,9 +674,7 @@ class SettingsService:
         return [segment for segment in path.split(".") if segment]
 
     @staticmethod
-    def _traverse_mapping(
-        data: Any, segments: Iterable[str], default: Any
-    ) -> Any:
+    def _traverse_mapping(data: Any, segments: Iterable[str], default: Any) -> Any:
         current: Any = data
         for key in segments:
             if not isinstance(current, MutableMapping):
@@ -779,15 +778,6 @@ SETTINGS_SERVICE_TOKEN = ServiceToken["SettingsService"](
     "settings_service",
     "Application-wide settings service bound to config/app_settings.json",
 )
-
-
-def _ensure_default_registration() -> None:
-    container = get_default_container()
-    if not container.is_registered(SETTINGS_SERVICE_TOKEN):
-        container.register_factory(SETTINGS_SERVICE_TOKEN, lambda _: SettingsService())
-
-
-_ensure_default_registration()
 
 
 def get_settings_service(

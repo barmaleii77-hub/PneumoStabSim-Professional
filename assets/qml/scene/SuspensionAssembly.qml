@@ -67,6 +67,14 @@ Node {
     property real sceneScaleFactor: 1.0
     property real rodWarningThreshold: 0.001
 
+    Component.onCompleted: {
+        const hasWorld = worldRoot !== null && worldRoot !== undefined
+        const worldName = hasWorld && typeof worldRoot.objectName === "string" && worldRoot.objectName.length > 0
+                ? worldRoot.objectName
+                : "<anonymous>"
+        console.log("[SuspensionAssembly] Component completed; worldRoot:", hasWorld ? worldName : "<missing>")
+    }
+
     // ------------------------------------------------------------------
     // Reflection probe configuration
     // ------------------------------------------------------------------

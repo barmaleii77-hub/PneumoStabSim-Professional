@@ -85,11 +85,8 @@ uv-first environment strategy captured in the renovation master plan.
 
 ### Visual Studio 2022 (Python workload)
 
-1. Load `PneumoStabSim.slnx`. Visual Studio binds to `.venv\\Scripts\\python.exe`
-   automatically when the environment has been provisioned.
-2. Use the **Debug Targets** drop-down to run the GUI, smoke tests, or QML
-   diagnostics. Profiles map to the same commands exposed via the Makefile.
-3. Enable Qt tooling (Qt VS Tools extension) to inspect `.qml` assets directly.
+> ⚠️ Поддержка проектов Visual Studio снята. Рекомендуемые IDE — VS Code и PyCharm,
+> которые используют `uv` и `Makefile` задачи из этого руководства.
 
 ## 3. Project structure highlights
 

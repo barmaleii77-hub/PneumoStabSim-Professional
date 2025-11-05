@@ -1,11 +1,13 @@
 {
   "schema_version": "telemetry_event_v1",
-  "generated_at": "2025-11-05T09:13:14.628520+00:00",
+  "generated_at": "2025-11-05T16:06:36.536109+00:00",
   "event_count": 0,
   "error_count": 0,
   "channels": {},
   "events": {},
   "daily_counts": {},
+  "schema_versions": {},
+  "events_by_channel": {},
   "source_inventory": {},
   "notes": [
     "Counts include only successfully parsed records."

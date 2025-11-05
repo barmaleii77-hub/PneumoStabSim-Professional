@@ -89,7 +89,8 @@ best practices for scientific visualisation software.
      README breadcrumbs. *Status: Completed November 2025 via `archive/2025-11/root-reports/README.md` and README pointers.*
    - Decide whether the .NET solution is still supported. If obsolete, remove
      `.sln`, `.csproj`, `.pyproj`, and document the deprecation in
-     `docs/CHANGELOG_MODULAR.md`.
+     `docs/CHANGELOG_MODULAR.md`. *Status: Completed December 2025 – legacy Visual
+     Studio assets removed and documented in the modular changelog and Phase 4 plan.*
 4. **Commit Quality**
    - Configure `pre-commit` with hooks for `ruff`, `mypy`, `qmllint`, and
      Conventional Commits (`commitizen`).
@@ -189,6 +190,12 @@ best practices for scientific visualisation software.
 8. Maintain the typed settings layer: любое новое поле обязано сопровождаться
    обновлением `settings_models.py`, генерацией схемы и успешным запуском
    `tools/validate_settings.py`.
+9. Зафиксировать политику безопасности платформы в `docs/SECURITY_POLICY.md`,
+   описав роли, права и процесс аудита изменений. Добавить чеклист в план
+   внедрения: обновить `SettingsManager` для проверки прав, передать
+   ограничения в UI-сервисы и настроить журнал `reports/security_audit/` с
+   хэш-цепочкой. *Status: выполнено декабрь 2025 — см. модуль
+   `src/security/access_control.py` и новую документацию.*
 
 ---
 

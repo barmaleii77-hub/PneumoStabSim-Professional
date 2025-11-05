@@ -54,19 +54,4 @@ if exist "src\" (
 )
 
 echo.
-rem Check .NET project
-if exist "PneumoStabSim-Professional.sln" (
-    echo [✓] .NET solution file
-    dotnet --version >nul 2>&1
-    if errorlevel 1 (
-        echo [!] .NET SDK: NOT FOUND
-    ) else (
-        echo [✓] .NET SDK: AVAILABLE
-        dotnet --version
-    )
-) else (
-    echo [✗] .NET solution - MISSING
-)
-
-echo.
 echo ================================================================
