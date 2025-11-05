@@ -15,7 +15,7 @@ PYTEST_FLAGS ?= -vv --color=yes --maxfail=1
 SMOKE_TARGET ?= tests/smoke
 INTEGRATION_TARGET ?= tests/integration/test_main_window_qml.py
 
-.PHONY: format lint typecheck qml-lint test validate-shaders check-shaders check verify smoke integration \
+.PHONY: format lint typecheck qml-lint test-local validate-shaders check-shaders check verify smoke integration \
 localization-check \
 autonomous-check autonomous-check-trace trace-launch sanitize cipilot-env \
 install-qt-runtime qt-env-check telemetry-etl profile-phase3 profile-render profile-validate
@@ -100,8 +100,9 @@ qml-lint:
 	 fi; \
 	done
 
-test::
-$(PYTHON) -m tools.ci_tasks test
+.PHONY: test-local
+test-local::
+	$(PYTHON) -m tools.ci_tasks test
 
 validate-shaders:
 	$(PYTHON) tools/validate_shaders.py
@@ -114,9 +115,9 @@ shader-artifacts:
 validate-hdr-orientation:
 	$(PYTHON) tools/graphics/validate_hdr_orientation.py
 
-check: lint typecheck qml-lint test check-shaders validate-hdr-orientation localization-check qt-env-check
+check: lint typecheck qml-lint test-local check-shaders validate-hdr-orientation localization-check qt-env-check
 
-verify: lint typecheck qml-lint test smoke integration
+verify: lint typecheck qml-lint test-local smoke integration
 
 localization-check:
 	$(PYTHON) tools/update_translations.py --check
@@ -177,7 +178,7 @@ CONTAINER_IMAGE ?= pneumo-dev:qt610
 CONTAINER_WORKDIR ?= /workdir
 
 .PHONY: container-build container-shell container-test container-test-opengl \
-	container-test-vulkan container-verify-all container-analyze-logs
+        container-test-vulkan container-verify-all container-analyze-logs
 
 container-build:
 	docker build -t $(CONTAINER_IMAGE) .
@@ -197,7 +198,22 @@ container-test-vulkan: container-build
 container-verify-all: container-build container-test
 
 container-analyze-logs: container-build
-	docker run --rm -t -v $(CURDIR):$(CONTAINER_WORKDIR) -w $(CONTAINER_WORKDIR) $(CONTAINER_IMAGE) python /usr/local/bin/collect_logs.py
+        docker run --rm -t -v $(CURDIR):$(CONTAINER_WORKDIR) -w $(CONTAINER_WORKDIR) $(CONTAINER_IMAGE) python /usr/local/bin/collect_logs.py
+
+.PHONY: build shell test test-opengl test-vulkan verify-all analyze-logs
+build: container-build
+
+shell: container-shell
+
+test: container-test
+
+test-opengl: container-test-opengl
+
+test-vulkan: container-test-vulkan
+
+verify-all: container-verify-all
+
+analyze-logs: container-analyze-logs
 
 .PHONY: build shell test-opengl test-vulkan verify-all analyze-logs
 
