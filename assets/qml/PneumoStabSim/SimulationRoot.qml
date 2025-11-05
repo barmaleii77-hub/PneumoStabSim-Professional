@@ -1193,16 +1193,10 @@ Binding {
 }
 
 Binding {
-    target: sceneView
-    property: "clearColor"
-    value: sceneEnvCtl.resolvedClearColor
+    target: sceneEnvCtl
+    property: "iblProbe"
+    value: iblLoader.probe
 }
-
- Binding {
- target: sceneEnvCtl
- property: "iblProbe"
- value: iblLoader.probe
- }
 
 Binding {
     target: sceneEnvCtl
