@@ -206,12 +206,40 @@ class UISetup:
                 raise RuntimeError("Секция diagnostics повреждена")
             return _serialize("diagnostics", payload)
 
+        animation_payload = _read_section("animation")
+        scene_payload = _read_section("scene")
+        materials_payload = _read_section("materials")
+        environment_payload = _read_section("environment")
+        effects_payload = _read_section("effects")
+        quality_payload = _read_section("quality")
+        lighting_payload = _read_section("lighting")
+
+        composed_scene: Dict[str, Any] = dict(scene_payload)
+        composed_scene.update(
+            {
+                "materials": materials_payload,
+                "environment": environment_payload,
+                "effects": effects_payload,
+                "quality": quality_payload,
+                "lighting": lighting_payload,
+                "graphics": {
+                    "scene": scene_payload,
+                    "materials": materials_payload,
+                    "environment": environment_payload,
+                    "effects": effects_payload,
+                    "quality": quality_payload,
+                    "lighting": lighting_payload,
+                },
+            }
+        )
+
         return {
-            "animation": _read_section("animation"),
-            "scene": _read_section("scene"),
-            "materials": _read_section("materials"),
+            "animation": animation_payload,
+            "scene": _serialize("graphics.scene", composed_scene),
+            "materials": materials_payload,
             "geometry": _read_geometry(),
             "diagnostics": _read_diagnostics(),
+            "lighting": lighting_payload,
         }
 
     @staticmethod
@@ -452,10 +480,16 @@ class UISetup:
                     "initialSharedMaterials", payload["materials"]
                 )
                 context.setContextProperty(
+                    "materialsDefaults", payload["materials"]
+                )
+                context.setContextProperty(
                     "initialGeometrySettings", payload["geometry"]
                 )
                 context.setContextProperty(
                     "initialDiagnosticsSettings", payload.get("diagnostics", {})
+                )
+                context.setContextProperty(
+                    "lightingAccess", payload.get("lighting", {})
                 )
                 UISetup.logger.info("    ✅ Initial graphics settings exposed to QML")
             except Exception as ctx_exc:
