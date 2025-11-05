@@ -5,9 +5,10 @@ from __future__ import annotations
 from copy import deepcopy
 from dataclasses import dataclass, field
 import math
-from typing import TYPE_CHECKING, Any, Dict, List, Mapping, Sequence, Tuple
+from typing import TYPE_CHECKING, Any, Dict, Iterable, List, Mapping, Sequence, Tuple
 
 from .metadata import TrainingPresetMetadata
+from .scenarios import SCENARIO_INDEX
 
 if TYPE_CHECKING:  # pragma: no cover - import only for typing
     from src.common.settings_manager import SettingsManager
@@ -24,6 +25,38 @@ def _normalise_numeric(value: Any) -> float | None:
         return float(str(value))
     except (TypeError, ValueError):
         return None
+
+
+def _build_metadata(
+    *,
+    scenario_id: str,
+    difficulty: str,
+    duration_minutes: int,
+    learning_objectives: Iterable[str] | None = None,
+    recommended_modules: Iterable[str] | None = None,
+    evaluation_metrics: Iterable[str] | None = None,
+    notes: str = "",
+) -> TrainingPresetMetadata:
+    descriptor = SCENARIO_INDEX.get(scenario_id)
+    metrics_source: Iterable[str] | None = evaluation_metrics
+    if metrics_source is None and descriptor is not None:
+        metrics_source = descriptor.metrics
+
+    return TrainingPresetMetadata(
+        difficulty=difficulty,
+        duration_minutes=duration_minutes,
+        learning_objectives=TrainingPresetMetadata.coerce_iterable(
+            learning_objectives
+        ),
+        recommended_modules=TrainingPresetMetadata.coerce_iterable(
+            recommended_modules
+        ),
+        evaluation_metrics=TrainingPresetMetadata.coerce_iterable(metrics_source),
+        scenario_id=scenario_id,
+        scenario_label=descriptor.label if descriptor else "",
+        scenario_summary=descriptor.summary if descriptor else "",
+        notes=notes,
+    )
 
 
 @dataclass(frozen=True)
@@ -211,7 +244,8 @@ DEFAULT_PRESETS: Tuple[TrainingPreset, ...] = (
             "master_isolation_open": False,
             "receiver_volume": 0.02,
         },
-        metadata=TrainingPresetMetadata(
+        metadata=_build_metadata(
+            scenario_id="flat-track",
             difficulty="beginner",
             duration_minutes=20,
             learning_objectives=(
@@ -220,7 +254,6 @@ DEFAULT_PRESETS: Tuple[TrainingPreset, ...] = (
             ),
             recommended_modules=("safety/overview", "setup/calibration"),
             evaluation_metrics=("stabilizer_error_rmse", "pressure_delta_peak"),
-            scenario_id="flat-track",
             notes="Использует штатный сценарий ровной дороги.",
         ),
         tags=("baseline", "intro"),
@@ -241,7 +274,8 @@ DEFAULT_PRESETS: Tuple[TrainingPreset, ...] = (
             "master_isolation_open": True,
             "receiver_volume": 0.018,
         },
-        metadata=TrainingPresetMetadata(
+        metadata=_build_metadata(
+            scenario_id="rough-step",
             difficulty="advanced",
             duration_minutes=35,
             learning_objectives=(
@@ -250,7 +284,6 @@ DEFAULT_PRESETS: Tuple[TrainingPreset, ...] = (
             ),
             recommended_modules=("pneumatics/advanced", "control/stability"),
             evaluation_metrics=("overshoot_percent", "settling_time"),
-            scenario_id="rough-step",
             notes="Сценарий ступенчатых ударов по неровной дороге.",
         ),
         tags=("precision", "research"),
@@ -271,7 +304,8 @@ DEFAULT_PRESETS: Tuple[TrainingPreset, ...] = (
             "master_isolation_open": False,
             "receiver_volume": 0.02,
         },
-        metadata=TrainingPresetMetadata(
+        metadata=_build_metadata(
+            scenario_id="workshop-loop",
             difficulty="intermediate",
             duration_minutes=15,
             learning_objectives=(
@@ -280,10 +314,38 @@ DEFAULT_PRESETS: Tuple[TrainingPreset, ...] = (
             ),
             recommended_modules=("control/pid", "diagnostics/logging"),
             evaluation_metrics=("cycle_time", "cpu_load"),
-            scenario_id="workshop-loop",
             notes="Петлевой тестовый профиль с повторяемыми нагрузками.",
         ),
         tags=("iteration", "lab"),
+    ),
+    TrainingPreset(
+        id="endurance_validation",
+        label="Тест выносливости",
+        description="Длительная сессия для проверки тепловой стабильности и энергопотребления.",
+        simulation={
+            "physics_dt": 0.001,
+            "render_vsync_hz": 50.0,
+            "max_steps_per_frame": 14,
+            "max_frame_time": 0.06,
+        },
+        pneumatic={
+            "volume_mode": "GEOMETRIC",
+            "thermo_mode": "ADIABATIC",
+            "master_isolation_open": True,
+            "receiver_volume": 0.022,
+        },
+        metadata=_build_metadata(
+            scenario_id="endurance-run",
+            difficulty="advanced",
+            duration_minutes=45,
+            learning_objectives=(
+                "Анализ поведения системы при длительных нагрузках",
+                "Отработка стратегии охлаждения и энергосбережения",
+            ),
+            recommended_modules=("control/energy", "pneumatics/thermal"),
+            notes="Сценарий с прогревом узлов и контролем ресурсных ограничений.",
+        ),
+        tags=("endurance", "thermal", "research"),
     ),
 )
 
