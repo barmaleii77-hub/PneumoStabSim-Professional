@@ -136,7 +136,7 @@ python tools/show_settings_version.py --config path/to/settings.json
 
 ### Установка Qt SDK (при необходимости)
 - Скопируйте шаблон окружения: `cp env.sample .env` (PowerShell: `Copy-Item env.sample .env`).
-- Запустите `python tools/setup_qt.py --qt-version 6.10.0 --modules qtbase,qtdeclarative,qtshadertools` или используйте `activate_environment.*` скрипты с опцией установки Qt.
+- Запустите `python tools/setup_qt.py --qt-version 6.10.0 --modules qtquick3d,qtshadertools,qtimageformats` или используйте `activate_environment.*` скрипты с опцией установки Qt.
 - Переменные `QT_PLUGIN_PATH` и `QML2_IMPORT_PATH` будут записаны в `.env`, что позволяет запускать `make uv-run` без дополнительной настройки.
 
 ### 1. Требования

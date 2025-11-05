@@ -20,7 +20,7 @@ from typing import Callable, Iterable, Sequence
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_QT_VERSION = "6.10.0"
-DEFAULT_MODULES = ("qtbase", "qtdeclarative", "qtshadertools", "qtquick3d")
+DEFAULT_MODULES = ("qtquick3d", "qtshadertools", "qtimageformats")
 DEFAULT_OUTPUT_DIR = REPO_ROOT / "Qt"
 DEFAULT_ARCHIVES_DIR = REPO_ROOT / ".qt" / "archives"
 
@@ -106,6 +106,33 @@ def _verify_archives(archives_dir: Path, manifest: Path) -> None:
         raise SystemExit("\n".join(lines))
 
 
+HOST_REPO_SEGMENTS: dict[str, str] = {
+    "linux": "linux_x64",
+    "windows": "windows_x86",
+    "mac": "mac_x64",
+}
+
+
+def _version_token(version: str) -> str:
+    parts = version.split(".")
+    while len(parts) < 3:
+        parts.append("0")
+    return "".join(str(int(part)) for part in parts[:3])
+
+
+def _default_base_url(host: str, target: str, version: str) -> str | None:
+    """Return the canonical mirror URL for the given host/target/version."""
+
+    repo_segment = HOST_REPO_SEGMENTS.get(host)
+    if not repo_segment:
+        return None
+    token = _version_token(version)
+    return (
+        "https://download.qt.io/online/qtsdkrepository/"
+        f"{repo_segment}/{target}/qt6_{token}/qt6_{token}"
+    )
+
+
 def _build_aqt_arguments(
     *,
     host: str,
@@ -134,7 +161,7 @@ def _build_aqt_arguments(
     if modules:
         args.extend(["--modules", ",".join(sorted(set(modules)))])
     if base_url:
-        args.extend(["--baseurl", base_url])
+        args.extend(["--base", base_url])
     return args
 
 
@@ -200,6 +227,8 @@ def main() -> None:
             )
         _remove_existing_installation(install_dir)
 
+    base_url = args.base_url or _default_base_url(host, args.target, args.qt_version)
+
     aqt_args = _build_aqt_arguments(
         host=host,
         target=args.target,
@@ -208,7 +237,7 @@ def main() -> None:
         modules=modules,
         output_dir=output_dir,
         archives_dir=archives_dir,
-        base_url=args.base_url,
+        base_url=base_url,
         prune_archives=args.prune_archives,
     )
 

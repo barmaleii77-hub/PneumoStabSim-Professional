@@ -75,12 +75,15 @@ def setup_qtquick3d_environment(
         project_root = Path(__file__).resolve().parents[2]
         local_qml = project_root / "assets" / "qml"
         local_components = local_qml / "components"
+        scene_module = local_qml / "scene"
 
         local_candidates = []
         if local_qml.is_dir():
             local_candidates.append(str(local_qml))
         if local_components.is_dir():
             local_candidates.append(str(local_components))
+        if scene_module.is_dir():
+            local_candidates.append(str(scene_module))
 
         if local_candidates:
             _ensure_paths("QML2_IMPORT_PATH", local_candidates)

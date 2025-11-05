@@ -7,10 +7,10 @@
       "workingDirectory": ".",
       "environmentVariables": {
         "PYTHONPATH": "$(MSBuildProjectDirectory);$(MSBuildProjectDirectory)\\src",
-        "QML2_IMPORT_PATH": "$(MSBuildProjectDirectory)\\.venv\\Lib\\site-packages\\PySide6\\qml;$(MSBuildProjectDirectory)\\assets\\qml",
-        "QML_IMPORT_PATH": "$(MSBuildProjectDirectory)\\.venv\\Lib\\site-packages\\PySide6\\qml;$(MSBuildProjectDirectory)\\assets\\qml",
+        "QML2_IMPORT_PATH": "$(MSBuildProjectDirectory)\\.venv\\Lib\\site-packages\\PySide6\\qml;$(MSBuildProjectDirectory)\\assets\\qml;$(MSBuildProjectDirectory)\\assets\\qml\\scene",
+        "QML_IMPORT_PATH": "$(MSBuildProjectDirectory)\\.venv\\Lib\\site-packages\\PySide6\\qml;$(MSBuildProjectDirectory)\\assets\\qml;$(MSBuildProjectDirectory)\\assets\\qml\\scene",
         "QT_PLUGIN_PATH": "$(MSBuildProjectDirectory)\\.venv\\Lib\\site-packages\\PySide6\\plugins",
-        "QT_QML_IMPORT_PATH": "$(MSBuildProjectDirectory)\\.venv\\Lib\\site-packages\\PySide6\\qml",
+        "QT_QML_IMPORT_PATH": "$(MSBuildProjectDirectory)\\.venv\\Lib\\site-packages\\PySide6\\qml;$(MSBuildProjectDirectory)\\assets\\qml;$(MSBuildProjectDirectory)\\assets\\qml\\scene",
         "QT_QUICK_CONTROLS_STYLE": "Basic"
       }
     },
@@ -21,10 +21,10 @@
       "workingDirectory": ".",
       "environmentVariables": {
         "PYTHONPATH": "$(MSBuildProjectDirectory);$(MSBuildProjectDirectory)\\src;$(MSBuildProjectDirectory)\\tests",
-        "QML2_IMPORT_PATH": "$(MSBuildProjectDirectory)\\.venv\\Lib\\site-packages\\PySide6\\qml;$(MSBuildProjectDirectory)\\assets\\qml",
-        "QML_IMPORT_PATH": "$(MSBuildProjectDirectory)\\.venv\\Lib\\site-packages\\PySide6\\qml;$(MSBuildProjectDirectory)\\assets\\qml",
+        "QML2_IMPORT_PATH": "$(MSBuildProjectDirectory)\\.venv\\Lib\\site-packages\\PySide6\\qml;$(MSBuildProjectDirectory)\\assets\\qml;$(MSBuildProjectDirectory)\\assets\\qml\\scene",
+        "QML_IMPORT_PATH": "$(MSBuildProjectDirectory)\\.venv\\Lib\\site-packages\\PySide6\\qml;$(MSBuildProjectDirectory)\\assets\\qml;$(MSBuildProjectDirectory)\\assets\\qml\\scene",
         "QT_PLUGIN_PATH": "$(MSBuildProjectDirectory)\\.venv\\Lib\\site-packages\\PySide6\\plugins",
-        "QT_QML_IMPORT_PATH": "$(MSBuildProjectDirectory)\\.venv\\Lib\\site-packages\\PySide6\\qml",
+        "QT_QML_IMPORT_PATH": "$(MSBuildProjectDirectory)\\.venv\\Lib\\site-packages\\PySide6\\qml;$(MSBuildProjectDirectory)\\assets\\qml;$(MSBuildProjectDirectory)\\assets\\qml\\scene",
         "QT_QUICK_CONTROLS_STYLE": "Basic"
       }
     },
@@ -35,10 +35,10 @@
       "workingDirectory": ".",
       "environmentVariables": {
         "PYTHONPATH": "$(MSBuildProjectDirectory);$(MSBuildProjectDirectory)\\src",
-        "QML2_IMPORT_PATH": "$(MSBuildProjectDirectory)\\.venv\\Lib\\site-packages\\PySide6\\qml;$(MSBuildProjectDirectory)\\assets\\qml",
-        "QML_IMPORT_PATH": "$(MSBuildProjectDirectory)\\.venv\\Lib\\site-packages\\PySide6\\qml;$(MSBuildProjectDirectory)\\assets\\qml",
+        "QML2_IMPORT_PATH": "$(MSBuildProjectDirectory)\\.venv\\Lib\\site-packages\\PySide6\\qml;$(MSBuildProjectDirectory)\\assets\\qml;$(MSBuildProjectDirectory)\\assets\\qml\\scene",
+        "QML_IMPORT_PATH": "$(MSBuildProjectDirectory)\\.venv\\Lib\\site-packages\\PySide6\\qml;$(MSBuildProjectDirectory)\\assets\\qml;$(MSBuildProjectDirectory)\\assets\\qml\\scene",
         "QT_PLUGIN_PATH": "$(MSBuildProjectDirectory)\\.venv\\Lib\\site-packages\\PySide6\\plugins",
-        "QT_QML_IMPORT_PATH": "$(MSBuildProjectDirectory)\\.venv\\Lib\\site-packages\\PySide6\\qml",
+        "QT_QML_IMPORT_PATH": "$(MSBuildProjectDirectory)\\.venv\\Lib\\site-packages\\PySide6\\qml;$(MSBuildProjectDirectory)\\assets\\qml;$(MSBuildProjectDirectory)\\assets\\qml\\scene",
         "QT_QUICK_CONTROLS_STYLE": "Basic"
       }
     },
@@ -49,10 +49,10 @@
       "workingDirectory": ".",
       "environmentVariables": {
         "PYTHONPATH": "$(MSBuildProjectDirectory);$(MSBuildProjectDirectory)\\src;$(MSBuildProjectDirectory)\\tests",
-        "QML2_IMPORT_PATH": "$(MSBuildProjectDirectory)\\.venv\\Lib\\site-packages\\PySide6\\qml;$(MSBuildProjectDirectory)\\assets\\qml",
-        "QML_IMPORT_PATH": "$(MSBuildProjectDirectory)\\.venv\\Lib\\site-packages\\PySide6\\qml;$(MSBuildProjectDirectory)\\assets\\qml",
+        "QML2_IMPORT_PATH": "$(MSBuildProjectDirectory)\\.venv\\Lib\\site-packages\\PySide6\\qml;$(MSBuildProjectDirectory)\\assets\\qml;$(MSBuildProjectDirectory)\\assets\\qml\\scene",
+        "QML_IMPORT_PATH": "$(MSBuildProjectDirectory)\\.venv\\Lib\\site-packages\\PySide6\\qml;$(MSBuildProjectDirectory)\\assets\\qml;$(MSBuildProjectDirectory)\\assets\\qml\\scene",
         "QT_PLUGIN_PATH": "$(MSBuildProjectDirectory)\\.venv\\Lib\\site-packages\\PySide6\\plugins",
-        "QT_QML_IMPORT_PATH": "$(MSBuildProjectDirectory)\\.venv\\Lib\\site-packages\\PySide6\\qml",
+        "QT_QML_IMPORT_PATH": "$(MSBuildProjectDirectory)\\.venv\\Lib\\site-packages\\PySide6\\qml;$(MSBuildProjectDirectory)\\assets\\qml;$(MSBuildProjectDirectory)\\assets\\qml\\scene",
         "QT_QUICK_CONTROLS_STYLE": "Basic",
         "PNEUMOSTABSIM_PROFILE": "insiders",
         "INSIDERS_BOOTSTRAP_SCRIPT": "tools/visualstudio/initialize_insiders_environment.ps1"

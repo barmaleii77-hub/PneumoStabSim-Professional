@@ -55,6 +55,15 @@ PY
     )
     if [[ -n "${assets_qml}" ]]; then
       paths+=("${assets_qml}")
+      scene_module=$(python - <<'PY' || true
+from pathlib import Path
+scene = Path('assets/qml/scene')
+print(scene.resolve() if scene.exists() else '')
+PY
+      )
+      if [[ -n "${scene_module}" ]]; then
+        paths+=("${scene_module}")
+      fi
     fi
   fi
   if [[ -n "${qml_import_path}" ]]; then
@@ -66,6 +75,8 @@ PY
     QML2_IMPORT_PATH="${paths[*]}"
     IFS="$old_ifs"
     export QML2_IMPORT_PATH
+    export QML_IMPORT_PATH="$QML2_IMPORT_PATH"
+    export QT_QML_IMPORT_PATH="$QML2_IMPORT_PATH"
     echo "[env] QML2_IMPORT_PATH=${QML2_IMPORT_PATH}"
   fi
 fi

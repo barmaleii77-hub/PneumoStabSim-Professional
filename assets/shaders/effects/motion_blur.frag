@@ -79,4 +79,3 @@ void MAIN()
     motionBlurMain(fragColor);
     FRAGCOLOR = fragColor;
 }
-

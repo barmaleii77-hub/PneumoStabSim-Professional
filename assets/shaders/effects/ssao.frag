@@ -113,4 +113,3 @@ void MAIN()
     ssaoMain(fragColor);
     FRAGCOLOR = fragColor;
 }
-

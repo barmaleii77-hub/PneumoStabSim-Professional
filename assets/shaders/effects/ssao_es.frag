@@ -1,4 +1,8 @@
 #version 300 es
+#ifndef MAIN
+#define MAIN qt_customMain
+#endif
+
 // Requires an OpenGL ES 3.0 context for Qt Quick 3D runtime compatibility.
 
 #ifdef GL_ES
@@ -131,10 +135,9 @@ void ssaoESMain(inout vec4 fragColor)
     fragColor = vec4(original.rgb * occlusion, original.a);
 }
 
-void main()
+void MAIN()
 {
     vec4 fragColor = vec4(0.0);
     ssaoESMain(fragColor);
     FRAGCOLOR = fragColor;
 }
-
