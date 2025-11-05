@@ -11,15 +11,21 @@ This guide explains how to add new user-facing text to the QML interface and kee
 ## Adding a new string
 
 1. Wrap the new text in `qsTr("…")` (or `qsTrId("…")` when using structured identifiers) inside the QML file.
-2. Run the translation maintenance script to refresh the catalogues:
+2. Run the translation maintenance script to refresh the catalogues and update the inventory:
 
    ```bash
    python tools/update_translations.py
    ```
 
-   The script executes `lupdate` to extract strings, `lrelease` to build `.qm` files, and regenerates the reports in `reports/localization/`. The generated files stay untracked—delete them if you need a clean workspace.
+   The script executes `lupdate` to extract strings, `lrelease` to build `.qm` files, and regenerates the reports in `reports/localization/`:
+
+   - `inventory.json` — comprehensive mapping of `assets/qml/` files to `qsTr`/`qsTrId` entries.
+   - `status.json` — validation summary highlighting missing or unused keys.
+   - `summary.md` — human-readable snapshot of catalogue coverage and the busiest QML files.
+
+   The generated files stay untracked—delete them if you need a clean workspace.
 3. Open the updated `.ts` files in Qt Linguist (or edit them manually) and provide translations for every new source string.
-4. Re-run the script to ensure all entries are translated. The command will fail if any `qsTr`/`qsTrId` usages are missing from the catalogues or if translations remain unfinished.
+4. Re-run the script to ensure all entries are translated. The command will fail if any `qsTr`/`qsTrId` usages are missing from the catalogues or if translations remain unfinished (add `--fail-on-unfinished` to enforce this locally).
 
 ## CI validation
 
@@ -30,6 +36,8 @@ python tools/update_translations.py --check
 ```
 
 This mode skips the `lupdate`/`lrelease` steps and verifies that every `qsTr`/`qsTrId` usage has an entry in the `.ts` files. Pass `--fail-on-unfinished` locally if you also want the command to fail when translations are still marked as unfinished. The same check runs in GitHub Actions (`.github/workflows/ci.yml`) so pushes and pull requests cannot regress localization coverage.
+
+The CI pipeline also uploads the contents of `reports/localization/` as an artifact named **`localization-reports`** so reviewers can inspect the generated inventory and status summaries without running the script locally.
 
 ## Troubleshooting
 
