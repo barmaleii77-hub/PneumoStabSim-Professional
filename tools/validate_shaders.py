@@ -15,6 +15,7 @@ from src.tools import validate_shaders as _impl
 # both as a script entrypoint and as an importable helper in unit tests.
 ValidationErrors = _impl.ValidationErrors
 QSB_ENV_VARIABLE = _impl.QSB_ENV_VARIABLE
+ShaderValidationUnavailableError = _impl.ShaderValidationUnavailableError
 DEFAULT_SHADER_ROOT = _impl.DEFAULT_SHADER_ROOT
 DEFAULT_REPORTS_ROOT = _impl.DEFAULT_REPORTS_ROOT
 QSB_PROFILE_ARGUMENTS = _impl.QSB_PROFILE_ARGUMENTS
@@ -27,6 +28,7 @@ main = _impl.main
 __all__ = [
     "ValidationErrors",
     "QSB_ENV_VARIABLE",
+    "ShaderValidationUnavailableError",
     "DEFAULT_SHADER_ROOT",
     "DEFAULT_REPORTS_ROOT",
     "QSB_PROFILE_ARGUMENTS",

@@ -257,3 +257,26 @@ def test_validate_shaders_propagates_qsb_failure(tmp_path: Path) -> None:
 
     assert any("qsb failed" in message for message in errors)
     assert any("fatal: syntax error" in message for message in errors)
+
+
+def test_validate_shaders_raises_when_shared_library_missing(tmp_path: Path) -> None:
+    shader_root = tmp_path / "shaders"
+    reports_dir = tmp_path / "reports"
+    stderr = (
+        "/opt/qt/bin/qsb: error while loading shared libraries: libxkbcommon.so.0: "
+        "cannot open shared object file: No such file or directory"
+    )
+    qsb_cmd = _make_qsb_stub(tmp_path, exit_code=127, stderr=stderr)
+
+    _write_shader(
+        shader_root, "effects/bloom.frag", "#version 450 core\nvoid main() {}\n"
+    )
+
+    with pytest.raises(validate_shaders.ShaderValidationUnavailableError) as excinfo:
+        validate_shaders.validate_shaders(
+            shader_root, qsb_command=qsb_cmd, reports_dir=reports_dir
+        )
+
+    message = str(excinfo.value)
+    assert "libxkbcommon.so.0" in message
+    assert "Qt Shader Baker could not start" in message
