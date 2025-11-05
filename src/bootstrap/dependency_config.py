@@ -5,8 +5,8 @@ from dataclasses import dataclass
 from functools import lru_cache
 from typing import Any, Mapping, Sequence
 
-from src.core.settings_service import SettingsValidationError, get_settings_service
-from src.infrastructure.container import ServiceResolutionError
+from src.core.settings_service import SETTINGS_SERVICE_TOKEN, SettingsValidationError
+from src.infrastructure.container import ServiceResolutionError, get_default_container
 
 
 class DependencyConfigError(RuntimeError):
@@ -130,7 +130,7 @@ def _fallback_dependencies() -> Mapping[str, Any]:
 @lru_cache(maxsize=None)
 def _load_dependencies_section() -> Mapping[str, Any]:
     try:
-        settings = get_settings_service()
+        settings = get_default_container().resolve(SETTINGS_SERVICE_TOKEN)
     except ServiceResolutionError:
         return _fallback_dependencies()
 

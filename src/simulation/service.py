@@ -7,6 +7,11 @@ from copy import deepcopy
 from typing import Any, Dict, Optional
 
 from src.core.interfaces import SettingsOrchestrator, SimulationService
+from src.infrastructure.container import (
+    ServiceContainer,
+    ServiceToken,
+    get_default_container,
+)
 from src.simulation.presets import (
     TrainingPreset,
     TrainingPresetLibrary,
@@ -107,3 +112,21 @@ class TrainingPresetService(SimulationService):
 
 
 __all__ = ["TrainingPresetService"]
+
+
+SIMULATION_SERVICE_TOKEN = ServiceToken[SimulationService](
+    "simulation.training_presets",
+    "Training preset coordinator bound to the settings orchestrator",
+)
+
+
+def get_simulation_service(
+    container: ServiceContainer | None = None,
+) -> SimulationService:
+    """Resolve the shared simulation service from the container."""
+
+    target = container or get_default_container()
+    return target.resolve(SIMULATION_SERVICE_TOKEN)
+
+
+__all__.extend(["SIMULATION_SERVICE_TOKEN", "get_simulation_service"])

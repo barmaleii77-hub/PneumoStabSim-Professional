@@ -5,9 +5,16 @@ from __future__ import annotations
 import logging
 from logging import Logger
 
-from .container import ServiceContainer, ServiceToken, get_default_container
+from ..container import ServiceContainer, ServiceToken, get_default_container
+from .error_hooks import ErrorHookManager, install_error_hooks
 
-__all__ = ["LOGGER_TOKEN", "configure_logging", "get_logger"]
+__all__ = [
+    "LOGGER_TOKEN",
+    "configure_logging",
+    "get_logger",
+    "ErrorHookManager",
+    "install_error_hooks",
+]
 
 
 LOGGER_TOKEN = ServiceToken[Logger](
@@ -35,15 +42,6 @@ def configure_logging(*, level: int = logging.INFO) -> Logger:
         logger.addHandler(handler)
     logger.setLevel(level)
     return logger
-
-
-def _register_default_logger() -> None:
-    container = get_default_container()
-    if not container.is_registered(LOGGER_TOKEN):
-        container.register_factory(LOGGER_TOKEN, lambda _: configure_logging())
-
-
-_register_default_logger()
 
 
 def get_logger(

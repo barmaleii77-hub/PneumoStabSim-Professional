@@ -18,13 +18,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Optional
 
-try:  # Prefer the installed package when available
-    from pneumostabsim.logging import ErrorHookManager, install_error_hooks
-except ModuleNotFoundError:  # pragma: no cover - fallback for source checkouts
-    from src.pneumostabsim.logging import (  # type: ignore[import-not-found]
-        ErrorHookManager,
-        install_error_hooks,
-    )
+from src.infrastructure.logging import ErrorHookManager, install_error_hooks
 
 from src.core.settings_validation import (
     SettingsValidationError,
@@ -168,14 +162,15 @@ class ApplicationRunner:
 
         # Ensure the lightweight SettingsService cache mirrors the latest file.
         try:
-            from src.core.settings_service import get_settings_service
+            from src.core.settings_service import SETTINGS_SERVICE_TOKEN
+            from src.infrastructure.container import get_default_container
         except Exception as exc:  # pragma: no cover - optional dependency at runtime
             if logger:
                 logger.debug("SettingsService import failed: %s", exc, exc_info=True)
             return
 
         try:
-            service = get_settings_service()
+            service = get_default_container().resolve(SETTINGS_SERVICE_TOKEN)
             payload = service.load(use_cache=False)
             service.save(payload)
             if logger:

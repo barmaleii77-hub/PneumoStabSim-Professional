@@ -162,11 +162,67 @@ class ServiceContainer:
 
 
 _default_container = ServiceContainer()
+_bootstrapped = False
+
+
+def _ensure_bootstrapped(container: ServiceContainer) -> None:
+    global _bootstrapped
+    if _bootstrapped:
+        return
+    _bootstrap_builtin_services(container)
+    _bootstrapped = True
+
+
+def _bootstrap_builtin_services(container: ServiceContainer) -> None:
+    """Ensure default service registrations are available."""
+
+    from src.core.settings_service import SETTINGS_SERVICE_TOKEN, SettingsService
+    from src.graphics.materials.cache import MATERIAL_CACHE_TOKEN, MaterialCache
+    from src.infrastructure.event_bus import EVENT_BUS_TOKEN, EventBus
+    from src.infrastructure.logging import LOGGER_TOKEN, configure_logging
+    from src.simulation.service import (
+        SIMULATION_SERVICE_TOKEN,
+        TrainingPresetService,
+    )
+    from src.core.settings_orchestrator import SettingsOrchestrator
+
+    if not container.is_registered(SETTINGS_SERVICE_TOKEN):
+        container.register_factory(
+            SETTINGS_SERVICE_TOKEN,
+            lambda _: SettingsService(),
+        )
+
+    if not container.is_registered(EVENT_BUS_TOKEN):
+        container.register_factory(
+            EVENT_BUS_TOKEN,
+            lambda _: EventBus(),
+        )
+
+    if not container.is_registered(LOGGER_TOKEN):
+        container.register_factory(
+            LOGGER_TOKEN,
+            lambda _: configure_logging(),
+        )
+
+    if not container.is_registered(MATERIAL_CACHE_TOKEN):
+        container.register_factory(
+            MATERIAL_CACHE_TOKEN,
+            lambda _: MaterialCache(),
+        )
+
+    if not container.is_registered(SIMULATION_SERVICE_TOKEN):
+        container.register_factory(
+            SIMULATION_SERVICE_TOKEN,
+            lambda _: TrainingPresetService(
+                orchestrator=SettingsOrchestrator(),
+            ),
+        )
 
 
 def get_default_container() -> ServiceContainer:
     """Return the process-wide service container."""
 
+    _ensure_bootstrapped(_default_container)
     return _default_container
 
 
@@ -175,3 +231,6 @@ def set_default_container(container: ServiceContainer) -> None:
 
     global _default_container
     _default_container = container
+    global _bootstrapped
+    _bootstrapped = False
+    _ensure_bootstrapped(_default_container)
