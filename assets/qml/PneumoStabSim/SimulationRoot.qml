@@ -3388,24 +3388,236 @@ else if (isPlainObject(params.shadows))
  }
  }
 
+function applyEffectsUpdatesInternal(params) {
+    if (!params)
+        return false;
+
+    try {
+        var mergedPayload = cloneObject(params);
+        var normalized = {};
+        var hasUpdates = false;
+
+        function recordValue(targetKey, value) {
+            if (value === undefined)
+                return;
+            mergedPayload[targetKey] = value;
+            normalized[targetKey] = value;
+            hasUpdates = true;
+        }
+
+        function toBoolean(value) {
+            if (value === undefined || value === null)
+                return undefined;
+            if (typeof value === "boolean")
+                return value;
+            if (typeof value === "number")
+                return value !== 0;
+            if (typeof value === "string") {
+                var lowered = value.trim().toLowerCase();
+                if (["true", "1", "yes", "on"].indexOf(lowered) !== -1)
+                    return true;
+                if (["false", "0", "no", "off"].indexOf(lowered) !== -1)
+                    return false;
+            }
+            return !!value;
+        }
+
+        function toNumber(value) {
+            if (value === undefined || value === null)
+                return undefined;
+            var numeric = Number(value);
+            return isFinite(numeric) ? numeric : undefined;
+        }
+
+        function toInteger(value) {
+            var numeric = toNumber(value);
+            return numeric === undefined ? undefined : Math.round(numeric);
+        }
+
+        function keyList(candidate) {
+            return Array.isArray(candidate) ? candidate : [candidate];
+        }
+
+        function valueFromKeys(source, keys) {
+            if (!isPlainObject(source))
+                return undefined;
+            var list = keyList(keys);
+            for (var i = 0; i < list.length; ++i) {
+                var key = list[i];
+                if (source.hasOwnProperty(key) && source[key] !== undefined)
+                    return source[key];
+            }
+            return undefined;
+        }
+
+        function readValue(primaryKeys, nestedSources, nestedKeys) {
+            var direct = valueFromKeys(params, primaryKeys);
+            if (direct !== undefined)
+                return direct;
+
+            var sources = nestedSources || [];
+            if (!Array.isArray(sources))
+                sources = [sources];
+            var nestedList = nestedKeys ? keyList(nestedKeys) : keyList(primaryKeys);
+
+            for (var i = 0; i < sources.length; ++i) {
+                var candidate = sources[i];
+                if (!candidate)
+                    continue;
+                var nested = valueFromKeys(candidate, nestedList);
+                if (nested !== undefined)
+                    return nested;
+            }
+
+            return undefined;
+        }
+
+        function assignBool(targetKey, primaryKeys, nestedSources, nestedKeys) {
+            var raw = readValue(primaryKeys, nestedSources, nestedKeys);
+            var coerced = toBoolean(raw);
+            if (coerced === undefined)
+                return;
+            recordValue(targetKey, coerced);
+        }
+
+        function assignNumber(targetKey, primaryKeys, nestedSources, nestedKeys) {
+            var raw = readValue(primaryKeys, nestedSources, nestedKeys);
+            var coerced = toNumber(raw);
+            if (coerced === undefined)
+                return;
+            recordValue(targetKey, coerced);
+        }
+
+        function assignInteger(targetKey, primaryKeys, nestedSources, nestedKeys) {
+            var raw = readValue(primaryKeys, nestedSources, nestedKeys);
+            var coerced = toInteger(raw);
+            if (coerced === undefined)
+                return;
+            recordValue(targetKey, coerced);
+        }
+
+        function assignString(targetKey, primaryKeys, nestedSources, nestedKeys) {
+            var raw = readValue(primaryKeys, nestedSources, nestedKeys);
+            if (raw === undefined || raw === null)
+                return;
+            recordValue(targetKey, String(raw));
+        }
+
+        function assignLensStretch(targetKey, primaryKeys, nestedSources, nestedKeys) {
+            var raw = readValue(primaryKeys, nestedSources, nestedKeys);
+            if (raw === undefined || raw === null)
+                return;
+            var numeric = toNumber(raw);
+            if (numeric === undefined) {
+                var boolValue = toBoolean(raw);
+                if (boolValue === undefined)
+                    return;
+                recordValue(targetKey, boolValue ? 1.0 : 0.0);
+                return;
+            }
+            recordValue(targetKey, numeric);
+        }
+
+        var bloomSection = isPlainObject(params.bloom) ? params.bloom : null;
+        var bloomLegacySection = isPlainObject(params.bloom_settings) ? params.bloom_settings : null;
+        var tonemapSection = isPlainObject(params.tonemap) ? params.tonemap : null;
+        var ssaoSection = isPlainObject(params.ssao) ? params.ssao : null;
+        var aoSection = isPlainObject(params.ao) ? params.ao : null;
+        var dofSection = isPlainObject(params.depthOfField) ? params.depthOfField : null;
+        if (!dofSection && isPlainObject(params.dof))
+            dofSection = params.dof;
+        var motionSection = isPlainObject(params.motion) ? params.motion : null;
+        var motionBlurSection = isPlainObject(params.motionBlur) ? params.motionBlur : null;
+        var lensFlareSection = isPlainObject(params.lensFlare) ? params.lensFlare : null;
+        if (!lensFlareSection && isPlainObject(params.lens_flare))
+            lensFlareSection = params.lens_flare;
+        var vignetteSection = isPlainObject(params.vignette) ? params.vignette : null;
+        var adjustmentsSection = isPlainObject(params.adjustments) ? params.adjustments : null;
+        if (!adjustmentsSection && isPlainObject(params.color))
+            adjustmentsSection = params.color;
+
+        assignBool("bloomEnabled", ["bloomEnabled", "bloom_enabled"], [bloomSection, bloomLegacySection], ["enabled", "active"]);
+        assignNumber("bloomIntensity", ["bloomIntensity", "bloom_intensity", "bloom_strength"], [bloomSection, bloomLegacySection], ["intensity", "strength"]);
+        assignNumber("bloomThreshold", ["bloomThreshold", "bloom_threshold"], [bloomSection, bloomLegacySection], ["threshold"]);
+        assignNumber("bloomSpread", ["bloomSpread", "bloom_spread", "bloom_blur", "bloom_blur_amount"], [bloomSection, bloomLegacySection], ["spread", "blur", "blur_amount"]);
+        assignNumber("bloomGlowStrength", ["bloomGlowStrength", "bloom_glow_strength"], [bloomSection, bloomLegacySection], ["glow_strength"]);
+        assignNumber("bloomHdrMax", ["bloomHdrMax", "bloom_hdr_max"], [bloomSection, bloomLegacySection], ["hdr_max"]);
+        assignNumber("bloomHdrScale", ["bloomHdrScale", "bloom_hdr_scale"], [bloomSection, bloomLegacySection], ["hdr_scale"]);
+        assignBool("bloomQualityHigh", ["bloomQualityHigh", "bloom_quality_high"], [bloomSection, bloomLegacySection], ["quality_high", "high_quality"]);
+        assignBool("bloomBicubicUpscale", ["bloomBicubicUpscale", "bloom_bicubic_upscale"], [bloomSection, bloomLegacySection], ["bicubic_upscale"]);
+
+        assignBool("tonemapEnabled", ["tonemapEnabled", "tonemap_enabled"], tonemapSection, ["enabled"]);
+        assignString("tonemapModeName", ["tonemapModeName", "tonemapMode", "tonemap_mode"], tonemapSection, ["mode", "name"]);
+        assignNumber("tonemapExposure", ["tonemapExposure", "tonemap_exposure"], tonemapSection, ["exposure"]);
+        assignNumber("tonemapWhitePoint", ["tonemapWhitePoint", "tonemap_white_point"], tonemapSection, ["white_point"]);
+
+        assignBool("ssaoEnabled", ["ssaoEnabled", "ssao_enabled", "ao_enabled"], [ssaoSection, aoSection], ["enabled", "active"]);
+        assignNumber("ssaoIntensity", ["ssaoIntensity", "ssao_intensity", "ssao_strength", "ao_strength"], [ssaoSection, aoSection], ["intensity", "strength"]);
+        assignNumber("ssaoRadius", ["ssaoRadius", "ssao_radius", "ao_radius"], [ssaoSection, aoSection], ["radius"]);
+        assignNumber("ssaoBias", ["ssaoBias", "ssao_bias", "ao_bias"], [ssaoSection, aoSection], ["bias"]);
+        assignNumber("ssaoSampleRate", ["ssaoSampleRate", "ssao_samples", "ssao_sample_rate", "ao_sample_rate"], [ssaoSection, aoSection], ["sample_rate", "samples"]);
+
+        assignBool("depthOfFieldEnabled", ["depthOfFieldEnabled", "depth_of_field", "dof_enabled"], dofSection, ["enabled", "active"]);
+        assignNumber("dofFocusDistance", ["dofFocusDistance", "dof_focus_distance", "focus_distance"], dofSection, ["focus_distance", "distance"]);
+        assignNumber("dofFocusRange", ["dofFocusRange", "dof_focus_range", "focus_range"], dofSection, ["focus_range", "range"]);
+        assignNumber("dofBlurAmount", ["dofBlurAmount", "dof_blur", "blur_amount"], dofSection, ["blur", "blur_amount"]);
+        assignBool("dofAutoFocus", ["dofAutoFocus", "dof_auto_focus"], dofSection, ["auto_focus", "autofocus"]);
+
+        assignBool("motionBlurEnabled", ["motionBlurEnabled", "motion_blur"], [motionSection, motionBlurSection], ["enabled", "active"]);
+        assignNumber("motionBlurStrength", ["motionBlurStrength", "motion_blur_amount", "motion_blur_strength"], [motionSection, motionBlurSection], ["amount", "strength"]);
+        assignInteger("motionBlurSamples", ["motionBlurSamples", "motion_blur_samples"], [motionSection, motionBlurSection], ["samples"]);
+
+        assignBool("lensFlareEnabled", ["lensFlareEnabled", "lens_flare"], lensFlareSection, ["enabled", "active"]);
+        assignInteger("lensFlareGhostCount", ["lensFlareGhostCount", "lens_flare_ghost_count"], lensFlareSection, ["ghost_count", "ghosts"]);
+        assignNumber("lensFlareGhostDispersal", ["lensFlareGhostDispersal", "lens_flare_ghost_dispersal"], lensFlareSection, ["ghost_dispersal", "ghost_dispersal_factor"]);
+        assignNumber("lensFlareHaloWidth", ["lensFlareHaloWidth", "lens_flare_halo_width"], lensFlareSection, ["halo_width"]);
+        assignNumber("lensFlareBloomBias", ["lensFlareBloomBias", "lens_flare_bloom_bias"], lensFlareSection, ["bloom_bias"]);
+        assignLensStretch("lensFlareStretchToAspect", ["lensFlareStretchToAspect", "lens_flare_stretch_to_aspect", "lens_flare_stretch"], lensFlareSection, ["stretch_to_aspect", "stretch"]);
+
+        assignBool("vignetteEnabled", ["vignetteEnabled", "vignette", "vignette_enabled"], vignetteSection, ["enabled", "active"]);
+        assignNumber("vignetteStrength", ["vignetteStrength", "vignette_strength"], vignetteSection, ["strength"]);
+        assignNumber("vignetteRadius", ["vignetteRadius", "vignette_radius"], vignetteSection, ["radius"]);
+
+        assignNumber("adjustmentBrightness", ["adjustmentBrightness", "adjustment_brightness", "color_brightness"], adjustmentsSection, ["brightness"]);
+        assignNumber("adjustmentContrast", ["adjustmentContrast", "adjustment_contrast", "color_contrast"], adjustmentsSection, ["contrast"]);
+        assignNumber("adjustmentSaturation", ["adjustmentSaturation", "adjustment_saturation", "color_saturation"], adjustmentsSection, ["saturation"]);
+
+        var payloadKeys = Object.keys(mergedPayload);
+        if (!payloadKeys.length)
+            return false;
+
+        var changed = false;
+
+        if (sceneEnvCtl && typeof sceneEnvCtl.applyEffectsPayload === "function") {
+            try {
+                sceneEnvCtl.applyEffectsPayload(mergedPayload);
+                changed = true;
+            } catch (controllerError) {
+                console.warn("[SimulationRoot] sceneEnvCtl.applyEffectsPayload failed", controllerError);
+            }
+        }
+
+        if (postEffects && typeof postEffects.applyPayload === "function") {
+            try {
+                postEffects.applyPayload(mergedPayload, sceneEnvCtl);
+                changed = true;
+            } catch (effectError) {
+                console.warn("[SimulationRoot] postEffects.applyPayload failed", effectError);
+            }
+        }
+
+        return changed || hasUpdates;
+    } catch (error) {
+        console.error("[SimulationRoot] applyEffectsUpdates failed", error);
+        return false;
+    }
+}
+
 function applyEffectsUpdates(params) {
- if (!params)
-  return false;
- var changed = false;
- try {
-  if (sceneEnvCtl && typeof sceneEnvCtl.applyEffectsPayload === "function") {
-   sceneEnvCtl.applyEffectsPayload(params);
-   changed = true;
-  }
-  if (postEffects && typeof postEffects.applyPayload === "function") {
-   postEffects.applyPayload(params, sceneEnvCtl);
-   changed = true;
-  }
-  return changed;
- } catch (error) {
-  console.error("[SimulationRoot] applyEffectsUpdates failed", error);
-  return false;
- }
+    params = coerceBatchObject("effects", params);
+    if (!params)
+        return false;
+    return applyEffectsUpdatesInternal(params);
 }
 
 function applyAnimationUpdates(params) {
@@ -3904,7 +4116,10 @@ function apply3DUpdates(params) {
     }
 
     function updateEffects(params) {
-        root.applyEffectsUpdates(params)
+        params = coerceBatchObject("effects", params);
+        if (!params)
+            return false;
+        return applyEffectsUpdatesInternal(params);
     }
 }
 

@@ -68,6 +68,16 @@ def _scene_payload() -> Dict[str, Any]:
     }
 
 
+def _effects_payload() -> Dict[str, Any]:
+    return {
+        "bloom": {"enabled": True, "intensity": 0.6},
+        "tonemap_mode": "aces",
+        "tonemap_enabled": True,
+        "motion_blur": True,
+        "motion_blur_amount": 0.2,
+    }
+
+
 def test_handle_scene_changed_invokes_qml_bridge() -> None:
     window = _StubWindow()
     params = _scene_payload()
@@ -99,6 +109,38 @@ def test_handle_scene_changed_queues_on_invoke_failure() -> None:
     assert _StubBridge.queue_calls == [("scene", expected)]
     assert window.saved_updates == [("graphics.scene", expected)]
     assert _StubBridge.logs == [("scene", expected, False)]
+
+
+def test_handle_effects_changed_invokes_qml_bridge() -> None:
+    window = _StubWindow()
+    params = _effects_payload()
+
+    signals_router.SignalsRouter.handle_effects_changed(window, params)
+
+    expected = _effects_payload()
+
+    assert _StubBridge.calls == [("applyEffectsUpdates", expected)]
+    assert not _StubBridge.queue_calls
+    assert window.saved_updates == [("graphics.effects", expected)]
+    assert _StubBridge.logs == [("effects", expected, True)]
+
+
+def test_handle_effects_changed_queues_on_invoke_failure() -> None:
+    window = _StubWindow()
+    params = _effects_payload()
+
+    _StubBridge.invoke_result = False
+    try:
+        signals_router.SignalsRouter.handle_effects_changed(window, params)
+    finally:
+        _StubBridge.invoke_result = True
+
+    expected = _effects_payload()
+
+    assert _StubBridge.calls == [("applyEffectsUpdates", expected)]
+    assert _StubBridge.queue_calls == [("effects", expected)]
+    assert window.saved_updates == [("graphics.effects", expected)]
+    assert _StubBridge.logs == [("effects", expected, False)]
 
 
 def test_handle_scene_changed_logs_validation_error() -> None:
