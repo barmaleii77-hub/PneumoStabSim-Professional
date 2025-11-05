@@ -64,4 +64,3 @@ void MAIN()
     fogVertexMain(position);
     POSITION = position;
 }
-
