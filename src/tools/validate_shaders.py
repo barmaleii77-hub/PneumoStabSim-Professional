@@ -90,6 +90,10 @@ class QsbEnvironmentError(RuntimeError):
     """Raised when qsb fails because the Qt runtime is misconfigured."""
 
 
+class ShaderValidationEnvironmentError(QsbEnvironmentError):
+    """Raised when the environment prevents qsb from even starting."""
+
+
 def classify_shader(path: Path) -> tuple[str, str]:
     """Return the base name and variant label for *path*."""
 
@@ -260,7 +264,10 @@ def _summarize_environment_failure(
             "or reinstall the Qt tooling."
         )
 
-    if "failed to create opengl context" in combined or "could not initialize opengl" in combined:
+    if (
+        "failed to create opengl context" in combined
+        or "could not initialize opengl" in combined
+    ):
         return (
             "Qt Shader Baker failed to initialise an OpenGL context. "
             "Install the system OpenGL libraries (e.g. 'apt-get install -y libgl1 libegl1')."
@@ -278,6 +285,44 @@ def _summarize_environment_failure(
             return f"Qt Shader Baker could not start because the shared library '{missing}' is missing."
 
     return None
+
+
+def _interpret_qsb_startup_failure(
+    return_code: int,
+    stderr: str,
+    stdout: str,
+    *,
+    allow_generic: bool,
+) -> str | None:
+    """Return an explanatory message when qsb cannot start."""
+
+    if return_code == 0:
+        return None
+
+    summary = _summarize_environment_failure(return_code, stdout, stderr, ())
+    if summary is not None:
+        return summary
+
+    if not allow_generic:
+        return None
+
+    stripped_stdout = stdout.strip()
+    stripped_stderr = stderr.strip()
+    combined_lines = [line for line in (stripped_stdout, stripped_stderr) if line]
+    if combined_lines:
+        combined = "\n".join(combined_lines)
+        return (
+            "Qt Shader Baker failed to start. "
+            f"Exit code {return_code}. Output:\n{combined}"
+        )
+
+    if return_code == 127:
+        return (
+            "Qt Shader Baker could not start (exit code 127). "
+            "Ensure Qt Shader Tools is installed and available in PATH."
+        )
+
+    return f"Qt Shader Baker failed to start with exit code {return_code}."
 
 
 def _diagnose_qsb_failure(stderr: str) -> list[str]:
@@ -298,7 +343,10 @@ def _diagnose_qsb_failure(stderr: str) -> list[str]:
             "(source activate_environment.sh)."
         )
 
-    if "failed to create opengl context" in lower or "could not initialize opengl" in lower:
+    if (
+        "failed to create opengl context" in lower
+        or "could not initialize opengl" in lower
+    ):
         hints.append(
             "    Hint: Install OpenGL runtime libraries such as libgl1 and libegl1 "
             "on the host system."
@@ -326,6 +374,41 @@ def _package_for_library(library: str) -> str | None:
         if shared == library:
             return package
     return None
+
+
+def _probe_qsb(command: Sequence[str]) -> None:
+    """Ensure that the qsb command is executable in the current environment."""
+
+    try:
+        completed = subprocess.run(
+            [*command, "--version"], capture_output=True, text=True
+        )
+    except OSError as exc:  # pragma: no cover - defensive guard
+        raise ShaderValidationUnavailableError(
+            f"Failed to execute Qt Shader Baker: {exc}"
+        ) from exc
+
+    stdout = completed.stdout or ""
+    stderr = completed.stderr or ""
+
+    if completed.returncode == 0:
+        return
+
+    missing_library = _extract_missing_shared_library(stderr)
+    if completed.returncode == 127 and missing_library:
+        raise ShaderValidationUnavailableError(
+            "Qt Shader Baker could not start because the shared library "
+            f"'{missing_library}' is not available in the current environment."
+        )
+
+    message = _interpret_qsb_startup_failure(
+        completed.returncode,
+        stderr,
+        stdout,
+        allow_generic=True,
+    )
+    if message is not None:
+        raise ShaderValidationEnvironmentError(message)
 
 
 def _run_qsb(
@@ -434,7 +517,12 @@ def validate_shaders(
     except (FileNotFoundError, RuntimeError) as exc:
         return [str(exc)]
 
-    _probe_qsb(command)
+    try:
+        _probe_qsb(command)
+    except ShaderValidationUnavailableError:
+        raise
+    except QsbEnvironmentError as exc:
+        return [str(exc)]
 
     if reports_dir is not None:
         _ensure_directory(reports_dir)
