@@ -136,7 +136,7 @@ class TrainingPresetBridge(QObject):
             self._service.apply_preset(preset_id, auto_save=True)
         except KeyError:
             return False
-        if self._active_preset_id == previous_active:
+        if self._active_preset_id != previous_active:
             self._set_selected_payload(preset_id)
             self.activePresetChanged.emit()
         return True
