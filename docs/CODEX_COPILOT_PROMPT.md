@@ -33,7 +33,7 @@ This blueprint assembles the canonical requirements for large language model cod
 - **Graphics Module** (`src/ui/graphics/`): maintain explicit bindings between sliders and Qt Quick properties. Respect any range metadata defined in configuration.
 - **Simulation Module** (`src/simulation/`): preserve numerical stability helpers and guard divisions with epsilon values stored in `constants.py`.
 - **Diagnostics Module** (`src/diagnostics/`): ensure new logging adapters register with the global telemetry router and include correlation IDs.
-- **Tools & Scripts** (`tools/`): keep CLI interfaces idempotent; expose dry-run flags and avoid modifying settings files implicitly.
+- **Tools & Scripts** (`tools/`): keep CLI interfaces idempotent; expose dry-run flags and avoid modifying settings files implicitly. Persist reports under `reports/tests/`, reuse physics scenario loaders from `tests/physics/cases`, and surface shader/QML diagnostics via structured JSON.
 
 ## 7. Prompt Usage Example
 ```text

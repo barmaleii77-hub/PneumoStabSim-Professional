@@ -1,0 +1,90 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://pneumostabsim.local/schemas/test_case.schema.json",
+  "title": "Physics and pneumatic automated test descriptor",
+  "type": "object",
+  "required": ["id", "name", "scene", "assertions"],
+  "properties": {
+    "$schema": {
+      "type": "string",
+      "description": "Optional URI of the schema used for validation"
+    },
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z0-9-]+$",
+      "description": "Stable identifier used in reports and CLI commands"
+    },
+    "name": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Human readable title of the test case"
+    },
+    "description": {
+      "type": "string",
+      "description": "Detailed notes about the simulated scenario"
+    },
+    "tags": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "uniqueItems": true,
+      "description": "Arbitrary labels used for filtering in the CLI"
+    },
+    "scene": {
+      "type": "string",
+      "pattern": ".+\\.scene\\.yaml$",
+      "description": "Relative path to the YAML scene description"
+    },
+    "assertions": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["kind", "target", "expected"],
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "axis-velocity",
+              "cylinder-force",
+              "spring-force",
+              "damper-force",
+              "vertical-force",
+              "moment"
+            ],
+            "description": "Assertion primitive that the runner understands"
+          },
+          "target": {
+            "type": "string",
+            "description": "Wheel identifier (LP, PP, LZ, PZ) or aggregate axis"
+          },
+          "expected": {
+            "type": ["number", "object"],
+            "description": "Expected scalar value or structured payload"
+          },
+          "tolerance": {
+            "type": "number",
+            "minimum": 0,
+            "default": 1e-06,
+            "description": "Absolute tolerance used when comparing floats"
+          },
+          "source": {
+            "type": "string",
+            "enum": [
+              "kinematics",
+              "cylinder",
+              "spring",
+              "damper",
+              "projection"
+            ],
+            "description": "Optional override for which scene block should be used"
+          }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false
+}

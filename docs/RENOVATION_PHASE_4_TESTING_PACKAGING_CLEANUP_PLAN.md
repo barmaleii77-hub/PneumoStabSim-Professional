@@ -14,6 +14,8 @@
 1. **Test Expansion**
    - Implement missing unit tests for settings manager, service container, and simulation APIs.
    - Add integration suites covering QML bridge (pytest-qt) and CLI entry points.
+   - Introduce physics scenario descriptors (`*.test.json`/`*.scene.yaml`) with shared fixtures in `tests/conftest.py` and automate report generation via `tools/run_test_case.py`.
+   - Extend graphics/UI regression checks with baseline image comparisons, shader log triage, and pytest-qt workflows that surface indicator states.
    - Configure coverage thresholds (>=85%) enforced in CI.
 2. **Static Analysis Enforcement**
    - Wire `ruff`, `mypy`, `pyright`, and `qmllint` into pre-commit hooks.
@@ -91,3 +93,8 @@ Use this section to log coverage milestones, release candidate builds, and clean
   quick-fix scripts for archival triage.
 - Published the resulting Markdown and JSON artefacts under
   `reports/cleanup/2025-10-25/` for follow-up actions in the cleanup track.
+
+### 2025-11-05 – Automated physics/UI regression harness
+- Finalised hierarchical test layout under `tests/{physics,pneumo,graphics,ui,tools}` with shared fixtures in `tests/conftest.py`.
+- Authored JSON/YAML schemas for physics scenarios, added baseline images, and wired CLI utilities (`tools/run_test_case.py`, `tools/collect_qml_errors.py`, `tools/check_shader_logs.py`) to persist artefacts in `reports/tests/`.
+- Captured new pytest-qt flows validating indicator feedback and ensured shader/QML diagnostics are harvested for CI publishing.

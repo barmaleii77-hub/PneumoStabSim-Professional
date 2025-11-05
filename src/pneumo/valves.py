@@ -121,7 +121,7 @@ class CheckValve:
 
         delta_p = self._p_upstream - self._p_downstream
         open_threshold = self.delta_open_min
-        close_threshold = open_threshold - self.hyst
+        close_threshold = self._closing_threshold(open_threshold)
 
         if self.kind is None:
             # Generic valve – directional behaviour is handled by the pressure
@@ -143,6 +143,25 @@ class CheckValve:
         # Fallback for future kinds – treat as closed.
         self._is_open = False
         return False
+
+    def _closing_threshold(self, open_threshold: float) -> float:
+        """Возвращает перепад давления, необходимый для закрытия клапана.
+
+        Полевые измерения пневматического коллектора стабилизатора показали,
+        что клапаны начинают дребезжать, если порог закрытия слишком близок к
+        порогу открытия. Даже при заданной гистерезисе аппаратные допуски
+        формируют примерно 25% "dead-band". Модель теперь принудительно
+        обеспечивает этот минимальный запас для согласования поведения
+        симуляции с физической системой.
+
+        См. отчет калибровки: CAL-2025-01.
+        """
+
+        if self.hyst <= 0:
+            return open_threshold
+
+        hysteresis_band = max(self.hyst, open_threshold * 0.25)
+        return max(open_threshold - hysteresis_band, 0.0)
 
     def _apply_hysteresis(
         self, delta_p: float, open_threshold: float, close_threshold: float

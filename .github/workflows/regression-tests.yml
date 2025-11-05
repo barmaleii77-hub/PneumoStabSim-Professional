@@ -1,0 +1,58 @@
+name: Physics and UI Regression
+
+on:
+  push:
+    branches:
+      - develop
+      - main
+    paths:
+      - "src/**"
+      - "tests/**"
+      - "tools/**"
+      - "config/schemas/**"
+      - ".github/workflows/regression-tests.yml"
+  pull_request:
+    paths:
+      - "src/**"
+      - "tests/**"
+      - "tools/**"
+      - "config/schemas/**"
+
+jobs:
+  regression:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v3
+
+      - name: Sync environment
+        run: uv sync --frozen
+
+      - name: Run pytest suite
+        run: uv run pytest --maxfail=1
+
+      - name: Execute physics regression case
+        run: uv run python tools/run_test_case.py standard-suspension-balance --output-dir reports/tests
+
+      - name: Upload reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: regression-reports
+          path: reports/tests
+
+      - name: Post summary comment
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const summary = `✅ Physics/UI regression executed. Artifacts: regression-reports.`;
+            github.rest.issues.createComment({
+              issue_number: context.payload.pull_request.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: summary
+            });

@@ -12,6 +12,8 @@ import pytest
 from _pytest.monkeypatch import notset
 from pytest import MonkeyPatch
 
+from tests.physics.cases import build_case_loader
+
 
 try:
     _pytestqt_spec = importlib.util.find_spec("pytestqt.plugin")
@@ -47,7 +49,10 @@ if "raising" not in inspect.signature(MonkeyPatch.setitem).parameters:
 # Add project root to path
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
-sys.path.insert(0, str(project_root / "src"))
+src_path = str(project_root / "src")
+if src_path not in sys.path:
+    # Вставляем src на позицию 1, чтобы project_root имел приоритет при разрешении импортов (Insert at position 1 to preserve project_root priority)
+    sys.path.insert(1, src_path)
 
 # Set up environment variables for testing
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
@@ -67,6 +72,47 @@ def _write_settings_payload(target: Path) -> Path:
 def project_root_path():
     """Provide project root path"""
     return project_root
+
+
+@pytest.fixture(scope="session")
+def reports_tests_dir(project_root_path: Path) -> Path:
+    """Ensure the reports/tests directory exists for CLI outputs."""
+
+    target = project_root_path / "reports" / "tests"
+    target.mkdir(parents=True, exist_ok=True)
+    return target
+
+
+@pytest.fixture(scope="session")
+def baseline_images_dir(project_root_path: Path) -> Path:
+    """Return the directory that stores baseline comparison images.
+
+    The baseline reference image is generated on demand to avoid storing binary
+    artefacts in the repository while still providing deterministic comparison
+    data for the graphics regression tests.
+    """
+
+    target = project_root_path / "tests" / "baseline_images"
+    target.mkdir(parents=True, exist_ok=True)
+
+    reference_path = target / "qt_scene_reference.png"
+    if not reference_path.exists():
+        image_module = pytest.importorskip(
+            "PIL.Image",
+            reason="Pillow is required to generate the baseline reference image",
+            exc_type=ImportError,
+        )
+        image = image_module.new("RGB", (8, 8), color=(120, 160, 200))
+        image.save(reference_path)
+
+    return target
+
+
+@pytest.fixture(scope="session")
+def physics_case_loader():
+    """Expose the reusable physics case loader."""
+
+    return build_case_loader()
 
 
 @pytest.fixture
