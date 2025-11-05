@@ -1,0 +1,110 @@
+from __future__ import annotations
+
+import json
+import shutil
+from pathlib import Path
+
+import pytest
+
+from src.services.backup_service import BackupService, discover_user_data_sources
+
+
+@pytest.fixture()
+def sample_project(tmp_path: Path) -> Path:
+    root = tmp_path / "project"
+    (root / "config/user_profiles").mkdir(parents=True)
+    (root / "config/ui_layouts").mkdir(parents=True)
+    (root / "reports/sessions/20250101-000000").mkdir(parents=True)
+    (root / "reports/telemetry").mkdir(parents=True)
+
+    (root / "config/app_settings.json").write_text(
+        json.dumps({"graphics": {"quality": "high"}}, ensure_ascii=False, indent=2),
+        encoding="utf-8",
+    )
+    (root / "config/orbit_presets.json").write_text(
+        json.dumps({"default": {"mode": "standard"}}, ensure_ascii=False, indent=2),
+        encoding="utf-8",
+    )
+    (root / "config/user_profiles" / "test.json").write_text(
+        json.dumps({"name": "Integration"}, ensure_ascii=False, indent=2),
+        encoding="utf-8",
+    )
+    (root / "config/ui_layouts" / "layout.json").write_text(
+        json.dumps({"widgets": []}, ensure_ascii=False, indent=2),
+        encoding="utf-8",
+    )
+    (root / "reports/sessions/20250101-000000/config_snapshot.json").write_text(
+        json.dumps({"session": "2025"}, ensure_ascii=False, indent=2),
+        encoding="utf-8",
+    )
+    (root / "reports/telemetry/user_actions.jsonl").write_text(
+        '{"action": "start"}\n',
+        encoding="utf-8",
+    )
+    return root
+
+
+def test_discover_user_data_sources_matches_expectations() -> None:
+    expected = {
+        Path("config/app_settings.json"),
+        Path("config/orbit_presets.json"),
+        Path("config/user_profiles"),
+        Path("config/ui_layouts"),
+        Path("reports"),
+    }
+    assert set(discover_user_data_sources()) == expected
+
+
+def test_backup_round_trip(sample_project: Path) -> None:
+    service = BackupService(root=sample_project, backup_dir=sample_project / "backups")
+    report = service.create_backup(label="integration")
+
+    assert not report.skipped
+    manifest = service.inspect_backup(report.archive_path)
+    assert "config/app_settings.json" in manifest["included"]
+    assert "config/user_profiles/test.json" in manifest["included"]
+
+    # Remove directories to prove restore reconstructs them
+    shutil.rmtree(sample_project / "config")
+    shutil.rmtree(sample_project / "reports")
+
+    restore_report = service.restore_backup(report.archive_path)
+    assert restore_report.skipped == ()
+    assert json.loads((sample_project / "config/app_settings.json").read_text(encoding="utf-8"))["graphics"]["quality"] == "high"
+    assert (sample_project / "reports/sessions/20250101-000000/config_snapshot.json").exists()
+
+
+def test_restore_respects_overwrite_flag(sample_project: Path) -> None:
+    service = BackupService(root=sample_project, backup_dir=sample_project / "backups")
+    report = service.create_backup(label="overwrite")
+
+    original_contents = (sample_project / "config/app_settings.json").read_text(encoding="utf-8")
+    modified_contents = original_contents.replace("high", "low")
+    (sample_project / "config/app_settings.json").write_text(modified_contents, encoding="utf-8")
+
+    restore_report = service.restore_backup(report.archive_path, overwrite=False)
+    assert Path("config/app_settings.json") in restore_report.skipped
+    assert (sample_project / "config/app_settings.json").read_text(encoding="utf-8") == modified_contents
+
+    restore_report_overwrite = service.restore_backup(report.archive_path, overwrite=True)
+    assert Path("config/app_settings.json") in restore_report_overwrite.restored
+    assert (sample_project / "config/app_settings.json").read_text(encoding="utf-8") == original_contents
+
+
+def test_backup_reports_missing_sources(tmp_path: Path) -> None:
+    root = tmp_path / "project"
+    root.mkdir()
+    (root / "config").mkdir()
+    (root / "config/app_settings.json").write_text("{}", encoding="utf-8")
+
+    service = BackupService(
+        root=root,
+        backup_dir=root / "backups",
+        data_sources=[Path("config/app_settings.json"), Path("missing/data")],
+    )
+    report = service.create_backup()
+
+    assert Path("missing/data") in report.skipped
+    assert Path("config/app_settings.json") in report.included
+    manifest = service.inspect_backup(report.archive_path)
+    assert "missing/data" in manifest["skipped"]
