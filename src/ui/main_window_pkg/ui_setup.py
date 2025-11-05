@@ -383,6 +383,21 @@ class UISetup:
             UISetup.logger.info("    [QML] Renderer API: %s", graphics_api_label)
 
             try:
+                feedback_controller = getattr(window, "feedback_controller", None)
+                if feedback_controller is not None:
+                    context.setContextProperty(
+                        "feedbackController", feedback_controller
+                    )
+                    UISetup.logger.info(
+                        "    ✅ Feedback controller exposed to QML context"
+                    )
+            except Exception as feedback_exc:
+                UISetup.logger.warning(
+                    "    ⚠️ Failed to expose feedback controller: %s",
+                    feedback_exc,
+                )
+
+            try:
                 from src.ui.scene_bridge import SceneBridge
 
                 window._scene_bridge = SceneBridge(window)
@@ -657,6 +672,7 @@ class UISetup:
             ModesPanel,
             GraphicsPanel,
         )
+        from src.ui.feedback import FeedbackPanel
 
         # Tab 1: Геометрия
         window.geometry_panel = GeometryPanel(window)
@@ -688,6 +704,19 @@ class UISetup:
         window.graphics_panel = GraphicsPanel(window)
         window._graphics_panel = window.graphics_panel  # Alias
         window.tab_widget.addTab(window.graphics_panel, "🎨 Графика")
+
+        try:
+            window.feedback_panel = FeedbackPanel(
+                window,
+                controller=getattr(window, "feedback_controller", None),
+            )
+            window.tab_widget.addTab(window.feedback_panel, "Обратная связь")
+        except Exception as feedback_exc:
+            window.feedback_panel = None
+            UISetup.logger.warning(
+                "⚠️ Не удалось построить вкладку обратной связи: %s",
+                feedback_exc,
+            )
 
         # Tab 5: Динамика движения (stub)
         dynamics_stub = QWidget()
