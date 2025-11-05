@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import argparse
 import os
+import re
 import shlex
 import shutil
 import subprocess
@@ -279,6 +280,12 @@ def _run_qsb(
         )
 
     if completed.returncode != 0:
+        env_message = _summarize_environment_failure(
+            completed.returncode, stdout, stderr, command
+        )
+        if env_message is not None:
+            raise QsbEnvironmentError(env_message)
+
         errors.append(
             f"{_relative(shader.path, shader_root)}: qsb failed with exit code {completed.returncode}"
         )
@@ -352,7 +359,10 @@ def validate_shaders(
         _validate_versions(files, shader_root, errors)
 
         for shader in files:
-            _run_qsb(shader, shader_root, command, reports_dir, errors)
+            try:
+                _run_qsb(shader, shader_root, command, reports_dir, errors)
+            except QsbEnvironmentError as exc:
+                return [str(exc)]
 
     return errors
 
