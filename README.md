@@ -5,7 +5,7 @@
 [![Python](https://img.shields.io/badge/Python-3.11%E2%80%933.13-blue.svg)](https://python.org)
 [![Qt](https://img.shields.io/badge/Qt-PySide6%206.10-green.svg)](https://qt.io)
 [![Status](https://img.shields.io/badge/Status-Production%20Ready-brightgreen.svg)](.)
-[![Version](https://img.shields.io/badge/Version-4.8-orange.svg)](PROJECT_STATUS.md)
+[![Version](https://img.shields.io/badge/Version-4.8-orange.svg)](archive/2025-11/root-reports/PROJECT_STATUS.md)
 
 ## 🧭 Engineering Charter
 
@@ -158,6 +158,11 @@ uv export --format requirements.txt --output-file requirements-compatible.txt --
 ```
 
 Редактировать эти файлы вручную не требуется.
+
+## 🗃️ Архив отчётов
+
+- **Актуальные документы в корне:** `README.md`, `ROADMAP.md`, `AGENTS.MD`.
+- Исторические отчёты перенесены в каталог [archive/2025-11/root-reports](archive/2025-11/root-reports/README.md), где доступен полный индекс перенесённых материалов.
  
 ### 3. Проверка готовности
 ```sh
@@ -195,10 +200,10 @@ graph TD
 
 | Файл | Описание |
 |------|----------|
-| [PROJECT_STATUS.md](PROJECT_STATUS.md) | 📊 Текущий статус и метрики |
-| [QUICK_DEPLOY.md](QUICK_DEPLOY.md) | ⚡ Быстрое развертывание |
-| [BACKUP_CONFIG.md](BACKUP_CONFIG.md) | 💾 Резервная конфигурация |
-| [F5_QUICK_START.md](F5_QUICK_START.md) | 🚀 Руководство разработчика |
+| [PROJECT_STATUS.md](archive/2025-11/root-reports/PROJECT_STATUS.md) | 📊 Текущий статус и метрики |
+| [QUICK_DEPLOY.md](archive/2025-11/root-reports/QUICK_DEPLOY.md) | ⚡ Быстрое развертывание |
+| [BACKUP_CONFIG.md](archive/2025-11/root-reports/BACKUP_CONFIG.md) | 💾 Резервная конфигурация |
+| [F5_QUICK_START.md](archive/2025-11/root-reports/F5_QUICK_START.md) | 🚀 Руководство разработчика |
 
 ## 🧰 VS Code Insiders и Copilot Chat
 
@@ -274,8 +279,8 @@ python app.py --no-block # Неблокирующий режим
 
 ## 🤝 Поддержка
 
-- **Быстрая помощь**: [QUICK_DEPLOY.md](QUICK_DEPLOY.md)
-- **Статус системы**: [PROJECT_STATUS.md](PROJECT_STATUS.md)
+- **Быстрая помощь**: [QUICK_DEPLOY.md](archive/2025-11/root-reports/QUICK_DEPLOY.md)
+- **Статус системы**: [PROJECT_STATUS.md](archive/2025-11/root-reports/PROJECT_STATUS.md)
 - **Логи**: папка `logs/` в корне проекта
 - **Диагностика**: `python app.py --debug`
 
