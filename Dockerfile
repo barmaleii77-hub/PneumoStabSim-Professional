@@ -18,8 +18,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 # Trust the egress proxy certificate so that Python tooling (aqt/requests)
 # can download Qt payloads during image build.
-COPY config/certs/envoy-mitmproxy-ca-cert.crt /usr/local/share/ca-certificates/
-RUN update-ca-certificates
+ARG INSTALL_PROXY_CERT=false
+RUN if [ "$INSTALL_PROXY_CERT" = "true" ]; then \
+        cp config/certs/envoy-mitmproxy-ca-cert.crt /usr/local/share/ca-certificates/ && \
+        update-ca-certificates; \
+    fi
 
 # Python tooling
 RUN pipx ensurepath || true
