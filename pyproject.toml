@@ -21,17 +21,18 @@ dependencies = [
     "numpy==2.3.4",
     "scipy==1.16.2",
     "PySide6==6.10.0",
- "pyside6-addons==6.10.0",
+    "pyside6-addons==6.10.0",
     "pyside6-essentials==6.10.0",
     "shiboken6==6.10.0",
     "PyOpenGL==3.1.10",
     "PyOpenGL-accelerate==3.1.10",
-"matplotlib==3.10.7",
+    "matplotlib==3.10.7",
     "Pillow==12.0.0",
     "psutil==7.1.1",
     "python-dotenv==1.1.1",
     "jsonschema==4.23.0",
     "PyYAML==6.0.3",
+    "pydantic>=2.12.3",
 ]
 
 [project.optional-dependencies]

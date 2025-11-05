@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from typing import Any, Dict, Mapping
 
+from src.core.settings_models import dump_settings
 from src.core.settings_service import SettingsService, get_settings_service
 
 
@@ -17,7 +18,7 @@ def _load_settings(custom_path: str | None = None) -> Dict[str, Any]:
     """Load the JSON settings file using :class:`SettingsService`."""
 
     service = _get_service(custom_path)
-    return service.load()
+    return dump_settings(service.load())
 
 
 def _ensure_mapping(value: Any, context: str) -> Mapping[str, Any]:

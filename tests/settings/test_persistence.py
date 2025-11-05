@@ -10,6 +10,7 @@ from typing import Any
 
 import pytest
 
+from src.core.settings_models import dump_settings
 from src.core.settings_service import SettingsService, SettingsValidationError
 from src.infrastructure.container import get_default_container
 from src.infrastructure.event_bus import EVENT_BUS_TOKEN, EventBus
@@ -81,7 +82,7 @@ def event_bus_override() -> EventBus:
 def test_load_uses_cache_until_explicit_reload(settings_file: Path) -> None:
     service = SettingsService(settings_path=settings_file, schema_path=SCHEMA_PATH)
 
-    cached = service.load()
+    cached = dump_settings(service.load())
     assert (
         cached["metadata"]["units_version"]
         == _BASE_SETTINGS_PAYLOAD["metadata"]["units_version"]
@@ -94,9 +95,9 @@ def test_load_uses_cache_until_explicit_reload(settings_file: Path) -> None:
         encoding="utf-8",
     )
 
-    assert service.load()["metadata"]["version"] != "9.9.9"
+    assert dump_settings(service.load())["metadata"]["version"] != "9.9.9"
 
-    refreshed = service.load(use_cache=False)
+    refreshed = dump_settings(service.load(use_cache=False))
     assert refreshed["metadata"]["version"] == "9.9.9"
 
 
@@ -109,7 +110,7 @@ def test_save_persists_changes_and_emits_event(
         "settings.updated", lambda payload: captured.append(dict(payload))
     )
 
-    payload = service.load()
+    payload = dump_settings(service.load())
     timestamp = datetime.now(UTC).replace(tzinfo=None).isoformat(timespec="seconds")
     payload["metadata"]["last_modified"] = timestamp
 

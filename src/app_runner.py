@@ -177,10 +177,9 @@ class ApplicationRunner:
         try:
             service = get_settings_service()
             payload = service.load(use_cache=False)
-            if isinstance(payload, dict):
-                service.save(payload)
-                if logger:
-                    logger.info("SettingsService payload persisted on exit")
+            service.save(payload)
+            if logger:
+                logger.info("SettingsService payload persisted on exit")
         except Exception as exc:  # pragma: no cover - avoid raising during shutdown
             if logger:
                 logger.error(

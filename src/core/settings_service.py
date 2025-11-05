@@ -12,7 +12,7 @@ import os
 from collections.abc import Mapping as MappingABC
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any, Iterable, MutableMapping
+from typing import Any, Iterable, Mapping, MutableMapping
 
 from src.infrastructure.container import (
     ServiceContainer,
@@ -21,10 +21,12 @@ from src.infrastructure.container import (
     get_default_container,
 )
 from src.infrastructure.event_bus import EVENT_BUS_TOKEN
+from pydantic import ValidationError
 from src.core.settings_validation import (
     DEFAULT_REQUIRED_MATERIALS,
     FORBIDDEN_MATERIAL_ALIASES,
 )
+from src.core.settings_models import AppSettings, dump_settings
 
 _MISSING = object()
 
@@ -66,7 +68,8 @@ class SettingsService:
         )
         self._schema_env_var = schema_env_var
         self._validate_schema = validate_schema
-        self._cache: dict[str, Any] | None = None
+        self._cache_dict: dict[str, Any] | None = None
+        self._cache_model: AppSettings | None = None
         self._schema_cache: dict[str, Any] | None = None
         self._validator: Any | None = None
         self._unknown_paths: set[str] = set()
@@ -113,6 +116,14 @@ class SettingsService:
         self._capture_last_modified(payload)
         return payload
 
+    def _parse_model(self, payload: Mapping[str, Any]) -> AppSettings:
+        try:
+            return AppSettings.model_validate(payload)
+        except ValidationError as exc:  # pragma: no cover - validated via tests
+            raise SettingsValidationError(
+                "Settings payload failed typed validation"
+            ) from exc
+
     def _write_file(self, payload: dict[str, Any]) -> None:
         path = self.resolve_path()
         path.parent.mkdir(parents=True, exist_ok=True)
@@ -124,36 +135,45 @@ class SettingsService:
     # ------------------------------------------------------------------
     # Public API
     # ------------------------------------------------------------------
-    def load(self, *, use_cache: bool = True) -> dict[str, Any]:
-        """Загрузить и вернуть весь JSON payload в виде dict.
+    def load(self, *, use_cache: bool = True) -> AppSettings:
+        """Load and return the typed settings payload."""
 
-        При use_cache=True возвращает кэш при повторных вызовах.
-        """
-
-        if not use_cache or self._cache is None:
-            self._cache = self._read_file()
-        return self._cache
+        if not use_cache or self._cache_model is None:
+            payload_dict = self._read_file()
+            model = self._parse_model(payload_dict)
+            self._cache_dict = payload_dict
+            self._cache_model = model
+        return self._cache_model
 
     def reload(self) -> dict[str, Any]:
         """Сбросить кэш и перечитать файл."""
 
-        self._cache = None
-        return self.load(use_cache=True)
+        self._cache_dict = None
+        self._cache_model = None
+        settings = self.load(use_cache=True)
+        return dump_settings(settings)
 
     def save(
         self,
-        payload: dict[str, Any],
+        payload: AppSettings | Mapping[str, Any],
         *,
         metadata: dict[str, Any] | None = None,
         pending_unknown_paths: Iterable[str] | None = None,
     ) -> None:
         """Сохранить payload на диск и обновить кэш."""
 
-        last_modified = self._ensure_last_modified(payload)
+        if isinstance(payload, AppSettings):
+            payload_dict = dump_settings(payload)
+        else:
+            payload_dict = json.loads(json.dumps(payload))
+
+        last_modified = self._ensure_last_modified(payload_dict)
         if self._validate_schema:
-            self.validate(payload)
-        self._write_file(payload)
-        self._cache = payload
+            self.validate(payload_dict)
+        self._write_file(payload_dict)
+        model = self._parse_model(payload_dict)
+        self._cache_dict = payload_dict
+        self._cache_model = model
         if last_modified is not None:
             self._last_modified_snapshot = last_modified
         if pending_unknown_paths:
@@ -170,7 +190,8 @@ class SettingsService:
         Пример: ``service.get("current.constants.geometry.kinematics.track_width_m")``
         """
 
-        data: Any = self.load()
+        payload = self.load()
+        data: Any = dump_settings(payload)
         for key in self._split_path(path):
             if not isinstance(data, MutableMapping):
                 return default
@@ -183,7 +204,8 @@ class SettingsService:
     def set(self, path: str, value: Any) -> None:
         """Установить значение по dot‑пути и сохранить изменения."""
 
-        payload = self.load()
+        payload_model = self.load()
+        payload = dump_settings(payload_model)
         segments = list(self._split_path(path))
         if not segments:
             raise ValueError("path must not be empty")
@@ -207,7 +229,8 @@ class SettingsService:
     def update(self, path: str, patch: MutableMapping[str, Any]) -> None:
         """Слить (merge) словарь patch в целевой mapping по dot‑пути."""
 
-        payload = self.load()
+        payload_model = self.load()
+        payload = dump_settings(payload_model)
         data = self._get_existing_mapping(payload, path)
         pending_unknown_paths: list[str] = []
         for key in patch:
