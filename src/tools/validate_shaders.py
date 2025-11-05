@@ -56,6 +56,13 @@ QSB_PROFILE_ARGUMENTS: tuple[str, ...] = (
 )
 
 
+RUNTIME_DEPENDENCY_HINTS: tuple[tuple[str, str], ...] = (
+    ("libxkbcommon.so.0", "libxkbcommon0"),
+    ("libGL.so.1", "libgl1"),
+    ("libEGL.so.1", "libegl1"),
+)
+
+
 @dataclass(frozen=True)
 class ShaderFile:
     """Metadata captured for a single shader variant."""
@@ -199,6 +206,37 @@ def _shader_reports_paths(
     return output_path, log_path
 
 
+def _diagnose_qsb_failure(stderr: str) -> list[str]:
+    """Return helpful diagnostics for common qsb runtime failures."""
+
+    message = stderr.lower()
+    hints: list[str] = []
+
+    loader_token = "error while loading shared libraries"
+    if loader_token in message:
+        detected = [
+            (library, package)
+            for library, package in RUNTIME_DEPENDENCY_HINTS
+            if library.lower() in message
+        ]
+        if detected:
+            for library, package in detected:
+                hints.append(
+                    "    hint: qsb is missing '{library}'. Install the '{package}' package "
+                    "(e.g. 'apt-get install -y {package}') or run 'make install-qt-runtime' to "
+                    "pull in the required Qt runtime libraries.".format(
+                        library=library, package=package
+                    )
+                )
+        else:
+            hints.append(
+                "    hint: qsb failed to load a shared library. Ensure Qt runtime dependencies "
+                "(libgl1, libxkbcommon0, libegl1) are installed or run 'make install-qt-runtime'."
+            )
+
+    return hints
+
+
 def _run_qsb(
     shader: ShaderFile,
     shader_root: Path,
@@ -249,6 +287,7 @@ def _run_qsb(
         if stderr:
             first_line = stderr.strip().splitlines()[0]
             errors.append(f"    {first_line}")
+            errors.extend(_diagnose_qsb_failure(stderr))
 
     if temp_output is not None:
         with suppress(FileNotFoundError):
