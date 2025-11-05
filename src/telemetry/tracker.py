@@ -14,12 +14,7 @@ from pathlib import Path
 from threading import RLock
 from typing import TYPE_CHECKING, Any, Dict, Mapping, Optional
 
-if TYPE_CHECKING:
-    from structlog.stdlib import BoundLogger  # pragma: no cover
-else:
-    BoundLogger = Any
-
-from src.diagnostics.logger_factory import get_logger
+from src.diagnostics.logger_factory import LoggerProtocol, get_logger
 from src.telemetry.schema import EVENT_SCHEMA_VERSION, TelemetryRecord
 
 
@@ -45,7 +40,7 @@ class TelemetryRouter:
         self,
         base_dir: Path | str = _DEFAULT_BASE_DIR,
         *,
-        logger: Optional[BoundLogger] = None,
+        logger: Optional[LoggerProtocol] = None,
     ) -> None:
         self._base_dir = Path(base_dir)
         self._base_dir.mkdir(parents=True, exist_ok=True)
@@ -84,7 +79,7 @@ class TelemetryTracker:
         self,
         router: Optional[TelemetryRouter] = None,
         *,
-        logger: Optional[BoundLogger] = None,
+        logger: Optional[LoggerProtocol] = None,
     ) -> None:
         self._router = router or TelemetryRouter(logger=logger)
         self._logger = logger or get_logger("telemetry.tracker")

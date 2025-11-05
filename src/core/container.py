@@ -26,14 +26,13 @@ from collections.abc import Callable
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Dict, TypeVar
 
-if TYPE_CHECKING:
-    from structlog.stdlib import BoundLogger  # pragma: no cover
-else:
-    BoundLogger = Any
-
 from src.common.event_logger import EventLogger
 from src.common.settings_manager import ProfileSettingsManager, SettingsManager
-from src.diagnostics.logger_factory import configure_logging, get_logger
+from src.diagnostics.logger_factory import (
+    BoundLogger,
+    configure_logging,
+    get_logger,
+)
 from src.infrastructure.event_bus import EventBus
 from src.telemetry import TelemetryTracker
 from .settings_service import SettingsService

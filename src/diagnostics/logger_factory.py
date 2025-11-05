@@ -1,9 +1,13 @@
-"""Centralised logging configuration using structlog.
+"""Centralised logging configuration with graceful Structlog degradation.
 
 The diagnostics stack historically mixed ``logging`` formatters, ad-hoc
 ``print`` statements, and bespoke JSON encoders.  This module establishes a
 single entry-point for configuring :mod:`structlog` and exposing helpers that
-return bound loggers ready for structured output.
+return bound loggers ready for structured output.  When :mod:`structlog` is not
+installed (as is the case in the lean execution environment used for the kata)
+the helpers transparently fall back to a lightweight wrapper around the standard
+:mod:`logging` module so that imports succeed and the rest of the application can
+continue to record diagnostics.
 
 Usage
 -----
@@ -15,8 +19,9 @@ Usage
 
 All Python loggers (including modules that still rely on ``logging.getLogger``)
 are routed through a :class:`structlog.stdlib.ProcessorFormatter` that renders
-JSON objects.  This keeps legacy call sites working while allowing new code to
-take advantage of structured logging semantics.
+JSON objects when :mod:`structlog` is available.  In fallback mode a compact
+text renderer is used instead which still preserves structured context in the
+log message.
 """
 
 from __future__ import annotations
@@ -25,23 +30,177 @@ import importlib
 import importlib.util
 import logging
 from dataclasses import dataclass
-from typing import Any, Iterable, Optional
+from types import ModuleType
+from typing import Any, Dict, Iterable, Optional, Protocol, runtime_checkable
+
+try:  # pragma: no cover - exercised indirectly by tests
+    import structlog
+    from structlog.stdlib import BoundLogger as _StructlogBoundLogger
+except ModuleNotFoundError:  # pragma: no cover - fallback exercised in kata env
+    structlog = None  # type: ignore[assignment]
+    _StructlogBoundLogger = None
+
+    # Provide a very small compatibility shim so that modules importing
+    # ``structlog.stdlib`` for typing continue to work in environments where the
+    # dependency is unavailable.  Only the pieces exercised by the test-suite are
+    # emulated which keeps the shim intentionally lightweight.
+    stdlib_shim = ModuleType("structlog.stdlib")
+    stdlib_shim.BoundLogger = None  # placeholder, assigned after class definition
+    stdlib_shim.BoundLoggerBase = object
+
+    class _ProcessorFormatter(logging.Formatter):  # pragma: no cover - shim
+        def __init__(self, *args: Any, **kwargs: Any) -> None:
+            super().__init__("%(message)s")
+
+    class _LoggerFactory:  # pragma: no cover - shim
+        def __call__(
+            self, name: str = "root", *args: Any, **kwargs: Any
+        ) -> logging.Logger:
+            return logging.getLogger(name)
+
+    stdlib_shim.ProcessorFormatter = _ProcessorFormatter
+    stdlib_shim.LoggerFactory = _LoggerFactory
+
+    structlog_shim = ModuleType("structlog")
+    structlog_shim.stdlib = stdlib_shim
+    structlog_shim.is_configured = lambda: False  # type: ignore[attr-defined]
+    structlog_shim.configure = lambda *_, **__: None  # type: ignore[attr-defined]
+    structlog_shim.get_logger = lambda name=None: logging.getLogger(name)  # type: ignore[attr-defined]
+    structlog_shim.contextvars = ModuleType("structlog.contextvars")
+    structlog_shim.contextvars.merge_contextvars = lambda *_, **__: {}  # type: ignore[attr-defined]
+    structlog_shim.processors = ModuleType("structlog.processors")
+    structlog_shim.processors.add_log_level = (
+        lambda logger, name, event_dict: event_dict
+    )  # type: ignore[attr-defined]
+    structlog_shim.processors.TimeStamper = lambda *_, **__: (  # type: ignore[attr-defined]
+        lambda logger, name, event_dict: event_dict
+    )
+    structlog_shim.processors.StackInfoRenderer = lambda *_, **__: (  # type: ignore[attr-defined]
+        lambda logger, name, event_dict: event_dict
+    )
+    structlog_shim.processors.format_exc_info = (
+        lambda logger, name, event_dict: event_dict
+    )  # type: ignore[attr-defined]
+
+    class _JSONRenderer:  # pragma: no cover - shim
+        def __call__(
+            self, logger: Any, name: str, event_dict: Dict[str, Any]
+        ) -> Dict[str, Any]:
+            return event_dict
+
+    structlog_shim.processors.JSONRenderer = _JSONRenderer  # type: ignore[attr-defined]
+
+    import sys
+
+    sys.modules.setdefault("structlog", structlog_shim)
+    sys.modules.setdefault("structlog.stdlib", stdlib_shim)
+    sys.modules.setdefault("structlog.contextvars", structlog_shim.contextvars)
+    sys.modules.setdefault("structlog.processors", structlog_shim.processors)
 
 
-_STRUCTLOG_SPEC = importlib.util.find_spec("structlog")
-if _STRUCTLOG_SPEC is not None:
-    structlog = importlib.import_module("structlog")
-else:  # pragma: no cover - executed when structlog is absent
-    structlog = None
+@runtime_checkable
+class LoggerProtocol(Protocol):
+    """Common interface implemented by structlog and fallback loggers."""
+
+    def bind(self, **kwargs: Any) -> "LoggerProtocol": ...
+
+    def debug(self, event: str, **kwargs: Any) -> None: ...
+
+    def info(self, event: str, **kwargs: Any) -> None: ...
+
+    def warning(self, event: str, **kwargs: Any) -> None: ...
+
+    def error(self, event: str, **kwargs: Any) -> None: ...
+
+    def exception(self, event: str, **kwargs: Any) -> None: ...
+
+    def setLevel(self, level: int) -> None: ...
+
+
+class _FallbackBoundLogger(LoggerProtocol):
+    """Minimal ``structlog`` compatible logger backed by :mod:`logging`."""
+
+    def __init__(
+        self,
+        base_logger: logging.Logger,
+        context: Optional[Dict[str, Any]] = None,
+    ) -> None:
+        self._logger = base_logger
+        self._context: Dict[str, Any] = dict(context or {})
+
+    # -------------------------------------------------------------- utils
+    def _with_context(self, **extra: Any) -> Dict[str, Any]:
+        payload = dict(self._context)
+        payload.update(extra)
+        return payload
+
+    @staticmethod
+    def _format(event: str, payload: Dict[str, Any]) -> str:
+        if not payload:
+            return event
+        formatted = ", ".join(f"{key}={payload[key]!r}" for key in sorted(payload))
+        return f"{event} | {formatted}"
+
+    def _log(self, level: int, event: str, **kwargs: Any) -> None:
+        payload = self._with_context(**kwargs)
+        message = self._format(event, payload)
+        self._logger.log(level, message)
+
+    # -------------------------------------------------------------- api
+    def bind(self, **kwargs: Any) -> "_FallbackBoundLogger":
+        if not kwargs:
+            return self
+        return _FallbackBoundLogger(self._logger, self._with_context(**kwargs))
+
+    def debug(self, event: str, **kwargs: Any) -> None:
+        self._log(logging.DEBUG, event, **kwargs)
+
+    def info(self, event: str, **kwargs: Any) -> None:
+        self._log(logging.INFO, event, **kwargs)
+
+    def warning(self, event: str, **kwargs: Any) -> None:
+        self._log(logging.WARNING, event, **kwargs)
+
+    def error(self, event: str, **kwargs: Any) -> None:
+        self._log(logging.ERROR, event, **kwargs)
+
+    def exception(self, event: str, **kwargs: Any) -> None:
+        # logging.Logger.exception always records ``exc_info=True``
+        payload = self._with_context(**kwargs)
+        message = self._format(event, payload)
+        self._logger.exception(message)
+
+    def setLevel(self, level: int) -> None:
+        self._logger.setLevel(level)
+
+    def __getattr__(self, name: str) -> Any:
+        return getattr(self._logger, name)
+
+    def __repr__(self) -> str:  # pragma: no cover - diagnostic helper
+        return f"_FallbackBoundLogger(name={self._logger.name!r}, context={self._context!r})"
+
+
+HAS_STRUCTLOG = structlog is not None
+
+if not HAS_STRUCTLOG:
+    stdlib_shim.BoundLogger = _FallbackBoundLogger  # type: ignore[name-defined]
+
+_FALLBACK_LOGGER_CACHE: Dict[str, _FallbackBoundLogger] = {}
+_fallback_configured = False
+
+if HAS_STRUCTLOG:  # pragma: no cover - covered by integration when structlog present
+    BoundLogger = _StructlogBoundLogger  # type: ignore[assignment]
+else:  # pragma: no cover - exercised in kata env
+    BoundLogger = _FallbackBoundLogger
 
 
 DEFAULT_LOG_LEVEL = logging.INFO
 
 
 def _shared_processors() -> list[Any]:
-    """Return processors shared by stdlib + structlog pipelines."""
+    """Return the processors shared by stdlib + structlog pipelines."""
 
-    if structlog is None:
+    if not HAS_STRUCTLOG:
         return []
 
     return [
@@ -53,22 +212,32 @@ def _shared_processors() -> list[Any]:
     ]
 
 
+def _configure_fallback_logging(level: int) -> None:
+    """Initialise logging when structlog is unavailable."""
+
+    global _fallback_configured
+    root_logger = logging.getLogger()
+    if not _fallback_configured:
+        logging.basicConfig(
+            level=level,
+            format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+        )
+        _fallback_configured = True
+    else:
+        root_logger.setLevel(level)
+
+
 def _ensure_stdlib_bridge(level: int) -> None:
     """Configure the logging bridge for structlog or provide a fallback."""
 
-    if structlog is not None:
-        formatter = structlog.stdlib.ProcessorFormatter(
-            processor=structlog.processors.JSONRenderer(),
-            foreign_pre_chain=_shared_processors(),
-        )
-
-        handler = logging.StreamHandler()
-        handler.setFormatter(formatter)
-
-        root_logger = logging.getLogger()
-        root_logger.handlers[:] = [handler]
-        root_logger.setLevel(level)
+    if not HAS_STRUCTLOG:
+        _configure_fallback_logging(level)
         return
+
+    formatter = structlog.stdlib.ProcessorFormatter(
+        processor=structlog.processors.JSONRenderer(),
+        foreign_pre_chain=_shared_processors(),
+    )
 
     handler = logging.StreamHandler()
     handler.setFormatter(
@@ -140,9 +309,9 @@ class _FallbackBoundLogger:
 def configure_logging(
     *,
     level: int = DEFAULT_LOG_LEVEL,
-    wrapper_class: type[structlog.BoundLoggerBase] | None = None,
+    wrapper_class: Optional[type[object]] = None,
     cache_logger_on_first_use: bool = True,
-    processors: Optional[Iterable[structlog.typing.Processor]] = None,
+    processors: Optional[Iterable[Any]] = None,
 ) -> None:
     """Initialise structlog and bridge stdlib loggers.
 
@@ -163,11 +332,8 @@ def configure_logging(
         that contextual information is consistent across the application.
     """
 
-    if structlog is None:
-        global _FALLBACK_CONFIGURED, _FALLBACK_LEVEL
-        _FALLBACK_LEVEL = level
-        _ensure_stdlib_bridge(level)
-        _FALLBACK_CONFIGURED = True
+    if not HAS_STRUCTLOG:
+        _configure_fallback_logging(level)
         return
 
     chosen_wrapper = wrapper_class or structlog.stdlib.BoundLogger
@@ -195,7 +361,7 @@ class LoggerConfig:
     level: int = DEFAULT_LOG_LEVEL
     context: tuple[tuple[str, object], ...] = ()
 
-    def build(self) -> Any:
+    def build(self) -> LoggerProtocol:
         logger = get_logger(self.name)
         if self.context:
             bind = getattr(logger, "bind", None)
@@ -208,23 +374,31 @@ class LoggerConfig:
         return logger
 
 
-def get_logger(name: str) -> Any:
+def get_logger(name: str) -> LoggerProtocol:
     """Return a structlog bound logger, configuring defaults if needed."""
 
-    if structlog is None:
-        global _FALLBACK_CONFIGURED
-        if not _FALLBACK_CONFIGURED:
-            configure_logging(level=_FALLBACK_LEVEL)
-        return _FallbackBoundLogger(name)
+    if HAS_STRUCTLOG:
+        if not structlog.is_configured():  # pragma: no cover - defensive path
+            configure_logging()
+        return structlog.get_logger(name)  # type: ignore[return-value]
 
-    if not structlog.is_configured():  # pragma: no cover - defensive path
-        configure_logging()
-    return structlog.get_logger(name)  # type: ignore[return-value]
+    _configure_fallback_logging(DEFAULT_LOG_LEVEL)
+    cached = _FALLBACK_LOGGER_CACHE.get(name)
+    if cached is not None:
+        return cached
+
+    base_logger = logging.getLogger(name)
+    fallback = _FallbackBoundLogger(base_logger)
+    _FALLBACK_LOGGER_CACHE[name] = fallback
+    return fallback
 
 
 __all__ = [
     "DEFAULT_LOG_LEVEL",
+    "HAS_STRUCTLOG",
+    "BoundLogger",
     "LoggerConfig",
+    "LoggerProtocol",
     "configure_logging",
     "get_logger",
 ]

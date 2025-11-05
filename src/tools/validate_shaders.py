@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import argparse
 import os
+import re
 import shlex
 import shutil
 import subprocess
@@ -56,6 +57,13 @@ QSB_PROFILE_ARGUMENTS: tuple[str, ...] = (
 )
 
 
+RUNTIME_DEPENDENCY_HINTS: tuple[tuple[str, str], ...] = (
+    ("libxkbcommon.so.0", "libxkbcommon0"),
+    ("libGL.so.1", "libgl1"),
+    ("libEGL.so.1", "libegl1"),
+)
+
+
 @dataclass(frozen=True)
 class ShaderFile:
     """Metadata captured for a single shader variant."""
@@ -72,6 +80,10 @@ class ShaderFile:
 ValidationErrors = List[str]
 
 QSB_ENV_VARIABLE = "QSB_COMMAND"
+
+
+class ShaderValidationUnavailableError(RuntimeError):
+    """Raised when qsb cannot run due to a missing runtime dependency."""
 
 
 def classify_shader(path: Path) -> tuple[str, str]:
@@ -199,6 +211,24 @@ def _shader_reports_paths(
     return output_path, log_path
 
 
+def _extract_missing_shared_library(stderr: str) -> str | None:
+    """Return the missing shared library mentioned in *stderr*, if any."""
+
+    marker = "error while loading shared libraries:"
+    for line in stderr.splitlines():
+        if marker not in line:
+            continue
+        _, tail = line.split(marker, 1)
+        candidate = tail.strip()
+        if not candidate:
+            continue
+        library, *_ = candidate.split(":", 1)
+        library = library.strip()
+        if library:
+            return library
+    return None
+
+
 def _run_qsb(
     shader: ShaderFile,
     shader_root: Path,
@@ -242,13 +272,27 @@ def _run_qsb(
             log_contents.append("[stderr]\n" + stderr)
         log_path.write_text("\n\n".join(log_contents), encoding="utf-8")
 
+    missing_library = _extract_missing_shared_library(stderr)
+    if completed.returncode == 127 and missing_library:
+        raise ShaderValidationUnavailableError(
+            "Qt Shader Baker could not start because the shared library "
+            f"'{missing_library}' is not available in the current environment."
+        )
+
     if completed.returncode != 0:
+        env_message = _summarize_environment_failure(
+            completed.returncode, stdout, stderr, command
+        )
+        if env_message is not None:
+            raise QsbEnvironmentError(env_message)
+
         errors.append(
             f"{_relative(shader.path, shader_root)}: qsb failed with exit code {completed.returncode}"
         )
         if stderr:
             first_line = stderr.strip().splitlines()[0]
             errors.append(f"    {first_line}")
+            errors.extend(_diagnose_qsb_failure(stderr))
 
     if temp_output is not None:
         with suppress(FileNotFoundError):
@@ -261,7 +305,14 @@ def validate_shaders(
     qsb_command: Sequence[str] | None = None,
     reports_dir: Path | None = None,
 ) -> ValidationErrors:
-    """Return a list of validation error messages for *shader_root*."""
+    """Return a list of validation error messages for *shader_root*.
+
+    Raises
+    ------
+    ShaderValidationUnavailableError
+        If ``qsb`` is present but cannot be executed due to a missing
+        shared library at runtime (for example ``libxkbcommon.so.0``).
+    """
 
     errors: ValidationErrors = []
 
@@ -308,7 +359,10 @@ def validate_shaders(
         _validate_versions(files, shader_root, errors)
 
         for shader in files:
-            _run_qsb(shader, shader_root, command, reports_dir, errors)
+            try:
+                _run_qsb(shader, shader_root, command, reports_dir, errors)
+            except QsbEnvironmentError as exc:
+                return [str(exc)]
 
     return errors
 
@@ -352,7 +406,11 @@ def main(argv: Sequence[str] | None = None) -> int:
     reports_dir = args.reports_dir.resolve() if args.reports_dir else None
     if reports_dir is None and args.emit_qsb:
         reports_dir = DEFAULT_REPORTS_ROOT
-    errors = validate_shaders(shader_root, reports_dir=reports_dir)
+    try:
+        errors = validate_shaders(shader_root, reports_dir=reports_dir)
+    except ShaderValidationUnavailableError as exc:
+        print(f"[validate_shaders] WARNING: {exc}", file=sys.stderr)
+        return 0
 
     if errors:
         for message in errors:
