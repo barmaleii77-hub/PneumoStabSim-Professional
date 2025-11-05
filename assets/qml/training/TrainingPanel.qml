@@ -161,8 +161,15 @@ Pane {
                     Layout.fillWidth: true
                 }
                 Label {
-                    text: qsTr("Сценарий: %1").arg(root.metadataDetails.scenarioId || qsTr("нет"))
-                    visible: !!root.metadataDetails.scenarioId
+                    text: qsTr("Сценарий: %1").arg(root.metadataDetails.scenarioLabel || root.metadataDetails.scenarioId || qsTr("нет"))
+                    visible: !!(root.metadataDetails.scenarioLabel || root.metadataDetails.scenarioId)
+                    Layout.fillWidth: true
+                }
+                Label {
+                    text: root.metadataDetails.scenarioSummary || ""
+                    visible: !!root.metadataDetails.scenarioSummary
+                    wrapMode: Text.WordWrap
+                    color: Qt.rgba(0.78, 0.81, 0.9, 0.9)
                     Layout.fillWidth: true
                 }
                 Label {
