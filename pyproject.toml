@@ -33,6 +33,7 @@ dependencies = [
     "jsonschema==4.23.0",
     "PyYAML==6.0.3",
     "pydantic>=2.12.3",
+    "structlog==24.4.0",
 ]
 
 [project.optional-dependencies]
@@ -90,4 +91,13 @@ exclude_lines = [
     "pragma: no cover",
     "def __repr__",
     "if self.debug:",
+]
+
+[tool.uv]
+dev-dependencies = [
+    "pytest==8.4.2",
+    "pytest-qt==4.5.0",
+    "ruff==0.14.1",
+    "mypy==1.18.2",
+    "pre-commit==4.3.0",
 ]

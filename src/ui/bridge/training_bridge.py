@@ -107,10 +107,6 @@ class TrainingPresetBridge(QObject):
     def activePresetId(self) -> str:  # pragma: no cover - Qt binding
         return self._active_preset_id
 
-    @Property("QVariantMap", notify=selectedPresetChanged)
-    def selectedPreset(self) -> Dict[str, Any]:  # pragma: no cover - Qt binding
-        return dict(self._selected_payload)
-
     # ---------------------------------------------------------------------- slots
     @Slot(result="QVariantList")
     def listPresets(self) -> List[Dict[str, Any]]:
@@ -124,11 +120,16 @@ class TrainingPresetBridge(QObject):
     def applyPreset(self, preset_id: str) -> bool:
         if not preset_id:
             return False
+        previous_active = self._active_preset_id
         try:
             self._service.apply_preset(preset_id, auto_save=True)
         except KeyError:
             return False
         self._set_selected_payload(preset_id)
+        if self._active_preset_id == previous_active:
+            # Ensure consumers receive a signal even when the same preset is re-applied.
+            self._active_preset_id = self._service.active_preset_id()
+            self.activePresetChanged.emit()
         return True
 
     @Slot(result=str)
@@ -136,6 +137,10 @@ class TrainingPresetBridge(QObject):
         if not self._presets_payload:
             return ""
         return str(self._presets_payload[0].get("id", ""))
+
+    @Slot(result="QVariantMap")
+    def selectedPreset(self) -> Dict[str, Any]:
+        return dict(self._selected_payload)
 
     @Slot(result="QVariantList")
     def refreshPresets(self) -> List[Dict[str, Any]]:

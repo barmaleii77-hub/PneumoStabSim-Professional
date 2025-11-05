@@ -1,6 +1,7 @@
 import QtQuick 6.10
 import QtQuick3D 6.10
 import "."
+import CustomGeometry 1.0 as CustomGeometry
 
 /*
  * LinearCylinder - reusable helper for cylinders stretched between two points
@@ -61,9 +62,8 @@ Node {
         objectName: "cylinderModel"
         position: root.midpoint
         eulerRotation: Qt.vector3d(0, 0, root.rotationDeg)
-        geometry: CylinderGeometry {
-            radius: root.safeRadius
-            length: root.length
+        scale: Qt.vector3d(root.safeRadius, root.length / 2, root.safeRadius)
+        geometry: CustomGeometry.ProceduralCylinderGeometry {
             segments: Math.max(3, root.segments)
             rings: Math.max(1, root.rings)
         }

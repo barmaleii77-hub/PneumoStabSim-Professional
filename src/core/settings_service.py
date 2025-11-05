@@ -8,11 +8,12 @@
 from __future__ import annotations
 
 import json
+from copy import deepcopy
 import os
 from collections.abc import Mapping as MappingABC
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any, Iterable, Mapping, MutableMapping
+from typing import Any, Iterable, Mapping, MutableMapping, Sequence
 
 from src.infrastructure.container import (
     ServiceContainer,
@@ -29,6 +30,24 @@ from src.core.settings_validation import (
 from src.core.settings_models import AppSettings, dump_settings
 
 _MISSING = object()
+
+
+def _load_base_payload() -> dict[str, Any]:
+    template_path = Path(__file__).resolve().parents[2] / "config" / "app_settings.json"
+    try:
+        content = template_path.read_text(encoding="utf-8")
+    except OSError:
+        return {}
+    try:
+        payload = json.loads(content)
+    except json.JSONDecodeError:
+        return {}
+    if isinstance(payload, dict):
+        return payload
+    return {}
+
+
+_SETTINGS_BASE_PAYLOAD = _load_base_payload()
 
 
 class SettingsValidationError(ValueError):
@@ -120,9 +139,77 @@ class SettingsService:
         try:
             return AppSettings.model_validate(payload)
         except ValidationError as exc:  # pragma: no cover - validated via tests
+            if not self._validate_schema:
+                sanitized = self._sanitize_payload_for_model(payload, exc)
+                enriched = self._merge_with_template(sanitized)
+                try:
+                    return AppSettings.model_validate(enriched)
+                except ValidationError as nested:
+                    raise SettingsValidationError(
+                        "Settings payload failed typed validation"
+                    ) from nested
             raise SettingsValidationError(
                 "Settings payload failed typed validation"
             ) from exc
+
+    def _sanitize_payload_for_model(
+        self, payload: Mapping[str, Any], exc: ValidationError
+    ) -> dict[str, Any]:
+        sanitized: dict[str, Any] = json.loads(json.dumps(payload))
+        for error in exc.errors():
+            if error.get("type") != "extra_forbidden":
+                continue
+            location = error.get("loc")
+            if not location:
+                continue
+            self._prune_path(sanitized, location)
+        return sanitized
+
+    def _merge_with_template(self, payload: Mapping[str, Any]) -> dict[str, Any]:
+        if not isinstance(_SETTINGS_BASE_PAYLOAD, dict):
+            return json.loads(json.dumps(payload))
+        template = deepcopy(_SETTINGS_BASE_PAYLOAD)
+        self._deep_merge(template, payload)
+        return template
+
+    @staticmethod
+    def _prune_path(payload: Any, location: Sequence[Any]) -> None:
+        if not location:
+            return
+
+        target: Any = payload
+        for segment in location[:-1]:
+            if isinstance(segment, int):
+                if isinstance(target, list) and 0 <= segment < len(target):
+                    target = target[segment]
+                else:
+                    return
+            else:
+                if isinstance(target, MutableMapping):
+                    target = target.get(segment)
+                else:
+                    return
+
+        final = location[-1]
+        if isinstance(final, int):
+            if isinstance(target, list) and 0 <= final < len(target):
+                target.pop(final)
+        else:
+            if isinstance(target, MutableMapping):
+                target.pop(final, None)
+
+    @staticmethod
+    def _deep_merge(
+        target: MutableMapping[str, Any], source: Mapping[str, Any]
+    ) -> None:
+        for key, value in source.items():
+            if (
+                isinstance(value, Mapping)
+                and isinstance(target.get(key), MutableMapping)
+            ):
+                SettingsService._deep_merge(target[key], value)
+            else:
+                target[key] = deepcopy(value)
 
     def _write_file(self, payload: dict[str, Any]) -> None:
         path = self.resolve_path()
@@ -190,16 +277,21 @@ class SettingsService:
         Пример: ``service.get("current.constants.geometry.kinematics.track_width_m")``
         """
 
+        segments = list(self._split_path(path))
+        if not segments:
+            return default
+
         payload = self.load()
         data: Any = dump_settings(payload)
-        for key in self._split_path(path):
-            if not isinstance(data, MutableMapping):
-                return default
-            next_value = data.get(key, _MISSING)
-            if next_value is _MISSING:
-                return default
-            data = next_value
-        return data
+        result = self._traverse_mapping(data, segments, _MISSING)
+        if result is not _MISSING:
+            return result
+
+        if not self._validate_schema and self._cache_dict is not None:
+            fallback = self._traverse_mapping(self._cache_dict, segments, _MISSING)
+            if fallback is not _MISSING:
+                return fallback
+        return default
 
     def set(self, path: str, value: Any) -> None:
         """Установить значение по dot‑пути и сохранить изменения."""
@@ -323,6 +415,11 @@ class SettingsService:
 
             location = ".".join(path_parts) or "<root>"
             formatted.append(f"{location}: {message}")
+
+        try:
+            self._validate_graphics_materials(payload)
+        except SettingsValidationError as graphics_exc:
+            formatted.append(str(graphics_exc))
 
         joined = "; ".join(formatted)
         raise SettingsValidationError(
@@ -516,6 +613,19 @@ class SettingsService:
     @staticmethod
     def _split_path(path: str) -> Iterable[str]:
         return [segment for segment in path.split(".") if segment]
+
+    @staticmethod
+    def _traverse_mapping(
+        data: Any, segments: Iterable[str], default: Any
+    ) -> Any:
+        current: Any = data
+        for key in segments:
+            if not isinstance(current, MutableMapping):
+                return default
+            if key not in current:
+                return default
+            current = current[key]
+        return current
 
     def get_unknown_paths(self) -> list[str]:
         """Return a sorted list of settings paths that were not pre-defined."""

@@ -1,0 +1,3 @@
+module Panels.Common
+PresetButtons 1.0 ../../panels/common/PresetButtons.qml
+UndoRedoControls 1.0 ../../panels/common/UndoRedoControls.qml
