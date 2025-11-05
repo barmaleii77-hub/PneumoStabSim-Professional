@@ -35,7 +35,7 @@ flowchart TD
 
 ## Кеширование и артефакты
 - **Pip**: `actions/setup-python@v5` с `cache: 'pip'` + fallback-кеш для `~/.cache/pip` на Linux.
-- **Qt**: `jurplel/install-qt-action@v4` с встроенным кешем модулей (`qtbase`, `qtdeclarative`, `qtquick3d`).
+- **Qt**: `jurplel/install-qt-action@v4` с встроенным кешем модулей (`qtquick3d`, `qtshadertools`, `qtimageformats`).
 - **Тестовые артефакты**: лог pytest, JUnit XML, coverage XML/HTML сохраняются в `artifacts/test` и выгружаются как `test-results-${{ matrix.os }}`.
 - **Логи линтеров**: шаг `lint` складывает отчёты в `artifacts/lint` и всегда публикует их.
 - **Финальный архив**: job `summarize` подтягивает все артефакты и публикует сводный `ci-bundle`.

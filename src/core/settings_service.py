@@ -9,10 +9,11 @@ from __future__ import annotations
 
 import json
 import os
+from copy import deepcopy
 from collections.abc import Mapping as MappingABC
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any, Iterable, Mapping, MutableMapping
+from typing import Any, Iterable, Mapping, MutableMapping, Sequence
 
 from src.infrastructure.container import (
     ServiceContainer,
@@ -28,7 +29,42 @@ from src.core.settings_validation import (
 )
 from src.core.settings_models import AppSettings, dump_settings
 
+
+class _RelaxedAppSettings(AppSettings):
+    """Variant of :class:`AppSettings` that ignores unknown fields."""
+
+    model_config = dict(AppSettings.model_config)
+    model_config["extra"] = "ignore"
+
+
+class _LooseAppSettings:
+    """Dictionary-backed settings view used when schema validation is disabled."""
+
+    def __init__(self, payload: Mapping[str, Any]) -> None:
+        self._payload = json.loads(json.dumps(payload))
+
+    def model_dump(self, *_, **__) -> dict[str, Any]:  # pragma: no cover - minimal shim
+        return json.loads(json.dumps(self._payload))
+
 _MISSING = object()
+
+
+def _load_base_payload() -> dict[str, Any]:
+    template_path = Path(__file__).resolve().parents[2] / "config" / "app_settings.json"
+    try:
+        content = template_path.read_text(encoding="utf-8")
+    except OSError:
+        return {}
+    try:
+        payload = json.loads(content)
+    except json.JSONDecodeError:
+        return {}
+    if isinstance(payload, dict):
+        return payload
+    return {}
+
+
+_SETTINGS_BASE_PAYLOAD = _load_base_payload()
 
 
 class SettingsValidationError(ValueError):
@@ -117,12 +153,88 @@ class SettingsService:
         return payload
 
     def _parse_model(self, payload: Mapping[str, Any]) -> AppSettings:
+        """Return a typed settings model, relaxing extras when schema checks are off."""
+
+        model_factory: type[AppSettings]
+        if self._validate_schema:
+            model_factory = AppSettings
+        else:
+            model_factory = _RelaxedAppSettings
+
         try:
-            return AppSettings.model_validate(payload)
+            return model_factory.model_validate(payload)
         except ValidationError as exc:  # pragma: no cover - validated via tests
+            if not self._validate_schema:
+                sanitized = self._sanitize_payload_for_model(payload, exc)
+                enriched = self._merge_with_template(sanitized)
+                try:
+                    return AppSettings.model_validate(enriched)
+                except ValidationError as nested:
+                    raise SettingsValidationError(
+                        "Settings payload failed typed validation"
+                    ) from nested
             raise SettingsValidationError(
                 "Settings payload failed typed validation"
             ) from exc
+
+    def _sanitize_payload_for_model(
+        self, payload: Mapping[str, Any], exc: ValidationError
+    ) -> dict[str, Any]:
+        sanitized: dict[str, Any] = json.loads(json.dumps(payload))
+        for error in exc.errors():
+            if error.get("type") != "extra_forbidden":
+                continue
+            location = error.get("loc")
+            if not location:
+                continue
+            self._prune_path(sanitized, location)
+        return sanitized
+
+    def _merge_with_template(self, payload: Mapping[str, Any]) -> dict[str, Any]:
+        if not isinstance(_SETTINGS_BASE_PAYLOAD, dict):
+            return json.loads(json.dumps(payload))
+        template = deepcopy(_SETTINGS_BASE_PAYLOAD)
+        self._deep_merge(template, payload)
+        return template
+
+    @staticmethod
+    def _prune_path(payload: Any, location: Sequence[Any]) -> None:
+        if not location:
+            return
+
+        target: Any = payload
+        for segment in location[:-1]:
+            if isinstance(segment, int):
+                if isinstance(target, list) and 0 <= segment < len(target):
+                    target = target[segment]
+                else:
+                    return
+            else:
+                if isinstance(target, MutableMapping):
+                    target = target.get(segment)
+                else:
+                    return
+
+        final = location[-1]
+        if isinstance(final, int):
+            if isinstance(target, list) and 0 <= final < len(target):
+                target.pop(final)
+        else:
+            if isinstance(target, MutableMapping):
+                target.pop(final, None)
+
+    @staticmethod
+    def _deep_merge(
+        target: MutableMapping[str, Any], source: Mapping[str, Any]
+    ) -> None:
+        for key, value in source.items():
+            if (
+                isinstance(value, Mapping)
+                and isinstance(target.get(key), MutableMapping)
+            ):
+                SettingsService._deep_merge(target[key], value)
+            else:
+                target[key] = deepcopy(value)
 
     def _write_file(self, payload: dict[str, Any]) -> None:
         path = self.resolve_path()
@@ -140,9 +252,17 @@ class SettingsService:
 
         if not use_cache or self._cache_model is None:
             payload_dict = self._read_file()
-            model = self._parse_model(payload_dict)
-            self._cache_dict = payload_dict
-            self._cache_model = model
+            model_payload = self._build_model_payload(payload_dict)
+            try:
+                model = self._parse_model(model_payload)
+            except SettingsValidationError:
+                if self._validate_schema:
+                    raise
+                self._cache_dict = payload_dict
+                self._cache_model = _LooseAppSettings(payload_dict)
+            else:
+                self._cache_dict = payload_dict
+                self._cache_model = model
         return self._cache_model
 
     def reload(self) -> dict[str, Any]:
@@ -171,9 +291,20 @@ class SettingsService:
         if self._validate_schema:
             self.validate(payload_dict)
         self._write_file(payload_dict)
-        model = self._parse_model(payload_dict)
-        self._cache_dict = payload_dict
-        self._cache_model = model
+        model_payload = self._build_model_payload(
+            payload_dict,
+            extra_unknown_paths=pending_unknown_paths,
+        )
+        try:
+            model = self._parse_model(model_payload)
+        except SettingsValidationError:
+            if self._validate_schema:
+                raise
+            self._cache_dict = payload_dict
+            self._cache_model = _LooseAppSettings(payload_dict)
+        else:
+            self._cache_dict = payload_dict
+            self._cache_model = model
         if last_modified is not None:
             self._last_modified_snapshot = last_modified
         if pending_unknown_paths:
@@ -190,16 +321,21 @@ class SettingsService:
         Пример: ``service.get("current.constants.geometry.kinematics.track_width_m")``
         """
 
+        segments = list(self._split_path(path))
+        if not segments:
+            return default
+
         payload = self.load()
         data: Any = dump_settings(payload)
-        for key in self._split_path(path):
-            if not isinstance(data, MutableMapping):
-                return default
-            next_value = data.get(key, _MISSING)
-            if next_value is _MISSING:
-                return default
-            data = next_value
-        return data
+        result = self._traverse_mapping(data, segments, _MISSING)
+        if result is not _MISSING:
+            return result
+
+        if not self._validate_schema and self._cache_dict is not None:
+            fallback = self._traverse_mapping(self._cache_dict, segments, _MISSING)
+            if fallback is not _MISSING:
+                return fallback
+        return default
 
     def set(self, path: str, value: Any) -> None:
         """Установить значение по dot‑пути и сохранить изменения."""
@@ -311,6 +447,20 @@ class SettingsService:
             self._validate_graphics_materials(payload)
             return
 
+        if (
+            isinstance(payload, MappingABC)
+            and isinstance(payload.get("current"), MappingABC)
+            and isinstance(payload.get("defaults_snapshot"), MappingABC)
+            and all(
+                tuple(error.path)[:2] in {("current", "graphics"), ("defaults_snapshot", "graphics")}
+                for error in errors
+            )
+        ):
+            try:
+                self._validate_graphics_materials(payload)
+            except SettingsValidationError as override_error:
+                raise override_error
+
         formatted: list[str] = []
         for error in errors:
             path_parts = [str(part) for part in error.path]
@@ -323,6 +473,11 @@ class SettingsService:
 
             location = ".".join(path_parts) or "<root>"
             formatted.append(f"{location}: {message}")
+
+        try:
+            self._validate_graphics_materials(payload)
+        except SettingsValidationError as graphics_exc:
+            formatted.append(str(graphics_exc))
 
         joined = "; ".join(formatted)
         raise SettingsValidationError(
@@ -517,6 +672,19 @@ class SettingsService:
     def _split_path(path: str) -> Iterable[str]:
         return [segment for segment in path.split(".") if segment]
 
+    @staticmethod
+    def _traverse_mapping(
+        data: Any, segments: Iterable[str], default: Any
+    ) -> Any:
+        current: Any = data
+        for key in segments:
+            if not isinstance(current, MutableMapping):
+                return default
+            if key not in current:
+                return default
+            current = current[key]
+        return current
+
     def get_unknown_paths(self) -> list[str]:
         """Return a sorted list of settings paths that were not pre-defined."""
 
@@ -524,6 +692,43 @@ class SettingsService:
 
     def _record_unknown_path(self, path: str) -> None:
         self._unknown_paths.add(path)
+
+    def _build_model_payload(
+        self,
+        payload: Mapping[str, Any],
+        *,
+        extra_unknown_paths: Iterable[str] | None = None,
+    ) -> Mapping[str, Any]:
+        """Return payload stripped of unknown paths for typed validation."""
+
+        if self._validate_schema:
+            return payload
+
+        skip_paths: set[str] = set(self._unknown_paths)
+        if extra_unknown_paths:
+            skip_paths.update(extra_unknown_paths)
+        if not skip_paths:
+            return payload
+
+        clone = json.loads(json.dumps(payload))
+        for candidate in skip_paths:
+            self._prune_path(clone, candidate)
+        return clone
+
+    def _prune_path(self, payload: MutableMapping[str, Any], path: str) -> None:
+        segments = list(self._split_path(path))
+        if not segments:
+            return
+
+        target: MutableMapping[str, Any] = payload
+        for key in segments[:-1]:
+            next_value = target.get(key)
+            if not isinstance(next_value, MutableMapping):
+                return
+            target = next_value  # type: ignore[assignment]
+
+        if isinstance(target, MutableMapping):
+            target.pop(segments[-1], None)
 
     def _capture_last_modified(self, payload: MappingABC[str, Any]) -> None:
         metadata = payload.get("metadata") if isinstance(payload, MappingABC) else None

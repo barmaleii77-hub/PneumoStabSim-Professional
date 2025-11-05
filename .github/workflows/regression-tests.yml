@@ -29,7 +29,10 @@ jobs:
         uses: astral-sh/setup-uv@v3
 
       - name: Sync environment
-        run: uv sync --frozen
+        run: uv sync --frozen --extra dev
+
+      - name: Install Qt dependencies
+        run: sudo apt-get update && sudo apt-get install -y libegl1-mesa
 
       - name: Run pytest suite
         run: uv run pytest --maxfail=1

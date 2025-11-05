@@ -12,7 +12,7 @@
 Ключевые параметры окружения:
 
 - Python:3.13.
-- Qt:6.10.0 (qtbase, qtdeclarative, qtquick3d).
+- Qt:6.10.0 (qtquick3d, qtshadertools, qtimageformats).
 - Переменные среды: `QT_QPA_PLATFORM=offscreen`, `QT_QUICK_BACKEND=software` для headless-запуска.
 
 Успешное прохождение джоба `lint` является обязательным для запуска матрицы тестов.

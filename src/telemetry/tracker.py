@@ -81,7 +81,7 @@ class TelemetryRouter:
         self._logger.info(
             "telemetry_record_written",
             channel=record.channel,
-            event=record.event,
+            telemetry_event=record.event,
             path=str(target),
         )
         return target
@@ -132,7 +132,7 @@ class TelemetryTracker:
         self._logger.info(
             "telemetry_event_recorded",
             channel=channel,
-            event=event,
+            telemetry_event=event,
             path=str(path),
         )
         return path

@@ -83,18 +83,35 @@ class VisualizationService(VisualizationServiceProtocol):
     def prepare_camera_payload(
         self, payload: Mapping[str, Any] | None = None
     ) -> Mapping[str, Any]:
+        manager = self._resolve_settings_manager()
         base: Dict[str, Any] = {}
+        if manager is not None:
+            camera_defaults = manager.get("current.graphics.camera", {})
+            if isinstance(camera_defaults, Mapping):
+                base.update(self._sanitize_payload(camera_defaults))
+
         existing = self._state.get("camera")
         if isinstance(existing, Mapping):
             base.update(dict(existing))
 
+
         payload_mapping = payload if isinstance(payload, Mapping) else {}
+
+        manager = self._resolve_settings_manager()
+        camera_defaults: Mapping[str, Any] | None = None
+        if manager is not None:
+            defaults_payload = manager.get("current.graphics.camera", {})
+            if isinstance(defaults_payload, Mapping):
+                camera_defaults = defaults_payload
+                base.update(dict(defaults_payload))
+            self._augment_with_orbit_metadata(base, manager)
+
         base.update(dict(payload_mapping))
         base.pop("hudTelemetry", None)
 
-        manager = self._resolve_settings_manager()
-        if manager is not None:
-            self._augment_with_orbit_metadata(base, manager)
+        if isinstance(camera_defaults, Mapping):
+            self._synchronise_vector_field(base, camera_defaults, key="orbit_target")
+            self._synchronise_vector_field(base, camera_defaults, key="pan")
 
         self._synchronise_vector_field(base, payload_mapping, key="orbit_target")
         self._synchronise_vector_field(base, payload_mapping, key="pan")

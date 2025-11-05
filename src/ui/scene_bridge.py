@@ -2,10 +2,11 @@
 
 from __future__ import annotations
 
-from typing import Any, Dict, Iterable
+from typing import Any, Dict, Iterable, Optional
 
 from PySide6.QtCore import QObject, Property, Signal
 
+from src.common.settings_manager import SettingsManager
 from src.ui.services.visualization_service import VisualizationService
 
 
@@ -28,12 +29,16 @@ class SceneBridge(QObject):
 
     def __init__(
         self,
-        parent: QObject | None = None,
+        parent: Optional[QObject] = None,
         *,
         visualization_service: VisualizationService | None = None,
+        settings_manager: Optional[SettingsManager] = None,
     ) -> None:
         super().__init__(parent)
-        self._service = visualization_service or VisualizationService()
+        if visualization_service is not None:
+            self._service = visualization_service
+        else:
+            self._service = VisualizationService(settings_manager=settings_manager)
         self._signal_map = {
             "geometry": self.geometryChanged,
             "camera": self.cameraChanged,
@@ -140,7 +145,15 @@ class SceneBridge(QObject):
     def refresh_orbit_presets(self) -> Dict[str, Any]:
         """Reload orbit presets via the service and broadcast camera updates."""
 
-        return self._service.refresh_orbit_presets()
+        manifest = self._service.refresh_orbit_presets()
+        updates = {
+            key: dict(value)
+            for key, value in self._service.latest_updates().items()
+            if isinstance(value, dict)
+        }
+        if updates:
+            self._emit_updates(updates)
+        return dict(manifest)
 
     # ------------------------------------------------------------------
     # Internal helpers

@@ -16,17 +16,28 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libvulkan1 mesa-vulkan-drivers vulkan-tools \
     && rm -rf /var/lib/apt/lists/*
 
+# Trust the egress proxy certificate so that Python tooling (aqt/requests)
+# can download Qt payloads during image build.
+ARG INSTALL_PROXY_CERT=false
+RUN if [ "$INSTALL_PROXY_CERT" = "true" ]; then \
+        cp config/certs/envoy-mitmproxy-ca-cert.crt /usr/local/share/ca-certificates/ && \
+        update-ca-certificates; \
+    fi
+
 # Python tooling
 RUN pipx ensurepath || true
 RUN python -m pip install --no-cache-dir -U pip wheel setuptools \
     aqtinstall ruff mypy pytest pytest-xdist pytest-cov
 
-# Qt installation with module availability checks
-ARG QT_VERSIONS="6.10.0,6.9.0,6.8.2"
-ENV QT_ROOT=/opt/Qt \
-    QT_ARCH=gcc_64 \
-    QT_VERSIONS=${QT_VERSIONS}
-
+# Qt 6.10.0 with Quick 3D & tools (qmllint, qsb)
+ENV QT_VER=6.10.0 QT_ROOT=/opt/Qt
+# Qt 6.10+ repositories nest the actual payload under a secondary qt6_{version}
+# directory. Pin the base URL explicitly so aqt can resolve the module metadata.
+RUN python -m aqt install-qt linux desktop ${QT_VER} gcc_64 \
+    -b https://download.qt.io/online/qtsdkrepository/linux_x64/desktop/qt6_6100/qt6_6100 \
+    -m qtquick3d qtshadertools qtimageformats -O ${QT_ROOT}
+ENV QT_HOME=${QT_ROOT}/${QT_VER}/gcc_64
+ENV PATH=${QT_HOME}/bin:${PATH}
 
 # Workdir
 WORKDIR /workdir

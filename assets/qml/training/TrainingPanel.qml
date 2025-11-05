@@ -1,7 +1,7 @@
 import QtQuick 6.10
 import QtQuick.Controls 6.10
 import QtQuick.Layouts 6.10
-import "../panels/common" as Common
+import "../Panels/Common" as Common
 
 Pane {
     id: root
@@ -76,7 +76,7 @@ Pane {
             return
         presetModel = bridge.listPresets()
         activePresetId = bridge.activePresetId
-        setSelected(bridge.selectedPreset)
+        setSelected(bridge.selectedPreset())
     }
 
     ColumnLayout {
@@ -311,7 +311,7 @@ Pane {
             activePresetId = bridge.activePresetId
         }
         function onSelectedPresetChanged() {
-            setSelected(bridge.selectedPreset)
+            setSelected(bridge.selectedPreset())
         }
     }
 }

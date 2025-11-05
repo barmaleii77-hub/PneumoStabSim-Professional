@@ -1,0 +1,12 @@
+# PLACEHOLDER: CA certificate for local MITM proxy
+#
+# This file is intentionally left blank. Do NOT commit real CA certificates to version control.
+#
+# If you require a CA certificate for local proxying (e.g., for development or testing),
+# generate your own and place it here, or configure your environment to load it securely.
+#
+# See config/certs/README.md and docs/ENVIRONMENT_SETUP.md for details.
+#
+# WARNING: Committing real CA certificates poses a severe security risk.
+# Anyone with access to this certificate can intercept TLS traffic from systems that trust it.
+# Always use environment-specific certificates and never share production CA keys.

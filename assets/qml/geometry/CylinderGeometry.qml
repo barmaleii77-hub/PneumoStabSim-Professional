@@ -1,6 +1,6 @@
 import QtQuick 6.10
 import QtQuick3D 6.10
-import QtQuick3D.Helpers 6.10 as Helpers
+import CustomGeometry 1.0 as Custom
 
 /*
  * CylinderGeometry Component - wraps the built-in Helpers.CylinderGeometry so
@@ -8,11 +8,11 @@ import QtQuick3D.Helpers 6.10 as Helpers
  * the Python-based CustomGeometry module. This keeps headless/offscreen loads
  * lightweight while matching the original API surface.
  */
-Helpers.CylinderGeometry {
+Custom.ProceduralCylinderGeometry {
     id: cylinderGeometry
 
     Component.onCompleted: {
-        console.log("🔷 CylinderGeometry ready (helpers mesh)")
+        console.log("🔷 CylinderGeometry ready (procedural mesh)")
         console.log("   segments=" + segments + ", rings=" + rings)
     }
 }
