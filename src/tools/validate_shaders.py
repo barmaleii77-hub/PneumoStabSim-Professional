@@ -86,6 +86,10 @@ class ShaderValidationUnavailableError(RuntimeError):
     """Raised when qsb cannot run due to a missing runtime dependency."""
 
 
+class ShaderValidationEnvironmentError(RuntimeError):
+    """Raised when qsb aborts because the Qt runtime is misconfigured."""
+
+
 class QsbEnvironmentError(RuntimeError):
     """Raised when qsb fails because the Qt runtime is misconfigured."""
 
@@ -260,7 +264,10 @@ def _summarize_environment_failure(
             "or reinstall the Qt tooling."
         )
 
-    if "failed to create opengl context" in combined or "could not initialize opengl" in combined:
+    if (
+        "failed to create opengl context" in combined
+        or "could not initialize opengl" in combined
+    ):
         return (
             "Qt Shader Baker failed to initialise an OpenGL context. "
             "Install the system OpenGL libraries (e.g. 'apt-get install -y libgl1 libegl1')."
@@ -276,6 +283,56 @@ def _summarize_environment_failure(
                     f"'{missing}' is missing (install '{package_hint}')."
                 )
             return f"Qt Shader Baker could not start because the shared library '{missing}' is missing."
+
+    return None
+
+
+def _interpret_qsb_startup_failure(
+    return_code: int,
+    stderr: str,
+    stdout: str,
+    *,
+    allow_generic: bool = True,
+) -> str | None:
+    """Return an explanatory message when qsb exits before compilation starts."""
+
+    if return_code == 0:
+        return None
+
+    message = _summarize_environment_failure(return_code, stdout, stderr, ())
+    if message is not None:
+        return message
+
+    combined = "\n".join(part for part in (stdout, stderr) if part).strip()
+    if not combined:
+        return None
+
+    lower = combined.lower()
+
+    if "command not found" in lower or "no such file or directory" in lower:
+        return (
+            "Qt Shader Baker could not be launched. Install Qt Shader Tools or "
+            "set QSB_COMMAND to the qsb executable."
+        )
+
+    missing = _extract_missing_shared_library(stderr)
+    if missing:
+        package_hint = _package_for_library(missing)
+        if package_hint:
+            return (
+                "Qt Shader Baker could not start because the shared library "
+                f"'{missing}' is missing (install '{package_hint}')."
+            )
+        return (
+            "Qt Shader Baker could not start because the shared library "
+            f"'{missing}' is missing."
+        )
+
+    if allow_generic:
+        return (
+            "Qt Shader Baker exited before compiling shaders. Verify that the Qt "
+            "runtime dependencies are installed and the environment is activated."
+        )
 
     return None
 
@@ -298,7 +355,10 @@ def _diagnose_qsb_failure(stderr: str) -> list[str]:
             "(source activate_environment.sh)."
         )
 
-    if "failed to create opengl context" in lower or "could not initialize opengl" in lower:
+    if (
+        "failed to create opengl context" in lower
+        or "could not initialize opengl" in lower
+    ):
         hints.append(
             "    Hint: Install OpenGL runtime libraries such as libgl1 and libegl1 "
             "on the host system."
@@ -326,6 +386,34 @@ def _package_for_library(library: str) -> str | None:
         if shared == library:
             return package
     return None
+
+
+def _probe_qsb(qsb_command: Sequence[str]) -> None:
+    """Ensure that the qsb executable starts without environment issues."""
+
+    def _run_probe(argument: str) -> subprocess.CompletedProcess[str]:
+        return subprocess.run(
+            [*qsb_command, argument],
+            capture_output=True,
+            text=True,
+        )
+
+    for flag in ("--version", "--help"):
+        completed = _run_probe(flag)
+        message = _interpret_qsb_startup_failure(
+            completed.returncode,
+            completed.stderr or "",
+            completed.stdout or "",
+            allow_generic=False,
+        )
+        if message is not None:
+            raise ShaderValidationEnvironmentError(message)
+        if completed.returncode == 0:
+            return
+
+    # If qsb handled the arguments but returned a non-zero exit code (e.g. it
+    # does not recognise the flag) we still consider the probe successful: the
+    # binary started which is all we care about here.
 
 
 def _run_qsb(
