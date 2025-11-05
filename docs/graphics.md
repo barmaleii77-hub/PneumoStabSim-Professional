@@ -35,6 +35,13 @@ Environment payload (вложенный)
 - `applyLightingUpdates`, `applyEnvironmentUpdates`, `applyQualityUpdates`, `applyCameraUpdates`, `applyEffectsUpdates`
 - Вызываются из `MainWindow` напрямую через `QMetaObject.invokeMethod` (без очереди) для надёжного применения.
 
+### Стартовая синхронизация и диагностика
+
+- `MainWindow` завершает инициализацию вызовами `StateSync.restore_settings()` и `StateSync.initial_full_sync()`, что обеспечивает передачу стартовых параметров графики сразу после загрузки QML. 【F:src/ui/main_window_pkg/main_window_refactored.py†L200-L236】
+- `StateSync.initial_full_sync()` проверяет батч-обновление и при необходимости вызывает `applyGeometryUpdates`, `applyEnvironmentUpdates`, `applyQualityUpdates` и `applyEffectsUpdates` по отдельности; регрессионный тест покрывает сценарий отказа батча. 【F:src/ui/main_window_pkg/state_sync.py†L122-L195】【F:tests/ui/test_initial_full_sync_invocations.py†L1-L79】
+- Панель геометрии отправляет стартовый `geometry_changed` через `QTimer.singleShot(500, …)`, что гарантирует вызов `applyGeometryUpdates` без взаимодействия пользователя. 【F:src/ui/panels/geometry/panel_geometry_refactored.py†L60-L77】【F:src/ui/panels/geometry/panel_geometry_refactored.py†L366-L380】
+- Для трассировки сигналов добавлен опциональный флаг `diagnosticsLoggingEnabled`: при его включении `SceneEnvironmentController` и `PostEffects` пишут JSON-логи с ключами payload и вызывают `window.logQmlEvent`. 【F:assets/qml/PneumoStabSim/SimulationRoot.qml†L62-L153】【F:assets/qml/effects/SceneEnvironmentController.qml†L18-L74】【F:assets/qml/effects/PostEffects.qml†L9-L52】
+
 Дефолтные значения эффектов
 - `lensFlareEnabled=false`, `vignetteEnabled=false` — чтобы не включались до прихода сигналов из Python
 
