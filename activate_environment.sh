@@ -25,6 +25,47 @@ export $(grep -E '^[A-Za-z_][A-Za-z0-9_]*=' "$ENV_FILE" | tr -d '\r')
 log "Environment variables loaded from .env"
 log "PROJECT_ROOT=$PROJECT_ROOT"
 
+ensure_qml_path() {
+  local dir="$1"
+  [[ -d "$dir" ]] || return
+
+  local current="${QML2_IMPORT_PATH:-}"
+  local separator="${PATH_SEPARATOR:-}"  # honour override for tests if provided
+
+  if [[ -z "$separator" ]]; then
+    if [[ "$current" == *";"* && "$current" != *":"* ]]; then
+      separator=';'
+    else
+      separator=':'
+    fi
+  fi
+
+  if [[ -z "$current" ]]; then
+    export QML2_IMPORT_PATH="$dir"
+    log "QML2_IMPORT_PATH initialised with $dir"
+    return
+  fi
+
+  local IFS="$separator"
+  read -r -a parts <<< "$current"
+  for existing in "${parts[@]}"; do
+    if [[ "$existing" == "$dir" ]]; then
+      return
+    fi
+  done
+
+  parts+=("$dir")
+  QML2_IMPORT_PATH="$(printf '%s' "${parts[0]}")"
+  for ((i = 1; i < ${#parts[@]}; ++i)); do
+    QML2_IMPORT_PATH+="$separator${parts[$i]}"
+  done
+  export QML2_IMPORT_PATH
+  log "QML2_IMPORT_PATH extended with $dir"
+}
+
+ensure_qml_path "$PROJECT_ROOT/assets/qml"
+ensure_qml_path "$PROJECT_ROOT/assets/qml/scene"
+
 if [[ ! -d "$PROJECT_ROOT/.venv" ]]; then
   log "Virtual environment missing – bootstrapping via uv"
   if command -v uv >/dev/null 2>&1; then

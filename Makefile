@@ -122,11 +122,16 @@ localization-check:
 	$(PYTHON) tools/update_translations.py --check
 
 qt-env-check:
-	@if command -v $(UV) >/dev/null 2>&1; then \\
-		cd $(UV_PROJECT_DIR) && $(UV) run $(UV_RUN_ARGS) -- python tools/environment/verify_qt_setup.py --report-dir reports/environment; \\
-	else \\
-		$(PYTHON) tools/environment/verify_qt_setup.py --report-dir reports/environment; \\
-	fi
+	@$(SHELL) -lc '\
+		if [ -f "$(UV_PROJECT_DIR)/activate_environment.sh" ]; then \
+			source "$(UV_PROJECT_DIR)/activate_environment.sh" >/dev/null 2>&1; \
+		fi; \
+		if command -v "$(UV)" >/dev/null 2>&1; then \
+			cd "$(UV_PROJECT_DIR)" && "$(UV)" run $(UV_RUN_ARGS) -- python tools/environment/verify_qt_setup.py --report-dir reports/environment; \
+		else \
+			$(PYTHON) tools/environment/verify_qt_setup.py --report-dir reports/environment; \
+		fi \
+	'
 
 .PHONY: telemetry-etl
 telemetry-etl:
