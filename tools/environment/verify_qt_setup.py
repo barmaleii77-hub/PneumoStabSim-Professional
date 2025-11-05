@@ -73,6 +73,22 @@ except ModuleNotFoundError:  # pragma: no cover - fallback when dependencies mis
         )
 
 
+RUNTIME_DEPENDENCY_HINTS: dict[str, str] = {
+    "libxkbcommon.so.0": (
+        "Install the system package 'libxkbcommon0' (for example 'apt-get install -y "
+        "libxkbcommon0')."
+    ),
+    "libGL.so.1": DEFAULT_OPENGL_HINT,
+    "libEGL.so.1": (
+        "Install the system package 'libegl1' (for example 'apt-get install -y libegl1')."
+    ),
+}
+
+
+class ProbeError(RuntimeError):
+    """Base exception raised when a probe fails."""
+
+
 @dataclass
 class ProbeResult:
     """Container describing the outcome of a probe."""
@@ -172,21 +188,60 @@ def _extract_missing_dependency(message: str) -> str | None:
     return None
 
 
-def _format_dependency_message(library: str) -> str:
-    hint = _dependency_hint(library)
-    return (
-        f"Qt runtime dependency '{library}' is not available in the current environment. "
-        f"{hint}"
-    )
+def _handle_missing_system_library(
+    results: list[ProbeResult],
+    exc: MissingSystemLibraryError,
+    expected_version: str,
+    expected_platform: str | None,
+    report_dir: Path | None,
+    *,
+    allow_missing_runtime: bool,
+) -> int:
+    strict = _strict_checks_enabled()
+    fatal = strict or not allow_missing_runtime
 
+    results.append(ProbeResult(False, str(exc), fatal=fatal))
+    if strict:
+        results.append(
+            ProbeResult(
+                False,
+                (
+                    "Strict Qt environment verification requested via "
+                    f"{STRICT_ENV_VAR}; missing system libraries are fatal."
+                ),
+            )
+        )
+    elif allow_missing_runtime:
+        results.append(
+            ProbeResult(
+                True,
+                "Skipping Qt runtime probes because required system "
+                "libraries are unavailable.",
+            )
+        )
 
-def _classify_runtime_error(exc: Exception) -> tuple[str, bool]:
-    message = str(exc)
-    library = _extract_missing_dependency(message)
-    if library:
-        return _format_dependency_message(library), False
-    return (f"Qt runtime initialisation failed: {message}", True)
+    successes, warnings, failures = _format_results(results)
+    exit_code = 1 if failures else 0
 
+    if report_dir is not None:
+        try:
+            report_path = _write_report(
+                report_dir,
+                expected_version,
+                expected_platform,
+                successes,
+                warnings,
+                failures,
+                exit_code,
+            )
+        except OSError as report_exc:
+            failures.append(f"[FAIL] Unable to write environment report: {report_exc}")
+            exit_code = 1
+        else:
+            successes.append(f"[OK] Environment report saved to {report_path}.")
+
+    for line in successes + warnings + failures:
+        print(line)
 
 def _resolve_opengl_failure(
     strict: bool, candidates: Sequence[str], hint: str
@@ -413,13 +468,13 @@ def run_smoke_check(
     try:
         version = _check_pyside_version(expected_version)
     except MissingSystemLibraryError as exc:
-        results.append(ProbeResult(False, str(exc), fatal=fatal_on_missing_runtime))
-        results.append(
-            ProbeResult(
-                False,
-                "Skipping Qt runtime probes because required system libraries are unavailable.",
-                fatal=False,
-            )
+        return _handle_missing_system_library(
+            results,
+            exc,
+            expected_version,
+            expected_platform,
+            report_dir,
+            allow_missing_runtime=allow_missing_runtime,
         )
         runtime_ready = False
         skip_message_added = True
@@ -439,8 +494,14 @@ def run_smoke_check(
         try:
             platform_name = _probe_qt_runtime(expected_platform)
         except MissingSystemLibraryError as exc:
-            results.append(ProbeResult(False, str(exc), fatal=fatal_on_missing_runtime))
-            runtime_ready = False
+            return _handle_missing_system_library(
+                results,
+                exc,
+                expected_version,
+                expected_platform,
+                report_dir,
+                allow_missing_runtime=allow_missing_runtime,
+            )
         except QtRuntimeUnavailableError as exc:
             fatal = exc.fatal and fatal_on_missing_runtime
             results.append(ProbeResult(False, str(exc), fatal=fatal))
@@ -474,18 +535,7 @@ def run_smoke_check(
                     True, f"QLibraryInfo reports plugin directory at {plugins_dir}."
                 )
             )
-    elif not skip_message_added:
-        results.append(
-            ProbeResult(
-                False,
-                "Skipping remaining Qt environment probes because prerequisite checks failed.",
-                fatal=False,
-            )
-        )
 
-    results.append(_check_opengl_runtime())
-
-    fatal_failures = [res for res in results if not res.ok and res.fatal]
     successes, warnings, failures = _format_results(results)
     exit_code = 1 if fatal_failures else 0
 
