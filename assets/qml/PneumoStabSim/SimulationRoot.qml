@@ -53,6 +53,7 @@ signal animationToggled(bool running)
  property bool pythonPistonsActive: false
  property bool pythonFrameActive: false
  property bool pythonPressureActive: false
+ property bool diagnosticsLoggingEnabled: false
  property bool fallbackEnabled: isRunning && !pythonAnimationActive
  property real fallbackPhase: 0.0
  property real lastFallbackPhase: 0.0
@@ -167,6 +168,10 @@ property int reflectionProbeTimeSlicingValue: reflectionProbeTimeSlicingFrom(env
  property bool _signalTraceSyncing: false
  property var shaderWarningMap: ({})
  property var shaderWarningList: []
+
+ function setDiagnosticsLoggingEnabled(enabled) {
+  diagnosticsLoggingEnabled = !!enabled
+ }
 
  function notifyPythonShaderEvent(handlerName, args) {
   if (!handlerName || !args)
@@ -917,6 +922,7 @@ SceneEnvironmentController {
  objectName: "sceneEnvironmentController"
  sceneBridge: root.sceneBridge
  sceneScaleFactor: root.sceneScaleFactor
+ diagnosticsLoggingEnabled: root.diagnosticsLoggingEnabled
  backgroundColor: root.environmentBackgroundColorDefault
  backgroundModeKey: root.environmentBackgroundModeDefault
  skyboxToggleFlag: root.environmentSkyboxEnabledDefault
@@ -1032,6 +1038,7 @@ SequentialAnimation {
         id: postEffects
         anchors.fill: parent
         visible: false
+        diagnosticsLoggingEnabled: root.diagnosticsLoggingEnabled
         onEffectCompilationError: function(effectId, errorLog) {
             root.registerShaderWarning(effectId, errorLog)
         }

@@ -68,6 +68,19 @@ graph TD
 | Индивидуальные методы | `QMLBridge.QML_UPDATE_METHODS` (из `config/qml_bridge.yaml`) + `invoke_qml_function` | `apply*Updates` функции в QML | Поддерживайте список методов в YAML и убедитесь, что новые QML-функции отражены в документе и модуле `src/ui/qml_bridge.py`. 【F:config/qml_bridge.yaml†L1-L35】【F:src/ui/qml_bridge.py†L1-L147】【F:assets/qml/main.qml†L90-L166】
 | Симуляция | `QMLBridge.set_simulation_state` | `applyBatchedUpdates` → `apply3DUpdates`/`applySimulationUpdates` | Изменяя структуру `StateSnapshot`, актуализируйте `_snapshot_to_payload` и QML обработчики. 【F:src/ui/main_window/qml_bridge.py†L195-L279】【F:assets/qml/main.qml†L90-L166】
 
+#### Начальная синхронизация обновлений
+
+- При создании окна `MainWindow` подключает все панели (`SignalsRouter.connect_all_signals`) и сразу запускает `StateSync.restore_settings()` и `StateSync.initial_full_sync()`, чтобы QML получил актуальные значения до первого кадра. 【F:src/ui/main_window_pkg/main_window_refactored.py†L200-L236】
+- `StateSync.initial_full_sync()` собирает слепок через `GraphicsPanel.collect_state()` и последовательно вызывает `applyGeometryUpdates`, `applyEnvironmentUpdates`, `applyQualityUpdates` и `applyEffectsUpdates`, если батч-применение недоступно. 【F:src/ui/main_window_pkg/state_sync.py†L122-L195】
+- Панель геометрии дополнительно отправляет стартовый сигнал `geometry_changed` через отложенный `QTimer.singleShot`, что гарантирует вызов `applyGeometryUpdates` даже без действий пользователя. 【F:src/ui/panels/geometry/panel_geometry_refactored.py†L60-L77】【F:src/ui/panels/geometry/panel_geometry_refactored.py†L366-L380】
+- Регрессионный тест `test_initial_full_sync_invocations.py` фиксирует контракт: при отказе батч-синхронизации `StateSync` обязан вызвать все `apply*Updates` методы. 【F:tests/ui/test_initial_full_sync_invocations.py†L1-L79】
+
+#### Диагностическое логирование QML
+
+- `SimulationRoot` экспортирует флаг `diagnosticsLoggingEnabled` и вспомогательный слот `setDiagnosticsLoggingEnabled(enabled)`, позволяя включать структурированные QML-логи из Python или DevTools. 【F:assets/qml/PneumoStabSim/SimulationRoot.qml†L62-L131】【F:assets/qml/PneumoStabSim/SimulationRoot.qml†L143-L153】
+- При активном флаге `SceneEnvironmentController` и `PostEffects` печатают JSON-логи с перечнем полученных ключей и отправляют событие в `window.logQmlEvent`, что облегчает трассировку сигналов Python → QML. 【F:assets/qml/effects/SceneEnvironmentController.qml†L18-L74】【F:assets/qml/effects/PostEffects.qml†L9-L52】
+- Логи отключены по умолчанию, поэтому рабочие сборки не получают лишнего вывода; включение рекомендуется только для отладки последовательности `apply*Updates`.
+
 ---
 
 ## ?? Python ↔ QML Communication

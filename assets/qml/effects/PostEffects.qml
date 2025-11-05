@@ -16,6 +16,45 @@ Item {
     signal effectCompilationError(var effectId, string errorLog)
     signal effectCompilationRecovered(var effectId)
 
+    // Structured diagnostics (opt-in from Python)
+    property bool diagnosticsLoggingEnabled: false
+
+    function logDiagnostics(eventName, params, environment) {
+        if (!diagnosticsLoggingEnabled)
+            return
+
+        var windowRef = typeof window !== "undefined" ? window : null
+        if (windowRef && typeof windowRef.logQmlEvent === "function") {
+            try {
+                windowRef.logQmlEvent("function_called", eventName)
+            } catch (error) {
+                console.debug("PostEffects", eventName, "window.logQmlEvent failed", error)
+            }
+        }
+
+        function ownKeys(value) {
+            if (!value || typeof value !== "object")
+                return []
+            var keys = []
+            for (var key in value) {
+                if (Object.prototype.hasOwnProperty.call(value, key))
+                    keys.push(key)
+            }
+            return keys
+        }
+
+        var payload = {
+            level: "info",
+            logger: "qml.post_effects",
+            event: eventName,
+            paramsKeys: ownKeys(params),
+            environmentKeys: ownKeys(environment),
+            timestamp: new Date().toISOString()
+        }
+
+        console.log(JSON.stringify(payload))
+    }
+
     function notifyEffectCompilation(effectId, fallbackActive, errorLog) {
         var normalizedId = effectId !== undefined && effectId !== null
                 ? String(effectId)
@@ -1442,6 +1481,7 @@ Item {
     }
 
     function applyPayload(params, environment) {
+        logDiagnostics("PostEffects.applyPayload", params, environment)
         var env = environment || null
         var toSceneLength = env && typeof env.toSceneLength === "function"
             ? env.toSceneLength
