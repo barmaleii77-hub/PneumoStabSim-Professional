@@ -39,7 +39,9 @@ def _build_parser() -> argparse.ArgumentParser:
     sub = parser.add_subparsers(dest="command", required=True)
 
     create_parser = sub.add_parser("create", help="Create a new backup archive.")
-    create_parser.add_argument("--label", default=None, help="Optional label appended to the archive name.")
+    create_parser.add_argument(
+        "--label", default=None, help="Optional label appended to the archive name."
+    )
     create_parser.add_argument(
         "--no-timestamp",
         action="store_true",
@@ -55,7 +57,9 @@ def _build_parser() -> argparse.ArgumentParser:
     )
 
     restore_parser = sub.add_parser("restore", help="Restore data from an archive.")
-    restore_parser.add_argument("archive", type=Path, help="Path to the archive to restore.")
+    restore_parser.add_argument(
+        "archive", type=Path, help="Path to the archive to restore."
+    )
     restore_parser.add_argument(
         "--target",
         type=Path,
@@ -68,11 +72,17 @@ def _build_parser() -> argparse.ArgumentParser:
         help="Overwrite existing files instead of skipping them.",
     )
 
-    inspect_parser = sub.add_parser("inspect", help="Display the manifest embedded in an archive.")
+    inspect_parser = sub.add_parser(
+        "inspect", help="Display the manifest embedded in an archive."
+    )
     inspect_parser.add_argument("archive", type=Path, help="Archive to inspect.")
 
-    prune_parser = sub.add_parser("prune", help="Delete older backups, keeping the newest ones.")
-    prune_parser.add_argument("keep", type=int, help="Number of recent backups to keep.")
+    prune_parser = sub.add_parser(
+        "prune", help="Delete older backups, keeping the newest ones."
+    )
+    prune_parser.add_argument(
+        "keep", type=int, help="Number of recent backups to keep."
+    )
 
     return parser
 
@@ -80,13 +90,19 @@ def _build_parser() -> argparse.ArgumentParser:
 def _build_service(args: argparse.Namespace) -> BackupService:
     sources = None
     if args.sources:
-        combined = list(discover_user_data_sources()) + [Path(src) for src in args.sources]
+        combined = list(discover_user_data_sources()) + [
+            Path(src) for src in args.sources
+        ]
         sources = combined
-    return BackupService(root=args.root, backup_dir=args.backup_dir, data_sources=sources)
+    return BackupService(
+        root=args.root, backup_dir=args.backup_dir, data_sources=sources
+    )
 
 
 def _cmd_create(service: BackupService, args: argparse.Namespace) -> int:
-    report = service.create_backup(label=args.label, include_timestamp=not args.no_timestamp)
+    report = service.create_backup(
+        label=args.label, include_timestamp=not args.no_timestamp
+    )
     print(f"Archive created: {report.archive_path}")
     if report.skipped:
         skipped = ", ".join(str(item) for item in report.skipped)
