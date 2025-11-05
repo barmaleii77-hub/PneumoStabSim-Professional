@@ -107,7 +107,6 @@ def summarise_assertions(case: Any, evaluation: Mapping[str, Any]) -> list[Asser
     """Evaluate assertions defined in *case* against computed values."""
 
     results: list[AssertionResult] = []
-    vertical_array = evaluation["raw_vertical_array"]
     tau_x = evaluation["moments"]["tau_x"]
     tau_z = evaluation["moments"]["tau_z"]
 
