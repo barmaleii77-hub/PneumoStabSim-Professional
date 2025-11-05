@@ -104,7 +104,7 @@ qml-lint:
 	done
 
 .PHONY: test-local
-test-local::
+test-local:
 	$(PYTHON) -m tools.ci_tasks test
 
 validate-shaders:
