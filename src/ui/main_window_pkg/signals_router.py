@@ -461,9 +461,9 @@ class SignalsRouter:
             if mesh_payload:
                 normalized["meshQuality"] = mesh_payload
 
-        shadow_payload: Dict[str, Any] = {}
         shadows = params.get("shadowSettings", params.get("shadows"))
         if isinstance(shadows, Mapping):
+            shadow_payload: Dict[str, Any] = {}
             enabled = coerce_bool(shadows.get("enabled"))
             if enabled is not None:
                 shadow_payload["enabled"] = enabled
@@ -487,8 +487,8 @@ class SignalsRouter:
             )
             if factor is not None:
                 shadow_payload["factor"] = factor
-        if shadow_payload:
-            normalized["shadowSettings"] = shadow_payload
+            if shadow_payload:
+                normalized["shadowSettings"] = shadow_payload
 
         passthrough_aliases = {
             "msaa": coerce_int,
@@ -1445,7 +1445,9 @@ class SignalsRouter:
 
         entry = registry.get(category)
         if entry is None:
-            parent = window if QObject is not None and isinstance(window, QObject) else None
+            parent = (
+                window if QObject is not None and isinstance(window, QObject) else None
+            )
             timer = QTimer(parent)
             timer.setSingleShot(True)
             try:
