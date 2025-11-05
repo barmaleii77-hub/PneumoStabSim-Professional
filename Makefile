@@ -137,7 +137,10 @@ qt-env-check:
 			source "$(UV_PROJECT_DIR)/activate_environment.sh" >/dev/null 2>&1; \
 		fi; \
 		if command -v "$(UV)" >/dev/null 2>&1; then \
-			cd "$(UV_PROJECT_DIR)" && "$(UV)" run $(UV_RUN_ARGS) -- python tools/environment/verify_qt_setup.py --report-dir reports/environment; \
+			if ! (cd "$(UV_PROJECT_DIR)" && "$(UV)" run $(UV_RUN_ARGS) -- python tools/environment/verify_qt_setup.py --report-dir reports/environment); then \
+				echo "Warning: '$(UV)' execution failed; falling back to '$(PYTHON)'." >&2; \
+				cd "$(UV_PROJECT_DIR)" && $(PYTHON) tools/environment/verify_qt_setup.py --report-dir reports/environment; \
+			fi; \
 		else \
 			$(PYTHON) tools/environment/verify_qt_setup.py --report-dir reports/environment; \
 		fi \

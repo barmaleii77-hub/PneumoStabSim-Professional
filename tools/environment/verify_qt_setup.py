@@ -25,15 +25,46 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Iterable, Sequence
 
+STRICT_ENV_VAR = "QT_ENV_CHECK_STRICT"
+DEFAULT_OPENGL_HINT = (
+    "Install the system OpenGL runtime (e.g. 'apt-get install -y libgl1')."
+)
+
 REPO_ROOT = Path(__file__).resolve().parents[2]
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
-from src.bootstrap.dependency_config import (
-    DependencyConfigError,
-    DependencyVariant,
-    resolve_dependency_variant,
-)
+try:
+    from src.bootstrap.dependency_config import (
+        DependencyConfigError,
+        DependencyVariant,
+        resolve_dependency_variant,
+    )
+except ModuleNotFoundError:  # pragma: no cover - fallback when dependencies missing
+
+    @dataclass(frozen=True)
+    class DependencyVariant:  # type: ignore[override]
+        """Minimal fallback variant when dependency metadata is unavailable."""
+
+        human_name: str
+        library_name: str
+        install_hint: str | None = None
+
+    class DependencyConfigError(RuntimeError):
+        """Raised when dependency metadata cannot be resolved."""
+
+    def resolve_dependency_variant(
+        name: str, *, platform_key: str | None = None
+    ) -> DependencyVariant:
+        if name != "opengl_runtime":
+            raise DependencyConfigError(
+                f"Fallback resolver cannot satisfy dependency '{name}'."
+            )
+        return DependencyVariant(
+            human_name="libGL.so.1",
+            library_name="GL",
+            install_hint=DEFAULT_OPENGL_HINT,
+        )
 
 
 @dataclass
@@ -48,16 +79,131 @@ class ProbeError(RuntimeError):
     """Raised when the Qt installation does not satisfy the expected contract."""
 
 
+class MissingSystemLibraryError(ProbeError):
+    """Raised when a required system library for PySide6 cannot be loaded."""
+
+    def __init__(self, library_name: str, install_hint: str) -> None:
+        message = (
+            "PySide6 cannot load required system library "
+            f"'{library_name}'. {install_hint}"
+        )
+        super().__init__(message)
+        self.library_name = library_name
+        self.install_hint = install_hint
+
+
+def _strict_checks_enabled() -> bool:
+    raw = os.environ.get(STRICT_ENV_VAR, "")
+    return raw.strip().lower() in {"1", "true", "yes", "on"}
+
+
 def _split_path_entries(raw: str | None) -> list[Path]:
     if not raw:
         return []
     return [Path(entry).expanduser() for entry in raw.split(os.pathsep) if entry]
 
 
+def _build_library_candidates(variant: DependencyVariant) -> list[str]:
+    candidates: list[str] = []
+    seen: set[str] = set()
+
+    def _push(name: str | None) -> None:
+        if not name:
+            return
+        if name not in seen:
+            seen.add(name)
+            candidates.append(name)
+
+    _push(getattr(variant, "human_name", None))
+    library_name = getattr(variant, "library_name", None)
+    _push(library_name)
+    if library_name and not library_name.startswith("lib"):
+        _push(f"lib{library_name}.so.1")
+
+    return candidates or ["libGL.so.1"]
+
+
+def _resolve_opengl_dependency() -> tuple[list[str], str]:
+    try:
+        variant = resolve_dependency_variant("opengl_runtime")
+    except DependencyConfigError:
+        return ["libGL.so.1"], DEFAULT_OPENGL_HINT
+
+    candidates = _build_library_candidates(variant)
+    hint = variant.install_hint or DEFAULT_OPENGL_HINT
+    return candidates, hint
+
+
+def _identify_missing_system_library(exc: ImportError) -> tuple[str, str] | None:
+    message = str(exc)
+    candidates, install_hint = _resolve_opengl_dependency()
+    for candidate in candidates:
+        if candidate in message:
+            return candidate, install_hint
+    return None
+
+
+def _handle_missing_system_library(
+    results: list[ProbeResult],
+    exc: MissingSystemLibraryError,
+    expected_version: str,
+    expected_platform: str | None,
+    report_dir: Path | None,
+) -> int:
+    strict = _strict_checks_enabled()
+    results.append(ProbeResult(not strict, str(exc)))
+    if strict:
+        results.append(
+            ProbeResult(
+                False,
+                (
+                    "Strict Qt environment verification requested via "
+                    f"{STRICT_ENV_VAR}; missing system libraries are fatal."
+                ),
+            )
+        )
+    else:
+        results.append(
+            ProbeResult(
+                True,
+                "Skipping Qt runtime probes because required system "
+                "libraries are unavailable.",
+            )
+        )
+
+    successes, failures = _format_results(results)
+    exit_code = 1 if (strict or failures) else 0
+
+    if report_dir is not None:
+        try:
+            report_path = _write_report(
+                report_dir,
+                expected_version,
+                expected_platform,
+                successes,
+                failures,
+                exit_code,
+            )
+        except OSError as report_exc:
+            failures.append(f"[FAIL] Unable to write environment report: {report_exc}")
+            exit_code = 1
+        else:
+            successes.append(f"[OK] Environment report saved to {report_path}.")
+
+    for line in successes + failures:
+        print(line)
+
+    return exit_code
+
+
 def _check_pyside_version(expected_prefix: str) -> str:
     try:
         from PySide6 import __version__ as pyside_version  # type: ignore[attr-defined]
     except ImportError as exc:  # pragma: no cover - defensive path
+        missing = _identify_missing_system_library(exc)
+        if missing is not None:
+            library_name, install_hint = missing
+            raise MissingSystemLibraryError(library_name, install_hint) from exc
         raise ProbeError("PySide6 is not installed. Run 'make uv-sync' first.") from exc
 
     if expected_prefix and not pyside_version.startswith(expected_prefix):
@@ -104,9 +250,18 @@ def _check_qlibraryinfo() -> Path:
 
 
 def _probe_qt_runtime(expected_platform: str | None = None) -> str:
-    from PySide6.QtGui import QGuiApplication
-    from PySide6.QtQml import QQmlEngine
-    from PySide6.QtQuick3D import QQuick3DGeometry
+    try:
+        from PySide6.QtGui import QGuiApplication
+        from PySide6.QtQml import QQmlEngine
+        from PySide6.QtQuick3D import QQuick3DGeometry
+    except ImportError as exc:  # pragma: no cover - defensive path
+        missing = _identify_missing_system_library(exc)
+        if missing is not None:
+            library_name, install_hint = missing
+            raise MissingSystemLibraryError(library_name, install_hint) from exc
+        raise ProbeError(
+            "Unable to import PySide6 Qt modules required for runtime verification."
+        ) from exc
 
     os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
@@ -136,38 +291,14 @@ def _probe_qt_runtime(expected_platform: str | None = None) -> str:
         app.quit()
 
 
-def _build_library_candidates(variant: DependencyVariant) -> list[str]:
-    candidates: list[str] = []
-    seen: set[str] = set()
-
-    def _push(name: str | None) -> None:
-        if not name:
-            return
-        if name not in seen:
-            seen.add(name)
-            candidates.append(name)
-
-    _push(getattr(variant, "human_name", None))
-    library_name = getattr(variant, "library_name", None)
-    _push(library_name)
-    if library_name and not library_name.startswith("lib"):
-        _push(f"lib{library_name}.so.1")
-
-    return candidates or ["libGL.so.1"]
-
-
 def _check_opengl_runtime() -> ProbeResult:
     if not sys.platform.startswith("linux"):
         return ProbeResult(
             True, f"OpenGL runtime check skipped on platform {sys.platform}."
         )
 
-    try:
-        variant = resolve_dependency_variant("opengl_runtime")
-    except DependencyConfigError as exc:
-        return ProbeResult(False, f"Unable to read OpenGL dependency metadata: {exc}")
+    candidates, install_hint = _resolve_opengl_dependency()
 
-    candidates = _build_library_candidates(variant)
     for candidate in candidates:
         try:
             ctypes.CDLL(candidate)
@@ -176,10 +307,6 @@ def _check_opengl_runtime() -> ProbeResult:
         else:
             return ProbeResult(True, f"OpenGL runtime '{candidate}' is loadable.")
 
-    install_hint = (
-        variant.install_hint
-        or "Install the system OpenGL runtime (e.g. 'apt-get install -y libgl1')."
-    )
     return ProbeResult(
         False,
         "OpenGL runtime libraries are missing: "
@@ -243,6 +370,10 @@ def run_smoke_check(
 
     try:
         version = _check_pyside_version(expected_version)
+    except MissingSystemLibraryError as exc:
+        return _handle_missing_system_library(
+            results, exc, expected_version, expected_platform, report_dir
+        )
     except ProbeError as exc:
         results.append(ProbeResult(False, str(exc)))
         successes, failures = _format_results(results)
@@ -277,6 +408,10 @@ def run_smoke_check(
 
     try:
         platform_name = _probe_qt_runtime(expected_platform)
+    except MissingSystemLibraryError as exc:
+        return _handle_missing_system_library(
+            results, exc, expected_version, expected_platform, report_dir
+        )
     except ProbeError as exc:
         results.append(ProbeResult(False, str(exc)))
     else:
