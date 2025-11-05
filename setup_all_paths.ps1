@@ -161,7 +161,7 @@ function Set-QtEnvironment {
 }
 
     # Qt Graphics Backend
-    $env:QSG_RHI_BACKEND = "d3d11"
+$env:QSG_RHI_BACKEND = "opengl"
     Write-Success "Graphics Backend: Direct3D 11"
 
     # Qt Logging
@@ -261,7 +261,7 @@ PYTHONDONTWRITEBYTECODE=1
 # ============================================================================
 # QT CONFIGURATION
 # ============================================================================
-QSG_RHI_BACKEND=d3d11
+QSG_RHI_BACKEND=opengl
 QT_LOGGING_RULES=js.debug=true;qt.qml.debug=true
 QSG_INFO=1
 QT_ENABLE_HIGHDPI_SCALING=1

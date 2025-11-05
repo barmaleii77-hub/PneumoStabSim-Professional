@@ -93,7 +93,9 @@ class ApplicationRunner:
             format_.setOption(QSurfaceFormat.FormatOption.DebugContext)
 
             QSurfaceFormat.setDefaultFormat(format_)
-            QQuickWindow.setGraphicsApi(QSGRendererInterface.GraphicsApi.OpenGL)
+            QQuickWindow.setGraphicsApi(
+                QSGRendererInterface.GraphicsApi.OpenGLRhi
+            )
 
             self._surface_format_configured = True
 
