@@ -488,6 +488,7 @@ check_*.py
 !tests/unit/tools/test_cipilot_environment.py
 !tests/tools/test_validate_shaders.py
 !tests/tools/test_cli_utilities.py
+!tests/tools/test_verify_qt_setup.py
 !tests/settings/test_persistence.py
 !tests/ui/test_geometry_cylinder_tab.py
 !tests/ui/test_effect_shaders.py
