@@ -29,6 +29,7 @@ from PySide6.QtQuickWidgets import QQuickWidget
 from PySide6.QtGui import QAction, QKeySequence, QSurfaceFormat
 
 from src.common.settings_manager import get_settings_event_bus, get_settings_manager
+from src.ui.bridge import TrainingPresetBridge
 from src.ui.panels.lighting import LightingSettingsBridge, LightingSettingsFacade
 
 if TYPE_CHECKING:
@@ -419,6 +420,22 @@ class UISetup:
                 UISetup.logger.warning(
                     "    ⚠️ Failed to expose lighting settings facade: %s",
                     lighting_exc,
+                )
+
+            try:
+                training_bridge = TrainingPresetBridge(
+                    settings_manager=getattr(window, "settings_manager", None)
+                )
+                window._training_bridge = training_bridge
+                context.setContextProperty("trainingBridge", training_bridge)
+                UISetup.logger.info(
+                    "    ✅ Training presets bridge exposed to QML context"
+                )
+            except Exception as training_exc:
+                window._training_bridge = None
+                UISetup.logger.warning(
+                    "    ⚠️ Failed to expose training presets bridge: %s",
+                    training_exc,
                 )
 
             UISetup.logger.info("    ✅ Window context registered")

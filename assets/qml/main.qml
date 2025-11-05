@@ -2,6 +2,7 @@ import QtQuick 6.10
 import QtQuick.Controls 6.10
 import PneumoStabSim 1.0
 import "./"
+import "training" as Training
 
 Item {
     id: root
@@ -12,6 +13,7 @@ Item {
 
     property var pendingPythonUpdates: ({})
     property var _queuedBatchedUpdates: []
+    property bool showTrainingPresets: true
 
     readonly property bool hasSceneBridge: typeof pythonSceneBridge !== "undefined" && pythonSceneBridge !== null
 
@@ -376,6 +378,19 @@ Item {
             if (item && item.animationToggled) {
                 item.animationToggled.connect(root.animationToggled)
             }
+        }
+    }
+
+    Training.TrainingPanel {
+        id: trainingPanel
+        anchors.top: parent.top
+        anchors.right: parent.right
+        anchors.margins: 16
+        visible: root.showTrainingPresets && typeof trainingBridge !== "undefined" && trainingBridge !== null
+        z: 9000
+        opacity: 0.96
+        onPresetActivated: function(presetId) {
+            console.log("Training preset selected", presetId)
         }
     }
 }
