@@ -63,6 +63,11 @@ Item {
     property bool hudVisible: false
 
     /**
+     * Minimal orbit distance to keep overview framing when geometry is tiny.
+     */
+    property real defaultOrbitDistance: 3200
+
+    /**
      * Arbitrary HUD configuration payload
      */
     property var hudSettings: ({})
@@ -245,6 +250,8 @@ Item {
             marginFactor,
             _effectiveFrameToPivot()
         )
+
+        _enforceDistanceFloor("autoFitFrame")
     }
 
     /**
@@ -254,6 +261,8 @@ Item {
         console.log("📷 CameraController: reset view...")
 
         cameraState.resetView(beamSize, frameHeight, frameLength, _effectiveFrameToPivot())
+
+        _enforceDistanceFloor("resetView")
     }
 
     /**
@@ -270,6 +279,8 @@ Item {
             1600,  // default trackWidth
             _effectiveFrameToPivot()
         )
+
+        _enforceDistanceFloor("fullResetView")
     }
 
     /**
@@ -379,20 +390,16 @@ Item {
 
         var autoFitTriggered = false
         if (params.center_camera === true) {
-            cameraState.autoFitFrame(
-                frameLength,
-                trackWidth,
-                frameHeight,
-                beamSize,
-                1.15,
-                _effectiveFrameToPivot()
-            )
+            autoFitFrame(1.15)
             autoFitTriggered = true
             changed = true
         }
 
         if (changed && !autoFitTriggered) {
+            _enforceDistanceFloor("applyCameraUpdates")
             cameraState.cameraChanged()
+        } else if (autoFitTriggered) {
+            _enforceDistanceFloor("applyCameraUpdates:autoFit")
         }
 
         console.log("   ✅ Camera updated successfully")
@@ -404,6 +411,58 @@ Item {
             numeric = frameLength / 2
         }
         return numeric
+    }
+
+    function _minimumDistanceFloor() {
+        var baseline = Number(defaultOrbitDistance)
+        if (!isFinite(baseline) || baseline <= 0) {
+            baseline = 3200
+        }
+        return Math.max(cameraState.minDistance, baseline)
+    }
+
+    function _formatVector3(vector, fallbackLabel) {
+        if (!vector)
+            return fallbackLabel
+
+        var x = Number(vector.x !== undefined ? vector.x : vector[0])
+        var y = Number(vector.y !== undefined ? vector.y : vector[1])
+        var z = Number(vector.z !== undefined ? vector.z : vector[2])
+
+        if (!isFinite(x) || !isFinite(y) || !isFinite(z))
+            return fallbackLabel
+
+        return "(" + x.toFixed(1) + ", " + y.toFixed(1) + ", " + z.toFixed(1) + ")"
+    }
+
+    function _logCameraTelemetry(contextLabel) {
+        console.debug(
+            "[CameraController] " + contextLabel +
+            " • pivot=" + _formatVector3(cameraState.pivot, "(n/a)") +
+            ", distance=" + cameraState.distance.toFixed(1)
+        )
+
+        if (cameraRig && cameraRig.camera) {
+            console.debug(
+                "[CameraController] " + contextLabel +
+                " • camera position=" + _formatVector3(cameraRig.camera.position, "(n/a)")
+            )
+        }
+    }
+
+    function _enforceDistanceFloor(contextLabel) {
+        var floorValue = _minimumDistanceFloor()
+        if (cameraState.distance < floorValue) {
+            var clamped = cameraState.clampDistance(floorValue)
+            console.debug(
+                "[CameraController] " + contextLabel +
+                " • clamping distance from " + cameraState.distance.toFixed(1) +
+                " to " + clamped.toFixed(1)
+            )
+            cameraState.distance = clamped
+        }
+
+        _logCameraTelemetry(contextLabel)
     }
 
     /**

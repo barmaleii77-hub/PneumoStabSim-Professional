@@ -257,6 +257,14 @@ property int reflectionProbeTimeSlicingValue: reflectionProbeTimeSlicingFrom(env
  property int userCylinderSegments: Math.max(3, Math.round(geometryDefaultNumber(["cylinderSegments"], 64)))
  property int userCylinderRings: Math.max(1, Math.round(geometryDefaultNumber(["cylinderRings"], 8)))
 
+ readonly property var defaultCameraGeometryMeters: Object.freeze({
+     frameLength: 1.6,
+     frameHeight: 0.6,
+     trackWidth: 1.2,
+     beamSize: 0.25,
+     frameToPivot: 0.8
+ })
+
  property var lightingState: ({
  key: {},
  fill: {},
@@ -290,22 +298,60 @@ property int reflectionProbeTimeSlicingValue: reflectionProbeTimeSlicingFrom(env
  }
 
  property var geometryState: ({
- frameLength: userFrameLength,
- frameHeight: userFrameHeight,
- beamSize: userBeamSize,
- trackWidth: userTrackWidth,
- frameToPivot: userFrameToPivot,
- leverLength: userLeverLength,
- rodPosition: userRodPosition,
- cylinderLength: userCylinderLength,
- boreHead: userBoreHead,
- rodDiameter: userRodDiameter,
- pistonThickness: userPistonThickness,
- pistonRodLength: userPistonRodLength,
- tailRodLength: userTailRodLength,
- cylinderSegments: userCylinderSegments,
- cylinderRings: userCylinderRings
+  frameLength: userFrameLength,
+  frameHeight: userFrameHeight,
+  beamSize: userBeamSize,
+  trackWidth: userTrackWidth,
+  frameToPivot: userFrameToPivot,
+  leverLength: userLeverLength,
+  rodPosition: userRodPosition,
+  cylinderLength: userCylinderLength,
+  boreHead: userBoreHead,
+  rodDiameter: userRodDiameter,
+  pistonThickness: userPistonThickness,
+  pistonRodLength: userPistonRodLength,
+  tailRodLength: userTailRodLength,
+  cylinderSegments: userCylinderSegments,
+  cylinderRings: userCylinderRings
  })
+
+ function cameraGeometryPayloadMeters() {
+  var defaults = defaultCameraGeometryMeters
+
+  function resolveLength(value, fallback) {
+   var numeric = Number(value)
+   if (isFinite(numeric) && numeric > 0)
+    return numeric
+   return fallback
+  }
+
+  var payload = {
+   frameLength: resolveLength(userFrameLength, defaults.frameLength),
+   frameHeight: resolveLength(userFrameHeight, defaults.frameHeight),
+   trackWidth: resolveLength(userTrackWidth, defaults.trackWidth),
+   beamSize: resolveLength(userBeamSize, defaults.beamSize),
+   frameToPivot: resolveLength(userFrameToPivot, defaults.frameToPivot)
+  }
+
+  if (!isFinite(payload.frameToPivot) || payload.frameToPivot <= 0) {
+   payload.frameToPivot = payload.frameLength > 0 ? payload.frameLength / 2 : defaults.frameToPivot
+  }
+
+  return payload
+ }
+
+ function initializeCameraControllerGeometry() {
+  if (!cameraController || typeof cameraController.updateGeometry !== "function")
+   return
+
+  var payload = cameraGeometryPayloadMeters()
+
+  try {
+   cameraController.updateGeometry(payload)
+  } catch (error) {
+   console.warn("[SimulationRoot] Failed to prime camera geometry", error)
+  }
+ }
 
 onIsRunningChanged: {
  if (isRunning) {
@@ -1524,6 +1570,7 @@ Component.onCompleted: {
         invokeBatchHandler(root.applyGeometryUpdatesInternal, geometryDefaults, "geometry-defaults")
   }
   applySceneBridgeState()
+  Qt.callLater(initializeCameraControllerGeometry)
  }
 
  Connections {
