@@ -267,7 +267,9 @@ class ProceduralCylinderGeometry(QQuick3DGeometry):
             cos_val = np.cos(angle)
             sin_val = np.sin(angle)
             top_ring_positions.append([cos_val * radius, half_length, sin_val * radius])
-            bottom_ring_positions.append([cos_val * radius, -half_length, sin_val * radius])
+            bottom_ring_positions.append(
+                [cos_val * radius, -half_length, sin_val * radius]
+            )
             top_ring_normals.append([0.0, 1.0, 0.0])
             bottom_ring_normals.append([0.0, -1.0, 0.0])
             u = 0.5 + cos_val * 0.5

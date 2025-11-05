@@ -494,9 +494,7 @@ class UISetup:
                 context.setContextProperty(
                     "initialSharedMaterials", payload["materials"]
                 )
-                context.setContextProperty(
-                    "materialsDefaults", payload["materials"]
-                )
+                context.setContextProperty("materialsDefaults", payload["materials"])
                 context.setContextProperty(
                     "initialGeometrySettings", payload["geometry"]
                 )
