@@ -4,6 +4,11 @@ from typing import Any, Dict
 
 import pytest
 
+from src.security.access_control import (
+    AccessControlService,
+    SecurityAuditLogger,
+    UserRole,
+)
 from src.ui.services.visualization_service import VisualizationService
 
 
@@ -55,3 +60,22 @@ def test_visualization_service_enriches_camera_payload() -> None:
 
     manifest = service.refresh_orbit_presets()
     assert manifest["default"] == "default"
+
+
+def test_visualization_service_access_overlay_respects_role(tmp_path) -> None:
+    audit_log = tmp_path / "audit.log"
+    access_control = AccessControlService(audit_logger=SecurityAuditLogger(audit_log))
+    access_control.set_role(UserRole.GUEST, actor="pytest")
+
+    service = VisualizationService(access_control=access_control)
+    updates = service.dispatch_updates({"simulation": {"speed": 1.0}})
+
+    payload = updates["simulation"]
+    access = payload["_access"]
+    assert access["role"] == UserRole.GUEST.value
+    assert access["targetPath"] == "current.simulation"
+    assert access["canEdit"] is False
+    assert access["readOnly"] is True
+
+    profile = service.access_profile()
+    assert profile["role"] == UserRole.GUEST.value

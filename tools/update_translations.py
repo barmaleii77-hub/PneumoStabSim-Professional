@@ -270,6 +270,84 @@ def build_reports(qml_catalogue, qml_sources, qml_ids, translation_summaries):
         json.dumps(status_payload, indent=2, ensure_ascii=False), encoding="utf-8"
     )
 
+    summary_lines = [
+        "# Localization Summary",
+        "",
+        f"Generated at: {inventory_payload['generated_at']}",
+        "",
+        "## Catalogue overview",
+        f"- QML files scanned: {len(qml_catalogue)}",
+        f"- Unique qsTr strings: {len(qml_sources)}",
+        f"- Unique qsTrId identifiers: {len(qml_ids)}",
+        "",
+        "## Translation coverage",
+        "| Catalogue | Language | qsTr | qsTrId | Missing qsTr | Missing qsTrId | Unfinished | Unused qsTr | Unused qsTrId |",
+        "| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |",
+    ]
+
+    for ts_name, summary in sorted(translation_summaries.items()):
+        summary_lines.append(
+            "| {name} | {language} | {sources} | {ids} | {missing_sources} | {missing_ids} | {unfinished} | {unused_sources} | {unused_ids} |".format(
+                name=ts_name,
+                language=summary.get("language", ""),
+                sources=len(summary.get("sources", [])),
+                ids=len(summary.get("ids", [])),
+                missing_sources=len(summary.get("missing_sources", [])),
+                missing_ids=len(summary.get("missing_ids", [])),
+                unfinished=len(summary.get("unfinished", [])),
+                unused_sources=len(summary.get("unused_sources", [])),
+                unused_ids=len(summary.get("unused_ids", [])),
+            )
+        )
+
+    summary_lines.extend(["", "## QML string hotspots"])
+
+    qml_rows = []
+    for path, inventory in qml_catalogue.items():
+        sources = inventory.get("sources", [])
+        ids = inventory.get("ids", [])
+        total = len(sources) + len(ids)
+        qml_rows.append(
+            (
+                total,
+                len(sources),
+                len(ids),
+                path,
+            )
+        )
+
+    qml_rows.sort(reverse=True)
+    if qml_rows:
+        summary_lines.append(
+            "| QML file | qsTr strings | qsTrId identifiers | Total |"
+        )
+        summary_lines.append("| --- | ---: | ---: | ---: |")
+        max_rows = min(len(qml_rows), 20)
+        for total, source_count, id_count, path in qml_rows[:max_rows]:
+            summary_lines.append(
+                f"| {path} | {source_count} | {id_count} | {total} |"
+            )
+        if len(qml_rows) > max_rows:
+            summary_lines.extend(
+                [
+                    "",
+                    f"_Only the top {max_rows} of {len(qml_rows)} QML files are shown. Use `inventory.json` for the complete catalogue._",
+                ]
+            )
+    else:
+        summary_lines.append("No QML files detected.")
+
+    summary_lines.extend(
+        [
+            "",
+            "## Usage",
+            "Inspect `inventory.json` for the per-file catalogue and `status.json` for validation results. This summary is regenerated each time `tools/update_translations.py` runs.",
+        ]
+    )
+
+    summary_path = REPORT_ROOT / "summary.md"
+    summary_path.write_text("\n".join(summary_lines), encoding="utf-8")
+
 
 def compute_translation_deltas(
     translation_data: Dict[str, object],

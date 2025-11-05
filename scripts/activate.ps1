@@ -5,7 +5,7 @@ Write-Host "Setting up PneumoStabSim Professional environment..." -ForegroundCol
 $env:PYTHONPATH = "$PWD;$PWD\src"
 
 # Set Qt environment
-$env:QSG_RHI_BACKEND = "d3d11"
+$env:QSG_RHI_BACKEND = "opengl"
 $env:QT_LOGGING_RULES = "js.debug=true;qt.qml.debug=true"
 
 # Performance settings

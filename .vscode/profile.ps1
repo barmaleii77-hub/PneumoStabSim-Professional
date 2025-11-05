@@ -12,7 +12,7 @@ if ((Get-Location).Path -like "*PneumoStabSim-Professional*") {
     $env:PYTHONDONTWRITEBYTECODE = "1"
     $env:QT_QUICK_CONTROLS_STYLE = "Basic"
     $env:QT_LOGGING_RULES = "js.debug=true;qt.qml.debug=true"
-    $env:QSG_RHI_BACKEND = "d3d11"
+    $env:QSG_RHI_BACKEND = "opengl"
     $env:QT_SCALE_FACTOR_ROUNDING_POLICY = "PassThrough"
 
     function Invoke-Uv {

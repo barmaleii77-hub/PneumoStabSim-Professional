@@ -654,7 +654,7 @@ PYTHONIOENCODING=utf-8
 PYTHONDONTWRITEBYTECODE=1
 
 # Qt Configuration
-QSG_RHI_BACKEND=d3d11
+QSG_RHI_BACKEND=opengl
 QT_LOGGING_RULES=js.debug=true;qt.qml.debug=true
 QSG_INFO=1
 QT_PLUGIN_PATH={qt_plugin_path}

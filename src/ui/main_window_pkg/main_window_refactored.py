@@ -40,6 +40,8 @@ from ._hdr_paths import normalise_hdr_path
 from src.common.settings_manager import get_settings_manager
 from src.common.signal_trace import get_signal_trace_service
 from src.core.settings_manager import ProfileSettingsManager
+from src.services import FeedbackService
+from src.ui.feedback import FeedbackController
 
 
 class MainWindow(QMainWindow):
@@ -159,6 +161,21 @@ class MainWindow(QMainWindow):
         self.event_logger = get_event_logger()
         self.logger.info("EventLogger initialized")
 
+        self.feedback_service = FeedbackService()
+        try:
+            self.feedback_controller = FeedbackController(
+                service=self.feedback_service,
+                parent=self,
+            )
+            self.logger.info("FeedbackService initialized")
+        except Exception as feedback_exc:
+            self.feedback_controller = None
+            self.logger.warning(
+                "Feedback controller unavailable: %s",
+                feedback_exc,
+                exc_info=feedback_exc,
+            )
+
         # Simulation Manager
         from ...runtime import SimulationManager
 
@@ -198,6 +215,7 @@ class MainWindow(QMainWindow):
         self.pneumo_panel = None
         self.modes_panel = None
         self.road_panel = None
+        self.feedback_panel = None
         self.graphics_panel = None
         self._graphics_panel = None  # Alias
         self.chart_widget = None
