@@ -26,8 +26,8 @@ RUN pipx ensurepath || true
 RUN python -m pip install --no-cache-dir -U pip wheel setuptools \
     aqtinstall ruff mypy pytest pytest-xdist pytest-cov
 
-# Qt 6.10.0 with Quick 3D & tools (qmllint, qsb)
-ENV QT_VER=6.10.0 QT_ROOT=/opt/Qt
+# Qt 6.9.2 with Quick 3D & tools (qmllint, qsb)
+ENV QT_VER=6.9.2 QT_ROOT=/opt/Qt
 RUN python -m aqt install-qt linux desktop ${QT_VER} gcc_64 -m qtdeclarative qtquick3d qttools qtshadertools qtimageformats -O ${QT_ROOT}
 ENV QT_HOME=${QT_ROOT}/${QT_VER}/gcc_64
 ENV PATH=${QT_HOME}/bin:${PATH}
