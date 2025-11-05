@@ -518,6 +518,9 @@ check_*.py
 !tests/ui/test_graphics_scene_quality_tabs.py
 !tests/ui/test_signals_router_connections.py
 !tests/ui/test_qml_signal_contract.py
+!tests/ui/test_training_panel_integration.py
+!tests/simulation/__init__.py
+!tests/simulation/test_training_preset_bridge.py
 !tests/ui/test_shader_fallback_selection.py
 !tests/integration/test_stabilizer_sync.py
 !tests/integration/test_graphics_signal_routing.py

@@ -101,6 +101,14 @@ Track panel completion status, performance runs, and localization updates here.
 - Normalised rigid-body static wheel loads so the scene holds a neutral pose without drift.
 - Added regression tests validating the equilibrium to keep render diagnostics reliable.
 
+### 2025-11-05 – Training preset bridge regression coverage
+- Captured Phase 3 UI coverage gaps in `reports/tests/ui_phase3_test_gap_analysis_20251105.md`, aligning
+  outstanding checklist items with the existing automation inventory.
+- Added pytest-qt scenarios validating `TrainingPresetBridge` signal/slot wiring and the
+  `TrainingPanel.qml` interactions against scenario metadata from `tests/scenarios/`.
+- Introduced reusable fixtures for isolated settings/service setup and a simulation harness,
+  and published `make check` evidence in `reports/tests/make_check_20251105.md`.
+
 ### 2025-11-12 – Shader profile validation automation
 - Added `tools/validate_shaders.py` to assert that every desktop effect has matching `_fallback`,
   `_fallback_es`, and `_es` profiles with the expected GLSL `#version` directives.
