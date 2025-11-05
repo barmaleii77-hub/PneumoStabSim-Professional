@@ -13,10 +13,12 @@ from .presets import (
     TrainingPresetMetadata,
     get_default_training_library,
 )
+from .service import TrainingPresetService
 
 __all__ = [
     "TrainingPreset",
     "TrainingPresetLibrary",
     "TrainingPresetMetadata",
     "get_default_training_library",
+    "TrainingPresetService",
 ]

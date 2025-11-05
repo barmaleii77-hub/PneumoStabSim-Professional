@@ -2,16 +2,14 @@
 
 from __future__ import annotations
 
-from typing import Any, Dict, List, Optional
+from typing import Any, Callable, Dict, List, Optional
 
 from PySide6.QtCore import QObject, Property, Signal, Slot
 
-from src.common.settings_manager import (
-    SettingsManager,
-    get_settings_event_bus,
-    get_settings_manager,
-)
+from src.common.settings_manager import SettingsManager, get_settings_manager
+from src.core.settings_orchestrator import SettingsOrchestrator
 from src.simulation.presets import TrainingPresetLibrary, get_default_training_library
+from src.simulation.service import TrainingPresetService
 
 
 class TrainingPresetBridge(QObject):
@@ -26,41 +24,71 @@ class TrainingPresetBridge(QObject):
         *,
         settings_manager: Optional[SettingsManager] = None,
         library: Optional[TrainingPresetLibrary] = None,
+        simulation_service: Optional[TrainingPresetService] = None,
+        orchestrator: Optional[SettingsOrchestrator] = None,
     ) -> None:
         super().__init__()
         self._settings_manager = settings_manager or get_settings_manager()
         self._library = library or get_default_training_library()
-        self._event_bus = get_settings_event_bus()
+        self._orchestrator = orchestrator or SettingsOrchestrator(
+            settings_manager=self._settings_manager
+        )
+        self._service = simulation_service or TrainingPresetService(
+            orchestrator=self._orchestrator, library=self._library
+        )
         self._presets_payload: List[Dict[str, Any]] = []
         self._active_preset_id: str = ""
         self._selected_payload: Dict[str, Any] = {}
         self._refresh_presets()
         self._refresh_active_preset()
-        self._event_bus.settingChanged.connect(self._handle_settings_event)
-        self._event_bus.settingsBatchUpdated.connect(self._handle_settings_event)
+        self._dispose_callbacks: List[Callable[[], None]] = []
+        self._dispose_callbacks.append(
+            self._service.register_active_observer(self._handle_active_change)
+        )
+        self.destroyed.connect(lambda _=None: self._cleanup())
 
     # ------------------------------------------------------------------ internals
-    def _handle_settings_event(self, _payload: Dict[str, Any]) -> None:
-        self._refresh_active_preset()
+    def _cleanup(self) -> None:
+        for callback in self._dispose_callbacks:
+            try:
+                callback()
+            except Exception:  # pragma: no cover - defensive cleanup
+                pass
+        self._dispose_callbacks.clear()
+        if hasattr(self._service, "close"):
+            try:
+                self._service.close()
+            except Exception:  # pragma: no cover - defensive cleanup
+                pass
+        if hasattr(self._orchestrator, "close"):
+            try:
+                self._orchestrator.close()
+            except Exception:  # pragma: no cover - defensive cleanup
+                pass
+
+    def _handle_active_change(self, preset_id: str) -> None:
+        if preset_id == self._active_preset_id:
+            return
+        self._active_preset_id = preset_id
+        self.activePresetChanged.emit()
+        if preset_id:
+            self._set_selected_payload(preset_id)
+        else:
+            if self._selected_payload:
+                self._selected_payload = {}
+                self.selectedPresetChanged.emit()
 
     def _refresh_presets(self) -> None:
         self._presets_payload = [
-            dict(payload) for payload in self._library.describe_presets()
+            dict(payload) for payload in self._service.list_presets()
         ]
         self.presetsChanged.emit()
 
     def _resolve_active_id(self) -> str:
-        snapshot = {
-            "simulation": self._settings_manager.get("current.simulation", {}),
-            "pneumatic": self._settings_manager.get("current.pneumatic", {}),
-        }
-        return self._library.resolve_active_id(snapshot)
+        return self._service.active_preset_id()
 
     def _describe(self, preset_id: str) -> Dict[str, Any]:
-        preset = self._library.get(preset_id)
-        if preset is None:
-            return {}
-        payload = preset.to_qml_payload()
+        payload = self._service.describe_preset(preset_id)
         return dict(payload)
 
     def _set_selected_payload(self, preset_id: str) -> None:
@@ -68,17 +96,7 @@ class TrainingPresetBridge(QObject):
         self.selectedPresetChanged.emit()
 
     def _refresh_active_preset(self) -> None:
-        active_id = self._resolve_active_id()
-        if active_id == self._active_preset_id:
-            return
-        self._active_preset_id = active_id
-        self.activePresetChanged.emit()
-        if active_id:
-            self._set_selected_payload(active_id)
-        else:
-            if self._selected_payload:
-                self._selected_payload = {}
-                self.selectedPresetChanged.emit()
+        self._handle_active_change(self._resolve_active_id())
 
     # ------------------------------------------------------------------ properties
     @Property("QVariantList", notify=presetsChanged)
@@ -107,12 +125,10 @@ class TrainingPresetBridge(QObject):
         if not preset_id:
             return False
         try:
-            self._library.apply(self._settings_manager, preset_id, auto_save=True)
+            self._service.apply_preset(preset_id, auto_save=True)
         except KeyError:
             return False
-        self._refresh_active_preset()
-        if preset_id:
-            self._set_selected_payload(preset_id)
+        self._set_selected_payload(preset_id)
         return True
 
     @Slot(result=str)

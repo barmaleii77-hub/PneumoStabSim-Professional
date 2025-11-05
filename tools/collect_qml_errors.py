@@ -71,7 +71,9 @@ def main() -> None:
     else:
         output.parent.mkdir(parents=True, exist_ok=True)
 
-    output.write_text(json.dumps(report, indent=2, ensure_ascii=False), encoding="utf-8")
+    output.write_text(
+        json.dumps(report, indent=2, ensure_ascii=False), encoding="utf-8"
+    )
     print(f"Collected {report['total_entries']} QML diagnostics → {output}")
 
     if report["total_entries"] > 0:

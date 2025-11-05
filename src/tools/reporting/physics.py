@@ -19,7 +19,8 @@ def evaluate_physics_case(case: Any) -> dict[str, Any]:
 
     scene = case.scene
     attachment_points = {
-        name: tuple(_as_tuple(coords))[:2] for name, coords in scene.attachment_points.items()
+        name: tuple(_as_tuple(coords))[:2]
+        for name, coords in scene.attachment_points.items()
     }
     state_name = next(iter(scene.state_vectors))
     state = np.asarray(scene.state_vectors[state_name], dtype=float)
@@ -76,8 +77,7 @@ def evaluate_physics_case(case: Any) -> dict[str, Any]:
     )
 
     vertical_forces = {
-        wheel: float(value)
-        for wheel, value in zip(attachment_points, vertical_array)
+        wheel: float(value) for wheel, value in zip(attachment_points, vertical_array)
     }
 
     return {
@@ -103,7 +103,9 @@ class AssertionResult:
     passed: bool
 
 
-def summarise_assertions(case: Any, evaluation: Mapping[str, Any]) -> list[AssertionResult]:
+def summarise_assertions(
+    case: Any, evaluation: Mapping[str, Any]
+) -> list[AssertionResult]:
     """Evaluate assertions defined in *case* against computed values."""
 
     results: list[AssertionResult] = []
@@ -128,7 +130,12 @@ def summarise_assertions(case: Any, evaluation: Mapping[str, Any]) -> list[Asser
         else:
             actual = None
 
-        if assertion.kind in {"axis-velocity", "cylinder-force", "spring-force", "damper-force"}:
+        if assertion.kind in {
+            "axis-velocity",
+            "cylinder-force",
+            "spring-force",
+            "damper-force",
+        }:
             passed = abs(actual - float(expected)) <= tolerance
         elif assertion.kind == "vertical-force":
             passed = all(
