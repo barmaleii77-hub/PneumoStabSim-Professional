@@ -16,6 +16,14 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libvulkan1 mesa-vulkan-drivers vulkan-tools \
     && rm -rf /var/lib/apt/lists/*
 
+# Trust the egress proxy certificate so that Python tooling (aqt/requests)
+# can download Qt payloads during image build.
+ARG INSTALL_PROXY_CERT=false
+RUN if [ "$INSTALL_PROXY_CERT" = "true" ]; then \
+        cp config/certs/envoy-mitmproxy-ca-cert.crt /usr/local/share/ca-certificates/ && \
+        update-ca-certificates; \
+    fi
+
 # Python tooling
 RUN pipx ensurepath || true
 RUN python -m pip install --no-cache-dir -U pip wheel setuptools \
