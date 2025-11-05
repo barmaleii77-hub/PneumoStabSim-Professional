@@ -318,15 +318,11 @@ def build_reports(qml_catalogue, qml_sources, qml_ids, translation_summaries):
 
     qml_rows.sort(reverse=True)
     if qml_rows:
-        summary_lines.append(
-            "| QML file | qsTr strings | qsTrId identifiers | Total |"
-        )
+        summary_lines.append("| QML file | qsTr strings | qsTrId identifiers | Total |")
         summary_lines.append("| --- | ---: | ---: | ---: |")
         max_rows = min(len(qml_rows), 20)
         for total, source_count, id_count, path in qml_rows[:max_rows]:
-            summary_lines.append(
-                f"| {path} | {source_count} | {id_count} | {total} |"
-            )
+            summary_lines.append(f"| {path} | {source_count} | {id_count} | {total} |")
         if len(qml_rows) > max_rows:
             summary_lines.extend(
                 [

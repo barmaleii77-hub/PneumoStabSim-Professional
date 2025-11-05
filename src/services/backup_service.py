@@ -202,14 +202,20 @@ class BackupService:
         included: set[Path] = set()
         skipped: set[Path] = set()
 
-        with zipfile.ZipFile(archive_path, "w", compression=zipfile.ZIP_DEFLATED) as archive:
+        with zipfile.ZipFile(
+            archive_path,
+            "w",
+            compression=zipfile.ZIP_DEFLATED,
+        ) as archive:
             for source in self._sources:
                 absolute = source.absolute_path
                 relative = source.relative_path
                 if not absolute.exists():
                     skipped.add(relative)
                     self._logger.warning(
-                        "backup_source_missing", source=str(absolute), relative=str(relative)
+                        "backup_source_missing",
+                        source=str(absolute),
+                        relative=str(relative),
                     )
                     continue
 
@@ -220,11 +226,16 @@ class BackupService:
 
                 if absolute.is_dir():
                     has_entries = False
-                    for filesystem_path, archive_path_relative in self._iter_directory(source):
+                    for filesystem_path, archive_path_relative in self._iter_directory(
+                        source
+                    ):
                         if filesystem_path.is_dir():
                             # Only add explicit entries for empty directories.
                             if not any(filesystem_path.iterdir()):
-                                self._write_directory_entry(archive, archive_path_relative)
+                                self._write_directory_entry(
+                                    archive,
+                                    archive_path_relative,
+                                )
                                 included.add(archive_path_relative)
                             continue
                         archive.write(filesystem_path, archive_path_relative.as_posix())
@@ -237,7 +248,9 @@ class BackupService:
 
                 skipped.add(relative)
                 self._logger.warning(
-                    "backup_source_unsupported", source=str(absolute), relative=str(relative)
+                    "backup_source_unsupported",
+                    source=str(absolute),
+                    relative=str(relative),
                 )
 
             archive.writestr(
@@ -277,7 +290,8 @@ class BackupService:
             try:
                 with handle.open(_MANIFEST_FILENAME) as manifest_handle:
                     return cast(dict[str, object], json.load(manifest_handle))
-            except KeyError as exc:  # pragma: no cover - legacy archives might not have manifests
+            except KeyError as exc:  # pragma: no cover
+                # Legacy archives might not have manifests.
                 raise KeyError(
                     f"Archive {archive} does not contain {_MANIFEST_FILENAME}."
                 ) from exc
@@ -296,7 +310,9 @@ class BackupService:
                 archive.unlink()
                 self._logger.info("backup_removed", archive=str(archive))
             except OSError as exc:
-                self._logger.error("backup_remove_failed", archive=str(archive), error=str(exc))
+                self._logger.error(
+                    "backup_remove_failed", archive=str(archive), error=str(exc)
+                )
         return to_remove
 
     def restore_backup(

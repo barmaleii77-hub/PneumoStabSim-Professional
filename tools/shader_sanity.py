@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """Validate shader sources for BOM usage and GLSL versions."""
+
 from __future__ import annotations
 
 import pathlib
