@@ -32,7 +32,7 @@ jobs:
         run: uv sync --frozen
 
       - name: Run pytest suite
-        run: uv run pytest --maxfail=1 --disable-warnings
+        run: uv run pytest --maxfail=1
 
       - name: Execute physics regression case
         run: uv run python tools/run_test_case.py standard-suspension-balance --output-dir reports/tests
