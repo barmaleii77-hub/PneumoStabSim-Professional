@@ -264,6 +264,15 @@ def _run_qsb(
 
     stdout = completed.stdout or ""
     stderr = completed.stderr or ""
+    if completed.returncode != 0:
+        env_message = _interpret_qsb_startup_failure(
+            completed.returncode,
+            stderr,
+            stdout,
+            allow_generic=False,
+        )
+        if env_message is not None:
+            raise ShaderValidationEnvironmentError(env_message)
     if log_path is not None:
         log_contents = ["$ " + " ".join(shlex.quote(arg) for arg in command)]
         if stdout:
@@ -325,6 +334,8 @@ def validate_shaders(
         )
     except (FileNotFoundError, RuntimeError) as exc:
         return [str(exc)]
+
+    _probe_qsb(command)
 
     if reports_dir is not None:
         _ensure_directory(reports_dir)
