@@ -77,7 +77,7 @@ def evaluate_physics_case(case: Any) -> dict[str, Any]:
 
     vertical_forces = {
         wheel: float(value)
-        for wheel, value in zip(attachment_points, vertical_array, strict=False)
+        for wheel, value in zip(attachment_points, vertical_array)
     }
 
     return {
