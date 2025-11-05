@@ -22,7 +22,7 @@ import "../animation"
  * штоки, хвостовики, поршни). Без кнопок на канве.
  * Обновления приходят из панелей через apply*Updates и batched updates.
  */
-Item {
+ Item {
  id: root
  anchors.fill: parent
 
@@ -37,6 +37,17 @@ Item {
  property var pendingPythonUpdates: null
 signal batchUpdatesApplied(var summary)
 signal animationToggled(bool running)
+
+    Component.onCompleted: {
+        const hasBridge = sceneBridge !== null && sceneBridge !== undefined
+        console.log("[SimulationRoot] Component completed; sceneBridge:", hasBridge ? "available" : "missing")
+        if (typeof window !== "undefined" && window) {
+            const identifier = typeof window.objectName === "string" && window.objectName.length > 0 ? window.objectName : "<anonymous>"
+            console.log("[SimulationRoot] Window context ready:", identifier)
+        } else {
+            console.warn("[SimulationRoot] Window context missing; shader warnings will stay local")
+        }
+    }
 
  // Состояние симуляции, управляется из Python (MainWindow)
  property bool isRunning: animationDefaults && animationDefaults.is_running !== undefined ? Boolean(animationDefaults.is_running) : false
@@ -1033,7 +1044,16 @@ SequentialAnimation {
         anchors.fill: parent
         visible: false
         onEffectCompilationError: function(effectId, errorLog) {
-            root.registerShaderWarning(effectId, errorLog)
+            if (typeof window !== "undefined" && window && typeof window.registerShaderWarning === "function") {
+                try {
+                    window.registerShaderWarning(effectId, errorLog)
+                } catch (error) {
+                    console.warn("[SimulationRoot] window.registerShaderWarning failed", error)
+                }
+            }
+            if (typeof root.registerShaderWarning === "function") {
+                root.registerShaderWarning(effectId, errorLog)
+            }
         }
         onEffectCompilationRecovered: function(effectId) {
             root.clearShaderWarning(effectId)

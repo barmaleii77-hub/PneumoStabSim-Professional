@@ -495,6 +495,9 @@ class UISetup:
             )
             engine.addImportPath(str(qml_import_path))
 
+            # Ensure the relative path is registered for qmlimportscanner parity
+            engine.addImportPath("assets/qml")
+
             local_qml_path = Path("assets/qml")
             if local_qml_path.exists():
                 engine.addImportPath(str(local_qml_path.absolute()))
