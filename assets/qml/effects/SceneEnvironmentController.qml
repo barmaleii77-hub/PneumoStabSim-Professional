@@ -11,6 +11,42 @@ import "." // Local helpers (QualityPresets)
 ExtendedSceneEnvironment {
  id: root
 
+    readonly property var initialSceneDefaults: typeof initialSceneSettings !== "undefined" ? initialSceneSettings : null
+    readonly property var initialAnimationDefaults: typeof initialAnimationSettings !== "undefined" ? initialAnimationSettings : null
+    readonly property var initialGeometryDefaults: typeof initialGeometrySettings !== "undefined" ? initialGeometrySettings : null
+    readonly property var contextMaterialsDefaults: typeof materialsDefaults !== "undefined" ? materialsDefaults : (initialSceneDefaults && typeof initialSceneDefaults === "object" && initialSceneDefaults.materials !== undefined ? initialSceneDefaults.materials : (initialSceneDefaults && typeof initialSceneDefaults === "object" && initialSceneDefaults.graphics && typeof initialSceneDefaults.graphics === "object" ? initialSceneDefaults.graphics.materials : null))
+    readonly property var contextEnvironmentDefaults: {
+        var source = initialSceneDefaults
+        if (source && typeof source === "object") {
+            if (source.environment && typeof source.environment === "object" && !Array.isArray(source.environment))
+                return source.environment
+            if (source.graphics && typeof source.graphics === "object" && source.graphics.environment && typeof source.graphics.environment === "object")
+                return source.graphics.environment
+        }
+        return null
+    }
+    readonly property var contextQualityDefaults: {
+        var source = initialSceneDefaults
+        if (source && typeof source === "object") {
+            if (source.quality && typeof source.quality === "object" && !Array.isArray(source.quality))
+                return source.quality
+            if (source.graphics && typeof source.graphics === "object" && source.graphics.quality && typeof source.graphics.quality === "object")
+                return source.graphics.quality
+        }
+        return null
+    }
+    readonly property var contextEffectsDefaults: {
+        var source = initialSceneDefaults
+        if (source && typeof source === "object") {
+            if (source.effects && typeof source.effects === "object" && !Array.isArray(source.effects))
+                return source.effects
+            if (source.graphics && typeof source.graphics === "object" && source.graphics.effects && typeof source.graphics.effects === "object")
+                return source.graphics.effects
+        }
+        return null
+    }
+    readonly property var contextLightingDefaults: typeof lightingAccess !== "undefined" ? lightingAccess : (initialSceneDefaults && typeof initialSceneDefaults === "object" && initialSceneDefaults.lighting !== undefined ? initialSceneDefaults.lighting : (initialSceneDefaults && typeof initialSceneDefaults === "object" && initialSceneDefaults.graphics && typeof initialSceneDefaults.graphics === "object" ? initialSceneDefaults.graphics.lighting : null))
+
     QualityPresets {
         id: qualityProfiles
     }
@@ -38,12 +74,12 @@ ExtendedSceneEnvironment {
  // BACKGROUND & IBL
  // ===============================================================
 
-    property bool iblBackgroundEnabled: false
-    property bool iblLightingEnabled: false
-    property bool iblMasterEnabled: true
-    property color backgroundColor: "#1f242c"
-    property string backgroundModeKey: "skybox"
-    property bool skyboxToggleFlag: true
+    property bool iblBackgroundEnabled: environmentBoolDefault("iblBackgroundEnabled", "ibl_background_enabled", false)
+    property bool iblLightingEnabled: environmentBoolDefault("iblLightingEnabled", "ibl_lighting_enabled", false)
+    property bool iblMasterEnabled: environmentBoolDefault("iblMasterEnabled", "ibl_master_enabled", iblLightingEnabled || iblBackgroundEnabled)
+    property color backgroundColor: environmentStringDefault("backgroundColor", "background_color", "#1f242c")
+    property string backgroundModeKey: environmentStringDefault("backgroundMode", "background_mode", "skybox")
+    property bool skyboxToggleFlag: environmentBoolDefault("skyboxEnabled", "skybox_enabled", true)
     readonly property bool backgroundIsTransparent: backgroundModeForKey(backgroundModeKey) === SceneEnvironment.Transparent
     property color resolvedClearColor: {
         var base = backgroundColor
@@ -54,15 +90,19 @@ ExtendedSceneEnvironment {
         return base
     }
     property var iblProbe: null
-    property real iblIntensity:1.0
-    property real skyboxBrightnessValue:1.0
+    property real iblIntensity: environmentNumberDefault("iblIntensity", "ibl_intensity", 1.0)
+    property real skyboxBrightnessValue: environmentNumberDefault(
+            "skyboxBrightness",
+            "skybox_brightness",
+            environmentNumberDefault("probeBrightness", "probe_brightness", 1.0)
+        )
     property alias probeBrightnessValue: root.skyboxBrightnessValue
-    property real probeHorizonValue:0.0
-    property real iblRotationPitchDeg:0.0
-    property real iblRotationDeg:0.0
-    property real iblRotationRollDeg:0.0
-    property bool iblBindToCamera: false
-    property real skyboxBlurValue:0.0
+    property real probeHorizonValue: environmentNumberDefault("probeHorizon", "probe_horizon", 0.0)
+    property real iblRotationPitchDeg: environmentNumberDefault("iblRotationPitchDeg", "ibl_offset_x", 0.0)
+    property real iblRotationDeg: environmentNumberDefault("iblRotationDeg", "ibl_rotation", 0.0)
+    property real iblRotationRollDeg: environmentNumberDefault("iblRotationRollDeg", "ibl_offset_y", 0.0)
+    property bool iblBindToCamera: environmentBoolDefault("iblBindToCamera", "ibl_bind_to_camera", false)
+    property real skyboxBlurValue: environmentNumberDefault("skyboxBlur", "skybox_blur", 0.0)
 
  /**
  * Python SceneBridge instance injected via context property.
@@ -233,6 +273,82 @@ ExtendedSceneEnvironment {
         return String(raw)
     }
 
+    function environmentBoolDefault(primaryKey, secondaryKey, fallback) {
+        if (!root.contextEnvironmentDefaults)
+            return fallback
+        var value = boolFromKeys(root.contextEnvironmentDefaults, primaryKey, secondaryKey)
+        return value === undefined ? fallback : value
+    }
+
+    function environmentNumberDefault(primaryKey, secondaryKey, fallback) {
+        if (!root.contextEnvironmentDefaults)
+            return fallback
+        var value = numberFromKeys(root.contextEnvironmentDefaults, primaryKey, secondaryKey)
+        return value === undefined ? fallback : value
+    }
+
+    function environmentStringDefault(primaryKey, secondaryKey, fallback) {
+        if (!root.contextEnvironmentDefaults)
+            return fallback
+        var value = stringFromKeys(root.contextEnvironmentDefaults, primaryKey, secondaryKey)
+        return value === undefined ? fallback : value
+    }
+
+    function _cloneContextPayload(payload) {
+        if (!payload || typeof payload !== "object")
+            return null
+        try {
+            return JSON.parse(JSON.stringify(payload))
+        } catch (error) {
+            console.warn("SceneEnvironmentController: failed to clone payload", error)
+        }
+        return payload
+    }
+
+    function _qualityContextPayload() {
+        if (!root.contextQualityDefaults || typeof root.contextQualityDefaults !== "object")
+            return null
+        var source = root.contextQualityDefaults
+        var payload = {}
+        if (source.antialiasing && typeof source.antialiasing === "object") {
+            if (source.antialiasing.primary !== undefined)
+                payload.aaPrimaryMode = source.antialiasing.primary
+            if (source.antialiasing.quality !== undefined)
+                payload.aaQualityLevel = source.antialiasing.quality
+            if (source.antialiasing.post !== undefined)
+                payload.aaPostMode = source.antialiasing.post
+        }
+        if (source.taa_enabled !== undefined)
+            payload.taaEnabled = source.taa_enabled
+        if (source.taa_strength !== undefined)
+            payload.taaStrength = source.taa_strength
+        if (source.taa_motion_adaptive !== undefined)
+            payload.taaMotionAdaptive = source.taa_motion_adaptive
+        if (source.fxaa_enabled !== undefined)
+            payload.fxaaEnabled = source.fxaa_enabled
+        if (source.specular_aa !== undefined)
+            payload.specularAAEnabled = source.specular_aa
+        if (source.dithering !== undefined)
+            payload.ditheringEnabled = source.dithering
+        if (source.oit !== undefined)
+            payload.oitMode = source.oit
+        return payload
+    }
+
+    function _applyInitialContextDefaults() {
+        var environmentPayload = _cloneContextPayload(root.contextEnvironmentDefaults)
+        if (environmentPayload && Object.keys(environmentPayload).length)
+            root.applyEnvironmentPayload(environmentPayload)
+
+        var qualityPayload = _qualityContextPayload()
+        if (qualityPayload && Object.keys(qualityPayload).length)
+            root.applyQualityPayload(qualityPayload)
+
+        var effectsPayload = _cloneContextPayload(root.contextEffectsDefaults)
+        if (effectsPayload && Object.keys(effectsPayload).length)
+            root.applyEffectsPayload(effectsPayload)
+    }
+
     function backgroundModeForKey(key) {
         var normalized = String(key || "skybox").trim().toLowerCase()
         if (normalized === "color")
@@ -326,6 +442,7 @@ ExtendedSceneEnvironment {
     }
 
     Component.onCompleted: {
+        root._applyInitialContextDefaults()
         root.canUseDithering = qtVersionAtLeast(6,10)
         if (canUseDithering) {
             root.ditheringEnabled = Qt.binding(function() { return ditheringEnabled })
