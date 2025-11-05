@@ -24,7 +24,9 @@ introduced in later schema revisions; consumers should gate on the
 ## Exporter usage
 
 `tools/telemetry_exporter.py` reads the JSON Lines artefacts and can produce
-consolidated exports:
+consolidated exports. The script reuses the validation helpers defined in
+`src/telemetry/schema.py` so that every consumer agrees on the canonical
+`telemetry_event_v1` layout.
 
 ```bash
 python tools/telemetry_exporter.py export --format json --output reports/analytics/telemetry_events.json
@@ -36,8 +38,10 @@ entries. Use `--strict` to abort when encountering invalid payloads.
 
 ## Aggregations and ETL
 
-Aggregated metrics (event counts per channel, per name, and by day) are written
-to `reports/analytics/telemetry_aggregates.json` via the `aggregate` command:
+Aggregated metrics (event counts per channel, per name, per schema version, and
+by day) are written to `reports/analytics/telemetry_aggregates.json` via the
+`aggregate` command. The generated JSON also includes a nested
+`events_by_channel` dictionary to ease dashboard creation:
 
 ```bash
 python tools/telemetry_exporter.py aggregate --output reports/analytics/telemetry_aggregates.json
@@ -50,8 +54,9 @@ make telemetry-etl
 ```
 
 Running the target performs a JSON export and refreshes the aggregate report in
-one step. The aggregate file includes inventory metadata so downstream notebooks
-can detect missing files or parse anomalies quickly.
+one step. The aggregate file includes inventory metadata, schema distribution,
+and per-channel event breakdowns so downstream notebooks can detect missing
+files or parse anomalies quickly.
 
 ## Example analysis
 

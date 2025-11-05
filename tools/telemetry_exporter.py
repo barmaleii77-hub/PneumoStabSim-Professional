@@ -3,33 +3,36 @@
 from __future__ import annotations
 
 import argparse
+import importlib.util
 import json
 import sys
 from collections import Counter, defaultdict
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import (
-    Any,
-    Dict,
-    Iterable,
-    List,
-    Mapping,
-    MutableMapping,
-    Optional,
-    Sequence,
-)
+from typing import TYPE_CHECKING, Any, Dict, Iterable, List, MutableMapping, Optional, Sequence
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
-try:
-    from src.telemetry.tracker import EVENT_SCHEMA_VERSION as _TRACKER_SCHEMA_VERSION
-except ModuleNotFoundError:
-    _TRACKER_SCHEMA_VERSION = None
+if TYPE_CHECKING:  # pragma: no cover - used for static analysis only.
+    from src.telemetry.schema import TelemetryRecord
 
-EVENT_SCHEMA_VERSION = _TRACKER_SCHEMA_VERSION or "telemetry_event_v1"
+try:
+    from src.telemetry.schema import EVENT_SCHEMA_VERSION, parse_event_dict
+except ModuleNotFoundError:
+    schema_path = REPO_ROOT / "src" / "telemetry" / "schema.py"
+    spec = importlib.util.spec_from_file_location("_telemetry_schema", schema_path)
+    if spec and spec.loader:
+        module = importlib.util.module_from_spec(spec)
+        sys.modules[spec.name] = module
+        spec.loader.exec_module(module)
+        EVENT_SCHEMA_VERSION = getattr(module, "EVENT_SCHEMA_VERSION", "telemetry_event_v1")
+        parse_event_dict = getattr(module, "parse_event_dict", None)
+    else:  # pragma: no cover - fallback when spec resolution fails.
+        EVENT_SCHEMA_VERSION = "telemetry_event_v1"
+        parse_event_dict = None
 
 try:  # Optional dependency for Parquet exports.
     import pyarrow as pa
@@ -43,22 +46,13 @@ except ModuleNotFoundError:  # pragma: no cover - executed when pyarrow is absen
 class NormalizedEvent:
     """Telemetry event normalised for analytics processing."""
 
-    schema_version: str
-    channel: str
-    event: str
-    timestamp: datetime
-    payload: Dict[str, Any]
+    record: "TelemetryRecord"
     source: Path
 
     def as_dict(self) -> Dict[str, Any]:
-        return {
-            "schema_version": self.schema_version,
-            "channel": self.channel,
-            "event": self.event,
-            "timestamp": self.timestamp.isoformat(),
-            "payload": self.payload,
-            "source": str(self.source),
-        }
+        payload = self.record.as_dict()
+        payload["source"] = str(self.source)
+        return payload
 
 
 @dataclass(slots=True)
@@ -67,7 +61,7 @@ class TelemetryBundle:
 
     events: List[NormalizedEvent]
     errors: List[str]
-    inventory: Mapping[str, int]
+    inventory: Dict[str, int]
 
     @property
     def event_count(self) -> int:
@@ -76,54 +70,6 @@ class TelemetryBundle:
     @property
     def error_count(self) -> int:
         return len(self.errors)
-
-
-def _parse_timestamp(raw: Any) -> datetime:
-    if not isinstance(raw, str):
-        raise ValueError("timestamp must be an ISO 8601 string")
-    candidate = raw.replace("Z", "+00:00")
-    try:
-        parsed = datetime.fromisoformat(candidate)
-    except ValueError as exc:  # pragma: no cover - defensive against malformed data.
-        raise ValueError(f"invalid timestamp '{raw}': {exc}") from exc
-    if parsed.tzinfo is None:
-        parsed = parsed.replace(tzinfo=timezone.utc)
-    return parsed
-
-
-def _normalize_event(payload: Mapping[str, Any], source: Path) -> NormalizedEvent:
-    missing = {
-        key
-        for key in ("channel", "event", "timestamp", "payload")
-        if key not in payload
-    }
-    if missing:
-        raise ValueError(f"missing keys: {sorted(missing)}")
-
-    channel = payload["channel"]
-    event = payload["event"]
-    if not isinstance(channel, str):
-        raise ValueError("channel must be a string")
-    if not isinstance(event, str):
-        raise ValueError("event must be a string")
-
-    schema_version = payload.get("schema_version") or EVENT_SCHEMA_VERSION
-    if not isinstance(schema_version, str):
-        raise ValueError("schema_version must be a string when provided")
-
-    timestamp = _parse_timestamp(payload["timestamp"])
-    body = payload["payload"]
-    if not isinstance(body, Mapping):
-        raise ValueError("payload must be a mapping")
-
-    return NormalizedEvent(
-        schema_version=schema_version,
-        channel=channel,
-        event=event,
-        timestamp=timestamp,
-        payload=dict(body),
-        source=source,
-    )
 
 
 def _read_jsonl(path: Path) -> Iterable[str]:
@@ -139,6 +85,11 @@ def load_events(source: Path, *, strict: bool = False) -> TelemetryBundle:
     errors: List[str] = []
     inventory: MutableMapping[str, int] = defaultdict(int)
 
+    if parse_event_dict is None:  # pragma: no cover - executed in limited envs
+        raise RuntimeError(
+            "telemetry schema helpers are unavailable; ensure src/telemetry is on PYTHONPATH"
+        )
+
     for file_path in sorted(source.glob("*.jsonl")):
         count = 0
         for index, raw_line in enumerate(_read_jsonl(file_path), start=1):
@@ -151,14 +102,14 @@ def load_events(source: Path, *, strict: bool = False) -> TelemetryBundle:
                 errors.append(message)
                 continue
             try:
-                event = _normalize_event(payload, file_path)
+                record = parse_event_dict(payload)
             except ValueError as exc:
                 message = f"{file_path.name}:{index}: {exc}"
                 if strict:
                     raise ValueError(message) from exc
                 errors.append(message)
                 continue
-            events.append(event)
+            events.append(NormalizedEvent(record=record, source=file_path))
             count += 1
         inventory[str(file_path)] = count
 
@@ -186,12 +137,13 @@ def export_parquet(bundle: TelemetryBundle, output: Path) -> Path:
     output.parent.mkdir(parents=True, exist_ok=True)
     table = pa.table(
         {
-            "schema_version": [event.schema_version for event in bundle.events],
-            "channel": [event.channel for event in bundle.events],
-            "event": [event.event for event in bundle.events],
-            "timestamp": [event.timestamp for event in bundle.events],
+            "schema_version": [event.record.schema_version for event in bundle.events],
+            "channel": [event.record.channel for event in bundle.events],
+            "event": [event.record.event for event in bundle.events],
+            "timestamp": [event.record.timestamp for event in bundle.events],
             "payload": [
-                json.dumps(event.payload, ensure_ascii=False) for event in bundle.events
+                json.dumps(event.record.payload, ensure_ascii=False)
+                for event in bundle.events
             ],
             "source": [str(event.source) for event in bundle.events],
         }
@@ -201,9 +153,15 @@ def export_parquet(bundle: TelemetryBundle, output: Path) -> Path:
 
 
 def build_aggregates(bundle: TelemetryBundle) -> Dict[str, Any]:
-    per_channel = Counter(event.channel for event in bundle.events)
-    per_event = Counter(event.event for event in bundle.events)
-    per_day = Counter(event.timestamp.date().isoformat() for event in bundle.events)
+    per_channel = Counter(event.record.channel for event in bundle.events)
+    per_event = Counter(event.record.event for event in bundle.events)
+    per_day = Counter(
+        event.record.timestamp.date().isoformat() for event in bundle.events
+    )
+    per_schema = Counter(event.record.schema_version for event in bundle.events)
+    events_by_channel: Dict[str, Counter[str]] = defaultdict(Counter)
+    for normalised in bundle.events:
+        events_by_channel[normalised.record.channel][normalised.record.event] += 1
 
     return {
         "schema_version": EVENT_SCHEMA_VERSION,
@@ -213,6 +171,11 @@ def build_aggregates(bundle: TelemetryBundle) -> Dict[str, Any]:
         "channels": dict(sorted(per_channel.items())),
         "events": dict(sorted(per_event.items())),
         "daily_counts": dict(sorted(per_day.items())),
+        "schema_versions": dict(sorted(per_schema.items())),
+        "events_by_channel": {
+            channel: dict(sorted(counter.items()))
+            for channel, counter in sorted(events_by_channel.items())
+        },
         "source_inventory": bundle.inventory,
         "notes": ["Counts include only successfully parsed records."],
     }
