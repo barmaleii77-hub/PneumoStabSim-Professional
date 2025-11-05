@@ -22,9 +22,39 @@ localization-check \
 autonomous-check autonomous-check-trace trace-launch sanitize cipilot-env \
 install-qt-runtime qt-env-check telemetry-etl profile-phase3 profile-render profile-validate package-all
 
-.PHONY: qmllint
-qmllint:
-	$(MAKE) qml-lint
+
+.PHONY: qml-lint qmllint
+qml-lint qmllint:
+	@echo "Running QML lint (qmllint)"
+	@LINTER="$(QML_LINTER)"; \
+	if [ -z "$$LINTER" ]; then \
+	 if command -v qmllint >/dev/null 2>&1; then \
+	 LINTER=qmllint; \
+	 elif command -v pyside6-qmllint >/dev/null 2>&1; then \
+	 LINTER=pyside6-qmllint; \
+	 else \
+	 echo "Error: qmllint or pyside6-qmllint is not installed. Set QML_LINTER to override." >&2; \
+	 exit 1; \
+	 fi; \
+	fi; \
+	if [ -f "$(QML_LINT_TARGETS_FILE)" ]; then \
+	 mapfile -t qml_files < "$(QML_LINT_TARGETS_FILE)"; \
+	else \
+	 qml_files=(); \
+	fi; \
+	if [ $${#qml_files[@]} -eq 0 ]; then \
+	 echo "No QML lint targets specified; skipping."; \
+	 exit 0; \
+	fi; \
+	for file in "$${qml_files[@]}"; do \
+	 if [ -n "$$file" ]; then \
+	 if [ -d "$$file" ]; then \
+	 find "$$file" -type f -name '*.qml' -print0 | while IFS= read -r -d '' nested; do "$$LINTER" "$$nested"; done; \
+	 else \
+	 "$$LINTER" "$$file"; \
+	 fi; \
+	 fi; \
+	done
 
 .PHONY: uv-sync uv-sync-locked uv-run uv-lock uv-export-requirements uv-release-refresh
 
@@ -73,37 +103,6 @@ lint:
 typecheck:
 	$(PYTHON) -m tools.ci_tasks typecheck
 
-qml-lint:
-	@echo "Running QML lint (qmllint)"
-	@LINTER="$(QML_LINTER)"; \
-	if [ -z "$$LINTER" ]; then \
-	 if command -v qmllint >/dev/null 2>&1; then \
-	 LINTER=qmllint; \
-	 elif command -v pyside6-qmllint >/dev/null 2>&1; then \
-	 LINTER=pyside6-qmllint; \
-	 else \
-	 echo "Error: qmllint or pyside6-qmllint is not installed. Set QML_LINTER to override." >&2; \
-	 exit 1; \
-	 fi; \
-	fi; \
-	if [ -f "$(QML_LINT_TARGETS_FILE)" ]; then \
-	 mapfile -t qml_files < "$(QML_LINT_TARGETS_FILE)"; \
-	else \
-	 qml_files=(); \
-	fi; \
-	if [ $${#qml_files[@]} -eq 0 ]; then \
-	 echo "No QML lint targets specified; skipping."; \
-	 exit 0; \
-	fi; \
-	for file in "$${qml_files[@]}"; do \
-	 if [ -n "$$file" ]; then \
-	 if [ -d "$$file" ]; then \
-	 find "$$file" -type f -name '*.qml' -print0 | while IFS= read -r -d '' nested; do "$$LINTER" "$$nested"; done; \
-	 else \
-	 "$$LINTER" "$$file"; \
-	 fi; \
-	 fi; \
-	done
 
 .PHONY: test-local
 test-local:
