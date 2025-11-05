@@ -798,6 +798,9 @@ Item {
     property alias dofFocusDistance: dofEffect.focusDistance
     property alias dofFocusRange: dofEffect.focusRange
     property alias dofBlurAmount: dofEffect.blurAmount
+    property alias depthOfFieldFallbackActive: dofEffect.fallbackActive
+    property alias depthOfFieldFallbackDueToRequirements: dofEffect.fallbackDueToRequirements
+    property alias depthOfFieldDepthTextureAvailable: dofEffect.depthTextureAvailable
 
     // Параметры камеры View3D, необходимые для корректного расчёта глубины
     property real cameraClipNear: 0.1

@@ -125,3 +125,7 @@ Track panel completion status, performance runs, and localization updates here.
   Qt Quick profiling workflows.
 - Wired the new gate into `.github/workflows/ci.yml` so PRs fail when metrics breach the Phase 3 baseline envelope.
 
+### 2025-11-22 – OpenGL RHI baseline
+- Закрепили backend `QSG_RHI_BACKEND=opengl` во всех скриптах запуска, чтобы Qt Quick 3D всегда использовал OpenGL RHI.
+- README и run-гайд обновлены требованием OpenGL 3.3+, а демо-сцена проверена на отсутствие fallback у `FogEffect` и `Depth of Field`.
+

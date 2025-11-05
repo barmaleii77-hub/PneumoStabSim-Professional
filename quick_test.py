@@ -26,10 +26,8 @@ def _configure_qt_environment() -> None:
         os.environ.setdefault("QT_OPENGL", "software")
         os.environ.setdefault("QT_QUICK_BACKEND", "software")
         os.environ.setdefault("QSG_RHI_BACKEND", "software")
-    elif sys.platform.startswith("win"):
-        os.environ.setdefault("QSG_RHI_BACKEND", "d3d11")
     else:
-        os.environ.setdefault("QSG_RHI_BACKEND", "software")
+        os.environ.setdefault("QSG_RHI_BACKEND", "opengl")
 
     os.environ.setdefault("QSG_INFO", "1")
     os.environ.setdefault("QT_LOGGING_RULES", "js.debug=true;qt.qml.debug=true")
