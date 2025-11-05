@@ -51,6 +51,59 @@ ExtendedSceneEnvironment {
         id: qualityProfiles
     }
 
+    // Structured diagnostics toggles (disabled by default)
+    property bool diagnosticsLoggingEnabled: false
+
+    function logStructured(eventName, params) {
+        if (!diagnosticsLoggingEnabled)
+            return
+
+        var windowRef = typeof window !== "undefined" ? window : null
+        if (windowRef && typeof windowRef.logQmlEvent === "function") {
+            try {
+                windowRef.logQmlEvent("function_called", eventName)
+            } catch (error) {
+                console.debug("SceneEnvironmentController", eventName, "window.logQmlEvent failed", error)
+            }
+        }
+
+        function ownKeys(value) {
+            if (!value || typeof value !== "object")
+                return []
+            var keys = []
+            for (var key in value) {
+                if (Object.prototype.hasOwnProperty.call(value, key))
+                    keys.push(key)
+            }
+            return keys
+        }
+
+        function sectionSummary(value) {
+            var summary = {}
+            if (!value || typeof value !== "object")
+                return summary
+            for (var key in value) {
+                if (!Object.prototype.hasOwnProperty.call(value, key))
+                    continue
+                var nested = value[key]
+                if (nested && typeof nested === "object")
+                    summary[key] = ownKeys(nested).length
+            }
+            return summary
+        }
+
+        var payload = {
+            level: "info",
+            logger: "qml.scene_environment",
+            event: eventName,
+            keys: ownKeys(params),
+            sections: sectionSummary(params),
+            timestamp: new Date().toISOString()
+        }
+
+        console.log(JSON.stringify(payload))
+    }
+
     // ===============================================================
     // QUALITY PRESET MANAGEMENT
     // ===============================================================
@@ -1780,14 +1833,17 @@ return
     }
 
     function applyEnvironmentUpdates(params) {
+        logStructured("SceneEnvironmentController.applyEnvironmentUpdates", params)
         applyEnvironmentPayload(params)
     }
 
     function applyQualityUpdates(params) {
+        logStructured("SceneEnvironmentController.applyQualityUpdates", params)
         applyQualityPayload(params)
     }
 
     function applyEffectsUpdates(params) {
+        logStructured("SceneEnvironmentController.applyEffectsUpdates", params)
         applyEffectsPayload(params)
     }
 }

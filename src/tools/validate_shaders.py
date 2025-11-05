@@ -57,6 +57,13 @@ QSB_PROFILE_ARGUMENTS: tuple[str, ...] = (
 )
 
 
+RUNTIME_DEPENDENCY_HINTS: tuple[tuple[str, str], ...] = (
+    ("libxkbcommon.so.0", "libxkbcommon0"),
+    ("libGL.so.1", "libgl1"),
+    ("libEGL.so.1", "libegl1"),
+)
+
+
 @dataclass(frozen=True)
 class ShaderFile:
     """Metadata captured for a single shader variant."""
@@ -75,86 +82,8 @@ ValidationErrors = List[str]
 QSB_ENV_VARIABLE = "QSB_COMMAND"
 
 
-class ShaderValidationEnvironmentError(RuntimeError):
-    """Raised when the shader validation toolchain is not usable."""
-
-
-def _extract_missing_library(stderr: str) -> str | None:
-    """Return the missing shared library name if *stderr* reports it."""
-
-    match = re.search(
-        r"error while loading shared libraries: ([^:]+):",
-        stderr,
-        flags=re.IGNORECASE,
-    )
-    if match:
-        return match.group(1)
-    return None
-
-
-def _format_missing_library_message(library: str) -> str:
-    hint = (
-        "Install the missing library (for example: 'libxkbcommon0' on Debian/Ubuntu)"
-        " or run 'make install-qt-runtime' to provision Qt runtime dependencies."
-    )
-    return (
-        "Qt Shader Baker (qsb) could not start because the shared library "
-        f"'{library}' is unavailable. {hint}"
-    )
-
-
-def _interpret_qsb_startup_failure(
-    returncode: int, stderr: str, stdout: str, *, allow_generic: bool
-) -> str | None:
-    """Return a human readable message if qsb failed to launch."""
-
-    message_source = stderr.strip() or stdout.strip()
-    missing_library = _extract_missing_library(message_source)
-    if missing_library:
-        return _format_missing_library_message(missing_library)
-
-    if returncode == 127:
-        base = "Qt Shader Baker (qsb) could not be executed (exit code 127)."
-        if message_source:
-            return f"{base} {message_source}"
-        return base
-
-    if allow_generic:
-        if message_source:
-            return (
-                "Qt Shader Baker (qsb) terminated unexpectedly "
-                f"(exit code {returncode}): {message_source}"
-            )
-        return "Qt Shader Baker (qsb) exited with a non-zero status."
-
-    return None
-
-
-def _probe_qsb(command: Sequence[str]) -> None:
-    """Ensure the qsb executable can start before validating shaders."""
-
-    try:
-        completed = subprocess.run(
-            [*command, "--version"], capture_output=True, text=True, check=False
-        )
-    except OSError as exc:  # pragma: no cover - system level failure
-        raise ShaderValidationEnvironmentError(
-            "Qt Shader Baker (qsb) could not be executed"
-        ) from exc
-
-    if completed.returncode != 0:
-        message = _interpret_qsb_startup_failure(
-            completed.returncode,
-            completed.stderr or "",
-            completed.stdout or "",
-            allow_generic=True,
-        )
-        if message is None:
-            message = (
-                "Qt Shader Baker (qsb) exited with a non-zero status while "
-                "probing the executable."
-            )
-        raise ShaderValidationEnvironmentError(message)
+class ShaderValidationUnavailableError(RuntimeError):
+    """Raised when qsb cannot run due to a missing runtime dependency."""
 
 
 def classify_shader(path: Path) -> tuple[str, str]:
@@ -282,6 +211,24 @@ def _shader_reports_paths(
     return output_path, log_path
 
 
+def _extract_missing_shared_library(stderr: str) -> str | None:
+    """Return the missing shared library mentioned in *stderr*, if any."""
+
+    marker = "error while loading shared libraries:"
+    for line in stderr.splitlines():
+        if marker not in line:
+            continue
+        _, tail = line.split(marker, 1)
+        candidate = tail.strip()
+        if not candidate:
+            continue
+        library, *_ = candidate.split(":", 1)
+        library = library.strip()
+        if library:
+            return library
+    return None
+
+
 def _run_qsb(
     shader: ShaderFile,
     shader_root: Path,
@@ -334,13 +281,27 @@ def _run_qsb(
             log_contents.append("[stderr]\n" + stderr)
         log_path.write_text("\n\n".join(log_contents), encoding="utf-8")
 
+    missing_library = _extract_missing_shared_library(stderr)
+    if completed.returncode == 127 and missing_library:
+        raise ShaderValidationUnavailableError(
+            "Qt Shader Baker could not start because the shared library "
+            f"'{missing_library}' is not available in the current environment."
+        )
+
     if completed.returncode != 0:
+        env_message = _summarize_environment_failure(
+            completed.returncode, stdout, stderr, command
+        )
+        if env_message is not None:
+            raise QsbEnvironmentError(env_message)
+
         errors.append(
             f"{_relative(shader.path, shader_root)}: qsb failed with exit code {completed.returncode}"
         )
         if stderr:
             first_line = stderr.strip().splitlines()[0]
             errors.append(f"    {first_line}")
+            errors.extend(_diagnose_qsb_failure(stderr))
 
     if temp_output is not None:
         with suppress(FileNotFoundError):
@@ -353,7 +314,14 @@ def validate_shaders(
     qsb_command: Sequence[str] | None = None,
     reports_dir: Path | None = None,
 ) -> ValidationErrors:
-    """Return a list of validation error messages for *shader_root*."""
+    """Return a list of validation error messages for *shader_root*.
+
+    Raises
+    ------
+    ShaderValidationUnavailableError
+        If ``qsb`` is present but cannot be executed due to a missing
+        shared library at runtime (for example ``libxkbcommon.so.0``).
+    """
 
     errors: ValidationErrors = []
 
@@ -402,7 +370,10 @@ def validate_shaders(
         _validate_versions(files, shader_root, errors)
 
         for shader in files:
-            _run_qsb(shader, shader_root, command, reports_dir, errors)
+            try:
+                _run_qsb(shader, shader_root, command, reports_dir, errors)
+            except QsbEnvironmentError as exc:
+                return [str(exc)]
 
     return errors
 
@@ -448,7 +419,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         reports_dir = DEFAULT_REPORTS_ROOT
     try:
         errors = validate_shaders(shader_root, reports_dir=reports_dir)
-    except ShaderValidationEnvironmentError as exc:
+    except ShaderValidationUnavailableError as exc:
         print(f"[validate_shaders] WARNING: {exc}", file=sys.stderr)
         return 0
 
