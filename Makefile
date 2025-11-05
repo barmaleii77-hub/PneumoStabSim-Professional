@@ -132,22 +132,7 @@ localization-check:
 	$(PYTHON) tools/update_translations.py --check
 
 qt-env-check:
-	@$(SHELL) -lc '
-		VENV_PY="$(UV_PROJECT_DIR)/.venv/bin/python"; \
-		if [ -f "$(UV_PROJECT_DIR)/activate_environment.sh" ]; then \
-			PSS_SKIP_ENV_BOOTSTRAP=1 source "$(UV_PROJECT_DIR)/activate_environment.sh" >/dev/null 2>&1; \
-		fi; \
-		if [ -x "$$VENV_PY" ]; then \
-			cd "$(UV_PROJECT_DIR)" && "$$VENV_PY" tools/environment/verify_qt_setup.py --report-dir reports/environment; \
-		elif command -v "$(UV)" >/dev/null 2>&1; then \
-			if ! (cd "$(UV_PROJECT_DIR)" && "$(UV)" run $(UV_RUN_ARGS) -- python tools/environment/verify_qt_setup.py --report-dir reports/environment); then \
-				echo "Warning: '$(UV)' execution failed; falling back to '$(PYTHON)'." >&2; \
-				cd "$(UV_PROJECT_DIR)" && $(PYTHON) tools/environment/verify_qt_setup.py --report-dir reports/environment; \
-			fi; \
-		else \
-			$(PYTHON) tools/environment/verify_qt_setup.py --report-dir reports/environment; \
-		fi \
-	'
+	@UV_PROJECT_DIR="$(UV_PROJECT_DIR)" UV_RUN_ARGS="$(UV_RUN_ARGS)" UV="$(UV)" PYTHON="$(PYTHON)" tools/environment/run_qt_env_check.sh
 
 
 .PHONY: telemetry-etl
