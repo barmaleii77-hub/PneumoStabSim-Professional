@@ -144,6 +144,8 @@ class ProceduralCylinderGeometry(QQuick3DGeometry):
         self._rings = 1
         self._vertex_count = 0
         self._index_count = 0
+        self._radius = 1.0
+        self._length = 2.0
 
         self.updateData()
         self.geometryNodeDirty.connect(self.updateData)
@@ -178,6 +180,28 @@ class ProceduralCylinderGeometry(QQuick3DGeometry):
     def index_count(self) -> int:
         return self._index_count
 
+    @Property(float)
+    def radius(self) -> float:
+        return self._radius
+
+    @radius.setter
+    def radius(self, value: float) -> None:
+        coerced = max(1e-5, float(value))
+        if coerced != self._radius:
+            self._radius = coerced
+            self.updateData()
+
+    @Property(float)
+    def length(self) -> float:
+        return self._length
+
+    @length.setter
+    def length(self, value: float) -> None:
+        coerced = max(1e-5, float(value))
+        if coerced != self._length:
+            self._length = coerced
+            self.updateData()
+
     def updateData(self) -> None:  # noqa: C901 - geometry generation requires loops
         print("ProceduralCylinderGeometry.updateData() called")
 
@@ -185,6 +209,8 @@ class ProceduralCylinderGeometry(QQuick3DGeometry):
 
         segments = max(3, int(self._segments))
         rings = max(1, int(self._rings))
+        radius = max(1e-5, float(self._radius))
+        half_length = max(1e-5, float(self._length) / 2.0)
 
         two_pi = 2.0 * np.pi
         angles = np.linspace(0.0, two_pi, segments + 1, dtype=np.float32)
@@ -199,11 +225,14 @@ class ProceduralCylinderGeometry(QQuick3DGeometry):
         for ring_index, y in enumerate(ring_positions):
             v_coord = ring_index / rings
             for seg_index in range(segments + 1):
-                x = cos_angles[seg_index]
-                z = sin_angles[seg_index]
+                x_unit = cos_angles[seg_index]
+                z_unit = sin_angles[seg_index]
+                x = x_unit * radius
+                z = z_unit * radius
+                y_pos = y * half_length
                 u_coord = seg_index / segments
-                side_positions.append([x, y, z])
-                side_normals.append([x, 0.0, z])
+                side_positions.append([x, y_pos, z])
+                side_normals.append([x_unit, 0.0, z_unit])
                 side_uvs.append([u_coord, v_coord])
 
         side_positions = np.array(side_positions, dtype=np.float32)
@@ -223,8 +252,8 @@ class ProceduralCylinderGeometry(QQuick3DGeometry):
                 indices.extend((top_left, bottom_left, top_right))
                 indices.extend((top_right, bottom_left, bottom_right))
 
-        top_center = np.array([[0.0, 1.0, 0.0]], dtype=np.float32)
-        bottom_center = np.array([[0.0, -1.0, 0.0]], dtype=np.float32)
+        top_center = np.array([[0.0, half_length, 0.0]], dtype=np.float32)
+        bottom_center = np.array([[0.0, -half_length, 0.0]], dtype=np.float32)
 
         top_ring_positions = []
         bottom_ring_positions = []
@@ -237,8 +266,8 @@ class ProceduralCylinderGeometry(QQuick3DGeometry):
             angle = two_pi * seg_index / segments
             cos_val = np.cos(angle)
             sin_val = np.sin(angle)
-            top_ring_positions.append([cos_val, 1.0, sin_val])
-            bottom_ring_positions.append([cos_val, -1.0, sin_val])
+            top_ring_positions.append([cos_val * radius, half_length, sin_val * radius])
+            bottom_ring_positions.append([cos_val * radius, -half_length, sin_val * radius])
             top_ring_normals.append([0.0, 1.0, 0.0])
             bottom_ring_normals.append([0.0, -1.0, 0.0])
             u = 0.5 + cos_val * 0.5
@@ -332,7 +361,10 @@ class ProceduralCylinderGeometry(QQuick3DGeometry):
 
         from PySide6.QtGui import QVector3D
 
-        self.setBounds(QVector3D(-1.0, -1.0, -1.0), QVector3D(1.0, 1.0, 1.0))
+        self.setBounds(
+            QVector3D(-radius, -half_length, -radius),
+            QVector3D(radius, half_length, radius),
+        )
 
         print("ProceduralCylinderGeometry.updateData() completed")
 

@@ -87,8 +87,9 @@ $pathVariables = @{
     'PROJECT_ROOT'     = $false
     'PYTHONPATH'       = $true
     'QT_PLUGIN_PATH'   = $false
-    'QML2_IMPORT_PATH' = $false
-    'QML_IMPORT_PATH'  = $false
+    'QML2_IMPORT_PATH' = $true
+    'QML_IMPORT_PATH'  = $true
+    'QT_QML_IMPORT_PATH' = $true
 }
 
 foreach ($entry in $pathVariables.GetEnumerator()) {
@@ -112,6 +113,42 @@ foreach ($entry in $pathVariables.GetEnumerator()) {
     }
 
     Set-Item -Path "Env:$($entry.Key)" -Value $currentValue
+}
+
+function Add-QmlImportPath {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string] $VariableName,
+
+        [Parameter(Mandatory = $true)]
+        [string] $Directory
+    )
+
+    if (-not (Test-Path -LiteralPath $Directory)) {
+        return
+    }
+
+    $resolved = (Resolve-Path -LiteralPath $Directory).Path
+    $current = (Get-Item -Path "Env:$VariableName" -ErrorAction SilentlyContinue).Value
+    if ([string]::IsNullOrWhiteSpace($current)) {
+        Set-Item -Path "Env:$VariableName" -Value $resolved
+        return
+    }
+
+    $segments = Get-PathSegments -Value $current
+    if ($segments -notcontains $resolved) {
+        $segments += $resolved
+        Set-Item -Path "Env:$VariableName" -Value ($segments -join ';')
+    }
+}
+
+$sceneModule = Join-Path -Path $projectRoot -ChildPath 'assets/qml/scene'
+if (Test-Path -LiteralPath $sceneModule) {
+    $qmlRoot = Join-Path -Path $projectRoot -ChildPath 'assets/qml'
+    foreach ($variable in 'QML2_IMPORT_PATH', 'QML_IMPORT_PATH', 'QT_QML_IMPORT_PATH') {
+        Add-QmlImportPath -VariableName $variable -Directory $qmlRoot
+        Add-QmlImportPath -VariableName $variable -Directory $sceneModule
+    }
 }
 
 Write-Host "[env] Variables loaded from .env" -ForegroundColor Cyan

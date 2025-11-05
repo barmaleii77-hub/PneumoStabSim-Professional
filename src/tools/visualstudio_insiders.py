@@ -115,21 +115,29 @@ def build_insiders_environment(
         "Project QML assets directory",
         ensure_exists=ensure_paths,
     )
+    scene_module_root = _ensure_path(
+        assets_qml_root / "scene",
+        "Project scene module directory",
+        ensure_exists=ensure_paths,
+    )
 
     windows_root = _as_windows_path(resolved_root)
     pythonpath_entries = _compose_pythonpath(
         windows_root, resolved_root / "src", resolved_root / "tests"
     )
 
+    qml_paths = [
+        _as_windows_path(qml_runtime_root),
+        _as_windows_path(assets_qml_root),
+        _as_windows_path(scene_module_root),
+    ]
+    qml_paths_value = ";".join(qml_paths)
+
     env: Dict[str, str] = {
-        "QML2_IMPORT_PATH": _as_windows_path(qml_runtime_root)
-        + ";"
-        + _as_windows_path(assets_qml_root),
-        "QML_IMPORT_PATH": _as_windows_path(qml_runtime_root)
-        + ";"
-        + _as_windows_path(assets_qml_root),
+        "QML2_IMPORT_PATH": qml_paths_value,
+        "QML_IMPORT_PATH": qml_paths_value,
         "QT_PLUGIN_PATH": _as_windows_path(plugin_root),
-        "QT_QML_IMPORT_PATH": _as_windows_path(qml_runtime_root),
+        "QT_QML_IMPORT_PATH": qml_paths_value,
         "QT_QUICK_CONTROLS_STYLE": "Basic",
         "PYTHONPATH": ";".join(pythonpath_entries),
         "PYTHONUTF8": "1",

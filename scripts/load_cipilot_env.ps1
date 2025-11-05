@@ -65,10 +65,19 @@ if (-not $env:QML2_IMPORT_PATH -or $env:QML2_IMPORT_PATH.Trim() -eq '') {
   $code = 'from PySide6.QtCore import QLibraryInfo as Q; print(Q.path(Q.LibraryPath.QmlImportsPath))'
   $qmlLib = Get-PythonOutput $code
   $parts = @()
-  if ($assetsQml) { $parts += $assetsQml.Path }
+  if ($assetsQml) {
+    $parts += $assetsQml.Path
+    $scenePath = Join-Path -Path $assetsQml.Path -ChildPath 'scene'
+    if (Test-Path -LiteralPath $scenePath) {
+      $parts += (Resolve-Path -LiteralPath $scenePath).Path
+    }
+  }
   if ($qmlLib) { $parts += $qmlLib }
   if ($parts.Count -gt 0) {
-    $env:QML2_IMPORT_PATH = [string]::Join(';', $parts)
+    $joined = [string]::Join(';', $parts)
+    $env:QML2_IMPORT_PATH = $joined
+    $env:QML_IMPORT_PATH = $joined
+    $env:QT_QML_IMPORT_PATH = $joined
     Write-Host "[env] QML2_IMPORT_PATH=$($env:QML2_IMPORT_PATH)"
   }
 }

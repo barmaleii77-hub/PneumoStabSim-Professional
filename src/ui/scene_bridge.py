@@ -31,16 +31,14 @@ class SceneBridge(QObject):
         self,
         parent: Optional[QObject] = None,
         *,
-        visualization_service: Optional[VisualizationService] = None,
+        visualization_service: VisualizationService | None = None,
         settings_manager: Optional[SettingsManager] = None,
     ) -> None:
         super().__init__(parent)
         if visualization_service is not None:
             self._service = visualization_service
         else:
-            self._service = VisualizationService(
-                settings_manager=settings_manager
-            )
+            self._service = VisualizationService(settings_manager=settings_manager)
         self._signal_map = {
             "geometry": self.geometryChanged,
             "camera": self.cameraChanged,
@@ -148,9 +146,13 @@ class SceneBridge(QObject):
         """Reload orbit presets via the service and broadcast camera updates."""
 
         manifest = self._service.refresh_orbit_presets()
-        updates = self._service.latest_updates()
+        updates = {
+            key: dict(value)
+            for key, value in self._service.latest_updates().items()
+            if isinstance(value, dict)
+        }
         if updates:
-            self._emit_updates({key: dict(value) for key, value in updates.items()})
+            self._emit_updates(updates)
         return dict(manifest)
 
     # ------------------------------------------------------------------

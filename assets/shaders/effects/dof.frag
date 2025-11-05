@@ -102,4 +102,3 @@ void MAIN()
     dofMain(fragColor);
     FRAGCOLOR = fragColor;
 }
-

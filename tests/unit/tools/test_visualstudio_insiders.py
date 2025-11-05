@@ -42,7 +42,10 @@ def test_environment_contains_expected_paths(project_root: Path) -> None:
     assert expected_keys.issubset(environment.keys())
 
     qml_paths = [path.lower() for path in environment["QML2_IMPORT_PATH"].split(";")]
-    assert any(path.endswith("\\assets\\qml") for path in qml_paths)
+    assets_qml = str(PureWindowsPath(project_root / "assets" / "qml")).lower()
+    scene_module = str(PureWindowsPath(project_root / "assets" / "qml" / "scene")).lower()
+    assert assets_qml in qml_paths
+    assert scene_module in qml_paths
     assert any("\\pyside6\\qml" in path for path in qml_paths)
 
     python_path_entries = environment["PYTHONPATH"].split(";")
@@ -65,7 +68,7 @@ def test_environment_contains_expected_paths(project_root: Path) -> None:
 
 def _create_fake_project(tmp_path: Path) -> Path:
     project_root = tmp_path / "pneumo-insiders"
-    (project_root / "assets" / "qml").mkdir(parents=True)
+    (project_root / "assets" / "qml" / "scene").mkdir(parents=True)
     (project_root / "src").mkdir(parents=True)
     (project_root / "tests").mkdir(parents=True)
 
@@ -89,7 +92,7 @@ def test_validation_requires_expected_directories(tmp_path: Path) -> None:
 
 def test_validation_supports_posix_layout(tmp_path: Path) -> None:
     project_root = tmp_path / "pneumo-insiders-posix"
-    (project_root / "assets" / "qml").mkdir(parents=True)
+    (project_root / "assets" / "qml" / "scene").mkdir(parents=True)
     (project_root / "src").mkdir(parents=True)
     (project_root / "tests").mkdir(parents=True)
 
@@ -101,7 +104,9 @@ def test_validation_supports_posix_layout(tmp_path: Path) -> None:
 
     environment = build_insiders_environment(project_root, ensure_paths=True)
     qml_paths = environment["QML2_IMPORT_PATH"].split(";")
+    expected_scene = str(PureWindowsPath(project_root / "assets" / "qml" / "scene"))
     assert str(PureWindowsPath(pyside_root / "qml")) in qml_paths
+    assert expected_scene in qml_paths
 
 
 def test_cli_matches_python_builder(project_root: Path, tmp_path: Path) -> None:
