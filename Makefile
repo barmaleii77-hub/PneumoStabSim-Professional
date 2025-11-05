@@ -136,11 +136,14 @@ qt-env-check:
 		if [ -f "$(UV_PROJECT_DIR)/activate_environment.sh" ]; then \
 			source "$(UV_PROJECT_DIR)/activate_environment.sh" >/dev/null 2>&1; \
 		fi; \
-		if command -v "$(UV)" >/dev/null 2>&1; then \
-			cd "$(UV_PROJECT_DIR)" && "$(UV)" run $(UV_RUN_ARGS) -- python tools/environment/verify_qt_setup.py --report-dir reports/environment; \
-		else \
-			$(PYTHON) tools/environment/verify_qt_setup.py --report-dir reports/environment; \
-		fi \
+                if command -v "$(UV)" >/dev/null 2>&1; then \
+                        cd "$(UV_PROJECT_DIR)" && { \
+                                "$(UV)" run $(UV_RUN_ARGS) -- python tools/environment/verify_qt_setup.py --report-dir reports/environment || \
+                                "$(PYTHON)" tools/environment/verify_qt_setup.py --report-dir reports/environment; \
+                        }; \
+                else \
+                        cd "$(UV_PROJECT_DIR)" && "$(PYTHON)" tools/environment/verify_qt_setup.py --report-dir reports/environment; \
+                fi \
 	'
 
 .PHONY: telemetry-etl
