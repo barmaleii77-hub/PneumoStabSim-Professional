@@ -86,6 +86,10 @@ class ShaderValidationUnavailableError(RuntimeError):
     """Raised when qsb cannot run due to a missing runtime dependency."""
 
 
+class ShaderValidationEnvironmentError(RuntimeError):
+    """Raised when qsb aborts because the Qt runtime is misconfigured."""
+
+
 class QsbEnvironmentError(RuntimeError):
     """Raised when qsb fails because the Qt runtime is misconfigured."""
 
