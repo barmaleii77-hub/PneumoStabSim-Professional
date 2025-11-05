@@ -187,7 +187,7 @@ class SettingsService:
             location = error.get("loc")
             if not location:
                 continue
-            self._prune_path(sanitized, location)
+            self._prune_location(sanitized, location)
         return sanitized
 
     def _merge_with_template(self, payload: Mapping[str, Any]) -> dict[str, Any]:
@@ -198,7 +198,7 @@ class SettingsService:
         return template
 
     @staticmethod
-    def _prune_path(payload: Any, location: Sequence[Any]) -> None:
+    def _prune_location(payload: Any, location: Sequence[Any]) -> None:
         if not location:
             return
 
@@ -720,15 +720,7 @@ class SettingsService:
         if not segments:
             return
 
-        target: MutableMapping[str, Any] = payload
-        for key in segments[:-1]:
-            next_value = target.get(key)
-            if not isinstance(next_value, MutableMapping):
-                return
-            target = next_value  # type: ignore[assignment]
-
-        if isinstance(target, MutableMapping):
-            target.pop(segments[-1], None)
+        self._prune_location(payload, segments)
 
     def _capture_last_modified(self, payload: MappingABC[str, Any]) -> None:
         metadata = payload.get("metadata") if isinstance(payload, MappingABC) else None
