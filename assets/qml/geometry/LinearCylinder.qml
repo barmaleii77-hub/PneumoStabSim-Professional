@@ -62,6 +62,9 @@ Node {
         objectName: "cylinderModel"
         position: root.midpoint
         eulerRotation: Qt.vector3d(0, 0, root.rotationDeg)
+        // ВАЖНО: ProceduralCylinderGeometry по умолчанию имеет высоту 2 единицы (ось Y).
+        // Поэтому масштабирование по Y через (length / 2) устанавливает нужную длину цилиндра.
+        // Это отличается от старого CylinderGeometry, где длина задавалась напрямую.
         scale: Qt.vector3d(root.safeRadius, root.length / 2, root.safeRadius)
         geometry: CustomGeometry.ProceduralCylinderGeometry {
             segments: Math.max(3, root.segments)
