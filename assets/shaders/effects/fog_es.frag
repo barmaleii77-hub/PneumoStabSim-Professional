@@ -225,4 +225,3 @@ void MAIN()
     fogESMain(fragColor);
     FRAGCOLOR = fragColor;
 }
-

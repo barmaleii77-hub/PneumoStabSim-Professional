@@ -74,4 +74,3 @@ void MAIN()
     fogESVertexMain(position);
     POSITION = position;
 }
-

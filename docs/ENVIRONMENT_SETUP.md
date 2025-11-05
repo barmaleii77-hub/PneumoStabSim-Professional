@@ -39,7 +39,7 @@
 1. Скопируйте шаблон: `cp env.sample .env` (PowerShell: `Copy-Item env.sample .env`).
 2. Укажите путь к каталогу Qt в переменной `QT_SDK_ROOT` (по умолчанию Qt устанавливается в `<repo>/Qt`).
 3. Для первичной установки Qt выполните одну из команд:
-   - `python tools/setup_qt.py --qt-version 6.10.0 --modules qtbase,qtdeclarative,qtshadertools`
+   - `python tools/setup_qt.py --qt-version 6.10.0 --modules qtquick3d,qtshadertools,qtimageformats`
    - `./activate_environment.ps1 -Setup -InstallQt -QtVersion 6.10.0` (Windows)
    - `source activate_environment.sh --setup --install-qt --qt-version 6.10.0`
 4. После установки перезапустите `make uv-sync-locked`, чтобы убедиться, что переменные из `.env` доступны в среде `uv`.
@@ -112,7 +112,7 @@ make uv-run CMD="pytest -m 'not gui'"
 ```bash
 cp env.sample .env
 source activate_environment.sh --setup --install-qt --qt-version 6.10.0 \
-    --qt-modules qtbase,qtdeclarative,qtshadertools
+    --qt-modules qtquick3d,qtshadertools,qtimageformats
 make uv-sync-locked
 ```
 
