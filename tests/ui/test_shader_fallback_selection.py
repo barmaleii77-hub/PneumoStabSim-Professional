@@ -7,6 +7,36 @@ from pathlib import Path
 
 import pytest
 
+_ = pytest.importorskip(
+    "PySide6.QtWidgets",
+    reason=(
+        "PySide6.QtWidgets (libGL) is required for GLES fallback shader tests; install libgl1/libegl1"
+    ),
+    exc_type=ImportError,
+)
+pytest.importorskip(
+    "PySide6.QtCore",
+    reason="PySide6 QtCore module is required for GLES fallback shader tests",
+    exc_type=ImportError,
+)
+pytest.importorskip(
+    "PySide6.QtGui",
+    reason=(
+        "PySide6 QtGui (libGL) module is required for GLES fallback shader tests; install libgl1/libegl1"
+    ),
+    exc_type=ImportError,
+)
+pytest.importorskip(
+    "PySide6.QtQml",
+    reason="PySide6 QtQml module is required for GLES fallback shader tests",
+    exc_type=ImportError,
+)
+pytest.importorskip(
+    "PySide6.QtQuick",
+    reason="PySide6 QtQuick module is required for GLES fallback shader tests",
+    exc_type=ImportError,
+)
+
 from PySide6.QtCore import QTimer, Qt, QUrl, qInstallMessageHandler
 from PySide6.QtGui import QSurfaceFormat
 from PySide6.QtQml import QQmlComponent, QQmlEngine, QJSValue
@@ -15,13 +45,7 @@ from PySide6.QtWidgets import QApplication
 
 from src.app_runner import ApplicationRunner
 
-pytest.importorskip(
-    "PySide6.QtWidgets",
-    reason=(
-        "PySide6.QtWidgets (libGL) is required for GLES fallback shader tests; install libgl1/libegl1"
-    ),
-    exc_type=ImportError,
-)
+
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
