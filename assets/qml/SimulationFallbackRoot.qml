@@ -2,6 +2,7 @@ import QtQuick 6.10
 import QtQuick.Controls 6.10
 import QtQuick.Layouts 6.10
 import "./components"
+import "./diagnostics" as Diagnostics
 
 /*
  * PneumoStabSim fallback scene used when the full QtQuick3D assets are missing.
@@ -59,16 +60,12 @@ Item {
     // Helper utilities
     // ------------------------------------------------------------------
     function logQmlEvent(eventType, name) {
-        if (typeof window === "undefined" || !window) {
-            return
-        }
-        if (typeof window.logQmlEvent === "function") {
-            try {
-                window.logQmlEvent(eventType, name)
-            } catch (err) {
-                console.debug("logQmlEvent failed", err)
-            }
-        }
+        Diagnostics.LogBridge.forward(
+            eventType,
+            name,
+            typeof window !== "undefined" ? window : null,
+            "SimulationFallbackRoot"
+        )
     }
 
     function normaliseNumber(value, fallback) {

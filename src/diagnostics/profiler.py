@@ -4,7 +4,6 @@
 from __future__ import annotations
 
 import json
-import logging
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
@@ -13,8 +12,10 @@ from typing import Any, Dict, Optional
 
 from src.common.settings_manager import SettingsManager, get_settings_manager
 
+from .logger_factory import get_logger
 
-LOGGER = logging.getLogger(__name__)
+
+LOGGER = get_logger("diagnostics.profiler")
 
 
 @dataclass(slots=True)
@@ -54,7 +55,11 @@ def _read_diagnostics_payload(
     try:
         payload = manager.get("diagnostics", {}) or {}
     except Exception as exc:  # pragma: no cover - defensive logging
-        LOGGER.warning("Unable to read diagnostics defaults: %s", exc)
+        LOGGER.warning(
+            "diagnostics_defaults_unavailable",
+            error=str(exc),
+            exc_info=exc,
+        )
         return {}
     if not isinstance(payload, dict):
         return {}
@@ -76,7 +81,11 @@ def load_profiler_overlay_state(
             try:
                 manager = get_settings_manager()
             except Exception as exc:  # pragma: no cover - defensive logging
-                LOGGER.debug("SettingsManager unavailable, using defaults: %s", exc)
+                LOGGER.debug(
+                    "settings_manager_unavailable",
+                    error=str(exc),
+                    exc_info=exc,
+                )
                 manager = None
 
         diagnostics_payload = _read_diagnostics_payload(manager)
@@ -113,7 +122,12 @@ def get_profiler_overlay_defaults(
         try:
             manager = get_settings_manager()
         except Exception as exc:  # pragma: no cover - defensive logging
-            LOGGER.debug("SettingsManager unavailable when reading defaults: %s", exc)
+            LOGGER.debug(
+                "settings_manager_unavailable",
+                when="read_defaults",
+                error=str(exc),
+                exc_info=exc,
+            )
             manager = None
 
     diagnostics_payload = _read_diagnostics_payload(manager)
@@ -207,7 +221,13 @@ def export_profiler_report(
     path.parent.mkdir(parents=True, exist_ok=True)
     with path.open("w", encoding="utf-8") as handle:
         json.dump(payload, handle, indent=2, ensure_ascii=False)
-    LOGGER.info("Profiler overlay report exported to %s", path)
+    resolved_scenario = scenario or snapshot.scenario
+    LOGGER.info(
+        "profiler_overlay_report_exported",
+        path=str(path),
+        scenario=resolved_scenario,
+        extra_metadata=extra or {},
+    )
     return path
 
 

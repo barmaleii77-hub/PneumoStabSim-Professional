@@ -22,14 +22,17 @@ ensures that modules use consistent instances during tests and production runs.
 
 from __future__ import annotations
 
-import logging
 from collections.abc import Callable
 from pathlib import Path
 from typing import Any, Dict, TypeVar
 
+from structlog.stdlib import BoundLogger
+
 from src.common.event_logger import EventLogger
 from src.common.settings_manager import ProfileSettingsManager, SettingsManager
+from src.diagnostics.logger_factory import configure_logging, get_logger
 from src.infrastructure.event_bus import EventBus
+from src.telemetry import TelemetryTracker
 from .settings_service import SettingsService
 
 __all__ = [
@@ -136,20 +139,6 @@ class ServiceContainer:
         return key in self._instances or key in self._factories
 
 
-def _configure_logger(name: str) -> logging.Logger:
-    """Return a configured ``logging.Logger`` instance."""
-
-    logger = logging.getLogger(name)
-    if not logger.handlers:
-        handler = logging.StreamHandler()
-        handler.setFormatter(
-            logging.Formatter("%(asctime)s %(levelname)s [%(name)s] %(message)s")
-        )
-        logger.addHandler(handler)
-        logger.setLevel(logging.INFO)
-    return logger
-
-
 def build_default_container(
     *,
     settings_path: str | Path | None = None,
@@ -181,8 +170,12 @@ def build_default_container(
             Path(profile_dir) if profile_dir is not None else None,
         ),
     )
-    container.register_factory(logging.Logger, lambda c: _configure_logger(logger_name))
+    configure_logging()
+    container.register_factory(
+        BoundLogger, lambda c: get_logger(logger_name).bind(component="core")
+    )
     container.register_factory(EventLogger, lambda c: EventLogger())
+    container.register_factory(TelemetryTracker, lambda c: TelemetryTracker())
     container.register_factory(EventBus, lambda c: EventBus())
 
     return container

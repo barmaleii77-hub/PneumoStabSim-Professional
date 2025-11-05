@@ -1,10 +1,10 @@
 from __future__ import annotations
 
 import json
-import logging
 from pathlib import Path
 
 import pytest
+from structlog.stdlib import BoundLogger
 
 from src.core.container import (
     EventBus,
@@ -15,6 +15,7 @@ from src.core.container import (
 )
 from src.core.settings_service import SettingsService
 from src.common.settings_manager import ProfileSettingsManager, SettingsManager
+from src.telemetry import TelemetryTracker
 
 
 def test_register_and_resolve_singleton() -> None:
@@ -101,8 +102,9 @@ def test_build_default_container_wires_core_services(tmp_path: Path) -> None:
     settings_service = container.resolve(SettingsService)
     settings_manager = container.resolve(SettingsManager)
     profile_manager = container.resolve(ProfileSettingsManager)
-    logger = container.resolve(logging.Logger)
+    logger = container.resolve(BoundLogger)
     event_bus = container.resolve(EventBus)
+    telemetry_tracker = container.resolve(TelemetryTracker)
 
     assert settings_service.resolve_path() == settings_path
     assert settings_manager.settings_file == settings_path
@@ -123,4 +125,7 @@ def test_build_default_container_wires_core_services(tmp_path: Path) -> None:
     event_bus.publish("settings.updated", payload)
 
     assert events == [payload]
-    assert logger.name == "test-logger"
+    assert isinstance(logger, BoundLogger)
+    assert isinstance(telemetry_tracker, TelemetryTracker)
+    bound_logger = logger.bind(test_case="container")
+    assert bound_logger._context.get("component") == "core"
