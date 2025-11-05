@@ -88,7 +88,6 @@ class VisualizationService(VisualizationServiceProtocol):
         if isinstance(existing, Mapping):
             base.update(dict(existing))
 
-        base.pop("hudTelemetry", None)
 
         payload_mapping = payload if isinstance(payload, Mapping) else {}
 
