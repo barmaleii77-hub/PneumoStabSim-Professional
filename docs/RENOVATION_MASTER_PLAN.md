@@ -26,7 +26,7 @@ best practices for scientific visualisation software.
 | UI/QML bridge | QML assets under `assets/qml` and Python helpers such as `src/ui/qml_host.py`, `src/ui/parameter_slider.py` | Bridge logic is fragmented; signal tracing is manual. |
 | Physics & simulation | Domain modules in `src/pneumo`, `src/mechanics`, and legacy namespaced packages `src/PneumoStabSim.*` | Namespaces mix snake_case and PascalCase packages; constant definitions reside in both Python and JSON. |
 | Tests & automation | `pytest.ini`, `tests/` folder (Qt smoke tests, settings tests), GitHub workflows missing | Local tooling defined but CI pipelines absent; lint configs (`ruff.toml`, `mypy.ini`) exist yet not wired into automation. |
-| Documentation | Extensive markdown reports at repo root, curated plans in `docs/` | Redundant reports clutter root; plans reference historical Qt 6.5 constraints. |
+| Documentation | README, ROADMAP, and agent manual remain in root; historical reports live under `archive/2025-11/root-reports/` alongside curated plans in `docs/` | Архив оформлен, но планы ещё ссылаются на устаревшие версии Qt 6.5. |
 
 ---
 
@@ -86,7 +86,7 @@ best practices for scientific visualisation software.
      CLI enforcing UTF-8 and canonical newlines.*
 3. **Legacy Asset Rationalisation**
    - Relocate all historical markdown reports into `archive/<YYYY-MM>/` keeping
-     README breadcrumbs.
+     README breadcrumbs. *Status: Completed November 2025 via `archive/2025-11/root-reports/README.md` and README pointers.*
    - Decide whether the .NET solution is still supported. If obsolete, remove
      `.sln`, `.csproj`, `.pyproj`, and document the deprecation in
      `docs/CHANGELOG_MODULAR.md`.
