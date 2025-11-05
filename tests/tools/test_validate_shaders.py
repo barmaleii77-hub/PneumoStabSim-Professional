@@ -1,7 +1,8 @@
 from __future__ import annotations
 
-import sys
 import json
+import shlex
+import sys
 from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
@@ -20,9 +21,13 @@ def _make_qsb_stub(
     stdout: str = "compiled",
     stderr: str = "compilation failed",
     capture_args: Path | None = None,
+    version_exit_code: int | None = None,
+    version_stdout: str = "Qt Shader Baker 6.10",
+    version_stderr: str = "",
 ) -> list[str]:
     script = base / "qsb_stub.py"
     capture_literal = repr(str(capture_args)) if capture_args is not None else "None"
+    version_exit_literal = exit_code if version_exit_code is None else version_exit_code
     script.write_text(
         f"""
 import json
@@ -38,6 +43,15 @@ if capture_path is not None:
     with capture.open("a", encoding="utf-8") as handle:
         json.dump(args, handle)
         handle.write("\\n")
+
+if args == ["--version"]:
+    if {version_exit_literal} != 0:
+        if "{version_stderr}" != "":
+            print("{version_stderr}", file=sys.stderr)
+    else:
+        if "{version_stdout}" != "":
+            print("{version_stdout}")
+    sys.exit({version_exit_literal})
 
 output = None
 for index, value in enumerate(list(args)):
@@ -152,7 +166,11 @@ def test_validate_shaders_invokes_qsb_profiles_and_logs(tmp_path: Path) -> None:
 
     invocations = [json.loads(line) for line in capture.read_text().splitlines() if line]
     assert invocations, "expected at least one qsb invocation"
-    for invocation in invocations:
+
+    actual_runs = [call for call in invocations if call != ["--version"]]
+    assert actual_runs, "expected at least one shader compilation invocation"
+
+    for invocation in actual_runs:
         assert any(
             invocation[index : index + 2] == ["--glsl", "450"]
             for index in range(len(invocation) - 1)
@@ -245,7 +263,12 @@ def test_validate_shaders_reports_version_mismatch(tmp_path: Path) -> None:
 def test_validate_shaders_propagates_qsb_failure(tmp_path: Path) -> None:
     shader_root = tmp_path / "shaders"
     reports_dir = tmp_path / "reports"
-    qsb_cmd = _make_qsb_stub(tmp_path, exit_code=2, stderr="fatal: syntax error")
+    qsb_cmd = _make_qsb_stub(
+        tmp_path,
+        exit_code=2,
+        stderr="fatal: syntax error",
+        version_exit_code=0,
+    )
 
     _write_shader(
         shader_root, "effects/bloom.frag", "#version 450 core\nvoid main() {}\n"
@@ -257,3 +280,55 @@ def test_validate_shaders_propagates_qsb_failure(tmp_path: Path) -> None:
 
     assert any("qsb failed" in message for message in errors)
     assert any("fatal: syntax error" in message for message in errors)
+
+
+def test_validate_shaders_raises_when_tool_missing_dependency(tmp_path: Path) -> None:
+    shader_root = tmp_path / "shaders"
+    qsb_cmd = _make_qsb_stub(
+        tmp_path,
+        exit_code=127,
+        stderr="/usr/bin/qsb: error while loading shared libraries: libxkbcommon.so.0: cannot open shared object file: No such file or directory",
+        version_exit_code=127,
+        version_stderr="/usr/bin/qsb: error while loading shared libraries: libxkbcommon.so.0: cannot open shared object file: No such file or directory",
+    )
+
+    _write_shader(
+        shader_root, "effects/bloom.frag", "#version 450 core\nvoid main() {}\n"
+    )
+
+    with pytest.raises(validate_shaders.ShaderValidationEnvironmentError) as exc:
+        validate_shaders.validate_shaders(shader_root, qsb_command=qsb_cmd)
+
+    assert "libxkbcommon.so.0" in str(exc.value)
+
+
+def test_main_skips_validation_when_qsb_dependency_missing(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    shader_root = tmp_path / "shaders"
+    shader_root.mkdir(parents=True, exist_ok=True)
+    (shader_root / "effects").mkdir(parents=True, exist_ok=True)
+    (shader_root / "effects" / "bloom.frag").write_text(
+        "#version 450 core\nvoid main() {}\n", encoding="utf-8"
+    )
+
+    qsb_cmd = _make_qsb_stub(
+        tmp_path,
+        exit_code=127,
+        stderr="/usr/bin/qsb: error while loading shared libraries: libxkbcommon.so.0: cannot open shared object file: No such file or directory",
+        version_exit_code=127,
+        version_stderr="/usr/bin/qsb: error while loading shared libraries: libxkbcommon.so.0: cannot open shared object file: No such file or directory",
+    )
+
+    command_literal = " ".join(shlex.quote(part) for part in qsb_cmd)
+    monkeypatch.setenv(validate_shaders.QSB_ENV_VARIABLE, command_literal)
+
+    exit_code = validate_shaders.main([
+        "--shader-root",
+        str(shader_root),
+        "--reports-dir",
+        str(tmp_path / "reports"),
+        "--quiet",
+    ])
+
+    assert exit_code == 0

@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import argparse
 import os
+import re
 import shlex
 import shutil
 import subprocess
@@ -72,6 +73,88 @@ class ShaderFile:
 ValidationErrors = List[str]
 
 QSB_ENV_VARIABLE = "QSB_COMMAND"
+
+
+class ShaderValidationEnvironmentError(RuntimeError):
+    """Raised when the shader validation toolchain is not usable."""
+
+
+def _extract_missing_library(stderr: str) -> str | None:
+    """Return the missing shared library name if *stderr* reports it."""
+
+    match = re.search(
+        r"error while loading shared libraries: ([^:]+):",
+        stderr,
+        flags=re.IGNORECASE,
+    )
+    if match:
+        return match.group(1)
+    return None
+
+
+def _format_missing_library_message(library: str) -> str:
+    hint = (
+        "Install the missing library (for example: 'libxkbcommon0' on Debian/Ubuntu)"
+        " or run 'make install-qt-runtime' to provision Qt runtime dependencies."
+    )
+    return (
+        "Qt Shader Baker (qsb) could not start because the shared library "
+        f"'{library}' is unavailable. {hint}"
+    )
+
+
+def _interpret_qsb_startup_failure(
+    returncode: int, stderr: str, stdout: str, *, allow_generic: bool
+) -> str | None:
+    """Return a human readable message if qsb failed to launch."""
+
+    message_source = stderr.strip() or stdout.strip()
+    missing_library = _extract_missing_library(message_source)
+    if missing_library:
+        return _format_missing_library_message(missing_library)
+
+    if returncode == 127:
+        base = "Qt Shader Baker (qsb) could not be executed (exit code 127)."
+        if message_source:
+            return f"{base} {message_source}"
+        return base
+
+    if allow_generic:
+        if message_source:
+            return (
+                "Qt Shader Baker (qsb) terminated unexpectedly "
+                f"(exit code {returncode}): {message_source}"
+            )
+        return "Qt Shader Baker (qsb) exited with a non-zero status."
+
+    return None
+
+
+def _probe_qsb(command: Sequence[str]) -> None:
+    """Ensure the qsb executable can start before validating shaders."""
+
+    try:
+        completed = subprocess.run(
+            [*command, "--version"], capture_output=True, text=True, check=False
+        )
+    except OSError as exc:  # pragma: no cover - system level failure
+        raise ShaderValidationEnvironmentError(
+            "Qt Shader Baker (qsb) could not be executed"
+        ) from exc
+
+    if completed.returncode != 0:
+        message = _interpret_qsb_startup_failure(
+            completed.returncode,
+            completed.stderr or "",
+            completed.stdout or "",
+            allow_generic=True,
+        )
+        if message is None:
+            message = (
+                "Qt Shader Baker (qsb) exited with a non-zero status while "
+                "probing the executable."
+            )
+        raise ShaderValidationEnvironmentError(message)
 
 
 def classify_shader(path: Path) -> tuple[str, str]:
@@ -234,6 +317,15 @@ def _run_qsb(
 
     stdout = completed.stdout or ""
     stderr = completed.stderr or ""
+    if completed.returncode != 0:
+        env_message = _interpret_qsb_startup_failure(
+            completed.returncode,
+            stderr,
+            stdout,
+            allow_generic=False,
+        )
+        if env_message is not None:
+            raise ShaderValidationEnvironmentError(env_message)
     if log_path is not None:
         log_contents = ["$ " + " ".join(shlex.quote(arg) for arg in command)]
         if stdout:
@@ -274,6 +366,8 @@ def validate_shaders(
         )
     except (FileNotFoundError, RuntimeError) as exc:
         return [str(exc)]
+
+    _probe_qsb(command)
 
     if reports_dir is not None:
         _ensure_directory(reports_dir)
@@ -352,7 +446,11 @@ def main(argv: Sequence[str] | None = None) -> int:
     reports_dir = args.reports_dir.resolve() if args.reports_dir else None
     if reports_dir is None and args.emit_qsb:
         reports_dir = DEFAULT_REPORTS_ROOT
-    errors = validate_shaders(shader_root, reports_dir=reports_dir)
+    try:
+        errors = validate_shaders(shader_root, reports_dir=reports_dir)
+    except ShaderValidationEnvironmentError as exc:
+        print(f"[validate_shaders] WARNING: {exc}", file=sys.stderr)
+        return 0
 
     if errors:
         for message in errors:
