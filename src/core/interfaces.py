@@ -86,6 +86,9 @@ class VisualizationService(Protocol):
     def latest_updates(self) -> Mapping[str, Mapping[str, Any]]:
         """Return the latest batch of dispatched updates."""
 
+    def access_profile(self) -> Mapping[str, Any]:
+        """Return the active access control profile for the UI."""
+
     def dispatch_updates(
         self, updates: Mapping[str, Mapping[str, Any]]
     ) -> Mapping[str, Mapping[str, Any]]:

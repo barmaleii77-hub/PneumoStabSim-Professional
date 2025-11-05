@@ -35,6 +35,7 @@ from typing import Any, Dict, Iterable, List, Optional
 from src.core.settings_manager import (
     ProfileSettingsManager as _CoreProfileSettingsManager,
 )
+from src.security.access_control import AccessDeniedError, get_access_control
 
 
 logger = logging.getLogger(__name__)
@@ -331,6 +332,7 @@ class SettingsManager:
         self._original_units_version: str = _DEFAULT_UNITS_VERSION
         self._dirty: bool = False
         self._orbit_presets: Dict[str, Any] | None = None
+        self._access_control = get_access_control()
         self.load()
 
     # ------------------------------------------------------------------ helpers
@@ -771,6 +773,9 @@ class SettingsManager:
             node = value
         return node
 
+    def _check_permission(self, dotted_path: str, *, intent: str) -> None:
+        self._access_control.require_permission(dotted_path, intent=intent)
+
     def get(self, dotted_path: str, default: Any = None) -> Any:
         parts = dotted_path.split(".") if dotted_path else []
         if not parts:
@@ -804,6 +809,8 @@ class SettingsManager:
     def set(self, dotted_path: str, value: Any, auto_save: bool = True) -> bool:
         if not dotted_path:
             raise ValueError("Path must be non-empty")
+
+        self._check_permission(dotted_path, intent="set")
 
         segments = dotted_path.split(".")
         head = segments[0]
@@ -998,6 +1005,7 @@ class SettingsManager:
 
         if not category:
             raise ValueError("Category name must be non-empty")
+        self._check_permission(f"current.{category}", intent="set_category")
         previous = _deep_copy(self._data.get(category))
 
         self._data[category] = _deep_copy(payload)
@@ -1026,6 +1034,7 @@ class SettingsManager:
         changes: List[_SettingsChange] = []
 
         if category is None:
+            self._check_permission("current", intent="reset_all")
             before = _deep_copy(self._data)
             self._data = _deep_copy(self._defaults)
             changes.append(
@@ -1041,6 +1050,7 @@ class SettingsManager:
         else:
             if category not in self._defaults:
                 raise KeyError(f"Unknown defaults category: {category}")
+            self._check_permission(f"current.{category}", intent="reset")
             before = _deep_copy(self._data.get(category))
             self._data[category] = _deep_copy(self._defaults[category])
             changes.append(
@@ -1078,6 +1088,7 @@ class SettingsManager:
         changes: List[_SettingsChange] = []
 
         if category is None:
+            self._check_permission("defaults_snapshot", intent="save_defaults_all")
             before = _deep_copy(self._defaults)
             self._defaults = _deep_copy(self._data)
             changes.append(
@@ -1093,6 +1104,9 @@ class SettingsManager:
         else:
             if category not in self._data:
                 raise KeyError(f"Unknown current category: {category}")
+            self._check_permission(
+                f"defaults_snapshot.{category}", intent="save_defaults"
+            )
             before = _deep_copy(self._defaults.get(category))
             self._defaults[category] = _deep_copy(self._data[category])
             changes.append(
