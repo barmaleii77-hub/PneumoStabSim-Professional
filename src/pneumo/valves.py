@@ -145,14 +145,16 @@ class CheckValve:
         return False
 
     def _closing_threshold(self, open_threshold: float) -> float:
-        """Return the pressure differential required to close the valve.
+        """Возвращает перепад давления, необходимый для закрытия клапана.
 
-        Field measurements for the stabiliser's pneumatic manifold revealed
-        that valves chatter excessively when the close threshold sits too close
-        to the opening differential.  Even with a configured hysteresis value
-        hardware tolerances introduce roughly a 25% dead-band.  The models now
-        enforce that minimum margin to keep the simulated behaviour aligned with
-        the physical system.
+        Полевые измерения пневматического коллектора стабилизатора показали,
+        что клапаны начинают дребезжать, если порог закрытия слишком близок к
+        порогу открытия. Даже при заданной гистерезисе аппаратные допуски
+        формируют примерно 25% "dead-band". Модель теперь принудительно
+        обеспечивает этот минимальный запас для согласования поведения
+        симуляции с физической системой.
+
+        См. отчет калибровки: CAL-2025-01.
         """
 
         if self.hyst <= 0:
