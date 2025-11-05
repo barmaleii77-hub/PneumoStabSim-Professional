@@ -430,6 +430,8 @@ def run_smoke_check(
     expected_version: str,
     expected_platform: str | None,
     report_dir: Path | None = None,
+    *,
+    allow_missing_runtime: bool = False,
 ) -> int:
     results: list[ProbeResult] = []
 
@@ -551,6 +553,14 @@ def build_parser() -> argparse.ArgumentParser:
         default=Path("reports/environment"),
         help="Directory where the verification report should be written.",
     )
+    parser.add_argument(
+        "--allow-missing-runtime",
+        action="store_true",
+        help=(
+            "Return success with a warning when PySide6 is unavailable. "
+            "Use this on CI agents without the Qt runtime."
+        ),
+    )
     return parser
 
 
@@ -559,7 +569,10 @@ def main(argv: Sequence[str] | None = None) -> None:
     args = parser.parse_args(argv)
 
     exit_code = run_smoke_check(
-        args.expected_version, args.expected_platform, args.report_dir
+        args.expected_version,
+        args.expected_platform,
+        args.report_dir,
+        allow_missing_runtime=args.allow_missing_runtime,
     )
     raise SystemExit(exit_code)
 

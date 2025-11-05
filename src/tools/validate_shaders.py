@@ -133,6 +133,39 @@ def _relative(path: Path, root: Path) -> str:
         return str(path)
 
 
+def _summarize_environment_failure(
+    exit_code: int,
+    stdout: str,
+    stderr: str,
+    command: Sequence[str],
+) -> str | None:
+    """Return a human-friendly summary for environment-level qsb failures."""
+
+    combined = "\n".join(part for part in (stdout, stderr) if part).lower()
+    for library, package in RUNTIME_DEPENDENCY_HINTS:
+        if library.lower() in combined:
+            return (
+                "Qt Shader Baker failed to load required shared library "
+                f"'{library}'. Install the system package '{package}' and retry."
+            )
+
+    if "qt.qpa.plugin" in combined and "xcb" in combined:
+        return (
+            "Qt Shader Baker could not load the 'xcb' Qt platform plugin. "
+            "Install the Qt X11 runtime dependencies (for example 'libxcb-xinerama0')."
+        )
+
+    if exit_code == 127:
+        quoted = " ".join(shlex.quote(part) for part in command)
+        return (
+            "Qt Shader Baker exited with status 127. Ensure the 'qsb' executable is "
+            "installed (Qt Shader Tools) or set QSB_COMMAND to its absolute path. "
+            f"Command attempted: {quoted or '<unknown>'}."
+        )
+
+    return None
+
+
 def _validate_versions(
     files: Iterable[ShaderFile], root: Path, errors: ValidationErrors
 ) -> None:

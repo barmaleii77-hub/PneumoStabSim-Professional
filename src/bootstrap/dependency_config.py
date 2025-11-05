@@ -5,8 +5,37 @@ from dataclasses import dataclass
 from functools import lru_cache
 from typing import Any, Mapping, Sequence
 
-from src.core.settings_service import SETTINGS_SERVICE_TOKEN, SettingsValidationError
-from src.infrastructure.container import ServiceResolutionError, get_default_container
+try:  # pragma: no cover - import guarded for minimal environments
+    from src.core.settings_service import (
+        SETTINGS_SERVICE_TOKEN,
+        SettingsValidationError,
+    )
+except Exception:  # pragma: no cover - fallback path when dependencies are missing
+    SETTINGS_SERVICE_TOKEN = object()
+
+    class SettingsValidationError(RuntimeError):
+        """Fallback used when the typed settings service is unavailable."""
+
+    _SETTINGS_IMPORT_FAILED = True
+else:  # pragma: no cover - exercised in integration tests
+    _SETTINGS_IMPORT_FAILED = False
+
+try:  # pragma: no cover - import guarded for minimal environments
+    from src.infrastructure.container import (
+        ServiceResolutionError,
+        get_default_container,
+    )
+except Exception:  # pragma: no cover - fallback when DI container is unavailable
+
+    class ServiceResolutionError(LookupError):
+        """Fallback error raised when the dependency container is missing."""
+
+    def get_default_container() -> Any:
+        raise ServiceResolutionError("Default service container is not available")
+
+    _CONTAINER_IMPORT_FAILED = True
+else:  # pragma: no cover - exercised in integration tests
+    _CONTAINER_IMPORT_FAILED = False
 
 
 class DependencyConfigError(RuntimeError):
@@ -129,8 +158,16 @@ def _fallback_dependencies() -> Mapping[str, Any]:
 
 @lru_cache(maxsize=None)
 def _load_dependencies_section() -> Mapping[str, Any]:
+    if _SETTINGS_IMPORT_FAILED or _CONTAINER_IMPORT_FAILED:
+        return _fallback_dependencies()
+
     try:
-        settings = get_default_container().resolve(SETTINGS_SERVICE_TOKEN)
+        container = get_default_container()
+    except ServiceResolutionError:
+        return _fallback_dependencies()
+
+    try:
+        settings = container.resolve(SETTINGS_SERVICE_TOKEN)
     except ServiceResolutionError:
         return _fallback_dependencies()
 
