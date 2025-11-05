@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import argparse
 import os
+import re
 import shlex
 import shutil
 import subprocess
@@ -72,6 +73,52 @@ class ShaderFile:
 ValidationErrors = List[str]
 
 QSB_ENV_VARIABLE = "QSB_COMMAND"
+
+
+class QsbEnvironmentError(RuntimeError):
+    """Raised when qsb cannot run due to missing runtime dependencies."""
+
+
+def _format_command(command: Sequence[str]) -> str:
+    return " ".join(shlex.quote(arg) for arg in command)
+
+
+def _extract_missing_library(output: str) -> str | None:
+    match = re.search(
+        r"error while loading shared libraries:\s*([^\s:]+)", output, re.IGNORECASE
+    )
+    if match:
+        return match.group(1)
+    return None
+
+
+def _summarize_environment_failure(
+    returncode: int,
+    stdout: str,
+    stderr: str,
+    command: Sequence[str],
+) -> str | None:
+    combined = "\n".join(part for part in (stderr, stdout) if part).strip()
+    missing_library = _extract_missing_library(combined)
+    if missing_library:
+        guidance = (
+            "Install the Qt runtime dependencies with 'make install-qt-runtime' "
+            "or install the system package that provides this library."
+        )
+        return (
+            "Qt Shader Baker (qsb) could not start because the system library "
+            f"'{missing_library}' is missing. {guidance} Command: "
+            f"{_format_command(command)}"
+        )
+
+    if returncode == 127 and not combined:
+        return (
+            "Qt Shader Baker (qsb) exited with status 127 without diagnostic output. "
+            "Ensure Qt Shader Tools is installed and reachable (try setting QSB_COMMAND). "
+            f"Command: {_format_command(command)}"
+        )
+
+    return None
 
 
 def classify_shader(path: Path) -> tuple[str, str]:
@@ -243,6 +290,12 @@ def _run_qsb(
         log_path.write_text("\n\n".join(log_contents), encoding="utf-8")
 
     if completed.returncode != 0:
+        env_message = _summarize_environment_failure(
+            completed.returncode, stdout, stderr, command
+        )
+        if env_message is not None:
+            raise QsbEnvironmentError(env_message)
+
         errors.append(
             f"{_relative(shader.path, shader_root)}: qsb failed with exit code {completed.returncode}"
         )
@@ -308,7 +361,10 @@ def validate_shaders(
         _validate_versions(files, shader_root, errors)
 
         for shader in files:
-            _run_qsb(shader, shader_root, command, reports_dir, errors)
+            try:
+                _run_qsb(shader, shader_root, command, reports_dir, errors)
+            except QsbEnvironmentError as exc:
+                return [str(exc)]
 
     return errors
 
