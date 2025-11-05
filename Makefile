@@ -100,8 +100,8 @@ qml-lint:
 	 fi; \
 	done
 
-test:
-	$(PYTHON) -m tools.ci_tasks test
+test::
+$(PYTHON) -m tools.ci_tasks test
 
 validate-shaders:
 	$(PYTHON) tools/validate_shaders.py
@@ -160,7 +160,54 @@ cipilot-env:
 	@if ! command -v $(UV) >/dev/null 2>&1; then \
 		echo "Error: '$(UV)' is not installed. Run 'python scripts/bootstrap_uv.py' first." >&2; \
 		exit 1; \
-	fi
+        fi
 	cd $(UV_PROJECT_DIR) && $(UV) sync
 	cd $(UV_PROJECT_DIR) && $(UV) run -- python -m tools.cipilot_environment --skip-uv-sync --probe-mode=python
+
+# -----------------------------------------------------------------------------
+# Containerised workflow helpers
+# -----------------------------------------------------------------------------
+
+CONTAINER_IMAGE ?= pneumo-dev:qt610
+CONTAINER_WORKDIR ?= /workdir
+
+.PHONY: container-build container-shell container-test container-test-opengl \
+	container-test-vulkan container-verify-all container-analyze-logs
+
+container-build:
+	docker build -t $(CONTAINER_IMAGE) .
+
+container-shell:
+	docker run --rm -it -v $(CURDIR):$(CONTAINER_WORKDIR) -w $(CONTAINER_WORKDIR) $(CONTAINER_IMAGE) bash
+
+container-test: container-build
+	docker run --rm -t -v $(CURDIR):$(CONTAINER_WORKDIR) -w $(CONTAINER_WORKDIR) $(CONTAINER_IMAGE) /usr/local/bin/run_all.sh
+
+container-test-opengl: container-build
+	docker run --rm -t -v $(CURDIR):$(CONTAINER_WORKDIR) -w $(CONTAINER_WORKDIR) $(CONTAINER_IMAGE) /usr/local/bin/xvfb_wrapper.sh env QSG_RHI_BACKEND=opengl python app.py --test-mode
+
+container-test-vulkan: container-build
+	docker run --rm -t -v $(CURDIR):$(CONTAINER_WORKDIR) -w $(CONTAINER_WORKDIR) $(CONTAINER_IMAGE) /usr/local/bin/xvfb_wrapper.sh env QSG_RHI_BACKEND=vulkan python app.py --test-mode || true
+
+container-verify-all: container-build container-test
+
+container-analyze-logs: container-build
+	docker run --rm -t -v $(CURDIR):$(CONTAINER_WORKDIR) -w $(CONTAINER_WORKDIR) $(CONTAINER_IMAGE) python /usr/local/bin/collect_logs.py
+
+.PHONY: build shell test-opengl test-vulkan verify-all analyze-logs
+
+build: container-build
+
+shell: container-shell
+
+# Ensure legacy test workflows still run alongside container validation
+test:: container-test
+
+test-opengl: container-test-opengl
+
+test-vulkan: container-test-vulkan
+
+verify-all: container-verify-all
+
+analyze-logs: container-analyze-logs
 
