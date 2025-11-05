@@ -46,6 +46,11 @@ jobs:
         run: |
           python -m tools.ci_tasks typecheck || python -m mypy .
 
+      - name: Validate translations
+        shell: bash
+        run: |
+          python tools/update_translations.py --check
+
   tests:
     name: Test matrix (Qt ${{ env.QT_VERSION }})
     needs: lint

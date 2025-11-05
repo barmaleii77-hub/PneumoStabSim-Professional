@@ -1,0 +1,5 @@
+# Ignore generated localization artefacts
+*
+!.gitignore
+!.gitkeep
+!README.md
