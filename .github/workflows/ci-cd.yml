@@ -51,6 +51,14 @@ jobs:
               write_env("QT_PLUGIN_PATH", QLibraryInfo.path(LibraryLocation.Plugins))
               write_env("QML2_IMPORT_PATH", QLibraryInfo.path(LibraryLocation.QmlImports))
 
+      - name: Verify Qt environment
+        shell: bash
+        env:
+          QT_QPA_PLATFORM: offscreen
+          QT_QUICK_BACKEND: software
+        run: |
+          python tools/environment/verify_qt_setup.py --report-dir reports/environment
+
       - name: Ensure GNU Make (Windows)
         if: matrix.os == 'windows-latest'
         shell: pwsh
@@ -159,6 +167,14 @@ jobs:
           else:
               write_env("QT_PLUGIN_PATH", QLibraryInfo.path(LibraryLocation.Plugins))
               write_env("QML2_IMPORT_PATH", QLibraryInfo.path(LibraryLocation.QmlImports))
+
+      - name: Verify Qt environment
+        shell: bash
+        env:
+          QT_QPA_PLATFORM: ${{ env.QT_QPA_PLATFORM }}
+          QT_QUICK_BACKEND: ${{ env.QT_QUICK_BACKEND }}
+        run: |
+          python tools/environment/verify_qt_setup.py --report-dir reports/environment
 
       - name: Run make verify
         run: make verify

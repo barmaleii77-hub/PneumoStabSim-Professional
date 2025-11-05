@@ -25,6 +25,7 @@
    - Add GitHub Actions workflows: `ci.yml` (build + tests), `nightly.yml` (scheduled smoke tests), `branch-audit.yml`.
    - Define secrets management playbook (token rotation, environment protection rules).
    - Configure artifact publishing (build outputs, logs, coverage reports).
+   - Integrate the Qt smoke-check helper into `make check` and CI workflows, persisting run logs under `reports/environment/`.
 4. **Developer Tooling**
    - Refresh `.vscode/` settings, ensuring linting tasks match CI commands.
    - Provide onboarding script `setup_dev.py` that bootstraps environment locally.
@@ -64,3 +65,6 @@ Capture notable decisions, blockers, and timings here. Reference PR numbers and 
 - 2025-04-08 – Added `tools/environment/verify_qt_setup.py` plus the refreshed
   development guide detailing the make/uv workflow and captured the first Qt
   smoke-check transcript in `reports/environment/qt-smoke.md`.
+- 2025-05-05 – Promoted the Qt environment verification to the `make check`
+  quality gate and GitHub Actions matrix; reports are now timestamped snapshots
+  inside `reports/environment/`.
