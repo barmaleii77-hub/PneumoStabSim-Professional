@@ -1021,12 +1021,7 @@ Item {
                 if (!root.attachShaderLogHandler(bloomFragmentShader, "bloom.frag"))
                     console.debug("PostEffects: shader log handler unavailable for bloom.frag")
             }
-        }
-
-        Connections {
-            target: bloomFragmentShader
-
-            function onStatusChanged() {
+            onStatusChanged: {
                 root.handleEffectShaderStatusChange("bloom", bloomEffect, bloomFragmentShader, "bloom.frag", false)
             }
         }
@@ -1039,12 +1034,7 @@ Item {
                 if (!root.attachShaderLogHandler(bloomFallbackShader, "bloom_fallback.frag"))
                     console.debug("PostEffects: shader log handler unavailable for bloom_fallback.frag")
             }
-        }
-
-        Connections {
-            target: bloomFallbackShader
-
-            function onStatusChanged() {
+            onStatusChanged: {
                 root.handleEffectShaderStatusChange("bloom", bloomEffect, bloomFallbackShader, "bloom_fallback.frag", true)
             }
         }
@@ -1170,12 +1160,7 @@ Item {
                 if (!root.attachShaderLogHandler(ssaoFragmentShader, "ssao.frag"))
                     console.debug("PostEffects: shader log handler unavailable for ssao.frag")
             }
-        }
-
-        Connections {
-            target: ssaoFragmentShader
-
-            function onStatusChanged() {
+            onStatusChanged: {
                 root.handleEffectShaderStatusChange("ssao", ssaoEffect, ssaoFragmentShader, "ssao.frag", false)
             }
         }
@@ -1188,12 +1173,7 @@ Item {
                 if (!root.attachShaderLogHandler(ssaoFallbackShader, "ssao_fallback.frag"))
                     console.debug("PostEffects: shader log handler unavailable for ssao_fallback.frag")
             }
-        }
-
-        Connections {
-            target: ssaoFallbackShader
-
-            function onStatusChanged() {
+            onStatusChanged: {
                 root.handleEffectShaderStatusChange("ssao", ssaoEffect, ssaoFallbackShader, "ssao_fallback.frag", true)
             }
         }
@@ -1311,12 +1291,7 @@ Item {
                 if (!root.attachShaderLogHandler(dofFragmentShader, "dof.frag"))
                     console.debug("PostEffects: shader log handler unavailable for dof.frag")
             }
-        }
-
-        Connections {
-            target: dofFragmentShader
-
-            function onStatusChanged() {
+            onStatusChanged: {
                 root.handleEffectShaderStatusChange("depthOfField", dofEffect, dofFragmentShader, "dof.frag", false)
             }
         }
@@ -1329,12 +1304,7 @@ Item {
                 if (!root.attachShaderLogHandler(dofFallbackShader, "dof_fallback.frag"))
                     console.debug("PostEffects: shader log handler unavailable for dof_fallback.frag")
             }
-        }
-
-        Connections {
-            target: dofFallbackShader
-
-            function onStatusChanged() {
+            onStatusChanged: {
                 root.handleEffectShaderStatusChange("depthOfField", dofEffect, dofFallbackShader, "dof_fallback.frag", true)
             }
         }
@@ -1443,12 +1413,7 @@ Item {
                 if (!root.attachShaderLogHandler(motionBlurFragmentShader, "motion_blur.frag"))
                     console.debug("PostEffects: shader log handler unavailable for motion_blur.frag")
             }
-        }
-
-        Connections {
-            target: motionBlurFragmentShader
-
-            function onStatusChanged() {
+            onStatusChanged: {
                 root.handleEffectShaderStatusChange("motionBlur", motionBlurEffect, motionBlurFragmentShader, "motion_blur.frag", false)
             }
         }
@@ -1461,12 +1426,7 @@ Item {
                 if (!root.attachShaderLogHandler(motionBlurFallbackShader, "motion_blur_fallback.frag"))
                     console.debug("PostEffects: shader log handler unavailable for motion_blur_fallback.frag")
             }
-        }
-
-        Connections {
-            target: motionBlurFallbackShader
-
-            function onStatusChanged() {
+            onStatusChanged: {
                 root.handleEffectShaderStatusChange("motionBlur", motionBlurEffect, motionBlurFallbackShader, "motion_blur_fallback.frag", true)
             }
         }
