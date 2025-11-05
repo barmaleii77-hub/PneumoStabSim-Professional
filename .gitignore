@@ -199,6 +199,10 @@ csx/
 ecf/
 rcf/
 
+# Feedback artefacts
+reports/feedback/inbox.jsonl
+reports/feedback/sent.log
+
 # Windows Store app package directories and files
 AppPackages/
 BundleArtifacts/
