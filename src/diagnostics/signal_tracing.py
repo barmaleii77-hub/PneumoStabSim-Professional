@@ -9,11 +9,9 @@ from datetime import UTC, datetime
 from threading import RLock
 from typing import Any, Callable, Deque, Iterable, Iterator, List, Optional, Tuple
 
-from structlog.stdlib import BoundLogger
+from .logger_factory import LoggerProtocol, get_logger
 
-from .logger_factory import get_logger
-
-logger: BoundLogger = get_logger("diagnostics.signals")
+logger: LoggerProtocol = get_logger("diagnostics.signals")
 
 
 class SignalTracingError(RuntimeError):
@@ -63,7 +61,7 @@ class SignalTracer:
         self,
         *,
         max_records: int = 500,
-        log: Optional[BoundLogger] = None,
+        log: Optional[LoggerProtocol] = None,
     ) -> None:
         self._records: Deque[SignalTraceRecord] = deque(maxlen=max_records)
         self._log = log or logger
