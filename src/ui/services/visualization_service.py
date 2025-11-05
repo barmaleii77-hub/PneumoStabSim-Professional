@@ -83,7 +83,13 @@ class VisualizationService(VisualizationServiceProtocol):
     def prepare_camera_payload(
         self, payload: Mapping[str, Any] | None = None
     ) -> Mapping[str, Any]:
+        manager = self._resolve_settings_manager()
         base: Dict[str, Any] = {}
+        if manager is not None:
+            camera_defaults = manager.get("current.graphics.camera", {})
+            if isinstance(camera_defaults, Mapping):
+                base.update(self._sanitize_payload(camera_defaults))
+
         existing = self._state.get("camera")
         if isinstance(existing, Mapping):
             base.update(dict(existing))

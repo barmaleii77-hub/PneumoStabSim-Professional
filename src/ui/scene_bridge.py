@@ -29,7 +29,7 @@ class SceneBridge(QObject):
 
     def __init__(
         self,
-        parent: QObject | None = None,
+        parent: Optional[QObject] = None,
         *,
         visualization_service: VisualizationService | None = None,
         settings_manager: Optional[SettingsManager] = None,

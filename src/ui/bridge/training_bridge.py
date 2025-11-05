@@ -147,6 +147,10 @@ class TrainingPresetBridge(QObject):
             return ""
         return str(self._presets_payload[0].get("id", ""))
 
+    @Slot(result="QVariantMap")
+    def selectedPreset(self) -> Dict[str, Any]:
+        return dict(self._selected_payload)
+
     @Slot(result="QVariantList")
     def refreshPresets(self) -> List[Dict[str, Any]]:
         self._refresh_presets()
