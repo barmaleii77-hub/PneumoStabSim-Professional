@@ -8,6 +8,7 @@ from typing import Any, Dict, Optional
 
 from src.common.settings_manager import SettingsManager
 from src.core.interfaces import VisualizationService as VisualizationServiceProtocol
+from src.security.access_control import AccessControlService, get_access_control
 from src.ui.hud import CameraHudTelemetry
 
 
@@ -29,15 +30,32 @@ class VisualizationService(VisualizationServiceProtocol):
         "simulation",
     )
 
+    _CATEGORY_PERMISSION_MAP: Mapping[str, str] = {
+        "geometry": "current.geometry",
+        "camera": "current.graphics.camera",
+        "lighting": "current.graphics.lighting",
+        "environment": "current.graphics.environment",
+        "scene": "current.graphics.scene",
+        "quality": "current.graphics.quality",
+        "materials": "current.graphics.materials",
+        "effects": "current.graphics.effects",
+        "animation": "current.animation",
+        "threeD": "current.threeD",
+        "render": "current.render",
+        "simulation": "current.simulation",
+    }
+
     def __init__(
         self,
         *,
         settings_manager: Optional[SettingsManager] = None,
+        access_control: Optional[AccessControlService] = None,
     ) -> None:
         self._state: Dict[str, Dict[str, Any]] = {key: {} for key in self._CATEGORIES}
         self._latest_updates: Dict[str, Dict[str, Any]] = {}
         self._settings_manager = settings_manager
         self._camera_telemetry = CameraHudTelemetry()
+        self._access_control = access_control or get_access_control()
 
     # ----------------------------------------------------------------- protocol
     def categories(self) -> Sequence[str]:
@@ -49,6 +67,9 @@ class VisualizationService(VisualizationServiceProtocol):
     def latest_updates(self) -> Mapping[str, Mapping[str, Any]]:
         return {key: dict(value) for key, value in self._latest_updates.items()}
 
+    def access_profile(self) -> Mapping[str, Any]:
+        return self._access_control.describe_access_profile()
+
     def dispatch_updates(
         self, updates: Mapping[str, Mapping[str, Any]]
     ) -> Mapping[str, Mapping[str, Any]]:
@@ -59,8 +80,14 @@ class VisualizationService(VisualizationServiceProtocol):
             normalised = self._sanitize_payload(payload)
             if key == "camera":
                 normalised = self.prepare_camera_payload(normalised)
-            self._state[key] = normalised
-            sanitized[key] = dict(normalised)
+            access_payload = self._build_access_payload(key)
+            if access_payload:
+                enriched = dict(normalised)
+                enriched["_access"] = access_payload
+            else:
+                enriched = normalised
+            self._state[key] = enriched
+            sanitized[key] = dict(enriched)
 
         if sanitized:
             self._latest_updates = sanitized
@@ -93,7 +120,6 @@ class VisualizationService(VisualizationServiceProtocol):
         existing = self._state.get("camera")
         if isinstance(existing, Mapping):
             base.update(dict(existing))
-
 
         payload_mapping = payload if isinstance(payload, Mapping) else {}
 
@@ -158,6 +184,25 @@ class VisualizationService(VisualizationServiceProtocol):
         if isinstance(payload, Mapping):
             return {key: deepcopy(value) for key, value in payload.items()}
         return {}
+
+    def _build_access_payload(self, category: str) -> Dict[str, Any] | None:
+        target = self._CATEGORY_PERMISSION_MAP.get(category)
+        if not target:
+            return None
+        can_edit = self._access_control.can_modify(target)
+        profile = self._access_control.describe_access_profile()
+        payload: Dict[str, Any] = {
+            "role": profile.get("role", "unknown"),
+            "actor": profile.get("actor", "system"),
+            "description": profile.get("description", ""),
+            "uiFlags": dict(profile.get("uiFlags", {})),
+            "simulationProfile": profile.get("simulationProfile", ""),
+            "editablePrefixes": list(profile.get("editablePrefixes", [])),
+            "targetPath": target,
+            "canEdit": can_edit,
+            "readOnly": not can_edit,
+        }
+        return payload
 
     def _augment_with_orbit_metadata(
         self, payload: Dict[str, Any], manager: SettingsManager

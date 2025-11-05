@@ -141,6 +141,7 @@ _TeamCity*
 # Qt Shader Baker artefacts
 reports/shaders/**/*.qsb
 reports/shaders/**/*.log
+reports/security_audit/*.log
 
 # AxoCover is a Code Coverage Tool
 .axoCover/*
@@ -496,6 +497,7 @@ check_*.py
 !tests/scenarios/__init__.py
 !tests/scenarios/test_training_presets.py
 !tests/unit/test_graphics_settings_service.py
+!tests/unit/test_access_control.py
 !tests/unit/test_lazy_module_wrapped.py
 !tests/unit/runtime/test_state_snapshot_buffer.py
 !tests/unit/runtime/test_sync.py

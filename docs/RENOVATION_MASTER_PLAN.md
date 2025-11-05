@@ -189,6 +189,12 @@ best practices for scientific visualisation software.
 8. Maintain the typed settings layer: любое новое поле обязано сопровождаться
    обновлением `settings_models.py`, генерацией схемы и успешным запуском
    `tools/validate_settings.py`.
+9. Зафиксировать политику безопасности платформы в `docs/SECURITY_POLICY.md`,
+   описав роли, права и процесс аудита изменений. Добавить чеклист в план
+   внедрения: обновить `SettingsManager` для проверки прав, передать
+   ограничения в UI-сервисы и настроить журнал `reports/security_audit/` с
+   хэш-цепочкой. *Status: выполнено декабрь 2025 — см. модуль
+   `src/security/access_control.py` и новую документацию.*
 
 ---
 

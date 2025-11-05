@@ -63,6 +63,10 @@ os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 os.environ.setdefault("QT_QUICK_BACKEND", "software")
 os.environ.setdefault("PYTHONHASHSEED", "0")
 
+_security_audit_dir = project_root / "reports" / "security_audit"
+_security_audit_dir.mkdir(parents=True, exist_ok=True)
+os.environ.setdefault("PSS_SECURITY_AUDIT_LOG", str(_security_audit_dir / "test.log"))
+
 
 _SETTINGS_TEMPLATE = Path("config/app_settings.json").read_text(encoding="utf-8")
 
