@@ -2,6 +2,9 @@ SHELL := /bin/bash
 PYTHON ?= python3
 UV ?= uv
 UV_PROJECT_DIR ?= .
+UV_LOCKFILE ?= uv.lock
+UV_SYNC_ARGS ?= --frozen
+UV_RUN_ARGS ?= --locked
 QML_LINT_PATHS ?= src assets
 QML_LINT_TARGETS_FILE ?= qmllint_targets.txt
 PYTHON_LINT_PATHS ?= src tests tools
@@ -21,25 +24,36 @@ install-qt-runtime
 qmllint:
 	$(MAKE) qml-lint
 
-.PHONY: uv-sync uv-run
+.PHONY: uv-sync uv-sync-locked uv-run
 
 uv-sync:
 	@if ! command -v $(UV) >/dev/null 2>&1; then \
-	echo "Error: '$(UV)' is not installed. Run 'python scripts/bootstrap_uv.py' first." >&2; \
-	exit 1; \
+		echo "Error: '$(UV)' is not installed. Run 'python scripts/bootstrap_uv.py' first." >&2; \
+		exit 1; \
 	fi
-	cd $(UV_PROJECT_DIR) && $(UV) sync
+	cd $(UV_PROJECT_DIR) && $(UV) sync $(UV_SYNC_ARGS)
+
+uv-sync-locked:
+	@if ! command -v $(UV) >/dev/null 2>&1; then \
+		echo "Error: '$(UV)' is not installed. Run 'python scripts/bootstrap_uv.py' first." >&2; \
+		exit 1; \
+	fi
+	@if [ ! -f "$(UV_PROJECT_DIR)/$(UV_LOCKFILE)" ]; then \
+		echo "Error: Lockfile '$(UV_LOCKFILE)' was not found in $(UV_PROJECT_DIR). Run 'uv lock' first." >&2; \
+		exit 1; \
+	fi
+	cd $(UV_PROJECT_DIR) && $(UV) sync --locked --frozen
 
 uv-run:
 	@if [ -z "$(CMD)" ]; then \
-	echo "Error: CMD parameter is required. Example: make uv-run CMD=\"pytest\"" >&2; \
-	exit 2; \
+		echo "Error: CMD parameter is required. Example: make uv-run CMD=\"pytest\"" >&2; \
+		exit 2; \
 	fi
 	@if ! command -v $(UV) >/dev/null 2>&1; then \
-	echo "Error: '$(UV)' is not installed. Run 'python scripts/bootstrap_uv.py' first." >&2; \
-	exit 1; \
+		echo "Error: '$(UV)' is not installed. Run 'python scripts/bootstrap_uv.py' first." >&2; \
+		exit 1; \
 	fi
-	cd $(UV_PROJECT_DIR) && PYTEST_DISABLE_PLUGIN_AUTOLOAD=$${PYTEST_DISABLE_PLUGIN_AUTOLOAD-1} $(UV) run -- $(CMD)
+	cd $(UV_PROJECT_DIR) && PYTEST_DISABLE_PLUGIN_AUTOLOAD=$${PYTEST_DISABLE_PLUGIN_AUTOLOAD-1} $(UV) run $(UV_RUN_ARGS) -- $(CMD)
 
 install-qt-runtime:
 	@echo "Installing Qt runtime system libraries (libgl1, libxkbcommon0, libegl1)"

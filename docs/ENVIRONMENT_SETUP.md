@@ -7,25 +7,32 @@
 | Инструмент | Назначение | Основные опции |
 |------------|-----------|----------------|
 | `scripts/bootstrap_uv.py` | Проверка и установка [uv](https://github.com/astral-sh/uv), быстрая синхронизация зависимостей | `--sync`, `--project-dir`, `--force`, `--executable` |
-| `make uv-sync` / `make uv-run` | Запуск `uv sync` и выполнение команд внутри окружения | `UV_PROJECT_DIR`, `CMD` |
+| `make uv-sync`, `make uv-sync-locked`, `make uv-run` | Синхронизация окружения и выполнение команд внутри `uv` | `UV_PROJECT_DIR`, `CMD`, `UV_SYNC_ARGS`, `UV_RUN_ARGS` |
 | `tools/setup_qt.py` | Установка Qt SDK с проверкой контрольных сумм | `--qt-version`, `--modules`, `--output-dir`, `--archives-dir` |
 | `activate_environment.(sh|ps1)` | Генерация `.env`, запуск установки Qt и вспомогательных проверок | `--setup`, `--install-qt`, `--qt-version`, `--qt-modules`, `--hash-file` |
 | `setup_environment.py` | Совместимость со старыми сценариями: заполнение `.env`, проверка зависимостей | `--python-version`, `--install-qt`, `--hash-file`, `--qt-output-dir` |
 
 ## Рекомендуемый процесс с uv
 
-`uv` является основным инструментом управления зависимостями в проекте. Он создаёт изолированное окружение на основе `pyproject.toml`, учитывает `requirements.lock` и гарантирует повторяемость установки.
+`uv` является основным инструментом управления зависимостями в проекте. Он создаёт изолированное окружение на основе `pyproject.toml`, использует `uv.lock` и гарантирует повторяемость установки.
 
 1. Выполните `python scripts/bootstrap_uv.py --sync`, чтобы установить `uv` (если он ещё не доступен в `PATH`) и сразу синхронизировать зависимости в каталоге проекта.
-2. Для регулярного обновления окружения используйте `make uv-sync`. Команда выполняет `uv sync` и обновляет кэш виртуального окружения.
-3. Запускайте любые команды внутри окружения через `make uv-run CMD="pytest -k smoke"` или другой аргумент `CMD`. Переменная `UV_PROJECT_DIR` позволяет работать с вложенными проектами или форками.
-4. Перед коммитами выполняйте `make check` (эквивалентно последовательному запуску `ruff`, `mypy`, `qmllint` и `pytest` через `uv run`).
+2. Применяйте зафиксированные в `uv.lock` версии зависимостей командой `make uv-sync-locked`. Она выполняет `uv sync --locked --frozen` и не изменяет lock-файл.
+3. Для обновления зависимостей после изменения `pyproject.toml` сначала выполните `uv lock`, затем повторите `make uv-sync-locked`. Если нужно протестировать альтернативные версии, можно вызвать `make uv-sync UV_SYNC_ARGS=""` (без `--frozen`).
+4. Запускайте любые команды внутри окружения через `make uv-run CMD="pytest -k smoke"` или другой аргумент `CMD`. Переменные `UV_PROJECT_DIR` и `UV_RUN_ARGS` позволяют работать с вложенными проектами или форками.
+5. Перед коммитами выполняйте `make check` (эквивалентно последовательному запуску `ruff`, `mypy`, `qmllint` и `pytest` через `uv run`).
 
 ### Поддержание зависимостей
 
-- Основной lock-файл: `requirements.lock`. При изменении `pyproject.toml` обновляйте его командой `uv lock` (или `make uv-run CMD="uv lock"`), затем фиксируйте изменения в Git.
-- Файлы `requirements.txt` и `requirements-dev.txt` генерируются из lock-файла и используются только для совместимости со старыми скриптами. Не редактируйте их вручную.
-- Если требуются альтернативные источники (например, корпоративные зеркала), укажите их через переменные окружения в `.env` и перезапустите `make uv-sync`.
+- Основной lock-файл: `uv.lock`. При изменении `pyproject.toml` обновляйте его командой `uv lock` (или `make uv-run CMD="uv lock"`), затем фиксируйте изменения в Git.
+- Файлы `requirements.txt`, `requirements-dev.txt` и `requirements-compatible.txt` генерируются из `uv.lock` и используются только для совместимости со старыми скриптами. Не редактируйте их вручную.
+- Для ручной регенерации используйте `uv export` (команды приведены в README) или вызовите их напрямую:
+  ```bash
+  uv export --format requirements.txt --output-file requirements.txt --no-dev --locked --no-emit-project
+  uv export --format requirements.txt --output-file requirements-dev.txt --extra dev --locked --no-emit-project
+  uv export --format requirements.txt --output-file requirements-compatible.txt --no-dev --locked --no-emit-project --no-annotate --no-hashes
+  ```
+- Если требуются альтернативные источники (например, корпоративные зеркала), укажите их через переменные окружения в `.env` и перезапустите `make uv-sync-locked`.
 
 ## Подготовка `.env` и Qt SDK
 
@@ -35,7 +42,7 @@
    - `python tools/setup_qt.py --qt-version 6.10.0 --modules qtbase,qtdeclarative,qtshadertools`
    - `./activate_environment.ps1 -Setup -InstallQt -QtVersion 6.10.0` (Windows)
    - `source activate_environment.sh --setup --install-qt --qt-version 6.10.0`
-4. После установки перезапустите `make uv-sync`, чтобы убедиться, что переменные из `.env` доступны в среде `uv`.
+4. После установки перезапустите `make uv-sync-locked`, чтобы убедиться, что переменные из `.env` доступны в среде `uv`.
 
 ### Зачем нужны `activate_environment.*`
 
@@ -50,7 +57,7 @@
 ### Быстрый старт (PowerShell 7+)
 ```powershell
 python scripts/bootstrap_uv.py --sync
-make uv-sync
+make uv-sync-locked
 make uv-run CMD="python -m pytest -k smoke"
 ```
 
@@ -81,7 +88,7 @@ sudo apt update && sudo apt install build-essential ninja-build libgl1-mesa-dev
 ### Быстрый старт
 ```bash
 python3 scripts/bootstrap_uv.py --sync
-make uv-sync
+make uv-sync-locked
 make uv-run CMD="pytest -m 'not gui'"
 ```
 
@@ -90,7 +97,7 @@ make uv-run CMD="pytest -m 'not gui'"
 cp env.sample .env
 source activate_environment.sh --setup --install-qt --qt-version 6.10.0 \
     --qt-modules qtbase,qtdeclarative,qtshadertools
-make uv-sync
+make uv-sync-locked
 ```
 
 ### VS Code (Linux)
@@ -114,5 +121,5 @@ make uv-sync
 ## Дополнительные сценарии (совместимость)
 
 - `setup_environment.py` и связанные с ним скрипты остаются для поддержания старых установок. Они читают lock-файлы и заполняют `.env`, но не должны использоваться в новых автоматизированных процессах.
-- Для ручной проверки хешей зависимостей можно вызвать `make uv-run CMD="pip check --require-hashes -r requirements.txt"`, однако предпочтительным способом остаётся `uv sync`.
+- Для ручной проверки хешей зависимостей можно вызвать `make uv-run CMD="pip check --require-hashes -r requirements.txt"`, однако предпочтительным способом остаётся `make uv-sync-locked`.
 - Если необходимо полностью переинициализировать окружение, удалите каталог `.uv/` и выполните шаги быстрого старта заново.
