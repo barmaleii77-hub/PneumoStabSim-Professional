@@ -18,7 +18,7 @@ INTEGRATION_TARGET ?= tests/integration/test_main_window_qml.py
 .PHONY: format lint typecheck qml-lint test-local validate-shaders check-shaders check verify smoke integration \
 localization-check \
 autonomous-check autonomous-check-trace trace-launch sanitize cipilot-env \
-install-qt-runtime qt-env-check telemetry-etl profile-phase3 profile-render profile-validate
+install-qt-runtime qt-env-check telemetry-etl profile-phase3 profile-render profile-validate package-all
 
 .PHONY: qmllint
 qmllint:
@@ -54,6 +54,9 @@ uv-run:
 		exit 1; \
 	fi
 	cd $(UV_PROJECT_DIR) && PYTEST_DISABLE_PLUGIN_AUTOLOAD=$${PYTEST_DISABLE_PLUGIN_AUTOLOAD-1} $(UV) run $(UV_RUN_ARGS) -- $(CMD)
+
+package-all:
+	$(MAKE) uv-run CMD="python -m tools.packaging.build_packages"
 
 install-qt-runtime:
 	@echo "Installing Qt runtime system libraries (libgl1, libxkbcommon0, libegl1)"
@@ -198,7 +201,7 @@ container-test-vulkan: container-build
 container-verify-all: container-build container-test
 
 container-analyze-logs: container-build
-        docker run --rm -t -v $(CURDIR):$(CONTAINER_WORKDIR) -w $(CONTAINER_WORKDIR) $(CONTAINER_IMAGE) python /usr/local/bin/collect_logs.py
+	docker run --rm -t -v $(CURDIR):$(CONTAINER_WORKDIR) -w $(CONTAINER_WORKDIR) $(CONTAINER_IMAGE) python /usr/local/bin/collect_logs.py
 
 .PHONY: build shell test test-opengl test-vulkan verify-all analyze-logs
 build: container-build
@@ -206,23 +209,6 @@ build: container-build
 shell: container-shell
 
 test: container-test
-
-test-opengl: container-test-opengl
-
-test-vulkan: container-test-vulkan
-
-verify-all: container-verify-all
-
-analyze-logs: container-analyze-logs
-
-.PHONY: build shell test-opengl test-vulkan verify-all analyze-logs
-
-build: container-build
-
-shell: container-shell
-
-# Ensure legacy test workflows still run alongside container validation
-test:: container-test
 
 test-opengl: container-test-opengl
 

@@ -1,104 +1,102 @@
 # Release Engineering Guide
 
-Этот документ описывает последовательность действий для подготовки и
-публикации дистрибутивов PneumoStabSim Professional на основных платформах.
-Процесс синхронизирован с автоматизированным конвейером GitHub Actions
-(`.github/workflows/release.yml`) и унифицированным скриптом упаковки
-(`tools/packaging/build_packages.py`).
+This document describes how PneumoStabSim Professional packages are produced,
+verified, and published across Linux, Windows, and macOS platforms.
 
-## 1. Предварительные требования
+## 1. Prerequisites
 
-1. **Python 3.13** — соответствует целевому интерпретатору приложения.
-2. **Зависимости проекта** — синхронизируются через `uv`:
+The packaging toolchain is managed by [`uv`](https://github.com/astral-sh/uv)
+and relies on PyInstaller for Linux/Windows builds and cx_Freeze for macOS.
+Before creating a build locally:
+
+1. Install `uv` (see `docs/CI.md` for the standard bootstrap flow).
+2. Materialise the locked release environment:
    ```bash
-   uv sync --all-extras
+   make uv-sync
+   uv sync --frozen --extra release
    ```
-   Команда установит базовые зависимости, dev-инструменты и
-   дополнительные пакеты для упаковки (`pyinstaller`, `cx-Freeze`).
-3. **Qt Runtime** — при локальной сборке убедитесь, что выполнен скрипт
-   `python tools/setup_qt.py`, чтобы PyInstaller и cx_Freeze корректно
-   обнаружили плагины Qt.
+3. Ensure the signing key material is available to `gpg`:
+   ```bash
+   gpg --import path/to/release-private.key
+   gpg --import path/to/release-public.key
+   ```
 
-## 2. Унифицированная упаковка
+> **Note:** The CI pipelines expect the signing material to be supplied via the
+> `GPG_PRIVATE_KEY`, `GPG_PASSPHRASE`, and `GPG_PUBLIC_KEY` secrets.
 
-Для любой ОС теперь используется команда:
+## 2. Building Packages Locally
+
+Use the unified make target to trigger platform-aware packaging:
 
 ```bash
 make package-all
 ```
 
-Скрипт автоматически подбирает конфигурацию по текущей платформе и
-запускает PyInstaller (Linux/Windows) или cx_Freeze (macOS). Артефакты
-располагаются в каталоге `dist/packages` и включают:
+This delegates to `python -m tools.packaging.build_packages`, which inspects the
+host platform and invokes the appropriate builder:
 
-- архив (`.tar.gz` для Linux, `.zip` для Windows и macOS);
-- файл контрольной суммы SHA-256 (`.sha256`);
-- манифест с метаданными (`.json`).
+- **Linux / Windows:** PyInstaller (windowed, one-dir layout)
+- **macOS:** cx_Freeze universal2 bundle
 
-Дополнительные параметры можно передать через переменную `PACKAGE_ARGS`,
-например `make package-all PACKAGE_ARGS="--output-dir dist/releases --no-clean"`.
+Artifacts are written to `dist/packages/` and include:
 
-## 3. Проверка контрольных сумм
+- Platform-specific archives (`.tar.gz` or `.zip`)
+- SHA-256 checksum files (`.sha256`)
+- Detached ASCII-armored signatures (`.asc`)
+- Build metadata manifests (`.json`)
 
-Каждый архив сопровождается файлом `<имя>.sha256` со строкой вида
-`<SHA-256>  <имя файла>`. Проверка выполняется стандартными утилитами.
+## 3. Verifying Build Outputs
 
-### Linux/macOS
+Always validate both integrity and authenticity before distributing binaries:
 
 ```bash
 cd dist/packages
 shasum -a 256 --check *.sha256
+for sig in *.asc; do
+  gpg --verify "$sig"
+  # gpg resolves the matching archive automatically
+done
 ```
 
-### Windows (PowerShell)
+On Windows, the checksum command can be replaced with PowerShell:
 
 ```powershell
-Set-Location dist\packages
-Get-ChildItem -Filter '*.sha256' | ForEach-Object {
-  $content = (Get-Content $_.FullName).Trim()
-  $parts = $content -split '\s+' | Where-Object { $_ }
-  $expected = $parts[0]
-  $fileName = $parts[-1]
-  $actual = (Get-FileHash $fileName -Algorithm SHA256).Hash
-  if ($expected.ToLower() -ne $actual.ToLower()) {
-    throw "Checksum mismatch for $fileName"
-  }
+Set-Location dist/packages
+Get-ChildItem -Filter *.sha256 | ForEach-Object {
+  Get-FileHash ($_.FullName -replace '\\.sha256$') -Algorithm SHA256
+}
+Get-ChildItem -Filter *.asc | ForEach-Object {
+  & gpg --verify $_.FullName ($_.FullName -replace '\\.asc$')
 }
 ```
 
-## 4. Автоматический релиз
+## 4. Continuous Integration and Release Automation
 
-Workflow `release.yml` запускается при пуше тега `v*` или вручную.
-Каждый раннер (Ubuntu, Windows, macOS) выполняет:
+The GitHub Actions workflow at `.github/workflows/release.yml` orchestrates
+packaging for tagged builds:
 
-1. `uv sync --frozen --extra release` — установка зависимостей.
-2. `make package-all` — сборка платформенного пакета.
-3. Проверка контрольных сумм на раннере.
-4. Публикация артефактов через `actions/upload-artifact`.
+1. Each OS runner installs the locked environment (`uv sync --extra release`).
+2. `make package-all` generates the platform bundle.
+3. GPG signing is performed on every archive, using the imported private key.
+4. Both SHA-256 checksums and GPG signatures are verified on the same runner.
+5. Build outputs (`.zip`, `.tar.gz`, `.sha256`, `.asc`, `.json`) are uploaded as
+   job artifacts.
 
-После успешного завершения матрицы job `publish` повторно проверяет
-контрольные суммы и загружает архивы, манифесты и подписи в GitHub
-Release (`softprops/action-gh-release`).
+A final `publish` job downloads all artifacts, re-imports the release public key,
+re-validates checksums and signatures, and then publishes them as release assets.
 
-## 5. Ручная валидация пакетов
+## 5. Manual Release Checklist
 
-Перед публикацией релиза рекомендуется дополнительно:
+When preparing a production release:
 
-- Развернуть архив на целевой ОС и запустить приложение с ключом
-  `--env-check`, чтобы убедиться в корректности окружения.
-- Проверить наличие директорий `assets/`, `config/` и `docs/` рядом с
-  исполняемым файлом.
-- Убедиться, что `LICENSE` и `README.md` присутствуют в архиве.
+1. Update version metadata and changelog entries as required.
+2. Tag the repository (`git tag vX.Y.Z`) and push the tag to trigger CI.
+3. Monitor the `Release Packaging` workflow for successful packaging/signing on
+   all platforms.
+4. Download the published artifacts and perform an out-of-band verification if
+   mandated by your compliance process.
+5. Announce availability through the appropriate communication channels once the
+   release is live.
 
-## 6. Распространённые проблемы
-
-| Симптом | Причина | Решение |
-| --- | --- | --- |
-| PyInstaller пропускает Qt плагины | Не установлен Qt runtime | Выполнить `python tools/setup_qt.py` перед упаковкой |
-| Ошибка `cx_Freeze` на macOS | Не собран wheel `lief` | Запустить `uv sync --extra release` повторно; при необходимости
-  установить Xcode Command Line Tools |
-| Несовпадение контрольной суммы | Файл повреждён или был изменён после упаковки | Пересоздать пакет командой `make package-all` |
-
-Следование данным шагам обеспечивает воспроизводимую упаковку и
-автоматическую доставку пакетов пользователям на всех поддерживаемых
-платформах.
+Following these steps ensures every distribution artifact is built reproducibly
+and verified cryptographically before it reaches end users.

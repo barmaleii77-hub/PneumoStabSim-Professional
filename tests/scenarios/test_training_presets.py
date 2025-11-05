@@ -23,7 +23,7 @@ def _clone_settings(tmp_path: Path) -> Path:
 def test_default_presets_align_with_scenarios() -> None:
     library = get_default_training_library()
     presets = library.list_presets()
-    assert len(presets) >= 3
+    assert len(presets) >= 4
 
     scenario_ids = {preset.metadata.scenario_id for preset in presets}
     assert scenario_ids <= set(SCENARIO_INDEX)
@@ -34,8 +34,12 @@ def test_default_presets_align_with_scenarios() -> None:
         assert preset.to_qml_payload()["id"] == preset.id
         descriptor = SCENARIO_INDEX[preset.metadata.scenario_id]
         assert descriptor.difficulty in {preset.metadata.difficulty, "mixed"}
+        assert descriptor.label == preset.metadata.scenario_label
+        assert descriptor.summary == preset.metadata.scenario_summary
         for metric in preset.metadata.evaluation_metrics:
             assert metric in descriptor.metrics
+
+    assert library.get("endurance_validation") is not None
 
 
 def test_apply_preset_updates_settings(tmp_path: Path) -> None:

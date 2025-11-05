@@ -1,15 +1,15 @@
-"""Service layer entry points exposed to the UI and CLI tools."""
+"""Service layer utilities for PneumoStabSim Professional."""
 
-from __future__ import annotations
-
-from .feedback_service import (
-    FeedbackPayload,
-    FeedbackService,
-    FeedbackSubmissionResult,
+from .backup_service import (
+    BackupReport,
+    BackupService,
+    RestoreReport,
+    discover_user_data_sources,
 )
 
 __all__ = [
-    "FeedbackPayload",
-    "FeedbackService",
-    "FeedbackSubmissionResult",
+    "BackupReport",
+    "BackupService",
+    "RestoreReport",
+    "discover_user_data_sources",
 ]

@@ -9,7 +9,6 @@ and arbitrary payload provided by the caller.
 from __future__ import annotations
 
 import json
-from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
 from threading import RLock
@@ -18,11 +17,11 @@ from typing import Any, Dict, Mapping, Optional
 from structlog.stdlib import BoundLogger
 
 from src.diagnostics.logger_factory import get_logger
+from src.telemetry.schema import EVENT_SCHEMA_VERSION, TelemetryRecord
 
 
 __all__ = [
     "EVENT_SCHEMA_VERSION",
-    "TelemetryRecord",
     "TelemetryRouter",
     "TelemetryTracker",
     "get_tracker",
@@ -34,27 +33,6 @@ __all__ = [
 _DEFAULT_BASE_DIR = Path("reports/telemetry")
 _USER_ACTIONS_FILE = "user_actions.jsonl"
 _SIMULATION_EVENTS_FILE = "simulation_events.jsonl"
-EVENT_SCHEMA_VERSION = "telemetry_event_v1"
-
-
-@dataclass(slots=True)
-class TelemetryRecord:
-    """Structured telemetry payload."""
-
-    channel: str
-    event: str
-    timestamp: datetime
-    payload: Dict[str, Any]
-    schema_version: str = EVENT_SCHEMA_VERSION
-
-    def as_dict(self) -> Dict[str, Any]:
-        return {
-            "schema_version": self.schema_version,
-            "channel": self.channel,
-            "event": self.event,
-            "timestamp": self.timestamp.isoformat(),
-            "payload": self.payload,
-        }
 
 
 class TelemetryRouter:

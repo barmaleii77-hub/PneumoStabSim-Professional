@@ -101,7 +101,7 @@ def setup_qtquick3d_environment(
 def configure_qt_environment() -> None:
     """Настройка переменных окружения Qt для графики и логирования."""
     # Уважаем .env, но задаём дефолты при отсутствии значений
-    backend_default = "d3d11" if sys.platform == "win32" else "opengl"
+    backend_default = "opengl"
     backend = os.environ.setdefault("QSG_RHI_BACKEND", backend_default)
     os.environ.setdefault("QT_QUICK_CONTROLS_STYLE", "Fusion")
     os.environ.setdefault("QSG_INFO", "0")

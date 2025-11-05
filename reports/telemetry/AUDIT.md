@@ -1,4 +1,4 @@
-# Telemetry Audit (2025-03-07)
+# Telemetry Audit (2025-11-05)
 
 This audit reviews the current telemetry capture pipeline and stored artefacts.
 
@@ -14,23 +14,27 @@ This audit reviews the current telemetry capture pipeline and stored artefacts.
 ## Findings
 
 1. **Schema discovery** – The tracker emits dictionaries with `channel`,
-   `event`, `timestamp`, and `payload`. The schema version was previously
-   implicit; analytics tooling now records it explicitly so consumers can evolve
-   safely.
-2. **Concurrency guarantees** – `TelemetryRouter` already guards writes with an
-   `RLock`; no race conditions were observed. Documentation should emphasise
-   JSON Lines ordering semantics.
-3. **Operational gaps** – The project lacked an exporter/ETL utility, making it
-   difficult to ingest telemetry into analytics pipelines or external storage.
+   `event`, `timestamp`, and `payload`. Validation logic now lives in
+   `src/telemetry/schema.py`, ensuring every consumer enforces identical rules
+   and attaches the `telemetry_event_v1` schema version automatically.
+2. **Concurrency guarantees** – `TelemetryRouter` continues to guard writes with
+   an `RLock`; no race conditions were observed. Documentation now highlights
+   JSON Lines ordering semantics for downstream replay.
+3. **Operational gaps** – The repository previously lacked a reusable exporter
+   or ETL utility. The refreshed `tools/telemetry_exporter.py` consolidates JSON
+   and Parquet exports and produces enriched aggregate reports for analytics.
 
 ## Actions taken
 
 - Defined a stable event schema (`telemetry_event_v1`) with validation helpers
-  used by the exporter and analytics pipeline.
-- Added `tools/telemetry_exporter.py` to convert telemetry archives to compact
-  JSON or (optionally) Apache Parquet.
+  in `src/telemetry/schema.py`, re-used by both runtime tracking and analytics
+  tooling.
+- Enhanced `tools/telemetry_exporter.py` to convert telemetry archives to
+  compact JSON or (optionally) Apache Parquet and to publish richer aggregate
+  statistics (channel, schema, and per-event breakdowns).
 - Provisioned an ETL entry point (`make telemetry-etl`) that materialises
-  aggregate dashboards under `reports/analytics/`.
+  aggregate dashboards under `reports/analytics/`, including schema and event
+  inventories for observability.
 
 ## Next steps
 

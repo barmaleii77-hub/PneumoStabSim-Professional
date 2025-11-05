@@ -16,6 +16,8 @@ class TrainingPresetMetadata:
     recommended_modules: Tuple[str, ...] = field(default_factory=tuple)
     evaluation_metrics: Tuple[str, ...] = field(default_factory=tuple)
     scenario_id: str = ""
+    scenario_label: str = ""
+    scenario_summary: str = ""
     notes: str = ""
 
     def to_payload(self) -> Dict[str, object]:
@@ -28,6 +30,8 @@ class TrainingPresetMetadata:
             "recommendedModules": list(self.recommended_modules),
             "evaluationMetrics": list(self.evaluation_metrics),
             "scenarioId": self.scenario_id,
+            "scenarioLabel": self.scenario_label,
+            "scenarioSummary": self.scenario_summary,
             "notes": self.notes,
         }
 

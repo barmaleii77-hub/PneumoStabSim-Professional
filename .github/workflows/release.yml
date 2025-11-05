@@ -30,12 +30,39 @@ jobs:
         with:
           python-version: ${{ env.PYTHON_VERSION }}
 
+      - name: Import signing key
+        id: import_gpg
+        uses: crazy-max/ghaction-import-gpg@v6
+        with:
+          gpg_private_key: ${{ secrets.GPG_PRIVATE_KEY }}
+          passphrase: ${{ secrets.GPG_PASSPHRASE }}
+
       - name: Sync dependencies (release extras)
         run: uv sync --frozen --extra release
 
       - name: Build packages
         run: make package-all
         shell: bash
+
+      - name: Sign packages (Unix)
+        if: runner.os != 'Windows'
+        run: |
+          cd dist/packages
+          for artifact in *.zip *.tar.gz; do
+            [ -e "$artifact" ] || continue
+            gpg --batch --yes --detach-sign --armor --output "$artifact.asc" "$artifact"
+          done
+        shell: bash
+
+      - name: Sign packages (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          Set-Location dist/packages
+          Get-ChildItem -Include *.zip,*.tar.gz -File | ForEach-Object {
+            $output = "$($_.FullName).asc"
+            & gpg --batch --yes --detach-sign --armor --output $output $_.FullName
+          }
 
       - name: Verify package checksums (Unix)
         if: runner.os != 'Windows'
@@ -63,6 +90,26 @@ jobs:
             if ($actual -ne $expected) { throw "Checksum mismatch for $artifact" }
           }
 
+      - name: Verify signatures (Unix)
+        if: runner.os != 'Windows'
+        run: |
+          cd dist/packages
+          for sig in *.asc; do
+            [ -e "$sig" ] || continue
+            gpg --verify "$sig"
+          done
+        shell: bash
+
+      - name: Verify signatures (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          Set-Location dist/packages
+          Get-ChildItem -Filter '*.asc' -File | ForEach-Object {
+            $artifact = $_.FullName -replace '\.asc$',''
+            & gpg --verify $_.FullName $artifact
+          }
+
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
@@ -72,6 +119,7 @@ jobs:
             dist/packages/*.tar.gz
             dist/packages/*.sha256
             dist/packages/*.json
+            dist/packages/*.asc
 
   publish:
     name: Publish GitHub Release
@@ -86,10 +134,25 @@ jobs:
           path: dist/packages
           merge-multiple: true
 
+      - name: Import release public key
+        if: ${{ secrets.GPG_PUBLIC_KEY != '' }}
+        run: echo "$GPG_PUBLIC_KEY" | gpg --import
+        env:
+          GPG_PUBLIC_KEY: ${{ secrets.GPG_PUBLIC_KEY }}
+
       - name: Re-verify checksums
         run: |
           cd dist/packages
           find . -name '*.sha256' -print0 | xargs -0 -I{} shasum -a 256 --check {}
+        shell: bash
+
+      - name: Verify signatures
+        run: |
+          cd dist/packages
+          find . -name '*.asc' -print0 | while IFS= read -r -d '' sig; do
+            artifact="${sig%.asc}"
+            gpg --verify "$sig" "$artifact"
+          done
         shell: bash
 
       - name: Publish release assets
@@ -100,5 +163,6 @@ jobs:
             dist/packages/**/*.tar.gz
             dist/packages/**/*.sha256
             dist/packages/**/*.json
+            dist/packages/**/*.asc
           draft: false
           prerelease: false

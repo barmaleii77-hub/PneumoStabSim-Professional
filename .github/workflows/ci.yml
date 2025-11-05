@@ -51,6 +51,14 @@ jobs:
         run: |
           python tools/update_translations.py --check
 
+      - name: Upload localization reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: localization-reports
+          path: reports/localization
+          if-no-files-found: warn
+
   tests:
     name: Test matrix (Qt ${{ env.QT_VERSION }})
     needs: lint

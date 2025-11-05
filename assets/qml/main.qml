@@ -336,10 +336,10 @@ Item {
         id: simulationLoader
         objectName: "simulationLoader"
         anchors.fill: parent
-        active: root.hasSceneBridge
+        active: true
         sourceComponent: SimulationRoot {
             id: simulationRoot
-            sceneBridge: pythonSceneBridge
+            sceneBridge: typeof pythonSceneBridge !== "undefined" ? pythonSceneBridge : null
         }
         onStatusChanged: {
             if (status === Loader.Error) {
