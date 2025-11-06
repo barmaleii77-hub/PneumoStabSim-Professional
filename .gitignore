@@ -543,6 +543,7 @@ check_*.py
 !tests/integration/test_stabilizer_sync.py
 !tests/integration/test_graphics_signal_routing.py
 !tests/integration/test_scene_environment_controller.py
+!tests/integration/test_simulation_scenarios.py
 !tests/unit/ui/pneumo/test_state_manager_units.py
 !tests/unit/pneumo/test_diagonal_linking.py
 !tests/pneumo/test_valves_and_system.py
