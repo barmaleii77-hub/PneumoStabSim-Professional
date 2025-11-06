@@ -65,6 +65,12 @@ Environment payload (вложенный)
   【F:assets/qml/effects/PostEffects.qml†L202-L232】【F:assets/qml/effects/PostEffects.qml†L336-L396】
 - **Манифест:** `UISetup._build_effect_shader_manifest()` сканирует единый каталог `effects`, чтобы QML быстро проверял наличие ресурсов без синхронных запросов. 【F:src/ui/main_window_pkg/ui_setup.py†L34-L88】
 
+### Fail-safe bypass для пост-обработки
+
+- `PostEffects.qml` фиксирует постоянные ошибки компиляции fallback-шейдеров через флаг `effectsBypass`, сохраняя причину в `effectsBypassReason` в формате `<effectId>: <сообщение>` и временно отключая проблемный эффект, чтобы не блокировать отрисовку. 【F:assets/qml/effects/PostEffects.qml†L17-L114】【F:assets/qml/effects/PostEffects.qml†L663-L724】【F:assets/qml/effects/PostEffects.qml†L1004-L1068】
+- `SimulationRoot.qml` слушает эти изменения: при активном bypass он очищает `View3D.effects`, кеширует предыдущую цепочку эффектов и оставляет сцену видимой без пост-обработки, а после успешной перекомпиляции восстанавливает сохранённый список. 【F:assets/qml/PneumoStabSim/SimulationRoot.qml†L24-L205】
+- Интеграционный тест воспроизводит отказ шейдера и подтверждает переход в fail-safe режим без потери кадра, а также восстановление исходных эффектов и причины в UI. 【F:tests/ui/test_post_effects_bypass_fail_safe.py†L1-L94】
+
 ## FogEffect v4.9.5 — компиляция шейдеров и fallback
 
 - **Файлы:** `assets/qml/effects/FogEffect.qml`, `assets/shaders/effects/fog.vert`, `assets/shaders/effects/fog.frag`,

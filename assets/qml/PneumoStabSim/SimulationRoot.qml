@@ -29,6 +29,10 @@ import "../diagnostics/LogBridge.js" as Diagnostics
 
     property var sceneBridge: null
     property var postEffects: null
+    property var sceneView: null
+    property bool postProcessingBypassed: false
+    property string postProcessingBypassReason: ""
+    property var postProcessingEffectBackup: []
     readonly property var emptyDefaultsObject: Object.freeze({})
     readonly property var emptyGeometryDefaults: emptyDefaultsObject
     readonly property var emptyMaterialsDefaults: emptyDefaultsObject
@@ -115,28 +119,112 @@ signal animationToggled(bool running)
         }
     }
 
+    function cloneEffectList(value) {
+        if (!value)
+            return []
+        if (Array.isArray(value))
+            return value.slice()
+        var copy = []
+        var length = 0
+        try {
+            length = value.length
+        } catch (error) {
+            length = 0
+        }
+        for (var i = 0; i < length; ++i) {
+            try {
+                copy.push(value[i])
+            } catch (error) {
+            }
+        }
+        return copy
+    }
+
+    function applyPostProcessingBypass(active, reason) {
+        var normalizedReason = reason !== undefined && reason !== null ? String(reason) : ""
+        var previousActive = postProcessingBypassed
+        postProcessingBypassed = !!active
+        postProcessingBypassReason = postProcessingBypassed ? normalizedReason : ""
+
+        if (!sceneView) {
+            console.warn("[SimulationRoot] Unable to toggle post-processing bypass; sceneView is not set", active, normalizedReason)
+            return
+        }
+
+        if (postProcessingBypassed) {
+            console.warn("[SimulationRoot] Post-processing bypass activated", normalizedReason)
+            try {
+                var currentEffects = sceneView.effects
+                postProcessingEffectBackup = cloneEffectList(currentEffects)
+            } catch (error) {
+                postProcessingEffectBackup = []
+                console.debug("[SimulationRoot] Failed to cache View3D effects before bypass", error)
+            }
+            try {
+                sceneView.effects = []
+            } catch (error) {
+                console.warn("[SimulationRoot] Failed to clear View3D effects during bypass", error)
+            }
+        } else {
+            if (previousActive) {
+                console.log("[SimulationRoot] Post-processing bypass cleared")
+            }
+            try {
+                var restoreEffects = []
+                if (postProcessingEffectBackup && postProcessingEffectBackup.length)
+                    restoreEffects = postProcessingEffectBackup
+                else if (postEffects && postEffects.effectList)
+                    restoreEffects = postEffects.effectList
+                sceneView.effects = restoreEffects
+                postProcessingEffectBackup = []
+            } catch (error) {
+                console.warn("[SimulationRoot] Failed to restore View3D effects after bypass", error)
+            }
+        }
+    }
+
     Connections {
         id: postEffectsSignals
         target: root.postEffects
         enabled: !!target
 
-        function onEffectCompilationError(effectId, status, message) {
+        function onEffectCompilationError(effectId, message) {
             var resolvedMessage = message
 
-            if (resolvedMessage === undefined || resolvedMessage === null || resolvedMessage === "") {
-                if (typeof status === "string") {
-                    resolvedMessage = status
-                } else if (status === true) {
-                    resolvedMessage = "Compilation failed"
-                }
-            }
+            if (resolvedMessage === undefined || resolvedMessage === null || resolvedMessage === "")
+                resolvedMessage = qsTr("%1: compilation failed").arg(effectId)
 
             registerShaderWarning(effectId, resolvedMessage)
         }
 
-        function onEffectCompilationRecovered(effectId, _) {
+        function onEffectCompilationRecovered(effectId) {
             clearShaderWarning(effectId)
         }
+
+        function onEffectsBypassChanged(active) {
+            var reason = ""
+            try {
+                reason = target && typeof target.effectsBypassReason === "string"
+                        ? target.effectsBypassReason
+                        : ""
+            } catch (error) {
+            }
+            root.applyPostProcessingBypass(active, reason)
+        }
+
+        function onEffectsBypassReasonChanged(reason) {
+            if (!target || !target.effectsBypass)
+                return
+            root.applyPostProcessingBypass(true, reason)
+        }
+    }
+
+    Binding {
+        id: viewEffectsBinding
+        target: root.sceneView
+        property: "effects"
+        value: root.postEffects ? root.postEffects.effectList : []
+        when: root.sceneView && root.postEffects && !root.postProcessingBypassed
     }
 
  // Состояние симуляции, управляется из Python (MainWindow)

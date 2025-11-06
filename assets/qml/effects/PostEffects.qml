@@ -19,6 +19,22 @@ Item {
     // Structured diagnostics (opt-in from Python)
     property bool diagnosticsLoggingEnabled: false
 
+    // When true, the effect chain is bypassed to keep the scene visible even if shaders fail
+    property bool effectsBypass: false
+    property string effectsBypassReason: ""
+    property var persistentEffectFailures: ({})
+
+    onEffectsBypassChanged: {
+        if (effectsBypass) {
+            var reason = effectsBypassReason && effectsBypassReason.length
+                    ? effectsBypassReason
+                    : "unknown shader failure"
+            console.warn("⚠️ PostEffects: bypassing post-processing due to persistent shader errors", reason)
+        } else {
+            console.log("✅ PostEffects: shader bypass cleared; post-processing restored")
+        }
+    }
+
     function logDiagnostics(eventName, params, environment) {
         if (!diagnosticsLoggingEnabled)
             return
@@ -69,6 +85,58 @@ Item {
         } else {
             effectCompilationRecovered(normalizedId)
         }
+    }
+
+    function updateEffectsBypassState(nextState) {
+        persistentEffectFailures = nextState
+        var keys = []
+        for (var key in nextState) {
+            if (Object.prototype.hasOwnProperty.call(nextState, key))
+                keys.push(key)
+        }
+        var active = keys.length > 0
+        if (effectsBypass !== active)
+            effectsBypass = active
+        var reason = ""
+        if (active) {
+            for (var i = 0; i < keys.length; ++i) {
+                var value = nextState[keys[i]]
+                if (value !== undefined && value !== null) {
+                    var normalized = String(value)
+                    if (normalized.length) {
+                        reason = normalized
+                        break
+                    }
+                }
+            }
+        }
+        if (effectsBypassReason !== reason)
+            effectsBypassReason = reason
+    }
+
+    function setEffectPersistentFailure(effectId, active, reason) {
+        var normalizedId = effectId !== undefined && effectId !== null
+                ? String(effectId)
+                : "unknown"
+        var state = persistentEffectFailures || ({})
+        var nextState = ({})
+        for (var key in state) {
+            if (Object.prototype.hasOwnProperty.call(state, key))
+                nextState[key] = state[key]
+        }
+        if (active) {
+            var normalizedReason = ""
+            if (reason !== undefined && reason !== null)
+                normalizedReason = String(reason).trim()
+            if (!normalizedReason.length)
+                normalizedReason = qsTr("%1: persistent shader failure").arg(normalizedId)
+            else if (normalizedReason.indexOf(normalizedId) !== 0)
+                normalizedReason = normalizedId + ": " + normalizedReason
+            nextState[normalizedId] = normalizedReason
+        } else if (Object.prototype.hasOwnProperty.call(nextState, normalizedId)) {
+            delete nextState[normalizedId]
+        }
+        updateEffectsBypassState(nextState)
     }
 
     function trySetEffectProperty(effectItem, propertyName, value) {
@@ -677,8 +745,20 @@ Item {
                         : qsTr("%1 shader %2 compilation failed").arg(effectId).arg(shaderId)
             }
             console.error(`❌ PostEffects (${effectId}):`, message)
-            if (isFallback)
+            if (isFallback) {
+                try {
+                    effectItem.lastErrorLog = message
+                } catch (error) {
+                }
+                try {
+                    effectItem.persistentFailure = true
+                } catch (error) {
+                }
+                root.setEffectPersistentFailure(effectId, true, message)
+                trySetEffectProperty(effectItem, "enabled", false)
+                root.notifyEffectCompilation(effectId, true, message)
                 return
+            }
             try {
                 effectItem.compilationErrorLog = message
             } catch (error) {
@@ -694,6 +774,20 @@ Item {
                 effectItem.lastErrorLog = message
             root.notifyEffectCompilation(effectId, effectItem.fallbackActive, effectItem.lastErrorLog)
             return
+        }
+        if (status === Shader.Ready && isFallback) {
+            var hadPersistentFailure = false
+            try {
+                hadPersistentFailure = !!effectItem.persistentFailure
+            } catch (error) {
+            }
+            if (hadPersistentFailure) {
+                try {
+                    effectItem.persistentFailure = false
+                } catch (error) {
+                }
+                root.setEffectPersistentFailure(effectId, false, "")
+            }
         }
         if (status === Shader.Ready && !isFallback) {
             var dueToCompilation = false
@@ -861,6 +955,19 @@ Item {
      */
     function resolveShaders(isEnabled, effectItem, activeShader, fallbackShader, shaderBaseName) {
         const hasFallback = fallbackShader !== undefined && fallbackShader !== null
+        if (root.effectsBypass) {
+            trySetEffectProperty(effectItem, "enabled", false)
+            return []
+        }
+        var persistentFailureActive = false
+        try {
+            persistentFailureActive = !!effectItem.persistentFailure
+        } catch (error) {
+        }
+        if (persistentFailureActive) {
+            trySetEffectProperty(effectItem, "enabled", false)
+            return []
+        }
         // Если эффект выключен, отключаем его полностью, но оставляем безопасный шейдер,
         // чтобы движок QtQuick3D не создавал пустой шейдер и не завершал компиляцию.
         if (!isEnabled) {
@@ -1004,6 +1111,7 @@ Item {
         property bool fallbackDueToCompilation: false
         property string compilationErrorLog: ""
         property bool fallbackForcedByCompatibility: false
+        property bool persistentFailure: false
         readonly property string fallbackMessage: qsTr("Bloom: fallback shader active")
         readonly property string compatibilityFallbackMessage: {
             var versionLabel = root.openGlVersionLabel.length
@@ -1106,6 +1214,7 @@ Item {
         property string compilationErrorLog: ""
         property string requirementFallbackLog: ""
         property bool fallbackForcedByCompatibility: false
+        property bool persistentFailure: false
         readonly property string fallbackMessage: qsTr("SSAO: fallback shader active")
         readonly property string compatibilityFallbackMessage: {
             var versionLabel = root.openGlVersionLabel.length
@@ -1244,6 +1353,7 @@ Item {
         property string compilationErrorLog: ""
         property string requirementFallbackLog: ""
         property bool fallbackForcedByCompatibility: false
+        property bool persistentFailure: false
         readonly property string fallbackMessage: qsTr("Depth of Field: fallback shader active")
         readonly property string compatibilityFallbackMessage: {
             var versionLabel = root.openGlVersionLabel.length
@@ -1375,6 +1485,7 @@ Item {
         property string compilationErrorLog: ""
         property string requirementFallbackLog: ""
         property bool fallbackForcedByCompatibility: false
+        property bool persistentFailure: false
         readonly property string fallbackMessage: qsTr("Motion Blur: fallback shader active")
         readonly property string compatibilityFallbackMessage: {
             var versionLabel = root.openGlVersionLabel.length
