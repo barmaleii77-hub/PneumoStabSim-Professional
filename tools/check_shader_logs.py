@@ -12,29 +12,44 @@ from typing import Iterable
 
 ERROR_PATTERN = re.compile(r"\b(error|fatal|fail(?:ed)?)\b", re.IGNORECASE)
 WARNING_PATTERN = re.compile(r"\b(warn(?:ing)?)\b", re.IGNORECASE)
+FALLBACK_PATTERN = re.compile(r"\bfallback\b", re.IGNORECASE)
 
 
 def _parse_lines(
     lines: Iterable[str],
-) -> tuple[list[dict[str, object]], list[dict[str, object]]]:
+) -> tuple[
+    list[dict[str, object]],
+    list[dict[str, object]],
+    list[dict[str, object]],
+]:
     errors: list[dict[str, object]] = []
     warnings: list[dict[str, object]] = []
+    fallback: list[dict[str, object]] = []
     for idx, raw in enumerate(lines, start=1):
         text = raw.strip()
         if not text:
             continue
+
         if ERROR_PATTERN.search(text):
             errors.append({"line": idx, "message": text})
-        elif WARNING_PATTERN.search(text):
+
+        if WARNING_PATTERN.search(text):
             warnings.append({"line": idx, "message": text})
-    return errors, warnings
+
+        if FALLBACK_PATTERN.search(text):
+            fallback.append({"line": idx, "message": text})
+
+    return errors, warnings, fallback
 
 
 def analyse_shader_log(path: Path) -> dict[str, object]:
     """Return a structured summary for an individual shader log."""
 
     content = path.read_text(encoding="utf-8", errors="replace")
-    errors, warnings = _parse_lines(content.splitlines())
+    errors, warnings, fallback_events = _parse_lines(content.splitlines())
+    is_fallback_log = "fallback" in path.name.lower()
+    if is_fallback_log and not fallback_events:
+        fallback_events.append({"line": 0, "message": "filename indicates fallback shader"})
     return {
         "source": str(path),
         "generated_at": datetime.now(UTC)
@@ -42,8 +57,11 @@ def analyse_shader_log(path: Path) -> dict[str, object]:
         .replace("+00:00", "Z"),
         "error_count": len(errors),
         "warning_count": len(warnings),
+        "fallback_count": len(fallback_events),
         "errors": errors,
         "warnings": warnings,
+        "fallbackEvents": fallback_events,
+        "isFallbackLog": is_fallback_log,
     }
 
 
@@ -95,6 +113,16 @@ def main() -> None:
         default=None,
         help="Optional JSON report path (defaults to reports/tests/shader_logs_summary.json)",
     )
+    parser.add_argument(
+        "--fail-on-warnings",
+        action="store_true",
+        help="Exit with status 1 if any warnings are detected in the logs.",
+    )
+    parser.add_argument(
+        "--expect-fallback",
+        action="store_true",
+        help="Fail the check if no fallback shader logs or events are found.",
+    )
     args = parser.parse_args()
 
     path: Path = args.path
@@ -108,12 +136,37 @@ def main() -> None:
 
     total_errors = sum(item["error_count"] for item in summary)
     total_warnings = sum(item["warning_count"] for item in summary)
+    total_fallback_logs = sum(1 for item in summary if item.get("isFallbackLog"))
+    total_fallback_events = sum(item.get("fallback_count", 0) for item in summary)
+
     print(
-        f"Analysed {len(summary)} shader log(s): {total_errors} error(s), {total_warnings} warning(s) → {output}"
+        "Analysed {count} shader log(s): {errors} error(s), {warnings} warning(s), "
+        "{fallback_events} fallback event(s) across {fallback_logs} fallback log(s) → {output}".format(
+            count=len(summary),
+            errors=total_errors,
+            warnings=total_warnings,
+            fallback_events=total_fallback_events,
+            fallback_logs=total_fallback_logs,
+            output=output,
+        )
     )
 
+    exit_code = 0
     if total_errors > 0:
-        sys.exit(1)
+        exit_code = 1
+    elif args.fail_on_warnings and total_warnings > 0:
+        exit_code = 1
+    elif args.expect_fallback and total_fallback_logs == 0:
+        print("No fallback shader logs were produced.", file=sys.stderr)
+        exit_code = 1
+    elif args.expect_fallback and total_fallback_events == 0:
+        print(
+            "Fallback shader logs detected but no fallback events were recorded.",
+            file=sys.stderr,
+        )
+        exit_code = 1
+
+    sys.exit(exit_code)
 
 
 if __name__ == "__main__":

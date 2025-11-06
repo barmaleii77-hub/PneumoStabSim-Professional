@@ -3,6 +3,11 @@ set -euo pipefail
 
 export PATH="${QT_HOME:-/opt/Qt/current/gcc_64}/bin:${PATH}"
 export PYTHONUNBUFFERED=1
+export QT_QPA_PLATFORM="${QT_QPA_PLATFORM:-offscreen}"
+export QT_QUICK_BACKEND="${QT_QUICK_BACKEND:-software}"
+export LIBGL_ALWAYS_SOFTWARE="${LIBGL_ALWAYS_SOFTWARE:-1}"
+export MESA_GL_VERSION_OVERRIDE="${MESA_GL_VERSION_OVERRIDE:-4.1}"
+export MESA_GLSL_VERSION_OVERRIDE="${MESA_GLSL_VERSION_OVERRIDE:-410}"
 
 echo "== Lint =="
 ruff check .
@@ -17,6 +22,12 @@ fi
 
 echo "== Shader sanity =="
 python /usr/local/bin/shader_sanity.py
+
+echo "== Shader validation =="
+python tools/validate_shaders.py
+
+echo "== Shader log audit =="
+python tools/check_shader_logs.py reports/shaders --recursive --fail-on-warnings --expect-fallback
 
 echo "== PyTest =="
 /usr/local/bin/xvfb_wrapper.sh pytest -q -n auto --maxfail=1 --disable-warnings --cov=src || true

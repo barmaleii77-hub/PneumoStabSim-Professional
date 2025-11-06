@@ -15,6 +15,8 @@ uv-first environment strategy captured in the renovation master plan.
 | uv | Latest | Installed automatically by `scripts/bootstrap_uv.py`. |
 | Qt runtime | 6.10 | Provisioned via `tools/setup_qt.py` and the `activate_environment.*` scripts. |
 
+> **Linux-only dependency note**: установите системные пакеты Mesa software GL (`xvfb`, `xauth`, `dbus-x11`, `mesa-utils`, `mesa-utils-extra`, `libosmesa6(-dev)`, `libglu1-mesa(-dev)`, `libegl1-mesa(-dev)`, `libgles2-mesa(-dev)`, `libgbm1`, `libdrm2`, `libxcb-*`, `libvulkan1`, `mesa-vulkan-drivers`) чтобы локальная среда совпадала с CI.
+
 ### Step-by-step onboarding
 
 1. **Clone the repository**
@@ -52,12 +54,16 @@ uv-first environment strategy captured in the renovation master plan.
 6. **Run the quality gate** – executes Ruff, mypy, pytest, and qmllint via the
    helper runner and writes consolidated logs (`ruff_format.log`, `ruff_check.log`,
    `mypy.log`, `pytest.log`, `qmllint.log`, and `verify_status.json`) to
-   `reports/quality/`.
+   `reports/quality/`. В состав команды входит `make monitor-shader-logs`,
+   которая анализирует `reports/shaders/*.log` и собирает сводку в
+   `reports/tests/shader_logs_summary.json`.
    ```bash
    make check
    ```
    На Linux используйте `bash scripts/xvfb_wrapper.sh make check`, чтобы Qt Quick 3D
    и QtCharts работали в виртуальном дисплее, аналогично CI.
+   После успешного прогона проверьте `reports/tests/shader_logs_summary.json` — там
+   перечислены предупреждения Qt Shader Baker и найденные fallback-шейдеры.
    To capture an extended launch trace (mirroring CI), run the autonomous
    wrapper. It persists a timestamped Markdown log and JSON status record that
    can be attached to issues or inspected after failures.
