@@ -1114,7 +1114,11 @@ Pane {
                                 var numeric = Number(text)
                                 return Number.isFinite(numeric) ? Math.round(numeric * valueScale) : value
                             }
-                            onValueModified: if (!root._updatingFromPython) _emitPneumaticChange("diagonal_coupling_dia", value / valueScale)
+                            onValueModified: {
+                                if (!root._updatingFromPython) {
+                                    _emitPneumaticChange("diagonal_coupling_dia", value / valueScale)
+                                }
+                            }
                         }
 
                         Label {
