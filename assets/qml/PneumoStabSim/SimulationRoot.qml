@@ -54,13 +54,16 @@ signal animationToggled(bool running)
 
     Component.onCompleted: {
         const hasBridge = sceneBridge !== null && sceneBridge !== undefined
+        const hasWindow = typeof window !== "undefined" && window
+        const windowIdentifier = hasWindow && typeof window.objectName === "string" && window.objectName.length > 0
+                ? window.objectName
+                : "<anonymous>"
+        const windowWarningAPI = hasWindow && typeof window.registerShaderWarning === "function"
         console.log("[SimulationRoot] Component completed; sceneBridge:", hasBridge ? "available" : "missing")
-        if (typeof window !== "undefined" && window) {
-            const identifier = typeof window.objectName === "string" && window.objectName.length > 0 ? window.objectName : "<anonymous>"
-            console.log("[SimulationRoot] Window context ready:", identifier)
-        } else {
+        console.log("[SimulationRoot] Window context:", hasWindow ? windowIdentifier : "<missing>")
+        console.log("[SimulationRoot] Window.registerShaderWarning available:", windowWarningAPI)
+        if (!hasWindow)
             console.warn("[SimulationRoot] Window context missing; shader warnings will stay local")
-        }
         _applyBridgeSnapshot(sceneBridge)
     }
 
@@ -100,11 +103,21 @@ signal animationToggled(bool running)
 
         forwardShaderDiagnostics("shader_warning", normalizedId, normalizedMessage)
 
-        if (!sceneBridge)
-            return
-
         var bridgeId = effectId !== undefined && effectId !== null ? effectId : normalizedId
         var bridgeMessage = message !== undefined && message !== null ? message : normalizedMessage
+
+        var hostWindow = diagnosticsWindow()
+        if (hostWindow && typeof hostWindow.registerShaderWarning === "function") {
+            try {
+                hostWindow.registerShaderWarning(bridgeId, bridgeMessage)
+                return
+            } catch (error) {
+                console.debug("[SimulationRoot] window.registerShaderWarning failed", error)
+            }
+        }
+
+        if (!sceneBridge)
+            return
 
         try {
             if (typeof sceneBridge.registerShaderWarning === "function")
@@ -119,10 +132,20 @@ signal animationToggled(bool running)
 
         forwardShaderDiagnostics("shader_warning_cleared", normalizedId, "")
 
+        var bridgeId = effectId !== undefined && effectId !== null ? effectId : normalizedId
+
+        var hostWindow = diagnosticsWindow()
+        if (hostWindow && typeof hostWindow.clearShaderWarning === "function") {
+            try {
+                hostWindow.clearShaderWarning(bridgeId)
+                return
+            } catch (error) {
+                console.debug("[SimulationRoot] window.clearShaderWarning failed", error)
+            }
+        }
+
         if (!sceneBridge)
             return
-
-        var bridgeId = effectId !== undefined && effectId !== null ? effectId : normalizedId
 
         try {
             if (typeof sceneBridge.clearShaderWarning === "function")
