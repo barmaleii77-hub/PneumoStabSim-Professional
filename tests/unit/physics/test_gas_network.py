@@ -8,7 +8,7 @@ from typing import Dict
 import pytest
 
 from src.common.units import PA_ATM, R_AIR, T_AMBIENT, GAMMA_AIR
-from src.pneumo.enums import Line, ReceiverVolumeMode, ThermoMode
+from src.pneumo.enums import Line, ThermoMode
 from src.pneumo.gas_state import p_from_mTV
 from src.pneumo.thermo import adiabatic_constant_pV, adiabatic_p, PolytropicParameters
 from tests.helpers.pneumo_network import build_default_system_and_network
