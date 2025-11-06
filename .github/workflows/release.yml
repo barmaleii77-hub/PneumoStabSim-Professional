@@ -31,6 +31,7 @@ jobs:
           python-version: ${{ env.PYTHON_VERSION }}
 
       - name: Import signing key
+        if: secrets.GPG_PRIVATE_KEY != '' && secrets.GPG_PASSPHRASE != ''
         id: import_gpg
         uses: crazy-max/ghaction-import-gpg@v6
         with:
@@ -45,21 +46,21 @@ jobs:
         shell: bash
 
       - name: Sign packages (Unix)
-        if: runner.os != 'Windows'
+        if: runner.os != 'Windows' && secrets.GPG_PRIVATE_KEY != '' && secrets.GPG_PASSPHRASE != ''
         run: |
           cd dist/packages
-          for artifact in *.zip *.tar.gz; do
+          for artifact in *.zip *.tar.gz *.whl; do
             [ -e "$artifact" ] || continue
             gpg --batch --yes --detach-sign --armor --output "$artifact.asc" "$artifact"
           done
         shell: bash
 
       - name: Sign packages (Windows)
-        if: runner.os == 'Windows'
+        if: runner.os == 'Windows' && secrets.GPG_PRIVATE_KEY != '' && secrets.GPG_PASSPHRASE != ''
         shell: pwsh
         run: |
           Set-Location dist/packages
-          Get-ChildItem -Include *.zip,*.tar.gz -File | ForEach-Object {
+          Get-ChildItem -Include *.zip,*.tar.gz,*.whl -File | ForEach-Object {
             $output = "$($_.FullName).asc"
             & gpg --batch --yes --detach-sign --armor --output $output $_.FullName
           }
@@ -91,7 +92,7 @@ jobs:
           }
 
       - name: Verify signatures (Unix)
-        if: runner.os != 'Windows'
+        if: runner.os != 'Windows' && secrets.GPG_PRIVATE_KEY != '' && secrets.GPG_PASSPHRASE != ''
         run: |
           cd dist/packages
           for sig in *.asc; do
@@ -101,7 +102,7 @@ jobs:
         shell: bash
 
       - name: Verify signatures (Windows)
-        if: runner.os == 'Windows'
+        if: runner.os == 'Windows' && secrets.GPG_PRIVATE_KEY != '' && secrets.GPG_PASSPHRASE != ''
         shell: pwsh
         run: |
           Set-Location dist/packages
@@ -117,6 +118,7 @@ jobs:
           path: |
             dist/packages/*.zip
             dist/packages/*.tar.gz
+            dist/packages/*.whl
             dist/packages/*.sha256
             dist/packages/*.json
             dist/packages/*.asc
@@ -161,6 +163,7 @@ jobs:
           files: |
             dist/packages/**/*.zip
             dist/packages/**/*.tar.gz
+            dist/packages/**/*.whl
             dist/packages/**/*.sha256
             dist/packages/**/*.json
             dist/packages/**/*.asc
