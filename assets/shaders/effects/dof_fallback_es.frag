@@ -7,7 +7,7 @@
 #ifdef GL_ES
 precision highp float;
 precision highp int;
-precision mediump sampler2D;
+precision highp sampler2D;
 #endif
 
 #ifdef QSB_ADD_BINDINGS
