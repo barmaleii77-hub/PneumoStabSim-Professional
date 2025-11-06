@@ -117,6 +117,7 @@ def get_geometry_visual_constants(
     geometry = get_geometry_constants(custom_path=custom_path)
     return _require_mapping_key(geometry, "visualization", "constants.geometry")
 
+
 def get_geometry_ui_ranges(
     *,
     custom_path: str | None = None,
@@ -136,13 +137,14 @@ def get_geometry_presets(
     geometry = get_geometry_constants(custom_path=custom_path)
     presets = geometry.get("presets")
     if presets is None:
-        raise KeyError("Missing 'constants.geometry.presets' section in app_settings.json")
+        raise KeyError(
+            "Missing 'constants.geometry.presets' section in app_settings.json"
+        )
     if not isinstance(presets, list):
         raise TypeError(
             "Expected 'constants.geometry.presets' to be a list in app_settings.json"
         )
     return presets
-
 
 
 def get_geometry_initial_state_constants(

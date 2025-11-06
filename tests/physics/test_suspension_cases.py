@@ -18,7 +18,9 @@ def test_standard_balance_case(physics_case_loader):
     for outcome in results:
         if isinstance(outcome.actual, dict):
             for key, value in outcome.expected.items():
-                assert outcome.actual[key] == pytest.approx(float(value), abs=outcome.tolerance)
+                assert outcome.actual[key] == pytest.approx(
+                    float(value), abs=outcome.tolerance
+                )
         else:
             assert outcome.actual == pytest.approx(
                 float(outcome.expected), abs=outcome.tolerance
@@ -29,5 +31,7 @@ def test_standard_balance_case(physics_case_loader):
     tau_x = evaluation["moments"]["tau_x"]
     tau_z = evaluation["moments"]["tau_z"]
 
-    is_valid, reason = forces.validate_force_calculation(vertical_forces, (tau_x, tau_z))
+    is_valid, reason = forces.validate_force_calculation(
+        vertical_forces, (tau_x, tau_z)
+    )
     assert is_valid, reason

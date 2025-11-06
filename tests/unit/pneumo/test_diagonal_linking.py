@@ -8,7 +8,12 @@ import pytest
 
 from src.common.units import PA_ATM, R_AIR, T_AMBIENT
 from src.pneumo.enums import Line, Port, ReceiverVolumeMode, ThermoMode, Wheel
-from src.pneumo.gas_state import LineGasState, TankGasState, create_line_gas_state, p_from_mTV
+from src.pneumo.gas_state import (
+    LineGasState,
+    TankGasState,
+    create_line_gas_state,
+    p_from_mTV,
+)
 from src.pneumo.line import PneumoLine
 from src.pneumo.network import GasNetwork
 from src.pneumo.receiver import ReceiverSpec, ReceiverState
@@ -31,7 +36,9 @@ class _StubCylinder:
 
 
 def _make_valve() -> CheckValve:
-    return CheckValve(delta_open=10.0, d_eq=0.01, p_upstream=PA_ATM, p_downstream=PA_ATM)
+    return CheckValve(
+        delta_open=10.0, d_eq=0.01, p_upstream=PA_ATM, p_downstream=PA_ATM
+    )
 
 
 def _build_system(initial_volumes: dict[Line, tuple[float, float]]) -> PneumaticSystem:
@@ -106,8 +113,16 @@ def test_diagonal_line_total_volume_matches_sum() -> None:
     volumes = system.get_line_volumes()
 
     assert volumes[Line.A1]["endpoints"] == [
-        {"wheel": Wheel.LP.value, "port": Port.ROD.value, "volume": pytest.approx(0.31)},
-        {"wheel": Wheel.PZ.value, "port": Port.HEAD.value, "volume": pytest.approx(0.53)},
+        {
+            "wheel": Wheel.LP.value,
+            "port": Port.ROD.value,
+            "volume": pytest.approx(0.31),
+        },
+        {
+            "wheel": Wheel.PZ.value,
+            "port": Port.HEAD.value,
+            "volume": pytest.approx(0.53),
+        },
     ]
     assert volumes[Line.A1]["total_volume"] == pytest.approx(0.31 + 0.53)
     assert volumes[Line.B2]["total_volume"] == pytest.approx(0.41 + 0.29)

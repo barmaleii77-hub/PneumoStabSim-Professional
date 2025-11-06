@@ -45,7 +45,9 @@ def test_volume_update_modes(
     temperature constant.
     """
 
-    state = legacy_gas_state_factory(pressure=150_000.0, volume=0.01, temperature=293.15)
+    state = legacy_gas_state_factory(
+        pressure=150_000.0, volume=0.01, temperature=293.15
+    )
     state.update_volume(target_volume, mode=mode)
 
     assert math.isclose(state.pressure, expected_pressure, rel_tol=1e-9)

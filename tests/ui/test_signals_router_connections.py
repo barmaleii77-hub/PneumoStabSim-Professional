@@ -47,8 +47,10 @@ def test_simulation_signals_use_queued_connection(fake_window: Any) -> None:
 
     SignalsRouter._connect_simulation_signals(fake_window)
 
-    for signal in (fake_window.simulation_manager.state_bus.state_ready,
-                   fake_window.simulation_manager.state_bus.physics_error):
+    for signal in (
+        fake_window.simulation_manager.state_bus.state_ready,
+        fake_window.simulation_manager.state_bus.physics_error,
+    ):
         assert signal.calls, "Signal was not connected"
         for handler, connection_type in signal.calls:
             assert callable(handler)

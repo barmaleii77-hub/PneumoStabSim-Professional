@@ -39,7 +39,9 @@ def test_baseline_image_comparison(baseline_images_dir: Path, tmp_path):
     candidate = Image.open(candidate_path)
 
     difference = ImageChops.difference(reference, candidate)
-    assert difference.getbbox() is None, f"Изображения отличаются в области: {difference.getbbox()}"
+    assert difference.getbbox() is None, (
+        f"Изображения отличаются в области: {difference.getbbox()}"
+    )
 
     altered_path = tmp_path / "render_changed.png"
     _create_render(altered_path, (110, 150, 190))

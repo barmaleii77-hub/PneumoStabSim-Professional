@@ -70,25 +70,42 @@ def test_backup_round_trip(sample_project: Path) -> None:
 
     restore_report = service.restore_backup(report.archive_path)
     assert restore_report.skipped == ()
-    assert json.loads((sample_project / "config/app_settings.json").read_text(encoding="utf-8"))["graphics"]["quality"] == "high"
-    assert (sample_project / "reports/sessions/20250101-000000/config_snapshot.json").exists()
+    assert (
+        json.loads(
+            (sample_project / "config/app_settings.json").read_text(encoding="utf-8")
+        )["graphics"]["quality"]
+        == "high"
+    )
+    assert (
+        sample_project / "reports/sessions/20250101-000000/config_snapshot.json"
+    ).exists()
 
 
 def test_restore_respects_overwrite_flag(sample_project: Path) -> None:
     service = BackupService(root=sample_project, backup_dir=sample_project / "backups")
     report = service.create_backup(label="overwrite")
 
-    original_contents = (sample_project / "config/app_settings.json").read_text(encoding="utf-8")
+    original_contents = (sample_project / "config/app_settings.json").read_text(
+        encoding="utf-8"
+    )
     modified_contents = original_contents.replace("high", "low")
-    (sample_project / "config/app_settings.json").write_text(modified_contents, encoding="utf-8")
+    (sample_project / "config/app_settings.json").write_text(
+        modified_contents, encoding="utf-8"
+    )
 
     restore_report = service.restore_backup(report.archive_path, overwrite=False)
     assert Path("config/app_settings.json") in restore_report.skipped
-    assert (sample_project / "config/app_settings.json").read_text(encoding="utf-8") == modified_contents
+    assert (sample_project / "config/app_settings.json").read_text(
+        encoding="utf-8"
+    ) == modified_contents
 
-    restore_report_overwrite = service.restore_backup(report.archive_path, overwrite=True)
+    restore_report_overwrite = service.restore_backup(
+        report.archive_path, overwrite=True
+    )
     assert Path("config/app_settings.json") in restore_report_overwrite.restored
-    assert (sample_project / "config/app_settings.json").read_text(encoding="utf-8") == original_contents
+    assert (sample_project / "config/app_settings.json").read_text(
+        encoding="utf-8"
+    ) == original_contents
 
 
 def test_backup_reports_missing_sources(tmp_path: Path) -> None:

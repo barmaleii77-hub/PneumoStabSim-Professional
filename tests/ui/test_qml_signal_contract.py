@@ -56,9 +56,7 @@ def test_update_methods_have_matching_qml_proxies(
 
     update_methods = qml_bridge_metadata.get("update_methods", {})
     flat_methods = {
-        str(method)
-        for methods in update_methods.values()
-        for method in (methods or [])
+        str(method) for methods in update_methods.values() for method in (methods or [])
     }
 
     proxy_methods = set(_parse_proxy_methods(main_qml_text))
@@ -101,16 +99,15 @@ def test_qml_signal_handlers_exist_in_main_window() -> None:
 
     metadata = Path("config/qml_bridge.yaml").read_text(encoding="utf-8")
     raw = yaml.safe_load(metadata) or {}
-    handlers = {
-        str(entry.get("handler"))
-        for entry in raw.get("qml_signals", []) or []
-    }
+    handlers = {str(entry.get("handler")) for entry in raw.get("qml_signals", []) or []}
 
     source = Path("src/ui/main_window_pkg/main_window_refactored.py").read_text(
         encoding="utf-8"
     )
 
-    missing = sorted({handler for handler in handlers if f"def {handler}" not in source})
+    missing = sorted(
+        {handler for handler in handlers if f"def {handler}" not in source}
+    )
     assert not missing, f"Handlers missing in MainWindow: {missing}"
 
 

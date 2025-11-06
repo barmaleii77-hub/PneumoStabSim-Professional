@@ -248,7 +248,9 @@ except Exception as e:
             if missing_files:
                 self.logger.error(f"Missing files: {missing_files}")
             if unexpected_legacy:
-                self.logger.error("Unexpected legacy artefacts detected: %s", unexpected_legacy)
+                self.logger.error(
+                    "Unexpected legacy artefacts detected: %s", unexpected_legacy
+                )
             self.results["summary"]["failed"] += 1
             return False
 

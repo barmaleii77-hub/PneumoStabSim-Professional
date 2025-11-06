@@ -224,10 +224,7 @@ def test_validate_settings_invalid_bool(
         runner._validate_settings_file()
 
     message = str(exc.value)
-    assert (
-        "is not of type 'boolean'" in message
-        or "логическим значением" in message
-    )
+    assert "is not of type 'boolean'" in message or "логическим значением" in message
     last_error = _last_error(stub_qmessagebox)
     assert "master_isolation_open" in last_error
 

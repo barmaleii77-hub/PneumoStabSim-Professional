@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """Bootstrap installer for project dependencies."""
+
 from __future__ import annotations
 
 import importlib.util
@@ -60,7 +61,9 @@ def install_optional_dev() -> None:
 def install_pyside() -> None:
     candidates = [
         version.strip()
-        for version in os.environ.get("PYSIDE_VERSIONS", "6.10.0,6.9.0,6.8.2").split(",")
+        for version in os.environ.get("PYSIDE_VERSIONS", "6.10.0,6.9.0,6.8.2").split(
+            ","
+        )
         if version.strip()
     ]
     for version in candidates:

@@ -16,7 +16,9 @@ else:  # pragma: no cover - executed only when Qt bindings are present
 QML_PATH = Path("assets/qml/effects/SceneEnvironmentController.qml")
 
 
-@pytest.mark.skipif(not PYSIDE_AVAILABLE, reason="PySide6 is required for QML integration tests")
+@pytest.mark.skipif(
+    not PYSIDE_AVAILABLE, reason="PySide6 is required for QML integration tests"
+)
 def test_scene_environment_controller_applies_initial_defaults(qapp, settings_manager):
     try:
         from src.ui.main_window_pkg.ui_setup import UISetup
@@ -38,9 +40,7 @@ def test_scene_environment_controller_applies_initial_defaults(qapp, settings_ma
         "initialDiagnosticsSettings", payload.get("diagnostics", {})
     )
 
-    component = QQmlComponent(
-        engine, QUrl.fromLocalFile(str(QML_PATH.resolve()))
-    )
+    component = QQmlComponent(engine, QUrl.fromLocalFile(str(QML_PATH.resolve())))
     assert component.isReady(), str(component.errors())
 
     root = component.create()
@@ -52,7 +52,9 @@ def test_scene_environment_controller_applies_initial_defaults(qapp, settings_ma
             "background_mode", "skybox"
         )
         assert bool(root.property("iblLightingEnabled")) == bool(
-            environment_defaults.get("ibl_lighting_enabled", environment_defaults.get("ibl_enabled", False))
+            environment_defaults.get(
+                "ibl_lighting_enabled", environment_defaults.get("ibl_enabled", False)
+            )
         )
         assert bool(root.property("iblMasterEnabled")) == bool(
             environment_defaults.get(
@@ -81,9 +83,7 @@ def test_scene_environment_controller_applies_initial_defaults(qapp, settings_ma
 
         # Lighting payload is exposed through contextLightingDefaults.
         lighting_defaults = root.property("contextLightingDefaults")
-        expected_lighting = (
-            payload["scene"].get("graphics", {}).get("lighting", {})
-        )
+        expected_lighting = payload["scene"].get("graphics", {}).get("lighting", {})
         assert lighting_defaults is not None
         assert expected_lighting
         assert lighting_defaults.get("key", {}).get("brightness") == pytest.approx(
@@ -94,9 +94,7 @@ def test_scene_environment_controller_applies_initial_defaults(qapp, settings_ma
         materials_defaults = root.property("contextMaterialsDefaults")
         assert materials_defaults == payload["materials"]
 
-        quality_defaults = (
-            payload["scene"].get("graphics", {}).get("quality", {})
-        )
+        quality_defaults = payload["scene"].get("graphics", {}).get("quality", {})
         if "taa_strength" in quality_defaults:
             assert root.property("taaStrength") == pytest.approx(
                 quality_defaults["taa_strength"], rel=1e-6
@@ -106,9 +104,7 @@ def test_scene_environment_controller_applies_initial_defaults(qapp, settings_ma
                 quality_defaults["taa_enabled"]
             )
 
-        effects_defaults = (
-            payload["scene"].get("graphics", {}).get("effects", {})
-        )
+        effects_defaults = payload["scene"].get("graphics", {}).get("effects", {})
         if "tonemap_mode" in effects_defaults:
             assert root.property("tonemapModeName") == effects_defaults["tonemap_mode"]
         if "tonemap_enabled" in effects_defaults:

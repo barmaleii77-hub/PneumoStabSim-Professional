@@ -23,7 +23,9 @@ def test_main_parses_compact_report_history_flag(monkeypatch) -> None:
     def fake_sanitize_repository(**kwargs):  # type: ignore[no-untyped-def]
         captured.update(kwargs)
 
-    monkeypatch.setattr(project_sanitize, "sanitize_repository", fake_sanitize_repository)
+    monkeypatch.setattr(
+        project_sanitize, "sanitize_repository", fake_sanitize_repository
+    )
 
     project_sanitize.main(["--report-history5"])
 

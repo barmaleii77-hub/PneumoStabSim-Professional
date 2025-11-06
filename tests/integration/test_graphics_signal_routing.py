@@ -80,7 +80,8 @@ class _StubWindow:
 
 
 def test_signal_router_dispatches_direct_updates(
-    stub_graphics_logger: _StubGraphicsLogger, qml_bridge_spy: List[Tuple[str, Dict[str, Any]]]
+    stub_graphics_logger: _StubGraphicsLogger,
+    qml_bridge_spy: List[Tuple[str, Dict[str, Any]]],
 ) -> None:
     """Applying a mix of graphics changes should map to direct QML calls."""
 

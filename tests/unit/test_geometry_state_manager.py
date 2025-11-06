@@ -64,7 +64,9 @@ def test_load_state_uses_persisted_geometry(tmp_path: Path) -> None:
     target_dir = tmp_path / "config"
     target_dir.mkdir(parents=True, exist_ok=True)
     target_file = target_dir / "app_settings.json"
-    target_file.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
+    target_file.write_text(
+        json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8"
+    )
 
     settings = SettingsManager(settings_file=target_file)
     manager = GeometryStateManager(settings)
@@ -75,13 +77,17 @@ def test_load_state_uses_persisted_geometry(tmp_path: Path) -> None:
 def test_load_state_falls_back_to_defaults_snapshot(tmp_path: Path) -> None:
     source = Path("config/app_settings.json")
     data = json.loads(source.read_text(encoding="utf-8"))
-    data.setdefault("defaults_snapshot", {}).setdefault("geometry", {})["wheelbase"] = 2.9
+    data.setdefault("defaults_snapshot", {}).setdefault("geometry", {})["wheelbase"] = (
+        2.9
+    )
     data.setdefault("current", {}).pop("geometry", None)
 
     target_dir = tmp_path / "config"
     target_dir.mkdir(parents=True, exist_ok=True)
     target_file = target_dir / "app_settings.json"
-    target_file.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
+    target_file.write_text(
+        json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8"
+    )
 
     settings = SettingsManager(settings_file=target_file)
     manager = GeometryStateManager(settings)

@@ -39,15 +39,33 @@ def _default_cylinder_geom() -> CylinderGeom:
     )
 
 
-def _build_line_config(delta: float = 5_000.0, diameter: float = 0.008) -> dict[Line, dict]:
+def _build_line_config(
+    delta: float = 5_000.0, diameter: float = 0.008
+) -> dict[Line, dict]:
     def _valve(kind: CheckValveKind) -> CheckValve:
         return CheckValve(kind=kind, delta_open=delta, d_eq=diameter)
 
     return {
-        Line.A1: {"cv_atmo": _valve(CheckValveKind.ATMO_TO_LINE), "cv_tank": _valve(CheckValveKind.LINE_TO_TANK), "p_line": PA_ATM},
-        Line.B1: {"cv_atmo": _valve(CheckValveKind.ATMO_TO_LINE), "cv_tank": _valve(CheckValveKind.LINE_TO_TANK), "p_line": PA_ATM},
-        Line.A2: {"cv_atmo": _valve(CheckValveKind.ATMO_TO_LINE), "cv_tank": _valve(CheckValveKind.LINE_TO_TANK), "p_line": PA_ATM},
-        Line.B2: {"cv_atmo": _valve(CheckValveKind.ATMO_TO_LINE), "cv_tank": _valve(CheckValveKind.LINE_TO_TANK), "p_line": PA_ATM},
+        Line.A1: {
+            "cv_atmo": _valve(CheckValveKind.ATMO_TO_LINE),
+            "cv_tank": _valve(CheckValveKind.LINE_TO_TANK),
+            "p_line": PA_ATM,
+        },
+        Line.B1: {
+            "cv_atmo": _valve(CheckValveKind.ATMO_TO_LINE),
+            "cv_tank": _valve(CheckValveKind.LINE_TO_TANK),
+            "p_line": PA_ATM,
+        },
+        Line.A2: {
+            "cv_atmo": _valve(CheckValveKind.ATMO_TO_LINE),
+            "cv_tank": _valve(CheckValveKind.LINE_TO_TANK),
+            "p_line": PA_ATM,
+        },
+        Line.B2: {
+            "cv_atmo": _valve(CheckValveKind.ATMO_TO_LINE),
+            "cv_tank": _valve(CheckValveKind.LINE_TO_TANK),
+            "p_line": PA_ATM,
+        },
     }
 
 
@@ -185,4 +203,3 @@ def test_pneumatic_system_invariants():
         }
     )
     assert system.cylinders[Wheel.LP].x != system.cylinders[Wheel.PP].x
-

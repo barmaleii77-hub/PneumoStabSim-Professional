@@ -514,14 +514,10 @@ class ErrorLogAnalyzer:
         """Приводит запись к универсальному виду для отображения."""
 
         entry: Dict[str, Any] = {
-            "timestamp": raw.get("timestamp")
-            or raw.get("time")
-            or raw.get("ts"),
+            "timestamp": raw.get("timestamp") or raw.get("time") or raw.get("ts"),
             "type": None,
             "message": None,
-            "source": raw.get("logger")
-            or raw.get("component")
-            or raw.get("module"),
+            "source": raw.get("logger") or raw.get("component") or raw.get("module"),
             "context": raw.get("context") or raw.get("details"),
             "stack": None,
             "raw": raw,
@@ -535,21 +531,14 @@ class ErrorLogAnalyzer:
                 or error_block.get("name")
                 or error_block.get("exception_type")
             )
-            entry["message"] = error_block.get("message") or error_block.get(
-                "value"
-            )
-            entry["stack"] = error_block.get("stack") or error_block.get(
-                "traceback"
-            )
+            entry["message"] = error_block.get("message") or error_block.get("value")
+            entry["stack"] = error_block.get("stack") or error_block.get("traceback")
         elif isinstance(error_block, str):
             entry["message"] = error_block
 
         if not entry["type"]:
             entry["type"] = (
-                raw.get("type")
-                or raw.get("error_type")
-                or raw.get("level")
-                or "Ошибка"
+                raw.get("type") or raw.get("error_type") or raw.get("level") or "Ошибка"
             )
 
         if not entry["message"]:
@@ -592,6 +581,7 @@ class ErrorLogAnalyzer:
         return sorted(
             self.stats["by_source"].items(), key=lambda item: item[1], reverse=True
         )[:limit]
+
 
 # ============================================================================
 # ГЛАВНЫЙ АНАЛИЗАТОР
@@ -812,9 +802,7 @@ class LogAnalyzer:
 
         self._export_unsynced_graphics_report(analyzer)
 
-    def _export_unsynced_graphics_report(
-        self, analyzer: GraphicsLogAnalyzer
-    ) -> None:
+    def _export_unsynced_graphics_report(self, analyzer: GraphicsLogAnalyzer) -> None:
         """Сохраняет подробный отчёт о несинхронизированных событиях."""
 
         report_root = Path("reports") / "graphics"
@@ -941,17 +929,13 @@ class LogAnalyzer:
         if top_types:
             safe_print("\nПО ТИПАМ:")
             for err_type, count in top_types:
-                safe_print(
-                    f"   {err_type:25} {colored(str(count), Colors.RED):>6}"
-                )
+                safe_print(f"   {err_type:25} {colored(str(count), Colors.RED):>6}")
 
         top_sources = analyzer.get_top_sources()
         if top_sources:
             safe_print("\nИСТОЧНИКИ:")
             for source, count in top_sources:
-                safe_print(
-                    f"   {source:25} {colored(str(count), Colors.CYAN):>6}"
-                )
+                safe_print(f"   {source:25} {colored(str(count), Colors.CYAN):>6}")
 
         recent = analyzer.get_recent()
         if recent:

@@ -50,7 +50,9 @@ class _DummyLogger:
     def __init__(self) -> None:
         self.messages: list[str] = []
 
-    def error(self, message: str, *args, **kwargs) -> None:  # pragma: no cover - formatting not required
+    def error(
+        self, message: str, *args, **kwargs
+    ) -> None:  # pragma: no cover - formatting not required
         self.messages.append(message)
 
 
@@ -161,9 +163,13 @@ def test_run_executes_diagnostics_when_env_requests(
     assert calls == ["called"]
 
 
-def test_check_qml_initialization_logs_engine_errors(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_check_qml_initialization_logs_engine_errors(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     monkeypatch.delenv("PSS_POST_DIAG_TRACE", raising=False)
-    runner = ApplicationRunner(object, lambda *args, **kwargs: None, _DummyQtModule, object)
+    runner = ApplicationRunner(
+        object, lambda *args, **kwargs: None, _DummyQtModule, object
+    )
     logger = _DummyLogger()
     runner.app_logger = logger
 
@@ -181,9 +187,13 @@ def test_check_qml_initialization_logs_engine_errors(monkeypatch: pytest.MonkeyP
     assert "Foo unavailable" in logger.messages[0]
 
 
-def test_check_qml_initialization_detects_missing_status(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_check_qml_initialization_detects_missing_status(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     monkeypatch.delenv("PSS_POST_DIAG_TRACE", raising=False)
-    runner = ApplicationRunner(object, lambda *args, **kwargs: None, _DummyQtModule, object)
+    runner = ApplicationRunner(
+        object, lambda *args, **kwargs: None, _DummyQtModule, object
+    )
     logger = _DummyLogger()
     runner.app_logger = logger
 
@@ -196,9 +206,13 @@ def test_check_qml_initialization_detects_missing_status(monkeypatch: pytest.Mon
     assert any("status()" in message for message in logger.messages)
 
 
-def test_check_qml_initialization_passes_when_ready(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_check_qml_initialization_passes_when_ready(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     monkeypatch.delenv("PSS_POST_DIAG_TRACE", raising=False)
-    runner = ApplicationRunner(object, lambda *args, **kwargs: None, _DummyQtModule, object)
+    runner = ApplicationRunner(
+        object, lambda *args, **kwargs: None, _DummyQtModule, object
+    )
     logger = _DummyLogger()
     runner.app_logger = logger
 

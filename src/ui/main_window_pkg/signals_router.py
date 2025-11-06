@@ -1219,9 +1219,7 @@ class SignalsRouter:
         SignalsRouter._push_animation_panel(window)
 
     @staticmethod
-    def handle_modes_preset_selected(
-        window: MainWindow, preset_id: str
-    ) -> None:
+    def handle_modes_preset_selected(window: MainWindow, preset_id: str) -> None:
         """Apply a preset selected from the QML simulation panel."""
 
         key = (preset_id or "").strip().lower()
@@ -1261,9 +1259,7 @@ class SignalsRouter:
                 bus = window.simulation_manager.state_bus
                 bus.set_thermo_mode.emit(str(thermo_mode))
             except Exception as exc:
-                SignalsRouter.logger.debug(
-                    "Failed to emit thermo mode change: %s", exc
-                )
+                SignalsRouter.logger.debug("Failed to emit thermo mode change: %s", exc)
 
     @staticmethod
     def handle_modes_mode_changed(
@@ -1290,9 +1286,7 @@ class SignalsRouter:
                 bus = window.simulation_manager.state_bus
                 bus.set_thermo_mode.emit(value)
             except Exception as exc:
-                SignalsRouter.logger.debug(
-                    "Failed to emit thermo mode change: %s", exc
-                )
+                SignalsRouter.logger.debug("Failed to emit thermo mode change: %s", exc)
 
     @staticmethod
     def handle_modes_physics_changed(
@@ -1359,7 +1353,9 @@ class SignalsRouter:
             )
 
         if "volume_mode" in payload:
-            pneumatic_updates["volume_mode"] = str(payload.get("volume_mode", "")).upper()
+            pneumatic_updates["volume_mode"] = str(
+                payload.get("volume_mode", "")
+            ).upper()
 
         if not pneumatic_updates:
             return
@@ -1422,9 +1418,7 @@ class SignalsRouter:
                 bus = window.simulation_manager.state_bus
                 bus.set_physics_dt.emit(float(simulation_updates["physics_dt"]))
             except Exception as exc:
-                SignalsRouter.logger.debug(
-                    "Failed to emit physics_dt update: %s", exc
-                )
+                SignalsRouter.logger.debug("Failed to emit physics_dt update: %s", exc)
 
     @staticmethod
     def handle_cylinder_settings_changed(

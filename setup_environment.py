@@ -361,8 +361,7 @@ class EnvironmentSetup:
         apt_get = shutil.which("apt-get")
         if not apt_get:
             self.logger.log(
-                "❌ apt-get не найден. Установите пакеты вручную: "
-                + ", ".join(missing)
+                "❌ apt-get не найден. Установите пакеты вручную: " + ", ".join(missing)
             )
             return False
 
