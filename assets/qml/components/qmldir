@@ -7,3 +7,5 @@ SignalTraceIndicator 1.0 SignalTraceIndicator.qml
 SignalTracePanel 1.0 SignalTracePanel.qml
 DiagnosticsOverlay 1.0 DiagnosticsOverlay.qml
 AnimatedRodMaterial 1.0 AnimatedRodMaterial.qml
+BridgeStateIndicator 1.0 BridgeStateIndicator.qml
+BridgeIndicatorsPanel 1.0 BridgeIndicatorsPanel.qml

@@ -2,6 +2,72 @@
 <!DOCTYPE TS>
 <TS version="2.1" language="ru_RU">
 <context>
+    <name>BridgeIndicatorsPanel</name>
+    <message>
+        <location filename="../qml/components/BridgeIndicatorsPanel.qml" line="65"/>
+        <source>Геометрия</source>
+        <translation>Геометрия</translation>
+    </message>
+    <message>
+        <location filename="../qml/components/BridgeIndicatorsPanel.qml" line="69"/>
+        <source>%1 параметров</source>
+        <translation>%1 параметров</translation>
+    </message>
+    <message>
+        <location filename="../qml/components/BridgeIndicatorsPanel.qml" line="70"/>
+        <source>Ожидание данных от SceneBridge</source>
+        <translation>Ожидание данных от SceneBridge</translation>
+    </message>
+    <message>
+        <location filename="../qml/components/BridgeIndicatorsPanel.qml" line="72"/>
+        <source>Последнее обновление: %1 ключей</source>
+        <translation>Последнее обновление: %1 ключей</translation>
+    </message>
+    <message>
+        <location filename="../qml/components/BridgeIndicatorsPanel.qml" line="73"/>
+        <source>Сигналы ещё не получены</source>
+        <translation>Сигналы ещё не получены</translation>
+    </message>
+    <message>
+        <location filename="../qml/components/BridgeIndicatorsPanel.qml" line="73"/>
+        <source>Bridge недоступен</source>
+        <translation>Bridge недоступен</translation>
+    </message>
+    <message>
+        <location filename="../qml/components/BridgeIndicatorsPanel.qml" line="80"/>
+        <source>Симуляция</source>
+        <translation>Симуляция</translation>
+    </message>
+    <message>
+        <location filename="../qml/components/BridgeIndicatorsPanel.qml" line="84"/>
+        <source>Рычаги: %1 • Поршни: %2</source>
+        <translation>Рычаги: %1 • Поршни: %2</translation>
+    </message>
+    <message>
+        <location filename="../qml/components/BridgeIndicatorsPanel.qml" line="85"/>
+        <source>Нет активного снапшота</source>
+        <translation>Нет активного снапшота</translation>
+    </message>
+    <message>
+        <location filename="../qml/components/BridgeIndicatorsPanel.qml" line="88"/>
+        <source>Ожидание шага</source>
+        <translation>Ожидание шага</translation>
+    </message>
+    <message>
+        <location filename="../qml/components/BridgeIndicatorsPanel.qml" line="93"/>
+        <source>Шаг %1 • Время %2 с</source>
+        <translation>Шаг %1 • Время %2 с</translation>
+    </message>
+</context>
+<context>
+    <name>BridgeStateIndicator</name>
+    <message>
+        <location filename="../qml/components/BridgeStateIndicator.qml" line="10"/>
+        <source>State</source>
+        <translation>Состояние</translation>
+    </message>
+</context>
+<context>
     <name></name>
     <message id="camera.hud.state.on">
         <location filename="../qml/camera/CameraStateHud.qml" line="63"/>
