@@ -346,6 +346,18 @@ class GraphicsSettingsService:
                     f"graphics.{category} must be an object, got {type(payload).__name__}"
                 )
 
+            if category == "effects" and "color_adjustments_active" in payload:
+                payload = dict(payload)
+                alias_value = payload["color_adjustments_active"]
+                if "color_adjustments_enabled" not in payload:
+                    payload["color_adjustments_enabled"] = alias_value
+                    self._logger.debug(
+                        "Normalised color_adjustments_active alias from %s payload",
+                        source,
+                    )
+                if "color_adjustments_active" not in baseline_section:
+                    payload.pop("color_adjustments_active", None)
+
             if category == "materials":
                 alias_candidates = [
                     key for key in payload if key in self.FORBIDDEN_MATERIAL_ALIASES
