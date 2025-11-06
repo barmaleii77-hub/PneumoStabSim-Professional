@@ -1,8 +1,4 @@
 #version 450 core
-#ifndef MAIN
-#define MAIN qt_customMain
-#endif
-
 // Requires GLSL 4.50 core for Qt Quick 3D SPIR-V runtime compatibility.
 
 #ifdef GL_ES
@@ -73,7 +69,7 @@ void motionBlurMain(inout vec4 fragColor)
     fragColor = vec4(color, original.a);
 }
 
-void MAIN()
+void qt_customMain()
 {
     vec4 fragColor = vec4(0.0);
     motionBlurMain(fragColor);
