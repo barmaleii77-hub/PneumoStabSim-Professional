@@ -116,9 +116,11 @@ Item {
     property real vignetteStrengthValue: 0.35
     property real vignetteRadiusValue: 0.5
 
-    property real adjustmentBrightnessValue: 0.0
-    property real adjustmentContrastValue: 0.0
-    property real adjustmentSaturationValue: 0.0
+    property bool colorAdjustmentsActive: true
+    property bool colorAdjustmentsHasOverrides: false
+    property real adjustmentBrightness: 0.0
+    property real adjustmentContrast: 0.0
+    property real adjustmentSaturation: 0.0
 
     SceneEnvironmentController {
         id: environmentDefaults
@@ -203,10 +205,10 @@ Item {
         vignetteStrength: root.vignetteStrengthValue
         vignetteRadius: root.vignetteRadiusValue
 
-        colorAdjustmentsEnabled: true
-        adjustmentBrightness: root.adjustmentBrightnessValue
-        adjustmentContrast: root.adjustmentContrastValue
-        adjustmentSaturation: root.adjustmentSaturationValue
+        colorAdjustmentsEnabled: root.colorAdjustmentsActive
+        adjustmentBrightness: root.adjustmentBrightness
+        adjustmentContrast: root.adjustmentContrast
+        adjustmentSaturation: root.adjustmentSaturation
     }
 
     onPendingPythonUpdatesChanged: {

@@ -58,6 +58,11 @@ class EffectsTab(QWidget):
                 "lens_flare.stretch",
             ),
             "vignette.enabled": ("vignette.strength", "vignette.radius"),
+            "color.enabled": (
+                "color.brightness",
+                "color.contrast",
+                "color.saturation",
+            ),
         }
 
         self._state_key_map: Dict[str, str] = {
@@ -89,6 +94,7 @@ class EffectsTab(QWidget):
             "vignette.enabled": "vignette",
             "vignette.strength": "vignette_strength",
             "vignette.radius": "vignette_radius",
+            "color.enabled": "color_adjustments_enabled",
             "color.brightness": "adjustment_brightness",
             "color.contrast": "adjustment_contrast",
             "color.saturation": "adjustment_saturation",
@@ -322,6 +328,10 @@ class EffectsTab(QWidget):
         info.setStyleSheet("color: #808080; font-size: 11px;")
         grid.addWidget(info, row, 0, 1, 2)
         row += 1
+
+        row = self._add_checkbox(
+            grid, row, "Активировать цветокоррекцию", "color.enabled"
+        )
 
         row = self._add_slider(
             grid,

@@ -88,4 +88,4 @@ for event in recent:
 
 ---
 
-**Tip**: Используйте `panel.export_sync_analysis()` для быстрого экспорта отчета из GraphicsPanel.
+**Tip**: Используйте `panel.export_sync_analysis()` для быстрого экспорта JSON-пресета и отчета из GraphicsPanel.

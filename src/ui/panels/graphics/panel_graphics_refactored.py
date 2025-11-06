@@ -15,7 +15,10 @@ Russian UI / English code.
 from __future__ import annotations
 
 import logging
+import json
 from copy import deepcopy
+from datetime import datetime
+from pathlib import Path
 from typing import Any, Dict
 from collections.abc import Mapping
 
@@ -44,6 +47,7 @@ from .panel_graphics_settings_manager import (
 
 from src.ui.panels.graphics_logger import get_graphics_logger
 from src.common.event_logger import get_event_logger
+from src.common.logging_widgets import LoggingCheckBox
 
 
 class GraphicsPanel(QWidget):
@@ -77,6 +81,9 @@ class GraphicsPanel(QWidget):
 
         # Загружаем текущее состояние из JSON (не дефолты)
         self.state: Dict[str, Any] = {}
+
+        self._color_adjustments_toggle: LoggingCheckBox | None = None
+        self._syncing_color_toggle = False
 
         # Таб-виджеты
         self.lighting_tab: LightingTab | None = None
@@ -215,12 +222,29 @@ class GraphicsPanel(QWidget):
         self._emit_with_logging("material_changed", data, "materials")
 
     def _on_effects_changed(self, data: Dict[str, Any]) -> None:
+        self._update_color_adjustments_toggle(data)
         self._emit_with_logging("effects_changed", data, "effects")
 
     def _create_control_buttons(self) -> QHBoxLayout:
         row = QHBoxLayout()
         row.setContentsMargins(0, 0, 0, 0)
         row.setSpacing(8)
+
+        toggle = LoggingCheckBox(
+            "Цветокоррекция",
+            "graphics.color_adjustments_toggle",
+            self,
+        )
+        toggle.setToolTip(
+            "Включить или выключить цветокоррекцию (яркость, контраст, насыщенность)"
+        )
+        toggle.blockSignals(True)
+        toggle.setChecked(True)
+        toggle.blockSignals(False)
+        toggle.toggled.connect(self._on_color_adjustments_toggled)
+        self._color_adjustments_toggle = toggle
+        row.addWidget(toggle)
+
         row.addStretch(1)
 
         reset_btn = QPushButton("↩︎ Сброс к дефолтам", self)
@@ -235,14 +259,58 @@ class GraphicsPanel(QWidget):
         save_default_btn.clicked.connect(self.save_current_as_defaults)
         row.addWidget(save_default_btn)
 
-        export_btn = QPushButton("📊 Экспорт анализа", self)
+        export_btn = QPushButton("📦 Экспорт пресета", self)
         export_btn.setToolTip(
-            "Экспортировать анализ синхронизации Python↔QML (не настройки)"
+            "Сохранить текущие графические настройки и отчёт синхронизации"
         )
         export_btn.clicked.connect(self.export_sync_analysis)
         row.addWidget(export_btn)
 
         return row
+
+    def _on_color_adjustments_toggled(self, checked: bool) -> None:
+        if self._syncing_color_toggle:
+            return
+        if self.effects_tab is None:
+            return
+
+        control = self.effects_tab._controls.get("color.enabled")
+        if isinstance(control, LoggingCheckBox):
+            if control.isChecked() != checked:
+                control.setChecked(checked)
+            return
+
+        payload = dict(self.effects_tab.get_state())
+        payload["color_adjustments_enabled"] = checked
+        self._emit_with_logging("effects_changed", payload, "effects")
+
+    def _update_color_adjustments_toggle(
+        self, payload: Mapping[str, Any] | None
+    ) -> None:
+        toggle = self._color_adjustments_toggle
+        if toggle is None or not isinstance(payload, Mapping):
+            return
+
+        enabled: Any | None = payload.get("color_adjustments_enabled")
+        if enabled is None:
+            nested = payload.get("color_adjustments")
+            if isinstance(nested, Mapping):
+                enabled = nested.get("enabled")
+
+        if enabled is None:
+            return
+
+        checked = bool(enabled)
+        if toggle.isChecked() == checked:
+            return
+
+        self._syncing_color_toggle = True
+        try:
+            toggle.blockSignals(True)
+            toggle.setChecked(checked)
+        finally:
+            toggle.blockSignals(False)
+            self._syncing_color_toggle = False
 
     # ------------------------------------------------------------------
     # Загрузка/применение состояния (без записи)
@@ -263,6 +331,7 @@ class GraphicsPanel(QWidget):
             self.camera_tab.set_state(self.state["camera"])
             self.materials_tab.set_state(self.state["materials"])
             self.effects_tab.set_state(self.state["effects"])
+            self._update_color_adjustments_toggle(self.state["effects"])
 
             self.logger.info("✅ Graphics settings loaded from app_settings.json")
         except GraphicsSettingsError as exc:
@@ -299,6 +368,7 @@ class GraphicsPanel(QWidget):
             self.camera_tab.set_state(self.state["camera"])
             self.materials_tab.set_state(self.state["materials"])
             self.effects_tab.set_state(self.state["effects"])
+            self._update_color_adjustments_toggle(self.state["effects"])
             self.logger.info("✅ Graphics reset to defaults completed")
             self._emit_all_initial()
             # передаём полный state для MainWindow
@@ -354,19 +424,38 @@ class GraphicsPanel(QWidget):
     # ------------------------------------------------------------------
     def export_sync_analysis(self) -> None:
         try:
+            state = self.collect_state()
+            self.settings_service.save_current(state)
+
+            export_dir = Path("reports") / "graphics"
+            export_dir.mkdir(parents=True, exist_ok=True)
+            timestamp = datetime.utcnow().strftime("%Y%m%d-%H%M%S")
+            preset_path = export_dir / f"graphics-preset-{timestamp}.json"
+            preset_path.write_text(
+                json.dumps(state, ensure_ascii=False, indent=2),
+                encoding="utf-8",
+            )
+
             report_path = self.graphics_logger.export_analysis_report()
             analysis = self.graphics_logger.analyze_qml_sync()
+
             print("\n" + "=" * 60)
+            print("📦 GRAPHICS PRESET EXPORT")
+            print("=" * 60)
+            print(f"Preset file: {preset_path}")
+            print("-")
             print("📊 GRAPHICS SYNC ANALYSIS")
             print("=" * 60)
             print(f"Total changes: {analysis.get('total_events', 0)}")
             print(f"Successful QML updates: {analysis.get('successful_updates', 0)}")
             print(f"Failed QML updates: {analysis.get('failed_updates', 0)}")
             print("=" * 60)
-            print(f"Full report: {report_path}")
+            print(f"Analysis report: {report_path}")
             print("=" * 60 + "\n")
+
+            self.logger.info("✅ Graphics preset exported to %s", preset_path)
         except Exception as e:
-            self.logger.error(f"Failed to export sync analysis: {e}")
+            self.logger.error(f"❌ Failed to export graphics preset: {e}")
 
     # Не сохраняем здесь — централизованно в MainWindow.closeEvent()
     def closeEvent(self, event) -> None:  # type: ignore[override]

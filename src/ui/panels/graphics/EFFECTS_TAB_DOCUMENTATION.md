@@ -357,6 +357,7 @@ qml.setProperty("vignetteStrength", effects_params.get("vignette_strength", 0.35
 qml.setProperty("vignetteRadius", effects_params.get("vignette_radius", 0.4))
 
 # Color Adjustments (Qt 6.10+)
+qml.setProperty("colorAdjustmentsEnabled", effects_params.get("color_adjustments_enabled", True))
 qml.setProperty("adjustmentBrightness", effects_params.get("adjustment_brightness", 0.0))
 qml.setProperty("adjustmentContrast", effects_params.get("adjustment_contrast", 0.0))
 qml.setProperty("adjustmentSaturation", effects_params.get("adjustment_saturation", 0.0))
@@ -413,6 +414,7 @@ EFFECTS_DEFAULTS = {
     "vignette_radius": 0.4,
 
     # Color Adjustments (Qt 6.10+)
+    "color_adjustments_enabled": True,
     "adjustment_brightness": 0.0,
     "adjustment_contrast": 0.0,
     "adjustment_saturation": 0.0,

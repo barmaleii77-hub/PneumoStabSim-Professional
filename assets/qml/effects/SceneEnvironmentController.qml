@@ -191,10 +191,6 @@ ExtendedSceneEnvironment {
     // COLOR ADJUSTMENTS (Qt 6.10+)
     // ===============================================================
 
-    property alias adjustmentBrightnessValue: root.adjustmentBrightness
-    property alias adjustmentContrastValue: root.adjustmentContrast
-    property alias adjustmentSaturationValue: root.adjustmentSaturation
-
     // ---------------------------------------------------------------
     // Legacy compatibility aliases (camelCase + legacy property names)
     // ---------------------------------------------------------------
@@ -225,6 +221,33 @@ ExtendedSceneEnvironment {
     property alias vignetteRadiusValue: root.vignetteRadius
 
     colorAdjustmentsEnabled: effectsBoolDefault("colorAdjustmentsEnabled", "color_adjustments_enabled", true)
+    adjustmentBrightness: effectsNumberDefault("adjustmentBrightness", "adjustment_brightness", 0.0)
+    adjustmentContrast: effectsNumberDefault("adjustmentContrast", "adjustment_contrast", 0.0)
+    adjustmentSaturation: effectsNumberDefault("adjustmentSaturation", "adjustment_saturation", 0.0)
+    readonly property bool colorAdjustmentsHasOverrides: (Math.abs(adjustmentBrightness) > 0.0001)
+            || (Math.abs(adjustmentContrast) > 0.0001)
+            || (Math.abs(adjustmentSaturation) > 0.0001)
+
+    function _syncColorAdjustmentFlags() {
+        mirrorHostProperty("colorAdjustmentsHasOverrides", colorAdjustmentsHasOverrides)
+    }
+
+    onColorAdjustmentsEnabledChanged: {
+        mirrorHostProperty("colorAdjustmentsActive", colorAdjustmentsEnabled)
+        _syncColorAdjustmentFlags()
+    }
+    onAdjustmentBrightnessChanged: {
+        mirrorHostProperty("adjustmentBrightness", adjustmentBrightness)
+        _syncColorAdjustmentFlags()
+    }
+    onAdjustmentContrastChanged: {
+        mirrorHostProperty("adjustmentContrast", adjustmentContrast)
+        _syncColorAdjustmentFlags()
+    }
+    onAdjustmentSaturationChanged: {
+        mirrorHostProperty("adjustmentSaturation", adjustmentSaturation)
+        _syncColorAdjustmentFlags()
+    }
 
  /**
  * Python SceneBridge instance injected via context property.
@@ -360,6 +383,27 @@ ExtendedSceneEnvironment {
         if (secondaryKey && params.hasOwnProperty(secondaryKey))
             return params[secondaryKey]
         return undefined
+    }
+
+    function hostHasProperty(host, name) {
+        if (!host)
+            return false
+        try {
+            if (host.hasOwnProperty && host.hasOwnProperty(name))
+                return true
+        } catch (error) {
+            // ignore and fall back to `in` operator
+        }
+        return name in host
+    }
+
+    function mirrorHostProperty(propertyName, value) {
+        var host = root.parent
+        if (!hostHasProperty(host, propertyName))
+            return
+        if (host[propertyName] === value)
+            return
+        host[propertyName] = value
     }
 
     function boolFromKeys(params, primaryKey, secondaryKey) {
@@ -583,6 +627,7 @@ ExtendedSceneEnvironment {
         if (canUseDithering) {
             root.ditheringEnabled = Qt.binding(function() { return ditheringEnabled })
         }
+        _syncColorAdjustmentFlags()
         console.log("✅ SceneEnvironmentController loaded (dithering "
                     + (root.canUseDithering ? "enabled" : "disabled") + ")")
         var depthPropertyAvailable = _hasEnvironmentProperty("depthTextureEnabled")
@@ -624,6 +669,28 @@ ExtendedSceneEnvironment {
             } catch (error) {
                 console.warn("⚠️ SceneEnvironmentController: lensFlareGhostCount assignment failed", error)
             }
+        }
+
+        function assignColorAdjustmentsEnabled(value) {
+            if (value === undefined)
+                return
+            var enabled = !!value
+            if (colorAdjustmentsEnabled !== enabled)
+                colorAdjustmentsEnabled = enabled
+            mirrorHostProperty("colorAdjustmentsActive", enabled)
+            _syncColorAdjustmentFlags()
+        }
+
+        function assignColorAdjustment(propertyName, value) {
+            if (value === undefined)
+                return
+            var numeric = Number(value)
+            if (!isFinite(numeric))
+                return
+            if (root[propertyName] !== numeric)
+                root[propertyName] = numeric
+            mirrorHostProperty(propertyName, numeric)
+            _syncColorAdjustmentFlags()
         }
 
         var bloomSection = valueFromKeys(params, "bloom", "bloom")
@@ -800,37 +867,29 @@ ExtendedSceneEnvironment {
         var colorSection = valueFromKeys(params, "colorAdjustments", "color_adjustments")
         if (colorSection && typeof colorSection === "object") {
             var nestedEnabled = boolFromKeys(colorSection, "enabled", "enabled")
-            if (nestedEnabled !== undefined)
-                colorAdjustmentsEnabled = !!nestedEnabled
+            assignColorAdjustmentsEnabled(nestedEnabled)
 
             var nestedBrightness = numberFromKeys(colorSection, "brightness", "brightness")
-            if (nestedBrightness !== undefined)
-                adjustmentBrightnessValue = nestedBrightness
+            assignColorAdjustment("adjustmentBrightness", nestedBrightness)
 
             var nestedContrast = numberFromKeys(colorSection, "contrast", "contrast")
-            if (nestedContrast !== undefined)
-                adjustmentContrastValue = nestedContrast
+            assignColorAdjustment("adjustmentContrast", nestedContrast)
 
             var nestedSaturation = numberFromKeys(colorSection, "saturation", "saturation")
-            if (nestedSaturation !== undefined)
-                adjustmentSaturationValue = nestedSaturation
+            assignColorAdjustment("adjustmentSaturation", nestedSaturation)
         }
 
         var enabledValue = boolFromKeys(params, "colorAdjustmentsEnabled", "color_adjustments_enabled")
-        if (enabledValue !== undefined)
-            colorAdjustmentsEnabled = !!enabledValue
+        assignColorAdjustmentsEnabled(enabledValue)
 
         var brightnessValue = numberFromKeys(params, "adjustmentBrightness", "adjustment_brightness")
-        if (brightnessValue !== undefined)
-            adjustmentBrightnessValue = brightnessValue
+        assignColorAdjustment("adjustmentBrightness", brightnessValue)
 
         var contrastValue = numberFromKeys(params, "adjustmentContrast", "adjustment_contrast")
-        if (contrastValue !== undefined)
-            adjustmentContrastValue = contrastValue
+        assignColorAdjustment("adjustmentContrast", contrastValue)
 
         var saturationValue = numberFromKeys(params, "adjustmentSaturation", "adjustment_saturation")
-        if (saturationValue !== undefined)
-            adjustmentSaturationValue = saturationValue
+        assignColorAdjustment("adjustmentSaturation", saturationValue)
 
         var vignetteSection = params.vignette && typeof params.vignette === "object"
                 ? params.vignette

@@ -346,6 +346,7 @@ class EffectsSettings(_StrictModel):
     vignette: bool
     vignette_strength: float
     vignette_radius: float
+    color_adjustments_enabled: bool
     adjustment_brightness: float
     adjustment_contrast: float
     adjustment_saturation: float
