@@ -39,7 +39,8 @@ uv-first environment strategy captured in the renovation master plan.
    source ./activate_environment.sh
    ```
 4. **Synchronise dependencies** – resolves the exact lockfile captured in
-   `requirements.lock`.
+   `requirements.lock`. Цель `make uv-sync` теперь вызывает `uv sync --frozen --extra dev`,
+   поэтому dev-зависимости для тестов и UI автоматически подтягиваются.
    ```bash
    make uv-sync
    ```
@@ -55,6 +56,8 @@ uv-first environment strategy captured in the renovation master plan.
    ```bash
    make check
    ```
+   На Linux используйте `bash scripts/xvfb_wrapper.sh make check`, чтобы Qt Quick 3D
+   и QtCharts работали в виртуальном дисплее, аналогично CI.
    To capture an extended launch trace (mirroring CI), run the autonomous
    wrapper. It persists a timestamped Markdown log and JSON status record that
    can be attached to issues or inspected after failures.

@@ -436,6 +436,22 @@ def _summarize_environment_failure(
     return None
 
 
+def _extract_shader_warnings(stdout: str, stderr: str) -> list[str]:
+    """Return warning lines emitted by qsb during compilation."""
+
+    warnings: list[str] = []
+    for stream in (stdout, stderr):
+        for raw_line in (stream or "").splitlines():
+            line = raw_line.strip()
+            if not line:
+                continue
+            if "warning" not in line.lower():
+                continue
+            if line not in warnings:
+                warnings.append(line)
+    return warnings
+
+
 def _interpret_qsb_startup_failure(
     return_code: int,
     stderr: str,
@@ -603,6 +619,12 @@ def _run_qsb(
         if stderr:
             log_contents.append("[stderr]\n" + stderr)
         log_path.write_text("\n\n".join(log_contents), encoding="utf-8")
+
+    if completed.returncode == 0:
+        for warning in _extract_shader_warnings(stdout, stderr):
+            errors.append(
+                f"{_relative(shader.path, shader_root)}: shader warning: {warning}"
+            )
 
     if completed.returncode != 0:
         missing_library = _extract_missing_shared_library(stderr)

@@ -27,6 +27,15 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Install headless Qt Quick dependencies (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            xvfb xauth mesa-utils mesa-utils-extra libosmesa6 \
+            libgl1-mesa-dri libgl1-mesa-glx libglu1-mesa libegl1-mesa libgles2-mesa \
+            libxcb-xinerama0 libxkbcommon0 libxkbcommon-x11-0 libvulkan1
+
       - name: Install GNU Make (Windows)
         if: runner.os == 'Windows'
         run: choco install make --no-progress -y
@@ -83,7 +92,12 @@ jobs:
               fh.write(f"QML2_IMPORT_PATH={qml_path}{os.linesep}")
 
       - name: Run make check
-        run: make check
+        run: |
+          if [ "${{ runner.os }}" = "Linux" ]; then
+            bash scripts/xvfb_wrapper.sh make check
+          else
+            make check
+          fi
 
       - name: Generate AI failure report
         if: failure()

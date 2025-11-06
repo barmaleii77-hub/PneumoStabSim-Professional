@@ -57,10 +57,13 @@ jobs:
             fh.write(f"QT_PLUGIN_PATH={QLibraryInfo.path(LibraryLocation.Plugins)}\n")
             fh.write(f"QML2_IMPORT_PATH={QLibraryInfo.path(LibraryLocation.QmlImports)}\n")
 
-      - name: Install Xvfb
+      - name: Install headless Qt Quick dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y xvfb
+          sudo apt-get install -y --no-install-recommends \
+            xvfb xauth mesa-utils mesa-utils-extra libosmesa6 \
+            libgl1-mesa-dri libgl1-mesa-glx libglu1-mesa libegl1-mesa libgles2-mesa \
+            libxcb-xinerama0 libxkbcommon0 libxkbcommon-x11-0 libvulkan1
 
       - name: Run autonomous quality gate with launch trace
         env:

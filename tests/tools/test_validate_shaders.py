@@ -216,6 +216,46 @@ def test_validate_shaders_invokes_qsb_profiles_and_logs(tmp_path: Path) -> None:
     assert "--msl 12" in log_contents
 
 
+def test_validate_shaders_flags_warning_output(tmp_path: Path) -> None:
+    shader_root = tmp_path / "shaders"
+    reports_dir = tmp_path / "reports"
+    qsb_cmd = _make_qsb_stub(
+        tmp_path,
+        stdout="Warning: precision lowered to OpenGL ES 3.0",
+        stderr="",
+    )
+
+    _write_shader(
+        shader_root,
+        "effects/bloom.frag",
+        "#version 450 core\nvoid qt_customMain() {}\n",
+    )
+    _write_shader(
+        shader_root,
+        "effects/bloom_fallback.frag",
+        "#version 450 core\nvoid qt_customMain() {}\n",
+    )
+    _write_shader(
+        shader_root,
+        "effects/bloom_fallback_es.frag",
+        "#version 300 es\nvoid qt_customMain() {}\n",
+    )
+    _write_shader(
+        shader_root,
+        "effects/bloom_es.frag",
+        "#version 300 es\nvoid qt_customMain() {}\n",
+    )
+
+    errors = validate_shaders.validate_shaders(
+        shader_root, qsb_command=qsb_cmd, reports_dir=reports_dir
+    )
+
+    assert errors == [
+        "effects/bloom.frag: shader warning: Warning: precision lowered to OpenGL ES 3.0",
+        "effects/bloom_fallback.frag: shader warning: Warning: precision lowered to OpenGL ES 3.0",
+    ]
+
+
 def test_validate_shaders_reports_missing_gles_variant(tmp_path: Path) -> None:
     shader_root = tmp_path / "shaders"
     reports_dir = tmp_path / "reports"

@@ -31,11 +31,16 @@ jobs:
       - name: Sync environment
         run: uv sync --frozen --extra dev
 
-      - name: Install Qt dependencies
-        run: sudo apt-get update && sudo apt-get install -y libegl1-mesa
+      - name: Install headless Qt Quick dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            xvfb xauth mesa-utils mesa-utils-extra libosmesa6 \
+            libgl1-mesa-dri libgl1-mesa-glx libglu1-mesa libegl1-mesa libgles2-mesa \
+            libxcb-xinerama0 libxkbcommon0 libxkbcommon-x11-0 libvulkan1
 
       - name: Run pytest suite
-        run: uv run pytest --maxfail=1
+        run: bash scripts/xvfb_wrapper.sh uv run pytest --maxfail=1
 
       - name: Execute physics regression case
         run: uv run python tools/run_test_case.py standard-suspension-balance --output-dir reports/tests
