@@ -8,7 +8,7 @@ from dataclasses import dataclass
 from typing import Optional
 
 from .enums import Line, ReceiverVolumeMode
-from .thermo import ThermoMode
+from .thermo import PolytropicParameters, ThermoMode
 from src.common.units import R_AIR, GAMMA_AIR, PA_ATM, T_AMBIENT
 
 
@@ -166,7 +166,13 @@ class LegacyGasState:
     def _recalculate_pressure(self) -> None:
         self.pressure = p_from_mTV(self.mass, self.temperature, self.volume)
 
-    def update_volume(self, new_volume: float, *, mode: ThermoMode) -> None:
+    def update_volume(
+        self,
+        new_volume: float,
+        *,
+        mode: ThermoMode,
+        polytropic: Optional[PolytropicParameters] = None,
+    ) -> None:
         """Update the gas state for a volume change.
 
         Args:
@@ -189,6 +195,16 @@ class LegacyGasState:
             self.volume = float(new_volume)
             self.pressure = pv_constant / (self.volume**self.gamma)
             self.temperature = tv_constant / (self.volume ** (self.gamma - 1.0))
+            return
+
+        if mode == ThermoMode.POLYTROPIC:
+            polytropic_update(
+                self,
+                float(new_volume),
+                polytropic
+                if polytropic is not None
+                else PolytropicParameters(0.0, 0.0),
+            )
             return
 
         raise ValueError(f"Unsupported thermo mode: {mode}")
@@ -266,6 +282,47 @@ def adiabatic_update(
     volume_ratio = prev_volume / state.V_curr
     state.T = prev_temperature * (volume_ratio ** (gamma - 1.0))
     state.update_pressure()
+
+
+def polytropic_update(
+    state: LineGasState,
+    new_volume: float,
+    params: PolytropicParameters,
+    gamma: float = GAMMA_AIR,
+) -> None:
+    """Perform a polytropic update on a line gas state."""
+
+    if gamma <= 1.0:
+        raise ValueError(f"Adiabatic gamma must be >1.0, got {gamma}")
+
+    prev_volume = state.V_curr
+    prev_pressure = state.p
+    prev_temperature = state.T
+
+    state.set_volume(new_volume)
+
+    if state.m <= 0.0:
+        state.p = 0.0
+        return
+    n_eff = params.effective_index(state.m, gamma=gamma)
+    if n_eff <= 0.0:
+        raise ValueError(f"Polytropic exponent must be positive, got {n_eff}")
+
+    compression = prev_volume / state.V_curr
+    base_pressure = prev_pressure * (compression**n_eff)
+    base_temperature = prev_temperature * (compression ** (n_eff - 1.0))
+
+    relaxation = params.relaxation_factor(state.m, gamma=gamma)
+    if relaxation > 0.0:
+        adjusted_temperature = (
+            base_temperature
+            + (params.ambient_temperature - base_temperature) * relaxation
+        )
+    else:
+        adjusted_temperature = base_temperature
+
+    state.T = max(adjusted_temperature, 1.0)
+    state.p = p_from_mTV(state.m, state.T, state.V_curr)
 
 
 def apply_instant_volume_change(

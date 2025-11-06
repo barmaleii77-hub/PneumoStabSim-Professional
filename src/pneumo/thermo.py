@@ -3,8 +3,10 @@ Thermodynamic formulas and constants
 Function signatures for adiabatic and isothermal processes
 """
 
+from dataclasses import dataclass
 from enum import Enum
-from src.common.units import GAMMA_AIR, R_AIR
+import math
+from src.common.units import GAMMA_AIR, R_AIR, T_AMBIENT
 
 
 class ThermoMode(Enum):
@@ -12,6 +14,44 @@ class ThermoMode(Enum):
 
     ISOTHERMAL = "isothermal"
     ADIABATIC = "adiabatic"
+    POLYTROPIC = "polytropic"
+
+
+@dataclass(frozen=True)
+class PolytropicParameters:
+    """Parameters controlling the polytropic heat exchange model."""
+
+    heat_transfer_coeff: float
+    exchange_area: float
+    ambient_temperature: float = T_AMBIENT
+
+    def effective_index(self, mass: float, gamma: float = GAMMA_AIR) -> float:
+        """Return the polytropic exponent based on heat coupling strength."""
+
+        if gamma <= 1.0:
+            raise ValueError(f"Adiabatic gamma must be >1.0, got {gamma}")
+
+        conduction = max(0.0, self.heat_transfer_coeff) * max(0.0, self.exchange_area)
+        if mass <= 0.0 or conduction <= 0.0:
+            return gamma
+
+        cp = gamma * R_AIR / (gamma - 1.0)
+        coupling = conduction / max(mass * cp, 1e-12)
+        return 1.0 + (gamma - 1.0) / (1.0 + coupling)
+
+    def relaxation_factor(self, mass: float, gamma: float = GAMMA_AIR) -> float:
+        """Return the fractional temperature relaxation toward ambient."""
+
+        if gamma <= 1.0:
+            raise ValueError(f"Adiabatic gamma must be >1.0, got {gamma}")
+
+        conduction = max(0.0, self.heat_transfer_coeff) * max(0.0, self.exchange_area)
+        if mass <= 0.0 or conduction <= 0.0:
+            return 0.0
+
+        cp = gamma * R_AIR / (gamma - 1.0)
+        coupling = conduction / max(mass * cp, 1e-12)
+        return 1.0 - math.exp(-coupling)
 
 
 def adiabatic_p(V: float, C: float) -> float:
@@ -110,6 +150,19 @@ def adiabatic_constant_TV(T: float, V: float) -> float:
     return T * (V ** (GAMMA_AIR - 1.0))
 
 
+def polytropic_constant_pV(p: float, V: float, n: float) -> float:
+    """Calculate polytropic constant C = p*V^n."""
+
+    if p <= 0:
+        raise ValueError(f"Pressure must be positive, got {p}")
+    if V <= 0:
+        raise ValueError(f"Volume must be positive, got {V}")
+    if n <= 0:
+        raise ValueError(f"Polytropic exponent must be positive, got {n}")
+
+    return p * (V**n)
+
+
 def gas_mass_from_pVT(p: float, V: float, T: float, R: float = R_AIR) -> float:
     """Calculate gas mass from ideal gas law m = (p*V)/(R*T)
 
@@ -137,6 +190,7 @@ def gas_mass_from_pVT(p: float, V: float, T: float, R: float = R_AIR) -> float:
 # Re-export constants and classes for convenience
 __all__ = [
     "ThermoMode",  # Enum for thermo mode
+    "PolytropicParameters",
     "GAMMA_AIR",
     "R_AIR",
     "adiabatic_p",
@@ -144,5 +198,6 @@ __all__ = [
     "isothermal_p",
     "adiabatic_constant_pV",
     "adiabatic_constant_TV",
+    "polytropic_constant_pV",
     "gas_mass_from_pVT",
 ]

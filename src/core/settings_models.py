@@ -66,6 +66,10 @@ class PneumaticSettings(_StrictModel):
     throttle_stiff_dia: float
     atmo_temp: float
     thermo_mode: str
+    polytropic_heat_transfer_coeff: float
+    polytropic_exchange_area: float
+    leak_coefficient: float
+    leak_reference_area: float
     master_isolation_open: bool
     pressure_units: str
     receiver_volume_limits: ReceiverVolumeLimits

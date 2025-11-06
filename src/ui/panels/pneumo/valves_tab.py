@@ -13,7 +13,12 @@ from PySide6.QtWidgets import (
 from PySide6.QtCore import Signal
 
 from ...widgets import Knob
-from .defaults import THROTTLE_DIAMETER_LIMITS, VALVE_DIAMETER_LIMITS
+from .defaults import (
+    THROTTLE_DIAMETER_LIMITS,
+    VALVE_DIAMETER_LIMITS,
+    LEAK_COEFFICIENT_LIMITS,
+    LEAK_AREA_LIMITS,
+)
 from .state_manager import PneumoStateManager
 
 
@@ -88,6 +93,31 @@ class ValvesTab(QWidget):
         throttle_layout.addWidget(self.throttle_stiff_knob)
         layout.addWidget(throttle_group)
 
+        leak_group = QGroupBox("Утечки")
+        leak_layout = QHBoxLayout(leak_group)
+        leak_layout.setSpacing(12)
+        self.leak_coeff_knob = Knob(
+            minimum=LEAK_COEFFICIENT_LIMITS["min"],
+            maximum=LEAK_COEFFICIENT_LIMITS["max"],
+            value=self.state_manager.get_leak_coefficient(),
+            step=LEAK_COEFFICIENT_LIMITS["step"],
+            decimals=LEAK_COEFFICIENT_LIMITS["decimals"],
+            units="кг/(с·Па·м²)",
+            title="Коэффициент",
+        )
+        leak_layout.addWidget(self.leak_coeff_knob)
+        self.leak_area_knob = Knob(
+            minimum=LEAK_AREA_LIMITS["min"],
+            maximum=LEAK_AREA_LIMITS["max"],
+            value=self.state_manager.get_leak_reference_area(),
+            step=LEAK_AREA_LIMITS["step"],
+            decimals=LEAK_AREA_LIMITS["decimals"],
+            units="м²",
+            title="Площадь",
+        )
+        leak_layout.addWidget(self.leak_area_knob)
+        layout.addWidget(leak_group)
+
         # Options
         options_group = QGroupBox("Системные опции")
         options_layout = QVBoxLayout(options_group)
@@ -102,6 +132,8 @@ class ValvesTab(QWidget):
         self.master_isolation_check.setChecked(
             self.state_manager.get_option("master_isolation_open")
         )
+        self.leak_coeff_knob.setValue(self.state_manager.get_leak_coefficient())
+        self.leak_area_knob.setValue(self.state_manager.get_leak_reference_area())
 
     def update_from_state(self) -> None:
         self._load_from_state()
@@ -117,6 +149,8 @@ class ValvesTab(QWidget):
         self.throttle_stiff_knob.setValue(
             self.state_manager.get_valve_diameter("throttle_stiff_dia")
         )
+        self.leak_coeff_knob.setValue(self.state_manager.get_leak_coefficient())
+        self.leak_area_knob.setValue(self.state_manager.get_leak_reference_area())
 
     def _connect_signals(self) -> None:
         self.cv_atmo_dia_knob.valueChanged.connect(
@@ -131,6 +165,8 @@ class ValvesTab(QWidget):
         self.throttle_stiff_knob.valueChanged.connect(
             lambda value: self._on_throttle_changed("throttle_stiff_dia", value)
         )
+        self.leak_coeff_knob.valueChanged.connect(self._on_leak_coeff_changed)
+        self.leak_area_knob.valueChanged.connect(self._on_leak_area_changed)
         self.master_isolation_check.toggled.connect(
             lambda checked: self._on_option_changed("master_isolation_open", checked)
         )
@@ -142,6 +178,18 @@ class ValvesTab(QWidget):
     def _on_throttle_changed(self, name: str, value: float) -> None:
         self.state_manager.set_throttle_diameter(name, value)
         self.parameter_changed.emit(name, self.state_manager.get_valve_diameter(name))
+
+    def _on_leak_coeff_changed(self, value: float) -> None:
+        self.state_manager.set_leak_coefficient(value)
+        self.parameter_changed.emit(
+            "leak_coefficient", self.state_manager.get_leak_coefficient()
+        )
+
+    def _on_leak_area_changed(self, value: float) -> None:
+        self.state_manager.set_leak_reference_area(value)
+        self.parameter_changed.emit(
+            "leak_reference_area", self.state_manager.get_leak_reference_area()
+        )
 
     def _on_option_changed(self, name: str, value: bool) -> None:
         self.state_manager.set_option(name, value)

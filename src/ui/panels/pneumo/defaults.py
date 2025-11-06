@@ -32,6 +32,10 @@ DEFAULT_PNEUMATIC: Dict[str, Any] = {
     "throttle_stiff_dia": 1.5,  # мм
     "atmo_temp": 20.0,  # °C
     "thermo_mode": "ISOTHERMAL",
+    "polytropic_heat_transfer_coeff": 45.0,  # Вт/(м²·К)
+    "polytropic_exchange_area": 0.12,  # м²
+    "leak_coefficient": 5e-08,  # кг/(с·Па·м²)
+    "leak_reference_area": 0.0002,  # м²
     "master_isolation_open": False,
     "receiver_volume_limits": {"min_m3": 0.001, "max_m3": 1.0},
 }
@@ -50,6 +54,10 @@ PRESSURE_DROP_LIMITS = {"min": 0.001, "max": 0.100, "step": 0.001, "decimals": 3
 RELIEF_PRESSURE_LIMITS = {"min": 1.0, "max": 100.0, "step": 0.5, "decimals": 1}
 VALVE_DIAMETER_LIMITS = {"min": 1.0, "max": 10.0, "step": 0.1, "decimals": 1}
 THROTTLE_DIAMETER_LIMITS = {"min": 0.5, "max": 3.0, "step": 0.1, "decimals": 1}
+POLY_HEAT_TRANSFER_LIMITS = {"min": 0.0, "max": 200.0, "step": 1.0, "decimals": 0}
+POLY_EXCHANGE_AREA_LIMITS = {"min": 0.0, "max": 0.5, "step": 0.01, "decimals": 2}
+LEAK_COEFFICIENT_LIMITS = {"min": 0.0, "max": 0.0001, "step": 0.000001, "decimals": 6}
+LEAK_AREA_LIMITS = {"min": 0.0, "max": 0.005, "step": 0.0001, "decimals": 4}
 
 
 STORAGE_PRESSURE_KEYS = {

@@ -50,10 +50,12 @@ class ThermoMode(Enum):
 
     ADIABATIC - No heat exchange (fast processes)
     ISOTHERMAL - Constant temperature (slow processes)
+    POLYTROPIC - Intermediate heat exchange with configurable coupling
     """
 
     ADIABATIC = "ADIABATIC"
     ISOTHERMAL = "ISOTHERMAL"
+    POLYTROPIC = "POLYTROPIC"
 
 
 class ReceiverVolumeMode(Enum):
