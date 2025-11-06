@@ -93,6 +93,26 @@ RUNTIME_DEPENDENCY_HINTS = {
 }
 
 
+def _normalize_dependency_hint(library: str, hint: str | None) -> str:
+    candidate = hint if hint is not None else _dependency_hint(library)
+    return _augment_install_hint(candidate)
+
+
+def _format_dependency_message(
+    library: str,
+    hint: str | None = None,
+    *,
+    assume_normalized: bool = False,
+) -> str:
+    if assume_normalized:
+        normalized_hint = (
+            hint if hint is not None else _normalize_dependency_hint(library, None)
+        )
+    else:
+        normalized_hint = _normalize_dependency_hint(library, hint)
+    return f"PySide6 cannot load required system library '{library}'. {normalized_hint}"
+
+
 class ProbeError(RuntimeError):
     """Base exception raised when a probe fails."""
 
@@ -122,13 +142,14 @@ class MissingSystemLibraryError(ProbeError):
     """Raised when a required system library for PySide6 cannot be loaded."""
 
     def __init__(self, library_name: str, install_hint: str) -> None:
-        message = (
-            "PySide6 cannot load required system library "
-            f"'{library_name}'. {install_hint}"
+        normalized_hint = _normalize_dependency_hint(library_name, install_hint)
+        super().__init__(
+            _format_dependency_message(
+                library_name, normalized_hint, assume_normalized=True
+            )
         )
-        super().__init__(message)
         self.library_name = library_name
-        self.install_hint = install_hint
+        self.install_hint = normalized_hint
 
 
 def _strict_checks_enabled() -> bool:
