@@ -168,6 +168,19 @@ def _coerce_pneumatic_block(raw: Mapping[str, Any]) -> Dict[str, Any]:
     for wheel, value in dampers.items():
         converted["dampers"][wheel] = float(value)
 
+    declared_wheels = {
+        key: set(mapping.keys()) for key, mapping in converted.items() if mapping
+    }
+    if declared_wheels:
+        reference_name, reference_set = next(iter(declared_wheels.items()))
+        for block_name, wheel_set in declared_wheels.items():
+            if wheel_set != reference_set:
+                missing = reference_set.symmetric_difference(wheel_set)
+                raise ValueError(
+                    "Inconsistent pneumatic wheel definitions between"
+                    f" '{reference_name}' and '{block_name}': {sorted(missing)}"
+                )
+
     return converted
 
 

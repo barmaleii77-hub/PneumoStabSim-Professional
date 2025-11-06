@@ -1,0 +1,51 @@
+$schema: "https://pneumostabsim.local/schemas/scene.schema.yaml"
+name: "limit-pressure-envelope"
+description: "Upper bound pneumatic pressures approaching relief threshold"
+attachment_points:
+  LP: [-0.86, 0.35]
+  PP: [0.86, 0.35]
+  LZ: [-0.88, -0.36]
+  PZ: [0.88, -0.36]
+axis_directions:
+  LP: [0.08, 0.99, 0.11]
+  PP: [-0.08, 0.99, 0.11]
+  LZ: [0.07, 0.99, -0.12]
+  PZ: [-0.07, 0.99, -0.12]
+state_vectors:
+  envelope: [0.042, 0.031, -0.028, 0.14, -0.067, 0.058]
+  fallback: [0.038, 0.026, -0.021, 0.11, -0.055, 0.049]
+pneumatic:
+  pressures:
+    LP:
+      head: 5000000
+      rod: 250000
+    PP:
+      head: 4950000
+      rod: 240000
+    LZ:
+      head: 4880000
+      rod: 245000
+    PZ:
+      head: 5010000
+      rod: 235000
+  springs:
+    LP:
+      rest: 0.36
+      current: 0.31
+    PP:
+      rest: 0.36
+      current: 0.315
+    LZ:
+      rest: 0.362
+      current: 0.318
+    PZ:
+      rest: 0.359
+      current: 0.314
+  dampers:
+    LP: 0.05
+    PP: 0.052
+    LZ: 0.049
+    PZ: 0.051
+notes:
+  - "Scenario stresses pressure limits at relief thresholds"
+  - "Axis tilt emphasises vertical projection sensitivity"
