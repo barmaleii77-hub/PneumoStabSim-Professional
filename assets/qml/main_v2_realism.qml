@@ -436,8 +436,11 @@ property real tankPressure: 0.0
             hdrWhitePoint = Number(payload.whitePoint)
         if (payload.lensFlareEnabled !== undefined)
             lensFlareEnabled = !!payload.lensFlareEnabled
-        if (payload.lensFlareGhostCount !== undefined)
-            lensFlareGhostCount = Number(payload.lensFlareGhostCount)
+        if (payload.lensFlareGhostCount !== undefined) {
+            var ghostCountValue = Number(payload.lensFlareGhostCount)
+            if (!isNaN(ghostCountValue) && isFinite(ghostCountValue))
+                lensFlareGhostCount = Math.max(0, Math.round(ghostCountValue))
+        }
         if (payload.lensFlareGhostDispersal !== undefined)
             lensFlareGhostDispersal = Number(payload.lensFlareGhostDispersal)
         if (payload.lensFlareHaloWidth !== undefined)

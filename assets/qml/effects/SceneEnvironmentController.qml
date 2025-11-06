@@ -601,6 +601,202 @@ ExtendedSceneEnvironment {
         if (!params)
             return
 
+        function coerceNumber(value) {
+            var numeric = Number(value)
+            return isFinite(numeric) ? numeric : undefined
+        }
+
+        function coerceInt(value) {
+            var numeric = coerceNumber(value)
+            if (numeric === undefined)
+                return undefined
+            return Math.round(numeric)
+        }
+
+        function assignLensFlareGhostCount(value) {
+            var ghostCount = coerceInt(value)
+            if (ghostCount === undefined)
+                return
+            if (ghostCount < 0)
+                ghostCount = 0
+            try {
+                lensFlareGhostCountValue = ghostCount
+            } catch (error) {
+                console.warn("⚠️ SceneEnvironmentController: lensFlareGhostCount assignment failed", error)
+            }
+        }
+
+        var bloomSection = valueFromKeys(params, "bloom", "bloom")
+        if (bloomSection && typeof bloomSection === "object") {
+            var nestedBloomEnabled = boolFromKeys(bloomSection, "enabled", "enabled")
+            if (nestedBloomEnabled !== undefined)
+                bloomEnabled = !!nestedBloomEnabled
+
+            var nestedBloomIntensity = numberFromKeys(bloomSection, "intensity", "intensity")
+            if (nestedBloomIntensity !== undefined)
+                bloomIntensity = nestedBloomIntensity
+
+            var nestedBloomThreshold = numberFromKeys(bloomSection, "threshold", "threshold")
+            if (nestedBloomThreshold !== undefined)
+                bloomThreshold = nestedBloomThreshold
+
+            var nestedBloomSpread = numberFromKeys(bloomSection, "spread", "spread")
+            if (nestedBloomSpread !== undefined)
+                bloomSpread = nestedBloomSpread
+
+            var nestedGlowStrength = numberFromKeys(bloomSection, "glowStrength", "glow_strength")
+            if (nestedGlowStrength !== undefined)
+                bloomGlowStrength = nestedGlowStrength
+
+            var nestedHdrMax = numberFromKeys(bloomSection, "hdrMax", "hdr_max")
+            if (nestedHdrMax !== undefined)
+                bloomHdrMaximum = nestedHdrMax
+
+            var nestedHdrScale = numberFromKeys(bloomSection, "hdrScale", "hdr_scale")
+            if (nestedHdrScale !== undefined)
+                bloomHdrScale = nestedHdrScale
+
+            var nestedQualityHigh = boolFromKeys(bloomSection, "qualityHigh", "quality_high")
+            if (nestedQualityHigh !== undefined)
+                bloomQualityHigh = !!nestedQualityHigh
+
+            var nestedBicubic = boolFromKeys(bloomSection, "bicubicUpscale", "bicubic_upscale")
+            if (nestedBicubic !== undefined)
+                bloomUseBicubicUpscale = !!nestedBicubic
+        }
+
+        var bloomEnabledValue = boolFromKeys(params, "bloomEnabled", "bloom_enabled")
+        if (bloomEnabledValue !== undefined)
+            bloomEnabled = !!bloomEnabledValue
+
+        var bloomIntensityValue = numberFromKeys(params, "bloomIntensity", "bloom_intensity")
+        if (bloomIntensityValue !== undefined)
+            bloomIntensity = bloomIntensityValue
+
+        var bloomThresholdValue = numberFromKeys(params, "bloomThreshold", "bloom_threshold")
+        if (bloomThresholdValue !== undefined)
+            bloomThreshold = bloomThresholdValue
+
+        var bloomSpreadValue = numberFromKeys(params, "bloomSpread", "bloom_spread")
+        if (bloomSpreadValue !== undefined)
+            bloomSpread = bloomSpreadValue
+
+        var bloomGlowStrengthValue = numberFromKeys(params, "bloomGlowStrength", "bloom_glow_strength")
+        if (bloomGlowStrengthValue !== undefined)
+            bloomGlowStrength = bloomGlowStrengthValue
+
+        var bloomHdrMaximumValue = numberFromKeys(params, "bloomHdrMaximum", "bloom_hdr_max")
+        if (bloomHdrMaximumValue !== undefined)
+            bloomHdrMaximum = bloomHdrMaximumValue
+
+        var bloomHdrScaleValue = numberFromKeys(params, "bloomHdrScale", "bloom_hdr_scale")
+        if (bloomHdrScaleValue !== undefined)
+            bloomHdrScale = bloomHdrScaleValue
+
+        var bloomQualityHighValue = boolFromKeys(params, "bloomQualityHigh", "bloom_quality_high")
+        if (bloomQualityHighValue !== undefined)
+            bloomQualityHigh = !!bloomQualityHighValue
+
+        var bloomBicubicValue = boolFromKeys(params, "bloomUseBicubicUpscale", "bloom_bicubic_upscale")
+        if (bloomBicubicValue !== undefined)
+            bloomUseBicubicUpscale = !!bloomBicubicValue
+
+        var depthOfFieldSection = valueFromKeys(params, "depthOfField", "depth_of_field")
+        if (depthOfFieldSection && typeof depthOfFieldSection === "object") {
+            var nestedDofEnabled = boolFromKeys(depthOfFieldSection, "enabled", "enabled")
+            if (nestedDofEnabled !== undefined)
+                internalDepthOfFieldEnabled = !!nestedDofEnabled
+
+            var nestedDofFocus = numberFromKeys(depthOfFieldSection, "focusDistance", "focus_distance")
+            if (nestedDofFocus !== undefined)
+                dofFocusDistance = nestedDofFocus
+
+            var nestedDofRange = numberFromKeys(depthOfFieldSection, "focusRange", "focus_range")
+            if (nestedDofRange !== undefined)
+                dofFocusRange = nestedDofRange
+
+            var nestedDofBlur = numberFromKeys(depthOfFieldSection, "blurAmount", "blur")
+            if (nestedDofBlur === undefined)
+                nestedDofBlur = numberFromKeys(depthOfFieldSection, "blur", "blur")
+            if (nestedDofBlur !== undefined)
+                dofBlurAmount = nestedDofBlur
+
+            var nestedDofAutoFocus = boolFromKeys(depthOfFieldSection, "autoFocus", "auto_focus")
+            if (nestedDofAutoFocus !== undefined && ("depthOfFieldAutoFocus" in root))
+                root.depthOfFieldAutoFocus = !!nestedDofAutoFocus
+        }
+
+        var dofEnabledValue = boolFromKeys(params, "depthOfFieldEnabled", "depth_of_field")
+        if (dofEnabledValue !== undefined)
+            internalDepthOfFieldEnabled = !!dofEnabledValue
+
+        var dofFocusValue = numberFromKeys(params, "dofFocusDistance", "dof_focus_distance")
+        if (dofFocusValue !== undefined)
+            dofFocusDistance = dofFocusValue
+
+        var dofRangeValue = numberFromKeys(params, "dofFocusRange", "dof_focus_range")
+        if (dofRangeValue !== undefined)
+            dofFocusRange = dofRangeValue
+
+        var dofBlurValue = numberFromKeys(params, "dofBlurAmount", "dof_blur")
+        if (dofBlurValue !== undefined)
+            dofBlurAmount = dofBlurValue
+
+        var dofAutoFocusValue = boolFromKeys(params, "dofAutoFocus", "dof_auto_focus")
+        if (dofAutoFocusValue !== undefined && ("depthOfFieldAutoFocus" in root))
+            root.depthOfFieldAutoFocus = !!dofAutoFocusValue
+
+        var lensFlareSection = valueFromKeys(params, "lensFlare", "lens_flare")
+        if (lensFlareSection && typeof lensFlareSection === "object") {
+            var nestedLensEnabled = boolFromKeys(lensFlareSection, "enabled", "enabled")
+            if (nestedLensEnabled !== undefined)
+                internalLensFlareEnabled = !!nestedLensEnabled
+
+            var nestedGhostCount = numberFromKeys(lensFlareSection, "ghostCount", "ghost_count")
+            if (nestedGhostCount === undefined)
+                nestedGhostCount = numberFromKeys(lensFlareSection, "ghosts", "ghosts")
+            assignLensFlareGhostCount(nestedGhostCount)
+
+            var nestedGhostDispersal = numberFromKeys(lensFlareSection, "ghostDispersal", "ghost_dispersal")
+            if (nestedGhostDispersal !== undefined)
+                lensFlareGhostDispersalValue = nestedGhostDispersal
+
+            var nestedHaloWidth = numberFromKeys(lensFlareSection, "haloWidth", "halo_width")
+            if (nestedHaloWidth !== undefined)
+                lensFlareHaloWidthValue = nestedHaloWidth
+
+            var nestedBloomBias = numberFromKeys(lensFlareSection, "bloomBias", "bloom_bias")
+            if (nestedBloomBias !== undefined)
+                lensFlareBloomBiasValue = nestedBloomBias
+
+            var nestedStretch = boolFromKeys(lensFlareSection, "stretchToAspect", "stretch_to_aspect")
+            if (nestedStretch !== undefined)
+                lensFlareStretchValue = !!nestedStretch
+        }
+
+        var lensFlareEnabledValue = boolFromKeys(params, "lensFlareEnabled", "lens_flare")
+        if (lensFlareEnabledValue !== undefined)
+            internalLensFlareEnabled = !!lensFlareEnabledValue
+
+        var lensFlareGhostCountRaw = numberFromKeys(params, "lensFlareGhostCount", "lens_flare_ghost_count")
+        assignLensFlareGhostCount(lensFlareGhostCountRaw)
+
+        var lensFlareGhostDispersalRaw = numberFromKeys(params, "lensFlareGhostDispersal", "lens_flare_ghost_dispersal")
+        if (lensFlareGhostDispersalRaw !== undefined)
+            lensFlareGhostDispersalValue = lensFlareGhostDispersalRaw
+
+        var lensFlareHaloWidthRaw = numberFromKeys(params, "lensFlareHaloWidth", "lens_flare_halo_width")
+        if (lensFlareHaloWidthRaw !== undefined)
+            lensFlareHaloWidthValue = lensFlareHaloWidthRaw
+
+        var lensFlareBloomBiasRaw = numberFromKeys(params, "lensFlareBloomBias", "lens_flare_bloom_bias")
+        if (lensFlareBloomBiasRaw !== undefined)
+            lensFlareBloomBiasValue = lensFlareBloomBiasRaw
+
+        var lensFlareStretchValueRaw = boolFromKeys(params, "lensFlareStretchToAspect", "lens_flare_stretch_to_aspect")
+        if (lensFlareStretchValueRaw !== undefined)
+            lensFlareStretchValue = !!lensFlareStretchValueRaw
+
         var colorSection = valueFromKeys(params, "colorAdjustments", "color_adjustments")
         if (colorSection && typeof colorSection === "object") {
             var nestedEnabled = boolFromKeys(colorSection, "enabled", "enabled")
