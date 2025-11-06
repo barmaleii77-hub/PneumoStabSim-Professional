@@ -453,6 +453,32 @@ Item {
         }
     }
 
+    Panels.SimulationPanel {
+        id: simulationPanel
+        objectName: "simulationPanel"
+        controller: root
+        anchors.top: parent.top
+        anchors.left: parent.left
+        anchors.margins: 16
+        z: 9050
+        visible: true
+        modesMetadata: (typeof modesMetadata !== "undefined" ? modesMetadata : {})
+        initialModes: (typeof initialModesSettings !== "undefined" ? initialModesSettings : {})
+        initialAnimation: (typeof initialAnimationSettings !== "undefined" ? initialAnimationSettings : {})
+        initialPneumatic: (typeof initialPneumaticSettings !== "undefined" ? initialPneumaticSettings : {})
+        initialSimulation: (typeof initialSimulationSettings !== "undefined" ? initialSimulationSettings : {})
+        initialCylinder: (typeof initialCylinderSettings !== "undefined" ? initialCylinderSettings : {})
+
+        onSimulationControlRequested: root.simulationControlRequested(command)
+        onModesPresetSelected: root.modesPresetSelected(presetId)
+        onModesModeChanged: root.modesModeChanged(modeType, newMode)
+        onModesPhysicsChanged: root.modesPhysicsChanged(payload)
+        onModesAnimationChanged: root.modesAnimationChanged(payload)
+        onPneumaticSettingsChanged: root.pneumaticSettingsChanged(payload)
+        onSimulationSettingsChanged: root.simulationSettingsChanged(payload)
+        onCylinderSettingsChanged: root.cylinderSettingsChanged(payload)
+    }
+
     Training.TrainingPanel {
         id: trainingPanel
         anchors.top: parent.top
