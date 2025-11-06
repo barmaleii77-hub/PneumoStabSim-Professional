@@ -2,6 +2,7 @@ import QtQuick 6.10
 import QtQuick.Controls 6.10
 import PneumoStabSim 1.0
 import "./"
+import "./panels" as Panels
 import "training" as Training
 
 Item {
@@ -10,9 +11,18 @@ Item {
 
     signal batchUpdatesApplied(var summary)
     signal animationToggled(bool running)
+    signal simulationControlRequested(string command)
+    signal modesPresetSelected(string presetId)
+    signal modesModeChanged(string modeType, string newMode)
+    signal modesPhysicsChanged(var payload)
+    signal modesAnimationChanged(var payload)
+    signal pneumaticSettingsChanged(var payload)
+    signal simulationSettingsChanged(var payload)
+    signal cylinderSettingsChanged(var payload)
 
     property var pendingPythonUpdates: ({})
     property var _queuedBatchedUpdates: []
+    property var _pendingSimulationPanelCalls: []
     property bool showTrainingPresets: true
 
     readonly property bool hasSceneBridge: typeof pythonSceneBridge !== "undefined" && pythonSceneBridge !== null
@@ -324,6 +334,64 @@ Item {
         }
     }
 
+    function _invokeSimulationPanel(methodName, payload) {
+        if (simulationPanel && simulationPanel.isReady && typeof simulationPanel[methodName] === "function") {
+            try {
+                return simulationPanel[methodName](payload)
+            } catch (error) {
+                console.error("SimulationPanel call failed", methodName, error)
+            }
+        } else {
+            _pendingSimulationPanelCalls.push({ name: methodName, payload: payload })
+        }
+        return false
+    }
+
+    function _flushSimulationPanelCalls() {
+        if (!simulationPanel || !simulationPanel.isReady)
+            return
+        if (!_pendingSimulationPanelCalls || !_pendingSimulationPanelCalls.length)
+            return
+        const queue = _pendingSimulationPanelCalls.slice()
+        _pendingSimulationPanelCalls = []
+        for (let i = 0; i < queue.length; ++i) {
+            const entry = queue[i]
+            if (!entry || !entry.name)
+                continue
+            if (typeof simulationPanel[entry.name] !== "function")
+                continue
+            try {
+                simulationPanel[entry.name](entry.payload)
+            } catch (error) {
+                console.error("Failed to flush simulation panel call", entry.name, error)
+            }
+        }
+    }
+
+    function _onSimulationPanelReady() {
+        _flushSimulationPanelCalls()
+    }
+
+    function applyModesSettings(payload) {
+        return _invokeSimulationPanel("applyModesSettings", payload)
+    }
+
+    function applyAnimationSettings(payload) {
+        return _invokeSimulationPanel("applyAnimationSettings", payload)
+    }
+
+    function applyPneumaticSettings(payload) {
+        return _invokeSimulationPanel("applyPneumaticSettings", payload)
+    }
+
+    function applySimulationSettings(payload) {
+        return _invokeSimulationPanel("applySimulationSettings", payload)
+    }
+
+    function applyCylinderSettings(payload) {
+        return _invokeSimulationPanel("applyCylinderSettings", payload)
+    }
+
     Component.onCompleted: {
         for (var i = 0; i < _proxyMethodNames.length; ++i) {
             var methodName = _proxyMethodNames[i]
@@ -331,6 +399,7 @@ Item {
                 root[methodName] = _createProxyMethod(methodName)
             }
         }
+        _flushSimulationPanelCalls()
     }
 
     Loader {
@@ -393,5 +462,29 @@ Item {
         onPresetActivated: function(presetId) {
             console.log("Training preset selected", presetId)
         }
+    }
+
+    Panels.SimulationPanel {
+        id: simulationPanel
+        anchors.top: parent.top
+        anchors.bottom: parent.bottom
+        anchors.left: parent.left
+        anchors.margins: 16
+        z: 9000
+        controller: root
+        modesMetadata: (typeof modesMetadata !== "undefined" ? modesMetadata : {})
+        initialModes: (typeof initialModesSettings !== "undefined" ? initialModesSettings : {})
+        initialAnimation: (typeof initialAnimationSettings !== "undefined" ? initialAnimationSettings : {})
+        initialPneumatic: (typeof initialPneumaticSettings !== "undefined" ? initialPneumaticSettings : {})
+        initialSimulation: (typeof initialSimulationSettings !== "undefined" ? initialSimulationSettings : {})
+        initialCylinder: (typeof initialCylinderSettings !== "undefined" ? initialCylinderSettings : {})
+        onSimulationControlRequested: function(command) { root.simulationControlRequested(command) }
+        onModesPresetSelected: function(presetId) { root.modesPresetSelected(presetId) }
+        onModesModeChanged: function(modeType, newMode) { root.modesModeChanged(modeType, newMode) }
+        onModesPhysicsChanged: function(payload) { root.modesPhysicsChanged(payload) }
+        onModesAnimationChanged: function(payload) { root.modesAnimationChanged(payload) }
+        onPneumaticSettingsChanged: function(payload) { root.pneumaticSettingsChanged(payload) }
+        onSimulationSettingsChanged: function(payload) { root.simulationSettingsChanged(payload) }
+        onCylinderSettingsChanged: function(payload) { root.cylinderSettingsChanged(payload) }
     }
 }

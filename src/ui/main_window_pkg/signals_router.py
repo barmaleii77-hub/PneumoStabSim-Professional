@@ -32,7 +32,30 @@ else:  # pragma: no cover - executed only on headless environments
     QObject = None
 
 from ...pneumo.enums import Line, Wheel
+from ..panels.modes.defaults import (
+    DEFAULT_PHYSICS_OPTIONS,
+    MODE_PRESETS,
+)
 from .qml_bridge import QMLBridge
+
+
+def _make_preset_id(name: str, index: int) -> str:
+    token = (name or f"preset_{index}").strip().lower()
+    normalized = [ch if ch.isalnum() else "_" for ch in token]
+    collapsed = "".join(normalized)
+    while "__" in collapsed:
+        collapsed = collapsed.replace("__", "_")
+    collapsed = collapsed.strip("_")
+    return collapsed or f"preset_{index}"
+
+
+_PRESET_LOOKUP: Dict[str, tuple[int, Dict[str, Any]]] = {}
+for _preset_index, _preset_payload in MODE_PRESETS.items():
+    preset_index = int(_preset_index)
+    preset_name = str(_preset_payload.get("name", ""))
+    preset_id = _make_preset_id(preset_name, preset_index)
+    _PRESET_LOOKUP[preset_id] = (preset_index, dict(_preset_payload))
+    _PRESET_LOOKUP[str(preset_index)] = (preset_index, dict(_preset_payload))
 from ..environment_schema import (
     EnvironmentValidationError,
     validate_scene_settings,
@@ -1051,6 +1074,22 @@ class SignalsRouter:
 
         qml_payload: Dict[str, Any] = {}
         settings_payload: Dict[str, Any] = {}
+        modes_payload: Dict[str, Any] = {}
+
+        modes_key_map = {
+            "amplitude": "amplitude",
+            "frequency": "frequency",
+            "phase_global": "phase",
+            "phase_fl": "lf_phase",
+            "phase_fr": "rf_phase",
+            "phase_rl": "lr_phase",
+            "phase_rr": "rr_phase",
+            "smoothing_enabled": "smoothing_enabled",
+            "smoothing_duration_ms": "smoothing_duration_ms",
+            "smoothing_angle_snap_deg": "smoothing_angle_snap_deg",
+            "smoothing_piston_snap_m": "smoothing_piston_snap_m",
+            "smoothing_easing": "smoothing_easing",
+        }
 
         def _assign_numeric(source_key: str, settings_key: str, qml_key: str) -> None:
             if settings_key in settings_payload and qml_key in qml_payload:
@@ -1064,6 +1103,9 @@ class SignalsRouter:
                 return
             settings_payload[settings_key] = numeric
             qml_payload[qml_key] = numeric
+            modes_key = modes_key_map.get(settings_key)
+            if modes_key:
+                modes_payload[modes_key] = numeric
 
         def _assign_bool(source_keys, settings_key: str, qml_key: str) -> None:
             for key in source_keys:
@@ -1071,6 +1113,9 @@ class SignalsRouter:
                     value = bool(params.get(key))
                     settings_payload[settings_key] = value
                     qml_payload[qml_key] = value
+                    modes_key = modes_key_map.get(settings_key)
+                    if modes_key:
+                        modes_payload[modes_key] = value
                     return
 
         _assign_numeric("amplitude", "amplitude", "amplitude")
@@ -1136,6 +1181,9 @@ class SignalsRouter:
             text = str(easing_value)
             settings_payload["smoothing_easing"] = text
             qml_payload["smoothingEasingName"] = text
+            modes_key = modes_key_map.get("smoothing_easing")
+            if modes_key:
+                modes_payload[modes_key] = text
 
         running_value = None
         if "is_running" in params:
@@ -1165,6 +1213,248 @@ class SignalsRouter:
 
         if settings_payload:
             window._apply_settings_update("animation", settings_payload)
+        if modes_payload:
+            window._apply_settings_update("modes", modes_payload)
+            SignalsRouter._push_modes_state(window)
+        SignalsRouter._push_animation_panel(window)
+
+    @staticmethod
+    def handle_modes_preset_selected(
+        window: MainWindow, preset_id: str
+    ) -> None:
+        """Apply a preset selected from the QML simulation panel."""
+
+        key = (preset_id or "").strip().lower()
+        if not key:
+            return
+
+        entry = _PRESET_LOOKUP.get(key)
+        if entry is None:
+            SignalsRouter.logger.debug("Unknown modes preset id: %s", preset_id)
+            return
+
+        _, preset = entry
+        modes_updates: Dict[str, Any] = {
+            "mode_preset": key,
+        }
+
+        sim_type = preset.get("sim_type")
+        if sim_type:
+            modes_updates["sim_type"] = str(sim_type)
+
+        thermo_mode = preset.get("thermo_mode")
+        if thermo_mode:
+            modes_updates["thermo_mode"] = str(thermo_mode)
+
+        physics_payload: Dict[str, bool] = {}
+        for option in DEFAULT_PHYSICS_OPTIONS.keys():
+            if option in preset:
+                physics_payload[option] = bool(preset[option])
+        if physics_payload:
+            modes_updates["physics"] = physics_payload
+
+        window._apply_settings_update("modes", modes_updates)
+        SignalsRouter._push_modes_state(window)
+
+        if thermo_mode:
+            try:
+                bus = window.simulation_manager.state_bus
+                bus.set_thermo_mode.emit(str(thermo_mode))
+            except Exception as exc:
+                SignalsRouter.logger.debug(
+                    "Failed to emit thermo mode change: %s", exc
+                )
+
+    @staticmethod
+    def handle_modes_mode_changed(
+        window: MainWindow, mode_type: str, new_mode: str
+    ) -> None:
+        """Handle simulation/thermo mode toggles from QML."""
+
+        mode_key = (mode_type or "").strip()
+        if not mode_key:
+            return
+
+        value = (new_mode or "").strip()
+        if not value:
+            return
+
+        modes_updates = {mode_key: value}
+        # Manual change implies custom preset
+        modes_updates.setdefault("mode_preset", "custom")
+        window._apply_settings_update("modes", modes_updates)
+        SignalsRouter._push_modes_state(window)
+
+        if mode_key.lower() == "thermo_mode":
+            try:
+                bus = window.simulation_manager.state_bus
+                bus.set_thermo_mode.emit(value)
+            except Exception as exc:
+                SignalsRouter.logger.debug(
+                    "Failed to emit thermo mode change: %s", exc
+                )
+
+    @staticmethod
+    def handle_modes_physics_changed(
+        window: MainWindow, payload: Mapping[str, Any]
+    ) -> None:
+        """Handle physics option toggles from QML."""
+
+        if not isinstance(payload, Mapping):
+            return
+
+        physics_updates: Dict[str, bool] = {}
+        for key in DEFAULT_PHYSICS_OPTIONS.keys():
+            if key in payload:
+                physics_updates[key] = bool(payload[key])
+
+        if not physics_updates:
+            return
+
+        window._apply_settings_update(
+            "modes",
+            {
+                "physics": physics_updates,
+                "mode_preset": "custom",
+            },
+        )
+        SignalsRouter._push_modes_state(window)
+
+    @staticmethod
+    def handle_pneumatic_settings_changed(
+        window: MainWindow, payload: Mapping[str, Any]
+    ) -> None:
+        """Handle pneumatic parameter edits from QML."""
+
+        if not isinstance(payload, Mapping):
+            return
+
+        numeric_keys = {
+            "receiver_volume",
+            "cv_atmo_dp",
+            "cv_tank_dp",
+            "cv_atmo_dia",
+            "cv_tank_dia",
+            "relief_min_pressure",
+            "relief_stiff_pressure",
+            "relief_safety_pressure",
+            "throttle_min_dia",
+            "throttle_stiff_dia",
+            "atmo_temp",
+        }
+        pneumatic_updates: Dict[str, Any] = {}
+        for key in numeric_keys:
+            if key not in payload:
+                continue
+            try:
+                pneumatic_updates[key] = float(payload[key])
+            except (TypeError, ValueError):
+                SignalsRouter.logger.debug(
+                    "Skipping non-numeric pneumatic value %s=%r", key, payload[key]
+                )
+
+        if "master_isolation_open" in payload:
+            pneumatic_updates["master_isolation_open"] = bool(
+                payload.get("master_isolation_open")
+            )
+
+        if "volume_mode" in payload:
+            pneumatic_updates["volume_mode"] = str(payload.get("volume_mode", "")).upper()
+
+        if not pneumatic_updates:
+            return
+
+        window._apply_settings_update("pneumatic", pneumatic_updates)
+        SignalsRouter._push_pneumatic_state(window)
+
+        if "receiver_volume" in pneumatic_updates:
+            receiver_volume = pneumatic_updates.get("receiver_volume")
+            manager = getattr(window, "settings_manager", None)
+            receiver_mode = pneumatic_updates.get("volume_mode")
+            if receiver_mode is None and manager is not None:
+                try:
+                    current = manager.get_category("pneumatic") or {}
+                    receiver_mode = current.get("volume_mode", "MANUAL")
+                except Exception:
+                    receiver_mode = "MANUAL"
+            try:
+                bus = window.simulation_manager.state_bus
+                bus.set_receiver_volume.emit(float(receiver_volume), str(receiver_mode))
+            except Exception as exc:
+                SignalsRouter.logger.debug(
+                    "Failed to emit receiver volume update: %s", exc
+                )
+
+    @staticmethod
+    def handle_simulation_settings_changed(
+        window: MainWindow, payload: Mapping[str, Any]
+    ) -> None:
+        """Handle core simulation settings edits from QML."""
+
+        if not isinstance(payload, Mapping):
+            return
+
+        numeric_map = {
+            "physics_dt": float,
+            "render_vsync_hz": float,
+            "max_steps_per_frame": int,
+            "max_frame_time": float,
+        }
+        simulation_updates: Dict[str, Any] = {}
+        for key, caster in numeric_map.items():
+            if key not in payload:
+                continue
+            try:
+                simulation_updates[key] = caster(payload[key])
+            except (TypeError, ValueError):
+                SignalsRouter.logger.debug(
+                    "Skipping invalid simulation value %s=%r", key, payload[key]
+                )
+
+        if not simulation_updates:
+            return
+
+        window._apply_settings_update("simulation", simulation_updates)
+        SignalsRouter._push_simulation_state(window)
+
+        if "physics_dt" in simulation_updates:
+            try:
+                bus = window.simulation_manager.state_bus
+                bus.set_physics_dt.emit(float(simulation_updates["physics_dt"]))
+            except Exception as exc:
+                SignalsRouter.logger.debug(
+                    "Failed to emit physics_dt update: %s", exc
+                )
+
+    @staticmethod
+    def handle_cylinder_settings_changed(
+        window: MainWindow, payload: Mapping[str, Any]
+    ) -> None:
+        """Handle cylinder constant updates (dead zones) from QML."""
+
+        if not isinstance(payload, Mapping):
+            return
+
+        numeric_keys = {"dead_zone_head_m3", "dead_zone_rod_m3"}
+        cylinder_updates: Dict[str, float] = {}
+        for key in numeric_keys:
+            if key not in payload:
+                continue
+            try:
+                cylinder_updates[key] = float(payload[key])
+            except (TypeError, ValueError):
+                SignalsRouter.logger.debug(
+                    "Skipping invalid cylinder value %s=%r", key, payload[key]
+                )
+
+        if not cylinder_updates:
+            return
+
+        window._apply_settings_update(
+            "constants",
+            {"geometry": {"cylinder": cylinder_updates}},
+        )
+        SignalsRouter._push_cylinder_state(window)
 
     @staticmethod
     def handle_animation_toggled(window: MainWindow, running: bool) -> None:
@@ -1500,3 +1790,67 @@ class SignalsRouter:
             return
 
         dispatcher(window, pending)
+
+    # ------------------------------------------------------------------
+    # Settings helpers (Python → QML synchronisation)
+    # ------------------------------------------------------------------
+    @staticmethod
+    def _get_settings_category(window: "MainWindow", category: str) -> Dict[str, Any]:
+        manager = getattr(window, "settings_manager", None)
+        if manager is None:
+            return {}
+        try:
+            payload = manager.get_category(category) or {}
+        except Exception:
+            return {}
+        if not isinstance(payload, dict):
+            return {}
+        return dict(payload)
+
+    @staticmethod
+    def _get_settings_path(window: "MainWindow", path: str) -> Dict[str, Any]:
+        manager = getattr(window, "settings_manager", None)
+        if manager is None:
+            return {}
+        try:
+            payload = manager.get(path, {}) or {}
+        except Exception:
+            return {}
+        if not isinstance(payload, dict):
+            return {}
+        return dict(payload)
+
+    @staticmethod
+    def _push_modes_state(window: "MainWindow") -> None:
+        payload = SignalsRouter._get_settings_category(window, "modes")
+        QMLBridge.invoke_qml_function(window, "applyModesSettings", dict(payload))
+
+    @staticmethod
+    def _push_pneumatic_state(window: "MainWindow") -> None:
+        payload = SignalsRouter._get_settings_category(window, "pneumatic")
+        QMLBridge.invoke_qml_function(window, "applyPneumaticSettings", dict(payload))
+
+    @staticmethod
+    def _push_simulation_state(window: "MainWindow") -> None:
+        payload = SignalsRouter._get_settings_category(window, "simulation")
+        QMLBridge.invoke_qml_function(window, "applySimulationSettings", dict(payload))
+
+    @staticmethod
+    def _push_cylinder_state(window: "MainWindow") -> None:
+        payload = SignalsRouter._get_settings_path(
+            window, "current.constants.geometry.cylinder"
+        )
+        QMLBridge.invoke_qml_function(window, "applyCylinderSettings", dict(payload))
+
+    @staticmethod
+    def _push_animation_panel(window: "MainWindow") -> None:
+        manager = getattr(window, "settings_manager", None)
+        if manager is None:
+            return
+        try:
+            payload = manager.get("animation", {}) or {}
+        except Exception:
+            payload = {}
+        if not isinstance(payload, dict):
+            payload = {}
+        QMLBridge.invoke_qml_function(window, "applyAnimationSettings", dict(payload))

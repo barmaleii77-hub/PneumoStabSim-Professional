@@ -552,6 +552,36 @@ class MainWindow(QMainWindow):
         SignalsRouter.handle_animation_changed(self, params)
 
     @Slot(str)
+    def _on_modes_preset_selected(self, preset_id: str) -> None:
+        """Modes preset selected → SignalsRouter"""
+        SignalsRouter.handle_modes_preset_selected(self, preset_id)
+
+    @Slot(str, str)
+    def _on_modes_mode_changed(self, mode_type: str, new_mode: str) -> None:
+        """Modes toggle changed → SignalsRouter"""
+        SignalsRouter.handle_modes_mode_changed(self, mode_type, new_mode)
+
+    @Slot(dict)
+    def _on_modes_physics_changed(self, payload: Dict[str, Any]) -> None:
+        """Modes physics toggles changed → SignalsRouter"""
+        SignalsRouter.handle_modes_physics_changed(self, payload)
+
+    @Slot(dict)
+    def _on_pneumatic_settings_changed(self, payload: Dict[str, Any]) -> None:
+        """Pneumatic settings changed in QML → SignalsRouter"""
+        SignalsRouter.handle_pneumatic_settings_changed(self, payload)
+
+    @Slot(dict)
+    def _on_simulation_settings_changed(self, payload: Dict[str, Any]) -> None:
+        """Core simulation settings changed in QML → SignalsRouter"""
+        SignalsRouter.handle_simulation_settings_changed(self, payload)
+
+    @Slot(dict)
+    def _on_cylinder_settings_changed(self, payload: Dict[str, Any]) -> None:
+        """Cylinder constants changed in QML → SignalsRouter"""
+        SignalsRouter.handle_cylinder_settings_changed(self, payload)
+
+    @Slot(str)
     def _on_sim_control(self, command: str) -> None:
         """Simulation control → SignalsRouter"""
         SignalsRouter.handle_sim_control(self, command)
