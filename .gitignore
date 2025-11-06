@@ -481,6 +481,7 @@ check_*.py
 !tools/test_artifact_analyzer.py
 !src/tools/validate_shaders.py
 !tests/unit/test_signal_tracing.py
+!tests/integration/test_simulation_contracts.py
 !tests/unit/tools/test_settings_audit.py
 !tests/unit/tools/test_redundant_files.py
 !tests/unit/tools/test_project_sanitize.py
