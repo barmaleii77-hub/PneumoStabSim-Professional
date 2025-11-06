@@ -33,11 +33,15 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+          cache-dependency-path: |
+            requirements*.txt
+            pyproject.toml
 
       - name: Upgrade pip and install tooling
         run: |
           python -m pip install --upgrade pip
-          python -m pip install aqtinstall
+          python -m pip install uv aqtinstall
 
       - name: Install project dependencies
         run: python -m pip install -r requirements-dev.txt
@@ -76,10 +80,13 @@ jobs:
               fh.write(f"QT_PLUGIN_PATH={plugin_path}{os.linesep}")
               fh.write(f"QML2_IMPORT_PATH={qml_path}{os.linesep}")
 
-      - name: Run nightly autonomous check
-        env:
-          CHECK_AUTONOMOUS_ARGS: "--task verify --history-limit 20 --sanitize --launch-trace --trace-history-limit 10 --sanitize-history 5"
+      - name: Run make check
         run: make check
+
+      - name: Run autonomous check with launch trace
+        env:
+          AUTONOMOUS_CHECK_ARGS: "--task verify --history-limit 20 --sanitize --launch-trace --trace-history-limit 10 --sanitize-history 5"
+        run: make autonomous-check
 
       - name: Targeted smoke suite
         run: make smoke
@@ -93,9 +100,6 @@ jobs:
         with:
           name: nightly-quality-${{ matrix.os }}
           path: |
-            reports/quality/autonomous_check_*.log
-            reports/quality/autonomous_check_latest.log
-            reports/quality/autonomous_check_status.json
-            reports/quality/launch_traces/**
+            reports/quality/**
             reports/environment/**
           if-no-files-found: warn

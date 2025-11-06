@@ -12,53 +12,8 @@ env:
   QT_VERSION: "6.10.0"
 
 jobs:
-  lint:
-    name: Lint & Type Check (Ubuntu)
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: ${{ env.PYTHON_VERSION }}
-          cache: pip
-          cache-dependency-path: |
-            pyproject.toml
-            requirements*.txt
-
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install -e .[dev]
-
-      - name: Ruff & formatting lint
-        shell: bash
-        run: |
-          python -m tools.ci_tasks lint || { python -m ruff format --check . && python -m ruff check .; }
-
-      - name: Static type checking
-        shell: bash
-        run: |
-          python -m tools.ci_tasks typecheck || python -m mypy .
-
-      - name: Validate translations
-        shell: bash
-        run: |
-          python tools/update_translations.py --check
-
-      - name: Upload localization reports
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: localization-reports
-          path: reports/localization
-          if-no-files-found: warn
-
-  tests:
-    name: Test matrix (Qt ${{ env.QT_VERSION }})
-    needs: lint
+  quality:
+    name: Quality gate (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -80,11 +35,15 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+          cache-dependency-path: |
+            requirements*.txt
+            pyproject.toml
 
       - name: Upgrade pip and install tooling
         run: |
           python -m pip install --upgrade pip
-          python -m pip install aqtinstall
+          python -m pip install uv aqtinstall
 
       - name: Install project dependencies
         run: python -m pip install -r requirements-dev.txt
@@ -124,8 +83,6 @@ jobs:
               fh.write(f"QML2_IMPORT_PATH={qml_path}{os.linesep}")
 
       - name: Run make check
-        env:
-          CHECK_AUTONOMOUS_ARGS: "--task verify --history-limit 10 --sanitize --launch-trace --sanitize-history 5 --trace-history-limit 5"
         run: make check
 
       - name: Upload quality artefacts
@@ -134,9 +91,6 @@ jobs:
         with:
           name: quality-${{ matrix.os }}
           path: |
-            reports/quality/autonomous_check_*.log
-            reports/quality/autonomous_check_latest.log
-            reports/quality/autonomous_check_status.json
-            reports/quality/launch_traces/**
+            reports/quality/**
             reports/environment/**
           if-no-files-found: warn

@@ -49,7 +49,9 @@ uv-first environment strategy captured in the renovation master plan.
    python -m tools.environment.verify_qt_setup
    ```
 6. **Run the quality gate** – executes Ruff, mypy, pytest, and qmllint via the
-   helper runner and writes consolidated logs to `reports/quality/`.
+   helper runner and writes consolidated logs (`ruff_format.log`, `ruff_check.log`,
+   `mypy.log`, `pytest.log`, `qmllint.log`, and `verify_status.json`) to
+   `reports/quality/`.
    ```bash
    make check
    ```
@@ -106,9 +108,9 @@ uv-first environment strategy captured in the renovation master plan.
   fast inner loop, while `make autonomous-check` stores the aggregated results
   under `reports/quality/` (including `autonomous_check_latest.log` and the
   JSON status snapshot) so regressions are easy to audit.
-- `make check` delegates to the autonomous runner and augments it with shader,
-  localization, and Qt environment probes. Use this target when you need the
-  exact CI contract on a workstation.
+- `make check` chains the core quality gate (`python -m tools.ci_tasks verify`)
+  with shader validation, localization checks, and Qt environment probes. Use
+  this target when you need the exact CI contract on a workstation.
 - `python -m tools.environment.verify_qt_setup` validates that Qt plugins and
   Qt Quick 3D bindings are discoverable on the current workstation. Capture the
   first successful transcript in `reports/environment/qt-smoke.md`.
@@ -141,6 +143,10 @@ uv-first environment strategy captured in the renovation master plan.
 - **CI reproductions** – run `make check` to mirror the GitHub Actions jobs. The
   command emits logs in `reports/quality/` which are uploaded as workflow
   artefacts (see the `quality-<os>` bundle on successful or failed runs).
+- **Quality gate failures** – inspect the corresponding log in
+  `reports/quality/` (`ruff_*.log`, `mypy.log`, `qmllint.log`, `pytest.log`) and
+  the aggregated `verify_status.json` summary. These files are bundled in the
+  CI artefacts for remote debugging and remain locally after each run.
 - **Investigating CI failures** – download the `quality-<os>` artefact from the
   corresponding workflow. It contains the autonomous-check Markdown log,
   `autonomous_check_status.json`, and any Qt environment reports produced by the
