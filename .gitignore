@@ -202,6 +202,8 @@ rcf/
 # Feedback artefacts
 reports/feedback/inbox.jsonl
 reports/feedback/sent.log
+reports/tests/test_analysis_summary.json
+reports/tests/test_analysis_summary.md
 
 # Windows Store app package directories and files
 AppPackages/
@@ -476,6 +478,7 @@ check_*.py
 !tools/validate_settings.py
 !tools/validate_shaders.py
 !tools/graphics/validate_hdr_orientation.py
+!tools/test_artifact_analyzer.py
 !src/tools/validate_shaders.py
 !tests/unit/test_signal_tracing.py
 !tests/unit/tools/test_settings_audit.py
