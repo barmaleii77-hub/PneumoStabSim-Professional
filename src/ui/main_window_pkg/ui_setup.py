@@ -547,6 +547,19 @@ class UISetup:
                     training_exc,
                 )
 
+            try:
+                telemetry_bridge = getattr(window, "telemetry_bridge", None)
+                context.setContextProperty("pythonTelemetryBridge", telemetry_bridge)
+                if telemetry_bridge is not None:
+                    UISetup.logger.info(
+                        "    ✅ Telemetry bridge exposed to QML context"
+                    )
+            except Exception as telemetry_exc:
+                UISetup.logger.warning(
+                    "    ⚠️ Failed to expose telemetry bridge: %s",
+                    telemetry_exc,
+                )
+
             UISetup.logger.info("    ✅ Window context registered")
 
             try:

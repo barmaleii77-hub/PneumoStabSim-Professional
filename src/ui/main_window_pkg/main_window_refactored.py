@@ -42,6 +42,7 @@ from src.common.signal_trace import get_signal_trace_service
 from src.core.settings_manager import ProfileSettingsManager
 from src.services import FeedbackService
 from src.ui.feedback import FeedbackController
+from src.ui.bridge.telemetry_bridge import TelemetryDataBridge
 
 
 class MainWindow(QMainWindow):
@@ -148,6 +149,18 @@ class MainWindow(QMainWindow):
         except Exception as exc:
             self.signal_trace_service = None
             self.logger.debug("SignalTraceService unavailable: %s", exc, exc_info=exc)
+
+        self.telemetry_bridge = None
+        try:
+            self.telemetry_bridge = TelemetryDataBridge()
+            self.logger.info("TelemetryDataBridge initialized")
+        except Exception as telemetry_exc:
+            self.telemetry_bridge = None
+            self.logger.warning(
+                "TelemetryDataBridge unavailable: %s",
+                telemetry_exc,
+                exc_info=telemetry_exc,
+            )
 
         # IBL Logger
         from ..ibl_logger import get_ibl_logger, log_ibl_event
