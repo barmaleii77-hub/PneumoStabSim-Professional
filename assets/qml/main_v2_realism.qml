@@ -705,9 +705,9 @@ property real tankPressure: 0.0
             vignetteActive: root.vignetteEnabled
             vignetteRadiusValue: root.vignetteRadius
             vignetteStrengthValue: root.vignetteStrength
-            adjustmentBrightnessValue: root.colorAdjustmentBrightness
-            adjustmentContrastValue: root.colorAdjustmentContrast
-            adjustmentSaturationValue: root.colorAdjustmentSaturation
+            adjustmentBrightness: root.colorAdjustmentBrightness
+            adjustmentContrast: root.colorAdjustmentContrast
+            adjustmentSaturation: root.colorAdjustmentSaturation
         }
 
         // === FIXED: Orbital camera rig - rotation strictly around bottom beam center ===

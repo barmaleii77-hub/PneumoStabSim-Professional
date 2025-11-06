@@ -52,7 +52,13 @@ def _make_baseline_payload() -> dict[str, object]:
         "quality": {"preset": "ultra"},
         "camera": {"fov": 60.0},
         "materials": _make_materials(),
-        "effects": {"bloom_enabled": True},
+        "effects": {
+            "bloom_enabled": True,
+            "color_adjustments_enabled": True,
+            "adjustment_brightness": 0.0,
+            "adjustment_contrast": 0.0,
+            "adjustment_saturation": 0.0,
+        },
         "scene": {"exposure": 1.2},
     }
     animation = {"is_running": False, "frequency": 1.0}

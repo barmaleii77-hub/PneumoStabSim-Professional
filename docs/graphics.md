@@ -10,6 +10,12 @@
 - Эффекты (`effects`): bloom, DoF, motion blur, lens flare, vignette, tonemap
 - Материалы (`materials`): параметры PBR материалов для частей модели
 
+### Цветокоррекция ExtendedSceneEnvironment
+
+- `SceneEnvironmentController.qml` теперь подхватывает настройки `color_adjustments_enabled`, `adjustment_brightness`, `adjustment_contrast`, `adjustment_saturation` из JSON и вычисляет флаг `colorAdjustmentsHasOverrides`, синхронизируя его с корневым `main.qml` для диагностики UI. 【F:assets/qml/effects/SceneEnvironmentController.qml†L198-L240】【F:assets/qml/main.qml†L114-L122】
+- В `GraphicsPanel` добавлен отдельный переключатель «Цветокоррекция», который синхронизирован с группой слайдеров на вкладке эффектов и проксирует сигнал `effects_changed`, чтобы настройки QML и JSON сохранялись консистентно. 【F:src/ui/panels/graphics/panel_graphics_refactored.py†L108-L214】
+- Автотесты покрывают новую синхронизацию: проверяется взаимное обновление чекбоксов и корректная работа кнопок пресетов (`reset/save/export`), включая сохранение текущего состояния и экспорт в `reports/graphics`. 【F:tests/ui/test_graphics_scene_quality_tabs.py†L129-L207】
+
 ### Наследие UFrameScene и что исчезло
 
 - В legacy-заглушке `main_stub.qml` использовался пульсирующий индикатор в правом нижнем углу, который сразу сигнализировал об успешной загрузке 3D-сцены. При миграции на модульную архитектуру этот визуальный маяк был потерян, поэтому пользовательский контроль за готовностью сцены стал менее очевидным. 【F:archive/assets/qml/legacy_backups/main_stub.qml†L50-L87】

@@ -71,6 +71,7 @@ ExtendedSceneEnvironment {
     property bool vignetteActive: true
     property real vignetteRadiusValue: 0.4
     property real vignetteStrengthValue: 0.7
+    property bool colorAdjustmentsActive: true
     property real adjustmentBrightnessValue: 1.0
     property real adjustmentContrastValue: 1.05
     property real adjustmentSaturationValue: 1.05
@@ -136,7 +137,7 @@ ExtendedSceneEnvironment {
     vignetteRadius: env.vignetteRadiusValue
     vignetteStrength: env.vignetteStrengthValue
 
-    colorAdjustmentsEnabled: true
+    colorAdjustmentsEnabled: env.colorAdjustmentsActive
     adjustmentBrightness: env.adjustmentBrightnessValue
     adjustmentContrast: env.adjustmentContrastValue
     adjustmentSaturation: env.adjustmentSaturationValue

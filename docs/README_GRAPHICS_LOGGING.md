@@ -57,7 +57,7 @@ logger = get_graphics_logger()
 for event in logger.get_recent_changes(5):
     print(f"{event.parameter_name}: {event.old_value} → {event.new_value}")
 
-# Экспортировать анализ
+# Экспортировать пресет и отчет
 panel.export_sync_analysis()
 ```
 
@@ -100,7 +100,7 @@ def _update_lighting(self, group: str, key: str, value: Any):
 Интерактивное тестирование:
 - Автоматические тестовые изменения
 - Отслеживание QML обновлений
-- Экспорт анализа
+- Экспорт пресета и анализа
 
 ### 4. Анализатор логов (`analyze_graphics_logs.py`)
 
@@ -128,7 +128,7 @@ logger = get_graphics_logger()
 # 4. Просмотреть изменения
 recent = logger.get_recent_changes(10)
 
-# 5. Экспортировать анализ
+# 5. Экспортировать пресет и отчет
 panel.export_sync_analysis()
 ```
 

@@ -566,6 +566,10 @@
           "title": "Vignette Radius",
           "type": "number"
         },
+        "color_adjustments_enabled": {
+          "title": "Color Adjustments Enabled",
+          "type": "boolean"
+        },
         "adjustment_brightness": {
           "title": "Adjustment Brightness",
           "type": "number"
@@ -608,6 +612,7 @@
         "vignette",
         "vignette_strength",
         "vignette_radius",
+        "color_adjustments_enabled",
         "adjustment_brightness",
         "adjustment_contrast",
         "adjustment_saturation"

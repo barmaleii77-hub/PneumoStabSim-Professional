@@ -9,8 +9,13 @@ pytest.importorskip(
     exc_type=ImportError,
 )
 
+from copy import deepcopy
+from pathlib import Path
+
 from src.ui.panels.graphics import environment_tab as environment_tab_module
+from src.common.logging_widgets import LoggingCheckBox
 from src.ui.panels.graphics.environment_tab import EnvironmentTab
+from src.ui.panels.graphics.effects_tab import EffectsTab
 from src.ui.panels.graphics.panel_graphics_refactored import GraphicsPanel
 from src.ui.panels.graphics.quality_tab import QualityTab
 from src.ui.panels.graphics.scene_tab import SceneTab
@@ -54,6 +59,93 @@ def test_environment_tab_discovers_hdr_relative_to_project_root(monkeypatch, qap
         assert captured["qml_root"] == project_root / "assets" / "qml"
     finally:
         tab.deleteLater()
+
+
+@pytest.mark.gui
+def test_graphics_panel_color_toggle_sync(qapp):
+    panel = GraphicsPanel()
+
+    try:
+        toggle = panel._color_adjustments_toggle
+        assert isinstance(toggle, LoggingCheckBox)
+
+        effects_tab = panel.effects_tab
+        assert effects_tab is not None
+
+        color_checkbox = effects_tab._controls["color.enabled"]
+        assert isinstance(color_checkbox, LoggingCheckBox)
+
+        toggle.setChecked(False)
+        assert color_checkbox.isChecked() is False
+        state_after_toggle = effects_tab.get_state()
+        assert state_after_toggle["color_adjustments_enabled"] is False
+
+        color_checkbox.setChecked(True)
+        assert toggle.isChecked() is True
+    finally:
+        panel.deleteLater()
+
+
+@pytest.mark.gui
+def test_graphics_panel_preset_buttons_persist_state(monkeypatch, tmp_path, qapp):
+    panel = GraphicsPanel()
+
+    try:
+        from PySide6 import QtTest  # type: ignore
+
+        baseline_state = deepcopy(panel.collect_state())
+        recorded: dict[str, object] = {}
+
+        def fake_reset_to_defaults() -> dict[str, dict[str, object]]:
+            recorded["reset_called"] = True
+            return deepcopy(baseline_state)
+
+        def fake_save_defaults(state: dict[str, object]) -> None:
+            recorded["save_defaults_called"] = deepcopy(state)
+
+        def fake_save_current(state: dict[str, object]) -> None:
+            recorded["save_current_called"] = deepcopy(state)
+
+        panel.settings_service.reset_to_defaults = fake_reset_to_defaults  # type: ignore[assignment]
+        panel.settings_service.save_current_as_defaults = fake_save_defaults  # type: ignore[assignment]
+        panel.settings_service.save_current = fake_save_current  # type: ignore[assignment]
+
+        def fake_export_report() -> Path:
+            report_path = tmp_path / "graphics-analysis.json"
+            recorded["analysis_report"] = report_path
+            return report_path
+
+        def fake_analyze() -> dict[str, object]:
+            analysis = {"status": "ok"}
+            recorded["analysis"] = analysis
+            return analysis
+
+        panel.graphics_logger.export_analysis_report = fake_export_report  # type: ignore[attr-defined]
+        panel.graphics_logger.analyze_qml_sync = fake_analyze  # type: ignore[attr-defined]
+
+        preset_spy = QtTest.QSignalSpy(panel.preset_applied)
+
+        panel.reset_to_defaults()
+        assert recorded.get("reset_called") is True
+        assert preset_spy.count() >= 1
+
+        panel.save_current_as_defaults()
+        saved_state = recorded.get("save_defaults_called")
+        assert isinstance(saved_state, dict)
+        assert saved_state == panel.collect_state()
+
+        monkeypatch.chdir(tmp_path)
+        panel.export_sync_analysis()
+        exported_state = recorded.get("save_current_called")
+        assert isinstance(exported_state, dict)
+        assert exported_state == panel.collect_state()
+
+        export_dir = tmp_path / "reports" / "graphics"
+        assert export_dir.exists()
+        exported = list(export_dir.glob("graphics-preset-*.json"))
+        assert exported, "Exported preset file not found"
+    finally:
+        panel.deleteLater()
 
 
 @pytest.mark.gui
@@ -123,3 +215,32 @@ def test_camera_controls_signals(qapp):
         assert pytest.approx(slider.value(), rel=1e-3) == payload["orbit_distance"]
     finally:
         panel.deleteLater()
+
+
+@pytest.mark.gui
+def test_effects_tab_color_adjustments_toggle(qapp):
+    tab = EffectsTab()
+
+    try:
+        checkbox = tab._controls["color.enabled"]
+        assert isinstance(checkbox, LoggingCheckBox)
+
+        sliders = [
+            tab._controls["color.brightness"],
+            tab._controls["color.contrast"],
+            tab._controls["color.saturation"],
+        ]
+
+        # Disable adjustments and verify sliders follow
+        checkbox.setChecked(False)
+        for slider in sliders:
+            assert not slider.isEnabled()
+
+        checkbox.setChecked(True)
+        for slider in sliders:
+            assert slider.isEnabled()
+
+        state = tab.get_state()
+        assert state["color_adjustments_enabled"] is True
+    finally:
+        tab.deleteLater()

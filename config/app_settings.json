@@ -524,6 +524,7 @@
         "vignette": false,
         "vignette_strength": 0.35,
         "vignette_radius": 0.5,
+        "color_adjustments_enabled": true,
         "adjustment_brightness": 0.0,
         "adjustment_contrast": 0.0,
         "adjustment_saturation": 0.0
@@ -1617,6 +1618,7 @@
         "vignette": false,
         "vignette_strength": 0.35,
         "vignette_radius": 0.5,
+        "color_adjustments_enabled": true,
         "adjustment_brightness": 0.0,
         "adjustment_contrast": 0.0,
         "adjustment_saturation": 0.0
