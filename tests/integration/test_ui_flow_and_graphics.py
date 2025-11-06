@@ -63,7 +63,9 @@ def test_qml_bridge_snapshot_includes_flow_network_metadata() -> None:
     max_line_intensity = flow_network["maxLineIntensity"]
     assert pytest.approx(max_line_intensity, rel=1e-6) == 0.06
     assert pytest.approx(lines["a1"]["animationSpeed"], rel=1e-6) == 1.0
-    assert pytest.approx(lines["b1"]["animationSpeed"], rel=1e-6) == pytest.approx(0.04 / 0.06, rel=1e-6)
+    assert pytest.approx(lines["b1"]["animationSpeed"], rel=1e-6) == pytest.approx(
+        0.04 / 0.06, rel=1e-6
+    )
 
     relief = flow_network["relief"]
     assert relief["min"]["direction"] == "exhaust"
@@ -71,8 +73,12 @@ def test_qml_bridge_snapshot_includes_flow_network_metadata() -> None:
     assert relief["safety"]["direction"] == "exhaust"
 
     tank_flows = flow_network["tank"]["flows"]
-    expected_total = snapshot.tank.flow_min + snapshot.tank.flow_stiff + snapshot.tank.flow_safety
-    assert pytest.approx(tank_flows["total"], rel=1e-6) == pytest.approx(expected_total, rel=1e-6)
+    expected_total = (
+        snapshot.tank.flow_min + snapshot.tank.flow_stiff + snapshot.tank.flow_safety
+    )
+    assert pytest.approx(tank_flows["total"], rel=1e-6) == pytest.approx(
+        expected_total, rel=1e-6
+    )
 
 
 @pytest.mark.gui
@@ -95,9 +101,15 @@ def test_telemetry_bridge_streams_flow_metrics(qapp) -> None:
     assert samples, "Telemetry bridge did not emit any samples"
     latest = samples[-1]
     values = latest["values"]
-    assert pytest.approx(values["flow.inflow"], rel=1e-6) == pytest.approx(0.09, rel=1e-6)
-    assert pytest.approx(values["flow.outflow"], rel=1e-6) == pytest.approx(0.07, rel=1e-6)
-    assert pytest.approx(values["flow.tank_relief"], rel=1e-6) == pytest.approx(0.04, rel=1e-6)
+    assert pytest.approx(values["flow.inflow"], rel=1e-6) == pytest.approx(
+        0.09, rel=1e-6
+    )
+    assert pytest.approx(values["flow.outflow"], rel=1e-6) == pytest.approx(
+        0.07, rel=1e-6
+    )
+    assert pytest.approx(values["flow.tank_relief"], rel=1e-6) == pytest.approx(
+        0.04, rel=1e-6
+    )
 
 
 class _StubAccessControl:
@@ -144,9 +156,10 @@ def test_visualization_service_enriches_graphics_payload(settings_manager) -> No
     camera_payload = sanitized["camera"]
     assert camera_payload["_access"]["canEdit"] is True
     telemetry = camera_payload.get("hudTelemetry")
-    assert telemetry is not None and telemetry["pivot"]["z"] == pytest.approx(-0.5, rel=1e-6)
+    assert telemetry is not None and telemetry["pivot"]["z"] == pytest.approx(
+        -0.5, rel=1e-6
+    )
 
     latest = service.latest_updates()["camera"]
     assert latest["hudTelemetry"]["pivot"]["x"] == pytest.approx(1.0, rel=1e-6)
     assert latest["_access"]["role"] == "engineer"
-

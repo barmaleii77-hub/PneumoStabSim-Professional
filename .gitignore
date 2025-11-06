@@ -141,6 +141,7 @@ _TeamCity*
 # Qt Shader Baker artefacts
 reports/shaders/**/*.qsb
 reports/shaders/**/*.log
+!reports/shaders/fallback_placeholder.log
 reports/security_audit/*.log
 
 # AxoCover is a Code Coverage Tool
@@ -964,3 +965,5 @@ assets/hdr/*.exr
 /tests/baseline_images/*.png
 
 # END OF .GITIGNORE
+
+!reports/shaders/fallback_placeholder.log

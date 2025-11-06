@@ -448,7 +448,11 @@ class EffectsTab(QWidget):
                 value = self._state.get(state_key)
             state[state_key] = self._normalise_value(state_key, value)
         if "color_adjustments_enabled" in state:
-            active_value = bool(state.get("color_adjustments_active", state["color_adjustments_enabled"]))
+            active_value = bool(
+                state.get(
+                    "color_adjustments_active", state["color_adjustments_enabled"]
+                )
+            )
             state["color_adjustments_active"] = active_value
         return state
 

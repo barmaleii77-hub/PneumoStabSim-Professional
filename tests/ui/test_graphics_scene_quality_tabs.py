@@ -260,7 +260,11 @@ def test_quality_presets_emit_without_qt_warnings(qapp):
     warnings: list[tuple[QtMsgType, str]] = []
 
     def message_handler(msg_type, _context, message):  # pragma: no cover - Qt callback
-        if msg_type in (QtMsgType.QtWarningMsg, QtMsgType.QtCriticalMsg, QtMsgType.QtFatalMsg):
+        if msg_type in (
+            QtMsgType.QtWarningMsg,
+            QtMsgType.QtCriticalMsg,
+            QtMsgType.QtFatalMsg,
+        ):
             warnings.append((msg_type, message))
 
     previous_handler = qInstallMessageHandler(message_handler)
