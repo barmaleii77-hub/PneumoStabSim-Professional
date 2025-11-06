@@ -1328,4 +1328,312 @@
         <translation type="unfinished"></translation>
     </message>
 </context>
+<context>
+    <name>SimulationPanel</name>
+    <message>
+        <location filename="../qml/panels/SimulationPanel.qml" line="41"/>
+        <source>Пресет</source>
+        <translation>Preset</translation>
+    </message>
+    <message>
+        <location filename="../qml/panels/SimulationPanel.qml" line="54"/>
+        <source>Управление симуляцией</source>
+        <translation>Simulation Control</translation>
+    </message>
+    <message>
+        <location filename="../qml/panels/SimulationPanel.qml" line="55"/>
+        <source>▶ Старт</source>
+        <translation>▶ Start</translation>
+    </message>
+    <message>
+        <location filename="../qml/panels/SimulationPanel.qml" line="56"/>
+        <source>⏹ Стоп</source>
+        <translation>⏹ Stop</translation>
+    </message>
+    <message>
+        <location filename="../qml/panels/SimulationPanel.qml" line="57"/>
+        <source>⏸ Пауза</source>
+        <translation>⏸ Pause</translation>
+    </message>
+    <message>
+        <location filename="../qml/panels/SimulationPanel.qml" line="58"/>
+        <source>🔄 Сброс</source>
+        <translation>🔄 Reset</translation>
+    </message>
+    <message>
+        <location filename="../qml/panels/SimulationPanel.qml" line="59"/>
+        <source>Статус: %1</source>
+        <translation>Status: %1</translation>
+    </message>
+    <message>
+        <location filename="../qml/panels/SimulationPanel.qml" line="60"/>
+        <source>Используйте кнопки выше или горячие клавиши: Space — старт/пауза, R — сброс.</source>
+        <translation>Use the buttons above or shortcuts: Space — start/pause, R — reset.</translation>
+    </message>
+    <message>
+        <location filename="../qml/panels/SimulationPanel.qml" line="61"/>
+        <source>Режим и пресеты</source>
+        <translation>Mode &amp; Presets</translation>
+    </message>
+    <message>
+        <location filename="../qml/panels/SimulationPanel.qml" line="62"/>
+        <source>Быстрые пресеты</source>
+        <translation>Quick Presets</translation>
+    </message>
+    <message>
+        <location filename="../qml/panels/SimulationPanel.qml" line="63"/>
+        <source>Кинематика</source>
+        <translation>Kinematics</translation>
+    </message>
+    <message>
+        <location filename="../qml/panels/SimulationPanel.qml" line="64"/>
+        <source>Динамика</source>
+        <translation>Dynamics</translation>
+    </message>
+    <message>
+        <location filename="../qml/panels/SimulationPanel.qml" line="65"/>
+        <source>Изотермический</source>
+        <translation>Isothermal</translation>
+    </message>
+    <message>
+        <location filename="../qml/panels/SimulationPanel.qml" line="66"/>
+        <source>Адиабатический</source>
+        <translation>Adiabatic</translation>
+    </message>
+    <message>
+        <location filename="../qml/panels/SimulationPanel.qml" line="67"/>
+        <source>Опции физики</source>
+        <translation>Physics Options</translation>
+    </message>
+    <message>
+        <location filename="../qml/panels/SimulationPanel.qml" line="68"/>
+        <source>Учитывать пружины</source>
+        <translation>Include springs</translation>
+    </message>
+    <message>
+        <location filename="../qml/panels/SimulationPanel.qml" line="69"/>
+        <source>Учитывать демпферы</source>
+        <translation>Include dampers</translation>
+    </message>
+    <message>
+        <location filename="../qml/panels/SimulationPanel.qml" line="70"/>
+        <source>Учитывать пневматику</source>
+        <translation>Include pneumatics</translation>
+    </message>
+    <message>
+        <location filename="../qml/panels/SimulationPanel.qml" line="71"/>
+        <source>Дорожное воздействие</source>
+        <translation>Road excitation</translation>
+    </message>
+    <message>
+        <location filename="../qml/panels/SimulationPanel.qml" line="72"/>
+        <source>Амплитуда (м)</source>
+        <translation>Amplitude (m)</translation>
+    </message>
+    <message>
+        <location filename="../qml/panels/SimulationPanel.qml" line="73"/>
+        <source>Частота (Гц)</source>
+        <translation>Frequency (Hz)</translation>
+    </message>
+    <message>
+        <location filename="../qml/panels/SimulationPanel.qml" line="74"/>
+        <source>Глобальная фаза (°)</source>
+        <translation>Global phase (°)</translation>
+    </message>
+    <message>
+        <location filename="../qml/panels/SimulationPanel.qml" line="75"/>
+        <source>Фаза ЛП (°)</source>
+        <translation>LF phase (°)</translation>
+    </message>
+    <message>
+        <location filename="../qml/panels/SimulationPanel.qml" line="76"/>
+        <source>Фаза ПП (°)</source>
+        <translation>RF phase (°)</translation>
+    </message>
+    <message>
+        <location filename="../qml/panels/SimulationPanel.qml" line="77"/>
+        <source>Фаза ЛЗ (°)</source>
+        <translation>LR phase (°)</translation>
+    </message>
+    <message>
+        <location filename="../qml/panels/SimulationPanel.qml" line="78"/>
+        <source>Фаза ПЗ (°)</source>
+        <translation>RR phase (°)</translation>
+    </message>
+    <message>
+        <location filename="../qml/panels/SimulationPanel.qml" line="79"/>
+        <source>Плавное сглаживание движения</source>
+        <translation>Smooth animation easing</translation>
+    </message>
+    <message>
+        <location filename="../qml/panels/SimulationPanel.qml" line="80"/>
+        <source>Длительность сглаживания (мс)</source>
+        <translation>Smoothing duration (ms)</translation>
+    </message>
+    <message>
+        <location filename="../qml/panels/SimulationPanel.qml" line="81"/>
+        <source>Угол привязки (°)</source>
+        <translation>Angle snap (°)</translation>
+    </message>
+    <message>
+        <location filename="../qml/panels/SimulationPanel.qml" line="82"/>
+        <source>Порог хода поршня (м)</source>
+        <translation>Piston snap threshold (m)</translation>
+    </message>
+    <message>
+        <location filename="../qml/panels/SimulationPanel.qml" line="83"/>
+        <source>OutCubic</source>
+        <translation>OutCubic</translation>
+    </message>
+    <message>
+        <location filename="../qml/panels/SimulationPanel.qml" line="84"/>
+        <source>OutQuad</source>
+        <translation>OutQuad</translation>
+    </message>
+    <message>
+        <location filename="../qml/panels/SimulationPanel.qml" line="85"/>
+        <source>Linear</source>
+        <translation>Linear</translation>
+    </message>
+    <message>
+        <location filename="../qml/panels/SimulationPanel.qml" line="86"/>
+        <source>InOutSine</source>
+        <translation>InOutSine</translation>
+    </message>
+    <message>
+        <location filename="../qml/panels/SimulationPanel.qml" line="87"/>
+        <source>Пневматика</source>
+        <translation>Pneumatics</translation>
+    </message>
+    <message>
+        <location filename="../qml/panels/SimulationPanel.qml" line="88"/>
+        <source>Ручной объём</source>
+        <translation>Manual volume</translation>
+    </message>
+    <message>
+        <location filename="../qml/panels/SimulationPanel.qml" line="89"/>
+        <source>Геометрический расчёт</source>
+        <translation>Geometric calculation</translation>
+    </message>
+    <message>
+        <location filename="../qml/panels/SimulationPanel.qml" line="90"/>
+        <source>Объём ресивера (м³)</source>
+        <translation>Receiver volume (m³)</translation>
+    </message>
+    <message>
+        <location filename="../qml/panels/SimulationPanel.qml" line="91"/>
+        <source>ΔP атмосферного клапана (Па)</source>
+        <translation>Atmospheric valve ΔP (Pa)</translation>
+    </message>
+    <message>
+        <location filename="../qml/panels/SimulationPanel.qml" line="92"/>
+        <source>ΔP клапана ресивера (Па)</source>
+        <translation>Receiver valve ΔP (Pa)</translation>
+    </message>
+    <message>
+        <location filename="../qml/panels/SimulationPanel.qml" line="93"/>
+        <source>Диаметр атмосферного клапана (м)</source>
+        <translation>Atmospheric valve diameter (m)</translation>
+    </message>
+    <message>
+        <location filename="../qml/panels/SimulationPanel.qml" line="94"/>
+        <source>Диаметр клапана ресивера (м)</source>
+        <translation>Receiver valve diameter (m)</translation>
+    </message>
+    <message>
+        <location filename="../qml/panels/SimulationPanel.qml" line="95"/>
+        <source>Порог открытия сброса (Па)</source>
+        <translation>Relief opening threshold (Pa)</translation>
+    </message>
+    <message>
+        <location filename="../qml/panels/SimulationPanel.qml" line="96"/>
+        <source>Жёсткий сброс (Па)</source>
+        <translation>Hard relief (Pa)</translation>
+    </message>
+    <message>
+        <location filename="../qml/panels/SimulationPanel.qml" line="97"/>
+        <source>Аварийный сброс (Па)</source>
+        <translation>Emergency relief (Pa)</translation>
+    </message>
+    <message>
+        <location filename="../qml/panels/SimulationPanel.qml" line="98"/>
+        <source>Диаметр дросселя min (м)</source>
+        <translation>Throttle diameter min (m)</translation>
+    </message>
+    <message>
+        <location filename="../qml/panels/SimulationPanel.qml" line="99"/>
+        <source>Диаметр дросселя жёстк. (м)</source>
+        <translation>Throttle diameter stiff (m)</translation>
+    </message>
+    <message>
+        <location filename="../qml/panels/SimulationPanel.qml" line="100"/>
+        <source>Температура воздуха (°C)</source>
+        <translation>Air temperature (°C)</translation>
+    </message>
+    <message>
+        <location filename="../qml/panels/SimulationPanel.qml" line="101"/>
+        <source>Главный отсечной клапан открыт</source>
+        <translation>Master isolation valve open</translation>
+    </message>
+    <message>
+        <location filename="../qml/panels/SimulationPanel.qml" line="102"/>
+        <source>Настройки симуляции</source>
+        <translation>Simulation settings</translation>
+    </message>
+    <message>
+        <location filename="../qml/panels/SimulationPanel.qml" line="103"/>
+        <source>Шаг физики dt (с)</source>
+        <translation>Physics step dt (s)</translation>
+    </message>
+    <message>
+        <location filename="../qml/panels/SimulationPanel.qml" line="104"/>
+        <source>Ограничение FPS (Гц)</source>
+        <translation>FPS limit (Hz)</translation>
+    </message>
+    <message>
+        <location filename="../qml/panels/SimulationPanel.qml" line="105"/>
+        <source>Шагов на кадр (шт)</source>
+        <translation>Steps per frame</translation>
+    </message>
+    <message>
+        <location filename="../qml/panels/SimulationPanel.qml" line="106"/>
+        <source>Макс. время кадра (с)</source>
+        <translation>Max frame time (s)</translation>
+    </message>
+    <message>
+        <location filename="../qml/panels/SimulationPanel.qml" line="107"/>
+        <source>Мёртвые зоны цилиндров</source>
+        <translation>Cylinder dead zones</translation>
+    </message>
+    <message>
+        <location filename="../qml/panels/SimulationPanel.qml" line="108"/>
+        <source>Головная камера (м³)</source>
+        <translation>Head chamber (m³)</translation>
+    </message>
+    <message>
+        <location filename="../qml/panels/SimulationPanel.qml" line="109"/>
+        <source>Штоковая камера (м³)</source>
+        <translation>Rod chamber (m³)</translation>
+    </message>
+    <message>
+        <location filename="../qml/panels/SimulationPanel.qml" line="110"/>
+        <source>▶ Запущено</source>
+        <translation>▶ Running</translation>
+    </message>
+    <message>
+        <location filename="../qml/panels/SimulationPanel.qml" line="111"/>
+        <source>⏹ Остановлено</source>
+        <translation>⏹ Stopped</translation>
+    </message>
+    <message>
+        <location filename="../qml/panels/SimulationPanel.qml" line="112"/>
+        <source>⏸ Пауза</source>
+        <translation>⏸ Paused</translation>
+    </message>
+    <message>
+        <location filename="../qml/panels/SimulationPanel.qml" line="113"/>
+        <source>🔄 Сброс</source>
+        <translation>🔄 Reset</translation>
+    </message>
+</context>
 </TS>

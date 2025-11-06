@@ -52,3 +52,50 @@ qml_signals:
     connection: queued
     description: >-
       Fired when the user toggles the demo animation from the 3D view.
+  - signal: simulationControlRequested
+    handler: _on_sim_control
+    connection: queued
+    description: >-
+      QML SimulationPanel requested a simulation control command
+      such as start, pause, stop, or reset.
+  - signal: modesPresetSelected
+    handler: _on_modes_preset_selected
+    connection: queued
+    description: >-
+      SimulationPanel preset selection changed and should be applied
+      to Python settings and the simulation pipeline.
+  - signal: modesModeChanged
+    handler: _on_modes_mode_changed
+    connection: queued
+    description: >-
+      Simulation mode (e.g. sim_type or thermo_mode) toggled inside
+      the SimulationPanel.
+  - signal: modesPhysicsChanged
+    handler: _on_modes_physics_changed
+    connection: queued
+    description: >-
+      Physics option checkboxes were modified inside the SimulationPanel.
+  - signal: modesAnimationChanged
+    handler: _on_animation_changed
+    connection: queued
+    description: >-
+      Road excitation or smoothing parameters changed within the
+      SimulationPanel and should refresh animation settings.
+  - signal: pneumaticSettingsChanged
+    handler: _on_pneumatic_settings_changed
+    connection: queued
+    description: >-
+      Pneumatic parameters such as receiver volume or valve thresholds
+      were edited in the SimulationPanel.
+  - signal: simulationSettingsChanged
+    handler: _on_simulation_settings_changed
+    connection: queued
+    description: >-
+      Core simulation settings (time step, frame limits) changed inside
+      the SimulationPanel.
+  - signal: cylinderSettingsChanged
+    handler: _on_cylinder_settings_changed
+    connection: queued
+    description: >-
+      Cylinder metadata (dead zones, volumes) updated via the
+      SimulationPanel and must sync with SettingsManager.

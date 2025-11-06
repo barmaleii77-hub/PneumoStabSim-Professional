@@ -31,6 +31,12 @@ from PySide6.QtGui import QAction, QKeySequence, QSurfaceFormat
 from src.common.settings_manager import get_settings_event_bus, get_settings_manager
 from src.ui.bridge import TrainingPresetBridge
 from src.ui.panels.lighting import LightingSettingsBridge, LightingSettingsFacade
+from src.ui.panels.modes.defaults import (
+    DEFAULT_MODES_PARAMS,
+    DEFAULT_PHYSICS_OPTIONS,
+    MODE_PRESETS,
+    PARAMETER_RANGES,
+)
 
 if TYPE_CHECKING:
     from .main_window_refactored import MainWindow
@@ -214,6 +220,49 @@ class UISetup:
         quality_payload = _read_section("quality")
         lighting_payload = _read_section("lighting")
 
+        modes_payload = manager.get_category("modes") or {}
+        pneumatic_payload = manager.get_category("pneumatic") or {}
+        simulation_payload = manager.get_category("simulation") or {}
+        cylinder_payload = manager.get(
+            "current.constants.geometry.cylinder", {}
+        ) or {}
+
+        def _serialize_mapping(section: str, payload: Dict[str, Any]) -> Dict[str, Any]:
+            if not payload:
+                return {}
+            return _serialize(section, payload)
+
+        def _make_preset_id(name: str, index: int) -> str:
+            token = (name or f"preset_{index}").strip().lower()
+            normalized = [
+                ch if ch.isalnum() else "_"
+                for ch in token
+            ]
+            collapsed = "".join(normalized)
+            while "__" in collapsed:
+                collapsed = collapsed.replace("__", "_")
+            return collapsed.strip("_") or f"preset_{index}"
+
+        preset_entries: list[Dict[str, Any]] = []
+        for preset_index, preset_payload in MODE_PRESETS.items():
+            entry = {key: value for key, value in preset_payload.items()}
+            entry["index"] = int(preset_index)
+            entry["id"] = _make_preset_id(
+                str(preset_payload.get("name", "")), int(preset_index)
+            )
+            preset_entries.append(_serialize("modes.preset", entry))
+
+        modes_metadata = {
+            "presets": preset_entries,
+            "defaults": _serialize("modes.defaults", DEFAULT_MODES_PARAMS),
+            "physicsDefaults": _serialize(
+                "modes.physics.defaults", DEFAULT_PHYSICS_OPTIONS
+            ),
+            "parameterRanges": _serialize(
+                "modes.parameter_ranges", PARAMETER_RANGES
+            ),
+        }
+
         composed_scene: Dict[str, Any] = dict(scene_payload)
         composed_scene.update(
             {
@@ -240,6 +289,13 @@ class UISetup:
             "geometry": _read_geometry(),
             "diagnostics": _read_diagnostics(),
             "lighting": lighting_payload,
+            "modes": _serialize_mapping("modes", modes_payload),
+            "pneumatic": _serialize_mapping("pneumatic", pneumatic_payload),
+            "simulation": _serialize_mapping("simulation", simulation_payload),
+            "cylinder": _serialize_mapping(
+                "constants.geometry.cylinder", cylinder_payload
+            ),
+            "modes_metadata": modes_metadata,
         }
 
     @staticmethod
@@ -583,6 +639,21 @@ class UISetup:
                 context.setContextProperty(
                     "lightingAccess", payload.get("lighting", {})
                 )
+                context.setContextProperty(
+                    "initialModesSettings", payload.get("modes", {})
+                )
+                context.setContextProperty(
+                    "initialPneumaticSettings", payload.get("pneumatic", {})
+                )
+                context.setContextProperty(
+                    "initialSimulationSettings", payload.get("simulation", {})
+                )
+                context.setContextProperty(
+                    "initialCylinderSettings", payload.get("cylinder", {})
+                )
+                context.setContextProperty(
+                    "modesMetadata", payload.get("modes_metadata", {})
+                )
                 UISetup.logger.info("    ✅ Initial graphics settings exposed to QML")
             except Exception as ctx_exc:
                 UISetup.logger.warning(
@@ -764,7 +835,6 @@ class UISetup:
         Tabs:
           - Геометрия (Geometry)
           - Пневмосистема (Pneumatics)
-          - Режимы стабилизатора (Modes)
           - Графика (Graphics)
           - Динамика движения (Road - stub)
 
@@ -783,7 +853,6 @@ class UISetup:
         from src.ui.panels import (
             GeometryPanel,
             PneumoPanel,
-            ModesPanel,
             GraphicsPanel,
         )
         from src.ui.feedback import FeedbackPanel
@@ -806,15 +875,10 @@ class UISetup:
         scroll_pneumo.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
         window.tab_widget.addTab(scroll_pneumo, "Пневмосистема")
 
-        # Tab 3: Режимы стабилизатора
-        window.modes_panel = ModesPanel(window)
-        scroll_modes = QScrollArea()
-        scroll_modes.setWidgetResizable(True)
-        scroll_modes.setWidget(window.modes_panel)
-        scroll_modes.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
-        window.tab_widget.addTab(scroll_modes, "Режимы стабилизатора")
+        # Режимы перенесены в QML SimulationPanel
+        window.modes_panel = None
 
-        # Tab 4: Графика (без дополнительного ScrollArea!)
+        # Tab 3: Графика (без дополнительного ScrollArea!)
         window.graphics_panel = GraphicsPanel(window)
         window._graphics_panel = window.graphics_panel  # Alias
         window.tab_widget.addTab(window.graphics_panel, "🎨 Графика")
