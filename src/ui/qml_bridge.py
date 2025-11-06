@@ -483,7 +483,7 @@ class QMLBridge:
 
         line_payload: Dict[str, Dict[str, Any]] = {}
         line_flow_network: Dict[str, Dict[str, Any]] = {}
-        max_line_magnitude = 0.0
+        line_magnitudes: Dict[str, float] = {}
         for line_enum in Line:
             line_state = getattr(snapshot, "lines", {}).get(line_enum)
             if not line_state:
@@ -516,6 +516,8 @@ class QMLBridge:
                 "direction": direction,
                 "netFlow": net_flow,
                 "intensity": magnitude,
+                "flowDirection": direction,
+                "flowIntensity": magnitude,
             }
             line_payload[key] = line_entry
             line_flow_network[key] = {
@@ -527,7 +529,14 @@ class QMLBridge:
                 "temperature": temperature,
                 "intensity": magnitude,
             }
-            max_line_magnitude = max(max_line_magnitude, magnitude)
+            line_magnitudes[key] = magnitude
+
+        max_line_magnitude = max(line_magnitudes.values(), default=0.0)
+        if max_line_magnitude > 0.0:
+            for line_key, magnitude in line_magnitudes.items():
+                speed_ratio = min(max(magnitude / max_line_magnitude, 0.0), 1.0)
+                line_payload[line_key]["animationSpeed"] = speed_ratio
+                line_flow_network[line_key]["animationSpeed"] = speed_ratio
 
         tank_state = getattr(snapshot, "tank", {})
         tank_pressure = float(getattr(tank_state, "pressure", 0.0))
@@ -561,6 +570,11 @@ class QMLBridge:
                 "direction": "exhaust" if relief_safety_flow >= 0 else "intake",
             },
         }
+        if max_relief_magnitude > 0.0:
+            for relief_key, magnitude in relief_magnitudes.items():
+                relief_payload[relief_key]["animationSpeed"] = min(
+                    max(magnitude / max_relief_magnitude, 0.0), 1.0
+                )
         tank_flow_summary = {
             "min": relief_min_flow,
             "stiff": relief_stiff_flow,

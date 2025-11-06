@@ -21,6 +21,7 @@ Node {
     property vector3d orientationEuler: Qt.vector3d(0, 0, 0)
     property string lineLabel: ""
     property real flowPhase: 0.0
+    property real glowPhase: 0.0
 
     readonly property real _intensityCeiling: Math.max(1e-6, Math.abs(maxIntensity))
     readonly property real normalizedIntensity: Math.min(Math.abs(flowIntensity) / _intensityCeiling, 1.0)
@@ -29,6 +30,7 @@ Node {
     readonly property color _activeColor: valveOpen ? (flowDirection === "exhaust" ? exhaustColor : intakeColor) : inactiveColor
     readonly property real _opacity: valveOpen ? (0.25 + normalizedIntensity * 0.65) : 0.18
     readonly property real _emissive: valveOpen ? (normalizedIntensity * 2.5) : 0.0
+    readonly property real _glowStrength: valveOpen ? (0.4 + normalizedIntensity * 0.4) : 0.0
     property real animationSpeedFactor: normalizedIntensity
     property int pulseCount: active ? Math.max(3, Math.round(6 * normalizedIntensity + 2)) : 0
 
@@ -45,8 +47,19 @@ Node {
         easing.type: Easing.Linear
     }
 
+    NumberAnimation on glowPhase {
+        id: glowAnimation
+        from: 0
+        to: 1
+        duration: Math.max(400, 1500 - Math.min(0.98, root.animationSpeedFactor) * 900)
+        loops: Animation.Infinite
+        running: root.active
+        easing.type: Easing.InOutQuad
+    }
+
     onNormalizedIntensityChanged: {
         flowAnimation.duration = Math.max(250, 1400 - Math.min(0.98, animationSpeedFactor) * 900)
+        glowAnimation.duration = Math.max(400, 1500 - Math.min(0.98, animationSpeedFactor) * 900)
     }
 
     onActiveChanged: {
@@ -83,7 +96,28 @@ Node {
                 roughness: 0.35
                 metalness: 0.05
                 emissiveColor: Qt.rgba(root._activeColor.r, root._activeColor.g, root._activeColor.b, 1)
-                emissiveFactor: root._emissive
+                emissiveFactor: root._emissive * (0.7 + 0.3 * Math.sin(root.glowPhase * Math.PI * 2))
+            }
+        }
+
+        Model {
+            id: arrowHalo
+            mesh: CylinderMesh {}
+            eulerRotation.x: 90
+            visible: root.active
+            scale: Qt.vector3d(
+                root.radiusM * root.sceneScale * 1.8,
+                (root.bodyLengthM * root.sceneScale) / 2.1,
+                root.radiusM * root.sceneScale * 1.8
+            )
+            materials: PrincipledMaterial {
+                baseColor: Qt.rgba(root._activeColor.r, root._activeColor.g, root._activeColor.b, 1)
+                opacity: root._glowStrength * 0.25
+                alphaMode: PrincipledMaterial.AlphaBlend
+                roughness: 1.0
+                metalness: 0.0
+                emissiveColor: Qt.rgba(root._activeColor.r, root._activeColor.g, root._activeColor.b, 1)
+                emissiveFactor: root._glowStrength * (0.4 + 0.4 * Math.sin(root.glowPhase * Math.PI * 2))
             }
         }
 
@@ -97,25 +131,27 @@ Node {
                 delegate: Model {
                     id: pulseModel
                     readonly property real progress: ((root.flowPhase + index / Math.max(1, root.pulseCount)) % 1)
-                    mesh: SphereMesh {}
+                    mesh: ConeMesh {}
                     position: Qt.vector3d(
                         0,
                         0,
                         root._directionSign * ((progress - 0.5) * root.travelDistanceM * root.sceneScale)
                     )
                     scale: Qt.vector3d(
-                        root.radiusM * root.sceneScale * 0.6,
-                        root.radiusM * root.sceneScale * 0.6,
-                        root.radiusM * root.sceneScale * 0.6
+                        root.radiusM * root.sceneScale * (0.55 + root.normalizedIntensity * 0.25),
+                        root.headLengthM * root.sceneScale * 0.65,
+                        root.radiusM * root.sceneScale * (0.55 + root.normalizedIntensity * 0.25)
                     )
+                    eulerRotation.x: 90
+                    eulerRotation.z: root._directionSign < 0 ? 180 : 0
                     materials: PrincipledMaterial {
                         baseColor: Qt.rgba(root._activeColor.r, root._activeColor.g, root._activeColor.b, 1)
-                        opacity: Math.max(0.15, root.normalizedIntensity * 0.85)
+                        opacity: Math.max(0.12, root.normalizedIntensity * 0.8)
                         alphaMode: PrincipledMaterial.AlphaBlend
-                        roughness: 0.25
+                        roughness: 0.3
                         metalness: 0.0
                         emissiveColor: Qt.rgba(root._activeColor.r, root._activeColor.g, root._activeColor.b, 1)
-                        emissiveFactor: 0.6 + root.normalizedIntensity * 1.8
+                        emissiveFactor: 0.4 + root.normalizedIntensity * (1.4 + 0.4 * Math.sin(root.glowPhase * Math.PI * 2))
                     }
                 }
             }

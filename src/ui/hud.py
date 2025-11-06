@@ -340,6 +340,65 @@ class PressureScaleWidget(QWidget):
 
         self.update()
 
+    def apply_flow_payload(self, payload: Mapping[str, Any] | None) -> None:
+        """Update widget state from a SceneBridge flow payload."""
+
+        if not isinstance(payload, Mapping):
+            return
+
+        tank_payload = payload.get("tank")
+        if isinstance(tank_payload, Mapping):
+            self.p_tank = _coerce_float(tank_payload.get("pressure"), self.p_tank)
+            valve_map = tank_payload.get("valves")
+            if isinstance(valve_map, Mapping):
+                self.valve_states = {
+                    "min": bool(
+                        valve_map.get("min", self.valve_states.get("min", False))
+                    ),
+                    "stiff": bool(
+                        valve_map.get("stiff", self.valve_states.get("stiff", False))
+                    ),
+                    "safety": bool(
+                        valve_map.get("safety", self.valve_states.get("safety", False))
+                    ),
+                }
+
+        relief_payload = payload.get("relief")
+        if isinstance(relief_payload, Mapping):
+            for key in ("min", "stiff", "safety"):
+                entry = relief_payload.get(key)
+                if not isinstance(entry, Mapping):
+                    continue
+                flow_value = _coerce_float(
+                    entry.get("flow"), self.relief_flows.get(key, 0.0)
+                )
+                self.relief_flows[key] = flow_value
+                magnitude = abs(flow_value)
+                peak = max(self.relief_flow_peaks.get(key, 1.0), magnitude, 1e-6)
+                self.relief_flow_peaks[key] = peak
+                if "open" in entry:
+                    self.valve_states[key] = bool(entry.get("open"))
+
+        line_section = payload.get("lines")
+        if isinstance(line_section, Mapping):
+            pressures: list[float] = []
+            for key in ("a1", "b1", "a2", "b2"):
+                entry = line_section.get(key)
+                if isinstance(entry, Mapping):
+                    pressures.append(_coerce_float(entry.get("pressure"), 0.0))
+            if pressures:
+                while len(pressures) < 4:
+                    pressures.append(pressures[-1])
+                self.p_lines = pressures[:4]
+
+        self.overdrive_values = {
+            "min": max(0.0, self.p_tank - self.p_min_relief),
+            "stiff": max(0.0, self.p_tank - self.p_stiff),
+            "safety": max(0.0, self.p_tank - self.p_safety),
+        }
+
+        self.update()
+
     def map_pressure_to_height(self, pressure: float) -> float:
         """Map pressure to Y coordinate on scale
 

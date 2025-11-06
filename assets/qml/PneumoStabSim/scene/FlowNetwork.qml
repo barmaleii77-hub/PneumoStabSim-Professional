@@ -119,6 +119,41 @@ Node {
         return Math.min(_lineIntensity(key) / ceiling, 1.0)
     }
 
+    function _lineIntensityRatio(key) {
+        var ceiling = lineFlowCeiling
+        if (!(ceiling > 0))
+            return 0.0
+        return Math.min(Math.max(Math.abs(Number(_lineIntensity(key))) / ceiling, 0.0), 1.0)
+    }
+
+    function _blendColors(baseColor, overlayColor, factor) {
+        factor = Math.max(0.0, Math.min(1.0, Number(factor)))
+        var base = Qt.rgba(baseColor.r, baseColor.g, baseColor.b, 1)
+        var overlay = Qt.rgba(overlayColor.r, overlayColor.g, overlayColor.b, 1)
+        return Qt.rgba(
+            base.r + (overlay.r - base.r) * factor,
+            base.g + (overlay.g - base.g) * factor,
+            base.b + (overlay.b - base.b) * factor,
+            1
+        )
+    }
+
+    function _lineIntakeColor(key) {
+        var entry = _lineEntry(key)
+        if (entry && entry.colors && typeof entry.colors === "object" && entry.colors.intake)
+            return entry.colors.intake
+        var ratio = _lineIntensityRatio(key)
+        return _blendColors(intakeColor, Qt.rgba(1, 1, 1, 1), ratio * 0.35)
+    }
+
+    function _lineExhaustColor(key) {
+        var entry = _lineEntry(key)
+        if (entry && entry.colors && typeof entry.colors === "object" && entry.colors.exhaust)
+            return entry.colors.exhaust
+        var ratio = _lineIntensityRatio(key)
+        return _blendColors(exhaustColor, Qt.rgba(1.0, 0.55, 0.2, 1), ratio * 0.25)
+    }
+
     function _lineValveOpen(key) {
         var entry = _lineEntry(key)
         var valves = entry.valves && typeof entry.valves === "object" ? entry.valves : {}
@@ -216,6 +251,13 @@ Node {
         return Math.min(flowValue / ceiling, 1.0)
     }
 
+    function _reliefDirection(key) {
+        var entry = _reliefEntry(key)
+        if (typeof entry.direction === "string")
+            return entry.direction
+        return "exhaust"
+    }
+
     function _reliefMaxFlow() {
         var relief = _reliefSection()
         var maxMagnitude = 0.0
@@ -286,6 +328,7 @@ Node {
 
     FlowArrow {
         id: arrowA1
+        objectName: "arrowA1"
         position: root._lineAnchor("a1")
         sceneScale: root.sceneScale
         bodyLengthM: root.bodyLengthM
@@ -299,8 +342,8 @@ Node {
         flowDirection: root._lineDirection("a1")
         valveOpen: root._lineValveOpen("a1")
         orientationEuler: root._orientationForLine("a1")
-        intakeColor: root.intakeColor
-        exhaustColor: root.exhaustColor
+        intakeColor: root._lineIntakeColor("a1")
+        exhaustColor: root._lineExhaustColor("a1")
         inactiveColor: root.inactiveColor
         lineLabel: "A1"
         animationSpeedFactor: root._lineSpeedHint("a1")
@@ -308,6 +351,7 @@ Node {
 
     FlowArrow {
         id: arrowB1
+        objectName: "arrowB1"
         position: root._lineAnchor("b1")
         sceneScale: root.sceneScale
         bodyLengthM: root.bodyLengthM
@@ -321,8 +365,8 @@ Node {
         flowDirection: root._lineDirection("b1")
         valveOpen: root._lineValveOpen("b1")
         orientationEuler: root._orientationForLine("b1")
-        intakeColor: root.intakeColor
-        exhaustColor: root.exhaustColor
+        intakeColor: root._lineIntakeColor("b1")
+        exhaustColor: root._lineExhaustColor("b1")
         inactiveColor: root.inactiveColor
         lineLabel: "B1"
         animationSpeedFactor: root._lineSpeedHint("b1")
@@ -330,6 +374,7 @@ Node {
 
     FlowArrow {
         id: arrowA2
+        objectName: "arrowA2"
         position: root._lineAnchor("a2")
         sceneScale: root.sceneScale
         bodyLengthM: root.bodyLengthM
@@ -343,8 +388,8 @@ Node {
         flowDirection: root._lineDirection("a2")
         valveOpen: root._lineValveOpen("a2")
         orientationEuler: root._orientationForLine("a2")
-        intakeColor: root.intakeColor
-        exhaustColor: root.exhaustColor
+        intakeColor: root._lineIntakeColor("a2")
+        exhaustColor: root._lineExhaustColor("a2")
         inactiveColor: root.inactiveColor
         lineLabel: "A2"
         animationSpeedFactor: root._lineSpeedHint("a2")
@@ -352,6 +397,7 @@ Node {
 
     FlowArrow {
         id: arrowB2
+        objectName: "arrowB2"
         position: root._lineAnchor("b2")
         sceneScale: root.sceneScale
         bodyLengthM: root.bodyLengthM
@@ -365,8 +411,8 @@ Node {
         flowDirection: root._lineDirection("b2")
         valveOpen: root._lineValveOpen("b2")
         orientationEuler: root._orientationForLine("b2")
-        intakeColor: root.intakeColor
-        exhaustColor: root.exhaustColor
+        intakeColor: root._lineIntakeColor("b2")
+        exhaustColor: root._lineExhaustColor("b2")
         inactiveColor: root.inactiveColor
         lineLabel: "B2"
         animationSpeedFactor: root._lineSpeedHint("b2")
@@ -374,6 +420,7 @@ Node {
 
     ValveIndicator {
         id: reliefMin
+        objectName: "reliefMin"
         position: root._reliefPosition("min")
         sceneScale: root.sceneScale
         radiusM: 0.075
@@ -382,10 +429,12 @@ Node {
         inactiveColor: root.inactiveColor
         active: root._reliefOpen("min")
         intensity: root._reliefIntensity("min")
+        flowDirection: root._reliefDirection("min")
     }
 
     ValveIndicator {
         id: reliefStiff
+        objectName: "reliefStiff"
         position: root._reliefPosition("stiff")
         sceneScale: root.sceneScale
         radiusM: 0.08
@@ -394,10 +443,12 @@ Node {
         inactiveColor: root.inactiveColor
         active: root._reliefOpen("stiff")
         intensity: root._reliefIntensity("stiff")
+        flowDirection: root._reliefDirection("stiff")
     }
 
     ValveIndicator {
         id: reliefSafety
+        objectName: "reliefSafety"
         position: root._reliefPosition("safety")
         sceneScale: root.sceneScale
         radiusM: 0.085
@@ -406,10 +457,12 @@ Node {
         inactiveColor: root.inactiveColor
         active: root._reliefOpen("safety")
         intensity: root._reliefIntensity("safety")
+        flowDirection: root._reliefDirection("safety")
     }
 
     ValveIndicator {
         id: masterIsolation
+        objectName: "masterIsolationValve"
         position: root._masterPosition()
         sceneScale: root.sceneScale
         radiusM: 0.065
