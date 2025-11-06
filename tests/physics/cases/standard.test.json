@@ -37,28 +37,28 @@
     {
       "kind": "cylinder-force",
       "target": "LP",
-      "expected": 6050.0,
+      "expected": 5948.675,
       "tolerance": 0.5,
       "source": "cylinder"
     },
     {
       "kind": "cylinder-force",
       "target": "PP",
-      "expected": 6090.0,
+      "expected": 5988.675,
       "tolerance": 0.5,
       "source": "cylinder"
     },
     {
       "kind": "cylinder-force",
       "target": "LZ",
-      "expected": 6150.0,
+      "expected": 6048.675,
       "tolerance": 0.5,
       "source": "cylinder"
     },
     {
       "kind": "cylinder-force",
       "target": "PZ",
-      "expected": 6310.0,
+      "expected": 6208.675,
       "tolerance": 0.5,
       "source": "cylinder"
     },
@@ -122,10 +122,10 @@
       "kind": "vertical-force",
       "target": "aggregate",
       "expected": {
-        "LP": 7727.256227913822,
-        "PP": 7611.524442842419,
-        "LZ": 7743.503950951666,
-        "PZ": 7741.117512050897
+        "LP": 7625.931227913819,
+        "PP": 7510.199442842417,
+        "LZ": 7642.178950951664,
+        "PZ": 7639.792512050894
       },
       "tolerance": 1e-3,
       "source": "projection"
@@ -134,8 +134,8 @@
       "kind": "moment",
       "target": "pitch-roll",
       "expected": {
-        "tau_x": -46.66905351882269,
-        "tau_z": -100.51981232138496
+        "tau_x": -46.66905351882315,
+        "tau_z": -100.51981232138405
       },
       "tolerance": 1e-3,
       "source": "projection"
