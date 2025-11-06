@@ -213,6 +213,26 @@ def _relative_display(path: Path) -> str:
         return str(path)
 
 
+def _safe_console_write(text: str) -> None:
+    """Write text to stdout, tolerating encoding mismatches."""
+
+    stream = sys.stdout
+    try:
+        stream.write(text)
+    except UnicodeEncodeError:
+        encoding = stream.encoding or "utf-8"
+        data = text.encode(encoding, errors="replace")
+        buffer = getattr(stream, "buffer", None)
+        if buffer is not None:
+            buffer.write(data)
+            buffer.flush()
+            return
+        stream.write(data.decode(encoding, errors="replace"))
+        stream.flush()
+        return
+    stream.flush()
+
+
 def _run_command(
     command: Sequence[str],
     *,
@@ -253,7 +273,7 @@ def _run_command(
     captured_lines: list[str] = []
     for line in process.stdout:
         captured_lines.append(line)
-        print(line, end="")
+        _safe_console_write(line)
 
     returncode = process.wait()
 
