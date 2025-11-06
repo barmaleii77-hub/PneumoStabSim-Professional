@@ -91,14 +91,27 @@ Pane {
             return
         if (value === undefined || value === null) {
             if (fallback !== undefined && fallback !== null)
-                slider.value = fallback
+                try {
+                    slider.value = fallback
+                } catch (error) {
+                    console.warn("⚠️ SimulationPanel: fallback slider assignment failed", error)
+                }
             return
         }
         var numeric = Number(value)
-        if (Number.isFinite(numeric))
-            slider.value = numeric
-        else if (fallback !== undefined && fallback !== null)
-            slider.value = fallback
+        if (Number.isFinite(numeric)) {
+            try {
+                slider.value = numeric
+            } catch (error) {
+                console.warn("⚠️ SimulationPanel: slider assignment failed", error)
+            }
+        } else if (fallback !== undefined && fallback !== null) {
+            try {
+                slider.value = fallback
+            } catch (error) {
+                console.warn("⚠️ SimulationPanel: slider fallback assignment failed", error)
+            }
+        }
     }
 
     function _setCheckBox(checkBox, value, fallback) {
@@ -128,6 +141,41 @@ Pane {
         }
         if (foundIndex >= 0)
             combo.currentIndex = foundIndex
+    }
+
+    function _coerceNumeric(value) {
+        var numeric = Number(value)
+        return Number.isFinite(numeric) ? numeric : undefined
+    }
+
+    function _assignSpinValue(spin, rawValue, options) {
+        if (!spin)
+            return
+        var opts = options || {}
+        var numeric = _coerceNumeric(rawValue)
+        var logKey = opts.key || "value"
+        if (numeric === undefined) {
+            console.warn("⚠️ SimulationPanel: ignoring non-numeric", logKey, rawValue)
+            return
+        }
+        var finalValue = opts.forceInt ? Math.round(numeric) : numeric
+        try {
+            spin.value = finalValue
+        } catch (error) {
+            console.warn("⚠️ SimulationPanel: spin assignment failed for", logKey, "→", finalValue, error)
+            if (!opts.forceInt) {
+                var fallback = Math.round(numeric)
+                if (fallback !== finalValue) {
+                    try {
+                        spin.value = fallback
+                        console.warn("ℹ️ SimulationPanel: coerced", logKey, "to integer", fallback)
+                        return
+                    } catch (fallbackError) {
+                        console.warn("⚠️ SimulationPanel: integer fallback failed for", logKey, fallbackError)
+                    }
+                }
+            }
+        }
     }
 
     function _emitAnimationPayload(extra) {
@@ -237,29 +285,29 @@ Pane {
         _updatingFromPython = true
         if (data.volume_mode !== undefined)
             _setComboValue(volumeModeCombo, data.volume_mode, "MANUAL")
-        if (data.receiver_volume !== undefined)
+        if (Object.prototype.hasOwnProperty.call(data, "receiver_volume"))
             _setSliderValue(receiverVolumeSlider, data.receiver_volume, receiverVolumeSlider.value)
-        if (data.cv_atmo_dp !== undefined)
-            cvAtmoDpSpin.value = Number(data.cv_atmo_dp)
-        if (data.cv_tank_dp !== undefined)
-            cvTankDpSpin.value = Number(data.cv_tank_dp)
-        if (data.cv_atmo_dia !== undefined)
-            cvAtmoDiaSpin.value = Number(data.cv_atmo_dia)
-        if (data.cv_tank_dia !== undefined)
-            cvTankDiaSpin.value = Number(data.cv_tank_dia)
-        if (data.relief_min_pressure !== undefined)
-            reliefMinSpin.value = Number(data.relief_min_pressure)
-        if (data.relief_stiff_pressure !== undefined)
-            reliefStiffSpin.value = Number(data.relief_stiff_pressure)
-        if (data.relief_safety_pressure !== undefined)
-            reliefSafetySpin.value = Number(data.relief_safety_pressure)
-        if (data.throttle_min_dia !== undefined)
-            throttleMinSpin.value = Number(data.throttle_min_dia)
-        if (data.throttle_stiff_dia !== undefined)
-            throttleStiffSpin.value = Number(data.throttle_stiff_dia)
-        if (data.atmo_temp !== undefined)
-            atmoTempSpin.value = Number(data.atmo_temp)
-        if (data.master_isolation_open !== undefined)
+        if (Object.prototype.hasOwnProperty.call(data, "cv_atmo_dp"))
+            _assignSpinValue(cvAtmoDpSpin, data.cv_atmo_dp, { forceInt: true, key: "cv_atmo_dp" })
+        if (Object.prototype.hasOwnProperty.call(data, "cv_tank_dp"))
+            _assignSpinValue(cvTankDpSpin, data.cv_tank_dp, { forceInt: true, key: "cv_tank_dp" })
+        if (Object.prototype.hasOwnProperty.call(data, "cv_atmo_dia"))
+            _assignSpinValue(cvAtmoDiaSpin, data.cv_atmo_dia, { key: "cv_atmo_dia" })
+        if (Object.prototype.hasOwnProperty.call(data, "cv_tank_dia"))
+            _assignSpinValue(cvTankDiaSpin, data.cv_tank_dia, { key: "cv_tank_dia" })
+        if (Object.prototype.hasOwnProperty.call(data, "relief_min_pressure"))
+            _assignSpinValue(reliefMinSpin, data.relief_min_pressure, { forceInt: true, key: "relief_min_pressure" })
+        if (Object.prototype.hasOwnProperty.call(data, "relief_stiff_pressure"))
+            _assignSpinValue(reliefStiffSpin, data.relief_stiff_pressure, { forceInt: true, key: "relief_stiff_pressure" })
+        if (Object.prototype.hasOwnProperty.call(data, "relief_safety_pressure"))
+            _assignSpinValue(reliefSafetySpin, data.relief_safety_pressure, { forceInt: true, key: "relief_safety_pressure" })
+        if (Object.prototype.hasOwnProperty.call(data, "throttle_min_dia"))
+            _assignSpinValue(throttleMinSpin, data.throttle_min_dia, { key: "throttle_min_dia" })
+        if (Object.prototype.hasOwnProperty.call(data, "throttle_stiff_dia"))
+            _assignSpinValue(throttleStiffSpin, data.throttle_stiff_dia, { key: "throttle_stiff_dia" })
+        if (Object.prototype.hasOwnProperty.call(data, "atmo_temp"))
+            _assignSpinValue(atmoTempSpin, data.atmo_temp, { forceInt: true, key: "atmo_temp" })
+        if (Object.prototype.hasOwnProperty.call(data, "master_isolation_open"))
             masterIsolationCheck.checked = !!data.master_isolation_open
         _updatingFromPython = false
         return true
@@ -268,14 +316,14 @@ Pane {
     function applySimulationSettings(payload) {
         var data = payload || {}
         _updatingFromPython = true
-        if (data.physics_dt !== undefined)
-            physicsDtSpin.value = Number(data.physics_dt)
-        if (data.render_vsync_hz !== undefined)
-            vsyncSpin.value = Number(data.render_vsync_hz)
-        if (data.max_steps_per_frame !== undefined)
-            maxStepsSpin.value = Number(data.max_steps_per_frame)
-        if (data.max_frame_time !== undefined)
-            maxFrameTimeSpin.value = Number(data.max_frame_time)
+        if (Object.prototype.hasOwnProperty.call(data, "physics_dt"))
+            _assignSpinValue(physicsDtSpin, data.physics_dt, { key: "physics_dt" })
+        if (Object.prototype.hasOwnProperty.call(data, "render_vsync_hz"))
+            _assignSpinValue(vsyncSpin, data.render_vsync_hz, { forceInt: true, key: "render_vsync_hz" })
+        if (Object.prototype.hasOwnProperty.call(data, "max_steps_per_frame"))
+            _assignSpinValue(maxStepsSpin, data.max_steps_per_frame, { forceInt: true, key: "max_steps_per_frame" })
+        if (Object.prototype.hasOwnProperty.call(data, "max_frame_time"))
+            _assignSpinValue(maxFrameTimeSpin, data.max_frame_time, { key: "max_frame_time" })
         _updatingFromPython = false
         return true
     }
@@ -283,10 +331,10 @@ Pane {
     function applyCylinderSettings(payload) {
         var data = payload || {}
         _updatingFromPython = true
-        if (data.dead_zone_head_m3 !== undefined)
-            deadZoneHeadSpin.value = Number(data.dead_zone_head_m3)
-        if (data.dead_zone_rod_m3 !== undefined)
-            deadZoneRodSpin.value = Number(data.dead_zone_rod_m3)
+        if (Object.prototype.hasOwnProperty.call(data, "dead_zone_head_m3"))
+            _assignSpinValue(deadZoneHeadSpin, data.dead_zone_head_m3, { key: "dead_zone_head_m3" })
+        if (Object.prototype.hasOwnProperty.call(data, "dead_zone_rod_m3"))
+            _assignSpinValue(deadZoneRodSpin, data.dead_zone_rod_m3, { key: "dead_zone_rod_m3" })
         _updatingFromPython = false
         return true
     }

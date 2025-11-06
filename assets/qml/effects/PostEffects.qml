@@ -1632,15 +1632,54 @@ Item {
             if (!env)
                 return false
             try {
-                return propertyName in env
+                return Object.prototype.hasOwnProperty.call(env, propertyName)
             } catch (error) {
                 return false
             }
         }
 
+        function payloadHas(source, key) {
+            if (!source || typeof source !== "object")
+                return false
+            return Object.prototype.hasOwnProperty.call(source, key)
+        }
+
+        function assignRootBool(propertyName, value) {
+            if (value === undefined)
+                return
+            var normalized = !!value
+            try {
+                if (root[propertyName] !== normalized)
+                    root[propertyName] = normalized
+            } catch (error) {
+                console.warn("⚠️ PostEffects:", propertyName, "bool assignment failed", error)
+            }
+        }
+
+        function assignRootNumber(propertyName, value, options) {
+            if (value === undefined)
+                return
+            var numeric = coerceNumber(value)
+            if (numeric === undefined)
+                return
+            var opts = options || {}
+            var finalValue = numeric
+            if (opts.forceInt)
+                finalValue = Math.round(finalValue)
+            if (opts.min !== undefined && finalValue < opts.min)
+                finalValue = opts.min
+            if (opts.max !== undefined && finalValue > opts.max)
+                finalValue = opts.max
+            try {
+                root[propertyName] = finalValue
+            } catch (error) {
+                console.warn("⚠️ PostEffects:", propertyName, "numeric assignment failed", error)
+            }
+        }
+
         if (env) {
             if (envHasProperty("bloomEnabled"))
-                root.bloomEnabled = !!env.bloomEnabled
+                assignRootBool("bloomEnabled", env.bloomEnabled)
 
             if (envHasProperty("bloomIntensity")) {
                 var envBloomIntensity = coerceNumber(env.bloomIntensity)
@@ -1661,7 +1700,7 @@ Item {
             }
 
             if (envHasProperty("ssaoEnabled"))
-                root.ssaoEnabled = !!env.ssaoEnabled
+                assignRootBool("ssaoEnabled", env.ssaoEnabled)
 
             if (envHasProperty("ssaoIntensity")) {
                 var envSsaoIntensity = coerceNumber(env.ssaoIntensity)
@@ -1691,9 +1730,9 @@ Item {
             }
 
             if (envHasProperty("internalDepthOfFieldEnabled"))
-                root.depthOfFieldEnabled = !!env.internalDepthOfFieldEnabled
+                assignRootBool("depthOfFieldEnabled", env.internalDepthOfFieldEnabled)
             else if (envHasProperty("depthOfFieldEnabled"))
-                root.depthOfFieldEnabled = !!env.depthOfFieldEnabled
+                assignRootBool("depthOfFieldEnabled", env.depthOfFieldEnabled)
 
             if (envHasProperty("dofFocusDistance")) {
                 var envDofFocus = coerceNumber(env.dofFocusDistance)
@@ -1714,7 +1753,7 @@ Item {
             }
 
             if (envHasProperty("motionBlurEnabled"))
-                root.motionBlurEnabled = !!env.motionBlurEnabled
+                assignRootBool("motionBlurEnabled", env.motionBlurEnabled)
 
             if (envHasProperty("motionBlurStrength")) {
                 var envMotionStrength = coerceNumber(env.motionBlurStrength)
@@ -1732,7 +1771,7 @@ Item {
         if (params && typeof params === "object") {
             var bloomEnabledValue = boolFromPayload(params, ["bloomEnabled", "bloom_enabled"], "bloom")
             if (bloomEnabledValue !== undefined)
-                root.bloomEnabled = !!bloomEnabledValue
+                assignRootBool("bloomEnabled", bloomEnabledValue)
 
             var bloomIntensityValue = numberFromPayload(params, ["bloomIntensity", "bloom_intensity"], "bloom")
             if (bloomIntensityValue !== undefined)
@@ -1748,7 +1787,7 @@ Item {
 
             var ssaoEnabledValue = boolFromPayload(params, ["ssaoEnabled", "ao_enabled"], "ssao")
             if (ssaoEnabledValue !== undefined)
-                root.ssaoEnabled = !!ssaoEnabledValue
+                assignRootBool("ssaoEnabled", ssaoEnabledValue)
 
             var ssaoIntensityValue = numberFromPayload(params, ["ssaoIntensity", "ao_strength"], "ssao")
             if (ssaoIntensityValue !== undefined)
@@ -1772,7 +1811,7 @@ Item {
 
             var dofEnabledValue = boolFromPayload(params, ["depthOfFieldEnabled", "depth_of_field"], "depthOfField")
             if (dofEnabledValue !== undefined)
-                root.depthOfFieldEnabled = !!dofEnabledValue
+                assignRootBool("depthOfFieldEnabled", dofEnabledValue)
 
             var dofFocusValue = numberFromPayload(params, ["dofFocusDistance", "dof_focus_distance"], "depthOfField")
             if (dofFocusValue !== undefined) {
@@ -1794,7 +1833,7 @@ Item {
 
             var motionEnabledValue = boolFromPayload(params, ["motionBlurEnabled", "motion_blur"], "motion")
             if (motionEnabledValue !== undefined)
-                root.motionBlurEnabled = !!motionEnabledValue
+                assignRootBool("motionBlurEnabled", motionEnabledValue)
 
             var motionStrengthValue = numberFromPayload(params, ["motionBlurStrength", "motion_blur_amount"], "motion")
             if (motionStrengthValue !== undefined)

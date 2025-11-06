@@ -675,10 +675,22 @@ ExtendedSceneEnvironment {
             if (value === undefined)
                 return
             var enabled = !!value
-            if (colorAdjustmentsEnabled !== enabled)
-                colorAdjustmentsEnabled = enabled
-            mirrorHostProperty("colorAdjustmentsActive", enabled)
-            _syncColorAdjustmentFlags()
+            try {
+                if (colorAdjustmentsEnabled !== enabled)
+                    colorAdjustmentsEnabled = enabled
+            } catch (error) {
+                console.warn("⚠️ SceneEnvironmentController: colorAdjustmentsEnabled assignment failed", error)
+            }
+            try {
+                mirrorHostProperty("colorAdjustmentsActive", enabled)
+            } catch (error) {
+                console.warn("⚠️ SceneEnvironmentController: mirror colorAdjustmentsActive failed", error)
+            }
+            try {
+                _syncColorAdjustmentFlags()
+            } catch (error) {
+                console.warn("⚠️ SceneEnvironmentController: _syncColorAdjustmentFlags failed", error)
+            }
         }
 
         function assignColorAdjustment(propertyName, value) {
@@ -687,182 +699,239 @@ ExtendedSceneEnvironment {
             var numeric = Number(value)
             if (!isFinite(numeric))
                 return
-            if (root[propertyName] !== numeric)
-                root[propertyName] = numeric
-            mirrorHostProperty(propertyName, numeric)
-            _syncColorAdjustmentFlags()
+            var assigned = numeric
+            try {
+                if (root[propertyName] !== numeric)
+                    root[propertyName] = numeric
+            } catch (error) {
+                console.warn("⚠️ SceneEnvironmentController:", propertyName, "assignment failed", error)
+                return
+            }
+            try {
+                mirrorHostProperty(propertyName, assigned)
+            } catch (error) {
+                console.warn("⚠️ SceneEnvironmentController: mirror", propertyName, "failed", error)
+            }
+            try {
+                _syncColorAdjustmentFlags()
+            } catch (error) {
+                console.warn("⚠️ SceneEnvironmentController: _syncColorAdjustmentFlags failed", error)
+            }
+        }
+
+        function assignRootBool(propertyName, value) {
+            if (value === undefined)
+                return
+            var normalized = !!value
+            try {
+                if (root[propertyName] !== normalized)
+                    root[propertyName] = normalized
+            } catch (error) {
+                console.warn("⚠️ SceneEnvironmentController:", propertyName, "bool assignment failed", error)
+            }
+        }
+
+        function assignRootNumber(propertyName, value, options) {
+            if (value === undefined)
+                return
+            var numeric = coerceNumber(value)
+            if (numeric === undefined)
+                return
+            var opts = options || {}
+            var finalValue = numeric
+            if (opts.forceInt)
+                finalValue = Math.round(finalValue)
+            if (opts.min !== undefined && finalValue < opts.min)
+                finalValue = opts.min
+            if (opts.max !== undefined && finalValue > opts.max)
+                finalValue = opts.max
+            try {
+                root[propertyName] = finalValue
+            } catch (error) {
+                console.warn("⚠️ SceneEnvironmentController:", propertyName, "numeric assignment failed", error)
+            }
+        }
+
+        function payloadHas(source, key) {
+            if (!source || typeof source !== "object")
+                return false
+            return Object.prototype.hasOwnProperty.call(source, key)
         }
 
         var bloomSection = valueFromKeys(params, "bloom", "bloom")
         if (bloomSection && typeof bloomSection === "object") {
-            var nestedBloomEnabled = boolFromKeys(bloomSection, "enabled", "enabled")
-            if (nestedBloomEnabled !== undefined)
-                bloomEnabled = !!nestedBloomEnabled
+            if (payloadHas(bloomSection, "enabled"))
+                assignRootBool("bloomEnabled", bloomSection.enabled)
+            else
+                assignRootBool("bloomEnabled", boolFromKeys(bloomSection, "enabled", "enabled"))
 
-            var nestedBloomIntensity = numberFromKeys(bloomSection, "intensity", "intensity")
-            if (nestedBloomIntensity !== undefined)
-                bloomIntensity = nestedBloomIntensity
+            if (payloadHas(bloomSection, "intensity"))
+                assignRootNumber("bloomIntensity", bloomSection.intensity)
+            else
+                assignRootNumber("bloomIntensity", numberFromKeys(bloomSection, "intensity", "intensity"))
 
-            var nestedBloomThreshold = numberFromKeys(bloomSection, "threshold", "threshold")
-            if (nestedBloomThreshold !== undefined)
-                bloomThreshold = nestedBloomThreshold
+            if (payloadHas(bloomSection, "threshold"))
+                assignRootNumber("bloomThreshold", bloomSection.threshold)
+            else
+                assignRootNumber("bloomThreshold", numberFromKeys(bloomSection, "threshold", "threshold"))
 
-            var nestedBloomSpread = numberFromKeys(bloomSection, "spread", "spread")
-            if (nestedBloomSpread !== undefined)
-                bloomSpread = nestedBloomSpread
+            if (payloadHas(bloomSection, "spread"))
+                assignRootNumber("bloomSpread", bloomSection.spread)
+            else
+                assignRootNumber("bloomSpread", numberFromKeys(bloomSection, "spread", "spread"))
 
-            var nestedGlowStrength = numberFromKeys(bloomSection, "glowStrength", "glow_strength")
-            if (nestedGlowStrength !== undefined)
-                bloomGlowStrength = nestedGlowStrength
+            if (payloadHas(bloomSection, "glowStrength"))
+                assignRootNumber("bloomGlowStrength", bloomSection.glowStrength)
+            else
+                assignRootNumber("bloomGlowStrength", numberFromKeys(bloomSection, "glowStrength", "glow_strength"))
 
-            var nestedHdrMax = numberFromKeys(bloomSection, "hdrMax", "hdr_max")
-            if (nestedHdrMax !== undefined)
-                bloomHdrMaximum = nestedHdrMax
+            if (payloadHas(bloomSection, "hdrMax"))
+                assignRootNumber("bloomHdrMaximum", bloomSection.hdrMax)
+            else
+                assignRootNumber("bloomHdrMaximum", numberFromKeys(bloomSection, "hdrMax", "hdr_max"))
 
-            var nestedHdrScale = numberFromKeys(bloomSection, "hdrScale", "hdr_scale")
-            if (nestedHdrScale !== undefined)
-                bloomHdrScale = nestedHdrScale
+            if (payloadHas(bloomSection, "hdrScale"))
+                assignRootNumber("bloomHdrScale", bloomSection.hdrScale)
+            else
+                assignRootNumber("bloomHdrScale", numberFromKeys(bloomSection, "hdrScale", "hdr_scale"))
 
-            var nestedQualityHigh = boolFromKeys(bloomSection, "qualityHigh", "quality_high")
-            if (nestedQualityHigh !== undefined)
-                bloomQualityHigh = !!nestedQualityHigh
+            if (payloadHas(bloomSection, "qualityHigh"))
+                assignRootBool("bloomQualityHigh", bloomSection.qualityHigh)
+            else
+                assignRootBool("bloomQualityHigh", boolFromKeys(bloomSection, "qualityHigh", "quality_high"))
 
-            var nestedBicubic = boolFromKeys(bloomSection, "bicubicUpscale", "bicubic_upscale")
-            if (nestedBicubic !== undefined)
-                bloomUseBicubicUpscale = !!nestedBicubic
+            if (payloadHas(bloomSection, "bicubicUpscale"))
+                assignRootBool("bloomUseBicubicUpscale", bloomSection.bicubicUpscale)
+            else
+                assignRootBool("bloomUseBicubicUpscale", boolFromKeys(bloomSection, "bicubicUpscale", "bicubic_upscale"))
         }
 
-        var bloomEnabledValue = boolFromKeys(params, "bloomEnabled", "bloom_enabled")
-        if (bloomEnabledValue !== undefined)
-            bloomEnabled = !!bloomEnabledValue
+        if (payloadHas(params, "bloomEnabled") || payloadHas(params, "bloom_enabled"))
+            assignRootBool("bloomEnabled", boolFromKeys(params, "bloomEnabled", "bloom_enabled"))
 
-        var bloomIntensityValue = numberFromKeys(params, "bloomIntensity", "bloom_intensity")
-        if (bloomIntensityValue !== undefined)
-            bloomIntensity = bloomIntensityValue
+        if (payloadHas(params, "bloomIntensity") || payloadHas(params, "bloom_intensity"))
+            assignRootNumber("bloomIntensity", numberFromKeys(params, "bloomIntensity", "bloom_intensity"))
 
-        var bloomThresholdValue = numberFromKeys(params, "bloomThreshold", "bloom_threshold")
-        if (bloomThresholdValue !== undefined)
-            bloomThreshold = bloomThresholdValue
+        if (payloadHas(params, "bloomThreshold") || payloadHas(params, "bloom_threshold"))
+            assignRootNumber("bloomThreshold", numberFromKeys(params, "bloomThreshold", "bloom_threshold"))
 
-        var bloomSpreadValue = numberFromKeys(params, "bloomSpread", "bloom_spread")
-        if (bloomSpreadValue !== undefined)
-            bloomSpread = bloomSpreadValue
+        if (payloadHas(params, "bloomSpread") || payloadHas(params, "bloom_spread"))
+            assignRootNumber("bloomSpread", numberFromKeys(params, "bloomSpread", "bloom_spread"))
 
-        var bloomGlowStrengthValue = numberFromKeys(params, "bloomGlowStrength", "bloom_glow_strength")
-        if (bloomGlowStrengthValue !== undefined)
-            bloomGlowStrength = bloomGlowStrengthValue
+        if (payloadHas(params, "bloomGlowStrength") || payloadHas(params, "bloom_glow_strength"))
+            assignRootNumber("bloomGlowStrength", numberFromKeys(params, "bloomGlowStrength", "bloom_glow_strength"))
 
-        var bloomHdrMaximumValue = numberFromKeys(params, "bloomHdrMaximum", "bloom_hdr_max")
-        if (bloomHdrMaximumValue !== undefined)
-            bloomHdrMaximum = bloomHdrMaximumValue
+        if (payloadHas(params, "bloomHdrMaximum") || payloadHas(params, "bloom_hdr_max"))
+            assignRootNumber("bloomHdrMaximum", numberFromKeys(params, "bloomHdrMaximum", "bloom_hdr_max"))
 
-        var bloomHdrScaleValue = numberFromKeys(params, "bloomHdrScale", "bloom_hdr_scale")
-        if (bloomHdrScaleValue !== undefined)
-            bloomHdrScale = bloomHdrScaleValue
+        if (payloadHas(params, "bloomHdrScale") || payloadHas(params, "bloom_hdr_scale"))
+            assignRootNumber("bloomHdrScale", numberFromKeys(params, "bloomHdrScale", "bloom_hdr_scale"))
 
-        var bloomQualityHighValue = boolFromKeys(params, "bloomQualityHigh", "bloom_quality_high")
-        if (bloomQualityHighValue !== undefined)
-            bloomQualityHigh = !!bloomQualityHighValue
+        if (payloadHas(params, "bloomQualityHigh") || payloadHas(params, "bloom_quality_high"))
+            assignRootBool("bloomQualityHigh", boolFromKeys(params, "bloomQualityHigh", "bloom_quality_high"))
 
-        var bloomBicubicValue = boolFromKeys(params, "bloomUseBicubicUpscale", "bloom_bicubic_upscale")
-        if (bloomBicubicValue !== undefined)
-            bloomUseBicubicUpscale = !!bloomBicubicValue
+        if (payloadHas(params, "bloomUseBicubicUpscale") || payloadHas(params, "bloom_bicubic_upscale"))
+            assignRootBool("bloomUseBicubicUpscale", boolFromKeys(params, "bloomUseBicubicUpscale", "bloom_bicubic_upscale"))
 
         var depthOfFieldSection = valueFromKeys(params, "depthOfField", "depth_of_field")
         if (depthOfFieldSection && typeof depthOfFieldSection === "object") {
-            var nestedDofEnabled = boolFromKeys(depthOfFieldSection, "enabled", "enabled")
-            if (nestedDofEnabled !== undefined)
-                internalDepthOfFieldEnabled = !!nestedDofEnabled
+            if (payloadHas(depthOfFieldSection, "enabled"))
+                assignRootBool("internalDepthOfFieldEnabled", depthOfFieldSection.enabled)
+            else
+                assignRootBool("internalDepthOfFieldEnabled", boolFromKeys(depthOfFieldSection, "enabled", "enabled"))
 
-            var nestedDofFocus = numberFromKeys(depthOfFieldSection, "focusDistance", "focus_distance")
-            if (nestedDofFocus !== undefined)
-                dofFocusDistance = nestedDofFocus
+            if (payloadHas(depthOfFieldSection, "focusDistance"))
+                assignRootNumber("dofFocusDistance", depthOfFieldSection.focusDistance)
+            else
+                assignRootNumber("dofFocusDistance", numberFromKeys(depthOfFieldSection, "focusDistance", "focus_distance"))
 
-            var nestedDofRange = numberFromKeys(depthOfFieldSection, "focusRange", "focus_range")
-            if (nestedDofRange !== undefined)
-                dofFocusRange = nestedDofRange
+            if (payloadHas(depthOfFieldSection, "focusRange"))
+                assignRootNumber("dofFocusRange", depthOfFieldSection.focusRange)
+            else
+                assignRootNumber("dofFocusRange", numberFromKeys(depthOfFieldSection, "focusRange", "focus_range"))
 
-            var nestedDofBlur = numberFromKeys(depthOfFieldSection, "blurAmount", "blur")
+            var nestedDofBlur = payloadHas(depthOfFieldSection, "blurAmount")
+                    ? depthOfFieldSection.blurAmount
+                    : numberFromKeys(depthOfFieldSection, "blurAmount", "blur")
             if (nestedDofBlur === undefined)
                 nestedDofBlur = numberFromKeys(depthOfFieldSection, "blur", "blur")
-            if (nestedDofBlur !== undefined)
-                dofBlurAmount = nestedDofBlur
+            assignRootNumber("dofBlurAmount", nestedDofBlur)
 
-            var nestedDofAutoFocus = boolFromKeys(depthOfFieldSection, "autoFocus", "auto_focus")
-            if (nestedDofAutoFocus !== undefined && ("depthOfFieldAutoFocus" in root))
-                root.depthOfFieldAutoFocus = !!nestedDofAutoFocus
+            if (payloadHas(depthOfFieldSection, "autoFocus")) {
+                if (("depthOfFieldAutoFocus" in root))
+                    assignRootBool("depthOfFieldAutoFocus", depthOfFieldSection.autoFocus)
+            } else if (("depthOfFieldAutoFocus" in root)) {
+                assignRootBool("depthOfFieldAutoFocus", boolFromKeys(depthOfFieldSection, "autoFocus", "auto_focus"))
+            }
         }
 
-        var dofEnabledValue = boolFromKeys(params, "depthOfFieldEnabled", "depth_of_field")
-        if (dofEnabledValue !== undefined)
-            internalDepthOfFieldEnabled = !!dofEnabledValue
+        if (payloadHas(params, "depthOfFieldEnabled") || payloadHas(params, "depth_of_field"))
+            assignRootBool("internalDepthOfFieldEnabled", boolFromKeys(params, "depthOfFieldEnabled", "depth_of_field"))
 
-        var dofFocusValue = numberFromKeys(params, "dofFocusDistance", "dof_focus_distance")
-        if (dofFocusValue !== undefined)
-            dofFocusDistance = dofFocusValue
+        if (payloadHas(params, "dofFocusDistance") || payloadHas(params, "dof_focus_distance"))
+            assignRootNumber("dofFocusDistance", numberFromKeys(params, "dofFocusDistance", "dof_focus_distance"))
 
-        var dofRangeValue = numberFromKeys(params, "dofFocusRange", "dof_focus_range")
-        if (dofRangeValue !== undefined)
-            dofFocusRange = dofRangeValue
+        if (payloadHas(params, "dofFocusRange") || payloadHas(params, "dof_focus_range"))
+            assignRootNumber("dofFocusRange", numberFromKeys(params, "dofFocusRange", "dof_focus_range"))
 
-        var dofBlurValue = numberFromKeys(params, "dofBlurAmount", "dof_blur")
-        if (dofBlurValue !== undefined)
-            dofBlurAmount = dofBlurValue
+        if (payloadHas(params, "dofBlurAmount") || payloadHas(params, "dof_blur"))
+            assignRootNumber("dofBlurAmount", numberFromKeys(params, "dofBlurAmount", "dof_blur"))
 
-        var dofAutoFocusValue = boolFromKeys(params, "dofAutoFocus", "dof_auto_focus")
-        if (dofAutoFocusValue !== undefined && ("depthOfFieldAutoFocus" in root))
-            root.depthOfFieldAutoFocus = !!dofAutoFocusValue
+        if ((payloadHas(params, "dofAutoFocus") || payloadHas(params, "dof_auto_focus")) && ("depthOfFieldAutoFocus" in root))
+            assignRootBool("depthOfFieldAutoFocus", boolFromKeys(params, "dofAutoFocus", "dof_auto_focus"))
 
         var lensFlareSection = valueFromKeys(params, "lensFlare", "lens_flare")
         if (lensFlareSection && typeof lensFlareSection === "object") {
-            var nestedLensEnabled = boolFromKeys(lensFlareSection, "enabled", "enabled")
-            if (nestedLensEnabled !== undefined)
-                internalLensFlareEnabled = !!nestedLensEnabled
+            if (payloadHas(lensFlareSection, "enabled"))
+                assignRootBool("internalLensFlareEnabled", lensFlareSection.enabled)
+            else
+                assignRootBool("internalLensFlareEnabled", boolFromKeys(lensFlareSection, "enabled", "enabled"))
 
-            var nestedGhostCount = numberFromKeys(lensFlareSection, "ghostCount", "ghost_count")
+            var nestedGhostCount = payloadHas(lensFlareSection, "ghostCount")
+                    ? lensFlareSection.ghostCount
+                    : numberFromKeys(lensFlareSection, "ghostCount", "ghost_count")
             if (nestedGhostCount === undefined)
                 nestedGhostCount = numberFromKeys(lensFlareSection, "ghosts", "ghosts")
             assignLensFlareGhostCount(nestedGhostCount)
 
-            var nestedGhostDispersal = numberFromKeys(lensFlareSection, "ghostDispersal", "ghost_dispersal")
-            if (nestedGhostDispersal !== undefined)
-                lensFlareGhostDispersalValue = nestedGhostDispersal
+            if (payloadHas(lensFlareSection, "ghostDispersal"))
+                assignRootNumber("lensFlareGhostDispersalValue", lensFlareSection.ghostDispersal)
+            else
+                assignRootNumber("lensFlareGhostDispersalValue", numberFromKeys(lensFlareSection, "ghostDispersal", "ghost_dispersal"))
 
-            var nestedHaloWidth = numberFromKeys(lensFlareSection, "haloWidth", "halo_width")
-            if (nestedHaloWidth !== undefined)
-                lensFlareHaloWidthValue = nestedHaloWidth
+            if (payloadHas(lensFlareSection, "haloWidth"))
+                assignRootNumber("lensFlareHaloWidthValue", lensFlareSection.haloWidth)
+            else
+                assignRootNumber("lensFlareHaloWidthValue", numberFromKeys(lensFlareSection, "haloWidth", "halo_width"))
 
-            var nestedBloomBias = numberFromKeys(lensFlareSection, "bloomBias", "bloom_bias")
-            if (nestedBloomBias !== undefined)
-                lensFlareBloomBiasValue = nestedBloomBias
+            if (payloadHas(lensFlareSection, "bloomBias"))
+                assignRootNumber("lensFlareBloomBiasValue", lensFlareSection.bloomBias)
+            else
+                assignRootNumber("lensFlareBloomBiasValue", numberFromKeys(lensFlareSection, "bloomBias", "bloom_bias"))
 
-            var nestedStretch = boolFromKeys(lensFlareSection, "stretchToAspect", "stretch_to_aspect")
-            if (nestedStretch !== undefined)
-                lensFlareStretchValue = !!nestedStretch
+            if (payloadHas(lensFlareSection, "stretchToAspect"))
+                assignRootBool("lensFlareStretchValue", lensFlareSection.stretchToAspect)
+            else
+                assignRootBool("lensFlareStretchValue", boolFromKeys(lensFlareSection, "stretchToAspect", "stretch_to_aspect"))
         }
 
-        var lensFlareEnabledValue = boolFromKeys(params, "lensFlareEnabled", "lens_flare")
-        if (lensFlareEnabledValue !== undefined)
-            internalLensFlareEnabled = !!lensFlareEnabledValue
+        if (payloadHas(params, "lensFlareEnabled") || payloadHas(params, "lens_flare"))
+            assignRootBool("internalLensFlareEnabled", boolFromKeys(params, "lensFlareEnabled", "lens_flare"))
 
-        var lensFlareGhostCountRaw = numberFromKeys(params, "lensFlareGhostCount", "lens_flare_ghost_count")
-        assignLensFlareGhostCount(lensFlareGhostCountRaw)
+        if (payloadHas(params, "lensFlareGhostCount") || payloadHas(params, "lens_flare_ghost_count"))
+            assignLensFlareGhostCount(numberFromKeys(params, "lensFlareGhostCount", "lens_flare_ghost_count"))
 
-        var lensFlareGhostDispersalRaw = numberFromKeys(params, "lensFlareGhostDispersal", "lens_flare_ghost_dispersal")
-        if (lensFlareGhostDispersalRaw !== undefined)
-            lensFlareGhostDispersalValue = lensFlareGhostDispersalRaw
+        if (payloadHas(params, "lensFlareGhostDispersal") || payloadHas(params, "lens_flare_ghost_dispersal"))
+            assignRootNumber("lensFlareGhostDispersalValue", numberFromKeys(params, "lensFlareGhostDispersal", "lens_flare_ghost_dispersal"))
 
-        var lensFlareHaloWidthRaw = numberFromKeys(params, "lensFlareHaloWidth", "lens_flare_halo_width")
-        if (lensFlareHaloWidthRaw !== undefined)
-            lensFlareHaloWidthValue = lensFlareHaloWidthRaw
+        if (payloadHas(params, "lensFlareHaloWidth") || payloadHas(params, "lens_flare_halo_width"))
+            assignRootNumber("lensFlareHaloWidthValue", numberFromKeys(params, "lensFlareHaloWidth", "lens_flare_halo_width"))
 
-        var lensFlareBloomBiasRaw = numberFromKeys(params, "lensFlareBloomBias", "lens_flare_bloom_bias")
-        if (lensFlareBloomBiasRaw !== undefined)
-            lensFlareBloomBiasValue = lensFlareBloomBiasRaw
+        if (payloadHas(params, "lensFlareBloomBias") || payloadHas(params, "lens_flare_bloom_bias"))
+            assignRootNumber("lensFlareBloomBiasValue", numberFromKeys(params, "lensFlareBloomBias", "lens_flare_bloom_bias"))
 
-        var lensFlareStretchValueRaw = boolFromKeys(params, "lensFlareStretchToAspect", "lens_flare_stretch_to_aspect")
-        if (lensFlareStretchValueRaw !== undefined)
-            lensFlareStretchValue = !!lensFlareStretchValueRaw
+        if (payloadHas(params, "lensFlareStretchToAspect") || payloadHas(params, "lens_flare_stretch_to_aspect"))
+            assignRootBool("lensFlareStretchValue", boolFromKeys(params, "lensFlareStretchToAspect", "lens_flare_stretch_to_aspect"))
 
         var colorSection = valueFromKeys(params, "colorAdjustments", "color_adjustments")
         if (colorSection && typeof colorSection === "object") {
@@ -895,30 +964,35 @@ ExtendedSceneEnvironment {
                 ? params.vignette
                 : null
         if (vignetteSection) {
-            var nestedVignetteEnabled = boolFromKeys(vignetteSection, "enabled", "enabled")
-            if (nestedVignetteEnabled !== undefined)
-                vignetteEnabled = !!nestedVignetteEnabled
-            var nestedVignetteStrength = numberFromKeys(vignetteSection, "strength", "strength")
-            if (nestedVignetteStrength !== undefined)
-                internalVignetteStrength = nestedVignetteStrength
-            var nestedVignetteRadius = numberFromKeys(vignetteSection, "radius", "radius")
-            if (nestedVignetteRadius !== undefined)
-                vignetteRadiusValue = Math.max(0.0, nestedVignetteRadius)
+            if (payloadHas(vignetteSection, "enabled"))
+                assignRootBool("vignetteEnabled", vignetteSection.enabled)
+            else
+                assignRootBool("vignetteEnabled", boolFromKeys(vignetteSection, "enabled", "enabled"))
+
+            if (payloadHas(vignetteSection, "strength"))
+                assignRootNumber("internalVignetteStrength", vignetteSection.strength)
+            else
+                assignRootNumber("internalVignetteStrength", numberFromKeys(vignetteSection, "strength", "strength"))
+
+            if (payloadHas(vignetteSection, "radius"))
+                assignRootNumber("vignetteRadiusValue", vignetteSection.radius, { min: 0.0 })
+            else
+                assignRootNumber("vignetteRadiusValue", numberFromKeys(vignetteSection, "radius", "radius"), { min: 0.0 })
         }
 
-        var vignetteEnabledValue = boolFromKeys(params, "vignetteEnabled", "vignette_enabled")
-        if (vignetteEnabledValue === undefined)
+        var vignetteEnabledValue = undefined
+        if (payloadHas(params, "vignetteEnabled") || payloadHas(params, "vignette_enabled"))
+            vignetteEnabledValue = boolFromKeys(params, "vignetteEnabled", "vignette_enabled")
+        else if (payloadHas(params, "vignette"))
             vignetteEnabledValue = boolFromKeys(params, "vignette", "vignette")
         if (vignetteEnabledValue !== undefined)
-            vignetteEnabled = !!vignetteEnabledValue
+            assignRootBool("vignetteEnabled", vignetteEnabledValue)
 
-        var vignetteStrengthValue = numberFromKeys(params, "vignetteStrength", "vignette_strength")
-        if (vignetteStrengthValue !== undefined)
-            internalVignetteStrength = vignetteStrengthValue
+        if (payloadHas(params, "vignetteStrength") || payloadHas(params, "vignette_strength"))
+            assignRootNumber("internalVignetteStrength", numberFromKeys(params, "vignetteStrength", "vignette_strength"))
 
-        var vignetteRadiusValueRaw = numberFromKeys(params, "vignetteRadius", "vignette_radius")
-        if (vignetteRadiusValueRaw !== undefined)
-            vignetteRadiusValue = Math.max(0.0, vignetteRadiusValueRaw)
+        if (payloadHas(params, "vignetteRadius") || payloadHas(params, "vignette_radius"))
+            assignRootNumber("vignetteRadiusValue", numberFromKeys(params, "vignetteRadius", "vignette_radius"), { min: 0.0 })
     }
 
     function applyEnvironmentPayload(params) {
