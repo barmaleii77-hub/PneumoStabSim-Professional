@@ -50,8 +50,14 @@ Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
 
 # Activate Qt-aware environment variables and install dependencies.
 ./activate_environment.ps1
+# Ensure uv-run commands inherit the environment.
+./scripts/load_cipilot_env.ps1
 make uv-sync
 ```
+
+> ℹ️ `scripts/load_cipilot_env.ps1` нужно запускать в каждой новой PowerShell
+> сессии перед любыми `uv run` или `make uv-run` вызовами, чтобы дочерние
+> процессы видели переменные окружения Qt и secret storage.
 
 - `activate_environment.ps1` exports `QT_PLUGIN_PATH`, `QML2_IMPORT_PATH`, and
   related Qt variables. Leave the session open while working with Qt Designer or
@@ -98,7 +104,7 @@ cached archives after bumping Qt versions in `pyproject.toml` or the master plan
 | --- | --- |
 | `uv: command not found` after bootstrap | Confirm `~/.local/bin` (Linux/WSL) or `%USERPROFILE%\AppData\Local\Microsoft\WindowsApps` (Windows) is on PATH, then rerun the bootstrap helper. |
 | Qt plugins not discovered | Ensure you launched the terminal via the provided `activate_environment` script; verify the Qt installation exists under `.qt/6.10`. |
-| `make check` fails because of PySide imports | Run `make uv-run CMD="python tools/setup_qt.py"` to reinstall Qt components and rerun the checks. |
+| `make check` fails because of PySide imports | Run `scripts/load_cipilot_env.ps1` in the current PowerShell session, then `make uv-run CMD="python tools/setup_qt.py"` to reinstall Qt components and rerun the checks. |
 | Corporate proxy interrupts downloads | Set `HTTP_PROXY`/`HTTPS_PROXY` environment variables before running `scripts/bootstrap_uv.py` and `make uv-sync`. |
 
 ## 8. Next Steps
