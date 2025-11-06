@@ -129,6 +129,31 @@ def _split_env_list(value: str | None) -> list[str]:
     return [item for item in shlex.split(value) if item]
 
 
+def _env_flag(name: str, *, default: bool) -> bool:
+    """Interpret an environment variable as a boolean flag."""
+
+    value = os.environ.get(name)
+    if value is None:
+        return default
+
+    normalized = value.strip().lower()
+    if not normalized:
+        return default
+
+    truthy = {"1", "true", "yes", "on"}
+    falsy = {"0", "false", "no", "off"}
+
+    if normalized in truthy:
+        return True
+    if normalized in falsy:
+        return False
+
+    raise TaskError(
+        f"Invalid boolean value for {name}: {value!r}. "
+        "Expected one of yes/no, true/false, on/off, 1/0."
+    )
+
+
 def _read_targets_file(relative_path: str) -> list[str]:
     path = PROJECT_ROOT / relative_path
     if not path.exists():
@@ -192,17 +217,25 @@ def _run_command(
     command: Sequence[str],
     *,
     task_name: str,
-    log_name: str,
+    log_name: str | None,
     append: bool = False,
     header: str | None = None,
 ) -> None:
     printable = " ".join(shlex.quote(arg) for arg in command)
     print(f"[ci_tasks] $ {printable}")
 
-    QUALITY_REPORT_ROOT.mkdir(parents=True, exist_ok=True)
-    log_path = QUALITY_REPORT_ROOT / log_name
-    file_exists = log_path.exists()
-    mode = "a" if append and file_exists else "w"
+    log_path: Path | None = None
+    file_exists = False
+    mode = "w"
+
+    if log_name is not None:
+        QUALITY_REPORT_ROOT.mkdir(parents=True, exist_ok=True)
+        log_path = QUALITY_REPORT_ROOT / log_name
+        file_exists = log_path.exists()
+        mode = "a" if append and file_exists else "w"
+    elif header:
+        # Surface context in the console when no log artifact is produced.
+        print(header, end="" if header.endswith("\n") else "\n")
 
     try:
         process = subprocess.Popen(
@@ -224,18 +257,21 @@ def _run_command(
 
     returncode = process.wait()
 
-    with log_path.open(mode, encoding="utf-8") as handle:
-        if mode == "w":
-            handle.write(f"# Log captured {datetime.now(timezone.utc).isoformat()}\n")
-        elif file_exists:
-            handle.write("\n")
-        if header:
-            handle.write(header)
-            if not header.endswith("\n"):
+    if log_path is not None:
+        with log_path.open(mode, encoding="utf-8") as handle:
+            if mode == "w":
+                handle.write(
+                    f"# Log captured {datetime.now(timezone.utc).isoformat()}\n"
+                )
+            elif file_exists:
                 handle.write("\n")
-        handle.write(f"$ {printable}\n")
-        handle.writelines(captured_lines)
-        handle.write(f"\n[exit code: {returncode}]\n")
+            if header:
+                handle.write(header)
+                if not header.endswith("\n"):
+                    handle.write("\n")
+            handle.write(f"$ {printable}\n")
+            handle.writelines(captured_lines)
+            handle.write(f"\n[exit code: {returncode}]\n")
 
     RECORDER.record(
         name=task_name,
@@ -543,14 +579,17 @@ def task_qml_lint() -> None:
         print("[ci_tasks] No QML lint targets specified; skipping.")
         return
 
+    capture_logs = _env_flag("CI_TASKS_QML_LOG_ARTIFACTS", default=True)
+    log_name = "qmllint.log" if capture_logs else None
+
     for target in targets:
         relative = _relative_display(target)
         header = f"## Target: {relative}\n"
         _run_command(
             [*linter_command, str(target)],
             task_name=f"qmllint:{relative}",
-            log_name="qmllint.log",
-            append=True,
+            log_name=log_name,
+            append=capture_logs,
             header=header,
         )
 
