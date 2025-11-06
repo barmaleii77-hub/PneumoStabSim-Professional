@@ -1,0 +1,181 @@
+"""Unit tests covering SignalsRouter handlers for the QML simulation panel."""
+
+from __future__ import annotations
+
+import copy
+from typing import Any, Dict, List, Tuple
+
+import pytest
+
+from src.ui.main_window_pkg.signals_router import SignalsRouter
+
+
+class _DummySignal:
+    """Lightweight stand-in for Qt signals used in tests."""
+
+    def __init__(self) -> None:
+        self.emitted: List[Tuple[Any, ...]] = []
+
+    def emit(self, *args: Any) -> None:  # pragma: no cover - behaviour exercised
+        self.emitted.append(tuple(args))
+
+
+class _DummyStateBus:
+    def __init__(self) -> None:
+        self.set_receiver_volume = _DummySignal()
+        self.set_physics_dt = _DummySignal()
+
+
+class _DummySimulationManager:
+    def __init__(self) -> None:
+        self.state_bus = _DummyStateBus()
+
+
+class _DummySettingsManager:
+    def __init__(self) -> None:
+        self._categories: Dict[str, Dict[str, Any]] = {
+            "pneumatic": {
+                "volume_mode": "MANUAL",
+            },
+            "simulation": {
+                "physics_dt": 0.001,
+            },
+            "current.constants.geometry.cylinder": {
+                "dead_zone_head_m3": 0.001,
+                "dead_zone_rod_m3": 0.001,
+            },
+        }
+
+    def get_category(self, name: str) -> Dict[str, Any]:
+        payload = self._categories.get(name, {})
+        return copy.deepcopy(payload)
+
+    def get(
+        self, path: str, default: Any = None
+    ) -> Any:  # pragma: no cover - defensive
+        return copy.deepcopy(self._categories.get(path, default))
+
+
+class _DummyWindow:
+    def __init__(self) -> None:
+        self.settings_updates: List[Tuple[str, Dict[str, Any]]] = []
+        self.settings_manager = _DummySettingsManager()
+        self.simulation_manager = _DummySimulationManager()
+
+    def _apply_settings_update(self, category: str, payload: Dict[str, Any]) -> None:
+        self.settings_updates.append((category, copy.deepcopy(payload)))
+
+
+def test_handle_pneumatic_settings_changed_updates_settings_and_bus(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Numeric pneumatic edits must persist and forward to the state bus."""
+
+    window = _DummyWindow()
+    dispatched: List[str] = []
+
+    monkeypatch.setattr(
+        SignalsRouter,
+        "_push_pneumatic_state",
+        lambda w: dispatched.append("pneumatic") if w is window else None,
+    )
+
+    payload = {
+        "receiver_volume": 0.0315,
+        "volume_mode": "geometric",
+        "cv_atmo_dp": 1500,
+        "cv_tank_dp": 2200,
+        "cv_atmo_dia": 0.004,
+        "cv_tank_dia": 0.0035,
+        "relief_min_pressure": 280000,
+        "relief_stiff_pressure": 1750000,
+        "relief_safety_pressure": 4200000,
+        "throttle_min_dia": 0.0012,
+        "throttle_stiff_dia": 0.0017,
+        "atmo_temp": 18.0,
+        "master_isolation_open": True,
+    }
+
+    SignalsRouter.handle_pneumatic_settings_changed(window, payload)
+
+    assert dispatched == ["pneumatic"], "Pneumatic state should be pushed to QML"
+    assert window.settings_updates, "Settings update must be recorded"
+
+    category, updates = window.settings_updates[-1]
+    assert category == "pneumatic"
+    assert updates["receiver_volume"] == pytest.approx(0.0315)
+    assert updates["volume_mode"] == "GEOMETRIC"
+    assert updates["master_isolation_open"] is True
+    assert window.simulation_manager.state_bus.set_receiver_volume.emitted[-1] == (
+        pytest.approx(0.0315),
+        "GEOMETRIC",
+    )
+
+
+def test_handle_simulation_settings_changed_updates_settings_and_bus(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Simulation edits must persist and notify the simulation manager."""
+
+    window = _DummyWindow()
+    dispatched: List[str] = []
+
+    monkeypatch.setattr(
+        SignalsRouter,
+        "_push_simulation_state",
+        lambda w: dispatched.append("simulation") if w is window else None,
+    )
+
+    payload = {
+        "physics_dt": 0.00075,
+        "render_vsync_hz": 75.0,
+        "max_steps_per_frame": 24,
+        "max_frame_time": 0.045,
+    }
+
+    SignalsRouter.handle_simulation_settings_changed(window, payload)
+
+    assert dispatched == ["simulation"], "Simulation state should be pushed to QML"
+    category, updates = window.settings_updates[-1]
+    assert category == "simulation"
+    assert updates["physics_dt"] == pytest.approx(0.00075)
+    assert updates["render_vsync_hz"] == pytest.approx(75.0)
+    assert updates["max_steps_per_frame"] == 24
+    assert updates["max_frame_time"] == pytest.approx(0.045)
+    assert window.simulation_manager.state_bus.set_physics_dt.emitted[-1] == (
+        pytest.approx(0.00075),
+    )
+
+
+def test_handle_cylinder_settings_changed_updates_constants(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Cylinder dead zones from QML must persist under constants geometry."""
+
+    window = _DummyWindow()
+    dispatched: List[str] = []
+
+    monkeypatch.setattr(
+        SignalsRouter,
+        "_push_cylinder_state",
+        lambda w: dispatched.append("cylinder") if w is window else None,
+    )
+
+    payload = {
+        "dead_zone_head_m3": 0.0018,
+        "dead_zone_rod_m3": 0.0016,
+    }
+
+    SignalsRouter.handle_cylinder_settings_changed(window, payload)
+
+    assert dispatched == ["cylinder"], "Cylinder state should be pushed to QML"
+    category, updates = window.settings_updates[-1]
+    assert category == "constants"
+    assert updates == {
+        "geometry": {
+            "cylinder": {
+                "dead_zone_head_m3": pytest.approx(0.0018),
+                "dead_zone_rod_m3": pytest.approx(0.0016),
+            }
+        }
+    }
