@@ -130,3 +130,8 @@ Track panel completion status, performance runs, and localization updates here.
 - Bootstrap приложения до создания `QApplication` теперь вызывает `QQuickWindow.setGraphicsApi(QSGRendererInterface.OpenGLRhi)` и задаёт `QSurfaceFormat` с глубиной 24 бита и трафаретом 8 бит (OpenGL 3.3 Core).
 - README и run-гайд обновлены требованием OpenGL 3.3+, демо-сцена подтверждена на отсутствие fallback у `FogEffect` и `Depth of Field`.
 
+### 2025-11-30 – Panel bridge payload coverage
+- Добавлен набор pytest-qt сценариев `tests/ui/panels/` для модульных координаторов геометрии, пневматики и графики.
+- Тесты эмулируют пользовательские правки (spinbox/slider) и мокируют `QMLBridge.queue_update`, проверяя соответствие payload категориям из `config/qml_bridge.yaml`.
+- Обновлён охват плана: теперь трассируются payload'ы `geometry`, `simulation` и `lighting`, исключая регрессии в Python→QML мосте при изменении панели.
+
