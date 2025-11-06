@@ -26,7 +26,9 @@ class _BridgeStub:
     logs: List[Tuple[str, Dict[str, Any], bool]] = []
 
     @staticmethod
-    def invoke_qml_function(_window: object, name: str, payload: Dict[str, Any]) -> bool:
+    def invoke_qml_function(
+        _window: object, name: str, payload: Dict[str, Any]
+    ) -> bool:
         _BridgeStub.invoke_calls.append((name, dict(payload)))
         return _BridgeStub.invoke_result
 

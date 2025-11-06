@@ -112,6 +112,7 @@ class PhysicsWorker(QObject):
         # Simulation modes (overridden by persisted settings)
         self.thermo_mode = ThermoMode.ISOTHERMAL
         self.master_isolation_open = False
+        self.master_equalization_diameter = 0.0
 
         # Receiver parameters and limits (loaded from settings)
         self.receiver_volume: float = 0.0
@@ -405,6 +406,7 @@ class PhysicsWorker(QObject):
             poly_exchange_area = _resolve_positive("polytropic_exchange_area")
             leak_coefficient = _resolve_positive("leak_coefficient")
             leak_reference_area = _resolve_positive("leak_reference_area")
+            diagonal_coupling_diameter = _resolve_positive("diagonal_coupling_dia")
 
             relief_defaults = get_pneumo_relief_thresholds()
             relief_min_threshold = _get_pressure_setting(
@@ -477,7 +479,10 @@ class PhysicsWorker(QObject):
                 ),
                 leak_coefficient=leak_coefficient,
                 leak_reference_area=leak_reference_area,
+                master_equalization_diameter=diagonal_coupling_diameter,
             )
+
+            self.master_equalization_diameter = diagonal_coupling_diameter
 
             self._latest_tank_state = TankState(
                 pressure=tank_state.p,

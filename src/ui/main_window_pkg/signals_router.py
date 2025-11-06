@@ -1335,6 +1335,7 @@ class SignalsRouter:
             "relief_safety_pressure",
             "throttle_min_dia",
             "throttle_stiff_dia",
+            "diagonal_coupling_dia",
             "atmo_temp",
         }
         pneumatic_updates: Dict[str, Any] = {}

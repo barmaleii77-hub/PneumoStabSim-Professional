@@ -579,7 +579,7 @@ class PhysicsLoop:
             return None
 
         flow_log = self.gas.apply_valves_and_flows(self.config.dt_physics, self.logger)
-        self.gas.enforce_master_isolation(self.logger)
+        self.gas.enforce_master_isolation(self.logger, dt=self.config.dt_physics)
         return flow_log
 
     def _compute_lever_angles(self, state: np.ndarray) -> Dict[Wheel, float]:

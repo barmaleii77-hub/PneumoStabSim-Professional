@@ -22,7 +22,14 @@ from typing import TYPE_CHECKING, Any
 
 from src.ui._lazy_module_utils import should_suppress_wrapped
 
-__all__ = ["GeometryPanel", "PneumoPanel", "ModesPanel", "RoadPanel", "GraphicsPanel"]
+__all__ = [
+    "GeometryPanel",
+    "PneumoPanel",
+    "ModesPanel",
+    "RoadPanel",
+    "GraphicsPanel",
+    "StabilizerPanel",
+]
 
 _MODES_PANEL_DISABLED_MESSAGE = (
     "ModesPanel widgets have been replaced by the QML SimulationPanel. "
@@ -35,6 +42,7 @@ _EXPORTS = {
     "ModesPanel": ("panel_modes", "ModesPanel"),
     "RoadPanel": ("panel_road", "RoadPanel"),
     "GraphicsPanel": ("graphics.panel_graphics", "GraphicsPanel"),
+    "StabilizerPanel": ("stabilizer_panel", "StabilizerPanel"),
 }
 
 if TYPE_CHECKING:  # pragma: no cover - typing helpers only
@@ -43,6 +51,7 @@ if TYPE_CHECKING:  # pragma: no cover - typing helpers only
     from .panel_pneumo import PneumoPanel
     from .panel_road import RoadPanel
     from .graphics.panel_graphics import GraphicsPanel
+    from .stabilizer_panel import StabilizerPanel
 
 
 def __getattr__(name: str) -> Any:

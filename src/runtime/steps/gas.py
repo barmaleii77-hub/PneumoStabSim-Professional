@@ -56,7 +56,7 @@ def update_gas_state(state: PhysicsStepState) -> None:
         )
 
     state.gas_network.apply_valves_and_flows(state.dt, state.logger)
-    state.gas_network.enforce_master_isolation(state.logger)
+    state.gas_network.enforce_master_isolation(state.logger, dt=state.dt)
 
     for line_name, gas_state in state.gas_network.lines.items():
         line_state = state.line_states[line_name]

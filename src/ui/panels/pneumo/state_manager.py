@@ -469,10 +469,15 @@ class PneumoStateManager:
 
         throttle_min = self.get_valve_diameter("throttle_min_dia")
         throttle_stiff = self.get_valve_diameter("throttle_stiff_dia")
+        diagonal_coupling = self.get_valve_diameter("diagonal_coupling_dia")
         if throttle_min and (throttle_min < 0.2 or throttle_min > 10):
             warnings.append("Диаметр минимального дросселя вне диапазона 0.2..10 мм")
         if throttle_stiff and (throttle_stiff < 0.2 or throttle_stiff > 10):
             warnings.append("Диаметр дросселя жёсткости вне диапазона 0.2..10 мм")
+        if diagonal_coupling is not None and diagonal_coupling < 0:
+            errors.append("Диаметр дросселя диагоналей не может быть отрицательным")
+        if diagonal_coupling and diagonal_coupling > 10:
+            warnings.append("Диаметр дросселя диагоналей вне диапазона 0..10 мм")
 
         dp_atmo = self.get_pressure_drop("cv_atmo_dp")
         dp_tank = self.get_pressure_drop("cv_tank_dp")
