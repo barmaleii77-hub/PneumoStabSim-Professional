@@ -158,12 +158,28 @@ Pane {
             console.warn("⚠️ SimulationPanel: ignoring non-numeric", logKey, rawValue)
             return
         }
+        var scale = Number(spin.valueScale !== undefined ? spin.valueScale : 1)
+        if (!Number.isFinite(scale) || scale <= 0)
+            scale = 1
         var finalValue = opts.forceInt ? Math.round(numeric) : numeric
+        if (scale !== 1)
+            finalValue = Math.round(numeric * scale)
         try {
             spin.value = finalValue
         } catch (error) {
             console.warn("⚠️ SimulationPanel: spin assignment failed for", logKey, "→", finalValue, error)
-            if (!opts.forceInt) {
+            if (scale !== 1) {
+                var scaledFallback = Math.round(Math.round(numeric) * scale)
+                if (scaledFallback !== finalValue) {
+                    try {
+                        spin.value = scaledFallback
+                        console.warn("ℹ️ SimulationPanel: coerced", logKey, "to scaled integer", scaledFallback)
+                        return
+                    } catch (scaledError) {
+                        console.warn("⚠️ SimulationPanel: scaled fallback failed for", logKey, scaledError)
+                    }
+                }
+            } else if (!opts.forceInt) {
                 var fallback = Math.round(numeric)
                 if (fallback !== finalValue) {
                     try {
@@ -577,14 +593,20 @@ Pane {
                         }
                         SpinBox {
                             Layout.preferredWidth: 96
-                            from: amplitudeSlider.from
-                            to: amplitudeSlider.to
-                            stepSize: amplitudeSlider.stepSize
-                            value: amplitudeSlider.value
+                            readonly property int valueScale: 1000
+                            from: Math.round(amplitudeSlider.from * valueScale)
+                            to: Math.round(amplitudeSlider.to * valueScale)
+                            stepSize: Math.max(1, Math.round(amplitudeSlider.stepSize * valueScale))
+                            value: Math.round(amplitudeSlider.value * valueScale)
                             editable: true
-                            textFromValue: function(value, locale) { return root._formatValue(value, _defaultRanges.amplitude ? _defaultRanges.amplitude.decimals : 3) }
-                            valueFromText: function(text, locale) { return Number(text) }
-                            onValueModified: amplitudeSlider.value = value
+                            textFromValue: function(value, locale) {
+                                return root._formatValue(value / valueScale, _defaultRanges.amplitude ? _defaultRanges.amplitude.decimals : 3)
+                            }
+                            valueFromText: function(text, locale) {
+                                var numeric = Number(text)
+                                return Number.isFinite(numeric) ? Math.round(numeric * valueScale) : value
+                            }
+                            onValueModified: amplitudeSlider.value = value / valueScale
                         }
                     }
 
@@ -608,14 +630,20 @@ Pane {
                         }
                         SpinBox {
                             Layout.preferredWidth: 96
-                            from: frequencySlider.from
-                            to: frequencySlider.to
-                            stepSize: frequencySlider.stepSize
-                            value: frequencySlider.value
+                            readonly property int valueScale: 10
+                            from: Math.round(frequencySlider.from * valueScale)
+                            to: Math.round(frequencySlider.to * valueScale)
+                            stepSize: Math.max(1, Math.round(frequencySlider.stepSize * valueScale))
+                            value: Math.round(frequencySlider.value * valueScale)
                             editable: true
-                            textFromValue: function(value, locale) { return root._formatValue(value, _defaultRanges.frequency ? _defaultRanges.frequency.decimals : 1) }
-                            valueFromText: function(text, locale) { return Number(text) }
-                            onValueModified: frequencySlider.value = value
+                            textFromValue: function(value, locale) {
+                                return root._formatValue(value / valueScale, _defaultRanges.frequency ? _defaultRanges.frequency.decimals : 1)
+                            }
+                            valueFromText: function(text, locale) {
+                                var numeric = Number(text)
+                                return Number.isFinite(numeric) ? Math.round(numeric * valueScale) : value
+                            }
+                            onValueModified: frequencySlider.value = value / valueScale
                         }
                     }
 
@@ -805,14 +833,20 @@ Pane {
                         }
                         SpinBox {
                             Layout.preferredWidth: 96
-                            from: smoothingPistonSlider.from
-                            to: smoothingPistonSlider.to
-                            stepSize: smoothingPistonSlider.stepSize
-                            value: smoothingPistonSlider.value
+                            readonly property int valueScale: 1000
+                            from: Math.round(smoothingPistonSlider.from * valueScale)
+                            to: Math.round(smoothingPistonSlider.to * valueScale)
+                            stepSize: Math.max(1, Math.round(smoothingPistonSlider.stepSize * valueScale))
+                            value: Math.round(smoothingPistonSlider.value * valueScale)
                             editable: true
-                            textFromValue: function(value, locale) { return root._formatValue(value, _defaultRanges.smoothing_piston_snap_m ? _defaultRanges.smoothing_piston_snap_m.decimals : 3) }
-                            valueFromText: function(text, locale) { return Number(text) }
-                            onValueModified: smoothingPistonSlider.value = value
+                            textFromValue: function(value, locale) {
+                                return root._formatValue(value / valueScale, _defaultRanges.smoothing_piston_snap_m ? _defaultRanges.smoothing_piston_snap_m.decimals : 3)
+                            }
+                            valueFromText: function(text, locale) {
+                                var numeric = Number(text)
+                                return Number.isFinite(numeric) ? Math.round(numeric * valueScale) : value
+                            }
+                            onValueModified: smoothingPistonSlider.value = value / valueScale
                         }
                     }
 
@@ -892,14 +926,18 @@ Pane {
                         }
                         SpinBox {
                             Layout.preferredWidth: 110
-                            from: receiverVolumeSlider.from
-                            to: receiverVolumeSlider.to
-                            stepSize: receiverVolumeSlider.stepSize
-                            value: receiverVolumeSlider.value
+                            readonly property int valueScale: 10000
+                            from: Math.round(receiverVolumeSlider.from * valueScale)
+                            to: Math.round(receiverVolumeSlider.to * valueScale)
+                            stepSize: Math.max(1, Math.round(receiverVolumeSlider.stepSize * valueScale))
+                            value: Math.round(receiverVolumeSlider.value * valueScale)
                             editable: true
-                            textFromValue: function(value, locale) { return root._formatValue(value, 4) }
-                            valueFromText: function(text, locale) { return Number(text) }
-                            onValueModified: receiverVolumeSlider.value = _applyVolumeLimits(value)
+                            textFromValue: function(value, locale) { return root._formatValue(value / valueScale, 4) }
+                            valueFromText: function(text, locale) {
+                                var numeric = Number(text)
+                                return Number.isFinite(numeric) ? Math.round(numeric * valueScale) : value
+                            }
+                            onValueModified: receiverVolumeSlider.value = _applyVolumeLimits(value / valueScale)
                         }
                     }
 
@@ -943,14 +981,18 @@ Pane {
                         }
                         SpinBox {
                             id: cvAtmoDiaSpin
-                            from: 0.0001
-                            to: 0.02
-                            stepSize: 0.0001
-                            value: 0.003
+                            readonly property int valueScale: 10000
+                            from: 1
+                            to: 200
+                            stepSize: 1
+                            value: Math.round(0.003 * valueScale)
                             editable: true
-                            textFromValue: function(value, locale) { return root._formatValue(value, 4) }
-                            valueFromText: function(text, locale) { return Number(text) }
-                            onValueModified: if (!root._updatingFromPython) _emitPneumaticChange("cv_atmo_dia", value)
+                            textFromValue: function(value, locale) { return root._formatValue(value / valueScale, 4) }
+                            valueFromText: function(text, locale) {
+                                var numeric = Number(text)
+                                return Number.isFinite(numeric) ? Math.round(numeric * valueScale) : value
+                            }
+                            onValueModified: if (!root._updatingFromPython) _emitPneumaticChange("cv_atmo_dia", value / valueScale)
                         }
 
                         Label {
@@ -959,14 +1001,18 @@ Pane {
                         }
                         SpinBox {
                             id: cvTankDiaSpin
-                            from: 0.0001
-                            to: 0.02
-                            stepSize: 0.0001
-                            value: 0.003
+                            readonly property int valueScale: 10000
+                            from: 1
+                            to: 200
+                            stepSize: 1
+                            value: Math.round(0.003 * valueScale)
                             editable: true
-                            textFromValue: function(value, locale) { return root._formatValue(value, 4) }
-                            valueFromText: function(text, locale) { return Number(text) }
-                            onValueModified: if (!root._updatingFromPython) _emitPneumaticChange("cv_tank_dia", value)
+                            textFromValue: function(value, locale) { return root._formatValue(value / valueScale, 4) }
+                            valueFromText: function(text, locale) {
+                                var numeric = Number(text)
+                                return Number.isFinite(numeric) ? Math.round(numeric * valueScale) : value
+                            }
+                            onValueModified: if (!root._updatingFromPython) _emitPneumaticChange("cv_tank_dia", value / valueScale)
                         }
 
                         Label {
@@ -1017,14 +1063,18 @@ Pane {
                         }
                         SpinBox {
                             id: throttleMinSpin
-                            from: 0.0001
-                            to: 0.02
-                            stepSize: 0.0001
-                            value: 0.001
+                            readonly property int valueScale: 10000
+                            from: 1
+                            to: 200
+                            stepSize: 1
+                            value: Math.round(0.001 * valueScale)
                             editable: true
-                            textFromValue: function(value, locale) { return root._formatValue(value, 4) }
-                            valueFromText: function(text, locale) { return Number(text) }
-                            onValueModified: if (!root._updatingFromPython) _emitPneumaticChange("throttle_min_dia", value)
+                            textFromValue: function(value, locale) { return root._formatValue(value / valueScale, 4) }
+                            valueFromText: function(text, locale) {
+                                var numeric = Number(text)
+                                return Number.isFinite(numeric) ? Math.round(numeric * valueScale) : value
+                            }
+                            onValueModified: if (!root._updatingFromPython) _emitPneumaticChange("throttle_min_dia", value / valueScale)
                         }
 
                         Label {
@@ -1033,14 +1083,18 @@ Pane {
                         }
                         SpinBox {
                             id: throttleStiffSpin
-                            from: 0.0001
-                            to: 0.02
-                            stepSize: 0.0001
-                            value: 0.0015
+                            readonly property int valueScale: 10000
+                            from: 1
+                            to: 200
+                            stepSize: 1
+                            value: Math.round(0.0015 * valueScale)
                             editable: true
-                            textFromValue: function(value, locale) { return root._formatValue(value, 4) }
-                            valueFromText: function(text, locale) { return Number(text) }
-                            onValueModified: if (!root._updatingFromPython) _emitPneumaticChange("throttle_stiff_dia", value)
+                            textFromValue: function(value, locale) { return root._formatValue(value / valueScale, 4) }
+                            valueFromText: function(text, locale) {
+                                var numeric = Number(text)
+                                return Number.isFinite(numeric) ? Math.round(numeric * valueScale) : value
+                            }
+                            onValueModified: if (!root._updatingFromPython) _emitPneumaticChange("throttle_stiff_dia", value / valueScale)
                         }
 
                         Label {
@@ -1049,14 +1103,18 @@ Pane {
                         }
                         SpinBox {
                             id: diagonalCouplingSpin
-                            from: 0.0
-                            to: 0.02
-                            stepSize: 0.0001
-                            value: 0.0008
+                            readonly property int valueScale: 10000
+                            from: 0
+                            to: 200
+                            stepSize: 1
+                            value: Math.round(0.0008 * valueScale)
                             editable: true
-                            textFromValue: function(value, locale) { return root._formatValue(value, 4) }
-                            valueFromText: function(text, locale) { return Number(text) }
-                            onValueModified: if (!root._updatingFromPython) _emitPneumaticChange("diagonal_coupling_dia", value)
+                            textFromValue: function(value, locale) { return root._formatValue(value / valueScale, 4) }
+                            valueFromText: function(text, locale) {
+                                var numeric = Number(text)
+                                return Number.isFinite(numeric) ? Math.round(numeric * valueScale) : value
+                            }
+                            onValueModified: if (!root._updatingFromPython) _emitPneumaticChange("diagonal_coupling_dia", value / valueScale)
                         }
 
                         Label {
@@ -1104,14 +1162,18 @@ Pane {
                     }
                     SpinBox {
                         id: physicsDtSpin
-                        from: 0.0001
-                        to: 0.02
-                        stepSize: 0.0001
-                        value: 0.001
+                        readonly property int valueScale: 10000
+                        from: 1
+                        to: 200
+                        stepSize: 1
+                        value: Math.round(0.001 * valueScale)
                         editable: true
-                        textFromValue: function(value, locale) { return root._formatValue(value, 4) }
-                        valueFromText: function(text, locale) { return Number(text) }
-                        onValueModified: if (!root._updatingFromPython) _emitSimulationChange("physics_dt", value)
+                        textFromValue: function(value, locale) { return root._formatValue(value / valueScale, 4) }
+                        valueFromText: function(text, locale) {
+                            var numeric = Number(text)
+                            return Number.isFinite(numeric) ? Math.round(numeric * valueScale) : value
+                        }
+                        onValueModified: if (!root._updatingFromPython) _emitSimulationChange("physics_dt", value / valueScale)
                     }
 
                     Label {
@@ -1148,14 +1210,18 @@ Pane {
                     }
                     SpinBox {
                         id: maxFrameTimeSpin
-                        from: 0.001
-                        to: 0.2
-                        stepSize: 0.001
-                        value: 0.05
+                        readonly property int valueScale: 1000
+                        from: 1
+                        to: 200
+                        stepSize: 1
+                        value: Math.round(0.05 * valueScale)
                         editable: true
-                        textFromValue: function(value, locale) { return root._formatValue(value, 3) }
-                        valueFromText: function(text, locale) { return Number(text) }
-                        onValueModified: if (!root._updatingFromPython) _emitSimulationChange("max_frame_time", value)
+                        textFromValue: function(value, locale) { return root._formatValue(value / valueScale, 3) }
+                        valueFromText: function(text, locale) {
+                            var numeric = Number(text)
+                            return Number.isFinite(numeric) ? Math.round(numeric * valueScale) : value
+                        }
+                        onValueModified: if (!root._updatingFromPython) _emitSimulationChange("max_frame_time", value / valueScale)
                     }
                 }
             }
@@ -1177,14 +1243,18 @@ Pane {
                     }
                     SpinBox {
                         id: deadZoneHeadSpin
-                        from: 0.0
-                        to: 0.01
-                        stepSize: 0.0001
-                        value: 0.001
+                        readonly property int valueScale: 10000
+                        from: 0
+                        to: 100
+                        stepSize: 1
+                        value: Math.round(0.001 * valueScale)
                         editable: true
-                        textFromValue: function(value, locale) { return root._formatValue(value, 4) }
-                        valueFromText: function(text, locale) { return Number(text) }
-                        onValueModified: if (!root._updatingFromPython) _emitCylinderChange("dead_zone_head_m3", value)
+                        textFromValue: function(value, locale) { return root._formatValue(value / valueScale, 4) }
+                        valueFromText: function(text, locale) {
+                            var numeric = Number(text)
+                            return Number.isFinite(numeric) ? Math.round(numeric * valueScale) : value
+                        }
+                        onValueModified: if (!root._updatingFromPython) _emitCylinderChange("dead_zone_head_m3", value / valueScale)
                     }
 
                     Label {
@@ -1193,14 +1263,18 @@ Pane {
                     }
                     SpinBox {
                         id: deadZoneRodSpin
-                        from: 0.0
-                        to: 0.01
-                        stepSize: 0.0001
-                        value: 0.001
+                        readonly property int valueScale: 10000
+                        from: 0
+                        to: 100
+                        stepSize: 1
+                        value: Math.round(0.001 * valueScale)
                         editable: true
-                        textFromValue: function(value, locale) { return root._formatValue(value, 4) }
-                        valueFromText: function(text, locale) { return Number(text) }
-                        onValueModified: if (!root._updatingFromPython) _emitCylinderChange("dead_zone_rod_m3", value)
+                        textFromValue: function(value, locale) { return root._formatValue(value / valueScale, 4) }
+                        valueFromText: function(text, locale) {
+                            var numeric = Number(text)
+                            return Number.isFinite(numeric) ? Math.round(numeric * valueScale) : value
+                        }
+                        onValueModified: if (!root._updatingFromPython) _emitCylinderChange("dead_zone_rod_m3", value / valueScale)
                     }
                 }
             }

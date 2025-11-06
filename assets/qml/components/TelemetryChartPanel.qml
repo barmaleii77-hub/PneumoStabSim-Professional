@@ -200,13 +200,21 @@ Item {
 
                 SpinBox {
                     id: minSpin
+                    readonly property int valueScale: 20
                     enabled: !root.autoScale
-                    from: -1000000
-                    to: root.manualMax - 0.0001
-                    stepSize: 0.05
-                    value: root.manualMin
+                    from: Math.round(-1000000 * valueScale)
+                    to: Math.round((root.manualMax - 0.0001) * valueScale)
+                    stepSize: Math.max(1, Math.round(0.05 * valueScale))
+                    value: Math.round(root.manualMin * valueScale)
+                    textFromValue: function(value, locale) {
+                        return Number(value / valueScale).toLocaleString(Qt.locale(), { maximumFractionDigits: 2, minimumFractionDigits: 2 })
+                    }
+                    valueFromText: function(text, locale) {
+                        var numeric = Number(text)
+                        return Number.isFinite(numeric) ? Math.round(numeric * valueScale) : value
+                    }
                     onValueChanged: {
-                        root.manualMin = value
+                        root.manualMin = value / valueScale
                         root.updateValueAxis()
                     }
                 }
@@ -219,13 +227,21 @@ Item {
 
                 SpinBox {
                     id: maxSpin
+                    readonly property int valueScale: 20
                     enabled: !root.autoScale
-                    from: root.manualMin + 0.0001
-                    to: 1000000
-                    stepSize: 0.05
-                    value: root.manualMax
+                    from: Math.round((root.manualMin + 0.0001) * valueScale)
+                    to: Math.round(1000000 * valueScale)
+                    stepSize: Math.max(1, Math.round(0.05 * valueScale))
+                    value: Math.round(root.manualMax * valueScale)
+                    textFromValue: function(value, locale) {
+                        return Number(value / valueScale).toLocaleString(Qt.locale(), { maximumFractionDigits: 2, minimumFractionDigits: 2 })
+                    }
+                    valueFromText: function(text, locale) {
+                        var numeric = Number(text)
+                        return Number.isFinite(numeric) ? Math.round(numeric * valueScale) : value
+                    }
                     onValueChanged: {
-                        root.manualMax = value
+                        root.manualMax = value / valueScale
                         root.updateValueAxis()
                     }
                 }
