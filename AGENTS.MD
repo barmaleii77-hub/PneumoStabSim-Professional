@@ -30,6 +30,15 @@ ensure the master plan accurately reflects the intended scope.
 - **Python**: 3.13 (managed via [`uv`](https://github.com/astral-sh/uv)).
   - Run `make uv-sync` to materialise the environment; `make uv-run CMD="..."`
     executes commands within the virtualenv.
+- **Platform matrix**: _Always_ match the host to the assistant in use.
+  - Visual Studio / VS Code Copilot sessions run on **Windows desktop**.
+  - Codex / terminal-first assistants operate on **Linux** (the container
+    image is the source of truth).
+  - Every automation script must begin by detecting `platform.system()` and log
+    the detected OS to avoid cross-platform misconfiguration.
+  - Before executing build or test commands, re-run dependency installation for
+    the active platform (`make uv-sync` on Linux containers, `scripts/setup_dev.py`
+    on Windows desktops) so that agents never rely on stale environments.
 - **Qt / PySide**: 6.10 installed by `python tools/setup_qt.py`.
   - Launch scripts (`activate_environment.sh`, `.ps1`) export `QT_PLUGIN_PATH`,
     `QML2_IMPORT_PATH`, and set `QT_QUICK_CONTROLS_STYLE=Basic`.
