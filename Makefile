@@ -19,7 +19,7 @@ INTEGRATION_TARGET ?= tests/integration/test_main_window_qml.py
 RUN_ARGS ?=
 
 .PHONY: format lint typecheck qml-lint test-local test-unit test-integration test-ui analyze-logs \
-validate-shaders check-shaders check verify smoke integration run \
+validate-shaders check-shaders monitor-shader-logs check verify smoke integration run \
 localization-check \
 autonomous-check autonomous-check-trace trace-launch sanitize cipilot-env \
 install-qt-runtime qt-env-check telemetry-etl profile-phase3 profile-render profile-validate package-all
@@ -153,6 +153,9 @@ validate-shaders:
 
 check-shaders: validate-shaders
 
+monitor-shader-logs:
+	$(PYTHON) tools/check_shader_logs.py reports/shaders --recursive --fail-on-warnings --expect-fallback
+
 shader-artifacts:
 	$(PYTHON) tools/validate_shaders.py --emit-qsb
 
@@ -162,6 +165,7 @@ validate-hdr-orientation:
 check: uv-sync
 	$(PYTHON) -m tools.ci_tasks verify
 	$(MAKE) check-shaders
+	$(MAKE) monitor-shader-logs
 	$(MAKE) validate-hdr-orientation
 	$(MAKE) localization-check
 	$(MAKE) qt-env-check

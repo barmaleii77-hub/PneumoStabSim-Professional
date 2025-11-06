@@ -4,12 +4,12 @@
 
 Workflow **Continuous Integration** запускается на каждый `push` и `pull_request` в ветки `main` и `develop` и выполняется на матрице `ubuntu-latest` и `windows-latest`. Последовательность шагов:
 
-1. Устанавливает headless-пакеты (`xvfb`, Mesa software GL, `libosmesa6`, `mesa-utils(-extra)`, `libxcb-xinerama0`, `libxkbcommon(-x11)`, `libegl1-mesa`, `libgles2-mesa`, `libvulkan1`), чтобы Qt Quick 3D и QtCharts работали без физического дисплея.
+1. Устанавливает headless-пакеты (`xvfb`, `xauth`, `dbus-x11`, Mesa software GL, `libosmesa6(-dev)`, `mesa-utils(-extra)`, `libglu1-mesa(-dev)`, `libegl1-mesa(-dev)`, `libgles2-mesa(-dev)`, `libgbm1`, `libdrm2`, `libxcb-*`, `libvulkan1`, `mesa-vulkan-drivers`, `vulkan-tools`) — этого достаточно для Mesa software rendering, проверки fallback-шейдеров и виртуального дисплея Qt Quick 3D.
 2. Подготавливает Python 3.13, устанавливает `uv`, dev-зависимости и Qt 6.10.0 (вместе с плагинами `qtquick3d`, `qtshadertools`, `qtimageformats`).
-3. Экспортирует пути Qt и устанавливает headless-переменные `QT_QPA_PLATFORM=offscreen`, `QT_QUICK_BACKEND=software`.
+3. Экспортирует пути Qt и headless-переменные (`QT_QPA_PLATFORM=offscreen`, `QT_QUICK_BACKEND=software`, `LIBGL_ALWAYS_SOFTWARE=1`, `MESA_GL_VERSION_OVERRIDE=4.1`, `MESA_GLSL_VERSION_OVERRIDE=410`).
 4. Запускает `make check` (на Linux через `scripts/xvfb_wrapper.sh`), который в свою очередь выполняет:
    - `python -m tools.ci_tasks verify` → линтеры (`ruff format --check`, `ruff check`), `mypy`, `qmllint`, затем последовательно `pytest` для `tests/unit`, `tests/integration`, `tests/ui` и анализ логов `python tools/analyze_logs.py`.
-   - аппаратно-зависимые проверки: `make check-shaders`, `make validate-hdr-orientation`, `make localization-check`, `make qt-env-check`.
+   - аппаратно-зависимые проверки: `make check-shaders`, `make monitor-shader-logs` (обёртка над `python tools/check_shader_logs.py` с флагами `--fail-on-warnings --expect-fallback`), `make validate-hdr-orientation`, `make localization-check`, `make qt-env-check`.
 5. При сбоях workflow запускает `analyze_logs.py`, сохраняет AI-отчёт в `reports/quality/ai_failure_report.log` и выводит его в лог сборки.
 6. Всегда загружает артефакты `reports/quality/**`, `reports/tests/**`, `reports/environment/**`, а также папку `logs/**`.
 
@@ -20,7 +20,7 @@ Workflow **Continuous Integration** запускается на каждый `pu
 ### Установка зависимостей и хуков
 
 ```sh
-pip install -e .[dev]
+make uv-sync
 pre-commit install --hook-type pre-commit --hook-type pre-push
 ```
 
@@ -56,6 +56,7 @@ make check
 ## Подсказки
 
 - `tools/ci_tasks.py` — единая точка входа для Makefile, локальных сценариев и GitHub Actions. Выходные логи лежат в `reports/quality/*.log` и `reports/tests/*.xml`.
+- После `make check` формируется `reports/tests/shader_logs_summary.json` (через `tools/check_shader_logs.py`). Файл фиксирует предупреждения/ошибки Qt Shader Baker и наличие fallback-шейдеров.
 - Если необходимо ограничить тесты, создайте файлы `pytest_unit_targets.txt`, `pytest_integration_targets.txt`, `pytest_ui_targets.txt` или задайте переменные окружения `PYTEST_*_TARGETS`.
 - Для headless-запуска UI тестов локально экспортируйте `QT_QPA_PLATFORM=offscreen` и `QT_QUICK_BACKEND=software` (значения автоматически устанавливает `tools/ci_tasks test`). На Linux задействуйте `scripts/xvfb_wrapper.sh <команда>` для Qt Quick 3D/QtCharts.
 - `make check` автоматически вызывает `make uv-sync --extra dev`, поэтому lock-файл и dev-зависимости синхронизируются перед запуском линтеров и тестов.

@@ -10,6 +10,11 @@ on:
 env:
   PYTHON_VERSION: "3.13"
   QT_VERSION: "6.10.0"
+  QT_QPA_PLATFORM: offscreen
+  QT_QUICK_BACKEND: software
+  LIBGL_ALWAYS_SOFTWARE: "1"
+  MESA_GL_VERSION_OVERRIDE: "4.1"
+  MESA_GLSL_VERSION_OVERRIDE: "410"
 
 jobs:
   quality:
@@ -20,8 +25,11 @@ jobs:
       matrix:
         os: [ubuntu-latest, windows-latest]
     env:
-      QT_QPA_PLATFORM: offscreen
-      QT_QUICK_BACKEND: software
+      QT_QPA_PLATFORM: ${{ env.QT_QPA_PLATFORM }}
+      QT_QUICK_BACKEND: ${{ env.QT_QUICK_BACKEND }}
+      LIBGL_ALWAYS_SOFTWARE: ${{ env.LIBGL_ALWAYS_SOFTWARE }}
+      MESA_GL_VERSION_OVERRIDE: ${{ env.MESA_GL_VERSION_OVERRIDE }}
+      MESA_GLSL_VERSION_OVERRIDE: ${{ env.MESA_GLSL_VERSION_OVERRIDE }}
       PYTHONPATH: src
     steps:
       - name: Checkout repository
@@ -32,9 +40,14 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends \
-            xvfb xauth mesa-utils mesa-utils-extra libosmesa6 \
-            libgl1-mesa-dri libgl1-mesa-glx libglu1-mesa libegl1-mesa libgles2-mesa \
-            libxcb-xinerama0 libxkbcommon0 libxkbcommon-x11-0 libvulkan1
+            xvfb xauth dbus-x11 \
+            mesa-utils mesa-utils-extra \
+            libgl1 libgl1-mesa-dri libgl1-mesa-glx libglu1-mesa libglu1-mesa-dev \
+            libegl1 libegl1-mesa libegl1-mesa-dev libgles2-mesa libgles2-mesa-dev \
+            libosmesa6 libosmesa6-dev libgbm1 libdrm2 \
+            libxcb-xinerama0 libxkbcommon0 libxkbcommon-x11-0 \
+            libxcb-keysyms1 libxcb-image0 libxcb-icccm4 libxcb-render-util0 libxcb-xfixes0 libxcb-shape0 libxcb-randr0 libxcb-glx0 \
+            libvulkan1 mesa-vulkan-drivers vulkan-tools
 
       - name: Install GNU Make (Windows)
         if: runner.os == 'Windows'
@@ -98,6 +111,9 @@ jobs:
           else
             make check
           fi
+
+      - name: Audit shader logs
+        run: python tools/check_shader_logs.py reports/shaders --recursive --fail-on-warnings --expect-fallback
 
       - name: Generate AI failure report
         if: failure()

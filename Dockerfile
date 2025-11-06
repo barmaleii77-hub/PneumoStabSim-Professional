@@ -3,14 +3,21 @@ ARG PY_VERSION=3.13
 FROM mcr.microsoft.com/devcontainers/python:${PY_VERSION}-bookworm
 
 ENV DEBIAN_FRONTEND=noninteractive
+ENV QT_QPA_PLATFORM=offscreen \
+    QT_QUICK_BACKEND=software \
+    LIBGL_ALWAYS_SOFTWARE=1 \
+    MESA_GL_VERSION_OVERRIDE=4.1 \
+    MESA_GLSL_VERSION_OVERRIDE=410
 SHELL ["/bin/bash", "-euxo", "pipefail", "-c"]
 
 # X11 + OpenGL/Vulkan headless stack
 RUN apt-get update && apt-get install -y --no-install-recommends \
     git curl ca-certificates pkg-config build-essential \
     xvfb xauth dbus-x11 \
-    mesa-utils mesa-utils-extra libosmesa6 \
-    libgl1-mesa-dri libgl1-mesa-glx libglu1-mesa libegl1-mesa libgles2-mesa \
+    mesa-utils mesa-utils-extra \
+    libgl1 libgl1-mesa-dri libgl1-mesa-glx libglu1-mesa libglu1-mesa-dev \
+    libegl1 libegl1-mesa libegl1-mesa-dev libgles2-mesa libgles2-mesa-dev \
+    libosmesa6 libosmesa6-dev libgbm1 libdrm2 \
     libx11-6 libxext6 libxrender1 libxi6 libxfixes3 libxrandr2 libxcursor1 libxinerama1 libxdamage1 \
     libxcb1 libx11-xcb1 libxkbcommon0 libxkbcommon-x11-0 libxcb-xinerama0 \
     libxcb-keysyms1 libxcb-image0 libxcb-icccm4 libxcb-render-util0 libxcb-xfixes0 libxcb-shape0 libxcb-randr0 libxcb-glx0 \
