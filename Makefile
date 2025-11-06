@@ -174,7 +174,7 @@ run:
 		echo "Error: '$(UV)' is not installed. Run 'python scripts/bootstrap_uv.py' first." >&2; \
 		exit 1; \
 	fi
-	QT_QPA_PLATFORM=$${QT_QPA_PLATFORM:-offscreen} \
+	QT_QPA_PLATFORM=$${QT_QPA_PLATFORM} \
 	QT_LOGGING_RULES=$${QT_LOGGING_RULES:-*.debug=false;*.info=false} \
 	$(UV) run $(UV_RUN_ARGS) -- python app.py $(RUN_ARGS)
 
