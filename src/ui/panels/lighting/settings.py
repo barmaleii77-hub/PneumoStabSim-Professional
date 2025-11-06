@@ -12,7 +12,11 @@ from src.common.settings_manager import (
     get_settings_event_bus,
     get_settings_manager,
 )
-from src.graphics.materials import MaterialCache, get_material_cache
+from src.graphics.materials import MATERIAL_CACHE_TOKEN, MaterialCache
+from src.infrastructure.container import (
+    ServiceResolutionError,
+    get_default_container,
+)
 
 from .baseline import MaterialsBaseline, SkyboxOrientation
 
@@ -33,7 +37,11 @@ class LightingSettingsFacade:
         elif baseline_path is not None:
             self._material_cache = MaterialCache(baseline_path=Path(baseline_path))
         else:
-            self._material_cache = get_material_cache()
+            container = get_default_container()
+            try:
+                self._material_cache = container.resolve(MATERIAL_CACHE_TOKEN)
+            except ServiceResolutionError:
+                self._material_cache = MaterialCache()
         self._baseline = self._material_cache.baseline()
 
     @property
