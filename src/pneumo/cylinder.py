@@ -36,14 +36,19 @@ class CylinderState:
 
     spec: CylinderSpec
     x: float = 0.0  # Piston position relative to center (m), x=0 means equal volumes
+    penetration_head: float = 0.0  # Penetration beyond head stop (m)
+    penetration_rod: float = 0.0  # Penetration beyond rod stop (m)
 
     def __post_init__(self):
         # Validate initial position is within travel limits
         max_travel = self.spec.geometry.L_travel_max
-        if abs(self.x) > max_travel / 2.0:
+        half_travel = max_travel / 2.0
+        if abs(self.x) > half_travel:
             raise GeometryError(
-                f"Initial position x={self.x} exceeds travel limit +/-{max_travel / 2.0}"
+                f"Initial position x={self.x} exceeds travel limit +/-{half_travel}"
             )
+        # Ensure contact state is consistent with the initial displacement
+        self.apply_displacement(self.x)
 
     def vol_head(self, x: float = None) -> float:
         """Calculate head chamber volume at given position
@@ -93,6 +98,29 @@ class CylinderState:
         min_vol = geom.min_volume_rod(self.spec.is_front)
         return max(volume, min_vol)
 
+    def apply_displacement(self, displacement: float) -> None:
+        """Apply piston displacement while tracking stop penetrations."""
+
+        geom = self.spec.geometry
+        half_travel = geom.L_travel_max / 2.0
+
+        # Calculate penetration beyond the mechanical stops
+        penetration_head = max(0.0, displacement - half_travel)
+        penetration_rod = max(0.0, -half_travel - displacement)
+
+        # Numerical noise can produce both penetrations at ~0. Handle explicitly.
+        if penetration_head > 0.0 and penetration_rod > 0.0:
+            if penetration_head > penetration_rod:
+                penetration_rod = 0.0
+            else:
+                penetration_head = 0.0
+
+        self.penetration_head = penetration_head
+        self.penetration_rod = penetration_rod
+
+        # Clamp position to travel limits
+        self.x = max(-half_travel, min(half_travel, displacement))
+
     def update_from_lever_angle(self, angle_rad: float):
         """Update piston position based on lever angle
 
@@ -123,9 +151,8 @@ class CylinderState:
         # Displacement from nominal position
         delta_length = cylinder_length - nominal_length
 
-        # Update position, ensuring within travel limits
-        max_travel = geom.L_travel_max
-        self.x = max(-max_travel / 2.0, min(max_travel / 2.0, delta_length))
+        # Apply displacement and track contact penetration
+        self.apply_displacement(delta_length)
 
     def validate_invariants(self) -> ValidationResult:
         """Validate cylinder state invariants"""

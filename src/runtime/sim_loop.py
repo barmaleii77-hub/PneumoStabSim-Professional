@@ -766,6 +766,11 @@ class PhysicsWorker(QObject):
                 wheel_key_map[wheel], 0.0
             )
 
+            wheel_state.stop_head_penetration = cylinder.penetration_head
+            wheel_state.stop_rod_penetration = cylinder.penetration_rod
+            wheel_state.stop_head_engaged = cylinder.penetration_head > 1e-9
+            wheel_state.stop_rod_engaged = cylinder.penetration_rod > 1e-9
+
             head_pressure = self._get_line_pressure(wheel, Port.HEAD)
             rod_pressure = self._get_line_pressure(wheel, Port.ROD)
             head_pressure_gauge = to_gauge_pressure(head_pressure)
@@ -778,12 +783,34 @@ class PhysicsWorker(QObject):
 
         # 3. Update gas system
         line_volumes = self.pneumatic_system.get_line_volumes()
+        corrected_volumes: Dict[Line, float] = {}
         for line_name, volume_info in line_volumes.items():
             total_volume = float(volume_info.get("total_volume"))
-            self.gas_network.lines[line_name].set_volume(total_volume)
+            penetration_volume = 0.0
+            endpoints = self.pneumatic_system.lines[line_name].endpoints
+            for wheel, port in endpoints:
+                cylinder = self.pneumatic_system.cylinders[wheel]
+                geom = cylinder.spec.geometry
+                if port == Port.HEAD:
+                    penetration = cylinder.penetration_head
+                    if penetration > 0.0:
+                        penetration_volume += (
+                            geom.area_head(cylinder.spec.is_front) * penetration
+                        )
+                else:
+                    penetration = cylinder.penetration_rod
+                    if penetration > 0.0:
+                        penetration_volume += (
+                            geom.area_rod(cylinder.spec.is_front) * penetration
+                        )
+
+            effective_volume = max(total_volume - penetration_volume, 1e-9)
+            corrected_volumes[line_name] = effective_volume
 
         self.gas_network.master_isolation_open = self.master_isolation_open
-        self.gas_network.update_pressures_due_to_volume(self.thermo_mode)
+        self.gas_network.update_pressures_with_explicit_volumes(
+            corrected_volumes, self.thermo_mode
+        )
 
         receiver_mode = self._resolve_receiver_mode(self.receiver_volume_mode)
         self.gas_network.tank.mode = receiver_mode
