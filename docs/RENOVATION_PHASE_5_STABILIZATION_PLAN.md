@@ -84,3 +84,11 @@ Use this log for incident summaries, release retrospectives, and KPI snapshots.
   pipeline for MTTA/MTTR baselining.
 - Drafted the first revision of `docs/operations/oncall.md`, including escalation matrix and contact rotations approved by the
   support lead.
+
+### 2026-02-15 – Physics step modularization for maintainability
+- Extracted the kinematics, gas-state, and rigid-body integration routines into `src/runtime/steps/` with a shared
+  `PhysicsStepState` context to simplify targeted changes.
+- Updated `PhysicsWorker._execute_physics_step` to orchestrate the new helpers, clarifying side effects and easing future
+  instrumentation work.
+- Added focused unit coverage to `tests/unit/runtime/test_physics_steps.py`, ensuring regressions in the modularised helpers are
+  caught without exercising the full Qt event loop.
