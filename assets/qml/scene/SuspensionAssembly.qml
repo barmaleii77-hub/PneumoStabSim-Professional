@@ -73,6 +73,17 @@ Node {
                 ? worldRoot.objectName
                 : "<anonymous>"
         console.log("[SuspensionAssembly] Component completed; worldRoot:", hasWorld ? worldName : "<missing>")
+        const defaultsObject = resolvedGeometryDefaults
+        const defaultsKeys = defaultsObject && typeof defaultsObject === "object"
+                ? Object.keys(defaultsObject).length
+                : 0
+        const geometryKeys = geometryState && typeof geometryState === "object"
+                ? Object.keys(geometryState).length
+                : 0
+        console.log(
+            "[SuspensionAssembly] Geometry defaults keys:", defaultsKeys,
+            "| current geometry keys:", geometryKeys
+        )
     }
 
     // ------------------------------------------------------------------

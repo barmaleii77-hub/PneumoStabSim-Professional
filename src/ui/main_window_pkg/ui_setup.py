@@ -482,6 +482,15 @@ class UISetup:
                     feedback_exc,
                 )
 
+            window._scene_bridge = None
+            try:
+                context.setContextProperty("pythonSceneBridge", None)
+            except Exception as bridge_ctx_exc:
+                UISetup.logger.debug(
+                    "    ⚠️ Unable to seed pythonSceneBridge context: %s",
+                    bridge_ctx_exc,
+                )
+
             try:
                 from src.ui.scene_bridge import SceneBridge
 
