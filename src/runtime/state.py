@@ -50,6 +50,12 @@ class WheelState:
     # Road input
     road_excitation: float = 0.0  # Road input (m)
 
+    # Mechanical stops
+    stop_head_engaged: bool = False
+    stop_rod_engaged: bool = False
+    stop_head_penetration: float = 0.0
+    stop_rod_penetration: float = 0.0
+
 
 @dataclass
 class LineState:
