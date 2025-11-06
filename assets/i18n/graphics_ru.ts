@@ -71,158 +71,158 @@
     <name></name>
     <message id="camera.hud.state.on">
         <location filename="../qml/camera/CameraStateHud.qml" line="63"/>
-        <source></source>
-        <translation type="unfinished"></translation>
+        <source>ON</source>
+        <translation>ВКЛ</translation>
     </message>
     <message id="camera.hud.state.off">
         <location filename="../qml/camera/CameraStateHud.qml" line="64"/>
-        <source></source>
-        <translation type="unfinished"></translation>
+        <source>OFF</source>
+        <translation>ВЫКЛ</translation>
     </message>
     <message id="camera.hud.state.moving">
         <location filename="../qml/camera/CameraStateHud.qml" line="65"/>
-        <source></source>
-        <translation type="unfinished"></translation>
+        <source>Moving</source>
+        <translation>Движется</translation>
     </message>
     <message id="camera.hud.state.idle">
         <location filename="../qml/camera/CameraStateHud.qml" line="66"/>
-        <source></source>
-        <translation type="unfinished"></translation>
+        <source>Idle</source>
+        <translation>Покой</translation>
     </message>
     <message id="camera.hud.header">
         <location filename="../qml/camera/CameraStateHud.qml" line="90"/>
-        <source></source>
-        <translation type="unfinished"></translation>
+        <source>Camera HUD</source>
+        <translation>HUD камеры</translation>
     </message>
     <message id="camera.hud.toggle.pivot">
         <location filename="../qml/camera/CameraStateHud.qml" line="107"/>
-        <source></source>
-        <translation type="unfinished"></translation>
+        <source>Pivot</source>
+        <translation>Опорная точка</translation>
     </message>
     <message id="camera.hud.toggle.pan">
         <location filename="../qml/camera/CameraStateHud.qml" line="112"/>
-        <source></source>
-        <translation type="unfinished"></translation>
+        <source>Pan</source>
+        <translation>Панорамирование</translation>
     </message>
     <message id="camera.hud.toggle.angles">
         <location filename="../qml/camera/CameraStateHud.qml" line="117"/>
-        <source></source>
-        <translation type="unfinished"></translation>
+        <source>Angles</source>
+        <translation>Углы</translation>
     </message>
     <message id="camera.hud.toggle.motion">
         <location filename="../qml/camera/CameraStateHud.qml" line="122"/>
-        <source></source>
-        <translation type="unfinished"></translation>
+        <source>Motion</source>
+        <translation>Движение</translation>
     </message>
     <message id="camera.hud.toggle.damping">
         <location filename="../qml/camera/CameraStateHud.qml" line="127"/>
-        <source></source>
-        <translation type="unfinished"></translation>
+        <source>Damping</source>
+        <translation>Демпфирование</translation>
     </message>
     <message id="camera.hud.toggle.inertia">
         <location filename="../qml/camera/CameraStateHud.qml" line="132"/>
-        <source></source>
-        <translation type="unfinished"></translation>
+        <source>Inertia</source>
+        <translation>Инерция</translation>
     </message>
     <message id="camera.hud.toggle.smoothing">
         <location filename="../qml/camera/CameraStateHud.qml" line="137"/>
-        <source></source>
-        <translation type="unfinished"></translation>
+        <source>Smoothing</source>
+        <translation>Сглаживание</translation>
     </message>
     <message id="camera.hud.toggle.preset">
         <location filename="../qml/camera/CameraStateHud.qml" line="142"/>
-        <source></source>
-        <translation type="unfinished"></translation>
+        <source>Preset</source>
+        <translation>Пресет</translation>
     </message>
     <message id="camera.hud.toggle.timestamp">
         <location filename="../qml/camera/CameraStateHud.qml" line="147"/>
-        <source></source>
-        <translation type="unfinished"></translation>
+        <source>Timestamp</source>
+        <translation>Метка времени</translation>
     </message>
     <message id="camera.hud.metric.distance">
         <location filename="../qml/camera/CameraStateHud.qml" line="222"/>
-        <source></source>
-        <translation type="unfinished"></translation>
+        <source>Distance [m]</source>
+        <translation>Расстояние [м]</translation>
     </message>
     <message id="camera.hud.metric.angles">
         <location filename="../qml/camera/CameraStateHud.qml" line="230"/>
-        <source></source>
-        <translation type="unfinished"></translation>
+        <source>Yaw/Pitch [°]</source>
+        <translation>Рысканье/Тангаж [°]</translation>
     </message>
     <message id="camera.hud.metric.pan">
         <location filename="../qml/camera/CameraStateHud.qml" line="248"/>
-        <source></source>
-        <translation type="unfinished"></translation>
+        <source>Pan [m]</source>
+        <translation>Панорамирование [м]</translation>
     </message>
     <message id="camera.hud.metric.pivot">
         <location filename="../qml/camera/CameraStateHud.qml" line="266"/>
-        <source></source>
-        <translation type="unfinished"></translation>
+        <source>Pivot [m]</source>
+        <translation>Опорная точка [м]</translation>
     </message>
     <message id="camera.hud.metric.fov">
         <location filename="../qml/camera/CameraStateHud.qml" line="276"/>
-        <source></source>
-        <translation type="unfinished"></translation>
+        <source>FOV / Speed</source>
+        <translation>Поле зрения / Скорость</translation>
     </message>
     <message id="camera.hud.metric.clip">
         <location filename="../qml/camera/CameraStateHud.qml" line="289"/>
-        <source></source>
-        <translation type="unfinished"></translation>
+        <source>Clip [m]</source>
+        <translation>Срез [м]</translation>
     </message>
     <message id="camera.hud.metric.autorotate">
         <location filename="../qml/camera/CameraStateHud.qml" line="300"/>
-        <source></source>
-        <translation type="unfinished"></translation>
+        <source>Auto-rotate</source>
+        <translation>Автоповорот</translation>
     </message>
     <message id="camera.hud.metric.motionstate">
         <location filename="../qml/camera/CameraStateHud.qml" line="306"/>
-        <source></source>
-        <translation type="unfinished"></translation>
+        <source>Motion state</source>
+        <translation>Состояние движения</translation>
     </message>
     <message id="camera.hud.metric.damping">
         <location filename="../qml/camera/CameraStateHud.qml" line="313"/>
-        <source></source>
-        <translation type="unfinished"></translation>
+        <source>Damping [ms]</source>
+        <translation>Демпфирование [мс]</translation>
     </message>
     <message id="camera.hud.metric.settle">
         <location filename="../qml/camera/CameraStateHud.qml" line="325"/>
-        <source></source>
-        <translation type="unfinished"></translation>
+        <source>Settle [ms]</source>
+        <translation>Стабилизация [мс]</translation>
     </message>
     <message id="camera.hud.metric.inertia">
         <location filename="../qml/camera/CameraStateHud.qml" line="333"/>
-        <source></source>
-        <translation type="unfinished"></translation>
+        <source>Inertia / Friction</source>
+        <translation>Инерция / Трение</translation>
     </message>
     <message id="camera.hud.metric.smoothing">
         <location filename="../qml/camera/CameraStateHud.qml" line="341"/>
-        <source></source>
-        <translation type="unfinished"></translation>
+        <source>Smoothing [rotate/pan/zoom]</source>
+        <translation>Сглаживание [вращ./пан./зум]</translation>
     </message>
     <message id="camera.hud.metric.preset">
         <location filename="../qml/camera/CameraStateHud.qml" line="349"/>
-        <source></source>
-        <translation type="unfinished"></translation>
+        <source>Preset</source>
+        <translation>Пресет</translation>
     </message>
     <message id="camera.hud.metric.timestamp">
         <location filename="../qml/camera/CameraStateHud.qml" line="357"/>
-        <source></source>
-        <translation type="unfinished"></translation>
+        <source>Snapshot</source>
+        <translation>Снимок</translation>
     </message>
     <message id="camera.hud.metric.rotate">
         <location filename="../qml/camera/CameraStateHud.qml" line="472"/>
-        <source></source>
-        <translation type="unfinished"></translation>
+        <source>Rotate</source>
+        <translation>Вращение</translation>
     </message>
     <message id="camera.hud.metric.pan.short">
         <location filename="../qml/camera/CameraStateHud.qml" line="474"/>
-        <source></source>
-        <translation type="unfinished"></translation>
+        <source>Pan</source>
+        <translation>Панорамирование</translation>
     </message>
     <message id="camera.hud.metric.zoom">
         <location filename="../qml/camera/CameraStateHud.qml" line="476"/>
-        <source></source>
-        <translation type="unfinished"></translation>
+        <source>Zoom</source>
+        <translation>Зум</translation>
     </message>
 </context>
 <context>
