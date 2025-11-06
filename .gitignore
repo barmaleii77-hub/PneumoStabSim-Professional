@@ -495,6 +495,7 @@ check_*.py
 !tests/ui/test_environment_tab_ibl_dependencies.py
 !tests/ui/test_post_effects_bypass_fail_safe.py
 !tests/ui/test_bridge_state_indicators.py
+!tests/ui/test_modes_panel_interactions.py
 !tests/unit/ui/test_knob.py
 !tests/unit/ui/test_signals_router_quality.py
 !tests/unit/ui/test_custom_cylinder_geometry.py

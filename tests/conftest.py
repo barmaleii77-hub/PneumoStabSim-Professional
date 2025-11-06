@@ -59,7 +59,7 @@ if src_path not in sys.path:
     sys.path.insert(1, src_path)
 
 # Set up environment variables for testing
-os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
+os.environ["QT_QPA_PLATFORM"] = "offscreen"
 os.environ.setdefault("QT_QUICK_BACKEND", "software")
 os.environ.setdefault("PYTHONHASHSEED", "0")
 
@@ -228,7 +228,9 @@ def legacy_gas_state_factory() -> Callable[..., "LegacyGasState"]:
 
     from src.pneumo.gas_state import LegacyGasState
 
-    def _factory(*, pressure: float, volume: float, temperature: float) -> LegacyGasState:
+    def _factory(
+        *, pressure: float, volume: float, temperature: float
+    ) -> LegacyGasState:
         return LegacyGasState(pressure=pressure, volume=volume, temperature=temperature)
 
     return _factory
@@ -350,6 +352,28 @@ def geometry_bridge(sample_geometry_params):
         lever_length=sample_geometry_params.lever_length,
         cylinder_diameter=sample_geometry_params.cylinder_inner_diameter,
     )
+
+
+@pytest.fixture
+def modes_panel(qapp, qtbot):
+    """Provide a fully wired ModesPanel widget for UI interaction tests."""
+
+    pytest.importorskip(
+        "PySide6.QtWidgets",
+        reason="PySide6 widgets are required for ModesPanel tests",
+        exc_type=ImportError,
+    )
+    from src.ui.panels.modes.panel_modes_refactored import ModesPanel
+
+    panel = ModesPanel()
+    qtbot.addWidget(panel)
+    panel.resize(900, 600)
+    panel.show()
+    qtbot.wait(50)
+
+    yield panel
+
+    panel.deleteLater()
 
 
 # Markers for organizing tests

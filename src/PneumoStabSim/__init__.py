@@ -79,9 +79,7 @@ def __getattr__(name: str) -> ModuleType:
     try:
         return _load_alias(name)
     except AttributeError as exc:  # pragma: no cover - mirrors stdlib behaviour
-        raise AttributeError(
-            f"module '{__name__}' has no attribute '{name}'"
-        ) from exc
+        raise AttributeError(f"module '{__name__}' has no attribute '{name}'") from exc
 
 
 def __dir__() -> list[str]:  # pragma: no cover - convenience for debuggers
@@ -89,4 +87,3 @@ def __dir__() -> list[str]:  # pragma: no cover - convenience for debuggers
     for variants in _SYNONYMS.values():
         entries.update(variants)
     return sorted(entries)
-
