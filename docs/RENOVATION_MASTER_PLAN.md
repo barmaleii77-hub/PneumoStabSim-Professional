@@ -26,7 +26,7 @@ best practices for scientific visualisation software.
 | UI/QML bridge | QML assets under `assets/qml` and Python helpers such as `src/ui/qml_host.py`, `src/ui/parameter_slider.py` | Bridge logic is fragmented; signal tracing is manual. |
 | Physics & simulation | Domain modules in `src/pneumo`, `src/mechanics`, and legacy namespaced packages `src/PneumoStabSim.*` | Namespaces mix snake_case and PascalCase packages; constant definitions reside in both Python and JSON. |
 | Tests & automation | `pytest.ini`, `tests/` folder (Qt smoke tests, settings tests), GitHub workflows missing | Local tooling defined but CI pipelines absent; lint configs (`ruff.toml`, `mypy.ini`) exist yet not wired into automation. |
-| Documentation | README, ROADMAP, and agent manual remain in root; historical reports live under `archive/2025-11/root-reports/` alongside curated plans in `docs/` | Архив оформлен, но планы ещё ссылаются на устаревшие версии Qt 6.5. |
+| Documentation | README, ROADMAP, and agent manual remain in root; historical reports live under `archive/2025-11/root-reports/` alongside curated plans in `docs/` | Архив оформлен, дубликаты `archive/reports/` и `archive/old_qml/` удалены, требуется актуализация ссылок на Qt 6.10 в локальных планах. |
 
 ---
 
@@ -63,6 +63,10 @@ best practices for scientific visualisation software.
   removed from the root in December 2025; a February 2026 audit confirmed no
   tooling references remain and that `scripts/comprehensive_test.py` guards
   against regressions.
+- Redundant archive folders (`archive/reports`, `archive/old_qml`) were purged in
+  March 2026 after confirming отсутствия ссылок в документации и коде; индекс
+  `archive/2025-11/root-reports/README.md` остаётся единственным источником
+  исторических материалов.
 - Encoding drift persists across PowerShell scripts (BOM vs UTF-8) and QML
   files (LF vs CRLF).
 - Branch governance rules are now documented in `.github/CONTRIBUTING.md`,
