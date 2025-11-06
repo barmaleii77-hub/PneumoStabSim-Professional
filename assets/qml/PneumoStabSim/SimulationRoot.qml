@@ -78,28 +78,38 @@ signal animationToggled(bool running)
     }
 
     function registerShaderWarning(effectId, message) {
-        forwardShaderDiagnostics("shader_warning", effectId, message)
+        var normalizedId = effectId !== undefined && effectId !== null ? String(effectId) : "unknown"
+        var normalizedMessage = message !== undefined && message !== null ? String(message) : ""
+
+        forwardShaderDiagnostics("shader_warning", normalizedId, normalizedMessage)
 
         if (!sceneBridge)
             return
 
+        var bridgeId = effectId !== undefined && effectId !== null ? effectId : normalizedId
+        var bridgeMessage = message !== undefined && message !== null ? message : normalizedMessage
+
         try {
             if (typeof sceneBridge.registerShaderWarning === "function")
-                sceneBridge.registerShaderWarning(effectId, message)
+                sceneBridge.registerShaderWarning(bridgeId, bridgeMessage)
         } catch (error) {
             console.debug("[SimulationRoot] sceneBridge.registerShaderWarning failed", error)
         }
     }
 
     function clearShaderWarning(effectId) {
-        forwardShaderDiagnostics("shader_warning_cleared", effectId, "")
+        var normalizedId = effectId !== undefined && effectId !== null ? String(effectId) : "unknown"
+
+        forwardShaderDiagnostics("shader_warning_cleared", normalizedId, "")
 
         if (!sceneBridge)
             return
 
+        var bridgeId = effectId !== undefined && effectId !== null ? effectId : normalizedId
+
         try {
             if (typeof sceneBridge.clearShaderWarning === "function")
-                sceneBridge.clearShaderWarning(effectId)
+                sceneBridge.clearShaderWarning(bridgeId)
         } catch (error) {
             console.debug("[SimulationRoot] sceneBridge.clearShaderWarning failed", error)
         }
@@ -110,11 +120,21 @@ signal animationToggled(bool running)
         target: root.postEffects
         enabled: !!target
 
-        function onEffectCompilationError(effectId, errorLog) {
-            registerShaderWarning(effectId, errorLog)
+        function onEffectCompilationError(effectId, status, message) {
+            var resolvedMessage = message
+
+            if (resolvedMessage === undefined || resolvedMessage === null || resolvedMessage === "") {
+                if (typeof status === "string") {
+                    resolvedMessage = status
+                } else if (status === true) {
+                    resolvedMessage = "Compilation failed"
+                }
+            }
+
+            registerShaderWarning(effectId, resolvedMessage)
         }
 
-        function onEffectCompilationRecovered(effectId) {
+        function onEffectCompilationRecovered(effectId, _) {
             clearShaderWarning(effectId)
         }
     }
@@ -234,104 +254,26 @@ property real environmentIblRotationRollDefault: environmentDefaultNumber(enviro
 property real environmentSkyboxBlurDefault: environmentDefaultNumber(environmentDefaultsMap, ["skybox_blur", "skyboxBlur"], 0.08)
 property url environmentHdrSourceDefault: normalizeHdrSource(environmentDefaultString(environmentDefaultsMap, ["ibl_source", "hdr_source", "iblPrimary"], ""))
 
-/* FIX: remove stray header lines inserted by tooling */
-// (no-op marker for edit tool)
+    function reflectionProbeTimeSlicingFrom(value) {
+        return parseReflectionProbeEnum(value, {
+            notimeslicing: ReflectionProbe.NoTimeSlicing,
+            none: ReflectionProbe.NoTimeSlicing,
+            allfacesatonce: ReflectionProbe.AllFacesAtOnce,
+            allfaces: ReflectionProbe.AllFacesAtOnce,
+            together: ReflectionProbe.AllFacesAtOnce,
+            individualfaces: ReflectionProbe.IndividualFaces,
+            perface: ReflectionProbe.IndividualFaces
+        }, ReflectionProbe.IndividualFaces);
+    }
 
-import QtQml 6.10
-import QtQuick 6.10
-import QtQuick.Controls 6.10
-import QtQuick.Layouts 6.10
-import QtQuick.Timeline 1.0
-import QtQuick3D 6.10
-import QtQuick3D.Helpers 6.10
-import "../camera"
-import "../components"
-import "../effects"
-import "../geometry"
-import "../lighting"
-import scene 1.0 as Scene
-import "../animation"
+    function sanitizeReflectionProbePadding(value) {
+        if (value === undefined || value === null)
+            return reflectionProbePaddingM;
+        var numeric = Number(value);
+        if (!isFinite(numeric))
+            return reflectionProbePaddingM;
+        return Math.max(0, numeric);
+    }
 
-/* FIX block around reflectionProbeRefreshModeFrom → reflectionProbeTimeSlicingFrom: strip numbered prefixes */
-  }, ReflectionProbe.EveryFrame);
- }
- 
- function reflectionProbeTimeSlicingFrom(value) {
-  return parseReflectionProbeEnum(value, {
-   notimeslicing: ReflectionProbe.NoTimeSlicing,
-   none: ReflectionProbe.NoTimeSlicing,
-   allfacesatonce: ReflectionProbe.AllFacesAtOnce,
-   allfaces: ReflectionProbe.AllFacesAtOnce,
-   together: ReflectionProbe.AllFacesAtOnce,
-   individualfaces: ReflectionProbe.IndividualFaces,
-   perface: ReflectionProbe.IndividualFaces
-  }, ReflectionProbe.IndividualFaces);
- }
- 
-function sanitizeReflectionProbePadding(value) {
- if (value === undefined || value === null)
-  return reflectionProbePaddingM;
- var numeric = Number(value);
- if (!isFinite(numeric))
-  return reflectionProbePaddingM;
- return Math.max(0, numeric);
 }
 
-/* FIX block inside applyLightingUpdates: strip numbered prefixes */
-         var camelPropertyMap = {
-             Brightness: "brightness",
-             Color: "color",
-             AngleX: "angle_x",
-             AngleY: "angle_y",
-             AngleZ: "angle_z",
-             CastsShadow: "cast_shadow",
-             BindToCamera: "bind_to_camera",
-             PosX: "position_x",
-             PosY: "position_y",
-             PosZ: "position_z",
-             Range: "range",
-             ConstantFade: "constant_fade",
-             LinearFade: "linear_fade",
-             QuadraticFade: "quadratic_fade"
-         }
-         for (var rawKey in params) {
-             if (!Object.prototype.hasOwnProperty.call(params, rawKey))
-                 continue
-             var camelMatch = /^([a-z]+)Light([A-Z].*)$/.exec(rawKey)
-             if (!camelMatch)
-                 continue
-             var groupName = camelMatch[1].toLowerCase()
-             var propertySuffix = camelMatch[2]
-             var normalizedKey = camelPropertyMap[propertySuffix]
-             if (normalizedKey && next[groupName] !== undefined) {
-                 var patch = {}
-                 patch[normalizedKey] = params[rawKey]
-                 applyToGroup(groupName, patch)
-             }
-         }
- 
-         // Остаточные ключи без групп сворачиваем в global
-         var consumed = {
-             key: true, fill: true, rim: true, point: true, spot: true, global: true,
-             key_light: true, fill_light: true, rim_light: true, point_light: true, spot_light: true
-         }
-         for (var remainingKey in params) {
-             if (!Object.prototype.hasOwnProperty.call(params, remainingKey) || consumed[remainingKey])
-                 continue
-             var value = params[remainingKey]
-             if (isPlainObject(value)) {
-                 next.global = mergeLightingGroup(next.global, normalizeGroupPayload(value))
-             } else {
-                 var gp = {}
-                 gp[remainingKey] = value
-                 next.global = mergeLightingGroup(next.global, gp)
-             }
-         }
- 
-         lightingState = next
-         return true
-     } catch (error) {
-         console.error("[SimulationRoot] applyLightingUpdates failed", error)
-         return false
-     }
- }
