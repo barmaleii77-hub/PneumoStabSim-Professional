@@ -9,6 +9,7 @@ functions that unit tests can import.
 from __future__ import annotations
 
 import argparse
+import codecs
 import os
 import re
 import shlex
@@ -25,6 +26,16 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_SHADER_ROOT = PROJECT_ROOT / "assets" / "shaders"
 DEFAULT_REPORTS_ROOT = PROJECT_ROOT / "reports" / "shaders"
 SUPPORTED_SUFFIXES = {".frag", ".vert"}
+
+BOM_SEQUENCES: tuple[tuple[str, bytes], ...] = (
+    ("UTF-8", codecs.BOM_UTF8),
+    ("UTF-16 LE", codecs.BOM_UTF16_LE),
+    ("UTF-16 BE", codecs.BOM_UTF16_BE),
+    ("UTF-32 LE", codecs.BOM_UTF32_LE),
+    ("UTF-32 BE", codecs.BOM_UTF32_BE),
+)
+
+LEADING_WHITESPACE_BYTES = {b" ", b"\t", b"\r", b"\n"}
 
 VARIANT_SUFFIXES: tuple[tuple[str, str], ...] = (
     ("_fallback_es", "fallback_es"),
@@ -118,6 +129,32 @@ def _read_first_significant_line(path: Path) -> str | None:
                 continue
             return stripped
     return None
+
+
+def _detect_leading_bom_or_whitespace(path: Path) -> str | None:
+    """Return a descriptive error when the file does not immediately start with ``#``."""
+
+    data = path.read_bytes()
+    for label, marker in BOM_SEQUENCES:
+        if marker and data.startswith(marker):
+            return (
+                "leading "
+                f"{label} byte-order mark; remove it so '#version' is the first bytes"
+            )
+
+    if not data:
+        return None
+
+    first_byte = data[:1]
+    if first_byte in LEADING_WHITESPACE_BYTES:
+        return "leading whitespace before '#version' directive"
+
+    if first_byte == b"#":
+        return None
+
+    leading_line = data.splitlines()[0][:32]
+    preview = leading_line.decode("utf-8", errors="replace")
+    return f"unexpected content before '#version' directive (starts with {preview!r})"
 
 
 def _collect_shader_files(shader_root: Path) -> dict[tuple[str, str], list[ShaderFile]]:
@@ -218,6 +255,9 @@ def _validate_versions(
     files: Iterable[ShaderFile], root: Path, errors: ValidationErrors
 ) -> None:
     for shader in files:
+        leading_issue = _detect_leading_bom_or_whitespace(shader.path)
+        if leading_issue is not None:
+            errors.append(f"{_relative(shader.path, root)}: {leading_issue}")
         expected = EXPECTED_VERSIONS.get((shader.variant, shader.extension))
         if expected is None:
             continue
