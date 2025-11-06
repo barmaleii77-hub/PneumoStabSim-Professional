@@ -21,7 +21,12 @@ from src.common.units import PA_ATM, T_AMBIENT
 
 @dataclass
 class GasNetwork:
-    """Complete gas network with lines, tank, and valves"""
+    """Complete gas network with lines, tank, and valves.
+
+    All pressures stored in the network remain **absolute** values. Downstream
+    consumers that require gauge pressure must explicitly convert using the
+    utilities in :mod:`src.common.units`.
+    """
 
     lines: Dict[Line, LineGasState]  # Four diagonal lines
     tank: TankGasState  # Receiver tank

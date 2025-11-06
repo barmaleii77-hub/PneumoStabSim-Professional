@@ -18,6 +18,8 @@ import math
 import numpy as np
 from numpy.typing import ArrayLike, NDArray
 
+from src.common.units import to_gauge_pressure
+
 from config.constants import (
     get_physics_reference_axes,
     get_physics_suspension_constants,
@@ -252,8 +254,10 @@ def compute_cylinder_force(
     if A_rod_f > A_head_f:
         raise ValueError("Rod side area cannot exceed head side area")
 
-    # Net force = head pressure × head area − rod pressure × rod area
-    F_net = p_head_f * A_head_f - p_rod_f * A_rod_f
+    # Net force = (p_head − p_atm) × head area − (p_rod − p_atm) × rod area
+    p_head_gauge = to_gauge_pressure(p_head_f)
+    p_rod_gauge = to_gauge_pressure(p_rod_f)
+    F_net = p_head_gauge * A_head_f - p_rod_gauge * A_rod_f
     return F_net
 
 

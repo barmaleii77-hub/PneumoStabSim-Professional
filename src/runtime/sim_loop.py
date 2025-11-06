@@ -52,7 +52,7 @@ from src.pneumo.gas_state import (
 from src.pneumo.network import GasNetwork
 from src.road.engine import RoadInput, create_road_input_from_preset
 from src.road.scenarios import get_preset_by_name
-from src.common.units import KELVIN_0C, PA_ATM, T_AMBIENT
+from src.common.units import KELVIN_0C, PA_ATM, T_AMBIENT, to_gauge_pressure
 from src.app.config_defaults import create_default_system_configuration
 
 # Settings manager (используем абсолютный импорт, т.к. общий модуль)
@@ -768,10 +768,12 @@ class PhysicsWorker(QObject):
 
             head_pressure = self._get_line_pressure(wheel, Port.HEAD)
             rod_pressure = self._get_line_pressure(wheel, Port.ROD)
+            head_pressure_gauge = to_gauge_pressure(head_pressure)
+            rod_pressure_gauge = to_gauge_pressure(rod_pressure)
             area_head = geom.area_head(cylinder.spec.is_front)
             area_rod = geom.area_rod(cylinder.spec.is_front)
             wheel_state.force_pneumatic = (
-                head_pressure * area_head - rod_pressure * area_rod
+                head_pressure_gauge * area_head - rod_pressure_gauge * area_rod
             )
 
         # 3. Update gas system
