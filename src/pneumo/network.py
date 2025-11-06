@@ -23,7 +23,12 @@ from src.common.units import PA_ATM, T_AMBIENT
 
 @dataclass
 class GasNetwork:
-    """Complete gas network with lines, tank, and valves"""
+    """Complete gas network with lines, tank, and valves.
+
+    All pressures stored in the network remain **absolute** values. Downstream
+    consumers that require gauge pressure must explicitly convert using the
+    utilities in :mod:`src.common.units`.
+    """
 
     lines: Dict[Line, LineGasState]  # Four diagonal lines
     tank: TankGasState  # Receiver tank
@@ -56,13 +61,10 @@ class GasNetwork:
         system_volumes = self.system_ref.get_line_volumes()
         return {name: data["total_volume"] for name, data in system_volumes.items()}
 
-    def update_pressures_due_to_volume(self, thermo_mode: ThermoMode):
-        """Update line pressures due to volume changes from kinematics
-
-        Args:
-            thermo_mode: Thermodynamic update mode
-        """
-        volumes = self.compute_line_volumes()
+    def update_pressures_with_explicit_volumes(
+        self, volumes: Dict[Line, float], thermo_mode: ThermoMode
+    ) -> None:
+        """Update line pressures using externally supplied volumes."""
 
         for line_name, new_volume in volumes.items():
             line_state = self.lines[line_name]
@@ -78,6 +80,15 @@ class GasNetwork:
                 polytropic_update(line_state, new_volume, params)
             else:
                 raise ValueError(f"Unknown thermo mode: {thermo_mode}")
+
+    def update_pressures_due_to_volume(self, thermo_mode: ThermoMode):
+        """Update line pressures due to volume changes from kinematics
+
+        Args:
+            thermo_mode: ISOTHERMAL or ADIABATIC process
+        """
+        volumes = self.compute_line_volumes()
+        self.update_pressures_with_explicit_volumes(volumes, thermo_mode)
 
     def apply_valves_and_flows(
         self, dt: float, log: Optional[logging.Logger] = None

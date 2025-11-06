@@ -29,3 +29,9 @@ P_AMBIENT = PA_ATM  # Pa
 # Numerical tolerances
 EPSILON = 1e-9  # General floating point tolerance
 MIN_VOLUME_FRACTION = 0.005  # Minimum residual volume as fraction of total
+
+
+def to_gauge_pressure(pressure: float, reference: float = PA_ATM) -> float:
+    """Convert an absolute pressure value to gauge pressure."""
+
+    return float(pressure) - float(reference)

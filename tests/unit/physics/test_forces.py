@@ -8,6 +8,7 @@ import numpy as np
 import pytest
 
 from config.constants import get_physics_suspension_constants
+from src.common.units import PA_ATM
 from src.physics.forces import (
     compute_axis_velocity,
     compute_cylinder_force,
@@ -86,7 +87,7 @@ def test_compute_suspension_point_kinematics_unknown_wheel_raises() -> None:
 def test_compute_cylinder_force_uses_pressures_and_areas() -> None:
     assert math.isclose(
         compute_cylinder_force(120000.0, 80000.0, 0.0045, 0.0032),
-        120000.0 * 0.0045 - 80000.0 * 0.0032,
+        (120000.0 - PA_ATM) * 0.0045 - (80000.0 - PA_ATM) * 0.0032,
     )
 
 

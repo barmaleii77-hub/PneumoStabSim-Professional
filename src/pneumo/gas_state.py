@@ -14,7 +14,7 @@ from src.common.units import R_AIR, GAMMA_AIR, PA_ATM, T_AMBIENT
 
 @dataclass
 class LineGasState:
-    """Gas state for a pneumatic line."""
+    """Gas state for a pneumatic line storing absolute pressure."""
 
     name: Line
     m: float
@@ -50,7 +50,7 @@ class LineGasState:
 
 @dataclass
 class TankGasState:
-    """Gas state for the receiver tank."""
+    """Gas state for the receiver tank storing absolute pressure."""
 
     V: float
     p: float
