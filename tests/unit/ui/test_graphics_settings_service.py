@@ -55,6 +55,7 @@ def _make_baseline_payload() -> dict[str, object]:
         "effects": {
             "bloom_enabled": True,
             "color_adjustments_enabled": True,
+            "color_adjustments_active": True,
             "adjustment_brightness": 0.0,
             "adjustment_contrast": 0.0,
             "adjustment_saturation": 0.0,
