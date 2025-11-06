@@ -89,7 +89,7 @@ def using_refactored() -> bool:
     return _USING_REFACTORED
 
 
-def get_version_info() -> Dict[str, Any]:
+def get_version_info() -> dict[str, Any]:
     """Return diagnostic information about the loaded main-window module."""
 
     info = {
