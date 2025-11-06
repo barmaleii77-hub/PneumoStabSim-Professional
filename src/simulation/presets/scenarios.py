@@ -61,7 +61,7 @@ SCENARIO_INDEX: Dict[str, ScenarioDescriptor] = {
         id="road-matrix",
         label="Матрица дорожных профилей",
         difficulty="advanced",
-        summary="Чередование буллезного асфальта, стыков и стиральной доски для стресс-тестов.",
+        summary="Чередование булыжного асфальта, стыков и стиральной доски для стресс-тестов.",
         metrics=(
             "road_profile_coverage",
             "unsprung_energy_peak",
