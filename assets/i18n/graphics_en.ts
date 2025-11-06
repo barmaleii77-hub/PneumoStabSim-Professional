@@ -780,6 +780,11 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
+        <location filename="../qml/effects/PostEffects.qml" line="132"/>
+        <source>%1: persistent shader failure</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
         <location filename="../qml/effects/PostEffects.qml" line="158"/>
         <source>Legacy OpenGL profile detected (OpenGL %1); forcing GLSL 330 fallback shaders.</source>
         <translation type="unfinished"></translation>
@@ -1133,6 +1138,11 @@
     <message>
         <location filename="../qml/PneumoStabSim/SimulationRoot.qml" line="202"/>
         <source>Shader compilation failed</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/PneumoStabSim/SimulationRoot.qml" line="195"/>
+        <source>%1: compilation failed</source>
         <translation type="unfinished"></translation>
     </message>
     <message>

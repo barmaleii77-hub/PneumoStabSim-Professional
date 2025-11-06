@@ -1,0 +1,98 @@
+from __future__ import annotations
+
+import os
+from pathlib import Path
+
+import pytest
+
+pytest.importorskip(
+    "PySide6.QtQuick3D",
+    reason="PySide6 QtQuick3D module is required to instantiate PostEffects",
+    exc_type=ImportError,
+)
+pytest.importorskip(
+    "PySide6.QtQml",
+    reason="PySide6 QtQml module is required for PostEffects fail-safe tests",
+    exc_type=ImportError,
+)
+
+from PySide6.QtCore import QUrl
+from PySide6.QtQml import QQmlComponent, QQmlEngine
+
+
+REPO_ROOT = Path(__file__).resolve().parents[2]
+QML_ROOT = REPO_ROOT / "assets" / "qml"
+
+os.environ.setdefault("QML_XHR_ALLOW_FILE_READ", "1")
+os.environ.setdefault("QSG_RHI_BACKEND", "opengl")
+
+
+def _load_component(engine: QQmlEngine, path: Path) -> QQmlComponent:
+    component = QQmlComponent(engine)
+    component.loadUrl(QUrl.fromLocalFile(str(path)))
+    if component.status() != QQmlComponent.Ready:
+        raise RuntimeError(
+            f"Failed to load component {path}: {component.errorString()}"
+        )
+    return component
+
+
+@pytest.mark.gui
+@pytest.mark.usefixtures("qapp")
+def test_post_effects_bypass_triggers_view_effects_reset(qapp) -> None:  # type: ignore[missing-type-doc]
+    engine = QQmlEngine()
+    engine.addImportPath(str(QML_ROOT))
+
+    post_effects_component = _load_component(engine, QML_ROOT / "effects" / "PostEffects.qml")
+    simulation_component = _load_component(engine, QML_ROOT / "PneumoStabSim" / "SimulationRoot.qml")
+
+    view_stub_component = QQmlComponent(engine)
+    view_stub_component.setData(
+        b"import QtQml 6.10; QtObject { property var effects: [] }",
+        QUrl(),
+    )
+
+    post_effects = post_effects_component.create()
+    simulation_root = simulation_component.create()
+    scene_view = view_stub_component.create()
+
+    assert post_effects is not None, "Expected PostEffects to instantiate"
+    assert simulation_root is not None, "Expected SimulationRoot to instantiate"
+    assert scene_view is not None, "Expected stub View3D replacement to instantiate"
+
+    try:
+        simulation_root.setProperty("sceneView", scene_view)
+        simulation_root.setProperty("postEffects", post_effects)
+        qapp.processEvents()
+
+        initial_effects = scene_view.property("effects")
+        assert isinstance(initial_effects, list)
+        assert len(initial_effects) == len(post_effects.property("effectList"))
+
+        post_effects.setEffectPersistentFailure("bloom", True, "forced failure")
+        qapp.processEvents()
+
+        assert post_effects.property("effectsBypass") is True
+        assert simulation_root.property("postProcessingBypassed") is True
+        assert scene_view.property("effects") == []
+        assert simulation_root.property("postProcessingBypassReason") == "bloom: forced failure"
+        assert post_effects.property("effectsBypassReason") == "bloom: forced failure"
+
+        post_effects.setEffectPersistentFailure("bloom", False, "")
+        qapp.processEvents()
+
+        assert post_effects.property("effectsBypass") is False
+        assert simulation_root.property("postProcessingBypassed") is False
+        restored_effects = scene_view.property("effects")
+        assert isinstance(restored_effects, list)
+        assert len(restored_effects) == len(post_effects.property("effectList"))
+        for restored, original in zip(restored_effects, initial_effects):
+            assert restored is original
+    finally:
+        scene_view.deleteLater()
+        simulation_root.deleteLater()
+        post_effects.deleteLater()
+        view_stub_component.deleteLater()
+        simulation_component.deleteLater()
+        post_effects_component.deleteLater()
+        engine.deleteLater()
