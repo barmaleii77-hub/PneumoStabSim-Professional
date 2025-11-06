@@ -48,9 +48,250 @@ import "../diagnostics/LogBridge.js" as Diagnostics
  // ---------------------------------------------
  // Свойства и сигнал для батч-обновлений из Python
  // ---------------------------------------------
- property var pendingPythonUpdates: null
+    property var pendingPythonUpdates: null
+    property var lastUpdateByCategory: ({})
 signal batchUpdatesApplied(var summary)
 signal animationToggled(bool running)
+
+    onPendingPythonUpdatesChanged: {
+        if (!pendingPythonUpdates || typeof pendingPythonUpdates !== "object")
+            return
+        try {
+            applyBatchedUpdates(pendingPythonUpdates)
+        } finally {
+            pendingPythonUpdates = null
+        }
+    }
+
+    function _logBatchEvent(eventType, name) {
+        try {
+            if (typeof window !== "undefined" && window && typeof window.logQmlEvent === "function")
+                window.logQmlEvent(eventType, name)
+        } catch (error) {
+            console.debug("[SimulationRoot] Failed to forward batch event", eventType, name, error)
+        }
+    }
+
+    function _mergeObjects(base, payload) {
+        var result = {}
+        if (base && typeof base === "object") {
+            for (var key in base) {
+                if (Object.prototype.hasOwnProperty.call(base, key))
+                    result[key] = base[key]
+            }
+        }
+        if (payload && typeof payload === "object") {
+            for (var updateKey in payload) {
+                if (Object.prototype.hasOwnProperty.call(payload, updateKey))
+                    result[updateKey] = payload[updateKey]
+            }
+        }
+        return result
+    }
+
+    function _storeLastUpdate(category, payload) {
+        var snapshot = _mergeObjects(lastUpdateByCategory, {})
+        var stored = payload
+        if (payload && typeof payload === "object")
+            stored = _normaliseState(payload)
+        snapshot[category] = stored
+        lastUpdateByCategory = snapshot
+    }
+
+    function _acknowledgeBatch(categories) {
+        if (categories && categories.length)
+            batchFlashOpacity = 1.0
+        var summary = {
+            timestamp: Date.now(),
+            categories: categories && categories.length ? categories.slice() : []
+        }
+        batchUpdatesApplied(summary)
+    }
+
+    function applyBatchedUpdates(updates) {
+        if (!updates || typeof updates !== "object")
+            return
+
+        _logBatchEvent("signal_received", "applyBatchedUpdates")
+
+        var categories = []
+
+        if (updates.geometry !== undefined) {
+            categories.push("geometry")
+            applyGeometryUpdates(updates.geometry)
+        }
+        if (updates.animation !== undefined) {
+            categories.push("animation")
+            applyAnimationUpdates(updates.animation)
+        }
+        if (updates.lighting !== undefined) {
+            categories.push("lighting")
+            applyLightingUpdates(updates.lighting)
+        }
+        if (updates.materials !== undefined) {
+            categories.push("materials")
+            applyMaterialUpdates(updates.materials)
+        }
+        if (updates.environment !== undefined) {
+            categories.push("environment")
+            applyEnvironmentUpdates(updates.environment)
+        }
+        if (updates.scene !== undefined) {
+            categories.push("scene")
+            applySceneUpdates(updates.scene)
+        }
+        if (updates.quality !== undefined) {
+            categories.push("quality")
+            applyQualityUpdates(updates.quality)
+        }
+        if (updates.camera !== undefined) {
+            categories.push("camera")
+            applyCameraUpdates(updates.camera)
+        }
+        if (updates.effects !== undefined) {
+            categories.push("effects")
+            applyEffectsUpdates(updates.effects)
+        }
+        if (updates.render !== undefined) {
+            categories.push("render")
+            applyRenderSettings(updates.render)
+        }
+        if (updates.simulation !== undefined) {
+            categories.push("simulation")
+            applySimulationUpdates(updates.simulation)
+        }
+        if (updates.threeD !== undefined) {
+            categories.push("threeD")
+            applyThreeDUpdates(updates.threeD)
+        }
+
+        _acknowledgeBatch(categories)
+    }
+
+    function applyGeometryUpdates(params) {
+        _logBatchEvent("function_called", "applyGeometryUpdates")
+        var normalized = _normaliseState(params)
+        if (!_isEmptyMap(normalized)) {
+            geometryState = _mergeObjects(geometryState, normalized)
+            geometryStateReceived = true
+        }
+        _storeLastUpdate("geometry", normalized)
+    }
+
+    function applySimulationUpdates(params) {
+        _logBatchEvent("function_called", "applySimulationUpdates")
+        var normalized = _normaliseState(params)
+        if (!_isEmptyMap(normalized)) {
+            simulationState = _mergeObjects(simulationState, normalized)
+            simulationStateReceived = true
+        }
+        if (normalized.animation)
+            applyAnimationUpdates(normalized.animation)
+        if (normalized.threeD)
+            applyThreeDUpdates(normalized.threeD)
+        _storeLastUpdate("simulation", normalized)
+    }
+
+    function applyAnimationUpdates(params) {
+        _logBatchEvent("function_called", "applyAnimationUpdates")
+        var payload = params || {}
+        var previousRunning = isRunning
+
+        function _normalizeNumber(value, fallback) {
+            if (value === undefined || value === null)
+                return fallback
+            var converted = Number(value)
+            return isNaN(converted) ? fallback : converted
+        }
+
+        animationTime = _normalizeNumber(payload.animation_time, animationTime)
+        animationTime = _normalizeNumber(payload.animationTime, animationTime)
+
+        function _normalizeBool(value, fallback) {
+            if (value === undefined || value === null)
+                return fallback
+            return Boolean(value)
+        }
+
+        isRunning = _normalizeBool(payload.is_running, isRunning)
+        isRunning = _normalizeBool(payload.running, isRunning)
+        pythonAnimationActive = _normalizeBool(payload.python_driven, pythonAnimationActive)
+        pythonAnimationActive = _normalizeBool(payload.pythonDriven, pythonAnimationActive)
+
+        _storeLastUpdate("animation", payload)
+        if (isRunning !== previousRunning)
+            animationToggled(isRunning)
+    }
+
+    function applyLightingUpdates(params) {
+        _logBatchEvent("function_called", "applyLightingUpdates")
+        _storeLastUpdate("lighting", params || {})
+    }
+
+    function applyMaterialUpdates(params) {
+        _logBatchEvent("function_called", "applyMaterialUpdates")
+        _storeLastUpdate("materials", params || {})
+    }
+
+    function applyEnvironmentUpdates(params) {
+        _logBatchEvent("function_called", "applyEnvironmentUpdates")
+        _storeLastUpdate("environment", params || {})
+    }
+
+    function applySceneUpdates(params) {
+        _logBatchEvent("function_called", "applySceneUpdates")
+        _storeLastUpdate("scene", params || {})
+    }
+
+    function applyQualityUpdates(params) {
+        _logBatchEvent("function_called", "applyQualityUpdates")
+        _storeLastUpdate("quality", params || {})
+    }
+
+    function applyCameraUpdates(params) {
+        _logBatchEvent("function_called", "applyCameraUpdates")
+        _storeLastUpdate("camera", params || {})
+    }
+
+    function applyEffectsUpdates(params) {
+        _logBatchEvent("function_called", "applyEffectsUpdates")
+        _storeLastUpdate("effects", params || {})
+    }
+
+    function applyRenderSettings(params) {
+        _logBatchEvent("function_called", "applyRenderSettings")
+        var payload = params || {}
+        if (payload.environment)
+            applyEnvironmentUpdates(payload.environment)
+        if (payload.quality)
+            applyQualityUpdates(payload.quality)
+        if (payload.effects)
+            applyEffectsUpdates(payload.effects)
+        if (payload.camera)
+            applyCameraUpdates(payload.camera)
+        _storeLastUpdate("render", payload)
+    }
+
+    function applyThreeDUpdates(params) {
+        _logBatchEvent("function_called", "applyThreeDUpdates")
+        _storeLastUpdate("threeD", params || {})
+    }
+
+    function apply3DUpdates(params) {
+        applyThreeDUpdates(params)
+    }
+
+    function updateGeometry(params) { applyGeometryUpdates(params) }
+    function updateAnimation(params) { applyAnimationUpdates(params) }
+    function updateLighting(params) { applyLightingUpdates(params) }
+    function updateMaterials(params) { applyMaterialUpdates(params) }
+    function updateEnvironment(params) { applyEnvironmentUpdates(params) }
+    function updateScene(params) { applySceneUpdates(params) }
+    function updateQuality(params) { applyQualityUpdates(params) }
+    function updateCamera(params) { applyCameraUpdates(params) }
+    function updateEffects(params) { applyEffectsUpdates(params) }
+    function updateRender(params) { applyRenderSettings(params) }
+    function updateThreeD(params) { applyThreeDUpdates(params) }
 
     Component.onCompleted: {
         const hasBridge = sceneBridge !== null && sceneBridge !== undefined
