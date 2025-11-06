@@ -1243,7 +1243,7 @@
     <message>
         <location filename="../qml/effects/SceneEnvironmentController.qml" line="583"/>
         <source>Fog effect fallback active</source>
-        <translation type="unfinished"></translation>
+        <translation>Fog effect fallback active</translation>
     </message>
 </context>
 <context>
@@ -1251,7 +1251,7 @@
     <message>
         <location filename="../qml/components/SignalTraceIndicator.qml" line="10"/>
         <source>Signals</source>
-        <translation type="unfinished"></translation>
+        <translation>Signals</translation>
     </message>
 </context>
 <context>
@@ -1259,12 +1259,12 @@
     <message>
         <location filename="../qml/components/SignalTracePanel.qml" line="15"/>
         <source>Signal trace</source>
-        <translation type="unfinished"></translation>
+        <translation>Signal trace</translation>
     </message>
     <message>
         <location filename="../qml/components/SignalTracePanel.qml" line="41"/>
         <source>Clear</source>
-        <translation type="unfinished"></translation>
+        <translation>Clear</translation>
     </message>
 </context>
 <context>
@@ -1272,22 +1272,22 @@
     <message>
         <location filename="../qml/SimulationFallbackRoot.qml" line="491"/>
         <source>Сигналы</source>
-        <translation type="unfinished"></translation>
+        <translation>Signals</translation>
     </message>
     <message>
         <location filename="../qml/SimulationFallbackRoot.qml" line="503"/>
         <source>Оверлей</source>
-        <translation type="unfinished"></translation>
+        <translation>Overlay</translation>
     </message>
     <message>
         <location filename="../qml/SimulationFallbackRoot.qml" line="519"/>
         <source>Запись</source>
-        <translation type="unfinished"></translation>
+        <translation>Recording</translation>
     </message>
     <message>
         <location filename="../qml/SimulationFallbackRoot.qml" line="533"/>
         <source>Скрыть</source>
-        <translation type="unfinished"></translation>
+        <translation>Hide</translation>
     </message>
     <message>
         <location filename="../qml/SimulationFallbackRoot.qml" line="533"/>
@@ -1616,92 +1616,92 @@
     <message>
         <location filename="../qml/components/TelemetryChartPanel.qml" line="55"/>
         <source>Телеметрия</source>
-        <translation type="unfinished"></translation>
+        <translation>Telemetry</translation>
     </message>
     <message>
         <location filename="../qml/components/TelemetryChartPanel.qml" line="63"/>
         <source>Скрыть</source>
-        <translation type="unfinished"></translation>
+        <translation>Hide</translation>
     </message>
     <message>
         <location filename="../qml/components/TelemetryChartPanel.qml" line="63"/>
         <source>Показать</source>
-        <translation type="unfinished"></translation>
+        <translation>Show</translation>
     </message>
     <message>
         <location filename="../qml/components/TelemetryChartPanel.qml" line="80"/>
         <source>Стрим</source>
-        <translation type="unfinished"></translation>
+        <translation>Stream</translation>
     </message>
     <message>
         <location filename="../qml/components/TelemetryChartPanel.qml" line="80"/>
         <source>Пауза</source>
-        <translation type="unfinished"></translation>
+        <translation>Pause</translation>
     </message>
     <message>
         <location filename="../qml/components/TelemetryChartPanel.qml" line="89"/>
         <source>Сброс</source>
-        <translation type="unfinished"></translation>
+        <translation>Reset</translation>
     </message>
     <message>
         <location filename="../qml/components/TelemetryChartPanel.qml" line="105"/>
         <source>Каждый шаг</source>
-        <translation type="unfinished"></translation>
+        <translation>Every step</translation>
     </message>
     <message>
         <location filename="../qml/components/TelemetryChartPanel.qml" line="106"/>
         <source>Каждый 2-й</source>
-        <translation type="unfinished"></translation>
+        <translation>Every 2nd</translation>
     </message>
     <message>
         <location filename="../qml/components/TelemetryChartPanel.qml" line="107"/>
         <source>Каждый 5-й</source>
-        <translation type="unfinished"></translation>
+        <translation>Every 5th</translation>
     </message>
     <message>
         <location filename="../qml/components/TelemetryChartPanel.qml" line="108"/>
         <source>Каждый 10-й</source>
-        <translation type="unfinished"></translation>
+        <translation>Every 10th</translation>
     </message>
     <message>
         <location filename="../qml/components/TelemetryChartPanel.qml" line="109"/>
         <source>Каждый 20-й</source>
-        <translation type="unfinished"></translation>
+        <translation>Every 20th</translation>
     </message>
     <message>
         <location filename="../qml/components/TelemetryChartPanel.qml" line="138"/>
         <source>Окно, с</source>
-        <translation type="unfinished"></translation>
+        <translation>Window (s)</translation>
     </message>
     <message>
         <location filename="../qml/components/TelemetryChartPanel.qml" line="156"/>
         <source>Автопрокрутка</source>
-        <translation type="unfinished"></translation>
+        <translation>Auto-scroll</translation>
     </message>
     <message>
         <location filename="../qml/components/TelemetryChartPanel.qml" line="187"/>
         <source>Автомасштаб Y</source>
-        <translation type="unfinished"></translation>
+        <translation>Auto-scale Y</translation>
     </message>
     <message>
         <location filename="../qml/components/TelemetryChartPanel.qml" line="196"/>
         <source>Мин</source>
-        <translation type="unfinished"></translation>
+        <translation>Min</translation>
     </message>
     <message>
         <location filename="../qml/components/TelemetryChartPanel.qml" line="215"/>
         <source>Макс</source>
-        <translation type="unfinished"></translation>
+        <translation>Max</translation>
     </message>
     <message>
         <location filename="../qml/components/TelemetryChartPanel.qml" line="235"/>
         <source>Показатели</source>
-        <translation type="unfinished"></translation>
+        <translation>Metrics</translation>
     </message>
     <message>
         <location filename="../qml/components/TelemetryChartPanel.qml" line="291"/>
         <source>Время, с</source>
-        <translation type="unfinished"></translation>
+        <translation>Time (s)</translation>
     </message>
     <message>
         <location filename="../qml/components/TelemetryChartPanel.qml" line="299"/>

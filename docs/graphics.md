@@ -10,6 +10,14 @@
 - Эффекты (`effects`): bloom, DoF, motion blur, lens flare, vignette, tonemap
 - Материалы (`materials`): параметры PBR материалов для частей модели
 
+## Обновление UI визуализации
+
+- **Шкала камеры** — `CameraStateHud` отображает нормализованные расстояния, углы и параметры движения, пересчитывая телеметрию через `metricsModel()` и `telemetryToMillimetres()` и опираясь на `sceneScaleFactor` (`assets/qml/camera/CameraStateHud.qml`).
+- **Индикаторы SceneBridge** — `BridgeIndicatorsPanel` подсвечивает прогресс загрузки геометрии/симуляции, выводит счётчики ключей и номер шага (`assets/qml/components/BridgeIndicatorsPanel.qml`).
+- **Панель телеметрии** — `TelemetryChartPanel` реализует графики QtCharts с контролем окна, автомасштабом и режимом стрима/паузы для мониторинга параметров графики и физики (`assets/qml/components/TelemetryChartPanel.qml`).
+- **Трассировка сигналов** — `SignalTracePanel` позволяет журналировать вызовы SceneBridge/StateSync и быстро очищать ленту событий (`assets/qml/components/SignalTracePanel.qml`).
+- **Визуализация пневмосистемы** — `FlowNetwork` и `ValveIndicator` показывают состояние клапанов, направление потоков и интенсивность через анимированные стрелки и колонны (`assets/qml/PneumoStabSim/scene/FlowNetwork.qml`, `assets/qml/PneumoStabSim/scene/ValveIndicator.qml`).
+
 ### Цветокоррекция ExtendedSceneEnvironment
 
 - `SceneEnvironmentController.qml` теперь экспонирует пару свойств `colorAdjustmentsEnabled` и `colorAdjustmentsActive` вместе с числовыми коэффициентами (`adjustment_brightness`, `adjustment_contrast`, `adjustment_saturation`), а также флаг `colorAdjustmentsHasOverrides`; значения синхронизируются с `main.qml`, что исключает предупреждения Qt об отсутствующих свойствах. 【F:assets/qml/effects/SceneEnvironmentController.qml†L198-L266】【F:assets/qml/main.qml†L96-L140】

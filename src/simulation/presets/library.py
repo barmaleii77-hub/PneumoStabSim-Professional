@@ -343,6 +343,108 @@ DEFAULT_PRESETS: Tuple[TrainingPreset, ...] = (
         ),
         tags=("endurance", "thermal", "research"),
     ),
+    TrainingPreset(
+        id="pneumo_diagnostics",
+        label="Диагностика пневмосистемы",
+        description="Конфигурация для проверки клапанов, герметичности и реакции ресивера.",
+        simulation={
+            "physics_dt": 0.0008,
+            "render_vsync_hz": 60.0,
+            "max_steps_per_frame": 10,
+            "max_frame_time": 0.05,
+        },
+        pneumatic={
+            "volume_mode": "GEOMETRIC",
+            "thermo_mode": "ISOTHERMAL",
+            "master_isolation_open": True,
+            "receiver_volume": 0.019,
+        },
+        metadata=_build_metadata(
+            scenario_id="pneumo-diagnostics",
+            difficulty="intermediate",
+            duration_minutes=25,
+            learning_objectives=(
+                "Диагностика утечек и дрейфа давления",
+                "Визуализация открытия атмосферных и ресиверных клапанов",
+            ),
+            recommended_modules=("pneumatics/monitoring", "diagnostics/telemetry"),
+            evaluation_metrics=(
+                "line_pressure_balance",
+                "valve_switch_latency",
+                "receiver_recovery_time",
+            ),
+            notes="Использует FlowNetwork для визуализации состояний клапанов и стрелок потока.",
+        ),
+        tags=("pneumo", "valves", "diagnostics"),
+    ),
+    TrainingPreset(
+        id="road_response_matrix",
+        label="Матрица дорожных профилей",
+        description="Серия дорожных профилей для сравнения моделей демпфирования и подвески.",
+        simulation={
+            "physics_dt": 0.0007,
+            "render_vsync_hz": 72.0,
+            "max_steps_per_frame": 12,
+            "max_frame_time": 0.045,
+        },
+        pneumatic={
+            "volume_mode": "MANUAL",
+            "thermo_mode": "ADIABATIC",
+            "master_isolation_open": False,
+            "receiver_volume": 0.021,
+        },
+        metadata=_build_metadata(
+            scenario_id="road-matrix",
+            difficulty="advanced",
+            duration_minutes=30,
+            learning_objectives=(
+                "Сравнение road-моделей и профилей возмущений",
+                "Оценка устойчивости контроллера на скачкообразных и периодических неровностях",
+            ),
+            recommended_modules=("roadmodels/library", "control/stability"),
+            evaluation_metrics=(
+                "road_profile_coverage",
+                "unsprung_energy_peak",
+                "ride_frequency_response",
+            ),
+            notes="Включает переключение профилей через TrainingPanel и запись телеметрии в реальном времени.",
+        ),
+        tags=("road", "profiles", "analysis"),
+    ),
+    TrainingPreset(
+        id="visual_diagnostics_suite",
+        label="Визуальная калибровка",
+        description="Статичная поза подвески и эталонное освещение для настройки графики и HUD.",
+        simulation={
+            "physics_dt": 0.001,
+            "render_vsync_hz": 90.0,
+            "max_steps_per_frame": 8,
+            "max_frame_time": 0.033,
+        },
+        pneumatic={
+            "volume_mode": "MANUAL",
+            "thermo_mode": "ISOTHERMAL",
+            "master_isolation_open": False,
+            "receiver_volume": 0.02,
+        },
+        metadata=_build_metadata(
+            scenario_id="visual-diagnostics",
+            difficulty="beginner",
+            duration_minutes=10,
+            learning_objectives=(
+                "Настройка шкалы камеры и индикаторов SceneBridge",
+                "Проверка панелей телеметрии и трассировки сигналов",
+            ),
+            recommended_modules=("ui/visual", "graphics/tuning"),
+            evaluation_metrics=(
+                "telemetry_signal_latency",
+                "indicator_refresh_rate",
+                "frame_time_budget",
+            ),
+            notes="Использует TelemetryChartPanel и CameraStateHud для визуальной валидации настроек.",
+        ),
+        tags=("visual", "hud", "graphics"),
+    ),
 )
 
 

@@ -46,6 +46,39 @@ SCENARIO_INDEX: Dict[str, ScenarioDescriptor] = {
         summary="Длительный маршрут с переменной скоростью и температурой.",
         metrics=("stability_index", "thermal_drift", "energy_consumption"),
     ),
+    "pneumo-diagnostics": ScenarioDescriptor(
+        id="pneumo-diagnostics",
+        label="Диагностика пневмосистемы",
+        difficulty="intermediate",
+        summary="Шаблон для проверки герметичности, откликов клапанов и ресивера.",
+        metrics=(
+            "line_pressure_balance",
+            "valve_switch_latency",
+            "receiver_recovery_time",
+        ),
+    ),
+    "road-matrix": ScenarioDescriptor(
+        id="road-matrix",
+        label="Матрица дорожных профилей",
+        difficulty="advanced",
+        summary="Чередование буллезного асфальта, стыков и стиральной доски для стресс-тестов.",
+        metrics=(
+            "road_profile_coverage",
+            "unsprung_energy_peak",
+            "ride_frequency_response",
+        ),
+    ),
+    "visual-diagnostics": ScenarioDescriptor(
+        id="visual-diagnostics",
+        label="Визуальная калибровка",
+        difficulty="beginner",
+        summary="Статические позы и эталонные источники света для настройки графики и индикаторов.",
+        metrics=(
+            "telemetry_signal_latency",
+            "indicator_refresh_rate",
+            "frame_time_budget",
+        ),
+    ),
 }
 
 
