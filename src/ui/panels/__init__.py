@@ -34,7 +34,7 @@ _EXPORTS = {
     "PneumoPanel": ("panel_pneumo", "PneumoPanel"),
     "ModesPanel": ("panel_modes", "ModesPanel"),
     "RoadPanel": ("panel_road", "RoadPanel"),
-    "GraphicsPanel": ("graphics.panel_graphics_refactored", "GraphicsPanel"),
+    "GraphicsPanel": ("graphics.panel_graphics", "GraphicsPanel"),
 }
 
 if TYPE_CHECKING:  # pragma: no cover - typing helpers only
@@ -42,7 +42,7 @@ if TYPE_CHECKING:  # pragma: no cover - typing helpers only
     from .panel_modes import ModesPanel
     from .panel_pneumo import PneumoPanel
     from .panel_road import RoadPanel
-    from .graphics.panel_graphics_refactored import GraphicsPanel
+    from .graphics.panel_graphics import GraphicsPanel
 
 
 def __getattr__(name: str) -> Any:
