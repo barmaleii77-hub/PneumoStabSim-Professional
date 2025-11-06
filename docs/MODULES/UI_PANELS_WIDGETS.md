@@ -146,70 +146,15 @@ DEFAULT_PNEUMATIC = {
 
 ## ?? ModesPanel
 
-### **Class Diagram**
+> ℹ️ **Deprecated widget.** The PySide6-based `ModesPanel` coordinator has been
+> superseded by the QML `SimulationPanel` (`assets/qml/panels/SimulationPanel.qml`).
+> Use the QML bindings exposed through `main.qml` and `SceneBridge` for
+> simulation control, pneumatic tuning, and preset management.  Importing
+> `ModesPanel` from `src.ui.panels` will now raise a runtime error that points
+> to the new QML workflow.
 
-```
-???????????????????????????????????????????
-?         ModesPanel                      ?
-?         (QWidget)                       ?
-???????????????????????????????????????????
-? Signals:                                ?
-? - simulation_control(str)               ?
-? - mode_changed(str, str)                ?
-? - parameter_changed(str, float)         ?
-? - animation_changed(dict)               ?
-???????????????????????????????????????????
-? UI Elements:                            ?
-? - start_button: QPushButton             ?
-? - stop_button: QPushButton              ?
-? - pause_button: QPushButton             ?
-? - reset_button: QPushButton             ?
-? - kinematics_radio: QRadioButton        ?
-? - dynamics_radio: QRadioButton          ?
-? - amplitude_slider: RangeSlider         ?
-? - frequency_slider: RangeSlider         ?
-? - phase_slider: RangeSlider             ?
-? - lf/rf/lr/rr_phase_sliders             ?
-???????????????????????????????????????????
-? + get_parameters() ? dict              ?
-? + set_simulation_running(bool)          ?
-???????????????????????????????????????????
-```
-
-### **Animation Parameters**
-
-```python
-DEFAULT_ANIMATION = {
-    'amplitude': 0.05,    # m
-    'frequency': 1.0,     # Hz
-    'phase': 0.0,         # degrees (global)
-    'lf_phase': 0.0,      # degrees (per-wheel)
-    'rf_phase': 0.0,
-    'lr_phase': 0.0,
-    'rr_phase': 0.0,
-}
-```
-
-### **Example: Animation Control**
-
-```python
-from src.ui.panels import ModesPanel
-
-panel = ModesPanel(parent_window)
-
-# Connect animation signal
-panel.animation_changed.connect(
-    lambda params: print(f"Animation: A={params['amplitude']}m F={params['frequency']}Hz")
-)
-
-# Connect simulation control
-panel.simulation_control.connect(
-    lambda cmd: print(f"Simulation command: {cmd}")
-)
-
-# Change amplitude
-panel.amplitude_slider.set_value(0.1)  # 0.1m = 100mm
-```
+The historical documentation below is kept for reference when maintaining the
+legacy presets and default dictionaries in `src/ui/panels/modes/defaults.py`.
 
 ---
 
