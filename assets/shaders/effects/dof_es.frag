@@ -1,4 +1,6 @@
 #version 300 es
+// Qt Quick 3D post-processing shader.
+// Shader logic must live in qt_customMain; a thin main() wrapper is appended for shader tooling compatibility.
 // Requires an OpenGL ES 3.0 context for Qt Quick 3D runtime compatibility.
 // ANGLE note: keep the explicit profile to avoid falling back to desktop GLSL.
 
@@ -119,4 +121,9 @@ void qt_customMain()
     vec4 fragColor = vec4(0.0);
     dofESMain(fragColor);
     FRAGCOLOR = fragColor;
+}
+
+void main()
+{
+    qt_customMain();
 }

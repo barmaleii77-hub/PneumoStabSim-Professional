@@ -16,8 +16,9 @@ AUTONOMOUS_CHECK_ARGS ?= --task verify --history-limit 10 --sanitize --launch-tr
 CHECK_AUTONOMOUS_ARGS ?= --task verify --history-limit 5 --sanitize-history 3
 SMOKE_TARGET ?= tests/smoke
 INTEGRATION_TARGET ?= tests/integration/test_main_window_qml.py
+RUN_ARGS ?=
 
-.PHONY: format lint typecheck qml-lint test-local validate-shaders check-shaders check verify smoke integration \
+.PHONY: format lint typecheck qml-lint test-local validate-shaders check-shaders check verify smoke integration run \
 localization-check \
 autonomous-check autonomous-check-trace trace-launch sanitize cipilot-env \
 install-qt-runtime qt-env-check telemetry-etl profile-phase3 profile-render profile-validate package-all
@@ -167,6 +168,15 @@ smoke:
 
 integration:
 	$(PYTHON) -m pytest $(PYTEST_FLAGS) $(INTEGRATION_TARGET)
+
+run:
+	@if ! command -v $(UV) >/dev/null 2>&1; then \
+		echo "Error: '$(UV)' is not installed. Run 'python scripts/bootstrap_uv.py' first." >&2; \
+		exit 1; \
+	fi
+	QT_QPA_PLATFORM=$${QT_QPA_PLATFORM} \
+	QT_LOGGING_RULES=$${QT_LOGGING_RULES:-*.debug=false;*.info=false} \
+	$(UV) run $(UV_RUN_ARGS) -- python app.py $(RUN_ARGS)
 
 sanitize:
 	$(PYTHON) -m tools.project_sanitize
