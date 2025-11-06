@@ -164,6 +164,23 @@ def test_ensure_valid_state_requires_all_materials(
         service.ensure_valid_state(valid_state)
 
 
+def test_ensure_valid_state_accepts_color_adjustments_active(
+    tmp_path: Path, baseline_file: Path
+) -> None:
+    settings_path = tmp_path / "settings.json"
+    payload = _make_legacy_payload(_make_materials())
+    _write_json(settings_path, payload)
+
+    manager = SettingsManager(settings_file=settings_path)
+    service = GraphicsSettingsService(manager, baseline_path=baseline_file)
+
+    state = service.load_current()
+    state["effects"]["color_adjustments_active"] = False
+
+    validated = service.ensure_valid_state(state)
+    assert validated["effects"]["color_adjustments_active"] is False
+
+
 def test_save_current_persists_normalised_copy(
     tmp_path: Path, baseline_file: Path
 ) -> None:

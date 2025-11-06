@@ -90,6 +90,10 @@ class GraphicsSettingsService:
 
     DEFAULT_BASELINE_PATH = Path("config/baseline/app_settings.json")
 
+    OPTIONAL_CATEGORY_KEYS: dict[str, tuple[str, ...]] = {
+        "effects": ("color_adjustments_active",),
+    }
+
     def __init__(
         self,
         settings_manager: SettingsManager | None = None,
@@ -356,7 +360,8 @@ class GraphicsSettingsService:
                         f"graphics.materials contains legacy keys in {source} settings: {details}"
                     )
 
-            allowed_keys = set(baseline_section.keys())
+            optional_keys = set(self.OPTIONAL_CATEGORY_KEYS.get(category, ()))
+            allowed_keys = set(baseline_section.keys()) | optional_keys
             unknown_keys = [key for key in payload.keys() if key not in allowed_keys]
 
             if unknown_keys:
