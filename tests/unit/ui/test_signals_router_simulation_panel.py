@@ -8,6 +8,7 @@ from typing import Any, Dict, List, Tuple
 import pytest
 
 from src.ui.main_window_pkg.signals_router import SignalsRouter
+from src.ui.main_window_pkg.qml_bridge import QMLBridge
 
 
 class _DummySignal:
@@ -179,3 +180,75 @@ def test_handle_cylinder_settings_changed_updates_constants(
             }
         }
     }
+
+
+def test_pneumo_panel_receives_qml_updates(
+    qtbot: "pytestqt.qtbot.QtBot",
+    settings_manager,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """External pneumatic updates must synchronise the legacy Qt panel."""
+
+    from src.ui.panels.pneumo import panel_pneumo_refactored as pneumo_module
+
+    state_manager = pneumo_module.PneumoStateManager(settings_manager=settings_manager)
+    monkeypatch.setattr(pneumo_module, "PneumoStateManager", lambda: state_manager)
+
+    panel = pneumo_module.PneumoPanel()
+    qtbot.addWidget(panel)
+
+    class _PanelWindow:
+        def __init__(self) -> None:
+            self.settings_updates: List[Tuple[str, Dict[str, Any]]] = []
+            self.settings_manager = settings_manager
+            self.simulation_manager = _DummySimulationManager()
+            self.pneumo_panel = panel
+
+        def _apply_settings_update(self, category: str, payload: Dict[str, Any]) -> None:
+            self.settings_updates.append((category, copy.deepcopy(payload)))
+
+    window = _PanelWindow()
+
+    monkeypatch.setattr(SignalsRouter, "_push_pneumatic_state", lambda *_: None)
+
+    payload = {
+        "volume_mode": "GEOMETRIC",
+        "receiver_diameter": 0.25,
+        "receiver_length": 0.75,
+        "receiver_volume": 0.035,
+        "cv_atmo_dp": 0.03,
+        "master_isolation_open": False,
+    }
+
+    SignalsRouter.handle_pneumatic_settings_changed(window, payload)
+
+    assert panel.state_manager.get_volume_mode() == "GEOMETRIC"
+    assert panel.state_manager.get_receiver_diameter() == pytest.approx(0.25)
+    assert panel.state_manager.get_receiver_length() == pytest.approx(0.75)
+    assert panel.receiver_tab.volume_mode_combo.currentIndex() == 1
+    assert panel.receiver_tab.receiver_diameter_knob.value() == pytest.approx(0.25)
+
+
+def test_push_pneumatic_state_skips_when_marked_qml(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Update source flags must suppress redundant QML dispatches."""
+
+    window = _DummyWindow()
+    window.pneumo_panel = object()
+    SignalsRouter._mark_update_source(window, "pneumatic", "qml")
+
+    dispatched: List[Tuple[Any, ...]] = []
+
+    monkeypatch.setattr(
+        SignalsRouter,
+        "_get_settings_category",
+        lambda *_args, **_kwargs: {"receiver_volume": 0.02},
+    )
+    monkeypatch.setattr(
+        QMLBridge,
+        "invoke_qml_function",
+        lambda *args, **kwargs: dispatched.append(args),
+    )
+
+    SignalsRouter._push_pneumatic_state(window)
+
+    assert dispatched == []

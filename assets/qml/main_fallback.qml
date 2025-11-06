@@ -50,7 +50,8 @@ Rectangle {
         }
         batchUpdatesApplied({
             timestamp: Date.now(),
-            categories: categories
+            categories: categories,
+            source: "python"
         })
     }
 

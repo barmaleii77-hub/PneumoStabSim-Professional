@@ -300,7 +300,8 @@ property real tankPressure: 0.0
         }
         batchUpdatesApplied({
             timestamp: Date.now(),
-            categories: categories
+            categories: categories,
+            source: "python"
         })
     }
 

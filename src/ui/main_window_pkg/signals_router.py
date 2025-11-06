@@ -99,6 +99,7 @@ class SignalsRouter:
         "environment": 150,
         "effects": 150,
     }
+    _UPDATE_SOURCE_ATTR = "_update_source_flags"
 
     @staticmethod
     def _normalise_environment_payload(
@@ -1361,6 +1362,15 @@ class SignalsRouter:
             return
 
         window._apply_settings_update("pneumatic", pneumatic_updates)
+        panel = getattr(window, "pneumo_panel", None)
+        if panel is not None and hasattr(panel, "set_parameters"):
+            try:
+                panel.set_parameters(pneumatic_updates, source="qml")
+            except Exception as exc:
+                SignalsRouter.logger.debug(
+                    "Failed to synchronize PneumoPanel: %s", exc, exc_info=exc
+                )
+        SignalsRouter._mark_update_source(window, "pneumatic", "qml")
         SignalsRouter._push_pneumatic_state(window)
 
         if "receiver_volume" in pneumatic_updates:
@@ -1832,6 +1842,9 @@ class SignalsRouter:
 
     @staticmethod
     def _push_pneumatic_state(window: "MainWindow") -> None:
+        source = SignalsRouter._consume_update_source(window, "pneumatic")
+        if source == "qml" and getattr(window, "pneumo_panel", None) is not None:
+            return
         payload = SignalsRouter._get_settings_category(window, "pneumatic")
         QMLBridge.invoke_qml_function(window, "applyPneumaticSettings", dict(payload))
 
@@ -1859,3 +1872,20 @@ class SignalsRouter:
         if not isinstance(payload, dict):
             payload = {}
         QMLBridge.invoke_qml_function(window, "applyAnimationSettings", dict(payload))
+
+    @staticmethod
+    def _mark_update_source(window: "MainWindow", category: str, source: str) -> None:
+        if not category or not source:
+            return
+        registry = getattr(window, SignalsRouter._UPDATE_SOURCE_ATTR, None)
+        if not isinstance(registry, dict):
+            registry = {}
+            setattr(window, SignalsRouter._UPDATE_SOURCE_ATTR, registry)
+        registry[category] = source
+
+    @staticmethod
+    def _consume_update_source(window: "MainWindow", category: str) -> Optional[str]:
+        registry = getattr(window, SignalsRouter._UPDATE_SOURCE_ATTR, None)
+        if not isinstance(registry, dict):
+            return None
+        return registry.pop(category, None)
