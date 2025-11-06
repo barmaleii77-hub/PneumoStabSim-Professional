@@ -8,10 +8,18 @@ from src.physics import forces
 from src.tools.reporting import evaluate_physics_case, summarise_assertions
 
 
-def test_standard_balance_case(physics_case_loader):
-    """Validate forces and invariants for the standard balance case."""
+@pytest.mark.parametrize(
+    "case_identifier",
+    (
+        "standard-suspension-balance",
+        "limit-pressure-envelope",
+        "full-droop-asymmetric",
+    ),
+)
+def test_suspension_cases(physics_case_loader, case_identifier):
+    """Validate forces and invariants for representative suspension cases."""
 
-    case = physics_case_loader("standard-suspension-balance")
+    case = physics_case_loader(case_identifier)
     evaluation = evaluate_physics_case(case)
     results = summarise_assertions(case, evaluation)
 

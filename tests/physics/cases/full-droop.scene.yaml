@@ -1,0 +1,51 @@
+$schema: "https://pneumostabsim.local/schemas/scene.schema.yaml"
+name: "full-droop-asymmetric"
+description: "Chassis fully lifted with near-atmospheric pressures and minimal damping"
+attachment_points:
+  LP: [-0.9, 0.34]
+  PP: [0.9, 0.34]
+  LZ: [-0.9, -0.34]
+  PZ: [0.9, -0.34]
+axis_directions:
+  LP: [0.12, 0.985, 0.11]
+  PP: [-0.12, 0.985, 0.11]
+  LZ: [0.1, 0.985, -0.14]
+  PZ: [-0.1, 0.985, -0.14]
+state_vectors:
+  droop: [0.012, -0.044, 0.052, -0.018, 0.009, -0.011]
+  drift: [0.01, -0.036, 0.04, -0.012, 0.007, -0.008]
+pneumatic:
+  pressures:
+    LP:
+      head: 130000
+      rod: 115000
+    PP:
+      head: 132000
+      rod: 118000
+    LZ:
+      head: 128000
+      rod: 113000
+    PZ:
+      head: 134000
+      rod: 116000
+  springs:
+    LP:
+      rest: 0.37
+      current: 0.392
+    PP:
+      rest: 0.368
+      current: 0.39
+    LZ:
+      rest: 0.371
+      current: 0.395
+    PZ:
+      rest: 0.369
+      current: 0.388
+  dampers:
+    LP: 0.028
+    PP: 0.029
+    LZ: 0.027
+    PZ: 0.03
+notes:
+  - "Simulates full droop with springs unloaded and damper thresholds engaged"
+  - "Used to confirm zero-force behaviour and near-equilibrium moments"

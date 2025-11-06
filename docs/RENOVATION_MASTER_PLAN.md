@@ -314,6 +314,7 @@ best practices for scientific visualisation software.
 - `tools/ci_tasks.test` разбивает `pytest` на юнит, интеграционные и UI/QML-циклы и завершает прогон анализом `tools/analyze_logs.py`.
 - GitHub Actions (`ci.yml`) в матрице Ubuntu/Windows выполняет `make check`, выгружает `reports/quality/**`, `reports/tests/**`, `logs/**` и публикует AI-отчёт при сбоях.
 - `.pre-commit-config.yaml` запускает `tools.ci_tasks lint` на `pre-commit` и `tools.ci_tasks typecheck` + `test-unit` на `pre-push`; UI-сценарии остаются ручными, но задокументированы в `docs/CI.md`.
+- Физические регрессионные кейсы дополнены стресс-сценарием предельных давлений и режимом полного вывешивания (`tests/physics/cases/*.scene.yaml`), что покрывает проверку калибровки вертикальных сил и моментов при экстремальных состояниях.
 - Phase 4 execution plan ссылается на обновлённый процесс в `docs/CI.md`, что упрощает контроль KPI по покрытиям и стабильности пайплайна.
 
 **Action Plan**
