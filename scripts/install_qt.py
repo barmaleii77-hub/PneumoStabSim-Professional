@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """Install Qt toolchain with module fallback support."""
+
 from __future__ import annotations
 
 import os

@@ -4,7 +4,15 @@ from __future__ import annotations
 
 import math
 
-from PySide6.QtTest import QSignalSpy
+import pytest
+
+try:
+    from PySide6.QtTest import QSignalSpy
+except ImportError:  # pragma: no cover - depends on system Qt libraries
+    pytest.skip(
+        "PySide6 QtTest module is required for telemetry bridge tests",  # noqa: EM101
+        allow_module_level=True,
+    )
 
 from src.pneumo.enums import Line
 from src.runtime.state import StateSnapshot
@@ -99,4 +107,3 @@ def test_pause_and_reset_behaviour():
     exported = bridge.exportSeries(["pressure.a1"])
     assert exported["series"] == {}
     assert exported["oldestTimestamp"] == 0.0
-*** End of File

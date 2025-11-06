@@ -13,7 +13,9 @@ def _make_dummy_module(name: str) -> ModuleType:
     return module
 
 
-def test_resolve_qml_linter_uses_configured_candidate(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_resolve_qml_linter_uses_configured_candidate(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     """A configured linter command takes precedence when it exists."""
 
     monkeypatch.setenv("QML_LINTER", "custom-qmllint")
@@ -28,7 +30,9 @@ def test_resolve_qml_linter_uses_configured_candidate(monkeypatch: pytest.Monkey
     assert command == ("/opt/bin/custom-qmllint",)
 
 
-def test_resolve_qml_linter_falls_back_to_module(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_resolve_qml_linter_falls_back_to_module(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     """When binaries are missing the PySide6 module fallback is used."""
 
     monkeypatch.delenv("QML_LINTER", raising=False)
@@ -50,7 +54,9 @@ def test_resolve_qml_linter_falls_back_to_module(monkeypatch: pytest.MonkeyPatch
     assert command == (sys.executable, "-m", "PySide6.scripts.qmllint")
 
 
-def test_resolve_qml_linter_raises_when_unavailable(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_resolve_qml_linter_raises_when_unavailable(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     """A clear error is raised when no linter binary or module can be resolved."""
 
     monkeypatch.delenv("QML_LINTER", raising=False)

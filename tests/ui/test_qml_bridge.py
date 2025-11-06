@@ -10,7 +10,9 @@ from src.ui.qml_bridge import QMLBridge
 
 try:  # pragma: no cover - optional dependency for headless environments
     from PySide6 import QtCore, QtTest  # noqa: F401 - used to detect availability
-except Exception:  # pragma: no cover - allow tests to be skipped when PySide6 is missing
+except (
+    Exception
+):  # pragma: no cover - allow tests to be skipped when PySide6 is missing
     PYSIDE_AVAILABLE = False
 else:  # pragma: no cover - executed only when PySide6 is present
     PYSIDE_AVAILABLE = True
@@ -50,7 +52,11 @@ def test_settings_manager_loads_orbit_presets() -> None:
     assert isinstance(presets, dict)
     assert presets.get("version") >= 1
 
-    preset_ids = {entry.get("id") for entry in presets.get("presets", []) if isinstance(entry, dict)}
+    preset_ids = {
+        entry.get("id")
+        for entry in presets.get("presets", [])
+        if isinstance(entry, dict)
+    }
     assert {
         "baseline",
         "rigid",
@@ -77,7 +83,9 @@ def test_camera_hud_context() -> None:
     presets = manager.get_orbit_presets()
 
     assert "orbitPresets" in camera_payload
-    assert camera_payload.get("orbitPresetVersion") == manager.get_orbit_presets().get("version")
+    assert camera_payload.get("orbitPresetVersion") == manager.get_orbit_presets().get(
+        "version"
+    )
 
     telemetry = camera_payload.get("hudTelemetry")
     assert isinstance(telemetry, dict)
@@ -153,4 +161,7 @@ def test_scene_bridge_refresh_orbit_presets_emits_updates(monkeypatch) -> None:
 
     camera_payload = bridge.camera
     assert camera_payload.get("orbitPresetVersion") == updated_manifest["version"]
-    assert bridge.latestUpdates["camera"]["orbitPresetVersion"] == updated_manifest["version"]
+    assert (
+        bridge.latestUpdates["camera"]["orbitPresetVersion"]
+        == updated_manifest["version"]
+    )

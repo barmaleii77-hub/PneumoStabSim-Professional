@@ -8,7 +8,9 @@ import structlog
 from src.diagnostics.logger_factory import configure_logging
 
 
-def test_structlog_json_contains_context(structlog_logger_config, caplog, capsys) -> None:
+def test_structlog_json_contains_context(
+    structlog_logger_config, caplog, capsys
+) -> None:
     """Emit a JSON log event and assert mandatory fields and bound context exist.
 
     The logger is pre-bound with ``subsystem="diagnostics"`` and ``component``

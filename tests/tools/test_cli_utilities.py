@@ -7,7 +7,9 @@ from pathlib import Path
 from tools import collect_qml_errors, run_test_case, check_shader_logs
 
 
-def test_run_test_case_generates_report(physics_case_loader, reports_tests_dir, tmp_path):
+def test_run_test_case_generates_report(
+    physics_case_loader, reports_tests_dir, tmp_path
+):
     case = physics_case_loader("standard-suspension-balance")
     summary = run_test_case.run(case.identifier, output_dir=tmp_path)
     report_path = Path(summary["report_path"])

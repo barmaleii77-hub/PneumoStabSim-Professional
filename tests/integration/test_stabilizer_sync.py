@@ -109,7 +109,9 @@ def fake_window(monkeypatch: pytest.MonkeyPatch) -> _FakeWindow:
     return window
 
 
-def test_stabilizer_ack_flow_completes_with_full_success(fake_window: _FakeWindow) -> None:
+def test_stabilizer_ack_flow_completes_with_full_success(
+    fake_window: _FakeWindow,
+) -> None:
     """Full sync → batch ACK should mark every category applied."""
 
     initial_state = fake_window.graphics_panel.collect_state()
@@ -117,7 +119,9 @@ def test_stabilizer_ack_flow_completes_with_full_success(fake_window: _FakeWindo
     StateSync.initial_full_sync(fake_window)
 
     assert fake_window._last_batched_updates == initial_state
-    assert fake_window._qml_root_object.properties["pendingPythonUpdates"] == QMLBridge._prepare_for_qml(initial_state)
+    assert fake_window._qml_root_object.properties[
+        "pendingPythonUpdates"
+    ] == QMLBridge._prepare_for_qml(initial_state)
 
     summary = {"timestamp": "2025-05-05T12:00:00Z"}
     QMLBridge.handle_qml_ack(fake_window, summary)

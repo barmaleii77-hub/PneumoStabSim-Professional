@@ -49,7 +49,9 @@ def _pip_show_version(distribution_name: str) -> str | None:
     return None
 
 
-def _get_distribution_version(distribution_names: tuple[str, ...]) -> tuple[str | None, str | None]:
+def _get_distribution_version(
+    distribution_names: tuple[str, ...],
+) -> tuple[str | None, str | None]:
     """Пытается определить версию установленного дистрибутива."""
 
     for name in distribution_names:

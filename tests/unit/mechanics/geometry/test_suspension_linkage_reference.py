@@ -5,7 +5,9 @@ import math
 from src.mechanics.linkage_geometry import SuspensionLinkage
 
 
-def test_reference_geometry_metrics(reference_suspension_linkage: SuspensionLinkage) -> None:
+def test_reference_geometry_metrics(
+    reference_suspension_linkage: SuspensionLinkage,
+) -> None:
     """Validate lever metrics against the calibration spreadsheet values.
 
     The canonical linkage should yield a 0.30 m lever, with the rod joint placed
@@ -15,12 +17,18 @@ def test_reference_geometry_metrics(reference_suspension_linkage: SuspensionLink
     """
 
     assert math.isclose(reference_suspension_linkage.lever_length, 0.3, rel_tol=1e-9)
-    assert math.isclose(reference_suspension_linkage.rod_attach_distance, 0.25, rel_tol=1e-9)
-    assert math.isclose(reference_suspension_linkage.rod_joint_fraction, 5.0 / 6.0, rel_tol=1e-9)
+    assert math.isclose(
+        reference_suspension_linkage.rod_attach_distance, 0.25, rel_tol=1e-9
+    )
+    assert math.isclose(
+        reference_suspension_linkage.rod_joint_fraction, 5.0 / 6.0, rel_tol=1e-9
+    )
     assert reference_suspension_linkage.rod_joint_is_on_lever()
 
 
-def test_reference_cylinder_envelope(reference_suspension_linkage: SuspensionLinkage) -> None:
+def test_reference_cylinder_envelope(
+    reference_suspension_linkage: SuspensionLinkage,
+) -> None:
     """Ensure cylinder lengths and amplitudes match analytical expectations.
 
     The nominal cylinder length must equal sqrt(0.34) m, the minimum rod length
@@ -35,7 +43,9 @@ def test_reference_cylinder_envelope(reference_suspension_linkage: SuspensionLin
         rel_tol=1e-9,
     )
 
-    expected_minimum = max(0.0, expected_nominal - reference_suspension_linkage.cylinder_body_length)
+    expected_minimum = max(
+        0.0, expected_nominal - reference_suspension_linkage.cylinder_body_length
+    )
     assert math.isclose(
         reference_suspension_linkage.minimum_rod_length,
         expected_minimum,

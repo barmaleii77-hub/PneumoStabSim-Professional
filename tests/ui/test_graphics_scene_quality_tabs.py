@@ -39,9 +39,7 @@ def test_environment_tab_discovers_hdr_relative_to_project_root(monkeypatch, qap
         captured["qml_root"] = qml_root
         return []
 
-    monkeypatch.setattr(
-        environment_tab_module, "discover_hdr_files", fake_discover
-    )
+    monkeypatch.setattr(environment_tab_module, "discover_hdr_files", fake_discover)
 
     tab = EnvironmentTab()
     try:

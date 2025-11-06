@@ -27,6 +27,14 @@ except ImportError as e:
         print("❌ ModesPanel: Не удалось импортировать ни одну версию!")
         print(f"   Refactored error: {_IMPORT_ERROR}")
         print(f"   Original error: {e2}")
-        raise
+
+        class ModesPanelUnavailable:
+            """Fallback stub used when Qt dependencies are missing."""
+
+            def __init__(self, *args, **kwargs):
+                message = "ModesPanel is unavailable because Qt dependencies could not be imported."
+                raise RuntimeError(message) from e2
+
+        ModesPanel = ModesPanelUnavailable
 
 __all__ = ["ModesPanel"]

@@ -96,7 +96,9 @@ def test_training_bridge_updates_settings_service(
 
 @pytest.mark.gui
 @pytest.mark.usefixtures("qapp")
-def test_training_bridge_plays_nicely_with_simulation(simulation_harness, training_preset_bridge):
+def test_training_bridge_plays_nicely_with_simulation(
+    simulation_harness, training_preset_bridge
+):
     """Smoke test to ensure the simulation harness can start after applying a preset."""
 
     preset_id = training_preset_bridge.defaultPresetId()

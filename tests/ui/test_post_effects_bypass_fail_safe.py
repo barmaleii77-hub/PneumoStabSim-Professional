@@ -43,8 +43,12 @@ def test_post_effects_bypass_triggers_view_effects_reset(qapp) -> None:  # type:
     engine = QQmlEngine()
     engine.addImportPath(str(QML_ROOT))
 
-    post_effects_component = _load_component(engine, QML_ROOT / "effects" / "PostEffects.qml")
-    simulation_component = _load_component(engine, QML_ROOT / "PneumoStabSim" / "SimulationRoot.qml")
+    post_effects_component = _load_component(
+        engine, QML_ROOT / "effects" / "PostEffects.qml"
+    )
+    simulation_component = _load_component(
+        engine, QML_ROOT / "PneumoStabSim" / "SimulationRoot.qml"
+    )
 
     view_stub_component = QQmlComponent(engine)
     view_stub_component.setData(
@@ -75,7 +79,10 @@ def test_post_effects_bypass_triggers_view_effects_reset(qapp) -> None:  # type:
         assert post_effects.property("effectsBypass") is True
         assert simulation_root.property("postProcessingBypassed") is True
         assert scene_view.property("effects") == []
-        assert simulation_root.property("postProcessingBypassReason") == "bloom: forced failure"
+        assert (
+            simulation_root.property("postProcessingBypassReason")
+            == "bloom: forced failure"
+        )
         assert post_effects.property("effectsBypassReason") == "bloom: forced failure"
 
         post_effects.setEffectPersistentFailure("bloom", False, "")

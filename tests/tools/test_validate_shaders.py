@@ -97,7 +97,9 @@ def test_validate_shaders_success(tmp_path: Path) -> None:
     qsb_cmd = _make_qsb_stub(tmp_path)
 
     _write_shader(
-        shader_root, "effects/bloom.frag", "#version 450 core\nvoid qt_customMain() {}\n"
+        shader_root,
+        "effects/bloom.frag",
+        "#version 450 core\nvoid qt_customMain() {}\n",
     )
     _write_shader(
         shader_root,
@@ -110,7 +112,9 @@ def test_validate_shaders_success(tmp_path: Path) -> None:
         "#version 300 es\nvoid qt_customMain() {}\n",
     )
     _write_shader(
-        shader_root, "effects/bloom_es.frag", "#version 300 es\nvoid qt_customMain() {}\n"
+        shader_root,
+        "effects/bloom_es.frag",
+        "#version 300 es\nvoid qt_customMain() {}\n",
     )
 
     _write_shader(
@@ -123,13 +127,17 @@ def test_validate_shaders_success(tmp_path: Path) -> None:
         shader_root, "effects/fog.frag", "#version 450 core\nvoid qt_customMain() {}\n"
     )
     _write_shader(
-        shader_root, "effects/fog_fallback.frag", "#version 450 core\nvoid qt_customMain() {}\n"
+        shader_root,
+        "effects/fog_fallback.frag",
+        "#version 450 core\nvoid qt_customMain() {}\n",
     )
     _write_shader(
         shader_root, "effects/fog_es.frag", "#version 300 es\nvoid qt_customMain() {}\n"
     )
     _write_shader(
-        shader_root, "effects/fog_fallback_es.frag", "#version 300 es\nvoid qt_customMain() {}\n"
+        shader_root,
+        "effects/fog_fallback_es.frag",
+        "#version 300 es\nvoid qt_customMain() {}\n",
     )
 
     errors = validate_shaders.validate_shaders(
@@ -146,7 +154,9 @@ def test_validate_shaders_invokes_qsb_profiles_and_logs(tmp_path: Path) -> None:
     qsb_cmd = _make_qsb_stub(tmp_path, capture_args=capture)
 
     _write_shader(
-        shader_root, "effects/bloom.frag", "#version 450 core\nvoid qt_customMain() {}\n"
+        shader_root,
+        "effects/bloom.frag",
+        "#version 450 core\nvoid qt_customMain() {}\n",
     )
     _write_shader(
         shader_root,
@@ -159,7 +169,9 @@ def test_validate_shaders_invokes_qsb_profiles_and_logs(tmp_path: Path) -> None:
         "#version 300 es\nvoid qt_customMain() {}\n",
     )
     _write_shader(
-        shader_root, "effects/bloom_es.frag", "#version 300 es\nvoid qt_customMain() {}\n"
+        shader_root,
+        "effects/bloom_es.frag",
+        "#version 300 es\nvoid qt_customMain() {}\n",
     )
 
     errors = validate_shaders.validate_shaders(
@@ -169,7 +181,9 @@ def test_validate_shaders_invokes_qsb_profiles_and_logs(tmp_path: Path) -> None:
     assert errors == []
     assert capture.exists()
 
-    invocations = [json.loads(line) for line in capture.read_text().splitlines() if line]
+    invocations = [
+        json.loads(line) for line in capture.read_text().splitlines() if line
+    ]
     assert invocations, "expected at least one qsb invocation"
 
     actual_runs = [call for call in invocations if call != ["--version"]]
@@ -211,7 +225,9 @@ def test_validate_shaders_reports_missing_gles_variant(tmp_path: Path) -> None:
         shader_root, "effects/ssao.frag", "#version 450 core\nvoid qt_customMain() {}\n"
     )
     _write_shader(
-        shader_root, "effects/ssao_fallback.frag", "#version 450 core\nvoid qt_customMain() {}\n"
+        shader_root,
+        "effects/ssao_fallback.frag",
+        "#version 450 core\nvoid qt_customMain() {}\n",
     )
 
     errors = validate_shaders.validate_shaders(
@@ -230,7 +246,9 @@ def test_validate_shaders_reports_missing_fallback_es_variant(tmp_path: Path) ->
         shader_root, "effects/dof.frag", "#version 450 core\nvoid qt_customMain() {}\n"
     )
     _write_shader(
-        shader_root, "effects/dof_fallback.frag", "#version 450 core\nvoid qt_customMain() {}\n"
+        shader_root,
+        "effects/dof_fallback.frag",
+        "#version 450 core\nvoid qt_customMain() {}\n",
     )
     _write_shader(
         shader_root, "effects/dof_es.frag", "#version 300 es\nvoid qt_customMain() {}\n"
@@ -252,7 +270,9 @@ def test_validate_shaders_reports_version_mismatch(tmp_path: Path) -> None:
         shader_root, "effects/dof.frag", "#version 450 core\nvoid qt_customMain() {}\n"
     )
     _write_shader(
-        shader_root, "effects/dof_fallback.frag", "#version 450 core\nvoid qt_customMain() {}\n"
+        shader_root,
+        "effects/dof_fallback.frag",
+        "#version 450 core\nvoid qt_customMain() {}\n",
     )
     _write_shader(
         shader_root, "effects/dof_es.frag", "#version 100 es\nvoid qt_customMain() {}\n"
@@ -320,10 +340,7 @@ def test_validate_shaders_reports_bom_whitespace_and_comments(tmp_path: Path) ->
         "effects/bloom.frag: leading UTF-8 byte-order mark; remove it so '#version' is the first bytes"
         in errors
     )
-    assert (
-        "effects/fog.vert: leading whitespace before '#version' directive"
-        in errors
-    )
+    assert "effects/fog.vert: leading whitespace before '#version' directive" in errors
     assert (
         "effects/sky.vert: unexpected content before '#version' directive (starts with '// comment')"
         in errors
@@ -341,7 +358,9 @@ def test_validate_shaders_propagates_qsb_failure(tmp_path: Path) -> None:
     )
 
     _write_shader(
-        shader_root, "effects/bloom.frag", "#version 450 core\nvoid qt_customMain() {}\n"
+        shader_root,
+        "effects/bloom.frag",
+        "#version 450 core\nvoid qt_customMain() {}\n",
     )
 
     errors = validate_shaders.validate_shaders(
@@ -362,7 +381,9 @@ def test_validate_shaders_raises_when_shared_library_missing(tmp_path: Path) -> 
     qsb_cmd = _make_qsb_stub(tmp_path, exit_code=127, stderr=stderr)
 
     _write_shader(
-        shader_root, "effects/bloom.frag", "#version 450 core\nvoid qt_customMain() {}\n"
+        shader_root,
+        "effects/bloom.frag",
+        "#version 450 core\nvoid qt_customMain() {}\n",
     )
 
     with pytest.raises(validate_shaders.ShaderValidationUnavailableError) as excinfo:

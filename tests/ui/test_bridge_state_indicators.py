@@ -141,14 +141,8 @@ def test_bridge_indicators_reflect_scene_bridge_snapshot(qapp) -> None:
 
         assert simulation_indicator.property("active") is True
         assert simulation_indicator.property("warning") is False
-        assert (
-            simulation_indicator.property("detailText")
-            == "Рычаги: 2 • Поршни: 2"
-        )
-        assert (
-            simulation_indicator.property("secondaryText")
-            == "Шаг 5 • Время 0.125 с"
-        )
+        assert simulation_indicator.property("detailText") == "Рычаги: 2 • Поршни: 2"
+        assert simulation_indicator.property("secondaryText") == "Шаг 5 • Время 0.125 с"
 
         bridge.push_updates(simulation=_example_simulation_state())
         qapp.processEvents()

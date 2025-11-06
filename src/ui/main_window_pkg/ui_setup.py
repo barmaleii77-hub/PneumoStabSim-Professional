@@ -223,9 +223,7 @@ class UISetup:
         modes_payload = manager.get_category("modes") or {}
         pneumatic_payload = manager.get_category("pneumatic") or {}
         simulation_payload = manager.get_category("simulation") or {}
-        cylinder_payload = manager.get(
-            "current.constants.geometry.cylinder", {}
-        ) or {}
+        cylinder_payload = manager.get("current.constants.geometry.cylinder", {}) or {}
 
         def _serialize_mapping(section: str, payload: Dict[str, Any]) -> Dict[str, Any]:
             if not payload:
@@ -234,10 +232,7 @@ class UISetup:
 
         def _make_preset_id(name: str, index: int) -> str:
             token = (name or f"preset_{index}").strip().lower()
-            normalized = [
-                ch if ch.isalnum() else "_"
-                for ch in token
-            ]
+            normalized = [ch if ch.isalnum() else "_" for ch in token]
             collapsed = "".join(normalized)
             while "__" in collapsed:
                 collapsed = collapsed.replace("__", "_")
@@ -258,9 +253,7 @@ class UISetup:
             "physicsDefaults": _serialize(
                 "modes.physics.defaults", DEFAULT_PHYSICS_OPTIONS
             ),
-            "parameterRanges": _serialize(
-                "modes.parameter_ranges", PARAMETER_RANGES
-            ),
+            "parameterRanges": _serialize("modes.parameter_ranges", PARAMETER_RANGES),
         }
 
         composed_scene: Dict[str, Any] = dict(scene_payload)

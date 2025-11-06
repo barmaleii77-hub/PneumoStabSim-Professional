@@ -46,12 +46,8 @@ from PySide6.QtWidgets import QApplication
 from src.app_runner import ApplicationRunner
 
 
-
-
 REPO_ROOT = Path(__file__).resolve().parents[2]
-SHADER_DIRS = (
-    REPO_ROOT / "assets" / "shaders" / "effects",
-)
+SHADER_DIRS = (REPO_ROOT / "assets" / "shaders" / "effects",)
 SHADER_ROOT = REPO_ROOT / "assets" / "shaders"
 
 
@@ -101,9 +97,7 @@ def _create_engine_with_manifest(
     context.setContextProperty("qtGraphicsApiName", graphics_api_name)
     if requires_desktop is None:
         requires_desktop = False
-    context.setContextProperty(
-        "qtGraphicsApiRequiresDesktopShaders", requires_desktop
-    )
+    context.setContextProperty("qtGraphicsApiRequiresDesktopShaders", requires_desktop)
     context.setContextProperty("effectShaderManifest", manifest)
     return engine
 
@@ -126,7 +120,9 @@ def _create_component(engine: QQmlEngine, qml_path: Path) -> QQmlComponent:
     component = QQmlComponent(engine)
     component.loadUrl(QUrl.fromLocalFile(str(qml_path.resolve())))
     if component.status() != QQmlComponent.Ready:
-        raise RuntimeError(f"Failed to load component {qml_path}: {component.errorString()}")
+        raise RuntimeError(
+            f"Failed to load component {qml_path}: {component.errorString()}"
+        )
     return component
 
 
@@ -180,7 +176,9 @@ def test_post_effects_prefers_fallback_when_gles_variant_missing(qapp) -> None: 
             "bloom_300es.frag": False,
         }
     )
-    component = _create_component(engine, REPO_ROOT / "assets" / "qml" / "effects" / "PostEffects.qml")
+    component = _create_component(
+        engine, REPO_ROOT / "assets" / "qml" / "effects" / "PostEffects.qml"
+    )
     root = component.create()
     try:
         assert root.property("useGlesShaders") is True
@@ -192,7 +190,9 @@ def test_post_effects_prefers_fallback_when_gles_variant_missing(qapp) -> None: 
         assert overrides["bloom.frag"] is True
         assert root.property("forceDesktopShaderProfile") is False
 
-        missing_variants = _to_variant_map(root.property("shaderVariantMissingWarnings"))
+        missing_variants = _to_variant_map(
+            root.property("shaderVariantMissingWarnings")
+        )
         assert missing_variants.get("bloom_es.frag") is True
     finally:
         root.deleteLater()
@@ -209,7 +209,9 @@ def test_fog_effect_prefers_fallback_when_gles_variant_missing(qapp) -> None:  #
             "fog_300es.frag": False,
         }
     )
-    component = _create_component(engine, REPO_ROOT / "assets" / "qml" / "effects" / "FogEffect.qml")
+    component = _create_component(
+        engine, REPO_ROOT / "assets" / "qml" / "effects" / "FogEffect.qml"
+    )
     root = component.create()
     try:
         assert root.property("useGlesShaders") is True
@@ -219,7 +221,9 @@ def test_fog_effect_prefers_fallback_when_gles_variant_missing(qapp) -> None:  #
 
         assert root.property("forceDesktopShaderProfile") is False
 
-        missing_variants = _to_variant_map(root.property("shaderVariantMissingWarnings"))
+        missing_variants = _to_variant_map(
+            root.property("shaderVariantMissingWarnings")
+        )
         assert missing_variants.get("fog_es.frag") is True
     finally:
         root.deleteLater()
@@ -230,7 +234,9 @@ def test_fog_effect_activates_depth_fallback_when_forced(qapp) -> None:  # type:
     """FogEffect should engage fallback shader when depth textures are unavailable."""
 
     engine = _create_engine_with_manifest({})
-    component = _create_component(engine, REPO_ROOT / "assets" / "qml" / "effects" / "FogEffect.qml")
+    component = _create_component(
+        engine, REPO_ROOT / "assets" / "qml" / "effects" / "FogEffect.qml"
+    )
     root = component.createWithInitialProperties({"forceDepthTextureUnavailable": True})
     try:
         assert root.property("depthTextureAvailable") is False
@@ -263,10 +269,7 @@ def test_fog_effect_desktop_backend_avoids_fallback(qapp) -> None:  # type: igno
     try:
         qapp.processEvents()
 
-        assert (
-            QQuickWindow.graphicsApi()
-            == QSGRendererInterface.GraphicsApi.OpenGLRhi
-        )
+        assert QQuickWindow.graphicsApi() == QSGRendererInterface.GraphicsApi.OpenGLRhi
 
         format_ = QSurfaceFormat.defaultFormat()
         assert format_.depthBufferSize() >= 24

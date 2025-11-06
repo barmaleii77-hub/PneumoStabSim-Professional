@@ -74,7 +74,10 @@ def test_allow_missing_runtime_handles_libxkbcommon(monkeypatch, tmp_path):
 
     # Допускаем отсутствие Qt рантайма
     code = run_smoke_check(
-        expected_version="6.10", expected_platform=None, report_dir=tmp_path, allow_missing_runtime=True
+        expected_version="6.10",
+        expected_platform=None,
+        report_dir=tmp_path,
+        allow_missing_runtime=True,
     )
     assert code == 0
 
@@ -82,7 +85,10 @@ def test_allow_missing_runtime_handles_libxkbcommon(monkeypatch, tmp_path):
     assert logs, "report file was not written"
     content = logs[-1].read_text(encoding="utf-8")
     assert "libxkbcommon.so.0" in content
-    assert "libxkbcommon0" in content or "Install the system package 'libxkbcommon0'" in content
+    assert (
+        "libxkbcommon0" in content
+        or "Install the system package 'libxkbcommon0'" in content
+    )
 
 
 def test_strict_missing_runtime_fails_for_libxkbcommon(monkeypatch, tmp_path):
@@ -100,6 +106,9 @@ def test_strict_missing_runtime_fails_for_libxkbcommon(monkeypatch, tmp_path):
     monkeypatch.setattr(builtins, "__import__", fake_import)
 
     code = run_smoke_check(
-        expected_version="6.10", expected_platform=None, report_dir=tmp_path, allow_missing_runtime=False
+        expected_version="6.10",
+        expected_platform=None,
+        report_dir=tmp_path,
+        allow_missing_runtime=False,
     )
     assert code == 1

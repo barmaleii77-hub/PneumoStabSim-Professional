@@ -78,9 +78,9 @@ def test_effect_shaders_start_with_version(shader_file: Path) -> None:
     """Each shader must start with a #version directive without BOM/whitespace."""
 
     data = shader_file.read_bytes()
-    assert not data.startswith(
-        b"\xef\xbb\xbf"
-    ), f"{shader_file} should not contain a UTF-8 BOM"
+    assert not data.startswith(b"\xef\xbb\xbf"), (
+        f"{shader_file} should not contain a UTF-8 BOM"
+    )
 
     text = data.decode("utf-8")
     assert text.startswith("#version"), (
@@ -120,6 +120,7 @@ def test_effect_shaders_load_without_version_warning(qapp, qml_file: Path) -> No
     captured_warnings: list[object] = []
     warnings_attr = getattr(engine, "warnings", None)
     if isinstance(warnings_attr, SignalInstance):
+
         def _collect_warnings(payload):
             if isinstance(payload, (list, tuple)):
                 captured_warnings.extend(payload)
@@ -192,7 +193,9 @@ def test_profiler_toggle_available(monkeypatch) -> None:
             return default
 
     profiler_module._reset_profiler_state_for_tests()
-    monkeypatch.setattr(profiler_module, "get_settings_manager", lambda: _DummySettingsManager())
+    monkeypatch.setattr(
+        profiler_module, "get_settings_manager", lambda: _DummySettingsManager()
+    )
 
     defaults = profiler_module.get_profiler_overlay_defaults()
     payload = defaults["signal_trace"]
