@@ -105,7 +105,8 @@ signal animationToggled(bool running)
             batchFlashOpacity = 1.0
         var summary = {
             timestamp: Date.now(),
-            categories: categories && categories.length ? categories.slice() : []
+            categories: categories && categories.length ? categories.slice() : [],
+            source: "python"
         }
         batchUpdatesApplied(summary)
     }
