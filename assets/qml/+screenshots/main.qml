@@ -1,6 +1,6 @@
 import QtQuick 6.10
 import QtQuick.Controls 6.10
-import "./panels" as Panels
+import "./Panels" as Panels
 
 Item {
     id: root
