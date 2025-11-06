@@ -191,9 +191,10 @@ Item {
         internalVignetteStrength: root.vignetteStrengthValue
         vignetteRadiusValue: root.vignetteRadiusValue
 
-        adjustmentBrightnessValue: root.adjustmentBrightnessValue
-        adjustmentContrastValue: root.adjustmentContrastValue
-        adjustmentSaturationValue: root.adjustmentSaturationValue
+        colorAdjustmentsEnabled: true
+        adjustmentBrightness: root.adjustmentBrightnessValue
+        adjustmentContrast: root.adjustmentContrastValue
+        adjustmentSaturation: root.adjustmentSaturationValue
     }
 
     onPendingPythonUpdatesChanged: {
