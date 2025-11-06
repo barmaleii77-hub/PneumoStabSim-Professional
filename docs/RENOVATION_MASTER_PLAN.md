@@ -59,8 +59,10 @@ best practices for scientific visualisation software.
 
 - `.git` history contains numerous documentation-only commits; feature work
   still happens directly on `main`.
-- Legacy Visual Studio projects (`PneumoStabSim*.sln`, `.csproj`) remain in the
-  root alongside Python packaging metadata.
+- Legacy Visual Studio projects (`PneumoStabSim*.sln`, `.csproj`, `.pyproj`) were
+  removed from the root in December 2025; a February 2026 audit confirmed no
+  tooling references remain and that `scripts/comprehensive_test.py` guards
+  against regressions.
 - Encoding drift persists across PowerShell scripts (BOM vs UTF-8) and QML
   files (LF vs CRLF).
 - Branch governance rules are now documented in `.github/CONTRIBUTING.md`,
@@ -90,7 +92,8 @@ best practices for scientific visualisation software.
    - Decide whether the .NET solution is still supported. If obsolete, remove
      `.sln`, `.csproj`, `.pyproj`, and document the deprecation in
      `docs/CHANGELOG_MODULAR.md`. *Status: Completed December 2025 – legacy Visual
-     Studio assets removed and documented in the modular changelog and Phase 4 plan.*
+     Studio assets removed and documented in the modular changelog and Phase 4 plan;
+     re-validated February 2026 with no remaining dependencies.*
 4. **Commit Quality**
    - Configure `pre-commit` with hooks for `ruff`, `mypy`, `qmllint`, and
      Conventional Commits (`commitizen`).

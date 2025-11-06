@@ -27,6 +27,9 @@
 4. **Repository Cleanup**
    - Move archival markdowns into timestamped folders under `archive/` with index file.
    - Remove deprecated solution files (.csproj/.sln) after confirming no longer needed.
+     *Status: Clean-up completed December 2025; audit February 2026 reconfirmed no
+     tooling depends on `.sln/.csproj/.pyproj`, with `scripts/comprehensive_test.py`
+     guarding against regressions.*
    - Consolidate environment scripts and update README references.
 5. **Documentation Refresh**
    - Publish MkDocs site updates, including API docs and troubleshooting guides.
@@ -103,3 +106,8 @@ Use this section to log coverage milestones, release candidate builds, and clean
 - Удалены `.sln/.csproj/.pyproj` вместе с C# заглушками и Insiders скриптами.
 - Обновлены `docs/ENVIRONMENT_SETUP.md` и `docs/DEVELOPMENT_GUIDE.md` с рекомендациями по VS Code/PyCharm.
 - `scripts/comprehensive_test.py` теперь проверяет отсутствие legacy артефактов.
+
+### 2026-02-10 – Legacy tooling audit
+- Подтверждено, что в репозитории отсутствуют `PneumoStabSim*.sln/.csproj/.pyproj`.
+- Проверки `scripts/comprehensive_test.py` и поиск по коду подтверждают отсутствие
+  зависимостей от Visual Studio проектов; документация обновлена.
