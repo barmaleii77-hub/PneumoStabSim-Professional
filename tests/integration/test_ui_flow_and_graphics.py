@@ -67,6 +67,16 @@ def test_qml_bridge_snapshot_includes_flow_network_metadata() -> None:
         0.04 / 0.06, rel=1e-6
     )
 
+    receiver = flow_network["receiver"]
+    assert pytest.approx(receiver["pressures"]["a1"], rel=1e-6) == pytest.approx(
+        snapshot.lines[Line.A1].pressure, rel=1e-6
+    )
+    assert pytest.approx(receiver["tankPressure"], rel=1e-6) == pytest.approx(
+        snapshot.tank.pressure, rel=1e-6
+    )
+    assert receiver["minPressure"] <= receiver["maxPressure"]
+    assert three_d["receiver"] == receiver
+
     relief = flow_network["relief"]
     assert relief["min"]["direction"] == "exhaust"
     assert relief["stiff"]["direction"] == "intake"

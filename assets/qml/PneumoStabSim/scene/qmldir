@@ -2,3 +2,4 @@ module PneumoStabSim.scene
 FlowArrow 1.0 FlowArrow.qml
 FlowNetwork 1.0 FlowNetwork.qml
 ValveIndicator 1.0 ValveIndicator.qml
+Receiver 1.0 Receiver.qml

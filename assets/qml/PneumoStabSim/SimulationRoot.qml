@@ -40,6 +40,7 @@ import "../diagnostics/LogBridge.js" as Diagnostics
     property var simulationState: ({})
     property var threeDState: ({})
     property var flowTelemetry: ({})
+    property var receiverTelemetry: ({})
     property bool geometryStateReceived: false
     property bool simulationStateReceived: false
     property int sceneBridgeDispatchCount: 0
@@ -282,6 +283,7 @@ signal animationToggled(bool running)
         if (normalized && typeof normalized === "object")
             networkSource = normalized.flowNetwork !== undefined ? normalized.flowNetwork : normalized.flownetwork
         flowTelemetry = _normaliseState(networkSource)
+        receiverTelemetry = _resolveReceiverTelemetry(normalized)
         _storeLastUpdate("threeD", normalized)
     }
 
@@ -451,6 +453,7 @@ signal animationToggled(bool running)
         simulationState = ({})
         threeDState = ({})
         flowTelemetry = ({})
+        receiverTelemetry = ({})
         geometryStateReceived = false
         simulationStateReceived = false
         sceneBridgeDispatchCount = 0
@@ -484,8 +487,28 @@ signal animationToggled(bool running)
             snapshotFlow = ({})
         }
         flowTelemetry = snapshotFlow
+        receiverTelemetry = _resolveReceiverTelemetry(threeDState)
         geometryStateReceived = !_isEmptyMap(geometryState)
         simulationStateReceived = !_isEmptyMap(simulationState)
+    }
+
+    function _resolveReceiverTelemetry(source) {
+        var state = _normaliseState(source)
+        if (_isEmptyMap(state))
+            return ({})
+        var direct = null
+        if (state.receiver !== undefined)
+            direct = _normaliseState(state.receiver)
+        if (!_isEmptyMap(direct))
+            return direct
+        var network = null
+        if (state.flowNetwork !== undefined)
+            network = _normaliseState(state.flowNetwork)
+        else if (state.flownetwork !== undefined)
+            network = _normaliseState(state.flownetwork)
+        if (network && !_isEmptyMap(network.receiver))
+            return _normaliseState(network.receiver)
+        return ({})
     }
 
     function applyPostProcessingBypass(active, reason) {

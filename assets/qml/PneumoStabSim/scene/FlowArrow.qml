@@ -1,5 +1,6 @@
 import QtQuick 6.10
 import QtQuick3D 6.10
+import QtQuick3D.Particles3D 6.10
 
 Node {
     id: root
@@ -33,6 +34,10 @@ Node {
     readonly property real _glowStrength: valveOpen ? (0.4 + normalizedIntensity * 0.4) : 0.0
     property real animationSpeedFactor: normalizedIntensity
     property int pulseCount: active ? Math.max(3, Math.round(6 * normalizedIntensity + 2)) : 0
+    property real particleBaseRate: 24
+    property real particleRateRange: 160
+    property real particleBaseVelocity: 0.2
+    property real particleVelocityRange: 1.4
 
     eulerRotation: Qt.vector3d(orientationEuler.x, orientationEuler.y, orientationEuler.z)
     visible: normalizedIntensity > 0.001 || valveOpen
@@ -65,6 +70,7 @@ Node {
     onActiveChanged: {
         if (!active)
             flowPhase = 0.0
+        flowParticles.paused = !active
     }
 
     onAnimationSpeedFactorChanged: {
@@ -79,6 +85,46 @@ Node {
     Node {
         id: arrowContent
         position: Qt.vector3d(0, 0, 0)
+
+        ParticleSystem3D {
+            id: flowParticles
+            running: root.active
+            paused: !root.active
+
+            SpriteParticle3D {
+                id: flowParticle
+                system: flowParticles
+                maxAmount: 220
+                color: Qt.rgba(root._activeColor.r, root._activeColor.g, root._activeColor.b,
+                               Math.max(0.25, root.normalizedIntensity * 0.9))
+                fadeInDuration: 90
+                fadeOutDuration: 160
+                size: root.radiusM * root.sceneScale * (0.4 + root.normalizedIntensity * 0.3)
+                blendMode: SpriteParticle3D.Screen
+            }
+
+            ParticleEmitter3D {
+                id: flowEmitter
+                system: flowParticles
+                enabled: root.active
+                shape: ParticleShape3D {
+                    type: ParticleShape3D.Cylinder
+                    radius: root.radiusM * root.sceneScale * 0.55
+                    length: root.bodyLengthM * root.sceneScale
+                }
+                emitRate: root.active ? root.particleBaseRate + root.particleRateRange * root.normalizedIntensity : 0
+                lifeSpan: 600
+                lifeSpanVariation: 120
+                velocity: VectorDirection3D {
+                    direction: Qt.vector3d(0, 0, root._directionSign)
+                    magnitude: root.sceneScale * (root.particleBaseVelocity + root.particleVelocityRange * root.animationSpeedFactor)
+                }
+                acceleration: VectorDirection3D {
+                    direction: Qt.vector3d(0, 0, root._directionSign)
+                    magnitude: root.sceneScale * 0.35
+                }
+            }
+        }
 
         Model {
             id: shaft

@@ -532,11 +532,18 @@ class QMLBridge:
             line_magnitudes[key] = magnitude
 
         max_line_magnitude = max(line_magnitudes.values(), default=0.0)
+        line_pressures: Dict[str, float] = {}
         if max_line_magnitude > 0.0:
             for line_key, magnitude in line_magnitudes.items():
                 speed_ratio = min(max(magnitude / max_line_magnitude, 0.0), 1.0)
                 line_payload[line_key]["animationSpeed"] = speed_ratio
                 line_flow_network[line_key]["animationSpeed"] = speed_ratio
+                line_pressures[line_key] = float(
+                    line_payload[line_key].get("pressure", 0.0)
+                )
+        else:
+            for line_key, entry in line_payload.items():
+                line_pressures[line_key] = float(entry.get("pressure", 0.0))
 
         tank_state = getattr(snapshot, "tank", {})
         tank_pressure = float(getattr(tank_state, "pressure", 0.0))
@@ -587,6 +594,20 @@ class QMLBridge:
             "safety": relief_payload["safety"]["open"],
         }
         master_isolation_open = bool(getattr(snapshot, "master_isolation_open", False))
+
+        min_line_pressure = (
+            min(line_pressures.values()) if line_pressures else tank_pressure
+        )
+        max_line_pressure = (
+            max(line_pressures.values()) if line_pressures else tank_pressure
+        )
+
+        receiver_payload = {
+            "pressures": line_pressures,
+            "tankPressure": tank_pressure,
+            "minPressure": min_line_pressure,
+            "maxPressure": max_line_pressure,
+        }
 
         check_valves_payload: Dict[str, Dict[str, Any]] = {}
         for key, entry in line_flow_network.items():
@@ -653,11 +674,13 @@ class QMLBridge:
                     "flows": tank_flow_summary,
                     "valves": tank_valves_state,
                 },
+                "receiver": receiver_payload,
                 "masterIsolationOpen": master_isolation_open,
                 "maxLineIntensity": max_line_magnitude,
                 "maxReliefIntensity": max_relief_magnitude,
                 "timestamp": float(getattr(snapshot, "simulation_time", 0.0)),
             },
+            "receiver": receiver_payload,
         }
 
         return {"animation": animation_payload, "threeD": three_d_payload}
