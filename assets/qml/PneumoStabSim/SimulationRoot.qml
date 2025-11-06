@@ -36,6 +36,14 @@ import "../diagnostics/LogBridge.js" as Diagnostics
     readonly property var emptyDefaultsObject: Object.freeze({})
     readonly property var emptyGeometryDefaults: emptyDefaultsObject
     readonly property var emptyMaterialsDefaults: emptyDefaultsObject
+    property var geometryState: ({})
+    property var simulationState: ({})
+    property bool geometryStateReceived: false
+    property bool simulationStateReceived: false
+    property int sceneBridgeDispatchCount: 0
+    readonly property bool sceneBridgeAvailable: sceneBridge !== null && sceneBridge !== undefined
+    readonly property bool geometryStateReady: !_isEmptyMap(geometryState)
+    readonly property bool simulationStateReady: !_isEmptyMap(simulationState)
 
  // ---------------------------------------------
  // Свойства и сигнал для батч-обновлений из Python
@@ -53,6 +61,11 @@ signal animationToggled(bool running)
         } else {
             console.warn("[SimulationRoot] Window context missing; shader warnings will stay local")
         }
+        _applyBridgeSnapshot(sceneBridge)
+    }
+
+    onSceneBridgeChanged: {
+        _applyBridgeSnapshot(sceneBridge)
     }
 
     function diagnosticsWindow() {
@@ -140,6 +153,54 @@ signal animationToggled(bool running)
         return copy
     }
 
+    function _normaliseState(value) {
+        if (!value || typeof value !== "object")
+            return ({})
+        var copy = {}
+        for (var key in value) {
+            if (Object.prototype.hasOwnProperty.call(value, key))
+                copy[key] = value[key]
+        }
+        return copy
+    }
+
+    function _isEmptyMap(value) {
+        if (!value || typeof value !== "object")
+            return true
+        for (var key in value) {
+            if (Object.prototype.hasOwnProperty.call(value, key))
+                return false
+        }
+        return true
+    }
+
+    function _resetBridgeState() {
+        geometryState = ({})
+        simulationState = ({})
+        geometryStateReceived = false
+        simulationStateReceived = false
+        sceneBridgeDispatchCount = 0
+    }
+
+    function _applyBridgeSnapshot(target) {
+        if (!target) {
+            _resetBridgeState()
+            return
+        }
+        try {
+            geometryState = _normaliseState(target.geometry)
+        } catch (error) {
+            geometryState = ({})
+        }
+        try {
+            simulationState = _normaliseState(target.simulation)
+        } catch (error) {
+            simulationState = ({})
+        }
+        geometryStateReceived = !_isEmptyMap(geometryState)
+        simulationStateReceived = !_isEmptyMap(simulationState)
+    }
+
     function applyPostProcessingBypass(active, reason) {
         var normalizedReason = reason !== undefined && reason !== null ? String(reason) : ""
         var previousActive = postProcessingBypassed
@@ -216,6 +277,26 @@ signal animationToggled(bool running)
             if (!target || !target.effectsBypass)
                 return
             root.applyPostProcessingBypass(true, reason)
+        }
+    }
+
+    Connections {
+        target: root.sceneBridge
+        enabled: !!target
+
+        function onGeometryChanged(payload) {
+            root.geometryState = _normaliseState(payload)
+            root.geometryStateReceived = !_isEmptyMap(root.geometryState)
+        }
+
+        function onSimulationChanged(payload) {
+            root.simulationState = _normaliseState(payload)
+            root.simulationStateReceived = !_isEmptyMap(root.simulationState)
+        }
+
+        function onUpdatesDispatched(payload) {
+            if (payload && typeof payload === "object")
+                root.sceneBridgeDispatchCount += 1
         }
     }
 
@@ -363,5 +444,22 @@ property url environmentHdrSourceDefault: normalizeHdrSource(environmentDefaultS
         return Math.max(0, numeric);
     }
 
-}
 
+    BridgeIndicatorsPanel {
+        id: bridgeIndicatorsPanel
+        objectName: "bridgeIndicators"
+        anchors.top: parent.top
+        anchors.left: parent.left
+        anchors.margins: 18
+        geometryState: root.geometryState
+        simulationState: root.simulationState
+        sceneBridgeConnected: root.sceneBridgeAvailable
+        sceneBridgeHasUpdates: root.sceneBridgeDispatchCount > 0
+        visible: true
+        z: 9500
+    }
+
+    readonly property alias bridgeIndicators: bridgeIndicatorsPanel
+    readonly property alias geometryIndicatorItem: bridgeIndicatorsPanel.geometryIndicatorItem
+    readonly property alias simulationIndicatorItem: bridgeIndicatorsPanel.simulationIndicatorItem
+}

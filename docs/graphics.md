@@ -10,6 +10,32 @@
 - Эффекты (`effects`): bloom, DoF, motion blur, lens flare, vignette, tonemap
 - Материалы (`materials`): параметры PBR материалов для частей модели
 
+### Наследие UFrameScene и что исчезло
+
+- В legacy-заглушке `main_stub.qml` использовался пульсирующий индикатор в правом нижнем углу, который сразу сигнализировал об успешной загрузке 3D-сцены. При миграции на модульную архитектуру этот визуальный маяк был потерян, поэтому пользовательский контроль за готовностью сцены стал менее очевидным. 【F:archive/assets/qml/legacy_backups/main_stub.qml†L50-L87】
+- Итоговый аудит 2025 года фиксировал строку состояния с индикаторами для симуляции и визуализации, однако в `SimulationRoot.qml` (модульная версия) такие индикаторы отсутствовали до текущего обновления. 【F:archive/2025-11/root-reports/FINAL_AUDIT_SUCCESS_REPORT.md†L31-L45】
+- Наследный компонент `OptimizedSuspensionCorner` помимо индикатора кадра содержал встроенные диагностики, которые пока отсутствуют в модульной геометрии: ограничение хода поршня, подсветку предупреждений и HUD с текстовыми метриками. 【F:archive/assets/qml/legacy_backups/main.qml.backup_20251018_124153†L1435-L1595】【F:archive/assets/qml/legacy_backups/main.qml.backup_20251018_124153†L1700-L1738】
+  - `_pistonS` ограничивал `pistonPositionFromPython` диапазоном цилиндра, чтобы визуализация не выходила за пределы аппарата и чтобы показатель `rodLengthError` оставался физически осмысленным. 【F:archive/assets/qml/legacy_backups/main.qml.backup_20251018_124153†L1435-L1445】
+  - Поршень, шток и шарнир рычага переключались на предупреждающие цвета при `rodLengthError > 1.0 мм`, что мгновенно выделяло проблемный угол подвески. 【F:archive/assets/qml/legacy_backups/main.qml.backup_20251018_124153†L1496-L1595】
+  - Левый информационный HUD отображал погрешности каждой стойки и напоминал про жесткую длину штока, чего нет в текущей модульной сборке. 【F:archive/assets/qml/legacy_backups/main.qml.backup_20251018_124153†L1700-L1738】
+- Текущая `SuspensionCorner.qml` использует `LinearCylinder` и внешние материалы, напрямую подставляет `pistonPositionM` в расчёты и не включает цветовые предупреждения, поэтому визуальная диагностика ограничена логами и тестами. 【F:assets/qml/geometry/SuspensionCorner.qml†L101-L200】
+
+### Индикаторы состояния SceneBridge
+
+- Для восстановления прозрачности добавлен модуль `BridgeIndicatorsPanel`, который на основе `BridgeStateIndicator` показывает прогресс синхронизации категорий `geometry` и `simulation`, подсвечивает отсутствие `SceneBridge` и отображает вспомогательные метрики (число параметров, шаг симуляции). Панель автоматически пульсирует при поступлении обновлений. 【F:assets/qml/components/BridgeIndicatorsPanel.qml†L7-L104】【F:assets/qml/components/BridgeStateIndicator.qml†L7-L112】
+- `SimulationRoot.qml` теперь хранит нормализованные `geometryState`/`simulationState`, подписывается на сигналы `SceneBridge` и экспонирует alias для панели и отдельных индикаторов, чтобы QML/pytest могли проверять синхронизацию. 【F:assets/qml/PneumoStabSim/SimulationRoot.qml†L30-L69】【F:assets/qml/PneumoStabSim/SimulationRoot.qml†L247-L301】【F:assets/qml/PneumoStabSim/SimulationRoot.qml†L448-L465】
+- Добавлен тест `test_bridge_state_indicators.py`, который эмулирует `SceneBridge`, обновляет полезную нагрузку и проверяет, что индикаторы переходят в активное состояние, счётчики отображают количество параметров, а вторичная строка содержит номер шага симуляции. 【F:tests/ui/test_bridge_state_indicators.py†L1-L150】
+
+#### Визуальные контрольные точки панели индикаторов
+
+| Состояние | Описание | Ключевые маркеры |
+| --- | --- | --- |
+| «До» | Панель скрыта до получения первого пакета от `SceneBridge`. | Пульс индикатора не запущен, подписи «geometry/simulation» серые, текст предупреждения скрыт. |
+| «После» | Оба индикатора активны после синхронизации, отражая количество параметров и шаг симуляции. | Пульсирующий обвод, зелёные бейджи `Ready`, строка статуса с номером шага и счетчиком параметров. |
+
+Снимки для визуального отчёта формируются командой `python tools/capture_bridge_indicator_screenshots.py`, которая подготавливает offscreen `QQuickView`, подставляет демонстрационные состояния SceneBridge и сохраняет PNG-файлы во временный каталог (по умолчанию `reports/ui/`). Эти артефакты остаются вне репозитория, что соответствует требованию не коммитить бинарные файлы. 【F:tools/capture_bridge_indicator_screenshots.py†L1-L199】
+> ℹ️ При запуске вне полноценного приложения Qt выводит предупреждения `ReferenceError: environmentDefault*`, поскольку соответствующие хелперы объявлены в хостовом окружении и недоступны в изолированном `QQuickView`. Эти сообщения безопасно игнорировать. 【F:tools/capture_bridge_indicator_screenshots.py†L49-L193】【F:assets/qml/PneumoStabSim/SimulationRoot.qml†L407-L424】
+
 Сигналы из Python
 - `lighting_changed(dict)` — payload формируется `_prepare_lighting_payload()`
 - `environment_changed(dict)` — payload формируется `_prepare_environment_payload()`
