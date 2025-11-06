@@ -4,7 +4,7 @@ import inspect
 import os
 import sys
 from pathlib import Path
-from typing import Mapping
+from typing import Callable, Mapping
 
 import importlib.util
 
@@ -196,6 +196,78 @@ def settings_manager(monkeypatch: MonkeyPatch, temp_settings_file: Path):
     monkeypatch.setattr(sm, "_settings_manager", None, raising=False)
     monkeypatch.setattr(sm, "_settings_event_bus", sm.SettingsEventBus(), raising=False)
     return sm.SettingsManager(settings_file=temp_settings_file)
+
+
+@pytest.fixture
+def reference_suspension_linkage():
+    """Return the canonical suspension linkage used by geometry regression tests."""
+
+    from src.mechanics.linkage_geometry import SuspensionLinkage
+
+    return SuspensionLinkage.from_mm(
+        pivot=(200.0, 0.0),
+        free_end=(500.0, 0.0),
+        rod_joint=(450.0, 0.0),
+        cylinder_tail=(150.0, 500.0),
+        cylinder_body_length=300.0,
+    )
+
+
+@pytest.fixture
+def legacy_gas_state_factory() -> Callable[..., "LegacyGasState"]:
+    """Provide a factory for reproducible legacy gas state instances."""
+
+    from src.pneumo.gas_state import LegacyGasState
+
+    def _factory(*, pressure: float, volume: float, temperature: float) -> LegacyGasState:
+        return LegacyGasState(pressure=pressure, volume=volume, temperature=temperature)
+
+    return _factory
+
+
+@pytest.fixture
+def hysteretic_check_valve():
+    """Return a check valve tuned with hysteresis for stability tests."""
+
+    from src.pneumo.enums import CheckValveKind
+    from src.pneumo.valves import CheckValve
+
+    return CheckValve(
+        kind=CheckValveKind.ATMO_TO_LINE,
+        delta_open_min=1_500.0,
+        d_eq=0.02,
+        hyst=600.0,
+    )
+
+
+@pytest.fixture
+def relief_valve_reference():
+    """Return a calibrated relief valve for flow and hysteresis verification."""
+
+    from src.pneumo.enums import ReliefValveKind
+    from src.pneumo.valves import ReliefValve
+
+    return ReliefValve(
+        kind=ReliefValveKind.STIFFNESS,
+        p_set=200_000.0,
+        d_eq=0.02,
+        hyst=5_000.0,
+    )
+
+
+@pytest.fixture
+def structlog_logger_config():
+    """Supply a logger configuration bound with deterministic context fields."""
+
+    from src.diagnostics.logger_factory import LoggerConfig
+
+    return LoggerConfig(
+        name="pss.tests.structlog",
+        context=(
+            ("subsystem", "diagnostics"),
+            ("component", "logger"),
+        ),
+    )
 
 
 @pytest.fixture

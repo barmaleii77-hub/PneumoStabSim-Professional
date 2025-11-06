@@ -514,6 +514,10 @@ check_*.py
 !tests/unit/physics/test_gas_network.py
 !tests/unit/physics/test_integrator.py
 !tests/unit/mechanics/test_linkage_geometry.py
+!tests/unit/mechanics/geometry/test_suspension_linkage_reference.py
+!tests/unit/pneumo/gas_dynamics/test_legacy_gas_state_processes.py
+!tests/unit/pneumo/valves/test_valve_state_transitions.py
+!tests/unit/diagnostics/logging/test_structlog_json_events.py
 !tests/unit/bootstrap/test_qt_imports.py
 !tests/unit/bootstrap/test_dependency_config.py
 !tests/unit/bootstrap/test_environment_check.py
