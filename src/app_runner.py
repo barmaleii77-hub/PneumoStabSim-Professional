@@ -59,26 +59,18 @@ class ApplicationRunner:
         self._surface_format_configured: bool = False
 
     def _configure_default_surface_format(self) -> None:
-        """Ensure Qt uses a compatible surface format without forcing OpenGL.
+        """Force the OpenGL RHI backend with depth/stencil buffers before QApplication.
 
-        На Windows предпочтителен Direct3D11 (Qt RHI по умолчанию). Ранее мы
-        насильно переключали движок на OpenGL 4.5 Core, что может приводить к
-        падению инициализации на системах без корректного OpenGL 4.5 драйвера.
-
-        Теперь логика такая:
-        - Если переменная окружения QSG_RHI_BACKEND явным образом требует
-          OpenGL ("opengl" или "opengl-rhi") — настраиваем OpenGL 4.5 Core.
-        - Во всех остальных случаях ничего не форсируем: Qt сам выберет RHI
-          backend (D3D11/Metal/Vulkan/Software) и корректный формат поверхности.
+        Qt Quick 3D effects such as FogEffect and Depth of Field depend on depth
+        textures and full-featured shader pipelines. Without explicitly
+        requesting the OpenGL RHI backend and a depth/stencil buffer pair
+        (24/8), Qt may fall back to reduced-feature profiles that disable these
+        effects. To keep startup deterministic we always configure the RHI
+        backend here prior to creating ``QApplication``.
         """
 
         if self._surface_format_configured:
             return
-
-        try:
-            env_backend = os.environ.get("QSG_RHI_BACKEND", "").strip().lower()
-        except Exception:
-            env_backend = ""
 
         try:
             from PySide6.QtGui import QSurfaceFormat
@@ -91,38 +83,15 @@ class ApplicationRunner:
                 )
             return
 
-        should_force_opengl = env_backend in {"opengl", "opengl-rhi"}
-
-        # На Windows без явного требования OpenGL не вмешиваемся
-        if sys.platform.startswith("win") and not should_force_opengl:
-            if self.app_logger:
-                self.app_logger.info(
-                    "Graphics backend: auto (RHI) — not forcing OpenGL on Windows"
-                )
-            self._surface_format_configured = True
-            return
-
-        # На не-Windows платформах также не форсируем, если backend не запрошен явно
-        if not should_force_opengl:
-            if self.app_logger:
-                self.app_logger.debug(
-                    "RHI backend is '%s' — leaving graphics API selection to Qt",
-                    env_backend or "auto",
-                )
-            self._surface_format_configured = True
-            return
-
-        # Явно запросили OpenGL → аккуратно настраиваем формат
         try:
             format_ = QSurfaceFormat()
             format_.setRenderableType(QSurfaceFormat.RenderableType.OpenGL)
-            format_.setVersion(4, 5)
+            format_.setVersion(3, 3)
             format_.setProfile(QSurfaceFormat.OpenGLContextProfile.CoreProfile)
             format_.setDepthBufferSize(24)
             format_.setStencilBufferSize(8)
             format_.setSwapBehavior(QSurfaceFormat.SwapBehavior.DoubleBuffer)
             format_.setSwapInterval(1)
-            format_.setOption(QSurfaceFormat.FormatOption.DebugContext)
 
             QSurfaceFormat.setDefaultFormat(format_)
             QQuickWindow.setGraphicsApi(QSGRendererInterface.GraphicsApi.OpenGLRhi)
@@ -131,7 +100,7 @@ class ApplicationRunner:
 
             if self.app_logger:
                 self.app_logger.info(
-                    "Configured OpenGL surface (per QSG_RHI_BACKEND request) -> OpenGL 4.5 Core Profile"
+                    "Configured OpenGL RHI surface (OpenGL 3.3 Core, depth 24 / stencil 8)"
                 )
         except Exception as exc:  # pragma: no cover - defensive guard around Qt APIs
             if self.app_logger:

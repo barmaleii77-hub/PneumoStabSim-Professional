@@ -13,7 +13,7 @@ log() {
 
 log "Configuring Qt RHI backend for OpenGL"
 export QSG_RHI_BACKEND="opengl"
-export QSG_OPENGL_VERSION="${QSG_OPENGL_VERSION:-4.5}"
+export QSG_OPENGL_VERSION="${QSG_OPENGL_VERSION:-3.3}"
 export QT_OPENGL="${QT_OPENGL:-desktop}"
 
 if [[ -z "${QT_LOGGING_RULES:-}" ]]; then
