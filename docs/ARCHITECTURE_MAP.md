@@ -9,7 +9,10 @@ Mermaid diagrams and ensure the view stays in sync with the source tree.
 
 The Python sources under `src/` are organised by responsibility. Legacy
 PascalCase modules now forward to their snake_case counterparts so existing
-imports continue to work.
+imports continue to work. A lightweight shim at `src/PneumoStabSim/__init__.py`
+bridges historic `PneumoStabSim.*` imports to the domain packages (`src.core`,
+`src.ui`, and friends), keeping archived scripts functional while encouraging
+the modern layout for new code.
 
 - `src/core/` – business logic, settings orchestration, and shared protocols.
 - `src/infrastructure/` – runtime services such as the dependency container,
@@ -30,7 +33,8 @@ their own pace without breaking imports.
 
 All core services are registered with the process-wide
 `ServiceContainer` during import. Consumers resolve dependencies using service
-tokens instead of module-level singletons:
+tokens instead of module-level singletons (`get_settings_service`,
+`get_material_cache`, etc.):
 
 - `SETTINGS_SERVICE_TOKEN` → `SettingsService`
 - `EVENT_BUS_TOKEN` → `EventBus`
@@ -39,7 +43,10 @@ tokens instead of module-level singletons:
 
 The container factories compose supporting collaborators automatically. For
 example, the simulation service wires a fresh `SettingsOrchestrator`, and the
-material cache loads the baseline manifest once and reuses it across the UI.
+material cache loads the baseline manifest once and reuses it across the UI. UI
+facades such as `LightingSettingsFacade` resolve the shared `MaterialCache`
+through the container, falling back to local instances only when explicit
+overrides are provided.
 
 ### Dependency graph
 
