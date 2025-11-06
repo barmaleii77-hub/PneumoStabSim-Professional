@@ -323,7 +323,6 @@ def polytropic_update(
         adjusted_temperature = base_temperature
 
     state.T = max(adjusted_temperature, 1.0)
-    state.p = max(base_pressure, 0.0)
     state.p = p_from_mTV(state.m, state.T, state.V_curr)
 
 
