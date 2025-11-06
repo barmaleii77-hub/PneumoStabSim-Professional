@@ -195,6 +195,7 @@ uv export --format requirements.txt --output-file requirements-compatible.txt --
 
 - **Актуальные документы в корне:** `README.md`, `ROADMAP.md`, `AGENTS.MD`.
 - Исторические отчёты перенесены в каталог [archive/2025-11/root-reports](archive/2025-11/root-reports/README.md), где доступен полный индекс перенесённых материалов.
+- Вне индекса сохранены только целевые артефакты (`archive/assets/qml/legacy_backups`, `archive/2025-11/*`). Дубликаты и неупомянутые отчёты из `archive/reports/` и `archive/old_qml/` удалены, чтобы исключить «мертвые» ссылки.
  
 ### 3. Проверка готовности
 ```sh

@@ -1,429 +1,92 @@
 # UI Panels & Widgets Documentation
 
-## ?? Overview
-
-**Modules:**
-- `src/ui/panels/panel_geometry.py` - Geometry controls
-- `src/ui/panels/panel_pneumo.py` - Pneumatic controls
-- `src/ui/panels/panel_modes.py` - Simulation modes
-- `src/ui/panels/panel_road.py` - Road profiles
-- `src/ui/widgets/range_slider.py` - Custom slider
-- `src/ui/widgets/knob.py` - Rotary knob
-
-**Purpose:** User interface controls for simulation parameters
-
-**Status:** ? Fully Functional
-
----
-
-## ?? Complete Module List
-
-### **UI Panels**
-1. ? **GeometryPanel** - Frame, lever, cylinder geometry
-2. ? **PneumoPanel** - Pressures, valves, thermodynamics
-3. ? **ModesPanel** - Simulation type, animation, road excitation
-4. ? **RoadPanel** - CSV loading, presets, wheel selection
-
-### **UI Widgets**
-1. ? **RangeSlider** - Custom slider with value display
-2. ? **RotaryKnob** - Rotary control widget
-
----
-
-## ?? GeometryPanel
-
-### **Class Diagram**
-
-```
-???????????????????????????????????????????
-?         GeometryPanel                   ?
-?         (QWidget)                       ?
-???????????????????????????????????????????
-? Signals:                                ?
-? - geometry_changed(dict)                ?
-? - parameter_changed(str, float)         ?
-???????????????????????????????????????????
-? UI Elements:                            ?
-? - wheelbase_spin: QDoubleSpinBox        ?
-? - track_width_spin: QDoubleSpinBox      ?
-? - frame_height_spin: QDoubleSpinBox     ?
-? - lever_length_spin: QDoubleSpinBox     ?
-? - cylinder_length_spin: QDoubleSpinBox  ?
-? - rod_position_slider: RangeSlider      ?
-? - bore_head_spin: QDoubleSpinBox        ?
-? - bore_rod_spin: QDoubleSpinBox         ?
-? - rod_diameter_spin: QDoubleSpinBox     ?
-? - piston_thickness_spin: QDoubleSpinBox ?
-???????????????????????????????????????????
-? + get_parameters() ? dict              ?
-? + set_parameters(dict)                 ?
-???????????????????????????????????????????
-```
-
-### **Parameters**
-
-```python
-DEFAULT_GEOMETRY = {
-    'wheelbase': 2.5,            # m
-    'track_width': 0.3,          # m
-    'frame_height': 0.65,        # m
-    'lever_length': 0.4,         # m
-    'cylinder_body_length': 0.25,# m
-    'rod_position': 0.6,         # 0-1 (fraction on lever)
-    'bore_head': 0.08,           # m
-    'bore_rod': 0.08,            # m
-    'rod_diameter': 0.035,       # m
-    'piston_thickness': 0.025,   # m
-}
-```
-
-### **Example Usage**
-
-```python
-from src.ui.panels import GeometryPanel
-
-panel = GeometryPanel(parent_window)
-
-# Connect signal
-panel.geometry_changed.connect(lambda params: print(f"Geometry: {params}"))
-
-# Get current values
-geometry = panel.get_parameters()
-print(f"Wheelbase: {geometry['wheelbase']} m")
-
-# Set new values
-panel.set_parameters({'wheelbase': 3.0, 'track_width': 0.35})
-```
-
----
-
-## ?? PneumoPanel
-
-### **Class Diagram**
-
-```
-???????????????????????????????????????????
-?         PneumoPanel                     ?
-?         (QWidget)                       ?
-???????????????????????????????????????????
-? Signals:                                ?
-? - mode_changed(str, str)                ?
-? - parameter_changed(str, float)         ?
-? - valve_position_changed(str, float)    ?
-???????????????????????????????????????????
-? UI Elements:                            ?
-? - isothermal_radio: QRadioButton        ?
-? - adiabatic_radio: QRadioButton         ?
-? - receiver_pressure: QDoubleSpinBox     ?
-? - supply_pressure: QDoubleSpinBox       ?
-? - master_isolation_check: QCheckBox     ?
-? - valve_sliders: Dict[str, RangeSlider] ?
-???????????????????????????????????????????
-? + get_parameters() ? dict              ?
-? + set_valve_position(line, pos)        ?
-???????????????????????????????????????????
-```
-
-### **Parameters**
-
-```python
-DEFAULT_PNEUMATIC = {
-    'thermo_mode': 'ISOTHERMAL',
-    'receiver_pressure': 600000,  # Pa (6 bar)
-    'supply_pressure': 700000,    # Pa (7 bar)
-    'master_isolation_open': True,
-    'valve_positions': {
-        'supply_fl_head': 0.0,
-        'supply_fl_rod': 0.0,
-        'exhaust_fl_head': 0.0,
-        'exhaust_fl_rod': 0.0,
-        # ... (all 16 valves)
-    }
-}
-```
-
----
-
-## ?? ModesPanel
-
-> ℹ️ **Deprecated widget.** The PySide6-based `ModesPanel` coordinator has been
-> superseded by the QML `SimulationPanel` (`assets/qml/panels/SimulationPanel.qml`).
-> Use the QML bindings exposed through `main.qml` and `SceneBridge` for
-> simulation control, pneumatic tuning, and preset management.  Importing
-> `ModesPanel` from `src.ui.panels` will now raise a runtime error that points
-> to the new QML workflow.
-
-The historical documentation below is kept for reference when maintaining the
-legacy presets and default dictionaries in `src/ui/panels/modes/defaults.py`.
-
----
-
-## ?? RoadPanel
-
-### **Class Diagram**
-
-```
-???????????????????????????????????????????
-?         RoadPanel                       ?
-?         (QWidget)                       ?
-???????????????????????????????????????????
-? Signals:                                ?
-? - load_csv_profile(str)                 ?
-? - apply_preset(str)                     ?
-? - apply_to_wheels(str, List[str])       ?
-? - clear_profiles()                      ?
-???????????????????????????????????????????
-? UI Elements:                            ?
-? - preset_combo: QComboBox               ?
-? - browse_button: QPushButton            ?
-? - wheel_checkboxes: Dict[str, QCheckBox]?
-? - apply_button: QPushButton             ?
-? - clear_button: QPushButton             ?
-???????????????????????????????????????????
-? + get_active_wheels() ? List[str]      ?
-? + load_csv_file(path: str)             ?
-???????????????????????????????????????????
-```
-
-### **Road Presets**
-
-```python
-ROAD_PRESETS = {
-    'smooth': {
-        'amplitude': 0.01,  # 10mm
-        'frequency': 0.5,   # Hz
-        'type': 'sine'
-    },
-    'rough': {
-        'amplitude': 0.05,  # 50mm
-        'frequency': 2.0,
-        'type': 'sine'
-    },
-    'pothole': {
-        'amplitude': 0.1,   # 100mm
-        'frequency': 0.2,
-        'type': 'step'
-    },
-    'belgian_paving': {
-        'file': 'assets/road/belgian.csv'
-    }
-}
-```
-
----
-
-## ?? RangeSlider Widget
-
-### **Features**
-
-- Horizontal slider with integrated value display
-- Unit labels (mm, m, degrees, Hz, etc.)
-- Decimal precision control
-- Min/max range
-- Step size
-- Real-time value updates
-
-### **API**
-
-```python
-class RangeSlider(QWidget):
-    """Custom slider with value display"""
-
-    # Signal emitted when value changes
-    valueEdited = Signal(float)
-
-    def __init__(
-        self,
-        minimum: float = 0.0,
-        maximum: float = 100.0,
-        value: float = 50.0,
-        step: float = 1.0,
-        decimals: int = 1,
-        units: str = "",
-        title: str = ""
-    ):
-        """Initialize range slider"""
-        ...
-
-    def value(self) -> float:
-        """Get current value"""
-        return self._value
-
-    def set_value(self, value: float):
-        """Set value programmatically"""
-        self._value = np.clip(value, self.minimum, self.maximum)
-        self._update_display()
-        self.valueEdited.emit(self._value)
-```
-
-### **Example**
-
-```python
-from src.ui.widgets import RangeSlider
-
-# Create slider
-amplitude_slider = RangeSlider(
-    minimum=0.0,
-    maximum=0.2,
-    value=0.05,
-    step=0.005,
-    decimals=3,
-    units="m",
-    title="Amplitude"
-)
-
-# Connect signal
-amplitude_slider.valueEdited.connect(
-    lambda val: print(f"Amplitude changed to {val:.3f}m")
-)
-
-# Add to layout
-layout.addWidget(amplitude_slider)
-```
-
----
-
-## ?? RotaryKnob Widget
-
-### **Features**
-
-- Rotary dial control
-- Mouse drag to rotate
-- Visual feedback
-- Angle snapping
-- Value range mapping
-
-### **API**
-
-```python
-class RotaryKnob(QWidget):
-    """Rotary knob control"""
-
-    valueChanged = Signal(float)
-
-    def __init__(
-        self,
-        minimum: float = 0.0,
-        maximum: float = 100.0,
-        value: float = 50.0,
-        snap_angle: float = 15.0  # degrees
-    ):
-        """Initialize rotary knob"""
-        ...
-
-    def value(self) -> float:
-        """Get current value"""
-        return self._value
-
-    def paintEvent(self, event):
-        """Custom painting (dial + indicator)"""
-        ...
-```
-
----
-
-## ?? Signal Flow
-
-### **Geometry Change**
-
-```
-User changes wheelbase spinbox
-      ?
-GeometryPanel.wheelbase_spin.valueChanged
-      ?
-GeometryPanel._on_parameter_changed()
-      ?
-Collect all geometry parameters
-      ?
-GeometryPanel.geometry_changed.emit(params)
-      ?
-MainWindow._on_geometry_changed(params)
-      ?
-Update QML: updateGeometry(params)
-      ?
-3D scene rebuilds with new geometry
-```
-
-### **Animation Control**
-
-```
-User changes amplitude slider
-      ?
-ModesPanel.amplitude_slider.valueEdited
-      ?
-ModesPanel._on_parameter_changed('amplitude', value)
-      ?
-Collect all animation parameters
-      ?
-ModesPanel.animation_changed.emit(params)
-      ?
-MainWindow._on_animation_changed(params)
-      ?
-Set QML properties (userAmplitude, userFrequency, etc.)
-      ?
-Animation updates in real-time
-```
-
----
-
-## ?? Configuration
-
-### **Panel Sizes**
-
-```python
-PANEL_SIZES = {
-    'geometry_min_width': 200,
-    'geometry_max_width': 350,
-    'pneumo_min_width': 200,
-    'pneumo_max_width': 350,
-    'modes_min_width': 300,
-    'modes_max_width': 500,
-    'road_min_height': 150,
-    'road_max_height': 250,
-}
-```
-
-### **Widget Styles**
-
-```python
-SLIDER_STYLE = """
-QSlider::groove:horizontal {
-    border: 1px solid #999999;
-    height: 8px;
-    background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
-        stop:0 #B1B1B1, stop:1 #c4c4c4);
-}
-QSlider::handle:horizontal {
-    background: qlineargradient(x1:0, y1:0, x2:1, y2:1,
-        stop:0 #b4b4b4, stop:1 #8f8f8f);
-    border: 1px solid #5c5c5c;
-    width: 18px;
-    margin: -2px 0;
-    border-radius: 3px;
-}
-"""
-```
-
----
-
-## ?? Test Coverage
-
-**Test Files:**
-- `tests/test_panels.py`
-- `tests/test_widgets.py`
-
-**Coverage:** ~70%
-
----
-
-## ?? References
-
-- **Qt Widgets:** [Qt Widgets Documentation](https://doc.qt.io/qt-6/qtwidgets-index.html)
-- **Signals/Slots:** [Qt Signals & Slots](https://doc.qt.io/qt-6/signalsandslots.html)
-- **Custom Widgets:** [Qt Custom Widgets](https://doc.qt.io/qt-6/designer-creating-custom-widgets.html)
-
----
-
-**Last Updated:** 2025-01-05
-**Module Version:** 2.0.0
-**Status:** Production Ready ?
+## Overview
+
+Панели управления и виджеты отвечают за интерактивную настройку симуляции
+PneumoStabSim. Все актуальные компоненты работают поверх PySide6 и получают
+данные из `SettingsManager`, а устаревшие панели переведены в режим
+совместимости и служат для поддержки старых сценариев.
+
+- **Фокус обновления (март 2026):** завершён аудит «мертвых» ссылок, панели и
+  виджеты описаны с актуальными путями модулей и назначением сигналов.
+- **Устранение дублей:** ссылки на архивные QML-заглушки перенесены в раздел
+  legacy (`archive/assets/qml/legacy_backups`); взаимодействие с `archive/old_qml`
+  прекращено после удаления каталога.
+
+## Inventory (March 2026)
+
+| Компонент | Модуль | Статус | Основные особенности |
+|-----------|--------|--------|----------------------|
+| `GeometryPanel` | `src/ui/panels/panel_geometry.py` | ✅ В эксплуатации | Загружает параметры из `app_settings.json`, публикует сигналы `geometry_changed` и `geometry_updated`, использует расширенный `RangeSlider` для всех непрерывных диапазонов. 【F:src/ui/panels/panel_geometry.py†L34-L112】【F:src/ui/panels/panel_geometry.py†L150-L232】|
+| `PneumoPanel` | `src/ui/panels/panel_pneumo.py` | ✅ В эксплуатации | Совместимый реэкспорт модульной реализации (`src/ui/panels/pneumo/`), используется в главном окне и автотестах. 【F:src/ui/panels/panel_pneumo.py†L1-L8】|
+| `ModesPanel` | `src/ui/panels/panel_modes.py` | ⚠️ Legacy | Поддержка исторических сценариев через стандартные Qt-слайдеры; сохраняет настройки через `SettingsManager`, но в новых сборках заменён QML-панелью. 【F:src/ui/panels/panel_modes.py†L1-L77】|
+| `RoadPanel` | `src/ui/panels/panel_road.py` | ✅ В эксплуатации | Управление CSV-профилями дорог, пресетами и назначением на колёса, включает сигналы `load_csv_profile`, `apply_preset`, `apply_to_wheels`. 【F:src/ui/panels/panel_road.py†L1-L78】|
+| `RangeSlider` | `src/ui/widgets/range_slider.py` | ✅ Виджет общего назначения | Поддерживает дебаунс, визуальные подсказки и кастомные шорткаты для доступности. 【F:src/ui/widgets/range_slider.py†L1-L103】【F:src/ui/widgets/range_slider.py†L143-L206】|
+| `Knob` | `src/ui/widgets/knob.py` | ✅ Виджет общего назначения | Ротари-контрол с двойным вводом (dial + spinbox), поддерживает шорткаты и отображение единиц измерения. 【F:src/ui/widgets/knob.py†L1-L60】|
+
+## GeometryPanel
+
+`GeometryPanel` синхронизирует геометрию подвески с JSON-настройками и
+расширенным журналированием.
+
+- Все поля читаются из `SettingsManager` при инициализации, UI строится на основе
+  полученных значений, а не внутренних дефолтов. 【F:src/ui/panels/panel_geometry.py†L44-L108】
+- Для линейных диапазонов используется `RangeSlider`, обеспечивающий точность до
+  тысячных метра и дебаунс сигналов `valueEdited`. 【F:src/ui/panels/panel_geometry.py†L150-L232】
+- Панель публикует события `geometry_changed` и `geometry_updated`, что позволяет
+  синхронизировать модуль геометрии и визуализацию. 【F:src/ui/panels/panel_geometry.py†L35-L76】
+
+## PneumoPanel
+
+`PneumoPanel` является совместимым фасадом для полностью переработанного
+пневматического интерфейса.
+
+- Основная логика размещена в пакете `src/ui/panels/pneumo/`; модуль
+  `panel_pneumo.py` экспортирует её под историческим именем, что упрощает
+  миграцию тестов и QML-связей. 【F:src/ui/panels/panel_pneumo.py†L1-L8】
+- Структура вкладок (`pressures_tab.py`, `thermo_tab.py`, `valves_tab.py`,
+  `receiver_tab.py`) документирована в README пакета и покрывает контроль
+  давления, терморежимов и клапанов. 【F:src/ui/panels/pneumo/README.md†L1-L80】
+
+## ModesPanel (Legacy)
+
+`ModesPanel` остаётся доступным для сценариев, где требуется классический Qt UI.
+
+- Использует `StandardSlider` и группы переключателей для настройки режимов
+  симуляции; значения синхронизируются с `SettingsManager`. 【F:src/ui/panels/panel_modes.py†L1-L89】
+- В новых проектах рекомендуется переходить на QML `SimulationPanel`. Документ
+  фиксирует статус компонента как legacy и оставляет ссылку для обслуживания
+  старых макросов.
+
+## RoadPanel
+
+`RoadPanel` отвечает за подготовку профилей дорожных возмущений.
+
+- Поддерживает загрузку произвольных CSV-файлов, набор предустановок и
+  назначение профилей на отдельные колёса. 【F:src/ui/panels/panel_road.py†L21-L78】
+- Сигналы `load_csv_profile`, `apply_preset`, `apply_to_wheels` и `clear_profiles`
+  используются главным окном для синхронизации UI с симуляцией. 【F:src/ui/panels/panel_road.py†L29-L55】
+
+## Common Widgets
+
+### RangeSlider
+
+- Предоставляет три варианта сигналов (`valueChanged`, `valueEdited`,
+  `rangeChanged`) и подробные визуальные подсказки диапазона. 【F:src/ui/widgets/range_slider.py†L32-L104】
+- Встроенные шорткаты (`Ctrl+Alt+Right/Left`, `Ctrl+Alt+1..3`) повышают
+  доступность и повторяют конфигурацию панели геометрии. 【F:src/ui/widgets/range_slider.py†L143-L206】
+
+### Knob
+
+- Сочетает `QDial` и `QDoubleSpinBox` для плавной и точной регулировки.
+  Дополняется метками единиц и настраиваемыми шорткатами для инкрементов. 【F:src/ui/widgets/knob.py†L1-L60】
+- Виджет применяется в специализированных вкладках пневмопанели для управления
+  клапанами и режимами давления.
+
+## Maintenance Notes
+
+- Все панели используют централизованный `SettingsManager`; новое поле должно
+  быть добавлено в схему и панели синхронно.
+- Legacy QML-заглушки перенесены в архив, активные Python-панели остаются в
+  `src/ui/panels/`. Удаление `archive/old_qml/` исключило дублированные
+  инвентари, на которые ссылки в документации больше не выдаются.
