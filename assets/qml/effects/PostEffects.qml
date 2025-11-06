@@ -1052,7 +1052,7 @@ Item {
         var list = Array.isArray(keys) ? keys : [keys]
         for (var i = 0; i < list.length; ++i) {
             var key = list[i]
-            if (container.hasOwnProperty(key))
+            if (Object.prototype.hasOwnProperty.call(container, key))
                 return container[key]
         }
         return undefined
@@ -1601,125 +1601,208 @@ Item {
             ? env.toSceneLength
             : null
 
-        // Хелпер для безопасного преобразования числовых значений из payload
-        function numberFromPayload(value) {
-            var num = Number(value)
-            return isFinite(num) ? num : undefined
+        function coerceNumber(value) {
+            var numeric = Number(value)
+            return isFinite(numeric) ? numeric : undefined
+        }
+
+        function coerceInt(value) {
+            var numeric = coerceNumber(value)
+            if (numeric === undefined)
+                return undefined
+            return Math.round(numeric)
         }
 
         function convertLength(value) {
-            var num = numberFromPayload(value)
-            if (num === undefined)
+            var numeric = coerceNumber(value)
+            if (numeric === undefined)
                 return undefined
-            return toSceneLength ? toSceneLength(num) : num
+            return toSceneLength ? toSceneLength(numeric) : numeric
+        }
+
+        function assignEffectProperty(effectItem, propertyName, value) {
+            if (value === undefined || value === null)
+                return
+            if (!trySetEffectProperty(effectItem, propertyName, value)) {
+                console.debug("PostEffects.applyPayload", "property assignment skipped", propertyName)
+            }
+        }
+
+        function envHasProperty(propertyName) {
+            if (!env)
+                return false
+            try {
+                return propertyName in env
+            } catch (error) {
+                return false
+            }
         }
 
         if (env) {
-            if (env.bloomEnabled !== undefined)
+            if (envHasProperty("bloomEnabled"))
                 root.bloomEnabled = !!env.bloomEnabled
-            var bloomIntensity = numberFromPayload(env.bloomIntensity)
-            if (bloomIntensity !== undefined)
-                bloomEffect.intensity = bloomIntensity
-            var bloomThreshold = numberFromPayload(env.bloomThreshold)
-            if (bloomThreshold !== undefined)
-                bloomEffect.threshold = bloomThreshold
-            var bloomSpread = numberFromPayload(env.bloomSpread)
-            if (bloomSpread !== undefined)
-                bloomEffect.blurAmount = Math.max(0.0, bloomSpread)
 
-            if (env.ssaoEnabled !== undefined)
-                root.ssaoEnabled = !!env.ssaoEnabled
-            var ssaoIntensity = numberFromPayload(env.ssaoIntensity)
-            if (ssaoIntensity !== undefined)
-                ssaoEffect.intensity = ssaoIntensity
-            var ssaoRadius = numberFromPayload(env.ssaoRadius)
-            if (ssaoRadius !== undefined) {
-                var envRadius = ssaoRadius
-                if (envRadius < 0.1)
-                    envRadius *= 1000.0
-                ssaoEffect.radius = Math.max(0.01, envRadius)
+            if (envHasProperty("bloomIntensity")) {
+                var envBloomIntensity = coerceNumber(env.bloomIntensity)
+                if (envBloomIntensity !== undefined)
+                    assignEffectProperty(bloomEffect, "intensity", envBloomIntensity)
             }
-            var ssaoSampleRate = numberFromPayload(env.ssaoSampleRate)
-            if (ssaoSampleRate !== undefined)
-                ssaoEffect.samples = Math.max(1, Math.round(ssaoSampleRate))
 
-            if (env.internalDepthOfFieldEnabled !== undefined)
+            if (envHasProperty("bloomThreshold")) {
+                var envBloomThreshold = coerceNumber(env.bloomThreshold)
+                if (envBloomThreshold !== undefined)
+                    assignEffectProperty(bloomEffect, "threshold", envBloomThreshold)
+            }
+
+            if (envHasProperty("bloomSpread")) {
+                var envBloomSpread = coerceNumber(env.bloomSpread)
+                if (envBloomSpread !== undefined)
+                    assignEffectProperty(bloomEffect, "blurAmount", Math.max(0.0, envBloomSpread))
+            }
+
+            if (envHasProperty("ssaoEnabled"))
+                root.ssaoEnabled = !!env.ssaoEnabled
+
+            if (envHasProperty("ssaoIntensity")) {
+                var envSsaoIntensity = coerceNumber(env.ssaoIntensity)
+                if (envSsaoIntensity !== undefined)
+                    assignEffectProperty(ssaoEffect, "intensity", envSsaoIntensity)
+            }
+
+            if (envHasProperty("ssaoRadius")) {
+                var envSsaoRadius = coerceNumber(env.ssaoRadius)
+                if (envSsaoRadius !== undefined) {
+                    if (envSsaoRadius < 0.1)
+                        envSsaoRadius *= 1000.0
+                    assignEffectProperty(ssaoEffect, "radius", Math.max(0.01, envSsaoRadius))
+                }
+            }
+
+            if (envHasProperty("ssaoSampleRate")) {
+                var envSsaoSamples = coerceInt(env.ssaoSampleRate)
+                if (envSsaoSamples !== undefined)
+                    assignEffectProperty(ssaoEffect, "samples", Math.max(1, envSsaoSamples))
+            }
+
+            if (envHasProperty("ssaoSamples")) {
+                var envSsaoSamplesAlias = coerceInt(env.ssaoSamples)
+                if (envSsaoSamplesAlias !== undefined)
+                    assignEffectProperty(ssaoEffect, "samples", Math.max(1, envSsaoSamplesAlias))
+            }
+
+            if (envHasProperty("internalDepthOfFieldEnabled"))
                 root.depthOfFieldEnabled = !!env.internalDepthOfFieldEnabled
-            else if (env.depthOfFieldEnabled !== undefined)
+            else if (envHasProperty("depthOfFieldEnabled"))
                 root.depthOfFieldEnabled = !!env.depthOfFieldEnabled
-            var dofFocusDistance = numberFromPayload(env.dofFocusDistance)
-            if (dofFocusDistance !== undefined)
-                dofEffect.focusDistance = Math.max(0.0, dofFocusDistance)
-            var dofFocusRange = numberFromPayload(env.dofFocusRange)
-            if (dofFocusRange !== undefined)
-                dofEffect.focusRange = Math.max(0.0, dofFocusRange)
-            var dofBlurAmount = numberFromPayload(env.dofBlurAmount)
-            if (dofBlurAmount !== undefined)
-                dofEffect.blurAmount = Math.max(0.0, dofBlurAmount)
+
+            if (envHasProperty("dofFocusDistance")) {
+                var envDofFocus = coerceNumber(env.dofFocusDistance)
+                if (envDofFocus !== undefined)
+                    assignEffectProperty(dofEffect, "focusDistance", Math.max(0.0, envDofFocus))
+            }
+
+            if (envHasProperty("dofFocusRange")) {
+                var envDofRange = coerceNumber(env.dofFocusRange)
+                if (envDofRange !== undefined)
+                    assignEffectProperty(dofEffect, "focusRange", Math.max(0.0, envDofRange))
+            }
+
+            if (envHasProperty("dofBlurAmount")) {
+                var envDofBlur = coerceNumber(env.dofBlurAmount)
+                if (envDofBlur !== undefined)
+                    assignEffectProperty(dofEffect, "blurAmount", Math.max(0.0, envDofBlur))
+            }
+
+            if (envHasProperty("motionBlurEnabled"))
+                root.motionBlurEnabled = !!env.motionBlurEnabled
+
+            if (envHasProperty("motionBlurStrength")) {
+                var envMotionStrength = coerceNumber(env.motionBlurStrength)
+                if (envMotionStrength !== undefined)
+                    assignEffectProperty(motionBlurEffect, "strength", Math.max(0.0, envMotionStrength))
+            }
+
+            if (envHasProperty("motionBlurSamples")) {
+                var envMotionSamples = coerceInt(env.motionBlurSamples)
+                if (envMotionSamples !== undefined)
+                    assignEffectProperty(motionBlurEffect, "samples", Math.max(1, envMotionSamples))
+            }
         }
 
-        if (params) {
+        if (params && typeof params === "object") {
             var bloomEnabledValue = boolFromPayload(params, ["bloomEnabled", "bloom_enabled"], "bloom")
             if (bloomEnabledValue !== undefined)
-                root.bloomEnabled = bloomEnabledValue
+                root.bloomEnabled = !!bloomEnabledValue
+
             var bloomIntensityValue = numberFromPayload(params, ["bloomIntensity", "bloom_intensity"], "bloom")
             if (bloomIntensityValue !== undefined)
-                bloomEffect.intensity = bloomIntensityValue
+                assignEffectProperty(bloomEffect, "intensity", bloomIntensityValue)
+
             var bloomThresholdValue = numberFromPayload(params, ["bloomThreshold", "bloom_threshold"], "bloom")
             if (bloomThresholdValue !== undefined)
-                bloomEffect.threshold = bloomThresholdValue
+                assignEffectProperty(bloomEffect, "threshold", bloomThresholdValue)
+
             var bloomBlurValue = numberFromPayload(params, ["bloomBlurAmount", "bloom_spread"], "bloom")
             if (bloomBlurValue !== undefined)
-                bloomEffect.blurAmount = Math.max(0.0, bloomBlurValue)
+                assignEffectProperty(bloomEffect, "blurAmount", Math.max(0.0, bloomBlurValue))
 
             var ssaoEnabledValue = boolFromPayload(params, ["ssaoEnabled", "ao_enabled"], "ssao")
             if (ssaoEnabledValue !== undefined)
-                root.ssaoEnabled = ssaoEnabledValue
+                root.ssaoEnabled = !!ssaoEnabledValue
+
             var ssaoIntensityValue = numberFromPayload(params, ["ssaoIntensity", "ao_strength"], "ssao")
             if (ssaoIntensityValue !== undefined)
-                ssaoEffect.intensity = ssaoIntensityValue
+                assignEffectProperty(ssaoEffect, "intensity", ssaoIntensityValue)
+
             var ssaoRadiusValue = numberFromPayload(params, ["ssaoRadius", "ao_radius"], "ssao")
             if (ssaoRadiusValue !== undefined) {
                 var radius = ssaoRadiusValue
                 if (radius < 0.1)
                     radius *= 1000.0
-                ssaoEffect.radius = Math.max(0.01, radius)
+                assignEffectProperty(ssaoEffect, "radius", Math.max(0.01, radius))
             }
+
             var ssaoBiasValue = numberFromPayload(params, ["ssaoBias", "ao_bias"], "ssao")
             if (ssaoBiasValue !== undefined)
-                ssaoEffect.bias = Math.max(0.0, ssaoBiasValue)
+                assignEffectProperty(ssaoEffect, "bias", Math.max(0.0, ssaoBiasValue))
+
             var ssaoSamplesValue = numberFromPayload(params, ["ssaoSamples", "ao_sample_rate"], "ssao")
             if (ssaoSamplesValue !== undefined)
-                ssaoEffect.samples = Math.max(1, Math.round(ssaoSamplesValue))
+                assignEffectProperty(ssaoEffect, "samples", Math.max(1, Math.round(ssaoSamplesValue)))
 
             var dofEnabledValue = boolFromPayload(params, ["depthOfFieldEnabled", "depth_of_field"], "depthOfField")
             if (dofEnabledValue !== undefined)
-                root.depthOfFieldEnabled = dofEnabledValue
+                root.depthOfFieldEnabled = !!dofEnabledValue
+
             var dofFocusValue = numberFromPayload(params, ["dofFocusDistance", "dof_focus_distance"], "depthOfField")
             if (dofFocusValue !== undefined) {
                 var convertedFocus = convertLength(dofFocusValue)
                 if (convertedFocus !== undefined)
-                    dofEffect.focusDistance = Math.max(0.0, convertedFocus)
+                    assignEffectProperty(dofEffect, "focusDistance", Math.max(0.0, convertedFocus))
             }
+
             var dofRangeValue = numberFromPayload(params, ["dofFocusRange", "dof_focus_range"], "depthOfField")
             if (dofRangeValue !== undefined) {
                 var convertedRange = convertLength(dofRangeValue)
                 if (convertedRange !== undefined)
-                    dofEffect.focusRange = Math.max(0.0, convertedRange)
+                    assignEffectProperty(dofEffect, "focusRange", Math.max(0.0, convertedRange))
             }
+
             var dofBlurValue = numberFromPayload(params, ["dofBlurAmount", "dof_blur"], "depthOfField")
             if (dofBlurValue !== undefined)
-                dofEffect.blurAmount = Math.max(0.0, dofBlurValue)
+                assignEffectProperty(dofEffect, "blurAmount", Math.max(0.0, dofBlurValue))
 
             var motionEnabledValue = boolFromPayload(params, ["motionBlurEnabled", "motion_blur"], "motion")
             if (motionEnabledValue !== undefined)
-                root.motionBlurEnabled = motionEnabledValue
+                root.motionBlurEnabled = !!motionEnabledValue
+
             var motionStrengthValue = numberFromPayload(params, ["motionBlurStrength", "motion_blur_amount"], "motion")
             if (motionStrengthValue !== undefined)
-                motionBlurEffect.strength = Math.max(0.0, motionStrengthValue)
+                assignEffectProperty(motionBlurEffect, "strength", Math.max(0.0, motionStrengthValue))
+
             var motionSamplesValue = numberFromPayload(params, ["motionBlurSamples", "motion_blur_samples"], "motion")
             if (motionSamplesValue !== undefined)
-                motionBlurEffect.samples = Math.max(1, Math.round(motionSamplesValue))
+                assignEffectProperty(motionBlurEffect, "samples", Math.max(1, Math.round(motionSamplesValue)))
         }
     }
 
