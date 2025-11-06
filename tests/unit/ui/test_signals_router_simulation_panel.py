@@ -93,6 +93,7 @@ def test_handle_pneumatic_settings_changed_updates_settings_and_bus(
         "relief_safety_pressure": 4200000,
         "throttle_min_dia": 0.0012,
         "throttle_stiff_dia": 0.0017,
+        "diagonal_coupling_dia": 0.0009,
         "atmo_temp": 18.0,
         "master_isolation_open": True,
     }
@@ -107,6 +108,7 @@ def test_handle_pneumatic_settings_changed_updates_settings_and_bus(
     assert updates["receiver_volume"] == pytest.approx(0.0315)
     assert updates["volume_mode"] == "GEOMETRIC"
     assert updates["master_isolation_open"] is True
+    assert updates["diagonal_coupling_dia"] == pytest.approx(0.0009)
     assert window.simulation_manager.state_bus.set_receiver_volume.emitted[-1] == (
         pytest.approx(0.0315),
         "GEOMETRIC",
@@ -204,7 +206,9 @@ def test_pneumo_panel_receives_qml_updates(
             self.simulation_manager = _DummySimulationManager()
             self.pneumo_panel = panel
 
-        def _apply_settings_update(self, category: str, payload: Dict[str, Any]) -> None:
+        def _apply_settings_update(
+            self, category: str, payload: Dict[str, Any]
+        ) -> None:
             self.settings_updates.append((category, copy.deepcopy(payload)))
 
     window = _PanelWindow()
@@ -229,7 +233,9 @@ def test_pneumo_panel_receives_qml_updates(
     assert panel.receiver_tab.receiver_diameter_knob.value() == pytest.approx(0.25)
 
 
-def test_push_pneumatic_state_skips_when_marked_qml(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_push_pneumatic_state_skips_when_marked_qml(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     """Update source flags must suppress redundant QML dispatches."""
 
     window = _DummyWindow()

@@ -159,6 +159,7 @@ def test_master_isolation_equalises_pressures(default_network):
 
     _system, gas_network = default_network
     gas_network.master_isolation_open = True
+    gas_network.master_equalization_diameter = 0.0
 
     volumes: Dict[Line, float] = {
         line: state.V_curr for line, state in gas_network.lines.items()
@@ -188,6 +189,39 @@ def test_master_isolation_equalises_pressures(default_network):
         expected_mass = total_mass * (volumes[line] / total_volume)
         assert math.isclose(state.m, expected_mass, rel_tol=1e-6)
         assert state.V_curr == volumes[line]
+
+
+def test_master_isolation_throttle_limits_equalisation():
+    """A finite coupling diameter must equalise diagonals gradually."""
+
+    system, gas_network = build_default_system_and_network(
+        master_equalization_diameter=0.001
+    )
+    gas_network.master_isolation_open = True
+
+    high_lines = (Line.A1, Line.B1)
+    low_lines = (Line.A2, Line.B2)
+
+    for line in high_lines:
+        state = gas_network.lines[line]
+        state.T = T_AMBIENT
+        state.p = PA_ATM + 40_000.0
+        state.m = _recompute_mass(state.p, state.T, state.V_curr)
+
+    for line in low_lines:
+        state = gas_network.lines[line]
+        state.T = T_AMBIENT
+        state.p = PA_ATM - 30_000.0
+        state.m = _recompute_mass(state.p, state.T, state.V_curr)
+
+    initial_delta = gas_network.lines[Line.A1].p - gas_network.lines[Line.A2].p
+    assert initial_delta > 0.0
+
+    gas_network.enforce_master_isolation(dt=0.05)
+
+    updated_delta = gas_network.lines[Line.A1].p - gas_network.lines[Line.A2].p
+    assert updated_delta > 0.0
+    assert updated_delta < initial_delta
 
 
 def test_polytropic_volume_update_between_limits(default_network, monkeypatch):

@@ -305,6 +305,8 @@ Pane {
             _assignSpinValue(throttleMinSpin, data.throttle_min_dia, { key: "throttle_min_dia" })
         if (Object.prototype.hasOwnProperty.call(data, "throttle_stiff_dia"))
             _assignSpinValue(throttleStiffSpin, data.throttle_stiff_dia, { key: "throttle_stiff_dia" })
+        if (Object.prototype.hasOwnProperty.call(data, "diagonal_coupling_dia"))
+            _assignSpinValue(diagonalCouplingSpin, data.diagonal_coupling_dia, { key: "diagonal_coupling_dia" })
         if (Object.prototype.hasOwnProperty.call(data, "atmo_temp"))
             _assignSpinValue(atmoTempSpin, data.atmo_temp, { forceInt: true, key: "atmo_temp" })
         if (Object.prototype.hasOwnProperty.call(data, "master_isolation_open"))
@@ -1039,6 +1041,22 @@ Pane {
                             textFromValue: function(value, locale) { return root._formatValue(value, 4) }
                             valueFromText: function(text, locale) { return Number(text) }
                             onValueModified: if (!root._updatingFromPython) _emitPneumaticChange("throttle_stiff_dia", value)
+                        }
+
+                        Label {
+                            text: qsTrId("simulation.panel.diagonalThrottle")
+                                || qsTr("Диаметр дросселя диагоналей (м)")
+                        }
+                        SpinBox {
+                            id: diagonalCouplingSpin
+                            from: 0.0
+                            to: 0.02
+                            stepSize: 0.0001
+                            value: 0.0008
+                            editable: true
+                            textFromValue: function(value, locale) { return root._formatValue(value, 4) }
+                            valueFromText: function(text, locale) { return Number(text) }
+                            onValueModified: if (!root._updatingFromPython) _emitPneumaticChange("diagonal_coupling_dia", value)
                         }
 
                         Label {

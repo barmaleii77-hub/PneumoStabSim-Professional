@@ -30,6 +30,7 @@ DEFAULT_PNEUMATIC: Dict[str, Any] = {
     "relief_safety_pressure": 50.0,  # бар
     "throttle_min_dia": 1.0,  # мм
     "throttle_stiff_dia": 1.5,  # мм
+    "diagonal_coupling_dia": 0.8,  # мм
     "atmo_temp": 20.0,  # °C
     "thermo_mode": "ISOTHERMAL",
     "polytropic_heat_transfer_coeff": 45.0,  # Вт/(м²·К)
@@ -73,6 +74,7 @@ STORAGE_DIAMETER_KEYS_MM = {
     "cv_tank_dia",
     "throttle_min_dia",
     "throttle_stiff_dia",
+    "diagonal_coupling_dia",
 }
 
 

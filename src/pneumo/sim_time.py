@@ -54,7 +54,7 @@ def advance_gas(
     if net.master_isolation_open:
         if log:
             log.debug("Step 3: Enforcing master isolation")
-        net.enforce_master_isolation(log)
+        net.enforce_master_isolation(log, dt=dt)
 
     # Step 4: Final state logging
     if log:

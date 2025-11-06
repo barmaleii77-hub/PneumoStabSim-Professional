@@ -18,7 +18,8 @@ import sys
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Dict, List, Optional, Sequence, Set, Tuple
-import xml.etree.ElementTree as ET
+
+from defusedxml import ElementTree as ET
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 QML_ROOT = REPO_ROOT / "assets" / "qml"

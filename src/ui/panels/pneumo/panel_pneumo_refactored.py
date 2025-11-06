@@ -196,7 +196,9 @@ class PneumoPanel(QWidget):
         self.state_manager.save_state()
 
     # ----------------------------------------------------------------- syncing
-    def set_parameters(self, updates: Mapping[str, Any], *, source: str = "external") -> None:
+    def set_parameters(
+        self, updates: Mapping[str, Any], *, source: str = "external"
+    ) -> None:
         """Apply parameter changes coming from external sources."""
 
         if not isinstance(updates, Mapping) or not updates:

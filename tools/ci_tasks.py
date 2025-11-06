@@ -29,7 +29,8 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Iterable, Sequence
-from xml.etree import ElementTree as ET
+
+from defusedxml import ElementTree as ET
 
 from tools import merge_conflict_scan
 

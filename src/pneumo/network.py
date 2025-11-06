@@ -6,7 +6,7 @@ Manages interconnections between lines, receiver, and atmosphere
 import logging
 from dataclasses import dataclass, field
 from functools import lru_cache
-from typing import Dict, Mapping, Optional
+from typing import Dict, Mapping, Optional, Sequence, Tuple
 from .enums import Line, ThermoMode
 from .gas_state import (
     LineGasState,
@@ -97,6 +97,7 @@ class GasNetwork:
     polytropic_params: Optional[PolytropicParameters] = None
     leak_coefficient: float = 0.0
     leak_reference_area: float = 0.0
+    master_equalization_diameter: float = 0.0
 
     def __post_init__(self):
         """Validate network configuration"""
@@ -124,6 +125,12 @@ class GasNetwork:
         for value, name in diameter_checks:
             if value <= 0.0:
                 raise ValueError(f"{name} must be positive, got {value}")
+
+        if self.master_equalization_diameter < 0.0:
+            raise ValueError(
+                "master_equalization_diameter must be non-negative, "
+                f"got {self.master_equalization_diameter}"
+            )
 
     def compute_line_volumes(self) -> Dict[Line, float]:
         """Compute current volumes for all lines from cylinder states
@@ -237,6 +244,181 @@ class GasNetwork:
         relief_flows = self._apply_receiver_relief_valves(dt, log)
 
         return {"lines": line_flows, "relief": relief_flows}
+
+    def _aggregate_diagonal(self, members: Sequence[Line]) -> Dict[str, float]:
+        total_mass = 0.0
+        total_volume = 0.0
+        total_enthalpy = 0.0
+
+        for member in members:
+            state = self.lines[member]
+            mass = max(0.0, float(state.m))
+            volume = max(0.0, float(state.V_curr))
+            temperature = float(state.T)
+
+            total_mass += mass
+            total_volume += volume
+            total_enthalpy += mass * temperature
+
+        if total_mass <= 0.0 or total_volume <= 0.0:
+            return {
+                "mass": total_mass,
+                "volume": total_volume,
+                "temperature": self.ambient_temperature,
+                "pressure": PA_ATM,
+            }
+
+        avg_temperature = total_enthalpy / total_mass
+        pressure = p_from_mTV(total_mass, avg_temperature, total_volume)
+
+        return {
+            "mass": total_mass,
+            "volume": total_volume,
+            "temperature": avg_temperature,
+            "pressure": pressure,
+        }
+
+    def _remove_mass_from_lines(
+        self, members: Sequence[Line], requested_mass: float
+    ) -> float:
+        if requested_mass <= 0.0:
+            return 0.0
+
+        states = [self.lines[line] for line in members]
+        available_mass = sum(max(0.0, float(state.m)) for state in states)
+        if available_mass <= 0.0:
+            return 0.0
+
+        actual_removed = 0.0
+        for state in states:
+            state_mass = max(0.0, float(state.m))
+            if state_mass <= 0.0:
+                continue
+            fraction = state_mass / available_mass
+            removal = min(state_mass, requested_mass * fraction)
+            if removal <= 0.0:
+                continue
+            state.m = state_mass - removal
+            if state.m > 0.0:
+                state.p = p_from_mTV(state.m, state.T, state.V_curr)
+            else:
+                state.p = 0.0
+            actual_removed += removal
+
+        return actual_removed
+
+    def _distribute_mass_to_lines(
+        self, members: Sequence[Line], added_mass: float, inlet_temperature: float
+    ) -> None:
+        if added_mass <= 0.0:
+            return
+
+        states = [self.lines[line] for line in members]
+        total_volume = sum(max(0.0, float(state.V_curr)) for state in states)
+        if total_volume <= 0.0:
+            return
+
+        for state in states:
+            volume = max(0.0, float(state.V_curr))
+            if volume <= 0.0:
+                continue
+            share = volume / total_volume
+            increment = added_mass * share
+            self._add_mass_to_line(state, increment, inlet_temperature)
+
+    def _apply_master_equalisation(
+        self, dt: float, log: Optional[logging.Logger] = None
+    ) -> Tuple[str, float, float]:
+        diameter = float(self.master_equalization_diameter)
+        if diameter <= 0.0 or dt <= 0.0:
+            return ("none", 0.0, 0.0)
+
+        diagonal_a = (Line.A1, Line.B1)
+        diagonal_b = (Line.A2, Line.B2)
+
+        state_a = self._aggregate_diagonal(diagonal_a)
+        state_b = self._aggregate_diagonal(diagonal_b)
+
+        pressure_delta = state_a["pressure"] - state_b["pressure"]
+        if abs(pressure_delta) < 1.0:
+            return ("none", 0.0, 0.0)
+
+        if pressure_delta > 0.0:
+            upstream_state = state_a
+            downstream_state = state_b
+            upstream_lines = diagonal_a
+            downstream_lines = diagonal_b
+            direction = "A_to_B"
+        else:
+            upstream_state = state_b
+            downstream_state = state_a
+            upstream_lines = diagonal_b
+            downstream_lines = diagonal_a
+            direction = "B_to_A"
+
+        m_dot = mass_flow_orifice(
+            upstream_state["pressure"],
+            upstream_state["temperature"],
+            downstream_state["pressure"],
+            downstream_state["temperature"],
+            diameter,
+        )
+
+        if m_dot <= 0.0:
+            return ("none", 0.0, 0.0)
+
+        requested_mass = m_dot * dt
+        transferred_mass = self._remove_mass_from_lines(upstream_lines, requested_mass)
+        if transferred_mass <= 0.0:
+            return ("none", 0.0, 0.0)
+
+        self._distribute_mass_to_lines(
+            downstream_lines, transferred_mass, upstream_state["temperature"]
+        )
+
+        mass_flow = transferred_mass / dt
+
+        if log:
+            log.debug(
+                "Master isolation throttle %s: -%.6fkg, m_dot=%.6fkg/s",
+                direction,
+                transferred_mass,
+                mass_flow,
+            )
+
+        return (direction, transferred_mass, mass_flow)
+
+    def _equalise_instantaneously(self, log: Optional[logging.Logger] = None) -> None:
+        total_mass = sum(line.m for line in self.lines.values())
+
+        volumes = self.compute_line_volumes()
+        total_volume = sum(volumes.values())
+
+        if total_mass <= 0 or total_volume <= 0:
+            return
+
+        total_enthalpy = sum(line.m * line.T for line in self.lines.values())
+        avg_temperature = (
+            total_enthalpy / total_mass if total_mass > 0 else self.ambient_temperature
+        )
+
+        equalized_pressure = p_from_mTV(total_mass, avg_temperature, total_volume)
+
+        for line_name, line_state in self.lines.items():
+            line_volume = volumes[line_name]
+            line_mass_fraction = line_volume / total_volume
+
+            line_state.m = total_mass * line_mass_fraction
+            line_state.T = avg_temperature
+            line_state.p = equalized_pressure
+            line_state.V_curr = line_volume
+
+        if log:
+            log.debug(
+                "Master isolation: equalized p=%0.0fPa, T=%0.1fK",
+                equalized_pressure,
+                avg_temperature,
+            )
 
     def _apply_line_leak(self, line_state: LineGasState, dt: float) -> float:
         """Apply configured leak losses to *line_state* and return lost mass."""
@@ -418,7 +600,11 @@ class GasNetwork:
 
         return relief_log
 
-    def enforce_master_isolation(self, log: Optional[logging.Logger] = None):
+    def enforce_master_isolation(
+        self,
+        log: Optional[logging.Logger] = None,
+        dt: Optional[float] = None,
+    ):
         """Enforce master isolation when enabled - equalize all line pressures
 
         Args:
@@ -426,39 +612,11 @@ class GasNetwork:
         """
         if not self.master_isolation_open:
             return
-
-        # Calculate total mass and volume
-        total_mass = sum(line.m for line in self.lines.values())
-
-        volumes = self.compute_line_volumes()
-        total_volume = sum(volumes.values())
-
-        if total_mass <= 0 or total_volume <= 0:
+        if dt is not None and dt > 0.0 and self.master_equalization_diameter > 0.0:
+            self._apply_master_equalisation(dt, log)
             return
 
-        # Calculate mass-weighted average temperature
-        total_enthalpy = sum(line.m * line.T for line in self.lines.values())
-        avg_temperature = (
-            total_enthalpy / total_mass if total_mass > 0 else self.ambient_temperature
-        )
-
-        # Calculate equalized pressure
-        equalized_pressure = p_from_mTV(total_mass, avg_temperature, total_volume)
-
-        # Redistribute mass to each line proportional to its volume
-        for line_name, line_state in self.lines.items():
-            line_volume = volumes[line_name]
-            line_mass_fraction = line_volume / total_volume
-
-            line_state.m = total_mass * line_mass_fraction
-            line_state.T = avg_temperature
-            line_state.p = equalized_pressure
-            line_state.V_curr = line_volume
-
-        if log:
-            log.debug(
-                f"Master isolation: equalized p={equalized_pressure:.0f}Pa, T={avg_temperature:.1f}K"
-            )
+        self._equalise_instantaneously(log)
 
     def validate_invariants(self) -> Dict[str, any]:
         """Validate all gas network invariants

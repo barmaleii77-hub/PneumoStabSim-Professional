@@ -2014,6 +2014,11 @@
           "title": "Throttle Stiff Dia",
           "type": "number"
         },
+        "diagonal_coupling_dia": {
+          "title": "Diagonal Coupling Diameter",
+          "type": "number",
+          "minimum": 0
+        },
         "atmo_temp": {
           "title": "Atmo Temp",
           "type": "number"
@@ -2073,6 +2078,7 @@
         "relief_safety_pressure",
         "throttle_min_dia",
         "throttle_stiff_dia",
+        "diagonal_coupling_dia",
         "atmo_temp",
         "thermo_mode",
         "polytropic_heat_transfer_coeff",

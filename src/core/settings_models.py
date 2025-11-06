@@ -64,6 +64,7 @@ class PneumaticSettings(_StrictModel):
     relief_safety_pressure: float
     throttle_min_dia: float
     throttle_stiff_dia: float
+    diagonal_coupling_dia: float
     atmo_temp: float
     thermo_mode: str
     polytropic_heat_transfer_coeff: float

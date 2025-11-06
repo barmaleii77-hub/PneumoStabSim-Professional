@@ -23,6 +23,7 @@ NUMERIC_PNEUMATIC_KEYS: Tuple[str, ...] = (
     "relief_safety_pressure",
     "throttle_min_dia",
     "throttle_stiff_dia",
+    "diagonal_coupling_dia",
     "atmo_temp",
     "polytropic_heat_transfer_coeff",
     "polytropic_exchange_area",

@@ -61,6 +61,7 @@ def build_default_system_and_network(
     *,
     delta_open: float = 5_000.0,
     valve_diameter: float = 0.008,
+    master_equalization_diameter: float = 0.0,
 ) -> Tuple[PneumaticSystem, GasNetwork]:
     """Construct the canonical pneumatic system and gas network for tests."""
 
@@ -109,6 +110,7 @@ def build_default_system_and_network(
         tank=tank_state,
         system_ref=system,
         master_isolation_open=False,
+        master_equalization_diameter=master_equalization_diameter,
     )
     return system, gas_network
 
