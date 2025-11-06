@@ -191,6 +191,35 @@ ExtendedSceneEnvironment {
     property alias adjustmentContrastValue: root.adjustmentContrast
     property alias adjustmentSaturationValue: root.adjustmentSaturation
 
+    // ---------------------------------------------------------------
+    // Legacy compatibility aliases (camelCase + legacy property names)
+    // ---------------------------------------------------------------
+    property alias bloomEnabled: root.glowEnabled
+    property alias bloomIntensity: root.glowIntensity
+    property alias bloomThreshold: root.glowHDRMinimumValue
+    property alias bloomSpread: root.glowBloom
+    property alias bloomGlowStrength: root.glowStrength
+    property alias bloomQualityHigh: root.glowQualityHigh
+    property alias bloomUseBicubicUpscale: root.glowUseBicubicUpscale
+    property alias bloomHdrMaximum: root.glowHDRMaximumValue
+    property alias bloomHdrScale: root.glowHDRScale
+
+    property alias internalLensFlareEnabled: root.lensFlareEnabled
+    property alias lensFlareGhostCountValue: root.lensFlareGhostCount
+    property alias lensFlareGhostDispersalValue: root.lensFlareGhostDispersal
+    property alias lensFlareHaloWidthValue: root.lensFlareHaloWidth
+    property alias lensFlareBloomBiasValue: root.lensFlareBloomBias
+    property alias lensFlareStretchValue: root.lensFlareStretchToAspect
+
+    property alias internalDepthOfFieldEnabled: root.depthOfFieldEnabled
+    property alias dofFocusDistance: root.depthOfFieldFocusDistance
+    property alias dofFocusRange: root.depthOfFieldFocusRange
+    property alias dofBlurAmount: root.depthOfFieldBlurAmount
+
+    property alias internalVignetteEnabled: root.vignetteEnabled
+    property alias internalVignetteStrength: root.vignetteStrength
+    property alias vignetteRadiusValue: root.vignetteRadius
+
     colorAdjustmentsEnabled: effectsBoolDefault("colorAdjustmentsEnabled", "color_adjustments_enabled", true)
 
  /**
@@ -602,6 +631,35 @@ ExtendedSceneEnvironment {
         var saturationValue = numberFromKeys(params, "adjustmentSaturation", "adjustment_saturation")
         if (saturationValue !== undefined)
             adjustmentSaturationValue = saturationValue
+
+        var vignetteSection = params.vignette && typeof params.vignette === "object"
+                ? params.vignette
+                : null
+        if (vignetteSection) {
+            var nestedVignetteEnabled = boolFromKeys(vignetteSection, "enabled", "enabled")
+            if (nestedVignetteEnabled !== undefined)
+                vignetteEnabled = !!nestedVignetteEnabled
+            var nestedVignetteStrength = numberFromKeys(vignetteSection, "strength", "strength")
+            if (nestedVignetteStrength !== undefined)
+                internalVignetteStrength = nestedVignetteStrength
+            var nestedVignetteRadius = numberFromKeys(vignetteSection, "radius", "radius")
+            if (nestedVignetteRadius !== undefined)
+                vignetteRadiusValue = Math.max(0.0, nestedVignetteRadius)
+        }
+
+        var vignetteEnabledValue = boolFromKeys(params, "vignetteEnabled", "vignette_enabled")
+        if (vignetteEnabledValue === undefined)
+            vignetteEnabledValue = boolFromKeys(params, "vignette", "vignette")
+        if (vignetteEnabledValue !== undefined)
+            vignetteEnabled = !!vignetteEnabledValue
+
+        var vignetteStrengthValue = numberFromKeys(params, "vignetteStrength", "vignette_strength")
+        if (vignetteStrengthValue !== undefined)
+            internalVignetteStrength = vignetteStrengthValue
+
+        var vignetteRadiusValueRaw = numberFromKeys(params, "vignetteRadius", "vignette_radius")
+        if (vignetteRadiusValueRaw !== undefined)
+            vignetteRadiusValue = Math.max(0.0, vignetteRadiusValueRaw)
     }
 
     function applyEnvironmentPayload(params) {

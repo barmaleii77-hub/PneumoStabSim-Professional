@@ -162,18 +162,18 @@ Item {
         bloomHdrMaximum: root.glowHdrMaximumValue
         bloomHdrScale: root.glowHdrScale
 
-        internalLensFlareEnabled: root.lensFlareActive
-        lensFlareGhostCountValue: root.lensFlareGhosts
-        lensFlareGhostDispersalValue: root.lensFlareGhostDispersalValue
-        lensFlareHaloWidthValue: root.lensFlareHaloWidthValue
-        lensFlareBloomBiasValue: root.lensFlareBloomBiasValue
-        lensFlareStretchValue: root.lensFlareStretchValue
+        lensFlareEnabled: root.lensFlareActive
+        lensFlareGhostCount: root.lensFlareGhosts
+        lensFlareGhostDispersal: root.lensFlareGhostDispersalValue
+        lensFlareHaloWidth: root.lensFlareHaloWidthValue
+        lensFlareBloomBias: root.lensFlareBloomBiasValue
+        lensFlareStretchToAspect: root.lensFlareStretchValue
 
-        internalDepthOfFieldEnabled: root.depthOfFieldActive
+        depthOfFieldEnabled: root.depthOfFieldActive
         depthOfFieldAutoFocus: root.depthOfFieldAutoFocus
-        dofFocusDistance: root.depthOfFieldFocusDistanceValue
-        dofFocusRange: root.depthOfFieldFocusRangeValue
-        dofBlurAmount: root.depthOfFieldBlurAmountValue
+        depthOfFieldFocusDistance: root.depthOfFieldFocusDistanceValue
+        depthOfFieldFocusRange: root.depthOfFieldFocusRangeValue
+        depthOfFieldBlurAmount: root.depthOfFieldBlurAmountValue
 
         fogEnabled: root.fogEnabled
         fogColor: root.fogColor
@@ -187,9 +187,9 @@ Item {
         fogTransmitEnabled: root.fogTransmitEnabled
         fogTransmitCurve: root.fogTransmitCurve
 
-        internalVignetteEnabled: root.vignetteActive
-        internalVignetteStrength: root.vignetteStrengthValue
-        vignetteRadiusValue: root.vignetteRadiusValue
+        vignetteEnabled: root.vignetteActive
+        vignetteStrength: root.vignetteStrengthValue
+        vignetteRadius: root.vignetteRadiusValue
 
         colorAdjustmentsEnabled: true
         adjustmentBrightness: root.adjustmentBrightnessValue
