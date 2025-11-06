@@ -346,6 +346,37 @@ def task_test() -> None:
     _run_command(command, task_name="pytest", log_name="pytest.log")
 
 
+def task_post_analysis() -> None:
+    artifact_root = PROJECT_ROOT
+    default_inputs = [
+        PROJECT_ROOT / "reports" / "tests",
+        PROJECT_ROOT / "reports" / "quality",
+        PROJECT_ROOT / "reports" / "performance",
+        PROJECT_ROOT / "logs",
+    ]
+
+    command = [
+        sys.executable,
+        "-m",
+        "tools.test_artifact_analyzer",
+        "--artifact-root",
+        str(artifact_root),
+        "--output-json",
+        str(PROJECT_ROOT / "reports" / "tests" / "test_analysis_summary.json"),
+        "--output-markdown",
+        str(PROJECT_ROOT / "reports" / "tests" / "test_analysis_summary.md"),
+    ]
+
+    for input_path in default_inputs:
+        command.extend(["--input", str(input_path)])
+
+    _run_command(
+        command,
+        task_name="post-analysis",
+        log_name="test_artifact_analyzer.log",
+    )
+
+
 def task_qml_lint() -> None:
     linter_command = _resolve_qml_linter()
     targets = _collect_qml_targets()
@@ -372,6 +403,7 @@ def task_verify() -> None:
     task_typecheck()
     task_qml_lint()
     task_test()
+    task_post_analysis()
 
 
 def build_parser() -> argparse.ArgumentParser:
