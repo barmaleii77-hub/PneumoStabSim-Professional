@@ -1,0 +1,86 @@
+[
+  {
+    "backend": "opengl",
+    "mode": "effects_on",
+    "returncode": 0,
+    "log_path": "reports/graphics/rhi_effects_opengl_effects_on_20251106_034349.md",
+    "shader_cache_dir": "logs/shader_cache/opengl_effects_on_20251106_034349",
+    "settings_file": "/tmp/tmpxwvb_s4m/app_settings.json",
+    "errors_detected": false,
+    "error_lines": [
+      "ERROR    | PneumoStabSim | QML initialisation issue (status-missing): _qquick_widget of type QLabel does not expose status(); a fallback widget is active.",
+      "2025-11-06 03:43:52,078 src.ui.main_window_pkg.ui_setup [ERROR]     ❌ QML load failed: QML load errors:"
+    ],
+    "qsg_info": []
+  },
+  {
+    "backend": "opengl",
+    "mode": "effects_off",
+    "returncode": 0,
+    "log_path": "reports/graphics/rhi_effects_opengl_effects_off_20251106_034349.md",
+    "shader_cache_dir": "logs/shader_cache/opengl_effects_off_20251106_034349",
+    "settings_file": "/tmp/tmpzqigkh3o/app_settings.json",
+    "errors_detected": false,
+    "error_lines": [
+      "ERROR    | PneumoStabSim | QML initialisation issue (status-missing): _qquick_widget of type QLabel does not expose status(); a fallback widget is active.",
+      "2025-11-06 03:44:00,753 src.ui.main_window_pkg.ui_setup [ERROR]     ❌ QML load failed: QML load errors:"
+    ],
+    "qsg_info": []
+  },
+  {
+    "backend": "angle",
+    "mode": "effects_on",
+    "returncode": 0,
+    "log_path": "reports/graphics/rhi_effects_angle_effects_on_20251106_034349.md",
+    "shader_cache_dir": "logs/shader_cache/angle_effects_on_20251106_034349",
+    "settings_file": "/tmp/tmpm6didp77/app_settings.json",
+    "errors_detected": false,
+    "error_lines": [
+      "ERROR    | PneumoStabSim | QML initialisation issue (status-missing): _qquick_widget of type QLabel does not expose status(); a fallback widget is active.",
+      "2025-11-06 03:44:09,410 src.ui.main_window_pkg.ui_setup [ERROR]     ❌ QML load failed: QML load errors:"
+    ],
+    "qsg_info": []
+  },
+  {
+    "backend": "angle",
+    "mode": "effects_off",
+    "returncode": 0,
+    "log_path": "reports/graphics/rhi_effects_angle_effects_off_20251106_034349.md",
+    "shader_cache_dir": "logs/shader_cache/angle_effects_off_20251106_034349",
+    "settings_file": "/tmp/tmp2n22mged/app_settings.json",
+    "errors_detected": false,
+    "error_lines": [
+      "ERROR    | PneumoStabSim | QML initialisation issue (status-missing): _qquick_widget of type QLabel does not expose status(); a fallback widget is active.",
+      "2025-11-06 03:44:18,673 src.ui.main_window_pkg.ui_setup [ERROR]     ❌ QML load failed: QML load errors:"
+    ],
+    "qsg_info": []
+  },
+  {
+    "backend": "vulkan",
+    "mode": "effects_on",
+    "returncode": 0,
+    "log_path": "reports/graphics/rhi_effects_vulkan_effects_on_20251106_034349.md",
+    "shader_cache_dir": "logs/shader_cache/vulkan_effects_on_20251106_034349",
+    "settings_file": "/tmp/tmp7dfv3kkr/app_settings.json",
+    "errors_detected": false,
+    "error_lines": [
+      "ERROR    | PneumoStabSim | QML initialisation issue (status-missing): _qquick_widget of type QLabel does not expose status(); a fallback widget is active.",
+      "2025-11-06 03:44:27,759 src.ui.main_window_pkg.ui_setup [ERROR]     ❌ QML load failed: QML load errors:"
+    ],
+    "qsg_info": []
+  },
+  {
+    "backend": "vulkan",
+    "mode": "effects_off",
+    "returncode": 0,
+    "log_path": "reports/graphics/rhi_effects_vulkan_effects_off_20251106_034349.md",
+    "shader_cache_dir": "logs/shader_cache/vulkan_effects_off_20251106_034349",
+    "settings_file": "/tmp/tmp98wl1xzo/app_settings.json",
+    "errors_detected": false,
+    "error_lines": [
+      "ERROR    | PneumoStabSim | QML initialisation issue (status-missing): _qquick_widget of type QLabel does not expose status(); a fallback widget is active.",
+      "2025-11-06 03:44:36,561 src.ui.main_window_pkg.ui_setup [ERROR]     ❌ QML load failed: QML load errors:"
+    ],
+    "qsg_info": []
+  }
+]

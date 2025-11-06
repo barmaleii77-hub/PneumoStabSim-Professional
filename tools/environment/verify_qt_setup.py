@@ -243,6 +243,7 @@ def _handle_missing_system_library(
     for line in successes + warnings + failures:
         print(line)
 
+
 def _resolve_opengl_failure(
     strict: bool, candidates: Sequence[str], hint: str
 ) -> ProbeResult:
@@ -537,6 +538,7 @@ def run_smoke_check(
             )
 
     successes, warnings, failures = _format_results(results)
+    fatal_failures = any(result.fatal for result in results if not result.ok)
     exit_code = 1 if fatal_failures else 0
 
     if report_dir is not None:
