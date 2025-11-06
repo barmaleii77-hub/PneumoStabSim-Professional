@@ -25,6 +25,7 @@ import shlex
 import shutil
 import subprocess
 import sys
+from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Iterable, Sequence
@@ -33,9 +34,13 @@ from tools import merge_conflict_scan
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 QUALITY_REPORT_ROOT = PROJECT_ROOT / "reports" / "quality"
+PYTEST_REPORT_ROOT = PROJECT_ROOT / "reports" / "tests"
 DEFAULT_LINT_TARGETS: tuple[str, ...] = ("app.py", "src", "tests", "tools")
 MYPY_TARGETS_FILE = "mypy_targets.txt"
 PYTEST_TARGETS_FILE = "pytest_targets.txt"
+PYTEST_UNIT_TARGETS_FILE = "pytest_unit_targets.txt"
+PYTEST_INTEGRATION_TARGETS_FILE = "pytest_integration_targets.txt"
+PYTEST_UI_TARGETS_FILE = "pytest_ui_targets.txt"
 QML_LINT_TARGETS_FILE = "qmllint_targets.txt"
 MYPY_CONFIG = "mypy.ini"
 
@@ -153,6 +158,29 @@ def _ensure_targets_exist(targets: Iterable[str]) -> list[str]:
     return valid
 
 
+@dataclass
+class PytestSuite:
+    """Configuration for a pytest invocation."""
+
+    name: str
+    default_targets: tuple[str, ...]
+    env_var: str | None = None
+    targets_file: str | None = None
+    marker: str | None = None
+    extra_args: tuple[str, ...] = ()
+
+    def resolve_targets(self) -> list[str]:
+        if self.env_var:
+            env_targets = _split_env_list(os.environ.get(self.env_var))
+            if env_targets:
+                return env_targets
+        if self.targets_file:
+            file_targets = _read_targets_file(self.targets_file)
+            if file_targets:
+                return file_targets
+        return list(self.default_targets)
+
+
 def _relative_display(path: Path) -> str:
     try:
         return str(path.relative_to(PROJECT_ROOT))
@@ -218,6 +246,116 @@ def _run_command(
 
     if returncode != 0:
         raise TaskError(f"Command failed with exit code {returncode}: {printable}")
+
+
+def _pytest_suites() -> list[PytestSuite]:
+    suites = [
+        PytestSuite(
+            name="unit",
+            default_targets=("tests/unit",),
+            env_var="PYTEST_UNIT_TARGETS",
+            targets_file=PYTEST_UNIT_TARGETS_FILE,
+            marker=None,
+        ),
+        PytestSuite(
+            name="integration",
+            default_targets=("tests/integration",),
+            env_var="PYTEST_INTEGRATION_TARGETS",
+            targets_file=PYTEST_INTEGRATION_TARGETS_FILE,
+            marker=None,
+        ),
+        PytestSuite(
+            name="ui",
+            default_targets=("tests/ui",),
+            env_var="PYTEST_UI_TARGETS",
+            targets_file=PYTEST_UI_TARGETS_FILE,
+            marker=None,
+        ),
+    ]
+
+    extra_file = os.environ.get("PYTEST_TARGETS_FILE", PYTEST_TARGETS_FILE)
+    extra_targets = _read_targets_file(extra_file)
+    if extra_targets:
+        suites.append(
+            PytestSuite(
+                name="extra",
+                default_targets=tuple(extra_targets),
+                marker=None,
+            )
+        )
+
+    return suites
+
+
+def _run_pytest_suites(selected: Sequence[str] | None = None) -> None:
+    suites = {suite.name: suite for suite in _pytest_suites()}
+    order = [
+        "unit",
+        "integration",
+        "ui",
+        *[name for name in suites.keys() if name not in {"unit", "integration", "ui"}],
+    ]
+
+    if selected is not None:
+        order = [name for name in order if name in selected]
+
+    if not order:
+        return
+
+    common_flags = _split_env_list(os.environ.get("PYTEST_FLAGS"))
+    os.environ.setdefault("PYTEST_DISABLE_PLUGIN_AUTOLOAD", "1")
+
+    PYTEST_REPORT_ROOT.mkdir(parents=True, exist_ok=True)
+
+    manual_targets = _split_env_list(os.environ.get("PYTEST_TARGETS"))
+    if manual_targets:
+        existing = _ensure_targets_exist(manual_targets)
+        junit_path = PYTEST_REPORT_ROOT / "manual.xml"
+        command = [
+            sys.executable,
+            "-m",
+            "pytest",
+            *common_flags,
+            f"--junitxml={junit_path}",
+            *existing,
+        ]
+        header = "## Suite: manual\n"
+        _run_command(
+            command,
+            task_name="pytest:manual",
+            log_name="pytest_manual.log",
+            header=header,
+        )
+        return
+
+    for name in order:
+        suite = suites[name]
+        targets = suite.resolve_targets()
+        if not targets:
+            print(
+                f"[ci_tasks] No pytest targets configured for suite '{name}'; skipping."
+            )
+            continue
+
+        existing_targets = _ensure_targets_exist(targets)
+
+        command = [sys.executable, "-m", "pytest", *common_flags]
+        if suite.marker:
+            command.extend(["-m", suite.marker])
+        if suite.extra_args:
+            command.extend(list(suite.extra_args))
+
+        junit_path = PYTEST_REPORT_ROOT / f"{name}.xml"
+        command.extend([f"--junitxml={junit_path}"])
+        command.extend(existing_targets)
+
+        header = f"## Suite: {name}\n"
+        _run_command(
+            command,
+            task_name=f"pytest:{name}",
+            log_name=f"pytest_{name}.log",
+            header=header,
+        )
 
 
 def task_lint() -> None:
@@ -325,25 +463,46 @@ def _collect_qml_targets() -> list[Path]:
 
 
 def task_test() -> None:
-    env_flags = _split_env_list(os.environ.get("PYTEST_FLAGS"))
-    env_targets = _split_env_list(os.environ.get("PYTEST_TARGETS"))
-    if env_targets:
-        targets = env_targets
-    else:
-        file_name = os.environ.get("PYTEST_TARGETS_FILE", PYTEST_TARGETS_FILE)
-        targets = _read_targets_file(file_name) or ["tests"]
+    os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
+    os.environ.setdefault("QT_QUICK_BACKEND", "software")
+    primary_error: TaskError | None = None
+    try:
+        _run_pytest_suites()
+    except TaskError as exc:
+        primary_error = exc
 
-    targets = _ensure_targets_exist(targets)
+    try:
+        task_analyze_logs()
+    except TaskError as exc:
+        if primary_error is None:
+            raise
+        print(f"[ci_tasks] log analysis skipped due to earlier failure: {exc}")
 
-    # Prevent externally installed pytest plugins from interfering with the
-    # suite.  Some environments ship plugins that eagerly print debugging
-    # information during interpreter start-up which, in turn, breaks our CI
-    # expectations (pytest aborts before running any tests).  Unless a caller
-    # has explicitly opted in to plugin autoloading, keep it disabled.
-    os.environ.setdefault("PYTEST_DISABLE_PLUGIN_AUTOLOAD", "1")
+    if primary_error is not None:
+        raise primary_error
 
-    command = [sys.executable, "-m", "pytest", *env_flags, *targets]
-    _run_command(command, task_name="pytest", log_name="pytest.log")
+
+def task_test_unit() -> None:
+    _run_pytest_suites(["unit"])
+
+
+def task_test_integration() -> None:
+    _run_pytest_suites(["integration"])
+
+
+def task_test_ui() -> None:
+    os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
+    os.environ.setdefault("QT_QUICK_BACKEND", "software")
+    _run_pytest_suites(["ui"])
+
+
+def task_analyze_logs() -> None:
+    command = [sys.executable, "tools/analyze_logs.py"]
+    _run_command(
+        command,
+        task_name="log-analysis",
+        log_name="log_analysis.log",
+    )
 
 
 def task_post_analysis() -> None:
@@ -414,7 +573,15 @@ def build_parser() -> argparse.ArgumentParser:
 
     subparsers.add_parser("lint", help="Run Ruff format check and lint")
     subparsers.add_parser("typecheck", help="Run mypy against configured targets")
-    subparsers.add_parser("test", help="Run pytest with configured targets")
+    subparsers.add_parser(
+        "test", help="Run pytest across unit, integration, and UI suites"
+    )
+    subparsers.add_parser("test-unit", help="Run the unit test suite")
+    subparsers.add_parser("test-integration", help="Run the integration test suite")
+    subparsers.add_parser("test-ui", help="Run the UI/QML test suite")
+    subparsers.add_parser(
+        "analyze-logs", help="Analyze application logs for recent runs"
+    )
     subparsers.add_parser("qml-lint", help="Run qmllint against configured targets")
     subparsers.add_parser(
         "verify", help="Run lint, typecheck, qml-lint, and tests in sequence"
@@ -431,6 +598,10 @@ def main(argv: Sequence[str] | None = None) -> None:
         "lint": task_lint,
         "typecheck": task_typecheck,
         "test": task_test,
+        "test-unit": task_test_unit,
+        "test-integration": task_test_integration,
+        "test-ui": task_test_ui,
+        "analyze-logs": task_analyze_logs,
         "qml-lint": task_qml_lint,
         "verify": task_verify,
     }

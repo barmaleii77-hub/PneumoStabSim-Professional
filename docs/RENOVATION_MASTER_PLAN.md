@@ -311,12 +311,10 @@ best practices for scientific visualisation software.
 
 **Status**
 
-- `pytest.ini` configures strict markers but tests do not cover UI extensively.
-- Static analysis tools (`ruff`, `mypy`, `qmllint`) are configured yet not wired
-  into automation or enforced via pre-commit.
-- No CI workflows in `.github/workflows/`.
-- `Makefile` already exposes `check`, `lint`, `typecheck`, and `qml-lint` targets backed by `tools/ci_tasks.py`, but adoption is ad-hoc and undocumented for contributors.
-- Phase 4 execution plan now documents milestone sequencing, risk treatments, and coverage KPIs to steer automation deliverables.
+- `tools/ci_tasks.test` разбивает `pytest` на юнит, интеграционные и UI/QML-циклы и завершает прогон анализом `tools/analyze_logs.py`.
+- GitHub Actions (`ci.yml`) в матрице Ubuntu/Windows выполняет `make check`, выгружает `reports/quality/**`, `reports/tests/**`, `logs/**` и публикует AI-отчёт при сбоях.
+- `.pre-commit-config.yaml` запускает `tools.ci_tasks lint` на `pre-commit` и `tools.ci_tasks typecheck` + `test-unit` на `pre-push`; UI-сценарии остаются ручными, но задокументированы в `docs/CI.md`.
+- Phase 4 execution plan ссылается на обновлённый процесс в `docs/CI.md`, что упрощает контроль KPI по покрытиям и стабильности пайплайна.
 
 **Action Plan**
 
@@ -326,9 +324,9 @@ best practices for scientific visualisation software.
    - Implement regression tests for simulation math in `tests/simulation/` using
      golden files stored under `tests/data/`.
 2. **Quality Gates Automation**
-   - Create `make check` aggregating `ruff`, `mypy`, `pytest`, and `qmllint`.
+   - Create `make check` aggregating `ruff`, `mypy`, `pytest`, and `qmllint`. *Status: Complete — `tools.ci_tasks.verify` покрывает юнит, интеграционные и UI тесты, затем запускает `tools/analyze_logs.py`.*
     - Configure GitHub Actions workflows:
-        - `ci.yml`: matrix {Ubuntu, Windows} x Python 3.13 running make targets.
+        - `ci.yml`: matrix {Ubuntu, Windows} x Python 3.13 running make targets. *Status: Live — обновлённый `ci.yml` загружает `reports/tests/**` и AI-отчёты.*
         - `nightly.yml`: scheduled pipeline executing long-running simulations and
           encoding audits.
         - `autonomous-check.yml`: scheduled autonomous verification that runs
@@ -337,7 +335,7 @@ best practices for scientific visualisation software.
           for traceability.
    - Ensure workflows install Qt 6.10 via the scripted setup and cache the
      download.
-   - Document the local workflow in `docs/DEVELOPMENT_GUIDE.md`, clarifying that contributors must run `make check` (or `python -m tools.ci_tasks verify`) before submitting changes and offering troubleshooting steps for qmllint/Qt setup.
+   - Document the local workflow in `docs/DEVELOPMENT_GUIDE.md`, clarifying that contributors must run `make check` (or `python -m tools.ci_tasks verify`) before submitting changes and offering troubleshooting steps for qmllint/Qt setup. *Status: Docs refreshed November 2025 — см. `docs/CI.md`.*
    - Provide one-click wrappers (`make autonomous-check`, `make trace-launch`) powered by
      `python -m tools.autonomous_check` and `python -m tools.trace_launch` to persist
      CI-grade logs and launch environment traces under `reports/quality/`.

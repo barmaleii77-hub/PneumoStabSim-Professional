@@ -1,6 +1,9 @@
 # Pre-commit hooks для PneumoStabSim Professional
 # Установка: pip install pre-commit && pre-commit install
 
+default_install_hook_types:
+  - pre-commit
+  - pre-push
 default_language_version:
   python: python3.13
 
@@ -61,15 +64,27 @@ repos:
         entry: python tools/check_forbidden_artifacts.py
         language: system
         pass_filenames: false
-      - id: pytest-core
-        name: Pytest (core suite)
-        entry: python -m pytest -m "not gui"
+      - id: ci-fast-lint
+        name: Fast lint (tools.ci_tasks lint)
+        entry: python -m tools.ci_tasks lint
         language: system
         pass_filenames: false
-        stages: [manual]
+        stages: [pre-commit]
+      - id: ci-typecheck
+        name: Type-check core modules (tools.ci_tasks typecheck)
+        entry: python -m tools.ci_tasks typecheck
+        language: system
+        pass_filenames: false
+        stages: [pre-push]
+      - id: ci-test-unit
+        name: Pytest unit suite (tools.ci_tasks test-unit)
+        entry: python -m tools.ci_tasks test-unit
+        language: system
+        pass_filenames: false
+        stages: [pre-push]
       - id: pytest-gui
         name: Pytest (QML/GUI suite)
-        entry: python -m pytest tests/ui -m gui
+        entry: python -m tools.ci_tasks test-ui
         language: system
         pass_filenames: false
         stages: [manual]

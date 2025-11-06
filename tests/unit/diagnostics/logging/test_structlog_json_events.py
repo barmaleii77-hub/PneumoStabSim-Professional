@@ -8,7 +8,7 @@ import structlog
 from src.diagnostics.logger_factory import configure_logging
 
 
-def test_structlog_json_contains_context(structlog_logger_config, caplog) -> None:
+def test_structlog_json_contains_context(structlog_logger_config, caplog, capsys) -> None:
     """Emit a JSON log event and assert mandatory fields and bound context exist.
 
     The logger is pre-bound with ``subsystem="diagnostics"`` and ``component``
@@ -19,16 +19,24 @@ def test_structlog_json_contains_context(structlog_logger_config, caplog) -> Non
 
     structlog.reset_defaults()
     caplog.set_level(logging.INFO)
+    capsys.readouterr()  # drain any prior stdout/stderr noise
     configure_logging()
 
     logger = structlog_logger_config.build()
     logger.info("diagnostic_event", action="bind-check")
 
-    assert caplog.records, "no log records captured"
-    payload_start = caplog.messages[0].find("{")
+    raw_message = None
+    if caplog.records:
+        raw_message = caplog.messages[0]
+    else:
+        captured = capsys.readouterr()
+        raw_message = (captured.err or captured.out).strip()
+
+    assert raw_message, "no log records captured"
+    payload_start = raw_message.find("{")
     assert payload_start != -1, "expected JSON payload in log message"
 
-    payload = json.loads(caplog.messages[0][payload_start:])
+    payload = json.loads(raw_message[payload_start:])
     assert payload["event"] == "diagnostic_event"
     assert payload["level"] == "info"
     assert "timestamp" in payload

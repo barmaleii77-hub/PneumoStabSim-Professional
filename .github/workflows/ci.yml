@@ -85,6 +85,40 @@ jobs:
       - name: Run make check
         run: make check
 
+      - name: Generate AI failure report
+        if: failure()
+        shell: bash
+        run: |
+          python - <<'PY'
+          import pathlib
+          import subprocess
+          import sys
+
+          reports_dir = pathlib.Path("reports/quality")
+          reports_dir.mkdir(parents=True, exist_ok=True)
+          output_path = reports_dir / "ai_failure_report.log"
+
+          result = subprocess.run(
+              [sys.executable, "analyze_logs.py"],
+              capture_output=True,
+              text=True,
+          )
+
+          payload = result.stdout
+          if result.stderr:
+              payload += "\n" + result.stderr
+
+          output_path.write_text(payload, encoding="utf-8")
+
+          sys.stdout.write(result.stdout)
+          if result.stderr:
+              sys.stderr.write(result.stderr)
+          if result.returncode != 0:
+              sys.stdout.write(
+                  f"\n[ci] analyze_logs.py exited with status {result.returncode}; continuing for diagnostics.\n"
+              )
+          PY
+
       - name: Upload quality artefacts
         if: always()
         uses: actions/upload-artifact@v4
@@ -93,4 +127,6 @@ jobs:
           path: |
             reports/quality/**
             reports/environment/**
+            reports/tests/**
+            logs/**
           if-no-files-found: warn
