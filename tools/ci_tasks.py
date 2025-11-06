@@ -34,6 +34,9 @@ from xml.etree import ElementTree as ET
 from tools import merge_conflict_scan
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
+os.environ.setdefault("PYTHONIOENCODING", "utf-8")
+os.environ.setdefault("QT_LOGGING_RULES", "qt.qpa.*=false;qt.qml.debug=true")
+
 QUALITY_REPORT_ROOT = PROJECT_ROOT / "reports" / "quality"
 PYTEST_REPORT_ROOT = PROJECT_ROOT / "reports" / "tests"
 COVERAGE_JSON_PATH = QUALITY_REPORT_ROOT / "coverage.json"
@@ -445,7 +448,9 @@ def _finalise_coverage_reports() -> Path | None:
         if path.is_file() and not path.name.endswith(".json")
     ]
     if not coverage_files:
-        print("[ci_tasks] No coverage data files found; skipping coverage consolidation.")
+        print(
+            "[ci_tasks] No coverage data files found; skipping coverage consolidation."
+        )
         return None
 
     QUALITY_REPORT_ROOT.mkdir(parents=True, exist_ok=True)
@@ -491,7 +496,9 @@ def _collect_test_summaries() -> dict[str, dict[str, float | int]]:
         try:
             tree = ET.parse(xml_file)
         except (ET.ParseError, FileNotFoundError):
-            print(f"[ci_tasks] Unable to parse JUnit report: {_relative_display(xml_file)}")
+            print(
+                f"[ci_tasks] Unable to parse JUnit report: {_relative_display(xml_file)}"
+            )
             continue
 
         root = tree.getroot()
@@ -546,7 +553,11 @@ def _publish_quality_metrics(coverage_path: Path | None) -> None:
             coverage_payload = json.loads(coverage_path.read_text(encoding="utf-8"))
         except json.JSONDecodeError as exc:
             raise TaskError(f"Invalid coverage JSON payload: {exc}") from exc
-        totals = coverage_payload.get("totals", {}) if isinstance(coverage_payload, dict) else {}
+        totals = (
+            coverage_payload.get("totals", {})
+            if isinstance(coverage_payload, dict)
+            else {}
+        )
         if totals:
             percent = totals.get("percent_covered")
             covered = totals.get("covered_lines")
@@ -566,18 +577,24 @@ def _publish_quality_metrics(coverage_path: Path | None) -> None:
     if summaries:
         totals = summaries.pop("total", {"duration": 0.0, "tests": 0})
         tests_payload: dict[str, str] = {
-            "total_duration_seconds": _format_seconds(float(totals.get("duration", 0.0))),
+            "total_duration_seconds": _format_seconds(
+                float(totals.get("duration", 0.0))
+            ),
             "total_cases": str(int(float(totals.get("tests", 0)))),
         }
         for suite_name, data in summaries.items():
             duration_value = float(data.get("duration", 0.0))
             tests_value = int(float(data.get("tests", 0)))
-            tests_payload[f"{suite_name}_duration_seconds"] = _format_seconds(duration_value)
+            tests_payload[f"{suite_name}_duration_seconds"] = _format_seconds(
+                duration_value
+            )
             tests_payload[f"{suite_name}_cases"] = str(tests_value)
         payload["tests"] = tests_payload
 
     if len(payload) == 1:
-        print("[ci_tasks] No coverage or test metrics available; skipping dashboard update.")
+        print(
+            "[ci_tasks] No coverage or test metrics available; skipping dashboard update."
+        )
         return
 
     QUALITY_REPORT_ROOT.mkdir(parents=True, exist_ok=True)
@@ -601,6 +618,7 @@ def _publish_quality_metrics(coverage_path: Path | None) -> None:
         log_name="quality_metrics.log",
     )
 
+
 def task_lint() -> None:
     env_targets = _split_env_list(os.environ.get("PYTHON_LINT_PATHS"))
     targets = tuple(dict.fromkeys(env_targets or DEFAULT_LINT_TARGETS))
@@ -609,7 +627,12 @@ def task_lint() -> None:
     format_cmd = [sys.executable, "-m", "ruff", "format", "--check", *existing_targets]
     check_cmd = [sys.executable, "-m", "ruff", "check", *existing_targets]
 
-    _run_command(format_cmd, task_name="ruff-format", log_name="ruff_format.log")
+    try:
+        _run_command(format_cmd, task_name="ruff-format", log_name="ruff_format.log")
+    except TaskError as exc:
+        raise TaskError(
+            "Ruff formatting violations detected; fix them before running lint"
+        ) from exc
     _run_command(check_cmd, task_name="ruff-check", log_name="ruff_check.log")
 
 
@@ -724,7 +747,9 @@ def task_test() -> None:
         except TaskError as exc:
             if primary_error is None:
                 raise
-            print(f"[ci_tasks] Coverage aggregation skipped due to earlier failure: {exc}")
+            print(
+                f"[ci_tasks] Coverage aggregation skipped due to earlier failure: {exc}"
+            )
 
     try:
         _publish_quality_metrics(coverage_path if use_coverage else None)

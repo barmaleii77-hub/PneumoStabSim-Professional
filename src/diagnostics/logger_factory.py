@@ -284,7 +284,9 @@ def configure_logging(
     if processors is not None:
         configured_processors.extend(processors)
     else:
-        configured_processors.append(structlog.processors.JSONRenderer())
+        configured_processors.append(
+            structlog.processors.JSONRenderer(ensure_ascii=False)
+        )
 
     structlog.configure(
         processors=configured_processors,

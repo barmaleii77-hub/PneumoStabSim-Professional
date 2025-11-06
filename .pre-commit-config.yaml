@@ -54,6 +54,12 @@ repos:
   # Local hook: утилиты и запуск тестов
   - repo: local
     hooks:
+      - id: ruff-format-check-all
+        name: Ruff format + check (full project)
+        entry: bash -c 'ruff format --force-exclude && ruff check --force-exclude'
+        language: system
+        pass_filenames: false
+        stages: [pre-push]
       - id: check-ui-utf8
         name: Check UI files for UTF-8 encoding
         entry: python tools/check_ui_utf8.py

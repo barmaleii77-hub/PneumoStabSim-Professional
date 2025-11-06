@@ -52,7 +52,7 @@ python app.py                # Launch the application
 - **Coding Style**: PEP 8 compliant
 - **Type Hints**: Required for all functions
 - **Async**: asyncio when needed
-- **Dependencies Management**: pip, requirements.txt
+- **Dependencies Management**: `uv` (`dependency-groups`: dev/docs/release) + экспорт в `requirements*.txt`
 
 #### Qt Framework
 - **Qt Version**: 6.10.x
@@ -92,11 +92,11 @@ PneumoStabSim-Professional/
 │       └── custom_geometry.py     # Custom 3D geometries
 ├── assets/
 │   ├── qml/
-│   │   ├── main.qml               # Main 3D scene (v4.9.4)
+│   │   ├── main.qml               # Main 3D scene (v4.9.6)
 │   │   └── components/
 │   │       └── IblProbeLoader.qml # IBL loader component
 │   └── hdr/                       # HDR environment maps
-└── tests/                         # Unit & integration tests
+└── tests/                         # Unit, integration и manual-сценарии
 ```
 
 ### Автономная проверка и трассировка
@@ -106,6 +106,7 @@ PneumoStabSim-Professional/
 - **Быстрый повтор**: для отдельных стадий можно выполнять `python -m tools.autonomous_check --task lint` или `--task test` с дополнительными аргументами.
 - **Трассировка запуска**: `python -m tools.trace_launch` создаёт OpenGL/Qt отчёт в `reports/quality/launch_traces/` и выводит краткую сводку по результатам.
 - **Контроль чистоты**: `python -m tools.project_sanitize --verbose` удаляет `__pycache__`, `*.pyc`, временные файлы решений и старые отчёты, чтобы репозиторий оставался чистым.
+- **Pre-commit**: перед пушем выполняй `pre-commit run ruff-format-check-all --all-files` — хук запускает `ruff format` и `ruff check` подряд и предотвращает форматные регрессии.
 
 ### Visual Studio (Insiders) и F5
 > ⚠️ Visual Studio Insiders и F5-профили больше не поддерживаются. Используй VS Code или `make uv-run` для запуска приложения и тестов.
@@ -274,6 +275,7 @@ ibl_source = "../hdr/file.hdr"  # Может не работать из QML
 - **Integration Tests**: QML + Python взаимодействие
 - **Visual Tests**: Проверка 3D рендеринга
 - **Performance Tests**: FPS, memory usage
+- `pytest.ini` уже активирует `pytestqt.plugin`, поэтому фикстура `qtbot` доступна без ручных импортов или изменения `PYTEST_DISABLE_PLUGIN_AUTOLOAD`.
 
 ### Documentation Style
 
@@ -562,6 +564,6 @@ make check
 ---
 
 **Last Updated**: 2025-10-31
-**Project Version**: v4.9.4
+**Project Version**: v4.9.6
 **Copilot Instructions Version**: 1.1
 **Maintainer**: barmaleii77-hub

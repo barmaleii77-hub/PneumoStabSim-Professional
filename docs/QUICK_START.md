@@ -4,7 +4,7 @@
 
 ### Проверка системы
 ```bash
-python tools/test_centralized_save.py
+python tests/manual/centralized_save_demo.py
 ```
 
 ### Запуск приложения

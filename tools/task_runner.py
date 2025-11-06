@@ -18,6 +18,9 @@ import sys
 from pathlib import Path
 from typing import Callable, Sequence
 
+os.environ.setdefault("PYTHONIOENCODING", "utf-8")
+os.environ.setdefault("QT_LOGGING_RULES", "qt.qpa.*=false;qt.qml.debug=true")
+
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_UV_SYNC_ARGS = "--frozen --extra dev"
 DEFAULT_PYTEST_FLAGS = ("-vv", "--color=yes", "--maxfail=1")
