@@ -114,6 +114,13 @@ def _export_requirements_with_uv(project_root: Path) -> None:
             "uv executable was not found. Run 'python scripts/bootstrap_uv.py --sync' "
             "before using --refresh-requirements."
         )
+    lock_command = [uv_executable, "lock"]
+    print(f"Running {' '.join(lock_command)}", flush=True)
+    lock_result = subprocess.run(lock_command, cwd=project_root, check=False)
+    if lock_result.returncode != 0:
+        raise SystemExit(
+            f"Command '{' '.join(lock_command)}' failed with exit code {lock_result.returncode}."
+        )
     lockfile = project_root / "uv.lock"
     if not lockfile.exists():
         raise SystemExit(

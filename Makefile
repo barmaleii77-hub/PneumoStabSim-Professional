@@ -88,6 +88,28 @@ uv-run:
 	fi
 	cd $(UV_PROJECT_DIR) && PYTEST_DISABLE_PLUGIN_AUTOLOAD=$${PYTEST_DISABLE_PLUGIN_AUTOLOAD-1} $(UV) run $(UV_RUN_ARGS) -- $(CMD)
 
+uv-lock:
+	@if ! command -v $(UV) >/dev/null 2>&1; then \
+		echo "Error: '$(UV)' is not installed. Run 'python scripts/bootstrap_uv.py' first." >&2; \
+		exit 1; \
+	fi
+	cd $(UV_PROJECT_DIR) && $(UV) lock
+
+uv-export-requirements:
+	@if ! command -v $(UV) >/dev/null 2>&1; then \
+		echo "Error: '$(UV)' is not installed. Run 'python scripts/bootstrap_uv.py' first." >&2; \
+		exit 1; \
+	fi
+	@if [ ! -f "$(UV_PROJECT_DIR)/$(UV_LOCKFILE)" ]; then \
+		echo "Error: Lockfile '$(UV_LOCKFILE)' was not found in $(UV_PROJECT_DIR). Run 'uv lock' first." >&2; \
+		exit 1; \
+	fi
+	cd $(UV_PROJECT_DIR) && $(UV) export --format requirements.txt --output-file requirements.txt --no-dev --locked --no-emit-project
+	cd $(UV_PROJECT_DIR) && $(UV) export --format requirements.txt --output-file requirements-dev.txt --extra dev --locked --no-emit-project
+	cd $(UV_PROJECT_DIR) && $(UV) export --format requirements.txt --output-file requirements-compatible.txt --no-dev --locked --no-emit-project --no-annotate --no-hashes
+
+uv-release-refresh: uv-lock uv-export-requirements
+
 package-all:
 	$(MAKE) uv-run CMD="python -m tools.packaging.build_packages"
 
@@ -185,7 +207,7 @@ cipilot-env:
 	@if ! command -v $(UV) >/dev/null 2>&1; then \
 		echo "Error: '$(UV)' is not installed. Run 'python scripts/bootstrap_uv.py' first." >&2; \
 		exit 1; \
-        fi
+	fi
 	cd $(UV_PROJECT_DIR) && $(UV) sync
 	cd $(UV_PROJECT_DIR) && $(UV) run -- python -m tools.cipilot_environment --skip-uv-sync --probe-mode=python
 
@@ -197,7 +219,7 @@ CONTAINER_IMAGE ?= pneumo-dev:qt610
 CONTAINER_WORKDIR ?= /workdir
 
 .PHONY: container-build container-shell container-test container-test-opengl \
-        container-test-vulkan container-verify-all container-analyze-logs
+	container-test-vulkan container-verify-all container-analyze-logs
 
 container-build:
 	docker build -t $(CONTAINER_IMAGE) .
