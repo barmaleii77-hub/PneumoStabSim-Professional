@@ -19,7 +19,7 @@ INTEGRATION_TARGET ?= tests/integration/test_main_window_qml.py
 RUN_ARGS ?=
 
 .PHONY: format lint typecheck qml-lint test-local test-unit test-integration test-ui analyze-logs \
-validate-shaders check-shaders monitor-shader-logs check verify smoke integration run \
+validate-shaders check-shaders monitor-shader-logs check verify security smoke integration run \
 localization-check \
 autonomous-check autonomous-check-trace trace-launch sanitize cipilot-env \
 install-qt-runtime qt-env-check telemetry-etl profile-phase3 profile-render profile-validate package-all
@@ -113,6 +113,8 @@ uv-release-refresh: uv-lock uv-export-requirements
 
 package-all:
 	$(MAKE) uv-run CMD="python -m tools.packaging.build_packages"
+	$(MAKE) uv-run UV_RUN_ARGS="$(UV_RUN_ARGS) --with build" CMD="python -m build --wheel --sdist --outdir dist/packages"
+	$(MAKE) uv-run CMD="python -m tools.packaging.write_checksums --directory dist/packages"
 
 install-qt-runtime:
 	@echo "Installing Qt runtime system libraries (libgl1, libxkbcommon0, libegl1)"
@@ -171,6 +173,10 @@ check: uv-sync
 	$(MAKE) qt-env-check
 
 verify: check smoke integration
+
+.PHONY: security
+security:
+	$(PYTHON) -m tools.ci_tasks security
 
 localization-check:
 	$(PYTHON) tools/update_translations.py --check
