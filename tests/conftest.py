@@ -92,6 +92,15 @@ def reports_tests_dir(project_root_path: Path) -> Path:
 
 
 @pytest.fixture(scope="session")
+def integration_reports_dir(reports_tests_dir: Path) -> Path:
+    """Dedicated directory for integration test artefacts."""
+
+    target = reports_tests_dir / "integration"
+    target.mkdir(parents=True, exist_ok=True)
+    return target
+
+
+@pytest.fixture(scope="session")
 def baseline_images_dir(project_root_path: Path) -> Path:
     """Return the directory that stores baseline comparison images.
 
