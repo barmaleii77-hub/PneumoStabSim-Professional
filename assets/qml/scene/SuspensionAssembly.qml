@@ -72,6 +72,7 @@ Node {
     // Flow telemetry (SceneBridge)
     // ------------------------------------------------------------------
     property var flowTelemetry: ({})
+    property var receiverTelemetry: ({})
 
     Component.onCompleted: {
         const hasWorld = worldRoot !== null && worldRoot !== undefined
@@ -222,6 +223,21 @@ Node {
     function cornerTailPosition(side) { return kinematics.tailPosition(side) }
     function leverAngleFor(side) { return kinematics.leverAngle(side) }
     function pistonPositionFor(side) { return kinematics.pistonPosition(side) }
+
+    function receiverTelemetryValue() {
+        const direct = asObject(receiverTelemetry)
+        if (direct && typeof direct === "object" && Object.keys(direct).length)
+            return direct
+        const flowObject = asObject(flowTelemetry)
+        if (flowObject && typeof flowObject.receiver === "object")
+            return flowObject.receiver
+        // qmllint disable missing-property
+        const parentNode = assembly.parent
+        if (parentNode && parentNode.receiverTelemetry !== undefined)
+            return asObject(parentNode.receiverTelemetry) || ({})
+        // qmllint enable missing-property
+        return ({})
+    }
 
     function toSceneLength(meters) {
         const numeric = Number(meters)
@@ -404,6 +420,22 @@ Node {
                 return assembly.asObject(parentNode.flowTelemetry) || ({})
             return ({})
         }
+        geometryHelper: kinematics
+        sceneScale: assembly.sceneScaleFactor
+    }
+
+    PneumoScene.Receiver {
+        id: receiverLayer
+        flowData: {
+            var direct = assembly.asObject(assembly.flowTelemetry)
+            if (direct)
+                return direct
+            var parentNode = assembly.parent
+            if (parentNode && parentNode.flowTelemetry !== undefined)
+                return assembly.asObject(parentNode.flowTelemetry) || ({})
+            return ({})
+        }
+        receiverState: assembly.receiverTelemetryValue()
         geometryHelper: kinematics
         sceneScale: assembly.sceneScaleFactor
     }
