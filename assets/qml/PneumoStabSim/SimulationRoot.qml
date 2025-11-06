@@ -10,6 +10,7 @@ import "../components"
 import "../effects"
 import "../geometry"
 import "../lighting"
+import "../diagnostics/LogBridge.js" as Diagnostics
 import scene 1.0 as Scene
 import "../animation"
 
@@ -213,9 +214,9 @@ property int reflectionProbeTimeSlicingValue: reflectionProbeTimeSlicingFrom(env
  // ---------------------------------------------
  // Shader compilation diagnostics
  // ---------------------------------------------
- function registerShaderWarning(effectId, errorLog) {
+ function registerShaderWarning(effectId, message) {
   var normalizedId = effectId !== undefined && effectId !== null ? String(effectId) : "unknown"
-  var message = errorLog !== undefined && errorLog !== null ? String(errorLog) : qsTr("Shader compilation failed")
+  var normalizedMessage = message !== undefined && message !== null ? String(message) : qsTr("Shader compilation failed")
 
   var hadEntry = Object.prototype.hasOwnProperty.call(shaderWarningMap, normalizedId)
   var previousEntry = hadEntry ? shaderWarningMap[normalizedId] : null
@@ -223,17 +224,28 @@ property int reflectionProbeTimeSlicingValue: reflectionProbeTimeSlicingFrom(env
   var nextMap = Object.assign({}, shaderWarningMap)
   nextMap[normalizedId] = {
    id: normalizedId,
-   message: message,
+   message: normalizedMessage,
    timestamp: Date.now()
   }
 
   shaderWarningMap = nextMap
   shaderWarningList = Object.values(nextMap).sort(function(a, b) { return a.timestamp - b.timestamp })
-  console.warn("⚠️ Shader fallback activated for", normalizedId, "-", message)
+  console.warn("⚠️ Shader fallback activated for", normalizedId, "-", normalizedMessage)
 
-  var messageChanged = !previousEntry || previousEntry.message !== message
+  try {
+   Diagnostics.forward(
+    "shader_warning",
+    normalizedId + ": " + normalizedMessage,
+    typeof window !== "undefined" ? window : null,
+    "SimulationRoot"
+   )
+  } catch (diagnosticsError) {
+   console.debug("[SimulationRoot] Diagnostics.forward failed for shader warning", diagnosticsError)
+  }
+
+  var messageChanged = !previousEntry || previousEntry.message !== normalizedMessage
   if (messageChanged)
-   notifyPythonShaderEvent("registerShaderWarning", [normalizedId, message])
+   notifyPythonShaderEvent("registerShaderWarning", [normalizedId, normalizedMessage])
  }
 
  function clearShaderWarning(effectId) {
@@ -246,6 +258,17 @@ property int reflectionProbeTimeSlicingValue: reflectionProbeTimeSlicingFrom(env
   shaderWarningMap = nextMap
   shaderWarningList = Object.values(nextMap).sort(function(a, b) { return a.timestamp - b.timestamp })
   console.log("✅ Shader restored for", normalizedId)
+
+  try {
+   Diagnostics.forward(
+    "shader_warning_cleared",
+    normalizedId,
+    typeof window !== "undefined" ? window : null,
+    "SimulationRoot"
+   )
+  } catch (diagnosticsError) {
+   console.debug("[SimulationRoot] Diagnostics.forward failed for shader clear", diagnosticsError)
+  }
 
   notifyPythonShaderEvent("clearShaderWarning", [normalizedId])
  }
@@ -1050,19 +1073,16 @@ SequentialAnimation {
         anchors.fill: parent
         visible: false
         diagnosticsLoggingEnabled: root.diagnosticsLoggingEnabled
-        onEffectCompilationError: function(effectId, errorLog) {
-            if (typeof window !== "undefined" && window && typeof window.registerShaderWarning === "function") {
-                try {
-                    window.registerShaderWarning(effectId, errorLog)
-                } catch (error) {
-                    console.warn("[SimulationRoot] window.registerShaderWarning failed", error)
-                }
-            }
-            if (typeof root.registerShaderWarning === "function") {
-                root.registerShaderWarning(effectId, errorLog)
-            }
+    }
+
+    Connections {
+        target: postEffects
+
+        function onEffectCompilationError(effectId, errorLog) {
+            root.registerShaderWarning(effectId, errorLog)
         }
-        onEffectCompilationRecovered: function(effectId) {
+
+        function onEffectCompilationRecovered(effectId) {
             root.clearShaderWarning(effectId)
         }
     }
