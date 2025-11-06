@@ -79,6 +79,21 @@ def test_scene_environment_controller_applies_initial_defaults(qapp, settings_ma
         # With the default configuration the HDR probe is not preloaded.
         assert root.property("iblProbe") is None
 
+        # Lighting payload is exposed through contextLightingDefaults.
+        lighting_defaults = root.property("contextLightingDefaults")
+        expected_lighting = (
+            payload["scene"].get("graphics", {}).get("lighting", {})
+        )
+        assert lighting_defaults is not None
+        assert expected_lighting
+        assert lighting_defaults.get("key", {}).get("brightness") == pytest.approx(
+            expected_lighting.get("key", {}).get("brightness"), rel=1e-6
+        )
+
+        # Materials defaults are proxied for downstream components.
+        materials_defaults = root.property("contextMaterialsDefaults")
+        assert materials_defaults == payload["materials"]
+
         quality_defaults = (
             payload["scene"].get("graphics", {}).get("quality", {})
         )

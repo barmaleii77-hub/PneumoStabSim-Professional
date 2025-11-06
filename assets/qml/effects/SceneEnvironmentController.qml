@@ -12,10 +12,10 @@ ExtendedSceneEnvironment {
  id: root
 
     // Источники контекста, передаются родителем для устранения не квалифицированных обращений
-    // materialsDefaults: карта дефолтных материалов (например, из SharedMaterials)
-    property var materialsDefaults: null
-    // lightingContext: объект доступа к глобальным настройкам освещения (например, lightingAccess из SimulationRoot)
-    property var lightingContext: null
+    // materialsDefaultsOverride: позволяет принудительно задать дефолтные материалы
+    property var materialsDefaultsOverride: null
+    // lightingContextOverride: приоритетный источник доступа к настройкам освещения
+    property var lightingContextOverride: null
 
     readonly property var initialSceneDefaults: typeof initialSceneSettings !== "undefined" ? initialSceneSettings : null
     readonly property var initialAnimationDefaults: typeof initialAnimationSettings !== "undefined" ? initialAnimationSettings : null
@@ -23,13 +23,15 @@ ExtendedSceneEnvironment {
     readonly property var initialGeometryDefaults: typeof initialGeometrySettings !== "undefined" ? initialGeometrySettings : null
 
     // ✅ Убираем глобальные идентификаторы, используем root.* свойства
-    readonly property var contextMaterialsDefaults: (root.materialsDefaults !== undefined && root.materialsDefaults !== null)
-                                                   ? root.materialsDefaults
-                                                   : (initialSceneDefaults && typeof initialSceneDefaults === "object" && initialSceneDefaults.materials !== undefined
-                                                      ? initialSceneDefaults.materials
-                                                      : (initialSceneDefaults && typeof initialSceneDefaults === "object" && initialSceneDefaults.graphics && typeof initialSceneDefaults.graphics === "object"
-                                                         ? initialSceneDefaults.graphics.materials
-                                                         : null))
+    readonly property var contextMaterialsDefaults: (root.materialsDefaultsOverride !== undefined && root.materialsDefaultsOverride !== null)
+                                                   ? root.materialsDefaultsOverride
+                                                   : (typeof materialsDefaults !== "undefined" && materialsDefaults !== null
+                                                      ? materialsDefaults
+                                                      : (initialSceneDefaults && typeof initialSceneDefaults === "object" && initialSceneDefaults.materials !== undefined
+                                                         ? initialSceneDefaults.materials
+                                                         : (initialSceneDefaults && typeof initialSceneDefaults === "object" && initialSceneDefaults.graphics && typeof initialSceneDefaults.graphics === "object"
+                                                            ? initialSceneDefaults.graphics.materials
+                                                            : null)))
 
     readonly property var contextEnvironmentDefaults: {
         var source = initialSceneDefaults
@@ -64,14 +66,16 @@ ExtendedSceneEnvironment {
         return null
     }
 
-    // ✅ Убираем глобальный lightingAccess, используем переданный lightingContext
-    readonly property var contextLightingDefaults: (root.lightingContext !== undefined && root.lightingContext !== null)
-                                                   ? root.lightingContext
-                                                   : (initialSceneDefaults && typeof initialSceneDefaults === "object" && initialSceneDefaults.lighting !== undefined
-                                                      ? initialSceneDefaults.lighting
-                                                      : (initialSceneDefaults && typeof initialSceneDefaults === "object" && initialSceneDefaults.graphics && typeof initialSceneDefaults.graphics === "object"
-                                                         ? initialSceneDefaults.graphics.lighting
-                                                         : null))
+    // ✅ Убираем глобальные обращения — используем lightingContextOverride или lightingAccess
+    readonly property var contextLightingDefaults: (root.lightingContextOverride !== undefined && root.lightingContextOverride !== null)
+                                                   ? root.lightingContextOverride
+                                                   : (typeof lightingAccess !== "undefined" && lightingAccess !== null
+                                                      ? lightingAccess
+                                                      : (initialSceneDefaults && typeof initialSceneDefaults === "object" && initialSceneDefaults.lighting !== undefined
+                                                         ? initialSceneDefaults.lighting
+                                                         : (initialSceneDefaults && typeof initialSceneDefaults === "object" && initialSceneDefaults.graphics && typeof initialSceneDefaults.graphics === "object"
+                                                            ? initialSceneDefaults.graphics.lighting
+                                                            : null)))
 
     QualityPresets {
         id: qualityProfiles
