@@ -265,6 +265,71 @@ def test_validate_shaders_reports_version_mismatch(tmp_path: Path) -> None:
     assert any("expected '#version 300 es'" in message for message in errors)
 
 
+def test_validate_shaders_reports_bom_whitespace_and_comments(tmp_path: Path) -> None:
+    shader_root = tmp_path / "shaders"
+    reports_dir = tmp_path / "reports"
+    qsb_cmd = _make_qsb_stub(tmp_path)
+
+    _write_shader(
+        shader_root,
+        "effects/bloom.frag",
+        "\ufeff#version 450 core\nvoid qt_customMain() {}\n",
+    )
+    _write_shader(
+        shader_root,
+        "effects/bloom_es.frag",
+        "#version 300 es\nvoid qt_customMain() {}\n",
+    )
+    _write_shader(
+        shader_root,
+        "effects/bloom_fallback.frag",
+        "#version 450 core\nvoid qt_customMain() {}\n",
+    )
+    _write_shader(
+        shader_root,
+        "effects/bloom_fallback_es.frag",
+        "#version 300 es\nvoid qt_customMain() {}\n",
+    )
+
+    _write_shader(
+        shader_root,
+        "effects/fog.vert",
+        " #version 450 core\nvoid qt_customMain() {}\n",
+    )
+    _write_shader(
+        shader_root,
+        "effects/fog_es.vert",
+        "#version 300 es\nvoid qt_customMain() {}\n",
+    )
+    _write_shader(
+        shader_root,
+        "effects/sky.vert",
+        "// comment\n#version 450 core\nvoid qt_customMain() {}\n",
+    )
+    _write_shader(
+        shader_root,
+        "effects/sky_es.vert",
+        "#version 300 es\nvoid qt_customMain() {}\n",
+    )
+
+    errors = validate_shaders.validate_shaders(
+        shader_root, qsb_command=qsb_cmd, reports_dir=reports_dir
+    )
+
+    assert (
+        "effects/bloom.frag: leading UTF-8 byte-order mark; remove it so '#version' is the first bytes"
+        in errors
+    )
+    assert (
+        "effects/fog.vert: leading whitespace before '#version' directive"
+        in errors
+    )
+    assert (
+        "effects/sky.vert: unexpected content before '#version' directive (starts with '// comment')"
+        in errors
+    )
+
+
 def test_validate_shaders_propagates_qsb_failure(tmp_path: Path) -> None:
     shader_root = tmp_path / "shaders"
     reports_dir = tmp_path / "reports"
