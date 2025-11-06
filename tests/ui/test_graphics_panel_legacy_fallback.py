@@ -9,7 +9,7 @@ pytest.importorskip(
     exc_type=ImportError,
 )
 
-from src.ui.panels.graphics.panel_graphics_refactored import GraphicsPanel
+from src.ui.panels.graphics.panel_graphics import GraphicsPanel
 
 
 @pytest.mark.gui

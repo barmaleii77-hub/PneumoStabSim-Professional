@@ -476,7 +476,9 @@ def _collect_qml_targets() -> list[Path]:
         configured = _read_targets_file(QML_LINT_TARGETS_FILE)
 
     if not configured:
-        return []
+        raise TaskError(
+            "No QML lint targets configured. Populate 'qmllint_targets.txt' or set QML_LINT_PATHS."
+        )
 
     collected: list[Path] = []
     for relative in configured:

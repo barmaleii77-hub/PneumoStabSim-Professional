@@ -1,155 +1,83 @@
-# PneumoStabSim v2.0.0 - Quick Reference
+# PneumoStabSim Professional v4.9.5 — Documentation Hub
 
-## ?? Quick Start
+Актуальное краткое руководство по навигации в документации и инструментам проекта.
 
-```bash
-# Install dependencies
-pip install -r requirements.txt
+## 🚀 Quick Start
 
-# Run application
-python app.py
+1. **Подготовьте окружение**
+   - Linux/macOS: `uv sync --frozen --extra dev`
+   - Windows без `make`: `python -m tools.task_runner uv-sync`
+   - Если `uv` не установлен, запустите `python scripts/bootstrap_uv.py`.
+2. **Запустите приложение**
+   - `uv run python app.py` (или `python app.py` при активированной `.venv`)
+3. **Пройдите контроль качества**
+   - Linux/macOS: `make check`
+   - Windows: `python -m tools.task_runner check`
+   - Автономный отчёт с логами: `python -m tools.task_runner autonomous-check`
+4. **Линтеры и типы по отдельности**
+   - `python -m tools.ci_tasks lint`
+   - `python -m tools.ci_tasks typecheck`
+   - `python -m tools.ci_tasks qml-lint`
+   - `python -m tools.ci_tasks test`
 
-# Run tests
-python test_correct_kinematics.py
+## 📁 Project Layout (v4.9.5)
+```
+PneumoStabSim-Professional/
+├── app.py                         # Точка входа (uv run python app.py)
+├── src/
+│   ├── app_runner.py              # Bootstrap + интеграция UI/логики
+│   ├── common/                    # Логирование, настройки, bridge
+│   └── ui/
+│       ├── main_window_pkg/       # Главное окно и маршрутизатор сигналов
+│       └── panels/
+│           ├── graphics/          # Модульная панель графики (tabs + state)
+│           ├── geometry/          # Геометрия и параметры подвески
+│           ├── lighting/          # Панель освещения
+│           └── modes/             # Исторический модуль режимов
+├── assets/
+│   └── qml/                       # Qt Quick 3D сцены и панели
+├── config/                        # JSON-настройки и схемы валидации
+├── tools/
+│   ├── task_runner.py             # Python-обёртка для целей make
+│   ├── autonomous_check.py        # Сборка quality-gate отчётов
+│   ├── ci_tasks.py                # Линтеры, типы, pytest, qmllint
+│   └── environment/               # Проверка Qt/GL окружения
+├── tests/                         # PyTest suites (unit, integration, ui)
+├── uv.lock                        # Зафиксированные версии зависимостей
+└── reports/                       # История тестов, качества, производительности
 ```
 
----
+## 🧩 Ключевые компоненты
+- **GraphicsPanel (`src/ui/panels/graphics/panel_graphics.py`)** — координатор вкладок, собирает состояние через `collect_state()` и публикует сигналы.
+- **GraphicsSettingsService (`src/ui/panels/graphics/panel_graphics_settings_manager.py`)** — слой доступа к JSON-настройкам и дефолтам.
+- **Defaults & presets (`src/ui/panels/graphics/defaults.py`)** — генерация пресетов качества и освещения.
+- **QML панели (`assets/qml/panels/`)** — визуальные элементы, синхронизированные с Python через SignalsRouter.
 
-## ?? Project Structure
+## 📄 Где искать подробности
+| Документ | Описание |
+|----------|----------|
+| [`docs/RENOVATION_MASTER_PLAN.md`](RENOVATION_MASTER_PLAN.md) | Стратегия модернизации и текущая фаза |
+| [`docs/RENOVATION_PHASE_3_UI_AND_GRAPHICS_PLAN.md`](RENOVATION_PHASE_3_UI_AND_GRAPHICS_PLAN.md) | Дорожная карта для UI/графики |
+| [`docs/SETTINGS_ARCHITECTURE.md`](SETTINGS_ARCHITECTURE.md) | Архитектура настроек и схемы |
+| [`docs/graphics.md`](graphics.md) | Технические заметки по графике и эффектам |
+| [`reports/`](../reports/) | Автоматические отчёты тестов, качества, производительности |
 
-```
-PneumoStabSim/
-??? app.py                 # ? START HERE
-??? src/
-?   ??? ui/
-?   ?   ??? main_window.py        # Main controller
-?   ?   ??? geometry_bridge.py    # Kinematics
-?   ??? runtime/
-?   ?   ??? sim_loop.py           # Physics thread
-?   ??? ...
-??? assets/qml/
-?   ??? main.qml                  # 3D scene
-??? docs/                          # Full documentation
-?   ??? PROJECT_OVERVIEW.md
-?   ??? ARCHITECTURE.md
-?   ??? MODULES/
-??? tests/
-```
+## 🧪 Testing & QA Checklist
+- `python -m tools.ci_tasks verify` — lint + typecheck + pytest + qmllint + анализ артефактов.
+- `python -m tools.task_runner autonomous-check` — аналог Makefile-цели с отчётом и launch-trace.
+- `python -m tools.project_sanitize` — очистка временных файлов (используется перед автономным прогоном).
+- `python -m tools.environment.verify_qt_setup --report-dir reports/environment` — проверка системных библиотек Qt/GL.
 
----
+## 🔧 Инструменты и советы
+- Настройки QML lint берутся из `qmllint_targets.txt`. Если файл пуст или отсутствует, `tools.ci_tasks` завершится ошибкой — заполните путь к папкам/файлам QML.
+- Для Windows-пользователей без `make` все цели доступны через `python -m tools.task_runner <task>`.
+- `scripts/bootstrap_uv.py` автоматически скачивает и устанавливает `uv`.
+- В `.env` задаются `QT_QPA_PLATFORM`, `QT_QUICK_CONTROLS_STYLE` и другие переменные среды для Qt.
 
-## ?? User Interface
+## ❓ Troubleshooting
+- **PySide6 ImportError:** запустите `python -m tools.environment.verify_qt_setup --allow-missing-runtime`.
+- **Проблемы с qmllint:** проверьте `qmllint_targets.txt` и наличие Qt SDK (`pyside6-qmllint`).
+- **Нет uv:** установите через `python scripts/bootstrap_uv.py` либо используйте системный Python и `pip install -r requirements-dev.txt`.
+- **Windows и PowerShell:** активируйте окружение через `activate_environment.ps1`, после чего используйте `python -m tools.task_runner ...`.
 
-### **Controls**
-
-**3D View:**
-- **LMB + Drag**: Rotate camera
-- **RMB + Drag**: Pan view
-- **Mouse Wheel**: Zoom
-- **R**: Reset view
-- **Double-Click**: Auto-fit
-
-**Simulation:**
-- **Start**: Begin animation
-- **Stop**: Stop animation
-- **Pause**: Pause/resume
-- **Reset**: Return to initial state
-
-### **Parameters**
-
-**Geometry Panel:**
-- Frame dimensions (wheelbase, height)
-- Lever length
-- Cylinder length
-
-**Modes Panel:**
-- **Amplitude**: 0-0.2m (lever swing)
-- **Frequency**: 0.1-10 Hz (oscillation speed)
-- **Phase**: 0-360° (timing offset)
-- **Per-Wheel Phase**: Individual corner control
-
----
-
-## ?? Key Features
-
-? **Real-time 3D visualization** (Qt Quick 3D + D3D11)
-? **Correct mechanical kinematics** (GeometryBridge)
-? **User-controllable animation** (amplitude, frequency, phase)
-? **4-corner independent suspension** (FL, FR, RL, RR)
-? **Transparent cylinders** (see pistons inside!)
-? **Constant rod length** (realistic constraint)
-
----
-
-## ?? Documentation
-
-| Document | Description |
-|----------|-------------|
-| [Project Overview](docs/PROJECT_OVERVIEW.md) | High-level summary |
-| [Architecture](docs/ARCHITECTURE.md) | System design |
-| [Python?QML API](docs/PYTHON_QML_API.md) | Integration guide |
-| [GeometryBridge](docs/MODULES/GEOMETRY_BRIDGE.md) | Kinematics module |
-| [MainWindow](docs/MODULES/MAIN_WINDOW.md) | UI controller |
-| [Status Report](docs/REPORTS/STATUS_2025_01_05.md) | Current status |
-
----
-
-## ?? Troubleshooting
-
-### **3D scene not visible?**
-- Check console for "rhi: backend: D3D11"
-- Ensure PySide6-Addons installed
-- Try: `pip install --upgrade PySide6 PySide6-Addons`
-
-### **Animation not working?**
-- Click "Start" button
-- Check "isRunning" in console output
-- Verify ModesPanel parameters not zero
-
-### **Piston stuck?**
-- This was a bug, fixed in v2.0.0
-- Pull latest code: `git pull origin master`
-
----
-
-## ?? Testing
-
-```bash
-# Test kinematics
-python test_correct_kinematics.py
-
-# Manual control
-python test_piston_movement.py
-
-# Geometry calculations
-python test_geometry_bridge.py
-```
-
----
-
-## ?? Current Status
-
-**Version:** 2.0.0 (Qt Quick 3D Release)
-**Status:** ? Core Features Complete
-**Next:** Physics integration
-
-**See:** [Status Report](docs/REPORTS/STATUS_2025_01_05.md) for details
-
----
-
-## ?? Contributing
-
-1. Read [Architecture](docs/ARCHITECTURE.md)
-2. Check [Module Docs](docs/MODULES/)
-3. Write tests
-4. Submit PR
-
----
-
-## ?? License
-
-See [LICENSE](LICENSE)
-
----
-
-**Questions?** Check the [full documentation](docs/) first!
+> Эта шпаргалка поддерживается в актуальном состоянии для релиза v4.9.5. Обновляйте её при изменении архитектуры, tooling или путей к ключевым документам.

@@ -18,7 +18,7 @@ from src.ui.panels.graphics import environment_tab as environment_tab_module
 from src.common.logging_widgets import LoggingCheckBox
 from src.ui.panels.graphics.environment_tab import EnvironmentTab
 from src.ui.panels.graphics.effects_tab import EffectsTab
-from src.ui.panels.graphics.panel_graphics_refactored import GraphicsPanel
+from src.ui.panels.graphics.panel_graphics import GraphicsPanel
 from src.ui.panels.graphics.quality_tab import QualityTab
 from src.ui.panels.graphics.scene_tab import SceneTab
 
