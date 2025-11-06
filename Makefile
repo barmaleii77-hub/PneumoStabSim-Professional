@@ -18,7 +18,8 @@ SMOKE_TARGET ?= tests/smoke
 INTEGRATION_TARGET ?= tests/integration/test_main_window_qml.py
 RUN_ARGS ?=
 
-.PHONY: format lint typecheck qml-lint test-local validate-shaders check-shaders check verify smoke integration run \
+.PHONY: format lint typecheck qml-lint test-local test-unit test-integration test-ui analyze-logs \
+validate-shaders check-shaders check verify smoke integration run \
 localization-check \
 autonomous-check autonomous-check-trace trace-launch sanitize cipilot-env \
 install-qt-runtime qt-env-check telemetry-etl profile-phase3 profile-render profile-validate package-all
@@ -130,6 +131,22 @@ typecheck:
 .PHONY: test-local
 test-local:
 	$(PYTHON) -m tools.ci_tasks test
+
+.PHONY: test-unit
+test-unit:
+	$(PYTHON) -m tools.ci_tasks test-unit
+
+.PHONY: test-integration
+test-integration:
+	$(PYTHON) -m tools.ci_tasks test-integration
+
+.PHONY: test-ui
+test-ui:
+	$(PYTHON) -m tools.ci_tasks test-ui
+
+.PHONY: analyze-logs
+analyze-logs:
+	$(PYTHON) -m tools.ci_tasks analyze-logs
 
 validate-shaders:
 	$(PYTHON) tools/validate_shaders.py

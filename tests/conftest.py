@@ -228,7 +228,9 @@ def legacy_gas_state_factory() -> Callable[..., "LegacyGasState"]:
 
     from src.pneumo.gas_state import LegacyGasState
 
-    def _factory(*, pressure: float, volume: float, temperature: float) -> LegacyGasState:
+    def _factory(
+        *, pressure: float, volume: float, temperature: float
+    ) -> LegacyGasState:
         return LegacyGasState(pressure=pressure, volume=volume, temperature=temperature)
 
     return _factory
