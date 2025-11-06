@@ -121,7 +121,7 @@ validate-hdr-orientation:
 	$(PYTHON) tools/graphics/validate_hdr_orientation.py
 
 check: uv-sync
-	$(MAKE) AUTONOMOUS_CHECK_ARGS="$(CHECK_AUTONOMOUS_ARGS)" autonomous-check
+	$(PYTHON) -m tools.ci_tasks verify
 	$(MAKE) check-shaders
 	$(MAKE) validate-hdr-orientation
 	$(MAKE) localization-check

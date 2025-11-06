@@ -19,17 +19,20 @@ from __future__ import annotations
 
 import argparse
 import importlib
+import json
 import os
 import shlex
 import shutil
 import subprocess
 import sys
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Iterable, Sequence
 
 from tools import merge_conflict_scan
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
+QUALITY_REPORT_ROOT = PROJECT_ROOT / "reports" / "quality"
 DEFAULT_LINT_TARGETS: tuple[str, ...] = ("app.py", "src", "tests", "tools")
 MYPY_TARGETS_FILE = "mypy_targets.txt"
 PYTEST_TARGETS_FILE = "pytest_targets.txt"
@@ -39,6 +42,62 @@ MYPY_CONFIG = "mypy.ini"
 
 class TaskError(RuntimeError):
     """Raised when a task cannot be executed successfully."""
+
+
+class QualityRunRecorder:
+    """Track executed commands and persist a machine-readable summary."""
+
+    def __init__(self) -> None:
+        self.entries: list[dict[str, object]] = []
+        self.root_command: str | None = None
+        self.started_at: datetime | None = None
+
+    def start(self, root_command: str) -> None:
+        self.entries = []
+        self.root_command = root_command
+        self.started_at = datetime.now(timezone.utc)
+
+    def ensure_started(self) -> None:
+        if self.started_at is None:
+            self.start("direct-call")
+
+    def record(
+        self,
+        *,
+        name: str,
+        printable_command: str,
+        returncode: int,
+        log_path: Path | None,
+    ) -> None:
+        self.ensure_started()
+        entry: dict[str, object] = {
+            "name": name,
+            "command": printable_command,
+            "returncode": returncode,
+        }
+        if log_path is not None:
+            try:
+                entry["log"] = str(log_path.relative_to(PROJECT_ROOT))
+            except ValueError:
+                entry["log"] = str(log_path)
+        self.entries.append(entry)
+
+    def finalize(self, success: bool) -> None:
+        if self.started_at is None or not self.entries:
+            return
+        QUALITY_REPORT_ROOT.mkdir(parents=True, exist_ok=True)
+        payload = {
+            "command": self.root_command,
+            "success": success,
+            "started_at": self.started_at.isoformat(),
+            "completed_at": datetime.now(timezone.utc).isoformat(),
+            "entries": self.entries,
+        }
+        summary_path = QUALITY_REPORT_ROOT / "verify_status.json"
+        summary_path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
+
+
+RECORDER = QualityRunRecorder()
 
 
 def _ensure_no_merge_conflicts() -> None:
@@ -94,14 +153,71 @@ def _ensure_targets_exist(targets: Iterable[str]) -> list[str]:
     return valid
 
 
-def _run_command(command: Sequence[str]) -> None:
+def _relative_display(path: Path) -> str:
+    try:
+        return str(path.relative_to(PROJECT_ROOT))
+    except ValueError:
+        return str(path)
+
+
+def _run_command(
+    command: Sequence[str],
+    *,
+    task_name: str,
+    log_name: str,
+    append: bool = False,
+    header: str | None = None,
+) -> None:
     printable = " ".join(shlex.quote(arg) for arg in command)
     print(f"[ci_tasks] $ {printable}")
-    completed = subprocess.run(command, check=False)
-    if completed.returncode != 0:
-        raise TaskError(
-            f"Command failed with exit code {completed.returncode}: {printable}"
+
+    QUALITY_REPORT_ROOT.mkdir(parents=True, exist_ok=True)
+    log_path = QUALITY_REPORT_ROOT / log_name
+    file_exists = log_path.exists()
+    mode = "a" if append and file_exists else "w"
+
+    try:
+        process = subprocess.Popen(
+            command,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
         )
+    except FileNotFoundError as exc:  # pragma: no cover - defensive
+        raise TaskError(f"Executable not found for command: {command[0]}") from exc
+
+    assert process.stdout is not None  # for type checkers
+    captured_lines: list[str] = []
+    for line in process.stdout:
+        captured_lines.append(line)
+        print(line, end="")
+
+    returncode = process.wait()
+
+    with log_path.open(mode, encoding="utf-8") as handle:
+        if mode == "w":
+            handle.write(f"# Log captured {datetime.now(timezone.utc).isoformat()}\n")
+        elif file_exists:
+            handle.write("\n")
+        if header:
+            handle.write(header)
+            if not header.endswith("\n"):
+                handle.write("\n")
+        handle.write(f"$ {printable}\n")
+        handle.writelines(captured_lines)
+        handle.write(f"\n[exit code: {returncode}]\n")
+
+    RECORDER.record(
+        name=task_name,
+        printable_command=printable,
+        returncode=returncode,
+        log_path=log_path,
+    )
+
+    if returncode != 0:
+        raise TaskError(f"Command failed with exit code {returncode}: {printable}")
 
 
 def task_lint() -> None:
@@ -112,8 +228,8 @@ def task_lint() -> None:
     format_cmd = [sys.executable, "-m", "ruff", "format", "--check", *existing_targets]
     check_cmd = [sys.executable, "-m", "ruff", "check", *existing_targets]
 
-    _run_command(format_cmd)
-    _run_command(check_cmd)
+    _run_command(format_cmd, task_name="ruff-format", log_name="ruff_format.log")
+    _run_command(check_cmd, task_name="ruff-check", log_name="ruff_check.log")
 
 
 def task_typecheck() -> None:
@@ -136,7 +252,7 @@ def task_typecheck() -> None:
         str(PROJECT_ROOT / MYPY_CONFIG),
         *targets,
     ]
-    _run_command(command)
+    _run_command(command, task_name="mypy", log_name="mypy.log")
 
 
 def _resolve_qml_linter() -> tuple[str, ...]:
@@ -227,7 +343,7 @@ def task_test() -> None:
     os.environ.setdefault("PYTEST_DISABLE_PLUGIN_AUTOLOAD", "1")
 
     command = [sys.executable, "-m", "pytest", *env_flags, *targets]
-    _run_command(command)
+    _run_command(command, task_name="pytest", log_name="pytest.log")
 
 
 def task_qml_lint() -> None:
@@ -238,7 +354,15 @@ def task_qml_lint() -> None:
         return
 
     for target in targets:
-        _run_command([*linter_command, str(target)])
+        relative = _relative_display(target)
+        header = f"## Target: {relative}\n"
+        _run_command(
+            [*linter_command, str(target)],
+            task_name=f"qmllint:{relative}",
+            log_name="qmllint.log",
+            append=True,
+            header=header,
+        )
 
 
 def task_verify() -> None:
@@ -280,12 +404,26 @@ def main(argv: Sequence[str] | None = None) -> None:
     }
 
     task = task_map[args.command]
+
+    RECORDER.start(args.command)
+    exit_code = 0
+    unexpected_error: BaseException | None = None
     try:
         _ensure_no_merge_conflicts()
         task()
     except TaskError as exc:
         print(f"[ci_tasks] ERROR: {exc}", file=sys.stderr)
-        raise SystemExit(1) from exc
+        exit_code = 1
+    except BaseException as exc:  # pragma: no cover - defensive safety net
+        unexpected_error = exc
+        exit_code = 1
+    finally:
+        RECORDER.finalize(exit_code == 0)
+
+    if unexpected_error is not None:
+        raise unexpected_error
+    if exit_code != 0:
+        raise SystemExit(exit_code)
 
 
 if __name__ == "__main__":
