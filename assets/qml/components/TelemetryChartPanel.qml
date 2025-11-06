@@ -506,7 +506,7 @@ Item {
     }
 
     function handleSample(sample) {
-        if (!sample || !root.panelExpanded)
+        if (!sample)
             return
         if (sample.latestTimestamp !== undefined)
             root.latestTimestamp = Number(sample.latestTimestamp)
@@ -529,6 +529,8 @@ Item {
             root.seriesBuffers[metricId] = buffer
             updatedMetrics.push(metricId)
         }
+        if (!root.panelExpanded)
+            return
         for (var i = 0; i < updatedMetrics.length; ++i)
             root.updateSeries(updatedMetrics[i])
         root.updateAxes()
@@ -625,5 +627,10 @@ Item {
         root.syncSelectionFromBridge()
         root.updateAxes()
         root.updateValueAxis()
+    }
+
+    onPanelExpandedChanged: {
+        if (root.panelExpanded)
+            root.refreshSeriesFromBridge()
     }
 }
