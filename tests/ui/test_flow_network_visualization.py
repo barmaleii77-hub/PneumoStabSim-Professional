@@ -14,7 +14,7 @@ pytest.importorskip(
     exc_type=ImportError,
 )
 
-from PySide6.QtCore import QUrl
+from PySide6.QtCore import QObject, QUrl
 from PySide6.QtQml import QQmlComponent, QQmlEngine
 
 os.environ.setdefault("QML_XHR_ALLOW_FILE_READ", "1")
@@ -68,6 +68,19 @@ def test_flow_network_exposes_scaled_flow_properties(qapp) -> None:
         assert pytest.approx(root.property("reliefFlowCeiling"), rel=1e-6) == 0.2
         assert root._lineDirection("b1") == "exhaust"
         assert 0 < root._lineSpeedHint("a1") <= 1.0
+
+        arrow_a1 = root.findChild(QObject, "arrowA1")
+        assert arrow_a1 is not None
+        assert arrow_a1.property("visible") is True
+        assert pytest.approx(
+            arrow_a1.property("animationSpeedFactor"), rel=1e-6
+        ) == pytest.approx(root._lineSpeedHint("a1"), rel=1e-6)
+        assert arrow_a1.property("pulseCount") > 0
+
+        relief_min = root.findChild(QObject, "reliefMin")
+        assert relief_min is not None
+        assert relief_min.property("active") is True
+        assert pytest.approx(relief_min.property("intensity"), rel=1e-6) == 0.25
 
         root.setProperty("flowData", {})
         qapp.processEvents()
