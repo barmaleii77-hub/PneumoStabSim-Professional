@@ -53,6 +53,7 @@ from src.pneumo.network import GasNetwork
 from src.pneumo.thermo import PolytropicParameters
 from src.road.engine import RoadInput, create_road_input_from_preset
 from src.road.scenarios import get_preset_by_name
+from config.constants import get_pneumo_relief_thresholds
 from src.common.units import KELVIN_0C, PA_ATM, T_AMBIENT
 from src.app.config_defaults import create_default_system_configuration
 from src.runtime.steps import (
@@ -405,14 +406,15 @@ class PhysicsWorker(QObject):
             leak_coefficient = _resolve_positive("leak_coefficient")
             leak_reference_area = _resolve_positive("leak_reference_area")
 
+            relief_defaults = get_pneumo_relief_thresholds()
             relief_min_threshold = _get_pressure_setting(
-                "relief_min_pressure", 1.05 * PA_ATM
+                "relief_min_pressure", float(relief_defaults["min"])
             )
             relief_stiff_threshold = _get_pressure_setting(
-                "relief_stiff_pressure", 1.5 * PA_ATM
+                "relief_stiff_pressure", float(relief_defaults["stiff"])
             )
             relief_safety_threshold = _get_pressure_setting(
-                "relief_safety_pressure", 2.0 * PA_ATM
+                "relief_safety_pressure", float(relief_defaults["safety"])
             )
 
             receiver_state = ReceiverState(

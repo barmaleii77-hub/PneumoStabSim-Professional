@@ -2132,6 +2132,18 @@
         "total_time_s": {
           "title": "Total Time S",
           "type": "number"
+        },
+        "relief_min_threshold_pa": {
+          "title": "Relief Min Threshold Pa",
+          "type": "number"
+        },
+        "relief_stiff_threshold_pa": {
+          "title": "Relief Stiff Threshold Pa",
+          "type": "number"
+        },
+        "relief_safety_threshold_pa": {
+          "title": "Relief Safety Threshold Pa",
+          "type": "number"
         }
       },
       "required": [
@@ -2141,7 +2153,10 @@
         "tank_volume_mode",
         "thermo_mode",
         "time_step_s",
-        "total_time_s"
+        "total_time_s",
+        "relief_min_threshold_pa",
+        "relief_stiff_threshold_pa",
+        "relief_safety_threshold_pa"
       ],
       "title": "PneumoGasConstants",
       "type": "object"
@@ -2195,11 +2210,21 @@
         "equivalent_diameter_m": {
           "title": "Equivalent Diameter M",
           "type": "number"
+        },
+        "relief_min_orifice_diameter_m": {
+          "title": "Relief Min Orifice Diameter M",
+          "type": "number"
+        },
+        "relief_stiff_orifice_diameter_m": {
+          "title": "Relief Stiff Orifice Diameter M",
+          "type": "number"
         }
       },
       "required": [
         "delta_open_pa",
-        "equivalent_diameter_m"
+        "equivalent_diameter_m",
+        "relief_min_orifice_diameter_m",
+        "relief_stiff_orifice_diameter_m"
       ],
       "title": "PneumoValveConstants",
       "type": "object"
