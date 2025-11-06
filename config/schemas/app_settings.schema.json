@@ -570,6 +570,10 @@
           "title": "Color Adjustments Enabled",
           "type": "boolean"
         },
+        "color_adjustments_active": {
+          "title": "Color Adjustments Active",
+          "type": "boolean"
+        },
         "adjustment_brightness": {
           "title": "Adjustment Brightness",
           "type": "number"
