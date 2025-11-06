@@ -31,15 +31,15 @@ Node {
     })
     property vector3d masterOffset: Qt.vector3d(0, 0.28, 0)
 
-    property real lineFlowCeiling: _lineMaxFlow()
-    property real reliefFlowCeiling: _reliefMaxFlow()
+    property real lineFlowCeiling: _resolveLineCeiling()
+    property real reliefFlowCeiling: _resolveReliefCeiling()
     property bool hasFlowData: !_isEmpty(asObject(flowData))
 
     visible: hasFlowData
 
     onFlowDataChanged: {
-        lineFlowCeiling = _lineMaxFlow()
-        reliefFlowCeiling = _reliefMaxFlow()
+        lineFlowCeiling = _resolveLineCeiling()
+        reliefFlowCeiling = _resolveReliefCeiling()
     }
 
     function asObject(value) {
@@ -86,6 +86,37 @@ Node {
         if (entry.netFlow !== undefined)
             return Number(entry.netFlow)
         return 0.0
+    }
+
+    function _lineIntensity(key) {
+        var entry = _lineEntry(key)
+        if (entry.intensity !== undefined) {
+            var value = Number(entry.intensity)
+            if (isFinite(value))
+                return Math.abs(value)
+        }
+        return Math.abs(Number(_netFlow(key)))
+    }
+
+    function _lineDirection(key) {
+        var entry = _lineEntry(key)
+        if (typeof entry.direction === "string")
+            return entry.direction
+        var net = Number(_netFlow(key))
+        return net >= 0 ? "intake" : "exhaust"
+    }
+
+    function _lineSpeedHint(key) {
+        var entry = _lineEntry(key)
+        if (entry.animationSpeed !== undefined) {
+            var speed = Number(entry.animationSpeed)
+            if (isFinite(speed))
+                return Math.max(0.0, Math.min(1.0, speed))
+        }
+        var ceiling = lineFlowCeiling
+        if (!(ceiling > 0))
+            return 0.0
+        return Math.min(_lineIntensity(key) / ceiling, 1.0)
     }
 
     function _lineValveOpen(key) {
@@ -201,6 +232,26 @@ Node {
         return Math.max(maxMagnitude, defaultMaxReliefFlow)
     }
 
+    function _resolveLineCeiling() {
+        var data = asObject(flowData)
+        if (data && data.maxLineIntensity !== undefined) {
+            var value = Number(data.maxLineIntensity)
+            if (isFinite(value) && value > 0)
+                return value
+        }
+        return _lineMaxFlow()
+    }
+
+    function _resolveReliefCeiling() {
+        var data = asObject(flowData)
+        if (data && data.maxReliefIntensity !== undefined) {
+            var value = Number(data.maxReliefIntensity)
+            if (isFinite(value) && value > 0)
+                return value
+        }
+        return _reliefMaxFlow()
+    }
+
     function _reliefPosition(key) {
         var offsets = reliefOffsets[key]
         var tank = _tankAnchor()
@@ -242,13 +293,17 @@ Node {
         radiusM: root.arrowRadiusM
         travelDistanceM: root.travelDistanceM
         flowValue: root._netFlow("a1")
+        flowIntensity: root._lineIntensity("a1")
         maxFlow: root.lineFlowCeiling
+        maxIntensity: root.lineFlowCeiling
+        flowDirection: root._lineDirection("a1")
         valveOpen: root._lineValveOpen("a1")
         orientationEuler: root._orientationForLine("a1")
         intakeColor: root.intakeColor
         exhaustColor: root.exhaustColor
         inactiveColor: root.inactiveColor
         lineLabel: "A1"
+        animationSpeedFactor: root._lineSpeedHint("a1")
     }
 
     FlowArrow {
@@ -260,13 +315,17 @@ Node {
         radiusM: root.arrowRadiusM
         travelDistanceM: root.travelDistanceM
         flowValue: root._netFlow("b1")
+        flowIntensity: root._lineIntensity("b1")
         maxFlow: root.lineFlowCeiling
+        maxIntensity: root.lineFlowCeiling
+        flowDirection: root._lineDirection("b1")
         valveOpen: root._lineValveOpen("b1")
         orientationEuler: root._orientationForLine("b1")
         intakeColor: root.intakeColor
         exhaustColor: root.exhaustColor
         inactiveColor: root.inactiveColor
         lineLabel: "B1"
+        animationSpeedFactor: root._lineSpeedHint("b1")
     }
 
     FlowArrow {
@@ -278,13 +337,17 @@ Node {
         radiusM: root.arrowRadiusM
         travelDistanceM: root.travelDistanceM
         flowValue: root._netFlow("a2")
+        flowIntensity: root._lineIntensity("a2")
         maxFlow: root.lineFlowCeiling
+        maxIntensity: root.lineFlowCeiling
+        flowDirection: root._lineDirection("a2")
         valveOpen: root._lineValveOpen("a2")
         orientationEuler: root._orientationForLine("a2")
         intakeColor: root.intakeColor
         exhaustColor: root.exhaustColor
         inactiveColor: root.inactiveColor
         lineLabel: "A2"
+        animationSpeedFactor: root._lineSpeedHint("a2")
     }
 
     FlowArrow {
@@ -296,13 +359,17 @@ Node {
         radiusM: root.arrowRadiusM
         travelDistanceM: root.travelDistanceM
         flowValue: root._netFlow("b2")
+        flowIntensity: root._lineIntensity("b2")
         maxFlow: root.lineFlowCeiling
+        maxIntensity: root.lineFlowCeiling
+        flowDirection: root._lineDirection("b2")
         valveOpen: root._lineValveOpen("b2")
         orientationEuler: root._orientationForLine("b2")
         intakeColor: root.intakeColor
         exhaustColor: root.exhaustColor
         inactiveColor: root.inactiveColor
         lineLabel: "B2"
+        animationSpeedFactor: root._lineSpeedHint("b2")
     }
 
     ValveIndicator {

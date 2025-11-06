@@ -241,6 +241,10 @@ class PressureScaleWidget(QWidget):
         # Overdrive values (for mini-bars)
         self.overdrive_values = {"min": 0.0, "stiff": 0.0, "safety": 0.0}
 
+        # Relief valve flow telemetry
+        self.relief_flows = {"min": 0.0, "stiff": 0.0, "safety": 0.0}
+        self.relief_flow_peaks = {"min": 1.0, "stiff": 1.0, "safety": 1.0}
+
         # Visual parameters
         self.setMinimumWidth(80)
         self.setMaximumWidth(120)
@@ -315,6 +319,17 @@ class PressureScaleWidget(QWidget):
             "stiff": snapshot.tank.relief_stiff_open,
             "safety": snapshot.tank.relief_safety_open,
         }
+
+        relief_samples = {
+            "min": float(getattr(snapshot.tank, "flow_min", 0.0)),
+            "stiff": float(getattr(snapshot.tank, "flow_stiff", 0.0)),
+            "safety": float(getattr(snapshot.tank, "flow_safety", 0.0)),
+        }
+        for key, value in relief_samples.items():
+            magnitude = abs(float(value))
+            self.relief_flows[key] = float(value)
+            peak = max(self.relief_flow_peaks.get(key, 1.0), magnitude, 1e-6)
+            self.relief_flow_peaks[key] = peak
 
         # Calculate overdrive values (how much above setpoint)
         self.overdrive_values = {
@@ -394,11 +409,20 @@ class PressureScaleWidget(QWidget):
             is_open = bool(self.valve_states.get(key, False))
             self._draw_valve_band(
                 painter,
+                key,
                 threshold,
                 color,
                 scale_x,
                 scale_width,
                 intensity,
+                is_open,
+            )
+            self._draw_compression_scale(
+                painter,
+                key,
+                threshold,
+                color,
+                scale_x,
                 is_open,
             )
             self._draw_marker(
@@ -469,6 +493,7 @@ class PressureScaleWidget(QWidget):
     def _draw_valve_band(
         self,
         painter: QPainter,
+        key: str,
         threshold: float,
         color: QColor,
         x: int,
@@ -479,7 +504,10 @@ class PressureScaleWidget(QWidget):
         """Render a translucent band showing valve activity."""
 
         clamped = max(0.0, min(1.0, float(intensity)))
-        effective = clamped if clamped > 0.0 else (0.2 if is_open else 0.0)
+        flow_component = self._flow_ratio(key)
+        effective = max(clamped, flow_component)
+        if effective <= 0.0 and is_open:
+            effective = 0.2
         y = self.map_pressure_to_height(threshold)
         band_width = int(12 + 22 * effective)
         rect_x = x - band_width - 10
@@ -501,12 +529,82 @@ class PressureScaleWidget(QWidget):
             painter.setPen(QPen(glow, 2))
             painter.drawRoundedRect(rect_x - 2, int(y) - 9, rect_width + 4, 18, 6, 6)
 
+    def _draw_compression_scale(
+        self,
+        painter: QPainter,
+        key: str,
+        threshold: float,
+        color: QColor,
+        scale_x: int,
+        is_open: bool,
+    ) -> None:
+        """Draw a small gauge showing relief valve compression/flow."""
+
+        ratio = self._flow_ratio(key)
+        if ratio <= 0.0 and not is_open:
+            return
+
+        base_x = scale_x - 28
+        bar_width = 14
+        bar_height = 44
+        y = int(self.map_pressure_to_height(threshold))
+        top = y - bar_height // 2
+
+        painter.save()
+        try:
+            background = QColor(35, 35, 40, 180)
+            painter.setPen(QPen(QColor(80, 80, 90, 200), 1))
+            painter.setBrush(QBrush(background))
+            painter.drawRoundedRect(base_x, top, bar_width, bar_height, 3, 3)
+
+            fill_height = int(bar_height * max(0.0, min(1.0, ratio)))
+            if fill_height > 0:
+                direction = 1 if self.relief_flows.get(key, 0.0) >= 0 else -1
+                fill_color = QColor(color)
+                alpha = 90 + int(120 * ratio)
+                if is_open:
+                    alpha = 140 + int(90 * ratio)
+                fill_color.setAlpha(max(60, min(240, alpha)))
+                painter.setBrush(QBrush(fill_color))
+                painter.setPen(Qt.PenStyle.NoPen)
+                if direction >= 0:
+                    fill_top = top + (bar_height - fill_height)
+                else:
+                    fill_top = top
+                painter.drawRoundedRect(
+                    base_x + 2,
+                    fill_top,
+                    bar_width - 4,
+                    fill_height,
+                    2,
+                    2,
+                )
+
+            painter.setPen(QPen(QColor(200, 200, 210, 180), 1))
+            arrow_x = base_x - 6
+            arrow_y = y
+            if self.relief_flows.get(key, 0.0) >= 0:
+                painter.drawLine(arrow_x, arrow_y, arrow_x + 6, arrow_y - 5)
+                painter.drawLine(arrow_x, arrow_y, arrow_x + 6, arrow_y + 5)
+            else:
+                painter.drawLine(arrow_x + 6, arrow_y - 5, arrow_x, arrow_y)
+                painter.drawLine(arrow_x + 6, arrow_y + 5, arrow_x, arrow_y)
+        finally:
+            painter.restore()
+
     def _valve_intensity(self, key: str, threshold: float) -> float:
         """Return a 0..1 ratio representing valve overdrive."""
 
         overdrive = float(self.overdrive_values.get(key, 0.0))
         reference = max(1.0, abs(threshold) * 0.25)
         return float(np.clip(overdrive / reference, 0.0, 1.0))
+
+    def _flow_ratio(self, key: str) -> float:
+        """Return normalised flow magnitude for a relief valve."""
+
+        magnitude = abs(float(self.relief_flows.get(key, 0.0)))
+        peak = max(1e-6, float(self.relief_flow_peaks.get(key, 1.0)))
+        return float(np.clip(magnitude / peak, 0.0, 1.0))
 
 
 class TankOverlayHUD:
