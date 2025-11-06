@@ -18,6 +18,9 @@ call fix_terminal.bat 2>nul || (
 
 echo.
 
+rem Force OpenGL RHI backend for consistent shader feature set
+set QSG_RHI_BACKEND=opengl
+
 rem Check if venv exists and works
 if not exist "venv\Scripts\python.exe" (
     echo Virtual environment not found. Setting up automatically...
@@ -53,7 +56,6 @@ if not exist "venv\Scripts\python.exe" (
 
     rem Set critical environment variables
     set PYTHONPATH=%CD%;%CD%\src
-    set QSG_RHI_BACKEND=opengl
     set QT_LOGGING_RULES=js.debug=true;qt.qml.debug=true
 
     rem Enhanced encoding settings (don't set PYTHONUTF8 for Python 3.13)

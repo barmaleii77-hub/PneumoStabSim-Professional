@@ -113,7 +113,7 @@ def configure_qt_environment() -> None:
     os.environ.setdefault("PSS_DIAG", "1")
 
     if backend.lower() == "opengl":
-        os.environ.setdefault("QSG_OPENGL_VERSION", "4.5")
+        os.environ.setdefault("QSG_OPENGL_VERSION", "3.3")
         os.environ.setdefault("QT_OPENGL", "desktop")
 
     if sys.platform.startswith("linux") and not os.environ.get("DISPLAY"):
