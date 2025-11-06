@@ -12,9 +12,9 @@
 
 ### Цветокоррекция ExtendedSceneEnvironment
 
-- `SceneEnvironmentController.qml` теперь подхватывает настройки `color_adjustments_enabled`, `adjustment_brightness`, `adjustment_contrast`, `adjustment_saturation` из JSON и вычисляет флаг `colorAdjustmentsHasOverrides`, синхронизируя его с корневым `main.qml` для диагностики UI. 【F:assets/qml/effects/SceneEnvironmentController.qml†L198-L240】【F:assets/qml/main.qml†L114-L122】
-- В `GraphicsPanel` добавлен отдельный переключатель «Цветокоррекция», который синхронизирован с группой слайдеров на вкладке эффектов и проксирует сигнал `effects_changed`, чтобы настройки QML и JSON сохранялись консистентно. 【F:src/ui/panels/graphics/panel_graphics_refactored.py†L108-L214】
-- Автотесты покрывают новую синхронизацию: проверяется взаимное обновление чекбоксов и корректная работа кнопок пресетов (`reset/save/export`), включая сохранение текущего состояния и экспорт в `reports/graphics`. 【F:tests/ui/test_graphics_scene_quality_tabs.py†L129-L207】
+- `SceneEnvironmentController.qml` теперь экспонирует пару свойств `colorAdjustmentsEnabled` и `colorAdjustmentsActive` вместе с числовыми коэффициентами (`adjustment_brightness`, `adjustment_contrast`, `adjustment_saturation`), а также флаг `colorAdjustmentsHasOverrides`; значения синхронизируются с `main.qml`, что исключает предупреждения Qt об отсутствующих свойствах. 【F:assets/qml/effects/SceneEnvironmentController.qml†L198-L266】【F:assets/qml/main.qml†L96-L140】
+- В `GraphicsPanel` добавлен отдельный переключатель «Цветокоррекция», который публикует состояние и в `color_adjustments_enabled`, и в `color_adjustments_active`, чтобы QML контроллер и JSON-настройки оставались согласованными. Связанные функции обновления принимают вложенные структуры и ручные payload'ы. 【F:src/ui/panels/graphics/panel_graphics_refactored.py†L78-L215】【F:src/ui/panels/graphics/effects_tab.py†L20-L214】
+- Автотесты покрывают новую синхронизацию: проверяется взаимное обновление чекбоксов, корректная работа кнопок пресетов (`reset/save/export`), экспорт пресета, а также применение предустановок качества без Qt-предупреждений. 【F:tests/ui/test_graphics_scene_quality_tabs.py†L27-L214】【F:tests/integration/test_scene_environment_controller.py†L44-L104】
 
 ### Наследие UFrameScene и что исчезло
 

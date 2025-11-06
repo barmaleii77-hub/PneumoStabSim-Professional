@@ -282,6 +282,7 @@ class GraphicsPanel(QWidget):
 
         payload = dict(self.effects_tab.get_state())
         payload["color_adjustments_enabled"] = checked
+        payload["color_adjustments_active"] = checked
         self._emit_with_logging("effects_changed", payload, "effects")
 
     def _update_color_adjustments_toggle(
@@ -291,11 +292,17 @@ class GraphicsPanel(QWidget):
         if toggle is None or not isinstance(payload, Mapping):
             return
 
-        enabled: Any | None = payload.get("color_adjustments_enabled")
+        enabled: Any | None = payload.get("color_adjustments_active")
+        if enabled is None:
+            enabled = payload.get("color_adjustments_enabled")
         if enabled is None:
             nested = payload.get("color_adjustments")
             if isinstance(nested, Mapping):
-                enabled = nested.get("enabled")
+                enabled = (
+                    nested.get("active")
+                    if "active" in nested
+                    else nested.get("enabled")
+                )
 
         if enabled is None:
             return

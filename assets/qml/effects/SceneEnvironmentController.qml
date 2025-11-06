@@ -220,20 +220,44 @@ ExtendedSceneEnvironment {
     property alias internalVignetteStrength: root.vignetteStrength
     property alias vignetteRadiusValue: root.vignetteRadius
 
-    colorAdjustmentsEnabled: effectsBoolDefault("colorAdjustmentsEnabled", "color_adjustments_enabled", true)
-    adjustmentBrightness: effectsNumberDefault("adjustmentBrightness", "adjustment_brightness", 0.0)
-    adjustmentContrast: effectsNumberDefault("adjustmentContrast", "adjustment_contrast", 0.0)
-    adjustmentSaturation: effectsNumberDefault("adjustmentSaturation", "adjustment_saturation", 0.0)
+    property bool colorAdjustmentsEnabled: effectsBoolDefault(
+        "colorAdjustmentsEnabled",
+        "color_adjustments_enabled",
+        true
+    )
+    property bool colorAdjustmentsActive: colorAdjustmentsEnabled
+    property real adjustmentBrightness: effectsNumberDefault(
+        "adjustmentBrightness",
+        "adjustment_brightness",
+        0.0
+    )
+    property real adjustmentContrast: effectsNumberDefault(
+        "adjustmentContrast",
+        "adjustment_contrast",
+        0.0
+    )
+    property real adjustmentSaturation: effectsNumberDefault(
+        "adjustmentSaturation",
+        "adjustment_saturation",
+        0.0
+    )
     readonly property bool colorAdjustmentsHasOverrides: (Math.abs(adjustmentBrightness) > 0.0001)
             || (Math.abs(adjustmentContrast) > 0.0001)
             || (Math.abs(adjustmentSaturation) > 0.0001)
 
     function _syncColorAdjustmentFlags() {
         mirrorHostProperty("colorAdjustmentsHasOverrides", colorAdjustmentsHasOverrides)
+        mirrorHostProperty("colorAdjustmentsActive", colorAdjustmentsActive)
     }
 
     onColorAdjustmentsEnabledChanged: {
-        mirrorHostProperty("colorAdjustmentsActive", colorAdjustmentsEnabled)
+        if (colorAdjustmentsActive !== colorAdjustmentsEnabled)
+            colorAdjustmentsActive = colorAdjustmentsEnabled
+        _syncColorAdjustmentFlags()
+    }
+    onColorAdjustmentsActiveChanged: {
+        if (colorAdjustmentsEnabled !== colorAdjustmentsActive)
+            colorAdjustmentsEnabled = colorAdjustmentsActive
         _syncColorAdjustmentFlags()
     }
     onAdjustmentBrightnessChanged: {
@@ -678,13 +702,10 @@ ExtendedSceneEnvironment {
             try {
                 if (colorAdjustmentsEnabled !== enabled)
                     colorAdjustmentsEnabled = enabled
+                else if (colorAdjustmentsActive !== enabled)
+                    colorAdjustmentsActive = enabled
             } catch (error) {
                 console.warn("⚠️ SceneEnvironmentController: colorAdjustmentsEnabled assignment failed", error)
-            }
-            try {
-                mirrorHostProperty("colorAdjustmentsActive", enabled)
-            } catch (error) {
-                console.warn("⚠️ SceneEnvironmentController: mirror colorAdjustmentsActive failed", error)
             }
             try {
                 _syncColorAdjustmentFlags()
@@ -947,6 +968,9 @@ ExtendedSceneEnvironment {
             var nestedSaturation = numberFromKeys(colorSection, "saturation", "saturation")
             assignColorAdjustment("adjustmentSaturation", nestedSaturation)
         }
+
+        var activeValue = boolFromKeys(params, "colorAdjustmentsActive", "color_adjustments_active")
+        assignColorAdjustmentsEnabled(activeValue)
 
         var enabledValue = boolFromKeys(params, "colorAdjustmentsEnabled", "color_adjustments_enabled")
         assignColorAdjustmentsEnabled(enabledValue)

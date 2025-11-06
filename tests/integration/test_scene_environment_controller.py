@@ -111,6 +111,28 @@ def test_scene_environment_controller_applies_initial_defaults(qapp, settings_ma
             assert bool(root.property("tonemapActive")) == bool(
                 effects_defaults["tonemap_enabled"]
             )
+        if "color_adjustments_enabled" in effects_defaults:
+            assert bool(root.property("colorAdjustmentsEnabled")) == bool(
+                effects_defaults["color_adjustments_enabled"]
+            )
+            assert bool(root.property("colorAdjustmentsActive")) == bool(
+                effects_defaults["color_adjustments_enabled"]
+            )
+        if "adjustment_brightness" in effects_defaults:
+            assert root.property("adjustmentBrightness") == pytest.approx(
+                effects_defaults["adjustment_brightness"],
+                rel=1e-6,
+            )
+        if "adjustment_contrast" in effects_defaults:
+            assert root.property("adjustmentContrast") == pytest.approx(
+                effects_defaults["adjustment_contrast"],
+                rel=1e-6,
+            )
+        if "adjustment_saturation" in effects_defaults:
+            assert root.property("adjustmentSaturation") == pytest.approx(
+                effects_defaults["adjustment_saturation"],
+                rel=1e-6,
+            )
     finally:
         root.deleteLater()
         engine.collectGarbage()

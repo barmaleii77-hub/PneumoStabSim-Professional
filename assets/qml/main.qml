@@ -116,6 +116,7 @@ Item {
     property real vignetteStrengthValue: 0.35
     property real vignetteRadiusValue: 0.5
 
+    property bool colorAdjustmentsEnabled: true
     property bool colorAdjustmentsActive: true
     property bool colorAdjustmentsHasOverrides: false
     property real adjustmentBrightness: 0.0
@@ -205,7 +206,8 @@ Item {
         vignetteStrength: root.vignetteStrengthValue
         vignetteRadius: root.vignetteRadiusValue
 
-        colorAdjustmentsEnabled: root.colorAdjustmentsActive
+        colorAdjustmentsEnabled: root.colorAdjustmentsEnabled
+        colorAdjustmentsActive: root.colorAdjustmentsActive
         adjustmentBrightness: root.adjustmentBrightness
         adjustmentContrast: root.adjustmentContrast
         adjustmentSaturation: root.adjustmentSaturation

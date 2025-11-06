@@ -447,6 +447,9 @@ class EffectsTab(QWidget):
             else:
                 value = self._state.get(state_key)
             state[state_key] = self._normalise_value(state_key, value)
+        if "color_adjustments_enabled" in state:
+            active_value = bool(state.get("color_adjustments_active", state["color_adjustments_enabled"]))
+            state["color_adjustments_active"] = active_value
         return state
 
     def set_state(self, state: Dict[str, Any]) -> None:
@@ -462,7 +465,13 @@ class EffectsTab(QWidget):
                 if state_key not in state:
                     continue
                 widget = self._controls.get(control_key)
-                value = state[state_key]
+                if (
+                    control_key == "color.enabled"
+                    and "color_adjustments_active" in state
+                ):
+                    value = state["color_adjustments_active"]
+                else:
+                    value = state[state_key]
                 if isinstance(widget, QCheckBox):
                     widget.setChecked(bool(value))
                 elif isinstance(widget, LabeledSlider):
