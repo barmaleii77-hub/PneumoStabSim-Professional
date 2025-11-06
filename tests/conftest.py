@@ -354,28 +354,6 @@ def geometry_bridge(sample_geometry_params):
     )
 
 
-@pytest.fixture
-def modes_panel(qapp, qtbot):
-    """Provide a fully wired ModesPanel widget for UI interaction tests."""
-
-    pytest.importorskip(
-        "PySide6.QtWidgets",
-        reason="PySide6 widgets are required for ModesPanel tests",
-        exc_type=ImportError,
-    )
-    from src.ui.panels.modes.panel_modes_refactored import ModesPanel
-
-    panel = ModesPanel()
-    qtbot.addWidget(panel)
-    panel.resize(900, 600)
-    panel.show()
-    qtbot.wait(50)
-
-    yield panel
-
-    panel.deleteLater()
-
-
 # Markers for organizing tests
 def pytest_configure(config):
     """Configure custom markers"""

@@ -12,7 +12,19 @@ NUMERIC_SIMULATION_KEYS: Tuple[str, ...] = (
     "max_frame_time",
 )
 
-NUMERIC_PNEUMATIC_KEYS: Tuple[str, ...] = ("receiver_volume",)
+NUMERIC_PNEUMATIC_KEYS: Tuple[str, ...] = (
+    "receiver_volume",
+    "cv_atmo_dp",
+    "cv_tank_dp",
+    "cv_atmo_dia",
+    "cv_tank_dia",
+    "relief_min_pressure",
+    "relief_stiff_pressure",
+    "relief_safety_pressure",
+    "throttle_min_dia",
+    "throttle_stiff_dia",
+    "atmo_temp",
+)
 
 BOOL_PNEUMATIC_KEYS: Tuple[str, ...] = ("master_isolation_open",)
 

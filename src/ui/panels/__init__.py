@@ -24,6 +24,11 @@ from src.ui._lazy_module_utils import should_suppress_wrapped
 
 __all__ = ["GeometryPanel", "PneumoPanel", "ModesPanel", "RoadPanel", "GraphicsPanel"]
 
+_MODES_PANEL_DISABLED_MESSAGE = (
+    "ModesPanel widgets have been replaced by the QML SimulationPanel. "
+    "Use the QML interface exposed in assets/qml/panels/SimulationPanel.qml instead."
+)
+
 _EXPORTS = {
     "GeometryPanel": ("panel_geometry", "GeometryPanel"),
     "PneumoPanel": ("panel_pneumo", "PneumoPanel"),
@@ -47,6 +52,17 @@ def __getattr__(name: str) -> Any:
         if should_suppress_wrapped():
             raise AttributeError(name)
         return sys.modules[__name__]
+
+    if name == "ModesPanel":
+
+        class _ModesPanelPlaceholder:
+            def __init__(
+                self, *args: Any, **kwargs: Any
+            ) -> None:  # pragma: no cover - guard rail
+                raise RuntimeError(_MODES_PANEL_DISABLED_MESSAGE)
+
+        globals()[name] = _ModesPanelPlaceholder
+        return _ModesPanelPlaceholder
 
     try:
         module_name, attribute = _EXPORTS[name]
