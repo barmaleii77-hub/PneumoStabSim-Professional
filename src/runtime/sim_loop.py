@@ -53,8 +53,14 @@ from src.pneumo.network import GasNetwork
 from src.pneumo.thermo import PolytropicParameters
 from src.road.engine import RoadInput, create_road_input_from_preset
 from src.road.scenarios import get_preset_by_name
-from src.common.units import KELVIN_0C, PA_ATM, T_AMBIENT, to_gauge_pressure
+from src.common.units import KELVIN_0C, PA_ATM, T_AMBIENT
 from src.app.config_defaults import create_default_system_configuration
+from src.runtime.steps import (
+    PhysicsStepState,
+    compute_kinematics,
+    integrate_body,
+    update_gas_state,
+)
 
 # Settings manager (используем абсолютный импорт, т.к. общий модуль)
 from src.common.settings_manager import get_settings_manager
@@ -754,166 +760,36 @@ class PhysicsWorker(QObject):
         road_inputs = self._get_road_inputs()
         self._last_road_inputs = {k: float(v) for k, v in road_inputs.items()}
 
-        # 2. Update geometry/kinematics
-        lever_angles: Dict[Wheel, float] = {}
-        wheel_key_map = {
-            Wheel.LP: "LF",
-            Wheel.PP: "RF",
-            Wheel.LZ: "LR",
-            Wheel.PZ: "RR",
-        }
-
-        for wheel, key in wheel_key_map.items():
-            excitation = float(road_inputs.get(key, 0.0))
-            cylinder = self.pneumatic_system.cylinders[wheel]
-            lever = cylinder.spec.lever_geom
-            lever_length = max(lever.L_lever, 1e-6)
-            angle = float(np.clip(excitation / lever_length, -0.5, 0.5))
-            lever_angles[wheel] = angle
-
-        self.pneumatic_system.update_system_from_lever_angles(lever_angles)
-
-        for wheel, angle in lever_angles.items():
-            cylinder = self.pneumatic_system.cylinders[wheel]
-            piston_pos = float(cylinder.x)
-            prev_pos = self._prev_piston_positions.get(wheel, 0.0)
-            piston_vel = (
-                (piston_pos - prev_pos) / self.dt_physics
-                if self.dt_physics > 0
-                else 0.0
-            )
-            self._prev_piston_positions[wheel] = piston_pos
-
-            geom = cylinder.spec.geometry
-            rod_x, rod_y = cylinder.spec.lever_geom.rod_joint_pos(angle)
-            wheel_state = self._latest_wheel_states[wheel]
-            wheel_state.lever_angle = angle
-            wheel_state.piston_position = piston_pos
-            wheel_state.piston_velocity = piston_vel
-            wheel_state.vol_head = cylinder.vol_head()
-            wheel_state.vol_rod = cylinder.vol_rod()
-            wheel_state.joint_x = 0.0
-            wheel_state.joint_y = rod_x
-            wheel_state.joint_z = geom.Z_axle + rod_y
-            wheel_state.road_excitation = self._last_road_inputs.get(
-                wheel_key_map[wheel], 0.0
-            )
-
-            wheel_state.stop_head_penetration = cylinder.penetration_head
-            wheel_state.stop_rod_penetration = cylinder.penetration_rod
-            wheel_state.stop_head_engaged = cylinder.penetration_head > 1e-9
-            wheel_state.stop_rod_engaged = cylinder.penetration_rod > 1e-9
-
-            head_pressure = self._get_line_pressure(wheel, Port.HEAD)
-            rod_pressure = self._get_line_pressure(wheel, Port.ROD)
-            head_pressure_gauge = to_gauge_pressure(head_pressure)
-            rod_pressure_gauge = to_gauge_pressure(rod_pressure)
-            area_head = geom.area_head(cylinder.spec.is_front)
-            area_rod = geom.area_rod(cylinder.spec.is_front)
-            wheel_state.force_pneumatic = (
-                head_pressure_gauge * area_head - rod_pressure_gauge * area_rod
-            )
-
-        # 3. Update gas system
-        line_volumes = self.pneumatic_system.get_line_volumes()
-        corrected_volumes: Dict[Line, float] = {}
-        for line_name, volume_info in line_volumes.items():
-            total_volume = float(volume_info.get("total_volume"))
-            penetration_volume = 0.0
-            endpoints = self.pneumatic_system.lines[line_name].endpoints
-            for wheel, port in endpoints:
-                cylinder = self.pneumatic_system.cylinders[wheel]
-                geom = cylinder.spec.geometry
-                if port == Port.HEAD:
-                    penetration = cylinder.penetration_head
-                    if penetration > 0.0:
-                        penetration_volume += (
-                            geom.area_head(cylinder.spec.is_front) * penetration
-                        )
-                else:
-                    penetration = cylinder.penetration_rod
-                    if penetration > 0.0:
-                        penetration_volume += (
-                            geom.area_rod(cylinder.spec.is_front) * penetration
-                        )
-
-            effective_volume = max(total_volume - penetration_volume, 1e-9)
-            corrected_volumes[line_name] = effective_volume
-
-        self.gas_network.master_isolation_open = self.master_isolation_open
-        self.gas_network.update_pressures_with_explicit_volumes(
-            corrected_volumes, self.thermo_mode
+        step_state = PhysicsStepState(
+            dt=self.dt_physics,
+            pneumatic_system=self.pneumatic_system,
+            gas_network=self.gas_network,
+            rigid_body=self.rigid_body,
+            physics_state=self.physics_state,
+            simulation_time=self.simulation_time,
+            master_isolation_open=self.master_isolation_open,
+            thermo_mode=self.thermo_mode,
+            receiver_volume=self.receiver_volume,
+            receiver_mode=self._resolve_receiver_mode(self.receiver_volume_mode),
+            prev_piston_positions=self._prev_piston_positions,
+            wheel_states=self._latest_wheel_states,
+            line_states=self._latest_line_states,
+            tank_state=self._latest_tank_state,
+            last_road_inputs=self._last_road_inputs,
+            latest_frame_accel=self._latest_frame_accel,
+            prev_frame_velocities=self._prev_frame_velocities,
+            performance=self.performance,
+            logger=self.logger,
+            get_line_pressure=self._get_line_pressure,
         )
 
-        receiver_mode = self._resolve_receiver_mode(self.receiver_volume_mode)
-        self.gas_network.tank.mode = receiver_mode
-        if abs(self.gas_network.tank.V - self.receiver_volume) > 1e-9:
-            apply_instant_volume_change(
-                self.gas_network.tank,
-                self.receiver_volume,
-                gamma=self.gas_network.tank.gamma,
-            )
+        compute_kinematics(step_state, road_inputs)
+        update_gas_state(step_state)
+        integrate_body(step_state)
 
-        self.gas_network.apply_valves_and_flows(self.dt_physics, self.logger)
-        self.gas_network.enforce_master_isolation(self.logger)
-
-        for line_name, gas_state in self.gas_network.lines.items():
-            line_state = self._latest_line_states[line_name]
-            line_state.pressure = gas_state.p
-            line_state.temperature = gas_state.T
-            line_state.mass = gas_state.m
-            line_state.volume = gas_state.V_curr
-            pneumo_line = self.pneumatic_system.lines[line_name]
-            try:
-                line_state.cv_atmo_open = pneumo_line.cv_atmo.is_open(
-                    PA_ATM, gas_state.p
-                )
-            except Exception:
-                line_state.cv_atmo_open = False
-            try:
-                line_state.cv_tank_open = pneumo_line.cv_tank.is_open(
-                    gas_state.p, self.gas_network.tank.p
-                )
-            except Exception:
-                line_state.cv_tank_open = False
-            line_state.flow_atmo = 0.0
-            line_state.flow_tank = 0.0
-
-        tank_state = self.gas_network.tank
-        self._latest_tank_state.pressure = tank_state.p
-        self._latest_tank_state.temperature = tank_state.T
-        self._latest_tank_state.mass = tank_state.m
-        self._latest_tank_state.volume = tank_state.V
-
-        # 4. Integrate 3-DOF dynamics
-        if self.rigid_body:
-            try:
-                result = step_dynamics(
-                    y0=self.physics_state,
-                    t0=self.simulation_time,
-                    dt=self.dt_physics,
-                    params=self.rigid_body,
-                    system=self.pneumatic_system,
-                    gas=self.gas_network,
-                    method="Radau",
-                )
-
-                if result.success:
-                    prev_vel = self.physics_state[3:6].copy()
-                    self.physics_state = result.y_final
-                    velocities = self.physics_state[3:6]
-                    if self.dt_physics > 0:
-                        self._latest_frame_accel = (
-                            velocities - prev_vel
-                        ) / self.dt_physics
-                    self._prev_frame_velocities = velocities.copy()
-                else:
-                    self.performance.integration_failures += 1
-                    self.logger.warning(f"Integration failed: {result.message}")
-
-            except Exception as e:
-                self.performance.integration_failures += 1
-                self.logger.error(f"Integration error: {e}")
+        self.physics_state = step_state.physics_state
+        self._latest_frame_accel = step_state.latest_frame_accel
+        self._prev_frame_velocities = step_state.prev_frame_velocities
 
         # Update simulation time and step counter
         self.simulation_time += self.dt_physics
