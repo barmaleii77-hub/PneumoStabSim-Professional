@@ -483,6 +483,7 @@ class QMLBridge:
 
         line_payload: Dict[str, Dict[str, Any]] = {}
         line_flow_network: Dict[str, Dict[str, Any]] = {}
+        max_line_magnitude = 0.0
         for line_enum in Line:
             line_state = getattr(snapshot, "lines", {}).get(line_enum)
             if not line_state:
@@ -496,6 +497,7 @@ class QMLBridge:
             flow_tank = float(getattr(line_state, "flow_tank", 0.0))
             net_flow = flow_atmo - flow_tank
             direction = "intake" if net_flow >= 0.0 else "exhaust"
+            magnitude = abs(net_flow)
             valves_state = {
                 "atmosphereOpen": bool(getattr(line_state, "cv_atmo_open", False)),
                 "tankOpen": bool(getattr(line_state, "cv_tank_open", False)),
@@ -513,6 +515,7 @@ class QMLBridge:
                 "valves": valves_state,
                 "direction": direction,
                 "netFlow": net_flow,
+                "intensity": magnitude,
             }
             line_payload[key] = line_entry
             line_flow_network[key] = {
@@ -522,7 +525,9 @@ class QMLBridge:
                 "netFlow": net_flow,
                 "pressure": pressure,
                 "temperature": temperature,
+                "intensity": magnitude,
             }
+            max_line_magnitude = max(max_line_magnitude, magnitude)
 
         tank_state = getattr(snapshot, "tank", {})
         tank_pressure = float(getattr(tank_state, "pressure", 0.0))
@@ -530,21 +535,30 @@ class QMLBridge:
         relief_min_flow = float(getattr(tank_state, "flow_min", 0.0))
         relief_stiff_flow = float(getattr(tank_state, "flow_stiff", 0.0))
         relief_safety_flow = float(getattr(tank_state, "flow_safety", 0.0))
+        relief_magnitudes = {
+            "min": abs(relief_min_flow),
+            "stiff": abs(relief_stiff_flow),
+            "safety": abs(relief_safety_flow),
+        }
+        max_relief_magnitude = max(relief_magnitudes.values(), default=0.0)
         relief_payload = {
             "min": {
                 "open": bool(getattr(tank_state, "relief_min_open", False)),
                 "flow": relief_min_flow,
-                "intensity": abs(relief_min_flow),
+                "intensity": relief_magnitudes["min"],
+                "direction": "exhaust" if relief_min_flow >= 0 else "intake",
             },
             "stiff": {
                 "open": bool(getattr(tank_state, "relief_stiff_open", False)),
                 "flow": relief_stiff_flow,
-                "intensity": abs(relief_stiff_flow),
+                "intensity": relief_magnitudes["stiff"],
+                "direction": "exhaust" if relief_stiff_flow >= 0 else "intake",
             },
             "safety": {
                 "open": bool(getattr(tank_state, "relief_safety_open", False)),
                 "flow": relief_safety_flow,
-                "intensity": abs(relief_safety_flow),
+                "intensity": relief_magnitudes["safety"],
+                "direction": "exhaust" if relief_safety_flow >= 0 else "intake",
             },
         }
         tank_flow_summary = {
@@ -626,6 +640,8 @@ class QMLBridge:
                     "valves": tank_valves_state,
                 },
                 "masterIsolationOpen": master_isolation_open,
+                "maxLineIntensity": max_line_magnitude,
+                "maxReliefIntensity": max_relief_magnitude,
                 "timestamp": float(getattr(snapshot, "simulation_time", 0.0)),
             },
         }
