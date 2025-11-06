@@ -81,7 +81,9 @@ def _as_relative(path: Path, root: Path) -> str:
         return str(path)
 
 
-def _gather_inputs(inputs: Iterable[Path], *, excludes: set[Path] | None = None) -> list[Path]:
+def _gather_inputs(
+    inputs: Iterable[Path], *, excludes: set[Path] | None = None
+) -> list[Path]:
     seen: set[Path] = set()
     discovered: list[Path] = []
     resolved_excludes: set[Path] = {path.resolve() for path in excludes or set()}
@@ -193,9 +195,7 @@ def _collect_issues(
         if level:
             if level in ERROR_LEVELS:
                 entry_message = message or f"{level.upper()} detected"
-                result.errors.append(
-                    Issue("error", entry_message, artifact, context)
-                )
+                result.errors.append(Issue("error", entry_message, artifact, context))
             elif level in WARNING_LEVELS:
                 entry_message = message or f"{level.upper()} detected"
                 result.warnings.append(
@@ -212,7 +212,9 @@ def _collect_issues(
                 if isinstance(value, str) and value.lower() in PASS_LEVELS:
                     continue
                 lower_key = key.lower()
-                if any(term in lower_key for term in ("violation", "constraint", "limit")):
+                if any(
+                    term in lower_key for term in ("violation", "constraint", "limit")
+                ):
                     human_value = value if isinstance(value, str) else str(value)
                     result.constraint_violations.append(
                         Issue(
@@ -236,7 +238,7 @@ def _collect_issues(
         for index, item in enumerate(data):
             _collect_issues(
                 item,
-                trail=[*trail, f"[{index}]"] ,
+                trail=[*trail, f"[{index}]"],
                 file_path=file_path,
                 result=result,
                 artifact=artifact,
@@ -279,16 +281,10 @@ def _render_markdown(result: AnalysisResult) -> str:
         return "\n".join(lines) + "\n"
 
     sections = ["## Post-test Analysis Report"]
-    sections.append(
-        f"Analyzed **{len(result.analyzed_files)}** JSON artifact(s)."
-    )
+    sections.append(f"Analyzed **{len(result.analyzed_files)}** JSON artifact(s).")
     sections.append("")
-    sections.append(
-        _format_section("Errors", result.errors)
-    )
-    sections.append(
-        _format_section("Warnings", result.warnings)
-    )
+    sections.append(_format_section("Errors", result.errors))
+    sections.append(_format_section("Warnings", result.warnings))
     sections.append(
         _format_section("Physical Constraint Violations", result.constraint_violations)
     )
@@ -364,7 +360,9 @@ def main(argv: list[str] | None = None) -> int:
     excludes = {json_output.resolve()}
     gathered_files = _gather_inputs(input_paths, excludes=excludes)
     if not gathered_files:
-        print("[test-artifact-analyzer] No JSON artifacts discovered; nothing to analyze.")
+        print(
+            "[test-artifact-analyzer] No JSON artifacts discovered; nothing to analyze."
+        )
         gathered_files = []
 
     root = Path(args.artifact_root).resolve()

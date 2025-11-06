@@ -38,6 +38,8 @@ import "../diagnostics/LogBridge.js" as Diagnostics
     readonly property var emptyMaterialsDefaults: emptyDefaultsObject
     property var geometryState: ({})
     property var simulationState: ({})
+    property var threeDState: ({})
+    property var flowTelemetry: ({})
     property bool geometryStateReceived: false
     property bool simulationStateReceived: false
     property int sceneBridgeDispatchCount: 0
@@ -274,7 +276,13 @@ signal animationToggled(bool running)
 
     function applyThreeDUpdates(params) {
         _logBatchEvent("function_called", "applyThreeDUpdates")
-        _storeLastUpdate("threeD", params || {})
+        var normalized = _normaliseState(params)
+        threeDState = normalized
+        var networkSource = null
+        if (normalized && typeof normalized === "object")
+            networkSource = normalized.flowNetwork !== undefined ? normalized.flowNetwork : normalized.flownetwork
+        flowTelemetry = _normaliseState(networkSource)
+        _storeLastUpdate("threeD", normalized)
     }
 
     function apply3DUpdates(params) {
@@ -441,6 +449,8 @@ signal animationToggled(bool running)
     function _resetBridgeState() {
         geometryState = ({})
         simulationState = ({})
+        threeDState = ({})
+        flowTelemetry = ({})
         geometryStateReceived = false
         simulationStateReceived = false
         sceneBridgeDispatchCount = 0
@@ -461,6 +471,19 @@ signal animationToggled(bool running)
         } catch (error) {
             simulationState = ({})
         }
+        try {
+            threeDState = _normaliseState(target.threeD)
+        } catch (error) {
+            threeDState = ({})
+        }
+        var snapshotFlow = ({})
+        try {
+            if (threeDState && typeof threeDState === "object")
+                snapshotFlow = _normaliseState(threeDState.flowNetwork || threeDState.flownetwork)
+        } catch (error) {
+            snapshotFlow = ({})
+        }
+        flowTelemetry = snapshotFlow
         geometryStateReceived = !_isEmptyMap(geometryState)
         simulationStateReceived = !_isEmptyMap(simulationState)
     }

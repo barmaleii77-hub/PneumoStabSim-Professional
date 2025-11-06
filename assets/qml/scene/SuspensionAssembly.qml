@@ -4,6 +4,7 @@ import QtQuick3D 6.10
 import "../components"
 // qmllint disable import
 import "../geometry"
+import "../PneumoStabSim/scene" as PneumoScene
 import "."
 
 /*
@@ -66,6 +67,11 @@ Node {
     // ------------------------------------------------------------------
     property real sceneScaleFactor: 1.0
     property real rodWarningThreshold: 0.001
+
+    // ------------------------------------------------------------------
+    // Flow telemetry (SceneBridge)
+    // ------------------------------------------------------------------
+    property var flowTelemetry: ({})
 
     Component.onCompleted: {
         const hasWorld = worldRoot !== null && worldRoot !== undefined
@@ -385,6 +391,21 @@ Node {
             warningColor: assembly.sharedMaterials.jointRodErrorColor
             warning: rrCorner.rodLengthError > assembly.rodWarningThreshold
         }
+    }
+
+    PneumoScene.FlowNetwork {
+        id: flowNetworkLayer
+        flowData: {
+            var direct = assembly.asObject(assembly.flowTelemetry)
+            if (direct)
+                return direct
+            var parentNode = assembly.parent
+            if (parentNode && parentNode.flowTelemetry !== undefined)
+                return assembly.asObject(parentNode.flowTelemetry) || ({})
+            return ({})
+        }
+        geometryHelper: kinematics
+        sceneScale: assembly.sceneScaleFactor
     }
 
     Component.onCompleted: {

@@ -482,16 +482,96 @@ class QMLBridge:
             piston_positions[corner_key] = piston_position
 
         line_payload: Dict[str, Dict[str, Any]] = {}
+        line_flow_network: Dict[str, Dict[str, Any]] = {}
         for line_enum in Line:
             line_state = getattr(snapshot, "lines", {}).get(line_enum)
             if not line_state:
                 continue
 
             key = line_enum.value.lower()
-            line_payload[key] = {
-                "pressure": float(getattr(line_state, "pressure", 0.0)),
-                "temperature": float(getattr(line_state, "temperature", 0.0)),
-                "mass": float(getattr(line_state, "mass", 0.0)),
+            pressure = float(getattr(line_state, "pressure", 0.0))
+            temperature = float(getattr(line_state, "temperature", 0.0))
+            mass = float(getattr(line_state, "mass", 0.0))
+            flow_atmo = float(getattr(line_state, "flow_atmo", 0.0))
+            flow_tank = float(getattr(line_state, "flow_tank", 0.0))
+            net_flow = flow_atmo - flow_tank
+            direction = "intake" if net_flow >= 0.0 else "exhaust"
+            valves_state = {
+                "atmosphereOpen": bool(getattr(line_state, "cv_atmo_open", False)),
+                "tankOpen": bool(getattr(line_state, "cv_tank_open", False)),
+            }
+            flows_state = {
+                "fromAtmosphere": flow_atmo,
+                "toTank": flow_tank,
+                "net": net_flow,
+            }
+            line_entry = {
+                "pressure": pressure,
+                "temperature": temperature,
+                "mass": mass,
+                "flows": flows_state,
+                "valves": valves_state,
+                "direction": direction,
+                "netFlow": net_flow,
+            }
+            line_payload[key] = line_entry
+            line_flow_network[key] = {
+                "flows": flows_state,
+                "valves": valves_state,
+                "direction": direction,
+                "netFlow": net_flow,
+                "pressure": pressure,
+                "temperature": temperature,
+            }
+
+        tank_state = getattr(snapshot, "tank", {})
+        tank_pressure = float(getattr(tank_state, "pressure", 0.0))
+        tank_temperature = float(getattr(tank_state, "temperature", 0.0))
+        relief_min_flow = float(getattr(tank_state, "flow_min", 0.0))
+        relief_stiff_flow = float(getattr(tank_state, "flow_stiff", 0.0))
+        relief_safety_flow = float(getattr(tank_state, "flow_safety", 0.0))
+        relief_payload = {
+            "min": {
+                "open": bool(getattr(tank_state, "relief_min_open", False)),
+                "flow": relief_min_flow,
+                "intensity": abs(relief_min_flow),
+            },
+            "stiff": {
+                "open": bool(getattr(tank_state, "relief_stiff_open", False)),
+                "flow": relief_stiff_flow,
+                "intensity": abs(relief_stiff_flow),
+            },
+            "safety": {
+                "open": bool(getattr(tank_state, "relief_safety_open", False)),
+                "flow": relief_safety_flow,
+                "intensity": abs(relief_safety_flow),
+            },
+        }
+        tank_flow_summary = {
+            "min": relief_min_flow,
+            "stiff": relief_stiff_flow,
+            "safety": relief_safety_flow,
+            "total": relief_min_flow + relief_stiff_flow + relief_safety_flow,
+        }
+        tank_valves_state = {
+            "min": relief_payload["min"]["open"],
+            "stiff": relief_payload["stiff"]["open"],
+            "safety": relief_payload["safety"]["open"],
+        }
+        master_isolation_open = bool(getattr(snapshot, "master_isolation_open", False))
+
+        check_valves_payload: Dict[str, Dict[str, Any]] = {}
+        for key, entry in line_flow_network.items():
+            valves = entry.get("valves", {}) if isinstance(entry, dict) else {}
+            check_valves_payload[key] = {
+                "atmosphereOpen": bool(valves.get("atmosphereOpen")),
+                "tankOpen": bool(valves.get("tankOpen")),
+                "netFlow": float(entry.get("netFlow", 0.0))
+                if isinstance(entry, dict)
+                else 0.0,
+                "direction": entry.get("direction", "intake")
+                if isinstance(entry, dict)
+                else "intake",
             }
 
         animation_payload = {
@@ -514,26 +594,39 @@ class QMLBridge:
             "leverAngles": lever_angles,
             "pistonPositions": piston_positions,
             "linePressures": {k: v.get("pressure") for k, v in line_payload.items()},
-            "tankPressure": float(
-                getattr(getattr(snapshot, "tank", {}), "pressure", 0.0)
-            ),
+            "tankPressure": tank_pressure,
         }
 
         three_d_payload = {
             "wheels": wheels_payload,
             "lines": line_payload,
             "tank": {
-                "pressure": float(
-                    getattr(getattr(snapshot, "tank", {}), "pressure", 0.0)
-                ),
-                "temperature": float(
-                    getattr(getattr(snapshot, "tank", {}), "temperature", 0.0)
-                ),
+                "pressure": tank_pressure,
+                "temperature": tank_temperature,
+                "flows": tank_flow_summary,
+                "valves": tank_valves_state,
             },
             "frame": {
                 "heave": float(getattr(getattr(snapshot, "frame", {}), "heave", 0.0)),
                 "roll": float(getattr(getattr(snapshot, "frame", {}), "roll", 0.0)),
                 "pitch": float(getattr(getattr(snapshot, "frame", {}), "pitch", 0.0)),
+            },
+            "valves": {
+                "relief": relief_payload,
+                "check": check_valves_payload,
+                "masterIsolationOpen": master_isolation_open,
+            },
+            "flowNetwork": {
+                "lines": line_flow_network,
+                "relief": relief_payload,
+                "tank": {
+                    "pressure": tank_pressure,
+                    "temperature": tank_temperature,
+                    "flows": tank_flow_summary,
+                    "valves": tank_valves_state,
+                },
+                "masterIsolationOpen": master_isolation_open,
+                "timestamp": float(getattr(snapshot, "simulation_time", 0.0)),
             },
         }
 
