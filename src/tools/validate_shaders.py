@@ -555,15 +555,7 @@ def _run_qsb(
 
     stdout = completed.stdout or ""
     stderr = completed.stderr or ""
-    if completed.returncode != 0:
-        env_message = _interpret_qsb_startup_failure(
-            completed.returncode,
-            stderr,
-            stdout,
-            allow_generic=False,
-        )
-        if env_message is not None:
-            raise ShaderValidationEnvironmentError(env_message)
+
     if log_path is not None:
         log_contents = ["$ " + " ".join(shlex.quote(arg) for arg in command)]
         if stdout:
@@ -572,14 +564,23 @@ def _run_qsb(
             log_contents.append("[stderr]\n" + stderr)
         log_path.write_text("\n\n".join(log_contents), encoding="utf-8")
 
-    missing_library = _extract_missing_shared_library(stderr)
-    if completed.returncode == 127 and missing_library:
-        raise ShaderValidationUnavailableError(
-            "Qt Shader Baker could not start because the shared library "
-            f"'{missing_library}' is not available in the current environment."
-        )
-
     if completed.returncode != 0:
+        missing_library = _extract_missing_shared_library(stderr)
+        if completed.returncode == 127 and missing_library:
+            raise ShaderValidationUnavailableError(
+                "Qt Shader Baker could not start because the shared library "
+                f"'{missing_library}' is not available in the current environment."
+            )
+
+        env_message = _interpret_qsb_startup_failure(
+            completed.returncode,
+            stderr,
+            stdout,
+            allow_generic=False,
+        )
+        if env_message is not None:
+            raise ShaderValidationEnvironmentError(env_message)
+
         env_message = _summarize_environment_failure(
             completed.returncode, stdout, stderr, command
         )

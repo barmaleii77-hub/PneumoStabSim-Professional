@@ -1,8 +1,4 @@
 #version 450 core
-#ifndef MAIN
-#define MAIN qt_customMain
-#endif
-
 // Requires GLSL 4.50 core for Qt Quick 3D SPIR-V runtime compatibility.
 
 #ifdef GL_ES
@@ -58,7 +54,7 @@ void fogVertexMain(out vec4 position)
     position = ubuf.qt_ModelViewProjectionMatrix * localPosition;
 }
 
-void MAIN()
+void qt_customMain()
 {
     vec4 position = vec4(0.0);
     fogVertexMain(position);

@@ -1,8 +1,4 @@
 #version 300 es
-#ifndef MAIN
-#define MAIN qt_customMain
-#endif
-
 // Requires an OpenGL ES 3.0 context for Qt Quick 3D runtime compatibility.
 
 #ifdef GL_ES
@@ -68,7 +64,7 @@ void fogESVertexMain(out vec4 position)
     position = ubuf.qt_ModelViewProjectionMatrix * localPosition;
 }
 
-void MAIN()
+void qt_customMain()
 {
     vec4 position = vec4(0.0);
     fogESVertexMain(position);
