@@ -1,5 +1,4 @@
 import math
-from pathlib import Path
 
 import pytest
 
@@ -11,6 +10,9 @@ pytest.importorskip(
 
 from copy import deepcopy
 from pathlib import Path
+
+from PySide6.QtCore import QtMsgType, qInstallMessageHandler
+from PySide6.QtWidgets import QComboBox
 
 from src.ui.panels.graphics import environment_tab as environment_tab_module
 from src.common.logging_widgets import LoggingCheckBox
@@ -79,9 +81,13 @@ def test_graphics_panel_color_toggle_sync(qapp):
         assert color_checkbox.isChecked() is False
         state_after_toggle = effects_tab.get_state()
         assert state_after_toggle["color_adjustments_enabled"] is False
+        assert state_after_toggle["color_adjustments_active"] is False
 
         color_checkbox.setChecked(True)
         assert toggle.isChecked() is True
+        state_after_enable = effects_tab.get_state()
+        assert state_after_enable["color_adjustments_enabled"] is True
+        assert state_after_enable["color_adjustments_active"] is True
     finally:
         panel.deleteLater()
 
@@ -242,5 +248,34 @@ def test_effects_tab_color_adjustments_toggle(qapp):
 
         state = tab.get_state()
         assert state["color_adjustments_enabled"] is True
+        assert state["color_adjustments_active"] is True
     finally:
+        tab.deleteLater()
+
+
+@pytest.mark.gui
+def test_quality_presets_emit_without_qt_warnings(qapp):
+    tab = QualityTab()
+
+    warnings: list[tuple[QtMsgType, str]] = []
+
+    def message_handler(msg_type, _context, message):  # pragma: no cover - Qt callback
+        if msg_type in (QtMsgType.QtWarningMsg, QtMsgType.QtCriticalMsg, QtMsgType.QtFatalMsg):
+            warnings.append((msg_type, message))
+
+    previous_handler = qInstallMessageHandler(message_handler)
+
+    try:
+        combo = tab._controls["quality.preset"]
+        assert isinstance(combo, QComboBox)
+
+        for preset in ("ultra", "high", "medium", "low"):
+            index = combo.findData(preset)
+            assert index >= 0, f"Preset {preset} not found"
+            combo.setCurrentIndex(index)
+            qapp.processEvents()
+
+        assert warnings == []
+    finally:
+        qInstallMessageHandler(previous_handler)
         tab.deleteLater()
