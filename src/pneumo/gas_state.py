@@ -295,16 +295,15 @@ def polytropic_update(
     if gamma <= 1.0:
         raise ValueError(f"Adiabatic gamma must be >1.0, got {gamma}")
 
+    prev_volume = state.V_curr
+    prev_pressure = state.p
+    prev_temperature = state.T
+
     state.set_volume(new_volume)
 
     if state.m <= 0.0:
         state.p = 0.0
         return
-
-    prev_volume = state.V_prev
-    prev_pressure = state.p
-    prev_temperature = state.T
-
     n_eff = params.effective_index(state.m, gamma=gamma)
     if n_eff <= 0.0:
         raise ValueError(f"Polytropic exponent must be positive, got {n_eff}")
