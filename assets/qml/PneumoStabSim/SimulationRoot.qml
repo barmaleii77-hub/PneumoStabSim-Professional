@@ -12,6 +12,7 @@ import "../geometry"
 import "../lighting"
 import scene 1.0 as Scene
 import "../animation"
+import "../diagnostics/LogBridge.js" as Diagnostics
 
 /*
  * PneumoStabSim - MAIN QML (v4.9.x)
@@ -27,6 +28,7 @@ import "../animation"
  anchors.fill: parent
 
     property var sceneBridge: null
+    property var postEffects: null
     readonly property var emptyDefaultsObject: Object.freeze({})
     readonly property var emptyGeometryDefaults: emptyDefaultsObject
     readonly property var emptyMaterialsDefaults: emptyDefaultsObject
@@ -46,6 +48,74 @@ signal animationToggled(bool running)
             console.log("[SimulationRoot] Window context ready:", identifier)
         } else {
             console.warn("[SimulationRoot] Window context missing; shader warnings will stay local")
+        }
+    }
+
+    function diagnosticsWindow() {
+        return typeof window !== "undefined" && window ? window : null
+    }
+
+    function forwardShaderDiagnostics(eventType, effectId, message) {
+        if (!Diagnostics || typeof Diagnostics.forward !== "function")
+            return
+
+        var normalizedId = effectId !== undefined && effectId !== null
+                ? String(effectId)
+                : "unknown"
+        var normalizedMessage = message !== undefined && message !== null
+                ? String(message)
+                : ""
+
+        var label = normalizedId
+        if (normalizedMessage.length)
+            label = normalizedId + ": " + normalizedMessage
+
+        try {
+            Diagnostics.forward(eventType, label, diagnosticsWindow(), "SimulationRoot")
+        } catch (error) {
+            console.warn("[SimulationRoot] Diagnostics forwarding failed", error)
+        }
+    }
+
+    function registerShaderWarning(effectId, message) {
+        forwardShaderDiagnostics("shader_warning", effectId, message)
+
+        if (!sceneBridge)
+            return
+
+        try {
+            if (typeof sceneBridge.registerShaderWarning === "function")
+                sceneBridge.registerShaderWarning(effectId, message)
+        } catch (error) {
+            console.debug("[SimulationRoot] sceneBridge.registerShaderWarning failed", error)
+        }
+    }
+
+    function clearShaderWarning(effectId) {
+        forwardShaderDiagnostics("shader_warning_cleared", effectId, "")
+
+        if (!sceneBridge)
+            return
+
+        try {
+            if (typeof sceneBridge.clearShaderWarning === "function")
+                sceneBridge.clearShaderWarning(effectId)
+        } catch (error) {
+            console.debug("[SimulationRoot] sceneBridge.clearShaderWarning failed", error)
+        }
+    }
+
+    Connections {
+        id: postEffectsSignals
+        target: root.postEffects
+        enabled: !!target
+
+        function onEffectCompilationError(effectId, errorLog) {
+            registerShaderWarning(effectId, errorLog)
+        }
+
+        function onEffectCompilationRecovered(effectId) {
+            clearShaderWarning(effectId)
         }
     }
 

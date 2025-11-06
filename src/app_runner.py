@@ -465,6 +465,7 @@ class ApplicationRunner:
                 try:
                     # Пытаемся ещё раз создать окно и загрузить QML
                     from src.ui.main_window import MainWindow as MW2  # type: ignore
+
                     new_window = MW2(use_qml_3d=self.use_qml_3d_schema)
                     self._check_qml_initialization(new_window)
                 except Exception as e2:
@@ -552,7 +553,9 @@ class ApplicationRunner:
 
         if changed:
             tmp = cfg_path.with_suffix(cfg_path.suffix + ".tmp")
-            tmp.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
+            tmp.write_text(
+                json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8"
+            )
             tmp.replace(cfg_path)
             if self.app_logger:
                 self.app_logger.info(
