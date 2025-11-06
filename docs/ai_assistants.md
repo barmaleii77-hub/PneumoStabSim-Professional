@@ -17,6 +17,13 @@ It aligns with the Renovation Master Plan objectives for tooling, privacy, and r
 - Reference the canonical tooling stack: Python 3.13, Qt/PySide 6.10, Ruff, MyPy, and pytest.
 - Mention the `activate_environment.(sh|ps1)` scripts to bootstrap locale-safe environments.
 - When discussing dependencies, point to `pyproject.toml` and `requirements.txt` as the sources of truth.
+- Confirm the operating system _before_ taking action: VS/VS Code Copilot and
+  other desktop flows must target **Windows**, whereas Codex or container-first
+  automation runs on **Linux**. Document the detected platform in the task log
+  and select the matching bootstrap script (`scripts/setup_dev.py` on Windows,
+  `make uv-sync`/`make check` inside Linux containers).
+- Re-run dependency installation for the active platform prior to executing
+  tests or builds so assistants do not rely on cached environments.
 
 ## 4. Coding Standards
 - Follow `docs/CODE_STYLE.md` and the linters enforced via `ruff.toml` and `mypy.ini`.
@@ -32,6 +39,9 @@ It aligns with the Renovation Master Plan objectives for tooling, privacy, and r
 - Default recommendation: run `pytest` and `ruff` before finalizing any patch.
 - For Qt integrations, suggest `pytest -m "not slow"` and targeted smoke tests located in `tests/ui`.
 - Capture flaky test output into `reports/` for later triage rather than discarding logs.
+- After each code change, execute the full `make check` suite and at least one
+  representative application launch (`make run` or `python app.py`) on the same
+  platform where the modifications were made to validate runtime behaviour.
 
 ## 7. Documentation Practices
 - Update relevant guides (`START_HERE.txt`, `QUICKSTART.md`, etc.) when workflows change.
