@@ -1507,6 +1507,17 @@ class SignalsRouter:
             if window.chart_widget:
                 window.chart_widget.update_from_snapshot(latest_snapshot)
 
+            telemetry_bridge = getattr(window, "telemetry_bridge", None)
+            if telemetry_bridge is not None and latest_snapshot is not None:
+                try:
+                    telemetry_bridge.push_snapshot(latest_snapshot)
+                except Exception as telemetry_exc:
+                    SignalsRouter.logger.debug(
+                        "Telemetry bridge push failed: %s",
+                        telemetry_exc,
+                        exc_info=telemetry_exc,
+                    )
+
             # Push state to QML (meters/pascals/radians)
             SignalsRouter._queue_simulation_update(window, latest_snapshot)
         except Exception as e:

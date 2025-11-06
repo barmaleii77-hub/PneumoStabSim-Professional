@@ -4,6 +4,7 @@ import PneumoStabSim 1.0
 import "./"
 import "./panels" as Panels
 import "training" as Training
+import components 1.0 as Components
 
 Item {
     id: root
@@ -24,6 +25,7 @@ Item {
     property var _queuedBatchedUpdates: []
     property var _pendingSimulationPanelCalls: []
     property bool showTrainingPresets: true
+    property bool telemetryPanelVisible: true
 
     readonly property bool hasSceneBridge: typeof pythonSceneBridge !== "undefined" && pythonSceneBridge !== null
 
@@ -464,27 +466,13 @@ Item {
         }
     }
 
-    Panels.SimulationPanel {
-        id: simulationPanel
-        anchors.top: parent.top
-        anchors.bottom: parent.bottom
+    Components.TelemetryChartPanel {
+        id: telemetryPanel
         anchors.left: parent.left
+        anchors.bottom: parent.bottom
         anchors.margins: 16
-        z: 9000
-        controller: root
-        modesMetadata: (typeof modesMetadata !== "undefined" ? modesMetadata : {})
-        initialModes: (typeof initialModesSettings !== "undefined" ? initialModesSettings : {})
-        initialAnimation: (typeof initialAnimationSettings !== "undefined" ? initialAnimationSettings : {})
-        initialPneumatic: (typeof initialPneumaticSettings !== "undefined" ? initialPneumaticSettings : {})
-        initialSimulation: (typeof initialSimulationSettings !== "undefined" ? initialSimulationSettings : {})
-        initialCylinder: (typeof initialCylinderSettings !== "undefined" ? initialCylinderSettings : {})
-        onSimulationControlRequested: function(command) { root.simulationControlRequested(command) }
-        onModesPresetSelected: function(presetId) { root.modesPresetSelected(presetId) }
-        onModesModeChanged: function(modeType, newMode) { root.modesModeChanged(modeType, newMode) }
-        onModesPhysicsChanged: function(payload) { root.modesPhysicsChanged(payload) }
-        onModesAnimationChanged: function(payload) { root.modesAnimationChanged(payload) }
-        onPneumaticSettingsChanged: function(payload) { root.pneumaticSettingsChanged(payload) }
-        onSimulationSettingsChanged: function(payload) { root.simulationSettingsChanged(payload) }
-        onCylinderSettingsChanged: function(payload) { root.cylinderSettingsChanged(payload) }
+        telemetryBridge: typeof pythonTelemetryBridge !== "undefined" ? pythonTelemetryBridge : null
+        visible: root.telemetryPanelVisible
+            && telemetryBridge !== null
     }
 }

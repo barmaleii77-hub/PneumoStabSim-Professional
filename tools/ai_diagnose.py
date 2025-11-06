@@ -26,7 +26,9 @@ from src.diagnostics.logger_factory import configure_logging, get_logger
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_ENCODING = "utf-8"
 MAX_SNIPPET_BYTES = 12_000
-SYSTEM_PROMPT_PATH = ROOT / "reports" / "ai_diagnostics" / "prompts" / "system_prompt.md"
+SYSTEM_PROMPT_PATH = (
+    ROOT / "reports" / "ai_diagnostics" / "prompts" / "system_prompt.md"
+)
 HISTORY_DIR = ROOT / "reports" / "ai_diagnostics" / "history"
 LATEST_REPORT = ROOT / "reports" / "ai_diagnostics" / "latest_report.md"
 LATEST_PAYLOAD = ROOT / "reports" / "ai_diagnostics" / "latest_payload.json"
@@ -84,7 +86,9 @@ class InputCollector:
         self._encoding = encoding
         self._log = get_logger("tools.ai_diagnose.collector")
 
-    def collect(self, patterns: Sequence[str], category: str, limit: int) -> list[Snippet]:
+    def collect(
+        self, patterns: Sequence[str], category: str, limit: int
+    ) -> list[Snippet]:
         seen: set[Path] = set()
         snippets: list[Snippet] = []
         for pattern in patterns:
@@ -205,7 +209,9 @@ class OpenAIChatModel:
     ) -> dict[str, Any]:
         response = self._client.responses.create(
             model=self._model,
-            input=[{"role": item["role"], "content": item["content"]} for item in messages],
+            input=[
+                {"role": item["role"], "content": item["content"]} for item in messages
+            ],
             tools=list(tools),
         )
         return response.model_dump()
@@ -233,7 +239,9 @@ class ReActAgent:
         messages = list(prompt)
         for turn in range(1, self._max_turns + 1):
             self._log.debug("agent-turn-start", turn=turn)
-            payload = self._chat_model.generate(messages, tools=[tool.to_openai() for tool in self._tools])
+            payload = self._chat_model.generate(
+                messages, tools=[tool.to_openai() for tool in self._tools]
+            )
             result = payload.get("output", {})
             if isinstance(result, list) and result:
                 top = result[0]
@@ -241,7 +249,11 @@ class ReActAgent:
                     content = top.get("content", "")
                     transcript.append(AgentMessage(role="assistant", content=content))
                     messages.append({"role": "assistant", "content": content})
-                    return AgentRun(final_message=content, messages=transcript, tool_invocations=invocations)
+                    return AgentRun(
+                        final_message=content,
+                        messages=transcript,
+                        tool_invocations=invocations,
+                    )
                 if top.get("type") == "tool_call":
                     name = top.get("name")
                     arguments = json.loads(top.get("arguments", "{}"))
@@ -249,21 +261,35 @@ class ReActAgent:
                     if tool is None:
                         raise RuntimeError(f"Model requested unknown tool: {name}")
                     output = tool.runner(arguments)
-                    invocations.append(ToolInvocation(name=name, arguments=arguments, output=output))
-                    messages.append({
-                        "role": "assistant",
-                        "content": json.dumps({"tool": name, "arguments": arguments}),
-                    })
-                    messages.append({
-                        "role": "tool",
-                        "content": output,
-                        "name": name,
-                    })
-                    transcript.append(AgentMessage(role="assistant", content=f"TOOL_CALL {name}"))
+                    invocations.append(
+                        ToolInvocation(name=name, arguments=arguments, output=output)
+                    )
+                    messages.append(
+                        {
+                            "role": "assistant",
+                            "content": json.dumps(
+                                {"tool": name, "arguments": arguments}
+                            ),
+                        }
+                    )
+                    messages.append(
+                        {
+                            "role": "tool",
+                            "content": output,
+                            "name": name,
+                        }
+                    )
+                    transcript.append(
+                        AgentMessage(role="assistant", content=f"TOOL_CALL {name}")
+                    )
                     transcript.append(AgentMessage(role="tool", content=output))
                     continue
-            raise RuntimeError("Model response did not contain a supported message format")
-        raise RuntimeError("Agent exceeded maximum number of turns without a conclusion")
+            raise RuntimeError(
+                "Model response did not contain a supported message format"
+            )
+        raise RuntimeError(
+            "Agent exceeded maximum number of turns without a conclusion"
+        )
 
 
 def build_default_tools(snippets: Sequence[Snippet]) -> list[Tool]:
@@ -314,7 +340,9 @@ def persist_payload(issue: str, snippets: Sequence[Snippet]) -> None:
         "generated_at": _dt.datetime.utcnow().isoformat() + "Z",
         "snippets": [snippet.to_dict() for snippet in snippets],
     }
-    LATEST_PAYLOAD.write_text(json.dumps(payload, indent=2, ensure_ascii=False), encoding=DEFAULT_ENCODING)
+    LATEST_PAYLOAD.write_text(
+        json.dumps(payload, indent=2, ensure_ascii=False), encoding=DEFAULT_ENCODING
+    )
 
 
 def build_report(
@@ -348,7 +376,15 @@ def build_report(
             ]
         )
     else:
-        lines.extend(["## Model Execution", "", "### Final Response", agent_run.final_message, ""])
+        lines.extend(
+            [
+                "## Model Execution",
+                "",
+                "### Final Response",
+                agent_run.final_message,
+                "",
+            ]
+        )
         if agent_run.tool_invocations:
             lines.append("## Tool Invocations")
             for invocation in agent_run.tool_invocations:
@@ -372,15 +408,43 @@ def save_report(content: str) -> Path:
 
 
 def parse_args(argv: Optional[Sequence[str]] = None) -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Generate AI-assisted diagnostics report")
-    parser.add_argument("issue", nargs="?", default="", help="Short description of the incident under investigation")
-    parser.add_argument("--model", default="gpt-4.1", help="LLM model identifier for the OpenAI Responses API")
-    parser.add_argument("--max-turns", type=int, default=8, help="Maximum number of ReAct iterations")
-    parser.add_argument("--log-pattern", action="append", default=list(DEFAULT_LOG_PATTERNS))
-    parser.add_argument("--code-pattern", action="append", default=list(DEFAULT_CODE_PATTERNS))
-    parser.add_argument("--spec-pattern", action="append", default=list(DEFAULT_SPEC_PATTERNS))
-    parser.add_argument("--per-category-limit", type=int, default=4, help="Maximum number of files per category")
-    parser.add_argument("--skip-llm", action="store_true", help="Collect artefacts but skip model execution")
+    parser = argparse.ArgumentParser(
+        description="Generate AI-assisted diagnostics report"
+    )
+    parser.add_argument(
+        "issue",
+        nargs="?",
+        default="",
+        help="Short description of the incident under investigation",
+    )
+    parser.add_argument(
+        "--model",
+        default="gpt-4.1",
+        help="LLM model identifier for the OpenAI Responses API",
+    )
+    parser.add_argument(
+        "--max-turns", type=int, default=8, help="Maximum number of ReAct iterations"
+    )
+    parser.add_argument(
+        "--log-pattern", action="append", default=list(DEFAULT_LOG_PATTERNS)
+    )
+    parser.add_argument(
+        "--code-pattern", action="append", default=list(DEFAULT_CODE_PATTERNS)
+    )
+    parser.add_argument(
+        "--spec-pattern", action="append", default=list(DEFAULT_SPEC_PATTERNS)
+    )
+    parser.add_argument(
+        "--per-category-limit",
+        type=int,
+        default=4,
+        help="Maximum number of files per category",
+    )
+    parser.add_argument(
+        "--skip-llm",
+        action="store_true",
+        help="Collect artefacts but skip model execution",
+    )
     return parser.parse_args(argv)
 
 
@@ -395,8 +459,12 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     collector = InputCollector(base_dir=ROOT)
     snippets: list[Snippet] = []
     snippets.extend(collector.collect(args.log_pattern, "log", args.per_category_limit))
-    snippets.extend(collector.collect(args.code_pattern, "code", args.per_category_limit))
-    snippets.extend(collector.collect(args.spec_pattern, "spec", args.per_category_limit))
+    snippets.extend(
+        collector.collect(args.code_pattern, "code", args.per_category_limit)
+    )
+    snippets.extend(
+        collector.collect(args.spec_pattern, "spec", args.per_category_limit)
+    )
     persist_payload(args.issue, snippets)
 
     agent_run: Optional[AgentRun] = None
@@ -407,7 +475,10 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
             log.warning("chat-model-unavailable", reason=str(error))
         else:
             context_messages = [
-                {"role": "system", "content": SYSTEM_PROMPT_PATH.read_text(encoding=DEFAULT_ENCODING)},
+                {
+                    "role": "system",
+                    "content": SYSTEM_PROMPT_PATH.read_text(encoding=DEFAULT_ENCODING),
+                },
                 {
                     "role": "user",
                     "content": json.dumps(
@@ -422,12 +493,19 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
                 },
             ]
             tools = build_default_tools(snippets)
-            agent = ReActAgent(chat_model=chat_model, tools=tools, max_turns=args.max_turns)
+            agent = ReActAgent(
+                chat_model=chat_model, tools=tools, max_turns=args.max_turns
+            )
             try:
                 agent_run = agent.run(context_messages)
             except RuntimeError as error:
                 log.error("agent-failure", reason=str(error))
-    report = build_report(issue=args.issue, snippets=snippets, agent_run=agent_run, platform_name=platform_name)
+    report = build_report(
+        issue=args.issue,
+        snippets=snippets,
+        agent_run=agent_run,
+        platform_name=platform_name,
+    )
     destination = save_report(report)
     log.info("report-generated", destination=str(destination.relative_to(ROOT)))
     return 0
