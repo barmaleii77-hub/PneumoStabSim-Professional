@@ -471,6 +471,7 @@ test_report_*.txt
 # Temporary Python files
 *_temp.py
 test_*.py
+!tests/**/test_*.py
 check_*.py
 !tools/check_ui_utf8.py
 !tools/check_forbidden_artifacts.py

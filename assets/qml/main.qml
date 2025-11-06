@@ -3,6 +3,7 @@ import QtQuick.Controls 6.10
 import PneumoStabSim 1.0
 import "./"
 import "training" as Training
+import components 1.0 as Components
 
 Item {
     id: root
@@ -14,6 +15,7 @@ Item {
     property var pendingPythonUpdates: ({})
     property var _queuedBatchedUpdates: []
     property bool showTrainingPresets: true
+    property bool telemetryPanelVisible: true
 
     readonly property bool hasSceneBridge: typeof pythonSceneBridge !== "undefined" && pythonSceneBridge !== null
 
@@ -393,5 +395,15 @@ Item {
         onPresetActivated: function(presetId) {
             console.log("Training preset selected", presetId)
         }
+    }
+
+    Components.TelemetryChartPanel {
+        id: telemetryPanel
+        anchors.left: parent.left
+        anchors.bottom: parent.bottom
+        anchors.margins: 16
+        telemetryBridge: typeof pythonTelemetryBridge !== "undefined" ? pythonTelemetryBridge : null
+        visible: root.telemetryPanelVisible
+            && telemetryBridge !== null
     }
 }
