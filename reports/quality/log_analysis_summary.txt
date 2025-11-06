@@ -1,0 +1,123 @@
+
+================================================================================
+└═└╦╚╟└╥╬╨ ╦╬├╬┬ PneumoStabSim
+================================================================================
+
+└═└╦╚╟ ├╨└╘╚╫┼╤╩╚╒ ╦╬├╬┬
+--------------------------------------------------------------------------------
+╘рщы: session_20251104_215012.jsonl
+╨рчьхЁ: 76.5 KB
+
+╤╥└╥╚╤╥╚╩└:
+   ┬ёхую ёюс√Єшщ: 30
+   ╤шэїЁюэшчшЁютрэю: 23/30 (76.7%)
+   ╬цшфрэшх: 0
+   ╬°шсъш: 7
+
+   ╤шэїЁюэшчрЎш : ######################################------------ 76.7%
+
+╧╬ ╩└╥┼├╬╨╚▀╠:
+   lighting             4 ( 13.3%)
+   environment          4 ( 13.3%)
+   quality              4 ( 13.3%)
+   camera               4 ( 13.3%)
+   materials            4 ( 13.3%)
+   effects              4 ( 13.3%)
+   threeD               3 ( 10.0%)
+   scene                1 (  3.3%)
+   animation            1 (  3.3%)
+   geometry             1 (  3.3%)
+
+╥╬╧-10 ╚╟╠┼═и══█╒ ╧└╨└╠┼╥╨╬┬:
+   lighting_batch                 4x
+   environment_batch              4x
+   quality_batch                  4x
+   camera_batch                   4x
+   materials_batch                4x
+   effects_batch                  4x
+   threeD_batch                   3x
+   scene_batch                    1x
+   animation_batch                1x
+   geometry_batch                 1x
+
+╧╬╤╦┼─═╚┼ 5 ╤╬┴█╥╚╔:
+   [21:50:13] quality.quality_batch: None -> {'aaPrimaryMode': 'ssaa', 'aaQualityLevel': 'high', 'aaPostMode': 'taa', 'taaEnabled': True, 'taaStrength': 0.4, 'taaMotionAdaptive': True, 'fxaaEnabled': False, 'specularAAEnabled': True, 'ditheringEnabled': True, 'oitMode': 'weighted', 'renderScale': 1.05, 'renderPolicy': 'always', 'frameRateLimit': 144.0, 'meshQuality': {'cylinderSegments': 128, 'cylinderRings': 32}, 'shadowSettings': {'enabled': True, 'resolution': 4096, 'filterSamples': 32, 'bias': 8.0, 'factor': 80.0}}
+   [21:50:13] camera.camera_batch: None -> {'auto_fit': True, 'auto_rotate': False, 'auto_rotate_speed': 8.0, 'camera_pos_x': 0.0, 'camera_pos_y': 0.0, 'camera_pos_z': 0.0, 'camera_rot_x': 0.0, 'camera_rot_y': 0.0, 'camera_rot_z': 0.0, 'far': 150.0, 'fov': 60.0, 'manual_camera': False, 'near': 0.08, 'orbit_distance': 4.6, 'orbit_friction': 0.2, 'orbit_inertia': 0.4, 'orbit_inertia_enabled': True, 'orbit_pan_smoothing': 0.5, 'orbit_pitch': -20.0, 'orbit_rotate_smoothing': 0.5, 'orbit_target_x': 0.0, 'orbit_target_y': 0.0, 'orbit_target_z': 0.5, 'orbit_yaw': 30.0, 'orbit_zoom_smoothing': 0.51, 'speed': 1.0, 'world_pos_x': 0.0, 'world_pos_y': 0.0, 'world_pos_z': 0.0, 'world_rot_x': 0.0, 'world_rot_y': 0.0, 'world_rot_z': 0.0, 'world_scale': 1.0}
+   [21:50:13] materials.materials_batch: None -> {'cylinder': {'alpha_cutoff': 0.0, 'alpha_mode': 'blend', 'attenuation_color': '#ffffff', 'attenuation_distance': 0.0, 'base_color': '#b5bcc3', 'clearcoat': 0.08, 'clearcoat_roughness': 0.1, 'emissive_color': '#ffffff', 'emissive_intensity': 0.0, 'id': 'cylinder', 'ior': 1.0, 'metalness': 0.9, 'normal_strength': 0.0, 'occlusion_amount': 0.0, 'opacity': 1.0, 'roughness': 0.3, 'specular': 0.55, 'specular_tint': '#f0f0f0', 'texture_path': '', 'thickness': 0.0, 'transmission': 0.0}, 'frame': {'alpha_cutoff': 0.0, 'alpha_mode': 'default', 'attenuation_color': '#ffffff', 'attenuation_distance': 0.0, 'base_color': '#5a6068', 'clearcoat': 0.15, 'clearcoat_roughness': 0.12, 'emissive_color': '#ffffff', 'emissive_intensity': 0.0, 'ior': 1.0, 'metalness': 0.85, 'normal_strength': 0.0, 'occlusion_amount': 0.0, 'opacity': 1.0, 'roughness': 0.45, 'specular': 0.5, 'specular_tint': '#f2f2f2', 'texture_path': '', 'thickness': 0.0, 'transmission': 0.0}, 'joint_arm': {'alpha_cutoff': 0.0, 'alpha_mode': 'default', 'attenuation_color': '#ffffff', 'attenuation_distance': 0.0, 'base_color': '#5f676f', 'clearcoat': 0.05, 'clearcoat_roughness': 0.1, 'emissive_color': '#ffffff', 'emissive_intensity': 0.0, 'id': 'joint_arm', 'ior': 1.0, 'metalness': 0.75, 'normal_strength': 0.0, 'occlusion_amount': 0.0, 'opacity': 1.0, 'roughness': 0.4, 'specular': 0.5, 'specular_tint': '#f0f0f0', 'texture_path': '', 'thickness': 0.0, 'transmission': 0.0}, 'joint_rod': {'alpha_cutoff': 0.0, 'alpha_mode': 'default', 'attenuation_color': '#ffffff', 'attenuation_distance': 0.0, 'base_color': '#939aa3', 'clearcoat': 0.12, 'clearcoat_roughness': 0.08, 'emissive_color': '#000000', 'emissive_intensity': 0.0, 'error_color': '#ff0000', 'id': 'joint_rod', 'ior': 1.1, 'metalness': 0.9, 'normal_strength': 0.4, 'occlusion_amount': 0.3, 'ok_color': '#00ff55', 'opacity': 1.0, 'roughness': 0.3, 'specular': 0.6, 'specular_tint': '#f0f0f0', 'texture_path': '', 'thickness': 0.0, 'transmission': 0.0}, 'joint_tail': {'alpha_cutoff': 0.0, 'alpha_mode': 'default', 'attenuation_color': '#ffffff', 'attenuation_distance': 0.0, 'base_color': '#686f78', 'clearcoat': 0.05, 'clearcoat_roughness': 0.1, 'emissive_color': '#ffffff', 'emissive_intensity': 0.0, 'id': 'joint_tail', 'ior': 1.0, 'metalness': 0.75, 'normal_strength': 0.0, 'occlusion_amount': 0.0, 'opacity': 1.0, 'roughness': 0.4, 'specular': 0.5, 'specular_tint': '#f0f0f0', 'texture_path': '', 'thickness': 0.0, 'transmission': 0.0}, 'lever': {'alpha_cutoff': 0.0, 'alpha_mode': 'default', 'attenuation_color': '#ffffff', 'attenuation_distance': 0.0, 'base_color': '#7d6b53', 'clearcoat': 0.1, 'clearcoat_roughness': 0.15, 'emissive_color': '#ffffff', 'emissive_intensity': 0.0, 'id': 'lever', 'ior': 1.45, 'metalness': 0.4, 'normal_strength': 0.0, 'occlusion_amount': 0.0, 'opacity': 1.0, 'roughness': 0.55, 'specular': 0.35, 'specular_tint': '#f0f0f0', 'texture_path': '', 'thickness': 0.0, 'transmission': 0.0}, 'piston_body': {'alpha_cutoff': 0.0, 'alpha_mode': 'default', 'attenuation_color': '#ffffff', 'attenuation_distance': 0.0, 'base_color': '#7b848c', 'clearcoat': 0.06, 'clearcoat_roughness': 0.1, 'emissive_color': '#ffffff', 'emissive_intensity': 0.0, 'id': 'piston_body', 'ior': 1.0, 'metalness': 0.85, 'normal_strength': 0.0, 'occlusion_amount': 0.0, 'opacity': 1.0, 'roughness': 0.35, 'specular': 0.6, 'specular_tint': '#f0f0f0', 'texture_path': '', 'thickness': 0.0, 'transmission': 0.0, 'warning_color': '#ff5454'}, 'piston_rod': {'alpha_cutoff': 0.0, 'alpha_mode': 'default', 'attenuation_color': '#ffffff', 'attenuation_distance': 0.0, 'base_color': '#d0d5d9', 'clearcoat': 0.18, 'clearcoat_roughness': 0.06, 'emissive_color': '#ffffff', 'emissive_intensity': 0.0, 'id': 'piston_rod', 'ior': 1.0, 'metalness': 1.0, 'normal_strength': 0.0, 'occlusion_amount': 0.0, 'opacity': 1.0, 'roughness': 0.12, 'specular': 0.7, 'specular_tint': '#ffffff', 'texture_path': '', 'thickness': 0.0, 'transmission': 0.0, 'warning_color': '#ff2a2a'}, 'tail_rod': {'alpha_cutoff': 0.0, 'alpha_mode': 'default', 'attenuation_color': '#ffffff', 'attenuation_distance': 0.0, 'base_color': '#6d5a45', 'clearcoat': 0.08, 'clearcoat_roughness': 0.12, 'emissive_color': '#ffffff', 'emissive_intensity': 0.0, 'id': 'tail_rod', 'ior': 1.4, 'metalness': 0.45, 'normal_strength': 0.0, 'occlusion_amount': 0.0, 'opacity': 1.0, 'roughness': 0.5, 'specular': 0.45, 'specular_tint': '#f0f0f0', 'texture_path': '', 'thickness': 0.0, 'transmission': 0.0}}
+   [21:50:13] effects.effects_batch: None -> {'adjustment_brightness': 0.0, 'adjustment_contrast': 0.0, 'adjustment_saturation': 0.0, 'bloom_bicubic_upscale': True, 'bloom_enabled': True, 'bloom_glow_strength': 1.0, 'bloom_hdr_max': 8.0, 'bloom_hdr_scale': 2.0, 'bloom_intensity': 0.5, 'bloom_quality_high': True, 'bloom_spread': 0.65, 'bloom_threshold': 1.0, 'depth_of_field': False, 'dof_auto_focus': True, 'dof_blur': 4.0, 'dof_focus_distance': 2.5, 'lens_flare': False, 'lens_flare_bloom_bias': 1.0, 'lens_flare_ghost_count': 4, 'lens_flare_ghost_dispersal': 0.06, 'lens_flare_halo_width': 0.05, 'lens_flare_stretch_to_aspect': False, 'motion_blur': False, 'motion_blur_amount': 0.2, 'tonemap_enabled': False, 'tonemap_exposure': 1.0, 'tonemap_mode': 'filmic', 'tonemap_white_point': 1.0, 'vignette': False, 'vignette_radius': 0.5, 'vignette_strength': 0.35}
+   [21:50:13] geometry.geometry_batch: None -> {'boreHead': 0.11, 'cylinderBodyLength': 0.5, 'frameBeamSize': 0.12, 'frameHeight': 0.65, 'frameLength': 3.22, 'frameToPivot': 0.51, 'leverLength': 0.75, 'pistonRodLength': 0.32, 'pistonThickness': 0.025, 'rodDiameter': 0.041, 'rodDiameterFrontM': 0.041, 'rodDiameterM': 0.041, 'rodDiameterRear': 0.041, 'rodDiameterRearM': 0.041, 'rodPosition': 0.33, 'rod_diameter_front_mm': 41.0, 'rod_diameter_mm': 41.0, 'rod_diameter_rear_mm': 41.0, 'tailRodLength': 0.18, 'trackWidth': 2.12}
+
+═┼╤╚═╒╨╬═╚╟╚╨╬┬└══█┼ ╤╬┴█╥╚▀:
+   ┬ёхую: 7
+   ╥╬╧ ╧└╨└╠┼╥╨╬┬:
+      lighting.lighting_batch Ч 1 (ю°шсъш 1)
+      environment.environment_batch Ч 1 (ю°шсъш 1)
+      threeD.threeD_batch Ч 1 (ю°шсъш 1)
+      quality.quality_batch Ч 1 (ю°шсъш 1)
+      camera.camera_batch Ч 1 (ю°шсъш 1)
+   ╧╨╚╠┼╨█:
+      [21:50:13] failed ? lighting.lighting_batch
+      [21:50:13] failed ? environment.environment_batch
+      [21:50:13] failed ? threeD.threeD_batch
+
+└═└╦╚╟ IBL ╦╬├╬┬
+--------------------------------------------------------------------------------
+╘рщы: ibl_signals_20251104_215007.log
+╨рчьхЁ: 452.0 B
+
+╤╥└╥╚╤╥╚╩└:
+   ┬ёхую ёюс√Єшщ: 1
+
+╧╬ ╩╬╠╧╬═┼═╥└╠:
+   MainWindow                1
+
+╧╬ ╙╨╬┬═▀╠:
+   INFO            1
+
+└═└╦╚╟ ╤╚╤╥┼╠═╬├╬ ╦╬├└
+--------------------------------------------------------------------------------
+╘рщы: run.log
+╨рчьхЁ: 150.5 KB
+
+╤╥└╥╚╤╥╚╩└:
+   ╬°шсъш: 108
+   ╧ЁхфєяЁхцфхэш : 0
+   QML ёюс√Єш : 188
+
+┬╨┼╠▀ ╤┼╤╤╚╚:
+   ╟ряєёъ: 2025-11-04T21:50:02
+   ╟ртхЁ°хэшх: 2025-11-04T21:50:16
+
+╧╬╤╦┼─═╚┼ ╬╪╚┴╩╚:
+   2025-11-04T21:50:14 | PID:25484 TID:18940 | DEBUG    | PneumoStabSim |
+   ERROR: :60: '' : compilation terminated
+   ERROR: 2 compilation errors.  No code generated.
+
+└═└╦╚╟ ╦╬├└ ╬╪╚┴╬╩
+--------------------------------------------------------------------------------
+??  ????? errors_*.jsonl ?? ???????
+
+================================================================================
+╚╥╬├╬┬█╔ ╬╥╫и╥
+================================================================================
+
+├╨└╘╚╩└:
+   ╤юс√Єш : 30
+   ╤шэїЁюэшчрЎш : 76.7%
+   ╬Ўхэър: ╙─╬┬╦┼╥┬╬╨╚╥┼╦▄═╬
+
+IBL:
+   ╤юс√Єш : 1
+   ╬°шсъш: 0
+
+╤╚╤╥┼╠└:
+   ╬°шсъш: 108
+   ╧ЁхфєяЁхцфхэш : 0
+
+╨┼╩╬╠┼═─└╓╚╚:
+--------------------------------------------------------------------------------
+   1. ╤шэїЁюэшчрЎш  < 95%: ╧ЁютхЁ№Єх QML ЇєэъЎшш applyXxxUpdates()
+   2. 108 ёшёЄхьэ√ї ю°шсюъ: ╧ЁютхЁ№Єх logs/run.log
+
+================================================================================
+

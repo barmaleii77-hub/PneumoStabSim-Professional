@@ -14,6 +14,9 @@ Item {
     property alias severityText: severityField.currentText
     property alias contactText: contactField.text
 
+    // Контроллер прокидывается из Python через свойство root.controller
+    property var controller: null
+
     property bool busy: false
     property string statusMessage: ""
 
@@ -73,52 +76,52 @@ Item {
             Layout.fillWidth: true
 
             Button {
-                text: busy ? qsTr("Отправка...") : qsTr("Отправить")
-                enabled: !busy && titleField.text.length > 0 && descriptionField.text.length > 10
+                text: root.busy ? qsTr("Отправка...") : qsTr("Отправить")
+                enabled: !root.busy && titleField.text.length > 0 && descriptionField.text.length > 10
                 Layout.fillWidth: true
                 onClicked: {
-                    busy = true
-                    statusMessage = ""
+                    root.busy = true
+                    root.statusMessage = ""
                     const metadata = {
                         platform: Qt.platform.os,
                         qtVersion: Qt.platform.pluginName,
                         locale: Qt.locale().name
                     }
-                    const response = feedbackController.submitFeedback(
+                    const response = root.controller ? root.controller.submitFeedback(
                         titleField.text,
                         descriptionField.text,
                         categoryField.currentText,
                         severityField.currentText,
                         contactField.text,
                         metadata
-                    )
+                    ) : { ok: false, error: "controller unavailable" }
                     if (response.ok) {
-                        statusMessage = qsTr("✅ Отчёт сохранён: %1").arg(response.submission_id)
-                        resetForm()
+                        root.statusMessage = qsTr("✅ Отчёт сохранён: %1").arg(response.submission_id)
+                        root.resetForm()
                     } else {
-                        statusMessage = qsTr("❌ Ошибка: %1").arg(response.error)
+                        root.statusMessage = qsTr("❌ Ошибка: %1").arg(response.error)
                     }
-                    busy = false
+                    root.busy = false
                 }
             }
 
             Button {
                 text: qsTr("Очистить")
                 Layout.preferredWidth: 110
-                enabled: !busy
+                enabled: !root.busy
                 onClicked: {
-                    resetForm()
-                    statusMessage = ""
+                    root.resetForm()
+                    root.statusMessage = ""
                 }
             }
         }
 
         Label {
-            text: statusMessage
-            color: statusMessage.startsWith("✅") ? "#1b5e20" : "#b71c1c"
+            text: root.statusMessage
+            color: root.statusMessage.startsWith("✅") ? "#1b5e20" : "#b71c1c"
             wrapMode: Text.Wrap
             Layout.fillWidth: true
-            visible: statusMessage.length > 0
+            visible: root.statusMessage.length > 0
         }
 
         Item { Layout.fillHeight: true }

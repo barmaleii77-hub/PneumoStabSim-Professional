@@ -36,6 +36,8 @@ class FeedbackPanel(QWidget):
 
         engine = self._quick_widget.engine()
         context = engine.rootContext()
+        # Оставляем контекстное свойство для обратной совместимости, но также
+        # будем явно назначать root.controller после загрузки.
         context.setContextProperty("feedbackController", self._controller)
 
         if not _QML_PATH.exists():
@@ -43,6 +45,16 @@ class FeedbackPanel(QWidget):
             return
 
         self._quick_widget.setSource(QUrl.fromLocalFile(str(_QML_PATH)))
+
+        try:
+            root = self._quick_widget.rootObject()
+            if root is not None and hasattr(root, "setProperty"):
+                # Связываем контроллер с QML через свойство root.controller
+                root.setProperty("controller", self._controller)
+        except Exception:  # pragma: no cover - defensive
+            _LOGGER.debug(
+                "Failed to assign controller property to QML root", exc_info=True
+            )
 
 
 __all__ = ["FeedbackPanel"]

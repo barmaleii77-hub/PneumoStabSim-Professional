@@ -81,12 +81,13 @@ class StateSync:
 
     @staticmethod
     def save_settings(window: MainWindow) -> None:
-        """Сохранить настройки окна в QSettings
+        """Сохранить настройки окна (централизованно)
 
         Saves:
-        - Window geometry
-        - Window state
-        - Splitter sizes
+        - Window geometry (QSettings)
+        - Window state (QSettings)
+        - Splitter sizes (QSettings)
+        - Panel settings (SettingsManager → JSON)
 
         Args:
             window: MainWindow instance
@@ -105,64 +106,74 @@ class StateSync:
                 window.main_horizontal_splitter.saveState(),
             )
 
-        # 2) Сохраняем JSON-конфиг через SettingsManager (без заглушек)
+        # 2) Сохраняем JSON-конфиг через SettingsManager
         try:
             from src.common.settings_manager import get_settings_manager
 
             sm = get_settings_manager()
-
             categories_written = False
 
+            # GraphicsPanel
             if getattr(window, "graphics_panel", None) and hasattr(
                 window.graphics_panel, "collect_state"
             ):
-                g = window.graphics_panel.collect_state()
-                existing = None
                 try:
-                    existing = window.graphics_panel.settings_service.load_current()
-                except Exception:
-                    existing = None
-                if existing is None or g != existing:
-                    sm.set_category("graphics", g, auto_save=False)
-                    categories_written = True
+                    state = window.graphics_panel.collect_state()
+                    if isinstance(state, dict):
+                        sm.set_category("graphics", state, auto_save=False)
+                        categories_written = True
+                        StateSync.logger.debug("Graphics state collected")
+                except Exception as exc:
+                    StateSync.logger.error(f"Failed to collect graphics state: {exc}")
 
+            # GeometryPanel
             if getattr(window, "geometry_panel", None) and hasattr(
                 window.geometry_panel, "collect_state"
             ):
-                geo = window.geometry_panel.collect_state()
-                if isinstance(geo, dict):
-                    stored_geo = sm.get_category("geometry") or {}
-                    if geo != (stored_geo or {}):
-                        sm.set_category("geometry", geo, auto_save=False)
+                try:
+                    state = window.geometry_panel.collect_state()
+                    if isinstance(state, dict):
+                        sm.set_category("geometry", state, auto_save=False)
                         categories_written = True
+                        StateSync.logger.debug("Geometry state collected")
+                except Exception as exc:
+                    StateSync.logger.error(f"Failed to collect geometry state: {exc}")
 
+            # PneumoPanel
             if getattr(window, "pneumo_panel", None) and hasattr(
                 window.pneumo_panel, "collect_state"
             ):
-                pneu = window.pneumo_panel.collect_state()
-                if isinstance(pneu, dict):
-                    stored_pneu = sm.get_category("pneumatic") or {}
-                    if pneu != (stored_pneu or {}):
-                        sm.set_category("pneumatic", pneu, auto_save=False)
+                try:
+                    state = window.pneumo_panel.collect_state()
+                    if isinstance(state, dict):
+                        sm.set_category("pneumatic", state, auto_save=False)
                         categories_written = True
+                        StateSync.logger.debug("Pneumatic state collected")
+                except Exception as exc:
+                    StateSync.logger.error(f"Failed to collect pneumatic state: {exc}")
 
+            # ModesPanel
             if getattr(window, "modes_panel", None) and hasattr(
                 window.modes_panel, "collect_state"
             ):
-                modes = window.modes_panel.collect_state()
-                if isinstance(modes, dict):
-                    stored_modes = sm.get_category("modes") or {}
-                    if modes != (stored_modes or {}):
-                        sm.set_category("modes", modes, auto_save=False)
+                try:
+                    state = window.modes_panel.collect_state()
+                    if isinstance(state, dict):
+                        sm.set_category("modes", state, auto_save=False)
                         categories_written = True
+                        StateSync.logger.debug("Modes state collected")
+                except Exception as exc:
+                    StateSync.logger.error(f"Failed to collect modes state: {exc}")
 
+            # ОДНО сохранение в конце
             if categories_written:
                 sm.save()
                 StateSync.logger.info("✅ app_settings.json saved on exit")
             else:
                 StateSync.logger.info("ℹ️ No settings changes detected; skipping save")
+
         except Exception as e:
-            # Не скрываем ошибку — поднимаем дальше
+            # Критическая ошибка — поднимаем дальше
             StateSync.logger.critical(f"❌ Failed to save app_settings.json: {e}")
             raise
 
@@ -191,7 +202,7 @@ class StateSync:
             return
 
         try:
-            # ✅ Берём полное состояние из публичного API панели (без автодефолтов)
+            # ✅ Берём полное состояние из публичного API панели
             full_state: Dict[str, Any] = {}
             try:
                 if hasattr(window.graphics_panel, "collect_state"):

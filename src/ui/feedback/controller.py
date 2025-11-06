@@ -5,7 +5,7 @@ from __future__ import annotations
 import logging
 from typing import Any, Mapping, MutableMapping
 
-from PySide6.QtCore import QObject, Signal, Slot, QVariant
+from PySide6.QtCore import QObject, Signal, Slot
 
 from src.services import FeedbackPayload, FeedbackService
 
@@ -26,7 +26,9 @@ class FeedbackController(QObject):
         super().__init__(parent)
         self._service = service or FeedbackService()
 
-    @Slot(str, str, str, str, str, QVariant, result=QVariant)
+    # Возвращаем dict; QML воспримет его как QVariantMap. Последний аргумент
+    # принимаем как object, чтобы не зависеть от QtCore.QVariant.
+    @Slot(str, str, str, str, str, object)
     def submitFeedback(
         self,
         title: str,
@@ -34,18 +36,20 @@ class FeedbackController(QObject):
         category: str,
         severity: str,
         contact: str,
-        metadata: QVariant,
+        metadata: object,
     ) -> MutableMapping[str, Any]:
         """Submit a feedback report coming from QML."""
 
         try:
-            metadata_payload: Mapping[str, Any]
+            # Нормализуем metadata в Mapping
             candidate: Any = metadata
-            if isinstance(candidate, QVariant):
-                candidate = candidate.value()
-            elif hasattr(candidate, "value") and callable(getattr(candidate, "value")):
-                candidate = candidate.value()
+            if hasattr(candidate, "value") and callable(getattr(candidate, "value")):
+                try:
+                    candidate = candidate.value()  # type: ignore[assignment]
+                except Exception:
+                    pass
 
+            metadata_payload: Mapping[str, Any]
             if isinstance(candidate, Mapping):
                 metadata_payload = candidate
             else:

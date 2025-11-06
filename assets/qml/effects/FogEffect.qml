@@ -590,9 +590,9 @@ Effect {
                             fallbackBaseName + extension)
 
                 if (!found)
-                    console.warn("⚠️ FogEffect: GLES shader variants missing; trying fallback", glesVariantList)
+                    console.warn("⚠️ FogEffect: GLES shader variants missing; пытаемся использовать запасной вариант", glesVariantList)
                 else
-                    console.warn("⚠️ FogEffect: GLES shader variant not resolved; falling back", glesVariantList)
+                    console.warn("⚠️ FogEffect: Не удалось разрешить вариант шейдера GLES; используется запасной вариант", glesVariantList)
 
                 var fallbackResolved = false
                 for (var candidateIndex = 0; candidateIndex < fallbackCandidateNames.length && !fallbackResolved; ++candidateIndex) {
@@ -603,7 +603,7 @@ Effect {
                             selectedName = fallbackName
                             selectedUrl = fallbackUrl
                             fallbackResolved = true
-                            console.warn("⚠️ FogEffect: GLES fallback shader selected", fallbackName)
+                            console.warn("⚠️ FogEffect: выбран шейдер резервирования GLES", fallbackName)
                         }
                     }
                 }
@@ -611,7 +611,7 @@ Effect {
                 if (fallbackResolved) {
                     found = true
                 } else if (!found) {
-                    requestDesktopShaderProfile(`Shader ${normalized} lacks GLES variants (${glesVariantList.join(", ")}); enforcing desktop profile`)
+                    requestDesktopShaderProfile(`Шейдер ${normalized} не имеет вариантов GLES (${glesVariantList.join(", ")}); принудительно устанавливаем десктопный профиль`)
                 }
             }
         }
@@ -620,7 +620,7 @@ Effect {
         if (previousSelection !== selectedName) {
             shaderVariantSelectionCache[normalized] = selectedName
             var profileLabel = useGlesShaders ? "OpenGL ES" : "Desktop"
-            console.log(`🌐 FogEffect: resolved ${profileLabel} shader '${normalized}' -> '${selectedName}'`)
+            console.log(`🌐 FogEffect: разрешён ${profileLabel} шейдер '${normalized}' -> '${selectedName}'`)
         }
 
         return sanitizedShaderUrl(selectedUrl, selectedName)
@@ -646,7 +646,7 @@ Effect {
     function requestDesktopShaderProfile(reason) {
         if (forceDesktopShaderProfile)
             return
-        console.warn("⚠️ FogEffect:", reason, "– forcing desktop shader profile")
+        console.warn("⚠️ FogEffect:", reason, "– принудительное использование десктопного шейдерного профиля")
         if (forceGlesShaderProfile)
             forceGlesShaderProfile = false
         forceDesktopShaderProfile = true
@@ -656,7 +656,7 @@ Effect {
     function requestGlesShaderProfile(reason) {
         if (forceGlesShaderProfile)
             return
-        console.warn("⚠️ FogEffect:", reason, "– forcing GLES shader profile")
+        console.warn("⚠️ FogEffect:", reason, "– принудительное использование GLES шейдерного профиля")
         if (forceDesktopShaderProfile)
             forceDesktopShaderProfile = false
         forceGlesShaderProfile = true
@@ -728,7 +728,7 @@ Effect {
                         if (!Object.prototype.hasOwnProperty.call(shaderSanitizationWarnings, cacheKey)) {
                             console.warn(
                                         "⚠️ FogEffect: shader", resourceName,
-                                        "contains leading BOM/whitespace incompatible with Qt RHI; please clean the source file")
+                                        "содержит несовместимые префиксы (лидирующие пробелы и т.п.); пожалуйста, проверьте исходный файл")
                             shaderSanitizationWarnings[cacheKey] = true
                         }
                         sanitizationApplied = true
@@ -947,7 +947,7 @@ Effect {
             if (!fogEffect.attachShaderLogHandler(fogVertexShader, "fog.vert"))
                 console.debug("FogEffect: shader log handler unavailable for fog.vert")
         }
-        onStatusChanged: fogEffect.handleShaderStatusChange(fogVertexShader, "fog.vert")
+        // NOTE: direct onStatusChanged handler removed for compatibility; see Connections below
     }
 
     Shader {
@@ -976,7 +976,7 @@ Effect {
             if (!fogEffect.attachShaderLogHandler(fogFragmentShader, "fog.frag"))
                 console.debug("FogEffect: shader log handler unavailable for fog.frag")
         }
-        onStatusChanged: fogEffect.handleShaderStatusChange(fogFragmentShader, "fog.frag")
+        // NOTE: direct onStatusChanged handler removed for compatibility; see Connections below
     }
 
     Shader {
@@ -989,7 +989,24 @@ Effect {
             if (!fogEffect.attachShaderLogHandler(fogFallbackShader, "fog_fallback.frag"))
                 console.debug("FogEffect: shader log handler unavailable for fog_fallback.frag")
         }
-        onStatusChanged: fogEffect.handleShaderStatusChange(fogFallbackShader, "fog_fallback.frag")
+        // NOTE: direct onStatusChanged handler removed for compatibility; see Connections below
+    }
+
+    // Compatible signal hookups (Qt versions lacking Shader.statusChanged)
+    Connections {
+        target: fogVertexShader
+        ignoreUnknownSignals: true
+        function onStatusChanged() { fogEffect.handleShaderStatusChange(fogVertexShader, "fog.vert") }
+    }
+    Connections {
+        target: fogFragmentShader
+        ignoreUnknownSignals: true
+        function onStatusChanged() { fogEffect.handleShaderStatusChange(fogFragmentShader, "fog.frag") }
+    }
+    Connections {
+        target: fogFallbackShader
+        ignoreUnknownSignals: true
+        function onStatusChanged() { fogEffect.handleShaderStatusChange(fogFallbackShader, "fog_fallback.frag") }
     }
 
     passes: [

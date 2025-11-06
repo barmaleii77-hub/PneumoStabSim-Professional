@@ -59,10 +59,26 @@ class ApplicationRunner:
         self._surface_format_configured: bool = False
 
     def _configure_default_surface_format(self) -> None:
-        """Ensure Qt uses an OpenGL 4.5 core profile surface format."""
+        """Ensure Qt uses a compatible surface format without forcing OpenGL.
+
+        На Windows предпочтителен Direct3D11 (Qt RHI по умолчанию). Ранее мы
+        насильно переключали движок на OpenGL 4.5 Core, что может приводить к
+        падению инициализации на системах без корректного OpenGL 4.5 драйвера.
+
+        Теперь логика такая:
+        - Если переменная окружения QSG_RHI_BACKEND явным образом требует
+          OpenGL ("opengl" или "opengl-rhi") — настраиваем OpenGL 4.5 Core.
+        - Во всех остальных случаях ничего не форсируем: Qt сам выберет RHI
+          backend (D3D11/Metal/Vulkan/Software) и корректный формат поверхности.
+        """
 
         if self._surface_format_configured:
             return
+
+        try:
+            env_backend = os.environ.get("QSG_RHI_BACKEND", "").strip().lower()
+        except Exception:
+            env_backend = ""
 
         try:
             from PySide6.QtGui import QSurfaceFormat
@@ -70,11 +86,33 @@ class ApplicationRunner:
         except Exception as exc:  # pragma: no cover - Qt bindings may be missing in CI
             if self.app_logger:
                 self.app_logger.debug(
-                    "Skipping OpenGL surface configuration (Qt modules unavailable): %s",
+                    "Skipping surface configuration (Qt modules unavailable): %s",
                     exc,
                 )
             return
 
+        should_force_opengl = env_backend in {"opengl", "opengl-rhi"}
+
+        # На Windows без явного требования OpenGL не вмешиваемся
+        if sys.platform.startswith("win") and not should_force_opengl:
+            if self.app_logger:
+                self.app_logger.info(
+                    "Graphics backend: auto (RHI) — not forcing OpenGL on Windows"
+                )
+            self._surface_format_configured = True
+            return
+
+        # На не-Windows платформах также не форсируем, если backend не запрошен явно
+        if not should_force_opengl:
+            if self.app_logger:
+                self.app_logger.debug(
+                    "RHI backend is '%s' — leaving graphics API selection to Qt",
+                    env_backend or "auto",
+                )
+            self._surface_format_configured = True
+            return
+
+        # Явно запросили OpenGL → аккуратно настраиваем формат
         try:
             format_ = QSurfaceFormat()
             format_.setRenderableType(QSurfaceFormat.RenderableType.OpenGL)
@@ -93,7 +131,7 @@ class ApplicationRunner:
 
             if self.app_logger:
                 self.app_logger.info(
-                    "Configured default OpenGL surface format -> OpenGL 4.5 Core Profile"
+                    "Configured OpenGL surface (per QSG_RHI_BACKEND request) -> OpenGL 4.5 Core Profile"
                 )
         except Exception as exc:  # pragma: no cover - defensive guard around Qt APIs
             if self.app_logger:
@@ -169,9 +207,59 @@ class ApplicationRunner:
                 logger.debug("SettingsService import failed: %s", exc, exc_info=True)
             return
 
+        def _promote_animation_in_memory(payload: dict[str, Any]) -> bool:
+            changed = False
+            try:
+                current = payload.get("current")
+                if isinstance(current, dict):
+                    graphics = current.get("graphics")
+                    if isinstance(graphics, dict) and "animation" in graphics:
+                        anim = graphics.pop("animation")
+                        if not isinstance(current.get("animation"), dict):
+                            current["animation"] = anim
+                        changed = True
+                defaults = payload.get("defaults_snapshot")
+                if isinstance(defaults, dict):
+                    graphics = defaults.get("graphics")
+                    if isinstance(graphics, dict) and "animation" in graphics:
+                        anim = graphics.pop("animation")
+                        if not isinstance(defaults.get("animation"), dict):
+                            defaults["animation"] = anim
+                        changed = True
+            except Exception:
+                return False
+            return changed
+
         try:
             service = get_default_container().resolve(SETTINGS_SERVICE_TOKEN)
-            payload = service.load(use_cache=False)
+            try:
+                payload = service.load(use_cache=False)
+            except Exception as load_exc:
+                # Попробуем починить файл настроек и повторить
+                try:
+                    from src.common.settings_manager import get_settings_manager
+
+                    sm2 = get_settings_manager()
+                    settings_path = Path(getattr(sm2, "settings_file"))
+                    self._auto_migrate_legacy_animation(settings_path)
+                except Exception as fix_exc:  # pragma: no cover
+                    if logger:
+                        logger.warning(
+                            "SettingsService load failed (%s); auto-migration attempt failed: %s",
+                            load_exc,
+                            fix_exc,
+                        )
+                    raise
+                else:
+                    # Retry after migration
+                    payload = service.load(use_cache=False)
+
+            # Дополнительная защита: если за сессию кто-то снова записал legacy поле
+            if isinstance(payload, dict) and _promote_animation_in_memory(payload):
+                if logger:
+                    logger.info(
+                        "Normalized in-memory settings payload (promoted graphics.animation) before final save"
+                    )
             service.save(payload)
             if logger:
                 logger.info("SettingsService payload persisted on exit")
@@ -347,6 +435,8 @@ class ApplicationRunner:
             window = MW(use_qml_3d=self.use_qml_3d_schema)
             self._check_qml_initialization(window)
         except Exception as exc:
+            # Переводим причину в пост-диагностику
+            self._append_post_diag_trace(f"qml-create-window-failed:{exc}")
             if self.app_logger:
                 self.app_logger.error(
                     "MainWindow creation failed: %s", exc, exc_info=True
@@ -354,17 +444,44 @@ class ApplicationRunner:
             else:
                 print(f"⚠️ Fallback window due to startup error: {exc}")
 
-            from PySide6.QtWidgets import QLabel, QVBoxLayout, QWidget
+            from PySide6.QtWidgets import QLabel, QVBoxLayout, QWidget, QPushButton
 
             window = QWidget()
             window.setWindowTitle("PneumoStabSim (headless diagnostics mode)")
             layout = QVBoxLayout(window)
+
             label = QLabel(
                 "Main window could not be initialised.\n"
-                "Running in diagnostics mode without the full UI."
+                "Running in diagnostics mode without the full UI.\n\n"
+                "Нажмите 'Повторить' для повторной попытки загрузки QML."
             )
             label.setWordWrap(True)
             layout.addWidget(label)
+
+            retry_btn = QPushButton("Повторить загрузку QML")
+            layout.addWidget(retry_btn)
+
+            def _retry():
+                try:
+                    # Пытаемся ещё раз создать окно и загрузить QML
+                    from src.ui.main_window import MainWindow as MW2  # type: ignore
+                    new_window = MW2(use_qml_3d=self.use_qml_3d_schema)
+                    self._check_qml_initialization(new_window)
+                except Exception as e2:
+                    self._append_post_diag_trace(f"qml-retry-failed:{e2}")
+                    if self.app_logger:
+                        self.app_logger.error("Retry failed: %s", e2, exc_info=True)
+                    else:
+                        print(f"❌ Retry failed: {e2}")
+                else:
+                    # Заменяем fallback-окно реальным окном
+                    window.close()
+                    self.window_instance = new_window
+                    new_window.show()
+                    new_window.raise_()
+                    new_window.activateWindow()
+
+            retry_btn.clicked.connect(_retry)
 
         self.window_instance = window
 
@@ -398,6 +515,49 @@ class ApplicationRunner:
 
         if self.app_logger:
             self.app_logger.debug("Settings schema JSON parsed successfully")
+
+    # ---------------------- Settings auto-migrations ----------------------
+    def _auto_migrate_legacy_animation(self, cfg_path: Path) -> None:
+        """Переместить legacy 'graphics.animation' в 'current.animation' и
+        'defaults_snapshot.animation' при необходимости.
+
+        Выполняется до строгой валидации. Любые ошибки чтения/записи
+        пробрасываются дальше, чтобы не маскировать реальные проблемы.
+        """
+        try:
+            content = cfg_path.read_text(encoding="utf-8")
+            data = json.loads(content)
+        except Exception:
+            return  # Пусть строгая валидация обработает проблему
+
+        changed = False
+
+        def _promote(root_key: str) -> None:
+            nonlocal changed
+            root = data.get(root_key)
+            if not isinstance(root, dict):
+                return
+            graphics = root.get("graphics")
+            if not isinstance(graphics, dict):
+                return
+            legacy = graphics.pop("animation", None)
+            if isinstance(legacy, dict):
+                # Не перетираем существующую правильную секцию
+                if not isinstance(root.get("animation"), dict):
+                    root["animation"] = legacy
+                changed = True
+
+        _promote("current")
+        _promote("defaults_snapshot")
+
+        if changed:
+            tmp = cfg_path.with_suffix(cfg_path.suffix + ".tmp")
+            tmp.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
+            tmp.replace(cfg_path)
+            if self.app_logger:
+                self.app_logger.info(
+                    "Auto-migrated graphics.animation → top-level animation in settings file"
+                )
 
     def _run_schema_validation(self, cfg_path: Path) -> None:
         """Запускает CLI-валидатор JSON схемы для файла настроек."""
@@ -472,11 +632,16 @@ class ApplicationRunner:
         if self.app_logger:
             self.app_logger.info(msg_base)
 
+        # Авто-миграции (безопасные и идемпотентные)
+        self._auto_migrate_legacy_animation(cfg_path)
+
+        # Основная проверка — всегда строгая
         try:
             validate_settings_file(cfg_path)
         except SettingsValidationError as exc:
             _fail(str(exc), SettingsValidationError)
 
+        # Дополнительная JSON Schema проверка — всегда строгая
         try:
             self._run_schema_validation(cfg_path)
         except RuntimeError as exc:

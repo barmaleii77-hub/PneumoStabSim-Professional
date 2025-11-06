@@ -1,0 +1,77 @@
+{
+  "timestamp": "2025-11-06 00:16:23",
+  "tests": {
+    "file_structure": {
+      "passed": true,
+      "details": {
+        "required_files": [
+          "app.py",
+          "pyproject.toml",
+          "uv.lock",
+          "Makefile",
+          "config/app_settings.json",
+          "config/qml_bridge.yaml",
+          "src/app_runner.py",
+          "src/bootstrap/environment.py",
+          "tests/__init__.py"
+        ],
+        "missing_files": [],
+        "unexpected_legacy": [],
+        "total_required": 9,
+        "found": 9
+      }
+    },
+    "python_syntax": {
+      "passed": true,
+      "details": {
+        "files_checked": 7029,
+        "syntax_errors": []
+      }
+    },
+    "configuration_files": {
+      "passed": true,
+      "details": {
+        "files_checked": [
+          "config/appsettings.json",
+          "config/appsettings.Development.json"
+        ],
+        "errors": []
+      }
+    },
+    "python_environment": {
+      "passed": true,
+      "details": {
+        "success": true,
+        "returncode": 0,
+        "stdout": "{\n  \"status\": \"ok\",\n  \"checks\": [\n    {\n      \"check\": \"python-version\",\n      \"status\": \"ok\",\n      \"current\": [\n        3,\n        13,\n        7\n      ],\n      \"minimum\": [\n        3,\n        10\n      ],\n      \"message\": \"Python version is sufficient\"\n    },\n    {\n      \"check\": \"repository-layout\",\n      \"status\": \"ok\",\n      \"path\": \"C:\\\\Users\\\\�������\\\\source\\\\repos\\\\barmaleii77-hub\\\\PneumoStabSim-Professional\\\\src\",\n      \"message\": \"src directory is present\"\n    },\n    {\n      \"check\": \"python-imports\",\n      \"status\": \"ok\",\n      \"required\": [\n        \"numpy\",\n        \"PySide6\",\n        \"src\"\n      ],\n      \"failed\": [],\n      \"message\": \"All critical modules imported\"\n    }\n  ],\n  \"project_root\": \"C:\\\\Users\\\\�������\\\\source\\\\repos\\\\barmaleii77-hub\\\\PneumoStabSim-Professional\"\n}\n",
+        "stderr": "",
+        "command": "C:\\Users\\Алексей\\AppData\\Local\\Programs\\Python\\Python313\\python.exe C:\\Users\\Алексей\\source\\repos\\barmaleii77-hub\\PneumoStabSim-Professional\\scripts\\check_environment.py"
+      }
+    },
+    "python_imports": {
+      "passed": true,
+      "details": {
+        "success": true,
+        "returncode": 0,
+        "stdout": "All critical imports successful\n",
+        "stderr": "",
+        "command": "C:\\Users\\Алексей\\AppData\\Local\\Programs\\Python\\Python313\\python.exe -c \nimport sys\nimport os\nsys.path.insert(0, \".\")\nsys.path.insert(0, \"src\")\n\ntry:\n    # Test core imports\n    import numpy as np\n    import scipy\n    from PySide6.QtWidgets import QApplication\n    from PySide6.QtCore import QTimer\n\n    # Test project imports\n    from src.common import init_logging\n    from src.core.geometry import Vector3D\n    from src.mechanics.components import Mass, Spring\n\n    print(\"All critical imports successful\")\n    exit(0)\n\nexcept ImportError as e:\n    print(f\"Import error: {e}\")\n    exit(1)\nexcept Exception as e:\n    print(f\"Unexpected error: {e}\")\n    exit(2)\n"
+      }
+    },
+    "python_app_startup": {
+      "passed": true,
+      "details": {
+        "success": true,
+        "returncode": 0,
+        "stdout": "============================================================\n🚀 PNEUMOSTABSIM v4.9.5\n============================================================\n📊 Python 3.13 | Qt 6.10.0\n🎨 Graphics: Qt Quick 3D | Backend: opengl\n⏳ Initializing...\n🗑️  Удален лог: PneumoStabSim_20251105_234057.log\n🗑️  Удален старый run.log\nSettings file: C:\\Users\\Алексей\\source\\repos\\barmaleii77-hub\\PneumoStabSim-Professional\\config\\app_settings.json [source=PROJECT]\n✅ Ready!\n============================================================\n\n🧪 Test mode: auto-closing in 5 seconds...\n\n✅ Application closed (code: 0)\n\n",
+        "stderr": "",
+        "command": "C:\\Users\\Алексей\\AppData\\Local\\Programs\\Python\\Python313\\python.exe app.py --test-mode"
+      }
+    }
+  },
+  "summary": {
+    "passed": 6,
+    "failed": 0,
+    "warnings": 0
+  }
+}

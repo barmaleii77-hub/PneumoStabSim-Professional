@@ -2,7 +2,7 @@
   "metadata": {
     "version": "4.9.7",
     "schema_version": "0.2.1",
-    "last_modified": "2025-11-06T03:20:46.958Z",
+    "last_modified": "2025-11-01T12:00:00Z",
     "units_version": "si_v2",
     "migrations": [
       "0001_add_diagnostics_defaults"
@@ -65,7 +65,6 @@
       "piston_thickness_m": 0.025,
       "frame_mass": 1500.0,
       "wheel_mass": 50.0,
-      "tail_rod_length_m": 0.18,
       "interference_check": true,
       "link_rod_diameters": false,
       "frame_height_m": 0.65,
@@ -73,6 +72,7 @@
       "frame_length_m": 3.4,
       "lever_length_m": 0.75,
       "cylinder_body_length_m": 0.46,
+      "tail_rod_length_m": 0.18,
       "active_preset": "standard_truck"
     },
     "modes": {
@@ -102,7 +102,7 @@
           "position_x": 0.0,
           "position_y": 0.0,
           "position_z": 0.0,
-          "cast_shadow": false,
+          "cast_shadow": true,
           "bind_to_camera": false
         },
         "fill": {
@@ -145,39 +145,39 @@
         "spot": {
           "brightness": 4900.0,
           "color": "#ffffff",
-          "position_x": 0.0,
           "position_y": 1.0,
-          "position_z": 2.28,
           "range": 0.2,
           "cone_angle": 6.0,
           "inner_cone_angle": 0.0,
           "angle_x": -9.0,
           "angle_y": 0.0,
+          "position_x": 0.0,
+          "position_z": 2.28,
           "angle_z": 0.0,
           "cast_shadow": true,
           "bind_to_camera": false
         }
       },
       "environment": {
-        "background_mode": "color",
+        "background_mode": "skybox",
         "background_color": "#1f242c",
-        "skybox_enabled": false,
-        "ibl_enabled": false,
+        "skybox_enabled": true,
+        "ibl_enabled": true,
         "ibl_intensity": 1.3,
         "skybox_brightness": 1.0,
         "probe_horizon": 0.0,
         "ibl_rotation": 0.0,
-        "ibl_source": "file:/C:/Users/%D0%90%D0%BB%D0%B5%D0%BA%D1%81%D0%B5%D0%B9/source/repos/barmaleii77-hub/PneumoStabSim-Professional/assets/hdr/university_workshop_8k.exr",
+        "ibl_source": "",
         "skybox_blur": 0.08,
         "ibl_offset_x": 0.0,
         "ibl_offset_y": 0.0,
         "ibl_bind_to_camera": false,
-        "reflection_enabled": false,
+        "reflection_enabled": true,
         "reflection_padding_m": 0.15,
         "reflection_quality": "veryhigh",
         "reflection_refresh_mode": "everyframe",
         "reflection_time_slicing": "individualfaces",
-        "fog_enabled": false,
+        "fog_enabled": true,
         "fog_color": "#aab9cf",
         "fog_density": 0.06,
         "fog_near": 2.0,
@@ -186,9 +186,9 @@
         "fog_least_intense_y": 0.0,
         "fog_most_intense_y": 3.0,
         "fog_height_curve": 1.0,
-        "fog_transmit_enabled": false,
+        "fog_transmit_enabled": true,
         "fog_transmit_curve": 1.0,
-        "ao_enabled": false,
+        "ao_enabled": true,
         "ao_strength": 1.0,
         "ao_radius": 0.008,
         "ao_softness": 20.0,
@@ -200,7 +200,7 @@
         "shadows": {
           "enabled": true,
           "resolution": 4096,
-          "filter": 32.0,
+          "filter": 32,
           "bias": 8.0,
           "darkness": 80.0
         },
@@ -277,14 +277,11 @@
           "emissive_color": "#ffffff",
           "emissive_intensity": 0.0,
           "normal_strength": 0.0,
-          "texture_path": "",
           "occlusion_amount": 0.0,
           "alpha_mode": "default",
           "alpha_cutoff": 0.0,
-          "warning_color": null,
-          "ok_color": null,
-          "error_color": null,
-          "id": "frame"
+          "id": "frame",
+          "texture_path": ""
         },
         "lever": {
           "base_color": "#7d6b53",
@@ -303,40 +300,11 @@
           "emissive_color": "#ffffff",
           "emissive_intensity": 0.0,
           "normal_strength": 0.0,
-          "texture_path": "",
           "occlusion_amount": 0.0,
           "alpha_mode": "default",
           "alpha_cutoff": 0.0,
-          "warning_color": null,
-          "ok_color": null,
-          "error_color": null,
-          "id": "lever"
-        },
-        "tail_rod": {
-          "base_color": "#6d5a45",
-          "metalness": 0.45,
-          "roughness": 0.5,
-          "specular": 0.45,
-          "specular_tint": "#f0f0f0",
-          "opacity": 1.0,
-          "clearcoat": 0.08,
-          "clearcoat_roughness": 0.12,
-          "transmission": 0.0,
-          "ior": 1.4,
-          "thickness": 0.0,
-          "attenuation_distance": 0.0,
-          "attenuation_color": "#ffffff",
-          "emissive_color": "#ffffff",
-          "emissive_intensity": 0.0,
-          "normal_strength": 0.0,
-          "texture_path": "",
-          "occlusion_amount": 0.0,
-          "alpha_mode": "default",
-          "alpha_cutoff": 0.0,
-          "warning_color": null,
-          "ok_color": null,
-          "error_color": null,
-          "id": "tail_rod"
+          "id": "lever",
+          "texture_path": ""
         },
         "cylinder": {
           "base_color": "#b5bcc3",
@@ -355,14 +323,11 @@
           "emissive_color": "#ffffff",
           "emissive_intensity": 0.0,
           "normal_strength": 0.0,
-          "texture_path": "",
           "occlusion_amount": 0.0,
           "alpha_mode": "blend",
           "alpha_cutoff": 0.0,
-          "warning_color": null,
-          "ok_color": null,
-          "error_color": null,
-          "id": "cylinder"
+          "id": "cylinder",
+          "texture_path": ""
         },
         "piston_body": {
           "base_color": "#7b848c",
@@ -381,14 +346,12 @@
           "emissive_color": "#ffffff",
           "emissive_intensity": 0.0,
           "normal_strength": 0.0,
-          "texture_path": "",
           "occlusion_amount": 0.0,
           "alpha_mode": "default",
           "alpha_cutoff": 0.0,
-          "warning_color": "#ff5454",
-          "ok_color": null,
-          "error_color": null,
-          "id": "piston_body"
+          "id": "piston_body",
+          "texture_path": "",
+          "warning_color": "#ff5454"
         },
         "piston_rod": {
           "base_color": "#d0d5d9",
@@ -407,14 +370,12 @@
           "emissive_color": "#ffffff",
           "emissive_intensity": 0.0,
           "normal_strength": 0.0,
-          "texture_path": "",
           "occlusion_amount": 0.0,
           "alpha_mode": "default",
           "alpha_cutoff": 0.0,
-          "warning_color": "#ff2a2a",
-          "ok_color": null,
-          "error_color": null,
-          "id": "piston_rod"
+          "id": "piston_rod",
+          "texture_path": "",
+          "warning_color": "#ff2a2a"
         },
         "joint_tail": {
           "base_color": "#686f78",
@@ -433,14 +394,11 @@
           "emissive_color": "#ffffff",
           "emissive_intensity": 0.0,
           "normal_strength": 0.0,
-          "texture_path": "",
           "occlusion_amount": 0.0,
           "alpha_mode": "default",
           "alpha_cutoff": 0.0,
-          "warning_color": null,
-          "ok_color": null,
-          "error_color": null,
-          "id": "joint_tail"
+          "id": "joint_tail",
+          "texture_path": ""
         },
         "joint_arm": {
           "base_color": "#5f676f",
@@ -459,14 +417,11 @@
           "emissive_color": "#ffffff",
           "emissive_intensity": 0.0,
           "normal_strength": 0.0,
-          "texture_path": "",
           "occlusion_amount": 0.0,
           "alpha_mode": "default",
           "alpha_cutoff": 0.0,
-          "warning_color": null,
-          "ok_color": null,
-          "error_color": null,
-          "id": "joint_arm"
+          "id": "joint_arm",
+          "texture_path": ""
         },
         "joint_rod": {
           "base_color": "#939aa3",
@@ -485,14 +440,36 @@
           "emissive_color": "#000000",
           "emissive_intensity": 0.0,
           "normal_strength": 0.4,
-          "texture_path": "",
           "occlusion_amount": 0.3,
           "alpha_mode": "default",
           "alpha_cutoff": 0.0,
-          "warning_color": null,
+          "id": "joint_rod",
+          "texture_path": "",
           "ok_color": "#00ff55",
-          "error_color": "#ff0000",
-          "id": "joint_rod"
+          "error_color": "#ff0000"
+        },
+        "tail_rod": {
+          "base_color": "#6d5a45",
+          "metalness": 0.45,
+          "roughness": 0.5,
+          "specular": 0.45,
+          "specular_tint": "#f0f0f0",
+          "opacity": 1.0,
+          "clearcoat": 0.08,
+          "clearcoat_roughness": 0.12,
+          "transmission": 0.0,
+          "ior": 1.4,
+          "thickness": 0.0,
+          "attenuation_distance": 0.0,
+          "attenuation_color": "#ffffff",
+          "emissive_color": "#ffffff",
+          "emissive_intensity": 0.0,
+          "normal_strength": 0.0,
+          "occlusion_amount": 0.0,
+          "alpha_mode": "default",
+          "alpha_cutoff": 0.0,
+          "id": "tail_rod",
+          "texture_path": ""
         }
       },
       "effects": {
@@ -548,7 +525,7 @@
       "phase_rl": 0.0,
       "phase_rr": 0.0,
       "smoothing_enabled": true,
-      "smoothing_duration_ms": 120.0,
+      "smoothing_duration_ms": 120,
       "smoothing_angle_snap_deg": 65.0,
       "smoothing_piston_snap_m": 0.05,
       "smoothing_easing": "OutCubic"
@@ -581,11 +558,10 @@
     },
     "quality_presets": {
       "ultra": {
-        "preset": null,
         "shadows": {
           "enabled": true,
           "resolution": 4096,
-          "filter": 32.0,
+          "filter": 32,
           "bias": 8.0,
           "darkness": 80.0
         },
@@ -610,11 +586,10 @@
         }
       },
       "high": {
-        "preset": null,
         "shadows": {
           "enabled": true,
           "resolution": 2048,
-          "filter": 16.0,
+          "filter": 16,
           "bias": 9.5,
           "darkness": 78.0
         },
@@ -639,11 +614,10 @@
         }
       },
       "medium": {
-        "preset": null,
         "shadows": {
           "enabled": true,
           "resolution": 1024,
-          "filter": 8.0,
+          "filter": 8,
           "bias": 10.0,
           "darkness": 75.0
         },
@@ -668,11 +642,10 @@
         }
       },
       "low": {
-        "preset": null,
         "shadows": {
           "enabled": true,
           "resolution": 512,
-          "filter": 4.0,
+          "filter": 4,
           "bias": 12.0,
           "darkness": 70.0
         },
@@ -700,67 +673,43 @@
     "diagnostics": {
       "signal_trace": {
         "enabled": false,
-        "history_limit": 1000,
+        "overlay_enabled": false,
         "include": [],
         "exclude": [],
-        "overlay_enabled": false
+        "history_limit": 1000
       },
       "camera_hud": {
         "enabled": false,
         "precision": 2,
+        "showPivot": true,
+        "showPan": true,
         "showAngles": true,
+        "showMotion": true,
         "showDamping": true,
         "showInertia": true,
-        "showMotion": true,
-        "showPan": true,
-        "showPivot": true,
-        "showPreset": true,
         "showSmoothing": true,
+        "showPreset": true,
         "showTimestamp": true
       }
     },
     "system": {
       "dependencies": {
-        "egl_runtime": {
-          "description": "EGL runtime required for Qt Quick OpenGL context creation.",
-          "missing_message": "Required EGL runtime ({human_name}) is missing.",
-          "variants": [
-            {
-              "id": "linux_mesa",
-              "human_name": "libEGL.so.1",
-              "platform_prefixes": [
-                "linux",
-                "linux2"
-              ],
-              "error_markers": [
-                "libEGL.so.1",
-                "EGL"
-              ],
-              "install_hint": "Install an EGL runtime package (e.g. 'apt-get install -y libegl1').",
-              "library_name": "EGL",
-              "packages": [
-                "libegl1"
-              ],
-              "install_command": "apt-get install -y libegl1"
-            }
-          ]
-        },
         "opengl_runtime": {
           "description": "OpenGL runtime required for Qt Quick rendering.",
           "missing_message": "Required OpenGL runtime ({human_name}) is missing.",
           "variants": [
             {
               "id": "linux_mesa",
-              "human_name": "libGL.so.1",
               "platform_prefixes": [
                 "linux",
                 "linux2"
               ],
+              "library_name": "GL",
+              "human_name": "libGL.so.1",
+              "install_hint": "Install a Mesa/OpenGL package (e.g. 'apt-get install -y libgl1').",
               "error_markers": [
                 "libGL.so.1"
               ],
-              "install_hint": "Install a Mesa/OpenGL package (e.g. 'apt-get install -y libgl1').",
-              "library_name": "GL",
               "packages": [
                 "libgl1"
               ],
@@ -768,34 +717,54 @@
             },
             {
               "id": "windows_default",
-              "human_name": "opengl32.dll",
               "platform_prefixes": [
                 "win32",
                 "cygwin"
               ],
+              "library_name": "opengl32",
+              "human_name": "opengl32.dll",
+              "install_hint": "Install the latest GPU drivers or enable OpenGL compatibility components.",
               "error_markers": [
                 "opengl32.dll",
                 "opengl32"
-              ],
-              "install_hint": "Install the latest GPU drivers or enable OpenGL compatibility components.",
-              "library_name": "opengl32",
-              "packages": null,
-              "install_command": null
+              ]
             },
             {
               "id": "macos_default",
-              "human_name": "OpenGL.framework",
               "platform_prefixes": [
                 "darwin"
               ],
+              "library_name": "OpenGL",
+              "human_name": "OpenGL.framework",
+              "install_hint": "Ensure the Xcode command line tools are installed for OpenGL support.",
               "error_markers": [
                 "OpenGL.framework",
                 "OpenGL"
+              ]
+            }
+          ]
+        },
+        "egl_runtime": {
+          "description": "EGL runtime required for Qt Quick OpenGL context creation.",
+          "missing_message": "Required EGL runtime ({human_name}) is missing.",
+          "variants": [
+            {
+              "id": "linux_mesa",
+              "platform_prefixes": [
+                "linux",
+                "linux2"
               ],
-              "install_hint": "Ensure the Xcode command line tools are installed for OpenGL support.",
-              "library_name": "OpenGL",
-              "packages": null,
-              "install_command": null
+              "library_name": "EGL",
+              "human_name": "libEGL.so.1",
+              "install_hint": "Install an EGL runtime package (e.g. 'apt-get install -y libegl1').",
+              "error_markers": [
+                "libEGL.so.1",
+                "EGL"
+              ],
+              "packages": [
+                "libegl1"
+              ],
+              "install_command": "apt-get install -y libegl1"
             }
           ]
         },
@@ -805,16 +774,16 @@
           "variants": [
             {
               "id": "linux_default",
-              "human_name": "libxkbcommon.so.0",
               "platform_prefixes": [
                 "linux",
                 "linux2"
               ],
+              "library_name": "xkbcommon",
+              "human_name": "libxkbcommon.so.0",
+              "install_hint": "Install libxkbcommon (e.g. 'apt-get install -y libxkbcommon0').",
               "error_markers": [
                 "libxkbcommon.so.0"
               ],
-              "install_hint": "Install libxkbcommon (e.g. 'apt-get install -y libxkbcommon0').",
-              "library_name": "xkbcommon",
               "packages": [
                 "libxkbcommon0",
                 "xkb-data"
@@ -835,15 +804,15 @@
         },
         "cylinder": {
           "inner_diameter_m": 0.11,
-          "piston_thickness_m": 0.025,
           "rod_diameter_m": 0.035,
+          "piston_thickness_m": 0.025,
           "body_length_m": 0.46,
-          "dead_zone_head_m3": 0.001,
-          "dead_zone_rod_m3": 0.001
+          "dead_zone_rod_m3": 0.001,
+          "dead_zone_head_m3": 0.001
         },
         "visualization": {
-          "cylinder_radius_m": 0.04,
           "arm_radius_m": 0.05,
+          "cylinder_radius_m": 0.04,
           "pivot_offset_x_m": 0.0,
           "tail_offset_x_m": 0.0,
           "piston_clip_min_fraction": 0.05,
@@ -851,12 +820,12 @@
           "max_stroke_fraction": 0.9
         },
         "initial_state": {
-          "frame_length_m": 3.4,
-          "frame_height_m": 0.65,
-          "frame_beam_size_m": 0.12,
           "lever_length_m": 0.75,
-          "cylinder_body_length_m": 0.46,
           "tail_rod_length_m": 0.18,
+          "frame_beam_size_m": 0.12,
+          "frame_height_m": 0.65,
+          "frame_length_m": 3.4,
+          "cylinder_body_length_m": 0.46,
           "j_arm_left": [
             -0.35,
             0.65,
@@ -1025,8 +994,8 @@
           "tank_pressure_initial_pa": 101325.0,
           "tank_temperature_initial_k": 293.15,
           "tank_volume_mode": "ADIABATIC_RECALC",
-          "thermo_mode": "ISOTHERMAL",
           "time_step_s": 0.005,
+          "thermo_mode": "ISOTHERMAL",
           "total_time_s": 3.0
         }
       },
@@ -1055,41 +1024,18 @@
           "max_force_n": 100000.0,
           "max_moment_n_m": 1000000.0
         },
-        "integrator": {
-          "loop": {
-            "max_steps_per_render": 50,
-            "max_linear_velocity_m_s": 10.0,
-            "max_angular_velocity_rad_s": 10.0,
-            "lever_ratio_clip_min": -0.999,
-            "lever_ratio_clip_max": 0.999,
-            "nan_replacement_value": 0.0,
-            "posinf_replacement_value": 0.0,
-            "neginf_replacement_value": 0.0,
-            "statistics_min_total_steps": 1
-          },
-          "solver": {
-            "primary_method": "Radau",
-            "fallback_methods": [
-              "BDF",
-              "RK45"
-            ],
-            "relative_tolerance": 1e-06,
-            "absolute_tolerance": 1e-09,
-            "max_step_divisor": 4.0
-          }
-        },
         "rigid_body": {
           "default_mass_kg": 1500.0,
-          "default_inertia_roll_kg_m2": 3000.0,
           "default_inertia_pitch_kg_m2": 2000.0,
+          "default_inertia_roll_kg_m2": 3000.0,
           "gravity_m_s2": 9.81,
           "track_width_m": 1.6,
           "wheelbase_m": 3.2,
+          "angle_limit_rad": 0.5,
+          "damping_coefficient": 0.1,
           "static_load_tolerance": 0.05,
           "load_sum_tolerance_scale": 1e-09,
           "load_sum_min_reference": 1.0,
-          "damping_coefficient": 0.1,
-          "angle_limit_rad": 0.5,
           "attachment_points_m": {
             "LP": {
               "x_m": -0.8,
@@ -1107,6 +1053,29 @@
               "x_m": 0.8,
               "z_m": 1.6
             }
+          }
+        },
+        "integrator": {
+          "solver": {
+            "primary_method": "Radau",
+            "fallback_methods": [
+              "BDF",
+              "RK45"
+            ],
+            "relative_tolerance": 1e-06,
+            "absolute_tolerance": 1e-09,
+            "max_step_divisor": 4.0
+          },
+          "loop": {
+            "max_steps_per_render": 50,
+            "lever_ratio_clip_min": -0.999,
+            "lever_ratio_clip_max": 0.999,
+            "statistics_min_total_steps": 1,
+            "max_linear_velocity_m_s": 10.0,
+            "max_angular_velocity_rad_s": 10.0,
+            "nan_replacement_value": 0.0,
+            "posinf_replacement_value": 0.0,
+            "neginf_replacement_value": 0.0
           }
         }
       }
@@ -1158,7 +1127,6 @@
       "piston_thickness_m": 0.025,
       "frame_mass": 1500.0,
       "wheel_mass": 50.0,
-      "tail_rod_length_m": 0.18,
       "interference_check": true,
       "link_rod_diameters": false,
       "frame_height_m": 0.65,
@@ -1166,6 +1134,7 @@
       "frame_length_m": 3.4,
       "lever_length_m": 0.75,
       "cylinder_body_length_m": 0.46,
+      "tail_rod_length_m": 0.18,
       "active_preset": "standard_truck"
     },
     "modes": {
@@ -1238,14 +1207,14 @@
         "spot": {
           "brightness": 4900.0,
           "color": "#ffffff",
-          "position_x": 0.0,
           "position_y": 1.0,
-          "position_z": 2.28,
           "range": 0.2,
           "cone_angle": 6.0,
           "inner_cone_angle": 0.0,
           "angle_x": -9.0,
           "angle_y": 0.0,
+          "position_x": 0.0,
+          "position_z": 2.28,
           "angle_z": 0.0,
           "cast_shadow": true,
           "bind_to_camera": false
@@ -1293,7 +1262,7 @@
         "shadows": {
           "enabled": true,
           "resolution": 4096,
-          "filter": 32.0,
+          "filter": 32,
           "bias": 8.0,
           "darkness": 80.0
         },
@@ -1370,14 +1339,11 @@
           "emissive_color": "#ffffff",
           "emissive_intensity": 0.0,
           "normal_strength": 0.0,
-          "texture_path": "",
           "occlusion_amount": 0.0,
           "alpha_mode": "default",
           "alpha_cutoff": 0.0,
-          "warning_color": null,
-          "ok_color": null,
-          "error_color": null,
-          "id": "frame"
+          "id": "frame",
+          "texture_path": ""
         },
         "lever": {
           "base_color": "#7d6b53",
@@ -1396,40 +1362,11 @@
           "emissive_color": "#ffffff",
           "emissive_intensity": 0.0,
           "normal_strength": 0.0,
-          "texture_path": "",
           "occlusion_amount": 0.0,
           "alpha_mode": "default",
           "alpha_cutoff": 0.0,
-          "warning_color": null,
-          "ok_color": null,
-          "error_color": null,
-          "id": "lever"
-        },
-        "tail_rod": {
-          "base_color": "#6d5a45",
-          "metalness": 0.45,
-          "roughness": 0.5,
-          "specular": 0.45,
-          "specular_tint": "#f0f0f0",
-          "opacity": 1.0,
-          "clearcoat": 0.08,
-          "clearcoat_roughness": 0.12,
-          "transmission": 0.0,
-          "ior": 1.4,
-          "thickness": 0.0,
-          "attenuation_distance": 0.0,
-          "attenuation_color": "#ffffff",
-          "emissive_color": "#ffffff",
-          "emissive_intensity": 0.0,
-          "normal_strength": 0.0,
-          "texture_path": "",
-          "occlusion_amount": 0.0,
-          "alpha_mode": "default",
-          "alpha_cutoff": 0.0,
-          "warning_color": null,
-          "ok_color": null,
-          "error_color": null,
-          "id": "tail_rod"
+          "id": "lever",
+          "texture_path": ""
         },
         "cylinder": {
           "base_color": "#b5bcc3",
@@ -1448,14 +1385,11 @@
           "emissive_color": "#ffffff",
           "emissive_intensity": 0.0,
           "normal_strength": 0.0,
-          "texture_path": "",
           "occlusion_amount": 0.0,
           "alpha_mode": "blend",
           "alpha_cutoff": 0.0,
-          "warning_color": null,
-          "ok_color": null,
-          "error_color": null,
-          "id": "cylinder"
+          "id": "cylinder",
+          "texture_path": ""
         },
         "piston_body": {
           "base_color": "#7b848c",
@@ -1474,14 +1408,12 @@
           "emissive_color": "#ffffff",
           "emissive_intensity": 0.0,
           "normal_strength": 0.0,
-          "texture_path": "",
           "occlusion_amount": 0.0,
           "alpha_mode": "default",
           "alpha_cutoff": 0.0,
-          "warning_color": "#ff5454",
-          "ok_color": null,
-          "error_color": null,
-          "id": "piston_body"
+          "id": "piston_body",
+          "texture_path": "",
+          "warning_color": "#ff5454"
         },
         "piston_rod": {
           "base_color": "#d0d5d9",
@@ -1500,14 +1432,12 @@
           "emissive_color": "#ffffff",
           "emissive_intensity": 0.0,
           "normal_strength": 0.0,
-          "texture_path": "",
           "occlusion_amount": 0.0,
           "alpha_mode": "default",
           "alpha_cutoff": 0.0,
-          "warning_color": "#ff2a2a",
-          "ok_color": null,
-          "error_color": null,
-          "id": "piston_rod"
+          "id": "piston_rod",
+          "texture_path": "",
+          "warning_color": "#ff2a2a"
         },
         "joint_tail": {
           "base_color": "#686f78",
@@ -1526,14 +1456,11 @@
           "emissive_color": "#ffffff",
           "emissive_intensity": 0.0,
           "normal_strength": 0.0,
-          "texture_path": "",
           "occlusion_amount": 0.0,
           "alpha_mode": "default",
           "alpha_cutoff": 0.0,
-          "warning_color": null,
-          "ok_color": null,
-          "error_color": null,
-          "id": "joint_tail"
+          "id": "joint_tail",
+          "texture_path": ""
         },
         "joint_arm": {
           "base_color": "#5f676f",
@@ -1552,14 +1479,11 @@
           "emissive_color": "#ffffff",
           "emissive_intensity": 0.0,
           "normal_strength": 0.0,
-          "texture_path": "",
           "occlusion_amount": 0.0,
           "alpha_mode": "default",
           "alpha_cutoff": 0.0,
-          "warning_color": null,
-          "ok_color": null,
-          "error_color": null,
-          "id": "joint_arm"
+          "id": "joint_arm",
+          "texture_path": ""
         },
         "joint_rod": {
           "base_color": "#939aa3",
@@ -1578,14 +1502,36 @@
           "emissive_color": "#000000",
           "emissive_intensity": 0.0,
           "normal_strength": 0.4,
-          "texture_path": "",
           "occlusion_amount": 0.3,
           "alpha_mode": "default",
           "alpha_cutoff": 0.0,
-          "warning_color": null,
+          "id": "joint_rod",
+          "texture_path": "",
           "ok_color": "#00ff55",
-          "error_color": "#ff0000",
-          "id": "joint_rod"
+          "error_color": "#ff0000"
+        },
+        "tail_rod": {
+          "base_color": "#6d5a45",
+          "metalness": 0.45,
+          "roughness": 0.5,
+          "specular": 0.45,
+          "specular_tint": "#f0f0f0",
+          "opacity": 1.0,
+          "clearcoat": 0.08,
+          "clearcoat_roughness": 0.12,
+          "transmission": 0.0,
+          "ior": 1.4,
+          "thickness": 0.0,
+          "attenuation_distance": 0.0,
+          "attenuation_color": "#ffffff",
+          "emissive_color": "#ffffff",
+          "emissive_intensity": 0.0,
+          "normal_strength": 0.0,
+          "occlusion_amount": 0.0,
+          "alpha_mode": "default",
+          "alpha_cutoff": 0.0,
+          "id": "tail_rod",
+          "texture_path": ""
         }
       },
       "effects": {
@@ -1641,282 +1587,10 @@
       "phase_rl": 0.0,
       "phase_rr": 0.0,
       "smoothing_enabled": true,
-      "smoothing_duration_ms": 120.0,
+      "smoothing_duration_ms": 120,
       "smoothing_angle_snap_deg": 65.0,
       "smoothing_piston_snap_m": 0.05,
       "smoothing_easing": "OutCubic"
-    },
-    "physics": {
-      "suspension": {
-        "spring_constant": 50000.0,
-        "damper_coefficient": 2000.0,
-        "damper_force_threshold_n": 50.0,
-        "spring_rest_position_m": 0.0,
-        "cylinder_head_area_m2": 0.005,
-        "cylinder_rod_area_m2": 0.004,
-        "axis_unit_world": [
-          0.0,
-          1.0,
-          0.0
-        ]
-      },
-      "reference_axes": {
-        "vertical_world": [
-          0.0,
-          1.0,
-          0.0
-        ]
-      },
-      "validation": {
-        "max_force_n": 100000.0,
-        "max_moment_n_m": 1000000.0
-      }
-    },
-    "quality_presets": {
-      "ultra": {
-        "preset": null,
-        "shadows": {
-          "enabled": true,
-          "resolution": 4096,
-          "filter": 32.0,
-          "bias": 8.0,
-          "darkness": 80.0
-        },
-        "antialiasing": {
-          "primary": "ssaa",
-          "quality": "high",
-          "post": "taa"
-        },
-        "taa_enabled": true,
-        "taa_strength": 0.4,
-        "taa_motion_adaptive": true,
-        "fxaa_enabled": false,
-        "specular_aa": true,
-        "dithering": true,
-        "render_scale": 1.05,
-        "render_policy": "always",
-        "frame_rate_limit": 144.0,
-        "oit": "weighted",
-        "mesh": {
-          "cylinder_segments": 128,
-          "cylinder_rings": 32
-        }
-      },
-      "high": {
-        "preset": null,
-        "shadows": {
-          "enabled": true,
-          "resolution": 2048,
-          "filter": 16.0,
-          "bias": 9.5,
-          "darkness": 78.0
-        },
-        "antialiasing": {
-          "primary": "msaa",
-          "quality": "high",
-          "post": "off"
-        },
-        "taa_enabled": false,
-        "taa_strength": 0.3,
-        "taa_motion_adaptive": true,
-        "fxaa_enabled": false,
-        "specular_aa": true,
-        "dithering": true,
-        "render_scale": 1.0,
-        "render_policy": "always",
-        "frame_rate_limit": 120.0,
-        "oit": "weighted",
-        "mesh": {
-          "cylinder_segments": 40,
-          "cylinder_rings": 5
-        }
-      },
-      "medium": {
-        "preset": null,
-        "shadows": {
-          "enabled": true,
-          "resolution": 1024,
-          "filter": 8.0,
-          "bias": 10.0,
-          "darkness": 75.0
-        },
-        "antialiasing": {
-          "primary": "msaa",
-          "quality": "medium",
-          "post": "fxaa"
-        },
-        "taa_enabled": false,
-        "taa_strength": 0.25,
-        "taa_motion_adaptive": true,
-        "fxaa_enabled": true,
-        "specular_aa": true,
-        "dithering": true,
-        "render_scale": 0.9,
-        "render_policy": "always",
-        "frame_rate_limit": 90.0,
-        "oit": "weighted",
-        "mesh": {
-          "cylinder_segments": 28,
-          "cylinder_rings": 4
-        }
-      },
-      "low": {
-        "preset": null,
-        "shadows": {
-          "enabled": true,
-          "resolution": 512,
-          "filter": 4.0,
-          "bias": 12.0,
-          "darkness": 70.0
-        },
-        "antialiasing": {
-          "primary": "off",
-          "quality": "low",
-          "post": "fxaa"
-        },
-        "taa_enabled": false,
-        "taa_strength": 0.2,
-        "taa_motion_adaptive": true,
-        "fxaa_enabled": true,
-        "specular_aa": false,
-        "dithering": true,
-        "render_scale": 0.8,
-        "render_policy": "ondemand",
-        "frame_rate_limit": 60.0,
-        "oit": "none",
-        "mesh": {
-          "cylinder_segments": 20,
-          "cylinder_rings": 3
-        }
-      }
-    },
-    "diagnostics": {
-      "signal_trace": {
-        "enabled": false,
-        "history_limit": 1000,
-        "include": [],
-        "exclude": [],
-        "overlay_enabled": false
-      },
-      "camera_hud": {
-        "enabled": false,
-        "precision": 2,
-        "showAngles": true,
-        "showDamping": true,
-        "showInertia": true,
-        "showMotion": true,
-        "showPan": true,
-        "showPivot": true,
-        "showPreset": true,
-        "showSmoothing": true,
-        "showTimestamp": true
-      }
-    },
-    "system": {
-      "dependencies": {
-        "egl_runtime": {
-          "description": "EGL runtime required for Qt Quick OpenGL context creation.",
-          "missing_message": "Required EGL runtime ({human_name}) is missing.",
-          "variants": [
-            {
-              "id": "linux_mesa",
-              "human_name": "libEGL.so.1",
-              "platform_prefixes": [
-                "linux",
-                "linux2"
-              ],
-              "error_markers": [
-                "libEGL.so.1",
-                "EGL"
-              ],
-              "install_hint": "Install an EGL runtime package (e.g. 'apt-get install -y libegl1').",
-              "library_name": "EGL",
-              "packages": [
-                "libegl1"
-              ],
-              "install_command": "apt-get install -y libegl1"
-            }
-          ]
-        },
-        "opengl_runtime": {
-          "description": "OpenGL runtime required for Qt Quick rendering.",
-          "missing_message": "Required OpenGL runtime ({human_name}) is missing.",
-          "variants": [
-            {
-              "id": "linux_mesa",
-              "human_name": "libGL.so.1",
-              "platform_prefixes": [
-                "linux",
-                "linux2"
-              ],
-              "error_markers": [
-                "libGL.so.1"
-              ],
-              "install_hint": "Install a Mesa/OpenGL package (e.g. 'apt-get install -y libgl1').",
-              "library_name": "GL",
-              "packages": [
-                "libgl1"
-              ],
-              "install_command": "apt-get install -y libgl1"
-            },
-            {
-              "id": "windows_default",
-              "human_name": "opengl32.dll",
-              "platform_prefixes": [
-                "win32",
-                "cygwin"
-              ],
-              "error_markers": [
-                "opengl32.dll",
-                "opengl32"
-              ],
-              "install_hint": "Install the latest GPU drivers or enable OpenGL compatibility components.",
-              "library_name": "opengl32",
-              "packages": null,
-              "install_command": null
-            },
-            {
-              "id": "macos_default",
-              "human_name": "OpenGL.framework",
-              "platform_prefixes": [
-                "darwin"
-              ],
-              "error_markers": [
-                "OpenGL.framework",
-                "OpenGL"
-              ],
-              "install_hint": "Ensure the Xcode command line tools are installed for OpenGL support.",
-              "library_name": "OpenGL",
-              "packages": null,
-              "install_command": null
-            }
-          ]
-        },
-        "xkb_runtime": {
-          "description": "XKB common library required for Qt input handling.",
-          "missing_message": "Required XKB runtime ({human_name}) is missing.",
-          "variants": [
-            {
-              "id": "linux_default",
-              "human_name": "libxkbcommon.so.0",
-              "platform_prefixes": [
-                "linux",
-                "linux2"
-              ],
-              "error_markers": [
-                "libxkbcommon.so.0"
-              ],
-              "install_hint": "Install libxkbcommon (e.g. 'apt-get install -y libxkbcommon0').",
-              "library_name": "xkbcommon",
-              "packages": [
-                "libxkbcommon0",
-                "xkb-data"
-              ],
-              "install_command": "apt-get install -y libxkbcommon0"
-            }
-          ]
-        }
-      }
     },
     "constants": {
       "geometry": {
@@ -1928,15 +1602,15 @@
         },
         "cylinder": {
           "inner_diameter_m": 0.11,
-          "piston_thickness_m": 0.025,
           "rod_diameter_m": 0.035,
+          "piston_thickness_m": 0.025,
           "body_length_m": 0.46,
-          "dead_zone_head_m3": 0.001,
-          "dead_zone_rod_m3": 0.001
+          "dead_zone_rod_m3": 0.001,
+          "dead_zone_head_m3": 0.001
         },
         "visualization": {
-          "cylinder_radius_m": 0.04,
           "arm_radius_m": 0.05,
+          "cylinder_radius_m": 0.04,
           "pivot_offset_x_m": 0.0,
           "tail_offset_x_m": 0.0,
           "piston_clip_min_fraction": 0.05,
@@ -1944,12 +1618,12 @@
           "max_stroke_fraction": 0.9
         },
         "initial_state": {
-          "frame_length_m": 3.4,
-          "frame_height_m": 0.65,
-          "frame_beam_size_m": 0.12,
           "lever_length_m": 0.75,
-          "cylinder_body_length_m": 0.46,
           "tail_rod_length_m": 0.18,
+          "frame_beam_size_m": 0.12,
+          "frame_height_m": 0.65,
+          "frame_length_m": 3.4,
+          "cylinder_body_length_m": 0.46,
           "j_arm_left": [
             -0.35,
             0.65,
@@ -2118,8 +1792,8 @@
           "tank_pressure_initial_pa": 101325.0,
           "tank_temperature_initial_k": 293.15,
           "tank_volume_mode": "ADIABATIC_RECALC",
-          "thermo_mode": "ISOTHERMAL",
           "time_step_s": 0.005,
+          "thermo_mode": "ISOTHERMAL",
           "total_time_s": 3.0
         }
       },
@@ -2148,41 +1822,18 @@
           "max_force_n": 100000.0,
           "max_moment_n_m": 1000000.0
         },
-        "integrator": {
-          "loop": {
-            "max_steps_per_render": 50,
-            "max_linear_velocity_m_s": 10.0,
-            "max_angular_velocity_rad_s": 10.0,
-            "lever_ratio_clip_min": -0.999,
-            "lever_ratio_clip_max": 0.999,
-            "nan_replacement_value": 0.0,
-            "posinf_replacement_value": 0.0,
-            "neginf_replacement_value": 0.0,
-            "statistics_min_total_steps": 1
-          },
-          "solver": {
-            "primary_method": "Radau",
-            "fallback_methods": [
-              "BDF",
-              "RK45"
-            ],
-            "relative_tolerance": 1e-06,
-            "absolute_tolerance": 1e-09,
-            "max_step_divisor": 4.0
-          }
-        },
         "rigid_body": {
           "default_mass_kg": 1500.0,
-          "default_inertia_roll_kg_m2": 3000.0,
           "default_inertia_pitch_kg_m2": 2000.0,
+          "default_inertia_roll_kg_m2": 3000.0,
           "gravity_m_s2": 9.81,
           "track_width_m": 1.6,
           "wheelbase_m": 3.2,
+          "angle_limit_rad": 0.5,
+          "damping_coefficient": 0.1,
           "static_load_tolerance": 0.05,
           "load_sum_tolerance_scale": 1e-09,
           "load_sum_min_reference": 1.0,
-          "damping_coefficient": 0.1,
-          "angle_limit_rad": 0.5,
           "attachment_points_m": {
             "LP": {
               "x_m": -0.8,
@@ -2201,6 +1852,293 @@
               "z_m": 1.6
             }
           }
+        },
+        "integrator": {
+          "solver": {
+            "primary_method": "Radau",
+            "fallback_methods": [
+              "BDF",
+              "RK45"
+            ],
+            "relative_tolerance": 1e-06,
+            "absolute_tolerance": 1e-09,
+            "max_step_divisor": 4.0
+          },
+          "loop": {
+            "max_steps_per_render": 50,
+            "lever_ratio_clip_min": -0.999,
+            "lever_ratio_clip_max": 0.999,
+            "statistics_min_total_steps": 1,
+            "max_linear_velocity_m_s": 10.0,
+            "max_angular_velocity_rad_s": 10.0,
+            "nan_replacement_value": 0.0,
+            "posinf_replacement_value": 0.0,
+            "neginf_replacement_value": 0.0
+          }
+        }
+      }
+    },
+    "diagnostics": {
+      "signal_trace": {
+        "enabled": false,
+        "overlay_enabled": false,
+        "include": [],
+        "exclude": [],
+        "history_limit": 1000
+      },
+      "camera_hud": {
+        "enabled": false,
+        "precision": 2,
+        "showPivot": true,
+        "showPan": true,
+        "showAngles": true,
+        "showMotion": true,
+        "showDamping": true,
+        "showInertia": true,
+        "showSmoothing": true,
+        "showPreset": true,
+        "showTimestamp": true
+      }
+    },
+    "physics": {
+      "suspension": {
+        "spring_constant": 50000.0,
+        "damper_coefficient": 2000.0,
+        "damper_force_threshold_n": 50.0,
+        "spring_rest_position_m": 0.0,
+        "cylinder_head_area_m2": 0.005,
+        "cylinder_rod_area_m2": 0.004,
+        "axis_unit_world": [
+          0.0,
+          1.0,
+          0.0
+        ]
+      },
+      "reference_axes": {
+        "vertical_world": [
+          0.0,
+          1.0,
+          0.0
+        ]
+      },
+      "validation": {
+        "max_force_n": 100000.0,
+        "max_moment_n_m": 1000000.0
+      }
+    },
+    "quality_presets": {
+      "ultra": {
+        "shadows": {
+          "enabled": true,
+          "resolution": 4096,
+          "filter": 32,
+          "bias": 8.0,
+          "darkness": 80.0
+        },
+        "antialiasing": {
+          "primary": "ssaa",
+          "quality": "high",
+          "post": "taa"
+        },
+        "taa_enabled": true,
+        "taa_strength": 0.4,
+        "taa_motion_adaptive": true,
+        "fxaa_enabled": false,
+        "specular_aa": true,
+        "dithering": true,
+        "render_scale": 1.05,
+        "render_policy": "always",
+        "frame_rate_limit": 144.0,
+        "oit": "weighted",
+        "mesh": {
+          "cylinder_segments": 128,
+          "cylinder_rings": 32
+        }
+      },
+      "high": {
+        "shadows": {
+          "enabled": true,
+          "resolution": 2048,
+          "filter": 16,
+          "bias": 9.5,
+          "darkness": 78.0
+        },
+        "antialiasing": {
+          "primary": "msaa",
+          "quality": "high",
+          "post": "off"
+        },
+        "taa_enabled": false,
+        "taa_strength": 0.3,
+        "taa_motion_adaptive": true,
+        "fxaa_enabled": false,
+        "specular_aa": true,
+        "dithering": true,
+        "render_scale": 1.0,
+        "render_policy": "always",
+        "frame_rate_limit": 120.0,
+        "oit": "weighted",
+        "mesh": {
+          "cylinder_segments": 40,
+          "cylinder_rings": 5
+        }
+      },
+      "medium": {
+        "shadows": {
+          "enabled": true,
+          "resolution": 1024,
+          "filter": 8,
+          "bias": 10.0,
+          "darkness": 75.0
+        },
+        "antialiasing": {
+          "primary": "msaa",
+          "quality": "medium",
+          "post": "fxaa"
+        },
+        "taa_enabled": false,
+        "taa_strength": 0.25,
+        "taa_motion_adaptive": true,
+        "fxaa_enabled": true,
+        "specular_aa": true,
+        "dithering": true,
+        "render_scale": 0.9,
+        "render_policy": "always",
+        "frame_rate_limit": 90.0,
+        "oit": "weighted",
+        "mesh": {
+          "cylinder_segments": 28,
+          "cylinder_rings": 4
+        }
+      },
+      "low": {
+        "shadows": {
+          "enabled": true,
+          "resolution": 512,
+          "filter": 4,
+          "bias": 12.0,
+          "darkness": 70.0
+        },
+        "antialiasing": {
+          "primary": "off",
+          "quality": "low",
+          "post": "fxaa"
+        },
+        "taa_enabled": false,
+        "taa_strength": 0.2,
+        "taa_motion_adaptive": true,
+        "fxaa_enabled": true,
+        "specular_aa": false,
+        "dithering": true,
+        "render_scale": 0.8,
+        "render_policy": "ondemand",
+        "frame_rate_limit": 60.0,
+        "oit": "none",
+        "mesh": {
+          "cylinder_segments": 20,
+          "cylinder_rings": 3
+        }
+      }
+    },
+    "system": {
+      "dependencies": {
+        "opengl_runtime": {
+          "description": "OpenGL runtime required for Qt Quick rendering.",
+          "missing_message": "Required OpenGL runtime ({human_name}) is missing.",
+          "variants": [
+            {
+              "id": "linux_mesa",
+              "platform_prefixes": [
+                "linux",
+                "linux2"
+              ],
+              "library_name": "GL",
+              "human_name": "libGL.so.1",
+              "install_hint": "Install a Mesa/OpenGL package (e.g. 'apt-get install -y libgl1').",
+              "error_markers": [
+                "libGL.so.1"
+              ],
+              "packages": [
+                "libgl1"
+              ],
+              "install_command": "apt-get install -y libgl1"
+            },
+            {
+              "id": "windows_default",
+              "platform_prefixes": [
+                "win32",
+                "cygwin"
+              ],
+              "library_name": "opengl32",
+              "human_name": "opengl32.dll",
+              "install_hint": "Install the latest GPU drivers or enable OpenGL compatibility components.",
+              "error_markers": [
+                "opengl32.dll",
+                "opengl32"
+              ]
+            },
+            {
+              "id": "macos_default",
+              "platform_prefixes": [
+                "darwin"
+              ],
+              "library_name": "OpenGL",
+              "human_name": "OpenGL.framework",
+              "install_hint": "Ensure the Xcode command line tools are installed for OpenGL support.",
+              "error_markers": [
+                "OpenGL.framework",
+                "OpenGL"
+              ]
+            }
+          ]
+        },
+        "egl_runtime": {
+          "description": "EGL runtime required for Qt Quick OpenGL context creation.",
+          "missing_message": "Required EGL runtime ({human_name}) is missing.",
+          "variants": [
+            {
+              "id": "linux_mesa",
+              "platform_prefixes": [
+                "linux",
+                "linux2"
+              ],
+              "library_name": "EGL",
+              "human_name": "libEGL.so.1",
+              "install_hint": "Install an EGL runtime package (e.g. 'apt-get install -y libegl1').",
+              "error_markers": [
+                "libEGL.so.1",
+                "EGL"
+              ],
+              "packages": [
+                "libegl1"
+              ],
+              "install_command": "apt-get install -y libegl1"
+            }
+          ]
+        },
+        "xkb_runtime": {
+          "description": "XKB common library required for Qt input handling.",
+          "missing_message": "Required XKB runtime ({human_name}) is missing.",
+          "variants": [
+            {
+              "id": "linux_default",
+              "platform_prefixes": [
+                "linux",
+                "linux2"
+              ],
+              "library_name": "xkbcommon",
+              "human_name": "libxkbcommon.so.0",
+              "install_hint": "Install libxkbcommon (e.g. 'apt-get install -y libxkbcommon0').",
+              "error_markers": [
+                "libxkbcommon.so.0"
+              ],
+              "packages": [
+                "libxkbcommon0",
+                "xkb-data"
+              ],
+              "install_command": "apt-get install -y libxkbcommon0"
+            }
+          ]
         }
       }
     }

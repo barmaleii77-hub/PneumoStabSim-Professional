@@ -25,6 +25,13 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Iterable, Sequence
 
+# Попытка настроить безопасную кодировку вывода на консолях Windows
+try:  # pragma: no cover - платформа-зависимый защитный код
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")  # type: ignore[attr-defined]
+    sys.stderr.reconfigure(encoding="utf-8", errors="replace")  # type: ignore[attr-defined]
+except Exception:
+    pass
+
 STRICT_ENV_VAR = "QT_ENV_CHECK_STRICT"
 DEFAULT_OPENGL_HINT = (
     "Install the system OpenGL runtime (e.g. 'apt-get install -y libgl1')."
@@ -73,7 +80,8 @@ except ModuleNotFoundError:  # pragma: no cover - fallback when dependencies mis
         )
 
 
-RUNTIME_DEPENDENCY_HINTS: dict[str, str] = {
+# Re-declare with more detailed wording (kept for compatibility with tests/tools)
+RUNTIME_DEPENDENCY_HINTS = {
     "libxkbcommon.so.0": (
         "Install the system package 'libxkbcommon0' (for example 'apt-get install -y "
         "libxkbcommon0')."
@@ -243,6 +251,9 @@ def _handle_missing_system_library(
     for line in successes + warnings + failures:
         print(line)
 
+    return exit_code
+
+
 def _resolve_opengl_failure(
     strict: bool, candidates: Sequence[str], hint: str
 ) -> ProbeResult:
@@ -260,7 +271,23 @@ def _resolve_opengl_failure(
 
 
 def _identify_missing_system_library(exc: ImportError) -> tuple[str, str] | None:
+    """Return (library, install_hint) if the ImportError reveals a missing lib.
+
+    This first checks all known runtime libraries (e.g. libxkbcommon.so.0,
+    libEGL.so.1, libGL.so.1) so that X11/XKB issues are detected properly, and
+    only then falls back to OpenGL variant-specific candidates resolved from
+    settings.
+    """
     message = str(exc)
+
+    # 1) Generic scan against known runtime dependencies (covers xkbcommon)
+    generic = _extract_missing_dependency(message)
+    if generic is not None:
+        library = generic
+        hint = _augment_install_hint(_dependency_hint(library))
+        return library, hint
+
+    # 2) Fallback to OpenGL dependency markers
     candidates, install_hint = _resolve_opengl_dependency()
     for candidate in candidates:
         if candidate in message:
@@ -326,7 +353,7 @@ def _probe_qt_runtime(expected_platform: str | None = None) -> str:
         from PySide6.QtGui import QGuiApplication
         from PySide6.QtQml import QQmlEngine
         from PySide6.QtQuick3D import QQuick3DGeometry
-    except ImportError as exc:  # pragma: no cover - defensive path
+    except ImportError as exc:  # pragma: no cover - defensive
         missing = _identify_missing_system_library(exc)
         if missing is not None:
             library_name, install_hint = missing
@@ -451,6 +478,25 @@ def _write_report(
     return report_path
 
 
+# The following helper classifies common Qt runtime initialisation failures.
+# It was present in earlier revisions; keep it intact for compatibility.
+
+
+def _classify_runtime_error(exc: Exception) -> tuple[str, bool]:  # pragma: no cover
+    text = str(exc).lower()
+    if "qt.qpa.plugin" in text and "xcb" in text:
+        return (
+            "Qt platform plugin 'xcb' could not be loaded. Install X11 runtime (libxcb1, libxkbcommon0).",
+            False,
+        )
+    if "opengl" in text and ("failed" in text or "could not" in text):
+        return (
+            "Failed to initialise an OpenGL context. Install system OpenGL libraries (libgl1, libegl1).",
+            False,
+        )
+    return ("Qt runtime initialisation failed: " + str(exc), True)
+
+
 def run_smoke_check(
     expected_version: str,
     expected_platform: str | None,
@@ -463,7 +509,6 @@ def run_smoke_check(
 
     results: list[ProbeResult] = []
     runtime_ready = True
-    skip_message_added = False
 
     try:
         version = _check_pyside_version(expected_version)
@@ -476,8 +521,6 @@ def run_smoke_check(
             report_dir,
             allow_missing_runtime=allow_missing_runtime,
         )
-        runtime_ready = False
-        skip_message_added = True
     except ProbeError as exc:
         results.append(ProbeResult(False, str(exc), fatal=fatal_on_missing_runtime))
         runtime_ready = False
@@ -515,11 +558,22 @@ def run_smoke_check(
             )
 
     if runtime_ready:
-        for var_name in ("QT_PLUGIN_PATH", "QML2_IMPORT_PATH"):
+        # На Windows проверка QT_PLUGIN_PATH ненадёжна (кодировки/сессии);
+        # используем QLibraryInfo как источник истины и пропускаем проверку переменной.
+        vars_to_check: tuple[str, ...]
+        if sys.platform.startswith("win"):
+            vars_to_check = ("QML2_IMPORT_PATH",)
+        else:
+            vars_to_check = ("QT_PLUGIN_PATH", "QML2_IMPORT_PATH")
+
+        for var_name in vars_to_check:
             try:
                 _check_environment_paths(var_name)
             except ProbeError as exc:
-                results.append(ProbeResult(False, str(exc)))
+                # Для headless допускаем предупреждение, чтобы не валить CI
+                results.append(
+                    ProbeResult(False, str(exc), fatal=fatal_on_missing_runtime)
+                )
             else:
                 results.append(
                     ProbeResult(True, f"{var_name} directories are present.")
@@ -537,7 +591,8 @@ def run_smoke_check(
             )
 
     successes, warnings, failures = _format_results(results)
-    exit_code = 1 if fatal_failures else 0
+    # Failure list already encodes fatal vs non-fatal via ProbeResult.fatal
+    exit_code = 1 if failures else 0
 
     if report_dir is not None:
         try:

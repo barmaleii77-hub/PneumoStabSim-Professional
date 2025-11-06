@@ -338,6 +338,63 @@ class UISetup:
         UISetup.logger.debug("✅ Система сплиттеров создана")
 
     @staticmethod
+    def _format_qml_errors(errors: list[Any]) -> str:
+        """Сформировать развёрнутый отчёт об ошибках QML.
+
+        PySide6 возвращает список QQmlError. str(error) может быть пустым,
+        поэтому собираем человеко-читаемое описание вручную.
+        """
+        if not errors:
+            return "<no error details from engine>"
+
+        parts: list[str] = []
+        for err in errors:
+            try:
+                # PySide6.QtQml.QQmlError API
+                to_string = getattr(err, "toString", None)
+                if callable(to_string):
+                    text = to_string()
+                    if isinstance(text, str) and text.strip():
+                        parts.append(text.strip())
+                        continue
+
+                # Fallback: manual formatting
+                url = None
+                try:
+                    u = getattr(err, "url", None)
+                    if callable(u):
+                        url = u()
+                        try:
+                            # QUrl → string
+                            url = url.toString()  # type: ignore[attr-defined]
+                        except Exception:
+                            url = str(url)
+                    else:
+                        url = str(getattr(err, "url", ""))
+                except Exception:
+                    url = None
+                line = getattr(err, "line", lambda: None)()
+                col = getattr(err, "column", lambda: None)()
+                desc = getattr(err, "description", lambda: None)()
+                chunk = []
+                if url:
+                    chunk.append(str(url))
+                if line is not None:
+                    chunk.append(f"{line}")
+                    if col is not None:
+                        chunk[-1] += f":{col}"
+                if desc:
+                    chunk.append(str(desc))
+                parts.append(" - ".join(chunk) if chunk else repr(err))
+            except Exception:
+                # Защитный путь — хоть что-то выведем
+                try:
+                    parts.append(str(err))
+                except Exception:
+                    parts.append("<unprintable qml error>")
+        return "\n".join(parts)
+
+    @staticmethod
     def _setup_qml_3d_view(window: MainWindow) -> None:
         """Setup Qt Quick 3D scene with QQuickWidget
 
@@ -562,7 +619,7 @@ class UISetup:
             status = window._qquick_widget.status()
             if status == QQuickWidget.Status.Error:
                 errors = window._qquick_widget.errors()
-                error_msg = "\n".join(str(e) for e in errors)
+                error_msg = UISetup._format_qml_errors(errors)
                 UISetup._register_postmortem_reason(f"qml-engine-error:{error_msg}")
                 raise RuntimeError(f"QML load errors:\n{error_msg}")
 

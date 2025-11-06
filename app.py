@@ -36,7 +36,15 @@ if bootstrap_args.env_check or bootstrap_args.env_report:
     if bootstrap_args.env_report:
         report_path = Path(bootstrap_args.env_report)
         report_path.write_text(report.to_markdown() + "\n", encoding="utf-8")
-        print(f"\n📝 Environment report written to {report_path.resolve()}")
+        # Избегаем эмодзи и проблем кодировки в консоли Windows (cp1251)
+        message = f"\nEnvironment report written to {report_path.resolve()}"
+        try:
+            print(message)
+        except Exception:
+            try:
+                sys.stdout.buffer.write((message + "\n").encode("utf-8", "replace"))
+            except Exception:
+                pass
 
     sys.exit(0 if report.is_successful else 1)
 
