@@ -1067,7 +1067,7 @@ Pane {
                             from: 1
                             to: 200
                             stepSize: 1
-                            value: Math.round(0.001 * valueScale)
+                            value: 10 // 0.001 m
                             editable: true
                             textFromValue: function(value, locale) { return root._formatValue(value / valueScale, 4) }
                             valueFromText: function(text, locale) {
@@ -1087,7 +1087,7 @@ Pane {
                             from: 1
                             to: 200
                             stepSize: 1
-                            value: Math.round(0.0015 * valueScale)
+                            value: 15 // 0.0015 m
                             editable: true
                             textFromValue: function(value, locale) { return root._formatValue(value / valueScale, 4) }
                             valueFromText: function(text, locale) {
@@ -1107,7 +1107,7 @@ Pane {
                             from: 0
                             to: 200
                             stepSize: 1
-                            value: Math.round(0.0008 * valueScale)
+                            value: 8 // 0.0008 m
                             editable: true
                             textFromValue: function(value, locale) { return root._formatValue(value / valueScale, 4) }
                             valueFromText: function(text, locale) {
