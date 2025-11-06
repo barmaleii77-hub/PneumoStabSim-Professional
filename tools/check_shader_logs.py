@@ -49,7 +49,9 @@ def analyse_shader_log(path: Path) -> dict[str, object]:
     errors, warnings, fallback_events = _parse_lines(content.splitlines())
     is_fallback_log = "fallback" in path.name.lower()
     if is_fallback_log and not fallback_events:
-        fallback_events.append({"line": 0, "message": "filename indicates fallback shader"})
+        fallback_events.append(
+            {"line": 0, "message": "filename indicates fallback shader"}
+        )
     return {
         "source": str(path),
         "generated_at": datetime.now(UTC)

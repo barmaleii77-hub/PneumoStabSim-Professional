@@ -535,6 +535,8 @@ class GeometryConstants(_StrictModel):
 class PneumoValveConstants(_StrictModel):
     delta_open_pa: float
     equivalent_diameter_m: float
+    relief_min_orifice_diameter_m: float
+    relief_stiff_orifice_diameter_m: float
 
 
 class PneumoReceiverConstants(_StrictModel):
@@ -554,6 +556,9 @@ class PneumoGasConstants(_StrictModel):
     thermo_mode: str
     time_step_s: float
     total_time_s: float
+    relief_min_threshold_pa: float
+    relief_stiff_threshold_pa: float
+    relief_safety_threshold_pa: float
 
 
 class PneumoConstants(_StrictModel):

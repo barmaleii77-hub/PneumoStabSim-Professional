@@ -4,8 +4,9 @@ Manages interconnections between lines, receiver, and atmosphere
 """
 
 import logging
-from dataclasses import dataclass
-from typing import Dict, Optional
+from dataclasses import dataclass, field
+from functools import lru_cache
+from typing import Dict, Mapping, Optional
 from .enums import Line, ThermoMode
 from .gas_state import (
     LineGasState,
@@ -18,7 +19,52 @@ from .gas_state import (
 from .flow import mass_flow_orifice, mass_flow_unlimited
 from .system import PneumaticSystem
 from .thermo import PolytropicParameters
+from config.constants import (
+    get_pneumo_relief_orifices,
+    get_pneumo_relief_thresholds,
+)
 from src.common.units import PA_ATM, T_AMBIENT
+
+
+@lru_cache(maxsize=1)
+def _relief_threshold_defaults() -> Mapping[str, float]:
+    """Load relief valve pressure thresholds from the settings service."""
+
+    thresholds = get_pneumo_relief_thresholds()
+    return {
+        "min": float(thresholds["min"]),
+        "stiff": float(thresholds["stiff"]),
+        "safety": float(thresholds["safety"]),
+    }
+
+
+def _default_relief_min_threshold() -> float:
+    return _relief_threshold_defaults()["min"]
+
+
+def _default_relief_stiff_threshold() -> float:
+    return _relief_threshold_defaults()["stiff"]
+
+
+def _default_relief_safety_threshold() -> float:
+    return _relief_threshold_defaults()["safety"]
+
+
+@lru_cache(maxsize=1)
+def _relief_orifice_defaults() -> Mapping[str, float]:
+    diameters = get_pneumo_relief_orifices()
+    return {
+        "min": float(diameters["min"]),
+        "stiff": float(diameters["stiff"]),
+    }
+
+
+def _default_relief_min_orifice() -> float:
+    return _relief_orifice_defaults()["min"]
+
+
+def _default_relief_stiff_orifice() -> float:
+    return _relief_orifice_defaults()["stiff"]
 
 
 @dataclass
@@ -35,9 +81,19 @@ class GasNetwork:
     system_ref: PneumaticSystem  # Reference to pneumatic system
     master_isolation_open: bool = False  # Master isolation valve state
     ambient_temperature: float = T_AMBIENT  # Ambient temperature in Kelvin
-    relief_min_threshold: float = 1.05 * PA_ATM
-    relief_stiff_threshold: float = 1.5 * PA_ATM
-    relief_safety_threshold: float = 2.0 * PA_ATM
+    relief_min_threshold: float = field(default_factory=_default_relief_min_threshold)
+    relief_stiff_threshold: float = field(
+        default_factory=_default_relief_stiff_threshold
+    )
+    relief_safety_threshold: float = field(
+        default_factory=_default_relief_safety_threshold
+    )
+    relief_min_orifice_diameter: float = field(
+        default_factory=_default_relief_min_orifice
+    )
+    relief_stiff_orifice_diameter: float = field(
+        default_factory=_default_relief_stiff_orifice
+    )
     polytropic_params: Optional[PolytropicParameters] = None
     leak_coefficient: float = 0.0
     leak_reference_area: float = 0.0
@@ -51,6 +107,23 @@ class GasNetwork:
             raise ValueError(
                 f"Network must have all 4 lines. Expected {expected_lines}, got {actual_lines}"
             )
+
+        threshold_checks = (
+            (self.relief_min_threshold, "relief_min_threshold"),
+            (self.relief_stiff_threshold, "relief_stiff_threshold"),
+            (self.relief_safety_threshold, "relief_safety_threshold"),
+        )
+        for value, name in threshold_checks:
+            if value <= 0.0:
+                raise ValueError(f"{name} must be positive, got {value}")
+
+        diameter_checks = (
+            (self.relief_min_orifice_diameter, "relief_min_orifice_diameter"),
+            (self.relief_stiff_orifice_diameter, "relief_stiff_orifice_diameter"),
+        )
+        for value, name in diameter_checks:
+            if value <= 0.0:
+                raise ValueError(f"{name} must be positive, got {value}")
 
     def compute_line_volumes(self) -> Dict[Line, float]:
         """Compute current volumes for all lines from cylinder states
@@ -279,8 +352,8 @@ class GasNetwork:
         p_stiff_threshold = self.relief_stiff_threshold
         p_safety_threshold = self.relief_safety_threshold
 
-        d_eq_min_bleed = 1.0e-3  # 1mm throttle
-        d_eq_stiff_bleed = 1.0e-3  # 1mm throttle
+        d_eq_min_bleed = self.relief_min_orifice_diameter
+        d_eq_stiff_bleed = self.relief_stiff_orifice_diameter
 
         total_mass_out = 0.0
         relief_log = {"flow_min": 0.0, "flow_stiff": 0.0, "flow_safety": 0.0}

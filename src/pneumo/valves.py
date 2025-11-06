@@ -10,11 +10,62 @@ pressures so ``is_open()`` can be called with or without explicit arguments.
 
 from __future__ import annotations
 
-from typing import Optional
+from functools import lru_cache
+from typing import Mapping, Optional
 
 from .enums import CheckValveKind, ReliefValveKind
 from .types import ValidationResult
 from src.common.errors import ModelConfigError
+from config.constants import (
+    get_pneumo_relief_orifices,
+    get_pneumo_valve_constants,
+)
+
+
+@lru_cache(maxsize=1)
+def _check_valve_defaults() -> Mapping[str, float]:
+    """Load default check valve parameters from the settings service."""
+
+    constants = get_pneumo_valve_constants()
+    context = "constants.pneumo.valves"
+
+    return {
+        "delta_open_pa": _coerce_positive_constant(constants, "delta_open_pa", context),
+        "equivalent_diameter_m": _coerce_positive_constant(
+            constants, "equivalent_diameter_m", context
+        ),
+    }
+
+
+@lru_cache(maxsize=1)
+def _relief_orifice_defaults() -> Mapping[str, float]:
+    """Return relief valve orifice diameters keyed by valve kind."""
+
+    diameters = get_pneumo_relief_orifices()
+    return {
+        "min": float(diameters["min"]),
+        "stiff": float(diameters["stiff"]),
+    }
+
+
+def _coerce_positive_constant(
+    container: Mapping[str, object], key: str, context: str
+) -> float:
+    if key not in container:
+        raise ModelConfigError(
+            f"Missing required configuration value '{context}.{key}'"
+        )
+    try:
+        numeric = float(container[key])
+    except (TypeError, ValueError) as exc:
+        raise ModelConfigError(
+            f"Configuration value '{context}.{key}' must be numeric"
+        ) from exc
+    if numeric <= 0.0:
+        raise ModelConfigError(
+            f"Configuration value '{context}.{key}' must be positive, got {numeric}"
+        )
+    return numeric
 
 
 class CheckValve:
@@ -70,6 +121,14 @@ class CheckValve:
                 delta_open = pos_delta
             if d_eq is None and d_eff is None:
                 d_eq = pos_d_eq
+
+        defaults: Optional[Mapping[str, float]] = None
+        if delta_open_min is None and delta_open is None:
+            defaults = _check_valve_defaults()
+            delta_open_min = defaults["delta_open_pa"]
+        if d_eq is None and d_eff is None:
+            defaults = defaults or _check_valve_defaults()
+            d_eq = defaults["equivalent_diameter_m"]
 
         self.delta_open_min = self._coerce_positive(
             delta_open_min if delta_open_min is not None else delta_open,
@@ -236,6 +295,12 @@ class ReliefValve:
             raise ModelConfigError(f"Hysteresis must be non-negative, got {self.hyst}")
 
         d_value = d_eq if d_eq is not None else throttle_coeff
+        if d_value is None and self.kind != ReliefValveKind.SAFETY:
+            orifices = _relief_orifice_defaults()
+            if self.kind == ReliefValveKind.MIN_PRESS:
+                d_value = orifices["min"]
+            else:
+                d_value = orifices["stiff"]
         if self.kind == ReliefValveKind.SAFETY:
             if d_value not in (None, 0.0):
                 raise ModelConfigError(

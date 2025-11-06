@@ -50,6 +50,21 @@ def _require_scalar_key(container: Mapping[str, Any], key: str, context: str) ->
     return container[key]
 
 
+def _require_positive_float(container: Mapping[str, Any], key: str, context: str) -> float:
+    value = _require_scalar_key(container, key, context)
+    try:
+        numeric = float(value)
+    except (TypeError, ValueError) as exc:
+        raise TypeError(
+            f"Expected '{context}.{key}' to be a number in app_settings.json"
+        ) from exc
+    if numeric <= 0.0:
+        raise ValueError(
+            f"'{context}.{key}' must be positive in app_settings.json, got {numeric}"
+        )
+    return numeric
+
+
 def _get_constants_root(
     root_key: str = "current",
     *,
@@ -255,6 +270,24 @@ def get_pneumo_valve_constants(
     return _require_mapping_key(pneumo, "valves", "constants.pneumo")
 
 
+def get_pneumo_relief_orifices(
+    *,
+    custom_path: str | None = None,
+) -> Mapping[str, float]:
+    """Return relief valve orifice diameters in metres."""
+
+    valves = get_pneumo_valve_constants(custom_path=custom_path)
+    context = "constants.pneumo.valves"
+    return {
+        "min": _require_positive_float(
+            valves, "relief_min_orifice_diameter_m", context
+        ),
+        "stiff": _require_positive_float(
+            valves, "relief_stiff_orifice_diameter_m", context
+        ),
+    }
+
+
 def get_pneumo_receiver_constants(
     *,
     custom_path: str | None = None,
@@ -273,6 +306,23 @@ def get_pneumo_gas_constants(
 
     pneumo = get_pneumo_constants(custom_path=custom_path)
     return _require_mapping_key(pneumo, "gas", "constants.pneumo")
+
+
+def get_pneumo_relief_thresholds(
+    *,
+    custom_path: str | None = None,
+) -> Mapping[str, float]:
+    """Return pressure thresholds for relief valves (Pascals)."""
+
+    gas = get_pneumo_gas_constants(custom_path=custom_path)
+    context = "constants.pneumo.gas"
+    return {
+        "min": _require_positive_float(gas, "relief_min_threshold_pa", context),
+        "stiff": _require_positive_float(gas, "relief_stiff_threshold_pa", context),
+        "safety": _require_positive_float(
+            gas, "relief_safety_threshold_pa", context
+        ),
+    }
 
 
 def get_pneumo_master_isolation_default(
