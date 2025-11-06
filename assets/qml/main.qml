@@ -2,7 +2,7 @@ import QtQuick 6.10
 import QtQuick.Controls 6.10
 import PneumoStabSim 1.0
 import "./"
-import "./panels" as Panels
+import "./Panels" as Panels
 import "training" as Training
 import components 1.0 as Components
 

@@ -22,6 +22,8 @@ Pane {
     property string _activePresetId: ""
     property bool _updatingFromPython: false
 
+    // Shared integer scaling factor for spin boxes representing metre-based fractions
+    readonly property int _floatScale: 10000
     readonly property var _defaultRanges: (modesMetadata && modesMetadata.parameterRanges) ? modesMetadata.parameterRanges : {}
 
     signal simulationControlRequested(string command)
@@ -194,6 +196,18 @@ Pane {
         }
     }
 
+    function _assignScaledSpinValue(spin, rawValue, options) {
+        if (!spin)
+            return
+        var numeric = _coerceNumeric(rawValue)
+        if (numeric === undefined)
+            return
+        var scale = Number(spin.valueScale !== undefined ? spin.valueScale : 1)
+        if (scale !== 1 && Math.round(numeric) === numeric && Math.abs(numeric) >= 1)
+            numeric = numeric / scale
+        _assignSpinValue(spin, numeric, options)
+    }
+
     function _emitAnimationPayload(extra) {
         var payload = {
             amplitude: amplitudeSlider.value,
@@ -308,9 +322,9 @@ Pane {
         if (Object.prototype.hasOwnProperty.call(data, "cv_tank_dp"))
             _assignSpinValue(cvTankDpSpin, data.cv_tank_dp, { forceInt: true, key: "cv_tank_dp" })
         if (Object.prototype.hasOwnProperty.call(data, "cv_atmo_dia"))
-            _assignSpinValue(cvAtmoDiaSpin, data.cv_atmo_dia, { key: "cv_atmo_dia" })
+            _assignScaledSpinValue(cvAtmoDiaSpin, data.cv_atmo_dia, { key: "cv_atmo_dia" })
         if (Object.prototype.hasOwnProperty.call(data, "cv_tank_dia"))
-            _assignSpinValue(cvTankDiaSpin, data.cv_tank_dia, { key: "cv_tank_dia" })
+            _assignScaledSpinValue(cvTankDiaSpin, data.cv_tank_dia, { key: "cv_tank_dia" })
         if (Object.prototype.hasOwnProperty.call(data, "relief_min_pressure"))
             _assignSpinValue(reliefMinSpin, data.relief_min_pressure, { forceInt: true, key: "relief_min_pressure" })
         if (Object.prototype.hasOwnProperty.call(data, "relief_stiff_pressure"))
@@ -318,11 +332,11 @@ Pane {
         if (Object.prototype.hasOwnProperty.call(data, "relief_safety_pressure"))
             _assignSpinValue(reliefSafetySpin, data.relief_safety_pressure, { forceInt: true, key: "relief_safety_pressure" })
         if (Object.prototype.hasOwnProperty.call(data, "throttle_min_dia"))
-            _assignSpinValue(throttleMinSpin, data.throttle_min_dia, { key: "throttle_min_dia" })
+            _assignScaledSpinValue(throttleMinSpin, data.throttle_min_dia, { key: "throttle_min_dia" })
         if (Object.prototype.hasOwnProperty.call(data, "throttle_stiff_dia"))
-            _assignSpinValue(throttleStiffSpin, data.throttle_stiff_dia, { key: "throttle_stiff_dia" })
+            _assignScaledSpinValue(throttleStiffSpin, data.throttle_stiff_dia, { key: "throttle_stiff_dia" })
         if (Object.prototype.hasOwnProperty.call(data, "diagonal_coupling_dia"))
-            _assignSpinValue(diagonalCouplingSpin, data.diagonal_coupling_dia, { key: "diagonal_coupling_dia" })
+            _assignScaledSpinValue(diagonalCouplingSpin, data.diagonal_coupling_dia, { key: "diagonal_coupling_dia" })
         if (Object.prototype.hasOwnProperty.call(data, "atmo_temp"))
             _assignSpinValue(atmoTempSpin, data.atmo_temp, { forceInt: true, key: "atmo_temp" })
         if (Object.prototype.hasOwnProperty.call(data, "master_isolation_open"))
@@ -335,13 +349,13 @@ Pane {
         var data = payload || {}
         _updatingFromPython = true
         if (Object.prototype.hasOwnProperty.call(data, "physics_dt"))
-            _assignSpinValue(physicsDtSpin, data.physics_dt, { key: "physics_dt" })
+            _assignScaledSpinValue(physicsDtSpin, data.physics_dt, { key: "physics_dt" })
         if (Object.prototype.hasOwnProperty.call(data, "render_vsync_hz"))
             _assignSpinValue(vsyncSpin, data.render_vsync_hz, { forceInt: true, key: "render_vsync_hz" })
         if (Object.prototype.hasOwnProperty.call(data, "max_steps_per_frame"))
             _assignSpinValue(maxStepsSpin, data.max_steps_per_frame, { forceInt: true, key: "max_steps_per_frame" })
         if (Object.prototype.hasOwnProperty.call(data, "max_frame_time"))
-            _assignSpinValue(maxFrameTimeSpin, data.max_frame_time, { key: "max_frame_time" })
+            _assignScaledSpinValue(maxFrameTimeSpin, data.max_frame_time, { key: "max_frame_time" })
         _updatingFromPython = false
         return true
     }
@@ -350,9 +364,9 @@ Pane {
         var data = payload || {}
         _updatingFromPython = true
         if (Object.prototype.hasOwnProperty.call(data, "dead_zone_head_m3"))
-            _assignSpinValue(deadZoneHeadSpin, data.dead_zone_head_m3, { key: "dead_zone_head_m3" })
+            _assignScaledSpinValue(deadZoneHeadSpin, data.dead_zone_head_m3, { key: "dead_zone_head_m3" })
         if (Object.prototype.hasOwnProperty.call(data, "dead_zone_rod_m3"))
-            _assignSpinValue(deadZoneRodSpin, data.dead_zone_rod_m3, { key: "dead_zone_rod_m3" })
+            _assignScaledSpinValue(deadZoneRodSpin, data.dead_zone_rod_m3, { key: "dead_zone_rod_m3" })
         _updatingFromPython = false
         return true
     }
@@ -926,7 +940,7 @@ Pane {
                         }
                         SpinBox {
                             Layout.preferredWidth: 110
-                            readonly property int valueScale: 10000
+                            readonly property int valueScale: root._floatScale
                             from: Math.round(receiverVolumeSlider.from * valueScale)
                             to: Math.round(receiverVolumeSlider.to * valueScale)
                             stepSize: Math.max(1, Math.round(receiverVolumeSlider.stepSize * valueScale))
@@ -981,7 +995,7 @@ Pane {
                         }
                         SpinBox {
                             id: cvAtmoDiaSpin
-                            readonly property int valueScale: 10000
+                            readonly property int valueScale: root._floatScale
                             from: 1
                             to: 200
                             stepSize: 1
@@ -1001,7 +1015,7 @@ Pane {
                         }
                         SpinBox {
                             id: cvTankDiaSpin
-                            readonly property int valueScale: 10000
+                            readonly property int valueScale: root._floatScale
                             from: 1
                             to: 200
                             stepSize: 1
@@ -1063,7 +1077,7 @@ Pane {
                         }
                         SpinBox {
                             id: throttleMinSpin
-                            readonly property int valueScale: 10000
+                            readonly property int valueScale: root._floatScale
                             from: 1
                             to: 200
                             stepSize: 1
@@ -1083,7 +1097,7 @@ Pane {
                         }
                         SpinBox {
                             id: throttleStiffSpin
-                            readonly property int valueScale: 10000
+                            readonly property int valueScale: root._floatScale
                             from: 1
                             to: 200
                             stepSize: 1
@@ -1103,7 +1117,7 @@ Pane {
                         }
                         SpinBox {
                             id: diagonalCouplingSpin
-                            readonly property int valueScale: 10000
+                            readonly property int valueScale: root._floatScale
                             from: 0
                             to: 200
                             stepSize: 1
@@ -1162,7 +1176,7 @@ Pane {
                     }
                     SpinBox {
                         id: physicsDtSpin
-                        readonly property int valueScale: 10000
+                        readonly property int valueScale: root._floatScale
                         from: 1
                         to: 200
                         stepSize: 1
@@ -1243,7 +1257,7 @@ Pane {
                     }
                     SpinBox {
                         id: deadZoneHeadSpin
-                        readonly property int valueScale: 10000
+                        readonly property int valueScale: root._floatScale
                         from: 0
                         to: 100
                         stepSize: 1
@@ -1263,7 +1277,7 @@ Pane {
                     }
                     SpinBox {
                         id: deadZoneRodSpin
-                        readonly property int valueScale: 10000
+                        readonly property int valueScale: root._floatScale
                         from: 0
                         to: 100
                         stepSize: 1
