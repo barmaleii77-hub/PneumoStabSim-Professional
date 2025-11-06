@@ -183,6 +183,16 @@ ExtendedSceneEnvironment {
     property bool iblBindToCamera: environmentBoolDefault("iblBindToCamera", "ibl_bind_to_camera", false)
     property real skyboxBlurValue: environmentNumberDefault("skyboxBlur", "skybox_blur", 0.0)
 
+    // ===============================================================
+    // COLOR ADJUSTMENTS (Qt 6.10+)
+    // ===============================================================
+
+    property alias adjustmentBrightnessValue: root.adjustmentBrightness
+    property alias adjustmentContrastValue: root.adjustmentContrast
+    property alias adjustmentSaturationValue: root.adjustmentSaturation
+
+    colorAdjustmentsEnabled: effectsBoolDefault("colorAdjustmentsEnabled", "color_adjustments_enabled", true)
+
  /**
  * Python SceneBridge instance injected via context property.
  */
@@ -373,6 +383,20 @@ ExtendedSceneEnvironment {
         return value === undefined ? fallback : value
     }
 
+    function effectsBoolDefault(primaryKey, secondaryKey, fallback) {
+        if (!root.contextEffectsDefaults)
+            return fallback
+        var value = boolFromKeys(root.contextEffectsDefaults, primaryKey, secondaryKey)
+        return value === undefined ? fallback : value
+    }
+
+    function effectsNumberDefault(primaryKey, secondaryKey, fallback) {
+        if (!root.contextEffectsDefaults)
+            return fallback
+        var value = numberFromKeys(root.contextEffectsDefaults, primaryKey, secondaryKey)
+        return value === undefined ? fallback : value
+    }
+
     function _cloneContextPayload(payload) {
         if (!payload || typeof payload !== "object")
             return null
@@ -538,6 +562,46 @@ ExtendedSceneEnvironment {
         applyQualityPresetInternal(qualityPreset)
         _syncSkyboxBackground()
         Qt.callLater(_updateBufferRequirements)
+    }
+
+    function applyEffectsPayload(params) {
+        if (!params)
+            return
+
+        var colorSection = valueFromKeys(params, "colorAdjustments", "color_adjustments")
+        if (colorSection && typeof colorSection === "object") {
+            var nestedEnabled = boolFromKeys(colorSection, "enabled", "enabled")
+            if (nestedEnabled !== undefined)
+                colorAdjustmentsEnabled = !!nestedEnabled
+
+            var nestedBrightness = numberFromKeys(colorSection, "brightness", "brightness")
+            if (nestedBrightness !== undefined)
+                adjustmentBrightnessValue = nestedBrightness
+
+            var nestedContrast = numberFromKeys(colorSection, "contrast", "contrast")
+            if (nestedContrast !== undefined)
+                adjustmentContrastValue = nestedContrast
+
+            var nestedSaturation = numberFromKeys(colorSection, "saturation", "saturation")
+            if (nestedSaturation !== undefined)
+                adjustmentSaturationValue = nestedSaturation
+        }
+
+        var enabledValue = boolFromKeys(params, "colorAdjustmentsEnabled", "color_adjustments_enabled")
+        if (enabledValue !== undefined)
+            colorAdjustmentsEnabled = !!enabledValue
+
+        var brightnessValue = numberFromKeys(params, "adjustmentBrightness", "adjustment_brightness")
+        if (brightnessValue !== undefined)
+            adjustmentBrightnessValue = brightnessValue
+
+        var contrastValue = numberFromKeys(params, "adjustmentContrast", "adjustment_contrast")
+        if (contrastValue !== undefined)
+            adjustmentContrastValue = contrastValue
+
+        var saturationValue = numberFromKeys(params, "adjustmentSaturation", "adjustment_saturation")
+        if (saturationValue !== undefined)
+            adjustmentSaturationValue = saturationValue
     }
 
     function applyEnvironmentPayload(params) {
