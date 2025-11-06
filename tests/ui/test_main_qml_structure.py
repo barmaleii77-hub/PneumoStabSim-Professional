@@ -25,6 +25,8 @@ def test_main_qml_contains_required_elements():
         "fallback loader name": 'objectName: "fallbackLoader"',
         "fallback loader component": "sourceComponent: SimulationFallbackRoot {}",
         "ack hookup": "item.batchUpdatesApplied.connect(root.batchUpdatesApplied)",
+        "fog depth toggle": "property bool fogDepthEnabled",
+        "fog depth curve binding": "fogDepthCurve: root.fogDepthCurve",
     }
 
     for label, token in expected_tokens.items():

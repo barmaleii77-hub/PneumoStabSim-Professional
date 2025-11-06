@@ -100,10 +100,12 @@ Item {
 
     // Fog
     property bool fogEnabled: true
+    property bool fogDepthEnabled: true
     property color fogColor: "#aab9cf"
     property real fogDensity: 0.06
     property real fogDepthNear: 2.0
     property real fogDepthFar: 20.0
+    property real fogDepthCurve: 1.0
     property bool fogHeightEnabled: false
     property real fogLeastIntenseY: 0.0
     property real fogMostIntenseY: 3.0
@@ -191,10 +193,12 @@ Item {
         depthOfFieldBlurAmount: root.depthOfFieldBlurAmountValue
 
         fogEnabled: root.fogEnabled
+        fogDepthEnabled: root.fogDepthEnabled
         fogColor: root.fogColor
         fogDensity: root.fogDensity
-        fogNear: root.fogDepthNear
-        fogFar: root.fogDepthFar
+        fogDepthCurve: root.fogDepthCurve
+        fogDepthNear: root.fogDepthNear
+        fogDepthFar: root.fogDepthFar
         fogHeightEnabled: root.fogHeightEnabled
         fogLeastIntenseY: root.fogLeastIntenseY
         fogMostIntenseY: root.fogMostIntenseY
