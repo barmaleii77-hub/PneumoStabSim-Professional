@@ -570,6 +570,10 @@
           "title": "Color Adjustments Enabled",
           "type": "boolean"
         },
+        "color_adjustments_active": {
+          "title": "Color Adjustments Active",
+          "type": "boolean"
+        },
         "adjustment_brightness": {
           "title": "Adjustment Brightness",
           "type": "number"
@@ -613,6 +617,7 @@
         "vignette_strength",
         "vignette_radius",
         "color_adjustments_enabled",
+        "color_adjustments_active",
         "adjustment_brightness",
         "adjustment_contrast",
         "adjustment_saturation"
