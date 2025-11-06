@@ -349,79 +349,84 @@ class PressureScaleWidget(QWidget):
         return y
 
     def paintEvent(self, event) -> None:  # type: ignore[override]
-        """Paint the pressure scale"""
+        """Paint the pressure scale with valve overlays."""
         painter = QPainter(self)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
 
         height = self.height()
 
-        # Margins
         margin = 40
         scale_x = 20
         scale_width = 30
         scale_height = height - 2 * margin
 
-        # Create gradient
         gradient = QLinearGradient(scale_x, margin + scale_height, scale_x, margin)
         for pos, color in self.gradient_stops:
             gradient.setColorAt(pos, color)
 
-        # Draw gradient bar
         painter.fillRect(scale_x, margin, scale_width, scale_height, QBrush(gradient))
 
-        # Draw scale border
         painter.setPen(QPen(Qt.GlobalColor.white, 2))
         painter.drawRect(scale_x, margin, scale_width, scale_height)
 
-        # Draw tick marks and labels
         painter.setFont(QFont("Arial", 8))
 
-        # Major ticks (every 1 bar = 100kPa)
-        tick_interval = 100000.0  # 1 bar
+        tick_interval = 100000.0
         p = self.p_min
         while p <= self.p_max:
             y = self.map_pressure_to_height(p)
-
-            # Tick mark
             painter.setPen(QPen(Qt.GlobalColor.white, 1))
             painter.drawLine(
                 scale_x + scale_width, int(y), scale_x + scale_width + 5, int(y)
             )
-
-            # Label (in bar)
             label = f"{p / 100000:.1f}"
             painter.setPen(Qt.GlobalColor.white)
             painter.drawText(scale_x + scale_width + 8, int(y) + 4, label)
-
             p += tick_interval
 
-        # Draw reference markers
-        self._draw_marker(
-            painter, self.p_atm, "Patm", QColor(150, 150, 150), scale_x, scale_width
-        )
+        valve_config = [
+            ("min", self.p_min_relief, QColor(100, 200, 100), "Min"),
+            ("stiff", self.p_stiff, QColor(255, 200, 0), "Stiff"),
+            ("safety", self.p_safety, QColor(255, 100, 100), "Safe"),
+        ]
+        for key, threshold, color, label in valve_config:
+            intensity = self._valve_intensity(key, threshold)
+            is_open = bool(self.valve_states.get(key, False))
+            self._draw_valve_band(
+                painter,
+                threshold,
+                color,
+                scale_x,
+                scale_width,
+                intensity,
+                is_open,
+            )
+            self._draw_marker(
+                painter,
+                threshold,
+                label,
+                color,
+                scale_x,
+                scale_width,
+                active=is_open,
+                intensity=intensity,
+            )
+
         self._draw_marker(
             painter,
-            self.p_min_relief,
-            "Min",
-            QColor(100, 200, 100),
+            self.p_atm,
+            "Patm",
+            QColor(150, 150, 150),
             scale_x,
             scale_width,
         )
-        self._draw_marker(
-            painter, self.p_stiff, "Stiff", QColor(255, 200, 0), scale_x, scale_width
-        )
-        self._draw_marker(
-            painter, self.p_safety, "Safe", QColor(255, 100, 100), scale_x, scale_width
-        )
 
-        # Draw tank pressure indicator
         y_tank = self.map_pressure_to_height(self.p_tank)
         painter.setPen(QPen(QColor(255, 255, 0), 3))
         painter.drawLine(
             scale_x - 5, int(y_tank), scale_x + scale_width + 5, int(y_tank)
         )
 
-        # Draw title
         painter.setFont(QFont("Arial", 10, QFont.Weight.Bold))
         painter.setPen(Qt.GlobalColor.white)
         painter.drawText(5, 20, "Pressure")
@@ -435,32 +440,73 @@ class PressureScaleWidget(QWidget):
         color: QColor,
         x: int,
         width: int,
+        *,
+        active: bool = False,
+        intensity: float = 0.0,
     ) -> None:
-        """Draw a reference pressure marker
+        """Draw a reference pressure marker."""
 
-        Args:
-            painter: QPainter instance
-            pressure: Pressure value
-            label: Marker label
-            color: Marker color
-            x: Scale X position
-            width: Scale width
-        """
         y = self.map_pressure_to_height(pressure)
+        highlight = QColor(color)
+        highlight.setAlpha(255)
+        clamped_intensity = max(0.0, min(1.0, float(intensity)))
+        if active:
+            highlight = highlight.lighter(130 + int(40 * clamped_intensity))
 
-        # Draw line
-        painter.setPen(QPen(color, 2, Qt.PenStyle.DashLine))
+        painter.setPen(QPen(highlight if active else color, 2, Qt.PenStyle.DashLine))
         painter.drawLine(x, int(y), x + width, int(y))
 
-        # Draw label background
         painter.setPen(Qt.PenStyle.NoPen)
-        painter.setBrush(QBrush(QColor(0, 0, 0, 180)))
-        painter.drawRect(x - 5, int(y) - 10, 30, 14)
+        label_bg = QColor(0, 0, 0, 220 if active else 180)
+        painter.setBrush(QBrush(label_bg))
+        painter.drawRoundedRect(x - 6, int(y) - 10, 36, 14, 3, 3)
 
-        # Draw label text
-        painter.setPen(color)
-        painter.setFont(QFont("Arial", 7))
+        painter.setPen(highlight if active else color)
+        font = QFont("Arial", 7, QFont.Weight.Bold if active else QFont.Weight.Normal)
+        painter.setFont(font)
         painter.drawText(x - 3, int(y), label)
+
+    def _draw_valve_band(
+        self,
+        painter: QPainter,
+        threshold: float,
+        color: QColor,
+        x: int,
+        width: int,
+        intensity: float,
+        is_open: bool,
+    ) -> None:
+        """Render a translucent band showing valve activity."""
+
+        clamped = max(0.0, min(1.0, float(intensity)))
+        effective = clamped if clamped > 0.0 else (0.2 if is_open else 0.0)
+        y = self.map_pressure_to_height(threshold)
+        band_width = int(12 + 22 * effective)
+        rect_x = x - band_width - 10
+        rect_width = band_width
+
+        fill_color = QColor(color)
+        alpha = 70 + int(150 * effective)
+        if is_open:
+            alpha = 100 + int(120 * effective)
+        fill_color.setAlpha(max(30, min(220, alpha)))
+
+        painter.setPen(Qt.PenStyle.NoPen)
+        painter.setBrush(QBrush(fill_color))
+        painter.drawRoundedRect(rect_x, int(y) - 7, rect_width, 14, 4, 4)
+
+        if is_open:
+            glow = QColor(color)
+            glow.setAlpha(min(255, 80 + int(160 * effective)))
+            painter.setPen(QPen(glow, 2))
+            painter.drawRoundedRect(rect_x - 2, int(y) - 9, rect_width + 4, 18, 6, 6)
+
+    def _valve_intensity(self, key: str, threshold: float) -> float:
+        """Return a 0..1 ratio representing valve overdrive."""
+
+        overdrive = float(self.overdrive_values.get(key, 0.0))
+        reference = max(1.0, abs(threshold) * 0.25)
+        return float(np.clip(overdrive / reference, 0.0, 1.0))
 
 
 class TankOverlayHUD:
