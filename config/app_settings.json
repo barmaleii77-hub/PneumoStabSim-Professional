@@ -10,7 +10,7 @@
     "last_migration": "0001_add_diagnostics_defaults",
     "migrated_from": "src/ui/panels/graphics/defaults.py",
     "migration_date": "2025-10-18",
-    "total_parameters": 313,
+    "total_parameters": 317,
     "description": "Unified settings file - single source of truth",
     "operational_imperatives": [
       "Запрещены дефолты и магические константы в коде — все значения настраиваются через config/app_settings.json.",
@@ -42,6 +42,10 @@
       "throttle_stiff_dia": 0.0015,
       "atmo_temp": 20.0,
       "thermo_mode": "ISOTHERMAL",
+      "polytropic_heat_transfer_coeff": 45.0,
+      "polytropic_exchange_area": 0.12,
+      "leak_coefficient": 5e-08,
+      "leak_reference_area": 0.0002,
       "master_isolation_open": false,
       "pressure_units": "Па",
       "receiver_volume_limits": {
@@ -1136,6 +1140,10 @@
       "throttle_stiff_dia": 0.0015,
       "atmo_temp": 20.0,
       "thermo_mode": "ISOTHERMAL",
+      "polytropic_heat_transfer_coeff": 45.0,
+      "polytropic_exchange_area": 0.12,
+      "leak_coefficient": 5e-08,
+      "leak_reference_area": 0.0002,
       "master_isolation_open": false,
       "pressure_units": "Па",
       "receiver_volume_limits": {

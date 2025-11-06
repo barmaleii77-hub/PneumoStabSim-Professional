@@ -50,6 +50,7 @@ from src.pneumo.gas_state import (
     apply_instant_volume_change,
 )
 from src.pneumo.network import GasNetwork
+from src.pneumo.thermo import PolytropicParameters
 from src.road.engine import RoadInput, create_road_input_from_preset
 from src.road.scenarios import get_preset_by_name
 from src.common.units import KELVIN_0C, PA_ATM, T_AMBIENT
@@ -215,7 +216,13 @@ class PhysicsWorker(QObject):
                 "max_steps_per_frame",
                 "max_frame_time",
             )
-            NUMERIC_PNEUMATIC_KEYS = ("receiver_volume",)
+            NUMERIC_PNEUMATIC_KEYS = (
+                "receiver_volume",
+                "polytropic_heat_transfer_coeff",
+                "polytropic_exchange_area",
+                "leak_coefficient",
+                "leak_reference_area",
+            )
             RECEIVER_VOLUME_LIMIT_KEYS = ("min_m3", "max_m3")
             STRING_PNEUMATIC_KEYS = ("volume_mode", "thermo_mode")
             BOOL_PNEUMATIC_KEYS = ("master_isolation_open",)
@@ -367,6 +374,18 @@ class PhysicsWorker(QObject):
                     return fallback
                 return value
 
+            def _resolve_positive(key: str) -> float:
+                value = _resolve_numeric(pneumatic_cfg, key)
+                if value is None:
+                    value = _resolve_numeric(pneumatic_defaults, key)
+                if value is None:
+                    return 0.0
+                try:
+                    numeric = float(value)
+                except (TypeError, ValueError):
+                    return 0.0
+                return max(numeric, 0.0)
+
             default_temp_c = 20.0
             atmo_temp_c = _resolve_numeric(pneumatic_cfg, "atmo_temp")
             if atmo_temp_c is None:
@@ -374,6 +393,11 @@ class PhysicsWorker(QObject):
             if atmo_temp_c is None:
                 atmo_temp_c = default_temp_c
             ambient_temperature = max(atmo_temp_c + KELVIN_0C, 1.0)
+
+            poly_heat_transfer = _resolve_positive("polytropic_heat_transfer_coeff")
+            poly_exchange_area = _resolve_positive("polytropic_exchange_area")
+            leak_coefficient = _resolve_positive("leak_coefficient")
+            leak_reference_area = _resolve_positive("leak_reference_area")
 
             relief_min_threshold = _get_pressure_setting(
                 "relief_min_pressure", 1.05 * PA_ATM
@@ -438,6 +462,13 @@ class PhysicsWorker(QObject):
                 relief_min_threshold=relief_min_threshold,
                 relief_stiff_threshold=relief_stiff_threshold,
                 relief_safety_threshold=relief_safety_threshold,
+                polytropic_params=PolytropicParameters(
+                    heat_transfer_coeff=poly_heat_transfer,
+                    exchange_area=poly_exchange_area,
+                    ambient_temperature=ambient_temperature,
+                ),
+                leak_coefficient=leak_coefficient,
+                leak_reference_area=leak_reference_area,
             )
 
             self._latest_tank_state = TankState(
@@ -601,6 +632,8 @@ class PhysicsWorker(QObject):
             self.thermo_mode = ThermoMode.ISOTHERMAL
         elif mode == "ADIABATIC":
             self.thermo_mode = ThermoMode.ADIABATIC
+        elif mode == "POLYTROPIC":
+            self.thermo_mode = ThermoMode.POLYTROPIC
         else:
             self.error_occurred.emit(f"Unknown thermo mode: {mode}")
             return

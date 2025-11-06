@@ -7,106 +7,11 @@ from typing import Dict
 
 import pytest
 
-from src.common.units import PA_ATM, R_AIR, T_AMBIENT
-from src.pneumo.cylinder import CylinderSpec
-from src.pneumo.enums import (
-    CheckValveKind,
-    Line,
-    ReceiverVolumeMode,
-    Wheel,
-)
-from src.pneumo.gas_state import (
-    create_line_gas_state,
-    create_tank_gas_state,
-    p_from_mTV,
-)
-from src.pneumo.geometry import CylinderGeom, LeverGeom
-from src.pneumo.network import GasNetwork
-from src.pneumo.receiver import ReceiverSpec, ReceiverState
-from src.pneumo.system import PneumaticSystem, create_standard_diagonal_system
-from src.pneumo.valves import CheckValve
-
-
-def _build_default_system_and_network() -> tuple[PneumaticSystem, GasNetwork]:
-    """Construct a pneumatic system and matching gas network for tests."""
-
-    lever_geom = LeverGeom(
-        L_lever=0.75,
-        rod_joint_frac=0.45,
-        d_frame_to_lever_hinge=0.42,
-    )
-    cylinder_geom = CylinderGeom(
-        D_in_front=0.11,
-        D_in_rear=0.11,
-        D_out_front=0.13,
-        D_out_rear=0.13,
-        L_inner=0.46,
-        t_piston=0.025,
-        D_rod=0.035,
-        link_rod_diameters_front_rear=True,
-        L_dead_head=0.018,
-        L_dead_rod=0.02,
-        residual_frac_min=0.01,
-        Y_tail=0.45,
-        Z_axle=0.55,
-    )
-
-    cylinder_specs = {
-        Wheel.LP: CylinderSpec(cylinder_geom, True, lever_geom),
-        Wheel.PP: CylinderSpec(cylinder_geom, True, lever_geom),
-        Wheel.LZ: CylinderSpec(cylinder_geom, False, lever_geom),
-        Wheel.PZ: CylinderSpec(cylinder_geom, False, lever_geom),
-    }
-
-    def _valve(kind: CheckValveKind) -> CheckValve:
-        return CheckValve(kind=kind, delta_open=5_000.0, d_eq=0.008)
-
-    line_configs = {
-        line: {
-            "cv_atmo": _valve(CheckValveKind.ATMO_TO_LINE),
-            "cv_tank": _valve(CheckValveKind.LINE_TO_TANK),
-            "p_line": PA_ATM,
-        }
-        for line in (Line.A1, Line.B1, Line.A2, Line.B2)
-    }
-
-    receiver_state = ReceiverState(
-        spec=ReceiverSpec(V_min=0.0018, V_max=0.0045),
-        V=0.003,
-        p=PA_ATM,
-        T=T_AMBIENT,
-        mode=ReceiverVolumeMode.ADIABATIC_RECALC,
-    )
-
-    system = create_standard_diagonal_system(
-        cylinder_specs=cylinder_specs,
-        line_configs=line_configs,
-        receiver=receiver_state,
-        master_isolation_open=False,
-    )
-    system.update_system_from_lever_angles({wheel: 0.0 for wheel in Wheel})
-
-    volumes = {
-        line: info["total_volume"] for line, info in system.get_line_volumes().items()
-    }
-    line_states = {
-        line: create_line_gas_state(line, PA_ATM, T_AMBIENT, volume)
-        for line, volume in volumes.items()
-    }
-    tank_state = create_tank_gas_state(
-        V_initial=0.0035,
-        p_initial=PA_ATM,
-        T_initial=T_AMBIENT,
-        mode=ReceiverVolumeMode.ADIABATIC_RECALC,
-    )
-
-    gas_network = GasNetwork(
-        lines=line_states,
-        tank=tank_state,
-        system_ref=system,
-        master_isolation_open=False,
-    )
-    return system, gas_network
+from src.common.units import PA_ATM, R_AIR, T_AMBIENT, GAMMA_AIR
+from src.pneumo.enums import Line, ReceiverVolumeMode, ThermoMode
+from src.pneumo.gas_state import p_from_mTV
+from src.pneumo.thermo import adiabatic_constant_pV, adiabatic_p, PolytropicParameters
+from tests.helpers.pneumo_network import build_default_system_and_network
 
 
 def _recompute_mass(pressure: float, temperature: float, volume: float) -> float:
@@ -117,7 +22,7 @@ def _recompute_mass(pressure: float, temperature: float, volume: float) -> float
 
 @pytest.fixture()
 def default_network():
-    return _build_default_system_and_network()
+    return build_default_system_and_network()
 
 
 @pytest.mark.parametrize("delta_pressure", [8_000.0, 12_000.0])
@@ -283,3 +188,80 @@ def test_master_isolation_equalises_pressures(default_network):
         expected_mass = total_mass * (volumes[line] / total_volume)
         assert math.isclose(state.m, expected_mass, rel_tol=1e-6)
         assert state.V_curr == volumes[line]
+
+
+def test_polytropic_volume_update_between_limits(default_network, monkeypatch):
+    """Polytropic updates must interpolate between isothermal and adiabatic curves."""
+
+    _system, gas_network = default_network
+    line = Line.A1
+    line_state = gas_network.lines[line]
+
+    initial_volume = line_state.V_curr
+    initial_pressure = line_state.p
+    initial_temperature = line_state.T
+    initial_mass = line_state.m
+
+    ambient_temperature = initial_temperature - 15.0
+    gas_network.ambient_temperature = ambient_temperature
+    gas_network.polytropic_params = PolytropicParameters(
+        heat_transfer_coeff=120.0,
+        exchange_area=0.18,
+        ambient_temperature=ambient_temperature,
+    )
+
+    new_volume = initial_volume * 0.9
+    volumes = {
+        name: state.V_curr if name != line else new_volume
+        for name, state in gas_network.lines.items()
+    }
+    monkeypatch.setattr(gas_network, "compute_line_volumes", lambda: volumes.copy())
+
+    ambient_limited_pressure = (initial_mass * R_AIR * ambient_temperature) / new_volume
+    adiabatic_pressure = adiabatic_p(
+        new_volume, adiabatic_constant_pV(initial_pressure, initial_volume)
+    )
+    adiabatic_temperature = initial_temperature * (
+        (initial_volume / new_volume) ** (GAMMA_AIR - 1.0)
+    )
+
+    gas_network.update_pressures_due_to_volume(ThermoMode.POLYTROPIC)
+
+    assert ambient_limited_pressure <= line_state.p <= adiabatic_pressure
+    assert ambient_temperature < line_state.T < adiabatic_temperature
+
+
+def test_apply_valves_accounts_for_line_leak(default_network):
+    """Line leaks must remove mass proportional to pressure drop and coefficients."""
+
+    _system, gas_network = default_network
+    dt = 0.2
+
+    gas_network.leak_coefficient = 1.2e-06
+    gas_network.leak_reference_area = 2.5e-04
+
+    line = Line.B1
+    line_state = gas_network.lines[line]
+    line_state.p = PA_ATM + 60_000.0
+    line_state.m = _recompute_mass(line_state.p, line_state.T, line_state.V_curr)
+
+    gas_network.tank.p = line_state.p + 20_000.0
+    gas_network.tank.m = _recompute_mass(
+        gas_network.tank.p, gas_network.tank.T, gas_network.tank.V
+    )
+
+    initial_mass = line_state.m
+    pressure_drop = line_state.p - PA_ATM
+    expected_loss = min(
+        gas_network.leak_coefficient
+        * gas_network.leak_reference_area
+        * pressure_drop
+        * dt,
+        initial_mass,
+    )
+
+    flows = gas_network.apply_valves_and_flows(dt)
+
+    actual_loss = initial_mass - line_state.m
+    assert actual_loss == pytest.approx(expected_loss, rel=1e-9)
+    assert flows["lines"][line]["flow_leak"] == pytest.approx(expected_loss / dt)

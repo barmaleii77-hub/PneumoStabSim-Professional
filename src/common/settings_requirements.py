@@ -24,6 +24,10 @@ NUMERIC_PNEUMATIC_KEYS: Tuple[str, ...] = (
     "throttle_min_dia",
     "throttle_stiff_dia",
     "atmo_temp",
+    "polytropic_heat_transfer_coeff",
+    "polytropic_exchange_area",
+    "leak_coefficient",
+    "leak_reference_area",
 )
 
 BOOL_PNEUMATIC_KEYS: Tuple[str, ...] = ("master_isolation_open",)

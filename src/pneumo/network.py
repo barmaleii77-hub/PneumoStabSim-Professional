@@ -12,10 +12,12 @@ from .gas_state import (
     TankGasState,
     iso_update,
     adiabatic_update,
+    polytropic_update,
     p_from_mTV,
 )
 from .flow import mass_flow_orifice, mass_flow_unlimited
 from .system import PneumaticSystem
+from .thermo import PolytropicParameters
 from src.common.units import PA_ATM, T_AMBIENT
 
 
@@ -31,6 +33,9 @@ class GasNetwork:
     relief_min_threshold: float = 1.05 * PA_ATM
     relief_stiff_threshold: float = 1.5 * PA_ATM
     relief_safety_threshold: float = 2.0 * PA_ATM
+    polytropic_params: Optional[PolytropicParameters] = None
+    leak_coefficient: float = 0.0
+    leak_reference_area: float = 0.0
 
     def __post_init__(self):
         """Validate network configuration"""
@@ -55,7 +60,7 @@ class GasNetwork:
         """Update line pressures due to volume changes from kinematics
 
         Args:
-            thermo_mode: ISOTHERMAL or ADIABATIC process
+            thermo_mode: Thermodynamic update mode
         """
         volumes = self.compute_line_volumes()
 
@@ -66,6 +71,11 @@ class GasNetwork:
                 iso_update(line_state, new_volume, self.ambient_temperature)
             elif thermo_mode == ThermoMode.ADIABATIC:
                 adiabatic_update(line_state, new_volume)
+            elif thermo_mode == ThermoMode.POLYTROPIC:
+                params = self.polytropic_params or PolytropicParameters(
+                    0.0, 0.0, ambient_temperature=self.ambient_temperature
+                )
+                polytropic_update(line_state, new_volume, params)
             else:
                 raise ValueError(f"Unknown thermo mode: {thermo_mode}")
 
@@ -83,7 +93,7 @@ class GasNetwork:
 
         # Process flows for each line
         line_flows: Dict[Line, Dict[str, float]] = {
-            line_name: {"flow_atmo": 0.0, "flow_tank": 0.0}
+            line_name: {"flow_atmo": 0.0, "flow_tank": 0.0, "flow_leak": 0.0}
             for line_name in self.lines.keys()
         }
         for line_name, line_state in self.lines.items():
@@ -134,10 +144,46 @@ class GasNetwork:
                         f"Line->Tank {line_name.value}: -{actual_mass_transferred:.6f}kg, m_dot={line_flows[line_name]['flow_tank']:.6f}kg/s"
                     )
 
+            # Apply distributed leaks based on configured coefficients
+            leaked_mass = self._apply_line_leak(line_state, dt)
+            if leaked_mass > 0.0:
+                line_flows[line_name]["flow_leak"] = float(leaked_mass / dt)
+
         # Process receiver relief valves
         relief_flows = self._apply_receiver_relief_valves(dt, log)
 
         return {"lines": line_flows, "relief": relief_flows}
+
+    def _apply_line_leak(self, line_state: LineGasState, dt: float) -> float:
+        """Apply configured leak losses to *line_state* and return lost mass."""
+
+        coeff = max(0.0, self.leak_coefficient)
+        area = max(0.0, self.leak_reference_area)
+        if coeff <= 0.0 or area <= 0.0 or dt <= 0.0:
+            return 0.0
+
+        if line_state.m <= 0.0:
+            return 0.0
+
+        pressure_drop = max(line_state.p - PA_ATM, 0.0)
+        if pressure_drop <= 0.0:
+            return 0.0
+
+        leak_rate = coeff * area * pressure_drop
+        if leak_rate <= 0.0:
+            return 0.0
+
+        mass_loss = min(leak_rate * dt, line_state.m)
+        if mass_loss <= 0.0:
+            return 0.0
+
+        line_state.m = max(line_state.m - mass_loss, 0.0)
+        if line_state.m <= 0.0:
+            line_state.p = 0.0
+        else:
+            line_state.p = p_from_mTV(line_state.m, line_state.T, line_state.V_curr)
+
+        return mass_loss
 
     def _add_mass_to_line(
         self, line_state: LineGasState, mass_added: float, T_inlet: float

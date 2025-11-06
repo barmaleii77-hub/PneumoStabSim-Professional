@@ -17,6 +17,10 @@ from .defaults import (
     STORAGE_PRESSURE_KEYS,
     THROTTLE_DIAMETER_LIMITS,
     VALVE_DIAMETER_LIMITS,
+    POLY_HEAT_TRANSFER_LIMITS,
+    POLY_EXCHANGE_AREA_LIMITS,
+    LEAK_COEFFICIENT_LIMITS,
+    LEAK_AREA_LIMITS,
     clamp,
     MM_PER_M,
     convert_pressure_value,
@@ -384,6 +388,58 @@ class PneumoStateManager:
     def set_atmo_temp(self, temp_c: float) -> None:
         self._state["atmo_temp"] = temp_c
 
+    def get_polytropic_heat_transfer(self) -> float:
+        return float(
+            self._state.get(
+                "polytropic_heat_transfer_coeff",
+                DEFAULT_PNEUMATIC["polytropic_heat_transfer_coeff"],
+            )
+        )
+
+    def set_polytropic_heat_transfer(self, value: float) -> None:
+        limits = POLY_HEAT_TRANSFER_LIMITS
+        self._state["polytropic_heat_transfer_coeff"] = clamp(
+            value, limits["min"], limits["max"]
+        )
+
+    def get_polytropic_exchange_area(self) -> float:
+        return float(
+            self._state.get(
+                "polytropic_exchange_area",
+                DEFAULT_PNEUMATIC["polytropic_exchange_area"],
+            )
+        )
+
+    def set_polytropic_exchange_area(self, value: float) -> None:
+        limits = POLY_EXCHANGE_AREA_LIMITS
+        self._state["polytropic_exchange_area"] = clamp(
+            value, limits["min"], limits["max"]
+        )
+
+    def get_leak_coefficient(self) -> float:
+        return float(
+            self._state.get(
+                "leak_coefficient",
+                DEFAULT_PNEUMATIC["leak_coefficient"],
+            )
+        )
+
+    def set_leak_coefficient(self, value: float) -> None:
+        limits = LEAK_COEFFICIENT_LIMITS
+        self._state["leak_coefficient"] = clamp(value, limits["min"], limits["max"])
+
+    def get_leak_reference_area(self) -> float:
+        return float(
+            self._state.get(
+                "leak_reference_area",
+                DEFAULT_PNEUMATIC["leak_reference_area"],
+            )
+        )
+
+    def set_leak_reference_area(self, value: float) -> None:
+        limits = LEAK_AREA_LIMITS
+        self._state["leak_reference_area"] = clamp(value, limits["min"], limits["max"])
+
     # Validation --------------------------------------------------------
     def validate_pneumatic(self) -> Tuple[list[str], list[str]]:
         errors: list[str] = []
@@ -422,6 +478,15 @@ class PneumoStateManager:
         dp_tank = self.get_pressure_drop("cv_tank_dp")
         if dp_atmo < 0 or dp_tank < 0:
             errors.append("ΔP для обратных клапанов не может быть отрицательной")
+
+        if self.get_polytropic_heat_transfer() < 0:
+            errors.append("Коэффициент теплоотдачи не может быть отрицательным")
+        if self.get_polytropic_exchange_area() < 0:
+            errors.append("Площадь теплообмена не может быть отрицательной")
+        if self.get_leak_coefficient() < 0:
+            errors.append("Коэффициент утечки не может быть отрицательным")
+        if self.get_leak_reference_area() < 0:
+            errors.append("Опорная площадь утечки не может быть отрицательной")
 
         return errors, warnings
 

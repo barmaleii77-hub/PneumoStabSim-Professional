@@ -2015,7 +2015,32 @@
         },
         "thermo_mode": {
           "title": "Thermo Mode",
-          "type": "string"
+          "type": "string",
+          "enum": [
+            "ISOTHERMAL",
+            "ADIABATIC",
+            "POLYTROPIC"
+          ]
+        },
+        "polytropic_heat_transfer_coeff": {
+          "title": "Polytropic Heat Transfer Coeff",
+          "type": "number",
+          "minimum": 0
+        },
+        "polytropic_exchange_area": {
+          "title": "Polytropic Exchange Area",
+          "type": "number",
+          "minimum": 0
+        },
+        "leak_coefficient": {
+          "title": "Leak Coefficient",
+          "type": "number",
+          "minimum": 0
+        },
+        "leak_reference_area": {
+          "title": "Leak Reference Area",
+          "type": "number",
+          "minimum": 0
         },
         "master_isolation_open": {
           "title": "Master Isolation Open",
@@ -2045,6 +2070,10 @@
         "throttle_stiff_dia",
         "atmo_temp",
         "thermo_mode",
+        "polytropic_heat_transfer_coeff",
+        "polytropic_exchange_area",
+        "leak_coefficient",
+        "leak_reference_area",
         "master_isolation_open",
         "pressure_units",
         "receiver_volume_limits"
