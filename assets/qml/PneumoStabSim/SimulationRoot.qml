@@ -49,8 +49,13 @@ import "../diagnostics/LogBridge.js" as Diagnostics
  // Свойства и сигнал для батч-обновлений из Python
  // ---------------------------------------------
  property var pendingPythonUpdates: null
-signal batchUpdatesApplied(var summary)
-signal animationToggled(bool running)
+    signal batchUpdatesApplied(var summary)
+    signal animationToggled(bool running)
+
+    onPostEffectsChanged: {
+        if (postEffects)
+            _ensurePostEffectsContext(postEffects)
+    }
 
     Component.onCompleted: {
         const hasBridge = sceneBridge !== null && sceneBridge !== undefined
@@ -199,6 +204,75 @@ signal animationToggled(bool running)
         }
         geometryStateReceived = !_isEmptyMap(geometryState)
         simulationStateReceived = !_isEmptyMap(simulationState)
+        if (postEffects)
+            _ensurePostEffectsContext(postEffects)
+    }
+
+    function _ensurePostEffectsContext(target) {
+        if (!target)
+            return
+
+        var nextBridge = sceneBridge || null
+        try {
+            if ("sceneBridge" in target && target.sceneBridge !== nextBridge)
+                target.sceneBridge = nextBridge
+        } catch (error) {
+            console.debug("[SimulationRoot] Failed to propagate sceneBridge to postEffects", error)
+        }
+
+        try {
+            if ("diagnosticsLoggingEnabled" in target) {
+                var desired = !!diagnosticsLoggingEnabled
+                if (!!target.diagnosticsLoggingEnabled !== desired)
+                    target.diagnosticsLoggingEnabled = desired
+            }
+        } catch (error) {
+            console.debug("[SimulationRoot] Failed to propagate diagnostics flag to postEffects", error)
+        }
+    }
+
+    function applyEffectsUpdates(params) {
+        var payload = _normaliseState(params)
+        var target = postEffects
+
+        if (!target) {
+            console.warn("[SimulationRoot] Skipping effects update; postEffects component is not set", payload)
+            return false
+        }
+
+        _ensurePostEffectsContext(target)
+
+        var handled = false
+        var handlerNames = [
+            "applyEffectsPayload",
+            "applyPayload",
+            "applyUpdates"
+        ]
+
+        for (var i = 0; i < handlerNames.length; ++i) {
+            if (handled)
+                break
+            var name = handlerNames[i]
+            var handler = target[name]
+            if (typeof handler !== "function")
+                continue
+            try {
+                handler.call(target, payload)
+                handled = true
+            } catch (error) {
+                console.error("[SimulationRoot] postEffects." + name + " failed", error)
+            }
+        }
+
+        if (!handled) {
+            console.warn("[SimulationRoot] postEffects component lacks a compatible apply handler; payload ignored", payload)
+        }
+
+        return handled
+    }
+
+    function updateEffects(params) {
+        return applyEffectsUpdates(params)
     }
 
     function applyPostProcessingBypass(active, reason) {
