@@ -7,6 +7,7 @@ from typing import Any, Dict, Iterable, Optional
 from PySide6.QtCore import QObject, Property, Signal
 
 from src.common.settings_manager import SettingsManager
+from src.common.signal_trace import SignalTraceService, get_signal_trace_service
 from src.ui.services.visualization_service import VisualizationService
 
 
@@ -33,12 +34,20 @@ class SceneBridge(QObject):
         *,
         visualization_service: VisualizationService | None = None,
         settings_manager: Optional[SettingsManager] = None,
+        signal_trace_service: SignalTraceService | None = None,
     ) -> None:
         super().__init__(parent)
         if visualization_service is not None:
             self._service = visualization_service
         else:
             self._service = VisualizationService(settings_manager=settings_manager)
+        if signal_trace_service is not None:
+            self._signal_trace = signal_trace_service
+        else:
+            try:
+                self._signal_trace = get_signal_trace_service()
+            except Exception:  # pragma: no cover - optional diagnostics dependency
+                self._signal_trace = None
         self._signal_map = {
             "geometry": self.geometryChanged,
             "camera": self.cameraChanged,
@@ -54,7 +63,7 @@ class SceneBridge(QObject):
             "simulation": self.simulationChanged,
         }
 
-        initial = self._service.populate_camera_defaults()
+        initial = self._service.populate_initial_state()
         if initial:
             self._emit_updates(initial)
 
@@ -108,6 +117,10 @@ class SceneBridge(QObject):
     @Property("QVariantMap", notify=simulationChanged)
     def simulation(self) -> Dict[str, Any]:
         return dict(self._service.state_for("simulation"))
+
+    @Property(QObject, constant=True)
+    def signalTrace(self) -> SignalTraceService | None:
+        return self._signal_trace
 
     @Property("QVariantMap", notify=updatesDispatched)
     def latestUpdates(self) -> Dict[str, Any]:

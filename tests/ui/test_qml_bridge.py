@@ -98,6 +98,30 @@ def test_camera_hud_context() -> None:
     assert "camera" in latest
 
 
+@pytest.mark.skipif(not PYSIDE_AVAILABLE, reason="PySide6 is required for SceneBridge")
+def test_scene_bridge_initial_graphics_payload() -> None:
+    manager = SettingsManager()
+    bridge = SceneBridge(settings_manager=manager)
+
+    environment_payload = bridge.environment
+    assert environment_payload, "environment payload should not be empty"
+    expected_color = manager.get("current.graphics.environment.background_color")
+    assert environment_payload.get("background_color") == expected_color
+
+    effects_payload = bridge.effects
+    assert effects_payload, "effects payload should be populated"
+    assert effects_payload.get("tonemap_mode") == manager.get(
+        "current.graphics.effects.tonemap_mode"
+    )
+
+    quality_payload = bridge.quality
+    assert isinstance(quality_payload, dict)
+
+    latest = bridge.latestUpdates
+    assert "environment" in latest
+    assert "effects" in latest
+
+
 def test_scene_bridge_augments_camera_updates() -> None:
     manager = SettingsManager()
     bridge = SceneBridge(settings_manager=manager)

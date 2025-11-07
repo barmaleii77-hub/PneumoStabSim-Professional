@@ -83,6 +83,8 @@ ExtendedSceneEnvironment {
 
     // Structured diagnostics toggles (disabled by default)
     property bool diagnosticsLoggingEnabled: false
+    property var diagnosticsTrace: sceneBridge && sceneBridge.signalTrace ? sceneBridge.signalTrace : null
+    property var _settingsWarningCache: ({})
 
     function logStructured(eventName, params) {
         if (!diagnosticsLoggingEnabled)
@@ -505,6 +507,44 @@ ExtendedSceneEnvironment {
         host[propertyName] = value
     }
 
+    function _settingKey(primaryKey, secondaryKey) {
+        if (primaryKey && String(primaryKey).length)
+            return String(primaryKey)
+        if (secondaryKey && String(secondaryKey).length)
+            return String(secondaryKey)
+        return "unknown"
+    }
+
+    function _recordSettingWarning(section, primaryKey, secondaryKey, reason, fallback) {
+        var keyName = _settingKey(primaryKey, secondaryKey)
+        var token = section + ":" + keyName + ":" + reason
+        if (_settingsWarningCache[token])
+            return
+        _settingsWarningCache[token] = true
+
+        var message = "Missing graphics." + section + "." + keyName + " (" + reason + "); fallback=" + fallback
+        console.warn("SceneEnvironmentController:", message)
+
+        var overlay = diagnosticsTrace
+        if (!overlay || typeof overlay.recordObservation !== "function")
+            return
+        try {
+            overlay.recordObservation(
+                "settings.graphicsFallback",
+                {
+                    section: section,
+                    key: keyName,
+                    reason: reason,
+                    fallback: fallback
+                },
+                "qml",
+                "SceneEnvironmentController"
+            )
+        } catch (error) {
+            console.debug("SceneEnvironmentController: overlay record failed", error)
+        }
+    }
+
     function boolFromKeys(params, primaryKey, secondaryKey) {
         var raw = valueFromKeys(params, primaryKey, secondaryKey)
         if (raw === undefined)
@@ -539,45 +579,81 @@ ExtendedSceneEnvironment {
     }
 
     function environmentBoolDefault(primaryKey, secondaryKey, fallback) {
-        if (!root.contextEnvironmentDefaults)
+        if (!root.contextEnvironmentDefaults) {
+            _recordSettingWarning("environment", primaryKey, secondaryKey, "missing_context", fallback)
             return fallback
+        }
         var value = boolFromKeys(root.contextEnvironmentDefaults, primaryKey, secondaryKey)
-        return value === undefined ? fallback : value
+        if (value === undefined) {
+            _recordSettingWarning("environment", primaryKey, secondaryKey, "missing", fallback)
+            return fallback
+        }
+        return value
     }
 
     function environmentNumberDefault(primaryKey, secondaryKey, fallback) {
-        if (!root.contextEnvironmentDefaults)
+        if (!root.contextEnvironmentDefaults) {
+            _recordSettingWarning("environment", primaryKey, secondaryKey, "missing_context", fallback)
             return fallback
+        }
         var value = numberFromKeys(root.contextEnvironmentDefaults, primaryKey, secondaryKey)
-        return value === undefined ? fallback : value
+        if (value === undefined) {
+            _recordSettingWarning("environment", primaryKey, secondaryKey, "missing", fallback)
+            return fallback
+        }
+        return value
     }
 
     function environmentStringDefault(primaryKey, secondaryKey, fallback) {
-        if (!root.contextEnvironmentDefaults)
+        if (!root.contextEnvironmentDefaults) {
+            _recordSettingWarning("environment", primaryKey, secondaryKey, "missing_context", fallback)
             return fallback
+        }
         var value = stringFromKeys(root.contextEnvironmentDefaults, primaryKey, secondaryKey)
-        return value === undefined ? fallback : value
+        if (value === undefined) {
+            _recordSettingWarning("environment", primaryKey, secondaryKey, "missing", fallback)
+            return fallback
+        }
+        return value
     }
 
     function effectsBoolDefault(primaryKey, secondaryKey, fallback) {
-        if (!root.contextEffectsDefaults)
+        if (!root.contextEffectsDefaults) {
+            _recordSettingWarning("effects", primaryKey, secondaryKey, "missing_context", fallback)
             return fallback
+        }
         var value = boolFromKeys(root.contextEffectsDefaults, primaryKey, secondaryKey)
-        return value === undefined ? fallback : value
+        if (value === undefined) {
+            _recordSettingWarning("effects", primaryKey, secondaryKey, "missing", fallback)
+            return fallback
+        }
+        return value
     }
 
     function effectsNumberDefault(primaryKey, secondaryKey, fallback) {
-        if (!root.contextEffectsDefaults)
+        if (!root.contextEffectsDefaults) {
+            _recordSettingWarning("effects", primaryKey, secondaryKey, "missing_context", fallback)
             return fallback
+        }
         var value = numberFromKeys(root.contextEffectsDefaults, primaryKey, secondaryKey)
-        return value === undefined ? fallback : value
+        if (value === undefined) {
+            _recordSettingWarning("effects", primaryKey, secondaryKey, "missing", fallback)
+            return fallback
+        }
+        return value
     }
 
     function effectsStringDefault(primaryKey, secondaryKey, fallback) {
-        if (!root.contextEffectsDefaults)
+        if (!root.contextEffectsDefaults) {
+            _recordSettingWarning("effects", primaryKey, secondaryKey, "missing_context", fallback)
             return fallback
+        }
         var value = stringFromKeys(root.contextEffectsDefaults, primaryKey, secondaryKey)
-        return value === undefined ? fallback : value
+        if (value === undefined) {
+            _recordSettingWarning("effects", primaryKey, secondaryKey, "missing", fallback)
+            return fallback
+        }
+        return value
     }
 
     function _cloneContextPayload(payload) {
