@@ -117,8 +117,9 @@ def integrate_lever_state(
     road_displacement: float,
     road_velocity: float,
     get_line_pressure: Callable[[Wheel, Port], float],
+    method: str | None = None,
 ) -> LeverIntegrationResult:
-    """Integrate lever angle/velocity for one timestep using RK4."""
+    """Integrate lever angle/velocity for one timestep."""
 
     inertia = max(lever_config.lever_inertia, 1e-6)
 
@@ -140,29 +141,39 @@ def integrate_lever_state(
     theta_new = float(theta0)
     omega_new = float(omega0)
 
+    integrator = method or getattr(lever_config, "integrator_method", "rk4")
+    integrator = str(integrator).strip().lower() or "rk4"
+
+    if integrator not in {"rk4", "euler"}:
+        raise ValueError(f"Unsupported lever integrator method: {integrator}")
+
     if dt > 0.0:
-        k1_theta = omega_new
-        k1_omega = _acc(theta_new, omega_new)
+        if integrator == "euler":
+            omega_new = omega_new + dt * _acc(theta_new, omega_new)
+            theta_new = theta_new + dt * omega_new
+        else:  # RK4
+            k1_theta = omega_new
+            k1_omega = _acc(theta_new, omega_new)
 
-        k2_theta = omega_new + 0.5 * dt * k1_omega
-        k2_omega = _acc(
-            theta_new + 0.5 * dt * k1_theta, omega_new + 0.5 * dt * k1_omega
-        )
+            k2_theta = omega_new + 0.5 * dt * k1_omega
+            k2_omega = _acc(
+                theta_new + 0.5 * dt * k1_theta, omega_new + 0.5 * dt * k1_omega
+            )
 
-        k3_theta = omega_new + 0.5 * dt * k2_omega
-        k3_omega = _acc(
-            theta_new + 0.5 * dt * k2_theta, omega_new + 0.5 * dt * k2_omega
-        )
+            k3_theta = omega_new + 0.5 * dt * k2_omega
+            k3_omega = _acc(
+                theta_new + 0.5 * dt * k2_theta, omega_new + 0.5 * dt * k2_omega
+            )
 
-        k4_theta = omega_new + dt * k3_omega
-        k4_omega = _acc(theta_new + dt * k3_theta, omega_new + dt * k3_omega)
+            k4_theta = omega_new + dt * k3_omega
+            k4_omega = _acc(theta_new + dt * k3_theta, omega_new + dt * k3_omega)
 
-        theta_new = theta_new + (dt / 6.0) * (
-            k1_theta + 2.0 * k2_theta + 2.0 * k3_theta + k4_theta
-        )
-        omega_new = omega_new + (dt / 6.0) * (
-            k1_omega + 2.0 * k2_omega + 2.0 * k3_omega + k4_omega
-        )
+            theta_new = theta_new + (dt / 6.0) * (
+                k1_theta + 2.0 * k2_theta + 2.0 * k3_theta + k4_theta
+            )
+            omega_new = omega_new + (dt / 6.0) * (
+                k1_omega + 2.0 * k2_omega + 2.0 * k3_omega + k4_omega
+            )
 
     geom = cylinder.spec.geometry
     max_displacement = geom.L_travel_max / 2.0
@@ -257,6 +268,7 @@ def compute_kinematics(state: PhysicsStepState, road_inputs: Dict[str, float]) -
             road_displacement=x_road,
             road_velocity=road_velocity,
             get_line_pressure=state.get_line_pressure,
+            method=lever_config.integrator_method,
         )
 
         lever_angles[wheel] = integration.angle

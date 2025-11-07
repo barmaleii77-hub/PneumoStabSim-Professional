@@ -38,6 +38,9 @@ DEFAULT_PHYSICS_OPTIONS: Dict[str, Any] = {
     "spring_constant": 50_000.0,
     "damper_coefficient": 2_000.0,
     "lever_inertia_multiplier": 1.0,
+    "damper_force_threshold_n": 50.0,
+    "spring_rest_position_m": 0.0,
+    "integrator_method": "rk4",
 }
 
 # ===============================================================
@@ -55,6 +58,9 @@ MODE_PRESETS: Dict[int, Dict[str, Any]] = {
         "spring_constant": 50_000.0,
         "damper_coefficient": 2_000.0,
         "lever_inertia_multiplier": 1.0,
+        "damper_force_threshold_n": 50.0,
+        "spring_rest_position_m": 0.0,
+        "integrator_method": "rk4",
         "description": "Базовый режим с кинематикой и всеми компонентами",
     },
     1: {  # Только кинематика
@@ -67,6 +73,9 @@ MODE_PRESETS: Dict[int, Dict[str, Any]] = {
         "spring_constant": 50_000.0,
         "damper_coefficient": 2_000.0,
         "lever_inertia_multiplier": 1.0,
+        "damper_force_threshold_n": 50.0,
+        "spring_rest_position_m": 0.0,
+        "integrator_method": "rk4",
         "description": "Чистая геометрическая кинематика без физики",
     },
     2: {  # Полная динамика
@@ -79,6 +88,9 @@ MODE_PRESETS: Dict[int, Dict[str, Any]] = {
         "spring_constant": 55_000.0,
         "damper_coefficient": 2_200.0,
         "lever_inertia_multiplier": 1.1,
+        "damper_force_threshold_n": 50.0,
+        "spring_rest_position_m": 0.0,
+        "integrator_method": "rk4",
         "description": "Полная динамическая модель с адиабатической пневматикой",
     },
     3: {  # Тест пневматики
@@ -91,6 +103,9 @@ MODE_PRESETS: Dict[int, Dict[str, Any]] = {
         "spring_constant": 50_000.0,
         "damper_coefficient": 2_000.0,
         "lever_inertia_multiplier": 1.0,
+        "damper_force_threshold_n": 50.0,
+        "spring_rest_position_m": 0.0,
+        "integrator_method": "rk4",
         "description": "Изолированный тест пневматической системы",
     },
     4: {  # Пользовательский
